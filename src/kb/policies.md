@@ -1,0 +1,3 @@
+- Pago: contra entrega (si aplica) o según confirmación.
+- Envío: domicilio o agencia.
+- No inventar tiempos: confirmar según transportadora/estado.

@@ -1,0 +1,9 @@
+node_modules/
+.local/
+auth_info_baileys/
+.env
+public/qrcode.png
+public/media/*
+!public/media/templates/
+!public/media/templates/**
+!.env.example
