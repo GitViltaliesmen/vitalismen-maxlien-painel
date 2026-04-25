@@ -41,6 +41,19 @@ Este projeto nao precisa de build. Os arquivos principais sao:
 2. Ativar GitHub Pages na branch principal.
 3. Publicar a raiz do projeto.
 
+## Deploy automatico com GitHub
+
+O projeto ja esta preparado com workflow em `.github/workflows/deploy-pages.yml`.
+
+Para ativar o deploy automatico no repositório GitHub, adicione estes `Secrets and variables > Actions > New repository secret`:
+
+- `CLOUDFLARE_API_TOKEN`
+  Use um token da conta Cloudflare onde esta o projeto Pages `painel-maxlien`, com permissao `Cloudflare Pages:Edit`.
+- `CLOUDFLARE_ACCOUNT_ID`
+  Use o `Account ID` da conta Cloudflare do projeto Pages.
+
+Depois disso, cada `push` na branch `main` publica automaticamente a versao mais recente no Cloudflare Pages.
+
 ## Operacao de vendas
 
 ### No estado atual
