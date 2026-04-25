@@ -23,7 +23,7 @@ jobs:
           node-version: 20
 
       - name: Install Wrangler
-        run: npm install --no-save wrangler@4.90.0
+        run: npm install --no-save wrangler
 
       - name: Validate Cloudflare secrets
         run: |
