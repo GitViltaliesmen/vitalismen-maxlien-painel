@@ -553,6 +553,7 @@ tbody tr.row-agenda-overdue {
 }
 
 .table-button,
+.ghost-table-button,
 .danger-button,
 .primary-button,
 .ghost-button,
@@ -578,6 +579,13 @@ tbody tr.row-agenda-overdue {
   font-weight: 700;
 }
 
+.ghost-table-button {
+  padding: 10px 12px;
+  background: #f6efe6;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .ghost-button,
 .icon-button {
   padding: 12px 14px;
@@ -598,7 +606,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .actions-cell .table-button,
-.actions-cell .danger-button {
+.actions-cell .danger-button,
+.actions-cell .ghost-table-button {
   min-width: 86px;
   font-size: 12px;
   letter-spacing: 0.01em;

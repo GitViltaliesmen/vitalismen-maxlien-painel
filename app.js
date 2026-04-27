@@ -325,6 +325,10 @@ function formatScheduledDate(value) {
   }).format(new Date(`${value}T12:00:00`));
 }
 
+function sanitizePhoneNumber(phone) {
+  return String(phone).replace(/[^\d+]/g, "");
+}
+
 function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -533,6 +537,9 @@ function renderTable() {
           </td>
           <td data-label="Acao">
             <div class="actions-cell">
+              <button class="ghost-table-button" type="button" data-copy-phone="${safePhone}">
+                copiar
+              </button>
               <button class="table-button" type="button" data-edit-id="${lead.id}">
                 editar
               </button>
@@ -552,6 +559,25 @@ function renderTable() {
 
   document.querySelectorAll("[data-delete-id]").forEach((button) => {
     button.addEventListener("click", () => deleteLead(button.dataset.deleteId));
+  });
+
+  document.querySelectorAll("[data-copy-phone]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(
+          sanitizePhoneNumber(button.dataset.copyPhone)
+        );
+        button.textContent = "copiado";
+        window.setTimeout(() => {
+          button.textContent = "copiar";
+        }, 1200);
+      } catch (error) {
+        button.textContent = "falhou";
+        window.setTimeout(() => {
+          button.textContent = "copiar";
+        }, 1200);
+      }
+    });
   });
 }
 
