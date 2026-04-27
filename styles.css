@@ -7,6 +7,7 @@
   --line: rgba(148, 163, 184, 0.14);
   --text: #e5edf9;
   --muted: #96a3ba;
+  --heading: #f8fbff;
   --primary: #ff6b35;
   --primary-strong: #f2551d;
   --secondary: #14b8a6;
@@ -114,8 +115,9 @@ textarea {
 .nav-item:hover,
 .nav-item.active {
   transform: translateY(-1px);
-  border-color: rgba(255, 107, 53, 0.32);
-  background: rgba(25, 35, 58, 0.96);
+  border-color: rgba(255, 107, 53, 0.42);
+  background: linear-gradient(135deg, rgba(28, 38, 61, 0.98), rgba(20, 29, 49, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.12);
 }
 
 .nav-dot {
@@ -174,7 +176,7 @@ textarea {
   max-width: 12ch;
   font-size: clamp(24px, 2.6vw, 34px);
   line-height: 1.02;
-  color: #f8fbff;
+  color: var(--heading);
 }
 
 .quick-actions {
@@ -215,7 +217,7 @@ textarea {
 .panel,
 .drawer-panel {
   background: var(--surface);
-  border: 1px solid rgba(146, 113, 76, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
 }
@@ -230,8 +232,10 @@ textarea {
 .country-card:hover,
 .country-card.active {
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 53, 0.4);
-  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.45);
+  border-color: rgba(255, 107, 53, 0.45);
+  box-shadow:
+    0 22px 44px rgba(2, 6, 23, 0.45),
+    inset 0 0 0 1px rgba(255, 107, 53, 0.12);
 }
 
 .country-card.is-down {
@@ -268,17 +272,49 @@ textarea {
   padding: 14px 16px;
   border-radius: 18px;
   background: var(--surface-accent);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 18px 0 0 18px;
+  background: var(--primary);
+}
+
+.metric-card:nth-child(1)::before {
+  background: linear-gradient(180deg, #ff8a5c, #ff6b35);
+}
+
+.metric-card:nth-child(2)::before {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.metric-card:nth-child(3)::before {
+  background: linear-gradient(180deg, #c084fc, #7c3aed);
+}
+
+.metric-card:nth-child(4)::before {
+  background: linear-gradient(180deg, #4ade80, #16a34a);
 }
 
 .metric-card strong {
   margin: 6px 0 2px;
   font-size: clamp(22px, 2.5vw, 30px);
-  color: #142033;
+  color: var(--heading);
 }
 
 .metric-card small {
   font-size: 11px;
   line-height: 1.25;
+}
+
+.metric-card span {
+  color: #d7e4f7;
+  font-weight: 700;
 }
 
 .panel {
@@ -298,7 +334,7 @@ textarea {
 .panel h2 {
   margin: 0;
   font-size: 28px;
-  color: #f8fbff;
+  color: var(--heading);
 }
 
 .toolbar {
@@ -318,7 +354,7 @@ textarea {
 
 .quick-filter {
   padding: 9px 12px;
-  border: 1px solid rgba(146, 113, 76, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(17, 24, 39, 0.82);
   color: var(--muted);
@@ -330,9 +366,10 @@ textarea {
 }
 
 .quick-filter.active {
-  border-color: rgba(255, 107, 53, 0.24);
-  background: rgba(255, 107, 53, 0.14);
-  color: var(--primary-strong);
+  border-color: rgba(255, 107, 53, 0.42);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.22), rgba(242, 85, 29, 0.16));
+  color: #ffb294;
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.14);
 }
 
 .search input,
@@ -400,7 +437,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: rgba(255, 107, 53, 0.05);
+  background: rgba(255, 107, 53, 0.08);
 }
 
 tbody tr.row-agendado {
@@ -522,13 +559,13 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.pendente {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
 }
 
 .status-pill.processado {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
 }
 
 .status-pill.agendado {
@@ -537,8 +574,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.retirada_agencia {
-  background: #ede9fe;
-  color: #5b21b6;
+  background: rgba(139, 92, 246, 0.16);
+  color: #c4b5fd;
 }
 
 .status-pill.confirmado {
@@ -547,8 +584,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.entregue {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
 }
 
 .status-pill.cancelado {
@@ -557,8 +594,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.devolvido {
-  background: #ffedd5;
-  color: #c2410c;
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
 }
 
 .table-button,
@@ -578,7 +615,9 @@ tbody tr.row-agenda-overdue {
   background: linear-gradient(135deg, var(--primary), #ff8f5c);
   color: white;
   font-weight: 800;
-  box-shadow: 0 10px 24px rgba(255, 107, 53, 0.22);
+  box-shadow:
+    0 10px 24px rgba(255, 107, 53, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .danger-button {
@@ -598,13 +637,13 @@ tbody tr.row-agenda-overdue {
 .ghost-button,
 .icon-button {
   padding: 12px 14px;
-  background: #f6efe6;
-  color: var(--text);
+  background: rgba(30, 41, 59, 0.92);
+  color: #d7e4f7;
 }
 
 .subtle-button {
-  background: #fff6ef;
-  color: #9a3412;
+  background: rgba(255, 107, 53, 0.12);
+  color: #ffb294;
 }
 
 .actions-cell {
@@ -641,7 +680,7 @@ tbody tr.row-agenda-overdue {
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #10192c;
+  background: linear-gradient(180deg, #162239 0%, #0f182b 100%);
   box-shadow: 0 18px 34px rgba(2, 6, 23, 0.45);
   z-index: 3;
 }
@@ -698,7 +737,7 @@ tbody tr.row-agenda-overdue {
 .drawer-head h3 {
   margin: 6px 0 0;
   font-size: 30px;
-  color: #f8fbff;
+  color: var(--heading);
 }
 
 .drawer-copy {
