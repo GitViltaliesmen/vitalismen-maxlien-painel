@@ -126,6 +126,7 @@ const statusLabels = {
 let currentCountry = "all";
 let currentSearch = "";
 let currentStatus = "all";
+let currentQuickFilter = "all";
 
 const tableBody = document.getElementById("lead-table-body");
 const searchInput = document.getElementById("search-input");
@@ -142,14 +143,17 @@ const leadForm = document.getElementById("lead-form");
 const newLeadButton = document.getElementById("new-lead-button");
 const exportButton = document.getElementById("export-button");
 const resetButton = document.getElementById("reset-button");
+const quickFilters = document.getElementById("quick-filters");
 const countryStatusCo = document.getElementById("country-status-co");
 const countryStatusEc = document.getElementById("country-status-ec");
+const activeCountryPill = document.getElementById("active-country-pill");
 const statusPicker = document.getElementById("status-picker");
 const statusTrigger = document.getElementById("status-trigger");
 const statusMenu = document.getElementById("status-menu");
 const statusTriggerLabel = document.getElementById("status-trigger-label");
 const scheduledDateField = document.getElementById("scheduled-date-field");
 const futureNote = document.getElementById("future-note");
+const formFeedback = document.getElementById("form-feedback");
 
 const formFields = {
   id: document.getElementById("lead-id"),
@@ -321,6 +325,19 @@ function formatScheduledDate(value) {
   }).format(new Date(`${value}T12:00:00`));
 }
 
+function getTodayDateValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getScheduleState(lead) {
+  if (lead.status !== "agendado" || !lead.scheduledDate) return "none";
+
+  const today = getTodayDateValue();
+  if (lead.scheduledDate < today) return "overdue";
+  if (lead.scheduledDate === today) return "today";
+  return "future";
+}
+
 function syncFormPricing() {
   const country = formFields.country.value || "ec";
   const quantity = normalizeQuantity(formFields.quantity.value || 1);
@@ -339,6 +356,53 @@ function formatStatusLabel(status) {
     .join(" ");
 }
 
+function getStatusPriority(status) {
+  const order = {
+    agendado: 0,
+    novo: 1,
+    pendente: 2,
+    atendendo: 3,
+    processado: 4,
+    retirada_agencia: 5,
+    confirmado: 6,
+    entregue: 7,
+    devolvido: 8,
+    cancelado: 9,
+  };
+
+  return order[status] ?? 99;
+}
+
+function getLeadSortValue(lead) {
+  if (lead.status === "agendado" && lead.scheduledDate) {
+    return new Date(`${lead.scheduledDate}T12:00:00`).getTime();
+  }
+
+  const numericId = Number(String(lead.id).split("-").pop());
+  return Number.isFinite(numericId) ? -numericId : 0;
+}
+
+function sortLeads(leads) {
+  return [...leads].sort((left, right) => {
+    const byStatus = getStatusPriority(left.status) - getStatusPriority(right.status);
+    if (byStatus !== 0) return byStatus;
+
+    const leftValue = getLeadSortValue(left);
+    const rightValue = getLeadSortValue(right);
+
+    if (left.status === "agendado" && right.status === "agendado") {
+      return leftValue - rightValue;
+    }
+
+    return rightValue - leftValue;
+  });
+}
+
+function setFormFeedback(message = "") {
+  formFeedback.hidden = !message;
+  formFeedback.textContent = message;
+}
+
 function setStatusMenuOpen(isOpen) {
   statusMenu.hidden = !isOpen;
   statusTrigger.setAttribute("aria-expanded", String(isOpen));
@@ -348,9 +412,11 @@ function syncScheduleVisibility() {
   const isScheduled = formFields.status.value === "agendado";
   scheduledDateField.hidden = !isScheduled;
   futureNote.hidden = !isScheduled;
+  formFields.scheduledDate.required = isScheduled;
 
   if (!isScheduled) {
     formFields.scheduledDate.value = "";
+    formFields.scheduledDate.setCustomValidity("");
   }
 }
 
@@ -368,9 +434,16 @@ function setFormStatus(status) {
 function getFilteredLeads() {
   const query = currentSearch.trim().toLowerCase();
 
-  return getCountryEntries().filter((lead) => {
+  return sortLeads(getCountryEntries()).filter((lead) => {
     const matchesStatus =
       currentStatus === "all" ? true : lead.status === currentStatus;
+    const scheduleState = getScheduleState(lead);
+    const matchesQuickFilter =
+      currentQuickFilter === "all"
+        ? true
+        : currentQuickFilter === "today"
+          ? scheduleState === "today" || scheduleState === "overdue"
+          : lead.status === currentQuickFilter;
 
     const haystack = [
       lead.name,
@@ -384,7 +457,7 @@ function getFilteredLeads() {
       .join(" ")
       .toLowerCase();
 
-    return matchesStatus && haystack.includes(query);
+    return matchesStatus && matchesQuickFilter && haystack.includes(query);
   });
 }
 
@@ -430,9 +503,16 @@ function renderTable() {
           ? formatScheduledDate(lead.scheduledDate)
           : "-"
       );
+      const scheduleState = getScheduleState(lead);
+      const scheduleBadge =
+        scheduleState === "today"
+          ? '<span class="schedule-flag today">hoje</span>'
+          : scheduleState === "overdue"
+            ? '<span class="schedule-flag overdue">atrasado</span>'
+            : "";
 
       return `
-        <tr class="${lead.status === "agendado" ? "row-agendado" : ""}">
+        <tr class="${lead.status === "agendado" ? "row-agendado" : ""} ${scheduleState === "today" ? "row-agenda-today" : ""} ${scheduleState === "overdue" ? "row-agenda-overdue" : ""}">
           <td class="client-cell single-line" data-label="Cliente" title="${safeName}">
             <strong>${safeName}</strong>
           </td>
@@ -447,7 +527,7 @@ function renderTable() {
           </td>
           <td class="qty-cell" data-label="Qtd">${lead.quantity}</td>
           <td class="value-cell" data-label="Valor">${formatCurrency(lead.value, lead.country)}</td>
-          <td class="schedule-cell ${lead.status === "agendado" ? "is-active" : ""}" data-label="Agenda">${safeSchedule}</td>
+          <td class="schedule-cell ${lead.status === "agendado" ? "is-active" : ""}" data-label="Agenda">${safeSchedule}${scheduleBadge}</td>
           <td class="status-cell" data-label="Status">
             <span class="status-pill ${lead.status}">${safeStatus}</span>
           </td>
@@ -475,6 +555,17 @@ function renderTable() {
   });
 }
 
+function syncQuickFilters() {
+  if (!quickFilters) return;
+
+  quickFilters.querySelectorAll("[data-quick-filter]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.quickFilter === currentQuickFilter
+    );
+  });
+}
+
 function syncCountryButtons() {
   document.querySelectorAll("[data-country-target]").forEach((item) => {
     item.classList.toggle(
@@ -489,6 +580,17 @@ function syncCountryButtons() {
       );
     }
   });
+
+  if (!activeCountryPill) return;
+
+  const pillLabels = {
+    all: "modo: colombia + equador",
+    co: "modo: colombia",
+    ec: "modo: equador",
+  };
+
+  activeCountryPill.className = `active-country-pill ${currentCountry}`;
+  activeCountryPill.textContent = pillLabels[currentCountry];
 }
 
 function setCountry(country) {
@@ -499,11 +601,13 @@ function setCountry(country) {
 
 function resetForm() {
   leadForm.reset();
+  setFormFeedback("");
   formFields.id.value = "";
   formFields.country.value = currentCountry === "all" ? "ec" : currentCountry;
   formFields.quantity.value = "1";
   setFormStatus("novo");
   formFields.scheduledDate.value = "";
+  formFields.scheduledDate.min = new Date().toISOString().slice(0, 10);
   syncFormPricing();
 }
 
@@ -515,6 +619,7 @@ function openDrawer(leadId) {
   const lead = findLeadById(leadId);
   if (!lead) return;
 
+  setFormFeedback("");
   formFields.id.value = lead.id;
   formFields.country.value = lead.country;
   formFields.name.value = lead.name;
@@ -548,6 +653,7 @@ function openCreateDrawer() {
 }
 
 function closeDrawer() {
+  setFormFeedback("");
   drawer.classList.remove("open");
   drawer.setAttribute("aria-hidden", "true");
 }
@@ -593,6 +699,18 @@ function readFormLead() {
     status: formFields.status.value,
     scheduledDate: formFields.scheduledDate.value,
   };
+}
+
+function validateLeadForm(formLead) {
+  if (!formLead.name || !formLead.phone || !formLead.city || !formLead.address) {
+    return "Preencha nome, telefone, cidade e endereco antes de salvar.";
+  }
+
+  if (formLead.status === "agendado" && !formLead.scheduledDate) {
+    return "Lead agendado precisa de uma data desejada para acompanhamento.";
+  }
+
+  return "";
 }
 
 document.querySelectorAll("[data-country-target]").forEach((item) => {
@@ -642,6 +760,14 @@ statusFilter.addEventListener("change", (event) => {
   renderTable();
 });
 
+quickFilters?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-quick-filter]");
+  if (!button) return;
+  currentQuickFilter = button.dataset.quickFilter;
+  syncQuickFilters();
+  renderTable();
+});
+
 newLeadButton.addEventListener("click", openCreateDrawer);
 exportButton.addEventListener("click", exportLeads);
 resetButton.addEventListener("click", resetDemoLeads);
@@ -654,6 +780,14 @@ leadForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const formLead = readFormLead();
+  const validationMessage = validateLeadForm(formLead);
+
+  if (validationMessage) {
+    setFormFeedback(validationMessage);
+    return;
+  }
+
+  setFormFeedback("");
   let existingLead = null;
   let existingCountry = null;
 
@@ -704,3 +838,4 @@ syncLeadPricing();
 saveLeads();
 renderTable();
 syncCountryButtons();
+syncQuickFilters();

@@ -47,34 +47,28 @@
             Equador
           </button>
         </nav>
-
-        <div class="sidebar-note">
-          <p>Separado por pais, mas com leitura comercial unica.</p>
-          <small>Quando o cliente pedir para comprar depois, marque como agendado e informe a data desejada.</small>
-        </div>
       </aside>
 
       <main class="content">
         <header class="hero">
-          <div>
-            <span class="eyebrow">Painel comercial</span>
-            <h1>Operacao de vendas com follow-up, agenda e fechamento no mesmo fluxo.</h1>
-            <p>
-              O painel local agora trata compra imediata e compra futura. Quando o
-              cliente pedir para receber depois, voce marca como agendado e registra
-              a data combinada.
-            </p>
+          <div class="hero-copy">
+            <div class="hero-topline">
+              <span class="eyebrow">Painel comercial</span>
+              <span class="active-country-pill all" id="active-country-pill">
+                modo: colombia + equador
+              </span>
+            </div>
+            <h1>Fila comercial unificada.</h1>
           </div>
 
-          <div class="quick-actions">
+          <div class="quick-actions" aria-label="Pais em destaque">
             <button
               class="country-card active"
               data-country-target="co"
               type="button"
             >
               <span class="country-label">Colombia</span>
-              <strong>ver no unificado</strong>
-              <small id="country-status-co">painel externo indisponivel no momento</small>
+              <strong id="country-status-co">painel externo indisponivel</strong>
             </button>
 
             <button
@@ -83,8 +77,7 @@
               type="button"
             >
               <span class="country-label">Equador</span>
-              <strong>ver no unificado</strong>
-              <small id="country-status-ec">operacao ativa dentro desta aba</small>
+              <strong id="country-status-ec">operacao ativa nesta aba</strong>
             </button>
           </div>
         </header>
@@ -151,6 +144,24 @@
                 restaurar demo
               </button>
             </div>
+
+            <div class="quick-filters" id="quick-filters">
+              <button class="quick-filter active" type="button" data-quick-filter="all">
+                todos
+              </button>
+              <button class="quick-filter" type="button" data-quick-filter="novo">
+                novos
+              </button>
+              <button class="quick-filter" type="button" data-quick-filter="atendendo">
+                em atendimento
+              </button>
+              <button class="quick-filter" type="button" data-quick-filter="agendado">
+                agendados
+              </button>
+              <button class="quick-filter" type="button" data-quick-filter="today">
+                agenda de hoje
+              </button>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -193,11 +204,12 @@
 
         <form id="lead-form" class="lead-form">
           <input type="hidden" id="lead-id" />
+          <div class="form-feedback" id="form-feedback" hidden></div>
 
           <div class="form-grid">
             <label class="field-span-2">
               Nome
-              <input id="field-name" name="name" type="text" />
+              <input id="field-name" name="name" type="text" required />
             </label>
 
             <label>
@@ -268,12 +280,12 @@
 
             <label>
               Telefone
-              <input id="field-phone" name="phone" type="text" />
+              <input id="field-phone" name="phone" type="text" required />
             </label>
 
             <label>
               Cidade
-              <input id="field-city" name="city" type="text" />
+              <input id="field-city" name="city" type="text" required />
             </label>
 
             <label>
@@ -283,7 +295,7 @@
 
             <label class="field-span-2">
               Endereco
-              <textarea id="field-address" name="address" rows="4"></textarea>
+              <textarea id="field-address" name="address" rows="4" required></textarea>
             </label>
 
             <label class="field-span-2">
