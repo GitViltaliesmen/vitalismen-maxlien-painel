@@ -41,18 +41,23 @@ Este projeto nao precisa de build. Os arquivos principais sao:
 2. Ativar GitHub Pages na branch principal.
 3. Publicar a raiz do projeto.
 
-## Deploy automatico com GitHub
+## Deploy automatico recomendado
 
-O projeto ja esta preparado com workflow em `.github/workflows/deploy-pages.yml`.
+O caminho mais estavel para este projeto e conectar o repositório direto no Cloudflare Pages, sem GitHub Actions.
 
-Para ativar o deploy automatico no repositório GitHub, adicione estes `Secrets and variables > Actions > New repository secret`:
+Use assim no Cloudflare Pages:
 
-- `CLOUDFLARE_API_TOKEN`
-  Use um token da conta Cloudflare onde esta o projeto Pages `painel-maxlien`, com permissao `Cloudflare Pages:Edit`.
-- `CLOUDFLARE_ACCOUNT_ID`
-  Use o `Account ID` da conta Cloudflare do projeto Pages.
+1. `Workers & Pages > Create application > Pages > Connect to Git`
+2. Escolher o repositório `vitalismen-maxlien-painel`
+3. Configurar:
+   - `Production branch`: `main`
+   - `Framework preset`: `None`
+   - `Build command`: vazio
+   - `Build output directory`: `.`
+   - `Root directory`: vazio
+4. Adicionar o dominio customizado `painel.maxlien.shop`
 
-Depois disso, cada `push` na branch `main` publica automaticamente a versao mais recente no Cloudflare Pages.
+Depois disso, cada `push` na branch `main` publica automaticamente a versao mais recente.
 
 ## Operacao de vendas
 
@@ -78,3 +83,4 @@ Depois disso, cada `push` na branch `main` publica automaticamente a versao mais
 - validar o fluxo de `agendado`
 - confirmar que `exportar leads` baixa o arquivo
 - confirmar que `restaurar demo` funciona como esperado
+- manter o painel como area interna, com `noindex` ativo
