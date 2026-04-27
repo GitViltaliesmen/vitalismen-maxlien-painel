@@ -1,16 +1,16 @@
 :root {
   --bg: #0b1020;
   --bg-soft: #11182d;
-  --surface: rgba(15, 23, 42, 0.88);
-  --surface-strong: #162033;
-  --surface-accent: linear-gradient(145deg, rgba(21, 31, 51, 0.98) 0%, rgba(12, 19, 34, 0.98) 100%);
-  --line: rgba(148, 163, 184, 0.14);
+  --surface: rgba(14, 19, 33, 0.96);
+  --surface-strong: #151c2d;
+  --surface-accent: linear-gradient(145deg, rgba(19, 26, 43, 0.98) 0%, rgba(12, 17, 29, 0.98) 100%);
+  --line: rgba(148, 163, 184, 0.1);
   --text: #e5edf9;
   --muted: #96a3ba;
   --heading: #f8fbff;
   --primary: #ff6b35;
   --primary-strong: #f2551d;
-  --secondary: #14b8a6;
+  --secondary: #10b981;
   --secondary-soft: rgba(20, 184, 166, 0.18);
   --info: #60a5fa;
   --info-soft: rgba(96, 165, 250, 0.18);
@@ -20,7 +20,7 @@
   --success-soft: rgba(34, 197, 94, 0.18);
   --radius: 24px;
   --radius-sm: 16px;
-  --shadow: 0 18px 45px rgba(2, 6, 23, 0.42);
+  --shadow: 0 14px 32px rgba(2, 6, 23, 0.28);
 }
 
 * {
@@ -31,9 +31,9 @@ body {
   margin: 0;
   font-family: "Manrope", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255, 107, 53, 0.18), transparent 24%),
-    radial-gradient(circle at top right, rgba(20, 184, 166, 0.14), transparent 24%),
-    linear-gradient(180deg, #08101f 0%, #0f172a 100%);
+    radial-gradient(circle at top left, rgba(255, 107, 53, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 22%),
+    linear-gradient(180deg, #070b16 0%, #0d1424 100%);
   color: var(--text);
 }
 
@@ -55,7 +55,7 @@ textarea {
   flex-direction: column;
   gap: 18px;
   padding: 22px 16px;
-  background: rgba(7, 12, 24, 0.92);
+  background: rgba(6, 10, 18, 0.96);
   border-right: 1px solid var(--line);
   backdrop-filter: blur(18px);
 }
@@ -89,9 +89,20 @@ textarea {
 .brand span,
 .metric-card small,
 .country-card small,
+.panel-subcopy,
 .section-kicker,
 .eyebrow {
   color: var(--muted);
+}
+
+.sidebar-section-label {
+  margin-top: 6px;
+  padding: 0 4px;
+  color: #6f7d93;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav {
@@ -104,19 +115,32 @@ textarea {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 18px;
-  background: rgba(20, 28, 48, 0.72);
+  background: rgba(18, 24, 40, 0.9);
   color: var(--text);
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .nav-item:hover,
 .nav-item.active {
   transform: translateY(-1px);
-  border-color: rgba(255, 107, 53, 0.42);
-  background: linear-gradient(135deg, rgba(28, 38, 61, 0.98), rgba(20, 29, 49, 0.98));
+  background: linear-gradient(135deg, rgba(27, 36, 58, 0.98), rgba(19, 27, 45, 0.98));
+}
+
+.nav-item.active[data-country-target="co"] {
+  border-color: rgba(16, 185, 129, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.12);
+}
+
+.nav-item.active[data-country-target="ec"] {
+  border-color: rgba(96, 165, 250, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.12);
+}
+
+.nav-item.active[data-country-target="all"] {
+  border-color: rgba(255, 107, 53, 0.34);
   box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.12);
 }
 
@@ -203,7 +227,7 @@ textarea {
 }
 
 .active-country-pill.co {
-  background: rgba(20, 184, 166, 0.16);
+  background: rgba(16, 185, 129, 0.16);
   color: var(--secondary);
 }
 
@@ -232,10 +256,17 @@ textarea {
 .country-card:hover,
 .country-card.active {
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 53, 0.45);
   box-shadow:
-    0 22px 44px rgba(2, 6, 23, 0.45),
-    inset 0 0 0 1px rgba(255, 107, 53, 0.12);
+    0 18px 34px rgba(2, 6, 23, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.country-card.active[data-country-target="co"] {
+  border-color: rgba(16, 185, 129, 0.36);
+}
+
+.country-card.active[data-country-target="ec"] {
+  border-color: rgba(96, 165, 250, 0.36);
 }
 
 .country-card.is-down {
@@ -274,6 +305,7 @@ textarea {
   background: var(--surface-accent);
   position: relative;
   overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .metric-card::before {
@@ -313,13 +345,14 @@ textarea {
 }
 
 .metric-card span {
-  color: #d7e4f7;
+  color: #cdd8ea;
   font-weight: 700;
 }
 
 .panel {
   border-radius: 28px;
   overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .panel-head {
@@ -335,6 +368,12 @@ textarea {
   margin: 0;
   font-size: 28px;
   color: var(--heading);
+}
+
+.panel-subcopy {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .toolbar {
@@ -354,9 +393,9 @@ textarea {
 
 .quick-filter {
   padding: 9px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 999px;
-  background: rgba(17, 24, 39, 0.82);
+  background: rgba(18, 24, 40, 0.88);
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
@@ -368,7 +407,7 @@ textarea {
 .quick-filter.active {
   border-color: rgba(255, 107, 53, 0.42);
   background: linear-gradient(135deg, rgba(255, 107, 53, 0.22), rgba(242, 85, 29, 0.16));
-  color: #ffb294;
+  color: #ffd2bf;
   box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.14);
 }
 
@@ -415,7 +454,7 @@ table {
 
 th,
 td {
-  padding: 13px 14px;
+  padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(146, 113, 76, 0.12);
   vertical-align: middle;
@@ -425,7 +464,7 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #10192c;
+  background: #121a2d;
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -474,7 +513,7 @@ tbody tr.row-agenda-overdue {
 
 .cell-meta {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   font-size: 10px;
   color: var(--muted);
   white-space: nowrap;
@@ -496,6 +535,47 @@ tbody tr.row-agenda-overdue {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.copyable-cell {
+  position: relative;
+  cursor: copy;
+}
+
+.copyable-cell::after {
+  content: "copiar";
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #93c5fd;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.copyable-cell:hover::after {
+  opacity: 1;
+}
+
+.copyable-cell.copied::after {
+  content: "copiado";
+  opacity: 1;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
+.copyable-cell.copy-failed::after {
+  content: "falhou";
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
 }
 
 .qty-cell,
@@ -569,8 +649,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.agendado {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: rgba(167, 139, 250, 0.2);
+  color: #d8b4fe;
 }
 
 .status-pill.retirada_agencia {
@@ -599,7 +679,6 @@ tbody tr.row-agenda-overdue {
 }
 
 .table-button,
-.ghost-table-button,
 .danger-button,
 .primary-button,
 .ghost-button,
@@ -627,23 +706,17 @@ tbody tr.row-agenda-overdue {
   font-weight: 700;
 }
 
-.ghost-table-button {
-  padding: 10px 12px;
-  background: rgba(30, 41, 59, 0.88);
-  color: #cbd5e1;
-  font-weight: 700;
-}
-
 .ghost-button,
 .icon-button {
   padding: 12px 14px;
-  background: rgba(30, 41, 59, 0.92);
-  color: #d7e4f7;
+  background: rgba(24, 34, 54, 0.96);
+  color: #f8fbff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .subtle-button {
-  background: rgba(255, 107, 53, 0.12);
-  color: #ffb294;
+  background: rgba(255, 248, 240, 0.96);
+  color: #9a3412;
 }
 
 .actions-cell {
@@ -655,46 +728,10 @@ tbody tr.row-agenda-overdue {
 }
 
 .actions-cell .table-button,
-.actions-cell .danger-button,
-.actions-cell .ghost-table-button {
+.actions-cell .danger-button {
   min-width: 62px;
   font-size: 11px;
   letter-spacing: 0.01em;
-}
-
-.compact-copy-button {
-  min-width: 58px;
-}
-
-.copy-menu-wrap {
-  position: relative;
-}
-
-.copy-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  display: grid;
-  gap: 6px;
-  min-width: 96px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: linear-gradient(180deg, #162239 0%, #0f182b 100%);
-  box-shadow: 0 18px 34px rgba(2, 6, 23, 0.45);
-  z-index: 3;
-}
-
-.copy-menu-item {
-  padding: 8px 9px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 12px;
-  background: rgba(30, 41, 59, 0.88);
-  color: #cbd5e1;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
 }
 
 .drawer {

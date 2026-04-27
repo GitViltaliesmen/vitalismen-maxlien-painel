@@ -329,19 +329,6 @@ function sanitizePhoneNumber(phone) {
   return String(phone).replace(/[^\d+]/g, "");
 }
 
-function setTemporaryButtonState(button, successLabel, fallbackLabel = "copiar") {
-  button.textContent = successLabel;
-  window.setTimeout(() => {
-    button.textContent = fallbackLabel;
-  }, 1200);
-}
-
-function closeCopyMenus() {
-  document.querySelectorAll("[data-copy-menu]").forEach((menu) => {
-    menu.hidden = true;
-  });
-}
-
 function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -531,17 +518,17 @@ function renderTable() {
 
       return `
         <tr class="${lead.status === "agendado" ? "row-agendado" : ""} ${scheduleState === "today" ? "row-agenda-today" : ""} ${scheduleState === "overdue" ? "row-agenda-overdue" : ""}">
-          <td class="client-cell single-line" data-label="Cliente" title="${safeName}">
+          <td class="client-cell single-line copyable-cell" data-label="Cliente" title="Clique para copiar o nome" data-copy-text="${safeName}">
             <strong>${safeName}</strong>
             <small class="cell-meta">${safeUpdatedAt}</small>
           </td>
-          <td class="contact-cell single-line" data-label="Contato" title="${safePhone}">
+          <td class="contact-cell single-line copyable-cell" data-label="Contato" title="Clique para copiar o telefone" data-copy-text="${safePhone}">
             <strong>${safePhone}</strong>
           </td>
           <td class="location-cell single-line" data-label="Localizacao" title="${safeLocation}">
             <strong>${safeLocation}</strong>
           </td>
-          <td class="address-cell" data-label="Endereco" title="${safeAddress}">
+          <td class="address-cell copyable-cell" data-label="Endereco" title="Clique para copiar o endereco" data-copy-text="${safeAddress}">
             <span>${safeAddress}</span>
           </td>
           <td class="qty-cell" data-label="Qtd">${lead.quantity}</td>
@@ -552,22 +539,6 @@ function renderTable() {
           </td>
           <td data-label="Acao">
             <div class="actions-cell">
-              <div class="copy-menu-wrap">
-                <button class="ghost-table-button compact-copy-button" type="button" data-copy-toggle>
-                  copiar
-                </button>
-                <div class="copy-menu" data-copy-menu hidden>
-                  <button class="copy-menu-item" type="button" data-copy-name="${safeName}">
-                    nome
-                  </button>
-                  <button class="copy-menu-item" type="button" data-copy-phone="${safePhone}">
-                    telefone
-                  </button>
-                  <button class="copy-menu-item" type="button" data-copy-address="${safeAddress}">
-                    endereco
-                  </button>
-                </div>
-              </div>
               <button class="table-button" type="button" data-edit-id="${lead.id}">
                 editar
               </button>
@@ -589,47 +560,24 @@ function renderTable() {
     button.addEventListener("click", () => deleteLead(button.dataset.deleteId));
   });
 
-  document.querySelectorAll("[data-copy-toggle]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const menu = button.parentElement.querySelector("[data-copy-menu]");
-      const isHidden = menu.hidden;
-      closeCopyMenus();
-      menu.hidden = !isHidden;
-    });
-  });
+  document.querySelectorAll("[data-copy-text]").forEach((cell) => {
+    cell.addEventListener("click", async () => {
+      const copyValue = cell.dataset.copyText || "";
+      const normalizedValue = cell.classList.contains("contact-cell")
+        ? sanitizePhoneNumber(copyValue)
+        : copyValue;
 
-  document.querySelectorAll("[data-copy-phone]").forEach((button) => {
-    button.addEventListener("click", async () => {
       try {
-        await navigator.clipboard.writeText(
-          sanitizePhoneNumber(button.dataset.copyPhone)
-        );
-        setTemporaryButtonState(button, "copiado", "telefone");
+        await navigator.clipboard.writeText(normalizedValue);
+        cell.classList.add("copied");
+        window.setTimeout(() => {
+          cell.classList.remove("copied");
+        }, 1200);
       } catch (error) {
-        setTemporaryButtonState(button, "falhou", "telefone");
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-copy-name]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(button.dataset.copyName);
-        setTemporaryButtonState(button, "copiado", "nome");
-      } catch (error) {
-        setTemporaryButtonState(button, "falhou", "nome");
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-copy-address]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(button.dataset.copyAddress);
-        setTemporaryButtonState(button, "copiado", "endereco");
-      } catch (error) {
-        setTemporaryButtonState(button, "falhou", "endereco");
+        cell.classList.add("copy-failed");
+        window.setTimeout(() => {
+          cell.classList.remove("copy-failed");
+        }, 1200);
       }
     });
   });
@@ -825,8 +773,6 @@ statusPicker.addEventListener("click", (event) => {
 document.addEventListener("click", (event) => {
   if (statusPicker.contains(event.target)) return;
   setStatusMenuOpen(false);
-  if (event.target.closest(".copy-menu-wrap")) return;
-  closeCopyMenus();
 });
 
 searchInput.addEventListener("input", (event) => {
