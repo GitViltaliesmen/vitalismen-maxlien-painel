@@ -28,6 +28,21 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 - [ ] Validar `restaurar demo`
 - [ ] Validar persistencia apos recarregar a pagina
 
+### Sequencia pratica do teste funcional
+
+1. Criar um lead novo em `Equador`
+2. Salvar e confirmar que ele aparece no topo da fila
+3. Recarregar a pagina e confirmar que o lead continua salvo
+4. Editar esse lead e mudar para `agendado`
+5. Definir uma data desejada
+6. Salvar e confirmar a agenda na tabela
+7. Usar o filtro rapido `agenda de hoje` quando a data for hoje
+8. Testar `copiar > nome`, `telefone` e `endereco`
+9. Testar busca pelo nome do lead
+10. Testar filtro por status
+11. Exportar leads em `.json`
+12. Restaurar demo so depois de validar tudo
+
 ## 3. Precos e oferta
 
 - [ ] Colombia: `1 = 149.000`

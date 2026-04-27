@@ -336,6 +336,12 @@ function setTemporaryButtonState(button, successLabel, fallbackLabel = "copiar")
   }, 1200);
 }
 
+function closeCopyMenus() {
+  document.querySelectorAll("[data-copy-menu]").forEach((menu) => {
+    menu.hidden = true;
+  });
+}
+
 function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -509,6 +515,7 @@ function renderTable() {
       const safeAddress = escapeHtml(lead.address);
       const safeLocation = escapeHtml(`${lead.city} / ${lead.region}`);
       const safeStatus = escapeHtml(statusLabels[lead.status] || lead.status);
+      const safeUpdatedAt = escapeHtml(lead.updatedAt || "");
       const safeSchedule = escapeHtml(
         lead.status === "agendado"
           ? formatScheduledDate(lead.scheduledDate)
@@ -526,6 +533,7 @@ function renderTable() {
         <tr class="${lead.status === "agendado" ? "row-agendado" : ""} ${scheduleState === "today" ? "row-agenda-today" : ""} ${scheduleState === "overdue" ? "row-agenda-overdue" : ""}">
           <td class="client-cell single-line" data-label="Cliente" title="${safeName}">
             <strong>${safeName}</strong>
+            <small class="cell-meta">${safeUpdatedAt}</small>
           </td>
           <td class="contact-cell single-line" data-label="Contato" title="${safePhone}">
             <strong>${safePhone}</strong>
@@ -544,15 +552,22 @@ function renderTable() {
           </td>
           <td data-label="Acao">
             <div class="actions-cell">
-              <button class="ghost-table-button" type="button" data-copy-name="${safeName}">
-                nome
-              </button>
-              <button class="ghost-table-button" type="button" data-copy-phone="${safePhone}">
-                telefone
-              </button>
-              <button class="ghost-table-button" type="button" data-copy-address="${safeAddress}">
-                endereco
-              </button>
+              <div class="copy-menu-wrap">
+                <button class="ghost-table-button compact-copy-button" type="button" data-copy-toggle>
+                  copiar
+                </button>
+                <div class="copy-menu" data-copy-menu hidden>
+                  <button class="copy-menu-item" type="button" data-copy-name="${safeName}">
+                    nome
+                  </button>
+                  <button class="copy-menu-item" type="button" data-copy-phone="${safePhone}">
+                    telefone
+                  </button>
+                  <button class="copy-menu-item" type="button" data-copy-address="${safeAddress}">
+                    endereco
+                  </button>
+                </div>
+              </div>
               <button class="table-button" type="button" data-edit-id="${lead.id}">
                 editar
               </button>
@@ -572,6 +587,16 @@ function renderTable() {
 
   document.querySelectorAll("[data-delete-id]").forEach((button) => {
     button.addEventListener("click", () => deleteLead(button.dataset.deleteId));
+  });
+
+  document.querySelectorAll("[data-copy-toggle]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const menu = button.parentElement.querySelector("[data-copy-menu]");
+      const isHidden = menu.hidden;
+      closeCopyMenus();
+      menu.hidden = !isHidden;
+    });
   });
 
   document.querySelectorAll("[data-copy-phone]").forEach((button) => {
@@ -800,6 +825,8 @@ statusPicker.addEventListener("click", (event) => {
 document.addEventListener("click", (event) => {
   if (statusPicker.contains(event.target)) return;
   setStatusMenuOpen(false);
+  if (event.target.closest(".copy-menu-wrap")) return;
+  closeCopyMenus();
 });
 
 searchInput.addEventListener("input", (event) => {
