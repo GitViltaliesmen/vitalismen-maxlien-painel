@@ -329,6 +329,13 @@ function sanitizePhoneNumber(phone) {
   return String(phone).replace(/[^\d+]/g, "");
 }
 
+function setTemporaryButtonState(button, successLabel, fallbackLabel = "copiar") {
+  button.textContent = successLabel;
+  window.setTimeout(() => {
+    button.textContent = fallbackLabel;
+  }, 1200);
+}
+
 function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -537,8 +544,14 @@ function renderTable() {
           </td>
           <td data-label="Acao">
             <div class="actions-cell">
+              <button class="ghost-table-button" type="button" data-copy-name="${safeName}">
+                nome
+              </button>
               <button class="ghost-table-button" type="button" data-copy-phone="${safePhone}">
-                copiar
+                telefone
+              </button>
+              <button class="ghost-table-button" type="button" data-copy-address="${safeAddress}">
+                endereco
               </button>
               <button class="table-button" type="button" data-edit-id="${lead.id}">
                 editar
@@ -567,15 +580,31 @@ function renderTable() {
         await navigator.clipboard.writeText(
           sanitizePhoneNumber(button.dataset.copyPhone)
         );
-        button.textContent = "copiado";
-        window.setTimeout(() => {
-          button.textContent = "copiar";
-        }, 1200);
+        setTemporaryButtonState(button, "copiado", "telefone");
       } catch (error) {
-        button.textContent = "falhou";
-        window.setTimeout(() => {
-          button.textContent = "copiar";
-        }, 1200);
+        setTemporaryButtonState(button, "falhou", "telefone");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-copy-name]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copyName);
+        setTemporaryButtonState(button, "copiado", "nome");
+      } catch (error) {
+        setTemporaryButtonState(button, "falhou", "nome");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-copy-address]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copyAddress);
+        setTemporaryButtonState(button, "copiado", "endereco");
+      } catch (error) {
+        setTemporaryButtonState(button, "falhou", "endereco");
       }
     });
   });

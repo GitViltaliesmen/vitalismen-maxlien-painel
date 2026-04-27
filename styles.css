@@ -1,25 +1,25 @@
 :root {
-  --bg: #f7f2ea;
-  --bg-soft: #fffaf4;
-  --surface: rgba(255, 255, 255, 0.94);
-  --surface-strong: #ffffff;
-  --surface-accent: linear-gradient(145deg, #fffdf9 0%, #fff5ea 100%);
-  --line: rgba(146, 113, 76, 0.18);
-  --text: #1f2a37;
-  --muted: #7a6a58;
+  --bg: #0b1020;
+  --bg-soft: #11182d;
+  --surface: rgba(15, 23, 42, 0.88);
+  --surface-strong: #162033;
+  --surface-accent: linear-gradient(145deg, rgba(21, 31, 51, 0.98) 0%, rgba(12, 19, 34, 0.98) 100%);
+  --line: rgba(148, 163, 184, 0.14);
+  --text: #e5edf9;
+  --muted: #96a3ba;
   --primary: #ff6b35;
   --primary-strong: #f2551d;
-  --secondary: #0f766e;
-  --secondary-soft: #d9f6f0;
-  --info: #2563eb;
-  --info-soft: #dce9ff;
+  --secondary: #14b8a6;
+  --secondary-soft: rgba(20, 184, 166, 0.18);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.18);
   --warn: #f59e0b;
-  --warn-soft: #fff1c9;
+  --warn-soft: rgba(245, 158, 11, 0.18);
   --success: #16a34a;
-  --success-soft: #dbfce7;
+  --success-soft: rgba(34, 197, 94, 0.18);
   --radius: 24px;
   --radius-sm: 16px;
-  --shadow: 0 18px 45px rgba(94, 63, 32, 0.12);
+  --shadow: 0 18px 45px rgba(2, 6, 23, 0.42);
 }
 
 * {
@@ -30,9 +30,9 @@ body {
   margin: 0;
   font-family: "Manrope", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255, 107, 53, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 26%),
-    linear-gradient(180deg, #fffaf4 0%, #f7f2ea 100%);
+    radial-gradient(circle at top left, rgba(255, 107, 53, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.14), transparent 24%),
+    linear-gradient(180deg, #08101f 0%, #0f172a 100%);
   color: var(--text);
 }
 
@@ -54,7 +54,7 @@ textarea {
   flex-direction: column;
   gap: 18px;
   padding: 22px 16px;
-  background: rgba(255, 248, 240, 0.92);
+  background: rgba(7, 12, 24, 0.92);
   border-right: 1px solid var(--line);
   backdrop-filter: blur(18px);
 }
@@ -105,7 +105,7 @@ textarea {
   padding: 14px 16px;
   border: 1px solid transparent;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(20, 28, 48, 0.72);
   color: var(--text);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
@@ -114,8 +114,8 @@ textarea {
 .nav-item:hover,
 .nav-item.active {
   transform: translateY(-1px);
-  border-color: rgba(255, 107, 53, 0.18);
-  background: white;
+  border-color: rgba(255, 107, 53, 0.32);
+  background: rgba(25, 35, 58, 0.96);
 }
 
 .nav-dot {
@@ -174,7 +174,7 @@ textarea {
   max-width: 12ch;
   font-size: clamp(24px, 2.6vw, 34px);
   line-height: 1.02;
-  color: #182433;
+  color: #f8fbff;
 }
 
 .quick-actions {
@@ -196,17 +196,17 @@ textarea {
 }
 
 .active-country-pill.all {
-  background: #fff0e8;
+  background: rgba(255, 107, 53, 0.16);
   color: var(--primary-strong);
 }
 
 .active-country-pill.co {
-  background: #d9f6f0;
+  background: rgba(20, 184, 166, 0.16);
   color: var(--secondary);
 }
 
 .active-country-pill.ec {
-  background: #dce9ff;
+  background: rgba(96, 165, 250, 0.16);
   color: var(--info);
 }
 
@@ -230,8 +230,8 @@ textarea {
 .country-card:hover,
 .country-card.active {
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 53, 0.28);
-  box-shadow: 0 22px 44px rgba(255, 107, 53, 0.14);
+  border-color: rgba(255, 107, 53, 0.4);
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.45);
 }
 
 .country-card.is-down {
@@ -248,7 +248,7 @@ textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: #fff0e8;
+  background: rgba(255, 107, 53, 0.14);
   color: var(--primary-strong);
 }
 
@@ -292,13 +292,13 @@ textarea {
   gap: 18px;
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 250, 244, 0.78);
+  background: rgba(10, 16, 30, 0.82);
 }
 
 .panel h2 {
   margin: 0;
   font-size: 28px;
-  color: #182433;
+  color: #f8fbff;
 }
 
 .toolbar {
@@ -320,7 +320,7 @@ textarea {
   padding: 9px 12px;
   border: 1px solid rgba(146, 113, 76, 0.14);
   border-radius: 999px;
-  background: #fff9f2;
+  background: rgba(17, 24, 39, 0.82);
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
@@ -331,7 +331,7 @@ textarea {
 
 .quick-filter.active {
   border-color: rgba(255, 107, 53, 0.24);
-  background: #fff0e8;
+  background: rgba(255, 107, 53, 0.14);
   color: var(--primary-strong);
 }
 
@@ -344,7 +344,7 @@ textarea {
   padding: 14px 16px;
   border: 1px solid rgba(146, 113, 76, 0.18);
   border-radius: 16px;
-  background: #fffdf9;
+  background: rgba(15, 23, 42, 0.92);
   color: var(--text);
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
@@ -357,7 +357,7 @@ textarea {
 .lead-form textarea:focus {
   border-color: rgba(255, 107, 53, 0.48);
   box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.12);
-  background: white;
+  background: rgba(18, 28, 48, 0.98);
 }
 
 .search {
@@ -388,7 +388,7 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #fff8f1;
+  background: #10192c;
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -405,20 +405,20 @@ tbody tr:hover {
 
 tbody tr.row-agendado {
   background:
-    linear-gradient(90deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0) 42%),
-    #fffdf9;
+    linear-gradient(90deg, rgba(124, 58, 237, 0.14), rgba(124, 58, 237, 0) 42%),
+    rgba(15, 23, 42, 0.84);
 }
 
 tbody tr.row-agenda-today {
   background:
-    linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0) 42%),
-    #fffdf9;
+    linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0) 42%),
+    rgba(15, 23, 42, 0.84);
 }
 
 tbody tr.row-agenda-overdue {
   background:
-    linear-gradient(90deg, rgba(217, 70, 39, 0.12), rgba(217, 70, 39, 0) 42%),
-    #fffdf9;
+    linear-gradient(90deg, rgba(217, 70, 39, 0.16), rgba(217, 70, 39, 0) 42%),
+    rgba(15, 23, 42, 0.84);
 }
 
 .empty-state {
@@ -574,15 +574,15 @@ tbody tr.row-agenda-overdue {
 
 .danger-button {
   padding: 10px 12px;
-  background: #fff3f0;
-  color: #d14328;
+  background: rgba(127, 29, 29, 0.22);
+  color: #fca5a5;
   font-weight: 700;
 }
 
 .ghost-table-button {
   padding: 10px 12px;
-  background: #f6efe6;
-  color: var(--muted);
+  background: rgba(30, 41, 59, 0.88);
+  color: #cbd5e1;
   font-weight: 700;
 }
 
@@ -639,7 +639,7 @@ tbody tr.row-agenda-overdue {
   padding: 24px 24px 18px;
   border-radius: 28px 0 0 28px;
   overflow: auto;
-  background: linear-gradient(180deg, #fffdf9 0%, #fff7ee 100%);
+  background: linear-gradient(180deg, #11192d 0%, #0d1528 100%);
 }
 
 .drawer-head {
@@ -653,7 +653,7 @@ tbody tr.row-agenda-overdue {
 .drawer-head h3 {
   margin: 6px 0 0;
   font-size: 30px;
-  color: #182433;
+  color: #f8fbff;
 }
 
 .drawer-copy {
@@ -671,8 +671,8 @@ tbody tr.row-agenda-overdue {
   padding: 12px 14px;
   border: 1px solid rgba(217, 70, 39, 0.18);
   border-radius: 16px;
-  background: #fff1ec;
-  color: #c2410c;
+  background: rgba(127, 29, 29, 0.2);
+  color: #fdba74;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -696,8 +696,8 @@ tbody tr.row-agenda-overdue {
   padding: 12px 14px;
   border: 1px solid rgba(124, 58, 237, 0.16);
   border-radius: 16px;
-  background: #f5ecff;
-  color: #6d28d9;
+  background: rgba(91, 33, 182, 0.18);
+  color: #c4b5fd;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -716,7 +716,7 @@ tbody tr.row-agenda-overdue {
   padding: 14px 16px;
   border: 1px solid rgba(146, 113, 76, 0.18);
   border-radius: 16px;
-  background: #fffdf9;
+  background: rgba(15, 23, 42, 0.92);
   color: var(--text);
   font-weight: 800;
   text-align: left;
@@ -761,7 +761,7 @@ tbody tr.row-agenda-overdue {
   padding: 12px 14px;
   border: 1px solid rgba(146, 113, 76, 0.18);
   border-radius: 14px;
-  background: #fffdf9;
+  background: #10192c;
   color: var(--text);
   font-weight: 800;
   text-align: left;
