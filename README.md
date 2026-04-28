@@ -67,6 +67,16 @@ Depois disso, cada `push` na branch `main` publica automaticamente a versao mais
 - os dados ficam no navegador de cada usuario
 - a exportacao gera um backup manual em `.json`
 
+### Rotina recomendada
+
+A rotina diaria esta documentada em `OPERACAO.md`, incluindo:
+
+- horario recomendado de atendimento
+- revisao de agendados
+- regra de uso para cada status
+- backup `.json` no fim do expediente
+- cuidados da versao estatica com `localStorage`
+
 ### Para producao real
 
 - backend compartilhado para salvar leads

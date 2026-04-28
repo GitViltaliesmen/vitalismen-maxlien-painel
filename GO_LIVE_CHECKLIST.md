@@ -8,7 +8,7 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 - [x] Dashboard reorganizado com filtros e acoes na lateral esquerda.
 - [x] Funcionalidades principais validadas no navegador local.
 - [ ] Validacoes destrutivas opcionais pendentes: remover lead e restaurar demo.
-- [ ] Pendencias finais agora sao de deploy/operacao/acesso, nao de construcao do painel.
+- [x] Pendencias finais agora sao de deploy/operacao/acesso, nao de construcao do painel.
 
 ## 1. Base e deploy
 
@@ -88,11 +88,19 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
 ## 4. Operacao interna
 
-- [ ] Definir quem usa o painel no dia a dia
-- [ ] Definir rotina de backup dos `.json` exportados
-- [ ] Definir regra de uso para cada status
-- [ ] Definir frequencia de revisao dos agendados
-- [ ] Criar rotina simples de inicio e fim do dia
+- [x] Definir quem usa o painel no dia a dia
+- [x] Definir rotina de backup dos `.json` exportados
+- [x] Definir regra de uso para cada status
+- [x] Definir frequencia de revisao dos agendados
+- [x] Criar rotina simples de inicio e fim do dia
+
+### Definido em 2026-04-28
+
+- Guia operacional criado em `OPERACAO.md`.
+- Horario recomendado: `09:00` ate `18:00`.
+- Revisao de agendados: `09:00` e `16:30`.
+- Backup `.json`: todo fim de expediente.
+- Uso recomendado: um operador principal por navegador/dispositivo na versao estatica atual.
 
 ## 5. Seguranca e acesso
 
