@@ -77,6 +77,15 @@ A rotina diaria esta documentada em `OPERACAO.md`, incluindo:
 - backup `.json` no fim do expediente
 - cuidados da versao estatica com `localStorage`
 
+### Seguranca
+
+A revisao de seguranca e acessos esta documentada em `SEGURANCA.md`, incluindo:
+
+- checklist GitHub e Cloudflare
+- cuidado com tokens antigos
+- confirmacao de DNS/Pages
+- proximos passos para producao com equipe
+
 ### Para producao real
 
 - backend compartilhado para salvar leads

@@ -104,10 +104,18 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
 ## 5. Seguranca e acesso
 
+- [x] Varrer repositorio local por tokens/secrets evidentes
 - [ ] Revogar tokens antigos expostos
 - [ ] Revisar acessos ao GitHub
 - [ ] Revisar acessos ao Cloudflare
 - [ ] Confirmar que apenas a conta correta controla DNS e Pages
+
+### Definido em 2026-04-28
+
+- Guia de seguranca criado em `SEGURANCA.md`.
+- Nenhum arquivo `.env` encontrado no repositorio local.
+- Varredura textual local nao encontrou tokens, senhas, chaves ou secrets evidentes.
+- Revogacao de tokens e revisao de acessos dependem de entrada nas contas GitHub/Cloudflare.
 
 ## 6. Trafego pago
 
