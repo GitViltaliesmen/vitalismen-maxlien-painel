@@ -2,6 +2,14 @@
 
 Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
+## Status atual
+
+- [x] Painel atualizado, publicado no repositório e aceito em teste visual/funcional inicial.
+- [x] Dashboard reorganizado com filtros e acoes na lateral esquerda.
+- [x] Funcionalidades principais validadas no navegador local.
+- [ ] Validacoes destrutivas opcionais pendentes: remover lead e restaurar demo.
+- [ ] Pendencias finais agora sao de deploy/operacao/acesso, nao de construcao do painel.
+
 ## 1. Base e deploy
 
 - [x] Repositório principal definido: `GitViltaliesmen/vitalismen-maxlien-painel`
@@ -96,4 +104,10 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
 ## Proximo passo
 
-Fechar a etapa `2. Validacao funcional`, porque a base e o deploy ja estao praticamente resolvidos.
+Finalizar a operacao ao redor do painel:
+
+1. Confirmar no Cloudflare Pages que `painel.maxlien.shop` esta conectado diretamente ao repo `GitViltaliesmen/vitalismen-maxlien-painel`.
+2. Remover deploys paralelos antigos, se existirem.
+3. Definir usuario(s), rotina de backup `.json` e regra de uso dos status.
+4. Revisar acessos GitHub/Cloudflare e revogar tokens antigos.
+5. Fazer teste real com baixo volume antes de escalar trafego pago.
