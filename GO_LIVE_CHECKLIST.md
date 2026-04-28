@@ -20,8 +20,15 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 - [x] Titulo novo publicado: `Painel Maxlien | Operacao interna`
 - [x] Protecao basica ativa: `noindex`, `nosniff`, `referrer-policy`, `permissions-policy`
 - [x] Fluxo Git por SSH configurado nesta maquina
-- [ ] Confirmar no Cloudflare que o projeto publicado esta conectado diretamente ao repo certo
+- [x] Confirmar deploy publico atualizado apos push no repo certo
 - [ ] Remover qualquer fluxo de deploy paralelo que possa causar confusao futura
+
+### Validado em 2026-04-28
+
+- Dominio `https://painel.maxlien.shop/` carregou com `HTTP 200`.
+- HTML publico confirmou a versao nova: `styles.css?v=20260428a`.
+- Lateral nova com `Menu`, `Filtros` e `Dados` carregou no dominio final.
+- Navegador abriu o dominio final sem erros de console.
 
 ## 2. Validacao funcional
 
