@@ -20,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260427b" />
+    <link rel="stylesheet" href="./styles.css?v=20260428a" />
   </head>
   <body>
     <div class="app-shell">
@@ -32,6 +32,18 @@
             <span>Leads e operacao</span>
           </div>
         </div>
+
+        <div class="sidebar-section-label">Menu</div>
+        <nav class="sidebar-nav">
+          <button class="nav-item active" type="button">
+            <span class="nav-icon">D</span>
+            Dashboard
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">F</span>
+            Fila de leads
+          </button>
+        </nav>
 
         <div class="sidebar-section-label">Pais</div>
         <nav class="sidebar-nav">
@@ -48,6 +60,51 @@
             Equador
           </button>
         </nav>
+
+        <div class="sidebar-section-label">Filtros</div>
+        <div class="sidebar-card">
+          <select id="status-filter">
+            <option value="all">Todos os status</option>
+            <option value="novo">Novo</option>
+            <option value="pendente">Pendente</option>
+            <option value="atendendo">Atendendo</option>
+            <option value="processado">Processado</option>
+            <option value="agendado">Agendado</option>
+            <option value="retirada_agencia">Retiro em agencia</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="entregue">Entregue</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="devolvido">Devolvido</option>
+          </select>
+
+          <div class="quick-filters" id="quick-filters">
+            <button class="quick-filter active" type="button" data-quick-filter="all">
+              todos
+            </button>
+            <button class="quick-filter" type="button" data-quick-filter="novo">
+              novos
+            </button>
+            <button class="quick-filter" type="button" data-quick-filter="atendendo">
+              em atendimento
+            </button>
+            <button class="quick-filter" type="button" data-quick-filter="agendado">
+              agendados
+            </button>
+            <button class="quick-filter" type="button" data-quick-filter="today">
+              agenda de hoje
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-section-label">Dados</div>
+        <div class="sidebar-actions">
+          <button id="export-button" class="ghost-button" type="button">
+            exportar leads
+          </button>
+          <button id="reset-button" class="ghost-button subtle-button" type="button">
+            restaurar demo
+          </button>
+        </div>
       </aside>
 
       <main class="content">
@@ -122,46 +179,8 @@
                 />
               </label>
 
-              <select id="status-filter">
-                <option value="all">Todos os status</option>
-                <option value="novo">Novo</option>
-                <option value="pendente">Pendente</option>
-                <option value="atendendo">Atendendo</option>
-                <option value="processado">Processado</option>
-                <option value="agendado">Agendado</option>
-                <option value="retirada_agencia">Retiro em agencia</option>
-                <option value="confirmado">Confirmado</option>
-                <option value="entregue">Entregue</option>
-                <option value="cancelado">Cancelado</option>
-                <option value="devolvido">Devolvido</option>
-              </select>
-
               <button id="new-lead-button" class="primary-button" type="button">
                 novo lead
-              </button>
-              <button id="export-button" class="ghost-button" type="button">
-                exportar leads
-              </button>
-              <button id="reset-button" class="ghost-button subtle-button" type="button">
-                restaurar demo
-              </button>
-            </div>
-
-            <div class="quick-filters" id="quick-filters">
-              <button class="quick-filter active" type="button" data-quick-filter="all">
-                todos
-              </button>
-              <button class="quick-filter" type="button" data-quick-filter="novo">
-                novos
-              </button>
-              <button class="quick-filter" type="button" data-quick-filter="atendendo">
-                em atendimento
-              </button>
-              <button class="quick-filter" type="button" data-quick-filter="agendado">
-                agendados
-              </button>
-              <button class="quick-filter" type="button" data-quick-filter="today">
-                agenda de hoje
               </button>
             </div>
           </div>
@@ -331,6 +350,6 @@
       </div>
     </aside>
 
-    <script src="./app.js?v=20260427b"></script>
+    <script src="./app.js?v=20260428a"></script>
   </body>
 </html>

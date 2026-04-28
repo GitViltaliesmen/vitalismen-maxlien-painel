@@ -18,8 +18,8 @@
   --warn-soft: rgba(245, 158, 11, 0.18);
   --success: #16a34a;
   --success-soft: rgba(34, 197, 94, 0.18);
-  --radius: 24px;
-  --radius-sm: 16px;
+  --radius: 18px;
+  --radius-sm: 12px;
   --shadow: 0 14px 32px rgba(2, 6, 23, 0.28);
 }
 
@@ -46,32 +46,38 @@ textarea {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: 256px minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 16px;
+  gap: 14px;
+  padding: 20px 14px;
   background: rgba(6, 10, 18, 0.96);
   border-right: 1px solid var(--line);
   backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 0 4px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 15px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   background: linear-gradient(135deg, var(--primary), #ffbe98);
   color: white;
   font-weight: 800;
@@ -96,7 +102,7 @@ textarea {
 }
 
 .sidebar-section-label {
-  margin-top: 6px;
+  margin-top: 4px;
   padding: 0 4px;
   color: #6f7d93;
   font-size: 11px;
@@ -114,10 +120,10 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 12px;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 18px;
-  background: rgba(18, 24, 40, 0.9);
+  border-radius: 10px;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
@@ -127,6 +133,15 @@ textarea {
 .nav-item.active {
   transform: translateY(-1px);
   background: linear-gradient(135deg, rgba(27, 36, 58, 0.98), rgba(19, 27, 45, 0.98));
+}
+
+.nav-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: var(--secondary);
+  font-weight: 800;
 }
 
 .nav-item.active[data-country-target="co"] {
@@ -150,6 +165,20 @@ textarea {
   border-radius: 999px;
 }
 
+.sidebar-card {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(8, 13, 24, 0.82);
+}
+
+.sidebar-actions {
+  display: grid;
+  gap: 10px;
+}
+
 .nav-dot.co {
   background: var(--secondary);
 }
@@ -163,15 +192,15 @@ textarea {
 }
 
 .content {
-  padding: 22px;
+  padding: 24px 26px;
 }
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
   gap: 18px;
   align-items: start;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .hero-copy {
@@ -197,8 +226,8 @@ textarea {
 
 .hero h1 {
   margin: 0;
-  max-width: 12ch;
-  font-size: clamp(24px, 2.6vw, 34px);
+  max-width: 18ch;
+  font-size: clamp(28px, 3vw, 42px);
   line-height: 1.02;
   color: var(--heading);
 }
@@ -249,7 +278,7 @@ textarea {
 .country-card {
   padding: 14px 16px;
   text-align: left;
-  border-radius: 18px;
+  border-radius: 12px;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -290,18 +319,20 @@ textarea {
 .country-card strong {
   font-size: 13px;
   line-height: 1.25;
+  color: #cdd8ea;
 }
 
 .overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+  gap: 16px;
+  margin: 18px 0 26px;
 }
 
 .metric-card {
-  padding: 14px 16px;
-  border-radius: 18px;
+  min-height: 142px;
+  padding: 20px 22px;
+  border-radius: 14px;
   background: var(--surface-accent);
   position: relative;
   overflow: hidden;
@@ -311,30 +342,61 @@ textarea {
 .metric-card::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  border-radius: 18px 0 0 18px;
+  top: 20px;
+  left: 22px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: var(--primary);
 }
 
+.metric-card::after {
+  position: absolute;
+  top: 26px;
+  left: 34px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .metric-card:nth-child(1)::before {
-  background: linear-gradient(180deg, #ff8a5c, #ff6b35);
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.metric-card:nth-child(1)::after {
+  content: "L";
+  color: #60a5fa;
 }
 
 .metric-card:nth-child(2)::before {
-  background: linear-gradient(180deg, #38bdf8, #2563eb);
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.metric-card:nth-child(2)::after {
+  content: "A";
+  color: #34d399;
 }
 
 .metric-card:nth-child(3)::before {
-  background: linear-gradient(180deg, #c084fc, #7c3aed);
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.metric-card:nth-child(3)::after {
+  content: "G";
+  color: #c4b5fd;
 }
 
 .metric-card:nth-child(4)::before {
-  background: linear-gradient(180deg, #4ade80, #16a34a);
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.metric-card:nth-child(4)::after {
+  content: "C";
+  color: #86efac;
 }
 
 .metric-card strong {
-  margin: 6px 0 2px;
+  margin: 46px 0 2px;
   font-size: clamp(22px, 2.5vw, 30px);
   color: var(--heading);
 }
@@ -345,12 +407,16 @@ textarea {
 }
 
 .metric-card span {
+  display: block;
+  min-height: 36px;
+  padding-left: 50px;
   color: #cdd8ea;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .panel {
-  border-radius: 28px;
+  border-radius: 14px;
   overflow: hidden;
   border-color: rgba(255, 255, 255, 0.05);
 }
@@ -359,14 +425,14 @@ textarea {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 18px 20px 14px;
+  padding: 22px 22px 18px;
   border-bottom: 1px solid var(--line);
   background: rgba(10, 16, 30, 0.82);
 }
 
 .panel h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 20px;
   color: var(--heading);
 }
 
@@ -385,16 +451,14 @@ textarea {
 }
 
 .quick-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 0 20px 14px;
+  display: grid;
+  gap: 8px;
 }
 
 .quick-filter {
-  padding: 9px 12px;
+  padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgba(18, 24, 40, 0.88);
   color: var(--muted);
   font-size: 12px;
@@ -402,6 +466,7 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
+  text-align: left;
 }
 
 .quick-filter.active {
@@ -413,6 +478,7 @@ textarea {
 
 .search input,
 .toolbar select,
+.sidebar-card select,
 .lead-form input,
 .lead-form select,
 .lead-form textarea {
@@ -428,6 +494,7 @@ textarea {
 
 .search input:focus,
 .toolbar select:focus,
+.sidebar-card select:focus,
 .lead-form input:focus,
 .lead-form select:focus,
 .lead-form textarea:focus {
@@ -437,8 +504,8 @@ textarea {
 }
 
 .search {
-  flex: 1 1 320px;
-  min-width: 320px;
+  flex: 1 1 420px;
+  min-width: 360px;
 }
 
 .table-wrap {
@@ -715,8 +782,8 @@ tbody tr.row-agenda-overdue {
 }
 
 .subtle-button {
-  background: rgba(255, 248, 240, 0.96);
-  color: #9a3412;
+  background: rgba(127, 29, 29, 0.22);
+  color: #fca5a5;
 }
 
 .actions-cell {
@@ -874,8 +941,8 @@ tbody tr.row-agenda-overdue {
   padding: 10px;
   border: 1px solid rgba(146, 113, 76, 0.16);
   border-radius: 18px;
-  background: rgba(255, 253, 249, 0.98);
-  box-shadow: 0 22px 44px rgba(94, 63, 32, 0.18);
+  background: rgba(10, 16, 30, 0.98);
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.36);
   backdrop-filter: blur(18px);
 }
 
@@ -1028,7 +1095,7 @@ tbody tr.row-agenda-overdue {
   padding-top: 16px;
   position: sticky;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 253, 249, 0) 0%, rgba(255, 247, 238, 0.96) 34%);
+  background: linear-gradient(180deg, rgba(13, 21, 40, 0) 0%, rgba(13, 21, 40, 0.96) 34%);
 }
 
 @media (max-width: 1180px) {
@@ -1037,8 +1104,16 @@ tbody tr.row-agenda-overdue {
   }
 
   .sidebar {
+    position: static;
+    height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar-nav,
+  .sidebar-actions,
+  .quick-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .hero {
@@ -1053,6 +1128,12 @@ tbody tr.row-agenda-overdue {
 @media (max-width: 720px) {
   .content {
     padding: 18px;
+  }
+
+  .sidebar-nav,
+  .sidebar-actions,
+  .quick-filters {
+    grid-template-columns: 1fr;
   }
 
   .hero h1 {
@@ -1106,7 +1187,7 @@ tbody tr.row-agenda-overdue {
     padding: 16px;
     border: 1px solid rgba(146, 113, 76, 0.12);
     border-radius: 20px;
-    background: #fffdf9;
+    background: rgba(15, 23, 42, 0.92);
   }
 
   td {

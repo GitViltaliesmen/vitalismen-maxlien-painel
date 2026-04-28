@@ -17,16 +17,26 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
 ## 2. Validacao funcional
 
-- [ ] Criar um lead novo
-- [ ] Editar um lead existente
+- [x] Criar um lead novo
+- [x] Editar um lead existente
 - [ ] Remover um lead
-- [ ] Trocar entre Colombia, Equador e Todos
-- [ ] Validar busca por nome, telefone e cidade
-- [ ] Validar filtro por status
-- [ ] Validar status `agendado` com data desejada
-- [ ] Validar exportacao de leads em `.json`
+- [x] Trocar entre Colombia, Equador e Todos
+- [x] Validar busca por nome, telefone e cidade
+- [x] Validar filtro por status
+- [x] Validar status `agendado` com data desejada
+- [x] Validar exportacao de leads em `.json`
 - [ ] Validar `restaurar demo`
-- [ ] Validar persistencia apos recarregar a pagina
+- [x] Validar persistencia apos recarregar a pagina
+
+### Validado em 2026-04-28
+
+- Lead de teste criado em `Equador` com quantidade `2` e preco automatico `69.99`.
+- Persistencia confirmada apos recarregar a pagina no navegador local.
+- Lead editado para `agendado` com data desejada de `2026-04-28`.
+- Filtros de pais, status, busca e `agenda de hoje` confirmados no navegador local.
+- Copia de nome, telefone normalizado e endereco confirmada via clipboard.
+- Exportacao `.json` acionada sem erro no navegador local.
+- Remocao de lead e restauracao demo ainda dependem de confirmacao, porque apagam dados locais.
 
 ### Sequencia pratica do teste funcional
 
@@ -45,15 +55,21 @@ Checklist vivo para colocar o painel no ar com seguranca e operacao redonda.
 
 ## 3. Precos e oferta
 
-- [ ] Colombia: `1 = 149.000`
-- [ ] Colombia: `2 = 260.000`
-- [ ] Colombia: `3 = 290.000`
-- [ ] Colombia: `6 = 510.000`
-- [ ] Equador: `1 = 39.99`
-- [ ] Equador: `2 = 69.99`
-- [ ] Equador: `3 = 95.99`
-- [ ] Equador: `6 = 167.99`
-- [ ] Produto muda automaticamente conforme pais + quantidade
+- [x] Colombia: `1 = 149.000`
+- [x] Colombia: `2 = 260.000`
+- [x] Colombia: `3 = 290.000`
+- [x] Colombia: `6 = 510.000`
+- [x] Equador: `1 = 39.99`
+- [x] Equador: `2 = 69.99`
+- [x] Equador: `3 = 95.99`
+- [x] Equador: `6 = 167.99`
+- [x] Produto muda automaticamente conforme pais + quantidade
+
+### Validado em 2026-04-28
+
+- Tabela `PRICE_TABLE` confirmada em `app.js`.
+- Produtos automaticos confirmados por `PRODUCT_BASE`: Colombia usa `Vital Core`; Equador usa `Vital Men`.
+- Fluxo de troca de pais e quantidade no formulario abriu e alternou sem erro no navegador local.
 
 ## 4. Operacao interna
 
