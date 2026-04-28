@@ -1,26 +1,26 @@
 :root {
-  --bg: #0b1020;
-  --bg-soft: #11182d;
-  --surface: rgba(14, 19, 33, 0.96);
-  --surface-strong: #151c2d;
-  --surface-accent: linear-gradient(145deg, rgba(19, 26, 43, 0.98) 0%, rgba(12, 17, 29, 0.98) 100%);
-  --line: rgba(148, 163, 184, 0.1);
-  --text: #e5edf9;
-  --muted: #96a3ba;
-  --heading: #f8fbff;
-  --primary: #ff6b35;
-  --primary-strong: #f2551d;
-  --secondary: #10b981;
-  --secondary-soft: rgba(20, 184, 166, 0.18);
-  --info: #60a5fa;
-  --info-soft: rgba(96, 165, 250, 0.18);
-  --warn: #f59e0b;
-  --warn-soft: rgba(245, 158, 11, 0.18);
-  --success: #16a34a;
-  --success-soft: rgba(34, 197, 94, 0.18);
+  --bg: #0f1420;
+  --bg-soft: #151b29;
+  --surface: rgba(22, 28, 40, 0.96);
+  --surface-strong: #1a2231;
+  --surface-accent: linear-gradient(145deg, rgba(24, 31, 44, 0.98) 0%, rgba(18, 24, 35, 0.98) 100%);
+  --line: rgba(172, 184, 202, 0.12);
+  --text: #d8e0ec;
+  --muted: #9aa6b8;
+  --heading: #edf2f8;
+  --primary: #d97745;
+  --primary-strong: #e28a5d;
+  --secondary: #4fb992;
+  --secondary-soft: rgba(79, 185, 146, 0.14);
+  --info: #79a8d8;
+  --info-soft: rgba(121, 168, 216, 0.14);
+  --warn: #d6a24a;
+  --warn-soft: rgba(214, 162, 74, 0.14);
+  --success: #64b982;
+  --success-soft: rgba(100, 185, 130, 0.14);
   --radius: 18px;
   --radius-sm: 12px;
-  --shadow: 0 14px 32px rgba(2, 6, 23, 0.28);
+  --shadow: 0 12px 26px rgba(2, 6, 23, 0.2);
 }
 
 * {
@@ -31,9 +31,9 @@ body {
   margin: 0;
   font-family: "Manrope", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255, 107, 53, 0.12), transparent 22%),
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 22%),
-    linear-gradient(180deg, #070b16 0%, #0d1424 100%);
+    radial-gradient(circle at top left, rgba(217, 119, 69, 0.06), transparent 24%),
+    radial-gradient(circle at top right, rgba(79, 185, 146, 0.05), transparent 24%),
+    linear-gradient(180deg, #0d111b 0%, #121927 100%);
   color: var(--text);
 }
 
@@ -55,7 +55,7 @@ textarea {
   flex-direction: column;
   gap: 14px;
   padding: 20px 14px;
-  background: rgba(6, 10, 18, 0.96);
+  background: rgba(9, 13, 21, 0.96);
   border-right: 1px solid var(--line);
   backdrop-filter: blur(18px);
   position: sticky;
@@ -78,10 +78,10 @@ textarea {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), #ffbe98);
-  color: white;
+  background: linear-gradient(135deg, #d97745, #e7a578);
+  color: #fff7ed;
   font-weight: 800;
-  box-shadow: 0 14px 30px rgba(255, 107, 53, 0.24);
+  box-shadow: 0 12px 24px rgba(217, 119, 69, 0.16);
 }
 
 .brand strong,
@@ -104,7 +104,7 @@ textarea {
 .sidebar-section-label {
   margin-top: 4px;
   padding: 0 4px;
-  color: #6f7d93;
+  color: #7e8a9d;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -132,7 +132,7 @@ textarea {
 .nav-item:hover,
 .nav-item.active {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, rgba(27, 36, 58, 0.98), rgba(19, 27, 45, 0.98));
+  background: linear-gradient(135deg, rgba(31, 39, 54, 0.98), rgba(22, 29, 42, 0.98));
 }
 
 .nav-icon {
@@ -145,18 +145,18 @@ textarea {
 }
 
 .nav-item.active[data-country-target="co"] {
-  border-color: rgba(16, 185, 129, 0.34);
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.12);
+  border-color: rgba(79, 185, 146, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(79, 185, 146, 0.08);
 }
 
 .nav-item.active[data-country-target="ec"] {
-  border-color: rgba(96, 165, 250, 0.34);
-  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.12);
+  border-color: rgba(121, 168, 216, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(121, 168, 216, 0.08);
 }
 
 .nav-item.active[data-country-target="all"] {
-  border-color: rgba(255, 107, 53, 0.34);
-  box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.12);
+  border-color: rgba(217, 119, 69, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 69, 0.08);
 }
 
 .nav-dot {
@@ -251,17 +251,17 @@ textarea {
 }
 
 .active-country-pill.all {
-  background: rgba(255, 107, 53, 0.16);
+  background: rgba(217, 119, 69, 0.12);
   color: var(--primary-strong);
 }
 
 .active-country-pill.co {
-  background: rgba(16, 185, 129, 0.16);
+  background: rgba(79, 185, 146, 0.12);
   color: var(--secondary);
 }
 
 .active-country-pill.ec {
-  background: rgba(96, 165, 250, 0.16);
+  background: rgba(121, 168, 216, 0.12);
   color: var(--info);
 }
 
@@ -286,16 +286,16 @@ textarea {
 .country-card.active {
   transform: translateY(-2px);
   box-shadow:
-    0 18px 34px rgba(2, 6, 23, 0.36),
+    0 16px 28px rgba(2, 6, 23, 0.24),
     inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .country-card.active[data-country-target="co"] {
-  border-color: rgba(16, 185, 129, 0.36);
+  border-color: rgba(79, 185, 146, 0.28);
 }
 
 .country-card.active[data-country-target="ec"] {
-  border-color: rgba(96, 165, 250, 0.36);
+  border-color: rgba(121, 168, 216, 0.28);
 }
 
 .country-card.is-down {
@@ -312,7 +312,7 @@ textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: rgba(255, 107, 53, 0.14);
+  background: rgba(217, 119, 69, 0.12);
   color: var(--primary-strong);
 }
 
@@ -360,39 +360,39 @@ textarea {
 }
 
 .metric-card:nth-child(1)::before {
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(121, 168, 216, 0.14);
 }
 
 .metric-card:nth-child(1)::after {
   content: "L";
-  color: #60a5fa;
+  color: #9bbce0;
 }
 
 .metric-card:nth-child(2)::before {
-  background: rgba(16, 185, 129, 0.18);
+  background: rgba(79, 185, 146, 0.14);
 }
 
 .metric-card:nth-child(2)::after {
   content: "A";
-  color: #34d399;
+  color: #8ccfb5;
 }
 
 .metric-card:nth-child(3)::before {
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(139, 116, 191, 0.15);
 }
 
 .metric-card:nth-child(3)::after {
   content: "G";
-  color: #c4b5fd;
+  color: #b9acd9;
 }
 
 .metric-card:nth-child(4)::before {
-  background: rgba(34, 197, 94, 0.18);
+  background: rgba(100, 185, 130, 0.14);
 }
 
 .metric-card:nth-child(4)::after {
   content: "C";
-  color: #86efac;
+  color: #a4d1b4;
 }
 
 .metric-card strong {
@@ -470,10 +470,10 @@ textarea {
 }
 
 .quick-filter.active {
-  border-color: rgba(255, 107, 53, 0.42);
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.22), rgba(242, 85, 29, 0.16));
-  color: #ffd2bf;
-  box-shadow: inset 0 0 0 1px rgba(255, 107, 53, 0.14);
+  border-color: rgba(217, 119, 69, 0.34);
+  background: linear-gradient(135deg, rgba(217, 119, 69, 0.16), rgba(165, 91, 59, 0.12));
+  color: #e9b99d;
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 69, 0.08);
 }
 
 .search input,
@@ -498,9 +498,9 @@ textarea {
 .lead-form input:focus,
 .lead-form select:focus,
 .lead-form textarea:focus {
-  border-color: rgba(255, 107, 53, 0.48);
-  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.12);
-  background: rgba(18, 28, 48, 0.98);
+  border-color: rgba(217, 119, 69, 0.34);
+  box-shadow: 0 0 0 3px rgba(217, 119, 69, 0.08);
+  background: rgba(23, 31, 45, 0.98);
 }
 
 .search {
@@ -543,24 +543,24 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: rgba(255, 107, 53, 0.08);
+  background: rgba(217, 119, 69, 0.06);
 }
 
 tbody tr.row-agendado {
   background:
-    linear-gradient(90deg, rgba(124, 58, 237, 0.14), rgba(124, 58, 237, 0) 42%),
+    linear-gradient(90deg, rgba(139, 116, 191, 0.1), rgba(139, 116, 191, 0) 42%),
     rgba(15, 23, 42, 0.84);
 }
 
 tbody tr.row-agenda-today {
   background:
-    linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0) 42%),
+    linear-gradient(90deg, rgba(214, 162, 74, 0.12), rgba(214, 162, 74, 0) 42%),
     rgba(15, 23, 42, 0.84);
 }
 
 tbody tr.row-agenda-overdue {
   background:
-    linear-gradient(90deg, rgba(217, 70, 39, 0.16), rgba(217, 70, 39, 0) 42%),
+    linear-gradient(90deg, rgba(190, 91, 72, 0.12), rgba(190, 91, 72, 0) 42%),
     rgba(15, 23, 42, 0.84);
 }
 
@@ -616,8 +616,8 @@ tbody tr.row-agenda-overdue {
   right: 8px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: rgba(96, 165, 250, 0.14);
-  color: #93c5fd;
+  background: rgba(121, 168, 216, 0.12);
+  color: #a8c1dd;
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -634,15 +634,15 @@ tbody tr.row-agenda-overdue {
 .copyable-cell.copied::after {
   content: "copiado";
   opacity: 1;
-  background: rgba(34, 197, 94, 0.16);
-  color: #86efac;
+  background: rgba(100, 185, 130, 0.14);
+  color: #a4d1b4;
 }
 
 .copyable-cell.copy-failed::after {
   content: "falhou";
   opacity: 1;
-  background: rgba(239, 68, 68, 0.16);
-  color: #fca5a5;
+  background: rgba(190, 91, 72, 0.14);
+  color: #dfaaa0;
 }
 
 .qty-cell,
@@ -658,7 +658,7 @@ tbody tr.row-agenda-overdue {
 }
 
 .schedule-cell.is-active {
-  color: #7c3aed;
+  color: #b9acd9;
 }
 
 .schedule-flag {
@@ -673,13 +673,13 @@ tbody tr.row-agenda-overdue {
 }
 
 .schedule-flag.today {
-  background: #fff1c9;
-  color: #b45309;
+  background: rgba(214, 162, 74, 0.18);
+  color: #e0bd7c;
 }
 
 .schedule-flag.overdue {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: rgba(190, 91, 72, 0.18);
+  color: #dfa199;
 }
 
 .status-pill {
@@ -702,7 +702,7 @@ tbody tr.row-agenda-overdue {
 
 .status-pill.atendendo {
   background: var(--warn-soft);
-  color: #b45309;
+  color: #e0bd7c;
 }
 
 .status-pill.pendente {
@@ -711,18 +711,18 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.processado {
-  background: rgba(56, 189, 248, 0.18);
-  color: #7dd3fc;
+  background: rgba(121, 168, 216, 0.14);
+  color: #a8c1dd;
 }
 
 .status-pill.agendado {
-  background: rgba(167, 139, 250, 0.2);
-  color: #d8b4fe;
+  background: rgba(139, 116, 191, 0.16);
+  color: #c8bee2;
 }
 
 .status-pill.retirada_agencia {
-  background: rgba(139, 92, 246, 0.16);
-  color: #c4b5fd;
+  background: rgba(139, 116, 191, 0.14);
+  color: #b9acd9;
 }
 
 .status-pill.confirmado {
@@ -731,18 +731,18 @@ tbody tr.row-agenda-overdue {
 }
 
 .status-pill.entregue {
-  background: rgba(34, 197, 94, 0.18);
-  color: #86efac;
+  background: rgba(100, 185, 130, 0.14);
+  color: #a4d1b4;
 }
 
 .status-pill.cancelado {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: rgba(190, 91, 72, 0.16);
+  color: #dfa199;
 }
 
 .status-pill.devolvido {
-  background: rgba(249, 115, 22, 0.16);
-  color: #fdba74;
+  background: rgba(217, 119, 69, 0.14);
+  color: #e7b08e;
 }
 
 .table-button,
@@ -758,32 +758,32 @@ tbody tr.row-agenda-overdue {
 .table-button,
 .primary-button {
   padding: 10px 12px;
-  background: linear-gradient(135deg, var(--primary), #ff8f5c);
-  color: white;
+  background: linear-gradient(135deg, #c96f42, #dc8d62);
+  color: #fff7ed;
   font-weight: 800;
   box-shadow:
-    0 10px 24px rgba(255, 107, 53, 0.22),
+    0 8px 18px rgba(217, 119, 69, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .danger-button {
   padding: 10px 12px;
-  background: rgba(127, 29, 29, 0.22);
-  color: #fca5a5;
+  background: rgba(122, 48, 45, 0.22);
+  color: #dca39b;
   font-weight: 700;
 }
 
 .ghost-button,
 .icon-button {
   padding: 12px 14px;
-  background: rgba(24, 34, 54, 0.96);
-  color: #f8fbff;
+  background: rgba(29, 38, 54, 0.96);
+  color: #dde5ef;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .subtle-button {
-  background: rgba(127, 29, 29, 0.22);
-  color: #fca5a5;
+  background: rgba(122, 48, 45, 0.22);
+  color: #dca39b;
 }
 
 .actions-cell {
@@ -858,10 +858,10 @@ tbody tr.row-agenda-overdue {
 
 .form-feedback {
   padding: 12px 14px;
-  border: 1px solid rgba(217, 70, 39, 0.18);
+  border: 1px solid rgba(190, 91, 72, 0.18);
   border-radius: 16px;
-  background: rgba(127, 29, 29, 0.2);
-  color: #fdba74;
+  background: rgba(122, 48, 45, 0.18);
+  color: #e7b08e;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -883,10 +883,10 @@ tbody tr.row-agenda-overdue {
 
 .future-note {
   padding: 12px 14px;
-  border: 1px solid rgba(124, 58, 237, 0.16);
+  border: 1px solid rgba(139, 116, 191, 0.16);
   border-radius: 16px;
-  background: rgba(91, 33, 182, 0.18);
-  color: #c4b5fd;
+  background: rgba(84, 73, 121, 0.18);
+  color: #c8bee2;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -960,127 +960,127 @@ tbody tr.row-agenda-overdue {
 
 .status-option:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 107, 53, 0.28);
+  border-color: rgba(217, 119, 69, 0.24);
 }
 
 .status-option.active[data-status-option="novo"] {
   background: var(--info-soft);
-  border-color: rgba(37, 99, 235, 0.2);
+  border-color: rgba(121, 168, 216, 0.18);
   color: var(--info);
 }
 
 .status-option.active[data-status-option="atendendo"] {
   background: var(--warn-soft);
-  border-color: rgba(245, 158, 11, 0.22);
-  color: #b45309;
+  border-color: rgba(214, 162, 74, 0.2);
+  color: #e0bd7c;
 }
 
 .status-option.active[data-status-option="pendente"] {
-  background: #f3f4f6;
-  border-color: rgba(107, 114, 128, 0.18);
-  color: #4b5563;
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
 }
 
 .status-option.active[data-status-option="processado"] {
-  background: #e0f2fe;
-  border-color: rgba(3, 105, 161, 0.18);
-  color: #0369a1;
+  background: rgba(121, 168, 216, 0.14);
+  border-color: rgba(121, 168, 216, 0.18);
+  color: #a8c1dd;
 }
 
 .status-option.active[data-status-option="agendado"] {
-  background: #f3e8ff;
-  border-color: rgba(124, 58, 237, 0.18);
-  color: #7c3aed;
+  background: rgba(139, 116, 191, 0.16);
+  border-color: rgba(139, 116, 191, 0.18);
+  color: #c8bee2;
 }
 
 .status-option.active[data-status-option="retirada_agencia"] {
-  background: #ede9fe;
-  border-color: rgba(91, 33, 182, 0.18);
-  color: #5b21b6;
+  background: rgba(139, 116, 191, 0.14);
+  border-color: rgba(139, 116, 191, 0.18);
+  color: #b9acd9;
 }
 
 .status-option.active[data-status-option="confirmado"] {
   background: var(--success-soft);
-  border-color: rgba(22, 163, 74, 0.2);
+  border-color: rgba(100, 185, 130, 0.18);
   color: var(--success);
 }
 
 .status-option.active[data-status-option="entregue"] {
-  background: #dcfce7;
-  border-color: rgba(22, 101, 52, 0.2);
-  color: #166534;
+  background: rgba(100, 185, 130, 0.14);
+  border-color: rgba(100, 185, 130, 0.18);
+  color: #a4d1b4;
 }
 
 .status-option.active[data-status-option="cancelado"] {
-  background: #fee2e2;
-  border-color: rgba(185, 28, 28, 0.18);
-  color: #b91c1c;
+  background: rgba(190, 91, 72, 0.16);
+  border-color: rgba(190, 91, 72, 0.18);
+  color: #dfa199;
 }
 
 .status-option.active[data-status-option="devolvido"] {
-  background: #ffedd5;
-  border-color: rgba(194, 65, 12, 0.18);
-  color: #c2410c;
+  background: rgba(217, 119, 69, 0.14);
+  border-color: rgba(217, 119, 69, 0.18);
+  color: #e7b08e;
 }
 
 .status-trigger.status-novo {
   background: var(--info-soft);
-  border-color: rgba(37, 99, 235, 0.2);
+  border-color: rgba(121, 168, 216, 0.18);
   color: var(--info);
 }
 
 .status-trigger.status-pendente {
-  background: #f3f4f6;
-  border-color: rgba(107, 114, 128, 0.18);
-  color: #4b5563;
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
 }
 
 .status-trigger.status-atendendo {
   background: var(--warn-soft);
-  border-color: rgba(245, 158, 11, 0.22);
-  color: #b45309;
+  border-color: rgba(214, 162, 74, 0.2);
+  color: #e0bd7c;
 }
 
 .status-trigger.status-processado {
-  background: #e0f2fe;
-  border-color: rgba(3, 105, 161, 0.18);
-  color: #0369a1;
+  background: rgba(121, 168, 216, 0.14);
+  border-color: rgba(121, 168, 216, 0.18);
+  color: #a8c1dd;
 }
 
 .status-trigger.status-agendado {
-  background: #f3e8ff;
-  border-color: rgba(124, 58, 237, 0.18);
-  color: #7c3aed;
+  background: rgba(139, 116, 191, 0.16);
+  border-color: rgba(139, 116, 191, 0.18);
+  color: #c8bee2;
 }
 
 .status-trigger.status-retirada_agencia {
-  background: #ede9fe;
-  border-color: rgba(91, 33, 182, 0.18);
-  color: #5b21b6;
+  background: rgba(139, 116, 191, 0.14);
+  border-color: rgba(139, 116, 191, 0.18);
+  color: #b9acd9;
 }
 
 .status-trigger.status-confirmado {
   background: var(--success-soft);
-  border-color: rgba(22, 163, 74, 0.2);
+  border-color: rgba(100, 185, 130, 0.18);
   color: var(--success);
 }
 
 .status-trigger.status-entregue {
-  background: #dcfce7;
-  border-color: rgba(22, 101, 52, 0.2);
-  color: #166534;
+  background: rgba(100, 185, 130, 0.14);
+  border-color: rgba(100, 185, 130, 0.18);
+  color: #a4d1b4;
 }
 
 .status-trigger.status-cancelado {
-  background: #fee2e2;
-  border-color: rgba(185, 28, 28, 0.18);
-  color: #b91c1c;
+  background: rgba(190, 91, 72, 0.16);
+  border-color: rgba(190, 91, 72, 0.18);
+  color: #dfa199;
 }
 
 .status-trigger.status-devolvido {
-  background: #ffedd5;
-  border-color: rgba(194, 65, 12, 0.18);
-  color: #c2410c;
+  background: rgba(217, 119, 69, 0.14);
+  border-color: rgba(217, 119, 69, 0.18);
+  color: #e7b08e;
 }
 
 .field-span-2 {
