@@ -20,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260430c" />
+    <link rel="stylesheet" href="./styles.css?v=20260430d" />
   </head>
   <body>
     <div class="app-shell">
@@ -170,47 +170,32 @@
         <section class="panel official-main-panel" id="fila-oficial">
           <div class="panel-head">
             <div>
-              <h2>Fila oficial de leads</h2>
-              <p class="panel-subcopy">Dados reais do VPS. Status confirmado dispara venda no Pixel.</p>
+              <h2>Painel unificado oficial</h2>
+              <p class="panel-subcopy">Tela real do VPS com leads, filtros, status e Pixel conectados.</p>
             </div>
 
             <div class="toolbar official-toolbar">
-              <button class="ghost-button" type="button" data-country-target="all">Todos</button>
-              <button class="ghost-button" type="button" data-country-target="ec">Leads EC</button>
-              <button class="ghost-button" type="button" data-country-target="co">Leads CO</button>
-              <button class="primary-button" type="button" id="refresh-official-leads">Atualizar</button>
+              <a class="ghost-button link-button" href="/admin/dashboard" target="unified-dashboard-frame">Todos</a>
+              <a class="ghost-button link-button" href="/admin/dashboard?country=EC" target="unified-dashboard-frame">Leads EC</a>
+              <a class="ghost-button link-button" href="/admin/dashboard?country=CO" target="unified-dashboard-frame">Leads CO</a>
+              <a class="primary-button link-button" href="/admin/dashboard" target="unified-dashboard-frame">Atualizar</a>
             </div>
           </div>
 
-          <div class="toolbar official-search-row">
-            <label class="search">
-              <input
-                id="search-input"
-                type="search"
-                placeholder="Buscar por nome, telefone ou cidade"
-              />
-            </label>
-
-            <button id="new-lead-button" class="primary-button" type="button">
-                novo lead
-            </button>
+          <div class="unified-dashboard-wrap">
+            <iframe
+              class="unified-dashboard-frame"
+              name="unified-dashboard-frame"
+              src="/admin/dashboard"
+              title="Painel unificado oficial"
+              loading="eager"
+            ></iframe>
           </div>
 
-          <div class="table-wrap">
+          <div class="legacy-data-cache" aria-hidden="true">
+            <input id="search-input" type="search" />
+            <button id="new-lead-button" type="button"></button>
             <table>
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Contato</th>
-                  <th>Localizacao</th>
-                  <th>Endereco</th>
-                  <th>Qtd</th>
-                  <th>Valor</th>
-                  <th>Data</th>
-                  <th>Status</th>
-                  <th>Acao</th>
-                  </tr>
-              </thead>
               <tbody id="lead-table-body"></tbody>
             </table>
           </div>
@@ -361,6 +346,6 @@
       </div>
     </aside>
 
-    <script src="./app.js?v=20260430c"></script>
+    <script src="./app.js?v=20260430d"></script>
   </body>
 </html>
