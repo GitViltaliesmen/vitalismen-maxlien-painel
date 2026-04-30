@@ -175,57 +175,44 @@
             </div>
 
             <div class="toolbar official-toolbar">
-              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard" target="official-leads-frame">Todos</a>
-              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard?country=EC" target="official-leads-frame">Leads EC</a>
-              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard?country=CO" target="official-leads-frame">Leads CO</a>
-              <a class="primary-button link-button" href="https://maxlien.shop/admin/dashboard" target="official-leads-frame">Atualizar</a>
+              <button class="ghost-button" type="button" data-country-target="all">Todos</button>
+              <button class="ghost-button" type="button" data-country-target="ec">Leads EC</button>
+              <button class="ghost-button" type="button" data-country-target="co">Leads CO</button>
+              <button class="primary-button" type="button" id="refresh-official-leads">Atualizar</button>
             </div>
           </div>
 
-          <div class="official-frame-wrap" style="height:min(820px,76vh);min-height:640px;width:100%;overflow:hidden;background:#090909;">
-            <iframe
-              class="official-frame"
-              name="official-leads-frame"
-              src="https://maxlien.shop/admin/dashboard"
-              title="Painel oficial Maxlien"
-              loading="eager"
-              style="display:block;width:100%;height:100%;border:0;background:#090909;"
-            ></iframe>
-          </div>
+          <div class="toolbar official-search-row">
+            <label class="search">
+              <input
+                id="search-input"
+                type="search"
+                placeholder="Buscar por nome, telefone ou cidade"
+              />
+            </label>
 
-          <div class="legacy-data-cache" aria-hidden="true">
-            <div class="toolbar">
-              <label class="search" hidden>
-                <input
-                  id="search-input"
-                  type="search"
-                  placeholder="Buscar por nome, telefone ou cidade"
-                />
-              </label>
-
-              <button id="new-lead-button" class="primary-button" type="button" hidden>
+            <button id="new-lead-button" class="primary-button" type="button">
                 novo lead
-              </button>
-            </div>
+            </button>
+          </div>
 
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Contato</th>
-                    <th>Localizacao</th>
-                    <th>Endereco</th>
-                    <th>Qtd</th>
-                    <th>Valor</th>
-                    <th>Agenda</th>
-                    <th>Status</th>
-                    <th>Acao</th>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Contato</th>
+                  <th>Localizacao</th>
+                  <th>Endereco</th>
+                  <th>Qtd</th>
+                  <th>Valor</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Acao</th>
                   </tr>
-                </thead>
-                <tbody id="lead-table-body"></tbody>
-              </table>
-            </div>
+              </thead>
+              <tbody id="lead-table-body"></tbody>
+            </table>
           </div>
         </section>
       </main>

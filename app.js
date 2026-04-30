@@ -85,6 +85,9 @@ const seedLeadsByCountry = {
 };
 
 const STORAGE_KEY = "maxlien-admin-leads-v1";
+const ADMIN_API_BASE = "https://maxlien.shop";
+const OFFICIAL_API = `${ADMIN_API_BASE}/admin/api`;
+let officialApiReady = false;
 const PRICE_TABLE = {
   co: {
     1: 149000,
@@ -118,7 +121,11 @@ const statusLabels = {
   agendado: "agendado",
   retirada_agencia: "retiro em agencia",
   confirmado: "confirmado",
+  pedido_enviado: "pedido enviado",
+  enviado: "enviado",
+  pago: "pago",
   entregue: "entregue",
+  finalizado: "finalizado",
   cancelado: "cancelado",
   devolvido: "devolvido",
 };
@@ -154,6 +161,7 @@ const statusTriggerLabel = document.getElementById("status-trigger-label");
 const scheduledDateField = document.getElementById("scheduled-date-field");
 const futureNote = document.getElementById("future-note");
 const formFeedback = document.getElementById("form-feedback");
+const refreshOfficialLeadsButton = document.getElementById("refresh-official-leads");
 
 const formFields = {
   id: document.getElementById("lead-id"),
@@ -254,6 +262,127 @@ function getProductLabel(country, quantity) {
   const normalizedCountry = country === "all" ? "ec" : country;
   const normalizedQuantity = normalizeQuantity(quantity);
   return `${PRODUCT_BASE[normalizedCountry]} x ${normalizedQuantity}`;
+}
+
+function normalizeCountryCode(country) {
+  return String(country || "EC").trim().toLowerCase() === "co" ? "co" : "ec";
+}
+
+function mapOfficialLead(lead) {
+  const country = normalizeCountryCode(lead.country);
+  const quantity = normalizeQuantity(lead.quantity || lead.product_qty || 1);
+
+  return {
+    id: `${country}-${lead.id}`,
+    backendId: lead.id,
+    country,
+    name: lead.name || "",
+    phone: lead.phone || "",
+    city: lead.city || "",
+    region: lead.province || lead.region || "",
+    address: lead.address || "",
+    product: getProductLabel(country, quantity),
+    quantity,
+    value: Number(lead.value || lead.product_value || 0),
+    status: lead.status || "novo",
+    scheduledDate: "",
+    updatedAt: lead.created_at_display || lead.created_at || "",
+  };
+}
+
+async function loadOfficialLeads() {
+  if (refreshOfficialLeadsButton) {
+    refreshOfficialLeadsButton.disabled = true;
+    refreshOfficialLeadsButton.textContent = "Atualizando...";
+  }
+
+  try {
+    const response = await fetch(`${OFFICIAL_API}/leads?country=ALL&limit=700`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload.ok) {
+      officialApiReady = false;
+      renderAuthRequired(payload.login_url || `${ADMIN_API_BASE}/admin/login`);
+      return;
+    }
+
+    const nextLeads = { co: [], ec: [] };
+    (payload.leads || []).forEach((lead) => {
+      const mapped = mapOfficialLead(lead);
+      nextLeads[mapped.country].push(mapped);
+    });
+
+    leadsByCountry = nextLeads;
+    officialApiReady = true;
+    renderTable();
+  } catch (error) {
+    officialApiReady = false;
+    renderApiError();
+  } finally {
+    if (refreshOfficialLeadsButton) {
+      refreshOfficialLeadsButton.disabled = false;
+      refreshOfficialLeadsButton.textContent = "Atualizar";
+    }
+  }
+}
+
+function renderAuthRequired(loginUrl) {
+  renderMetrics();
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="9">
+        <div class="empty-state">
+          Sessao do painel principal necessaria.
+          <a class="inline-action" href="${escapeHtml(loginUrl)}">Entrar no painel</a>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function renderApiError() {
+  renderMetrics();
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="9">
+        <div class="empty-state">Nao foi possivel carregar os leads reais agora. Tente atualizar em instantes.</div>
+      </td>
+    </tr>
+  `;
+}
+
+async function updateOfficialStatus(lead, status, select) {
+  if (!lead || !lead.backendId) return;
+  const previous = lead.status;
+  lead.status = status;
+  if (select) select.disabled = true;
+
+  try {
+    const response = await fetch(`${OFFICIAL_API}/status`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: lead.backendId,
+        country: lead.country.toUpperCase(),
+        status,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "status_error");
+    lead.status = payload.status || status;
+    renderTable();
+  } catch (error) {
+    lead.status = previous;
+    if (select) select.value = previous;
+    renderTable();
+    window.alert("Nao consegui salvar o status no painel real. Tente de novo.");
+  } finally {
+    if (select) select.disabled = false;
+  }
 }
 
 function syncLeadPricing() {
@@ -369,9 +498,13 @@ function getStatusPriority(status) {
     processado: 4,
     retirada_agencia: 5,
     confirmado: 6,
-    entregue: 7,
-    devolvido: 8,
-    cancelado: 9,
+    pedido_enviado: 7,
+    enviado: 8,
+    pago: 9,
+    entregue: 10,
+    finalizado: 11,
+    devolvido: 12,
+    cancelado: 13,
   };
 
   return order[status] ?? 99;
@@ -503,11 +636,7 @@ function renderTable() {
       const safeLocation = escapeHtml(`${lead.city} / ${lead.region}`);
       const safeStatus = escapeHtml(statusLabels[lead.status] || lead.status);
       const safeUpdatedAt = escapeHtml(lead.updatedAt || "");
-      const safeSchedule = escapeHtml(
-        lead.status === "agendado"
-          ? formatScheduledDate(lead.scheduledDate)
-          : "-"
-      );
+      const safeSchedule = escapeHtml(lead.updatedAt || "-");
       const scheduleState = getScheduleState(lead);
       const scheduleBadge =
         scheduleState === "today"
@@ -535,15 +664,16 @@ function renderTable() {
           <td class="value-cell" data-label="Valor">${formatCurrency(lead.value, lead.country)}</td>
           <td class="schedule-cell ${lead.status === "agendado" ? "is-active" : ""}" data-label="Agenda">${safeSchedule}${scheduleBadge}</td>
           <td class="status-cell" data-label="Status">
-            <span class="status-pill ${lead.status}">${safeStatus}</span>
+            <select class="status-inline ${lead.status}" data-status-id="${lead.id}" aria-label="Status de ${safeName}">
+              ${Object.keys(statusLabels)
+                .map((status) => `<option value="${status}" ${lead.status === status ? "selected" : ""}>${escapeHtml(statusLabels[status])}</option>`)
+                .join("")}
+            </select>
           </td>
           <td data-label="Acao">
             <div class="actions-cell">
               <button class="table-button" type="button" data-edit-id="${lead.id}">
-                editar
-              </button>
-              <button class="danger-button" type="button" data-delete-id="${lead.id}">
-                remover
+                detalhes
               </button>
             </div>
           </td>
@@ -556,8 +686,11 @@ function renderTable() {
     button.addEventListener("click", () => openDrawer(button.dataset.editId));
   });
 
-  document.querySelectorAll("[data-delete-id]").forEach((button) => {
-    button.addEventListener("click", () => deleteLead(button.dataset.deleteId));
+  document.querySelectorAll("[data-status-id]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const lead = findLeadById(select.dataset.statusId);
+      updateOfficialStatus(lead, select.value, select);
+    });
   });
 
   document.querySelectorAll("[data-copy-text]").forEach((cell) => {
@@ -669,15 +802,7 @@ function openDrawer(leadId) {
 }
 
 function openCreateDrawer() {
-  resetForm();
-  drawerKicker.textContent = "Novo lead";
-  drawerTitle.textContent =
-    currentCountry === "all"
-      ? "Novo lead para Colombia ou Equador"
-      : `Novo lead para ${countryNames[currentCountry]}`;
-  drawerCopy.textContent = "Cadastre um contato e ele entra na fila imediatamente.";
-  drawer.classList.add("open");
-  drawer.setAttribute("aria-hidden", "false");
+  window.location.href = `${ADMIN_API_BASE}/admin/new`;
 }
 
 function closeDrawer() {
@@ -863,7 +988,9 @@ leadForm.addEventListener("submit", (event) => {
 });
 
 syncLeadPricing();
-saveLeads();
 renderTable();
 syncCountryButtons();
 syncQuickFilters();
+loadOfficialLeads();
+
+refreshOfficialLeadsButton?.addEventListener("click", loadOfficialLeads);
