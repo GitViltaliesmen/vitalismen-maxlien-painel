@@ -43,9 +43,9 @@
             <span class="nav-icon">F</span>
             Fila de leads
           </button>
-          <a class="nav-item" href="#leads-oficiais">
+          <a class="nav-item" href="#fila-oficial">
             <span class="nav-icon">O</span>
-            Leads oficiais
+            Operacao real
           </a>
         </nav>
 
@@ -167,15 +167,35 @@
           </article>
         </section>
 
-        <section class="panel">
+        <section class="panel official-main-panel" id="fila-oficial">
           <div class="panel-head">
             <div>
-              <h2>Fila de leads</h2>
-              <p class="panel-subcopy">Acompanhe contatos, agenda e fechamento sem sair da operacao.</p>
+              <h2>Fila oficial de leads</h2>
+              <p class="panel-subcopy">Dados reais do VPS. Status confirmado dispara venda no Pixel.</p>
             </div>
 
+            <div class="toolbar official-toolbar">
+              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard" target="official-leads-frame">Todos</a>
+              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard?country=EC" target="official-leads-frame">Leads EC</a>
+              <a class="ghost-button link-button" href="https://maxlien.shop/admin/dashboard?country=CO" target="official-leads-frame">Leads CO</a>
+              <a class="primary-button link-button" href="https://maxlien.shop/admin/dashboard" target="official-leads-frame">Atualizar</a>
+            </div>
+          </div>
+
+          <div class="official-frame-wrap" style="height:min(820px,76vh);min-height:640px;width:100%;overflow:hidden;background:#090909;">
+            <iframe
+              class="official-frame"
+              name="official-leads-frame"
+              src="https://maxlien.shop/admin/dashboard"
+              title="Painel oficial Maxlien"
+              loading="eager"
+              style="display:block;width:100%;height:100%;border:0;background:#090909;"
+            ></iframe>
+          </div>
+
+          <div class="legacy-data-cache" aria-hidden="true">
             <div class="toolbar">
-              <label class="search">
+              <label class="search" hidden>
                 <input
                   id="search-input"
                   type="search"
@@ -183,55 +203,29 @@
                 />
               </label>
 
-              <button id="new-lead-button" class="primary-button" type="button">
+              <button id="new-lead-button" class="primary-button" type="button" hidden>
                 novo lead
               </button>
             </div>
-          </div>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Contato</th>
-                  <th>Localizacao</th>
-                  <th>Endereco</th>
-                  <th>Qtd</th>
-                  <th>Valor</th>
-                  <th>Agenda</th>
-                  <th>Status</th>
-                  <th>Acao</th>
-                </tr>
-              </thead>
-              <tbody id="lead-table-body"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel official-panel" id="leads-oficiais">
-          <div class="panel-head">
-            <div>
-              <h2>Leads oficiais conectados</h2>
-              <p class="panel-subcopy">
-                Painel real do VPS. Alterar status aqui conversa com o backend e dispara venda no Pixel quando virar confirmado.
-              </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Contato</th>
+                    <th>Localizacao</th>
+                    <th>Endereco</th>
+                    <th>Qtd</th>
+                    <th>Valor</th>
+                    <th>Agenda</th>
+                    <th>Status</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody id="lead-table-body"></tbody>
+              </table>
             </div>
-
-            <div class="toolbar">
-              <a class="primary-button link-button" href="https://maxlien.shop/admin/dashboard" target="_blank" rel="noopener">
-                abrir em nova aba
-              </a>
-            </div>
-          </div>
-
-          <div class="official-frame-wrap">
-            <iframe
-              class="official-frame"
-              src="https://maxlien.shop/admin/dashboard"
-              title="Painel oficial Maxlien"
-              loading="lazy"
-            ></iframe>
           </div>
         </section>
       </main>

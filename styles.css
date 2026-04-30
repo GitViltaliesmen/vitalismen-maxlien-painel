@@ -426,6 +426,10 @@ textarea {
   margin-top: 18px;
 }
 
+.official-main-panel {
+  min-height: 720px;
+}
+
 .official-frame-wrap {
   height: min(760px, 72vh);
   min-height: 520px;
@@ -444,6 +448,14 @@ textarea {
   color: #fff7ed;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.official-toolbar .ghost-button {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.legacy-data-cache {
+  display: none;
 }
 
 .panel-head {
