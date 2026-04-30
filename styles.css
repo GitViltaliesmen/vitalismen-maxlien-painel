@@ -127,6 +127,7 @@ textarea {
   color: var(--text);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  text-decoration: none;
 }
 
 .nav-item:hover,
@@ -419,6 +420,30 @@ textarea {
   border-radius: 14px;
   overflow: hidden;
   border-color: rgba(255, 255, 255, 0.05);
+}
+
+.official-panel {
+  margin-top: 18px;
+}
+
+.official-frame-wrap {
+  height: min(760px, 72vh);
+  min-height: 520px;
+  background: #090909;
+}
+
+.official-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #090909;
+}
+
+.link-button {
+  color: #fff7ed;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .panel-head {
