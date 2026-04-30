@@ -185,29 +185,15 @@ const remoteStatus = {
 };
 
 function cloneSeedData() {
-  return JSON.parse(JSON.stringify(seedLeadsByCountry));
+  return { co: [], ec: [] };
 }
 
 function loadLeads() {
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return cloneSeedData();
-    }
-
-    const parsed = JSON.parse(saved);
-    if (!parsed || !Array.isArray(parsed.co) || !Array.isArray(parsed.ec)) {
-      return cloneSeedData();
-    }
-
-    return parsed;
-  } catch (error) {
-    return cloneSeedData();
-  }
+  return cloneSeedData();
 }
 
 function saveLeads() {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(leadsByCountry));
+  // Dados oficiais vem do VPS; nao persistimos copia local para evitar painel divergente.
 }
 
 function exportLeads() {
@@ -330,20 +316,37 @@ async function loadOfficialLeads() {
 }
 
 function renderAuthRequired(loginUrl) {
+  leadsByCountry = cloneSeedData();
   renderMetrics();
+  const isLocalFile = window.location.protocol === "file:";
   tableBody.innerHTML = `
     <tr>
       <td colspan="9">
         <div class="empty-state">
-          Sessao do painel principal necessaria.
-          <a class="inline-action" href="${escapeHtml(loginUrl)}">Entrar no painel</a>
+          ${isLocalFile ? "Abra o painel publicado para puxar leads reais." : "Sessao do painel principal necessaria."}
+          <a class="inline-action" href="${escapeHtml(isLocalFile ? "https://painel.maxlien.shop/#fila-oficial" : loginUrl)}">
+            ${isLocalFile ? "Abrir painel publicado" : "Entrar no painel"}
+          </a>
         </div>
       </td>
     </tr>
   `;
 }
 
+function renderLoadingLeads() {
+  leadsByCountry = cloneSeedData();
+  renderMetrics();
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="9">
+        <div class="empty-state">Carregando leads reais do VPS...</div>
+      </td>
+    </tr>
+  `;
+}
+
 function renderApiError() {
+  leadsByCountry = cloneSeedData();
   renderMetrics();
   tableBody.innerHTML = `
     <tr>
@@ -987,8 +990,7 @@ leadForm.addEventListener("submit", (event) => {
   renderTable();
 });
 
-syncLeadPricing();
-renderTable();
+renderLoadingLeads();
 syncCountryButtons();
 syncQuickFilters();
 loadOfficialLeads();
