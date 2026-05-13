@@ -268,6 +268,7 @@ router.post('/draft', async (req, res) => {
             customer: {
                 phone: phone,
                 name: name,
+                reference: '',
                 address: '',
                 city: '',
                 province: ''
@@ -351,6 +352,7 @@ router.patch('/draft/:id', async (req, res) => {
             if (customer.name) order.customer.name = customer.name;
             if (customer.phone) order.customer.phone = customer.phone;
             if (customer.address) order.customer.address = customer.address;
+            if (customer.reference) order.customer.reference = customer.reference;
             if (customer.city) order.customer.city = customer.city;
             if (customer.province) order.customer.province = customer.province;
         }
@@ -412,7 +414,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 
         // Validate required fields before submitting
         if (!order.customer.name || !order.customer.phone ||
-            !order.customer.address || !order.customer.city || !order.customer.province) {
+            !order.customer.address || !order.customer.reference || !order.customer.city || !order.customer.province) {
             return res.status(400).json({ error: 'Incomplete customer data' });
         }
 
@@ -496,6 +498,7 @@ router.post('/', async (req, res) => {
                 name: customer.name,
                 phone: customer.phone,
                 address: customer.address,
+                reference: customer.reference || '',
                 city: customer.city,
                 province: customer.province
             },

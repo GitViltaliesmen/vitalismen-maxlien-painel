@@ -12,6 +12,7 @@ import whatsappRoutes from './routes/whatsapp.js';
 import aiRoutes from './routes/ai.js';
 import shipmentRoutes from './routes/shipments.js';
 import automationRoutes from './routes/automation.js';
+import leadRoutes from './routes/lead.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -110,6 +111,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/lead', leadRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/whatsapp', whatsappRoutes);

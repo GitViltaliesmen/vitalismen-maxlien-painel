@@ -25,6 +25,7 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - QA com formulario aberto: `https://maxlien.shop/m/?showForm=1`
 - Arquivo oficial no VPS: `/var/www/ec.maxlien.shop/m/index.html`
 - JSON publico de mensagens CTA: `/var/www/ec.maxlien.shop/cta-vit-power-messages.json`
+- Endpoint backend esperado pela VSL publica: `POST /api/lead`
 - Copia local de preparacao: `.codex-tmp/vps-vsl/maxlien-m-index.html`
 - Ultimo backup conhecido antes do ajuste de mensagens CTA:
   - `/root/codex_deploy_backups/maxlien-m-index-before-cta-messages-20260506-030628.html`
