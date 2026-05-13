@@ -69,23 +69,8 @@ const toUnixSeconds = (value) => {
     return Number.isFinite(time) ? Math.floor(time / 1000) : null;
 };
 
-export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
+const buildMetaUserDataForOrder = (order) => {
     const country = order?.country;
-    const eventId = order?.orderId || order?._id?.toString();
-    if (!eventId) {
-        return { ok: false, error: 'META Purchase missing event_id' };
-    }
-
-    const value = Number(order?.total || 0);
-    if (!Number.isFinite(value) || value <= 0) {
-        return { ok: false, eventId, error: 'META Purchase missing positive value' };
-    }
-
-    const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
-    const actionSource = options.actionSource || getActionSourceForOrder(order);
-    const quantity = Number(order?.package?.quantity || order?.package?.id || 1) || 1;
-    const currency = order?.currency || 'USD';
-
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
 
@@ -104,6 +89,59 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
     };
 
     cleanObject(userData);
+    return userData;
+};
+
+const getTestEventCode = (options = {}) => (
+    String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim()
+);
+
+const sendMetaPayloadForCountry = async ({ country, payload, options = {} }) => {
+    const { pixelId, accessToken } = getConfigForCountry(country);
+    if (!pixelId || !accessToken) {
+        return { ok: false, error: 'META pixel config missing for country' };
+    }
+
+    if (options.dryRun) {
+        return { ok: true, dryRun: true, response: payload };
+    }
+
+    try {
+        const apiVersion = process.env.META_CAPI_API_VERSION || 'v20.0';
+        const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events`;
+        const response = await axios.post(url, payload, {
+            params: { access_token: accessToken },
+            timeout: 15000
+        });
+
+        return { ok: true, response: response.data };
+    } catch (e) {
+        return {
+            ok: false,
+            error: 'META CAPI request failed',
+            status: e?.response?.status,
+            data: e?.response?.data
+        };
+    }
+};
+
+export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
+    const country = order?.country;
+    const eventId = order?.orderId || order?._id?.toString();
+    if (!eventId) {
+        return { ok: false, error: 'META Purchase missing event_id' };
+    }
+
+    const value = Number(order?.total || 0);
+    if (!Number.isFinite(value) || value <= 0) {
+        return { ok: false, eventId, error: 'META Purchase missing positive value' };
+    }
+
+    const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
+    const actionSource = options.actionSource || getActionSourceForOrder(order);
+    const quantity = Number(order?.package?.quantity || order?.package?.id || 1) || 1;
+    const currency = order?.currency || 'USD';
+    const userData = buildMetaUserDataForOrder(order);
 
     if (!Object.keys(userData).length) {
         return { ok: false, eventId, error: 'META Purchase missing user_data' };
@@ -137,7 +175,7 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         ]
     };
 
-    const testEventCode = String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim();
+    const testEventCode = getTestEventCode(options);
     if (testEventCode) payload.test_event_code = testEventCode;
 
     return { ok: true, payload, eventId, eventTime };
@@ -145,37 +183,58 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
     const country = order?.country;
-    const { pixelId, accessToken } = getConfigForCountry(country);
-    if (!pixelId || !accessToken) {
-        return { ok: false, error: 'META pixel config missing for country' };
-    }
-
     const built = buildPurchaseEventPayloadForOrder(order, options);
     if (!built.ok) return built;
     const { payload, eventId, eventTime } = built;
+    const result = await sendMetaPayloadForCountry({ country, payload, options });
+    return { ...result, eventId, eventTime, payload: options.dryRun ? payload : undefined };
+};
 
-    if (options.dryRun) {
-        return { ok: true, dryRun: true, payload, eventId, eventTime };
+export const buildLeadEventPayloadForOrder = (order, options = {}) => {
+    const country = order?.country;
+    const eventId = String(options.eventId || order?.tracking?.metaLeadEventId || order?.orderId || '').trim();
+    if (!eventId) {
+        return { ok: false, error: 'META Lead missing event_id' };
     }
 
-    try {
-        const apiVersion = process.env.META_CAPI_API_VERSION || 'v20.0';
-        const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events`;
-        const response = await axios.post(url, payload, {
-            params: { access_token: accessToken },
-            timeout: 15000
-        });
-
-        return { ok: true, response: response.data, eventId, eventTime };
-    } catch (e) {
-        const status = e?.response?.status;
-        const data = e?.response?.data;
-        return {
-            ok: false,
-            eventId,
-            error: 'META CAPI request failed',
-            status,
-            data
-        };
+    const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
+    const userData = buildMetaUserDataForOrder(order);
+    if (!Object.keys(userData).length) {
+        return { ok: false, eventId, error: 'META Lead missing user_data' };
     }
+
+    const payload = {
+        data: [
+            {
+                event_name: 'Lead',
+                event_time: eventTime,
+                event_id: eventId,
+                action_source: 'website',
+                event_source_url: order?.tracking?.sourceUrl || undefined,
+                user_data: userData,
+                custom_data: cleanObject({
+                    currency: order?.currency || 'USD',
+                    value: Number(order?.total || 0) || undefined,
+                    order_id: order?.orderId || undefined,
+                    content_name: 'Vit Power Ecuador',
+                    content_ids: ['vit_power_ec'],
+                    content_type: 'product'
+                })
+            }
+        ]
+    };
+
+    const testEventCode = getTestEventCode(options);
+    if (testEventCode) payload.test_event_code = testEventCode;
+
+    return { ok: true, payload, eventId, eventTime };
+};
+
+export const sendLeadEventForOrder = async (order, options = {}) => {
+    const country = order?.country;
+    const built = buildLeadEventPayloadForOrder(order, options);
+    if (!built.ok) return built;
+    const { payload, eventId, eventTime } = built;
+    const result = await sendMetaPayloadForCountry({ country, payload, options });
+    return { ...result, eventId, eventTime, payload: options.dryRun ? payload : undefined };
 };

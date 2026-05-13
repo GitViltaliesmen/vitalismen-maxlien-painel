@@ -326,6 +326,8 @@ router.get('/draft/:id/tracking', async (req, res) => {
                 sourceUrl: t.sourceUrl || null,
                 ip: t.ip || null,
                 userAgentLength: typeof t.userAgent === 'string' ? t.userAgent.length : null,
+                metaLeadEventId: t.metaLeadEventId || null,
+                metaLeadSentAt: t.metaLeadSentAt || null,
                 metaPurchaseSentAt: t.metaPurchaseSentAt || null
             }
         });

@@ -85,6 +85,9 @@ const orderSchema = new mongoose.Schema({
         sourceUrl: String,
         ip: String,
         userAgent: String,
+        metaLeadEventId: String,
+        metaLeadSentAt: Date,
+        metaLeadResponse: mongoose.Schema.Types.Mixed,
         metaPurchaseEventId: String,
         metaPurchaseSentAt: Date,
         metaPurchaseResponse: mongoose.Schema.Types.Mixed

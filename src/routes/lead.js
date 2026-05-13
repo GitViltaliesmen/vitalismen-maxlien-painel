@@ -1,5 +1,6 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import { sendLeadEventForOrder } from '../services/metaConversionsService.js';
 
 const router = express.Router();
 
@@ -33,6 +34,32 @@ const buildTracking = (body, req) => ({
     userAgent: clean(body.user_agent) || req.get('user-agent') || ''
 });
 
+const markLeadEventForOrder = async (order, eventId) => {
+    order.tracking = order.tracking || {};
+    if (eventId) order.tracking.metaLeadEventId = eventId;
+
+    if (order.tracking.metaLeadSentAt && order.tracking.metaLeadEventId === eventId) {
+        await order.save();
+        return { ok: true, alreadySent: true, eventId };
+    }
+
+    const result = await sendLeadEventForOrder(order, { eventId });
+    order.tracking.metaLeadEventId = result.eventId || eventId || order.tracking.metaLeadEventId;
+    if (result.ok) {
+        order.tracking.metaLeadSentAt = new Date();
+        order.tracking.metaLeadResponse = result.response;
+    } else {
+        order.tracking.metaLeadResponse = {
+            ok: false,
+            status: result.status,
+            data: result.data,
+            error: result.error
+        };
+    }
+    await order.save();
+    return result;
+};
+
 router.post('/', async (req, res) => {
     try {
         const country = clean(req.body.country || 'EC').toUpperCase();
@@ -42,6 +69,7 @@ router.post('/', async (req, res) => {
         const city = clean(req.body.city);
         const address = clean(req.body.address);
         const reference = clean(req.body.reference);
+        const eventId = clean(req.body.event_id || req.body.eventId);
         const quantity = Number.parseInt(req.body.product_qty, 10);
         const fallbackPrice = PRICE_MAP[quantity] || PRICE_MAP[1];
         const total = Number.parseFloat(req.body.product_value) || fallbackPrice;
@@ -102,12 +130,18 @@ router.post('/', async (req, res) => {
         order.draftCreatedAt = order.draftCreatedAt || new Date();
 
         await order.save();
+        const lead = await markLeadEventForOrder(order, eventId || order.orderId);
 
         return res.status(200).json({
             success: true,
             draftId: order.orderId,
             orderId: order.orderId,
-            event_id: order.orderId,
+            event_id: lead.eventId || eventId || order.orderId,
+            capi: {
+                ok: Boolean(lead.ok),
+                alreadySent: Boolean(lead.alreadySent),
+                error: lead.ok ? null : (lead.error || 'META Lead send failed')
+            },
             wa_url: null
         });
     } catch (error) {

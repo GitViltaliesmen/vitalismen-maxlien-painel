@@ -36,7 +36,7 @@ const buildPipelineNotes = ({ flags, counts }) => {
         notes.push({
             kind: 'attention',
             label: 'Meta/Facebook incompleto',
-            detail: 'Eventos Purchase do Equador so serao enviados com Pixel ID e token configurados.'
+            detail: 'Eventos Lead e Purchase do Equador so serao enviados com Pixel ID e token configurados.'
         });
     }
     if (counts.dropiPaymentRequired > 0) {
