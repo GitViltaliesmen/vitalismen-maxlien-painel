@@ -8,10 +8,10 @@ Branch oficial:
 codex-vitpower-unified-front
 ```
 
-Commit oficial:
+Commit oficial atual:
 
 ```text
-46bc1db oficializa vitalismen ec
+0b19685 documenta acesso entre computadores
 ```
 
 Repositorio ponte no VPS:
@@ -20,10 +20,10 @@ Repositorio ponte no VPS:
 root@maxlien.shop:/opt/git/vitalismen-automacao.git
 ```
 
-Repositorio GitHub planejado:
+Repositorio GitHub oficial para sincronizar:
 
 ```text
-Tycoonwhite/flowvendas-ec
+GitViltaliesmen/vitalismen-maxlien-painel
 ```
 
 ## Regra de seguranca
@@ -40,23 +40,11 @@ Esses caminhos ficam ignorados no `.gitignore`.
 
 ## Caminho 1: GitHub
 
-Autorizar a chave SSH desta maquina no GitHub/repo:
-
-```text
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOg8l4SNLXbwIyIqGFvFzF1P7kcIRtvTZUt3mOYZ1tFv maxlienoficial@proton.me
-```
-
-Depois, nesta maquina:
-
-```sh
-git push -u origin codex-vitpower-unified-front
-```
-
 No outro computador:
 
 ```sh
-git clone git@github.com:Tycoonwhite/flowvendas-ec.git
-cd flowvendas-ec
+git clone git@github.com:GitViltaliesmen/vitalismen-maxlien-painel.git
+cd vitalismen-maxlien-painel
 git checkout codex-vitpower-unified-front
 npm install
 cp .env.example .env
