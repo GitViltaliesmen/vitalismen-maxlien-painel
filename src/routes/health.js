@@ -1,5 +1,5 @@
 import express from 'express';
-import { getStatus } from '../whatsapp/connection.js';
+import { getAllStatuses, getStatus } from '../whatsapp/connection.js';
 import { getQueueSize } from '../whatsapp/queue.js';
 
 const router = express.Router();
@@ -11,6 +11,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         const { isReady, status } = getStatus();
+        const sessions = getAllStatuses();
         const pendingTasks = getQueueSize();
 
         return res.json({
@@ -22,7 +23,8 @@ router.get('/', async (req, res) => {
             runner: 'node src/index.js',
             whatsapp: {
                 state: status,
-                ready: isReady
+                ready: isReady,
+                sessions
             },
             bot_inbound_queue: {
                 pendingTasks: pendingTasks

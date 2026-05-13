@@ -10,12 +10,12 @@ import { createOrderNote } from "./tools/orders.js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function loadKB(country = "CO") {
+function loadKB(country = "EC") {
     const base = path.resolve(process.cwd(), "src", "kb");
     // Ensure directory exists or handle error gracefully if needed, 
     // but for now we assume they exist as per code logic.
     const policiesPath = path.join(base, "policies.md");
-    const productPath = path.join(base, country === "CO" ? "product_co.md" : "product_ec.md");
+    const productPath = path.join(base, "product_ec.md");
 
     let policies = "";
     let product = "";
@@ -48,7 +48,7 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
                 parameters: {
                     type: "object",
                     properties: {
-                        country: { type: "string", enum: ["CO", "EC"] },
+                        country: { type: "string", enum: ["EC"] },
                         qty: { type: "integer", enum: [1, 3, 6] }
                     },
                     required: ["country", "qty"]
@@ -63,7 +63,7 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
                 parameters: {
                     type: "object",
                     properties: {
-                        country: { type: "string", enum: ["CO", "EC"] },
+                        country: { type: "string", enum: ["EC"] },
                         city: { type: "string" }
                     },
                     required: ["country", "city"]
@@ -78,7 +78,7 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
                 parameters: {
                     type: "object",
                     properties: {
-                        country: { type: "string", enum: ["CO", "EC"] },
+                        country: { type: "string", enum: ["EC"] },
                         phoneE164: { type: "string" },
                         orderId: { type: "string" }
                     },
@@ -95,7 +95,7 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
                     type: "object",
                     properties: {
                         phoneE164: { type: "string" },
-                        country: { type: "string", enum: ["CO", "EC"] },
+                        country: { type: "string", enum: ["EC"] },
                         note: { type: "string" }
                     },
                     required: ["phoneE164", "country", "note"]
@@ -105,8 +105,8 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
     ];
 
     const system = `
-Você é um atendente humano de alta conversão (Maxlien/SuperFull).
-Fale em espanhol natural (CO se country=CO, EC se country=EC).
+Você é Ana Lopez, atendente humana de alta conversão da equipe da doctora Maria Fernandes.
+Fale em espanhol natural para Ecuador.
 Respostas curtas. 1 pergunta por vez.
 NUNCA invente preço, rastreio, agência ou políticas: use as tools quando precisar.
 Sempre termine com CTA (uma pergunta para avançar).

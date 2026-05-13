@@ -1,42 +1,126 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import Shipment from '../models/Shipment.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { processPendingFunnelByOrderId } from '../services/funnelService.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import {
+    getCustomerPurchaseEligibility,
+    PREPAID_REQUIRED_MESSAGE
+} from '../services/customerPurchaseEligibilityService.js';
 
 const router = express.Router();
+
+const normalizeOrderStatus = (status) => {
+    if (status === 'confirmado') return 'confirmed';
+    return status;
+};
+
+const markPurchaseEventForOrder = async (order, req) => {
+    order.status = 'confirmed';
+
+    order.tracking = order.tracking || {};
+    if (!order.tracking.ip) order.tracking.ip = req.ip;
+    if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
+
+    if (order.tracking.metaPurchaseSentAt) {
+        await order.save();
+        return { ok: true, alreadySent: true, order };
+    }
+
+    const result = await sendPurchaseEventForOrder(order);
+
+    order.tracking.metaPurchaseEventId = result.eventId;
+    if (result.ok) {
+        order.tracking.metaPurchaseSentAt = new Date();
+        order.tracking.metaPurchaseResponse = result.response;
+    } else {
+        order.tracking.metaPurchaseResponse = {
+            ok: false,
+            status: result.status,
+            data: result.data,
+            error: result.error
+        };
+    }
+
+    await order.save();
+    return { ok: result.ok, result, order };
+};
+
+const assertCashOnDeliveryEligible = async ({ phone, country = 'EC' }) => {
+    const eligibility = await getCustomerPurchaseEligibility({ phone, country });
+    if (eligibility.eligible) return eligibility;
+    const error = new Error(eligibility.message || PREPAID_REQUIRED_MESSAGE);
+    error.statusCode = 409;
+    error.code = 'prepaid_only_required';
+    error.eligibility = eligibility;
+    throw error;
+};
+
+const sendEligibilityError = (res, error) => res.status(error.statusCode || 409).json({
+    success: false,
+    error: error.code || 'prepaid_only_required',
+    message: error.message || PREPAID_REQUIRED_MESSAGE,
+    paymentMode: 'prepaid_only',
+    reason: error.eligibility?.reason || 'previous_order_not_picked_up',
+    latestOrderId: error.eligibility?.latestShipment?.orderId || ''
+});
 
 // GET /api/orders - List orders (authenticated)
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const { country, status, page = 1, limit = 50, search, includeDrafts } = req.query;
+        const { country, status, page = 1, limit = 50, search, includeDrafts, readiness } = req.query;
 
         const query = {};
+        const andConditions = [];
 
         if (country) query.country = country;
-        if (status) {
+        const includeShipment = req.query.includeShipment === '1';
+        if (status === 'dropi_pipeline') {
+            query.status = { $in: ['confirmed', 'processing', 'shipped', 'delivered'] };
+        } else if (status) {
             query.status = status;
         } else if (!includeDrafts) {
             // By default, exclude drafts unless explicitly requested
             query.status = { $ne: 'draft' };
         }
         if (search) {
-            query.$or = [
+            andConditions.push({ $or: [
                 { orderId: { $regex: search, $options: 'i' } },
                 { 'customer.name': { $regex: search, $options: 'i' } },
                 { 'customer.phone': { $regex: search, $options: 'i' } }
-            ];
+            ] });
+        }
+        if (readiness === 'buy_later') {
+            andConditions.push({ $or: [
+                { 'purchaseIntent.readiness': 'buy_later' },
+                { 'purchaseIntent.followUpAt': { $exists: true, $ne: null } }
+            ] });
+        } else if (readiness) {
+            query['purchaseIntent.readiness'] = readiness;
+        }
+        if (andConditions.length) {
+            query.$and = andConditions;
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const [orders, total] = await Promise.all([
+        const [orderDocs, total] = await Promise.all([
             Order.find(query)
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
             Order.countDocuments(query)
         ]);
+        const orders = orderDocs.map((order) => order.toObject());
+
+        if (includeShipment && orders.length) {
+            const orderIds = orders.map((order) => order.orderId).filter(Boolean);
+            const shipments = await Shipment.find({ orderId: { $in: orderIds } }).lean();
+            const shipmentByOrderId = new Map(shipments.map((shipment) => [shipment.orderId, shipment]));
+            orders.forEach((order) => {
+                order.shipment = shipmentByOrderId.get(order.orderId) || null;
+            });
+        }
 
         res.json({
             orders,
@@ -141,7 +225,7 @@ router.post('/draft', async (req, res) => {
         }
 
         // Determine currency from country
-        const currency = country === 'EC' ? 'USD' : 'COP';
+        const currency = 'USD';
 
         // 1. Check if a DRAFT already exists for this phone
         // We match by the last 10 digits to be safe against format differences
@@ -254,7 +338,7 @@ router.get('/draft/:id/tracking', async (req, res) => {
 // Called as user fills form fields
 router.patch('/draft/:id', async (req, res) => {
     try {
-        const { customer, packageId, packageLabel, total, tracking } = req.body;
+        const { customer, packageId, packageLabel, total, tracking, purchaseIntent } = req.body;
 
         const order = await Order.findOne({ orderId: req.params.id, status: 'draft' });
 
@@ -275,6 +359,7 @@ router.patch('/draft/:id', async (req, res) => {
         if (packageId !== undefined) {
             order.package.id = packageId;
             order.package.label = packageLabel || `Package ${packageId}`;
+            order.package.quantity = Number(packageId) || order.package.quantity || 1;
         }
 
         // Update total if provided
@@ -294,6 +379,13 @@ router.patch('/draft/:id', async (req, res) => {
             if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
         }
 
+        if (purchaseIntent) {
+            order.purchaseIntent = {
+                ...(order.purchaseIntent || {}),
+                ...purchaseIntent
+            };
+        }
+
         await order.save();
 
         res.json({
@@ -311,6 +403,7 @@ router.patch('/draft/:id', async (req, res) => {
 // Called on final form submit
 router.post('/draft/:id/submit', async (req, res) => {
     try {
+        const { purchaseIntent } = req.body || {};
         const order = await Order.findOne({ orderId: req.params.id, status: 'draft' });
 
         if (!order) {
@@ -327,9 +420,24 @@ router.post('/draft/:id/submit', async (req, res) => {
             return res.status(400).json({ error: 'Package not selected' });
         }
 
+        try {
+            await assertCashOnDeliveryEligible({
+                phone: order.customer.phone,
+                country: order.country
+            });
+        } catch (eligibilityError) {
+            return sendEligibilityError(res, eligibilityError);
+        }
+
         // Convert to pending
         order.status = 'pending';
         order.lastInteractionAt = new Date();
+        if (purchaseIntent) {
+            order.purchaseIntent = {
+                ...(order.purchaseIntent || {}),
+                ...purchaseIntent
+            };
+        }
 
         // Ensure we store IP/UA for later CAPI usage
         order.tracking = order.tracking || {};
@@ -339,15 +447,6 @@ router.post('/draft/:id/submit', async (req, res) => {
         await order.save();
 
         console.log(`✅ Draft submitted: ${order.orderId} -> pending`);
-
-        // Trigger funnel (audio01 + confirmation + offer)
-        (async () => {
-            try {
-                await processPendingFunnelByOrderId(order.orderId);
-            } catch (err) {
-                console.error('Async Funnel Error:', err);
-            }
-        })();
 
         res.json({
             success: true,
@@ -367,7 +466,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // POST /api/orders - Create order directly (public - from checkout)
 router.post('/', async (req, res) => {
     try {
-        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking } = req.body;
+        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent } = req.body;
 
         // Validation
         if (!country || !customer || !packageId || !total) {
@@ -378,8 +477,17 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Incomplete customer data' });
         }
 
+        try {
+            await assertCashOnDeliveryEligible({
+                phone: customer.phone,
+                country
+            });
+        } catch (eligibilityError) {
+            return sendEligibilityError(res, eligibilityError);
+        }
+
         // Determine currency from country
-        const orderCurrency = currency || (country === 'EC' ? 'USD' : 'COP');
+        const orderCurrency = currency || 'USD';
 
         // Create order
         const order = new Order({
@@ -394,12 +502,13 @@ router.post('/', async (req, res) => {
             package: {
                 id: packageId,
                 label: packageLabel || `Package ${packageId}`,
-                quantity: 1
+                quantity: Number(packageId) || 1
             },
             total,
             currency: orderCurrency,
             source,
             status: 'pending',
+            purchaseIntent: purchaseIntent || {},
             tracking: {
                 ...(tracking || {}),
                 ip: req.ip,
@@ -410,15 +519,6 @@ router.post('/', async (req, res) => {
         await order.save();
 
         console.log(`✅ New order created: ${order.orderId} - ${country} - ${customer.name}`);
-
-        // Trigger funnel (audio01 + confirmation + offer)
-        (async () => {
-            try {
-                await processPendingFunnelByOrderId(order.orderId);
-            } catch (err) {
-                console.error('Async Funnel Error:', err);
-            }
-        })();
 
         res.status(201).json({
             success: true,
@@ -434,7 +534,8 @@ router.post('/', async (req, res) => {
 // PATCH /api/orders/:id - Update order status (authenticated)
 router.patch('/:id', authMiddleware, async (req, res) => {
     try {
-        const { status, notes, trackingNumber } = req.body;
+        const { status, notes, trackingNumber, purchaseIntent } = req.body;
+        const nextStatus = normalizeOrderStatus(status);
 
         const order = await Order.findOne({ orderId: req.params.id });
 
@@ -442,9 +543,32 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Order not found' });
         }
 
-        if (status) order.status = status;
         if (notes) order.notes = notes;
         if (trackingNumber) order.trackingNumber = trackingNumber;
+        if (purchaseIntent) {
+            order.purchaseIntent = {
+                ...(order.purchaseIntent || {}),
+                ...purchaseIntent
+            };
+        }
+
+        if (nextStatus === 'confirmed') {
+            const purchase = await markPurchaseEventForOrder(order, req);
+            return res.json({
+                ok: purchase.ok,
+                success: purchase.ok,
+                alreadySent: purchase.alreadySent || false,
+                result: purchase.result,
+                order: purchase.order,
+                message: purchase.alreadySent
+                    ? 'Order already confirmed'
+                    : purchase.ok
+                        ? 'Order confirmed and purchase event sent'
+                        : 'Order confirmed, but purchase event failed'
+            });
+        }
+
+        if (nextStatus) order.status = nextStatus;
 
         await order.save();
 
@@ -465,34 +589,14 @@ router.post('/:id/confirm-payment', authMiddleware, async (req, res) => {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
-        // Update status to confirmed (current UX label is "Confirmar Pagamento")
-        order.status = 'confirmed';
-
-        // Ensure we have IP/UA stored (best effort)
-        order.tracking = order.tracking || {};
-        if (!order.tracking.ip) order.tracking.ip = req.ip;
-        if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
-
-        // Idempotency
-        if (order.tracking.metaPurchaseSentAt) {
-            await order.save();
-            return res.json({ success: true, alreadySent: true, order });
-        }
-
-        const result = await sendPurchaseEventForOrder(order);
-
-        if (result.ok) {
-            order.tracking.metaPurchaseEventId = result.eventId;
-            order.tracking.metaPurchaseSentAt = new Date();
-            order.tracking.metaPurchaseResponse = result.response;
-        } else {
-            // Store error response for debugging (no tokens)
-            order.tracking.metaPurchaseEventId = result.eventId;
-            order.tracking.metaPurchaseResponse = { ok: false, status: result.status, data: result.data, error: result.error };
-        }
-
-        await order.save();
-        return res.json({ success: result.ok, result, order });
+        const purchase = await markPurchaseEventForOrder(order, req);
+        return res.json({
+            ok: purchase.ok,
+            success: purchase.ok,
+            alreadySent: purchase.alreadySent || false,
+            result: purchase.result,
+            order: purchase.order
+        });
     } catch (error) {
         console.error('Confirm payment error:', error);
         res.status(500).json({ error: 'Failed to confirm payment' });
@@ -507,6 +611,11 @@ router.post('/check-phone', async (req, res) => {
         if (!phone) {
             return res.status(400).json({ error: 'Phone required' });
         }
+
+        const eligibility = await getCustomerPurchaseEligibility({
+            phone,
+            country: country || 'EC'
+        });
 
         // Find most recent completed order with this phone (not drafts)
         const order = await Order.findOne({
@@ -524,10 +633,24 @@ router.post('/check-phone', async (req, res) => {
                     address: order.customer.address,
                     city: order.customer.city,
                     province: order.customer.province
+                },
+                eligibility: {
+                    eligible: eligibility.eligible,
+                    paymentMode: eligibility.paymentMode,
+                    reason: eligibility.reason,
+                    message: eligibility.eligible ? '' : eligibility.message
                 }
             });
         } else {
-            res.json({ found: false });
+            res.json({
+                found: false,
+                eligibility: {
+                    eligible: eligibility.eligible,
+                    paymentMode: eligibility.paymentMode,
+                    reason: eligibility.reason,
+                    message: eligibility.eligible ? '' : eligibility.message
+                }
+            });
         }
     } catch (error) {
         console.error('Check phone error:', error);

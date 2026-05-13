@@ -13,10 +13,6 @@ const normalizePhoneE164 = ({ phone, country }) => {
     let digits = String(phone || '').replace(/\D/g, '');
     if (!digits) return null;
 
-    if (country === 'CO') {
-        if (!digits.startsWith('57')) digits = `57${digits}`;
-        return `+${digits}`;
-    }
     if (country === 'EC') {
         // If local starts with 0 (10 digits), drop 0
         if (digits.length === 10 && digits.startsWith('0')) digits = digits.slice(1);
@@ -35,12 +31,6 @@ const splitName = (fullName) => {
 };
 
 const getConfigForCountry = (country) => {
-    if (country === 'CO') {
-        return {
-            pixelId: process.env.META_PIXEL_ID_CO,
-            accessToken: process.env.META_ACCESS_TOKEN_CO
-        };
-    }
     if (country === 'EC') {
         return {
             pixelId: process.env.META_PIXEL_ID_EC,
@@ -50,15 +40,51 @@ const getConfigForCountry = (country) => {
     return { pixelId: null, accessToken: null };
 };
 
-export const sendPurchaseEventForOrder = async (order) => {
+const getActionSourceForOrder = (order) => (
+    order?.source === 'whatsapp' ? 'business_messaging' : 'website'
+);
+
+export const getMetaConfigForCountry = getConfigForCountry;
+
+export const hashMetaUserValue = sha256hex;
+
+export const normalizeMetaPhoneE164 = normalizePhoneE164;
+
+const cleanObject = (obj) => {
+    for (const key of Object.keys(obj)) {
+        const value = obj[key];
+        if (value === undefined || value === null || value === '') delete obj[key];
+        if (Array.isArray(value) && value.filter(Boolean).length === 0) delete obj[key];
+    }
+    return obj;
+};
+
+const toUnixSeconds = (value) => {
+    if (!value) return null;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value > 100000000000 ? Math.floor(value / 1000) : Math.floor(value);
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    const time = date.getTime();
+    return Number.isFinite(time) ? Math.floor(time / 1000) : null;
+};
+
+export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
     const country = order?.country;
-    const { pixelId, accessToken } = getConfigForCountry(country);
-    if (!pixelId || !accessToken) {
-        return { ok: false, error: 'META pixel config missing for country' };
+    const eventId = order?.orderId || order?._id?.toString();
+    if (!eventId) {
+        return { ok: false, error: 'META Purchase missing event_id' };
     }
 
-    const eventId = order?.orderId;
-    const now = Math.floor(Date.now() / 1000);
+    const value = Number(order?.total || 0);
+    if (!Number.isFinite(value) || value <= 0) {
+        return { ok: false, eventId, error: 'META Purchase missing positive value' };
+    }
+
+    const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
+    const actionSource = options.actionSource || getActionSourceForOrder(order);
+    const quantity = Number(order?.package?.quantity || order?.package?.id || 1) || 1;
+    const currency = order?.currency || 'USD';
 
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
@@ -73,32 +99,36 @@ export const sendPurchaseEventForOrder = async (order) => {
         client_ip_address: order?.tracking?.ip || undefined,
         client_user_agent: order?.tracking?.userAgent || undefined,
         fbc: order?.tracking?.fbc || undefined,
-        fbp: order?.tracking?.fbp || undefined
+        fbp: order?.tracking?.fbp || undefined,
+        external_id: order?.tracking?.ext_id ? [sha256hex(order.tracking.ext_id)] : undefined
     };
 
-    // Remove empty keys
-    for (const k of Object.keys(userData)) {
-        const v = userData[k];
-        if (v === undefined) delete userData[k];
-        if (Array.isArray(v) && v.filter(Boolean).length === 0) delete userData[k];
+    cleanObject(userData);
+
+    if (!Object.keys(userData).length) {
+        return { ok: false, eventId, error: 'META Purchase missing user_data' };
     }
 
     const payload = {
         data: [
             {
                 event_name: 'Purchase',
-                event_time: now,
+                event_time: eventTime,
                 event_id: eventId,
-                action_source: 'website',
-                event_source_url: order?.tracking?.sourceUrl || undefined,
+                action_source: actionSource,
+                event_source_url: actionSource === 'website' ? order?.tracking?.sourceUrl || undefined : undefined,
                 user_data: userData,
                 custom_data: {
-                    currency: order?.currency,
-                    value: Number(order?.total || 0),
+                    currency,
+                    value,
+                    order_id: order?.orderId,
+                    content_name: 'Vit Power Ecuador',
+                    content_ids: ['vit_power_ec'],
                     contents: [
                         {
-                            id: String(order?.package?.id || ''),
-                            quantity: Number(order?.package?.quantity || 1)
+                            id: 'vit_power_ec',
+                            quantity,
+                            item_price: Number((value / quantity).toFixed(2))
                         }
                     ],
                     content_type: 'product'
@@ -107,14 +137,36 @@ export const sendPurchaseEventForOrder = async (order) => {
         ]
     };
 
+    const testEventCode = String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim();
+    if (testEventCode) payload.test_event_code = testEventCode;
+
+    return { ok: true, payload, eventId, eventTime };
+};
+
+export const sendPurchaseEventForOrder = async (order, options = {}) => {
+    const country = order?.country;
+    const { pixelId, accessToken } = getConfigForCountry(country);
+    if (!pixelId || !accessToken) {
+        return { ok: false, error: 'META pixel config missing for country' };
+    }
+
+    const built = buildPurchaseEventPayloadForOrder(order, options);
+    if (!built.ok) return built;
+    const { payload, eventId, eventTime } = built;
+
+    if (options.dryRun) {
+        return { ok: true, dryRun: true, payload, eventId, eventTime };
+    }
+
     try {
-        const url = `https://graph.facebook.com/v20.0/${pixelId}/events`;
+        const apiVersion = process.env.META_CAPI_API_VERSION || 'v20.0';
+        const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events`;
         const response = await axios.post(url, payload, {
             params: { access_token: accessToken },
             timeout: 15000
         });
 
-        return { ok: true, response: response.data, eventId };
+        return { ok: true, response: response.data, eventId, eventTime };
     } catch (e) {
         const status = e?.response?.status;
         const data = e?.response?.data;
@@ -127,4 +179,3 @@ export const sendPurchaseEventForOrder = async (order) => {
         };
     }
 };
-

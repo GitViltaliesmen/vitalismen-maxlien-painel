@@ -14,18 +14,18 @@ const contactStateSchema = new mongoose.Schema({
     },
     countryCode: {
         type: String,
-        default: 'INTL'
+        default: 'EC'
     },
     assignedAgent: {
         type: String,
-        enum: ['warmup', 'vitalismen', 'vit_power_ec', 'superfull_co', 'fallback'],
-        default: 'fallback'
+        enum: ['vit_power_ec'],
+        default: 'vit_power_ec'
     },
     agentHistory: {
         type: [{
             agent: {
                 type: String,
-                enum: ['warmup', 'vitalismen', 'vit_power_ec', 'superfull_co', 'fallback']
+                enum: ['vit_power_ec']
             },
             reason: String,
             at: Date
@@ -35,6 +35,34 @@ const contactStateSchema = new mongoose.Schema({
     tags: {
         type: [String],
         default: []
+    },
+    human: {
+        mode: {
+            type: String,
+            enum: ['auto', 'manual'],
+            default: 'auto',
+            index: true
+        },
+        assignedTo: {
+            type: String,
+            default: '',
+            index: true
+        },
+        assignedName: {
+            type: String,
+            default: ''
+        },
+        assignedAt: Date,
+        pausedUntil: Date,
+        lastManualAt: Date,
+        lastManualBy: {
+            type: String,
+            default: ''
+        },
+        note: {
+            type: String,
+            default: ''
+        }
     },
     firstInboundText: {
         type: String,
@@ -56,6 +84,7 @@ const contactStateSchema = new mongoose.Schema({
 });
 
 contactStateSchema.index({ assignedAgent: 1, countryCode: 1 });
+contactStateSchema.index({ 'human.mode': 1, 'human.assignedTo': 1 });
 
 const ContactState = mongoose.model('ContactState', contactStateSchema);
 

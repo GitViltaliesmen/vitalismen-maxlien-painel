@@ -6,14 +6,9 @@ const router = express.Router();
 
 // Default products to seed if none exist
 const DEFAULT_PRODUCTS = [
-    // Colombia
-    { country: 'CO', productId: 1, label: '1 Frasco', price: 170000, currency: 'COP', displayPrice: '$170.000 COP', sortOrder: 1 },
-    { country: 'CO', productId: 3, label: '3 Frascos', price: 350000, currency: 'COP', displayPrice: '$350.000 COP', isPopular: true, sortOrder: 2 },
-    { country: 'CO', productId: 6, label: '6 Frascos', price: 584000, currency: 'COP', displayPrice: '$584.000 COP', sortOrder: 3 },
-    // Ecuador
-    { country: 'EC', productId: 1, label: '1 Frasco', price: 40, currency: 'USD', displayPrice: '$40 USD', sortOrder: 1 },
-    { country: 'EC', productId: 3, label: '3 Frascos', price: 96, currency: 'USD', displayPrice: '$96 USD', isPopular: true, sortOrder: 2 },
-    { country: 'EC', productId: 6, label: '6 Frascos', price: 168, currency: 'USD', displayPrice: '$168 USD', sortOrder: 3 },
+    { country: 'EC', productId: 1, label: '1 Frasco', price: 39, currency: 'USD', displayPrice: '$39 USD', sortOrder: 1 },
+    { country: 'EC', productId: 3, label: '3 Frascos', price: 95.99, currency: 'USD', displayPrice: '$95.99 USD', isPopular: true, sortOrder: 2 },
+    { country: 'EC', productId: 6, label: '6 Frascos', price: 167.99, currency: 'USD', displayPrice: '$167.99 USD', sortOrder: 3 },
 ];
 
 // GET /api/products - Get products by country (public)
@@ -29,9 +24,12 @@ router.get('/', async (req, res) => {
         } else {
             // Safe migration: update only if the DB still has the old Ecuador prices
             const migrations = [
-                { country: 'EC', productId: 1, oldPrice: 50, newPrice: 40, displayPrice: '$40 USD', sortOrder: 1, label: '1 Frasco', isPopular: false },
-                { country: 'EC', productId: 3, oldPrice: 80, newPrice: 96, displayPrice: '$96 USD', sortOrder: 2, label: '3 Frascos', isPopular: true },
-                { country: 'EC', productId: 6, oldPrice: 130, newPrice: 168, displayPrice: '$168 USD', sortOrder: 3, label: '6 Frascos', isPopular: false },
+                { country: 'EC', productId: 1, oldPrice: 50, newPrice: 39, displayPrice: '$39 USD', sortOrder: 1, label: '1 Frasco', isPopular: false },
+                { country: 'EC', productId: 1, oldPrice: 40, newPrice: 39, displayPrice: '$39 USD', sortOrder: 1, label: '1 Frasco', isPopular: false },
+                { country: 'EC', productId: 3, oldPrice: 80, newPrice: 95.99, displayPrice: '$95.99 USD', sortOrder: 2, label: '3 Frascos', isPopular: true },
+                { country: 'EC', productId: 3, oldPrice: 96, newPrice: 95.99, displayPrice: '$95.99 USD', sortOrder: 2, label: '3 Frascos', isPopular: true },
+                { country: 'EC', productId: 6, oldPrice: 130, newPrice: 167.99, displayPrice: '$167.99 USD', sortOrder: 3, label: '6 Frascos', isPopular: false },
+                { country: 'EC', productId: 6, oldPrice: 168, newPrice: 167.99, displayPrice: '$167.99 USD', sortOrder: 3, label: '6 Frascos', isPopular: false },
             ];
             for (const m of migrations) {
                 await Product.updateOne(
@@ -58,7 +56,6 @@ router.get('/', async (req, res) => {
         // Group by country if no specific country requested
         if (!country) {
             const grouped = {
-                CO: products.filter(p => p.country === 'CO'),
                 EC: products.filter(p => p.country === 'EC')
             };
             return res.json({ products: grouped });

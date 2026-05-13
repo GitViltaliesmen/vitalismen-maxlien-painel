@@ -1,130 +1,235 @@
-import Order from '../models/Order.js';
-import { generateWelcomeMessage } from './aiService.js';
-import { generateAudio } from './audioService.js';
-import { onWhatsAppReady, getStatus, startWhatsApp } from '../whatsapp/connection.js';
-import { sendText } from '../whatsapp/sendText.js';
-import { sendAudio } from '../whatsapp/sendAudio.js';
-import path from 'path';
-import fs from 'fs';
-import { toWhatsAppChatId } from '../utils/phone.js';
-import { processDuePendingFunnels } from './funnelService.js';
+import { onWhatsAppReady, getStatus, startConfiguredWhatsAppSessions } from '../whatsapp/connection.js';
+import { processInitialProductFollowups, processPendingCheckoutInfoFollowups } from './reengagementService.js';
+import { getPendingShipmentReminders, processShipmentPickupReminders } from './shipmentMessageService.js';
+import {
+    countShipmentDispatchCandidates,
+    processShipmentStatusDispatch
+} from './shipmentStatusDispatcherService.js';
+import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
 
-let _draftRecoveryRunning = false;
-let isRunningFunnel = false;
+let isRunningProductFollowups = false;
+let isRunningPendingCheckoutFollowups = false;
+let isRunningPickupReminders = false;
+let isRunningShipmentStatusDispatch = false;
+let isRunningAdminPanelImport = false;
+
+const flagEnabled = (name, fallback = false) => {
+    const raw = process.env[name];
+    if (raw === undefined) return fallback;
+    return String(raw).toLowerCase() === 'true' || raw === '1';
+};
+
+const parseNumber = (name, fallback) => {
+    const parsed = Number.parseInt(String(process.env[name] || ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseActions = (value) => String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const adaptiveLimit = ({
+    backlog = 0,
+    enabledName,
+    baseName,
+    low = 3,
+    medium = 5,
+    high = 8,
+    max = 8,
+    mediumAt = 25,
+    highAt = 60
+}) => {
+    const base = parseNumber(baseName, low);
+    if (!flagEnabled(enabledName, true)) return base;
+    const selected = backlog >= highAt ? high : (backlog >= mediumAt ? medium : base);
+    return Math.max(1, Math.min(selected, max));
+};
 
 export const startScheduler = () => {
     console.log('Starting WhatsApp Recovery Scheduler...');
 
-    // Run every 60 seconds (User requested >= 30000ms, ideal 60000)
-    setInterval(checkAbandonedDrafts, 60000);
-    // Run pending funnels frequently (seconds-level)
-    setInterval(checkPendingFunnels, 5 * 1000);
+    console.log('[SCHEDULER] Legacy draft recovery removed from scheduler.');
+    console.log('[SCHEDULER] Legacy pending-order funnel removed from scheduler.');
+    console.log('[SCHEDULER] Legacy automatic shipment notifications removed from scheduler.');
 
+    if (flagEnabled('WHATSAPP_PRODUCT_FOLLOWUP_ENABLED', true)) {
+        setInterval(checkInitialProductFollowups, 60 * 1000);
+    } else {
+        console.log('[SCHEDULER] Product followups disabled. Set WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=true to enable.');
+    }
+    if (flagEnabled('PENDING_CHECKOUT_FOLLOWUP_ENABLED', true)) {
+        setInterval(checkPendingCheckoutFollowups, 60 * 1000);
+    } else {
+        console.log('[SCHEDULER] Pending checkout followups disabled. Set PENDING_CHECKOUT_FOLLOWUP_ENABLED=true to enable.');
+    }
+    if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+        const intervalMinutes = parseNumber('SHIPMENT_PICKUP_REMINDER_INTERVAL_MINUTES', 60);
+        const intervalMs = Math.max(15, intervalMinutes) * 60 * 1000;
+        setInterval(checkPickupReminders, intervalMs);
+        console.log(`[SCHEDULER] Pickup reminders enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Pickup reminders disabled. Set SHIPMENT_PICKUP_REMINDERS_ENABLED=true to enable.');
+    }
+    if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
+        const intervalMinutes = parseNumber('SHIPMENT_STATUS_DISPATCH_INTERVAL_MINUTES', 60);
+        const intervalMs = Math.max(15, intervalMinutes) * 60 * 1000;
+        setInterval(checkShipmentStatusDispatch, intervalMs);
+        console.log(`[SCHEDULER] Shipment status dispatch enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Shipment status dispatch disabled. Set SHIPMENT_STATUS_DISPATCH_ENABLED=true to enable.');
+    }
+    if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
+        const intervalMinutes = parseNumber('ADMIN_PANEL_IMPORT_INTERVAL_MINUTES', 5);
+        const intervalMs = Math.max(2, intervalMinutes) * 60 * 1000;
+        setInterval(checkAdminPanelImport, intervalMs);
+        console.log(`[SCHEDULER] Admin panel import enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Admin panel import disabled. Set ADMIN_PANEL_IMPORT_ENABLED=true to enable.');
+    }
     // Watchdog: Restart WhatsApp ONLY if not ready and not scanning
     setInterval(() => {
         const { isReady, status } = getStatus();
         // Only restart if confirmed disconnected. If scanning (QR), do nothing. If connected but not ready, wait.
         if (!isReady && status === 'disconnected') {
             console.log('[Scheduler] WhatsApp Disconnected -> Triggering Init...');
-            startWhatsApp();
+            startConfiguredWhatsAppSessions();
         }
     }, 60000);
 
     // Run immediately on start
-    checkAbandonedDrafts();
-    checkPendingFunnels();
+    if (flagEnabled('WHATSAPP_PRODUCT_FOLLOWUP_ENABLED', true)) {
+        checkInitialProductFollowups();
+    }
+    if (flagEnabled('PENDING_CHECKOUT_FOLLOWUP_ENABLED', true)) {
+        checkPendingCheckoutFollowups();
+    }
+    if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+        setTimeout(() => checkPickupReminders(), 30000);
+    }
+    if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
+        setTimeout(() => checkShipmentStatusDispatch(), 45000);
+    }
+    if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
+        setTimeout(() => checkAdminPanelImport(), 15000);
+    }
 
     // Also run immediately once WhatsApp becomes ready
     onWhatsAppReady(() => {
-        setTimeout(() => checkAbandonedDrafts(), 1000);
-        setTimeout(() => checkPendingFunnels(), 1200);
+        if (flagEnabled('WHATSAPP_PRODUCT_FOLLOWUP_ENABLED', true)) {
+            setTimeout(() => checkInitialProductFollowups(), 2000);
+        }
+        if (flagEnabled('PENDING_CHECKOUT_FOLLOWUP_ENABLED', true)) {
+            setTimeout(() => checkPendingCheckoutFollowups(), 1000);
+        }
+        if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+            setTimeout(() => checkPickupReminders(), 10000);
+        }
+        if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
+            setTimeout(() => checkShipmentStatusDispatch(), 20000);
+        }
+        if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
+            setTimeout(() => checkAdminPanelImport(), 25000);
+        }
     });
 };
 
-const checkAbandonedDrafts = async () => {
-    if (_draftRecoveryRunning) return;
-    _draftRecoveryRunning = true;
-
+const checkPendingCheckoutFollowups = async () => {
+    if (isRunningPendingCheckoutFollowups) return;
+    isRunningPendingCheckoutFollowups = true;
     try {
-        const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        // Find drafts that:
-        // 1. Are in 'draft' status
-        // 2. Were created more than 30 mins ago
-        // 3. Were created less than 24 hours ago
-        // 4. Have NOT been notified yet (whatsappNotified = false)
-        // 5. Have a valid phone number
-        const drafts = await Order.find({
-            status: 'draft',
-            createdAt: { $lt: thirtyMinsAgo, $gt: twentyFourHoursAgo },
-            whatsappNotified: false,
-            'customer.phone': { $exists: true, $ne: '' }
-        });
-        console.log(`Checking draft recovery... drafts=${drafts.length}`);
-
-        for (const draft of drafts) {
-            await recoverDraft(draft);
+        const result = await processPendingCheckoutInfoFollowups();
+        if (result.sent) {
+            console.log(`[PENDING_CHECKOUT] Follow-up de informacao enviado: ${result.sent}/${result.processed}`);
         }
-
     } catch (error) {
-        console.error('Scheduler Error:', error);
+        console.error('Pending Checkout Followup Scheduler Error:', error);
     } finally {
-        _draftRecoveryRunning = false;
+        isRunningPendingCheckoutFollowups = false;
     }
 };
 
-const recoverDraft = async (draft) => {
+const checkInitialProductFollowups = async () => {
+    if (isRunningProductFollowups) return;
+    isRunningProductFollowups = true;
     try {
-        const { phone, name } = draft.customer;
-        // Basic validation
-        if (!phone || phone.length < 10) return;
-
-        // 1. Generate Text
-        const textMessage = await generateWelcomeMessage({
-            name: name || 'Cliente',
-            country: draft.country,
-            type: 'recovery'
-        });
-
-        // 2. Send Text
-        const chatId = toWhatsAppChatId(phone, draft.country);
-        if (!chatId) return;
-        const sent = await sendText(chatId, textMessage);
-        if (!sent) return;
-
-        // 3. Generate & Send Audio
-        const audioDir = path.join(process.cwd(), 'public', 'media', 'sent');
-        if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
-
-        const audioFilename = `recovery_${draft.orderId}_${Date.now()}.ogg`;
-        const audioPath = path.join(audioDir, audioFilename);
-
-        const resultPath = await generateAudio(textMessage, audioPath);
-
-        if (resultPath) {
-            // New Baileys Modular Audio Wrapper
-            await sendAudio(chatId, resultPath, true);
+        const result = await processInitialProductFollowups();
+        if (result.sent) {
+            console.log(`[FOLLOWUP] Produto pos-apresentacao enviado: ${result.sent}/${result.processed}`);
         }
-
-        // 4. Mark as Notified
-        draft.whatsappNotified = true;
-        await draft.save();
-
-        console.log(`Recovered draft ${draft.orderId} for ${name}`);
-
     } catch (error) {
-        console.error(`Failed to recover draft ${draft.orderId}:`, error);
+        console.error('Product Followup Scheduler Error:', error);
+    } finally {
+        isRunningProductFollowups = false;
     }
 };
 
-const checkPendingFunnels = async () => {
-    if (isRunningFunnel) return;
-    isRunningFunnel = true;
+const checkPickupReminders = async () => {
+    if (isRunningPickupReminders) return;
+    isRunningPickupReminders = true;
     try {
-        await processDuePendingFunnels();
+        const pending = await getPendingShipmentReminders();
+        const limit = adaptiveLimit({
+            backlog: pending.length,
+            enabledName: 'SHIPMENT_PICKUP_REMINDER_ADAPTIVE_ENABLED',
+            baseName: 'SHIPMENT_PICKUP_REMINDER_BATCH_LIMIT',
+            low: 3,
+            medium: 4,
+            high: 5,
+            max: 5,
+            mediumAt: 25,
+            highAt: 60
+        });
+        const result = await processShipmentPickupReminders({ limit });
+        if (result.sent || result.candidates) {
+            console.log(`[PICKUP_REMINDER] Enviados ${result.sent}/${result.processed}; candidatos ${result.candidates}; limite ${limit}.`);
+        }
     } catch (error) {
-        console.error('Funnel Scheduler Error:', error);
+        console.error('Pickup Reminder Scheduler Error:', error);
     } finally {
-        isRunningFunnel = false;
+        isRunningPickupReminders = false;
+    }
+};
+
+const checkShipmentStatusDispatch = async () => {
+    if (isRunningShipmentStatusDispatch) return;
+    isRunningShipmentStatusDispatch = true;
+    try {
+        const actions = parseActions(process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'ready_for_pickup');
+        const backlog = await countShipmentDispatchCandidates({ actions });
+        const limit = adaptiveLimit({
+            backlog,
+            enabledName: 'SHIPMENT_STATUS_DISPATCH_ADAPTIVE_ENABLED',
+            baseName: 'SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT',
+            low: 3,
+            medium: 5,
+            high: 8,
+            max: 8,
+            mediumAt: 25,
+            highAt: 60
+        });
+        const result = await processShipmentStatusDispatch({ limit, actions });
+        if (result.sent || backlog) {
+            console.log(`[SHIPMENT_DISPATCH] Enviados ${result.sent}/${result.processed}; pendentes ${backlog}; limite ${limit}; actions=${actions.join(',') || 'default'}.`);
+        }
+    } catch (error) {
+        console.error('Shipment Status Dispatch Scheduler Error:', error);
+    } finally {
+        isRunningShipmentStatusDispatch = false;
+    }
+};
+
+const checkAdminPanelImport = async () => {
+    if (isRunningAdminPanelImport) return;
+    isRunningAdminPanelImport = true;
+    try {
+        const result = await importConfirmedAdminPanelOrders({ country: 'EC' });
+        if (result.imported || result.created) {
+            console.log(`[ADMIN_IMPORT] Importados ${result.imported}; criados ${result.created}; atualizados ${result.updated}. Dropi segue exigindo autorizacao manual.`);
+        }
+    } catch (error) {
+        console.error('Admin Panel Import Scheduler Error:', error);
+    } finally {
+        isRunningAdminPanelImport = false;
     }
 };

@@ -1,0 +1,5321 @@
+[
+  {
+    "nome": "24 DE MAYO_PADRE LASSO",
+    "provincia": "MANABI",
+    "ciudad": "24 DE MAYO",
+    "sector": "CENTRO",
+    "endereco": "PADRE LASSO Y SUCRE FRENTE A OFICINA DE CNEL",
+    "horario_semana": "08H30 A 12H30 - 13H30 A 16H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "ALAMOR_ALAMOR_CANONIGO",
+    "provincia": "LOJA",
+    "ciudad": "ALAMOR",
+    "sector": "SUR",
+    "endereco": "SIMON BOLIVAR Y CANONIGO AGUIRRE",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "ALAUSI_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "ALAUSI",
+    "sector": "CENTRO",
+    "endereco": "GARCIA MORENO S/N Y MEXICO",
+    "horario_semana": "08H00 A 13H00 Y 15H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "ALOAG_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "ALOAG",
+    "sector": "CENTRO",
+    "endereco": "FERNANDO CASTRO S/N Y BAHIA DE CARAQUEZ",
+    "horario_semana": "08H30 A 12H00- 12H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_CASTILLO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO",
+    "endereco": "CUENCA 15-06 Y CASTILLO",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_GONZALEZ SUAREZ",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO",
+    "endereco": "HUMBERTO ALBORNOZ 02-130",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 - 13H00"
+  },
+  {
+    "nome": "AMBATO_HUACHI CHICO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "NORTE",
+    "endereco": "JOSE PERALTA S/N Y JESUS CALLE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_HUACHI GRANDE",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUR",
+    "endereco": "AV. ATAHUALPA S/N Y NEVADA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "AMBATO_HUACHI SOLIS",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUR",
+    "endereco": "AV. JULIO JARAMILLO Y CARLOS TORO",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_IZAMBA 1",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "NORTE",
+    "endereco": "RODRIGO PANCHANO SN Y 22 DE ENERO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_LA FLORESTA",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUR",
+    "endereco": "AV VICTOR HUGO ENTRE ERNESTO ALBAN Y JACOME",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_LA MERCED",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO",
+    "endereco": "PRIMERA IMPRENTA S/N Y ABDON CALDERON",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_MANUELA SAENZ",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUR",
+    "endereco": "MANUELA SAENZ S/N Y BARCELONA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_NUEVA AMBATO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUR",
+    "endereco": "RIO YASUNI S/N Y RIO ARAJUNO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_PINLLO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO",
+    "endereco": "MAUGERI S/N Y EL COSMOS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H0",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_POLIDEPORTIVO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "NORTE",
+    "endereco": "BOLIVARIANA S/N Y REAL AUDIENCIA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "NORTE",
+    "endereco": "AV. PRIMERA S/N Y CALLE D",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_SAN ANTONIO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO SUR",
+    "endereco": "RUMINAHUI 07-22 Y SHYRIS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "AMBATO_SANTA ROSA",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "SUROESTE",
+    "endereco": "VIA A GUARANDA S/N Y VIA A ECUATRAN",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_UNIANDES",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "NORTE",
+    "endereco": "AV. BOLIVARIANA Y GUSTAVO ALVAREZ GONZALEZ",
+    "horario_semana": "09H00 A 13H00- 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "ANCON_BARRIO CENTRAL",
+    "provincia": "SANTA ELENA",
+    "ciudad": "ANCON",
+    "sector": "NOROESTE",
+    "endereco": "BARRIO CENTRAL DIAGONAL UPC ZONA CENTRICA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H30 A 14H30"
+  },
+  {
+    "nome": "ARCHIDONA_PRINCIPAL",
+    "provincia": "NAPO",
+    "ciudad": "ARCHIDONA",
+    "sector": "CENTRO",
+    "endereco": "PASAJE CORONEL PAEZ S/N Y CIRCUNVALACION",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "ARENILLAS_EDMUNDO CHIRIBOGA",
+    "provincia": "EL ORO",
+    "ciudad": "ARENILLAS",
+    "sector": "CENTRO",
+    "endereco": "EDMUNDO CHIRIBOGA E/ JUAN MONTALVO Y PIO MONTUFAR",
+    "horario_semana": "09:00 a 13:00 - 14:00 a 17:00",
+    "horario_fds": "10H00 A 14H00"
+  },
+  {
+    "nome": "ASCAZUBI_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "ASCAZUBI",
+    "sector": "CENTRO",
+    "endereco": "GUAYAQUIL Y ELOY ALFARO",
+    "horario_semana": "09H30 A 13H30 - 14H30 A 18H00",
+    "horario_fds": "09H30 A 13H30"
+  },
+  {
+    "nome": "ATACAMES_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ATACAMES",
+    "sector": "CENTRO",
+    "endereco": "CALLE 22 N SL15 Y VIA SECUNDARIA",
+    "horario_semana": "08H00 A 12H00 Y 13H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "ATUNTAQUI_CENTRO",
+    "provincia": "IMBABURA",
+    "ciudad": "ATUNTAQUI",
+    "sector": "CENTRO",
+    "endereco": "OLMEDO S/N Y SUCRE",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "ATUNTAQUI_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "ATUNTAQUI",
+    "sector": "NORTE",
+    "endereco": "PANAMERICANA SUR Y GONZALEZ SUAREZ",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "AZOGUES_AV 16 DE ABRIL",
+    "provincia": "CANAR",
+    "ciudad": "AZOGUES",
+    "sector": "SUR",
+    "endereco": "16 DE ABRIL 1 Y ADOLFO PALOMEQUE ATRAS DE MEGAHIERRO",
+    "horario_semana": "08H30 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AZOGUES_SOLANO",
+    "provincia": "CANAR",
+    "ciudad": "AZOGUES",
+    "sector": "CENTRO",
+    "endereco": "CALLE SOLANO Y MATOVELLE",
+    "horario_semana": "08:30 A 18:30",
+    "horario_fds": "09:00 A 12:30"
+  },
+  {
+    "nome": "BABA_CALLE GUAYAQUIL",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABA",
+    "sector": "NORTE",
+    "endereco": "CALLE GUAYAQUIL NUMERO 0 Y BARONA REF A 50 METROS DE AGRIPAC FRENTE AL COMERCIAL TRES HERMANOS",
+    "horario_semana": "09H00 A 16H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "BABAHOYO_AV. UNIVERSITARIA",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "NORTE",
+    "endereco": "AV UNIVERSITARIA Y CALLE W FRENTE UNIVERDIDAD TECNICA DE BABAHOYO",
+    "horario_semana": "08H30 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "BABAHOYO_BARREIRO VIADUCTO",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "NORTE",
+    "endereco": "AV CLEMENTE BAQUERIZO Y TRANSVERSAL",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08H00 A 16H00"
+  },
+  {
+    "nome": "BABAHOYO_BY PASS",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "SUR",
+    "endereco": "AV.25 DE JUNIO BY PASS TERMINAL TERRESTRE BABAHOYO",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "BABAHOYO_CALLE 6 DE OCTUBRE",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "NORTE",
+    "endereco": "CALLE 6 DE OCTUBRE S/N E ISAIAS CHOPITEA",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "BABAHOYO_CALLE JUAN X MARCOS",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "NORTE",
+    "endereco": "CALLE JUAN X MARCOS NUMERO 550 Y MARTIN ICAZA REF A 50 METROS DE LA FARMACIA CRUZ AZUL",
+    "horario_semana": "08H00 A 12H00- 13H00 A 18H00",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "BABAHOYO_CRUCE CHILINTOMO",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "SUR",
+    "endereco": "CRUCE DE CHILINTOMO - KM 1 VIA GUAYAQUIL",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "BABAHOYO_EDIFICIO JUAN LORENZO",
+    "provincia": "LOS RIOS",
+    "ciudad": "BABAHOYO",
+    "sector": "SUR",
+    "endereco": "10 DE AGOSTO 1527 E/ RICAURTE Y BARREIRO",
+    "horario_semana": "08:00 a 12:00 - 14:00 a 18:00",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "BAEZA_PRINCIPAL",
+    "provincia": "NAPO",
+    "ciudad": "BAEZA",
+    "sector": "CENTRO",
+    "endereco": "VIA A QUITO 201 Y LA Y DE BAEZA",
+    "horario_semana": "08H00 A 12H00 Y 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "BAHIA DE CARAQUEZ_MALECON",
+    "provincia": "MANABI",
+    "ciudad": "BAHIA DE CARAQUEZ",
+    "sector": "CENTRO",
+    "endereco": "AV MALECON S/N ENTRE ANTONIO ANTE Y AGUILERA",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "BALSAS_PADRE GUZMAN",
+    "provincia": "EL ORO",
+    "ciudad": "BALSAS",
+    "sector": "CENTRO",
+    "endereco": "PADRE GUZMAN AYORA C.BALSAS",
+    "horario_semana": "08:30 a 12:00 - 14:00 a 18:00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "BALZAR_BALZAR",
+    "provincia": "GUAYAS",
+    "ciudad": "BALZAR",
+    "sector": "CENTRO",
+    "endereco": "26 DE SEPTIEMBRE S/N Y OLMEDO",
+    "horario_semana": "08H30 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "BANOS_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "BANOS",
+    "sector": "CENTRO",
+    "endereco": "TOMAS HALFLANTS S/N Y ORIENTE",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "BIBLIAN_ALBERTO OCHOA",
+    "provincia": "CANAR",
+    "ciudad": "BIBLIAN",
+    "sector": "CENTRO",
+    "endereco": "ALBERTO OCHOA 857 Y 3 DE NOVIEMBRE",
+    "horario_semana": "08:00 a 12:30 - 14:00 a 18:00",
+    "horario_fds": "09:00 a 12:00"
+  },
+  {
+    "nome": "BORBON_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "BORBON",
+    "sector": "CENTRO",
+    "endereco": "HUMBERTO OBANDO SOLAR 17 Y RIO VERDE",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 18H00"
+  },
+  {
+    "nome": "BUCAY_ELOY ALFARO",
+    "provincia": "GUAYAS",
+    "ciudad": "BUCAY",
+    "sector": "CENTRO",
+    "endereco": "ELOY ALFARO 620 Y 9 DE OCTUBRE",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "BUENA FE_AV. 7 DE AGOSTO",
+    "provincia": "LOS RIOS",
+    "ciudad": "BUENA FE",
+    "sector": "CENTRO",
+    "endereco": "AV. 7 DE AGOSTO Y ANIBAL OYOLA.ESQUINA",
+    "horario_semana": "08:30 a 13:00 - 14:00 a 17:00",
+    "horario_fds": "08:30 a 12:00"
+  },
+  {
+    "nome": "CALCETA_GRANDA CENTENO",
+    "provincia": "MANABI",
+    "ciudad": "CALCETA",
+    "sector": "SUR",
+    "endereco": "10 DE AGOSTO Y GRANDA CENTENO",
+    "horario_semana": "08:30 A 12:30 - 14:00 A 17:30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "CALDERON (MANABI)_ABDON CALDERON",
+    "provincia": "MANABI",
+    "ciudad": "CALDERON (MANABI)",
+    "sector": "CENTRO",
+    "endereco": "AV. ELOY ALFARO S/N Y CALLE SECUNDARIA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "CALUMA_AV. DE LA NARANJA",
+    "provincia": "BOLIVAR",
+    "ciudad": "CALUMA",
+    "sector": "CENTRO",
+    "endereco": "AV. DE LA NARANJA E/ JOSE AGUILAR Y ALFREDO CAMACHO",
+    "horario_semana": "08H30 A 12H30 - 14H00 A 17H00",
+    "horario_fds": "14H00 A 17H00"
+  },
+  {
+    "nome": "CANAR_AVE 24 DE MAYO",
+    "provincia": "CANAR",
+    "ciudad": "CANAR",
+    "sector": "ESTE",
+    "endereco": "AV 24 DE MAYO Y 10 DE AGOSTO FRENTE A FARMACIA SUIZA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "CARIAMANGA_18 DE NOVIEMBRE",
+    "provincia": "LOJA",
+    "ciudad": "CARIAMANGA",
+    "sector": "NORTE",
+    "endereco": "18 DE NOVIEMBRE Y GERONIMO CARRION",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 17H00",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CASCALES_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "CASCALES",
+    "sector": "CENTRO",
+    "endereco": "AV. QUITO SN Y BOLIVAR CENTRAL",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "CATAMAYO_CALLE SUCRE",
+    "provincia": "LOJA",
+    "ciudad": "CATAMAYO",
+    "sector": "CENTRO",
+    "endereco": "SUCRE Y CHILE",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 15H00"
+  },
+  {
+    "nome": "CAYAMBE_CALLE VIVAR",
+    "provincia": "PICHINCHA",
+    "ciudad": "CAYAMBE",
+    "sector": "CENTRO",
+    "endereco": "CALLE VIVAR E1-33 Y TERAN",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "CAYAMBE_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "CAYAMBE",
+    "sector": "NORTE",
+    "endereco": "ASCAZUBI N5-97 E IMBABURA",
+    "horario_semana": "08H00 A 13H30 Y 14:30 A 17:00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "CELICA_10 DE AGOSTO",
+    "provincia": "LOJA",
+    "ciudad": "CELICA",
+    "sector": "SUR",
+    "endereco": "MANUELA CAIZAREZ Y 10 DE AGOSTO",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "CEVALLOS_CENTRO",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "CEVALLOS",
+    "sector": "CENTRO",
+    "endereco": "MANUEL VARGAS S/N Y ELIAS BUCHELI",
+    "horario_semana": "09H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "09H00 - 12H00"
+  },
+  {
+    "nome": "CHAMANGA_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "CHAMANGA",
+    "sector": "CENTRO",
+    "endereco": "VIA A CHAMANGA S/N Y VIA A BOCA DE TIGUA MZ 8 SOLAR 16",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 14H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "CHAMBO_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "CHAMBO",
+    "sector": "CENTRO",
+    "endereco": "18 DE MARZO S/N Y AMELIA GALLEGOS DIAZ",
+    "horario_semana": "09H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "CHANDUY_12 DE OCTUBRE",
+    "provincia": "SANTA ELENA",
+    "ciudad": "CHANDUY",
+    "sector": "SUROESTE",
+    "endereco": "12 DE OCTUBRE Y JOSE LUIS TAMAYO ESQUINA",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "CHARAPOTO_JOSE GILCES",
+    "provincia": "MANABI",
+    "ciudad": "CHARAPOTO",
+    "sector": "CENTRO",
+    "endereco": "JOSE GILCES/ELOY ALFARO Y 12 DE OCT.",
+    "horario_semana": "08:00 A 12:00 - 14:00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "CHILLANES_CENTRAL",
+    "provincia": "BOLIVAR",
+    "ciudad": "CHILLANES",
+    "sector": "NORTE",
+    "endereco": "10 DE AGOSTO S/N Y SAN MIGUEL",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "CHONE_AV BY PASS",
+    "provincia": "MANABI",
+    "ciudad": "CHONE",
+    "sector": "NORTE",
+    "endereco": "AV. BY PASS S/N",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "CHONE_AV. PICHINCHA",
+    "provincia": "MANABI",
+    "ciudad": "CHONE",
+    "sector": "CENTRO",
+    "endereco": "PICHINCHA S/N WASHINGTON Y PAEZ DIAG A COMPU STORE",
+    "horario_semana": "08H30 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CHORDELEG_5 DE FEBRERO",
+    "provincia": "AZUAY",
+    "ciudad": "CHORDELEG",
+    "sector": "CENTRO",
+    "endereco": "5 DE FEBRERO Y 3 DE NOVIEMBRE",
+    "horario_semana": "09H00 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CHUNCHI_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "CHUNCHI",
+    "sector": "CENTRO",
+    "endereco": "CAPITAN RICAURTE 332 Y QUITO",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "COCHANCAY_AV 25 DE AGOSTO",
+    "provincia": "CANAR",
+    "ciudad": "COCHANCAY",
+    "sector": "CENTRO",
+    "endereco": "CALLE VIA DURAN TAMBO S/N Y AV 25 DE AGOSTO - DIAGONAL RESTAURANT",
+    "horario_semana": "09H00 A 12H30 - 13H30 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "COLIMES_PADRE FIERRO",
+    "provincia": "GUAYAS",
+    "ciudad": "COLIMES",
+    "sector": "CENTRO",
+    "endereco": "PADRE FIERRO S/N Y ROSENDO CARBO",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "COTACACHI_GONZALEZ SUAREZ",
+    "provincia": "IMBABURA",
+    "ciudad": "COTACACHI",
+    "sector": "CENTRO",
+    "endereco": "GONZALEZ SUAREZ S/N Y GARCIA MORENO",
+    "horario_semana": "08H30 A 13H30 - 14H30 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "CUENCA_AV 25 DE MARZO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "NORTE",
+    "endereco": "AV 25 DE MARZO Y JUAN STROBELL ( FRENTE COLEGIO SUDAMERICANO)",
+    "horario_semana": "07:00 a 18:00",
+    "horario_fds": "07:00 a 18:00"
+  },
+  {
+    "nome": "CUENCA_AV LOJA",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "LOJA S/N Y AV. DON BOSCO",
+    "horario_semana": "08:00 A 12:30 -15:00 A 18:30",
+    "horario_fds": "09:00 A 12:30"
+  },
+  {
+    "nome": "CUENCA_AV. GIL RAMIREZ DAVALOS",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "NORTE",
+    "endereco": "AV.GIL RAMIREZ DAVALOS Y FRANCISCO PIZARRO N3-89 FRENTE A LA GASOLINERA PYS",
+    "horario_semana": "08H30 A 19H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CUENCA_AV. GONZALEZ SUAREZ - MONAY",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "NORTE",
+    "endereco": "AV. GONZALEZ SUAREZ S/N Y PANCHO VILLA 1 REF A UNA CUADRA DEL MONAY SHOPPING",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CUENCA_AV. RICARDO DURAN",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "NORTE",
+    "endereco": "AV. RICARDO DURAN Y 8 DE SEPTIEMBRE A UNA CUADRA DEL SINDICATO DE CHOFERES",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "CUENCA_CHILCAPAMBA",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "VIA CHILCAPAMBA S/N Y VALLE A 5 CUADRAS DE LA IGLESIA DEL VALLE",
+    "horario_semana": "08H30 A 13H00 - 14H00 A 18H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CUENCA_CL PANAMERICANA NORTE",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "NORTE",
+    "endereco": "PANAMERICANA NORTE S/N KM 14 SECTOR CHALLUABAMBA",
+    "horario_semana": "08H30 A 19H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "CUENCA_DON BOSCO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "AV. DON BOSCO 1-9 Y AV. SOLANO",
+    "horario_semana": "08:30 a 13:00 - 14:30 a 18:30",
+    "horario_fds": "09H00 A 12:30"
+  },
+  {
+    "nome": "CUENCA_LUIS CORDERO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "CENTRO",
+    "endereco": "LUIS CORDERO 12-64 E/ SANGURIMA Y VEGA MUNOZ",
+    "horario_semana": "09:00 A 13:00 - 14:00 A 19:00",
+    "horario_fds": "09:00 A 12:30"
+  },
+  {
+    "nome": "CUENCA_MARISCAL LAMAR",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "CENTRO",
+    "endereco": "CALLE MARISCAL LAMAR 2-28 Y MANUEL VEGA REF ENRRE EL BANCO DEL PACIFICO Y EL SUPERMERCADO SANTA CECILIA",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CUENCA_MEXICO Y ELOY",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "AV MEXICO Y EL SALVADOR",
+    "horario_semana": "08:30 A 18:30",
+    "horario_fds": "09:00 A12:30"
+  },
+  {
+    "nome": "CUENCA_MIGUEL CORDERO DAVILA",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "CENTRO",
+    "endereco": "MIGUEL CORDERO DAVILA 1-66 Y PAUCARBAMBA",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "CUENCA_MISICATA",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "1 DE SEPTIEMBRE Y GUALAQUIZA",
+    "horario_semana": "09H00 A 13H00 - 14H30 A 18H30",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CUENCA_NARANCAY",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "PANAMERICANA SUR JUNTO A SUPERMERCADO EL ECONOMICO DEL SUR",
+    "horario_semana": "08H30 A 18H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "CUENCA_ORDONEZ LASO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "OESTE",
+    "endereco": "AV ORDONES LASO S/N A MEDIA CUADRA DE LA GASOLINERA CLYAN",
+    "horario_semana": "08H30 A 13H00 - 15H00 A 18H30",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CUENCA_PASEO DE LOS CANARIS",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "ESTE",
+    "endereco": "AV PASEO DE LOS CANARIS Y HERNANDO LEOPULLA",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 12H30"
+  },
+  {
+    "nome": "CUENCA_RACAR",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "OESTE",
+    "endereco": "CALLE DE LOS CEREZOS A UNA CUADRA DEL CC RACAR PLAZA",
+    "horario_semana": "09H00 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "CUENCA_REDONDEL DE TURI",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "SUR",
+    "endereco": "AUTOPISTA CUENCA AZOGUES Y CAMINO A TURI",
+    "horario_semana": "08H30 A 18H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "CUENCA_REMIGIO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "CENTRO",
+    "endereco": "AV. REMIGIO CRESPO Y GUAYAS",
+    "horario_semana": "09H00 A 19H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CUENCA_REMIGIO CRESPO - SOLANO",
+    "provincia": "AZUAY",
+    "ciudad": "CUENCA",
+    "sector": "CENTRO",
+    "endereco": "AV. REMIGIO CRESPO TORAL 0-30",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "CUMANDA_AV PRIMERO DE MAYO",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "CUMANDA",
+    "sector": "CENTRO",
+    "endereco": "AV. PRIMERO DE MAYO S/N ENTRE 10 DE AGOSTO Y GOMEZ RENDON DIAGONAL AL PARQUEADERO DE BUSES DE CUMANDA",
+    "horario_semana": "09H00 A 12H00 - 14H00 A 17H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "DAULE_EDIF RIVER PLAZA",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "AV LEON FEBRES CORDERO RIVADENEIRA S/N LA AURORA EDIF RIVER PLAZA OFI B01",
+    "horario_semana": "10H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "DAULE_KM 10.5 VIA SAMBORONDON",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "KM 10,5 VIA A SAMBORONDON - SALITRE URB MARINA DOR PARK MZ 2 SL 2 LOCAL 2 DIAGONAL A SUPERMERCADO EL CORAL",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DAULE_LA JOYA",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "CENTRO COMERCIAL PLAZA ORLANDO PB-04",
+    "horario_semana": "08H30 -12H00 A 13H00 -18:30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DAULE_PLAZA PROYECTA",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "C.C PLAZA PROYECTA LOCAL 35 KM 10,5 VIA SAMBORONDON LA AURORA SATELITAL.",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DAULE_VICENTE PIEDRAHITA",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "VICENTE PIEDRAHITA S/N Y MANUEL FAJARDO - SUPER DESPENSA AKI LOCAL 2",
+    "horario_semana": "09:00 a 13:00 - 13:30 a 18:00",
+    "horario_fds": "10:00 a 13:00"
+  },
+  {
+    "nome": "DAULE_VILLA CLUB",
+    "provincia": "GUAYAS",
+    "ciudad": "DAULE",
+    "sector": "NORTE",
+    "endereco": "LA AURORA CC PLAZA VICTORIA CLUB�LOCAL 1A",
+    "horario_semana": "08H30 A 12H00 - 13H00 A 19H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "DURAN_CENTRO(ELOY ALFARO)",
+    "provincia": "GUAYAS",
+    "ciudad": "DURAN",
+    "sector": "CENTRO",
+    "endereco": "CENTRO DE DURAN MZ 09 SL 8A S/N REF FRENTE AL MERCADO MAYORITA LAS MANUELAS",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DURAN_EL RECREO 1ERA ETAPA",
+    "provincia": "GUAYAS",
+    "ciudad": "DURAN",
+    "sector": "CENTRO",
+    "endereco": "AV LAURICE ANTON DE SALEM MZ 107 EL RECREO 1ERA ETAPA MZ 107 FRENTE A COMISION DE TRANSITO",
+    "horario_semana": "09H30 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DURAN_NICOLAS LAPENTTI",
+    "provincia": "GUAYAS",
+    "ciudad": "DURAN",
+    "sector": "NORTE",
+    "endereco": "AV. NICOLAS LAPENTTI Y DEMOCRACIA NORTE SL. 15- FRENTE AUTOLASA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "DURAN_PANORAMA AV. PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "DURAN",
+    "sector": "ESTE",
+    "endereco": "CDLA PANORAMA MZ G SL 12 - DIAGONAL UPC",
+    "horario_semana": "09H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "DURAN_PRIMAVERA 2",
+    "provincia": "GUAYAS",
+    "ciudad": "DURAN",
+    "sector": "CENTRO",
+    "endereco": "PRIMAVERA 2 SECTOR IC MZ 16 V8",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "ECHEANDIA_VIA A VENTANAS",
+    "provincia": "BOLIVAR",
+    "ciudad": "ECHEANDIA",
+    "sector": "CENTRO",
+    "endereco": "AV. NELSON LEON S/N ENTRE CALLE L Y CALLE S",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "EL CAMBIO_BARRIO SAN VICENTE",
+    "provincia": "EL ORO",
+    "ciudad": "EL CAMBIO",
+    "sector": "CENTRO",
+    "endereco": "BARRIO SAN VICENTE Y 1ERA SUR FRENTE A LA IGLESIA EL CAMBIO",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "EL CARMEN_PRINCIPAL",
+    "provincia": "MANABI",
+    "ciudad": "EL CARMEN",
+    "sector": "CENTRO",
+    "endereco": "CARLOS ALBERTO ARAY S/N Y ELOY ALFARO",
+    "horario_semana": "08H30 A 13H30 - 14H30 A 18H00",
+    "horario_fds": "09H00 A 13H30"
+  },
+  {
+    "nome": "EL COCA_CENTRO",
+    "provincia": "ORELLANA",
+    "ciudad": "EL COCA",
+    "sector": "CENTRO",
+    "endereco": "AV 9 DE OCTUBRE S/N Y RIO TIPUTINI",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "EL DESEO_AV. PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "EL DESEO",
+    "sector": "SUR",
+    "endereco": "VIA KM. 26 S/N RECINTO EL DESEO TRONCAL DE LA COSTA FRENTE AL SEGURO CAMPESINO",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "EL EMPALME_AV. GUAYAQUIL",
+    "provincia": "GUAYAS",
+    "ciudad": "EL EMPALME",
+    "sector": "CENTRO",
+    "endereco": "AV. GUAYAQUIL ENTRE SALINAS Y SIMON BOLIVAR",
+    "horario_semana": "08:00 A 12:30 - 13:30 A 17:00",
+    "horario_fds": "08:00 A 13:00"
+  },
+  {
+    "nome": "EL GUABO_CALLE 3 DE NOVIEMBRE",
+    "provincia": "EL ORO",
+    "ciudad": "EL GUABO",
+    "sector": "CENTRO",
+    "endereco": "3 DE NOV. Y ELOY ALFARO JUNTO A ALMACENES TIA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 16H30",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "EL GUANO_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "EL GUANO",
+    "sector": "CENTRO",
+    "endereco": "TOMAS RAMIREZ Y GARCIA MORENO",
+    "horario_semana": "09H30 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "EL PANGUI_SAN DIEGO HERMINIO",
+    "provincia": "ZAMORA",
+    "ciudad": "EL PANGUI",
+    "sector": "SUR",
+    "endereco": "SAN DIEGO HERMINIO CARRION S/N AV QUITO A 2 CUADRAS",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "EL TRIUNFO_AV. 8 DE ABRIL",
+    "provincia": "GUAYAS",
+    "ciudad": "EL TRIUNFO",
+    "sector": "CENTRO",
+    "endereco": "AV. 8 DE ABRIL 1115 Y JUAN MONTALVO - JUNTO A AGRIPAC",
+    "horario_semana": "08:00 a 13:00 - 14:00 a 18:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "ESMERALDAS_CENTRO LOGISTICO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ESMERALDAS",
+    "sector": "SUR",
+    "endereco": "VIA A TACHINA M146 Y SN",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "ESMERALDAS_CODESA",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ESMERALDAS",
+    "sector": "SUR",
+    "endereco": "VIA SAN MARTIN SOLAR 9 Y CALLE H - SALIDA BUSES TERMINAL",
+    "horario_semana": "07H30 A 18H30",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "ESMERALDAS_OLMEDO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ESMERALDAS",
+    "sector": "CENTRO",
+    "endereco": "AV OLMEDO S/N Y 10 DE AGOSTO",
+    "horario_semana": "08H00 A 17H30",
+    "horario_fds": "08H00 A 12H30"
+  },
+  {
+    "nome": "ESMERALDAS_PARADA 10",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ESMERALDAS",
+    "sector": "NORTE",
+    "endereco": "AV. SEGUNDA LIBERTAD M18 SL 6 Y FRANKLIN TELLO",
+    "horario_semana": "08H00 A 12H00 Y 14H00 A 18H0",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "ESMERALDAS_SAN RAFAEL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "ESMERALDAS",
+    "sector": "SUR",
+    "endereco": "CALLE H MZ 71 SOLAR 33 Y CALLE C",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "FLAVIO ALFARO_CARLOS ARAY",
+    "provincia": "MANABI",
+    "ciudad": "FLAVIO ALFARO",
+    "sector": "CENTRO",
+    "endereco": "CARLOS ALBERTO ARAY Y MIRAFLORES",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "GIRON_SIMON BOLIVAR",
+    "provincia": "AZUAY",
+    "ciudad": "GIRON",
+    "sector": "CENTRO",
+    "endereco": "SIMON BOLIVAR S/N GIRON DIAGONAL AL BANCO DEL AUSTRO",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "GONZANAMA_SIMON BOLIVAR",
+    "provincia": "LOJA",
+    "ciudad": "GONZANAMA",
+    "sector": "SUR",
+    "endereco": "SIMON BOLIVAR S/N Y 18 DE NOVIEMBRE",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUALACEO_JAIME ROLDOS",
+    "provincia": "AZUAY",
+    "ciudad": "GUALACEO",
+    "sector": "CENTRO",
+    "endereco": "JAIME ROLDOS AGUILERA Y MARIETA VASQUEZ",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "GUALAQUIZA_PSJE FRANCISCO DE ORELLANA",
+    "provincia": "MORONA SANTIAGO",
+    "ciudad": "GUALAQUIZA",
+    "sector": "CENTRO",
+    "endereco": "FRANCISCO DE ORELLANA S/N Y GRAN PASAJE JUNTO A PLAZA CIVICA",
+    "horario_semana": "09H00 A 12H00 - 12H30 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUARANDA_CDLA UNIVERSITARIA",
+    "provincia": "BOLIVAR",
+    "ciudad": "GUARANDA",
+    "sector": "NORTE",
+    "endereco": "AV. ERNESTO CHE GUEVARA S/N ENTRE LUIS B ARRE Y GABRIELA IGNACIO VEINTIMILLA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "GUARANDA_PRINCIPAL",
+    "provincia": "BOLIVAR",
+    "ciudad": "GUARANDA",
+    "sector": "CENTRO",
+    "endereco": "GARCIA MORENO 809 Y NUEVE DE ABRIL",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "GUAYAQUIL_17 AVA Y PORTETE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "AV DECIMA SEPTIMA N1819 ENTRE ARGENTINA Y PORTETE MZ 117 SL 28 JUNTO A FARMACIAS ECONOMICAS",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_23 Y LA Q",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "23 Y LA Q - CALLE SUSCAL COOP LA UNION MZ 1347 SL 41",
+    "horario_semana": "09H00 - 19H00",
+    "horario_fds": "09H00 - 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_25AVA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "25AVA CALLE 3211 ENTRE LA B Y LA C - UNA CUADRA DEL TIA / SUROESTE",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "08H30 A 18H30"
+  },
+  {
+    "nome": "GUAYAQUIL_29 AVA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "29 AVA E./ VENEZUELA Y COLOMBIA",
+    "horario_semana": "08H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_38AVA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "38 AVA 1205 Y GARCIA GOYENA PB JUNTO A FARMACIA SANTA MARTHA",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "08H30 A 13H30"
+  },
+  {
+    "nome": "GUAYAQUIL_4 DE NOVIEMBRE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "CALLE 4 DE NOVIEMBRE S/N ENTRE GALLEGOS LARA Y LEONIDAS PLAZA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_9 DE OCT y LOS RIOS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SURESTE",
+    "endereco": "AV. 9 DE OCTUBRE 803 Y LOS RIOS",
+    "horario_semana": "10H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_ACACIAS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "AV 25 DE JULIO M7 I N07",
+    "horario_semana": "09H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_ALAMOS NORTE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "LOS ALAMOS MZ26 S21",
+    "horario_semana": "09H30 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_ALBANBORJA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "AV.CARLOS JULIO AROSEMENA S/N",
+    "horario_semana": "10:00 a 18:30",
+    "horario_fds": "10:00 a 14:00"
+  },
+  {
+    "nome": "GUAYAQUIL_ALBO5 BCO BOLIVARIANO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "ALBOCENTRO 5 AV. BAQUERIZO MORENO S/N Y GABRIEL ROLDOS DIAG.",
+    "horario_semana": "09H30 A 19H15",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_ALBOCENTRO 4",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "CDLA.ALBORADA 5TA ETAPA MZ.51X SOLAR 3",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_ALBORADA 3ERA ETAPA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV. FRANCISCO DE ORELLANA S/N Y PASAJE ISALE DARWIN MZ BA VILLA 24 - ALBORADA 3ERA ETAPA",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "GUAYAQUIL_ALCEDO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "ALCEDO 1014 Y AV. DEL EJERCITO",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 18H30"
+  },
+  {
+    "nome": "GUAYAQUIL_ANTENAS TV CABLE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NOROESTE",
+    "endereco": "AV.J.T.MARENGO S/N",
+    "horario_semana": "09H30 A 12H00 - 12H30 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "GUAYAQUIL_ATARAZANA LA DEMOCRACIA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "ATARAZANA CDLA ALAMOS 1 MZ111 SOLAR AV2 N-E DE LA DEMOCRACIA/ C11 CALLE SUFRAGIO LIBRE",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_AV CHILE Y CHIMBORAZO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "VACAS GALINDO ENTRE CHILE Y CHIMBORAZO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_AV DEL BOMBERO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV PRIMERO 302 E/ CALLE 12AVA Y 13AVA Y AV DEL BOMBERO - PLAZOLETA CEIBOS",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 19H00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_AV ISIDRO AYORA - POLARIS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV ISIDRO AYORA S/N Y PRESIDENTE TAMAYO EDIF 1 MZ 789 CDLA POLARIS PB",
+    "horario_semana": "10H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_AV. 25 DE JULIO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "AV. 25 DE JULIO S/N SOLAR 13 MZ 1402 COOP. 7 LAGOS PB",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "GUAYAQUIL_AV. SIMON BOLIVAR",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "AV SIMON BOLIVAR PALACIOS N 2002 Y CALLE JOSE MEJIA LEQUERICA REF FRENTE A LA SEGUNDA PUERTA DEL MALECON 2000",
+    "horario_semana": "10H00 A 18H30",
+    "horario_fds": "10H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_C.C COSTA BRISA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "KM 19.5 VIA A LA COSTA - CENTRO COMERCIAL COSTA BRISA",
+    "horario_semana": "10H00 -19H00",
+    "horario_fds": "10H00 - 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_C.C COSTAL MAR",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "KM. 14.5 VIA A LA COSTA SOLAR 1 C.C COSTALMAR SHOPPING LOCAL 15 FRENTE A FARMACIA MEDICITY",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_C.C MILAN",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "C.C. MILAN LOCAL 4. KM 12.5 VIA A SALITRE",
+    "horario_semana": "08:30 A 16:00",
+    "horario_fds": "10:00 a 12:00"
+  },
+  {
+    "nome": "GUAYAQUIL_C.C PALMORA PLAZA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "C.C PALMORA PLAZA - LOCAL 28 - KM 18 VIA A SAMBORONDON",
+    "horario_semana": "08:00 a 18:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "GUAYAQUIL_C.C. SAN FELIPE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "JOSE ANTONIO GAULT 100 Y AV PONCE ENRIQUE DENTRO DEL C.C. SAN FELIPE",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CAJA DE SEGURO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "F. DE P. LAVAYEN 116 Y AV. OLMEDO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CC SAN EDUARDO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUROESTE",
+    "endereco": "JOSE RODRIGUEZ BONIN Y CALLE 26 A - C.C. SAN EDUARDO SHOPPING LOCAL 1A",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "GUAYAQUIL_CDLA KENNEDY",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV. MIGUEL H ALCIVAR Y ANGEL BARRERA - CDLA KENNEDY NORTE MZ 97 SL 17AL19 DIAG PARQUE JAPONES FTRE A LAB ASIMED",
+    "horario_semana": "08:30 A 16:30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "GUAYAQUIL_CDLA. BOLIVARIANA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "CDLA BOLIVARIANO MZE SOLAR 8 LOCAL 3",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CENTRO DE CONVENCIONES",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORESTE",
+    "endereco": "AV. DE LAS AMERICAS - LOCAL 1 - JUNTO AL CENTRO DE CONVENCIONES DE GUAYAQUIL",
+    "horario_semana": "09H00 A 12H00 - 12H30 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CENTRO DE NEGOCIOS TERMINAL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV. DE LAS AMERICAS CENTRO DE NEGOCIOS EL TERMINAL LOCAL 38 BLOQUE C FRENTE A GASOLINERA PRIMAX",
+    "horario_semana": "09H30 A 13H00 - 14H00 A 18H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "GUAYAQUIL_CHONGON",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "KM 24 VIA A LA COSTA SAN GERONIMO 2 MZ 458 V1",
+    "horario_semana": "07H30 A 12H00 / 13H00 A 16H30",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CITY MALL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NOROESTE",
+    "endereco": "FELIPE PEZO S/N Y BENJAMIN CARRION MZ.105",
+    "horario_semana": "10H00 A 20H00",
+    "horario_fds": "10H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CL JTM GUAYAQUIL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV.7 1/2 VIA DAULE",
+    "horario_semana": "08H00 A 21H00",
+    "horario_fds": "09H00 A 15H00"
+  },
+  {
+    "nome": "GUAYAQUIL_CTG AV. BRASIL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "BRASIL 429 ENTRE CHIMBORAZO Y CORONEL",
+    "horario_semana": "08:00 A 18:30",
+    "horario_fds": "10:00 a 12:00"
+  },
+  {
+    "nome": "GUAYAQUIL_DOMINGO COMIN GRAN AKI",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "AV.DOMINGO COMIN CALLE 50 S.1 MZ. 19",
+    "horario_semana": "10H00 A 19H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_EDIF WTC SAABU SA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "WTC LOCAL 32 FCO DE ORELLANA",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "GUAYAQUIL_ENTRADA DE LA 8 EN LA Y",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV CASUARIANA EN LA Y DE LA ENTRADA DE LA 8 / REFERENCIA POR LA GANGA COOP GUERREROS DEL FORTIN MZ 1178 SL 5",
+    "horario_semana": "09H00 - 17H00",
+    "horario_fds": "09H00 - 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_FERTISA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "COOP. SANTIAGUITO DE ROLDOS 1 AV PADRE CAYETANO TARRUEL SOLAR 19 INTERSECCI�N CUARTO CALLEJON 53SO MZ 1158 JUNTO A LOCA",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_FLORIDA NORTE AV. PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "FLORIDA NORTE MZ 0408 SL.3 TARQUI",
+    "horario_semana": "09:00 A 19:30",
+    "horario_fds": "10:00 A 13:00"
+  },
+  {
+    "nome": "GUAYAQUIL_FLORIDA NORTE VIA DAULE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "VIA A DAULE - ENTRANDO POR EL PUENTE DE LA FLORIDA MZ100 V3",
+    "horario_semana": "08H00 A19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_FRANCISCO SEGURA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "FRANCISCO SEGURA 1909 ENTRE TULCAN Y CARCHI PB",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_GARZOTA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "CDLA. LA GARZOTA MZ 32 VILLA # 30",
+    "horario_semana": "08:30 a 17:30",
+    "horario_fds": "09:00 a 14:00"
+  },
+  {
+    "nome": "GUAYAQUIL_GUANGALA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "CDLA. GUANGALA CALLE ERNESTO ALBAN MOSQUERA SOLAR 2 MZ. E1 DIAG. HOSP. TEODORO MALDONADO CARBO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "10H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_GUASMO SUR LUCHA POPULAR1",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "GUASMO SUR COOPERATIVA HOGAR DE LOS POBRES MZ 1906 SL 28 LADO SPA GABINETE SARA",
+    "horario_semana": "09H00 A 12H30 - 13H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_GUAYAQUIL_PUERTO SANTA ANA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "AV. P. MENENDEZ GILBERT LOCAL# 03 PUERTO SANTA ANA 3ER PASAJE 5 NE /FRENTE A PARQUEOS CIUDAD DEL RIO",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_HOSPITAL DEL GUASMO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "GUASMO SUR DIAGONAL A LA ENTRADA DE LA CARTONERA HOSPITAL DEL GUASMO",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_HOSPITAL DEL NINO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO SUR",
+    "endereco": "PEDRO MONCAYO CARLOS GOMEZ RENDON FRENTE HOSPITAL DEL NINO",
+    "horario_semana": "08H00 A 17H30",
+    "horario_fds": "08H00 A 17H00"
+  },
+  {
+    "nome": "GUAYAQUIL_JUAN MONTALVO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "VIA DAULE COOP. JUAN MONTALVO CALLE 19H SOLAR 01 FICOA DE MONTALVO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_JUAN TANCA MARENGO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "OESTE",
+    "endereco": "AV. JUAN TANCA MARENGO SL 14 Y CALLE E - ENTRE PINTULAC Y EDF TAIWAN - DIAGIONAL PRIMAX",
+    "horario_semana": "09H30 A 12H00 - 13H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_KM 12.5 VIA A DAULE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "KM 12.5 VIA DAULE C.C. HPERMARKET",
+    "horario_semana": "10H00 A 20H00",
+    "horario_fds": "09H00 A 19H00"
+  },
+  {
+    "nome": "GUAYAQUIL_KM 4.5 VIA DAULE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "KM 4.5 VIA DAULE MI COMISARIATO MAPASINGUE",
+    "horario_semana": "09H00 A 20H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_KM 7.5 VIA DAULE",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "VIA DAULE KM 7.5 S/N AV JUAN TANCA MARENGO 1 MZ 11 SL 8 JUNTO A INDUSTRIAS TONI",
+    "horario_semana": "09H00 A 20H00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_LA FLORESTA AV PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "LA FLORESTA COOP LOS LAURELES MZ 754 SL 15 - A LADO CAJERO COOP JEP",
+    "horario_semana": "09H00 - 18H00",
+    "horario_fds": "09H00 - 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_LEONIDAS PLAZA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "LEONIDAS PLAZA 609 E/ PEDRO PABLO GOMEZ Y AYACUCHO",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09:00 A 14:00"
+  },
+  {
+    "nome": "GUAYAQUIL_LOJA AEROVIA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "LOJA S/N ENTRE PANAMA Y ROCAFUERTE DIAG AL AEREOVIA",
+    "horario_semana": "08H00 A 20H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_LOS ALMENDROS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "SUR",
+    "endereco": "CDLA. LOS ALMENDROS MZ O SOLAR 34 - FRENTE A DEPRATI SUR",
+    "horario_semana": "09H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_LOS ROSALES",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV. FRANCISCO DE ORELLANA CDLA LOS ROSALES 1 MZ 626 V 15 LOCAL 2",
+    "horario_semana": "10H00 A 18H30",
+    "horario_fds": "10H00 A 12H00"
+  },
+  {
+    "nome": "GUAYAQUIL_MALL DEL FORTIN",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SEGUNDA ETAPA DE LA CDLA INMACONSA MZ 103 SL 2-3 MALL DEL FORTIN LOCAL 112",
+    "horario_semana": "10H00 A 20H00",
+    "horario_fds": "10H00 A 20H00"
+  },
+  {
+    "nome": "GUAYAQUIL_MALL DEL RIO",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV FRANCISCO DE ORELLANA S/N Y JOSE LUIS TAMAYO TERAN C.C MALL DEL RIO LOCAL 100 P.B",
+    "horario_semana": "10H00 A 20H00",
+    "horario_fds": "10H00 A 21H00"
+  },
+  {
+    "nome": "GUAYAQUIL_MUCHO LOTE 2",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AUTOPISTA NARCISA DE JESUS MZ 1243 SOLAR 43 URB. VICTORIA CLUB DIAG COMISARIATO",
+    "horario_semana": "09H00 A 12H30 - 13H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PARQUE CALIFORNIA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "OESTE",
+    "endereco": "KM 10.5 S/N VIA A DAULE PARQUE CALIFORNIA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PARQUE LINEAL MUCHO LOTE 1",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "MUCHO LOTE 1 ETAPA 6 MZ 2642 SL 50 FRENTE AL PARQUE LINEAL JUNTO ASADERO CHANITO",
+    "horario_semana": "08H00 A 12H30 - 13H30 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PASCUALES AV PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV 28 DE AGOSTO 0507 E/ CUARTA Y QUINTA FRTE AL TUTI",
+    "horario_semana": "09H00 - 17H00",
+    "horario_fds": "09H00 - 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PIAZZA CEIBOS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "OESTE",
+    "endereco": "AV. DEL BOMBERO S/N ( PIAZZA ) AL LADO DEL HOSPITAL DEL IESS CEIBOS",
+    "horario_semana": "09H30 A 18H30",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PLAZA CORONEL",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "URB MUCHO LOTE 1 VIGESIMO QUINTA ETAPA VII E ISIDRO AYORA PLAZA CORONEL",
+    "horario_semana": "09H30 A 12H00 - 13H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PLAZA DANIN 106",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV C. L. PLAZA DANIN 106 Y AV SAN JORGE",
+    "horario_semana": "08H00 A 20H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_PLAZA LA GARZOTA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "C.C. PLAZA LA GARZOTA LOCAL 2 - AGUSTIN FREIRE MZ 2 SOLAR 1-15 - JUNTO A SUPERMAXI",
+    "horario_semana": "09H30 A 18H30",
+    "horario_fds": "09:30 A 12:00"
+  },
+  {
+    "nome": "GUAYAQUIL_PUENTE LUCIA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "OESTE",
+    "endereco": "RECINTO PUENTE LUCIA KM 27 VIA DAULE - PARADA DE BUSES",
+    "horario_semana": "08H00 - 19H00",
+    "horario_fds": "08H00 - 19H00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAMANES 1",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV. FRANCISCO RIZZO S/N CDLA SAMANES 1 MZ 0144 SL 6 REF DIAG A LA FARMACIA CRUZ AZUL",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H30",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAMANES VI TNTE HUGO ORTIZ",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SAMANES VI AV FRANCISCO DE ORELLANA S/N TEODORO ALVARADO",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 18H00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAUCES 2",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SAUCES II AV. ANTONIO PARRA VELASCO MZ. 114 SOLAR 50 DIAG. A LA ACADEMIA NAVAL GYE",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAUCES 6",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SAUCES VI MZ 259 F44 VILLA 10 JTO. A IGLESIA SANTA ISABEL",
+    "horario_semana": "08:00 a 19:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAUCES 7",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SAUCES VII MZ F-384 SOL 01 FRENTE A BLOQUES DE APANOR DIAG POLLOS LA ESQUINA DE ALES",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_SAUCES 8",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "SAUCES 8 MZ. F 505 SOLAR 14 AV ISIDRO AYORA Y GABRIEL ROLDOS",
+    "horario_semana": "09H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_TERMINAL TERRESTRE 2",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "AV BENJAMIN ROSALES Y AV DE LAS AMERICAS, TERMINAL TERRESTRE DE GUAYAQUIL \"DR. JAIME ROLDOS AGUILERA\" LOCAL 47 JUNTO A L",
+    "horario_semana": "09H00 A 20H00",
+    "horario_fds": "10H00 A 20H00"
+  },
+  {
+    "nome": "GUAYAQUIL_URDESA FICUS ESQUINA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "URDESA CENTRAL - AV VICTOR EMILIO ESTRADA Y FICUS - ESQUINA",
+    "horario_semana": "09H00 -19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_URDESA_BALSAMOS",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NOROESTE",
+    "endereco": "VICTOR EMILIO ESTRADA 116 Y BALSAMOS - URDESA - FRENTE A TV CABLE",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 18H30",
+    "horario_fds": "NO APLICA"
+  },
+  {
+    "nome": "GUAYAQUIL_VELEZ.627",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "CENTRO",
+    "endereco": "VELEZ 627 E/. RUMICHACA Y GARCIA AVILEZ",
+    "horario_semana": "09H00 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYAQUIL_VERGELES",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "LOS VERGELES MZ 113 SOLAR 42",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08H00 A 13H30"
+  },
+  {
+    "nome": "GUAYAQUIL_VILLA BONITA",
+    "provincia": "GUAYAS",
+    "ciudad": "GUAYAQUIL",
+    "sector": "NORTE",
+    "endereco": "VIA DAULE KM 15.5 SOLAR 23 CUARTO CALLEJON 28 MI LOTE VILLA BONITA BLOQUE11 MZ 5404 REF A VEINTE METROS DE PIZZERIA HERO",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "GUAYZIMI_CIUDAD PERDIDA",
+    "provincia": "ZAMORA",
+    "ciudad": "GUAYZIMI",
+    "sector": "SUR",
+    "endereco": "CIUDAD PERDIDA Y LOJA",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "HUAQUILLAS_AV REPUBLICA",
+    "provincia": "EL ORO",
+    "ciudad": "HUAQUILLAS",
+    "sector": "CENTRO",
+    "endereco": "AV REPUBLICA S/N Y CHIRIBOGA JUNTO AL ESTADIO HUMBERTO ARTETA",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "HUAQUILLAS_PRINCIPAL",
+    "provincia": "EL ORO",
+    "ciudad": "HUAQUILLAS",
+    "sector": "CENTRO",
+    "endereco": "1 DE MAYO Y HUALTACO",
+    "horario_semana": "08:00 A 12:00 - 14:00 A 18:00",
+    "horario_fds": "10H00 A 15H00"
+  },
+  {
+    "nome": "HUERTAS_19 DE OCTUBRE",
+    "provincia": "EL ORO",
+    "ciudad": "HUERTAS",
+    "sector": "CENTRO",
+    "endereco": "19 DE OCTUBRE Y ANGEL CASTRO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "IBARRA_AJAVI",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "NORTE",
+    "endereco": "JUAN LEON MERA 3-94 Y VICTOR MANUEL GUZMAN",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H30",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "IBARRA_LA CANDELARIA",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "NORTE",
+    "endereco": "QUILANGO 4-61 Y AV. EL RETORNO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "IBARRA_LA VICTORIA",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "CENTRO",
+    "endereco": "HUGO GUZMAN LARA Y CALLE SN",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "IBARRA_LOS CEIBOS",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "SUR",
+    "endereco": "AV EL RETORNO 856 Y RIO PASTAZA",
+    "horario_semana": "08H00 A 20H00",
+    "horario_fds": "09H00 A 17H00"
+  },
+  {
+    "nome": "IBARRA_MARIANO ACOSTA",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "OESTE",
+    "endereco": "AV MARIANO ACOSTA 15 Y CRISTOBAL GOMEZ JURADO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "IBARRA_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "NORESTE",
+    "endereco": "AV. FRAY VACAS GALINDO 15-50 Y AV.RODRIGO DE MIO",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "IBARRA_SANCHEZ",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "CENTRO NORTE",
+    "endereco": "SANCHEZ Y CIFUENTES 9-54 Y PEDRO MONCAYO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "IBARRA_SUCRE",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "CENTRO",
+    "endereco": "SUCRE 8-52 E/ PEDRO MONCAYO Y VELASCO",
+    "horario_semana": "08H30 A 13H00 - 14H30 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "IBARRA_TEODORO GOMEZ",
+    "provincia": "IMBABURA",
+    "ciudad": "IBARRA",
+    "sector": "CENTRO",
+    "endereco": "TEODORO GOMEZ 10-37 Y JUAN ATABALIPA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 17H00"
+  },
+  {
+    "nome": "ISIDRO AYORA_30 DE JULIO",
+    "provincia": "GUAYAS",
+    "ciudad": "ISIDRO AYORA",
+    "sector": "CENTRO",
+    "endereco": "AV JUAN MONTALVO Y 30 DE JULIO ENTRADA AL MUNICIPIO",
+    "horario_semana": "09H00 - 17H00",
+    "horario_fds": "09H00 - 14H00"
+  },
+  {
+    "nome": "JARAMIJO_AV. 23 DE OCTUBRE",
+    "provincia": "MANABI",
+    "ciudad": "JARAMIJO",
+    "sector": "CENTRO",
+    "endereco": "AV. 23 DE OCTUBRE S/N Y 1 DE ENERO REF DIAG A LA ESCUELA LUIS FELIPE CHAVEZ",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "JAVIER LOYOLA_CHUQUIPATA",
+    "provincia": "CANAR",
+    "ciudad": "JAVIER LOYOLA",
+    "sector": "SUR",
+    "endereco": "CENTRO PARROQUIAL JAVIER LOYOLA CHUQUIPATA FRENTE A LA UNAE A LADO DE LA FARMACIA SUIZA",
+    "horario_semana": "09H00 A 12H00 - 14H00 A 19H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "JIPIJAPA_VICTOR MANUEL RENDON",
+    "provincia": "MANABI",
+    "ciudad": "JIPIJAPA",
+    "sector": "CENTRO",
+    "endereco": "CALLE BOLIVAR ENTRE VICTOR MANUEL RENDON Y RICAURTE",
+    "horario_semana": "08:00 a 12:00 - 13:00 a 18:00",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "JOYA DE LOS SACHAS_MARISCAL",
+    "provincia": "ORELLANA",
+    "ciudad": "JOYA DE LOS SACHAS",
+    "sector": "CENTRO",
+    "endereco": "AV MARISCAL SUCRE 3403 Y MONSENOR LABAKA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "JUJAN_13 DE NOVIEMBRE",
+    "provincia": "GUAYAS",
+    "ciudad": "JUJAN",
+    "sector": "CENTRO",
+    "endereco": "13 DE NOVIEMBRE S/N Y 16 DE FEBRERO DIAG. A FERRETERIA DEL PUEBLO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "JUNIN_AV. 8 DE NOVIEMBRE",
+    "provincia": "MANABI",
+    "ciudad": "JUNIN",
+    "sector": "CENTRO",
+    "endereco": "8 DE NOV.S/N ELOY ALFARO Y VICENTE MENDOZA",
+    "horario_semana": "10:00 A 16:30",
+    "horario_fds": "09:00 a 12:00"
+  },
+  {
+    "nome": "LA 14 VIA EL PARAISO_JULIO AROSEMENA",
+    "provincia": "LOS RIOS",
+    "ciudad": "LA 14 VIA EL PARAISO",
+    "sector": "CENTRO",
+    "endereco": "JULIO AROSEMENA S/N Y ALBERTO FERRI FRENTE A HELADERIA ARI",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 16H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LA CONCORDIA_SAN RAFAEL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "LA CONCORDIA",
+    "sector": "CENTRO",
+    "endereco": "BABAHOYO SN Y JUAN MONTALVO",
+    "horario_semana": "08H30 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "LA LIBERTAD_BARRIO 28 DE MAYO",
+    "provincia": "SANTA ELENA",
+    "ciudad": "LA LIBERTAD",
+    "sector": "SUR",
+    "endereco": "DIAGONAL AL SHOPPING LA LIBERTAD BARRIO 28 DE MAYO AV. 12 38 E./ CALLES 11 Y 12 FRENTE A RESTAURANT SAN SEBASTIAN",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 14H30"
+  },
+  {
+    "nome": "LA LIBERTAD_ELEODORO SOLORZANO",
+    "provincia": "SANTA ELENA",
+    "ciudad": "LA LIBERTAD",
+    "sector": "OESTE",
+    "endereco": "AV ELEODORO SOLORZANO ENTRE CALLE 21-22 DIAGONAL AL PARQUE DE LOS HAMBRIENTOS, FRENTE A PERNIACERO.",
+    "horario_semana": "09H00 A 17H30",
+    "horario_fds": "09H30 A 13H30"
+  },
+  {
+    "nome": "LA LIBERTAD_JOSE TAMARIZ MORA",
+    "provincia": "SANTA ELENA",
+    "ciudad": "LA LIBERTAD",
+    "sector": "OESTE",
+    "endereco": "BARRIO JOSE TAMARIZ MORA AV 6TA Y CALLE 32",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "LA LIBERTAD_SECTOR PUERTO RICO",
+    "provincia": "SANTA ELENA",
+    "ciudad": "LA LIBERTAD",
+    "sector": "CENTRO",
+    "endereco": "SECTOR PUERTO RICO AV. 2DA S/N Y AV. 27",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09:00 A 14:00"
+  },
+  {
+    "nome": "LA MANA_AV. 19 DE MAYO",
+    "provincia": "COTOPAXI",
+    "ciudad": "LA MANA",
+    "sector": "CENTRO",
+    "endereco": "AV. 19 DE MAYO Y AMERICA",
+    "horario_semana": "08:00 a 13:00 - 14:00 a 16:00",
+    "horario_fds": "08:00 A 14:00"
+  },
+  {
+    "nome": "LA MANA_VIRGEN DEL CARMEN",
+    "provincia": "COTOPAXI",
+    "ciudad": "LA MANA",
+    "sector": "NORTE",
+    "endereco": "AV SAN PABLO Y OTTO AROSEMENA JUNTO A FANDENTAL DIAGONAL A VIRGEN DEL CARMEN",
+    "horario_semana": "08H00 A 12H30 - 13H30 A 16H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "LA SEXTA_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "LA SEXTA",
+    "sector": "CENTRO",
+    "endereco": "CALLE A MZ 33 SOLAR 7 Y OLMEDO",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "LA TRONCAL_CALLE 24",
+    "provincia": "CANAR",
+    "ciudad": "LA TRONCAL",
+    "sector": "CENTRO",
+    "endereco": "AV. 24 DE MAYO # 308 Y ELOY ALFARO",
+    "horario_semana": "09:00 a 18:00",
+    "horario_fds": "09:00 a 15:00"
+  },
+  {
+    "nome": "LA UNION (BABAHOYO)_ABDON CALDERON",
+    "provincia": "LOS RIOS",
+    "ciudad": "LA UNION (BABAHOYO)",
+    "sector": "SUR",
+    "endereco": "ABDON CALDERON S/N Y CAMILO PONCE REF DIAG A FERRETERIA AGUIRRE",
+    "horario_semana": "10H00 A 16H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "LA UNION (QUININDE)_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "LA UNION (QUININDE)",
+    "sector": "CENTRO",
+    "endereco": "AV PRINCIPAL S/N Y AV. QUITO",
+    "horario_semana": "08H30 A 18H00",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "LAGO AGRIO_NAPO",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "LAGO AGRIO",
+    "sector": "NORTE",
+    "endereco": "VIA A QUITO KM 1 Y PASAJE BOLIVIA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "LAGO AGRIO_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "LAGO AGRIO",
+    "sector": "CENTRO",
+    "endereco": "AV. ELOY ALFARO 317 Y 12 DE FEBRERO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "LAS NAVES_10 DE AGOSTO",
+    "provincia": "BOLIVAR",
+    "ciudad": "LAS NAVES",
+    "sector": "CENTRO",
+    "endereco": "10 DE AGOSTO ENTRE OVIDIO VEGA Y 12 DE OCTUBRE JUNTO A LIBRERIA BACHITA",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "LASSO_PRINCIPAL",
+    "provincia": "COTOPAXI",
+    "ciudad": "LASSO",
+    "sector": "NORTE",
+    "endereco": "VIA TOACASO S/N E IVON DE GOMEZ",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "LATACUNGA_AEROPUERTO",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "NORESTE",
+    "endereco": "AV. AMAZONAS 16-63 Y CARLOS ARROYO DEL RIO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LATACUNGA_AV. AMAZONAS",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "CENTRO",
+    "endereco": "AV. AMAZONAS 1766 Y GENERAL MALDONADO",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "LATACUNGA_BELLAVISTA",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "NORTE",
+    "endereco": "AV. MIGUEL ITURRALDE S/N Y SAN IGNACIO",
+    "horario_semana": "08H30 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "LATACUNGA_LA ESTACION",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "NORTE",
+    "endereco": "ELOY ALFARO S/N Y GENERAL JUAN MONTERO",
+    "horario_semana": "08H00 A 12H30 - 14H00 A 18H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "LATACUNGA_PRINCIPAL",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "SUR",
+    "endereco": "AV. UNIDAD NACIONAL SN Y 1ERO DE ABRIL",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "LATACUNGA_SAN SEBASTIAN",
+    "provincia": "COTOPAXI",
+    "ciudad": "LATACUNGA",
+    "sector": "NORTE",
+    "endereco": "AV NAPO S/N Y CALIXTO PINO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LIMON INDANZA_PRINCIPAL",
+    "provincia": "MORONA SANTIAGO",
+    "ciudad": "LIMON INDANZA",
+    "sector": "CENTRO",
+    "endereco": "28 DE MAYO S/N Y AV. DEL EJERCITO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LOJA_AV. MANUEL CARRION PINZANO",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "SUR",
+    "endereco": "AV MANUEL CARRION PINZANO Y EPLICACHIMA",
+    "horario_semana": "09H30 A 13H00 - 15H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "LOJA_BERNARDO VALDIVIESO",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "CENTRO",
+    "endereco": "BERNARDO VALDIVIESO 209 - 18 MERCADILLO",
+    "horario_semana": "09H30 A 12H40 - 14H00 A 18H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "LOJA_C.C MALL DON DANIEL",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "SUR",
+    "endereco": "18 DE NOVIEMBRE S/N Y CHILE P.B C.C DON DANIEL",
+    "horario_semana": "10H00 A 13H00 - 15H00 A 17H30",
+    "horario_fds": "10H00 A 12H00"
+  },
+  {
+    "nome": "LOJA_CL PARQUE INDUSTRIAL",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "NORTE",
+    "endereco": "NUEVA YORK Y SALVADOR BUSTAMANTE CELI",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "LOJA_FRANCISCO LECARO",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "NORTE",
+    "endereco": "FRANCISCO LECARO Y JAIME ROLDOS ESQ.",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "09:00 A 12:00"
+  },
+  {
+    "nome": "LOJA_JUAN DE SALINAS",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "NORTE",
+    "endereco": "JUAN DE SALINAS Y MANUEL IGNACIO",
+    "horario_semana": "08H00 A 12H00 - 13H30 A 17H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LOJA_JUAN JOSE PENA",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "SUR",
+    "endereco": "JUAN JOSE PEA 201-40 Y 10 DE AGOSTO",
+    "horario_semana": "10H00 A 13H00 - 15H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LOJA_MANUEL AGUSTIN AGUIRRE",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "SUR",
+    "endereco": "AV MANUEL AGUIRRE S/N Y VENEZUELA JUNTO A CNT",
+    "horario_semana": "08H00 A 12H00 - 13H30 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "LOJA_MIGUEL RIO FRIO",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "SUR",
+    "endereco": "MIGUEL RIOFRIO S/N EMILIANO ORTEGA",
+    "horario_semana": "09H30 A 13H00 Y 14H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "LOJA_QUITO.15",
+    "provincia": "LOJA",
+    "ciudad": "LOJA",
+    "sector": "CENTRO",
+    "endereco": "18 DE NOVIEMBRE S/N Y QUITO",
+    "horario_semana": "09H00 A 13H00- 14H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "LOMAS DE SARGENTILLO_EL TELEGRAFO",
+    "provincia": "GUAYAS",
+    "ciudad": "LOMAS DE SARGENTILLO",
+    "sector": "SUR",
+    "endereco": "EL TELEGRAFO Y VEIZIMO GONZALES",
+    "horario_semana": "08:00 a 18:00",
+    "horario_fds": "08:00 a 14:00"
+  },
+  {
+    "nome": "LORETO_PRINCIPAL",
+    "provincia": "ORELLANA",
+    "ciudad": "LORETO",
+    "sector": "CENTRO",
+    "endereco": "GREGORIO URAPARI S/N Y RAFAEL ANDRADE",
+    "horario_semana": "08H00 A 12H00 Y 14H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "LOS BANCOS_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "SAN MIGUEL DE LOS BANCOS",
+    "sector": "CENTRO",
+    "endereco": "AV. 17 DE JULIO S/N Y MOISES CARRERA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "LUMBAQUI_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "LUMBAQUI",
+    "sector": "CENTRO",
+    "endereco": "AV. DE LOS COFANES Y CRISTOBAL COLON",
+    "horario_semana": "08H00 A 12H00 Y 13H00 A 20H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "MACARA_ABDON CALDERON",
+    "provincia": "LOJA",
+    "ciudad": "MACARA",
+    "sector": "CENTRO",
+    "endereco": "BOLIVAR Y ABDON CALDERON",
+    "horario_semana": "09:00 a 17:00",
+    "horario_fds": "09:00 a 12:00"
+  },
+  {
+    "nome": "MACAS_CENTRAL",
+    "provincia": "MORONA SANTIAGO",
+    "ciudad": "MACAS",
+    "sector": "CENTRO",
+    "endereco": "ANTONIO SAMANIEGO S/N Y VEINTE Y CUATRO DE MAYO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "MACHACHI_CENTRO LOGISTICO",
+    "provincia": "PICHINCHA",
+    "ciudad": "MACHACHI",
+    "sector": "NORTE",
+    "endereco": "AV. PABLO GUARDERAS LT2 Y JAIME ROLDOS",
+    "horario_semana": "08H00 A 12H30 - 13H15 A 18H45",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_25 DE JUNIO",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO",
+    "endereco": "25 DE JUNIO S/N JUNIN",
+    "horario_semana": "08H30 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "MACHALA_AV FERROVIARIA 2",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO",
+    "endereco": "AV FERROVIARIA Y CALLEJON",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_AV. BOLIVAR",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO",
+    "endereco": "BOLIVAR Y TARQUI",
+    "horario_semana": "09:00 A 13:00 - 14:00 A 18:00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "MACHALA_AV. COLON TINOCO",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "SURESTE",
+    "endereco": "AV COLON TINOCO Y AV 4TA - DIAG AL AKI",
+    "horario_semana": "09H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "MACHALA_CALLE 10 DE AGOSTO",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "NORTE",
+    "endereco": "CALLE 10 DE AGOSTO S/N Y CALLEJON 1ERA NORTE REFE JUNTO A CASAPANRENCIA",
+    "horario_semana": "10H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_CIRCUNVALACION NORTE",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "SUR",
+    "endereco": "CIR. NORTE Y JUAN MONTALVO",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "08:00 a 13:00"
+  },
+  {
+    "nome": "MACHALA_CIRCUNVALACION SUR",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "SUR",
+    "endereco": "CIRCUNVALACION SUR JAIME ROLDOS JUNTO A SPA LINDO RETOQUE",
+    "horario_semana": "09H30 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "MACHALA_GUAYAS",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO",
+    "endereco": "GUAYAS Y PICHINCHA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "MACHALA_KLEBER FRANCO",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO NORTE",
+    "endereco": "KLEBER FRANCO Y TARQUI",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_LAS BRISAS",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "CENTRO",
+    "endereco": "AV 25 DE JUNIO Y 1RA AVENIDA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "MACHALA_LAS CRUCITAS",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "ESTE",
+    "endereco": "AV ALEJANDRO CASTRO BENITEZ ENTRE BRAZIL Y ECUADOR",
+    "horario_semana": "09H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_LAS PALMERAS",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "NOROESTE",
+    "endereco": "AV LAS PALMERAS #4 Y MARCEL LANEADO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_LOS VERGELES",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "NORTE",
+    "endereco": "CDLA LOS VERGELES CALLE PRINCIPAL Y 4TA B NORTE MULTISERVICIOS DETALLITOS",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MACHALA_PARQUE LINEAL",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "SUROESTE",
+    "endereco": "AV HECTOR CHICA ENTRE MARGARITA BONILLA Y LA 9NA SUR",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "MACHALA_SANTA ROSA",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "SUR",
+    "endereco": "SANTA ROSA Y ARIZAGA",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "MACHALA_SUCRE",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "NORTE",
+    "endereco": "SUCRE S/N Y SANTA ROSA - AYACUCHO",
+    "horario_semana": "08:00 a 12:00 - 14:00 a 18:00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "MACHALA_VIA PUERTO BOLIVAR",
+    "provincia": "EL ORO",
+    "ciudad": "MACHALA",
+    "sector": "OESTE",
+    "endereco": "AV BOLIVAR MADERO 1114 Y AV CIRCUNVALACION NORTE JUNTO A CLUB DE LEONES Y SUPERMAXI",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MALACATOS_PIO JARAMILLO",
+    "provincia": "LOJA",
+    "ciudad": "MALACATOS",
+    "sector": "SUR",
+    "endereco": "PIO JARAMILLO Y JUSTINIANO ESTUPI�AN",
+    "horario_semana": "09H00 A 13H00 - 14H30 A 17H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "MANGLARALTO_24 DE MAYO",
+    "provincia": "SANTA ELENA",
+    "ciudad": "MANGLARALTO",
+    "sector": "NORTE",
+    "endereco": "24 DE MAYO S/N Y EL ORO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "MANTA_4 DE NOVIEMBRE",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "NORTE",
+    "endereco": "AVE 4 DE NOVIEMBRE Y Y DE MANTA",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08:30 A 12H30"
+  },
+  {
+    "nome": "MANTA_AVENIDA 8",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "CENTRO",
+    "endereco": "AV. 8AVA. ENTRE CALLE 11 Y 12",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "08H00 A 12H30"
+  },
+  {
+    "nome": "MANTA_CALLE 13",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 13 AVE 21 Y 22",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H30"
+  },
+  {
+    "nome": "MANTA_CDLA. LA FLOREANA",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "NORTE",
+    "endereco": "AV. PRINCIPAL S/N Y CALLE C CDLA. LA FLOREANA REF DIAG AL HOTEL SOL NACIENTE",
+    "horario_semana": "09H00 A 13H00 - 14H30 A 17H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "MANTA_CLINICA SAN GREGORIO",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "NORTE",
+    "endereco": "AV MARIA AUXILIADORA Y AV 110A DIAGONAL A LA CLINICA SAN GREGORIO",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MANTA_LA DOLOROSA",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 10 Y AV 23",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "MANTA_SAN MATEO",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "CENTRO",
+    "endereco": "CALLE SAN PABLO Y AVENIDA CAUSE DEL RIO",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "MANTA_TERMINAL TERRESTRE",
+    "provincia": "MANABI",
+    "ciudad": "MANTA",
+    "sector": "NOROESTE",
+    "endereco": "VIA PUERTO-AEROPUERTO DE MANTA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MARCABELI_MANUEL U GALLARDO",
+    "provincia": "EL ORO",
+    "ciudad": "MARCABELI",
+    "sector": "SUROESTE",
+    "endereco": "MANUEL U. GALLARDO E/ CALLE PINAS Y CANONIGO AGUILAR FTRE AL PARQUE CENTRAL",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A12H00"
+  },
+  {
+    "nome": "MARCELINO_CDLA LOS PARQUES",
+    "provincia": "GUAYAS",
+    "ciudad": "MARCELINO MARIDUENA",
+    "sector": "CENTRO",
+    "endereco": "CDLA. LOS PARQUES Y CALLE S/N",
+    "horario_semana": "10:00 a 16:00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "MATA DE CACAO_MERCADO MUNICIPAL",
+    "provincia": "LOS RIOS",
+    "ciudad": "MATA DE CACAO",
+    "sector": "CENTRO",
+    "endereco": "AV LOS RIOS Y 24 DE MAYO",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "MILAGRO_5 DE JUNIO",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "NORTE",
+    "endereco": "CALLE 5 DE JUNIO S/N ERNESTO SEMINARIO",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MILAGRO_AV CHIRIJOS",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "CENTRO",
+    "endereco": "AV CHIRIJOS ENTRE GUAYAS Y SUCUMBIOS",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "MILAGRO_AV. 17 DE SEPTIEMBRE",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "NORTE",
+    "endereco": "AV 17 DE SEPTIEMBRE Y LEONIDAS PROANO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "MILAGRO_AV. JUAN MONTALVO",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "CENTRO",
+    "endereco": "AV JUAN MONTALVO 943 Y ELOY ALFARO",
+    "horario_semana": "08:30 A 17:30",
+    "horario_fds": "10:00 a 13:00"
+  },
+  {
+    "nome": "MILAGRO_AV. PRINCIPAL DG AL TUTI",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "SUR",
+    "endereco": "CDLA DAGER CALLE RIO AGUARICO Y RIO CHANCHAN",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "MILAGRO_COLIBRI LA COLON",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "SUR",
+    "endereco": "ALFREDO PEREZ GUERRERO 64A-0 LATACUNGA",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "MILAGRO_JAIME ROLDOS",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "SUR",
+    "endereco": "AV JAIME ROLDOS AGUILERA Y JOSE MARIA URBINA",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "MILAGRO_LA PRADERA",
+    "provincia": "GUAYAS",
+    "ciudad": "MILAGRO",
+    "sector": "SUR",
+    "endereco": "CDLA LA PRADERA 1 AV MARISCAL SUCRE Y YASUNI",
+    "horario_semana": "08H30 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "MIRA_PRINCIPAL",
+    "provincia": "CARCHI",
+    "ciudad": "MIRA",
+    "sector": "CENTRO",
+    "endereco": "JOSE JOAQUIN OLMEDO S/N Y BOLIVAR",
+    "horario_semana": "08H00 A 13H00 A 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MOCACHE_CALLE 28 DE MAYO",
+    "provincia": "LOS RIOS",
+    "ciudad": "MOCACHE",
+    "sector": "CENTRO",
+    "endereco": "CALLE 28 DE MAYO ENTRE SEGUNDA Y TERCERA",
+    "horario_semana": "08:00 A 12:00 - 13:00 A 18:00",
+    "horario_fds": "08:00 A 14:00"
+  },
+  {
+    "nome": "MOMPICHE_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "MOMPICHE",
+    "sector": "CENTRO",
+    "endereco": "VIA A MOMPICHE S/N Y CALLE SEGUNDA MZ 238 SOLAR 9",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MONTALVO_GUILLERMO BAQUERIZO",
+    "provincia": "LOS RIOS",
+    "ciudad": "MONTALVO",
+    "sector": "CENTRO",
+    "endereco": "GUILLERMO BAQUERIZO Y 24 DE MAYO",
+    "horario_semana": "08:30 A 12:30 - 14:30 A 17:00",
+    "horario_fds": "10:00 A 13:00"
+  },
+  {
+    "nome": "MONTANITA_RUTA DEL SPONDYLUS",
+    "provincia": "SANTA ELENA",
+    "ciudad": "MONTANITA",
+    "sector": "NORTE",
+    "endereco": "CARRETERA PRINCIPAL S/N Y COMUNA MONTANITA JUNTO A PANADERIA EL TRIGALS",
+    "horario_semana": "08H00 - 13H0 A 13H30 - 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "MONTECRISTI_9 DE JULIO",
+    "provincia": "MANABI",
+    "ciudad": "MONTECRISTI",
+    "sector": "CENTRO",
+    "endereco": "AV METROPOLITANO Y 9 DE JULIO",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "MONTECRISTI_LA PROANOS LA FABRIL",
+    "provincia": "MANABI",
+    "ciudad": "MONTECRISTI",
+    "sector": "CENTRO",
+    "endereco": "CALLE VICTOR VELIZ Y VIA MANTA - MONTECRISTI FRENTE A LA FABRIL",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "MUEY_JOSE LUIS TAMAYO",
+    "provincia": "SANTA ELENA",
+    "ciudad": "MUEY",
+    "sector": "SUROESTE",
+    "endereco": "BARRIO CENTENARIO AV 9 CALLE 15-16",
+    "horario_semana": "07H00 A 13H00 - 14H00 A 19H00",
+    "horario_fds": "07H00 A 13H00 - 14H00 A 17H00"
+  },
+  {
+    "nome": "MUISNE_CENTRO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "MUISNE",
+    "sector": "CENTRO",
+    "endereco": "MANABI SOLAR 7 ENTRE VARGAS TORRES Y MALECON",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "MUISNE_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "MUISNE",
+    "sector": "CENTRO",
+    "endereco": "CALLE 4A MZ 6 SOLAR 15 Y CALLE 1A",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "NARANJAL_CENTRO AV. OLMEDO",
+    "provincia": "GUAYAS",
+    "ciudad": "NARANJAL",
+    "sector": "CENTRO",
+    "endereco": "AV OLMEDO E INDEPENDENCIA",
+    "horario_semana": "08:30 a 18:00",
+    "horario_fds": "08:30 a 14:00"
+  },
+  {
+    "nome": "NARANJITO_GENERAL CORDOVA",
+    "provincia": "GUAYAS",
+    "ciudad": "NARANJITO",
+    "sector": "CENTRO",
+    "endereco": "5 DE OCTUBRE 1418 Y GENERAL CORDOVA",
+    "horario_semana": "08:30 A 12:00 - 13:15 A 15:50",
+    "horario_fds": "09:00 A 10:45"
+  },
+  {
+    "nome": "NOBOL_RENAN OLMEDO",
+    "provincia": "GUAYAS",
+    "ciudad": "NOBOL",
+    "sector": "CENTRO",
+    "endereco": "CALLE RENAN OLMEDO Y AV RIO AMAZONAS MZ 40 SL 543 JUNTO AL MERCADO MUNICIPAL",
+    "horario_semana": "09H00 - 12H00 A 13H00 - 17H00",
+    "horario_fds": "09H00 - 13H00"
+  },
+  {
+    "nome": "OLMEDO (MANABI)_EL PARQUE",
+    "provincia": "MANABI",
+    "ciudad": "OLMEDO (MANABI)",
+    "sector": "CENTRO",
+    "endereco": "AV MANABI Y 27 DE SEPTIEMBRE DIAGONAL AL PARQUE CENTRAL DE OLMEDO",
+    "horario_semana": "09H00 A 16H30",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "ONA_24 DE MAYO",
+    "provincia": "AZUAY",
+    "ciudad": "ONA",
+    "sector": "CENTRO",
+    "endereco": "24 DE MAYO Y CALLE A FRENTE AL MERCADO MUNICIPAL",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "OTAVALO_JORDAN",
+    "provincia": "IMBABURA",
+    "ciudad": "OTAVALO",
+    "sector": "NORTE",
+    "endereco": "PANAMERICA NORTE SN Y DESVIO A SELVA ALEGRE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "OTAVALO_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "OTAVALO",
+    "sector": "CENTRO",
+    "endereco": "MORALES S/N Y ROCA",
+    "horario_semana": "08:00 a 13:00 y 14:30 a 18:00",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "PACAYACU_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "PACAYACU",
+    "sector": "CENTRO",
+    "endereco": "VIA PRINCIPAL S/N Y BARRIO CENTRAL",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "PACCHA_CALLE 10 DE AGOSTO",
+    "provincia": "EL ORO",
+    "ciudad": "PACCHA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 10 DE AGOSTO S/N Y CALLE SECUNDARIA",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PAJAN_9 DE OCTUBRE",
+    "provincia": "MANABI",
+    "ciudad": "PAJAN",
+    "sector": "CENTRO",
+    "endereco": "AV 9 DE OCTUBRE S/N Y AV GUAYAQUIL DIG BAECUADOR",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 16H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "PALANDA_13 DE ABRIL",
+    "provincia": "ZAMORA",
+    "ciudad": "PALANDA",
+    "sector": "SUR",
+    "endereco": "13 DE ABRIL SN Y ALONSO DE MERCADILLO DIAGONAL A BAN ECUADOR",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PALENQUE_JUAN CARLOS",
+    "provincia": "LOS RIOS",
+    "ciudad": "PALENQUE",
+    "sector": "CENTRO",
+    "endereco": "AV JUAN CARLOS ASPIAZU ENTRE BALZAR Y 14 DE JUNIO A LADO DE LA PILADORA JULIO CESAR",
+    "horario_semana": "08H30 A 11H30 - 12H30 A 16H00",
+    "horario_fds": "N/A"
+  },
+  {
+    "nome": "PALESTINA_FAUSTO ESPINOZA",
+    "provincia": "GUAYAS",
+    "ciudad": "PALESTINA",
+    "sector": "CENTRO",
+    "endereco": "FAUSTO ESPINOZA PINTO Y LUIS MORA",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "09:00 a 12:00"
+  },
+  {
+    "nome": "PALLATANGA_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "PALLATANGA",
+    "sector": "CENTRO",
+    "endereco": "AV. JOSE VELASCO IBARRA",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "PALORA_CENTRAL",
+    "provincia": "MORONA SANTIAGO",
+    "ciudad": "PALORA",
+    "sector": "CENTRO",
+    "endereco": "AV CUMANDA S/N Y JUAN LEON MERA",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "PALTAS_DOMINGO CELI",
+    "provincia": "LOJA",
+    "ciudad": "PALTAS",
+    "sector": "SUR",
+    "endereco": "DOMINGO CELI S/N Y ADRIANO VALAREZO",
+    "horario_semana": "09H00 A 12H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "PASAJE_4 DE AGOSTO",
+    "provincia": "EL ORO",
+    "ciudad": "PASAJE",
+    "sector": "CENTRO",
+    "endereco": "4 DE AGOSTO E/OCHO LEON Y MUNICIPALIDAD",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "PASAJE_AV. MACHALA Y AZUAY",
+    "provincia": "EL ORO",
+    "ciudad": "PASAJE",
+    "sector": "CENTRO",
+    "endereco": "AV. MACHALA S/N Y AZUAY REF FRENTE A CQ15",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PATATE_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "PATATE",
+    "sector": "CENTRO",
+    "endereco": "JUAN MONTALVO S/N Y PABLO DAVILA",
+    "horario_semana": "09H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PATRICIA PILAR_PRINCIPAL",
+    "provincia": "LOS RIOS",
+    "ciudad": "PATRICIA PILAR",
+    "sector": "CENTRO",
+    "endereco": "AV 20 DE SEPTIEMBRE SN Y CALLE 3",
+    "horario_semana": "08H00 A 14H00 Y 15H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PAUTE_DANIEL PARRA",
+    "provincia": "AZUAY",
+    "ciudad": "PAUTE",
+    "sector": "NORTE",
+    "endereco": "JOSE MIGUEL BARZALLO Y RODRIGUEZ PARRA",
+    "horario_semana": "08:00 a 18:00",
+    "horario_fds": "08:00 a 18:00"
+  },
+  {
+    "nome": "PEDERNALES_PRINCIPAL",
+    "provincia": "MANABI",
+    "ciudad": "PEDERNALES",
+    "sector": "NORTE",
+    "endereco": "GARCIA MORENO S/N Y MARIA AUXILIADORA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 15H00"
+  },
+  {
+    "nome": "PEDRO CARBO_AV. BOLIVIA",
+    "provincia": "GUAYAS",
+    "ciudad": "PEDRO CARBO",
+    "sector": "CENTRO",
+    "endereco": "BOLIVIA Y SALINAS - FRENTE A LA CANCHA SAN RAMOS",
+    "horario_semana": "09:00 a 16:00",
+    "horario_fds": "09:00 a 14:00"
+  },
+  {
+    "nome": "PEDRO VICENTE MALDONADO_CENTRO",
+    "provincia": "PICHINCHA",
+    "ciudad": "PEDRO VICENTE MALDONADO",
+    "sector": "CENTRO",
+    "endereco": "AV. 29 DE JUNIO S/N Y LUCHA DE LOS POBRES",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "PELILEO_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "PELILEO",
+    "sector": "CENTRO",
+    "endereco": "AV. 22 DE JULIO 5-26 Y PADRE JOSE CHACON",
+    "horario_semana": "08H00 A 16H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PICHINCHA_SECTOR LA CADENA",
+    "provincia": "MANABI",
+    "ciudad": "PICHINCHA",
+    "sector": "CENTRO",
+    "endereco": "SECTOR LA CADENA VIA MANTA QUEVEDO",
+    "horario_semana": "08H30 A 16H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "PILLARO_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "PILLARO",
+    "sector": "CENTRO",
+    "endereco": "BARRIO CENTRAL / URBINA S/N ENTRE BOLIVAR Y GARCIA MORENO",
+    "horario_semana": "09H00 A 13H00 - 15H00 A 18H30",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "PIMAMPIRO_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "PIMAMPIRO",
+    "sector": "CENTRO",
+    "endereco": "BOLIVAR S/N Y VELASCO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "PINAS_AV SUCRE Y 10 DE AGOSTO",
+    "provincia": "EL ORO",
+    "ciudad": "PINAS",
+    "sector": "CENTRO",
+    "endereco": "SUCRE E/10 DE AGOSTO Y BERNANRDO AGUILAR REF A 500 METROS DE LA PISCINA MUNICIPAL",
+    "horario_semana": "09H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PINDAL_AV CELICA",
+    "provincia": "LOJA",
+    "ciudad": "PINDAL",
+    "sector": "SUR",
+    "endereco": "AV. CELICA Y ALAMOR",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "PLAYAS_AV. 15 DE AGOSTO",
+    "provincia": "GUAYAS",
+    "ciudad": "PLAYAS",
+    "sector": "CENTRO",
+    "endereco": "AV. 15 DE AGOSTO 532 Y PAQUISHA",
+    "horario_semana": "08H00 A 19H00",
+    "horario_fds": "08H00 A 19H00"
+  },
+  {
+    "nome": "PONCE ENRIQUEZ_BARRIO LA FLORIDA",
+    "provincia": "AZUAY",
+    "ciudad": "PONCE ENRIQUEZ",
+    "sector": "CENTRO",
+    "endereco": "CALLE ELOY BARROS ARIAS S/N Y 28 DE MARZO BARRIO LA FLORIDA REF DIAG A FARMACIA CRUZ AZUL DEL PARQUE CENTRAL",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "09H00 A 15H00"
+  },
+  {
+    "nome": "PORTOVELO_URB. EL ORO 1",
+    "provincia": "EL ORO",
+    "ciudad": "PORTOVELO",
+    "sector": "NORTE",
+    "endereco": "PORTOVELO URB ELORO 1",
+    "horario_semana": "08H30 A 12H30 - 13H30 A 18H00",
+    "horario_fds": "010H00 A 14H00"
+  },
+  {
+    "nome": "PORTOVIEJO_10 DE AGOSTO",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "CENTRO",
+    "endereco": "10 DE AGOSTO S/N Y ELOY ALFARO JUNTO A COOP. COMERCIO PICOAZA",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "PORTOVIEJO_AV BOLIVARIANA",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "SUR",
+    "endereco": "AV BOLIVARIANA Y WASHINGTON JUNTO A LOCAL MAGIA PUBLICIDAD",
+    "horario_semana": "08H30 A 12H30 - 13H30 A 17H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "PORTOVIEJO_AV. AMERICA",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "CENTRO",
+    "endereco": "AV. AMERICA 118 ENTRE REALES TAMARINDOS",
+    "horario_semana": "08:00 A 18:00",
+    "horario_fds": "08:00 A 12:00"
+  },
+  {
+    "nome": "PORTOVIEJO_EUDORO LOOR",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "NORTE",
+    "endereco": "AV REALES TAMARINDOS Y EUDORO LOOR",
+    "horario_semana": "08:00 A 12:00 - 14:00 A 18:00",
+    "horario_fds": "08:00 A 12:00 - 14:00 A 18:00"
+  },
+  {
+    "nome": "PORTOVIEJO_KM. 1.5 VIA MANTA",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "NORTE",
+    "endereco": "KM 1.5 VIA A MANTA",
+    "horario_semana": "08:00 A 18:00",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "PORTOVIEJO_MONUMENTO AGRICOLA",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "NORTE",
+    "endereco": "BY PASS CALLE FEDERICO BRAVO MONUMENTO AL CHOCLO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "PORTOVIEJO_MORALES",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "CENTRO",
+    "endereco": "9 DE OCTUBRE E./ MORALES Y OLMEDO",
+    "horario_semana": "08:00 A 12:00 - 13:30 A 17:30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "PORTOVIEJO_ROLDOS",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "CENTRO",
+    "endereco": "GARCIA MORENO Y JAIME ROLDOS",
+    "horario_semana": "08:00 A 12:00 - 13:00 A 17:30",
+    "horario_fds": "08:00 a 12:00"
+  },
+  {
+    "nome": "PORTOVIEJO_TERMINAL",
+    "provincia": "MANABI",
+    "ciudad": "PORTOVIEJO",
+    "sector": "CENTRO",
+    "endereco": "AV DEL EJERCITO Y PEDRO GUAL",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08H00 A 18H30"
+  },
+  {
+    "nome": "POSORJA_JUAN COLON",
+    "provincia": "GUAYAS",
+    "ciudad": "POSORJA",
+    "sector": "NORTE",
+    "endereco": "JUAN COLON Y 20 DE JUNIO - DIAGONAL A LA CANCHA DE FUTBOL",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "10:00 A 18:00"
+  },
+  {
+    "nome": "PROGRESO_JUAN GOMEZ RENDON",
+    "provincia": "GUAYAS",
+    "ciudad": "PROGRESO",
+    "sector": "CENTRO",
+    "endereco": "AV PRINCIPAL S/N VIA A SALINAS FTE CTE CASA BLANCA",
+    "horario_semana": "07H00 A 18H30",
+    "horario_fds": "07H00 A 14H00"
+  },
+  {
+    "nome": "PUEBLO VIEJO_CALLE 10 DE AGOSTO",
+    "provincia": "LOS RIOS",
+    "ciudad": "PUEBLO VIEJO",
+    "sector": "CENTRO",
+    "endereco": "CALLE 10 DE AGOSTO Y JUSTINO CORNEJO",
+    "horario_semana": "08H00 A 12H30 - 13H30 A 16H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "PUERTO BOLIVAR_GONZALO CORDOVA",
+    "provincia": "EL ORO",
+    "ciudad": "PUERTO BOLIVAR",
+    "sector": "NORTE",
+    "endereco": "GONZALO CORDOVA E./ 1ERA Y SEGUNDA NORTE",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "PUERTO LOPEZ_GENERAL CORDOVA",
+    "provincia": "MANABI",
+    "ciudad": "PUERTO LOPEZ",
+    "sector": "CENTRO",
+    "endereco": "GENERAL CORDOVA Y AV MACHALILLA",
+    "horario_semana": "09H00 A 13H00 - 14H30 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "PUERTO QUITO_CENTRO",
+    "provincia": "PICHINCHA",
+    "ciudad": "PUERTO QUITO",
+    "sector": "CENTRO",
+    "endereco": "AV. DE LOS CARAS S/N Y JUAN MONTALVO",
+    "horario_semana": "08H30 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "PUYO_PRINCIPAL",
+    "provincia": "PASTAZA",
+    "ciudad": "PUYO",
+    "sector": "CENTRO",
+    "endereco": "9 DE OCTUBRE S/N Y LUCINDO ORTEGA",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUERO_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "QUERO",
+    "sector": "CENTRO",
+    "endereco": "DARQUEA S/N Y GARCIA MORENO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "QUEVEDO_AV QUITO",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "CENTRO",
+    "endereco": "AV QUITO Y CALLE C FRENTE A LA CASA JUDICIAL",
+    "horario_semana": "08H30 A 12H00 - 13H30 A 17H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "QUEVEDO_EL GUAYACAN II",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "SUR",
+    "endereco": "CDLA. GUAYACAN II SOLAR 22 DIAGONAL A FARMACIA SANA SANA",
+    "horario_semana": "08H30 A 12H00 - 13H30 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUEVEDO_JUNE GUZMAN",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "CENTRO",
+    "endereco": "DECIMA 1ERA 411 Y 7 DE OCTUBRE JUNE GUZMAN",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08:00 A 12:30"
+  },
+  {
+    "nome": "QUEVEDO_KM 2 VIA VALENCIA",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "SUR",
+    "endereco": "SAN CRISTOBAL KM 2 VIA VALENCIA ENTRADA A CA�ALITO",
+    "horario_semana": "08H30 A 17H00",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "QUEVEDO_PARROQUIA 7 DE OCTUBRE",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "CENTRO",
+    "endereco": "PARROQUIA 7 DE OCTUBRE CALLE SEXTA ENTRE E Y F REFERENCIA DIAGONAL AL MERCADO DE LA CANCHA�",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "QUEVEDO_QUEVEDO_SAN CARLOS CLL ESTENIO",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUEVEDO",
+    "sector": "CENTRO SUR",
+    "endereco": "CALLE ESTENIO BURGOS Y 2 DE JULIO # 409 - JUNTO A AGRIPAC",
+    "horario_semana": "08H00 A 12H30 - 13H30 A 16H30",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "QUININDE_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "QUININDE",
+    "sector": "CENTRO",
+    "endereco": "AV. 6 DE DICIEMBRE S/N Y GUSTAVO BECERRA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUINSALOMA_SIMON BOLIVAR",
+    "provincia": "LOS RIOS",
+    "ciudad": "QUINSALOMA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 3 DE MAYO S/N Y SIMON BOLIVAR",
+    "horario_semana": "08H30 A 12H00 - 13H30 A 17H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUISAPINCHA_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "QUISAPINCHA",
+    "sector": "CENTRO",
+    "endereco": "GONZALEZ SUAREZ S/N Y ALONSO PALACIOS",
+    "horario_semana": "09H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_ACUNA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV ACUA E INGLATERRA",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_AGUA CLARA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "EUCALIPTOS OE3-354 Y OE3K",
+    "horario_semana": "08H30 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ALANGASI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "NOVENA TRANSVERSAL S/N Y PASAJE CALDERON",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_AMAGUANA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "GONZALEZ SUAREZ S/N Y AUTOPISTA E35",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUITO_AMAZONAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV.AMAZONAS N39-164 Y VICENTE CARDENAS",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ANTIGUO AEROPUERTO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. AMAZONAS N49-59 Y RIO CURARAY",
+    "horario_semana": "08H30 A 13H00 Y 14H00 A18H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_ARMENIA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "NELA MARTINEZ OE7-156 Y ANTONIO CASTELO",
+    "horario_semana": "Lunes a Viernes 09h00 a 18h00",
+    "horario_fds": "09h00 a 12h00"
+  },
+  {
+    "nome": "QUITO_ASUNCION",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "ASUNCION OE3-51",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ATAHUALPA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. ALONSO DE ANGULO OE2-893 Y GALO MOLINA",
+    "horario_semana": "09H30 A 13H00 Y 14H00 A 18H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_AV RUMINAHUI PUENTE 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "AV. GENERAL RUMI�AHUI S3-72 Y CALLE S3",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_AV. AJAVI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AJAVI OE5-360 Y PAQUISHA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_AV. BRASIL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. BRASIL N48-50 Y JALIL",
+    "horario_semana": "09H30 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_AV. DEL MAESTRO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV DEL MAESTRO OE3-33 Y ANGEL CHAMUEL",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_BACA ORTIZ",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. COLON E-9-262 Y LUIS TAMAYO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_BARRIONUEVO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "EL CANELO OE5-36 Y PEAT. OE5F",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_BUGAMBILLAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. ELOY ALFARO N46-58 Y DE LAS BUGAMBILLAS",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CALDERON COLONIA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "CARAPUNGO 28 88 Y COLONIA",
+    "horario_semana": "09H30 A 13H30 - 14H30 A 17H20",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_CAMINOS DEL SUR",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. MARISCAL SUCRE S26-52 Y CUSUBAMBA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CARAPUNGO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV.NEPTALI GODOY N14-66 Y AV.RIO GUAYAS",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CARCELEN",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "CLEMENTE YEROVI OE2-168 YPASAJE RODRIGO DE TORQUENDAMA",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_CARCELEN BAJO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "CARCELEN BAJO E2F # N90-96-90",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_CARDENAL DE LA TORRE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "CARDENAL DE LA TORRE S14-57 Y RAFAEL FERRER",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CASALES 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "PANAMERICANA NORTE OE10-278 Y EL ARENAL",
+    "horario_semana": "08H00 A 13H00 - 13H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CHILLOGALLO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "CARLOS FREIRE S31-65 Y PEDRO CARBO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CIL SUR",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "CIL SUR S60C S/N PARQUE INDUSTRIAL SUR",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CIUDAD BICENTENARIO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LOS NARCISOS 113 Y DE LAS BUGANVILLAS (FRENTE COL. REPLICA MONTUFAR)",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_COMITE DEL PUEBLO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. JUAN MOLINEROS E13-89 Y LUIS TIPAN",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CONDADO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "NOGALES N71-349 Y AV. DE LA PRENSA FRENTE AL CENTRO COMERCIAL CONDADO",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_CONOCOTO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUROESTE",
+    "endereco": "AV. LOLA QUINTANA E4-45 Y ORIENTE",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "QUITO_COREA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "10 DE AGOSTO N36-152 Y COREA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_COTOCOLLAO 2",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JOSE FIGUEROA OE4-14 Y 25 DE MAYO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_CUMBAYA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NOROESTE",
+    "endereco": "ELOY ALFARO OE1-34 Y AV. MARIA ANGELICA IDROVO",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_EL ARENAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "ESTE",
+    "endereco": "INTEROCEANICA S/N TABLER EL ARENAL",
+    "horario_semana": "07H00 A 17H30",
+    "horario_fds": "07H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_EL BOSQUE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NOROESTE",
+    "endereco": "CAPITAN ERNESTO MUNOZ N44-10 Y EDMUNDO CARVAJAL",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_EL CARMELO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. RIO AMAZONAS N44-150 Y LUIS BARBERIS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_EL DORADO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "YAGUACHI E5-27 ENTRE ANDRES BELLO Y QUITILIANO SANCHEZ",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "QUITO_EL EDEN",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LOS CHOLANES E14-162 Y DE LAS ANONAS",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_EL INCA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. EL INCA E10-139 Y DE LAS GARDENIAS",
+    "horario_semana": "07H00 A 19H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_EL QUINCHE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "PICHINCHA E1 - 217 Y SUCRE",
+    "horario_semana": "08H30 A 12H30 Y 13H30 A 17H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_EL ROSAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "SIMON BOLIVAR LT6 Y CAMILO PONCE ENRIQUE",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_FAE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. LA PRENSA NO 56-92 Y PASAJE CORONEL MOLINA",
+    "horario_semana": "08H30 A 13H30 Y 14H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_FOCH",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. AMAZONA 1023 Y PINTO",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_GALO PLAZA LASSO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LOS CEDROS E1-75 Y GALO PLAZA LASSO",
+    "horario_semana": "07H00 A 19H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_GASPAR DE VILLAROEL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. GASPAR DE VILLARROEL E12-46 Y MANUEL GUZMAN",
+    "horario_semana": "08H30 A 13H00 Y 14H00 A 18H30",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "QUITO_GRAN MARCELINO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "(TUMBACO) OSWALDO GUAYASAMIN OE - 458 Y RODRIGUEZ NUEZ",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUITO_GRANDA CENTENO 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JUAN JOSE VILLALENGUA OE4-359 Y GREGORIO DE BOBADILLA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "QUITO_GUAJALO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. MALDONADO S27232 Y RIO ZABALETA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_GUALO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "17 DE SEPTIEMBRE S/N Y ESPEJO",
+    "horario_semana": "10H00 A 13H00 - 14H00 A 18H30",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_GUAMANI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "YANAYACU E1-64 Y AV. PEDRO VICENTE MALDONADO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_GUAYLLABAMBA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "AV. SIMON BOLIVAR S/N 24 DE MAYO",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_HERMANOS PAZMINO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "HNOS PAZMINO E-4-87 Y AV. 6 DE DICIEMBRE",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_HORTENCIAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LAS HORTENCIAS E9-34 Y AV. 6 DE DICIEMBRE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ILALO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. ILALO E9-24 Y CARLOS ANDRADE MARIN",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUITO_JEFATURA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV MARISCAL ANTONIO JOSE DE SUCRE N52-211 Y CESAR VILLACRES",
+    "horario_semana": "08H00 A 12H00 Y 13H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_JIPIJAPA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "LOUVRE E10-196 Y AV. 6 DE DICIEMBRE",
+    "horario_semana": "09H00 A 13H00 -14H00 A 18H00OO",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_JORGE PAEZ",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JORGE ANIBAL PAEZ OE3-09 Y AV DE LA PRENSA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_KENEDDY",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV.10 DE AGOSTO NO.53-78 Y RAMON BORJA",
+    "horario_semana": "08H30 A 13H00 Y 14H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LA COCHA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. MALDONADO S44-182 LA COCHA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LA COLON",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "AV 10 DE AGOSTO N24 -146 Y AV COLON",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_LA ECUATORIANA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "IGNACIO NOBOA S46-143 Y AV LA ECUATORIANA",
+    "horario_semana": "10H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_LA FLORESTA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. CORUA N24-77 Y GUIPUZCOA",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUITO_LA GASCA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO NORTE",
+    "endereco": "AV. LA GASCA OE6-71",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_LA MARIN",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO SUR",
+    "endereco": "AV. PICHINCHA N4-145 E INCLANA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LA MASCOTA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "RODRIGO DE CHAVEZ OE4-233 Y AV MARISCAL DE SUCRE",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_LA NIÑA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO NORTE",
+    "endereco": "DIEGO DE ALMAGRO N26-11 Y LA NIA",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_LA PRIMAVERA 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. INTEROCEANICA S/N Y SIEBA FRENTE AL CENTRO COMERCIAL SCALA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LA SANTIAGO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. MARISCAL SUCRE S13-32 Y SIGCHOS",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LANDAZURI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. CARAPUNGO SN Y LEONIDAS PROAO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LAS CASAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO NORTE",
+    "endereco": "JUAN ACEVEDO N29-89 Y DIAZ DE MADRID",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LAS CUADRAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "NICOLAS CEVALLOS S 36",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LLANO GRANDE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "VIA LLANO GRANDE SN Y AV.GARCIA MORENO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_LOMA PUENGASI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SURESTE",
+    "endereco": "CONSTANTINO FERNANDEZ S5-320 Y RICARDO IZURIETA",
+    "horario_semana": "08H30 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "08H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_LOYOLA 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV DE LA PRENSA N67 Y RAMON CHIRIBOGA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_LUIS VACARI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "PASAJE A 160 Y LUIS VACARI ( ENTRADA A CARAPUNGO)",
+    "horario_semana": "08H00 A 12H30 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_LUMBISI 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "AV ALFONSO LAMIA S/N Y LUMBIBOSCO",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "QUITO_MANOSCA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. AMERICA 35-58 Y MANOSCA",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 08H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MARIANA DE JESUS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. MARIANA DE JESUS Y HUNGRIA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_MARIANAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "MARIANAS - GEOVANNI CALLES Y DUCHICELA",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MARIANITAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "GEOVANNY CALLES E2-261 Y EFRAIN ARMAS",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MARISCAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JORGE WASHINGTON E7-07 REINA VICTORIA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MARTHA BUCARAM",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV. MARTHA BUCARAM S43-134 Y S 43 C",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MENA DEL HIERRO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "MACHALA OE8-90 Y AV MARISCAL SUCRE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_MERCADO ALANGASI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "ESTE",
+    "endereco": "SIMON BOLIVAR 426 Y JUAN LEON MERA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_MITAD DEL MUNDO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "13 DE JUNIO S1-105 Y AV. EQUINOCCIAL",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_NACIONES UNIDAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV.NACIONES UNIDAS E10-44 Y REPUBLICA DEL SALVADOR",
+    "horario_semana": "08H30 A 19H00",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_NAPO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "CALLE GUAYLLABAMBA E4-69 Y EUGENIA MERA CHIMBACALL",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_NAYON",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "ANTONIO JOSE DE SUCRE N1-27 Y QUITO",
+    "horario_semana": "09H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_NUEVA AURORA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "GEOVANNY BENITEZ S48-144 Y FENICIO ANGULO",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_OLMEDO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "OLMEDO OE2-75 Y GUAYAQUIL",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_PABLO ARTURO 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "MACHALA 59-133 Y MIGUEL ARIAS",
+    "horario_semana": "08H00 A 12H30 Y 13H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_PARQUE INGLES",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "VICENTE AGUIRRE OE6-26 Y MACHALA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_PEDREGAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SURESTE",
+    "endereco": "OE8E Y RIO PITA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_PEDRO DE LA PENA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "PEDRO DE LA PENA OE5-188 Y CATON CARDENAS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_PIFO 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "MARIA TERESA VELASQUEZ S/N Y OSWALDO GUAYASAMIN",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_PINTADO 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "MARISCAL SUCRE S 10-472 E ILLESCAS",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_POMASQUI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "MARIETA DE VEINTIMILLA S1-22 Y PRIMERA TRASVERSAL",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_PORTUGAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV ELOY ALFARO N34-473 Y PORTUGAL",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_QUIMICA CONOCOTO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "MARISCAL SUCRE S3-20 Y MONTUFAR",
+    "horario_semana": "09H00 A14HOO A 15H30 A 19HOO",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_QUIMICA GRANADOS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. LOS GRANADOS SN Y SAN JOSE QUERI",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H30 A 13H00"
+  },
+  {
+    "nome": "QUITO_QUIMICA MIRAVALLE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "AV. INTEROCEANICA S/N Y CALLE J",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_QUIMICA PALMERAS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV DE LAS PALMERAS N46-353 Y TORONJAS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_QUITUMBE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "OE2C S33-05 CALLE QUIPUS",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_REAL AUDIENCIA 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. REAL AUDIENCIA N60-22 Y NAGOLA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_REPUBLICA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV REPUBLICA E3 11 AZUAY",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_RIO COCA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV.IISLA SEYMOR N43-227 Y RIO COCA DIAGONAL A LA CONCENTRACION DEPORTIVA DE PICHINCHA",
+    "horario_semana": "08H00 A 13H00 Y 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ROLDOS",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "CALLE N85 OE10-64 Y OE11",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_SAN BARTOLO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "BUENAVISTA E1-11 Y AV MALDONADO",
+    "horario_semana": "08H30-14H30 A15H00-18H30",
+    "horario_fds": "08H30 A 14H00"
+  },
+  {
+    "nome": "QUITO_SAN ISIDRO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LOS NOGALES N49-227 Y DE LOS OLIVOS",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_SAN JOSE DEL VALLE",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "ESTE",
+    "endereco": "GRIBALDO MINO S14-28 Y PASAJE TIWINZA",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "QUITO_SAN JOSE MORAN",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV CARLOS MANTILLA OE3-108 Y PASAJE MENDOZA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_SAN JUAN ARMENIA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "ESTE",
+    "endereco": "CORNELIA DE POLIT N12-194",
+    "horario_semana": "09H00 A 14H00 - 15H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_SAN RAFAEL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SURESTE",
+    "endereco": "AUTOPISTA GENERAL RUMINAHUI E ISLA ESPANOLA",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "09H00 A 16H00"
+  },
+  {
+    "nome": "QUITO_SANGOLQUI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SURESTE",
+    "endereco": "AV. LUIS CORDERO 325 Y RIO BOBONAZA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_SANTA ISABEL 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "SAN JACINTO S/N Y VIA AMAGUANA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_SANTA PRISCA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO",
+    "endereco": "SANTA PRISCA OE1-20 Y 10 DE AGOSTO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_SANTA ROSA POMASQUI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. SIMON BOLIVAR S/N Y EUGENIO DE SANTACRUZ Y ESPEJO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_SEMINARIO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "CENTRO NORTE",
+    "endereco": "AV. AMERICA N26-14 Y MOSQUERA NARVAEZ",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_SOLANDA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "BENANCIO ESTANDOQUE S19-183 Y SALVADOR BRAVO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_TANDA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "AV. PRINCIPAL OE1-106 Y CALLE SN",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_TERRANOVA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "GUAYANAY NAN OE3-152 Y OE3E",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_TRIBUNAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. 6 DIC. 3581 Y ELOY ALFARO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_TUFINO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. 10 DE AGOSTO N58-10 Y LUIS TUFINO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_TULIPANES",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JOSE FIGUEROA OE6-90 Y FRANCISCO PACHECO",
+    "horario_semana": "08H00 A 14H00-15HOO A 18HOO",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_TUMBACO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORESTE",
+    "endereco": "GONZALO PIZARRO C-229 Y GONZALO DE VERA",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_TURUBAMBA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "TNTE. HUGO ORTIZ S 25-42 Y AV. SOLANDA",
+    "horario_semana": "08H30 A 18H30",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_URABA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "JAVIER ESPINOSA E8-58 Y CALLE 2",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "QUITO_UTE 1",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "AV. ATAHUALPA OE3-13 Y HERNANDO CRUZ",
+    "horario_semana": "09H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_VIA AL TINGO",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "RIO TIPUTINI NO 31 Y RIO CURARAY",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "QUITO_VILLAFLORA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SUR",
+    "endereco": "AV.MALDONADO S9-271 Y ALONSO DE ANGULO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_YARUQUI",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "SURESTE",
+    "endereco": "ELOY ALFARO 355 Y LINEA FERREA",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "QUITO_ZABALA",
+    "provincia": "PICHINCHA",
+    "ciudad": "QUITO",
+    "sector": "NORTE",
+    "endereco": "DE LOS ARRIEROS N7-56 Y GEOVANNY CALLES",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "RIO VERDE_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "RIO VERDE",
+    "sector": "NORTE",
+    "endereco": "PROGRESO N35 SL 4 Y 10 DE AGOSTO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "RIOBAMBA_CENTRO LOGISTICO",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "NORTE",
+    "endereco": "PANAMERICA NORTE S/N Y CONDOR MIRADOR",
+    "horario_semana": "08H00 A 13H00 Y 15H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "RIOBAMBA_FATIMAS",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "CENTRO",
+    "endereco": "MAGDALENA DAVALOS N 23 42 VELOZ",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "RIOBAMBA_LA CONCEPCION",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "CENTRO",
+    "endereco": "COLON 24-28 Y VELOZ",
+    "horario_semana": "08H00 A 13H00 Y 15H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "RIOBAMBA_LA DOLOROSA",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "NORTE",
+    "endereco": "PRIMERA CONSTITUYENTE 1060 Y CUBA",
+    "horario_semana": "08H00 A 18H30",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "RIOBAMBA_LOS PINOS",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "CENTRO",
+    "endereco": "CALLE VELOZ Y BRASIL",
+    "horario_semana": "08H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "RIOBAMBA_MAYORISTA",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "SUROESTE",
+    "endereco": "AV. CINCUNVALACION Y CARACAS",
+    "horario_semana": "08H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "RIOBAMBA_PASEO SHOPPING",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "SUR",
+    "endereco": "ANTONIO JOSE DE SUCRE MZ C LOTE 9 Y JOSE MARIA URBINA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "RIOBAMBA_POLITECNICA",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "SUR",
+    "endereco": "AV. PEDRO VICENTE MALDONADO S/N Y JOSE PERALTA",
+    "horario_semana": "08H00 A 13H00 Y 15H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "RIOBAMBA_SANTA ROSA",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "CENTRO",
+    "endereco": "COLOMBIA 26-56 Y PICHINCHA",
+    "horario_semana": "08H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "RIOBAMBA_TERMINAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "NORTE",
+    "endereco": "CANONIGO RAMOS LOTE 8 Y AV DE LA PRENSA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "RIOBAMBA_VIA A SAN LUIS",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "RIOBAMBA",
+    "sector": "NORTE",
+    "endereco": "LITUANIA S/N Y AV. JUAN FELIX PROANO",
+    "horario_semana": "08H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "08H30 A 12H00"
+  },
+  {
+    "nome": "ROCAFUERTE_AV. DON BOSCO",
+    "provincia": "MANABI",
+    "ciudad": "ROCAFUERTE",
+    "sector": "CENTRO",
+    "endereco": "AV. DON BOSCO Y BOLIVAR",
+    "horario_semana": "08:30 A 16:30",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "SALCEDO_PRINCIPAL",
+    "provincia": "COTOPAXI",
+    "ciudad": "SALCEDO",
+    "sector": "CENTRO",
+    "endereco": "VICENTE LEON 184 Y ANA PAREDES",
+    "horario_semana": "09H00 A 13H00 Y 15H00 A 19H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "SALINAS (SANTA ELENA)_SAN JOSE",
+    "provincia": "SANTA ELENA",
+    "ciudad": "SALINAS (SANTA ELENA)",
+    "sector": "OESTE",
+    "endereco": "SAN JOSE 321 Y AV. CARLOS ESPINOZA LARREA",
+    "horario_semana": "09H00 A 12H30 - 13H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "SALITRE_SIMON BOLIVAR",
+    "provincia": "GUAYAS",
+    "ciudad": "SALITRE",
+    "sector": "CENTRO",
+    "endereco": "SIMON BOLIVAR Y JUAN MONTALVO",
+    "horario_semana": "08:00 a 17:00",
+    "horario_fds": "08:00 a 13:00"
+  },
+  {
+    "nome": "SAMBORONDON_CALLE BOLIVAR",
+    "provincia": "GUAYAS",
+    "ciudad": "SAMBORONDON",
+    "sector": "CENTRO",
+    "endereco": "CALLE BOLIVAR S/N Y SUCRE MZ 7 SL 2 JTO A AGRIPAC",
+    "horario_semana": "10H00 A 16H00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "SAMBORONDON_CIUDAD CELESTE",
+    "provincia": "GUAYAS",
+    "ciudad": "SAMBORONDON",
+    "sector": "NORTE",
+    "endereco": "SECTOR LA RIA LOTE SL E URB. CIUDAD CELESTE",
+    "horario_semana": "09H30 A 12H00 - 13H00 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SAMBORONDON_LA PUNTILLA",
+    "provincia": "GUAYAS",
+    "ciudad": "SAMBORONDON",
+    "sector": "-",
+    "endereco": "URB. ENTRE RIOS AV. 1ERA MZ. W SOLAR 19-20",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 19H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "SAMBORONDON_PIAZZA LA PUNTILLA",
+    "provincia": "GUAYAS",
+    "ciudad": "SAMBORONDON",
+    "sector": "NORTE",
+    "endereco": "CDLA. PREDIO GRANJA CANITAS C.C PIAZZA LOCAL 11B",
+    "horario_semana": "09H00 A 19H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SAN ANTONIO DE IBARRA_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "SAN ANTONIO DE IBARRA",
+    "sector": "CENTRO",
+    "endereco": "27 DE NOVIEMBRE 242",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "SAN CAMILO_MEXICO",
+    "provincia": "LOS RIOS",
+    "ciudad": "SAN CAMILO",
+    "sector": "NORTE",
+    "endereco": "MEXICO 111 Y JUAN MONTALVO",
+    "horario_semana": "07H30 A 18H00",
+    "horario_fds": "08:00 A 18:00"
+  },
+  {
+    "nome": "SAN CRISTOBAL_PRINCIPAL",
+    "provincia": "GALAPAGOS",
+    "ciudad": "SAN CRISTOBAL",
+    "sector": "CENTRO",
+    "endereco": "AV. LOJA Y CALLE 3RA",
+    "horario_semana": "08H00 A 10H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 11H00"
+  },
+  {
+    "nome": "SAN GABRIEL_CENTRO",
+    "provincia": "CARCHI",
+    "ciudad": "SAN GABRIEL",
+    "sector": "CENTRO",
+    "endereco": "BOLIVAR S/N Y AV. 13 DE ABRIL",
+    "horario_semana": "08H00 A 13H00 - 14H30 A 18H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SAN ISIDRO (BAHIA)_AV. 10 DE AGOSTO",
+    "provincia": "MANABI",
+    "ciudad": "SAN ISIDRO (BAHIA)",
+    "sector": "SUR",
+    "endereco": "AV 10 DE AGOSTO Y VALENTIN ALCIVAR FRENTE AL PARQUE SAN ISIDRO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SAN JUAN_LEON DE FEBRES CORDERO",
+    "provincia": "LOS RIOS",
+    "ciudad": "SAN JUAN",
+    "sector": "CENTRO",
+    "endereco": "CALLE LEON FEBRES CORDERO S/N Y 6 DE OCTUBRE REF JUNTO A LAS OFICINAS DE MAXITEL",
+    "horario_semana": "08H30 A 12H30 - 13H30 A 16H30",
+    "horario_fds": "10H00 A 14H00"
+  },
+  {
+    "nome": "SAN LORENZO_PADRE LINO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "SAN LORENZO",
+    "sector": "CENTRO",
+    "endereco": "AV PADRE LINO CAMPES SL16 Y ANGELA PAREDES",
+    "horario_semana": "08H00 A 14H00 - 15H00 A 17H00",
+    "horario_fds": "12H00 A 16H00"
+  },
+  {
+    "nome": "SAN MIGUEL DE BOLIVAR_CNEL",
+    "provincia": "BOLIVAR",
+    "ciudad": "SAN MIGUEL DE BOLIVAR",
+    "sector": "CENTRO",
+    "endereco": "AV. VENTIMILLA S/N ENTRE BOLIVAR CONSUELO LOZADA Y OLMEDO",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "SAN PABLO (SANTA ELENA)_PRINCIPAL",
+    "provincia": "SANTA ELENA",
+    "ciudad": "SAN PABLO (SANTA ELENA)",
+    "sector": "NORTE",
+    "endereco": "CALLE PRINCIPAL RUTA SPONDYLUS ENTRADA DE SAN PABLO, BAJANDO EL PUENTE (BARRIO 1 DE JUNIO)",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SAN VICENTE_MALECON LEONIDAS",
+    "provincia": "MANABI",
+    "ciudad": "SAN VICENTE",
+    "sector": "CENTRO",
+    "endereco": "MALECON LEONIDAS VEGA Y LOS PERALES",
+    "horario_semana": "09:00 A 13:00 - 14:00 A 17:30",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "SANGOLQUI_DANEC",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "SUR",
+    "endereco": "AV. GENERAL RUMIAHUI S/N Y VIA AMAGUANA",
+    "horario_semana": "08H00 A 13H30 Y 14H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SANGOLQUI_ESPE",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "SURESTE",
+    "endereco": "GUAYAS LT2 Y NAPO LC2",
+    "horario_semana": "08H30 A13H00- 14HOO A 18H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "SANGOLQUI_FAJARDO",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "SURESTE",
+    "endereco": "MARIANA DE JESUS S/N",
+    "horario_semana": "10H00 A 18H30",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "SANGOLQUI_MONUMENTO A LA SED",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "NORTE",
+    "endereco": "AVELINA LASSO 1-18 Y ALFREDO DAVILA",
+    "horario_semana": "09H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SANGOLQUI_RUMINAHUI",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "SURESTE",
+    "endereco": "AV. ATAHUALPA Y SOPOZOPANGUI",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SANGOLQUI_SELVA ALEGRE",
+    "provincia": "PICHINCHA",
+    "ciudad": "SANGOLQUI",
+    "sector": "SURESTE",
+    "endereco": "AV. FRANCISCO GUARDERAS S/N Y 22 DE MAYO",
+    "horario_semana": "09H00 A 18HOO",
+    "horario_fds": "09HOO A 13H00"
+  },
+  {
+    "nome": "SANTA ANA (MANABI)_FCO. DE P. MOREIRA",
+    "provincia": "MANABI",
+    "ciudad": "SANTA ANA (MANABI)",
+    "sector": "CENTRO",
+    "endereco": "CALLE FRANCISCO DE PAULA MOREIRA S/N Y PIEDRAHITA REF ATRAS DEL TIA",
+    "horario_semana": "08H00 A 12H00 - 14H30 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "SANTA CRUZ_PRINCIPAL",
+    "provincia": "GALAPAGOS",
+    "ciudad": "SANTA CRUZ",
+    "sector": "CENTRO",
+    "endereco": "BALTRA 181 E/ ESPANOLA Y GENOVESA",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "SANTA ELENA_COMERCIAL AGUILAR",
+    "provincia": "SANTA ELENA",
+    "ciudad": "SANTA ELENA",
+    "sector": "CENTRO",
+    "endereco": "GUAYAQUIL S/N Y 9 OCTUBRE",
+    "horario_semana": "09:00 A 20:30",
+    "horario_fds": "10:00 A 14:00"
+  },
+  {
+    "nome": "SANTA ISABEL_ABDON CALDERON",
+    "provincia": "AZUAY",
+    "ciudad": "SANTA ISABEL",
+    "sector": "SUR",
+    "endereco": "ABDON CALDERON Y SIMON BOLIVAR",
+    "horario_semana": "08:30 a 17:00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "SANTA LUCIA_AV 3 DE FEBRERO",
+    "provincia": "GUAYAS",
+    "ciudad": "SANTA LUCIA",
+    "sector": "CENTRO",
+    "endereco": "AV 3 DE FEBRERO Y CARLOS ARCADIO JUNTO A PINTURAS GUILLO",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "SANTA ROSA (EL ORO)_24 DE MAYO",
+    "provincia": "EL ORO",
+    "ciudad": "SANTA ROSA (EL ORO)",
+    "sector": "CENTRO",
+    "endereco": "AV 24 DE MAYO Y ENRIQUE SUAREZ PIMENTEL",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "SANTA ROSA (EL ORO)_30 DE AGOSTO",
+    "provincia": "EL ORO",
+    "ciudad": "SANTA ROSA (EL ORO)",
+    "sector": "CENTRO",
+    "endereco": "SUCRE Y 30 DE AGOSTO DIAGONAL AL BANCO DEL AUSTRO",
+    "horario_semana": "09:00 A 13:00 - 14:00 A 17:00",
+    "horario_fds": "09:00 a 13:00"
+  },
+  {
+    "nome": "SANTO DOMINGO_ANILLO VIAL",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "NORTE",
+    "endereco": "AV. ABRAHAM CALAZACON Y SANTA CRUZ DE LA SIERRA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "SANTO DOMINGO_AV. CHONE",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "CENTRO",
+    "endereco": "AV. CHONE S/N Y AV. VICTOR ALFONSO LOPEZ (DIAGONAL A MICUCHITO)",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "SANTO DOMINGO_CENTRO",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "CENTRO",
+    "endereco": "IBARRA SN Y GUAYAQUIL",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "SANTO DOMINGO_CENTRO LOGISTICO",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "NORTE",
+    "endereco": "VIA QUEVEDO S/N Y AVENIDA 3 (JUNTO A LOS GIRASOLES)",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "SANTO DOMINGO_EL ESFUERZO",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "CENTRO",
+    "endereco": "SAN VICENTE DE PAUL S/N Y 15 DE AGOSTO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "-"
+  },
+  {
+    "nome": "SANTO DOMINGO_VIA QUEVEDO",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "SUR",
+    "endereco": "AV. QUEVEDO S/N Y DE LOS ATABASCOS",
+    "horario_semana": "08H30 A 12H30 - 13H30 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "SANTO DOMINGO_VIA QUITO",
+    "provincia": "SANTO DOMINGO",
+    "ciudad": "SANTO DOMINGO",
+    "sector": "CENTRO",
+    "endereco": "RIO CHIMBO S/N Y AV. QUITO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "SAQUISILI_PRINCIPAL",
+    "provincia": "COTOPAXI",
+    "ciudad": "SAQUISILI",
+    "sector": "CENTRO",
+    "endereco": "BARRENO SN Y BOLIVAR",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "SARAGURO_10 DE MARZO",
+    "provincia": "LOJA",
+    "ciudad": "SARAGURO",
+    "sector": "SUR",
+    "endereco": "10 DE MARZO Y AZUAY DIAGONAL FRENTE A LA NOTARIA PRIMERA DE SARAGURO",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "SEVILLA DE ORO_AV 10 DE AGOSTO",
+    "provincia": "AZUAY",
+    "ciudad": "SEVILLA DE ORO",
+    "sector": "CENTRO",
+    "endereco": "AV 10 DE AGOSTO Y AZUAY DIAGONAL AL MUNICIPIO",
+    "horario_semana": "08H30 A 17H30",
+    "horario_fds": "08H30 A 17H30"
+  },
+  {
+    "nome": "SHUSHUFINDI_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "SHUSHUFINDI",
+    "sector": "CENTRO",
+    "endereco": "AV. UNIDAD NACIONAL Y NAPO",
+    "horario_semana": "08H00 A 17H30",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "SIGCHOS_PRINCIPAL",
+    "provincia": "COTOPAXI",
+    "ciudad": "SIGCHOS",
+    "sector": "CENTRO",
+    "endereco": "GENERAL RUMINAHUI S/N ENTRE TUNGURAHUA Y GUAYAQUIL",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "SIGSIG_MARIA AUXILIADORA",
+    "provincia": "AZUAY",
+    "ciudad": "SIGSIG",
+    "sector": "NORTE",
+    "endereco": "AV. MARIA AUXILIADORA S/N A UNA CUADRA DEL TERMINAL TERRESTRE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 12H30"
+  },
+  {
+    "nome": "SIMON BOLIVAR_AV. NACIONES UNIDAS",
+    "provincia": "GUAYAS",
+    "ciudad": "SIMON BOLIVAR",
+    "sector": "NORTE",
+    "endereco": "AV NACIONES UNIDAS S/N PICHINCHA",
+    "horario_semana": "09H00 A 17H00",
+    "horario_fds": "10H00 A 15H00"
+  },
+  {
+    "nome": "SUCUA_PRINCIPAL",
+    "provincia": "MORONA SANTIAGO",
+    "ciudad": "SUCUA",
+    "sector": "CENTRO",
+    "endereco": "AV. DOMINGO COMIN S/N Y EFREN ZUIGA",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H30 A 12H30"
+  },
+  {
+    "nome": "SUSCAL_ALFONSO TERAN",
+    "provincia": "CANAR",
+    "ciudad": "SUSCAL",
+    "sector": "SUR",
+    "endereco": "CALLE ALFONSO TERAN S/N Y JUAN JARAMILLO REF FRENTE AL PARQUE CENTRAL DIAG A LA IGLESIA CATOLICA SAN JACINTO",
+    "horario_semana": "09H00 A 16H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "TABACUNDO_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "TABACUNDO",
+    "sector": "NORTE",
+    "endereco": "PEDRO MONCAYO VELASCO IBARRA 04-03-13",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "TAMBILLO_PRINCIPAL",
+    "provincia": "PICHINCHA",
+    "ciudad": "TAMBILLO",
+    "sector": "CENTRO",
+    "endereco": "GARCIA MORENO Y ELOY ALFARO",
+    "horario_semana": "09H00 A 13H00 - 13H30 A 18H45",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TAMBO_CALLE ALFREDO BAQUERIZO",
+    "provincia": "CANAR",
+    "ciudad": "TAMBO",
+    "sector": "CENTRO",
+    "endereco": "CALLE ALFREDO BAQUERIZO MORENO N1 Y PANAMERICANA REF A 3 CUADRAS DEL MERCADO CENTRAL",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 16H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "TARAPOA_PRINCIPAL",
+    "provincia": "SUCUMBIOS",
+    "ciudad": "TARAPOA",
+    "sector": "CENTRO",
+    "endereco": "CALLE PRINCIPAL S/N Y 8 DE AGOSTO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 18H00"
+  },
+  {
+    "nome": "TENA_PRINCIPAL",
+    "provincia": "NAPO",
+    "ciudad": "TENA",
+    "sector": "CENTRO",
+    "endereco": "AV PANO SN Y VICTOR HUGO SAN MIGUEL",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "TENGUEL_CALLE COMERCIAL",
+    "provincia": "GUAYAS",
+    "ciudad": "TENGUEL",
+    "sector": "CENTRO",
+    "endereco": "CALLE COMERCIAL S/N SUCRE",
+    "horario_semana": "08H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TISALEO_PRINCIPAL",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "TISALEO",
+    "sector": "CENTRO",
+    "endereco": "ANTONIO CLAVIJO S/N Y SUCRE",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TONCHIGUE_PRINCIPAL",
+    "provincia": "ESMERALDAS",
+    "ciudad": "TONCHIGUE",
+    "sector": "CENTRO",
+    "endereco": "VIA ATACAMES MUISNE M64 SL9 Y CALLE 3",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TONSUPA_CENTRO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "TONSUPA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 6 MZ 179 SL 19 Y VIA A ATACAMES",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TOSAGUA_CALLE 24 DE MAYO",
+    "provincia": "MANABI",
+    "ciudad": "TOSAGUA",
+    "sector": "CENTRO",
+    "endereco": "CALLE 24 DE MAYO Y 9 DE OCT",
+    "horario_semana": "08:30 a 12:30 - 14:00 a 18:00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "TULCAN_CENTRO LOGISTICO",
+    "provincia": "CARCHI",
+    "ciudad": "TULCAN",
+    "sector": "NORTE",
+    "endereco": "AV. 24 DE MAYO S/N Y LOS LAURELES",
+    "horario_semana": "08H00 A 14H30 - 15H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "TULCAN_JUNIN",
+    "provincia": "CARCHI",
+    "ciudad": "TULCAN",
+    "sector": "CENTRO",
+    "endereco": "JUNIN 6055 Y BOLIVAR",
+    "horario_semana": "08H00 A 13H00 - 14H30 A 18H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "TULCAN_PRINCIPAL",
+    "provincia": "CARCHI",
+    "ciudad": "TULCAN",
+    "sector": "NORTE",
+    "endereco": "AV. RAFAEL ARELLANO S/N Y GARCIA MORENO",
+    "horario_semana": "08H00 A 13H00 - 14H30 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "URCUQUI_PRINCIPAL",
+    "provincia": "IMBABURA",
+    "ciudad": "URCUQUI",
+    "sector": "CENTRO",
+    "endereco": "ANTONIO ANTE S/N Y EUGENIO ESPEJO",
+    "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "08H00 A 12H00"
+  },
+  {
+    "nome": "URDANETA_ANTONIO GUERRA",
+    "provincia": "LOS RIOS",
+    "ciudad": "URDANETA",
+    "sector": "CENTRO",
+    "endereco": "ANTONIO GUERRA Y BARTOLOME BASTIDAS",
+    "horario_semana": "08H30 A 12H30 - 14H00 A 17H30",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "VALENCIA_GENERAL ENRIQUE GALLO",
+    "provincia": "LOS RIOS",
+    "ciudad": "VALENCIA",
+    "sector": "CENTRO",
+    "endereco": "AV. 13 DE DICIEMBRE Y GENERAL ENRIQUE GALLO MZ 4 REF A 1 METRO DE LA PARADA DE TAXIS VALENTAXIS",
+    "horario_semana": "08H00 A 12H30 - 13H30 A 16H00",
+    "horario_fds": "08H00 A 14H00"
+  },
+  {
+    "nome": "VENTANAS_PARQUE LA ROTONDA",
+    "provincia": "LOS RIOS",
+    "ciudad": "VENTANAS",
+    "sector": "CENTRO",
+    "endereco": "MALECON S/N ENTRE 9 DE OCTUBRE Y BOLIVAR - FRENTE A LAS PISCINAS DEL MALECON",
+    "horario_semana": "08:00 a 12:00 - 14:00 a 18:00",
+    "horario_fds": "09:00 a 12:00"
+  },
+  {
+    "nome": "VICHE_CENTRO",
+    "provincia": "ESMERALDAS",
+    "ciudad": "VICHE",
+    "sector": "CENTRO",
+    "endereco": "VIA A QUININDE MZ 32 SOLAR 26 SIMON PLATA TORRES",
+    "horario_semana": "08H00 A 12H00 - 13H00 A 17H30",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "VILCABAMBA_AGUA DE HIERRO",
+    "provincia": "LOJA",
+    "ciudad": "VILCABAMBA",
+    "sector": "SUR",
+    "endereco": "SIMON BOLIVAR S/N Y AGUA DE HIERRO",
+    "horario_semana": "08H00 A 12H00 - 14H00 A 17H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "VINCES_9 DE OCTUBRE",
+    "provincia": "LOS RIOS",
+    "ciudad": "VINCES",
+    "sector": "NORTE",
+    "endereco": "CALLE 9 DE OCTUBRE N 08-0 Y GRAN COLOMBIA REF JUNTO A COMERCIAL ANGELITO",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 16H00",
+    "horario_fds": "09H00 A 14H00"
+  },
+  {
+    "nome": "VINCES_OFICINA MAXCITEL",
+    "provincia": "LOS RIOS",
+    "ciudad": "VINCES",
+    "sector": "SUR",
+    "endereco": "JAIME ROLDOS Y NICOLAS INFANTE",
+    "horario_semana": "08:00 A 12:00 - 13:00 A 17:00",
+    "horario_fds": "10:00 A 14:00"
+  },
+  {
+    "nome": "VIRGEN DE FATIMA KM 26_AV. PRINCIPAL",
+    "provincia": "GUAYAS",
+    "ciudad": "VIRGEN DE FATIMA KM 26",
+    "sector": "CENTRO",
+    "endereco": "JUAN MONTALVO Y AV. PRINCIPAL",
+    "horario_semana": "08H00 A 12H30 - 13H00 A 17H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "YAGUACHI_CARRETERO DURAN",
+    "provincia": "GUAYAS",
+    "ciudad": "YAGUACHI",
+    "sector": "CENTRO",
+    "endereco": "AV SEGUNDA 0 Y CARRETERO DURAN",
+    "horario_semana": "10H00 A 16H00",
+    "horario_fds": "NO LABORA"
+  },
+  {
+    "nome": "YANTZAZA_IVAN RIOFRIO",
+    "provincia": "ZAMORA",
+    "ciudad": "YANTZAZA",
+    "sector": "SUR",
+    "endereco": "IVAN RIOFRIO Y MARTIN AYUY",
+    "horario_semana": "10H00 A 13H00 - 14H00 A 17:00",
+    "horario_fds": "10H00 A 13H00"
+  },
+  {
+    "nome": "YARUQUIES_PRINCIPAL",
+    "provincia": "CHIMBORAZO",
+    "ciudad": "YARUQUIES",
+    "sector": "CENTRO",
+    "endereco": "PINTOR CARRILLO S/N Y ELOY ALFARO",
+    "horario_semana": "08H00 A 18H00",
+    "horario_fds": "08H00 A 13H00"
+  },
+  {
+    "nome": "ZAMORA_MANUELITA CANIZARES",
+    "provincia": "ZAMORA",
+    "ciudad": "ZAMORA",
+    "sector": "NORTE",
+    "endereco": "MANUELITA CANIZARES Y AV. HEROES DEL PAQUISHA",
+    "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
+    "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "ZAPOTILLO_PALMERAS",
+    "provincia": "LOJA",
+    "ciudad": "ZAPOTILLO",
+    "sector": "SUR",
+    "endereco": "LOJA S/N Y PALMERAS",
+    "horario_semana": "09H00 A 12H00 - 13H00 A 17H00",
+    "horario_fds": "09H00 A 12H00"
+  },
+  {
+    "nome": "ZARUMA_FRENTE AL MIRADOR",
+    "provincia": "EL ORO",
+    "ciudad": "ZARUMA",
+    "sector": "NORTE",
+    "endereco": "EL SESMO S/N FRENTE AL MIRADOR",
+    "horario_semana": "08:00 a 18:00",
+    "horario_fds": "09:00 A 13:00"
+  },
+  {
+    "nome": "ZUMBA_LOS LIBERTADORES",
+    "provincia": "ZAMORA",
+    "ciudad": "ZUMBA",
+    "sector": "SUR",
+    "endereco": "LIBERTADORES ORELLANA Y CABO MINACHO ATRAS DE LA IGLESIA ZUMBA",
+    "horario_semana": "09H00 A 13H00 - 15H00 A 18H00",
+    "horario_fds": "NO LABORA"
+  }
+]

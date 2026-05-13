@@ -10,12 +10,15 @@ import productsRoutes from './routes/products.js';
 import webhookRoutes from './routes/webhook.js';
 import whatsappRoutes from './routes/whatsapp.js';
 import aiRoutes from './routes/ai.js';
+import shipmentRoutes from './routes/shipments.js';
+import automationRoutes from './routes/automation.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
-import { startWhatsApp } from './whatsapp/connection.js';
+import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.DASHBOARD_HOST || process.env.HOST || undefined;
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err);
@@ -37,6 +40,13 @@ import rateLimit from 'express-rate-limit';
 
 // Standard Security Headers
 app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "img-src": ["'self'", "data:"]
+        }
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" } // access to media
 }));
 
@@ -78,6 +88,10 @@ app.use(cors({
 // Allow larger payloads because Ops panel can send media as data URLs (base64)
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '25mb' }));
 
+app.get('/', (_req, res) => {
+    res.redirect('/qr.html');
+});
+
 // Serve static files (uploaded media)
 app.use(express.static('public')); // Serve generic static files (like qr.html)
 app.use('/media', express.static('public/media')); // Keep specific media route if needed for compatibility
@@ -100,13 +114,15 @@ app.use('/api/products', productsRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/shipments', shipmentRoutes);
+app.use('/api/automation', automationRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);
 
-// Start Baileys WhatsApp Engine
-startWhatsApp().catch(err => {
-    console.error('❌ Catastrophic failure booting WhatsApp Engine:', err);
+// Start Baileys WhatsApp Engine(s)
+startConfiguredWhatsAppSessions().catch(err => {
+    console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
 });
 
 // Start Scheduler
@@ -129,10 +145,11 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
     console.log('');
     console.log('🚀 ================================');
     console.log(`🚀  Express Checkout API Server`);
+    if (HOST) console.log(`🚀  Host: ${HOST}`);
     console.log(`🚀  Port: ${PORT}`);
     console.log(`🚀  Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('🚀 ================================');
@@ -142,7 +159,7 @@ app.listen(PORT, () => {
     console.log(`   POST /api/auth/register`);
     console.log(`   GET  /api/orders`);
     console.log(`   POST /api/orders`);
-    console.log(`   GET  /api/products?country=CO|EC`);
+    console.log(`   GET  /api/products?country=EC`);
     console.log(`   POST /api/webhook/order-created`);
     console.log('');
 });

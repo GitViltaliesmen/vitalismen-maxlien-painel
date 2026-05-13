@@ -1,206 +1,341 @@
+import fs from 'fs';
+import path from 'path';
 import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { Boom } from '@hapi/boom';
-import { setupDispatcher } from './dispatcher.js';
 import QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
+import { setupDispatcher } from './dispatcher.js';
+import { resolveCountryAudio } from '../services/audioTemplateService.js';
 
-let sock = null;
-let status = 'disconnected'; 
-let isReady = false;
-let currentSocketId = null;
-let startInFlight = false;
-let reconnectTimer = null;
-let qrCode = null;
-let qrCodeRaw = null;
-let lastDisconnectReason = null;
+const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
+const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
+const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
+const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
-    || 'Hola 👋 En este momento no conseguimos atender llamadas. Por favor envianos tu duda por texto o por audio y con gusto te ayudamos por aqui.';
+    || 'Hola, soy Ana Lopez del equipo de la doctora Maria Fernandes. En este momento no atendemos llamadas por aqui. Enviame tu duda por texto o audio y te ayudo por WhatsApp.';
 
-const readyCallbacks = [];
+const sessions = new Map();
 
-export const getSocketId = () => currentSocketId;
-export const getOwnPhoneDigits = () => String(sock?.user?.id || '').replace(/\D/g, '');
+const parseConfiguredSessionIds = () => {
+    const raw = String(process.env.WHATSAPP_SESSION_IDS || '').trim();
+    const ids = raw
+        ? raw.split(',').map((item) => item.trim()).filter(Boolean)
+        : [];
 
-export const onWhatsAppReady = (callback) => {
-    if (isReady) callback();
-    else readyCallbacks.push(callback);
+    if (!ids.includes(DEFAULT_SESSION_ID)) {
+        ids.unshift(DEFAULT_SESSION_ID);
+    }
+
+    return [...new Set(ids)];
 };
 
-export const waitForWhatsAppReady = (timeoutMs = 15000) => {
-    if (isReady && sock) return Promise.resolve(sock);
+const sanitizeSessionId = (sessionId) => String(sessionId || DEFAULT_SESSION_ID)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '_')
+    || DEFAULT_SESSION_ID;
+
+const jidUserDigits = (jid = '') => String(jid || '')
+    .split('@')[0]
+    .split(':')[0]
+    .replace(/\D/g, '');
+
+const migrateLegacyAuthStorage = () => {
+    if (!fs.existsSync(AUTH_BASE_DIR)) return;
+
+    const entries = fs.readdirSync(AUTH_BASE_DIR, { withFileTypes: true });
+    const legacyFiles = entries.filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+    if (legacyFiles.length === 0) return;
+
+    const defaultDir = path.join(AUTH_BASE_DIR, sanitizeSessionId(DEFAULT_SESSION_ID));
+    fs.mkdirSync(defaultDir, { recursive: true });
+
+    for (const file of legacyFiles) {
+        const fromPath = path.join(AUTH_BASE_DIR, file.name);
+        const toPath = path.join(defaultDir, file.name);
+        if (fs.existsSync(toPath)) continue;
+        fs.renameSync(fromPath, toPath);
+    }
+};
+
+const discoverSessionIdsFromAuthDir = () => {
+    migrateLegacyAuthStorage();
+    if (!fs.existsSync(AUTH_BASE_DIR)) return [];
+    return fs.readdirSync(AUTH_BASE_DIR, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => sanitizeSessionId(entry.name))
+        .filter(Boolean);
+};
+
+const ensureAuthDir = (sessionId) => {
+    migrateLegacyAuthStorage();
+    const dir = path.join(AUTH_BASE_DIR, sanitizeSessionId(sessionId));
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+};
+
+const createSessionState = (sessionId) => ({
+    sessionId,
+    sock: null,
+    status: 'disconnected',
+    isReady: false,
+    currentSocketId: null,
+    startInFlight: false,
+    reconnectTimer: null,
+    qrCode: null,
+    qrCodeRaw: null,
+    lastDisconnectReason: null,
+    ownPhoneDigits: '',
+    readyCallbacks: []
+});
+
+const getOrCreateSession = (sessionId = DEFAULT_SESSION_ID) => {
+    const normalizedId = sanitizeSessionId(sessionId);
+    if (!sessions.has(normalizedId)) {
+        sessions.set(normalizedId, createSessionState(normalizedId));
+    }
+    return sessions.get(normalizedId);
+};
+
+const getConfiguredOrKnownSessionIds = () => {
+    const known = Array.from(sessions.keys());
+    return [...new Set([...parseConfiguredSessionIds(), ...discoverSessionIdsFromAuthDir(), ...known])];
+};
+
+const resolveSessionForOutbound = (sessionId = null) => {
+    if (sessionId) {
+        return getOrCreateSession(sessionId);
+    }
+
+    const preferred = getOrCreateSession(DEFAULT_SESSION_ID);
+    if (preferred.isReady && preferred.sock) return preferred;
+
+    const firstReady = Array.from(sessions.values()).find((item) => item.isReady && item.sock);
+    return firstReady || preferred;
+};
+
+const flushReadyCallbacks = (session) => {
+    const callbacks = session.readyCallbacks.splice(0, session.readyCallbacks.length);
+    callbacks.forEach((callback) => callback(session.sock));
+};
+
+export const getSocketId = (sessionId = null) => resolveSessionForOutbound(sessionId).currentSocketId;
+export const getOwnPhoneDigits = (sessionId = null) => resolveSessionForOutbound(sessionId).ownPhoneDigits || '';
+export const getSock = (sessionId = null) => resolveSessionForOutbound(sessionId).sock;
+
+export const getStatus = (sessionId = DEFAULT_SESSION_ID) => {
+    const session = getOrCreateSession(sessionId);
+    return {
+        sessionId: session.sessionId,
+        isReady: session.isReady,
+        status: session.status,
+        qrCode: session.qrCode,
+        qrCodeRaw: session.qrCodeRaw,
+        socketId: session.currentSocketId,
+        lastDisconnectReason: session.lastDisconnectReason,
+        ownPhoneDigits: session.ownPhoneDigits
+    };
+};
+
+export const getAllStatuses = () => getConfiguredOrKnownSessionIds().map((sessionId) => getStatus(sessionId));
+
+export const onWhatsAppReady = (callback, sessionId = DEFAULT_SESSION_ID) => {
+    const session = getOrCreateSession(sessionId);
+    if (session.isReady) callback(session.sock);
+    else session.readyCallbacks.push(callback);
+};
+
+export const waitForWhatsAppReady = (timeoutMs = 15000, sessionId = null) => {
+    const session = resolveSessionForOutbound(sessionId);
+    if (session.isReady && session.sock) return Promise.resolve(session.sock);
 
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
-            reject(new Error(`WhatsApp readiness timeout after ${timeoutMs}ms`));
+            reject(new Error(`WhatsApp readiness timeout after ${timeoutMs}ms for session ${session.sessionId}`));
         }, timeoutMs);
 
-        onWhatsAppReady(() => {
+        onWhatsAppReady((sock) => {
             clearTimeout(timer);
             resolve(sock);
-        });
+        }, session.sessionId);
     });
 };
 
-export const startWhatsApp = async () => {
-    if (startInFlight) {
-        console.log('[BOOT] startWhatsApp ignorado porque ja existe inicializacao em andamento');
-        return sock;
+export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
+    const session = getOrCreateSession(sessionId);
+    if (session.startInFlight) {
+        console.log(`[BOOT] startWhatsApp ignorado porque ja existe inicializacao em andamento | session=${session.sessionId}`);
+        return session.sock;
     }
 
-    startInFlight = true;
+    session.startInFlight = true;
     try {
-        console.log(`\n[BOOT] Iniciando Motor WhatsApp...`);
+        console.log(`\n[BOOT] Iniciando Motor WhatsApp... session=${session.sessionId}`);
         console.log(`[PROCESS-PID] ${process.pid}`);
         console.log(`[LOG_PROCESS_SINGLETON_OK] ✅ Garantido rodando em único processo`);
         console.log(`[RUNNER] node (via terminal oficial)`);
-        
-        // Config do Logger pino
-        const logger = pino({ level: 'error' }); // Avoid terminal spame
-        const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+
+        const authDir = ensureAuthDir(session.sessionId);
+        const { state, saveCreds } = await useMultiFileAuthState(authDir);
         const { version, isLatest } = await fetchLatestBaileysVersion();
-        
-        console.log(`[BAILEYS-CORE] 🔌 Instantiating v${version.join('.')} (Latest: ${isLatest})`);
 
-        if (sock) {
-            sock.ev.removeAllListeners();
-            sock = null;
+        console.log(`[BAILEYS-CORE] 🔌 Instantiating v${version.join('.')} (Latest: ${isLatest}) | session=${session.sessionId}`);
+
+        if (session.sock) {
+            session.sock.ev.removeAllListeners();
+            session.sock = null;
         }
-        qrCode = null;
-        qrCodeRaw = null;
-        lastDisconnectReason = null;
 
-        currentSocketId = `SOCK_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-        console.log(`[LOG_SOCKET_CREATED] [socketId=${currentSocketId}] 🌀 Novo socket Baileys instanciado`);
+        session.qrCode = null;
+        session.qrCodeRaw = null;
+        session.lastDisconnectReason = null;
+        session.currentSocketId = `SOCK_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
-        sock = makeWASocket({
+        console.log(`[LOG_SOCKET_CREATED] [socketId=${session.currentSocketId}] 🌀 Novo socket Baileys instanciado | session=${session.sessionId}`);
+
+        session.sock = makeWASocket({
             version,
             auth: state,
             printQRInTerminal: false,
             logger: pino({ level: 'error' }),
-            browser: ['Enterprise Funnel Bot', 'Chrome', '1.0.0']
+            browser: ['Enterprise Funnel Bot', `Session ${session.sessionId}`, '1.0.0']
         });
 
-        sock.ev.on('creds.update', saveCreds);
+        session.sock.ev.on('creds.update', saveCreds);
 
-        sock.ev.on('call', async (calls) => {
+        session.sock.ev.on('call', async (calls) => {
             for (const call of calls || []) {
                 if (call.status !== 'offer') continue;
 
                 try {
-                    console.log(`[CALL] [socketId=${currentSocketId}] llamada entrante de ${call.from}`);
-                    await sock.rejectCall(call.id, call.from);
-                    await sock.sendMessage(call.from, { text: callAutoReplyText });
-                    console.log(`[CALL] [socketId=${currentSocketId}] llamada rechazada y mensaje enviado para ${call.from}`);
+                    console.log(`[CALL] [socketId=${session.currentSocketId}] llamada entrante de ${call.from} | session=${session.sessionId}`);
+                    if (!autoRejectCalls) {
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] auto-rechazo desativado por WHATSAPP_AUTO_REJECT_CALLS | session=${session.sessionId}`);
+                        continue;
+                    }
+                    await session.sock.rejectCall(call.id, call.from);
+                    const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
+                    if (audioPath) {
+                        await session.sock.sendMessage(call.from, {
+                            audio: { url: audioPath },
+                            mimetype: 'audio/ogg; codecs=opus',
+                            ptt: true
+                        });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y audio enviado para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                    } else {
+                        await session.sock.sendMessage(call.from, { text: callAutoReplyText });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y texto enviado para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                    }
                 } catch (error) {
-                    console.error(`[CALL] [socketId=${currentSocketId}] fallo al manejar llamada de ${call.from}:`, error);
+                    console.error(`[CALL] [socketId=${session.currentSocketId}] fallo al manejar llamada de ${call.from} | session=${session.sessionId}:`, error);
                 }
             }
         });
 
-        sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        console.log(`[LOG_CONN_STATE_TRANSITION] [socketId=${currentSocketId}] 📡 State: connection=${connection || 'keep-alive'} | isReady=${isReady}`);
-        
-        if (qr) {
-            status = 'scanning';
-            qrCodeRaw = qr;
-            QRCode.toDataURL(qr)
-                .then((dataUrl) => {
-                    qrCode = dataUrl;
-                })
-                .catch((error) => {
-                    qrCode = null;
-                    console.error('[QR] Falha ao gerar data URL do QR:', error);
-                });
-            if (isReady || status === 'connected') {
-                console.log(`[LOG_QR_SUPPRESSED_ALREADY_OPEN] 🛑 QR Code recebido ignorado pois a sessão já está OPEN.`);
-            } else {
-                console.log(`[LOG_QR_RENDERED] 🖼️ Desenhando QR Code novo no terminal.`);
+        session.sock.ev.on('connection.update', (update) => {
+            const { connection, lastDisconnect, qr } = update;
+
+            console.log(`[LOG_CONN_STATE_TRANSITION] [socketId=${session.currentSocketId}] 📡 State: connection=${connection || 'keep-alive'} | isReady=${session.isReady} | session=${session.sessionId}`);
+
+            if (qr) {
+                session.status = 'scanning';
+                session.qrCodeRaw = qr;
+                QRCode.toDataURL(qr)
+                    .then((dataUrl) => {
+                        session.qrCode = dataUrl;
+                    })
+                    .catch((error) => {
+                        session.qrCode = null;
+                        console.error(`[QR] Falha ao gerar data URL do QR | session=${session.sessionId}:`, error);
+                    });
+
+                console.log(`[LOG_QR_RENDERED] 🖼️ Desenhando QR Code novo no terminal | session=${session.sessionId}`);
                 console.log('\n==================================================');
-                console.log('>>> ESCANEIE O QR CODE ABAIXO NO SEU WHATSAPP <<<');
+                console.log(`>>> ESCANEIE O QR CODE ABAIXO NO SEU WHATSAPP [${session.sessionId}] <<<`);
                 console.log('==================================================');
                 qrcodeTerminal.generate(qr, { small: true });
             }
-        }
 
-        if (connection === 'close') {
-            isReady = false;
-            
-            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            lastDisconnectReason = reason || lastDisconnect?.error?.message || null;
-            const isConflict = reason === 440 || lastDisconnect?.error?.message?.includes('conflict');
-            const isLoggedOut = reason === DisconnectReason.loggedOut;
-            status = isConflict ? 'conflict' : (isLoggedOut ? 'logged_out' : 'disconnected');
-            qrCode = null;
-            qrCodeRaw = null;
-            
-            console.log(`[SOCKET-DISCONNECTED] Conexão fechada. Motivo/Status: ${reason}`);
-            
-            if (isConflict) {
-               console.log(`[CONFLICT] ⚠️ Sessão usurpada por outro dispositivo/aba!`);
-               console.log('[CONFLICT] 🛑 Reconexao automatica pausada. Resolva os aparelhos conectados e, se preciso, re-pareie a sessao.');
-            }
+            if (connection === 'close') {
+                session.isReady = false;
+                session.ownPhoneDigits = '';
 
-            const shouldReconnect = reason !== DisconnectReason.loggedOut && !isConflict;
-            if (shouldReconnect) {
-                const reconnectDelayMs = 5000;
-                console.log(`[LOG_CONN_UPDATE] 🔄 RECONNECTING (status: ${reason}) - Conflict: ${isConflict}`);
-                console.log(`[RECONNECTING] Tentativa de reconexão automática em andamento em ${Math.floor(reconnectDelayMs / 1000)}s...`);
-                if (!reconnectTimer) {
-                    reconnectTimer = setTimeout(() => {
-                        reconnectTimer = null;
-                        startWhatsApp().catch((error) => {
-                            console.error('[RECONNECTING] Falha ao reiniciar WhatsApp:', error);
-                        });
-                    }, reconnectDelayMs);
+                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                session.lastDisconnectReason = reason || lastDisconnect?.error?.message || null;
+                const isConflict = reason === 440 || lastDisconnect?.error?.message?.includes('conflict');
+                const isLoggedOut = reason === DisconnectReason.loggedOut;
+                session.status = isConflict ? 'conflict' : (isLoggedOut ? 'logged_out' : 'disconnected');
+                session.qrCode = null;
+                session.qrCodeRaw = null;
+
+                console.log(`[SOCKET-DISCONNECTED] Conexão fechada. Motivo/Status: ${reason} | session=${session.sessionId}`);
+
+                if (isConflict) {
+                    console.log(`[CONFLICT] ⚠️ Sessão usurpada por outro dispositivo/aba! | session=${session.sessionId}`);
+                    console.log('[CONFLICT] 🛑 Reconexao automatica pausada. Resolva os aparelhos conectados e, se preciso, re-pareie a sessao.');
                 }
-            } else {
-                console.log(`[LOG_CONN_UPDATE] ❌ DISCONNECTED (LOGOUT)`);
-                console.log(`[SOCKET-DISCONNECTED] Desconectado por Logout Humano. Delete a pasta auth_info_baileys para parear novamente.`);
-            }
-        } 
-        else if (connection === 'open') {
-            console.log(`[LOG_SOCKET_READY] ✅ CONNECTED AND READY [socketId=${currentSocketId}]`);
-            console.log(`\n[SOCKET-CONNECTED] ✅ CONEXÃO BAILEYS ESTABELECIDA E AUTENTICADA! PID: ${process.pid}`);
-            isReady = true;
-            status = 'connected';
-            qrCode = null;
-            qrCodeRaw = null;
-            lastDisconnectReason = null;
-            if (reconnectTimer) {
-                clearTimeout(reconnectTimer);
-                reconnectTimer = null;
-            }
-            const callbacks = readyCallbacks.splice(0, readyCallbacks.length);
-            callbacks.forEach(cb => cb());
 
-            setTimeout(() => {
-                if (status === 'connected') {
-                    console.log(`[LOG_SOCKET_CONNECTED_STABLE] ⏳ Sessão estável há 2 minutos`);
-                    console.log(`[LOG_NO_CONFLICT_WINDOW_OK] ✅ Nenhum conflito detectado neste processo`);
+                const shouldReconnect = reason !== DisconnectReason.loggedOut && !isConflict;
+                if (shouldReconnect) {
+                    const reconnectDelayMs = 5000;
+                    console.log(`[LOG_CONN_UPDATE] 🔄 RECONNECTING (status: ${reason}) - Conflict: ${isConflict} | session=${session.sessionId}`);
+                    console.log(`[RECONNECTING] Tentativa de reconexão automática em andamento em ${Math.floor(reconnectDelayMs / 1000)}s...`);
+                    if (!session.reconnectTimer) {
+                        session.reconnectTimer = setTimeout(() => {
+                            session.reconnectTimer = null;
+                            startWhatsApp(session.sessionId).catch((error) => {
+                                console.error(`[RECONNECTING] Falha ao reiniciar WhatsApp | session=${session.sessionId}:`, error);
+                            });
+                        }, reconnectDelayMs);
+                    }
+                } else {
+                    console.log(`[LOG_CONN_UPDATE] ❌ DISCONNECTED (LOGOUT) | session=${session.sessionId}`);
+                    console.log(`[SOCKET-DISCONNECTED] Desconectado por Logout Humano. Delete a pasta auth_info_baileys/${session.sessionId} para parear novamente.`);
                 }
-            }, 120000); // 2 minutos
-        }
+            } else if (connection === 'open') {
+                session.isReady = true;
+                session.status = 'connected';
+                session.qrCode = null;
+                session.qrCodeRaw = null;
+                session.lastDisconnectReason = null;
+                session.ownPhoneDigits = jidUserDigits(session.sock?.user?.id || '');
+                if (session.reconnectTimer) {
+                    clearTimeout(session.reconnectTimer);
+                    session.reconnectTimer = null;
+                }
+
+                console.log(`[LOG_SOCKET_READY] ✅ CONNECTED AND READY [socketId=${session.currentSocketId}] | session=${session.sessionId}`);
+                console.log(`\n[SOCKET-CONNECTED] ✅ CONEXÃO BAILEYS ESTABELECIDA E AUTENTICADA! PID: ${process.pid} | session=${session.sessionId}`);
+
+                flushReadyCallbacks(session);
+
+                setTimeout(() => {
+                    if (session.status === 'connected') {
+                        console.log(`[LOG_SOCKET_CONNECTED_STABLE] ⏳ Sessão estável há 2 minutos | session=${session.sessionId}`);
+                        console.log(`[LOG_NO_CONFLICT_WINDOW_OK] ✅ Nenhum conflito detectado neste processo | session=${session.sessionId}`);
+                    }
+                }, 120000);
+            }
         });
 
-        console.log(`[LOG_LISTENERS_BOUND] [socketId=${currentSocketId}] 🎧 Dispatcher atrelado a este socket vivo`);
-        setupDispatcher(sock, currentSocketId);
-        return sock;
+        console.log(`[LOG_LISTENERS_BOUND] [socketId=${session.currentSocketId}] 🎧 Dispatcher atrelado a este socket vivo | session=${session.sessionId}`);
+        setupDispatcher(session.sock, session.currentSocketId, session.sessionId);
+        return session.sock;
     } finally {
-        startInFlight = false;
+        session.startInFlight = false;
     }
 };
 
+export const startConfiguredWhatsAppSessions = async () => {
+    const sessionIds = parseConfiguredSessionIds();
+    await Promise.all(sessionIds.map((sessionId) => startWhatsApp(sessionId).catch((error) => {
+        console.error(`❌ Catastrophic failure booting WhatsApp Engine | session=${sessionId}:`, error);
+        return null;
+    })));
+};
 
-// Expose socket globally for outbound actions
-export const getSock = () => sock;
-export const getStatus = () => ({
-    isReady,
-    status,
-    qrCode,
-    qrCodeRaw,
-    socketId: currentSocketId,
-    lastDisconnectReason
-});
+export const registerWhatsAppSession = (sessionId) => {
+    const session = getOrCreateSession(sessionId);
+    return session.sessionId;
+};

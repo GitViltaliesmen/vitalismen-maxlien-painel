@@ -7,10 +7,16 @@ import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Order from '../models/Order.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
-import { getSock, getStatus } from '../whatsapp/connection.js';
+import { getAllStatuses, getOwnPhoneDigits, getSock, getStatus, registerWhatsAppSession, startWhatsApp } from '../whatsapp/connection.js';
 import { sendText } from '../whatsapp/sendText.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
+import { canSendOutbound } from '../whatsapp/outboundGuard.js';
+import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
+import {
+    listReengagementCandidates,
+    sendReengagementToChat
+} from '../services/reengagementService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -28,11 +34,22 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         const ext = content.split('.').pop()?.toLowerCase() || '';
         const isAudioFile = ['ogg', 'opus', 'mp3', 'wav', 'm4a', 'aac', 'webm'].includes(ext);
         if (isAudioFile) {
-            return sendAudio(chatId, content, options.isPtt !== false);
+            return sendAudio(chatId, content, options.isPtt !== false, { sessionId: options.sessionId });
         }
 
-        const sock = getSock();
+        const sock = getSock(options.sessionId);
         if (!sock) return false;
+        const guard = canSendOutbound({
+            jid: chatId,
+            text: content,
+            sessionId: options.sessionId,
+            ownDigits: getOwnPhoneDigits(options.sessionId),
+            kind: 'media'
+        });
+        if (!guard.allowed) {
+            console.log(`[LOG_SEND_BLOCKED] media bloqueada -> ${chatId} | reason=${guard.reason}`);
+            return false;
+        }
 
         const mediaType = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)
             ? 'image'
@@ -44,22 +61,116 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         return true;
     }
 
-    return sendText(chatId, content);
+    return sendText(chatId, content, null, { sessionId: options.sessionId });
+};
+
+const buildLeadRecoveryTemplates = () => ([
+    {
+        id: 'social_bonus_1',
+        label: 'Prueba social + bono',
+        text: 'Hola 😊 Le escribo porque varios clientes que estaban con la misma duda ya recibieron su pedido y hoy estan felices con el resultado. Si quiere, le separo su tratamiento con un bono sorpresa para ayudarle a empezar.'
+    },
+    {
+        id: 'social_bonus_2',
+        label: 'Abastecer sistema',
+        text: 'Hola 😊 Estoy cerrando el abastecimiento del sistema de hoy y todavia alcanzo a incluirle un bono sorpresa. Si quiere, le envio nuevamente la condicion para que no se quede por fuera.'
+    },
+    {
+        id: 'social_delivery',
+        label: 'Prueba social de entrega',
+        text: 'Hola 😊 Le comparto que seguimos entregando pedidos normalmente y varios clientes ya retiraron o recibieron su tratamiento sin problema. Si quiere, todavia le aparto el suyo con un bono especial.'
+    },
+    {
+        id: 'social_reactivation',
+        label: 'Reactivacion suave',
+        text: 'Hola 😊 Paso por aqui porque no quiero que deje esto para despues. Si todavia quiere resolverlo, puedo ayudarle hoy con una condicion especial y un bono sorpresa para facilitar su compra.'
+    }
+]);
+
+const findOrCreateContactState = async (rawPhoneOrChatId) => {
+    const raw = String(rawPhoneOrChatId || '');
+    const chatId = raw.includes('@') ? raw : `${raw.replace(/\D/g, '')}@c.us`;
+    const digits = raw.replace(/\D/g, '');
+    const state = await ContactState.findOne({
+        $or: [
+            { chatId },
+            ...(digits ? [
+                { phoneDigits: digits },
+                { phoneDigits: { $regex: `${digits}$` } }
+            ] : [])
+        ]
+    });
+    if (state) return state;
+    return new ContactState({
+        chatId,
+        phoneDigits: digits,
+        countryCode: 'EC'
+    });
+};
+
+const recordManualOutboundMessage = async ({ phone, body, type = 'chat', mediaUrl = '', user }) => {
+    const chatId = resolveChatId(phone);
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!chatId) return;
+
+    await Message.create({
+        _id: `manual_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+        chatId,
+        peerPhone: digits,
+        from: 'bot',
+        to: chatId,
+        body,
+        type,
+        mediaUrl,
+        timestamp: Math.floor(Date.now() / 1000),
+        isFromMe: true,
+        isBot: false,
+        notifyName: user?.name || user?.email || ''
+    }).catch(() => null);
 };
 
 // GET /api/whatsapp/status - PUBLIC for QR Code
 router.get('/status', (req, res) => {
-    res.json(getStatus());
+    const sessionId = req.query.sessionId ? String(req.query.sessionId) : null;
+    if (sessionId) {
+        return res.json(getStatus(sessionId));
+    }
+    return res.json({
+        defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
+        sessions: getAllStatuses()
+    });
 });
 
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
 
+router.get('/sessions', adminOnly, (req, res) => {
+    res.json({
+        defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
+        sessions: getAllStatuses()
+    });
+});
+
+router.get('/sender-pool', adminOnly, (_req, res) => {
+    res.json(getSenderPoolStatus());
+});
+
+router.post('/sessions/:sessionId/start', adminOnly, async (req, res) => {
+    try {
+        const sessionId = registerWhatsAppSession(req.params.sessionId);
+        await startWhatsApp(sessionId);
+        res.json({ success: true, session: getStatus(sessionId) });
+    } catch (error) {
+        console.error('Start WhatsApp session error:', error);
+        res.status(500).json({ error: error.message || 'Failed to start session' });
+    }
+});
+
 // GET /api/whatsapp/chats
 router.get('/chats', async (req, res) => {
     try {
         const onlyLinked = String(req.query.onlyLinked || '').toLowerCase() === 'true' || String(req.query.onlyLinked || '') === '1';
-        const countryFilter = req.query.country === 'CO' || req.query.country === 'EC' ? String(req.query.country) : null;
+        const countryFilter = req.query.country === 'EC' ? String(req.query.country) : null;
 
         const buildPhoneKeys = ({ digits, country }) => {
             const d = String(digits || '').replace(/\D/g, '');
@@ -68,7 +179,6 @@ router.get('/chats', async (req, res) => {
             const last9 = d.length >= 9 ? d.slice(-9) : '';
             if (last10) keys.add(last10);
             if (!last10 && last9) keys.add(last9);
-            if (country === 'CO' && last10) keys.add(`57${last10}`);
             if (country === 'EC' && last10) keys.add(`593${last10}`);
             if (d.length >= 10 && d.length <= 15) keys.add(d);
             return Array.from(keys);
@@ -81,70 +191,121 @@ router.get('/chats', async (req, res) => {
         };
 
         // Current source of truth for chats is MongoDB, which is populated by the Baileys dispatcher.
-        const recentMessages = await Message.find({}, { chatId: 1, from: 1, to: 1, timestamp: 1 })
+        const recentMessages = await Message.find({}, { chatId: 1, from: 1, to: 1, peerPhone: 1, timestamp: 1 })
             .sort({ timestamp: -1 })
             .limit(500);
 
-        const activeIds = new Set();
+        const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+        const usableChatId = (value) => {
+            const id = String(value || '');
+            if (!id || id === 'bot' || id === 'status@broadcast') return null;
+            return id;
+        };
+
+        const conversations = new Map();
+        const addConversationId = (message, rawId) => {
+            const id = usableChatId(rawId);
+            if (!id) return;
+            const idDigits = digitsOnly(id);
+            const rawPeerPhone = digitsOnly(message.peerPhone);
+            const peerPhone = id.endsWith('@lid') && rawPeerPhone === idDigits ? '' : rawPeerPhone;
+            const key = peerPhone || id;
+            if (!conversations.has(key)) {
+                conversations.set(key, {
+                    key,
+                    phone: peerPhone,
+                    ids: new Set(),
+                    primaryId: id,
+                    timestamp: message.timestamp || 0
+                });
+            }
+
+            const conversation = conversations.get(key);
+            conversation.ids.add(id);
+            if (peerPhone && !conversation.phone) conversation.phone = peerPhone;
+            if ((message.timestamp || 0) >= (conversation.timestamp || 0)) {
+                conversation.primaryId = id;
+                conversation.timestamp = message.timestamp || 0;
+            }
+        };
+
         recentMessages.forEach(m => {
-            if (m.chatId && m.chatId !== 'status@broadcast') activeIds.add(m.chatId);
-            if (m.from && m.from !== 'status@broadcast') activeIds.add(m.from);
-            if (m.to && m.to !== 'status@broadcast') activeIds.add(m.to);
+            addConversationId(m, m.chatId);
+            addConversationId(m, m.from);
+            addConversationId(m, m.to);
         });
 
-        const allChats = Array.from(activeIds)
-            .filter((id) => id && id !== 'bot' && id !== 'status@broadcast')
-            .map((id) => ({
-                id: { _serialized: id, user: String(id).replace(/\D/g, '') || id },
+        for (const [key, conversation] of Array.from(conversations.entries())) {
+            if (conversation.phone) continue;
+            const lidIds = Array.from(conversation.ids).filter((id) => String(id).endsWith('@lid'));
+            if (!lidIds.length) continue;
+
+            const stateByLid = await ContactState.findOne({ chatId: { $in: lidIds } }).lean().catch(() => null);
+            const messageWithPhone = await Message.findOne({
+                $or: lidIds.flatMap((id) => ([{ chatId: id }, { from: id }, { to: id }])),
+                peerPhone: { $exists: true, $ne: '' }
+            }).sort({ timestamp: -1 }).lean().catch(() => null);
+            const resolvedPhone = digitsOnly(stateByLid?.phoneDigits || messageWithPhone?.peerPhone);
+            if (!resolvedPhone) continue;
+
+            const target = conversations.get(resolvedPhone);
+            conversations.delete(key);
+            if (target) {
+                conversation.ids.forEach((id) => target.ids.add(id));
+                if ((conversation.timestamp || 0) > (target.timestamp || 0)) {
+                    target.primaryId = conversation.primaryId;
+                    target.timestamp = conversation.timestamp || 0;
+                }
+            } else {
+                conversation.key = resolvedPhone;
+                conversation.phone = resolvedPhone;
+                conversations.set(resolvedPhone, conversation);
+            }
+        }
+
+        const allChats = Array.from(conversations.values())
+            .filter((conversation) => usableChatId(conversation.primaryId))
+            .map((conversation) => ({
+                conversationKey: conversation.key,
+                linkedIds: Array.from(conversation.ids),
+                phoneHint: conversation.phone,
+                id: {
+                    _serialized: conversation.primaryId,
+                    user: conversation.phone || String(conversation.primaryId).replace(/\D/g, '') || conversation.primaryId
+                },
                 name: null,
                 lastMessage: null,
-                isGroup: String(id).includes('@g.us')
+                isGroup: String(conversation.primaryId).includes('@g.us')
             }));
 
         // Enrich chats with Order data
         const enrichedChats = await Promise.all(allChats.map(async (c) => {
-            let phone = c.id.user; // default
-            let isLid = c.id._serialized.endsWith('@lid');
+            let phone = c.phoneHint || c.id.user; // default
+            const isLid = c.id._serialized.endsWith('@lid');
+            const linkedIds = Array.isArray(c.linkedIds) && c.linkedIds.length ? c.linkedIds : [c.id._serialized];
+            const linkedConditions = linkedIds.flatMap((id) => ([
+                { chatId: id },
+                { from: id },
+                { to: id }
+            ]));
+            const lastMessageForChat = await Message.findOne({
+                $or: linkedConditions
+            }).sort({ timestamp: -1 }).lean().catch(() => null);
 
-            // If it's an LID, we MUST find the real phone number from messages to match the Order
+            // If it's an LID, use the phone captured by the dispatcher instead of the opaque WhatsApp id.
             if (isLid) {
-                // Try reasonable sources for the real phone number
                 const candidates = new Set();
+                if (c.phoneHint) candidates.add(c.phoneHint);
+                if (lastMessageForChat?.peerPhone) candidates.add(lastMessageForChat.peerPhone);
+                const stateByLid = await ContactState.findOne({ chatId: { $in: linkedIds } }).lean().catch(() => null);
+                if (stateByLid?.phoneDigits) candidates.add(stateByLid.phoneDigits);
 
-                // 1. Check lastMessage
-                if (c.lastMessage) {
-                    if (c.lastMessage.from && c.lastMessage.from.endsWith('@c.us')) candidates.add(c.lastMessage.from);
-                    if (c.lastMessage.to && c.lastMessage.to.endsWith('@c.us')) candidates.add(c.lastMessage.to);
-                    if (c.lastMessage.author && c.lastMessage.author.endsWith('@c.us')) candidates.add(c.lastMessage.author);
-                }
-
-                // 2. If no luck, maybe fetch a few messages? (Expensive but necessary for these broken chats)
-                if (candidates.size === 0) {
-                    try {
-                        const msgs = await c.fetchMessages({ limit: 3 });
-                        msgs.forEach(m => {
-                            if (m.from && m.from.endsWith('@c.us')) candidates.add(m.from);
-                            if (m.to && m.to.endsWith('@c.us')) candidates.add(m.to);
-                            if (m.author && m.author.endsWith('@c.us')) candidates.add(m.author);
-                        });
-                    } catch (e) { /* ignore */ }
-                }
-
-                // Pick the one that is NOT me
-                // We don't easily know "me" here without client.info.wid, but usually the other party is the customer
-                // Let's filter out known bot numbers if we knew them, but for now just pick the first valid c.us that looks like a user
-
-                const found = Array.from(candidates).find(wid => {
-                    // Filter out generic short codes if any? Usually c.us are phones.
-                    return true;
-                    // ideally we compare against client.info.wid._serialized but client might be null here if using just mongo? 
-                    // actually we have client in scope.
-                });
+                const found = Array.from(candidates)
+                    .map((value) => String(value || '').replace(/\D/g, ''))
+                    .find((value) => value.length >= 9);
 
                 if (found) {
-                    phone = found.replace('@c.us', '').replace(/\D/g, '');
-                    // Update the display name to be the phone number if it's currently the LID
-                    if (c.name === c.id.user) c.name = phone;
+                    phone = found;
                 }
             }
 
@@ -190,21 +351,40 @@ router.get('/chats', async (req, res) => {
                 // phone = order.customer.phone; 
             }
 
+            const stateOr = linkedIds.map((id) => ({ chatId: id }));
+            if (phoneDigits) {
+                stateOr.push({ phoneDigits: phoneDigits });
+                stateOr.push({ phoneDigits: { $regex: `${phoneDigits}$` } });
+            }
+            const contactState = await ContactState.findOne({ $or: stateOr }).lean().catch(() => null);
+
+            const lastMessage = lastMessageForChat || await Message.findOne({
+                $or: [
+                    ...linkedConditions,
+                    ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
+                ]
+            }).sort({ timestamp: -1 }).lean().catch(() => null);
+
             return {
                 id: c.id._serialized,
-                name: c.name || c.id.user,
+                name: c.name || order?.customer?.name || c.id.user,
                 phone: phone, // This is now the real phone number (resolved)
                unreadCount: 0,
-                lastMessage: c.lastMessage ? {
-                    body: c.lastMessage.body,
-                    timestamp: c.lastMessage.timestamp
+                lastMessage: lastMessage ? {
+                    body: lastMessage.body,
+                    timestamp: lastMessage.timestamp,
+                    isFromMe: lastMessage.isFromMe,
+                    type: lastMessage.type
                 } : null,
                 isGroup: c.isGroup,
                 // Enriched Fields
-                country: order ? order.country : null,
+                country: order ? order.country : contactState?.countryCode || null,
                 city: order && order.customer ? order.customer.city : null,
                 orderId: order ? order.orderId : null,
-                orderStatus: order ? order.status : null
+                orderStatus: order ? order.status : null,
+                assignedAgent: contactState?.assignedAgent || null,
+                tags: contactState?.tags || [],
+                human: contactState?.human || { mode: 'auto' }
             };
         }));
 
@@ -230,13 +410,31 @@ router.get('/messages/:phone', async (req, res) => {
         const sync = String(req.query.sync || '').toLowerCase() === 'true' || String(req.query.sync || '') === '1';
         const chatId = phone.includes('@') ? phone : `${phone}@c.us`;
         const digits = phone.replace(/\D/g, '');
+        const isLidChat = chatId.endsWith('@lid');
+
+        const state = phone.includes('@')
+            ? await ContactState.findOne({ chatId }).sort({ updatedAt: -1 }).lean().catch(() => null)
+            : null;
+        const lastLinkedMessage = phone.includes('@')
+            ? await Message.findOne({
+                $or: [
+                    { chatId },
+                    { from: chatId },
+                    { to: chatId }
+                ],
+                peerPhone: { $exists: true, $ne: '' }
+            }).sort({ timestamp: -1 }).lean().catch(() => null)
+            : null;
+        const realDigits = isLidChat
+            ? (state?.phoneDigits || lastLinkedMessage?.peerPhone || '')
+            : digits;
 
         const or = [
             { chatId: chatId },
             { from: chatId },
             { to: chatId }
         ];
-        if (digits) or.push({ peerPhone: digits });
+        if (realDigits) or.push({ peerPhone: String(realDigits).replace(/\D/g, '') });
 
         const messages = await Message.find({ $or: or })
             .sort({ timestamp: 1 })
@@ -284,12 +482,83 @@ router.get('/contact-state/:phone', async (req, res) => {
     }
 });
 
+router.post('/contact-state/:phone/claim', async (req, res) => {
+    try {
+        const state = await findOrCreateContactState(req.params.phone);
+        const minutes = Math.max(15, Number.parseInt(String(req.body?.minutes || '240'), 10) || 240);
+        state.human = {
+            ...(state.human || {}),
+            mode: 'manual',
+            assignedTo: req.user._id.toString(),
+            assignedName: req.user.name || req.user.email,
+            assignedAt: new Date(),
+            pausedUntil: new Date(Date.now() + minutes * 60 * 1000),
+            lastManualAt: new Date(),
+            lastManualBy: req.user.name || req.user.email,
+            note: req.body?.note || state.human?.note || ''
+        };
+        state.metadata = {
+            ...(state.metadata || {}),
+            lastHumanActionAt: new Date(),
+            lastHumanAction: 'claim'
+        };
+        await state.save();
+        res.json({ success: true, state });
+    } catch (error) {
+        console.error('Claim contact error:', error);
+        res.status(500).json({ error: 'Failed to claim contact' });
+    }
+});
+
+router.post('/contact-state/:phone/release', async (req, res) => {
+    try {
+        const state = await findOrCreateContactState(req.params.phone);
+        state.human = {
+            ...(state.human || {}),
+            mode: 'auto',
+            pausedUntil: null,
+            lastManualAt: new Date(),
+            lastManualBy: req.user.name || req.user.email
+        };
+        state.metadata = {
+            ...(state.metadata || {}),
+            lastHumanActionAt: new Date(),
+            lastHumanAction: 'release'
+        };
+        await state.save();
+        res.json({ success: true, state });
+    } catch (error) {
+        console.error('Release contact error:', error);
+        res.status(500).json({ error: 'Failed to release contact' });
+    }
+});
+
+router.patch('/contact-state/:phone', async (req, res) => {
+    try {
+        const state = await findOrCreateContactState(req.params.phone);
+        const { note, mode, assignedName } = req.body || {};
+        state.human = {
+            ...(state.human || {}),
+            ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
+            ...(typeof note === 'string' ? { note } : {}),
+            ...(typeof assignedName === 'string' ? { assignedName } : {}),
+            lastManualAt: new Date(),
+            lastManualBy: req.user.name || req.user.email
+        };
+        await state.save();
+        res.json({ success: true, state });
+    } catch (error) {
+        console.error('Update contact state error:', error);
+        res.status(500).json({ error: 'Failed to update contact state' });
+    }
+});
+
 // GET /api/whatsapp/templates
 router.get('/templates', async (req, res) => {
     try {
         const { country } = req.query;
-        if (country !== 'CO' && country !== 'EC') {
-            return res.status(400).json({ error: 'country must be CO or EC' });
+        if (country !== 'EC') {
+            return res.status(400).json({ error: 'country must be EC' });
         }
         const templates = await listAudioTemplates(country);
         res.json({ templates });
@@ -299,10 +568,41 @@ router.get('/templates', async (req, res) => {
     }
 });
 
+router.get('/reengagement/preview', adminOnly, async (req, res) => {
+    try {
+        const hours = Number.parseInt(String(req.query.hours || '48'), 10);
+        const limit = Number.parseInt(String(req.query.limit || '50'), 10);
+        const candidates = await listReengagementCandidates({ hours, limit });
+        res.json({ candidates });
+    } catch (error) {
+        console.error('Reengagement preview error:', error);
+        res.status(500).json({ error: 'Failed to build reengagement preview' });
+    }
+});
+
+router.post('/reengagement/send', adminOnly, async (req, res) => {
+    try {
+        const { chatId, text, sessionId = null } = req.body || {};
+        if (!chatId || !text) {
+            return res.status(400).json({ error: 'chatId and text are required' });
+        }
+
+        const result = await sendReengagementToChat({ chatId, text, sessionId });
+        res.json(result);
+    } catch (error) {
+        console.error('Reengagement send error:', error);
+        res.status(500).json({ error: error.message || 'Failed to send reengagement' });
+    }
+});
+
+router.get('/reengagement/templates', adminOnly, async (_req, res) => {
+    res.json({ templates: buildLeadRecoveryTemplates() });
+});
+
 // POST /api/whatsapp/send
 router.post('/send', async (req, res) => {
     try {
-        const { phone, message, isMedia } = req.body;
+        const { phone, message, isMedia, sessionId } = req.body;
         if (!phone || !message) {
             return res.status(400).json({ error: 'Phone and message required' });
         }
@@ -343,7 +643,26 @@ router.post('/send', async (req, res) => {
                 const filePath = path.join(uploadsDir, filename);
                 fs.writeFileSync(filePath, buf);
 
-                const sent = await sendWhatsAppMessage(phone, filePath, { isMedia: true });
+                const sent = await sendWhatsAppMessage(phone, filePath, { isMedia: true, sessionId });
+                if (sent) {
+                    const state = await findOrCreateContactState(phone);
+                    state.human = {
+                        ...(state.human || {}),
+                        mode: 'manual',
+                        assignedTo: req.user._id.toString(),
+                        assignedName: req.user.name || req.user.email,
+                        lastManualAt: new Date(),
+                        lastManualBy: req.user.name || req.user.email
+                    };
+                    await state.save();
+                    await recordManualOutboundMessage({
+                        phone,
+                        body: 'Audio/midia enviado pelo funil',
+                        type: 'media',
+                        mediaUrl: `/media/uploads/${filename}`,
+                        user: req.user
+                    });
+                }
                 return res.json({ success: sent, storedMediaUrl: `/media/uploads/${filename}` });
             }
 
@@ -357,11 +676,43 @@ router.post('/send', async (req, res) => {
             if (!resolved.startsWith(baseDir)) {
                 return res.status(400).json({ error: 'Invalid media path' });
             }
-            const sent = await sendWhatsAppMessage(phone, resolved, { isMedia: true });
+            const sent = await sendWhatsAppMessage(phone, resolved, { isMedia: true, sessionId });
+            if (sent) {
+                const state = await findOrCreateContactState(phone);
+                state.human = {
+                    ...(state.human || {}),
+                    mode: 'manual',
+                    assignedTo: req.user._id.toString(),
+                    assignedName: req.user.name || req.user.email,
+                    lastManualAt: new Date(),
+                    lastManualBy: req.user.name || req.user.email
+                };
+                await state.save();
+                await recordManualOutboundMessage({
+                    phone,
+                    body: 'Audio/midia aprovado enviado',
+                    type: 'media',
+                    mediaUrl: message,
+                    user: req.user
+                });
+            }
             return res.json({ success: sent });
         }
 
-        const sent = await sendWhatsAppMessage(phone, message);
+        const sent = await sendWhatsAppMessage(phone, message, { sessionId });
+        if (sent) {
+            const state = await findOrCreateContactState(phone);
+            state.human = {
+                ...(state.human || {}),
+                mode: 'manual',
+                assignedTo: req.user._id.toString(),
+                assignedName: req.user.name || req.user.email,
+                lastManualAt: new Date(),
+                lastManualBy: req.user.name || req.user.email
+            };
+            await state.save();
+            await recordManualOutboundMessage({ phone, body: message, type: 'chat', user: req.user });
+        }
         res.json({ success: sent });
     } catch (error) {
         console.error('Send message error:', error);

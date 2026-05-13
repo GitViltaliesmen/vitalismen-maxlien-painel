@@ -7,7 +7,7 @@ const orderSchema = new mongoose.Schema({
     },
     country: {
         type: String,
-        enum: ['CO', 'EC'],
+        enum: ['EC'],
         required: true
     },
     customer: {
@@ -28,7 +28,7 @@ const orderSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['COP', 'USD'],
+        enum: ['USD'],
         required: true
     },
     status: {
@@ -43,6 +43,22 @@ const orderSchema = new mongoose.Schema({
     },
     notes: String,
     trackingNumber: String,
+    dropiOrderId: String,
+    shippingStatus: String,
+    purchaseIntent: {
+        readiness: {
+            type: String,
+            enum: ['unknown', 'ready_now', 'buy_later'],
+            default: 'unknown'
+        },
+        requestedQuantity: Number,
+        requestedPackageLabel: String,
+        desiredPurchaseTiming: String,
+        followUpAt: Date,
+        readyConfirmedAt: Date,
+        buyLaterDetectedAt: Date,
+        lastReadinessQuestionAt: Date
+    },
     whatsappNotified: {
         type: Boolean,
         default: false
@@ -90,7 +106,7 @@ const orderSchema = new mongoose.Schema({
 // Generate unique order ID before saving
 orderSchema.pre('save', async function (next) {
     if (!this.orderId) {
-        const prefix = this.country === 'CO' ? 'CO' : 'EC';
+        const prefix = 'EC';
         const stamp = Date.now().toString(36).toUpperCase();
         const random = Math.random().toString(36).slice(2, 6).toUpperCase();
         this.orderId = `${prefix}-${stamp}-${random}`;

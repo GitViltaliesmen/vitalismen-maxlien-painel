@@ -1,127 +1,3019 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect WhatsApp Bot</title>
+    <title>Vitalismen Automacao</title>
     <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: #f0f2f5;
+        :root {
+            color-scheme: light;
+            --bg: #eef2f6;
+            --surface: #ffffff;
+            --surface-soft: #f7f9fc;
+            --line: #d7dee8;
+            --text: #1d2733;
+            --muted: #667488;
+            --blue: #1c5fd6;
+            --blue-soft: #e9f1ff;
+            --green: #107a4a;
+            --green-soft: #e8f7ef;
+            --orange: #a65d00;
+            --orange-soft: #fff1df;
+            --red: #b42318;
+            --red-soft: #fff0ee;
+            --ink: #0d1420;
+            --shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
         }
 
-        .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            min-height: 34px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            padding: 0 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--surface-soft);
+            border-color: #b8c2d0;
+        }
+
+        button.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        button.success {
+            background: var(--green);
+            border-color: var(--green);
+            color: #fff;
+        }
+
+        button.danger {
+            color: var(--red);
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.55;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            padding: 0 10px;
+        }
+
+        textarea {
+            min-height: 78px;
+            padding: 10px;
+            resize: vertical;
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .topbar {
+            min-height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 0 18px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: var(--ink);
+            color: #fff;
+            font-weight: 800;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
         }
 
         h1 {
-            margin-bottom: 1rem;
-            color: #333;
+            font-size: 18px;
+            letter-spacing: 0;
         }
 
-        #status {
-            margin-bottom: 1rem;
-            font-weight: bold;
-            color: #555;
+        h2 {
+            font-size: 16px;
+            letter-spacing: 0;
         }
 
-        #qrcode {
-            margin-top: 1rem;
-            border: 1px solid #ddd;
+        h3 {
+            font-size: 14px;
+            letter-spacing: 0;
+        }
+
+        .subtitle,
+        .meta {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .top-actions,
+        .row,
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .module-nav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            flex: 1 1 auto;
+        }
+
+        .module-nav button {
+            min-height: 32px;
+            font-size: 12px;
+            padding: 0 10px;
+        }
+
+        .module-nav button.active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #fff;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            border-radius: 999px;
+            padding: 0 9px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .badge.green {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .badge.orange {
+            background: var(--orange-soft);
+            color: var(--orange);
+        }
+
+        .badge.red {
+            background: var(--red-soft);
+            color: var(--red);
+        }
+
+        .badge.sent {
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+
+        .shell {
+            height: calc(100vh - 64px);
+            display: grid;
+            grid-template-columns: 280px minmax(360px, 1fr) 380px;
+            gap: 12px;
+            padding: 12px;
+            min-width: 0;
+        }
+
+        .shell.module-care {
+            grid-template-columns: 320px minmax(420px, 1fr);
+        }
+
+        .shell.module-sales,
+        .shell.module-admin {
+            grid-template-columns: minmax(720px, 1fr);
+        }
+
+        .shell.module-care #operationPanel,
+        .shell.module-sales > aside:first-child,
+        .shell.module-sales > section.panel,
+        .shell.module-admin > aside:first-child,
+        .shell.module-admin > section.panel {
+            display: none;
+        }
+
+        .shell.module-sales #operationPanel,
+        .shell.module-admin #operationPanel {
+            max-height: none;
+        }
+
+        .shell.module-sales #operationPanel {
+            display: grid;
+            grid-template-columns: minmax(260px, 360px) 1fr;
+            align-items: start;
+        }
+
+        .shell.module-sales #operationPanel > .panel-head,
+        .shell.module-sales #dropiSection {
+            grid-column: 1 / -1;
+        }
+
+        .shell.module-sales #dropiSection .shipment-list {
+            max-height: calc(100vh - 360px);
+        }
+
+        .shell.module-admin #operationPanel > .side-section:not(#userAdminSection) {
+            display: none;
+        }
+
+        .shell.module-admin #userAdminSection {
+            display: grid !important;
+        }
+
+        .panel {
+            min-width: 0;
+            min-height: 0;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-head {
+            min-height: 52px;
+            border-bottom: 1px solid var(--line);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .panel-body {
+            min-height: 0;
+            overflow: auto;
+            padding: 12px;
+        }
+
+        .login-panel {
+            width: min(460px, calc(100vw - 32px));
+            margin: 56px auto;
+            display: block;
+        }
+
+        .login-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .login-form label {
+            display: grid;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .wa-card {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface-soft);
+        }
+
+        .qr-image {
+            width: 210px;
+            height: 210px;
+            display: none;
+            justify-self: center;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: #fff;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px;
+            padding: 8px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface-soft);
+        }
+
+        .tabs button {
+            min-height: 32px;
+            font-size: 12px;
+        }
+
+        .tabs button.active {
+            background: var(--ink);
+            color: #fff;
+            border-color: var(--ink);
+        }
+
+        .searchbar {
             padding: 10px;
-            border-radius: 5px;
-            display: none;
+            border-bottom: 1px solid var(--line);
         }
 
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 2s linear infinite;
-            margin: 20px auto;
-            display: none;
+        .chat-list {
+            min-height: 0;
+            overflow: auto;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
+        .chat-item {
+            width: 100%;
+            min-height: 72px;
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            border-radius: 0;
+            background: var(--surface);
+            text-align: left;
+            display: grid;
+            gap: 5px;
+            padding: 10px 12px;
+        }
+
+        .chat-item:hover,
+        .chat-item.active {
+            background: #edf4ff;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .truncate {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .conversation-head {
+            min-height: 68px;
+        }
+
+        .conversation {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            padding: 16px;
+            background: #f4f7fb;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bubble {
+            max-width: min(680px, 78%);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 9px 11px;
+            background: #fff;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+            font-size: 13px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .bubble.me {
+            align-self: flex-end;
+            background: #e7f7ee;
+            border-color: #bce6ce;
+        }
+
+        .bubble .time {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .composer {
+            border-top: 1px solid var(--line);
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            background: var(--surface);
+        }
+
+        .composer-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: end;
+        }
+
+        .side-section {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .metric {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 10px;
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .automation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .automation-item {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 8px;
+            display: grid;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .automation-item strong {
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .automation-notes {
+            display: grid;
+            gap: 6px;
+        }
+
+        .automation-note {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: #fff;
+            display: grid;
+            gap: 3px;
+        }
+
+        .detail-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail {
+            display: grid;
+            gap: 3px;
+        }
+
+        .detail span {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .detail strong {
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .team-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .team-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .user-form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .user-form .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .user-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .user-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 9px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .user-card .row {
+            justify-content: space-between;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .quick-actions button {
+            min-height: 32px;
+            font-size: 12px;
+            white-space: normal;
+            line-height: 1.15;
+        }
+
+        .audio-template-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .audio-template {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 8px;
+            display: grid;
+            gap: 7px;
+        }
+
+        .audio-template audio {
+            width: 100%;
+            height: 32px;
+        }
+
+        .process-box {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid #b9c9ea;
+            border-radius: 8px;
+            background: var(--blue-soft);
+            padding: 10px;
+        }
+
+        .process-box.sales-box {
+            border-color: #b8d8c6;
+            background: var(--green-soft);
+        }
+
+        .process-box h3 {
+            margin-bottom: 3px;
+        }
+
+        .shipment-list {
+            display: grid;
+            gap: 8px;
+            min-height: 220px;
+            max-height: 56vh;
+            overflow: auto;
+        }
+
+        .dropi-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .dropi-tabs button {
+            min-width: 0;
+            min-height: 32px;
+            font-size: 12px;
+            padding: 0 8px;
+            white-space: normal;
+            line-height: 1.15;
+        }
+
+        .dropi-tabs button.active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #fff;
+        }
+
+        .bulk-dropi-bar {
+            display: grid;
+            gap: 6px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            padding: 8px;
+        }
+
+        .bulk-dropi-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+        }
+
+        .bulk-selected-list {
+            min-height: 28px;
+            max-height: 74px;
+            overflow: auto;
+            border: 1px dashed #b8c2d0;
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.35;
+            padding: 6px;
+            word-break: break-word;
+        }
+
+        .dropi-stage-panel {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .dropi-stage {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface);
+            padding: 8px;
+            min-width: 0;
+        }
+
+        .dropi-stage strong {
+            display: block;
+            font-size: 18px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .dropi-stage span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        .dropi-stage.active {
+            border-color: var(--blue);
+            background: var(--blue-soft);
+        }
+
+        .select-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .select-line input[type="checkbox"] {
+            width: 18px;
+            min-height: 18px;
+            flex: 0 0 auto;
+        }
+
+        .order-card.selected {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+        }
+
+        .order-title {
+            min-width: 0;
+        }
+
+        .order-title strong {
+            display: block;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        .order-title .meta {
+            margin-top: 2px;
+        }
+
+        .order-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .order-detail {
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--surface-soft);
+            padding: 6px;
+            min-width: 0;
+        }
+
+        .order-detail.full {
+            grid-column: 1 / -1;
+        }
+
+        .order-detail span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .order-detail strong {
+            display: block;
+            font-size: 12px;
+            line-height: 1.25;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .order-table {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 54vh;
+            background: var(--surface);
+        }
+
+        .order-table table {
+            width: 100%;
+            min-width: 980px;
+            border-collapse: collapse;
+        }
+
+        .order-table th,
+        .order-table td {
+            border-bottom: 1px solid var(--line);
+            padding: 9px 8px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 12px;
+        }
+
+        .order-table th {
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .order-table-actions {
+            display: grid;
+            gap: 5px;
+            min-width: 112px;
+        }
+
+        .order-table-actions button {
+            min-height: 30px;
+            font-size: 11px;
+            padding: 0 8px;
+        }
+
+        .dropi-section.fullscreen {
+            position: fixed;
+            inset: 10px;
+            z-index: 30;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 22px 70px rgba(15, 23, 42, 0.28);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dropi-section.fullscreen .shipment-list,
+        .dropi-section.fullscreen .order-table {
+            max-height: none;
+            flex: 1;
+        }
+
+        .dropi-section.fullscreen .order-table table {
+            min-width: 1120px;
+        }
+
+        .order-table tr.selected {
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .order-table input[type="checkbox"] {
+            width: 18px;
+            min-height: 18px;
+        }
+
+        .cell-main strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 13px;
+        }
+
+        .cell-sub {
+            color: var(--muted);
+            line-height: 1.35;
+            max-width: 280px;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .status-note {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            max-width: 240px;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .shipment-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--surface);
+            display: grid;
+            gap: 8px;
+        }
+
+        .shipment-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .shipment-actions button {
+            min-height: 32px;
+            font-size: 12px;
+            padding: 0 8px;
+            white-space: normal;
+            line-height: 1.15;
+        }
+
+        .empty {
+            padding: 18px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%);
+            background: #111827;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+            max-width: min(640px, calc(100vw - 32px));
+            display: none;
+            z-index: 30;
+        }
+
+        @media (max-width: 1180px) {
+            .shell {
+                grid-template-columns: 280px minmax(360px, 1fr);
             }
 
-            100% {
-                transform: rotate(360deg);
+            .shell.module-sales #operationPanel {
+                display: flex;
+            }
+
+            .right-panel {
+                grid-column: 1 / -1;
+                grid-row: 1;
+                max-height: 420px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 12px;
+            }
+
+            .shell {
+                height: auto;
+                grid-template-columns: 1fr;
+            }
+
+            .shell.module-care,
+            .shell.module-sales,
+            .shell.module-admin {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                min-height: 360px;
+            }
+
+            .right-panel {
+                grid-row: auto;
+                order: -1;
+            }
+
+            .process-box {
+                grid-template-columns: 1fr;
+            }
+
+            .bubble {
+                max-width: 94%;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <h1>🤖 MaxTourus Bot Config</h1>
-        <div id="status">Checking status...</div>
-        <div class="loader" id="loader"></div>
-        <img id="qrcode" src="" alt="Scan QR Code" width="300" height="300">
-        <p id="instruction" style="display:none; color: #666; margin-top: 10px;">Open WhatsApp on your phone > Menu >
-            Linked Devices > Link a Device</p>
-    </div>
+    <main class="app">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">VA</div>
+                <div>
+                    <h1>Painel Integrado Vitalismen</h1>
+                    <div class="subtitle">Atendimento, vendas, Dropi e equipe em uma central</div>
+                </div>
+            </div>
+            <nav id="moduleNav" class="module-nav" aria-label="Modulos do painel">
+                <button class="active" data-module="all" type="button">Integrado</button>
+                <button data-module="care" type="button">Atendimento</button>
+                <button data-module="sales" type="button">Vendas / Dropi</button>
+                <button data-module="admin" type="button">Equipe</button>
+            </nav>
+            <div class="top-actions">
+                <span id="operatorBadge" class="badge">sem login</span>
+                <span id="waBadge" class="badge">...</span>
+                <button id="dropiJumpBtn" class="primary" type="button">Vendas</button>
+                <button id="refreshBtn" type="button">Atualizar</button>
+                <button id="logoutBtn" class="danger hidden" type="button">Sair</button>
+            </div>
+        </header>
+
+        <section id="loginPanel" class="panel login-panel">
+            <div class="panel-head">
+                <h2>Entrar no painel</h2>
+            </div>
+            <div class="panel-body">
+                <div class="wa-card">
+                    <div class="row">
+                        <h2>WhatsApp</h2>
+                        <span id="loginStatusText" class="meta">verificando</span>
+                    </div>
+                    <img id="loginQrcode" class="qr-image" src="" alt="QR Code WhatsApp">
+                    <div id="loginQrHelp" class="meta hidden">Use Aparelhos conectados no celular para ler o QR.</div>
+                </div>
+                <form class="login-form" id="loginForm">
+                    <label>Email
+                        <input id="email" autocomplete="username" type="email" required placeholder="email@empresa.com">
+                    </label>
+                    <label>Senha
+                        <input id="password" autocomplete="current-password" type="password" required>
+                    </label>
+                    <button class="primary" type="submit">Entrar</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="dashboard" class="shell hidden">
+            <aside class="panel">
+                <div class="wa-card">
+                    <div class="row">
+                        <h2>WhatsApp</h2>
+                        <span id="statusText" class="meta">verificando</span>
+                    </div>
+                    <img id="qrcode" class="qr-image" src="" alt="QR Code WhatsApp">
+                    <div id="qrHelp" class="meta hidden">Use Aparelhos conectados no celular para ler o QR.</div>
+                </div>
+
+                <div class="tabs">
+                    <button class="active" data-chat-filter="all" type="button">Todos</button>
+                    <button data-chat-filter="mine" type="button">Meus</button>
+                    <button data-chat-filter="manual" type="button">Humano</button>
+                    <button data-chat-filter="auto" type="button">Auto</button>
+                </div>
+                <div class="searchbar">
+                    <input id="chatSearch" placeholder="Buscar cliente ou telefone">
+                </div>
+                <div id="chatList" class="chat-list"></div>
+            </aside>
+
+            <section class="panel">
+                <div class="panel-head conversation-head">
+                    <div class="truncate">
+                        <h2 id="activeName">Selecione um cliente</h2>
+                        <div id="activeMeta" class="subtitle">A conversa aparece aqui para intervencao manual.</div>
+                    </div>
+                    <div class="actions">
+                        <button id="claimBtn" class="primary" type="button" disabled>Assumir</button>
+                        <button id="releaseBtn" type="button" disabled>Liberar auto</button>
+                    </div>
+                </div>
+                <div id="conversation" class="conversation">
+                    <div class="empty">Nenhuma conversa selecionada.</div>
+                </div>
+                <div class="composer">
+                    <div class="row">
+                        <span id="manualStatus" class="badge orange">modo manual ao enviar</span>
+                        <span class="meta">Ao responder aqui, a automacao fica pausada para este cliente.</span>
+                    </div>
+                    <div class="composer-row">
+                        <textarea id="messageInput" placeholder="Digite a resposta ao cliente"></textarea>
+                        <button id="sendBtn" class="success" type="button" disabled>Enviar</button>
+                    </div>
+                </div>
+            </section>
+
+            <aside id="operationPanel" class="panel right-panel">
+                <div class="panel-head">
+                    <h2>Cockpit comercial</h2>
+                    <select id="countryFilter" style="max-width: 130px;">
+                        <option value="">Todos</option>
+                        <option value="EC" selected>Equador</option>
+                    </select>
+                </div>
+
+                <div class="side-section">
+                    <div class="process-box sales-box">
+                        <div>
+                            <h3>Fechamento de vendas</h3>
+                            <div id="processSummary" class="meta">Carregando oportunidades comerciais...</div>
+                        </div>
+                        <button id="focusConfirmedBtn" class="primary" type="button">Ver oportunidades</button>
+                    </div>
+                </div>
+
+                <div class="side-section">
+                    <div class="row">
+                        <h3>Automacao geral</h3>
+                        <span id="automationUpdatedAt" class="meta">verificando</span>
+                    </div>
+                    <div id="automationGrid" class="automation-grid">
+                        <div class="empty">Carregando automacao...</div>
+                    </div>
+                    <div id="automationNotes" class="automation-notes"></div>
+                </div>
+
+                <div class="side-section">
+                    <div class="metric-grid">
+                        <div class="metric">
+                            <strong id="metricChats">0</strong>
+                            <div class="meta">conversas</div>
+                        </div>
+                        <div class="metric">
+                            <strong id="metricManual">0</strong>
+                            <div class="meta">em humano</div>
+                        </div>
+                        <div class="metric">
+                            <strong id="metricMine">0</strong>
+                            <div class="meta">meus atendimentos</div>
+                        </div>
+                        <div class="metric">
+                            <strong id="metricDropi">0</strong>
+                            <div class="meta">enviados Dropi</div>
+                        </div>
+                        <div class="metric">
+                            <strong id="metricReview">0</strong>
+                            <div class="meta">manual / erro</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="side-section">
+                    <h3>Equipe em atendimento</h3>
+                    <div id="teamList" class="team-list">
+                        <div class="empty">Nenhum atendimento humano agora.</div>
+                    </div>
+                </div>
+
+                <div id="userAdminSection" class="side-section hidden">
+                    <h3>Usuarios do painel</h3>
+                    <form id="userForm" class="user-form">
+                        <input id="newUserName" autocomplete="off" placeholder="Nome do atendente" required>
+                        <input id="newUserEmail" autocomplete="off" type="email" placeholder="Email de login" required>
+                        <div class="form-grid">
+                            <select id="newUserRole">
+                                <option value="operator" selected>Atendente</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <input id="newUserPassword" autocomplete="new-password" type="password" minlength="8" placeholder="Senha inicial" required>
+                        </div>
+                        <button class="primary" type="submit">Criar usuario</button>
+                    </form>
+                    <div id="userList" class="user-list">
+                        <div class="empty">Carregando usuarios...</div>
+                    </div>
+                </div>
+
+                <div class="side-section">
+                    <h3>Cliente selecionado</h3>
+                    <div class="detail-list">
+                        <div class="detail">
+                            <span>Responsavel</span>
+                            <strong id="detailOwner">Sem responsavel</strong>
+                        </div>
+                        <div class="detail">
+                            <span>Pedido</span>
+                            <strong id="detailOrder">Sem pedido vinculado</strong>
+                        </div>
+                        <div class="detail">
+                            <span>Pais / cidade</span>
+                            <strong id="detailLocation">Sem dados</strong>
+                        </div>
+                        <div class="detail">
+                            <span>Automacao</span>
+                            <strong id="detailAutomation">Auto</strong>
+                        </div>
+                        <div class="detail">
+                            <span>Agente IA</span>
+                            <strong id="detailAgent">Sem agente</strong>
+                        </div>
+                    </div>
+                    <div class="quick-actions">
+                        <button data-draft-template="offer" type="button" disabled>Oferta</button>
+                        <button data-draft-template="proof" type="button" disabled>Prova social</button>
+                        <button data-draft-template="data" type="button" disabled>Pedir dados</button>
+                        <button data-draft-template="close" type="button" disabled>Confirmar</button>
+                        <button id="buyLaterBtn" type="button" disabled>Comprar depois</button>
+                    </div>
+                    <div>
+                        <div class="row">
+                            <h3>Audios do funil</h3>
+                            <span id="audioTemplateCountry" class="meta">EC</span>
+                        </div>
+                        <div id="audioTemplateList" class="audio-template-list">
+                            <div class="empty">Selecione um cliente para enviar audio.</div>
+                        </div>
+                    </div>
+                    <button id="sendSelectedDropiBtn" class="primary" type="button" disabled>Enviar para Dropi</button>
+                </div>
+
+                <div id="dropiSection" class="side-section dropi-section">
+                    <div class="row">
+                        <h3>Pedidos Dropi</h3>
+                        <button id="toggleDropiFullscreenBtn" type="button">Tela cheia</button>
+                        <input id="shipmentSearch" placeholder="Buscar cliente, pedido ou telefone">
+                    </div>
+                    <div class="dropi-tabs">
+                        <button class="active" data-dropi-filter="all_dropi" type="button">Visao geral</button>
+                        <button data-dropi-filter="confirmed" type="button">1 Conferir</button>
+                        <button data-dropi-filter="not_sent" type="button">2 Enviar para Dropi</button>
+                        <button data-dropi-filter="progress" type="button">3 Revisar</button>
+                        <button data-dropi-filter="sent" type="button">4 Enviados</button>
+                        <button data-dropi-filter="buy_later" type="button">Retomar</button>
+                        <button data-dropi-filter="returned" type="button">Recuperar</button>
+                    </div>
+                    <div id="dropiStagePanel" class="dropi-stage-panel"></div>
+                    <div id="bulkDropiBar" class="bulk-dropi-bar">
+                        <div id="bulkDropiSummary" class="meta">Selecione pedidos em A enviar para processar na Dropi.</div>
+                        <div class="bulk-dropi-actions">
+                            <button id="selectAllDropiBtn" type="button">Selecionar todos</button>
+                            <button id="selectVisibleDropiBtn" type="button">Selecionar visiveis</button>
+                            <button id="clearDropiSelectionBtn" type="button">Limpar</button>
+                        </div>
+                        <div id="bulkDropiSelectedList" class="bulk-selected-list">Nenhum pedido selecionado.</div>
+                        <button id="processSelectedDropiBtn" class="primary" type="button" disabled>Enviar selecionados para Dropi</button>
+                    </div>
+                    <div id="shipmentList" class="shipment-list"></div>
+                </div>
+            </aside>
+        </section>
+    </main>
+    <div id="toast" class="toast"></div>
 
     <script>
-        const statusEl = document.getElementById('status');
-        const qrImg = document.getElementById('qrcode');
-        const loader = document.getElementById('loader');
-        const instruction = document.getElementById('instruction');
+        const tokenKey = 'vitalismen_admin_token';
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('sessionId') || '';
+
+        const el = (id) => document.getElementById(id);
+        const state = {
+            token: localStorage.getItem(tokenKey) || '',
+            user: null,
+            users: [],
+            chats: [],
+            shipments: [],
+            orders: [],
+            dropiItems: [],
+            dropiOrderStats: { total: 0, waiting: 0, sent: 0, review: 0 },
+            dropiFilter: 'all_dropi',
+            selectedDropiOrders: new Set(),
+            dropiProcessStatus: {},
+            automationStatus: null,
+            audioTemplates: [],
+            selectedChat: null,
+            chatFilter: 'all',
+            activeModule: 'all',
+            messageSignature: '',
+            messagesLoading: false,
+            busy: false
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const compact = (value, fallback = 'Sem dados') => {
+            const text = String(value || '').trim();
+            return text || fallback;
+        };
+
+        const formatTime = (value) => {
+            if (!value) return '';
+            const date = typeof value === 'number' ? new Date(value * 1000) : new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        };
+
+        const badgeClass = (value) => {
+            const text = String(value || '').toUpperCase();
+            if (/PEDIDO[_\s-]*ENVIADO|DROPI[_\s-]*ENVIADO|ENVIADO/.test(text)) return 'sent';
+            if (/CONNECTED|READY|ENTREGADO|COMPLETED|PROCESSADO|CONFIRMED|GUIA|PICKUP|AGENCIA/.test(text)) return 'green';
+            if (/PEND|PROCESS|RUTA|DESPACHO|BODEGA|MANUAL|REVISAO|ATEND|AGEND|COMPRAR|BUY_LATER/.test(text)) return 'orange';
+            if (/ERROR|FAILED|DEVUELTO|NOVEDAD|LOGGED_OUT|DISCONNECTED/.test(text)) return 'red';
+            return '';
+        };
+
+        const yesNoBadge = (enabled) => enabled ? '<span class="badge green">ativo</span>' : '<span class="badge orange">pausado</span>';
+
+        const showToast = (message) => {
+            el('toast').textContent = message;
+            el('toast').style.display = 'block';
+            window.clearTimeout(showToast.timer);
+            showToast.timer = window.setTimeout(() => {
+                el('toast').style.display = 'none';
+            }, 3800);
+        };
+
+        const setActiveModule = (module) => {
+            const nextModule = ['all', 'care', 'sales', 'admin'].includes(module) ? module : 'all';
+            if (nextModule === 'admin' && state.user?.role !== 'admin') {
+                showToast('Modulo Equipe disponivel apenas para admin');
+                return;
+            }
+            state.activeModule = nextModule;
+            const dashboard = el('dashboard');
+            dashboard.classList.remove('module-all', 'module-care', 'module-sales', 'module-admin');
+            dashboard.classList.add(`module-${nextModule}`);
+            document.querySelectorAll('[data-module]').forEach((button) => {
+                button.classList.toggle('active', button.dataset.module === nextModule);
+            });
+            if (nextModule === 'sales') {
+                el('dropiSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (nextModule === 'admin') {
+                el('userAdminSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+
+        const api = async (path, options = {}) => {
+            const headers = {
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+                ...(options.headers || {})
+            };
+            const response = await fetch(path, { ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+                setAuth('');
+                throw new Error(data.error || 'Login necessario');
+            }
+            if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
+            return data;
+        };
+
+        const setAuth = (token) => {
+            state.token = token || '';
+            if (state.token) {
+                localStorage.setItem(tokenKey, state.token);
+                el('loginPanel').classList.add('hidden');
+                el('dashboard').classList.remove('hidden');
+                el('logoutBtn').classList.remove('hidden');
+                setActiveModule(state.activeModule);
+                refreshAll();
+            } else {
+                localStorage.removeItem(tokenKey);
+                state.user = null;
+                state.users = [];
+                el('loginPanel').classList.remove('hidden');
+                el('dashboard').classList.add('hidden');
+                el('logoutBtn').classList.add('hidden');
+                el('operatorBadge').textContent = 'sem login';
+                el('userAdminSection').classList.add('hidden');
+                setActiveModule('all');
+            }
+        };
+
+        async function loadMe() {
+            const data = await api('/api/auth/me');
+            state.user = data.user || null;
+            el('operatorBadge').textContent = state.user?.name || state.user?.email || 'operador';
+            el('operatorBadge').className = 'badge green';
+            el('userAdminSection').classList.toggle('hidden', state.user?.role !== 'admin');
+            document.querySelector('[data-module="admin"]').classList.toggle('hidden', state.user?.role !== 'admin');
+            if (state.activeModule === 'admin' && state.user?.role !== 'admin') setActiveModule('all');
+        }
+
+        const renderUsers = () => {
+            if (state.user?.role !== 'admin') return;
+            el('userList').innerHTML = state.users.map((user) => {
+                const isSelf = String(user.id || user._id || '') === String(state.user.id || state.user._id || '');
+                return `
+                    <article class="user-card">
+                        <div class="row">
+                            <strong>${escapeHtml(user.name || user.email)}</strong>
+                            <span class="badge ${user.isActive ? 'green' : 'red'}">${user.isActive ? 'ativo' : 'inativo'}</span>
+                        </div>
+                        <div class="meta">${escapeHtml(user.email)} · ${user.role === 'admin' ? 'Admin' : 'Atendente'}</div>
+                        <div class="meta">Ultimo login: ${escapeHtml(formatTime(user.lastLoginAt) || 'nunca')}</div>
+                        <div class="actions">
+                            <button data-user-action="toggle-active" data-user-id="${escapeHtml(user.id || user._id || '')}" type="button" ${isSelf ? 'disabled' : ''}>${user.isActive ? 'Desativar' : 'Ativar'}</button>
+                            <button data-user-action="make-operator" data-user-id="${escapeHtml(user.id || user._id || '')}" type="button" ${user.role === 'operator' ? 'disabled' : ''}>Atendente</button>
+                            <button data-user-action="make-admin" data-user-id="${escapeHtml(user.id || user._id || '')}" type="button" ${user.role === 'admin' ? 'disabled' : ''}>Admin</button>
+                        </div>
+                    </article>
+                `;
+            }).join('') || '<div class="empty">Nenhum usuario cadastrado.</div>';
+        };
+
+        async function loadUsers() {
+            if (!state.token || state.user?.role !== 'admin') return;
+            const data = await api('/api/auth/users');
+            state.users = data.users || [];
+            renderUsers();
+        }
+
+        async function createUser(event) {
+            event.preventDefault();
+            if (state.user?.role !== 'admin') return;
+            const payload = {
+                name: el('newUserName').value.trim(),
+                email: el('newUserEmail').value.trim(),
+                role: el('newUserRole').value,
+                password: el('newUserPassword').value
+            };
+            try {
+                await api('/api/auth/users', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                el('userForm').reset();
+                el('newUserRole').value = 'operator';
+                showToast('Usuario criado');
+                await loadUsers();
+            } catch (error) {
+                showToast(error.message);
+            }
+        }
+
+        async function updateUser(userId, changes) {
+            await api(`/api/auth/users/${encodeURIComponent(userId)}`, {
+                method: 'PATCH',
+                body: JSON.stringify(changes)
+            });
+            await loadUsers();
+        }
+
+        const setQrState = (target, status, qrCode) => {
+            if (!target?.status || !target?.image || !target?.help) return;
+            target.status.textContent = `${status.toUpperCase()} | ${new Date().toLocaleTimeString('pt-BR')}`;
+            if (status === 'connected') {
+                target.image.style.display = 'none';
+                target.help.classList.add('hidden');
+            } else if (qrCode) {
+                target.image.src = qrCode;
+                target.image.style.display = 'block';
+                target.help.classList.remove('hidden');
+            } else {
+                target.image.style.display = 'none';
+                target.help.classList.add('hidden');
+            }
+        };
 
         async function checkStatus() {
             try {
                 const ts = Date.now();
-                const res = await fetch(`/api/whatsapp/status?_=${ts}`);
-                const data = await res.json();
+                const url = sessionId
+                    ? `/api/whatsapp/status?sessionId=${encodeURIComponent(sessionId)}&_=${ts}`
+                    : `/api/whatsapp/status?_=${ts}`;
+                const payload = await fetch(url).then((res) => res.json());
+                const data = payload.status
+                    ? payload
+                    : (payload.sessions || []).find((item) => item.sessionId === payload.defaultSessionId) || {};
+                const status = data.status || 'unknown';
 
-                statusEl.textContent = `Status: ${data.status.toUpperCase()} (Last updated: ${new Date().toLocaleTimeString()})`;
-
-                if (data.status === 'connected') {
-                    qrImg.style.display = 'none';
-                    loader.style.display = 'none';
-                    statusEl.style.color = 'green';
-                    instruction.style.display = 'none';
-                } else if (data.status === 'logged_out') {
-                    qrImg.style.display = 'none';
-                    loader.style.display = 'none';
-                    statusEl.style.color = 'red';
-                    statusEl.textContent = 'Status: LOGGED_OUT. Apague auth_info_baileys e reinicie o servidor para gerar um novo QR.';
-                    instruction.style.display = 'none';
-                } else if (data.qrCode) {
-                    qrImg.src = data.qrCode;
-                    qrImg.style.display = 'block';
-                    loader.style.display = 'none';
-                    instruction.style.display = 'block';
-                    statusEl.style.color = '#e67e22'; // Orange for action needed
-                } else {
-                    qrImg.style.display = 'none';
-                    loader.style.display = 'block';
-                    statusEl.style.color = '#333';
-                }
-            } catch (e) {
-                console.error(e);
-                statusEl.textContent = `Error connecting to server... (${e.message})`;
-                statusEl.style.color = 'red';
+                el('waBadge').textContent = status.toUpperCase();
+                el('waBadge').className = `badge ${badgeClass(status)}`;
+                setQrState({ status: el('statusText'), image: el('qrcode'), help: el('qrHelp') }, status, data.qrCode);
+                setQrState({ status: el('loginStatusText'), image: el('loginQrcode'), help: el('loginQrHelp') }, status, data.qrCode);
+            } catch (error) {
+                el('waBadge').textContent = 'ERRO';
+                el('waBadge').className = 'badge red';
+                el('statusText').textContent = error.message;
+                el('loginStatusText').textContent = error.message;
             }
         }
 
-        // Check every 2 seconds
-        setInterval(checkStatus, 2000);
+        const currentChatPhone = () => state.selectedChat?.phone || state.selectedChat?.id || '';
+
+        const agentLabel = (agent) => ({
+            warmup: 'Aquecimento',
+            vitalismen: 'Vitalismen high-ticket',
+            vit_power_ec: 'Vit Power EC',
+            fallback: 'Geral'
+        }[agent] || 'Geral');
+
+        const isMine = (chat) => {
+            if (!state.user || chat.human?.mode !== 'manual') return false;
+            const assignedTo = String(chat.human?.assignedTo || '');
+            const assignedName = String(chat.human?.assignedName || '');
+            return assignedTo === String(state.user.id || state.user._id || '')
+                || assignedName === String(state.user.name || state.user.email || '');
+        };
+
+        const renderTeamList = () => {
+            const active = state.chats.filter((chat) => chat.human?.mode === 'manual');
+            const byOwner = active.reduce((acc, chat) => {
+                const owner = chat.human?.assignedName || 'Atendente';
+                acc[owner] = (acc[owner] || 0) + 1;
+                return acc;
+            }, {});
+            const rows = Object.entries(byOwner).sort((a, b) => b[1] - a[1]);
+            el('teamList').innerHTML = rows.map(([owner, count]) => `
+                <div class="team-row">
+                    <strong>${escapeHtml(owner)}</strong>
+                    <span class="badge orange">${count} cliente${count > 1 ? 's' : ''}</span>
+                </div>
+            `).join('') || '<div class="empty">Nenhum atendimento humano agora.</div>';
+        };
+
+        const renderChats = () => {
+            const search = el('chatSearch').value.trim().toLowerCase();
+            const filtered = state.chats.filter((chat) => {
+                const humanMode = chat.human?.mode === 'manual';
+                if (state.chatFilter === 'mine' && !isMine(chat)) return false;
+                if (state.chatFilter === 'manual' && !humanMode) return false;
+                if (state.chatFilter === 'auto' && humanMode) return false;
+                if (!search) return true;
+                return [chat.name, chat.phone, chat.orderId, chat.lastMessage?.body]
+                    .some((value) => String(value || '').toLowerCase().includes(search));
+            });
+
+            el('chatList').innerHTML = filtered.map((chat) => {
+                const isActive = state.selectedChat?.id === chat.id;
+                const owner = chat.human?.mode === 'manual'
+                    ? (chat.human?.assignedName || 'humano')
+                    : 'auto';
+                return `
+                    <button class="chat-item ${isActive ? 'active' : ''}" data-chat-id="${escapeHtml(chat.id)}" type="button">
+                        <div class="chat-title">
+                            <span class="truncate">${escapeHtml(compact(chat.name || chat.phone, 'Cliente'))}</span>
+                            <span class="badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}">${escapeHtml(owner)}</span>
+                        </div>
+                        <div class="meta truncate">${escapeHtml(chat.phone || chat.id)} ${chat.country ? ' · ' + escapeHtml(chat.country) : ''}</div>
+                        <div class="meta truncate">${escapeHtml(chat.lastMessage?.body || 'Sem mensagem recente')}</div>
+                    </button>
+                `;
+            }).join('') || '<div class="empty">Nenhum chat encontrado.</div>';
+
+            el('metricChats').textContent = String(state.chats.length);
+            el('metricManual').textContent = String(state.chats.filter((chat) => chat.human?.mode === 'manual').length);
+            el('metricMine').textContent = String(state.chats.filter(isMine).length);
+            renderTeamList();
+        };
+
+        const renderAutomationStatus = () => {
+            const status = state.automationStatus;
+            if (!status) {
+                el('automationGrid').innerHTML = '<div class="empty">Automacao ainda nao carregada.</div>';
+                el('automationNotes').innerHTML = '';
+                return;
+            }
+            const flags = status.flags || {};
+            const counts = status.counts || {};
+            const senderPool = status.whatsapp?.senderPool || {};
+            const activeSenders = (senderPool.sessions || []).filter((item) => item.connected).length;
+            el('automationUpdatedAt').textContent = formatTime(status.timestamp) || 'agora';
+
+            const items = [
+                {
+                    label: 'Agendador',
+                    value: yesNoBadge(flags.scheduler?.enabled),
+                    detail: flags.scheduler?.enabled ? 'Ciclos automaticos liberados' : 'Ciclos automaticos pausados'
+                },
+                {
+                    label: 'Auto-resposta',
+                    value: yesNoBadge(flags.autoReply?.enabled),
+                    detail: `${counts.humanHeld || 0} conversa(s) em humano`
+                },
+                {
+                    label: 'Funil pendente',
+                    value: yesNoBadge(flags.funnel?.enabled),
+                    detail: `${counts.funnelPending || 0} pedido(s) aguardando etapa`
+                },
+                {
+                    label: 'Entrega',
+                    value: yesNoBadge(flags.shipments?.enabled),
+                    detail: `${counts.shipmentNotificationCandidates || 0} possivel(is) aviso(s)`
+                },
+                {
+                    label: 'Dropi',
+                    value: `<span class="badge ${counts.dropiPaymentRequired ? 'orange' : 'green'}">${counts.dropiPaymentRequired ? 'saldo' : 'ok'}</span>`,
+                    detail: `${counts.dropiPaymentRequired || 0} pedido(s) aguardando saldo`
+                },
+                {
+                    label: 'Meta/Facebook',
+                    value: `<span class="badge ${(flags.meta?.ecConfigured && flags.meta?.coConfigured) ? 'green' : 'orange'}">${(flags.meta?.ecConfigured || flags.meta?.coConfigured) ? 'parcial' : 'pendente'}</span>`,
+                    detail: `EC ${flags.meta?.ecConfigured ? 'ok' : 'sem chave'} / CO ${flags.meta?.coConfigured ? 'ok' : 'sem chave'}`
+                },
+                {
+                    label: 'Numeros WhatsApp',
+                    value: `<span class="badge ${senderPool.rotationEnabled ? 'green' : ''}">${senderPool.rotationEnabled ? 'rodizio' : 'teste'}</span>`,
+                    detail: `${activeSenders}/${(senderPool.sessions || []).length || 1} numero(s) conectado(s)`
+                }
+            ];
+
+            el('automationGrid').innerHTML = items.map((item) => `
+                <div class="automation-item">
+                    <div class="row">
+                        <span class="meta">${escapeHtml(item.label)}</span>
+                        ${item.value}
+                    </div>
+                    <strong>${escapeHtml(item.detail)}</strong>
+                </div>
+            `).join('');
+
+            const notes = status.notes || [];
+            el('automationNotes').innerHTML = notes.map((note) => `
+                <div class="automation-note">
+                    <div class="row">
+                        <strong>${escapeHtml(note.label || 'Aviso')}</strong>
+                        <span class="badge ${note.kind === 'blocked' ? 'red' : note.kind === 'attention' ? 'orange' : ''}">${escapeHtml(note.kind || 'info')}</span>
+                    </div>
+                    <div class="meta">${escapeHtml(note.detail || '')}</div>
+                </div>
+            `).join('') || '<div class="meta">Automacao sem alertas principais.</div>';
+        };
+
+        async function loadAutomationStatus() {
+            if (!state.token) return;
+            const data = await api('/api/automation/status');
+            state.automationStatus = data;
+            renderAutomationStatus();
+        }
+
+        async function loadChats() {
+            if (!state.token) return;
+            const country = el('countryFilter').value;
+            const qs = new URLSearchParams();
+            if (country) qs.set('country', country);
+            state.chats = await api(`/api/whatsapp/chats?${qs.toString()}`);
+            if (state.selectedChat) {
+                const selectedPhone = String(state.selectedChat.phone || '').replace(/\D/g, '');
+                state.selectedChat = state.chats.find((chat) => (
+                    chat.id === state.selectedChat.id ||
+                    (selectedPhone && String(chat.phone || '').replace(/\D/g, '') === selectedPhone)
+                )) || state.selectedChat;
+            }
+            renderChats();
+            renderSelectedDetails();
+        }
+
+        const getMessageSignature = (messages) => (messages || [])
+            .map((message) => [
+                message._id || '',
+                message.timestamp || '',
+                message.isFromMe ? '1' : '0',
+                message.body || '',
+                message.type || ''
+            ].join(':'))
+            .join('|');
+
+        const renderMessages = (messages, options = {}) => {
+            const box = el('conversation');
+            const previousBottom = box.scrollHeight - box.scrollTop;
+            box.innerHTML = messages.map((message) => {
+                const media = message.mediaUrl
+                    ? `<div class="meta">${escapeHtml(message.type || 'midia')}: ${escapeHtml(message.mediaUrl)}</div>`
+                    : '';
+                const senderLabel = message.isFromMe
+                    ? (message.isBot ? 'IA comercial' : `atendente${message.notifyName ? ': ' + message.notifyName : ''}`)
+                    : 'cliente';
+                return `
+                    <div class="bubble ${message.isFromMe ? 'me' : ''}">
+                        <div>${escapeHtml(message.body || message.type || 'Mensagem sem texto')}</div>
+                        ${media}
+                        <div class="time">${escapeHtml(senderLabel)} · ${formatTime(message.timestamp)}</div>
+                    </div>
+                `;
+            }).join('') || '<div class="empty">Sem mensagens salvas para este cliente.</div>';
+            if (options.preserveScroll) {
+                box.scrollTop = Math.max(0, box.scrollHeight - previousBottom);
+            } else {
+                box.scrollTop = box.scrollHeight;
+            }
+        };
+
+        async function loadSelectedMessages(options = {}) {
+            if (!state.token || !state.selectedChat || state.messagesLoading) return;
+            state.messagesLoading = true;
+            try {
+                const data = await api(`/api/whatsapp/messages/${encodeURIComponent(currentChatPhone())}`);
+                const messages = data || [];
+                const signature = getMessageSignature(messages);
+                if (options.force || signature !== state.messageSignature) {
+                    const box = el('conversation');
+                    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+                    state.messageSignature = signature;
+                    renderMessages(messages, { preserveScroll: !nearBottom && !options.force });
+                }
+            } finally {
+                state.messagesLoading = false;
+            }
+        }
+
+        async function selectChat(chatId) {
+            const chat = state.chats.find((item) => item.id === chatId);
+            if (!chat) return;
+            state.selectedChat = chat;
+            state.messageSignature = '';
+            renderChats();
+            el('sendBtn').disabled = false;
+            renderSelectedDetails();
+            await loadSelectedMessages({ force: true });
+            renderShipments();
+            loadAudioTemplates().catch((error) => showToast(error.message));
+        }
+
+        const renderSelectedDetails = () => {
+            const chat = state.selectedChat;
+            if (!chat) {
+                el('activeName').textContent = 'Selecione um cliente';
+                el('activeMeta').textContent = 'A conversa aparece aqui para intervencao manual.';
+                el('detailOwner').textContent = 'Sem responsavel';
+                el('detailOrder').textContent = 'Sem pedido vinculado';
+                el('detailLocation').textContent = 'Sem dados';
+                el('detailAutomation').textContent = 'Auto';
+                el('detailAgent').textContent = 'Sem agente';
+                el('claimBtn').textContent = 'Assumir';
+                el('claimBtn').disabled = true;
+                el('releaseBtn').textContent = 'Liberar auto';
+                el('releaseBtn').disabled = true;
+                el('sendSelectedDropiBtn').disabled = true;
+                el('buyLaterBtn').disabled = true;
+                document.querySelectorAll('[data-draft-template]').forEach((button) => {
+                    button.disabled = true;
+                });
+                renderAudioTemplates();
+                return;
+            }
+            const owner = chat.human?.mode === 'manual'
+                ? (chat.human?.assignedName || 'Atendimento humano')
+                : 'Automacao ativa';
+            el('activeName').textContent = compact(chat.name || chat.phone, 'Cliente');
+            el('activeMeta').textContent = `${compact(chat.phone || chat.id)}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : 'em automacao'}`;
+            el('detailOwner').textContent = owner;
+            el('detailOrder').textContent = chat.orderId ? `${chat.orderId} · ${chat.orderStatus || 'sem status'}` : 'Sem pedido vinculado';
+            el('detailLocation').textContent = [chat.country, chat.city].filter(Boolean).join(' / ') || 'Sem dados';
+            el('detailAutomation').textContent = chat.human?.mode === 'manual' ? 'Pausada para humano' : 'Auto';
+            el('detailAgent').textContent = agentLabel(chat.assignedAgent);
+            el('manualStatus').textContent = chat.human?.mode === 'manual' ? `atendente no comando: ${owner}` : 'modo manual ao enviar';
+            el('manualStatus').className = `badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}`;
+            el('sendSelectedDropiBtn').disabled = !(chat.orderId && chat.country);
+            el('buyLaterBtn').disabled = !(chat.orderId && chat.country);
+            if (chat.human?.mode === 'manual') {
+                if (isMine(chat)) {
+                    el('claimBtn').textContent = 'Com você';
+                    el('claimBtn').disabled = true;
+                } else {
+                    el('claimBtn').textContent = `Assumir de ${owner}`;
+                    el('claimBtn').disabled = false;
+                }
+                el('releaseBtn').textContent = 'Liberar auto';
+                el('releaseBtn').disabled = false;
+            } else {
+                el('claimBtn').textContent = 'Assumir';
+                el('claimBtn').disabled = false;
+                el('releaseBtn').textContent = 'Liberar auto';
+                el('releaseBtn').disabled = true;
+            }
+            document.querySelectorAll('[data-draft-template]').forEach((button) => {
+                button.disabled = false;
+            });
+            renderAudioTemplates();
+        };
+
+        const currentTemplateCountry = () => {
+            const selected = String(state.selectedChat?.country || '').toUpperCase();
+            if (selected === 'CO' || selected === 'EC') return selected;
+            const filtered = String(el('countryFilter').value || '').toUpperCase();
+            return filtered === 'CO' ? 'CO' : 'EC';
+        };
+
+        const funnelAudioLabel = (template) => {
+            const label = String(template?.label || '').replace(/\s+/g, ' ').trim();
+            const base = label || String(template?.id || '').split(':').pop()?.replace(/\.ogg$/i, '') || 'Audio';
+            if (/INICIO 01/i.test(base)) return 'Inicio 01 · primeiro contato';
+            if (/INICIO 02/i.test(base)) return 'Inicio 02 · reforco do atendimento';
+            if (/CHEGOU 01/i.test(base)) return 'Chegou 01 · pedido na agencia';
+            if (/CHEGOU 02/i.test(base)) return 'Chegou 02 · lembrete de retirada';
+            if (/CHEGOU 03/i.test(base)) return 'Chegou 03 · ultimo reforco';
+            return base;
+        };
+
+        const renderAudioTemplates = () => {
+            const country = currentTemplateCountry();
+            el('audioTemplateCountry').textContent = country;
+            if (!state.selectedChat) {
+                el('audioTemplateList').innerHTML = '<div class="empty">Selecione um cliente para enviar audio.</div>';
+                return;
+            }
+            const templates = state.audioTemplates
+                .filter((template) => template.country === country)
+                .filter((template) => /Inicio|Chegou/i.test(template.label || template.id || ''));
+
+            el('audioTemplateList').innerHTML = templates.map((template) => `
+                <div class="audio-template">
+                    <div class="row">
+                        <strong>${escapeHtml(funnelAudioLabel(template))}</strong>
+                        <button data-audio-template="${escapeHtml(template.mediaUrl)}" type="button">Enviar</button>
+                    </div>
+                    ${template.previewUrl ? `<audio controls preload="none" src="${escapeHtml(template.previewUrl)}"></audio>` : ''}
+                </div>
+            `).join('') || '<div class="empty">Nenhum audio aprovado para este pais.</div>';
+        };
+
+        async function loadAudioTemplates() {
+            if (!state.token) return;
+            const country = currentTemplateCountry();
+            const data = await api(`/api/whatsapp/templates?country=${encodeURIComponent(country)}`);
+            const otherCountryTemplates = state.audioTemplates.filter((template) => template.country !== country);
+            state.audioTemplates = [...otherCountryTemplates, ...(data.templates || [])];
+            renderAudioTemplates();
+        }
+
+        async function sendFunnelAudio(mediaUrl, button) {
+            if (!state.selectedChat || state.busy || !mediaUrl) return;
+            state.busy = true;
+            const label = button.textContent;
+            button.disabled = true;
+            button.textContent = '...';
+            try {
+                await api('/api/whatsapp/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        phone: currentChatPhone(),
+                        message: mediaUrl,
+                        isMedia: true,
+                        sessionId
+                    })
+                });
+                showToast('Audio do funil enviado');
+                await Promise.all([loadSelectedMessages({ force: true }), loadChats()]);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                button.disabled = false;
+                button.textContent = label;
+            }
+        }
+
+        const buildAvisos = (shipment) => {
+            const a = shipment.automation || {};
+            const items = [
+                a.submittedToDroppiAt ? 'Dropi enviado' : '',
+                shipment.review?.reviewStatus === 'manual_send_required' ? 'Pedir envio manual' : '',
+                shipment.review?.reviewStatus === 'dropi_payment_required' ? 'Aguardando saldo Dropi' : '',
+                shipment.review?.reviewStatus === 'manual_sent' ? 'Marcado enviado manual' : '',
+                a.guiaNotifiedAt ? 'Guia avisada' : '',
+                a.readyForPickupNotifiedAt ? 'Agencia avisada' : '',
+                a.pickupProofRequestedAt ? 'Comprovante pedido' : '',
+                a.bonusNotifiedAt ? 'Bonus enviado' : ''
+            ].filter(Boolean);
+            return items.join(' · ') || 'Sem avisos';
+        };
+
+        const dropiFilterLabels = {
+            all_dropi: 'visao geral',
+            confirmed: 'conferir e autorizar',
+            not_sent: 'enviar para Dropi',
+            sent: 'enviados',
+            progress: 'revisar',
+            returned: 'recuperar',
+            buy_later: 'retomar'
+        };
+
+        const shipmentStatus = (shipment) => String(shipment?.logistics?.status || '').toUpperCase();
+        const isSentShipment = (shipment) => Boolean(shipment?.automation?.submittedToDroppiAt) || /GUIA_GENERADA|PREPARADO/.test(shipmentStatus(shipment));
+        const isReturnedShipment = (shipment) => /DEVUELTO|RETURNED|DEVOLUCION|DEVOLUCAO|NO_RETIRADO/.test(shipmentStatus(shipment));
+        const needsManualSend = (shipment) => shipment?.review?.manualOnly || shipment?.review?.reviewStatus === 'manual_send_required';
+        const needsDropiPayment = (shipment) => shipment?.review?.reviewStatus === 'dropi_payment_required'
+            || shipment?.automation?.browserCheckpoint === 'dropi_payment_required';
+        const isProgressShipment = (shipment) => needsManualSend(shipment) || needsDropiPayment(shipment) || /PENDIENTE|MERCANCIA|BODEGA|DESPACHO|RUTA|REPARTO|PROCESAMIENTO|READY_FOR_PICKUP|NOVEDAD|AGENCIA/.test(shipmentStatus(shipment));
+
+        const dropiSubmitPath = (country, orderId) => {
+            return `/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit`;
+        };
+
+        const dropiPreparePath = (country, orderId) => {
+            return `/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/prepare-manual`;
+        };
+
+        const manualDropiPrepareAvailable = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        const dropiAuthorizePath = (country, orderId) => {
+            return `/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/authorize-submit`;
+        };
+
+        async function submitDropiOrder(orderId, country) {
+            if (!orderId) throw new Error('Pedido nao informado');
+            const result = await api(dropiSubmitPath(country, orderId), { method: 'POST' });
+            if (result.manualSendRequired) return result;
+            if (result.paymentRequired) return result;
+            if (result.alreadySubmitted) return result;
+            if (result.ok === false || result.success === false) {
+                throw new Error(result.error || result.reason || 'Dropi nao confirmou o envio');
+            }
+            return result;
+        }
+
+        async function prepareDropiOrder(orderId, country) {
+            if (!orderId) throw new Error('Pedido nao informado');
+            const result = await api(dropiPreparePath(country, orderId), { method: 'POST' });
+            if (result.alreadySubmitted) return result;
+            if (result.ok === false || result.success === false) {
+                throw new Error(result.error || result.reason || 'Nao consegui preparar a Dropi');
+            }
+            return result;
+        }
+
+        async function authorizeDropiOrder(orderId, country) {
+            if (!orderId) throw new Error('Pedido nao informado');
+            const result = await api(dropiAuthorizePath(country, orderId), {
+                method: 'POST',
+                body: JSON.stringify({ note: 'Autorizado no painel operacional Dropi' })
+            });
+            if (result.ok === false || result.success === false) {
+                throw new Error(result.error || result.reason || 'Nao consegui autorizar o pedido');
+            }
+            return result;
+        }
+
+        const dropiSuccessId = (result) => result.dropiOrderId
+            || result.result?.dropiResponse?.objects?.id
+            || result.result?.dropiOrderId
+            || result.shipment?.raw?.droppiOrder?.id
+            || '';
+
+        const dropiSuccessMessage = (result) => {
+            const dropiId = dropiSuccessId(result);
+            if (result.alreadySubmitted) {
+                return dropiId ? `Pedido ja estava enviado. ID ${dropiId}.` : 'Pedido ja estava enviado para Dropi.';
+            }
+            return dropiId ? `Enviado para Dropi. ID ${dropiId}.` : 'Enviado para Dropi com sucesso.';
+        };
+
+        const findLoadedOrder = (orderId) => state.orders.find((order) => order.orderId === orderId)
+            || state.dropiItems.find((item) => item.type === 'order' && item.order?.orderId === orderId)?.order
+            || null;
+
+        const findLoadedShipment = (orderId) => state.shipments.find((shipment) => shipment.orderId === orderId)
+            || state.dropiItems.find((item) => item.type === 'shipment' && item.shipment?.orderId === orderId)?.shipment
+            || null;
+
+        const selectedChatOrderFallback = (orderId, country) => {
+            if (state.selectedChat?.orderId !== orderId) return null;
+            return {
+                orderId,
+                country: country || state.selectedChat.country,
+                status: state.selectedChat.orderStatus,
+                customer: {
+                    name: state.selectedChat.name,
+                    phone: state.selectedChat.phone,
+                    city: state.selectedChat.city,
+                    province: state.selectedChat.province,
+                    address: state.selectedChat.address
+                }
+            };
+        };
+
+        const orderConfirmData = (orderId, country) => {
+            const order = findLoadedOrder(orderId) || selectedChatOrderFallback(orderId, country) || { orderId, country };
+            const shipment = findLoadedShipment(orderId);
+            const customer = order.customer || shipment?.client || {};
+            const pkg = order.package || {};
+            return {
+                orderId: order.orderId || shipment?.orderId || orderId,
+                country: order.country || shipment?.country || country || '',
+                status: order.status || shipment?.logistics?.status || '',
+                name: customer.name || shipment?.client?.name || '',
+                phone: customer.phone || shipment?.client?.phone || '',
+                province: customer.province || shipment?.client?.province || '',
+                city: customer.city || shipment?.client?.city || '',
+                address: customer.address || shipment?.client?.address || '',
+                reference: customer.reference || shipment?.client?.reference || '',
+                packageLabel: pkg.label || (pkg.quantity ? `${pkg.quantity} unidade(s)` : ''),
+                quantity: pkg.quantity || shipment?.treatment?.unitsPurchased || '',
+                total: order.total ?? '',
+                currency: order.currency || 'USD'
+            };
+        };
+
+        const formatMoney = (value, currency) => {
+            if (value === '' || value === null || value === undefined) return 'sem valor';
+            const number = Number(value);
+            if (!Number.isFinite(number)) return String(value);
+            return `${number.toFixed(2)} USD`;
+        };
+
+        const formatDropiConfirmBlock = (data, index = null) => {
+            const prefix = index === null ? '' : `${index + 1}. `;
+            return [
+                `${prefix}Pedido: ${data.orderId || 'sem ID'}${data.status ? ` · status ${data.status}` : ''}`,
+                `Cliente: ${data.name || 'sem nome'}`,
+                `Telefone: ${data.phone || 'sem telefone'}`,
+                `Local: ${[data.province, data.city].filter(Boolean).join(' / ') || 'sem local'}`,
+                `Endereco: ${data.address || 'sem endereco'}`,
+                data.reference ? `Referencia: ${data.reference}` : '',
+                `Pacote: ${data.packageLabel || (data.quantity ? `${data.quantity} unidade(s)` : 'sem pacote')}`,
+                `Total: ${formatMoney(data.total, data.currency)}`
+            ].filter(Boolean).join('\n');
+        };
+
+        const confirmDropiSubmission = (orderId, country) => {
+            const data = orderConfirmData(orderId, country);
+            return window.confirm([
+                'Confirmar envio deste pedido para a Dropi?',
+                '',
+                formatDropiConfirmBlock(data),
+                '',
+                'Apos confirmar, o pedido sera processado na Dropi.'
+            ].join('\n'));
+        };
+
+        const confirmBulkDropiSubmission = (orders) => {
+            const blocks = orders.map((order, index) => formatDropiConfirmBlock(orderConfirmData(order.orderId, order.country), index));
+            return window.confirm([
+                `Confirmar envio de ${orders.length} pedido(s) para a Dropi?`,
+                '',
+                blocks.join('\n\n'),
+                '',
+                'Apos confirmar, todos serao processados em sequencia.'
+            ].join('\n'));
+        };
+
+        const manualDropiActionLabels = {
+            'authorize-dropi': {
+                title: 'Autorizar este pedido para envio na Dropi?',
+                footer: 'Depois de autorizado, ele entra na etapa 2 Enviar para Dropi. Nada sera enviado agora.'
+            },
+            'requeue-dropi': {
+                title: 'Voltar este pedido para a etapa Enviar para Dropi?',
+                footer: 'Use quando o erro anterior ja foi corrigido. Nada sera enviado agora; ele apenas volta para a fila normal.'
+            },
+            'prepare-dropi': {
+                title: 'Confirmar preparo manual deste pedido na Dropi?',
+                footer: 'Apos confirmar, a automacao abrira/preenchera a Dropi para conferencia manual.'
+            },
+            'mark-manual-sent': {
+                title: 'Confirmar que este pedido JA foi enviado manualmente?',
+                footer: 'Use somente se o pedido ja foi criado na Dropi fora do envio automatico.'
+            },
+            'manual-send-required': {
+                title: 'Confirmar marcar este pedido para envio manual?',
+                footer: 'Apos confirmar, ele saira da fila automatica e ficara para revisao/manual.'
+            },
+            'delete-fake': {
+                title: 'Excluir este pedido fake do painel?',
+                footer: 'So use para teste/fake. Se for pedido real, nao exclua. Pedido com guia ou Dropi ID sera bloqueado.'
+            }
+        };
+
+        const confirmManualDropiAction = (orderId, country, action) => {
+            const copy = manualDropiActionLabels[action];
+            if (!copy) return true;
+            const data = orderConfirmData(orderId, country);
+            return window.confirm([
+                copy.title,
+                '',
+                formatDropiConfirmBlock(data),
+                '',
+                copy.footer
+            ].join('\n'));
+        };
+
+        const matchesSelectedOrSearch = (item) => {
+            const search = el('shipmentSearch').value.trim().toLowerCase();
+            const selectedPhone = String(state.selectedChat?.phone || '').replace(/\D/g, '');
+            const haystack = item.type === 'order'
+                ? [
+                    item.order.orderId,
+                    item.order.customer?.name,
+                    item.order.customer?.phone,
+                    item.order.customer?.city,
+                    item.order.customer?.province
+                ].join(' ').toLowerCase()
+                : [
+                    item.shipment.orderId,
+                    item.shipment.client?.name,
+                    item.shipment.client?.phone,
+                    item.shipment.client?.city,
+                    item.shipment.client?.province,
+                    item.shipment.logistics?.trackingNumber
+                ].join(' ').toLowerCase();
+            if (search) return haystack.includes(search);
+            if (!selectedPhone) return true;
+            const itemPhone = item.type === 'order'
+                ? item.order.customer?.phone
+                : item.shipment.client?.phone;
+            return String(itemPhone || '').replace(/\D/g, '').endsWith(selectedPhone.slice(-9));
+        };
+
+        const renderOrderCard = (order) => {
+            const isBuyLater = state.dropiFilter === 'buy_later';
+            const followUpAt = order.purchaseIntent?.followUpAt;
+            const canAuthorize = isOrderWaitingAuthorization(order);
+            const canSubmit = isOrderWaitingDropi(order);
+            const checked = state.selectedDropiOrders.has(order.orderId || '');
+            const process = state.dropiProcessStatus[order.orderId || ''];
+            const badge = process?.label || (isBuyLater ? (followUpAt ? 'agendado' : 'comprar depois') : order.status);
+            const badgeKind = process?.kind === 'success' ? 'green'
+                : process?.kind === 'error' ? 'red'
+                    : process?.kind === 'manual' || process?.kind === 'running' ? 'orange'
+                        : badgeClass(badge);
+            const total = Number(order.total || 0);
+            const amount = total ? `${order.currency || ''} ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'sem valor';
+            return `
+                <article class="shipment-card order-card ${checked ? 'selected' : ''}">
+                    <div class="row">
+                        <label class="select-line">
+                            ${canSubmit ? `<input type="checkbox" data-dropi-select="${escapeHtml(order.orderId || '')}" data-country="${escapeHtml(order.country || '')}" ${checked ? 'checked' : ''}>` : ''}
+                            <span class="order-title">
+                                <strong>${escapeHtml(compact(order.customer?.name, 'Cliente sem nome'))}</strong>
+                                <span class="meta">${escapeHtml(order.orderId || '')} · ${escapeHtml(compact(order.customer?.phone, 'sem telefone'))}</span>
+                            </span>
+                        </label>
+                        <span class="badge ${badgeKind}">${escapeHtml(badge || 'pedido')}</span>
+                    </div>
+                    <div class="order-detail-grid">
+                        <div class="order-detail">
+                            <span>Quantidade</span>
+                            <strong>${escapeHtml(order.package?.label || `${order.package?.quantity || 1} unidade(s)`)}</strong>
+                        </div>
+                        <div class="order-detail">
+                            <span>Valor</span>
+                            <strong>${escapeHtml(amount)}</strong>
+                        </div>
+                        <div class="order-detail">
+                            <span>Cidade</span>
+                            <strong>${escapeHtml(compact(order.customer?.city, 'sem cidade'))}</strong>
+                        </div>
+                        <div class="order-detail">
+                            <span>Provincia</span>
+                            <strong>${escapeHtml(compact(order.customer?.province, 'sem provincia'))}</strong>
+                        </div>
+                        <div class="order-detail full">
+                            <span>Endereco completo</span>
+                            <strong>${escapeHtml(compact(order.customer?.address, 'sem endereco'))}</strong>
+                        </div>
+                        <div class="order-detail full">
+                            <span>Status do processo</span>
+                            <strong>${escapeHtml(process?.message || (followUpAt ? 'Retomar em ' + formatTime(followUpAt) : 'Pronto para enviar para Dropi'))}</strong>
+                        </div>
+                    </div>
+                    <div class="shipment-actions">
+                        ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Autorizar pedido</button>` : ''}
+                        ${canSubmit ? `<button class="primary" data-shipment-action="submit-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Enviar para Dropi</button>` : ''}
+                    </div>
+                </article>
+            `;
+        };
+
+        const getOrderProcessInfo = (order) => {
+            const shipment = order.shipment || {};
+            const localProcess = state.dropiProcessStatus[order.orderId || ''];
+            if (localProcess) return localProcess;
+            const dropiId = order.dropiOrderId || shipment.raw?.droppiOrder?.id || '';
+            if (shipment.automation?.submittedToDroppiAt || dropiId) {
+                return {
+                    kind: 'success',
+                    label: 'pedido enviado',
+                    message: dropiId ? `Dropi ID ${dropiId}` : 'Enviado para Dropi'
+                };
+            }
+            if (shipment.automation?.browserCheckpoint === 'manual_prepare_ready') {
+                return {
+                    kind: 'running',
+                    label: 'preparado na Dropi',
+                    message: 'Formulario aberto para conferir e enviar manualmente'
+                };
+            }
+            if (needsDropiPayment(shipment)) {
+                return {
+                    kind: 'manual',
+                    label: 'aguardando saldo',
+                    message: shipment.automation?.browserLastError || 'Dropi bloqueou por saldo/credito insuficiente'
+                };
+            }
+            if (shipment.review?.reviewStatus === 'manual_send_required' || shipment.review?.manualOnly) {
+                return {
+                    kind: 'manual',
+                    label: 'manual',
+                    message: shipment.automation?.browserLastError || 'Precisa envio manual'
+                };
+            }
+            if (shipment.automation?.browserCheckpoint) {
+                const checkpoint = shipment.automation.browserCheckpoint;
+                const checkpointLabels = {
+                    logged_in: 'em andamento',
+                    prepared_submission: 'preparando',
+                    manual_prepare_started: 'preparando',
+                    manual_prepare_logged_in: 'preparando',
+                    manual_prepare_ready: 'preparado na Dropi',
+                    manual_prepare_failed: 'erro ao preparar',
+                    dropi_payment_required: 'aguardando saldo',
+                    submit_failed: 'erro'
+                };
+                const checkpointMessages = {
+                    manual_prepare_ready: 'Formulario aberto para conferir e enviar manualmente',
+                    dropi_payment_required: 'Dropi bloqueou por saldo/credito insuficiente'
+                };
+                return {
+                    kind: checkpoint.includes('failed') ? 'error' : 'running',
+                    label: checkpointLabels[checkpoint] || checkpoint,
+                    message: shipment.automation?.browserLastError || checkpointMessages[checkpoint] || 'Processo iniciado'
+                };
+            }
+            const tracking = shipment.logistics?.trackingNumber || '';
+            const logisticsStatus = String(shipment.logistics?.status || '').toUpperCase();
+            if (tracking || /GUIA_GENERADA|PREPARADO|PENDIENTE|MERCANCIA|BODEGA|DESPACHO|RUTA|REPARTO|READY_FOR_PICKUP|NOVEDAD|AGENCIA|ENTREGADO|DEVUELTO/.test(logisticsStatus)) {
+                return {
+                    kind: 'success',
+                    label: tracking ? 'guia gerada' : (logisticsStatus || 'enviado'),
+                    message: tracking ? `Guia ${tracking}` : 'Pedido ja saiu da fila de envio'
+                };
+            }
+            return {
+                kind: 'pending',
+                label: 'pendente',
+                message: 'Aguardando envio'
+            };
+        };
+
+        const hasDropiGuideOrTracking = (order) => {
+            const shipment = order.shipment || {};
+            const status = String(shipment.logistics?.status || '').toUpperCase();
+            return Boolean(shipment.logistics?.trackingNumber)
+                || /GUIA_GENERADA|PREPARADO|PENDIENTE|MERCANCIA|BODEGA|DESPACHO|RUTA|REPARTO|READY_FOR_PICKUP|NOVEDAD|AGENCIA|ENTREGADO|DEVUELTO/.test(status);
+        };
+
+        const isDropiAuthorized = (order) => Boolean(order.shipment?.automation?.dropiSubmitAuthorizedAt);
+
+        const getDropiStage = (order) => {
+            const process = getOrderProcessInfo(order);
+            if (process.kind === 'success' || hasDropiGuideOrTracking(order)) return 'sent';
+            if (['manual', 'running', 'error'].includes(process.kind)) return 'review';
+            if (order.status !== 'confirmed') return 'other';
+            if (isDropiAuthorized(order)) return 'send';
+            return 'authorize';
+        };
+
+        const isOrderWaitingAuthorization = (order) => getDropiStage(order) === 'authorize';
+        const isOrderWaitingDropi = (order) => getDropiStage(order) === 'send';
+        const isOrderSentDropi = (order) => getDropiStage(order) === 'sent';
+        const isOrderReviewDropi = (order) => getDropiStage(order) === 'review';
+        const isOrderNotSentDropi = (order) => ['authorize', 'send', 'review'].includes(getDropiStage(order));
+
+        const processBadgeClass = (kind) => {
+            if (kind === 'success') return 'sent';
+            if (kind === 'manual' || kind === 'running') return 'orange';
+            if (kind === 'error') return 'red';
+            return '';
+        };
+
+        const renderOrderTable = (orders) => {
+            const rows = orders.map((order) => {
+                const checked = state.selectedDropiOrders.has(order.orderId || '');
+                const process = getOrderProcessInfo(order);
+                const stage = getDropiStage(order);
+                const canAuthorize = stage === 'authorize';
+                const canSubmit = isOrderWaitingDropi(order);
+                const canRetry = stage === 'review';
+                const canRequeue = stage === 'review' && !hasDropiGuideOrTracking(order);
+                const canPrepare = manualDropiPrepareAvailable && (stage === 'send' || stage === 'review');
+                const canMarkManualSent = process.kind === 'manual' || order.status === 'confirmed';
+                const total = Number(order.total || 0);
+                const amount = total ? `${order.currency || ''} ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'sem valor';
+                const qty = order.package?.label || `${order.package?.quantity || 1} unidade(s)`;
+                return `
+                    <tr class="${checked ? 'selected' : ''}">
+                        <td>${canAuthorize || canSubmit ? `<input type="checkbox" data-dropi-select="${escapeHtml(order.orderId || '')}" data-country="${escapeHtml(order.country || '')}" ${checked ? 'checked' : ''}>` : ''}</td>
+                        <td class="cell-main">
+                            <strong>${escapeHtml(compact(order.customer?.name, 'Cliente sem nome'))}</strong>
+                            <div class="cell-sub">ID: ${escapeHtml(order.orderId || '')}</div>
+                        </td>
+                        <td><span class="badge ${badgeClass(order.status)}">${escapeHtml(order.status || 'pedido')}</span></td>
+                        <td class="cell-sub">${escapeHtml(compact(order.customer?.phone, 'sem telefone'))}</td>
+                        <td class="cell-sub">
+                            <strong>${escapeHtml([order.customer?.city, order.customer?.province].filter(Boolean).join(', ') || 'sem local')}</strong>
+                            <div>${escapeHtml(compact(order.customer?.address, 'sem endereco'))}</div>
+                        </td>
+                        <td class="cell-sub">${escapeHtml(qty)}<br>${escapeHtml(amount)}</td>
+                        <td>
+                            <span class="badge ${processBadgeClass(process.kind)}">${escapeHtml(process.label)}</span>
+                            <span class="status-note">${escapeHtml(process.message)}</span>
+                        </td>
+                        <td>
+                            <div class="order-table-actions">
+                                ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Autorizar</button>` : ''}
+                                ${canSubmit ? `<button class="primary" data-shipment-action="submit-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Enviar para Dropi</button>` : ''}
+                                ${canRequeue ? `<button class="primary" data-shipment-action="requeue-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Voltar p/ enviar</button>` : ''}
+                                ${canPrepare ? `<button data-shipment-action="prepare-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Preparar Dropi</button>` : ''}
+                                ${!canSubmit && canRetry ? `<button data-shipment-action="submit-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Tentar direto</button>` : ''}
+                                ${canMarkManualSent ? `<button class="success" data-shipment-action="mark-manual-sent" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Manual enviado</button>` : ''}
+                                ${process.kind !== 'success' ? `<button data-shipment-action="manual-send-required" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Marcar manual</button>` : ''}
+                                ${process.kind !== 'success' ? `<button class="danger" data-shipment-action="delete-fake" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Excluir fake</button>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            return `
+                <div class="order-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sel.</th>
+                                <th>Cliente</th>
+                                <th>Etapa</th>
+                                <th>Contato</th>
+                                <th>Localizacao / endereco</th>
+                                <th>Pedido</th>
+                                <th>Dropi</th>
+                                <th>Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        const renderShipmentCard = (shipment) => {
+            const status = shipment.logistics?.status || 'sem status';
+            const orderId = shipment.orderId || '';
+            const canSubmit = !shipment.automation?.submittedToDroppiAt && !shipment.logistics?.trackingNumber;
+            const canPrepare = manualDropiPrepareAvailable && canSubmit;
+            const manualRequired = shipment.review?.reviewStatus === 'manual_send_required';
+            return `
+                <article class="shipment-card">
+                    <div class="row">
+                        <strong>${escapeHtml(orderId)}</strong>
+                        <span class="badge ${manualRequired ? 'orange' : badgeClass(status)}">${escapeHtml(manualRequired ? 'envio manual' : status)}</span>
+                    </div>
+                    <div class="meta">${escapeHtml(compact(shipment.client?.name, 'Cliente'))} · ${escapeHtml(compact(shipment.client?.phone, 'sem telefone'))}</div>
+                    <div class="meta">${escapeHtml([shipment.client?.city, shipment.client?.province].filter(Boolean).join(', ') || 'sem local')}</div>
+                    <div class="meta">${escapeHtml(buildAvisos(shipment))}</div>
+                    <div class="shipment-actions">
+                        ${canSubmit ? `<button class="primary" data-shipment-action="submit-dropi" data-country="${escapeHtml(shipment.country || '')}" data-order="${escapeHtml(orderId)}" type="button">Enviar para Dropi</button>` : ''}
+                        ${canPrepare ? `<button data-shipment-action="prepare-dropi" data-country="${escapeHtml(shipment.country || '')}" data-order="${escapeHtml(orderId)}" type="button">Preparar Dropi</button>` : ''}
+                        ${manualRequired ? `<button class="success" data-shipment-action="mark-manual-sent" data-country="${escapeHtml(shipment.country || '')}" data-order="${escapeHtml(orderId)}" type="button">Marcar enviado manual</button>` : ''}
+                        <button data-shipment-action="manual-send-required" data-country="${escapeHtml(shipment.country || '')}" data-order="${escapeHtml(orderId)}" type="button">Pedir envio manual</button>
+                        <button data-shipment-action="panel-sync" data-order="${escapeHtml(orderId)}" type="button">Sincronizar Dropi</button>
+                        <button data-shipment-action="notify-guide" data-order="${escapeHtml(orderId)}" type="button">Avisar guia</button>
+                        <button data-shipment-action="notify-pickup" data-order="${escapeHtml(orderId)}" type="button">Avisar agencia</button>
+                        <button data-shipment-action="request-pickup-proof" data-order="${escapeHtml(orderId)}" type="button">Pedir comprovante</button>
+                        <button data-shipment-action="confirm-pickup" data-order="${escapeHtml(orderId)}" type="button">Confirmar retirada</button>
+                        <button data-shipment-action="notify-bonus" data-order="${escapeHtml(orderId)}" type="button">Enviar bonus</button>
+                        <button data-shipment-action="notify-returned" data-order="${escapeHtml(orderId)}" type="button">Devolvido</button>
+                        ${canSubmit ? `<button class="danger" data-shipment-action="delete-fake" data-country="${escapeHtml(shipment.country || '')}" data-order="${escapeHtml(orderId)}" type="button">Excluir fake</button>` : ''}
+                    </div>
+                </article>
+            `;
+        };
+
+        const renderDropiStagePanel = (orders) => {
+            const counts = {
+                authorize: orders.filter((order) => getDropiStage(order) === 'authorize').length,
+                send: orders.filter((order) => getDropiStage(order) === 'send').length,
+                review: orders.filter((order) => getDropiStage(order) === 'review').length,
+                sent: orders.filter((order) => getDropiStage(order) === 'sent').length
+            };
+            const activeByFilter = {
+                confirmed: 'authorize',
+                not_sent: 'send',
+                progress: 'review',
+                sent: 'sent'
+            };
+            const cards = [
+                ['authorize', counts.authorize, '1 Conferir', 'cliente fechou, falta sua autorizacao'],
+                ['send', counts.send, '2 Enviar para Dropi', 'autorizado e sem guia'],
+                ['review', counts.review, '3 Revisar', 'erro, saldo, manual ou travado'],
+                ['sent', counts.sent, '4 Enviado', 'ja tem guia/status Dropi']
+            ].map(([key, count, title, subtitle]) => `
+                <div class="dropi-stage ${activeByFilter[state.dropiFilter] === key ? 'active' : ''}">
+                    <strong>${count}</strong>
+                    <span>${escapeHtml(title)}</span>
+                    <span>${escapeHtml(subtitle)}</span>
+                </div>
+            `).join('');
+            el('dropiStagePanel').innerHTML = cards;
+        };
+
+        const renderShipments = () => {
+            const filtered = state.dropiItems.filter(matchesSelectedOrSearch).slice(0, 30);
+            const allLoadedOrders = state.orders.length
+                ? state.orders
+                : state.dropiItems.filter((item) => item.type === 'order').map((item) => item.order);
+            renderDropiStagePanel(allLoadedOrders);
+            if (['all_dropi', 'confirmed', 'not_sent', 'sent', 'progress'].includes(state.dropiFilter)) {
+                const orders = filtered.filter((item) => item.type === 'order').map((item) => item.order);
+                el('shipmentList').innerHTML = orders.length
+                    ? renderOrderTable(orders)
+                    : `<div class="empty">Nenhum item em ${escapeHtml(dropiFilterLabels[state.dropiFilter] || 'Dropi')}.</div>`;
+            } else {
+                el('shipmentList').innerHTML = filtered.map((item) => (
+                    item.type === 'order' ? renderOrderCard(item.order) : renderShipmentCard(item.shipment)
+                )).join('') || `<div class="empty">Nenhum item em ${escapeHtml(dropiFilterLabels[state.dropiFilter] || 'Dropi')}.</div>`;
+            }
+
+            const visibleOrderIds = new Set(filtered
+                .filter((item) => item.type === 'order' && (isOrderWaitingDropi(item.order) || isOrderWaitingAuthorization(item.order)))
+                .map((item) => item.order.orderId)
+                .filter(Boolean));
+            state.selectedDropiOrders.forEach((orderId) => {
+                if (!state.dropiItems.some((item) => item.type === 'order' && item.order?.orderId === orderId)) {
+                    state.selectedDropiOrders.delete(orderId);
+                }
+            });
+            const selectedVisible = [...state.selectedDropiOrders].filter((orderId) => visibleOrderIds.has(orderId)).length;
+            const selectedTotal = state.selectedDropiOrders.size;
+            const allConfirmedIds = state.dropiItems
+                .filter((item) => item.type === 'order' && (state.dropiFilter === 'confirmed'
+                    ? isOrderWaitingAuthorization(item.order)
+                    : isOrderWaitingDropi(item.order)))
+                .map((item) => item.order.orderId)
+                .filter(Boolean);
+            const stats = state.dropiOrderStats || {};
+            const waitingCount = Number.isFinite(stats.waiting) ? stats.waiting : allLoadedOrders.filter(isOrderWaitingDropi).length;
+            const authorizationCount = Number.isFinite(stats.authorization) ? stats.authorization : allLoadedOrders.filter(isOrderWaitingAuthorization).length;
+            const sentCount = Number.isFinite(stats.sent) ? stats.sent : allLoadedOrders.filter(isOrderSentDropi).length;
+            const reviewCount = Number.isFinite(stats.review) ? stats.review : allLoadedOrders.filter(isOrderReviewDropi).length;
+            const totalCount = Number.isFinite(stats.total) ? stats.total : allLoadedOrders.length;
+            const selectedIds = [...state.selectedDropiOrders].sort();
+            const processLines = Object.entries(state.dropiProcessStatus)
+                .slice(-20)
+                .map(([orderId, info]) => `${orderId}: ${info.message || info.label || ''}`);
+            el('bulkDropiBar').style.display = ['confirmed', 'not_sent'].includes(state.dropiFilter) ? 'grid' : 'none';
+            el('bulkDropiSummary').textContent = selectedTotal
+                ? `${selectedTotal} pedido(s) selecionado(s). ${selectedVisible} visivel(is) nesta lista.`
+                : state.dropiFilter === 'confirmed'
+                    ? `${allConfirmedIds.length} pedido(s) para conferir e autorizar.`
+                    : `${allConfirmedIds.length} pedido(s) autorizados para enviar para Dropi.`;
+            el('bulkDropiSelectedList').textContent = selectedIds.length
+                ? `Selecionados: ${selectedIds.join(', ')}${processLines.length ? '\n\nProcessamento:\n' + processLines.join('\n') : ''}`
+                : processLines.length ? `Processamento:\n${processLines.join('\n')}`
+                : 'Nenhum pedido selecionado.';
+            el('processSelectedDropiBtn').disabled = state.busy || selectedTotal === 0;
+            el('selectAllDropiBtn').disabled = state.busy || allConfirmedIds.length === 0;
+            el('selectVisibleDropiBtn').disabled = state.busy || visibleOrderIds.size === 0;
+            el('clearDropiSelectionBtn').disabled = state.busy || selectedTotal === 0;
+
+            el('processSelectedDropiBtn').textContent = state.dropiFilter === 'confirmed'
+                ? 'Autorizar selecionados'
+                : 'Enviar selecionados para Dropi';
+
+            el('metricDropi').textContent = String(sentCount);
+            el('metricReview').textContent = String(reviewCount || state.dropiItems.filter((item) => (
+                item.type === 'shipment' && (item.shipment.review?.manualOnly || !item.shipment.logistics?.trackingNumber)
+            )).length);
+            const countryLabel = el('countryFilter').value || 'todos os paises';
+            if (['all_dropi', 'confirmed', 'not_sent', 'sent', 'progress'].includes(state.dropiFilter)) {
+                el('processSummary').textContent = `${totalCount} pedido(s): ${authorizationCount} para conferir, ${waitingCount} autorizados para Dropi, ${reviewCount} revisar, ${sentCount} enviados em ${countryLabel}.`;
+            } else if (state.dropiFilter === 'buy_later') {
+                el('processSummary').textContent = `${filtered.length} oportunidade(s) para retomar em ${countryLabel}.`;
+            } else {
+                el('processSummary').textContent = `Visualizando ${filtered.length} item(ns) em ${dropiFilterLabels[state.dropiFilter] || 'pipeline'}.`;
+            }
+        };
+
+        async function loadShipments() {
+            if (!state.token) return;
+            const qs = new URLSearchParams();
+            const country = el('countryFilter').value;
+            if (country) qs.set('country', country);
+            if (['all_dropi', 'confirmed', 'not_sent', 'sent', 'progress', 'buy_later'].includes(state.dropiFilter)) {
+                qs.set('limit', '200');
+                if (state.dropiFilter !== 'buy_later') {
+                    qs.set('status', 'dropi_pipeline');
+                    qs.set('includeShipment', '1');
+                } else {
+                    qs.set('includeDrafts', '1');
+                    qs.set('readiness', 'buy_later');
+                }
+                const data = await api(`/api/orders?${qs.toString()}`);
+                state.orders = data.orders || [];
+                state.shipments = [];
+                state.dropiOrderStats = {
+                    total: state.orders.length,
+                    authorization: state.orders.filter(isOrderWaitingAuthorization).length,
+                    waiting: state.orders.filter(isOrderWaitingDropi).length,
+                    sent: state.orders.filter(isOrderSentDropi).length,
+                    review: state.orders.filter(isOrderReviewDropi).length
+                };
+                const visibleOrders = state.orders.filter((order) => {
+                    if (state.dropiFilter === 'confirmed') return isOrderWaitingAuthorization(order);
+                    if (state.dropiFilter === 'not_sent') return isOrderWaitingDropi(order);
+                    if (state.dropiFilter === 'sent') return isOrderSentDropi(order);
+                    if (state.dropiFilter === 'progress') return isOrderReviewDropi(order);
+                    return true;
+                });
+                state.dropiItems = visibleOrders.map((order) => ({ type: 'order', order }));
+            } else {
+                const data = await api(`/api/shipments?${qs.toString()}`);
+                state.orders = [];
+                state.dropiOrderStats = { total: 0, waiting: 0, sent: 0, review: 0 };
+                state.shipments = (data.shipments || []).filter((shipment) => {
+                    if (state.dropiFilter === 'sent') return isSentShipment(shipment);
+                    if (state.dropiFilter === 'progress') return isProgressShipment(shipment) && !isReturnedShipment(shipment);
+                    if (state.dropiFilter === 'returned') return isReturnedShipment(shipment);
+                    return true;
+                });
+                state.dropiItems = state.shipments.map((shipment) => ({ type: 'shipment', shipment }));
+            }
+            if (state.dropiFilter !== 'confirmed') {
+                state.selectedDropiOrders.clear();
+            }
+            renderShipments();
+        }
+
+        async function claimSelected() {
+            if (!state.selectedChat) return;
+            await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentChatPhone())}/claim`, {
+                method: 'POST',
+                body: JSON.stringify({ minutes: 240 })
+            });
+            showToast('Atendimento assumido');
+            await loadChats();
+        }
+
+        async function releaseSelected() {
+            if (!state.selectedChat) return;
+            await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentChatPhone())}/release`, {
+                method: 'POST',
+                body: JSON.stringify({})
+            });
+            showToast('Automacao liberada');
+            await loadChats();
+        }
+
+        async function sendMessage() {
+            if (!state.selectedChat || state.busy) return;
+            const text = el('messageInput').value.trim();
+            if (!text) return;
+            state.busy = true;
+            el('sendBtn').disabled = true;
+            try {
+                await api('/api/whatsapp/send', {
+                    method: 'POST',
+                    body: JSON.stringify({ phone: currentChatPhone(), message: text, sessionId })
+                });
+                el('messageInput').value = '';
+                showToast('Mensagem enviada');
+                await Promise.all([loadSelectedMessages({ force: true }), loadChats()]);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                el('sendBtn').disabled = false;
+            }
+        }
+
+        const buildDraftTemplate = (kind) => {
+            const chat = state.selectedChat || {};
+            const product = 'Vit Power';
+            const price = '1 frasco 39.99 USD, 3 frascos 95.99 USD y 6 frascos 167.99 USD';
+
+            const templates = {
+                offer: `Le confirmo la promocion de ${product}: ${price}. La opcion mas recomendada es la de 3 frascos porque aprovecha mejor el tratamiento y trae regalo sorpresa. Cual le gustaria separar?`,
+                proof: `Le comparto algo importante: varios clientes que tenian la misma duda ya recibieron su pedido y nos contaron que les fue muy bien. Si quiere, le ayudo a dejar el suyo listo hoy.`,
+                data: 'Perfecto, para dejarlo listo me confirma por favor: nombre completo, ciudad, direccion completa y un punto de referencia para la entrega?',
+                close: 'Listo, entonces le confirmo el pedido con esos datos. Lo dejamos preparado para envio y la transportadora se comunica antes de la entrega. Esta correcto?'
+            };
+            return templates[kind] || '';
+        };
+
+        const fillDraftTemplate = (kind) => {
+            if (!state.selectedChat) return;
+            const text = buildDraftTemplate(kind);
+            if (!text) return;
+            el('messageInput').value = text;
+            el('messageInput').focus();
+            showToast('Rascunho pronto para revisar');
+        };
+
+        const tomorrowMorningInput = () => {
+            const date = new Date();
+            date.setDate(date.getDate() + 1);
+            date.setHours(9, 0, 0, 0);
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        };
+
+        async function markBuyLater() {
+            if (!state.selectedChat?.orderId || state.busy) return;
+            const input = window.prompt('Quando retomar este cliente? Use formato 2026-05-06T09:00 ou deixe em branco para amanha 09:00.', tomorrowMorningInput());
+            if (input === null) return;
+            const followUpAt = input.trim() || tomorrowMorningInput();
+            const parsed = new Date(followUpAt);
+            if (Number.isNaN(parsed.getTime())) {
+                showToast('Data invalida. Use exemplo: 2026-05-06T09:00');
+                return;
+            }
+
+            state.busy = true;
+            el('buyLaterBtn').disabled = true;
+            try {
+                await api(`/api/orders/${encodeURIComponent(state.selectedChat.orderId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        purchaseIntent: {
+                            readiness: 'buy_later',
+                            followUpAt: parsed.toISOString(),
+                            desiredPurchaseTiming: 'Agendado pelo painel',
+                            buyLaterDetectedAt: new Date().toISOString()
+                        },
+                        notes: `Comprar depois. Retomar em ${parsed.toLocaleString('pt-BR')}.`
+                    })
+                });
+                showToast('Cliente marcado para comprar depois');
+                state.dropiFilter = 'buy_later';
+                document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'buy_later'));
+                await Promise.all([loadChats(), loadShipments()]);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                renderSelectedDetails();
+            }
+        }
+
+        async function runShipmentAction(orderId, action, button) {
+            if (!orderId || state.busy) return;
+            const routes = {
+                'panel-sync': `/api/shipments/${encodeURIComponent(orderId)}/panel-sync`,
+                'notify-guide': `/api/shipments/${encodeURIComponent(orderId)}/notify-guide`,
+                'notify-pickup': `/api/shipments/${encodeURIComponent(orderId)}/notify-pickup`,
+                'request-pickup-proof': `/api/shipments/${encodeURIComponent(orderId)}/request-pickup-proof`,
+                'confirm-pickup': `/api/shipments/${encodeURIComponent(orderId)}/confirm-pickup`,
+                'notify-bonus': `/api/shipments/${encodeURIComponent(orderId)}/notify-bonus`,
+                'notify-returned': `/api/shipments/${encodeURIComponent(orderId)}/notify-returned`,
+                'manual-send-required': `/api/shipments/${encodeURIComponent(orderId)}/manual-send-required`,
+                'requeue-dropi': `/api/shipments/${encodeURIComponent(orderId)}/requeue-dropi-submit`,
+                'mark-manual-sent': `/api/shipments/${encodeURIComponent(orderId)}/mark-manual-sent`,
+                'delete-fake': `/api/shipments/${encodeURIComponent(orderId)}/delete-fake`
+            };
+            state.busy = true;
+            button.disabled = true;
+            const label = button.textContent;
+            button.textContent = '...';
+            try {
+                if (action === 'submit-dropi') {
+                    const country = button.dataset.country || el('countryFilter').value;
+                    if (!confirmDropiSubmission(orderId, country)) return;
+                    const result = await submitDropiOrder(orderId, country);
+                    showToast(result.paymentRequired
+                        ? 'Dropi chegou ate o envio, mas falta saldo.'
+                        : result.manualSendRequired
+                        ? (result.message || 'Dropi pediu revisao. Veja o motivo no status do pedido.')
+                        : result.alreadySubmitted ? 'Pedido ja estava enviado para Dropi.' : 'Pedido processado na Dropi');
+                    if (result.manualSendRequired || result.paymentRequired) {
+                        state.dropiFilter = 'progress';
+                        document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'progress'));
+                    }
+                    await Promise.all([loadShipments(), loadChats()]);
+                } else if (action === 'authorize-dropi') {
+                    const country = button.dataset.country || el('countryFilter').value;
+                    if (!confirmManualDropiAction(orderId, country, action)) return;
+                    await authorizeDropiOrder(orderId, country);
+                    showToast('Pedido autorizado. Agora ele esta na etapa 2 Enviar para Dropi.');
+                    state.dropiFilter = 'not_sent';
+                    document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'not_sent'));
+                    await Promise.all([loadShipments(), loadChats()]);
+                } else if (action === 'prepare-dropi') {
+                    const country = button.dataset.country || el('countryFilter').value;
+                    if (!confirmManualDropiAction(orderId, country, action)) return;
+                    const result = await prepareDropiOrder(orderId, country);
+                    showToast(result.alreadySubmitted
+                        ? 'Pedido ja estava enviado para Dropi.'
+                        : 'Dropi aberta e formulario preparado para conferencia');
+                    await loadShipments();
+                } else {
+                    const country = button.dataset.country || el('countryFilter').value;
+                    if (!confirmManualDropiAction(orderId, country, action)) return;
+                    await api(routes[action], {
+                        method: 'POST',
+                        body: action === 'confirm-pickup'
+                            ? JSON.stringify({ sendBonus: true })
+                            : action === 'delete-fake'
+                                ? JSON.stringify({ reason: 'fake_order_deleted_from_panel' })
+                                : action === 'requeue-dropi'
+                                    ? JSON.stringify({ reason: 'operator_requeue_from_panel' })
+                                : undefined
+                    });
+                    showToast(action === 'mark-manual-sent'
+                        ? 'Pedido marcado como enviado manual'
+                        : action === 'requeue-dropi'
+                            ? 'Pedido voltou para 2 Enviar para Dropi'
+                        : action === 'delete-fake'
+                            ? 'Pedido fake excluido do painel'
+                            : 'Acao concluida');
+                    if (action === 'requeue-dropi') {
+                        state.dropiFilter = 'not_sent';
+                        document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'not_sent'));
+                    }
+                    await Promise.all([loadShipments(), loadChats()]);
+                }
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                button.disabled = false;
+                button.textContent = label;
+            }
+        }
+
+        async function sendSelectedDropiOrder() {
+            if (!state.selectedChat?.orderId || state.busy) return;
+            if (!confirmDropiSubmission(state.selectedChat.orderId, state.selectedChat.country)) return;
+            state.busy = true;
+            el('sendSelectedDropiBtn').disabled = true;
+            try {
+                const result = await submitDropiOrder(state.selectedChat.orderId, state.selectedChat.country);
+                showToast(result.paymentRequired
+                    ? 'Dropi chegou ate o envio, mas falta saldo.'
+                    : result.manualSendRequired
+                    ? (result.message || 'Dropi pediu revisao. Veja o motivo no status do pedido.')
+                    : result.alreadySubmitted ? 'Pedido ja estava enviado para Dropi.' : 'Pedido processado na Dropi');
+                if (result.manualSendRequired || result.paymentRequired) {
+                    state.dropiFilter = 'progress';
+                    document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'progress'));
+                }
+                await Promise.all([loadShipments(), loadChats()]);
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                renderSelectedDetails();
+            }
+        }
+
+        async function processSelectedDropiOrders() {
+            if (state.busy || !state.selectedDropiOrders.size) return;
+            const selectedOrders = [...state.selectedDropiOrders]
+                .map((orderId) => state.dropiItems.find((item) => item.type === 'order' && item.order?.orderId === orderId)?.order)
+                .filter(Boolean);
+            if (!selectedOrders.length) {
+                showToast('Nenhum pedido selecionado encontrado na lista atual');
+                return;
+            }
+            const authorizing = state.dropiFilter === 'confirmed';
+            const ok = authorizing
+                ? window.confirm(`Autorizar ${selectedOrders.length} pedido(s) para entrar na etapa 2 Enviar para Dropi?`)
+                : confirmBulkDropiSubmission(selectedOrders);
+            if (!ok) return;
+
+            state.busy = true;
+            renderShipments();
+            let success = 0;
+            let manual = 0;
+            let failed = 0;
+            try {
+                for (const order of selectedOrders) {
+                    state.dropiProcessStatus[order.orderId] = {
+                        kind: 'running',
+                        label: authorizing ? 'autorizando' : 'enviando',
+                        message: authorizing ? 'Autorizando para envio...' : 'Enviando para Dropi agora...'
+                    };
+                    el('bulkDropiSummary').textContent = `${authorizing ? 'Autorizando' : 'Processando'} ${order.orderId}...`;
+                    renderShipments();
+                    try {
+                        if (authorizing) {
+                            await authorizeDropiOrder(order.orderId, order.country);
+                            success += 1;
+                            state.dropiProcessStatus[order.orderId] = {
+                                kind: 'pending',
+                                label: 'autorizado',
+                                message: 'Autorizado para etapa 2 Enviar para Dropi'
+                            };
+                        } else {
+                            const result = await submitDropiOrder(order.orderId, order.country);
+                            if (result.paymentRequired) {
+                                manual += 1;
+                                state.dropiProcessStatus[order.orderId] = {
+                                    kind: 'manual',
+                                    label: 'aguardando saldo',
+                                    message: result.message || 'Dropi chegou ate o envio, mas falta saldo.'
+                                };
+                            } else if (result.manualSendRequired) {
+                                manual += 1;
+                                state.dropiProcessStatus[order.orderId] = {
+                                    kind: 'manual',
+                                    label: 'envio manual',
+                                    message: result.message || 'Dropi pediu envio manual.'
+                                };
+                            } else {
+                                success += 1;
+                                state.dropiProcessStatus[order.orderId] = {
+                                    kind: 'success',
+                                    label: 'pedido enviado',
+                                    message: dropiSuccessMessage(result)
+                                };
+                            }
+                        }
+                        state.selectedDropiOrders.delete(order.orderId);
+                    } catch (error) {
+                        failed += 1;
+                        state.dropiProcessStatus[order.orderId] = {
+                            kind: 'error',
+                            label: 'erro',
+                            message: error.message || 'Erro ao enviar para Dropi.'
+                        };
+                        showToast(`${order.orderId}: ${error.message}`);
+                    }
+                    renderShipments();
+                }
+                showToast(authorizing
+                    ? `Autorizacao: ${success} autorizado(s), ${failed} erro(s)`
+                    : `Dropi: ${success} enviado(s), ${manual} manual, ${failed} erro(s)`);
+                state.dropiFilter = authorizing ? 'not_sent' : (failed || manual ? 'progress' : 'sent');
+                document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === state.dropiFilter));
+                await Promise.all([loadShipments(), loadChats()]);
+            } finally {
+                state.busy = false;
+                renderShipments();
+            }
+        }
+
+        async function refreshAll() {
+            if (!state.token) return;
+            try {
+                await checkStatus();
+                await loadMe();
+                await Promise.all([loadChats(), loadShipments(), loadUsers(), loadAutomationStatus(), loadAudioTemplates()]);
+            } catch (error) {
+                showToast(error.message);
+            }
+        }
+
+        el('loginForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const data = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: el('email').value.trim(),
+                        password: el('password').value
+                    })
+                }).then(async (response) => {
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(payload.error || 'Falha no login');
+                    return payload;
+                });
+                setAuth(data.token);
+                showToast('Login confirmado');
+            } catch (error) {
+                showToast(error.message);
+            }
+        });
+
+        el('logoutBtn').addEventListener('click', () => setAuth(''));
+        el('refreshBtn').addEventListener('click', refreshAll);
+        document.querySelectorAll('[data-module]').forEach((button) => {
+            button.addEventListener('click', () => setActiveModule(button.dataset.module));
+        });
+        el('toggleDropiFullscreenBtn').addEventListener('click', () => {
+            const section = el('dropiSection');
+            const expanded = section.classList.toggle('fullscreen');
+            el('toggleDropiFullscreenBtn').textContent = expanded ? 'Fechar tela cheia' : 'Tela cheia';
+        });
+        el('dropiJumpBtn').addEventListener('click', () => {
+            if (!state.token) {
+                showToast('Entre no painel para processar pedidos');
+                return;
+            }
+            setActiveModule('sales');
+            state.dropiFilter = 'confirmed';
+            document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'confirmed'));
+            loadShipments().catch((error) => showToast(error.message));
+            el('operationPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        el('focusConfirmedBtn').addEventListener('click', () => {
+            setActiveModule('sales');
+            state.dropiFilter = 'confirmed';
+            document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'confirmed'));
+            loadShipments().catch((error) => showToast(error.message));
+            el('shipmentSearch').focus();
+        });
+        el('chatSearch').addEventListener('input', renderChats);
+        el('shipmentSearch').addEventListener('input', renderShipments);
+        el('countryFilter').addEventListener('change', async () => {
+            await Promise.all([loadChats(), loadShipments(), loadAudioTemplates()]);
+        });
+        document.querySelectorAll('[data-chat-filter]').forEach((button) => {
+            button.addEventListener('click', () => {
+                state.chatFilter = button.dataset.chatFilter;
+                document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
+                button.classList.add('active');
+                renderChats();
+            });
+        });
+        el('chatList').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-chat-id]');
+            if (button) selectChat(button.dataset.chatId);
+        });
+        el('claimBtn').addEventListener('click', claimSelected);
+        el('releaseBtn').addEventListener('click', releaseSelected);
+        el('sendBtn').addEventListener('click', sendMessage);
+        el('sendSelectedDropiBtn').addEventListener('click', sendSelectedDropiOrder);
+        el('processSelectedDropiBtn').addEventListener('click', processSelectedDropiOrders);
+        el('selectAllDropiBtn').addEventListener('click', () => {
+            const selector = state.dropiFilter === 'confirmed' ? isOrderWaitingAuthorization : isOrderWaitingDropi;
+            state.dropiItems
+                .filter((item) => item.type === 'order' && selector(item.order))
+                .forEach((item) => state.selectedDropiOrders.add(item.order.orderId));
+            renderShipments();
+        });
+        el('selectVisibleDropiBtn').addEventListener('click', () => {
+            const selector = state.dropiFilter === 'confirmed' ? isOrderWaitingAuthorization : isOrderWaitingDropi;
+            state.dropiItems
+                .filter(matchesSelectedOrSearch)
+                .slice(0, 30)
+                .filter((item) => item.type === 'order' && selector(item.order))
+                .forEach((item) => state.selectedDropiOrders.add(item.order.orderId));
+            renderShipments();
+        });
+        el('clearDropiSelectionBtn').addEventListener('click', () => {
+            state.selectedDropiOrders.clear();
+            renderShipments();
+        });
+        el('buyLaterBtn').addEventListener('click', markBuyLater);
+        el('audioTemplateList').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-audio-template]');
+            if (!button) return;
+            sendFunnelAudio(button.dataset.audioTemplate, button);
+        });
+        el('userForm').addEventListener('submit', createUser);
+        el('userList').addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-user-action]');
+            if (!button) return;
+            const user = state.users.find((item) => String(item.id || item._id || '') === String(button.dataset.userId));
+            if (!user) return;
+
+            try {
+                if (button.dataset.userAction === 'toggle-active') {
+                    if (user.isActive && !window.confirm(`Desativar acesso de ${user.name || user.email}?`)) return;
+                    await updateUser(button.dataset.userId, { isActive: !user.isActive });
+                    showToast(user.isActive ? 'Usuario desativado' : 'Usuario ativado');
+                } else if (button.dataset.userAction === 'make-operator') {
+                    await updateUser(button.dataset.userId, { role: 'operator' });
+                    showToast('Usuario agora e atendente');
+                } else if (button.dataset.userAction === 'make-admin') {
+                    await updateUser(button.dataset.userId, { role: 'admin' });
+                    showToast('Usuario agora e admin');
+                }
+            } catch (error) {
+                showToast(error.message);
+            }
+        });
+        document.querySelectorAll('[data-draft-template]').forEach((button) => {
+            button.addEventListener('click', () => fillDraftTemplate(button.dataset.draftTemplate));
+        });
+        el('messageInput').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) sendMessage();
+        });
+        document.querySelectorAll('[data-dropi-filter]').forEach((button) => {
+            button.addEventListener('click', () => {
+                state.dropiFilter = button.dataset.dropiFilter;
+                document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.remove('active'));
+                button.classList.add('active');
+                loadShipments().catch((error) => showToast(error.message));
+            });
+        });
+        el('shipmentList').addEventListener('click', (event) => {
+            const checkbox = event.target.closest('[data-dropi-select]');
+            if (checkbox) {
+                if (checkbox.checked) state.selectedDropiOrders.add(checkbox.dataset.dropiSelect);
+                else state.selectedDropiOrders.delete(checkbox.dataset.dropiSelect);
+                renderShipments();
+                return;
+            }
+            const button = event.target.closest('[data-shipment-action]');
+            if (!button) return;
+            runShipmentAction(button.dataset.order, button.dataset.shipmentAction, button);
+        });
+
+        setInterval(checkStatus, 3000);
+        setInterval(() => {
+            if (state.token) loadSelectedMessages().catch(() => null);
+        }, 2000);
+        setInterval(() => {
+            if (state.token) loadChats().catch(() => null);
+        }, 5000);
+        setInterval(() => {
+            if (state.token) loadShipments().catch(() => null);
+        }, 45000);
+        setInterval(() => {
+            if (state.token) loadAutomationStatus().catch(() => null);
+        }, 60000);
+
         checkStatus();
+        setAuth(state.token);
     </script>
 </body>
 

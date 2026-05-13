@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const productSchema = new mongoose.Schema({
     country: {
         type: String,
-        enum: ['CO', 'EC'],
+        enum: ['EC'],
         required: true
     },
     productId: {
@@ -20,7 +20,7 @@ const productSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['COP', 'USD'],
+        enum: ['USD'],
         required: true
     },
     displayPrice: {

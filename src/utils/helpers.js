@@ -14,11 +14,7 @@ export const formatPhone = (phone, country) => {
         return `+593${cleaned}`;
     }
 
-    // Colombia: +57 XXX XXX XXXX
-    if (cleaned.startsWith('57')) {
-        return `+${cleaned}`;
-    }
-    return `+57${cleaned}`;
+    return `+${cleaned}`;
 };
 
 /**
@@ -37,8 +33,5 @@ export const generateId = (length = 8) => {
  * Format currency display
  */
 export const formatCurrency = (amount, currency) => {
-    if (currency === 'COP') {
-        return `$${amount.toLocaleString('es-CO')} COP`;
-    }
     return `$${amount} USD`;
 };

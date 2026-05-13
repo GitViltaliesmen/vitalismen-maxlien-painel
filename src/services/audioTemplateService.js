@@ -58,16 +58,6 @@ export const syncTemplatesForCountry = async (country) => {
     ensureDir(targetDir);
 
     const sources = [];
-    if (country === 'CO') {
-        const srcDir = path.join(repoRoot(), 'AUDIOS REFORMULADOS COLOMBIA_GERSON');
-        if (fs.existsSync(srcDir)) {
-            for (const file of fs.readdirSync(srcDir)) {
-                if (file.toLowerCase().endsWith('.mp3')) {
-                    sources.push(path.join(srcDir, file));
-                }
-            }
-        }
-    }
     if (country === 'EC') {
         const srcDir = path.join(repoRoot(), 'ec');
         if (fs.existsSync(srcDir)) {
@@ -99,7 +89,7 @@ export const syncTemplatesForCountry = async (country) => {
 };
 
 export const listAudioTemplates = async (country) => {
-    if (country !== 'CO' && country !== 'EC') return [];
+    if (country !== 'EC') return [];
 
     await syncTemplatesForCountry(country);
 
@@ -132,9 +122,8 @@ export const resolveCountryAudio = async ({ country, baseName }) => {
     if (fs.existsSync(oggPath)) return oggPath;
 
     // Try to create it from the matching MP3 sources in repo root folders
-    const mp3FromCo = path.join(repoRoot(), 'AUDIOS REFORMULADOS COLOMBIA_GERSON', `${baseName}.mp3`);
     const mp3FromEc = path.join(repoRoot(), 'ec', `${baseName}.mp3`);
-    const mp3Path = country === 'CO' ? mp3FromCo : mp3FromEc;
+    const mp3Path = mp3FromEc;
 
     const out = await ensureOggFromMp3({ mp3Path, oggPath });
     return out;

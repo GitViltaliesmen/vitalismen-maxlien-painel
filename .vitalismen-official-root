@@ -1,0 +1,4 @@
+VITALISMEN_OFFICIAL_PROJECT=vit_power_ec
+LOCAL_OFFICIAL_PATH=/Users/greson/Documents/Vitalismen Automacao
+VPS_OFFICIAL_PATH=/opt/vitalismen-automacao/current
+DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true
