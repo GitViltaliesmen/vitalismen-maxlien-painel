@@ -11,7 +11,7 @@ codex-vitpower-unified-front
 Commit oficial atual:
 
 ```text
-0b19685 documenta acesso entre computadores
+c2df4e1 atualiza github oficial
 ```
 
 Repositorio ponte no VPS:
@@ -51,6 +51,39 @@ cp .env.example .env
 ```
 
 Preencher o `.env` manualmente com as chaves reais.
+
+Depois disso, o trabalho diario nas duas maquinas e:
+
+```sh
+git checkout codex-vitpower-unified-front
+git pull
+```
+
+Depois de alterar e testar:
+
+```sh
+git add -A
+git commit -m "descreva a alteracao"
+npm run sync:official
+```
+
+O comando `npm run sync:official` envia a mesma branch para:
+
+- GitHub `origin`;
+- espelho `vps`.
+
+Antes de trocar de computador, sempre rode:
+
+```sh
+git status
+npm run sync:official
+```
+
+No outro computador, sempre comece com:
+
+```sh
+git pull
+```
 
 ## Caminho 2: ponte pelo VPS
 

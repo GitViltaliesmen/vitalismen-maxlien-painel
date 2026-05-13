@@ -16,7 +16,8 @@
         "deploy:vps": "node scripts/deploy-vps-ready.mjs",
         "media:install:evolved": "node scripts/install-evolved-audios.mjs",
         "meta:retro:purchases": "node scripts/send-meta-retro-purchases.mjs",
-        "meta:export:offline": "node scripts/export-meta-offline-purchases.mjs"
+        "meta:export:offline": "node scripts/export-meta-offline-purchases.mjs",
+        "sync:official": "scripts/sync-official-remotes.sh"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",
