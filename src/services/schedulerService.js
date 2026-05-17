@@ -7,7 +7,10 @@ import {
 } from './shipmentStatusDispatcherService.js';
 import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
 import { processBacklogRecovery } from './backlogRecoveryService.js';
-import { reconcileAdminPanelAtendimento } from './adminPanelLeadReconciliationService.js';
+import {
+    reconcileAdminPanelAtendimento,
+    reconcileRecentWhatsappContactsToAdminPanel
+} from './adminPanelLeadReconciliationService.js';
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
@@ -178,6 +181,12 @@ const checkAdminPanelAtendimentoReconcile = async () => {
         }
         if (result.requestedUpdates || result.tagged || result.createdMissing) {
             console.log(`[ADMIN_ATENDIMENTO] fromId=${fromId}; marcados=${result.updatedIds?.length || 0}; tags=${result.tagged || 0}; criados=${result.createdMissing || 0}; protegidos=${result.protectedSkipped?.length || 0}.`);
+        }
+        const sweep = await reconcileRecentWhatsappContactsToAdminPanel();
+        if (!sweep.ok) {
+            console.warn('[ADMIN_CONTACT_SWEEP] varredura falhou:', sweep.reason || sweep.error || sweep);
+        } else if (sweep.created || sweep.missing) {
+            console.log(`[ADMIN_CONTACT_SWEEP] contatos=${sweep.scannedContacts || 0}; faltantes=${sweep.missing || 0}; criados=${sweep.created || 0}${sweep.limited ? '; limitado=true' : ''}.`);
         }
     } catch (error) {
         console.error('Admin Atendimento Reconciliation Scheduler Error:', error);

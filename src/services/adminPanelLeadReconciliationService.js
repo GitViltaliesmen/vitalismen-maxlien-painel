@@ -2,6 +2,7 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 
@@ -11,6 +12,10 @@ const CLOSED_DRAFT_STATUSES = new Set(['confirmed', 'processing', 'pedido_enviad
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const phoneTail = (value) => digitsOnly(value).slice(-9);
+const parseNumber = (name, fallback) => {
+    const parsed = Number.parseInt(String(process.env[name] || ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
 const isValidEcPhone = (value) => {
     const digits = digitsOnly(value);
     return digits.startsWith('593') && digits.length >= 11;
@@ -82,6 +87,89 @@ const buildAdminTailSet = (leads = []) => new Set(
         .map((lead) => phoneTail(lead.phone_e164 || lead.phone))
         .filter(Boolean)
 );
+
+const phoneTailCandidates = (value = '') => {
+    const digits = digitsOnly(value);
+    return [...new Set([
+        digits,
+        digits.length >= 8 ? digits.slice(-8) : '',
+        digits.length >= 9 ? digits.slice(-9) : '',
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 11 ? digits.slice(-11) : ''
+    ].filter((item) => item && item.length >= 7))];
+};
+
+const findContactStateForMessageRow = async (row = {}) => {
+    const tails = [...new Set([
+        row._id,
+        row.chatId,
+        row.peerPhone
+    ].filter(Boolean).flatMap((value) => phoneTailCandidates(value)))];
+    const query = {
+        $or: [
+            { chatId: row._id || row.chatId },
+            ...tails.flatMap((tail) => [
+                { phoneDigits: { $regex: `${tail}$` } },
+                { 'metadata.lastSenderPn': { $regex: tail } },
+                { chatId: { $regex: `${tail}@` } }
+            ])
+        ].filter((item) => Object.values(item)[0])
+    };
+    const states = await ContactState.find(query).sort({ updatedAt: -1 }).limit(8).lean();
+    return states.find((state) => digitsOnly(state?.metadata?.lastSenderPn).startsWith('593'))
+        || states.find((state) => digitsOnly(state?.phoneDigits).startsWith('593'))
+        || states.find((state) => String(state?.chatId || '').endsWith('@lid'))
+        || states[0]
+        || null;
+};
+
+const realPhoneForMessageRow = ({ row = {}, state = null } = {}) => {
+    const sender = digitsOnly(state?.metadata?.lastSenderPn);
+    if (sender.startsWith('593')) return sender;
+    const peer = digitsOnly(row.peerPhone);
+    if (peer.startsWith('593')) return peer;
+    const statePhone = digitsOnly(state?.phoneDigits);
+    if (statePhone.startsWith('593')) return statePhone;
+    const chat = digitsOnly(row._id || row.chatId);
+    return chat.startsWith('593') ? chat : '';
+};
+
+const buildRecentWhatsappContacts = async ({ since } = {}) => {
+    const rows = await Message.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: since },
+                isFromMe: false,
+                isBot: false,
+                chatId: { $not: /newsletter|broadcast|@g\.us/ },
+                peerPhone: { $not: /^55/ }
+            }
+        },
+        { $sort: { createdAt: -1 } },
+        {
+            $group: {
+                _id: '$chatId',
+                lastInboundAt: { $first: '$createdAt' },
+                peerPhone: { $first: '$peerPhone' },
+                body: { $first: '$body' },
+                sessionId: { $first: '$sessionId' }
+            }
+        },
+        { $sort: { lastInboundAt: 1 } }
+    ]);
+
+    const byPhone = new Map();
+    for (const row of rows) {
+        const state = await findContactStateForMessageRow(row);
+        const phone = realPhoneForMessageRow({ row, state });
+        if (!isValidEcPhone(phone)) continue;
+        const current = byPhone.get(phone);
+        if (!current || new Date(row.lastInboundAt) > new Date(current.row.lastInboundAt)) {
+            byPhone.set(phone, { row, state, phone, tail: phoneTail(phone) });
+        }
+    }
+    return [...byPhone.values()];
+};
 
 const updateAdminLeadsToAtendendo = ({ leadIds = [] } = {}) => {
     const ids = [...new Set(leadIds.map((id) => Number.parseInt(String(id), 10)).filter(Number.isFinite))];
@@ -234,6 +322,54 @@ export const reconcileAdminPanelAtendimento = async ({ fromId = 1725, createMiss
         tagged,
         createdMissing,
         update
+    };
+};
+
+export const reconcileRecentWhatsappContactsToAdminPanel = async ({
+    since = new Date(Date.now() - parseNumber('ADMIN_PANEL_CONTACT_SWEEP_LOOKBACK_HOURS', 36) * 60 * 60 * 1000),
+    limit = parseNumber('ADMIN_PANEL_CONTACT_SWEEP_CREATE_LIMIT', 20)
+} = {}) => {
+    const allAdmin = readAdminLeads({ fromId: 1 });
+    if (!allAdmin.ok) return { ok: false, reason: 'admin_all_read_failed', error: allAdmin.error || allAdmin.reason };
+
+    const allAdminTails = buildAdminTailSet(allAdmin.leads || []);
+    const contacts = await buildRecentWhatsappContacts({ since });
+    const missing = contacts.filter((item) => item.tail && !allAdminTails.has(item.tail));
+    const selected = missing.slice(0, Math.max(1, limit));
+    const created = [];
+
+    for (const item of selected) {
+        const draft = item.state?.metadata?.customerDraft || {};
+        const manualActive = item.state?.human?.mode === 'manual' && !isClosedDraft(draft.status);
+        const sync = syncContactDraftToOnlineAdminPanel({
+            ...draft,
+            phone: draft.phone || item.phone,
+            country: draft.country || item.state?.countryCode || 'EC',
+            status: manualActive ? 'atendendo' : (draft.status || 'novo')
+        }, {
+            country: draft.country || item.state?.countryCode || 'EC',
+            note: [
+                item.state?.human?.note || '',
+                'Varredura WhatsApp: contato recente sem ficha no Painel Unificado',
+                String(item.row?.body || '').trim() ? `Ultima mensagem: ${String(item.row.body).slice(0, 120)}` : ''
+            ].filter(Boolean).join(' | '),
+            action: 'whatsapp_recent_contact_sweep',
+            adminStatus: manualActive ? 'atendendo' : 'novo'
+        });
+        if (sync?.ok && sync.mode === 'created') {
+            created.push({ phone: item.phone, leadId: sync.lead_id, status: sync.status || (manualActive ? 'atendendo' : 'novo') });
+            allAdminTails.add(item.tail);
+        }
+    }
+
+    return {
+        ok: true,
+        since: since.toISOString(),
+        scannedContacts: contacts.length,
+        missing: missing.length,
+        created: created.length,
+        createdItems: created,
+        limited: missing.length > selected.length
     };
 };
 
