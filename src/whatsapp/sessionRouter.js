@@ -19,7 +19,12 @@ const parseNumber = (name, fallback) => {
 const parseWeightValue = (value) => {
     const parsed = Number.parseFloat(String(value || '').replace(',', '.'));
     if (!Number.isFinite(parsed) || parsed <= 0) return 1;
-    return Math.min(10, Math.max(0.25, parsed));
+    return Math.min(10, Math.max(0.05, parsed));
+};
+
+const parseLimitValue = (value) => {
+    const parsed = Number.parseInt(String(value || ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
 const rotationEnabled = () => String(process.env.WHATSAPP_ROTATION_ENABLED || '').toLowerCase() === 'true';
@@ -52,13 +57,37 @@ const senderWeights = () => {
         .filter(Boolean);
 };
 
+const senderLimitOverrides = () => {
+    const entries = parseList(process.env.WHATSAPP_SENDER_DAILY_LIMITS || process.env.WHATSAPP_SENDER_DAILY_LIMIT_OVERRIDES);
+    return entries
+        .map((entry) => {
+            const match = entry.match(/^([^:=]+)\s*[:=]\s*([0-9]+)$/);
+            if (!match) return null;
+            const limit = parseLimitValue(match[2]);
+            if (!limit) return null;
+            return {
+                sessionId: match[1].trim(),
+                digits: digitsOnly(match[1]),
+                limit
+            };
+        })
+        .filter(Boolean);
+};
+
+const sessionDailyLimitOverride = (sessionId) => {
+    const overrides = senderLimitOverrides();
+    const match = overrides.find((item) => isSameSession(item.sessionId, sessionId) || isSameSession(item.digits, sessionId));
+    return match?.limit || null;
+};
+
 const sessionWeight = (sessionId) => {
     const weights = senderWeights();
     const match = weights.find((item) => isSameSession(item.sessionId, sessionId) || isSameSession(item.digits, sessionId));
     return match?.weight || 1;
 };
 
-const effectiveDailyLimit = (sessionId) => Math.max(1, Math.floor(sessionDailyLimit() * sessionWeight(sessionId)));
+const effectiveDailyLimit = (sessionId) => sessionDailyLimitOverride(sessionId)
+    || Math.max(1, Math.floor(sessionDailyLimit() * sessionWeight(sessionId)));
 const effectiveHourlyLimit = (sessionId) => Math.max(1, Math.floor(sessionHourlyLimit() * sessionWeight(sessionId)));
 
 const dayKey = (date = new Date()) => date.toISOString().slice(0, 10);
@@ -72,6 +101,7 @@ const getStats = (sessionId) => {
             day: dayKey(),
             hour: hourKey(),
             sentToday: 0,
+            clientsToday: new Set(),
             sentThisHour: 0,
             lastSentAt: 0,
             lastRecipient: '',
@@ -86,6 +116,7 @@ const getStats = (sessionId) => {
     if (stats.day !== currentDay) {
         stats.day = currentDay;
         stats.sentToday = 0;
+        stats.clientsToday = new Set();
     }
     if (stats.hour !== currentHour) {
         stats.hour = currentHour;
@@ -115,9 +146,11 @@ const isSameSession = (left, right) => {
 const sessionCapacity = (sessionId) => {
     const stats = getStats(sessionId);
     const now = Date.now();
+    const dailyOverride = sessionDailyLimitOverride(sessionId);
     if (isPausedByEnv(sessionId)) return { ok: false, reason: 'paused_by_env' };
     if (stats.pausedUntil && stats.pausedUntil > now) return { ok: false, reason: stats.pauseReason || 'paused' };
-    if (stats.sentToday >= effectiveDailyLimit(sessionId)) return { ok: false, reason: 'daily_limit' };
+    if (dailyOverride && (stats.clientsToday?.size || 0) >= dailyOverride) return { ok: false, reason: 'daily_client_limit' };
+    if (!dailyOverride && stats.sentToday >= effectiveDailyLimit(sessionId)) return { ok: false, reason: 'daily_limit' };
     if (stats.sentThisHour >= effectiveHourlyLimit(sessionId)) return { ok: false, reason: 'hourly_limit' };
     if (stats.lastSentAt && now - stats.lastSentAt < sessionMinGapMs()) return { ok: false, reason: 'min_gap' };
     return { ok: true, reason: 'ok' };
@@ -126,9 +159,11 @@ const sessionCapacity = (sessionId) => {
 const sessionWalletCapacity = (sessionId) => {
     const stats = getStats(sessionId);
     const now = Date.now();
+    const dailyOverride = sessionDailyLimitOverride(sessionId);
     if (isPausedByEnv(sessionId)) return { ok: false, reason: 'paused_by_env' };
     if (stats.pausedUntil && stats.pausedUntil > now) return { ok: false, reason: stats.pauseReason || 'paused' };
-    if (stats.sentToday >= effectiveDailyLimit(sessionId)) return { ok: false, reason: 'daily_limit' };
+    if (dailyOverride && (stats.clientsToday?.size || 0) >= dailyOverride) return { ok: false, reason: 'daily_client_limit' };
+    if (!dailyOverride && stats.sentToday >= effectiveDailyLimit(sessionId)) return { ok: false, reason: 'daily_limit' };
     if (stats.sentThisHour >= effectiveHourlyLimit(sessionId)) return { ok: false, reason: 'hourly_limit' };
     return { ok: true, reason: 'wallet_ok' };
 };
@@ -374,6 +409,8 @@ export const recordOutboundSend = ({ sessionId, jid = '' } = {}) => {
     stats.lastSentAt = Date.now();
     stats.lastRecipient = digitsOnly(jid);
     if (stats.lastRecipient) {
+        if (!(stats.clientsToday instanceof Set)) stats.clientsToday = new Set();
+        stats.clientsToday.add(stats.lastRecipient);
         recipientAffinity.set(stats.lastRecipient, { sessionId: id, updatedAt: Date.now() });
     }
 };
@@ -415,6 +452,10 @@ export const getSenderPoolStatus = () => {
             weights: senderWeights().map((item) => ({
                 sessionId: item.sessionId,
                 weight: item.weight
+            })),
+            dailyOverrides: senderLimitOverrides().map((item) => ({
+                sessionId: item.sessionId,
+                limit: item.limit
             }))
         },
         sessions: configured.map((sessionId) => {
@@ -431,6 +472,7 @@ export const getSenderPoolStatus = () => {
                 effectiveHourlyLimit: effectiveHourlyLimit(sessionId),
                 capacity,
                 sentToday: stats.sentToday,
+                clientsToday: stats.clientsToday?.size || 0,
                 sentThisHour: stats.sentThisHour,
                 lastSentAt: stats.lastSentAt ? new Date(stats.lastSentAt).toISOString() : null,
                 lastRecipient: stats.lastRecipient || ''
