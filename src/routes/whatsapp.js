@@ -1478,7 +1478,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     await state.save();
                     await recordManualOutboundMessage({
                         phone,
-                        body: `${mediaKind === 'audio' ? 'Audio' : mediaKind === 'image' ? 'Imagem' : mediaKind === 'video' ? 'Video' : 'Midia'} enviado pelo painel`,
+                        body: '',
                         type: mediaKind,
                         mediaUrl: `/media/uploads/${filename}`,
                         user: req.user,
@@ -1520,7 +1520,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 await state.save();
                 await recordManualOutboundMessage({
                     phone,
-                    body: `${mediaKind === 'audio' ? 'Audio aprovado' : mediaKind === 'image' ? 'Imagem' : mediaKind === 'video' ? 'Video' : 'Midia'} enviado pelo painel`,
+                    body: '',
                     type: mediaKind,
                     mediaUrl: message,
                     user: req.user,
