@@ -8,6 +8,7 @@ import { getQueueSize } from '../whatsapp/queue.js';
 import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
 import { automationAllowedRecipients, automationPilotOnly } from '../whatsapp/automationSafety.js';
 import { listReengagementCandidates } from '../services/reengagementService.js';
+import { countAdminPanelAtendimentoGaps } from '../services/adminPanelLeadReconciliationService.js';
 
 const router = express.Router();
 
@@ -44,6 +45,13 @@ const buildPipelineNotes = ({ flags, counts }) => {
             kind: 'blocked',
             label: 'Dropi aguardando saldo',
             detail: `${counts.dropiPaymentRequired} pedido(s) chegaram ate a etapa de envio e pararam apenas no saldo.`
+        });
+    }
+    if (counts.adminPanelAtendimentoGaps > 0) {
+        notes.push({
+            kind: 'attention',
+            label: 'Atendimento fora do painel',
+            detail: `${counts.adminPanelAtendimentoGaps} lead(s) em atendimento ainda precisam sincronizar com o Painel Unificado.`
         });
     }
 
@@ -93,7 +101,8 @@ router.get('/status', async (_req, res) => {
             buyLater,
             humanHeld,
             recentShipmentCandidates,
-            reengagementCandidates
+            reengagementCandidates,
+            adminPanelGaps
         ] = await Promise.all([
             Shipment.countDocuments({
                 $or: [
@@ -131,7 +140,10 @@ router.get('/status', async (_req, res) => {
                     { 'automation.returnedNotifiedAt': { $exists: false } }
                 ]
             }),
-            listReengagementCandidates({ hours: 48, limit: 20 }).catch(() => [])
+            listReengagementCandidates({ hours: 48, limit: 20 }).catch(() => []),
+            countAdminPanelAtendimentoGaps({
+                fromId: Number.parseInt(process.env.ADMIN_PANEL_ATENDIMENTO_FROM_ID || '1725', 10) || 1725
+            }).catch(() => ({ ok: false, adminNovoInManual: 0, manualWithoutAdmin: 0 }))
         ]);
 
         const dropiBlockedOrders = await Shipment.find({
@@ -151,6 +163,9 @@ router.get('/status', async (_req, res) => {
             humanHeld,
             shipmentNotificationCandidates: recentShipmentCandidates,
             reengagementCandidates: reengagementCandidates.length,
+            adminPanelAtendimentoGaps: (adminPanelGaps.adminNovoInManual || 0) + (adminPanelGaps.manualWithoutAdmin || 0),
+            adminPanelNovoEmAtendimento: adminPanelGaps.adminNovoInManual || 0,
+            whatsappAtendimentoSemPainel: adminPanelGaps.manualWithoutAdmin || 0,
             whatsappQueue: getQueueSize()
         };
 

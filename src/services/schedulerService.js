@@ -6,12 +6,16 @@ import {
     processShipmentStatusDispatch
 } from './shipmentStatusDispatcherService.js';
 import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
+import { processBacklogRecovery } from './backlogRecoveryService.js';
+import { reconcileAdminPanelAtendimento } from './adminPanelLeadReconciliationService.js';
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
 let isRunningPickupReminders = false;
 let isRunningShipmentStatusDispatch = false;
 let isRunningAdminPanelImport = false;
+let isRunningBacklogRecovery = false;
+let isRunningAdminPanelAtendimentoReconcile = false;
 
 const flagEnabled = (name, fallback = false) => {
     const raw = process.env[name];
@@ -87,6 +91,22 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Admin panel import disabled. Set ADMIN_PANEL_IMPORT_ENABLED=true to enable.');
     }
+    if (flagEnabled('WHATSAPP_BACKLOG_RECOVERY_ENABLED', true)) {
+        const intervalMinutes = parseNumber('WHATSAPP_BACKLOG_RECOVERY_INTERVAL_MINUTES', 5);
+        const intervalMs = Math.max(2, intervalMinutes) * 60 * 1000;
+        setInterval(checkBacklogRecovery, intervalMs);
+        console.log(`[SCHEDULER] Backlog recovery enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Backlog recovery disabled. Set WHATSAPP_BACKLOG_RECOVERY_ENABLED=true to enable.');
+    }
+    if (flagEnabled('ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED', true)) {
+        const intervalMinutes = parseNumber('ADMIN_PANEL_ATENDIMENTO_RECONCILE_INTERVAL_MINUTES', 5);
+        const intervalMs = Math.max(2, intervalMinutes) * 60 * 1000;
+        setInterval(checkAdminPanelAtendimentoReconcile, intervalMs);
+        console.log(`[SCHEDULER] Atendimento/admin reconciliation enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Atendimento/admin reconciliation disabled. Set ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED=true to enable.');
+    }
     // Watchdog: Restart WhatsApp ONLY if not ready and not scanning
     setInterval(() => {
         const { isReady, status } = getStatus();
@@ -113,6 +133,12 @@ export const startScheduler = () => {
     if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
         setTimeout(() => checkAdminPanelImport(), 15000);
     }
+    if (flagEnabled('WHATSAPP_BACKLOG_RECOVERY_ENABLED', true)) {
+        setTimeout(() => checkBacklogRecovery(), 60000);
+    }
+    if (flagEnabled('ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED', true)) {
+        setTimeout(() => checkAdminPanelAtendimentoReconcile(), 75000);
+    }
 
     // Also run immediately once WhatsApp becomes ready
     onWhatsAppReady(() => {
@@ -131,7 +157,48 @@ export const startScheduler = () => {
         if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
             setTimeout(() => checkAdminPanelImport(), 25000);
         }
+        if (flagEnabled('WHATSAPP_BACKLOG_RECOVERY_ENABLED', true)) {
+            setTimeout(() => checkBacklogRecovery(), 45000);
+        }
+        if (flagEnabled('ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED', true)) {
+            setTimeout(() => checkAdminPanelAtendimentoReconcile(), 55000);
+        }
     });
+};
+
+const checkAdminPanelAtendimentoReconcile = async () => {
+    if (isRunningAdminPanelAtendimentoReconcile) return;
+    isRunningAdminPanelAtendimentoReconcile = true;
+    try {
+        const fromId = parseNumber('ADMIN_PANEL_ATENDIMENTO_FROM_ID', 1725);
+        const result = await reconcileAdminPanelAtendimento({ fromId, createMissing: true });
+        if (!result.ok) {
+            console.warn('[ADMIN_ATENDIMENTO] reconciliacao falhou:', result.reason || result.error || result);
+            return;
+        }
+        if (result.requestedUpdates || result.tagged || result.createdMissing) {
+            console.log(`[ADMIN_ATENDIMENTO] fromId=${fromId}; marcados=${result.updatedIds?.length || 0}; tags=${result.tagged || 0}; criados=${result.createdMissing || 0}; protegidos=${result.protectedSkipped?.length || 0}.`);
+        }
+    } catch (error) {
+        console.error('Admin Atendimento Reconciliation Scheduler Error:', error);
+    } finally {
+        isRunningAdminPanelAtendimentoReconcile = false;
+    }
+};
+
+const checkBacklogRecovery = async () => {
+    if (isRunningBacklogRecovery) return;
+    isRunningBacklogRecovery = true;
+    try {
+        const result = await processBacklogRecovery();
+        if (result.processed || result.candidates || result.skipped) {
+            console.log(`[BACKLOG_RECOVERY] processados ${result.processed || 0}/${result.candidates || 0}${result.skipped ? `; skipped=${result.skipped}` : ''}.`);
+        }
+    } catch (error) {
+        console.error('Backlog Recovery Scheduler Error:', error);
+    } finally {
+        isRunningBacklogRecovery = false;
+    }
 };
 
 const checkPendingCheckoutFollowups = async () => {
