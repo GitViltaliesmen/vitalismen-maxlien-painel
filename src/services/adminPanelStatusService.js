@@ -217,6 +217,13 @@ soft_statuses = {"novo", "atendendo"}
 
 if existing:
     lead_id, old_status, _old_notes = existing
+    for blank_safe_key in ["name", "address", "city", "province"]:
+        if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
+            fields.pop(blank_safe_key, None)
+    if "product_value" in fields and not float(fields.get("product_value") or 0):
+        fields.pop("product_value", None)
+    if "status" in fields and str(old_status or "").lower() == "atendendo" and str(fields.get("status") or "").lower() == "novo":
+        fields["status"] = old_status
     if "status" in fields and str(old_status or "").lower() in protected_statuses and str(fields.get("status") or "").lower() in soft_statuses:
         fields["status"] = old_status
     assignments = ", ".join([f"{k}=?" for k in fields])
@@ -242,7 +249,7 @@ if {"lead_id", "action", "old_value", "new_value", "created_at"}.issubset(hist_c
 con.commit()
 changed = con.total_changes
 con.close()
-print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": payload.get("status"), "changed": changed}))
+print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": fields.get("status", payload.get("status")), "changed": changed}))
 `;
 
     return runAdminPanelPython({ country, python });
@@ -348,6 +355,13 @@ soft_statuses = {"novo", "atendendo"}
 
 if existing:
     lead_id, old_status, _old_notes = existing
+    for blank_safe_key in ["name", "address", "city", "province"]:
+        if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
+            fields.pop(blank_safe_key, None)
+    if "product_value" in fields and not float(fields.get("product_value") or 0):
+        fields.pop("product_value", None)
+    if "status" in fields and str(old_status or "").lower() == "atendendo" and str(fields.get("status") or "").lower() == "novo":
+        fields["status"] = old_status
     if "status" in fields and str(old_status or "").lower() in protected_statuses and str(fields.get("status") or "").lower() in soft_statuses:
         fields["status"] = old_status
     assignments = ", ".join([f"{k}=?" for k in fields])
@@ -373,7 +387,7 @@ if {"lead_id", "action", "old_value", "new_value", "created_at"}.issubset(hist_c
 con.commit()
 changed = con.total_changes
 con.close()
-print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": payload.get("status"), "changed": changed}))
+print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": fields.get("status", payload.get("status")), "changed": changed}))
 `;
 
     return runAdminPanelPython({ country: normalizedCountry, python });

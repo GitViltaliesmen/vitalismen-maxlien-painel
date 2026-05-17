@@ -3,6 +3,7 @@ import Message from '../models/Message.js';
 import Order from '../models/Order.js';
 import { vitPowerAgent } from './agents/vitPowerAgent.js';
 import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
+import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 
 const OFFICIAL_AGENT = 'vit_power_ec';
 const OFFICIAL_COUNTRY = 'EC';
@@ -10,6 +11,26 @@ const OFFICIAL_COUNTRY = 'EC';
 const autoReplyEnabled = () => String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || '').toLowerCase() === 'true';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const ecOnlyInboundEnabled = () => String(process.env.WHATSAPP_EC_ONLY_INBOUND || 'true').toLowerCase() !== 'false';
+
+const isAllowedEcuadorCustomer = ({ chatId = '', senderPn = '', phoneDigits = '' } = {}) => {
+    const id = String(chatId || '');
+    if (!id || id === 'status@broadcast' || id.includes('@g.us') || id.includes('@newsletter') || id.includes('@broadcast')) {
+        return false;
+    }
+
+    const senderDigits = digitsOnly(senderPn);
+    if (senderDigits) return senderDigits.startsWith('593');
+
+    const phone = digitsOnly(phoneDigits);
+    if (phone) return phone.startsWith('593');
+
+    const chatDigits = digitsOnly(id);
+    if (id.endsWith('@s.whatsapp.net') || id.endsWith('@c.us')) return chatDigits.startsWith('593');
+    if (id.endsWith('@lid')) return false;
+    return false;
+};
 
 const parseDigitsList = (value) => String(value || '')
     .split(',')
@@ -36,9 +57,53 @@ const normalizeText = (text) => String(text || '').trim().toLowerCase();
 
 const hasAnyMatch = (text, patterns) => patterns.some((pattern) => pattern.test(text));
 
+const normalizeForDecision = (value) => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const inboundDedupeWindowMs = () => {
     const seconds = Number(process.env.WHATSAPP_INBOUND_DEDUPE_SECONDS || 90);
     return Math.max(10, seconds) * 1000;
+};
+
+const processingLockMs = () => {
+    const seconds = Number(process.env.WHATSAPP_CONTACT_PROCESSING_LOCK_SECONDS || 180);
+    return Math.max(30, seconds) * 1000;
+};
+
+const acquireContactProcessingLock = async ({ stateId, messageId }) => {
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + processingLockMs());
+    const result = await ContactState.updateOne(
+        {
+            _id: stateId,
+            $or: [
+                { 'metadata.processingLock.expiresAt': { $exists: false } },
+                { 'metadata.processingLock.expiresAt': { $lte: now } }
+            ]
+        },
+        {
+            $set: {
+                'metadata.processingLock': {
+                    messageId: messageId || '',
+                    acquiredAt: now,
+                    expiresAt
+                }
+            }
+        }
+    );
+    return result.modifiedCount > 0;
+};
+
+const releaseContactProcessingLock = async ({ stateId, messageId }) => {
+    const query = messageId
+        ? { _id: stateId, 'metadata.processingLock.messageId': messageId }
+        : { _id: stateId };
+    await ContactState.updateOne(query, { $unset: { 'metadata.processingLock': '' } }).catch(() => null);
 };
 
 const hasProcessedInbound = ({ state, messageId, body }) => {
@@ -83,7 +148,7 @@ const markInboundProcessed = ({ state, messageId, body }) => {
     };
 };
 
-const saveInboundMessage = async ({ messageId, chatId, senderPn, body }) => {
+const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId }) => {
     if (!body.trim()) return;
     try {
         const peerPhone = digitsOnly(senderPn) || digitsOnly(chatId);
@@ -99,6 +164,8 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body }) => {
                     type: 'chat',
                     isFromMe: false,
                     isBot: false,
+                    sessionId: sessionId || '',
+                    ownerPhoneDigits: digitsOnly(sessionId),
                     timestamp: Math.floor(Date.now() / 1000)
                 }
             },
@@ -113,6 +180,39 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body }) => {
 
 const inferCountryCode = (chatId) => {
     return OFFICIAL_COUNTRY;
+};
+
+const realEcuadorPhoneForState = ({ chatId = '', senderPn = '', state = null } = {}) => {
+    const sender = digitsOnly(senderPn);
+    if (sender.startsWith('593')) return sender;
+    const metadataSender = digitsOnly(state?.metadata?.lastSenderPn);
+    if (metadataSender.startsWith('593')) return metadataSender;
+    const statePhone = digitsOnly(state?.phoneDigits);
+    if (statePhone.startsWith('593')) return statePhone;
+    const chatDigits = digitsOnly(chatId);
+    return chatDigits.startsWith('593') ? chatDigits : '';
+};
+
+const ensureInboundContactInAdminPanel = ({ chatId = '', senderPn = '', state = null } = {}) => {
+    const phone = realEcuadorPhoneForState({ chatId, senderPn, state });
+    if (!phone) return { ok: false, skipped: true, reason: 'no_ec_phone' };
+    const draft = state?.metadata?.customerDraft || {};
+    const manualActive = state?.human?.mode === 'manual';
+    const result = syncContactDraftToOnlineAdminPanel({
+        ...draft,
+        phone: draft.phone || phone,
+        country: draft.country || OFFICIAL_COUNTRY,
+        status: manualActive ? 'atendendo' : (draft.status || 'novo')
+    }, {
+        country: draft.country || OFFICIAL_COUNTRY,
+        note: 'Entrada WhatsApp: contato criado automaticamente no Painel Unificado',
+        action: 'whatsapp_inbound_contact_guard',
+        adminStatus: manualActive ? 'atendendo' : 'novo'
+    });
+    if (!result?.ok && !result?.skipped) {
+        console.warn('[ROUTER] falha ao garantir contato no Painel Unificado:', result);
+    }
+    return result;
 };
 
 const forcedAgent = () => {
@@ -143,6 +243,67 @@ const buildPhoneSearchTails = (...values) => {
         })
         .filter((digits) => digits.length >= 7);
     return [...new Set(tails)];
+};
+
+const contactIdentityQuery = ({ chatId = '', senderPn = '', phoneDigits = '' } = {}) => {
+    const tails = buildPhoneSearchTails(senderPn, phoneDigits, chatId);
+    const or = [];
+    if (chatId) {
+        or.push({ chatId });
+        or.push({ 'metadata.linkedChatIds': chatId });
+    }
+    for (const tail of tails) {
+        or.push({ phoneDigits: tail });
+        or.push({ phoneDigits: { $regex: `${tail}$` } });
+        or.push({ 'metadata.lastSenderPn': { $regex: tail } });
+        or.push({ 'metadata.customerPhoneDigits': { $regex: `${tail}$` } });
+    }
+    return or.length ? { $or: or } : { chatId };
+};
+
+const stateContinuityRank = (state, currentChatId = '') => {
+    const memory = state?.metadata?.perAgentMemory?.[OFFICIAL_AGENT] || {};
+    let score = 0;
+    if (state?.chatId === currentChatId) score += 20;
+    if (state?.human?.mode === 'manual') score += 80;
+    if (memory.lastFunnelStage) score += 20;
+    if (memory.initialProductPresentationSentAt || memory.initialProductPresentationSteps?.length) score += 50;
+    if (memory.orderClosedThankYouSentAt || memory.lastFunnelStage === 'order_closed') score += 70;
+    if (state?.updatedAt) score += Math.min(10, Math.max(0, Date.now() - new Date(state.updatedAt).getTime()) / -86400000 + 10);
+    return score;
+};
+
+const findContinuityContactState = async ({ chatId, senderPn }) => {
+    const senderPhoneDigits = digitsOnly(senderPn);
+    const exactState = chatId ? await ContactState.findOne({ chatId }) : null;
+    const candidates = await ContactState.find(contactIdentityQuery({
+        chatId,
+        senderPn,
+        phoneDigits: senderPhoneDigits || exactState?.phoneDigits || exactState?.metadata?.customerPhoneDigits || exactState?.metadata?.lastSenderPn
+    })).sort({ updatedAt: -1 }).limit(12);
+    const allCandidates = [
+        ...(exactState ? [exactState] : []),
+        ...candidates
+    ].filter((item, index, arr) => item && arr.findIndex((other) => String(other._id) === String(item._id)) === index);
+    if (!allCandidates.length) return null;
+    return allCandidates.sort((a, b) => stateContinuityRank(b, chatId) - stateContinuityRank(a, chatId))[0];
+};
+
+const rememberContactChannel = ({ state, chatId, senderPn, sessionId }) => {
+    const senderPhoneDigits = digitsOnly(senderPn);
+    const metadata = state.metadata || {};
+    const linkedChatIds = Array.isArray(metadata.linkedChatIds) ? metadata.linkedChatIds : [];
+    state.metadata = {
+        ...metadata,
+        linkedChatIds: [...new Set([...(linkedChatIds || []), state.chatId, chatId].filter(Boolean))].slice(-20),
+        lastActiveChatId: chatId,
+        lastSessionId: sessionId || metadata.lastSessionId || null,
+        ...(senderPn ? { lastSenderPn: senderPn } : {}),
+        ...(senderPhoneDigits ? { customerPhoneDigits: senderPhoneDigits } : {})
+    };
+    if (senderPhoneDigits && !isSamePhone(state.phoneDigits, senderPhoneDigits)) {
+        state.phoneDigits = senderPhoneDigits;
+    }
 };
 
 const findLatestOrderForContact = async ({ chatId, senderPn, state }) => {
@@ -182,13 +343,58 @@ const hasRecentCommercialMemory = (state) => {
 
 const detectSignals = (body) => {
     const normalizedBody = normalizeText(body);
+    const decisionBody = normalizeForDecision(body);
+    const asksGuide = hasAnyMatch(decisionBody, [/\bguia\b/i, /\brastreo\b/i, /\bcodigo\b/i, /\bnumero de guia\b/i]);
+    const asksPickup = hasAnyMatch(decisionBody, [/\bretirar\b/i, /\bretiro\b/i, /\bagencia\b/i, /\bservientrega\b/i, /\blisto para retirar\b/i]);
+    const asksProof = hasAnyMatch(decisionBody, [/\bfunciona\b/i, /\bsirve\b/i, /\bresultado\b/i, /\btestimonio\b/i, /\bprueba\b/i, /\breal\b/i, /\bconfianza\b/i]);
+    const asksComposition = hasAnyMatch(decisionBody, [/\bcomposicion\b/i, /\bingrediente\b/i, /\bque tiene\b/i, /\bcontiene\b/i]);
+    const asksLiquid = hasAnyMatch(decisionBody, [/\bliquido\b/i, /\borina\b/i, /\bprostata\b/i]);
+    const mentionsAddress = hasAnyMatch(decisionBody, [/\bnombre\b/i, /\bapellido\b/i, /\bdireccion\b/i, /\bciudad\b/i, /\bprovincia\b/i, /\bdepartamento\b/i, /\breferencia\b/i]);
+    const priceResistance = hasAnyMatch(decisionBody, [/\bcaro\b/i, /\bcostoso\b/i, /\bmucho\b/i, /\bdescuento\b/i, /\brebaja\b/i]);
+    const closing = hasAnyMatch(decisionBody, [/\bconfirmo\b/i, /\bconfirmado\b/i, /\benvialo\b/i, /\benvie\b/i, /\bmande\b/i, /\bhagale\b/i, /\blisto\b/i, /\bde una\b/i]);
+    const postSale = hasAnyMatch(decisionBody, [/\bgracias\b/i, /\brecibi\b/i, /\bme llego\b/i, /\bya tengo\b/i]);
+    const requestsQuantity = hasAnyMatch(normalizedBody, [/\b1 frasco\b/i, /\b3 frascos\b/i, /\b6 frascos\b/i, /\bun frasco\b/i, /\btres frascos\b/i, /\bseis frascos\b/i, /\buno\b/i, /\btres\b/i, /\bseis\b/i]);
+    const showsPurchaseIntent = hasAnyMatch(normalizedBody, [/\bquiero\b/i, /\bquero\b/i, /\bcomprar\b/i, /\bllevar\b/i, /\bme interesa\b/i, /\bdeseo\b/i, /\bdesejo\b/i, /\border?nar\b/i]);
+    const asksPrice = hasAnyMatch(normalizedBody, [/\bprecio\b/i, /\bpreco\b/i, /\bvalor\b/i, /\bpromo\b/i, /\bpromoc/i, /\bcu[aá]nto\b/i, /\bcuanto\b/i]);
+    const asksProductQuestion = hasAnyMatch(normalizedBody, [/\bfunciona\b/i, /\bdiabet/i, /\bpresi/i, /\bhiperten/i, /\bcirug/i]);
+    const funnelBucket = (() => {
+        if (postSale) return '08_POSVENDA';
+        if (asksGuide || asksPickup) return '07_LOGISTICA';
+        if (closing || mentionsAddress || requestsQuantity || looksLikeOrderDataMessage(body)) return '06_FECHAMENTO';
+        if (showsPurchaseIntent) return '05_OFERTA';
+        if (priceResistance) return '04_OBJECAO';
+        if (asksProof) return '03_PROVA';
+        if (asksPrice || asksProductQuestion || asksComposition || asksLiquid) return '02_QUALIFICACAO';
+        return '01_ENTRADA';
+    })();
+    const buyerScore = (() => {
+        if (postSale || asksGuide || asksPickup) return 100;
+        let score = 10;
+        if (asksPrice || asksProductQuestion || asksComposition || asksLiquid) score += 20;
+        if (showsPurchaseIntent) score += 30;
+        if (requestsQuantity) score += 35;
+        if (mentionsAddress || closing || looksLikeOrderDataMessage(body)) score += 50;
+        if (priceResistance) score -= 10;
+        return Math.max(0, Math.min(100, score));
+    })();
     return {
         normalizedBody,
         wantsConsultation: false,
-        showsPurchaseIntent: hasAnyMatch(normalizedBody, [/\bquiero\b/i, /\bquero\b/i, /\bcomprar\b/i, /\bllevar\b/i, /\bme interesa\b/i, /\bdeseo\b/i, /\bdesejo\b/i, /\border?nar\b/i]),
-        asksPrice: hasAnyMatch(normalizedBody, [/\bprecio\b/i, /\bpreco\b/i, /\bvalor\b/i, /\bpromo\b/i, /\bpromoc/i, /\bcu[aá]nto\b/i, /\bcuanto\b/i]),
-        asksProductQuestion: hasAnyMatch(normalizedBody, [/\bfunciona\b/i, /\bdiabet/i, /\bpresi/i, /\bhiperten/i, /\bcirug/i]),
-        requestsQuantity: hasAnyMatch(normalizedBody, [/\b1 frasco\b/i, /\b3 frascos\b/i, /\b6 frascos\b/i, /\bun frasco\b/i, /\btres frascos\b/i, /\bseis frascos\b/i]),
+        showsPurchaseIntent,
+        asksPrice,
+        asksProductQuestion,
+        asksProof,
+        asksComposition,
+        asksLiquid,
+        asksGuide,
+        asksPickup,
+        mentionsAddress,
+        priceResistance,
+        closing,
+        postSale,
+        requestsQuantity,
+        funnelBucket,
+        buyerScore,
         mentionsProducts: true,
         mentionsVitPower: true,
         explicitWarmupExit: false
@@ -228,6 +434,12 @@ const appendAgentHistory = ({ state, assignedAgent, reason }) => {
 const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason, signals, sessionId = null }) => {
     ensureTag(state, 'COMMERCIAL_READY');
     ensureTag(state, 'VIT_POWER_EC_ONLY');
+    if (signals.asksPrice) ensureTag(state, 'ASKS_PRICE');
+    if (signals.asksProof) ensureTag(state, 'ASKS_PROOF');
+    if (signals.requestsQuantity || signals.closing) ensureTag(state, 'HOT_LEAD');
+    if (signals.mentionsAddress || looksLikeOrderDataMessage(body)) ensureTag(state, 'HAS_ORDER_DATA');
+    if (signals.asksGuide || signals.asksPickup) ensureTag(state, 'LOGISTICS');
+    if (signals.postSale) ensureTag(state, 'POST_SALE');
 
     state.countryCode = OFFICIAL_COUNTRY;
     state.assignedAgent = OFFICIAL_AGENT;
@@ -244,18 +456,33 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
             showsPurchaseIntent: signals.showsPurchaseIntent,
             asksPrice: signals.asksPrice,
             asksProductQuestion: signals.asksProductQuestion,
+            asksProof: signals.asksProof,
+            asksComposition: signals.asksComposition,
+            asksLiquid: signals.asksLiquid,
+            asksGuide: signals.asksGuide,
+            asksPickup: signals.asksPickup,
+            mentionsAddress: signals.mentionsAddress,
+            priceResistance: signals.priceResistance,
+            closing: signals.closing,
+            postSale: signals.postSale,
             requestsQuantity: signals.requestsQuantity,
             mentionsProducts: signals.mentionsProducts,
             mentionsVitPower: signals.mentionsVitPower,
-            explicitWarmupExit: signals.explicitWarmupExit
+            explicitWarmupExit: signals.explicitWarmupExit,
+            funnelBucket: signals.funnelBucket,
+            buyerScore: signals.buyerScore
         },
+        lastKnownFunnelBucket: signals.funnelBucket,
+        buyerScore: signals.buyerScore,
         perAgentMemory: {
             ...((state.metadata || {}).perAgentMemory || {}),
             [OFFICIAL_AGENT]: {
                 ...(((state.metadata || {}).perAgentMemory || {})[OFFICIAL_AGENT] || {}),
                 lastInboundAt: new Date(),
                 lastInboundText: body,
-                lastReason: reason
+                lastReason: reason,
+                lastFunnelBucket: signals.funnelBucket,
+                buyerScore: signals.buyerScore
             }
         }
     };
@@ -277,16 +504,28 @@ export const routeIncomingMessage = async (payload) => {
     const messageId = payload.id ? String(payload.id) : '';
     const senderPn = payload.senderPn || payload.fullMessage?.key?.senderPn || null;
     const senderPhoneDigits = digitsOnly(senderPn);
+    let state = await findContinuityContactState({ chatId, senderPn });
 
-    let state = await ContactState.findOne({ chatId });
+    if (ecOnlyInboundEnabled() && !isAllowedEcuadorCustomer({ chatId, senderPn, phoneDigits: senderPhoneDigits || state?.phoneDigits || state?.metadata?.lastSenderPn })) {
+        console.log(`[ROUTER] inbound bloqueado: somente clientes EC 593 | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
+        return;
+    }
+
     if (!state) {
         state = new ContactState({
             chatId,
             phoneDigits: senderPhoneDigits || String(chatId || '').replace(/\D/g, ''),
             countryCode
         });
-    } else if (senderPhoneDigits && !isSamePhone(state.phoneDigits, senderPhoneDigits)) {
-        state.phoneDigits = senderPhoneDigits;
+    }
+    rememberContactChannel({ state, chatId, senderPn, sessionId });
+    const adminContactSync = ensureInboundContactInAdminPanel({ chatId, senderPn, state });
+    if (adminContactSync?.mode === 'created') {
+        state.metadata = {
+            ...(state.metadata || {}),
+            adminPanelLeadId: adminContactSync.lead_id,
+            adminPanelInboundGuardAt: new Date()
+        };
     }
 
     if (hasProcessedInbound({ state, messageId, body })) {
@@ -294,7 +533,7 @@ export const routeIncomingMessage = async (payload) => {
         return;
     }
     markInboundProcessed({ state, messageId, body });
-    await saveInboundMessage({ messageId, chatId, senderPn, body });
+    await saveInboundMessage({ messageId, chatId, senderPn, body, sessionId });
 
     const isFirstInbound = !state.firstInboundText;
 
@@ -308,6 +547,7 @@ export const routeIncomingMessage = async (payload) => {
     state.metadata = {
         ...(state.metadata || {}),
         lastSessionId: sessionId,
+        lastActiveChatId: chatId,
         ...(senderPn ? { lastSenderPn: senderPn } : {})
     };
 
@@ -359,13 +599,23 @@ export const routeIncomingMessage = async (payload) => {
         return;
     }
 
-    await dispatchToAgent({
-        assignedAgent: decision.assignedAgent,
-        payload: {
-            ...payload,
-            contactStateId: state._id.toString(),
-            agentDecisionReason: decision.reason,
-            sessionId
-        }
-    });
+    const lockAcquired = await acquireContactProcessingLock({ stateId: state._id, messageId });
+    if (!lockAcquired) {
+        console.log(`[ROUTER] cliente ja em processamento; resposta paralela bloqueada | chat=${chatId} | id=${messageId || 'sem_id'}`);
+        return;
+    }
+
+    try {
+        await dispatchToAgent({
+            assignedAgent: decision.assignedAgent,
+            payload: {
+                ...payload,
+                contactStateId: state._id.toString(),
+                agentDecisionReason: decision.reason,
+                sessionId
+            }
+        });
+    } finally {
+        await releaseContactProcessingLock({ stateId: state._id, messageId });
+    }
 };
