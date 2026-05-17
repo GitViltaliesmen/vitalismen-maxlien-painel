@@ -21,6 +21,12 @@ const isValidEcPhone = (value) => {
     return digits.startsWith('593') && digits.length >= 11;
 };
 
+const normalizeEcPhone = (value) => {
+    const digits = digitsOnly(value);
+    if (digits.startsWith('593')) return digits;
+    return digits.length >= 9 ? `593${digits.slice(-9)}` : digits;
+};
+
 const isClosedDraft = (status = '') => {
     const value = String(status || '').trim().toLowerCase();
     return CLOSED_DRAFT_STATUSES.has(value);
@@ -71,7 +77,8 @@ from_id = int(${JSON.stringify(fromId)})
 con = sqlite3.connect(db_path)
 con.row_factory = sqlite3.Row
 rows = con.execute("""
-    SELECT id, name, phone, phone_e164, status, event_id, created_at, updated_at, notes
+    SELECT id, name, phone, phone_e164, status, event_id, created_at, updated_at, notes,
+           address, city, province, product_qty, product_value, country
     FROM leads
     WHERE id >= ?
     ORDER BY id ASC
@@ -87,6 +94,77 @@ const buildAdminTailSet = (leads = []) => new Set(
         .map((lead) => phoneTail(lead.phone_e164 || lead.phone))
         .filter(Boolean)
 );
+
+const adminStatusToDraftStatus = (status = '') => {
+    const value = String(status || '').toLowerCase();
+    if (value === 'confirmado') return 'confirmed';
+    if (value === 'pedido_enviado' || value === 'enviado') return 'processing';
+    if (value === 'entregue') return 'delivered';
+    if (value === 'atendendo') return 'atendendo';
+    return 'novo';
+};
+
+const findContactStateByPhone = async (phone = '') => {
+    const tail = phoneTail(phone);
+    if (!tail) return null;
+    return ContactState.findOne({
+        $or: [
+            { phoneDigits: { $regex: `${tail}$` } },
+            { 'metadata.customerDraft.phone': { $regex: tail } },
+            { 'metadata.lastSenderPn': { $regex: tail } },
+            { chatId: { $regex: `${tail}@` } }
+        ]
+    }).sort({ updatedAt: -1 });
+};
+
+const applyAdminLeadToContactState = (state, lead, phone) => {
+    const draft = state.metadata?.customerDraft || {};
+    const status = String(lead.status || '').toLowerCase();
+    const manual = status === 'atendendo';
+    state.phoneDigits = state.phoneDigits || phone;
+    state.countryCode = 'EC';
+    state.assignedAgent = 'vit_power_ec';
+    state.metadata = {
+        ...(state.metadata || {}),
+        adminPanelLeadId: lead.id,
+        adminPanelStatus: lead.status || '',
+        adminPanelCreatedAt: lead.created_at || '',
+        adminPanelSyncedAt: new Date(),
+        lastSessionId: state.metadata?.lastSessionId || process.env.WHATSAPP_DEFAULT_SESSION_ID || '553183002800',
+        lastActiveChatId: state.metadata?.lastActiveChatId || state.chatId,
+        customerDraft: {
+            ...draft,
+            name: draft.name || lead.name || '',
+            phone: draft.phone || phone,
+            country: draft.country || 'EC',
+            address: draft.address || lead.address || '',
+            city: draft.city || lead.city || '',
+            province: draft.province || lead.province || '',
+            quantity: draft.quantity || String(lead.product_qty || ''),
+            total: draft.total || String(lead.product_value || ''),
+            status: draft.status || adminStatusToDraftStatus(lead.status),
+            updatedAt: new Date().toISOString()
+        }
+    };
+    if (manual && state.human?.mode !== 'manual') {
+        state.human = {
+            ...(state.human || {}),
+            mode: 'manual',
+            assignedName: state.human?.assignedName || 'painel',
+            assignedAt: state.human?.assignedAt || new Date(),
+            pausedUntil: state.human?.pausedUntil || new Date(Date.now() + 24 * 60 * 60 * 1000),
+            lastManualAt: new Date(),
+            lastManualBy: state.human?.lastManualBy || 'reconciliacao',
+            note: state.human?.note || 'Criado a partir do Painel Unificado para aparecer na ficha de atendimento.'
+        };
+    }
+    const tags = Array.isArray(state.tags) ? state.tags : [];
+    state.tags = [...new Set([
+        ...tags,
+        'PANEL_UNIFIED_IMPORTED',
+        manual ? 'manual:atendimento_iniciado' : `admin:${status || 'novo'}`
+    ])];
+};
 
 const phoneTailCandidates = (value = '') => {
     const digits = digitsOnly(value);
@@ -370,6 +448,60 @@ export const reconcileRecentWhatsappContactsToAdminPanel = async ({
         created: created.length,
         createdItems: created,
         limited: missing.length > selected.length
+    };
+};
+
+export const reconcileAdminLeadsToWhatsappPanel = async ({
+    fromId = parseNumber('ADMIN_PANEL_ATENDIMENTO_FROM_ID', 1725),
+    limit = parseNumber('ADMIN_PANEL_TO_WHATSAPP_CREATE_LIMIT', 200)
+} = {}) => {
+    const admin = readAdminLeads({ fromId });
+    if (!admin.ok) return { ok: false, reason: 'admin_read_failed', error: admin.error || admin.reason };
+
+    let created = 0;
+    let updated = 0;
+    const createdItems = [];
+    const missing = [];
+    const selected = (admin.leads || []).slice(0, Math.max(1, limit));
+
+    for (const lead of selected) {
+        const phone = normalizeEcPhone(lead.phone_e164 || lead.phone);
+        if (!isValidEcPhone(phone)) continue;
+        let state = await findContactStateByPhone(phone);
+        if (!state) {
+            state = new ContactState({
+                chatId: `${phone}@c.us`,
+                phoneDigits: phone,
+                countryCode: 'EC',
+                assignedAgent: 'vit_power_ec'
+            });
+            applyAdminLeadToContactState(state, lead, phone);
+            await state.save();
+            created += 1;
+            createdItems.push({ id: lead.id, phone, status: lead.status || '', chatId: state.chatId });
+            continue;
+        }
+        applyAdminLeadToContactState(state, lead, phone);
+        await state.save();
+        updated += 1;
+    }
+
+    for (const lead of admin.leads || []) {
+        const phone = normalizeEcPhone(lead.phone_e164 || lead.phone);
+        if (!isValidEcPhone(phone)) continue;
+        const state = await findContactStateByPhone(phone);
+        if (!state) missing.push({ id: lead.id, phone, status: lead.status || '' });
+    }
+
+    return {
+        ok: true,
+        fromId,
+        scannedAdminLeads: admin.leads?.length || 0,
+        created,
+        updated,
+        missing: missing.length,
+        missingItems: missing,
+        createdItems
     };
 };
 

@@ -9,6 +9,7 @@ import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
 import { processBacklogRecovery } from './backlogRecoveryService.js';
 import {
     reconcileAdminPanelAtendimento,
+    reconcileAdminLeadsToWhatsappPanel,
     reconcileRecentWhatsappContactsToAdminPanel
 } from './adminPanelLeadReconciliationService.js';
 
@@ -187,6 +188,12 @@ const checkAdminPanelAtendimentoReconcile = async () => {
             console.warn('[ADMIN_CONTACT_SWEEP] varredura falhou:', sweep.reason || sweep.error || sweep);
         } else if (sweep.created || sweep.missing) {
             console.log(`[ADMIN_CONTACT_SWEEP] contatos=${sweep.scannedContacts || 0}; faltantes=${sweep.missing || 0}; criados=${sweep.created || 0}${sweep.limited ? '; limitado=true' : ''}.`);
+        }
+        const adminToWhatsapp = await reconcileAdminLeadsToWhatsappPanel({ fromId });
+        if (!adminToWhatsapp.ok) {
+            console.warn('[ADMIN_TO_WHATSAPP] reconciliacao falhou:', adminToWhatsapp.reason || adminToWhatsapp.error || adminToWhatsapp);
+        } else if (adminToWhatsapp.created || adminToWhatsapp.missing) {
+            console.log(`[ADMIN_TO_WHATSAPP] fromId=${fromId}; criados=${adminToWhatsapp.created || 0}; atualizados=${adminToWhatsapp.updated || 0}; faltantes=${adminToWhatsapp.missing || 0}.`);
         }
     } catch (error) {
         console.error('Admin Atendimento Reconciliation Scheduler Error:', error);
