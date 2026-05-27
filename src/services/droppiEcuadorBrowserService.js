@@ -1,17 +1,24 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
+import ContactState from '../models/ContactState.js';
 import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
-import { markOnlineAdminPedidoEnviado } from './adminPanelStatusService.js';
+import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
+import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
+const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
 const STORAGE_STATE_PATH = process.env.DROPPI_EC_STORAGE_STATE_PATH
     || path.join(process.cwd(), '.local', 'droppi-ec-storage.json');
+const TOTP_SECRET_FILE_PATH = process.env.DROPI_TOTP_SECRET_FILE
+    || process.env.DROPPI_TOTP_SECRET_FILE
+    || path.join(process.env.HOME || process.cwd(), '.vitalismen-secrets', 'dropi-2fa.env');
 const DOWNLOAD_DIR = process.env.DROPPI_EC_DOWNLOAD_DIR
     || path.join(process.cwd(), 'public', 'media', 'droppi-ec');
 const LOGIN_URL = process.env.DROPPI_EC_LOGIN_URL || 'https://app.dropi.ec/auth/login';
-const PRODUCT_URL = process.env.DROPPI_EC_PRODUCT_URL || 'https://app.dropi.ec/dashboard/search?search_type=simple&privated=true';
+const PRODUCT_URL = process.env.DROPPI_EC_PRODUCT_URL || 'https://app.dropi.ec/dashboard/product-details/103743/vit-powerss-1000-ml-x1-comunidad';
 const PRIVATE_PRODUCT_URL = (() => {
     try {
         const url = new URL(PRODUCT_URL);
@@ -25,9 +32,11 @@ const PRIVATE_PRODUCT_URL = (() => {
 })();
 const ORDERS_URL = process.env.DROPPI_EC_ORDERS_URL || 'https://app.dropi.ec/dashboard/orders';
 const ORDERS_API_URL = process.env.DROPPI_EC_ORDERS_API_URL || 'https://api.dropi.ec/api/orders/myorders/v2';
-const PRODUCT_NAME = process.env.DROPPI_EC_PRODUCT_NAME || 'VIT POWERSS 1000 ML X1 / COMUNIDAD';
+const GUIDE_CLOUDFRONT_URL = process.env.DROPPI_EC_GUIDE_CLOUDFRONT_URL || 'https://d39ru7awumhhs2.cloudfront.net';
+const IMAGE_SERVER_URL = process.env.DROPPI_EC_IMAGE_SERVER_URL || 'https://api.dropi.ec';
+const PRODUCT_NAME = process.env.DROPPI_EC_PRODUCT_NAME || 'VIT POWERS 1000ML COMUNIDAD';
 const PRODUCT_ALIASES = (process.env.DROPPI_EC_PRODUCT_ALIASES
-    || 'VIT POWERS 1000ML COMUNIDAD|VIT POWERSS 1000 ML X1 COMUNIDAD|VIT POWERSS 1000 ML X1 / COMUNIDAD')
+    || 'VIT POWERS 1000ML COMUNIDAD|VIT POWERS 1000 ML X1 COMUNIDAD|VIT POWERS 1000 ML X1 / COMUNIDAD|VIT POWERSS 1000 ML X1 COMUNIDAD|VIT POWERSS 1000 ML X1 / COMUNIDAD')
     .split('|')
     .map((value) => value.trim())
     .filter(Boolean);
@@ -43,14 +52,16 @@ const selectors = {
     loginEmail: process.env.DROPPI_EC_SELECTOR_LOGIN_EMAIL || '#email, input[type="email"], input[name="email"], input[name="username"], input[placeholder*="Usuario"], input[placeholder*="usuario"], input[type="text"]',
     loginPassword: process.env.DROPPI_EC_SELECTOR_LOGIN_PASSWORD || '#password, input[type="password"], input[name="password"]',
     loginSubmit: process.env.DROPPI_EC_SELECTOR_LOGIN_SUBMIT || 'button:has-text("Ingresar"), button:has-text("Iniciar"), button:has-text("Entrar"), button:has-text("Log in"), button:has-text("Login"), form button, button[type="submit"], input[type="submit"]',
-    createOrderButton: process.env.DROPPI_EC_SELECTOR_CREATE_ORDER || 'text=/Enviar a cliente|Crear Orden|Create Order/i',
-    firstName: process.env.DROPPI_EC_SELECTOR_FIRST_NAME || 'input[placeholder="Nombres"]',
-    lastName: process.env.DROPPI_EC_SELECTOR_LAST_NAME || 'input[placeholder="Apellidos"]',
-    phone: process.env.DROPPI_EC_SELECTOR_PHONE || 'input[placeholder*="teléfono"]',
-    department: process.env.DROPPI_EC_SELECTOR_DEPARTMENT || 'input[placeholder="Departamento"]',
-    city: process.env.DROPPI_EC_SELECTOR_CITY || 'input[placeholder="Ciudad"]',
-    address: process.env.DROPPI_EC_SELECTOR_ADDRESS || 'input[placeholder*="Dirección"]',
-    email: process.env.DROPPI_EC_SELECTOR_EMAIL || 'input[placeholder*="Correo"]',
+    twoFactorCode: process.env.DROPPI_EC_SELECTOR_2FA_CODE || 'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="totp" i], input[name*="code" i], input[id*="otp" i], input[id*="code" i], input[type="tel"], input[inputmode="numeric"], input[type="text"]',
+    twoFactorSubmit: process.env.DROPPI_EC_SELECTOR_2FA_SUBMIT || 'button:has-text("Verificar"), button:has-text("Validar"), button:has-text("Confirmar"), button:has-text("Continuar"), button:has-text("Enviar"), button:has-text("Verify"), button:has-text("Submit"), button[type="submit"], input[type="submit"]',
+    createOrderButton: process.env.DROPPI_EC_SELECTOR_CREATE_ORDER || '[data-cy="send-to-client-button"], button:has-text("Enviar al cliente"), button:has-text("Enviar a cliente"), button:has-text("Crear Orden"), button:has-text("Create Order")',
+    firstName: process.env.DROPPI_EC_SELECTOR_FIRST_NAME || '[data-cy="client-name"], input[placeholder="Nombres"]',
+    lastName: process.env.DROPPI_EC_SELECTOR_LAST_NAME || '[data-cy="client-last-name"], input[placeholder="Apellidos"]',
+    phone: process.env.DROPPI_EC_SELECTOR_PHONE || '[data-cy="phone-input"] input, input[placeholder*="teléfono"]',
+    department: process.env.DROPPI_EC_SELECTOR_DEPARTMENT || '[data-cy="client-state"] input, input[placeholder="Departamento"]',
+    city: process.env.DROPPI_EC_SELECTOR_CITY || '[data-cy="client-city"] input, input[placeholder="Ciudad"]',
+    address: process.env.DROPPI_EC_SELECTOR_ADDRESS || '[data-cy="client-address"], input[placeholder*="Dirección"]',
+    email: process.env.DROPPI_EC_SELECTOR_EMAIL || '[data-cy="client-email"], input[placeholder*="Correo"]',
     recaudoButton: process.env.DROPPI_EC_SELECTOR_RECAUDO || 'text=/Con Recaudo/i',
     servientregaCard: process.env.DROPPI_EC_SELECTOR_SERVIENTREGA_CARD || '.card-logistic:has-text("Servientrega")',
     servientregaOption: process.env.DROPPI_EC_SELECTOR_SERVIENTREGA || '.card-logistic:has-text("Servientrega") .radio',
@@ -64,14 +75,94 @@ const selectors = {
     urbanoOption: process.env.DROPPI_EC_SELECTOR_URBANO || '.card-logistic:has-text("Urbano") .radio',
     rocketCard: process.env.DROPPI_EC_SELECTOR_ROCKET_CARD || '.card-logistic:has-text("Rocket")',
     rocketOption: process.env.DROPPI_EC_SELECTOR_ROCKET || '.card-logistic:has-text("Rocket") .radio',
-    priceInput: process.env.DROPPI_EC_SELECTOR_PRICE || 'input[name="price"]',
-    quantityInput: process.env.DROPPI_EC_SELECTOR_QUANTITY || 'input[name="cantidad"]',
+    priceInput: process.env.DROPPI_EC_SELECTOR_PRICE || 'input[name="price"], p-inputnumber[name="price"] input',
+    quantityInput: process.env.DROPPI_EC_SELECTOR_QUANTITY || 'input[name="cantidad"], p-inputnumber[name="cantidad"] input',
     submitOrderButton: process.env.DROPPI_EC_SELECTOR_SUBMIT_ORDER || 'button:has-text("Enviar al cliente")',
     ordersSearch: process.env.DROPPI_EC_SELECTOR_ORDERS_SEARCH || 'input[name="textToSearch"], input[placeholder*="Buscar"]'
 };
 
 const ensureDir = (dir) => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
+
+const withTimeout = (promise, timeoutMs, label) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(label)), timeoutMs);
+    promise
+        .then(resolve, reject)
+        .finally(() => clearTimeout(timer));
+});
+
+const getUsableStorageStatePath = () => {
+    if (!fs.existsSync(STORAGE_STATE_PATH)) return undefined;
+    try {
+        JSON.parse(fs.readFileSync(STORAGE_STATE_PATH, 'utf8'));
+        return STORAGE_STATE_PATH;
+    } catch (error) {
+        const quarantinePath = `${STORAGE_STATE_PATH}.corrupt-${Date.now()}`;
+        fs.renameSync(STORAGE_STATE_PATH, quarantinePath);
+        console.warn('Dropi EC storage state quarantined:', error.message || error);
+        return undefined;
+    }
+};
+
+const normalizeTotpSecret = (value = '') => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+        if (/^otpauth:\/\//i.test(raw)) {
+            return new URL(raw).searchParams.get('secret') || '';
+        }
+    } catch {
+        return '';
+    }
+    return raw.replace(/^["']|["']$/g, '');
+};
+
+const getDropiEcTotpSecret = () => {
+    const envSecret = normalizeTotpSecret(process.env.DROPI_EC_TOTP_SECRET || process.env.DROPPI_EC_TOTP_SECRET || '');
+    if (envSecret) return envSecret;
+    if (!fs.existsSync(TOTP_SECRET_FILE_PATH)) return '';
+    const content = fs.readFileSync(TOTP_SECRET_FILE_PATH, 'utf8');
+    const values = {};
+    for (const line of content.split(/\r?\n/)) {
+        const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+        if (!match) continue;
+        values[match[1]] = normalizeTotpSecret(match[2]);
+    }
+    return values.DROPI_EC_TOTP_SECRET || values.DROPPI_EC_TOTP_SECRET || '';
+};
+
+const base32Decode = (secret) => {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const clean = String(secret || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+    let bits = '';
+    const bytes = [];
+    for (const char of clean) {
+        const value = alphabet.indexOf(char);
+        if (value < 0) continue;
+        bits += value.toString(2).padStart(5, '0');
+        while (bits.length >= 8) {
+            bytes.push(Number.parseInt(bits.slice(0, 8), 2));
+            bits = bits.slice(8);
+        }
+    }
+    return Buffer.from(bytes);
+};
+
+const generateTotpCode = ({ secret, timeMs = Date.now(), stepSeconds = 30, digits = 6 } = {}) => {
+    const key = base32Decode(secret);
+    if (!key.length) return '';
+    const counter = Math.floor(timeMs / 1000 / stepSeconds);
+    const counterBuffer = Buffer.alloc(8);
+    counterBuffer.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+    counterBuffer.writeUInt32BE(counter >>> 0, 4);
+    const hmac = crypto.createHmac('sha1', key).update(counterBuffer).digest();
+    const offset = hmac[hmac.length - 1] & 0xf;
+    const binary = ((hmac[offset] & 0x7f) << 24)
+        | ((hmac[offset + 1] & 0xff) << 16)
+        | ((hmac[offset + 2] & 0xff) << 8)
+        | (hmac[offset + 3] & 0xff);
+    return String(binary % (10 ** digits)).padStart(digits, '0');
 };
 
 const buildNotReadyError = (reason) => new Error(
@@ -82,10 +173,16 @@ const isDropiPaymentRequiredError = (value) => (
     /saldo|wallet|cr[eé]dito|credito|balance|credit/i.test(String(value || ''))
 );
 
+const isTransientDropiBrowserError = (value) => (
+    /Target page|context.*closed|browser.*closed|ERR_CONNECTION|ERR_SOCKET|ERR_CERT|net::|Timeout|Execution context was destroyed|Navigation failed/i
+        .test(String(value || ''))
+);
+
 const normalizeAutocompleteText = (text) => String(text || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\b(canton|cantones|ciudad|parroquia|de|del|la|las|los)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
@@ -93,10 +190,49 @@ const normalizeAutocompleteText = (text) => String(text || '')
 const normalizeAutocompleteLoose = (text) => normalizeAutocompleteText(text)
     .replace(/[bv]/g, 'b');
 
+const normalizeAutocompleteCompact = (text) => normalizeAutocompleteLoose(text).replace(/\s+/g, '');
+
+const buildContactLookupForShipment = (shipment = {}) => {
+    const digits = String(shipment?.client?.phone || '').replace(/\D/g, '');
+    const variants = [
+        digits,
+        digits.startsWith('593') ? digits.slice(3) : '',
+        digits.slice(-10),
+        digits.slice(-9)
+    ].filter((value) => value && value.length >= 8);
+    const unique = [...new Set(variants)];
+    if (!unique.length) return null;
+    return {
+        $or: unique.flatMap((value) => [
+            { phoneDigits: { $regex: `${value}$` } },
+            { chatId: { $regex: value } }
+        ])
+    };
+};
+
+const tagDropiContactState = async ({ shipment, tag, payload = {} }) => {
+    const query = buildContactLookupForShipment(shipment);
+    if (!query || !tag) return { matchedCount: 0, modifiedCount: 0 };
+    return ContactState.updateMany(query, {
+        $addToSet: { tags: tag },
+        $set: {
+            'metadata.dropi.lastTag': tag,
+            'metadata.dropi.lastTagAt': new Date(),
+            ...payload
+        }
+    }).catch((error) => {
+        console.warn('Dropi contact tag update failed:', error.message || error);
+        return { matchedCount: 0, modifiedCount: 0, error: error.message || String(error) };
+    });
+};
+
 const autocompleteTextAccepts = (actual, expected) => {
     const normalizedActual = normalizeAutocompleteText(actual);
     const normalizedExpected = normalizeAutocompleteText(expected);
     if (!normalizedActual || !normalizedExpected) return false;
+    const compactActual = normalizeAutocompleteCompact(normalizedActual);
+    const compactExpected = normalizeAutocompleteCompact(normalizedExpected);
+    if (compactActual && compactActual === compactExpected) return true;
     const expectedTokens = normalizedExpected.split(/\s+/).filter(Boolean);
     const actualTokens = normalizedActual.split(/\s+/).filter(Boolean);
     const expectedIsSingleToken = expectedTokens.length === 1;
@@ -106,7 +242,10 @@ const autocompleteTextAccepts = (actual, expected) => {
 
     const looseActual = normalizeAutocompleteLoose(normalizedActual);
     const looseExpected = normalizeAutocompleteLoose(normalizedExpected);
+    const compactLooseActual = normalizeAutocompleteCompact(looseActual);
+    const compactLooseExpected = normalizeAutocompleteCompact(looseExpected);
     if (looseActual === looseExpected) return true;
+    if (compactLooseActual && compactLooseActual === compactLooseExpected) return true;
     if (!expectedIsSingleToken && looseActual.includes(looseExpected)) return true;
     if (looseExpected.includes(looseActual) && looseActual.length >= Math.min(looseExpected.length, 5)) return true;
     if (expectedIsSingleToken && actualTokens.length > 1) return false;
@@ -146,14 +285,31 @@ const isLoginUrl = (url) => {
 
 const hasTwoFactorPrompt = async (page) => {
     const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
-    return /autenticaci[oó]n de dos factores|two[-\s]?factor|six digits|seis d[ií]gitos/i.test(bodyText);
+    return /autenticaci[oó]n de dos factores|two[-\s]?factor|authenticator|otp|c[oó]digo de verificaci[oó]n|codigo de seguridad|six digits|seis d[ií]gitos/i.test(bodyText);
 };
 
 const hasLoginPrompt = async (page) => {
     const passwordVisible = await page.locator(selectors.loginPassword).first().isVisible({ timeout: 1000 }).catch(() => false);
     if (passwordVisible) return true;
     const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
-    return /usuario\s+contrase[nñ]a|iniciar sesi[oó]n|olvid[oó] su contrase[nñ]a/i.test(bodyText);
+    return /usuario\s+contrase[nñ]a|iniciar sesi[oó]n|olvid[oó] su contrase[nñ]a|sign in with credentials|username\s+password|forgot password|remember me|log in/i
+        .test(bodyText);
+};
+
+const hasDropiSessionToken = async (page) => page.evaluate(() => {
+    const keys = [
+        'DROPI_token',
+        'DROPI_SessionData',
+        'casUser',
+        'token',
+        'access_token'
+    ];
+    return keys.some((key) => Boolean(window.localStorage?.getItem(key) || window.sessionStorage?.getItem(key)));
+}).catch(() => false);
+
+const getPageExcerpt = async (page, limit = 500) => {
+    const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
+    return bodyText.replace(/\s+/g, ' ').trim().slice(0, limit);
 };
 
 const getPlaywright = async () => {
@@ -231,9 +387,9 @@ export const prepareDroppiEcuadorSubmission = async (order) => ({
     payload: buildDroppiEcuadorOrderPayload({ order })
 });
 
-const firstVisibleEnabled = async (page, selector) => {
+const firstVisibleEnabled = async (page, selector, timeoutMs = 20000) => {
     const locators = page.locator(selector);
-    await locators.first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
+    await locators.first().waitFor({ state: 'visible', timeout: timeoutMs }).catch(() => null);
     const count = await locators.count();
     for (let index = 0; index < count; index += 1) {
         const locator = locators.nth(index);
@@ -252,7 +408,29 @@ const fillInputIfVisible = async (page, selector, value) => {
     const locator = await firstVisibleEnabled(page, selector);
     if (locator) {
         await locator.fill(String(value));
+        await locator.evaluate((node) => {
+            node.dispatchEvent(new Event('input', { bubbles: true }));
+            node.dispatchEvent(new Event('change', { bubbles: true }));
+            node.dispatchEvent(new Event('blur', { bubbles: true }));
+        }).catch(() => null);
     }
+};
+
+const fillNumericInputIfVisible = async (page, selector, value) => {
+    if (value === undefined || value === null || value === '') return;
+    const locator = await firstVisibleEnabled(page, selector);
+    if (!locator) return;
+    const text = formatDecimalForDropiEc(value);
+    await locator.click({ force: true }).catch(() => null);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => null);
+    await page.keyboard.press('Backspace').catch(() => null);
+    await locator.type(String(text), { delay: 35 }).catch(async () => locator.fill(String(text)));
+    await locator.evaluate((node) => {
+        node.dispatchEvent(new Event('input', { bubbles: true }));
+        node.dispatchEvent(new Event('change', { bubbles: true }));
+        node.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        node.dispatchEvent(new Event('blur', { bubbles: true }));
+    }).catch(() => null);
 };
 
 const readInputValue = async (locator) => locator.evaluate((node) => {
@@ -269,6 +447,8 @@ const selectAutocompleteValue = async (page, selector, value, options = {}) => {
     const candidates = [
         normalizedValue,
         normalizedValue.replace(/\([^)]*\)/g, ' '),
+        normalizedValue.replace(/\bcant[oó]n\b/gi, ' '),
+        normalizedValue.replace(/\bcant[oó]n\s+(\d+)\s+([a-záéíóúñ]+)/i, '$1 de $2'),
         ...(normalizedValue.match(/\(([^)]*)\)/g) || []).map((part) => part.replace(/[()]/g, '')),
         ...normalizedValue.split(/[,/;-]/g)
     ]
@@ -277,19 +457,25 @@ const selectAutocompleteValue = async (page, selector, value, options = {}) => {
     const uniqueCandidates = [...new Set(candidates)];
     const expectedValues = uniqueCandidates.map((candidate) => normalizeAutocompleteText(candidate)).filter(Boolean);
     const looseExpectedValues = expectedValues.map(normalizeAutocompleteLoose).filter(Boolean);
-    const typingAttempts = [
-        ...uniqueCandidates,
-        ...uniqueCandidates.flatMap((candidate) => {
+    const humanizedTypingAttempts = uniqueCandidates.flatMap((candidate) => {
             const clean = candidate.replace(/\.+$/g, '').replace(/\s+/g, ' ').trim();
             const normalized = normalizeAutocompleteText(clean);
-            const firstWord = clean.split(/\s+/g).find((word) => word.length >= 4) || clean;
+            const words = clean.split(/\s+/g).filter(Boolean);
+            const firstWord = words.find((word) => word.length >= 3) || clean;
+            const twoWordProbe = words.length > 1
+                ? [
+                    `${words[0]} ${words[1].slice(0, 1)}`,
+                    `${words[0]} ${words[1].slice(0, 2)}`,
+                    `${words[0]} ${words[1].slice(0, 3)}`
+                ]
+                : [];
             const progressive = [];
-            for (let size = 3; size < Math.min(normalized.length, 8); size += 1) {
+            for (let size = 3; size <= Math.min(normalized.length, 8); size += 1) {
                 progressive.push(clean.slice(0, size));
             }
-            return [firstWord, ...progressive];
-        })
-    ]
+            return [firstWord, ...twoWordProbe, ...progressive, clean];
+        });
+    const typingAttempts = humanizedTypingAttempts
         .map((candidate) => String(candidate || '').replace(/\.+$/g, '').replace(/\s+/g, ' ').trim())
         .filter((candidate) => candidate.length >= 3);
     const uniqueTypingAttempts = [...new Set(typingAttempts)];
@@ -298,9 +484,14 @@ const selectAutocompleteValue = async (page, selector, value, options = {}) => {
         '.p-autocomplete-panel [role="option"]',
         '.p-autocomplete-items [role="option"]',
         '.p-autocomplete-items li',
+        '.p-autocomplete-list li',
+        '.p-autocomplete-item',
+        '.p-autocomplete-option',
         '.p-dropdown-item',
         '.ng-dropdown-panel .ng-option',
         '.ng-dropdown-panel .ng-option-label',
+        '[data-pc-section="option"]',
+        '[data-pc-section="item"]',
         '[role="option"]'
     ].join(', ');
 
@@ -346,17 +537,24 @@ const selectAutocompleteValue = async (page, selector, value, options = {}) => {
             if (box) {
                 await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
             } else {
-                await option.click();
+                await option.click({ force: true });
             }
-            await page.waitForTimeout(1000);
-            await input.press('Tab').catch(() => null);
-            await page.waitForTimeout(300);
+            await page.waitForTimeout(options.afterSelectWaitMs || 1800);
             const selectedValue = await readInputValue(input);
+            const inputMatched = selectedValueMatches(selectedValue);
+            if (!inputMatched) {
+                await option.click({ force: true }).catch(() => null);
+                await page.waitForTimeout(options.afterSelectWaitMs || 1800);
+            }
+            const confirmedValue = await readInputValue(input);
+            const confirmedMatch = selectedValueMatches(confirmedValue);
+            if (!confirmedMatch) continue;
+            await page.waitForTimeout(500);
             return {
                 ok: true,
                 optionText: rawText.replace(/\s+/g, ' ').trim(),
-                selectedValue: selectedValue.replace(/\s+/g, ' ').trim(),
-                inputMatched: selectedValueMatches(selectedValue)
+                selectedValue: confirmedValue.replace(/\s+/g, ' ').trim(),
+                inputMatched: true
             };
         }
         return { ok: false };
@@ -372,31 +570,66 @@ const selectAutocompleteValue = async (page, selector, value, options = {}) => {
         return { ok: false };
     };
 
+    const selectFirstDropdownOptionWithKeyboard = async () => {
+        await input.press('ArrowDown').catch(() => null);
+        await page.waitForTimeout(500);
+        await input.press('Enter').catch(() => null);
+        await page.waitForTimeout(options.afterSelectWaitMs || 1800);
+        const selectedValue = await readInputValue(input);
+        if (!selectedValueMatches(selectedValue)) return { ok: false };
+        return {
+            ok: true,
+            optionText: 'keyboard_first_option',
+            selectedValue: selectedValue.replace(/\s+/g, ' ').trim(),
+            inputMatched: true
+        };
+    };
+
     const typeCandidate = async (candidate, mode) => {
-        await input.click();
-        await input.fill('');
-        if (mode === 'type') {
-            await input.type(candidate, { delay: 35 });
+        await input.click({ force: true });
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => null);
+        await page.keyboard.press('Backspace').catch(() => null);
+        await page.waitForTimeout(options.beforeTypeWaitMs || 450);
+        if (mode === 'paste') {
+            await input.fill(candidate);
+        } else if (mode === 'type') {
+            await input.type(candidate, { delay: options.humanDelayMs || 180 });
         } else {
             await input.fill(candidate);
         }
-        await page.waitForTimeout(800);
+        await page.waitForTimeout(options.afterTypeWaitMs || 1800);
     };
 
     while (Date.now() < deadline) {
         for (const candidate of uniqueTypingAttempts) {
-            await typeCandidate(candidate, 'fill');
-            const fillResult = await waitAndClickMatchingOption(candidate.length <= 3 ? 3500 : 2500);
-            if (fillResult.ok) return fillResult;
+            if (options.tryPasteFirst && candidate === uniqueTypingAttempts[0]) {
+                await typeCandidate(candidate, 'paste');
+                const pasteResult = await waitAndClickMatchingOption(5000);
+                if (pasteResult.ok) return pasteResult;
+            }
             await typeCandidate(candidate, 'type');
-            const typeResult = await waitAndClickMatchingOption(candidate.length <= 3 ? 3500 : 2500);
+            const typeResult = await waitAndClickMatchingOption(candidate.length <= 5 ? 6500 : 4500);
             if (typeResult.ok) return typeResult;
+            if (options.tryKeyboardFallback && candidate.length >= 5) {
+                const keyboardResult = await selectFirstDropdownOptionWithKeyboard();
+                if (keyboardResult.ok) return keyboardResult;
+            }
         }
 
         await page.waitForTimeout(300);
     }
 
-    return { ok: false, reason: 'option_not_selected' };
+    const visibleOptions = await page.locator(optionSelector)
+        .evaluateAll((nodes) => nodes
+            .filter((node) => {
+                const rect = node.getBoundingClientRect?.();
+                return rect && rect.width > 0 && rect.height > 0;
+            })
+            .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .slice(0, 12))
+        .catch(() => []);
+    return { ok: false, reason: 'option_not_selected', visibleOptions };
 };
 
 const waitUntilEnabled = async (locator, timeoutMs = 10000) => {
@@ -417,7 +650,7 @@ const waitUntilEnabled = async (locator, timeoutMs = 10000) => {
     return false;
 };
 
-const getCarrierReadyState = async (page, cardSelector) => {
+const getCarrierReadyState = async (page, cardSelector, { allowMissingPrice = false } = {}) => {
     const card = page.locator(cardSelector).first();
     if (!(await card.count()) || !(await card.isVisible().catch(() => false))) {
         return { ready: false, text: '' };
@@ -434,15 +667,15 @@ const getCarrierReadyState = async (page, cardSelector) => {
     }).catch(() => ({ disabled: true, hasCalculatedPrice: false, text: '' }));
 
     return {
-        ready: !state.disabled && state.hasCalculatedPrice,
+        ready: !state.disabled && (state.hasCalculatedPrice || allowMissingPrice),
         text: state.text || ''
     };
 };
 
-const waitForCarrierReady = async (page, cardSelector, timeoutMs = 30000) => {
+const waitForCarrierReady = async (page, cardSelector, timeoutMs = 30000, options = {}) => {
     const startedAt = Date.now();
     while ((Date.now() - startedAt) < timeoutMs) {
-        const state = await getCarrierReadyState(page, cardSelector);
+        const state = await getCarrierReadyState(page, cardSelector, options);
         if (state.ready) return true;
         await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -458,7 +691,11 @@ const formatDecimalForDropiEc = (value) => {
 const clickFirstVisible = async (page, selectorList, options = {}) => {
     for (const selector of selectorList) {
         const locator = page.locator(selector).first();
-        if (await locator.count() && await locator.isVisible().catch(() => false)) {
+        if (
+            await locator.count()
+            && await locator.isVisible().catch(() => false)
+            && (options.allowDisabled || await locator.isEnabled().catch(() => false))
+        ) {
             if (options.center) {
                 const box = await locator.boundingBox().catch(() => null);
                 if (box) {
@@ -466,11 +703,95 @@ const clickFirstVisible = async (page, selectorList, options = {}) => {
                     return true;
                 }
             }
-            await locator.click({ force: Boolean(options.force) });
+            await locator.click({ force: Boolean(options.force || options.allowDisabled) });
             return true;
         }
     }
     return false;
+};
+
+const completeTwoFactorIfNeeded = async (page) => {
+    if (!(await hasTwoFactorPrompt(page))) return false;
+    const secret = getDropiEcTotpSecret();
+    if (!secret) {
+        throw buildNotReadyError('two-factor authentication required and DROPI_EC_TOTP_SECRET is missing');
+    }
+    const code = generateTotpCode({ secret });
+    if (!code) {
+        throw buildNotReadyError('two-factor authentication secret is invalid');
+    }
+    const otpInputs = page.locator('.container-otp input.otp-input, input.otp-input, input[inputmode="numeric"]');
+    const otpCount = await otpInputs.count().catch(() => 0);
+    let codeFilled = false;
+    if (otpCount >= 6) {
+        await otpInputs.first().click({ force: true }).catch(() => null);
+        await page.keyboard.type(code, { delay: 70 }).catch(() => null);
+        await page.waitForTimeout(300);
+
+        const typedCode = await otpInputs.evaluateAll((nodes) => nodes
+            .slice(0, 6)
+            .map((node) => String(node.value || '').trim())
+            .join('')).catch(() => '');
+
+        for (let index = 0; index < 6; index += 1) {
+            const digitInput = otpInputs.nth(index);
+            const expectedDigit = code[index] || '';
+            if (typedCode[index] === expectedDigit) continue;
+            await digitInput.click({ force: true }).catch(() => null);
+            await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => null);
+            await page.keyboard.press('Backspace').catch(() => null);
+            await digitInput.type(expectedDigit, { delay: 50 }).catch(async () => {
+                await digitInput.fill(expectedDigit).catch(() => null);
+            });
+            await digitInput.evaluate((node) => {
+                node.dispatchEvent(new Event('input', { bubbles: true }));
+                node.dispatchEvent(new Event('change', { bubbles: true }));
+                node.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                node.dispatchEvent(new Event('blur', { bubbles: true }));
+            }).catch(() => null);
+        }
+        await page.waitForFunction(() => {
+            const values = Array.from(document.querySelectorAll('.container-otp input.otp-input, input.otp-input, input[inputmode="numeric"]'))
+                .slice(0, 6)
+                .map((node) => String(node.value || '').trim())
+                .join('');
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const continueButton = buttons.find((button) => /continuar|verificar|validar|confirmar|enviar/i.test(button.innerText || button.textContent || ''));
+            return values.length >= 6 && (!continueButton || !continueButton.disabled);
+        }, { timeout: 10000 }).catch(() => null);
+        codeFilled = true;
+    } else {
+        const input = await firstVisibleEnabled(page, selectors.twoFactorCode, 15000);
+        if (!input) {
+            throw buildNotReadyError('two-factor code selector not found');
+        }
+        await input.click();
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => null);
+        await page.keyboard.press('Backspace').catch(() => null);
+        await input.type(code, { delay: 80 });
+        codeFilled = true;
+    }
+    if (!codeFilled) {
+        throw buildNotReadyError('two-factor code selector not found');
+    }
+    await page.waitForTimeout(800);
+    const clicked = await clickFirstVisible(page, [selectors.twoFactorSubmit]);
+    if (!clicked) await page.keyboard.press('Enter').catch(() => null);
+    await Promise.race([
+        page.waitForURL(/\/dashboard\//, { timeout: 45000 }).catch(() => null),
+        page.waitForFunction(() => Boolean(
+            window.localStorage?.getItem('DROPI_token')
+            || window.localStorage?.getItem('DROPI_SessionData')
+            || window.localStorage?.getItem('casUser')
+            || window.localStorage?.getItem('token')
+            || window.sessionStorage?.getItem('access_token')
+        ), null, { timeout: 45000 }).catch(() => null)
+    ]);
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+    if (await hasTwoFactorPrompt(page)) {
+        throw buildNotReadyError('two-factor authentication did not complete');
+    }
+    return true;
 };
 
 const normalizeProductText = (value) => String(value || '')
@@ -486,13 +807,16 @@ const productMatchesTarget = (text) => {
     return PRODUCT_ALIASES.some((alias) => normalizedText.includes(normalizeProductText(alias)));
 };
 
-const openCreateOrderPanel = async (page) => {
-    const deadline = Date.now() + PRODUCT_CARD_WAIT_MS;
+const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS } = {}) => {
+    const deadline = Date.now() + timeoutMs;
     let refreshed = false;
     let lastBodyText = '';
 
     while (Date.now() < deadline) {
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
+        const directButton = await clickFirstVisible(page, [selectors.createOrderButton], { force: true });
+        if (directButton) return true;
+
         const productCards = page.locator('app-card-product');
         const count = await productCards.count();
         for (let index = 0; index < count; index += 1) {
@@ -500,7 +824,7 @@ const openCreateOrderPanel = async (page) => {
             if (await productCard.isVisible().catch(() => false)) {
                 const text = await productCard.innerText().catch(() => '');
                 if (!productMatchesTarget(text)) continue;
-                const button = productCard.getByText('Enviar a cliente', { exact: true }).first();
+                const button = productCard.getByText(/Enviar a cliente|Enviar al cliente/i).first();
                 if (await button.count() && await button.isVisible().catch(() => false)) {
                     await button.click();
                     return true;
@@ -508,7 +832,7 @@ const openCreateOrderPanel = async (page) => {
             }
         }
 
-        const sendButtons = page.getByText('Enviar a cliente', { exact: true });
+        const sendButtons = page.getByText(/Enviar a cliente|Enviar al cliente/i);
         const buttonCount = await sendButtons.count().catch(() => 0);
         if (buttonCount === 1 && await sendButtons.first().isVisible().catch(() => false)) {
             await sendButtons.first().click();
@@ -520,7 +844,7 @@ const openCreateOrderPanel = async (page) => {
             .trim()
             .slice(0, 300);
 
-        if (!refreshed && Date.now() + 15000 < deadline) {
+        if (!refreshed && Date.now() + Math.min(15000, timeoutMs / 2) < deadline) {
             refreshed = true;
             await page.goto(PRIVATE_PRODUCT_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         }
@@ -530,10 +854,19 @@ const openCreateOrderPanel = async (page) => {
     throw buildNotReadyError(`private catalog product not found: ${PRODUCT_NAME}${lastBodyText ? ` | page: ${lastBodyText}` : ''}`);
 };
 
-const pickCarrier = async (page, carrier) => {
-    const carrierReady = await waitForCarrierReady(page, carrier.cardSelector, carrier.timeoutMs || SHIPPING_QUOTE_WAIT_MS);
+const pickCarrier = async (page, carrier, options = {}) => {
+    const carrierReady = await waitForCarrierReady(
+        page,
+        carrier.cardSelector,
+        carrier.timeoutMs || SHIPPING_QUOTE_WAIT_MS,
+        options
+    );
     if (!carrierReady) return false;
-    const picked = await clickFirstVisible(page, [carrier.optionSelector], { center: true });
+    const picked = await clickFirstVisible(page, [carrier.optionSelector], {
+        center: true,
+        force: Boolean(options.force),
+        allowDisabled: Boolean(options.allowDisabled)
+    });
     return picked ? carrier.code : false;
 };
 
@@ -618,6 +951,74 @@ const normalizeCarrierCode = (value) => String(value || '')
     .replace(/[^a-z0-9]/gi, '')
     .toUpperCase();
 
+const quoteIncludesCarrier = (quote, carrierCode) => {
+    const expected = normalizeCarrierCode(carrierCode);
+    return Boolean(quote?.response?.objects?.some((item) => (
+        normalizeCarrierCode(item?.distributionCompany?.name) === expected
+    )));
+};
+
+const chooseCarrierFromQuote = (quote, preferredCarrier = '') => {
+    const carriers = Array.isArray(quote?.response?.objects) ? quote.response.objects : [];
+    if (!carriers.length) return '';
+    const preferred = normalizeCarrierCode(preferredCarrier);
+    const preferredMatch = preferred
+        ? carriers.find((item) => normalizeCarrierCode(item?.distributionCompany?.name) === preferred)
+        : null;
+    const selected = preferredMatch
+        || carriers.find((item) => normalizeCarrierCode(item?.distributionCompany?.name) === 'SERVIENTREGA')
+        || carriers[0];
+    return String(selected?.distributionCompany?.name || '').trim();
+};
+
+const quoteDestinationMatchesPayload = (quote, payload = {}) => {
+    const quotedCity = quote?.payload?.ciudad_destino?.name || quote?.payload?.city?.name || '';
+    const quotedDepartment = quote?.payload?.departamento_destino?.name || quote?.payload?.state?.name || '';
+    if (!quotedCity || !quotedDepartment) return false;
+    return autocompleteTextAccepts(quotedCity, payload.city)
+        && autocompleteTextAccepts(quotedDepartment, payload.department);
+};
+
+const quoteHasCarrierOptions = (quote) => Array.isArray(quote?.response?.objects)
+    && quote.response.objects.length > 0;
+
+const quoteUsableForPayload = (quote, payload = {}, selected = {}) => {
+    if (!quote?.payload || !quote?.response) return false;
+    if (quoteDestinationMatchesPayload(quote, payload)) return true;
+    const quotedCity = quote.payload?.ciudad_destino?.name || quote.payload?.city?.name || '';
+    const quotedDepartment = quote.payload?.departamento_destino?.name || quote.payload?.state?.name || '';
+    const selectedCity = selected.city || '';
+    const selectedDepartment = selected.department || '';
+    return Boolean(
+        quoteHasCarrierOptions(quote)
+        && autocompleteTextAccepts(selectedCity, payload.city)
+        && autocompleteTextAccepts(selectedDepartment, payload.department)
+        && (!quotedCity || autocompleteTextAccepts(quotedCity, selectedCity) || autocompleteTextAccepts(quotedCity, payload.city))
+        && (!quotedDepartment || autocompleteTextAccepts(quotedDepartment, selectedDepartment) || autocompleteTextAccepts(quotedDepartment, payload.department))
+    );
+};
+
+const waitForShippingQuote = async (getLatestQuote, payload, timeoutMs = SHIPPING_QUOTE_WAIT_MS) => {
+    const startedAt = Date.now();
+    let latestQuote = null;
+    while ((Date.now() - startedAt) < timeoutMs) {
+        latestQuote = getLatestQuote();
+        if (latestQuote?.payload && latestQuote?.response && quoteDestinationMatchesPayload(latestQuote, payload)) {
+            return latestQuote;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    return latestQuote;
+};
+
+const triggerShippingQuoteRefresh = async (page) => {
+    await page.locator(selectors.city).first().press('Tab').catch(() => null);
+    await page.locator(selectors.address).first().click({ force: true }).catch(() => null);
+    await page.waitForTimeout(500);
+    await clickFirstVisible(page, [selectors.recaudoButton], { force: true }).catch(() => null);
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
+};
+
 const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) => {
     const quotePayload = quote?.payload;
     const quoteResponse = quote?.response;
@@ -639,16 +1040,20 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
         };
         const token = parseStorageJson('DROPI_token', '');
         const loginResult = parseStorageJson('DROPI_LoginResult', {});
+        const requestedQuantity = Math.max(1, Number(orderPayload.quantity || 1) || 1);
+        const requestedUnitPrice = Number(orderPayload.unitPrice || 0)
+            || (Number(orderPayload.price || 0) > 0 ? Number(orderPayload.price || 0) / requestedQuantity : 0)
+            || Number((quotePayloadArg.products || [])[0]?.price || 0);
         const products = (quotePayloadArg.products || []).map((item) => ({
             id: item.id,
             name: item.name,
             weight: item.weight,
             stock: item.stock,
             variation_id: item.variation_id,
-            quantity: item.quantity,
-            price: item.price,
+            quantity: requestedQuantity,
+            price: requestedUnitPrice,
             suggested_price: item.suggested_price,
-            sale_price: item.sale_price,
+            sale_price: requestedUnitPrice,
             variations: item.variations,
             type: item.type,
             user_id: item.user_id
@@ -719,6 +1124,117 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
             }
         }));
     }, { orderPayload: payload, quotePayloadArg: quotePayload, carrierArg: carrier });
+};
+
+const parseDropiCreatedAtMs = (row = {}) => {
+    const raw = row.created_at || row.createdAt || row.date || row.fecha || '';
+    if (!raw) return 0;
+    const parsed = Date.parse(String(raw).replace(' ', 'T'));
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const recentlyCreatedRowMatchesPayload = (row = {}, payload = {}, startedAtMs = Date.now()) => {
+    const createdAtMs = parseDropiCreatedAtMs(row);
+    if (!createdAtMs || createdAtMs < (startedAtMs - 120000)) return false;
+
+    const rowPhone = String(row.phone || '').replace(/\D/g, '');
+    const payloadPhones = phoneLookupVariants(payload.phone || '').filter((term) => term.length >= 8);
+    const phoneMatches = rowPhone && payloadPhones.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone));
+    if (!phoneMatches) return false;
+
+    const rowName = normalizeAutocompleteText([row.name, row.surname].filter(Boolean).join(' '));
+    const expectedNameParts = normalizeAutocompleteText([payload.firstName, payload.lastName].filter(Boolean).join(' '))
+        .split(/\s+/)
+        .filter((part) => part.length >= 3);
+    const nameMatches = !expectedNameParts.length || expectedNameParts.some((part) => rowName.includes(part));
+    return nameMatches;
+};
+
+const findRecentOrderViaOrdersApi = async (page, payload, startedAtMs) => {
+    const terms = [
+        payload.phone,
+        [payload.firstName, payload.lastName].filter(Boolean).join(' ')
+    ].filter(Boolean);
+    for (const term of [...new Set(terms)]) {
+        const result = await fetchOrdersApiRows(page, term).catch(() => ({ rows: [] }));
+        const row = (result.rows || []).find((candidate) => recentlyCreatedRowMatchesPayload(candidate, payload, startedAtMs));
+        if (row) {
+            return mapOrdersApiRowToSyncResult(row, {
+                orderId: payload.orderId,
+                client: {
+                    phone: payload.phone,
+                    name: [payload.firstName, payload.lastName].filter(Boolean).join(' '),
+                    address: payload.address,
+                    city: payload.city,
+                    province: payload.department
+                },
+                logistics: {
+                    trackingNumber: '',
+                    status: '',
+                    distributionCompany: payload.preferredCarrier || '',
+                    chosenCarrier: payload.preferredCarrier || '',
+                    agencyName: payload.agencyPickup ? payload.address : '',
+                    agencyPickup: Boolean(payload.agencyPickup)
+                },
+                raw: {}
+            });
+        }
+    }
+    return { panelMatched: false };
+};
+
+const submitOrderViaPanelButton = async (page, { payload, preparedForm }) => {
+    const submitButton = await firstVisibleEnabled(
+        page,
+        '.p-dialog-footer button:has-text("Enviar al cliente"), app-footer-products-order button:has-text("Enviar al cliente")',
+        30000
+    );
+    if (!submitButton) {
+        return {
+            ok: false,
+            reason: 'submit_button_not_enabled',
+            bodyText: (await page.locator('body').innerText({ timeout: 3000 }).catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 500)
+        };
+    }
+
+    const submitStartedAt = Date.now();
+    await submitButton.click({ force: true });
+    const creationResult = await waitForOrderCreationResult(page, ORDER_CREATION_WAIT_MS);
+    const apiConfirmation = await findRecentOrderViaOrdersApi(page, payload, submitStartedAt).catch(() => ({ panelMatched: false }));
+    const confirmation = apiConfirmation.panelMatched
+        ? { ok: true, panelText: JSON.stringify(apiConfirmation.rawRow || {}) }
+        : {
+            ok: false,
+            panelText: creationResult.bodyText || '',
+            reason: creationResult.ok ? 'recent_dropi_order_not_found_after_panel_submit' : (creationResult.reason || 'panel_submit_not_confirmed')
+        };
+
+    if (!confirmation.ok) {
+        return {
+            ok: false,
+            reason: confirmation.reason || creationResult.reason || 'panel_submit_not_confirmed',
+            bodyText: (creationResult.bodyText || confirmation.panelText || '').slice(0, 500)
+        };
+    }
+
+    return {
+        ok: true,
+        chosenCarrier: preparedForm.chosenCarrier,
+        selectedDepartment: preparedForm.selectedDepartment,
+        selectedCity: preparedForm.selectedCity,
+        quotedDepartment: preparedForm.quotedDepartment,
+        quotedCity: preparedForm.quotedCity,
+        submittedDestination: {
+            state: preparedForm.quotedDepartment || preparedForm.selectedDepartment || payload.department,
+            city: preparedForm.quotedCity || preparedForm.selectedCity || payload.city,
+            carrier: preparedForm.chosenCarrier || payload.preferredCarrier || ''
+        },
+        verifiedDropiOrderId: apiConfirmation.dropiOrderId || '',
+        verifiedTrackingNumber: apiConfirmation.trackingNumber || '',
+        apiConfirmation,
+        panelMatched: Boolean(apiConfirmation.panelMatched || confirmation.ok),
+        dropiResponse: apiConfirmation.rawRow ? { objects: apiConfirmation.rawRow } : {}
+    };
 };
 
 const waitForOrderCreationResult = async (page, timeoutMs = 90000) => {
@@ -818,11 +1334,11 @@ const confirmOrderInOrdersPanel = async (page, payload) => {
     return { ok: false, reason: 'order_not_found_in_orders_panel', panelText: bodyText.slice(0, 500) };
 };
 
-const performLogin = async (page) => {
-    if (fs.existsSync(STORAGE_STATE_PATH)) {
-        await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' });
+export const performLogin = async (page) => {
+    if (getUsableStorageStatePath()) {
+        await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
-        if (!isLoginUrl(page.url()) && !(await hasLoginPrompt(page))) return;
+        if (!isLoginUrl(page.url()) && !(await hasLoginPrompt(page)) && await hasDropiSessionToken(page)) return;
     }
 
     const email = process.env[EMAIL_ENV];
@@ -831,7 +1347,8 @@ const performLogin = async (page) => {
         throw buildNotReadyError(`missing ${EMAIL_ENV} or ${PASSWORD_ENV}`);
     }
 
-    await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
+    await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => null);
     const loginInput = await firstVisibleEnabled(page, selectors.loginEmail, 20000);
     if (!loginInput) {
         throw buildNotReadyError('login user selector not found');
@@ -843,13 +1360,29 @@ const performLogin = async (page) => {
     if (!clicked) {
         throw buildNotReadyError('login submit selector not found');
     }
-    await page.waitForURL(/\/dashboard\//, { timeout: 30000 }).catch(() => null);
+    await Promise.race([
+        page.waitForURL(/\/dashboard\//, { timeout: 45000 }).catch(() => null),
+        page.waitForFunction(() => Boolean(
+            window.localStorage?.getItem('DROPI_token')
+            || window.localStorage?.getItem('DROPI_SessionData')
+            || window.localStorage?.getItem('casUser')
+            || window.localStorage?.getItem('token')
+            || window.sessionStorage?.getItem('access_token')
+        ), null, { timeout: 45000 }).catch(() => null)
+    ]);
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
     if (await hasTwoFactorPrompt(page)) {
-        throw buildNotReadyError('two-factor authentication required; refresh saved browser session');
+        await completeTwoFactorIfNeeded(page);
     }
-    if (isLoginUrl(page.url())) {
-        throw buildNotReadyError('login did not reach dashboard');
+    if ((isLoginUrl(page.url()) || await hasLoginPrompt(page)) && !(await hasDropiSessionToken(page))) {
+        throw buildNotReadyError(`login did not reach dashboard: ${await getPageExcerpt(page)}`);
+    }
+    if (!/\/dashboard\//i.test(page.url())) {
+        await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
+        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+    }
+    if ((isLoginUrl(page.url()) || await hasLoginPrompt(page)) && !(await hasDropiSessionToken(page))) {
+        throw buildNotReadyError(`login session still on login screen: ${await getPageExcerpt(page)}`);
     }
 };
 
@@ -870,10 +1403,14 @@ const withBrowserSession = async (work) => {
     try {
         context = await browser.newContext({
             acceptDownloads: true,
-            storageState: fs.existsSync(STORAGE_STATE_PATH) ? STORAGE_STATE_PATH : undefined
+            storageState: getUsableStorageStatePath()
         });
         const page = await context.newPage();
-        return await work({ browser, context, page });
+        return await withTimeout(
+            work({ browser, context, page }),
+            BROWSER_WORK_TIMEOUT_MS,
+            'dropi_browser_session_timeout'
+        );
     } finally {
         if (context) await context.close().catch(() => null);
         await browser.close().catch(() => null);
@@ -888,13 +1425,15 @@ const closeManualBrowserSession = async (key) => {
     await previous.browser?.close?.().catch(() => null);
 };
 
-const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null }) => {
+export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null, manualDraftOnly = false }) => {
     const getLatestQuote = quoteCollector || createShippingQuoteCollector(page);
 
     await page.goto(PRIVATE_PRODUCT_URL, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
 
-    const opened = await openCreateOrderPanel(page);
+    const opened = await openCreateOrderPanel(page, {
+        timeoutMs: manualDraftOnly ? 20000 : PRODUCT_CARD_WAIT_MS
+    });
     if (!opened) {
         throw buildNotReadyError('create order button not found');
     }
@@ -902,26 +1441,87 @@ const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null }) =>
     await fillInputIfVisible(page, selectors.firstName, payload.firstName);
     await fillInputIfVisible(page, selectors.lastName, payload.lastName);
     await fillInputIfVisible(page, selectors.phone, payload.phone);
+    const manualWaitMs = 5000;
     const departmentSelected = await selectAutocompleteValue(page, selectors.department, payload.department, {
-        timeoutMs: CITY_RELEASE_WAIT_MS
+        timeoutMs: manualDraftOnly ? manualWaitMs : CITY_RELEASE_WAIT_MS,
+        humanDelayMs: 260,
+        beforeTypeWaitMs: 650,
+        afterTypeWaitMs: 2200,
+        tryPasteFirst: true,
+        tryKeyboardFallback: true
     });
-    if (!departmentSelected.ok) {
-        throw buildNotReadyError(`department option not selected: ${payload.department || ''}`);
+    if (!departmentSelected.ok && !manualDraftOnly) {
+        throw buildNotReadyError(
+            `department option not selected: ${payload.department || ''}`
+            + `${departmentSelected.visibleOptions?.length ? ` | options: ${departmentSelected.visibleOptions.join(' || ').slice(0, 500)}` : ''}`
+        );
     }
-    const cityFieldReady = await waitUntilEnabled(page.locator(selectors.city), CITY_RELEASE_WAIT_MS);
-    if (!cityFieldReady) throw buildNotReadyError('city field did not unlock after department selection');
-    const citySelected = await selectAutocompleteValue(page, selectors.city, payload.city, {
-        timeoutMs: CITY_RELEASE_WAIT_MS
-    });
-    if (!citySelected.ok) {
-        throw buildNotReadyError(`city option not selected: ${payload.city || ''}`);
+    const cityFieldReady = departmentSelected.ok
+        ? await waitUntilEnabled(page.locator(selectors.city), manualDraftOnly ? manualWaitMs : CITY_RELEASE_WAIT_MS)
+        : false;
+    if (!cityFieldReady && !manualDraftOnly) throw buildNotReadyError('city field did not unlock after department selection');
+    const citySelected = cityFieldReady
+        ? await selectAutocompleteValue(page, selectors.city, payload.city, {
+            timeoutMs: manualDraftOnly ? manualWaitMs : CITY_RELEASE_WAIT_MS,
+            humanDelayMs: 280,
+            beforeTypeWaitMs: 700,
+            afterTypeWaitMs: 2600,
+            tryPasteFirst: true,
+            tryKeyboardFallback: true
+        })
+        : { ok: false };
+    if (!citySelected.ok && !manualDraftOnly) {
+        throw buildNotReadyError(
+            `city option not selected: ${payload.city || ''}`
+            + `${citySelected.visibleOptions?.length ? ` | options: ${citySelected.visibleOptions.join(' || ').slice(0, 500)}` : ''}`
+        );
+    }
+    await fillInputIfVisible(page, selectors.address, payload.address);
+    if (!manualDraftOnly) {
+        await page.waitForTimeout(2500);
+        await triggerShippingQuoteRefresh(page);
+        await page.waitForTimeout(1500);
     }
     await fillInputIfVisible(page, selectors.address, payload.address);
     await fillInputIfVisible(page, selectors.email, payload.email);
-    await fillInputIfVisible(page, selectors.priceInput, formatDecimalForDropiEc(payload.unitPrice || payload.price));
-    await fillInputIfVisible(page, selectors.quantityInput, payload.quantity);
+    await fillNumericInputIfVisible(page, selectors.priceInput, payload.unitPrice || payload.price);
+    await fillNumericInputIfVisible(page, selectors.quantityInput, payload.quantity);
+
+    if (manualDraftOnly) {
+        return {
+            manualDraftOnly: true,
+            departmentSelected: Boolean(departmentSelected.ok),
+            citySelected: Boolean(citySelected.ok),
+            chosenCarrier: '',
+            message: 'Campos principais preenchidos. Confira cidade/transportadora e confirme manualmente.'
+        };
+    }
 
     await clickFirstVisible(page, [selectors.recaudoButton], { force: true });
+    let latestQuote = await waitForShippingQuote(getLatestQuote, payload, Math.min(SHIPPING_QUOTE_WAIT_MS, 30000));
+    let quoteRefreshAttempts = 0;
+    while (
+        (!latestQuote?.payload || !latestQuote?.response || !quoteDestinationMatchesPayload(latestQuote, payload))
+        && quoteRefreshAttempts < 2
+    ) {
+        quoteRefreshAttempts += 1;
+        await triggerShippingQuoteRefresh(page);
+        if (cityFieldReady) {
+            await selectAutocompleteValue(page, selectors.city, payload.city, {
+                timeoutMs: Math.min(CITY_RELEASE_WAIT_MS, 15000),
+                humanDelayMs: 280,
+                beforeTypeWaitMs: 700,
+                afterTypeWaitMs: 2600,
+                tryPasteFirst: true,
+                tryKeyboardFallback: true
+            }).catch(() => ({ ok: false }));
+        }
+        await fillInputIfVisible(page, selectors.address, payload.address);
+        await fillNumericInputIfVisible(page, selectors.priceInput, payload.unitPrice || payload.price);
+        await fillNumericInputIfVisible(page, selectors.quantityInput, payload.quantity);
+        await clickFirstVisible(page, [selectors.recaudoButton], { force: true });
+        latestQuote = await waitForShippingQuote(getLatestQuote, payload, Math.min(SHIPPING_QUOTE_WAIT_MS, 30000));
+    }
 
     const carrierOrder = [
         { code: 'SERVIENTREGA', cardSelector: selectors.servientregaCard, optionSelector: selectors.servientregaOption, timeoutMs: SHIPPING_QUOTE_WAIT_MS },
@@ -936,29 +1536,75 @@ const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null }) =>
     let carrierPicked = false;
 
     if (payload.agencyPickup) {
-        chosenCarrier = await pickCarrier(page, carrierOrder[0]);
-        carrierPicked = Boolean(chosenCarrier);
+        if (quoteIncludesCarrier(latestQuote, 'SERVIENTREGA')) {
+            chosenCarrier = 'SERVIENTREGA';
+            carrierPicked = true;
+            await clickFirstVisible(page, [selectors.servientregaOption], { center: true, force: true, allowDisabled: true }).catch(() => null);
+        } else {
+            chosenCarrier = await pickCarrier(page, carrierOrder[0]);
+            carrierPicked = Boolean(chosenCarrier);
+        }
     } else {
         chosenCarrier = await pickFirstAvailableCarrier(page, carrierOrder);
         carrierPicked = Boolean(chosenCarrier);
+        if (!carrierPicked) {
+            latestQuote = await waitForShippingQuote(getLatestQuote, payload, 10000);
+        }
+        if (!carrierPicked && quoteUsableForPayload(latestQuote, payload, {
+            city: citySelected.selectedValue || citySelected.optionText || '',
+            department: departmentSelected.selectedValue || departmentSelected.optionText || ''
+        })) {
+            chosenCarrier = chooseCarrierFromQuote(latestQuote, payload.preferredCarrier);
+            carrierPicked = Boolean(chosenCarrier);
+        }
     }
 
     if (!carrierPicked && payload.agencyPickup) {
-        const latestQuote = getLatestQuote();
+        latestQuote = await waitForShippingQuote(getLatestQuote, payload, 10000);
+        if (quoteIncludesCarrier(latestQuote, 'SERVIENTREGA')) {
+            chosenCarrier = 'SERVIENTREGA';
+            carrierPicked = true;
+        }
+    }
+
+    if (!carrierPicked && payload.agencyPickup) {
         const carrierDiagnostics = await collectCarrierDiagnostics(page);
         const quotedCity = latestQuote?.payload?.ciudad_destino?.name || '';
+        const quotedDepartment = latestQuote?.payload?.departamento_destino?.name || '';
+        const quoteReason = !latestQuote?.payload || !latestQuote?.response
+            ? 'shipping quote did not run/return after city selection'
+            : (!quoteDestinationMatchesPayload(latestQuote, payload)
+                ? `shipping quote destination mismatch: expected ${payload.department || ''}/${payload.city || ''}, got ${quotedDepartment || 'empty'}/${quotedCity || 'empty'}`
+                : (quoteHasCarrierOptions(latestQuote)
+                    ? 'servientrega not returned in shipping quote for agency pickup'
+                    : 'shipping quote returned without carrier options'));
         throw buildNotReadyError(
-            `servientrega required for agency pickup but not available`
+            quoteReason
             + `${quotedCity ? ` | quoted city: ${quotedCity}` : ''}`
             + `${carrierDiagnostics.length ? ` | carriers: ${carrierDiagnostics.join(' || ').slice(0, 700)}` : ''}`
         );
     }
 
     if (!carrierPicked) {
-        throw buildNotReadyError('servientrega/laarcourier selector not found');
+        const carrierDiagnostics = await collectCarrierDiagnostics(page);
+        const quotedCity = latestQuote?.payload?.ciudad_destino?.name || latestQuote?.payload?.city?.name || '';
+        const quotedDepartment = latestQuote?.payload?.departamento_destino?.name || latestQuote?.payload?.state?.name || '';
+        const carrierNames = (latestQuote?.response?.objects || [])
+            .map((item) => item?.distributionCompany?.name)
+            .filter(Boolean)
+            .join(', ');
+        throw buildNotReadyError(
+            'servientrega/laarcourier selector not found'
+            + `${quotedDepartment || quotedCity ? ` | quote: ${quotedDepartment || 'empty'}/${quotedCity || 'empty'}` : ''}`
+            + `${carrierNames ? ` | quote carriers: ${carrierNames}` : ''}`
+            + `${carrierDiagnostics.length ? ` | cards: ${carrierDiagnostics.join(' || ').slice(0, 700)}` : ''}`
+        );
     }
     await page.waitForTimeout(1000);
-    const latestQuote = getLatestQuote();
+    const refreshedQuote = getLatestQuote();
+    if (refreshedQuote?.payload && refreshedQuote?.response && quoteDestinationMatchesPayload(refreshedQuote, payload)) {
+        latestQuote = refreshedQuote;
+    }
     const quotedCity = latestQuote?.payload?.ciudad_destino?.name || '';
     const quotedDepartment = latestQuote?.payload?.departamento_destino?.name || '';
     if (!autocompleteTextAccepts(quotedCity, payload.city)) {
@@ -970,7 +1616,8 @@ const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null }) =>
         selectedDepartment: departmentSelected.selectedValue || departmentSelected.optionText || '',
         selectedCity: citySelected.selectedValue || citySelected.optionText || '',
         quotedCity,
-        quotedDepartment
+        quotedDepartment,
+        latestQuote
     };
 };
 
@@ -979,15 +1626,26 @@ const submitOrderInPanel = async ({ page, payload }) => {
     const getLatestQuote = createShippingQuoteCollector(page);
     const preparedForm = await fillOrderFormInPanel({ page, payload, quoteCollector: getLatestQuote });
 
-    const quote = getLatestQuote();
+    const quote = preparedForm.latestQuote || getLatestQuote();
     const apiResult = await submitOrderViaDropiApi(page, { payload, quote, chosenCarrier: preparedForm.chosenCarrier });
     if (!apiResult.ok || !apiResult.body?.isSuccess) {
         const message = apiResult.body?.message || apiResult.body?.error || `api_status_${apiResult.status}`;
         const destination = apiResult.submittedDestination
             ? ` | destination: ${apiResult.submittedDestination.state || ''}/${apiResult.submittedDestination.city || ''} via ${apiResult.submittedDestination.carrier || ''}`
             : '';
-        throw buildNotReadyError(`direct api submit failed: ${message}${destination}`);
+        const panelFallback = await submitOrderViaPanelButton(page, { payload, preparedForm }).catch((error) => ({
+            ok: false,
+            reason: error.message || 'panel_button_submit_failed',
+            bodyText: ''
+        }));
+        if (panelFallback.ok) return panelFallback;
+        const fallbackReason = panelFallback.reason
+            ? ` | panel fallback: ${panelFallback.reason}${panelFallback.bodyText ? `: ${String(panelFallback.bodyText).slice(0, 240)}` : ''}`
+            : '';
+        throw buildNotReadyError(`direct api submit failed: ${message}${destination}${fallbackReason}`);
     }
+    const apiDropiOrderId = String(apiResult.body?.objects?.id || '').trim();
+    const apiTrackingNumber = String(apiResult.body?.objects?.sticker || '').trim();
 
     const creationResult = await waitForOrderCreationResult(page, Math.min(ORDER_CREATION_WAIT_MS, 10000));
     const apiConfirmation = await findOrderViaOrdersApi(page, {
@@ -1009,9 +1667,23 @@ const submitOrderInPanel = async ({ page, payload }) => {
             .join(' | ');
         const reason = confirmation.reason || creationResult.reason || 'order_not_confirmed';
         const bodyText = (creationResult.bodyText || confirmation.panelText || '').slice(0, 500);
+        if (apiDropiOrderId) {
+            console.warn(`Dropi order created by API but not confirmed in panel yet: ${apiDropiOrderId}. ${reason}: ${bodyText}`);
+        } else {
         throw buildNotReadyError(`${reason}: ${bodyText}${diagnostics ? ` | diagnostics: ${diagnostics}` : ''}`);
+        }
     }
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+    const verifiedDropiOrderId = String(
+        apiDropiOrderId
+        || apiConfirmation.dropiOrderId
+        || ''
+    );
+    const verifiedTrackingNumber = String(
+        apiTrackingNumber
+        || apiConfirmation.trackingNumber
+        || ''
+    );
     return {
         chosenCarrier: preparedForm.chosenCarrier,
         selectedDepartment: preparedForm.selectedDepartment,
@@ -1019,6 +1691,8 @@ const submitOrderInPanel = async ({ page, payload }) => {
         quotedDepartment: preparedForm.quotedDepartment,
         quotedCity: preparedForm.quotedCity,
         submittedDestination: apiResult.submittedDestination,
+        verifiedDropiOrderId,
+        verifiedTrackingNumber,
         apiConfirmation,
         panelMatched: true,
         dropiResponse: apiResult.body
@@ -1028,9 +1702,11 @@ const submitOrderInPanel = async ({ page, payload }) => {
 const findMatchingPanelText = async (page, shipment) => {
     const terms = [
         shipment.raw?.droppiOrder?.id,
+        shipment.raw?.manualDropiOrderId,
+        shipment.raw?.latestDroppiPayload?.dropiOrderId,
         shipment.orderId,
         shipment.logistics?.trackingNumber,
-        shipment.client?.phone
+        ...phoneLookupVariants(shipment.client?.phone || '')
     ].map((value) => String(value || '').replace(/\D/g, '') || String(value || '').trim())
         .filter((value) => value && value.length >= 6);
 
@@ -1065,6 +1741,152 @@ const phoneLookupVariants = (phone = '') => {
     ].filter((value) => value && value.length >= 4))];
 };
 
+const parseDropiActiveOrderRowText = (value = '') => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text || /^#\s+Nombre del producto/i.test(text)) return null;
+    const dropiOrderMatch = text.match(/^(\d{6,})\b/);
+    const dateMatch = text.match(/\b\d{2}\/\d{2}\/\d{4}\s+\d{1,2}:\d{2}\s+[ap]\.?\s*m\.?/i);
+    const phoneMatch = text.match(/\bTel:\s*(\d{8,12})\b/i);
+    const trackingMatch = text.match(/\b(18\d{6,}|WYB\d{6,})\b/i);
+    if (!dropiOrderMatch || !dateMatch || !phoneMatch) return null;
+
+    const customerBlock = text.slice(dateMatch.index + dateMatch[0].length, phoneMatch.index).trim();
+    const clientName = customerBlock
+        .split(/\s+(?:SERVIENTREGA|Servientrega|URBANO|Urbano)\b/)[0]
+        .replace(/\s+Dados do perfil$/i, '')
+        .trim();
+    const address = customerBlock.slice(clientName.length).trim();
+    const cityProvince = customerBlock.match(/,\s*([^,]+?)-([A-ZÁÉÍÓÚÑ ]+)(?:\s|$)/i);
+    const afterPhone = text.slice(phoneMatch.index + phoneMatch[0].length).trim();
+    const rawStatus = trackingMatch
+        ? text.slice(phoneMatch.index + phoneMatch[0].length, trackingMatch.index).trim()
+        : (afterPhone.match(/^(.*?)(?:\s+Laboratorio\b|\s+CON RECAUDO\b|\s+SIN RECAUDO\b|\s+\d+\s*$|$)/i)?.[1] || afterPhone).trim();
+    const afterTracking = trackingMatch ? text.slice(trackingMatch.index + trackingMatch[0].length).trim() : afterPhone;
+    const distributionCompany = /URBANO/i.test(afterTracking)
+        ? 'URBANO'
+        : /SERVIENTREGA/i.test(afterTracking)
+            ? 'SERVIENTREGA'
+            : /URBANO/i.test(text)
+                ? 'URBANO'
+                : 'SERVIENTREGA';
+
+    return {
+        dropiOrderId: dropiOrderMatch[1],
+        productName: PRODUCT_NAME,
+        clientName,
+        phone: String(phoneMatch[1] || '').replace(/\D/g, ''),
+        address,
+        city: cityProvince?.[1]?.trim() || '',
+        province: cityProvince?.[2]?.trim() || '',
+        status: rawStatus,
+        trackingNumber: trackingMatch?.[1] || '',
+        distributionCompany,
+        agencyPickup: /SERVIENTREGA|AGENCIA|CONCESION|RETIRO/i.test(text),
+        agencyName: /SERVIENTREGA|AGENCIA|CONCESION|RETIRO/i.test(text) ? address : '',
+        rawText: text
+    };
+};
+
+const findExistingShipmentForDropiActiveRow = async (row) => {
+    const rowDropiOrderId = String(row?.dropiOrderId || '').replace(/\D/g, '');
+    const rowTracking = String(row?.trackingNumber || '').replace(/\D/g, '');
+    const rowPhoneTerms = phoneLookupVariants(row.phone || '').filter((term) => term.length >= 8);
+    const rowName = normalizeAutocompleteText(row.clientName || '');
+    const shipmentMatchesRowIdentity = (shipment) => {
+        if (!shipment) return false;
+        const shipmentOrderId = String(shipment.orderId || '');
+        if (rowDropiOrderId && shipmentOrderId === `EC-DROPI-${rowDropiOrderId}`) return true;
+
+        const shipmentDropiIds = [
+            shipment.raw?.manualDropiOrderId,
+            shipment.raw?.latestDroppiPayload?.dropiOrderId,
+            shipment.raw?.droppiOrder?.id,
+            shipment.raw?.droppiOrder?.objects?.id
+        ].map((value) => String(value || '').replace(/\D/g, '')).filter(Boolean);
+        if (rowDropiOrderId && shipmentDropiIds.length && !shipmentDropiIds.includes(rowDropiOrderId)) {
+            return false;
+        }
+
+        const shipmentTracking = String(shipment.logistics?.trackingNumber || '').replace(/\D/g, '');
+        if (rowTracking && shipmentTracking && shipmentTracking !== rowTracking) {
+            return false;
+        }
+
+        const stablePhones = [
+            shipment.raw?.adminLead?.phone,
+            shipment.raw?.adminLead?.phone_e164,
+            shipment.raw?.dropiNormalization?.phone
+        ].filter(Boolean);
+        const phoneSources = stablePhones.length ? stablePhones : [shipment.client?.phone];
+        const shipmentPhoneTerms = [...new Set(phoneSources
+            .flatMap((phone) => phoneLookupVariants(phone))
+            .filter((term) => term.length >= 8))];
+        const phoneMatches = rowPhoneTerms.some((rowTerm) => shipmentPhoneTerms.some((shipmentTerm) => (
+            rowTerm.endsWith(shipmentTerm) || shipmentTerm.endsWith(rowTerm)
+        )));
+        if (phoneMatches) return true;
+
+        const stableNames = [
+            shipment.raw?.adminLead?.name,
+            shipment.raw?.dropiNormalization?.name
+        ].filter(Boolean);
+        const shipmentName = normalizeAutocompleteText(stableNames[0] || shipment.client?.name || '');
+        if (!rowName || !shipmentName) return false;
+        const rowParts = rowName.split(/\s+/).filter((part) => part.length >= 3);
+        const shipmentParts = shipmentName.split(/\s+/).filter((part) => part.length >= 3);
+        const sharedParts = rowParts.filter((part) => shipmentParts.includes(part));
+        return sharedParts.length >= 2
+            || rowName.includes(shipmentName)
+            || shipmentName.includes(rowName);
+    };
+
+    const directMatches = await Shipment.find({
+        country: 'EC',
+        provider: 'droppi',
+        $or: [
+            rowTracking ? { 'logistics.trackingNumber': rowTracking } : null,
+            rowDropiOrderId ? { 'raw.manualDropiOrderId': rowDropiOrderId } : null,
+            rowDropiOrderId ? { 'raw.latestDroppiPayload.dropiOrderId': rowDropiOrderId } : null,
+            rowDropiOrderId ? { 'raw.droppiOrder.id': rowDropiOrderId } : null
+        ].filter(Boolean)
+    }).sort({
+        'automation.submittedToDroppiAt': -1,
+        updatedAt: -1,
+        createdAt: -1
+    }).limit(20).catch(() => []);
+    const trustedDirectMatch = directMatches.find(shipmentMatchesRowIdentity);
+    if (trustedDirectMatch) return trustedDirectMatch;
+
+    if (!rowPhoneTerms.length) return null;
+    const phoneMatches = await Shipment.find({
+        country: 'EC',
+        provider: 'droppi',
+        $or: rowPhoneTerms.map((term) => ({ 'client.phone': { $regex: `${term}$` } }))
+    }).sort({
+        'automation.submittedToDroppiAt': -1,
+        updatedAt: -1,
+        createdAt: -1
+    }).limit(20).catch(() => []);
+
+    return phoneMatches.find(shipmentMatchesRowIdentity) || null;
+};
+
+const assertNoLooseDropiActiveRowMatch = () => {
+    const row = {
+        dropiOrderId: '5455776',
+        trackingNumber: '185166362',
+        clientName: 'Santos Paucar',
+        phone: '987892090'
+    };
+    const terms = phoneLookupVariants(row.phone || '').filter((term) => term.length >= 8);
+    if (terms.some((term) => term.length < 8)) {
+        throw new Error('Dropi active sync must not use loose phone tails below 8 digits');
+    }
+    return true;
+};
+
+assertNoLooseDropiActiveRowMatch();
+
 const nameLookupVariants = (name = '') => {
     const clean = String(name || '').replace(/\s+/g, ' ').trim();
     const parts = clean.split(' ').filter((part) => part.length >= 3);
@@ -1080,9 +1902,8 @@ const toIsoDate = (date) => date.toISOString().slice(0, 10);
 
 const ordersApiDateRange = () => {
     const untilDate = new Date();
-    untilDate.setDate(untilDate.getDate() + 1);
     const fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - Number.parseInt(process.env.DROPPI_EC_ORDER_LOOKBACK_DAYS || '90', 10));
+    fromDate.setDate(fromDate.getDate() - Math.min(Number.parseInt(process.env.DROPPI_EC_ORDER_LOOKBACK_DAYS || '80', 10), 89));
     return {
         from: process.env.DROPPI_EC_ORDER_LOOKBACK_FROM || toIsoDate(fromDate),
         until: process.env.DROPPI_EC_ORDER_LOOKBACK_UNTIL || toIsoDate(untilDate)
@@ -1156,14 +1977,55 @@ const fetchOrdersApiRows = async (page, search) => {
     return rows;
 };
 
-const rowMatchesShipment = (row, shipment) => {
-    const rowPhone = String(row?.phone || '').replace(/\D/g, '');
+const rowPhoneMatchesShipment = (rowPhoneValue = '', shipment) => {
+    const rowPhone = String(rowPhoneValue || '').replace(/\D/g, '');
     const phoneTerms = phoneLookupVariants(shipment.client?.phone || '');
-    if (rowPhone && phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone))) return true;
+    return Boolean(rowPhone && phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone)));
+};
 
-    const rowName = normalizeAutocompleteText([row?.name, row?.surname].filter(Boolean).join(' '));
-    const names = nameLookupVariants(shipment.client?.name || '').map(normalizeAutocompleteText);
-    if (rowName && names.some((name) => name && (rowName.includes(name) || name.includes(rowName)))) return true;
+const rowPhoneConflictsWithShipment = (rowPhoneValue = '', shipment) => {
+    const rowPhone = String(rowPhoneValue || '').replace(/\D/g, '');
+    const phoneTerms = phoneLookupVariants(shipment.client?.phone || '').filter((term) => term.length >= 8);
+    return Boolean(rowPhone && phoneTerms.length && !rowPhoneMatchesShipment(rowPhone, shipment));
+};
+
+const rowNameMatchesShipment = (rowNameValue = '', shipment) => {
+    const rowName = normalizeAutocompleteText(rowNameValue || '');
+    const shipmentName = normalizeAutocompleteText(shipment.client?.name || '');
+    if (!rowName || !shipmentName) return false;
+
+    const rowParts = rowName.split(/\s+/).filter((part) => part.length >= 3);
+    const shipmentParts = shipmentName.split(/\s+/).filter((part) => part.length >= 3);
+    const sharedParts = rowParts.filter((part) => shipmentParts.includes(part));
+    if (sharedParts.length >= 2) return true;
+
+    const shortest = Math.min(rowName.length, shipmentName.length);
+    return shortest >= 10 && (rowName.includes(shipmentName) || shipmentName.includes(rowName));
+};
+
+const apiRowClientName = (row) => [row?.name, row?.surname].filter(Boolean).join(' ');
+
+const rowIdentityMatchesShipment = ({ phone = '', clientName = '' } = {}, shipment) => {
+    if (rowPhoneConflictsWithShipment(phone, shipment)) return false;
+    return rowPhoneMatchesShipment(phone, shipment) || rowNameMatchesShipment(clientName, shipment);
+};
+
+const rowIdentityConflictsWithShipment = ({ phone = '' } = {}, shipment) => (
+    rowPhoneConflictsWithShipment(phone, shipment)
+);
+
+const rowMatchesShipment = (row, shipment) => {
+    const identity = {
+        phone: row?.phone || '',
+        clientName: apiRowClientName(row)
+    };
+    if (rowIdentityMatchesShipment(identity, shipment)) return true;
+
+    if (rowIdentityConflictsWithShipment(identity, shipment)) return false;
+
+    const rowDropiId = String(row?.id || '').replace(/\D/g, '');
+    const submittedDropiId = String(getSubmittedDropiOrderId(shipment) || shipment?.raw?.manualDropiOrderId || '').replace(/\D/g, '');
+    if (rowDropiId && submittedDropiId && rowDropiId === submittedDropiId) return true;
 
     const currentTracking = String(shipment.logistics?.trackingNumber || '').replace(/\D/g, '');
     const rowText = JSON.stringify(row || {});
@@ -1177,6 +2039,28 @@ const extractTrackingFromOrderRow = (row, fallback = '') => {
     const text = JSON.stringify(row || {});
     const match = text.match(/\b18\d{6,}\b/) || text.match(/\b\d{8,}\b/);
     return match?.[0] || fallback || '';
+};
+
+const discardPhoneAsTracking = (tracking = '', phone = '') => {
+    const value = String(tracking || '').replace(/\D/g, '');
+    if (!value) return '';
+    const phoneTerms = phoneLookupVariants(phone || '').map((term) => String(term || '').replace(/\D/g, ''));
+    if (phoneTerms.some((term) => term && (value === term || value.endsWith(term) || term.endsWith(value)))) {
+        return '';
+    }
+    return String(tracking || '').trim();
+};
+
+const buildDropiGuideInvoiceUrl = (row = {}) => {
+    const guiaUrl = String(row?.guia_urls3 || '').trim().replace(/^\/+/, '');
+    if (guiaUrl) return `${GUIDE_CLOUDFRONT_URL.replace(/\/+$/, '')}/${guiaUrl}`;
+
+    const sticker = String(row?.sticker || '').trim().replace(/^\/+/, '');
+    if (!sticker) return '';
+    const carrier = String(row?.distribution_company?.name || row?.shipping_company || 'servientrega')
+        .trim()
+        .toLowerCase();
+    return `${IMAGE_SERVER_URL.replace(/\/+$/, '')}/guias/${carrier}/${encodeURIComponent(sticker)}`;
 };
 
 const mapOrdersApiRowToSyncResult = (row, shipment) => {
@@ -1193,11 +2077,17 @@ const mapOrdersApiRowToSyncResult = (row, shipment) => {
     const agencyName = agencyPickup
         ? String(dir.replace(/^SERVIENTREGA\s*/i, '').split(/\t|,|;/)[0] || shipment.logistics?.agencyName || '').trim()
         : shipment.logistics?.agencyName || '';
+    const trackingNumber = discardPhoneAsTracking(
+        extractTrackingFromOrderRow(row, shipment.logistics?.trackingNumber || ''),
+        shipment.client?.phone || ''
+    );
     return {
         panelMatched: true,
         source: 'orders_api_v2',
         dropiOrderId: row?.id ? String(row.id) : '',
-        trackingNumber: extractTrackingFromOrderRow(row, shipment.logistics?.trackingNumber || ''),
+        clientName: apiRowClientName(row),
+        phone: row?.phone || '',
+        trackingNumber,
         status: extractStatusFromPanelText(row?.status || JSON.stringify(row), shipment.logistics?.status || ''),
         distributionCompany: carrier,
         address: dir,
@@ -1205,7 +2095,96 @@ const mapOrdersApiRowToSyncResult = (row, shipment) => {
         province: row?.state || shipment.client?.province || '',
         agencyPickup,
         agencyName,
+        invoiceUrl: buildDropiGuideInvoiceUrl(row),
         rawRow: row
+    };
+};
+
+const readDropiOrderRowsFromPanel = async (page, { limit = 20 } = {}) => {
+    const maxRows = Math.max(1, Math.min(Number(limit) || 20, 1000));
+    return page.locator('table tbody tr, tr')
+        .evaluateAll((nodes, rowLimit) => nodes
+            .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
+            .filter((text) => text && /^\d{6,}\b/.test(text))
+            .slice(0, rowLimit), maxRows)
+        .catch(() => []);
+};
+
+const getOrdersSearchInput = async (page) => {
+    const search = page.locator(selectors.ordersSearch).first();
+    await search.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
+    if (!(await search.count())) {
+        const bodyText = (await page.locator('body').innerText({ timeout: 3000 }).catch(() => ''))
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 300);
+        throw buildNotReadyError(`orders search selector not found: ${bodyText}`);
+    }
+    return search;
+};
+
+const searchOrdersPanelRows = async (page, term, { limit = 20 } = {}) => {
+    const search = await getOrdersSearchInput(page);
+    await search.fill(String(term || ''));
+    await page.keyboard.press('Enter').catch(() => null);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
+    await page.waitForTimeout(Number.parseInt(process.env.DROPPI_EC_PANEL_SEARCH_WAIT_MS || '1800', 10));
+    const rawRows = await readDropiOrderRowsFromPanel(page, { limit });
+    const rows = rawRows
+        .map(parseDropiActiveOrderRowText)
+        .filter(Boolean);
+    const noResults = !rawRows.length
+        && /No hay resultados/i.test(await page.locator('body').innerText({ timeout: 1000 }).catch(() => ''));
+    return {
+        term: String(term || ''),
+        noResults,
+        rawRows,
+        rows
+    };
+};
+
+const parsedPanelRowMatchesShipment = (row, shipment) => {
+    const identity = {
+        phone: row?.phone || '',
+        clientName: row?.clientName || ''
+    };
+    if (rowIdentityMatchesShipment(identity, shipment)) return true;
+    if (rowIdentityConflictsWithShipment(identity, shipment)) return false;
+
+    const rowTracking = String(row?.trackingNumber || '').replace(/\D/g, '');
+    const currentTracking = String(shipment?.logistics?.trackingNumber || '').replace(/\D/g, '');
+    if (rowTracking && currentTracking && rowTracking === currentTracking) return true;
+
+    const rowDropiId = String(row?.dropiOrderId || '').replace(/\D/g, '');
+    const submittedDropiId = String(getSubmittedDropiOrderId(shipment) || shipment?.raw?.manualDropiOrderId || '').replace(/\D/g, '');
+    if (rowDropiId && submittedDropiId && rowDropiId === submittedDropiId) return true;
+
+    const rowPhone = String(row?.phone || '').replace(/\D/g, '');
+    const phoneTerms = phoneLookupVariants(shipment?.client?.phone || '').filter((term) => term.length >= 8);
+    if (rowPhone && phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone))) return true;
+
+    const rowName = normalizeAutocompleteText(row?.clientName || '');
+    const names = nameLookupVariants(shipment?.client?.name || '').map(normalizeAutocompleteText);
+    return Boolean(rowName && names.some((name) => name && (rowName.includes(name) || name.includes(rowName))));
+};
+
+const mapPanelParsedRowToSyncResult = (row, shipment) => {
+    const address = row?.address || shipment.client?.address || '';
+    return {
+        panelMatched: true,
+        source: 'orders_panel_dom',
+        dropiOrderId: row?.dropiOrderId || '',
+        clientName: row?.clientName || '',
+        phone: row?.phone || '',
+        trackingNumber: row?.trackingNumber || shipment.logistics?.trackingNumber || '',
+        status: extractStatusFromPanelText(row?.status || row?.rawText || '', shipment.logistics?.status || ''),
+        distributionCompany: row?.distributionCompany || shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || '',
+        address,
+        city: row?.city || shipment.client?.city || '',
+        province: row?.province || shipment.client?.province || '',
+        agencyPickup: row?.agencyPickup ?? shipment.logistics?.agencyPickup,
+        agencyName: row?.agencyName || shipment.logistics?.agencyName || '',
+        rawText: row?.rawText || ''
     };
 };
 
@@ -1219,7 +2198,7 @@ const findOrderViaOrdersApi = async (page, shipment) => {
 
     for (const term of [...new Set(searchTerms)]) {
         const rows = await fetchOrdersApiRows(page, term);
-        const match = rows.find((row) => rowMatchesShipment(row, shipment)) || rows[0];
+        const match = rows.find((row) => rowMatchesShipment(row, shipment));
         if (match) return mapOrdersApiRowToSyncResult(match, shipment);
     }
     return { panelMatched: false };
@@ -1231,12 +2210,12 @@ const extractStatusFromPanelText = (panelText = '', fallback = '') => {
         .replace(/[\u0300-\u036f]/g, '')
         .toUpperCase();
     if (!raw) return fallback;
-    if (/ENTREGAD[OA]|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
+    if (/ENTREGAD[OA]|MERCANCIA ENTREGADA|PEDIDO ENTREGADO|REPORTADO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/DEVUELT[OA]|DEVOLUCION|NO RETIRAD[OA]/.test(raw)) return 'DEVUELTO';
     if (/NOVEDAD/.test(raw)) return 'NOVEDAD';
-    if (/INGRESANDO EN AGENCIA|LISTO PARA RETIRO|EN AGENCIA|AGENCIA|PUNTO DE RETIRO/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/INGRESANDO EN AGENCIA|LISTO PARA RETIRO|PARA RETIRO EN AGENCIA|PUNTO DE RETIRO/.test(raw)) return 'READY_FOR_PICKUP';
     if (/GUIA GENERADA|GUIA_GENERADA|PREPARADO PARA TRANSPORTADORA/.test(raw)) return 'GUIA_GENERADA';
-    if (/EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA/.test(raw)) return 'EN_RUTA';
+    if (/EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA|EN DISTRIBUCION|INGRESANDO OPERATIVO A|EN RUTA A CENTRO LOGISTICO/.test(raw)) return 'EN_RUTA';
     return fallback;
 };
 
@@ -1266,17 +2245,8 @@ const syncFromOrdersPanel = async ({ page, shipment }) => {
     const apiResult = await findOrderViaOrdersApi(page, shipment);
     if (apiResult.panelMatched) return apiResult;
 
-    const search = page.locator(selectors.ordersSearch).first();
-    await search.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null);
-    if (!(await search.count())) {
-        const bodyText = (await page.locator('body').innerText({ timeout: 3000 }).catch(() => ''))
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 300);
-        throw buildNotReadyError(`orders search selector not found: ${bodyText}`);
-    }
-
     let panelText = '';
+    let parsedPanelMatch = null;
     const phoneTerms = phoneLookupVariants(shipment.client.phone);
     const nameTerms = nameLookupVariants(shipment.client.name);
     const searchTerms = [
@@ -1288,12 +2258,24 @@ const syncFromOrdersPanel = async ({ page, shipment }) => {
     ].filter(Boolean);
 
     for (const term of searchTerms) {
-        await search.fill(String(term || ''));
-        await page.keyboard.press('Enter').catch(() => null);
-        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
-        await page.waitForTimeout(1500);
+        const result = await searchOrdersPanelRows(page, term, { limit: 20 });
+        parsedPanelMatch = result.rows.find((row) => parsedPanelRowMatchesShipment(row, shipment)) || null;
+        if (parsedPanelMatch) {
+            panelText = parsedPanelMatch.rawText || '';
+            break;
+        }
         panelText = await findMatchingPanelText(page, shipment);
-        if (panelText) break;
+        if (panelText) {
+            const parsedCandidate = parseDropiActiveOrderRowText(panelText);
+            if (parsedCandidate && parsedPanelRowMatchesShipment(parsedCandidate, shipment)) {
+                parsedPanelMatch = parsedCandidate;
+                break;
+            }
+        }
+    }
+
+    if (parsedPanelMatch) {
+        return mapPanelParsedRowToSyncResult(parsedPanelMatch, shipment);
     }
 
     const trackingNumber = extractTrackingFromPanelText(panelText, shipment);
@@ -1309,48 +2291,287 @@ const syncFromOrdersPanel = async ({ page, shipment }) => {
     };
 };
 
+export const searchDroppiEcuadorOrdersFromPanel = async ({ terms = [], limit = 20 } = {}) => {
+    const rawTerms = Array.isArray(terms) ? terms : String(terms || '').split(',');
+    const searchTerms = [...new Set(rawTerms
+        .map((term) => String(term || '').trim())
+        .filter((term) => term.length >= 3))];
+    if (!searchTerms.length) {
+        return { ok: false, reason: 'missing_search_terms', terms: [], results: [], rows: [] };
+    }
+
+    const result = await withBrowserSession(async ({ context, page }) => {
+        await performLogin(page);
+        await persistStorageState(context);
+        await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' });
+        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+        await getOrdersSearchInput(page);
+
+        const results = [];
+        for (const term of searchTerms) {
+            const panelResult = await searchOrdersPanelRows(page, term, { limit });
+            results.push(panelResult);
+        }
+
+        const rowMap = new Map();
+        for (const item of results) {
+            for (const row of item.rows) {
+                const key = row.trackingNumber || row.dropiOrderId || `${row.phone}|${row.rawText}`;
+                if (!rowMap.has(key)) rowMap.set(key, row);
+            }
+        }
+
+        return {
+            results,
+            rows: [...rowMap.values()]
+        };
+    });
+
+    return {
+        ok: true,
+        terms: searchTerms,
+        count: result.rows.length,
+        ...result
+    };
+};
+
+export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } = {}) => {
+    const result = await withBrowserSession(async ({ context, page }) => {
+        await performLogin(page);
+        await persistStorageState(context);
+        await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' });
+        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+
+        const select = page.locator('select').first();
+        if (await select.count().catch(() => 0)) {
+            await select.selectOption({ label: '1000' }).catch(() => null);
+            await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+            await page.waitForTimeout(5000);
+        }
+
+        const rowTexts = await page.locator('table tbody tr, tr')
+            .evaluateAll((nodes, limit) => nodes
+                .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
+                .filter(Boolean)
+                .slice(0, limit), Math.max(10, Math.min(Number(maxRows) || 1000, 1000)));
+
+        const parsedRows = rowTexts
+            .map(parseDropiActiveOrderRowText)
+            .filter(Boolean);
+        const uniqueRows = [...new Map(parsedRows.map((row) => [row.trackingNumber || row.dropiOrderId, row])).values()];
+        const synced = [];
+        const skipped = [];
+
+        for (const row of uniqueRows) {
+            const existing = await findExistingShipmentForDropiActiveRow(row);
+            const shipment = await upsertDroppiEcuadorShipment({
+                orderId: existing?.orderId || `EC-DROPI-${row.dropiOrderId}`,
+                productName: row.productName,
+                clientName: row.clientName,
+                phone: row.phone,
+                address: row.address,
+                city: row.city,
+                province: row.province,
+                status: row.status,
+                trackingNumber: row.trackingNumber,
+                distributionCompany: row.distributionCompany,
+                chosenCarrier: row.distributionCompany,
+                agencyPickup: row.agencyPickup,
+                agencyName: row.agencyName,
+                sessionId: existing?.automation?.sessionId || '',
+                dropiOrderId: row.dropiOrderId,
+                detail: `Sincronizacao automatica do painel Dropi ativo; guia ${row.trackingNumber}; status original: ${row.status}`
+            });
+
+            const item = {
+                orderId: shipment.orderId,
+                dropiOrderId: row.dropiOrderId,
+                phoneTail: String(row.phone || '').slice(-4),
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                guideAlreadyNotified: Boolean(shipment.automation?.guiaNotifiedAt)
+            };
+            if (shipment.logistics?.status === 'ENTREGADO') skipped.push({ ...item, reason: 'delivered' });
+            else synced.push(item);
+        }
+
+        return {
+            rowCount: rowTexts.length,
+            parsed: parsedRows.length,
+            unique: uniqueRows.length,
+            synced,
+            skipped
+        };
+    });
+
+    return {
+        ok: true,
+        ...result
+    };
+};
+
+const cleanSubmitToken = (value) => String(value || '').replace(/\s+/g, '').trim();
+
+const localSubmittedDropiOrderId = (order = {}, shipment = {}) => cleanSubmitToken(
+    order?.dropiOrderId
+    || shipment?.raw?.droppiOrder?.id
+    || shipment?.raw?.droppiOrder?.objects?.id
+    || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+    || shipment?.raw?.manualDropiOrderId
+    || ''
+);
+
+const localSubmittedTrackingNumber = (order = {}, shipment = {}) => cleanSubmitToken(
+    order?.trackingNumber
+    || shipment?.logistics?.trackingNumber
+    || shipment?.raw?.droppiOrder?.sticker
+    || shipment?.raw?.droppiOrder?.objects?.sticker
+    || ''
+);
+
+const alreadySubmittedDropiResult = ({ order, shipment }) => {
+    const dropiOrderId = localSubmittedDropiOrderId(order, shipment);
+    const trackingNumber = localSubmittedTrackingNumber(order, shipment);
+    if (!dropiOrderId && !trackingNumber && !shipment?.automation?.submittedToDroppiAt) return null;
+    return {
+        ok: true,
+        success: true,
+        alreadySubmitted: true,
+        dropiOrderId,
+        trackingNumber,
+        shipment,
+        message: dropiOrderId
+            ? `PEDIDO JA FOI ENVIADO - Dropi ${dropiOrderId}.`
+            : 'PEDIDO JA FOI ENVIADO para Dropi.'
+    };
+};
+
+const checkDropiSubmitSafety = async ({ order, shipment }) => {
+    const alreadySubmitted = alreadySubmittedDropiResult({ order, shipment });
+    if (alreadySubmitted) return alreadySubmitted;
+
+    const duplicateGuard = await getOrderDuplicateGuard({
+        phone: order?.customer?.phone || shipment?.client?.phone || '',
+        country: order?.country || shipment?.country || 'EC',
+        currentOrderId: order?.orderId || shipment?.orderId || '',
+        trackingNumber: localSubmittedTrackingNumber(order, shipment),
+        dropiOrderId: localSubmittedDropiOrderId(order, shipment)
+    });
+    if (duplicateGuard.allowed) return null;
+    return {
+        ok: false,
+        success: false,
+        duplicateBlocked: true,
+        reason: duplicateGuard.reason || 'dropi_duplicate_blocked',
+        error: duplicateGuard.message || 'Pedido duplicado bloqueado',
+        message: duplicateGuard.message || 'Pedido duplicado bloqueado',
+        guard: duplicateGuard,
+        shipment
+    };
+};
+
 export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
+    const safetyBeforeLock = await checkDropiSubmitSafety({ order, shipment });
+    if (safetyBeforeLock) return safetyBeforeLock;
+
     const locked = await lockShipmentForBrowserWorkEc(shipment);
     if (!locked) return { ok: false, reason: 'locked' };
 
     try {
+        const latestOrder = await Order.findOne({ orderId: order.orderId }).lean().catch(() => null) || order;
+        const latestShipment = await Shipment.findById(shipment._id).lean().catch(() => null) || shipment;
+        const safetyAfterLock = await checkDropiSubmitSafety({
+            order: latestOrder,
+            shipment: latestShipment
+        });
+        if (safetyAfterLock) return safetyAfterLock;
+
         const prepared = await prepareDroppiEcuadorSubmission(order);
         await updateBrowserState(shipment._id, 'prepared_submission', {
             lastError: '',
             event: { kind: 'droppi_browser_prepared', payload: prepared.payload }
         });
 
-        const result = await withBrowserSession(async ({ context, page }) => {
-            await performLogin(page);
-            await persistStorageState(context);
-            await updateBrowserState(shipment._id, 'logged_in');
-            return submitOrderInPanel({ page, payload: prepared.payload });
-        });
+        let result;
+        let lastTransientError = null;
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+            try {
+                result = await withBrowserSession(async ({ context, page }) => {
+                    await performLogin(page);
+                    await persistStorageState(context);
+                    await updateBrowserState(shipment._id, attempt === 1 ? 'logged_in' : 'logged_in_retry');
+                    return submitOrderInPanel({ page, payload: prepared.payload });
+                });
+                lastTransientError = null;
+                break;
+            } catch (error) {
+                if (attempt >= 2 || !isTransientDropiBrowserError(error.message)) throw error;
+                lastTransientError = error;
+                await updateBrowserState(shipment._id, 'retrying_transient_browser_error', {
+                    lastError: error.message || 'transient_browser_error',
+                    event: {
+                        kind: 'droppi_browser_transient_retry',
+                        payload: { attempt, message: error.message || 'transient_browser_error' }
+                    }
+                });
+                await new Promise((resolve) => setTimeout(resolve, 2500));
+            }
+        }
+        if (!result && lastTransientError) throw lastTransientError;
+        const submittedAt = new Date();
+        const dropiOrderId = result.verifiedDropiOrderId
+            || (result.dropiResponse?.objects?.id ? String(result.dropiResponse.objects.id) : '');
+        const rawTrackingNumber = result.verifiedTrackingNumber
+            || result.dropiResponse?.objects?.sticker
+            || shipment.logistics?.trackingNumber
+            || '';
+        const trackingNumber = discardPhoneAsTracking(rawTrackingNumber, prepared.payload.phone || shipment.client?.phone || '');
+        const dropiOrderObject = {
+            ...(result.dropiResponse?.objects || {}),
+            ...(dropiOrderId ? { id: dropiOrderId } : {}),
+            ...(trackingNumber ? { sticker: trackingNumber } : {})
+        };
 
         await Shipment.updateOne(
             { _id: shipment._id },
             {
                 $set: {
-                    'automation.browserCheckpoint': 'submitted_order',
+                    'automation.browserCheckpoint': 'submitted_verified',
                     'automation.browserLastError': '',
-                    'automation.submittedToDroppiAt': new Date(),
+                    'automation.submittedToDroppiAt': submittedAt,
                     'review.manualOnly': false,
                     'review.reviewReason': '',
                     'review.reviewStatus': 'submitted',
                     'logistics.status': result.dropiResponse?.objects?.status || 'PENDIENTE',
                     'logistics.chosenCarrier': result.chosenCarrier,
                     'logistics.distributionCompany': result.dropiResponse?.objects?.shipping_company || result.chosenCarrier || '',
-                    'raw.droppiOrder': result.dropiResponse?.objects || null
+                    ...(trackingNumber ? { 'logistics.trackingNumber': trackingNumber } : {}),
+                    'raw.droppiOrder': Object.keys(dropiOrderObject).length ? dropiOrderObject : null
                 },
                 $push: {
                     events: {
-                        kind: 'droppi_order_submitted',
-                        at: new Date(),
-                        payload: result
+                        kind: 'droppi_order_submitted_verified',
+                        at: submittedAt,
+                        payload: {
+                            ...result,
+                            dropiOrderId,
+                            trackingNumber
+                        }
                     }
                 }
             }
         );
+        await tagDropiContactState({
+            shipment,
+            tag: 'FEITO_DROPI',
+            payload: {
+                'metadata.dropi.status': 'submitted_verified',
+                'metadata.dropi.dropiOrderId': dropiOrderId,
+                'metadata.dropi.trackingNumber': trackingNumber,
+                'metadata.dropi.submittedAt': submittedAt,
+                'metadata.dropi.lastError': ''
+            }
+        });
 
         await Order.updateOne(
             { orderId: shipment.orderId },
@@ -1358,12 +2579,16 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
                 $set: {
                     status: 'processing',
                     shippingStatus: result.dropiResponse?.objects?.status || 'PENDIENTE',
-                    dropiOrderId: result.dropiResponse?.objects?.id ? String(result.dropiResponse.objects.id) : ''
+                    ...(trackingNumber ? { trackingNumber } : {}),
+                    ...(dropiOrderId ? { dropiOrderId } : {})
                 }
             }
         ).catch(() => null);
 
-        const adminStatusResult = await markOnlineAdminPedidoEnviado({
+        const syncedOrder = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
+        const adminStatusResult = syncedOrder
+            ? syncOrderToOnlineAdminPanel(syncedOrder, { status: 'processing', action: 'dropi_order_submitted' })
+            : await markOnlineAdminPedidoEnviado({
             orderId: shipment.orderId,
             country: 'EC'
         });
@@ -1384,7 +2609,16 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             console.warn('Online admin status update failed:', adminStatusResult);
         }
 
-        return { ok: true, result };
+        return {
+            ok: true,
+            dropiOrderId,
+            trackingNumber,
+            result: {
+                ...result,
+                dropiOrderId,
+                trackingNumber
+            }
+        };
     } catch (error) {
         const reason = isDropiPaymentRequiredError(error.message)
             ? 'dropi_payment_required'
@@ -1392,6 +2626,15 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
         await updateBrowserState(shipment._id, reason, {
             lastError: error.message || 'unknown_error',
             event: { kind: 'droppi_browser_error', payload: { message: error.message || 'unknown_error' } }
+        });
+        await tagDropiContactState({
+            shipment,
+            tag: 'ERRO_DROPI',
+            payload: {
+                'metadata.dropi.status': reason,
+                'metadata.dropi.lastError': error.message || 'unknown_error',
+                'metadata.dropi.lastFailedAt': new Date()
+            }
         });
         return {
             ok: false,
@@ -1429,7 +2672,7 @@ export const prepareDroppiEcuadorOrderForManualSubmit = async ({ order, shipment
         });
         context = await browser.newContext({
             acceptDownloads: true,
-            storageState: fs.existsSync(STORAGE_STATE_PATH) ? STORAGE_STATE_PATH : undefined
+            storageState: getUsableStorageStatePath()
         });
         const page = await context.newPage();
         manualBrowserSessions.set(sessionKey, {
@@ -1444,7 +2687,11 @@ export const prepareDroppiEcuadorOrderForManualSubmit = async ({ order, shipment
         await persistStorageState(context);
         await updateBrowserState(shipment._id, 'manual_prepare_logged_in', { lastError: '' });
 
-        const result = await fillOrderFormInPanel({ page, payload: prepared.payload });
+        const result = await fillOrderFormInPanel({
+            page,
+            payload: prepared.payload,
+            manualDraftOnly: true
+        });
         await Shipment.updateOne(
             { _id: shipment._id },
             {
@@ -1471,7 +2718,9 @@ export const prepareDroppiEcuadorOrderForManualSubmit = async ({ order, shipment
             ok: true,
             manualPrepare: true,
             result,
-            message: 'Formulario Dropi preparado. Confira a janela aberta e clique Enviar al cliente manualmente.'
+            message: result.citySelected === false
+                ? 'Formulario Dropi preparado. A cidade nao foi aceita automaticamente; complete esse campo na janela aberta e confirme manualmente.'
+                : 'Formulario Dropi preparado. Confira a janela aberta e clique Enviar al cliente manualmente.'
         };
     } catch (error) {
         manualBrowserSessions.delete(sessionKey);
@@ -1523,7 +2772,7 @@ export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
             chosenCarrier: result.distributionCompany || shipment.logistics.chosenCarrier,
             agencyPickup: result.agencyPickup ?? shipment.logistics.agencyPickup,
             agencyName: result.agencyName || shipment.logistics.agencyName,
-            invoiceUrl: shipment.logistics.invoiceUrl,
+            invoiceUrl: result.invoiceUrl || shipment.logistics.invoiceUrl,
             sessionId: shipment.automation.sessionId,
             dropiOrderId: result.dropiOrderId || ''
         });
@@ -1540,6 +2789,76 @@ export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
             event: { kind: 'droppi_panel_sync_failed', payload: { message: error.message || 'unknown_error' } }
         });
         return { ok: false, reason: 'sync_failed', error: error.message };
+    }
+};
+
+export const syncDroppiEcuadorInvoiceForShipment = async ({ shipment, download = true } = {}) => {
+    if (!shipment?._id) return { ok: false, reason: 'missing_shipment' };
+
+    try {
+        const result = await withBrowserSession(async ({ context, page }) => {
+            await performLogin(page);
+            await persistStorageState(context);
+            await updateBrowserState(shipment._id, 'invoice_lookup_logged_in');
+            return syncFromOrdersPanel({ page, shipment });
+        });
+
+        if (!result?.panelMatched) {
+            await updateBrowserState(shipment._id, 'invoice_lookup_not_found', {
+                lastError: '',
+                event: { kind: 'droppi_invoice_lookup_not_found', payload: result || {} }
+            });
+            return { ok: false, reason: 'not_found_in_panel', result };
+        }
+
+        const invoiceUrl = result.invoiceUrl || shipment.logistics?.invoiceUrl || '';
+        if (!invoiceUrl) {
+            await updateBrowserState(shipment._id, 'invoice_url_missing', {
+                lastError: '',
+                event: { kind: 'droppi_invoice_url_missing', payload: result }
+            });
+            return { ok: false, reason: 'invoice_url_missing', result };
+        }
+
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'logistics.invoiceUrl': invoiceUrl,
+                    'automation.browserCheckpoint': 'invoice_url_synced',
+                    'automation.browserLastError': ''
+                },
+                $push: {
+                    events: {
+                        kind: 'droppi_invoice_url_synced',
+                        at: new Date(),
+                        payload: {
+                            invoiceUrl,
+                            source: result.source || '',
+                            dropiOrderId: result.dropiOrderId || ''
+                        }
+                    }
+                }
+            }
+        );
+
+        const updatedShipment = await Shipment.findById(shipment._id);
+        const downloadResult = download
+            ? await downloadDroppiEcuadorInvoicePdf({ shipment: updatedShipment })
+            : { ok: false, skipped: true, reason: 'download_disabled' };
+
+        return {
+            ok: true,
+            invoiceUrl,
+            download: downloadResult,
+            result
+        };
+    } catch (error) {
+        await updateBrowserState(shipment._id, 'invoice_lookup_failed', {
+            lastError: error.message || 'unknown_error',
+            event: { kind: 'droppi_invoice_lookup_failed', payload: { message: error.message || 'unknown_error' } }
+        });
+        return { ok: false, reason: 'invoice_lookup_failed', error: error.message };
     }
 };
 
