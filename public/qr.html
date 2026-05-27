@@ -4046,7 +4046,7 @@
                     <p style="margin: 0 0 16px;">Use o botao Leads Clientes no topo para abrir a janela operacional separada.</p>
                 </div>`;
         }
-        if (leadDashboardOpenLink) leadDashboardOpenLink.href = isLocalDevPanel ? `http://127.0.0.1:4181${leadDashboardUrl}` : leadDashboardUrl;
+        if (leadDashboardOpenLink) leadDashboardOpenLink.href = isLocalDevPanel ? leadDashboardExternalUrl : leadDashboardUrl;
 
         const el = (id) => document.getElementById(id);
         const state = {
@@ -4173,7 +4173,7 @@
         const leadsWindowUrl = () => {
             const country = selectedPanelCountry();
             const path = `/leads-window.html?country=${encodeURIComponent(country)}`;
-            return isLocalDevPanel ? `http://127.0.0.1:4181${path}` : path;
+            return isLocalDevPanel ? `https://ec.maxlien.shop${path}` : path;
         };
         const openLeadsWindow = () => {
             const url = leadsWindowUrl();
@@ -4288,7 +4288,7 @@
             const link = el('leadDashboardOpenLink');
             const navLink = el('leadsClientsLink');
             const frame = el('leadDashboardFrame');
-            const localDashboardPath = isLocalDevPanel ? `http://127.0.0.1:4181${dashboardPath}` : dashboardPath;
+            const localDashboardPath = isLocalDevPanel ? `https://ec.maxlien.shop${dashboardPath}` : dashboardPath;
             if (link) link.href = localDashboardPath;
             if (navLink) navLink.href = localDashboardPath;
             if (frame) frame.removeAttribute('src');
