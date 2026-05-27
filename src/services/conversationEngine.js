@@ -4159,32 +4159,6 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             if (handled) return;
         }
 
-        const postOrderCourtesyHandled = await maybeHandleRecentOrderClosedLock({
-            text,
-            chatId,
-            agentProfile,
-            contactState,
-            contactStateId: msg.contactStateId,
-            peerPhone,
-            history: customerMemory.history,
-            customerProfile: customerMemory.customerProfile,
-            sessionId: msg.sessionId || null
-        });
-        if (postOrderCourtesyHandled) return;
-
-        const refillGreetingHandled = await maybeHandleSimpleGreetingRefill({
-            text,
-            chatId,
-            peerPhone,
-            sessionId: msg.sessionId || null,
-            contactStateId: msg.contactStateId,
-            agentProfile
-        });
-        if (refillGreetingHandled) {
-            console.log(`[RECOMPRA] Saudacao simples tratada como continuidade -> ${chatId}`);
-            return;
-        }
-
         const deferredPurchaseSignal = detectDeferredPurchaseSignal(text);
         if (deferredPurchaseSignal) {
             const replyText = buildDeferredPurchaseReply(deferredPurchaseSignal);
@@ -4224,6 +4198,32 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 });
                 console.log(`[BUY-LATER] sinal tratado -> ${chatId} | kind=${deferredPurchaseSignal.kind} | reason=${deferredPurchaseSignal.reason || ''}`);
             }
+            return;
+        }
+
+        const postOrderCourtesyHandled = await maybeHandleRecentOrderClosedLock({
+            text,
+            chatId,
+            agentProfile,
+            contactState,
+            contactStateId: msg.contactStateId,
+            peerPhone,
+            history: customerMemory.history,
+            customerProfile: customerMemory.customerProfile,
+            sessionId: msg.sessionId || null
+        });
+        if (postOrderCourtesyHandled) return;
+
+        const refillGreetingHandled = await maybeHandleSimpleGreetingRefill({
+            text,
+            chatId,
+            peerPhone,
+            sessionId: msg.sessionId || null,
+            contactStateId: msg.contactStateId,
+            agentProfile
+        });
+        if (refillGreetingHandled) {
+            console.log(`[RECOMPRA] Saudacao simples tratada como continuidade -> ${chatId}`);
             return;
         }
 
