@@ -877,7 +877,8 @@
             el('bulkDropiCount').textContent = `${selected.length} marcado${selected.length === 1 ? '' : 's'}`;
             el('bulkDropiSelectAllBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
             el('bulkDropiSelectAllBtn').textContent = allVisibleSelected ? 'Desmarcar todos' : 'Marcar todos';
-            el('bulkDropiSendBtn').disabled = !hasAuth || !selected.length || state.dropiBusy.size > 0;
+            el('bulkDropiSendBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
+            el('bulkDropiSendBtn').textContent = selected.length ? 'Enviar marcados para Dropi' : 'Enviar visiveis para Dropi';
         };
 
         const toggleVisibleDropiSelection = () => {
@@ -1148,12 +1149,19 @@
             const selectedLeads = [...state.selectedDropi]
                 .map((id) => state.leads.find((lead) => String(lead.id) === String(id)))
                 .filter((lead) => lead && leadReadyForDropi(lead));
-            if (!selectedLeads.length) return;
-            const orderIds = selectedLeads.map(leadOrderId);
-            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) marcado(s) para Dropi?\n\n${orderIds.join('\n')}`)) return;
+            const leadsToSend = selectedLeads.length
+                ? selectedLeads
+                : visibleLeads().filter((lead) => leadReadyForDropi(lead) && !state.dropiBusy.has(String(lead.id)));
+            if (!leadsToSend.length) {
+                window.alert('Nenhum pedido confirmado e completo visivel para enviar.');
+                return;
+            }
+            const orderIds = leadsToSend.map(leadOrderId);
+            const scopeLabel = selectedLeads.length ? 'marcado(s)' : 'visivel(is)';
+            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) ${scopeLabel} para Dropi?\n\n${orderIds.join('\n')}`)) return;
             el('bulkDropiSendBtn').disabled = true;
             el('bulkDropiSendBtn').textContent = 'Processando...';
-            for (const lead of selectedLeads) {
+            for (const lead of leadsToSend) {
                 await submitLeadToDropi(lead);
                 await new Promise((resolve) => window.setTimeout(resolve, 4000));
             }
