@@ -4364,7 +4364,7 @@
         const setAuth = (token) => {
             state.token = token || '';
             if (state.token) {
-                localStorage.removeItem(tokenKey);
+                localStorage.setItem(tokenKey, state.token);
                 el('loginPanel').classList.add('hidden');
                 el('dashboard').classList.remove('hidden');
                 el('logoutBtn').classList.remove('hidden');
