@@ -15,6 +15,7 @@ import { isInitialProductInquiry, isSimpleGreeting, looksLikeOrderDataMessage, s
 import { formatAgencyOptionLine, findKnownServientregaEcuadorLocation, findServientregaEcuadorAgencies, loadServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
 import { buildRefillReminderText } from './shipmentMessageService.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
+import { syncContactDraftToOnlineAdminPanel, syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -3118,6 +3119,229 @@ const isOrderCloseAffirmation = (text) => {
         || /(envialo|envie|mande|mandelo|prepare|prepara|hagale|si puede enviar|si env)/i.test(body);
 };
 
+const monthNameToIndex = (value = '') => {
+    const month = normalizeFieldLabel(value);
+    const months = {
+        enero: 0,
+        fevereiro: 1,
+        febrero: 1,
+        marco: 2,
+        marzo: 2,
+        abril: 3,
+        mayo: 4,
+        maio: 4,
+        junio: 5,
+        julho: 6,
+        julio: 6,
+        agosto: 7,
+        septiembre: 8,
+        setiembre: 8,
+        outubro: 9,
+        octubre: 9,
+        noviembre: 10,
+        dezembro: 11,
+        diciembre: 11
+    };
+    return Object.prototype.hasOwnProperty.call(months, month) ? months[month] : -1;
+};
+
+const followUpDateAt = (year, month, day) => new Date(year, month, day, 10, 0, 0);
+
+const nextDateForDayMonth = ({ day, monthIndex }) => {
+    const now = new Date();
+    let year = now.getFullYear();
+    let date = followUpDateAt(year, monthIndex, day);
+    if (date.getTime() < now.getTime()) date = followUpDateAt(year + 1, monthIndex, day);
+    return date;
+};
+
+const inferBuyLaterFollowUp = (text) => {
+    const body = normalizeFieldLabel(text);
+    const now = new Date();
+    const explicit = body.match(/\b(?:para\s+el|el|dia|d[ií]a)\s+(\d{1,2})\s+de\s+([a-z]+)/i)
+        || body.match(/\b(\d{1,2})\s+de\s+([a-z]+)/i);
+    if (explicit) {
+        const day = Number.parseInt(explicit[1], 10);
+        const monthIndex = monthNameToIndex(explicit[2]);
+        if (day >= 1 && day <= 31 && monthIndex >= 0) {
+            return {
+                followUpAt: nextDateForDayMonth({ day, monthIndex }),
+                desiredPurchaseTiming: explicit[0]
+            };
+        }
+    }
+    const relativeDay = body.match(/\b(?:para\s+el|el|dia|d[ií]a)\s+(\d{1,2})\b/i);
+    if (relativeDay) {
+        const day = Number.parseInt(relativeDay[1], 10);
+        if (day >= 1 && day <= 31) {
+            let date = followUpDateAt(now.getFullYear(), now.getMonth(), day);
+            if (date.getTime() < now.getTime()) date = followUpDateAt(now.getFullYear(), now.getMonth() + 1, day);
+            return { followUpAt: date, desiredPurchaseTiming: relativeDay[0] };
+        }
+    }
+    if (/\b(fin de mes|fin del mes|final de mes|final del mes|finales de mes)\b/i.test(body)) {
+        return {
+            followUpAt: followUpDateAt(now.getFullYear(), now.getMonth() + 1, 0),
+            desiredPurchaseTiming: 'fin de mes'
+        };
+    }
+    if (/\bquincena\b/i.test(body)) {
+        const day = now.getDate() <= 15 ? 15 : 15;
+        const monthOffset = now.getDate() <= 15 ? 0 : 1;
+        return {
+            followUpAt: followUpDateAt(now.getFullYear(), now.getMonth() + monthOffset, day),
+            desiredPurchaseTiming: 'quincena'
+        };
+    }
+    if (/\b(primer[a]?\s+semana|primera semana)\b/i.test(body)) {
+        const monthOffset = now.getDate() <= 5 ? 0 : 1;
+        return {
+            followUpAt: followUpDateAt(now.getFullYear(), now.getMonth() + monthOffset, 5),
+            desiredPurchaseTiming: 'primera semana'
+        };
+    }
+    if (/\b(segund[a]?\s+semana|segunda semana)\b/i.test(body)) {
+        const monthOffset = now.getDate() <= 12 ? 0 : 1;
+        return {
+            followUpAt: followUpDateAt(now.getFullYear(), now.getMonth() + monthOffset, 12),
+            desiredPurchaseTiming: 'segunda semana'
+        };
+    }
+    if (/\b(proximo mes|pr[oó]ximo mes)\b/i.test(body)) {
+        return {
+            followUpAt: followUpDateAt(now.getFullYear(), now.getMonth() + 1, 5),
+            desiredPurchaseTiming: 'proximo mes'
+        };
+    }
+    return { followUpAt: null, desiredPurchaseTiming: '' };
+};
+
+const detectDeferredPurchaseSignal = (text) => {
+    const body = normalizeFieldLabel(text);
+    if (!body) return null;
+    if (/\b(no me mande|no me manden|no envie(?!\s+solo\s+(1|un|uno))|no despache|ya no quiero|no voy a comprar|cancelar|cancele|anular)\b/i.test(body)) {
+        return { kind: 'cancel', reason: 'cliente_pediu_nao_enviar' };
+    }
+    const dateSignal = /\b(fin de mes|fin del mes|final de mes|final del mes|finales de mes|proximo mes|pr[oó]ximo mes|quincena|primera semana|segunda semana|para el \d{1,2}|el \d{1,2} de [a-z]+|\d{1,2} de [a-z]+|para esa fecha)\b/i.test(body);
+    const moneySignal = /\b(estoy chiro|ahorita estoy chiro|no tengo plata|no tengo dinero|aun no me pagan|aun no me paga|cuando tenga el dinero|cuando tenga plata|cuando cobre|cuando me paguen)\b/i.test(body);
+    const laterSignal = /\b(yo le aviso|yo te aviso|le aviso despues|le aviso despues|despues le aviso|manana conversamos|mas tarde|aun no|todavia no)\b/i.test(body);
+    if (!dateSignal && !moneySignal && !laterSignal) return null;
+    const timing = inferBuyLaterFollowUp(text);
+    return {
+        kind: moneySignal && !timing.followUpAt ? 'money_without_date' : 'buy_later',
+        reason: moneySignal ? 'sem_dinheiro_agora' : laterSignal ? 'nao_fechar_agora' : 'data_futura',
+        ...timing
+    };
+};
+
+const buildDeferredPurchaseReply = (signal = {}) => {
+    if (signal.kind === 'cancel') {
+        return 'Entiendo, señor. No se preocupe, no voy a enviar nada. Dejo registrado aquí para que el pedido no avance.';
+    }
+    if (signal.followUpAt) {
+        return 'Entiendo, señor. No se preocupe. Guarde mi número como Ana Lopez - Vit Power y dejo anotada esa fecha para volver a escribirle sin molestarlo antes.';
+    }
+    return 'Entiendo, señor. No se preocupe. Guarde mi número como Ana Lopez - Vit Power y cuando ya desee el producto me escribe por aquí. Si quiere, también puedo dejar anotada una fecha aproximada para recordarle sin molestarlo.';
+};
+
+const applyDeferredPurchaseSignal = async ({
+    signal,
+    text,
+    chatId,
+    peerPhone,
+    contactStateId,
+    agentProfile,
+    pendingCheckoutOrder,
+    customerProfile
+}) => {
+    const phoneTail = digitsOnly(peerPhone || chatId).slice(-10);
+    const query = pendingCheckoutOrder?.orderId
+        ? { orderId: pendingCheckoutOrder.orderId }
+        : customerProfile?.orderId
+            ? { orderId: customerProfile.orderId }
+            : phoneTail
+                ? { country: 'EC', 'customer.phone': { $regex: phoneTail } }
+                : null;
+    const order = query
+        ? await Order.findOne(query).sort({ updatedAt: -1, createdAt: -1 })
+        : null;
+    const now = new Date();
+    if (order) {
+        order.purchaseIntent = {
+            ...(order.purchaseIntent || {}),
+            readiness: signal.kind === 'cancel' ? 'unknown' : 'buy_later',
+            desiredPurchaseTiming: signal.desiredPurchaseTiming || signal.reason || '',
+            followUpAt: signal.followUpAt || order.purchaseIntent?.followUpAt || null,
+            buyLaterDetectedAt: signal.kind === 'cancel' ? order.purchaseIntent?.buyLaterDetectedAt : now
+        };
+        order.conversationMemory = {
+            ...(order.conversationMemory || {}),
+            currentIntent: signal.kind === 'cancel' ? 'cancel_requested' : 'buy_later',
+            funnelStage: signal.kind === 'cancel' ? 'cancel_requested' : 'buy_later_followup',
+            lastCustomerMessageAt: now,
+            lastSummary: `Camada comprar depois: ${signal.reason || signal.kind}. Cliente disse: ${String(text || '').slice(0, 180)}`
+        };
+        order.notes = [
+            order.notes || '',
+            `[${now.toISOString()}] ${signal.kind === 'cancel' ? 'Pedido pausado/cancelado por fala do cliente' : 'Comprar depois detectado'}: ${String(text || '').slice(0, 220)}`
+        ].filter(Boolean).join('\n').slice(-4000);
+        if (signal.kind === 'cancel') order.status = 'cancelled';
+        await order.save();
+        syncOrderToOnlineAdminPanel(order, {
+            status: signal.kind === 'cancel' ? 'cancelado' : 'comprar_depois',
+            action: signal.kind === 'cancel' ? 'bot_cancel_signal' : 'bot_buy_later_signal'
+        });
+    } else if (signal.kind !== 'cancel') {
+        syncContactDraftToOnlineAdminPanel({
+            phone: peerPhone || chatId,
+            status: 'comprar_depois',
+            buyLaterFollowupAt: signal.followUpAt || '',
+            quantity: 1
+        }, {
+            country: 'EC',
+            note: `Comprar depois detectado: ${String(text || '').slice(0, 220)}`,
+            action: 'bot_buy_later_signal',
+            adminStatus: 'comprar_depois'
+        });
+    }
+    if (contactStateId) {
+        const state = await ContactState.findById(contactStateId);
+        if (state) {
+            state.human = {
+                ...(state.human || {}),
+                mode: signal.kind === 'cancel' ? 'manual' : state.human?.mode || 'auto',
+                note: [
+                    state.human?.note || '',
+                    signal.kind === 'cancel'
+                        ? `Cliente pediu nao enviar/cancelar: ${String(text || '').slice(0, 180)}`
+                        : `Comprar depois (${signal.reason || 'data futura'}): ${String(text || '').slice(0, 180)}`
+                ].filter(Boolean).join('\n').slice(-3000)
+            };
+            state.metadata = {
+                ...(state.metadata || {}),
+                buyLater: {
+                    detectedAt: now,
+                    reason: signal.reason || signal.kind,
+                    originalText: String(text || '').slice(0, 300),
+                    followUpAt: signal.followUpAt || null,
+                    desiredPurchaseTiming: signal.desiredPurchaseTiming || ''
+                },
+                perAgentMemory: {
+                    ...((state.metadata || {}).perAgentMemory || {}),
+                    [agentProfile.key]: {
+                        ...(((state.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}),
+                        lastIntent: signal.kind === 'cancel' ? 'cancel_requested' : 'buy_later',
+                        lastFunnelStage: signal.kind === 'cancel' ? 'cancel_requested' : 'buy_later_followup',
+                        lastInboundText: text
+                    }
+                }
+            };
+            await state.save();
+        }
+    }
+    return order;
+};
+
 const looksLikeFinalOrderConfirmationPrompt = (text) => {
     const body = normalizeForDecision(text);
     if (!body) return false;
@@ -3958,6 +4182,48 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         });
         if (refillGreetingHandled) {
             console.log(`[RECOMPRA] Saudacao simples tratada como continuidade -> ${chatId}`);
+            return;
+        }
+
+        const deferredPurchaseSignal = detectDeferredPurchaseSignal(text);
+        if (deferredPurchaseSignal) {
+            const replyText = buildDeferredPurchaseReply(deferredPurchaseSignal);
+            const sent = await sendText(chatId, replyText, null, { sessionId: msg.sessionId || null });
+            if (sent) {
+                try {
+                    await Message.create({
+                        _id: `out_${Date.now()}_buy_later_${Math.random().toString(16).slice(2, 8)}`,
+                        chatId,
+                        peerPhone,
+                        from: 'bot',
+                        to: chatId,
+                        body: replyText,
+                        isFromMe: true,
+                        isBot: true,
+                        timestamp: Math.floor(Date.now() / 1000)
+                    });
+                } catch (e) { }
+                await applyDeferredPurchaseSignal({
+                    signal: deferredPurchaseSignal,
+                    text,
+                    chatId,
+                    peerPhone,
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    pendingCheckoutOrder,
+                    customerProfile: customerMemory.customerProfile
+                });
+                await updateContactStateAgentMemory({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    inboundText: text,
+                    outboundText: replyText,
+                    inferredIntent: deferredPurchaseSignal.kind === 'cancel' ? 'cancel_requested' : 'buy_later',
+                    inferredFunnelStage: deferredPurchaseSignal.kind === 'cancel' ? 'cancel_requested' : 'buy_later_followup',
+                    inferredObjection: null
+                });
+                console.log(`[BUY-LATER] sinal tratado -> ${chatId} | kind=${deferredPurchaseSignal.kind} | reason=${deferredPurchaseSignal.reason || ''}`);
+            }
             return;
         }
 
