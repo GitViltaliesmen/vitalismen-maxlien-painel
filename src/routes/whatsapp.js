@@ -248,6 +248,37 @@ router.get('/chats', async (req, res) => {
             addConversationId(m, m.to);
         });
 
+        const stateQuery = countryFilter ? { countryCode: countryFilter } : {};
+        const recentContactStates = await ContactState.find(stateQuery)
+            .sort({ updatedAt: -1 })
+            .limit(500)
+            .lean()
+            .catch(() => []);
+
+        recentContactStates.forEach((contactState) => {
+            const phone = digitsOnly(contactState.phoneDigits);
+            const chatId = usableChatId(contactState.chatId) || (phone ? `${phone}@zapi` : null);
+            if (!chatId) return;
+            const key = phone || chatId;
+            if (!conversations.has(key)) {
+                conversations.set(key, {
+                    key,
+                    phone,
+                    ids: new Set(),
+                    primaryId: chatId,
+                    timestamp: contactState.updatedAt ? Math.floor(new Date(contactState.updatedAt).getTime() / 1000) : 0
+                });
+            }
+            const conversation = conversations.get(key);
+            conversation.ids.add(chatId);
+            if (phone && !conversation.phone) conversation.phone = phone;
+            const stateTimestamp = contactState.updatedAt ? Math.floor(new Date(contactState.updatedAt).getTime() / 1000) : 0;
+            if (stateTimestamp >= (conversation.timestamp || 0)) {
+                conversation.primaryId = chatId;
+                conversation.timestamp = stateTimestamp;
+            }
+        });
+
         for (const [key, conversation] of Array.from(conversations.entries())) {
             if (conversation.phone) continue;
             const lidIds = Array.from(conversation.ids).filter((id) => String(id).endsWith('@lid'));

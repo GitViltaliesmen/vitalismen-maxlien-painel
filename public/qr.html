@@ -5150,6 +5150,7 @@
             return state.chats.filter((chat) => {
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone))) return false;
+                if (selectedCountry === 'EC' && isBrazilTestRecord(chat)) return false;
                 if (selectedCountry !== 'ALL' && chat.country && String(chat.country).toUpperCase() !== selectedCountry) return false;
                 return true;
             });

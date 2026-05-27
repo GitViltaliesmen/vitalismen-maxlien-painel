@@ -651,6 +651,7 @@
         };
 
         const tokenKey = 'vitalismen_admin_token';
+        const hasAuthToken = () => Boolean(window.localStorage.getItem(tokenKey) || '');
         const api = async (path, options = {}) => {
             const token = window.localStorage.getItem(tokenKey) || '';
             const headers = {
@@ -818,6 +819,7 @@
             const checked = state.selectedDropi.has(String(lead.id));
             const message = state.dropiMessages.get(String(lead.id)) || {};
             const humanAction = leadHumanActionState(lead);
+            const hasAuth = hasAuthToken();
             const menuItems = [];
 
             if (humanAction.kind === 'complete') {
@@ -834,6 +836,8 @@
                 menuItems.push('<span class="action-info">Dropi enviado</span>');
             } else if (country !== 'EC' && DROPI_READY_STATUSES.has(status)) {
                 menuItems.push('<span class="action-info">Dropi EC apenas</span>');
+            } else if (leadReadyForDropi(lead) && !hasAuth) {
+                menuItems.push('<span class="action-info">Entre no painel integrado para Dropi</span>');
             } else if (leadReadyForDropi(lead)) {
                 menuItems.push(`
                     <label class="dropi-check">
@@ -857,6 +861,7 @@
         };
 
         const updateBulkDropiBar = () => {
+            const hasAuth = hasAuthToken();
             const visibleReadyIds = visibleLeads()
                 .filter((lead) => leadReadyForDropi(lead) && !state.dropiBusy.has(String(lead.id)))
                 .map((lead) => String(lead.id));
@@ -867,9 +872,9 @@
             state.selectedDropi = new Set(selected);
             const allVisibleSelected = visibleReadyIds.length > 0 && visibleReadyIds.every((id) => state.selectedDropi.has(id));
             el('bulkDropiCount').textContent = `${selected.length} marcado${selected.length === 1 ? '' : 's'}`;
-            el('bulkDropiSelectAllBtn').disabled = !visibleReadyIds.length || state.dropiBusy.size > 0;
+            el('bulkDropiSelectAllBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
             el('bulkDropiSelectAllBtn').textContent = allVisibleSelected ? 'Desmarcar todos' : 'Marcar todos';
-            el('bulkDropiSendBtn').disabled = !selected.length || state.dropiBusy.size > 0;
+            el('bulkDropiSendBtn').disabled = !hasAuth || !selected.length || state.dropiBusy.size > 0;
         };
 
         const toggleVisibleDropiSelection = () => {
@@ -1066,9 +1071,6 @@
         const submitLeadToDropi = async (lead) => {
             const id = String(lead.id);
             const orderId = leadOrderId(lead);
-            state.dropiBusy.add(String(id));
-            render();
-
             const setMsg = (text, error = false) => {
                 state.dropiMessages.set(id, { text, error });
                 const msg = document.querySelector(`[data-dropi-msg="${CSS.escape(id)}"]`);
@@ -1077,6 +1079,13 @@
                     msg.className = `action-message${error ? ' error' : ''}`;
                 }
             };
+            if (!hasAuthToken()) {
+                setMsg('entre no painel integrado', true);
+                render();
+                return;
+            }
+            state.dropiBusy.add(String(id));
+            render();
 
             const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
             const readDropiSubmitStatus = async () => api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit-status`);
