@@ -3898,7 +3898,7 @@
                         </div>
                         <div class="customer-form-actions">
                             <button id="saveCustomerBtn" class="primary" type="submit" disabled>Salvar ficha</button>
-                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled>Enviar pedido Dropi</button>
+                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled>Abrir no Leads</button>
                             <button id="buyLaterBtn" type="button" disabled>Comprar depois</button>
                         </div>
                     </form>
@@ -6234,14 +6234,12 @@
             el('manualStatus').textContent = chat.human?.mode === 'manual' ? `atendente no comando: ${owner}` : 'automação ativa';
             el('manualStatus').className = `badge ${chat.human?.mode === 'manual' ? 'green' : 'red'}`;
             setAttendancePulse(chat);
-            el('sendSelectedDropiBtn').textContent = dropiStage === 'authorize'
-                ? 'Autorizar para envio'
-                : dropiStage === 'sent'
-                    ? 'Pedido ja enviado'
-                    : brazilTestOnly
-                    ? 'BR teste bloqueado'
-                    : 'Enviar pedido Dropi';
-            el('sendSelectedDropiBtn').disabled = !state.selectedChat || state.busy;
+            el('sendSelectedDropiBtn').textContent = dropiStage === 'sent'
+                ? 'Ver no Leads'
+                : brazilTestOnly
+                ? 'BR teste bloqueado'
+                : 'Abrir no Leads';
+            el('sendSelectedDropiBtn').disabled = brazilTestOnly || !state.selectedChat || state.busy;
             el('buyLaterBtn').disabled = brazilTestOnly || !state.selectedChat;
             el('clearRepeatedBotBtn').disabled = false;
             el('attachMediaBtn').disabled = false;
@@ -8357,6 +8355,31 @@
             }
         }
 
+        async function openSelectedCustomerInLeads() {
+            if (!state.selectedChat || state.busy) return;
+            const draftBeforeSave = customerDraftFromForm();
+            if (blockBrazilTestDropi({ ...state.selectedChat, ...draftBeforeSave })) return;
+            const button = el('sendSelectedDropiBtn');
+            const originalLabel = button.textContent;
+            state.busy = true;
+            button.disabled = true;
+            try {
+                button.textContent = 'Salvando...';
+                await persistSelectedCustomerData({ silent: true });
+                await Promise.all([loadShipments(), loadChats()]).catch(() => null);
+                const country = state.selectedChat?.country || el('customerCountryInput').value || selectedPanelCountry() || 'EC';
+                notifyLeadsClientsRefresh(country);
+                openLeadsWindow();
+                showToast('Envio Dropi fica em Leads Clientes. Pedido salvo e sincronizado.');
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                button.textContent = originalLabel;
+                renderSelectedDetails();
+            }
+        }
+
         async function processSelectedDropiOrders() {
             if (state.busy || !state.selectedDropiOrders.size) return;
             const selectedOrders = [...state.selectedDropiOrders]
@@ -8675,7 +8698,7 @@
         });
         el('audioTemplateSearch')?.addEventListener('input', renderAudioTemplates);
         el('sendManualGuideBtn')?.addEventListener('click', sendManualGuideFromForm);
-        el('sendSelectedDropiBtn').addEventListener('click', sendSelectedDropiOrder);
+        el('sendSelectedDropiBtn').addEventListener('click', openSelectedCustomerInLeads);
         el('dryRunDropiDispatchBtn').addEventListener('click', () => runDropiDispatchRetroactive({
             dryRun: true,
             button: el('dryRunDropiDispatchBtn')
