@@ -217,15 +217,13 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
                     await session.sock.rejectCall(call.id, call.from);
                     const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
                     if (audioPath) {
-                        await session.sock.sendMessage(call.from, {
-                            audio: { url: audioPath },
-                            mimetype: 'audio/ogg; codecs=opus',
-                            ptt: true
-                        });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y audio enviado para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        const { sendAudio } = await import('./sendAudio.js');
+                        const audioSent = await sendAudio(call.from, audioPath, true, { sessionId: session.sessionId });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y audio ${audioSent ? 'enviado' : 'bloqueado'} para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
                     } else {
-                        await session.sock.sendMessage(call.from, { text: callAutoReplyText });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y texto enviado para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        const { sendText } = await import('./sendText.js');
+                        const textSent = await sendText(call.from, callAutoReplyText, null, { sessionId: session.sessionId });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y texto ${textSent ? 'enviado' : 'bloqueado'} para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
                     }
                 } catch (error) {
                     console.error(`[CALL] [socketId=${session.currentSocketId}] fallo al manejar llamada de ${call.from} | session=${session.sessionId}:`, error);
@@ -338,4 +336,43 @@ export const startConfiguredWhatsAppSessions = async () => {
 export const registerWhatsAppSession = (sessionId) => {
     const session = getOrCreateSession(sessionId);
     return session.sessionId;
+};
+
+export const disconnectWhatsApp = async (sessionId = DEFAULT_SESSION_ID, { logout = true } = {}) => {
+    const session = getOrCreateSession(sessionId);
+    if (session.reconnectTimer) {
+        clearTimeout(session.reconnectTimer);
+        session.reconnectTimer = null;
+    }
+
+    const sock = session.sock;
+    session.startInFlight = false;
+    session.isReady = false;
+    session.qrCode = null;
+    session.qrCodeRaw = null;
+    session.ownPhoneDigits = '';
+
+    if (sock) {
+        try {
+            if (logout && typeof sock.logout === 'function') {
+                await sock.logout();
+            } else if (typeof sock.end === 'function') {
+                sock.end(undefined);
+            }
+        } catch (error) {
+            console.warn(`[DISCONNECT] Falha ao encerrar WhatsApp | session=${session.sessionId}: ${error.message}`);
+        }
+        try {
+            sock.ev?.removeAllListeners?.();
+        } catch {
+            // ignore listener cleanup failure
+        }
+    }
+
+    session.sock = null;
+    session.currentSocketId = null;
+    session.status = logout ? 'logged_out' : 'disconnected';
+    session.lastDisconnectReason = logout ? 'manual_logout' : 'manual_disconnect';
+    console.log(`[DISCONNECT] Sessao WhatsApp desconectada manualmente | session=${session.sessionId} | logout=${logout}`);
+    return getStatus(session.sessionId);
 };

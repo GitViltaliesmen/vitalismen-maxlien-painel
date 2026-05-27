@@ -2,8 +2,36 @@ import { getSock, getSocketId, getOwnPhoneDigits, waitForWhatsAppReady } from '.
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
+import { sendImageViaZapi, shouldUseZapiForMedia } from './zapiOutbound.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    const zapiRoute = await shouldUseZapiForMedia({ jid, sessionId: options.sessionId || null });
+    if (zapiRoute.use) {
+        const guard = canSendOutbound({ jid: zapiRoute.phone, text: caption || imagePath, sessionId: zapiRoute.sessionId, ownDigits: zapiRoute.sessionId, kind: 'image' });
+        if (!guard.allowed) {
+            console.log(`[ZAPI_SEND_BLOCKED] imagem bloqueada -> ${zapiRoute.phone} | reason=${guard.reason}`);
+            return false;
+        }
+
+        try {
+            const { pacing, afterSendMs, sent } = await withHumanizedOutboundQueue(zapiRoute.phone, async () => {
+                const pacing = await applyHumanPacing({ sock: null, jid: zapiRoute.phone, kind: 'image', text: caption || imagePath });
+                const sent = await sendImageViaZapi({ jid, image: imagePath, caption });
+                const afterSendMs = sent.ok ? await applyAfterSendPacing({ kind: 'image' }) : 0;
+                return { pacing, afterSendMs, sent };
+            });
+            if (sent.ok) {
+                console.log(`[ZAPI_SEND_OK] Imagem disparada -> ${sent.phone} | Arquivo: ${imagePath} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | reason=${zapiRoute.reason}`);
+                recordOutboundSend({ sessionId: zapiRoute.sessionId, jid: zapiRoute.phone });
+                return true;
+            }
+            console.warn(`[ZAPI_SEND_SKIPPED] imagem ${sent.reason || 'unknown'} -> ${jid}`);
+        } catch (error) {
+            console.error(`[ZAPI_SEND_ERROR] Falha ao enviar imagem para ${jid}:`, error?.response?.data || error);
+        }
+        return false;
+    }
+
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);

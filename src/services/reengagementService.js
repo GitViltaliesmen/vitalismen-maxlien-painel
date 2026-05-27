@@ -27,7 +27,7 @@ const PRODUCT_SOFT_FOLLOWUP_TEXT = process.env.WHATSAPP_PRODUCT_SOFT_FOLLOWUP_TE
     || 'Hola 😊 le habia reservado una sorpresa especial para clientes que avanzan hoy con Vit Power. Si confirma su pedido, ademas del pago contra entrega, le guardo ese bonus para cuando retire o reciba su producto. ¿Le separo 1, 3 o 6 frascos?';
 const PENDING_CHECKOUT_INFO_REMINDER_DELAY_MINUTES = Math.max(
     1,
-    Number.parseInt(process.env.PENDING_CHECKOUT_INFO_REMINDER_DELAY_MINUTES || '20', 10)
+    Number.parseInt(process.env.PENDING_CHECKOUT_INFO_REMINDER_DELAY_MINUTES || '10', 10)
 );
 const PENDING_CHECKOUT_BONUS_RECOVERY_DELAY_MINUTES = Math.max(
     60,
@@ -57,7 +57,8 @@ const PENDING_CHECKOUT_STAGES = new Set([
     'awaiting_home_address',
     'awaiting_reference',
     'awaiting_quantity_data',
-    'awaiting_agency_confirmation'
+    'awaiting_agency_confirmation',
+    'sdr_awaiting_value_confirmation'
 ]);
 
 const hashText = (text) => crypto.createHash('sha1').update(String(text || '')).digest('hex');
@@ -111,16 +112,30 @@ const getPendingCheckoutInfoLabel = (stage) => {
     if (stage === 'awaiting_agency_confirmation') {
         return 'si los datos estan correctos para confirmar el envio';
     }
+    if (stage === 'sdr_awaiting_value_confirmation') {
+        return 'si esta bien reservar esa promocion';
+    }
     return 'la informacion que falta';
 };
 
-const buildPendingCheckoutInfoReminderText = (stage) => (
-    `Hola 😊 para poder avanzar con su pedido, por favor envienos ${getPendingCheckoutInfoLabel(stage)} si aun tiene interes. Si desea, le ayudo por aqui paso a paso.`
-);
+const buildPendingCheckoutInfoReminderText = (stage) => {
+    if (stage === 'sdr_awaiting_value_confirmation') {
+        const variants = [
+            'Señor 😊 le dejo reservada esa promoción por ahora. ¿Está bien para usted confirmar el pedido?',
+            'Perfecto, señor 😊 sigo por aqui. ¿Confirmamos esa promoción para dejarla registrada?',
+            'Señor, para no perder la promoción, me confirma si está bien reservarla para usted?'
+        ];
+        return variants[Math.floor(Math.random() * variants.length)];
+    }
+    return `Hola 😊 para poder avanzar con su pedido, por favor envienos ${getPendingCheckoutInfoLabel(stage)} si aun tiene interes. Si desea, le ayudo por aqui paso a paso.`;
+};
 
-const buildPendingCheckoutBonusRecoveryText = (stage) => (
-    `Hola 😊 todavia le tengo separado Vit Power. Hoy puedo mantenerle un bonus sorpresa si cerramos su pedido.\n\nPara avanzar, me envia ${getPendingCheckoutInfoLabel(stage)}?`
-);
+const buildPendingCheckoutBonusRecoveryText = (stage) => {
+    if (stage === 'sdr_awaiting_value_confirmation') {
+        return 'Hola 😊 paso para saber si aun tiene interes en reservar Vit Power. Si desea continuar, me responde por aqui y le ayudo paso a paso.';
+    }
+    return `Hola 😊 todavia le tengo separado Vit Power. Hoy puedo mantenerle un bonus sorpresa si cerramos su pedido.\n\nPara avanzar, me envia ${getPendingCheckoutInfoLabel(stage)}?`;
+};
 
 const registerBotMessage = async ({ chatId, phoneDigits, body, type = 'chat' }) => {
     try {

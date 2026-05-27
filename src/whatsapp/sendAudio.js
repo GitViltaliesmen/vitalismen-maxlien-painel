@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
+import { sendAudioViaZapi, shouldUseZapiForMedia } from './zapiOutbound.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -55,17 +56,46 @@ const resolveVoiceNotePath = async (audioPath) => {
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
-    const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
-    const sessionId = route.sessionId;
-    const ownDigits = getOwnPhoneDigits(sessionId);
-    const guard = canSendOutbound({ jid, text: audioPath, sessionId, ownDigits, kind: 'audio' });
-    if (!guard.allowed) {
-        console.log(`[LOG_SEND_BLOCKED] audio bloqueado -> ${jid} | reason=${guard.reason}`);
+    if (!fs.existsSync(audioPath)) {
+        console.error(`[OUTBOUND-AUDIO-ERROR] ❌ Arquivo de áudio não encontrado fisicamente: ${audioPath}`);
         return false;
     }
 
-    if (!fs.existsSync(audioPath)) {
-        console.error(`[OUTBOUND-AUDIO-ERROR] ❌ Arquivo de áudio não encontrado fisicamente: ${audioPath}`);
+    const zapiRoute = await shouldUseZapiForMedia({ jid, sessionId: options.sessionId || null });
+    if (zapiRoute.reason === 'zapi_recipient_not_allowed') {
+        console.log(`[ZAPI_SEND_BLOCKED] audio fora do piloto -> ${zapiRoute.phone || jid} | reason=${zapiRoute.reason}`);
+        return false;
+    }
+
+    if (zapiRoute.use) {
+        const zapiGuard = canSendOutbound({
+            jid: zapiRoute.phone,
+            text: audioPath,
+            sessionId: zapiRoute.sessionId,
+            ownDigits: zapiRoute.sessionId,
+            kind: 'audio'
+        });
+        if (!zapiGuard.allowed) {
+            console.log(`[ZAPI_SEND_BLOCKED] audio bloqueado -> ${zapiRoute.phone} | reason=${zapiGuard.reason}`);
+            return false;
+        }
+
+        try {
+            const { pacing, afterSendMs, sent } = await withHumanizedOutboundQueue(zapiRoute.phone, async () => {
+                const pacing = await applyHumanPacing({ sock: null, jid: zapiRoute.phone, kind: 'audio', text: audioPath });
+                const sent = await sendAudioViaZapi({ jid, audio: audioPath });
+                const afterSendMs = sent.ok ? await applyAfterSendPacing({ kind: 'audio', audioPath }) : 0;
+                return { pacing, afterSendMs, sent };
+            });
+            if (sent.ok) {
+                console.log(`[ZAPI_SEND_OK] Audio disparado -> ${sent.phone} | Arquivo: ${audioPath} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | reason=${zapiRoute.reason}`);
+                recordOutboundSend({ sessionId: zapiRoute.sessionId, jid: zapiRoute.phone });
+                return true;
+            }
+            console.warn(`[ZAPI_SEND_SKIPPED] audio ${sent.reason || 'unknown'} -> ${jid}`);
+        } catch (error) {
+            console.error(`[ZAPI_SEND_ERROR] Falha ao enviar audio para ${jid}:`, error?.response?.data || error);
+        }
         return false;
     }
 
@@ -74,6 +104,15 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         voiceNotePath = await resolveVoiceNotePath(audioPath);
     } catch (error) {
         console.error(`[OUTBOUND-AUDIO-ERROR] ❌ Falha ao converter áudio para OGG/Opus: ${audioPath}`, error);
+        return false;
+    }
+
+    const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
+    const sessionId = route.sessionId;
+    const ownDigits = getOwnPhoneDigits(sessionId);
+    const guard = canSendOutbound({ jid, text: audioPath, sessionId, ownDigits, kind: 'audio' });
+    if (!guard.allowed) {
+        console.log(`[LOG_SEND_BLOCKED] audio bloqueado -> ${jid} | reason=${guard.reason}`);
         return false;
     }
 

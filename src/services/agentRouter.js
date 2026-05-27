@@ -188,7 +188,7 @@ const detectSignals = (body) => {
         showsPurchaseIntent: hasAnyMatch(normalizedBody, [/\bquiero\b/i, /\bquero\b/i, /\bcomprar\b/i, /\bllevar\b/i, /\bme interesa\b/i, /\bdeseo\b/i, /\bdesejo\b/i, /\border?nar\b/i]),
         asksPrice: hasAnyMatch(normalizedBody, [/\bprecio\b/i, /\bpreco\b/i, /\bvalor\b/i, /\bpromo\b/i, /\bpromoc/i, /\bcu[aá]nto\b/i, /\bcuanto\b/i]),
         asksProductQuestion: hasAnyMatch(normalizedBody, [/\bfunciona\b/i, /\bdiabet/i, /\bpresi/i, /\bhiperten/i, /\bcirug/i]),
-        requestsQuantity: hasAnyMatch(normalizedBody, [/\b1 frasco\b/i, /\b3 frascos\b/i, /\b6 frascos\b/i, /\bun frasco\b/i, /\btres frascos\b/i, /\bseis frascos\b/i]),
+        requestsQuantity: hasAnyMatch(normalizedBody, [/\b1 frasco\b/i, /\b2 frascos\b/i, /\b3 frascos\b/i, /\b6 frascos\b/i, /\bun frasco\b/i, /\bdos frascos\b/i, /\btres frascos\b/i, /\bseis frascos\b/i]),
         mentionsProducts: true,
         mentionsVitPower: true,
         explicitWarmupExit: false

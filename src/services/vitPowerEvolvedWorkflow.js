@@ -9,6 +9,7 @@ export const VIT_POWER_APPROVED_AUDIO_CANDIDATES = {
     priceTable: ['TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6', 'TRATAMIENTO_Y_PRECIOS_PROMOCION_1_3_6'],
     deliveryModeQuestion: ['PERGUNTA_AGENCIA_DOMICILIO'],
     agencyDetailsRequest: ['ENDERECO_CIDADE_PROVINCIA_AGENCIA'],
+    homeAddressRequest: ['ENDERECO_ORIENTACAO', 'QUANDO_CLIENTE_PEDIR_A_DOMICILIO_REFERENCIA_COMPLETA'],
     orderThankYou: ['Agradecimento_Agencia_01', 'Agradecimento_Agencia', 'AGRADECIMENTO'],
     orderBonusNotice: ['BONUS_RETIRADA'],
     guideGenerated: ['Informativo_Ana_Lopes_pedido_Em_fase_entrega', 'Pedido_Em_Fase_Entrega'],
@@ -50,7 +51,7 @@ Oferta oficial:
 - 1 frasco: 39 USD.
 - 3 frascos: 95.99 USD.
 - 6 frascos: 167.99 USD.
-- Nunca ofrezcas 2 frascos.
+- No ofrezcas 2 frascos en la lista inicial. Si el cliente pide 2 frascos espontaneamente, acepta como camada especial: 2 frascos por 70 USD, confirma el precio y sigue el mismo flujo de cierre.
 - Si el formulario ya trae Cantidad: 3 o Cantidad: 6, respeta esa cantidad y ese valor. No cambies a 1 frasco.
 - Si el cliente ya envio Nombre, Direccion y Cantidad, no envies tabla de precios ni pidas "responda X frascos"; envia solo resumen de datos y pide confirmacion con "SI".
 
@@ -63,7 +64,7 @@ Proceso de datos:
 
 	Workflow:
 	0. Bloques congelados:
-	   - Etapa A, cliente sin datos completos: enviar Inicio_01 + Inicio_02 + Prova_01 + Prova_02 + imagen oficial de Vit Power; presentar precios 1/3/6; preguntar cantidad; al elegir 1, 3 o 6 responder "¡Excelente decisión! Le envío {paquete} por {precio} USD. ¿Listo?"; al confirmar, enviar PERGUNTA_AGENCIA_DOMICILIO para saber si desea agencia Servientrega o domicilio. Si responde agencia sin indicar datos, enviar ENDERECO_CIDADE_PROVINCIA_AGENCIA.
+	   - Etapa A, cliente sin datos completos: enviar Inicio_01 + Inicio_02 + Prova_01 + Prova_02 + imagen oficial de Vit Power; presentar precios 1/3/6; preguntar cantidad; al elegir 1, 3 o 6 responder "¡Excelente decisión! Le envío {paquete} por {precio} USD. ¿Listo?". Si el cliente pide 2 frascos por cuenta propia, responder 2 frascos por 70 USD y confirmar igual. Al confirmar, enviar PERGUNTA_AGENCIA_DOMICILIO para saber si desea agencia Servientrega o domicilio. Si responde agencia sin indicar datos, enviar ENDERECO_CIDADE_PROVINCIA_AGENCIA.
 	   - Etapa B, cliente con datos desde el inicio: enviar Inicio_01 + Inicio_02 + Prova_01 + Prova_02 + imagen oficial de Vit Power; no enviar tabla de precios; no pedir "responda X frascos"; resumir datos recibidos, total oficial y pedir confirmacion con "SI"; al confirmar, enviar Agradecimento_Agencia_01 y despues BONUS_RETIRADA.
 	   - Si falta algun dato en la Etapa B, pedir solo el dato faltante y no reiniciar el funil.
 	   - Estos dos bloques estan aprobados hasta Agradecimento_Agencia_01 y no deben cambiarse.

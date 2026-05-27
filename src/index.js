@@ -9,6 +9,7 @@ import ordersRoutes from './routes/orders.js';
 import productsRoutes from './routes/products.js';
 import webhookRoutes from './routes/webhook.js';
 import whatsappRoutes from './routes/whatsapp.js';
+import zapiRoutes from './routes/zapi.js';
 import aiRoutes from './routes/ai.js';
 import shipmentRoutes from './routes/shipments.js';
 import automationRoutes from './routes/automation.js';
@@ -115,6 +116,7 @@ app.use('/api/lead', leadRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/zapi', zapiRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/automation', automationRoutes);
@@ -163,6 +165,7 @@ app.listen(PORT, HOST, () => {
     console.log(`   POST /api/orders`);
     console.log(`   GET  /api/products?country=EC`);
     console.log(`   POST /api/webhook/order-created`);
+    console.log(`   POST /api/zapi/webhook/received`);
     console.log('');
 });
 

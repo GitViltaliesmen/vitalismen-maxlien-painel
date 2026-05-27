@@ -50,6 +50,63 @@ const tokensFor = (value) => normalizeAgencyText(value)
         'RETIRAR'
     ].includes(token));
 
+const PROVINCE_ALIAS_MAP = new Map([
+    ['GAUAYAS', 'GUAYAS'],
+    ['GUAIAS', 'GUAYAS'],
+    ['GUAYAS', 'GUAYAS'],
+    ['PICHINCHA', 'PICHINCHA'],
+    ['MANABY', 'MANABI'],
+    ['MANABI', 'MANABI'],
+    ['AZUAY', 'AZUAY'],
+    ['EL ORO', 'EL ORO'],
+    ['ORO', 'EL ORO']
+]);
+
+const CITY_ALIAS_MAP = new Map([
+    ['QUAYAQUIL', 'GUAYAQUIL'],
+    ['QUAYQUIL', 'GUAYAQUIL'],
+    ['QUAYAKIL', 'GUAYAQUIL'],
+    ['QUAIAQUIL', 'GUAYAQUIL'],
+    ['KUAYAQUIL', 'GUAYAQUIL'],
+    ['KUAYAKIL', 'GUAYAQUIL'],
+    ['GUAYQUIL', 'GUAYAQUIL'],
+    ['GUAYKIL', 'GUAYAQUIL'],
+    ['GUAYKILL', 'GUAYAQUIL'],
+    ['GUAYAKIL', 'GUAYAQUIL'],
+    ['GUAYAQIL', 'GUAYAQUIL'],
+    ['GUAYAQUI', 'GUAYAQUIL'],
+    ['GUAYAQUILL', 'GUAYAQUIL'],
+    ['GUAYQUILL', 'GUAYAQUIL'],
+    ['GWAYAQUIL', 'GUAYAQUIL'],
+    ['GUAIAQUIL', 'GUAYAQUIL'],
+    ['GUAIAKIL', 'GUAYAQUIL'],
+    ['GUAQUIL', 'GUAYAQUIL'],
+    ['GUYAQUIL', 'GUAYAQUIL'],
+    ['GUAYAQUEL', 'GUAYAQUIL'],
+    ['GUAYAQUIL', 'GUAYAQUIL'],
+    ['KITO', 'QUITO'],
+    ['QUITO', 'QUITO']
+]);
+
+const expandCatalogInputVariants = (value) => {
+    const normalized = normalizeAgencyText(value);
+    if (!normalized) return [];
+    const variants = new Set([normalized]);
+    for (const [alias, canonical] of CITY_ALIAS_MAP.entries()) {
+        if (normalized === alias || normalized.includes(alias)) {
+            variants.add(canonical);
+            variants.add(normalized.replace(new RegExp(`\\b${alias}\\b`, 'g'), canonical));
+        }
+    }
+    for (const [alias, canonical] of PROVINCE_ALIAS_MAP.entries()) {
+        if (normalized === alias || normalized.includes(alias)) {
+            variants.add(canonical);
+            variants.add(normalized.replace(new RegExp(`\\b${alias}\\b`, 'g'), canonical));
+        }
+    }
+    return [...variants].filter(Boolean);
+};
+
 const overlapScore = (sourceTokens, targetText, weight = 8) => {
     if (!sourceTokens.length || !targetText) return 0;
     const target = normalizeAgencyText(targetText);
@@ -104,36 +161,39 @@ export const findServientregaEcuadorAgencies = ({
     const normalizedCity = normalizeAgencyText(city);
     const normalizedProvince = normalizeAgencyText(province);
     const normalizedQuery = normalizeAgencyText(query);
+    const normalizedCityVariants = expandCatalogInputVariants(city);
+    const normalizedProvinceVariants = expandCatalogInputVariants(province);
+    const normalizedQueryVariants = expandCatalogInputVariants(query);
     const queryTokens = tokensFor(query);
 
     const scored = agencies.map((agency) => {
         let score = 0;
-        const cityMatched = Boolean(normalizedCity && (
-            agency.normalizedCity === normalizedCity
-            || agency.normalizedCity.includes(normalizedCity)
-            || normalizedCity.includes(agency.normalizedCity)
+        const cityMatched = normalizedCityVariants.some((variant) => (
+            agency.normalizedCity === variant
+            || agency.normalizedCity.includes(variant)
+            || variant.includes(agency.normalizedCity)
         ));
-        const provinceMatched = Boolean(normalizedProvince && (
-            agency.normalizedProvince === normalizedProvince
-            || agency.normalizedProvince.includes(normalizedProvince)
-            || normalizedProvince.includes(agency.normalizedProvince)
+        const provinceMatched = normalizedProvinceVariants.some((variant) => (
+            agency.normalizedProvince === variant
+            || agency.normalizedProvince.includes(variant)
+            || variant.includes(agency.normalizedProvince)
         ));
-        const queryNameMatched = Boolean(normalizedQuery && (
-            agency.normalizedName.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedName)
+        const queryNameMatched = normalizedQueryVariants.some((variant) => (
+            agency.normalizedName.includes(variant)
+            || variant.includes(agency.normalizedName)
         ));
-        const queryAddressMatched = Boolean(normalizedQuery && (
-            agency.normalizedAddress.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedAddress)
+        const queryAddressMatched = normalizedQueryVariants.some((variant) => (
+            agency.normalizedAddress.includes(variant)
+            || variant.includes(agency.normalizedAddress)
         ));
-        const queryCityMatched = Boolean(normalizedQuery && agency.normalizedCity && (
-            agency.normalizedCity.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedCity)
-        ));
-        const queryProvinceMatched = Boolean(normalizedQuery && agency.normalizedProvince && (
-            agency.normalizedProvince.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedProvince)
-        ));
+        const queryCityMatched = Boolean(agency.normalizedCity && normalizedQueryVariants.some((variant) => (
+            agency.normalizedCity.includes(variant)
+            || variant.includes(agency.normalizedCity)
+        )));
+        const queryProvinceMatched = Boolean(agency.normalizedProvince && normalizedQueryVariants.some((variant) => (
+            agency.normalizedProvince.includes(variant)
+            || variant.includes(agency.normalizedProvince)
+        )));
         const querySectorMatched = Boolean(normalizedQuery && agency.normalizedSector && (
             agency.normalizedSector.includes(normalizedQuery)
             || normalizedQuery.includes(agency.normalizedSector)
@@ -176,6 +236,35 @@ export const findServientregaEcuadorAgencies = ({
         queryProvinceMatched: item.queryProvinceMatched,
         querySectorMatched: item.querySectorMatched
     }));
+};
+
+export const findKnownServientregaEcuadorLocation = ({
+    city = '',
+    province = '',
+    text = ''
+} = {}) => {
+    const agencies = loadServientregaEcuadorAgencies();
+    const cityVariants = expandCatalogInputVariants(city);
+    const provinceVariants = expandCatalogInputVariants(province);
+    const textVariants = expandCatalogInputVariants(text);
+
+    const cityMatch = agencies.find((agency) => (
+        cityVariants.some((variant) => agency.normalizedCity === variant || variant.includes(agency.normalizedCity))
+        || textVariants.some((variant) => new RegExp(`\\b${agency.normalizedCity.replace(/\s+/g, '\\s+')}\\b`, 'i').test(variant))
+    ));
+    const provinceMatch = agencies.find((agency) => (
+        provinceVariants.some((variant) => agency.normalizedProvince === variant || variant.includes(agency.normalizedProvince))
+        || textVariants.some((variant) => new RegExp(`\\b${agency.normalizedProvince.replace(/\s+/g, '\\s+')}\\b`, 'i').test(variant))
+    ));
+
+    const inferredProvinceFromCity = cityMatch
+        ? agencies.find((agency) => agency.normalizedCity === cityMatch.normalizedCity)?.province || ''
+        : '';
+
+    return {
+        city: cityMatch?.city || '',
+        province: provinceMatch?.province || inferredProvinceFromCity || ''
+    };
 };
 
 export const resolveServientregaEcuadorAgency = ({

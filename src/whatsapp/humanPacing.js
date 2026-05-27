@@ -117,26 +117,30 @@ const presenceForKind = (kind) => {
 };
 
 export const applyHumanPacing = async ({ sock, jid, kind = 'text', text = '' } = {}) => {
-    if (!enabled() || !sock || !jid) return { waitedMs: 0, presence: 'disabled' };
+    if (!enabled() || !jid) return { waitedMs: 0, presence: 'disabled' };
 
     const presence = presenceForKind(kind);
     const waitMs = baseDelayForKind({ kind, text });
 
-    try {
-        await sock.sendPresenceUpdate(presence, jid);
-    } catch (error) {
-        console.warn(`[PRESENCE] falha ao marcar ${presence} para ${jid}:`, error.message);
+    if (sock) {
+        try {
+            await sock.sendPresenceUpdate(presence, jid);
+        } catch (error) {
+            console.warn(`[PRESENCE] falha ao marcar ${presence} para ${jid}:`, error.message);
+        }
     }
 
     if (waitMs > 0) await sleep(waitMs);
 
-    try {
-        await sock.sendPresenceUpdate('paused', jid);
-    } catch {
-        // Presence is cosmetic; never block delivery if WhatsApp ignores it.
+    if (sock) {
+        try {
+            await sock.sendPresenceUpdate('paused', jid);
+        } catch {
+            // Presence is cosmetic; never block delivery if WhatsApp ignores it.
+        }
     }
 
-    return { waitedMs: waitMs, presence };
+    return { waitedMs: waitMs, presence: sock ? presence : `${presence}:wait-only` };
 };
 
 export const applyAfterSendPacing = async ({ kind = 'text', text = '', audioPath = '' } = {}) => {

@@ -12,7 +12,7 @@ import { sendImage } from '../whatsapp/sendImage.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { maybeHandleVitPowerAudioComplement } from './vitPowerAudioComplementService.js';
 import { isInitialProductInquiry, isSimpleGreeting, looksLikeOrderDataMessage, startsWithOfficialInitialCtaMessage } from './initialFunnelTriggers.js';
-import { formatAgencyOptionLine, findServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
+import { formatAgencyOptionLine, findKnownServientregaEcuadorLocation, findServientregaEcuadorAgencies, loadServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
 import { buildRefillReminderText } from './shipmentMessageService.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
 
@@ -159,20 +159,57 @@ const titleCaseFromNormalized = (value) => String(value || '')
 
 const normalizeLocationText = (value) => normalizeFieldLabel(value);
 
+let cachedEcuadorLocationCatalog = null;
+const getEcuadorLocationCatalog = () => {
+    if (cachedEcuadorLocationCatalog) return cachedEcuadorLocationCatalog;
+    let agencyCities = [];
+    let agencyProvinces = [];
+    try {
+        const agencies = loadServientregaEcuadorAgencies();
+        agencyCities = agencies.map((agency) => normalizeLocationText(agency.city || '')).filter(Boolean);
+        agencyProvinces = agencies.map((agency) => normalizeLocationText(agency.province || '')).filter(Boolean);
+    } catch (error) {
+        console.warn('[FUNIL] Falha ao carregar catalogo de cidades Servientrega:', error.message);
+    }
+    cachedEcuadorLocationCatalog = {
+        cities: [...new Set([...ECUADOR_CITY_ALIASES, ...agencyCities])],
+        provinces: [...new Set([...ECUADOR_PROVINCES, ...agencyProvinces])]
+    };
+    return cachedEcuadorLocationCatalog;
+};
+
 const findKnownCity = (value) => {
     const normalized = normalizeLocationText(value);
-    return ECUADOR_CITY_ALIASES.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
+    return getEcuadorLocationCatalog().cities.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
 };
 
 const findKnownProvince = (value) => {
     const normalized = normalizeLocationText(value);
-    return ECUADOR_PROVINCES.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
+    return getEcuadorLocationCatalog().provinces.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
+};
+
+const extractResidenceLocationPrefix = (text = '') => {
+    const raw = cleanFieldValue(text);
+    const match = raw.match(/\b(?:vivo|resido|estoy|me encuentro|estamos)\s+en\s+([^,.;\n]+)(?:[,.;\n]\s*([^,.;\n]+))?/i);
+    if (!match) return { city: '', province: '' };
+    const cityPart = cleanFieldValue(match[1]);
+    const provincePart = cleanFieldValue(match[2] || '');
+    const known = findKnownServientregaEcuadorLocation({
+        city: cityPart,
+        province: provincePart,
+        text: [cityPart, provincePart].filter(Boolean).join(', ')
+    });
+    return {
+        city: known.city ? titleCaseFromNormalized(normalizeLocationText(known.city)) : '',
+        province: known.province ? titleCaseFromNormalized(normalizeLocationText(known.province)) : ''
+    };
 };
 
 const parsePackageQuantityText = (value) => {
     const body = normalizeFieldLabel(value);
     if (/\b(6|seis)\b/.test(body)) return 6;
     if (/\b(3|tres)\b/.test(body)) return 3;
+    if (/\b(2|dos)\b/.test(body)) return 2;
     if (/\b(1|un|uno|una)\b/.test(body)) return 1;
     return 0;
 };
@@ -181,7 +218,7 @@ const splitReferenceFromValue = (value) => {
     const raw = cleanFieldValue(value);
     const match = raw.match(/\b(ref(?:erencia)?\.?|referencia|punto\s+de\s+referencia)\s*[:.]?\s*(.+)$/i);
     if (!match) {
-        const landmarkMatch = raw.match(/\b(frente\s+(?:a|al|ao)|cerca\s+de|al\s+lado\s+de|junto\s+a|referencia)\b\s*(.+)$/i);
+        const landmarkMatch = raw.match(/\b(frente\s+(?:a|al)|cerca\s+(?:de|del)?|por\s+el\s+sector\s+de|a\s+la\s+altura\s+de|diagonal\s+a|al\s+lado\s+de|junto\s+a|referencia)\b\s*(.+)$/i);
         if (!landmarkMatch || landmarkMatch.index < 6) return { value: raw, reference: '' };
         return {
             value: cleanFieldValue(raw.slice(0, landmarkMatch.index)).replace(/[,.;-]+$/g, '').trim(),
@@ -197,7 +234,7 @@ const splitReferenceFromValue = (value) => {
 const extractReferenceFromText = (text) => {
     const match = String(text || '').match(/\b(ref(?:erencia)?\.?|referencia|punto\s+de\s+referencia)\s*[:.]?\s*(.+)$/im);
     if (match?.[2]) return cleanFieldValue(match[2]);
-    const landmarkMatch = String(text || '').match(/\b(frente\s+(?:a|al|ao)|cerca\s+de|al\s+lado\s+de|junto\s+a)\b\s*(.+)$/im);
+    const landmarkMatch = String(text || '').match(/\b(frente\s+(?:a|al)|cerca\s+(?:de|del)?|por\s+el\s+sector\s+de|a\s+la\s+altura\s+de|diagonal\s+a|al\s+lado\s+de|junto\s+a)\b\s*(.+)$/im);
     return landmarkMatch?.[0] ? cleanFieldValue(landmarkMatch[0]) : '';
 };
 
@@ -205,27 +242,39 @@ const extractLocationFromText = (value) => {
     const raw = cleanFieldValue(value);
     const normalized = normalizeLocationText(raw);
     const result = {};
+    const catalog = getEcuadorLocationCatalog();
+    const residenceLoc = extractResidenceLocationPrefix(raw);
 
-    const cityMatch = raw.match(/\bciudad\s*[:.]?\s*([a-záéíóúñ\s]+?)(?:[,.;\n]|$)/i);
+    const cityMatch = raw.match(/\b(?:ciudad|cidade|canton|cant[oó]n|municipio|localidad)\s*[:.]?\s*([^\d,.;\n]+?)(?:[,.;\n]|$)/i);
     if (cityMatch?.[1]) {
         const cityCandidate = cleanFieldValue(cityMatch[1]);
         const normalizedCity = normalizeLocationText(cityCandidate);
-        const knownCity = ECUADOR_CITY_ALIASES.find((city) => normalizedCity.includes(city));
-        result.city = knownCity ? titleCaseFromNormalized(knownCity) : cityCandidate;
+        const knownCity = catalog.cities.find((city) => normalizedCity.includes(city));
+        const knownAgencyLocation = findKnownServientregaEcuadorLocation({ city: cityCandidate, text: cityCandidate });
+        result.city = knownAgencyLocation.city
+            ? titleCaseFromNormalized(normalizeLocationText(knownAgencyLocation.city))
+            : (knownCity ? titleCaseFromNormalized(knownCity) : cityCandidate);
     } else {
-        const knownCity = ECUADOR_CITY_ALIASES.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
-        if (knownCity) result.city = titleCaseFromNormalized(knownCity);
+        const residenceMatch = raw.match(/\b(?:vivo|resido|estoy|soy|me encuentro)\s+en\s+([^\d,.;\n]+?)(?:[,.;\n]|$)/i);
+        const residenceCity = residenceMatch?.[1] ? findKnownCity(residenceMatch[1]) : '';
+        const knownCity = residenceLoc.city || residenceCity || catalog.cities.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
+        if (knownCity) result.city = residenceLoc.city || titleCaseFromNormalized(knownCity);
     }
 
-    const provinceMatch = raw.match(/\bprovincia\s*[:.]?\s*([a-záéíóúñ\s]+?)(?:[,.;\n]|$)/i);
+    const provinceMatch = raw.match(/\b(?:provincia|departamento|depto|estado)\s*[:.]?\s*([^\d,.;\n]+?)(?:[,.;\n]|$)/i);
     if (provinceMatch?.[1]) {
         const provinceCandidate = cleanFieldValue(provinceMatch[1]);
         const normalizedProvince = normalizeLocationText(provinceCandidate);
-        const knownProvince = ECUADOR_PROVINCES.find((province) => normalizedProvince.includes(province));
-        result.province = knownProvince ? titleCaseFromNormalized(knownProvince) : provinceCandidate;
+        const knownProvince = catalog.provinces.find((province) => normalizedProvince.includes(province));
+        const knownAgencyLocation = findKnownServientregaEcuadorLocation({ province: provinceCandidate, text: provinceCandidate });
+        result.province = knownAgencyLocation.province
+            ? titleCaseFromNormalized(normalizeLocationText(knownAgencyLocation.province))
+            : (knownProvince ? titleCaseFromNormalized(knownProvince) : provinceCandidate);
     } else {
-        const knownProvince = ECUADOR_PROVINCES.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
-        if (knownProvince) result.province = titleCaseFromNormalized(knownProvince);
+        const residenceMatch = raw.match(/\b(?:vivo|resido|estoy|soy|me encuentro)\s+en\s+([^\d,.;\n]+?)(?:[,.;\n]|$)/i);
+        const residenceProvince = residenceMatch?.[1] ? findKnownProvince(residenceMatch[1]) : '';
+        const knownProvince = residenceLoc.province || residenceProvince || catalog.provinces.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
+        if (knownProvince) result.province = residenceLoc.province || titleCaseFromNormalized(knownProvince);
     }
 
     return result;
@@ -290,6 +339,7 @@ const hasLooseCheckoutDataSignal = (text) => {
         /\b(mi\s+)?nom(?:b|r)re\s+es\b/,
         /\b(direccion|dirección|endereco|direcao|rua|calle|av|avenida|mz|manzana|villa|casa)\b/,
         /\b(ciudad|provincia|referencia|ref)\b/,
+        /\b(frente|cerca|diagonal|junto|lado|sector|mercado|supermercado|tienda|farmacia|iglesia|parque|escuela|colegio|gasolinera|unidad educativa|cancha|hospital|clinica|cl[ií]nica|upc)\b/,
         /\b(guayaquil|quito|cuenca|manta|ambato|loja|pichincha|guayas|manabi|azuay)\b/
     ];
     return signals.filter((pattern) => pattern.test(body)).length >= 1;
@@ -376,6 +426,9 @@ const parseCheckoutOrderMessage = (text, { loose = false } = {}) => {
     if (fields.address) {
         const splitAddress = splitReferenceFromValue(fields.address);
         if (splitAddress.reference && !fields.reference) fields.reference = splitAddress.reference;
+        const fullLocation = extractLocationFromText(text);
+        if (!fields.city && fullLocation.city) fields.city = fullLocation.city;
+        if (!fields.province && fullLocation.province) fields.province = fullLocation.province;
         const location = extractLocationFromText(fields.address);
         if (!fields.city && location.city) fields.city = location.city;
         if (!fields.province && location.province) fields.province = location.province;
@@ -388,7 +441,9 @@ const parseCheckoutOrderMessage = (text, { loose = false } = {}) => {
 
     const quantityFromText = Number.parseInt((String(text || '').match(/\b(?:cantidad|quantidade)\s*[:：]\s*(\d+)/i) || [])[1] || '', 10);
     if (!fields.quantity && Number.isFinite(quantityFromText)) fields.quantity = quantityFromText;
-    if (!fields.quantity) fields.quantity = parsePackageQuantityText(text);
+    if (!fields.quantity && /\b(cantidad|quantidade|frasco|frascos|botella|botellas)\b/i.test(normalizeFieldLabel(text))) {
+        fields.quantity = parsePackageQuantityText(text);
+    }
 
     fields.firstLineIsOfficialCta = startsWithOfficialInitialCtaMessage(text);
     fields.isCheckoutOrderData = true;
@@ -407,6 +462,7 @@ const orderPackageLabel = ({ customerContext, quantity }) => {
 const PRICE_TABLE_BY_COUNTRY = {
     EC: {
         1: { value: '$39', total: 39 },
+        2: { value: '$70', total: 70 },
         3: { value: '$95.99', total: 95.99 },
         6: { value: '$167.99', total: 167.99 }
     }
@@ -414,7 +470,7 @@ const PRICE_TABLE_BY_COUNTRY = {
 
 const normalizePackageQuantity = (quantity) => {
     const parsed = Number.parseInt(String(quantity || ''), 10);
-    return [1, 3, 6].includes(parsed) ? parsed : 1;
+    return [1, 2, 3, 6].includes(parsed) ? parsed : 1;
 };
 
 const getSelectedOffer = (customerContext, parsedOrder = {}) => {
@@ -590,7 +646,14 @@ const missingCheckoutFields = (parsedOrder = {}) => {
     return missingCheckoutFieldKeys(parsedOrder).map((key) => labels[key]);
 };
 
-const checkoutDataStageFromMissing = (missingKeys = []) => {
+const checkoutDataStageFromMissing = (missingKeys = [], parsedOrder = {}) => {
+    if (parsedOrder?.deliveryMode === 'home') {
+        if (missingKeys.includes('city') || missingKeys.includes('province')) return 'awaiting_city_province';
+        if (missingKeys.includes('address') || missingKeys.includes('reference')) return 'awaiting_home_address';
+        if (missingKeys.includes('name')) return 'awaiting_customer_name_data';
+        if (missingKeys.includes('quantity')) return 'awaiting_quantity_data';
+        return 'awaiting_agency_confirmation';
+    }
     if (missingKeys.includes('name')) return 'awaiting_customer_name_data';
     if (missingKeys.includes('city') || missingKeys.includes('province')) return 'awaiting_city_province';
     if (missingKeys.includes('address') || missingKeys.includes('reference')) return 'awaiting_home_address';
@@ -614,14 +677,20 @@ const mergeCheckoutOrderData = ({
         ...(incomingOrder || {})
     };
 
-    if (!merged.quantity) {
-        merged.quantity = normalizeOptionalPackageQuantity(selectedQuantity);
+    const selected = normalizeOptionalPackageQuantity(selectedQuantity);
+    const incomingHasQuantity = isValidPackageQuantity(incomingOrder?.quantity);
+    if (selected && !incomingHasQuantity) {
+        merged.quantity = selected;
+    } else if (!merged.quantity) {
+        merged.quantity = selected;
     }
     if (!merged.phone && peerPhone) {
         merged.phone = peerPhone;
     }
 
     const location = extractLocationFromText([
+        incomingOrder?.city,
+        incomingOrder?.province,
         merged.address,
         merged.reference,
         incomingOrder?.address,
@@ -698,7 +767,26 @@ const rebuildCheckoutOrderFromRecentMessages = async ({
 const buildMissingCheckoutFieldText = ({ parsedOrder, missing, missingKeys = [] }) => {
     const firstName = cleanFieldValue(parsedOrder?.name || '').split(/\s+/)[0] || '';
     const namePrefix = firstName ? `, ${firstName}` : '';
+    const isHomeDelivery = parsedOrder?.deliveryMode === 'home';
 
+    if (isHomeDelivery && missingKeys.includes('city') && missingKeys.includes('province')) {
+        return 'Entiendo, senor. Para revisar entrega a domicilio, primero me indica su ciudad y provincia?';
+    }
+    if (isHomeDelivery && missingKeys.includes('city')) {
+        return `Gracias${namePrefix}. Solo me falta su ciudad para revisar la entrega a domicilio. Me la envia por favor?`;
+    }
+    if (isHomeDelivery && missingKeys.includes('province')) {
+        return `Gracias${namePrefix}. Solo me falta su provincia para revisar la entrega a domicilio. Me la envia por favor?`;
+    }
+    if (isHomeDelivery && missingKeys.includes('address') && missingKeys.includes('reference')) {
+        return `Perfecto${namePrefix}. Ahora si me envia la direccion completa de entrega y una referencia cercana? Ejemplo: frente a una farmacia, cerca de una tienda, junto a una gasolinera o al lado de una iglesia.`;
+    }
+    if (isHomeDelivery && missingKeys.includes('address')) {
+        return `Perfecto${namePrefix}. Ahora si me envia la direccion completa de entrega?`;
+    }
+    if (isHomeDelivery && missingKeys.includes('reference')) {
+        return `Perfecto${namePrefix}. Solo me falta una referencia cercana para ubicar bien la entrega. Puede ser frente a una farmacia, cerca de una tienda, junto a una gasolinera o al lado de una iglesia.`;
+    }
     if (missingKeys.includes('name')) {
         return 'Perfecto. Para registrar su pedido, me confirma por favor su nombre completo?';
     }
@@ -712,13 +800,13 @@ const buildMissingCheckoutFieldText = ({ parsedOrder, missing, missingKeys = [] 
         return `Gracias${namePrefix}. Solo me falta su provincia. Me la envia por favor?`;
     }
     if (missingKeys.includes('address') && missingKeys.includes('reference')) {
-        return `Perfecto${namePrefix}. Ahora me envia la direccion completa de entrega y un punto de referencia?`;
+        return `Perfecto${namePrefix}. Ahora me envia la direccion completa de entrega y una referencia cercana? Ejemplo: frente a una farmacia, cerca de una tienda, junto a una gasolinera o al lado de una iglesia.`;
     }
     if (missingKeys.includes('address')) {
         return `Perfecto${namePrefix}. Ahora me envia la direccion completa de entrega?`;
     }
     if (missingKeys.includes('reference')) {
-        return `Perfecto${namePrefix}. Ya recibi sus datos del pedido. Solo me falta un punto de referencia para dejar el envio bien ubicado. Me lo envia por favor?`;
+        return `Perfecto${namePrefix}. Ya recibi sus datos del pedido. Solo me falta una referencia cercana para dejar el envio bien ubicado. Puede ser una tienda, farmacia, gasolinera, iglesia, parque o escuela cercana.`;
     }
     if (missingKeys.includes('quantity')) {
         return `Perfecto${namePrefix}. Cuantos frascos desea llevar: 1, 3 o 6?`;
@@ -981,7 +1069,7 @@ const sendCheckoutOrderNextStep = async ({
     const missing = missingCheckoutFields(parsedOrder);
     if (missing.length > 0) {
         const replyText = buildMissingCheckoutFieldText({ parsedOrder, missing, missingKeys });
-        const stage = checkoutDataStageFromMissing(missingKeys);
+        const stage = checkoutDataStageFromMissing(missingKeys, parsedOrder);
 
         const sent = await sendText(jid, replyText, null, { sessionId });
         if (!sent) return false;
@@ -1116,6 +1204,11 @@ const isSelectedPackageChoice = (text, parsedOrder = {}) => {
             || /\b1\s*frasco\b/i.test(body)
             || /\bun\s*(frasco|mes|tratamiento|producto)\b/i.test(body);
     }
+    if (quantity === 2) {
+        return /^(2|dos|2 frascos|dos frascos|quiero 2|quiero dos|quiero dos frascos|2 frascos vit power|dos frascos vit power)$/.test(body)
+            || /\b2\s*frascos\b/i.test(body)
+            || /\bdos\s*(frascos|meses|tratamientos|productos)\b/i.test(body);
+    }
     if (quantity === 3) {
         return /^(3|tres|3 frascos|tres frascos|quiero 3|quiero tres|quiero tres frascos|3 frascos vit power|tres frascos vit power)$/.test(body)
             || /\b3\s*frascos\b/i.test(body)
@@ -1127,7 +1220,7 @@ const isSelectedPackageChoice = (text, parsedOrder = {}) => {
 };
 
 const isAgencyDeliveryChoice = (text) => /(ag[eê]ncia|agencia|servientrega|oficina|retiro|retirar)/i.test(String(text || ''));
-const isHomeDeliveryChoice = (text) => /(domicilio|domic[íi]lio|casa|residencia|residência|direccion|direcci[oó]n|entrega en casa)/i.test(String(text || ''));
+const isHomeDeliveryChoice = (text) => /(domicilio|domic[íi]lio|casa|cas\b|residencia|residência|trabajo|trabalho|direccion|direcci[oó]n|entrega en casa|mi\s+cas\b)/i.test(String(text || ''));
 
 const hasAgencyIndicationData = (text) => {
     const body = String(text || '').trim();
@@ -2855,15 +2948,19 @@ const detectRequestedQuantity = (text) => {
     const isShortQuantityReply = words.length <= 3;
 
     if (
-        /\b6\b/.test(body)
+        (/\b6\b/.test(body) && (hasQuantityContext || isShortQuantityReply))
         || (wordSet.has('seis') && (hasQuantityContext || isShortQuantityReply))
     ) return 6;
     if (
-        /\b3\b/.test(body)
+        (/\b3\b/.test(body) && (hasQuantityContext || isShortQuantityReply))
         || (wordSet.has('tres') && (hasQuantityContext || isShortQuantityReply))
     ) return 3;
     if (
-        /\b1\b/.test(body)
+        (/\b2\b/.test(body) && (hasQuantityContext || isShortQuantityReply))
+        || (wordSet.has('dos') && (hasQuantityContext || isShortQuantityReply))
+    ) return 2;
+    if (
+        (/\b1\b/.test(body) && (hasQuantityContext || isShortQuantityReply))
         || ((wordSet.has('un') || wordSet.has('uno') || wordSet.has('una')) && (hasQuantityContext || isShortQuantityReply))
     ) return 1;
     return null;
@@ -2881,7 +2978,7 @@ const detectPurchaseReadiness = (text) => {
 };
 
 const buildQuantityConfirmationReply = ({ quantity, customerContext }) => {
-    const ecPrices = { 1: '39 USD', 3: '95.99 USD', 6: '167.99 USD' };
+    const ecPrices = { 1: '39 USD', 2: '70 USD', 3: '95.99 USD', 6: '167.99 USD' };
     const prices = ecPrices;
     const label = `${quantity} frasco${quantity > 1 ? 's' : ''}`;
     const price = prices[quantity] || '';
@@ -2907,7 +3004,7 @@ const inferFunnelStage = (text, customerContext, agentProfile) => {
     const body = String(text || '').toLowerCase();
     if (detectPurchaseReadiness(text) === 'buy_later') return 'buy_later_followup';
     if (/(nombre|direccion|direcci[oó]n|ciudad|provincia|barrio|departamento|referencia)/i.test(body)) return 'collecting_customer_data';
-    if (/(1 frasco|3 frascos|6 frascos|un frasco|tres frascos|seis frascos)/i.test(body)) return 'package_selection';
+    if (/(1 frasco|2 frascos|3 frascos|6 frascos|un frasco|dos frascos|tres frascos|seis frascos)/i.test(body)) return 'package_selection';
     if (/(precio|valor|promo|promoci[oó]n)/i.test(body)) return 'offer_presented';
     return 'qualification';
 };
@@ -3012,6 +3109,10 @@ const isOrderCloseAffirmation = (text) => {
     const body = normalizeForDecision(text);
     if (!body) return false;
     if (body.length > 80) return false;
+    const hasShortConfirmationNoise = body.split(/\s+/).length <= 4
+        && /\b(si|sim|ok|okay|correcto|correto|correcta|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|acepto|bueno|bien)\b/.test(body)
+        && !/\b(no|nop|negativo|mal|incorrecto|incorrecta|pregunta|duda|porque|por que|precio|cuanto|garantia|funciona)\b/.test(body);
+    if (hasShortConfirmationNoise) return true;
     return /^(si|sii|claro|correcto|correto|correcta|todo correcto|esta correcto|exacto|ok|okay|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|asi es|si senora|si gracias|vorrecto|vorecto)$/.test(body)
         || /^(si|claro|correcto|correto|correcta|ok|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|ya|ahora|hoy|de una|vorrecto|vorecto)\b/.test(body)
         || /(envialo|envie|mande|mandelo|prepare|prepara|hagale|si puede enviar|si env)/i.test(body);
@@ -3212,8 +3313,7 @@ const updateOrderConversationMemory = async ({ chatId, customerContext, text, ag
     const currentStage = latestOrder.conversationMemory?.funnelStage || '';
     const orderIsClosed = ['confirmed', 'delivered', 'picked_up', 'pickedUp'].includes(String(latestOrder.status || ''))
         || currentStage === 'order_closed';
-    const wantsNewPurchase = /\b(quiero|deseo|comprar|nuevo pedido|otro pedido|vit power|producto|frasco|frascos|precio|promocion|promo)\b/i.test(normalizeForDecision(text))
-        && isInitialProductInquiry(text)
+    const wantsNewPurchase = isExplicitNewPurchaseAfterClosedOrder(text)
         && !isPostOrderCourtesyText(text)
         && !isLogisticsAfterOrderText(text);
 
@@ -3268,6 +3368,17 @@ const updateOrderConversationMemory = async ({ chatId, customerContext, text, ag
     };
 
     return latestOrder;
+};
+
+const isExplicitNewPurchaseAfterClosedOrder = (text) => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    if (isPostOrderCourtesyText(text) || isLogisticsAfterOrderText(text)) return false;
+    if (/(funciona|funcione|sirve|garantia|garantizado|doctora|de donde|origen|demora|llega|guia|como se toma|ingrediente|composicion)/i.test(body)) {
+        return false;
+    }
+    return /\b(quiero|deseo|necesito|comprar|compra|mandeme|mandame|envieme|enviame|deme|separeme|separame)\b.*\b(otro|otra|nuevo|nueva|pedido|producto|frasco|frascos|botella|botellas|vit power|1|2|3|6|uno|dos|tres|seis)\b/i.test(body)
+        || /\b(otro|otra|nuevo|nueva)\s+(pedido|producto|frasco|frascos|botella|botellas)\b/i.test(body);
 };
 
 const getGreetingReply = ({ agentProfile, alreadyIntroduced }) => {
@@ -3609,6 +3720,13 @@ const isLogisticsAfterOrderText = (text) => {
     return /(guia|pedido|estado|estatus|status|retirar|retiro|agencia|servientrega|cuando llega|cuando retiro|listo para retirar|ya esta)/i.test(body);
 };
 
+const isPostOrderProductSupportText = (text) => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    if (isPostOrderCourtesyText(text) || isLogisticsAfterOrderText(text)) return false;
+    return /(funciona|funcione|sirve|garantia|garantizado|doctora|de donde|origen|demora|llega|como se toma|ingrediente|composicion|diabetes|presion|corazon|medicamento|cirugia|prostata|estafa|seguro|confiable)/i.test(body);
+};
+
 const postOrderLockWindowMs = () => {
     const hours = Number.parseInt(String(process.env.POST_ORDER_NO_REOPEN_HOURS || '24'), 10);
     return Math.max(1, Number.isFinite(hours) ? hours : 24) * 60 * 60 * 1000;
@@ -3636,6 +3754,33 @@ const maybeHandleRecentOrderClosedLock = async ({
     if (!closed) return false;
 
     if (closedAt && Date.now() - closedAt > postOrderLockWindowMs()) return false;
+
+    if (isPostOrderProductSupportText(text)) {
+        const complement = await maybeHandleVitPowerAudioComplement({
+            text,
+            chatId,
+            peerPhone,
+            contactStateId,
+            contactState,
+            agentProfile,
+            sessionId
+        });
+        if (complement.handled) {
+            await ContactState.updateOne(
+                { _id: contactStateId },
+                {
+                    $set: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderSupportAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderSupportRule`]: complement.ruleKey || '',
+                        'metadata.lastKnownFunnelStage': 'order_closed'
+                    }
+                }
+            );
+            console.log(`[FUNIL] Duvida pos-fechamento respondida sem reabrir funil -> ${chatId} | rule=${complement.ruleKey || 'sem_regra'}`);
+            return true;
+        }
+    }
 
     const shouldReply = isPostOrderCourtesyText(text)
         || isLogisticsAfterOrderText(text);
@@ -4035,9 +4180,9 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             if (handled) return;
         }
 
-        if (
-            pendingCheckoutStage === 'awaiting_delivery_mode'
-            && isHomeDeliveryChoice(text)
+    if (
+        pendingCheckoutStage === 'awaiting_delivery_mode'
+        && isHomeDeliveryChoice(text)
         ) {
             const parsedHomeData = checkoutOrderData || parseCheckoutOrderMessage(text, { loose: true });
             const normalizedOrder = mergeCheckoutOrderData({
@@ -4072,12 +4217,18 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 stage: 'awaiting_customer_name_data'
             };
             const missingKeys = missingCheckoutFieldKeys(pendingHomeOrder);
-            const nextStage = checkoutDataStageFromMissing(missingKeys);
-            const replyText = buildMissingCheckoutFieldText({
-                parsedOrder: pendingHomeOrder,
-                missing: missingCheckoutFields(pendingHomeOrder),
-                missingKeys
-            });
+            const nextStage = 'awaiting_home_address';
+            const replyText = [
+                'Entiendo, senor 👍',
+                '',
+                'Si no puede retirar en agencia, entonces envieme por favor:',
+                '',
+                '- direccion completa',
+                '- barrio o sector',
+                '- referencia cercana (farmacia, tienda, gasolinera, iglesia, parque o escuela cercana)',
+                '',
+                'para revisar entrega a domicilio.'
+            ].join('\n');
             await savePendingCheckoutOrderMemory({
                 contactStateId: msg.contactStateId,
                 agentProfile,
@@ -4085,6 +4236,31 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 stage: nextStage,
                 orderId: null
             });
+            const audioSent = await sendFirstApprovedAudio({
+                jid: chatId,
+                countryCode: customerContext.countryCode,
+                sessionId: msg.sessionId || null,
+                baseNames: ['ENDERECO_ORIENTACAO', 'QUANDO_CLIENTE_PEDIR_A_DOMICILIO_REFERENCIA_COMPLETA'],
+                label: 'Audio orientacao endereco domicilio'
+            });
+            if (audioSent) {
+                await recordInitialFunnelStepMessage({
+                    jid: chatId,
+                    peerPhone,
+                    body: '[AUDIO] ENDERECO_ORIENTACAO',
+                    type: 'audio'
+                });
+                await updateContactStateAgentMemory({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    inboundText: text,
+                    outboundText: `[AUDIO] ENDERECO_ORIENTACAO\n${replyText}`,
+                    inferredIntent: 'purchase_intent',
+                    inferredFunnelStage: nextStage,
+                    inferredObjection: null
+                });
+                await sleep(1400);
+            }
             const sent = await sendText(chatId, replyText, null, { sessionId: msg.sessionId || null });
             if (!sent) return;
             try {
@@ -4111,6 +4287,48 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             });
             console.log(`[FUNIL] Dados de domicilio solicitados -> ${chatId}`);
             return;
+        }
+
+        if (
+            pendingCheckoutStage === 'awaiting_home_address'
+            && !checkoutOrderData
+            && cleanFieldValue(text).length >= 4
+        ) {
+            const location = extractLocationFromText(text);
+            const looksLikeOnlyCityProvince = Boolean(location.city || location.province)
+                && !looksLikeLooseAddressLine(text)
+                && !/\b(calle|avenida|av|mz|manzana|solar|villa|casa|numero|nro|lote|barrio|sector|referencia|ref|junto|cerca|frente|diagonal|interseccion|intersecci[oó]n|gasolinera|tienda|farmacia|iglesia|parque|escuela|colegio|upc)\b/i.test(normalizeFieldLabel(text));
+            if (looksLikeOnlyCityProvince) {
+                const updatedOrder = {
+                    ...(pendingCheckoutOrder || {}),
+                    city: pendingCheckoutOrder?.city || location.city || '',
+                    province: pendingCheckoutOrder?.province || location.province || '',
+                    deliveryMode: 'home',
+                    stage: 'awaiting_home_address'
+                };
+                const replyText = 'Perfecto. Ahora envieme la direccion completa de entrega y una referencia cercana, como una tienda, farmacia, gasolinera, iglesia, parque o escuela cercana.';
+                await savePendingCheckoutOrderMemory({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    parsedOrder: updatedOrder,
+                    stage: 'awaiting_home_address',
+                    orderId: null
+                });
+                await sleep(1800);
+                const sent = await sendText(chatId, replyText, null, { sessionId: msg.sessionId || null });
+                if (!sent) return;
+                await updateContactStateAgentMemory({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    inboundText: text,
+                    outboundText: replyText,
+                    inferredIntent: 'purchase_intent',
+                    inferredFunnelStage: 'awaiting_home_address',
+                    inferredObjection: null
+                });
+                console.log(`[FUNIL] Cidade/provincia de domicilio recebidas; endereco solicitado -> ${chatId}`);
+                return;
+            }
         }
 
         if (

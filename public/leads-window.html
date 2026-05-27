@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Leads Clientes - Vitalismen</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #111827;
+            --surface-soft: #182235;
+            --line: rgba(148, 163, 184, 0.22);
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --orange: #ca8a04;
+            --orange-soft: #3f2f0a;
+            --green: #16a34a;
+            --green-soft: #0f2f1d;
+            --red: #dc2626;
+            --red-soft: #3f1515;
+            --attending: #0e7490;
+            --attending-soft: #083344;
+            --sent: #3730a3;
+            --sent-soft: #1e1b4b;
+            --confirmed: #6d28d9;
+            --confirmed-soft: #2e1065;
+            --repurchase: #be185d;
+            --repurchase-soft: #500724;
+            --returned: #9a3412;
+            --returned-soft: #431407;
+            --status-select-width: 174px;
+            --status-column-width: 248px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: #0b1220;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .subtitle {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .tools {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        input,
+        select,
+        button {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            color: var(--text);
+            padding: 8px 10px;
+            font: inherit;
+        }
+
+        input {
+            min-width: min(360px, 100%);
+            flex: 1;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        button.primary {
+            background: #2563eb;
+            border-color: #60a5fa;
+        }
+
+        button.success {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            min-height: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 1360px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--line);
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: middle;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #0b1220;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 44px; color: var(--muted); }
+        th:nth-child(2), td:nth-child(2) { width: 118px; }
+        th:nth-child(3), td:nth-child(3) { width: 270px; }
+        th:nth-child(4), td:nth-child(4) { width: 330px; }
+        th:nth-child(5), td:nth-child(5) { width: 138px; }
+        th:nth-child(6), td:nth-child(6) { width: 138px; }
+        th:nth-child(7), td:nth-child(7) { width: 52px; text-align: center; }
+        th:nth-child(8), td:nth-child(8) { width: 70px; text-align: right; }
+        th:nth-child(9), td:nth-child(9) { width: var(--status-column-width); }
+
+        tbody tr:hover {
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        .nowrap { white-space: nowrap; }
+        .addr {
+            color: #cbd5e1;
+            white-space: normal;
+        }
+
+        .addr-text {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        .lead-name {
+            display: grid;
+            gap: 3px;
+        }
+
+        .lead-name strong {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .lead-date {
+            color: #facc15;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            border-radius: 999px;
+            padding: 0 9px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: lowercase;
+            border: 1px solid transparent;
+        }
+
+        .st-novo { background: #374151; color: #f3f4f6; }
+        .st-comprar_depois { background: var(--orange-soft); color: #fde68a; border-color: #92400e; }
+        .st-entregue { background: var(--green-soft); color: #bbf7d0; border-color: #166534; }
+        .st-atendendo { background: var(--attending-soft); color: #67e8f9; border-color: #0e7490; }
+        .st-pedido_enviado { background: var(--sent-soft); color: #c7d2fe; border-color: #3730a3; }
+        .st-confirmado { background: var(--confirmed-soft); color: #ddd6fe; border-color: #6d28d9; }
+        .st-recompra { background: var(--repurchase-soft); color: #fbcfe8; border-color: #be185d; }
+        .st-devolvido { background: var(--returned-soft); color: #fed7aa; border-color: #9a3412; }
+        .st-cancelado { background: var(--red-soft); color: #fecaca; border-color: #991b1b; }
+
+        select.status-select {
+            width: var(--status-select-width);
+            flex: 0 0 var(--status-select-width);
+            min-width: 0;
+            height: 36px;
+            font-weight: 900;
+            text-transform: lowercase;
+            font-size: 12px;
+        }
+
+        select.status-select.st-novo { background: #374151; }
+        select.status-select.st-comprar_depois { background: var(--orange-soft); color: #fde68a; }
+        select.status-select.st-entregue { background: var(--green-soft); color: #bbf7d0; }
+        select.status-select.st-atendendo { background: var(--attending-soft); color: #67e8f9; }
+        select.status-select.st-pedido_enviado { background: var(--sent-soft); color: #c7d2fe; }
+        select.status-select.st-confirmado { background: var(--confirmed-soft); color: #ddd6fe; }
+        select.status-select.st-recompra { background: var(--repurchase-soft); color: #fbcfe8; }
+        select.status-select.st-devolvido { background: var(--returned-soft); color: #fed7aa; }
+        select.status-select.st-cancelado { background: var(--red-soft); color: #fecaca; }
+
+        .empty {
+            padding: 26px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .saved {
+            display: block;
+            margin-top: 4px;
+            color: #86efac;
+            font-size: 11px;
+        }
+
+        .followup-note {
+            display: block;
+            margin-top: 4px;
+            color: #fde68a;
+            font-size: 11px;
+            line-height: 1.35;
+            white-space: normal;
+        }
+
+        .error { color: #fecaca; }
+
+        .action-stack {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .action-stack a,
+        .action-stack button {
+            min-height: 30px;
+            padding: 6px 8px;
+            border-radius: 7px;
+            font-size: 12px;
+        }
+
+        @keyframes missingDataPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65); transform: translateY(0); }
+            70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); transform: translateY(-1px); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: translateY(0); }
+        }
+
+        .action-stack .missing-data-action {
+            background: #f59e0b;
+            border: 1px solid #fde68a;
+            color: #111827;
+            font-weight: 900;
+            text-decoration: none;
+            animation: missingDataPulse 1.35s ease-out infinite;
+        }
+
+        .action-stack .missing-data-action:hover {
+            background: #fbbf24;
+            color: #0f172a;
+        }
+
+        .lead-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-end;
+            min-width: 216px;
+        }
+
+        .lead-action-menu {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .lead-action-menu summary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 900;
+            list-style: none;
+        }
+
+        .lead-action-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .lead-action-menu[open] summary {
+            border-color: #60a5fa;
+            background: #172554;
+        }
+
+        .lead-action-list {
+            position: absolute;
+            z-index: 10;
+            right: 0;
+            top: calc(100% + 6px);
+            display: grid;
+            gap: 6px;
+            width: 210px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .lead-action-list a,
+        .lead-action-list button,
+        .lead-action-list .dropi-check,
+        .lead-action-list .action-info {
+            width: 100%;
+            min-height: 32px;
+            justify-content: flex-start;
+            border-radius: 7px;
+            padding: 7px 9px;
+            font-size: 12px;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .lead-action-list a {
+            border: 1px solid var(--line);
+            color: var(--text);
+        }
+
+        .lead-action-list button {
+            border: 1px solid var(--line);
+        }
+
+        .lead-action-list .primary-action {
+            background: #f59e0b;
+            border-color: #fde68a;
+            color: #111827;
+        }
+
+        .lead-action-list .success-action {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        .lead-action-list .abandon-action {
+            background: var(--orange-soft);
+            border-color: #92400e;
+            color: #fde68a;
+        }
+
+        .lead-action-list .danger-action {
+            border-color: rgba(220, 38, 38, 0.55);
+            color: #fecaca;
+            background: rgba(127, 29, 29, 0.3);
+        }
+
+        .lead-action-list .action-info {
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+            background: rgba(22, 163, 74, 0.14);
+            font-weight: 900;
+        }
+
+        .action-message {
+            display: block;
+            width: 100%;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .history-note {
+            display: block;
+            margin-top: 4px;
+            color: #fbbf24;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .mode-note {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .bulk-dropi {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 260px;
+        }
+
+        .bulk-dropi button {
+            white-space: nowrap;
+        }
+
+        .dropi-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 30px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .dropi-check input {
+            min-width: auto;
+            width: 16px;
+            height: 16px;
+            flex: 0 0 auto;
+        }
+
+        @media (max-width: 760px) {
+            header,
+            .tools {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            input,
+            select,
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <header>
+            <div>
+                <h1>Leads Clientes</h1>
+                <div id="subtitle" class="subtitle">Lista operacional do painel integrado</div>
+            </div>
+            <div id="updatedAt" class="meta">carregando</div>
+        </header>
+
+        <section class="tools">
+            <select id="countryFilter" aria-label="Pais">
+                <option value="EC">EC</option>
+                <option value="CO">CO</option>
+                <option value="ALL">Todos</option>
+            </select>
+            <input id="searchInput" autocomplete="off" placeholder="Buscar nome, telefone, cidade, status">
+            <select id="statusFilter" aria-label="Status">
+                <option value="">Todos status</option>
+            </select>
+            <button id="refreshBtn" class="primary" type="button">Atualizar</button>
+            <span id="modeText" class="mode-note">Fila operacional</span>
+            <div class="bulk-dropi">
+                <button id="bulkDropiSelectAllBtn" type="button" disabled>Marcar todos</button>
+                <button id="bulkDropiSendBtn" class="success" type="button" disabled>Enviar marcados para Dropi</button>
+                <span id="bulkDropiCount" class="meta">0 marcados</span>
+            </div>
+            <span id="countText" class="meta">0 clientes</span>
+        </section>
+
+        <section class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Telefone</th>
+                        <th>Nome</th>
+                        <th>Endereco</th>
+                        <th>Cidade</th>
+                        <th>Provincia</th>
+                        <th>Qtd</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="leadRows">
+                    <tr><td colspan="10"><div class="empty">Carregando leads...</div></td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        const STATUSES = ['novo', 'atendendo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'recompra', 'cancelado', 'devolvido'];
+        const params = new URLSearchParams(window.location.search);
+        const isLocal = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+        const apiBase = isLocal ? 'https://ec.maxlien.shop' : '';
+        const state = {
+            leads: [],
+            country: (params.get('country') || 'EC').toUpperCase(),
+            q: '',
+            status: '',
+            dropiBusy: new Set(),
+            selectedDropi: new Set(),
+            dropiMessages: new Map()
+        };
+        const OPERATIONAL_DAYS = 7;
+        const EXTENDED_OPERATIONAL_DAYS = 30;
+        const HISTORICAL_STATUSES = new Set(['finalizado', 'cancelado', 'devolvido', 'pago']);
+        const EXTENDED_STATUSES = new Set(['pedido_enviado', 'enviado', 'entregue', 'recompra']);
+        const DROPI_READY_STATUSES = new Set(['confirmado', 'recompra']);
+
+        const el = (id) => document.getElementById(id);
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+        const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const statusClass = (status) => `st-${String(status || 'novo').trim().toLowerCase().replace(/-/g, '_')}`;
+        const statusValue = (lead) => String(lead?.status || '').toLowerCase().trim();
+        const normalizePanelStatus = (status) => {
+            const value = String(status || '').toLowerCase().replace(/-/g, '_').trim();
+            const aliases = {
+                '': 'novo',
+                draft: 'novo',
+                pending: 'novo',
+                manual: 'atendendo',
+                in_service: 'atendendo',
+                buy_later: 'comprar_depois',
+                confirmed: 'confirmado',
+                processing: 'pedido_enviado',
+                shipped: 'pedido_enviado',
+                enviado: 'pedido_enviado',
+                delivered: 'entregue',
+                cancelled: 'cancelado',
+                canceled: 'cancelado',
+                returned: 'devolvido'
+            };
+            return aliases[value] || (STATUSES.includes(value) ? value : 'novo');
+        };
+        const orderStatusForApi = (status) => ({
+            confirmado: 'confirmed',
+            pedido_enviado: 'processing',
+            entregue: 'delivered',
+            recompra: 'delivered',
+            cancelado: 'cancelled',
+            devolvido: 'returned'
+        })[normalizePanelStatus(status)] || '';
+        const hasSearch = () => normalize(state.q).length > 0;
+        const leadDate = (lead) => {
+            const raw = String(lead?.created_at || '').trim();
+            if (!raw) return null;
+            const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z');
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        };
+        const leadAgeDays = (lead) => {
+            const date = leadDate(lead);
+            if (!date) return Infinity;
+            return (Date.now() - date.getTime()) / 86400000;
+        };
+        const isHistoricalLead = (lead) => {
+            const status = statusValue(lead);
+            if (status === 'recompra') return false;
+            if (HISTORICAL_STATUSES.has(status)) return true;
+            if (leadAgeDays(lead) > EXTENDED_OPERATIONAL_DAYS && EXTENDED_STATUSES.has(status)) return true;
+            return leadAgeDays(lead) > OPERATIONAL_DAYS && !EXTENDED_STATUSES.has(status);
+        };
+        const money = (value, country) => {
+            const number = Number(value || 0);
+            if (!number) return '';
+            return country === 'CO'
+                ? number.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+                : number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        const formatFollowupDate = (value) => {
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) return '';
+            return parsed.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
+        const buyLaterFollowupHtml = (lead) => {
+            if (String(lead.status || '').toLowerCase() !== 'comprar_depois') return '';
+            const targetRaw = lead.buy_later_followup_at || lead.followup_at || lead.followUpAt || '';
+            const target = new Date(targetRaw);
+            if (Number.isNaN(target.getTime())) {
+                return '<span class="followup-note">sem data de compra/envio</span>';
+            }
+            const notifyAt = new Date(target.getTime() - (3 * 24 * 60 * 60 * 1000));
+            return `<span class="followup-note">Envio provavel: ${escapeHtml(formatFollowupDate(target))}<br>Aviso: ${escapeHtml(formatFollowupDate(notifyAt))}</span>`;
+        };
+
+        const setStatusClass = (select) => {
+            select.className = `status-select ${statusClass(select.value)}`;
+        };
+
+        const buildStatusOptions = (selected = '') => STATUSES.map((status) => (
+            `<option value="${status}" ${status === selected ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`
+        )).join('');
+
+        const updateStatusSelectWidth = () => {
+            const canvas = updateStatusSelectWidth.canvas || (updateStatusSelectWidth.canvas = document.createElement('canvas'));
+            const ctx = canvas.getContext('2d');
+            ctx.font = '900 12px Arial, sans-serif';
+            const longest = STATUSES.reduce((max, status) => {
+                const label = status.replace(/_/g, ' ');
+                return Math.max(max, ctx.measureText(label).width);
+            }, 0);
+            const selectWidth = Math.ceil(Math.min(Math.max(longest + 58, 160), 186));
+            document.documentElement.style.setProperty('--status-select-width', `${selectWidth}px`);
+            document.documentElement.style.setProperty('--status-column-width', `${selectWidth + 74}px`);
+        };
+
+        const setupStatusFilter = () => {
+            updateStatusSelectWidth();
+            el('statusFilter').innerHTML = '<option value="">Todos status</option>' + buildStatusOptions(state.status);
+        };
+
+        const tokenKey = 'vitalismen_admin_token';
+        const api = async (path, options = {}) => {
+            const token = window.localStorage.getItem(tokenKey) || '';
+            const headers = {
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(options.headers || {})
+            };
+            const response = await fetch(`${apiBase}${path}`, { cache: 'no-store', ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.message || data.error || data.reason || `Erro ${response.status}`);
+            }
+            return data;
+        };
+
+        const notifyIntegratedPanelStatus = (lead, status) => {
+            const country = String(lead?.country || state.country || 'EC').toUpperCase();
+            const message = {
+                type: 'vitalismen:lead-status-updated',
+                leadId: String(lead?.id || ''),
+                country,
+                status: normalizePanelStatus(status),
+                orderId: lead ? leadOrderId(lead) : '',
+                at: Date.now()
+            };
+            try {
+                window.opener?.postMessage(message, window.location.origin);
+            } catch (_) {}
+            try {
+                window.localStorage.setItem('vitalismen_panel_refresh', JSON.stringify(message));
+            } catch (_) {}
+        };
+
+        const syncIntegratedPanelOrderStatus = async (lead, status) => {
+            const apiStatus = orderStatusForApi(status);
+            if (!lead || !apiStatus) return { skipped: true, reason: 'status_not_order_status' };
+            try {
+                return await api(`/api/orders/${encodeURIComponent(leadOrderId(lead))}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: apiStatus })
+                });
+            } catch (error) {
+                return { skipped: true, error: error.message || 'integrated_panel_sync_failed' };
+            }
+        };
+
+        const fetchLeads = async () => {
+            const country = state.country || 'EC';
+            const url = `${apiBase}/admin/api/leads?country=${encodeURIComponent(country)}&limit=3000`;
+            const response = await fetch(url, { cache: 'no-store', credentials: 'include' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+            state.leads = Array.isArray(data.leads) ? data.leads : [];
+            if (Array.isArray(data.statuses) && data.statuses.length) {
+                STATUSES.splice(0, STATUSES.length, ...data.statuses);
+                setupStatusFilter();
+            }
+            render();
+        };
+
+        const visibleLeads = () => {
+            const q = normalize(state.q);
+            return state.leads.filter((lead) => {
+                const status = statusValue(lead);
+                if (state.status) {
+                    if (state.status === 'confirmado') {
+                        if (!leadReadyForDropi(lead)) return false;
+                    } else if (status !== state.status) {
+                        return false;
+                    }
+                }
+                if (!q) return !isHistoricalLead(lead);
+                const haystack = normalize([
+                    lead.id, lead.name, lead.phone, lead.address, lead.city,
+                    lead.province, lead.status, lead.country
+                ].join(' '));
+                return haystack.includes(q);
+            });
+        };
+
+        const leadOrderId = (lead) => `${String(lead.country || state.country || 'EC').toUpperCase()}-ADMIN-${lead.id}`;
+
+        const leadReadyForDropi = (lead) => {
+            const status = statusValue(lead);
+            const country = String(lead.country || state.country || '').toUpperCase();
+            return DROPI_READY_STATUSES.has(status)
+                && country === 'EC'
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim()
+                && Number(lead.quantity || 0) > 0
+                && Number(lead.value || 0) > 0;
+        };
+
+        const leadReadyForCustomerConfirmation = (lead) => {
+            return lead
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim()
+                && Number(lead.quantity || 0) > 0
+                && Number(lead.value || 0) > 0;
+        };
+
+        const missingDropiFields = (lead) => {
+            const missing = [];
+            if (String(lead.country || state.country || '').toUpperCase() !== 'EC') missing.push('pais EC');
+            if (!String(lead.name || '').trim()) missing.push('nome');
+            if (String(lead.phone || '').replace(/\D/g, '').length < 9) missing.push('telefone');
+            if (!String(lead.address || '').trim()) missing.push('endereco');
+            if (!String(lead.city || '').trim()) missing.push('cidade');
+            if (!String(lead.province || '').trim()) missing.push('provincia');
+            if (!(Number(lead.quantity || 0) > 0)) missing.push('quantidade');
+            if (!(Number(lead.value || 0) > 0)) missing.push('valor');
+            return missing;
+        };
+
+        const missingHumanFields = (lead) => missingDropiFields(lead).filter((field) => field !== 'pais EC');
+
+        const leadActivityDate = (lead) => {
+            const raw = lead.lastInteractionAt
+                || lead.last_interaction_at
+                || lead.last_message_at
+                || lead.lastMessageAt
+                || lead.updated_at
+                || lead.updatedAt
+                || '';
+            const date = new Date(String(raw).includes('T') ? raw : String(raw || '').replace(' ', 'T') + 'Z');
+            return Number.isNaN(date.getTime()) ? null : date;
+        };
+
+        const isAbandonedLead = (lead) => {
+            const status = statusValue(lead);
+            if (['confirmado', 'pedido_enviado', 'entregue', 'recompra', 'cancelado', 'devolvido'].includes(status)) return false;
+            const date = leadActivityDate(lead);
+            if (!date) return false;
+            return (Date.now() - date.getTime()) >= (12 * 60 * 60 * 1000);
+        };
+
+        const leadHumanActionState = (lead) => {
+            const status = statusValue(lead);
+            const missing = missingHumanFields(lead);
+            const presentCount = 7 - missing.length;
+            const almostReady = missing.length > 0 && missing.length <= 3 && presentCount >= 4;
+            if (!['novo', 'atendendo', 'comprar_depois', 'confirmado', 'recompra'].includes(status)) {
+                return { kind: 'none', missing };
+            }
+            if (almostReady) return { kind: 'complete', label: 'Completar dados', missing };
+            if (!DROPI_READY_STATUSES.has(status) && leadReadyForCustomerConfirmation(lead)) {
+                return { kind: 'confirm', label: 'Confirmar cliente', missing };
+            }
+            return { kind: 'none', missing };
+        };
+
+        const leadActionMenuHtml = (lead) => {
+            const orderId = leadOrderId(lead);
+            const status = String(lead.status || '').toLowerCase();
+            const country = String(lead.country || state.country || '').toUpperCase();
+            const editHref = `${apiBase}/admin/edit/${encodeURIComponent(lead.id)}?country=${encodeURIComponent(lead.country || state.country)}`;
+            const busy = state.dropiBusy.has(String(lead.id));
+            const confirmBusy = state.dropiBusy.has(`confirm-${lead.id}`);
+            const checked = state.selectedDropi.has(String(lead.id));
+            const message = state.dropiMessages.get(String(lead.id)) || {};
+            const humanAction = leadHumanActionState(lead);
+            const menuItems = [];
+
+            if (humanAction.kind === 'complete') {
+                menuItems.push(`<a class="primary-action" href="${editHref}" target="_blank" rel="noopener">Completar dados</a>`);
+            } else if (humanAction.kind === 'confirm') {
+                menuItems.push(`<button class="primary-action" data-confirm-lead="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" type="button" ${confirmBusy ? 'disabled' : ''}>${confirmBusy ? 'Confirmando' : 'Confirmar cliente'}</button>`);
+            }
+
+            if (isAbandonedLead(lead)) {
+                menuItems.push(`<button class="abandon-action" data-abandon-lead="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" type="button">Abandono 12h</button>`);
+            }
+
+            if (status === 'pedido_enviado') {
+                menuItems.push('<span class="action-info">Dropi enviado</span>');
+            } else if (country !== 'EC' && DROPI_READY_STATUSES.has(status)) {
+                menuItems.push('<span class="action-info">Dropi EC apenas</span>');
+            } else if (leadReadyForDropi(lead)) {
+                menuItems.push(`
+                    <label class="dropi-check">
+                        <input data-dropi-select="${escapeHtml(lead.id)}" data-order="${escapeHtml(orderId)}" type="checkbox" ${checked ? 'checked' : ''} ${busy ? 'disabled' : ''}>
+                        ${busy ? 'Processando' : 'Marcar Dropi'}
+                    </label>
+                `);
+                menuItems.push(`<button class="success-action" data-submit-lead="${escapeHtml(lead.id)}" type="button" ${busy ? 'disabled' : ''}>${busy ? 'Enviando' : 'Enviar para Dropi'}</button>`);
+            }
+
+            menuItems.push(`<a href="${editHref}" target="_blank" rel="noopener">Editar</a>`);
+            menuItems.push(`<button class="danger-action" data-delete-lead="${escapeHtml(lead.id)}" type="button">Excluir</button>`);
+
+            return `
+                <details class="lead-action-menu">
+                    <summary aria-label="Acoes do lead ${escapeHtml(lead.id)}">...</summary>
+                    <div class="lead-action-list">${menuItems.join('')}</div>
+                </details>
+                <span class="action-message${message.error ? ' error' : ''}" data-dropi-msg="${escapeHtml(lead.id)}">${escapeHtml(message.text || '')}</span>
+            `;
+        };
+
+        const updateBulkDropiBar = () => {
+            const visibleReadyIds = visibleLeads()
+                .filter((lead) => leadReadyForDropi(lead) && !state.dropiBusy.has(String(lead.id)))
+                .map((lead) => String(lead.id));
+            const selected = [...state.selectedDropi].filter((id) => {
+                const lead = state.leads.find((item) => String(item.id) === String(id));
+                return lead && leadReadyForDropi(lead) && !state.dropiBusy.has(String(id));
+            });
+            state.selectedDropi = new Set(selected);
+            const allVisibleSelected = visibleReadyIds.length > 0 && visibleReadyIds.every((id) => state.selectedDropi.has(id));
+            el('bulkDropiCount').textContent = `${selected.length} marcado${selected.length === 1 ? '' : 's'}`;
+            el('bulkDropiSelectAllBtn').disabled = !visibleReadyIds.length || state.dropiBusy.size > 0;
+            el('bulkDropiSelectAllBtn').textContent = allVisibleSelected ? 'Desmarcar todos' : 'Marcar todos';
+            el('bulkDropiSendBtn').disabled = !selected.length || state.dropiBusy.size > 0;
+        };
+
+        const toggleVisibleDropiSelection = () => {
+            const visibleReadyIds = visibleLeads()
+                .filter((lead) => leadReadyForDropi(lead) && !state.dropiBusy.has(String(lead.id)))
+                .map((lead) => String(lead.id));
+            if (!visibleReadyIds.length) return;
+            const allVisibleSelected = visibleReadyIds.every((id) => state.selectedDropi.has(id));
+            if (allVisibleSelected) {
+                visibleReadyIds.forEach((id) => state.selectedDropi.delete(id));
+            } else {
+                visibleReadyIds.forEach((id) => state.selectedDropi.add(id));
+            }
+            render();
+        };
+
+        const render = () => {
+            const leads = visibleLeads();
+            el('countText').textContent = `${leads.length} cliente${leads.length === 1 ? '' : 's'}`;
+            el('updatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+            el('subtitle').textContent = `Fonte unica: Leads Clientes ${state.country}`;
+            el('modeText').textContent = hasSearch()
+                ? 'Busca historica ativa'
+                : 'Fila operacional limpa';
+            if (!leads.length) {
+                el('leadRows').innerHTML = '<tr><td colspan="10"><div class="empty">Nenhum lead encontrado.</div></td></tr>';
+                updateBulkDropiBar();
+                return;
+            }
+            el('leadRows').innerHTML = leads.map((lead) => `
+                <tr data-lead-row="${escapeHtml(lead.id)}">
+                    <td class="nowrap">${escapeHtml(lead.id)}</td>
+                    <td class="nowrap">${escapeHtml(lead.phone || '')}</td>
+                    <td>
+                        <div class="lead-name">
+                            <strong>${escapeHtml(lead.name || '')}</strong>
+                            <span class="lead-date">${escapeHtml(lead.created_at_display || lead.created_at || '')}${hasSearch() && isHistoricalLead(lead) ? ' · historico' : ''}</span>
+                        </div>
+                    </td>
+                    <td class="addr"><div class="addr-text">${escapeHtml(lead.address || '')}</div></td>
+                    <td>${escapeHtml(lead.city || '')}</td>
+                    <td>${escapeHtml(lead.province || '')}</td>
+                    <td class="nowrap">${escapeHtml(lead.quantity || '')}</td>
+                    <td class="nowrap">${escapeHtml(money(lead.value, lead.country || state.country))}</td>
+                    <td>
+                        <div class="lead-controls">
+                            <select class="status-select ${statusClass(lead.status)}" data-lead-status="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" data-prev="${escapeHtml(lead.status || 'novo')}">
+                                ${buildStatusOptions(String(lead.status || 'novo').toLowerCase())}
+                            </select>
+                            ${leadActionMenuHtml(lead)}
+                        </div>
+                        ${buyLaterFollowupHtml(lead)}
+                        <span class="saved" data-status-msg="${escapeHtml(lead.id)}"></span>
+                    </td>
+                </tr>
+            `).join('');
+            updateBulkDropiBar();
+        };
+
+        const askFollowupAt = () => {
+            const now = new Date();
+            now.setDate(now.getDate() + 1);
+            const pad = (value) => String(value).padStart(2, '0');
+            return window.prompt('Data possivel de compra/envio ao cliente (DD-MM-AAAA HH:MM). O aviso sera enviado 3 dias antes:', `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()} 09:00`) || '';
+        };
+
+        const parseFollowup = (value) => {
+            const match = String(value || '').trim().match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2})$/);
+            if (!match) return '';
+            return `${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:00-03:00`;
+        };
+
+        const saveStatus = async (select) => {
+            const id = select.dataset.leadStatus;
+            const country = select.dataset.country || state.country;
+            const status = select.value;
+            const msg = document.querySelector(`[data-status-msg="${CSS.escape(id)}"]`);
+            const previous = select.dataset.prev || 'novo';
+            let followupAt = '';
+            if (status === 'comprar_depois') {
+                followupAt = parseFollowup(askFollowupAt());
+                if (!followupAt) {
+                    select.value = previous;
+                    setStatusClass(select);
+                    if (msg) msg.textContent = 'data invalida';
+                    return;
+                }
+            }
+            setStatusClass(select);
+            select.disabled = true;
+            if (msg) {
+                msg.className = 'saved';
+                msg.textContent = 'salvando';
+            }
+            try {
+                const response = await fetch(`${apiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status, followup_at: followupAt })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                select.dataset.prev = status;
+                const lead = state.leads.find((item) => String(item.id) === String(id));
+                if (lead) {
+                    lead.status = status;
+                    if (status === 'comprar_depois') {
+                        lead.buy_later_followup_at = followupAt;
+                        lead.buy_later_notified_at = '';
+                    }
+                    const integratedSync = await syncIntegratedPanelOrderStatus(lead, status);
+                    notifyIntegratedPanelStatus(lead, status);
+                    if (integratedSync?.error && msg) {
+                        msg.className = 'saved error';
+                        msg.textContent = 'lead salvo; painel integrado pendente';
+                        return;
+                    }
+                }
+                if (msg) msg.textContent = 'salvo';
+            } catch (error) {
+                select.value = previous;
+                setStatusClass(select);
+                if (msg) {
+                    msg.className = 'saved error';
+                    msg.textContent = error.message || 'erro';
+                }
+            } finally {
+                select.disabled = false;
+            }
+        };
+
+        const confirmLeadCustomerData = async (button) => {
+            const id = String(button.dataset.confirmLead || '');
+            const country = button.dataset.country || state.country;
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead || !leadReadyForCustomerConfirmation(lead)) return;
+            if (!window.confirm('Confirmar dados deste cliente e mover para Confirmado?')) return;
+            const busyKey = `confirm-${id}`;
+            state.dropiBusy.add(busyKey);
+            render();
+            try {
+                const response = await fetch(`${apiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status: 'confirmado' })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                lead.status = 'confirmado';
+                await syncIntegratedPanelOrderStatus(lead, 'confirmado');
+                notifyIntegratedPanelStatus(lead, 'confirmado');
+                state.status = state.status === 'novo' ? '' : state.status;
+                render();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao confirmar', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(busyKey);
+                render();
+            }
+        };
+
+        const markAbandonedLeadAsAttending = async (button) => {
+            const id = String(button.dataset.abandonLead || '');
+            const country = button.dataset.country || state.country;
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (!window.confirm('Mover este cliente de abandono para Atendendo?')) return;
+            state.dropiBusy.add(`abandon-${id}`);
+            render();
+            try {
+                const response = await fetch(`${apiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status: 'atendendo' })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                lead.status = 'atendendo';
+                notifyIntegratedPanelStatus(lead, 'atendendo');
+                render();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao retomar', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(`abandon-${id}`);
+                render();
+            }
+        };
+
+        const submitLeadToDropi = async (lead) => {
+            const id = String(lead.id);
+            const orderId = leadOrderId(lead);
+            state.dropiBusy.add(String(id));
+            render();
+
+            const setMsg = (text, error = false) => {
+                state.dropiMessages.set(id, { text, error });
+                const msg = document.querySelector(`[data-dropi-msg="${CSS.escape(id)}"]`);
+                if (msg) {
+                    msg.textContent = text;
+                    msg.className = `action-message${error ? ' error' : ''}`;
+                }
+            };
+
+            const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+            const readDropiSubmitStatus = async () => api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit-status`);
+            const waitDropiSubmitResult = async () => {
+                const startedAt = Date.now();
+                const maxWaitMs = 9 * 60 * 1000;
+                while ((Date.now() - startedAt) < maxWaitMs) {
+                    await sleep(15000);
+                    const status = await readDropiSubmitStatus();
+                    if (status.alreadySubmitted || status.status === 'submitted') return status;
+                    if (status.paymentRequired || status.manualSendRequired || status.authorizationRequired) return status;
+                    setMsg(status.message || 'processando na Dropi');
+                }
+                return {
+                    processing: true,
+                    submitQueued: true,
+                    message: 'Dropi ainda esta processando. Atualize em instantes.'
+                };
+            };
+
+            try {
+                setMsg('autorizando...');
+                await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/authorize-submit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ note: 'Autorizado em Leads Clientes' })
+                });
+                setMsg('enviando...');
+                let result = await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ async: true })
+                });
+                if (result.submitQueued || result.processing) {
+                    setMsg('processando na Dropi');
+                    result = await waitDropiSubmitResult();
+                }
+                if (result.paymentRequired) {
+                    setMsg('sem saldo Dropi', true);
+                } else if (result.manualSendRequired) {
+                    setMsg(result.message || 'revisar manual', true);
+                } else if (result.processing) {
+                    setMsg(result.message || 'processando na Dropi', true);
+                } else {
+                    lead.status = 'pedido_enviado';
+                    state.selectedDropi.delete(String(id));
+                    state.dropiMessages.delete(id);
+                    setMsg(result.alreadySubmitted ? 'ja enviado' : 'enviado');
+                }
+            } catch (error) {
+                setMsg(error.message || 'erro Dropi', true);
+            } finally {
+                state.dropiBusy.delete(String(id));
+                render();
+            }
+        };
+
+        const sendSelectedDropi = async () => {
+            const selectedLeads = [...state.selectedDropi]
+                .map((id) => state.leads.find((lead) => String(lead.id) === String(id)))
+                .filter((lead) => lead && leadReadyForDropi(lead));
+            if (!selectedLeads.length) return;
+            const orderIds = selectedLeads.map(leadOrderId);
+            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) marcado(s) para Dropi?\n\n${orderIds.join('\n')}`)) return;
+            el('bulkDropiSendBtn').disabled = true;
+            el('bulkDropiSendBtn').textContent = 'Processando...';
+            for (const lead of selectedLeads) {
+                await submitLeadToDropi(lead);
+                await new Promise((resolve) => window.setTimeout(resolve, 4000));
+            }
+            el('bulkDropiSendBtn').textContent = 'Enviar marcados para Dropi';
+            await fetchLeads();
+        };
+
+        const setCountry = (country) => {
+            state.country = ['EC', 'CO', 'ALL'].includes(country) ? country : 'EC';
+            el('countryFilter').value = state.country;
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.set('country', state.country);
+            window.history.replaceState({}, '', nextUrl);
+            fetchLeads().catch((error) => {
+                el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+            });
+        };
+
+        el('countryFilter').value = ['EC', 'CO', 'ALL'].includes(state.country) ? state.country : 'EC';
+        state.country = el('countryFilter').value;
+        setupStatusFilter();
+
+        el('countryFilter').addEventListener('change', (event) => setCountry(event.target.value));
+        el('searchInput').addEventListener('input', (event) => {
+            state.q = event.target.value;
+            render();
+        });
+        el('statusFilter').addEventListener('change', (event) => {
+            state.status = event.target.value;
+            render();
+        });
+        el('refreshBtn').addEventListener('click', () => fetchLeads().catch((error) => {
+            el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+        }));
+        el('leadRows').addEventListener('change', (event) => {
+            const select = event.target.closest('[data-lead-status]');
+            if (select) {
+                saveStatus(select);
+                return;
+            }
+            const checkbox = event.target.closest('[data-dropi-select]');
+            if (checkbox) {
+                const id = String(checkbox.dataset.dropiSelect || '');
+                if (checkbox.checked) state.selectedDropi.add(id);
+                else state.selectedDropi.delete(id);
+                updateBulkDropiBar();
+            }
+        });
+        el('leadRows').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-confirm-lead]');
+            if (button) {
+                confirmLeadCustomerData(button);
+                return;
+            }
+            const submitButton = event.target.closest('[data-submit-lead]');
+            if (submitButton) {
+                const lead = state.leads.find((item) => String(item.id) === String(submitButton.dataset.submitLead || ''));
+                if (lead) submitLeadToDropi(lead);
+                return;
+            }
+            const abandonButton = event.target.closest('[data-abandon-lead]');
+            if (abandonButton) {
+                markAbandonedLeadAsAttending(abandonButton);
+                return;
+            }
+            const deleteButton = event.target.closest('[data-delete-lead]');
+            if (deleteButton) {
+                window.alert('Exclusao segura ainda nao foi ativada. Primeiro vamos criar backup/trava para nao perder clientes antigos.');
+            }
+        });
+        el('bulkDropiSelectAllBtn').addEventListener('click', toggleVisibleDropiSelection);
+        el('bulkDropiSendBtn').addEventListener('click', sendSelectedDropi);
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const country = event.data?.country;
+            if (event.data?.type === 'vitalismen:set-leads-country' && country) setCountry(country);
+            if (event.data?.type === 'vitalismen:refresh-leads') {
+                if (country && country !== state.country) setCountry(country);
+                else fetchLeads().catch((error) => {
+                    el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+                });
+            }
+        });
+
+        window.addEventListener('storage', (event) => {
+            if (event.key !== 'vitalismen_leads_refresh') return;
+            const data = JSON.parse(event.newValue || '{}');
+            const country = data?.country;
+            if (country && country !== state.country) setCountry(country);
+            else fetchLeads().catch((error) => {
+                el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+            });
+        });
+
+        fetchLeads().catch((error) => {
+            el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(error.message)}</div></td></tr>`;
+            el('updatedAt').textContent = 'erro';
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"43bfd4280f8046b7bf2a511a21946254","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -3,8 +3,41 @@ import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
 import fs from 'fs';
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
+import { sendVideoViaZapi, shouldUseZapiForMedia } from './zapiOutbound.js';
 
 export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
+    const zapiRoute = await shouldUseZapiForMedia({ jid, sessionId: options.sessionId || null });
+    if (zapiRoute.use) {
+        const guard = canSendOutbound({ jid: zapiRoute.phone, text: caption || videoPath, sessionId: zapiRoute.sessionId, ownDigits: zapiRoute.sessionId, kind: 'video' });
+        if (!guard.allowed) {
+            console.log(`[ZAPI_SEND_BLOCKED] video bloqueado -> ${zapiRoute.phone} | reason=${guard.reason}`);
+            return false;
+        }
+
+        if (!fs.existsSync(videoPath) && !/^https?:\/\//i.test(String(videoPath || '')) && !/^data:/i.test(String(videoPath || ''))) {
+            console.error(`[ZAPI_SEND_ERROR] video nao encontrado: ${videoPath}`);
+            return false;
+        }
+
+        try {
+            const { pacing, afterSendMs, sent } = await withHumanizedOutboundQueue(zapiRoute.phone, async () => {
+                const pacing = await applyHumanPacing({ sock: null, jid: zapiRoute.phone, kind: 'video', text: caption || videoPath });
+                const sent = await sendVideoViaZapi({ jid, video: videoPath, caption });
+                const afterSendMs = sent.ok ? await applyAfterSendPacing({ kind: 'video' }) : 0;
+                return { pacing, afterSendMs, sent };
+            });
+            if (sent.ok) {
+                console.log(`[ZAPI_SEND_OK] Video disparado -> ${sent.phone} | Arquivo: ${videoPath} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | reason=${zapiRoute.reason}`);
+                recordOutboundSend({ sessionId: zapiRoute.sessionId, jid: zapiRoute.phone });
+                return true;
+            }
+            console.warn(`[ZAPI_SEND_SKIPPED] video ${sent.reason || 'unknown'} -> ${jid}`);
+        } catch (error) {
+            console.error(`[ZAPI_SEND_ERROR] Falha ao enviar video para ${jid}:`, error?.response?.data || error);
+        }
+        return false;
+    }
+
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);

@@ -53,6 +53,68 @@ const serverRoot = () => process.cwd(); // when started via `cd server && ...`
 const repoRoot = () => path.resolve(process.cwd(), '..');
 const templatesDir = () => path.join(serverRoot(), 'public', 'media', 'templates');
 
+const OFFICIAL_EC_AUDIO_BASE_NAMES = new Set([
+    '01_A_buenas_noches',
+    '01_B_Buenos_dias',
+    '01_C_Buenos_tardes',
+    'NOME_CIUDAD_PROVICINCIA',
+    'PERGUNTA_AGENCIA_DOMICILIO',
+    'ENDERECO_CIDADE_PROVINCIA_AGENCIA',
+    'ENDERECO_ORIENTACAO',
+    'ENDERECO_ERRADO',
+    'PRODUDO_LIQUIDO_X_CAPSULA_MELHOR',
+    'CONHECER_NECESSIDADES_CLIENTES',
+    'DUVIDAS',
+    'TRATAMENTO_Y_PRECIOS_PROMOCAO',
+    'TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6',
+    '1_BOTELLA_POR_39',
+    '3_BOTELLAS_POR_95_E_99',
+    '6_BOTELLAS_POR_167_E_99',
+    'QUANTOS_FRASCOS_E_DIA_QUERES',
+    'Agradecimento_Agencia_01',
+    'AGRADECIMENTO_AGENCIA_DE_ENTREGA',
+    'BONUS_RETIRADA',
+    'FUNCIONA_VIT_POWER',
+    'FUNCIONA_TRATAMENTO_COMPLETO_100_NATURAL',
+    '100_NATURAL_SEM_CONTRA_INDICACAO',
+    'DEPOIMENTO_AUDIO_PRODUTO',
+    'INFORMACOES_PESSOAIS_NAIS',
+    'INFORMACOES_PESSOAS_NAIS',
+    'CLIENTES_QUE_LIGAM',
+    'QUANDO_CLIENTE_INSISTE_EM_LIGAR',
+    'QUANDO_CLIENTE_LIGA_01',
+    'QUANDO_CLIENTE_PEDIR_A_DOMICILIO_REFERENCIA_COMPLETA',
+    'QUANDO_DIZER_NAO_PODE_RETIRAR_PRODUTO',
+    'ENVIO_AGENCIA_100_SEGURO',
+    'ENTREGA_SEGURA_RETIRE_NA_AGENCIA',
+    'ENTREGAS_A_SERVIENTREGAS_MELHOR_OPCAO',
+    'DOMICILIO_A_AGENCIA_DE_SERVIENTREGA',
+    'SUGESTAO_ENTREGA_EM_SERVITREGA_01_QUANDO_CLIENTE_NAO_COLOCA_ENDERECO',
+    'Ajuda_Prostata',
+    'PROSTADA_FUNCIONA_E_QUANDO_CHEGA',
+    'TEMPO_DEMORA_PRODUTO_CHEGAR',
+    'TEMPO_RESULTADO_VIT_POWER',
+    'COMO_SE_TOMA_VIT_POWER',
+    'COMO_TOMAR_VIT_POWER_SEM_REFERENCIA_QUANTIDADE_LITRO',
+    'TRATAMENTO_CONTINUA_NAO_EFEITO_IMEDIATO',
+    'CONFIRMACION_Y_REGALITO_ESPECIAL',
+    'Informativo_Ana_Lopes_pedido_Em_fase_entrega',
+    'OBRIGADO_PAGOU',
+    'GUIA',
+    'PEDIDO_ENVIADO',
+    'Chegou_01',
+    'Chegou_02',
+    'Chegou_03',
+    'Jarabe',
+    'GALAPAPOS_PUERTO_AYORA_NAO_FAZEMOS_ENTREGAS',
+    'RECOMENDACOES_PARA_CLIENTE_QUE_PASSOU_POR_CIRURGIA_PROPOSTA'
+]);
+
+export const isApprovedCountryAudio = ({ country, baseName }) => {
+    if (country !== 'EC') return false;
+    return OFFICIAL_EC_AUDIO_BASE_NAMES.has(String(baseName || '').trim());
+};
+
 export const syncTemplatesForCountry = async (country) => {
     const targetDir = path.join(templatesDir(), country);
     ensureDir(targetDir);
@@ -62,7 +124,8 @@ export const syncTemplatesForCountry = async (country) => {
         const srcDir = path.join(repoRoot(), 'ec');
         if (fs.existsSync(srcDir)) {
             for (const file of fs.readdirSync(srcDir)) {
-                if (file.toLowerCase().endsWith('.mp3')) {
+                const base = path.basename(file, path.extname(file));
+                if (file.toLowerCase().endsWith('.mp3') && isApprovedCountryAudio({ country, baseName: base })) {
                     sources.push(path.join(srcDir, file));
                 }
             }
@@ -117,6 +180,10 @@ export const listAudioTemplates = async (country) => {
 
 export const resolveCountryAudio = async ({ country, baseName }) => {
     if (!country || !baseName) return null;
+    if (!isApprovedCountryAudio({ country, baseName })) {
+        console.warn(`[AUDIO-GUARD] Audio bloqueado fora do funil oficial: ${country}/${baseName}`);
+        return null;
+    }
     const dir = path.join(templatesDir(), country);
     const oggPath = path.join(dir, `${baseName}.ogg`);
     if (fs.existsSync(oggPath)) return oggPath;

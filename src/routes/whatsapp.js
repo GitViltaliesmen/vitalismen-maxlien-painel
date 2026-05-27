@@ -25,6 +25,19 @@ const resolveChatId = (phone, country) => (
     String(phone || '').includes('@') ? String(phone) : toWhatsAppChatId(phone, country)
 );
 
+const normalizeDigits = (value) => String(value || '').replace(/\D/g, '');
+
+const isOwnOperationalPhone = (value) => {
+    const digits = normalizeDigits(value);
+    const ownNumbers = [
+        process.env.ZAPI_CONNECTED_PHONE,
+        getOwnPhoneDigits()
+    ].map(normalizeDigits).filter(Boolean);
+    return Boolean(digits && ownNumbers.some((own) => (
+        digits === own || (digits.length >= 9 && own.endsWith(digits)) || (own.length >= 9 && digits.endsWith(own))
+    )));
+};
+
 const sendWhatsAppMessage = async (phone, content, options = {}) => {
     const chatId = resolveChatId(phone, options.country);
     if (!chatId) return false;
@@ -388,7 +401,8 @@ router.get('/chats', async (req, res) => {
             };
         }));
 
-        const filtered = onlyLinked ? enrichedChats.filter((c) => !!c.orderId) : enrichedChats;
+        const filtered = (onlyLinked ? enrichedChats.filter((c) => !!c.orderId) : enrichedChats)
+            .filter((c) => !isOwnOperationalPhone(c.phone || c.id));
 
         filtered.sort((a, b) => {
             const tA = a.lastMessage?.timestamp || 0;
