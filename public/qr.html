@@ -4050,7 +4050,7 @@
 
         const el = (id) => document.getElementById(id);
         const state = {
-            token: 'panel-no-password',
+            token: localStorage.getItem(tokenKey) || '',
             user: null,
             users: [],
             whatsappSessions: [],
