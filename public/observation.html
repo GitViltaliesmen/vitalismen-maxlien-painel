@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Observacao do Funil</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #08111f;
+            --panel: #101a2b;
+            --line: #24324a;
+            --text: #edf4ff;
+            --muted: #9fb0ca;
+            --blue: #2b6eea;
+            --green: #26b47a;
+            --orange: #f4a72c;
+            --red: #eb5757;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--line);
+            background: #0b1424;
+        }
+
+        h1, h2, h3 { margin: 0; }
+        h1 { font-size: 20px; }
+        h2 { font-size: 17px; }
+        h3 { font-size: 15px; }
+
+        .meta { color: var(--muted); font-size: 13px; }
+
+        main {
+            display: grid;
+            grid-template-columns: minmax(260px, 360px) 1fr;
+            min-height: calc(100vh - 74px);
+        }
+
+        aside, section {
+            padding: 16px;
+        }
+
+        aside {
+            border-right: 1px solid var(--line);
+            background: #0b1424;
+        }
+
+        button, select, input {
+            border: 1px solid var(--line);
+            background: #111d31;
+            color: var(--text);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button.primary {
+            background: var(--blue);
+            border-color: #4b84ff;
+        }
+
+        .toolbar {
+            display: grid;
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .reports {
+            display: grid;
+            gap: 8px;
+        }
+
+        .report-item {
+            text-align: left;
+            border-radius: 8px;
+            background: #101a2b;
+            border: 1px solid var(--line);
+        }
+
+        .report-item.active {
+            border-color: #4b84ff;
+            box-shadow: inset 3px 0 0 #4b84ff;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .kpi {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 12px;
+            background: #0d1728;
+        }
+
+        .kpi strong {
+            display: block;
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .finding {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            background: #0d1728;
+        }
+
+        .badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: #17243a;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .critical { color: #ffd5d5; background: #3a1820; }
+        .important { color: #ffe6b8; background: #332413; }
+        .improvement { color: #c7f7dd; background: #113224; }
+
+        .quote {
+            white-space: pre-wrap;
+            border-left: 3px solid #344661;
+            padding-left: 10px;
+            color: #d9e6fb;
+            margin: 8px 0;
+        }
+
+        .empty {
+            color: var(--muted);
+            border: 1px dashed var(--line);
+            border-radius: 8px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        a { color: #8bb4ff; }
+
+        @media (max-width: 900px) {
+            main { grid-template-columns: 1fr; }
+            aside { border-right: 0; border-bottom: 1px solid var(--line); }
+            .kpis { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div>
+            <h1>Observacao do Funil</h1>
+            <div class="meta">Somente leitura: relatorio e sugestoes, sem enviar mensagens.</div>
+        </div>
+        <a href="/qr.html?country=EC&t=care">Voltar ao painel</a>
+    </header>
+
+    <main>
+        <aside>
+            <h2>Relatorios</h2>
+            <div id="status" class="meta">Carregando...</div>
+            <div class="toolbar">
+                <select id="country">
+                    <option value="EC">Equador</option>
+                    <option value="ALL">Todos</option>
+                </select>
+                <select id="hours">
+                    <option value="6">Ultimas 6h</option>
+                    <option value="24" selected>Ultimas 24h</option>
+                    <option value="72">Ultimas 72h</option>
+                </select>
+                <button id="generate" class="primary" type="button">Gerar relatorio agora</button>
+            </div>
+            <div id="reports" class="reports"></div>
+        </aside>
+
+        <section>
+            <div id="detail" class="empty">Selecione ou gere um relatorio.</div>
+        </section>
+    </main>
+
+    <script>
+        const tokenKey = 'vitalismen_admin_token';
+        const token = localStorage.getItem(tokenKey) || '';
+        const state = { reports: [], activeId: '' };
+        const el = (id) => document.getElementById(id);
+        const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+        const fmt = (value) => value ? new Date(value).toLocaleString('pt-BR') : '';
+
+        const api = async (path, options = {}) => {
+            const headers = {
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+            };
+            const response = await fetch(path, { cache: 'no-store', ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
+            return data;
+        };
+
+        const renderReports = () => {
+            if (!state.reports.length) {
+                el('reports').innerHTML = '<div class="empty">Nenhum relatorio ainda.</div>';
+                return;
+            }
+            el('reports').innerHTML = state.reports.map((report) => `
+                <button class="report-item ${report._id === state.activeId ? 'active' : ''}" data-report-id="${escapeHtml(report._id)}" type="button">
+                    <strong>${escapeHtml(report.title)}</strong>
+                    <div class="meta">${fmt(report.createdAt)} | criticos ${report.summary?.critical || 0} | importantes ${report.summary?.important || 0}</div>
+                </button>
+            `).join('');
+        };
+
+        const renderDetail = (report) => {
+            if (!report) {
+                el('detail').className = 'empty';
+                el('detail').textContent = 'Selecione ou gere um relatorio.';
+                return;
+            }
+            el('detail').className = '';
+            const findings = report.findings || [];
+            el('detail').innerHTML = `
+                <div class="panel">
+                    <h2>${escapeHtml(report.title)}</h2>
+                    <div class="meta">Janela: ${fmt(report.source?.from)} ate ${fmt(report.source?.to)} | ${report.source?.messages || 0} mensagens | ${report.source?.conversations || 0} conversas</div>
+                    <div class="kpis">
+                        <div class="kpi"><strong>${report.summary?.critical || 0}</strong><span>criticas</span></div>
+                        <div class="kpi"><strong>${report.summary?.important || 0}</strong><span>importantes</span></div>
+                        <div class="kpi"><strong>${report.summary?.buyLaterSignals || 0}</strong><span>comprar depois</span></div>
+                        <div class="kpi"><strong>${report.summary?.trustSignals || 0}</strong><span>confianca/golpe</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h2>Recomendacoes</h2>
+                    ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
+                </div>
+                <div class="panel">
+                    <h2>Achados</h2>
+                    ${findings.length ? findings.map(renderFinding).join('') : '<div class="empty">Sem achados nessa janela.</div>'}
+                </div>
+            `;
+        };
+
+        const renderFinding = (item) => `
+            <article class="finding">
+                <div class="badges">
+                    <span class="badge ${escapeHtml(item.priority)}">${escapeHtml(item.priority)}</span>
+                    <span class="badge">${escapeHtml(item.category)}</span>
+                    <span class="badge">${escapeHtml(item.phone || item.chatId)}</span>
+                    ${item.recommendedStatus ? `<span class="badge">${escapeHtml(item.recommendedStatus)}</span>` : ''}
+                </div>
+                <h3>Frase do cliente</h3>
+                <div class="quote">${escapeHtml(item.customerText || 'Sem frase capturada')}</div>
+                ${item.botText ? `<h3>Resposta atual do bot</h3><div class="quote">${escapeHtml(item.botText)}</div>` : ''}
+                <h3>Por que pode perder venda</h3>
+                <p>${escapeHtml(item.whyItMatters)}</p>
+                <h3>Resposta sugerida</h3>
+                <div class="quote">${escapeHtml(item.suggestedReply)}</div>
+                <p class="meta">Audio: ${escapeHtml(item.suggestedAudio || 'nenhum')} | Prova: ${escapeHtml(item.suggestedProof || 'nenhuma')} | Acao: ${escapeHtml(item.recommendedAction)}</p>
+            </article>
+        `;
+
+        const loadReports = async () => {
+            const country = el('country').value;
+            const data = await api(`/api/observation/reports?country=${encodeURIComponent(country)}&limit=30`);
+            state.reports = data.reports || [];
+            renderReports();
+            if (!state.activeId && state.reports[0]) {
+                await openReport(state.reports[0]._id);
+            }
+        };
+
+        const openReport = async (id) => {
+            state.activeId = id;
+            renderReports();
+            const data = await api(`/api/observation/reports/${encodeURIComponent(id)}`);
+            renderDetail(data.report);
+        };
+
+        const generateReport = async () => {
+            el('generate').disabled = true;
+            el('generate').textContent = 'Gerando...';
+            try {
+                const data = await api('/api/observation/reports/generate', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        country: el('country').value,
+                        hours: Number(el('hours').value),
+                        limit: 900
+                    })
+                });
+                state.activeId = data.report?._id || '';
+                await loadReports();
+                if (state.activeId) renderDetail(data.report);
+            } finally {
+                el('generate').disabled = false;
+                el('generate').textContent = 'Gerar relatorio agora';
+            }
+        };
+
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-report-id]');
+            if (button) openReport(button.dataset.reportId).catch((error) => alert(error.message));
+        });
+        el('generate').addEventListener('click', () => generateReport().catch((error) => alert(error.message)));
+        el('country').addEventListener('change', () => {
+            state.activeId = '';
+            loadReports().catch((error) => alert(error.message));
+        });
+
+        (async () => {
+            if (!token) {
+                el('status').textContent = 'Entre no painel principal primeiro.';
+                el('detail').textContent = 'Login necessario.';
+                return;
+            }
+            const status = await api('/api/observation/status');
+            el('status').textContent = status.enabled ? 'Observador automatico ligado.' : 'Observador automatico desligado; geracao manual disponivel.';
+            await loadReports();
+        })().catch((error) => {
+            el('status').textContent = error.message;
+        });
+    </script>
+</body>
+
+</html>

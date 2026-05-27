@@ -14,7 +14,9 @@ import aiRoutes from './routes/ai.js';
 import shipmentRoutes from './routes/shipments.js';
 import automationRoutes from './routes/automation.js';
 import leadRoutes from './routes/lead.js';
+import observationRoutes from './routes/observation.js';
 import { startScheduler } from './services/schedulerService.js';
+import { startObservationScheduler } from './services/observationSchedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
 
@@ -120,6 +122,7 @@ app.use('/api/zapi', zapiRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/automation', automationRoutes);
+app.use('/api/observation', observationRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);
@@ -136,6 +139,10 @@ if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
     console.log('[SCHEDULER] ✅ Scheduler ativado');
     startScheduler();
 }
+
+// Read-only sales-funnel observer. Runs separately so it can stay on even
+// when operational automations are intentionally disabled.
+startObservationScheduler();
 
 // 404 handler
 app.use((req, res) => {
