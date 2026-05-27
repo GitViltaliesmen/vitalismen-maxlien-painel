@@ -4966,7 +4966,7 @@
                 button.disabled = true;
                 stateBadge.textContent = status.replace(/_/g, ' ');
                 stateBadge.className = 'badge green';
-                hint.textContent = 'Use Salvar ficha para ajustes; envio Dropi continua no botao proprio.';
+                hint.textContent = 'Use Salvar ficha para ajustes; envio Dropi fica em Leads Clientes.';
                 return;
             }
             button.disabled = state.busy;
@@ -6202,7 +6202,7 @@
             el('customerSyncHint').textContent = brazilTestOnly
                 ? brazilTestMessage
                 : chat.orderId
-                ? 'Pedido com autorizacao manual'
+                ? 'Pedido salvo; envio Dropi em Leads Clientes'
                 : 'Atendimento sem pedido';
             const keepManualEdit = state.customerFormDirty && state.customerFormDirtyChatId === chat.id;
             el('customerFormState').textContent = keepManualEdit
