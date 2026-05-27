@@ -523,6 +523,9 @@
         const STATUSES = ['novo', 'atendendo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'recompra', 'cancelado', 'devolvido'];
         const params = new URLSearchParams(window.location.search);
         const isLocal = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+        if (isLocal) {
+            window.location.replace(`https://ec.maxlien.shop/leads-window.html${window.location.search || '?country=EC'}`);
+        }
         const apiBase = isLocal ? 'https://ec.maxlien.shop' : '';
         const state = {
             leads: [],

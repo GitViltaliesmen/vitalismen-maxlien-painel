@@ -5,6 +5,31 @@ import Message from '../models/Message.js';
 const digits = (value) => String(value || '').replace(/\D/g, '');
 const clean = (value) => String(value || '').trim();
 
+const operationalZapiPhones = (body = {}, normalized = {}) => [
+    process.env.ZAPI_CONNECTED_PHONE,
+    process.env.ZAPI_OPERATION_PHONE,
+    process.env.ZAPI_OPERATIONAL_PHONE,
+    body.connectedPhone,
+    body.connected_phone,
+    body.instancePhone,
+    body.instance?.phone,
+    body.device?.phone,
+    normalized.connectedPhone
+].map(digits).filter(Boolean);
+
+const samePhone = (left, right) => {
+    const a = digits(left);
+    const b = digits(right);
+    if (!a || !b) return false;
+    return a === b
+        || (a.length >= 9 && b.endsWith(a))
+        || (b.length >= 9 && a.endsWith(b));
+};
+
+const isOperationalZapiPhone = (phone, body = {}, normalized = {}) => (
+    operationalZapiPhones(body, normalized).some((ownPhone) => samePhone(phone, ownPhone))
+);
+
 const zapiWebhookEventSchema = new mongoose.Schema({
     eventType: { type: String, index: true, default: '' },
     phone: { type: String, index: true, default: '' },
@@ -92,6 +117,7 @@ const isDirectCustomerChat = (body = {}, normalized = {}) => {
     if (normalized.isFromMe) return false;
     if (!normalized.text) return false;
     if (!normalized.phone) return false;
+    if (isOperationalZapiPhone(normalized.phone, body, normalized)) return false;
 
     // E.164 numbers have up to 15 digits. Larger ids are usually groups/channels/LIDs.
     if (normalized.phone.length < 8 || normalized.phone.length > 15) return false;
@@ -106,6 +132,7 @@ const skipReason = (body = {}, normalized = {}) => {
     if (isStatusEvent(body)) return 'status_event';
     if (normalized.isFromMe) return 'from_me';
     if (!normalized.text) return 'empty_text';
+    if (isOperationalZapiPhone(normalized.phone, body, normalized)) return 'operational_phone';
     if (normalized.phone.length < 8 || normalized.phone.length > 15) return 'non_customer_phone';
     return '';
 };

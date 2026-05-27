@@ -31,6 +31,8 @@ const isOwnOperationalPhone = (value) => {
     const digits = normalizeDigits(value);
     const ownNumbers = [
         process.env.ZAPI_CONNECTED_PHONE,
+        process.env.ZAPI_OPERATION_PHONE,
+        process.env.ZAPI_OPERATIONAL_PHONE,
         getOwnPhoneDigits()
     ].map(normalizeDigits).filter(Boolean);
     return Boolean(digits && ownNumbers.some((own) => (
