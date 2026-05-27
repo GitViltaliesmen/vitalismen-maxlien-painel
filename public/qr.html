@@ -3713,7 +3713,7 @@
                     </div>
                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
                         <button data-connection-country="EC" class="active" type="button">Equador</button>
-                        <button data-connection-country="CO" type="button">Colombia</button>
+                        <button data-connection-country="CO" type="button">CO</button>
                     </div>
                     <div id="connectionSourceNote" class="connection-source-note">Conexao puxada da Z-API. O pareamento do celular e feito fora deste painel.</div>
                     <form id="connectionForm" class="connection-form">
@@ -4711,9 +4711,9 @@
             const zapiPhone = zapiAvailableForCountry ? (zapi.device?.phone || '') : '';
             const zapiKey = digitsOnlyText(zapiPhone);
             const zapiItem = workloadBySession.get(zapiKey) || {};
-            const countryLabel = country === 'CO' ? 'Colombia' : 'Equador';
+            const countryLabel = country === 'CO' ? 'CO' : 'Equador';
             const sourceText = country === 'CO'
-                ? 'Operacao Colombia preparada para Z-API. Ainda nao ha instancia conectada nesta previa.'
+                ? 'Operacao CO preparada para Z-API. Ainda nao ha instancia conectada nesta previa.'
                 : 'Conexao puxada da Z-API. O pareamento do celular e feito fora deste painel.';
             if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
             const zapiCard = `
@@ -4726,7 +4726,7 @@
                         <div class="meta">${escapeHtml(zapiPhone ? `numero conectado: ${zapiPhone}` : 'sem telefone conectado para esta operacao')}</div>
                         ${renderConnectionStatusBlock(zapiItem)}
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? (zapi.device?.name || 'Instancia Z-API') : `Operacao ${countryLabel}`)}</div>
-                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para receber mensagens.' : (country === 'CO' ? 'Aguardando configuracao da instancia Colombia.' : (zapi.error || 'Z-API ainda nao respondeu.')))}</div>
+                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para receber mensagens.' : (country === 'CO' ? 'Aguardando configuracao da instancia CO.' : (zapi.error || 'Z-API ainda nao respondeu.')))}</div>
                     </article>
                 `;
             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
