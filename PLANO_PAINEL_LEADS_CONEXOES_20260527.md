@@ -9,6 +9,9 @@ Branch: `codex/leads-clientes-acoes-unificadas`
 - Fazer uma tela por vez.
 - Preservar backend, APIs, planilhas, banco e fluxos consolidados.
 - Antes de mexer em exclusao, importacao, planilhas ou clientes antigos, criar uma trava extra de backup.
+- Publicacao deve preservar clientes antigos, pedidos, planilhas, historico WhatsApp e bancos existentes.
+- Antes de qualquer deploy real, criar backup remoto do codigo atual e das bases de dados em uso no VPS.
+- Se o deploy falhar, voltar pelo backup/release anterior sem apagar dados de cliente.
 
 ## Referencia congelada
 
@@ -104,3 +107,13 @@ Pasta de referencia:
 ## Observacao sobre dados
 
 Nenhuma planilha, banco, importacao ou lista de clientes antigos foi alterada nesta fase.
+
+## Tentativa de publicacao 2026-05-27
+
+- Commit local pronto: `2befe74 feat: integra paineis operacionais e zapi`.
+- Backup local de rollback criado em `.codex_tmp/publish-backup-20260527-134904`.
+- Bundle local: `vitalismen-paineis-zapi.bundle`.
+- Patch de rollback local: `rollback-patch.diff`.
+- GitHub bloqueado: chaves SSH locais sem permissao e HTTPS aguardando autenticacao.
+- VPS bloqueado: `ssh root@maxlien.shop` conectou na porta 22, mas travou/recusou antes do banner SSH.
+- Publicacao online pendente ate liberar acesso SSH/VPN/IP ou credencial GitHub.
