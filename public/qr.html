@@ -3427,7 +3427,7 @@
             <nav id="moduleNav" class="module-nav" aria-label="Modulos do painel">
                 <button class="active" data-module="all" type="button">Atendimento</button>
                 <a id="leadsClientsLink" data-module="care" href="/leads-window.html?country=EC" target="vitalismen_leads_clientes">Leads Clientes</a>
-                <button data-module="review" type="button">Conferir Pedidos</button>
+                <button class="hidden" data-module="review" type="button" title="Ferramenta tecnica preservada">Conferir Pedidos</button>
                 <button data-module="connections" type="button">Conexões</button>
                 <button data-module="admin" type="button">Equipe</button>
             </nav>
@@ -6529,7 +6529,7 @@
             progress: 'revisar',
             returned: 'recuperar',
             buy_later: 'retomar',
-            review_orders: 'Conferir Pedidos'
+            review_orders: 'Tecnico'
         };
 
         const shipmentStatus = (shipment) => String(shipment?.logistics?.status || '').toUpperCase();
@@ -7354,7 +7354,7 @@
             )).length);
             const countryLabel = selectedOperationalCountry();
             if (state.dropiFilter === 'review_orders') {
-                el('processSummary').textContent = `${filtered.length} pedido(s) em Conferir Pedidos. Aprove somente apos revisar historico.`;
+                el('processSummary').textContent = `${filtered.length} pedido(s) em painel tecnico. Aprove somente apos revisar historico.`;
             } else if (['all_dropi', 'confirmed', 'not_sent', 'sent', 'progress'].includes(state.dropiFilter)) {
                 el('processSummary').textContent = `${totalCount} pedido(s): ${authorizationCount} para conferir, ${waitingCount} autorizados para Dropi, ${reviewCount} revisar, ${sentCount} enviados em ${countryLabel}.`;
             } else if (state.dropiFilter === 'buy_later') {
