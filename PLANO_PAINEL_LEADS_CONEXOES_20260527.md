@@ -117,3 +117,18 @@ Nenhuma planilha, banco, importacao ou lista de clientes antigos foi alterada ne
 - GitHub bloqueado: chaves SSH locais sem permissao e HTTPS aguardando autenticacao.
 - VPS bloqueado: `ssh root@maxlien.shop` conectou na porta 22, mas travou/recusou antes do banner SSH.
 - Publicacao online pendente ate liberar acesso SSH/VPN/IP ou credencial GitHub.
+
+## Publicacao VPS 2026-05-27
+
+- VPN Proton desligada e acesso SSH liberado pela chave `vitalismen_deploy_2026`.
+- Backup remoto criado em `/opt/vitalismen-automacao/backups/pre-paineis-zapi-20260527-171230`.
+- Backup remoto inclui release anterior, MongoDB e SQLite do painel Maxlien.
+- Release publicado em `/opt/vitalismen-automacao/releases/20260527-paineis-zapi-0f05a82`.
+- Release anterior registrado em `/opt/vitalismen-automacao/backups/last-release-before-paineis-zapi.txt`.
+- Processo PM2 `vitalismen-automation` reiniciado apontando para o novo release.
+- URLs publicas validadas:
+  - `https://ec.maxlien.shop/qr.html`
+  - `https://ec.maxlien.shop/leads-window.html?country=EC`
+  - `https://ec.maxlien.shop/api/zapi/device`
+- Branch enviada ao Git remoto do VPS: `codex/leads-clientes-acoes-unificadas`.
+- GitHub publico ainda pendente por falta de autenticacao/chave autorizada neste Windows.
