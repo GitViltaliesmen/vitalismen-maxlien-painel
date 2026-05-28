@@ -28,12 +28,17 @@ Quando a pagina detectar um CTA externo/nativo da VSL:
 
 - `https://ec.maxlien.shop/m/?showForm=1` exibiu o formulario.
 - Botao `Abrir WhatsApp` ficou visivel.
+- Confirmacao por `curl` em producao encontrou:
+  - `id="orderForm"`
+  - `Abrir WhatsApp`
 - Com nome preenchido, o clique abriu WhatsApp para o numero oficial:
   - `5515991418416`
 - A mensagem enviada ao WhatsApp manteve:
   - frase oficial de CTA
   - `Nombre completo`
 - A abertura normal em desktop continuou preservando a pagina informativa.
+- Checksum publicado do arquivo vivo:
+  - `89a457574281f188e30fe648f34f9827e1df5dec368cff78c5ea6af4a82b5bf5  /var/www/ec.maxlien.shop/m/index.html`
 
 ## Backup
 
@@ -53,4 +58,4 @@ Nao foi alterado:
 
 ## Status
 
-Congelado no VPS.
+Congelado, salvo e publicado no VPS.
