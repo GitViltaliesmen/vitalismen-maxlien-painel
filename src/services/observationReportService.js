@@ -490,6 +490,211 @@ const buildKitInsights = (orders) => {
     };
 };
 
+const classifyStage = (state, messages = []) => {
+    const memory = state.metadata?.perAgentMemory?.vit_power_ec || {};
+    const draft = state.metadata?.customerDraft || {};
+    const joined = normalizeText(messages.map((message) => getMessageText(message)).join(' '));
+    const rawStage = normalizeText([
+        memory.lastFunnelStage,
+        memory.principalSdrStage,
+        memory.conversationState?.stage,
+        draft.status,
+        state.metadata?.orderStatus
+    ].filter(Boolean).join(' '));
+    if (/dropi|pedido_enviado|shipped|submitted/.test(rawStage)) return 'dropi_envio';
+    if (/delivered|entregado|pickup|retirada|returned/.test(rawStage) || /guia|retirar|agencia|bonus/.test(joined)) return 'retirada_posvenda';
+    if (/confirm|order_closed|pedido_confirmado/.test(rawStage) || /confirmo|correcto|listo|si esta/.test(joined)) return 'confirmacao';
+    if (/agencia|servientrega|domicilio|direccion|ciudad|provincia/.test(joined)) return 'cidade_agencia_endereco';
+    if (/nombre|nome|cedula|telefono/.test(joined)) return 'dados_nome';
+    if (/precio|valor|cuanto|frasco|promocion|paquete/.test(joined)) return 'preco_kit';
+    if (/funciona|sirve|garantia|estafa|presion|diabetes/.test(joined)) return 'objecao_confianca';
+    return 'inicio_interesse';
+};
+
+const objectionForText = (text) => {
+    const normalized = normalizeText(text);
+    if (containsAny(normalized, signalGroups.trust)) return 'medo_golpe_confianca';
+    if (containsAny(normalized, signalGroups.medical)) return 'duvida_medica';
+    if (containsAny(normalized, signalGroups.price)) return 'preco';
+    if (containsAny(normalized, signalGroups.discretion)) return 'vergonha_discricao';
+    if (containsAny(normalized, signalGroups.logistics)) return 'entrega_agencia';
+    if (containsAny(normalized, signalGroups.buyLater)) return 'falta_dinheiro_comprar_depois';
+    if (containsAny(normalized, signalGroups.cancel)) return 'cancelamento';
+    return 'sem_objecao_clara';
+};
+
+const leadTemperature = ({ state, messages, orders }) => {
+    const phone = digitsOnly(state.phoneDigits || state.chatId);
+    const hasOrder = orders.some((order) => digitsOnly(order.customer?.phone).endsWith(phone.slice(-9)) && ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(order.status || '')));
+    const joined = normalizeText(messages.map((message) => getMessageText(message)).join(' '));
+    if (hasOrder || /precio|valor|cuanto|frasco|agencia|direccion|ciudad|provincia|confirmo|listo|servientrega|funciona/.test(joined)) return 'quente';
+    if (/quiero|informacion|producto|vit power|promocion|como/.test(joined)) return 'morno';
+    return 'frio';
+};
+
+const nextActionFor = ({ temperature, objection, stage }) => {
+    if (objection === 'cancelamento') return 'parar_conversa';
+    if (objection === 'falta_dinheiro_comprar_depois') return 'marcar_comprar_depois';
+    if (objection === 'medo_golpe_confianca') return 'mandar_prova_social_audio_seguro';
+    if (objection === 'duvida_medica') return 'audio_humano_resposta_medica_responsavel';
+    if (objection === 'preco') return temperature === 'quente' ? 'ancorar_3_frascos_e_economia' : 'explicar_valor_sem_desconto_cedo';
+    if (stage === 'cidade_agencia_endereco') return 'pedir_apenas_dado_faltante';
+    if (stage === 'confirmacao') return 'confirmar_dados_e_levar_para_leads';
+    if (stage === 'retirada_posvenda') return 'suporte_posvenda_sem_promocao';
+    if (temperature === 'frio') return 'recuperacao_curta_ou_humano';
+    return 'seguir_funil_curto';
+};
+
+const falseOrderRiskScore = ({ state, messages }) => {
+    const joined = normalizeText(messages.map((message) => getMessageText(message)).join(' '));
+    let score = 0;
+    const reasons = [];
+    if (containsAny(joined, signalGroups.buyLater)) { score += 30; reasons.push('comprar depois/sem dinheiro'); }
+    if (/talvez|despues|luego|no se|vere|avis/.test(joined)) { score += 20; reasons.push('resposta vaga'); }
+    if (!/nombre|ciudad|provincia|direccion|agencia|servientrega/.test(joined)) { score += 20; reasons.push('dados incompletos'); }
+    if (/no envie|no mande|cancel/.test(joined)) { score += 40; reasons.push('sinal de cancelamento'); }
+    if (/apur|rapido|ya ya|urgente/.test(joined) && !/direccion|agencia/.test(joined)) { score += 10; reasons.push('pressa sem dados'); }
+    if (state.human?.mode === 'manual') { score += 5; reasons.push('humano assumiu'); }
+    return { score: Math.min(score, 100), reasons };
+};
+
+const pickupScore = ({ shipment }) => {
+    let score = 0;
+    const reasons = [];
+    if (shipment.automation?.guiaNotifiedAt) { score += 15; reasons.push('guia avisada'); }
+    if (shipment.automation?.readyForPickupNotifiedAt) { score += 25; reasons.push('agencia avisada'); }
+    if (shipment.automation?.pickupProofRequestedAt) { score += 20; reasons.push('comprovante pedido'); }
+    if (shipment.proof?.pickupProofReceivedAt) { score += 30; reasons.push('comprovante recebido'); }
+    if (shipment.automation?.bonusNotifiedAt) { score += 10; reasons.push('bonus enviado'); }
+    if (shipment.outcomes?.returned) { score -= 50; reasons.push('devolvido'); }
+    return { score: Math.max(0, Math.min(score, 100)), reasons };
+};
+
+const isColdBotReply = (botText, previousCustomerText = '') => {
+    const text = normalizeText(botText);
+    const customer = normalizeText(previousCustomerText);
+    if (!text) return false;
+    if (botText.length > 650) return true;
+    if (/entiendo|claro|tranquilo|gracias por avisar|le explico/.test(text)) return false;
+    return containsAny(customer, [...signalGroups.trust, ...signalGroups.medical, ...signalGroups.discretion]) && !/seguro|natural|confianza|discreto|cuid/.test(text);
+};
+
+const buildCommercialIntelligence = ({ grouped, stateByChat, recoveryStates, orders, shipments }) => {
+    const stageMap = new Map();
+    const temperatures = [];
+    const dominantObjections = [];
+    const nextBestActions = [];
+    const falseOrderRisk = [];
+    const coldBotReplies = [];
+    const winningPhrases = [];
+    const abCounters = {
+        shortBotThenInbound: 0,
+        longBotThenInbound: 0,
+        audioMentionedThenInbound: 0,
+        proofMentionedThenInbound: 0,
+        bonusMentionedThenInbound: 0
+    };
+
+    for (const [chatId, messages] of grouped.entries()) {
+        const state = stateByChat.get(chatId) || recoveryStates.find((item) => item.chatId === chatId) || {};
+        const phone = digitsOnly(state.phoneDigits || chatId);
+        const stage = classifyStage(state, messages);
+        const temp = leadTemperature({ state, messages, orders });
+        const customerText = messages.filter((m) => !m.isFromMe && m.from !== 'bot').map((m) => getMessageText(m)).join(' ');
+        const objection = objectionForText(customerText);
+        const nextAction = nextActionFor({ temperature: temp, objection, stage });
+        const risk = falseOrderRiskScore({ state, messages });
+        const entry = stageMap.get(stage) || { stage, count: 0, cold: 0, warm: 0, hot: 0, topAction: nextAction };
+        entry.count += 1;
+        if (temp === 'frio') entry.cold += 1;
+        if (temp === 'morno') entry.warm += 1;
+        if (temp === 'quente') entry.hot += 1;
+        stageMap.set(stage, entry);
+        temperatures.push({ chatId, phone, temperature: temp, stage, objection, nextAction });
+        dominantObjections.push({ chatId, phone, objection, stage, temperature: temp });
+        nextBestActions.push({ chatId, phone, action: nextAction, stage, objection, temperature: temp });
+        if (risk.score >= 50) falseOrderRisk.push({ chatId, phone, score: risk.score, reasons: risk.reasons, stage });
+
+        let lastInbound = '';
+        for (const message of messages) {
+            const body = getMessageText(message);
+            if (!body) continue;
+            const isBot = message.isBot || message.from === 'bot';
+            if (isBot) {
+                if (isColdBotReply(body, lastInbound)) {
+                    coldBotReplies.push({ chatId, phone, botText: clip(body, 240), customerText: clip(lastInbound, 180), stage });
+                }
+                const nextInbound = messages.find((candidate) => (candidate.timestamp || 0) > (message.timestamp || 0) && !candidate.isFromMe && candidate.from !== 'bot');
+                if (nextInbound) {
+                    if (body.length <= 240) abCounters.shortBotThenInbound += 1;
+                    if (body.length > 650) abCounters.longBotThenInbound += 1;
+                    if (/\[AUDIO\]|audio|ogg|mp3/i.test(body)) abCounters.audioMentionedThenInbound += 1;
+                    if (/prova|prueba|testimonio|depoimento|social/i.test(body)) abCounters.proofMentionedThenInbound += 1;
+                    if (/bonus|regalo|sorpresa/i.test(body)) abCounters.bonusMentionedThenInbound += 1;
+                }
+            } else {
+                lastInbound = body;
+            }
+        }
+    }
+
+    for (const order of orders.filter((o) => ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(o.status || ''))).slice(0, 40)) {
+        const phone = digitsOnly(order.customer?.phone);
+        const relatedMessages = Array.from(grouped.values()).find((list) => list.some((m) => digitsOnly(m.peerPhone || m.chatId).endsWith(phone.slice(-9)))) || [];
+        const lastBot = [...relatedMessages].reverse().find((m) => m.isBot || m.from === 'bot');
+        if (lastBot) {
+            winningPhrases.push({
+                orderId: order.orderId,
+                phone,
+                phrase: clip(getMessageText(lastBot), 260),
+                result: order.status,
+                ticket: order.total || 0
+            });
+        }
+    }
+
+    const pickupScores = shipments
+        .map((shipment) => ({ orderId: shipment.orderId, phone: shipment.client?.phone || '', status: shipment.logistics?.status || '', ...pickupScore({ shipment }) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 40);
+
+    const objectionCounts = dominantObjections.reduce((acc, item) => {
+        acc[item.objection] = (acc[item.objection] || 0) + 1;
+        return acc;
+    }, {});
+    const actionCounts = nextBestActions.reduce((acc, item) => {
+        acc[item.action] = (acc[item.action] || 0) + 1;
+        return acc;
+    }, {});
+
+    return {
+        lossMap: {
+            stages: Array.from(stageMap.values()).sort((a, b) => b.count - a.count),
+            note: 'Mapa mostra onde as conversas estao parando. Maior volume em uma etapa indica vazamento ou fila de atencao.'
+        },
+        leadIntelligence: {
+            temperatures: temperatures.slice(0, 80),
+            dominantObjections: Object.entries(objectionCounts).map(([objection, count]) => ({ objection, count })).sort((a, b) => b.count - a.count),
+            nextBestActions: Object.entries(actionCounts).map(([action, count]) => ({ action, count })).sort((a, b) => b.count - a.count),
+            falseOrderRisk: falseOrderRisk.sort((a, b) => b.score - a.score).slice(0, 40),
+            pickupScores,
+            coldBotReplies: coldBotReplies.slice(0, 40),
+            winningPhrases,
+            abSignals: Object.entries(abCounters).map(([signal, count]) => ({ signal, count })),
+            dailyOperator: {
+                topLossStage: Array.from(stageMap.values()).sort((a, b) => b.count - a.count)[0] || null,
+                topObjection: Object.entries(objectionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '',
+                topAction: Object.entries(actionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '',
+                needsHuman: nextBestActions.filter((item) => /humano|human|medica|prova|suporte/.test(item.action)).length,
+                falseOrderRisk: falseOrderRisk.length,
+                coldBotReplies: coldBotReplies.length
+            },
+            note: 'Inteligencia comercial em modo observacao. Serve para decidir ajustes, nao para executar contato automaticamente.'
+        }
+    };
+};
+
 export const generateObservationReport = async ({
     country = 'EC',
     hours = Number(process.env.OBSERVATION_LOOKBACK_HOURS || 24),
@@ -551,7 +756,8 @@ export const generateObservationReport = async ({
         ...buildHourlyInsights({ messages, orders, findings: limitedFindings, shipments }),
         bonus: buildBonusInsights(shipments),
         recovery: buildRecoveryInsights({ states: recoveryStates, orders }),
-        kit: buildKitInsights(orders)
+        kit: buildKitInsights(orders),
+        ...buildCommercialIntelligence({ grouped, stateByChat, recoveryStates, orders, shipments })
     };
     summary.bonusEligible = insights.bonus.eligible;
     summary.bonusSent = insights.bonus.sent;
@@ -564,6 +770,13 @@ export const generateObservationReport = async ({
     summary.avgKitUnits = insights.kit.avgUnits;
     summary.avgTicket = insights.kit.avgTicket;
     summary.kitUpgradeCandidates = insights.kit.upgradeCandidates.length;
+    summary.hotLeads = insights.leadIntelligence.temperatures.filter((item) => item.temperature === 'quente').length;
+    summary.warmLeads = insights.leadIntelligence.temperatures.filter((item) => item.temperature === 'morno').length;
+    summary.coldLeads = insights.leadIntelligence.temperatures.filter((item) => item.temperature === 'frio').length;
+    summary.falseOrderRisk = insights.leadIntelligence.falseOrderRisk.length;
+    summary.pickupHighScore = insights.leadIntelligence.pickupScores.filter((item) => item.score >= 60).length;
+    summary.coldBotReplies = insights.leadIntelligence.coldBotReplies.length;
+    summary.winningPhrases = insights.leadIntelligence.winningPhrases.length;
 
     const report = await ObservationReport.create({
         title: `Observacao funil Vit Power ${country} - ${to.toISOString().slice(0, 16).replace('T', ' ')}`,
@@ -585,7 +798,9 @@ export const generateObservationReport = async ({
             ...(insights.hotHours?.length ? [`Horario mais quente detectado: ${insights.hotHours[0].label} (${insights.hotHours[0].reason}).`] : []),
             ...(insights.bonus.missing ? [`Existem ${insights.bonus.missing} pedido(s) elegiveis sem bonus registrado. Revisar lista no modulo Observacao.`] : ['Nenhum cliente elegivel sem bonus detectado na janela analisada.']),
             ...(insights.recovery.candidates.length ? [`Existem ${insights.recovery.candidates.length} lead(s) frios para recuperacao: ${Object.entries(insights.recovery.strategyCounts).map(([key, value]) => `${key}=${value}`).join(', ')}.`] : []),
-            ...(insights.kit.upgradeCandidates.length ? [`Kit medio atual: ${insights.kit.avgUnits} unidade(s), ticket medio USD ${insights.kit.avgTicket}. Ha ${insights.kit.upgradeCandidates.length} candidato(s) para estrategia de 3 frascos.`] : [])
+            ...(insights.kit.upgradeCandidates.length ? [`Kit medio atual: ${insights.kit.avgUnits} unidade(s), ticket medio USD ${insights.kit.avgTicket}. Ha ${insights.kit.upgradeCandidates.length} candidato(s) para estrategia de 3 frascos.`] : []),
+            ...(insights.lossMap.stages?.[0] ? [`Maior vazamento por etapa: ${insights.lossMap.stages[0].stage} (${insights.lossMap.stages[0].count} conversa(s)).`] : []),
+            ...(insights.leadIntelligence.dailyOperator?.topAction ? [`Proxima melhor acao mais frequente: ${insights.leadIntelligence.dailyOperator.topAction}.`] : [])
         ],
         generatedBy
     });

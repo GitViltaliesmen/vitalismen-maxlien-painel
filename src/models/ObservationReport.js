@@ -47,7 +47,14 @@ const observationReportSchema = new mongoose.Schema({
         bonusRecoveryCandidates: { type: Number, default: 0 },
         avgKitUnits: { type: Number, default: 0 },
         avgTicket: { type: Number, default: 0 },
-        kitUpgradeCandidates: { type: Number, default: 0 }
+        kitUpgradeCandidates: { type: Number, default: 0 },
+        hotLeads: { type: Number, default: 0 },
+        warmLeads: { type: Number, default: 0 },
+        coldLeads: { type: Number, default: 0 },
+        falseOrderRisk: { type: Number, default: 0 },
+        pickupHighScore: { type: Number, default: 0 },
+        coldBotReplies: { type: Number, default: 0 },
+        winningPhrases: { type: Number, default: 0 }
     },
     insights: {
         salesByHour: { type: [mongoose.Schema.Types.Mixed], default: [] },
@@ -74,6 +81,22 @@ const observationReportSchema = new mongoose.Schema({
             avgTicket: { type: Number, default: 0 },
             distribution: { type: [mongoose.Schema.Types.Mixed], default: [] },
             upgradeCandidates: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            note: { type: String, default: '' }
+        },
+        lossMap: {
+            stages: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            note: { type: String, default: '' }
+        },
+        leadIntelligence: {
+            temperatures: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            dominantObjections: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            nextBestActions: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            falseOrderRisk: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            pickupScores: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            coldBotReplies: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            winningPhrases: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            abSignals: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            dailyOperator: { type: mongoose.Schema.Types.Mixed, default: {} },
             note: { type: String, default: '' }
         }
     },

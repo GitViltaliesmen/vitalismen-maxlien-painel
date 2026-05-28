@@ -279,12 +279,17 @@
                         <div class="kpi"><strong>${report.summary?.avgKitUnits || 0}</strong><span>kit medio</span></div>
                         <div class="kpi"><strong>${report.summary?.avgTicket || 0}</strong><span>ticket medio USD</span></div>
                         <div class="kpi"><strong>${report.summary?.kitUpgradeCandidates || 0}</strong><span>subir kit</span></div>
+                        <div class="kpi"><strong>${report.summary?.hotLeads || 0}</strong><span>leads quentes</span></div>
+                        <div class="kpi"><strong>${report.summary?.falseOrderRisk || 0}</strong><span>risco falso</span></div>
+                        <div class="kpi"><strong>${report.summary?.pickupHighScore || 0}</strong><span>alta retirada</span></div>
+                        <div class="kpi"><strong>${report.summary?.coldBotReplies || 0}</strong><span>resposta fria</span></div>
                     </div>
                 </div>
                 ${renderHotHours(report.insights?.hotHours || [])}
                 ${renderBonus(report.insights?.bonus || {})}
                 ${renderRecovery(report.insights?.recovery || {})}
                 ${renderKit(report.insights?.kit || {})}
+                ${renderCommercial(report.insights || {})}
                 <div class="panel">
                     <h2>Recomendacoes</h2>
                     ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
@@ -376,6 +381,81 @@
                     `).join('')}
                 ` : '<div class="empty">Sem candidatos de upgrade nesta janela.</div>'}
             </div>
+        `;
+
+        const renderCommercial = (insights) => {
+            const intel = insights.leadIntelligence || {};
+            const loss = insights.lossMap || {};
+            return `
+                <div class="panel">
+                    <h2>Mapa de perda por etapa</h2>
+                    <p class="meta">${escapeHtml(loss.note || '')}</p>
+                    ${(loss.stages || []).length ? (loss.stages || []).map((item) => `
+                        <div class="finding">
+                            <div class="badges">
+                                <span class="badge important">${escapeHtml(item.stage)}</span>
+                                <span class="badge">${escapeHtml(item.count)} conversa(s)</span>
+                                <span class="badge">quentes ${escapeHtml(item.hot || 0)}</span>
+                            </div>
+                            <p>Frios: ${escapeHtml(item.cold || 0)} | Mornos: ${escapeHtml(item.warm || 0)} | Acao dominante: ${escapeHtml(item.topAction || '')}</p>
+                        </div>
+                    `).join('') : '<div class="empty">Sem mapa de perda nesta janela.</div>'}
+                </div>
+                <div class="panel">
+                    <h2>Inteligencia comercial</h2>
+                    <p class="meta">${escapeHtml(intel.note || '')}</p>
+                    ${renderSimpleList('Proximas melhores acoes', intel.nextBestActions, 'action')}
+                    ${renderSimpleList('Objecoes dominantes', intel.dominantObjections, 'objection')}
+                    ${renderSimpleList('Teste A/B observacional', intel.abSignals, 'signal')}
+                </div>
+                <div class="panel">
+                    <h2>Risco e retirada</h2>
+                    <h3>Risco de pedido falso</h3>
+                    ${(intel.falseOrderRisk || []).length ? (intel.falseOrderRisk || []).slice(0, 12).map((item) => `
+                        <div class="finding">
+                            <div class="badges"><span class="badge critical">score ${escapeHtml(item.score)}</span><span class="badge">${escapeHtml(item.phone)}</span><span class="badge">${escapeHtml(item.stage)}</span></div>
+                            <p>${escapeHtml((item.reasons || []).join(', '))}</p>
+                        </div>
+                    `).join('') : '<div class="empty">Sem risco alto nesta janela.</div>'}
+                    <h3>Score de retirada</h3>
+                    ${(intel.pickupScores || []).length ? (intel.pickupScores || []).slice(0, 12).map((item) => `
+                        <div class="finding">
+                            <div class="badges"><span class="badge improvement">score ${escapeHtml(item.score)}</span><span class="badge">${escapeHtml(item.orderId)}</span><span class="badge">${escapeHtml(item.status)}</span></div>
+                            <p>${escapeHtml((item.reasons || []).join(', '))}</p>
+                        </div>
+                    `).join('') : '<div class="empty">Sem score de retirada nesta janela.</div>'}
+                </div>
+                <div class="panel">
+                    <h2>Resposta fria e frases vencedoras</h2>
+                    <h3>Respostas frias do bot</h3>
+                    ${(intel.coldBotReplies || []).length ? (intel.coldBotReplies || []).slice(0, 8).map((item) => `
+                        <div class="finding">
+                            <div class="badges"><span class="badge important">${escapeHtml(item.phone)}</span><span class="badge">${escapeHtml(item.stage)}</span></div>
+                            <div class="quote">${escapeHtml(item.customerText || '')}</div>
+                            <div class="quote">${escapeHtml(item.botText || '')}</div>
+                        </div>
+                    `).join('') : '<div class="empty">Sem resposta fria detectada.</div>'}
+                    <h3>Banco de frases vencedoras</h3>
+                    ${(intel.winningPhrases || []).length ? (intel.winningPhrases || []).slice(0, 8).map((item) => `
+                        <div class="finding">
+                            <div class="badges"><span class="badge improvement">${escapeHtml(item.orderId)}</span><span class="badge">${escapeHtml(item.result)}</span><span class="badge">USD ${escapeHtml(item.ticket || 0)}</span></div>
+                            <div class="quote">${escapeHtml(item.phrase || '')}</div>
+                        </div>
+                    `).join('') : '<div class="empty">Sem frase vencedora nesta janela.</div>'}
+                </div>
+                <div class="panel">
+                    <h2>Resumo do operador</h2>
+                    <p>Etapa com maior vazamento: ${escapeHtml(intel.dailyOperator?.topLossStage?.stage || 'sem dados')}</p>
+                    <p>Objecao dominante: ${escapeHtml(intel.dailyOperator?.topObjection || 'sem dados')}</p>
+                    <p>Acao dominante: ${escapeHtml(intel.dailyOperator?.topAction || 'sem dados')}</p>
+                    <p>Precisa humano: ${escapeHtml(intel.dailyOperator?.needsHuman || 0)} | Risco falso: ${escapeHtml(intel.dailyOperator?.falseOrderRisk || 0)} | Resposta fria: ${escapeHtml(intel.dailyOperator?.coldBotReplies || 0)}</p>
+                </div>
+            `;
+        };
+
+        const renderSimpleList = (title, items, key) => `
+            <h3>${escapeHtml(title)}</h3>
+            ${(items || []).length ? (items || []).slice(0, 10).map((item) => `<p>${escapeHtml(item[key] || '')}: ${escapeHtml(item.count || 0)}</p>`).join('') : '<div class="empty">Sem dados.</div>'}
         `;
 
         const renderFinding = (item) => `
