@@ -41,7 +41,13 @@ const observationReportSchema = new mongoose.Schema({
         bonusSent: { type: Number, default: 0 },
         bonusMissing: { type: Number, default: 0 },
         bonusPickupRateWithBonus: { type: Number, default: 0 },
-        bonusPickupRateWithoutBonus: { type: Number, default: 0 }
+        bonusPickupRateWithoutBonus: { type: Number, default: 0 },
+        recoveryCandidates: { type: Number, default: 0 },
+        flashPromoCandidates: { type: Number, default: 0 },
+        bonusRecoveryCandidates: { type: Number, default: 0 },
+        avgKitUnits: { type: Number, default: 0 },
+        avgTicket: { type: Number, default: 0 },
+        kitUpgradeCandidates: { type: Number, default: 0 }
     },
     insights: {
         salesByHour: { type: [mongoose.Schema.Types.Mixed], default: [] },
@@ -56,6 +62,18 @@ const observationReportSchema = new mongoose.Schema({
             pickupRateWithBonus: { type: Number, default: 0 },
             pickupRateWithoutBonus: { type: Number, default: 0 },
             missingShipments: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            note: { type: String, default: '' }
+        },
+        recovery: {
+            candidates: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            strategyCounts: { type: mongoose.Schema.Types.Mixed, default: {} },
+            note: { type: String, default: '' }
+        },
+        kit: {
+            avgUnits: { type: Number, default: 0 },
+            avgTicket: { type: Number, default: 0 },
+            distribution: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            upgradeCandidates: { type: [mongoose.Schema.Types.Mixed], default: [] },
             note: { type: String, default: '' }
         }
     },

@@ -351,6 +351,145 @@ const buildBonusInsights = (shipments) => {
     };
 };
 
+const recoveryStrategyForState = (state) => {
+    const text = normalizeText([
+        state.lastInboundText,
+        state.metadata?.lastProcessedInboundText,
+        state.metadata?.customerDraft?.notes
+    ].filter(Boolean).join(' '));
+    const stage = String(state.metadata?.perAgentMemory?.vit_power_ec?.lastFunnelStage || state.metadata?.customerDraft?.status || '');
+    const hoursCold = state.lastInboundAt ? Math.round((Date.now() - new Date(state.lastInboundAt).getTime()) / 36e5) : 0;
+    const orderStatus = normalizeText(state.metadata?.orderStatus || state.metadata?.customerDraft?.status || '');
+
+    if (containsAny(text, signalGroups.cancel)) {
+        return null;
+    }
+    if (
+        /pedido|guia|llega|llegue|agencia|retirar|retiro|bonus|bono|ya (lo )?compre|ya comence|comprobante/.test(text)
+        || /confirmado|pedido_confirmado|order_closed|entregado|pedido_enviado|delivered/.test(orderStatus)
+        || /order_closed|post_sale|shipment|pickup|delivered/.test(stage)
+    ) {
+        return {
+            strategy: 'post_sale_support',
+            label: 'Suporte pos-venda, nao promocao',
+            reason: 'Cliente parece estar em pos-venda ou suporte. Nao oferecer promocao; conferir guia, bonus, retirada ou status antes.'
+        };
+    }
+    if (containsAny(text, signalGroups.trust) || containsAny(text, signalGroups.medical)) {
+        return {
+            strategy: 'trust_recovery',
+            label: 'Prova + audio humano antes de oferta',
+            reason: 'Cliente esfriou com duvida de confianca/saude. Oferta antes da objecao pode piorar.'
+        };
+    }
+    if (containsAny(text, signalGroups.buyLater)) {
+        return {
+            strategy: 'buy_later_bonus',
+            label: 'Bonus reservado + data combinada',
+            reason: 'Cliente adiou. Melhor recuperar com bonus reservado e pergunta de data, nao desconto imediato.'
+        };
+    }
+    if (/price|precio|valor|caro|descuento|rebaja/.test(text) || hoursCold >= 12) {
+        return {
+            strategy: 'flash_promo',
+            label: 'Promocao relampago discreta',
+            reason: 'Lead frio/morno sem fechamento. Usar oferta curta, com limite real e sem parecer desespero.'
+        };
+    }
+    if (/package_selection|awaiting|confirmed|draft|atendendo/.test(stage)) {
+        return {
+            strategy: 'soft_reminder',
+            label: 'Lembrete curto + proximo passo',
+            reason: 'Lead interrompeu no meio do fluxo. Recuperar com pergunta simples e sem nova explicacao longa.'
+        };
+    }
+    return {
+        strategy: 'human_review',
+        label: 'Revisao humana',
+        reason: 'Sinal pouco claro. Melhor humano revisar antes de qualquer oferta.'
+    };
+};
+
+const buildRecoveryInsights = ({ states, orders }) => {
+    const confirmedPhones = new Set(orders
+        .filter((order) => ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(order.status || '')))
+        .map((order) => digitsOnly(order.customer?.phone))
+        .filter(Boolean));
+    const minAgeHours = Number(process.env.OBSERVATION_RECOVERY_MIN_AGE_HOURS || 2);
+    const maxAgeHours = Number(process.env.OBSERVATION_RECOVERY_MAX_AGE_HOURS || 72);
+    const rawCandidates = [];
+    const strategyCounts = {};
+
+    for (const state of states) {
+        const phone = digitsOnly(state.phoneDigits || state.chatId);
+        if (!phone || confirmedPhones.has(phone)) continue;
+        if (!state.lastInboundAt) continue;
+        const hoursCold = Math.round((Date.now() - new Date(state.lastInboundAt).getTime()) / 36e5);
+        if (hoursCold < minAgeHours || hoursCold > maxAgeHours) continue;
+        const recommendation = recoveryStrategyForState(state);
+        if (!recommendation) continue;
+        strategyCounts[recommendation.strategy] = (strategyCounts[recommendation.strategy] || 0) + 1;
+        rawCandidates.push({
+            chatId: state.chatId,
+            phone,
+            lastInboundAt: state.lastInboundAt,
+            hoursCold,
+            lastText: clip(state.lastInboundText || state.metadata?.lastProcessedInboundText || '', 220),
+            strategy: recommendation.strategy,
+            label: recommendation.label,
+            reason: recommendation.reason
+        });
+    }
+    const candidates = rawCandidates
+        .sort((a, b) => {
+            const supportWeight = (item) => item.strategy === 'post_sale_support' ? 0 : 1;
+            return supportWeight(b) - supportWeight(a) || b.hoursCold - a.hoursCold;
+        })
+        .slice(0, 30);
+
+    return {
+        candidates,
+        strategyCounts: candidates.reduce((acc, item) => {
+            acc[item.strategy] = (acc[item.strategy] || 0) + 1;
+            return acc;
+        }, {}),
+        note: 'Estrategia inspirada em funis de alta conversao: primeiro remover a objecao, depois recuperar com lembrete, bonus reservado ou oferta relampago. Nada e enviado automaticamente.'
+    };
+};
+
+const buildKitInsights = (orders) => {
+    const confirmed = orders.filter((order) => ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(order.status || '')));
+    const totalUnits = confirmed.reduce((sum, order) => sum + (Number(order.package?.quantity || order.package?.id || 1) || 1), 0);
+    const totalTicket = confirmed.reduce((sum, order) => sum + (Number(order.total || 0) || 0), 0);
+    const distributionMap = new Map();
+    for (const order of confirmed) {
+        const units = Number(order.package?.quantity || order.package?.id || 1) || 1;
+        distributionMap.set(units, (distributionMap.get(units) || 0) + 1);
+    }
+    const upgradeCandidates = confirmed
+        .filter((order) => (Number(order.package?.quantity || order.package?.id || 1) || 1) === 1)
+        .slice(0, 25)
+        .map((order) => ({
+            orderId: order.orderId,
+            name: order.customer?.name || '',
+            phone: order.customer?.phone || '',
+            city: order.customer?.city || '',
+            total: order.total || 0,
+            suggestedKit: '3 frascos',
+            reason: 'Cliente comprou 1 unidade. Pode receber argumento de tratamento completo/maior economia em recompra ou antes do envio, se ainda fizer sentido.'
+        }));
+
+    return {
+        avgUnits: confirmed.length ? Math.round((totalUnits / confirmed.length) * 10) / 10 : 0,
+        avgTicket: confirmed.length ? Math.round((totalTicket / confirmed.length) * 100) / 100 : 0,
+        distribution: Array.from(distributionMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([units, count]) => ({ units, count })),
+        upgradeCandidates,
+        note: 'Aumentar kit medio deve priorizar valor percebido: tratamento completo, economia por frasco, bonus de retirada e menos risco de faltar produto. Evitar desconto cedo demais.'
+    };
+};
+
 export const generateObservationReport = async ({
     country = 'EC',
     hours = Number(process.env.OBSERVATION_LOOKBACK_HOURS || 24),
@@ -383,6 +522,10 @@ export const generateObservationReport = async ({
     const states = await ContactState.find({
         chatId: { $in: Array.from(grouped.keys()) }
     }, { chatId: 1, phoneDigits: 1, countryCode: 1 }).lean();
+    const recoveryStates = await ContactState.find({
+        ...(country && country !== 'ALL' ? { countryCode: country } : {}),
+        lastInboundAt: { $gte: new Date(Date.now() - 72 * 60 * 60 * 1000) }
+    }).limit(500).lean();
     const stateByChat = new Map(states.map((state) => [state.chatId, state]));
 
     const allFindings = [];
@@ -406,13 +549,21 @@ export const generateObservationReport = async ({
     };
     const insights = {
         ...buildHourlyInsights({ messages, orders, findings: limitedFindings, shipments }),
-        bonus: buildBonusInsights(shipments)
+        bonus: buildBonusInsights(shipments),
+        recovery: buildRecoveryInsights({ states: recoveryStates, orders }),
+        kit: buildKitInsights(orders)
     };
     summary.bonusEligible = insights.bonus.eligible;
     summary.bonusSent = insights.bonus.sent;
     summary.bonusMissing = insights.bonus.missing;
     summary.bonusPickupRateWithBonus = insights.bonus.pickupRateWithBonus;
     summary.bonusPickupRateWithoutBonus = insights.bonus.pickupRateWithoutBonus;
+    summary.recoveryCandidates = insights.recovery.candidates.length;
+    summary.flashPromoCandidates = insights.recovery.strategyCounts.flash_promo || 0;
+    summary.bonusRecoveryCandidates = insights.recovery.strategyCounts.buy_later_bonus || 0;
+    summary.avgKitUnits = insights.kit.avgUnits;
+    summary.avgTicket = insights.kit.avgTicket;
+    summary.kitUpgradeCandidates = insights.kit.upgradeCandidates.length;
 
     const report = await ObservationReport.create({
         title: `Observacao funil Vit Power ${country} - ${to.toISOString().slice(0, 16).replace('T', ' ')}`,
@@ -432,7 +583,9 @@ export const generateObservationReport = async ({
         recommendations: [
             ...buildRecommendations(summary),
             ...(insights.hotHours?.length ? [`Horario mais quente detectado: ${insights.hotHours[0].label} (${insights.hotHours[0].reason}).`] : []),
-            ...(insights.bonus.missing ? [`Existem ${insights.bonus.missing} pedido(s) elegiveis sem bonus registrado. Revisar lista no modulo Observacao.`] : ['Nenhum cliente elegivel sem bonus detectado na janela analisada.'])
+            ...(insights.bonus.missing ? [`Existem ${insights.bonus.missing} pedido(s) elegiveis sem bonus registrado. Revisar lista no modulo Observacao.`] : ['Nenhum cliente elegivel sem bonus detectado na janela analisada.']),
+            ...(insights.recovery.candidates.length ? [`Existem ${insights.recovery.candidates.length} lead(s) frios para recuperacao: ${Object.entries(insights.recovery.strategyCounts).map(([key, value]) => `${key}=${value}`).join(', ')}.`] : []),
+            ...(insights.kit.upgradeCandidates.length ? [`Kit medio atual: ${insights.kit.avgUnits} unidade(s), ticket medio USD ${insights.kit.avgTicket}. Ha ${insights.kit.upgradeCandidates.length} candidato(s) para estrategia de 3 frascos.`] : [])
         ],
         generatedBy
     });

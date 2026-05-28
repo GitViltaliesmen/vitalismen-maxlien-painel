@@ -275,10 +275,16 @@
                         <div class="kpi"><strong>${report.summary?.bonusMissing || 0}</strong><span>bonus faltando</span></div>
                         <div class="kpi"><strong>${report.summary?.bonusPickupRateWithBonus || 0}%</strong><span>retirada com bonus</span></div>
                         <div class="kpi"><strong>${report.summary?.bonusPickupRateWithoutBonus || 0}%</strong><span>retirada sem bonus</span></div>
+                        <div class="kpi"><strong>${report.summary?.recoveryCandidates || 0}</strong><span>recuperar frios</span></div>
+                        <div class="kpi"><strong>${report.summary?.avgKitUnits || 0}</strong><span>kit medio</span></div>
+                        <div class="kpi"><strong>${report.summary?.avgTicket || 0}</strong><span>ticket medio USD</span></div>
+                        <div class="kpi"><strong>${report.summary?.kitUpgradeCandidates || 0}</strong><span>subir kit</span></div>
                     </div>
                 </div>
                 ${renderHotHours(report.insights?.hotHours || [])}
                 ${renderBonus(report.insights?.bonus || {})}
+                ${renderRecovery(report.insights?.recovery || {})}
+                ${renderKit(report.insights?.kit || {})}
                 <div class="panel">
                     <h2>Recomendacoes</h2>
                     ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
@@ -325,6 +331,50 @@
                         </div>
                     `).join('')}
                 ` : '<div class="empty">Nenhum cliente elegivel sem bonus nesta janela.</div>'}
+            </div>
+        `;
+
+        const renderRecovery = (recovery) => `
+            <div class="panel">
+                <h2>Recuperacao de frios</h2>
+                <p class="meta">${escapeHtml(recovery.note || 'Somente sugestao; nada e enviado automaticamente.')}</p>
+                ${(recovery.candidates || []).length ? (recovery.candidates || []).map((item) => `
+                    <div class="finding">
+                        <div class="badges">
+                            <span class="badge important">${escapeHtml(item.label)}</span>
+                            <span class="badge">${escapeHtml(item.phone)}</span>
+                            <span class="badge">${escapeHtml(item.hoursCold)}h frio</span>
+                        </div>
+                        <div class="quote">${escapeHtml(item.lastText || 'Sem texto capturado')}</div>
+                        <p>${escapeHtml(item.reason)}</p>
+                    </div>
+                `).join('') : '<div class="empty">Nenhum lead frio candidato nesta janela.</div>'}
+            </div>
+        `;
+
+        const renderKit = (kit) => `
+            <div class="panel">
+                <h2>Kit medio</h2>
+                <div class="kpis">
+                    <div class="kpi"><strong>${kit.avgUnits || 0}</strong><span>unidades medias</span></div>
+                    <div class="kpi"><strong>${kit.avgTicket || 0}</strong><span>ticket medio USD</span></div>
+                    <div class="kpi"><strong>${(kit.upgradeCandidates || []).length}</strong><span>candidatos 3 frascos</span></div>
+                </div>
+                <p class="meta">${escapeHtml(kit.note || '')}</p>
+                ${(kit.distribution || []).length ? `<h3>Distribuicao</h3>${(kit.distribution || []).map((item) => `<p>${escapeHtml(item.units)} frasco(s): ${escapeHtml(item.count)} pedido(s)</p>`).join('')}` : ''}
+                ${(kit.upgradeCandidates || []).length ? `
+                    <h3>Candidatos para subir kit</h3>
+                    ${(kit.upgradeCandidates || []).map((item) => `
+                        <div class="finding">
+                            <div class="badges">
+                                <span class="badge improvement">${escapeHtml(item.suggestedKit)}</span>
+                                <span class="badge">${escapeHtml(item.orderId)}</span>
+                                <span class="badge">${escapeHtml(item.phone)}</span>
+                            </div>
+                            <p>${escapeHtml(item.name || 'Cliente sem nome')} | ${escapeHtml(item.reason)}</p>
+                        </div>
+                    `).join('')}
+                ` : '<div class="empty">Sem candidatos de upgrade nesta janela.</div>'}
             </div>
         `;
 
