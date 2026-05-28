@@ -146,6 +146,16 @@ export const sendZapiVideo = async ({ phone, video, caption = '' }) => sendZapiM
     caption
 });
 
+export const sendZapiDocument = async ({ phone, document, extension = 'pdf' }) => {
+    const safeExtension = clean(extension).replace(/[^a-z0-9]/gi, '').toLowerCase() || 'pdf';
+    return sendZapiMedia({
+        phone,
+        endpointPath: `/send-document/${safeExtension}`,
+        mediaKey: 'document',
+        media: document
+    });
+};
+
 export const zapiPublicStatus = () => {
     const cfg = zapiConfig();
     const connectedPhone = digits(process.env.ZAPI_CONNECTED_PHONE);

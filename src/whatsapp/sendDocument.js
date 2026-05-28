@@ -4,6 +4,7 @@ import { getOwnPhoneDigits, getSock, waitForWhatsAppReady } from './connection.j
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
 import { applyHumanPacing } from './humanPacing.js';
+import { sendDocumentViaZapi, shouldUseZapiForMedia } from './zapiOutbound.js';
 
 const isRemoteUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -16,6 +17,41 @@ const resolveMimeType = (filePath) => {
 };
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
+    const zapiRoute = await shouldUseZapiForMedia({ jid, sessionId: options.sessionId || null });
+    if (zapiRoute.use) {
+        const guard = canSendOutbound({
+            jid: zapiRoute.phone,
+            text: caption || fileName || filePath,
+            sessionId: zapiRoute.sessionId,
+            ownDigits: zapiRoute.sessionId,
+            kind: 'document'
+        });
+        if (!guard.allowed) {
+            console.log(`[ZAPI_SEND_BLOCKED] documento bloqueado -> ${zapiRoute.phone} | reason=${guard.reason}`);
+            return false;
+        }
+
+        if (!filePath || (!isRemoteUrl(filePath) && !fs.existsSync(filePath))) {
+            console.error(`[ZAPI_DOC_ERROR] Arquivo de documento nao encontrado: ${filePath}`);
+            return false;
+        }
+
+        try {
+            const extension = path.extname(String(fileName || filePath).split('?')[0]).replace(/^\./, '') || 'pdf';
+            const sent = await sendDocumentViaZapi({ jid, document: filePath, extension });
+            if (sent.ok) {
+                console.log(`[ZAPI_SEND_OK] Documento disparado -> ${sent.phone} | Arquivo: ${filePath} | reason=${zapiRoute.reason}`);
+                recordOutboundSend({ sessionId: zapiRoute.sessionId, jid: zapiRoute.phone });
+                return true;
+            }
+            console.warn(`[ZAPI_DOC_SKIPPED] ${sent.reason || 'unknown'} -> ${jid}`);
+        } catch (error) {
+            console.error(`[ZAPI_DOC_ERROR] Falha ao enviar documento para ${jid}:`, error?.response?.data || error);
+        }
+
+        return false;
+    }
+
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);

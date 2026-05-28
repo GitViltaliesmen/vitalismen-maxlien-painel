@@ -1,5 +1,5 @@
 import ContactState from '../models/ContactState.js';
-import { sendZapiAudio, sendZapiImage, sendZapiText, sendZapiVideo, zapiConfig } from '../services/zapiClient.js';
+import { sendZapiAudio, sendZapiDocument, sendZapiImage, sendZapiText, sendZapiVideo, zapiConfig } from '../services/zapiClient.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -126,5 +126,13 @@ export const sendVideoViaZapi = async ({ jid, video, caption = '' }) => {
     if (!phone) return { ok: false, reason: 'missing_phone' };
 
     const result = await sendZapiVideo({ phone, video, caption });
+    return { ok: true, phone, result };
+};
+
+export const sendDocumentViaZapi = async ({ jid, document, extension = 'pdf' }) => {
+    const phone = await resolveZapiPhoneForJid(jid);
+    if (!phone) return { ok: false, reason: 'missing_phone' };
+
+    const result = await sendZapiDocument({ phone, document, extension });
     return { ok: true, phone, result };
 };
