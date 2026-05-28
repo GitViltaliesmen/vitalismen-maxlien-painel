@@ -42,6 +42,24 @@ const zapiWebhookEventSchema = new mongoose.Schema({
 const ZapiWebhookEvent = mongoose.models.ZapiWebhookEvent
     || mongoose.model('ZapiWebhookEvent', zapiWebhookEventSchema);
 
+export const getRecentZapiActivity = async ({ minutes = 15 } = {}) => {
+    const since = new Date(Date.now() - Math.max(1, Number(minutes) || 15) * 60 * 1000);
+    const event = await ZapiWebhookEvent.findOne({
+        createdAt: { $gte: since }
+    }).sort({ createdAt: -1 }).lean();
+
+    return event
+        ? {
+            active: true,
+            at: event.createdAt,
+            eventType: event.eventType || '',
+            phone: event.phone || '',
+            skipped: event.skipped || '',
+            connectedPhone: event.normalized?.connectedPhone || ''
+        }
+        : { active: false };
+};
+
 const ackFromStatus = (status) => {
     const normalized = clean(status).toUpperCase();
     const map = {

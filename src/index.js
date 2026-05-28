@@ -132,10 +132,15 @@ app.use('/api/observation', observationRoutes);
 // Observability endpoints
 app.use('/api/health', healthRoutes);
 
-// Start Baileys WhatsApp Engine(s)
-startConfiguredWhatsAppSessions().catch(err => {
-    console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
-});
+// Start Baileys only when this deployment is intentionally using local QR sessions.
+// Z-API deployments receive and send through /api/zapi and should not fight Baileys.
+if (String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() === 'false') {
+    console.log('[WHATSAPP] Baileys desativado por WHATSAPP_CONNECT_ENABLED=false; usando Z-API.');
+} else {
+    startConfiguredWhatsAppSessions().catch(err => {
+        console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
+    });
+}
 
 // Start Scheduler
 if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
