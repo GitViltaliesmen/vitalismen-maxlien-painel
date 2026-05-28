@@ -271,8 +271,14 @@
                         <div class="kpi"><strong>${report.summary?.important || 0}</strong><span>importantes</span></div>
                         <div class="kpi"><strong>${report.summary?.buyLaterSignals || 0}</strong><span>comprar depois</span></div>
                         <div class="kpi"><strong>${report.summary?.trustSignals || 0}</strong><span>confianca/golpe</span></div>
+                        <div class="kpi"><strong>${report.summary?.confirmedOrders || 0}</strong><span>pedidos confirmados</span></div>
+                        <div class="kpi"><strong>${report.summary?.bonusMissing || 0}</strong><span>bonus faltando</span></div>
+                        <div class="kpi"><strong>${report.summary?.bonusPickupRateWithBonus || 0}%</strong><span>retirada com bonus</span></div>
+                        <div class="kpi"><strong>${report.summary?.bonusPickupRateWithoutBonus || 0}%</strong><span>retirada sem bonus</span></div>
                     </div>
                 </div>
+                ${renderHotHours(report.insights?.hotHours || [])}
+                ${renderBonus(report.insights?.bonus || {})}
                 <div class="panel">
                     <h2>Recomendacoes</h2>
                     ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
@@ -283,6 +289,44 @@
                 </div>
             `;
         };
+
+        const renderHotHours = (hotHours) => `
+            <div class="panel">
+                <h2>Horarios quentes</h2>
+                ${hotHours.length ? hotHours.map((item) => `
+                    <div class="finding">
+                        <div class="badges"><span class="badge improvement">${escapeHtml(item.label)}</span><span class="badge">score ${escapeHtml(item.score)}</span></div>
+                        <p>${escapeHtml(item.reason)}</p>
+                    </div>
+                `).join('') : '<div class="empty">Ainda sem volume suficiente para mapear horarios.</div>'}
+            </div>
+        `;
+
+        const renderBonus = (bonus) => `
+            <div class="panel">
+                <h2>Bonus de retirada</h2>
+                <div class="kpis">
+                    <div class="kpi"><strong>${bonus.eligible || 0}</strong><span>elegiveis</span></div>
+                    <div class="kpi"><strong>${bonus.sent || 0}</strong><span>bonus enviados</span></div>
+                    <div class="kpi"><strong>${bonus.missing || 0}</strong><span>sem bonus</span></div>
+                    <div class="kpi"><strong>${bonus.pickupRateWithBonus || 0}%</strong><span>efeito com bonus</span></div>
+                </div>
+                <p class="meta">${escapeHtml(bonus.note || 'Analise correlacional por janela.')}</p>
+                ${(bonus.missingShipments || []).length ? `
+                    <h3>Clientes elegiveis sem bonus registrado</h3>
+                    ${(bonus.missingShipments || []).map((item) => `
+                        <div class="finding">
+                            <div class="badges">
+                                <span class="badge critical">${escapeHtml(item.orderId)}</span>
+                                <span class="badge">${escapeHtml(item.phone)}</span>
+                                <span class="badge">${escapeHtml(item.status)}</span>
+                            </div>
+                            <p>${escapeHtml(item.name || 'Cliente sem nome')} | ${escapeHtml(item.city || '')}</p>
+                        </div>
+                    `).join('')}
+                ` : '<div class="empty">Nenhum cliente elegivel sem bonus nesta janela.</div>'}
+            </div>
+        `;
 
         const renderFinding = (item) => `
             <article class="finding">

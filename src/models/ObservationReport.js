@@ -5,6 +5,7 @@ const observationFindingSchema = new mongoose.Schema({
     category: { type: String, default: 'general', index: true },
     chatId: { type: String, default: '', index: true },
     phone: { type: String, default: '', index: true },
+    occurredAt: Date,
     customerText: { type: String, default: '' },
     botText: { type: String, default: '' },
     whyItMatters: { type: String, default: '' },
@@ -34,7 +35,29 @@ const observationReportSchema = new mongoose.Schema({
         buyLaterSignals: { type: Number, default: 0 },
         trustSignals: { type: Number, default: 0 },
         medicalSignals: { type: Number, default: 0 },
-        unansweredSignals: { type: Number, default: 0 }
+        unansweredSignals: { type: Number, default: 0 },
+        confirmedOrders: { type: Number, default: 0 },
+        bonusEligible: { type: Number, default: 0 },
+        bonusSent: { type: Number, default: 0 },
+        bonusMissing: { type: Number, default: 0 },
+        bonusPickupRateWithBonus: { type: Number, default: 0 },
+        bonusPickupRateWithoutBonus: { type: Number, default: 0 }
+    },
+    insights: {
+        salesByHour: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        messageByHour: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        hotHours: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        bonus: {
+            eligible: { type: Number, default: 0 },
+            sent: { type: Number, default: 0 },
+            missing: { type: Number, default: 0 },
+            deliveredOrPickedWithBonus: { type: Number, default: 0 },
+            deliveredOrPickedWithoutBonus: { type: Number, default: 0 },
+            pickupRateWithBonus: { type: Number, default: 0 },
+            pickupRateWithoutBonus: { type: Number, default: 0 },
+            missingShipments: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            note: { type: String, default: '' }
+        }
     },
     findings: { type: [observationFindingSchema], default: [] },
     recommendations: { type: [String], default: [] },
