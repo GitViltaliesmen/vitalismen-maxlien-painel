@@ -75,7 +75,7 @@ export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = 
         return { allowed: false, reason: `unauthorized_session:${normalizedSessionId}` };
     }
 
-    if (targetDigits && blockedRecipients.some((blocked) => isSamePhone(targetDigits, blocked)) && !isExplicitAllowedRecipient) {
+    if (targetDigits && blockedRecipients.some((blocked) => isSamePhone(targetDigits, blocked))) {
         return { allowed: false, reason: `blocked_recipient:${targetDigits}` };
     }
 

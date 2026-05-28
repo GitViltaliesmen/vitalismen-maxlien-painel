@@ -36,14 +36,38 @@ const contactQueryForJid = (jid = '') => {
     };
 };
 
-export const resolveZapiPhoneForJid = async (jid = '') => {
-    const raw = String(jid || '').trim();
-    if (!raw) return '';
+const blockedContactNamePattern = () => {
+    const raw = String(process.env.WHATSAPP_BLOCKED_CONTACT_NAME_PATTERN || 'dropi|droppi|vital\\s*com|vitalcom').trim();
+    return raw ? new RegExp(raw, 'i') : null;
+};
 
-    if (raw.endsWith('@zapi')) return digitsOnly(raw);
+const isBlockedContactState = (state) => {
+    if (!state) return false;
+    const pattern = blockedContactNamePattern();
+    if (!pattern) return false;
+    const values = [
+        state.notifyName,
+        state.name,
+        state.metadata?.senderName,
+        state.metadata?.contactName
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    return values.some((value) => pattern.test(value));
+};
+
+const resolveZapiContactForJid = async (jid = '') => {
+    const raw = String(jid || '').trim();
+    if (!raw) return { phone: '', state: null };
 
     const state = await ContactState.findOne(contactQueryForJid(raw)).sort({ updatedAt: -1 }).lean().catch(() => null);
-    return digitsOnly(state?.phoneDigits || raw);
+    return {
+        phone: digitsOnly(state?.phoneDigits || raw),
+        state
+    };
+};
+
+export const resolveZapiPhoneForJid = async (jid = '') => {
+    const contact = await resolveZapiContactForJid(jid);
+    return contact.phone;
 };
 
 export const shouldUseZapiForText = async ({ jid = '', sessionId = '' } = {}) => {
@@ -53,8 +77,10 @@ export const shouldUseZapiForText = async ({ jid = '', sessionId = '' } = {}) =>
     const requested = String(sessionId || '').trim().toLowerCase();
     const raw = String(jid || '').trim();
     const force = requested === 'zapi' || raw.endsWith('@zapi');
-    const phone = await resolveZapiPhoneForJid(raw);
+    const contact = await resolveZapiContactForJid(raw);
+    const phone = contact.phone;
     if (!phone) return { use: false, reason: 'missing_phone' };
+    if (isBlockedContactState(contact.state)) return { use: false, reason: 'blocked_contact_name', phone };
     if (!isAllowedZapiRecipient(phone)) return { use: false, reason: 'zapi_recipient_not_allowed', phone };
 
     const official = digitsOnly(process.env.ZAPI_CONNECTED_PHONE || process.env.WHATSAPP_DEFAULT_SESSION_ID);
