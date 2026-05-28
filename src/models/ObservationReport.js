@@ -98,6 +98,13 @@ const observationReportSchema = new mongoose.Schema({
             abSignals: { type: [mongoose.Schema.Types.Mixed], default: [] },
             dailyOperator: { type: mongoose.Schema.Types.Mixed, default: {} },
             note: { type: String, default: '' }
+        },
+        media: {
+            byType: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            topInteraction: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            topSales: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            topRepurchase: { type: [mongoose.Schema.Types.Mixed], default: [] },
+            note: { type: String, default: '' }
         }
     },
     findings: { type: [observationFindingSchema], default: [] },

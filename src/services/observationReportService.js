@@ -695,6 +695,97 @@ const buildCommercialIntelligence = ({ grouped, stateByChat, recoveryStates, ord
     };
 };
 
+const messageMediaType = (message) => {
+    const type = normalizeText(message.type || '');
+    const body = String(message.body || '');
+    const mediaUrl = normalizeText(message.mediaUrl || message.mediaPreviewUrl || '');
+    if (/audio|ptt/.test(type) || /\.(mp3|ogg|opus|wav|m4a)$/i.test(mediaUrl) || /\[audio\]|\[enviar_audio_gravado|audio/i.test(body)) return 'audio';
+    if (/image|sticker/.test(type) || /\.(jpg|jpeg|png|webp|gif)$/i.test(mediaUrl)) return 'imagem';
+    if (/video/.test(type) || /\.(mp4|mov|webm)$/i.test(mediaUrl) || /video/i.test(body)) return 'video';
+    if (/document/.test(type) || /\.(pdf|doc|docx)$/i.test(mediaUrl)) return 'documento';
+    return 'texto';
+};
+
+const samePhone = (left, right) => {
+    const a = digitsOnly(left);
+    const b = digitsOnly(right);
+    if (!a || !b) return false;
+    return a === b || a.endsWith(b.slice(-9)) || b.endsWith(a.slice(-9));
+};
+
+const buildMediaPerformanceInsights = ({ grouped, orders, historicalOrders }) => {
+    const byType = new Map();
+    const confirmedOrders = orders.filter((order) => ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(order.status || '')));
+    const historicalByPhone = new Map();
+    for (const order of historicalOrders) {
+        const phone = digitsOnly(order.customer?.phone);
+        if (!phone) continue;
+        if (!historicalByPhone.has(phone.slice(-9))) historicalByPhone.set(phone.slice(-9), []);
+        historicalByPhone.get(phone.slice(-9)).push(order);
+    }
+
+    for (const [chatId, messages] of grouped.entries()) {
+        const sorted = [...messages].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        for (const message of sorted) {
+            const isBot = message.isBot || message.from === 'bot' || message.isFromMe;
+            if (!isBot) continue;
+            const kind = messageMediaType(message);
+            const bucket = byType.get(kind) || {
+                type: kind,
+                sent: 0,
+                interactions: 0,
+                sales: 0,
+                repurchases: 0,
+                interactionRate: 0,
+                salesRate: 0,
+                repurchaseRate: 0,
+                examples: []
+            };
+            bucket.sent += 1;
+            const sentAt = new Date(message.createdAt || (message.timestamp ? message.timestamp * 1000 : Date.now()));
+            const nextInbound = sorted.find((candidate) => (
+                !candidate.isFromMe
+                && candidate.from !== 'bot'
+                && new Date(candidate.createdAt || (candidate.timestamp ? candidate.timestamp * 1000 : 0)) > sentAt
+                && new Date(candidate.createdAt || (candidate.timestamp ? candidate.timestamp * 1000 : 0)) - sentAt <= 24 * 60 * 60 * 1000
+            ));
+            if (nextInbound) bucket.interactions += 1;
+            const phone = digitsOnly(message.peerPhone || chatId);
+            const sale = confirmedOrders.find((order) => (
+                samePhone(order.customer?.phone, phone)
+                && new Date(order.createdAt || 0) >= sentAt
+                && new Date(order.createdAt || 0) - sentAt <= 72 * 60 * 60 * 1000
+            ));
+            if (sale) {
+                bucket.sales += 1;
+                const history = historicalByPhone.get(digitsOnly(sale.customer?.phone).slice(-9)) || [];
+                if (history.filter((order) => new Date(order.createdAt || 0) < new Date(sale.createdAt || 0)).length > 0) {
+                    bucket.repurchases += 1;
+                }
+            }
+            if (bucket.examples.length < 5 && getMessageText(message)) {
+                bucket.examples.push(clip(getMessageText(message), 160));
+            }
+            byType.set(kind, bucket);
+        }
+    }
+
+    const rows = Array.from(byType.values()).map((row) => ({
+        ...row,
+        interactionRate: row.sent ? Math.round((row.interactions / row.sent) * 1000) / 10 : 0,
+        salesRate: row.sent ? Math.round((row.sales / row.sent) * 1000) / 10 : 0,
+        repurchaseRate: row.sent ? Math.round((row.repurchases / row.sent) * 1000) / 10 : 0
+    })).sort((a, b) => b.interactionRate - a.interactionRate || b.salesRate - a.salesRate);
+
+    return {
+        byType: rows,
+        topInteraction: [...rows].sort((a, b) => b.interactionRate - a.interactionRate).slice(0, 5),
+        topSales: [...rows].sort((a, b) => b.salesRate - a.salesRate).slice(0, 5),
+        topRepurchase: [...rows].sort((a, b) => b.repurchaseRate - a.repurchaseRate).slice(0, 5),
+        note: 'Analise observacional por tipo de mensagem. Interacao = cliente respondeu em ate 24h. Venda = pedido confirmado em ate 72h apos a mensagem. Recompra = venda com compra anterior detectada para o telefone.'
+    };
+};
+
 export const generateObservationReport = async ({
     country = 'EC',
     hours = Number(process.env.OBSERVATION_LOOKBACK_HOURS || 24),
@@ -712,7 +803,7 @@ export const generateObservationReport = async ({
         .sort({ timestamp: 1, createdAt: 1 })
         .limit(Math.max(50, Math.min(limit, 3000)))
         .lean();
-    const [orders, shipments] = await Promise.all([
+    const [orders, shipments, historicalOrders] = await Promise.all([
         Order.find({
             createdAt: { $gte: from, $lte: to },
             ...(country && country !== 'ALL' ? { country } : {})
@@ -720,7 +811,11 @@ export const generateObservationReport = async ({
         Shipment.find({
             updatedAt: { $gte: from, $lte: to },
             ...(country && country !== 'ALL' ? { country } : {})
-        }).lean()
+        }).lean(),
+        Order.find({
+            ...(country && country !== 'ALL' ? { country } : {}),
+            status: { $in: ['confirmed', 'processing', 'shipped', 'delivered'] }
+        }).sort({ createdAt: -1 }).limit(5000).lean()
     ]);
 
     const grouped = groupMessagesByChat(messages);
@@ -757,7 +852,8 @@ export const generateObservationReport = async ({
         bonus: buildBonusInsights(shipments),
         recovery: buildRecoveryInsights({ states: recoveryStates, orders }),
         kit: buildKitInsights(orders),
-        ...buildCommercialIntelligence({ grouped, stateByChat, recoveryStates, orders, shipments })
+        ...buildCommercialIntelligence({ grouped, stateByChat, recoveryStates, orders, shipments }),
+        media: buildMediaPerformanceInsights({ grouped, orders, historicalOrders })
     };
     summary.bonusEligible = insights.bonus.eligible;
     summary.bonusSent = insights.bonus.sent;

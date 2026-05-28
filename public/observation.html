@@ -290,6 +290,7 @@
                 ${renderRecovery(report.insights?.recovery || {})}
                 ${renderKit(report.insights?.kit || {})}
                 ${renderCommercial(report.insights || {})}
+                ${renderMedia(report.insights?.media || {})}
                 <div class="panel">
                     <h2>Recomendacoes</h2>
                     ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
@@ -458,6 +459,40 @@
             ${(items || []).length ? (items || []).slice(0, 10).map((item) => `<p>${escapeHtml(item[key] || '')}: ${escapeHtml(item.count || 0)}</p>`).join('') : '<div class="empty">Sem dados.</div>'}
         `;
 
+        const renderMedia = (media) => `
+            <div class="panel">
+                <h2>Mensagens que mais geram resultado</h2>
+                <p class="meta">${escapeHtml(media.note || 'Analise observacional por texto, audio, imagem, video e documento.')}</p>
+                <div class="kpis">
+                    ${(media.byType || []).slice(0, 4).map((item) => `
+                        <div class="kpi">
+                            <strong>${escapeHtml(item.type || '')}</strong>
+                            <span>${escapeHtml(item.interactionRate || 0)}% interacao | ${escapeHtml(item.salesRate || 0)}% venda | ${escapeHtml(item.repurchaseRate || 0)}% recompra</span>
+                        </div>
+                    `).join('') || '<div class="empty">Sem volume suficiente para comparar midias.</div>'}
+                </div>
+                ${renderMediaRanking('Maior interacao', media.topInteraction || [])}
+                ${renderMediaRanking('Mais venda', media.topSales || [])}
+                ${renderMediaRanking('Mais recompra', media.topRepurchase || [])}
+            </div>
+        `;
+
+        const renderMediaRanking = (title, items) => `
+            <h3>${escapeHtml(title)}</h3>
+            ${(items || []).length ? items.map((item) => `
+                <div class="finding">
+                    <div class="badges">
+                        <span class="badge improvement">${escapeHtml(item.type || '')}</span>
+                        <span class="badge">${escapeHtml(item.sent || 0)} envios</span>
+                        <span class="badge">${escapeHtml(item.interactions || 0)} interacoes</span>
+                        <span class="badge">${escapeHtml(item.sales || 0)} vendas</span>
+                        <span class="badge">${escapeHtml(item.repurchases || 0)} recompras</span>
+                    </div>
+                    ${(item.examples || []).slice(0, 2).map((example) => `<div class="quote">${escapeHtml(example)}</div>`).join('')}
+                </div>
+            `).join('') : '<div class="empty">Sem dados nessa janela.</div>'}
+        `;
+
         const renderFinding = (item) => `
             <article class="finding">
                 <div class="badges">
@@ -482,9 +517,7 @@
             const data = await api(`/api/observation/reports?country=${encodeURIComponent(country)}&limit=30`);
             state.reports = data.reports || [];
             renderReports();
-            if (!state.activeId && state.reports[0]) {
-                await openReport(state.reports[0]._id);
-            }
+            if (!state.activeId) renderDetail(null);
         };
 
         const openReport = async (id) => {
