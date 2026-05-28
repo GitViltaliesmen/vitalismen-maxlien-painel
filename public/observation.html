@@ -514,7 +514,7 @@
 
         const loadReports = async () => {
             const country = el('country').value;
-            const data = await api(`/api/observation/reports?country=${encodeURIComponent(country)}&limit=30`);
+            const data = await api(`/api/observation/reports?country=${encodeURIComponent(country)}&limit=15`);
             state.reports = data.reports || [];
             renderReports();
             if (!state.activeId) renderDetail(null);

@@ -904,9 +904,21 @@ export const generateObservationReport = async ({
     return report.toObject();
 };
 
+const observationReportListProjection = {
+    title: 1,
+    mode: 1,
+    status: 1,
+    country: 1,
+    source: 1,
+    summary: 1,
+    generatedBy: 1,
+    createdAt: 1,
+    updatedAt: 1
+};
+
 export const listObservationReports = async ({ limit = 20, country = 'EC' } = {}) => ObservationReport.find({
     ...(country && country !== 'ALL' ? { country } : {})
-})
+}, observationReportListProjection)
     .sort({ createdAt: -1 })
     .limit(Math.max(1, Math.min(Number(limit) || 20, 100)))
     .lean();
