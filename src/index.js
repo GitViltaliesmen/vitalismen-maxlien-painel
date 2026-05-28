@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import connectDB from './config/db.js';
 
 // Routes
@@ -94,6 +95,10 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '25mb' }));
 
 app.get('/', (_req, res) => {
     res.redirect('/qr.html');
+});
+
+app.get('/painel-observacao.html', (_req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'observation.html'));
 });
 
 // Serve static files (uploaded media)

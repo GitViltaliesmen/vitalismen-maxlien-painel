@@ -21,8 +21,9 @@ Adicionar ao bot de observacao uma leitura de quais mensagens geram mais interac
 - Tela de Observacao ganhou bloco "Mensagens que mais geram resultado".
 - Tela de Observacao nao abre mais automaticamente o relatorio mais recente.
 - Ao abrir Observacao, primeiro mostra somente a lista e aguarda o clique humano em um relatorio.
-- Link do painel para Observacao foi versionado como `/observation.html?v=20260528` para evitar cache antigo.
-- Rota publica `/observation.html` foi ajustada no Nginx para abrir o painel de Observacao, nao a pagina informativa.
+- Link do painel para Observacao foi versionado como `/painel-observacao.html?v=20260528` para evitar cache antigo.
+- A rota `/observation.html` pertence a pagina informativa publica e nao deve ser usada pelo painel.
+- A Observacao do funil usa rota propria do painel: `/painel-observacao.html`.
 - API publica autenticada `/api/observation/` foi roteada para o painel integrado.
 
 ## Regra de seguranca
@@ -67,6 +68,7 @@ Observacao: a amostra ainda e pequena e serve como sinal inicial, nao como decis
 - Nginx:
   - `/etc/nginx/sites-enabled/maxlien.shop.conf.bak-observacao-20260528-003751`
   - `/etc/nginx/sites-enabled/ec.maxlien.shop.clean.conf.bak-observacao-20260528-003843`
+- Correcao posterior: a rota publica `/observation.html` foi devolvida para a pagina informativa, e o painel passou a usar `/painel-observacao.html`.
 
 ## Status
 
