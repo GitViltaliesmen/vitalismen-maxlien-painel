@@ -75,6 +75,19 @@ Validacao apos publicar:
 - backup do VPS:
   - `/opt/vitalismen-automacao/backups/observacao-lista-leve-20260527-221037`
 
+Segunda correcao de desempenho:
+
+- O detalhe visual do relatorio agora renderiza somente os principais itens de cada bloco.
+- As listas completas permanecem armazenadas no relatorio, mas nao sao desenhadas todas de uma vez no navegador.
+- Blocos grandes usam `content-visibility: auto` para o Chrome nao calcular layout de tudo fora da tela.
+- Ao abrir um relatorio, a tela mostra `Carregando relatorio...` antes de montar o detalhe.
+- Isso reduz travadas no computador do operador sem mudar a analise nem o armazenamento.
+- Validacao no navegador:
+  - ao abrir a pagina: 15 relatorios listados e `0` blocos pesados renderizados
+  - apos clicar em um relatorio: detalhe renderizado com listas reduzidas e notas `Mostrando X de Y`
+- Backup do VPS:
+  - `/opt/vitalismen-automacao/backups/observacao-render-leve-20260527-221403`
+
 ## Proxima frente
 
 Abrir outra etapa separada, sem misturar com este congelamento.

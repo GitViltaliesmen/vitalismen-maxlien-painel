@@ -109,6 +109,8 @@
             border-radius: 8px;
             padding: 14px;
             margin-bottom: 14px;
+            content-visibility: auto;
+            contain-intrinsic-size: 220px;
         }
 
         .kpis {
@@ -137,6 +139,8 @@
             padding: 12px;
             margin: 10px 0;
             background: #0d1728;
+            content-visibility: auto;
+            contain-intrinsic-size: 120px;
         }
 
         .badges {
@@ -229,6 +233,10 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[char]));
         const fmt = (value) => value ? new Date(value).toLocaleString('pt-BR') : '';
+        const take = (items, limit) => (items || []).slice(0, limit);
+        const moreNote = (items, limit) => ((items || []).length > limit
+            ? `<p class="meta">Mostrando ${limit} de ${(items || []).length}. O relatorio completo segue armazenado.</p>`
+            : '');
 
         const api = async (path, options = {}) => {
             const headers = {
@@ -293,11 +301,13 @@
                 ${renderMedia(report.insights?.media || {})}
                 <div class="panel">
                     <h2>Recomendacoes</h2>
-                    ${(report.recommendations || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
+                    ${take(report.recommendations || [], 8).map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
+                    ${moreNote(report.recommendations || [], 8)}
                 </div>
                 <div class="panel">
                     <h2>Achados</h2>
-                    ${findings.length ? findings.map(renderFinding).join('') : '<div class="empty">Sem achados nessa janela.</div>'}
+                    ${findings.length ? take(findings, 12).map(renderFinding).join('') : '<div class="empty">Sem achados nessa janela.</div>'}
+                    ${moreNote(findings, 12)}
                 </div>
             `;
         };
@@ -305,12 +315,13 @@
         const renderHotHours = (hotHours) => `
             <div class="panel">
                 <h2>Horarios quentes</h2>
-                ${hotHours.length ? hotHours.map((item) => `
+                ${hotHours.length ? take(hotHours, 5).map((item) => `
                     <div class="finding">
                         <div class="badges"><span class="badge improvement">${escapeHtml(item.label)}</span><span class="badge">score ${escapeHtml(item.score)}</span></div>
                         <p>${escapeHtml(item.reason)}</p>
                     </div>
                 `).join('') : '<div class="empty">Ainda sem volume suficiente para mapear horarios.</div>'}
+                ${moreNote(hotHours, 5)}
             </div>
         `;
 
@@ -326,7 +337,7 @@
                 <p class="meta">${escapeHtml(bonus.note || 'Analise correlacional por janela.')}</p>
                 ${(bonus.missingShipments || []).length ? `
                     <h3>Clientes elegiveis sem bonus registrado</h3>
-                    ${(bonus.missingShipments || []).map((item) => `
+                    ${take(bonus.missingShipments || [], 8).map((item) => `
                         <div class="finding">
                             <div class="badges">
                                 <span class="badge critical">${escapeHtml(item.orderId)}</span>
@@ -336,6 +347,7 @@
                             <p>${escapeHtml(item.name || 'Cliente sem nome')} | ${escapeHtml(item.city || '')}</p>
                         </div>
                     `).join('')}
+                    ${moreNote(bonus.missingShipments || [], 8)}
                 ` : '<div class="empty">Nenhum cliente elegivel sem bonus nesta janela.</div>'}
             </div>
         `;
@@ -344,7 +356,7 @@
             <div class="panel">
                 <h2>Recuperacao de frios</h2>
                 <p class="meta">${escapeHtml(recovery.note || 'Somente sugestao; nada e enviado automaticamente.')}</p>
-                ${(recovery.candidates || []).length ? (recovery.candidates || []).map((item) => `
+                ${(recovery.candidates || []).length ? take(recovery.candidates || [], 10).map((item) => `
                     <div class="finding">
                         <div class="badges">
                             <span class="badge important">${escapeHtml(item.label)}</span>
@@ -355,6 +367,7 @@
                         <p>${escapeHtml(item.reason)}</p>
                     </div>
                 `).join('') : '<div class="empty">Nenhum lead frio candidato nesta janela.</div>'}
+                ${moreNote(recovery.candidates || [], 10)}
             </div>
         `;
 
@@ -370,7 +383,7 @@
                 ${(kit.distribution || []).length ? `<h3>Distribuicao</h3>${(kit.distribution || []).map((item) => `<p>${escapeHtml(item.units)} frasco(s): ${escapeHtml(item.count)} pedido(s)</p>`).join('')}` : ''}
                 ${(kit.upgradeCandidates || []).length ? `
                     <h3>Candidatos para subir kit</h3>
-                    ${(kit.upgradeCandidates || []).map((item) => `
+                    ${take(kit.upgradeCandidates || [], 8).map((item) => `
                         <div class="finding">
                             <div class="badges">
                                 <span class="badge improvement">${escapeHtml(item.suggestedKit)}</span>
@@ -380,6 +393,7 @@
                             <p>${escapeHtml(item.name || 'Cliente sem nome')} | ${escapeHtml(item.reason)}</p>
                         </div>
                     `).join('')}
+                    ${moreNote(kit.upgradeCandidates || [], 8)}
                 ` : '<div class="empty">Sem candidatos de upgrade nesta janela.</div>'}
             </div>
         `;
@@ -391,7 +405,7 @@
                 <div class="panel">
                     <h2>Mapa de perda por etapa</h2>
                     <p class="meta">${escapeHtml(loss.note || '')}</p>
-                    ${(loss.stages || []).length ? (loss.stages || []).map((item) => `
+                    ${(loss.stages || []).length ? take(loss.stages || [], 8).map((item) => `
                         <div class="finding">
                             <div class="badges">
                                 <span class="badge important">${escapeHtml(item.stage)}</span>
@@ -401,6 +415,7 @@
                             <p>Frios: ${escapeHtml(item.cold || 0)} | Mornos: ${escapeHtml(item.warm || 0)} | Acao dominante: ${escapeHtml(item.topAction || '')}</p>
                         </div>
                     `).join('') : '<div class="empty">Sem mapa de perda nesta janela.</div>'}
+                    ${moreNote(loss.stages || [], 8)}
                 </div>
                 <div class="panel">
                     <h2>Inteligencia comercial</h2>
@@ -479,7 +494,7 @@
 
         const renderMediaRanking = (title, items) => `
             <h3>${escapeHtml(title)}</h3>
-            ${(items || []).length ? items.map((item) => `
+            ${(items || []).length ? take(items, 3).map((item) => `
                 <div class="finding">
                     <div class="badges">
                         <span class="badge improvement">${escapeHtml(item.type || '')}</span>
@@ -491,6 +506,7 @@
                     ${(item.examples || []).slice(0, 2).map((example) => `<div class="quote">${escapeHtml(example)}</div>`).join('')}
                 </div>
             `).join('') : '<div class="empty">Sem dados nessa janela.</div>'}
+            ${moreNote(items || [], 3)}
         `;
 
         const renderFinding = (item) => `
@@ -523,8 +539,10 @@
         const openReport = async (id) => {
             state.activeId = id;
             renderReports();
+            el('detail').className = 'empty';
+            el('detail').textContent = 'Carregando relatorio...';
             const data = await api(`/api/observation/reports/${encodeURIComponent(id)}`);
-            renderDetail(data.report);
+            requestAnimationFrame(() => renderDetail(data.report));
         };
 
         const generateReport = async () => {
