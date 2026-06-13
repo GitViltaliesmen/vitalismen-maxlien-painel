@@ -9652,9 +9652,11 @@
             const search = String(options.search || '').trim();
             return state.chats.filter((chat) => {
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
-                if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone))) return false;
+                const matchesSearch = chatMatchesSearch(chat, search);
+                if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;
                 if (isBrazilBlockedRecord(chat)) return false;
-                if (selectedCountry === 'EC' && isBrazilTestRecord(chat) && !chatMatchesSearch(chat, search)) return false;
+                if (selectedCountry === 'EC' && isBrazilTestRecord(chat)) return matchesSearch;
+                if (selectedCountry !== 'ALL' && isBrazilTestRecord(chat) && matchesSearch) return true;
                 if (selectedCountry !== 'ALL' && chat.country && String(chat.country).toUpperCase() !== selectedCountry) return false;
                 return true;
             });
