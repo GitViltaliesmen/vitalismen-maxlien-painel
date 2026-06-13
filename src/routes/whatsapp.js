@@ -1108,7 +1108,12 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         return true;
     }
 
-    return sendText(chatId, content, options.quotedMsg || null, { sessionId: options.sessionId, sendMode });
+    return sendText(chatId, content, options.quotedMsg || null, {
+        sessionId: options.sessionId,
+        sendMode,
+        country: options.country,
+        returnDetails: options.returnDetails === true
+    });
 };
 
 const buildLeadRecoveryTemplates = () => ([
@@ -1164,7 +1169,12 @@ const recordManualOutboundMessage = async ({
     sessionId = '',
     quotedMessage = null,
     deliveryStatus = 'sent',
-    sendError = ''
+    sendError = '',
+    provider = '',
+    providerMessageId = '',
+    providerZaapId = '',
+    providerStatus = '',
+    providerPayload = null
 }) => {
     const chatId = resolveChatId(phone);
     const digits = String(phone || '').replace(/\D/g, '');
@@ -1189,7 +1199,12 @@ const recordManualOutboundMessage = async ({
         quotedBody: quotedMessage ? quotedBodyFromRecord(quotedMessage).slice(0, 500) : '',
         quotedFromMe: quotedMessage ? Boolean(quotedMessage.isFromMe) : undefined,
         deliveryStatus,
-        sendError: String(sendError || '').slice(0, 240)
+        sendError: String(sendError || '').slice(0, 240),
+        provider,
+        providerMessageId,
+        providerZaapId,
+        providerStatus,
+        providerPayload
     }).catch(() => null);
 };
 
@@ -2981,7 +2996,15 @@ router.post('/send', authMiddleware, async (req, res) => {
             ? await Message.findById(String(quotedMessageId)).lean().catch(() => null)
             : null;
         const quotedMsg = buildQuotedMessageFromRecord(quotedMessage);
-        const sent = await sendWhatsAppMessage(phone, message, { sessionId, quotedMsg, sendMode, allowAudioDedupeBypass, country });
+        const sendResult = await sendWhatsAppMessage(phone, message, {
+            sessionId,
+            quotedMsg,
+            sendMode,
+            allowAudioDedupeBypass,
+            country,
+            returnDetails: true
+        });
+        const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
         if (sent) {
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
@@ -2992,7 +3015,13 @@ router.post('/send', authMiddleware, async (req, res) => {
                 type: 'chat',
                 user: req.user,
                 sessionId,
-                quotedMessage
+                quotedMessage,
+                deliveryStatus: sendResult?.provider === 'zapi' ? 'pending_confirmation' : 'sent',
+                provider: sendResult?.provider || '',
+                providerMessageId: sendResult?.providerMessageId || '',
+                providerZaapId: sendResult?.providerZaapId || '',
+                providerStatus: sendResult?.providerStatus || '',
+                providerPayload: sendResult?.providerPayload || null
             });
         } else {
             await recordManualOutboundMessage({
@@ -3003,10 +3032,21 @@ router.post('/send', authMiddleware, async (req, res) => {
                 sessionId,
                 quotedMessage,
                 deliveryStatus: 'failed',
-                sendError: 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.'
+                sendError: sendResult?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.',
+                provider: sendResult?.provider || '',
+                providerMessageId: sendResult?.providerMessageId || '',
+                providerZaapId: sendResult?.providerZaapId || '',
+                providerStatus: sendResult?.providerStatus || '',
+                providerPayload: sendResult?.providerPayload || null
             });
         }
-        res.json({ success: sent });
+        res.json({
+            success: sent,
+            provider: sendResult?.provider || '',
+            providerMessageId: sendResult?.providerMessageId || '',
+            providerZaapId: sendResult?.providerZaapId || '',
+            deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'failed'
+        });
     } catch (error) {
         console.error('Send message error:', error);
         res.status(500).json({ error: error.message || 'Failed to send message' });

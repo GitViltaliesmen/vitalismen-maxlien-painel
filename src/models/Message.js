@@ -58,6 +58,11 @@ const messageSchema = new mongoose.Schema({
     quotedFromMe: Boolean,
     deliveryStatus: { type: String, default: 'sent' }, // sent, failed, pending
     sendError: String,
+    provider: { type: String, index: true },
+    providerMessageId: { type: String, index: true },
+    providerZaapId: { type: String, index: true },
+    providerStatus: String,
+    providerPayload: mongoose.Schema.Types.Mixed,
     orderId: { type: String, ref: 'Order' }, // Optional link to an order if we can correlate
     isBot: { type: Boolean, default: false } // True if sent by the automation system
 }, {

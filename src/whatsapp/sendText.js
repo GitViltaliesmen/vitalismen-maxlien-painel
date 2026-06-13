@@ -246,7 +246,15 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             console.log(`[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> ${phone} | Tamanho: ${finalText.length} chars | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid: targetJid });
             await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
-            return true;
+            const details = {
+                ok: true,
+                provider: 'zapi',
+                providerMessageId: response?.messageId || response?.id || '',
+                providerZaapId: response?.zaapId || '',
+                providerStatus: 'queued',
+                providerPayload: response
+            };
+            return options.returnDetails === true ? details : true;
         } catch (error) {
             const detail = error?.response?.data || error.message || 'zapi_send_failed';
             console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar texto pela Z-API para ${targetJid}:`, detail);
@@ -255,7 +263,15 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
                 semanticKey: duplicateGuard.semanticKey,
                 error: typeof detail === 'string' ? detail : JSON.stringify(detail)
             });
-            return false;
+            return options.returnDetails === true
+                ? {
+                    ok: false,
+                    provider: 'zapi',
+                    providerStatus: 'failed',
+                    error: typeof detail === 'string' ? detail : JSON.stringify(detail),
+                    providerPayload: detail
+                }
+                : false;
         }
     }
 
@@ -313,12 +329,16 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 📤 Texto disparado -> ${targetJid} | Tamanho: ${finalText.length} chars | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
             recordOutboundSend({ sessionId, jid: targetJid });
             await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
-            return true;
+            return options.returnDetails === true
+                ? { ok: true, provider: 'baileys', providerStatus: 'sent' }
+                : true;
         } catch (error) {
             console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar texto para ${targetJid} | tentativa=${attempt}:`, error);
             if (attempt === 2) {
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
-                return false;
+                return options.returnDetails === true
+                    ? { ok: false, provider: 'baileys', providerStatus: 'failed', error: error.message }
+                    : false;
             }
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
