@@ -29,8 +29,34 @@ const withTimeout = (promise, ms, label) => Promise.race([
     new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms))
 ]);
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const parsePhoneList = (...values) => [
+    ...new Set(
+        values
+            .flatMap((value) => String(value || '').split(','))
+            .map((item) => digitsOnly(item))
+            .filter(Boolean)
+    )
+];
+const isSamePhone = (left, right) => {
+    const a = digitsOnly(left);
+    const b = digitsOnly(right);
+    if (!a || !b) return false;
+    return a === b || a.startsWith(b) || b.startsWith(a);
+};
 const looksLikeRealPhoneDigits = (value = '') => /^(593|57|55)\d{8,13}$/.test(digitsOnly(value));
 const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
+const zapiOperationalTestRecipients = () => parsePhoneList(
+    '553171862958',
+    '553183002800',
+    process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
+    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS
+);
+const isZapiOperationalTestRecipient = (phone = '') => {
+    const digits = digitsOnly(phone);
+    return Boolean(digits && zapiOperationalTestRecipients().some((allowed) => isSamePhone(digits, allowed)));
+};
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeAntiSpamTextKey = (value = '') => String(value || '')
     .normalize('NFD')
@@ -138,7 +164,7 @@ const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
 const shouldUseZapiForText = ({ targetJid, recipientDigits, options = {} }) => {
     if (!zapiConfig().enabled) return false;
     const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
-    if (!looksLikeZapiRoutedPhone(phone)) return false;
+    if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
     const country = String(options.country || '').toUpperCase();
     return options.provider === 'zapi'
         || options.sessionId === 'zapi'
