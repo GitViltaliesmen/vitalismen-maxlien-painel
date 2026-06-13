@@ -73,6 +73,28 @@ const isStaticPanelRequest = (req) => {
     return /\.(?:css|js|map|png|jpe?g|webp|gif|svg|ico|mp3|ogg|opus|m4a|mp4|mov|webm|wav|pdf)$/i.test(pathname);
 };
 
+const isPanelPollingRequest = (req) => {
+    if (!['GET', 'HEAD'].includes(String(req.method || '').toUpperCase())) return false;
+    const pathname = String(req.path || req.originalUrl || '').split('?')[0];
+    return pathname === '/api/zapi/status'
+        || pathname === '/api/zapi/device'
+        || pathname === '/api/health'
+        || pathname === '/api/whatsapp/status'
+        || pathname === '/api/whatsapp/chats'
+        || pathname === '/api/whatsapp/dashboard-metrics'
+        || pathname === '/api/whatsapp/templates'
+        || pathname.startsWith('/api/whatsapp/messages/')
+        || pathname.startsWith('/api/whatsapp/customer-profile/')
+        || pathname.startsWith('/api/observation/');
+};
+
+const noStoreHeaders = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'Surrogate-Control': 'no-store'
+};
+
 // Standard Security Headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -85,11 +107,29 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" } // access to media
 }));
 
+app.get('/', (_req, res) => {
+    res.redirect('/qr.html');
+});
+
+app.get('/qr.html', (_req, res) => {
+    res.set(noStoreHeaders);
+    res.sendFile(path.join(process.cwd(), 'public', 'qr.html'));
+});
+
+app.get('/leads-window.html', (_req, res) => {
+    res.set(noStoreHeaders);
+    res.sendFile(path.join(process.cwd(), 'public', 'leads-window.html'));
+});
+
+app.use('/media', express.static('public/media', {
+    setHeaders: (res) => res.set(noStoreHeaders)
+}));
+
 // Rate Limiting (Global: 1000 requests per 15 minutes)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
-    skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req),
+    skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req) || isPanelPollingRequest(req),
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false },
@@ -125,33 +165,8 @@ app.use(cors({
 // Allow larger payloads because Ops panel can send media as data URLs (base64)
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '25mb' }));
 
-app.get('/', (_req, res) => {
-    res.redirect('/qr.html');
-});
-
-app.get('/qr.html', (_req, res) => {
-    res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-        'Surrogate-Control': 'no-store'
-    });
-    res.sendFile(path.join(process.cwd(), 'public', 'qr.html'));
-});
-
-app.get('/leads-window.html', (_req, res) => {
-    res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-        'Surrogate-Control': 'no-store'
-    });
-    res.sendFile(path.join(process.cwd(), 'public', 'leads-window.html'));
-});
-
 // Serve static files (uploaded media)
 app.use(express.static('public')); // Serve generic static files (like qr.html)
-app.use('/media', express.static('public/media')); // Keep specific media route if needed for compatibility
 
 app.get('/wa', publicWhatsAppRedirect);
 app.get('/wa/ec', publicWhatsAppRedirect);
