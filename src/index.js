@@ -65,6 +65,14 @@ const isLocalRequest = (req) => {
         || ip === '::ffff:127.0.0.1';
 };
 
+const isStaticPanelRequest = (req) => {
+    if (!['GET', 'HEAD'].includes(String(req.method || '').toUpperCase())) return false;
+    const pathname = String(req.path || req.originalUrl || '').split('?')[0];
+    if (['/', '/qr.html', '/leads-window.html', '/favicon.ico'].includes(pathname)) return true;
+    if (pathname.startsWith('/media/')) return true;
+    return /\.(?:css|js|map|png|jpe?g|webp|gif|svg|ico|mp3|ogg|opus|m4a|mp4|mov|webm|wav|pdf)$/i.test(pathname);
+};
+
 // Standard Security Headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -81,7 +89,7 @@ app.use(helmet({
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
-    skip: isLocalRequest,
+    skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req),
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false },

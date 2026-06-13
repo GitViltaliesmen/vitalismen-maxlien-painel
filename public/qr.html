@@ -14017,7 +14017,11 @@
                         phone: currentChatPhone(),
                         message: mediaUrl,
                         isMedia: true,
-                        sessionId
+                        sessionId,
+                        sendMode: 'manual_panel',
+                        allowAudioDedupeBypass: true,
+                        country: currentTemplateCountry(),
+                        recordedAudio: true
                     })
                 });
                 if (!result?.success) {
@@ -14065,6 +14069,9 @@
                         message: mediaUrl,
                         isMedia: true,
                         sessionId,
+                        sendMode: 'manual_panel',
+                        allowAudioDedupeBypass: true,
+                        country: currentTemplateCountry(),
                         viewOnce: mediaItem.viewOnce === true
                     })
                 });
