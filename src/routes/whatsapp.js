@@ -38,6 +38,28 @@ const resolveChatId = (phone, country) => (
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
+const legacyMediaPathAliases = new Map([
+    ['/media/templates/EC/Inicio_01.ogg', '/media/templates/EC/01_B_Buenos_dias.ogg'],
+    ['/media/templates/EC/Inicio_01.mp3', '/media/templates/EC/01_B_Buenos_dias.mp3'],
+    ['/media/templates/EC/INICIO_01.ogg', '/media/templates/EC/01_B_Buenos_dias.ogg'],
+    ['/media/templates/EC/INICIO_01.mp3', '/media/templates/EC/01_B_Buenos_dias.mp3'],
+    ['/media/templates/EC/Inicio_02.ogg', '/media/templates/EC/01_C_Buenos_tardes.ogg'],
+    ['/media/templates/EC/Inicio_02.mp3', '/media/templates/EC/01_C_Buenos_tardes.mp3'],
+    ['/media/templates/EC/INICIO_02.ogg', '/media/templates/EC/01_C_Buenos_tardes.ogg'],
+    ['/media/templates/EC/INICIO_02.mp3', '/media/templates/EC/01_C_Buenos_tardes.mp3']
+]);
+
+const normalizeLegacyMediaPath = (value = '') => {
+    const cleanValue = String(value || '').trim();
+    if (!cleanValue) return cleanValue;
+    if (legacyMediaPathAliases.has(cleanValue)) return legacyMediaPathAliases.get(cleanValue);
+    const lower = cleanValue.toLowerCase();
+    for (const [legacy, replacement] of legacyMediaPathAliases.entries()) {
+        if (legacy.toLowerCase() === lower) return replacement;
+    }
+    return cleanValue;
+};
+
 const manualAutoReturnMinutes = () => {
     const parsed = Number.parseInt(String(process.env.WHATSAPP_MANUAL_AUTO_RETURN_MINUTES || '10'), 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
@@ -3060,12 +3082,13 @@ router.post('/send', authMiddleware, async (req, res) => {
                 });
             }
 
-            if (!message.startsWith('/media/')) {
+            const normalizedMediaMessage = normalizeLegacyMediaPath(message);
+            if (!normalizedMediaMessage.startsWith('/media/')) {
                 return res.status(400).json({ error: 'For media, message must be a /media/... path or a data:... base64 URL' });
             }
 
             const baseDir = path.join(process.cwd(), 'public', 'media');
-            const relative = message.replace(/^\/media\//, '');
+            const relative = normalizedMediaMessage.replace(/^\/media\//, '');
             const resolved = path.normalize(path.join(baseDir, relative));
             if (!resolved.startsWith(baseDir)) {
                 return res.status(400).json({ error: 'Invalid media path' });
@@ -3094,7 +3117,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 phone,
                 body: '',
                 type: mediaKind,
-                mediaUrl: message,
+                mediaUrl: normalizedMediaMessage,
                 user: req.user,
                 sessionId,
                 deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',

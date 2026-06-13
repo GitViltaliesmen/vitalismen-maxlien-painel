@@ -12943,6 +12943,28 @@
 
         const customFunnelCode = (index) => footerShortCode('B', index);
 
+        const legacyFunnelMediaAliases = new Map([
+            ['/media/templates/EC/Inicio_01.ogg', '/media/templates/EC/01_B_Buenos_dias.ogg'],
+            ['/media/templates/EC/Inicio_01.mp3', '/media/templates/EC/01_B_Buenos_dias.mp3'],
+            ['/media/templates/EC/INICIO_01.ogg', '/media/templates/EC/01_B_Buenos_dias.ogg'],
+            ['/media/templates/EC/INICIO_01.mp3', '/media/templates/EC/01_B_Buenos_dias.mp3'],
+            ['/media/templates/EC/Inicio_02.ogg', '/media/templates/EC/01_C_Buenos_tardes.ogg'],
+            ['/media/templates/EC/Inicio_02.mp3', '/media/templates/EC/01_C_Buenos_tardes.mp3'],
+            ['/media/templates/EC/INICIO_02.ogg', '/media/templates/EC/01_C_Buenos_tardes.ogg'],
+            ['/media/templates/EC/INICIO_02.mp3', '/media/templates/EC/01_C_Buenos_tardes.mp3']
+        ]);
+
+        const normalizeLegacyFunnelMediaValue = (value = '') => {
+            const cleanValue = String(value || '').trim();
+            if (!cleanValue) return cleanValue;
+            if (legacyFunnelMediaAliases.has(cleanValue)) return legacyFunnelMediaAliases.get(cleanValue);
+            const lower = cleanValue.toLowerCase();
+            for (const [legacy, replacement] of legacyFunnelMediaAliases.entries()) {
+                if (legacy.toLowerCase() === lower) return replacement;
+            }
+            return cleanValue;
+        };
+
         const normalizeCustomFunnelBlocks = (blocks = []) => (Array.isArray(blocks) ? blocks : [])
             .map((block, index) => {
                 const steps = (Array.isArray(block.steps) ? block.steps : [])
@@ -12950,7 +12972,7 @@
                     .map((step) => ({
                         type: step.type,
                         label: step.label || step.value,
-                        value: step.value,
+                        value: normalizeLegacyFunnelMediaValue(step.value),
                         waitAfterMs: Number(step.waitAfterMs || 0),
                         delayMode: String(step.delayMode || 'auto'),
                         delayMinMs: Number(step.delayMinMs || step.waitAfterMs || 0),
