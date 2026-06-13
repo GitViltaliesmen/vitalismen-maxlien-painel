@@ -6,6 +6,8 @@ import {
     zapiPublicStatus
 } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
+import ContactState from '../models/ContactState.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -24,6 +26,11 @@ const connectedFromStatus = (status = {}) => (
 );
 
 const firstString = (...values) => values
+    .map((value) => String(value || '').trim())
+    .find(Boolean) || '';
+
+const firstPlainString = (...values) => values
+    .filter((value) => ['string', 'number', 'boolean'].includes(typeof value))
     .map((value) => String(value || '').trim())
     .find(Boolean) || '';
 
@@ -58,6 +65,120 @@ const zapiPhoneFromPayload = (payload = {}) => digits(firstString(
     payload.data?.from,
     payload.data?.to
 ));
+
+const zapiFromMeFromPayload = (payload = {}) => (
+    payload.fromMe === true
+    || payload.message?.fromMe === true
+    || payload.data?.fromMe === true
+    || payload.key?.fromMe === true
+    || payload.message?.key?.fromMe === true
+);
+
+const zapiTextFromPayload = (payload = {}) => firstPlainString(
+    payload.text?.message,
+    payload.text,
+    payload.message?.text?.message,
+    payload.message?.text,
+    payload.message?.body,
+    payload.body,
+    payload.message,
+    payload.data?.text?.message,
+    payload.data?.text,
+    payload.data?.body,
+    payload.data?.message
+);
+
+const zapiMessageTypeFromPayload = (payload = {}) => {
+    const raw = firstString(
+        payload.type,
+        payload.messageType,
+        payload.mediaType,
+        payload.message?.type,
+        payload.message?.messageType,
+        payload.data?.type,
+        payload.data?.messageType
+    ).toLowerCase();
+    if (/audio|ptt/.test(raw)) return 'audio';
+    if (/image|photo/.test(raw)) return 'image';
+    if (/video/.test(raw)) return 'video';
+    if (/document|file/.test(raw)) return 'document';
+    return 'chat';
+};
+
+const recordZapiInboundPayload = async (payload = {}) => {
+    const providerMessageId = zapiMessageIdFromPayload(payload);
+    const providerZaapId = zapiZaapIdFromPayload(payload);
+    const phone = zapiPhoneFromPayload(payload);
+    const body = zapiTextFromPayload(payload);
+    const type = zapiMessageTypeFromPayload(payload);
+    if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
+
+    const chatId = `${phone}@c.us`;
+    const now = new Date();
+    const messageId = providerMessageId || providerZaapId || `zapi_in_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const normalizedBody = typeof body === 'string' ? body : '';
+
+    await Message.updateOne(
+        { _id: messageId },
+        {
+            $setOnInsert: {
+                _id: messageId,
+                chatId,
+                peerPhone: phone,
+                from: chatId,
+                to: 'zapi',
+                body: normalizedBody,
+                type,
+                hasMedia: type !== 'chat',
+                timestamp: Math.floor(now.getTime() / 1000),
+                sessionId: 'zapi',
+                ownerPhoneDigits: '',
+                isFromMe: false,
+                isBot: false,
+                notifyName: firstString(payload.senderName, payload.notifyName, payload.name, payload.pushName, payload.message?.senderName, payload.data?.senderName),
+                deliveryStatus: 'received',
+                provider: 'zapi',
+                providerMessageId,
+                providerZaapId,
+                providerStatus: 'received',
+                providerPayload: payload
+            }
+        },
+        { upsert: true }
+    );
+
+    const state = await ContactState.findOne({
+        $or: [
+            { chatId },
+            { phoneDigits: phone },
+            { phoneDigits: { $regex: `${phone}$` } },
+            ...(phone.length >= 9 ? [{ phoneDigits: { $regex: `${phone.slice(-9)}$` } }] : [])
+        ]
+    }).sort({ updatedAt: -1 });
+
+    const targetState = state || new ContactState({
+        chatId,
+        phoneDigits: phone,
+        countryCode: phone.startsWith('57') ? 'CO' : 'EC'
+    });
+    targetState.chatId = targetState.chatId || chatId;
+    targetState.phoneDigits = targetState.phoneDigits || phone;
+    targetState.lastInboundText = normalizedBody || `[${type}] recebido`;
+    targetState.lastInboundAt = now;
+    if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
+    if (!targetState.firstInboundText) targetState.firstInboundText = targetState.lastInboundText;
+    targetState.metadata = {
+        ...(targetState.metadata || {}),
+        lastProvider: 'zapi',
+        lastProviderMessageId: providerMessageId,
+        lastProviderZaapId: providerZaapId,
+        lastSessionId: 'zapi',
+        zapiInboundAt: now.toISOString()
+    };
+    await targetState.save();
+
+    return { recorded: true, phone, chatId, type, providerMessageId, providerZaapId, bodyLength: normalizedBody.length };
+};
 
 const normalizeDeliveryStatus = (payload = {}) => {
     const raw = firstString(
@@ -193,11 +314,41 @@ router.post('/webhook/delivery', async (req, res) => {
     }
 });
 
+router.post('/webhook', async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const fromMe = zapiFromMeFromPayload(payload);
+        const looksLikeDelivery = Boolean(
+            payload.status
+            || payload.messageStatus
+            || payload.deliveryStatus
+            || payload.ack
+            || /delivery|message-status|status/i.test(firstString(payload.type, payload.event, payload.data?.type))
+        );
+        if (fromMe || looksLikeDelivery) {
+            const result = await applyZapiDeliveryPayload(payload);
+            console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
+            return res.json({ ok: true, result, routed: 'delivery' });
+        }
+        const result = await recordZapiInboundPayload(payload);
+        console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || result.providerZaapId || ''}`);
+        return res.json({ ok: true, result, routed: 'inbound' });
+    } catch (error) {
+        console.error('[ZAPI-WEBHOOK] error:', error?.response?.data || error.message || error);
+        res.status(500).json(exposeError(error));
+    }
+});
+
 router.post('/webhook/received', async (req, res) => {
     try {
         const providerMessageId = zapiMessageIdFromPayload(req.body || {});
         const phone = zapiPhoneFromPayload(req.body || {});
-        const fromMe = req.body?.fromMe === true || req.body?.message?.fromMe === true || req.body?.data?.fromMe === true;
+        const fromMe = zapiFromMeFromPayload(req.body || {});
+        if (!fromMe) {
+            const result = await recordZapiInboundPayload(req.body || {});
+            console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
+            return res.json({ ok: true, result });
+        }
         console.log(`[ZAPI-WEBHOOK] received | fromMe=${fromMe} | phone=${phone || ''} | id=${providerMessageId || ''}`);
         res.json({ ok: true });
     } catch (error) {
