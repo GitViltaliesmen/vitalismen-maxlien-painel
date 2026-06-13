@@ -85,6 +85,18 @@ const operationalPanelPhones = () => [
     process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS
 ].flatMap(parseDigitsList);
 
+const brazilPanelTestPhones = () => [
+    '5515998038637',
+    '553171862958',
+    '553183002800',
+    process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_AUTOMATION_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS,
+    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES
+].flatMap(parseDigitsList);
+
 const isOperationalPanelPhone = (...identifiers) => {
     const allowed = operationalPanelPhones();
     if (!allowed.length) return false;
@@ -94,8 +106,17 @@ const isOperationalPanelPhone = (...identifiers) => {
         .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
 };
 
+const isBrazilPanelTestPhone = (...identifiers) => {
+    const allowed = brazilPanelTestPhones();
+    return identifiers
+        .map((item) => digitsOnly(item))
+        .filter((candidate) => candidate.startsWith('55'))
+        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+};
+
 const isAllowedPanelPhoneForCountry = (phone = '', country = 'EC') => {
     const digits = normalizeClientPhoneDigits(phone, country);
+    if (digits.startsWith('55')) return isBrazilPanelTestPhone(digits);
     if (isOperationalPanelPhone(digits)) return true;
     const normalizedCountry = normalizePanelCountry(country);
     if (normalizedCountry === 'EC') return /^5939\d{8}$/.test(digits);
@@ -118,15 +139,23 @@ const normalizeClientPhoneDigits = (phone = '', country = 'EC') => {
     return digits;
 };
 
-const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => (
-    String(country || '').trim().toUpperCase() === 'BR' || digitsOnly(phone).startsWith('55')
-);
+const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => {
+    const normalizedCountry = String(country || '').trim().toUpperCase();
+    const phoneDigits = digitsOnly(phone);
+    if (normalizedCountry !== 'BR' && !phoneDigits.startsWith('55')) return false;
+    return isBrazilPanelTestPhone(phoneDigits);
+};
 
 const isOperationalOrTestPanelContact = ({ phone = '', country = '', state = null } = {}) => {
     const tags = Array.isArray(state?.tags) ? state.tags.map((tag) => String(tag || '').toUpperCase()) : [];
+    const phoneDigits = digitsOnly(phone);
+    const stateDigits = digitsOnly(state?.phoneDigits || state?.chatId || state?.metadata?.lastSenderPn || state?.metadata?.customerDraft?.phone);
+    const brazilLike = String(country || '').trim().toUpperCase() === 'BR'
+        || phoneDigits.startsWith('55')
+        || stateDigits.startsWith('55');
     return Boolean(
         isBrazilTestOnly({ phone, country })
-        || isOperationalPanelPhone(phone, state?.phoneDigits, state?.chatId, state?.metadata?.lastSenderPn, state?.metadata?.customerDraft?.phone)
+        || (!brazilLike && isOperationalPanelPhone(phone, state?.phoneDigits, state?.chatId, state?.metadata?.lastSenderPn, state?.metadata?.customerDraft?.phone))
         || state?.metadata?.operationalPanelPhone
         || state?.metadata?.outboundTestOnly
         || state?.metadata?.testOnly
@@ -2479,7 +2508,9 @@ router.post('/contacts', async (req, res) => {
         const effectiveCountry = digits.startsWith('55')
             ? 'BR'
             : (String(country || 'EC').toUpperCase() || 'EC');
-        const internalOrTest = isBrazilTestOnly({ phone: digits, country: effectiveCountry }) || isOperationalPanelPhone(digits);
+        const internalOrTest = digits.startsWith('55')
+            ? isBrazilTestOnly({ phone: digits, country: effectiveCountry })
+            : isOperationalPanelPhone(digits);
         const normalizedDigits = internalOrTest ? digits : normalizeClientPhoneDigits(digits, effectiveCountry);
         if (!internalOrTest && !isAllowedPanelPhoneForCountry(normalizedDigits, effectiveCountry)) {
             return res.status(400).json({ error: 'Telefone precisa ser cliente EC +593 ou CO +57. Numero de atendente entra como teste.' });
@@ -2665,11 +2696,13 @@ router.patch('/contact-state/:phone', async (req, res) => {
             const effectiveCountry = draftPhoneDigits.startsWith('55')
                 ? 'BR'
                 : (String(customerDraft.country || country || state.countryCode || 'EC').toUpperCase() || 'EC');
-            const internalOrTest = isOperationalOrTestPanelContact({
-                phone: draftPhoneDigits || state.phoneDigits || req.params.phone,
-                country: effectiveCountry,
-                state
-            });
+            const internalOrTest = draftPhoneDigits.startsWith('55') || effectiveCountry === 'BR'
+                ? isBrazilTestOnly({ phone: draftPhoneDigits || state.phoneDigits || req.params.phone, country: effectiveCountry })
+                : isOperationalOrTestPanelContact({
+                    phone: draftPhoneDigits || state.phoneDigits || req.params.phone,
+                    country: effectiveCountry,
+                    state
+                });
             const normalizedDraftPhoneDigits = internalOrTest
                 ? (draftPhoneDigits || digitsOnly(req.params.phone))
                 : normalizeClientPhoneDigits(draftPhoneDigits, effectiveCountry);
