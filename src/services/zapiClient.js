@@ -62,7 +62,13 @@ export const getZapiDevice = async () => {
     return response.data;
 };
 
-export const sendZapiText = async ({ phone, message, messageId = '' } = {}) => {
+const boundedDelaySeconds = (value, fallback = null) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(15, Math.max(1, parsed));
+};
+
+export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
     const cleanPhone = digits(phone);
     const cleanMessage = clean(message);
     if (!cleanPhone || !cleanMessage) {
@@ -76,6 +82,10 @@ export const sendZapiText = async ({ phone, message, messageId = '' } = {}) => {
         message: cleanMessage
     };
     if (messageId) payload.messageId = clean(messageId);
+    const safeDelayMessage = boundedDelaySeconds(delayMessage);
+    const safeDelayTyping = boundedDelaySeconds(delayTyping);
+    if (safeDelayMessage) payload.delayMessage = safeDelayMessage;
+    if (safeDelayTyping) payload.delayTyping = safeDelayTyping;
 
     const response = await axios.post(endpoint('/send-text'), payload, {
         headers: headers(),

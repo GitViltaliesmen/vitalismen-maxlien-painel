@@ -19,6 +19,11 @@ const parseMs = (name, fallback) => {
     const value = Number.parseInt(String(process.env[name] || ''), 10);
     return Number.isFinite(value) && value >= 0 ? value : fallback;
 };
+const parseBoundedSeconds = (name, fallback) => {
+    const value = Number.parseInt(String(process.env[name] || ''), 10);
+    const parsed = Number.isFinite(value) ? value : fallback;
+    return Math.min(15, Math.max(1, parsed));
+};
 const withTimeout = (promise, ms, label) => Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms))
@@ -230,7 +235,13 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             const response = await sendZapiText({
                 phone,
                 message: finalText,
-                messageId: options.providerMessageId || options.messageId || ''
+                messageId: options.providerMessageId || options.messageId || '',
+                delayMessage: options.sendMode === 'manual_panel'
+                    ? parseBoundedSeconds('ZAPI_MANUAL_DELAY_MESSAGE_SECONDS', 1)
+                    : null,
+                delayTyping: options.sendMode === 'manual_panel'
+                    ? parseBoundedSeconds('ZAPI_MANUAL_DELAY_TYPING_SECONDS', 2)
+                    : null
             });
             console.log(`[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> ${phone} | Tamanho: ${finalText.length} chars | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid: targetJid });
