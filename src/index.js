@@ -16,6 +16,7 @@ import automationRoutes from './routes/automation.js';
 import leadsRoutes from './routes/leads.js';
 import { publicWhatsAppRedirect } from './routes/leads.js';
 import metaEventsRoutes from './routes/metaEvents.js';
+import zapiRoutes from './routes/zapi.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -169,6 +170,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/meta-events', metaEventsRoutes);
+app.use('/api/zapi', zapiRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);
