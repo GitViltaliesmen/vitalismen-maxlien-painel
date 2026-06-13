@@ -49,6 +49,10 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    customerName: {
+        type: String,
+        default: ''
+    },
     tracking: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
@@ -85,6 +89,24 @@ const vslVisitSchema = new mongoose.Schema({
     visits: {
         type: Number,
         default: 1
+    },
+    metaPageViewEventId: {
+        type: String,
+        default: ''
+    },
+    metaPageViewSentAt: Date,
+    metaPageViewResponse: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    metaLeadEventId: {
+        type: String,
+        default: ''
+    },
+    metaLeadSentAt: Date,
+    metaLeadResponse: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
     }
 }, {
     timestamps: true

@@ -25,6 +25,7 @@ import { syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatus
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
+import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -731,6 +732,86 @@ const vslVisitorKey = ({ country = 'EC', body = {}, req }) => {
     return `${normalizedCountry}:${shortHash(base || `${Date.now()}:${Math.random()}`)}`;
 };
 
+const vslPageViewEventId = ({ visitorKey, body = {} }) => cleanText(
+    body.pageViewEventId
+    || body.page_view_event_id
+    || body.event_id_page_view
+    || `PageView:${visitorKey}`
+).slice(0, 220);
+
+const vslLeadEventId = ({ body = {} }) => cleanText(
+    body.leadEventId
+    || body.lead_event_id
+    || body.eventId
+    || body.event_id
+).slice(0, 220);
+
+const metaEventResponseSnapshot = (result = {}, fallbackEventId = '') => ({
+    ok: Boolean(result.ok),
+    status: result.status || null,
+    data: result.data || null,
+    error: result.error || null,
+    eventId: result.eventId || fallbackEventId || ''
+});
+
+const sendVslPageViewForVisit = async ({ visit, body, req, country, visitorKey }) => {
+    if (!visit || visit.metaPageViewSentAt) {
+        return { alreadySent: Boolean(visit?.metaPageViewSentAt), eventId: visit?.metaPageViewEventId || '' };
+    }
+
+    const tracking = visit.tracking || {};
+    const eventId = vslPageViewEventId({ visitorKey, body });
+    const result = await sendBrowserMetaEvent({
+        country,
+        eventName: 'PageView',
+        event_id: eventId,
+        event_source_url: visit.sourceUrl || body.event_source_url || body.eventSourceUrl || body.sourceUrl,
+        client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
+        fbc: tracking.fbc || body.fbc,
+        fbp: tracking.fbp || body.fbp,
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId
+    }, req);
+
+    const metaUpdate = {
+        metaPageViewEventId: result.eventId || eventId,
+        metaPageViewResponse: result.response || metaEventResponseSnapshot(result, eventId)
+    };
+    if (result.ok) metaUpdate.metaPageViewSentAt = new Date();
+    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    return { ...result, eventId: result.eventId || eventId };
+};
+
+const sendVslLeadForVisit = async ({ visit, body, req, country, visitorKey }) => {
+    if (!visit || visit.metaLeadSentAt) {
+        return { alreadySent: Boolean(visit?.metaLeadSentAt), eventId: visit?.metaLeadEventId || '' };
+    }
+
+    const eventId = vslLeadEventId({ body });
+    if (!eventId) return null;
+
+    const tracking = visit.tracking || {};
+    const result = await sendBrowserMetaEvent({
+        country,
+        eventName: 'Lead',
+        event_id: eventId,
+        event_source_url: visit.sourceUrl || body.event_source_url || body.eventSourceUrl || body.sourceUrl,
+        client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
+        fbc: tracking.fbc || body.fbc,
+        fbp: tracking.fbp || body.fbp,
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        funnel_entry_message: visit.lastEntryMessage || body.message || body.funnel_entry_message,
+        customer_name: visit.customerName || body.customerName || body.customer_name
+    }, req);
+
+    const metaUpdate = {
+        metaLeadEventId: result.eventId || eventId,
+        metaLeadResponse: result.response || metaEventResponseSnapshot(result, eventId)
+    };
+    if (result.ok) metaUpdate.metaLeadSentAt = new Date();
+    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    return { ...result, eventId: result.eventId || eventId };
+};
+
 const publicMediaUrlFromPath = (filePath = '') => {
     const value = String(filePath || '').trim();
     if (!value) return '';
@@ -1253,6 +1334,10 @@ router.post('/vsl-entry', async (req, res) => {
         const visitorKey = vslVisitorKey({ country, body, req });
         const ipHash = shortHash(requestIp(req));
         const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+        const intent = cleanText(body.intent || body.action).toLowerCase();
+        const clicked = body.clicked === false
+            ? false
+            : (body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent) || body.clicked !== false);
         const existing = await VslVisit.findOne({ visitorKey });
         let assignment = null;
         let assignedSeller = digitsOnly(existing?.assignedSeller || '');
@@ -1274,6 +1359,7 @@ router.post('/vsl-entry', async (req, res) => {
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
                 ipHash,
                 device: cleanText(body.device),
+                customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
                 tracking: {
                     utm_source: cleanText(body.utm_source),
                     utm_medium: cleanText(body.utm_medium),
@@ -1288,8 +1374,8 @@ router.post('/vsl-entry', async (req, res) => {
                 assignedSeller,
                 assignedSellerAt: existing?.assignedSellerAt || now,
                 assignmentReason: assignment?.reason || existing?.assignmentReason || 'existing_assignment',
-                lastClickAt: body.clicked === false ? existing?.lastClickAt : now,
-                lastEntryMessage: cleanText(body.message).slice(0, 500),
+                lastClickAt: clicked ? now : existing?.lastClickAt,
+                lastEntryMessage: clicked ? cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500) : existing?.lastEntryMessage || '',
                 lastSeenAt: now
             },
             $setOnInsert: {
@@ -1298,7 +1384,7 @@ router.post('/vsl-entry', async (req, res) => {
             },
             $inc: {
                 visits: existing ? 1 : 0,
-                clickCount: body.clicked === false ? 0 : 1
+                clickCount: clicked ? 1 : 0
             }
         };
 
@@ -1308,6 +1394,13 @@ router.post('/vsl-entry', async (req, res) => {
             { upsert: true, new: true, setDefaultsOnInsert: true }
         ).lean();
 
+        const pageView = clicked
+            ? null
+            : await sendVslPageViewForVisit({ visit, body, req, country, visitorKey });
+        const lead = clicked
+            ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
+            : null;
+
         return res.json({
             ok: true,
             assignedSeller,
@@ -1315,7 +1408,21 @@ router.post('/vsl-entry', async (req, res) => {
             reusedAssignment: Boolean(existing?.assignedSeller && !assignment),
             seller_rotation: assignment,
             visitId: visit?._id?.toString?.() || '',
-            sequence: assignment?.sequence || sellerRotationPreview({ country }).sequence
+            sequence: assignment?.sequence || sellerRotationPreview({ country }).sequence,
+            meta: {
+                pageView: pageView ? {
+                    ok: Boolean(pageView.ok || pageView.alreadySent),
+                    alreadySent: Boolean(pageView.alreadySent),
+                    eventId: pageView.eventId || null,
+                    error: pageView.ok || pageView.alreadySent ? null : (pageView.error || 'META PageView send failed')
+                } : null,
+                lead: lead ? {
+                    ok: Boolean(lead.ok || lead.alreadySent),
+                    alreadySent: Boolean(lead.alreadySent),
+                    eventId: lead.eventId || null,
+                    error: lead.ok || lead.alreadySent ? null : (lead.error || 'META Lead send failed')
+                } : null
+            }
         });
     } catch (error) {
         console.error('[VSL_ENTRY] falha ao registrar entrada:', error);

@@ -29,6 +29,7 @@ const meta = read('src/services/metaConversionsService.js');
 const sessionRouter = read('src/whatsapp/sessionRouter.js');
 const sellerRotation = read('src/services/sellerRotationService.js');
 const whatsappRoute = read('src/routes/whatsapp.js');
+const vslVisit = read('src/models/VslVisit.js');
 const humanPacing = read('src/whatsapp/humanPacing.js');
 const sendText = read('src/whatsapp/sendText.js');
 const sendAudio = read('src/whatsapp/sendAudio.js');
@@ -48,6 +49,13 @@ assert(envExample.includes('WHATSAPP_EC_ONLY_OUTBOUND=true'), '.env.example prec
 
 assert(meta.includes(`process.env.META_PIXEL_ID_${ecSuffix}`), 'metaConversionsService deve continuar usando META_PIXEL_ID_EC.');
 assert(meta.includes(`process.env.META_ACCESS_TOKEN_${ecSuffix}`), 'metaConversionsService deve continuar usando META_ACCESS_TOKEN_EC.');
+assert(whatsappRoute.includes('sendBrowserMetaEvent'), 'rota WhatsApp precisa manter envio Meta CAPI para VSL.');
+assert(whatsappRoute.includes("eventName: 'PageView'"), 'vsl-entry precisa manter PageView CAPI.');
+assert(whatsappRoute.includes("eventName: 'Lead'"), 'vsl-entry precisa manter Lead CAPI quando receber event_id explicito.');
+assert(whatsappRoute.includes('pageViewEventId') || whatsappRoute.includes('page_view_event_id'), 'vsl-entry precisa aceitar event_id de PageView do browser.');
+assert(vslVisit.includes('metaPageViewSentAt'), 'VslVisit precisa manter lock metaPageViewSentAt.');
+assert(vslVisit.includes('metaLeadSentAt'), 'VslVisit precisa manter lock metaLeadSentAt.');
+assert(vslVisit.includes('metaPageViewResponse') && vslVisit.includes('metaLeadResponse'), 'VslVisit precisa guardar respostas Meta PageView/Lead.');
 assert(sessionRouter.includes('defaultSessionId'), 'sessionRouter precisa manter o resolver de default por pais.');
 assert(sessionRouter.includes("WHATSAPP_DEFAULT_SESSION_ID_"), 'sessionRouter precisa manter defaults por pais.');
 assert(sessionRouter.includes('resolveOutboundSessionForJid'), 'sessionRouter precisa manter o resolvedor por pais.');
@@ -74,6 +82,7 @@ assert(qr.includes('srcdoc = `'), 'public/qr.html precisa continuar embutindo o 
 assert(leads.includes('Recentes 7 dias'), 'public/leads-window.html precisa manter o filtro Recentes 7 dias.');
 
 assert(exists('src/services/metaConversionsService.js'), 'metaConversionsService deve existir.');
+assert(exists('src/models/VslVisit.js'), 'VslVisit model deve existir.');
 assert(exists('src/whatsapp/sessionRouter.js'), 'sessionRouter deve existir.');
 assert(exists('src/services/sellerRotationService.js'), 'sellerRotationService deve existir.');
 assert(exists('public/qr.html'), 'painel principal public/qr.html deve existir.');
