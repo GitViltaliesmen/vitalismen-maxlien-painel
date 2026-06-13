@@ -88,7 +88,9 @@ const operationalPanelPhones = () => [
 const brazilPanelTestPhones = () => [
     '5515998038637',
     '553171862958',
+    '5531971862958',
     '553183002800',
+    '5531983002800',
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_AUTOMATION_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS,
