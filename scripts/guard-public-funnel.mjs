@@ -214,7 +214,7 @@ const auditRemoteConversationEngine = () => {
         'grep -q "Pedidos confirmados para Dropi" public/qr.html',
         'grep -q "id=\\"leadDashboardFrame\\"" public/qr.html',
         'grep -q "id=\\"leadDashboardOpenLink\\"" public/qr.html',
-        'grep -q "\\/admin\\/dashboard?country=EC" public/qr.html',
+        'grep -q "\\/leads-window.html?country=EC" public/qr.html',
         '! grep -q "src=\\"https://maxlien.shop/admin/dashboard?country=EC\\"" public/qr.html',
         '! grep -q "href=\\"https://maxlien.shop/admin/dashboard?country=EC\\"" public/qr.html'
     ].join(' && '));
