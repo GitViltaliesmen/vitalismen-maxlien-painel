@@ -108,16 +108,23 @@ const isOperationalPanelPhone = (...identifiers) => {
         .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
 };
 
-const isBrazilPanelTestPhone = (...identifiers) => {
+const matchBrazilPanelTestPhone = (...identifiers) => {
     const allowed = brazilPanelTestPhones();
-    return identifiers
+    const candidates = identifiers
         .map((item) => digitsOnly(item))
-        .filter((candidate) => candidate.startsWith('55'))
-        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+        .filter(Boolean);
+    for (const candidate of candidates) {
+        const match = allowed.find((item) => item.startsWith('55') && isSamePhone(candidate, item));
+        if (match) return match;
+    }
+    return '';
 };
+
+const isBrazilPanelTestPhone = (...identifiers) => Boolean(matchBrazilPanelTestPhone(...identifiers));
 
 const isAllowedPanelPhoneForCountry = (phone = '', country = 'EC') => {
     const digits = normalizeClientPhoneDigits(phone, country);
+    if (matchBrazilPanelTestPhone(phone, digits)) return true;
     if (digits.startsWith('55')) return isBrazilPanelTestPhone(digits);
     if (isOperationalPanelPhone(digits)) return true;
     const normalizedCountry = normalizePanelCountry(country);
@@ -2507,15 +2514,16 @@ router.post('/contacts', async (req, res) => {
         if (digits.length < 8) {
             return res.status(400).json({ error: 'Telefone invalido' });
         }
-        const effectiveCountry = digits.startsWith('55')
+        const matchedBrazilTestPhone = matchBrazilPanelTestPhone(digits);
+        const effectiveCountry = digits.startsWith('55') || matchedBrazilTestPhone
             ? 'BR'
             : (String(country || 'EC').toUpperCase() || 'EC');
-        const internalOrTest = digits.startsWith('55')
+        const internalOrTest = digits.startsWith('55') || matchedBrazilTestPhone
             ? isBrazilTestOnly({ phone: digits, country: effectiveCountry })
             : isOperationalPanelPhone(digits);
-        const normalizedDigits = internalOrTest ? digits : normalizeClientPhoneDigits(digits, effectiveCountry);
+        const normalizedDigits = matchedBrazilTestPhone || (internalOrTest ? digits : normalizeClientPhoneDigits(digits, effectiveCountry));
         if (!internalOrTest && !isAllowedPanelPhoneForCountry(normalizedDigits, effectiveCountry)) {
-            return res.status(400).json({ error: 'Telefone precisa ser cliente EC +593 ou CO +57. Numero de atendente entra como teste.' });
+            return res.status(400).json({ error: 'Cliente precisa ser EC +593 ou CO +57. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
         }
 
         const state = await findOrCreateContactState(normalizedDigits);
@@ -2695,10 +2703,11 @@ router.patch('/contact-state/:phone', async (req, res) => {
         };
         if (customerDraft && typeof customerDraft === 'object') {
             const draftPhoneDigits = String(customerDraft.phone || '').replace(/\D/g, '');
-            const effectiveCountry = draftPhoneDigits.startsWith('55')
+            const matchedBrazilTestPhone = matchBrazilPanelTestPhone(draftPhoneDigits || state.phoneDigits || req.params.phone);
+            const effectiveCountry = draftPhoneDigits.startsWith('55') || matchedBrazilTestPhone
                 ? 'BR'
                 : (String(customerDraft.country || country || state.countryCode || 'EC').toUpperCase() || 'EC');
-            const internalOrTest = draftPhoneDigits.startsWith('55') || effectiveCountry === 'BR'
+            const internalOrTest = draftPhoneDigits.startsWith('55') || matchedBrazilTestPhone || effectiveCountry === 'BR'
                 ? isBrazilTestOnly({ phone: draftPhoneDigits || state.phoneDigits || req.params.phone, country: effectiveCountry })
                 : isOperationalOrTestPanelContact({
                     phone: draftPhoneDigits || state.phoneDigits || req.params.phone,
@@ -2706,10 +2715,10 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     state
                 });
             const normalizedDraftPhoneDigits = internalOrTest
-                ? (draftPhoneDigits || digitsOnly(req.params.phone))
+                ? (matchedBrazilTestPhone || draftPhoneDigits || digitsOnly(req.params.phone))
                 : normalizeClientPhoneDigits(draftPhoneDigits, effectiveCountry);
             if (!internalOrTest && normalizedDraftPhoneDigits && !isAllowedPanelPhoneForCountry(normalizedDraftPhoneDigits, effectiveCountry)) {
-                return res.status(400).json({ error: 'Telefone precisa ser cliente EC +593 ou CO +57. Numero de atendente entra como teste.' });
+                return res.status(400).json({ error: 'Cliente precisa ser EC +593 ou CO +57. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
             }
             const cleanDraft = {
                 name: String(customerDraft.name || '').trim(),
