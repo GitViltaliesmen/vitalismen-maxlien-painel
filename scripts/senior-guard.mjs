@@ -43,6 +43,8 @@ const scanFiles = (dir, predicate = () => true) => {
 const env = read('.env');
 const envExample = read('.env.example');
 const marker = read('.vitalismen-official-root');
+const hasEnv = (key, value) => new RegExp(`^${key}=${value}$`, 'm').test(env);
+const operationalAutomationApproved = hasEnv('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED', 'true');
 const term = (...parts) => parts.join('');
 const forbiddenContextPatterns = [
     new RegExp(`\\b${term('colo', 'mbia')}\\b`, 'i'),
@@ -65,8 +67,8 @@ const ignoredContextFiles = new Set([
 ]);
 
 assert(
-    [localOfficialPath, vpsOfficialPath].map(normalizePath).includes(normalizePath(root)),
-    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac ou ${vpsOfficialPath} no VPS. Atual: ${root}`
+    [localOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some((allowed) => normalizePath(root).startsWith(normalizePath(allowed))),
+    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`
 );
 assert(marker.includes('VITALISMEN_OFFICIAL_PROJECT=vit_power_ec'), 'Marcador .vitalismen-official-root ausente ou invalido.');
 assert(marker.includes('DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true'), 'Marcador oficial deve bloquear projetos paralelos de automacao.');
@@ -74,7 +76,26 @@ assert(!fs.existsSync(path.join(root, 'src/services/funnelService.js')), 'Remova
 assert(!fs.existsSync(path.join(root, 'src/services/aiService.js')), 'Remova src/services/aiService.js: recuperacao/TTS legado nao pode voltar.');
 assert(!fs.existsSync(path.join(root, 'src/services/shipmentSchedulerService.js')), 'Remova src/services/shipmentSchedulerService.js: scheduler paralelo nao pode voltar.');
 assert(/BOT_FORCE_AGENT=vit_power_ec/.test(env), '.env deve manter BOT_FORCE_AGENT=vit_power_ec.');
-assert(/WHATSAPP_FUNNEL_ENABLED=false/.test(env), '.env deve manter WHATSAPP_FUNNEL_ENABLED=false.');
+if (operationalAutomationApproved) {
+    assert(hasEnv('VIT_POWER_FUNNEL_ACTIVE', 'true'), '.env com operacao aprovada deve manter VIT_POWER_FUNNEL_ACTIVE=true.');
+    assert(hasEnv('WHATSAPP_AUTO_REPLY_ENABLED', 'true'), '.env com operacao aprovada deve manter WHATSAPP_AUTO_REPLY_ENABLED=true.');
+    assert(hasEnv('ZAPI_ROUTE_INBOUND_TO_BOT', 'true'), '.env com operacao aprovada deve manter ZAPI_ROUTE_INBOUND_TO_BOT=true.');
+    assert(hasEnv('WHATSAPP_FUNNEL_ENABLED', 'true'), '.env com operacao aprovada deve manter WHATSAPP_FUNNEL_ENABLED=true.');
+    assert(hasEnv('DISABLE_SCHEDULER', '0'), '.env com operacao aprovada deve manter DISABLE_SCHEDULER=0.');
+    assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=true.');
+    assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=true.');
+} else {
+    assert(hasEnv('VIT_POWER_FUNNEL_ACTIVE', 'false'), '.env deve manter VIT_POWER_FUNNEL_ACTIVE=false enquanto o funil esta em teste.');
+    assert(hasEnv('WHATSAPP_AUTO_REPLY_ENABLED', 'false'), '.env deve manter WHATSAPP_AUTO_REPLY_ENABLED=false enquanto o Observador analisa atendimentos reais.');
+    assert(hasEnv('ZAPI_ROUTE_INBOUND_TO_BOT', 'false'), '.env deve manter ZAPI_ROUTE_INBOUND_TO_BOT=false para nao rotear cliente ao funil automatico.');
+    assert(hasEnv('WHATSAPP_FUNNEL_ENABLED', 'false'), '.env deve manter WHATSAPP_FUNNEL_ENABLED=false.');
+    assert(hasEnv('DISABLE_SCHEDULER', '1'), '.env deve manter DISABLE_SCHEDULER=1 para pausar ciclos operacionais automaticos.');
+    assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'false'), '.env deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=false.');
+    assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'false'), '.env deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=false.');
+}
+assert(/WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false.');
+assert(/PENDING_CHECKOUT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter PENDING_CHECKOUT_FOLLOWUP_ENABLED=false.');
+assert(/OBSERVER_OPENAI_ENABLED=true/.test(env), '.env deve manter OBSERVER_OPENAI_ENABLED=true para continuar o Bot Observador.');
 assert(/BOT_USE_APPROVED_AUDIO_ONLY=true/.test(env), '.env deve manter BOT_USE_APPROVED_AUDIO_ONLY=true.');
 assert(!/BOT_FAST_TEXT_ONLY=true/.test(env), '.env nao pode manter BOT_FAST_TEXT_ONLY=true; isso derruba o funil A/B em texto.');
 assert(!/BOT_DISABLE_AUTO_MEDIA=true/.test(env), '.env nao pode manter BOT_DISABLE_AUTO_MEDIA=true; isso bloqueia audios/imagens do funil A/B.');
@@ -125,6 +146,12 @@ const docs = read('docs/ARQUITETURA_AUTOMACAO_OFICIAL.md');
 assert(docs.includes('Automacoes paralelas apagadas'), 'Atualize docs/ARQUITETURA_AUTOMACAO_OFICIAL.md com o status congelado/apagado.');
 assert(docs.includes('Regra de imutabilidade A/B'), 'Atualize docs/ARQUITETURA_AUTOMACAO_OFICIAL.md com a regra de imutabilidade A/B.');
 assert(docs.includes('Camada de complementos fora do nucleo A/B'), 'Atualize docs/ARQUITETURA_AUTOMACAO_OFICIAL.md com a camada de complementos fora do nucleo A/B.');
+assert(docs.includes('Regra de intencao forte antes de etapa rigida'), 'Atualize docs/ARQUITETURA_AUTOMACAO_OFICIAL.md com a regra de intencao forte antes de etapa rigida.');
+
+const conversationEngine = read('src/services/conversationEngine.js');
+assert(conversationEngine.includes('strongQuantityShortcutFromText'), 'conversationEngine deve manter o roteador de intencao forte para quantidade.');
+assert(conversationEngine.includes('quantity_selection_before_audio_complement'), 'Quantidade deve ser tratada antes dos complementos de audio.');
+assert(!conversationEngine.includes('TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6'), 'Nao reintroduza o audio antigo TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6.');
 
 if (failures.length) {
     console.error('\n[SENIOR-GUARD] Bloqueado. Corrija antes de continuar:\n');

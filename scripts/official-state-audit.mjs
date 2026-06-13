@@ -8,12 +8,34 @@ const failures = [];
 const warnings = [];
 const notes = [];
 
-const requiredLocalEnv = {
+const requiredBaseEnv = {
     BOT_FORCE_AGENT: 'vit_power_ec',
-    WHATSAPP_AUTO_REPLY_ENABLED: 'true',
-    WHATSAPP_FUNNEL_ENABLED: 'false',
+    WHATSAPP_PRODUCT_FOLLOWUP_ENABLED: 'false',
+    PENDING_CHECKOUT_FOLLOWUP_ENABLED: 'false',
+    OBSERVER_OPENAI_ENABLED: 'true',
     BOT_USE_APPROVED_AUDIO_ONLY: 'true',
     WHATSAPP_AUTO_REJECT_CALLS: 'true'
+};
+
+const requiredObservationEnv = {
+    VIT_POWER_FUNNEL_ACTIVE: 'false',
+    WHATSAPP_AUTO_REPLY_ENABLED: 'false',
+    ZAPI_ROUTE_INBOUND_TO_BOT: 'false',
+    WHATSAPP_FUNNEL_ENABLED: 'false',
+    DISABLE_SCHEDULER: '1',
+    SHIPMENT_STATUS_DISPATCH_ENABLED: 'false',
+    SHIPMENT_PICKUP_REMINDERS_ENABLED: 'false'
+};
+
+const requiredOperationalEnv = {
+    VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED: 'true',
+    VIT_POWER_FUNNEL_ACTIVE: 'true',
+    WHATSAPP_AUTO_REPLY_ENABLED: 'true',
+    ZAPI_ROUTE_INBOUND_TO_BOT: 'true',
+    WHATSAPP_FUNNEL_ENABLED: 'true',
+    DISABLE_SCHEDULER: '0',
+    SHIPMENT_STATUS_DISPATCH_ENABLED: 'true',
+    SHIPMENT_PICKUP_REMINDERS_ENABLED: 'true'
 };
 
 const forbiddenEnv = [
@@ -83,7 +105,10 @@ const auditLocalFiles = () => {
     }
 
     const env = parseEnv(envBody);
-    for (const [key, value] of Object.entries(requiredLocalEnv)) {
+    const requiredModeEnv = env.VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED === 'true'
+        ? requiredOperationalEnv
+        : requiredObservationEnv;
+    for (const [key, value] of Object.entries({ ...requiredBaseEnv, ...requiredModeEnv })) {
         if (env[key] !== value) fail(`.env ${key} deve ser ${value}, atual=${env[key] ?? '(ausente)'}`);
         else ok(`.env ${key}=${value}`);
     }
@@ -199,6 +224,10 @@ const auditCheckoutOrders = async () => {
 };
 
 const auditVps = () => {
+    if (String(process.env.OFFICIAL_AUDIT_SKIP_VPS || '').toLowerCase() === 'true') {
+        warn('auditoria VPS pulada por OFFICIAL_AUDIT_SKIP_VPS=true.');
+        return;
+    }
     const key = `${process.env.HOME || ''}/.ssh/vps_auditoria_codex`;
     if (!fs.existsSync(key)) {
         warn('chave do VPS nao encontrada; auditoria VPS pulada.');
@@ -214,7 +243,7 @@ const auditVps = () => {
                 'cd /opt/vitalismen-automacao/current',
                 'npm run senior:check >/tmp/vitalismen-senior-check.out 2>&1',
                 'cat /tmp/vitalismen-senior-check.out',
-                "grep -E '^(VITALISMEN_OFFICIAL_ONLY|VITALISMEN_OFFICIAL_PRODUCT|VITALISMEN_OFFICIAL_AGENT|VITALISMEN_OFFICIAL_DOCTOR|VITALISMEN_OFFICIAL_COUNTRY|BOT_FORCE_AGENT|WHATSAPP_AUTO_REPLY_ENABLED|WHATSAPP_FUNNEL_ENABLED|BOT_USE_APPROVED_AUDIO_ONLY)=' .env || true"
+                "grep -E '^(VITALISMEN_OFFICIAL_ONLY|VITALISMEN_OFFICIAL_PRODUCT|VITALISMEN_OFFICIAL_AGENT|VITALISMEN_OFFICIAL_DOCTOR|VITALISMEN_OFFICIAL_COUNTRY|BOT_FORCE_AGENT|VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED|VIT_POWER_FUNNEL_ACTIVE|WHATSAPP_AUTO_REPLY_ENABLED|ZAPI_ROUTE_INBOUND_TO_BOT|WHATSAPP_FUNNEL_ENABLED|DISABLE_SCHEDULER|WHATSAPP_PRODUCT_FOLLOWUP_ENABLED|PENDING_CHECKOUT_FOLLOWUP_ENABLED|SHIPMENT_STATUS_DISPATCH_ENABLED|SHIPMENT_PICKUP_REMINDERS_ENABLED|OBSERVER_OPENAI_ENABLED|BOT_USE_APPROVED_AUDIO_ONLY)=' .env || true"
             ].join(' && ')
         ], {
             encoding: 'utf8',
@@ -224,13 +253,35 @@ const auditVps = () => {
         if (!output.includes('[SENIOR-GUARD] OK')) fail('senior-guard do VPS nao confirmou OK.');
         else ok('senior-guard do VPS passou.');
 
+        const requiredVpsModeFlags = output.includes('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true')
+            ? [
+                'VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true',
+                'VIT_POWER_FUNNEL_ACTIVE=true',
+                'WHATSAPP_AUTO_REPLY_ENABLED=true',
+                'ZAPI_ROUTE_INBOUND_TO_BOT=true',
+                'WHATSAPP_FUNNEL_ENABLED=true',
+                'DISABLE_SCHEDULER=0',
+                'SHIPMENT_STATUS_DISPATCH_ENABLED=true',
+                'SHIPMENT_PICKUP_REMINDERS_ENABLED=true'
+            ]
+            : [
+                'VIT_POWER_FUNNEL_ACTIVE=false',
+                'WHATSAPP_AUTO_REPLY_ENABLED=false',
+                'ZAPI_ROUTE_INBOUND_TO_BOT=false',
+                'WHATSAPP_FUNNEL_ENABLED=false',
+                'DISABLE_SCHEDULER=1',
+                'SHIPMENT_STATUS_DISPATCH_ENABLED=false',
+                'SHIPMENT_PICKUP_REMINDERS_ENABLED=false'
+            ];
         const requiredVpsFlags = [
             'VITALISMEN_OFFICIAL_ONLY=true',
             'VITALISMEN_OFFICIAL_PRODUCT=Vit Power',
             'BOT_FORCE_AGENT=vit_power_ec',
-            'WHATSAPP_AUTO_REPLY_ENABLED=true',
-            'WHATSAPP_FUNNEL_ENABLED=false',
-            'BOT_USE_APPROVED_AUDIO_ONLY=true'
+            'WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false',
+            'PENDING_CHECKOUT_FOLLOWUP_ENABLED=false',
+            'OBSERVER_OPENAI_ENABLED=true',
+            'BOT_USE_APPROVED_AUDIO_ONLY=true',
+            ...requiredVpsModeFlags
         ];
         for (const flag of requiredVpsFlags) {
             if (!output.includes(flag)) fail(`VPS sem flag oficial: ${flag}`);

@@ -2,7 +2,8 @@ import express from 'express';
 import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
-import { upsertDroppiEcuadorShipment } from '../services/droppiEcuadorService.js';
+import AutomationRun from '../models/AutomationRun.js';
+import { upsertDroppiEcuadorShipment, validateEcuadorDropiPhone } from '../services/droppiEcuadorService.js';
 import {
     notifyReadyForPickup,
     notifyPickupBonus,
@@ -10,31 +11,114 @@ import {
     notifyShipmentGuideGenerated,
     notifyTreatmentRefillReminder,
     processPickupProofSweep,
-    notifyShipmentReturned
+    notifyShipmentReturned,
+    repurchaseReminderDelayDaysForUnits
 } from '../services/shipmentMessageService.js';
 import Order from '../models/Order.js';
 import { importDroppiEcuadorText } from '../services/droppiEcuadorImportService.js';
 import {
+    prepareDroppiEcuadorSubmission,
     prepareDroppiEcuadorOrderForManualSubmit,
     submitDroppiEcuadorOrder,
+    searchDroppiEcuadorOrdersFromPanel,
+    syncDroppiEcuadorInvoiceForShipment,
     syncDroppiEcuadorFromPanel
 } from '../services/droppiEcuadorBrowserService.js';
-import { markOnlineAdminPedidoEnviado } from '../services/adminPanelStatusService.js';
 import {
+    saveCarrierTrackingResult,
+    trackCarrierGuide
+} from '../services/carrierTrackingService.js';
+import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import {
+    countShipmentDispatchCandidates,
     getShipmentDispatchState,
     processShipmentStatusDispatch,
     setShipmentDispatchPaused
 } from '../services/shipmentStatusDispatcherService.js';
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
 import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
+import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
 
 const router = express.Router();
 
 router.use(authMiddleware);
 
+const activeDropiSubmitJobs = new Set();
+let dropiSubmitQueue = Promise.resolve();
+
 const getAdminLeadIdFromOrderId = (orderId) => {
     const match = String(orderId || '').match(/^EC-ADMIN-(\d+)$/i);
     return match ? Number.parseInt(match[1], 10) : null;
+};
+
+const getAdminLeadSnapshot = ({ orderId } = {}) => {
+    const leadId = getAdminLeadIdFromOrderId(orderId);
+    if (!leadId) return null;
+
+    const python = `
+import sqlite3, json
+db_path = "/opt/maxlien-mvp/leads_ec.sqlite3"
+lead_id = int(${JSON.stringify(leadId)})
+con = sqlite3.connect(db_path)
+con.row_factory = sqlite3.Row
+cur = con.cursor()
+row = cur.execute("SELECT id, name, phone, city, province, status, updated_at FROM leads WHERE id=?", (lead_id,)).fetchone()
+print(json.dumps(dict(row) if row else None, ensure_ascii=False))
+con.close()
+`;
+
+    const result = spawnSync('python3', ['-'], {
+        input: python,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024
+    });
+    if (result.status !== 0) return null;
+    try {
+        return JSON.parse(result.stdout || 'null');
+    } catch (_error) {
+        return null;
+    }
+};
+
+const findCurrentOrderForAdminLead = async (requestedOrderId) => {
+    const lead = getAdminLeadSnapshot({ orderId: requestedOrderId });
+    const leadPhone = String(lead?.phone || '').replace(/\D/g, '');
+    if (!leadPhone) return null;
+
+    const candidates = await Order.find({
+        country: 'EC',
+        status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] }
+    }).sort({ updatedAt: -1 }).limit(300);
+
+    const tail = leadPhone.slice(-9);
+    const match = candidates.find((order) => {
+        const orderPhone = String(order.customer?.phone || '').replace(/\D/g, '');
+        return orderPhone && (
+            orderPhone === leadPhone
+            || orderPhone.endsWith(tail)
+            || leadPhone.endsWith(orderPhone.slice(-9))
+        );
+    });
+
+    if (!match) return null;
+    match._mappedFromAdminLead = {
+        requestedOrderId,
+        leadId: lead.id,
+        leadName: lead.name || '',
+        leadPhone: lead.phone || ''
+    };
+    return match;
+};
+
+const findOrderForDropiRequest = async (requestedOrderId) => {
+    const order = await Order.findOne({ orderId: requestedOrderId });
+    if (order) return order;
+    return findCurrentOrderForAdminLead(requestedOrderId);
+};
+
+const appendAuditNote = (current = '', note = '') => {
+    const prefix = current ? `${String(current).trim()}\n` : '';
+    return `${prefix}[${new Date().toISOString()}] ${note}`.trim();
 };
 
 const markAdminLeadCancelled = ({ orderId, user = null, reason = 'fake_order_deleted' } = {}) => {
@@ -124,6 +208,72 @@ const markDropiPaymentRequired = async (shipment, { reason = 'dropi_payment_requ
     return shipment;
 };
 
+const parseDispatchActions = (value) => {
+    const raw = Array.isArray(value) ? value : String(value || process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'guide,in_transit,ready_for_pickup,returned,delivered_bonus').split(',');
+    return raw
+        .map((item) => String(item || '').trim())
+        .filter(Boolean);
+};
+
+const positiveInt = (value, fallback, max = 30) => {
+    const parsed = Number.parseInt(String(value || ''), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+    return Math.min(parsed, max);
+};
+
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const normalizeManualShipmentStatus = (value) => {
+    const raw = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (['READY_FOR_PICKUP', 'AGENCIA', 'RETIRADA', 'RETIRO'].includes(raw)) return 'READY_FOR_PICKUP';
+    if (['EN_RUTA', 'RUTA', 'TRANSITO', 'IN_TRANSIT'].includes(raw)) return 'EN_RUTA';
+    if (['EN_REPARTO', 'REPARTO'].includes(raw)) return 'EN_REPARTO';
+    if (['DEVUELTO', 'RETURNED'].includes(raw)) return 'DEVUELTO';
+    if (['ENTREGADO', 'DELIVERED'].includes(raw)) return 'ENTREGADO';
+    return 'GUIA_GENERADA';
+};
+
+const normalizeManualPhone = (phone, country = 'EC') => {
+    const digits = digitsOnly(phone);
+    if (!digits) return '';
+    if (String(country || '').toUpperCase() === 'EC' && digits.length === 9) return `593${digits}`;
+    if (String(country || '').toUpperCase() === 'EC' && digits.length === 10 && digits.startsWith('0')) return `593${digits.slice(1)}`;
+    return digits;
+};
+
+const normalizeManualBoolean = (value) => {
+    if (typeof value === 'boolean') return value;
+    return ['1', 'true', 'yes', 'sim', 'si'].includes(String(value || '').trim().toLowerCase());
+};
+
+const findRecentOrderByPhone = async ({ phone, country = 'EC' } = {}) => {
+    const digits = normalizeManualPhone(phone, country);
+    const tail = digits.slice(-9);
+    if (!tail) return null;
+    return Order.findOne({
+        country: 'EC',
+        status: { $in: ['pending', 'confirmed', 'processing', 'shipped'] },
+        'customer.phone': { $regex: `${tail}$` }
+    }).sort({ updatedAt: -1 });
+};
+
+const retroactiveSyncQuery = ({ days = 10 } = {}) => {
+    const cutoff = new Date(Date.now() - positiveInt(days, 10, 90) * 24 * 60 * 60 * 1000);
+    return {
+        country: 'EC',
+        provider: 'droppi',
+        'client.phone': { $exists: true, $ne: '' },
+        updatedAt: { $gte: cutoff },
+        $or: [
+            { 'logistics.status': { $in: ['CREATED', 'created', 'PENDIENTE', 'GUIA_GENERADA', 'READY_FOR_PICKUP', 'EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA'] } },
+            { 'logistics.trackingNumber': { $exists: true, $ne: '' } },
+            { 'automation.submittedToDroppiAt': { $exists: true, $ne: null } },
+            { 'raw.manualDropiOrderId': { $exists: true, $ne: '' } },
+            { 'raw.latestDroppiPayload.dropiOrderId': { $exists: true, $ne: '' } }
+        ]
+    };
+};
+
 const describeDropiSubmitFailure = (value, fallback = 'Dropi rejeitou o envio. Pedido marcado para envio manual.') => {
     const text = String(value || '');
     if (/two-factor|2fa|autenticaci[oó]n de dos factores|dois fatores/i.test(text)) {
@@ -131,6 +281,21 @@ const describeDropiSubmitFailure = (value, fallback = 'Dropi rejeitou o envio. P
     }
     if (/missing DROPI_EC_EMAIL|missing DROPI_EC_PASSWORD|credenciais|credentials/i.test(text)) {
         return 'Credenciais Dropi ausentes ou nao carregadas no servidor. Corrija o login Dropi antes de enviar.';
+    }
+    if (/department option not selected|city option not selected|city field did not unlock|city was not accepted|ciudad|Departamento|Ciudad/i.test(text)) {
+        return 'Dropi nao aceitou provincia/cidade deste pedido. Confira cidade/provincia antes de reenviar.';
+    }
+    if (/shipping quote did not run|shipping quote returned without carrier options|shipping quote destination mismatch|cotiza/i.test(text)) {
+        return 'Dropi nao carregou a cotacao de envio para esta cidade. A automacao tentou atualizar cidade/cotacao; confira no envio manual ou tente novamente.';
+    }
+    if (/servientrega not returned in shipping quote/i.test(text)) {
+        return 'Dropi cotou este destino, mas Servientrega nao apareceu na cotacao da automacao. Confira no envio manual antes de trocar transportadora.';
+    }
+    if (/servientrega required|Servientrega|shipping quote|transportadora|carrier/i.test(text)) {
+        return 'Dropi nao liberou Servientrega para esse destino agora. Pedido ficou para envio manual/revisao sem trocar transportadora.';
+    }
+    if (/duplicad|duplicate|ya existe/i.test(text)) {
+        return 'Possivel pedido duplicado na Dropi. Confira antes de reenviar.';
     }
     if (/XServer|DISPLAY|headed browser|navegador visual/i.test(text)) {
         return 'Preparar Dropi exige navegador visual e nao funciona no VPS. Use Enviar para Dropi ou envio manual.';
@@ -209,16 +374,136 @@ const getSubmittedDropiOrderId = (order, shipment) => String(
 
 const alreadySubmittedResponse = (order, shipment) => {
     const dropiOrderId = getSubmittedDropiOrderId(order, shipment);
-    if (!dropiOrderId && !shipment?.automation?.submittedToDroppiAt) return null;
+    const trackingNumber = String(order?.trackingNumber || shipment?.logistics?.trackingNumber || '').trim();
+    if (!dropiOrderId && !trackingNumber && !shipment?.automation?.submittedToDroppiAt) return null;
     return {
         ok: true,
         alreadySubmitted: true,
         dropiOrderId,
+        trackingNumber,
         shipment,
         message: dropiOrderId
-            ? `Pedido ja enviado para Dropi. ID ${dropiOrderId}.`
-            : 'Pedido ja marcado como enviado para Dropi.'
+            ? `PEDIDO JA FOI ENVIADO - Dropi ${dropiOrderId}.`
+            : 'PEDIDO JA FOI ENVIADO para Dropi.'
     };
+};
+
+const buildDropiSubmitStatus = ({ order, shipment, orderId }) => {
+    const targetOrderId = order?.orderId || shipment?.orderId || orderId;
+    const alreadySubmitted = alreadySubmittedResponse(order, shipment);
+    if (alreadySubmitted) {
+        return {
+            ...alreadySubmitted,
+            status: 'submitted',
+            processing: false,
+            orderStatus: order?.status || '',
+            reviewStatus: shipment?.review?.reviewStatus || '',
+            checkpoint: shipment?.automation?.browserCheckpoint || '',
+            lastError: shipment?.automation?.browserLastError || ''
+        };
+    }
+
+    const reviewStatus = shipment?.review?.reviewStatus || '';
+    const checkpoint = shipment?.automation?.browserCheckpoint || '';
+    const lastError = shipment?.automation?.browserLastError || '';
+    const active = targetOrderId ? activeDropiSubmitJobs.has(targetOrderId) : false;
+    const running = active
+        || reviewStatus === 'dropi_submit_running'
+        || checkpoint === 'dropi_submit_queued'
+        || checkpoint === 'dropi_submit_locked_waiting';
+
+    if (running) {
+        return {
+            ok: true,
+            success: true,
+            status: 'processing',
+            processing: true,
+            submitQueued: true,
+            shipment,
+            orderStatus: order?.status || '',
+            reviewStatus,
+            checkpoint,
+            lastError,
+            message: 'Envio Dropi ainda esta processando.'
+        };
+    }
+
+    if (reviewStatus === 'dropi_payment_required' || checkpoint === 'dropi_payment_required') {
+        return {
+            ok: false,
+            success: false,
+            status: 'payment_required',
+            paymentRequired: true,
+            shipment,
+            orderStatus: order?.status || '',
+            reviewStatus,
+            checkpoint,
+            lastError,
+            message: 'Dropi chegou ate o envio, mas bloqueou por saldo/credito insuficiente.'
+        };
+    }
+
+    if (shipment?.review?.manualOnly || reviewStatus === 'manual_send_required') {
+        return {
+            ok: false,
+            success: false,
+            status: 'manual_required',
+            manualSendRequired: true,
+            shipment,
+            orderStatus: order?.status || '',
+            reviewStatus,
+            checkpoint,
+            lastError,
+            reason: shipment?.review?.reviewReason || 'manual_send_required',
+            error: lastError,
+            message: describeDropiSubmitFailure(lastError || shipment?.review?.reviewReason)
+        };
+    }
+
+    if (!isAuthorizedForDropiSubmit(shipment)) {
+        return {
+            ok: false,
+            success: false,
+            status: 'authorization_required',
+            authorizationRequired: true,
+            shipment,
+            orderStatus: order?.status || '',
+            reviewStatus,
+            checkpoint,
+            lastError,
+            message: 'Pedido ainda nao foi autorizado para envio na Dropi.'
+        };
+    }
+
+    return {
+        ok: true,
+        success: true,
+        status: 'authorized',
+        processing: false,
+        shipment,
+        orderStatus: order?.status || '',
+        reviewStatus,
+        checkpoint,
+        lastError,
+        message: 'Pedido autorizado e aguardando envio.'
+    };
+};
+
+const buildManualDropiCopyText = ({ order, prepared }) => {
+    const payload = prepared?.payload || {};
+    return [
+        `Pedido: ${order.orderId}`,
+        `Cliente: ${[payload.firstName, payload.lastName].filter(Boolean).join(' ') || order.customer?.name || ''}`,
+        `Telefone: ${payload.phone || order.customer?.phone || ''}`,
+        `Provincia: ${payload.department || order.customer?.province || ''}`,
+        `Cidade: ${payload.city || order.customer?.city || ''}`,
+        `Endereco: ${payload.address || order.customer?.address || ''}`,
+        `Referencia: ${order.customer?.reference || ''}`,
+        `Produto: ${payload.productName || 'Vit Power'}`,
+        `Quantidade: ${payload.quantity || order.package?.quantity || 1}`,
+        `Valor: ${payload.price || order.total || ''}`,
+        payload.agencyPickup ? 'Entrega: Retiro em agencia/Servientrega' : 'Entrega: Domicilio'
+    ].filter(Boolean).join('\n');
 };
 
 const normalizeBatchLimit = (value, fallback = 3, max = 10) => {
@@ -231,28 +516,231 @@ const looksLikeEcuadorOrder = (order, shipment) => {
     const phoneDigits = String(order?.customer?.phone || shipment?.client?.phone || '').replace(/\D/g, '');
     const province = String(order?.customer?.province || shipment?.client?.province || '').trim().toUpperCase();
     const city = String(order?.customer?.city || shipment?.client?.city || '').trim().toUpperCase();
+    if (!validateEcuadorDropiPhone(phoneDigits).ok) return false;
     if (phoneDigits.startsWith('55')) return false;
     if (/^(SP|RJ|MG|PR|SC|RS|BA|GO|PE|CE)$/i.test(province)) return false;
     if (/SOROCABA|SAO PAULO|SÃO PAULO|CAMPINAS|RIO DE JANEIRO/i.test(city)) return false;
-    if (phoneDigits.startsWith('593')) return true;
-    return phoneDigits.length >= 8 && phoneDigits.length <= 10 && /^0?9/.test(phoneDigits);
+    return true;
+};
+
+const dropiDestinationBlockedResponse = (res, order, shipment) => {
+    const phoneDigits = String(order?.customer?.phone || shipment?.client?.phone || '').replace(/\D/g, '');
+    const phoneValidation = validateEcuadorDropiPhone(phoneDigits);
+    const isBrazil = phoneValidation.reason === 'brazil_phone_not_allowed_for_dropi' || phoneDigits.startsWith('55');
+    return res.status(409).json({
+        success: false,
+        error: isBrazil ? 'brazil_test_only' : phoneValidation.reason || 'destination_or_phone_not_ecuador',
+        message: isBrazil
+            ? 'Numero brasileiro liberado somente para teste de atendimento. Nao enviar pedido nem Dropi.'
+            : 'Pedido bloqueado: telefone precisa ser celular valido do Equador para enviar na Dropi.',
+        phoneValidation,
+        shipment
+    });
 };
 
 const isAuthorizedForDropiSubmit = (shipment) => Boolean(shipment?.automation?.dropiSubmitAuthorizedAt);
 
-const getPendingDropiEcOrders = async (limit = 3) => {
-    const orders = await Order.find({
-        country: 'EC',
-        status: 'confirmed'
-    }).sort({ updatedAt: 1, createdAt: 1 }).limit(Math.max(limit * 3, limit));
+const duplicateGuardResponse = (res, guard) => res.status(409).json({
+    success: false,
+    duplicateBlocked: true,
+    error: guard.reason || 'active_duplicate_order',
+    message: guard.message || 'Pedido duplicado bloqueado',
+    duplicateOrderId: guard.duplicateOrderId || '',
+    duplicateStatus: guard.duplicateStatus || '',
+    duplicateDropiOrderId: guard.duplicateDropiOrderId || '',
+    duplicateTrackingNumber: guard.duplicateTrackingNumber || '',
+    duplicateSubmittedAt: guard.duplicateSubmittedAt || null,
+    latestOrderId: guard.latestOrderId || '',
+    requiresManualAuthorization: Boolean(guard.requiresManualAuthorization)
+});
 
+const getDropiDuplicateGuardForOrder = async (order, shipment) => {
+    if (order?._adminLeadVirtual) {
+        return { allowed: true, reason: 'admin_lead_manual_submission' };
+    }
+    const currentOrderId = String(order?.orderId || shipment?.orderId || '');
+    if (/^EC-REENVIO-\d+-/i.test(currentOrderId)) {
+        return { allowed: true, reason: 'authorized_replacement_order' };
+    }
+    return getOrderDuplicateGuard({
+        phone: order.customer?.phone || shipment.client?.phone,
+        country: order.country || 'EC',
+        currentOrderId: order.orderId,
+        trackingNumber: order.trackingNumber || shipment.logistics?.trackingNumber || '',
+        dropiOrderId: order.dropiOrderId || getSubmittedDropiOrderId(order, shipment)
+    });
+};
+
+const markDropiSubmitQueued = async (shipment, { user = null, reason = 'dropi_submit_queued' } = {}) => {
+    shipment.review.manualOnly = false;
+    shipment.review.reviewReason = '';
+    shipment.review.reviewStatus = 'dropi_submit_running';
+    shipment.automation.browserCheckpoint = reason;
+    shipment.automation.browserLastError = '';
+    shipment.events.push({
+        kind: reason,
+        at: new Date(),
+        payload: {
+            requestedBy: user?.email || user?.name || ''
+        }
+    });
+    shipment.events = shipment.events.slice(-60);
+    await shipment.save();
+    return shipment;
+};
+
+const handleDropiSubmitResult = async ({ order, shipment, result, user = null }) => {
+    if (result?.ok === false) {
+        if (result.duplicateBlocked) {
+            return {
+                ...result,
+                manualSendRequired: false,
+                shipment,
+                message: result.message || result.error || 'Pedido duplicado bloqueado'
+            };
+        }
+        const updatedShipment = await Shipment.findOne({ orderId: order.orderId }) || shipment;
+        if (result.reason === 'locked') {
+            updatedShipment.review.manualOnly = false;
+            updatedShipment.review.reviewReason = '';
+            updatedShipment.review.reviewStatus = 'dropi_submit_running';
+            updatedShipment.automation.browserCheckpoint = 'dropi_submit_locked_waiting';
+            updatedShipment.automation.browserLastError = '';
+            updatedShipment.events.push({
+                kind: 'dropi_submit_locked_waiting',
+                at: new Date(),
+                payload: {
+                    requestedBy: user?.email || user?.name || '',
+                    reason: 'locked'
+                }
+            });
+            updatedShipment.events = updatedShipment.events.slice(-60);
+            await updatedShipment.save();
+            return {
+                ...result,
+                processing: true,
+                submitQueued: true,
+                shipment: updatedShipment,
+                message: 'Envio Dropi ja esta em processamento. Atualize em instantes.'
+            };
+        }
+        if (result.paymentRequired || result.reason === 'dropi_payment_required') {
+            const paymentShipment = await markDropiPaymentRequired(updatedShipment, {
+                reason: 'dropi_payment_required',
+                error: result.error || result.reason || 'payment_required',
+                user
+            });
+            return {
+                ...result,
+                paymentRequired: true,
+                manualSendRequired: false,
+                shipment: paymentShipment,
+                message: 'Dropi chegou ate o envio, mas bloqueou por saldo/credito insuficiente.'
+            };
+        }
+        const manualShipment = await markManualSendRequired(updatedShipment, {
+            reason: 'dropi_rejected',
+            error: result.error || result.reason || 'submit_failed',
+            user
+        });
+        return {
+            ...result,
+            manualSendRequired: true,
+            shipment: manualShipment,
+            message: describeDropiSubmitFailure(result.error || result.reason)
+        };
+    }
+    return result;
+};
+
+const enqueueDropiSubmitJob = async ({ order, shipment, user = null }) => {
+    const orderId = order.orderId;
+    if (activeDropiSubmitJobs.has(orderId)) {
+        return {
+            ok: true,
+            success: true,
+            submitQueued: true,
+            processing: true,
+            shipment,
+            message: 'Envio Dropi ja esta em processamento. Atualize em instantes.'
+        };
+    }
+
+    activeDropiSubmitJobs.add(orderId);
+    const queuedShipment = await markDropiSubmitQueued(shipment, { user });
+
+    dropiSubmitQueue = dropiSubmitQueue
+        .catch((error) => {
+            console.error('Dropi EC submit queue previous job error:', error);
+        })
+        .then(async () => {
+            try {
+                const latestShipment = await Shipment.findOne({ orderId }) || queuedShipment;
+                const latestAlreadySubmitted = alreadySubmittedResponse(order, latestShipment);
+                if (latestAlreadySubmitted) return latestAlreadySubmitted;
+                const result = await submitDroppiEcuadorOrder({ order, shipment: latestShipment });
+                const handled = await handleDropiSubmitResult({ order, shipment: latestShipment, result, user });
+                if (handled?.ok === false && !handled?.processing) {
+                    console.warn('Dropi EC async submit finished with issue:', {
+                        orderId,
+                        reason: handled.reason,
+                        error: handled.error
+                    });
+                }
+                return handled;
+            } catch (error) {
+                console.error('Dropi EC async submit error:', error);
+                try {
+                    const latestShipment = await Shipment.findOne({ orderId }) || queuedShipment;
+                    await markManualSendRequired(latestShipment, {
+                        reason: 'dropi_submit_error',
+                        error: error.message || 'Failed to submit Droppi order',
+                        user
+                    });
+                } catch (markError) {
+                    console.error('Mark async manual send required EC error:', markError);
+                }
+                return null;
+            } finally {
+                activeDropiSubmitJobs.delete(orderId);
+            }
+        });
+
+    return {
+        ok: true,
+        success: true,
+        submitQueued: true,
+        processing: true,
+        shipment: queuedShipment,
+        message: 'Envio iniciado na Dropi. O painel vai atualizar em instantes.'
+    };
+};
+
+const getPendingDropiEcOrders = async (limit = 3) => {
     const candidates = [];
-    for (const order of orders) {
-        const shipment = await ensureShipmentForOrder(order, 'EC');
+    const shipments = await Shipment.find({
+        country: 'EC',
+        'automation.dropiSubmitAuthorizedAt': { $exists: true, $ne: null },
+        $or: [
+            { 'automation.submittedToDroppiAt': { $exists: false } },
+            { 'automation.submittedToDroppiAt': null }
+        ],
+        'review.manualOnly': { $ne: true },
+        'review.reviewStatus': { $ne: 'dropi_payment_required' }
+    }).sort({
+        'automation.dropiSubmitAuthorizedAt': 1,
+        updatedAt: 1,
+        createdAt: 1
+    }).limit(Math.max(limit * 5, limit));
+
+    for (const shipment of shipments) {
+        const order = await Order.findOne({
+            orderId: shipment.orderId,
+            country: 'EC',
+            status: 'confirmed'
+        });
+        if (!order) continue;
         if (alreadySubmittedResponse(order, shipment)) continue;
-        if (shipment.review?.manualOnly) continue;
-        if (shipment.review?.reviewStatus === 'dropi_payment_required') continue;
-        if (!isAuthorizedForDropiSubmit(shipment)) continue;
         if (!looksLikeEcuadorOrder(order, shipment)) continue;
         candidates.push({ order, shipment });
         if (candidates.length >= limit) break;
@@ -329,6 +817,20 @@ router.post('/dispatch/run', adminOnly, async (req, res) => {
             force: Boolean(force),
             actions
         });
+        await AutomationRun.create({
+            kind: 'shipment_dispatch_run',
+            status: 'completed',
+            requestedBy: req.user?.email || req.user?.name || '',
+            payload: {
+                dryRun: Boolean(dryRun),
+                force: Boolean(force),
+                actions,
+                limit,
+                processed: result.processed || 0,
+                sent: result.sent || 0,
+                skipped: result.skipped || 0
+            }
+        }).catch(() => null);
         res.json({
             success: true,
             ...result
@@ -336,6 +838,153 @@ router.post('/dispatch/run', adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Shipment dispatch run error:', error);
         res.status(500).json({ error: error.message || 'Failed to run shipment dispatch' });
+    }
+});
+
+router.get('/dispatch/history', adminOnly, async (req, res) => {
+    try {
+        const limit = positiveInt(req.query?.limit, 25, 100);
+        const eventKinds = [
+            'droppi_panel_sync_completed',
+            'droppi_panel_sync_failed',
+            'guia_notified',
+            'in_transit_notified',
+            'ready_for_pickup_notified',
+            'returned_notified',
+            'shipment_dispatch_attempt',
+            'pickup_bonus_notified'
+        ];
+        const shipments = await Shipment.find({
+            country: 'EC',
+            events: { $elemMatch: { kind: { $in: eventKinds } } }
+        })
+            .sort({ updatedAt: -1 })
+            .limit(80)
+            .lean();
+        const runs = await AutomationRun.find({
+            kind: { $in: ['shipment_dispatch_run', 'shipment_dispatch_retroactive'] }
+        })
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean()
+            .catch(() => []);
+
+        const shipmentHistory = shipments
+            .flatMap((shipment) => (shipment.events || [])
+                .filter((event) => eventKinds.includes(event.kind))
+                .map((event) => ({
+                    orderId: shipment.orderId,
+                    phoneTail: String(shipment.client?.phone || '').replace(/\D/g, '').slice(-4),
+                    clientName: shipment.client?.name || '',
+                    status: shipment.logistics?.status || '',
+                    trackingNumber: shipment.logistics?.trackingNumber || '',
+                    kind: event.kind,
+                    at: event.at,
+                    payload: event.payload || {}
+                })))
+            .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+            .slice(0, limit);
+
+        const runHistory = runs.map((run) => ({
+            orderId: 'PAINEL',
+            phoneTail: '',
+            clientName: run.requestedBy || '',
+            status: run.status || '',
+            trackingNumber: '',
+            kind: run.kind,
+            at: run.createdAt,
+            payload: run.payload || {}
+        }));
+
+        const history = [...runHistory, ...shipmentHistory]
+            .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+            .slice(0, limit);
+
+        res.json({ success: true, history });
+    } catch (error) {
+        console.error('Shipment dispatch history error:', error);
+        res.status(500).json({ error: error.message || 'Failed to load shipment dispatch history' });
+    }
+});
+
+router.post('/dispatch/retroactive', adminOnly, async (req, res) => {
+    try {
+        const {
+            days = 10,
+            syncLimit = 10,
+            dispatchLimit = process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || 3,
+            dryRun = true,
+            skipSync = false,
+            actions = []
+        } = req.body || {};
+        const selectedActions = parseDispatchActions(actions);
+        const shipments = skipSync ? [] : await Shipment.find(retroactiveSyncQuery({ days }))
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .limit(positiveInt(syncLimit, 10, 50));
+
+        const synced = [];
+        for (const shipment of shipments) {
+            const before = {
+                orderId: shipment.orderId,
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                phoneTail: String(shipment.client?.phone || '').replace(/\D/g, '').slice(-4)
+            };
+            const result = await syncDroppiEcuadorFromPanel({ shipment });
+            const refreshed = await Shipment.findById(shipment._id).lean();
+            synced.push({
+                ...before,
+                ok: Boolean(result?.ok),
+                reason: result?.reason || '',
+                afterStatus: refreshed?.logistics?.status || '',
+                afterTrackingNumber: refreshed?.logistics?.trackingNumber || ''
+            });
+        }
+
+        const pendingBeforeDispatch = await countShipmentDispatchCandidates({ actions: selectedActions });
+        const dispatch = await processShipmentStatusDispatch({
+            limit: positiveInt(dispatchLimit, 3, 30),
+            dryRun: Boolean(dryRun),
+            force: true,
+            actions: selectedActions
+        });
+        const pendingAfterDispatch = await countShipmentDispatchCandidates({ actions: selectedActions });
+        await AutomationRun.create({
+            kind: 'shipment_dispatch_retroactive',
+            status: 'completed',
+            requestedBy: req.user?.email || req.user?.name || '',
+            payload: {
+                mode: dryRun ? 'dry-run' : 'send',
+                days: positiveInt(days, 10, 90),
+                syncLimit: positiveInt(syncLimit, 10, 50),
+                dispatchLimit: positiveInt(dispatchLimit, 3, 30),
+                actions: selectedActions,
+                syncedCount: synced.length,
+                syncFailed: synced.filter((item) => !item.ok).length,
+                pendingBeforeDispatch,
+                processed: dispatch.processed || 0,
+                sent: dispatch.sent || 0,
+                skipped: dispatch.skipped || 0,
+                pendingAfterDispatch
+            }
+        }).catch(() => null);
+
+        res.json({
+            success: true,
+            mode: dryRun ? 'dry-run' : 'send',
+            days: positiveInt(days, 10, 90),
+            syncLimit: positiveInt(syncLimit, 10, 50),
+            dispatchLimit: positiveInt(dispatchLimit, 3, 30),
+            actions: selectedActions,
+            syncedCount: synced.length,
+            synced,
+            pendingBeforeDispatch,
+            dispatch,
+            pendingAfterDispatch
+        });
+    } catch (error) {
+        console.error('Shipment retroactive dispatch error:', error);
+        res.status(500).json({ error: error.message || 'Failed to run retroactive shipment dispatch' });
     }
 });
 
@@ -394,15 +1043,133 @@ router.post('/droppi/ec/import-text', adminOnly, async (req, res) => {
     }
 });
 
+router.post('/droppi/ec/search-panel', adminOnly, async (req, res) => {
+    try {
+        const {
+            q = '',
+            term = '',
+            terms = [],
+            phone = '',
+            tail = '',
+            trackingNumber = '',
+            limit = 20
+        } = req.body || {};
+        const searchTerms = [
+            q,
+            term,
+            phone,
+            tail,
+            trackingNumber,
+            ...(Array.isArray(terms) ? terms : String(terms || '').split(','))
+        ]
+            .map((value) => String(value || '').trim())
+            .filter(Boolean);
+
+        const result = await searchDroppiEcuadorOrdersFromPanel({
+            terms: searchTerms,
+            limit: positiveInt(limit, 20, 100)
+        });
+
+        res.json({
+            success: Boolean(result.ok),
+            ...result
+        });
+    } catch (error) {
+        console.error('Droppi EC search-panel error:', error);
+        res.status(500).json({ error: error.message || 'Failed to search Dropi panel' });
+    }
+});
+
+router.post('/carrier/ec/track', adminOnly, async (req, res) => {
+    try {
+        const {
+            orderId = '',
+            trackingNumber = '',
+            carrier = '',
+            persist = false,
+            updateStatus = false
+        } = req.body || {};
+        const searchTracking = String(trackingNumber || '').trim();
+        const query = orderId
+            ? { orderId: String(orderId).trim() }
+            : (searchTracking ? { 'logistics.trackingNumber': searchTracking } : null);
+        const shipment = query ? await Shipment.findOne({ country: 'EC', ...query }) : null;
+        const effectiveTracking = searchTracking || shipment?.logistics?.trackingNumber || '';
+        if (!effectiveTracking) {
+            return res.status(400).json({
+                success: false,
+                error: 'missing_tracking_number',
+                message: 'Informe trackingNumber ou orderId com guia salva.'
+            });
+        }
+        const effectiveCarrier = carrier
+            || shipment?.logistics?.distributionCompany
+            || shipment?.logistics?.chosenCarrier
+            || 'servientrega';
+        const result = await trackCarrierGuide({
+            trackingNumber: effectiveTracking,
+            carrier: effectiveCarrier
+        });
+        let savedShipment = null;
+        if (persist && shipment?._id) {
+            savedShipment = await saveCarrierTrackingResult({
+                shipmentId: shipment._id,
+                result,
+                updateStatus: updateStatus === true
+            });
+        }
+        res.json({
+            success: Boolean(result.ok),
+            dryRun: !persist,
+            persisted: Boolean(savedShipment),
+            updateStatus: Boolean(updateStatus === true && savedShipment),
+            shipment: savedShipment,
+            result
+        });
+    } catch (error) {
+        console.error('Carrier EC tracking error:', error);
+        res.status(500).json({ error: error.message || 'Failed to track carrier guide' });
+    }
+});
+
+router.post('/droppi/ec/orders/:orderId/invoice/sync', adminOnly, async (req, res) => {
+    try {
+        const shipment = await Shipment.findOne({
+            country: 'EC',
+            provider: 'droppi',
+            orderId: req.params.orderId
+        });
+        if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+        const result = await syncDroppiEcuadorInvoiceForShipment({
+            shipment,
+            download: req.body?.download !== false
+        });
+
+        const updatedShipment = await Shipment.findById(shipment._id).lean();
+        res.json({
+            success: Boolean(result.ok),
+            ...result,
+            shipment: updatedShipment
+        });
+    } catch (error) {
+        console.error('Droppi EC invoice sync error:', error);
+        res.status(500).json({ error: error.message || 'Failed to sync Dropi invoice' });
+    }
+});
+
 router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => {
     try {
-        const order = await Order.findOne({ orderId: req.params.orderId });
+        const order = await findOrderForDropiRequest(req.params.orderId);
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
         const shipment = await ensureShipmentForOrder(order, 'EC');
+        if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
+        if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
         if (!isAuthorizedForDropiSubmit(shipment)) {
             return res.status(409).json({
                 success: false,
@@ -413,36 +1180,8 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
             });
         }
 
-        const result = await submitDroppiEcuadorOrder({ order, shipment });
-        if (result?.ok === false) {
-            const updatedShipment = await Shipment.findOne({ orderId: order.orderId }) || shipment;
-            if (result.paymentRequired || result.reason === 'dropi_payment_required') {
-                const paymentShipment = await markDropiPaymentRequired(updatedShipment, {
-                    reason: 'dropi_payment_required',
-                    error: result.error || result.reason || 'payment_required',
-                    user: req.user
-                });
-                return res.json({
-                    ...result,
-                    paymentRequired: true,
-                    manualSendRequired: false,
-                    shipment: paymentShipment,
-                    message: 'Dropi chegou ate o envio, mas bloqueou por saldo/credito insuficiente.'
-                });
-            }
-            const manualShipment = await markManualSendRequired(updatedShipment, {
-                reason: 'dropi_rejected',
-                error: result.error || result.reason || 'submit_failed',
-                user: req.user
-            });
-            return res.json({
-                ...result,
-                manualSendRequired: true,
-                shipment: manualShipment,
-                message: describeDropiSubmitFailure(result.error || result.reason)
-            });
-        }
-        res.json(result);
+        const queued = await enqueueDropiSubmitJob({ order, shipment, user: req.user });
+        res.json(queued);
     } catch (error) {
         console.error('Droppi EC submit error:', error);
         try {
@@ -469,15 +1208,74 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
     }
 });
 
+router.get('/droppi/ec/orders/:orderId/submit-status', adminOnly, async (req, res) => {
+    try {
+        const order = await findOrderForDropiRequest(req.params.orderId);
+        const shipment = await Shipment.findOne({ orderId: order?.orderId || req.params.orderId });
+        if (!order && !shipment) return res.status(404).json({ error: 'Order not found' });
+        res.json(buildDropiSubmitStatus({ order, shipment, orderId: req.params.orderId }));
+    } catch (error) {
+        console.error('Droppi EC submit status error:', error);
+        res.status(500).json({ error: error.message || 'Failed to read Dropi submit status' });
+    }
+});
+
+router.get('/droppi/ec/orders/:orderId/manual-link', adminOnly, async (req, res) => {
+    try {
+        const order = await findOrderForDropiRequest(req.params.orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.country !== 'EC') return res.status(400).json({ error: 'Only EC orders are supported here' });
+
+        const shipment = await ensureShipmentForOrder(order, 'EC');
+        if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
+        const alreadySubmitted = alreadySubmittedResponse(order, shipment);
+        if (alreadySubmitted) return res.json(alreadySubmitted);
+        const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
+        if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
+
+        const prepared = await prepareDroppiEcuadorSubmission(order);
+        shipment.review.manualOnly = true;
+        shipment.review.reviewStatus = 'manual_dropi_ready';
+        shipment.review.reviewReason = 'normal_submit_fallback_manual_dropi';
+        shipment.automation.browserCheckpoint = 'manual_dropi_link_ready';
+        shipment.automation.browserLastError = '';
+        shipment.events.push({
+            kind: 'manual_dropi_link_ready',
+            at: new Date(),
+            payload: {
+                productUrl: prepared.productUrl,
+                reason: req.query?.reason || ''
+            }
+        });
+        shipment.events = shipment.events.slice(-60);
+        await shipment.save();
+
+        res.json({
+            ok: true,
+            manualFallback: true,
+            dropiUrl: prepared.productUrl,
+            payload: prepared.payload,
+            copyText: buildManualDropiCopyText({ order, prepared }),
+            shipment,
+            message: 'Abra a Dropi, confira/crie o pedido manualmente e depois marque Manual enviado.'
+        });
+    } catch (error) {
+        console.error('Droppi EC manual link error:', error);
+        res.status(500).json({ error: error.message || 'Failed to prepare manual Dropi link' });
+    }
+});
+
 router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req, res) => {
     try {
-        const order = await Order.findOne({ orderId: req.params.orderId });
+        const order = await findOrderForDropiRequest(req.params.orderId);
         if (!order) return res.status(404).json({ error: 'Order not found' });
         if (order.country !== 'EC') return res.status(400).json({ error: 'Only EC orders can be authorized here' });
 
         const shipment = await ensureShipmentForOrder(order, 'EC');
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
+        if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
         if (!looksLikeEcuadorOrder(order, shipment)) {
             shipment.review.manualOnly = true;
             shipment.review.reviewReason = 'destination_or_phone_not_ecuador';
@@ -501,9 +1299,16 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
 
         shipment.automation.dropiSubmitAuthorizedAt = new Date();
         shipment.automation.dropiSubmitAuthorizedBy = req.user?.email || String(req.user?._id || '');
-        shipment.automation.dropiSubmitAuthorizationNote = req.body?.note || '';
+        shipment.automation.dropiSubmitAuthorizationNote = duplicateGuard.requiresManualAuthorization
+            ? [req.body?.note || '', duplicateGuard.message || 'Recompra liberada manualmente'].filter(Boolean).join(' | ')
+            : req.body?.note || '';
         shipment.review.manualOnly = false;
-        if (!shipment.review.reviewStatus || shipment.review.reviewStatus === 'pending_review') {
+        if (
+            !shipment.review.reviewStatus
+            || shipment.review.reviewStatus === 'pending_review'
+            || shipment.review.reviewStatus === 'awaiting_dropi_authorization'
+            || shipment.review.reviewStatus === 'dropi_submit_authorization_revoked'
+        ) {
             shipment.review.reviewStatus = 'dropi_submit_authorized';
         }
         shipment.events.push({
@@ -511,13 +1316,19 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
             at: new Date(),
             payload: {
                 authorizedBy: shipment.automation.dropiSubmitAuthorizedBy,
-                note: shipment.automation.dropiSubmitAuthorizationNote
+                note: shipment.automation.dropiSubmitAuthorizationNote,
+                duplicateGuard
             }
         });
         shipment.events = shipment.events.slice(-60);
         await shipment.save();
 
-        res.json({ success: true, shipment });
+        res.json({
+            success: true,
+            shipment,
+            mappedFromOrderId: order._mappedFromAdminLead?.requestedOrderId || '',
+            mappedToOrderId: order._mappedFromAdminLead ? order.orderId : ''
+        });
     } catch (error) {
         console.error('Authorize Dropi EC submit error:', error);
         res.status(500).json({ error: error.message || 'Failed to authorize Dropi EC submit' });
@@ -585,6 +1396,19 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
         const results = [];
         for (const { order, shipment } of candidates) {
             const result = await submitDroppiEcuadorOrder({ order, shipment });
+            if (result?.duplicateBlocked) {
+                results.push({
+                    orderId: order.orderId,
+                    ok: false,
+                    duplicateBlocked: true,
+                    reason: result.reason || 'dropi_duplicate_blocked',
+                    duplicateOrderId: result.guard?.duplicateOrderId || '',
+                    duplicateDropiOrderId: result.guard?.duplicateDropiOrderId || '',
+                    duplicateTrackingNumber: result.guard?.duplicateTrackingNumber || '',
+                    message: result.message || result.error || 'Pedido duplicado bloqueado'
+                });
+                continue;
+            }
             if (result?.ok === false) {
                 const updatedShipment = await Shipment.findOne({ orderId: order.orderId }) || shipment;
                 if (result.paymentRequired || result.reason === 'dropi_payment_required') {
@@ -619,7 +1443,15 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
             results.push({
                 orderId: order.orderId,
                 ok: true,
-                dropiOrderId: result?.result?.dropiResponse?.objects?.id || '',
+                dropiOrderId: result?.dropiOrderId
+                    || result?.result?.dropiOrderId
+                    || result?.result?.verifiedDropiOrderId
+                    || result?.result?.dropiResponse?.objects?.id
+                    || '',
+                trackingNumber: result?.trackingNumber
+                    || result?.result?.trackingNumber
+                    || result?.result?.verifiedTrackingNumber
+                    || '',
                 carrier: result?.result?.chosenCarrier || '',
                 message: 'submitted'
             });
@@ -641,13 +1473,16 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
 
 router.post('/droppi/ec/orders/:orderId/prepare-manual', adminOnly, async (req, res) => {
     try {
-        const order = await Order.findOne({ orderId: req.params.orderId });
+        const order = await findOrderForDropiRequest(req.params.orderId);
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
         const shipment = await ensureShipmentForOrder(order, 'EC');
+        if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
+        if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
 
         const result = await prepareDroppiEcuadorOrderForManualSubmit({ order, shipment });
         if (result?.ok === false) {
@@ -692,6 +1527,227 @@ router.post('/droppi/ec/orders/:orderId/prepare-manual', adminOnly, async (req, 
     }
 });
 
+router.post('/manual-guide', adminOnly, async (req, res) => {
+    try {
+        const {
+            orderId = '',
+            name = '',
+            phone = '',
+            country = 'EC',
+            city = '',
+            province = '',
+            address = '',
+            reference = '',
+            quantity = 1,
+            total = 0,
+            trackingNumber = '',
+            status = 'GUIA_GENERADA',
+            agencyPickup = false,
+            notifyNow = true,
+            forceNotify = true,
+            note = ''
+        } = req.body || {};
+
+        const effectiveCountry = String(country || 'EC').toUpperCase();
+        if (effectiveCountry !== 'EC') {
+            return res.status(400).json({
+                error: 'manual_guide_ec_only',
+                message: 'Guia manual por enquanto esta liberada somente para Equador.'
+            });
+        }
+
+        let cleanPhone = normalizeManualPhone(phone, effectiveCountry);
+        const cleanTracking = String(trackingNumber || '').replace(/\s+/g, '').trim();
+        if (!cleanTracking) {
+            return res.status(400).json({
+                error: 'missing_tracking',
+                message: 'Informe a guia/rastreio para enviar manualmente.'
+            });
+        }
+
+        const normalizedStatus = normalizeManualShipmentStatus(status);
+        const manualAgencyPickup = normalizeManualBoolean(agencyPickup)
+            || normalizedStatus === 'READY_FOR_PICKUP'
+            || /servientrega|agencia|retiro|concesion/i.test(String(address || ''));
+        const qty = Math.max(1, Number.parseInt(String(quantity || '1'), 10) || 1);
+        const amount = Number.parseFloat(String(total || '0')) || 0;
+        const operatorNote = String(note || '').trim() || 'Guia manual criada pelo painel WhatsApp.';
+        const trackingDuplicateGuard = await getOrderDuplicateGuard({
+            phone: cleanPhone,
+            country: effectiveCountry,
+            currentOrderId: String(orderId || '').trim(),
+            trackingNumber: cleanTracking
+        });
+        if (!trackingDuplicateGuard.allowed) {
+            return duplicateGuardResponse(res, trackingDuplicateGuard);
+        }
+
+        let order = orderId ? await Order.findOne({ orderId: String(orderId).trim() }) : null;
+        if (!order) {
+            order = await Order.findOne({
+                country: 'EC',
+                trackingNumber: cleanTracking
+            }).sort({ updatedAt: -1 });
+        }
+        if (!order) {
+            const existingShipment = await Shipment.findOne({
+                country: 'EC',
+                'logistics.trackingNumber': cleanTracking
+            }).sort({ updatedAt: -1 });
+            if (existingShipment?.orderId) {
+                order = await Order.findOne({ orderId: existingShipment.orderId });
+            }
+        }
+        if (!order) {
+            order = await findRecentOrderByPhone({ phone: cleanPhone, country: 'EC' });
+        }
+
+        const orderPhone = normalizeManualPhone(order?.customer?.phone || '', 'EC');
+        if (orderPhone && !validateEcuadorDropiPhone(cleanPhone).ok) {
+            cleanPhone = orderPhone;
+        }
+
+        const phoneValidation = validateEcuadorDropiPhone(cleanPhone);
+        if (!phoneValidation.ok) {
+            return res.status(400).json({
+                error: phoneValidation.reason || 'invalid_ecuador_phone',
+                message: 'Informe um WhatsApp celular valido do Equador, ou os 4 ultimos digitos de um cliente ativo.',
+                phoneValidation
+            });
+        }
+
+        if (!order) {
+            order = new Order({
+                country: 'EC',
+                customer: {
+                    name: String(name || '').trim() || `Cliente ${cleanPhone.slice(-4)}`,
+                    phone: cleanPhone,
+                    address: String(address || '').trim(),
+                    reference: String(reference || '').trim(),
+                    city: String(city || '').trim(),
+                    province: String(province || '').trim()
+                },
+                package: {
+                    id: qty,
+                    label: `Vit Power ${qty} frasco${qty > 1 ? 's' : ''}`,
+                    quantity: qty
+                },
+                total: amount,
+                currency: 'USD',
+                status: normalizedStatus === 'ENTREGADO'
+                    ? 'delivered'
+                    : normalizedStatus === 'DEVUELTO'
+                        ? 'returned'
+                        : 'shipped',
+                source: 'manual',
+                notes: operatorNote,
+                trackingNumber: cleanTracking,
+                shippingStatus: normalizedStatus
+            });
+            await order.save();
+        } else {
+            order.customer = {
+                ...(order.customer || {}),
+                name: String(name || '').trim() || order.customer?.name || '',
+                phone: cleanPhone || order.customer?.phone || '',
+                address: String(address || '').trim() || order.customer?.address || '',
+                reference: String(reference || '').trim() || order.customer?.reference || '',
+                city: String(city || '').trim() || order.customer?.city || '',
+                province: String(province || '').trim() || order.customer?.province || ''
+            };
+            order.package = {
+                ...(order.package || {}),
+                id: order.package?.id || qty,
+                label: order.package?.label || `Vit Power ${qty} frasco${qty > 1 ? 's' : ''}`,
+                quantity: order.package?.quantity || qty
+            };
+            if (amount) order.total = amount;
+            order.trackingNumber = cleanTracking;
+            order.shippingStatus = normalizedStatus;
+            order.status = normalizedStatus === 'ENTREGADO'
+                ? 'delivered'
+                : normalizedStatus === 'DEVUELTO'
+                    ? 'returned'
+                    : 'shipped';
+            order.notes = [order.notes || '', operatorNote].filter(Boolean).join('\n').trim();
+            await order.save();
+        }
+
+        let shipment = await upsertDroppiEcuadorShipment({
+            orderId: order.orderId,
+            productName: 'Vit Power',
+            clientName: String(name || '').trim() || order.customer?.name || '',
+            phone: cleanPhone,
+            address: String(address || '').trim() || order.customer?.address || '',
+            city: String(city || '').trim() || order.customer?.city || '',
+            province: String(province || '').trim() || order.customer?.province || '',
+            reference: String(reference || '').trim() || order.customer?.reference || '',
+            quantity: qty,
+            status: normalizedStatus,
+            trackingNumber: cleanTracking,
+            distributionCompany: 'SERVIENTREGA',
+            chosenCarrier: 'SERVIENTREGA',
+            preferredCarrier: 'SERVIENTREGA',
+            agencyPickup: manualAgencyPickup,
+            notes: operatorNote,
+            reviewStatus: 'manual_guide_registered',
+            reviewReason: 'manual_guide_missing_from_panel',
+            detail: operatorNote
+        });
+
+        shipment.events.push({
+            kind: 'manual_guide_registered_from_whatsapp_panel',
+            at: new Date(),
+            payload: {
+                trackingNumber: cleanTracking,
+                status: normalizedStatus,
+                notifyNow: notifyNow !== false,
+                forceNotify: forceNotify !== false,
+                requestedBy: req.user?.email || req.user?.name || ''
+            }
+        });
+        shipment.events = shipment.events.slice(-60);
+        if (forceNotify !== false) {
+            shipment.automation.guiaNotifiedAt = null;
+            shipment.automation.readyForPickupNotifiedAt = null;
+            shipment.automation.lastReminderAt = null;
+            shipment.automation.lastReminderKind = '';
+        }
+        await shipment.save();
+
+        let notifyResult = null;
+        if (notifyNow !== false) {
+            if (normalizedStatus === 'READY_FOR_PICKUP') {
+                notifyResult = {
+                    success: await notifyReadyForPickup(shipment, { force: forceNotify !== false }),
+                    kind: 'ready_for_pickup'
+                };
+            } else {
+                notifyResult = await notifyShipmentGuideGenerated(shipment, { force: forceNotify !== false });
+            }
+            shipment = await Shipment.findOne({ orderId: order.orderId }) || shipment;
+        }
+
+        syncOrderToOnlineAdminPanel(order, {
+            status: order.status,
+            action: 'manual_guide_created_from_whatsapp_panel'
+        });
+
+        res.json({
+            success: true,
+            order,
+            shipment,
+            notifyResult,
+            message: notifyNow !== false
+                ? 'Guia manual criada e aviso enviado/processado.'
+                : 'Guia manual criada.'
+        });
+    } catch (error) {
+        console.error('Manual guide error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create manual guide' });
+    }
+});
+
 router.post('/pickup-proof/sweep', adminOnly, async (req, res) => {
     try {
         const limit = Math.max(1, Math.min(Number.parseInt(String(req.body?.limit || '50'), 10) || 50, 200));
@@ -723,7 +1779,7 @@ router.post('/:orderId/notify-guide', adminOnly, async (req, res) => {
     try {
         const shipment = await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
-        const result = await notifyShipmentGuideGenerated(shipment);
+        const result = await notifyShipmentGuideGenerated(shipment, { force: req.body?.force === true });
         res.json(result);
     } catch (error) {
         console.error('Notify guide error:', error);
@@ -735,7 +1791,7 @@ router.post('/:orderId/notify-pickup', adminOnly, async (req, res) => {
     try {
         const shipment = await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
-        const success = await notifyReadyForPickup(shipment);
+        const success = await notifyReadyForPickup(shipment, { force: req.body?.force === true });
         res.json({ success });
     } catch (error) {
         console.error('Notify pickup error:', error);
@@ -783,7 +1839,7 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
         const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
         const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
         const treatmentEndsAt = new Date(pickedAt.getTime() + (units * daysPerUnit * 24 * 60 * 60 * 1000));
-        const refillReminderDueAt = new Date(treatmentEndsAt.getTime() - (5 * 24 * 60 * 60 * 1000));
+        const refillReminderDueAt = new Date(pickedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * 24 * 60 * 60 * 1000));
 
         shipment.outcomes.pickedUp = true;
         shipment.outcomes.delivered = true;
@@ -811,6 +1867,14 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
         });
         shipment.events = shipment.events.slice(-60);
         await shipment.save();
+        const order = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
+        if (order) {
+            order.status = 'delivered';
+            order.shippingStatus = shipment.logistics?.status || 'ENTREGADO';
+            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
+            await order.save();
+            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_confirmed' });
+        }
         const bonusSent = sendBonus === false ? false : await notifyPickupBonus(shipment);
         await markSenderWalletDelivered({ phone: shipment.client?.phone });
 
@@ -901,6 +1965,7 @@ router.post('/:orderId/requeue-dropi-submit', adminOnly, async (req, res) => {
             : await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
         if (shipment.country !== 'EC') return res.status(400).json({ error: 'Only EC shipments are supported here' });
+        if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.status(409).json({
@@ -953,6 +2018,16 @@ router.post('/:orderId/mark-manual-sent', adminOnly, async (req, res) => {
             ? await ensureShipmentForOrder(order, 'EC')
             : await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+        if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
+        if (!isAuthorizedForDropiSubmit(shipment)) {
+            return res.status(409).json({
+                success: false,
+                authorizationRequired: true,
+                shipment,
+                error: 'Pedido precisa ser autorizado antes de marcar envio manual.',
+                message: 'Todo pedido precisa de autorizacao antes de qualquer envio, inclusive envio manual.'
+            });
+        }
 
         const updated = await markManualSent(shipment, {
             note: req.body?.note || '',
@@ -1005,12 +2080,34 @@ router.post('/:orderId/delete-fake', adminOnly, async (req, res) => {
             await shipment.save();
         }
 
-        await Shipment.deleteOne({ orderId: req.params.orderId });
-        await Order.deleteOne({ orderId: req.params.orderId });
+        if (shipment) {
+            shipment.review = {
+                ...(shipment.review || {}),
+                reviewStatus: 'fake_order_deleted',
+                reviewReason: reason,
+                manualOnly: true
+            };
+            shipment.notes = appendAuditNote(
+                shipment.notes,
+                `Pedido fake arquivado sem apagar historico. Usuario: ${req.user?.email || req.user?.name || 'admin'}.`
+            );
+            await shipment.save();
+        }
+
+        if (order) {
+            const previousStatus = order.status;
+            order.status = 'cancelled';
+            order.notes = appendAuditNote(
+                order.notes,
+                `Pedido fake arquivado sem apagar historico. Status anterior: ${previousStatus || 'sem_status'}. Usuario: ${req.user?.email || req.user?.name || 'admin'}.`
+            );
+            await order.save();
+        }
 
         res.json({
             success: true,
-            deleted: true,
+            deleted: false,
+            archived: true,
             orderId: req.params.orderId,
             adminCancelResult
         });

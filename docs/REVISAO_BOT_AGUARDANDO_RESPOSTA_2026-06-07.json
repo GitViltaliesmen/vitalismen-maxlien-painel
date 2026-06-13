@@ -1,0 +1,1169 @@
+{
+  "generatedAt": "2026-06-07T20:35:55.821Z",
+  "rule": {
+    "officialUnansweredAfterMinutes": 10,
+    "hotAlertAfterMinutes": 5,
+    "limit": 46
+  },
+  "total": 46,
+  "items": [
+    {
+      "chatId": "275651420508189@lid",
+      "phoneTail": "1420508189",
+      "lastInboundAt": "2026-03-20T05:47:08.241Z",
+      "waitedMinutes": 114649,
+      "hot": false,
+      "lastText": "Hola, mi amor",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T05:47:08.241Z",
+          "text": "Hola, mi amor"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "49495891017883@lid",
+      "phoneTail": "5891017883",
+      "lastInboundAt": "2026-03-20T06:02:42.500Z",
+      "waitedMinutes": 114633,
+      "hot": false,
+      "lastText": "Hola, estoy un poco aburrid. ¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T06:02:42.500Z",
+          "text": "Hola, estoy un poco aburrid. ¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "163041320673378@lid",
+      "phoneTail": "1320673378",
+      "lastInboundAt": "2026-03-20T07:47:02.457Z",
+      "waitedMinutes": 114529,
+      "hot": false,
+      "lastText": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito? hola",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T07:47:02.457Z",
+          "text": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito? hola"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "206193477873716@lid",
+      "phoneTail": "3477873716",
+      "lastInboundAt": "2026-03-20T12:13:25.158Z",
+      "waitedMinutes": 114263,
+      "hot": false,
+      "lastText": "Hola buenos días cm estas",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T12:13:25.158Z",
+          "text": "Hola buenos días cm estas"
+        }
+      ],
+      "problem": "saudacao_ou_entrada_curta",
+      "severity": "media",
+      "solution": "Se for cliente novo, iniciar entrada oficial sem preço; se ja recebeu apresentacao, perguntar qual ajuda precisa.",
+      "suggestedReply": "Hola, señor. Estoy por aquí para ayudarle con Vit Power. ¿Su duda es sobre precio, cómo tomar, agencia o pedido?"
+    },
+    {
+      "chatId": "169698570313922@lid",
+      "phoneTail": "8570313922",
+      "lastInboundAt": "2026-03-20T12:19:51.807Z",
+      "waitedMinutes": 114256,
+      "hot": false,
+      "lastText": "ola bb hermosa",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T12:19:51.807Z",
+          "text": "ola bb hermosa"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "233474539683970@lid",
+      "phoneTail": "4539683970",
+      "lastInboundAt": "2026-03-20T13:31:27.055Z",
+      "waitedMinutes": 114184,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:31:27.055Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "114586002948295@lid",
+      "phoneTail": "6002948295",
+      "lastInboundAt": "2026-03-20T13:31:32.198Z",
+      "waitedMinutes": 114184,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:31:32.198Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "257097379897575@lid",
+      "phoneTail": "7379897575",
+      "lastInboundAt": "2026-03-20T13:31:39.647Z",
+      "waitedMinutes": 114184,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:31:39.647Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "270321131221156@lid",
+      "phoneTail": "1131221156",
+      "lastInboundAt": "2026-03-20T13:47:10.167Z",
+      "waitedMinutes": 114169,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:10.167Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "156058324590782@lid",
+      "phoneTail": "8324590782",
+      "lastInboundAt": "2026-03-20T13:47:13.966Z",
+      "waitedMinutes": 114169,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:13.966Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "16033834377337@lid",
+      "phoneTail": "3834377337",
+      "lastInboundAt": "2026-03-20T13:47:18.983Z",
+      "waitedMinutes": 114169,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:18.983Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "55586238533637@lid",
+      "phoneTail": "6238533637",
+      "lastInboundAt": "2026-03-20T13:47:26.036Z",
+      "waitedMinutes": 114168,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:26.036Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "178039598088382@lid",
+      "phoneTail": "9598088382",
+      "lastInboundAt": "2026-03-20T13:47:30.991Z",
+      "waitedMinutes": 114168,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:30.991Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "63720755564597@lid",
+      "phoneTail": "0755564597",
+      "lastInboundAt": "2026-03-20T13:47:36.280Z",
+      "waitedMinutes": 114168,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:36.280Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "43671714033863@lid",
+      "phoneTail": "1714033863",
+      "lastInboundAt": "2026-03-20T13:47:41.815Z",
+      "waitedMinutes": 114168,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T13:47:41.815Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "238233799647324@lid",
+      "phoneTail": "3799647324",
+      "lastInboundAt": "2026-03-20T14:14:29.011Z",
+      "waitedMinutes": 114141,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T14:14:29.011Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "215367259549930@lid",
+      "phoneTail": "7259549930",
+      "lastInboundAt": "2026-03-20T14:14:33.996Z",
+      "waitedMinutes": 114141,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T14:14:33.996Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "262336669597903@lid",
+      "phoneTail": "6669597903",
+      "lastInboundAt": "2026-03-20T14:55:58.706Z",
+      "waitedMinutes": 114100,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T14:55:58.706Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "77434552639497@lid",
+      "phoneTail": "4552639497",
+      "lastInboundAt": "2026-03-20T16:30:09.112Z",
+      "waitedMinutes": 114006,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?ol",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:09.112Z",
+          "text": "¿Podemos conversar un ratito?ol"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "98763494400183@lid",
+      "phoneTail": "3494400183",
+      "lastInboundAt": "2026-03-20T16:30:11.455Z",
+      "waitedMinutes": 114006,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:11.455Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "68513435746387@lid",
+      "phoneTail": "3435746387",
+      "lastInboundAt": "2026-03-20T16:30:21.546Z",
+      "waitedMinutes": 114006,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:21.546Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "79298014765075@lid",
+      "phoneTail": "8014765075",
+      "lastInboundAt": "2026-03-20T16:30:27.651Z",
+      "waitedMinutes": 114005,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:27.651Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "141154200850475@lid",
+      "phoneTail": "4200850475",
+      "lastInboundAt": "2026-03-20T16:30:33.330Z",
+      "waitedMinutes": 114005,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:33.330Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "110853810553072@lid",
+      "phoneTail": "3810553072",
+      "lastInboundAt": "2026-03-20T16:30:36.496Z",
+      "waitedMinutes": 114005,
+      "hot": false,
+      "lastText": "Cómo está hermosa 😍😍",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:30:36.496Z",
+          "text": "Cómo está hermosa 😍😍"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "56049943994547@lid",
+      "phoneTail": "9943994547",
+      "lastInboundAt": "2026-03-20T16:46:33.303Z",
+      "waitedMinutes": 113989,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:46:33.303Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "5476653768917@lid",
+      "phoneTail": "6653768917",
+      "lastInboundAt": "2026-03-20T16:46:55.242Z",
+      "waitedMinutes": 113989,
+      "hot": false,
+      "lastText": "¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:46:55.242Z",
+          "text": "¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "197332993892433@lid",
+      "phoneTail": "2993892433",
+      "lastInboundAt": "2026-03-20T16:47:04.904Z",
+      "waitedMinutes": 113989,
+      "hot": false,
+      "lastText": "Sobre de ?? Q se trata",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:47:04.904Z",
+          "text": "Sobre de ?? Q se trata"
+        }
+      ],
+      "problem": "duvida_produto_geral",
+      "severity": "media",
+      "solution": "Responder o que e Vit Power em texto curto, sem inventar cura, e voltar para preco/quantidade se o cliente demonstrar compra.",
+      "suggestedReply": "Vit Power es un producto natural en jarabe para apoyo masculino. Le puedo explicar precio, cómo tomar o envío por agencia. ¿Qué desea saber primero?"
+    },
+    {
+      "chatId": "120967888117934@lid",
+      "phoneTail": "7888117934",
+      "lastInboundAt": "2026-03-20T16:50:33.728Z",
+      "waitedMinutes": 113985,
+      "hot": true,
+      "lastText": "si claro. Porque no??",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:49:59.691Z",
+          "text": "¿Podemos conversar un ratito?"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:50:33.728Z",
+          "text": "si claro. Porque no??"
+        }
+      ],
+      "problem": "confirmacao_sem_acao",
+      "severity": "alta",
+      "solution": "Interpretar como confirmacao contextual e continuar para a proxima pergunta pendente.",
+      "suggestedReply": "Listo, señor. Continuamos con el siguiente paso para dejar su pedido bien registrado."
+    },
+    {
+      "chatId": "237593966952509@lid",
+      "phoneTail": "3966952509",
+      "lastInboundAt": "2026-03-20T17:05:07.375Z",
+      "waitedMinutes": 113971,
+      "hot": false,
+      "lastText": "Cariño",
+      "lastType": "chat",
+      "stage": "consultation_offer",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:01:46.526Z",
+          "text": "Amor"
+        },
+        {
+          "role": "bot/humano",
+          "at": "2026-03-20T17:01:46.814Z",
+          "text": "Hola 👋 Estoy aqui para ayudarte con la consulta y el protocolo de la doctora. Quieres que te explique como funciona?"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:03:21.598Z",
+          "text": "Como funciona esa consulta"
+        },
+        {
+          "role": "bot/humano",
+          "at": "2026-03-20T17:03:42.861Z",
+          "text": "La consulta comienza con una evaluación personalizada donde la doctora analiza tus necesidades y objetivos de salud. Luego, se te proporciona un protocolo adapt"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:04:54.274Z",
+          "text": "Yo pensaba que eras tu que podiamoas ablar"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:04:59.083Z",
+          "text": "Cosa delos 2"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:05:04.970Z",
+          "text": "Disculpa"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:05:07.375Z",
+          "text": "Cariño"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "193291312206016@lid",
+      "phoneTail": "1312206016",
+      "lastInboundAt": "2026-03-20T17:05:38.489Z",
+      "waitedMinutes": 113970,
+      "hot": false,
+      "lastText": "Suerte pues",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:01:30.086Z",
+          "text": "Porque no respondes"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:05:38.489Z",
+          "text": "Suerte pues"
+        }
+      ],
+      "problem": "intencao_nao_classificada",
+      "severity": "media",
+      "solution": "Enviar fallback seguro, registrar para revisao humana e acrescentar novo padrao se aparecer repetido.",
+      "suggestedReply": "Recibí su mensaje, señor. Para ayudarle sin error, me escribe en una frase si su duda es sobre precio, cómo tomar, agencia o pedido?"
+    },
+    {
+      "chatId": "81781143433249@lid",
+      "phoneTail": "1143433249",
+      "lastInboundAt": "2026-03-20T17:09:51.574Z",
+      "waitedMinutes": 113966,
+      "hot": false,
+      "lastText": "Hola bonita",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:46:48.205Z",
+          "text": "¿Podemos conversar un ratito?"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:09:51.574Z",
+          "text": "Hola bonita"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "244864709087351@lid",
+      "phoneTail": "4709087351",
+      "lastInboundAt": "2026-03-20T17:23:48.984Z",
+      "waitedMinutes": 113952,
+      "hot": false,
+      "lastText": "Hola bb",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:19:57.657Z",
+          "text": "Buenas tardes hermosa"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:23:48.984Z",
+          "text": "Hola bb"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "267606560874501@lid",
+      "phoneTail": "6560874501",
+      "lastInboundAt": "2026-03-20T17:54:52.483Z",
+      "waitedMinutes": 113921,
+      "hot": false,
+      "lastText": "Hacer videollamada",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:54:50.845Z",
+          "text": "Hermosa"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:54:52.483Z",
+          "text": "Hacer videollamada"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "98961130037281@lid",
+      "phoneTail": "1130037281",
+      "lastInboundAt": "2026-03-20T17:58:29.796Z",
+      "waitedMinutes": 113917,
+      "hot": false,
+      "lastText": "Hola hermosa",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:58:29.796Z",
+          "text": "Hola hermosa"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "201902335754317@lid",
+      "phoneTail": "2335754317",
+      "lastInboundAt": "2026-03-20T17:58:52.832Z",
+      "waitedMinutes": 113917,
+      "hot": false,
+      "lastText": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito? Hola cariño",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T17:58:52.832Z",
+          "text": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito? Hola cariño"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "264523361607703@lid",
+      "phoneTail": "3361607703",
+      "lastInboundAt": "2026-03-20T18:01:41.701Z",
+      "waitedMinutes": 113914,
+      "hot": false,
+      "lastText": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito?",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T18:01:41.701Z",
+          "text": "Hola, estoy un poco aburrida. ¿Podemos conversar un ratito?"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "213511514886269@lid",
+      "phoneTail": "1514886269",
+      "lastInboundAt": "2026-03-21T21:17:57.665Z",
+      "waitedMinutes": 112278,
+      "hot": false,
+      "lastText": "hola🤤",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-20T16:48:20.455Z",
+          "text": "tiene una cara bonita mami"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-21T21:17:57.665Z",
+          "text": "hola🤤"
+        }
+      ],
+      "problem": "saudacao_ou_entrada_curta",
+      "severity": "media",
+      "solution": "Se for cliente novo, iniciar entrada oficial sem preço; se ja recebeu apresentacao, perguntar qual ajuda precisa.",
+      "suggestedReply": "Hola, señor. Estoy por aquí para ayudarle con Vit Power. ¿Su duda es sobre precio, cómo tomar, agencia o pedido?"
+    },
+    {
+      "chatId": "112292356173853@lid",
+      "phoneTail": "2356173853",
+      "lastInboundAt": "2026-03-22T00:40:59.269Z",
+      "waitedMinutes": 112075,
+      "hot": false,
+      "lastText": "si bb",
+      "lastType": "chat",
+      "stage": "consultation_offer",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-03-22T00:40:20.060Z",
+          "text": "Hola"
+        },
+        {
+          "role": "bot/humano",
+          "at": "2026-03-22T00:40:20.266Z",
+          "text": "Hola 👋 Soy Ana Lopes, del equipo de la doctora Maria Fernandes. Puedo orientarte y tambien ayudarte a agendar una consulta con la doctora. Quieres que te expli"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-03-22T00:40:59.269Z",
+          "text": "si bb"
+        }
+      ],
+      "problem": "fora_do_funil_social_ou_spam",
+      "severity": "baixa",
+      "solution": "Nao tratar como dado do pedido. Responder apenas se fizer sentido operacional, redirecionando para Vit Power, ou deixar para humano se for numero fora de campanha.",
+      "suggestedReply": "Hola. Este canal es para atención de Vit Power. Si necesita información del producto, precio, agencia o pedido, escríbame por aquí."
+    },
+    {
+      "chatId": "216324651360504@lid",
+      "phoneTail": "4651360504",
+      "lastInboundAt": "2026-04-29T13:28:28.648Z",
+      "waitedMinutes": 56587,
+      "hot": true,
+      "lastText": "Jacinto castillo vera. Mall del. Fortin",
+      "lastType": "chat",
+      "stage": "consultation_offer",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-28T23:49:57.451Z",
+          "text": "hola que tal buenas noches disculpe que le responda a esta hora porque recien llege a casa. Los 2 frasco a como estan"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-04-29T00:04:41.263Z",
+          "text": "Para cuando seria la entrega"
+        },
+        {
+          "role": "bot/humano",
+          "at": "2026-04-29T00:04:42.080Z",
+          "text": "Tive uma travadinha aqui no sistema do Instituto. Pode mandar de novo? 😅"
+        },
+        {
+          "role": "cliente",
+          "at": "2026-04-29T00:07:16.814Z",
+          "text": "en el servientrega del Mall del Fortin"
+        },
+        {
+          "role": "bot/humano",
+          "at": "2026-04-29T00:07:17.658Z",
+          "text": "Tive uma travadinha aqui no sistema do Instituto. Pode mandar de novo? 😅 Si quieres, te oriento mejor segun tu caso."
+        },
+        {
+          "role": "cliente",
+          "at": "2026-04-29T13:28:28.648Z",
+          "text": "Jacinto castillo vera. Mall del. Fortin"
+        }
+      ],
+      "problem": "intencao_agencia_logistica",
+      "severity": "alta",
+      "solution": "Usar agencia_LISTA; se houver cidade/setor como Urdesa central, buscar e sugerir a agencia oficial. Se faltar cidade/provincia, pedir esses dados.",
+      "suggestedReply": "Perfecto. Para no equivocarme con Servientrega, me confirma ciudad y provincia o el sector de la agencia donde desea retirar?"
+    },
+    {
+      "chatId": "117102316925056@lid",
+      "phoneTail": "2316925056",
+      "lastInboundAt": "2026-04-29T22:22:15.586Z",
+      "waitedMinutes": 56054,
+      "hot": false,
+      "lastText": "Llena",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-29T22:22:15.586Z",
+          "text": "Llena"
+        }
+      ],
+      "problem": "intencao_nao_classificada",
+      "severity": "media",
+      "solution": "Enviar fallback seguro, registrar para revisao humana e acrescentar novo padrao se aparecer repetido.",
+      "suggestedReply": "Recibí su mensaje, señor. Para ayudarle sin error, me escribe en una frase si su duda es sobre precio, cómo tomar, agencia o pedido?"
+    },
+    {
+      "chatId": "156195159539775@lid",
+      "phoneTail": "5159539775",
+      "lastInboundAt": "2026-04-30T00:50:22.267Z",
+      "waitedMinutes": 55906,
+      "hot": false,
+      "lastText": "¡Hola! Vi el video de la Dra.",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-30T00:50:22.267Z",
+          "text": "¡Hola! Vi el video de la Dra."
+        }
+      ],
+      "problem": "entrada_vsl_sem_preco",
+      "severity": "media",
+      "solution": "Iniciar entrada oficial sem preco: saudacao por horario, prova social e imagem do produto. Se mencionar promo/frasco, responder por intencao de preco/quantidade depois da entrada.",
+      "suggestedReply": "Hola, señor. Ya vi que viene del video. Le atiendo por aquí con Vit Power y le muestro la información paso a paso."
+    },
+    {
+      "chatId": "15943036084297@lid",
+      "phoneTail": "3036084297",
+      "lastInboundAt": "2026-04-30T01:40:24.360Z",
+      "waitedMinutes": 55856,
+      "hot": false,
+      "lastText": "¡Hola! Vi el video de la Dra.",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-30T01:40:24.360Z",
+          "text": "¡Hola! Vi el video de la Dra."
+        }
+      ],
+      "problem": "entrada_vsl_sem_preco",
+      "severity": "media",
+      "solution": "Iniciar entrada oficial sem preco: saudacao por horario, prova social e imagem do produto. Se mencionar promo/frasco, responder por intencao de preco/quantidade depois da entrada.",
+      "suggestedReply": "Hola, señor. Ya vi que viene del video. Le atiendo por aquí con Vit Power y le muestro la información paso a paso."
+    },
+    {
+      "chatId": "133204786823382@lid",
+      "phoneTail": "4786823382",
+      "lastInboundAt": "2026-04-30T14:12:58.973Z",
+      "waitedMinutes": 55103,
+      "hot": false,
+      "lastText": "¡Echa un vistazo a este TikTok que encontré! https://vt.tiktok.com/ZS9PLLXa2/",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-30T14:12:58.973Z",
+          "text": "¡Echa un vistazo a este TikTok que encontré! https://vt.tiktok.com/ZS9PLLXa2/"
+        }
+      ],
+      "problem": "link_social_organico",
+      "severity": "baixa",
+      "solution": "Responder fora do plano de vendas com joinha/recebido, sem puxar oferta, para manter conversa organica e humana.",
+      "suggestedReply": "👍 Lo vi, gracias por compartirlo."
+    },
+    {
+      "chatId": "116883441356938@lid",
+      "phoneTail": "3441356938",
+      "lastInboundAt": "2026-04-30T15:46:19.529Z",
+      "waitedMinutes": 55010,
+      "hot": false,
+      "lastText": "Buenos dias",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-04-30T15:46:19.529Z",
+          "text": "Buenos dias"
+        }
+      ],
+      "problem": "saudacao_ou_entrada_curta",
+      "severity": "media",
+      "solution": "Se for cliente novo, iniciar entrada oficial sem preço; se ja recebeu apresentacao, perguntar qual ajuda precisa.",
+      "suggestedReply": "Hola, señor. Estoy por aquí para ayudarle con Vit Power. ¿Su duda es sobre precio, cómo tomar, agencia o pedido?"
+    },
+    {
+      "chatId": "62337306382574@lid",
+      "phoneTail": "7306382574",
+      "lastInboundAt": "2026-05-01T02:46:03.406Z",
+      "waitedMinutes": 54350,
+      "hot": false,
+      "lastText": "¡Hola! Vi el video de la Dra.",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-05-01T02:46:03.406Z",
+          "text": "¡Hola! Vi el video de la Dra."
+        }
+      ],
+      "problem": "entrada_vsl_sem_preco",
+      "severity": "media",
+      "solution": "Iniciar entrada oficial sem preco: saudacao por horario, prova social e imagem do produto. Se mencionar promo/frasco, responder por intencao de preco/quantidade depois da entrada.",
+      "suggestedReply": "Hola, señor. Ya vi que viene del video. Le atiendo por aquí con Vit Power y le muestro la información paso a paso."
+    },
+    {
+      "chatId": "111196854341720@lid",
+      "phoneTail": "6854341720",
+      "lastInboundAt": "2026-05-01T03:08:03.673Z",
+      "waitedMinutes": 54328,
+      "hot": true,
+      "lastText": "¡Hola! Vi el video de la Dra. Quiero la promo de los 3 frascos del jarabe",
+      "lastType": "chat",
+      "stage": "",
+      "latestOrderStatus": "",
+      "latestOrderId": "",
+      "recentContext": [
+        {
+          "role": "cliente",
+          "at": "2026-05-01T03:08:03.673Z",
+          "text": "¡Hola! Vi el video de la Dra. Quiero la promo de los 3 frascos del jarabe"
+        }
+      ],
+      "problem": "pergunta_preco_promocao",
+      "severity": "alta",
+      "solution": "Responder direto com preco oficial 1/3/6, enviar audio de tratamento/precos se ainda nao foi enviado e fechar perguntando quantidade.",
+      "suggestedReply": "Le confirmo, señor: 1 botella por 39 USD, 3 botellas por 95.99 USD y 6 botellas por 167.99 USD. ¿Cuál desea reservar?"
+    }
+  ]
+}

@@ -1,10 +1,73 @@
 import Shipment from '../models/Shipment.js';
+import Order from '../models/Order.js';
+import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
-const normalizeEcuadorLocalPhone = (value) => {
+export const normalizeEcuadorLocalPhone = (value) => {
     const digits = normalizePhone(value);
     if (digits.startsWith('593') && digits.length > 9) return digits.slice(3);
     return digits;
+};
+
+export const validateEcuadorDropiPhone = (value) => {
+    const digits = normalizePhone(value);
+    const local = normalizeEcuadorLocalPhone(value);
+    if (!digits) {
+        return { ok: false, reason: 'empty_phone', digits, local };
+    }
+    if (digits.startsWith('55') || digits.startsWith('59355')) {
+        return { ok: false, reason: 'brazil_phone_not_allowed_for_dropi', digits, local };
+    }
+    if (digits.startsWith('593') && digits.length !== 12) {
+        return { ok: false, reason: 'invalid_ecuador_e164_length', digits, local };
+    }
+    if (!/^9\d{8}$/.test(local)) {
+        return { ok: false, reason: 'invalid_ecuador_mobile_phone', digits, local };
+    }
+    return { ok: true, reason: 'valid_ecuador_mobile_phone', digits, local };
+};
+
+const ECUADOR_CITY_PROVINCE = new Map([
+    ['esmeralda', 'Esmeraldas'],
+    ['esmeraldas', 'Esmeraldas'],
+    ['portovelo', 'El Oro'],
+    ['santo domingo', 'Santo Domingo de los Tsachilas']
+]);
+
+const ECUADOR_CITY_ALIASES = new Map([
+    ['esmeralda', 'Esmeraldas']
+]);
+
+const ECUADOR_PROVINCE_ALIASES = new Map([
+    ['esmeralda', 'Esmeraldas'],
+    ['esmeraldas', 'Esmeraldas'],
+    ['zamora', 'Zamora Chinchipe'],
+    ['santo domingo', 'Santo Domingo de los Tsachilas'],
+    ['canar', 'Cañar']
+]);
+
+const normalizeLocationKey = (value) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const resolveEcuadorProvince = ({ province, city }) => {
+    const rawProvince = String(province || '').trim();
+    const rawCity = String(city || '').trim();
+    const provinceKey = normalizeLocationKey(rawProvince);
+    const cityKey = normalizeLocationKey(rawCity);
+    if (cityKey && (!rawProvince || provinceKey === cityKey)) {
+        return ECUADOR_CITY_PROVINCE.get(cityKey) || rawProvince;
+    }
+    return ECUADOR_PROVINCE_ALIASES.get(provinceKey) || rawProvince;
+};
+
+const resolveEcuadorCity = (city) => {
+    const rawCity = String(city || '').trim();
+    return ECUADOR_CITY_ALIASES.get(normalizeLocationKey(rawCity)) || rawCity;
 };
 const normalizeStatusText = (value) => String(value || '')
     .normalize('NFD')
@@ -13,15 +76,45 @@ const normalizeStatusText = (value) => String(value || '')
     .toUpperCase();
 
 const normalizeRouteText = (value) => String(value || '')
+    .replace(/\[\s*SER\s*4\s*VIENTREGA\s*\]/gi, 'Servientrega')
+    .replace(/\[\s*SER4VIENTREGA\s*\]/gi, 'Servientrega')
+    .replace(/\bSER\s*4\s*VIENTREGA\b/gi, 'Servientrega')
+    .replace(/\bSER4VIENTREGA\b/gi, 'Servientrega')
+    .replace(/\bser\s*entrega\b/gi, 'Servientrega')
+    .replace(/\bserentrega\b/gi, 'Servientrega')
+    .replace(/\bservi\s+en\s+trega\b/gi, 'Servientrega')
+    .replace(/\bcervi\s+en\s+trega\b/gi, 'Servientrega')
+    .replace(/\bservi\s+entrega\b/gi, 'Servientrega')
+    .replace(/\bcervi\s+entrega\b/gi, 'Servientrega')
+    .replace(/\bsanta\s+presca\b/gi, 'Santa Prisca')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+
+const cleanDropiAgencyAddressTypo = (value) => String(value || '')
+    .replace(/\[\s*SER\s*4\s*VIENTREGA\s*\]/gi, 'Servientrega')
+    .replace(/\[\s*SER4VIENTREGA\s*\]/gi, 'Servientrega')
+    .replace(/\bSER\s*4\s*VIENTREGA\b/gi, 'Servientrega')
+    .replace(/\bSER4VIENTREGA\b/gi, 'Servientrega')
+    .replace(/\bser\s*entrega\b/gi, 'Servientrega')
+    .replace(/\bserentrega\b/gi, 'Servientrega')
+    .replace(/\bservi\s+en\s+trega\b/gi, 'Servientrega')
+    .replace(/\bcervi\s+en\s+trega\b/gi, 'Servientrega')
+    .replace(/\bservi\s+entrega\b/gi, 'Servientrega')
+    .replace(/\bcervi\s+entrega\b/gi, 'Servientrega')
+    .replace(/\bsanta\s+presca\b/gi, 'Santa Prisca')
+    .trim();
 
 export const normalizeDroppiEcuadorStatus = (value) => {
     const raw = normalizeStatusText(value);
     if (!raw) return '';
     if (/^INGRESANDO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/^PARA RETIRO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/REPORTADO ENTREGADO|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/^EN RUTA A CONCESION\b/.test(raw)) return 'EN_RUTA';
+    if (/^EN RUTA A CENTRO LOGISTICO\b/.test(raw)) return 'EN_RUTA';
+    if (/^EN DISTRIBUCION\b/.test(raw)) return 'EN_RUTA';
+    if (/^INGRESANDO OPERATIVO A\b/.test(raw)) return 'EN_RUTA';
     if (raw === 'NOVEDAD') return 'NOVEDAD';
     if (raw === 'GUIA_GENERADA') return 'GUIA_GENERADA';
     if (raw === 'PREPARADO PARA TRANSPORTADORA') return 'GUIA_GENERADA';
@@ -58,6 +151,16 @@ const normalizeShippingType = (value) => {
     return raw;
 };
 
+const vitPowerUnitPriceForQuantity = (quantity, total = 0) => {
+    const qty = Number(quantity || 1) || 1;
+    if (qty === 1) return 40;
+    if (qty === 2) return 35;
+    if (qty === 3) return 32;
+    if (qty === 6) return 28;
+    const numericTotal = Number(total || 0);
+    return numericTotal > 0 ? numericTotal / qty : numericTotal;
+};
+
 export const upsertDroppiEcuadorShipment = async (payload) => {
     const orderId = String(payload.orderId || '').trim();
     if (!orderId) throw new Error('orderId is required');
@@ -68,6 +171,8 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     });
 
     const normalizedStatus = normalizeDroppiEcuadorStatus(payload.status || shipment.logistics.status);
+    const isDelivered = normalizedStatus === 'ENTREGADO';
+    const isReturned = normalizedStatus === 'DEVUELTO';
     const normalizedShippingType = normalizeShippingType(payload.shippingType || shipment.logistics.shippingType);
     const normalizedAddress = normalizeRouteText(payload.address || '');
     const inferredAgencyPickup = /servientrega/i.test(normalizedAddress)
@@ -106,7 +211,11 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     };
     shipment.automation = {
         ...shipment.automation,
-        sessionId: payload.sessionId || shipment.automation.sessionId
+        sessionId: payload.sessionId || shipment.automation.sessionId,
+        deliveredConfirmedAt: isDelivered
+            ? (shipment.automation.deliveredConfirmedAt || new Date())
+            : shipment.automation.deliveredConfirmedAt,
+        prepaidOnlyNotifiedAt: isDelivered ? null : shipment.automation.prepaidOnlyNotifiedAt
     };
     shipment.treatment = {
         ...shipment.treatment,
@@ -127,13 +236,17 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     };
     shipment.outcomes = {
         ...shipment.outcomes,
-        delivered: normalizedStatus === 'ENTREGADO' ? true : shipment.outcomes?.delivered,
-        returned: normalizedStatus === 'DEVUELTO' ? true : shipment.outcomes?.returned,
-        prepaidOnly: normalizedStatus === 'DEVUELTO' ? true : shipment.outcomes?.prepaidOnly
+        delivered: isDelivered ? true : shipment.outcomes?.delivered,
+        pickedUp: isDelivered ? true : shipment.outcomes?.pickedUp,
+        returned: isReturned ? true : (isDelivered ? false : shipment.outcomes?.returned),
+        prepaidOnly: isReturned ? true : (isDelivered ? false : shipment.outcomes?.prepaidOnly)
     };
     shipment.raw = {
         ...(shipment.raw || {}),
-        latestDroppiPayload: payload
+        latestDroppiPayload: payload,
+        ...(payload.manualDropiOrderId || payload.dropiOrderId
+            ? { manualDropiOrderId: payload.manualDropiOrderId || payload.dropiOrderId }
+            : {})
     };
     shipment.notes = payload.detail || payload.notes || shipment.notes;
     shipment.events.push({
@@ -144,30 +257,52 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     shipment.events = shipment.events.slice(-60);
 
     await shipment.save();
+    const orderStatus = normalizedStatus === 'ENTREGADO'
+        ? 'delivered'
+        : normalizedStatus === 'DEVUELTO'
+            ? 'returned'
+            : ['GUIA_GENERADA', 'READY_FOR_PICKUP', 'EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE'].includes(normalizedStatus)
+                ? 'shipped'
+                : '';
+    if (orderStatus) {
+        const order = await Order.findOne({ orderId }).catch(() => null);
+        if (order) {
+            order.status = orderStatus;
+            order.shippingStatus = normalizedStatus || order.shippingStatus || '';
+            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
+            await order.save();
+            syncOrderToOnlineAdminPanel(order, { status: orderStatus, action: 'dropi_status_sync' });
+        }
+    }
     return shipment;
 };
 
 export const buildDroppiEcuadorOrderPayload = ({ order }) => {
     const splitName = splitClientName(order?.customer?.name || '');
-    const rawAddress = String(order?.customer?.address || '');
+    const rawAddress = cleanDropiAgencyAddressTypo(order?.customer?.address || '');
     const normalizedAddress = normalizeRouteText(rawAddress);
     const isAgencyPickup = /servientrega|agencia|concesion|retiro/i.test(normalizedAddress);
+    const city = resolveEcuadorCity(order?.customer?.city);
+    const department = resolveEcuadorProvince({
+        province: order?.customer?.province,
+        city
+    });
+    const quantity = Number(order?.package?.id || order?.package?.quantity || 1) || 1;
+    const unitPrice = vitPowerUnitPriceForQuantity(quantity, order?.total);
     return {
         orderId: String(order?.orderId || order?._id || '').trim(),
         firstName: splitName.firstName.trim(),
         lastName: splitName.lastName.trim(),
         phone: normalizeEcuadorLocalPhone(order?.customer?.phone),
-        department: String(order?.customer?.province || '').trim(),
-        city: String(order?.customer?.city || '').trim(),
-        address: String(order?.customer?.address || '').trim(),
+        department,
+        city,
+        address: rawAddress,
         reference: String(order?.customer?.reference || '').trim(),
         email: String(order?.customer?.email || '').trim(),
         productName: 'Vit Power',
-        quantity: order?.package?.id || order?.package?.quantity || 1,
-        price: order?.total || 0,
-        unitPrice: (Number(order?.total || 0) && Number(order?.package?.id || order?.package?.quantity || 1))
-            ? Number(order.total) / Number(order.package?.id || order.package?.quantity || 1)
-            : Number(order?.total || 0),
+        quantity,
+        price: unitPrice * quantity,
+        unitPrice,
         paymentMode: 'CON_RECAUDO',
         preferredCarrier: 'SERVIENTREGA',
         fallbackCarrier: isAgencyPickup ? '' : 'LAARCOURIER',

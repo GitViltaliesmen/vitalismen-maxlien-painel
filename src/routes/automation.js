@@ -9,6 +9,10 @@ import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
 import { automationAllowedRecipients, automationPilotOnly } from '../whatsapp/automationSafety.js';
 import { listReengagementCandidates } from '../services/reengagementService.js';
 import { countAdminPanelAtendimentoGaps } from '../services/adminPanelLeadReconciliationService.js';
+import {
+    countShipmentDispatchCandidates,
+    getShipmentDispatchState
+} from '../services/shipmentStatusDispatcherService.js';
 
 const router = express.Router();
 
@@ -77,6 +81,16 @@ router.get('/status', async (_req, res) => {
             productFollowup: {
                 enabled: flag('WHATSAPP_PRODUCT_FOLLOWUP_ENABLED') || process.env.WHATSAPP_PRODUCT_FOLLOWUP_ENABLED === undefined
             },
+            shipments: {
+                enabled: flag('SHIPMENT_STATUS_DISPATCH_ENABLED'),
+                actions: String(process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'ready_for_pickup')
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                intervalMinutes: Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_INTERVAL_MINUTES || '60', 10),
+                batchLimit: Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '3', 10),
+                state: getShipmentDispatchState()
+            },
             adminPanelImport: {
                 enabled: flag('ADMIN_PANEL_IMPORT_ENABLED'),
                 intervalMinutes: Number.parseInt(process.env.ADMIN_PANEL_IMPORT_INTERVAL_MINUTES || '5', 10),
@@ -102,7 +116,8 @@ router.get('/status', async (_req, res) => {
             humanHeld,
             recentShipmentCandidates,
             reengagementCandidates,
-            adminPanelGaps
+            adminPanelGaps,
+            shipmentDispatchCandidates
         ] = await Promise.all([
             Shipment.countDocuments({
                 $or: [
@@ -143,7 +158,13 @@ router.get('/status', async (_req, res) => {
             listReengagementCandidates({ hours: 48, limit: 20 }).catch(() => []),
             countAdminPanelAtendimentoGaps({
                 fromId: Number.parseInt(process.env.ADMIN_PANEL_ATENDIMENTO_FROM_ID || '1725', 10) || 1725
-            }).catch(() => ({ ok: false, adminNovoInManual: 0, manualWithoutAdmin: 0 }))
+            }).catch(() => ({ ok: false, adminNovoInManual: 0, manualWithoutAdmin: 0 })),
+            countShipmentDispatchCandidates({
+                actions: String(process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'ready_for_pickup')
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            }).catch(() => 0)
         ]);
 
         const dropiBlockedOrders = await Shipment.find({
@@ -162,6 +183,7 @@ router.get('/status', async (_req, res) => {
             buyLater,
             humanHeld,
             shipmentNotificationCandidates: recentShipmentCandidates,
+            shipmentDispatchCandidates,
             reengagementCandidates: reengagementCandidates.length,
             adminPanelAtendimentoGaps: (adminPanelGaps.adminNovoInManual || 0) + (adminPanelGaps.manualWithoutAdmin || 0),
             adminPanelNovoEmAtendimento: adminPanelGaps.adminNovoInManual || 0,

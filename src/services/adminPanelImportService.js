@@ -2,6 +2,9 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
+import ContactState from '../models/ContactState.js';
+import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
+import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
 
 const ADMIN_DB_BY_COUNTRY = {
     EC: '/opt/maxlien-mvp/leads_ec.sqlite3'
@@ -54,6 +57,62 @@ const normalizeLocation = ({ city, province }) => {
 
 const packageLabel = (quantity) => `Vit Power ${quantity} frasco${Number(quantity) > 1 ? 's' : ''}`;
 
+const clean = (value) => String(value || '').trim();
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const parseDateOrNull = (value) => {
+    const raw = clean(value);
+    if (!raw) return null;
+    const normalized = raw.endsWith('Z') ? raw : raw.replace(' ', 'T');
+    const date = new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const normalizeStatusToken = (value) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const LOCAL_PROTECTED_ORDER_STATUSES = new Set([
+    'processing',
+    'shipped',
+    'delivered',
+    'cancelled',
+    'canceled',
+    'returned'
+]);
+
+const LOCAL_PROTECTED_REVIEW_STATUSES = new Set([
+    'conferir_pedidos',
+    'finalizado'
+]);
+
+const LOCAL_PROTECTED_DRAFT_STATUSES = new Set([
+    'cancelled',
+    'canceled',
+    'cancelado',
+    'returned',
+    'devolvido',
+    'finalizado',
+    'conferir_pedidos'
+]);
+
+const normalizeEcuadorLocalPhone = (value) => {
+    const digits = digitsOnly(value);
+    if (digits.startsWith('593') && digits.length > 9) return digits.slice(3);
+    return digits;
+};
+
+const isValidEcuadorMobilePhone = (value) => /^9\d{8}$/.test(normalizeEcuadorLocalPhone(value));
+
+const pickLeadPhone = (lead) => {
+    const candidates = [lead.phone, lead.phone_e164]
+        .map(clean)
+        .filter(Boolean);
+    return candidates.find(isValidEcuadorMobilePhone) || candidates[0] || '';
+};
+
 const isAgencyPickupAddress = (value) => /servientrega|agencia|concesion|retiro/i.test(
     String(value || '')
         .normalize('NFD')
@@ -95,16 +154,16 @@ con.row_factory = sqlite3.Row
 rows = con.execute("""
     SELECT * FROM leads
     WHERE lower(coalesce(status,'')) = 'confirmado'
-    ORDER BY id DESC
+    ORDER BY COALESCE(created_at, updated_at, '') DESC, id DESC
     LIMIT ?
-""", (max(limit * 4, limit),)).fetchall()
+""", (max(limit * 8, 500),)).fetchall()
 con.close()
 
 out = []
 for row in rows:
     data = dict(row)
-    created = parse_dt(data.get('created_at')) or parse_dt(data.get('updated_at'))
-    if lookback_hours > 0 and created and (now - created).total_seconds() > lookback_hours * 3600:
+    activity = parse_dt(data.get('created_at')) or parse_dt(data.get('updated_at'))
+    if lookback_hours > 0 and activity and (now - activity).total_seconds() > lookback_hours * 3600:
         continue
     out.append(data)
     if len(out) >= limit:
@@ -138,38 +197,111 @@ print(json.dumps({"ok": True, "count": len(out), "leads": out}, ensure_ascii=Fal
 const mapLeadToOrderData = ({ lead, country }) => {
     const quantity = Number.parseInt(String(lead.product_qty || '1'), 10) || 1;
     const total = Number.parseFloat(String(lead.product_value || '0')) || 0;
-    const location = normalizeLocation({
+    const normalized = normalizeEcuadorOrderFieldsForDropi({
+        name: lead.name,
+        phone: pickLeadPhone(lead),
+        address: lead.address,
         city: lead.city,
-        province: lead.province
+        province: lead.province,
+        quantity,
+        total
     });
     const leadId = String(lead.id || '').trim();
+    const eventId = clean(lead.event_id);
+    const orderId = `${country}-ADMIN-${leadId}`;
+    const entryAt = parseDateOrNull(lead.created_at) || parseDateOrNull(lead.updated_at) || new Date();
     return {
-        orderId: `${country}-ADMIN-${leadId}`,
+        orderId,
         country,
+        entryAt,
+        draftCreatedAt: entryAt,
         customer: {
-            name: String(lead.name || '').trim(),
-            phone: String(lead.phone_e164 || lead.phone || '').trim(),
-            address: String(lead.address || '').trim(),
-            city: location.city,
-            province: location.province
+            name: normalized.name,
+            phone: normalized.phone,
+            address: normalized.address,
+            city: normalized.city,
+            province: normalized.province
         },
         package: {
-            id: quantity,
-            label: packageLabel(quantity),
-            quantity
+            id: normalized.quantity,
+            label: packageLabel(normalized.quantity),
+            quantity: normalized.quantity
         },
-        total,
+        total: normalized.total,
         currency: 'USD',
         status: 'confirmed',
         source: 'manual',
+        dropiNormalization: normalized,
         notes: [
             'Importado automaticamente do painel online maxlien.shop',
             `Lead admin ${country} #${leadId}`,
             `Status original: ${lead.status || ''}`,
             `Criado online: ${lead.created_at || ''}`,
+            `Normalizacao Dropi: ${normalized.normalizedBy}${normalized.agencyValidated ? ':agencia_validada' : ''}`,
             'Dropi exige autorizacao manual antes de enviar'
         ].join(' | ')
     };
+};
+
+const findExistingOrderForLead = async ({ orderData, lead, country }) => {
+    const leadId = clean(lead.id);
+    const eventId = clean(lead.event_id);
+    const candidateIds = [
+        leadId ? `${country}-ADMIN-${leadId}` : '',
+        eventId,
+        orderData.orderId
+    ].filter(Boolean);
+
+    const byId = await Order.findOne({ orderId: { $in: [...new Set(candidateIds)] } });
+    if (byId) return byId;
+
+    const phoneTail = clean(orderData.customer.phone).replace(/\D/g, '').slice(-9);
+    if (!phoneTail) return null;
+
+    return Order.findOne({
+        country,
+        'customer.phone': { $regex: `${phoneTail}$` },
+        status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] }
+    }).sort({ updatedAt: -1, createdAt: -1 });
+};
+
+const findLocalContactOverrideForLead = async ({ orderData, country }) => {
+    const phoneTail = digitsOnly(orderData.customer?.phone || '').slice(-9);
+    if (!phoneTail) return null;
+    const contactState = await ContactState.findOne({
+        countryCode: country,
+        $or: [
+            { phoneDigits: { $regex: `${phoneTail}$` } },
+            { chatId: { $regex: phoneTail } },
+            { 'metadata.customerDraft.phone': { $regex: `${phoneTail}$` } },
+            { 'metadata.customerDraft.phoneE164': { $regex: `${phoneTail}$` } }
+        ]
+    }).sort({ updatedAt: -1, createdAt: -1 }).lean();
+
+    const draftStatus = normalizeStatusToken(contactState?.metadata?.customerDraft?.status);
+    if (LOCAL_PROTECTED_DRAFT_STATUSES.has(draftStatus)) {
+        return {
+            type: 'contact_draft_status',
+            value: draftStatus,
+            phoneTail,
+            updatedAt: contactState?.updatedAt
+        };
+    }
+    return null;
+};
+
+const getLocalImportProtection = async ({ existing, orderData, country }) => {
+    const orderStatus = normalizeStatusToken(existing?.status);
+    if (LOCAL_PROTECTED_ORDER_STATUSES.has(orderStatus)) {
+        return { type: 'order_status', value: orderStatus };
+    }
+
+    const reviewStatus = normalizeStatusToken(existing?.reviewQueue?.status);
+    if (LOCAL_PROTECTED_REVIEW_STATUSES.has(reviewStatus)) {
+        return { type: 'review_queue', value: reviewStatus };
+    }
+
+    return findLocalContactOverrideForLead({ orderData, country });
 };
 
 const ensureShipmentMirror = async ({ orderData, lead }) => {
@@ -193,14 +325,16 @@ const ensureShipmentMirror = async ({ orderData, lead }) => {
         ...(shipment.logistics || {}),
         status: shipment.logistics?.status || 'CREATED',
         preferredCarrier: shipment.logistics?.preferredCarrier || 'SERVIENTREGA',
-        agencyPickup: shipment.logistics?.agencyPickup || isAgencyPickupAddress(orderData.customer.address),
-        agencyName: shipment.logistics?.agencyName || ''
+        agencyPickup: Boolean(orderData.dropiNormalization?.agencyPickup ?? shipment.logistics?.agencyPickup ?? isAgencyPickupAddress(orderData.customer.address)),
+        agencyName: shipment.logistics?.agencyName || orderData.dropiNormalization?.agencyName || ''
     };
+    const currentReview = shipment.review || {};
+    const hasReviewReason = Object.prototype.hasOwnProperty.call(currentReview, 'reviewReason');
     shipment.review = {
         ...(shipment.review || {}),
         manualOnly: Boolean(shipment.review?.manualOnly || false),
         reviewStatus: shipment.review?.reviewStatus || 'awaiting_dropi_authorization',
-        reviewReason: shipment.review?.reviewReason || 'dropi_requires_manual_authorization'
+        reviewReason: hasReviewReason ? currentReview.reviewReason : 'dropi_requires_manual_authorization'
     };
     shipment.automation = {
         ...(shipment.automation || {}),
@@ -210,7 +344,8 @@ const ensureShipmentMirror = async ({ orderData, lead }) => {
     };
     shipment.raw = {
         ...(shipment.raw || {}),
-        adminLead: lead
+        adminLead: lead,
+        dropiNormalization: orderData.dropiNormalization || shipment.raw?.dropiNormalization || null
     };
     shipment.events.push({
         kind: 'admin_panel_auto_import',
@@ -237,17 +372,45 @@ export const importConfirmedAdminPanelOrders = async ({
 
     let created = 0;
     let updated = 0;
+    let skippedDuplicates = 0;
+    let skippedLocalOverrides = 0;
     const imported = [];
+    const localOverrides = [];
 
     for (const lead of readResult.leads || []) {
         const orderData = mapLeadToOrderData({ lead, country });
         if (!orderData.orderId.endsWith('-')) {
-            const existing = await Order.findOne({ orderId: orderData.orderId });
+            const existing = await findExistingOrderForLead({ orderData, lead, country });
+            const duplicateGuard = await getOrderDuplicateGuard({
+                phone: orderData.customer.phone,
+                country,
+                currentOrderId: existing?.orderId || orderData.orderId
+            });
+            if (!existing && !duplicateGuard.allowed) {
+                skippedDuplicates += 1;
+                continue;
+            }
             if (existing) {
+                const localProtection = await getLocalImportProtection({ existing, orderData, country });
+                if (localProtection) {
+                    skippedLocalOverrides += 1;
+                    localOverrides.push({
+                        leadId: lead.id,
+                        orderId: existing.orderId,
+                        reason: localProtection.type,
+                        value: localProtection.value
+                    });
+                    continue;
+                }
+                const nextOrderData = {
+                    ...orderData,
+                    orderId: existing.orderId
+                };
                 await Order.updateOne(
-                    { orderId: orderData.orderId },
-                    { $set: orderData }
+                    { orderId: existing.orderId },
+                    { $set: nextOrderData }
                 );
+                orderData.orderId = existing.orderId;
                 updated += 1;
             } else {
                 await Order.create(orderData);
@@ -264,6 +427,9 @@ export const importConfirmedAdminPanelOrders = async ({
         imported: imported.length,
         created,
         updated,
+        skippedDuplicates,
+        skippedLocalOverrides,
+        localOverrides,
         orderIds: imported
     };
 };

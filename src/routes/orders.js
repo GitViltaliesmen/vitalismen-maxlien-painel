@@ -1,21 +1,133 @@
 import express from 'express';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
+import Message from '../models/Message.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import {
     getCustomerPurchaseEligibility,
     PREPAID_REQUIRED_MESSAGE
 } from '../services/customerPurchaseEligibilityService.js';
+import {
+    assertNoActiveDuplicateOrder,
+    getOrderDuplicateGuard
+} from '../services/orderDuplicateGuardService.js';
 
 const router = express.Router();
 
 const normalizeOrderStatus = (status) => {
-    if (status === 'confirmado') return 'confirmed';
-    return status;
+    const value = String(status || '').trim().toLowerCase().replace(/-/g, '_');
+    const aliases = {
+        confirmado: 'confirmed',
+        pedido_enviado: 'processing',
+        enviado: 'processing',
+        entregue: 'delivered',
+        recompra: 'delivered',
+        cancelado: 'cancelled',
+        devolvido: 'returned'
+    };
+    return aliases[value] || value;
 };
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => {
+    const normalizedCountry = String(country || '').trim().toUpperCase();
+    const phoneDigits = digitsOnly(phone);
+    return normalizedCountry === 'BR' || phoneDigits.startsWith('55');
+};
+
+const appendAuditNote = (current = '', note = '') => {
+    const prefix = current ? `${String(current).trim()}\n` : '';
+    return `${prefix}[${new Date().toISOString()}] ${note}`.trim();
+};
+
+const blankReviewQueueFilter = {
+    $or: [
+        { 'reviewQueue.status': { $exists: false } },
+        { 'reviewQueue.status': '' },
+        { 'reviewQueue.status': null }
+    ]
+};
+
+const SALE_CONCLUDED_REGEX = /\b(pedido\s+(confirmado|confirmad[oó]|registrado)|venta\s+confirmada|confirm[oó]|autoriz[oó]|autorizado|listo|correcto|correto|de\s+acuerdo|esta\s+bien|s[ií]\b|si\s+senor|confirmar\s+pedido)\b/i;
+const SALE_NOT_CONCLUDED_REGEX = /\b(no\s+quiero|no\s+confirmo|cancele|cancelar|despues|luego|no\s+por\s+ahora|solo\s+preguntaba)\b/i;
+
+const messagePhoneClauses = (phone = '') => {
+    const digits = digitsOnly(phone);
+    const tails = [
+        digits,
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 9 ? digits.slice(-9) : ''
+    ].filter(Boolean);
+    return [...new Set(tails)].flatMap((tail) => ([
+        { peerPhone: { $regex: `${tail}$` } },
+        { chatId: { $regex: tail } },
+        { from: { $regex: tail } },
+        { to: { $regex: tail } }
+    ]));
+};
+
+const findSaleConclusionEvidence = async (order) => {
+    const phoneClauses = messagePhoneClauses(order.customer?.phone || '');
+    if (!phoneClauses.length) return '';
+    const since = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+    const messages = await Message.find({
+        $or: phoneClauses,
+        createdAt: { $gte: since },
+        body: { $type: 'string', $ne: '' }
+    })
+        .sort({ createdAt: -1 })
+        .limit(80)
+        .select('body isFromMe createdAt')
+        .lean();
+    const negative = messages.find((message) => SALE_NOT_CONCLUDED_REGEX.test(message.body || ''));
+    if (negative) return '';
+    const positive = messages.find((message) => SALE_CONCLUDED_REGEX.test(message.body || ''));
+    if (!positive) return '';
+    return String(positive.body || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+};
+
+const hasShipmentProgress = (shipment = null, order = null) => {
+    const status = String(shipment?.logistics?.status || order?.shippingStatus || '').toUpperCase();
+    return Boolean(order?.dropiOrderId || order?.trackingNumber || shipment?.raw?.droppiOrder?.id || shipment?.logistics?.trackingNumber)
+        || /GUIA|PREPARADO|PENDIENTE|MERCANCIA|BODEGA|DESPACHO|RUTA|REPARTO|READY_FOR_PICKUP|AGENCIA|ENTREGADO|DEVUELTO|CANCELADO/.test(status);
+};
+
+const markOrderReviewQueue = async (order, { status, reason = '', evidence = '', user = null } = {}) => {
+    const now = new Date();
+    order.reviewQueue = order.reviewQueue || {};
+    order.reviewQueue.status = status;
+    order.reviewQueue.reason = reason;
+    order.reviewQueue.evidence = evidence;
+    if (status === 'conferir_pedidos') {
+        order.reviewQueue.movedAt = now;
+        order.reviewQueue.movedBy = user?.email || user?.name || 'painel';
+    }
+    if (status === 'finalizado') {
+        order.reviewQueue.finalizedAt = now;
+        order.reviewQueue.finalizedBy = user?.email || user?.name || 'painel';
+    }
+    order.notes = appendAuditNote(order.notes, `${status === 'finalizado' ? 'Pedido finalizado operacionalmente' : 'Pedido enviado para Conferir Pedidos'}: ${reason || 'acao_painel'}${evidence ? ` | Evidencia: ${evidence}` : ''}`);
+    await order.save();
+    if (status === 'finalizado' || status === 'conferir_pedidos') {
+        syncOrderToOnlineAdminPanel(order, {
+            status,
+            action: status === 'finalizado' ? 'order_review_finalized' : 'order_sent_to_review'
+        });
+    }
+    return order;
+};
+
+const sendBrazilTestOnlyError = (res) => res.status(409).json({
+    success: false,
+    error: 'brazil_test_only',
+    message: 'Numero brasileiro liberado somente para teste de atendimento. Nao criar, confirmar ou enviar pedido.'
+});
+
 const markPurchaseEventForOrder = async (order, req) => {
+    if (!order.confirmedAt) order.confirmedAt = new Date();
     order.status = 'confirmed';
 
     order.tracking = order.tracking || {};
@@ -65,18 +177,43 @@ const sendEligibilityError = (res, error) => res.status(error.statusCode || 409)
     latestOrderId: error.eligibility?.latestShipment?.orderId || ''
 });
 
+const sendDuplicateOrderError = (res, errorOrGuard) => {
+    const guard = errorOrGuard.guard || errorOrGuard;
+    return res.status(errorOrGuard.statusCode || 409).json({
+        success: false,
+        error: guard.reason || errorOrGuard.code || 'active_duplicate_order',
+        message: guard.message || errorOrGuard.message || 'Pedido duplicado bloqueado',
+        duplicateOrderId: guard.duplicateOrderId || '',
+        duplicateStatus: guard.duplicateStatus || '',
+        latestOrderId: guard.latestOrderId || '',
+        requiresManualAuthorization: Boolean(guard.requiresManualAuthorization)
+    });
+};
+
 // GET /api/orders - List orders (authenticated)
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const { country, status, page = 1, limit = 50, search, includeDrafts, readiness } = req.query;
+        const { country, status, page = 1, limit = 50, search, includeDrafts, readiness, review } = req.query;
 
         const query = {};
         const andConditions = [];
 
         if (country) query.country = country;
         const includeShipment = req.query.includeShipment === '1';
+        if (review) {
+            query['reviewQueue.status'] = review;
+        }
         if (status === 'dropi_pipeline') {
             query.status = { $in: ['confirmed', 'processing', 'shipped', 'delivered'] };
+            if (!review) {
+                andConditions.push({
+                    $or: [
+                        { 'reviewQueue.status': { $exists: false } },
+                        { 'reviewQueue.status': '' },
+                        { 'reviewQueue.status': null }
+                    ]
+                });
+            }
         } else if (status) {
             query.status = status;
         } else if (!includeDrafts) {
@@ -106,7 +243,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const [orderDocs, total] = await Promise.all([
             Order.find(query)
-                .sort({ createdAt: -1 })
+                .sort({ entryAt: -1, createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
             Order.countDocuments(query)
@@ -172,6 +309,130 @@ router.get('/stats', authMiddleware, async (req, res) => {
     }
 });
 
+// POST /api/orders/review/bulk-from-confirmed - Move old confirmed queue into Conferir Pedidos or finalize without deleting history.
+router.post('/review/bulk-from-confirmed', authMiddleware, async (req, res) => {
+    try {
+        const country = String(req.body?.country || req.query?.country || 'EC').trim().toUpperCase();
+        const limit = Math.max(1, Math.min(Number.parseInt(String(req.body?.limit || '300'), 10) || 300, 1000));
+        const dryRun = req.body?.dryRun !== false;
+        const orders = await Order.find({
+            country,
+            status: 'confirmed',
+            ...blankReviewQueueFilter
+        }).sort({ createdAt: -1 }).limit(limit);
+        const shipments = await Shipment.find({
+            orderId: { $in: orders.map((order) => order.orderId).filter(Boolean) }
+        }).lean();
+        const shipmentByOrderId = new Map(shipments.map((shipment) => [shipment.orderId, shipment]));
+        const results = [];
+        let toReview = 0;
+        let finalized = 0;
+        let skipped = 0;
+
+        for (const order of orders) {
+            const shipment = shipmentByOrderId.get(order.orderId);
+            if (hasShipmentProgress(shipment, order)) {
+                skipped += 1;
+                results.push({ orderId: order.orderId, action: 'skip', reason: 'already_has_dropi_or_tracking' });
+                continue;
+            }
+            const evidence = await findSaleConclusionEvidence(order);
+            if (evidence) {
+                toReview += 1;
+                results.push({ orderId: order.orderId, action: 'conferir_pedidos', evidence });
+                if (!dryRun) {
+                    await markOrderReviewQueue(order, {
+                        status: 'conferir_pedidos',
+                        reason: 'bulk_from_pedidos_confirmados_with_history',
+                        evidence,
+                        user: req.user
+                    });
+                }
+            } else {
+                finalized += 1;
+                results.push({ orderId: order.orderId, action: 'finalizado', reason: 'no_sale_conclusion_history_found' });
+                if (!dryRun) {
+                    await markOrderReviewQueue(order, {
+                        status: 'finalizado',
+                        reason: 'bulk_from_pedidos_confirmados_without_history',
+                        user: req.user
+                    });
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            dryRun,
+            scanned: orders.length,
+            toReview,
+            finalized,
+            skipped,
+            results
+        });
+    } catch (error) {
+        console.error('Bulk review move error:', error);
+        res.status(500).json({ error: 'Failed to move confirmed orders to review' });
+    }
+});
+
+// POST /api/orders/:id/send-to-review - Send a single order to Conferir Pedidos.
+router.post('/:id/send-to-review', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        const evidence = String(req.body?.evidence || '') || await findSaleConclusionEvidence(order);
+        await markOrderReviewQueue(order, {
+            status: 'conferir_pedidos',
+            reason: String(req.body?.reason || 'operator_sent_to_review'),
+            evidence,
+            user: req.user
+        });
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('Send order to review error:', error);
+        res.status(500).json({ error: 'Failed to send order to review' });
+    }
+});
+
+// POST /api/orders/:id/finalize-review - Close noisy/old confirmed items without deleting history.
+router.post('/:id/finalize-review', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        await markOrderReviewQueue(order, {
+            status: 'finalizado',
+            reason: String(req.body?.reason || 'operator_finalized_review'),
+            evidence: String(req.body?.evidence || ''),
+            user: req.user
+        });
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('Finalize order review error:', error);
+        res.status(500).json({ error: 'Failed to finalize order review' });
+    }
+});
+
+// POST /api/orders/:id/clear-review - Remove from Conferir Pedidos after manual approval.
+router.post('/:id/clear-review', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        order.reviewQueue = {
+            ...(order.reviewQueue || {}),
+            status: '',
+            reason: String(req.body?.reason || 'approved_from_conferir_pedidos'),
+            movedBy: req.user?.email || req.user?.name || 'painel'
+        };
+        order.notes = appendAuditNote(order.notes, `Pedido aprovado e removido de Conferir Pedidos: ${order.reviewQueue.reason}`);
+        await order.save();
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('Clear order review error:', error);
+        res.status(500).json({ error: 'Failed to clear order review' });
+    }
+});
+
 // GET /api/orders/:id - Get single order
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
@@ -188,18 +449,33 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// DELETE /api/orders/:id - Delete order (authenticated)
+// DELETE /api/orders/:id - Archive/cancel order without erasing customer history.
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
-        const result = await Order.deleteOne({ orderId: req.params.id });
+        const order = await Order.findOne({ orderId: req.params.id });
 
-        if (result.deletedCount === 0) {
+        if (!order) {
             return res.status(404).json({ error: 'Order not found' });
         }
 
-        res.json({ success: true, message: 'Order deleted' });
+        const previousStatus = order.status;
+        order.status = 'cancelled';
+        order.notes = appendAuditNote(
+            order.notes,
+            `Pedido arquivado pelo painel sem apagar historico. Status anterior: ${previousStatus || 'sem_status'}.`
+        );
+        await order.save();
+        syncOrderToOnlineAdminPanel(order, { status: 'cancelled', action: 'order_archived_from_panel' });
+
+        res.json({
+            success: true,
+            deleted: false,
+            archived: true,
+            order,
+            message: 'Order archived without deleting customer history'
+        });
     } catch (error) {
-        console.error('Delete order error:', error);
+        console.error('Archive order error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -236,6 +512,13 @@ router.post('/draft', async (req, res) => {
             'customer.phone': { $regex: phoneDigits }
         }).sort({ createdAt: -1 });
 
+        const duplicateGuard = await getOrderDuplicateGuard({
+            phone,
+            country,
+            currentOrderId: existingDraft?.orderId || ''
+        });
+        if (!duplicateGuard.allowed) return sendDuplicateOrderError(res, duplicateGuard);
+
         if (existingDraft) {
             // Update the existing draft with latest name/formatting
             existingDraft.customer.name = name;
@@ -269,6 +552,7 @@ router.post('/draft', async (req, res) => {
                 phone: phone,
                 name: name,
                 address: '',
+                reference: '',
                 city: '',
                 province: ''
             },
@@ -351,6 +635,7 @@ router.patch('/draft/:id', async (req, res) => {
             if (customer.name) order.customer.name = customer.name;
             if (customer.phone) order.customer.phone = customer.phone;
             if (customer.address) order.customer.address = customer.address;
+            if (customer.reference !== undefined) order.customer.reference = customer.reference || '';
             if (customer.city) order.customer.city = customer.city;
             if (customer.province) order.customer.province = customer.province;
         }
@@ -420,12 +705,24 @@ router.post('/draft/:id/submit', async (req, res) => {
             return res.status(400).json({ error: 'Package not selected' });
         }
 
+        if (isBrazilTestOnly({ phone: order.customer?.phone, country: order.country })) {
+            return sendBrazilTestOnlyError(res);
+        }
+
         try {
+            await assertNoActiveDuplicateOrder({
+                phone: order.customer.phone,
+                country: order.country,
+                currentOrderId: order.orderId
+            });
             await assertCashOnDeliveryEligible({
                 phone: order.customer.phone,
                 country: order.country
             });
         } catch (eligibilityError) {
+            if (eligibilityError.code === 'active_duplicate_order') {
+                return sendDuplicateOrderError(res, eligibilityError);
+            }
             return sendEligibilityError(res, eligibilityError);
         }
 
@@ -466,7 +763,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // POST /api/orders - Create order directly (public - from checkout)
 router.post('/', async (req, res) => {
     try {
-        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent } = req.body;
+        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes } = req.body;
 
         // Validation
         if (!country || !customer || !packageId || !total) {
@@ -477,17 +774,31 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Incomplete customer data' });
         }
 
+        if (isBrazilTestOnly({ phone: customer.phone, country })) {
+            return sendBrazilTestOnlyError(res);
+        }
+
         try {
+            await assertNoActiveDuplicateOrder({
+                phone: customer.phone,
+                country
+            });
             await assertCashOnDeliveryEligible({
                 phone: customer.phone,
                 country
             });
         } catch (eligibilityError) {
+            if (eligibilityError.code === 'active_duplicate_order') {
+                return sendDuplicateOrderError(res, eligibilityError);
+            }
             return sendEligibilityError(res, eligibilityError);
         }
 
         // Determine currency from country
         const orderCurrency = currency || 'USD';
+        const requestedStatus = normalizeOrderStatus(status);
+        const allowedInitialStatuses = new Set(['draft', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned']);
+        const initialStatus = allowedInitialStatuses.has(requestedStatus) ? requestedStatus : 'pending';
 
         // Create order
         const order = new Order({
@@ -496,6 +807,7 @@ router.post('/', async (req, res) => {
                 name: customer.name,
                 phone: customer.phone,
                 address: customer.address,
+                reference: customer.reference || '',
                 city: customer.city,
                 province: customer.province
             },
@@ -507,7 +819,8 @@ router.post('/', async (req, res) => {
             total,
             currency: orderCurrency,
             source,
-            status: 'pending',
+            status: initialStatus,
+            notes: typeof notes === 'string' ? notes : '',
             purchaseIntent: purchaseIntent || {},
             tracking: {
                 ...(tracking || {}),
@@ -534,7 +847,7 @@ router.post('/', async (req, res) => {
 // PATCH /api/orders/:id - Update order status (authenticated)
 router.patch('/:id', authMiddleware, async (req, res) => {
     try {
-        const { status, notes, trackingNumber, purchaseIntent } = req.body;
+        const { status, notes, trackingNumber, purchaseIntent, customer, package: packageData, total } = req.body;
         const nextStatus = normalizeOrderStatus(status);
 
         const order = await Order.findOne({ orderId: req.params.id });
@@ -543,8 +856,36 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Order not found' });
         }
 
-        if (notes) order.notes = notes;
+        const requestedCustomerPhone = typeof customer?.phone === 'string' ? customer.phone : order.customer?.phone;
+        const requestedCountry = typeof req.body.country === 'string' ? req.body.country : order.country;
+        if (isBrazilTestOnly({ phone: requestedCustomerPhone, country: requestedCountry })) {
+            return sendBrazilTestOnlyError(res);
+        }
+
+        if (typeof notes === 'string') order.notes = notes;
         if (trackingNumber) order.trackingNumber = trackingNumber;
+        if (customer && typeof customer === 'object') {
+            const allowedCustomerFields = ['name', 'phone', 'address', 'reference', 'city', 'province'];
+            allowedCustomerFields.forEach((field) => {
+                if (typeof customer[field] === 'string') {
+                    order.customer[field] = customer[field].trim();
+                }
+            });
+        }
+        if (packageData && typeof packageData === 'object') {
+            if (Number.isFinite(Number(packageData.quantity))) {
+                order.package.quantity = Math.max(1, Number(packageData.quantity));
+            }
+            if (typeof packageData.label === 'string') {
+                order.package.label = packageData.label.trim();
+            }
+        }
+        if (total !== undefined && total !== null && total !== '') {
+            const parsedTotal = Number(total);
+            if (Number.isFinite(parsedTotal) && parsedTotal >= 0) {
+                order.total = parsedTotal;
+            }
+        }
         if (purchaseIntent) {
             order.purchaseIntent = {
                 ...(order.purchaseIntent || {}),
@@ -553,6 +894,15 @@ router.patch('/:id', authMiddleware, async (req, res) => {
         }
 
         if (nextStatus === 'confirmed') {
+            try {
+                await assertNoActiveDuplicateOrder({
+                    phone: order.customer?.phone,
+                    country: order.country,
+                    currentOrderId: order.orderId
+                });
+            } catch (duplicateError) {
+                return sendDuplicateOrderError(res, duplicateError);
+            }
             const purchase = await markPurchaseEventForOrder(order, req);
             return res.json({
                 ok: purchase.ok,
@@ -568,7 +918,13 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             });
         }
 
-        if (nextStatus) order.status = nextStatus;
+        if (nextStatus) {
+            const previousStatus = String(order.status || '').toLowerCase();
+            order.status = nextStatus;
+            if (nextStatus === 'confirmed' && previousStatus !== 'confirmed' && !order.confirmedAt) {
+                order.confirmedAt = new Date();
+            }
+        }
 
         await order.save();
 
@@ -588,6 +944,18 @@ router.post('/:id/confirm-payment', authMiddleware, async (req, res) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (isBrazilTestOnly({ phone: order.customer?.phone, country: order.country })) {
+            return sendBrazilTestOnlyError(res);
+        }
+        try {
+            await assertNoActiveDuplicateOrder({
+                phone: order.customer?.phone,
+                country: order.country,
+                currentOrderId: order.orderId
+            });
+        } catch (duplicateError) {
+            return sendDuplicateOrderError(res, duplicateError);
+        }
 
         const purchase = await markPurchaseEventForOrder(order, req);
         return res.json({
@@ -610,6 +978,18 @@ router.post('/check-phone', async (req, res) => {
 
         if (!phone) {
             return res.status(400).json({ error: 'Phone required' });
+        }
+
+        if (isBrazilTestOnly({ phone, country })) {
+            return res.json({
+                found: false,
+                eligibility: {
+                    eligible: false,
+                    paymentMode: 'test_only',
+                    reason: 'brazil_test_only',
+                    message: 'Numero brasileiro liberado somente para teste de atendimento. Nao criar, confirmar ou enviar pedido.'
+                }
+            });
         }
 
         const eligibility = await getCustomerPurchaseEligibility({

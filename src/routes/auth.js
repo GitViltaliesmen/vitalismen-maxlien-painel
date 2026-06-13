@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { authMiddleware, adminOnly } from '../middleware/auth.js';
+import { authMiddleware, adminOnly, isPanelAuthDisabled, noPasswordPanelUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -239,6 +239,10 @@ router.patch('/users/:id', authMiddleware, adminOnly, async (req, res) => {
 // GET /api/auth/me - Get current user
 router.get('/me', async (req, res) => {
     try {
+        if (isPanelAuthDisabled(req)) {
+            return res.json({ user: serializeUser(noPasswordPanelUser) });
+        }
+
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             return res.status(401).json({ error: 'No token' });

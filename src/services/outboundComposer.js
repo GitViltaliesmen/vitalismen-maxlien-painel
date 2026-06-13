@@ -11,8 +11,8 @@ import { resolveCountryAudio } from './audioTemplateService.js';
 const AUDIO_TAG_REGEX = /\[GERAR_AUDIO:\s*"([^"]+)"\]/i;
 const IMAGE_TAG_REGEX = /\[ENVIAR_IMAGEM:\s*([a-zA-Z0-9_,-]+)\]/i;
 const RECORDED_AUDIO_TAG_REGEX = /\[ENVIAR_AUDIO_GRAVADO:\s*([a-zA-Z0-9_,-]+)\]/i;
-const BOT_MIN_GAP_MS = Number.parseInt(process.env.BOT_MIN_GAP_MS || '2500', 10);
-const BOT_AUDIO_AFTER_TEXT_MS = Number.parseInt(process.env.BOT_AUDIO_AFTER_TEXT_MS || '1200', 10);
+const BOT_MIN_GAP_MS = Number.parseInt(process.env.BOT_MIN_GAP_MS || '1500', 10);
+const BOT_AUDIO_AFTER_TEXT_MS = Number.parseInt(process.env.BOT_AUDIO_AFTER_TEXT_MS || '600', 10);
 const APPROVED_AUDIO_ONLY = String(process.env.BOT_USE_APPROVED_AUDIO_ONLY || '').toLowerCase() === 'true';
 const outboundLocks = new Map();
 const lastOutboundAt = new Map();
@@ -59,7 +59,11 @@ export const parseOutboundPlan = (rawText) => {
         .replace(AUDIO_TAG_REGEX, '')
         .replace(/\[ENVIAR_IMAGEM:\s*[a-zA-Z0-9_,-]+\]/gi, '')
         .replace(/\[ENVIAR_AUDIO_GRAVADO:\s*[a-zA-Z0-9_,-]+\]/gi, '')
+        .replace(/\[\s*env[ií]o\s+(?:audio|audios|áudio|áudios|imagen|imagem|im[aá]genes|imagens)[^\]]*\]/gi, '')
+        .replace(/\[\s*env[ií]o\s+de\s+(?:audio|audios|áudio|áudios|imagen|imagem|im[aá]genes|imagens)[^\]]*\]/gi, '')
+        .replace(/\b(?:env[ií]o|enviar)\s+de\s+(?:audio|audios|áudio|áudios|imagen|imagem|im[aá]genes|imagens)\s+[^.?!\n]*(?=$|[.?!\n])/gi, '')
         .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]{2,}/g, ' ')
         .trim();
 
     return {
@@ -88,23 +92,29 @@ export const enrichOutboundPlan = ({
     mode = 'mixed'
 }) => {
     const plan = parseOutboundPlan(rawText);
+    const recordedAudioNames = [
+        ...(Array.isArray(plan.recordedAudioNames) ? plan.recordedAudioNames : []),
+        ...(Array.isArray(forceRecordedAudioName)
+            ? forceRecordedAudioName
+            : (forceRecordedAudioName ? [forceRecordedAudioName] : []))
+    ].filter(Boolean).slice(0, 1);
+    const finalMode = APPROVED_AUDIO_ONLY && mode === 'audio_only' && recordedAudioNames.length === 0
+        ? 'mixed'
+        : mode;
+    const audioText = finalMode === 'text_only' || APPROVED_AUDIO_ONLY
+        ? null
+        : (plan.audioText || (forceAudioText ? plan.cleanText : null));
+    const hasAudio = recordedAudioNames.length > 0 || Boolean(audioText);
     return {
         cleanText: plan.cleanText,
-        audioText: mode === 'text_only'
-            ? null
-            : (plan.audioText || (forceAudioText ? plan.cleanText : null)),
-        recordedAudioNames: [
-            ...(Array.isArray(plan.recordedAudioNames) ? plan.recordedAudioNames : []),
-            ...(Array.isArray(forceRecordedAudioName)
-                ? forceRecordedAudioName
-                : (forceRecordedAudioName ? [forceRecordedAudioName] : []))
-        ].filter(Boolean),
+        audioText,
+        recordedAudioNames,
         recordedAudioCountry,
         imageKeys: [
             ...(Array.isArray(plan.imageKeys) ? plan.imageKeys : []),
             ...(Array.isArray(forceImageKey) ? forceImageKey : (forceImageKey ? [forceImageKey] : []))
-        ].filter(Boolean),
-        mode
+        ].filter(Boolean).slice(0, hasAudio ? 0 : 1),
+        mode: finalMode
     };
 };
 
@@ -113,6 +123,7 @@ export const executePreparedOutboundPlan = async ({ jid, plan, sessionId = null,
         let textSent = false;
         let audioSent = false;
         let imageSent = false;
+        const sentRecordedAudios = [];
 
         const recordedAudioNames = Array.isArray(plan.recordedAudioNames) ? plan.recordedAudioNames : [];
         for (const baseName of recordedAudioNames) {
@@ -125,9 +136,17 @@ export const executePreparedOutboundPlan = async ({ jid, plan, sessionId = null,
             await respectMinGap(jid);
             const sent = await sendAudio(jid, audioPath, true, { sessionId });
             audioSent = audioSent || sent;
+            if (sent) {
+                sentRecordedAudios.push({ baseName, audioPath });
+            }
         }
 
         if (plan.cleanText && plan.mode !== 'audio_only') {
+            await respectMinGap(jid);
+            textSent = await sendText(jid, plan.cleanText, null, { sessionId });
+        }
+
+        if (plan.cleanText && plan.mode === 'audio_only' && recordedAudioNames.length > 0 && !audioSent) {
             await respectMinGap(jid);
             textSent = await sendText(jid, plan.cleanText, null, { sessionId });
         }
@@ -156,6 +175,7 @@ export const executePreparedOutboundPlan = async ({ jid, plan, sessionId = null,
                     textSent,
                     audioSent,
                     imageSent,
+                    sentRecordedAudios,
                     delivered: textSent || imageSent,
                     cleanText: plan.cleanText,
                     mode: plan.mode || 'mixed'
@@ -178,6 +198,7 @@ export const executePreparedOutboundPlan = async ({ jid, plan, sessionId = null,
             textSent,
             audioSent,
             imageSent,
+            sentRecordedAudios,
             delivered: textSent || audioSent || imageSent,
             cleanText: plan.cleanText,
             mode: plan.mode || 'mixed'

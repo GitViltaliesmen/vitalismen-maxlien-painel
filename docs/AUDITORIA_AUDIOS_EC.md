@@ -10,10 +10,6 @@ Por enquanto, manter apenas os audios de Equador em `public/media/templates/EC/`
 
 ## Arquivos ativos encontrados
 
-- `Inicio_01.mp3`
-- `Inicio_01.ogg`
-- `Inicio_02.mp3`
-- `Inicio_02.ogg`
 - `Chegou_01.mp3`
 - `Chegou_01.ogg`
 - `Chegou_02.mp3`

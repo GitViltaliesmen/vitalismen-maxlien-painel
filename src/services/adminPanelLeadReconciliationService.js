@@ -7,7 +7,7 @@ import ContactState from '../models/ContactState.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 
 const ADMIN_DB_EC = '/opt/maxlien-mvp/leads_ec.sqlite3';
-const PROTECTED_ADMIN_STATUSES = new Set(['confirmado', 'pedido_enviado', 'enviado', 'entregue', 'devolvido', 'cancelado']);
+const PROTECTED_ADMIN_STATUSES = new Set(['comprar_depois', 'confirmado', 'pedido_enviado', 'enviado', 'entregue', 'recompra', 'devolvido', 'cancelado']);
 const CLOSED_DRAFT_STATUSES = new Set(['confirmed', 'processing', 'pedido_enviado', 'pedido-enviado', 'shipped', 'delivered']);
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
@@ -18,7 +18,7 @@ const parseNumber = (name, fallback) => {
 };
 const isValidEcPhone = (value) => {
     const digits = digitsOnly(value);
-    return digits.startsWith('593') && digits.length >= 11;
+    return /^5939\d{8}$/.test(digits);
 };
 
 const normalizeEcPhone = (value) => {
@@ -69,7 +69,7 @@ const runPython = (python) => {
     return JSON.parse(result.stdout || '{}');
 };
 
-const readAdminLeads = ({ fromId = 1725 } = {}) => {
+const readAdminLeads = ({ fromId = 1 } = {}) => {
     const python = `
 import sqlite3, json
 db_path = ${JSON.stringify(ADMIN_DB_EC)}
@@ -81,7 +81,7 @@ rows = con.execute("""
            address, city, province, product_qty, product_value, country
     FROM leads
     WHERE id >= ?
-    ORDER BY id ASC
+    ORDER BY COALESCE(updated_at, created_at, '') DESC, id DESC
 """, (from_id,)).fetchall()
 con.close()
 print(json.dumps({"ok": True, "leads": [dict(row) for row in rows]}, ensure_ascii=False))
@@ -98,6 +98,7 @@ const buildAdminTailSet = (leads = []) => new Set(
 const adminStatusToDraftStatus = (status = '') => {
     const value = String(status || '').toLowerCase();
     if (value === 'confirmado') return 'confirmed';
+    if (value === 'comprar_depois') return 'buy_later';
     if (value === 'pedido_enviado' || value === 'enviado') return 'processing';
     if (value === 'entregue') return 'delivered';
     if (value === 'atendendo') return 'atendendo';
@@ -107,63 +108,125 @@ const adminStatusToDraftStatus = (status = '') => {
 const findContactStateByPhone = async (phone = '') => {
     const tail = phoneTail(phone);
     if (!tail) return null;
-    return ContactState.findOne({
+    const exactState = await ContactState.findOne({
         $or: [
             { phoneDigits: { $regex: `${tail}$` } },
-            { 'metadata.customerDraft.phone': { $regex: tail } },
             { 'metadata.lastSenderPn': { $regex: tail } },
             { chatId: { $regex: `${tail}@` } }
         ]
     }).sort({ updatedAt: -1 });
+    if (exactState) return exactState;
+
+    return ContactState.findOne({
+        'metadata.customerDraft.phone': { $regex: tail }
+    }).sort({ updatedAt: -1 });
+};
+
+const findContactStateByAdminLeadId = async (leadId = '', phone = '') => {
+    const parsed = Number.parseInt(String(leadId || ''), 10);
+    if (!Number.isFinite(parsed)) return null;
+    const states = await ContactState.find({
+        $or: [
+            { 'metadata.adminPanelLeadId': parsed },
+            { 'metadata.adminPanelLeadId': String(parsed) }
+        ]
+    }).sort({ updatedAt: -1 }).limit(8);
+    const tail = phoneTail(phone);
+    if (tail) {
+        const matchingPhone = states.find((state) => [
+            state.phoneDigits,
+            state.chatId,
+            state.metadata?.lastSenderPn,
+            state.metadata?.customerDraft?.phone
+        ].some((value) => phoneTail(value) === tail));
+        if (matchingPhone) return matchingPhone;
+    }
+    return states[0] || null;
 };
 
 const applyAdminLeadToContactState = (state, lead, phone) => {
     const draft = state.metadata?.customerDraft || {};
     const status = String(lead.status || '').toLowerCase();
-    const manual = status === 'atendendo';
-    state.phoneDigits = state.phoneDigits || phone;
+    const adminUpdatedAt = new Date(lead.updated_at || lead.created_at || Date.now());
+    const validAdminUpdatedAt = Number.isNaN(adminUpdatedAt.getTime()) ? new Date() : adminUpdatedAt;
+    const currentPhoneDigits = digitsOnly(state.phoneDigits);
+    const normalizedPhone = normalizeEcPhone(phone || lead.phone_e164 || lead.phone);
+    const currentLooksLikeEcPhone = isValidEcPhone(currentPhoneDigits);
+    const adminLeadIdMatches = String(state.metadata?.adminPanelLeadId || '') === String(lead.id || '');
+    const currentTail = phoneTail(currentPhoneDigits);
+    const normalizedTail = phoneTail(normalizedPhone);
+    const shouldTrustAdminPhone = adminLeadIdMatches && isValidEcPhone(normalizedPhone) && currentTail !== normalizedTail;
+    if (shouldTrustAdminPhone) {
+        state.metadata = {
+            ...(state.metadata || {}),
+            previousPhoneDigitsBeforeAdminSync: state.phoneDigits || ''
+        };
+        state.phoneDigits = normalizedPhone;
+        state.chatId = `${normalizedPhone}@c.us`;
+    } else if (!currentLooksLikeEcPhone && isValidEcPhone(normalizedPhone)) {
+        state.metadata = {
+            ...(state.metadata || {}),
+            previousPhoneDigitsBeforeAdminSync: state.phoneDigits || ''
+        };
+        state.phoneDigits = normalizedPhone;
+    } else {
+        state.phoneDigits = state.phoneDigits || normalizedPhone || phone;
+    }
     state.countryCode = 'EC';
     state.assignedAgent = 'vit_power_ec';
+    state.updatedAt = validAdminUpdatedAt;
+    if (!state.createdAt && lead.created_at) {
+        const adminCreatedAt = new Date(lead.created_at);
+        if (!Number.isNaN(adminCreatedAt.getTime())) state.createdAt = adminCreatedAt;
+    }
     state.metadata = {
         ...(state.metadata || {}),
         adminPanelLeadId: lead.id,
         adminPanelStatus: lead.status || '',
         adminPanelCreatedAt: lead.created_at || '',
+        adminPanelUpdatedAt: lead.updated_at || '',
         adminPanelSyncedAt: new Date(),
         lastSessionId: state.metadata?.lastSessionId || process.env.WHATSAPP_DEFAULT_SESSION_ID || '553183002800',
-        lastActiveChatId: state.metadata?.lastActiveChatId || state.chatId,
+        lastActiveChatId: state.chatId,
         customerDraft: {
             ...draft,
-            name: draft.name || lead.name || '',
-            phone: draft.phone || phone,
+            name: lead.name || draft.name || '',
+            phone: isValidEcPhone(normalizedPhone) ? normalizedPhone : (draft.phone || phone),
             country: draft.country || 'EC',
-            address: draft.address || lead.address || '',
-            city: draft.city || lead.city || '',
-            province: draft.province || lead.province || '',
-            quantity: draft.quantity || String(lead.product_qty || ''),
-            total: draft.total || String(lead.product_value || ''),
-            status: draft.status || adminStatusToDraftStatus(lead.status),
-            updatedAt: new Date().toISOString()
+            address: lead.address || draft.address || '',
+            city: lead.city || draft.city || '',
+            province: lead.province || draft.province || '',
+            quantity: String(lead.product_qty || draft.quantity || ''),
+            total: String(lead.product_value || draft.total || ''),
+            orderId: lead.event_id || (lead.id ? `EC-ADMIN-${lead.id}` : '') || draft.orderId || '',
+            status: adminStatusToDraftStatus(lead.status) || draft.status || 'novo',
+            updatedAt: validAdminUpdatedAt.toISOString()
         }
     };
-    if (manual && state.human?.mode !== 'manual') {
-        state.human = {
-            ...(state.human || {}),
-            mode: 'manual',
-            assignedName: state.human?.assignedName || 'painel',
-            assignedAt: state.human?.assignedAt || new Date(),
-            pausedUntil: state.human?.pausedUntil || new Date(Date.now() + 24 * 60 * 60 * 1000),
-            lastManualAt: new Date(),
-            lastManualBy: state.human?.lastManualBy || 'reconciliacao',
-            note: state.human?.note || 'Criado a partir do Painel Unificado para aparecer na ficha de atendimento.'
-        };
-    }
     const tags = Array.isArray(state.tags) ? state.tags : [];
     state.tags = [...new Set([
         ...tags,
         'PANEL_UNIFIED_IMPORTED',
-        manual ? 'manual:atendimento_iniciado' : `admin:${status || 'novo'}`
+        `admin:${status || 'novo'}`
     ])];
+    state.markModified?.('metadata');
+};
+
+const saveAdminLeadContactState = async (state, lead, phone, options = { timestamps: false }) => {
+    try {
+        await state.save(options);
+        return state;
+    } catch (error) {
+        if (error?.code !== 11000 || !error?.keyPattern?.chatId) throw error;
+        const duplicateChatId = error.keyValue?.chatId || (phone ? `${phone}@c.us` : '');
+        const existing = duplicateChatId
+            ? await ContactState.findOne({ chatId: duplicateChatId })
+            : await findContactStateByPhone(phone);
+        if (!existing || String(existing._id) === String(state._id)) throw error;
+        applyAdminLeadToContactState(existing, lead, phone);
+        await existing.save(options);
+        return existing;
+    }
 };
 
 const phoneTailCandidates = (value = '') => {
@@ -256,7 +319,7 @@ const updateAdminLeadsToAtendendo = ({ leadIds = [] } = {}) => {
 import sqlite3, json, datetime
 db_path = ${JSON.stringify(ADMIN_DB_EC)}
 ids = ${JSON.stringify(ids)}
-protected = {"confirmado", "pedido_enviado", "enviado", "entregue", "devolvido", "cancelado"}
+protected = {"comprar_depois", "confirmado", "pedido_enviado", "enviado", "entregue", "recompra", "devolvido", "cancelado"}
 now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 con = sqlite3.connect(db_path)
 cur = con.cursor()
@@ -452,7 +515,7 @@ export const reconcileRecentWhatsappContactsToAdminPanel = async ({
 };
 
 export const reconcileAdminLeadsToWhatsappPanel = async ({
-    fromId = parseNumber('ADMIN_PANEL_ATENDIMENTO_FROM_ID', 1725),
+    fromId = parseNumber('ADMIN_PANEL_TO_WHATSAPP_FROM_ID', 1),
     limit = parseNumber('ADMIN_PANEL_TO_WHATSAPP_CREATE_LIMIT', 200)
 } = {}) => {
     const admin = readAdminLeads({ fromId });
@@ -468,6 +531,7 @@ export const reconcileAdminLeadsToWhatsappPanel = async ({
         const phone = normalizeEcPhone(lead.phone_e164 || lead.phone);
         if (!isValidEcPhone(phone)) continue;
         let state = await findContactStateByPhone(phone);
+        if (!state) state = await findContactStateByAdminLeadId(lead.id, phone);
         if (!state) {
             state = new ContactState({
                 chatId: `${phone}@c.us`,
@@ -476,13 +540,17 @@ export const reconcileAdminLeadsToWhatsappPanel = async ({
                 assignedAgent: 'vit_power_ec'
             });
             applyAdminLeadToContactState(state, lead, phone);
-            await state.save();
-            created += 1;
-            createdItems.push({ id: lead.id, phone, status: lead.status || '', chatId: state.chatId });
+            const savedState = await saveAdminLeadContactState(state, lead, phone);
+            if (String(savedState._id) === String(state._id)) {
+                created += 1;
+                createdItems.push({ id: lead.id, phone, status: lead.status || '', chatId: savedState.chatId });
+            } else {
+                updated += 1;
+            }
             continue;
         }
         applyAdminLeadToContactState(state, lead, phone);
-        await state.save();
+        await saveAdminLeadContactState(state, lead, phone);
         updated += 1;
     }
 

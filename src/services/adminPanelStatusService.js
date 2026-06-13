@@ -20,6 +20,29 @@ const resolveAdminLeadId = (orderId) => {
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
+const normalizePanelPhoneDigits = (phone = '', country = 'EC') => {
+    const digits = digitsOnly(phone);
+    const normalizedCountry = String(country || 'EC').trim().toUpperCase();
+    if (normalizedCountry === 'EC') {
+        if (digits.startsWith('593')) return digits;
+        if (digits.startsWith('09') && digits.length === 10) return `593${digits.slice(1)}`;
+        if (digits.startsWith('9') && digits.length === 9) return `593${digits}`;
+    }
+    if (normalizedCountry === 'CO') {
+        if (digits.startsWith('57')) return digits;
+        if (digits.startsWith('3') && digits.length === 10) return `57${digits}`;
+    }
+    return digits;
+};
+
+const isSupportedClientPhone = (phone = '', country = 'EC') => {
+    const normalizedCountry = String(country || 'EC').trim().toUpperCase();
+    const digits = normalizePanelPhoneDigits(phone, normalizedCountry);
+    if (normalizedCountry === 'EC') return /^5939\d{8}$/.test(digits);
+    if (normalizedCountry === 'CO') return /^573\d{9}$/.test(digits);
+    return false;
+};
+
 const normalizeAdminStatus = ({ status, shippingStatus } = {}) => {
     const shipping = String(shippingStatus || '')
         .normalize('NFD')
@@ -30,11 +53,17 @@ const normalizeAdminStatus = ({ status, shippingStatus } = {}) => {
     if (/DEVUELT[OA]|DEVOLUCION/.test(shipping)) return 'devolvido';
     if (/GUIA|RUTA|REPARTO|DESPACHO|BODEGA|AGENCIA|PENDIENTE/.test(shipping)) return ADMIN_STATUS;
 
-    const value = String(status || '').trim().toLowerCase();
+    const value = String(status || '').trim().toLowerCase().replace(/-/g, '_');
+    if (['novo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'recompra', 'cancelado', 'devolvido'].includes(value)) {
+        return value;
+    }
     if (value === 'delivered') return 'entregue';
     if (value === 'returned') return 'devolvido';
     if (value === 'cancelled') return 'cancelado';
-    if (value === 'shipped') return 'enviado';
+    if (value === 'canceled') return 'cancelado';
+    if (value === 'finalizado') return 'finalizado';
+    if (value === 'conferir_pedidos') return 'conferir_pedidos';
+    if (value === 'shipped') return ADMIN_STATUS;
     if (value === 'processing') return ADMIN_STATUS;
     if (value === 'confirmed') return 'confirmado';
     if (value === 'atendendo' || value === 'manual' || value === 'in_service') return ADMIN_STATUS_ATENDENDO;
@@ -121,6 +150,7 @@ export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_syn
         province: String(order.customer?.province || '').trim(),
         product_qty: quantity,
         product_value: Number(order.total || 0) || 0,
+        buy_later_followup_at: order.purchaseIntent?.followUpAt || '',
         status: normalizeAdminStatus({
             status: status || order.status,
             shippingStatus: order.shippingStatus
@@ -155,6 +185,10 @@ con = sqlite3.connect(db_path)
 cur = con.cursor()
 cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
 hist_cols = {row[1] for row in cur.execute("PRAGMA table_info(lead_history)").fetchall()}
+status_hist_cols = {row[1] for row in cur.execute("PRAGMA table_info(lead_status_history)").fetchall()}
+
+def canonical_event_id(country, lead_id):
+    return (str(country or "EC").strip().upper() or "EC") + "-ADMIN-" + str(int(lead_id))
 
 def pick_existing():
     if payload.get("admin_lead_id"):
@@ -209,22 +243,49 @@ fields = {
     "phone_e164": payload.get("phone", ""),
     "notes": build_notes(existing[2] if existing else "")
 }
+if payload.get("buy_later_followup_at"):
+    fields["buy_later_followup_at"] = payload.get("buy_later_followup_at")
 for k, v in payload.get("tracking", {}).items():
     fields[k] = v
 fields = {k: v for k, v in fields.items() if k in cols}
-protected_statuses = {"confirmado", "pedido_enviado", "enviado", "entregue", "devolvido", "cancelado"}
+protected_statuses = {"comprar_depois", "confirmado", "pedido_enviado", "enviado", "entregue", "recompra", "devolvido", "cancelado", "conferir_pedidos"}
+archived_statuses = {"finalizado"}
 soft_statuses = {"novo", "atendendo"}
+status_rank = {
+    "novo": 0,
+    "atendendo": 1,
+    "comprar_depois": 2,
+    "confirmado": 3,
+    "pedido_enviado": 4,
+    "enviado": 4,
+    "entregue": 5,
+    "devolvido": 5,
+    "cancelado": 5,
+    "recompra": 6,
+    "conferir_pedidos": 7,
+    "finalizado": 8
+}
+
+def should_keep_existing_status(old_status, incoming_status):
+    old = str(old_status or "").strip().lower()
+    new = str(incoming_status or "").strip().lower()
+    if not old or not new or old == new:
+        return False
+    if old in archived_statuses:
+        return True
+    if old in protected_statuses and new in soft_statuses:
+        return True
+    return status_rank.get(old, -1) > status_rank.get(new, -1)
 
 if existing:
     lead_id, old_status, _old_notes = existing
+    fields.pop("updated_at", None)
     for blank_safe_key in ["name", "address", "city", "province"]:
         if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
             fields.pop(blank_safe_key, None)
     if "product_value" in fields and not float(fields.get("product_value") or 0):
         fields.pop("product_value", None)
-    if "status" in fields and str(old_status or "").lower() == "atendendo" and str(fields.get("status") or "").lower() == "novo":
-        fields["status"] = old_status
-    if "status" in fields and str(old_status or "").lower() in protected_statuses and str(fields.get("status") or "").lower() in soft_statuses:
+    if "status" in fields and should_keep_existing_status(old_status, fields.get("status")):
         fields["status"] = old_status
     assignments = ", ".join([f"{k}=?" for k in fields])
     cur.execute(f"UPDATE leads SET {assignments} WHERE id=?", list(fields.values()) + [lead_id])
@@ -241,11 +302,25 @@ else:
     old_status = ""
     mode = "created"
 
+if "event_id" in cols:
+    canonical_id = canonical_event_id(payload.get("country") or "EC", lead_id)
+    if fields.get("event_id") != canonical_id:
+        cur.execute("UPDATE leads SET event_id=? WHERE id=?", (canonical_id, lead_id))
+        fields["event_id"] = canonical_id
+
 if {"lead_id", "action", "old_value", "new_value", "created_at"}.issubset(hist_cols):
+    final_status = fields.get("status", payload.get("status", "novo"))
     cur.execute(
         "INSERT INTO lead_history (lead_id, action, old_value, new_value, created_at) VALUES (?, ?, ?, ?, ?)",
-        (lead_id, payload.get("action", "order_sync"), str(old_status or ""), payload.get("status", "novo"), now)
+        (lead_id, payload.get("action", "order_sync"), str(old_status or ""), final_status, now)
     )
+if {"lead_id", "old_status", "new_status", "created_at"}.issubset(status_hist_cols):
+    new_status = fields.get("status", payload.get("status", "novo"))
+    if str(old_status or "") != str(new_status or ""):
+        cur.execute(
+            "INSERT INTO lead_status_history (lead_id, old_status, new_status, created_at) VALUES (?, ?, ?, ?)",
+            (lead_id, str(old_status or ""), str(new_status or ""), now)
+        )
 con.commit()
 changed = con.total_changes
 con.close()
@@ -261,34 +336,35 @@ export const syncContactDraftToOnlineAdminPanel = (draft = {}, { country = 'EC',
     }
 
     const normalizedCountry = String(country || 'EC').trim().toUpperCase();
-    const phoneDigits = digitsOnly(draft.phone || '');
+    const phoneDigits = normalizePanelPhoneDigits(draft.phone || '', normalizedCountry);
     if (normalizedCountry === 'BR' || phoneDigits.startsWith('55')) {
         return { ok: false, skipped: true, reason: 'brazil_test_only' };
     }
     const dbPath = resolveAdminDbPath(normalizedCountry);
     if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
+    if (!isSupportedClientPhone(phoneDigits, normalizedCountry)) {
+        return { ok: false, skipped: true, reason: 'invalid_client_phone' };
+    }
 
-    const contactKey = phoneDigits
-        ? `${normalizedCountry}-PANEL-${phoneDigits.slice(-9)}`
-        : `${normalizedCountry}-PANEL-${String(draft.name || 'CLIENTE').trim().replace(/[^A-Za-z0-9]+/g, '-').slice(0, 32).toUpperCase() || 'CLIENTE'}`;
     const payload = {
         country: normalizedCountry,
-        event_id: contactKey,
+        event_id: '',
         name: String(draft.name || '').trim(),
-        phone: String(draft.phone || '').trim(),
+        phone: phoneDigits ? `+${phoneDigits}` : String(draft.phone || '').trim(),
         phone_digits: phoneDigits,
         address: String(draft.address || '').trim(),
         city: String(draft.city || '').trim(),
         province: String(draft.province || '').trim(),
         product_qty: Number(draft.quantity || 0) || 1,
         product_value: Number(draft.total || 0) || 0,
+        buy_later_followup_at: draft.buyLaterFollowupAt || draft.buy_later_followup_at || '',
         status: adminStatus || normalizeAdminStatus({ status: draft.status || 'draft' }),
         notes: String(note || '').trim(),
         action,
         db_path: dbPath
     };
 
-    if (!payload.name && !payload.phone_digits) {
+    if (!payload.phone_digits) {
         return { ok: false, skipped: true, reason: 'missing_contact_identity' };
     }
 
@@ -302,6 +378,10 @@ con = sqlite3.connect(db_path)
 cur = con.cursor()
 cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
 hist_cols = {row[1] for row in cur.execute("PRAGMA table_info(lead_history)").fetchall()}
+status_hist_cols = {row[1] for row in cur.execute("PRAGMA table_info(lead_status_history)").fetchall()}
+
+def canonical_event_id(country, lead_id):
+    return (str(country or "EC").strip().upper() or "EC") + "-ADMIN-" + str(int(lead_id))
 
 def pick_existing():
     tail = str(payload.get("phone_digits") or "")[-9:]
@@ -320,9 +400,6 @@ def pick_existing():
                 params + [payload.get("country") or "EC", payload.get("country") or "EC"]
             ).fetchone()
             if row: return row
-    if payload.get("name") and "name" in cols:
-        row = cur.execute("SELECT id, status, notes FROM leads WHERE lower(name)=lower(?) AND COALESCE(country, ?) = ? ORDER BY id DESC LIMIT 1", (payload["name"], payload.get("country") or "EC", payload.get("country") or "EC")).fetchone()
-        if row: return row
     return None
 
 def build_notes(existing_notes=""):
@@ -349,20 +426,47 @@ fields = {
     "phone_e164": payload.get("phone", ""),
     "notes": build_notes(existing[2] if existing else "")
 }
+if payload.get("buy_later_followup_at"):
+    fields["buy_later_followup_at"] = payload.get("buy_later_followup_at")
 fields = {k: v for k, v in fields.items() if k in cols}
-protected_statuses = {"confirmado", "pedido_enviado", "enviado", "entregue", "devolvido", "cancelado"}
+protected_statuses = {"comprar_depois", "confirmado", "pedido_enviado", "enviado", "entregue", "recompra", "devolvido", "cancelado", "conferir_pedidos"}
+archived_statuses = {"finalizado"}
 soft_statuses = {"novo", "atendendo"}
+status_rank = {
+    "novo": 0,
+    "atendendo": 1,
+    "comprar_depois": 2,
+    "confirmado": 3,
+    "pedido_enviado": 4,
+    "enviado": 4,
+    "entregue": 5,
+    "devolvido": 5,
+    "cancelado": 5,
+    "recompra": 6,
+    "conferir_pedidos": 7,
+    "finalizado": 8
+}
+
+def should_keep_existing_status(old_status, incoming_status):
+    old = str(old_status or "").strip().lower()
+    new = str(incoming_status or "").strip().lower()
+    if not old or not new or old == new:
+        return False
+    if old in archived_statuses:
+        return True
+    if old in protected_statuses and new in soft_statuses:
+        return True
+    return status_rank.get(old, -1) > status_rank.get(new, -1)
 
 if existing:
     lead_id, old_status, _old_notes = existing
+    fields.pop("updated_at", None)
     for blank_safe_key in ["name", "address", "city", "province"]:
         if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
             fields.pop(blank_safe_key, None)
     if "product_value" in fields and not float(fields.get("product_value") or 0):
         fields.pop("product_value", None)
-    if "status" in fields and str(old_status or "").lower() == "atendendo" and str(fields.get("status") or "").lower() == "novo":
-        fields["status"] = old_status
-    if "status" in fields and str(old_status or "").lower() in protected_statuses and str(fields.get("status") or "").lower() in soft_statuses:
+    if "status" in fields and should_keep_existing_status(old_status, fields.get("status")):
         fields["status"] = old_status
     assignments = ", ".join([f"{k}=?" for k in fields])
     cur.execute(f"UPDATE leads SET {assignments} WHERE id=?", list(fields.values()) + [lead_id])
@@ -379,11 +483,25 @@ else:
     old_status = ""
     mode = "created"
 
+if "event_id" in cols:
+    canonical_id = canonical_event_id(payload.get("country") or "EC", lead_id)
+    if fields.get("event_id") != canonical_id:
+        cur.execute("UPDATE leads SET event_id=? WHERE id=?", (canonical_id, lead_id))
+        fields["event_id"] = canonical_id
+
 if {"lead_id", "action", "old_value", "new_value", "created_at"}.issubset(hist_cols):
+    final_status = fields.get("status", payload.get("status", "novo"))
     cur.execute(
         "INSERT INTO lead_history (lead_id, action, old_value, new_value, created_at) VALUES (?, ?, ?, ?, ?)",
-        (lead_id, payload.get("action", "contact_draft_sync"), str(old_status or ""), payload.get("status", "novo"), now)
+        (lead_id, payload.get("action", "contact_draft_sync"), str(old_status or ""), final_status, now)
     )
+if {"lead_id", "old_status", "new_status", "created_at"}.issubset(status_hist_cols):
+    new_status = fields.get("status", payload.get("status", "novo"))
+    if str(old_status or "") != str(new_status or ""):
+        cur.execute(
+            "INSERT INTO lead_status_history (lead_id, old_status, new_status, created_at) VALUES (?, ?, ?, ?)",
+            (lead_id, str(old_status or ""), str(new_status or ""), now)
+        )
 con.commit()
 changed = con.total_changes
 con.close()
@@ -400,18 +518,40 @@ export const markOnlineAdminPedidoEnviado = ({ orderId, country }) => {
         return { ok: false, skipped: true, reason: 'not_online_admin_order' };
     }
 
-    const python = `
-import sqlite3, json
+const python = `
+import sqlite3, json, datetime
 db_path = ${JSON.stringify(dbPath)}
 lead_id = int(${JSON.stringify(leadId)})
 status = ${JSON.stringify(ADMIN_STATUS)}
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 con = sqlite3.connect(db_path)
 cur = con.cursor()
-cur.execute("UPDATE leads SET status=? WHERE id=?", (status, lead_id))
+row = cur.execute("SELECT status FROM leads WHERE id=?", (lead_id,)).fetchone()
+old_status = str(row[0] if row else "").strip().lower()
+final_statuses = {"entregue", "cancelado", "devolvido", "recompra"}
+if old_status in final_statuses:
+    status = old_status
+else:
+    cur.execute("UPDATE leads SET status=? WHERE id=?", (status, lead_id))
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS lead_status_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_id INTEGER NOT NULL,
+            old_status TEXT,
+            new_status TEXT,
+            action TEXT,
+            created_at TEXT
+        )
+    """)
+    if old_status != status:
+        cur.execute(
+            "INSERT INTO lead_status_history (lead_id, old_status, new_status, action, created_at) VALUES (?, ?, ?, ?, ?)",
+            (lead_id, old_status, status, "mark_pedido_enviado", now)
+        )
 con.commit()
 changed = con.total_changes
 con.close()
-print(json.dumps({"ok": True, "lead_id": lead_id, "status": status, "changed": changed}))
+print(json.dumps({"ok": True, "lead_id": lead_id, "status": status, "old_status": old_status, "changed": changed}))
 `;
 
     return runAdminPanelPython({ country, python });

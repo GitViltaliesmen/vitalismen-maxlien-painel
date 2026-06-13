@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import { setupDispatcher } from './dispatcher.js';
 import { resolveCountryAudio } from '../services/audioTemplateService.js';
+import Message from '../models/Message.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
 const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
@@ -14,8 +15,29 @@ const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') ===
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
     || 'Hola, soy Ana Lopez del equipo de la doctora Maria Fernandes. En este momento no atendemos llamadas por aqui. Enviame tu duda por texto o audio y te ayudo por WhatsApp.';
+const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
+    || 'Señor, por favor envíeme un mensaje por audio o texto.';
+const autoRecoverConflict = String(process.env.WHATSAPP_AUTO_RECOVER_CONFLICT || 'true').toLowerCase() !== 'false';
 
 const sessions = new Map();
+const recentCallAutoReplies = new Map();
+
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const callReplyWindowMs = () => {
+    const hours = Number.parseInt(String(process.env.WHATSAPP_CALL_REPLY_WINDOW_HOURS || '24'), 10);
+    return Math.max(1, Number.isFinite(hours) ? hours : 24) * 60 * 60 * 1000;
+};
+
+const parsePausedSessionIds = () => String(process.env.WHATSAPP_PAUSED_SESSION_IDS || '')
+    .split(',')
+    .map((item) => digitsOnly(item))
+    .filter(Boolean);
+
+const isPausedSessionId = (sessionId) => {
+    const id = digitsOnly(sessionId);
+    if (!id) return false;
+    return parsePausedSessionIds().some((paused) => paused === id || paused.endsWith(id) || id.endsWith(paused));
+};
 
 const parseConfiguredSessionIds = () => {
     const raw = String(process.env.WHATSAPP_SESSION_IDS || '').trim();
@@ -27,7 +49,7 @@ const parseConfiguredSessionIds = () => {
         ids.unshift(DEFAULT_SESSION_ID);
     }
 
-    return [...new Set(ids)];
+    return [...new Set(ids)].filter((sessionId) => !isPausedSessionId(sessionId));
 };
 
 const sanitizeSessionId = (sessionId) => String(sessionId || DEFAULT_SESSION_ID)
@@ -40,6 +62,62 @@ const jidUserDigits = (jid = '') => String(jid || '')
     .split('@')[0]
     .split(':')[0]
     .replace(/\D/g, '');
+
+const callReplyKey = ({ jid = '', sessionId = '' } = {}) => `${digitsOnly(sessionId) || sessionId}:${digitsOnly(jid) || String(jid || '').trim()}`;
+
+const rememberCallAutoReply = ({ jid = '', sessionId = '', count = 1 } = {}) => {
+    const key = callReplyKey({ jid, sessionId });
+    if (!key) return;
+    recentCallAutoReplies.set(key, { count, at: Date.now() });
+};
+
+const recentCallReplyCount = async ({ jid = '', sessionId = '' } = {}) => {
+    const key = callReplyKey({ jid, sessionId });
+    const now = Date.now();
+    const windowMs = callReplyWindowMs();
+    const memory = recentCallAutoReplies.get(key);
+    if (memory && now - memory.at <= windowMs) return memory.count;
+    if (memory) recentCallAutoReplies.delete(key);
+
+    const digits = digitsOnly(jid);
+    if (!digits || Message?.db?.readyState !== 1) return 0;
+    const tail = digits.length > 10 ? digits.slice(-10) : digits;
+    const since = new Date(now - windowMs);
+    const count = await Message.countDocuments({
+        isFromMe: true,
+        body: { $regex: '^\\[CALL_AUTO_REPLY' },
+        createdAt: { $gte: since },
+        $or: [
+            { chatId: jid },
+            { to: jid },
+            { peerPhone: { $regex: `${tail}$` } }
+        ]
+    }).catch(() => 0);
+    if (count > 0) rememberCallAutoReply({ jid, sessionId, count });
+    return count;
+};
+
+const recordCallAutoReply = async ({ jid = '', sessionId = '', body = '', type = 'chat', mediaUrl = '' } = {}) => {
+    try {
+        await Message.create({
+            _id: `call_auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            chatId: jid,
+            peerPhone: digitsOnly(jid),
+            from: 'bot',
+            to: jid,
+            body,
+            type,
+            mediaUrl,
+            sessionId,
+            ownerPhoneDigits: digitsOnly(sessionId),
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (error) {
+        if (error?.code !== 11000) console.warn(`[CALL] falha ao registrar auto-resposta de chamada -> ${jid}: ${error.message}`);
+    }
+};
 
 const migrateLegacyAuthStorage = () => {
     if (!fs.existsSync(AUTH_BASE_DIR)) return;
@@ -100,7 +178,8 @@ const getOrCreateSession = (sessionId = DEFAULT_SESSION_ID) => {
 
 const getConfiguredOrKnownSessionIds = () => {
     const known = Array.from(sessions.keys());
-    return [...new Set([...parseConfiguredSessionIds(), ...discoverSessionIdsFromAuthDir(), ...known])];
+    return [...new Set([...parseConfiguredSessionIds(), ...discoverSessionIdsFromAuthDir(), ...known])]
+        .filter((sessionId) => !isPausedSessionId(sessionId));
 };
 
 const resolveSessionForOutbound = (sessionId = null) => {
@@ -164,6 +243,15 @@ export const waitForWhatsAppReady = (timeoutMs = 15000, sessionId = null) => {
 
 export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
     const session = getOrCreateSession(sessionId);
+    if (isPausedSessionId(session.sessionId)) {
+        session.status = 'paused';
+        session.isReady = false;
+        session.qrCode = null;
+        session.qrCodeRaw = null;
+        console.log(`[BOOT] startWhatsApp pausado por WHATSAPP_PAUSED_SESSION_IDS | session=${session.sessionId}`);
+        return null;
+    }
+
     if (session.startInFlight) {
         console.log(`[BOOT] startWhatsApp ignorado porque ja existe inicializacao em andamento | session=${session.sessionId}`);
         return session.sock;
@@ -215,17 +303,50 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
                         continue;
                     }
                     await session.sock.rejectCall(call.id, call.from);
-                    const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
-                    if (audioPath) {
-                        await session.sock.sendMessage(call.from, {
-                            audio: { url: audioPath },
-                            mimetype: 'audio/ogg; codecs=opus',
-                            ptt: true
+                    const previousReplies = await recentCallReplyCount({ jid: call.from, sessionId: session.sessionId });
+                    const nextReplyNumber = previousReplies + 1;
+
+                    if (nextReplyNumber === 1) {
+                        const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
+                        if (audioPath) {
+                            await session.sock.sendMessage(call.from, {
+                                audio: { url: audioPath },
+                                mimetype: 'audio/ogg; codecs=opus',
+                                ptt: true
+                            });
+                            await recordCallAutoReply({
+                                jid: call.from,
+                                sessionId: session.sessionId,
+                                body: `[CALL_AUTO_REPLY_AUDIO] ${callAutoReplyAudioName}`,
+                                type: 'audio',
+                                mediaUrl: audioPath
+                            });
+                            rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
+                            console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e primeiro audio enviado para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        } else {
+                            await session.sock.sendMessage(call.from, { text: callAutoReplyText });
+                            await recordCallAutoReply({
+                                jid: call.from,
+                                sessionId: session.sessionId,
+                                body: `[CALL_AUTO_REPLY_FALLBACK_TEXT] ${callAutoReplyText}`,
+                                type: 'chat'
+                            });
+                            rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
+                            console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e texto fallback enviado para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        }
+                    } else if (nextReplyNumber === 2) {
+                        await session.sock.sendMessage(call.from, { text: callSecondReplyText });
+                        await recordCallAutoReply({
+                            jid: call.from,
+                            sessionId: session.sessionId,
+                            body: `[CALL_AUTO_REPLY_SECOND_TEXT] ${callSecondReplyText}`,
+                            type: 'chat'
                         });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y audio enviado para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e texto curto enviado para ${call.from} | tentativa=${nextReplyNumber} | session=${session.sessionId}`);
                     } else {
-                        await session.sock.sendMessage(call.from, { text: callAutoReplyText });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada y texto enviado para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada repetida ignorada sem nova mensagem para ${call.from} | tentativa=${nextReplyNumber} | session=${session.sessionId}`);
                     }
                 } catch (error) {
                     console.error(`[CALL] [socketId=${session.currentSocketId}] fallo al manejar llamada de ${call.from} | session=${session.sessionId}:`, error);
@@ -273,7 +394,24 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
 
                 if (isConflict) {
                     console.log(`[CONFLICT] ⚠️ Sessão usurpada por outro dispositivo/aba! | session=${session.sessionId}`);
-                    console.log('[CONFLICT] 🛑 Reconexao automatica pausada. Resolva os aparelhos conectados e, se preciso, re-pareie a sessao.');
+                    if (autoRecoverConflict) {
+                        const reconnectDelayMs = 8000;
+                        console.log(`[CONFLICT] 🔄 Recuperacao automatica em ${Math.floor(reconnectDelayMs / 1000)}s | session=${session.sessionId}`);
+                        if (!session.reconnectTimer) {
+                            session.reconnectTimer = setTimeout(() => {
+                                session.reconnectTimer = null;
+                                if (session.isReady && session.status === 'connected' && session.sock) {
+                                    console.log(`[CONFLICT] Recuperacao ignorada: sessao ja conectada | session=${session.sessionId}`);
+                                    return;
+                                }
+                                startWhatsApp(session.sessionId).catch((error) => {
+                                    console.error(`[CONFLICT] Falha ao recuperar sessao | session=${session.sessionId}:`, error);
+                                });
+                            }, reconnectDelayMs);
+                        }
+                    } else {
+                        console.log('[CONFLICT] 🛑 Reconexao automatica pausada. Resolva os aparelhos conectados e, se preciso, re-pareie a sessao.');
+                    }
                 }
 
                 const shouldReconnect = reason !== DisconnectReason.loggedOut && !isConflict;
@@ -338,4 +476,43 @@ export const startConfiguredWhatsAppSessions = async () => {
 export const registerWhatsAppSession = (sessionId) => {
     const session = getOrCreateSession(sessionId);
     return session.sessionId;
+};
+
+export const disconnectWhatsApp = async (sessionId = DEFAULT_SESSION_ID, { logout = true } = {}) => {
+    const session = getOrCreateSession(sessionId);
+    if (session.reconnectTimer) {
+        clearTimeout(session.reconnectTimer);
+        session.reconnectTimer = null;
+    }
+
+    const sock = session.sock;
+    session.startInFlight = false;
+    session.isReady = false;
+    session.qrCode = null;
+    session.qrCodeRaw = null;
+    session.ownPhoneDigits = '';
+
+    if (sock) {
+        try {
+            if (logout && typeof sock.logout === 'function') {
+                await sock.logout();
+            } else if (typeof sock.end === 'function') {
+                sock.end(undefined);
+            }
+        } catch (error) {
+            console.warn(`[DISCONNECT] Falha ao encerrar WhatsApp | session=${session.sessionId}: ${error.message}`);
+        }
+        try {
+            sock.ev?.removeAllListeners?.();
+        } catch {
+            // ignore listener cleanup failure
+        }
+    }
+
+    session.sock = null;
+    session.currentSocketId = null;
+    session.status = logout ? 'logged_out' : 'disconnected';
+    session.lastDisconnectReason = logout ? 'manual_logout' : 'manual_disconnect';
+    console.log(`[DISCONNECT] Sessao WhatsApp desconectada manualmente | session=${session.sessionId} | logout=${logout}`);
+    return getStatus(session.sessionId);
 };

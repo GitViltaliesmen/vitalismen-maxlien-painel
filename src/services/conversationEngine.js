@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { openaiService } from './openaiService.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
@@ -11,12 +13,35 @@ import { sendText } from '../whatsapp/sendText.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { maybeHandleVitPowerAudioComplement } from './vitPowerAudioComplementService.js';
+import { getNextItemByPurpose, markPurposeItemSent } from './funnelPurposeMemoryService.js';
 import { isInitialProductInquiry, isSimpleGreeting, looksLikeOrderDataMessage, startsWithOfficialInitialCtaMessage } from './initialFunnelTriggers.js';
-import { formatAgencyOptionLine, findServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
+import { formatAgencyOptionLine, formatServientregaAgency, findKnownServientregaEcuadorLocation, findServientregaEcuadorAgencies, loadServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
 import { buildRefillReminderText } from './shipmentMessageService.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
+import { VIT_POWER_APPROVED_AUDIO_CANDIDATES } from './vitPowerEvolvedWorkflow.js';
+import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
+import { orderLooksClosedForRepurchase } from './orderDuplicateGuardService.js';
+import { searchDroppiEcuadorOrdersFromPanel, syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
+import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const noDropiBotTestPhones = () => [
+    '5515998038637',
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES
+]
+    .join(',')
+    .split(',')
+    .map(digitsOnly)
+    .filter(Boolean);
+const isNoDropiBotTestPhone = (...values) => {
+    const protectedPhones = noDropiBotTestPhones();
+    return values
+        .map(digitsOnly)
+        .filter(Boolean)
+        .some((candidate) => protectedPhones.some((phone) => (
+            candidate === phone || candidate.endsWith(phone) || phone.endsWith(candidate)
+        )));
+};
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const parseMs = (name, fallback) => {
@@ -38,22 +63,40 @@ const initialFunnelStepDelayMs = (kind) => {
     }
 
     if (kind === 'audio') {
-        return randomMs('INITIAL_FUNNEL_AFTER_AUDIO_MIN_MS', 'INITIAL_FUNNEL_AFTER_AUDIO_MAX_MS', 7000, 14000);
+        return randomMs('INITIAL_FUNNEL_AFTER_AUDIO_MIN_MS', 'INITIAL_FUNNEL_AFTER_AUDIO_MAX_MS', 4000, 8000);
     }
 
     if (kind === 'image') {
-        return randomMs('INITIAL_FUNNEL_AFTER_IMAGE_MIN_MS', 'INITIAL_FUNNEL_AFTER_IMAGE_MAX_MS', 6000, 12000);
+        return randomMs('INITIAL_FUNNEL_AFTER_IMAGE_MIN_MS', 'INITIAL_FUNNEL_AFTER_IMAGE_MAX_MS', 4000, 8000);
     }
 
-    return randomMs('INITIAL_FUNNEL_BEFORE_PRICE_MIN_MS', 'INITIAL_FUNNEL_BEFORE_PRICE_MAX_MS', 8000, 16000);
+    return randomMs('INITIAL_FUNNEL_BEFORE_PRICE_MIN_MS', 'INITIAL_FUNNEL_BEFORE_PRICE_MAX_MS', 4000, 8000);
 };
 
 const initialFunnelInterruptCheckEnabled = () => (
     String(process.env.INITIAL_FUNNEL_INTERRUPT_CHECK_ENABLED || 'false').toLowerCase() === 'true'
 );
 
-const recordInitialFunnelStepMessage = async ({ jid, peerPhone = '', body, type = 'chat' }) => {
+const publicMediaUrlFromPath = (filePath = '') => {
+    const value = String(filePath || '').trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value) || value.startsWith('/media/')) return value;
+    const publicDir = path.join(process.cwd(), 'public');
+    const resolved = path.resolve(value);
+    if (!resolved.startsWith(publicDir)) return '';
+    return `/${path.relative(publicDir, resolved).split(path.sep).join('/')}`;
+};
+
+const mediaPreviewUrlFor = (mediaUrl = '') => {
+    const value = String(mediaUrl || '');
+    if (!value.toLowerCase().endsWith('.ogg')) return '';
+    const mp3Path = path.join(process.cwd(), 'public', value.replace(/^\//, '').replace(/\.ogg$/i, '.mp3'));
+    return fs.existsSync(mp3Path) ? value.replace(/\.ogg$/i, '.mp3') : '';
+};
+
+const recordInitialFunnelStepMessage = async ({ jid, peerPhone = '', body, type = 'chat', mediaPath = '' }) => {
     if (!body) return;
+    const mediaUrl = publicMediaUrlFromPath(mediaPath);
     try {
         await Message.create({
             _id: `out_${Date.now()}_initial_${Math.random().toString(16).slice(2, 8)}`,
@@ -63,6 +106,9 @@ const recordInitialFunnelStepMessage = async ({ jid, peerPhone = '', body, type 
             to: jid,
             body,
             type,
+            hasMedia: Boolean(mediaUrl),
+            mediaUrl,
+            mediaPreviewUrl: mediaPreviewUrlFor(mediaUrl),
             isFromMe: true,
             isBot: true,
             timestamp: Math.floor(Date.now() / 1000)
@@ -83,6 +129,21 @@ const normalizeFieldLabel = (value) => String(value || '')
 const cleanFieldValue = (value) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim();
+
+const normalizeServientregaVariants = (value) => String(value || '')
+    .replace(/\bser\s*entrega\b/gi, 'servientrega')
+    .replace(/\bserentrega\b/gi, 'servientrega')
+    .replace(/\bservi\s+en\s+trega\b/gi, 'servientrega')
+    .replace(/\bcervi\s+en\s+trega\b/gi, 'servientrega')
+    .replace(/\bse\s+ventrega\b/gi, 'servientrega')
+    .replace(/\bser\s+ventrega\b/gi, 'servientrega')
+    .replace(/\bservi\s+entrega\b/gi, 'servientrega')
+    .replace(/\bserv\s+entrega\b/gi, 'servientrega')
+    .replace(/\b(?:cer|cervi|cevi|sevi|serbi|sirvi|servent|serven|servien|servi)\s*(?:entrega|entega|entreha|entregas?)\b/gi, 'servientrega')
+    .replace(/\b(?:cervientrega|cevientrega|sevientrega|serbientrega|sirvientrega|servientega|servientreha|servientregas)\b/gi, 'servientrega')
+    .replace(/\b(?:cervi|cevi|sevi|serbi|sirvi|servi)\b(?=\s+(?:cercana|cerca|agencia|oficina|palenque|palanque|palanda|los\s+r[ií]os|los\s+rios))/gi, 'servientrega')
+    .replace(/\bs[eé]rvi\b/gi, 'servientrega')
+    .replace(/\bsanta\s+presca\b/gi, 'Santa Prisca');
 
 const parseMoneyValue = (value) => {
     const raw = String(value || '').replace(/[^\d.,]/g, '').trim();
@@ -159,20 +220,41 @@ const titleCaseFromNormalized = (value) => String(value || '')
 
 const normalizeLocationText = (value) => normalizeFieldLabel(value);
 
+let cachedEcuadorLocationCatalog = null;
+const getEcuadorLocationCatalog = () => {
+    if (cachedEcuadorLocationCatalog) return cachedEcuadorLocationCatalog;
+    let agencyCities = [];
+    let agencyProvinces = [];
+    try {
+        const agencies = loadServientregaEcuadorAgencies();
+        agencyCities = agencies.map((agency) => normalizeLocationText(agency.city || '')).filter(Boolean);
+        agencyProvinces = agencies.map((agency) => normalizeLocationText(agency.province || '')).filter(Boolean);
+    } catch (error) {
+        console.warn('[FUNIL] Falha ao carregar catalogo de cidades Servientrega:', error.message);
+    }
+    cachedEcuadorLocationCatalog = {
+        cities: [...new Set([...ECUADOR_CITY_ALIASES, ...agencyCities])],
+        provinces: [...new Set([...ECUADOR_PROVINCES, ...agencyProvinces])]
+    };
+    return cachedEcuadorLocationCatalog;
+};
+
 const findKnownCity = (value) => {
     const normalized = normalizeLocationText(value);
-    return ECUADOR_CITY_ALIASES.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
+    return getEcuadorLocationCatalog().cities.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
 };
 
 const findKnownProvince = (value) => {
     const normalized = normalizeLocationText(value);
-    return ECUADOR_PROVINCES.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
+    return getEcuadorLocationCatalog().provinces.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized)) || '';
 };
 
 const parsePackageQuantityText = (value) => {
-    const body = normalizeFieldLabel(value);
+    const body = normalizeFieldLabel(value)
+        .replace(/\btre\b(?=\s*(botella|botellas|frasco|frascos|mes|meses|tratamiento|tratamientos|producto|productos)\b)/g, 'tres');
     if (/\b(6|seis)\b/.test(body)) return 6;
     if (/\b(3|tres)\b/.test(body)) return 3;
+    if (/\b(2|dos)\b/.test(body)) return 2;
     if (/\b(1|un|uno|una)\b/.test(body)) return 1;
     return 0;
 };
@@ -210,21 +292,21 @@ const extractLocationFromText = (value) => {
     if (cityMatch?.[1]) {
         const cityCandidate = cleanFieldValue(cityMatch[1]);
         const normalizedCity = normalizeLocationText(cityCandidate);
-        const knownCity = ECUADOR_CITY_ALIASES.find((city) => normalizedCity.includes(city));
+        const knownCity = getEcuadorLocationCatalog().cities.find((city) => normalizedCity.includes(city));
         result.city = knownCity ? titleCaseFromNormalized(knownCity) : cityCandidate;
     } else {
-        const knownCity = ECUADOR_CITY_ALIASES.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
+        const knownCity = getEcuadorLocationCatalog().cities.find((city) => new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
         if (knownCity) result.city = titleCaseFromNormalized(knownCity);
     }
 
-    const provinceMatch = raw.match(/\bprovincia\s*[:.]?\s*([a-záéíóúñ\s]+?)(?:[,.;\n]|$)/i);
+    const provinceMatch = raw.match(/\bprov[ií]ncia\s*[:.]?\s*([a-záéíóúñ\s]+?)(?:[,.;\n]|$)/i);
     if (provinceMatch?.[1]) {
         const provinceCandidate = cleanFieldValue(provinceMatch[1]);
         const normalizedProvince = normalizeLocationText(provinceCandidate);
-        const knownProvince = ECUADOR_PROVINCES.find((province) => normalizedProvince.includes(province));
+        const knownProvince = getEcuadorLocationCatalog().provinces.find((province) => normalizedProvince.includes(province));
         result.province = knownProvince ? titleCaseFromNormalized(knownProvince) : provinceCandidate;
     } else {
-        const knownProvince = ECUADOR_PROVINCES.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
+        const knownProvince = getEcuadorLocationCatalog().provinces.find((province) => new RegExp(`\\b${province.replace(/\s+/g, '\\s+')}\\b`, 'i').test(normalized));
         if (knownProvince) result.province = titleCaseFromNormalized(knownProvince);
     }
 
@@ -266,6 +348,13 @@ const looksLikePersonNameOnly = (text) => {
     const raw = cleanFieldValue(text);
     const normalized = normalizeFieldLabel(raw);
     if (!raw || raw.length < 5 || raw.length > 80) return false;
+    if (/^(si|sí|sim|ok|okay|listo|correcto|correto|correcta|correta|esta\s+bien|est[aá]\s+bien|esta\s+correcto|est[aá]\s+correcto|esta\s+correto|est[aá]\s+correto|esta\s+correcta|est[aá]\s+correcta|de\s+acuerdo|estoy\s+de\s+acuerdo|est[aá]\s+de\s+acuerdo|puede|pueden|proceda|hagalo|h[aá]galo|me\s+sirve|todo\s+bien|todo\s+ok)$/i.test(normalized)) return false;
+    if (/^(no|nop|negativo)\b.*\b(es|era|seria|sería)\b/i.test(normalized)) {
+        const correctionLocation = findKnownServientregaEcuadorLocation({ text: raw });
+        if (findKnownCity(normalized) || correctionLocation.city || correctionLocation.province) return false;
+    }
+    const locationAnswer = findKnownServientregaEcuadorLocation({ text: raw });
+    if ((locationAnswer.city || locationAnswer.province) && /\b(quiero|deseo|retir|retiro|retirar|agencia|servientrega|ciudad|provincia|en|ahi|all[ií])\b/i.test(normalized)) return false;
     if (/[0-9@:]/.test(raw)) return false;
     if (/\b(ref|referencia|direccion|dirección|endereco|ciudad|provincia|cantidad|frasco|domicilio|agencia|servientrega|calle|rua|av|avenida|casa|mz|villa)\b/i.test(normalized)) {
         return false;
@@ -404,18 +493,29 @@ const orderPackageLabel = ({ customerContext, quantity }) => {
     return `${product} ${quantity} frasco${Number(quantity) > 1 ? 's' : ''}`;
 };
 
+const buildRepurchaseOrderId = () => {
+    const stamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `EC-RECOMPRA-${stamp}-${random}`;
+};
+
 const PRICE_TABLE_BY_COUNTRY = {
     EC: {
         1: { value: '$39', total: 39 },
+        2: { value: '$70', total: 70 },
         3: { value: '$95.99', total: 95.99 },
         6: { value: '$167.99', total: 167.99 }
     }
 };
 
+const VALID_PACKAGE_QUANTITIES = [1, 2, 3, 6];
+
 const normalizePackageQuantity = (quantity) => {
     const parsed = Number.parseInt(String(quantity || ''), 10);
-    return [1, 3, 6].includes(parsed) ? parsed : 1;
+    return VALID_PACKAGE_QUANTITIES.includes(parsed) ? parsed : 1;
 };
+
+const isValidPackageQuantity = (quantity) => VALID_PACKAGE_QUANTITIES.includes(Number.parseInt(String(quantity || ''), 10));
 
 const getSelectedOffer = (customerContext, parsedOrder = {}) => {
     const countryCode = 'EC';
@@ -468,6 +568,10 @@ const getAgencyDetails = (parsedOrder = {}) => {
 
 const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhone }) => {
     const phone = parsedOrder.phone || peerPhone || '';
+    if (isNoDropiBotTestPhone(phone, peerPhone)) {
+        console.log(`[TEST-8637] pedido ignorado para teste limpo; nunca criar/Dropi -> ${digitsOnly(phone || peerPhone)}`);
+        return null;
+    }
     const phoneTail = digitsOnly(phone).slice(-10);
     const country = 'EC';
     const currency = 'USD';
@@ -478,9 +582,16 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
             'customer.phone': { $regex: phoneTail }
         }
         : null;
-    const order = query
+    const existingOrder = query
         ? await Order.findOne(query).sort({ updatedAt: -1, createdAt: -1 })
         : null;
+    const existingShipment = existingOrder
+        ? await Shipment.findOne({ orderId: existingOrder.orderId }).lean().catch(() => null)
+        : null;
+    const previousDeliveredOrder = existingOrder && orderLooksClosedForRepurchase(existingOrder, existingShipment)
+        ? existingOrder
+        : null;
+    const order = previousDeliveredOrder ? null : existingOrder;
 
     const payload = {
         country,
@@ -488,6 +599,7 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
             name: parsedOrder.name,
             phone,
             address: parsedOrder.address,
+            reference: parsedOrder.reference || '',
             city: parsedOrder.city,
             province: parsedOrder.province
         },
@@ -500,7 +612,10 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
         currency,
         source: 'whatsapp',
         status: 'draft',
-        notes: parsedOrder.reference ? `Punto de referencia: ${parsedOrder.reference}` : (order?.notes || '')
+        notes: parsedOrder.reference ? `Punto de referencia: ${parsedOrder.reference}` : (order?.notes || ''),
+        entryReason: previousDeliveredOrder ? 'repeat_purchase_after_delivered' : 'new_purchase',
+        previousOrderId: previousDeliveredOrder?.orderId || '',
+        previousDeliveredAt: deliveredAtFromShipmentSnapshot(existingShipment)
     };
 
     if (order) {
@@ -512,7 +627,7 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
         order.notes = payload.notes;
         order.conversationMemory = {
             ...(order.conversationMemory || {}),
-            funnelStage: parsedOrder.reference ? 'awaiting_order_confirmation' : 'awaiting_reference',
+            funnelStage: 'awaiting_order_confirmation',
             currentIntent: 'purchase_intent',
             lastCustomerMessageAt: new Date()
         };
@@ -522,8 +637,10 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
 
     const created = new Order({
         ...payload,
+        orderId: previousDeliveredOrder ? buildRepurchaseOrderId() : undefined,
+        entryAt: new Date(),
         conversationMemory: {
-            funnelStage: parsedOrder.reference ? 'awaiting_order_confirmation' : 'awaiting_reference',
+            funnelStage: 'awaiting_order_confirmation',
             currentIntent: 'purchase_intent',
             lastCustomerMessageAt: new Date()
         },
@@ -531,6 +648,80 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
     });
     await created.save();
     return created;
+};
+
+const buildConfirmedSalePayload = ({ order = null, parsedOrder = {}, deliveryMode = '', agency = null } = {}) => {
+    const hasAgency = Boolean(
+        deliveryMode === 'agency'
+        || parsedOrder.deliveryMode === 'agency'
+        || agency?.isAgency
+        || agency?.name
+        || parsedOrder.agency
+        || parsedOrder.agencyName
+    );
+    const customer = order?.customer || {};
+    const pack = order?.package || {};
+    return {
+        status: 'VENDA CONFIRMADA',
+        nome_cliente: parsedOrder.name || parsedOrder.customerName || customer.name || '',
+        quantidade_frascos: String(parsedOrder.quantity || pack.quantity || ''),
+        modalidade_envio: hasAgency ? 'Agencia Servientrega' : 'Domicilio',
+        endereco_entrega: hasAgency
+            ? (agency?.address || parsedOrder.agencyAddress || parsedOrder.address || customer.address || '')
+            : (parsedOrder.address || customer.address || ''),
+        ponto_referencia: parsedOrder.reference || customer.reference || '',
+        canal: 'WhatsApp_Agilize_Codex'
+    };
+};
+
+const saveConfirmedSalePayloadToContact = async ({ contactStateId, agentProfile, payload }) => {
+    if (!contactStateId || !agentProfile?.key || !payload) return;
+    const state = await ContactState.findById(contactStateId).lean().catch(() => null);
+    const previous = (((state?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).conversationState || {};
+    const conversationState = {
+        phone: state?.phoneDigits || previous.phone || '',
+        name: payload.nome_cliente || previous.name || '',
+        province: previous.province || '',
+        city: previous.city || '',
+        address: payload.endereco_entrega || previous.address || '',
+        reference: payload.ponto_referencia || previous.reference || '',
+        agency: payload.modalidade_envio === 'Agencia Servientrega' ? (previous.agency || payload.endereco_entrega || '') : '',
+        quantity: payload.quantidade_frascos || previous.quantity || '',
+        total: previous.total || '',
+        profile_type: previous.profile_type || 'purchase_intent',
+        stage: 'order_closed',
+        buyer_score: previous.buyer_score || '',
+        last_audio_sent: previous.last_audio_sent || '',
+        last_question_sent: previous.last_question_sent || '',
+        last_objection: previous.last_objection || '',
+        conversation_summary: previous.conversation_summary || `status=${payload.status} | canal=${payload.canal}`,
+        scheduled_date: previous.scheduled_date || '',
+        scheduled_reason: previous.scheduled_reason || '',
+        do_not_ship_before: Boolean(previous.do_not_ship_before),
+        followup_status: previous.followup_status || 'sale_confirmed'
+    };
+    const previousDraft = state?.metadata?.customerDraft || {};
+    const confirmedDraft = {
+        ...previousDraft,
+        phone: previousDraft.phone || state?.phoneDigits || previous.phone || '',
+        name: payload.nome_cliente || previousDraft.name || previous.name || '',
+        address: payload.endereco_entrega || previousDraft.address || previous.address || '',
+        reference: payload.ponto_referencia || previousDraft.reference || previous.reference || '',
+        quantity: payload.quantidade_frascos || previousDraft.quantity || previous.quantity || '',
+        country: previousDraft.country || state?.countryCode || 'EC',
+        status: 'confirmed'
+    };
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.confirmedSalePayload`]: payload,
+                [`metadata.perAgentMemory.${agentProfile.key}.conversationState`]: conversationState,
+                'metadata.customerDraft': confirmedDraft,
+                'metadata.lastKnownFunnelStage': 'order_closed'
+            }
+        }
+    );
 };
 
 const markMetaPurchaseForConfirmedOrder = async (order) => {
@@ -567,14 +758,51 @@ const CHECKOUT_DATA_COLLECTION_STAGES = new Set([
 
 const isCheckoutDataCollectionStage = (stage) => CHECKOUT_DATA_COLLECTION_STAGES.has(stage);
 
+const isAgencyCheckoutDelivery = (parsedOrder = {}) => {
+    if (parsedOrder.deliveryMode === 'agency') return true;
+    return /(agencia|servientrega|oficina|retiro|retirar)/i.test([
+        parsedOrder.address,
+        parsedOrder.reference,
+        parsedOrder.agencyName,
+        parsedOrder.agencyAddress,
+        parsedOrder.rawAgencyDetails
+    ].filter(Boolean).join(' '));
+};
+
+const requiresHomeReference = (parsedOrder = {}) => parsedOrder.deliveryMode === 'home' && !isAgencyCheckoutDelivery(parsedOrder);
+
+const isDeliveredShipmentSnapshot = (shipment = null) => {
+    if (!shipment) return false;
+    const status = String(shipment.logistics?.status || '').toUpperCase();
+    return Boolean(
+        status === 'ENTREGADO'
+        || shipment.outcomes?.delivered
+        || shipment.outcomes?.pickedUp
+        || shipment.automation?.deliveredConfirmedAt
+    );
+};
+
+const deliveredAtFromShipmentSnapshot = (shipment = null) => {
+    if (!shipment) return null;
+    return [
+        shipment.automation?.deliveredConfirmedAt,
+        shipment.logistics?.lastStatusAt,
+        shipment.updatedAt,
+        shipment.createdAt
+    ]
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .find((value) => !Number.isNaN(value.getTime())) || null;
+};
+
 const missingCheckoutFieldKeys = (parsedOrder = {}) => {
     const missing = [];
     if (!parsedOrder.name) missing.push('name');
     if (!parsedOrder.province) missing.push('province');
     if (!parsedOrder.city) missing.push('city');
     if (!parsedOrder.address) missing.push('address');
+    if (requiresHomeReference(parsedOrder) && !parsedOrder.reference) missing.push('reference');
     if (!parsedOrder.quantity) missing.push('quantity');
-    if (!parsedOrder.reference) missing.push('reference');
     return missing;
 };
 
@@ -584,8 +812,8 @@ const missingCheckoutFields = (parsedOrder = {}) => {
         province: 'provincia',
         city: 'ciudad',
         address: 'direccion completa',
+        reference: 'punto de referencia',
         quantity: 'cantidad',
-        reference: 'punto de referencia'
     };
     return missingCheckoutFieldKeys(parsedOrder).map((key) => labels[key]);
 };
@@ -593,14 +821,15 @@ const missingCheckoutFields = (parsedOrder = {}) => {
 const checkoutDataStageFromMissing = (missingKeys = []) => {
     if (missingKeys.includes('name')) return 'awaiting_customer_name_data';
     if (missingKeys.includes('city') || missingKeys.includes('province')) return 'awaiting_city_province';
-    if (missingKeys.includes('address') || missingKeys.includes('reference')) return 'awaiting_home_address';
+    if (missingKeys.includes('address')) return 'awaiting_home_address';
+    if (missingKeys.includes('reference')) return 'awaiting_reference';
     if (missingKeys.includes('quantity')) return 'awaiting_quantity_data';
     return 'awaiting_agency_confirmation';
 };
 
 const normalizeOptionalPackageQuantity = (quantity) => {
     const parsed = Number.parseInt(String(quantity || ''), 10);
-    return [1, 3, 6].includes(parsed) ? parsed : 0;
+    return VALID_PACKAGE_QUANTITIES.includes(parsed) ? parsed : 0;
 };
 
 const mergeCheckoutOrderData = ({
@@ -700,44 +929,57 @@ const buildMissingCheckoutFieldText = ({ parsedOrder, missing, missingKeys = [] 
     const namePrefix = firstName ? `, ${firstName}` : '';
 
     if (missingKeys.includes('name')) {
-        return 'Perfecto. Para registrar su pedido, me confirma por favor su nombre completo?';
+        return 'Perfecto. Para dejar el pedido a su nombre, me envia su nombre y apellido por favor?';
     }
     if (missingKeys.includes('city') && missingKeys.includes('province')) {
-        return `Gracias${namePrefix}. Ahora me indica su ciudad y provincia?`;
+        return `Gracias${namePrefix}. Ahora me envia su ciudad y provincia?`;
     }
     if (missingKeys.includes('city')) {
-        return `Gracias${namePrefix}. Solo me falta su ciudad. Me la envia por favor?`;
+        return `Gracias${namePrefix}. Solo me falta la ciudad. Me la envia por favor?`;
     }
     if (missingKeys.includes('province')) {
-        return `Gracias${namePrefix}. Solo me falta su provincia. Me la envia por favor?`;
+        return `Gracias${namePrefix}. Solo me falta la provincia. Me la envia por favor?`;
     }
     if (missingKeys.includes('address') && missingKeys.includes('reference')) {
-        return `Perfecto${namePrefix}. Ahora me envia la direccion completa de entrega y un punto de referencia?`;
+        return `Listo${namePrefix}. Ahora me envia la direccion completa y un punto de referencia para la entrega a domicilio?`;
     }
     if (missingKeys.includes('address')) {
-        return `Perfecto${namePrefix}. Ahora me envia la direccion completa de entrega?`;
+        return `Listo${namePrefix}. Ahora me envia la direccion completa de entrega?`;
     }
     if (missingKeys.includes('reference')) {
-        return `Perfecto${namePrefix}. Ya recibi sus datos del pedido. Solo me falta un punto de referencia para dejar el envio bien ubicado. Me lo envia por favor?`;
+        return `Listo${namePrefix}. Solo me falta un punto de referencia para la entrega a domicilio. Me lo envia por favor?`;
     }
     if (missingKeys.includes('quantity')) {
-        return `Perfecto${namePrefix}. Cuantos frascos desea llevar: 1, 3 o 6?`;
+        return `Perfecto${namePrefix}. Con cuantos frascos desea empezar: 1, 3 o 6?`;
     }
-    return `Perfecto${namePrefix}. Ya recibi parte de sus datos. Para avanzar sin error, solo me falta: ${missing.join(', ')}. Me lo envia por favor?`;
+    return `Perfecto${namePrefix}. Ya tengo una parte. Para dejarlo sin error, solo me falta: ${missing.join(', ')}. Me lo envia por favor?`;
+};
+
+const missingCheckoutFieldAudioNames = (missingKeys = []) => {
+    if (missingKeys.includes('quantity')) {
+        return ['TRATAMENTO_Y_PRECIOS_PROMOCAO', 'QUANTOS_FRASCOS_E_DIA_QUERES'];
+    }
+    if (missingKeys.includes('address') || missingKeys.includes('reference')) {
+        return ['QUANDO_CLIENTE_PEDIR_A_DOMICILIO_REFERENCIA_COMPLETA', 'ENDERECO_ORIENTACAO'];
+    }
+    if (missingKeys.includes('name') || missingKeys.includes('city') || missingKeys.includes('province')) {
+        return ['NOME_CIUDAD_PROVICINCIA'];
+    }
+    return [];
 };
 
 const buildCheckoutDataReceivedText = (parsedOrder = {}) => {
     const firstName = cleanFieldValue(parsedOrder.name).split(/\s+/)[0] || 'cliente';
-    return `Gracias, ${firstName}. Ya recibi sus datos y la agencia indicada. Le envio la informacion para que pueda confirmar con seguridad.`;
+    return `Gracias, ${firstName}. Ya tengo sus datos y la agencia indicada. Le dejo todo resumido para que pueda revisar con calma.`;
 };
 
 const buildCheckoutPackageCtaText = (customerContext, parsedOrder = {}) => {
     const offer = getSelectedOffer(customerContext, parsedOrder);
     const responseLabel = `${offer.quantity} FRASCO${offer.quantity > 1 ? 'S' : ''}`;
     return [
-        `Hoy puede separar ${offer.label} de ${offer.product} por ${offer.value}.`,
+        `Hoy le puedo separar ${offer.label} de ${offer.product} por ${offer.value}.`,
         '',
-        `Para confirmar, responda: *${responseLabel}*.`
+        `Si esta bien para usted, responda: *${responseLabel}*.`
     ].join('\n');
 };
 
@@ -768,7 +1010,7 @@ const buildCheckoutOrderConfirmationSummaryText = ({ parsedOrder, customerContex
     const displayReference = !isAgency ? cleanFieldValue(parsedOrder.reference) : '';
 
     const lines = [
-        '✅ ¡Perfecto! Ya recibí sus datos para el pedido.',
+        '✅ Perfecto, ya tengo sus datos para el pedido.',
         '',
         `👤 Cliente: ${cleanFieldValue(parsedOrder.name)}`,
         destination ? `📍 Destino: ${destination}` : '',
@@ -779,7 +1021,7 @@ const buildCheckoutOrderConfirmationSummaryText = ({ parsedOrder, customerContex
         `📦 Pedido: ${offer.quantity} frasco${offer.quantity > 1 ? 's' : ''} de VIT POWER`,
         `💰 Total a pagar al recibir: ${offer.value}`,
         '',
-        '¿Los datos son correctos para proceder con el envío hoy mismo?'
+        'Me confirma si todo esta correcto para preparar el envio hoy?'
     ].filter((line) => line !== '').join('\n');
 
     return lines;
@@ -790,16 +1032,16 @@ const buildCheckoutAgencyConfirmationText = ({ parsedOrder, customerContext }) =
     const offer = getSelectedOffer(customerContext, parsedOrder);
     const agency = getAgencyDetails(parsedOrder);
     return [
-        `Perfecto, ${firstName}.`,
+        `Listo, ${firstName}.`,
         '',
-        `Le envio ${offer.label} de ${offer.product} por ${offer.value}.`,
+        `Le separo ${offer.label} de ${offer.product} por ${offer.value}.`,
         '',
-        'Para evitar errores, confirme si la agencia es esta:',
+        'Para evitar error, revise si la agencia es esta:',
         '',
         agency.name,
         agency.address,
         '',
-        '¿Confirmo su pedido en esta agencia?'
+        'Me confirma si dejamos el pedido en esta agencia?'
     ].join('\n');
 };
 
@@ -982,6 +1224,16 @@ const sendCheckoutOrderNextStep = async ({
     if (missing.length > 0) {
         const replyText = buildMissingCheckoutFieldText({ parsedOrder, missing, missingKeys });
         const stage = checkoutDataStageFromMissing(missingKeys);
+        const audioSent = String(process.env.VIT_POWER_MISSING_DATA_AUDIO_ENABLED || 'true').toLowerCase() !== 'false'
+            ? await sendFirstApprovedAudioAndRecord({
+                jid,
+                countryCode: customerContext.countryCode,
+                sessionId,
+                peerPhone,
+                baseNames: missingCheckoutFieldAudioNames(missingKeys),
+                label: 'Audio dados faltantes do checkout'
+            })
+            : false;
 
         const sent = await sendText(jid, replyText, null, { sessionId });
         if (!sent) return false;
@@ -1024,7 +1276,7 @@ const sendCheckoutOrderNextStep = async ({
             orderId: null
         });
 
-        console.log(`[FUNIL] Dados do formulario incompletos -> ${jid} | etapa=${stage} | pedido=sem_pedido`);
+        console.log(`[FUNIL] Dados do formulario incompletos -> ${jid} | etapa=${stage} | pedido=sem_pedido | audio=${audioSent}`);
         return true;
     }
 
@@ -1116,6 +1368,11 @@ const isSelectedPackageChoice = (text, parsedOrder = {}) => {
             || /\b1\s*frasco\b/i.test(body)
             || /\bun\s*(frasco|mes|tratamiento|producto)\b/i.test(body);
     }
+    if (quantity === 2) {
+        return /^(2|dos|2 frascos|dos frascos|2 botellas|dos botellas|quiero 2|quiero dos|quiero dos frascos|2 frascos vit power|dos frascos vit power)$/.test(body)
+            || /\b2\s*(frascos|botellas|meses|tratamientos|productos)\b/i.test(body)
+            || /\bdos\s*(frascos|botellas|meses|tratamientos|productos)\b/i.test(body);
+    }
     if (quantity === 3) {
         return /^(3|tres|3 frascos|tres frascos|quiero 3|quiero tres|quiero tres frascos|3 frascos vit power|tres frascos vit power)$/.test(body)
             || /\b3\s*frascos\b/i.test(body)
@@ -1126,15 +1383,29 @@ const isSelectedPackageChoice = (text, parsedOrder = {}) => {
         || /\bseis\s*(frascos|meses|tratamientos|productos)\b/i.test(body);
 };
 
-const isAgencyDeliveryChoice = (text) => /(ag[eê]ncia|agencia|servientrega|oficina|retiro|retirar)/i.test(String(text || ''));
-const isHomeDeliveryChoice = (text) => /(domicilio|domic[íi]lio|casa|residencia|residência|direccion|direcci[oó]n|entrega en casa)/i.test(String(text || ''));
+const principalSdrIsConfirmationOnlyText = (text = '') => /^(si|sí|sim|ok|okay|listo|correcto|correto|correcta|correta|claro|dale|esta\s+bien|est[aá]\s+bien|esta\s+correcto|est[aá]\s+correcto|esta\s+correto|est[aá]\s+correto|esta\s+correcta|est[aá]\s+correcta|de\s+acuerdo|estoy\s+de\s+acuerdo|est[aá]\s+de\s+acuerdo|puede|pueden|proceda|hagalo|h[aá]galo|me\s+sirve|todo\s+bien|todo\s+ok)$/i.test(normalizeForDecision(text));
+const isAgencyDeliveryChoice = (text) => /(ag[eê]ncia|agencia|servientrega|oficina|retiro|retirar|retira|retiro|mandeme\s+por\s+agencia|m[aá]ndeme\s+por\s+agencia|env[ií]eme\s+por\s+agencia|envieme\s+por\s+agencia|por\s+agencia)/i.test(normalizeServientregaVariants(text));
+const isHomeDeliveryChoice = (text) => /\b(domicilio|domic[íi]lio|casa|residencia|residência|trabajo|trabalho|entrega\s+en\s+casa|a\s+mi\s+direccion|a\s+mi\s+direcci[oó]n|mi\s+direccion|mi\s+direcci[oó]n)\b/i.test(String(text || ''));
+const isAgencyDeliveryConsent = (text = '') => {
+    if (isHomeDeliveryChoice(text)) return false;
+    const body = normalizeForDecision(normalizeServientregaVariants(text));
+    return principalSdrIsConfirmationOnlyText(body)
+        || isAgencyDeliveryChoice(body)
+        || /\b(de acuerdo|correcto|esta bien|puede|proceda|hagalo|mandeme|mandar|envie|enviar|servientrega|por agencia|agencia cercana)\b/i.test(body);
+};
+
+const agencyFirstDeliveryQuestionText = () => '¿Puedo enviar su pedido para una agencia de Servientrega? Sí o no?';
+const agencyFirstDeliveryRetryText = () => 'Respóndame por favor: sí o no.';
+const agencyCityProvinceRequestText = () => 'Perfecto. ¿Cuál es su ciudad y provincia?';
 
 const hasAgencyIndicationData = (text) => {
-    const body = String(text || '').trim();
-    if (!body) return false;
-    const hasCityOrProvince = /(ciudad|provincia|quito|guayaquil|cuenca|santo domingo|machala|manta|ambato|loja|riobamba|esmeraldas|portoviejo|ibarra|quevedo|latacunga|milagro|babahoyo)/i.test(body);
+    const body = normalizeServientregaVariants(text).trim();
+    if (!body || principalSdrIsConfirmationOnlyText(body)) return false;
+    const knownLocation = findKnownServientregaEcuadorLocation({ text: body });
+    const hasKnownLocation = Boolean(knownLocation.city || knownLocation.province);
+    const hasCityOrProvince = /(ciudad|provincia|quito|guayaquil|cuenca|santo domingo|machala|manta|ambato|loja|riobamba|esmeraldas|portoviejo|ibarra|quevedo|latacunga|milagro|babahoyo|sucua|sucúa)/i.test(body);
     const hasAgencyHint = /(servientrega|ag[eê]ncia|agencia|oficina|centro|norte|sur|terminal|mall|avenida|av\.|calle|direcci[oó]n|direccion|referencia)/i.test(body);
-    return body.length >= 12 && (hasCityOrProvince || hasAgencyHint);
+    return body.length >= 6 && (hasKnownLocation || hasCityOrProvince || hasAgencyHint);
 };
 
 const titleCaseDeliveryPart = (value) => String(value || '')
@@ -1145,7 +1416,7 @@ const titleCaseDeliveryPart = (value) => String(value || '')
     .map((part) => part.length <= 2 ? part : `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
 
-const stripAgencyNoise = (value) => cleanFieldValue(value)
+const stripAgencyNoise = (value) => cleanFieldValue(normalizeServientregaVariants(value))
     .replace(/por\s+favor[,\s]*/gi, '')
     .replace(/env[ií]eme\s+a\s+una?\s*/gi, '')
     .replace(/env[ií]eme\s+a\s*/gi, '')
@@ -1189,7 +1460,8 @@ const splitAgencyDestination = (rawValue = '') => {
 
 const parseAgencyDetailsMessage = (text) => {
     const fields = {};
-    const lines = String(text || '').split(/\r?\n/);
+    const normalizedText = normalizeServientregaVariants(text);
+    const lines = normalizedText.split(/\r?\n/);
     for (const line of lines) {
         const match = line.match(/^\s*([^:：]+)\s*[:：]\s*(.+?)\s*$/);
         if (!match) continue;
@@ -1203,10 +1475,15 @@ const parseAgencyDetailsMessage = (text) => {
         else if (/^(referencia|punto de referencia|ponto de referencia|bairro|barrio)$/.test(label)) fields.reference = value;
     }
 
-    const raw = cleanFieldValue(text);
+    const raw = cleanFieldValue(normalizedText);
     const parsed = splitAgencyDestination(raw);
-    if (!fields.province && parsed.province) fields.province = parsed.province;
-    if (!fields.city && parsed.city) fields.city = parsed.city;
+    const knownLocation = findKnownServientregaEcuadorLocation({
+        city: fields.city || '',
+        province: fields.province || parsed.province || '',
+        text: raw
+    });
+    if (!fields.province && (knownLocation.province || parsed.province)) fields.province = knownLocation.province || parsed.province;
+    if (!fields.city && (knownLocation.city || parsed.city)) fields.city = knownLocation.city || parsed.city;
     if (!fields.address && parsed.address) fields.address = parsed.address;
     if (!fields.reference && parsed.address) fields.reference = parsed.address;
     const lookup = resolveServientregaEcuadorAgency({
@@ -1244,16 +1521,32 @@ const parseAgencyDetailsMessage = (text) => {
 
 const buildAgencyOptionsSelectionText = (parsedOrder = {}) => {
     const options = Array.isArray(parsedOrder.agencyOptions) ? parsedOrder.agencyOptions.slice(0, 3) : [];
-    const destination = [parsedOrder.city, parsedOrder.province].filter(Boolean).join(', ');
+    if (options.length === 1) {
+        const formatted = formatServientregaAgency(options[0]);
+        return [
+            'Confirma esta agencia de Servientrega?',
+            '',
+            `SERVIENTREGA${formatted.name ? `, ${formatted.name}` : ''}`,
+            formatted.address ? formatted.address : ''
+        ].filter(Boolean).join('\n');
+    }
     const letters = ['A', 'B', 'C'];
+    const header = 'Señor, por favor, escoja una agencia abajo:';
+    const optionBlocks = options.map((agency, index) => {
+        const label = letters[index] || String(index + 1);
+        const formatted = formatServientregaAgency(agency);
+        const name = formatted.name ? `, ${formatted.name}` : '';
+        return [
+            `${label}) SERVIENTREGA${name}`,
+            formatted.address ? formatted.address : ''
+        ].filter(Boolean).join('\n');
+    });
     return [
-        destination
-            ? `Perfecto. Para evitar error, encontre estas agencias de Servientrega en ${destination}:`
-            : 'Perfecto. Para evitar error, encontre estas agencias de Servientrega:',
+        header,
         '',
-        ...options.map((agency, index) => formatAgencyOptionLine(agency, letters[index] || String(index + 1))),
+        optionBlocks.join('\n\n'),
         '',
-        'Me responde con la letra de la agencia que prefiere: A, B o C. Tambien puede escribir el nombre, por ejemplo: Principal, Centro o Calle Vivar.'
+        'Responda A, B o C.'
     ].join('\n');
 };
 
@@ -1306,11 +1599,82 @@ const buildFinalCustomerDataConfirmationText = (parsedOrder = {}) => {
     return lines.join('\n');
 };
 
+const AGENCY_SELECTION_NOISE_WORDS = new Set([
+    'la',
+    'el',
+    'del',
+    'de',
+    'esa',
+    'ese',
+    'esta',
+    'este',
+    'me',
+    'sirve',
+    'conviene',
+    'quiero',
+    'prefiero',
+    'escojo',
+    'elijo',
+    'agencia',
+    'opcion',
+    'servientrega',
+    'por',
+    'favor',
+    'ahi',
+    'alli',
+    'retirar',
+    'retiro'
+]);
+
+const agencySelectionTokens = (value = '') => normalizeFieldLabel(value)
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !AGENCY_SELECTION_NOISE_WORDS.has(token));
+
+const findUniqueAgencyOptionByDescriptor = (text, options = []) => {
+    const normalized = normalizeFieldLabel(text);
+    if (!normalized || !options.length) return null;
+
+    const descriptorMatch = normalized.match(/\b(?:la|el|agencia|opcion)?\s*(?:del|de la|de el|de)?\s*(centro|norte|sur|terminal|mall|mercado|comision|transito|recreo|fortin|aeropuerto|alborada|sauces)\b/i);
+    const descriptor = descriptorMatch?.[1] || '';
+    if (descriptor) {
+        const matches = options.filter((option) => {
+            const optionText = normalizeFieldLabel(`${option.name} ${option.address} ${option.city} ${option.sector}`);
+            return optionText.includes(descriptor);
+        });
+        if (matches.length === 1) return matches[0];
+    }
+
+    const tokens = agencySelectionTokens(normalized);
+    if (!tokens.length) return null;
+    const scored = options
+        .map((option) => {
+            const optionText = normalizeFieldLabel(`${option.name} ${option.address} ${option.city} ${option.sector}`);
+            const hits = tokens.filter((token) => optionText.includes(token));
+            return { option, hits };
+        })
+        .filter((item) => item.hits.length >= 1 && (item.hits.length >= 2 || item.hits.some((token) => token.length >= 6)))
+        .sort((a, b) => b.hits.length - a.hits.length);
+
+    if (!scored.length) return null;
+    if (scored.length === 1) return scored[0].option;
+    return scored[0].hits.length > scored[1].hits.length ? scored[0].option : null;
+};
+
 const selectAgencyOptionFromText = (text, options = []) => {
     const normalized = normalizeFieldLabel(text);
-    const letterMatch = normalized.match(/^(?:opcion\s+|agencia\s+|letra\s+|alternativa\s+)?([abc])$/i)
+    if (!normalized || !options.length) return null;
+    if (options.length === 1 && /^(esa|ese|esta|este|ahi|alli|esa me sirve|esa esta bien|esa esta correcta|esa esta correcto|esa mismo|esa misma|ahi retiro|me sirve|correcto|correto|correcta|correta|ok|okay|si|sí|sim|listo|de acuerdo|estoy de acuerdo|esta de acuerdo|está de acuerdo|esta correcto|esta correcta|esta bien|todo bien|todo ok)$/i.test(normalized)) {
+        return options[0];
+    }
+    const agencyLetterTerms = '(?:opcion|opcao|agencia|letra|alternativa)';
+    const agencyActionTerms = '(?:escojo|elijo|quiero|prefiero|selecciono|seleccione|mande|mandeme|mandamelo|envie|envieme|envielo|mandelo|mando|envio|escogi|elegi)';
+    const letterMatch = normalized.match(/^(?:opcion\s+|opcao\s+|agencia\s+|letra\s+|alternativa\s+)?([abc])$/i)
         || normalized.match(/^([abc])\b/i)
-        || normalized.match(/\b(?:opcion|agencia|letra|alternativa|escojo|elijo|quiero|prefiero|la|el)\s+([abc])\b/i);
+        || normalized.match(new RegExp(`\\b${agencyLetterTerms}\\s*([abc])\\b`, 'i'))
+        || normalized.match(new RegExp(`\\b${agencyActionTerms}\\s+(?:la\\s+|el\\s+|a\\s+|una\\s+|un\\s+)?(?:${agencyLetterTerms}\\s+)?([abc])\\b`, 'i'))
+        || (new RegExp(`\\b(?:${agencyActionTerms}|${agencyLetterTerms})\\b`, 'i').test(normalized)
+            ? normalized.match(/\b([abc])\s*$/i)
+            : null);
     const letterIndex = letterMatch ? ['a', 'b', 'c'].indexOf(letterMatch[1].toLowerCase()) : -1;
     if (letterIndex >= 0 && letterIndex < options.length) return options[letterIndex];
 
@@ -1324,8 +1688,12 @@ const selectAgencyOptionFromText = (text, options = []) => {
     if (ordinalIndex >= 0 && ordinalIndex < options.length) return options[ordinalIndex];
 
     const explicitNumberMatch = normalized.match(/\b(?:opcion|agencia|alternativa|numero)\s+([1-3])\b/i);
-    const number = Number.parseInt(explicitNumberMatch?.[1] || '', 10);
+    const shortNumberMatch = normalized.match(/^([1-3])$/);
+    const number = Number.parseInt(explicitNumberMatch?.[1] || shortNumberMatch?.[1] || '', 10);
     if (number >= 1 && number <= options.length) return options[number - 1];
+
+    const uniqueDescriptorMatch = findUniqueAgencyOptionByDescriptor(normalized, options);
+    if (uniqueDescriptorMatch) return uniqueDescriptorMatch;
 
     return options.find((option) => {
         const optionText = normalizeFieldLabel(`${option.name} ${option.address} ${option.city} ${option.sector}`);
@@ -1335,15 +1703,22 @@ const selectAgencyOptionFromText = (text, options = []) => {
 
 const isConfirmationOnlyText = (text) => {
     const body = normalizeFieldLabel(text);
-    if (!body || body.length > 80) return false;
-    return /^(si|sii|claro|correcto|correto|correcta|todo correcto|esta correcto|esta ok|ok esta ok|ok|okay|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|asi es|si gracias|ok gracias)$/.test(body);
+    if (!body || body.length > 100) return false;
+    return /^(si|sim|sii|claro|correcto|correto|certo|cierto|correcta|correcto gracias|ok correcto|ok esta correcto|todo correcto|todo certo|todo bien|todo ok|esta correcto|esta correcta|esta bien|esta bueno|esta ok|asi esta bien|me parece bien|ok esta ok|ok|okay|listo|perfecto|esta perfecto|confirmo|confirmado|confirmo la compra|confirmo el pedido|de acuerdo|dale|hagale|adelante|proceda|puede proceder|puede enviar|autorizo|autorizado|aprobado|acepto|aceptado|vale|bueno|bien|asi es|si senora|si gracias|ok gracias|bien gracias|mande nomas|envie nomas|envielo nomas|mandelo nomas)$/.test(body);
 };
 
 const looksLikeCustomerFullName = (text) => {
     const body = cleanFieldValue(text);
+    const normalized = normalizeFieldLabel(body);
     if (body.length < 5) return false;
     if (isConfirmationOnlyText(body)) return false;
     if (isAgencyDeliveryChoice(body) || isHomeDeliveryChoice(body)) return false;
+    if (/^(no|nop|negativo)\b.*\b(es|era|seria|sería)\b/i.test(normalized)) {
+        const correctionLocation = findKnownServientregaEcuadorLocation({ text: body });
+        if (correctionLocation.city || correctionLocation.province) return false;
+    }
+    const locationAnswer = findKnownServientregaEcuadorLocation({ text: body });
+    if ((locationAnswer.city || locationAnswer.province) && /\b(quiero|deseo|retir|retiro|retirar|agencia|servientrega|ciudad|provincia|en|ahi|all[ií])\b/i.test(normalized)) return false;
     if (/(frasco|frascos|producto|vit power|precio|funciona|demora|llega|agencia|servientrega)/i.test(body)) return false;
     const words = body
         .split(/\s+/)
@@ -1601,43 +1976,45 @@ const confirmAgencySelectionAndAskName = async ({
         return true;
     }
 
-    const shouldResumeQuantity = parsedOrder.source === 'agency_interrupt'
-        || parsedOrder.stage === 'awaiting_agency_selection_interrupt'
-        || !parsedOrder.quantity;
+    const hasQuantity = Boolean(normalizeOptionalPackageQuantity(parsedOrder.quantity));
+    const hasName = looksLikeCustomerFullName(parsedOrder.name || '');
+    const shouldResumeQuantity = !hasQuantity;
     const offer = shouldResumeQuantity ? null : getSelectedOffer(customerContext, parsedOrder);
     const normalizedOrder = {
         ...parsedOrder,
-        province: selected.province || parsedOrder.province,
-        city: selected.city || parsedOrder.city,
-        agencyName: selected.name,
-        agencyAddress: selected.address,
-        agencySector: selected.sector || '',
-        agencyWeekdayHours: selected.weekdayHours || '',
-        agencyWeekendHours: selected.weekendHours || '',
-        agencyValidated: true,
+        ...principalSdrApplyOfficialAgency(parsedOrder, selected),
         quantity: shouldResumeQuantity ? parsedOrder.quantity : offer.quantity,
         total: shouldResumeQuantity ? parsedOrder.total : offer.total,
         deliveryMode: 'agency',
-        source: parsedOrder.source || (shouldResumeQuantity ? 'agency_interrupt' : parsedOrder.source),
-        stage: shouldResumeQuantity ? 'awaiting_package_choice_after_agency' : 'awaiting_customer_name'
+        source: parsedOrder.source || 'whatsapp_package_selection',
+        stage: shouldResumeQuantity
+            ? 'awaiting_package_choice_after_agency'
+            : (hasName ? 'awaiting_agency_confirmation' : 'awaiting_customer_name')
     };
     const replyText = shouldResumeQuantity
         ? buildAgencyQuantityRequestText(normalizedOrder)
-        : buildAgencyDetailsConfirmationText(normalizedOrder);
-    const sent = await sendText(jid, replyText, null, { sessionId });
-    if (!sent) return false;
+        : (hasName
+            ? buildFinalCustomerDataConfirmationText(normalizedOrder)
+            : buildAgencyDetailsConfirmationText(normalizedOrder));
+    const sent = await sendText(jid, replyText, null, {
+        sessionId,
+        outboundContext: 'agency_selection_next_step',
+        dedupeValue: `agency_selection_next_step|${digitsOnly(peerPhone || jid)}|${normalizedOrder.stage}|${normalizedOrder.agencyName || normalizedOrder.agency || ''}`
+    });
     try {
-        await Message.create({
-            _id: `out_${Date.now()}_agency_selection_confirmed`,
-            chatId: jid,
-            peerPhone,
-            from: 'bot',
-            to: jid,
-            body: replyText,
-            isFromMe: true,
-            isBot: true,
-            timestamp: Math.floor(Date.now() / 1000)
-        });
+        if (sent) {
+            await Message.create({
+                _id: `out_${Date.now()}_agency_selection_confirmed`,
+                chatId: jid,
+                peerPhone,
+                from: 'bot',
+                to: jid,
+                body: replyText,
+                isFromMe: true,
+                isBot: true,
+                timestamp: Math.floor(Date.now() / 1000)
+            });
+        }
     } catch (e) { }
 
     await savePendingCheckoutOrderMemory({
@@ -1645,18 +2022,37 @@ const confirmAgencySelectionAndAskName = async ({
         agentProfile,
         parsedOrder: normalizedOrder,
         stage: normalizedOrder.stage,
-        orderId: null
+        orderId: parsedOrder.orderId || null
     });
+
+    if (hasName && !shouldResumeQuantity) {
+        const order = await updateOrderAfterAgencyStep({
+            parsedOrder: normalizedOrder,
+            customerContext,
+            peerPhone,
+            stage: 'awaiting_agency_confirmation'
+        });
+        if (order?.orderId) {
+            await savePendingCheckoutOrderMemory({
+                contactStateId,
+                agentProfile,
+                parsedOrder: normalizedOrder,
+                stage: 'awaiting_agency_confirmation',
+                orderId: order.orderId
+            });
+        }
+    }
+
     await updateContactStateAgentMemory({
         contactStateId,
         agentProfile,
         inboundText,
-        outboundText: replyText,
+        outboundText: sent ? replyText : `[BLOQUEADO_ENVIO] ${replyText}`,
         inferredIntent: 'purchase_intent',
         inferredFunnelStage: normalizedOrder.stage,
         inferredObjection: null
     });
-    console.log(`[FUNIL] Agencia Servientrega escolhida -> ${jid} | etapa=${normalizedOrder.stage}`);
+    console.log(`[FUNIL] Agencia Servientrega escolhida -> ${jid} | etapa=${normalizedOrder.stage} | sent=${sent}`);
     return true;
 };
 
@@ -1679,9 +2075,14 @@ const confirmAgencyQuantityAndAskName = async ({
         quantity: offer.quantity,
         total: offer.total,
         deliveryMode: 'agency',
-        stage: 'awaiting_customer_name'
+        stage: looksLikeCustomerFullName(parsedOrder.name || '')
+            ? 'awaiting_agency_confirmation'
+            : 'awaiting_customer_name'
     };
-    const replyText = buildAgencyDetailsConfirmationText(normalizedOrder);
+    const alreadyHasName = normalizedOrder.stage === 'awaiting_agency_confirmation';
+    const replyText = alreadyHasName
+        ? buildFinalCustomerDataConfirmationText(normalizedOrder)
+        : buildAgencyDetailsConfirmationText(normalizedOrder);
     const sent = await sendText(jid, replyText, null, { sessionId });
     if (!sent) return false;
 
@@ -1703,16 +2104,35 @@ const confirmAgencyQuantityAndAskName = async ({
         contactStateId,
         agentProfile,
         parsedOrder: normalizedOrder,
-        stage: 'awaiting_customer_name',
+        stage: normalizedOrder.stage,
         orderId: null
     });
+
+    if (alreadyHasName) {
+        const order = await updateOrderAfterAgencyStep({
+            parsedOrder: normalizedOrder,
+            customerContext,
+            peerPhone,
+            stage: 'awaiting_agency_confirmation'
+        });
+        if (order?.orderId) {
+            await savePendingCheckoutOrderMemory({
+                contactStateId,
+                agentProfile,
+                parsedOrder: normalizedOrder,
+                stage: 'awaiting_agency_confirmation',
+                orderId: order.orderId
+            });
+        }
+    }
+
     await updateContactStateAgentMemory({
         contactStateId,
         agentProfile,
         inboundText,
         outboundText: replyText,
         inferredIntent: 'purchase_intent',
-        inferredFunnelStage: 'awaiting_customer_name',
+        inferredFunnelStage: normalizedOrder.stage,
         inferredObjection: null
     });
     console.log(`[FUNIL] Quantidade confirmada apos agencia antecipada -> ${jid} | quantidade=${offer.quantity}`);
@@ -1738,11 +2158,9 @@ const askDeliveryModeAfterPackageSelection = async ({
         label: 'Audio pergunta agencia ou domicilio'
     });
 
-    const fallbackText = 'Perfecto. Para enviar su pedido, me confirma si lo desea retirar en una agencia de Servientrega o recibir en su domicilio?';
-    if (!audioSent) {
-        const sent = await sendText(jid, fallbackText, null, { sessionId });
-        if (!sent) return false;
-    }
+    const fallbackText = agencyFirstDeliveryQuestionText();
+    const sent = await sendText(jid, fallbackText, null, { sessionId });
+    if (!sent) return false;
 
     try {
         await Message.create({
@@ -1751,7 +2169,7 @@ const askDeliveryModeAfterPackageSelection = async ({
             peerPhone,
             from: 'bot',
             to: jid,
-            body: audioSent ? '[AUDIO] PERGUNTA_AGENCIA_DOMICILIO' : fallbackText,
+            body: audioSent ? `[AUDIO] PERGUNTA_AGENCIA_DOMICILIO\n${fallbackText}` : fallbackText,
             isFromMe: true,
             isBot: true,
             timestamp: Math.floor(Date.now() / 1000)
@@ -1770,7 +2188,7 @@ const askDeliveryModeAfterPackageSelection = async ({
         contactStateId,
         agentProfile,
         inboundText,
-        outboundText: audioSent ? '[AUDIO] PERGUNTA_AGENCIA_DOMICILIO' : fallbackText,
+        outboundText: audioSent ? `[AUDIO] PERGUNTA_AGENCIA_DOMICILIO\n${fallbackText}` : fallbackText,
         inferredIntent: 'purchase_intent',
         inferredFunnelStage: 'awaiting_delivery_mode',
         inferredObjection: null
@@ -1891,6 +2309,14 @@ const updateOrderAfterAgencyStep = async ({ parsedOrder, customerContext, peerPh
         selectedValue: offer.value,
         lastBotMessageAt: new Date()
     };
+    if (status === 'confirmed') {
+        order.confirmedSalePayload = buildConfirmedSalePayload({
+            order,
+            parsedOrder,
+            deliveryMode: 'agency',
+            agency
+        });
+    }
     await order.save();
     if (order.status === 'confirmed') {
         await markMetaPurchaseForConfirmedOrder(order);
@@ -1992,6 +2418,16 @@ const finalizeAgencyOrder = async ({
         stage: 'order_closed',
         status: 'confirmed'
     });
+    await saveConfirmedSalePayloadToContact({
+        contactStateId,
+        agentProfile,
+        payload: order?.confirmedSalePayload || buildConfirmedSalePayload({
+            order,
+            parsedOrder: normalizedOrder,
+            deliveryMode: 'agency',
+            agency: getAgencyDetails(normalizedOrder)
+        })
+    });
 
     const thankYouText = buildOrderClosedThankYouText({
         deliveryMode: 'agency',
@@ -2005,7 +2441,9 @@ const finalizeAgencyOrder = async ({
     const { thankYouAudioSent, bonusNoticeAudioSent } = await sendOrderClosedAudios({
         jid,
         countryCode: customerContext.countryCode,
-        sessionId
+        sessionId,
+        peerPhone,
+        deliveryMode: 'agency'
     });
 
     try {
@@ -2052,6 +2490,13 @@ const finalizeAgencyOrder = async ({
             }
         }
     );
+
+    await holdForHuman({
+        contactStateId,
+        agentProfile,
+        reason: 'order_closed_human_handoff',
+        note: 'Pedido fechado por agencia. Automacao pausada para evitar reinicio do funil.'
+    });
 
     console.log(`[FUNIL] Pedido por agencia finalizado -> ${jid} | pedido=${order?.orderId || 'sem_pedido'}`);
     return true;
@@ -2111,10 +2556,26 @@ const finalizeCheckoutOrder = async ({
                 orderClosedDeliveryMode: 'home',
                 lastBotMessageAt: new Date()
             };
+            order.confirmedSalePayload = buildConfirmedSalePayload({
+                order,
+                parsedOrder: normalizedOrder,
+                deliveryMode: 'home',
+                agency
+            });
             await order.save();
             await markMetaPurchaseForConfirmedOrder(order);
         }
     }
+    await saveConfirmedSalePayloadToContact({
+        contactStateId,
+        agentProfile,
+        payload: order?.confirmedSalePayload || buildConfirmedSalePayload({
+            order,
+            parsedOrder: normalizedOrder,
+            deliveryMode,
+            agency
+        })
+    });
 
     const thankYouText = buildOrderClosedThankYouText({
         deliveryMode,
@@ -2129,7 +2590,9 @@ const finalizeCheckoutOrder = async ({
     const { thankYouAudioSent, bonusNoticeAudioSent } = await sendOrderClosedAudios({
         jid,
         countryCode: customerContext.countryCode,
-        sessionId
+        sessionId,
+        peerPhone,
+        deliveryMode
     });
 
     try {
@@ -2176,6 +2639,13 @@ const finalizeCheckoutOrder = async ({
             }
         }
     );
+
+    await holdForHuman({
+        contactStateId,
+        agentProfile,
+        reason: 'order_closed_human_handoff',
+        note: 'Pedido fechado. Automacao pausada para evitar reinicio do funil.'
+    });
 
     console.log(`[FUNIL] Pedido checkout finalizado -> ${jid} | pedido=${order?.orderId || 'sem_pedido'} | entrega=${deliveryMode}`);
     return true;
@@ -2246,11 +2716,28 @@ const finalizeQuantityConfirmationOnly = async ({
         }
     );
 
+    await holdForHuman({
+        contactStateId,
+        agentProfile,
+        reason: 'quantity_confirmed_human_handoff',
+        note: 'Cliente confirmou quantidade. Automacao pausada para atendimento humano finalizar sem repetir funil.'
+    });
+
     console.log(`[FUNIL] Fechamento apos quantidade confirmado -> ${jid} | agradecimento=${thankYouAudioSent} | bonus=${bonusNoticeAudioSent}`);
     return true;
 };
 
-const resolveRealChatId = (msg) => {
+const resolveRealChatId = (msg, contactState = null) => {
+    const senderDigits = digitsOnly(msg.senderPn);
+    if (senderDigits.startsWith('593') && String(msg.from || '').endsWith('@lid')) {
+        return `${senderDigits}@s.whatsapp.net`;
+    }
+
+    const knownDigits = digitsOnly(contactState?.phoneDigits) || digitsOnly(contactState?.metadata?.lastSenderPn);
+    if (knownDigits.startsWith('593') && String(msg.from || '').endsWith('@lid')) {
+        return `${knownDigits}@s.whatsapp.net`;
+    }
+
     const candidates = [msg.from, msg.to].filter(Boolean);
     const validId = candidates.find(c => String(c).endsWith('@s.whatsapp.net') || String(c).endsWith('@c.us'));
     return validId || msg.from || msg.to || null;
@@ -2321,13 +2808,8 @@ const shouldBlockDuplicateBotReply = ({ contactState, agentProfile, replyText })
 
 const ORDER_CLOSED_TAG_REGEX = /\[PEDIDO_CERRADO\]/gi;
 const ORDER_CLOSED_AUDIO_NAMES = [
-    'Agradecimento_Agencia_Entrega',
-    'agradecimento_agencia_entrega',
-    'agradecimentos_agencia_entrega',
+    'AGRADECIMENTO_AGENCIA_DE_ENTREGA',
     'Agradecimento_Agencia_01',
-    'Agradecimento_Agencia',
-    'AGRADECIMENTO',
-    'AGRADECIMENTO_AGENCIA',
     'Pedido_Confirmado_01',
     'Pedido_Confirmado',
     'Agradecimento_Pedido',
@@ -2335,6 +2817,10 @@ const ORDER_CLOSED_AUDIO_NAMES = [
 ];
 const ORDER_CLOSED_BONUS_AUDIO_NAMES = [
     'BONUS_RETIRADA'
+];
+const HOME_ORDER_CLOSED_AUDIO_NAMES = [
+    'CONFIRMACION_Y_REGALITO_ESPECIAL',
+    'CONFIRMACION Y REGALITO ESPECIAL'
 ];
 const DELIVERY_MODE_AUDIO_NAMES = [
     'PERGUNTA_AGENCIA_DOMICILIO'
@@ -2344,10 +2830,7 @@ const AGENCY_DETAILS_AUDIO_NAMES = [
 ];
 const QUANTITY_SELECTION_AUDIO_NAMES = {
     1: [
-        '1_BOTELLA_POR_39',
-        '1_BOTELLA_POR_39_E_00',
-        '1_FRASCO_POR_39',
-        'UN_FRASCO_POR_39'
+        '1_BOTELLA_POR_39'
     ],
     3: [
         '3_BOTELLAS_POR_95_E_99'
@@ -2357,14 +2840,55 @@ const QUANTITY_SELECTION_AUDIO_NAMES = {
     ]
 };
 
-const sendFirstApprovedAudio = async ({ jid, countryCode, sessionId = null, baseNames = [], label = 'audio' }) => {
+const sendFirstApprovedAudio = async ({
+    jid,
+    countryCode,
+    sessionId = null,
+    baseNames = [],
+    label = 'audio',
+    sendOptions = {}
+}) => {
     for (const baseName of baseNames) {
         const audioPath = await resolveCountryAudio({ country: countryCode, baseName });
         if (!audioPath) continue;
-        return sendAudio(jid, audioPath, true, { sessionId });
+        const sent = await sendAudio(jid, audioPath, true, { sessionId, ...sendOptions });
+        if (sent) return true;
+        console.warn(`[AUDIO] ${label} falhou para ${countryCode}/${baseName}; tentando proximo audio aprovado quando existir.`);
     }
 
     console.warn(`[AUDIO] ${label} aprovado nao encontrado para ${countryCode}. Esperado um destes: ${baseNames.join(', ')}`);
+    return false;
+};
+
+const sendFirstApprovedAudioAndRecord = async ({
+    jid,
+    countryCode,
+    sessionId = null,
+    peerPhone = '',
+    baseNames = [],
+    label = 'audio',
+    sendOptions = {}
+}) => {
+    for (const baseName of baseNames) {
+        const audioPath = await resolveCountryAudio({ country: countryCode, baseName });
+        if (!audioPath) continue;
+        const sent = await sendAudio(jid, audioPath, true, { sessionId, ...sendOptions });
+        if (sent) {
+            await recordInitialFunnelStepMessage({
+                jid,
+                peerPhone,
+                body: `[AUDIO] ${baseName}`,
+                type: 'audio',
+                mediaPath: audioPath
+            });
+            return true;
+        }
+        console.warn(`[AUDIO] ${label} falhou para ${countryCode}/${baseName}; tentando proximo audio aprovado quando existir.`);
+    }
+
+    if (baseNames.length) {
+        console.warn(`[AUDIO] ${label} aprovado nao encontrado para ${countryCode}. Esperado um destes: ${baseNames.join(', ')}`);
+    }
     return false;
 };
 
@@ -2382,17 +2906,24 @@ const sendQuantitySelectionAudio = async ({
     const baseNames = QUANTITY_SELECTION_AUDIO_NAMES[Number(quantity)] || [];
     if (!baseNames.length) return false;
 
+    let selectedAudioPath = '';
     await sleep(randomMs('QUANTITY_SELECTION_AUDIO_MIN_MS', 'QUANTITY_SELECTION_AUDIO_MAX_MS', 2200, 5200));
-    const sent = await sendFirstApprovedAudio({
-        jid,
-        countryCode,
-        sessionId,
-        baseNames,
-        label: `audio_quantidade_${quantity}`
-    });
+    for (const baseName of baseNames) {
+        const audioPath = await resolveCountryAudio({ country: countryCode, baseName });
+        if (!audioPath) continue;
+        selectedAudioPath = audioPath;
+        break;
+    }
+    const sent = selectedAudioPath
+        ? await sendAudio(jid, selectedAudioPath, true, { sessionId })
+        : false;
+    if (!selectedAudioPath) {
+        console.warn(`[AUDIO] audio_quantidade_${quantity} aprovado nao encontrado para ${countryCode}. Esperado um destes: ${baseNames.join(', ')}`);
+    }
 
     if (sent) {
         try {
+            const mediaUrl = publicMediaUrlFromPath(selectedAudioPath);
             await Message.create({
                 _id: `out_${Date.now()}_quantity_audio_${quantity}`,
                 chatId: jid,
@@ -2401,6 +2932,9 @@ const sendQuantitySelectionAudio = async ({
                 to: jid,
                 body: `[AUDIO] ${baseNames[0]}`,
                 type: 'audio',
+                hasMedia: Boolean(mediaUrl),
+                mediaUrl,
+                mediaPreviewUrl: mediaPreviewUrlFor(mediaUrl),
                 isFromMe: true,
                 isBot: true,
                 timestamp: Math.floor(Date.now() / 1000)
@@ -2412,35 +2946,1216 @@ const sendQuantitySelectionAudio = async ({
     return sent;
 };
 
-const sendOrderClosedAudios = async ({ jid, countryCode, sessionId = null }) => {
+const sendOrderClosedAudios = async ({ jid, countryCode, sessionId = null, peerPhone = '', deliveryMode = 'agency' }) => {
     if (String(process.env.ORDER_CLOSED_AUDIO_ENABLED || 'true').toLowerCase() !== 'true') {
         return { thankYouAudioSent: false, bonusNoticeAudioSent: false };
     }
 
-    const thankYouAudioSent = await sendFirstApprovedAudio({
-        jid,
-        countryCode,
-        sessionId,
-        baseNames: ORDER_CLOSED_AUDIO_NAMES,
-        label: 'Audio de agradecimento no fechamento'
-    });
-
-    const bonusNoticeAudioSent = ORDER_CLOSED_BONUS_AUDIO_NAMES.length > 0
-        ? await sendFirstApprovedAudio({
+    if (deliveryMode === 'home') {
+        const homeAudioSent = await sendFirstApprovedAudioAndRecord({
             jid,
             countryCode,
             sessionId,
+            peerPhone,
+            baseNames: HOME_ORDER_CLOSED_AUDIO_NAMES,
+            label: 'Audio de fechamento domicilio',
+            sendOptions: {
+                allowExistingDropiOrder: true,
+                outboundContext: 'order_closed_home_audio'
+            }
+        });
+
+        const bonusNoticeAudioSent = ORDER_CLOSED_BONUS_AUDIO_NAMES.length > 0
+            ? await sendFirstApprovedAudioAndRecord({
+                jid,
+                countryCode,
+                sessionId,
+                peerPhone,
+                baseNames: ORDER_CLOSED_BONUS_AUDIO_NAMES,
+                label: 'Audio de bonus no fechamento domicilio',
+                sendOptions: {
+                    allowExistingDropiOrder: true,
+                    outboundContext: 'order_closed_home_bonus_audio'
+                }
+            })
+            : false;
+
+        return { thankYouAudioSent: homeAudioSent, bonusNoticeAudioSent };
+    }
+
+    const thankYouAudioSent = await sendFirstApprovedAudioAndRecord({
+        jid,
+        countryCode,
+        sessionId,
+        peerPhone,
+        baseNames: ORDER_CLOSED_AUDIO_NAMES,
+        label: 'Audio de agradecimento no fechamento',
+        sendOptions: {
+            allowExistingDropiOrder: true,
+            outboundContext: 'order_closed_audio'
+        }
+    });
+
+    const bonusNoticeAudioSent = ORDER_CLOSED_BONUS_AUDIO_NAMES.length > 0
+        ? await sendFirstApprovedAudioAndRecord({
+            jid,
+            countryCode,
+            sessionId,
+            peerPhone,
             baseNames: ORDER_CLOSED_BONUS_AUDIO_NAMES,
-            label: 'Audio de aviso de bonus no fechamento'
+            label: 'Audio de aviso de bonus no fechamento',
+            sendOptions: {
+                allowExistingDropiOrder: true,
+                outboundContext: 'order_closed_bonus_audio'
+            }
         })
         : false;
 
     return { thankYouAudioSent, bonusNoticeAudioSent };
 };
 
-const COMMERCIAL_INITIAL_AUDIO_NAMES = {
-    EC: ['Inicio_01', 'Inicio_02']
+const PRINCIPAL_SDR_STAGES = new Set([
+    'sdr_after_initial',
+    'sdr_awaiting_name',
+    'sdr_awaiting_city',
+    'sdr_awaiting_province',
+    'sdr_awaiting_city_province',
+    'sdr_awaiting_quantity',
+    'sdr_awaiting_value_confirmation',
+    'sdr_awaiting_delivery_mode',
+    'sdr_awaiting_agency_query',
+    'sdr_awaiting_agency_selection',
+    'sdr_awaiting_home_address',
+    'sdr_awaiting_final_confirmation',
+    'sdr_scheduled_followup',
+    'order_closed'
+]);
+
+const isPrincipalSdrStage = (stage = '') => PRINCIPAL_SDR_STAGES.has(String(stage || ''));
+
+const PRINCIPAL_SDR_AUDIO_NAMES = {
+    agencyThanks: ['AGRADECIMENTO_AGENCIA_DE_ENTREGA', 'AGRADECIMENTO AGENCIA DE ENTREGA'],
+    bonusPickup: ['BONUS_RETIRADA', 'BONUS_RETIRDA'],
+    homeThanks: ['CONFIRMACION_Y_REGALITO_ESPECIAL', 'CONFIRMACION Y REGALITO ESPECIAL']
 };
+
+const principalSdrClean = (value = '') => cleanFieldValue(value).replace(/^[,.;:-]+|[,.;:-]+$/g, '').trim();
+const principalSdrFirstName = (name = '') => principalSdrClean(name).split(/\s+/).filter(Boolean)[0] || 'señor';
+
+const principalSdrRecordBotText = async ({ chatId, peerPhone, body, suffix = 'principal_sdr' }) => {
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_${suffix}`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body,
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (e) { }
+};
+
+const principalSdrDuplicateWindowSeconds = () => Math.floor(duplicateReplyWindowMs() / 1000);
+
+const principalSdrFindDuplicateBotText = async ({ peerPhone, body }) => {
+    const comparable = normalizeReplyText(body);
+    if (!comparable) return null;
+    const since = Math.floor(Date.now() / 1000) - principalSdrDuplicateWindowSeconds();
+    const recent = await Message.find({
+        peerPhone,
+        from: 'bot',
+        isBot: true,
+        timestamp: { $gte: since }
+    }).sort({ timestamp: -1, createdAt: -1 }).limit(12).lean().catch(() => []);
+    return recent.find((message) => normalizeReplyText(message.body || '') === comparable) || null;
+};
+
+const principalSdrLastBotTextMatches = async ({ peerPhone, body }) => {
+    const comparable = normalizeReplyText(body);
+    if (!comparable) return false;
+    const lastBot = await Message.findOne({
+        peerPhone,
+        from: 'bot',
+        isBot: true
+    }).sort({ timestamp: -1, createdAt: -1 }).lean().catch(() => null);
+    return Boolean(lastBot && normalizeReplyText(lastBot.body || '') === comparable);
+};
+
+const principalSdrSendTextOnce = async ({ chatId, peerPhone, sessionId, body, suffix = 'principal_sdr' }) => {
+    if (await principalSdrLastBotTextMatches({ peerPhone, body })) {
+        console.log(`[FUNIL] mensagem repetida em sequencia bloqueada -> ${chatId} | suffix=${suffix}`);
+        return { sent: true, duplicate: true };
+    }
+    const sent = await sendText(chatId, body, null, {
+        sessionId,
+        outboundContext: suffix
+    });
+    if (!sent) return { sent: false, duplicate: false };
+    await principalSdrRecordBotText({ chatId, peerPhone, body, suffix });
+    return { sent: true, duplicate: false };
+};
+
+const principalSdrSaveMemory = async ({ contactStateId, agentProfile, order, stage, inboundText = '', outboundText = '' }) => {
+    const state = await ContactState.findById(contactStateId).select('metadata phoneDigits').lean().catch(() => null);
+    const previousAgentMemory = state?.metadata?.perAgentMemory?.[agentProfile.key] || {};
+    const previousOrder = {
+        ...(previousAgentMemory.conversationState || {}),
+        ...(previousAgentMemory.pendingCheckoutOrder || {})
+    };
+    const normalized = {
+        ...previousOrder,
+        ...(order || {}),
+        stage,
+        funnelStage: stage,
+        lastQuestionSent: outboundText || order?.lastQuestionSent || '',
+        conversationSummary: order?.conversationSummary || 'Funil principal SDR Vit Power em andamento.'
+    };
+    const rememberedQuantity = normalizeOptionalPackageQuantity(previousAgentMemory.selectedQuantity || previousOrder.quantity || 0);
+    if (!isValidPackageQuantity(normalized.quantity) && rememberedQuantity) {
+        normalized.quantity = rememberedQuantity;
+    }
+    if ((normalized.total === undefined || normalized.total === null || normalized.total === '' || Number(normalized.total) <= 0)
+        && previousOrder.total !== undefined
+        && previousOrder.total !== null
+        && previousOrder.total !== ''
+        && Number(previousOrder.total) > 0) {
+        normalized.total = previousOrder.total;
+    }
+    if (isValidPackageQuantity(normalized.quantity)
+        && (normalized.total === undefined || normalized.total === null || normalized.total === '' || Number(normalized.total) <= 0)) {
+        normalized.total = getSelectedOffer({ countryCode: 'EC' }, { quantity: normalized.quantity }).total;
+    }
+    if (!normalized.name && previousOrder.name) normalized.name = previousOrder.name;
+    if (!normalized.city && previousOrder.city) normalized.city = previousOrder.city;
+    if (!normalized.province && previousOrder.province) normalized.province = previousOrder.province;
+    if (!normalized.valueConfirmed && previousOrder.valueConfirmed) normalized.valueConfirmed = previousOrder.valueConfirmed;
+    if (stage === 'order_closed') {
+        await ContactState.updateOne(
+            { _id: contactStateId },
+            {
+                $set: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.conversationState`]: {
+                        ...normalized,
+                        stage: 'order_closed',
+                        funnelStage: 'order_closed',
+                        followup_status: normalized.followup_status || 'sale_confirmed'
+                    },
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastCheckoutOrderConfirmationAt`]: new Date(),
+                    'metadata.lastKnownFunnelStage': 'order_closed',
+                    'metadata.orderStatus': 'PEDIDO_CONFIRMADO'
+                },
+                $unset: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.pendingCheckoutOrder`]: ''
+                }
+            }
+        );
+        await updateContactStateAgentMemory({
+            contactStateId,
+            agentProfile,
+            inboundText,
+            outboundText,
+            inferredIntent: 'purchase_intent',
+            inferredFunnelStage: 'order_closed',
+            inferredObjection: null
+        });
+        return;
+    }
+    await savePendingCheckoutOrderMemory({
+        contactStateId,
+        agentProfile,
+        parsedOrder: normalized,
+        stage,
+        orderId: null
+    });
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText,
+        outboundText,
+        inferredIntent: 'purchase_intent',
+        inferredFunnelStage: stage,
+        inferredObjection: null
+    });
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                'human.mode': 'auto',
+                'human.pausedUntil': null,
+                'metadata.lastKnownFunnelStage': stage,
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: stage,
+                [`metadata.perAgentMemory.${agentProfile.key}.selectedQuantity`]: normalizeOptionalPackageQuantity(normalized.quantity),
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStage`]: stage,
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrUpdatedAt`]: new Date()
+            }
+        }
+    );
+};
+
+const principalSdrSendTextAndSave = async ({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage, inboundText, text, suffix = 'principal_sdr' }) => {
+    await principalSdrSendStageAudioOnce({ chatId, peerPhone, sessionId, contactStateId, agentProfile, stage });
+    const result = await principalSdrSendTextOnce({ chatId, peerPhone, sessionId, body: text, suffix });
+    if (!result.sent) return false;
+    await principalSdrSaveMemory({ contactStateId, agentProfile, order, stage, inboundText, outboundText: text });
+    return true;
+};
+
+// Funil Principal e a fonte mestre. Estes estagios tecnicos apenas consultam
+// os audios/regras aprovados em vitPowerEvolvedWorkflow.js; nao criar funil paralelo.
+const PRINCIPAL_SDR_STAGE_AUDIO_NAMES = {
+    sdr_awaiting_name: VIT_POWER_APPROVED_AUDIO_CANDIDATES.missingCustomerData,
+    sdr_awaiting_city: VIT_POWER_APPROVED_AUDIO_CANDIDATES.cityProvinceRequest,
+    sdr_awaiting_province: VIT_POWER_APPROVED_AUDIO_CANDIDATES.cityProvinceRequest,
+    sdr_awaiting_city_province: VIT_POWER_APPROVED_AUDIO_CANDIDATES.cityProvinceRequest,
+    sdr_awaiting_delivery_mode: [],
+    sdr_awaiting_agency_query: VIT_POWER_APPROVED_AUDIO_CANDIDATES.agencyDetailsRequest,
+    sdr_awaiting_home_address: VIT_POWER_APPROVED_AUDIO_CANDIDATES.homeAddressRequest,
+    sdr_awaiting_agency_selection: VIT_POWER_APPROVED_AUDIO_CANDIDATES.agencySelection
+};
+
+const principalSdrSendStageAudioOnce = async ({ chatId, peerPhone, sessionId, contactStateId, agentProfile, stage }) => {
+    const baseNames = PRINCIPAL_SDR_STAGE_AUDIO_NAMES[stage] || [];
+    if (!baseNames.length || !contactStateId) return false;
+    const state = await ContactState.findById(contactStateId).select('metadata').lean().catch(() => null);
+    const audioMemory = state?.metadata?.perAgentMemory?.[agentProfile.key]?.principalSdrStageAudios || {};
+    const sentAudios = Array.isArray(audioMemory.sent) ? audioMemory.sent : [];
+    const stageAudios = Array.isArray(audioMemory[stage]) ? audioMemory[stage] : [];
+    const candidates = baseNames.filter((baseName) => !sentAudios.includes(baseName) && !stageAudios.includes(baseName));
+    if (!candidates.length) return false;
+    const sent = await sendFirstApprovedAudioAndRecord({
+        jid: chatId,
+        countryCode: 'EC',
+        sessionId,
+        peerPhone,
+        baseNames: candidates,
+        label: `SDR audio etapa ${stage}`,
+        sendOptions: { outboundContext: `principal_sdr_${stage}` }
+    });
+    if (!sent) return false;
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $addToSet: {
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStageAudios.sent`]: candidates[0],
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStageAudios.${stage}`]: candidates[0]
+            },
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrLastAudioStage`]: stage,
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrLastAudioAt`]: new Date()
+            }
+        }
+    ).catch(() => null);
+    return true;
+};
+
+const principalSdrSendStageAudioOnlyAndSave = async ({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage, inboundText, outboundText = '[AUDIO] etapa' }) => {
+    await principalSdrSendStageAudioOnce({ chatId, peerPhone, sessionId, contactStateId, agentProfile, stage });
+    await principalSdrSaveMemory({ contactStateId, agentProfile, order, stage, inboundText, outboundText });
+    console.log(`[FUNIL] etapa com audio-only salva -> ${chatId} | etapa=${stage}`);
+    return true;
+};
+const principalSdrQuantityOfferText = (quantity) => {
+    if (String(quantity) === '6') return { label: '6 frascos', total: '$167.99' };
+    if (String(quantity) === '3') return { label: '3 frascos', total: '$95.99' };
+    if (String(quantity) === '2') return { label: '2 frascos', total: '$70' };
+    return { label: '1 frasco', total: '$39' };
+};
+
+const principalSdrQuantityText = (quantity) => {
+    const offer = principalSdrQuantityOfferText(quantity);
+    const variants = [
+        `Le envio ${offer.label} por ${offer.total}. ¿Listo?`,
+        `Envio ${offer.label} por ${offer.total}. ¿De acuerdo?`,
+        `${offer.label} por ${offer.total}. ¿Está correcto?`,
+        `Le preparo ${offer.label} por ${offer.total}. ¿Correcto?`
+    ];
+    return variants[Math.floor(Math.random() * variants.length)];
+};
+
+const PRINCIPAL_SDR_VALUE_ACCEPTANCE_TEXTS = new Set([
+    'si',
+    'sim',
+    'sii',
+    'claro',
+    'correcto',
+    'correto',
+    'correcta',
+    'correta',
+    'certo',
+    'cierto',
+    'listo',
+    'ok',
+    'okay',
+    'esta bien',
+    'esta bueno',
+    'esta correcto',
+    'esta correcta',
+    'esta perfecto',
+    'todo bien',
+    'todo correcto',
+    'todo ok',
+    'de acuerdo',
+    'estoy de acuerdo',
+    'si de acuerdo',
+    'si correcto',
+    'si claro',
+    'si listo',
+    'si esta bien',
+    'ok correcto',
+    'ok listo',
+    'ok de acuerdo',
+    'me parece bien',
+    'me sirve',
+    'perfecto',
+    'vale',
+    'bueno',
+    'bien',
+    'asi es',
+    'adelante',
+    'proceda',
+    'puede proceder',
+    'puede enviar',
+    'autorizo',
+    'acepto',
+    'confirmo',
+    'confirmado',
+    'hagale',
+    'dale',
+    'mande nomas',
+    'envie nomas',
+    'mandelo nomas',
+    'envielo nomas'
+]);
+
+const principalSdrIsValueOfferAcceptance = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body || body.length > 160) return false;
+    if (PRINCIPAL_SDR_VALUE_ACCEPTANCE_TEXTS.has(body)) return true;
+    if (principalSdrIsConfirmationOnlyText(body)) return true;
+    if (isOrderCloseAffirmation(body)) return true;
+    return /^(esta bien|ta bien|esta bueno|esta perfecto|esta correcto|esta correcta|eso esta bien|asi esta bien|si esta bien|si esta bueno|ok esta bien|ok esta bueno|ok correcto|ok listo|ok dale|ok de acuerdo|ya esta|ya listo|ya pues|ya bueno|ya correcto|ya quedamos|listo entonces|listo si|si listo|si correcto|si claro|si de acuerdo|de acuerdo entonces|hagale|hágale|haga nomas|dale nomas|mande nomas|mande no mas|mandeme nomas|envie nomas|envie no mas|envielo nomas|envielo no mas|mandelo nomas|mandelo no mas|proceda nomas|proceda no mas|puede enviar nomas|puede enviar no mas|puede mandar nomas|puede mandar no mas|me parece|me parece bien|me sirve|si me sirve|esta bien asi|esta bien para mi|correcto asi|todo bien asi|todo ok asi|bueno listo|bueno esta bien|bueno correcto|bueno mande|bueno envie)$/.test(body)
+        || /\b(acepto|aceptado|aprobado|confirmo|confirmado|autorizo|autorizado|proceda|puede enviar|puede mandar|mande nomas|envie nomas|mandelo nomas|envielo nomas|hagale|dale nomas|de una|me sirve|esta bien|todo bien|todo ok|correcto|listo|de acuerdo)\b/.test(body);
+};
+
+const principalSdrHandleQuantityChoice = async ({ text, chatId, peerPhone, sessionId, contactStateId, agentProfile, customerContext, order }) => {
+    const quantity = detectRequestedQuantity(text);
+    if (!quantity) return false;
+    const normalizedQuantity = normalizePackageQuantity(quantity);
+    const nextOrder = { ...order, quantity: normalizedQuantity };
+    const offer = getSelectedOffer(customerContext, nextOrder);
+    nextOrder.total = offer.total;
+    await sendQuantitySelectionAudio({
+        jid: chatId,
+        countryCode: customerContext.countryCode,
+        quantity: normalizedQuantity,
+        sessionId,
+        peerPhone
+    });
+    const replyText = principalSdrQuantityText(normalizedQuantity);
+    return principalSdrSendTextAndSave({
+        chatId,
+        peerPhone,
+        sessionId,
+        contactStateId,
+        agentProfile,
+        order: nextOrder,
+        stage: 'sdr_awaiting_value_confirmation',
+        inboundText: text,
+        text: replyText,
+        suffix: 'principal_sdr_value'
+    });
+};
+const principalSdrNameRequestText = () => 'Perfecto, señor 😊\n\nPara organizar correctamente su pedido en nuestro sistema:\n\n¿Cuál es su nombre completo?';
+
+const principalSdrNameStageAnswer = (text, order = {}) => {
+    const body = normalizeForDecision(text);
+    if (!body) return '';
+    const offer = order.quantity ? principalSdrQuantityOfferText(order.quantity) : null;
+    if (/(precio|valor|cuanto|cu[aá]nto|pagar|total|costo|coste)/i.test(body) && offer) {
+        return `Sí, señor. Son ${offer.label} por ${offer.total}.`;
+    }
+    if (/(demora|tarda|llega|cuando llega|cu[aá]ndo llega|envio|env[ií]o|entrega)/i.test(body)) {
+        return 'Claro, señor. Después de sus datos le organizo la entrega por agencia o domicilio.';
+    }
+    if (/(funciona|sirve|resultado|resultados)/i.test(body)) {
+        return 'Sí, señor. Le acompaño paso a paso para dejar su pedido bien organizado.';
+    }
+    if (/(como se toma|tomar|toma|capsula|c[aá]psula|liquido|l[ií]quido)/i.test(body)) {
+        return 'Le explico corto: se usa según la orientación del producto y le ayudamos con la indicación al confirmar.';
+    }
+    if (/[?¿]/.test(String(text || '')) || /^(que|qu[eé]|como|c[oó]mo|cuando|cu[aá]ndo|donde|d[oó]nde|por que|porque)\b/i.test(body)) {
+        return 'Claro, señor. Le ayudo con eso enseguida.';
+    }
+    return '';
+};
+
+const principalSdrLooksLikeQuestionBeforeName = (text, order = {}) => Boolean(principalSdrNameStageAnswer(text, order));
+
+const principalSdrNameRetryText = (text, order = {}) => {
+    const answer = principalSdrNameStageAnswer(text, order);
+    if (answer) return answer + '\n\n' + principalSdrNameRequestText();
+    return principalSdrNameRequestText();
+};
+
+const principalSdrLooksLikeAgencyOrLocationAnswer = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    if (hasAgencyIndicationData(text)) return true;
+    const location = principalSdrLocationFromText(text);
+    if (!(location.city || location.province)) return false;
+    return /\b(quiero|deseo|retir|retiro|retirar|agencia|servientrega|ciudad|provincia|en|no|es|ahi|all[ií])\b/i.test(body);
+};
+
+const principalSdrNameRetryAfterAgencyText = () => (
+    'Perfecto, señor. Ya dejé la agencia ubicada con los datos oficiales de Servientrega.\n\nAhora solo me falta su nombre completo para registrar el pedido.'
+);
+
+const principalSdrCityRequestText = (order = {}) => {
+    const firstName = order?.name ? `, señor ${principalSdrFirstName(order.name)}` : '';
+    return `Gracias${firstName}.\n\n¿En qué ciudad se encuentra?`;
+};
+
+const principalSdrProvinceRequestText = (order = {}) => {
+    const city = principalSdrClean(order?.city || '');
+    return city
+        ? `Perfecto, ${city}.\n\n¿Me confirma la provincia por favor?`
+        : 'Perfecto.\n\n¿Me confirma la provincia por favor?';
+};
+
+const principalSdrCleanLocationAnswer = (text = '') => principalSdrClean(text)
+    .replace(/^(mi\s+)?(ciudad|provincia)\s*(es|:)?\s*/i, '')
+    .replace(/^(estoy|vivo|me\s+encuentro|estamos)\s+en\s+/i, '')
+    .replace(/^es\s+en\s+/i, '')
+    .replace(/^(la\s+)?agencia\s+/i, '')
+    .replace(/[?¿.]+$/g, '')
+    .trim();
+
+const principalSdrLocationFromText = (text = '', order = {}) => {
+    if (principalSdrIsConfirmationOnlyText(text)) {
+        return { city: '', province: '', cleaned: '' };
+    }
+    const loc = extractLocationFromText(text);
+    const cleaned = principalSdrCleanLocationAnswer(text);
+    const known = findKnownServientregaEcuadorLocation({
+        city: loc.city || cleaned || order.city || '',
+        province: loc.province || order.province || '',
+        text
+    });
+    return {
+        city: loc.city || known.city || '',
+        province: loc.province || known.province || '',
+        cleaned
+    };
+};
+
+const principalSdrCityFromText = (text = '') => {
+    const loc = principalSdrLocationFromText(text);
+    if (loc.city) return loc.city;
+    return loc.cleaned || '';
+};
+
+const principalSdrProvinceFromText = (text = '', order = {}) => {
+    const loc = principalSdrLocationFromText(text, order);
+    if (loc.province) return loc.province;
+    return loc.cleaned || '';
+};
+
+const principalSdrIsConfirmationOnly = principalSdrIsConfirmationOnlyText;
+
+const AGENCY_OPTIONS_PAGE_SIZE = 3;
+const AGENCY_OPTIONS_LOOKAHEAD_LIMIT = 60;
+
+const principalSdrAgencyOptionsForOrder = (order = {}, text = '', limit = 3, offset = 0) => {
+    const safeText = principalSdrIsConfirmationOnly(text) ? '' : text;
+    const details = safeText ? parseAgencyDetailsMessage(safeText) : {};
+    const location = safeText
+        ? principalSdrLocationFromText(safeText, order)
+        : { city: order.city || '', province: order.province || '' };
+    const city = details.city || location.city || order.city || '';
+    const province = details.province || location.province || order.province || '';
+    return (details.agencyOptions?.length ? details.agencyOptions : findServientregaEcuadorAgencies({
+        city,
+        province,
+        query: safeText || [city, province].filter(Boolean).join(' '),
+        limit: Math.max(limit + offset, limit)
+    })).slice(offset, offset + limit);
+};
+
+const principalSdrAgencyOptionsPageForOrder = (order = {}, text = '', page = 0) => {
+    const safePage = Math.max(0, Number.parseInt(String(page || 0), 10) || 0);
+    const offset = safePage * AGENCY_OPTIONS_PAGE_SIZE;
+    const options = principalSdrAgencyOptionsForOrder(order, text, AGENCY_OPTIONS_PAGE_SIZE, offset);
+    const nextOptions = principalSdrAgencyOptionsForOrder(order, text, AGENCY_OPTIONS_PAGE_SIZE, offset + AGENCY_OPTIONS_PAGE_SIZE);
+    return {
+        page: safePage,
+        options,
+        hasMore: nextOptions.length > 0
+    };
+};
+
+const principalSdrWantsMoreAgencyOptions = (text = '') => /\b(otra|otras|otro|otros|mas|m[aá]s|siguiente|siguientes|ninguna|ninguno|no me sirve|no sirve)\b/i.test(normalizeForDecision(text));
+
+const principalSdrOrderHasCityProvince = (order = {}) => Boolean(principalSdrClean(order.city) && principalSdrClean(order.province));
+
+const principalSdrApplyOfficialAgency = (order = {}, agency = {}) => ({
+    ...order,
+    province: agency.province || order.province || '',
+    city: agency.city || order.city || '',
+    address: agency.address || order.address || '',
+    reference: agency.sector || '',
+    agencyName: agency.name || order.agencyName || '',
+    agencyAddress: agency.address || order.agencyAddress || '',
+    agencySector: agency.sector || '',
+    agencyWeekdayHours: agency.weekdayHours || '',
+    agencyWeekendHours: agency.weekendHours || '',
+    agencyValidated: Boolean(agency.name || order.agencyValidated),
+    agency: agency.name || order.agency || '',
+    deliveryType: 'SERVIENTREGA',
+    deliveryMode: 'agency',
+    logisticsSource: 'official_servientrega_agency'
+});
+
+const principalSdrMergeLocationAndAgencyDetails = (order = {}, text = '') => {
+    const details = hasAgencyIndicationData(text) ? parseAgencyDetailsMessage(text) : {};
+    const location = principalSdrLocationFromText(text, order);
+    return {
+        ...order,
+        ...details,
+        city: details.city || location.city || order.city || '',
+        province: details.province || location.province || order.province || ''
+    };
+};
+
+const principalSdrIsAgencyLocationCorrection = (text = '', order = {}) => {
+    if (principalSdrIsConfirmationOnly(text) || principalSdrWantsMoreAgencyOptions(text)) return false;
+    if (hasAgencyIndicationData(text)) return true;
+    const location = principalSdrLocationFromText(text, order);
+    const city = principalSdrClean(location.city || '');
+    const province = principalSdrClean(location.province || '');
+    if (!city && !province) return false;
+    const currentCity = principalSdrClean(order.city || '');
+    const currentProvince = principalSdrClean(order.province || '');
+    return Boolean(
+        (city && city.toLowerCase() !== currentCity.toLowerCase())
+        || (province && province.toLowerCase() !== currentProvince.toLowerCase())
+    );
+};
+
+const principalSdrClearSelectedAgency = (order = {}) => ({
+    ...order,
+    agencyName: '',
+    agencyAddress: '',
+    agencySector: '',
+    agencyWeekdayHours: '',
+    agencyWeekendHours: '',
+    agencyValidated: false,
+    agency: '',
+    agencyOptions: []
+});
+
+const principalSdrAgencyListText = (options = [], { hasMore = false } = {}) => {
+    if (options.length === 1) {
+        const agency = options[0];
+        return [
+            'Confirma esta agencia de Servientrega?',
+            '',
+            `SERVIENTREGA${agency.name ? `, ${principalSdrClean(agency.name)}` : ''}`.trim(),
+            agency.address ? principalSdrClean(agency.address) : ''
+        ].filter((line) => line !== null && line !== undefined).join('\n');
+    }
+    const letters = ['A', 'B', 'C'];
+    const optionBlocks = options.slice(0, 3).map((agency, index) => {
+        const label = letters[index] || String(index + 1);
+        return [
+            `${label}) SERVIENTREGA${agency.name ? `, ${principalSdrClean(agency.name)}` : ''}`,
+            agency.address ? principalSdrClean(agency.address) : ''
+        ].filter(Boolean).join('\n');
+    });
+    const footer = hasMore
+        ? ['Responda A, B o C.', 'Si ninguna sirve, responda OTRAS.'].join('\n')
+        : 'Responda A, B o C.';
+    const lines = [
+        'Señor, por favor, escoja una agencia abajo:',
+        '',
+        optionBlocks.join('\n\n'),
+        '',
+        footer
+    ];
+    return lines.join('\n');
+};
+
+const principalSdrFinalSummaryText = ({ order, deliveryType }) => {
+    const lines = [
+        'Señor, por favor confirme si todo está correcto 😊',
+        '',
+        `Nombre: ${order.name || ''}`,
+        `Ciudad: ${order.city || ''}`,
+        `Provincia: ${order.province || ''}`,
+        `Cantidad: ${order.quantity || ''}`
+    ];
+    if (deliveryType === 'agency') {
+        lines.push('', `SERVIENTREGA: ${order.agencyName || order.agency || ''}`);
+        if (order.agencyAddress) lines.push(order.agencyAddress);
+    } else {
+        lines.push('', `DOMICILIO: ${order.address || ''}`);
+        lines.push(`Referencia: ${order.reference || ''}`);
+    }
+    lines.push('', '¿Autoriza el despacho de su pedido?');
+    return lines.join('\n');
+};
+
+const principalSdrOrderClosedFinalText = ({ finalOrder = {}, deliveryType, agency = null }) => {
+    if (deliveryType === 'agency') {
+        const agencyName = principalSdrClean(
+            agency?.name
+            || finalOrder.agencyName
+            || finalOrder.agency
+            || 'la agencia seleccionada'
+        );
+        const agencyAddress = principalSdrClean(
+            agency?.address
+            || finalOrder.agencyAddress
+            || finalOrder.address
+            || ''
+        );
+        const agencyLabel = /servientrega/i.test(agencyName)
+            ? agencyName
+            : `Agencia Servientrega ${agencyName}`;
+        const agencyLine = agencyAddress ? `${agencyLabel} - ${agencyAddress}` : agencyLabel;
+
+        return [
+            'Gracias, señor.',
+            'Su pedido quedó confirmado para envío a la agencia Servientrega:',
+            agencyLine,
+            '',
+            'Su compra ya quedó cerrada. Desde ahora le acompaño por aquí solo con la guía, la entrega y la retirada.'
+        ].join('\n');
+    }
+
+    const address = principalSdrClean(finalOrder.address || 'su dirección registrada');
+    return [
+        'Gracias, señor.',
+        'Su pedido quedó confirmado para entrega a domicilio en:',
+        address,
+        '',
+        'Su compra ya quedó cerrada. Desde ahora le acompaño por aquí solo con la guía, la entrega y cualquier novedad del pedido.'
+    ].join('\n');
+};
+
+const principalSdrLooksLikeBuyLater = (text = '') => /\b(despues|después|luego|manana|mañana|otro dia|otro día|proxima semana|próxima semana|mas tarde|más tarde|quincena|fin de mes)\b/i.test(normalizeForDecision(text));
+const principalSdrNeedsHuman = (text = '') => /\b(reclamo|denuncia|abogado|demanda|policia|policía|cancelar pedido ya enviado|devolucion|devolución|estafa|bloquea|bloquear|no molestar)\b/i.test(normalizeForDecision(text));
+const principalSdrLooksLikeLocationCorrection = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body || !/^(no|nop|negativo)\b/.test(body)) return false;
+    if (/\b(nombre|nomre|nombres|cliente)\b/.test(body)) return false;
+    if (hasAgencyIndicationData(text)) return true;
+    const location = principalSdrLocationFromText(text);
+    return Boolean(location.city || location.province);
+};
+
+const principalSdrMergeIncoming = (order = {}, text = '') => {
+    const safeText = principalSdrIsConfirmationOnly(text) || isOrderCloseAffirmation(text) ? '' : text;
+    const parsed = safeText ? (parseCheckoutOrderMessage(safeText, { loose: true }) || {}) : {};
+    if (parsed.name && principalSdrLooksLikeLocationCorrection(safeText)) {
+        delete parsed.name;
+    }
+    const corrected = parseCheckoutCorrectionMessage(text) || {};
+    const merged = coerceCheckoutLocationFields({ ...(order || {}), ...parsed, ...corrected });
+    if (!isValidPackageQuantity(merged.quantity) && isValidPackageQuantity(order?.quantity)) {
+        merged.quantity = Number.parseInt(String(order.quantity), 10);
+    }
+    if ((merged.total === undefined || merged.total === null || merged.total === '' || Number(merged.total) <= 0)
+        && order?.total !== undefined
+        && order?.total !== null
+        && order?.total !== ''
+        && Number(order.total) > 0) {
+        merged.total = order.total;
+    }
+    if (!merged.valueConfirmed && order?.valueConfirmed) merged.valueConfirmed = order.valueConfirmed;
+    return merged;
+};
+
+const principalSdrConfirmOrder = async ({ chatId, peerPhone, sessionId, contactStateId, agentProfile, customerContext, order, deliveryType, inboundText }) => {
+    const offer = getSelectedOffer(customerContext, order);
+    const deliveryLabel = deliveryType === 'agency' ? 'SERVIENTREGA' : 'DOMICILIO';
+    const finalOrder = {
+        ...order,
+        quantity: offer.quantity,
+        total: offer.total,
+        status: 'confirmed',
+        stage: 'order_closed',
+        funnelStage: 'order_closed',
+        followup_status: 'sale_confirmed',
+        deliveryType,
+        deliveryMode: deliveryType
+    };
+
+    let savedOrder = null;
+    if (deliveryType === 'agency') {
+        savedOrder = await updateOrderAfterAgencyStep({
+            parsedOrder: finalOrder,
+            customerContext,
+            peerPhone,
+            stage: 'order_closed',
+            status: 'confirmed'
+        });
+    } else {
+        savedOrder = await upsertCheckoutOrderDraft({ parsedOrder: finalOrder, customerContext, peerPhone });
+        if (savedOrder) {
+            savedOrder.package = {
+                id: offer.quantity,
+                label: orderPackageLabel({ customerContext, quantity: offer.quantity }),
+                quantity: offer.quantity
+            };
+            savedOrder.total = offer.total;
+            savedOrder.status = 'confirmed';
+            savedOrder.notes = [`Domicilio: ${finalOrder.address || ''}`, `Referencia: ${finalOrder.reference || ''}`].join('\n');
+            savedOrder.conversationMemory = {
+                ...(savedOrder.conversationMemory || {}),
+                funnelStage: 'order_closed',
+                currentIntent: 'purchase_intent',
+                selectedQuantity: offer.quantity,
+                selectedValue: offer.value,
+                deliveryType: 'DOMICILIO',
+                orderClosedDeliveryMode: 'home',
+                lastBotMessageAt: new Date()
+            };
+            savedOrder.confirmedSalePayload = buildConfirmedSalePayload({
+                order: savedOrder,
+                parsedOrder: finalOrder,
+                deliveryMode: 'home'
+            });
+            await savedOrder.save();
+            await markMetaPurchaseForConfirmedOrder(savedOrder);
+        }
+    }
+
+    const payload = (savedOrder?.confirmedSalePayload || buildConfirmedSalePayload({
+        order: savedOrder,
+        parsedOrder: finalOrder,
+        deliveryMode: deliveryType === 'agency' ? 'agency' : 'home',
+        agency: deliveryType === 'agency' ? getAgencyDetails(finalOrder) : null
+    }));
+
+    await saveConfirmedSalePayloadToContact({ contactStateId, agentProfile, payload });
+    const agency = deliveryType === 'agency' ? getAgencyDetails(finalOrder) : null;
+    const adminSyncResult = syncContactDraftToOnlineAdminPanel({
+        ...finalOrder,
+        phone: finalOrder.phone || peerPhone,
+        country: customerContext.countryCode || finalOrder.country || 'EC',
+        status: 'confirmed',
+        address: deliveryType === 'agency' ? (agency?.address || finalOrder.address || '') : (finalOrder.address || ''),
+        reference: finalOrder.reference || agency?.sector || ''
+    }, {
+        country: customerContext.countryCode || finalOrder.country || 'EC',
+        adminStatus: 'confirmado',
+        action: 'principal_sdr_order_confirmed',
+        note: deliveryType === 'agency'
+            ? `Pedido confirmado pelo WhatsApp. Entrega por agencia Servientrega: ${agency?.name || 'agencia selecionada'}.`
+            : 'Pedido confirmado pelo WhatsApp. Entrega a domicilio.'
+    });
+    if (!adminSyncResult?.ok && !adminSyncResult?.skipped) {
+        console.warn('[FUNIL] falha ao marcar pedido confirmado no Painel Unificado:', adminSyncResult);
+    }
+
+    let closedAudioSent = false;
+    let bonusPickupSent = false;
+    if (deliveryType === 'agency') {
+        closedAudioSent = await sendFirstApprovedAudioAndRecord({ jid: chatId, countryCode: customerContext.countryCode, sessionId, peerPhone, baseNames: PRINCIPAL_SDR_AUDIO_NAMES.agencyThanks, label: 'SDR agradecimento agencia', sendOptions: { allowExistingDropiOrder: true, outboundContext: 'principal_sdr_agency_thanks' } });
+        bonusPickupSent = await sendFirstApprovedAudioAndRecord({ jid: chatId, countryCode: customerContext.countryCode, sessionId, peerPhone, baseNames: PRINCIPAL_SDR_AUDIO_NAMES.bonusPickup, label: 'SDR bonus retirada', sendOptions: { allowExistingDropiOrder: true, outboundContext: 'principal_sdr_bonus_retirada' } });
+    } else {
+        closedAudioSent = await sendFirstApprovedAudioAndRecord({ jid: chatId, countryCode: customerContext.countryCode, sessionId, peerPhone, baseNames: PRINCIPAL_SDR_AUDIO_NAMES.homeThanks, label: 'SDR agradecimento domicilio', sendOptions: { allowExistingDropiOrder: true, outboundContext: 'principal_sdr_home_thanks' } });
+    }
+
+    const replyText = principalSdrOrderClosedFinalText({ finalOrder, deliveryType, agency });
+    const finalTextResult = await principalSdrSendTextOnce({ chatId, peerPhone, sessionId, body: replyText, suffix: 'principal_sdr_confirmed' });
+    if (!finalTextResult.sent) return false;
+    await principalSdrSaveMemory({ contactStateId, agentProfile, order: finalOrder, stage: 'order_closed', inboundText, outboundText: replyText });
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                'metadata.orderStatus': 'PEDIDO_CONFIRMADO',
+                'metadata.tipoEnvio': deliveryLabel,
+                'metadata.lastKnownFunnelStage': 'order_closed',
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStatus`]: 'PEDIDO_CONFIRMADO',
+                [`metadata.perAgentMemory.${agentProfile.key}.tipoEnvio`]: deliveryLabel,
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStage`]: 'order_closed',
+                [`metadata.perAgentMemory.${agentProfile.key}.orderClosedThankYouSentAt`]: new Date(),
+                [`metadata.perAgentMemory.${agentProfile.key}.orderClosedDeliveryMode`]: deliveryType,
+                [`metadata.perAgentMemory.${agentProfile.key}.orderClosedAudioSent`]: closedAudioSent,
+                [`metadata.perAgentMemory.${agentProfile.key}.orderClosedBonusNoticeAudioSent`]: bonusPickupSent,
+                [`metadata.perAgentMemory.${agentProfile.key}.adminPanelConfirmSync`]: adminSyncResult
+            }
+        }
+    );
+    await holdForHuman({
+        contactStateId,
+        agentProfile,
+        reason: 'order_closed_human_handoff',
+        note: 'Pedido confirmado no funil principal SDR. Automacao pausada para evitar reinicio do funil.'
+    });
+    return true;
+};
+
+const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactStateId, agentProfile, customerContext, pendingCheckoutOrder = {}, pendingCheckoutStage = '', selectedQuantityInMemory = 0 }) => {
+    const currentStage = isPrincipalSdrStage(pendingCheckoutStage) ? pendingCheckoutStage : 'sdr_after_initial';
+    if (currentStage === 'order_closed') {
+        await holdForHuman({
+            contactStateId,
+            agentProfile,
+            reason: 'order_closed_human_handoff',
+            note: 'Pedido ja fechado no funil principal SDR. Automacao mantida pausada para nao reiniciar venda.'
+        });
+        console.log(`[FUNIL] Mensagem recebida apos pedido fechado; funil principal mantido pausado -> ${chatId}`);
+        return true;
+    }
+    let order = principalSdrMergeIncoming(pendingCheckoutOrder || {}, text);
+    const rememberedQuantity = normalizeOptionalPackageQuantity(
+        selectedQuantityInMemory
+        || pendingCheckoutOrder?.selectedQuantity
+        || pendingCheckoutOrder?.quantity
+        || 0
+    );
+    if (!isValidPackageQuantity(order.quantity) && rememberedQuantity) {
+        order.quantity = rememberedQuantity;
+    }
+    if (isValidPackageQuantity(order.quantity) && (!order.total || Number(order.total) <= 0)) {
+        order.total = getSelectedOffer(customerContext, { quantity: order.quantity }).total;
+    }
+
+    if (principalSdrNeedsHuman(text)) {
+        await holdForHuman({ contactStateId, agentProfile, reason: 'principal_sdr_complex_case', note: 'Caso complexo no funil principal SDR. Humano deve continuar.' });
+        return true;
+    }
+
+    if (principalSdrLooksLikeBuyLater(text)) {
+        const replyText = 'Claro, señor 😊\n¿Qué día desea que le escribamos nuevamente?';
+        order = { ...order, stage: 'sdr_scheduled_followup', followup_status: 'COMPRA_AGENDADA', scheduled_reason: 'cliente_pidio_comprar_depois' };
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_scheduled_followup', inboundText: text, text: replyText, suffix: 'principal_sdr_scheduled' });
+    }
+
+    if (currentStage === 'sdr_scheduled_followup') {
+        const replyText = 'Perfecto, señor. Queda agendado para escribirle nuevamente ese día 😊';
+        order = { ...order, scheduled_date: principalSdrClean(text), followup_status: 'COMPRA_AGENDADA' };
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_scheduled_followup', inboundText: text, text: replyText, suffix: 'principal_sdr_scheduled_date' });
+    }
+
+    if (currentStage === 'sdr_after_initial') {
+        const quantityHandled = await principalSdrHandleQuantityChoice({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            customerContext,
+            order
+        });
+        if (quantityHandled) return true;
+        const replyText = principalSdrNameRequestText();
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: replyText, suffix: 'principal_sdr_name' });
+    }
+
+    if (currentStage === 'sdr_awaiting_name') {
+        const quantityHandled = await principalSdrHandleQuantityChoice({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            customerContext,
+            order
+        });
+        if (quantityHandled) return true;
+        if (!order.name && order.agencyValidated && principalSdrLooksLikeAgencyOrLocationAnswer(text)) {
+            const retryText = principalSdrNameRetryAfterAgencyText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: retryText, suffix: 'principal_sdr_name_after_agency_location_retry' });
+        }
+        if (!order.name && principalSdrLooksLikeQuestionBeforeName(text, order)) {
+            const retryText = principalSdrNameRetryText(text, order);
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: retryText, suffix: 'principal_sdr_name_question_retry' });
+        }
+        if (!looksLikeCustomerFullName(text) && !order.name) {
+            const retryText = principalSdrNameRetryText(text, order);
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: retryText, suffix: 'principal_sdr_name_retry' });
+        }
+        order.name = order.name || principalSdrClean(text);
+        if (order.valueConfirmed && order.agencyValidated && order.agencyName && principalSdrOrderHasCityProvince(order)) {
+            const replyText = principalSdrFinalSummaryText({ order, deliveryType: 'agency' });
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_final_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_summary_agency_after_name' });
+        }
+        const replyText = principalSdrCityRequestText(order);
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_city', inboundText: text, text: replyText, suffix: 'principal_sdr_city' });
+    }
+
+    if (currentStage === 'sdr_awaiting_city') {
+        const location = principalSdrLocationFromText(text, order);
+        order.city = order.city || location.city;
+        order.province = order.province || location.province;
+        if (!order.city) {
+            const retryText = 'Gracias. Para evitar error de envío, envíeme solo la ciudad por favor.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_city', inboundText: text, text: retryText, suffix: 'principal_sdr_city_retry' });
+        }
+        const replyText = order.province ? agencyFirstDeliveryQuestionText() : principalSdrProvinceRequestText(order);
+        const nextStage = order.province ? 'sdr_awaiting_delivery_mode' : 'sdr_awaiting_province';
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: nextStage, inboundText: text, text: replyText, suffix: order.province ? 'principal_sdr_delivery_after_city_known' : 'principal_sdr_province' });
+    }
+
+    if (currentStage === 'sdr_awaiting_province' || currentStage === 'sdr_awaiting_city_province') {
+        if (currentStage === 'sdr_awaiting_city_province') {
+            const loc = extractLocationFromText(text);
+            order.city = order.city || loc.city || principalSdrCityFromText(text);
+            order.province = order.province || loc.province || principalSdrProvinceFromText(text, order);
+        } else {
+            const location = principalSdrLocationFromText(text, order);
+            order.city = order.city || location.city;
+            order.province = order.province || location.province;
+        }
+        if (!order.city) {
+            const retryText = principalSdrCityRequestText(order);
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_city', inboundText: text, text: retryText, suffix: 'principal_sdr_city_retry' });
+        }
+        if (!order.province) {
+            const retryText = principalSdrProvinceRequestText(order);
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_province', inboundText: text, text: retryText, suffix: 'principal_sdr_province_retry' });
+        }
+        if (isValidPackageQuantity(order.quantity) && (order.valueConfirmed || Number(order.total) > 0)) {
+            const offer = getSelectedOffer(customerContext, order);
+            order.quantity = offer.quantity;
+            order.total = order.total || offer.total;
+            order.valueConfirmed = true;
+            const replyText = agencyFirstDeliveryQuestionText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_delivery_mode', inboundText: text, text: replyText, suffix: 'principal_sdr_delivery_after_city' });
+        }
+        const replyText = 'Perfecto 👍\n\n¿Cuántos frascos desea reservar hoy?\n\n1 frasco\n3 frascos\n6 frascos';
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_quantity', inboundText: text, text: replyText, suffix: 'principal_sdr_quantity' });
+    }
+
+    if (currentStage === 'sdr_awaiting_quantity') {
+        if (isValidPackageQuantity(order.quantity)) {
+            const offer = getSelectedOffer(customerContext, { quantity: order.quantity });
+            order.quantity = offer.quantity;
+            order.total = order.total || offer.total;
+            order.valueConfirmed = true;
+            if (!order.name) {
+                const replyText = principalSdrNameRequestText();
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: replyText, suffix: 'principal_sdr_name_from_quantity_memory' });
+            }
+            if (!order.city || !order.province) {
+                const replyText = principalSdrCityRequestText(order);
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_city', inboundText: text, text: replyText, suffix: 'principal_sdr_city_from_quantity_memory' });
+            }
+            const replyText = agencyFirstDeliveryQuestionText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_delivery_mode', inboundText: text, text: replyText, suffix: 'principal_sdr_delivery_from_quantity_memory' });
+        }
+
+        const quantityHandled = await principalSdrHandleQuantityChoice({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            customerContext,
+            order
+        });
+        if (quantityHandled) return true;
+        const retryText = 'Perfecto. Indíqueme por favor si desea reservar 1, 3 o 6 frascos.';
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_quantity', inboundText: text, text: retryText, suffix: 'principal_sdr_quantity_retry' });
+    }
+
+    if (currentStage === 'sdr_awaiting_value_confirmation') {
+        if (!principalSdrIsValueOfferAcceptance(text)) {
+            const bridge = checkoutBridgeLine();
+            const replyText = bridge + '\n¿Está bien para usted reservar esa promoción hoy?';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_value_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_value_retry' });
+        }
+        order.valueConfirmed = true;
+        const replyText = agencyFirstDeliveryQuestionText();
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_delivery_mode', inboundText: text, text: replyText, suffix: 'principal_sdr_delivery' });
+    }
+
+    if (currentStage === 'sdr_awaiting_delivery_mode') {
+        const agencyIndication = hasAgencyIndicationData(text);
+        if (!isHomeDeliveryChoice(text) && (isAgencyDeliveryConsent(text) || agencyIndication)) {
+            order.deliveryType = 'SERVIENTREGA';
+            if (agencyIndication) {
+                order = principalSdrMergeLocationAndAgencyDetails(order, text);
+            }
+            if (!principalSdrOrderHasCityProvince(order)) {
+                return principalSdrSendStageAudioOnlyAndSave({
+                    chatId,
+                    peerPhone,
+                    sessionId,
+                    contactStateId,
+                    agentProfile,
+                    order,
+                    stage: 'sdr_awaiting_agency_query',
+                    inboundText: text,
+                    outboundText: '[AUDIO] ENDERECO_CIDADE_PROVINCIA_AGENCIA'
+                });
+            }
+            const page = principalSdrAgencyOptionsPageForOrder(order, '', 0);
+            if (page.options.length) {
+                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+                order.agencyOptions = page.options;
+                order.agencyOptionsPage = page.page;
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_list' });
+            }
+            const replyText = 'No encontré agencias con esa ciudad y provincia. Envíeme otra ciudad y provincia cercana para buscar de nuevo.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: replyText, suffix: 'principal_sdr_agency_query' });
+        }
+        if (isHomeDeliveryChoice(text) || /^(no|nop|nao|não)$/i.test(normalizeForDecision(text))) {
+            order.deliveryType = 'DOMICILIO';
+            const replyText = 'Entiendo, señor 👍\n\nSi no puede retirar en agencia, entonces envíeme por favor:\n\n- dirección completa\n- barrio o sector\n- referencia cercana\n\npara revisar entrega a domicilio.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_home_address', inboundText: text, text: replyText, suffix: 'principal_sdr_home' });
+        }
+        const retryText = agencyFirstDeliveryRetryText();
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_delivery_mode', inboundText: text, text: retryText, suffix: 'principal_sdr_delivery_retry' });
+    }
+
+    if (currentStage === 'sdr_awaiting_agency_query') {
+        if (principalSdrIsConfirmationOnly(text)) {
+            const retryText = agencyCityProvinceRequestText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_retry_confirmation_only' });
+        }
+        order = principalSdrMergeLocationAndAgencyDetails(order, text);
+        if (!principalSdrOrderHasCityProvince(order)) {
+            const retryText = agencyCityProvinceRequestText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_city_province_retry' });
+        }
+        const page = principalSdrAgencyOptionsPageForOrder(order, '', 0);
+        order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
+        if (!page.options.length) {
+            const retryText = 'No encontré agencias con esa ciudad y provincia. Envíeme otra ciudad y provincia cercana para buscar de nuevo.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_retry' });
+        }
+        const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_list' });
+    }
+
+    if (currentStage === 'sdr_awaiting_agency_selection') {
+        const selectedAgency = selectAgencyOptionFromText(text, order.agencyOptions || []);
+        if (!selectedAgency) {
+            const explicitNewLocation = principalSdrIsAgencyLocationCorrection(text, order);
+            if (explicitNewLocation) {
+                order = principalSdrClearSelectedAgency(principalSdrMergeLocationAndAgencyDetails(order, text));
+                order.agencyOptionsPage = 0;
+            }
+            const nextPageNumber = explicitNewLocation ? 0 : (Number.parseInt(String(order.agencyOptionsPage || 0), 10) || 0) + 1;
+            const page = principalSdrAgencyOptionsPageForOrder(order, '', nextPageNumber);
+            if (page.options.length) {
+                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+                order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_next_options' });
+            }
+            const retryText = 'Señor, responda por favor con A, B o C para elegir la agencia correcta. Si la ciudad está equivocada, escriba ciudad y provincia.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_select_retry' });
+        }
+        order = principalSdrApplyOfficialAgency(order, selectedAgency);
+        if (!order.name) {
+            const replyText = principalSdrNameRequestText();
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_name', inboundText: text, text: replyText, suffix: 'principal_sdr_name_after_agency' });
+        }
+        const replyText = principalSdrFinalSummaryText({ order, deliveryType: 'agency' });
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_final_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_summary_agency' });
+    }
+
+    if (currentStage === 'sdr_awaiting_home_address') {
+        const split = splitReferenceFromValue(text);
+        order.address = order.address || split.value || principalSdrClean(text);
+        order.reference = order.reference || split.reference || extractReferenceFromText(text) || '';
+        order.deliveryType = 'DOMICILIO';
+        if (!order.address || order.address.length < 6) {
+            const retryText = 'Para domicilio necesito la dirección completa con barrio o sector y, si tiene, una referencia cercana.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_home_address', inboundText: text, text: retryText, suffix: 'principal_sdr_home_retry' });
+        }
+        const replyText = principalSdrFinalSummaryText({ order, deliveryType: 'home' });
+        return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_final_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_summary_home' });
+    }
+
+    if (currentStage === 'sdr_awaiting_final_confirmation') {
+        if (!isOrderCloseAffirmation(text)) {
+            const retryText = 'Revise por favor si los datos están correctos. Si todo está bien, responda SI o CONFIRMO para autorizar el despacho.';
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_final_confirmation', inboundText: text, text: retryText, suffix: 'principal_sdr_final_retry' });
+        }
+        const deliveryTypeText = normalizeFieldLabel(order.deliveryType || order.tipoEnvio || '');
+        const hasAgencyData = Boolean(order.agencyName || order.agencyAddress || order.agency || order.agencyValidated);
+        const hasExplicitHomeData = deliveryTypeText === 'domicilio' || (
+            !hasAgencyData
+            && order.address
+            && /\b(domicilio|casa|residencia|barrio|manzana|villa|departamento|edificio|sector|referencia)\b/i.test([order.address, order.reference].filter(Boolean).join(' '))
+        );
+        const deliveryType = hasAgencyData || deliveryTypeText === 'servientrega' || deliveryTypeText === 'agencia'
+            ? 'agency'
+            : (hasExplicitHomeData ? 'home' : 'agency');
+        return principalSdrConfirmOrder({ chatId, peerPhone, sessionId, contactStateId, agentProfile, customerContext, order, deliveryType, inboundText: text });
+    }
+
+    return false;
+};
+
+const ECUADOR_GREETING_TIMEZONE = 'America/Guayaquil';
+const GREETING_AUDIO_BY_PERIOD = {
+    morning: '01_B_Buenos_dias',
+    afternoon: '01_C_Buenos_tardes',
+    night: '01_A_buenas_noches'
+};
+
+export const getGreetingPeriodByTime = (date = new Date(), timezone = ECUADOR_GREETING_TIMEZONE) => {
+    const safeDate = date instanceof Date ? date : new Date(date);
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone || ECUADOR_GREETING_TIMEZONE,
+        hour: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(safeDate);
+    const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+
+    if (hour >= 5 && hour <= 11) return 'morning';
+    if (hour >= 12 && hour <= 17) return 'afternoon';
+    return 'night';
+};
+
+export const getGreetingAudioByTime = (date = new Date(), timezone = ECUADOR_GREETING_TIMEZONE) => (
+    GREETING_AUDIO_BY_PERIOD[getGreetingPeriodByTime(date, timezone)]
+);
+
+const greetingSelectionByTime = (date = new Date(), timezone = ECUADOR_GREETING_TIMEZONE) => {
+    const period = getGreetingPeriodByTime(date, timezone);
+    return {
+        period,
+        baseName: GREETING_AUDIO_BY_PERIOD[period],
+        timezone
+    };
+};
+
+export const hasGreetingAlreadyBeenSent = (agentMemory = {}) => Boolean(
+    agentMemory.greeting_audio_sent
+    || agentMemory.greeting_sent_at
+    || agentMemory.greetingAudioSent
+    || agentMemory.greetingSentAt
+);
+
+export const shouldSendGreetingAudio = (agentMemory = {}) => !hasGreetingAlreadyBeenSent(agentMemory);
+
+const COMMERCIAL_INITIAL_AUDIO_NAMES = {
+    EC: []
+};
+
+const INITIAL_PROOF_ITEMS = [
+    'image:social_01',
+    'image:social_02',
+    'image:social_03',
+    'image:social_04',
+    'audio:DEPOIMENTO_AUDIO_PRODUTO'
+];
 
 const buildInitialProofCaption = ({ customerContext, index }) => {
     const product = 'Vit Power';
@@ -2455,11 +4170,11 @@ const buildInitialProofCaption = ({ customerContext, index }) => {
 
 const buildInitialPriceText = (customerContext, selectedOrder = null) => {
     const base = [
-        '💛 Estos son los valores de Vit Power:',
+        'Señor, estas son las promociones disponibles hoy:',
         '',
-        '1 frasco: $39',
-        '3 frascos: $95.99',
-        '6 frascos: $167.99',
+        '1 botella por $39',
+        '3 botellas por $95.99',
+        '6 botellas por $167.99',
         '',
         '✅ El pago es contra entrega.'
     ];
@@ -2468,10 +4183,11 @@ const buildInitialPriceText = (customerContext, selectedOrder = null) => {
         return [...base, '', buildCheckoutPackageCtaText(customerContext, selectedOrder)].join('\n');
     }
 
-    return [...base, 'Cuantos frascos desea llevar: 1, 3 o 6?'].join('\n');
+    return [...base, 'Cual desea reservar para usted?'].join('\n');
 };
 
 const completedInitialStepsFromMemory = (agentMemory = {}) => new Set([
+    ...(hasGreetingAlreadyBeenSent(agentMemory) ? ['audio:greeting'] : []),
     ...((Array.isArray(agentMemory.initialProductPresentationSteps) ? agentMemory.initialProductPresentationSteps : [])),
     ...((Array.isArray(agentMemory.initialProductPresentationAudios)
         ? agentMemory.initialProductPresentationAudios
@@ -2488,8 +4204,16 @@ const completedInitialStepsFromMemory = (agentMemory = {}) => new Set([
         : [])
 ]);
 
-const expectedInitialStepsForCountry = () => (
-    ['audio:Inicio_01', 'audio:Inicio_02', 'image:social_01', 'image:social_02', 'image:vit_power_bottle', 'text:price']
+const expectedInitialStepsForCountry = ({ includePrice = true } = {}) => (
+    [
+        'audio:greeting',
+        'proof:one',
+        'image:vit_power_bottle',
+        ...(includePrice ? [
+            'audio:TRATAMENTO_Y_PRECIOS_PROMOCAO',
+            'text:price'
+        ] : [])
+    ]
 );
 
 const countryCodeForAgentProfile = () => 'EC';
@@ -2557,7 +4281,7 @@ const maybeHandleSimpleGreetingRefill = async ({
 
     const audioPath = await resolveCountryAudio({
         country: 'EC',
-        baseName: 'TRATAMENTO_CONTINUA_NAO_EFEITO_IMEDIATO'
+        baseName: 'TEMPO_RESULTADO_VIT_POWER'
     });
     const audioSent = audioPath
         ? await sendAudio(chatId, audioPath, true, { sessionId })
@@ -2602,9 +4326,9 @@ const maybeHandleSimpleGreetingRefill = async ({
     return true;
 };
 
-const isInitialProductPresentationDone = (agentMemory = {}, countryCode = 'EC') => {
+const isInitialProductPresentationDone = (agentMemory = {}, countryCode = 'EC', options = {}) => {
     const completedSteps = completedInitialStepsFromMemory(agentMemory);
-    return expectedInitialStepsForCountry(countryCode).every((step) => completedSteps.has(step));
+    return expectedInitialStepsForCountry(options).every((step) => completedSteps.has(step));
 };
 
 const shouldBlockRepeatedInitialProductPresentation = ({ text, agentProfile, contactState }) => {
@@ -2626,7 +4350,10 @@ const sendInitialProductPresentation = async ({
     sessionId = null,
     agentMemory = {},
     priceTextOverride = null,
-    includePrice = true
+    includePrice = true,
+    includeBottle = false,
+    extraAudioNames = [],
+    bypassOutboundDedupe = false
 }) => {
     const countryCode = 'EC';
     const audioNames = COMMERCIAL_INITIAL_AUDIO_NAMES[countryCode] || COMMERCIAL_INITIAL_AUDIO_NAMES.EC;
@@ -2636,11 +4363,38 @@ const sendInitialProductPresentation = async ({
     const completedNow = [];
     const presentationStartedAt = new Date();
     const peerPhone = digitsOnly(customerContext?.phone || '') || digitsOnly(jid);
+    const outboundSendOptions = (extra = {}) => ({
+        sessionId,
+        ...(bypassOutboundDedupe ? { force: true, bypassDedupe: true } : {}),
+        ...extra
+    });
+    let greetingAudioBaseName = '';
+    let greetingPeriod = '';
+    let greetingAudioSent = false;
+    let greetingSentAt = null;
     let interrupted = false;
     const hasInboundInterrupt = async () => {
         if (!initialFunnelInterruptCheckEnabled()) return false;
+        const peerTail = peerPhone.length >= 9 ? peerPhone.slice(-9) : '';
+        const inboundScope = [
+            { chatId: jid }
+        ];
+        if (peerPhone) {
+            inboundScope.push(
+                { peerPhone },
+                { from: { $regex: `${peerPhone}@` } },
+                { chatId: { $regex: `${peerPhone}@` } }
+            );
+        }
+        if (peerTail) {
+            inboundScope.push(
+                { peerPhone: { $regex: `${peerTail}$` } },
+                { from: { $regex: `${peerTail}@` } },
+                { chatId: { $regex: `${peerTail}@` } }
+            );
+        }
         const newerInbound = await Message.exists({
-            chatId: jid,
+            $or: inboundScope,
             isFromMe: false,
             isBot: false,
             createdAt: { $gt: presentationStartedAt }
@@ -2662,8 +4416,65 @@ const sendInitialProductPresentation = async ({
             );
         }
         interrupted = Boolean(newerInbound || newerContactInbound);
+        if (interrupted) {
+            console.log(`[FUNIL-INICIAL] sequencia interrompida por nova mensagem do cliente -> ${jid} | peer=${peerPhone}`);
+        }
         return interrupted;
     };
+
+    if (!shouldSendGreetingAudio(agentMemory) || completedSteps.has('audio:greeting')) {
+        console.log(`[GREETING_ALREADY_SENT_SKIP] ${jid} | audio=${agentMemory.greeting_audio_sent || ''} | period=${agentMemory.greeting_period || ''}`);
+    } else {
+        const greeting = greetingSelectionByTime(new Date(), ECUADOR_GREETING_TIMEZONE);
+        greetingAudioBaseName = greeting.baseName;
+        greetingPeriod = greeting.period;
+        console.log(`[GREETING_PERIOD_DETECTED] ${jid} | period=${greetingPeriod} | timezone=${greeting.timezone}`);
+        console.log(`[GREETING_AUDIO_SELECTED] ${jid} | audio=${greetingAudioBaseName} | period=${greetingPeriod}`);
+
+        if (!(await hasInboundInterrupt())) {
+            const greetingAudioPath = await resolveCountryAudio({ country: countryCode, baseName: greetingAudioBaseName });
+            if (!greetingAudioPath) {
+                console.warn(`[FUNIL] Audio de saludo nao encontrado: ${countryCode}/${greetingAudioBaseName}`);
+            } else {
+                greetingAudioSent = await sendAudio(jid, greetingAudioPath, true, outboundSendOptions());
+                sentAudios.push({
+                    baseName: greetingAudioBaseName,
+                    sent: greetingAudioSent,
+                    period: greetingPeriod,
+                    kind: 'greeting'
+                });
+                console.log(`[GREETING_AUDIO_SENT] ${jid} | audio=${greetingAudioBaseName} | period=${greetingPeriod} | sent=${greetingAudioSent}`);
+                if (greetingAudioSent) {
+                    greetingSentAt = new Date();
+                    completedNow.push('audio:greeting');
+                    await recordInitialFunnelStepMessage({
+                        jid,
+                        peerPhone,
+                        body: `[AUDIO] ${greetingAudioBaseName}`,
+                        type: 'audio',
+                        mediaPath: greetingAudioPath
+                    });
+                    if (contactStateId) {
+                        await ContactState.updateOne(
+                            { _id: contactStateId },
+                            {
+                                $set: {
+                                    'metadata.greeting_audio_sent': greetingAudioBaseName,
+                                    'metadata.greeting_period': greetingPeriod,
+                                    'metadata.greeting_sent_at': greetingSentAt,
+                                    'metadata.perAgentMemory.vit_power_ec.greeting_audio_sent': greetingAudioBaseName,
+                                    'metadata.perAgentMemory.vit_power_ec.greeting_period': greetingPeriod,
+                                    'metadata.perAgentMemory.vit_power_ec.greeting_sent_at': greetingSentAt,
+                                    'metadata.perAgentMemory.vit_power_ec.lastFunnelStage': greetingPeriod === 'night' ? '01_ENTRADA_NOCHE' : '01_ENTRADA'
+                                }
+                            }
+                        ).catch((error) => console.warn('[GREETING] Falha ao gravar memoria:', error.message));
+                    }
+                    await sleep(initialFunnelStepDelayMs('audio'));
+                }
+            }
+        }
+    }
 
     for (const baseName of audioNames) {
         if (await hasInboundInterrupt()) break;
@@ -2677,7 +4488,7 @@ const sendInitialProductPresentation = async ({
             console.warn(`[FUNIL] Audio inicial nao encontrado: ${countryCode}/${baseName}`);
             continue;
         }
-        const sent = await sendAudio(jid, audioPath, true, { sessionId });
+        const sent = await sendAudio(jid, audioPath, true, outboundSendOptions());
         sentAudios.push({ baseName, sent });
         console.log(`[FUNIL-INICIAL] audio ${baseName} -> ${jid} | sent=${sent}`);
         if (sent) {
@@ -2686,46 +4497,162 @@ const sendInitialProductPresentation = async ({
                 jid,
                 peerPhone,
                 body: `[AUDIO] ${baseName}`,
-                type: 'audio'
+                type: 'audio',
+                mediaPath: audioPath
             });
         }
         if (sent) await sleep(initialFunnelStepDelayMs('audio'));
     }
 
-    const proofKeys = ['social_01', 'social_02', 'vit_power_bottle'];
-    for (let index = 0; index < proofKeys.length; index += 1) {
-        if (await hasInboundInterrupt()) break;
-        const stepKey = `image:${proofKeys[index]}`;
-        if (completedSteps.has(stepKey)) {
-            sentImages.push({ key: proofKeys[index], sent: false, skipped: 'already_done' });
-            continue;
+    if (!(await hasInboundInterrupt()) && !completedSteps.has('proof:one')) {
+        const proofItem = await getNextItemByPurpose(peerPhone || jid, 'prova', {
+            candidates: INITIAL_PROOF_ITEMS,
+            contactStateId,
+            agentKey: 'vit_power_ec',
+            resetWhenExhausted: true
+        });
+        if (proofItem) {
+            const [proofKind, proofKey] = proofItem.split(':');
+            if (proofKind === 'audio') {
+                const audioPath = await resolveCountryAudio({ country: countryCode, baseName: proofKey });
+                if (!audioPath) {
+                    console.warn(`[FUNIL] Audio de prova nao encontrado: ${countryCode}/${proofKey}`);
+                } else {
+                    const sent = await sendAudio(jid, audioPath, true, outboundSendOptions());
+                    sentAudios.push({ baseName: proofKey, sent, purpose: 'prova', item: proofItem });
+                    console.log(`[FUNIL-PROVA] audio ${proofKey} -> ${jid} | sent=${sent}`);
+                    if (sent) {
+                        completedNow.push('proof:one');
+                        completedNow.push(`audio:${proofKey}`);
+                        await markPurposeItemSent({
+                            contactStateId,
+                            agentKey: 'vit_power_ec',
+                            purpose: 'prova',
+                            item: proofItem
+                        });
+                        await recordInitialFunnelStepMessage({
+                            jid,
+                            peerPhone,
+                            body: `[AUDIO] ${proofKey}`,
+                            type: 'audio',
+                            mediaPath: audioPath
+                        });
+                        await sleep(initialFunnelStepDelayMs('audio'));
+                    }
+                }
+            } else if (proofKind === 'image') {
+                const media = getSalesMedia(proofKey);
+                if (!media) {
+                    console.warn(`[FUNIL] Prova social nao encontrada: ${proofKey}`);
+                } else {
+                    const proofIndex = INITIAL_PROOF_ITEMS.indexOf(proofItem);
+                    const caption = proofKey === 'vit_power_bottle'
+                        ? media.caption
+                        : buildInitialProofCaption({ customerContext, index: Math.max(0, proofIndex) });
+                    const sent = await sendImage(jid, media.path, caption, outboundSendOptions());
+                    sentImages.push({ key: proofKey, sent, purpose: 'prova', item: proofItem });
+                    console.log(`[FUNIL-PROVA] imagem ${proofKey} -> ${jid} | sent=${sent}`);
+                    if (sent) {
+                        completedNow.push('proof:one');
+                        completedNow.push(`image:${proofKey}`);
+                        await markPurposeItemSent({
+                            contactStateId,
+                            agentKey: 'vit_power_ec',
+                            purpose: 'prova',
+                            item: proofItem
+                        });
+                        await recordInitialFunnelStepMessage({
+                            jid,
+                            peerPhone,
+                            body: `[IMAGEM] ${proofKey}`,
+                            type: 'image',
+                            mediaPath: media.path
+                        });
+                        await sleep(initialFunnelStepDelayMs('image'));
+                    }
+                }
+            }
         }
-        const media = getSalesMedia(proofKeys[index]);
+    }
+
+    if (!(await hasInboundInterrupt()) && includeBottle && !completedSteps.has('image:vit_power_bottle')) {
+        const media = getSalesMedia('vit_power_bottle');
         if (!media) {
-            console.warn(`[FUNIL] Prova social nao encontrada: ${proofKeys[index]}`);
+            console.warn('[FUNIL] Frasco Vit Power nao encontrado para entrada logistica.');
+        } else {
+            const sent = await sendImage(jid, media.path, media.caption || 'Este es el frasco oficial de Vit Power para Ecuador.', outboundSendOptions());
+            sentImages.push({ key: 'vit_power_bottle', sent, purpose: 'produto', item: 'image:vit_power_bottle' });
+            console.log(`[FUNIL-PRODUTO] imagem vit_power_bottle -> ${jid} | sent=${sent}`);
+            if (sent) {
+                completedNow.push('image:vit_power_bottle');
+                await recordInitialFunnelStepMessage({
+                    jid,
+                    peerPhone,
+                    body: '[IMAGEM] vit_power_bottle',
+                    type: 'image',
+                    mediaPath: media.path
+                });
+                await sleep(initialFunnelStepDelayMs('image'));
+            }
+        }
+    }
+
+    for (const baseName of extraAudioNames.filter(Boolean)) {
+        if (await hasInboundInterrupt()) break;
+        const stepKey = `audio:${baseName}`;
+        if (completedSteps.has(stepKey)) {
+            sentAudios.push({ baseName, sent: false, skipped: 'already_done', purpose: 'extra' });
             continue;
         }
-        const caption = proofKeys[index].includes('bottle')
-            ? media.caption
-            : buildInitialProofCaption({ customerContext, index });
-        const sent = await sendImage(jid, media.path, caption, { sessionId });
-        sentImages.push({ key: proofKeys[index], sent });
-        console.log(`[FUNIL-INICIAL] imagem ${proofKeys[index]} -> ${jid} | sent=${sent}`);
+        const audioPath = await resolveCountryAudio({ country: countryCode, baseName });
+        if (!audioPath) {
+            console.warn(`[FUNIL] Audio extra nao encontrado: ${countryCode}/${baseName}`);
+            continue;
+        }
+        const sent = await sendAudio(jid, audioPath, true, outboundSendOptions());
+        sentAudios.push({ baseName, sent, purpose: 'extra' });
+        console.log(`[FUNIL-EXTRA] audio ${baseName} -> ${jid} | sent=${sent}`);
         if (sent) {
             completedNow.push(stepKey);
             await recordInitialFunnelStepMessage({
                 jid,
                 peerPhone,
-                body: `[IMAGEM] ${proofKeys[index]}`,
-                type: 'image'
+                body: `[AUDIO] ${baseName}`,
+                type: 'audio',
+                mediaPath: audioPath
             });
+            await sleep(initialFunnelStepDelayMs('audio'));
         }
-        if (sent) await sleep(initialFunnelStepDelayMs('image'));
     }
 
     const priceText = includePrice
         ? (priceTextOverride || buildInitialPriceText(customerContext))
         : '';
+    let priceAudioSent = false;
+    if (includePrice && !completedSteps.has('audio:TRATAMENTO_Y_PRECIOS_PROMOCAO')) {
+        const priceAudioPath = await resolveCountryAudio({
+            country: countryCode,
+            baseName: 'TRATAMENTO_Y_PRECIOS_PROMOCAO'
+        });
+        if (priceAudioPath) {
+            await sleep(initialFunnelStepDelayMs('audio'));
+            if (!(await hasInboundInterrupt())) {
+                priceAudioSent = await sendAudio(jid, priceAudioPath, true, outboundSendOptions());
+                console.log(`[FUNIL-INICIAL] audio TRATAMENTO_Y_PRECIOS_PROMOCAO -> ${jid} | sent=${priceAudioSent}`);
+                if (priceAudioSent) {
+                    completedNow.push('audio:TRATAMENTO_Y_PRECIOS_PROMOCAO');
+                    await recordInitialFunnelStepMessage({
+                        jid,
+                        peerPhone,
+                        body: '[AUDIO] TRATAMENTO_Y_PRECIOS_PROMOCAO',
+                        type: 'audio',
+                        mediaPath: priceAudioPath
+                    });
+                }
+            }
+        }
+    }
+
     let priceSent = false;
     if (!includePrice) {
         priceSent = false;
@@ -2737,7 +4664,7 @@ const sendInitialProductPresentation = async ({
         } else {
             await sleep(initialFunnelStepDelayMs('price'));
             if (!(await hasInboundInterrupt())) {
-                priceSent = await sendText(jid, priceText, null, { sessionId });
+                priceSent = await sendText(jid, priceText, null, outboundSendOptions());
                 console.log(`[FUNIL-INICIAL] texto de preco -> ${jid} | sent=${priceSent}`);
                 if (priceSent) {
                     completedNow.push('text:price');
@@ -2746,30 +4673,6 @@ const sendInitialProductPresentation = async ({
                         peerPhone,
                         body: priceText,
                         type: 'chat'
-                    });
-                }
-            }
-        }
-    }
-
-    let priceAudioSent = false;
-    if (priceSent) {
-        const priceAudioPath = await resolveCountryAudio({
-            country: countryCode,
-            baseName: 'TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6'
-        });
-        if (priceAudioPath) {
-            await sleep(initialFunnelStepDelayMs('audio'));
-            if (!(await hasInboundInterrupt())) {
-                priceAudioSent = await sendAudio(jid, priceAudioPath, true, { sessionId });
-                console.log(`[FUNIL-INICIAL] audio TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6 -> ${jid} | sent=${priceAudioSent}`);
-                if (priceAudioSent) {
-                    completedNow.push('audio:TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6');
-                    await recordInitialFunnelStepMessage({
-                        jid,
-                        peerPhone,
-                        body: '[AUDIO] TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6',
-                        type: 'audio'
                     });
                 }
             }
@@ -2785,19 +4688,32 @@ const sendInitialProductPresentation = async ({
         priceSent,
         priceAudioSent,
         priceText: priceSent ? priceText : '',
+        greetingAudioSent,
+        greetingAudioBaseName,
+        greetingPeriod,
+        greetingSentAt,
         interrupted,
         completedSteps: allCompletedSteps,
         completedNow,
-        isComplete: expectedInitialStepsForCountry(countryCode).every((step) => allCompletedSteps.includes(step))
+        isComplete: expectedInitialStepsForCountry({ includePrice }).every((step) => allCompletedSteps.includes(step))
     };
 };
 
 const buildCustomerMemory = async ({ chatId, customerContext, phoneDigits = '' }) => {
     const digits = digitsOnly(phoneDigits) || String(chatId || '').replace(/\D/g, '');
     const phoneTail = digits.length >= 10 ? digits.slice(-10) : digits;
+    const messageScope = phoneTail
+        ? {
+            $or: [
+                { chatId },
+                { peerPhone: { $regex: `${phoneTail}$` } },
+                { chatId: { $regex: `${phoneTail}@` } }
+            ]
+        }
+        : { chatId };
 
     const [recentMessages, latestOrder] = await Promise.all([
-        Message.find({ chatId }).sort({ createdAt: -1 }).limit(12).lean(),
+        Message.find(messageScope).sort({ createdAt: -1 }).limit(18).lean(),
         phoneTail
             ? Order.findOne({
                 country: 'EC',
@@ -2835,23 +4751,58 @@ const buildCustomerMemory = async ({ chatId, customerContext, phoneDigits = '' }
 };
 
 const inferIntent = (text) => {
-    const body = String(text || '').toLowerCase();
+    const body = normalizeForDecision(text);
     if (!body.trim()) return 'unknown';
+    if (isSimpleGreeting(text)) return 'greeting';
+    if (/(guia|rastreo|rastreamento|codigo|c[oó]digo|numero de guia)/i.test(body)) return 'guide_request';
+    if (/(retirar|retiro|agencia|servientrega|ya llego|llego mi pedido|listo para retirar)/i.test(body)) return 'pickup_request';
+    if (/(gracias|obrigado|recibi|recebi|llego|chegou|me llego|ya tengo)/i.test(body)) return 'post_sale';
     if (/(despu[eé]s|luego|mas tarde|m[aá]s tarde|fin de mes|final de mes|quincena|cuando cobre|cuando me paguen|para despues|para despu[eé]s|solo estoy viendo|solo quiero saber)/i.test(body)) return 'buy_later';
+    if (/(descuento|rebaja|menos|barato|caro|costoso|mucho)/i.test(body)) return 'price_resistance';
     if (/(precio|valor|cu[aá]nto|cuanto|cost[aá]|promo)/i.test(body)) return 'price_check';
+    if (/(funciona|sirve|resultado|resultados|testimonio|prueba|real|verdad|confianza)/i.test(body)) return 'proof_request';
+    if (/(composicion|composicion|ingrediente|ingredientes|que tiene|contiene)/i.test(body)) return 'composition_question';
+    if (/(liquido|l[ií]quido|orina|prostata|pr[oó]stata)/i.test(body)) return 'symptom_question';
+    if (/(1 frasco|2 frascos|3 frascos|6 frascos|un frasco|dos frascos|tres frascos|seis frascos|\buno\b|\bdos\b|\btres\b|\bseis\b)/i.test(body)) return 'quantity_selection';
+    if (/(confirmo|confirmado|envialo|envie|mande|mandelo|prepara|prepare|hagale|listo|de una|hoy)/i.test(body)) return 'closing';
     if (/(quiero|me interesa|deseo|llevar|comprar)/i.test(body)) return 'purchase_intent';
-    if (/(env[ií]o|entrega|direcci[oó]n|ciudad)/i.test(body)) return 'shipping_info';
+    if (/(nombre|apellido|direccion|direcci[oó]n|ciudad|provincia|departamento|referencia|barrio)/i.test(body)) return 'customer_data';
+    if (/(env[ií]o|entrega|domicilio|casa|agencia|servientrega|oficina|ciudad)/i.test(body)) return 'shipping_info';
     if (/(diabet|presi[oó]n|hiperten|cirug)/i.test(body)) return 'contraindication_question';
     return 'general_question';
 };
 
+const funnelBucketForIntent = (intent, text = '') => {
+    if (intent === 'greeting') return '01_ENTRADA';
+    if (['price_check', 'composition_question', 'symptom_question', 'contraindication_question', 'shipping_info'].includes(intent)) return '02_QUALIFICACAO';
+    if (['proof_request'].includes(intent)) return '03_PROVA';
+    if (['price_resistance', 'buy_later'].includes(intent)) return '04_OBJECAO';
+    if (['purchase_intent'].includes(intent)) return '05_OFERTA';
+    if (['quantity_selection', 'customer_data', 'closing'].includes(intent) || looksLikeOrderDataMessage(text)) return '06_FECHAMENTO';
+    if (['guide_request', 'pickup_request'].includes(intent)) return '07_LOGISTICA';
+    if (['post_sale'].includes(intent)) return '08_POSVENDA';
+    return '02_QUALIFICACAO';
+};
+
+const buyerScoreForIntent = (intent, text = '') => {
+    let score = 10;
+    if (isInitialProductInquiry(text)) score += 20;
+    if (['price_check', 'proof_request', 'shipping_info'].includes(intent)) score += 15;
+    if (['purchase_intent', 'quantity_selection'].includes(intent)) score += 35;
+    if (['customer_data', 'closing'].includes(intent) || looksLikeOrderDataMessage(text)) score += 50;
+    if (['price_resistance', 'buy_later'].includes(intent)) score -= 10;
+    if (['guide_request', 'pickup_request', 'post_sale'].includes(intent)) score = 100;
+    return Math.max(0, Math.min(100, score));
+};
+
 const detectRequestedQuantity = (text) => {
-    const body = normalizeFieldLabel(text);
+    const body = normalizeFieldLabel(text)
+        .replace(/\btre\b(?=\s*(botella|botellas|frasco|frascos|mes|meses|tratamiento|tratamientos|producto|productos)\b)/g, 'tres');
     if (!body) return null;
 
     const words = body.split(/\s+/).filter(Boolean);
     const wordSet = new Set(words);
-    const hasQuantityContext = /\b(frasco|frascos|botella|botellas|mes|meses|tratamiento|tratamientos|producto|productos|unidad|unidades|llevar|quiero|deseo|deme|mandeme|envie|envia|pedido)\b/i.test(body);
+    const hasQuantityContext = /\b(frasco|frascos|botella|botellas|mes|meses|tratamiento|tratamientos|producto|productos|unidad|unidades|llevar|quiero|deseo|deme|mandeme|mandame|mande|envie|envia|envieme|envime|enviar|pedido|separe|separar|reserve|reservar|aparteme|aparte|dejeme|deje)\b/i.test(body);
     const isShortQuantityReply = words.length <= 3;
 
     if (
@@ -2863,10 +4814,45 @@ const detectRequestedQuantity = (text) => {
         || (wordSet.has('tres') && (hasQuantityContext || isShortQuantityReply))
     ) return 3;
     if (
+        /\b2\b/.test(body)
+        || (wordSet.has('dos') && (hasQuantityContext || isShortQuantityReply))
+    ) return 2;
+    if (
         /\b1\b/.test(body)
         || ((wordSet.has('un') || wordSet.has('uno') || wordSet.has('una')) && (hasQuantityContext || isShortQuantityReply))
     ) return 1;
     return null;
+};
+
+const detectUnsupportedPackageQuantity = (text) => {
+    const body = normalizeFieldLabel(text);
+    if (!body) return 0;
+    const words = body.split(/\s+/).filter(Boolean);
+    const wordSet = new Set(words);
+    const hasQuantityContext = /\b(frasco|frascos|botella|botellas|botellon|botellones|mes|meses|tratamiento|tratamientos|producto|productos|unidad|unidades|paquete|promo|promocion|llevar|quiero|deseo|deme|mandeme|mandame|mande|envie|envia|envieme|enviar|pedido|separe|separar|reserve|reservar|aparteme|aparte|dejeme|deje|precio|valor|cuanto|cu[aá]nto|rebaja|descuento)\b/i.test(body);
+    if (!hasQuantityContext) return 0;
+
+    const digitMatch = body.match(/\b([0-9]{1,2})\b/);
+    if (digitMatch) {
+        const parsed = Number.parseInt(digitMatch[1], 10);
+        if (Number.isFinite(parsed) && parsed > 0 && !VALID_PACKAGE_QUANTITIES.includes(parsed)) return parsed;
+    }
+
+    const wordQuantities = [
+        [4, 'cuatro'],
+        [5, 'cinco'],
+        [7, 'siete'],
+        [8, 'ocho'],
+        [9, 'nueve'],
+        [10, 'diez']
+    ];
+    const found = wordQuantities.find(([, word]) => wordSet.has(word));
+    return found ? found[0] : 0;
+};
+
+const unsupportedPackageQuantityReplyText = (quantity) => {
+    const qtyText = quantity ? `de ${quantity} frascos` : 'esa cantidad';
+    return `Le entiendo, señor. Paquete ${qtyText} no tenemos activo.\n\nLa promoción oficial de hoy está para 1, 3 o 6 frascos.\n\n¿Cuál desea reservar?`;
 };
 
 const detectPurchaseReadiness = (text) => {
@@ -2881,12 +4867,18 @@ const detectPurchaseReadiness = (text) => {
 };
 
 const buildQuantityConfirmationReply = ({ quantity, customerContext }) => {
-    const ecPrices = { 1: '39 USD', 3: '95.99 USD', 6: '167.99 USD' };
+    const ecPrices = { 1: '39 USD', 2: '70 USD', 3: '95.99 USD', 6: '167.99 USD' };
     const prices = ecPrices;
-    const label = `${quantity} frasco${quantity > 1 ? 's' : ''}`;
+    const packageLabels = {
+        1: '1 botella',
+        2: '2 botellas',
+        3: '3 botellas',
+        6: '6 botellas'
+    };
+    const label = packageLabels[quantity] || `${quantity} botellas`;
     const price = prices[quantity] || '';
 
-    return `¡Excelente decisión! Le envío ${label}${price ? ` por ${price}` : ''}. ¿Listo?`;
+    return `Le envio ${label}${price ? ` por ${price}` : ''}. ¿Listo?`;
 };
 
 const shouldConfirmPackageQuantity = ({ text, agentMemory = {} }) => {
@@ -2903,11 +4895,180 @@ const shouldConfirmPackageQuantity = ({ text, agentMemory = {} }) => {
     return (hasInitialPresentation || stage === 'initial_product_presentation') ? quantity : 0;
 };
 
+const strongQuantityShortcutFromText = ({
+    text,
+    pendingCheckoutStage = '',
+    pendingCheckoutOrder = null,
+    agentMemory = {}
+}) => {
+    const quantity = detectRequestedQuantity(text);
+    if (!quantity) return 0;
+    if (looksLikeOrderDataMessage(text)) return 0;
+
+    const blockedStages = new Set([
+        'awaiting_agency_selection',
+        'awaiting_agency_selection_interrupt'
+    ]);
+    if (blockedStages.has(String(pendingCheckoutStage || ''))) return 0;
+
+    const stage = String(agentMemory.lastFunnelStage || '');
+    const hasInitialPresentation = Boolean(
+        agentMemory.initialProductPresentationSentAt
+        || agentMemory.initialProductPresentationPriceSentAt
+        || (Array.isArray(agentMemory.initialProductPresentationSteps)
+            && agentMemory.initialProductPresentationSteps.includes('text:price'))
+    );
+    const principalStage = isPrincipalSdrStage(pendingCheckoutStage);
+    const packageStage = [
+        'awaiting_quantity_data',
+        'awaiting_package_choice',
+        'awaiting_one_bottle_choice',
+        'awaiting_package_choice_after_agency',
+        'sdr_after_initial',
+        'sdr_awaiting_quantity',
+        'sdr_awaiting_name',
+        'sdr_awaiting_city_province'
+    ].includes(String(pendingCheckoutStage || ''));
+
+    if (
+        hasInitialPresentation
+        || stage === 'initial_product_presentation'
+        || stage === 'package_selection'
+        || principalStage
+        || packageStage
+        || !pendingCheckoutOrder
+    ) {
+        return quantity;
+    }
+    return 0;
+};
+
+const sendSelectedQuantityConfirmation = async ({
+    chatId,
+    peerPhone,
+    text,
+    selectedQuantity,
+    customerContext,
+    agentProfile,
+    contactStateId,
+    sessionId = null
+}) => {
+    const replyText = buildQuantityConfirmationReply({
+        quantity: selectedQuantity,
+        customerContext
+    });
+
+    await sendQuantitySelectionAudio({
+        jid: chatId,
+        countryCode: customerContext.countryCode,
+        quantity: selectedQuantity,
+        sessionId,
+        peerPhone
+    });
+
+    const sent = await sendText(chatId, replyText, null, { sessionId });
+    if (!sent) return false;
+
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_quantity_confirm`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body: replyText,
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (e) { }
+
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: replyText,
+        inferredIntent: 'purchase_intent',
+        inferredFunnelStage: 'package_selection',
+        inferredObjection: null
+    });
+
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.selectedQuantity`]: selectedQuantity,
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'package_selection',
+                [`metadata.perAgentMemory.${agentProfile.key}.pendingCheckoutOrder`]: {
+                    phone: peerPhone,
+                    quantity: selectedQuantity,
+                    total: getSelectedOffer(customerContext, { quantity: selectedQuantity }).total,
+                    valueConfirmed: false,
+                    stage: 'sdr_awaiting_value_confirmation',
+                    funnelStage: 'sdr_awaiting_value_confirmation',
+                    lastQuestionSent: replyText,
+                    conversationSummary: 'Cliente escolheu quantidade e aguarda confirmacao para seguir pedido.'
+                },
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrStage`]: 'sdr_awaiting_value_confirmation',
+                [`metadata.perAgentMemory.${agentProfile.key}.principalSdrUpdatedAt`]: new Date()
+            }
+        }
+    );
+    console.log(`[FUNIL] Quantidade confirmada apos tabela -> ${chatId} | quantidade=${selectedQuantity}`);
+    return true;
+};
+
+const sendUnsupportedQuantityRedirect = async ({
+    chatId,
+    peerPhone,
+    text,
+    unsupportedQuantity,
+    agentProfile,
+    contactStateId,
+    sessionId = null
+}) => {
+    const replyText = unsupportedPackageQuantityReplyText(unsupportedQuantity);
+    const sent = await sendText(chatId, replyText, null, { sessionId });
+    if (!sent) return false;
+
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_quantity_redirect`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body: replyText,
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (e) { }
+
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: replyText,
+        inferredIntent: 'quantity_selection',
+        inferredFunnelStage: 'package_selection',
+        inferredObjection: 'unsupported_quantity'
+    });
+
+    console.log(`[FUNIL] Quantidade sem pacote redirecionada -> ${chatId} | quantidade=${unsupportedQuantity || 'desconhecida'}`);
+    return true;
+};
+
 const inferFunnelStage = (text, customerContext, agentProfile) => {
     const body = String(text || '').toLowerCase();
+    const intent = inferIntent(text);
+    if (['guide_request', 'pickup_request'].includes(intent)) return 'logistics';
+    if (intent === 'post_sale') return 'post_sale';
+    if (intent === 'proof_request') return 'proof_requested';
+    if (intent === 'price_resistance') return 'objection_price';
     if (detectPurchaseReadiness(text) === 'buy_later') return 'buy_later_followup';
     if (/(nombre|direccion|direcci[oó]n|ciudad|provincia|barrio|departamento|referencia)/i.test(body)) return 'collecting_customer_data';
-    if (/(1 frasco|3 frascos|6 frascos|un frasco|tres frascos|seis frascos)/i.test(body)) return 'package_selection';
+    if (/(1 frasco|2 frascos|3 frascos|6 frascos|un frasco|dos frascos|tres frascos|seis frascos)/i.test(body)) return 'package_selection';
     if (/(precio|valor|promo|promoci[oó]n)/i.test(body)) return 'offer_presented';
     return 'qualification';
 };
@@ -2954,22 +5115,139 @@ const shouldRunInitialProductPresentation = ({ text, agentProfile, contactState 
     if (!isInitialProductInquiry(text)) return false;
 
     const agentMemory = (((contactState?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {});
+    if (
+        agentMemory.initialProductPresentationSentAt
+        || agentMemory.initialProductPresentationCompletedAt
+        || agentMemory.initialProductPresentationPriceSentAt
+        || (Array.isArray(agentMemory.initialProductPresentationSteps) && agentMemory.initialProductPresentationSteps.length > 0)
+    ) {
+        return false;
+    }
     return !isInitialProductPresentationDone(agentMemory, countryCodeForAgentProfile(agentProfile));
 };
 
+const isDeliveryTimeQuestionText = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    return /\bpara\s+cuando\b/i.test(body)
+        || /\bcuando\b.*\b(llega|llegar|entrega|entregan|envian|envio|pedido|producto)\b/i.test(body)
+        || /\bcuanto\b.*\b(demora|tarda)\b.*\b(llegar|llega|entrega|envio|pedido|producto)\b/i.test(body)
+        || /\b(en\s+)?cuantos\s+dias\b/i.test(body);
+};
+
+const shouldRunLogisticInitialPresentation = ({ text, agentProfile, contactState }) => {
+    if (!shouldRunInitialProductPresentation({ text, agentProfile, contactState })) return false;
+    return isDeliveryTimeQuestionText(text);
+};
+
 const shouldRestartInitialProductPresentationAfterClosedOrder = ({ text, agentProfile, contactState }) => {
-    const isCommercialAgent = agentProfile?.key === 'vit_power_ec';
-    if (!isCommercialAgent) return false;
-    if (!isInitialProductInquiry(text)) return false;
-    if (looksLikeOrderDataMessage(text)) return false;
+    return false;
+};
 
-    const metadata = contactState?.metadata || {};
-    const agentMemory = ((metadata.perAgentMemory || {})[agentProfile.key] || {});
-    if (!isInitialProductPresentationDone(agentMemory, countryCodeForAgentProfile(agentProfile))) return false;
+const holdForHuman = async ({
+    contactStateId,
+    agentProfile,
+    reason,
+    note = ''
+}) => {
+    if (!contactStateId) return;
+    const prefix = `metadata.perAgentMemory.${agentProfile.key}`;
+    const pausedUntil = reason === 'order_closed_human_handoff'
+        ? new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000)
+        : null;
+    const pauseFields = pausedUntil
+        ? {
+            'human.mode': 'manual',
+            'human.pausedUntil': pausedUntil,
+            [`${prefix}.automationPausedUntil`]: pausedUntil,
+            [`${prefix}.humanPausedUntil`]: pausedUntil,
+            [`${prefix}.lastFunnelStage`]: 'order_closed',
+            'metadata.lastKnownFunnelStage': 'order_closed',
+            'metadata.automationPausedUntil': pausedUntil,
+            'metadata.automationPausedReason': reason
+        }
+        : {};
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`${prefix}.humanHandoffAt`]: new Date(),
+                [`${prefix}.humanHandoffReason`]: reason,
+                'metadata.automationHandoffSuggestedReason': reason,
+                'metadata.automationHandoffSuggestedAt': new Date(),
+                'metadata.automationHandoffSuggestedNote': note || (pausedUntil
+                    ? 'Pedido fechado. Automacao pausada para evitar novo ciclo de funil.'
+                    : 'Handoff sugerido pelo funil, sem pausar a automacao.'),
+                ...pauseFields
+            }
+        }
+    );
+};
 
-    return agentMemory.lastFunnelStage === 'order_closed'
-        || metadata.lastKnownFunnelStage === 'order_closed'
-        || Boolean(agentMemory.orderClosedThankYouSentAt);
+const hasAnyInitialProductPresentation = (agentMemory = {}) => Boolean(
+    agentMemory.initialProductPresentationSentAt
+    || agentMemory.initialProductPresentationCompletedAt
+    || agentMemory.initialProductPresentationPriceSentAt
+    || agentMemory.initialProductPresentationAttemptedAt
+    || agentMemory.initialProductPresentationFailedAt
+    || agentMemory.initialProductPresentationBlockedAt
+    || (Array.isArray(agentMemory.initialProductPresentationSteps) && agentMemory.initialProductPresentationSteps.length > 0)
+    || (Array.isArray(agentMemory.initialProductPresentationAudios) && agentMemory.initialProductPresentationAudios.some((item) => item?.sent))
+    || (Array.isArray(agentMemory.initialProductPresentationImages) && agentMemory.initialProductPresentationImages.some((item) => item?.sent))
+);
+
+const initialFunnelRetryCooldownMs = () => {
+    const hours = Number.parseInt(process.env.INITIAL_FUNNEL_FAILED_RETRY_COOLDOWN_HOURS || '24', 10);
+    return Math.max(1, Number.isFinite(hours) ? hours : 24) * 60 * 60 * 1000;
+};
+
+const acquireInitialFunnelSendLock = async ({ contactStateId, agentProfile }) => {
+    if (!contactStateId || !agentProfile?.key) return false;
+    const prefix = `metadata.perAgentMemory.${agentProfile.key}`;
+    const now = new Date();
+    const staleLock = new Date(Date.now() - 10 * 60 * 1000);
+    const attemptCutoff = new Date(Date.now() - initialFunnelRetryCooldownMs());
+    const result = await ContactState.updateOne(
+        {
+            _id: contactStateId,
+            $and: [
+                { $or: [
+                    { [`${prefix}.initialProductPresentationSentAt`]: { $exists: false } },
+                    { [`${prefix}.initialProductPresentationSentAt`]: null },
+                    { [`${prefix}.initialProductPresentationSentAt`]: '' }
+                ] },
+                { $or: [
+                    { [`${prefix}.initialProductPresentationSteps.0`]: { $exists: false } },
+                    { [`${prefix}.initialProductPresentationSteps`]: { $size: 0 } }
+                ] },
+                { $or: [
+                    { [`${prefix}.initialProductPresentationAttemptedAt`]: { $exists: false } },
+                    { [`${prefix}.initialProductPresentationAttemptedAt`]: null },
+                    { [`${prefix}.initialProductPresentationAttemptedAt`]: '' },
+                    { [`${prefix}.initialProductPresentationAttemptedAt`]: { $lte: attemptCutoff } }
+                ] },
+                { $or: [
+                    { [`${prefix}.initialFunnelSendLockAt`]: { $exists: false } },
+                    { [`${prefix}.initialFunnelSendLockAt`]: { $lte: staleLock } }
+                ] }
+            ]
+        },
+        {
+            $set: {
+                [`${prefix}.initialFunnelSendLockAt`]: now,
+                [`${prefix}.initialProductPresentationAttemptedAt`]: now
+            }
+        }
+    );
+    return result.modifiedCount > 0;
+};
+
+const releaseInitialFunnelSendLock = async ({ contactStateId, agentProfile }) => {
+    if (!contactStateId || !agentProfile?.key) return;
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        { $unset: { [`metadata.perAgentMemory.${agentProfile.key}.initialFunnelSendLockAt`]: '' } }
+    ).catch(() => null);
 };
 
 const resetInitialProductPresentationMemory = async ({ contactStateId, agentProfile }) => {
@@ -2985,6 +5263,10 @@ const resetInitialProductPresentationMemory = async ({ contactStateId, agentProf
                 [`${prefix}.initialProductPresentationSteps`]: '',
                 [`${prefix}.initialProductPresentationAudios`]: '',
                 [`${prefix}.initialProductPresentationImages`]: '',
+                [`${prefix}.initialProductPresentationAttemptedAt`]: '',
+                [`${prefix}.initialProductPresentationFailedAt`]: '',
+                [`${prefix}.initialProductPresentationFailedReason`]: '',
+                [`${prefix}.initialProductPresentationBlockedAt`]: '',
                 [`${prefix}.lastRepeatedInitialProductBlockedAt`]: '',
                 [`${prefix}.lastRepeatedInitialProductText`]: '',
                 [`${prefix}.repeatedInitialProductBlockedCount`]: '',
@@ -3008,13 +5290,42 @@ const normalizeForDecision = (value) => String(value || '')
 
 const isCommercialOrderAgent = (agentProfile) => agentProfile?.key === 'vit_power_ec';
 
+const isExplicitNewPurchaseAfterClosedOrder = (text) => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    if (isPostOrderCourtesyText(text) || isLogisticsAfterOrderText(text)) return false;
+    if (!isInitialProductInquiry(text)) return false;
+    return /\b(quiero|deseo|comprar|compra|nuevo pedido|otro pedido|otro producto|vit power|producto|frasco|frascos|precio|valor|promocion|promo)\b/i.test(body);
+};
+
 const isOrderCloseAffirmation = (text) => {
     const body = normalizeForDecision(text);
     if (!body) return false;
-    if (body.length > 80) return false;
-    return /^(si|sii|claro|correcto|correto|correcta|todo correcto|esta correcto|exacto|ok|okay|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|asi es|si senora|si gracias|vorrecto|vorecto)$/.test(body)
-        || /^(si|claro|correcto|correto|correcta|ok|listo|perfecto|confirmo|confirmado|de acuerdo|dale|hagale|ya|ahora|hoy|de una|vorrecto|vorecto)\b/.test(body)
-        || /(envialo|envie|mande|mandelo|prepare|prepara|hagale|si puede enviar|si env)/i.test(body);
+    if (body.length > 120) return false;
+    return /^(si|sim|sii|claro|correcto|correto|certo|cierto|correcta|correcto gracias|ok correcto|ok esta correcto|todo correcto|todo certo|todo bien|todo ok|esta correcto|esta correcta|esta bien|esta bueno|exacto|asi esta bien|me parece bien|ok|okay|listo|perfecto|esta perfecto|confirmo|confirmado|confirmo la compra|confirmo el pedido|confirmo despacho|de acuerdo|dale|hagale|adelante|proceda|puede proceder|puede enviar|autorizo|autorizado|aprobado|acepto|aceptado|vale|bueno|bien|asi es|si senora|si gracias|ok gracias|bien gracias|mande nomas|envie nomas|envielo nomas|mandelo nomas|vorrecto|vorecto)$/.test(body)
+        || /^(si|sim|claro|correcto|correto|certo|cierto|correcta|correcto gracias|ok correcto|todo correcto|todo bien|todo ok|esta bien|ok|okay|listo|perfecto|confirmo|confirmado|confirmo la compra|confirmo el pedido|de acuerdo|dale|hagale|adelante|proceda|puede proceder|autorizo|autorizado|aprobado|acepto|aceptado|vale|bueno|bien|ya|ahora|hoy|de una|mande nomas|envie nomas|vorrecto|vorecto)\b/.test(body)
+        || /(envialo|envielo|envie|mande|mandelo|prepare|prepara|proceda|puede proceder|puede enviar|autorizo|autorizado|aprobado|acepto|confirmo|si puede enviar|si env|mande nomas|envie nomas|envielo nomas|mandelo nomas)/i.test(body);
+};
+
+export const __principalSdrContextAudit = {
+    normalizeForDecision,
+    detectRequestedQuantity,
+    principalSdrIsValueOfferAcceptance,
+    principalSdrIsConfirmationOnlyText,
+    isAgencyDeliveryConsent,
+    isHomeDeliveryChoice,
+    hasAgencyIndicationData,
+    principalSdrLocationFromText,
+    principalSdrMergeIncoming,
+    principalSdrMergeLocationAndAgencyDetails,
+    principalSdrApplyOfficialAgency,
+    principalSdrLooksLikeAgencyOrLocationAnswer,
+    principalSdrAgencyOptionsPageForOrder,
+    principalSdrAgencyListText,
+    selectAgencyOptionFromText,
+    looksLikeCustomerFullName,
+    isOrderCloseAffirmation,
+    principalSdrLooksLikeLocationCorrection
 };
 
 const looksLikeFinalOrderConfirmationPrompt = (text) => {
@@ -3067,16 +5378,17 @@ const buildOrderClosedThankYouText = ({ deliveryMode, customerContext }) => {
     }
 
     return [
-        'Gracias por confirmar sus datos.',
-        'En breve preparamos su pedido para entrega a domicilio. Quede atento al telefono cuando la transportadora se comunique con usted.',
+        '*Gracias por confirmar sus datos.*',
+        '*Su pedido fue confirmado para entrega a domicilio.*',
+        'En breve preparamos su pedido para envio a su direccion. Quede atento al telefono cuando la transportadora se comunique con usted.',
         'Guarde este numero como Ana - Vit Power, porque por aqui le aviso sobre la guia, la entrega y cualquier soporte de su pedido.'
     ].join('\n');
 };
 
-const LEAKED_AUDIO_MARKER_REGEX = /\[AUDIO\]\s*(Agradecimento_Agencia_01|Agradecimento_Agencia|AGRADECIMENTO(?:_AGENCIA)?|BONUS_RETIRADA)?/gi;
+const LEAKED_AUDIO_MARKER_REGEX = /\[AUDIO\]\s*(AGRADECIMENTO_AGENCIA_DE_ENTREGA|Agradecimento_Agencia_01|Agradecimento_Agencia|AGRADECIMENTO(?:_AGENCIA)?|BONUS_RETIRADA)?/gi;
 
 const hasLeakedOrderClosedAudioMarker = (replyText = '') => (
-    /\[AUDIO\]\s*(Agradecimento_Agencia_01|Agradecimento_Agencia|AGRADECIMENTO(?:_AGENCIA)?|BONUS_RETIRADA)/i.test(String(replyText || ''))
+    /\[AUDIO\]\s*(AGRADECIMENTO_AGENCIA_DE_ENTREGA|Agradecimento_Agencia_01|Agradecimento_Agencia|AGRADECIMENTO(?:_AGENCIA)?|BONUS_RETIRADA)/i.test(String(replyText || ''))
 );
 
 const removeLeakedAudioMarkers = (replyText = '') => String(replyText || '')
@@ -3129,12 +5441,14 @@ const shouldCloseOrderDeterministically = ({ text, agentProfile, history }) => {
 };
 
 const buildConversationSummary = ({ customerContext, intent, funnelStage, lastObjection, latestOrder, agentProfile }) => {
+    const funnelBucket = funnelBucketForIntent(intent, latestOrder?.conversationMemory?.lastCustomerText || '');
     const parts = [
         agentProfile?.key ? `agente=${agentProfile.key}` : null,
         customerContext.country ? `pais=${customerContext.country}` : null,
         customerContext.product ? `producto=${customerContext.product}` : null,
         intent ? `intencion=${intent}` : null,
         funnelStage ? `etapa=${funnelStage}` : null,
+        funnelBucket ? `funil=${funnelBucket}` : null,
         lastObjection ? `objecion=${lastObjection}` : null,
         latestOrder?.customer?.name ? `nombre=${latestOrder.customer.name}` : null,
         latestOrder?.customer?.city ? `ciudad=${latestOrder.customer.city}` : null
@@ -3157,16 +5471,36 @@ const shouldForceImage = ({ lastObjection, agentProfile, sentImageKeys = [] }) =
     const isCommercialAgent = agentProfile?.key === 'vit_power_ec';
     if (!isCommercialAgent) return null;
 
-    const missingInitialProofs = ['social_01', 'social_02'].filter((key) => !sentImageKeys.includes(key));
-    if (missingInitialProofs.length > 0) {
-        return missingInitialProofs;
-    }
-
     if (lastObjection === 'trust') {
-        return ['social_03', 'vit_power_bottle'];
+        return sentImageKeys.includes('social_03') ? 'vit_power_bottle' : 'social_03';
     }
 
     return null;
+};
+
+const preferredRecordedAudioForReply = ({ intent, lastObjection, funnelStage, replyText, agentProfile, lastAudioSent = '' }) => {
+    if (agentProfile?.key !== 'vit_power_ec') return null;
+    if (String(process.env.BOT_FAST_TEXT_ONLY || '').toLowerCase() === 'true') return null;
+    if (funnelStage === 'collecting_customer_data') return null;
+
+    const body = String(replyText || '').toLowerCase();
+    let candidate = null;
+
+    if (lastObjection === 'trust' || intent === 'proof_request') {
+        candidate = 'DEPOIMENTO_AUDIO_PRODUTO';
+    } else if (intent === 'price_check' || /(precio|valor|promoci[oó]n|promo|frasco|frascos|botella|botellas)/i.test(body)) {
+        candidate = 'TRATAMENTO_Y_PRECIOS_PROMOCAO';
+    } else if (intent === 'purchase_intent') {
+        candidate = 'QUANTOS_FRASCOS_E_DIA_QUERES';
+    } else if (intent === 'shipping_info') {
+        candidate = 'ENVIO_AGENCIA_100_SEGURO';
+    } else if (/(funciona|sirve|resultado|resultados)/i.test(body)) {
+        candidate = 'FUNCIONA_VIT_POWER';
+    } else if (/(como se toma|tomar|toma|capsula|c[aá]psula|liquido|l[ií]quido)/i.test(body)) {
+        candidate = 'COMO_SE_TOMA_VIT_POWER';
+    }
+
+    return candidate && candidate !== lastAudioSent ? candidate : null;
 };
 
 const shouldUseTextOnly = ({ replyText, intent, funnelStage }) => {
@@ -3212,10 +5546,7 @@ const updateOrderConversationMemory = async ({ chatId, customerContext, text, ag
     const currentStage = latestOrder.conversationMemory?.funnelStage || '';
     const orderIsClosed = ['confirmed', 'delivered', 'picked_up', 'pickedUp'].includes(String(latestOrder.status || ''))
         || currentStage === 'order_closed';
-    const wantsNewPurchase = /\b(quiero|deseo|comprar|nuevo pedido|otro pedido|vit power|producto|frasco|frascos|precio|promocion|promo)\b/i.test(normalizeForDecision(text))
-        && isInitialProductInquiry(text)
-        && !isPostOrderCourtesyText(text)
-        && !isLogisticsAfterOrderText(text);
+    const wantsNewPurchase = isExplicitNewPurchaseAfterClosedOrder(text);
 
     if (orderIsClosed && !wantsNewPurchase) {
         latestOrder.conversationMemory = {
@@ -3297,6 +5628,304 @@ const avoidRepeatedReply = ({ replyText, history, agentProfile }) => {
     return `${String(replyText || '').trim()}${suffix}`;
 };
 
+const buildAttendanceRescueText = ({ inboundText = '', customerContext = {} } = {}) => {
+    const text = normalizeFieldLabel(inboundText);
+    if (/\b(precio|valor|cuanto|cuanto cuesta|promo|promocion|frasco|frascos)\b/i.test(text)) {
+        return 'Claro, sigo con usted. En Ecuador tenemos 1 frasco por 39 USD, 3 por 95.99 USD y 6 por 167.99 USD. Con cual opcion desea empezar?';
+    }
+    if (/\b(quiero|deseo|comprar|pedido|confirmar|confirmo|mande|envie|envieme|agencia|domicilio)\b/i.test(text)) {
+        return 'Perfecto, sigo con su pedido. Para dejarlo sin error, me envia nombre completo, ciudad y si prefiere agencia Servientrega o domicilio?';
+    }
+    if (/\b(audio|voz|escuche|escuchar|nota)\b/i.test(text)) {
+        return 'Le leo por aqui, senor. Para ayudarle sin error, escribame en una frase si su duda es sobre precio, como tomar, agencia o pedido.';
+    }
+    if (/\b(diabetes|presion|hipertension|medicamento|cirugia|corazon|salud|enfermedad)\b/i.test(text)) {
+        return 'Le entiendo. Si tiene una condicion de salud o toma medicamentos, lo mejor es revisar con su profesional de confianza antes de usarlo. Desea que le comparta la informacion general del producto?';
+    }
+    const country = customerContext?.countryCode === 'EC' ? 'en Ecuador' : '';
+    return `Sigo con usted ${country}. Para ayudarle bien, desea informacion del producto o quiere avanzar con su pedido?`.replace(/\s+/g, ' ').trim();
+};
+
+const recordBotTextMessage = async ({ chatId, peerPhone = '', body, suffix = 'rescue' }) => {
+    if (!body) return;
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_${suffix}`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body,
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (e) { }
+};
+
+const firstResponseSlaEnabled = () => (
+    String(process.env.WHATSAPP_FIRST_RESPONSE_SLA_ENABLED || 'true').toLowerCase() === 'true'
+);
+
+const firstResponseSlaAckText = () => {
+    const variants = [
+        'Hola, soy Ana Lopez. Ya le atiendo por aquí con Vit Power.',
+        'Hola, soy Ana Lopez. Ya reviso su mensaje y le explico paso a paso.',
+        'Hola, soy Ana Lopez. Le atiendo por aquí, un momento.'
+    ];
+    return variants[Math.floor(Math.random() * variants.length)];
+};
+
+const shouldSendFirstResponseSlaAck = ({ agentProfile, alreadyIntroduced, agentMemorySnapshot = {}, restartInitialProductPresentation = false } = {}) => {
+    if (!firstResponseSlaEnabled()) return false;
+    if (agentProfile?.key !== 'vit_power_ec') return false;
+    if (restartInitialProductPresentation) return false;
+    if (alreadyIntroduced) return false;
+    return !hasAnyInitialProductPresentation(agentMemorySnapshot);
+};
+
+const sendFirstResponseSlaAck = async ({
+    chatId,
+    peerPhone = '',
+    sessionId = null,
+    contactStateId = null,
+    agentProfile = AGENT_PROFILES.vit_power_ec,
+    inboundText = '',
+    alreadyIntroduced = false,
+    agentMemorySnapshot = {},
+    restartInitialProductPresentation = false
+} = {}) => {
+    if (!shouldSendFirstResponseSlaAck({
+        agentProfile,
+        alreadyIntroduced,
+        agentMemorySnapshot,
+        restartInitialProductPresentation
+    })) {
+        return false;
+    }
+
+    const ackText = firstResponseSlaAckText();
+    const phoneKey = digitsOnly(peerPhone || chatId).slice(-10) || digitsOnly(chatId);
+    const sent = await sendText(chatId, ackText, null, {
+        sessionId,
+        firstResponseSla: true,
+        skipAfterSendPacing: true,
+        humanize: false,
+        allowExistingDropiOrder: true,
+        outboundContext: 'first_response_sla_ack',
+        antiSpamKey: `first_response_sla_ack:${phoneKey}`
+    });
+    if (!sent) {
+        console.warn(`[FIRST-RESPONSE-SLA] ack inicial nao entregue -> ${chatId}`);
+        return false;
+    }
+
+    await recordBotTextMessage({
+        chatId,
+        peerPhone,
+        body: ackText,
+        suffix: 'first_response_sla_ack'
+    });
+    if (contactStateId && agentProfile?.key) {
+        await ContactState.updateOne(
+            { _id: contactStateId },
+            {
+                $set: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.firstResponseSlaAckAt`]: new Date(),
+                    [`metadata.perAgentMemory.${agentProfile.key}.firstResponseSlaAckText`]: ackText,
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'first_response_sla_ack',
+                    'metadata.lastKnownFunnelStage': 'first_response_sla_ack'
+                }
+            }
+        ).catch(() => null);
+    }
+    console.log(`[FIRST-RESPONSE-SLA] ack inicial enviado -> ${chatId}`);
+    return true;
+};
+
+const sendAttendanceRescueText = async ({
+    chatId,
+    peerPhone = '',
+    sessionId = null,
+    inboundText = '',
+    customerContext = {},
+    contactStateId = '',
+    agentProfile = null,
+    inferredIntent = 'attendance_rescue',
+    inferredFunnelStage = 'attendance_rescue',
+    inferredObjection = null,
+    reason = 'unknown'
+} = {}) => {
+    const rescueText = buildAttendanceRescueText({ inboundText, customerContext });
+    const sent = await sendText(chatId, rescueText, null, {
+        sessionId,
+        force: true,
+        allowTextDedupeBypass: true,
+        allowHistoryDedupeBypass: true,
+        allowExistingDropiOrder: true,
+        humanize: false,
+        outboundContext: `attendance_rescue_${reason}`,
+        antiSpamKey: `attendance_rescue:${digitsOnly(peerPhone || chatId).slice(-10)}:${reason}:${Date.now()}`
+    });
+    if (!sent) {
+        console.warn(`[ATTENDANCE-RESCUE] falhou envio de resgate -> ${chatId} | reason=${reason}`);
+        return false;
+    }
+    await recordBotTextMessage({ chatId, peerPhone, body: rescueText, suffix: `attendance_rescue_${reason}` });
+    if (contactStateId && agentProfile?.key) {
+        await updateContactStateAgentMemory({
+            contactStateId,
+            agentProfile,
+            inboundText,
+            outboundText: rescueText,
+            inferredIntent,
+            inferredFunnelStage,
+            inferredObjection
+        });
+    }
+    console.log(`[ATTENDANCE-RESCUE] texto de contingencia enviado -> ${chatId} | reason=${reason}`);
+    return true;
+};
+
+const optInRescueContinueText = () => (
+    'Perfecto, seguimos. Hoy puede reservar Vit Power y recibe un bono especial en el momento de retirar su pedido.\n\n'
+    + 'La promoción está así: 1 frasco por 39 USD, 3 frascos por 95.99 USD y 6 frascos por 167.99 USD.\n\n'
+    + '¿Con cuál opción desea continuar: 1, 3 o 6?'
+);
+
+const hasRecentOptInRescueBonus = (contactState = {}) => {
+    const sentAt = contactState?.metadata?.reengagement?.optInRescueBonusSentAt
+        || contactState?.metadata?.optInRescueBonusSentAt
+        || '';
+    if (!sentAt) return false;
+    const sentAtMs = new Date(sentAt).getTime();
+    if (!sentAtMs) return false;
+    const maxAgeMs = Math.max(1, Number.parseInt(process.env.OPT_IN_RESCUE_REPLY_WINDOW_DAYS || '7', 10) || 7) * 24 * 60 * 60 * 1000;
+    return Date.now() - sentAtMs <= maxAgeMs;
+};
+
+const isOptInRescueContinueText = (text = '') => {
+    const body = normalizeFieldLabel(text);
+    return /\b(continuar|continua|sigo|sigamos|quiero seguir|quiero continuar|si quiero|sí quiero|me interesa|quiero vit power|quiero comprar)\b/i.test(body);
+};
+
+const maybeHandleOptInRescueContinue = async ({
+    text,
+    chatId,
+    peerPhone,
+    sessionId = null,
+    contactState,
+    contactStateId,
+    agentProfile
+}) => {
+    if (agentProfile?.key !== 'vit_power_ec') return false;
+    if (!hasRecentOptInRescueBonus(contactState)) return false;
+    if (!isOptInRescueContinueText(text)) return false;
+
+    const replyText = optInRescueContinueText();
+    const sent = await sendText(chatId, replyText, null, {
+        sessionId,
+        outboundContext: 'opt_in_rescue_continue',
+        dedupeValue: `opt_in_rescue_continue:${digitsOnly(peerPhone || chatId).slice(-10)}`
+    });
+    if (!sent) return false;
+
+    await recordBotTextMessage({
+        chatId,
+        peerPhone,
+        body: replyText,
+        suffix: 'opt_in_rescue_continue'
+    });
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: replyText,
+        inferredIntent: 'purchase_intent',
+        inferredFunnelStage: 'package_selection',
+        inferredObjection: null
+    });
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.optInRescueContinuedAt`]: new Date(),
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'package_selection',
+                'metadata.lastKnownFunnelStage': 'package_selection'
+            }
+        }
+    ).catch(() => null);
+    console.log(`[OPT-IN-RESCUE] cliente respondeu continuar; opcoes enviadas -> ${chatId}`);
+    return true;
+};
+
+const lastQuestionFromText = (text = '') => {
+    const matches = String(text || '').match(/[^?¿]*[?]/g);
+    if (!matches || matches.length === 0) return '';
+    return matches[matches.length - 1].trim();
+};
+
+const lastRecordedAudioFromText = (text = '') => {
+    const matches = [...String(text || '').matchAll(/\[ENVIAR_AUDIO_GRAVADO:\s*([a-zA-Z0-9_,-]+)\]/gi)];
+    if (!matches.length) return '';
+    const names = matches[matches.length - 1][1]
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    return names[names.length - 1] || '';
+};
+
+const buildConversationStateMemory = ({
+    state,
+    agentProfile,
+    inboundText,
+    outboundText,
+    inferredIntent,
+    inferredFunnelStage,
+    inferredObjection,
+    funnelBucket,
+    buyerScore,
+    sentRecordedAudioNames = []
+}) => {
+    const previous = (((state.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).conversationState || {};
+    const pendingOrder = (((state.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).pendingCheckoutOrder || {};
+    const lastQuestion = lastQuestionFromText(outboundText) || previous.last_question_sent || '';
+    const lastAudio = sentRecordedAudioNames[sentRecordedAudioNames.length - 1] || lastRecordedAudioFromText(outboundText) || previous.last_audio_sent || '';
+    const quantity = pendingOrder.quantity || pendingOrder.packageQuantity || pendingOrder.selectedQuantity || previous.quantity || '';
+    const total = pendingOrder.total || pendingOrder.totalValue || previous.total || '';
+    const stage = inferredFunnelStage || pendingOrder.stage || previous.stage || 'inicio';
+
+    return {
+        phone: state.phoneDigits || previous.phone || '',
+        name: pendingOrder.name || pendingOrder.customerName || previous.name || '',
+        province: pendingOrder.province || previous.province || '',
+        city: pendingOrder.city || previous.city || '',
+        address: pendingOrder.address || previous.address || '',
+        reference: pendingOrder.reference || previous.reference || '',
+        agency: pendingOrder.agency || pendingOrder.agencyName || previous.agency || '',
+        quantity,
+        total,
+        profile_type: funnelBucket || inferredIntent || previous.profile_type || '',
+        stage,
+        buyer_score: buyerScore || previous.buyer_score || '',
+        last_audio_sent: lastAudio,
+        last_question_sent: lastQuestion,
+        last_objection: inferredObjection || previous.last_objection || '',
+        conversation_summary: buildConversationSummary({
+            customerContext: customerContextFromCountryCode('EC', state.phoneDigits || ''),
+            intent: inferredIntent,
+            funnelStage: stage,
+            lastObjection: inferredObjection,
+            latestOrder: null,
+            agentProfile
+        }) || previous.conversation_summary || '',
+        scheduled_date: previous.scheduled_date || '',
+        scheduled_reason: previous.scheduled_reason || '',
+        do_not_ship_before: Boolean(previous.do_not_ship_before),
+        followup_status: previous.followup_status || ''
+    };
+};
+
 const updateContactStateAgentMemory = async ({
     contactStateId,
     agentProfile,
@@ -3305,19 +5934,37 @@ const updateContactStateAgentMemory = async ({
     inferredIntent,
     inferredFunnelStage,
     inferredObjection,
-    sentImageKeys = []
+    sentImageKeys = [],
+    sentRecordedAudioNames = []
 }) => {
     if (!contactStateId) return;
 
     const state = await ContactState.findById(contactStateId);
     if (!state) return;
 
+    const funnelBucket = funnelBucketForIntent(inferredIntent, inboundText);
+    const buyerScore = buyerScoreForIntent(inferredIntent, inboundText);
+    const conversationState = buildConversationStateMemory({
+        state,
+        agentProfile,
+        inboundText,
+        outboundText,
+        inferredIntent,
+        inferredFunnelStage,
+        inferredObjection,
+        funnelBucket,
+        buyerScore,
+        sentRecordedAudioNames
+    });
+
     state.lastOutboundAt = new Date();
     state.metadata = {
         ...(state.metadata || {}),
         lastKnownIntent: inferredIntent,
         lastKnownFunnelStage: inferredFunnelStage,
+        lastKnownFunnelBucket: funnelBucket,
         lastKnownObjection: inferredObjection,
+        buyerScore,
         perAgentMemory: {
             ...((state.metadata || {}).perAgentMemory || {}),
             [agentProfile.key]: {
@@ -3328,7 +5975,12 @@ const updateContactStateAgentMemory = async ({
                 lastOutboundText: outboundText,
                 lastIntent: inferredIntent,
                 lastFunnelStage: inferredFunnelStage,
+                lastFunnelBucket: funnelBucket,
                 lastObjection: inferredObjection,
+                buyerScore,
+                conversationState,
+                lastQuestionSent: conversationState.last_question_sent,
+                lastAudioSent: conversationState.last_audio_sent,
                 sentImageKeys: [
                     ...new Set([
                         ...((((state.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).sentImageKeys || []),
@@ -3355,19 +6007,21 @@ const maybeHandleAgencyLookupInterrupt = async ({
     sessionId = null
 }) => {
     if (checkoutOrderData) return false;
-    if (!isAgencyDeliveryChoice(text)) return false;
+    if (isPrincipalSdrStage(pendingCheckoutStage)) return false;
     if (isHomeDeliveryChoice(text)) return false;
+    const agencyDetails = parseAgencyDetailsMessage(text);
+    const hasAgencyLookup = Boolean(agencyDetails.agencyValidated || agencyDetails.agencyOptions?.length);
+    const isAgencyCorrectionAfterInterrupt = pendingCheckoutStage === 'awaiting_package_choice_after_agency' && hasAgencyLookup;
+    if (!isAgencyDeliveryChoice(text) && !isAgencyCorrectionAfterInterrupt) return false;
     if ([
         'awaiting_agency_selection',
         'awaiting_agency_selection_interrupt',
-        'awaiting_package_choice_after_agency',
         'awaiting_customer_name',
         'awaiting_agency_confirmation'
     ].includes(pendingCheckoutStage) || isCheckoutDataCollectionStage(pendingCheckoutStage)) {
         return false;
     }
 
-    const agencyDetails = parseAgencyDetailsMessage(text);
     if (!agencyDetails.agencyValidated && !agencyDetails.agencyOptions?.length) return false;
 
     const hasQuantity = Boolean(pendingCheckoutOrder?.quantity);
@@ -3461,19 +6115,38 @@ const maybeHandleAgencyLookupInterrupt = async ({
 
 const checkoutBridgeLine = () => {
     const variants = [
-        'Le leo 😊 Para no perder su pedido, seguimos aqui:',
+        'Le leo. Para no perder su pedido, seguimos aqui:',
         'Claro, le entiendo. Dejemos esta parte lista:',
-        'Perfecto, sigo con usted. Para avanzar sin error:',
+        'Sigo con usted. Para avanzar sin error:',
         'Gracias por escribirme. Retomamos el pedido aqui:',
-        'Si, claro. Para cerrar bien su envio:'
+        'Si, claro. Vamos paso a paso para cerrar bien el envio:'
     ];
     return variants[Math.floor(Math.random() * variants.length)];
 };
 
 const pendingCheckoutFallbackText = (stage, pendingCheckoutOrder = {}) => {
     const bridge = checkoutBridgeLine();
+    if (isPrincipalSdrStage(stage)) {
+        if (stage === 'sdr_awaiting_name') return principalSdrNameRequestText();
+        if (stage === 'sdr_awaiting_city') return bridge + '\n' + principalSdrCityRequestText(pendingCheckoutOrder);
+        if (stage === 'sdr_awaiting_province') return bridge + '\n' + principalSdrProvinceRequestText(pendingCheckoutOrder);
+        if (stage === 'sdr_awaiting_city_province') return bridge + '\n' + principalSdrCityRequestText(pendingCheckoutOrder);
+        if (stage === 'sdr_awaiting_quantity') return bridge + '\n¿Cuántos frascos desea reservar hoy? 1, 3 o 6.';
+        if (stage === 'sdr_awaiting_value_confirmation') return bridge + '\n¿Está bien para usted reservar esa promoción hoy?';
+        if (stage === 'sdr_awaiting_delivery_mode') return bridge + '\n' + agencyFirstDeliveryQuestionText();
+        if (stage === 'sdr_awaiting_agency_query') return bridge + '\nEnvíeme su sector o una agencia cercana para buscar la mejor Servientrega.';
+        if (stage === 'sdr_awaiting_agency_selection') {
+            if ((pendingCheckoutOrder.agencyOptions || []).length === 1) {
+                return bridge + '\n' + principalSdrAgencyListText(pendingCheckoutOrder.agencyOptions || []);
+            }
+            return bridge + '\nResponda con A, B o C para elegir la agencia correcta.';
+        }
+        if (stage === 'sdr_awaiting_home_address') return bridge + '\nEnvíeme dirección completa, barrio o sector y, si tiene, una referencia cercana. Punto de referencia para la entrega a domicilio.';
+        if (stage === 'sdr_awaiting_final_confirmation') return bridge + '\nRevise los datos y responda SI o CONFIRMO para autorizar el despacho.';
+        if (stage === 'sdr_scheduled_followup') return bridge + '\n¿Qué día desea que le escribamos nuevamente?';
+    }
     if (stage === 'awaiting_delivery_mode') {
-        return `${bridge}\nMe confirma si desea retirar en una agencia Servientrega o recibir en su domicilio? Si es agencia, puede escribir por ejemplo: agencia Cayambe.`;
+        return `${bridge}\nPrefiere retirar en una agencia Servientrega o recibir en su domicilio? Si es agencia, puede escribir por ejemplo: agencia Cayambe.`;
     }
     if (['awaiting_agency_selection', 'awaiting_agency_selection_interrupt'].includes(stage)) {
         return `${bridge}\n${buildAgencyOptionsSelectionText(pendingCheckoutOrder)}`;
@@ -3485,7 +6158,7 @@ const pendingCheckoutFallbackText = (stage, pendingCheckoutOrder = {}) => {
         return `${bridge}\n${buildCustomerNameRetryText()}`;
     }
     if (stage === 'awaiting_agency_details') {
-        return `${bridge}\nPara ubicar bien la agencia, me envia ciudad, provincia y nombre o direccion de la agencia Servientrega donde desea retirar.`;
+        return `${bridge}\nPara ubicar bien la agencia, me envia ciudad, provincia y el nombre o direccion de la Servientrega donde desea retirar.`;
     }
     if (stage === 'awaiting_customer_data') {
         const missingKeys = missingCheckoutFieldKeys(pendingCheckoutOrder);
@@ -3495,17 +6168,44 @@ const pendingCheckoutFallbackText = (stage, pendingCheckoutOrder = {}) => {
         'awaiting_customer_name_data',
         'awaiting_city_province',
         'awaiting_home_address',
+        'awaiting_reference',
         'awaiting_quantity_data'
     ].includes(stage)) {
         const missingKeys = missingCheckoutFieldKeys(pendingCheckoutOrder);
         return `${bridge}\n${buildMissingCheckoutFieldText({ parsedOrder: pendingCheckoutOrder, missing: missingCheckoutFields(pendingCheckoutOrder), missingKeys })}`;
     }
     if (stage === 'awaiting_agency_confirmation') {
-        return `${bridge}\nMe confirma si los datos del pedido estan correctos para proceder con el envio hoy mismo?`;
+        return `${bridge}\nRevise por favor si los datos estan correctos. Si todo esta bien, preparo el envio hoy mismo.`;
     }
-    if (stage === 'awaiting_reference') {
-        const missingKeys = missingCheckoutFieldKeys(pendingCheckoutOrder);
-        return `${bridge}\n${buildMissingCheckoutFieldText({ parsedOrder: pendingCheckoutOrder, missing: missingCheckoutFields(pendingCheckoutOrder), missingKeys })}`;
+    return '';
+};
+
+
+const strictVitalismenFunnelEnabled = (agentProfile) => agentProfile?.key === 'vit_power_ec';
+
+const strictVitalismenFallbackText = ({ pendingCheckoutStage = '', pendingCheckoutOrder = {}, agentMemorySnapshot = {} } = {}) => {
+    if (pendingCheckoutStage) {
+        const stageFallback = pendingCheckoutFallbackText(pendingCheckoutStage, pendingCheckoutOrder || {});
+        if (stageFallback) return stageFallback;
+    }
+
+    const stage = String(
+        pendingCheckoutStage
+        || pendingCheckoutOrder?.stage
+        || pendingCheckoutOrder?.funnelStage
+        || agentMemorySnapshot?.principalSdrStage
+        || agentMemorySnapshot?.lastFunnelStage
+        || ''
+    );
+
+    if (hasAnyInitialProductPresentation(agentMemorySnapshot) || stage === 'initial_product_presentation') {
+        return 'Señor, para seguir sin error, indíqueme cuántos frascos desea reservar hoy: 1, 3 o 6.';
+    }
+    if (stage === 'package_selection') {
+        return 'Perfecto. ¿Está bien para usted reservar esa promoción hoy?';
+    }
+    if (agentMemorySnapshot?.selectedQuantity) {
+        return 'Perfecto. Para continuar con su pedido, me confirma su nombre completo por favor.';
     }
     return '';
 };
@@ -3595,11 +6295,27 @@ const hasOrderClosedContext = ({ contactState, agentProfile, history = [], custo
     const closedAt = agentMemory.orderClosedThankYouSentAt
         ? new Date(agentMemory.orderClosedThankYouSentAt).getTime()
         : 0;
-    const closed = agentMemory.lastFunnelStage === 'order_closed'
+    const testResetAt = Math.max(
+        metadata.testPhoneResetAt ? new Date(metadata.testPhoneResetAt).getTime() : 0,
+        metadata.cleanTestResetAt ? new Date(metadata.cleanTestResetAt).getTime() : 0,
+        agentMemory.resetAt ? new Date(agentMemory.resetAt).getTime() : 0
+    );
+    const explicitClosed = agentMemory.lastFunnelStage === 'order_closed'
+        || agentMemory.principalSdrStage === 'order_closed'
         || metadata.lastKnownFunnelStage === 'order_closed'
-        || ['confirmed', 'delivered', 'picked_up', 'pickedUp'].includes(String(customerProfile?.status || ''))
+        || metadata.orderStatus === 'PEDIDO_CONFIRMADO'
+        || metadata.automationPausedReason === 'order_closed_human_handoff'
+        || agentMemory.humanHandoffReason === 'order_closed_human_handoff'
         || customerProfile?.conversationMemory?.funnelStage === 'order_closed'
-        || Boolean(closedAt)
+        || Boolean(closedAt);
+    if (isNoDropiBotTestPhone(contactState?.phoneDigits) && testResetAt && (!closedAt || testResetAt >= closedAt)) {
+        return { closed: false, closedAt: 0, agentMemory, metadata };
+    }
+    if (metadata.botTestEnabled && metadata.noDropiEver && !explicitClosed) {
+        return { closed: false, closedAt: 0, agentMemory, metadata };
+    }
+    const closed = explicitClosed
+        || ['confirmed', 'delivered', 'picked_up', 'pickedUp'].includes(String(customerProfile?.status || ''))
         || hasRecentOrderClosedThankYou(history);
     return { closed, closedAt, agentMemory, metadata };
 };
@@ -3609,9 +6325,435 @@ const isLogisticsAfterOrderText = (text) => {
     return /(guia|pedido|estado|estatus|status|retirar|retiro|agencia|servientrega|cuando llega|cuando retiro|listo para retirar|ya esta)/i.test(body);
 };
 
-const postOrderLockWindowMs = () => {
-    const hours = Number.parseInt(String(process.env.POST_ORDER_NO_REOPEN_HOURS || '24'), 10);
-    return Math.max(1, Number.isFinite(hours) ? hours : 24) * 60 * 60 * 1000;
+const findLatestShipmentForPostOrder = async ({ peerPhone = '', contactState = null } = {}) => {
+    const tails = [
+        peerPhone,
+        contactState?.phoneDigits,
+        contactState?.metadata?.lastSenderPn,
+        contactState?.metadata?.customerPhoneDigits
+    ]
+        .map(digitsOnly)
+        .filter(Boolean)
+        .flatMap((digits) => [
+            digits,
+            digits.length >= 10 ? digits.slice(-10) : '',
+            digits.length >= 9 ? digits.slice(-9) : ''
+        ])
+        .filter((digits) => digits.length >= 8);
+    const uniqueTails = [...new Set(tails)];
+    if (!uniqueTails.length) return null;
+    return Shipment.findOne({
+        country: 'EC',
+        $or: uniqueTails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }))
+    }).sort({ updatedAt: -1, createdAt: -1 }).lean().catch(() => null);
+};
+
+const inboundDropiStatusSyncEnabled = () => (
+    String(process.env.DROPPI_INBOUND_STATUS_SYNC_ENABLED || 'true').toLowerCase() !== 'false'
+);
+
+const inboundDropiPhoneLookupEnabled = () => (
+    String(process.env.DROPPI_INBOUND_PHONE_LOOKUP_ENABLED || 'true').toLowerCase() !== 'false'
+);
+
+const shipmentHasDropiLookupReference = (shipment = null) => Boolean(
+    shipment?.logistics?.trackingNumber
+    || shipment?.automation?.submittedToDroppiAt
+    || shipment?.raw?.manualDropiOrderId
+    || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+    || shipment?.raw?.droppiOrder?.id
+    || shipment?.raw?.droppiOrder?.objects?.id
+);
+
+const dropiLookupTermsForShipment = (shipment = null) => {
+    const digits = digitsOnly(shipment?.client?.phone || '');
+    return [...new Set([
+        digits,
+        digits.startsWith('593') ? digits.slice(3) : '',
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 9 ? digits.slice(-9) : ''
+    ].filter((term) => term && term.length >= 8))];
+};
+
+const rowMatchesShipmentPhone = (row = {}, shipment = null) => {
+    const rowDigits = digitsOnly(row.phone || '');
+    const terms = dropiLookupTermsForShipment(shipment);
+    return Boolean(rowDigits && terms.some((term) => rowDigits.endsWith(term) || term.endsWith(rowDigits)));
+};
+
+const syncShipmentFromDropiPhoneLookup = async (shipment = null) => {
+    if (!shipment || !inboundDropiPhoneLookupEnabled()) return null;
+    const terms = dropiLookupTermsForShipment(shipment);
+    if (!terms.length) return null;
+    const result = await searchDroppiEcuadorOrdersFromPanel({ terms, limit: 5 });
+    if (!result?.ok || !Array.isArray(result.rows) || !result.rows.length) return null;
+    const row = result.rows.find((item) => rowMatchesShipmentPhone(item, shipment)) || result.rows[0];
+    if (!row) return null;
+    const synced = await upsertDroppiEcuadorShipment({
+        orderId: shipment.orderId,
+        productName: row.productName || shipment.productName || 'Vit Power',
+        clientName: row.clientName || shipment.client?.name || '',
+        phone: row.phone || shipment.client?.phone || '',
+        address: row.address || shipment.client?.address || '',
+        city: row.city || shipment.client?.city || '',
+        province: row.province || shipment.client?.province || '',
+        status: row.status || shipment.logistics?.status || 'created',
+        trackingNumber: row.trackingNumber || shipment.logistics?.trackingNumber || '',
+        distributionCompany: row.distributionCompany || shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || '',
+        chosenCarrier: row.distributionCompany || shipment.logistics?.chosenCarrier || '',
+        agencyPickup: row.agencyPickup ?? shipment.logistics?.agencyPickup,
+        agencyName: row.agencyName || shipment.logistics?.agencyName || '',
+        sessionId: shipment.automation?.sessionId || '',
+        dropiOrderId: row.dropiOrderId || '',
+        detail: `Sincronizacao sob demanda por telefone no inbound WhatsApp; termo(s): ${terms.join(', ')}`
+    });
+    return synced?.toObject ? synced.toObject() : synced;
+};
+
+const refreshPostOrderShipmentFromDropi = async ({ shipment = null, text = '' } = {}) => {
+    if (!shipment || !inboundDropiStatusSyncEnabled()) return shipment;
+    const currentStatus = postOrderShipmentStatus(shipment);
+    if (currentStatus.released || currentStatus.returned) return shipment;
+    if (!isLogisticsAfterOrderText(text) && !isExplicitNewPurchaseAfterClosedOrder(text)) return shipment;
+    if (!shipmentHasDropiLookupReference(shipment)) {
+        try {
+            const syncedByPhone = await syncShipmentFromDropiPhoneLookup(shipment);
+            return syncedByPhone || shipment;
+        } catch (error) {
+            console.warn(`[DROPI-INBOUND] busca por telefone falhou -> order=${shipment.orderId || ''}: ${error.message || error}`);
+            return shipment;
+        }
+    }
+
+    try {
+        const result = await syncDroppiEcuadorFromPanel({ shipment });
+        if (!result?.ok) {
+            console.warn(`[DROPI-INBOUND] sync sem atualizacao -> order=${shipment.orderId || ''} reason=${result?.reason || ''}`);
+            return shipment;
+        }
+        const refreshed = result.shipment?.toObject ? result.shipment.toObject() : result.shipment;
+        return refreshed || shipment;
+    } catch (error) {
+        console.warn(`[DROPI-INBOUND] sync falhou -> order=${shipment.orderId || ''}: ${error.message || error}`);
+        return shipment;
+    }
+};
+
+const postOrderShipmentStatus = (shipment = null) => {
+    if (!shipment) {
+        return { released: false, returned: false, active: true, status: 'confirmed_without_shipment' };
+    }
+    const status = String(shipment.logistics?.status || '').toUpperCase();
+    const released = Boolean(
+        shipment.outcomes?.pickedUp
+        || shipment.outcomes?.delivered
+        || shipment.automation?.deliveredConfirmedAt
+        || status === 'ENTREGADO'
+    );
+    const returned = Boolean(
+        shipment.outcomes?.returned
+        || shipment.outcomes?.prepaidOnly
+        || shipment.automation?.returnedNotifiedAt
+        || status === 'DEVUELTO'
+    );
+    return {
+        released,
+        returned,
+        active: !released && !returned,
+        status: status || 'shipment_active',
+        orderId: shipment.orderId || '',
+        trackingNumber: shipment.logistics?.trackingNumber || '',
+        agencyPickup: Boolean(shipment.logistics?.agencyPickup),
+        agencyName: shipment.logistics?.agencyName || '',
+        carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || shipment.logistics?.preferredCarrier || '',
+        clientCity: shipment.client?.city || '',
+        clientProvince: shipment.client?.province || ''
+    };
+};
+
+const humanShipmentStatusLabel = (status = '') => {
+    const value = String(status || '').toUpperCase();
+    if (value === 'READY_FOR_PICKUP') return 'listo para retirar';
+    if (value === 'GUIA_GENERADA') return 'guia generada';
+    if (['EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA'].includes(value)) return 'en camino';
+    if (value === 'ENTREGADO') return 'entregado/retirado';
+    if (value === 'DEVUELTO') return 'devuelto';
+    return value ? value.toLowerCase().replace(/_/g, ' ') : 'registrado';
+};
+
+const buildActiveShipmentStatusText = (shipmentStatus = {}) => {
+    const guide = shipmentStatus.trackingNumber ? `\nGuia: ${shipmentStatus.trackingNumber}` : '';
+    const carrier = shipmentStatus.carrier ? `\nTransportadora: ${shipmentStatus.carrier}` : '';
+    const agency = shipmentStatus.agencyName ? `\nAgencia: ${shipmentStatus.agencyName}` : '';
+    const status = String(shipmentStatus.status || '').toUpperCase();
+    if (status === 'READY_FOR_PICKUP') {
+        return [
+            'Señor, su pedido ya aparece listo para retirar.',
+            `${guide}${carrier}${agency}`.trim(),
+            'Por favor acerquese a la agencia con su documento. Cuando lo retire, me avisa por aqui para liberar el bono y continuar el seguimiento.'
+        ].filter(Boolean).join('\n\n');
+    }
+    if (shipmentStatus.trackingNumber) {
+        return [
+            `Señor, su pedido ya tiene guia y figura ${humanShipmentStatusLabel(status)}.`,
+            `${guide}${carrier}${agency}`.trim(),
+            shipmentStatus.agencyPickup
+                ? 'Si Servientrega lo marca listo para retirar, puede acercarse a la agencia con su documento.'
+                : 'Le voy acompañando por aqui con cualquier novedad de entrega.'
+        ].filter(Boolean).join('\n\n');
+    }
+    return 'Si, su pedido ya quedo registrado. Apenas tenga la guia o novedad de Servientrega, le aviso por aqui.';
+};
+
+const buildReleasedShipmentRepurchaseText = () => (
+    'Señor, este pedido ya aparece entregado o retirado. Si desea continuar el tratamiento y adquirir otros frascos, puedo abrir una recompra nueva usando sus datos registrados. Solo confirmeme si desea 1, 3 o 6 frascos.'
+);
+
+const buildRepeatPurchaseCheckoutOrder = ({ shipment = null, peerPhone = '' } = {}) => {
+    const client = shipment?.client || {};
+    const logistics = shipment?.logistics || {};
+    const agencyPickup = Boolean(
+        logistics.agencyPickup
+        || /agencia|servientrega|retiro|retirar/i.test([
+            logistics.shippingType,
+            logistics.agencyName,
+            client.address,
+            client.reference
+        ].filter(Boolean).join(' '))
+    );
+
+    return {
+        name: client.name || '',
+        phone: client.phone || peerPhone || '',
+        province: client.province || '',
+        city: client.city || '',
+        address: agencyPickup
+            ? (logistics.agencyName || logistics.warehouse || client.address || '')
+            : (client.address || ''),
+        reference: agencyPickup
+            ? (logistics.agencyName || logistics.chosenCarrier || client.reference || '')
+            : (client.reference || ''),
+        deliveryMode: agencyPickup ? 'agency' : 'home',
+        agencyName: agencyPickup ? (logistics.agencyName || '') : '',
+        agencyAddress: agencyPickup ? (client.address || logistics.warehouse || '') : '',
+        agencyValidated: Boolean(agencyPickup && logistics.agencyName),
+        previousOrderId: shipment?.orderId || '',
+        previousTrackingNumber: logistics.trackingNumber || '',
+        source: 'repeat_purchase_after_delivered',
+        stage: 'awaiting_quantity_data',
+        funnelStage: 'awaiting_quantity_data',
+        conversationSummary: 'Cliente voltou apos entrega/retirada confirmada. Historico preservado; solicitar quantidade e confirmar dados existentes.'
+    };
+};
+
+const repeatPurchaseQuantityPromptText = () => {
+    const variants = [
+        'Señor, este pedido ya aparece entregado o retirado. Si desea continuar el tratamiento y adquirir otros frascos, puedo abrir una recompra nueva usando sus datos registrados. Solo confirmeme si desea 1, 3 o 6 frascos.',
+        'Perfecto, señor. Como el pedido anterior ya figura retirado/entregado, abrimos una recompra nueva sin repetir todos los datos. Confirmeme por favor si desea 1, 3 o 6 frascos.',
+        'Con gusto, señor. El pedido anterior queda como historico; para continuar el tratamiento le abro una recompra nueva. Digame si desea 1, 3 o 6 frascos.'
+    ];
+    return variants[Math.floor(Math.random() * variants.length)];
+};
+
+const startRepeatPurchaseAfterReleasedShipment = async ({
+    text,
+    chatId,
+    peerPhone,
+    sessionId = null,
+    contactStateId = null,
+    agentProfile,
+    customerContext,
+    shipment
+}) => {
+    const pendingOrder = buildRepeatPurchaseCheckoutOrder({ shipment, peerPhone });
+    const replyText = repeatPurchaseQuantityPromptText();
+    await savePendingCheckoutOrderMemory({
+        contactStateId,
+        agentProfile,
+        parsedOrder: pendingOrder,
+        stage: 'awaiting_quantity_data',
+        orderId: null
+    });
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                'metadata.customerDraft': {
+                    name: pendingOrder.name || '',
+                    phone: pendingOrder.phone || peerPhone || '',
+                    province: pendingOrder.province || '',
+                    city: pendingOrder.city || '',
+                    address: pendingOrder.address || '',
+                    reference: pendingOrder.reference || '',
+                    country: customerContext.countryCode || 'EC',
+                    status: 'novo',
+                    quantity: '',
+                    total: '',
+                    orderId: '',
+                    previousOrderId: pendingOrder.previousOrderId || '',
+                    entryReason: 'repeat_purchase_after_delivered',
+                    updatedAt: new Date().toISOString()
+                },
+                'metadata.lastKnownFunnelStage': 'awaiting_quantity_data'
+            }
+        }
+    ).catch(() => null);
+    const sent = await sendText(chatId, replyText, null, {
+        sessionId,
+        allowExistingDropiOrder: true,
+        outboundContext: 'repeat_purchase_quantity_prompt',
+        dedupeValue: `repeat_purchase_quantity_prompt|${shipment?.orderId || digitsOnly(peerPhone || chatId)}`
+    });
+    if (!sent) {
+        await ContactState.updateOne(
+            { _id: contactStateId },
+            {
+                $set: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.repeatPurchasePromptBlockedAt`]: new Date(),
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'awaiting_quantity_data',
+                    'metadata.lastKnownFunnelStage': 'awaiting_quantity_data'
+                }
+            }
+        ).catch(() => null);
+        console.log(`[RECOMPRA] Prompt de recompra nao enviado, mas etapa preservada para evitar reinicio -> ${chatId}`);
+        return true;
+    }
+
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_repeat_purchase_quantity`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body: replyText,
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (e) { }
+
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: replyText,
+        inferredIntent: 'repeat_purchase',
+        inferredFunnelStage: 'awaiting_quantity_data',
+        inferredObjection: null
+    });
+    console.log(`[RECOMPRA] Cliente entregue/retirado liberado para novo pedido sem apagar historico -> ${chatId} | pedidoAnterior=${shipment?.orderId || ''}`);
+    return true;
+};
+
+const isPostSaleHowToUseQuestion = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    const asksUse = /\b(como|c[oó]mo|cuando|cu[aá]ndo|cuantas|cu[aá]ntas|dosis|tomar|toma|tomarlo|tomarlo|uso|usar|despues de comer|despu[eé]s de comer|antes de comer|en ayunas|cuantas veces|cu[aá]ntas veces|cada cuanto|cada cu[aá]nto)\b/i.test(body)
+        && /\b(toma|tomar|uso|usar|dosis|veces|comer|ayunas|frasco|producto|vit power|esto)\b/i.test(body);
+    const saysReceived = /\b(ya retire|ya retir[eé]|ya compre|ya compr[eé]|ya me llego|ya llego|ya lo tengo|ya tengo|me llego|lo retire|retire el producto|recibi|recib[ií])\b/i.test(body);
+    return asksUse || (saysReceived && /\b(como|c[oó]mo|toma|tomar|uso|usar|dosis)\b/i.test(body));
+};
+
+const postSaleHowToUseText = (text = '') => {
+    const body = normalizeForDecision(text);
+    const asksTiming = /\b(cuando|cu[aá]ndo|resultado|efecto|tiempo|temporal|por cuanto tiempo|por cu[aá]nto tiempo)\b/i.test(body);
+    const base = 'Claro, señor. Le ayudo con el uso de su Vit Power. Le envío la orientación para que lo revise con calma.';
+    const close = 'Su pedido sigue cerrado; no voy a abrir otro pedido ahora. Cualquier duda de uso me escribe por aquí.';
+    return asksTiming
+        ? `${base}\n\nTambién le envío una explicación corta sobre el tiempo de resultado, porque depende de cada organismo y de la constancia.\n\n${close}`
+        : `${base}\n\n${close}`;
+};
+
+const sendPostSaleHowToUseSupport = async ({
+    text,
+    chatId,
+    peerPhone,
+    sessionId,
+    contactStateId,
+    agentProfile,
+    customerContext,
+    shipmentStatus = {}
+}) => {
+    const replyText = postSaleHowToUseText(text);
+    const sent = await sendText(chatId, replyText, null, { sessionId });
+    const howToUseSent = await sendFirstApprovedAudioAndRecord({
+        jid: chatId,
+        countryCode: customerContext.countryCode,
+        sessionId,
+        peerPhone,
+        baseNames: ['COMO_SE_TOMA_VIT_POWER', 'COMO_TOMAR_VIT_POWER_SEM_REFERENCIA_QUANTIDADE_LITRO'],
+        label: 'pos-venda como tomar',
+        sendOptions: {
+            allowExistingDropiOrder: true,
+            outboundContext: 'post_sale_how_to_use'
+        }
+    });
+    const shouldSendResultTime = /\b(cuando|cu[aá]ndo|resultado|efecto|tiempo|temporal|por cuanto tiempo|por cu[aá]nto tiempo)\b/i.test(normalizeForDecision(text));
+    const resultTimeSent = shouldSendResultTime
+        ? await sendFirstApprovedAudioAndRecord({
+            jid: chatId,
+            countryCode: customerContext.countryCode,
+            sessionId,
+            peerPhone,
+            baseNames: ['TEMPO_RESULTADO_VIT_POWER', 'TRATAMENTO_CONTINUA_NAO_EFEITO_IMEDIATO'],
+            label: 'pos-venda tempo resultado',
+            sendOptions: {
+                allowExistingDropiOrder: true,
+                outboundContext: 'post_sale_result_time'
+            }
+        })
+        : false;
+
+    if (sent) {
+        try {
+            await Message.create({
+                _id: `out_${Date.now()}_post_sale_how_to_use`,
+                chatId,
+                peerPhone,
+                from: 'bot',
+                to: chatId,
+                body: replyText,
+                isFromMe: true,
+                isBot: true,
+                timestamp: Math.floor(Date.now() / 1000)
+            });
+        } catch (e) { }
+    }
+
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: [
+            replyText,
+            howToUseSent ? '[AUDIO] COMO_SE_TOMA_VIT_POWER' : '',
+            resultTimeSent ? '[AUDIO] TEMPO_RESULTADO_VIT_POWER' : ''
+        ].filter(Boolean).join('\n'),
+        inferredIntent: 'post_sale_how_to_use',
+        inferredFunnelStage: 'order_closed',
+        inferredObjection: null
+    });
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.postOrderHowToUseSentAt`]: new Date(),
+                [`metadata.perAgentMemory.${agentProfile.key}.postOrderHowToUseAudioSent`]: howToUseSent,
+                [`metadata.perAgentMemory.${agentProfile.key}.postOrderResultTimeAudioSent`]: resultTimeSent,
+                [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderShipmentStatus`]: shipmentStatus.status || '',
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+                [`metadata.perAgentMemory.${agentProfile.key}.postOrderNoResumeUntilPickup`]: true,
+                'metadata.lastKnownFunnelStage': 'order_closed'
+            },
+            $unset: {
+                [`metadata.perAgentMemory.${agentProfile.key}.pendingCheckoutOrder`]: ''
+            }
+        }
+    ).catch(() => null);
+
+    console.log(`[POS-VENDA] Como tomar tratado sem reabrir funil -> ${chatId} | audioUso=${howToUseSent} | audioTempo=${resultTimeSent}`);
+    return true;
 };
 
 const maybeHandleRecentOrderClosedLock = async ({
@@ -3623,11 +6765,12 @@ const maybeHandleRecentOrderClosedLock = async ({
     peerPhone,
     history = [],
     customerProfile = null,
+    customerContext,
     sessionId = null
 }) => {
     if (agentProfile?.key !== 'vit_power_ec') return false;
 
-    const { closed, closedAt, agentMemory } = hasOrderClosedContext({
+    const { closed, agentMemory } = hasOrderClosedContext({
         contactState,
         agentProfile,
         history,
@@ -3635,19 +6778,89 @@ const maybeHandleRecentOrderClosedLock = async ({
     });
     if (!closed) return false;
 
-    if (closedAt && Date.now() - closedAt > postOrderLockWindowMs()) return false;
+    let shipment = await findLatestShipmentForPostOrder({ peerPhone, contactState });
+    shipment = await refreshPostOrderShipmentFromDropi({ shipment, text });
+    const shipmentStatus = postOrderShipmentStatus(shipment);
+    const explicitNewPurchase = isExplicitNewPurchaseAfterClosedOrder(text);
+    const deliveryMode = String(agentMemory.orderClosedDeliveryMode || '').toLowerCase();
 
-    const shouldReply = isPostOrderCourtesyText(text)
-        || isLogisticsAfterOrderText(text);
+    if (isPostSaleHowToUseQuestion(text)) {
+        return sendPostSaleHowToUseSupport({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            customerContext,
+            shipmentStatus
+        });
+    }
 
-    if (!shouldReply || agentMemory.postOrderCourtesySentAt) {
-        console.log(`[FUNIL] Trava pos-fechamento bloqueou reabertura/spam -> ${chatId}`);
+    if (shipmentStatus.released && (explicitNewPurchase || isLogisticsAfterOrderText(text))) {
+        await ContactState.updateOne(
+            { _id: contactStateId },
+            {
+                $set: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.postOrderReleasedForNewOrderAt`]: new Date(),
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderShipmentStatus`]: shipmentStatus.status,
+                    'metadata.lastKnownFunnelStage': 'order_closed'
+                }
+            }
+        ).catch(() => null);
+        console.log(`[FUNIL] Pos-fechamento liberado para nova compra apos retirada/entrega -> ${chatId}`);
+        return startRepeatPurchaseAfterReleasedShipment({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            customerContext,
+            shipment
+        });
+    }
+
+    const lastCourtesyAt = agentMemory.postOrderCourtesySentAt
+        ? new Date(agentMemory.postOrderCourtesySentAt).getTime()
+        : 0;
+    const recentlyAnswered = lastCourtesyAt && Date.now() - lastCourtesyAt < 10 * 60 * 1000;
+    const shouldReply = shipmentStatus.returned
+        || explicitNewPurchase
+        || isLogisticsAfterOrderText(text)
+        || isPostOrderCourtesyText(text)
+        || !recentlyAnswered;
+
+    if (!shouldReply) {
+        if (!contactStateId) {
+            console.log(`[FUNIL] Trava pos-fechamento manteve memoria sem nova resposta -> ${chatId}`);
+            return true;
+        }
+        await ContactState.updateOne(
+            { _id: contactStateId },
+            {
+                $set: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+                    [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderBlockedAt`]: new Date(),
+                    'metadata.lastKnownFunnelStage': 'order_closed'
+                }
+            }
+        );
+        console.log(`[FUNIL] Trava pos-fechamento manteve memoria sem nova resposta -> ${chatId}`);
         return true;
     }
 
-    const replyText = isLogisticsAfterOrderText(text)
-        ? 'Si, su pedido ya queda confirmado. Por aqui le aviso cuando tenga guia y cuando este listo para retirar en Servientrega.'
-        : 'Con gusto 😊 Su pedido queda confirmado. Por aqui le aviso cuando tenga guia y cuando este listo para retirar.';
+    const replyText = shipmentStatus.returned
+        ? 'Señor, ese pedido figura devuelto o no retirado. Por seguridad el sistema bloquea nuevos envíos contra entrega para este número. Un asesor puede revisar el caso si necesita.'
+        : shipmentStatus.released
+            ? buildReleasedShipmentRepurchaseText()
+        : explicitNewPurchase && (deliveryMode === 'agency' || shipmentStatus.active)
+            ? buildActiveShipmentStatusText(shipmentStatus)
+            : isLogisticsAfterOrderText(text)
+        ? buildActiveShipmentStatusText(shipmentStatus)
+        : isPostOrderCourtesyText(text)
+            ? 'Con gusto. Su pedido ya quedo registrado. Yo le acompano por aqui con la guia y cualquier novedad.'
+            : 'Con gusto, señor. Su pedido ya está registrado; puedo ayudarle con dudas del pedido, guía o retiro, pero no abro otro cierre hasta que retire en agencia.';
     const sent = await sendText(chatId, replyText, null, { sessionId });
     if (sent) {
         try {
@@ -3672,18 +6885,221 @@ const maybeHandleRecentOrderClosedLock = async ({
             inferredFunnelStage: 'order_closed',
             inferredObjection: null
         });
+        const postOrderSet = {
+            [`metadata.perAgentMemory.${agentProfile.key}.postOrderCourtesySentAt`]: new Date(),
+            [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
+            [`metadata.perAgentMemory.${agentProfile.key}.postOrderNoResumeUntilPickup`]: true,
+            [`metadata.perAgentMemory.${agentProfile.key}.lastPostOrderShipmentStatus`]: shipmentStatus.status,
+            'metadata.lastKnownFunnelStage': 'order_closed'
+        };
+        if (shipmentStatus.returned) {
+            postOrderSet[`metadata.perAgentMemory.${agentProfile.key}.postOrderBlockedReason`] = 'returned_not_picked_up';
+            postOrderSet[`metadata.perAgentMemory.${agentProfile.key}.postOrderBlockedAt`] = new Date();
+            postOrderSet['metadata.customerBlockedReason'] = 'returned_not_picked_up';
+            postOrderSet['metadata.customerBlockedAt'] = new Date();
+        }
         await ContactState.updateOne(
             { _id: contactStateId },
             {
-                $set: {
-                    [`metadata.perAgentMemory.${agentProfile.key}.postOrderCourtesySentAt`]: new Date(),
-                    [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'order_closed',
-                    'metadata.lastKnownFunnelStage': 'order_closed'
+                $set: postOrderSet,
+                $unset: {
+                    [`metadata.perAgentMemory.${agentProfile.key}.pendingCheckoutOrder`]: ''
                 }
             }
         );
     }
     console.log(`[FUNIL] Trava pos-fechamento tratada; funil nao reiniciado -> ${chatId} | sent=${sent}`);
+    return true;
+};
+
+const INBOUND_NO_RESPONSE_MARKER = /^\[ENTRADA_SEM_RESPOSTA:([a-z0-9_:-]+)\]$/i;
+const unansweredDormantDays = () => {
+    const days = Number.parseInt(String(process.env.VIT_POWER_UNANSWERED_DORMANT_DAYS || '3'), 10);
+    return Math.max(1, Number.isFinite(days) ? days : 3);
+};
+
+const detectUnansweredInboundKind = ({ text = '', msg = {} } = {}) => {
+    const marker = String(text || '').trim().match(INBOUND_NO_RESPONSE_MARKER);
+    if (marker?.[1]) return marker[1];
+    const body = normalizeFieldLabel(text);
+    const hasOrganicSocialLink = /\btiktok\.com\/\S+|\bvt\.tiktok\.com\/\S+|\bfacebook\.com\/\S+|\binstagram\.com\/\S+/i.test(String(text || ''));
+    if (hasOrganicSocialLink && body.length <= 280) return 'organic_social_link';
+    const hasLink = /\bhttps?:\/\/\S+|\bwww\.\S+|\bwa\.me\/\S+|\bt\.me\/\S+|\btiktok\.com\/\S+|\bfacebook\.com\/\S+|\binstagram\.com\/\S+/i.test(String(text || ''));
+    if (hasLink && body.length <= 280) return 'link';
+    if (msg.inboundFallbackReason) return String(msg.inboundFallbackReason);
+    if (msg.inboundWasLid && !body) return 'lid';
+    return '';
+};
+
+const previousInboundMessageForContact = async ({ chatId, peerPhone, currentMessageId }) => {
+    const tail = digitsOnly(peerPhone).slice(-8);
+    const or = [{ chatId }];
+    if (tail) or.push({ peerPhone: { $regex: `${tail}$` } });
+    return Message.findOne({
+        $or: or,
+        isFromMe: false,
+        isBot: false,
+        ...(currentMessageId ? { _id: { $ne: currentMessageId } } : {})
+    }).sort({ timestamp: -1, createdAt: -1 }).lean().catch(() => null);
+};
+
+const latestOrderForContact = async ({ peerPhone, chatId }) => {
+    const tails = [digitsOnly(peerPhone), digitsOnly(chatId)]
+        .filter(Boolean)
+        .flatMap((digits) => [digits, digits.slice(-8), digits.slice(-10), digits.slice(-11)])
+        .filter((digits) => digits.length >= 7);
+    const uniqueTails = [...new Set(tails)];
+    if (!uniqueTails.length) return null;
+    return Order.findOne({
+        $or: uniqueTails.map((tail) => ({ 'customer.phone': { $regex: `${tail}$` } }))
+    }).sort({ updatedAt: -1, createdAt: -1 }).lean().catch(() => null);
+};
+
+const hasRecentPurchaseIntentForContact = async ({ peerPhone, chatId, currentMessageId }) => {
+    const tail = digitsOnly(peerPhone).slice(-8);
+    const or = [{ chatId }];
+    if (tail) or.push({ peerPhone: { $regex: `${tail}$` } });
+    const recentMessages = await Message.find({
+        $or: or,
+        ...(currentMessageId ? { _id: { $ne: currentMessageId } } : {})
+    }).sort({ timestamp: -1, createdAt: -1 }).limit(30).lean().catch(() => []);
+    return recentMessages.some((message) => {
+        const body = normalizeFieldLabel(message.body || '');
+        return /\b(quiero|deseo|comprar|llevar|pedido|ordenar|envie|env[ií]e|mande|mandeme|confirmo|confirmado|listo|precio|valor|promo|frasco|frascos|botella|botellas|agencia|domicilio|direccion|direcci[oó]n|ciudad|provincia)\b/i.test(body)
+            || /\b(todo correcto|confirmar tu pedido|pedido confirmado|su pedido|cantidad|total)\b/i.test(body);
+    });
+};
+
+const hasPurchaseMemoryForUnansweredInbound = ({ latestOrder = null, agentMemory = {} } = {}) => {
+    const orderStatus = String(latestOrder?.status || '').toLowerCase();
+    if (orderStatus && orderStatus !== 'cancelled') return true;
+    return Boolean(
+        agentMemory.pendingCheckoutOrder
+        || agentMemory.selectedQuantity
+        || /package_selection|awaiting_|sdr_awaiting_|order_closed|purchase|fechamento/i.test(String(agentMemory.lastFunnelStage || ''))
+        || /package_selection|awaiting_|sdr_awaiting_|order_closed|purchase|fechamento/i.test(String(agentMemory.principalSdrStage || ''))
+    );
+};
+
+const unansweredInboundAckText = (kind = '') => {
+    if (String(kind).includes('audio')) {
+        return '👍 Recibí su audio, señor. Para ayudarle sin error, escríbame en una frase si su duda es sobre precio, cómo tomar, agencia o pedido.';
+    }
+    if (String(kind) === 'organic_social_link') {
+        return '👍 Lo vi, gracias por compartirlo.';
+    }
+    return '👍 Vi, señor. Ya lo reviso por aquí.';
+};
+
+const maybeHandleUnansweredInboundFallback = async ({
+    text,
+    msg,
+    chatId,
+    peerPhone,
+    sessionId,
+    contactStateId,
+    agentProfile,
+    customerContext,
+    contactState,
+    agentMemorySnapshot
+}) => {
+    const kind = detectUnansweredInboundKind({ text, msg });
+    if (!kind) return false;
+
+    const previousInbound = await previousInboundMessageForContact({
+        chatId,
+        peerPhone,
+        currentMessageId: msg.id
+    });
+    const previousAtMs = previousInbound?.timestamp
+        ? Number(previousInbound.timestamp) * 1000
+        : (previousInbound?.createdAt ? new Date(previousInbound.createdAt).getTime() : 0);
+    const dormantMs = unansweredDormantDays() * 24 * 60 * 60 * 1000;
+    const isNewOrDormant = !previousAtMs || Date.now() - previousAtMs >= dormantMs;
+    const latestOrder = await latestOrderForContact({ peerPhone, chatId });
+    const hasRecentPurchaseIntent = await hasRecentPurchaseIntentForContact({
+        peerPhone,
+        chatId,
+        currentMessageId: msg.id
+    });
+    const hasPurchaseMemory = hasPurchaseMemoryForUnansweredInbound({
+        latestOrder,
+        agentMemory: agentMemorySnapshot
+    }) || hasRecentPurchaseIntent;
+
+    const isOrganicSocialLink = kind === 'organic_social_link';
+    const ackText = unansweredInboundAckText(kind);
+    const sent = await sendText(chatId, ackText, null, { sessionId });
+    if (sent) {
+        try {
+            await Message.create({
+                _id: `out_${Date.now()}_unanswered_inbound_ack`,
+                chatId,
+                peerPhone,
+                from: 'bot',
+                to: chatId,
+                body: ackText,
+                isFromMe: true,
+                isBot: true,
+                timestamp: Math.floor(Date.now() / 1000)
+            });
+        } catch (e) { }
+    }
+
+    const setPayload = {
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundFallbackAt`]: new Date(),
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundFallbackKind`]: kind,
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundWasNewOrDormant`]: isNewOrDormant,
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundLatestOrderStatus`]: latestOrder?.status || '',
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundHadPurchaseIntentHistory`]: hasRecentPurchaseIntent,
+        [`metadata.perAgentMemory.${agentProfile.key}.lastUnansweredInboundAckText`]: ackText,
+        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: agentMemorySnapshot.lastFunnelStage || (isOrganicSocialLink ? 'organic_social_ack' : 'unanswered_inbound_ack'),
+        'metadata.lastKnownFunnelStage': agentMemorySnapshot.lastFunnelStage || contactState?.metadata?.lastKnownFunnelStage || ''
+    };
+
+    await ContactState.updateOne({ _id: contactStateId }, { $set: setPayload }).catch(() => null);
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: ackText,
+        inferredIntent: isOrganicSocialLink ? 'organic_social_ack' : 'unanswered_inbound',
+        inferredFunnelStage: isOrganicSocialLink ? 'organic_social_ack' : 'unanswered_inbound_ack',
+        inferredObjection: null
+    });
+
+    if (isNewOrDormant && !hasPurchaseMemory && !isOrganicSocialLink) {
+        const presentation = await sendInitialProductPresentation({
+            jid: chatId,
+            contactStateId,
+            customerContext,
+            sessionId,
+            agentMemory: agentMemorySnapshot,
+            includePrice: false,
+            includeBottle: true
+        });
+        if (presentation.delivered) {
+            await ContactState.updateOne(
+                { _id: contactStateId },
+                {
+                    $set: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.unansweredInboundStartedFunnelAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.unansweredInboundStartedFunnelKind`]: kind,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSentAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSteps`]: presentation.completedSteps,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationAudios`]: presentation.sentAudios,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationImages`]: presentation.sentImages,
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation',
+                        'metadata.lastKnownFunnelStage': 'initial_product_presentation'
+                    }
+                }
+            ).catch(() => null);
+        }
+        console.log(`[FUNIL] Entrada sem resposta iniciou funil -> ${chatId} | kind=${kind} | delivered=${presentation.delivered}`);
+        return true;
+    }
+
+    console.log(`[FUNIL] Entrada sem resposta acusada sem reiniciar funil -> ${chatId} | kind=${kind} | novo_ou_dormente=${isNewOrDormant} | compra_memoria=${hasPurchaseMemory}`);
     return true;
 };
 
@@ -3700,8 +7116,8 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             return;
         }
 
-        const chatId = resolveRealChatId(msg);
         const contactState = msg.contactStateId ? await ContactState.findById(msg.contactStateId).lean() : null;
+        const chatId = resolveRealChatId(msg, contactState);
         const peerPhone = digitsOnly(msg.senderPn) || digitsOnly(contactState?.phoneDigits) || digitsOnly(chatId);
         let customerContext = customerContextFromCountryCode('EC', peerPhone);
         const alreadyIntroduced = await hasBotIntroducedItself(chatId);
@@ -3713,22 +7129,63 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         let checkoutOrderData = parseCheckoutOrderMessage(text);
         console.log(`[BOT] ✅ Trabalhando no Chat: ${chatId} | agente=${agentProfile.key}`);
 
-        try {
-            await Message.create({
-                _id: msg.id || `in_${Date.now()}`,
-                chatId,
-                peerPhone,
-                from: jid,
-                to: 'bot',
-                body: text,
-                type: 'chat',
-                isFromMe: false,
-                isBot: false,
-                timestamp: Math.floor(Date.now() / 1000)
-            });
-        } catch (dbErr) {
-            if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
+        if (!msg.recovered) {
+            try {
+                await Message.create({
+                    _id: msg.id || `in_${Date.now()}`,
+                    chatId,
+                    peerPhone,
+                    from: jid,
+                    to: 'bot',
+                    body: text,
+                    type: 'chat',
+                    isFromMe: false,
+                    isBot: false,
+                    timestamp: Math.floor(Date.now() / 1000)
+                });
+            } catch (dbErr) {
+                if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
+            }
         }
+
+        const unansweredInboundFallbackHandled = await maybeHandleUnansweredInboundFallback({
+            text,
+            msg,
+            chatId,
+            peerPhone,
+            sessionId: msg.sessionId || null,
+            contactStateId: msg.contactStateId,
+            agentProfile,
+            customerContext,
+            contactState,
+            agentMemorySnapshot
+        });
+        if (unansweredInboundFallbackHandled) return;
+
+        const optInRescueContinueHandled = await maybeHandleOptInRescueContinue({
+            text,
+            chatId,
+            peerPhone,
+            sessionId: msg.sessionId || null,
+            contactState,
+            contactStateId: msg.contactStateId,
+            agentProfile
+        });
+        if (optInRescueContinueHandled) return;
+
+        const postOrderCourtesyHandled = await maybeHandleRecentOrderClosedLock({
+            text,
+            chatId,
+            agentProfile,
+            contactState,
+            contactStateId: msg.contactStateId,
+            peerPhone,
+            history: customerMemory.history,
+            customerProfile: customerMemory.customerProfile,
+            customerContext,
+            sessionId: msg.sessionId || null
+        });
+        if (postOrderCourtesyHandled) return;
 
         const pendingCheckoutOrder = agentMemorySnapshot.pendingCheckoutOrder || null;
         const pendingCheckoutStage = getPendingCheckoutStage(pendingCheckoutOrder);
@@ -3761,7 +7218,12 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 peerPhone
             });
         }
-        const selectedQuantityFromPrice = [
+        const selectedQuantityFromPrice = strongQuantityShortcutFromText({
+            text,
+            pendingCheckoutStage,
+            pendingCheckoutOrder,
+            agentMemory: agentMemorySnapshot
+        }) || ([
             'awaiting_agency_selection',
             'awaiting_agency_selection_interrupt'
         ].includes(pendingCheckoutStage)
@@ -3769,7 +7231,16 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             : shouldConfirmPackageQuantity({
                 text,
                 agentMemory: agentMemorySnapshot
-            });
+            }));
+        const quantityCorrectionLine = /\b(cantidad|quantidade|frasco|frascos|botella|botellas|botellon|botellones)\b/i.test(normalizeFieldLabel(text));
+        const unsupportedQuantityFromText = (
+            !selectedQuantityFromPrice
+            && ![
+                'awaiting_agency_selection',
+                'awaiting_agency_selection_interrupt'
+            ].includes(pendingCheckoutStage)
+            && (!looksLikeOrderDataMessage(text) || quantityCorrectionLine)
+        ) ? detectUnsupportedPackageQuantity(text) : 0;
 
         if (
             !pendingCheckoutOrder
@@ -3789,19 +7260,6 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             });
             if (handled) return;
         }
-
-        const postOrderCourtesyHandled = await maybeHandleRecentOrderClosedLock({
-            text,
-            chatId,
-            agentProfile,
-            contactState,
-            contactStateId: msg.contactStateId,
-            peerPhone,
-            history: customerMemory.history,
-            customerProfile: customerMemory.customerProfile,
-            sessionId: msg.sessionId || null
-        });
-        if (postOrderCourtesyHandled) return;
 
         const refillGreetingHandled = await maybeHandleSimpleGreetingRefill({
             text,
@@ -3842,6 +7300,19 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         });
         if (checkoutCorrectionHandled) return;
 
+        if (unsupportedQuantityFromText) {
+            const handled = await sendUnsupportedQuantityRedirect({
+                chatId,
+                peerPhone,
+                text,
+                unsupportedQuantity: unsupportedQuantityFromText,
+                agentProfile,
+                contactStateId: msg.contactStateId,
+                sessionId: msg.sessionId || null
+            });
+            if (handled) return;
+        }
+
         if (
             checkoutOrderData
             && pendingCheckoutOrder
@@ -3864,16 +7335,157 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             return;
         }
 
-        const complement = await maybeHandleVitPowerAudioComplement({
-            text,
-            chatId,
-            peerPhone,
-            contactStateId: msg.contactStateId,
-            contactState,
-            agentProfile,
-            sessionId: msg.sessionId || null,
-            countryCode: resolvedCountryCode
-        });
+        if (shouldRunLogisticInitialPresentation({ text, agentProfile, contactState })) {
+            const initialLockAcquired = await acquireInitialFunnelSendLock({
+                contactStateId: msg.contactStateId,
+                agentProfile
+            });
+            if (!initialLockAcquired) {
+                console.log(`[FUNIL-LOGISTICO] Entrada logistica bloqueada por lock -> ${chatId} | agente=${agentProfile.key}`);
+                return;
+            }
+
+            await sendFirstResponseSlaAck({
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                inboundText: text,
+                alreadyIntroduced,
+                agentMemorySnapshot
+            });
+
+            const presentation = await sendInitialProductPresentation({
+                jid: chatId,
+                contactStateId: msg.contactStateId,
+                customerContext,
+                sessionId: msg.sessionId || null,
+                agentMemory: agentMemorySnapshot,
+                includePrice: false,
+                includeBottle: true,
+                extraAudioNames: ['TEMPO_DEMORA_PRODUTO_CHEGAR'],
+                bypassOutboundDedupe: isNoDropiBotTestPhone(peerPhone, chatId)
+            });
+
+            if (!presentation.delivered) {
+                await ContactState.updateOne(
+                    { _id: msg.contactStateId },
+                    {
+                        $set: {
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedAt`]: new Date(),
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedReason`]: presentation.interrupted ? 'interrupted' : 'not_delivered',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_logistic_presentation_not_delivered'
+                        }
+                    }
+                );
+                await releaseInitialFunnelSendLock({
+                    contactStateId: msg.contactStateId,
+                    agentProfile
+                });
+                console.warn(`[FUNIL-LOGISTICO] Entrada logistica nao entregue -> ${chatId} | interrupted=${Boolean(presentation.interrupted)}`);
+                return;
+            }
+
+            await updateContactStateAgentMemory({
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                inboundText: text,
+                outboundText: '[MIDIAS] saudacao + prova + frasco + TEMPO_DEMORA_PRODUTO_CHEGAR',
+                inferredIntent: 'shipping_info',
+                inferredFunnelStage: 'initial_product_presentation',
+                inferredObjection: null,
+                sentImageKeys: presentation.sentImages
+                    .filter((item) => item.sent)
+                    .map((item) => item.key),
+                sentRecordedAudioNames: presentation.sentAudios
+                    .filter((item) => item.sent)
+                    .map((item) => item.baseName)
+            });
+
+            await ContactState.updateOne(
+                { _id: msg.contactStateId },
+                {
+                    $set: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSentAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSteps`]: presentation.completedSteps,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationAudios`]: presentation.sentAudios,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationImages`]: presentation.sentImages,
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationDeliveryTimeSentAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation',
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastInterruptKey`]: 'delivery_time',
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastInterruptAnsweredAt`]: new Date(),
+                        ...(presentation.greetingAudioSent ? {
+                            'metadata.greeting_audio_sent': presentation.greetingAudioBaseName,
+                            'metadata.greeting_period': presentation.greetingPeriod,
+                            'metadata.greeting_sent_at': presentation.greetingSentAt || new Date(),
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_audio_sent`]: presentation.greetingAudioBaseName,
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_period`]: presentation.greetingPeriod,
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_sent_at`]: presentation.greetingSentAt || new Date()
+                        } : {})
+                    },
+                    $unset: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedAt`]: '',
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedReason`]: '',
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationBlockedAt`]: ''
+                    }
+                }
+            );
+
+            console.log(`[FUNIL-LOGISTICO] Entrada com prazo enviada -> ${chatId} | agente=${agentProfile.key}`);
+            return;
+        }
+
+        if (selectedQuantityFromPrice) {
+            const handled = await sendSelectedQuantityConfirmation({
+                chatId,
+                peerPhone,
+                text,
+                selectedQuantity: selectedQuantityFromPrice,
+                customerContext,
+                agentProfile,
+                contactStateId: msg.contactStateId,
+                sessionId: msg.sessionId || null
+            });
+        if (handled) {
+            console.log(`[FUNIL] quantity_selection_before_audio_complement -> ${chatId}`);
+            return;
+        }
+    }
+
+        if (
+            ['awaiting_agency_selection', 'awaiting_agency_selection_interrupt'].includes(pendingCheckoutStage)
+            && cleanFieldValue(text).length >= 1
+            && !checkoutOrderData
+            && !isInitialProductInquiry(text)
+        ) {
+            const handled = await confirmAgencySelectionAndAskName({
+                jid: chatId,
+                parsedOrder: pendingCheckoutOrder,
+                customerContext,
+                agentProfile,
+                contactStateId: msg.contactStateId,
+                peerPhone,
+                inboundText: text,
+                sessionId: msg.sessionId || null
+            });
+            if (handled) return;
+        }
+
+        const skipComplementForCleanTest = isNoDropiBotTestPhone(peerPhone, chatId)
+            && isInitialProductInquiry(text);
+        const complement = skipComplementForCleanTest
+            ? { handled: false }
+            : await maybeHandleVitPowerAudioComplement({
+                text,
+                chatId,
+                peerPhone,
+                contactStateId: msg.contactStateId,
+                contactState,
+                agentProfile,
+                sessionId: msg.sessionId || null,
+                countryCode: resolvedCountryCode
+            });
         if (complement.handled) {
             console.log(`[AUDIO-COMPLEMENT] regra tratada -> ${chatId} | rule=${complement.ruleKey} | skipped=${complement.skipped || 'no'}`);
             if (pendingCheckoutOrder) {
@@ -3924,56 +7536,43 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             if (handled) return;
         }
 
-        if (selectedQuantityFromPrice) {
-            const replyText = buildQuantityConfirmationReply({
-                quantity: selectedQuantityFromPrice,
-                customerContext
-            });
-            const sent = await sendText(chatId, replyText, null, { sessionId: msg.sessionId || null });
-            if (!sent) return;
-            await sendQuantitySelectionAudio({
-                jid: chatId,
-                countryCode: customerContext.countryCode,
-                quantity: selectedQuantityFromPrice,
+        const principalSdrActiveStage = getPendingCheckoutStage(pendingCheckoutOrder);
+        if (isPrincipalSdrStage(principalSdrActiveStage)) {
+            const handled = await principalSdrHandle({
+                text,
+                chatId,
+                peerPhone,
                 sessionId: msg.sessionId || null,
-                peerPhone
-            });
-
-            try {
-                await Message.create({
-                    _id: `out_${Date.now()}_quantity_confirm`,
-                    chatId,
-                    peerPhone,
-                    from: 'bot',
-                    to: chatId,
-                    body: replyText,
-                    isFromMe: true,
-                    isBot: true,
-                    timestamp: Math.floor(Date.now() / 1000)
-                });
-            } catch (e) { }
-
-            await updateContactStateAgentMemory({
                 contactStateId: msg.contactStateId,
                 agentProfile,
-                inboundText: text,
-                outboundText: replyText,
-                inferredIntent: 'purchase_intent',
-                inferredFunnelStage: 'package_selection',
-                inferredObjection: null
+                customerContext,
+                pendingCheckoutOrder,
+                pendingCheckoutStage: principalSdrActiveStage,
+                selectedQuantityInMemory
             });
+            if (handled) return;
+        }
 
-            await ContactState.updateOne(
-                { _id: msg.contactStateId },
-                {
-                    $set: {
-                        [`metadata.perAgentMemory.${agentProfile.key}.selectedQuantity`]: selectedQuantityFromPrice,
-                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'package_selection'
-                    }
-                }
-            );
-            console.log(`[FUNIL] Quantidade confirmada apos tabela -> ${chatId} | quantidade=${selectedQuantityFromPrice}`);
-            return;
+        if (
+            !pendingCheckoutOrder
+            && agentMemorySnapshot.lastFunnelStage === 'initial_product_presentation'
+            && !checkoutOrderData
+            && !selectedQuantityFromPrice
+            && !isInitialProductInquiry(text)
+        ) {
+            const handled = await principalSdrHandle({
+                text,
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                customerContext,
+                pendingCheckoutOrder: { stage: 'sdr_after_initial' },
+                pendingCheckoutStage: 'sdr_after_initial',
+                selectedQuantityInMemory
+            });
+            if (handled) return;
         }
 
         if (
@@ -3996,7 +7595,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
 
         if (
             pendingCheckoutStage === 'awaiting_delivery_mode'
-            && isAgencyDeliveryChoice(text)
+            && isAgencyDeliveryConsent(text)
             && !hasAgencyIndicationData(text)
         ) {
             const handled = await askAgencyDetails({
@@ -4014,7 +7613,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
 
         if (
             pendingCheckoutStage === 'awaiting_delivery_mode'
-            && isAgencyDeliveryChoice(text)
+            && !isHomeDeliveryChoice(text)
             && hasAgencyIndicationData(text)
         ) {
             const normalizedOrder = {
@@ -4201,17 +7800,17 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
 
         if (
             pendingCheckoutOrder
-            && ['awaiting_reference', 'awaiting_home_address'].includes(pendingCheckoutStage)
-            && !pendingCheckoutOrder.reference
+            && pendingCheckoutStage === 'awaiting_reference'
+            && requiresHomeReference(pendingCheckoutOrder)
             && !checkoutOrderData
             && !isInitialProductInquiry(text)
             && cleanFieldValue(text).length >= 3
-            && missingCheckoutFieldKeys(pendingCheckoutOrder).every((field) => field === 'reference')
             && !looksLikePersonNameOnly(text)
         ) {
             const completedOrder = {
                 ...pendingCheckoutOrder,
-                reference: cleanFieldValue(text)
+                reference: cleanFieldValue(text),
+                deliveryMode: 'home'
             };
             const handled = await sendCheckoutOrderNextStep({
                 jid: chatId,
@@ -4267,7 +7866,9 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             const orderClosedAudios = await sendOrderClosedAudios({
                 jid: chatId,
                 countryCode: customerContext.countryCode,
-                sessionId: msg.sessionId || null
+                sessionId: msg.sessionId || null,
+                peerPhone,
+                deliveryMode
             });
 
             try {
@@ -4286,6 +7887,17 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
 
             if (memoryOrder) {
                 memoryOrder.status = 'confirmed';
+                memoryOrder.confirmedSalePayload = buildConfirmedSalePayload({
+                    order: memoryOrder,
+                    parsedOrder: {
+                        name: memoryOrder.customer?.name || customerMemory.customerProfile?.name || '',
+                        quantity: memoryOrder.package?.quantity || '',
+                        address: memoryOrder.customer?.address || '',
+                        reference: memoryOrder.customer?.reference || '',
+                        deliveryMode
+                    },
+                    deliveryMode
+                });
                 memoryOrder.conversationMemory = {
                     ...(memoryOrder.conversationMemory || {}),
                     activeAgent: agentProfile.key,
@@ -4296,6 +7908,11 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                     orderClosedBonusNoticeAudioSent: orderClosedAudios.bonusNoticeAudioSent
                 };
                 await memoryOrder.save();
+                await saveConfirmedSalePayloadToContact({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    payload: memoryOrder.confirmedSalePayload
+                });
             }
 
             await updateContactStateAgentMemory({
@@ -4321,6 +7938,13 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 );
             }
 
+            await holdForHuman({
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                reason: 'order_closed_human_handoff',
+                note: 'Pedido fechado. Automacao pausada para evitar looping de funil.'
+            });
+
             console.log(`[FUNIL] Fechamento confirmado -> ${chatId} | entrega=${deliveryMode} | agente=${agentProfile.key}`);
             return;
         }
@@ -4330,6 +7954,27 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             agentProfile,
             contactState
         });
+
+        if (
+            !restartInitialProductPresentation
+            && isInitialProductInquiry(text)
+            && hasAnyInitialProductPresentation(agentMemorySnapshot)
+        ) {
+            await ContactState.updateOne(
+                { _id: msg.contactStateId },
+                {
+                    $set: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastRepeatedInitialProductBlockedAt`]: new Date(),
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastRepeatedInitialProductText`]: text,
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation_already_done'
+                    },
+                    $inc: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.repeatedInitialProductBlockedCount`]: 1
+                    }
+                }
+            );
+            console.log(`[FUNIL] Funil inicial ja enviado; seguindo sem repetir midias -> ${chatId} | agente=${agentProfile.key}`);
+        }
 
         if (!restartInitialProductPresentation && shouldBlockRepeatedInitialProductPresentation({ text, agentProfile, contactState })) {
             await ContactState.updateOne(
@@ -4345,8 +7990,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                     }
                 }
             );
-            console.log(`[FUNIL] Entrada inicial repetida bloqueada por memoria -> ${chatId} | agente=${agentProfile.key}`);
-            return;
+            console.log(`[FUNIL] Entrada inicial repetida registrada; seguindo atendimento sem repetir -> ${chatId} | agente=${agentProfile.key}`);
         }
 
         if (restartInitialProductPresentation) {
@@ -4362,6 +8006,33 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             || restartInitialProductPresentation
             || shouldRunInitialProductPresentation({ text, agentProfile, contactState })
         ) {
+            const initialLockAcquired = restartInitialProductPresentation
+                ? true
+                : await acquireInitialFunnelSendLock({
+                    contactStateId: msg.contactStateId,
+                    agentProfile
+                });
+            if (!initialLockAcquired) {
+                await holdForHuman({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    reason: 'initial_funnel_parallel_blocked_human_handoff',
+                    note: 'Disparo paralelo/repetido do funil bloqueado. Humano deve continuar.'
+                });
+                console.log(`[FUNIL] Disparo paralelo/repetido do funil bloqueado por lock -> ${chatId} | agente=${agentProfile.key}`);
+                return;
+            }
+            await sendFirstResponseSlaAck({
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                inboundText: text,
+                alreadyIntroduced,
+                agentMemorySnapshot,
+                restartInitialProductPresentation
+            });
             const presentation = await sendInitialProductPresentation({
                 jid: chatId,
                 contactStateId: msg.contactStateId,
@@ -4369,10 +8040,31 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 sessionId: msg.sessionId || null,
                 agentMemory: restartInitialProductPresentation ? {} : agentMemorySnapshot,
                 priceTextOverride: null,
-                includePrice: !checkoutOrderData
+                includePrice: false,
+                includeBottle: true,
+                bypassOutboundDedupe: isNoDropiBotTestPhone(peerPhone, chatId)
             });
 
             if (!presentation.delivered) {
+                await ContactState.updateOne(
+                    { _id: msg.contactStateId },
+                    {
+                        $set: {
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedAt`]: new Date(),
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedReason`]: presentation.interrupted ? 'interrupted' : 'not_delivered',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation_not_delivered',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastRepeatedInitialProductBlockedAt`]: new Date(),
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastRepeatedInitialProductText`]: text
+                        },
+                        $inc: {
+                            [`metadata.perAgentMemory.${agentProfile.key}.repeatedInitialProductBlockedCount`]: 1
+                        }
+                    }
+                );
+                await releaseInitialFunnelSendLock({
+                    contactStateId: msg.contactStateId,
+                    agentProfile
+                });
                 console.warn(`[FUNIL] Apresentacao inicial nao entregue -> ${chatId} | agente=${agentProfile.key} | checkout=${Boolean(checkoutOrderData)} | interrupted=${Boolean(presentation.interrupted)}`);
                 if (checkoutOrderData) {
                     const handled = await sendCheckoutOrderNextStep({
@@ -4393,7 +8085,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 contactStateId: msg.contactStateId,
                 agentProfile,
                 inboundText: text,
-                outboundText: presentation.priceText || '[MIDIAS] Inicio_01 + Inicio_02 + Provas + Frasco Vit Power',
+                outboundText: presentation.priceText || '[MIDIAS] audio_periodo + prova_01 + frasco_vit_power',
                 inferredIntent: 'purchase_intent',
                 inferredFunnelStage: 'initial_product_presentation',
                 inferredObjection: null,
@@ -4412,10 +8104,91 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                         [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationPriceSentAt`]: presentation.priceSent ? new Date() : agentMemorySnapshot.initialProductPresentationPriceSentAt,
                         [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationAudios`]: presentation.sentAudios,
                         [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationImages`]: presentation.sentImages,
-                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation'
+                        [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'initial_product_presentation',
+                        ...(presentation.greetingAudioSent ? {
+                            'metadata.greeting_audio_sent': presentation.greetingAudioBaseName,
+                            'metadata.greeting_period': presentation.greetingPeriod,
+                            'metadata.greeting_sent_at': presentation.greetingSentAt || new Date(),
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_audio_sent`]: presentation.greetingAudioBaseName,
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_period`]: presentation.greetingPeriod,
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_sent_at`]: presentation.greetingSentAt || new Date()
+                        } : {})
+                    },
+                    $unset: {
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedAt`]: '',
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedReason`]: '',
+                        [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationBlockedAt`]: ''
                     }
                 }
             );
+
+            if (!isNoDropiBotTestPhone(peerPhone, chatId) || contactState?.metadata?.fullFunnelTestEnabled) {
+                const principalSdrOrder = {
+                    ...(checkoutOrderData || {}),
+                    stage: 'sdr_after_initial',
+                    funnelStage: 'sdr_after_initial',
+                    conversationSummary: 'Cliente recebeu saudacao, prova social e imagem Vit Power. Aguardando resposta para iniciar coleta guiada.'
+                };
+                await principalSdrSaveMemory({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    order: principalSdrOrder,
+                    stage: 'sdr_after_initial',
+                    inboundText: text,
+                    outboundText: '[MIDIAS] audio_periodo + prova_aleatoria + frasco_vit_power'
+                });
+            } else {
+                await ContactState.updateOne(
+                    { _id: msg.contactStateId },
+                    {
+                        $set: {
+                            'human.mode': 'auto',
+                            'human.pausedUntil': null,
+                            'metadata.botTestEnabled': true,
+                            'metadata.noDropiEver': true,
+                            'metadata.priorityFrozen': true,
+                            'metadata.cleanTestResetAt': new Date(),
+                            'metadata.cleanTestResetReason': 'auto_reset_8637_after_initial_presentation'
+                        },
+                        $unset: {
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSentAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationCompletedAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationPriceSentAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationSteps`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationAudios`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationImages`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationAttemptedAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationFailedReason`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.initialProductPresentationBlockedAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_audio_sent`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_period`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.greeting_sent_at`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.audioPurposeMemory`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.audioComplements`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastComplementAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastComplementKey`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastInterruptAnsweredAt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastInterruptKey`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.resumeConversationStageAfterInterrupt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.resumeFunnelStageAfterInterrupt`]: '',
+                            [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: '',
+                            'metadata.greeting_audio_sent': '',
+                            'metadata.greeting_period': '',
+                            'metadata.greeting_sent_at': '',
+                            'metadata.lastKnownFunnelStage': '',
+                            'metadata.customerDraft': '',
+                            'metadata.automationHandoffSuggestedAt': '',
+                            'metadata.automationHandoffSuggestedNote': '',
+                            'metadata.automationHandoffSuggestedReason': '',
+                            'metadata.automationHoldAt': '',
+                            'metadata.automationHoldReason': '',
+                            'metadata.lastProcessedInboundText': '',
+                            'metadata.lastProcessedInboundAt': ''
+                        }
+                    }
+                );
+            }
 
             console.log(`[FUNIL] Apresentacao inicial enviada -> ${chatId} | agente=${agentProfile.key}`);
             if (checkoutOrderData) {
@@ -4451,7 +8224,23 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         const shortGreetings = ['oi', 'olá', 'ola', 'hola', 'opa', 'bom dia', 'boa tarde', 'boa noite'];
         const isShortGreeting = pureBody.length <= 4 || shortGreetings.includes(pureBody);
 
-        if (isShortGreeting) {
+        if (strictVitalismenFunnelEnabled(agentProfile)) {
+            replyText = strictVitalismenFallbackText({
+                pendingCheckoutStage,
+                pendingCheckoutOrder,
+                agentMemorySnapshot
+            });
+            if (!replyText) {
+                await holdForHuman({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    reason: 'strict_vitalismen_no_free_funnel',
+                    note: 'Vitalismen esta em funil rigido. Resposta livre/IA generica bloqueada para nao misturar com aquecimento ou outro roteiro.'
+                });
+                console.log(`[FUNIL-RIGIDO] Resposta livre bloqueada no Vitalismen -> ${chatId} | texto=${text.slice(0, 80)}`);
+                return;
+            }
+        } else if (isShortGreeting) {
             replyText = getGreetingReply({ agentProfile, alreadyIntroduced });
         } else {
             console.log(`[AI-START] 🤖 Consultando OpenAI... agente=${agentProfile.key}`);
@@ -4461,6 +8250,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 history: customerMemory.history,
                 customerProfile: customerMemory.customerProfile,
                 conversationMemory: memoryOrder?.conversationMemory || customerMemory.customerProfile?.conversationMemory || null,
+                communicationMemory: agentMemorySnapshot.conversationState || null,
                 agentKey: agentProfile.key,
                 agentMode: agentProfile.mode,
                 agentPrompt: agentProfile.promptAddOn || '',
@@ -4478,7 +8268,19 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             });
         }
 
-        if (!replyText) return;
+        if (!replyText) {
+            await sendAttendanceRescueText({
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                inboundText: text,
+                customerContext,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                reason: 'empty_reply'
+            });
+            return;
+        }
         const shouldSendOrderClosedAudio = ORDER_CLOSED_TAG_REGEX.test(replyText)
             || hasLeakedOrderClosedAudioMarker(replyText);
         ORDER_CLOSED_TAG_REGEX.lastIndex = 0;
@@ -4492,6 +8294,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         const inferredIntent = memoryOrder?.$locals?.inferredIntent || inferIntent(text);
         const inferredFunnelStage = memoryOrder?.$locals?.inferredFunnelStage || inferFunnelStage(text, customerContext, agentProfile);
         const inferredObjection = memoryOrder?.$locals?.inferredObjection || inferLastObjection(text);
+        const lastAudioSent = agentMemorySnapshot?.conversationState?.last_audio_sent || agentMemorySnapshot?.lastAudioSent || '';
         const responseMode = determineResponseMode({
             replyText,
             intent: inferredIntent,
@@ -4506,6 +8309,14 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 lastObjection: inferredObjection,
                 agentProfile
             }) ? replyText : null,
+            forceRecordedAudioName: preferredRecordedAudioForReply({
+                intent: inferredIntent,
+                lastObjection: inferredObjection,
+                funnelStage: inferredFunnelStage,
+                replyText,
+                agentProfile,
+                lastAudioSent
+            }),
             forceImageKey: shouldForceImage({
                 lastObjection: inferredObjection,
                 customerContext,
@@ -4522,6 +8333,19 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             replyText: preparedPlan.cleanText || replyText
         })) {
             console.log(`[OUTBOUND-BLOCKED] resposta repetida bloqueada -> ${chatId} | agente=${agentProfile.key}`);
+            await sendAttendanceRescueText({
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                inboundText: text,
+                customerContext,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                inferredIntent,
+                inferredFunnelStage,
+                inferredObjection,
+                reason: 'duplicate_reply'
+            });
             return;
         }
 
@@ -4532,32 +8356,98 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             countryCode: customerContext.countryCode
         });
 
-        if (!outbound.delivered) return;
+        if (!outbound.delivered) {
+            await sendAttendanceRescueText({
+                chatId,
+                peerPhone,
+                sessionId: msg.sessionId || null,
+                inboundText: text,
+                customerContext,
+                contactStateId: msg.contactStateId,
+                agentProfile,
+                inferredIntent,
+                inferredFunnelStage,
+                inferredObjection,
+                reason: 'outbound_not_delivered'
+            });
+            return;
+        }
 
+        const orderClosedDeliveryMode = shouldSendOrderClosedAudio
+            ? inferDeliveryModeFromCloseContext({
+                history: customerMemory.history,
+                customerProfile: customerMemory.customerProfile
+            })
+            : 'agency';
         const orderClosedAudios = shouldSendOrderClosedAudio
             ? await sendOrderClosedAudios({
                 jid: chatId,
                 countryCode: customerContext.countryCode,
-                sessionId: msg.sessionId || null
+                sessionId: msg.sessionId || null,
+                peerPhone,
+                deliveryMode: orderClosedDeliveryMode
             })
             : { thankYouAudioSent: false, bonusNoticeAudioSent: false };
 
         console.log(`[OUTBOUND-OK] ✅ Resposta enviada para ${chatId} | agente=${agentProfile.key}`);
-        try {
-            await Message.create({
-                _id: `out_${Date.now()}`,
-                chatId,
-                peerPhone,
-                from: 'bot',
-                to: chatId,
-                body: outbound.cleanText || replyText,
-                isFromMe: true,
-                isBot: true,
-                timestamp: Math.floor(Date.now() / 1000)
-            });
-        } catch (e) { }
+        const sentRecordedAudios = Array.isArray(outbound.sentRecordedAudios) ? outbound.sentRecordedAudios : [];
+        for (const [index, audio] of sentRecordedAudios.entries()) {
+            const mediaUrl = publicMediaUrlFromPath(audio.audioPath);
+            try {
+                await Message.create({
+                    _id: `out_${Date.now()}_recorded_audio_${index}`,
+                    chatId,
+                    peerPhone,
+                    from: 'bot',
+                    to: chatId,
+                    body: `[AUDIO] ${audio.baseName}`,
+                    type: 'audio',
+                    hasMedia: Boolean(mediaUrl),
+                    mediaUrl,
+                    mediaPreviewUrl: mediaPreviewUrlFor(mediaUrl),
+                    isFromMe: true,
+                    isBot: true,
+                    timestamp: Math.floor(Date.now() / 1000)
+                });
+            } catch (e) { }
+        }
+
+        if (outbound.textSent && (outbound.cleanText || replyText)) {
+            try {
+                await Message.create({
+                    _id: `out_${Date.now()}`,
+                    chatId,
+                    peerPhone,
+                    from: 'bot',
+                    to: chatId,
+                    body: outbound.cleanText || replyText,
+                    isFromMe: true,
+                    isBot: true,
+                    timestamp: Math.floor(Date.now() / 1000)
+                });
+            } catch (e) { }
+        }
 
         if (memoryOrder) {
+            if (shouldSendOrderClosedAudio) {
+                memoryOrder.status = 'confirmed';
+                memoryOrder.confirmedSalePayload = buildConfirmedSalePayload({
+                    order: memoryOrder,
+                    parsedOrder: {
+                        name: memoryOrder.customer?.name || customerMemory.customerProfile?.name || '',
+                        quantity: memoryOrder.package?.quantity || '',
+                        address: memoryOrder.customer?.address || '',
+                        reference: memoryOrder.customer?.reference || '',
+                        deliveryMode: orderClosedDeliveryMode
+                    },
+                    deliveryMode: orderClosedDeliveryMode
+                });
+                await saveConfirmedSalePayloadToContact({
+                    contactStateId: msg.contactStateId,
+                    agentProfile,
+                    payload: memoryOrder.confirmedSalePayload
+                });
+            }
             memoryOrder.conversationMemory = {
                 ...(memoryOrder.conversationMemory || {}),
                 activeAgent: agentProfile.key,
@@ -4568,15 +8458,19 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             await memoryOrder.save();
         }
 
+        const outboundMemoryText = outbound.textSent
+            ? (outbound.cleanText || replyText)
+            : (sentRecordedAudios.map((audio) => `[AUDIO] ${audio.baseName}`).join('\n') || outbound.cleanText || replyText);
         await updateContactStateAgentMemory({
             contactStateId: msg.contactStateId,
             agentProfile,
             inboundText: text,
-            outboundText: outbound.cleanText || replyText,
+            outboundText: outboundMemoryText,
             inferredIntent,
             inferredFunnelStage,
             inferredObjection,
-            sentImageKeys: Array.isArray(preparedPlan.imageKeys) ? preparedPlan.imageKeys : []
+            sentImageKeys: Array.isArray(preparedPlan.imageKeys) ? preparedPlan.imageKeys : [],
+            sentRecordedAudioNames: sentRecordedAudios.map((audio) => audio.baseName)
         });
     } catch (error) {
         console.error('[BOT-FATAL-ERROR] ❌ Erro geral:', error);

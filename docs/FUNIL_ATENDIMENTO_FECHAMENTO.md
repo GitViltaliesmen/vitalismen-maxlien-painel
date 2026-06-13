@@ -18,7 +18,6 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 - Se um atendente enviar texto, áudio ou mídia manualmente, a conversa entra em modo humano para evitar que a automação atropela o atendimento.
 - Antes de disparos automáticos em massa, conferir saldo Dropi, WhatsApp conectado e chaves Meta/Facebook.
 - O funil comercial deve usar áudio gravado aprovado como padrão, buscando cerca de 90% do percurso em áudio quando houver template disponível. Texto fica reservado para preço, quantidade, dados de entrega, confirmação final e campos que precisam ser conferidos sem erro.
-- Não gerar TTS para substituir áudio gravado. Quando precisar de áudio, usar templates aprovados como `Inicio_01`, `Inicio_02`, `Agradecimento_Agencia_01`, `Chegou_01`, `Chegou_02` e `Chegou_03`.
 
 ## Etapas do funil
 
@@ -35,17 +34,16 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
    - Mensagem de formulário com dados nunca deve cair em resposta livre da IA. A regra é determinística:
      - se faltar só `Punto de referencia`, perguntar apenas esse campo;
      - se os dados estiverem completos, responder que os dados e a agência foram recebidos;
-     - depois enviar `Inicio_01`, `Inicio_02`, provas, frasco e valores;
      - fechar com chamada direta para a quantidade do formulario, quando existir. Ex.: `Cantidad: 6` deve gerar `Hoy puede separar 6 frascos de VIT POWER por $167.99. Para confirmar, responda: 6 FRASCOS.`
 
 2. Primeiro atendimento com áudio aprovado
    - Regra fixa de disparo inicial:
-     1. enviar `Inicio_01`;
-     2. enviar `Inicio_02`;
      3. enviar prova social 1;
      4. enviar prova social 2;
      5. enviar imagem do frasco oficial `Vit Power`;
      6. enviar texto de valores com chamada direta para confirmar a quantidade escolhida, quando existir; sem formulario, perguntar se deseja 1, 3 ou 6 frascos.
+     7. enviar audio de valores `TRATAMENTO_Y_PRECIOS_PROMOCAO`.
+   - A ordem de fase e obrigatoria: os audios iniciais precisam sair antes das provas; as provas precisam sair antes do frasco e dos valores. Frasco e valores podem variar entre si quando houver necessidade operacional, mas nunca antes dos audios iniciais e das provas.
    - Ritmo oficial de envio:
      - o proprio disparo simula `recording` para audio e `composing` para texto/imagem;
      - depois de cada audio, aguardar entre `INITIAL_FUNNEL_AFTER_AUDIO_MIN_MS` e `INITIAL_FUNNEL_AFTER_AUDIO_MAX_MS`;
@@ -53,12 +51,11 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
      - antes do texto de valores, aguardar entre `INITIAL_FUNNEL_BEFORE_PRICE_MIN_MS` e `INITIAL_FUNNEL_BEFORE_PRICE_MAX_MS`;
      - valores atuais oficiais: audio `7000-14000ms`, imagem `6000-12000ms`, antes do preco `8000-16000ms`.
    - Memoria obrigatoria: cada etapa concluida fica gravada no contato para nao repetir o processo ja realizado. Chaves esperadas:
-     - `audio:Inicio_01`
-     - `audio:Inicio_02`
      - `image:social_01`
      - `image:social_02`
      - `image:vit_power_bottle`
      - `text:price`
+     - `audio:TRATAMENTO_Y_PRECIOS_PROMOCAO`
    - A apresentacao inicial so pode ser considerada concluida quando todas as chaves oficiais acima existirem na memoria. Marcas antigas como `initialProductPresentationSentAt` nao bastam para pular audio/imagem.
    - Se o cliente reenviar uma mensagem inicial de CTA depois dessa apresentacao, bloquear repeticao e registrar `initial_product_presentation_already_done`.
    - Se o cliente reenviar formulario com dados completos, seguir o modelo de dados recebidos + apresentação + chamada para a quantidade do formulario (`1 FRASCO`, `3 FRASCOS` ou `6 FRASCOS`).
@@ -95,9 +92,12 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 5. Fechamento
    - Quando o cliente confirmar, marcar pedido como confirmado no sistema.
    - Após a confirmação de agência:
-     - enviar texto humano curto: `Gracias por confirmar sus datos. En breve preparamos su pedido y apenas este disponible en la agencia Servientrega, le avisamos para que pueda retirarlo con tranquilidad. Guarde este numero como Ana - Vit Power, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.`;
      - enviar áudio de agradecimento de agência quando houver template aprovado;
-     - enviar `BONUS_RETIRADA` em seguida, sem texto extra;
+     - enviar `BONUS_RETIRADA` em seguida;
+     - enviar texto final humano curto com agencia/endereco:
+       `Gracias, señor. Su pedido quedó confirmado para envío a la agencia Servientrega: [AGENCIA] - [DIRECCION_AGENCIA]. Su compra ya quedó cerrada. Desde ahora le acompaño por aquí solo con la guía, la entrega y la retirada.`;
+     - se for domicilio, o texto final deve confirmar o endereco do cliente:
+       `Gracias, señor. Su pedido quedó confirmado para entrega a domicilio en: [DIRECCION_CLIENTE]. Su compra ya quedó cerrada. Desde ahora le acompaño por aquí solo con la guía, la entrega y cualquier novedad del pedido.`;
      - encerrar a etapa congelada.
    - O evento Purchase do Meta/Facebook depende das chaves do país configuradas.
    - Depois, enviar para Dropi pelo painel em **Vendas / Dropi**.
@@ -117,8 +117,6 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 ## Status atual dos áudios
 
 - Equador pronto no projeto:
-  - `Inicio_01`
-  - `Inicio_02`
   - `PERGUNTA_AGENCIA_DOMICILIO`
   - `ENDERECO_CIDADE_PROVINCIA_AGENCIA`
   - `Agradecimento_Agencia_01`

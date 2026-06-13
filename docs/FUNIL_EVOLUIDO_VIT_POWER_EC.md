@@ -14,8 +14,6 @@ Status: congelado. Esta estrutura foi aprovada e nao deve ser alterada enquanto 
 
 1. Cliente envia `Hola`, interesse simples ou mensagem curta sem dados do pedido.
 2. Bot envia a sequencia congelada:
-   - `Inicio_01`;
-   - `Inicio_02`;
    - `Prova_01`;
    - `Prova_02`;
    - imagem oficial do frasco Vit Power.
@@ -55,8 +53,6 @@ Status: congelado. Esta estrutura foi aprovada para clientes que ja chegam com d
 
 1. Cliente envia dados do pedido desde a primeira mensagem, com campos como nome, endereco, referencia, cidade/provincia e quantidade.
 2. Bot envia primeiro a mesma sequencia congelada:
-   - `Inicio_01`;
-   - `Inicio_02`;
    - `Prova_01`;
    - `Prova_02`;
    - imagem oficial do frasco Vit Power.
@@ -92,9 +88,29 @@ Resumo funcional: esta estrutura evita repetir tabela de valores quando o client
 
 ## Workflow
 
+### Regra-mae: intencao forte primeiro
+
+O funil evoluido nao deve depender de o cliente responder exatamente na ordem prevista. A ordem oficial continua congelada, mas o atendimento deve sempre verificar antes se a mensagem traz uma intencao forte.
+
+Prioridade de leitura:
+
+1. quantidade clara, fechamento, dados do pedido, tipo de entrega ou correcao;
+2. salvar/mesclar o dado recebido na memoria do pedido;
+3. perguntar apenas o que ainda falta;
+4. se foi uma pergunta ou objecao, responder e voltar ao proximo dado pendente.
+
+Exemplo: se depois da tabela o cliente escrever `deseo 3`, `3 frascos` ou `tres`, o bot confirma 3 botellas por 95.99 USD e envia `3_BOTELLAS_POR_95_E_99.mp3`. Ele nao deve enviar `TRATAMENTO_Y_PRECIOS_PROMOCAO`, porque esse audio e a explicacao geral de tratamento e precos.
+
+Regra congelada apos teste de 2026-05-21: depois do audio especifico da quantidade, enviar resumo em texto com quantidade/valor. Essa quantidade deve permanecer na memoria do pedido ate o fechamento; se o cliente depois informar nome, cidade ou provincia, o bot continua para agencia/domicilio e nao volta a perguntar frascos.
+
+Na etapa logistica, a primeira conducao deve ser para agencia Servientrega. O bot pergunta se pode enviar por uma agencia Servientrega cercana, envia audio aprovado quando existir e sempre acompanha com texto. Domicilio so entra se o cliente recusar agencia ou pedir domicilio claramente.
+
+Coleta de localidade congelada em 2026-05-21: perguntar cidade primeiro e provincia depois. Com cidade/provincia em memoria, consultar `src/data/agencia_LISTA.json` e listar ate 3 agencias com letras `A`, `B`, `C`, cada uma em bloco separado. O cliente deve responder apenas a letra da agencia. Se pedir domicilio, solicitar endereco completo, bairro/setor e referencia.
+
+Regra de inteligencia logistica adicionada em 2026-05-21: esta frente deve ser chamada de `Funil Vitalismen EC - Logistica Servientrega`, etapa `Agencia Servientrega apos cidade/provincia`. Quando cidade/provincia ja identificarem uma agencia oficial exata, perguntar pela agencia especifica e aceitar confirmacoes contextuais (`si`, `ok`, `ck`, `perfecto`, `de acuerdo`, `esta bien`, `envieme`, `mande`) apenas nessa etapa. A pergunta deve informar em espanhol que, se quiser trocar cidade/agencia, o cliente pode escrever `cambiar ciudad`; nesse caso, limpar a cidade/agencia anterior e pedir nova cidade, provincia e agencia de referencia em espanhol. Para `Sucua, Morona Santiago`, usar `Sucua Principal` da lista oficial. Se houver match de cidade, nao despejar agencias de outras cidades da mesma provincia.
+
 ### 1. Recepcao e filtro inteligente
 
-- Primeiro contato: `Inicio_01` + `Inicio_02` + prova social + imagem oficial `Vit Power`.
 - Se o cliente ja enviou dados, o bot valida o que recebeu e solicita somente o que falta.
 - Dados obrigatorios:
   - nome completo;
@@ -113,7 +129,7 @@ Resumo funcional: esta estrutura evita repetir tabela de valores quando o client
   - 1 frasco: 39.99 USD;
   - 3 frascos: 95.99 USD;
   - 6 frascos: 167.99 USD.
-- Audio esperado de preco: `TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6`.
+- Audio esperado de preco: `TRATAMENTO_Y_PRECIOS_PROMOCAO`.
 - Regra critica: se formulario vier com `Cantidad: 3` ou `Cantidad: 6`, respeitar essa quantidade e valor. Nunca forcar 1 frasco.
 
 ### 3. Logistica e fechamento
@@ -137,7 +153,6 @@ Depois enviar o audio `COMO_SE_TOMA_VIT_POWER`, se aprovado.
 
 | Gatilho | Midia/audio esperado |
 | --- | --- |
-| Primeiro "Hola" | `Inicio_01` + `Inicio_02` + `social_01` + `vit_power_bottle` |
 | Cliente ligou | `CLIENTES_QUE_LIGAM` |
 | Duvida sobre prostata | `PROSTADA_FUNCIONA_E_QUANDO_CHEGA` ou `Ajuda_Prostata` |
 | Resistência a agencia | `ENTREGAS_A_SERVIENTREGAS_MELHOR_OPCAO` |

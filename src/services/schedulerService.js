@@ -1,25 +1,37 @@
-import { onWhatsAppReady, getStatus, startConfiguredWhatsAppSessions } from '../whatsapp/connection.js';
-import { processInitialProductFollowups, processPendingCheckoutInfoFollowups } from './reengagementService.js';
+import { onWhatsAppReady, getStatus, getAllStatuses, startConfiguredWhatsAppSessions } from '../whatsapp/connection.js';
+import {
+    processInitialProductFollowups,
+    processPendingCheckoutInfoFollowups,
+    processPostSaleRepurchase30dFollowups
+} from './reengagementService.js';
 import { getPendingShipmentReminders, processShipmentPickupReminders } from './shipmentMessageService.js';
 import {
     countShipmentDispatchCandidates,
     processShipmentStatusDispatch
 } from './shipmentStatusDispatcherService.js';
 import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
+import { syncActiveDroppiEcuadorOrdersFromPanel } from './droppiEcuadorBrowserService.js';
 import { processBacklogRecovery } from './backlogRecoveryService.js';
 import {
     reconcileAdminPanelAtendimento,
     reconcileAdminLeadsToWhatsappPanel,
     reconcileRecentWhatsappContactsToAdminPanel
 } from './adminPanelLeadReconciliationService.js';
+import { processAdminBuyLaterFollowups } from './adminBuyLaterFollowupService.js';
+import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
+let isRunningPostSaleRepurchaseFollowups = false;
 let isRunningPickupReminders = false;
 let isRunningShipmentStatusDispatch = false;
+let isRunningDropiActiveSync = false;
 let isRunningAdminPanelImport = false;
 let isRunningBacklogRecovery = false;
 let isRunningAdminPanelAtendimentoReconcile = false;
+let isRunningAdminBuyLaterFollowups = false;
+let lastHealthAlertAt = 0;
+let lastHealthAlertKey = '';
 
 const flagEnabled = (name, fallback = false) => {
     const raw = process.env[name];
@@ -35,6 +47,21 @@ const parseNumber = (name, fallback) => {
 const parseActions = (value) => String(value || '')
     .split(',')
     .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseList = (value = '') => String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const healthAlertRecipients = () => [
+    process.env.WHATSAPP_HEALTH_ALERT_RECIPIENTS,
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
+    '5515998038637'
+].flatMap(parseList)
+    .map(digitsOnly)
     .filter(Boolean);
 
 const adaptiveLimit = ({
@@ -71,6 +98,14 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Pending checkout followups disabled. Set PENDING_CHECKOUT_FOLLOWUP_ENABLED=true to enable.');
     }
+    if (flagEnabled('POST_SALE_REPURCHASE_30D_ENABLED', true)) {
+        const intervalMinutes = parseNumber('POST_SALE_REPURCHASE_INTERVAL_MINUTES', 60);
+        const intervalMs = Math.max(30, intervalMinutes) * 60 * 1000;
+        setInterval(checkPostSaleRepurchaseFollowups, intervalMs);
+        console.log(`[SCHEDULER] Post-sale repurchase 30d enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Post-sale repurchase 30d disabled. Set POST_SALE_REPURCHASE_30D_ENABLED=true to enable.');
+    }
     if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
         const intervalMinutes = parseNumber('SHIPMENT_PICKUP_REMINDER_INTERVAL_MINUTES', 60);
         const intervalMs = Math.max(15, intervalMinutes) * 60 * 1000;
@@ -81,11 +116,19 @@ export const startScheduler = () => {
     }
     if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
         const intervalMinutes = parseNumber('SHIPMENT_STATUS_DISPATCH_INTERVAL_MINUTES', 60);
-        const intervalMs = Math.max(15, intervalMinutes) * 60 * 1000;
+        const intervalMs = Math.max(10, intervalMinutes) * 60 * 1000;
         setInterval(checkShipmentStatusDispatch, intervalMs);
         console.log(`[SCHEDULER] Shipment status dispatch enabled every ${Math.round(intervalMs / 60000)} minutes.`);
     } else {
         console.log('[SCHEDULER] Shipment status dispatch disabled. Set SHIPMENT_STATUS_DISPATCH_ENABLED=true to enable.');
+    }
+    if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
+        const intervalMinutes = parseNumber('DROPPI_EC_ACTIVE_SYNC_INTERVAL_MINUTES', 30);
+        const intervalMs = Math.max(10, intervalMinutes) * 60 * 1000;
+        setInterval(checkDropiActiveSync, intervalMs);
+        console.log(`[SCHEDULER] Dropi active orders sync enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Dropi active orders sync disabled. Set DROPPI_EC_ACTIVE_SYNC_ENABLED=true to enable.');
     }
     if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
         const intervalMinutes = parseNumber('ADMIN_PANEL_IMPORT_INTERVAL_MINUTES', 5);
@@ -111,6 +154,14 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Atendimento/admin reconciliation disabled. Set ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED=true to enable.');
     }
+    if (flagEnabled('ADMIN_BUY_LATER_FOLLOWUP_ENABLED', true)) {
+        const intervalMinutes = parseNumber('ADMIN_BUY_LATER_FOLLOWUP_INTERVAL_MINUTES', 15);
+        const intervalMs = Math.max(5, intervalMinutes) * 60 * 1000;
+        setInterval(checkAdminBuyLaterFollowups, intervalMs);
+        console.log(`[SCHEDULER] Comprar depois followup enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Comprar depois followup disabled. Set ADMIN_BUY_LATER_FOLLOWUP_ENABLED=true to enable.');
+    }
     // Watchdog: Restart WhatsApp ONLY if not ready and not scanning
     setInterval(() => {
         const { isReady, status } = getStatus();
@@ -121,6 +172,14 @@ export const startScheduler = () => {
         }
     }, 60000);
 
+    if (flagEnabled('WHATSAPP_HEALTH_ALERT_ENABLED', true)) {
+        setInterval(checkHealthAlert, 60 * 1000);
+        setTimeout(() => checkHealthAlert(), 20000);
+        console.log('[SCHEDULER] Health alert enabled for WhatsApp/session failures.');
+    } else {
+        console.log('[SCHEDULER] Health alert disabled. Set WHATSAPP_HEALTH_ALERT_ENABLED=true to enable.');
+    }
+
     // Run immediately on start
     if (flagEnabled('WHATSAPP_PRODUCT_FOLLOWUP_ENABLED', true)) {
         checkInitialProductFollowups();
@@ -128,11 +187,17 @@ export const startScheduler = () => {
     if (flagEnabled('PENDING_CHECKOUT_FOLLOWUP_ENABLED', true)) {
         checkPendingCheckoutFollowups();
     }
+    if (flagEnabled('POST_SALE_REPURCHASE_30D_ENABLED', true)) {
+        setTimeout(() => checkPostSaleRepurchaseFollowups(), 90000);
+    }
     if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
         setTimeout(() => checkPickupReminders(), 30000);
     }
     if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
         setTimeout(() => checkShipmentStatusDispatch(), 45000);
+    }
+    if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
+        setTimeout(() => checkDropiActiveSync(), 30000);
     }
     if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
         setTimeout(() => checkAdminPanelImport(), 15000);
@@ -152,11 +217,17 @@ export const startScheduler = () => {
         if (flagEnabled('PENDING_CHECKOUT_FOLLOWUP_ENABLED', true)) {
             setTimeout(() => checkPendingCheckoutFollowups(), 1000);
         }
+        if (flagEnabled('POST_SALE_REPURCHASE_30D_ENABLED', true)) {
+            setTimeout(() => checkPostSaleRepurchaseFollowups(), 65000);
+        }
         if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
             setTimeout(() => checkPickupReminders(), 10000);
         }
         if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
             setTimeout(() => checkShipmentStatusDispatch(), 20000);
+        }
+        if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
+            setTimeout(() => checkDropiActiveSync(), 15000);
         }
         if (flagEnabled('ADMIN_PANEL_IMPORT_ENABLED', false)) {
             setTimeout(() => checkAdminPanelImport(), 25000);
@@ -168,6 +239,74 @@ export const startScheduler = () => {
             setTimeout(() => checkAdminPanelAtendimentoReconcile(), 55000);
         }
     });
+};
+
+const checkHealthAlert = async () => {
+    try {
+        const statuses = getAllStatuses();
+        const connected = statuses.filter((status) => status?.isReady && status?.status === 'connected');
+        const bad = statuses.filter((status) => !status?.isReady || status?.status !== 'connected');
+        const key = bad.length
+            ? `bad:${bad.map((status) => `${status.sessionId}:${status.status}:${status.lastDisconnectReason || ''}`).join('|')}`
+            : 'ok';
+        const cooldownMs = parseNumber('WHATSAPP_HEALTH_ALERT_COOLDOWN_MINUTES', 15) * 60 * 1000;
+        if (key === lastHealthAlertKey && Date.now() - lastHealthAlertAt < cooldownMs) return;
+
+        if (!bad.length && lastHealthAlertKey && lastHealthAlertKey !== 'ok') {
+            await sendHealthAlert(`OK: Bot WhatsApp recuperado. Sessões conectadas: ${connected.map((item) => item.sessionId).join(', ') || 'nenhuma'}.`);
+            lastHealthAlertAt = Date.now();
+            lastHealthAlertKey = key;
+            return;
+        }
+
+        if (bad.length) {
+            const detail = bad.map((status) => `${status.sessionId}: ${status.status || 'sem_status'}${status.lastDisconnectReason ? ` (${status.lastDisconnectReason})` : ''}`).join(' | ');
+            console.warn(`[HEALTH_ALERT] sessao WhatsApp com problema -> ${detail}`);
+            if (connected.length) {
+                await sendHealthAlert(`ATENCAO: bot WhatsApp com sessão em problema. ${detail}. PM2 segue online e o sistema tentará reconectar.`);
+            }
+            lastHealthAlertAt = Date.now();
+            lastHealthAlertKey = key;
+        }
+    } catch (error) {
+        console.error('[HEALTH_ALERT] falha ao verificar/enviar alerta:', error);
+    }
+};
+
+const sendHealthAlert = async (text) => {
+    const recipients = [...new Set(healthAlertRecipients())];
+    if (!recipients.length) return;
+    for (const phone of recipients) {
+        await sendText(`${phone}@s.whatsapp.net`, text, null, {
+            outboundContext: 'health_alert',
+            bypassDedupe: true,
+            allowTextDedupeBypass: true,
+            allowHistoryDedupeBypass: true,
+            allowExistingDropiOrder: true,
+            recipientDigits: phone
+        }).catch((error) => {
+            console.warn(`[HEALTH_ALERT] falha ao enviar alerta para ${phone}: ${error.message}`);
+        });
+    }
+};
+
+const checkDropiActiveSync = async () => {
+    if (isRunningDropiActiveSync) return;
+    isRunningDropiActiveSync = true;
+    try {
+        const maxRows = parseNumber('DROPPI_EC_ACTIVE_SYNC_MAX_ROWS', 1000);
+        const result = await syncActiveDroppiEcuadorOrdersFromPanel({ maxRows });
+        if (result.synced?.length || result.skipped?.length) {
+            console.log(`[DROPPI_ACTIVE_SYNC] linhas=${result.rowCount || 0}; unicos=${result.unique || 0}; atualizados=${result.synced?.length || 0}; ignorados=${result.skipped?.length || 0}.`);
+        }
+        if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
+            setTimeout(() => checkShipmentStatusDispatch(), 5000);
+        }
+    } catch (error) {
+        console.error('Dropi Active Sync Scheduler Error:', error);
+    } finally {
+        isRunningDropiActiveSync = false;
+    }
 };
 
 const checkAdminPanelAtendimentoReconcile = async () => {
@@ -247,6 +386,38 @@ const checkInitialProductFollowups = async () => {
     }
 };
 
+const checkPostSaleRepurchaseFollowups = async () => {
+    if (isRunningPostSaleRepurchaseFollowups) return;
+    isRunningPostSaleRepurchaseFollowups = true;
+    try {
+        const limit = parseNumber('POST_SALE_REPURCHASE_BATCH_LIMIT', 3);
+        const result = await processPostSaleRepurchase30dFollowups({ limit });
+        if (result.sent || result.candidates) {
+            console.log(`[RECOMPRA_30D] Enviados ${result.sent}/${result.processed}; candidatos ${result.candidates || 0}; limite ${limit}.`);
+        }
+    } catch (error) {
+        console.error('Post-sale Repurchase 30d Scheduler Error:', error);
+    } finally {
+        isRunningPostSaleRepurchaseFollowups = false;
+    }
+};
+
+const checkAdminBuyLaterFollowups = async () => {
+    if (isRunningAdminBuyLaterFollowups) return;
+    isRunningAdminBuyLaterFollowups = true;
+    try {
+        const limit = parseNumber('ADMIN_BUY_LATER_FOLLOWUP_BATCH_LIMIT', 3);
+        const result = await processAdminBuyLaterFollowups({ limit });
+        if (result.sent || result.candidates) {
+            console.log(`[COMPRAR_DEPOIS] Enviados ${result.sent}/${result.processed}; candidatos ${result.candidates || 0}; limite ${limit}.`);
+        }
+    } catch (error) {
+        console.error('Admin Buy Later Followup Scheduler Error:', error);
+    } finally {
+        isRunningAdminBuyLaterFollowups = false;
+    }
+};
+
 const checkPickupReminders = async () => {
     if (isRunningPickupReminders) return;
     isRunningPickupReminders = true;
@@ -278,7 +449,7 @@ const checkShipmentStatusDispatch = async () => {
     if (isRunningShipmentStatusDispatch) return;
     isRunningShipmentStatusDispatch = true;
     try {
-        const actions = parseActions(process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'ready_for_pickup');
+        const actions = parseActions(process.env.SHIPMENT_STATUS_DISPATCH_ACTIONS || 'guide,in_transit,ready_for_pickup,returned,delivered_bonus');
         const backlog = await countShipmentDispatchCandidates({ actions });
         const limit = adaptiveLimit({
             backlog,
@@ -293,7 +464,10 @@ const checkShipmentStatusDispatch = async () => {
         });
         const result = await processShipmentStatusDispatch({ limit, actions });
         if (result.sent || backlog) {
-            console.log(`[SHIPMENT_DISPATCH] Enviados ${result.sent}/${result.processed}; pendentes ${backlog}; limite ${limit}; actions=${actions.join(',') || 'default'}.`);
+            const quotaInfo = result.quota?.reason
+                ? `; quota=${result.quota.reason}; hoje=${result.quota.sentToday ?? 0}/${result.quota.dailyLimit || 'sem_limite'}; liberado=${result.quota.allowedByNow ?? 'n/a'}`
+                : '';
+            console.log(`[SHIPMENT_DISPATCH] Enviados ${result.sent}/${result.processed}; pendentes ${backlog}; limite ${limit}; actions=${actions.join(',') || 'default'}${quotaInfo}.`);
         }
     } catch (error) {
         console.error('Shipment Status Dispatch Scheduler Error:', error);

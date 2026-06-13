@@ -1,0 +1,99 @@
+import mongoose from 'mongoose';
+
+const vslVisitSchema = new mongoose.Schema({
+    visitorKey: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true
+    },
+    visitorId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    sessionId: {
+        type: String,
+        default: ''
+    },
+    country: {
+        type: String,
+        default: 'EC',
+        index: true
+    },
+    page: {
+        type: String,
+        default: ''
+    },
+    path: {
+        type: String,
+        default: ''
+    },
+    sourceUrl: {
+        type: String,
+        default: ''
+    },
+    referrer: {
+        type: String,
+        default: ''
+    },
+    userAgent: {
+        type: String,
+        default: ''
+    },
+    ipHash: {
+        type: String,
+        default: ''
+    },
+    device: {
+        type: String,
+        default: ''
+    },
+    tracking: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    assignedSeller: {
+        type: String,
+        default: '',
+        index: true
+    },
+    assignedSellerAt: Date,
+    assignmentReason: {
+        type: String,
+        default: ''
+    },
+    clickCount: {
+        type: Number,
+        default: 0
+    },
+    lastClickAt: Date,
+    lastEntryMessage: {
+        type: String,
+        default: ''
+    },
+    firstSeenAt: {
+        type: Date,
+        default: Date.now,
+        index: true
+    },
+    lastSeenAt: {
+        type: Date,
+        default: Date.now,
+        index: true
+    },
+    visits: {
+        type: Number,
+        default: 1
+    }
+}, {
+    timestamps: true
+});
+
+vslVisitSchema.index({ country: 1, firstSeenAt: -1 });
+vslVisitSchema.index({ country: 1, lastSeenAt: -1 });
+vslVisitSchema.index({ country: 1, assignedSeller: 1, lastClickAt: -1 });
+
+const VslVisit = mongoose.model('VslVisit', vslVisitSchema);
+
+export default VslVisit;

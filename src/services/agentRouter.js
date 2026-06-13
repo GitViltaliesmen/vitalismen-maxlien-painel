@@ -12,22 +12,32 @@ const autoReplyEnabled = () => String(process.env.WHATSAPP_AUTO_REPLY_ENABLED ||
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
-const ecOnlyInboundEnabled = () => String(process.env.WHATSAPP_EC_ONLY_INBOUND || 'true').toLowerCase() !== 'false';
+const countryRestrictedInboundEnabled = () => String(process.env.WHATSAPP_EC_ONLY_INBOUND || 'true').toLowerCase() !== 'false';
 
-const isAllowedEcuadorCustomer = ({ chatId = '', senderPn = '', phoneDigits = '' } = {}) => {
+const isBlockedBroadcastOrGroup = (chatId = '') => {
     const id = String(chatId || '');
-    if (!id || id === 'status@broadcast' || id.includes('@g.us') || id.includes('@newsletter') || id.includes('@broadcast')) {
-        return false;
-    }
+    return !id || id === 'status@broadcast' || id.includes('@g.us') || id.includes('@newsletter') || id.includes('@broadcast');
+};
+
+const countryCodeFromDigits = (value = '') => {
+    const digits = digitsOnly(value);
+    if (digits.startsWith('593')) return 'EC';
+    if (digits.startsWith('57')) return 'CO';
+    return '';
+};
+
+const isAllowedCustomerCountry = ({ chatId = '', senderPn = '', phoneDigits = '' } = {}) => {
+    const id = String(chatId || '');
+    if (isBlockedBroadcastOrGroup(id)) return false;
 
     const senderDigits = digitsOnly(senderPn);
-    if (senderDigits) return senderDigits.startsWith('593');
+    if (senderDigits) return Boolean(countryCodeFromDigits(senderDigits));
 
     const phone = digitsOnly(phoneDigits);
-    if (phone) return phone.startsWith('593');
+    if (phone) return Boolean(countryCodeFromDigits(phone));
 
     const chatDigits = digitsOnly(id);
-    if (id.endsWith('@s.whatsapp.net') || id.endsWith('@c.us')) return chatDigits.startsWith('593');
+    if (id.endsWith('@s.whatsapp.net') || id.endsWith('@c.us')) return Boolean(countryCodeFromDigits(chatDigits));
     if (id.endsWith('@lid')) return false;
     return false;
 };
@@ -53,6 +63,44 @@ const isAutoReplyAllowedForChat = (...identifiers) => {
         .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
 };
 
+const isInboundTestOnlyPhone = (...identifiers) => {
+    const allowed = parseDigitsList(process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS);
+    if (!allowed.length) return false;
+    return identifiers
+        .map((item) => digitsOnly(item))
+        .filter(Boolean)
+        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+};
+
+const operationalPanelPhones = () => [
+    process.env.WHATSAPP_DEFAULT_SESSION_ID,
+    process.env.WHATSAPP_SESSION_IDS,
+    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS,
+    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS
+].flatMap(parseDigitsList);
+
+const priorityBotTestPhones = () => [
+    '5515998038637',
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES
+].flatMap(parseDigitsList);
+
+const isOperationalPanelPhone = (...identifiers) => {
+    const allowed = operationalPanelPhones();
+    if (!allowed.length) return false;
+    return identifiers
+        .map((item) => digitsOnly(item))
+        .filter(Boolean)
+        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+};
+
+const isPriorityBotTestPhone = (...identifiers) => {
+    const allowed = priorityBotTestPhones();
+    return identifiers
+        .map((item) => digitsOnly(item))
+        .filter(Boolean)
+        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+};
+
 const normalizeText = (text) => String(text || '').trim().toLowerCase();
 
 const hasAnyMatch = (text, patterns) => patterns.some((pattern) => pattern.test(text));
@@ -66,13 +114,41 @@ const normalizeForDecision = (value) => String(value || '')
     .trim();
 
 const inboundDedupeWindowMs = () => {
-    const seconds = Number(process.env.WHATSAPP_INBOUND_DEDUPE_SECONDS || 90);
+    const seconds = Number(process.env.WHATSAPP_INBOUND_DEDUPE_SECONDS || 180);
     return Math.max(10, seconds) * 1000;
 };
 
 const processingLockMs = () => {
     const seconds = Number(process.env.WHATSAPP_CONTACT_PROCESSING_LOCK_SECONDS || 180);
     return Math.max(30, seconds) * 1000;
+};
+
+const manualAutoReturnMs = () => {
+    const minutes = Number.parseInt(String(process.env.WHATSAPP_MANUAL_AUTO_RETURN_MINUTES || '2'), 10);
+    return Math.max(1, Number.isFinite(minutes) ? minutes : 2) * 60 * 1000;
+};
+
+const firstReplyWindowMs = () => {
+    const minSeconds = Number.parseInt(String(process.env.WHATSAPP_FIRST_REPLY_MIN_SECONDS || '20'), 10);
+    const maxSeconds = Number.parseInt(String(process.env.WHATSAPP_FIRST_REPLY_MAX_SECONDS || '59'), 10);
+    const minMs = Math.max(0, (Number.isFinite(minSeconds) ? minSeconds : 20) * 1000);
+    const maxMs = Math.max(minMs, (Number.isFinite(maxSeconds) ? maxSeconds : 59) * 1000);
+    return minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const waitForFirstReplyWindow = async ({ state, isFirstInbound, recovered, chatId }) => {
+    if (!isFirstInbound || recovered) return 0;
+    const targetMs = firstReplyWindowMs();
+    const inboundAt = state?.firstInboundAt ? new Date(state.firstInboundAt).getTime() : Date.now();
+    const elapsedMs = Number.isFinite(inboundAt) ? Math.max(0, Date.now() - inboundAt) : 0;
+    const waitMs = Math.max(0, targetMs - elapsedMs);
+    if (waitMs > 0) {
+        console.log(`[FIRST_REPLY_WINDOW] aguardando ${Math.ceil(waitMs / 1000)}s antes da primeira resposta -> ${chatId}`);
+        await sleep(waitMs);
+    }
+    return waitMs;
 };
 
 const acquireContactProcessingLock = async ({ stateId, messageId }) => {
@@ -132,6 +208,15 @@ const hasProcessedInbound = ({ state, messageId, body }) => {
     );
 };
 
+const hasProcessedInboundMessageId = ({ state, messageId }) => {
+    if (!messageId) return false;
+    const metadata = state.metadata || {};
+    const processedIds = Array.isArray(metadata.processedInboundMessageIds)
+        ? metadata.processedInboundMessageIds
+        : [];
+    return processedIds.includes(messageId);
+};
+
 const markInboundProcessed = ({ state, messageId, body }) => {
     const metadata = state.metadata || {};
     const processedIds = Array.isArray(metadata.processedInboundMessageIds)
@@ -148,13 +233,64 @@ const markInboundProcessed = ({ state, messageId, body }) => {
     };
 };
 
+const resetPriorityBotTestConversationMemory = (state) => {
+    const metadata = state.metadata || {};
+    const perAgentMemory = metadata.perAgentMemory || {};
+    state.metadata = {
+        ...metadata,
+        perAgentMemory: {
+            ...perAgentMemory,
+            [OFFICIAL_AGENT]: {}
+        },
+        lastKnownFunnelStage: '',
+        lastKnownFunnelBucket: '',
+        automationHandoffSuggestedReason: '',
+        automationHandoffSuggestedNote: '',
+        lastHumanHoldReason: '',
+        cleanTestResetAt: new Date(),
+        cleanTestResetReason: 'auto_reset_8637_before_each_test_message'
+    };
+    delete state.metadata.customerDraft;
+    delete state.metadata.automationHoldAt;
+    delete state.metadata.automationHoldReason;
+    delete state.metadata.automationHandoffSuggestedAt;
+    delete state.metadata.processingLock;
+    delete state.metadata.lastProcessedInboundText;
+    delete state.metadata.lastProcessedInboundAt;
+    delete state.metadata.lastComplementAt;
+    delete state.metadata.lastComplementKey;
+    if (state.metadata.perAgentMemory?.[OFFICIAL_AGENT]) {
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].audioComplements;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastComplementAt;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastComplementKey;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastInterruptAnsweredAt;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastInterruptKey;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].resumeFunnelStageAfterInterrupt;
+        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].resumeConversationStageAfterInterrupt;
+    }
+    state.firstInboundText = '';
+    state.firstInboundAt = null;
+    state.lastOutboundAt = null;
+    state.stage = 'inicio';
+    state.quantity = '';
+    state.total = '';
+    state.buyer_score = '';
+};
+
 const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId }) => {
     if (!body.trim()) return;
     try {
         const peerPhone = digitsOnly(senderPn) || digitsOnly(chatId);
+        const ownerSet = sessionId
+            ? {
+                sessionId,
+                ownerPhoneDigits: digitsOnly(sessionId)
+            }
+            : {};
         await Message.updateOne(
             { _id: messageId || `in_${Date.now()}` },
             {
+                ...(Object.keys(ownerSet).length ? { $set: ownerSet } : {}),
                 $setOnInsert: {
                     chatId,
                     peerPhone,
@@ -164,8 +300,6 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId
                     type: 'chat',
                     isFromMe: false,
                     isBot: false,
-                    sessionId: sessionId || '',
-                    ownerPhoneDigits: digitsOnly(sessionId),
                     timestamp: Math.floor(Date.now() / 1000)
                 }
             },
@@ -178,39 +312,90 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId
     }
 };
 
-const inferCountryCode = (chatId) => {
+const inferCountryCode = (...values) => {
+    for (const value of values) {
+        const country = countryCodeFromDigits(value);
+        if (country) return country;
+    }
     return OFFICIAL_COUNTRY;
 };
 
-const realEcuadorPhoneForState = ({ chatId = '', senderPn = '', state = null } = {}) => {
+const realAllowedPhoneForState = ({ chatId = '', senderPn = '', state = null } = {}) => {
     const sender = digitsOnly(senderPn);
-    if (sender.startsWith('593')) return sender;
+    if (countryCodeFromDigits(sender)) return sender;
     const metadataSender = digitsOnly(state?.metadata?.lastSenderPn);
-    if (metadataSender.startsWith('593')) return metadataSender;
+    if (countryCodeFromDigits(metadataSender)) return metadataSender;
     const statePhone = digitsOnly(state?.phoneDigits);
-    if (statePhone.startsWith('593')) return statePhone;
+    if (countryCodeFromDigits(statePhone)) return statePhone;
     const chatDigits = digitsOnly(chatId);
-    return chatDigits.startsWith('593') ? chatDigits : '';
+    return countryCodeFromDigits(chatDigits) ? chatDigits : '';
 };
 
-const ensureInboundContactInAdminPanel = ({ chatId = '', senderPn = '', state = null } = {}) => {
-    const phone = realEcuadorPhoneForState({ chatId, senderPn, state });
-    if (!phone) return { ok: false, skipped: true, reason: 'no_ec_phone' };
+const ensureInboundContactInAdminPanel = ({ chatId = '', senderPn = '', state = null, countryCode = OFFICIAL_COUNTRY } = {}) => {
+    const phone = realAllowedPhoneForState({ chatId, senderPn, state });
+    if (!phone) return { ok: false, skipped: true, reason: 'no_allowed_phone' };
+    const country = countryCodeFromDigits(phone) || countryCode || OFFICIAL_COUNTRY;
     const draft = state?.metadata?.customerDraft || {};
-    const manualActive = state?.human?.mode === 'manual';
+    const manualActive = state?.human?.mode === 'manual' || country === 'CO';
     const result = syncContactDraftToOnlineAdminPanel({
         ...draft,
         phone: draft.phone || phone,
-        country: draft.country || OFFICIAL_COUNTRY,
+        country: draft.country || country,
         status: manualActive ? 'atendendo' : (draft.status || 'novo')
     }, {
-        country: draft.country || OFFICIAL_COUNTRY,
-        note: 'Entrada WhatsApp: contato criado automaticamente no Painel Unificado',
+        country: draft.country || country,
+        note: country === 'CO'
+            ? 'Entrada WhatsApp CO: contato enviado direto para atendimento humano'
+            : 'Entrada WhatsApp: contato criado automaticamente no Painel Unificado',
         action: 'whatsapp_inbound_contact_guard',
         adminStatus: manualActive ? 'atendendo' : 'novo'
     });
     if (!result?.ok && !result?.skipped) {
         console.warn('[ROUTER] falha ao garantir contato no Painel Unificado:', result);
+    }
+    return result;
+};
+
+const BOT_ATTENDING_PROTECTED_STATUSES = new Set([
+    'comprar_depois',
+    'confirmado',
+    'pedido_enviado',
+    'enviado',
+    'entregue',
+    'recompra',
+    'devolvido',
+    'cancelado',
+    'conferir_pedidos',
+    'finalizado'
+]);
+
+const normalizeStatusToken = (value) => normalizeForDecision(value).replace(/\s+/g, '_');
+
+const markBotAttendanceInAdminPanel = ({ chatId = '', senderPn = '', state = null, countryCode = OFFICIAL_COUNTRY } = {}) => {
+    const phone = realAllowedPhoneForState({ chatId, senderPn, state });
+    if (!phone) return { ok: false, skipped: true, reason: 'no_allowed_phone' };
+    const country = countryCodeFromDigits(phone) || countryCode || OFFICIAL_COUNTRY;
+    if (country !== OFFICIAL_COUNTRY) return { ok: false, skipped: true, reason: 'country_not_auto_panel' };
+
+    const draft = state?.metadata?.customerDraft || {};
+    const draftStatus = normalizeStatusToken(draft.status || '');
+    if (BOT_ATTENDING_PROTECTED_STATUSES.has(draftStatus)) {
+        return { ok: false, skipped: true, reason: 'protected_status' };
+    }
+
+    const result = syncContactDraftToOnlineAdminPanel({
+        ...draft,
+        phone: draft.phone || phone,
+        country: draft.country || country,
+        status: 'atendendo'
+    }, {
+        country: draft.country || country,
+        note: 'Bot respondeu automaticamente; cliente em atendimento',
+        action: 'whatsapp_bot_auto_reply_attending',
+        adminStatus: 'atendendo'
+    });
+    if (!result?.ok && !result?.skipped) {
+        console.warn('[ROUTER] falha ao marcar atendimento do bot no Painel Unificado:', result);
     }
     return result;
 };
@@ -289,15 +474,41 @@ const findContinuityContactState = async ({ chatId, senderPn }) => {
     return allCandidates.sort((a, b) => stateContinuityRank(b, chatId) - stateContinuityRank(a, chatId))[0];
 };
 
+const findPriorityFrozenContactState = async ({ chatId, senderPn, phoneDigits }) => {
+    const query = contactIdentityQuery({ chatId, senderPn, phoneDigits });
+    return ContactState.findOne({
+        ...query,
+        'metadata.priorityFrozen': true
+    }).sort({ updatedAt: -1 });
+};
+
 const rememberContactChannel = ({ state, chatId, senderPn, sessionId }) => {
     const senderPhoneDigits = digitsOnly(senderPn);
     const metadata = state.metadata || {};
     const linkedChatIds = Array.isArray(metadata.linkedChatIds) ? metadata.linkedChatIds : [];
+    const now = new Date();
+    const continuity = metadata.sessionContinuity || {};
+    const continuityHistory = Array.isArray(continuity.history) ? continuity.history : [];
+    const inboundEvent = {
+        at: now,
+        direction: 'inbound',
+        chatId,
+        sessionId: sessionId || '',
+        senderPn: senderPn || '',
+        phoneDigits: senderPhoneDigits || digitsOnly(chatId)
+    };
     state.metadata = {
         ...metadata,
         linkedChatIds: [...new Set([...(linkedChatIds || []), state.chatId, chatId].filter(Boolean))].slice(-20),
         lastActiveChatId: chatId,
         lastSessionId: sessionId || metadata.lastSessionId || null,
+        sessionContinuity: {
+            ...continuity,
+            lastInboundAt: now,
+            lastInboundSessionId: sessionId || continuity.lastInboundSessionId || '',
+            lastInboundChatId: chatId || continuity.lastInboundChatId || '',
+            history: [...continuityHistory, inboundEvent].slice(-80)
+        },
         ...(senderPn ? { lastSenderPn: senderPn } : {}),
         ...(senderPhoneDigits ? { customerPhoneDigits: senderPhoneDigits } : {})
     };
@@ -433,7 +644,7 @@ const appendAgentHistory = ({ state, assignedAgent, reason }) => {
 
 const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason, signals, sessionId = null }) => {
     ensureTag(state, 'COMMERCIAL_READY');
-    ensureTag(state, 'VIT_POWER_EC_ONLY');
+    if (countryCode === 'EC') ensureTag(state, 'VIT_POWER_EC_ONLY');
     if (signals.asksPrice) ensureTag(state, 'ASKS_PRICE');
     if (signals.asksProof) ensureTag(state, 'ASKS_PROOF');
     if (signals.requestsQuantity || signals.closing) ensureTag(state, 'HOT_LEAD');
@@ -441,7 +652,7 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
     if (signals.asksGuide || signals.asksPickup) ensureTag(state, 'LOGISTICS');
     if (signals.postSale) ensureTag(state, 'POST_SALE');
 
-    state.countryCode = OFFICIAL_COUNTRY;
+    state.countryCode = countryCode || OFFICIAL_COUNTRY;
     state.assignedAgent = OFFICIAL_AGENT;
     appendAgentHistory({ state, assignedAgent, reason });
     state.metadata = {
@@ -499,15 +710,36 @@ const dispatchToAgent = async ({ assignedAgent, payload }) => {
 export const routeIncomingMessage = async (payload) => {
     const chatId = payload.from;
     const body = String(payload.body || '');
-    const countryCode = inferCountryCode(chatId);
     const sessionId = payload.sessionId || null;
     const messageId = payload.id ? String(payload.id) : '';
     const senderPn = payload.senderPn || payload.fullMessage?.key?.senderPn || null;
     const senderPhoneDigits = digitsOnly(senderPn);
     let state = await findContinuityContactState({ chatId, senderPn });
+    let countryCode = inferCountryCode(senderPn, state?.phoneDigits, state?.metadata?.lastSenderPn, state?.metadata?.customerPhoneDigits, chatId);
+    const inboundTestOnly = isInboundTestOnlyPhone(chatId, senderPn, senderPhoneDigits, state?.phoneDigits, state?.metadata?.customerPhoneDigits);
+    const operationalPanelPhone = isOperationalPanelPhone(chatId, senderPn, senderPhoneDigits, state?.phoneDigits, state?.metadata?.customerPhoneDigits);
+    const priorityBotTestPhone = isPriorityBotTestPhone(chatId, senderPn, senderPhoneDigits, state?.phoneDigits, state?.metadata?.customerPhoneDigits);
 
-    if (ecOnlyInboundEnabled() && !isAllowedEcuadorCustomer({ chatId, senderPn, phoneDigits: senderPhoneDigits || state?.phoneDigits || state?.metadata?.lastSenderPn })) {
-        console.log(`[ROUTER] inbound bloqueado: somente clientes EC 593 | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
+    if (priorityBotTestPhone) {
+        const frozenState = await findPriorityFrozenContactState({
+            chatId,
+            senderPn,
+            phoneDigits: senderPhoneDigits || state?.phoneDigits || state?.metadata?.customerPhoneDigits || state?.metadata?.lastSenderPn
+        });
+        if (frozenState && (!state || String(frozenState._id) !== String(state._id))) {
+            console.log(`[ROUTER] estado congelado priorizado para teste 8637 | antigo=${state?._id || 'novo'} | atual=${frozenState._id}`);
+            state = frozenState;
+            countryCode = inferCountryCode(senderPn, state?.phoneDigits, state?.metadata?.lastSenderPn, state?.metadata?.customerPhoneDigits, chatId);
+        }
+    }
+
+    if (isBlockedBroadcastOrGroup(chatId)) {
+        console.log(`[ROUTER] inbound bloqueado: grupo/broadcast/newsletter | chat=${chatId}`);
+        return;
+    }
+
+    if (countryRestrictedInboundEnabled() && !priorityBotTestPhone && !operationalPanelPhone && !isAllowedCustomerCountry({ chatId, senderPn, phoneDigits: senderPhoneDigits || state?.phoneDigits || state?.metadata?.lastSenderPn })) {
+        console.log(`[ROUTER] inbound bloqueado: somente clientes EC/CO 593/57 | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
         return;
     }
 
@@ -519,7 +751,9 @@ export const routeIncomingMessage = async (payload) => {
         });
     }
     rememberContactChannel({ state, chatId, senderPn, sessionId });
-    const adminContactSync = ensureInboundContactInAdminPanel({ chatId, senderPn, state });
+    const adminContactSync = operationalPanelPhone
+        ? { ok: false, skipped: true, reason: 'operational_panel_phone' }
+        : ensureInboundContactInAdminPanel({ chatId, senderPn, state, countryCode });
     if (adminContactSync?.mode === 'created') {
         state.metadata = {
             ...(state.metadata || {}),
@@ -528,7 +762,10 @@ export const routeIncomingMessage = async (payload) => {
         };
     }
 
-    if (hasProcessedInbound({ state, messageId, body })) {
+    const inboundAlreadyProcessed = priorityBotTestPhone
+        ? hasProcessedInboundMessageId({ state, messageId })
+        : hasProcessedInbound({ state, messageId, body });
+    if ((!operationalPanelPhone || priorityBotTestPhone) && inboundAlreadyProcessed) {
         console.log(`[ROUTER] inbound duplicado ignorado | chat=${chatId} | id=${messageId || 'sem_id'}`);
         return;
     }
@@ -551,9 +788,132 @@ export const routeIncomingMessage = async (payload) => {
         ...(senderPn ? { lastSenderPn: senderPn } : {})
     };
 
+    if (operationalPanelPhone && !priorityBotTestPhone) {
+        state.countryCode = 'BR';
+        state.human = {
+            ...(state.human || {}),
+            mode: 'manual',
+            pausedUntil: null,
+            assignedName: inboundTestOnly ? 'Teste envio' : 'Numero operacional',
+            note: inboundTestOnly
+                ? 'TESTE ENVIO: contato interno usado apenas para envio/teste. Nao tratar como lead real.'
+                : 'NUMERO OPERACIONAL: liberado para enviar/receber no painel. Nao tratar como lead real.',
+            lastManualAt: new Date(),
+            lastManualBy: 'sistema'
+        };
+        state.tags = [...new Set([
+            ...(state.tags || []),
+            inboundTestOnly ? 'TESTE_ENVIO' : 'NUMERO_OPERACIONAL',
+            'BR_OPERACIONAL'
+        ])];
+        state.metadata = {
+            ...(state.metadata || {}),
+            testOnly: true,
+            outboundTestOnly: true,
+            lastHumanHoldAt: new Date(),
+            lastHumanHoldReason: inboundTestOnly ? 'inbound_test_only' : 'operational_panel_phone'
+        };
+        await state.save();
+        console.log(`[ROUTER] inbound operacional salvo sem automacao | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'} | session=${sessionId || 'sem_session'}`);
+        return;
+    }
+
+    if (priorityBotTestPhone) {
+        if (!state.metadata?.fullFunnelTestEnabled) {
+            resetPriorityBotTestConversationMemory(state);
+        }
+        state.countryCode = OFFICIAL_COUNTRY;
+        state.human = {
+            ...(state.human || {}),
+            mode: 'auto',
+            pausedUntil: null,
+            assignedName: 'Teste 8637',
+            note: 'TESTE 8637: prioridade fixa no painel com bot liberado.'
+        };
+        state.tags = [...new Set([
+            ...(state.tags || []),
+            'TESTE_8637_PRIORIDADE',
+            'TESTE_FIXO_NAO_MEXER',
+            'BOT_TESTE_LIBERADO'
+        ])];
+        state.metadata = {
+            ...(state.metadata || {}),
+            testOnly: true,
+            outboundTestOnly: true,
+            priorityFrozen: true,
+            priorityFrozenReason: 'NUMERO_8637_TESTE_PERMANENTE_NAO_MEXER',
+            botTestEnabled: true,
+            fullFunnelTestEnabled: true,
+            lastHumanHoldReason: ''
+        };
+    }
+
+    if (countryCode === 'CO') {
+        state.countryCode = 'CO';
+        state.human = {
+            ...(state.human || {}),
+            mode: 'manual',
+            pausedUntil: null,
+            assignedName: state.human?.assignedName || 'Atendimento CO',
+            note: 'Cliente CO: direcionado automaticamente para atendimento humano. Bot comercial nao responde.',
+            lastManualAt: new Date(),
+            lastManualBy: 'sistema'
+        };
+        state.tags = [...new Set([
+            ...(state.tags || []),
+            'CO_ATENDIMENTO_MANUAL',
+            'BOT_BLOQUEADO_CO',
+            'ATENDENDO'
+        ])];
+        state.metadata = {
+            ...(state.metadata || {}),
+            lastHumanHoldAt: new Date(),
+            lastHumanHoldReason: 'co_direct_to_human',
+            coDirectToHuman: true
+        };
+        await state.save();
+        ensureInboundContactInAdminPanel({ chatId, senderPn, state, countryCode: 'CO' });
+        console.log(`[ROUTER] cliente CO enviado direto para atendimento humano | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'} | session=${sessionId || 'sem_session'}`);
+        return;
+    }
+
     const human = state.human || {};
     const pausedUntil = human.pausedUntil ? new Date(human.pausedUntil).getTime() : 0;
-    if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
+    const lastManualAt = human.lastManualAt ? new Date(human.lastManualAt).getTime() : 0;
+    const manualExpired = human.mode === 'manual' && (
+        (pausedUntil && pausedUntil <= Date.now())
+        || (!pausedUntil && lastManualAt && Date.now() - lastManualAt >= manualAutoReturnMs())
+    );
+    if (manualExpired) {
+        state.human = {
+            ...human,
+            mode: 'auto',
+            pausedUntil: null,
+            note: human.note || 'Atendimento manual expirado; automacao retomada.'
+        };
+        state.metadata = {
+            ...(state.metadata || {}),
+            lastHumanAutoReleaseAt: new Date(),
+            lastHumanAutoReleaseReason: 'manual_timeout'
+        };
+        await state.save();
+        console.log(`[ROUTER] atendimento manual expirado; automacao retomada | chat=${chatId}`);
+    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
+        const manualReason = String(
+            state.metadata?.automationPausedReason
+            || state.metadata?.automationHandoffSuggestedReason
+            || state.metadata?.lastHumanHoldReason
+            || ''
+        );
+        if (manualReason === 'order_closed_human_handoff') {
+            state.metadata = {
+                ...(state.metadata || {}),
+                postOrderAutomationAllowedAt: new Date(),
+                postOrderAutomationAllowedReason: 'answer_doubts_without_reopening_funnel'
+            };
+            await state.save();
+            console.log(`[ROUTER] pos-fechamento liberado para duvidas sem reabrir funil | chat=${chatId}`);
+        } else {
         state.metadata = {
             ...(state.metadata || {}),
             lastHumanHoldAt: new Date(),
@@ -562,13 +922,14 @@ export const routeIncomingMessage = async (payload) => {
         await state.save();
         console.log(`[ROUTER] automacao pausada por atendimento humano | chat=${chatId} | operador=${human.assignedName || human.assignedTo || 'sem_nome'}`);
         return;
+        }
     }
 
     const [latestOrder, recentCommercialPrompt] = await Promise.all([
         findLatestOrderForContact({ chatId, senderPn, state }),
         findRecentCommercialBotPrompt({ chatId, senderPn, state })
     ]);
-    const resolvedCountryCode = OFFICIAL_COUNTRY;
+    const resolvedCountryCode = countryCode || OFFICIAL_COUNTRY;
 
     const decision = chooseAssignedAgent({
         state,
@@ -606,15 +967,32 @@ export const routeIncomingMessage = async (payload) => {
     }
 
     try {
+        if (!priorityBotTestPhone) {
+            await waitForFirstReplyWindow({
+                state,
+                isFirstInbound,
+                recovered: Boolean(payload.recovered),
+                chatId
+            });
+        }
+        const outboundFrom = priorityBotTestPhone && senderPhoneDigits
+            ? `${senderPhoneDigits}@s.whatsapp.net`
+            : chatId;
         await dispatchToAgent({
             assignedAgent: decision.assignedAgent,
             payload: {
                 ...payload,
+                from: outboundFrom,
+                inboundChatId: chatId,
+                senderPn,
                 contactStateId: state._id.toString(),
                 agentDecisionReason: decision.reason,
                 sessionId
             }
         });
+        if (!operationalPanelPhone) {
+            markBotAttendanceInAdminPanel({ chatId, senderPn, state, countryCode: resolvedCountryCode });
+        }
     } finally {
         await releaseContactProcessingLock({ stateId: state._id, messageId });
     }

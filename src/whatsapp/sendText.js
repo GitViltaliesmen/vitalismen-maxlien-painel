@@ -2,18 +2,213 @@ import { getSock, getSocketId, getOwnPhoneDigits, waitForWhatsAppReady } from '.
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
+import { humanizeWhatsAppText } from './humanizeText.js';
+import {
+    markOutboundDedupeFailed,
+    markOutboundDedupeSent,
+    reserveOutboundOnce,
+    resolveOutboundPhoneDigits
+} from '../services/outboundDedupeService.js';
+import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
+import Message from '../models/Message.js';
+
+const SEND_TEXT_TIMEOUT_MS = Number.parseInt(process.env.WHATSAPP_SEND_TEXT_TIMEOUT_MS || '45000', 10);
+const HISTORY_DEDUPE_WINDOW_MINUTES = Math.max(5, Number.parseInt(process.env.WHATSAPP_HISTORY_DEDUPE_WINDOW_MINUTES || '1440', 10) || 1440);
+const parseMs = (name, fallback) => {
+    const value = Number.parseInt(String(process.env[name] || ''), 10);
+    return Number.isFinite(value) && value >= 0 ? value : fallback;
+};
+const withTimeout = (promise, ms, label) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms))
+]);
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const looksLikeRealPhoneDigits = (value = '') => /^(593|57|55)\d{8,13}$/.test(digitsOnly(value));
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeAntiSpamTextKey = (value = '') => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}\s$.,:;!?¿¡-]+/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+const normalizeHistoryText = (value = '') => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}\s$.,:;!?¿¡-]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const CLIENT_VISIBLE_MARKER_LINE_REGEX = /^\s*\[(?:AUDIO|AUDIO_[^\]]+|ÁUDIO|IMAGEM|IMAGE|VIDEO|VÍDEO|MIDIAS|MÍDIAS|MEDIA|DADOS[^\]]*|ENVIAR_AUDIO_GRAVADO|GERAR_AUDIO)[^\]]*\].*$/i;
+const CLIENT_VISIBLE_INLINE_MARKER_REGEX = /\[(?:AUDIO|AUDIO_[^\]]+|ÁUDIO|IMAGEM|IMAGE|VIDEO|VÍDEO|MIDIAS|MÍDIAS|MEDIA|DADOS[^\]]*|ENVIAR_AUDIO_GRAVADO|GERAR_AUDIO)[^\]]*\]\s*[:=-]?\s*/gi;
+
+const sanitizeClientVisibleText = (value = '') => {
+    const lines = String(value || '')
+        .split(/\r?\n/)
+        .filter((line) => !CLIENT_VISIBLE_MARKER_LINE_REGEX.test(line));
+    return lines
+        .join('\n')
+        .replace(CLIENT_VISIBLE_INLINE_MARKER_REGEX, '')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+const historyRepeatKey = (text = '') => {
+    const body = normalizeHistoryText(text);
+    if (!body) return '';
+    const guideMatch = body.match(/\b(?:guia|guia numero|numero de guia|tracking)\s*[:#-]?\s*(\d{5,})\b/);
+    const pickupNotice = /(retiro|retirar|retire|retirarlo|agencia|servientrega|punto de retiro|comprobante de retiro)/.test(body)
+        && /(pedido|guia|disponible|ya esta|ya aparece|sigue|acercarse|puede retirar|para retiro|retirar en agencia|foto del retiro|comprobante)/.test(body);
+    if (pickupNotice) {
+        return guideMatch ? `logistics_ready_for_pickup:${guideMatch[1]}` : 'logistics_ready_for_pickup';
+    }
+    if (/(pedido ya quedo registrado|pedido esta registrado|su pedido quedo registrado|su pedido ya esta registrado|apenas tenga la guia|novedad de servientrega)/.test(body)) return 'order_registered_waiting_guide';
+    if (/(le envio|envio|enviamos)\s+(?:1|2|3|6|un|una|dos|tres|seis)\s+(?:botella|botellas|frasco|frascos)/.test(body)
+        && /(listo|de acuerdo|esta correcto|esta bien)/.test(body)) return 'ask_value_confirmation';
+    if (/\b(cual es su nombre completo|nombre completo|nombre y apellido)\b/.test(body)) return 'ask_name';
+    if (/\bque dia desea que le escribamos nuevamente\b/.test(body)) return 'ask_followup_date';
+    if (/(cuantos frascos|indiqueme cuantos frascos|elige la cantidad|escoja la cantidad|1\s*3\s*o\s*6|1\s*,\s*3\s*o\s*6)/.test(body)) return 'ask_quantity';
+    if (/(esta bien para usted reservar|me confirma si esta de acuerdo|le parece bien|confirma.*valor|confirmar.*cantidad)/.test(body) && /frasco/.test(body)) return 'ask_value_confirmation';
+    if (/(puedo enviar su pedido por una agencia de servientrega|agencia servientrega cercana|prefiere agencia|prefiere domicilio|agencia o domicilio|por agencia o domicilio)/.test(body)) return 'ask_delivery_mode';
+    if (/(elija una de las agencias|escoja una de las agencias|responda solo con la letra|a\)\s*servientrega|b\)\s*servientrega)/.test(body)) return 'ask_agency_selection';
+    if (/(envieme|envienos|indiqueme|proporcione|cual es|por favor.*(?:direccion|barrio|sector|referencia))/.test(body)
+        && /(direccion completa|direccion exacta|barrio|sector|referencia cercana|punto de referencia)/.test(body)) return 'ask_home_address';
+    if (/(autoriza el despacho|revise.*datos.*correctos|si todo esta bien|confirma.*despacho|confirmar.*pedido)/.test(body)) return 'ask_final_confirmation';
+    if (/(pedido quedo confirmado|gracias por confirmar sus datos|su pedido fue confirmado|venta confirmada)/.test(body)) return 'order_closed_confirmation';
+    if (/(cual es|indiqueme|en que|por favor.*provincia|escriba.*provincia)/.test(body) && /\bprovincia\b/.test(body)) return 'ask_province';
+    if (/(cual es|indiqueme|en que|por favor.*ciudad|escriba.*ciudad)/.test(body) && /\bciudad\b/.test(body)) return 'ask_city';
+    return body.length >= 25 ? `exactish:${body.slice(0, 220)}` : '';
+};
+const recentHistoryPhoneClauses = ({ targetJid, recipientDigits }) => {
+    const clauses = [];
+    const jid = String(targetJid || '').trim();
+    const digits = digitsOnly(recipientDigits) || digitsOnly(jid);
+    if (jid) clauses.push({ chatId: jid }, { to: jid }, { from: jid });
+    if (digits.length >= 8) {
+        const tail = digits.slice(-10);
+        const tailRegex = new RegExp(`${escapeRegex(tail)}(?:\\D|$)`);
+        clauses.push(
+            { peerPhone: digits },
+            { peerPhone: { $regex: `${escapeRegex(tail)}$` } },
+            { chatId: { $regex: tailRegex } },
+            { to: { $regex: tailRegex } },
+            { from: { $regex: tailRegex } }
+        );
+    }
+    return clauses;
+};
+const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
+    const key = historyRepeatKey(body);
+    if (!key || Message?.db?.readyState !== 1) return { blocked: false, key };
+    const phoneClauses = recentHistoryPhoneClauses({ targetJid, recipientDigits });
+    if (!phoneClauses.length) return { blocked: false, key };
+    const since = new Date(Date.now() - HISTORY_DEDUPE_WINDOW_MINUTES * 60 * 1000);
+    const currentNormalized = normalizeHistoryText(body);
+    try {
+        const recentMessages = await Message.find({
+            $and: [
+                { $or: phoneClauses },
+                { $or: [{ isFromMe: true }, { isBot: true }, { from: 'bot' }] },
+                { $or: [{ createdAt: { $gte: since } }, { updatedAt: { $gte: since } }] }
+            ],
+            body: { $type: 'string', $ne: '' }
+        })
+            .sort({ createdAt: -1, timestamp: -1 })
+            .limit(40)
+            .select({ body: 1, createdAt: 1, timestamp: 1 })
+            .lean();
+        const repeated = recentMessages.find((message) => {
+            const previousBody = message?.body || '';
+            return historyRepeatKey(previousBody) === key || normalizeHistoryText(previousBody) === currentNormalized;
+        });
+        return repeated ? { blocked: true, key } : { blocked: false, key };
+    } catch (error) {
+        console.warn(`[LOG_SEND_HISTORY_GUARD_WARN] falha ao consultar historico anti-repeticao -> ${targetJid}: ${error.message}`);
+        return { blocked: false, key };
+    }
+};
+const normalizeOutboundJid = async (jid, recipientDigits = '') => {
+    const resolvedDigits = await resolveOutboundPhoneDigits({ jid, recipientDigits });
+    if (String(jid || '').endsWith('@lid') && looksLikeRealPhoneDigits(resolvedDigits)) {
+        return {
+            jid: `${digitsOnly(resolvedDigits)}@s.whatsapp.net`,
+            recipientDigits: digitsOnly(resolvedDigits),
+            normalizedFromLid: true
+        };
+    }
+    return {
+        jid,
+        recipientDigits: digitsOnly(recipientDigits) || (looksLikeRealPhoneDigits(resolvedDigits) ? digitsOnly(resolvedDigits) : ''),
+        normalizedFromLid: false
+    };
+};
 
 /**
  * Enterprise Text Wrapper for Baileys
  * Provides standardized error handling and formatting for plain text responses
  */
 export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
-    const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid });
+    const normalized = await normalizeOutboundJid(jid, options.recipientDigits || '');
+    const targetJid = normalized.jid;
+    const recipientDigits = options.recipientDigits || normalized.recipientDigits || '';
+    const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid: targetJid, country: options.country || '' });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
-    const guard = canSendOutbound({ jid, text, sessionId, ownDigits, kind: 'text' });
+    const humanizedText = options.humanize === false
+        ? String(text || '').trim()
+        : humanizeWhatsAppText(text, { jid: targetJid, sessionId });
+    const finalText = sanitizeClientVisibleText(humanizedText);
+    if (!finalText) {
+        console.warn(`[TEXT-GUARD] texto bloqueado por conter apenas marcador tecnico -> ${targetJid}`);
+        return false;
+    }
+    if (finalText !== humanizedText) {
+        console.warn(`[TEXT-GUARD] marcador tecnico removido antes do envio -> ${targetJid}`);
+    }
+    const bypassDedupe = options.bypassDedupe === true || options.force === true;
+    const bypassTextDedupe = bypassDedupe && options.allowTextDedupeBypass === true;
+    const antiSpamKey = options.antiSpamKey
+        || options.outboundContext
+        || `auto_text:${normalizeAntiSpamTextKey(finalText)}`;
+    if (normalized.normalizedFromLid) {
+        console.log(`[OUTBOUND-JID] LID normalizado para numero real -> ${jid} => ${targetJid}`);
+    }
+    const guard = canSendOutbound({ jid: targetJid, text: finalText, sessionId, ownDigits, kind: 'text', recipientDigits, bypassDedupe: bypassTextDedupe, reserveDedupe: false });
     if (!guard.allowed) {
-        console.log(`[LOG_SEND_BLOCKED] texto bloqueado -> ${jid} | reason=${guard.reason}`);
+        console.log(`[LOG_SEND_BLOCKED] texto bloqueado -> ${targetJid} | reason=${guard.reason}`);
+        return false;
+    }
+    const dropiGuard = await checkDropiOrderBeforeOutbound({
+        jid: targetJid,
+        recipientDigits,
+        text: finalText,
+        allowExistingDropiOrder: options.allowExistingDropiOrder === true,
+        outboundContext: options.outboundContext || ''
+    });
+    if (!dropiGuard.allowed) {
+        console.log(`[LOG_SEND_BLOCKED] texto bloqueado por pedido Dropi existente -> ${targetJid} | reason=${dropiGuard.reason} | order=${dropiGuard.orderId || ''} | tracking=${dropiGuard.trackingNumber || ''}`);
+        return false;
+    }
+    if (!bypassTextDedupe && options.allowHistoryDedupeBypass !== true) {
+        const historyGuard = await hasRecentHistoryRepeat({ targetJid, recipientDigits, body: finalText });
+        if (historyGuard.blocked) {
+            console.log(`[LOG_SEND_BLOCKED] texto repetido bloqueado por historico -> ${targetJid} | reason=history_repeat | key=${historyGuard.key}`);
+            return false;
+        }
+    }
+    const duplicateGuard = await reserveOutboundOnce({
+        jid: targetJid,
+        recipientDigits,
+        sessionId,
+        kind: 'text',
+        value: options.dedupeValue || finalText,
+        label: finalText,
+        antiSpamKey,
+        bypass: bypassTextDedupe
+    });
+    if (!duplicateGuard.allowed) {
+        console.log(`[LOG_SEND_BLOCKED] texto repetido bloqueado rigidamente -> ${targetJid} | reason=${duplicateGuard.reason} | phone=${duplicateGuard.phoneDigits || ''}`);
         return false;
     }
 
@@ -23,21 +218,61 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
 
         try {
             const readySock = sock || await waitForWhatsAppReady(12000, sessionId);
-            const payload = { text };
-            const options = quotedMsg ? { quoted: quotedMsg } : undefined;
+            const payload = { text: finalText };
+            const normalizedQuotedMsg = quotedMsg
+                ? {
+                    ...quotedMsg,
+                    key: {
+                        ...(quotedMsg.key || {}),
+                        remoteJid: targetJid
+                    }
+                }
+                : null;
+            const messageOptions = normalizedQuotedMsg ? { quoted: normalizedQuotedMsg } : undefined;
 
-            const { pacing, afterSendMs } = await withHumanizedOutboundQueue(jid, async () => {
-                const pacing = await applyHumanPacing({ sock: readySock, jid, kind: 'text', text });
-                await readySock.sendMessage(jid, payload, options);
-                const afterSendMs = await applyAfterSendPacing({ kind: 'text', text });
+            const firstResponseSla = options.firstResponseSla === true;
+            const pacingMinMs = firstResponseSla
+                ? parseMs('WHATSAPP_FIRST_RESPONSE_MIN_MS', 10000)
+                : null;
+            const pacingMaxMs = firstResponseSla
+                ? parseMs('WHATSAPP_FIRST_RESPONSE_MAX_MS', 45000)
+                : null;
+            const sendMode = options.sendMode || '';
+            const { pacing, afterSendMs } = await withHumanizedOutboundQueue(targetJid, async () => {
+                const pacing = await applyHumanPacing({
+                    sock: readySock,
+                    jid: targetJid,
+                    kind: 'text',
+                    text: finalText,
+                    minMs: pacingMinMs,
+                    maxMs: pacingMaxMs,
+                    sendMode
+                });
+                await withTimeout(
+                    readySock.sendMessage(targetJid, payload, messageOptions),
+                    Number.isFinite(SEND_TEXT_TIMEOUT_MS) && SEND_TEXT_TIMEOUT_MS > 0 ? SEND_TEXT_TIMEOUT_MS : 45000,
+                    'send_text'
+                );
+                const afterSendMs = options.skipAfterSendPacing === true
+                    ? 0
+                    : await applyAfterSendPacing({ kind: 'text', text: finalText, sendMode });
                 return { pacing, afterSendMs };
+            }, {
+                bypassGlobalQueue: firstResponseSla,
+                globalGapMinMs: firstResponseSla ? 0 : null,
+                globalGapMaxMs: firstResponseSla ? 0 : null,
+                sendMode
             });
-            console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 📤 Texto disparado -> ${jid} | Tamanho: ${text.length} chars | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
-            recordOutboundSend({ sessionId, jid });
+            console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 📤 Texto disparado -> ${targetJid} | Tamanho: ${finalText.length} chars | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
+            recordOutboundSend({ sessionId, jid: targetJid });
+            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
             return true;
         } catch (error) {
-            console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar texto para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) return false;
+            console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar texto para ${targetJid} | tentativa=${attempt}:`, error);
+            if (attempt === 2) {
+                await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
+                return false;
+            }
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
     }

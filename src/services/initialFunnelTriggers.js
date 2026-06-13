@@ -1,49 +1,12 @@
 export const VIT_POWER_INITIAL_CTA_MESSAGES = [
-    'Hola, deseo Vit Power',
-    'Hola desejo Vit Power',
-    'Hola, quiero Vit Power',
-    'Hola, quero Vit Power',
-    'Quiero saber del producto',
-    'Quero saber do produto',
-    'Precio Vit Power',
-    'Quiero informacion de Vit Power',
-    'Deseo informacion de Vit Power',
-    'Quiero conocer Vit Power',
-    'Me interesa Vit Power',
-    'Quiero comprar Vit Power',
-    'Quiero ordenar Vit Power',
-    'Hola, quiero el producto',
-    'Hola, quiero informacion del producto',
-    'Hola, deseo el producto',
-    'Quiero saber precio',
-    'Quiero saber el precio de Vit Power',
-    'Me interesa el tratamiento',
-    'Quiero saber del tratamiento',
-    'Quero saber do tratamento',
-    'Necesito informacion del producto',
-    'Quiero la promocion de Vit Power',
-    'Me pasas la promo de Vit Power',
-    'Quiero la oferta de Vit Power',
-    'Hola, vi el video y quiero informacion',
-    'Vi el anuncio y quiero Vit Power',
-    'Vengo por Vit Power',
-    'Quiero empezar con Vit Power',
-    'Deseo comprar el producto',
-    'Quero comprar o produto',
-    'Hola, quiero hacer mi pedido',
-    'Hola, quiero ordenar',
-    'Quiero mi pedido de Vit Power',
-    'Quero meu pedido de Vit Power',
-    'Info Vit Power',
-    'Mas informacion Vit Power',
-    'Como funciona Vit Power',
-    'Quiero saber como funciona',
-    'Tengo interes en Vit Power',
-    'Necesito Vit Power',
-    'Hola, quiero saber mas',
-    'Me puedes dar informacion del producto?',
-    'Quiero recibir informacion por WhatsApp',
-    'Quiero hablar con una asesora de Vit Power'
+    'Hola, vengo del video',
+    'Hola, acabo de ver el video',
+    'Hola, vi la presentacion',
+    'Hola, llegue desde la pagina',
+    'Hola, vengo de la informacion del video',
+    'Hola, termine de ver el video',
+    'Hola, estoy entrando desde el video',
+    'Hola, vi el video completo'
 ];
 
 export const INITIAL_CTA_MESSAGES_BY_COUNTRY = {
@@ -113,6 +76,9 @@ const INITIAL_PRODUCT_TERMS = [
     'prod',
     'tratamiento',
     'tratamento',
+    'medicamento',
+    'medicina',
+    'remedio',
     'suplemento',
     'frasco',
     'botella'
@@ -147,9 +113,21 @@ const INITIAL_INTEREST_TERMS = [
     'pedido',
     'asesora',
     'asesoria',
+    'ayuda',
+    'ayudar',
+    'ayudeme',
+    'atender',
+    'atencion',
     'funciona',
     'sirve',
-    'detalles'
+    'detalles',
+    'video',
+    'orientacion',
+    'orientar',
+    'doctora',
+    'doutora',
+    'maria',
+    'fernandes'
 ];
 
 const SIMPLE_GREETING_TERMS = [
@@ -226,14 +204,34 @@ export const isInitialProductInquiry = (text) => {
     if (startsWithOfficialInitialCtaMessage(text)) return true;
     if (looksLikeOrderDataMessage(text)) return false;
     if (normalizedVitPowerMessages.has(body)) return true;
+    if (
+        /\b(video|presentacion|presentacion|vsl)\b/i.test(body)
+        && /\b(doctora|doutora|maria|fernandes|orientacion|orientar|orientacao)\b/i.test(body)
+    ) {
+        return true;
+    }
 
     const tokens = body.split(' ').filter(Boolean);
     const mentionsProduct = mentionsVitPower(body)
-        || /\b(prod[a-z]*|tratamiento|tratamento|suplemento|frasco|botella)\b/i.test(body)
+        || /\b(prod[a-z]*|tratamiento|tratamento|medicamento|medicina|remedio|suplemento|frasco|botella)\b/i.test(body)
         || anyTokenLooksLike(tokens, INITIAL_PRODUCT_TERMS);
-    const asksOrShowsInterest = /\b(hola|ola|buenas|quiero|quero|deseo|desejo|desea|necesito|interesa|interesado|informacion|informacao|info|saber|precio|preco|valor|promo|promocion|comprar|ordenar|pedido|asesora|asesoria|funciona|sirve|detalles)\b/i.test(body)
+    const asksOrShowsInterest = /\b(hola|ola|buenas|quiero|quero|deseo|desejo|desea|necesito|interesa|interesado|informacion|informacao|info|saber|precio|preco|valor|promo|promocion|comprar|ordenar|pedido|asesora|asesoria|ayuda|ayudar|ayudeme|atender|atencion|funciona|sirve|detalles|cuando|cu[aá]ndo|demora|tarda|llega|entrega|envio|env[ií]o)\b/i.test(body)
         || anyTokenLooksLike(tokens, INITIAL_INTEREST_TERMS);
+    const standaloneFirstContactInterest = tokens.length <= 5 && anyTokenLooksLike(tokens, [
+        'precio',
+        'presio',
+        'preco',
+        'valor',
+        'info',
+        'informacion',
+        'informacao',
+        'producto',
+        'produto',
+        'promo',
+        'promocion'
+    ]);
 
     if (mentionsVitPower(body) && body.split(' ').length <= 5) return true;
+    if (standaloneFirstContactInterest) return true;
     return mentionsProduct && asksOrShowsInterest;
 };

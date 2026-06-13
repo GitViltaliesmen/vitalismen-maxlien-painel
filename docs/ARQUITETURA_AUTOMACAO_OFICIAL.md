@@ -16,6 +16,10 @@ O foco operacional atual e um unico funil:
 
 Nao criar novo funil, novo painel ou novo bot antes de verificar este documento, `AGENTS.md` e `docs/FUNIL_ATENDIMENTO_FECHAMENTO.md`.
 
+Regra superior de isolamento total: aplicar `docs/ISOLAMENTO_TOTAL_VITALISMEN_PRODUCAO.md`. Vitalismen e producao critica; para isolamento absoluto pratico, deve operar em ambiente exclusivo, sem comunicacao tecnica, operacional ou de dados com Aquecimento ou qualquer projeto paralelo.
+
+Para Vitalismen em producao isolada, nao usar supervisor compartilhado com Aquecimento. A regra antiga `docs/REGRA_ISOLAMENTO_BOTS_E_SEGURANCA.md` so vale como referencia historica para cenarios menos restritos; a regra atual superior e isolamento total sem comunicacao.
+
 O funil evoluido local fica documentado em `docs/FUNIL_EVOLUIDO_VIT_POWER_EC.md`. Ele ainda nao deve ser considerado publicado no VPS ate passar por teste piloto e deploy explicito.
 
 ## Funil oficial ativo
@@ -25,8 +29,6 @@ O funil evoluido local fica documentado em `docs/FUNIL_EVOLUIDO_VIT_POWER_EC.md`
 Em 2026-05-08, a estrutura do caminho sem dados no inicio ficou congelada:
 
 1. entrada por CTA/interesse;
-2. `Inicio_01`;
-3. `Inicio_02`;
 4. prova social 1;
 5. prova social 2;
 6. imagem oficial Vit Power;
@@ -47,8 +49,6 @@ Em 2026-05-09, a estrutura do caminho com dados no inicio tambem ficou congelada
 
 1. cliente envia primeira mensagem com dados do pedido, como nome, provincia, cidade, endereco/agencia, referencia, quantidade e total;
 2. bot identifica que e mensagem de dados e nao deixa cair em IA livre;
-3. bot envia `Inicio_01`;
-4. bot envia `Inicio_02`;
 5. bot envia provas sociais/imagem oficial quando aplicavel;
 6. bot nao envia tabela completa de precos;
 7. bot usa a quantidade informada para calcular o valor oficial:
@@ -68,12 +68,97 @@ As estruturas A e B sao o nucleo congelado do funil. A partir desta decisao, qua
 
 Bloqueios praticos:
 
-- nao mudar a ordem `Inicio_01` -> `Inicio_02` -> provas sociais -> imagem -> valores;
+- nunca mostrar ao cliente, no texto nem no rodape visual da conversa, que a mensagem foi enviada por IA, bot, automacao, sistema, assistente virtual ou ferramenta comercial;
 - nao remover `PERGUNTA_AGENCIA_DOMICILIO` nem `ENDERECO_CIDADE_PROVINCIA_AGENCIA` do caminho sem dados;
 - nao remover a confirmacao limpa de dados antes do fechamento;
 - nao remover `Agradecimento_Agencia_01` e `BONUS_RETIRADA` apos confirmacao;
 - nao fazer pedido subir automaticamente para Dropi sem autorizacao manual;
 - nao reativar funil legado, scheduler paralelo de envio ou IA livre antes do roteiro oficial.
+
+### Regra de intencao forte antes de etapa rigida
+
+Em 2026-05-21, o funil passou a seguir uma regra operacional superior para atender clientes que nao respondem em ordem perfeita:
+
+1. primeiro identificar intencoes fortes do cliente;
+2. depois salvar qualquer dado util recebido;
+3. por ultimo perguntar somente o proximo campo faltante.
+
+Intencoes fortes que tem prioridade sobre a etapa atual:
+
+- escolha clara de quantidade: `1`, `uno`, `1 frasco`, `3`, `tres`, `3 frascos`, `6`, `seis`, `6 frascos`;
+- confirmacao clara de fechamento: `si`, `listo`, `correcto`, `confirmo`, `envielo`, `mande`;
+- envio de dados do pedido em qualquer ordem: nome, cidade, provincia, endereco, referencia, agencia e quantidade;
+- escolha de entrega: agencia Servientrega ou domicilio;
+- correcao de dados ja informados.
+
+Regra critica: se houver intencao forte de quantidade apos a apresentacao/preco, o bot deve confirmar a quantidade e enviar o audio especifico da quantidade antes de qualquer complemento de audio. O audio grande `TRATAMENTO_Y_PRECIOS_PROMOCAO` nao deve substituir audios especificos de 1, 3 ou 6 frascos.
+
+Audios oficiais da quantidade:
+
+- `1_BOTELLA_POR_39.mp3`;
+- `3_BOTELLAS_POR_95_E_99.mp3`;
+- `6_BOTELLAS_POR_167_E_99.mp3`.
+
+O funil nao deve reiniciar quando o cliente quebrar a ordem. Ele deve responder ao que o cliente disse, atualizar memoria e retomar o proximo dado faltante.
+
+### Congelamento: quantidade aprovada e memoria de pedido
+
+Em 2026-05-21, ficou aprovado o comportamento de quantidade:
+
+- se o cliente escolher `1`, `3` ou `6` depois da apresentacao/preco, o bot envia o audio especifico da quantidade;
+- logo depois do audio, o bot envia um resumo em texto com quantidade, valor e confirmacao curta;
+- a quantidade e o valor ficam salvos em `selectedQuantity` e no pedido pendente;
+- se o cliente confirmar e depois informar nome, cidade ou provincia, o bot nao deve perguntar quantidade de novo;
+- depois de cidade/provincia com quantidade ja salva, a proxima pergunta deve ser agencia Servientrega ou domicilio;
+- perguntas iguais repetidas em poucos minutos devem ser bloqueadas pelo anti-duplicidade do funil principal SDR.
+
+### Congelamento: Servientrega primeiro
+
+Em 2026-05-21, a etapa logistica do funil passou a priorizar agencia Servientrega antes de domicilio:
+
+- a primeira pergunta logistica deve ser: `¿Puedo enviar su pedido por una agencia de Servientrega cercana a usted?`;
+- o texto deve orientar que agencia e a opcao mais segura para retirar e pagar contra entrega;
+- quando houver audio aprovado, enviar o audio e tambem o texto de apoio;
+- se o audio nao estiver disponivel, enviar somente o texto;
+- domicilio entra apenas se o cliente recusar agencia ou pedir domicilio de forma clara;
+- respostas como `si`, `correcto`, `listo`, `agencia`, `servientrega`, cidade/provincia ou nome de setor devem seguir para busca/confirmacao de agencia, nao para domicilio.
+
+### Congelamento: cidade, provincia e lista de agencias
+
+Em 2026-05-21, ficou definido que a coleta logistica deve evitar pedir cidade e provincia na mesma pergunta:
+
+- primeiro perguntar somente a cidade;
+- depois perguntar somente a provincia;
+- usar `src/data/agencia_LISTA.json` como fonte oficial para localizar agencias Servientrega;
+- se o cliente informar uma cidade, como `Palanda`, usar essa cidade para buscar agencias no JSON;
+- se cidade e provincia ja estiverem salvas, ao cliente responder `SI` para agencia, listar as agencias encontradas sem pedir novamente setor/agencia;
+- a lista deve vir em blocos separados por linha, com letras `A`, `B`, `C`;
+- a instrucao deve ser: `Señor, por favor, elija una de las agencias abajo. Responda solo con la letra de la agencia:`;
+- se o cliente quiser domicilio, pedir: endereco completo, bairro/setor e ponto de referencia.
+
+### Ajuste: confirmacao contextual de agencia
+
+Em 2026-05-21, a etapa logistica recebeu regra contextual para evitar confusao:
+
+- nome desta frente: `Funil Vitalismen EC - Logistica Servientrega`;
+- etapa: `Agencia Servientrega apos cidade/provincia`;
+- se cidade e provincia ja estiverem em memoria e existir agencia oficial exata naquela cidade, o bot deve perguntar pela agencia especifica, por exemplo: `¿Puedo enviar su pedido para la agencia de Servientrega de Sucua, Morona Santiago?`;
+- para `Sucua, Morona Santiago`, a lista oficial contem `Sucua Principal`;
+- respostas como `si`, `ok`, `ck`, `perfecto`, `perfeicto`, `de acuerdo`, `esta bien`, `envieme`, `envie`, `envielo`, `mande` e equivalentes so confirmam a agencia quando a etapa pendente for de confirmacao/selecionar agencia;
+- essas confirmacoes nao devem virar regra generica para qualquer etapa do funil;
+- a pergunta em espanhol deve deixar saida clara para troca: `Si desea cambiar la ciudad o la agencia, escriba: cambiar ciudad.`;
+- se o cliente negar ou pedir troca de cidade/agencia nessa etapa, o bot deve pedir nova cidade, provincia e agencia de referencia em espanhol, limpando a cidade/agencia anterior para evitar contaminacao;
+- quando a cidade tiver match exato na lista oficial, nao listar agencias de outras cidades apenas porque sao da mesma provincia; usar outras cidades somente se nao houver agencia na cidade pedida.
+
+### Regra anti-duplicacao por telefone
+
+O telefone real do cliente e a chave operacional principal. O painel e os avisos logisticos nao podem tratar varios pedidos, varios atendentes ou varios espelhos `EC-ADMIN-*` como clientes diferentes quando o telefone for o mesmo.
+
+- ao sincronizar com o painel, procurar lead existente por telefone antes de procurar por `event_id` ou id administrativo;
+- um telefone deve manter uma ficha principal no painel; novas entradas do mesmo telefone devem atualizar a ficha existente;
+- avisos logisticos (`guia`, `in_transit`, `ready_for_pickup` e lembretes de retirada) devem usar trava por telefone + tipo de aviso dentro da janela global;
+- se outro pedido/espelho do mesmo telefone ja recebeu o aviso, o sistema deve marcar o registro atual como aviso recuperado, sem enviar nova mensagem;
+- duplicidade antiga deve ser consolidada por rotina controlada/auditada, nunca apagada sem backup.
 
 ### Camada de complementos fora do nucleo A/B
 
@@ -97,7 +182,7 @@ Em 2026-05-09, foi criado o complemento lateral `vitPowerAudioComplementService`
 
 Gatilhos principais:
 
-- preco/promocao/tratamento: `TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6`;
+- preco/promocao/tratamento: `TRATAMENTO_Y_PRECIOS_PROMOCAO`;
 - como tomar/usar/dose: `COMO_SE_TOMA_VIT_POWER`;
 - funciona/duvida leve: `FUNCIONA_VIT_POWER` + `DEPOIMENTO_AUDIO_PRODUTO`;
 - prostata/urina: `Ajuda_Prostata`;
@@ -157,22 +242,20 @@ Deteccao de CTA:
 
 Ordem congelada da apresentacao inicial:
 
-1. `Inicio_01`
-2. `Inicio_02`
 3. `social_01`
 4. `social_02`
 5. `vit_power_bottle`
 6. texto de valores com chamada direta para a quantidade escolhida no formulario, quando existir
+7. audio de valores `TRATAMENTO_Y_PRECIOS_PROMOCAO`
 
 Regra de memoria:
 
 - a apresentacao so e considerada concluida quando todas as chaves existem:
-  - `audio:Inicio_01`
-  - `audio:Inicio_02`
   - `image:social_01`
   - `image:social_02`
   - `image:vit_power_bottle`
   - `text:price`
+  - `audio:TRATAMENTO_Y_PRECIOS_PROMOCAO`
 - `initialProductPresentationSentAt` sozinho nao basta para pular o funil.
 
 Regra de formulario CTA:
@@ -266,8 +349,6 @@ Pasta oficial:
 
 Audios existentes:
 
-- `Inicio_01`
-- `Inicio_02`
 - `PERGUNTA_AGENCIA_DOMICILIO`
 - `ENDERECO_CIDADE_PROVINCIA_AGENCIA`
 - `Agradecimento_Agencia_01`

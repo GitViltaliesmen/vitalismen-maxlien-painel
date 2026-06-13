@@ -9,8 +9,6 @@ Reduzir custo de geração de áudio e manter operação saudável, controlada e
 - `BOT_USE_APPROVED_AUDIO_ONLY=true` bloqueia geração automática de TTS pago.
 - O atendente usa os áudios aprovados no painel em **Cliente selecionado > Audios do funil**.
 - Para Equador já estão prontos:
-  - `Inicio_01`
-  - `Inicio_02`
   - `Chegou_01`
   - `Chegou_02`
   - `Chegou_03`

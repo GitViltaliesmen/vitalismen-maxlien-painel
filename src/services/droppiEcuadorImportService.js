@@ -2,7 +2,12 @@ import {
     normalizeDroppiEcuadorStatus,
     upsertDroppiEcuadorShipment
 } from './droppiEcuadorService.js';
-import { notifyShipmentGuideGenerated } from './shipmentMessageService.js';
+import Shipment from '../models/Shipment.js';
+import Order from '../models/Order.js';
+import {
+    notifyReadyForPickup,
+    notifyShipmentGuideGenerated
+} from './shipmentMessageService.js';
 
 const ORDER_ID_RE = /^\d{6,}$/;
 const STATUS_RE = /^(GUIA_GENERADA|PREPARADO PARA TRANSPORTADORA|MERCANCIA RECOGIDA|EN BODEGA TRANSPORTADORA|EN DESPACHO|EN RUTA|EN REPARTO|EN PROCESAMIENTO|DEVOLUCION|DEVOLUCIÓN|ENTREGADO|EN AGENCIA|LISTO PARA RETIRO|READY_FOR_PICKUP|DELIVERED|DEVUELTO|RETURNED|NO_RETIRADO|PENDIENTE|NOVEDAD|INGRESANDO EN AGENCIA .*|EN RUTA A CONCESI[ÓO]N .*)$/i;
@@ -13,6 +18,58 @@ const normalizeLine = (line) => String(line || '')
     .trim();
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
+
+const phoneTailCandidates = (value) => {
+    const digits = normalizePhone(value);
+    return [...new Set([
+        digits,
+        digits.length >= 9 ? digits.slice(-9) : '',
+        digits.length >= 10 ? digits.slice(-10) : ''
+    ].filter((item) => item && item.length >= 8))];
+};
+
+const resolveExistingOrderIdForRetroactiveImport = async (record) => {
+    const rawOrderId = String(record?.orderId || '').trim();
+    if (/^EC-/i.test(rawOrderId)) return rawOrderId;
+
+    if (rawOrderId) {
+        const byDropiId = await Shipment.findOne({
+            $or: [
+                { 'raw.droppiOrder.id': rawOrderId },
+                { 'raw.latestDroppiPayload.dropiOrderId': rawOrderId },
+                { 'raw.manualDropiOrderId': rawOrderId }
+            ]
+        }).sort({ updatedAt: -1 }).lean().catch(() => null);
+        if (byDropiId?.orderId) return byDropiId.orderId;
+
+        const orderByDropiId = await Order.findOne({ dropiOrderId: rawOrderId })
+            .sort({ updatedAt: -1 })
+            .lean()
+            .catch(() => null);
+        if (orderByDropiId?.orderId) return orderByDropiId.orderId;
+    }
+
+    const phoneTails = phoneTailCandidates(record?.phone);
+    if (!phoneTails.length) return rawOrderId;
+    const phoneRegexes = phoneTails.map((tail) => new RegExp(`${tail}$`));
+
+    const shipmentByPhone = await Shipment.findOne({
+        provider: 'droppi',
+        country: 'EC',
+        'client.phone': { $in: phoneRegexes }
+    }).sort({
+        'automation.submittedToDroppiAt': -1,
+        updatedAt: -1,
+        createdAt: -1
+    }).lean().catch(() => null);
+    if (shipmentByPhone?.orderId) return shipmentByPhone.orderId;
+
+    const orderByPhone = await Order.findOne({
+        country: 'EC',
+        'customer.phone': { $in: phoneRegexes }
+    }).sort({ updatedAt: -1, createdAt: -1 }).lean().catch(() => null);
+    return orderByPhone?.orderId || rawOrderId;
+};
 
 const buildReferenceFromAddress = (addressLine) => {
     const match = String(addressLine || '').match(/referencia:\s*(.+)$/i);
@@ -196,8 +253,12 @@ export const importDroppiEcuadorText = async ({ text, sessionId = '', autoNotify
     let notified = 0;
 
     for (const record of records) {
+        const resolvedOrderId = await resolveExistingOrderIdForRetroactiveImport(record);
         const shipment = await upsertDroppiEcuadorShipment({
             ...record,
+            orderId: resolvedOrderId,
+            dropiOrderId: record.orderId,
+            manualDropiOrderId: record.orderId,
             sessionId
         });
 
@@ -206,6 +267,9 @@ export const importDroppiEcuadorText = async ({ text, sessionId = '', autoNotify
         if (autoNotify && shipment.logistics.status === 'GUIA_GENERADA') {
             const notifyResult = await notifyShipmentGuideGenerated(shipment);
             if (notifyResult?.success) notified += 1;
+        } else if (autoNotify && shipment.logistics.status === 'READY_FOR_PICKUP') {
+            const notifiedPickup = await notifyReadyForPickup(shipment);
+            if (notifiedPickup) notified += 1;
         }
     }
 

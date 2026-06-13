@@ -1,5 +1,18 @@
 # Regras Fixas do Projeto
 
+## Congelamento total atual
+
+O estado aprovado em 2026-05-17 esta congelado em:
+
+```sh
+docs/CONGELAMENTO_TOTAL_VITALISMEN_2026-05-17.md
+approved_freezes/CONGELADO_TOTAL_VITALISMEN_20260517_021215.txt
+```
+
+Antes de mexer em painel WhatsApp, Dropi Ecuador, funil Vit Power, midia, audio, imagem, video, foto da Ana, memoria de cliente, numeros conectados, filtro EC, pedidos confirmados ou formulario de cliente, ler esse congelamento.
+
+Regra dura: nao alterar, remover, reordenar, simplificar ou refazer comportamento congelado sem pedido explicito do operador citando o ponto que deve mudar.
+
 ## Isolamento de outros projetos de automacao
 
 Este projeto e somente a automacao oficial Vitalismen / Vit Power Ecuador.
@@ -57,14 +70,29 @@ Nao editar com base em copia temporaria, zip, pasta antiga, `.codex-tmp`, print,
 4. Documentacao em `docs/`.
 5. Copias temporarias ou antigas somente como referencia.
 
+## Regra fixa do painel WhatsApp
+
+No painel integrado `public/qr.html`, a coluna esquerda de conversas (`#chatList`, `.chat-item`, `renderChats`) nunca deve exibir texto de mensagens. Ela serve somente para listar contatos/conversas com avatar, nome/telefone, horario e selos operacionais como `Fechou`, `Humano` ou status de pedido.
+
+Conteudo de mensagem (`message.body`, `chat.lastMessage.body`, transcricoes, midia ou texto completo) deve aparecer exclusivamente no painel central da conversa (`#conversation`, `renderMessages`) depois que o contato for selecionado.
+
+E proibido recolocar `chat.lastMessage.body` ou qualquer preview textual de mensagem dentro de `.chat-item`, `.chat-preview`, `.chat-title` ou `.chat-foot`. Busca interna pode usar campos de mensagem se necessario, mas nada disso deve ser renderizado na coluna esquerda.
+
+O painel Vitalismen nao deve misturar contatos de outros projetos, aquecimento, status do WhatsApp, grupos ou IDs tecnicos LID sem telefone real. A lista de conversas e metricas deve ser filtrada pela sessao oficial conectada da Vitalismen e mostrar apenas chats validos com telefone resolvido.
+
+Antes de publicar qualquer mudanca no painel, validar que:
+
+- `document.querySelectorAll('.chat-preview .meta').length === 0`;
+- ao selecionar um contato, as bolhas aparecem em `#conversation`;
+- a lista esquerda continua sem mensagem junto ao numero.
+- `status@broadcast`, chats `@g.us` e IDs `@lid` sem telefone real nao aparecem como clientes.
+
 ## Funil Vit Power congelado
 
 O funil inicial Vit Power do Equador esta congelado como processo oficial em `docs/FUNIL_ATENDIMENTO_FECHAMENTO.md`.
 
 Nao refazer nem trocar a ordem aprovada sem pedido explicito. A ordem oficial e:
 
-1. `Inicio_01`
-2. `Inicio_02`
 3. `social_01`
 4. `social_02`
 5. `vit_power_bottle`
@@ -73,6 +101,10 @@ Nao refazer nem trocar a ordem aprovada sem pedido explicito. A ordem oficial e:
 O sistema deve gravar memoria por contato para nao repetir etapas ja enviadas e deve respeitar pausas humanas configuradas por `INITIAL_FUNNEL_*`.
 
 Formulario da VSL/CTA nunca deve ser respondido por IA livre quando trouxer dados de pedido. A regra oficial e deterministica: salvar os dados, perguntar somente campo faltante, ou enviar confirmacao final sem telefone quando estiver completo.
+
+Regra operacional atual: o funil deve ler intencao forte antes de aplicar a etapa rigida. Quantidade clara, confirmacao, dados de pedido, entrega em agencia/domicilio e correcao de dados devem ser capturados, salvos e usados para continuar pelo proximo campo faltante. Se o cliente quebrar a ordem, nao reiniciar o funil.
+
+Depois da apresentacao/preco, resposta de quantidade (`1`, `uno`, `1 frasco`, `3`, `tres`, `3 frascos`, `6`, `seis`, `6 frascos`) tem prioridade sobre complemento de audio. O bot deve enviar o audio especifico da quantidade, nao o audio geral `TRATAMENTO_Y_PRECIOS_PROMOCAO`.
 
 Automacoes legadas que conflitam com o funil Vit Power foram removidas do caminho automatico:
 

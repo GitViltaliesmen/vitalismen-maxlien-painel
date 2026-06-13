@@ -29,6 +29,8 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Ultimo backup conhecido antes do ajuste de mensagens CTA:
   - `/root/codex_deploy_backups/maxlien-m-index-before-cta-messages-20260506-030628.html`
 - Ultimo ajuste oficial:
+  - 2026-05-24: reduziu atrito da entrada WhatsApp da VSL. O campo `Nombre completo` continua sendo enviado quando preenchido, mas a pagina nao bloqueia mais visitantes que digitam apenas primeiro nome. Motivo: trafego novo estava parando antes de abrir WhatsApp apos a atualizacao do funil Vit Power 2026.
+  - Backup feito no VPS antes do ajuste: `/root/codex_deploy_backups/maxlien-m-index-before-name-friction-20260524-*.html`
   - 2026-05-06: formulario recebeu `Punto de referencia`, quantidade ficou em `1/3/6`, e a mensagem WhatsApp passou a enviar `Punto de referencia`.
   - Backup feito no VPS antes do ajuste: `/root/codex_deploy_backups/maxlien-m-index-before-reference-field-20260506-*.html`
 - Validacao obrigatoria:
@@ -52,8 +54,6 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
   - `INITIAL_FUNNEL_AFTER_IMAGE_MIN_MS/MAX_MS`
   - `INITIAL_FUNNEL_BEFORE_PRICE_MIN_MS/MAX_MS`
 - Audios aprovados EC:
-  - `public/media/templates/EC/Inicio_01.ogg`
-  - `public/media/templates/EC/Inicio_02.ogg`
   - `public/media/templates/EC/PERGUNTA_AGENCIA_DOMICILIO.ogg`
   - `public/media/templates/EC/ENDERECO_CIDADE_PROVINCIA_AGENCIA.ogg`
   - `public/media/templates/EC/Agradecimento_Agencia_01.ogg`
@@ -78,6 +78,10 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Entrada oficial local: `http://127.0.0.1:3001/`
 - Redireciona para: `/qr.html`
 - Arquivo principal: `public/qr.html`
+- Baseline EC integrada congelada em:
+  - `docs/BASELINE_EC_INTEGRADA_2026-06-12.md`
+  - `public/qr.html`
+  - `public/leads-window.html`
 
 ## Como trabalhar com copia temporaria
 

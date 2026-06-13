@@ -28,11 +28,27 @@ const parseLimitValue = (value) => {
 };
 
 const rotationEnabled = () => String(process.env.WHATSAPP_ROTATION_ENABLED || '').toLowerCase() === 'true';
-const defaultSessionId = () => process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
+const normalizeCountry = (value = '') => {
+    const country = String(value || '').trim().toUpperCase();
+    return ['EC', 'CO'].includes(country) ? country : '';
+};
 
-const configuredSessionIds = () => {
-    const ids = parseList(process.env.WHATSAPP_SESSION_IDS);
-    const defaultId = defaultSessionId();
+const defaultSessionId = (country = '') => {
+    const normalizedCountry = normalizeCountry(country);
+    if (normalizedCountry && process.env[`WHATSAPP_DEFAULT_SESSION_ID_${normalizedCountry}`]) {
+        return process.env[`WHATSAPP_DEFAULT_SESSION_ID_${normalizedCountry}`];
+    }
+    return process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
+};
+
+const configuredSessionIds = (country = '') => {
+    const normalizedCountry = normalizeCountry(country);
+    const ids = parseList(
+        normalizedCountry && process.env[`WHATSAPP_SESSION_IDS_${normalizedCountry}`]
+            ? process.env[`WHATSAPP_SESSION_IDS_${normalizedCountry}`]
+            : process.env.WHATSAPP_SESSION_IDS
+    );
+    const defaultId = defaultSessionId(normalizedCountry);
     if (!ids.includes(defaultId)) ids.unshift(defaultId);
     return [...new Set(ids)];
 };
@@ -185,9 +201,9 @@ const scoreSession = (status) => {
         + ((stats.lastSentAt || 0) / 1000000000000);
 };
 
-const getHealthyConfiguredStatuses = () => {
+const getHealthyConfiguredStatuses = (country = '') => {
     const statuses = getAllStatuses();
-    const configured = configuredSessionIds();
+    const configured = configuredSessionIds(country);
     return statuses
         .filter((status) => configured.some((sessionId) => isSameSession(sessionId, status.sessionId)))
         .filter(isHealthyStatus);
@@ -206,8 +222,8 @@ const isSessionUsableForWallet = (sessionId, statuses = getHealthyConfiguredStat
         : { ok: false, sessionId: status.sessionId, reason: capacity.reason };
 };
 
-const chooseFailoverSession = ({ avoidSessionId = '', recipient = '' } = {}) => {
-    const healthy = getHealthyConfiguredStatuses();
+const chooseFailoverSession = ({ avoidSessionId = '', recipient = '', country = '' } = {}) => {
+    const healthy = getHealthyConfiguredStatuses(country);
     const available = healthy
         .map((status) => ({ status, capacity: sessionCapacity(status.sessionId) }))
         .filter((item) => item.capacity.ok && !isSameSession(item.status.sessionId, avoidSessionId))
@@ -224,7 +240,25 @@ const chooseFailoverSession = ({ avoidSessionId = '', recipient = '' } = {}) => 
     const walletSelected = walletAvailable[0]?.status?.sessionId;
     if (walletSelected) return { sessionId: walletSelected, reason: avoidSessionId ? 'failover_wallet_available' : 'wallet_available' };
 
-    return { sessionId: defaultSessionId(), reason: 'fallback_default' };
+    const healthyFallback = healthy
+        .filter((status) => !isSameSession(status.sessionId, avoidSessionId))
+        .sort((a, b) => scoreSession(a) - scoreSession(b))[0]?.sessionId
+        || healthy.sort((a, b) => scoreSession(a) - scoreSession(b))[0]?.sessionId
+        || configuredSessionIds(country).find((sessionId) => !isSameSession(sessionId, avoidSessionId))
+        || defaultSessionId(country);
+
+    return {
+        sessionId: healthyFallback,
+        reason: healthyFallback && findHealthyStatus(healthyFallback, healthy)
+            ? 'fallback_healthy_no_capacity'
+            : 'fallback_no_healthy_available'
+    };
+};
+
+const sessionIdForRecipient = (recipient = '', country = '') => {
+    const digits = digitsOnly(recipient);
+    if (!digits) return '';
+    return configuredSessionIds(country).find((sessionId) => isSameSession(sessionId, digits)) || '';
 };
 
 const contactQueryForJid = (jid = '') => {
@@ -261,6 +295,17 @@ const persistWalletAssignment = async ({
     recipientAffinity.set(recipient, { sessionId: resolvedSessionId, updatedAt: Date.now() });
 
     try {
+        const now = new Date();
+        const walletEvent = {
+            at: now,
+            direction: 'outbound',
+            recipient,
+            jid,
+            requestedSessionId: requestedSessionId || '',
+            resolvedSessionId,
+            reason: reason || '',
+            failoverFromSessionId: failoverFromSessionId || ''
+        };
         await ContactState.updateOne(
             contactQueryForJid(jid),
             {
@@ -268,20 +313,29 @@ const persistWalletAssignment = async ({
                     phoneDigits: recipient,
                     'metadata.lastSessionId': resolvedSessionId,
                     'metadata.senderWallet.assignedSessionId': resolvedSessionId,
-                    'metadata.senderWallet.lastResolvedAt': new Date(),
+                    'metadata.senderWallet.lastResolvedAt': now,
                     'metadata.senderWallet.lastResolutionReason': reason,
                     'metadata.senderWallet.stickyUntilDelivery': true,
                     ...(requestedSessionId ? { 'metadata.senderWallet.lastRequestedSessionId': requestedSessionId } : {}),
                     ...(failoverFromSessionId ? {
                         'metadata.senderWallet.failoverFromSessionId': failoverFromSessionId,
-                        'metadata.senderWallet.lastFailoverAt': new Date()
+                        'metadata.senderWallet.lastFailoverAt': now
                     } : {})
                 },
                 $setOnInsert: {
                     chatId: jid,
                     countryCode: 'EC',
                     assignedAgent: 'vit_power_ec',
-                    'metadata.senderWallet.assignedAt': new Date()
+                    'metadata.senderWallet.assignedAt': now
+                },
+                $push: {
+                    'metadata.senderWallet.history': {
+                        $each: [walletEvent],
+                        $slice: -80
+                    }
+                },
+                $addToSet: {
+                    'metadata.senderWallet.seenSessions': resolvedSessionId
                 }
             },
             { upsert: true }
@@ -291,23 +345,30 @@ const persistWalletAssignment = async ({
     }
 };
 
-export const resolveOutboundSession = ({ requestedSessionId = null, jid = '' } = {}) => {
+export const resolveOutboundSession = ({ requestedSessionId = null, jid = '', country = '' } = {}) => {
     const explicit = String(requestedSessionId || '').trim();
+    const normalizedCountry = normalizeCountry(country);
     if (explicit) {
+        const recipientSessionId = sessionIdForRecipient(jid, normalizedCountry);
+        if (recipientSessionId && isSameSession(explicit, recipientSessionId)) {
+            const failover = chooseFailoverSession({ avoidSessionId: recipientSessionId, recipient: digitsOnly(jid), country: normalizedCountry });
+            return { ...failover, reason: `${failover.reason}_avoid_self_recipient` };
+        }
         if (!rotationEnabled()) return { sessionId: explicit, reason: 'explicit' };
         const usability = isSessionUsableForWallet(explicit);
         if (usability.ok) return { sessionId: usability.sessionId, reason: 'explicit_wallet' };
-        const failover = chooseFailoverSession({ avoidSessionId: explicit, recipient: digitsOnly(jid) });
+        const failover = chooseFailoverSession({ avoidSessionId: explicit, recipient: digitsOnly(jid), country: normalizedCountry });
         return { ...failover, reason: `${failover.reason}_from_explicit_${usability.reason}` };
     }
 
     if (!rotationEnabled()) {
-        return { sessionId: defaultSessionId(), reason: 'rotation_disabled_default' };
+        return { sessionId: defaultSessionId(normalizedCountry), reason: 'rotation_disabled_default' };
     }
 
     cleanupAffinity();
     const recipient = digitsOnly(jid);
-    const healthy = getHealthyConfiguredStatuses();
+    const recipientSessionId = sessionIdForRecipient(recipient, normalizedCountry);
+    const healthy = getHealthyConfiguredStatuses(normalizedCountry);
 
     const affinity = recipient ? recipientAffinity.get(recipient) : null;
     if (affinity?.sessionId) {
@@ -319,10 +380,15 @@ export const resolveOutboundSession = ({ requestedSessionId = null, jid = '' } =
 
     const available = healthy
         .map((status) => ({ status, capacity: sessionCapacity(status.sessionId) }))
-        .filter((item) => item.capacity.ok)
+        .filter((item) => item.capacity.ok && !isSameSession(item.status.sessionId, recipientSessionId))
         .sort((a, b) => scoreSession(a.status) - scoreSession(b.status));
 
-    const chosen = available[0]?.status?.sessionId || defaultSessionId();
+    const fallback = healthy
+        .filter((status) => !isSameSession(status.sessionId, recipientSessionId))
+        .sort((a, b) => scoreSession(a) - scoreSession(b))[0]?.sessionId
+        || healthy.sort((a, b) => scoreSession(a) - scoreSession(b))[0]?.sessionId
+        || defaultSessionId(normalizedCountry);
+    const chosen = available[0]?.status?.sessionId || fallback;
     if (recipient && chosen) {
         recipientAffinity.set(recipient, { sessionId: chosen, updatedAt: Date.now() });
     }
@@ -333,11 +399,12 @@ export const resolveOutboundSession = ({ requestedSessionId = null, jid = '' } =
     };
 };
 
-export const resolveOutboundSessionForJid = async ({ requestedSessionId = null, jid = '' } = {}) => {
+export const resolveOutboundSessionForJid = async ({ requestedSessionId = null, jid = '', country = '' } = {}) => {
     const explicit = String(requestedSessionId || '').trim();
+    const normalizedCountry = normalizeCountry(country);
 
     if (!rotationEnabled()) {
-        const route = resolveOutboundSession({ requestedSessionId, jid });
+        const route = resolveOutboundSession({ requestedSessionId, jid, country: normalizedCountry });
         if (jid && route.sessionId) {
             await persistWalletAssignment({
                 jid,
@@ -350,7 +417,7 @@ export const resolveOutboundSessionForJid = async ({ requestedSessionId = null, 
     }
 
     if (explicit) {
-        const route = resolveOutboundSession({ requestedSessionId: explicit, jid });
+        const route = resolveOutboundSession({ requestedSessionId: explicit, jid, country: normalizedCountry });
         await persistWalletAssignment({
             jid,
             requestedSessionId: explicit,
@@ -381,7 +448,7 @@ export const resolveOutboundSessionForJid = async ({ requestedSessionId = null, 
             return route;
         }
 
-        const failover = chooseFailoverSession({ avoidSessionId: walletSessionId, recipient: digitsOnly(jid) });
+        const failover = chooseFailoverSession({ avoidSessionId: walletSessionId, recipient: digitsOnly(jid), country: normalizedCountry });
         await persistWalletAssignment({
             jid,
             requestedSessionId: walletSessionId,
@@ -392,7 +459,7 @@ export const resolveOutboundSessionForJid = async ({ requestedSessionId = null, 
         return { ...failover, reason: `${failover.reason}_from_persistent_${usability.reason}` };
     }
 
-    const route = resolveOutboundSession({ requestedSessionId: null, jid });
+    const route = resolveOutboundSession({ requestedSessionId: null, jid, country: normalizedCountry });
     await persistWalletAssignment({
         jid,
         resolvedSessionId: route.sessionId,
@@ -461,10 +528,13 @@ export const getSenderPoolStatus = () => {
         sessions: configured.map((sessionId) => {
             const status = statuses.find((item) => item.sessionId === sessionId) || { sessionId, status: 'not_started', isReady: false };
             const stats = getStats(sessionId);
-            const capacity = sessionCapacity(sessionId);
+            const connected = isHealthyStatus(status);
+            const capacity = connected
+                ? sessionCapacity(sessionId)
+                : { ok: false, reason: 'session_not_connected' };
             return {
                 sessionId,
-                connected: isHealthyStatus(status),
+                connected,
                 status: status.status,
                 ownPhoneDigits: status.ownPhoneDigits || '',
                 weight: sessionWeight(sessionId),
