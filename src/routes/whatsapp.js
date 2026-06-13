@@ -16,6 +16,8 @@ import { sendImage } from '../whatsapp/sendImage.js';
 import { sendVideo } from '../whatsapp/sendVideo.js';
 import { canSendOutbound } from '../whatsapp/outboundGuard.js';
 import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
+import { sendZapiDocument } from '../services/zapiClient.js';
+import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from '../whatsapp/zapiOutboundRouting.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import {
     listReengagementCandidates,
@@ -1112,7 +1114,10 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
             return sendAudio(chatId, content, options.isPtt !== false, {
                 sessionId: options.sessionId,
                 sendMode,
-                allowAudioDedupeBypass
+                allowAudioDedupeBypass,
+                country: options.country,
+                recipientDigits: digitsOnly(phone),
+                returnDetails: options.returnDetails === true
             });
         }
 
@@ -1123,10 +1128,54 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
                 : 'document';
 
         if (mediaType === 'image') {
-            return sendImage(chatId, content, '', { sessionId: options.sessionId, sendMode });
+            return sendImage(chatId, content, '', {
+                sessionId: options.sessionId,
+                sendMode,
+                country: options.country,
+                recipientDigits: digitsOnly(phone),
+                returnDetails: options.returnDetails === true
+            });
         }
         if (mediaType === 'video') {
-            return sendVideo(chatId, content, '', { sessionId: options.sessionId, sendMode });
+            return sendVideo(chatId, content, '', {
+                sessionId: options.sessionId,
+                sendMode,
+                country: options.country,
+                recipientDigits: digitsOnly(phone),
+                returnDetails: options.returnDetails === true
+            });
+        }
+
+        if (shouldUseZapiForOutbound({ targetJid: chatId, recipientDigits: digitsOnly(phone), options: { ...options, sendMode } })) {
+            try {
+                const response = await sendZapiDocument({
+                    phone: zapiPhoneForOutbound({ targetJid: chatId, recipientDigits: digitsOnly(phone) }),
+                    filePath: content,
+                    fileName: path.basename(content),
+                    delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+                });
+                const details = {
+                    ok: true,
+                    provider: 'zapi',
+                    providerMessageId: response?.messageId || response?.id || '',
+                    providerZaapId: response?.zaapId || '',
+                    providerStatus: 'queued',
+                    providerPayload: response
+                };
+                return options.returnDetails === true ? details : true;
+            } catch (error) {
+                const detail = error?.response?.data || error.message || 'zapi_document_send_failed';
+                console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar documento pela Z-API para ${chatId}:`, detail);
+                return options.returnDetails === true
+                    ? {
+                        ok: false,
+                        provider: 'zapi',
+                        providerStatus: 'failed',
+                        error: typeof detail === 'string' ? detail : JSON.stringify(detail),
+                        providerPayload: detail
+                    }
+                    : false;
+            }
         }
 
         const sock = getSock(options.sessionId);
@@ -2973,14 +3022,16 @@ router.post('/send', authMiddleware, async (req, res) => {
                         : mime.startsWith('video/')
                             ? 'video'
                             : 'media';
-                const sent = await sendWhatsAppMessage(phone, filePath, {
+                const sendResult = await sendWhatsAppMessage(phone, filePath, {
                     isMedia: true,
                     sessionId,
                     isPtt: mediaKind !== 'audio',
                     sendMode,
                     allowAudioDedupeBypass,
-                    country
+                    country,
+                    returnDetails: true
                 });
+                const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
                 const state = await findOrCreateContactState(phone);
                 applyManualSendHold(state, { phone, user: req.user });
                 await state.save();
@@ -2991,13 +3042,21 @@ router.post('/send', authMiddleware, async (req, res) => {
                     mediaUrl: `/media/uploads/${filename}`,
                     user: req.user,
                     sessionId,
-                    deliveryStatus: sent ? 'sent' : 'unconfirmed',
-                    sendError: sent ? '' : 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.'
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                    sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
+                    provider: sendResult?.provider || '',
+                    providerMessageId: sendResult?.providerMessageId || '',
+                    providerZaapId: sendResult?.providerZaapId || '',
+                    providerStatus: sendResult?.providerStatus || '',
+                    providerPayload: sendResult?.providerPayload || null
                 });
                 return res.json({
                     success: sent,
                     storedMediaUrl: `/media/uploads/${filename}`,
-                    deliveryStatus: sent ? 'sent' : 'unconfirmed'
+                    provider: sendResult?.provider || '',
+                    providerMessageId: sendResult?.providerMessageId || '',
+                    providerZaapId: sendResult?.providerZaapId || '',
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
                 });
             }
 
@@ -3019,7 +3078,15 @@ router.post('/send', authMiddleware, async (req, res) => {
                     : ['mp4', 'mov', 'avi', 'mkv'].includes(ext)
                         ? 'video'
                         : 'media';
-            const sent = await sendWhatsAppMessage(phone, resolved, { isMedia: true, sessionId, sendMode, allowAudioDedupeBypass, country });
+            const sendResult = await sendWhatsAppMessage(phone, resolved, {
+                isMedia: true,
+                sessionId,
+                sendMode,
+                allowAudioDedupeBypass,
+                country,
+                returnDetails: true
+            });
+            const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
@@ -3030,10 +3097,21 @@ router.post('/send', authMiddleware, async (req, res) => {
                 mediaUrl: message,
                 user: req.user,
                 sessionId,
-                deliveryStatus: sent ? 'sent' : 'unconfirmed',
-                sendError: sent ? '' : 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.'
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
+                provider: sendResult?.provider || '',
+                providerMessageId: sendResult?.providerMessageId || '',
+                providerZaapId: sendResult?.providerZaapId || '',
+                providerStatus: sendResult?.providerStatus || '',
+                providerPayload: sendResult?.providerPayload || null
             });
-            return res.json({ success: sent, deliveryStatus: sent ? 'sent' : 'unconfirmed' });
+            return res.json({
+                success: sent,
+                provider: sendResult?.provider || '',
+                providerMessageId: sendResult?.providerMessageId || '',
+                providerZaapId: sendResult?.providerZaapId || '',
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
+            });
         }
 
         const quotedMessage = quotedMessageId

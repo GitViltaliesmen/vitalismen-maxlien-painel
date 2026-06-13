@@ -13,6 +13,8 @@ import {
     reserveOutboundOnce
 } from '../services/outboundDedupeService.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
+import { sendZapiAudio } from '../services/zapiClient.js';
+import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -127,6 +129,48 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
     if (!duplicateGuard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] audio repetido bloqueado rigidamente -> ${jid} | reason=${duplicateGuard.reason} | phone=${duplicateGuard.phoneDigits || ''} | audio=${path.basename(sendPath)}`);
         return false;
+    }
+
+    if (shouldUseZapiForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '', options })) {
+        try {
+            const phone = zapiPhoneForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '' });
+            const response = await sendZapiAudio({
+                phone,
+                filePath: sendPath,
+                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null,
+                delayTyping: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_TYPING_SECONDS || 2 : null,
+                waveform: true
+            });
+            console.log(`[LOG_SEND_USING_ZAPI] Audio enfileirado na Z-API -> ${phone} | Arquivo: ${sendPath} | messageId=${response?.messageId || response?.id || ''}`);
+            recordOutboundSend({ sessionId: 'zapi', jid });
+            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
+            const details = {
+                ok: true,
+                provider: 'zapi',
+                providerMessageId: response?.messageId || response?.id || '',
+                providerZaapId: response?.zaapId || '',
+                providerStatus: 'queued',
+                providerPayload: response
+            };
+            return options.returnDetails === true ? details : true;
+        } catch (error) {
+            const detail = error?.response?.data || error.message || 'zapi_audio_send_failed';
+            console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar audio pela Z-API para ${jid}:`, detail);
+            await markOutboundDedupeFailed({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                error: typeof detail === 'string' ? detail : JSON.stringify(detail)
+            });
+            return options.returnDetails === true
+                ? {
+                    ok: false,
+                    provider: 'zapi',
+                    providerStatus: 'failed',
+                    error: typeof detail === 'string' ? detail : JSON.stringify(detail),
+                    providerPayload: detail
+                }
+                : false;
+        }
     }
 
     for (let attempt = 1; attempt <= 2; attempt += 1) {

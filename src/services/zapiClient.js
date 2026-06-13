@@ -1,4 +1,6 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -92,6 +94,123 @@ export const sendZapiText = async ({ phone, message, messageId = '', delayMessag
         timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
     });
     return response.data;
+};
+
+const mimeFromFilePath = (filePath = '', fallback = 'application/octet-stream') => {
+    const ext = path.extname(String(filePath || '')).toLowerCase();
+    const map = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.heic': 'image/heic',
+        '.heif': 'image/heif',
+        '.mp3': 'audio/mpeg',
+        '.mpeg': 'audio/mpeg',
+        '.ogg': 'audio/ogg',
+        '.opus': 'audio/ogg',
+        '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac',
+        '.wav': 'audio/wav',
+        '.webm': 'video/webm',
+        '.mp4': 'video/mp4',
+        '.mov': 'video/quicktime',
+        '.avi': 'video/x-msvideo',
+        '.mkv': 'video/x-matroska',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+    return map[ext] || fallback;
+};
+
+const mediaValue = ({ media = '', filePath = '', mime = '' } = {}) => {
+    const value = clean(media);
+    if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+    const resolved = filePath || value;
+    if (!resolved || !fs.existsSync(resolved)) {
+        const error = new Error('zapi_media_file_not_found');
+        error.statusCode = 400;
+        throw error;
+    }
+    const finalMime = clean(mime) || mimeFromFilePath(resolved);
+    return `data:${finalMime};base64,${fs.readFileSync(resolved).toString('base64')}`;
+};
+
+const sendZapiMedia = async ({
+    pathName,
+    payloadKey,
+    phone,
+    media = '',
+    filePath = '',
+    mime = '',
+    caption = '',
+    fileName = '',
+    extension = '',
+    messageId = '',
+    delayMessage = null,
+    delayTyping = null,
+    viewOnce = false,
+    waveform = false,
+    async = false
+} = {}) => {
+    const cleanPhone = digits(phone);
+    if (!cleanPhone) {
+        const error = new Error('zapi_phone_required');
+        error.statusCode = 400;
+        throw error;
+    }
+    const payload = {
+        phone: cleanPhone,
+        [payloadKey]: mediaValue({ media, filePath, mime })
+    };
+    if (caption) payload.caption = clean(caption);
+    if (fileName) payload.fileName = clean(fileName);
+    if (messageId) payload.messageId = clean(messageId);
+    const safeDelayMessage = boundedDelaySeconds(delayMessage);
+    const safeDelayTyping = boundedDelaySeconds(delayTyping);
+    if (safeDelayMessage) payload.delayMessage = safeDelayMessage;
+    if (safeDelayTyping) payload.delayTyping = safeDelayTyping;
+    if (viewOnce) payload.viewOnce = true;
+    if (waveform) payload.waveform = true;
+    if (async) payload.async = true;
+
+    const response = await axios.post(endpoint(pathName.replace('{extension}', clean(extension))), payload, {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
+    });
+    return response.data;
+};
+
+export const sendZapiAudio = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-audio',
+    payloadKey: 'audio'
+});
+
+export const sendZapiImage = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-image',
+    payloadKey: 'image'
+});
+
+export const sendZapiVideo = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-video',
+    payloadKey: 'video'
+});
+
+export const sendZapiDocument = (options = {}) => {
+    const extension = clean(options.extension || path.extname(String(options.filePath || options.media || '')).slice(1) || 'bin');
+    return sendZapiMedia({
+        ...options,
+        extension,
+        pathName: '/send-document/{extension}',
+        payloadKey: 'document'
+    });
 };
 
 export const normalizeZapiDevice = (device = {}) => {
