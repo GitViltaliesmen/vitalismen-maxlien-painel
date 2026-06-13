@@ -1042,12 +1042,23 @@
         }
 
         .searchbar .add-chat-contact {
-            min-width: 42px;
+            min-width: 96px;
             min-height: 36px;
-            padding: 0 12px;
-            border-radius: 8px;
-            font-size: 18px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: #00a884;
+            border-color: #00a884;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
             line-height: 1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+        }
+
+        .searchbar .add-chat-contact:hover {
+            background: #008f72;
+            border-color: #008f72;
+            color: #fff;
         }
 
         .chat-list {
@@ -3686,6 +3697,12 @@
             min-height: 30px;
             border-radius: 999px;
             background: #fff;
+        }
+
+        .top-actions button.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
         }
 
         .module-nav button.active,
@@ -6934,7 +6951,7 @@
                 </div>
                 <div class="searchbar">
                     <input id="chatSearch" placeholder="Buscar cliente ou telefone">
-                    <button id="newContactSearchBtn" class="primary add-chat-contact" type="button" title="Adicionar novo cliente">+</button>
+                    <button id="newContactSearchBtn" class="primary add-chat-contact" type="button" title="Adicionar novo cliente">Adicionar</button>
                 </div>
                 <div id="chatList" class="chat-list"></div>
             </aside>
