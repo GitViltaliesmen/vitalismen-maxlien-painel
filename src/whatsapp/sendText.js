@@ -10,6 +10,7 @@ import {
     resolveOutboundPhoneDigits
 } from '../services/outboundDedupeService.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
+import { sendZapiText, zapiConfig } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
 
 const SEND_TEXT_TIMEOUT_MS = Number.parseInt(process.env.WHATSAPP_SEND_TEXT_TIMEOUT_MS || '45000', 10);
@@ -24,6 +25,7 @@ const withTimeout = (promise, ms, label) => Promise.race([
 ]);
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const looksLikeRealPhoneDigits = (value = '') => /^(593|57|55)\d{8,13}$/.test(digitsOnly(value));
+const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeAntiSpamTextKey = (value = '') => String(value || '')
     .normalize('NFD')
@@ -128,6 +130,16 @@ const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
         return { blocked: false, key };
     }
 };
+const shouldUseZapiForText = ({ targetJid, recipientDigits, options = {} }) => {
+    if (!zapiConfig().enabled) return false;
+    const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
+    if (!looksLikeZapiRoutedPhone(phone)) return false;
+    const country = String(options.country || '').toUpperCase();
+    return options.provider === 'zapi'
+        || options.sessionId === 'zapi'
+        || options.sendMode === 'manual_panel'
+        || ['EC', 'CO'].includes(country);
+};
 const normalizeOutboundJid = async (jid, recipientDigits = '') => {
     const resolvedDigits = await resolveOutboundPhoneDigits({ jid, recipientDigits });
     if (String(jid || '').endsWith('@lid') && looksLikeRealPhoneDigits(resolvedDigits)) {
@@ -210,6 +222,30 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
     if (!duplicateGuard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] texto repetido bloqueado rigidamente -> ${targetJid} | reason=${duplicateGuard.reason} | phone=${duplicateGuard.phoneDigits || ''}`);
         return false;
+    }
+
+    if (shouldUseZapiForText({ targetJid, recipientDigits, options })) {
+        try {
+            const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
+            const response = await sendZapiText({
+                phone,
+                message: finalText,
+                messageId: options.providerMessageId || options.messageId || ''
+            });
+            console.log(`[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> ${phone} | Tamanho: ${finalText.length} chars | messageId=${response?.messageId || response?.id || ''}`);
+            recordOutboundSend({ sessionId: 'zapi', jid: targetJid });
+            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
+            return true;
+        } catch (error) {
+            const detail = error?.response?.data || error.message || 'zapi_send_failed';
+            console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar texto pela Z-API para ${targetJid}:`, detail);
+            await markOutboundDedupeFailed({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                error: typeof detail === 'string' ? detail : JSON.stringify(detail)
+            });
+            return false;
+        }
     }
 
     for (let attempt = 1; attempt <= 2; attempt += 1) {

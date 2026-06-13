@@ -62,6 +62,28 @@ export const getZapiDevice = async () => {
     return response.data;
 };
 
+export const sendZapiText = async ({ phone, message, messageId = '' } = {}) => {
+    const cleanPhone = digits(phone);
+    const cleanMessage = clean(message);
+    if (!cleanPhone || !cleanMessage) {
+        const error = new Error('zapi_phone_and_message_required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const payload = {
+        phone: cleanPhone,
+        message: cleanMessage
+    };
+    if (messageId) payload.messageId = clean(messageId);
+
+    const response = await axios.post(endpoint('/send-text'), payload, {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
+    });
+    return response.data;
+};
+
 export const normalizeZapiDevice = (device = {}) => {
     const phone = digits(device.phone || device.connectedPhone || device.device?.phone || '');
     return {

@@ -16021,7 +16021,9 @@
                         message: text,
                         sessionId,
                         delayTypingSeconds: 0,
-                        quotedMessageId: replyTo?._id || ''
+                        quotedMessageId: replyTo?._id || '',
+                        sendMode: 'manual_panel',
+                        country: state.country || 'EC'
                     })
                 });
                 if (!result?.success) {
