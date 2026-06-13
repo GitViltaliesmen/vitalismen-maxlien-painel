@@ -1033,8 +1033,21 @@
         }
 
         .searchbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
             padding: 10px;
             border-bottom: 1px solid var(--line);
+        }
+
+        .searchbar .add-chat-contact {
+            min-width: 42px;
+            min-height: 36px;
+            padding: 0 12px;
+            border-radius: 8px;
+            font-size: 18px;
+            line-height: 1;
         }
 
         .chat-list {
@@ -6921,6 +6934,7 @@
                 </div>
                 <div class="searchbar">
                     <input id="chatSearch" placeholder="Buscar cliente ou telefone">
+                    <button id="newContactSearchBtn" class="primary add-chat-contact" type="button" title="Adicionar novo cliente">+</button>
                 </div>
                 <div id="chatList" class="chat-list"></div>
             </aside>
@@ -16890,6 +16904,7 @@
         });
         el('chatSearch').addEventListener('input', renderChats);
         el('newContactBtn')?.addEventListener('click', openNewContactModal);
+        el('newContactSearchBtn')?.addEventListener('click', openNewContactModal);
         el('newContactCountry')?.addEventListener('change', applyNewContactCountryUi);
         el('addContactFromCustomerBtn')?.addEventListener('click', async () => {
             if (state.busy) return;
