@@ -7365,7 +7365,7 @@
                             </div>
                         </div>
                         <div class="customer-form-actions">
-                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden>Abrir no Leads</button>
+                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Abrir no Leads</button>
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
                         </div>
                     </form>
@@ -14396,11 +14396,6 @@
             return result;
         }
 
-        async function authorizeAndSubmitDropiOrder(orderId, country) {
-            await authorizeDropiOrder(orderId, country);
-            return submitDropiOrder(orderId, country);
-        }
-
         const dropiSuccessId = (result) => result.dropiOrderId
             || result.result?.dropiResponse?.objects?.id
             || result.result?.dropiOrderId
@@ -14519,8 +14514,8 @@
 
         const manualDropiActionLabels = {
             'authorize-dropi': {
-                title: 'Liberar e enviar este pedido para Dropi?',
-                footer: 'O pedido sera autorizado e enviado em seguida. Se a trava detectar duplicidade, saldo ou dado ruim, ele fica em revisao.'
+                title: 'Autorizar este pedido para envio na Dropi?',
+                footer: 'Todo envio para Dropi exige autorizacao manual antes. Depois de autorizado, ele entra na etapa 2 Enviar para Dropi. Nada sera enviado agora.'
             },
             'requeue-dropi': {
                 title: 'Voltar este pedido para a etapa Enviar para Dropi?',
@@ -14655,7 +14650,7 @@
                         </div>
                     </div>
                     <div class="shipment-actions">
-                        ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Liberar e enviar</button>` : ''}
+                        ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Autorizar pedido</button>` : ''}
                         ${canSubmit ? `<button class="primary" data-shipment-action="submit-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Enviar para Dropi</button>` : ''}
                     </div>
                 </article>
@@ -14920,7 +14915,7 @@
                                 ${!inReviewModule && stage === 'authorize' ? `<button data-shipment-action="send-to-review" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Enviar para conferência</button>` : ''}
                                 ${inReviewModule ? `<button class="primary" data-shipment-action="approve-review" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Aprovar p/ Dropi</button>` : ''}
                                 ${inReviewModule ? `<button class="danger" data-shipment-action="finalize-review" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Arquivar</button>` : ''}
-                                ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Liberar e enviar</button>` : ''}
+                                ${canAuthorize ? `<button class="primary" data-shipment-action="authorize-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Autorizar</button>` : ''}
                                 ${canSubmit ? `<button class="primary" data-shipment-action="submit-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Enviar para Dropi</button>` : ''}
                                 ${canRequeue ? `<button class="primary" data-shipment-action="requeue-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Voltar p/ enviar</button>` : ''}
                                 ${canPrepare ? `<button data-shipment-action="prepare-dropi" data-country="${escapeHtml(order.country || '')}" data-order="${escapeHtml(order.orderId || '')}" type="button">Preparar Dropi</button>` : ''}
@@ -15075,7 +15070,7 @@
             el('confirmedDropdownPanel').innerHTML = `
                 <details class="confirmed-dropdown" open>
                     <summary>
-                        <span>Confirmados para acao</span>
+                        <span>Pedidos confirmados para Dropi</span>
                         <span class="badge ${periodPendingOrders.length ? 'orange' : 'green'}">${periodPendingOrders.length} de ${allPendingOrders.length}</span>
                     </summary>
                     <div class="confirmed-dropdown-body">
@@ -15160,7 +15155,7 @@
             el('clearDropiSelectionBtn').disabled = state.busy || selectedTotal === 0;
 
             el('processSelectedDropiBtn').textContent = state.dropiFilter === 'confirmed'
-                ? 'Liberar e enviar selecionados'
+                ? 'Autorizar selecionados'
                 : 'Enviar selecionados para Dropi';
 
             renderOperationalMetrics();
@@ -16355,13 +16350,9 @@
                 } else if (action === 'authorize-dropi') {
                     const country = button.dataset.country || selectedOperationalCountry();
                     if (!confirmManualDropiAction(orderId, country, action)) return;
-                    const result = await authorizeAndSubmitDropiOrder(orderId, country);
-                    showToast(result.paymentRequired
-                        ? 'Pedido liberado, mas Dropi pediu saldo.'
-                        : result.manualSendRequired
-                        ? (result.message || 'Pedido liberado, mas Dropi pediu revisao/manual.')
-                        : result.alreadySubmitted ? 'Pedido ja estava enviado para Dropi.' : 'Pedido liberado e enviado para Dropi.');
-                    state.dropiFilter = (result.paymentRequired || result.manualSendRequired) ? 'progress' : 'sent';
+                    await authorizeDropiOrder(orderId, country);
+                    showToast('Pedido autorizado. Agora clique novamente para enviar para Dropi.');
+                    state.dropiFilter = 'not_sent';
                     document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === state.dropiFilter));
                     await Promise.all([loadShipments(), loadChats()]);
                 } else if (action === 'approve-review') {
@@ -16538,52 +16529,28 @@
                     state.selectedChat.orderId = duplicateOrderId;
                     state.selectedChat.country = duplicateCountry;
                     setInputValue('customerOrderInput', duplicateOrderId);
-                    if (!confirmDropiSubmission(duplicateOrderId, duplicateCountry)) return;
+                    if (!confirmManualDropiAction(duplicateOrderId, duplicateCountry, 'authorize-dropi')) return;
                     activeDropiOrderId = duplicateOrderId;
                     state.dropiProcessStatus[duplicateOrderId] = {
                         kind: 'running',
-                        label: 'processando',
-                        message: `Pedido ativo encontrado: ${duplicateOrderId}. Autorizando e enviando para Dropi...`
+                        label: 'autorizando',
+                        message: `Pedido ativo encontrado: ${duplicateOrderId}. Autorizando para etapa 2 Enviar para Dropi...`
                     };
-                    el('detailDropi').textContent = `Pedido ativo encontrado: ${duplicateOrderId}. Autorizando e enviando para Dropi...`;
+                    el('detailDropi').textContent = `Pedido ativo encontrado: ${duplicateOrderId}. Autorizando para etapa 2 Enviar para Dropi...`;
                     state.dropiFilter = 'confirmed';
                     document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'confirmed'));
                     renderShipments();
                     await authorizeDropiOrder(duplicateOrderId, duplicateCountry);
                     state.dropiProcessStatus[duplicateOrderId] = {
-                        kind: 'running',
-                        label: 'processando',
-                        message: 'Dropi processando envio do pedido ativo...'
+                        kind: 'pending',
+                        label: 'autorizado',
+                        message: 'Pedido autorizado. Agora clique novamente para enviar para Dropi.'
                     };
-                    el('detailDropi').textContent = 'Dropi processando envio do pedido ativo...';
+                    el('detailDropi').textContent = 'Pedido autorizado. Agora clique novamente para enviar para Dropi.';
+                    showToast('Pedido autorizado. Agora clique novamente para enviar para Dropi.');
+                    state.dropiFilter = 'not_sent';
+                    document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'not_sent'));
                     renderShipments();
-                    const result = await submitDropiOrder(duplicateOrderId, duplicateCountry);
-                    state.dropiProcessStatus[duplicateOrderId] = result.paymentRequired
-                        ? {
-                            kind: 'manual',
-                            label: 'aguardando saldo',
-                            message: result.message || 'Dropi chegou ate o envio, mas falta saldo.'
-                        }
-                        : result.manualSendRequired
-                        ? {
-                            kind: 'manual',
-                            label: 'envio manual',
-                            message: result.message || 'Dropi pediu revisao. Veja o motivo no status do pedido.'
-                        }
-                        : {
-                            kind: 'success',
-                            label: 'pedido enviado',
-                            message: result.alreadySubmitted ? 'Pedido ja estava enviado para Dropi.' : 'Pedido processado na Dropi'
-                        };
-                    showToast(result.paymentRequired
-                        ? 'Dropi chegou ate o envio, mas falta saldo.'
-                        : result.manualSendRequired
-                        ? (result.message || 'Dropi pediu revisao. Veja o motivo no status do pedido.')
-                        : result.alreadySubmitted ? 'Pedido ja estava enviado para Dropi.' : 'Pedido ativo processado na Dropi');
-                    if (result.manualSendRequired || result.paymentRequired) {
-                        state.dropiFilter = 'progress';
-                        document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === 'progress'));
-                    }
                     await Promise.all([loadShipments(), loadChats()]);
                     return;
                 }
@@ -16645,7 +16612,7 @@
             }
             const authorizing = state.dropiFilter === 'confirmed';
             const ok = authorizing
-                ? window.confirm(`Liberar e enviar ${selectedOrders.length} pedido(s) para Dropi agora?\n\nA trava de seguranca continua ativa: duplicidade, destino invalido, saldo ou erro ficam em revisao/manual.`)
+                ? window.confirm(`Autorizar ${selectedOrders.length} pedido(s) para entrar na etapa 2 Enviar para Dropi?\n\nNada sera enviado agora. O envio real exige outro clique em Enviar para Dropi.`)
                 : confirmBulkDropiSubmission(selectedOrders);
             if (!ok) return;
 
@@ -16658,15 +16625,25 @@
                 for (const order of selectedOrders) {
                     state.dropiProcessStatus[order.orderId] = {
                         kind: 'running',
-                        label: authorizing ? 'liberando' : 'enviando',
-                        message: authorizing ? 'Autorizando e enviando para Dropi...' : 'Enviando para Dropi agora...'
+                        label: authorizing ? 'autorizando' : 'enviando',
+                        message: authorizing ? 'Autorizando para envio...' : 'Enviando para Dropi agora...'
                     };
-                    el('bulkDropiSummary').textContent = `${authorizing ? 'Liberando e enviando' : 'Processando'} ${order.orderId}...`;
+                    el('bulkDropiSummary').textContent = `${authorizing ? 'Autorizando' : 'Processando'} ${order.orderId}...`;
                     renderShipments();
                     try {
-                        const result = authorizing
-                            ? await authorizeAndSubmitDropiOrder(order.orderId, order.country)
-                            : await submitDropiOrder(order.orderId, order.country);
+                        if (authorizing) {
+                            await authorizeDropiOrder(order.orderId, order.country);
+                            success += 1;
+                            state.dropiProcessStatus[order.orderId] = {
+                                kind: 'pending',
+                                label: 'autorizado',
+                                message: 'Autorizado para etapa 2 Enviar para Dropi'
+                            };
+                            state.selectedDropiOrders.delete(order.orderId);
+                            renderShipments();
+                            continue;
+                        }
+                        const result = await submitDropiOrder(order.orderId, order.country);
                         if (result.paymentRequired) {
                             manual += 1;
                             state.dropiProcessStatus[order.orderId] = {
@@ -16702,9 +16679,11 @@
                     renderShipments();
                 }
                 showToast(authorizing
-                    ? `Dropi: ${success} enviado(s), ${manual} manual, ${failed} erro(s)`
+                    ? `Dropi: ${success} autorizado(s), ${failed} erro(s)`
                     : `Dropi: ${success} enviado(s), ${manual} manual, ${failed} erro(s)`);
-                state.dropiFilter = failed || manual ? 'progress' : 'sent';
+                state.dropiFilter = authorizing
+                    ? (failed ? 'progress' : 'not_sent')
+                    : (failed || manual ? 'progress' : 'sent');
                 document.querySelectorAll('[data-dropi-filter]').forEach((item) => item.classList.toggle('active', item.dataset.dropiFilter === state.dropiFilter));
                 await Promise.all([loadShipments(), loadChats()]);
             } finally {

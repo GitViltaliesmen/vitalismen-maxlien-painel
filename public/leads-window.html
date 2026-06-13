@@ -831,7 +831,7 @@
             <select id="dateFilter" aria-label="Periodo">
                 <option value="">Fila operacional</option>
                 <option value="today">Hoje</option>
-                <option value="7d">Ultimos 7 dias</option>
+                <option value="7d">Recentes 7 dias</option>
                 <option value="all">Todos historico</option>
             </select>
             <a id="newLeadBtn" class="button-link primary" href="/admin/new?country=EC" target="_blank" rel="noopener">Novo pedido</a>
@@ -1909,6 +1909,10 @@
                     setMsg(result.message || 'sessao Dropi/2FA', true);
                     return;
                 }
+                if (result.authorizationRequired) {
+                    setMsg(result.message || 'autorize antes de enviar', true);
+                    return;
+                }
                 if (result.manualSendRequired) {
                     setMsg(result.message || 'revisar manual', true);
                     return;
@@ -1928,11 +1932,26 @@
             };
 
             try {
-                setMsg('autorizando...');
-                await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/authorize-submit`, {
-                    method: 'POST',
-                    body: JSON.stringify({ note: overrideOrderId ? 'Autorizado em Leads Clientes - Recompra' : 'Autorizado em Leads Clientes' })
-                });
+                setMsg('verificando autorizacao...');
+                const status = await readDropiSubmitStatus().catch(() => null);
+                if (status?.alreadySubmitted || status?.status === 'submitted' || status?.paymentRequired || status?.authRequired || status?.manualSendRequired || status?.processing) {
+                    applyDropiSubmitResult(status);
+                    return;
+                }
+                if (status?.authorizationRequired || status?.status === 'authorization_required') {
+                    if (!window.confirm(`Autorizar ${orderId} para a etapa Enviar para Dropi?\n\nNada sera enviado agora. O envio real exige outro clique em Enviar para Dropi.`)) {
+                        setMsg('aguardando autorizacao');
+                        return;
+                    }
+                    setMsg('autorizando...');
+                    await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/authorize-submit`, {
+                        method: 'POST',
+                        body: JSON.stringify({ note: overrideOrderId ? 'Autorizado em Leads Clientes - Recompra' : 'Autorizado em Leads Clientes' })
+                    });
+                    state.selectedDropi.delete(String(id));
+                    setMsg('autorizado; clique novamente para enviar', false, true);
+                    return;
+                }
                 setMsg('enviando...');
                 let result = await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit`, {
                     method: 'POST',
@@ -1998,8 +2017,8 @@
                     method: 'POST',
                     body: JSON.stringify({ note: 'Autorizado em Leads Clientes' })
                 });
-                state.dropiMessages.set(id, { text: result.message || 'novo pedido autorizado', error: false });
-                await submitLeadToDropi(lead, result.orderId);
+                state.dropiMessages.set(id, { text: result.message || 'novo pedido autorizado; clique novamente para enviar', error: false, success: true });
+                state.selectedDropi.delete(id);
                 await fetchLeads();
             } catch (error) {
                 state.dropiMessages.set(id, { text: error.message || 'erro no novo pedido', error: true });
@@ -2046,8 +2065,8 @@
                     method: 'POST',
                     body: JSON.stringify({ note: 'Reenvio autorizado em Leads Clientes' })
                 });
-                state.dropiMessages.set(id, { text: result.message || 'reenvio autorizado', error: false });
-                await submitLeadToDropi(lead, result.orderId);
+                state.dropiMessages.set(id, { text: result.message || 'reenvio autorizado; clique novamente para enviar', error: false, success: true });
+                state.selectedDropi.delete(id);
                 await fetchLeads();
             } catch (error) {
                 state.dropiMessages.set(id, { text: error.message || 'erro reenvio', error: true });
@@ -2144,7 +2163,7 @@
             }
             const orderIds = leadsToSend.map(leadOrderId);
             const scopeLabel = selectedLeads.length ? 'marcado(s)' : 'visivel(is)';
-            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) ${scopeLabel} para Dropi?\n\n${orderIds.join('\n')}`)) return;
+            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) ${scopeLabel} ja autorizado(s) para Dropi?\n\nPedido sem autorizacao previa sera apenas autorizado e vai exigir outro clique para envio real.\n\n${orderIds.join('\n')}`)) return;
             el('bulkDropiSendBtn').disabled = true;
             el('bulkDropiSendBtn').textContent = 'Processando...';
             for (const lead of leadsToSend) {

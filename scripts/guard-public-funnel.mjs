@@ -153,7 +153,7 @@ const auditLocalCode = () => {
     if (
         panel.includes('id="leadDashboardFrame"')
         && panel.includes('id="leadDashboardOpenLink"')
-        && panel.includes("'/admin/dashboard?country=EC'")
+        && panel.includes("'/leads-window.html?country=EC'")
         && !panel.includes('src="https://maxlien.shop/admin/dashboard?country=EC"')
         && !panel.includes('href="https://maxlien.shop/admin/dashboard?country=EC"')
     ) {
