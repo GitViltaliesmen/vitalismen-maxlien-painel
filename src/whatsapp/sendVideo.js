@@ -37,15 +37,17 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
     if (shouldUseZapiForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '', options })) {
         try {
             const phone = zapiPhoneForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '' });
+            const publicMediaUrl = String(options.publicMediaUrl || '').trim();
             const response = await sendZapiVideo({
                 phone,
+                media: publicMediaUrl,
                 filePath: videoPath,
                 caption,
                 viewOnce: Boolean(options.viewOnce),
                 async: true,
                 delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
             });
-            console.log(`[LOG_SEND_USING_ZAPI] Video enfileirado na Z-API -> ${phone} | Arquivo: ${videoPath} | messageId=${response?.messageId || response?.id || ''}`);
+            console.log(`[LOG_SEND_USING_ZAPI] Video enfileirado na Z-API -> ${phone} | Arquivo: ${publicMediaUrl || videoPath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });
             const details = {
                 ok: true,

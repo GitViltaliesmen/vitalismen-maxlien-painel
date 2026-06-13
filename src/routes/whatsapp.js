@@ -60,6 +60,21 @@ const normalizeLegacyMediaPath = (value = '') => {
     return cleanValue;
 };
 
+const publicMediaBaseUrl = () => String(
+    process.env.PUBLIC_MEDIA_BASE_URL
+    || process.env.PUBLIC_BASE_URL
+    || process.env.APP_PUBLIC_URL
+    || 'https://ec.maxlien.shop'
+).trim().replace(/\/+$/, '');
+
+const publicMediaUrlForLocalPath = (filePath = '') => {
+    const mediaRoot = path.resolve(process.cwd(), 'public', 'media');
+    const resolved = path.resolve(String(filePath || ''));
+    if (!resolved.startsWith(`${mediaRoot}${path.sep}`)) return '';
+    const relative = resolved.slice(mediaRoot.length + 1).split(path.sep).map(encodeURIComponent).join('/');
+    return `${publicMediaBaseUrl()}/media/${relative}`;
+};
+
 const manualAutoReturnMinutes = () => {
     const parsed = Number.parseInt(String(process.env.WHATSAPP_MANUAL_AUTO_RETURN_MINUTES || '10'), 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
@@ -1164,6 +1179,8 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
                 sendMode,
                 country: options.country,
                 recipientDigits: digitsOnly(phone),
+                publicMediaUrl: publicMediaUrlForLocalPath(content),
+                viewOnce: options.viewOnce === true,
                 returnDetails: options.returnDetails === true
             });
         }
