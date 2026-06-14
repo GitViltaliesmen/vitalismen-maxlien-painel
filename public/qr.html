@@ -6880,8 +6880,6 @@
                 <button id="opsAlertBtn" class="ops-alert-button" type="button" aria-expanded="false">OK</button>
                 <div id="opsAlertPopover" class="ops-alert-popover hidden"></div>
                 <a href="/funnel-metrics.html" target="_blank" rel="noopener noreferrer">Métricas</a>
-                <button id="dropiJumpBtn" class="primary" type="button">Pedidos</button>
-                <button id="newContactBtn" class="primary" type="button">Novo cliente Equador</button>
                 <button id="commandCodesBtn" type="button">Códigos</button>
                 <button id="refreshBtn" type="button">Atualizar</button>
                 <button id="logoutBtn" class="danger hidden" type="button">Sair</button>
@@ -17043,7 +17041,7 @@
             const expanded = section.classList.toggle('fullscreen');
             el('toggleDropiFullscreenBtn').textContent = expanded ? 'Fechar tela cheia' : 'Tela cheia';
         });
-        el('dropiJumpBtn').addEventListener('click', () => {
+        el('dropiJumpBtn')?.addEventListener('click', () => {
             if (!state.token) {
                 showToast('Entre no painel para processar pedidos');
                 return;
