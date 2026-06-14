@@ -161,6 +161,7 @@ const noticeRecoveryDate = (value = null) => {
 
 const shipmentOutboundOptions = (shipment) => ({
     sessionId: shipment?.automation?.sessionId || null,
+    country: shipment?.country || 'EC',
     allowExistingDropiOrder: true,
     outboundContext: 'shipment_status'
 });
