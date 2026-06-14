@@ -9299,7 +9299,10 @@
                         body: JSON.stringify({
                             phone: currentChatPhone(),
                             message,
-                            sessionId
+                            sessionId: 'zapi',
+                            sendMode: 'manual_panel',
+                            delayTypingSeconds: 0,
+                            country: state.country || 'EC'
                         })
                     });
                     if (!result?.success) {
