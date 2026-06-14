@@ -1136,6 +1136,99 @@
             return data;
         };
 
+        const phoneTail = (value, size = 9) => String(value || '').replace(/\D/g, '').slice(-size);
+
+        const operationalOrderToLead = (order = {}) => {
+            const customer = order.customer || {};
+            const quantity = Number(order.package?.quantity || order.quantity || 0);
+            const status = normalizePanelStatus(order.status);
+            const orderId = String(order.orderId || '').trim();
+            return {
+                id: orderId,
+                orderId,
+                order_id: orderId,
+                country: String(order.country || state.country || 'EC').toUpperCase(),
+                name: customer.name || order.name || '',
+                phone: customer.phone || order.phone || '',
+                address: customer.address || order.address || '',
+                city: customer.city || order.city || '',
+                province: customer.province || order.province || '',
+                quantity: quantity || '',
+                value: Number(order.total || order.value || 0) || '',
+                status,
+                _opsStatus: status,
+                created_at: order.entryAt || order.createdAt || order.confirmedAt || '',
+                updated_at: order.updatedAt || order.confirmedAt || order.createdAt || '',
+                notes: order.notes || 'Pedido operacional confirmado',
+                _ops: {
+                    currentOrderId: orderId,
+                    stagedOrderId: orderId,
+                    shipment: order.shipment || null,
+                    metaPurchaseSentAt: order.tracking?.metaPurchaseSentAt || '',
+                    metaPurchaseEventId: order.tracking?.metaPurchaseEventId || ''
+                }
+            };
+        };
+
+        const mergeOperationalOrdersIntoLeads = (orders = []) => {
+            if (!Array.isArray(orders) || !orders.length) return;
+            const merged = [...state.leads];
+            const byOrderId = new Map();
+            const byPhoneTail = new Map();
+
+            merged.forEach((lead, index) => {
+                const orderId = leadOrderId(lead);
+                if (orderId) byOrderId.set(String(orderId), index);
+                const tail = phoneTail(lead.phone || lead.phone_e164 || '');
+                if (tail && !byPhoneTail.has(tail)) byPhoneTail.set(tail, index);
+            });
+
+            orders.map(operationalOrderToLead).forEach((opsLead) => {
+                if (!opsLead.orderId) return;
+                const tail = phoneTail(opsLead.phone || '');
+                const existingIndex = byOrderId.has(opsLead.orderId)
+                    ? byOrderId.get(opsLead.orderId)
+                    : byPhoneTail.get(tail);
+
+                if (Number.isInteger(existingIndex) && existingIndex >= 0) {
+                    const existing = merged[existingIndex] || {};
+                    const keepAdminId = existing.id && !/^[A-Z]{2}-/.test(String(existing.id));
+                    merged[existingIndex] = {
+                        ...existing,
+                        ...opsLead,
+                        id: keepAdminId ? existing.id : opsLead.id,
+                        adminLeadId: keepAdminId ? existing.id : existing.adminLeadId,
+                        notes: existing.notes || opsLead.notes,
+                        _ops: {
+                            ...(existing._ops || {}),
+                            ...(opsLead._ops || {}),
+                            currentOrderId: opsLead.orderId,
+                            stagedOrderId: opsLead.orderId
+                        }
+                    };
+                    return;
+                }
+
+                merged.push(opsLead);
+                byOrderId.set(opsLead.orderId, merged.length - 1);
+                if (tail && !byPhoneTail.has(tail)) byPhoneTail.set(tail, merged.length - 1);
+            });
+
+            state.leads = merged;
+        };
+
+        const hydrateOperationalOrderLeads = async () => {
+            if (!hasAuthToken()) return;
+            const country = String(state.country || 'EC').toUpperCase();
+            if (country !== 'EC') return;
+            try {
+                const data = await api(`/api/orders?country=${encodeURIComponent(country)}&status=dropi_pipeline&includeShipment=1&limit=300`);
+                mergeOperationalOrdersIntoLeads(Array.isArray(data.orders) ? data.orders : []);
+            } catch (error) {
+                console.warn('Nao foi possivel hidratar pedidos operacionais:', error);
+            }
+        };
+
         const notifyIntegratedPanelStatus = (lead, status) => {
             const country = String(lead?.country || state.country || 'EC').toUpperCase();
             const message = {
@@ -1185,6 +1278,7 @@
             STATUSES.splice(0, STATUSES.length, ...data.statuses);
           }
           await hydrateLeadOperationalFlags();
+          await hydrateOperationalOrderLeads();
          render();
         } catch (error) {
           console.error(error);
