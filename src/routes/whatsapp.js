@@ -338,6 +338,53 @@ const WARMUP_PANEL_COMMANDS = {
     }
 };
 
+const PANEL_ACTION_COMMANDS = {
+    '#bot_liberado#': {
+        action: 'bot_liberado',
+        message: 'Bot liberado para este cliente.'
+    },
+    '#dados_pedidos#': {
+        action: 'dados_pedidos',
+        message: 'Marcado: dados pedidos.'
+    },
+    '#dados_recebidos#': {
+        action: 'dados_recebidos',
+        message: 'Marcado: dados recebidos.'
+    },
+    '#audio_enviado#': {
+        action: 'audio_enviado',
+        message: 'Marcado: audio enviado.'
+    },
+    '#prova_enviada#': {
+        action: 'prova_enviada',
+        message: 'Marcado: prova enviada.'
+    },
+    '#preco_enviado#': {
+        action: 'preco_enviado',
+        message: 'Marcado: preco enviado.'
+    },
+    '#aguardando_cliente#': {
+        action: 'aguardando_cliente',
+        message: 'Marcado: aguardando cliente.'
+    },
+    '#enviado_dropi#': {
+        action: 'enviado_dropi',
+        message: 'Marcado: enviado Dropi.'
+    },
+    '#guia_enviada#': {
+        action: 'guia_enviada',
+        message: 'Marcado: guia enviada.'
+    },
+    '#resolvido#': {
+        action: 'resolvido',
+        message: 'Marcado: resolvido.'
+    },
+    '#revisar#': {
+        action: 'revisar',
+        message: 'Marcado: revisar.'
+    }
+};
+
 const normalizeManualAction = (value = '') => String(value || '')
     .trim()
     .toLowerCase()
@@ -367,6 +414,15 @@ const warmupPanelCommandConfig = (value = '') => {
         ? `#${normalized.replace(/^\/+/, '').replace(/#+$/, '')}#`
         : '';
     return WARMUP_PANEL_COMMANDS[withHash] || null;
+};
+
+const panelActionCommandConfig = (value = '') => {
+    const normalized = normalizeWarmupCommand(value);
+    if (PANEL_ACTION_COMMANDS[normalized]) return PANEL_ACTION_COMMANDS[normalized];
+    const withHash = normalized && !normalized.startsWith('#') && !normalized.startsWith('/')
+        ? `#${normalized.replace(/^\/+/, '').replace(/#+$/, '')}#`
+        : '';
+    return PANEL_ACTION_COMMANDS[withHash] || null;
 };
 
 const longManualHoldUntil = () => new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000);
@@ -1672,6 +1728,44 @@ const applyWarmupPanelCommand = async ({ phone, message, user, sessionId = '', c
         state,
         command: String(message || '').trim(),
         label: config.label,
+        message: config.message
+    };
+};
+
+const applyPanelActionCommand = async ({ phone, message, user, country = 'EC' }) => {
+    const config = panelActionCommandConfig(message);
+    if (!config || !MANUAL_ACTION_TAGS[config.action]) return null;
+    const state = await findOrCreateContactStateForPanel({
+        phone,
+        country: normalizePanelCountry(country || 'EC')
+    });
+    if (config.action === 'bot_liberado') {
+        state.human = {
+            ...(state.human || {}),
+            mode: 'auto',
+            pausedUntil: null,
+            lastManualAt: new Date(),
+            lastManualBy: user?.name || user?.email || 'painel'
+        };
+        state.metadata = {
+            ...(state.metadata || {}),
+            lastHumanActionAt: new Date(),
+            lastHumanAction: 'release_command'
+        };
+    }
+    await registerPanelAction({
+        state,
+        action: config.action,
+        label: MANUAL_ACTION_TAGS[config.action],
+        by: user?.name || user?.email || '',
+        detail: 'codigo interno do painel',
+        phone
+    });
+    await state.save();
+    return {
+        state,
+        command: String(message || '').trim(),
+        label: MANUAL_ACTION_TAGS[config.action],
         message: config.message
     };
 };
@@ -3283,6 +3377,24 @@ router.post('/send', authMiddleware, async (req, res) => {
                 message: 'Atendimento humano marcado. Bot pausado ate liberar auto.',
                 state,
                 unifiedSync
+            });
+        }
+
+        if (!isMedia && sendMode === 'manual_panel' && panelActionCommandConfig(message)) {
+            const result = await applyPanelActionCommand({
+                phone,
+                message,
+                user: req.user,
+                country: country || 'EC'
+            });
+            return res.json({
+                success: true,
+                handled: 'panel_action_command',
+                sent: false,
+                message: result?.message || 'Acao marcada no painel.',
+                state: result?.state,
+                command: result?.command,
+                label: result?.label
             });
         }
 

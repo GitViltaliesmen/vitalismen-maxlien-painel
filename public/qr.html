@@ -3656,6 +3656,15 @@
             gap: 9px;
         }
 
+        .command-code-section {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
         .command-code-item {
             display: grid;
             grid-template-columns: minmax(112px, 140px) minmax(0, 1fr) auto;
@@ -7740,6 +7749,40 @@
             </div>
             <div class="modal-body">
                 <div class="command-code-list">
+                    <div class="command-code-section">Controle do bot e congelamento</div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#HUMANO</div>
+                        <div class="command-code-text">
+                            <strong>Parar bot</strong>
+                            <span>Passa o cliente para atendimento humano e pausa a automação.</span>
+                        </div>
+                        <button type="button" data-command-code="#HUMANO">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#ATENDENDO</div>
+                        <div class="command-code-text">
+                            <strong>Assumir cliente</strong>
+                            <span>Marca humano no comando e segura o bot neste cliente.</span>
+                        </div>
+                        <button type="button" data-command-code="#ATENDENDO">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#FECHADO</div>
+                        <div class="command-code-text">
+                            <strong>Congelar cliente</strong>
+                            <span>Marca venda fechada/resolvida e mantém automação pausada.</span>
+                        </div>
+                        <button type="button" data-command-code="#FECHADO">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#BOT_LIBERADO#</div>
+                        <div class="command-code-text">
+                            <strong>Liberar bot</strong>
+                            <span>Remove a pausa manual e devolve o cliente para automático.</span>
+                        </div>
+                        <button type="button" data-command-code="#BOT_LIBERADO#">Usar</button>
+                    </div>
+                    <div class="command-code-section">Aquecimento seguro</div>
                     <div class="command-code-item">
                         <div class="command-code-command">#AQUECE#</div>
                         <div class="command-code-text">
@@ -7772,8 +7815,89 @@
                         </div>
                         <button type="button" data-command-code="#RISCO#">Usar</button>
                     </div>
+                    <div class="command-code-section">Marcações do painel</div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#DADOS_PEDIDOS#</div>
+                        <div class="command-code-text">
+                            <strong>Dados pedidos</strong>
+                            <span>Registra que nome, cidade, endereço ou dados do pedido foram solicitados.</span>
+                        </div>
+                        <button type="button" data-command-code="#DADOS_PEDIDOS#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#DADOS_RECEBIDOS#</div>
+                        <div class="command-code-text">
+                            <strong>Dados recebidos</strong>
+                            <span>Registra que os dados principais chegaram no atendimento.</span>
+                        </div>
+                        <button type="button" data-command-code="#DADOS_RECEBIDOS#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#AUDIO_ENVIADO#</div>
+                        <div class="command-code-text">
+                            <strong>Áudio enviado</strong>
+                            <span>Marca que um áudio do funil ou do atendimento foi enviado.</span>
+                        </div>
+                        <button type="button" data-command-code="#AUDIO_ENVIADO#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#PROVA_ENVIADA#</div>
+                        <div class="command-code-text">
+                            <strong>Prova enviada</strong>
+                            <span>Registra envio de prova, print ou material de confiança.</span>
+                        </div>
+                        <button type="button" data-command-code="#PROVA_ENVIADA#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#PRECO_ENVIADO#</div>
+                        <div class="command-code-text">
+                            <strong>Preço enviado</strong>
+                            <span>Marca que condição, valor ou pacote foi apresentado.</span>
+                        </div>
+                        <button type="button" data-command-code="#PRECO_ENVIADO#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#AGUARDANDO_CLIENTE#</div>
+                        <div class="command-code-text">
+                            <strong>Aguardando cliente</strong>
+                            <span>Registra que a próxima ação depende da resposta do cliente.</span>
+                        </div>
+                        <button type="button" data-command-code="#AGUARDANDO_CLIENTE#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#ENVIADO_DROPI#</div>
+                        <div class="command-code-text">
+                            <strong>Enviado Dropi</strong>
+                            <span>Marca que o pedido já foi enviado/registrado na Dropi.</span>
+                        </div>
+                        <button type="button" data-command-code="#ENVIADO_DROPI#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#GUIA_ENVIADA#</div>
+                        <div class="command-code-text">
+                            <strong>Guia enviada</strong>
+                            <span>Registra que o aviso de guia/rastreamento foi enviado.</span>
+                        </div>
+                        <button type="button" data-command-code="#GUIA_ENVIADA#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#RESOLVIDO#</div>
+                        <div class="command-code-text">
+                            <strong>Resolvido</strong>
+                            <span>Marca o atendimento como resolvido no histórico interno.</span>
+                        </div>
+                        <button type="button" data-command-code="#RESOLVIDO#">Usar</button>
+                    </div>
+                    <div class="command-code-item">
+                        <div class="command-code-command">#REVISAR#</div>
+                        <div class="command-code-text">
+                            <strong>Revisar</strong>
+                            <span>Marca o cliente para revisão posterior da equipe.</span>
+                        </div>
+                        <button type="button" data-command-code="#REVISAR#">Usar</button>
+                    </div>
                 </div>
-                <div class="meta">Por enquanto estes códigos apenas catalogam clientes. Nenhum aquecimento automático fica ligado por este painel.</div>
+                <div class="meta">Todos estes códigos são internos do painel. Eles registram ação, pausam/liberam bot ou catalogam aquecimento sem enviar o texto ao cliente.</div>
             </div>
         </div>
     </div>
@@ -8860,7 +8984,26 @@
             return fromState || activeChatId || titleText || '';
         };
         const currentContactStateKey = () => state.selectedChat?.id || state.selectedChat?.phone || '';
-        const internalPanelCommands = new Set(['#aquece#', '#aquecevip#', '#naoaquece#', '#risco#']);
+        const internalPanelCommands = new Set([
+            '#humano',
+            '#atendendo',
+            '#fechado',
+            '#bot_liberado#',
+            '#aquece#',
+            '#aquecevip#',
+            '#naoaquece#',
+            '#risco#',
+            '#dados_pedidos#',
+            '#dados_recebidos#',
+            '#audio_enviado#',
+            '#prova_enviada#',
+            '#preco_enviado#',
+            '#aguardando_cliente#',
+            '#enviado_dropi#',
+            '#guia_enviada#',
+            '#resolvido#',
+            '#revisar#'
+        ]);
         const normalizeInternalPanelCommand = (value = '') => String(value || '')
             .trim()
             .toLowerCase()
