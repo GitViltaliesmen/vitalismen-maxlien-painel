@@ -15,7 +15,8 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Painel local: `http://127.0.0.1:3001/qr.html`.
 - Release ativo VPS: `/opt/vitalismen-automacao/releases/202606131610-zapi-operational-tests`.
 - PM2: `vitalismen-automation` online.
-- Z-API conectada no momento da checagem: `553171862958`.
+- Z-API conectada no momento da primeira checagem: `553171862958`.
+- Observacao operacional: apos o congelamento tecnico, a Z-API voltou a oscilar entre conectada e desconectada. A camada de webhook/envio fica pronta, mas a estabilidade do aparelho depende de manter internet/celular estaveis antes de trafego real.
 - Webhook inbound pronto: `/api/zapi/webhook` e `/api/zapi/webhook/received`.
 
 ## Commits congelados
@@ -28,7 +29,8 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 
 ## Evidencias
 
-- `GET /api/zapi/status`: `ok: true`, `connected: true`, `smartphoneConnected: true`, telefone `553171862958`.
+- `GET /api/zapi/status` na primeira checagem: `ok: true`, `connected: true`, `smartphoneConnected: true`, telefone `553171862958`.
+- `GET /api/zapi/status` em checagem posterior: oscilou para `ok: false`, `You are not connected`.
 - `public/qr.html` publicado contem botao `Codigos` e codigos `#HUMANO`, `#FECHADO`, `#BOT_LIBERADO#`, `#AQUECE#`, `#GUIA_ENVIADA#`.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
@@ -66,6 +68,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 5. Confirmar dominio EC, VSL mobile, checkout no tempo correto e desktop protegido.
 6. Conferir que Dropi continua exigindo autorizacao manual antes de envio real.
 7. Trocar para numero oficial somente depois de teste inbound/outbound simples no painel.
+8. Manter Z-API conectada sem oscilacao por um periodo de observacao antes de iniciar trafego.
 
 ## Regra De Retomada
 
