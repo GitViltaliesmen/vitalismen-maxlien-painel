@@ -536,6 +536,17 @@ const dateValueMs = (value) => {
     return Number.isFinite(time) ? time : 0;
 };
 
+const latestDateValue = (...values) => {
+    const latest = values
+        .map((value) => {
+            const ms = dateValueMs(value);
+            return ms ? new Date(ms) : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+    return latest || null;
+};
+
 const stableContactEntryAt = (state = {}) => (
     state.firstInboundAt
     || state.metadata?.customerDraft?.entryAt
@@ -554,9 +565,8 @@ const stableOrderEntryAt = (order = {}) => (
 
 const stableChatEntryMs = (chat = {}) => {
     const entryMs = dateValueMs(chat.entryAt);
-    if (entryMs) return entryMs;
     const messageMs = Number(chat.lastMessage?.timestamp || 0) * 1000;
-    return Number.isFinite(messageMs) ? messageMs : 0;
+    return Math.max(entryMs || 0, Number.isFinite(messageMs) ? messageMs : 0);
 };
 
 const CONNECTION_OPERATOR_SLOTS = [
@@ -2414,13 +2424,16 @@ router.get('/chats', async (req, res) => {
                 const contactState = statesByPhone.get(phoneDigits) || statesByChatId.get(c.id._serialized) || null;
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
-                const entryAt = stableContactEntryAt(contactState) || (lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null);
+                const entryAt = latestDateValue(
+                    stableContactEntryAt(contactState),
+                    lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null
+                );
                 const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
                 return {
                     id: c.id._serialized,
                     name: order?.customer?.name || customerDraft.name || lastMessage?.notifyName || c.name || c.id.user,
                     phone: order?.customer?.phone || customerDraft.phone || c.phoneHint || c.id.user,
-                    entryAt: order?.entryAt || order?.createdAt || entryAt,
+                    entryAt: latestDateValue(order?.entryAt, order?.createdAt, entryAt),
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: 0,
                     lastMessage: lastMessage ? {
@@ -2570,7 +2583,11 @@ router.get('/chats', async (req, res) => {
                 id: c.id._serialized,
                 name: order?.customer?.name || customerDraft.name || c.name || c.id.user,
                 phone: order?.customer?.phone || customerDraft.phone || phone, // This is now the real phone number (resolved)
-                entryAt: stableOrderEntryAt(order) || stableContactEntryAt(contactState) || (lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null),
+                entryAt: latestDateValue(
+                    stableOrderEntryAt(order),
+                    stableContactEntryAt(contactState),
+                    lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null
+                ),
                 profilePictureUrl,
                 unreadCount,
                 lastMessage: lastMessage ? {
