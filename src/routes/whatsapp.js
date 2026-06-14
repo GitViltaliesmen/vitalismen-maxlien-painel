@@ -2150,17 +2150,44 @@ router.get('/chats', async (req, res) => {
                 }
             });
 
+            const ecPhoneTails = [...new Set(allChats
+                .map((chat) => digitsOnly(chat.phoneHint || chat.id?.user))
+                .filter((phone) => countryPrefixFromDigits(phone) === 'EC')
+                .flatMap(phoneTailCandidates))];
+            const operationalOrders = ecPhoneTails.length
+                ? await Order.find({
+                    country: 'EC',
+                    status: { $in: ['confirmed', 'processing', 'shipped', 'delivered'] },
+                    $or: ecPhoneTails.map((tail) => ({ 'customer.phone': { $regex: `${tail}$` } }))
+                })
+                    .sort({ entryAt: -1, createdAt: -1 })
+                    .limit(300)
+                    .lean()
+                    .catch(() => [])
+                : [];
+            const orderByPhoneTail = new Map();
+            operationalOrders.forEach((order) => {
+                phoneTailCandidates(order.customer?.phone).forEach((tail) => {
+                    if (!orderByPhoneTail.has(tail)) orderByPhoneTail.set(tail, order);
+                });
+            });
+            const orderForFastPhone = (phone = '') => {
+                const candidates = phoneTailCandidates(phone).sort((a, b) => b.length - a.length);
+                return candidates.map((tail) => orderByPhoneTail.get(tail)).find(Boolean) || null;
+            };
+
             const fastChats = allChats.map((c) => {
                 const phoneDigits = digitsOnly(c.phoneHint || c.id.user);
                 const contactState = statesByPhone.get(phoneDigits) || statesByChatId.get(c.id._serialized) || null;
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
                 const entryAt = stableContactEntryAt(contactState) || (lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null);
+                const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
                 return {
                     id: c.id._serialized,
-                    name: customerDraft.name || lastMessage?.notifyName || c.name || c.id.user,
-                    phone: customerDraft.phone || c.phoneHint || c.id.user,
-                    entryAt,
+                    name: order?.customer?.name || customerDraft.name || lastMessage?.notifyName || c.name || c.id.user,
+                    phone: order?.customer?.phone || customerDraft.phone || c.phoneHint || c.id.user,
+                    entryAt: order?.entryAt || order?.createdAt || entryAt,
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: 0,
                     lastMessage: lastMessage ? {
@@ -2171,17 +2198,17 @@ router.get('/chats', async (req, res) => {
                     } : null,
                     isGroup: c.isGroup,
                     country: contactState?.countryCode || null,
-                    city: customerDraft.city || null,
-                    province: customerDraft.province || null,
-                    address: customerDraft.address || null,
-                    reference: customerDraft.reference || null,
+                    city: order?.customer?.city || customerDraft.city || null,
+                    province: order?.customer?.province || customerDraft.province || null,
+                    address: order?.customer?.address || customerDraft.address || null,
+                    reference: order?.customer?.reference || customerDraft.reference || null,
                     flowDataOk: customerDraft.flowDataOk || {},
-                    orderId: null,
-                    orderStatus: customerDraft.status || null,
-                    quantity: customerDraft.quantity || null,
-                    packageLabel: null,
-                    total: customerDraft.total ?? null,
-                    currency: null,
+                    orderId: order?.orderId || null,
+                    orderStatus: order?.status || customerDraft.status || null,
+                    quantity: order?.package?.quantity || customerDraft.quantity || null,
+                    packageLabel: order?.package?.label || null,
+                    total: order?.total ?? customerDraft.total ?? null,
+                    currency: order?.currency || null,
                     notes: contactState?.human?.note || '',
                     assignedAgent: contactState?.assignedAgent || null,
                     tags: contactState?.tags || [],
