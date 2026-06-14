@@ -191,6 +191,14 @@ const isAllowedPanelPhoneForCountry = (phone = '', country = 'EC') => {
     return true;
 };
 
+const inferPanelCountryFromPhone = (phone = '', fallback = 'EC') => {
+    const value = digitsOnly(phone);
+    if (value.startsWith('593')) return 'EC';
+    if (value.startsWith('57')) return 'CO';
+    if (value.startsWith('55')) return 'BR';
+    return normalizePanelCountry(fallback || 'EC');
+};
+
 const normalizeClientPhoneDigits = (phone = '', country = 'EC') => {
     const digits = digitsOnly(phone);
     const normalizedCountry = normalizePanelCountry(country);
@@ -407,22 +415,47 @@ const normalizeWarmupCommand = (value = '') => String(value || '')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, '');
 
-const warmupPanelCommandConfig = (value = '') => {
+const panelCommandCandidates = (value = '') => {
     const normalized = normalizeWarmupCommand(value);
-    if (WARMUP_PANEL_COMMANDS[normalized]) return WARMUP_PANEL_COMMANDS[normalized];
-    const withHash = normalized && !normalized.startsWith('#') && !normalized.startsWith('/')
-        ? `#${normalized.replace(/^\/+/, '').replace(/#+$/, '')}#`
-        : '';
-    return WARMUP_PANEL_COMMANDS[withHash] || null;
+    if (!normalized) return [];
+    const withoutTrailingHash = normalized.replace(/#+$/, '');
+    const plain = normalized.replace(/^[/#]+/, '').replace(/#+$/, '');
+    return [...new Set([
+        normalized,
+        withoutTrailingHash,
+        plain ? `#${plain}` : '',
+        plain ? `#${plain}#` : '',
+        plain ? `/${plain}` : ''
+    ].filter(Boolean))];
+};
+
+const panelCommandConfig = (commands, value = '') => {
+    for (const candidate of panelCommandCandidates(value)) {
+        if (commands[candidate]) return commands[candidate];
+    }
+    return null;
+};
+
+const warmupPanelCommandConfig = (value = '') => {
+    return panelCommandConfig(WARMUP_PANEL_COMMANDS, value);
+};
+
+const warmupPanelCommandFromText = (value = '') => {
+    const normalized = normalizeWarmupCommand(value);
+    if (!normalized) return '';
+    if (warmupPanelCommandConfig(normalized)) return normalized;
+    const commands = Object.keys(WARMUP_PANEL_COMMANDS)
+        .sort((left, right) => right.replace(/[#/]/g, '').length - left.replace(/[#/]/g, '').length);
+    for (const command of commands) {
+        if (normalized.includes(command)) return command;
+        const plain = command.replace(/[#/]/g, '');
+        if (plain && normalized.includes(plain)) return command;
+    }
+    return '';
 };
 
 const panelActionCommandConfig = (value = '') => {
-    const normalized = normalizeWarmupCommand(value);
-    if (PANEL_ACTION_COMMANDS[normalized]) return PANEL_ACTION_COMMANDS[normalized];
-    const withHash = normalized && !normalized.startsWith('#') && !normalized.startsWith('/')
-        ? `#${normalized.replace(/^\/+/, '').replace(/#+$/, '')}#`
-        : '';
-    return PANEL_ACTION_COMMANDS[withHash] || null;
+    return panelCommandConfig(PANEL_ACTION_COMMANDS, value);
 };
 
 const longManualHoldUntil = () => new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000);
@@ -480,6 +513,7 @@ const registerPanelAction = async ({
 
 const findOrCreateContactStateForPanel = async ({ chatId = '', phone = '', country = 'EC' } = {}) => {
     const digits = digitsOnly(phone);
+    const effectiveCountry = inferPanelCountryFromPhone(digits, country);
     const stateOr = [];
     if (chatId) stateOr.push({ chatId });
     if (digits) {
@@ -494,7 +528,7 @@ const findOrCreateContactStateForPanel = async ({ chatId = '', phone = '', count
     return new ContactState({
         chatId: chatId || (digits ? `${digits}@c.us` : `manual_${Date.now()}`),
         phoneDigits: digits,
-        countryCode: normalizePanelCountry(country)
+        countryCode: effectiveCountry
     });
 };
 
@@ -1704,9 +1738,10 @@ const applyManualAttendingCommand = async ({ phone, message, user, sessionId = '
 const applyWarmupPanelCommand = async ({ phone, message, user, sessionId = '', country = 'EC' }) => {
     const config = warmupPanelCommandConfig(message);
     if (!config) return null;
+    const effectiveCountry = inferPanelCountryFromPhone(phone, country);
     const state = await findOrCreateContactStateForPanel({
         phone,
-        country: normalizePanelCountry(country || 'EC')
+        country: effectiveCountry
     });
     const now = new Date();
     const tagSet = new Set(Array.isArray(state.tags) ? state.tags : []);
@@ -1714,7 +1749,7 @@ const applyWarmupPanelCommand = async ({ phone, message, user, sessionId = '', c
     for (const tag of config.addTags || []) tagSet.add(tag);
     state.tags = [...tagSet];
     state.phoneDigits = state.phoneDigits || digitsOnly(phone);
-    state.countryCode = normalizePanelCountry(country || state.countryCode || 'EC');
+    state.countryCode = effectiveCountry;
     state.metadata = {
         ...(state.metadata || {}),
         warmup: {
@@ -3013,10 +3048,11 @@ router.post('/contacts', async (req, res) => {
             return res.status(400).json({ error: 'Telefone invalido' });
         }
         const matchedBrazilTestPhone = matchBrazilPanelTestPhone(digits);
-        const effectiveCountry = digits.startsWith('55') || matchedBrazilTestPhone
+        const inferredCountry = inferPanelCountryFromPhone(digits, country);
+        const effectiveCountry = inferredCountry === 'BR' || matchedBrazilTestPhone
             ? 'BR'
-            : (String(country || 'EC').toUpperCase() || 'EC');
-        const internalOrTest = digits.startsWith('55') || matchedBrazilTestPhone
+            : inferredCountry;
+        const internalOrTest = effectiveCountry === 'BR' || matchedBrazilTestPhone
             ? isBrazilTestOnly({ phone: digits, country: effectiveCountry })
             : isOperationalPanelPhone(digits);
         const normalizedDigits = matchedBrazilTestPhone || (internalOrTest ? digits : normalizeClientPhoneDigits(digits, effectiveCountry));
@@ -3070,15 +3106,29 @@ router.post('/contacts', async (req, res) => {
             }
         };
         await state.save();
-        const unifiedSync = syncCustomerDraftFromState(state, { action: 'contact_created_from_whatsapp_panel' });
+        const warmupCommand = warmupPanelCommandFromText(note);
+        let finalState = state;
+        if (warmupCommand) {
+            const warmupResult = await applyWarmupPanelCommand({
+                phone: normalizedDigits,
+                message: warmupCommand,
+                user: req.user,
+                sessionId: 'panel_contact_create',
+                country: effectiveCountry
+            });
+            if (warmupResult?.state) finalState = warmupResult.state;
+        }
+        const unifiedSync = syncCustomerDraftFromState(finalState, { action: 'contact_created_from_whatsapp_panel' });
         res.json({
             success: true,
-            state,
+            state: finalState,
             duplicate: alreadyExisted || unifiedSync?.mode === 'updated',
             unifiedSync,
-            message: alreadyExisted || unifiedSync?.mode === 'updated'
-                ? 'Cliente ja cadastrado; ficha atualizada sem duplicar.'
-                : 'Cliente novo adicionado.'
+            message: warmupCommand
+                ? 'Cliente adicionado e codigo interno aplicado.'
+                : alreadyExisted || unifiedSync?.mode === 'updated'
+                    ? 'Cliente ja cadastrado; ficha atualizada sem duplicar.'
+                    : 'Cliente novo adicionado.'
         });
     } catch (error) {
         console.error('Create WhatsApp contact error:', error);
@@ -3203,10 +3253,11 @@ router.patch('/contact-state/:phone', async (req, res) => {
         if (customerDraft && typeof customerDraft === 'object') {
             const draftPhoneDigits = String(customerDraft.phone || '').replace(/\D/g, '');
             const matchedBrazilTestPhone = matchBrazilPanelTestPhone(draftPhoneDigits || state.phoneDigits || req.params.phone);
-            const effectiveCountry = draftPhoneDigits.startsWith('55') || matchedBrazilTestPhone
+            const inferredCountry = inferPanelCountryFromPhone(draftPhoneDigits || state.phoneDigits || req.params.phone, customerDraft.country || country || state.countryCode || 'EC');
+            const effectiveCountry = inferredCountry === 'BR' || matchedBrazilTestPhone
                 ? 'BR'
-                : (String(customerDraft.country || country || state.countryCode || 'EC').toUpperCase() || 'EC');
-            const internalOrTest = draftPhoneDigits.startsWith('55') || matchedBrazilTestPhone || effectiveCountry === 'BR'
+                : inferredCountry;
+            const internalOrTest = matchedBrazilTestPhone || effectiveCountry === 'BR'
                 ? isBrazilTestOnly({ phone: draftPhoneDigits || state.phoneDigits || req.params.phone, country: effectiveCountry })
                 : isOperationalOrTestPanelContact({
                     phone: draftPhoneDigits || state.phoneDigits || req.params.phone,
