@@ -70,6 +70,8 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Contatos marcados como `#RISCO#` ficam como manual somente.
 - Nao usar esta camada para envio frio, massa ou evasao de bloqueio.
 - Para ativar qualquer rotina futura de aquecimento, criar uma nova camada separada, com limites, opt-in e aprovacao manual.
+- Cliente comum/real sempre tem prioridade sobre aquecimento, teste, contato BR operacional ou conversa leve. Se houver lead novo, cliente em atendimento, pedido, guia, reclamacao, Dropi ou duvida de compra aguardando, qualquer aquecimento deve parar/aguardar.
+- A extensao de aquecimento so pode entrar em acao por codigo interno aprovado, catalogacao manual ou repeticao clara de conversa segura; foto, link, audio ou mensagem solta nao autorizam `#AQUECE#` automaticamente.
 
 ## Pendencias Para Trafego Pago
 
