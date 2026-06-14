@@ -72,6 +72,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Para ativar qualquer rotina futura de aquecimento, criar uma nova camada separada, com limites, opt-in e aprovacao manual.
 - Cliente comum/real sempre tem prioridade sobre aquecimento, teste, contato BR operacional ou conversa leve. Se houver lead novo, cliente em atendimento, pedido, guia, reclamacao, Dropi ou duvida de compra aguardando, qualquer aquecimento deve parar/aguardar.
 - A extensao de aquecimento so pode entrar em acao por codigo interno aprovado, catalogacao manual ou repeticao clara de conversa segura; foto, link, audio ou mensagem solta nao autorizam `#AQUECE#` automaticamente.
+- Foto, link, audio, emoji solto ou frase curtissima com emoji sem contexto/repetidos entram como `#RISCO#`/manual, nao como aquecimento. Pornografia ou conteudo sexual explicito e `#RISCO#` imediato.
 
 ## Pendencias Para Trafego Pago
 
