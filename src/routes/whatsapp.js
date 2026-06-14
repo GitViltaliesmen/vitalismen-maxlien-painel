@@ -2208,7 +2208,7 @@ router.get('/chats', async (req, res) => {
         const recentStateQuery = allCountries
             ? { chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ } }
             : scopedContactQuery({ country: countryFilter || 'EC', sessionId: req.query.sessionId });
-        const recentStates = await ContactState.find(
+        let recentStates = await ContactState.find(
             recentStateQuery,
             {
                 chatId: 1,
@@ -2227,6 +2227,47 @@ router.get('/chats', async (req, res) => {
             .limit(fastMode ? 180 : 500)
             .lean()
             .catch(() => []);
+
+        const pinnedPanelPhones = countryFilter ? scopedPanelPhones(countryFilter) : [];
+        if (countryFilter === 'EC' && pinnedPanelPhones.length) {
+            const pinnedPanelStates = await ContactState.find(
+                {
+                    chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ },
+                    $or: [
+                        { phoneDigits: { $in: pinnedPanelPhones } },
+                        { 'metadata.lastSenderPn': { $in: pinnedPanelPhones } },
+                        { 'metadata.customerDraft.phone': { $in: pinnedPanelPhones } },
+                        { 'metadata.operationalPanelPhone': true },
+                        { 'metadata.testOnly': true },
+                        { tags: { $in: ['NUMERO_OPERACIONAL', 'TESTE_ENVIO', 'BR_OPERACIONAL', 'NAO_CLIENTE'] } }
+                    ]
+                },
+                {
+                    chatId: 1,
+                    phoneDigits: 1,
+                    countryCode: 1,
+                    assignedAgent: 1,
+                    tags: 1,
+                    human: 1,
+                    firstInboundAt: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    metadata: 1
+                }
+            )
+                .sort({ updatedAt: -1 })
+                .limit(80)
+                .lean()
+                .catch(() => []);
+            const byChatOrPhone = new Map();
+            [...pinnedPanelStates, ...recentStates].forEach((state) => {
+                const phone = realPhoneFromState(state) || digitsOnly(state.phoneDigits);
+                const key = state.chatId || phone;
+                if (!key || byChatOrPhone.has(key)) return;
+                byChatOrPhone.set(key, state);
+            });
+            recentStates = [...byChatOrPhone.values()];
+        }
 
         recentStates.forEach((state) => {
             const realPhone = realPhoneFromState(state);

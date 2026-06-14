@@ -40,6 +40,8 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Variaveis operacionais do Node no VPS atualizadas para `5515991418416`: `WHATSAPP_SELLER_E164`, `ZAPI_OPERATION_PHONE`, `ZAPI_CONNECTED_PHONE` e `ZAPI_OPERATIONAL_PHONE`.
 - Ajuste posterior de conversao: CTA/formulario da VSL reduziu fallback absoluto de 40 minutos (`2400s`) para 12 minutos (`720s`) para evitar perda de vendas se o CTA nativo nao aparecer.
 - Consulta dinamica do telefone Z-API no clique reduziu timeout de `2500ms` para `900ms`; se a API atrasar, o fallback `5515991418416` continua abrindo.
+- Correcao local posterior: a lista rapida do painel EC agora fixa os contatos BR permitidos/teste para nao sumirem depois de sincronizacao grande de clientes. Validado em `GET /api/whatsapp/chats?country=EC&fast=1` com `5515998038637`, `553171862958`, `5531983002800` e `5531971862958` visiveis.
+- Variaveis locais `ZAPI_OPERATION_PHONE`, `ZAPI_CONNECTED_PHONE` e `ZAPI_OPERATIONAL_PHONE` atualizadas para `5515991418416`, mantendo `5515998038637` apenas como numero de teste liberado.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
 - Sintaxe validada local e no VPS:
