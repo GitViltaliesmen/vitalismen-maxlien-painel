@@ -34,6 +34,14 @@ const firstPlainString = (...values) => values
     .map((value) => String(value || '').trim())
     .find(Boolean) || '';
 
+const countryFromPhone = (phone = '') => {
+    const value = digits(phone);
+    if (value.startsWith('593')) return 'EC';
+    if (value.startsWith('57')) return 'CO';
+    if (value.startsWith('55')) return 'BR';
+    return 'OTHER';
+};
+
 const zapiMessageIdFromPayload = (payload = {}) => firstString(
     payload.messageId,
     payload.id,
@@ -156,24 +164,47 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ]
     }).sort({ updatedAt: -1 });
 
+    const isNewState = !state;
+    const inferredCountry = countryFromPhone(phone);
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
-        countryCode: phone.startsWith('57') ? 'CO' : 'EC'
+        countryCode: inferredCountry
     });
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
+    targetState.countryCode = targetState.countryCode || inferredCountry;
     targetState.lastInboundText = normalizedBody || `[${type}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
     if (!targetState.firstInboundText) targetState.firstInboundText = targetState.lastInboundText;
+    if (isNewState) {
+        targetState.human = {
+            ...(targetState.human || {}),
+            mode: 'manual',
+            pausedUntil: null,
+            assignedName: 'Captura Z-API',
+            note: 'Contato capturado do WhatsApp conectado. Revisar no painel antes de qualquer automacao.',
+            lastManualAt: now,
+            lastManualBy: 'zapi'
+        };
+    }
+    targetState.tags = [...new Set([
+        ...(Array.isArray(targetState.tags) ? targetState.tags : []),
+        'ZAPI_INBOUND_CAPTURED',
+        ...(inferredCountry === 'BR' ? ['BR_CAPTURADO_CELULAR'] : [])
+    ])];
     targetState.metadata = {
         ...(targetState.metadata || {}),
         lastProvider: 'zapi',
         lastProviderMessageId: providerMessageId,
         lastProviderZaapId: providerZaapId,
         lastSessionId: 'zapi',
-        zapiInboundAt: now.toISOString()
+        zapiInboundAt: now.toISOString(),
+        zapiCapturedContact: true,
+        zapiCapturedAt: targetState.metadata?.zapiCapturedAt || now.toISOString(),
+        zapiCapturedCountry: inferredCountry,
+        zapiCapturedSource: 'connected_phone_inbound'
     };
     await targetState.save();
 

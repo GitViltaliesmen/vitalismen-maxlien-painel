@@ -80,6 +80,16 @@ run('ssh', [
     ].join(' && ')
 ], { timeout: 300000 });
 
+run('ssh', [
+    '-i', key,
+    '-o', 'StrictHostKeyChecking=accept-new',
+    host,
+    [
+        `if [ -f ${baseDir}/current/.env ]; then cp ${baseDir}/current/.env ${releaseDir}/.env; chmod 600 ${releaseDir}/.env; fi`,
+        `test -f ${releaseDir}/.env`
+    ].join(' && ')
+], { timeout: 60000 });
+
 if (activate) {
     run('ssh', [
         '-i', key,
