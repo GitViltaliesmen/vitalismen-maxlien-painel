@@ -120,6 +120,11 @@ const zapiFromMeFromPayload = (payload = {}) => (
 const zapiTextFromPayload = (payload = {}) => firstPlainString(
     payload.text?.message,
     payload.text,
+    payload.caption,
+    payload.image?.caption,
+    payload.video?.caption,
+    payload.document?.caption,
+    payload.sticker?.caption,
     payload.message?.text?.message,
     payload.message?.text,
     payload.message?.body,
@@ -131,7 +136,58 @@ const zapiTextFromPayload = (payload = {}) => firstPlainString(
     payload.data?.message
 );
 
+const zapiMediaUrlFromPayload = (payload = {}) => firstString(
+    payload.mediaUrl,
+    payload.media?.url,
+    payload.url,
+    payload.fileUrl,
+    payload.downloadUrl,
+    payload.image?.imageUrl,
+    payload.image?.url,
+    payload.image?.mediaUrl,
+    payload.photo?.url,
+    payload.audio?.audioUrl,
+    payload.audio?.url,
+    payload.audio?.mediaUrl,
+    payload.video?.videoUrl,
+    payload.video?.url,
+    payload.video?.mediaUrl,
+    payload.document?.documentUrl,
+    payload.document?.url,
+    payload.document?.mediaUrl,
+    payload.sticker?.stickerUrl,
+    payload.sticker?.url,
+    payload.sticker?.mediaUrl,
+    payload.message?.mediaUrl,
+    payload.message?.image?.imageUrl,
+    payload.message?.image?.url,
+    payload.message?.audio?.audioUrl,
+    payload.message?.audio?.url,
+    payload.message?.video?.videoUrl,
+    payload.message?.video?.url,
+    payload.message?.document?.documentUrl,
+    payload.message?.document?.url,
+    payload.message?.sticker?.stickerUrl,
+    payload.message?.sticker?.url,
+    payload.data?.mediaUrl,
+    payload.data?.image?.imageUrl,
+    payload.data?.image?.url,
+    payload.data?.audio?.audioUrl,
+    payload.data?.audio?.url,
+    payload.data?.video?.videoUrl,
+    payload.data?.video?.url,
+    payload.data?.document?.documentUrl,
+    payload.data?.document?.url,
+    payload.data?.sticker?.stickerUrl,
+    payload.data?.sticker?.url
+);
+
 const zapiMessageTypeFromPayload = (payload = {}) => {
+    if (payload.sticker || payload.message?.sticker || payload.data?.sticker) return 'image';
+    if (payload.image || payload.photo || payload.message?.image || payload.data?.image) return 'image';
+    if (payload.audio || payload.message?.audio || payload.data?.audio) return 'audio';
+    if (payload.video || payload.message?.video || payload.data?.video) return 'video';
+    if (payload.document || payload.file || payload.message?.document || payload.data?.document) return 'document';
     const raw = firstString(
         payload.type,
         payload.messageType,
@@ -145,6 +201,7 @@ const zapiMessageTypeFromPayload = (payload = {}) => {
     if (/image|photo/.test(raw)) return 'image';
     if (/video/.test(raw)) return 'video';
     if (/document|file/.test(raw)) return 'document';
+    if (/sticker|figurinha/.test(raw)) return 'image';
     return 'chat';
 };
 
@@ -154,6 +211,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const phone = zapiPhoneFromPayload(payload);
     const body = zapiTextFromPayload(payload);
     const type = zapiMessageTypeFromPayload(payload);
+    const mediaUrl = zapiMediaUrlFromPayload(payload);
     if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
     if (zapiInboundLooksLikeGroup(payload, phone)) {
         return { recorded: false, reason: 'group_or_community_ignored', phone, providerMessageId, providerZaapId };
@@ -162,7 +220,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const chatId = `${phone}@c.us`;
     const now = new Date();
     const messageId = providerMessageId || providerZaapId || `zapi_in_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    const normalizedBody = typeof body === 'string' ? body : '';
+    const normalizedBody = typeof body === 'string' && body.trim()
+        ? body
+        : mediaUrl
+            ? `[${type === 'image' && (payload.sticker || payload.message?.sticker || payload.data?.sticker) ? 'sticker' : type}]`
+            : '';
 
     await Message.updateOne(
         { _id: messageId },
@@ -175,7 +237,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 to: 'zapi',
                 body: normalizedBody,
                 type,
-                hasMedia: type !== 'chat',
+                hasMedia: Boolean(mediaUrl) || type !== 'chat',
+                mediaUrl,
+                mediaPreviewUrl: mediaUrl,
                 timestamp: Math.floor(now.getTime() / 1000),
                 sessionId: 'zapi',
                 ownerPhoneDigits: '',
