@@ -51,6 +51,16 @@ const getAdminLeadIdFromOrderId = (orderId) => {
     return match ? Number.parseInt(match[1], 10) : null;
 };
 
+const parseMoney = (value, fallback = 0) => {
+    const parsed = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const packageLabel = (quantity) => {
+    const qty = Number(quantity || 1) || 1;
+    return qty === 1 ? '1 frasco' : `${qty} frascos`;
+};
+
 const getAdminLeadSnapshot = ({ orderId } = {}) => {
     const leadId = getAdminLeadIdFromOrderId(orderId);
     if (!leadId) return null;
@@ -62,7 +72,7 @@ lead_id = int(${JSON.stringify(leadId)})
 con = sqlite3.connect(db_path)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
-row = cur.execute("SELECT id, name, phone, city, province, status, updated_at FROM leads WHERE id=?", (lead_id,)).fetchone()
+row = cur.execute("SELECT id, name, phone, address, city, province, product_qty, product_value, status, created_at, updated_at FROM leads WHERE id=?", (lead_id,)).fetchone()
 print(json.dumps(dict(row) if row else None, ensure_ascii=False))
 con.close()
 `;
@@ -78,6 +88,48 @@ con.close()
     } catch (_error) {
         return null;
     }
+};
+
+const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
+    const leadId = getAdminLeadIdFromOrderId(requestedOrderId);
+    if (!leadId || !lead) return null;
+    const phone = String(lead.phone || '').trim();
+    const phoneDigits = phone.replace(/\D/g, '');
+    const status = String(lead.status || '').trim().toLowerCase();
+    if (!phoneDigits || status !== 'confirmado') return null;
+
+    const quantity = parseMoney(lead.product_qty, 1) || 1;
+    const total = parseMoney(lead.product_value, 0);
+    const createdAt = lead.created_at ? new Date(lead.created_at) : null;
+    const order = new Order({
+        orderId: requestedOrderId,
+        country: 'EC',
+        customer: {
+            name: String(lead.name || '').trim(),
+            phone,
+            address: String(lead.address || '').trim(),
+            city: String(lead.city || '').trim(),
+            province: String(lead.province || '').trim()
+        },
+        package: {
+            id: quantity,
+            label: packageLabel(quantity),
+            quantity
+        },
+        total,
+        currency: 'USD',
+        status: 'confirmed',
+        source: 'manual',
+        entryAt: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : new Date(),
+        entryReason: 'admin_confirmed_dropi_bridge',
+        notes: [
+            'Criado automaticamente do painel admin para envio Dropi.',
+            `Lead admin EC #${leadId}`,
+            `Status original: ${lead.status || ''}`
+        ].join(' | ')
+    });
+    await order.save();
+    return order;
 };
 
 const findCurrentOrderForAdminLead = async (requestedOrderId) => {
@@ -113,7 +165,10 @@ const findCurrentOrderForAdminLead = async (requestedOrderId) => {
 const findOrderForDropiRequest = async (requestedOrderId) => {
     const order = await Order.findOne({ orderId: requestedOrderId });
     if (order) return order;
-    return findCurrentOrderForAdminLead(requestedOrderId);
+    const mappedOrder = await findCurrentOrderForAdminLead(requestedOrderId);
+    if (mappedOrder) return mappedOrder;
+    const lead = getAdminLeadSnapshot({ orderId: requestedOrderId });
+    return createOperationalOrderFromAdminLead(requestedOrderId, lead);
 };
 
 const appendAuditNote = (current = '', note = '') => {
