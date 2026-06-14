@@ -879,7 +879,7 @@
         }
         const apiBase = isLocal ? 'https://ec.maxlien.shop' : '';
         const adminApiBase = isLocal ? '' : apiBase;
-        const operationalApiBase = isLocal ? '/local-api' : '';
+        const operationalApiBase = apiBase;
         const state = {
             leads: [],
             country: (params.get('country') || 'EC').toUpperCase(),
@@ -1218,7 +1218,6 @@
         };
 
         const hydrateOperationalOrderLeads = async () => {
-            if (!hasAuthToken()) return;
             const country = String(state.country || 'EC').toUpperCase();
             if (country !== 'EC') return;
             try {
