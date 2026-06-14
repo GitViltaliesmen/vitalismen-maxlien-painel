@@ -16,6 +16,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Release ativo VPS: `/opt/vitalismen-automacao/releases/202606131610-zapi-operational-tests`.
 - PM2: `vitalismen-automation` online.
 - Z-API conectada no momento da primeira checagem: `553171862958`.
+- Atualizacao posterior aprovada: entrada operacional/VSL trocada para `5515991418416` apos troca do aparelho conectado na Z-API.
 - Observacao operacional: apos o congelamento tecnico, a Z-API voltou a oscilar entre conectada e desconectada. A camada de webhook/envio fica pronta, mas a estabilidade do aparelho depende de manter internet/celular estaveis antes de trafego real.
 - Webhook inbound pronto: `/api/zapi/webhook` e `/api/zapi/webhook/received`.
 
@@ -33,9 +34,10 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - `GET /api/zapi/status` na primeira checagem: `ok: true`, `connected: true`, `smartphoneConnected: true`, telefone `553171862958`.
 - `GET /api/zapi/status` em checagem posterior: oscilou para `ok: false`, `You are not connected`.
 - `public/qr.html` publicado contem botao `Codigos` e codigos `#HUMANO`, `#FECHADO`, `#BOT_LIBERADO#`, `#AQUECE#`, `#GUIA_ENVIADA#`.
-- VSL ativa `https://maxlien.shop/m/` retorna somente o telefone `553171862958` como entrada WhatsApp.
-- Fallback antigo do MVP em `/opt/maxlien-mvp/app.py` foi alterado no VPS de `553183002800` para `553171862958`.
-- Rota `/api/zapi/whatsapp-link` publicada; quando Z-API estiver conectada, retorna telefone do device. Quando offline, responde `zapi_not_connected` e a VSL usa fallback `553171862958`.
+- VSL ativa `https://maxlien.shop/m/` retornava `553171862958` e foi atualizada depois para retornar somente `5515991418416` como entrada WhatsApp.
+- Fallback antigo do MVP em `/opt/maxlien-mvp/app.py` foi alterado no VPS de `553183002800` para `553171862958` e depois para `5515991418416`.
+- Rota `/api/zapi/whatsapp-link` publicada; quando Z-API estiver conectada, retorna telefone do device. Apos a troca, retornou `5515991418416`.
+- Variaveis operacionais do Node no VPS atualizadas para `5515991418416`: `WHATSAPP_SELLER_E164`, `ZAPI_OPERATION_PHONE`, `ZAPI_CONNECTED_PHONE` e `ZAPI_OPERATIONAL_PHONE`.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
 - Sintaxe validada local e no VPS:
