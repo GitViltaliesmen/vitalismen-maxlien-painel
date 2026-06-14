@@ -26,12 +26,16 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - `de7fdbe` - comandos seguros de aquecimento no painel.
 - `29aff6e` - remocao dos botoes redundantes do topo.
 - `89db9f7` - lista completa de codigos internos do painel.
+- `6d1eaec` - rota `/api/zapi/whatsapp-link` para a VSL consultar telefone conectado pela Z-API.
 
 ## Evidencias
 
 - `GET /api/zapi/status` na primeira checagem: `ok: true`, `connected: true`, `smartphoneConnected: true`, telefone `553171862958`.
 - `GET /api/zapi/status` em checagem posterior: oscilou para `ok: false`, `You are not connected`.
 - `public/qr.html` publicado contem botao `Codigos` e codigos `#HUMANO`, `#FECHADO`, `#BOT_LIBERADO#`, `#AQUECE#`, `#GUIA_ENVIADA#`.
+- VSL ativa `https://maxlien.shop/m/` retorna somente o telefone `553171862958` como entrada WhatsApp.
+- Fallback antigo do MVP em `/opt/maxlien-mvp/app.py` foi alterado no VPS de `553183002800` para `553171862958`.
+- Rota `/api/zapi/whatsapp-link` publicada; quando Z-API estiver conectada, retorna telefone do device. Quando offline, responde `zapi_not_connected` e a VSL usa fallback `553171862958`.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
 - Sintaxe validada local e no VPS:
@@ -69,6 +73,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 6. Conferir que Dropi continua exigindo autorizacao manual antes de envio real.
 7. Trocar para numero oficial somente depois de teste inbound/outbound simples no painel.
 8. Manter Z-API conectada sem oscilacao por um periodo de observacao antes de iniciar trafego.
+9. Se trocar o numero oficial de WhatsApp, atualizar VSL, fallback MVP e variaveis Z-API juntos.
 
 ## Regra De Retomada
 
