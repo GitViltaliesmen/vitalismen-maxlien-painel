@@ -27,7 +27,7 @@ import { syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatus
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
-import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
+import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1127,6 +1127,108 @@ const orderStatusFromPanelStatus = (status = '') => ({
     cancelado: 'cancelled',
     devolvido: 'returned'
 })[normalizePanelStatus(status)] || '';
+
+const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = false) => {
+    if (internalOrTest) return false;
+    if (normalizePanelStatus(draft.status) !== 'confirmado') return false;
+    if (String(draft.country || '').toUpperCase() !== 'EC') return false;
+    const phoneDigits = digitsOnly(draft.phone);
+    if (!phoneDigits.startsWith('593')) return false;
+    return ['name', 'phone', 'city', 'province', 'address', 'quantity', 'total']
+        .every((field) => String(draft[field] || '').trim());
+};
+
+const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null } = {}) => {
+    if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
+        return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
+    }
+    const sourceOrderId = String(draft.orderId || '').trim();
+    const sourceIsAdminOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(sourceOrderId);
+    const phoneDigits = digitsOnly(draft.phone);
+    const quantity = Math.max(1, Number.parseInt(String(draft.quantity || '1'), 10) || 1);
+    const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
+    if (total <= 0) return { ok: false, skipped: true, reason: 'missing_positive_total' };
+
+    const query = sourceIsAdminOrder
+        ? { previousOrderId: sourceOrderId }
+        : sourceOrderId
+            ? { orderId: sourceOrderId }
+            : {
+                country: 'EC',
+                status: 'confirmed',
+                'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
+            };
+    let order = await Order.findOne(query);
+    const baseData = {
+        country: 'EC',
+        customer: {
+            name: String(draft.name || '').trim(),
+            phone: phoneDigits ? `+${phoneDigits}` : String(draft.phone || '').trim(),
+            city: String(draft.city || '').trim(),
+            province: String(draft.province || '').trim(),
+            address: String(draft.address || '').trim(),
+            reference: String(draft.reference || '').trim()
+        },
+        package: {
+            id: quantity,
+            label: `Vit Power ${quantity} frasco${quantity > 1 ? 's' : ''}`,
+            quantity
+        },
+        total,
+        currency: 'USD',
+        source: 'manual',
+        status: 'confirmed',
+        notes: sourceIsAdminOrder
+            ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Origem: ${sourceOrderId}`
+            : 'Criado a partir da ficha/painel WhatsApp para envio Dropi.',
+        previousOrderId: sourceIsAdminOrder ? sourceOrderId : '',
+        entryReason: sourceIsAdminOrder ? 'admin_panel_confirmed_whatsapp_mirror' : 'whatsapp_panel_confirmed',
+        tracking: {
+            ...(order?.tracking || {}),
+            ip: order?.tracking?.ip || req?.ip || '',
+            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || ''
+        }
+    };
+    if (order) {
+        Object.assign(order, baseData);
+    } else {
+        order = new Order(baseData);
+    }
+    if (!order.confirmedAt) order.confirmedAt = new Date();
+    await order.save();
+
+    let purchase = { ok: false, skipped: true, reason: 'already_sent' };
+    if (!order.tracking?.metaPurchaseSentAt) {
+        const result = await sendPurchaseEventForOrder(order);
+        order.tracking = order.tracking || {};
+        order.tracking.metaPurchaseEventId = result.eventId || order.orderId;
+        if (result.ok) {
+            order.tracking.metaPurchaseSentAt = new Date();
+            order.tracking.metaPurchaseResponse = result.response;
+        } else {
+            order.tracking.metaPurchaseResponse = {
+                ok: false,
+                status: result.status,
+                data: result.data,
+                error: result.error
+            };
+        }
+        await order.save();
+        purchase = result;
+    }
+    return {
+        ok: true,
+        orderId: order.orderId,
+        sourceOrderId,
+        createdFromAdminOrder: sourceIsAdminOrder,
+        purchase: {
+            ok: purchase.ok === true,
+            eventId: purchase.eventId || order.tracking?.metaPurchaseEventId || '',
+            response: purchase.response || order.tracking?.metaPurchaseResponse || null,
+            error: purchase.error || ''
+        }
+    };
+};
 
 const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
     const { sessionIds } = getPanelSessionScope(sessionId);
@@ -2805,6 +2907,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const { note, mode, assignedName, country, customerDraft } = req.body || {};
+        let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
         state.human = {
             ...(state.human || {}),
             ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
@@ -2925,13 +3028,26 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     user: req.user,
                     mode: state.human?.mode || 'manual'
                 });
+                operationalOrderSync = { ok: false, skipped: true, reason: 'test_contact_no_dropi_or_meta' };
+            } else if (shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
+                operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({ draft: cleanDraft, req });
+                if (operationalOrderSync?.orderId) {
+                    state.metadata = {
+                        ...(state.metadata || {}),
+                        customerDraft: {
+                            ...((state.metadata || {}).customerDraft || {}),
+                            orderId: operationalOrderSync.orderId,
+                            sourceOrderId: cleanDraft.orderId || ''
+                        }
+                    };
+                }
             }
         }
         await state.save();
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
-        res.json({ success: true, state, unifiedSync });
+        res.json({ success: true, state, unifiedSync, operationalOrderSync });
     } catch (error) {
         console.error('Update contact state error:', error);
         res.status(500).json({ error: 'Failed to update contact state' });

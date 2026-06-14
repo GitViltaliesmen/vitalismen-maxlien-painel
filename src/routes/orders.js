@@ -830,12 +830,22 @@ router.post('/', async (req, res) => {
         });
 
         await order.save();
+        let purchase = null;
+        if (initialStatus === 'confirmed') {
+            purchase = await markPurchaseEventForOrder(order, req);
+        }
 
         console.log(`✅ New order created: ${order.orderId} - ${country} - ${customer.name}`);
 
         res.status(201).json({
             success: true,
             orderId: order.orderId,
+            purchase: purchase ? {
+                ok: purchase.ok,
+                alreadySent: purchase.alreadySent || false,
+                eventId: purchase.result?.eventId || purchase.order?.tracking?.metaPurchaseEventId || '',
+                response: purchase.result?.response || purchase.order?.tracking?.metaPurchaseResponse || null
+            } : null,
             message: 'Order created successfully'
         });
     } catch (error) {
