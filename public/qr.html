@@ -1169,6 +1169,13 @@
             background: #dbeafe;
         }
 
+        .wa-label.warmup {
+            color: #0f3d2e;
+            background: #baf7cf;
+            border: 1px solid #45d483;
+            box-shadow: inset 0 0 0 1px rgba(6, 95, 70, 0.12);
+        }
+
         .wa-label.alert {
             color: #991b1b;
             background: #fee2e2;
@@ -10116,15 +10123,30 @@
                 'manual:guia_enviada': 'Guia enviada',
                 'manual:resolvido': 'Resolvido',
                 'manual:revisar': 'Revisar',
+                'manual:aquecimento_liberado': 'AQUECE',
+                'manual:aquecimento_vip': 'AQUECE VIP',
+                'manual:aquecimento_removido': 'NAO AQUECE',
+                'manual:aquecimento_risco_manual': 'RISCO',
+                'warmup:allowed': 'AQUECE',
+                'warmup:vip': 'AQUECE VIP',
+                'warmup:blocked': 'NAO AQUECE',
+                'warmup:risk': 'RISCO',
+                'warmup:manual_only': 'MANUAL',
                 'manual:bot_insistence_error': '[ALERT: Robot was too aggressive. Human intervention required]'
             };
             return labels[value] || value.replace(/^manual:/, '').replace(/^auto:/, '').replace(/_/g, ' ');
         };
         const renderChatLabels = (chat) => {
-            const tags = chatTags(chat).slice(-3).map((tag) => {
-                const className = String(tag).includes('bot_insistence_error')
+            const orderedTags = chatTags(chat).sort((a, b) => {
+                const aWarmup = String(a || '').startsWith('warmup:') || String(a || '').includes('aquecimento');
+                const bWarmup = String(b || '').startsWith('warmup:') || String(b || '').includes('aquecimento');
+                return Number(bWarmup) - Number(aWarmup);
+            });
+            const tags = orderedTags.slice(0, 4).map((tag) => {
+                const value = String(tag || '');
+                const className = value.includes('bot_insistence_error')
                     ? 'alert'
-                    : (String(tag).startsWith('manual:') ? 'manual' : 'auto');
+                    : (value.startsWith('warmup:') || value.includes('aquecimento') ? 'warmup' : (value.startsWith('manual:') ? 'manual' : 'auto'));
                 return { label: tagLabel(tag), className, title: '' };
             });
             const notices = visibleShipmentNoticeLabels(chat);

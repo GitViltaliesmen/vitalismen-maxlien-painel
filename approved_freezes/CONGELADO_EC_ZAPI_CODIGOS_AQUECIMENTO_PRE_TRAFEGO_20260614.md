@@ -46,6 +46,9 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Nova regra operacional: qualquer mensagem inbound recebida pela Z-API no WhatsApp conectado cria/atualiza contato no painel EC como captura manual, mesmo se o telefone nao for EC. Contatos capturados recebem `ZAPI_INBOUND_CAPTURED`; BR recebe tambem `BR_CAPTURADO_CELULAR`.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
+- Aprovacao posterior em 2026-06-14 10:10 America/Sao_Paulo: cadastro manual de aquecimento funcionou com cliente real `593984672913`; cliente respondeu no WhatsApp/painel.
+- Correcao posterior: inbound Z-API ignora grupos/comunidades `120363...` e `@g.us`, contatos manuais de aquecimento aparecem na lista rapida, e midias inbound da Z-API preservam `mediaUrl` para exibir foto/GIF/sticker no painel.
+- UI posterior: tags de aquecimento aparecem com rotulo curto `AQUECE`/`AQUECE VIP`/`RISCO` e cor propria destacada, diferente das etiquetas normais.
 - Sintaxe validada local e no VPS:
   - `node --check src/routes/whatsapp.js`.
   - scripts do `public/qr.html` extraidos e compilados.
@@ -54,6 +57,10 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 
 - Captacao de mensagens recebidas via Z-API para aparecerem no painel quando qualquer contato fala com o numero conectado.
 - Novos contatos capturados pelo WhatsApp conectado entram em `manual`, atribuidos como `Captura Z-API`, com observacao para revisao antes de qualquer automacao.
+- Cadastro manual de contato aceita telefone EC local de 9 digitos iniciado em `9` e normaliza para `+593`.
+- Campo Observacao com `#AQUECE` aplica aquecimento no mesmo salvamento, sem enviar o codigo ao cliente.
+- Lista do painel mostra contatos criados manualmente para aquecimento mesmo antes de conversa real.
+- Foto/GIF/sticker recebido pela Z-API fica registrado como midia e pode aparecer no painel via proxy de midia.
 - Criacao/atualizacao automatica de `Message` e `ContactState` pelo webhook Z-API.
 - Envio de textos, audios, imagens, midias e guias pela Z-API na camada operacional testada.
 - B01, B02, B03 e audios unitarios do funil validados pelo usuario.
