@@ -38,6 +38,8 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Fallback antigo do MVP em `/opt/maxlien-mvp/app.py` foi alterado no VPS de `553183002800` para `553171862958` e depois para `5515991418416`.
 - Rota `/api/zapi/whatsapp-link` publicada; quando Z-API estiver conectada, retorna telefone do device. Apos a troca, retornou `5515991418416`.
 - Variaveis operacionais do Node no VPS atualizadas para `5515991418416`: `WHATSAPP_SELLER_E164`, `ZAPI_OPERATION_PHONE`, `ZAPI_CONNECTED_PHONE` e `ZAPI_OPERATIONAL_PHONE`.
+- Ajuste posterior de conversao: CTA/formulario da VSL reduziu fallback absoluto de 40 minutos (`2400s`) para 12 minutos (`720s`) para evitar perda de vendas se o CTA nativo nao aparecer.
+- Consulta dinamica do telefone Z-API no clique reduziu timeout de `2500ms` para `900ms`; se a API atrasar, o fallback `5515991418416` continua abrindo.
 - Topo do painel nao contem mais os botoes redundantes `Pedidos` e `Novo cliente Equador`.
 - Botao mantido para criacao de contato: `Adicionar`, ao lado da busca de cliente.
 - Sintaxe validada local e no VPS:
@@ -76,6 +78,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 7. Trocar para numero oficial somente depois de teste inbound/outbound simples no painel.
 8. Manter Z-API conectada sem oscilacao por um periodo de observacao antes de iniciar trafego.
 9. Se trocar o numero oficial de WhatsApp, atualizar VSL, fallback MVP e variaveis Z-API juntos.
+10. Observar conversao do CTA de 12 minutos antes de reduzir mais; se lead ficar frio, testar 8 minutos como nova camada.
 
 ## Regra De Retomada
 
