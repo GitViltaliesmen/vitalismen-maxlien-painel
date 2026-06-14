@@ -196,6 +196,8 @@ const inferPanelCountryFromPhone = (phone = '', fallback = 'EC') => {
     if (value.startsWith('593')) return 'EC';
     if (value.startsWith('57')) return 'CO';
     if (value.startsWith('55')) return 'BR';
+    if (/^9\d{8}$/.test(value)) return 'EC';
+    if (/^3\d{9}$/.test(value)) return 'CO';
     return normalizePanelCountry(fallback || 'EC');
 };
 
@@ -1403,6 +1405,9 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
                 { countryCode: country },
                 { 'metadata.operationalPanelPhone': true },
                 { 'metadata.zapiCapturedContact': true },
+                { 'metadata.manuallyCreatedAt': { $exists: true } },
+                { 'metadata.customerDraft.phone': { $exists: true, $ne: '' } },
+                { tags: /^warmup:/ },
                 ...(panelPhones.length ? [{ phoneDigits: { $in: panelPhones } }] : [])
             ]
         });
@@ -1413,6 +1418,9 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
                 { 'metadata.lastSessionId': { $in: sessionIds } },
                 { 'metadata.operationalPanelPhone': true },
                 { 'metadata.zapiCapturedContact': true },
+                { 'metadata.manuallyCreatedAt': { $exists: true } },
+                { 'metadata.customerDraft.phone': { $exists: true, $ne: '' } },
+                { tags: /^warmup:/ },
                 ...(panelPhones.length ? [{ phoneDigits: { $in: panelPhones } }] : [])
             ]
         });
