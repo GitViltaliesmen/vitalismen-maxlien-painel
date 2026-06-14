@@ -40,7 +40,7 @@ export const VIT_POWER_APPROVED_MEDIA_CANDIDATES = {
     trustVideo: ['prova_social_video_boquet']
 };
 
-export const VIT_POWER_PICKUP_BONUS_TEXT = '🔥 Un regalo solo para ti... Un bonus para calentar la noche y preparar la llegada de momentos mas ardientes. Contenido exclusivo solo para adultos... Normalmente cuesta $40 al mes, pero para ti te lo envio GRATIS: https://zapgersonecvo.cloud\n\nGracias por confirmar su retiro. Si aun no guardo nuestro numero, dejelo anotado en sus contactos como Ana - Vit Power. Asi me puede escribir cuando necesite, para cualquier duda de uso o para su proximo pedido.';
+export const VIT_POWER_PICKUP_BONUS_TEXT = '🔥 Un regalo solo para ti... Un bonus para calentar la noche y preparar la llegada de momentos mas ardientes. Contenido exclusivo solo para adultos... Normalmente cuesta $40 al mes, pero para ti te lo envio GRATIS: https://zapgersonecvo.cloud\n\nGracias por confirmar su retiro. Si aun no guardo nuestro numero, dejelo anotado en sus contactos como Ana Lopez. Asi me puede escribir cuando necesite, para cualquier duda de uso o para su proximo pedido.';
 
 export const VIT_POWER_EVOLVED_PROMPT = `
 Persona:

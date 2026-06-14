@@ -70,7 +70,7 @@ BONUS: ${BONUS_URL}`
 const PICKUP_BONUS_TEXT_OVERRIDE = process.env.PICKUP_BONUS_TEXT || '';
 const SOFT_REMINDER_TEXT = 'Hola, te escribo para recordarte suavemente tu pedido. Si ya lo retiraste o recibiste, me avisas por favor.';
 const PREPAID_ONLY_TEXT = 'Hola, como este pedido no fue retirado y termino en devolucion, nuestro sistema ahora solo libera nuevos envios con pago anticipado por tarjeta, boleto o transferencia. Si desea, le envio el valor y le ayudo con ese proceso.';
-const SAVE_CONTACT_LINE = 'Por favor guarde/anote este numero como Ana - Vit Power para recibir aqui la guia, el aviso de retiro y su bonus.';
+const SAVE_CONTACT_LINE = 'Por favor guarde/anote este numero como Ana Lopez para recibir aqui la guia, el aviso de retiro y su bonus.';
 const SHIPMENT_MIN_MESSAGE_GAP_MS = Number.parseInt(process.env.SHIPMENT_MIN_MESSAGE_GAP_MS || '1800000', 10);
 const SHIPMENT_AUDIO_DELAY_MIN_MS = Number.parseInt(process.env.SHIPMENT_AUDIO_DELAY_MIN_MS || '7000', 10);
 const SHIPMENT_AUDIO_DELAY_MAX_MS = Number.parseInt(process.env.SHIPMENT_AUDIO_DELAY_MAX_MS || '17000', 10);

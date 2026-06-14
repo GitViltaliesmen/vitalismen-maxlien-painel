@@ -5373,7 +5373,7 @@ const buildOrderClosedThankYouText = ({ deliveryMode, customerContext }) => {
         return [
             'Gracias por confirmar sus datos.',
             `En breve preparamos su pedido y apenas este disponible en la agencia ${carrier}, le avisamos para que pueda retirarlo con tranquilidad.`,
-            'Guarde este numero como Ana - Vit Power, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.'
+            'Guarde este numero como Ana Lopez, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.'
         ].join('\n');
     }
 
@@ -5381,7 +5381,7 @@ const buildOrderClosedThankYouText = ({ deliveryMode, customerContext }) => {
         '*Gracias por confirmar sus datos.*',
         '*Su pedido fue confirmado para entrega a domicilio.*',
         'En breve preparamos su pedido para envio a su direccion. Quede atento al telefono cuando la transportadora se comunique con usted.',
-        'Guarde este numero como Ana - Vit Power, porque por aqui le aviso sobre la guia, la entrega y cualquier soporte de su pedido.'
+        'Guarde este numero como Ana Lopez, porque por aqui le aviso sobre la guia, la entrega y cualquier soporte de su pedido.'
     ].join('\n');
 };
 
