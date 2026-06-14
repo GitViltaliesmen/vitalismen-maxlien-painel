@@ -303,6 +303,42 @@ router.get('/device', async (_req, res) => {
     }
 });
 
+router.get('/whatsapp-link', async (req, res) => {
+    try {
+        const message = firstPlainString(req.query?.message);
+        const status = await getZapiStatus();
+        const connected = connectedFromStatus(status);
+        if (!connected) {
+            return res.status(503).json({
+                ok: false,
+                error: 'zapi_not_connected'
+            });
+        }
+        let device = null;
+        try {
+            device = normalizeZapiDevice(await getZapiDevice());
+        } catch {
+            device = null;
+        }
+        const phone = digits(device?.phone || status.phone || status.connectedPhone || '');
+        if (!phone) {
+            return res.status(503).json({
+                ok: false,
+                error: 'zapi_phone_not_found'
+            });
+        }
+        const encoded = encodeURIComponent(message || '');
+        return res.json({
+            ok: true,
+            phone,
+            url: `https://wa.me/${phone}${encoded ? `?text=${encoded}` : ''}`,
+            source: 'zapi_device'
+        });
+    } catch (error) {
+        res.status(error?.response?.status || error.statusCode || 500).json(exposeError(error));
+    }
+});
+
 router.post('/webhook/delivery', async (req, res) => {
     try {
         const result = await applyZapiDeliveryPayload(req.body || {});
