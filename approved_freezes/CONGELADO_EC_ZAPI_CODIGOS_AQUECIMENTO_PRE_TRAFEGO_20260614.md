@@ -13,7 +13,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - Projeto oficial local: `/Users/greson/Documents/Vitalismen Automacao`.
 - Painel oficial EC: `https://ec.maxlien.shop/qr.html`.
 - Painel local: `http://127.0.0.1:3001/qr.html`.
-- Release ativo VPS: `/opt/vitalismen-automacao/releases/202606131610-zapi-operational-tests`.
+- Release ativo VPS: `/opt/vitalismen-automacao/releases/202606140418`.
 - PM2: `vitalismen-automation` online.
 - Z-API conectada no momento da primeira checagem: `553171862958`.
 - Atualizacao posterior aprovada: entrada operacional/VSL trocada para `5515991418416` apos troca do aparelho conectado na Z-API.
@@ -57,6 +57,7 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 - B01, B02, B03 e audios unitarios do funil validados pelo usuario.
 - Envio de pedidos para Dropi validado e confirmado pelo usuario.
 - Aviso de guia real testado e confirmado no painel.
+- Processo completo de pedido enviado, confirmado pelo usuario em 2026-06-14 02:01 America/Sao_Paulo: pedido Equador salvou normalmente, entrou no fluxo correto e foi enviado. Pedido de numero BR nao precisa virar confirmado; ficou tratado como teste/operacional, sem bloquear o fluxo real EC.
 - Codigos internos do painel:
   - `#HUMANO`, `#ATENDENDO`, `#FECHADO`, `#BOT_LIBERADO#`.
   - `#AQUECE#`, `#AQUECEVIP#`, `#NAOAQUECE#`, `#RISCO#`.
@@ -75,10 +76,10 @@ Preservar o estado aprovado do painel Equador apos os testes de Z-API, guias, Dr
 1. Confirmar novamente PageView, Lead e Purchase no dataset EC `1468946114265008`.
 2. Confirmar token CAPI EC ativo sem test event code de producao.
 3. Confirmar Purchase com `USD`, valor positivo e lock anti-duplicidade.
-4. Fazer teste final de formulario real: anuncio/VSL -> lead -> atendimento -> confirmado -> Purchase.
+4. Fazer novo teste final de formulario real quando iniciar trafego: anuncio/VSL -> lead -> atendimento -> confirmado -> Purchase.
 5. Confirmar dominio EC, VSL mobile, checkout no tempo correto e desktop protegido.
 6. Conferir que Dropi continua exigindo autorizacao manual antes de envio real.
-7. Trocar para numero oficial somente depois de teste inbound/outbound simples no painel.
+7. Numero oficial atual `5515991418416` testado com inbound no painel; qualquer nova troca de numero deve repetir inbound/outbound simples antes de trafego.
 8. Manter Z-API conectada sem oscilacao por um periodo de observacao antes de iniciar trafego.
 9. Se trocar o numero oficial de WhatsApp, atualizar VSL, fallback MVP e variaveis Z-API juntos.
 10. Observar conversao do CTA de 12 minutos antes de reduzir mais; se lead ficar frio, testar 8 minutos como nova camada.
