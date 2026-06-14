@@ -42,6 +42,41 @@ const countryFromPhone = (phone = '') => {
     return 'OTHER';
 };
 
+const zapiRawChatIdentifiers = (payload = {}) => [
+    payload.chatId,
+    payload.remoteJid,
+    payload.from,
+    payload.phone,
+    payload.sender,
+    payload.to,
+    payload.message?.chatId,
+    payload.message?.remoteJid,
+    payload.message?.from,
+    payload.message?.phone,
+    payload.message?.sender,
+    payload.data?.chatId,
+    payload.data?.remoteJid,
+    payload.data?.from,
+    payload.data?.phone,
+    payload.data?.sender
+].map((value) => String(value || '').trim()).filter(Boolean);
+
+const isLikelyWhatsAppGroupIdentifier = (value = '') => {
+    const raw = String(value || '').trim();
+    const numeric = digits(raw);
+    return raw.includes('@g.us') || /^120363\d{6,}$/.test(numeric);
+};
+
+const zapiInboundLooksLikeGroup = (payload = {}, phone = '') => (
+    payload.isGroup === true
+    || payload.group === true
+    || payload.chat?.isGroup === true
+    || payload.message?.isGroup === true
+    || payload.data?.isGroup === true
+    || isLikelyWhatsAppGroupIdentifier(phone)
+    || zapiRawChatIdentifiers(payload).some(isLikelyWhatsAppGroupIdentifier)
+);
+
 const zapiMessageIdFromPayload = (payload = {}) => firstString(
     payload.messageId,
     payload.id,
@@ -120,6 +155,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const body = zapiTextFromPayload(payload);
     const type = zapiMessageTypeFromPayload(payload);
     if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
+    if (zapiInboundLooksLikeGroup(payload, phone)) {
+        return { recorded: false, reason: 'group_or_community_ignored', phone, providerMessageId, providerZaapId };
+    }
 
     const chatId = `${phone}@c.us`;
     const now = new Date();

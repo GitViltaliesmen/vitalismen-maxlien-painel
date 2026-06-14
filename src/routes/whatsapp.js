@@ -554,6 +554,12 @@ const isValidPanelChatId = (chatId = '') => {
     return Boolean(value && value !== 'status@broadcast' && !value.includes('@g.us'));
 };
 
+const isLikelyWhatsAppGroupIdentifier = (value = '') => {
+    const raw = String(value || '').trim();
+    const numeric = digitsOnly(raw);
+    return raw.includes('@g.us') || /^120363\d{6,}$/.test(numeric);
+};
+
 const realPhoneFromState = (state = {}) => {
     const sender = digitsOnly(state.metadata?.lastSenderPn);
     if (sender.length >= 9) return sender;
@@ -2501,6 +2507,7 @@ router.get('/chats', async (req, res) => {
                 };
             })
                 .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
+                .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
                 .filter((c) => !countryFilter || c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
                 .sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
 
@@ -2659,6 +2666,7 @@ router.get('/chats', async (req, res) => {
 
         const filtered = (onlyLinked ? enrichedChats.filter((c) => !!c.orderId) : enrichedChats)
             .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
+            .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
             .filter((c) => !countryFilter || c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter));
 
         filtered.sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
