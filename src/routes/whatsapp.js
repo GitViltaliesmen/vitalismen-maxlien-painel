@@ -161,6 +161,17 @@ const matchBrazilPanelTestPhone = (...identifiers) => {
 
 const isBrazilPanelTestPhone = (...identifiers) => Boolean(matchBrazilPanelTestPhone(...identifiers));
 
+const zapiOperationalPanelPhone = () => digitsOnly(
+    process.env.ZAPI_OPERATIONAL_PHONE
+    || process.env.ZAPI_CONNECTED_PHONE
+    || process.env.ZAPI_OPERATION_PHONE
+    || ''
+);
+
+const shouldForceZapiForManualTestSend = (phone = '', sendMode = '') => (
+    sendMode === 'manual_panel' && isBrazilPanelTestPhone(phone)
+);
+
 const scopedPanelPhones = (country = 'EC') => {
     const phones = operationalPanelPhones();
     if (String(country || '').toUpperCase() === 'EC') {
@@ -425,10 +436,9 @@ const stableContactEntryAt = (state = {}) => (
 );
 
 const stableOrderEntryAt = (order = {}) => (
-    order.entryAt
-    || order.createdAt
-    || order.draftCreatedAt
-    || null
+    order
+        ? (order.entryAt || order.createdAt || order.draftCreatedAt || null)
+        : null
 );
 
 const stableChatEntryMs = (chat = {}) => {
@@ -1246,6 +1256,14 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         sessionId: options.sessionId,
         sendMode,
         country: options.country,
+        provider: options.provider,
+        bypassDedupe: options.bypassDedupe === true,
+        force: options.force === true,
+        allowTextDedupeBypass: options.allowTextDedupeBypass === true,
+        allowHistoryDedupeBypass: options.allowHistoryDedupeBypass === true,
+        allowExistingDropiOrder: options.allowExistingDropiOrder === true,
+        antiSpamKey: options.antiSpamKey,
+        outboundContext: options.outboundContext,
         returnDetails: options.returnDetails === true
     });
 };
@@ -2969,6 +2987,8 @@ router.post('/send', authMiddleware, async (req, res) => {
         const { phone, message, isMedia, sessionId, fileName = '', quotedMessageId = '', country = '' } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
         const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
+        const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
+        const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
         if (!phone || !message) {
             return res.status(400).json({ error: 'Phone and message required' });
         }
@@ -3071,7 +3091,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                             : 'media';
                 const sendResult = await sendWhatsAppMessage(phone, filePath, {
                     isMedia: true,
-                    sessionId,
+                    sessionId: effectiveSessionId,
                     isPtt: mediaKind !== 'audio',
                     sendMode,
                     allowAudioDedupeBypass,
@@ -3088,7 +3108,9 @@ router.post('/send', authMiddleware, async (req, res) => {
                     type: mediaKind,
                     mediaUrl: `/media/uploads/${filename}`,
                     user: req.user,
-                    sessionId,
+                    sessionId: sendResult?.provider === 'zapi'
+                        ? (zapiOperationalPanelPhone() || effectiveSessionId)
+                        : effectiveSessionId,
                     deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
                     sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                     provider: sendResult?.provider || '',
@@ -3128,7 +3150,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                         : 'media';
             const sendResult = await sendWhatsAppMessage(phone, resolved, {
                 isMedia: true,
-                sessionId,
+                sessionId: effectiveSessionId,
                 sendMode,
                 allowAudioDedupeBypass,
                 country,
@@ -3144,7 +3166,9 @@ router.post('/send', authMiddleware, async (req, res) => {
                 type: mediaKind,
                 mediaUrl: normalizedMediaMessage,
                 user: req.user,
-                sessionId,
+                sessionId: sendResult?.provider === 'zapi'
+                    ? (zapiOperationalPanelPhone() || effectiveSessionId)
+                    : effectiveSessionId,
                 deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
                 sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                 provider: sendResult?.provider || '',
@@ -3167,11 +3191,16 @@ router.post('/send', authMiddleware, async (req, res) => {
             : null;
         const quotedMsg = buildQuotedMessageFromRecord(quotedMessage);
         const sendResult = await sendWhatsAppMessage(phone, message, {
-            sessionId,
+            sessionId: effectiveSessionId,
             quotedMsg,
             sendMode,
             allowAudioDedupeBypass,
             country,
+            bypassDedupe: forceZapiManualTest,
+            allowTextDedupeBypass: forceZapiManualTest,
+            allowHistoryDedupeBypass: forceZapiManualTest,
+            force: forceZapiManualTest,
+            provider: forceZapiManualTest ? 'zapi' : '',
             returnDetails: true
         });
         const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
@@ -3184,7 +3213,9 @@ router.post('/send', authMiddleware, async (req, res) => {
                 body: message,
                 type: 'chat',
                 user: req.user,
-                sessionId,
+                sessionId: sendResult?.provider === 'zapi'
+                    ? (zapiOperationalPanelPhone() || effectiveSessionId)
+                    : effectiveSessionId,
                 quotedMessage,
                 deliveryStatus: sendResult?.provider === 'zapi' ? 'pending_confirmation' : 'sent',
                 provider: sendResult?.provider || '',
@@ -3199,7 +3230,9 @@ router.post('/send', authMiddleware, async (req, res) => {
                 body: message,
                 type: 'chat',
                 user: req.user,
-                sessionId,
+                sessionId: sendResult?.provider === 'zapi'
+                    ? (zapiOperationalPanelPhone() || effectiveSessionId)
+                    : effectiveSessionId,
                 quotedMessage,
                 deliveryStatus: 'failed',
                 sendError: sendResult?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.',
