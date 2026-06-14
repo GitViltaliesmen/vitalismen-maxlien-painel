@@ -161,6 +161,14 @@ const matchBrazilPanelTestPhone = (...identifiers) => {
 
 const isBrazilPanelTestPhone = (...identifiers) => Boolean(matchBrazilPanelTestPhone(...identifiers));
 
+const scopedPanelPhones = (country = 'EC') => {
+    const phones = operationalPanelPhones();
+    if (String(country || '').toUpperCase() === 'EC') {
+        phones.push(...brazilPanelTestPhones());
+    }
+    return [...new Set(phones.filter(Boolean))];
+};
+
 const isAllowedPanelPhoneForCountry = (phone = '', country = 'EC') => {
     const digits = normalizeClientPhoneDigits(phone, country);
     if (matchBrazilPanelTestPhone(phone, digits)) return true;
@@ -1112,7 +1120,7 @@ const orderStatusFromPanelStatus = (status = '') => ({
 
 const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
     const { sessionIds } = getPanelSessionScope(sessionId);
-    const operationalPhones = operationalPanelPhones();
+    const panelPhones = scopedPanelPhones(country);
     const and = [{
         chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ }
     }];
@@ -1121,7 +1129,7 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
             $or: [
                 { countryCode: country },
                 { 'metadata.operationalPanelPhone': true },
-                ...(operationalPhones.length ? [{ phoneDigits: { $in: operationalPhones } }] : [])
+                ...(panelPhones.length ? [{ phoneDigits: { $in: panelPhones } }] : [])
             ]
         });
     }
@@ -1130,7 +1138,7 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
             $or: [
                 { 'metadata.lastSessionId': { $in: sessionIds } },
                 { 'metadata.operationalPanelPhone': true },
-                ...(operationalPhones.length ? [{ phoneDigits: { $in: operationalPhones } }] : [])
+                ...(panelPhones.length ? [{ phoneDigits: { $in: panelPhones } }] : [])
             ]
         });
     }

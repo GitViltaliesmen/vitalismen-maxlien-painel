@@ -9657,6 +9657,7 @@
                 const matchesSearch = chatMatchesSearch(chat, search);
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;
                 if (isBrazilBlockedRecord(chat)) return false;
+                if (selectedCountry === 'EC' && isBrazilAllowedTestRecord(chat)) return true;
                 if (selectedCountry === 'EC' && isBrazilTestRecord(chat)) return matchesSearch;
                 if (selectedCountry !== 'ALL' && isBrazilTestRecord(chat) && matchesSearch) return true;
                 if (selectedCountry !== 'ALL' && chat.country && String(chat.country).toUpperCase() !== selectedCountry) return false;
