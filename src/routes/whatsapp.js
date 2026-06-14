@@ -299,6 +299,45 @@ const MANUAL_ATTENDING_COMMANDS = new Set([
     '/humano'
 ]);
 
+const WARMUP_PANEL_COMMANDS = {
+    '#aquece#': {
+        action: 'aquecimento_liberado',
+        label: 'Aquecimento liberado',
+        detail: 'Contato liberado para lista de aquecimento manual/seguro.',
+        addTags: ['warmup:allowed'],
+        removeTags: ['warmup:blocked', 'warmup:risk', 'warmup:manual_only'],
+        warmup: { allowed: true, vip: false, risk: false, manualOnly: false, blocked: false, category: 'allowed' },
+        message: 'Contato marcado para aquecimento seguro.'
+    },
+    '#aquecevip#': {
+        action: 'aquecimento_vip',
+        label: 'Aquecimento VIP',
+        detail: 'Contato conhecido/seguro marcado como prioridade de aquecimento.',
+        addTags: ['warmup:allowed', 'warmup:vip'],
+        removeTags: ['warmup:blocked', 'warmup:risk', 'warmup:manual_only'],
+        warmup: { allowed: true, vip: true, risk: false, manualOnly: false, blocked: false, category: 'vip' },
+        message: 'Contato marcado como aquecimento VIP.'
+    },
+    '#naoaquece#': {
+        action: 'aquecimento_removido',
+        label: 'Aquecimento removido',
+        detail: 'Contato removido da lista de aquecimento.',
+        addTags: ['warmup:blocked'],
+        removeTags: ['warmup:allowed', 'warmup:vip', 'warmup:risk', 'warmup:manual_only'],
+        warmup: { allowed: false, vip: false, risk: false, manualOnly: false, blocked: true, category: 'blocked' },
+        message: 'Contato removido do aquecimento.'
+    },
+    '#risco#': {
+        action: 'aquecimento_risco_manual',
+        label: 'Risco: manual somente',
+        detail: 'Contato com midia/link/conteudo sensivel. Nao usar em aquecimento automatico.',
+        addTags: ['warmup:risk', 'warmup:manual_only'],
+        removeTags: ['warmup:allowed', 'warmup:vip', 'warmup:blocked'],
+        warmup: { allowed: false, vip: false, risk: true, manualOnly: true, blocked: false, category: 'risk' },
+        message: 'Contato marcado como risco/manual somente.'
+    }
+};
+
 const normalizeManualAction = (value = '') => String(value || '')
     .trim()
     .toLowerCase()
@@ -313,6 +352,22 @@ const normalizeOperatorCommand = (value = '') => String(value || '')
 
 const isManualCloseCommand = (value = '') => MANUAL_CLOSE_COMMANDS.has(normalizeOperatorCommand(value));
 const isManualAttendingCommand = (value = '') => MANUAL_ATTENDING_COMMANDS.has(normalizeOperatorCommand(value));
+
+const normalizeWarmupCommand = (value = '') => String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '');
+
+const warmupPanelCommandConfig = (value = '') => {
+    const normalized = normalizeWarmupCommand(value);
+    if (WARMUP_PANEL_COMMANDS[normalized]) return WARMUP_PANEL_COMMANDS[normalized];
+    const withHash = normalized && !normalized.startsWith('#') && !normalized.startsWith('/')
+        ? `#${normalized.replace(/^\/+/, '').replace(/#+$/, '')}#`
+        : '';
+    return WARMUP_PANEL_COMMANDS[withHash] || null;
+};
 
 const longManualHoldUntil = () => new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000);
 
@@ -1576,6 +1631,49 @@ const applyManualAttendingCommand = async ({ phone, message, user, sessionId = '
     const unifiedSync = syncCustomerDraftFromState(state, { action: 'manual_attending_command' });
     await recordManualOutboundMessage({ phone, body: String(message || '').trim(), type: 'system', user, sessionId });
     return { state, unifiedSync };
+};
+
+const applyWarmupPanelCommand = async ({ phone, message, user, sessionId = '', country = 'EC' }) => {
+    const config = warmupPanelCommandConfig(message);
+    if (!config) return null;
+    const state = await findOrCreateContactStateForPanel({
+        phone,
+        country: normalizePanelCountry(country || 'EC')
+    });
+    const now = new Date();
+    const tagSet = new Set(Array.isArray(state.tags) ? state.tags : []);
+    for (const tag of config.removeTags || []) tagSet.delete(tag);
+    for (const tag of config.addTags || []) tagSet.add(tag);
+    state.tags = [...tagSet];
+    state.phoneDigits = state.phoneDigits || digitsOnly(phone);
+    state.countryCode = normalizePanelCountry(country || state.countryCode || 'EC');
+    state.metadata = {
+        ...(state.metadata || {}),
+        warmup: {
+            ...((state.metadata || {}).warmup || {}),
+            ...config.warmup,
+            command: String(message || '').trim(),
+            updatedAt: now,
+            updatedBy: user?.name || user?.email || 'painel',
+            source: 'panel_command',
+            sessionId
+        }
+    };
+    await registerPanelAction({
+        state,
+        action: config.action,
+        label: config.label,
+        by: user?.name || user?.email || '',
+        detail: config.detail,
+        phone
+    });
+    await state.save();
+    return {
+        state,
+        command: String(message || '').trim(),
+        label: config.label,
+        message: config.message
+    };
 };
 
 // GET /api/whatsapp/status - PUBLIC for QR Code
@@ -3134,6 +3232,25 @@ router.post('/send', authMiddleware, async (req, res) => {
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
         if (!phone || !message) {
             return res.status(400).json({ error: 'Phone and message required' });
+        }
+
+        if (!isMedia && sendMode === 'manual_panel' && warmupPanelCommandConfig(message)) {
+            const result = await applyWarmupPanelCommand({
+                phone,
+                message,
+                user: req.user,
+                sessionId,
+                country: country || 'EC'
+            });
+            return res.json({
+                success: true,
+                handled: 'warmup_panel_command',
+                sent: false,
+                message: result?.message || 'Codigo aplicado ao contato.',
+                state: result?.state,
+                command: result?.command,
+                label: result?.label
+            });
         }
 
         if (!isMedia && isManualCloseCommand(message)) {
