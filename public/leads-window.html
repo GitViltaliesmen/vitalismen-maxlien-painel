@@ -1282,8 +1282,9 @@
         } catch (error) {
           console.error(error);
           state.leads = [];
+          await hydrateOperationalOrderLeads();
           state.loading = false;
-          state.loadError = error.message || 'Falha ao carregar leads';
+          state.loadError = state.leads.length ? '' : (error.message || 'Falha ao carregar leads');
           render();
         }
       };
