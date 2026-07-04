@@ -2801,7 +2801,26 @@
         .price-preset-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 14px;
+            align-items: start;
+        }
+
+        .price-preset-grid--grouped {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .price-preset-group {
+            display: grid;
             gap: 7px;
+        }
+
+        .price-preset-group-title {
+            min-height: 18px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0;
+            text-transform: uppercase;
         }
 
         .price-preset {
@@ -7408,13 +7427,19 @@
                                 <input id="customerOrderInput" disabled placeholder="Sem pedido">
                             </label>
                         </div>
-                        <div class="price-preset-grid" aria-label="Tabela de precos">
-                            <button class="price-preset" data-price-preset="1:39.99" type="button" disabled><strong>USD 39.99</strong> · 1 frasco</button>
-                            <button class="price-preset" data-price-preset="1:35" type="button" disabled><strong>USD 35</strong> · 1 frasco</button>
-                            <button class="price-preset" data-price-preset="3:95.99" type="button" disabled><strong>USD 95.99</strong> · 3 frascos</button>
-                            <button class="price-preset" data-price-preset="3:80" type="button" disabled><strong>USD 80</strong> · 3 frascos</button>
-                            <button class="price-preset" data-price-preset="6:167.99" type="button" disabled><strong>USD 167.99</strong> · 6 frascos</button>
-                            <button class="price-preset" data-price-preset="6:147" type="button" disabled><strong>USD 147</strong> · 6 frascos</button>
+                        <div class="price-preset-grid price-preset-grid--grouped" aria-label="Tabela de precos">
+                            <div class="price-preset-group" aria-label="Precos originais">
+                                <div class="price-preset-group-title">Preco original</div>
+                                <button class="price-preset" data-price-preset="1:39.99" type="button" disabled><strong>USD 39.99</strong> · 1 frasco</button>
+                                <button class="price-preset" data-price-preset="3:95.99" type="button" disabled><strong>USD 95.99</strong> · 3 frascos</button>
+                                <button class="price-preset" data-price-preset="6:167.99" type="button" disabled><strong>USD 167.99</strong> · 6 frascos</button>
+                            </div>
+                            <div class="price-preset-group" aria-label="Precos de recuperacao">
+                                <div class="price-preset-group-title">Recuperacao / desconto</div>
+                                <button class="price-preset" data-price-preset="1:35" type="button" disabled><strong>USD 35</strong> · 1 frasco</button>
+                                <button class="price-preset" data-price-preset="3:80" type="button" disabled><strong>USD 80</strong> · 3 frascos</button>
+                                <button class="price-preset" data-price-preset="6:147" type="button" disabled><strong>USD 147</strong> · 6 frascos</button>
+                            </div>
                         </div>
                         <label>Observacao interna
                             <textarea id="customerNoteInput" placeholder="Anotacoes do atendimento"></textarea>
@@ -9121,10 +9146,10 @@
         const customerPricePresetsByCountry = {
             EC: [
                 ['1', '39.99', 'USD 39.99', '1 frasco'],
-                ['1', '35', 'USD 35', '1 frasco'],
                 ['3', '95.99', 'USD 95.99', '3 frascos'],
-                ['3', '80', 'USD 80', '3 frascos'],
                 ['6', '167.99', 'USD 167.99', '6 frascos'],
+                ['1', '35', 'USD 35', '1 frasco'],
+                ['3', '80', 'USD 80', '3 frascos'],
                 ['6', '147', 'USD 147', '6 frascos']
             ],
             CO: [
