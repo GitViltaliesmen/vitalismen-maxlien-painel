@@ -70,6 +70,24 @@ const normalizeAdminStatus = ({ status, shippingStatus } = {}) => {
     return 'novo';
 };
 
+const VALID_ADMIN_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizeAdminPackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_ADMIN_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
+
+const isArchivedDuplicateOrder = (order) => {
+    const reviewQueue = order?.reviewQueue || {};
+    const text = [
+        reviewQueue.reason,
+        reviewQueue.evidence,
+        order?.notes
+    ].map((item) => String(item || '').toLowerCase()).join(' ');
+    return reviewQueue.status === 'finalizado'
+        && /duplicad|duplicate/.test(text);
+};
+
 const runAdminPanelPython = ({ country, python }) => {
     const dbPath = resolveAdminDbPath(country);
     if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
@@ -128,16 +146,134 @@ const runAdminPanelPython = ({ country, python }) => {
     }
 };
 
+export const listOnlineAdminLeadsByWindow = ({ country = 'EC', fromDate = null, toDate = null, statuses = [], limit = 800 } = {}) => {
+    const normalizedCountry = String(country || 'EC').trim().toUpperCase();
+    const dbPath = resolveAdminDbPath(normalizedCountry);
+    if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country', leads: [] };
+
+    const payload = {
+        country: normalizedCountry,
+        fromDate: fromDate ? new Date(fromDate).toISOString() : '',
+        toDate: toDate ? new Date(toDate).toISOString() : '',
+        statuses: Array.isArray(statuses) ? statuses.map((item) => String(item || '').trim()).filter(Boolean) : [],
+        limit: Math.max(1, Math.min(Number.parseInt(String(limit || 800), 10) || 800, 5000)),
+        db_path: dbPath
+    };
+
+    const python = `
+import sqlite3, json, datetime
+payload = ${JSON.stringify(payload)}
+db_path = payload["db_path"]
+country = str(payload.get("country") or "EC").upper()
+limit = int(payload.get("limit") or 800)
+statuses = [str(item).strip().lower() for item in payload.get("statuses") or [] if str(item).strip()]
+from_date = payload.get("fromDate") or ""
+to_date = payload.get("toDate") or ""
+
+def parse_dt(value):
+    if not value:
+        return None
+    text = str(value).replace("Z", "+00:00")
+    try:
+        return datetime.datetime.fromisoformat(text)
+    except Exception:
+        try:
+            return datetime.datetime.strptime(str(value)[:19], "%Y-%m-%dT%H:%M:%S")
+        except Exception:
+            return None
+
+start = parse_dt(from_date)
+end = parse_dt(to_date)
+
+con = sqlite3.connect(db_path)
+con.row_factory = sqlite3.Row
+cur = con.cursor()
+cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
+date_col = "updated_at" if "updated_at" in cols else ("created_at" if "created_at" in cols else "")
+where = []
+params = []
+if "country" in cols:
+    where.append("COALESCE(country, ?) = ?")
+    params.extend([country, country])
+if statuses and "status" in cols:
+    where.append("LOWER(COALESCE(status, '')) IN (" + ",".join(["?"] * len(statuses)) + ")")
+    params.extend(statuses)
+if date_col and start:
+    where.append(f"COALESCE({date_col}, created_at, '') >= ?")
+    params.append(start.isoformat())
+if date_col and end:
+    where.append(f"COALESCE({date_col}, created_at, '') <= ?")
+    params.append(end.isoformat())
+
+select_cols = [
+    "id", "name", "phone", "phone_e164", "address", "city", "province",
+    "reference", "product_qty", "product_value", "status", "event_id",
+    "created_at", "updated_at", "notes"
+]
+available = [col for col in select_cols if col in cols]
+sql = "SELECT " + ",".join(available or ["id"]) + " FROM leads"
+if where:
+    sql += " WHERE " + " AND ".join(where)
+if date_col:
+    sql += f" ORDER BY COALESCE({date_col}, created_at, '') DESC"
+else:
+    sql += " ORDER BY id DESC"
+sql += " LIMIT ?"
+params.append(limit)
+
+def digits(value):
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
+
+leads = []
+for row in cur.execute(sql, params).fetchall():
+    data = dict(row)
+    lead_id = str(data.get("id") or "").strip()
+    leads.append({
+        "id": lead_id,
+        "orderId": (data.get("event_id") or (country + "-ADMIN-" + lead_id)),
+        "country": country,
+        "name": data.get("name") or "",
+        "phone": data.get("phone_e164") or data.get("phone") or "",
+        "phoneDigits": digits(data.get("phone_e164") or data.get("phone") or ""),
+        "address": data.get("address") or "",
+        "city": data.get("city") or "",
+        "province": data.get("province") or "",
+        "reference": data.get("reference") or "",
+        "quantity": data.get("product_qty", 0) or 0,
+        "total": data.get("product_value", 0) or 0,
+        "status": data.get("status") or "",
+        "rawStatus": data.get("status") or "",
+        "createdAt": data.get("created_at") or "",
+        "updatedAt": data.get("updated_at") or data.get("created_at") or "",
+        "notes": data.get("notes") or ""
+    })
+con.close()
+print(json.dumps({"ok": True, "source": "sqlite_or_ssh", "count": len(leads), "leads": leads}, ensure_ascii=False))
+`;
+
+    const result = runAdminPanelPython({ country: normalizedCountry, python });
+    return {
+        ok: Boolean(result.ok),
+        source: result.source || 'sqlite_or_ssh',
+        count: Number(result.count || 0),
+        leads: Array.isArray(result.leads) ? result.leads : [],
+        reason: result.reason || result.error || ''
+    };
+};
+
 export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_sync' } = {}) => {
     if (!order || process.env.ONLINE_ADMIN_PANEL_SYNC_ENABLED === 'false') {
         return { ok: false, skipped: true, reason: 'disabled_or_missing_order' };
+    }
+    if (isArchivedDuplicateOrder(order)) {
+        return { ok: false, skipped: true, reason: 'archived_duplicate_order' };
     }
 
     const country = String(order.country || 'EC').trim().toUpperCase();
     const dbPath = resolveAdminDbPath(country);
     if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
 
-    const quantity = Number(order.package?.quantity || order.package?.id || 1) || 1;
+    const quantity = normalizeAdminPackageQuantity(order.package?.quantity ?? order.package?.id);
     const payload = {
         order_id: String(order.orderId || '').trim(),
         admin_lead_id: resolveAdminLeadId(order.orderId),
@@ -234,7 +370,7 @@ fields = {
     "address": payload.get("address", ""),
     "city": payload.get("city", ""),
     "province": payload.get("province", ""),
-    "product_qty": payload.get("product_qty", 1),
+    "product_qty": payload.get("product_qty", 0),
     "product_value": payload.get("product_value", 0),
     "status": payload.get("status", "novo"),
     "country": payload.get("country", "EC"),
@@ -273,6 +409,8 @@ def should_keep_existing_status(old_status, incoming_status):
         return False
     if old in archived_statuses:
         return True
+    if old == "conferir_pedidos" and new in {"entregue", "devolvido", "cancelado"}:
+        return False
     if old in protected_statuses and new in soft_statuses:
         return True
     return status_rank.get(old, -1) > status_rank.get(new, -1)
@@ -355,7 +493,7 @@ export const syncContactDraftToOnlineAdminPanel = (draft = {}, { country = 'EC',
         address: String(draft.address || '').trim(),
         city: String(draft.city || '').trim(),
         province: String(draft.province || '').trim(),
-        product_qty: Number(draft.quantity || 0) || 1,
+        product_qty: normalizeAdminPackageQuantity(draft.quantity),
         product_value: Number(draft.total || 0) || 0,
         buy_later_followup_at: draft.buyLaterFollowupAt || draft.buy_later_followup_at || '',
         status: adminStatus || normalizeAdminStatus({ status: draft.status || 'draft' }),
@@ -417,7 +555,7 @@ fields = {
     "address": payload.get("address", ""),
     "city": payload.get("city", ""),
     "province": payload.get("province", ""),
-    "product_qty": payload.get("product_qty", 1),
+    "product_qty": payload.get("product_qty", 0),
     "product_value": payload.get("product_value", 0),
     "status": payload.get("status", "novo"),
     "country": payload.get("country", "EC"),
@@ -454,6 +592,8 @@ def should_keep_existing_status(old_status, incoming_status):
         return False
     if old in archived_statuses:
         return True
+    if old == "conferir_pedidos" and new in {"entregue", "devolvido", "cancelado"}:
+        return False
     if old in protected_statuses and new in soft_statuses:
         return True
     return status_rank.get(old, -1) > status_rank.get(new, -1)
@@ -506,6 +646,145 @@ con.commit()
 changed = con.total_changes
 con.close()
 print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": fields.get("status", payload.get("status")), "changed": changed}))
+`;
+
+    return runAdminPanelPython({ country: normalizedCountry, python });
+};
+
+const safeJsonStringify = (value) => {
+    try {
+        return JSON.stringify(value || {});
+    } catch (_error) {
+        return '{}';
+    }
+};
+
+export const recordOnlineAdminPurchaseLock = ({ order = null, purchase = {}, sourceOrderId = '', country = '' } = {}) => {
+    const normalizedCountry = String(country || order?.country || 'EC').trim().toUpperCase();
+    const dbPath = resolveAdminDbPath(normalizedCountry);
+    if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
+    if (normalizedCountry !== 'EC') return { ok: false, skipped: true, reason: 'purchase_lock_ec_only' };
+
+    const hintedLeadId = resolveAdminLeadId(sourceOrderId)
+        || resolveAdminLeadId(order?.previousOrderId)
+        || resolveAdminLeadId(order?.orderId);
+    const responsePayload = safeJsonStringify(
+        purchase.response
+        || order?.tracking?.metaPurchaseResponse
+        || {}
+    ).slice(0, 20000);
+    const payload = {
+        db_path: dbPath,
+        lead_id: hintedLeadId,
+        phone: String(order?.customer?.phone || '').trim(),
+        phone_digits: digitsOnly(order?.customer?.phone || ''),
+        status: purchase.ok === false ? 'error' : 'sent',
+        event_id: String(purchase.eventId || order?.tracking?.metaPurchaseEventId || order?.orderId || '').trim(),
+        country: normalizedCountry,
+        response_payload: responsePayload,
+        error: String(purchase.error || '').slice(0, 1000)
+    };
+
+const python = `
+import sqlite3, json, datetime
+payload = ${JSON.stringify(payload)}
+db_path = payload["db_path"]
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+def digits(value):
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
+
+def normalized_phone_expr(column):
+    return "replace(replace(replace(coalesce(" + column + ", ''), '+',''),' ',''),'-','')"
+
+con = sqlite3.connect(db_path)
+con.row_factory = sqlite3.Row
+cur = con.cursor()
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS purchase_capi_lock (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lead_id INTEGER NOT NULL UNIQUE,
+        phone TEXT,
+        status TEXT NOT NULL,
+        created_at TEXT,
+        event_id TEXT,
+        country TEXT,
+        response_payload TEXT,
+        error TEXT,
+        updated_at TEXT
+    )
+""")
+lead = None
+lead_id = str(payload.get("lead_id") or "").strip()
+if lead_id.isdigit():
+    lead = cur.execute(
+        "SELECT id, phone, phone_e164, status FROM leads WHERE id=?",
+        (int(lead_id),)
+    ).fetchone()
+
+phone_digits = digits(payload.get("phone_digits") or payload.get("phone"))
+tail = phone_digits[-9:] if len(phone_digits) >= 9 else ""
+if lead is None and tail:
+    lead = cur.execute(
+        "SELECT id, phone, phone_e164, status FROM leads "
+        "WHERE " + normalized_phone_expr("phone_e164") + " LIKE ? "
+        "OR " + normalized_phone_expr("phone") + " LIKE ? "
+        "ORDER BY COALESCE(updated_at, created_at, '') DESC, id DESC LIMIT 1",
+        ("%" + tail, "%" + tail)
+    ).fetchone()
+
+if lead is None:
+    con.close()
+    print(json.dumps({"ok": False, "skipped": True, "reason": "lead_not_found_for_purchase_lock"}))
+else:
+    lead_id = int(lead["id"])
+    phone = payload.get("phone") or lead["phone_e164"] or lead["phone"] or ""
+    existing = cur.execute(
+        "SELECT id, event_id, status FROM purchase_capi_lock WHERE lead_id=?",
+        (lead_id,)
+    ).fetchone()
+    if existing:
+        cur.execute(
+            "UPDATE purchase_capi_lock SET phone=?, status=?, event_id=?, country=?, response_payload=?, error=?, updated_at=? WHERE lead_id=?",
+            (
+                phone,
+                payload.get("status") or "sent",
+                payload.get("event_id") or existing["event_id"] or "",
+                payload.get("country") or "EC",
+                payload.get("response_payload") or "",
+                payload.get("error") or "",
+                now,
+                lead_id
+            )
+        )
+        mode = "updated"
+    else:
+        cur.execute(
+            "INSERT INTO purchase_capi_lock (lead_id, phone, status, created_at, event_id, country, response_payload, error, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                lead_id,
+                phone,
+                payload.get("status") or "sent",
+                now,
+                payload.get("event_id") or "",
+                payload.get("country") or "EC",
+                payload.get("response_payload") or "",
+                payload.get("error") or "",
+                now
+            )
+        )
+        mode = "created"
+    con.commit()
+    changed = con.total_changes
+    con.close()
+    print(json.dumps({
+        "ok": True,
+        "mode": mode,
+        "lead_id": lead_id,
+        "event_id": payload.get("event_id") or "",
+        "status": payload.get("status") or "sent",
+        "changed": changed
+    }))
 `;
 
     return runAdminPanelPython({ country: normalizedCountry, python });

@@ -1,4 +1,5 @@
 import Shipment from '../models/Shipment.js';
+import { applyShipmentLifecycleStatus } from './shipmentLifecycleStatusService.js';
 
 const DEFAULT_TIMEOUT_MS = Number.parseInt(process.env.CARRIER_TRACKING_TIMEOUT_MS || '60000', 10);
 const CARRIER_TRACKING_ENABLED = String(process.env.CARRIER_TRACKING_ENABLED || 'true').toLowerCase() !== 'false';
@@ -264,5 +265,14 @@ export const saveCarrierTrackingResult = async ({ shipmentId, result, updateStat
             }
         }
     );
+    if (updateStatus && result.ok && result.normalizedStatus) {
+        const lifecycle = await applyShipmentLifecycleStatus({
+            shipmentId,
+            status: result.normalizedStatus,
+            source: 'carrier_tracking',
+            carrierResult: result
+        });
+        if (lifecycle?.shipment) return lifecycle.shipment;
+    }
     return Shipment.findById(shipmentId).lean();
 };

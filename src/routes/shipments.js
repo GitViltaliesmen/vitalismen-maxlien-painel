@@ -21,6 +21,7 @@ import {
     prepareDroppiEcuadorOrderForManualSubmit,
     submitDroppiEcuadorOrder,
     searchDroppiEcuadorOrdersFromPanel,
+    syncActiveDroppiEcuadorOrdersFromPanel,
     syncDroppiEcuadorInvoiceForShipment,
     syncDroppiEcuadorFromPanel
 } from '../services/droppiEcuadorBrowserService.js';
@@ -30,11 +31,17 @@ import {
 } from '../services/carrierTrackingService.js';
 import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import {
+    countCarrierStatusSweepCandidates,
     countShipmentDispatchCandidates,
     getShipmentDispatchState,
+    processCarrierStatusSweep,
     processShipmentStatusDispatch,
     setShipmentDispatchPaused
 } from '../services/shipmentStatusDispatcherService.js';
+import {
+    buildGuidePrintReport,
+    processGuidePrintDispatch
+} from '../services/guidePrintDispatcherService.js';
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
 import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
@@ -56,8 +63,16 @@ const parseMoney = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizePackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
+
 const packageLabel = (quantity) => {
-    const qty = Number(quantity || 1) || 1;
+    const qty = normalizePackageQuantity(quantity);
+    if (!qty) return 'sem quantidade';
     return qty === 1 ? '1 frasco' : `${qty} frascos`;
 };
 
@@ -98,8 +113,9 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
     const status = String(lead.status || '').trim().toLowerCase();
     if (!phoneDigits || status !== 'confirmado') return null;
 
-    const quantity = parseMoney(lead.product_qty, 1) || 1;
+    const quantity = normalizePackageQuantity(lead.product_qty);
     const total = parseMoney(lead.product_value, 0);
+    if (!quantity || total <= 0) return null;
     const createdAt = lead.created_at ? new Date(lead.created_at) : null;
     const order = new Order({
         orderId: requestedOrderId,
@@ -555,7 +571,7 @@ const buildManualDropiCopyText = ({ order, prepared }) => {
         `Endereco: ${payload.address || order.customer?.address || ''}`,
         `Referencia: ${order.customer?.reference || ''}`,
         `Produto: ${payload.productName || 'Vit Power'}`,
-        `Quantidade: ${payload.quantity || order.package?.quantity || 1}`,
+        `Quantidade: ${payload.quantity || order.package?.quantity || ''}`,
         `Valor: ${payload.price || order.total || ''}`,
         payload.agencyPickup ? 'Entrega: Retiro em agencia/Servientrega' : 'Entrega: Domicilio'
     ].filter(Boolean).join('\n');
@@ -848,6 +864,52 @@ router.get('/dispatch/status', adminOnly, async (_req, res) => {
     res.json(getShipmentDispatchState());
 });
 
+router.get('/carrier/ec/sweep/status', adminOnly, async (_req, res) => {
+    const state = getShipmentDispatchState();
+    const candidates = await countCarrierStatusSweepCandidates().catch(() => 0);
+    res.json({
+        success: true,
+        candidates,
+        carrierSweep: state.carrierSweep || null
+    });
+});
+
+router.post('/carrier/ec/sweep/run', adminOnly, async (req, res) => {
+    try {
+        const {
+            limit = process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || 6,
+            dryRun = false,
+            force = false
+        } = req.body || {};
+        const result = await processCarrierStatusSweep({
+            limit,
+            dryRun: Boolean(dryRun),
+            force: Boolean(force)
+        });
+        await AutomationRun.create({
+            kind: 'carrier_status_sweep_run',
+            status: 'completed',
+            requestedBy: req.user?.email || req.user?.name || '',
+            payload: {
+                dryRun: Boolean(dryRun),
+                force: Boolean(force),
+                limit,
+                processed: result.processed || 0,
+                refreshed: result.refreshed || 0,
+                statusChanged: result.statusChanged || 0,
+                failed: result.failed || 0
+            }
+        }).catch(() => null);
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Carrier status sweep error:', error);
+        res.status(500).json({ error: error.message || 'Failed to run carrier status sweep' });
+    }
+});
+
 router.post('/dispatch/pause', adminOnly, async (req, res) => {
     const { reason = 'manual_pause' } = req.body || {};
     res.json(setShipmentDispatchPaused(true, reason));
@@ -893,6 +955,94 @@ router.post('/dispatch/run', adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Shipment dispatch run error:', error);
         res.status(500).json({ error: error.message || 'Failed to run shipment dispatch' });
+    }
+});
+
+router.post('/dropi-active-sync/report', adminOnly, async (req, res) => {
+    try {
+        const {
+            maxRows = process.env.DROPPI_EC_ACTIVE_SYNC_MAX_ROWS || 1000,
+            actions = [],
+            writeReport = true
+        } = req.body || {};
+        const selectedActions = parseDispatchActions(actions);
+        const result = await syncActiveDroppiEcuadorOrdersFromPanel({
+            maxRows: positiveInt(maxRows, 1000, 1000),
+            dryRun: true,
+            reportOnly: true,
+            actions: selectedActions,
+            writeReport: writeReport !== false
+        });
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Dropi active sync report error:', error);
+        res.status(500).json({ error: error.message || 'Failed to generate Dropi active sync report' });
+    }
+});
+
+router.post('/guide-print/report', adminOnly, async (req, res) => {
+    try {
+        const {
+            limit = 50,
+            generate = false
+        } = req.body || {};
+        const result = await buildGuidePrintReport({
+            limit: positiveInt(limit, 50, 100),
+            generate: Boolean(generate)
+        });
+        await AutomationRun.create({
+            kind: 'shipment_guide_print_report',
+            status: 'completed',
+            requestedBy: req.user?.email || req.user?.name || '',
+            payload: {
+                generate: Boolean(generate),
+                limit: positiveInt(limit, 50, 100),
+                count: result.count || 0
+            }
+        }).catch(() => null);
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Guide print report error:', error);
+        res.status(500).json({ error: error.message || 'Failed to generate guide print report' });
+    }
+});
+
+router.post('/guide-print/dispatch', adminOnly, async (req, res) => {
+    try {
+        const {
+            dryRun = true,
+            limit = 1
+        } = req.body || {};
+        const result = await processGuidePrintDispatch({
+            dryRun: dryRun !== false,
+            limit: positiveInt(limit, 1, 1)
+        });
+        await AutomationRun.create({
+            kind: 'shipment_guide_print_dispatch',
+            status: 'completed',
+            requestedBy: req.user?.email || req.user?.name || '',
+            payload: {
+                dryRun: dryRun !== false,
+                limit: 1,
+                processed: result.processed || 0,
+                sent: result.sent || 0,
+                skipped: result.skipped || 0,
+                failed: result.failed || 0
+            }
+        }).catch(() => null);
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Guide print dispatch error:', error);
+        res.status(500).json({ error: error.message || 'Failed to dispatch guide print' });
     }
 });
 

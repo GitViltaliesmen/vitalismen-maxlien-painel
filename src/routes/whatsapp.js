@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { listAudioTemplates, resolveCountryAudio } from '../services/audioTemplateService.js';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Order from '../models/Order.js';
+import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import VslVisit from '../models/VslVisit.js';
@@ -23,7 +24,7 @@ import {
     listReengagementCandidates,
     sendReengagementToChat
 } from '../services/reengagementService.js';
-import { syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import { recordOnlineAdminPurchaseLock, syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
@@ -82,6 +83,25 @@ const manualAutoReturnMinutes = () => {
 
 const manualAutoReturnUntil = (minutes = manualAutoReturnMinutes()) => (
     new Date(Date.now() + Math.max(1, Number(minutes) || manualAutoReturnMinutes()) * 60 * 1000)
+);
+
+const TECHNICAL_ZAPI_ALERT_REGEX = /^ALERTA: o WhatsApp conectado/i;
+
+const visiblePanelMessageQuery = () => ({
+    provider: { $ne: 'zapi_chat_watchdog' },
+    body: { $not: TECHNICAL_ZAPI_ALERT_REGEX }
+});
+
+const withVisiblePanelMessages = (query = {}) => ({
+    $and: [
+        query,
+        visiblePanelMessageQuery()
+    ]
+});
+
+const isVisiblePanelMessage = (message = {}) => (
+    String(message.provider || '') !== 'zapi_chat_watchdog'
+    && !TECHNICAL_ZAPI_ALERT_REGEX.test(String(message.body || ''))
 );
 
 const normalizePanelCountry = (value, fallback = 'EC') => {
@@ -169,7 +189,10 @@ const zapiOperationalPanelPhone = () => digitsOnly(
 );
 
 const shouldForceZapiForManualTestSend = (phone = '', sendMode = '') => (
-    sendMode === 'manual_panel' && isBrazilPanelTestPhone(phone)
+    sendMode === 'manual_panel' && (
+        isBrazilPanelTestPhone(phone)
+        || digitsOnly(phone).startsWith('593')
+    )
 );
 
 const scopedPanelPhones = (country = 'EC') => {
@@ -214,6 +237,122 @@ const normalizeClientPhoneDigits = (phone = '', country = 'EC') => {
         if (digits.startsWith('3') && digits.length === 10) return `57${digits}`;
     }
     return digits;
+};
+
+const panelChatIdentityDigits = (chat = {}) => [
+    chat.phone,
+    chat.id,
+    chat.chatId,
+    chat.remoteJid
+].map((value) => digitsOnly(value)).find(Boolean) || '';
+
+const panelChatDedupeKey = (chat = {}) => {
+    const digits = panelChatIdentityDigits(chat);
+    if (digits) return `phone:${digits.slice(-12)}`;
+    const id = String(chat.id || chat.chatId || chat.remoteJid || '').trim().toLowerCase();
+    return id ? `id:${id}` : '';
+};
+
+const panelChatTimestampMs = (chat = {}) => {
+    const raw = chat.lastMessage?.timestamp || chat.lastMessageAt || chat.entryAt || chat.updatedAt || chat.createdAt || 0;
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric) && numeric > 0) return numeric < 100000000000 ? numeric * 1000 : numeric;
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const panelChatScore = (chat = {}) => [
+    chat.name,
+    chat.phone,
+    chat.country,
+    chat.city,
+    chat.province,
+    chat.address,
+    chat.reference,
+    chat.quantity,
+    chat.total,
+    chat.orderId,
+    chat.orderStatus,
+    chat.profilePictureUrl,
+    chat.lastMessage?.body,
+    chat.human?.mode
+].filter(Boolean).length + (Array.isArray(chat.tags) ? chat.tags.filter(Boolean).length : 0);
+
+const bestPanelChatName = (first = '', second = '') => {
+    const values = [first, second].map((value) => String(value || '').trim()).filter(Boolean);
+    const named = values.find((value) => !/^\+?\d[\d\s().-]{6,}$/.test(value));
+    return named || values[0] || '';
+};
+
+const uniquePanelValues = (items = []) => [...new Set((items || []).filter(Boolean))];
+
+const mergePanelDuplicateChat = (current = {}, incoming = {}) => {
+    const currentScore = panelChatScore(current);
+    const incomingScore = panelChatScore(incoming);
+    const currentTime = panelChatTimestampMs(current);
+    const incomingTime = panelChatTimestampMs(incoming);
+    const primary = incomingScore > currentScore || (incomingScore === currentScore && incomingTime > currentTime)
+        ? incoming
+        : current;
+    const secondary = primary === incoming ? current : incoming;
+    const manualHuman = incoming.human?.mode === 'manual'
+        ? incoming.human
+        : (current.human?.mode === 'manual' ? current.human : null);
+    const latestMessage = incomingTime >= currentTime
+        ? (incoming.lastMessage || current.lastMessage)
+        : (current.lastMessage || incoming.lastMessage);
+
+    return {
+        ...secondary,
+        ...primary,
+        id: primary.id || secondary.id,
+        phone: primary.phone || secondary.phone,
+        name: bestPanelChatName(primary.name, secondary.name),
+        country: primary.country || secondary.country,
+        city: primary.city || secondary.city,
+        province: primary.province || secondary.province,
+        address: primary.address || secondary.address,
+        reference: primary.reference || secondary.reference,
+        quantity: primary.quantity || secondary.quantity,
+        total: primary.total || secondary.total,
+        orderId: primary.orderId || secondary.orderId,
+        orderStatus: primary.orderStatus || secondary.orderStatus,
+        profilePictureUrl: primary.profilePictureUrl || secondary.profilePictureUrl,
+        lastMessage: latestMessage,
+        unreadCount: Math.max(0, Number(current.unreadCount || 0), Number(incoming.unreadCount || 0)),
+        tags: uniquePanelValues([...(current.tags || []), ...(incoming.tags || [])]),
+        labels: uniquePanelValues([...(current.labels || []), ...(incoming.labels || [])]),
+        human: manualHuman || primary.human || secondary.human,
+        customerDraft: {
+            ...(secondary.customerDraft || {}),
+            ...(primary.customerDraft || {})
+        },
+        shipment: primary.shipment || secondary.shipment,
+        shipmentNoticeStage: primary.shipmentNoticeStage || secondary.shipmentNoticeStage,
+        shipmentNoticeStages: primary.shipmentNoticeStages || secondary.shipmentNoticeStages
+    };
+};
+
+const dedupePanelChats = (chats = []) => {
+    const byKey = new Map();
+    const deduped = [];
+    (Array.isArray(chats) ? chats : []).forEach((chat) => {
+        const key = panelChatDedupeKey(chat);
+        if (!key) {
+            deduped.push(chat);
+            return;
+        }
+        const existing = byKey.get(key);
+        if (!existing) {
+            byKey.set(key, { index: deduped.length, chat });
+            deduped.push(chat);
+            return;
+        }
+        const merged = mergePanelDuplicateChat(existing.chat, chat);
+        byKey.set(key, { ...existing, chat: merged });
+        deduped[existing.index] = merged;
+    });
+    return deduped.filter(Boolean);
 };
 
 const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => {
@@ -605,6 +744,25 @@ const stableOrderEntryAt = (order = {}) => (
         : null
 );
 
+const PANEL_TERMINAL_SHIPMENT_STATUSES = new Set([
+    'ENTREGADO',
+    'DEVUELTO',
+    'CANCELADO',
+    'CANCELADO_SERVIENTREGA',
+    'CANCELADO SERVIENTREGA'
+]);
+
+const isPanelActiveShipment = (shipment = {}) => {
+    const status = String(shipment.logistics?.status || '').trim().toUpperCase();
+    if (!status || PANEL_TERMINAL_SHIPMENT_STATUSES.has(status)) return false;
+    return Boolean(
+        shipment.logistics?.trackingNumber
+        || shipment.logistics?.invoiceUrl
+        || shipment.logistics?.invoicePath
+        || shipment.logistics?.guidePrintUrl
+    );
+};
+
 const stableChatEntryMs = (chat = {}) => {
     const entryMs = dateValueMs(chat.entryAt);
     const messageMs = Number(chat.lastMessage?.timestamp || 0) * 1000;
@@ -684,10 +842,10 @@ const buildConnectionWorkload = async ({ country = 'EC' } = {}) => {
     const waitingMs = Number.parseInt(process.env.CONNECTION_WAITING_MINUTES || '8', 10) * 60 * 1000;
     const staleMs = Number.parseInt(process.env.CONNECTION_STALE_MINUTES || '30', 10) * 60 * 1000;
 
-    const dayMessages = await Message.find({
+    const dayMessages = await Message.find(withVisiblePanelMessages({
         createdAt: { $gte: startOfDay },
         chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ }
-    }, {
+    }), {
         chatId: 1,
         peerPhone: 1,
         sessionId: 1,
@@ -850,10 +1008,10 @@ const resolveMessageLookupForPhone = async (phone, { fastMode = true } = {}) => 
         ...states.map((state) => state.chatId).filter(Boolean)
     ].filter(isValidPanelChatId))];
 
-    const lastLinkedMessage = await Message.findOne({
+    const lastLinkedMessage = await Message.findOne(withVisiblePanelMessages({
         $or: linkedChatIds.flatMap((id) => ([{ chatId: id }, { from: id }, { to: id }])),
         peerPhone: { $exists: true, $ne: '' }
-    }).sort({ timestamp: -1 }).lean().catch(() => null);
+    })).sort({ timestamp: -1 }).lean().catch(() => null);
     const state = states[0] || null;
     const realDigits = isLidChat
         ? (state?.phoneDigits || lastLinkedMessage?.peerPhone || '')
@@ -997,11 +1155,26 @@ const vslPageViewEventId = ({ visitorKey, body = {} }) => cleanText(
     || `PageView:${visitorKey}`
 ).slice(0, 220);
 
-const vslLeadEventId = ({ body = {} }) => cleanText(
+const vslViewContentEventId = ({ visitorKey, body = {} }) => cleanText(
+    body.viewContentEventId
+    || body.view_content_event_id
+    || body.event_id_view_content
+    || `ViewContent:${visitorKey}`
+).slice(0, 220);
+
+const vslInitiateCheckoutEventId = ({ visitorKey, body = {} }) => cleanText(
+    body.initiateCheckoutEventId
+    || body.initiate_checkout_event_id
+    || body.event_id_initiate_checkout
+    || `InitiateCheckout:${visitorKey}`
+).slice(0, 220);
+
+const vslLeadEventId = ({ visitorKey = '', body = {} }) => cleanText(
     body.leadEventId
     || body.lead_event_id
     || body.eventId
     || body.event_id
+    || `Lead:${visitorKey}`
 ).slice(0, 220);
 
 const metaEventResponseSnapshot = (result = {}, fallbackEventId = '') => ({
@@ -1039,12 +1212,75 @@ const sendVslPageViewForVisit = async ({ visit, body, req, country, visitorKey }
     return { ...result, eventId: result.eventId || eventId };
 };
 
+const sendVslViewContentForVisit = async ({ visit, body, req, country, visitorKey }) => {
+    if (!visit || visit.metaViewContentSentAt) {
+        return { alreadySent: Boolean(visit?.metaViewContentSentAt), eventId: visit?.metaViewContentEventId || '' };
+    }
+
+    const tracking = visit.tracking || {};
+    const eventId = vslViewContentEventId({ visitorKey, body });
+    const result = await sendBrowserMetaEvent({
+        country,
+        eventName: 'ViewContent',
+        event_id: eventId,
+        event_source_url: visit.sourceUrl || body.event_source_url || body.eventSourceUrl || body.sourceUrl,
+        client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
+        fbc: tracking.fbc || body.fbc,
+        fbp: tracking.fbp || body.fbp,
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        content_name: body.content_name || body.contentName || 'Vit Power Ecuador',
+        content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
+        content_type: body.content_type || body.contentType || 'product'
+    }, req);
+
+    const metaUpdate = {
+        metaViewContentEventId: result.eventId || eventId,
+        metaViewContentResponse: result.response || metaEventResponseSnapshot(result, eventId)
+    };
+    if (result.ok) metaUpdate.metaViewContentSentAt = new Date();
+    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    return { ...result, eventId: result.eventId || eventId };
+};
+
+const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visitorKey }) => {
+    if (!visit || visit.metaInitiateCheckoutSentAt) {
+        return { alreadySent: Boolean(visit?.metaInitiateCheckoutSentAt), eventId: visit?.metaInitiateCheckoutEventId || '' };
+    }
+
+    const tracking = visit.tracking || {};
+    const eventId = vslInitiateCheckoutEventId({ visitorKey, body });
+    const value = Number(body.value || body.product_value || body.total || 0);
+    const result = await sendBrowserMetaEvent({
+        country,
+        eventName: 'InitiateCheckout',
+        event_id: eventId,
+        event_source_url: visit.sourceUrl || body.event_source_url || body.eventSourceUrl || body.sourceUrl,
+        client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
+        fbc: tracking.fbc || body.fbc,
+        fbp: tracking.fbp || body.fbp,
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        content_name: body.content_name || body.contentName || 'Vit Power Ecuador',
+        content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
+        content_type: body.content_type || body.contentType || 'product',
+        value: Number.isFinite(value) && value > 0 ? value : undefined,
+        currency: body.currency || 'USD'
+    }, req);
+
+    const metaUpdate = {
+        metaInitiateCheckoutEventId: result.eventId || eventId,
+        metaInitiateCheckoutResponse: result.response || metaEventResponseSnapshot(result, eventId)
+    };
+    if (result.ok) metaUpdate.metaInitiateCheckoutSentAt = new Date();
+    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    return { ...result, eventId: result.eventId || eventId };
+};
+
 const sendVslLeadForVisit = async ({ visit, body, req, country, visitorKey }) => {
     if (!visit || visit.metaLeadSentAt) {
         return { alreadySent: Boolean(visit?.metaLeadSentAt), eventId: visit?.metaLeadEventId || '' };
     }
 
-    const eventId = vslLeadEventId({ body });
+    const eventId = vslLeadEventId({ visitorKey, body });
     if (!eventId) return null;
 
     const tracking = visit.tracking || {};
@@ -1291,12 +1527,24 @@ const orderStatusFromPanelStatus = (status = '') => ({
     devolvido: 'returned'
 })[normalizePanelStatus(status)] || '';
 
+const VALID_PANEL_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizePanelPackageQuantity = (quantity) => {
+    const parsed = Number.parseInt(String(quantity ?? '').trim(), 10);
+    return VALID_PANEL_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
+
+const isValidPanelPackageQuantity = (quantity) => normalizePanelPackageQuantity(quantity) > 0;
+
 const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = false) => {
     if (internalOrTest) return false;
     if (normalizePanelStatus(draft.status) !== 'confirmado') return false;
     if (String(draft.country || '').toUpperCase() !== 'EC') return false;
     const phoneDigits = digitsOnly(draft.phone);
     if (!phoneDigits.startsWith('593')) return false;
+    if (!isValidPanelPackageQuantity(draft.quantity)) return false;
+    const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
+    if (total <= 0) return false;
     return ['name', 'phone', 'city', 'province', 'address', 'quantity', 'total']
         .every((field) => String(draft[field] || '').trim());
 };
@@ -1308,7 +1556,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
     const sourceOrderId = String(draft.orderId || '').trim();
     const sourceIsAdminOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(sourceOrderId);
     const phoneDigits = digitsOnly(draft.phone);
-    const quantity = Math.max(1, Number.parseInt(String(draft.quantity || '1'), 10) || 1);
+    const quantity = normalizePanelPackageQuantity(draft.quantity);
+    if (!quantity) return { ok: false, skipped: true, reason: 'missing_valid_quantity' };
     const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
     if (total <= 0) return { ok: false, skipped: true, reason: 'missing_positive_total' };
 
@@ -1379,6 +1628,18 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
         await order.save();
         purchase = result;
     }
+    let adminPurchaseLock = { ok: false, skipped: true, reason: 'purchase_not_sent' };
+    if (order.tracking?.metaPurchaseSentAt) {
+        adminPurchaseLock = recordOnlineAdminPurchaseLock({
+            order,
+            purchase,
+            sourceOrderId,
+            country: 'EC'
+        });
+        if (!adminPurchaseLock?.ok && !adminPurchaseLock?.skipped) {
+            console.warn('[META] falha ao gravar lock Purchase no painel:', adminPurchaseLock);
+        }
+    }
     return {
         ok: true,
         orderId: order.orderId,
@@ -1389,7 +1650,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
             eventId: purchase.eventId || order.tracking?.metaPurchaseEventId || '',
             response: purchase.response || order.tracking?.metaPurchaseResponse || null,
             error: purchase.error || ''
-        }
+        },
+        adminPurchaseLock
     };
 };
 
@@ -1882,6 +2144,7 @@ router.post('/vsl-entry', async (req, res) => {
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
+                customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15),
                 tracking: {
                     utm_source: cleanText(body.utm_source),
                     utm_medium: cleanText(body.utm_medium),
@@ -1898,6 +2161,7 @@ router.post('/vsl-entry', async (req, res) => {
                 assignmentReason: assignment?.reason || existing?.assignmentReason || 'existing_assignment',
                 lastClickAt: clicked ? now : existing?.lastClickAt,
                 lastEntryMessage: clicked ? cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500) : existing?.lastEntryMessage || '',
+                lastWhatsappMessage: clicked ? cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 1200) : existing?.lastWhatsappMessage || '',
                 lastSeenAt: now
             },
             $setOnInsert: {
@@ -1919,6 +2183,12 @@ router.post('/vsl-entry', async (req, res) => {
         const pageView = clicked
             ? null
             : await sendVslPageViewForVisit({ visit, body, req, country, visitorKey });
+        const viewContent = clicked
+            ? null
+            : await sendVslViewContentForVisit({ visit, body, req, country, visitorKey });
+        const initiateCheckout = clicked
+            ? await sendVslInitiateCheckoutForVisit({ visit, body, req, country, visitorKey })
+            : null;
         const lead = clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
@@ -1937,6 +2207,18 @@ router.post('/vsl-entry', async (req, res) => {
                     alreadySent: Boolean(pageView.alreadySent),
                     eventId: pageView.eventId || null,
                     error: pageView.ok || pageView.alreadySent ? null : (pageView.error || 'META PageView send failed')
+                } : null,
+                viewContent: viewContent ? {
+                    ok: Boolean(viewContent.ok || viewContent.alreadySent),
+                    alreadySent: Boolean(viewContent.alreadySent),
+                    eventId: viewContent.eventId || null,
+                    error: viewContent.ok || viewContent.alreadySent ? null : (viewContent.error || 'META ViewContent send failed')
+                } : null,
+                initiateCheckout: initiateCheckout ? {
+                    ok: Boolean(initiateCheckout.ok || initiateCheckout.alreadySent),
+                    alreadySent: Boolean(initiateCheckout.alreadySent),
+                    eventId: initiateCheckout.eventId || null,
+                    error: initiateCheckout.ok || initiateCheckout.alreadySent ? null : (initiateCheckout.error || 'META InitiateCheckout send failed')
                 } : null,
                 lead: lead ? {
                     ok: Boolean(lead.ok || lead.alreadySent),
@@ -2368,10 +2650,10 @@ router.get('/chats', async (req, res) => {
             if (!lidIds.length) continue;
 
             const stateByLid = await ContactState.findOne({ chatId: { $in: lidIds } }).lean().catch(() => null);
-            const messageWithPhone = await Message.findOne({
+            const messageWithPhone = await Message.findOne(withVisiblePanelMessages({
                 $or: lidIds.flatMap((id) => ([{ chatId: id }, { from: id }, { to: id }])),
                 peerPhone: { $exists: true, $ne: '' }
-            }).sort({ timestamp: -1 }).lean().catch(() => null);
+            })).sort({ timestamp: -1 }).lean().catch(() => null);
             const resolvedPhone = realPhoneFromState(stateByLid || {}) || digitsOnly(messageWithPhone?.peerPhone);
             if (!resolvedPhone) continue;
 
@@ -2414,9 +2696,9 @@ router.get('/chats', async (req, res) => {
                 if (state.chatId && !statesByChatId.has(state.chatId)) statesByChatId.set(state.chatId, state);
             });
 
-            const recentMessages = await Message.find({
+            const recentMessages = await Message.find(withVisiblePanelMessages({
                 chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ }
-            }, {
+            }), {
                 body: 1,
                 timestamp: 1,
                 isFromMe: 1,
@@ -2460,6 +2742,34 @@ router.get('/chats', async (req, res) => {
                     .lean()
                     .catch(() => [])
                 : [];
+            const activeShipments = ecPhoneTails.length
+                ? await Shipment.find({
+                    country: 'EC',
+                    $or: ecPhoneTails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }))
+                })
+                    .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 })
+                    .limit(300)
+                    .lean()
+                    .catch(() => [])
+                : [];
+            const activePanelShipments = activeShipments.filter(isPanelActiveShipment);
+            const shipmentOrderIds = [...new Set(activePanelShipments.map((shipment) => shipment.orderId).filter(Boolean))];
+            const shipmentOrders = shipmentOrderIds.length
+                ? await Order.find({ country: 'EC', orderId: { $in: shipmentOrderIds } }).lean().catch(() => [])
+                : [];
+            const orderById = new Map(
+                [...operationalOrders, ...shipmentOrders]
+                    .filter((order) => order?.orderId)
+                    .map((order) => [order.orderId, order])
+            );
+            const shipmentBackedOrderByPhoneTail = new Map();
+            activePanelShipments.forEach((shipment) => {
+                const order = orderById.get(shipment.orderId);
+                if (!order || ['cancelled', 'returned'].includes(String(order.status || '').toLowerCase())) return;
+                phoneTailCandidates(shipment.client?.phone || order.customer?.phone).forEach((tail) => {
+                    if (!shipmentBackedOrderByPhoneTail.has(tail)) shipmentBackedOrderByPhoneTail.set(tail, order);
+                });
+            });
             const orderByPhoneTail = new Map();
             operationalOrders.forEach((order) => {
                 phoneTailCandidates(order.customer?.phone).forEach((tail) => {
@@ -2468,7 +2778,9 @@ router.get('/chats', async (req, res) => {
             });
             const orderForFastPhone = (phone = '') => {
                 const candidates = phoneTailCandidates(phone).sort((a, b) => b.length - a.length);
-                return candidates.map((tail) => orderByPhoneTail.get(tail)).find(Boolean) || null;
+                return candidates.map((tail) => shipmentBackedOrderByPhoneTail.get(tail)).find(Boolean)
+                    || candidates.map((tail) => orderByPhoneTail.get(tail)).find(Boolean)
+                    || null;
             };
 
             const fastChats = allChats.map((c) => {
@@ -2503,7 +2815,7 @@ router.get('/chats', async (req, res) => {
                     flowDataOk: customerDraft.flowDataOk || {},
                     orderId: order?.orderId || null,
                     orderStatus: order?.status || customerDraft.status || null,
-                    quantity: order?.package?.quantity || customerDraft.quantity || null,
+                    quantity: order?.package?.quantity ?? customerDraft.quantity ?? null,
                     packageLabel: order?.package?.label || null,
                     total: order?.total ?? customerDraft.total ?? null,
                     currency: order?.currency || null,
@@ -2519,7 +2831,7 @@ router.get('/chats', async (req, res) => {
                 .filter((c) => !countryFilter || c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
                 .sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
 
-            res.json(onlyLinked ? [] : fastChats);
+            res.json(onlyLinked ? [] : dedupePanelChats(fastChats));
             return;
         }
 
@@ -2533,9 +2845,9 @@ router.get('/chats', async (req, res) => {
                 { from: id },
                 { to: id }
             ]));
-            const lastMessageForChat = await Message.findOne({
+            const lastMessageForChat = await Message.findOne(withVisiblePanelMessages({
                 $or: linkedConditions
-            }).sort({ timestamp: -1 }).lean().catch(() => null);
+            })).sort({ timestamp: -1 }).lean().catch(() => null);
 
             // If it's an LID, use the phone captured by the dispatcher instead of the opaque WhatsApp id.
             if (isLid) {
@@ -2591,6 +2903,33 @@ router.get('/chats', async (req, res) => {
                     }).sort({ entryAt: -1, createdAt: -1 });
                 }
             }
+            if (!fastMode && canMatchEcuadorOrder && keys.length) {
+                const sortedKeys = [...keys].sort((a, b) => b.length - a.length);
+                const shipmentConditions = sortedKeys
+                    .map((k) => fuzzyDigitsPattern(k))
+                    .filter(Boolean)
+                    .map((pattern) => ({ 'client.phone': { $regex: `${pattern}\\D*$`, $options: 'i' } }));
+                const shipmentCandidates = shipmentConditions.length
+                    ? await Shipment.find({
+                        country: 'EC',
+                        $or: shipmentConditions
+                    })
+                        .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 })
+                        .limit(8)
+                        .lean()
+                        .catch(() => [])
+                    : [];
+                const activeShipment = shipmentCandidates.find(isPanelActiveShipment);
+                if (activeShipment?.orderId && activeShipment.orderId !== order?.orderId) {
+                    const shipmentOrder = await Order.findOne({
+                        ...baseQuery,
+                        orderId: activeShipment.orderId
+                    }).lean().catch(() => null);
+                    if (shipmentOrder && !['cancelled', 'returned'].includes(String(shipmentOrder.status || '').toLowerCase())) {
+                        order = shipmentOrder;
+                    }
+                }
+            }
 
             // If we matched an order, force the phone to match the order for consistency
             if (order && order.customer && order.customer.phone) {
@@ -2609,20 +2948,20 @@ router.get('/chats', async (req, res) => {
                 ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
                 : 0;
 
-            const lastMessage = lastMessageForChat || await Message.findOne({
+            const lastMessage = lastMessageForChat || await Message.findOne(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
                     ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
                 ]
-            }).sort({ timestamp: -1 }).lean().catch(() => null);
-            const unreadCount = await Message.countDocuments({
+            })).sort({ timestamp: -1 }).lean().catch(() => null);
+            const unreadCount = await Message.countDocuments(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
                     ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
                 ],
                 isFromMe: false,
                 timestamp: { $gt: panelLastReadAt || 0 }
-            }).catch(() => 0);
+            })).catch(() => 0);
             const profilePictureUrl = fastMode
                 ? String(contactState?.metadata?.profilePictureUrl || '')
                 : await resolveProfilePictureUrl({
@@ -2660,7 +2999,7 @@ router.get('/chats', async (req, res) => {
                 flowDataOk: customerDraft.flowDataOk || {},
                 orderId: order ? order.orderId : null,
                 orderStatus: order ? order.status : customerDraft.status || null,
-                quantity: order?.package?.quantity || customerDraft.quantity || null,
+                quantity: order?.package?.quantity ?? customerDraft.quantity ?? null,
                 packageLabel: order?.package?.label || null,
                 total: order?.total ?? customerDraft.total ?? null,
                 currency: order?.currency || null,
@@ -2679,7 +3018,7 @@ router.get('/chats', async (req, res) => {
 
         filtered.sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
 
-        res.json(filtered);
+        res.json(dedupePanelChats(filtered));
     } catch (error) {
         console.error('Get chats error:', error);
         res.status(500).json({ error: 'Failed to fetch chats' });
@@ -2722,10 +3061,10 @@ router.get('/messages/:phone', async (req, res) => {
             ...states.map((state) => state.chatId).filter(Boolean)
         ].filter(isValidPanelChatId))];
 
-        const lastLinkedMessage = await Message.findOne({
+        const lastLinkedMessage = await Message.findOne(withVisiblePanelMessages({
             $or: linkedChatIds.flatMap((id) => ([{ chatId: id }, { from: id }, { to: id }])),
             peerPhone: { $exists: true, $ne: '' }
-        }).sort({ timestamp: -1 }).lean().catch(() => null);
+        })).sort({ timestamp: -1 }).lean().catch(() => null);
         const state = states[0] || null;
         const realDigits = isLidChat
             ? (state?.phoneDigits || lastLinkedMessage?.peerPhone || '')
@@ -2751,7 +3090,7 @@ router.get('/messages/:phone', async (req, res) => {
             });
         }
 
-        const messages = (await Message.find({ $or: or })
+        const messages = (await Message.find(withVisiblePanelMessages({ $or: or }))
             .sort({ timestamp: -1, createdAt: -1 })
             .limit(limit)
             .lean())
@@ -2935,7 +3274,7 @@ router.get('/customer-profile/:phone', async (req, res) => {
         ];
 
         const messages = messageOr.length
-            ? await Message.find({ $or: messageOr }).sort({ timestamp: -1 }).limit(80).lean()
+            ? await Message.find(withVisiblePanelMessages({ $or: messageOr })).sort({ timestamp: -1 }).limit(80).lean()
             : [];
         const allOwnerPhones = [...new Set(messages.map((message) => digitsOnly(message.ownerPhoneDigits || message.sessionId)).filter(Boolean))];
         const inboundCount = messages.filter((message) => !message.isFromMe).length;
@@ -2952,7 +3291,25 @@ router.get('/customer-profile/:phone', async (req, res) => {
         const orders = orderOr.length
             ? await Order.find({ $or: orderOr }).sort({ updatedAt: -1, createdAt: -1 }).limit(10).lean()
             : [];
-        const activeOrder = orders.find((order) => !['delivered', 'cancelled', 'returned'].includes(String(order.status || '').toLowerCase())) || orders[0] || null;
+        const shipmentCandidates = orderTails.length
+            ? await Shipment.find({
+                country: 'EC',
+                $or: orderTails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }))
+            })
+                .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 })
+                .limit(10)
+                .lean()
+                .catch(() => [])
+            : [];
+        const activeShipment = shipmentCandidates.find(isPanelActiveShipment);
+        const shipmentOrder = activeShipment?.orderId
+            ? (orders.find((order) => order.orderId === activeShipment.orderId)
+                || await Order.findOne({ orderId: activeShipment.orderId }).lean().catch(() => null))
+            : null;
+        const activeOrder = shipmentOrder
+            || orders.find((order) => !['delivered', 'cancelled', 'returned'].includes(String(order.status || '').toLowerCase()))
+            || orders[0]
+            || null;
         const allChannels = [...new Set([
             ...chatIds,
             ...realPhones,
@@ -3296,7 +3653,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 address: String(customerDraft.address || '').trim(),
                 reference: String(customerDraft.reference || '').trim(),
                 status: normalizePanelStatus(customerDraft.status),
-                quantity: String(customerDraft.quantity || '').trim(),
+                quantity: String(customerDraft.quantity ?? '').trim(),
                 total: String(customerDraft.total || '').trim(),
                 country: internalOrTest ? 'BR' : effectiveCountry,
                 updatedAt: new Date().toISOString()
@@ -3306,7 +3663,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 ...(String(cleanDraft.city || '').trim() ? { ciudad: { ok: true, value: cleanDraft.city, label: 'Cidade OK' } } : {}),
                 ...(String(cleanDraft.address || '').trim() ? { agencia: { ok: true, value: cleanDraft.address, label: 'Agencia OK' } } : {}),
                 ...(String(cleanDraft.province || '').trim() ? { provincia: { ok: true, value: cleanDraft.province, label: 'Provincia OK' } } : {}),
-                ...(String(cleanDraft.quantity || '').trim() ? { quantidade: { ok: true, value: cleanDraft.quantity, label: 'Quantidade OK' } } : {}),
+                ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantidade: { ok: true, value: cleanDraft.quantity, label: 'Quantidade OK' } } : {}),
                 ...(String(cleanDraft.status || '').trim() ? { venda_finalizada: { ok: ['confirmado', 'confirmed', 'pedido_enviado', 'entregue', 'recompra', 'finalizado'].includes(normalizePanelStatus(cleanDraft.status)), value: cleanDraft.status, label: 'Venda finalizada' } } : {})
             };
             cleanDraft.flowDataOk = flowDataOk;
@@ -3335,7 +3692,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     ...(correctedProvince ? { province: correctedProvince } : {}),
                     ...(cleanDraft.address ? { address: cleanDraft.address } : {}),
                     ...(cleanDraft.reference ? { reference: cleanDraft.reference } : {}),
-                    ...(cleanDraft.quantity ? { quantity: Number(cleanDraft.quantity) || cleanDraft.quantity } : {}),
+                    ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantity: normalizePanelPackageQuantity(cleanDraft.quantity) } : {}),
                     ...(cleanDraft.total ? { total: Number(cleanDraft.total) || cleanDraft.total } : {}),
                     ...(looksLikeAgency ? {
                         deliveryMode: 'agency',
@@ -3396,6 +3753,23 @@ router.patch('/contact-state/:phone', async (req, res) => {
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
+        if (
+            operationalOrderSync?.orderId
+            && operationalOrderSync?.purchase?.eventId
+            && !operationalOrderSync?.adminPurchaseLock?.ok
+        ) {
+            const syncedLeadId = unifiedSync?.lead_id || unifiedSync?.leadId || unifiedSync?.id || '';
+            const syncedOrder = await Order.findOne({ orderId: operationalOrderSync.orderId });
+            operationalOrderSync.adminPurchaseLock = recordOnlineAdminPurchaseLock({
+                order: syncedOrder,
+                purchase: operationalOrderSync.purchase,
+                sourceOrderId: syncedLeadId ? `EC-ADMIN-${syncedLeadId}` : operationalOrderSync.sourceOrderId,
+                country: 'EC'
+            });
+            if (!operationalOrderSync.adminPurchaseLock?.ok && !operationalOrderSync.adminPurchaseLock?.skipped) {
+                console.warn('[META] falha ao gravar lock Purchase apos sync do painel:', operationalOrderSync.adminPurchaseLock);
+            }
+        }
         res.json({ success: true, state, unifiedSync, operationalOrderSync });
     } catch (error) {
         console.error('Update contact state error:', error);
@@ -3597,6 +3971,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     isPtt: mediaKind !== 'audio',
                     sendMode,
                     allowAudioDedupeBypass,
+                    allowExistingDropiOrder: sendMode === 'manual_panel',
                     country,
                     returnDetails: true
                 });
@@ -3655,6 +4030,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 sessionId: effectiveSessionId,
                 sendMode,
                 allowAudioDedupeBypass,
+                allowExistingDropiOrder: sendMode === 'manual_panel',
                 country,
                 returnDetails: true
             });

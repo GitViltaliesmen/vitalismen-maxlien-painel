@@ -7,8 +7,10 @@ import {
 import { getPendingShipmentReminders, processShipmentPickupReminders } from './shipmentMessageService.js';
 import {
     countShipmentDispatchCandidates,
+    processCarrierStatusSweep,
     processShipmentStatusDispatch
 } from './shipmentStatusDispatcherService.js';
+import { processGuidePrintDispatch } from './guidePrintDispatcherService.js';
 import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
 import { syncActiveDroppiEcuadorOrdersFromPanel } from './droppiEcuadorBrowserService.js';
 import { processBacklogRecovery } from './backlogRecoveryService.js';
@@ -18,6 +20,8 @@ import {
     reconcileRecentWhatsappContactsToAdminPanel
 } from './adminPanelLeadReconciliationService.js';
 import { processAdminBuyLaterFollowups } from './adminBuyLaterFollowupService.js';
+import { processZapiChatWatchdog } from './zapiChatWatchdogService.js';
+import { processPassiveFunnelObserver } from './passiveFunnelObserverService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
@@ -25,11 +29,15 @@ let isRunningPendingCheckoutFollowups = false;
 let isRunningPostSaleRepurchaseFollowups = false;
 let isRunningPickupReminders = false;
 let isRunningShipmentStatusDispatch = false;
+let isRunningCarrierStatusSweep = false;
+let isRunningGuidePrintDispatch = false;
 let isRunningDropiActiveSync = false;
 let isRunningAdminPanelImport = false;
 let isRunningBacklogRecovery = false;
 let isRunningAdminPanelAtendimentoReconcile = false;
 let isRunningAdminBuyLaterFollowups = false;
+let isRunningZapiChatWatchdog = false;
+let isRunningPassiveFunnelObserver = false;
 let lastHealthAlertAt = 0;
 let lastHealthAlertKey = '';
 
@@ -122,6 +130,23 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Shipment status dispatch disabled. Set SHIPMENT_STATUS_DISPATCH_ENABLED=true to enable.');
     }
+    if (flagEnabled('SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED', true)) {
+        const intervalMinutes = parseNumber('SHIPMENT_CARRIER_STATUS_SWEEP_INTERVAL_MINUTES', 60);
+        const intervalMs = Math.max(20, intervalMinutes) * 60 * 1000;
+        setInterval(checkCarrierStatusSweep, intervalMs);
+        setTimeout(() => checkCarrierStatusSweep(), 20000);
+        console.log(`[SCHEDULER] Carrier status sweep enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Carrier status sweep disabled. Set SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED=true to enable.');
+    }
+    if (flagEnabled('SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED', false)) {
+        const intervalSeconds = parseNumber('SHIPMENT_GUIDE_PRINT_DISPATCH_INTERVAL_SECONDS', 120);
+        const intervalMs = Math.max(120, intervalSeconds) * 1000;
+        setInterval(checkGuidePrintDispatch, intervalMs);
+        console.log(`[SCHEDULER] Guide print dispatch enabled every ${Math.round(intervalMs / 1000)} seconds; limit=1.`);
+    } else {
+        console.log('[SCHEDULER] Guide print dispatch disabled. Set SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED=true to enable.');
+    }
     if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
         const intervalMinutes = parseNumber('DROPPI_EC_ACTIVE_SYNC_INTERVAL_MINUTES', 30);
         const intervalMs = Math.max(10, intervalMinutes) * 60 * 1000;
@@ -162,15 +187,37 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Comprar depois followup disabled. Set ADMIN_BUY_LATER_FOLLOWUP_ENABLED=true to enable.');
     }
-    // Watchdog: Restart WhatsApp ONLY if not ready and not scanning
-    setInterval(() => {
-        const { isReady, status } = getStatus();
-        // Only restart if confirmed disconnected. If scanning (QR), do nothing. If connected but not ready, wait.
-        if (!isReady && status === 'disconnected') {
-            console.log('[Scheduler] WhatsApp Disconnected -> Triggering Init...');
-            startConfiguredWhatsAppSessions();
-        }
-    }, 60000);
+    if (flagEnabled('ZAPI_CHAT_WATCHDOG_ENABLED', true)) {
+        const intervalSeconds = parseNumber('ZAPI_CHAT_WATCHDOG_INTERVAL_SECONDS', 30);
+        const intervalMs = Math.max(15, intervalSeconds) * 1000;
+        setInterval(checkZapiChatWatchdog, intervalMs);
+        setTimeout(() => checkZapiChatWatchdog(), 5000);
+        console.log(`[SCHEDULER] Z-API chat watchdog enabled every ${Math.round(intervalMs / 1000)} seconds.`);
+    } else {
+        console.log('[SCHEDULER] Z-API chat watchdog disabled. Set ZAPI_CHAT_WATCHDOG_ENABLED=true to enable.');
+    }
+    if (flagEnabled('PASSIVE_FUNNEL_OBSERVER_ENABLED', false)) {
+        const intervalSeconds = parseNumber('PASSIVE_FUNNEL_OBSERVER_INTERVAL_SECONDS', 60);
+        const intervalMs = Math.max(30, intervalSeconds) * 1000;
+        setInterval(checkPassiveFunnelObserver, intervalMs);
+        setTimeout(() => checkPassiveFunnelObserver(), 10000);
+        console.log(`[SCHEDULER] Passive funnel observer enabled every ${Math.round(intervalMs / 1000)} seconds.`);
+    } else {
+        console.log('[SCHEDULER] Passive funnel observer disabled. Set PASSIVE_FUNNEL_OBSERVER_ENABLED=true to enable.');
+    }
+    // Watchdog: restart Baileys only when Baileys is the active engine.
+    if (flagEnabled('WHATSAPP_CONNECT_ENABLED', true)) {
+        setInterval(() => {
+            const { isReady, status } = getStatus();
+            // Only restart if confirmed disconnected. If scanning (QR), do nothing. If connected but not ready, wait.
+            if (!isReady && status === 'disconnected') {
+                console.log('[Scheduler] WhatsApp Disconnected -> Triggering Init...');
+                startConfiguredWhatsAppSessions();
+            }
+        }, 60000);
+    } else {
+        console.log('[SCHEDULER] Baileys restart watchdog disabled because WHATSAPP_CONNECT_ENABLED=false.');
+    }
 
     if (flagEnabled('WHATSAPP_HEALTH_ALERT_ENABLED', true)) {
         setInterval(checkHealthAlert, 60 * 1000);
@@ -195,6 +242,9 @@ export const startScheduler = () => {
     }
     if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
         setTimeout(() => checkShipmentStatusDispatch(), 45000);
+    }
+    if (flagEnabled('SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED', false)) {
+        setTimeout(() => checkGuidePrintDispatch(), 120000);
     }
     if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
         setTimeout(() => checkDropiActiveSync(), 30000);
@@ -225,6 +275,9 @@ export const startScheduler = () => {
         }
         if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
             setTimeout(() => checkShipmentStatusDispatch(), 20000);
+        }
+        if (flagEnabled('SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED', false)) {
+            setTimeout(() => checkGuidePrintDispatch(), 120000);
         }
         if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
             setTimeout(() => checkDropiActiveSync(), 15000);
@@ -418,6 +471,34 @@ const checkAdminBuyLaterFollowups = async () => {
     }
 };
 
+const checkZapiChatWatchdog = async () => {
+    if (isRunningZapiChatWatchdog) return;
+    isRunningZapiChatWatchdog = true;
+    try {
+        const result = await processZapiChatWatchdog();
+        if (result.created) {
+            console.warn(`[ZAPI_CHAT_WATCHDOG] Alertas criados ${result.created}/${result.scanned}.`);
+        }
+    } catch (error) {
+        const detail = error?.response?.data || error.message || error;
+        console.error('[ZAPI_CHAT_WATCHDOG] Scheduler Error:', detail);
+    } finally {
+        isRunningZapiChatWatchdog = false;
+    }
+};
+
+const checkPassiveFunnelObserver = async () => {
+    if (isRunningPassiveFunnelObserver) return;
+    isRunningPassiveFunnelObserver = true;
+    try {
+        await processPassiveFunnelObserver();
+    } catch (error) {
+        console.error('[PASSIVE_FUNNEL_OBSERVER] Scheduler Error:', error?.message || error);
+    } finally {
+        isRunningPassiveFunnelObserver = false;
+    }
+};
+
 const checkPickupReminders = async () => {
     if (isRunningPickupReminders) return;
     isRunningPickupReminders = true;
@@ -473,6 +554,37 @@ const checkShipmentStatusDispatch = async () => {
         console.error('Shipment Status Dispatch Scheduler Error:', error);
     } finally {
         isRunningShipmentStatusDispatch = false;
+    }
+};
+
+const checkCarrierStatusSweep = async () => {
+    if (isRunningCarrierStatusSweep) return;
+    isRunningCarrierStatusSweep = true;
+    try {
+        const limit = parseNumber('SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT', 6);
+        const result = await processCarrierStatusSweep({ limit });
+        if (result.refreshed || result.statusChanged || result.failed) {
+            console.log(`[CARRIER_SWEEP] Guias ${result.refreshed}/${result.processed}; alteradas ${result.statusChanged}; falhas ${result.failed}; limite ${limit}.`);
+        }
+    } catch (error) {
+        console.error('Carrier Status Sweep Scheduler Error:', error);
+    } finally {
+        isRunningCarrierStatusSweep = false;
+    }
+};
+
+const checkGuidePrintDispatch = async () => {
+    if (isRunningGuidePrintDispatch) return;
+    isRunningGuidePrintDispatch = true;
+    try {
+        const result = await processGuidePrintDispatch({ dryRun: false, limit: 1 });
+        if (result.sent || result.failed || result.processed) {
+            console.log(`[GUIDE_PRINT_DISPATCH] Enviados ${result.sent}/${result.processed}; falhas=${result.failed || 0}; skipped=${result.skipped || 0}; limite=1.`);
+        }
+    } catch (error) {
+        console.error('Guide Print Dispatch Scheduler Error:', error);
+    } finally {
+        isRunningGuidePrintDispatch = false;
     }
 };
 
