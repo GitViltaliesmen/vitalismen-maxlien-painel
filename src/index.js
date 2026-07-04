@@ -17,6 +17,7 @@ import leadsRoutes from './routes/leads.js';
 import { publicWhatsAppRedirect } from './routes/leads.js';
 import metaEventsRoutes from './routes/metaEvents.js';
 import zapiRoutes from './routes/zapi.js';
+import observationRoutes from './routes/observation.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -65,6 +66,18 @@ const isLocalRequest = (req) => {
         || ip === '::ffff:127.0.0.1';
 };
 
+const firstHeaderValue = (value) => Array.isArray(value) ? value[0] : value;
+
+const firstHeaderIp = (value) => String(firstHeaderValue(value) || '').split(',')[0].trim();
+
+const clientRateLimitKey = (req) => {
+    const cloudflareIp = firstHeaderIp(req.headers['cf-connecting-ip']);
+    if (cloudflareIp) return `cf:${cloudflareIp}`;
+    const realIp = firstHeaderIp(req.headers['x-real-ip']);
+    if (realIp) return `real:${realIp}`;
+    return `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+};
+
 const isStaticPanelRequest = (req) => {
     if (!['GET', 'HEAD'].includes(String(req.method || '').toUpperCase())) return false;
     const pathname = String(req.path || req.originalUrl || '').split('?')[0];
@@ -75,17 +88,47 @@ const isStaticPanelRequest = (req) => {
 
 const isPanelPollingRequest = (req) => {
     if (!['GET', 'HEAD'].includes(String(req.method || '').toUpperCase())) return false;
-    const pathname = String(req.path || req.originalUrl || '').split('?')[0];
+    const rawPathname = String(req.path || req.originalUrl || '').split('?')[0];
+    const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/+$/, '') : rawPathname;
     return pathname === '/api/zapi/status'
         || pathname === '/api/zapi/device'
         || pathname === '/api/health'
+        || pathname === '/api/orders'
+        || pathname === '/api/orders/stats'
+        || pathname === '/api/shipments'
+        || pathname === '/api/shipments/manual-queue'
+        || pathname === '/api/shipments/dispatch/status'
+        || pathname === '/api/shipments/dispatch/history'
+        || pathname === '/api/shipments/servientrega/ec/agencies'
         || pathname === '/api/whatsapp/status'
         || pathname === '/api/whatsapp/chats'
         || pathname === '/api/whatsapp/dashboard-metrics'
         || pathname === '/api/whatsapp/templates'
+        || /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/submit-status$/.test(pathname)
         || pathname.startsWith('/api/whatsapp/messages/')
         || pathname.startsWith('/api/whatsapp/customer-profile/')
         || pathname.startsWith('/api/observation/');
+};
+
+const isPanelOperationalWriteRequest = (req) => {
+    const method = String(req.method || '').toUpperCase();
+    if (!['POST', 'PATCH'].includes(method)) return false;
+    const rawPathname = String(req.path || req.originalUrl || '').split('?')[0];
+    const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/+$/, '') : rawPathname;
+
+    if (method === 'POST' && pathname === '/api/whatsapp/contacts') return true;
+    if (method === 'POST' && pathname === '/api/whatsapp/chats/action') return true;
+    if (method === 'POST' && pathname === '/api/whatsapp/chats/read') return true;
+    if (method === 'PATCH' && /^\/api\/whatsapp\/contact-state\/[^/]+$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/whatsapp\/contact-state\/[^/]+\/(?:claim|release)$/.test(pathname)) return true;
+    if (method === 'PATCH' && /^\/api\/orders\/[^/]+$/.test(pathname)) return true;
+    if (method === 'POST' && pathname === '/api/orders') return true;
+    if (method === 'POST' && pathname === '/api/orders/review/bulk-from-confirmed') return true;
+    if (method === 'POST' && /^\/api\/orders\/[^/]+\/(?:send-to-review|finalize-review|clear-review|confirm-payment)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/shipments\/dispatch\/(?:pause|resume)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/shipments\/[^/]+\/(?:panel-sync|manual-review|manual-send-required|requeue-dropi-submit|mark-manual-sent|remove-from-confirmed)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/(?:authorize-submit|revoke-submit-authorization)$/.test(pathname)) return true;
+    return false;
 };
 
 const noStoreHeaders = {
@@ -129,7 +172,8 @@ app.use('/media', express.static('public/media', {
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
-    skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req) || isPanelPollingRequest(req),
+    keyGenerator: clientRateLimitKey,
+    skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req) || isPanelPollingRequest(req) || isPanelOperationalWriteRequest(req),
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false },
@@ -141,6 +185,7 @@ app.use(limiter);
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100, // Increased to 100 attempts per 15 min
+    keyGenerator: clientRateLimitKey,
     skip: isLocalRequest,
     validate: { trustProxy: false },
     message: { error: 'Too many attempts, please try again later.' }
@@ -194,6 +239,7 @@ app.use('/api/shipments', shipmentRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/meta-events', metaEventsRoutes);
 app.use('/api/zapi', zapiRoutes);
+app.use('/api/observation', observationRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);

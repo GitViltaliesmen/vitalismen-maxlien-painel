@@ -5,6 +5,8 @@ import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
 import { applyHumanPacing } from './humanPacing.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
+import { sendZapiDocument } from '../services/zapiClient.js';
+import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 
 const isRemoteUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -16,6 +18,12 @@ const resolveMimeType = (filePath) => {
     return 'application/octet-stream';
 };
 
+const sendDocumentFailure = (options, payload = {}) => (
+    options.returnDetails === true
+        ? { ok: false, providerStatus: 'failed', ...payload }
+        : false
+);
+
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid, country: options.country || '' });
     const sessionId = route.sessionId;
@@ -24,7 +32,7 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
     const guard = canSendOutbound({ jid, text: caption || fileName || filePath, sessionId, ownDigits, kind: 'document', recipientDigits: options.recipientDigits || '' });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] documento bloqueado -> ${jid} | reason=${guard.reason}`);
-        return false;
+        return sendDocumentFailure(options, { reason: guard.reason });
     }
     const dropiGuard = await checkDropiOrderBeforeOutbound({
         jid,
@@ -35,12 +43,44 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
     });
     if (!dropiGuard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] documento bloqueado por pedido Dropi existente -> ${jid} | reason=${dropiGuard.reason} | order=${dropiGuard.orderId || ''} | tracking=${dropiGuard.trackingNumber || ''}`);
-        return false;
+        return sendDocumentFailure(options, { reason: dropiGuard.reason });
     }
 
     if (!filePath || (!isRemoteUrl(filePath) && !fs.existsSync(filePath))) {
         console.error(`[OUTBOUND-DOC-ERROR] ❌ Arquivo de documento não encontrado: ${filePath}`);
-        return false;
+        return sendDocumentFailure(options, { reason: 'document_not_found' });
+    }
+
+    if (shouldUseZapiForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '', options })) {
+        try {
+            const phone = zapiPhoneForOutbound({ targetJid: jid, recipientDigits: options.recipientDigits || '' });
+            const response = await sendZapiDocument({
+                phone,
+                filePath,
+                fileName: fileName || path.basename(filePath),
+                caption,
+                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+            });
+            console.log(`[LOG_SEND_USING_ZAPI] Documento enfileirado na Z-API -> ${phone} | Arquivo: ${filePath} | messageId=${response?.messageId || response?.id || ''}`);
+            recordOutboundSend({ sessionId: 'zapi', jid });
+            const details = {
+                ok: true,
+                provider: 'zapi',
+                providerMessageId: response?.messageId || response?.id || '',
+                providerZaapId: response?.zaapId || '',
+                providerStatus: 'queued',
+                providerPayload: response
+            };
+            return options.returnDetails === true ? details : true;
+        } catch (error) {
+            const detail = error?.response?.data || error.message || 'zapi_document_send_failed';
+            console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar documento pela Z-API para ${jid}:`, detail);
+            return sendDocumentFailure(options, {
+                provider: 'zapi',
+                error: typeof detail === 'string' ? detail : JSON.stringify(detail),
+                providerPayload: detail
+            });
+        }
     }
 
     const payload = {
@@ -58,13 +98,24 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
             const result = await sock.sendMessage(jid, payload);
             console.log(`[OUTBOUND] 📎 Documento enviado -> ${jid} | Arquivo: ${filePath} | pacing=${pacing.waitedMs}ms/${pacing.presence} | tentativa=${attempt} | session=${sessionId || 'auto'}`);
             if (result) recordOutboundSend({ sessionId, jid });
-            return !!result;
+            return options.returnDetails === true
+                ? {
+                    ok: Boolean(result),
+                    provider: 'baileys',
+                    providerMessageId: result?.key?.id || result?.message?.key?.id || '',
+                    providerStatus: result ? 'sent' : 'failed',
+                    providerPayload: result || {}
+                }
+                : !!result;
         } catch (error) {
             console.error(`[OUTBOUND-DOC-ERROR] ❌ Falha ao enviar documento para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) return false;
+            if (attempt === 2) return sendDocumentFailure(options, {
+                provider: 'baileys',
+                error: error.message || 'send_document_failed'
+            });
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
     }
 
-    return false;
+    return sendDocumentFailure(options, { reason: 'send_document_failed' });
 };

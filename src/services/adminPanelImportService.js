@@ -59,6 +59,12 @@ const packageLabel = (quantity) => `Vit Power ${quantity} frasco${Number(quantit
 
 const clean = (value) => String(value || '').trim();
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const validPackageQuantities = new Set([1, 3, 6]);
+
+const normalizePackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return validPackageQuantities.has(parsed) ? parsed : 0;
+};
 
 const parseDateOrNull = (value) => {
     const raw = clean(value);
@@ -195,8 +201,11 @@ print(json.dumps({"ok": True, "count": len(out), "leads": out}, ensure_ascii=Fal
 };
 
 const mapLeadToOrderData = ({ lead, country }) => {
-    const quantity = Number.parseInt(String(lead.product_qty || '1'), 10) || 1;
+    const quantity = normalizePackageQuantity(lead.product_qty);
     const total = Number.parseFloat(String(lead.product_value || '0')) || 0;
+    if (!quantity || total <= 0) {
+        return null;
+    }
     const normalized = normalizeEcuadorOrderFieldsForDropi({
         name: lead.name,
         phone: pickLeadPhone(lead),
@@ -373,12 +382,17 @@ export const importConfirmedAdminPanelOrders = async ({
     let created = 0;
     let updated = 0;
     let skippedDuplicates = 0;
+    let skippedInvalidQuantity = 0;
     let skippedLocalOverrides = 0;
     const imported = [];
     const localOverrides = [];
 
     for (const lead of readResult.leads || []) {
         const orderData = mapLeadToOrderData({ lead, country });
+        if (!orderData) {
+            skippedInvalidQuantity += 1;
+            continue;
+        }
         if (!orderData.orderId.endsWith('-')) {
             const existing = await findExistingOrderForLead({ orderData, lead, country });
             const duplicateGuard = await getOrderDuplicateGuard({
@@ -428,6 +442,7 @@ export const importConfirmedAdminPanelOrders = async ({
         created,
         updated,
         skippedDuplicates,
+        skippedInvalidQuantity,
         skippedLocalOverrides,
         localOverrides,
         orderIds: imported

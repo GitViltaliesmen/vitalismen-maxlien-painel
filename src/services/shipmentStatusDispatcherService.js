@@ -11,8 +11,11 @@ import {
     notifyShipmentReturned
 } from './shipmentMessageService.js';
 import { syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
+import { saveCarrierTrackingResult, trackCarrierGuide } from './carrierTrackingService.js';
+import { sendText } from '../whatsapp/sendText.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
+const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
 const DISPATCH_LOCK_MS = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_LOCK_MS || '600000', 10);
 const MIN_MESSAGE_GAP_MS = Number.parseInt(process.env.SHIPMENT_MIN_MESSAGE_GAP_MS || '1800000', 10);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -20,6 +23,7 @@ const MINUTES_PER_DAY = 24 * 60;
 
 let paused = process.env.SHIPMENT_STATUS_DISPATCH_ENABLED !== 'true';
 let lastRun = null;
+let lastCarrierSweep = null;
 
 const parsePositiveNumber = (name, fallback = 0) => {
     const parsed = Number.parseInt(String(process.env[name] || ''), 10);
@@ -38,6 +42,25 @@ const flagEnabled = (name, fallback = false) => {
 };
 const dispatchRefreshBeforeSendEnabled = () => flagEnabled('SHIPMENT_STATUS_DISPATCH_REFRESH_BEFORE_SEND', true);
 const dispatchRefreshBeforeSendLimit = () => parsePositiveNumber('SHIPMENT_STATUS_DISPATCH_REFRESH_LIMIT', 3);
+const carrierRefreshBeforeSendEnabled = () => flagEnabled('SHIPMENT_STATUS_DISPATCH_CARRIER_REFRESH_ENABLED', true);
+const carrierStatusSweepEnabled = () => flagEnabled('SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED', true);
+const carrierStatusSweepLimit = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT', DEFAULT_CARRIER_SWEEP_LIMIT);
+const carrierStatusSweepMinGapMinutes = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_MIN_GAP_MINUTES', 50);
+const carrierStatusSweepMaxAgeDays = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_MAX_AGE_DAYS', 45);
+const dropiClaimNotifyEnabled = () => flagEnabled('DROPPI_PAYMENT_CLAIM_NOTIFY_ENABLED', true);
+const dropiClaimLiveCheckEnabled = () => flagEnabled('DROPPI_PAYMENT_CLAIM_LIVE_CHECK_ENABLED', true);
+const parsePhoneList = (...values) => [
+    ...new Set(values
+        .flatMap((value) => String(value || '').split(','))
+        .map((item) => item.replace(/\D/g, ''))
+        .filter(Boolean))
+];
+const dropiClaimNotifyPhones = () => parsePhoneList(
+    process.env.DROPPI_PAYMENT_CLAIM_NOTIFY_PHONES,
+    process.env.DROPPI_CLAIM_NOTIFY_PHONES,
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
+    '5515998038637'
+);
 const DISPATCH_SYNCABLE_STATUSES = new Set([
     'created',
     'CREATED',
@@ -53,6 +76,14 @@ const DISPATCH_SYNCABLE_STATUSES = new Set([
     'READY_FOR_PICKUP',
     'NOVEDAD'
 ]);
+
+const CARRIER_SWEEP_FINAL_STATUSES = [
+    'ENTREGADO',
+    'DEVUELTO',
+    'CANCELADO',
+    'CANCELADO_SERVIENTREGA',
+    'CANCELADO SERVIENTREGA'
+];
 
 const parseClockMinutes = (value) => {
     const raw = String(value || '').trim();
@@ -402,6 +433,149 @@ const appendDispatchEvent = async (shipmentId, kind, payload = {}) => {
     );
 };
 
+const hasShipmentEvent = (shipment, kind) => (
+    Array.isArray(shipment?.events)
+    && shipment.events.some((event) => String(event?.kind || '') === kind)
+);
+
+const normalizeStatusKey = (value = '') => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_');
+
+const isDropiDeliveredGreenStatus = (status = '') => {
+    const value = normalizeStatusKey(status);
+    return value === 'ENTREGADO'
+        || value === 'DELIVERED'
+        || value === 'REPORTADO_ENTREGADO'
+        || value === 'MERCANCIA_ENTREGADA'
+        || value === 'PEDIDO_ENTREGADO';
+};
+
+const summarizeDropiVerification = (verification = null) => (
+    verification
+        ? {
+            ok: Boolean(verification.ok),
+            skipped: Boolean(verification.skipped),
+            reason: verification.reason || '',
+            error: verification.error || '',
+            status: verification.status || ''
+        }
+        : null
+);
+
+const buildDropiPaymentClaimText = ({
+    shipment,
+    carrierResult,
+    previousDropiStatus,
+    currentDropiStatus = '',
+    dropiVerification = null,
+    resolved = false
+} = {}) => {
+    const client = shipment?.client || {};
+    const guide = carrierResult?.trackingNumber || shipment?.logistics?.trackingNumber || '';
+    const value = shipment?.raw?.latestDroppiPayload?.total
+        || shipment?.raw?.latestDroppiPayload?.order?.total
+        || shipment?.total
+        || '';
+    const dropiOrderId = shipment?.raw?.manualDropiOrderId
+        || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+        || shipment?.raw?.latestDroppiPayload?.id
+        || '';
+    const verificationSummary = summarizeDropiVerification(dropiVerification);
+    const manualCheck = verificationSummary && !verificationSummary.ok;
+    const title = resolved
+        ? 'Pagamento Dropi ja esta verde'
+        : (manualCheck ? 'Conferir pagamento Dropi manualmente' : 'Cobrar atualizacao de pagamento Dropi');
+    const dropiStatus = currentDropiStatus || previousDropiStatus || shipment?.logistics?.status || '';
+    return [
+        title,
+        `Cliente: ${client.name || shipment?.orderId || 'sem nome'}`,
+        `Telefone: ${client.phone || ''}`,
+        `Guia: ${guide || 'sem guia'}`,
+        `Valor: ${value ? `$${value}` : 'conferir no Dropi'}`,
+        `Pedido Dropi: ${dropiOrderId || 'conferir'}`,
+        `Servientrega: ${carrierResult?.normalizedStatus || carrierResult?.statusAtual || ''}`,
+        `Dropi atual: ${dropiStatus || 'nao verificado'}`,
+        verificationSummary ? `Verificacao Dropi: ${verificationSummary.ok ? 'ok' : (verificationSummary.reason || 'falhou')}` : '',
+        `Pedido interno: ${shipment?.orderId || ''}`
+    ].filter(Boolean).join('\n');
+};
+
+const notifyDropiPaymentClaim = async ({
+    shipment,
+    carrierResult,
+    previousDropiStatus,
+    currentDropiStatus = '',
+    dropiVerification = null,
+    resolved = false
+} = {}) => {
+    if (!dropiClaimNotifyEnabled()) return { notified: false, reason: 'disabled' };
+    const eventKind = resolved ? 'dropi_payment_claim_resolved_notified' : 'dropi_payment_claim_required_notified';
+    if (hasShipmentEvent(shipment, eventKind)) return { notified: false, reason: 'already_notified' };
+    const phones = dropiClaimNotifyPhones();
+    if (!phones.length) return { notified: false, reason: 'missing_recipients' };
+    const verificationSummary = summarizeDropiVerification(dropiVerification);
+
+    const text = buildDropiPaymentClaimText({
+        shipment,
+        carrierResult,
+        previousDropiStatus,
+        currentDropiStatus,
+        dropiVerification: verificationSummary,
+        resolved
+    });
+    let sent = 0;
+    for (const phone of phones) {
+        const ok = await sendText(`${phone}@c.us`, text, null, {
+            country: 'EC',
+            allowExistingDropiOrder: true,
+            outboundContext: resolved ? 'dropi_payment_claim_resolved' : 'dropi_payment_claim_required',
+            dedupeValue: `${eventKind}|${shipment?.orderId || ''}|${shipment?.logistics?.trackingNumber || ''}|${phone}`,
+            humanize: false
+        }).catch(() => false);
+        if (ok) sent += 1;
+    }
+    await appendDispatchEvent(shipment._id, eventKind, {
+        sent,
+        recipients: phones.map((phone) => phone.slice(-4)),
+        previousDropiStatus,
+        currentDropiStatus,
+        dropiVerification: verificationSummary,
+        carrierStatus: carrierResult?.normalizedStatus || '',
+        trackingNumber: carrierResult?.trackingNumber || shipment?.logistics?.trackingNumber || ''
+    });
+    return { notified: sent > 0, sent, reason: sent ? 'ok' : 'send_failed' };
+};
+
+const verifyDropiBeforePaymentClaim = async ({ shipment } = {}) => {
+    if (!dropiClaimLiveCheckEnabled()) {
+        return {
+            ok: false,
+            skipped: true,
+            reason: 'live_check_disabled',
+            status: shipment?.logistics?.status || '',
+            shipment
+        };
+    }
+    if (!shipment?._id) return { ok: false, reason: 'missing_shipment', status: '' };
+    const sync = await syncDroppiEcuadorFromPanel({ shipment }).catch((error) => ({
+        ok: false,
+        reason: 'dropi_live_check_failed',
+        error: error.message || String(error)
+    }));
+    const syncedShipment = sync?.shipment || await Shipment.findById(shipment._id).catch(() => shipment);
+    return {
+        ok: Boolean(sync?.ok),
+        reason: sync?.reason || '',
+        error: sync?.error || '',
+        status: syncedShipment?.logistics?.status || shipment?.logistics?.status || '',
+        shipment: syncedShipment || shipment
+    };
+};
+
 const lockShipmentForDispatch = async (shipmentId) => {
     const now = new Date();
     const lockUntil = new Date(now.getTime() + DISPATCH_LOCK_MS);
@@ -436,6 +610,13 @@ export const getShipmentDispatchState = () => ({
     timeZone: dispatchTimeZone(),
     window: dispatchWindow(),
     spreadEnabled: spreadDispatchEnabled(),
+    carrierSweep: {
+        enabled: carrierStatusSweepEnabled(),
+        batchLimit: carrierStatusSweepLimit(),
+        minGapMinutes: carrierStatusSweepMinGapMinutes(),
+        maxAgeDays: carrierStatusSweepMaxAgeDays(),
+        lastRun: lastCarrierSweep
+    },
     lastRun
 });
 
@@ -525,17 +706,279 @@ const shouldRefreshShipmentBeforeDispatch = (shipment) => {
     return !status || DISPATCH_SYNCABLE_STATUSES.has(status);
 };
 
+const shouldTrackCarrierBeforeDispatch = (shipment) => {
+    if (!carrierRefreshBeforeSendEnabled()) return false;
+    const trackingNumber = shipment?.logistics?.trackingNumber || '';
+    if (!trackingNumber) return false;
+    const carrier = String(shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || '').toLowerCase();
+    return !carrier || /servientrega|servi\s*entrega|laar/.test(carrier);
+};
+
+export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStatus = '' } = {}) => {
+    if (!shouldTrackCarrierBeforeDispatch(shipment)) {
+        return { ok: false, skipped: true, reason: 'carrier_tracking_not_applicable', shipment };
+    }
+    const result = await trackCarrierGuide({
+        trackingNumber: shipment.logistics?.trackingNumber,
+        carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || 'servientrega'
+    });
+    const shouldUpdateStatus = Boolean(result?.ok && result.normalizedStatus);
+    const carrierStatus = String(result?.normalizedStatus || '').toUpperCase();
+    const dropiVerification = result?.ok && carrierStatus === 'ENTREGADO'
+        ? await verifyDropiBeforePaymentClaim({ shipment })
+        : null;
+    const verifiedDropiStatus = dropiVerification?.status || '';
+    await saveCarrierTrackingResult({
+        shipmentId: shipment._id,
+        result,
+        updateStatus: shouldUpdateStatus
+    });
+    const refreshed = await Shipment.findById(shipment._id);
+    const previousStatus = String(verifiedDropiStatus || previousDropiStatus || shipment.logistics?.status || '').toUpperCase();
+    const hadDropiPaymentClaim = refreshed && (
+        hasShipmentEvent(refreshed, 'dropi_payment_claim_required')
+        || hasShipmentEvent(refreshed, 'dropi_payment_claim_required_notified')
+    );
+    const dropiDeliveredGreen = isDropiDeliveredGreenStatus(previousStatus);
+    const dropiVerificationSummary = summarizeDropiVerification(dropiVerification);
+    if (result?.ok && carrierStatus === 'ENTREGADO' && dropiDeliveredGreen && refreshed) {
+        await appendDispatchEvent(refreshed._id, 'dropi_payment_claim_skipped_paid', {
+            reason: 'dropi_already_delivered_green',
+            dropiStatus: previousStatus,
+            dropiVerification: dropiVerificationSummary,
+            trackingNumber: result.trackingNumber || refreshed.logistics?.trackingNumber || ''
+        });
+        if (hadDropiPaymentClaim) {
+            await notifyDropiPaymentClaim({
+                shipment: refreshed,
+                carrierResult: result,
+                previousDropiStatus: previousStatus,
+                currentDropiStatus: previousStatus,
+                dropiVerification,
+                resolved: true
+            });
+        }
+    } else if (result?.ok && carrierStatus === 'ENTREGADO' && refreshed) {
+        if (!hasShipmentEvent(refreshed, 'dropi_payment_claim_required')) {
+            await appendDispatchEvent(refreshed._id, 'dropi_payment_claim_required', {
+                reason: 'carrier_delivered_dropi_not_green',
+                previousDropiStatus: previousStatus,
+                currentDropiStatus: previousStatus,
+                dropiVerification: dropiVerificationSummary,
+                carrierStatus,
+                trackingNumber: result.trackingNumber || refreshed.logistics?.trackingNumber || ''
+            });
+        }
+        await notifyDropiPaymentClaim({
+            shipment: refreshed,
+            carrierResult: result,
+            previousDropiStatus: previousStatus,
+            currentDropiStatus: previousStatus,
+            dropiVerification,
+            resolved: false
+        });
+    }
+    return {
+        ok: Boolean(result?.ok),
+        skipped: false,
+        reason: result?.reason || '',
+        status: refreshed?.logistics?.status || shipment.logistics?.status || '',
+        trackingNumber: refreshed?.logistics?.trackingNumber || shipment.logistics?.trackingNumber || '',
+        carrierResult: result,
+        shipment: refreshed || shipment
+    };
+};
+
+const carrierStatusSweepQuery = ({ force = false, now = new Date() } = {}) => {
+    const oldest = new Date(now.getTime() - carrierStatusSweepMaxAgeDays() * DAY_MS);
+    const checkedBefore = new Date(now.getTime() - carrierStatusSweepMinGapMinutes() * 60 * 1000);
+    const query = {
+        country: 'EC',
+        'logistics.trackingNumber': { $exists: true, $ne: '' },
+        $and: [
+            {
+                $or: [
+                    { 'logistics.status': { $nin: CARRIER_SWEEP_FINAL_STATUSES } },
+                    { 'logistics.status': 'ENTREGADO', 'outcomes.delivered': { $ne: true } },
+                    { 'logistics.status': 'DEVUELTO', 'outcomes.returned': { $ne: true } }
+                ]
+            },
+            {
+                $or: [
+                    { updatedAt: { $gte: oldest } },
+                    { createdAt: { $gte: oldest } },
+                    { 'logistics.status': 'NOVEDAD' }
+                ]
+            },
+            {
+                $or: [
+                    { 'logistics.distributionCompany': { $exists: false } },
+                    { 'logistics.distributionCompany': '' },
+                    { 'logistics.distributionCompany': /servientrega|servi\s*entrega|laar/i },
+                    { 'logistics.chosenCarrier': /servientrega|servi\s*entrega|laar/i },
+                    { 'logistics.preferredCarrier': /servientrega|servi\s*entrega|laar/i }
+                ]
+            }
+        ]
+    };
+    if (!force) {
+        query.$and.push({
+            $or: [
+                { 'raw.carrierTracking.lastCheckedAt': { $exists: false } },
+                { 'raw.carrierTracking.lastCheckedAt': null },
+                { 'raw.carrierTracking.lastCheckedAt': { $lte: checkedBefore } }
+            ]
+        });
+    }
+    return query;
+};
+
+export const countCarrierStatusSweepCandidates = async ({ force = false } = {}) => (
+    Shipment.countDocuments(carrierStatusSweepQuery({ force }))
+);
+
+export const processCarrierStatusSweep = async ({
+    limit = carrierStatusSweepLimit(),
+    dryRun = false,
+    force = false
+} = {}) => {
+    const startedAt = new Date();
+    const effectiveLimit = normalizeLimit(limit || carrierStatusSweepLimit());
+    if (!carrierStatusSweepEnabled() && !force) {
+        lastCarrierSweep = {
+            startedAt,
+            finishedAt: new Date(),
+            dryRun: Boolean(dryRun),
+            force: Boolean(force),
+            processed: 0,
+            refreshed: 0,
+            statusChanged: 0,
+            skipped: 0,
+            failed: 0,
+            disabled: true,
+            results: []
+        };
+        return lastCarrierSweep;
+    }
+
+    const candidates = await Shipment.find(carrierStatusSweepQuery({ force, now: startedAt }))
+        .sort({ 'raw.carrierTracking.lastCheckedAt': 1, updatedAt: 1, createdAt: 1 })
+        .limit(effectiveLimit);
+
+    const results = [];
+    let refreshed = 0;
+    let statusChanged = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const shipment of candidates) {
+        const beforeStatus = shipment.logistics?.status || '';
+        const item = {
+            orderId: shipment.orderId,
+            phoneTail: String(shipment.client?.phone || '').replace(/\D/g, '').slice(-4),
+            trackingNumber: shipment.logistics?.trackingNumber || '',
+            beforeStatus,
+            success: false
+        };
+
+        if (dryRun) {
+            item.success = true;
+            item.dryRun = true;
+            results.push(item);
+            continue;
+        }
+
+        try {
+            const result = await refreshCarrierBeforeDispatch(shipment, {
+                previousDropiStatus: beforeStatus
+            });
+            const afterStatus = result?.shipment?.logistics?.status || result?.status || beforeStatus;
+            item.success = Boolean(result?.ok);
+            item.reason = result?.reason || '';
+            item.afterStatus = afterStatus;
+            item.carrierStatus = result?.carrierResult?.normalizedStatus || result?.carrierResult?.statusAtual || '';
+            item.trackingNumber = result?.trackingNumber || item.trackingNumber;
+            if (result?.skipped) {
+                skipped += 1;
+            } else if (item.success) {
+                refreshed += 1;
+                if (afterStatus && afterStatus !== beforeStatus) statusChanged += 1;
+            } else {
+                failed += 1;
+            }
+        } catch (error) {
+            item.error = error.message || 'carrier_sweep_failed';
+            failed += 1;
+        }
+
+        await appendDispatchEvent(shipment._id, 'carrier_status_sweep_attempt', {
+            success: Boolean(item.success),
+            reason: item.reason || '',
+            error: item.error || '',
+            beforeStatus,
+            afterStatus: item.afterStatus || '',
+            trackingNumber: item.trackingNumber || '',
+            carrierStatus: item.carrierStatus || ''
+        }).catch(() => null);
+        results.push(item);
+    }
+
+    lastCarrierSweep = {
+        startedAt,
+        finishedAt: new Date(),
+        dryRun: Boolean(dryRun),
+        force: Boolean(force),
+        processed: candidates.length,
+        refreshed,
+        statusChanged,
+        skipped,
+        failed,
+        results
+    };
+    return lastCarrierSweep;
+};
+
 const refreshShipmentBeforeDispatch = async (shipment) => {
     if (!shouldRefreshShipmentBeforeDispatch(shipment)) {
         return { ok: false, skipped: true, reason: 'no_dropi_reference_or_final_status' };
     }
-    const result = await syncDroppiEcuadorFromPanel({ shipment });
-    const refreshed = await Shipment.findById(shipment._id);
+    let result = null;
+    try {
+        result = await syncDroppiEcuadorFromPanel({ shipment });
+    } catch (error) {
+        result = {
+            ok: false,
+            reason: 'dropi_sync_failed_before_dispatch',
+            error: error.message || 'dropi_sync_failed_before_dispatch'
+        };
+    }
+    let refreshed = await Shipment.findById(shipment._id);
+    const previousDropiStatus = refreshed?.logistics?.status || shipment.logistics?.status || '';
+    const carrierRefresh = refreshed
+        ? await refreshCarrierBeforeDispatch(refreshed, { previousDropiStatus }).catch((error) => ({
+            ok: false,
+            reason: 'carrier_tracking_failed_before_dispatch',
+            error: error.message || 'carrier_tracking_failed_before_dispatch',
+            shipment: refreshed
+        }))
+        : null;
+    if (carrierRefresh?.shipment) refreshed = carrierRefresh.shipment;
     return {
-        ok: Boolean(result?.ok),
+        ok: Boolean(result?.ok || carrierRefresh?.ok),
         reason: result?.reason || '',
+        error: result?.error || '',
         status: refreshed?.logistics?.status || shipment.logistics?.status || '',
         trackingNumber: refreshed?.logistics?.trackingNumber || shipment.logistics?.trackingNumber || '',
+        carrierRefresh: carrierRefresh
+            ? {
+                ok: Boolean(carrierRefresh.ok),
+                skipped: Boolean(carrierRefresh.skipped),
+                reason: carrierRefresh.reason || '',
+                error: carrierRefresh.error || '',
+                status: carrierRefresh.status || '',
+                trackingNumber: carrierRefresh.trackingNumber || ''
+            }
+            : null,
         shipment: refreshed || shipment
     };
 };
@@ -709,7 +1152,8 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     reason: refresh?.reason || '',
                     error: refresh?.error || '',
                     status: refresh?.status || '',
-                    trackingNumber: refresh?.trackingNumber || ''
+                    trackingNumber: refresh?.trackingNumber || '',
+                    carrierRefresh: refresh?.carrierRefresh || null
                 };
                 if (refresh?.shipment) shipmentForSend = refresh.shipment;
                 const refreshedAction = actionForShipment(shipmentForSend);

@@ -32,6 +32,15 @@ const normalizeOrderStatus = (status) => {
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
+const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizePackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
+
+const orderHasValidPackage = (order) => normalizePackageQuantity(order?.package?.quantity || order?.package?.id) > 0;
+
 const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => {
     const normalizedCountry = String(country || '').trim().toUpperCase();
     const phoneDigits = digitsOnly(phone);
@@ -127,6 +136,12 @@ const sendBrazilTestOnlyError = (res) => res.status(409).json({
 });
 
 const markPurchaseEventForOrder = async (order, req) => {
+    if (!orderHasValidPackage(order)) {
+        return { ok: false, skipped: true, reason: 'missing_valid_quantity', order };
+    }
+    if (!(Number(order.total || 0) > 0)) {
+        return { ok: false, skipped: true, reason: 'missing_positive_total', order };
+    }
     if (!order.confirmedAt) order.confirmedAt = new Date();
     order.status = 'confirmed';
 
@@ -559,7 +574,7 @@ router.post('/draft', async (req, res) => {
             package: {
                 id: 0,
                 label: '',
-                quantity: 1
+                quantity: 0
             },
             total: 0,
             status: 'draft',
@@ -642,9 +657,10 @@ router.patch('/draft/:id', async (req, res) => {
 
         // Update package if provided
         if (packageId !== undefined) {
-            order.package.id = packageId;
-            order.package.label = packageLabel || `Package ${packageId}`;
-            order.package.quantity = Number(packageId) || order.package.quantity || 1;
+            const normalizedQuantity = normalizePackageQuantity(packageId);
+            order.package.id = normalizedQuantity;
+            order.package.label = normalizedQuantity ? (packageLabel || `Package ${normalizedQuantity}`) : '';
+            order.package.quantity = normalizedQuantity;
         }
 
         // Update total if provided
@@ -769,6 +785,10 @@ router.post('/', async (req, res) => {
         if (!country || !customer || !packageId || !total) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
+        const normalizedPackageQuantity = normalizePackageQuantity(packageId);
+        if (!normalizedPackageQuantity) {
+            return res.status(400).json({ error: 'Quantidade valida obrigatoria: 1, 3 ou 6 frascos.' });
+        }
 
         if (!customer.name || !customer.phone || !customer.address || !customer.city || !customer.province) {
             return res.status(400).json({ error: 'Incomplete customer data' });
@@ -812,9 +832,9 @@ router.post('/', async (req, res) => {
                 province: customer.province
             },
             package: {
-                id: packageId,
-                label: packageLabel || `Package ${packageId}`,
-                quantity: Number(packageId) || 1
+                id: normalizedPackageQuantity,
+                label: packageLabel || `Package ${normalizedPackageQuantity}`,
+                quantity: normalizedPackageQuantity
             },
             total,
             currency: orderCurrency,
@@ -883,11 +903,13 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             });
         }
         if (packageData && typeof packageData === 'object') {
-            if (Number.isFinite(Number(packageData.quantity))) {
-                order.package.quantity = Math.max(1, Number(packageData.quantity));
+            if (Object.prototype.hasOwnProperty.call(packageData, 'quantity')) {
+                const normalizedQuantity = normalizePackageQuantity(packageData.quantity);
+                order.package.quantity = normalizedQuantity;
+                order.package.id = normalizedQuantity;
             }
             if (typeof packageData.label === 'string') {
-                order.package.label = packageData.label.trim();
+                order.package.label = order.package.quantity ? packageData.label.trim() : '';
             }
         }
         if (total !== undefined && total !== null && total !== '') {

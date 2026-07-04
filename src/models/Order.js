@@ -22,7 +22,7 @@ const orderSchema = new mongoose.Schema({
     package: {
         id: { type: Number, default: 0 },
         label: { type: String, default: '' },
-        quantity: { type: Number, default: 1 }
+        quantity: { type: Number, default: 0 }
     },
     total: {
         type: Number,
@@ -114,7 +114,11 @@ const orderSchema = new mongoose.Schema({
         waSelectedNumber: String,
         metaPurchaseEventId: String,
         metaPurchaseSentAt: Date,
-        metaPurchaseResponse: mongoose.Schema.Types.Mixed
+        metaPurchaseResponse: mongoose.Schema.Types.Mixed,
+        attributionSource: String,
+        attributionVisitorKey: String,
+        attributionMatchedAt: Date,
+        attributionConfidence: String
     },
     conversationMemory: {
         currentIntent: String,

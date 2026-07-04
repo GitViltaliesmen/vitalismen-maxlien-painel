@@ -155,6 +155,15 @@ const main = async () => {
         sent: 0,
         skipped: 0,
         failed: 0,
+        skippedDetails: skippedBeforeLimit.slice(0, 30).map((item) => ({
+            orderId: item.order?.orderId || '',
+            status: item.order?.status || '',
+            total: item.order?.total || 0,
+            source: item.order?.source || '',
+            originalSaleAt: item.eventDate ? new Date(item.eventDate).toISOString() : null,
+            ageDays: item.ageDays,
+            reason: item.reason
+        })),
         events: []
     };
 

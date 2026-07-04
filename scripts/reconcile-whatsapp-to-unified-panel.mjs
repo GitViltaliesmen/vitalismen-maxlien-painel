@@ -23,6 +23,11 @@ const normalizeEcPhone = (value) => {
     if (digits.startsWith('593')) return digits;
     return digits.length >= 9 ? `593${digits.slice(-9)}` : digits;
 };
+const VALID_PACKAGE_QUANTITIES = new Set(['1', '3', '6']);
+const normalizePackageQuantity = (value) => {
+    const text = String(value ?? '').trim();
+    return VALID_PACKAGE_QUANTITIES.has(text) ? text : '0';
+};
 
 const parseDate = (value) => {
     if (!value) return null;
@@ -129,7 +134,7 @@ const buildCandidate = async (state) => {
         address: String(draft.address || '').trim(),
         city: String(draft.city || '').trim(),
         province: String(draft.province || '').trim(),
-        product_qty: String(draft.quantity || '').trim() || '1',
+        product_qty: normalizePackageQuantity(draft.quantity),
         product_value: Number(draft.total || 0) || 0,
         status,
         entryAt: entryAt.toISOString(),
@@ -195,7 +200,7 @@ for item in items:
         "address": item.get("address") or "",
         "city": item.get("city") or "",
         "province": item.get("province") or "",
-        "product_qty": item.get("product_qty") or "1",
+        "product_qty": item.get("product_qty") or "0",
         "product_value": item.get("product_value") or 0,
         "status": item.get("status") or "novo",
         "country": "EC",

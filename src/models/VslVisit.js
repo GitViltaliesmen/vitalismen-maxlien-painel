@@ -53,6 +53,15 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    customerPhone: {
+        type: String,
+        default: '',
+        index: true
+    },
+    lastWhatsappMessage: {
+        type: String,
+        default: ''
+    },
     tracking: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
@@ -96,6 +105,24 @@ const vslVisitSchema = new mongoose.Schema({
     },
     metaPageViewSentAt: Date,
     metaPageViewResponse: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    metaViewContentEventId: {
+        type: String,
+        default: ''
+    },
+    metaViewContentSentAt: Date,
+    metaViewContentResponse: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    metaInitiateCheckoutEventId: {
+        type: String,
+        default: ''
+    },
+    metaInitiateCheckoutSentAt: Date,
+    metaInitiateCheckoutResponse: {
         type: mongoose.Schema.Types.Mixed,
         default: null
     },

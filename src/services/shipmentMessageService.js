@@ -1,9 +1,11 @@
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { spawn } from 'child_process';
 import { sendText } from '../whatsapp/sendText.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendDocument } from '../whatsapp/sendDocument.js';
+import { sendImage } from '../whatsapp/sendImage.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
@@ -76,6 +78,7 @@ const SHIPMENT_AUDIO_DELAY_MIN_MS = Number.parseInt(process.env.SHIPMENT_AUDIO_D
 const SHIPMENT_AUDIO_DELAY_MAX_MS = Number.parseInt(process.env.SHIPMENT_AUDIO_DELAY_MAX_MS || '17000', 10);
 const SHIPMENT_EC_PICKUP_AUDIO_APPROVED = process.env.SHIPMENT_EC_PICKUP_AUDIO_APPROVED === 'true';
 const SHIPMENT_FILES_DIR = path.join(process.cwd(), 'public', 'media', 'shipments');
+const GUIDE_PRINT_DIR = path.join(SHIPMENT_FILES_DIR, 'guide-prints');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS = Math.max(6, Number.parseInt(process.env.SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS || '10', 10) || 10);
 const SHIPMENT_GLOBAL_NOTICE_LOCK_DAYS = Math.max(1, Number.parseInt(process.env.SHIPMENT_GLOBAL_NOTICE_LOCK_DAYS || '10', 10) || 10);
@@ -166,6 +169,106 @@ const shipmentOutboundOptions = (shipment) => ({
     outboundContext: 'shipment_status'
 });
 
+const zapiOwnerPhoneDigits = () => String(
+    process.env.ZAPI_PHONE
+    || process.env.ZAPI_DEFAULT_PHONE
+    || process.env.ZAPI_OPERATION_PHONE
+    || process.env.ZAPI_CONNECTED_PHONE
+    || '553183002800'
+).replace(/\D/g, '');
+
+const publicMediaUrlForPath = (filePath = '') => {
+    const source = String(filePath || '').trim();
+    if (!source) return '';
+    if (/^https?:\/\//i.test(source)) return source;
+    const publicRoot = path.join(process.cwd(), 'public');
+    const cleanSource = source.split('?')[0];
+    if (cleanSource.startsWith(publicRoot)) {
+        return `/${path.relative(publicRoot, cleanSource).replace(/\\/g, '/')}`;
+    }
+    return '';
+};
+
+const sendResultOk = (result) => result === true || result?.ok === true;
+
+const persistShipmentOutboundMessage = async ({
+    shipment,
+    chatId,
+    kind = 'shipment',
+    type = 'chat',
+    body = '',
+    mediaPath = '',
+    sentResult = null
+} = {}) => {
+    if (!shipment?._id || !chatId || !sendResultOk(sentResult)) return null;
+    const now = new Date();
+    const providerMessageId = sentResult?.providerMessageId || '';
+    const providerZaapId = sentResult?.providerZaapId || '';
+    const messageId = providerMessageId
+        || providerZaapId
+        || `shipment_${kind}_${shipment._id}_${now.getTime()}_${crypto.randomBytes(3).toString('hex')}`;
+    const mediaUrl = publicMediaUrlForPath(mediaPath);
+    const messageType = type || (mediaUrl ? 'document' : 'chat');
+    const hasMedia = Boolean(mediaUrl) || messageType !== 'chat';
+
+    await Message.updateOne(
+        { _id: messageId },
+        {
+            $setOnInsert: {
+                _id: messageId,
+                chatId,
+                peerPhone: shipmentPhoneDigits(shipment),
+                from: 'bot',
+                to: chatId,
+                body: String(body || ''),
+                type: messageType,
+                hasMedia,
+                mediaUrl,
+                mediaPreviewUrl: mediaUrl,
+                timestamp: Math.floor(now.getTime() / 1000),
+                sessionId: sentResult?.provider === 'zapi' ? 'zapi' : (shipment?.automation?.sessionId || ''),
+                ownerPhoneDigits: zapiOwnerPhoneDigits(),
+                isFromMe: true,
+                isBot: true,
+                orderId: shipment?.orderId || ''
+            },
+            $set: {
+                ack: 1,
+                deliveryStatus: 'sent',
+                sendError: '',
+                provider: sentResult?.provider || 'zapi',
+                providerMessageId,
+                providerZaapId,
+                providerStatus: sentResult?.providerStatus || 'queued',
+                providerPayload: sentResult?.providerPayload || {}
+            }
+        },
+        { upsert: true }
+    ).catch((error) => {
+        console.warn(`[SHIPMENT] Falha ao registrar bolha ${kind} ${shipment.orderId}:`, error.message);
+    });
+
+    return messageId;
+};
+
+const sendShipmentText = async (shipment, chatId, text, options = {}) => {
+    const sent = await sendText(chatId, text, null, {
+        ...shipmentOutboundOptions(shipment),
+        ...options,
+        returnDetails: true
+    });
+    if (!sendResultOk(sent)) return false;
+    await persistShipmentOutboundMessage({
+        shipment,
+        chatId,
+        kind: options.kind || 'shipment_text',
+        type: 'chat',
+        body: text,
+        sentResult: sent
+    });
+    return sent;
+};
+
 const resolveInvoiceSource = (shipment) => {
     if (shipment?.logistics?.invoicePath && fs.existsSync(shipment.logistics.invoicePath)) {
         return shipment.logistics.invoicePath;
@@ -239,9 +342,31 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption) => {
         documentSource,
         path.basename(String(documentSource).split('?')[0]),
         caption,
-        shipmentOutboundOptions(shipment)
+        {
+            ...shipmentOutboundOptions(shipment),
+            outboundContext: 'shipment_invoice_pdf',
+            returnDetails: true
+        }
     );
-    return { sent: Boolean(sent), reason: sent ? 'ok' : 'send_failed', path: documentSource };
+    if (sendResultOk(sent)) {
+        await persistShipmentOutboundMessage({
+            shipment,
+            chatId,
+            kind: 'shipment_invoice_pdf',
+            type: 'document',
+            body: caption,
+            mediaPath: documentSource,
+            sentResult: sent
+        });
+    }
+    return {
+        sent: sendResultOk(sent),
+        reason: sendResultOk(sent) ? 'ok' : (sent?.reason || sent?.error || 'send_failed'),
+        path: documentSource,
+        providerMessageId: sent?.providerMessageId || '',
+        providerZaapId: sent?.providerZaapId || '',
+        providerStatus: sent?.providerStatus || ''
+    };
 };
 
 const buildMessageHash = ({ kind, text, trackingNumber }) => crypto
@@ -300,6 +425,31 @@ const registerAudioAttempt = async (shipment, entry) => {
     );
 };
 
+const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
+    kind = 'shipment_audio',
+    baseName = '',
+    dedupeValue = '',
+    force = false
+} = {}) => {
+    const sent = await sendAudio(chatId, audioPath, true, {
+        ...shipmentOutboundOptions(shipment),
+        ...(dedupeValue ? { dedupeValue } : {}),
+        bypassDedupe: force,
+        returnDetails: true
+    });
+    if (!sendResultOk(sent)) return false;
+    await persistShipmentOutboundMessage({
+        shipment,
+        chatId,
+        kind,
+        type: 'audio',
+        body: baseName ? `[AUDIO] ${baseName}` : '',
+        mediaPath: audioPath,
+        sentResult: sent
+    });
+    return sent;
+};
+
 const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {}) => {
     const baseNames = Array.isArray(PICKUP_AUDIO_BY_KIND[kind])
         ? PICKUP_AUDIO_BY_KIND[kind]
@@ -349,25 +499,37 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {})
             continue;
         }
 
-        const sent = await sendAudio(chatId, audioPath, true, {
-            ...shipmentOutboundOptions(shipment),
-            bypassDedupe: force
+        const sent = await sendShipmentAudioFile(shipment, chatId, audioPath, {
+            kind: `shipment_audio_${kind}`,
+            baseName,
+            force
         });
-        sentAny = Boolean(sent) || sentAny;
-        if (sent) {
+        sentAny = sendResultOk(sent) || sentAny;
+        if (sendResultOk(sent)) {
             detail.sent.push(baseName);
+            detail.sentDetails = [
+                ...(detail.sentDetails || []),
+                {
+                    baseName,
+                    providerMessageId: sent.providerMessageId || '',
+                    providerZaapId: sent.providerZaapId || '',
+                    providerStatus: sent.providerStatus || ''
+                }
+            ];
         } else {
-            detail.failed.push({ baseName, reason: 'send_failed' });
+            detail.failed.push({ baseName, reason: sent?.reason || sent?.error || 'send_failed' });
         }
         await registerAudioAttempt(shipment, {
             kind,
             baseName,
             at: new Date(),
-            sent: Boolean(sent),
-            reason: sent ? 'sent' : 'send_failed',
-            sessionId: shipment.automation?.sessionId || null
+            sent: sendResultOk(sent),
+            reason: sendResultOk(sent) ? 'sent' : 'send_failed',
+            sessionId: shipment.automation?.sessionId || null,
+            providerMessageId: sent?.providerMessageId || '',
+            providerZaapId: sent?.providerZaapId || ''
         });
-        if (sent && index < baseNames.length - 1) {
+        if (sendResultOk(sent) && index < baseNames.length - 1) {
             await wait(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
         }
     }
@@ -395,6 +557,14 @@ const withSaveContactReminder = (text = '') => {
     return `${body}\n\n${SAVE_CONTACT_LINE}`;
 };
 
+const pickupAgencyLine = (shipment) => {
+    const agency = [
+        shipment?.logistics?.agencyName,
+        shipment?.client?.address
+    ].map((value) => String(value || '').trim()).find(Boolean);
+    return agency ? `\nAgencia: ${agency}.` : '';
+};
+
 export const buildShipmentGuideText = (shipment) => {
     const name = shipment?.client?.name || 'cliente';
     const tracking = shipment?.logistics?.trackingNumber || '';
@@ -419,12 +589,13 @@ export const buildReadyForPickupText = (shipment) => {
     const name = shipment?.client?.name || 'cliente';
     const tracking = shipment?.logistics?.trackingNumber || '';
     const carrier = shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || 'la transportadora';
+    const agencyLine = pickupAgencyLine(shipment);
     return renderShipmentTextVariant([
-        ({ name, tracking }) => `Hola ${name}. Su pedido esta para retiro en agencia. Guia: ${tracking}.`,
-        ({ name, tracking }) => `${name}, su pedido ya esta disponible para retirar. Guia: ${tracking}.`,
-        ({ name, tracking }) => `Listo, ${name}. Ya puede retirar en Servientrega. Guia: ${tracking}.`,
-        ({ name, tracking }) => `${name}, su pedido esta listo en agencia. Guia: ${tracking}.`
-    ], shipment, 'ready_for_pickup', { name, carrier, tracking });
+        ({ name, tracking, agencyLine }) => `*PEDIDO LISTO PARA RETIRO*\n\nHola ${name}. Su pedido ya esta disponible en agencia Servientrega.\nGuia: *${tracking}*.${agencyLine}\n\nPor favor acerquese con su documento de identidad y esta guia.`,
+        ({ name, tracking, agencyLine }) => `*PEDIDO PARA RETIRO*\n\n${name}, ya puede retirar su pedido en Servientrega.\nGuia: *${tracking}*.${agencyLine}\n\nLleve su documento y muestre esta guia en la agencia.`,
+        ({ name, tracking, agencyLine }) => `*SU PEDIDO ESTA EN AGENCIA*\n\nListo, ${name}. Servientrega ya lo tiene disponible para retiro.\nGuia: *${tracking}*.${agencyLine}\n\nRetire con su documento de identidad.`,
+        ({ name, tracking, agencyLine }) => `*AVISO DE RETIRO SERVIENTREGA*\n\n${name}, su pedido esta listo para retirar.\nGuia: *${tracking}*.${agencyLine}\n\nGuarde este mensaje para mostrarlo en agencia.`
+    ], shipment, 'ready_for_pickup', { name, carrier, tracking, agencyLine });
 };
 
 export const buildInTransitText = (shipment) => {
@@ -528,6 +699,335 @@ const appendEvent = async (shipmentId, kind, payload = {}) => {
             }
         }
     );
+};
+
+const appendPartialAttachmentEvents = async (shipmentId, action, parts = {}) => {
+    const failures = [];
+    if (parts.invoice && parts.invoice.reason && parts.invoice.reason !== 'missing_invoice_source' && parts.invoice.sent !== true) {
+        failures.push({
+            part: 'invoice_pdf',
+            reason: parts.invoice.reason,
+            path: parts.invoice.path || ''
+        });
+    }
+    if (parts.audio && Array.isArray(parts.audio.failed) && parts.audio.failed.length) {
+        failures.push({
+            part: 'audio',
+            reason: 'audio_failed',
+            failed: parts.audio.failed
+        });
+    }
+    for (const failure of failures) {
+        await appendEvent(shipmentId, 'partial_attachment_failed', {
+            action,
+            ...failure
+        });
+    }
+    return failures;
+};
+
+const GUIDE_PRINT_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const GUIDE_PRINT_PDF_EXTENSIONS = new Set(['.pdf']);
+
+const sanitizeGuidePrintPart = (value = '') => String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+
+const ensureGuidePrintDir = () => {
+    if (!fs.existsSync(GUIDE_PRINT_DIR)) {
+        fs.mkdirSync(GUIDE_PRINT_DIR, { recursive: true });
+    }
+};
+
+const guidePrintPublicUrl = (filePath = '') => {
+    const normalized = String(filePath || '').split(path.sep).join('/');
+    const marker = '/public/';
+    const index = normalized.indexOf(marker);
+    if (index >= 0) return `/${normalized.slice(index + marker.length)}`;
+    return `/media/shipments/guide-prints/${path.basename(filePath)}`;
+};
+
+const guidePrintOutputPathForShipment = (shipment = {}) => {
+    ensureGuidePrintDir();
+    const order = sanitizeGuidePrintPart(shipment.orderId || 'shipment');
+    const tracking = sanitizeGuidePrintPart(shipment?.logistics?.trackingNumber || Date.now());
+    return path.join(GUIDE_PRINT_DIR, `${order}_${tracking}.png`);
+};
+
+const isImageSource = (source = '') => GUIDE_PRINT_IMAGE_EXTENSIONS.has(path.extname(String(source).split('?')[0]).toLowerCase());
+const isPdfSource = (source = '') => GUIDE_PRINT_PDF_EXTENSIONS.has(path.extname(String(source).split('?')[0]).toLowerCase());
+
+const optimizeGuidePrintImage = async (inputPath, outputPath) => {
+    try {
+        const sharpModule = await import('sharp');
+        const sharp = sharpModule.default || sharpModule;
+        await sharp(inputPath)
+            .rotate()
+            .resize({ width: 1100, withoutEnlargement: true })
+            .png({ compressionLevel: 9, adaptiveFiltering: true })
+            .toFile(outputPath);
+        return true;
+    } catch (error) {
+        if (inputPath !== outputPath) {
+            fs.copyFileSync(inputPath, outputPath);
+        }
+        return false;
+    }
+};
+
+const runProcess = (command, args = []) => new Promise((resolve) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    child.on('error', (error) => resolve({ ok: false, error: error.message }));
+    child.on('close', (code) => resolve({ ok: code === 0, code, error: stderr.trim() }));
+});
+
+const renderPdfWithPdftoppm = async (pdfPath, outputPath) => {
+    const outputPrefix = outputPath.replace(/\.png$/i, '');
+    const generatedPath = `${outputPrefix}.png`;
+    const result = await runProcess('pdftoppm', [
+        '-png',
+        '-singlefile',
+        '-f',
+        '1',
+        '-l',
+        '1',
+        '-r',
+        '180',
+        pdfPath,
+        outputPrefix
+    ]);
+    if (!result.ok || !fs.existsSync(generatedPath)) {
+        return { ok: false, reason: result.error || 'pdftoppm_failed' };
+    }
+    if (generatedPath !== outputPath) {
+        fs.renameSync(generatedPath, outputPath);
+    }
+    return { ok: true };
+};
+
+const renderPdfFirstPageToImage = async (pdfPath, outputPath) => {
+    const popplerResult = await renderPdfWithPdftoppm(pdfPath, outputPath).catch((error) => ({
+        ok: false,
+        reason: error?.message || 'pdftoppm_failed'
+    }));
+    if (popplerResult.ok) return;
+
+    const playwright = await import('playwright');
+    const chromium = playwright.chromium || playwright.default?.chromium;
+    if (!chromium) throw new Error('playwright_chromium_unavailable');
+
+    const browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    try {
+        const page = await browser.newPage({
+            viewport: { width: 900, height: 1300 },
+            deviceScaleFactor: 2
+        });
+        const fileUrl = `file://${path.resolve(pdfPath).split(path.sep).join('/')}`;
+        await page.setContent(`
+            <html>
+              <body style="margin:0;background:#fff;overflow:hidden;">
+                <embed src="${fileUrl}" type="application/pdf" style="display:block;width:900px;height:1300px;border:0;background:#fff;" />
+              </body>
+            </html>
+        `, { waitUntil: 'load' });
+        await page.waitForTimeout(1800);
+        await page.screenshot({ path: outputPath, type: 'png', fullPage: false });
+    } finally {
+        await browser.close().catch(() => null);
+    }
+};
+
+export const ensureGuidePrintImage = async (shipment, { force = false } = {}) => {
+    if (!shipment?._id) {
+        return { ok: false, reason: 'invalid_shipment' };
+    }
+
+    const existingPath = shipment?.logistics?.guidePrintPath || '';
+    if (!force && existingPath && fs.existsSync(existingPath)) {
+        return {
+            ok: true,
+            path: existingPath,
+            url: shipment.logistics.guidePrintUrl || guidePrintPublicUrl(existingPath),
+            generated: false
+        };
+    }
+
+    const now = new Date();
+    const outputPath = guidePrintOutputPathForShipment(shipment);
+    const tempPath = outputPath.replace(/\.png$/i, `.tmp-${Date.now()}.png`);
+
+    try {
+        const invoiceSource = resolveInvoiceSource(shipment);
+        if (!invoiceSource) {
+            throw new Error('missing_invoice_source');
+        }
+
+        let sourcePath = invoiceSource && fs.existsSync(invoiceSource) ? invoiceSource : '';
+        if (!sourcePath) {
+            sourcePath = await ensureInvoiceAvailableLocally(shipment);
+        }
+        if (!sourcePath || !fs.existsSync(sourcePath)) {
+            throw new Error('invoice_unavailable_locally');
+        }
+
+        if (isImageSource(sourcePath)) {
+            await optimizeGuidePrintImage(sourcePath, outputPath);
+        } else if (isPdfSource(sourcePath) || !isImageSource(sourcePath)) {
+            await renderPdfFirstPageToImage(sourcePath, tempPath);
+            await optimizeGuidePrintImage(tempPath, outputPath);
+        }
+
+        if (!fs.existsSync(outputPath)) {
+            throw new Error('guide_print_not_created');
+        }
+
+        const publicUrl = guidePrintPublicUrl(outputPath);
+        shipment.logistics.guidePrintPath = outputPath;
+        shipment.logistics.guidePrintUrl = publicUrl;
+        shipment.automation.guidePrintLastAttemptAt = now;
+        shipment.automation.guidePrintLastError = '';
+        await shipment.save();
+        await appendEvent(shipment._id, 'guide_print_generated', {
+            trackingNumber: shipment.logistics?.trackingNumber || '',
+            sourcePath,
+            guidePrintPath: outputPath,
+            guidePrintUrl: publicUrl
+        });
+        return { ok: true, path: outputPath, url: publicUrl, generated: true };
+    } catch (error) {
+        const reason = error?.message || 'guide_print_failed';
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.guidePrintLastAttemptAt': now,
+                    'automation.guidePrintLastError': reason
+                }
+            }
+        );
+        await appendEvent(shipment._id, 'guide_print_generation_failed', {
+            trackingNumber: shipment?.logistics?.trackingNumber || '',
+            reason
+        });
+        return { ok: false, reason };
+    } finally {
+        if (fs.existsSync(tempPath)) {
+            fs.rmSync(tempPath, { force: true });
+        }
+    }
+};
+
+export const notifyGuidePrintImage = async (shipment, { force = false } = {}) => {
+    const chatId = resolveChatId(shipment);
+    if (!chatId) return { success: false, imageSent: false, reason: 'invalid_chat' };
+    if (!force && shipment?.automation?.guidePrintNotifiedAt) {
+        return { success: false, imageSent: false, reason: 'already_notified' };
+    }
+
+    const image = await ensureGuidePrintImage(shipment, { force: false });
+    if (!image.ok || !image.path) {
+        return { success: false, imageSent: false, reason: image.reason || 'guide_print_unavailable' };
+    }
+
+    const sent = await sendImage(chatId, image.path, '', {
+        ...shipmentOutboundOptions(shipment),
+        outboundContext: 'shipment_guide_print',
+        returnDetails: true,
+        bypassDedupe: force
+    });
+    if (!sent?.ok) {
+        const reason = sent?.error || sent?.reason || 'image_send_failed';
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.guidePrintLastAttemptAt': new Date(),
+                    'automation.guidePrintLastError': reason
+                }
+            }
+        );
+        await appendEvent(shipment._id, 'guide_print_failed', {
+            trackingNumber: shipment?.logistics?.trackingNumber || '',
+            guidePrintUrl: image.url || '',
+            reason
+        });
+        return { success: false, imageSent: false, reason };
+    }
+
+    const now = new Date();
+    const providerMessageId = sent.providerMessageId || sent.providerZaapId || `guide_print_${shipment._id}_${now.getTime()}`;
+    const peerPhone = shipmentPhoneDigits(shipment);
+    await Message.updateOne(
+        { _id: providerMessageId },
+        {
+            $setOnInsert: {
+                _id: providerMessageId,
+                chatId,
+                peerPhone,
+                from: 'bot',
+                to: chatId,
+                body: '',
+                type: 'image',
+                hasMedia: true,
+                mediaUrl: image.url || '',
+                timestamp: Math.floor(now.getTime() / 1000),
+                sessionId: shipment?.automation?.sessionId || process.env.ZAPI_PHONE || process.env.ZAPI_DEFAULT_PHONE || '553183002800',
+                ownerPhoneDigits: process.env.ZAPI_PHONE || process.env.ZAPI_DEFAULT_PHONE || '553183002800',
+                isFromMe: true,
+                isBot: true,
+                orderId: shipment?.orderId || ''
+            },
+            $set: {
+                ack: 1,
+                deliveryStatus: 'sent',
+                sendError: '',
+                provider: sent.provider || 'zapi',
+                providerMessageId: sent.providerMessageId || '',
+                providerZaapId: sent.providerZaapId || '',
+                providerStatus: sent.providerStatus || 'queued',
+                providerPayload: sent.providerPayload || {}
+            }
+        },
+        { upsert: true }
+    ).catch((error) => {
+        console.warn(`[SHIPMENT] Falha ao registrar bolha do print da guia ${shipment.orderId}:`, error.message);
+    });
+    await Shipment.updateOne(
+        { _id: shipment._id },
+        {
+            $set: {
+                'automation.guidePrintNotifiedAt': now,
+                'automation.guidePrintLastAttemptAt': now,
+                'automation.guidePrintLastError': '',
+                'automation.lastReminderAt': now,
+                'automation.lastReminderKind': 'guide_print'
+            }
+        }
+    );
+    await appendEvent(shipment._id, 'guide_print_notified', {
+        trackingNumber: shipment?.logistics?.trackingNumber || '',
+        guidePrintUrl: image.url || '',
+        provider: sent.provider || '',
+        providerMessageId: sent.providerMessageId || '',
+        providerZaapId: sent.providerZaapId || '',
+        providerStatus: sent.providerStatus || ''
+    });
+    return {
+        success: true,
+        imageSent: true,
+        reason: 'ok',
+        guidePrintUrl: image.url || '',
+        provider: sent.provider || '',
+        providerMessageId: sent.providerMessageId || '',
+        providerZaapId: sent.providerZaapId || ''
+    };
 };
 
 const existingOutboundMessageQuery = (chatId, patterns = []) => {
@@ -729,8 +1229,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         return { success: false, textSent: false, invoiceSent: false, reason: 'min_gap_not_elapsed' };
     }
 
-    const textSent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment),
+    const textSent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_guide_text',
         bypassDedupe: force
     });
     if (!textSent) {
@@ -740,13 +1240,17 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
     const invoiceResult = await sendShipmentInvoicePdf(
         shipment,
         chatId,
-        'Te comparto tambien la guia/factura en PDF.'
+        `Guia/factura PDF de su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''}. Guarde este archivo junto con el aviso de envio.`
     );
     const invoiceSent = invoiceResult.sent;
     if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceSent) {
         console.warn(`[SHIPMENT] Falha ao enviar fatura PDF para shipment ${shipment.orderId}: ${invoiceResult.reason}`);
     }
     const guideAudioSent = await sendShipmentAudio(shipment, chatId, 'guia', { force });
+    const partialAttachmentFailures = await appendPartialAttachmentEvents(shipment._id, 'guide', {
+        invoice: invoiceResult,
+        audio: guideAudioSent
+    });
 
     const now = new Date();
     await persistAutomationUpdate(shipment._id, {
@@ -758,13 +1262,16 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         trackingNumber: shipment.logistics.trackingNumber,
         audio: guideAudioSent,
         invoiceSent,
-        invoiceReason: invoiceResult.reason
+        invoiceReason: invoiceResult.reason,
+        primaryTextSent: true,
+        partialAttachmentFailures
     });
     return {
         success: true,
         textSent: true,
         invoiceSent,
-        reason: invoiceResult.reason !== 'missing_invoice_source' && !invoiceSent ? 'invoice_send_failed' : 'ok'
+        partialAttachmentFailures,
+        reason: 'ok'
     };
 };
 
@@ -791,20 +1298,24 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
     }
     if (!force && !hasMinGapElapsed(shipment)) return false;
 
-    const sent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment),
+    const sent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_ready_for_pickup_text',
         bypassDedupe: force
     });
     if (!sent) return false;
     const invoiceResult = await sendShipmentInvoicePdf(
         shipment,
         chatId,
-        'Le envio tambien la guia/factura en PDF para que la tenga a mano al retirar.'
+        `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`
     );
     if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceResult.sent) {
         console.warn(`[SHIPMENT] Falha ao reenviar fatura no aviso de retirada ${shipment.orderId}: ${invoiceResult.reason}`);
     }
     const audioSent = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { force });
+    const partialAttachmentFailures = await appendPartialAttachmentEvents(shipment._id, 'ready_for_pickup', {
+        invoice: invoiceResult,
+        audio: audioSent
+    });
 
     const now = new Date();
     await persistAutomationUpdate(shipment._id, {
@@ -817,7 +1328,9 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         audio: audioSent,
         shortNotice: true,
         invoiceSent: invoiceResult.sent,
-        invoiceReason: invoiceResult.reason
+        invoiceReason: invoiceResult.reason,
+        primaryTextSent: true,
+        partialAttachmentFailures
     });
     return true;
 };
@@ -834,8 +1347,8 @@ export const notifyShipmentInTransit = async (shipment) => {
     if (hasAlreadySentHash(shipment, hash)) return false;
     if (!hasMinGapElapsed(shipment)) return false;
 
-    const sent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment)
+    const sent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_in_transit_text'
     });
     if (!sent) return false;
 
@@ -876,8 +1389,8 @@ export const notifyShipmentReminder = async (shipment, kind) => {
 
     let sent = true;
     if (!audioOnly) {
-        sent = await sendText(chatId, text, null, {
-            ...shipmentOutboundOptions(shipment)
+        sent = await sendShipmentText(shipment, chatId, text, {
+            kind: `shipment_reminder_${kind}_text`
         });
         if (!sent) return false;
     }
@@ -912,8 +1425,8 @@ export const notifyShipmentReturned = async (shipment) => {
     if (hasAlreadySentHash(shipment, hash)) return false;
     if (!hasMinGapElapsed(shipment)) return false;
 
-    const sent = await sendText(chatId, returnedText, null, {
-        ...shipmentOutboundOptions(shipment)
+    const sent = await sendShipmentText(shipment, chatId, returnedText, {
+        kind: 'shipment_returned_text'
     });
     if (!sent) return false;
 
@@ -957,8 +1470,8 @@ export const notifyPickupProofRequest = async (shipment) => {
     if (hasAlreadySentHash(shipment, hash)) return false;
     if (!hasMinGapElapsed(shipment)) return false;
 
-    const sent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment)
+    const sent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_pickup_proof_request_text'
     });
     if (!sent) return false;
 
@@ -1013,21 +1526,23 @@ export const notifyPickupBonus = async (shipment) => {
 
     const thankYouAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' });
     const thankYouAudioSent = thankYouAudioPath
-        ? await sendAudio(chatId, thankYouAudioPath, true, {
-            ...shipmentOutboundOptions(shipment),
+        ? await sendShipmentAudioFile(shipment, chatId, thankYouAudioPath, {
+            kind: 'shipment_pickup_bonus_thank_you_audio',
+            baseName: 'OBRIGADO_PAGOU',
             dedupeValue: `${thankYouAudioPath}|${bonusDedupeScope}`
         })
         : false;
 
-    const sent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment),
+    const sent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_pickup_bonus_text',
         dedupeValue: `${text}|${bonusDedupeScope}`
     });
     if (!sent) return false;
     const howToUseAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'COMO_SE_TOMA_VIT_POWER' });
     const howToUseAudioSent = howToUseAudioPath
-        ? await sendAudio(chatId, howToUseAudioPath, true, {
-            ...shipmentOutboundOptions(shipment),
+        ? await sendShipmentAudioFile(shipment, chatId, howToUseAudioPath, {
+            kind: 'shipment_pickup_bonus_how_to_use_audio',
+            baseName: 'COMO_SE_TOMA_VIT_POWER',
             dedupeValue: `${howToUseAudioPath}|${bonusDedupeScope}`
         })
         : false;
@@ -1296,15 +1811,16 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     if (hasAlreadySentHash(shipment, hash)) return false;
     if (!hasMinGapElapsed(shipment)) return false;
 
-    const sent = await sendText(chatId, text, null, {
-        ...shipmentOutboundOptions(shipment)
+    const sent = await sendShipmentText(shipment, chatId, text, {
+        kind: 'shipment_refill_reminder_text'
     });
     if (!sent) return false;
 
     const tempoAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'TEMPO_RESULTADO_VIT_POWER' });
     const audioSent = tempoAudioPath
-        ? await sendAudio(chatId, tempoAudioPath, true, {
-            ...shipmentOutboundOptions(shipment),
+        ? await sendShipmentAudioFile(shipment, chatId, tempoAudioPath, {
+            kind: 'shipment_refill_reminder_audio',
+            baseName: 'TEMPO_RESULTADO_VIT_POWER',
             dedupeValue: `refill_reminder_audio|TEMPO_RESULTADO_VIT_POWER|${shipment.orderId || shipment.logistics?.trackingNumber || ''}`
         })
         : false;

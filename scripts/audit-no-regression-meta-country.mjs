@@ -51,9 +51,13 @@ assert(meta.includes(`process.env.META_PIXEL_ID_${ecSuffix}`), 'metaConversionsS
 assert(meta.includes(`process.env.META_ACCESS_TOKEN_${ecSuffix}`), 'metaConversionsService deve continuar usando META_ACCESS_TOKEN_EC.');
 assert(whatsappRoute.includes('sendBrowserMetaEvent'), 'rota WhatsApp precisa manter envio Meta CAPI para VSL.');
 assert(whatsappRoute.includes("eventName: 'PageView'"), 'vsl-entry precisa manter PageView CAPI.');
+assert(whatsappRoute.includes("eventName: 'ViewContent'"), 'vsl-entry precisa manter ViewContent CAPI.');
+assert(whatsappRoute.includes("eventName: 'InitiateCheckout'"), 'vsl-entry precisa manter InitiateCheckout CAPI.');
 assert(whatsappRoute.includes("eventName: 'Lead'"), 'vsl-entry precisa manter Lead CAPI quando receber event_id explicito.');
 assert(whatsappRoute.includes('pageViewEventId') || whatsappRoute.includes('page_view_event_id'), 'vsl-entry precisa aceitar event_id de PageView do browser.');
 assert(vslVisit.includes('metaPageViewSentAt'), 'VslVisit precisa manter lock metaPageViewSentAt.');
+assert(vslVisit.includes('metaViewContentSentAt'), 'VslVisit precisa manter lock metaViewContentSentAt.');
+assert(vslVisit.includes('metaInitiateCheckoutSentAt'), 'VslVisit precisa manter lock metaInitiateCheckoutSentAt.');
 assert(vslVisit.includes('metaLeadSentAt'), 'VslVisit precisa manter lock metaLeadSentAt.');
 assert(vslVisit.includes('metaPageViewResponse') && vslVisit.includes('metaLeadResponse'), 'VslVisit precisa guardar respostas Meta PageView/Lead.');
 assert(sessionRouter.includes('defaultSessionId'), 'sessionRouter precisa manter o resolver de default por pais.');

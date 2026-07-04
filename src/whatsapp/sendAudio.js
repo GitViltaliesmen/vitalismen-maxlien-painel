@@ -15,6 +15,7 @@ import {
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiAudio } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
+import ContactState from '../models/ContactState.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -76,6 +77,73 @@ const getAudioMimetype = (audioPath, isPtt) => {
     return map[ext] || 'audio/mpeg';
 };
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const zapiFailoverEnabled = () => String(process.env.OUTBOUND_ZAPI_FAILOVER_ENABLED || 'true').toLowerCase() !== 'false';
+const looksLikeZapiFailoverPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
+const parsePhoneList = (...values) => [
+    ...new Set(
+        values
+            .flatMap((value) => String(value || '').split(','))
+            .map((item) => digitsOnly(item))
+            .filter(Boolean)
+    )
+];
+const isSamePhone = (left, right) => {
+    const a = digitsOnly(left);
+    const b = digitsOnly(right);
+    if (!a || !b) return false;
+    return a === b || a.startsWith(b) || b.startsWith(a);
+};
+const zapiFailoverTestRecipients = () => parsePhoneList(
+    '5515998038637',
+    '553171862958',
+    '5531971862958',
+    '553183002800',
+    '5531983002800',
+    process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
+    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
+    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS
+);
+const isZapiFailoverTestRecipient = (phone = '') => {
+    const digits = digitsOnly(phone);
+    return Boolean(digits && zapiFailoverTestRecipients().some((allowed) => isSamePhone(digits, allowed)));
+};
+const shouldTryZapiAudioFailover = ({ jid = '', options = {}, reason = '' } = {}) => {
+    if (!zapiFailoverEnabled() || options.zapiFailoverAttempt === true) return false;
+    if (options.provider === 'zapi' || options.sessionId === 'zapi') return false;
+    const phone = digitsOnly(options.recipientDigits) || digitsOnly(jid);
+    if (!looksLikeZapiFailoverPhone(phone) && !isZapiFailoverTestRecipient(phone)) return false;
+    const value = String(reason || '').toLowerCase();
+    return !value || /timeout|not.*ready|ready|closed|unauthorized_session|blocked_session|session|socket|connection|baileys/.test(value);
+};
+const recordZapiAudioFailover = async ({ jid = '', recipientDigits = '', reason = '', status = '', providerMessageId = '' } = {}) => {
+    const phone = digitsOnly(recipientDigits) || digitsOnly(jid);
+    if (!phone) return;
+    const tails = [phone, phone.length >= 9 ? phone.slice(-9) : '', phone.length >= 10 ? phone.slice(-10) : ''].filter(Boolean);
+    const or = [
+        { chatId: jid },
+        { phoneDigits: phone },
+        ...tails.map((tail) => ({ phoneDigits: { $regex: `${tail}$` } }))
+    ];
+    await ContactState.updateOne(
+        { $or: or },
+        {
+            $set: {
+                'metadata.senderWallet.fallbackToZapiAt': new Date(),
+                'metadata.senderWallet.fallbackToZapiKind': 'audio',
+                'metadata.senderWallet.fallbackToZapiReason': String(reason || '').slice(0, 500),
+                'metadata.senderWallet.fallbackToZapiStatus': status,
+                ...(providerMessageId ? { 'metadata.senderWallet.fallbackToZapiProviderMessageId': providerMessageId } : {})
+            },
+            $inc: {
+                'metadata.senderWallet.fallbackToZapiCount': 1
+            }
+        }
+    ).catch((error) => console.warn(`[OUTBOUND-ZAPI-FAILOVER] falha ao registrar failover audio ${jid}: ${error.message}`));
+};
+const failoverWasSent = (result) => (result === true || result?.ok === true);
+
 /**
  * Enterprise Audio Sender 
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
@@ -90,6 +158,25 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
     const guard = canSendOutbound({ jid, text: audioPath, sessionId, ownDigits, kind: 'audio', recipientDigits: options.recipientDigits || '', bypassDedupe: bypassAudioDedupe });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] audio bloqueado -> ${jid} | reason=${guard.reason}`);
+        if (shouldTryZapiAudioFailover({ jid, options, reason: guard.reason })) {
+            console.warn(`[OUTBOUND-ZAPI-FAILOVER] audio bloqueado por sessao; tentando Z-API -> ${jid} | reason=${guard.reason}`);
+            await recordZapiAudioFailover({ jid, recipientDigits: options.recipientDigits || '', reason: guard.reason, status: 'retrying' });
+            const failover = await sendAudio(jid, audioPath, isPtt, {
+                ...options,
+                sessionId: 'zapi',
+                provider: 'zapi',
+                zapiFailoverAttempt: true,
+                outboundContext: `${options.outboundContext || 'auto_audio'}_zapi_failover`
+            });
+            await recordZapiAudioFailover({
+                jid,
+                recipientDigits: options.recipientDigits || '',
+                reason: guard.reason,
+                status: failoverWasSent(failover) ? 'sent' : 'failed',
+                providerMessageId: failover?.providerMessageId || ''
+            });
+            return failover;
+        }
         return false;
     }
     const dropiGuard = await checkDropiOrderBeforeOutbound({
@@ -204,6 +291,25 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
             console.error(`[OUTBOUND-AUDIO-ERROR] ❌ Falha ao enviar áudio para ${jid} | tentativa=${attempt}:`, error);
             if (attempt === 2) {
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
+                if (shouldTryZapiAudioFailover({ jid, options, reason: error.message })) {
+                    console.warn(`[OUTBOUND-ZAPI-FAILOVER] audio falhou por Baileys; tentando Z-API -> ${jid} | reason=${error.message}`);
+                    await recordZapiAudioFailover({ jid, recipientDigits: options.recipientDigits || '', reason: error.message, status: 'retrying' });
+                    const failover = await sendAudio(jid, audioPath, isPtt, {
+                        ...options,
+                        sessionId: 'zapi',
+                        provider: 'zapi',
+                        zapiFailoverAttempt: true,
+                        outboundContext: `${options.outboundContext || 'auto_audio'}_zapi_failover`
+                    });
+                    await recordZapiAudioFailover({
+                        jid,
+                        recipientDigits: options.recipientDigits || '',
+                        reason: error.message,
+                        status: failoverWasSent(failover) ? 'sent' : 'failed',
+                        providerMessageId: failover?.providerMessageId || ''
+                    });
+                    return failover;
+                }
                 return false;
             }
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);

@@ -303,6 +303,27 @@
         .st-devolvido { background: var(--returned-soft); color: #fed7aa; border-color: #9a3412; }
         .st-cancelado { background: var(--red-soft); color: #fecaca; border-color: #991b1b; }
 
+        .meta-purchase-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            min-height: 20px;
+            border-radius: 6px;
+            padding: 0 7px;
+            border: 1px solid transparent;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        .meta-purchase-sent { background: rgba(22, 101, 52, .24); color: #bbf7d0; border-color: #166534; }
+        .meta-purchase-pending { background: rgba(146, 64, 14, .24); color: #fde68a; border-color: #92400e; }
+        .meta-purchase-error { background: rgba(153, 27, 27, .28); color: #fecaca; border-color: #991b1b; }
+        .meta-purchase-offline { background: rgba(88, 28, 135, .28); color: #e9d5ff; border-color: #7e22ce; }
+
         select.status-select {
             width: var(--status-select-width);
             flex: 0 0 var(--status-select-width);
@@ -1165,7 +1186,8 @@
                     stagedOrderId: orderId,
                     shipment: order.shipment || null,
                     metaPurchaseSentAt: order.tracking?.metaPurchaseSentAt || '',
-                    metaPurchaseEventId: order.tracking?.metaPurchaseEventId || ''
+                    metaPurchaseEventId: order.tracking?.metaPurchaseEventId || '',
+                    metaPurchaseResponse: order.tracking?.metaPurchaseResponse || null
                 }
             };
         };
@@ -1342,6 +1364,29 @@
             const count = Number(lead?._ops?.purchaseCount || 0);
             if (!Number.isFinite(count) || count <= 0) return '';
             return `${count} compra${count === 1 ? '' : 's'}`;
+        };
+
+        const metaPurchaseBadgeHtml = (lead) => {
+            const status = statusValue(lead);
+            if (!['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) return '';
+            const ops = lead?._ops || {};
+            const response = ops.metaPurchaseResponse || {};
+            const responseData = response.data || {};
+            const eventsReceived = Number(response.events_received ?? responseData.events_received ?? 0) || 0;
+            const error = response.error || responseData.error?.message || '';
+            if (ops.metaPurchaseSentAt || eventsReceived > 0) {
+                const title = ops.metaPurchaseEventId
+                    ? `Meta Purchase enviado: ${ops.metaPurchaseEventId}`
+                    : 'Meta Purchase enviado';
+                return `<span class="meta-purchase-badge meta-purchase-sent" title="${escapeHtml(title)}">Meta Purchase enviado</span>`;
+            }
+            if (error) {
+                return `<span class="meta-purchase-badge meta-purchase-error" title="${escapeHtml(error)}">Meta erro</span>`;
+            }
+            if (String(lead.orderId || lead.id || '').startsWith('EC-')) {
+                return '<span class="meta-purchase-badge meta-purchase-pending" title="Pedido confirmado sem tracking.metaPurchaseSentAt">Meta pendente</span>';
+            }
+            return '<span class="meta-purchase-badge meta-purchase-offline" title="Lead historico sem pedido operacional vinculado">Meta offline</span>';
         };
 
         const formatLeadDate = (lead) => {
@@ -1703,6 +1748,7 @@
                             <strong>${escapeHtml(lead.name || '')}</strong>
                             <span class="lead-date">${escapeHtml(formatLeadDate(lead))}${hasSearch() && isHistoricalLead(lead) ? ' · historico' : ''}</span>
                             ${purchaseCountLabel(lead) ? `<span class="lead-date">${escapeHtml(purchaseCountLabel(lead))}</span>` : ''}
+                            ${metaPurchaseBadgeHtml(lead)}
                         </div>
                     </td>
                     <td class="addr"><div class="addr-text">${escapeHtml(lead.address || '')}</div></td>

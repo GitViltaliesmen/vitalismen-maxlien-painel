@@ -1,0 +1,238 @@
+{
+  "country": "EC",
+  "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
+  "updatedAt": "2026-06-26T20:33:07.598Z",
+  "rules": [
+    {
+      "id": "panel_add_contact_button_fixed",
+      "status": "active",
+      "description": "Botao Adicionar cliente fica fixo e modal nao fecha por clique acidental no fundo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": ".searchbar .add-chat-contact"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "width: 104px;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "el('newContactModal')?.querySelector('.modal-card')?.addEventListener('click', (event) => event.stopPropagation());"
+        }
+      ]
+    },
+    {
+      "id": "message_inline_hover_popup_disabled",
+      "status": "active",
+      "description": "Popup inline de estrategia sugerida nao abre ao passar o mouse em mensagens.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "const inlineMessageObserverHintsEnabled = false;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (!inlineMessageObserverHintsEnabled) return '';"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (!inlineMessageObserverHintsEnabled) return;"
+        },
+        {
+          "type": "excludes",
+          "file": "public/qr.html",
+          "value": "addEventListener('mouseover'"
+        }
+      ]
+    },
+    {
+      "id": "panel_rate_limit_operational_writes",
+      "status": "active",
+      "description": "Salvar ficha, adicionar cliente e acoes operacionais do painel nao podem cair no rate limiter global.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "isPanelOperationalWriteRequest(req)"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/whatsapp/contacts'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/whatsapp/chats/action'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "method === 'PATCH' && /^\\/api\\/whatsapp\\/contact-state\\/[^/]+$/.test(pathname)"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "method === 'POST' && pathname === '/api/orders'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req) || isPanelPollingRequest(req) || isPanelOperationalWriteRequest(req)"
+        }
+      ]
+    },
+    {
+      "id": "servientrega_agency_search_not_rate_limited",
+      "status": "active",
+      "description": "Busca de agencias Servientrega EC continua liberada da cota global.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/shipments/servientrega/ec/agencies'"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "id=\"customerCityInput\""
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "/api/shipments/servientrega/ec/agencies"
+        }
+      ]
+    },
+    {
+      "id": "zapi_technical_alert_hidden_from_panel",
+      "status": "active",
+      "description": "Alertas tecnicos da Z-API nao aparecem como mensagens de cliente no painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "TECHNICAL_ZAPI_ALERT_REGEX"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "visiblePanelMessageQuery"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "isTechnicalZapiAlertMessage"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "const visibleMessages = (messages || []).filter((message) => !isTechnicalZapiAlertMessage(message));"
+        }
+      ]
+    },
+    {
+      "id": "shipment_dispatch_8_per_hour",
+      "status": "active",
+      "description": "Lote operacional de avisos/rastreio EC fica em 8 por hora.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": ".env",
+          "value": "SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT=8",
+          "optional": true
+        },
+        {
+          "type": "includes",
+          "file": "src/services/schedulerService.js",
+          "value": "SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT"
+        }
+      ]
+    }
+  ],
+  "freezeGuards": [
+    [
+      "node",
+      "scripts/guard-freeze-lock-ec.mjs"
+    ],
+    [
+      "node",
+      "scripts/guard-status-panels-freeze.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-customer-draft-zero-quantity.mjs"
+    ],
+    [
+      "node",
+      "scripts/guard-public-funnel.mjs"
+    ]
+  ],
+  "approvals": [
+    {
+      "at": "2026-06-26T20:05:18.577Z",
+      "description": "Aprovado: implantacao inicial do Freeze Lock EC",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626200518.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    },
+    {
+      "at": "2026-06-26T20:21:30.569Z",
+      "description": "Aprovado: congelar tudo que fizemos hoje em 2026-06-26",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626202130.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    },
+    {
+      "at": "2026-06-26T20:33:07.598Z",
+      "description": "Aprovado: congelar tudo auditado hoje antes de pausar; bot texto OK; pendencias mapeadas sem alterar codigo",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626203307.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    }
+  ],
+  "lastApproval": {
+    "at": "2026-06-26T20:33:07.598Z",
+    "description": "Aprovado: congelar tudo auditado hoje antes de pausar; bot texto OK; pendencias mapeadas sem alterar codigo",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260626203307.md",
+    "activeRuleIds": [
+      "panel_add_contact_button_fixed",
+      "message_inline_hover_popup_disabled",
+      "panel_rate_limit_operational_writes",
+      "servientrega_agency_search_not_rate_limited",
+      "zapi_technical_alert_hidden_from_panel",
+      "shipment_dispatch_8_per_hour"
+    ]
+  }
+}

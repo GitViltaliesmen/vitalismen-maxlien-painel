@@ -542,6 +542,47 @@ const findRecentCommercialBotPrompt = async ({ chatId, senderPn, state }) => {
     }).sort({ createdAt: -1 }).lean();
 };
 
+const orderRequiresClosedFunnelLock = (order = null) => {
+    if (!order) return false;
+    const status = String(order.status || '').toLowerCase();
+    const shippingStatus = String(order.shippingStatus || '').toUpperCase();
+    return ['confirmed', 'processing', 'shipped', 'delivered'].includes(status)
+        || Boolean(order.trackingNumber)
+        || /GUIA|RUTA|RETIRO|ENTREGADO|READY_FOR_PICKUP|EN_|TRANSIT/.test(shippingStatus);
+};
+
+const applyPostOrderFunnelLockFromOrder = ({ state, order, reason = 'active_order_context' } = {}) => {
+    if (!state || !orderRequiresClosedFunnelLock(order)) return false;
+    const metadata = state.metadata || {};
+    const perAgentMemory = metadata.perAgentMemory || {};
+    const currentAgentMemory = perAgentMemory[OFFICIAL_AGENT] || {};
+    const nextAgentMemory = {
+        ...currentAgentMemory,
+        lastFunnelStage: 'order_closed',
+        postOrderNoResumeUntilPickup: String(order.status || '').toLowerCase() !== 'delivered',
+        activeOrderLockAt: new Date(),
+        activeOrderLockReason: reason,
+        activeOrderId: order.orderId || currentAgentMemory.activeOrderId || '',
+        activeOrderStatus: order.status || currentAgentMemory.activeOrderStatus || '',
+        activeOrderShippingStatus: order.shippingStatus || currentAgentMemory.activeOrderShippingStatus || '',
+        activeOrderTrackingNumber: order.trackingNumber || currentAgentMemory.activeOrderTrackingNumber || ''
+    };
+    delete nextAgentMemory.pendingCheckoutOrder;
+    state.metadata = {
+        ...metadata,
+        lastKnownFunnelStage: 'order_closed',
+        automationHoldReason: reason,
+        activeOrderLockAt: new Date(),
+        activeOrderId: order.orderId || metadata.activeOrderId || '',
+        perAgentMemory: {
+            ...perAgentMemory,
+            [OFFICIAL_AGENT]: nextAgentMemory
+        }
+    };
+    state.markModified?.('metadata');
+    return true;
+};
+
 const hasRecentCommercialMemory = (state) => {
     const perAgentMemory = (state?.metadata || {}).perAgentMemory || {};
     return Object.values(perAgentMemory).some((memory) => {
@@ -762,7 +803,9 @@ export const routeIncomingMessage = async (payload) => {
         };
     }
 
-    const inboundAlreadyProcessed = priorityBotTestPhone
+    const inboundAlreadyProcessed = payload.recovered === true
+        ? hasProcessedInboundMessageId({ state, messageId })
+        : priorityBotTestPhone
         ? hasProcessedInboundMessageId({ state, messageId })
         : hasProcessedInbound({ state, messageId, body });
     if ((!operationalPanelPhone || priorityBotTestPhone) && inboundAlreadyProcessed) {
@@ -930,6 +973,14 @@ export const routeIncomingMessage = async (payload) => {
         findRecentCommercialBotPrompt({ chatId, senderPn, state })
     ]);
     const resolvedCountryCode = countryCode || OFFICIAL_COUNTRY;
+    const postOrderLockApplied = applyPostOrderFunnelLockFromOrder({
+        state,
+        order: latestOrder,
+        reason: 'active_or_delivered_order_before_bot_reply'
+    });
+    if (postOrderLockApplied) {
+        console.log(`[ROUTER] contexto de pedido ativo/fechado aplicado antes do bot | chat=${chatId} | order=${latestOrder?.orderId || ''} | status=${latestOrder?.status || ''}`);
+    }
 
     const decision = chooseAssignedAgent({
         state,

@@ -7,6 +7,7 @@ import {
 } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import { routeIncomingMessage } from '../services/agentRouter.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -40,6 +41,15 @@ const countryFromPhone = (phone = '') => {
     if (value.startsWith('57')) return 'CO';
     if (value.startsWith('55')) return 'BR';
     return 'OTHER';
+};
+
+const looksLikePublicVslLeadText = (text = '') => {
+    const value = String(text || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+    return /acabo de ver el video|vi el video|ver el video/.test(value)
+        && (/nombre completo|telefono|tel[eé]fono/.test(value));
 };
 
 const zapiRawChatIdentifiers = (payload = {}) => [
@@ -182,7 +192,58 @@ const zapiMediaUrlFromPayload = (payload = {}) => firstString(
     payload.data?.sticker?.url
 );
 
+const zapiMediaMimeTypeFromPayload = (payload = {}) => firstString(
+    payload.mimeType,
+    payload.mimetype,
+    payload.media?.mimeType,
+    payload.media?.mimetype,
+    payload.image?.mimeType,
+    payload.image?.mimetype,
+    payload.audio?.mimeType,
+    payload.audio?.mimetype,
+    payload.video?.mimeType,
+    payload.video?.mimetype,
+    payload.document?.mimeType,
+    payload.document?.mimetype,
+    payload.message?.mimeType,
+    payload.message?.mimetype,
+    payload.message?.image?.mimeType,
+    payload.message?.image?.mimetype,
+    payload.message?.audio?.mimeType,
+    payload.message?.audio?.mimetype,
+    payload.message?.video?.mimeType,
+    payload.message?.video?.mimetype,
+    payload.message?.document?.mimeType,
+    payload.message?.document?.mimetype,
+    payload.data?.mimeType,
+    payload.data?.mimetype,
+    payload.data?.image?.mimeType,
+    payload.data?.image?.mimetype,
+    payload.data?.audio?.mimeType,
+    payload.data?.audio?.mimetype,
+    payload.data?.video?.mimeType,
+    payload.data?.video?.mimetype,
+    payload.data?.document?.mimeType,
+    payload.data?.document?.mimetype
+);
+
+const zapiMediaTypeFromUrlOrMime = (url = '', mime = '') => {
+    const mediaUrl = String(url || '').toLowerCase();
+    const mediaMime = String(mime || '').toLowerCase();
+    if (/^audio\//.test(mediaMime) || /\.(mp3|ogg|opus|webm|m4a|aac|wav)(\?|#|$)/.test(mediaUrl)) return 'audio';
+    if (/^image\//.test(mediaMime) || /\.(jpe?g|png|webp|gif|heic|heif)(\?|#|$)/.test(mediaUrl)) return 'image';
+    if (/^video\//.test(mediaMime) || /\.(mp4|mov|m4v|avi|mkv)(\?|#|$)/.test(mediaUrl)) return 'video';
+    if (/^(application|text)\//.test(mediaMime) || /\.(pdf|docx?|xlsx?|csv|txt)(\?|#|$)/.test(mediaUrl)) return 'document';
+    return '';
+};
+
+const zapiBodyLooksLikeMediaToken = (body = '') => (
+    /^\s*\[(audio|ptt|image|imagem|video|media|midia|document|documento|sticker|figurinha)\]\s*$/i.test(String(body || ''))
+);
+
 const zapiMessageTypeFromPayload = (payload = {}) => {
+    const mediaType = zapiMediaTypeFromUrlOrMime(zapiMediaUrlFromPayload(payload), zapiMediaMimeTypeFromPayload(payload));
+    if (mediaType) return mediaType;
     if (payload.sticker || payload.message?.sticker || payload.data?.sticker) return 'image';
     if (payload.image || payload.photo || payload.message?.image || payload.data?.image) return 'image';
     if (payload.audio || payload.message?.audio || payload.data?.audio) return 'audio';
@@ -205,6 +266,129 @@ const zapiMessageTypeFromPayload = (payload = {}) => {
     return 'chat';
 };
 
+const vslFirstResponseWatchdogEnabled = () => (
+    String(process.env.VSL_FIRST_RESPONSE_WATCHDOG_ENABLED || 'true').toLowerCase() !== 'false'
+);
+
+const vslFirstResponseWatchdogDelayMs = () => {
+    const parsed = Number.parseInt(String(process.env.VSL_FIRST_RESPONSE_WATCHDOG_DELAY_MS || '75000'), 10);
+    return Number.isFinite(parsed) && parsed >= 15000 ? parsed : 75000;
+};
+
+const hasRecentOutboundForZapiLead = async ({ chatId = '', phone = '', since = new Date() } = {}) => {
+    const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
+    const or = [
+        chatId ? { chatId } : null,
+        phone ? { peerPhone: phone } : null,
+        phone ? { to: { $regex: phone } } : null,
+        phone ? { chatId: { $regex: phone } } : null,
+        tail ? { peerPhone: { $regex: `${tail}$` } } : null,
+        tail ? { to: { $regex: tail } } : null,
+        tail ? { chatId: { $regex: tail } } : null
+    ].filter(Boolean);
+    if (!or.length) return false;
+    const sinceDate = since instanceof Date ? since : new Date(since);
+    const sinceTimestamp = Math.floor(sinceDate.getTime() / 1000);
+    const found = await Message.exists({
+        $and: [
+            { $or: or },
+            { $or: [{ isFromMe: true }, { isBot: true }, { from: 'bot' }] },
+            {
+                $or: [
+                    { createdAt: { $gte: sinceDate } },
+                    { timestamp: { $gte: sinceTimestamp } }
+                ]
+            }
+        ]
+    }).catch(() => null);
+    return Boolean(found);
+};
+
+const markVslWatchdogStatus = async ({ chatId = '', phone = '', status = '', reason = '' } = {}) => {
+    const now = new Date();
+    const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
+    const or = [
+        chatId ? { chatId } : null,
+        phone ? { phoneDigits: phone } : null,
+        phone ? { phoneDigits: { $regex: `${phone}$` } } : null,
+        tail ? { phoneDigits: { $regex: `${tail}$` } } : null
+    ].filter(Boolean);
+    if (!or.length) return;
+    await ContactState.updateOne(
+        { $or: or },
+        {
+            $set: {
+                'metadata.vslFirstResponseWatchdogAt': now,
+                'metadata.vslFirstResponseWatchdogStatus': status,
+                'metadata.vslFirstResponseWatchdogReason': reason
+            },
+            ...(status === 'reprocessed'
+                ? { $inc: { 'metadata.vslFirstResponseWatchdogReprocessCount': 1 } }
+                : {})
+        }
+    ).catch((error) => console.warn(`[ZAPI-WATCHDOG] falha ao registrar status ${chatId}: ${error.message}`));
+};
+
+const scheduleVslFirstResponseWatchdog = (result = {}) => {
+    if (!vslFirstResponseWatchdogEnabled() || !result.publicVslLeadEntry || !result.routeToBot) return;
+    const startedAt = new Date();
+    const delayMs = vslFirstResponseWatchdogDelayMs();
+    setTimeout(async () => {
+        try {
+            const alreadyAnswered = await hasRecentOutboundForZapiLead({
+                chatId: result.chatId,
+                phone: result.phone,
+                since: startedAt
+            });
+            if (alreadyAnswered) {
+                await markVslWatchdogStatus({
+                    chatId: result.chatId,
+                    phone: result.phone,
+                    status: 'answered',
+                    reason: 'outbound_found'
+                });
+                return;
+            }
+
+            console.warn(`[ZAPI-WATCHDOG] lead VSL sem resposta; reprocessando por Z-API -> ${result.chatId} | delayMs=${delayMs}`);
+            await markVslWatchdogStatus({
+                chatId: result.chatId,
+                phone: result.phone,
+                status: 'reprocessing',
+                reason: 'no_outbound_after_delay'
+            });
+            await routeIncomingMessage({
+                id: `${result.messageId || 'zapi_vsl'}_watchdog_${Date.now()}`,
+                from: result.chatId,
+                body: result.body,
+                sessionId: 'zapi',
+                senderPn: result.phone,
+                recovered: true,
+                fullMessage: { key: { senderPn: result.phone } }
+            });
+            const answeredAfterRecovery = await hasRecentOutboundForZapiLead({
+                chatId: result.chatId,
+                phone: result.phone,
+                since: startedAt
+            });
+            await markVslWatchdogStatus({
+                chatId: result.chatId,
+                phone: result.phone,
+                status: answeredAfterRecovery ? 'reprocessed' : 'failed',
+                reason: answeredAfterRecovery ? 'outbound_after_reprocess' : 'no_outbound_after_reprocess'
+            });
+        } catch (error) {
+            console.error('[ZAPI-WATCHDOG] erro ao recuperar primeira resposta VSL:', error?.response?.data || error.message || error);
+            await markVslWatchdogStatus({
+                chatId: result.chatId,
+                phone: result.phone,
+                status: 'failed',
+                reason: error.message || 'watchdog_error'
+            });
+        }
+    }, delayMs).unref?.();
+};
+
 const recordZapiInboundPayload = async (payload = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);
     const providerZaapId = zapiZaapIdFromPayload(payload);
@@ -220,11 +404,29 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const chatId = `${phone}@c.us`;
     const now = new Date();
     const messageId = providerMessageId || providerZaapId || `zapi_in_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const bodyText = typeof body === 'string' ? body.trim() : '';
+    const typeByFile = zapiMediaTypeFromUrlOrMime(mediaUrl, zapiMediaMimeTypeFromPayload(payload));
+    const effectiveType = typeByFile || (!mediaUrl && bodyText && type !== 'chat' && !zapiBodyLooksLikeMediaToken(bodyText) ? 'chat' : type);
+    const hasDeclaredMedia = Boolean(mediaUrl) || effectiveType !== 'chat';
     const normalizedBody = typeof body === 'string' && body.trim()
         ? body
-        : mediaUrl
-            ? `[${type === 'image' && (payload.sticker || payload.message?.sticker || payload.data?.sticker) ? 'sticker' : type}]`
+        : hasDeclaredMedia
+            ? `[${effectiveType === 'image' && (payload.sticker || payload.message?.sticker || payload.data?.sticker) ? 'sticker' : effectiveType}]`
             : '';
+    if (!normalizedBody && !mediaUrl) {
+        return {
+            recorded: false,
+            reason: 'missing_message_content',
+            phone,
+            chatId,
+            type: effectiveType,
+            providerMessageId,
+            providerZaapId,
+            body: '',
+            bodyLength: 0,
+            routeToBot: false
+        };
+    }
 
     await Message.updateOne(
         { _id: messageId },
@@ -236,8 +438,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 from: chatId,
                 to: 'zapi',
                 body: normalizedBody,
-                type,
-                hasMedia: Boolean(mediaUrl) || type !== 'chat',
+                type: effectiveType,
+                hasMedia: Boolean(mediaUrl) || effectiveType !== 'chat',
                 mediaUrl,
                 mediaPreviewUrl: mediaUrl,
                 timestamp: Math.floor(now.getTime() / 1000),
@@ -268,6 +470,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
 
     const isNewState = !state;
     const inferredCountry = countryFromPhone(phone);
+    const publicVslLeadEntry = inferredCountry === 'EC' && looksLikePublicVslLeadText(normalizedBody);
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
@@ -276,17 +479,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
-    targetState.lastInboundText = normalizedBody || `[${type}] recebido`;
+    targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
     if (!targetState.firstInboundText) targetState.firstInboundText = targetState.lastInboundText;
     if (isNewState) {
         targetState.human = {
             ...(targetState.human || {}),
-            mode: 'manual',
+            mode: publicVslLeadEntry ? 'auto' : 'manual',
             pausedUntil: null,
-            assignedName: 'Captura Z-API',
-            note: 'Contato capturado do WhatsApp conectado. Revisar no painel antes de qualquer automacao.',
+            assignedName: publicVslLeadEntry ? 'Entrada VSL' : 'Captura Z-API',
+            note: publicVslLeadEntry
+                ? 'Entrada VSL EC capturada pela Z-API; bot liberado para primeira resposta.'
+                : 'Contato capturado do WhatsApp conectado. Revisar no painel antes de qualquer automacao.',
             lastManualAt: now,
             lastManualBy: 'zapi'
         };
@@ -306,11 +511,24 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedContact: true,
         zapiCapturedAt: targetState.metadata?.zapiCapturedAt || now.toISOString(),
         zapiCapturedCountry: inferredCountry,
-        zapiCapturedSource: 'connected_phone_inbound'
+        zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
+        publicVslLeadEntry
     };
     await targetState.save();
 
-    return { recorded: true, phone, chatId, type, providerMessageId, providerZaapId, bodyLength: normalizedBody.length };
+    return {
+        recorded: true,
+        phone,
+        chatId,
+        type: effectiveType,
+        providerMessageId,
+        providerZaapId,
+        messageId,
+        body: normalizedBody,
+        bodyLength: normalizedBody.length,
+        publicVslLeadEntry,
+        routeToBot: inferredCountry === 'EC' && Boolean(normalizedBody) && targetState.human?.mode !== 'manual'
+    };
 };
 
 const normalizeDeliveryStatus = (payload = {}) => {
@@ -500,6 +718,17 @@ router.post('/webhook', async (req, res) => {
             return res.json({ ok: true, result, routed: 'delivery' });
         }
         const result = await recordZapiInboundPayload(payload);
+        if (result.routeToBot) {
+            scheduleVslFirstResponseWatchdog(result);
+            await routeIncomingMessage({
+                id: result.messageId,
+                from: result.chatId,
+                body: result.body,
+                sessionId: 'zapi',
+                senderPn: result.phone,
+                fullMessage: { key: { senderPn: result.phone } }
+            });
+        }
         console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         return res.json({ ok: true, result, routed: 'inbound' });
     } catch (error) {
@@ -515,11 +744,26 @@ router.post('/webhook/received', async (req, res) => {
         const fromMe = zapiFromMeFromPayload(req.body || {});
         if (!fromMe) {
             const result = await recordZapiInboundPayload(req.body || {});
+            if (result.routeToBot) {
+                scheduleVslFirstResponseWatchdog(result);
+                await routeIncomingMessage({
+                    id: result.messageId,
+                    from: result.chatId,
+                    body: result.body,
+                    sessionId: 'zapi',
+                    senderPn: result.phone,
+                    fullMessage: { key: { senderPn: result.phone } }
+                });
+            }
             console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
             return res.json({ ok: true, result });
         }
-        console.log(`[ZAPI-WEBHOOK] received | fromMe=${fromMe} | phone=${phone || ''} | id=${providerMessageId || ''}`);
-        res.json({ ok: true });
+        const result = await applyZapiDeliveryPayload({
+            ...(req.body || {}),
+            status: firstString(req.body?.status, req.body?.messageStatus, req.body?.deliveryStatus, 'sent')
+        });
+        console.log(`[ZAPI-WEBHOOK] received | fromMe=${fromMe} | matched=${result.matched} | method=${result.method || 'none'} | phone=${phone || result.phone || ''} | id=${providerMessageId || result.providerMessageId || ''}`);
+        res.json({ ok: true, result });
     } catch (error) {
         console.error('[ZAPI-WEBHOOK] received error:', error?.response?.data || error.message || error);
         res.status(500).json(exposeError(error));

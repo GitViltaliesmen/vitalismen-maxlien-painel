@@ -15,7 +15,7 @@ const DELIVERY_TIME_TEXT = 'Señor, enviaremos su guia en breve. Normalmente el 
 const PRODUCT_ORIGIN_TEXT = 'Claro, señor. Le explico cortito: Vit Power es un producto de apoyo natural para hombres y nuestra atencion en Ecuador es del equipo de la doctora Maria Fernandes. Le envio el audio de orientacion y seguimos por aqui.';
 const PRODUCT_GUARANTEE_TEXT = 'Si, señor. El producto es garantizado y tiene 60 dias de garantia. El pago es contra entrega cuando aplica, y le acompaño por aqui hasta que reciba su pedido.';
 const DOCTOR_IDENTITY_TEXT = 'La doctora es la doctora Maria Fernandes. Nosotros atendemos como equipo de orientacion de Vit Power para Ecuador y yo le ayudo por aqui con la informacion, el pedido y el seguimiento.';
-const PRODUCT_INGREDIENTS_TEXT = 'Claro, señor. Vit Power tiene borojó, chontaduro, noni, L-arginina, maca, guaraná y vitaminas.\n\nEs una formula natural de apoyo para hombres. Si usted tiene presion alta, diabetes, problema del corazon o usa medicamentos, confirme primero con su medico antes de usar cualquier suplemento.\n\n¿Le paso las opciones?';
+const PRODUCT_INGREDIENTS_TEXT = 'Claro, señor. Vit Power tiene borojó, chontaduro, noni, L-arginina, maca, guaraná y vitaminas.\n\nEs una fórmula natural de apoyo para hombres. Le envío la orientación aprobada del producto y, si desea, seguimos con la promoción de 1, 3 o 6 frascos.';
 
 const normalize = (value) => String(value || '')
     .normalize('NFD')
@@ -135,9 +135,10 @@ const RULES = [
     {
         key: 'prostate_question',
         patterns: [
-            /prostata|prostatic|orina|urinari|levanto.*ban/i
+            /prostata|pr[oó]stata|prostatitis|prostatic|prostati|orina|urinari|levanto.*ban/i,
+            /s[ií]r?be\s+para\s+la\s+prostatitis|sirbe\s+para\s+la\s+prostatitis|sirve\s+para\s+la\s+prostatitis/i
         ],
-        text: 'Le explico con cuidado. Si tiene una condicion medica fuerte, siempre es bueno consultar tambien con su profesional de confianza.',
+        text: 'Sí, señor, le explico. Vit Power es un apoyo natural para el bienestar masculino y le envío el audio con la orientación completa. ¿Desea que le pase también la promoción de 1, 3 o 6 frascos?',
         audios: ['Ajuda_Prostata']
     },
     {
@@ -187,7 +188,7 @@ const RULES = [
             /c[oó]mo\s*se\s*toma|como\s*setoma|setoma/i,
             /dosis|cuantas veces|modo de uso|se toma/i
         ],
-        text: 'Perfecto. La orientacion de uso va en el audio para que lo tome correctamente. Si usted usa medicamentos o tiene condicion medica, tambien confirme con su profesional de confianza.',
+        text: 'Perfecto. La orientación de uso va en el audio para que lo tome correctamente. ¿Desea que le pase también la promoción de 1, 3 o 6 frascos?',
         audios: ['COMO_SE_TOMA_VIT_POWER']
     },
     {
@@ -203,8 +204,24 @@ const RULES = [
             /contraindicacion|contraindicaci[oó]n|contraindicaciones|contra indicado|contraindicado/i,
             /puedo tomar.*(si|con)|lo puedo tomar.*(si|con)|puedo usar.*(si|con)|lo puedo usar.*(si|con)/i
         ],
-        text: 'Le entiendo, señor. Le envio un audio corto sobre la formula natural de Vit Power.\n\nSi tiene diabetes, presion alta, problema del corazon, higado o riñon, si fue operado o si usa medicamentos, confirme primero con su medico o farmaceutico de confianza antes de usar cualquier suplemento.',
+        text: 'Le entiendo, señor. Le envío un audio corto con la orientación aprobada sobre la fórmula natural de Vit Power. ¿Desea que le pase también la promoción de 1, 3 o 6 frascos?',
         audios: ['100_NATURAL_SEM_CONTRA_INDICACAO']
+    },
+    {
+        key: 'intimate_size_expectation',
+        purpose: 'expectativa_tamanho_grosor',
+        patterns: [
+            /\b(aumentar|aumenta|aumento|agrandar|agranda|crecer|crece|crezca|hacer\s+crecer|hace\s+crecer)\b.{0,40}\b(tama[nñ]o|grosor|miembro|pene|verga|volumen|parte\s+intima|partes?\s+intimas?)\b/i,
+            /\b(tama[nñ]o|grosor|miembro|pene|verga|volumen|parte\s+intima|partes?\s+intimas?)\b.{0,40}\b(aumentar|aumenta|aumento|agrandar|agranda|crecer|crece|crezca|hacer\s+crecer|hace\s+crecer|grande|m[aá]s\s+grande)\b/i,
+            /\b(engrosar|engrosa|engrose|grueso|m[aá]s\s+grueso|mas\s+grueso|grosor|grosso)\b.{0,40}\b(miembro|pene|verga|parte\s+intima|partes?\s+intimas?)\b/i,
+            /\b(miembro|pene|verga|parte\s+intima|partes?\s+intimas?)\b.{0,40}\b(engrosar|engrosa|engrose|grueso|m[aá]s\s+grueso|mas\s+grueso|grosor|grosso)\b/i,
+            /\b(?:que\s+)?se\s+(?:pare|pare\s+m[aá]s|pare\s+mas|levante|mantenga|sostenga)\b.{0,50}\b(tiempo|m[aá]s\s+tiempo|mas\s+tiempo|duro|fuerte|firme|erecci[oó]n|erecion)\b/i,
+            /\b(durar|dure|dura|aguantar|aguante|resistir|rendir|rendimiento)\b.{0,50}\b(m[aá]s\s+tiempo|mas\s+tiempo|tiempo|relaciones|intimidad|cama|sexo|sexual)\b/i,
+            /\b(erecci[oó]n|erecion|parado|palo\s+parado|duro|firme|bien\s+fuerte)\b.{0,50}\b(m[aá]s\s+tiempo|mas\s+tiempo|tiempo|durar|aguantar|mantener|mantenga|sostener|sostenga)\b/i
+        ],
+        text: 'Si, señor. Vit Power es buscado por hombres que quieren mas firmeza, potencia, volumen y confianza en la intimidad.\n\nLe envio el audio exacto de esta parte y, si desea, seguimos con el tratamiento recomendado.',
+        audioPrimary: true,
+        audios: ['AUMENTA_ENGROSSA_VOLUME_GRANDE_VERGA_DURA']
     },
     {
         key: 'product_ingredients_composition',
@@ -224,7 +241,7 @@ const RULES = [
         patterns: [
             /precio|precios|valor|cuanto cuesta|cu[aá]nto cuesta|promocion|promo|tratamiento/i
         ],
-        text: 'Le paso la promocion oficial de hoy: 1 frasco $39, 3 frascos $95.99 y 6 frascos $167.99.',
+        text: 'Le paso la promocion oficial de hoy: 1 frasco $39, 3 frascos $95.99 y 6 frascos $167.99. ¿Cuál desea reservar?',
         audios: ['TRATAMENTO_Y_PRECIOS_PROMOCAO']
     },
     {

@@ -108,14 +108,15 @@ const cleanDropiAgencyAddressTypo = (value) => String(value || '')
 export const normalizeDroppiEcuadorStatus = (value) => {
     const raw = normalizeStatusText(value);
     if (!raw) return '';
+    if (/NOVEDAD|INCIDENCIA|REPROGRAMAD[OA]/.test(raw)) return 'NOVEDAD';
+    if (/DEVUELT[OA]|DEVOLUCION|NO[\s_]?RETIRAD[OA]|RETORNAD[OA]|RETURNED/.test(raw)) return 'DEVUELTO';
+    if (/ENTREGAD[OA]|DELIVERED|REPORTADO ENTREGADO|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/^INGRESANDO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
     if (/^PARA RETIRO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
-    if (/REPORTADO ENTREGADO|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/^EN RUTA A CONCESION\b/.test(raw)) return 'EN_RUTA';
     if (/^EN RUTA A CENTRO LOGISTICO\b/.test(raw)) return 'EN_RUTA';
     if (/^EN DISTRIBUCION\b/.test(raw)) return 'EN_RUTA';
     if (/^INGRESANDO OPERATIVO A\b/.test(raw)) return 'EN_RUTA';
-    if (raw === 'NOVEDAD') return 'NOVEDAD';
     if (raw === 'GUIA_GENERADA') return 'GUIA_GENERADA';
     if (raw === 'PREPARADO PARA TRANSPORTADORA') return 'GUIA_GENERADA';
     if (raw === 'PENDIENTE') return 'PENDIENTE';
@@ -128,10 +129,6 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     if (raw === 'EN AGENCIA' || raw === 'LISTO PARA RETIRO' || raw === 'READY_FOR_PICKUP') {
         return 'READY_FOR_PICKUP';
     }
-    if (raw === 'DEVOLUCION' || raw === 'DEVUELTO' || raw === 'RETURNED' || raw === 'NO_RETIRADO') {
-        return 'DEVUELTO';
-    }
-    if (raw === 'ENTREGADO' || raw === 'DELIVERED') return 'ENTREGADO';
     return raw.replace(/\s+/g, '_');
 };
 
@@ -261,7 +258,7 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         ? 'delivered'
         : normalizedStatus === 'DEVUELTO'
             ? 'returned'
-            : ['GUIA_GENERADA', 'READY_FOR_PICKUP', 'EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE'].includes(normalizedStatus)
+            : ['GUIA_GENERADA', 'READY_FOR_PICKUP', 'EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE', 'NOVEDAD'].includes(normalizedStatus)
                 ? 'shipped'
                 : '';
     if (orderStatus) {

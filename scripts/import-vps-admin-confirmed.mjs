@@ -93,8 +93,16 @@ const toNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizePackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
+
 const packageLabel = (quantity) => {
-    const qty = Number(quantity || 1) || 1;
+    const qty = normalizePackageQuantity(quantity);
+    if (!qty) return 'sem quantidade';
     return qty === 1 ? '1 frasco' : `${qty} frascos`;
 };
 
@@ -152,8 +160,9 @@ const normalizeLocation = ({ city, province }) => {
 };
 
 const mapLeadToOrder = (lead) => {
-    const quantity = toNumber(lead.product_qty, 1) || 1;
+    const quantity = normalizePackageQuantity(lead.product_qty);
     const total = toNumber(lead.product_value, 0);
+    if (!quantity || total <= 0) return null;
     const location = normalizeLocation({
         city: lead.city,
         province: lead.province
@@ -187,7 +196,7 @@ const mapLeadToOrder = (lead) => {
 };
 
 const main = async () => {
-    const orders = leads.map(mapLeadToOrder);
+    const orders = leads.map(mapLeadToOrder).filter(Boolean);
     if (dryRun) {
         console.log(JSON.stringify({ dryRun: true, count: orders.length, orders }, null, 2));
         return;

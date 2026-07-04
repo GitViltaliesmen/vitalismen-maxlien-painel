@@ -23,6 +23,7 @@ import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js
 import { orderLooksClosedForRepurchase } from './orderDuplicateGuardService.js';
 import { searchDroppiEcuadorOrdersFromPanel, syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
+import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const noDropiBotTestPhones = () => [
@@ -130,7 +131,10 @@ const cleanFieldValue = (value) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim();
 
+const SERVIENTREGA_EC_GUARDED_CITY_VARIANTS = /\b(?:sucua|sucúa)\b/gi;
+
 const normalizeServientregaVariants = (value) => String(value || '')
+    .replace(SERVIENTREGA_EC_GUARDED_CITY_VARIANTS, 'sucua')
     .replace(/\bser\s*entrega\b/gi, 'servientrega')
     .replace(/\bserentrega\b/gi, 'servientrega')
     .replace(/\bservi\s+en\s+trega\b/gi, 'servientrega')
@@ -207,6 +211,7 @@ const ECUADOR_CITY_ALIASES = [
     'santa elena',
     'vinces',
     'cayambe',
+    'atuntaqui',
     'tulcan',
     'san gabriel',
     'gualaceo'
@@ -566,6 +571,25 @@ const getAgencyDetails = (parsedOrder = {}) => {
     };
 };
 
+const ACTIVE_SHIPMENT_TERMINAL_STATUSES = new Set([
+    'ENTREGADO',
+    'DEVUELTO',
+    'CANCELADO',
+    'CANCELADO_SERVIENTREGA',
+    'CANCELADO SERVIENTREGA'
+]);
+
+const shipmentLooksActiveForOrderReuse = (shipment = {}) => {
+    const status = String(shipment.logistics?.status || '').trim().toUpperCase();
+    if (!status || ACTIVE_SHIPMENT_TERMINAL_STATUSES.has(status)) return false;
+    return Boolean(
+        shipment.logistics?.trackingNumber
+        || shipment.logistics?.invoiceUrl
+        || shipment.logistics?.invoicePath
+        || shipment.logistics?.guidePrintUrl
+    );
+};
+
 const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhone }) => {
     const phone = parsedOrder.phone || peerPhone || '';
     if (isNoDropiBotTestPhone(phone, peerPhone)) {
@@ -575,23 +599,45 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
     const phoneTail = digitsOnly(phone).slice(-10);
     const country = 'EC';
     const currency = 'USD';
+    const activeShipment = phoneTail
+        ? (await Shipment.find({
+            country,
+            'client.phone': { $regex: `${phoneTail}$` }
+        })
+            .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 })
+            .limit(8)
+            .lean()
+            .catch(() => []))
+            .find(shipmentLooksActiveForOrderReuse)
+        : null;
+    const activeShipmentOrder = activeShipment?.orderId
+        ? await Order.findOne({ country, orderId: activeShipment.orderId })
+        : null;
     const query = phoneTail
         ? {
             country,
-            status: { $in: ['draft', 'pending', 'confirmed'] },
+            status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] },
             'customer.phone': { $regex: phoneTail }
         }
         : null;
-    const existingOrder = query
+    const existingOrder = activeShipmentOrder || (query
         ? await Order.findOne(query).sort({ updatedAt: -1, createdAt: -1 })
-        : null;
-    const existingShipment = existingOrder
+        : null);
+    const existingShipment = activeShipment && activeShipment.orderId === existingOrder?.orderId
+        ? activeShipment
+        : existingOrder
         ? await Shipment.findOne({ orderId: existingOrder.orderId }).lean().catch(() => null)
         : null;
     const previousDeliveredOrder = existingOrder && orderLooksClosedForRepurchase(existingOrder, existingShipment)
         ? existingOrder
         : null;
     const order = previousDeliveredOrder ? null : existingOrder;
+    const protectsActiveShipment = Boolean(
+        order
+        && activeShipment
+        && activeShipment.orderId === order.orderId
+        && !orderLooksClosedForRepurchase(order, existingShipment)
+    );
 
     const payload = {
         country,
@@ -619,6 +665,22 @@ const upsertCheckoutOrderDraft = async ({ parsedOrder, customerContext, peerPhon
     };
 
     if (order) {
+        if (protectsActiveShipment) {
+            order.conversationMemory = {
+                ...(order.conversationMemory || {}),
+                currentIntent: 'post_order_support',
+                lastCustomerMessageAt: new Date(),
+                protectedActiveShipmentAt: new Date(),
+                protectedActiveShipmentReason: 'active_shipment_reuse_blocked_duplicate_order'
+            };
+            order.$locals = {
+                ...(order.$locals || {}),
+                protectedActiveShipment: true
+            };
+            await order.save();
+            console.log(`[FUNIL] Pedido ativo com guia preservado; novo rascunho bloqueado -> phoneTail=${phoneTail} | pedido=${order.orderId}`);
+            return order;
+        }
         order.customer = payload.customer;
         order.package = payload.package;
         order.total = payload.total;
@@ -1396,16 +1458,17 @@ const isAgencyDeliveryConsent = (text = '') => {
 
 const agencyFirstDeliveryQuestionText = () => '¿Puedo enviar su pedido para una agencia de Servientrega? Sí o no?';
 const agencyFirstDeliveryRetryText = () => 'Respóndame por favor: sí o no.';
-const agencyCityProvinceRequestText = () => 'Perfecto. ¿Cuál es su ciudad y provincia?';
+const agencyCityProvinceRequestText = () => 'Perfecto, señor. Para no cometer error con Servientrega, me confirma ciudad y provincia donde desea retirar?';
 
 const hasAgencyIndicationData = (text) => {
     const body = normalizeServientregaVariants(text).trim();
     if (!body || principalSdrIsConfirmationOnlyText(body)) return false;
     const knownLocation = findKnownServientregaEcuadorLocation({ text: body });
-    const hasKnownLocation = Boolean(knownLocation.city || knownLocation.province);
-    const hasCityOrProvince = /(ciudad|provincia|quito|guayaquil|cuenca|santo domingo|machala|manta|ambato|loja|riobamba|esmeraldas|portoviejo|ibarra|quevedo|latacunga|milagro|babahoyo|sucua|sucúa)/i.test(body);
+    const hasKnownLocation = Boolean(knownLocation.city || knownLocation.province || knownLocation.agencies?.length);
+    const hasCityOrProvinceLabel = /\b(ciudad|cidade|city|cant[oó]n|provincia|prov)\b/i.test(body);
     const hasAgencyHint = /(servientrega|ag[eê]ncia|agencia|oficina|centro|norte|sur|terminal|mall|avenida|av\.|calle|direcci[oó]n|direccion|referencia)/i.test(body);
-    return body.length >= 6 && (hasKnownLocation || hasCityOrProvince || hasAgencyHint);
+    const hasAgencyCatalogMatch = findServientregaEcuadorAgencies({ query: body, limit: 4 }).length > 0;
+    return body.length >= 6 && (hasKnownLocation || hasCityOrProvinceLabel || hasAgencyHint || hasAgencyCatalogMatch);
 };
 
 const titleCaseDeliveryPart = (value) => String(value || '')
@@ -1439,6 +1502,17 @@ const splitAgencyDestination = (rawValue = '') => {
             destination: '',
             agency: '',
             address: ''
+        };
+    }
+
+    if (parts.length === 1) {
+        return {
+            destination: '',
+            agency: titleCaseDeliveryPart(cleaned),
+            address: titleCaseDeliveryPart(cleaned),
+            city: '',
+            province: '',
+            cleaned
         };
     }
 
@@ -1499,7 +1573,7 @@ const parseAgencyDetailsMessage = (text) => {
             city: raw,
             province: raw,
             query: raw,
-            limit: 3
+            limit: 4
         });
     const agencyOptions = lookup.suggestions?.length ? lookup.suggestions : fallbackOptions;
     const matchedAgency = lookup.confident ? lookup.best : null;
@@ -1520,20 +1594,16 @@ const parseAgencyDetailsMessage = (text) => {
 };
 
 const buildAgencyOptionsSelectionText = (parsedOrder = {}) => {
-    const options = Array.isArray(parsedOrder.agencyOptions) ? parsedOrder.agencyOptions.slice(0, 3) : [];
+    const options = Array.isArray(parsedOrder.agencyOptions) ? parsedOrder.agencyOptions.slice(0, 4) : [];
     if (options.length === 1) {
         const formatted = formatServientregaAgency(options[0]);
         return [
-            'Confirma esta agencia de Servientrega?',
-            '',
-            `SERVIENTREGA${formatted.name ? `, ${formatted.name}` : ''}`,
-            formatted.address ? formatted.address : ''
+            `Señor, puedo enviar su pedido para retirar en Agencia Servientrega ${formatted.name || 'seleccionada'} - ${formatted.address || 'direccion registrada'} (${formatted.city || 'ciudad registrada'}, ${formatted.province || 'provincia registrada'}). ¿Está correcto?`
         ].filter(Boolean).join('\n');
     }
-    const letters = ['A', 'B', 'C'];
     const header = 'Señor, por favor, escoja una agencia abajo:';
     const optionBlocks = options.map((agency, index) => {
-        const label = letters[index] || String(index + 1);
+        const label = String(index + 1);
         const formatted = formatServientregaAgency(agency);
         const name = formatted.name ? `, ${formatted.name}` : '';
         return [
@@ -1546,7 +1616,7 @@ const buildAgencyOptionsSelectionText = (parsedOrder = {}) => {
         '',
         optionBlocks.join('\n\n'),
         '',
-        'Responda A, B o C.'
+        `Responda con el número de la agencia: ${options.map((_, index) => String(index + 1)).join(', ')}.`
     ].join('\n');
 };
 
@@ -1634,7 +1704,7 @@ const findUniqueAgencyOptionByDescriptor = (text, options = []) => {
     const normalized = normalizeFieldLabel(text);
     if (!normalized || !options.length) return null;
 
-    const descriptorMatch = normalized.match(/\b(?:la|el|agencia|opcion)?\s*(?:del|de la|de el|de)?\s*(centro|norte|sur|terminal|mall|mercado|comision|transito|recreo|fortin|aeropuerto|alborada|sauces)\b/i);
+    const descriptorMatch = normalized.match(/\b(?:la|el|agencia|opcion)?\s*(?:del|de la|de el|de)?\s*(centro norte|centro sur|noreste|noroeste|sureste|suroeste|centro|norte|sur|este|oeste|terminal|mall|mercado|comision|transito|recreo|fortin|aeropuerto|alborada|sauces)\b/i);
     const descriptor = descriptorMatch?.[1] || '';
     if (descriptor) {
         const matches = options.filter((option) => {
@@ -1660,7 +1730,7 @@ const findUniqueAgencyOptionByDescriptor = (text, options = []) => {
     return scored[0].hits.length > scored[1].hits.length ? scored[0].option : null;
 };
 
-const selectAgencyOptionFromText = (text, options = []) => {
+const selectAgencyOptionFromText = (text, options = [], { startNumber = 1 } = {}) => {
     const normalized = normalizeFieldLabel(text);
     if (!normalized || !options.length) return null;
     if (options.length === 1 && /^(esa|ese|esta|este|ahi|alli|esa me sirve|esa esta bien|esa esta correcta|esa esta correcto|esa mismo|esa misma|ahi retiro|me sirve|correcto|correto|correcta|correta|ok|okay|si|sí|sim|listo|de acuerdo|estoy de acuerdo|esta de acuerdo|está de acuerdo|esta correcto|esta correcta|esta bien|todo bien|todo ok)$/i.test(normalized)) {
@@ -1681,15 +1751,18 @@ const selectAgencyOptionFromText = (text, options = []) => {
     const ordinalMap = [
         ['primera', 'primeira', 'primer', 'primero', 'uno'],
         ['segunda', 'segundo', 'dos'],
-        ['tercera', 'terceira', 'tercer', 'tercero', 'tres']
+        ['tercera', 'terceira', 'tercer', 'tercero', 'tres'],
+        ['cuarta', 'quarta', 'cuarto', 'quarto', 'cuatro']
     ];
     const normalizedWords = normalized.split(/\s+/).filter(Boolean);
     const ordinalIndex = ordinalMap.findIndex((words) => words.some((word) => normalizedWords.includes(word)));
     if (ordinalIndex >= 0 && ordinalIndex < options.length) return options[ordinalIndex];
 
-    const explicitNumberMatch = normalized.match(/\b(?:opcion|agencia|alternativa|numero)\s+([1-3])\b/i);
-    const shortNumberMatch = normalized.match(/^([1-3])$/);
+    const explicitNumberMatch = normalized.match(/\b(?:opcion|agencia|alternativa|numero)\s+([1-9][0-9]?)\b/i);
+    const shortNumberMatch = normalized.match(/^([1-9][0-9]?)$/);
     const number = Number.parseInt(explicitNumberMatch?.[1] || shortNumberMatch?.[1] || '', 10);
+    const absoluteIndex = number - Number(startNumber || 1);
+    if (absoluteIndex >= 0 && absoluteIndex < options.length) return options[absoluteIndex];
     if (number >= 1 && number <= options.length) return options[number - 1];
 
     const uniqueDescriptorMatch = findUniqueAgencyOptionByDescriptor(normalized, options);
@@ -2285,6 +2358,7 @@ const getPendingCheckoutStage = (pendingCheckoutOrder = {}) => {
 const updateOrderAfterAgencyStep = async ({ parsedOrder, customerContext, peerPhone, stage, status = null }) => {
     const order = await upsertCheckoutOrderDraft({ parsedOrder, customerContext, peerPhone });
     if (!order) return null;
+    if (order.$locals?.protectedActiveShipment) return order;
     const offer = getSelectedOffer(customerContext, parsedOrder);
     const agency = getAgencyDetails(parsedOrder);
 
@@ -2418,6 +2492,7 @@ const finalizeAgencyOrder = async ({
         stage: 'order_closed',
         status: 'confirmed'
     });
+    if (order?.$locals?.protectedActiveShipment) return true;
     await saveConfirmedSalePayloadToContact({
         contactStateId,
         agentProfile,
@@ -2538,6 +2613,9 @@ const finalizeCheckoutOrder = async ({
             peerPhone
         });
         if (order) {
+            if (order.$locals?.protectedActiveShipment) {
+                return true;
+            }
             order.status = 'confirmed';
             order.package = {
                 id: offer.quantity,
@@ -2566,6 +2644,7 @@ const finalizeCheckoutOrder = async ({
             await markMetaPurchaseForConfirmedOrder(order);
         }
     }
+    if (order?.$locals?.protectedActiveShipment) return true;
     await saveConfirmedSalePayloadToContact({
         contactStateId,
         agentProfile,
@@ -2838,6 +2917,48 @@ const QUANTITY_SELECTION_AUDIO_NAMES = {
     6: [
         '6_BOTELLAS_POR_167_E_99'
     ]
+};
+const officialPricePromotionText = () => (
+    'Le confirmo, señor: 1 botella por 39 USD, 3 botellas por 95.99 USD y 6 botellas por 167.99 USD. ¿Cuál desea reservar?'
+);
+
+const approvedProstateCommercialText = () => (
+    'Sí, señor, le explico. Vit Power es un apoyo natural para el bienestar masculino y le envío el audio con la orientación completa. ¿Desea que le pase también la promoción de 1, 3 o 6 frascos?'
+);
+
+const looksLikeSimpleProstateQuestion = (text = '') => (
+    /\b(prostata|pr[oó]stata|prostatitis|prostati|orina|orinar|urinari|urinario|urinaria)\b/i.test(String(text || ''))
+);
+
+const hasProhibitedSimpleProstateText = (text = '') => (
+    /(no debo prometer cura|diagn[oó]stico|tratamiento m[eé]dico|profesional de confianza|no es promesa de cura|consulte|consultar|confirme primero|m[eé]dico|farmac[eé]utico)/i.test(String(text || ''))
+);
+
+const sanitizeSimpleProstateCommercialReply = ({ inboundText = '', replyText = '' } = {}) => {
+    if (!looksLikeSimpleProstateQuestion(inboundText)) return replyText;
+    if (!hasProhibitedSimpleProstateText(replyText)) return replyText;
+    return approvedProstateCommercialText();
+};
+
+const isGenericPriceQuestionWithoutQuantity = (text = '') => {
+    const body = normalizeForDecision(text);
+    if (!body) return false;
+    if (detectRequestedQuantity(text)) return false;
+    return /\b(precio|precios|valor|cuanto|cu[aá]nto|cuesta|costo|coste|vale|promo|promocion|promoci[oó]n)\b/i.test(body);
+};
+
+const sanitizeGenericPriceReply = ({ inboundText = '', replyText = '' } = {}) => {
+    if (!isGenericPriceQuestionWithoutQuantity(inboundText)) return replyText;
+    return officialPricePromotionText();
+};
+
+const sanitizeGenericPriceOutboundPlan = ({ inboundText = '', plan = {} } = {}) => {
+    if (!isGenericPriceQuestionWithoutQuantity(inboundText)) return plan;
+    return {
+        ...plan,
+        cleanText: officialPricePromotionText(),
+        recordedAudioNames: ['TRATAMENTO_Y_PRECIOS_PROMOCAO']
+    };
 };
 
 const sendFirstApprovedAudio = async ({
@@ -3374,9 +3495,18 @@ const principalSdrNameRequestText = () => 'Perfecto, señor 😊\n\nPara organiz
 const principalSdrNameStageAnswer = (text, order = {}) => {
     const body = normalizeForDecision(text);
     if (!body) return '';
-    const offer = order.quantity ? principalSdrQuantityOfferText(order.quantity) : null;
-    if (/(precio|valor|cuanto|cu[aá]nto|pagar|total|costo|coste)/i.test(body) && offer) {
-        return `Sí, señor. Son ${offer.label} por ${offer.total}.`;
+    const explicitPriceQuantity = detectRequestedQuantity(text);
+    if (/(precio|valor|cuanto|cu[aá]nto|pagar|total|costo|coste)/i.test(body) && explicitPriceQuantity) {
+        const explicitOffer = principalSdrQuantityOfferText(explicitPriceQuantity);
+        return `Sí, señor. Son ${explicitOffer.label} por ${explicitOffer.total}.`;
+    }
+    if (/(precio|valor|cuanto|cu[aá]nto|pagar|total|costo|coste)/i.test(body)) {
+        return 'Hoy tenemos 1 frasco por 39 USD, 3 frascos por 95.99 USD y 6 frascos por 167.99 USD.';
+    }
+    if (/\b(?:que\s+)?se\s+(?:pare|levante|mantenga|sostenga)\b.{0,50}\b(tiempo|mas tiempo|duro|fuerte|firme|ereccion|erecion)\b/i.test(body)
+        || /\b(durar|dure|aguantar|aguante|resistir|rendir|rendimiento)\b.{0,50}\b(mas tiempo|tiempo|relaciones|intimidad|cama|sexo|sexual)\b/i.test(body)
+        || /\b(ereccion|erecion|parado|palo parado|duro|firme|bien fuerte)\b.{0,50}\b(mas tiempo|tiempo|durar|aguantar|mantener|mantenga|sostener|sostenga)\b/i.test(body)) {
+        return 'Si, señor. Le envio la orientacion exacta de firmeza y tiempo para que entienda bien el tratamiento.';
     }
     if (/(demora|tarda|llega|cuando llega|cu[aá]ndo llega|envio|env[ií]o|entrega)/i.test(body)) {
         return 'Claro, señor. Después de sus datos le organizo la entrega por agencia o domicilio.';
@@ -3441,7 +3571,7 @@ const principalSdrLocationFromText = (text = '', order = {}) => {
     const loc = extractLocationFromText(text);
     const cleaned = principalSdrCleanLocationAnswer(text);
     const known = findKnownServientregaEcuadorLocation({
-        city: loc.city || cleaned || order.city || '',
+        city: loc.city || order.city || '',
         province: loc.province || order.province || '',
         text
     });
@@ -3466,10 +3596,108 @@ const principalSdrProvinceFromText = (text = '', order = {}) => {
 
 const principalSdrIsConfirmationOnly = principalSdrIsConfirmationOnlyText;
 
-const AGENCY_OPTIONS_PAGE_SIZE = 3;
+const AGENCY_OPTIONS_PAGE_SIZE = 4;
 const AGENCY_OPTIONS_LOOKAHEAD_LIMIT = 60;
+const AGENCY_REFINEMENT_THRESHOLD = AGENCY_OPTIONS_PAGE_SIZE;
+const AGENCY_SECTOR_ALIASES = [
+    ['centro norte', ['centro norte', 'centro norte']],
+    ['centro sur', ['centro sur', 'centro sur']],
+    ['noreste', ['noreste', 'nor este', 'norte este']],
+    ['noroeste', ['noroeste', 'nor oeste', 'norte oeste']],
+    ['sureste', ['sureste', 'sur este']],
+    ['suroeste', ['suroeste', 'sur oeste']],
+    ['centro', ['centro', 'central']],
+    ['norte', ['norte']],
+    ['sur', ['sur']],
+    ['este', ['este', 'oriente']],
+    ['oeste', ['oeste', 'occidente']],
+    ['terminal', ['terminal']],
+    ['mall', ['mall', 'centro comercial']],
+    ['mercado', ['mercado']],
+    ['aeropuerto', ['aeropuerto']],
+    ['alborada', ['alborada']],
+    ['sauces', ['sauces']],
+    ['fortin', ['fortin']],
+    ['recreo', ['recreo']],
+    ['transito', ['transito', 'transito']],
+    ['comision', ['comision']]
+];
 
-const principalSdrAgencyOptionsForOrder = (order = {}, text = '', limit = 3, offset = 0) => {
+const principalSdrAgencySectorFromText = (text = '') => {
+    const body = normalizeFieldLabel(text);
+    if (!body) return '';
+    for (const [sector, aliases] of AGENCY_SECTOR_ALIASES) {
+        if (aliases.some((alias) => new RegExp(`\\b${alias.replace(/\s+/g, '\\s+')}\\b`, 'i').test(body))) {
+            return sector;
+        }
+    }
+    return '';
+};
+
+const principalSdrClientDoesNotKnowAgency = (text = '') => /\b(no se|no sé|no sabe|no conozco|no conozco|no tengo|no recuerdo|no ubico|no se cual|no sé cual|cualquiera|la mas cercana|la más cercana|una cercana|no importa)\b/i.test(normalizeFieldLabel(text));
+
+const principalSdrAgencyRefinementQuestionText = () => (
+    '¿Conoce el nombre, dirección o sector de la agencia? Puede decir Centro, Norte, Sur, Este u Oeste. Si no sabe, le envío las opciones disponibles.'
+);
+
+const principalSdrAgencyRefinementQueryFromText = (text = '', order = {}) => {
+    if (principalSdrIsConfirmationOnly(text) || principalSdrWantsMoreAgencyOptions(text) || principalSdrClientDoesNotKnowAgency(text)) return '';
+    const sector = principalSdrAgencySectorFromText(text);
+    if (sector) return sector;
+    const body = normalizeFieldLabel(text);
+    if (!body) return '';
+    const location = principalSdrLocationFromText(text, order);
+    const locationWords = new Set(normalizeFieldLabel([
+        order.city,
+        order.province,
+        location.city,
+        location.province
+    ].filter(Boolean).join(' ')).split(/\s+/).filter(Boolean));
+    const noise = new Set([
+        ...AGENCY_SELECTION_NOISE_WORDS,
+        'ciudad',
+        'provincia',
+        'canton',
+        'sector',
+        'zona',
+        'localizacion',
+        'ubicacion',
+        'sucursal',
+        'oficina',
+        'servientrega',
+        'agencia',
+        'quiero',
+        'deseo',
+        'retirar',
+        'retiro',
+        'enviar',
+        'envie',
+        'mandar',
+        'mande',
+        'por'
+    ]);
+    const remainingTokens = body.split(/\s+/).filter((token) => (
+        token.length >= 3
+        && !noise.has(token)
+        && !locationWords.has(token)
+    ));
+    return remainingTokens.length ? text : '';
+};
+
+const principalSdrAgencyOptionsQuery = (order = {}, text = '') => {
+    if (principalSdrClientDoesNotKnowAgency(text)) return '';
+    return principalSdrAgencyRefinementQueryFromText(text, order) || order.agencyOptionsQuery || '';
+};
+
+const principalSdrFilterAgencyOptionsBySector = (options = [], query = '') => {
+    const sector = principalSdrAgencySectorFromText(query);
+    if (!sector) return options;
+    const normalizedSector = normalizeFieldLabel(sector);
+    const filtered = options.filter((agency) => normalizeFieldLabel(agency.sector || '').includes(normalizedSector));
+    return filtered.length ? filtered : options;
+};
+
+const principalSdrAgencyOptionsForOrder = (order = {}, text = '', limit = AGENCY_OPTIONS_PAGE_SIZE, offset = 0) => {
     const safeText = principalSdrIsConfirmationOnly(text) ? '' : text;
     const details = safeText ? parseAgencyDetailsMessage(safeText) : {};
     const location = safeText
@@ -3477,13 +3705,27 @@ const principalSdrAgencyOptionsForOrder = (order = {}, text = '', limit = 3, off
         : { city: order.city || '', province: order.province || '' };
     const city = details.city || location.city || order.city || '';
     const province = details.province || location.province || order.province || '';
-    return (details.agencyOptions?.length ? details.agencyOptions : findServientregaEcuadorAgencies({
+    const query = principalSdrAgencyOptionsQuery({ ...order, city, province }, safeText);
+    const lookupLimit = Math.max(limit + offset, limit, AGENCY_OPTIONS_LOOKAHEAD_LIMIT);
+    const useParsedAgencyOptions = Boolean(details.agencyOptions?.length && !city && !province);
+    const options = (useParsedAgencyOptions ? details.agencyOptions : findServientregaEcuadorAgencies({
         city,
         province,
-        query: safeText || [city, province].filter(Boolean).join(' '),
-        limit: Math.max(limit + offset, limit)
-    })).slice(offset, offset + limit);
+        query: query || [city, province].filter(Boolean).join(' '),
+        limit: lookupLimit
+    }));
+    return principalSdrFilterAgencyOptionsBySector(options, query).slice(offset, offset + limit);
 };
+
+const principalSdrAgencyOptionFromOrder = (order = {}) => ({
+    name: order.agencyName || order.agency || '',
+    province: order.province || '',
+    city: order.city || '',
+    sector: order.agencySector || order.reference || '',
+    address: order.agencyAddress || order.address || '',
+    weekdayHours: order.agencyWeekdayHours || '',
+    weekendHours: order.agencyWeekendHours || ''
+});
 
 const principalSdrAgencyOptionsPageForOrder = (order = {}, text = '', page = 0) => {
     const safePage = Math.max(0, Number.parseInt(String(page || 0), 10) || 0);
@@ -3554,32 +3796,49 @@ const principalSdrClearSelectedAgency = (order = {}) => ({
     agencyWeekendHours: '',
     agencyValidated: false,
     agency: '',
-    agencyOptions: []
+    agencyOptions: [],
+    agencyOptionsQuery: '',
+    agencyRefinementRequested: false
 });
 
-const principalSdrAgencyListText = (options = [], { hasMore = false } = {}) => {
+const principalSdrShouldAskAgencyRefinement = ({ page = {}, order = {}, text = '' } = {}) => (
+    Boolean(
+        page.hasMore
+        && (page.options || []).length >= AGENCY_REFINEMENT_THRESHOLD
+        && principalSdrOrderHasCityProvince(order)
+        && !principalSdrAgencyOptionsQuery(order, text)
+        && !principalSdrClientDoesNotKnowAgency(text)
+    )
+);
+
+const principalSdrAgencyListText = (options = [], { hasMore = false, page = 0 } = {}) => {
+    const visibleOptions = Array.isArray(options) ? options.slice(0, AGENCY_OPTIONS_PAGE_SIZE) : [];
+    const startNumber = (Math.max(0, Number.parseInt(String(page || 0), 10) || 0) * AGENCY_OPTIONS_PAGE_SIZE) + 1;
     if (options.length === 1) {
         const agency = options[0];
         return [
-            'Confirma esta agencia de Servientrega?',
-            '',
-            `SERVIENTREGA${agency.name ? `, ${principalSdrClean(agency.name)}` : ''}`.trim(),
-            agency.address ? principalSdrClean(agency.address) : ''
+            `Señor, puedo enviar su pedido para retirar en Agencia Servientrega ${agency.name ? principalSdrClean(agency.name) : 'seleccionada'} - ${agency.address ? principalSdrClean(agency.address) : 'direccion registrada'} (${agency.city ? principalSdrClean(agency.city) : 'ciudad registrada'}, ${agency.province ? principalSdrClean(agency.province) : 'provincia registrada'}). ¿Está correcto?`
         ].filter((line) => line !== null && line !== undefined).join('\n');
     }
-    const letters = ['A', 'B', 'C'];
-    const optionBlocks = options.slice(0, 3).map((agency, index) => {
-        const label = letters[index] || String(index + 1);
+    const optionBlocks = visibleOptions.map((agency, index) => {
+        const label = String(startNumber + index);
         return [
             `${label}) SERVIENTREGA${agency.name ? `, ${principalSdrClean(agency.name)}` : ''}`,
-            agency.address ? principalSdrClean(agency.address) : ''
+            agency.address ? principalSdrClean(agency.address) : '',
+            [agency.city, agency.province].filter(Boolean).length
+                ? `Ciudad: ${[agency.city, agency.province].filter(Boolean).map(principalSdrClean).join(', ')}`
+                : '',
+            agency.sector ? `Sector: ${principalSdrClean(agency.sector)}` : ''
         ].filter(Boolean).join('\n');
     });
+    const availableNumbersText = visibleOptions
+        .map((_, index) => String(startNumber + index))
+        .join(', ');
     const footer = hasMore
-        ? ['Responda A, B o C.', 'Si ninguna sirve, responda OTRAS.'].join('\n')
-        : 'Responda A, B o C.';
+        ? [`Responda con el número de la agencia: ${availableNumbersText}.`, 'Si ninguna sirve, responda OTRAS y le envio mas opciones.'].join('\n')
+        : `Responda con el número de la agencia: ${availableNumbersText}.`;
     const lines = [
-        'Señor, por favor, escoja una agencia abajo:',
+        page > 0 ? 'Más agencias disponibles:' : 'Señor, por favor, escoja una agencia abajo:',
         '',
         optionBlocks.join('\n\n'),
         '',
@@ -3657,14 +3916,121 @@ const principalSdrLooksLikeLocationCorrection = (text = '') => {
     return Boolean(location.city || location.province);
 };
 
+const principalSdrHandleLogisticsFromScheduledFollowup = async ({
+    text,
+    chatId,
+    peerPhone,
+    sessionId,
+    contactStateId,
+    agentProfile,
+    order
+}) => {
+    if (!hasAgencyIndicationData(text) && !principalSdrLooksLikeAgencyOrLocationAnswer(text)) return false;
+
+    let nextOrder = principalSdrMergeLocationAndAgencyDetails({
+        ...(order || {}),
+        deliveryType: 'SERVIENTREGA',
+        deliveryMode: 'agency'
+    }, text);
+
+    if (!principalSdrOrderHasCityProvince(nextOrder)) {
+        const replyText = agencyCityProvinceRequestText();
+        return principalSdrSendTextAndSave({
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            order: nextOrder,
+            stage: 'sdr_awaiting_agency_query',
+            inboundText: text,
+            text: replyText,
+            suffix: 'principal_sdr_scheduled_to_agency_city_province'
+        });
+    }
+
+    if (nextOrder.agencyValidated && (nextOrder.agencyName || nextOrder.agency)) {
+        const selectedAgency = principalSdrAgencyOptionFromOrder(nextOrder);
+        nextOrder = {
+            ...nextOrder,
+            agencyOptions: [selectedAgency],
+            agencyOptionsPage: 0
+        };
+        const replyText = principalSdrAgencyListText([selectedAgency], { page: 0 });
+        return principalSdrSendTextAndSave({
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            order: nextOrder,
+            stage: 'sdr_awaiting_agency_selection',
+            inboundText: text,
+            text: replyText,
+            suffix: 'principal_sdr_scheduled_to_specific_agency'
+        });
+    }
+
+    const agencyOptionsQuery = principalSdrAgencyOptionsQuery(nextOrder, text);
+    const page = principalSdrAgencyOptionsPageForOrder(nextOrder, agencyOptionsQuery || text, 0);
+    nextOrder = { ...nextOrder, agencyOptions: page.options, agencyOptionsPage: page.page, agencyOptionsQuery };
+    if (!page.options.length) {
+        const replyText = agencyCityProvinceRequestText();
+        return principalSdrSendTextAndSave({
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            order: nextOrder,
+            stage: 'sdr_awaiting_agency_query',
+            inboundText: text,
+            text: replyText,
+            suffix: 'principal_sdr_scheduled_to_agency_retry'
+        });
+    }
+    if (principalSdrShouldAskAgencyRefinement({ page, order: nextOrder, text })) {
+        const replyText = principalSdrAgencyRefinementQuestionText();
+        nextOrder = { ...nextOrder, agencyRefinementRequested: true, agencyOptions: [], agencyOptionsPage: 0 };
+        return principalSdrSendTextAndSave({
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            order: nextOrder,
+            stage: 'sdr_awaiting_agency_query',
+            inboundText: text,
+            text: replyText,
+            suffix: 'principal_sdr_scheduled_to_agency_refinement'
+        });
+    }
+    const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
+    return principalSdrSendTextAndSave({
+        chatId,
+        peerPhone,
+        sessionId,
+        contactStateId,
+        agentProfile,
+        order: nextOrder,
+        stage: 'sdr_awaiting_agency_selection',
+        inboundText: text,
+        text: listText,
+        suffix: 'principal_sdr_scheduled_to_agency_list'
+    });
+};
+
 const principalSdrMergeIncoming = (order = {}, text = '') => {
     const safeText = principalSdrIsConfirmationOnly(text) || isOrderCloseAffirmation(text) ? '' : text;
     const parsed = safeText ? (parseCheckoutOrderMessage(safeText, { loose: true }) || {}) : {};
+    const agencyRead = safeText && hasAgencyIndicationData(safeText)
+        ? principalSdrMergeLocationAndAgencyDetails(order, safeText)
+        : {};
     if (parsed.name && principalSdrLooksLikeLocationCorrection(safeText)) {
         delete parsed.name;
     }
     const corrected = parseCheckoutCorrectionMessage(text) || {};
-    const merged = coerceCheckoutLocationFields({ ...(order || {}), ...parsed, ...corrected });
+    const merged = coerceCheckoutLocationFields({ ...(order || {}), ...parsed, ...agencyRead, ...corrected });
     if (!isValidPackageQuantity(merged.quantity) && isValidPackageQuantity(order?.quantity)) {
         merged.quantity = Number.parseInt(String(order.quantity), 10);
     }
@@ -3834,7 +4200,22 @@ const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactS
         return true;
     }
 
-    if (principalSdrLooksLikeBuyLater(text)) {
+    const hasLogisticsPriority = hasAgencyIndicationData(text) || principalSdrLooksLikeAgencyOrLocationAnswer(text);
+
+    if (currentStage === 'sdr_scheduled_followup' && hasLogisticsPriority) {
+        const handled = await principalSdrHandleLogisticsFromScheduledFollowup({
+            text,
+            chatId,
+            peerPhone,
+            sessionId,
+            contactStateId,
+            agentProfile,
+            order
+        });
+        if (handled) return true;
+    }
+
+    if (principalSdrLooksLikeBuyLater(text) && !hasLogisticsPriority) {
         const replyText = 'Claro, señor 😊\n¿Qué día desea que le escribamos nuevamente?';
         order = { ...order, stage: 'sdr_scheduled_followup', followup_status: 'COMPRA_AGENDADA', scheduled_reason: 'cliente_pidio_comprar_depois' };
         return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_scheduled_followup', inboundText: text, text: replyText, suffix: 'principal_sdr_scheduled' });
@@ -3973,6 +4354,51 @@ const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactS
 
     if (currentStage === 'sdr_awaiting_value_confirmation') {
         if (!principalSdrIsValueOfferAcceptance(text)) {
+            if (isGenericPriceQuestionWithoutQuantity(text)) {
+                await sendFirstApprovedAudio({
+                    jid: chatId,
+                    countryCode: customerContext.countryCode,
+                    sessionId,
+                    baseNames: ['TRATAMENTO_Y_PRECIOS_PROMOCAO'],
+                    label: 'principal_sdr_price_promotion',
+                    sendOptions: { peerPhone }
+                });
+                const replyText = officialPricePromotionText();
+                return principalSdrSendTextAndSave({
+                    chatId,
+                    peerPhone,
+                    sessionId,
+                    contactStateId,
+                    agentProfile,
+                    order: { ...order, quantity: '', selectedQuantity: '', total: 0, valueConfirmed: false },
+                    stage: 'sdr_awaiting_quantity',
+                    inboundText: text,
+                    text: replyText,
+                    suffix: 'principal_sdr_price_promotion_no_quantity'
+                });
+            }
+            if (hasAgencyIndicationData(text) && (order.city || order.province || order.agencyOptions?.length || order.agencyName)) {
+                const offer = principalSdrQuantityOfferText(order.quantity || 0);
+                const locationLine = [order.city, order.province].filter(Boolean).join(', ');
+                const replyText = [
+                    locationLine
+                        ? `Perfecto, señor. Ya tengo su ciudad/provincia: ${locationLine}.`
+                        : 'Perfecto, señor. Ya leí los datos de la agencia/ubicación que me envió.',
+                    order.quantity
+                        ? `${offer.label} por ${offer.total}. ¿Está correcto?`
+                        : '¿Está bien para usted reservar esa promoción hoy?'
+                ].filter(Boolean).join('\n\n');
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_value_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_value_location_read' });
+            }
+            const answer = principalSdrNameStageAnswer(text, order);
+            if (answer) {
+                const offer = principalSdrQuantityOfferText(order.quantity || 0);
+                const retake = order.quantity
+                    ? `${offer.label} por ${offer.total}. ¿Está correcto?`
+                    : '¿Está bien para usted reservar esa promoción hoy?';
+                const replyText = [answer, retake].filter(Boolean).join('\n\n');
+                return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_value_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_value_question_answered' });
+            }
             const bridge = checkoutBridgeLine();
             const replyText = bridge + '\n¿Está bien para usted reservar esa promoción hoy?';
             return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_value_confirmation', inboundText: text, text: replyText, suffix: 'principal_sdr_value_retry' });
@@ -4002,11 +4428,18 @@ const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactS
                     outboundText: '[AUDIO] ENDERECO_CIDADE_PROVINCIA_AGENCIA'
                 });
             }
-            const page = principalSdrAgencyOptionsPageForOrder(order, '', 0);
+            const agencyOptionsQuery = principalSdrAgencyOptionsQuery(order, text);
+            const page = principalSdrAgencyOptionsPageForOrder(order, agencyOptionsQuery, 0);
             if (page.options.length) {
-                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+                if (principalSdrShouldAskAgencyRefinement({ page, order, text })) {
+                    const replyText = principalSdrAgencyRefinementQuestionText();
+                    order = { ...order, agencyOptions: [], agencyOptionsPage: 0, agencyOptionsQuery: '', agencyRefinementRequested: true };
+                    return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: replyText, suffix: 'principal_sdr_agency_refinement' });
+                }
+                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
                 order.agencyOptions = page.options;
                 order.agencyOptionsPage = page.page;
+                order.agencyOptionsQuery = agencyOptionsQuery;
                 return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_list' });
             }
             const replyText = 'No encontré agencias con esa ciudad y provincia. Envíeme otra ciudad y provincia cercana para buscar de nuevo.';
@@ -4031,32 +4464,62 @@ const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactS
             const retryText = agencyCityProvinceRequestText();
             return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_city_province_retry' });
         }
-        const page = principalSdrAgencyOptionsPageForOrder(order, '', 0);
-        order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
+        const agencyOptionsQuery = principalSdrAgencyOptionsQuery(order, text);
+        const page = principalSdrAgencyOptionsPageForOrder(order, agencyOptionsQuery, 0);
+        order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page, agencyOptionsQuery };
         if (!page.options.length) {
             const retryText = 'No encontré agencias con esa ciudad y provincia. Envíeme otra ciudad y provincia cercana para buscar de nuevo.';
             return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_retry' });
         }
-        const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+        if (principalSdrShouldAskAgencyRefinement({ page, order, text })) {
+            const replyText = principalSdrAgencyRefinementQuestionText();
+            order = { ...order, agencyOptions: [], agencyOptionsPage: 0, agencyOptionsQuery: '', agencyRefinementRequested: true };
+            return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_query', inboundText: text, text: replyText, suffix: 'principal_sdr_agency_refinement' });
+        }
+        const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
         return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_list' });
     }
 
     if (currentStage === 'sdr_awaiting_agency_selection') {
-        const selectedAgency = selectAgencyOptionFromText(text, order.agencyOptions || []);
+        const currentAgencyPage = Number.parseInt(String(order.agencyOptionsPage || 0), 10) || 0;
+        const selectedAgency = selectAgencyOptionFromText(text, order.agencyOptions || [], {
+            startNumber: (currentAgencyPage * AGENCY_OPTIONS_PAGE_SIZE) + 1
+        });
         if (!selectedAgency) {
+            const wantsMoreAgencyOptions = principalSdrWantsMoreAgencyOptions(text);
+            const clientDoesNotKnowAgency = principalSdrClientDoesNotKnowAgency(text);
+            if (clientDoesNotKnowAgency && !wantsMoreAgencyOptions) {
+                order = { ...order, agencyOptionsQuery: '', agencyOptionsPage: 0 };
+                const page = principalSdrAgencyOptionsPageForOrder(order, '', 0);
+                if (page.options.length) {
+                    const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
+                    order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
+                    return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_general_options' });
+                }
+            }
+            const agencyRefinementQuery = principalSdrAgencyRefinementQueryFromText(text, order);
+            if (agencyRefinementQuery && !wantsMoreAgencyOptions) {
+                order = { ...order, agencyOptionsQuery: agencyRefinementQuery, agencyOptionsPage: 0 };
+                const page = principalSdrAgencyOptionsPageForOrder(order, agencyRefinementQuery, 0);
+                if (page.options.length) {
+                    const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
+                    order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
+                    return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_refined_options' });
+                }
+            }
             const explicitNewLocation = principalSdrIsAgencyLocationCorrection(text, order);
             if (explicitNewLocation) {
                 order = principalSdrClearSelectedAgency(principalSdrMergeLocationAndAgencyDetails(order, text));
                 order.agencyOptionsPage = 0;
             }
             const nextPageNumber = explicitNewLocation ? 0 : (Number.parseInt(String(order.agencyOptionsPage || 0), 10) || 0) + 1;
-            const page = principalSdrAgencyOptionsPageForOrder(order, '', nextPageNumber);
+            const page = principalSdrAgencyOptionsPageForOrder(order, order.agencyOptionsQuery || '', nextPageNumber);
             if (page.options.length) {
-                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore });
+                const listText = principalSdrAgencyListText(page.options, { hasMore: page.hasMore, page: page.page });
                 order = { ...order, agencyOptions: page.options, agencyOptionsPage: page.page };
                 return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: listText, suffix: 'principal_sdr_agency_next_options' });
             }
-            const retryText = 'Señor, responda por favor con A, B o C para elegir la agencia correcta. Si la ciudad está equivocada, escriba ciudad y provincia.';
+            const retryText = 'Señor, responda por favor con el número de la agencia. Si la ciudad está equivocada, escriba ciudad y provincia.';
             return principalSdrSendTextAndSave({ chatId, peerPhone, sessionId, contactStateId, agentProfile, order, stage: 'sdr_awaiting_agency_selection', inboundText: text, text: retryText, suffix: 'principal_sdr_agency_select_retry' });
         }
         order = principalSdrApplyOfficialAgency(order, selectedAgency);
@@ -4760,9 +5223,9 @@ const inferIntent = (text) => {
     if (/(despu[eé]s|luego|mas tarde|m[aá]s tarde|fin de mes|final de mes|quincena|cuando cobre|cuando me paguen|para despues|para despu[eé]s|solo estoy viendo|solo quiero saber)/i.test(body)) return 'buy_later';
     if (/(descuento|rebaja|menos|barato|caro|costoso|mucho)/i.test(body)) return 'price_resistance';
     if (/(precio|valor|cu[aá]nto|cuanto|cost[aá]|promo)/i.test(body)) return 'price_check';
-    if (/(funciona|sirve|resultado|resultados|testimonio|prueba|real|verdad|confianza)/i.test(body)) return 'proof_request';
+    if (/(liquido|l[ií]quido|orina|orinar|urinari|urinario|urinaria|prostata|pr[oó]stata|prostatitis|prostati)/i.test(body)) return 'symptom_question';
+    if (/(funciona|sirve|sirbe|resultado|resultados|testimonio|prueba|real|verdad|confianza)/i.test(body)) return 'proof_request';
     if (/(composicion|composicion|ingrediente|ingredientes|que tiene|contiene)/i.test(body)) return 'composition_question';
-    if (/(liquido|l[ií]quido|orina|prostata|pr[oó]stata)/i.test(body)) return 'symptom_question';
     if (/(1 frasco|2 frascos|3 frascos|6 frascos|un frasco|dos frascos|tres frascos|seis frascos|\buno\b|\bdos\b|\btres\b|\bseis\b)/i.test(body)) return 'quantity_selection';
     if (/(confirmo|confirmado|envialo|envie|mande|mandelo|prepara|prepare|hagale|listo|de una|hoy)/i.test(body)) return 'closing';
     if (/(quiero|me interesa|deseo|llevar|comprar)/i.test(body)) return 'purchase_intent';
@@ -4882,6 +5345,7 @@ const buildQuantityConfirmationReply = ({ quantity, customerContext }) => {
 };
 
 const shouldConfirmPackageQuantity = ({ text, agentMemory = {} }) => {
+    if (isGenericPriceQuestionWithoutQuantity(text)) return 0;
     const quantity = detectRequestedQuantity(text);
     if (!quantity) return 0;
     if (looksLikeOrderDataMessage(text)) return 0;
@@ -4901,6 +5365,7 @@ const strongQuantityShortcutFromText = ({
     pendingCheckoutOrder = null,
     agentMemory = {}
 }) => {
+    if (isGenericPriceQuestionWithoutQuantity(text)) return 0;
     const quantity = detectRequestedQuantity(text);
     if (!quantity) return 0;
     if (looksLikeOrderDataMessage(text)) return 0;
@@ -5310,6 +5775,11 @@ const isOrderCloseAffirmation = (text) => {
 export const __principalSdrContextAudit = {
     normalizeForDecision,
     detectRequestedQuantity,
+    isGenericPriceQuestionWithoutQuantity,
+    officialPricePromotionText,
+    sanitizeGenericPriceReply,
+    sanitizeGenericPriceOutboundPlan,
+    inferIntent,
     principalSdrIsValueOfferAcceptance,
     principalSdrIsConfirmationOnlyText,
     isAgencyDeliveryConsent,
@@ -5322,10 +5792,18 @@ export const __principalSdrContextAudit = {
     principalSdrLooksLikeAgencyOrLocationAnswer,
     principalSdrAgencyOptionsPageForOrder,
     principalSdrAgencyListText,
+    principalSdrAgencyOptionFromOrder,
+    principalSdrAgencySectorFromText,
+    principalSdrAgencyRefinementQuestionText,
+    principalSdrAgencyRefinementQueryFromText,
+    principalSdrClientDoesNotKnowAgency,
+    principalSdrShouldAskAgencyRefinement,
+    agencyCityProvinceRequestText,
     selectAgencyOptionFromText,
     looksLikeCustomerFullName,
     isOrderCloseAffirmation,
-    principalSdrLooksLikeLocationCorrection
+    principalSdrLooksLikeLocationCorrection,
+    principalSdrLooksLikeBuyLater
 };
 
 const looksLikeFinalOrderConfirmationPrompt = (text) => {
@@ -5461,6 +5939,7 @@ const shouldForceAudio = ({ intent, lastObjection, agentProfile }) => {
     if (String(process.env.BOT_FAST_TEXT_ONLY || '').toLowerCase() === 'true') return false;
     return [
         'price_check',
+        'symptom_question',
         'purchase_intent',
         'contraindication_question'
     ].includes(intent) || !!lastObjection;
@@ -5494,6 +5973,8 @@ const preferredRecordedAudioForReply = ({ intent, lastObjection, funnelStage, re
         candidate = 'QUANTOS_FRASCOS_E_DIA_QUERES';
     } else if (intent === 'shipping_info') {
         candidate = 'ENVIO_AGENCIA_100_SEGURO';
+    } else if (intent === 'symptom_question' || /(prostata|pr[oó]stata|prostatitis|prostati|orina|orinar|urinari|urinario|urinaria)/i.test(body)) {
+        candidate = 'Ajuda_Prostata';
     } else if (/(funciona|sirve|resultado|resultados)/i.test(body)) {
         candidate = 'FUNCIONA_VIT_POWER';
     } else if (/(como se toma|tomar|toma|capsula|c[aá]psula|liquido|l[ií]quido)/i.test(body)) {
@@ -5640,7 +6121,7 @@ const buildAttendanceRescueText = ({ inboundText = '', customerContext = {} } = 
         return 'Le leo por aqui, senor. Para ayudarle sin error, escribame en una frase si su duda es sobre precio, como tomar, agencia o pedido.';
     }
     if (/\b(diabetes|presion|hipertension|medicamento|cirugia|corazon|salud|enfermedad)\b/i.test(text)) {
-        return 'Le entiendo. Si tiene una condicion de salud o toma medicamentos, lo mejor es revisar con su profesional de confianza antes de usarlo. Desea que le comparta la informacion general del producto?';
+        return 'Le entiendo. Para explicarle sin confundir, le envio la orientacion aprobada del producto en audio y seguimos paso a paso. Desea que le pase tambien la promocion de 1, 3 o 6 frascos?';
     }
     const country = customerContext?.countryCode === 'EC' ? 'en Ecuador' : '';
     return `Sigo con usted ${country}. Para ayudarle bien, desea informacion del producto o quiere avanzar con su pedido?`.replace(/\s+/g, ' ').trim();
@@ -5994,6 +6475,246 @@ const updateContactStateAgentMemory = async ({
     await state.save();
 };
 
+const attentiveReaderBotEnabled = () => (
+    String(process.env.ATTENTIVE_READER_BOT_ENABLED || 'true').toLowerCase() !== 'false'
+);
+
+const attentiveReaderBotMinConfidence = () => {
+    const value = Number.parseFloat(String(process.env.ATTENTIVE_READER_BOT_MIN_CONFIDENCE || '0.82'));
+    return Number.isFinite(value) ? value : 0.82;
+};
+
+const ATTENTIVE_READER_AUTO_CATEGORIES = new Set([
+    'vsl_entry_lead',
+    'generic_price',
+    'prostate_question',
+    'ambiguous_agency_address',
+    'logistics_missing_city_province',
+    'agency_refinement_needed',
+    'agency_confirm',
+    'agency_options',
+    'frustration_care'
+]);
+
+const attentiveReaderAudioCategories = new Set([
+    'vsl_entry_lead',
+    'generic_price',
+    'prostate_question'
+]);
+
+const attentiveReaderMemoryForCategory = (category = '') => {
+    if (category === 'vsl_entry_lead') {
+        return { intent: 'vsl_entry_lead', stage: 'initial_vsl_entry_answered' };
+    }
+    if (category === 'generic_price') {
+        return { intent: 'price_check', stage: 'price_promotion_presented' };
+    }
+    if (category === 'prostate_question') {
+        return { intent: 'health_question', stage: 'health_question_answered' };
+    }
+    if (category === 'agency_confirm') {
+        return { intent: 'shipping_info', stage: 'sdr_awaiting_agency_confirmation' };
+    }
+    if (category === 'agency_options') {
+        return { intent: 'shipping_info', stage: 'sdr_awaiting_agency_selection' };
+    }
+    if (category === 'agency_refinement_needed') {
+        return { intent: 'shipping_info', stage: 'sdr_awaiting_agency_query' };
+    }
+    if (category === 'ambiguous_agency_address' || category === 'logistics_missing_city_province') {
+        return { intent: 'shipping_info', stage: 'sdr_awaiting_city_province' };
+    }
+    if (category === 'frustration_care') {
+        return { intent: 'customer_care', stage: 'attention_rescue' };
+    }
+    return { intent: 'general_question', stage: 'attentive_reader_answered' };
+};
+
+const attentiveReaderAudioNamesForItem = (item = {}) => {
+    if (item.category === 'vsl_entry_lead') {
+        return [getGreetingAudioByTime(new Date(), ECUADOR_GREETING_TIMEZONE)];
+    }
+    return item.recommendedAudio ? [item.recommendedAudio] : [];
+};
+
+const attentiveReaderHistoryFromMemory = ({ history = [], inboundText = '' } = {}) => {
+    const converted = (history || []).slice(-20).map((item, index) => {
+        const role = String(item.role || '').toLowerCase();
+        const assistant = role === 'assistant' || item.isFromMe || item.isBot;
+        return {
+            _id: item._id || `mem_${index}_${assistant ? 'bot' : 'cliente'}`,
+            body: item.body || item.content || '',
+            isFromMe: Boolean(assistant),
+            isBot: Boolean(assistant),
+            createdAt: item.createdAt || item.timestamp || new Date()
+        };
+    }).filter((item) => item.body);
+    converted.push({
+        _id: `inline_attentive_${Date.now()}`,
+        body: inboundText,
+        isFromMe: false,
+        isBot: false,
+        createdAt: new Date()
+    });
+    return converted;
+};
+
+const shouldSkipAttentiveReaderBot = ({
+    agentProfile,
+    contactState,
+    checkoutOrderData,
+    pendingCheckoutOrder,
+    pendingCheckoutStage
+} = {}) => {
+    if (!attentiveReaderBotEnabled()) return true;
+    if (agentProfile?.key !== 'vit_power_ec') return true;
+    if (contactState?.human?.mode === 'manual') return true;
+    if (checkoutOrderData && pendingCheckoutOrder && isCheckoutDataCollectionStage(pendingCheckoutStage)) return true;
+    if (pendingCheckoutStage === 'order_closed') return true;
+    return false;
+};
+
+const maybeHandleAttentiveReaderDirectReply = async ({
+    text,
+    chatId,
+    peerPhone,
+    sessionId = null,
+    contactState,
+    contactStateId,
+    agentProfile,
+    customerContext,
+    customerMemory = {},
+    memoryOrder = null,
+    checkoutOrderData = null,
+    pendingCheckoutOrder = null,
+    pendingCheckoutStage = ''
+} = {}) => {
+    if (shouldSkipAttentiveReaderBot({
+        agentProfile,
+        contactState,
+        checkoutOrderData,
+        pendingCheckoutOrder,
+        pendingCheckoutStage
+    })) {
+        return false;
+    }
+
+    const item = analyzeAttentiveReader({
+        inboundText: text,
+        history: attentiveReaderHistoryFromMemory({
+            history: customerMemory.history || [],
+            inboundText: text
+        }),
+        contactState,
+        latestOrder: memoryOrder
+    });
+    if (!item || !ATTENTIVE_READER_AUTO_CATEGORIES.has(item.category)) return false;
+    if (Number(item.confidence || 0) < attentiveReaderBotMinConfidence()) return false;
+
+    let replyText = String(item.suggestedScript || '').trim();
+    replyText = sanitizeSimpleProstateCommercialReply({
+        inboundText: text,
+        replyText
+    });
+    if (!replyText) return false;
+
+    let audioSent = false;
+    const audioNames = attentiveReaderAudioNamesForItem(item).filter(Boolean);
+    const canSendAttentiveAudio = audioNames.length && attentiveReaderAudioCategories.has(item.category);
+    if (item.category === 'vsl_entry_lead' && canSendAttentiveAudio) {
+        audioSent = await sendFirstApprovedAudioAndRecord({
+            jid: chatId,
+            countryCode: customerContext.countryCode,
+            sessionId,
+            peerPhone,
+            baseNames: audioNames,
+            label: `Leitor Atento ${item.category}`,
+            sendOptions: {
+                allowExistingDropiOrder: true,
+                outboundContext: `attentive_reader_audio_${item.category}`,
+                dedupeValue: `attentive_reader_audio|${item.category}|${audioNames.join('|')}`
+            }
+        });
+    }
+
+    const sent = await sendText(chatId, replyText, null, {
+        sessionId,
+        allowExistingDropiOrder: true,
+        outboundContext: `attentive_reader_${item.category}`,
+        dedupeValue: `attentive_reader|${item.category}|${normalizeReplyText(replyText).slice(0, 180)}`
+    });
+    if (!sent) {
+        console.log(`[LEITOR-ATENTO] texto bloqueado/dedupe -> ${chatId} | categoria=${item.category}`);
+        return true;
+    }
+
+    try {
+        await Message.create({
+            _id: `out_${Date.now()}_attentive_${Math.random().toString(16).slice(2, 8)}`,
+            chatId,
+            peerPhone,
+            from: 'bot',
+            to: chatId,
+            body: replyText,
+            type: 'chat',
+            isFromMe: true,
+            isBot: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+    } catch (error) {
+        if (error.code !== 11000) console.warn('[LEITOR-ATENTO] falha ao registrar texto:', error.message);
+    }
+
+    if (item.category !== 'vsl_entry_lead' && canSendAttentiveAudio) {
+        audioSent = await sendFirstApprovedAudioAndRecord({
+            jid: chatId,
+            countryCode: customerContext.countryCode,
+            sessionId,
+            peerPhone,
+            baseNames: audioNames,
+            label: `Leitor Atento ${item.category}`,
+            sendOptions: {
+                allowExistingDropiOrder: true,
+                outboundContext: `attentive_reader_audio_${item.category}`,
+                dedupeValue: `attentive_reader_audio|${item.category}|${audioNames.join('|')}`
+            }
+        });
+    }
+
+    const memory = attentiveReaderMemoryForCategory(item.category);
+    await updateContactStateAgentMemory({
+        contactStateId,
+        agentProfile,
+        inboundText: text,
+        outboundText: [
+            replyText,
+            audioSent ? `[AUDIO] ${audioNames.join('|')}` : ''
+        ].filter(Boolean).join('\n'),
+        inferredIntent: memory.intent,
+        inferredFunnelStage: memory.stage,
+        inferredObjection: (item.riskFlags || []).join(', ') || null,
+        sentRecordedAudioNames: audioSent ? audioNames : []
+    });
+
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                [`metadata.perAgentMemory.${agentProfile.key}.attentiveReaderLastCategory`]: item.category,
+                [`metadata.perAgentMemory.${agentProfile.key}.attentiveReaderLastConfidence`]: item.confidence,
+                [`metadata.perAgentMemory.${agentProfile.key}.attentiveReaderLastAt`]: new Date(),
+                [`metadata.perAgentMemory.${agentProfile.key}.attentiveReaderBotEnabled`]: true,
+                ...(item.category === 'agency_options' && Number.isFinite(Number(item.context?.agencyOptionsPage))
+                    ? { [`metadata.perAgentMemory.${agentProfile.key}.agencyOptionsPage`]: Number(item.context.agencyOptionsPage) }
+                    : {})
+            }
+        }
+    ).catch(() => null);
+
+    console.log(`[LEITOR-ATENTO] resposta direta -> ${chatId} | categoria=${item.category} | conf=${item.confidence} | audio=${audioSent}`);
+    return true;
+};
+
 const maybeHandleAgencyLookupInterrupt = async ({
     text,
     chatId,
@@ -6137,9 +6858,11 @@ const pendingCheckoutFallbackText = (stage, pendingCheckoutOrder = {}) => {
         if (stage === 'sdr_awaiting_agency_query') return bridge + '\nEnvíeme su sector o una agencia cercana para buscar la mejor Servientrega.';
         if (stage === 'sdr_awaiting_agency_selection') {
             if ((pendingCheckoutOrder.agencyOptions || []).length === 1) {
-                return bridge + '\n' + principalSdrAgencyListText(pendingCheckoutOrder.agencyOptions || []);
+                return bridge + '\n' + principalSdrAgencyListText(pendingCheckoutOrder.agencyOptions || [], {
+                    page: pendingCheckoutOrder.agencyOptionsPage || 0
+                });
             }
-            return bridge + '\nResponda con A, B o C para elegir la agencia correcta.';
+            return bridge + '\nResponda con el número de la agencia correcta.';
         }
         if (stage === 'sdr_awaiting_home_address') return bridge + '\nEnvíeme dirección completa, barrio o sector y, si tiene, una referencia cercana. Punto de referencia para la entrega a domicilio.';
         if (stage === 'sdr_awaiting_final_confirmation') return bridge + '\nRevise los datos y responda SI o CONFIRMO para autorizar el despacho.';
@@ -7313,6 +8036,23 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             if (handled) return;
         }
 
+        const attentiveReaderHandled = await maybeHandleAttentiveReaderDirectReply({
+            text,
+            chatId,
+            peerPhone,
+            sessionId: msg.sessionId || null,
+            contactState,
+            contactStateId: msg.contactStateId,
+            agentProfile,
+            customerContext,
+            customerMemory,
+            memoryOrder,
+            checkoutOrderData,
+            pendingCheckoutOrder,
+            pendingCheckoutStage
+        });
+        if (attentiveReaderHandled) return;
+
         if (
             checkoutOrderData
             && pendingCheckoutOrder
@@ -8290,6 +9030,14 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             history: customerMemory.history,
             agentProfile
         });
+        replyText = sanitizeGenericPriceReply({
+            inboundText: text,
+            replyText
+        });
+        replyText = sanitizeSimpleProstateCommercialReply({
+            inboundText: text,
+            replyText
+        });
 
         const inferredIntent = memoryOrder?.$locals?.inferredIntent || inferIntent(text);
         const inferredFunnelStage = memoryOrder?.$locals?.inferredFunnelStage || inferFunnelStage(text, customerContext, agentProfile);
@@ -8302,7 +9050,7 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             agentProfile,
             isShortGreeting
         });
-        const preparedPlan = enrichOutboundPlan({
+        let preparedPlan = enrichOutboundPlan({
             rawText: replyText,
             forceAudioText: shouldForceAudio({
                 intent: inferredIntent,
@@ -8325,6 +9073,10 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             }),
             recordedAudioCountry: customerContext.countryCode,
             mode: responseMode
+        });
+        preparedPlan = sanitizeGenericPriceOutboundPlan({
+            inboundText: text,
+            plan: preparedPlan
         });
 
         if (shouldBlockDuplicateBotReply({

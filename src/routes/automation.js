@@ -10,6 +10,7 @@ import { automationAllowedRecipients, automationPilotOnly } from '../whatsapp/au
 import { listReengagementCandidates } from '../services/reengagementService.js';
 import { countAdminPanelAtendimentoGaps } from '../services/adminPanelLeadReconciliationService.js';
 import {
+    countCarrierStatusSweepCandidates,
     countShipmentDispatchCandidates,
     getShipmentDispatchState
 } from '../services/shipmentStatusDispatcherService.js';
@@ -91,6 +92,13 @@ router.get('/status', async (_req, res) => {
                 batchLimit: Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '3', 10),
                 state: getShipmentDispatchState()
             },
+            carrierSweep: {
+                enabled: process.env.SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED === undefined
+                    ? true
+                    : flag('SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED'),
+                intervalMinutes: Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_INTERVAL_MINUTES || '60', 10),
+                batchLimit: Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10)
+            },
             adminPanelImport: {
                 enabled: flag('ADMIN_PANEL_IMPORT_ENABLED'),
                 intervalMinutes: Number.parseInt(process.env.ADMIN_PANEL_IMPORT_INTERVAL_MINUTES || '5', 10),
@@ -117,7 +125,8 @@ router.get('/status', async (_req, res) => {
             recentShipmentCandidates,
             reengagementCandidates,
             adminPanelGaps,
-            shipmentDispatchCandidates
+            shipmentDispatchCandidates,
+            carrierSweepCandidates
         ] = await Promise.all([
             Shipment.countDocuments({
                 $or: [
@@ -164,7 +173,8 @@ router.get('/status', async (_req, res) => {
                     .split(',')
                     .map((item) => item.trim())
                     .filter(Boolean)
-            }).catch(() => 0)
+            }).catch(() => 0),
+            countCarrierStatusSweepCandidates().catch(() => 0)
         ]);
 
         const dropiBlockedOrders = await Shipment.find({
@@ -184,6 +194,7 @@ router.get('/status', async (_req, res) => {
             humanHeld,
             shipmentNotificationCandidates: recentShipmentCandidates,
             shipmentDispatchCandidates,
+            carrierSweepCandidates,
             reengagementCandidates: reengagementCandidates.length,
             adminPanelAtendimentoGaps: (adminPanelGaps.adminNovoInManual || 0) + (adminPanelGaps.manualWithoutAdmin || 0),
             adminPanelNovoEmAtendimento: adminPanelGaps.adminNovoInManual || 0,

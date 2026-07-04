@@ -2,6 +2,8 @@ import express from 'express';
 import Order from '../models/Order.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
 import { nextSellerForNewLead, sellerIsActive } from '../services/sellerRotationService.js';
+import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
+import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 
 const router = express.Router();
 
@@ -119,6 +121,53 @@ const buildSellerMessage = ({ name, phone, province, city, address, reference, q
     `Total: $${total}`
 ].filter(Boolean).join('\n');
 
+const sendInitiateCheckoutForLead = async ({ order, lead, body, req, quantity, total }) => {
+    try {
+        const eventId = firstClean(
+            body?.initiateCheckoutEventId,
+            body?.initiate_checkout_event_id,
+            body?.event_id_initiate_checkout,
+            `InitiateCheckout:${order?.orderId || Date.now()}`
+        ).slice(0, 220);
+        return await sendBrowserMetaEvent({
+            country: order?.country || 'EC',
+            eventName: 'InitiateCheckout',
+            event_id: eventId,
+            event_source_url: firstClean(body?.event_source_url, body?.eventSourceUrl, body?.sourceUrl, order?.tracking?.sourceUrl),
+            client_user_agent: firstClean(body?.client_user_agent, body?.clientUserAgent, order?.tracking?.userAgent),
+            client_ip_address: firstClean(body?.client_ip_address, body?.clientIpAddress, order?.tracking?.ip),
+            fbc: firstClean(body?.fbc, order?.tracking?.fbc),
+            fbp: firstClean(body?.fbp, order?.tracking?.fbp),
+            external_id: firstClean(body?.external_id, body?.externalId, order?.tracking?.ext_id, order?.orderId),
+            name: lead?.name,
+            phone: lead?.phone,
+            city: lead?.city,
+            province: lead?.province,
+            content_name: 'Vit Power Ecuador',
+            content_ids: ['vit_power_ec'],
+            content_type: 'product',
+            value: total,
+            currency: order?.currency || 'USD',
+            quantity
+        }, req);
+    } catch (error) {
+        console.warn('[META] InitiateCheckout lead nao enviado:', error.message || error);
+        return { ok: false, error: error.message || 'initiate_checkout_failed' };
+    }
+};
+
+const syncVslOrderToPanel = (order, { action = 'vsl_lead_sync' } = {}) => {
+    try {
+        return syncOrderToOnlineAdminPanel(order, {
+            status: order?.status || 'pending',
+            action
+        });
+    } catch (error) {
+        console.warn('[VSL_PANEL_SYNC] falha ao espelhar lead no painel:', error.message || error);
+        return { ok: false, error: error.message || 'vsl_panel_sync_failed' };
+    }
+};
+
 export const publicWhatsAppRedirect = async (req, res) => {
     const message = clean(req.query?.text || req.query?.msg || 'Hola, quiero hacer mi pedido.');
     const assignment = await pickSellerAssignment({ country: 'EC', source: 'wa_redirect' });
@@ -194,11 +243,28 @@ router.post('/', async (req, res) => {
                 source: 'duplicate_reuse'
             });
             const seller = assignment.seller;
+            const initiateCheckout = await sendInitiateCheckoutForLead({
+                order: existing,
+                lead,
+                body: req.body,
+                req,
+                quantity: safeQuantity,
+                total
+            });
+            const adminPanelSync = syncVslOrderToPanel(existing, { action: 'vsl_duplicate_reuse_sync' });
             return res.status(200).json({
                 ok: true,
                 success: true,
                 orderId: existing.orderId,
                 event_id: eventId,
+                meta: {
+                    initiateCheckout: {
+                        ok: Boolean(initiateCheckout?.ok),
+                        eventId: initiateCheckout?.eventId || null,
+                        error: initiateCheckout?.ok ? null : (initiateCheckout?.error || 'META InitiateCheckout send failed')
+                    }
+                },
+                adminPanelSync,
                 wa_url: buildWhatsAppUrl({ seller, message }),
                 wa_app_url: buildWhatsAppIntentUrl({ seller, message }),
                 wa_selected_number: seller,
@@ -249,13 +315,30 @@ router.post('/', async (req, res) => {
         };
 
         await order.save();
+        const adminPanelSync = syncVslOrderToPanel(order, { action: existing ? 'vsl_lead_update_sync' : 'vsl_lead_create_sync' });
         const eventId = clean(req.body?.event_id) || order.orderId;
+        const initiateCheckout = await sendInitiateCheckoutForLead({
+            order,
+            lead,
+            body: req.body,
+            req,
+            quantity: safeQuantity,
+            total
+        });
 
         return res.status(existing ? 200 : 201).json({
             ok: true,
             success: true,
             orderId: order.orderId,
             event_id: eventId,
+            meta: {
+                initiateCheckout: {
+                    ok: Boolean(initiateCheckout?.ok),
+                    eventId: initiateCheckout?.eventId || null,
+                    error: initiateCheckout?.ok ? null : (initiateCheckout?.error || 'META InitiateCheckout send failed')
+                }
+            },
+            adminPanelSync,
             wa_url: buildWhatsAppUrl({ seller, message }),
             wa_app_url: buildWhatsAppIntentUrl({ seller, message }),
             wa_selected_number: seller,

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -41,8 +42,17 @@ const getConfigForCountry = (country) => {
 };
 
 const getActionSourceForOrder = (order) => (
-    order?.source === 'whatsapp' ? 'business_messaging' : 'website'
+    (order?.tracking?.sourceUrl || order?.tracking?.fbc || order?.tracking?.fbp || order?.tracking?.fbclid)
+        ? 'website'
+        : (order?.source === 'whatsapp' ? 'business_messaging' : 'website')
 );
+
+const VALID_META_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizeMetaPackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_META_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
 
 export const getMetaConfigForCountry = getConfigForCountry;
 
@@ -220,7 +230,10 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
     const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
     const actionSource = options.actionSource || getActionSourceForOrder(order);
     const messagingChannel = actionSource === 'business_messaging' ? 'whatsapp' : undefined;
-    const quantity = Number(order?.package?.quantity || order?.package?.id || 1) || 1;
+    const quantity = normalizeMetaPackageQuantity(order?.package?.quantity ?? order?.package?.id);
+    if (!quantity) {
+        return { ok: false, eventId, error: 'META Purchase missing valid quantity' };
+    }
     const currency = order?.currency || 'USD';
 
     const { firstName, lastName } = splitName(order?.customer?.name);
@@ -288,12 +301,16 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
         return { ok: false, error: 'META pixel config missing for country' };
     }
 
+    const attribution = await enrichOrderWithMetaAttribution(order).catch((error) => ({
+        ok: false,
+        error: error.message || 'attribution_enrichment_failed'
+    }));
     const built = buildPurchaseEventPayloadForOrder(order, options);
     if (!built.ok) return built;
     const { payload, eventId, eventTime } = built;
 
     if (options.dryRun) {
-        return { ok: true, dryRun: true, payload, eventId, eventTime };
+        return { ok: true, dryRun: true, payload, eventId, eventTime, attribution };
     }
 
     try {
@@ -304,7 +321,7 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
             timeout: 15000
         });
 
-        return { ok: true, response: response.data, eventId, eventTime };
+        return { ok: true, response: response.data, eventId, eventTime, attribution };
     } catch (e) {
         const status = e?.response?.status;
         const data = e?.response?.data;

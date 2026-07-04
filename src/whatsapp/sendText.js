@@ -12,6 +12,7 @@ import {
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiText, zapiConfig } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
+import ContactState from '../models/ContactState.js';
 
 const SEND_TEXT_TIMEOUT_MS = Number.parseInt(process.env.WHATSAPP_SEND_TEXT_TIMEOUT_MS || '45000', 10);
 const HISTORY_DEDUPE_WINDOW_MINUTES = Math.max(5, Number.parseInt(process.env.WHATSAPP_HISTORY_DEDUPE_WINDOW_MINUTES || '1440', 10) || 1440);
@@ -92,11 +93,21 @@ const sanitizeClientVisibleText = (value = '') => {
 const historyRepeatKey = (text = '') => {
     const body = normalizeHistoryText(text);
     if (!body) return '';
-    const guideMatch = body.match(/\b(?:guia|guia numero|numero de guia|tracking)\s*[:#-]?\s*(\d{5,})\b/);
-    const pickupNotice = /(retiro|retirar|retire|retirarlo|agencia|servientrega|punto de retiro|comprobante de retiro)/.test(body)
-        && /(pedido|guia|disponible|ya esta|ya aparece|sigue|acercarse|puede retirar|para retiro|retirar en agencia|foto del retiro|comprobante)/.test(body);
-    if (pickupNotice) {
+    const guideMatch = body.match(/\b(?:guia|guia numero|numero de guia|tracking)\s*(?:es|numero|nro|num|:|#|-)?\s*(\d{5,})\b/);
+    const readyPickupNotice = (
+        /\b(pedido\s+listo\s+para\s+retiro|pedido\s+para\s+retiro|aviso\s+de\s+retiro|ya\s+puede\s+retirar|puede\s+acercarse|acerquese|lleve\s+su\s+documento|muestre\s+esta\s+guia|retir[aeiou]?\s+(?:su|mi|el)?\s*pedido|retirarlo|retirar\s+en\s+agencia|comprobante\s+de\s+retiro)\b/.test(body)
+        || /\b(?:su\s+pedido|pedido)\s+(?:ya\s+)?(?:esta|aparece)\s+(?:listo|disponible)\s+(?:para\s+retiro|en\s+agencia)\b/.test(body)
+        || /\b(?:su\s+pedido|pedido)\s+(?:ya\s+)?(?:esta|sigue)\s+para\s+retiro\b/.test(body)
+    );
+    const guideGeneratedNotice = (
+        /\b(ya\s+fue\s+enviado|ya\s+salio|ya\s+se\s+genero\s+la\s+guia|se\s+genero\s+la\s+guia|ya\s+tiene\s+guia|tiene\s+guia|guia\s+generada|le\s+confirmo\s+el\s+envio|fue\s+enviado\s+por|salio\s+por)\b/.test(body)
+        || (/\bguia\b/.test(body) && /\b(transportadora|en\s+camino|enviado|envio|ruta|servientrega)\b/.test(body))
+    );
+    if (readyPickupNotice) {
         return guideMatch ? `logistics_ready_for_pickup:${guideMatch[1]}` : 'logistics_ready_for_pickup';
+    }
+    if (guideGeneratedNotice) {
+        return guideMatch ? `logistics_guide:${guideMatch[1]}` : 'logistics_guide';
     }
     if (/(pedido ya quedo registrado|pedido esta registrado|su pedido quedo registrado|su pedido ya esta registrado|apenas tenga la guia|novedad de servientrega)/.test(body)) return 'order_registered_waiting_guide';
     if (/(le envio|envio|enviamos)\s+(?:1|2|3|6|un|una|dos|tres|seis)\s+(?:botella|botellas|frasco|frascos)/.test(body)
@@ -173,6 +184,42 @@ const shouldUseZapiForText = ({ targetJid, recipientDigits, options = {} }) => {
         || options.sendMode === 'manual_panel'
         || ['EC', 'CO'].includes(country);
 };
+const zapiFailoverEnabled = () => String(process.env.OUTBOUND_ZAPI_FAILOVER_ENABLED || 'true').toLowerCase() !== 'false';
+const shouldTryZapiTextFailover = ({ targetJid, recipientDigits, options = {}, reason = '' } = {}) => {
+    if (!zapiFailoverEnabled() || options.zapiFailoverAttempt === true) return false;
+    if (options.provider === 'zapi' || options.sessionId === 'zapi') return false;
+    if (!zapiConfig().enabled) return false;
+    const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
+    if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
+    const value = String(reason || '').toLowerCase();
+    return !value || /timeout|not.*ready|ready|closed|unauthorized_session|blocked_session|session|socket|connection|baileys|send_text/.test(value);
+};
+const recordZapiFailover = async ({ targetJid, recipientDigits = '', kind = 'text', reason = '', status = '', providerMessageId = '' } = {}) => {
+    const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
+    if (!phone) return;
+    const tails = [phone, phone.length >= 9 ? phone.slice(-9) : '', phone.length >= 10 ? phone.slice(-10) : ''].filter(Boolean);
+    const or = [
+        { chatId: targetJid },
+        { phoneDigits: phone },
+        ...tails.map((tail) => ({ phoneDigits: { $regex: `${tail}$` } }))
+    ];
+    await ContactState.updateOne(
+        { $or: or },
+        {
+            $set: {
+                'metadata.senderWallet.fallbackToZapiAt': new Date(),
+                'metadata.senderWallet.fallbackToZapiKind': kind,
+                'metadata.senderWallet.fallbackToZapiReason': String(reason || '').slice(0, 500),
+                'metadata.senderWallet.fallbackToZapiStatus': status,
+                ...(providerMessageId ? { 'metadata.senderWallet.fallbackToZapiProviderMessageId': providerMessageId } : {})
+            },
+            $inc: {
+                'metadata.senderWallet.fallbackToZapiCount': 1
+            }
+        }
+    ).catch((error) => console.warn(`[OUTBOUND-ZAPI-FAILOVER] falha ao registrar failover ${targetJid}: ${error.message}`));
+};
+const failoverWasSent = (result) => (result === true || result?.ok === true);
 const normalizeOutboundJid = async (jid, recipientDigits = '') => {
     const resolvedDigits = await resolveOutboundPhoneDigits({ jid, recipientDigits });
     if (String(jid || '').endsWith('@lid') && looksLikeRealPhoneDigits(resolvedDigits)) {
@@ -222,6 +269,28 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
     const guard = canSendOutbound({ jid: targetJid, text: finalText, sessionId, ownDigits, kind: 'text', recipientDigits, bypassDedupe: bypassTextDedupe, reserveDedupe: false });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] texto bloqueado -> ${targetJid} | reason=${guard.reason}`);
+        if (shouldTryZapiTextFailover({ targetJid, recipientDigits, options, reason: guard.reason })) {
+            console.warn(`[OUTBOUND-ZAPI-FAILOVER] texto bloqueado por sessao; tentando Z-API -> ${targetJid} | reason=${guard.reason}`);
+            await recordZapiFailover({ targetJid, recipientDigits, kind: 'text', reason: guard.reason, status: 'retrying' });
+            const failover = await sendText(targetJid, finalText, quotedMsg, {
+                ...options,
+                sessionId: 'zapi',
+                provider: 'zapi',
+                zapiFailoverAttempt: true,
+                humanize: false,
+                allowHistoryDedupeBypass: true,
+                outboundContext: `${options.outboundContext || 'auto_text'}_zapi_failover`
+            });
+            await recordZapiFailover({
+                targetJid,
+                recipientDigits,
+                kind: 'text',
+                reason: guard.reason,
+                status: failoverWasSent(failover) ? 'sent' : 'failed',
+                providerMessageId: failover?.providerMessageId || ''
+            });
+            return failover;
+        }
         return false;
     }
     const dropiGuard = await checkDropiOrderBeforeOutbound({
@@ -364,6 +433,28 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar texto para ${targetJid} | tentativa=${attempt}:`, error);
             if (attempt === 2) {
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
+                if (shouldTryZapiTextFailover({ targetJid, recipientDigits, options, reason: error.message })) {
+                    console.warn(`[OUTBOUND-ZAPI-FAILOVER] texto falhou por Baileys; tentando Z-API -> ${targetJid} | reason=${error.message}`);
+                    await recordZapiFailover({ targetJid, recipientDigits, kind: 'text', reason: error.message, status: 'retrying' });
+                    const failover = await sendText(targetJid, finalText, quotedMsg, {
+                        ...options,
+                        sessionId: 'zapi',
+                        provider: 'zapi',
+                        zapiFailoverAttempt: true,
+                        humanize: false,
+                        allowHistoryDedupeBypass: true,
+                        outboundContext: `${options.outboundContext || 'auto_text'}_zapi_failover`
+                    });
+                    await recordZapiFailover({
+                        targetJid,
+                        recipientDigits,
+                        kind: 'text',
+                        reason: error.message,
+                        status: failoverWasSent(failover) ? 'sent' : 'failed',
+                        providerMessageId: failover?.providerMessageId || ''
+                    });
+                    return failover;
+                }
                 return options.returnDetails === true
                     ? { ok: false, provider: 'baileys', providerStatus: 'failed', error: error.message }
                     : false;

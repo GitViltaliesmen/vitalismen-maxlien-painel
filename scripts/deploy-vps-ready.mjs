@@ -49,6 +49,10 @@ run(process.execPath, ['scripts/official-state-audit.mjs'], {
     env: { ...process.env, OFFICIAL_AUDIT_SKIP_VPS: 'true' }
 });
 
+run(process.execPath, ['scripts/guard-freeze-lock-ec.mjs'], {
+    timeout: 60000
+});
+
 run('rsync', [
     '-az',
     '--delete',

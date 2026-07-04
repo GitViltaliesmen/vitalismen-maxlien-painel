@@ -9,6 +9,8 @@ const country = String(process.env.META_OFFLINE_COUNTRY || 'EC').trim().toUpperC
 const limit = Number(process.env.META_OFFLINE_LIMIT || 1000);
 const includeSent = process.env.META_OFFLINE_INCLUDE_SENT === 'YES';
 const outputDir = process.env.META_OFFLINE_OUTPUT_DIR || 'exports/meta';
+const adminOnly = process.env.META_OFFLINE_ADMIN_ONLY === 'YES';
+const days = Math.max(0, Number.parseInt(String(process.env.META_OFFLINE_DAYS || '0'), 10) || 0);
 const statuses = String(process.env.META_OFFLINE_STATUSES || 'confirmed,processing,shipped,delivered')
     .split(',')
     .map((item) => item.trim())
@@ -36,6 +38,13 @@ const resolveOriginalSaleDate = (order) => (
 const unixSeconds = (value) => Math.floor(new Date(value).getTime() / 1000);
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
+
+const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+
+const normalizePackageQuantity = (value) => {
+    const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+    return VALID_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
+};
 
 const sha256 = (value) => {
     const normalized = normalize(value);
@@ -108,7 +117,7 @@ const buildRows = (orders) => {
         const eventDate = resolveOriginalSaleDate(order);
         const eventTime = unixSeconds(eventDate);
         const value = Number(order.total || 0);
-        const quantity = Number(order.package?.quantity || order.package?.id || 1) || 1;
+        const quantity = normalizePackageQuantity(order.package?.quantity ?? order.package?.id);
         const phoneDigits = normalizePhoneDigits({ phone: order.customer?.phone, country: order.country });
         const { firstName, lastName } = splitName(order.customer?.name);
 
@@ -118,6 +127,10 @@ const buildRows = (orders) => {
         }
         if (!Number.isFinite(value) || value <= 0) {
             skipped.push({ orderId: order.orderId, reason: 'invalid_value' });
+            continue;
+        }
+        if (!quantity) {
+            skipped.push({ orderId: order.orderId, reason: 'invalid_quantity' });
             continue;
         }
         if (!phoneDigits && !firstName && !lastName) {
@@ -171,10 +184,17 @@ const main = async () => {
 
     const query = {
         country,
-        orderId: /^EC-ADMIN-/,
         status: { $in: statuses },
         total: { $gt: 0 }
     };
+    if (adminOnly) query.orderId = /^EC-ADMIN-/;
+    if (days > 0) {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        query.$or = [
+            { updatedAt: { $gte: since } },
+            { createdAt: { $gte: since } }
+        ];
+    }
 
     if (!includeSent) {
         query['tracking.metaPurchaseSentAt'] = { $exists: false };
@@ -199,6 +219,8 @@ const main = async () => {
         ok: true,
         country,
         includeSent,
+        adminOnly,
+        days,
         statuses,
         matchedOrders: orders.length,
         exportedEvents: eventRows.length - 1,
