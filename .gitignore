@@ -5,6 +5,9 @@ auth_info_baileys/
 exports/
 .DS_Store
 .codex-tmp/
+.codex_tmp/
+backups/
+*.log
 migration-packages/
 public/qrcode.png
 public/media/*
