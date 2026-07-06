@@ -26,6 +26,8 @@ assertIncludes('src/services/droppiEcuadorService.js', "normalizedStatus === 'NO
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'DROPPI_EC_NITRIX_PRODUCT_ALIASES', 'Browser Dropi aceita aliases Nitrix');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'target.aliases', 'Selecao Dropi usa alvo do produto');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'directButtonAllowed', 'Busca Dropi nao clica direto em produto errado');
+assertIncludes('src/services/droppiEcuadorBrowserService.js', 'productMatchesTarget(lastBodyText, target)', 'Pagina direta Dropi exige texto do produto alvo');
+assertIncludes('src/services/droppiEcuadorBrowserService.js', 'dropiRowProductMatchesShipment', 'Sync ativo Dropi nao contamina shipment de outro produto');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'inspectDroppiEcuadorProductTarget', 'Inspecao segura de produto Dropi existe');
 assertIncludes('scripts/inspect-dropi-ec-product-target.mjs', 'inspectDroppiEcuadorProductTarget', 'Script de inspecao segura Dropi existe');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'nitrix_order_product_mismatch', 'Envio bloqueia pedido Vit com mensagem Nitrix');

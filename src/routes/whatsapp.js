@@ -4100,11 +4100,13 @@ router.post('/send', authMiddleware, async (req, res) => {
             sendMode,
             allowAudioDedupeBypass,
             country,
-            bypassDedupe: forceZapiManualTest,
-            allowTextDedupeBypass: forceZapiManualTest,
-            allowHistoryDedupeBypass: forceZapiManualTest,
+            bypassDedupe: forceZapiManualTest || sendMode === 'manual_panel',
+            allowTextDedupeBypass: forceZapiManualTest || sendMode === 'manual_panel',
+            allowHistoryDedupeBypass: forceZapiManualTest || sendMode === 'manual_panel',
+            allowExistingDropiOrder: sendMode === 'manual_panel',
             force: forceZapiManualTest,
             provider: forceZapiManualTest ? 'zapi' : '',
+            outboundContext: sendMode === 'manual_panel' ? 'manual_panel_text' : '',
             returnDetails: true
         });
         const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);

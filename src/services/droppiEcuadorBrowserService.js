@@ -856,6 +856,20 @@ const productMatchesTarget = (text, target = dropiProductTargetForProduct()) => 
     return (target.aliases || []).some((alias) => normalizedText.includes(normalizeProductText(alias)));
 };
 
+const waitForProductTargetText = async (page, target, timeoutMs = 15000) => {
+    await page.waitForFunction((aliases) => {
+        const normalize = (value) => String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .replace(/POWERSS/g, 'POWERS')
+            .replace(/\bX1\b/g, '')
+            .replace(/[^A-Z0-9]/g, '');
+        const body = normalize(document.body?.innerText || document.body?.textContent || '');
+        return aliases.some((alias) => body.includes(normalize(alias)));
+    }, target.aliases || [], { timeout: timeoutMs }).catch(() => null);
+};
+
 const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS, target = dropiProductTargetForProduct() } = {}) => {
     const deadline = Date.now() + timeoutMs;
     let refreshed = false;
@@ -879,13 +893,17 @@ const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS, ta
             }
         }
 
+        if (/\/product-details\//i.test(page.url())) {
+            await waitForProductTargetText(page, target, Math.min(10000, Math.max(1000, deadline - Date.now())));
+        }
+
         lastBodyText = (await page.locator('body').innerText({ timeout: 3000 }).catch(() => ''))
             .replace(/\s+/g, ' ')
             .trim()
-            .slice(0, 300);
+            .slice(0, 1500);
 
-        const directButtonAllowed = /\/product-details\//i.test(page.url())
-            || (count === 0 && productMatchesTarget(lastBodyText, target));
+        const directButtonAllowed = productMatchesTarget(lastBodyText, target)
+            && (/\/product-details\//i.test(page.url()) || count === 0);
         if (directButtonAllowed) {
             const directButton = await clickFirstVisible(page, [selectors.createOrderButton], { force: true });
             if (directButton) return true;
@@ -1800,6 +1818,7 @@ const phoneLookupVariants = (phone = '') => {
 const parseDropiActiveOrderRowText = (value = '') => {
     const text = String(value || '').replace(/\s+/g, ' ').trim();
     if (!text || /^#\s+Nombre del producto/i.test(text)) return null;
+    const rowProductInfo = resolveEcuadorProductInfo(text);
     const dropiOrderMatch = text.match(/^(\d{6,})\b/);
     const dateMatch = text.match(/\b\d{2}\/\d{2}\/\d{4}\s+\d{1,2}:\d{2}\s+[ap]\.?\s*m\.?/i);
     const phoneMatch = text.match(/\bTel:\s*(\d{8,12})\b/i);
@@ -1828,7 +1847,7 @@ const parseDropiActiveOrderRowText = (value = '') => {
 
     return {
         dropiOrderId: dropiOrderMatch[1],
-        productName: PRODUCT_NAME,
+        productName: rowProductInfo.dropiName || rowProductInfo.name || PRODUCT_NAME,
         clientName,
         phone: String(phoneMatch[1] || '').replace(/\D/g, ''),
         address,
@@ -1841,6 +1860,13 @@ const parseDropiActiveOrderRowText = (value = '') => {
         agencyName: /SERVIENTREGA|AGENCIA|CONCESION|RETIRO/i.test(text) ? address : '',
         rawText: text
     };
+};
+
+const dropiRowProductMatchesShipment = (row, shipment) => {
+    if (!row || !shipment) return true;
+    const rowProduct = resolveEcuadorProductInfo(row.rawText || row.productName || '');
+    const shipmentProduct = resolveEcuadorProductInfo(shipment.productName, shipment.notes, shipment.raw?.adminLead, shipment.raw?.latestDroppiPayload);
+    return rowProduct.key === shipmentProduct.key;
 };
 
 const findExistingShipmentForDropiActiveRow = async (row) => {
@@ -2401,11 +2427,12 @@ export const inspectDroppiEcuadorProductTarget = async ({ product = 'Nitrix', li
         await persistStorageState(context);
         await page.goto(target.productUrl, { waitUntil: 'domcontentloaded' });
         await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+        await waitForProductTargetText(page, target, 20000);
 
         const searchInput = page.locator(
             'input[type="search"], input[name*="search" i], input[placeholder*="Buscar" i], input[placeholder*="Producto" i], input[placeholder*="produto" i]'
         ).first();
-        if (await searchInput.count().catch(() => 0)) {
+        if (!/\/product-details\//i.test(page.url()) && await searchInput.count().catch(() => 0)) {
             await searchInput.fill(target.name).catch(() => null);
             await searchInput.press('Enter').catch(() => null);
             await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
@@ -2478,6 +2505,17 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } 
 
         for (const row of uniqueRows) {
             const existing = await findExistingShipmentForDropiActiveRow(row);
+            if (existing && !dropiRowProductMatchesShipment(row, existing)) {
+                skipped.push({
+                    orderId: existing.orderId,
+                    dropiOrderId: row.dropiOrderId,
+                    phoneTail: String(row.phone || '').slice(-4),
+                    status: existing.logistics?.status || '',
+                    trackingNumber: existing.logistics?.trackingNumber || '',
+                    reason: 'product_mismatch'
+                });
+                continue;
+            }
             const shipment = await upsertDroppiEcuadorShipment({
                 orderId: existing?.orderId || `EC-DROPI-${row.dropiOrderId}`,
                 productName: row.productName,
