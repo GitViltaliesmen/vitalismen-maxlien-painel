@@ -12515,12 +12515,14 @@
 
         const messageDeliveryStatusHtml = ({
             deliveryStatus = '',
+            providerStatus = '',
             ack = 0,
             pendingConfirmation = false,
             localOnly = false,
             sendError = ''
         } = {}) => {
             const status = String(deliveryStatus || '').toLowerCase();
+            const provider = String(providerStatus || '').toLowerCase();
             const numericAck = Number(ack);
             const errorText = String(sendError || '').trim();
             if (errorText) return ` · <span class="message-status-failed">${escapeHtml(errorText)}</span>`;
@@ -12529,7 +12531,10 @@
                 return ' · <span class="message-status-failed">sem confirmacao</span>';
             }
             if (numericAck >= 3 || ['read', 'played'].includes(status)) {
-                return ' · <span class="message-status-read" title="Lido pelo cliente">&#10003;&#10003; lido</span>';
+                const title = provider.includes('inferred_read')
+                    ? 'Lido inferido: cliente respondeu depois desta mensagem'
+                    : 'Lido pelo cliente';
+                return ` · <span class="message-status-read" title="${escapeHtml(title)}">&#10003;&#10003; lido</span>`;
             }
             if (numericAck >= 2 || ['delivered'].includes(status)) {
                 return ' · <span class="message-status-delivered" title="Entregue ao cliente">&#10003;&#10003; entregue</span>';
@@ -12563,13 +12568,14 @@
                     ? 'atendente'
                     : 'cliente';
                 const deliveryStatus = String(message.deliveryStatus || '').toLowerCase();
+                const providerStatus = String(message.providerStatus || '').toLowerCase();
                 const ack = Number(message.ack);
                 const readByClient = Boolean(message.isFromMe && (ack >= 3 || ['read', 'played'].includes(deliveryStatus)));
                 const localOnly = deliveryStatus === 'local_only' || message.metadata?.localOnlyManualMirror === true;
                 const pendingConfirmation = ['unconfirmed', 'pending_confirmation'].includes(deliveryStatus);
                 const sendError = String(message.sendError || message.deliveryError || '').trim();
                 const deliveryInfo = message.isFromMe
-                    ? messageDeliveryStatusHtml({ deliveryStatus, ack, pendingConfirmation, localOnly, sendError })
+                    ? messageDeliveryStatusHtml({ deliveryStatus, providerStatus, ack, pendingConfirmation, localOnly, sendError })
                     : '';
                 const deleteButton = canDeletePanelMessage(message) && messageId
                     ? `<button class="message-action danger" data-message-delete="${escapeHtml(messageId)}" type="button" title="Apagar mensagem">×</button>`

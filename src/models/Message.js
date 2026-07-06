@@ -58,6 +58,9 @@ const messageSchema = new mongoose.Schema({
     quotedFromMe: Boolean,
     deliveryStatus: { type: String, default: 'sent' }, // sent, failed, pending
     sendError: String,
+    deliveredAt: Date,
+    readAt: Date,
+    readInferredAt: Date,
     provider: { type: String, index: true },
     providerMessageId: { type: String, index: true },
     providerZaapId: { type: String, index: true },

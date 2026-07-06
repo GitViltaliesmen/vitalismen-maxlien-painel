@@ -304,6 +304,87 @@ const hasRecentOutboundForZapiLead = async ({ chatId = '', phone = '', since = n
     return Boolean(found);
 };
 
+const deliveryRank = (status = '', ack = 0) => {
+    const value = String(status || '').toLowerCase();
+    const numericAck = Number(ack);
+    if (value === 'read' || value === 'played' || numericAck >= 3) return 3;
+    if (value === 'delivered' || numericAck === 2) return 2;
+    if (['sent', 'pending_confirmation'].includes(value) || numericAck === 1) return 1;
+    if (['failed', 'error', 'final_failed'].includes(value) || numericAck < 0) return -1;
+    return 0;
+};
+
+const shouldPreserveExistingDelivery = (message, normalized) => {
+    const existingRank = deliveryRank(message?.deliveryStatus, message?.ack);
+    const incomingRank = deliveryRank(normalized?.deliveryStatus, normalized?.ack);
+    return existingRank >= 2 && existingRank > incomingRank;
+};
+
+const applyDeliveryUpdateToMessage = async (message, updateSet, normalized, now) => {
+    if (!message) return false;
+    const preserveExisting = shouldPreserveExistingDelivery(message, normalized);
+    const existingRank = deliveryRank(message.deliveryStatus, message.ack);
+    const incomingRank = deliveryRank(normalized.deliveryStatus, normalized.ack);
+    Object.assign(message, {
+        ...updateSet,
+        providerStatus: preserveExisting ? (message.providerStatus || updateSet.providerStatus) : updateSet.providerStatus,
+        deliveryStatus: preserveExisting ? message.deliveryStatus : normalized.deliveryStatus,
+        ack: Math.max(Number(message.ack || 0), Number(normalized.ack || 0)),
+        sendError: preserveExisting ? (message.sendError || '') : normalized.sendError
+    });
+    if (incomingRank >= 2 || existingRank >= 2) {
+        message.deliveredAt = message.deliveredAt || now;
+    }
+    if (incomingRank >= 3 || existingRank >= 3) {
+        message.readAt = message.readAt || now;
+    }
+    await message.save();
+    return true;
+};
+
+const markPreviousOutboundReadFromCustomerReply = async ({ chatId = '', phone = '', inboundAt = new Date() } = {}) => {
+    const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
+    const or = [
+        chatId ? { chatId } : null,
+        phone ? { peerPhone: phone } : null,
+        phone ? { to: { $regex: phone } } : null,
+        tail ? { peerPhone: { $regex: `${tail}$` } } : null,
+        tail ? { to: { $regex: tail } } : null,
+        tail ? { chatId: { $regex: tail } } : null
+    ].filter(Boolean);
+    if (!or.length) return { matched: 0, modified: 0 };
+    const result = await Message.updateMany(
+        {
+            $or: or,
+            isFromMe: true,
+            createdAt: {
+                $gte: new Date(inboundAt.getTime() - 14 * 24 * 60 * 60 * 1000),
+                $lte: inboundAt
+            },
+            deliveryStatus: {
+                $nin: ['read', 'played', 'failed', 'error', 'final_failed', 'unconfirmed', 'local_only', 'system']
+            }
+        },
+        {
+            $set: {
+                deliveryStatus: 'read',
+                providerStatus: 'inferred_read_from_customer_reply',
+                ack: 3,
+                readAt: inboundAt,
+                readInferredAt: inboundAt
+            },
+            $setOnInsert: {}
+        }
+    ).catch((error) => {
+        console.warn(`[ZAPI-READ-INFER] falha ao marcar leitura inferida -> ${chatId || phone}: ${error.message}`);
+        return { matchedCount: 0, modifiedCount: 0 };
+    });
+    return {
+        matched: result.matchedCount || 0,
+        modified: result.modifiedCount || 0
+    };
+};
+
 const markVslWatchdogStatus = async ({ chatId = '', phone = '', status = '', reason = '' } = {}) => {
     const now = new Date();
     const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
@@ -458,6 +539,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         },
         { upsert: true }
     );
+    const readInference = await markPreviousOutboundReadFromCustomerReply({ chatId, phone, inboundAt: now });
 
     const state = await ContactState.findOne({
         $or: [
@@ -526,6 +608,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         messageId,
         body: normalizedBody,
         bodyLength: normalizedBody.length,
+        readInference,
         publicVslLeadEntry,
         routeToBot: inferredCountry === 'EC' && Boolean(normalizedBody) && targetState.human?.mode !== 'manual'
     };
@@ -545,10 +628,10 @@ const normalizeDeliveryStatus = (payload = {}) => {
     if (errorText || /error|fail|failed|undeliver/.test(raw)) {
         return { deliveryStatus: 'failed', providerStatus: raw || 'failed', ack: -1, sendError: errorText || raw || 'zapi_delivery_failed' };
     }
-    if (/read|played|view/.test(raw) || raw === '3' || raw === '4') {
+    if (/read|played|view|seen|opened|blue|visualiz/.test(raw) || raw === '3' || raw === '4') {
         return { deliveryStatus: 'read', providerStatus: raw || 'read', ack: 3, sendError: '' };
     }
-    if (/deliver|received|receive/.test(raw) || raw === '2') {
+    if (/deliver|deliverycallback|received|receive/.test(raw) || raw === '2') {
         return { deliveryStatus: 'delivered', providerStatus: raw || 'delivered', ack: 2, sendError: '' };
     }
     if (/sent|send|server|queue/.test(raw) || raw === '1') {
@@ -569,23 +652,26 @@ const applyZapiDeliveryPayload = async (payload = {}) => {
         providerZaapId ? { providerZaapId } : null
     ].filter(Boolean);
 
-    const update = {
-        $set: {
-            provider: 'zapi',
-            ...(providerMessageId ? { providerMessageId } : {}),
-            ...(providerZaapId ? { providerZaapId } : {}),
-            providerStatus: normalized.providerStatus,
-            providerPayload: payload,
-            deliveryStatus: normalized.deliveryStatus,
-            ack: normalized.ack,
-            sendError: normalized.sendError,
-            updatedAt: now
-        }
+    const updateSet = {
+        provider: 'zapi',
+        ...(providerMessageId ? { providerMessageId } : {}),
+        ...(providerZaapId ? { providerZaapId } : {}),
+        providerStatus: normalized.providerStatus,
+        providerPayload: payload,
+        deliveryStatus: normalized.deliveryStatus,
+        ack: normalized.ack,
+        sendError: normalized.sendError,
+        ...(normalized.ack >= 2 ? { deliveredAt: now } : {}),
+        ...(normalized.ack >= 3 ? { readAt: now } : {}),
+        updatedAt: now
     };
 
     if (directOr.length) {
-        const direct = await Message.updateOne({ $or: directOr }, update);
-        if (direct.modifiedCount || direct.matchedCount) return { matched: true, method: 'provider_id', phone, providerMessageId, providerZaapId, ...normalized };
+        const directMessage = await Message.findOne({ $or: directOr });
+        if (directMessage) {
+            await applyDeliveryUpdateToMessage(directMessage, updateSet, normalized, now);
+            return { matched: true, method: 'provider_id', phone, providerMessageId, providerZaapId, ...normalized };
+        }
     }
 
     if (phone) {
@@ -599,8 +685,7 @@ const applyZapiDeliveryPayload = async (payload = {}) => {
             createdAt: { $gte: new Date(Date.now() - 20 * 60 * 1000) }
         }).sort({ createdAt: -1 });
         if (recent) {
-            Object.assign(recent, update.$set);
-            await recent.save();
+            await applyDeliveryUpdateToMessage(recent, updateSet, normalized, now);
             return { matched: true, method: 'recent_phone', phone, messageId: recent._id, providerMessageId, providerZaapId, ...normalized };
         }
     }
