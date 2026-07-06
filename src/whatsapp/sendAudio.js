@@ -224,8 +224,8 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
             const response = await sendZapiAudio({
                 phone,
                 filePath: sendPath,
-                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null,
-                delayTyping: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_TYPING_SECONDS || 2 : null,
+                delayMessage: null,
+                delayTyping: null,
                 waveform: true
             });
             console.log(`[LOG_SEND_USING_ZAPI] Audio enfileirado na Z-API -> ${phone} | Arquivo: ${sendPath} | messageId=${response?.messageId || response?.id || ''}`);

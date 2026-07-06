@@ -16819,7 +16819,10 @@
                         fileName: file.name || '',
                         sessionId,
                         delayTypingSeconds: manualRecordingDelaySeconds(file),
-                        recordedAudio: mediaTypeFromFile(file) === 'audio'
+                        recordedAudio: mediaTypeFromFile(file) === 'audio',
+                        sendMode: 'manual_panel',
+                        allowAudioDedupeBypass: true,
+                        country: state.country || state.selectedChat?.country || 'EC'
                     })
                 });
                 apiResponded = true;
@@ -16858,6 +16861,46 @@
                 updateMessageComposerControls();
             }
         }
+
+        const clipboardFilesFromPasteEvent = (event) => {
+            const data = event.clipboardData;
+            if (!data) return [];
+            const directFiles = Array.from(data.files || []);
+            const itemFiles = Array.from(data.items || [])
+                .filter((item) => item.kind === 'file')
+                .map((item) => item.getAsFile())
+                .filter(Boolean);
+            const files = [...directFiles, ...itemFiles];
+            return files.filter((file, index) => (
+                file
+                && /^(image|video|audio)\//i.test(effectiveFileMime(file) || '')
+                && files.findIndex((candidate) => (
+                    candidate
+                    && candidate.name === file.name
+                    && candidate.size === file.size
+                    && candidate.type === file.type
+                )) === index
+            ));
+        };
+
+        const handleComposerPaste = (event) => {
+            const files = clipboardFilesFromPasteEvent(event);
+            if (!files.length) return;
+            event.preventDefault();
+            if (!state.selectedChat) {
+                showToast('Selecione um cliente antes de colar imagem, audio ou video.');
+                return;
+            }
+            if (state.sendingMessage) {
+                showToast('Aguarde o envio atual terminar.');
+                return;
+            }
+            (async () => {
+                for (const file of files) {
+                    await sendMediaAttachment(file);
+                }
+            })().catch((error) => showToast(error.message));
+        };
 
         const buildDraftTemplate = (kind) => {
             const chat = state.selectedChat || {};
@@ -18226,6 +18269,7 @@
             button.addEventListener('click', () => fillDraftTemplate(button.dataset.draftTemplate));
         });
         el('messageInput').addEventListener('input', updateMessageComposerControls);
+        el('messageInput').addEventListener('paste', handleComposerPaste);
         el('messageInput').addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             if (event.shiftKey) return;

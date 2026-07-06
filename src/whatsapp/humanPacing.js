@@ -37,6 +37,8 @@ const baseDelayForKind = ({ kind, text = '', minMsOverride = null, maxMsOverride
     const chars = String(text || '').length;
     const isManual = manualMode(sendMode);
 
+    if (isManual) return 0;
+
     if (kind === 'text') {
         const perCharMs = parseMs(
             isManual ? 'WHATSAPP_MANUAL_TEXT_PER_CHAR_MS' : 'WHATSAPP_HUMAN_PACING_TEXT_PER_CHAR_MS',
@@ -100,6 +102,7 @@ const getAudioDurationMs = async (audioPath = '') => {
 
 const afterSendDelayForKind = async (kind, context = {}) => {
     const isManual = manualMode(context.sendMode);
+    if (isManual) return 0;
     if (kind === 'audio') {
         if (isManual) {
             return randomInt(

@@ -45,7 +45,7 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
                 caption,
                 viewOnce: Boolean(options.viewOnce),
                 async: true,
-                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+                delayMessage: null
             });
             console.log(`[LOG_SEND_USING_ZAPI] Video enfileirado na Z-API -> ${phone} | Arquivo: ${publicMediaUrl || videoPath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });

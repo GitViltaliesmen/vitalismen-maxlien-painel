@@ -59,7 +59,7 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
                 filePath,
                 fileName: fileName || path.basename(filePath),
                 caption,
-                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+                delayMessage: null
             });
             console.log(`[LOG_SEND_USING_ZAPI] Documento enfileirado na Z-API -> ${phone} | Arquivo: ${filePath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });

@@ -76,15 +76,6 @@ const publicMediaUrlForLocalPath = (filePath = '') => {
     return `${publicMediaBaseUrl()}/media/${relative}`;
 };
 
-const manualAutoReturnMinutes = () => {
-    const parsed = Number.parseInt(String(process.env.WHATSAPP_MANUAL_AUTO_RETURN_MINUTES || '10'), 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
-};
-
-const manualAutoReturnUntil = (minutes = manualAutoReturnMinutes()) => (
-    new Date(Date.now() + Math.max(1, Number(minutes) || manualAutoReturnMinutes()) * 60 * 1000)
-);
-
 const TECHNICAL_ZAPI_ALERT_REGEX = /^ALERTA: o WhatsApp conectado/i;
 
 const visiblePanelMessageQuery = () => ({
@@ -388,7 +379,7 @@ const markPanelContactAsTestOnly = (state, { phone = '', note = '', user = null,
         assignedTo: user?._id?.toString?.() || state.human?.assignedTo || '',
         assignedName: user?.name || user?.email || state.human?.assignedName || 'Teste painel',
         assignedAt: new Date(),
-        pausedUntil: mode === 'auto' ? null : manualAutoReturnUntil(),
+        pausedUntil: mode === 'auto' ? null : longManualHoldUntil(),
         lastManualAt: new Date(),
         lastManualBy: user?.name || user?.email || 'painel',
         note: String(note || 'Numero de atendente/teste. Nao sincronizar como cliente real.').trim()
@@ -1744,7 +1735,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
                     phone: zapiPhoneForOutbound({ targetJid: chatId, recipientDigits: digitsOnly(phone) }),
                     filePath: content,
                     fileName: path.basename(content),
-                    delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+                    delayMessage: null
                 });
                 const details = {
                     ok: true,
@@ -1909,9 +1900,10 @@ const applyManualSendHold = (state, { phone = '', user = null } = {}) => {
         mode: 'manual',
         assignedTo: user?._id?.toString?.() || state.human?.assignedTo || '',
         assignedName: user?.name || user?.email || state.human?.assignedName || '',
-        pausedUntil: manualAutoReturnUntil(),
+        pausedUntil: longManualHoldUntil(),
         lastManualAt: new Date(),
-        lastManualBy: user?.name || user?.email || 'painel'
+        lastManualBy: user?.name || user?.email || 'painel',
+        note: 'Atendimento manual rapido pelo painel; bot pausado ate liberar auto.'
     };
     return state;
 };
@@ -3461,7 +3453,7 @@ router.post('/contacts', async (req, res) => {
             assignedTo: req.user?._id?.toString?.() || state.human?.assignedTo || '',
             assignedName: req.user?.name || req.user?.email || state.human?.assignedName || 'Atendimento',
             assignedAt: new Date(),
-            pausedUntil: mode === 'auto' ? null : manualAutoReturnUntil(),
+            pausedUntil: mode === 'auto' ? null : longManualHoldUntil(),
             lastManualAt: new Date(),
             lastManualBy: req.user?.name || req.user?.email || 'painel',
             note: String(note || state.human?.note || '').trim()
@@ -3512,7 +3504,6 @@ router.post('/contacts', async (req, res) => {
 router.post('/contact-state/:phone/claim', async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
-        const minutes = Math.max(1, Number.parseInt(String(req.body?.minutes || manualAutoReturnMinutes()), 10) || manualAutoReturnMinutes());
         const claimPhone = state.phoneDigits || digitsOnly(req.params.phone);
         const internalOrTest = isOperationalOrTestPanelContact({
             phone: claimPhone,
@@ -3540,7 +3531,7 @@ router.post('/contact-state/:phone/claim', async (req, res) => {
             assignedTo: req.user._id.toString(),
             assignedName: req.user.name || req.user.email,
             assignedAt: new Date(),
-            pausedUntil: manualAutoReturnUntil(minutes),
+            pausedUntil: longManualHoldUntil(),
             lastManualAt: new Date(),
             lastManualBy: req.user.name || req.user.email,
             note: req.body?.note || state.human?.note || ''
@@ -3616,7 +3607,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
         state.human = {
             ...(state.human || {}),
             ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
-            ...(mode === 'manual' ? { pausedUntil: manualAutoReturnUntil() } : {}),
+            ...(mode === 'manual' ? { pausedUntil: longManualHoldUntil() } : {}),
             ...(mode === 'auto' ? { pausedUntil: null } : {}),
             ...(typeof note === 'string' ? { note } : {}),
             ...(typeof assignedName === 'string' ? { assignedName } : {}),

@@ -35,7 +35,7 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
                 phone,
                 filePath: imagePath,
                 caption,
-                delayMessage: sendMode === 'manual_panel' ? process.env.ZAPI_MANUAL_DELAY_MESSAGE_SECONDS || 1 : null
+                delayMessage: null
             });
             console.log(`[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> ${phone} | Arquivo: ${imagePath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });
