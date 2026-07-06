@@ -71,6 +71,8 @@ assert(sellerRotation.includes('WHATSAPP_SELLER_POOL_EC') || sellerRotation.incl
 assert(whatsappRoute.includes('manual_panel'), 'rota WhatsApp precisa manter o caminho manual_panel.');
 assert(qr.includes('state.selectedChat?.country || selectedOperationalCountry() || \'EC\''), 'painel manual precisa continuar enviando o country correto.');
 assert(whatsappRoute.includes('country:'), 'rota WhatsApp precisa continuar enviando country nos requests manuais.');
+assert(!whatsappRoute.includes("c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter)"), 'painel nao pode usar zapiCapturedContact como passe livre entre EC/CO.');
+assert(!whatsappRoute.includes("{ 'metadata.zapiCapturedContact': true }"), 'filtro por pais nao pode listar todos os contatos Z-API sem validar EC/CO.');
 
 assert(humanPacing.includes('manual_panel') || sendText.includes('manual_panel'), 'pacing manual deve continuar separado do bot.');
 assert(sendText.includes('country'), 'sendText precisa continuar passando country para a sessao.');

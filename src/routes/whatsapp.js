@@ -1657,7 +1657,6 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
             $or: [
                 { countryCode: country },
                 { 'metadata.operationalPanelPhone': true },
-                { 'metadata.zapiCapturedContact': true },
                 { 'metadata.manuallyCreatedAt': { $exists: true } },
                 { 'metadata.customerDraft.phone': { $exists: true, $ne: '' } },
                 { tags: /^warmup:/ },
@@ -1670,7 +1669,6 @@ const scopedContactQuery = ({ country = 'EC', sessionId = '' } = {}) => {
             $or: [
                 { 'metadata.lastSessionId': { $in: sessionIds } },
                 { 'metadata.operationalPanelPhone': true },
-                { 'metadata.zapiCapturedContact': true },
                 { 'metadata.manuallyCreatedAt': { $exists: true } },
                 { 'metadata.customerDraft.phone': { $exists: true, $ne: '' } },
                 { tags: /^warmup:/ },
@@ -2574,7 +2572,6 @@ router.get('/chats', async (req, res) => {
                         { 'metadata.customerDraft.phone': { $in: pinnedPanelPhones } },
                         { 'metadata.operationalPanelPhone': true },
                         { 'metadata.testOnly': true },
-                        { 'metadata.zapiCapturedContact': true },
                         { tags: { $in: ['NUMERO_OPERACIONAL', 'TESTE_ENVIO', 'BR_OPERACIONAL', 'NAO_CLIENTE'] } }
                     ]
                 },
@@ -2820,7 +2817,7 @@ router.get('/chats', async (req, res) => {
             })
                 .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
                 .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
-                .filter((c) => !countryFilter || c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
+                .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
                 .sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
 
             res.json(onlyLinked ? [] : dedupePanelChats(fastChats));
@@ -3006,7 +3003,7 @@ router.get('/chats', async (req, res) => {
         const filtered = (onlyLinked ? enrichedChats.filter((c) => !!c.orderId) : enrichedChats)
             .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
             .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
-            .filter((c) => !countryFilter || c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter));
+            .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter));
 
         filtered.sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
 
