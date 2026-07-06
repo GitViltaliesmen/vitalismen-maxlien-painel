@@ -8781,13 +8781,22 @@
 
             const flags = status.flags || {};
             const counts = status.counts || {};
+            const manualReviewOrders = Array.isArray(status.manualReviewOrders) ? status.manualReviewOrders : [];
+            const manualReviewDetail = manualReviewOrders.length
+                ? manualReviewOrders.slice(0, 4).map((order) => {
+                    const phone = String(order.phone || '').replace(/\D/g, '') || 'sem telefone';
+                    const name = String(order.clientName || 'sem nome').trim();
+                    const reason = String(order.reason || order.reviewStatus || 'revisar').replace(/_/g, ' ');
+                    return `${phone} ${name} (${reason})`;
+                }).join(' | ')
+                : `${counts.manualSendRequired || 0} pedido(s) precisam acao humana antes de seguir.`;
             if (flags.scheduler && !flags.scheduler.enabled) addOperationalAlert(alerts, { kind: 'blocked', label: 'Agendador pausado', detail: 'Ciclos automaticos nao estao rodando.', source: 'Scheduler' });
             if (flags.autoReply && !flags.autoReply.enabled) addOperationalAlert(alerts, { kind: 'blocked', label: 'IA sem auto-resposta', detail: 'WHATSAPP_AUTO_REPLY_ENABLED esta desligado.', source: 'IA' });
             if (flags.funnel && !flags.funnel.enabled) addOperationalAlert(alerts, { kind: 'attention', label: 'Funil pausado', detail: 'WHATSAPP_FUNNEL_ENABLED esta desligado.', source: 'Funil' });
             if (flags.shipments && !flags.shipments.enabled) addOperationalAlert(alerts, { kind: 'attention', label: 'Avisos de pedido pausados', detail: 'Avisos de guia, retirada e entrega nao estao ativos.', source: 'Pedidos' });
             if (flags.whatsappQueue && !flags.whatsappQueue.globalEnabled) addOperationalAlert(alerts, { kind: 'attention', label: 'Fila WhatsApp pausada', detail: 'Fila global humanizada nao esta ativa.', source: 'WhatsApp' });
             if ((counts.dropiPaymentRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Dropi aguardando saldo', detail: `${counts.dropiPaymentRequired} pedido(s) parados por saldo.`, source: 'Dropi' });
-            if ((counts.manualSendRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Pedido exige revisao manual', detail: `${counts.manualSendRequired} pedido(s) precisam acao humana antes de seguir.`, source: 'Pedidos' });
+            if ((counts.manualSendRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Pedido exige revisao manual', detail: manualReviewDetail, source: 'Pedidos' });
             if ((counts.shipmentDispatchCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Avisos pendentes', detail: `${counts.shipmentDispatchCandidates} aviso(s) de guia, retirada, entrega ou devolucao pendente(s).`, source: 'Pedidos' });
             if ((counts.pickupReminderCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Lembretes de retirada pendentes', detail: `${counts.pickupReminderCandidates} lembrete(s) aguardando fila segura.`, source: 'Pedidos' });
             if ((counts.reengagementCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Clientes aguardando retomada', detail: `${counts.reengagementCandidates} conversa(s) candidatas a retomada segura.`, source: 'Atendimento' });

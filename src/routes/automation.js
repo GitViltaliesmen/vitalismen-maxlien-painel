@@ -187,6 +187,17 @@ router.get('/status', async (_req, res) => {
             .limit(12)
             .lean();
 
+        const manualReviewOrders = await Shipment.find({
+            country: 'EC',
+            $or: [
+                { 'review.manualOnly': true },
+                { 'review.reviewStatus': 'manual_send_required' }
+            ]
+        })
+            .sort({ updatedAt: -1 })
+            .limit(12)
+            .lean();
+
         const counts = {
             dropiPaymentRequired,
             manualSendRequired,
@@ -219,6 +230,18 @@ router.get('/status', async (_req, res) => {
                 carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || '',
                 checkpoint: shipment.automation?.browserCheckpoint || '',
                 reason: shipment.automation?.browserLastError || shipment.review?.reviewReason || ''
+            })),
+            manualReviewOrders: manualReviewOrders.map((shipment) => ({
+                orderId: shipment.orderId,
+                country: shipment.country,
+                clientName: shipment.client?.name || '',
+                phone: shipment.client?.phone || '',
+                city: shipment.client?.city || '',
+                province: shipment.client?.province || '',
+                logisticsStatus: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                reviewStatus: shipment.review?.reviewStatus || '',
+                reason: shipment.review?.reviewReason || shipment.automation?.browserLastError || ''
             })),
             notes: buildPipelineNotes({ flags, counts })
         });
