@@ -81,6 +81,15 @@ const vslVisitSchema = new mongoose.Schema({
         default: 0
     },
     lastClickAt: Date,
+    formVisibleCount: {
+        type: Number,
+        default: 0
+    },
+    lastFormVisibleAt: Date,
+    lastFormVisibleReason: {
+        type: String,
+        default: ''
+    },
     lastEntryMessage: {
         type: String,
         default: ''

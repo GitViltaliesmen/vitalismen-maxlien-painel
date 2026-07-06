@@ -2146,6 +2146,7 @@ router.post('/vsl-entry', async (req, res) => {
         const clicked = body.clicked === false
             ? false
             : (body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent) || body.clicked !== false);
+        const formVisible = body.formVisible === true || ['form_visible', 'cta_visible', 'checkout_visible'].includes(intent);
         const existing = await VslVisit.findOne({ visitorKey });
         let assignment = null;
         let assignedSeller = digitsOnly(existing?.assignedSeller || '');
@@ -2183,9 +2184,6 @@ router.post('/vsl-entry', async (req, res) => {
                 assignedSeller,
                 assignedSellerAt: existing?.assignedSellerAt || now,
                 assignmentReason: assignment?.reason || existing?.assignmentReason || 'existing_assignment',
-                lastClickAt: clicked ? now : existing?.lastClickAt,
-                lastEntryMessage: clicked ? cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500) : existing?.lastEntryMessage || '',
-                lastWhatsappMessage: clicked ? cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 1200) : existing?.lastWhatsappMessage || '',
                 lastSeenAt: now
             },
             $setOnInsert: {
@@ -2194,9 +2192,19 @@ router.post('/vsl-entry', async (req, res) => {
             },
             $inc: {
                 visits: existing ? 1 : 0,
-                clickCount: clicked ? 1 : 0
+                clickCount: clicked ? 1 : 0,
+                formVisibleCount: formVisible ? 1 : 0
             }
         };
+        if (clicked) {
+            update.$set.lastClickAt = now;
+            update.$set.lastEntryMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500);
+            update.$set.lastWhatsappMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 1200);
+        }
+        if (formVisible) {
+            update.$set.lastFormVisibleAt = now;
+            update.$set.lastFormVisibleReason = cleanText(body.reason || intent).slice(0, 120);
+        }
 
         const visit = await VslVisit.findOneAndUpdate(
             { visitorKey },
