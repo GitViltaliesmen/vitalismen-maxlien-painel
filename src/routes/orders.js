@@ -32,7 +32,7 @@ const normalizeOrderStatus = (status) => {
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
-const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+const VALID_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
 const normalizePackageQuantity = (value) => {
     const parsed = Number.parseInt(String(value ?? '').trim(), 10);
@@ -787,7 +787,7 @@ router.post('/', async (req, res) => {
         }
         const normalizedPackageQuantity = normalizePackageQuantity(packageId);
         if (!normalizedPackageQuantity) {
-            return res.status(400).json({ error: 'Quantidade valida obrigatoria: 1, 3 ou 6 frascos.' });
+            return res.status(400).json({ error: 'Quantidade valida obrigatoria: 1, 2, 3 ou 6 frascos.' });
         }
 
         if (!customer.name || !customer.phone || !customer.address || !customer.city || !customer.province) {

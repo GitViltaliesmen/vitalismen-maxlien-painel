@@ -7,7 +7,7 @@ import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService
 
 const router = express.Router();
 
-const PRICE_MAP = { 1: 39.99, 3: 95.99, 6: 167.99 };
+const PRICE_MAP = { 1: 39.99, 2: 70, 3: 95.99, 6: 167.99 };
 
 const clean = (value) => String(value || '').trim();
 
@@ -177,7 +177,7 @@ export const publicWhatsAppRedirect = async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const quantity = Number.parseInt(clean(req.body?.product_qty || req.body?.quantity || '1'), 10) || 1;
-        const safeQuantity = [1, 3, 6].includes(quantity) ? quantity : 1;
+        const safeQuantity = [1, 2, 3, 6].includes(quantity) ? quantity : 1;
         const total = Number.parseFloat(clean(req.body?.product_value || req.body?.total || PRICE_MAP[safeQuantity])) || PRICE_MAP[safeQuantity];
         const payloadCustomer = req.body?.customer || {};
         const country = clean(req.body?.country || inferCountryFromPhone(req.body?.phone || payloadCustomer.phone || req.body?.phone_number) || 'EC').toUpperCase();

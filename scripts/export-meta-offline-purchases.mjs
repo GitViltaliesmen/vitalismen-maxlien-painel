@@ -39,7 +39,7 @@ const unixSeconds = (value) => Math.floor(new Date(value).getTime() / 1000);
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
-const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+const VALID_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
 const normalizePackageQuantity = (value) => {
     const parsed = Number.parseInt(String(value ?? '').trim(), 10);

@@ -59,7 +59,7 @@ const packageLabel = (quantity) => `Vit Power ${quantity} frasco${Number(quantit
 
 const clean = (value) => String(value || '').trim();
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
-const validPackageQuantities = new Set([1, 3, 6]);
+const validPackageQuantities = new Set([1, 2, 3, 6]);
 
 const normalizePackageQuantity = (value) => {
     const parsed = Number.parseInt(String(value ?? '').trim(), 10);

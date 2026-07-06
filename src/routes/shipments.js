@@ -63,7 +63,7 @@ const parseMoney = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const VALID_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+const VALID_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
 const normalizePackageQuantity = (value) => {
     const parsed = Number.parseInt(String(value ?? '').trim(), 10);

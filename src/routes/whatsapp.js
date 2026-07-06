@@ -590,7 +590,9 @@ const panelActionCommandConfig = (value = '') => {
     return panelCommandConfig(PANEL_ACTION_COMMANDS, value);
 };
 
-const longManualHoldUntil = () => new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000);
+const LONG_MANUAL_HOLD_DAYS = 3650;
+const longManualHoldUntil = () => new Date(Date.now() + LONG_MANUAL_HOLD_DAYS * 24 * 60 * 60 * 1000);
+const longManualHoldDetail = () => `pausa por ${LONG_MANUAL_HOLD_DAYS} dias`;
 
 const registerPanelAction = async ({
     state,
@@ -1518,7 +1520,7 @@ const orderStatusFromPanelStatus = (status = '') => ({
     devolvido: 'returned'
 })[normalizePanelStatus(status)] || '';
 
-const VALID_PANEL_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+const VALID_PANEL_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
 const normalizePanelPackageQuantity = (quantity) => {
     const parsed = Number.parseInt(String(quantity ?? '').trim(), 10);
@@ -3554,7 +3556,7 @@ router.post('/contact-state/:phone/claim', async (req, res) => {
             action: 'humano_no_comando',
             label: MANUAL_ACTION_TAGS.humano_no_comando,
             by: req.user?.name || req.user?.email || '',
-            detail: `pausa por ${minutes} minutos`,
+            detail: longManualHoldDetail(),
             phone: claimPhone
         });
         await state.save();

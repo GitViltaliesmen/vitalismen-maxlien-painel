@@ -23,7 +23,7 @@ const normalizeEcPhone = (value) => {
     if (digits.startsWith('593')) return digits;
     return digits.length >= 9 ? `593${digits.slice(-9)}` : digits;
 };
-const VALID_PACKAGE_QUANTITIES = new Set(['1', '3', '6']);
+const VALID_PACKAGE_QUANTITIES = new Set(['1', '2', '3', '6']);
 const normalizePackageQuantity = (value) => {
     const text = String(value ?? '').trim();
     return VALID_PACKAGE_QUANTITIES.has(text) ? text : '0';

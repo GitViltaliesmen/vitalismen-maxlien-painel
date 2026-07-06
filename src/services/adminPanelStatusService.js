@@ -70,7 +70,7 @@ const normalizeAdminStatus = ({ status, shippingStatus } = {}) => {
     return 'novo';
 };
 
-const VALID_ADMIN_PACKAGE_QUANTITIES = new Set([1, 3, 6]);
+const VALID_ADMIN_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
 const normalizeAdminPackageQuantity = (value) => {
     const parsed = Number.parseInt(String(value ?? '').trim(), 10);

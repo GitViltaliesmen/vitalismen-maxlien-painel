@@ -9372,7 +9372,7 @@
             el('customerSyncBadge').className = 'badge orange';
             updateCustomerPrimaryAction();
         };
-        const validCustomerQuantities = new Set(['1', '3', '6']);
+        const validCustomerQuantities = new Set(['1', '2', '3', '6']);
         const normalizeCustomerQuantityValue = (value) => {
             const text = String(value ?? '').trim();
             return validCustomerQuantities.has(text) ? text : '0';

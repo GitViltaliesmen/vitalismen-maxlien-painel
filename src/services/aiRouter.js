@@ -49,7 +49,7 @@ export async function routeAndRespond({ phoneE164, country, userText }) {
                     type: "object",
                     properties: {
                         country: { type: "string", enum: ["EC"] },
-                        qty: { type: "integer", enum: [1, 3, 6] }
+                        qty: { type: "integer", enum: [1, 2, 3, 6] }
                     },
                     required: ["country", "qty"]
                 }
