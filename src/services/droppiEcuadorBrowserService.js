@@ -4,7 +4,9 @@ import crypto from 'crypto';
 import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
 import ContactState from '../models/ContactState.js';
+import Message from '../models/Message.js';
 import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
+import { ECUADOR_PRODUCTS, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
 
@@ -381,7 +383,7 @@ export const prepareDroppiEcuadorSubmission = async (order) => ({
     loginEmailEnv: EMAIL_ENV,
     loginPasswordEnv: PASSWORD_ENV,
     loginUrl: LOGIN_URL,
-    productUrl: PRIVATE_PRODUCT_URL,
+    productUrl: dropiProductTargetForOrder(order).productUrl,
     ordersUrl: ORDERS_URL,
     storageStatePath: STORAGE_STATE_PATH,
     payload: buildDroppiEcuadorOrderPayload({ order })
@@ -802,20 +804,65 @@ const normalizeProductText = (value) => String(value || '')
     .replace(/\bX1\b/g, '')
     .replace(/[^A-Z0-9]/g, '');
 
-const productMatchesTarget = (text) => {
-    const normalizedText = normalizeProductText(text);
-    return PRODUCT_ALIASES.some((alias) => normalizedText.includes(normalizeProductText(alias)));
+const privateProductUrl = (rawUrl) => {
+    const value = String(rawUrl || PRODUCT_URL || '').trim();
+    try {
+        const url = new URL(value);
+        url.searchParams.set('privated', 'true');
+        return url.toString();
+    } catch {
+        return value.includes('privated=true')
+            ? value
+            : `${value}${value.includes('?') ? '&' : '?'}privated=true`;
+    }
 };
 
-const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS } = {}) => {
+const splitAliases = (value = '') => String(value || '')
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) => {
+    const isNitrix = productInfo.key === ECUADOR_PRODUCTS.nitrix.key;
+    const productUrl = isNitrix
+        ? privateProductUrl(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || PRODUCT_URL)
+        : PRIVATE_PRODUCT_URL;
+    const productName = isNitrix
+        ? (process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || productInfo.dropiName)
+        : PRODUCT_NAME;
+    const aliases = isNitrix
+        ? (splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES).length
+            ? splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES)
+            : productInfo.dropiAliases)
+        : (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases);
+    return {
+        key: productInfo.key,
+        name: productName,
+        productUrl,
+        aliases
+    };
+};
+
+const dropiProductTargetForOrder = (order = {}) => (
+    dropiProductTargetForProduct(resolveEcuadorProductInfo(order))
+);
+
+const dropiProductTargetForPayload = (payload = {}) => (
+    dropiProductTargetForProduct(resolveEcuadorProductInfo(payload))
+);
+
+const productMatchesTarget = (text, target = dropiProductTargetForProduct()) => {
+    const normalizedText = normalizeProductText(text);
+    return (target.aliases || []).some((alias) => normalizedText.includes(normalizeProductText(alias)));
+};
+
+const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS, target = dropiProductTargetForProduct() } = {}) => {
     const deadline = Date.now() + timeoutMs;
     let refreshed = false;
     let lastBodyText = '';
 
     while (Date.now() < deadline) {
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
-        const directButton = await clickFirstVisible(page, [selectors.createOrderButton], { force: true });
-        if (directButton) return true;
 
         const productCards = page.locator('app-card-product');
         const count = await productCards.count();
@@ -823,7 +870,7 @@ const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS } =
             const productCard = productCards.nth(index);
             if (await productCard.isVisible().catch(() => false)) {
                 const text = await productCard.innerText().catch(() => '');
-                if (!productMatchesTarget(text)) continue;
+                if (!productMatchesTarget(text, target)) continue;
                 const button = productCard.getByText(/Enviar a cliente|Enviar al cliente/i).first();
                 if (await button.count() && await button.isVisible().catch(() => false)) {
                     await button.click();
@@ -832,26 +879,33 @@ const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS } =
             }
         }
 
-        const sendButtons = page.getByText(/Enviar a cliente|Enviar al cliente/i);
-        const buttonCount = await sendButtons.count().catch(() => 0);
-        if (buttonCount === 1 && await sendButtons.first().isVisible().catch(() => false)) {
-            await sendButtons.first().click();
-            return true;
-        }
-
         lastBodyText = (await page.locator('body').innerText({ timeout: 3000 }).catch(() => ''))
             .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 300);
 
+        const directButtonAllowed = /\/product-details\//i.test(page.url())
+            || (count === 0 && productMatchesTarget(lastBodyText, target));
+        if (directButtonAllowed) {
+            const directButton = await clickFirstVisible(page, [selectors.createOrderButton], { force: true });
+            if (directButton) return true;
+        }
+
+        const sendButtons = page.getByText(/Enviar a cliente|Enviar al cliente/i);
+        const buttonCount = await sendButtons.count().catch(() => 0);
+        if (buttonCount === 1 && await sendButtons.first().isVisible().catch(() => false) && directButtonAllowed) {
+            await sendButtons.first().click();
+            return true;
+        }
+
         if (!refreshed && Date.now() + Math.min(15000, timeoutMs / 2) < deadline) {
             refreshed = true;
-            await page.goto(PRIVATE_PRODUCT_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
+            await page.goto(target.productUrl, { waitUntil: 'domcontentloaded' }).catch(() => null);
         }
 
         await page.waitForTimeout(2000);
     }
-    throw buildNotReadyError(`private catalog product not found: ${PRODUCT_NAME}${lastBodyText ? ` | page: ${lastBodyText}` : ''}`);
+    throw buildNotReadyError(`private catalog product not found: ${target.name}${lastBodyText ? ` | page: ${lastBodyText}` : ''}`);
 };
 
 const pickCarrier = async (page, carrier, options = {}) => {
@@ -1427,12 +1481,14 @@ const closeManualBrowserSession = async (key) => {
 
 export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null, manualDraftOnly = false }) => {
     const getLatestQuote = quoteCollector || createShippingQuoteCollector(page);
+    const productTarget = dropiProductTargetForPayload(payload);
 
-    await page.goto(PRIVATE_PRODUCT_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto(productTarget.productUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
 
     const opened = await openCreateOrderPanel(page, {
-        timeoutMs: manualDraftOnly ? 20000 : PRODUCT_CARD_WAIT_MS
+        timeoutMs: manualDraftOnly ? 20000 : PRODUCT_CARD_WAIT_MS,
+        target: productTarget
     });
     if (!opened) {
         throw buildNotReadyError('create order button not found');
@@ -2335,6 +2391,64 @@ export const searchDroppiEcuadorOrdersFromPanel = async ({ terms = [], limit = 2
     };
 };
 
+export const inspectDroppiEcuadorProductTarget = async ({ product = 'Nitrix', limit = 20 } = {}) => {
+    const productInfo = resolveEcuadorProductInfo(product);
+    const target = dropiProductTargetForProduct(productInfo);
+    const maxCards = Math.max(1, Math.min(Number(limit) || 20, 80));
+
+    const result = await withBrowserSession(async ({ context, page }) => {
+        await performLogin(page);
+        await persistStorageState(context);
+        await page.goto(target.productUrl, { waitUntil: 'domcontentloaded' });
+        await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+
+        const searchInput = page.locator(
+            'input[type="search"], input[name*="search" i], input[placeholder*="Buscar" i], input[placeholder*="Producto" i], input[placeholder*="produto" i]'
+        ).first();
+        if (await searchInput.count().catch(() => 0)) {
+            await searchInput.fill(target.name).catch(() => null);
+            await searchInput.press('Enter').catch(() => null);
+            await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
+            await page.waitForTimeout(2000);
+        }
+
+        const cardTexts = await page.locator('app-card-product')
+            .evaluateAll((nodes, max) => nodes
+                .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
+                .filter(Boolean)
+                .slice(0, max), maxCards)
+            .catch(() => []);
+        const bodyText = cardTexts.length
+            ? ''
+            : (await page.locator('body').innerText({ timeout: 3000 }).catch(() => ''))
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 1000);
+        const matches = cardTexts
+            .filter((text) => productMatchesTarget(text, target))
+            .slice(0, 10);
+        return {
+            url: page.url(),
+            cardCount: cardTexts.length,
+            matches,
+            sampleCards: cardTexts.slice(0, 8),
+            bodyText
+        };
+    });
+
+    return {
+        ok: true,
+        target: {
+            key: target.key,
+            name: target.name,
+            productUrl: target.productUrl,
+            aliases: target.aliases
+        },
+        matchCount: result.matches.length,
+        ...result
+    };
+};
+
 export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } = {}) => {
     const result = await withBrowserSession(async ({ context, page }) => {
         await performLogin(page);
@@ -2449,6 +2563,41 @@ const alreadySubmittedDropiResult = ({ order, shipment }) => {
 const checkDropiSubmitSafety = async ({ order, shipment }) => {
     const alreadySubmitted = alreadySubmittedDropiResult({ order, shipment });
     if (alreadySubmitted) return alreadySubmitted;
+
+    const directProduct = resolveEcuadorProductInfo(order, shipment?.productName, shipment?.notes);
+    const phoneTail = String(order?.customer?.phone || shipment?.client?.phone || '').replace(/\D/g, '').slice(-9);
+    const recentNitrixMessage = phoneTail
+        ? await Message.findOne({
+            body: /(nitrix|n_i_trix|nitric|oxido\s+nitric|óxido\s+nítric|nitrico)/i,
+            createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+            $or: [
+                { chatId: { $regex: phoneTail } },
+                { phone: { $regex: phoneTail } },
+                { from: { $regex: phoneTail } }
+            ]
+        }).sort({ createdAt: -1 }).lean().catch(() => null)
+        : null;
+    if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key) {
+        return {
+            ok: false,
+            success: false,
+            reason: 'nitrix_order_product_mismatch',
+            error: 'Pedido tem mensagem recente de Nitrix, mas esta marcado como outro produto. Corrija para Nitrix antes de enviar Dropi.',
+            message: 'Pedido tem mensagem recente de Nitrix, mas esta marcado como outro produto. Corrija para Nitrix antes de enviar Dropi.',
+            shipment
+        };
+    }
+    if (directProduct.key === ECUADOR_PRODUCTS.nitrix.key
+        && String(process.env.DROPPI_EC_NITRIX_PRODUCT_ENABLED || '').toLowerCase() !== 'true') {
+        return {
+            ok: false,
+            success: false,
+            reason: 'nitrix_dropi_product_not_enabled',
+            error: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Configure DROPPI_EC_NITRIX_PRODUCT_* e habilite antes de enviar.',
+            message: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Configure DROPPI_EC_NITRIX_PRODUCT_* e habilite antes de enviar.',
+            shipment
+        };
+    }
 
     const currentOrderId = String(order?.orderId || shipment?.orderId || '');
     if (/^EC-ADMIN-\d+$/i.test(currentOrderId)) return null;

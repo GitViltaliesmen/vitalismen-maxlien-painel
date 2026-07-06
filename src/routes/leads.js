@@ -4,6 +4,7 @@ import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.j
 import { nextSellerForNewLead, sellerIsActive } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ const normalizePhoneByCountry = (value, country = 'EC') => {
     return `+${digits}`;
 };
 
-const packageLabel = (quantity) => `Vit Power ${quantity} frasco${quantity > 1 ? 's' : ''}`;
+const packageLabel = (quantity, productInfo) => ecuadorPackageLabel(productInfo, quantity);
 
 const pickSellerAssignment = async ({ country = 'EC', source = 'checkout' } = {}) => {
     const assignment = await nextSellerForNewLead({ country, source });
@@ -108,9 +109,10 @@ const trackingFromBody = (body, req) => {
     return tracking;
 };
 
-const buildSellerMessage = ({ name, phone, province, city, address, reference, quantity, total }) => [
+const buildSellerMessage = ({ name, phone, province, city, address, reference, quantity, total, productInfo }) => [
     'Hola, quiero hacer mi pedido',
     '',
+    `Producto: ${productInfo?.name || 'Vit Power'}`,
     `Nombre: ${name}`,
     `Telefono: ${phone}`,
     province ? `Provincia: ${province}` : '',
@@ -143,8 +145,8 @@ const sendInitiateCheckoutForLead = async ({ order, lead, body, req, quantity, t
             phone: lead?.phone,
             city: lead?.city,
             province: lead?.province,
-            content_name: 'Vit Power Ecuador',
-            content_ids: ['vit_power_ec'],
+            content_name: resolveEcuadorProductInfo(order).contentName,
+            content_ids: resolveEcuadorProductInfo(order).contentIds,
             content_type: 'product',
             value: total,
             currency: order?.currency || 'USD',
@@ -193,6 +195,16 @@ router.post('/', async (req, res) => {
             city: clean(req.body?.city || payloadCustomer.city),
             province: clean(req.body?.province || payloadCustomer.province)
         };
+        const productInfo = resolveEcuadorProductInfo(
+            req.body?.product,
+            req.body?.productName,
+            req.body?.content_name,
+            req.body?.event_source_url,
+            req.body?.eventSourceUrl,
+            req.body?.sourceUrl,
+            req.body?.utm_campaign,
+            req.body?.utm_content
+        );
 
         if (!lead.name || !lead.phone) {
             return res.status(400).json({ error: 'Incomplete lead data' });
@@ -217,7 +229,7 @@ router.post('/', async (req, res) => {
             customer: lead,
             package: {
                 id: safeQuantity,
-                label: packageLabel(safeQuantity),
+                label: packageLabel(safeQuantity, productInfo),
                 quantity: safeQuantity
             },
             total,
@@ -227,7 +239,7 @@ router.post('/', async (req, res) => {
             purchaseIntent: {
                 readiness: 'ready_now',
                 requestedQuantity: safeQuantity,
-                requestedPackageLabel: packageLabel(safeQuantity),
+                requestedPackageLabel: packageLabel(safeQuantity, productInfo),
                 readyConfirmedAt: new Date()
             },
             tracking: trackingFromBody(req.body, req)
@@ -236,7 +248,7 @@ router.post('/', async (req, res) => {
         const isMutableExisting = existing && ['draft', 'pending'].includes(String(existing.status || '').toLowerCase());
         if (existing && !isMutableExisting) {
             const eventId = clean(req.body?.event_id) || existing.orderId;
-            const message = buildSellerMessage({ ...lead, quantity: safeQuantity, total });
+            const message = buildSellerMessage({ ...lead, quantity: safeQuantity, total, productInfo });
             const assignment = await pickExistingOrActiveSellerAssignment({
                 existingSeller: existing.tracking?.waSelectedNumber,
                 country,
@@ -302,7 +314,7 @@ router.post('/', async (req, res) => {
             };
         }
 
-        const message = buildSellerMessage({ ...lead, quantity: safeQuantity, total });
+        const message = buildSellerMessage({ ...lead, quantity: safeQuantity, total, productInfo });
         const assignment = await pickExistingOrActiveSellerAssignment({
             existingSeller: order.tracking?.waSelectedNumber,
             country,

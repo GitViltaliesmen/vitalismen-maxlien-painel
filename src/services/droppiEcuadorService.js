@@ -1,6 +1,7 @@
 import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
 import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
+import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
 export const normalizeEcuadorLocalPhone = (value) => {
@@ -148,7 +149,7 @@ const normalizeShippingType = (value) => {
     return raw;
 };
 
-const vitPowerUnitPriceForQuantity = (quantity, total = 0) => {
+const ecuadorUnitPriceForQuantity = (quantity, total = 0) => {
     const qty = Number(quantity || 1) || 1;
     if (qty === 1) return 40;
     if (qty === 2) return 35;
@@ -285,7 +286,9 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         city
     });
     const quantity = Number(order?.package?.id || order?.package?.quantity || 1) || 1;
-    const unitPrice = vitPowerUnitPriceForQuantity(quantity, order?.total);
+    const unitPrice = ecuadorUnitPriceForQuantity(quantity, order?.total);
+    const productInfo = resolveEcuadorProductInfo(order);
+    const productMetadata = ecuadorProductMetadata(productInfo);
     return {
         orderId: String(order?.orderId || order?._id || '').trim(),
         firstName: splitName.firstName.trim(),
@@ -296,7 +299,7 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         address: rawAddress,
         reference: String(order?.customer?.reference || '').trim(),
         email: String(order?.customer?.email || '').trim(),
-        productName: 'Vit Power',
+        ...productMetadata,
         quantity,
         price: unitPrice * quantity,
         unitPrice,

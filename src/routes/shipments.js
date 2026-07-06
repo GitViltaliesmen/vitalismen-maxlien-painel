@@ -45,6 +45,7 @@ import {
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
 import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
+import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -70,10 +71,10 @@ const normalizePackageQuantity = (value) => {
     return VALID_PACKAGE_QUANTITIES.has(parsed) ? parsed : 0;
 };
 
-const packageLabel = (quantity) => {
+const packageLabel = (quantity, productInfo = null) => {
     const qty = normalizePackageQuantity(quantity);
     if (!qty) return 'sem quantidade';
-    return qty === 1 ? '1 frasco' : `${qty} frascos`;
+    return productInfo ? ecuadorPackageLabel(productInfo, qty) : (qty === 1 ? '1 frasco' : `${qty} frascos`);
 };
 
 const getAdminLeadSnapshot = ({ orderId } = {}) => {
@@ -117,6 +118,7 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
     const total = parseMoney(lead.product_value, 0);
     if (!quantity || total <= 0) return null;
     const createdAt = lead.created_at ? new Date(lead.created_at) : null;
+    const productInfo = resolveEcuadorProductInfo(lead.notes, lead.event_source_url, lead.utm_campaign, lead.utm_content);
     const order = new Order({
         orderId: requestedOrderId,
         country: 'EC',
@@ -129,7 +131,7 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
         },
         package: {
             id: quantity,
-            label: packageLabel(quantity),
+            label: packageLabel(quantity, productInfo),
             quantity
         },
         total,
@@ -140,6 +142,7 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
         entryReason: 'admin_confirmed_dropi_bridge',
         notes: [
             'Criado automaticamente do painel admin para envio Dropi.',
+            `Produto: ${productInfo.name}`,
             `Lead admin EC #${leadId}`,
             `Status original: ${lead.status || ''}`
         ].join(' | ')
@@ -422,9 +425,10 @@ const markManualSent = async (shipment, { note = '', user = null } = {}) => {
 const ensureShipmentForOrder = async (order, country) => {
     let shipment = await Shipment.findOne({ orderId: order.orderId });
     if (shipment) return shipment;
+    const productInfo = resolveEcuadorProductInfo(order);
     return upsertDroppiEcuadorShipment({
         orderId: order.orderId,
-        productName: 'Vit Power',
+        productName: productInfo.name,
         clientName: order.customer?.name || '',
         phone: order.customer?.phone || '',
         address: order.customer?.address || '',
@@ -1834,7 +1838,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
                 },
                 package: {
                     id: qty,
-                    label: `Vit Power ${qty} frasco${qty > 1 ? 's' : ''}`,
+                    label: ecuadorPackageLabel(resolveEcuadorProductInfo(req.body?.productName, req.body?.product, operatorNote), qty),
                     quantity: qty
                 },
                 total: amount,
@@ -1863,7 +1867,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
             order.package = {
                 ...(order.package || {}),
                 id: order.package?.id || qty,
-                label: order.package?.label || `Vit Power ${qty} frasco${qty > 1 ? 's' : ''}`,
+                label: order.package?.label || ecuadorPackageLabel(resolveEcuadorProductInfo(req.body?.productName, req.body?.product, operatorNote), qty),
                 quantity: order.package?.quantity || qty
             };
             if (amount) order.total = amount;
@@ -1880,7 +1884,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
 
         let shipment = await upsertDroppiEcuadorShipment({
             orderId: order.orderId,
-            productName: 'Vit Power',
+            productName: resolveEcuadorProductInfo(req.body?.productName, req.body?.product, order.package?.label, operatorNote).name,
             clientName: String(name || '').trim() || order.customer?.name || '',
             phone: cleanPhone,
             address: String(address || '').trim() || order.customer?.address || '',

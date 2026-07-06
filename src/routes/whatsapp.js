@@ -29,6 +29,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1542,7 +1543,35 @@ const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = fals
         .every((field) => String(draft[field] || '').trim());
 };
 
-const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null } = {}) => {
+const inferProductInfoForDraft = async ({ draft = {}, state = null } = {}) => {
+    const directProduct = resolveEcuadorProductInfo(
+        draft,
+        state?.metadata?.customerDraft || {},
+        state?.metadata?.lastIncomingText,
+        state?.lastMessage,
+        Array.isArray(state?.tags) ? state.tags.join(' ') : ''
+    );
+    if (directProduct.key === 'nitrix_ec') return directProduct;
+
+    const tail = digitsOnly(draft.phone || state?.phoneDigits || state?.chatId).slice(-9);
+    if (!tail) return directProduct;
+    const nitrixRegex = /(nitrix|n_i_trix|nitric|oxido\s+nitric|óxido\s+nítric|nitrico)/i;
+    const recentNitrixMessage = await Message.findOne({
+        body: nitrixRegex,
+        createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+        $or: [
+            { chatId: { $regex: tail } },
+            { phone: { $regex: tail } },
+            { from: { $regex: tail } }
+        ]
+    }).sort({ createdAt: -1 }).lean().catch(() => null);
+
+    return recentNitrixMessage
+        ? resolveEcuadorProductInfo(recentNitrixMessage.body)
+        : directProduct;
+};
+
+const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null, state = null } = {}) => {
     if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
         return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
     }
@@ -1553,6 +1582,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
     if (!quantity) return { ok: false, skipped: true, reason: 'missing_valid_quantity' };
     const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
     if (total <= 0) return { ok: false, skipped: true, reason: 'missing_positive_total' };
+    const productInfo = await inferProductInfoForDraft({ draft, state });
 
     const query = sourceIsAdminOrder
         ? { previousOrderId: sourceOrderId }
@@ -1576,7 +1606,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
         },
         package: {
             id: quantity,
-            label: `Vit Power ${quantity} frasco${quantity > 1 ? 's' : ''}`,
+            label: ecuadorPackageLabel(productInfo, quantity),
             quantity
         },
         total,
@@ -1584,8 +1614,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
         source: 'manual',
         status: 'confirmed',
         notes: sourceIsAdminOrder
-            ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Origem: ${sourceOrderId}`
-            : 'Criado a partir da ficha/painel WhatsApp para envio Dropi.',
+            ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
+            : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,
         previousOrderId: sourceIsAdminOrder ? sourceOrderId : '',
         entryReason: sourceIsAdminOrder ? 'admin_panel_confirmed_whatsapp_mirror' : 'whatsapp_panel_confirmed',
         tracking: {
@@ -1636,6 +1666,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null 
     return {
         ok: true,
         orderId: order.orderId,
+        productKey: productInfo.key,
+        productName: productInfo.name,
         sourceOrderId,
         createdFromAdminOrder: sourceIsAdminOrder,
         purchase: {
@@ -3645,6 +3677,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 status: normalizePanelStatus(customerDraft.status),
                 quantity: String(customerDraft.quantity ?? '').trim(),
                 total: String(customerDraft.total || '').trim(),
+                product: String(customerDraft.product || customerDraft.productName || state.metadata?.customerDraft?.product || '').trim(),
                 country: internalOrTest ? 'BR' : effectiveCountry,
                 updatedAt: new Date().toISOString()
             };
@@ -3684,6 +3717,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     ...(cleanDraft.reference ? { reference: cleanDraft.reference } : {}),
                     ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantity: normalizePanelPackageQuantity(cleanDraft.quantity) } : {}),
                     ...(cleanDraft.total ? { total: Number(cleanDraft.total) || cleanDraft.total } : {}),
+                    ...(cleanDraft.product ? { product: cleanDraft.product } : {}),
                     ...(looksLikeAgency ? {
                         deliveryMode: 'agency',
                         deliveryType: 'SERVIENTREGA',
@@ -3726,13 +3760,15 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 });
                 operationalOrderSync = { ok: false, skipped: true, reason: 'test_contact_no_dropi_or_meta' };
             } else if (shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
-                operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({ draft: cleanDraft, req });
+                operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({ draft: cleanDraft, req, state });
                 if (operationalOrderSync?.orderId) {
                     state.metadata = {
                         ...(state.metadata || {}),
                         customerDraft: {
                             ...((state.metadata || {}).customerDraft || {}),
                             orderId: operationalOrderSync.orderId,
+                            product: operationalOrderSync.productName || cleanDraft.product || '',
+                            productKey: operationalOrderSync.productKey || '',
                             sourceOrderId: cleanDraft.orderId || ''
                         }
                     };
