@@ -21,6 +21,8 @@ assertIncludes('src/services/ecuadorProductService.js', 'NITRIC OXIDE', 'Aliases
 assertIncludes('src/services/droppiEcuadorService.js', 'resolveEcuadorProductInfo(order)', 'Payload Dropi resolve produto pelo pedido');
 assertIncludes('src/services/droppiEcuadorService.js', '...productMetadata', 'Payload Dropi envia metadados do produto');
 assertNotIncludes('src/services/droppiEcuadorService.js', "productName: 'Vit Power',", 'Payload Dropi nao fixa Vit Power');
+assertIncludes('src/services/droppiEcuadorService.js', 'preserveManualReview', 'Sync Dropi preserva revisao manual Nitrix');
+assertIncludes('src/services/droppiEcuadorService.js', "normalizedStatus === 'NOVEDAD' ? true : undefined", 'Sync Dropi nao solta manualOnly quando status nao e Novedad');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'DROPPI_EC_NITRIX_PRODUCT_ALIASES', 'Browser Dropi aceita aliases Nitrix');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'target.aliases', 'Selecao Dropi usa alvo do produto');
 assertIncludes('src/services/droppiEcuadorBrowserService.js', 'directButtonAllowed', 'Busca Dropi nao clica direto em produto errado');

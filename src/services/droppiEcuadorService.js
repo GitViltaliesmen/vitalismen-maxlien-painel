@@ -179,9 +179,16 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     const preferredCarrier = payload.preferredCarrier
         || currentPreferredCarrier
         || 'SERVIENTREGA';
+    const previousReviewStatus = shipment.review?.reviewStatus || '';
+    const preserveManualReview = Boolean(
+        previousReviewStatus === 'wrong_product_nitrix_manual_review'
+        || previousReviewStatus === 'nitrix_dropi_product_pending'
+    );
 
     shipment.provider = 'droppi';
-    shipment.productName = payload.productName || shipment.productName || 'Vit Power';
+    shipment.productName = preserveManualReview
+        ? (shipment.productName || payload.productName || 'Vit Power')
+        : (payload.productName || shipment.productName || 'Vit Power');
     shipment.client = {
         ...shipment.client,
         name: payload.clientName || shipment.client.name,
@@ -225,7 +232,7 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         ...shipment.review,
         manualOnly: Boolean(
             payload.manualOnly
-            ?? (normalizedStatus === 'NOVEDAD')
+            ?? (normalizedStatus === 'NOVEDAD' ? true : undefined)
             ?? shipment.review?.manualOnly
             ?? false
         ),
