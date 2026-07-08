@@ -26,6 +26,34 @@ Estado congelado e trava de escopo:
 FREEZE_EC_NITRIX_VIT_POWER_MICRO_LAYER_20260708.md
 ```
 
+## Regra maxima anti-spam WhatsApp EC
+
+Nunca deixar scheduler reenviar automaticamente a mesma midia, guia, print, fatura, audio ou mensagem para o mesmo cliente/pedido.
+
+Risco maximo: repeticao automatica pode banir o WhatsApp oficial `553183002800`.
+
+Incidente congelado:
+
+```sh
+FREEZE_EC_GUIDE_PRINT_SPAM_GUARD_20260708.md
+```
+
+Antes de finalizar qualquer deploy no VPS, conferir obrigatoriamente que o PM2 esta executando o release atual, nao apenas que o symlink `current` mudou:
+
+```sh
+pm2 jlist
+readlink -f /opt/vitalismen-automacao/current
+```
+
+O processo `vitalismen-automation` precisa ter `pm_cwd` e `pm_exec_path` apontando para o release ativo. Se PM2 continuar em release antigo, recriar apenas esse processo apontando para `/opt/vitalismen-automacao/current`.
+
+Qualquer scheduler que envia ao cliente precisa ter:
+
+- campo persistido no schema para "ja enviado";
+- lock persistido no schema;
+- busca por historico antes de reenviar;
+- guard automatizado cobrindo os pontos acima.
+
 ## Congelamento total atual
 
 O estado aprovado em 2026-05-17 esta congelado em:
