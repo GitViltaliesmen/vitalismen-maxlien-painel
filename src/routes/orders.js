@@ -13,6 +13,7 @@ import {
     assertNoActiveDuplicateOrder,
     getOrderDuplicateGuard
 } from '../services/orderDuplicateGuardService.js';
+import { ecuadorPackageLabel, ecuadorProductMetadata, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -40,6 +41,40 @@ const normalizePackageQuantity = (value) => {
 };
 
 const orderHasValidPackage = (order) => normalizePackageQuantity(order?.package?.quantity || order?.package?.id) > 0;
+
+const isEcuadorCountry = (country = '') => String(country || '').trim().toUpperCase() === 'EC';
+
+const productInfoFromOrderRequest = ({
+    country = 'EC',
+    productKey = '',
+    productName = '',
+    product = '',
+    packageLabel = '',
+    notes = '',
+    tracking = {},
+    existingOrder = null
+} = {}) => {
+    if (!isEcuadorCountry(country)) return null;
+    return resolveEcuadorProductInfo(
+        productKey,
+        productName,
+        product,
+        packageLabel,
+        notes,
+        tracking,
+        existingOrder || {}
+    );
+};
+
+const productAwarePackageLabel = ({ country = 'EC', productInfo = null, quantity = 0, fallback = '' } = {}) => (
+    isEcuadorCountry(country) && productInfo
+        ? ecuadorPackageLabel(productInfo, quantity)
+        : (fallback || `Package ${quantity}`)
+);
+
+const productTrackingMetadata = (productInfo = null) => (
+    productInfo ? ecuadorProductMetadata(productInfo) : {}
+);
 
 const isBrazilTestOnly = ({ phone = '', country = '' } = {}) => {
     const normalizedCountry = String(country || '').trim().toUpperCase();
@@ -779,7 +814,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // POST /api/orders - Create order directly (public - from checkout)
 router.post('/', async (req, res) => {
     try {
-        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes } = req.body;
+        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product } = req.body;
 
         // Validation
         if (!country || !customer || !packageId || !total) {
@@ -819,6 +854,16 @@ router.post('/', async (req, res) => {
         const requestedStatus = normalizeOrderStatus(status);
         const allowedInitialStatuses = new Set(['draft', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned']);
         const initialStatus = allowedInitialStatuses.has(requestedStatus) ? requestedStatus : 'pending';
+        const productInfo = productInfoFromOrderRequest({
+            country,
+            productKey,
+            productName,
+            product,
+            packageLabel,
+            notes,
+            tracking
+        });
+        const productTracking = productTrackingMetadata(productInfo);
 
         // Create order
         const order = new Order({
@@ -833,7 +878,12 @@ router.post('/', async (req, res) => {
             },
             package: {
                 id: normalizedPackageQuantity,
-                label: packageLabel || `Package ${normalizedPackageQuantity}`,
+                label: productAwarePackageLabel({
+                    country,
+                    productInfo,
+                    quantity: normalizedPackageQuantity,
+                    fallback: packageLabel
+                }),
                 quantity: normalizedPackageQuantity
             },
             total,
@@ -844,6 +894,7 @@ router.post('/', async (req, res) => {
             purchaseIntent: purchaseIntent || {},
             tracking: {
                 ...(tracking || {}),
+                ...productTracking,
                 ip: req.ip,
                 userAgent: req.get('user-agent') || ''
             }
@@ -877,7 +928,7 @@ router.post('/', async (req, res) => {
 // PATCH /api/orders/:id - Update order status (authenticated)
 router.patch('/:id', authMiddleware, async (req, res) => {
     try {
-        const { status, notes, trackingNumber, purchaseIntent, customer, package: packageData, total } = req.body;
+        const { status, notes, trackingNumber, purchaseIntent, customer, package: packageData, total, productKey, productName, product } = req.body;
         const nextStatus = normalizeOrderStatus(status);
 
         const order = await Order.findOne({ orderId: req.params.id });
@@ -894,6 +945,22 @@ router.patch('/:id', authMiddleware, async (req, res) => {
 
         if (typeof notes === 'string') order.notes = notes;
         if (trackingNumber) order.trackingNumber = trackingNumber;
+        const productInfo = productInfoFromOrderRequest({
+            country: order.country,
+            productKey,
+            productName,
+            product,
+            packageLabel: packageData?.label,
+            notes,
+            tracking: order.tracking || {},
+            existingOrder: order
+        });
+        if (productInfo) {
+            order.tracking = {
+                ...(order.tracking || {}),
+                ...productTrackingMetadata(productInfo)
+            };
+        }
         if (customer && typeof customer === 'object') {
             const allowedCustomerFields = ['name', 'phone', 'address', 'reference', 'city', 'province'];
             allowedCustomerFields.forEach((field) => {
@@ -908,8 +975,15 @@ router.patch('/:id', authMiddleware, async (req, res) => {
                 order.package.quantity = normalizedQuantity;
                 order.package.id = normalizedQuantity;
             }
-            if (typeof packageData.label === 'string') {
-                order.package.label = order.package.quantity ? packageData.label.trim() : '';
+            if (order.package.quantity) {
+                order.package.label = productAwarePackageLabel({
+                    country: order.country,
+                    productInfo,
+                    quantity: order.package.quantity,
+                    fallback: typeof packageData.label === 'string' ? packageData.label.trim() : order.package.label
+                });
+            } else if (typeof packageData.label === 'string') {
+                order.package.label = '';
             }
         }
         if (total !== undefined && total !== null && total !== '') {

@@ -21,6 +21,7 @@
         "guard:status-panels": "node scripts/guard-status-panels-freeze.mjs",
         "guard:freeze-lock": "node scripts/guard-freeze-lock-ec.mjs",
         "guard:ec-nitrix": "node scripts/audit-ec-nitrix-guard.mjs",
+        "guard:ec-product-micro-layer": "node scripts/audit-ec-product-micro-layer.mjs",
         "guard:guide-print-spam": "node scripts/audit-guide-print-spam-guard.mjs",
         "freeze:ec": "node scripts/freeze-ec-layer.mjs",
         "learning:whatsapp": "node scripts/analyze-whatsapp-funnel-learning.mjs",

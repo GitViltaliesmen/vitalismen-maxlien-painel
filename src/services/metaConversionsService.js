@@ -1,6 +1,7 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
+import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -235,6 +236,17 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         return { ok: false, eventId, error: 'META Purchase missing valid quantity' };
     }
     const currency = order?.currency || 'USD';
+    const productMetadata = String(country || '').toUpperCase() === 'EC'
+        ? ecuadorProductMetadata(resolveEcuadorProductInfo(order))
+        : {
+            productKey: 'vit_power_ec',
+            productName: 'Vit Power Ecuador',
+            contentName: 'Vit Power Ecuador',
+            contentIds: ['vit_power_ec']
+        };
+    const contentIds = Array.isArray(productMetadata.contentIds) && productMetadata.contentIds.length
+        ? productMetadata.contentIds
+        : [productMetadata.productKey || 'vit_power_ec'];
 
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
@@ -273,11 +285,11 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
                     currency,
                     value,
                     order_id: order?.orderId,
-                    content_name: 'Vit Power Ecuador',
-                    content_ids: ['vit_power_ec'],
+                    content_name: productMetadata.contentName || productMetadata.productName || 'Vit Power Ecuador',
+                    content_ids: contentIds,
                     contents: [
                         {
-                            id: 'vit_power_ec',
+                            id: contentIds[0],
                             quantity,
                             item_price: Number((value / quantity).toFixed(2))
                         }

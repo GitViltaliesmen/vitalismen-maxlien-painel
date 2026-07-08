@@ -59,3 +59,35 @@ Nao ha autorizacao para mexer no motor principal do bot. Apenas micro camada pon
    - pergunta "tem Vit Power?" permite atendimento Vit Power sob demanda.
    - pergunta normal de preco/compra no trafego Nitrix nao cai em Vit Power.
 5. Publicar somente se os guards passarem e o diff nao tocar preco, checkout, Dropi, Meta, pixel, credenciais ou fluxo principal.
+
+## Retomada da micro camada de produto
+
+Aplicacao permitida nesta retomada:
+
+- Ficha do Cliente ganhou seletor controlado de produto apenas para EC:
+  - `nitrix_ec` como padrao oficial.
+  - `vit_power_ec` permitido somente quando selecionado/identificado explicitamente.
+- Pedido manual criado/atualizado pela Ficha passa a enviar `productKey`, `productName` e `product` junto do payload.
+- Label do pedido deixa de ter fallback fixo `Vit Power ... frascos` e passa a usar o produto selecionado.
+- `Purchase` Meta EC passa a montar `content_name`, `content_ids` e `contents[0].id` pelo produto do pedido:
+  - Nitrix: `nitrix_oxide_ec`.
+  - Vit Power: `vit_power_ec`.
+- Rota de estado WhatsApp aceita somente a whitelist EC `nitrix_ec`/`vit_power_ec` quando `country=EC`.
+- O motor principal do bot, precos, Dropi, pixel, Z-API, checkout, funil comercial e credenciais permanecem congelados.
+
+Guard obrigatorio desta camada:
+
+```sh
+node scripts/audit-ec-product-micro-layer.mjs
+```
+
+Validacoes locais executadas nesta retomada:
+
+- Sintaxe JS dos arquivos alterados: OK.
+- Parse dos scripts de `public/qr.html`: OK.
+- `scripts/audit-ec-product-micro-layer.mjs`: OK.
+- `scripts/audit-ec-nitrix-guard.mjs`: OK.
+- `scripts/audit-guide-print-spam-guard.mjs`: OK.
+- `scripts/guard-public-funnel.mjs`: OK.
+- `scripts/guard-freeze-lock-ec.mjs`: OK.
+- `scripts/official-state-audit.mjs`: OK com avisos locais de API/Mongo indisponiveis no Mac.

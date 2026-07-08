@@ -29,7 +29,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
-import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import { ECUADOR_PRODUCTS, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -3888,6 +3888,22 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 ...(String(cleanDraft.status || '').trim() ? { venda_finalizada: { ok: ['confirmado', 'confirmed', 'pedido_enviado', 'entregue', 'recompra', 'finalizado'].includes(normalizePanelStatus(cleanDraft.status)), value: cleanDraft.status, label: 'Venda finalizada' } } : {})
             };
             cleanDraft.flowDataOk = flowDataOk;
+            if (cleanDraft.country === 'EC') {
+                const resolvedDraftProduct = resolveEcuadorProductInfo(cleanDraft, state.metadata?.customerDraft || {}, state.metadata || {});
+                const allowedDraftProductKeys = new Set([ECUADOR_PRODUCTS.nitrix.key, ECUADOR_PRODUCTS.vitPower.key]);
+                const allowedDraftProductKey = allowedDraftProductKeys.has(cleanDraft.productKey)
+                    ? cleanDraft.productKey
+                    : resolvedDraftProduct.key;
+                const draftProductInfo = allowedDraftProductKey === ECUADOR_PRODUCTS.vitPower.key
+                    ? ECUADOR_PRODUCTS.vitPower
+                    : ECUADOR_PRODUCTS.nitrix;
+                cleanDraft.productKey = draftProductInfo.key;
+                cleanDraft.productName = cleanDraft.productName || draftProductInfo.name;
+                cleanDraft.product = cleanDraft.product || draftProductInfo.name;
+                cleanDraft.productMedia = cleanDraft.productMedia || (draftProductInfo.key === ECUADOR_PRODUCTS.vitPower.key
+                    ? '/media/sales/ec/vit_power.jpeg'
+                    : '/media/sales/ec/nitrix_bottle.png');
+            }
             if (normalizedDraftPhoneDigits.length >= 9) {
                 state.phoneDigits = normalizedDraftPhoneDigits;
             }

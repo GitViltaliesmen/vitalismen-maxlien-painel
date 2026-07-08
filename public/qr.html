@@ -7425,6 +7425,12 @@
                             <input id="customerReferenceInput" autocomplete="off" placeholder="Ponto de referencia">
                         </label>
                         <div class="customer-form-title">Detalhes do pedido</div>
+                        <label>Produto
+                            <select id="customerProductInput">
+                                <option value="nitrix_ec">Nitrix Oxide Ecuador</option>
+                                <option value="vit_power_ec">Vit Power Ecuador</option>
+                            </select>
+                        </label>
                         <div class="form-grid three">
                             <label>Qtd
                                 <input id="customerQuantityInput" type="number" min="0" step="1" placeholder="0">
@@ -9580,6 +9586,7 @@
             const normalizedCountry = ['EC', 'CO', 'BR'].includes(String(formCountry).toUpperCase())
                 ? String(formCountry).toUpperCase()
                 : 'EC';
+            const productInfo = productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
             return {
                 name: el('customerNameInput').value.trim(),
                 phone,
@@ -9592,7 +9599,13 @@
                 quantity: normalizeCustomerQuantityValue(el('customerQuantityInput').value),
                 total: el('customerTotalInput').value,
                 orderId: el('customerOrderInput').value.trim(),
-                note: el('customerNoteInput').value.trim()
+                note: el('customerNoteInput').value.trim(),
+                ...(normalizedCountry === 'EC' ? {
+                    product: productInfo.name,
+                    productKey: productInfo.key,
+                    productName: productInfo.name,
+                    productMedia: productInfo.media
+                } : {})
             };
         };
         const customerRequiredFields = [
@@ -9911,6 +9924,36 @@
             vit_power_ec: 'Vit Power EC',
             fallback: 'Geral'
         }[agent] || 'Geral');
+
+        const EC_PRODUCT_CATALOG = {
+            nitrix_ec: {
+                key: 'nitrix_ec',
+                name: 'Nitrix Oxide Ecuador',
+                media: '/media/sales/ec/nitrix_bottle.png'
+            },
+            vit_power_ec: {
+                key: 'vit_power_ec',
+                name: 'Vit Power Ecuador',
+                media: '/media/sales/ec/vit_power.jpeg'
+            }
+        };
+        const normalizeCustomerProductKey = (value = '', fallback = 'nitrix_ec') => {
+            const raw = String(value || '').trim().toLowerCase();
+            if (raw === 'vit_power_ec' || /vit[\s_-]*power/.test(raw)) return 'vit_power_ec';
+            if (raw === 'nitrix_ec' || raw === 'nx_ec' || /nitrix|nitric|oxido\s+nitric|nitrico|oxide/.test(raw)) return 'nitrix_ec';
+            return EC_PRODUCT_CATALOG[fallback] ? fallback : 'nitrix_ec';
+        };
+        const productInfoForKey = (key = 'nitrix_ec') => EC_PRODUCT_CATALOG[normalizeCustomerProductKey(key)] || EC_PRODUCT_CATALOG.nitrix_ec;
+        const productKeyFromChat = (chat = state.selectedChat || {}) => normalizeCustomerProductKey(
+            chat.productKey || chat.customerDraft?.productKey || chat.assignedAgent || chat.productName || chat.customerDraft?.productName || chat.customerDraft?.product || '',
+            'nitrix_ec'
+        );
+        const currentCustomerProduct = () => productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
+        const productLabelForQuantity = (quantity, product = currentCustomerProduct()) => {
+            const qty = Number(quantity || 0) || 0;
+            if (!qty) return `${product.name} sem quantidade`;
+            return `${product.name} ${qty} frasco${qty > 1 ? 's' : ''}`;
+        };
 
         const flowCorrectionLabelMap = {
             nome_completo: 'Nome OK',
@@ -12758,6 +12801,7 @@
                 renderFlowCorrectionStatus(null);
                 el('customerFormState').textContent = 'selecione um cliente';
                 ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
+                setInputValue('customerProductInput', 'nitrix_ec');
                 setInputValue('customerCountryInput', ['EC', 'CO'].includes(selectedOperationalCountry()) ? selectedOperationalCountry() : 'EC');
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
@@ -12848,6 +12892,7 @@
             if (!keepManualEdit) {
                 setInputValue('customerNameInput', chat.name || '');
                 setInputValue('customerCountryInput', ['EC', 'CO'].includes(String(chat.country || '').toUpperCase()) ? chat.country : selectedPanelCountry());
+                setInputValue('customerProductInput', productKeyFromChat(chat));
                 setInputValue('customerPhoneInput', chat.phone || '');
                 setInputValue('customerStatusInput', chat.orderStatus || '');
                 setInputValue('customerCityInput', chat.city || '');
@@ -15990,6 +16035,7 @@
             if (!state.selectedChat) return;
             const chat = state.selectedChat;
             const note = el('customerNoteInput').value.trim();
+            const productInfo = productInfoForKey(el('customerProductInput')?.value || productKeyFromChat(chat));
             let orderNotice = '';
             const customerDraft = {
                 name: el('customerNameInput').value.trim(),
@@ -16006,6 +16052,12 @@
             customerDraft.country = el('customerCountryInput').value || state.selectedChat.country || selectedPanelCountry();
             const draftCountry = String(customerDraft.country || '').toUpperCase();
             const isCODraft = draftCountry === 'CO';
+            if (draftCountry === 'EC') {
+                customerDraft.product = productInfo.name;
+                customerDraft.productKey = productInfo.key;
+                customerDraft.productName = productInfo.name;
+                customerDraft.productMedia = productInfo.media;
+            }
             const apiOrderStatus = orderStatusForApi(customerDraft.status);
             const isAdminLeadOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(String(chat.orderId || customerDraft.orderId || ''));
             const shouldCreateNewConfirmedOrder = Boolean(
@@ -16036,10 +16088,15 @@
                     total: customerDraft.total,
                     notes: note
                 };
+                if (draftCountry === 'EC') {
+                    payload.productKey = customerDraft.productKey;
+                    payload.productName = customerDraft.productName;
+                    payload.product = customerDraft.product;
+                }
                 if (hasValidCustomerQuantity(customerDraft.quantity)) {
                     payload.package = {
                         quantity: customerDraft.quantity,
-                        label: chat.packageLabel || `Vit Power ${customerDraft.quantity} frasco${Number(customerDraft.quantity) > 1 ? 's' : ''}`
+                        label: productLabelForQuantity(customerDraft.quantity, productInfo)
                     };
                 }
                 if (apiOrderStatus) payload.status = apiOrderStatus;
@@ -16048,26 +16105,32 @@
                     body: JSON.stringify(payload)
                 });
             } else if (!isCODraft && !isAdminLeadOrder && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+                const orderPayload = {
+                    country: customerDraft.country,
+                    customer: {
+                        name: customerDraft.name,
+                        phone: customerDraft.phone,
+                        city: customerDraft.city,
+                        province: customerDraft.province,
+                        address: customerDraft.address,
+                        reference: customerDraft.reference
+                    },
+                    packageId: customerDraft.quantity,
+                    packageLabel: productLabelForQuantity(customerDraft.quantity, productInfo),
+                    total: customerDraft.total,
+                    currency: 'USD',
+                    source: 'manual',
+                    status: apiOrderStatus,
+                    notes: note
+                };
+                if (draftCountry === 'EC') {
+                    orderPayload.productKey = customerDraft.productKey;
+                    orderPayload.productName = customerDraft.productName;
+                    orderPayload.product = customerDraft.product;
+                }
                 const created = await api('/api/orders', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        country: customerDraft.country,
-                        customer: {
-                            name: customerDraft.name,
-                            phone: customerDraft.phone,
-                            city: customerDraft.city,
-                            province: customerDraft.province,
-                            address: customerDraft.address,
-                            reference: customerDraft.reference
-                        },
-                        packageId: customerDraft.quantity,
-                        packageLabel: `Vit Power ${customerDraft.quantity} frasco${Number(customerDraft.quantity) > 1 ? 's' : ''}`,
-                        total: customerDraft.total,
-                        currency: 'USD',
-                        source: 'manual',
-                        status: apiOrderStatus,
-                        notes: note
-                    })
+                    body: JSON.stringify(orderPayload)
                 });
                 if (created.orderId) {
                     chat.orderId = created.orderId;
@@ -16113,6 +16176,11 @@
                 orderStatus: customerDraft.status,
                 quantity: customerDraft.quantity,
                 total: customerDraft.total,
+                ...(draftCountry === 'EC' ? {
+                    productKey: customerDraft.productKey,
+                    productName: customerDraft.productName,
+                    productMedia: customerDraft.productMedia
+                } : {}),
                 notes: note,
                 flowDataOk: syncedDraft.flowDataOk || customerDraft.flowDataOk || state.selectedChat.flowDataOk || {},
                 customerDraft: {
@@ -17480,7 +17548,7 @@
         });
         el('customerForm').addEventListener('submit', saveCustomerForm);
         el('confirmCustomerDataBtn').addEventListener('click', () => el('customerForm').requestSubmit());
-        ['customerNameInput', 'customerCountryInput', 'customerPhoneInput', 'customerStatusInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
+        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('input', markCustomerFormDirty);
             el(id).addEventListener('change', markCustomerFormDirty);
         });

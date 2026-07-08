@@ -26,6 +26,12 @@ Estado congelado e trava de escopo:
 FREEZE_EC_NITRIX_VIT_POWER_MICRO_LAYER_20260708.md
 ```
 
+Guard obrigatorio antes de publicar alteracao de produto EC:
+
+```sh
+node scripts/audit-ec-product-micro-layer.mjs
+```
+
 ## Regra maxima anti-spam WhatsApp EC
 
 Nunca deixar scheduler reenviar automaticamente a mesma midia, guia, print, fatura, audio ou mensagem para o mesmo cliente/pedido.
