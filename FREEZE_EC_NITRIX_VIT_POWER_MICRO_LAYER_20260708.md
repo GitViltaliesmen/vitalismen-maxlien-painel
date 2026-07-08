@@ -104,3 +104,23 @@ Validacoes locais executadas nesta retomada:
   - `scripts/audit-ec-nitrix-guard.mjs`: OK.
   - `scripts/audit-guide-print-spam-guard.mjs`: OK.
   - `scripts/guard-freeze-lock-ec.mjs`: OK.
+
+## Congelamento aprovado final
+
+Congelamento operacional aprovado em 2026-07-08 apos teste real do operador:
+
+- Trafego oficial: `https://ec.maxlien.shop/n/`.
+- Produto oficial do trafego: `Nitrix Oxide Ecuador`.
+- Produto legado sob demanda: `Vit Power Ecuador`, somente quando selecionado/pedido explicitamente.
+- WhatsApp oficial validado: `553183002800`.
+- Teste do operador: CTA `/n/` enviou mensagem de Nitrix, contato apareceu no WhatsApp/painel e houve envio/recebimento manual com sucesso.
+- Observacao do teste: mensagem `qUIERES NIREIZ?` foi digitacao manual do operador, nao falha do bot.
+- Backup final do release ativo: `/root/codex_deploy_backups/ec-product-freeze-20260708151148`.
+- Release final ativo no VPS: `/opt/vitalismen-automacao/releases/20260708144807`.
+- PM2 final: `vitalismen-automation` online com `pm_cwd` e `pm_exec_path` apontando para `20260708144807`.
+- VSL publica validada: `/n/` respondeu 200 com `productKey: "nitrix_ec"` e telefone `553183002800`.
+- CTA visual validado: `/n/?showForm=1&test=freeze-final` respondeu 200 com `productKey: "nitrix_ec"` e telefone `553183002800`.
+- Painel validado: `/qr.html` respondeu 200 com seletor `customerProductInput`, `Nitrix Oxide Ecuador`, `Vit Power Ecuador` e `productLabelForQuantity`.
+- Z-API/WhatsApp validado: endpoints internos `/api/zapi/status`, `/api/zapi/device` e `/api/health` responderam OK.
+- GitHub e Git VPS sincronizados na branch `codex-vitpower-unified-front`.
+- Proibido deixar divergencia entre Git, VPS, PM2 e pagina publica antes de novo trafego.
