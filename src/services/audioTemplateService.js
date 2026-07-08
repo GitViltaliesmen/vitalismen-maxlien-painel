@@ -57,6 +57,7 @@ const OFFICIAL_EC_AUDIO_BASE_NAMES = new Set([
     '01_A_buenas_noches',
     '01_B_Buenos_dias',
     '01_C_Buenos_tardes',
+    'NITRIX_INICIO_01_VALERIA_ZAMBRANO',
     'NOME_CIUDAD_PROVICINCIA',
     'PERGUNTA_AGENCIA_DOMICILIO',
     'ENDERECO_CIDADE_PROVINCIA_AGENCIA',

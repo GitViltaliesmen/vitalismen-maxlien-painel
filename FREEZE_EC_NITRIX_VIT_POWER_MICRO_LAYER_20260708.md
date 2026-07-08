@@ -142,3 +142,13 @@ Validacao feita no contato de teste `5515998038637`:
   - `content_ids`: `["nitrix_oxide_ec"]`.
   - `contents[0].id`: `nitrix_oxide_ec`.
 - Guard executado apos a validacao: `scripts/audit-ec-product-micro-layer.mjs`: OK.
+
+## Micro camada de bloco manual Nitrix
+
+Camada permitida sem mexer no motor principal do bot:
+
+- O painel EC passa a mostrar, para contatos Nitrix, o bloco manual `nitrix_inicio_completo`.
+- Sequencia do bloco: audio `Inicio Nitrix`, `Prova 1` e `Frasco Nitrix`.
+- O frasco isolado `nitrix_frasco` permanece disponivel como bloco manual separado.
+- O bloco legado `vit_power_inicio_completo` permanece somente quando o contato estiver marcado como Vit Power.
+- O funil automatico e o motor principal continuam congelados; esta camada apenas deixa o material aprovado no painel/manual e pronto para validacao controlada.

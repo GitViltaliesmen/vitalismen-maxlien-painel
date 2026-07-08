@@ -61,7 +61,11 @@ assertMatches('src/services/conversationEngine.js', /if\s*\(agentProfile\?\.key\
 
 assertIncludes('public/qr.html', 'Frasco Nitrix', 'Painel mostra frasco Nitrix');
 assertIncludes('public/qr.html', '/media/sales/ec/nitrix_bottle.png', 'Painel usa midia Nitrix');
+assertIncludes('public/qr.html', 'nitrix_inicio_completo', 'Painel tem bloco manual completo Nitrix');
+assertIncludes('public/qr.html', 'Inicio Nitrix + Prova 1 + Frasco Nitrix', 'Bloco manual Nitrix mantem prova e frasco corretos');
+assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg', 'Bloco manual Nitrix usa audio aprovado');
 assertIncludes('public/qr.html', "nitrix_ec: 'Nitrix EC'", 'Painel nomeia agente Nitrix');
+assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_01_VALERIA_ZAMBRANO'", 'Audio Nitrix aprovado na biblioteca EC');
 
 assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "553183002800"', 'VSL /n mantem telefone 2800');
 assertIncludes('public/n/index.html', 'productKey: "nitrix_ec"', 'VSL /n envia productKey Nitrix');
@@ -83,6 +87,10 @@ try {
 const bottlePath = 'public/media/sales/ec/nitrix_bottle.png';
 assert(exists(bottlePath), 'Frasco Nitrix existe em public/media/sales/ec');
 if (exists(bottlePath)) assert(fs.statSync(path.join(root, bottlePath)).size > 100000, 'Frasco Nitrix nao esta vazio');
+
+const nitrixIntroAudioPath = 'public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg';
+assert(exists(nitrixIntroAudioPath), 'Audio inicial Nitrix existe em public/media/templates/EC');
+if (exists(nitrixIntroAudioPath)) assert(fs.statSync(path.join(root, nitrixIntroAudioPath)).size > 100000, 'Audio inicial Nitrix nao esta vazio');
 
 if (failures.length) {
     console.error('EC Nitrix guard: FALHOU');
