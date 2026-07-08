@@ -64,6 +64,18 @@ export const getZapiDevice = async () => {
     return response.data;
 };
 
+export const getZapiChats = async ({ page = 1, pageSize = 80 } = {}) => {
+    const response = await axios.get(endpoint('/chats'), {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_TIMEOUT_MS || 15000),
+        params: {
+            page: Math.max(1, Number.parseInt(String(page || 1), 10) || 1),
+            pageSize: Math.min(200, Math.max(1, Number.parseInt(String(pageSize || 80), 10) || 80))
+        }
+    });
+    return response.data;
+};
+
 const boundedDelaySeconds = (value, fallback = null) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
     if (!Number.isFinite(parsed)) return fallback;
