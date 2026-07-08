@@ -30,7 +30,7 @@ const buildBuyLaterText = (lead = {}) => {
     const name = String(lead.name || '').trim().split(/\s+/)[0] || 'señor';
     const targetDate = formatTargetDate(lead.buy_later_followup_at || lead.target_at);
     const targetText = targetDate ? ` antes del ${targetDate}` : ' por estas fechas';
-    return `Hola ${name}, soy Ana de Vit Power. Quedamos en escribirle${targetText}. Si todavia desea continuar con su pedido, me responde por aqui y le ayudo a retomarlo.`;
+    return `Hola ${name}, soy Valeria Zambrano de Vit Power. Quedamos en escribirle${targetText}. Si todavia desea continuar con su pedido, me responde por aqui y le ayudo a retomarlo.`;
 };
 
 const formatTargetDate = (value) => {

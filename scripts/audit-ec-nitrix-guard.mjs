@@ -66,6 +66,8 @@ assertIncludes('public/qr.html', 'Inicio Nitrix + Prova 1 + Frasco Nitrix', 'Blo
 assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg', 'Bloco manual Nitrix usa audio aprovado');
 assertIncludes('public/qr.html', "nitrix_ec: 'Nitrix EC'", 'Painel nomeia agente Nitrix');
 assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_01_VALERIA_ZAMBRANO'", 'Audio Nitrix aprovado na biblioteca EC');
+assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';", 'Identidade oficial do atendimento e Valeria');
+assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Valeria Zambrano.', 'Prompt de atendimento usa Valeria');
 
 assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "553183002800"', 'VSL /n mantem telefone 2800');
 assertIncludes('public/n/index.html', 'productKey: "nitrix_ec"', 'VSL /n envia productKey Nitrix');

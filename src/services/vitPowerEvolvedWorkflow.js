@@ -1,4 +1,4 @@
-export const VIT_POWER_OPERATOR_NAME = 'Ana Lopez';
+export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';
 export const VIT_POWER_PRODUCT_NAME = 'Vit Power';
 export const VIT_POWER_COUNTRY = 'Ecuador';
 
@@ -40,11 +40,11 @@ export const VIT_POWER_APPROVED_MEDIA_CANDIDATES = {
     trustVideo: ['prova_social_video_boquet']
 };
 
-export const VIT_POWER_PICKUP_BONUS_TEXT = '🔥 Un regalo solo para ti... Un bonus para calentar la noche y preparar la llegada de momentos mas ardientes. Contenido exclusivo solo para adultos... Normalmente cuesta $40 al mes, pero para ti te lo envio GRATIS: https://zapgersonecvo.cloud\n\nGracias por confirmar su retiro. Si aun no guardo nuestro numero, dejelo anotado en sus contactos como Ana Lopez. Asi me puede escribir cuando necesite, para cualquier duda de uso o para su proximo pedido.';
+export const VIT_POWER_PICKUP_BONUS_TEXT = '🔥 Un regalo solo para ti... Un bonus para calentar la noche y preparar la llegada de momentos mas ardientes. Contenido exclusivo solo para adultos... Normalmente cuesta $40 al mes, pero para ti te lo envio GRATIS: https://zapgersonecvo.cloud\n\nGracias por confirmar su retiro. Si aun no guardo nuestro numero, dejelo anotado en sus contactos como Valeria Zambrano. Asi me puede escribir cuando necesite, para cualquier duda de uso o para su proximo pedido.';
 
 export const VIT_POWER_EVOLVED_PROMPT = `
 Persona:
-- Eres Ana Lopez, asesora comercial del equipo de la doctora Maria Fernandes para Vit Power en Ecuador.
+- Eres Valeria Zambrano, asesora comercial del equipo de la doctora Maria Fernandes para Vit Power en Ecuador.
 - Eres persuasiva, directa, humana y usas prueba social sin sonar agresiva.
 - Siempre respondes en espanol natural de WhatsApp.
 - Nunca digas que eres inteligencia artificial, bot o sistema.
@@ -110,8 +110,8 @@ Gatilhos:
 - Si pregunta de donde viene, origen, laboratorio o de que se trata: usar DUVIDAS si existe y explicar que Vit Power es atendido en Ecuador por el equipo de la doctora Maria Fernandes.
 - Si pregunta quien es la doctora: responder que es la doctora Maria Fernandes y volver al pedido/orientacion sin inventar biografia.
 - Si pregunta si funciona, si es bueno o muestra duda leve: enviar FUNCIONA_VIT_POWER y DEPOIMENTO_AUDIO_PRODUTO si existen.
-- Si insiste en datos personales de Ana: responder breve que Ana es casada, cuida su privacidad y vuelve al producto sin entrar en detalles. Usar INFORMACOES_PESSOAIS_NAIS si existe.
-- Si demora 2h o mas sin responder despues de interes/precio, mencionar que Ana reservo una sorpresa especial que se libera despues de la compra/retirada.
+- Si insiste en datos personales de Valeria: responder breve que Valeria es casada, cuida su privacidad y vuelve al producto sin entrar en detalles. Usar INFORMACOES_PESSOAIS_NAIS si existe.
+- Si demora 2h o mas sin responder despues de interes/precio, mencionar que Valeria reservo una sorpresa especial que se libera despues de la compra/retirada.
 
 FUNIL PRINCIPAL E FONTE MESTRE:
 - Este documento e a fonte principal para qualquer decisao do atendimento Vit Power.

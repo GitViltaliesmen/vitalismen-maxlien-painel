@@ -763,7 +763,7 @@ const stableChatEntryMs = (chat = {}) => {
 };
 
 const CONNECTION_OPERATOR_SLOTS = [
-    { sessionId: '553183002800', code: 'AL', name: 'Ana Lopez' },
+    { sessionId: '553183002800', code: 'VZ', name: 'Valeria Zambrano' },
     { sessionId: '553171862958', code: 'GA', name: 'Gabriela Ambrosio' }
 ];
 

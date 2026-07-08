@@ -14,7 +14,7 @@ const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
 const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
-    || 'Hola, soy Ana Lopez del equipo de la doctora Maria Fernandes. En este momento no atendemos llamadas por aqui. Enviame tu duda por texto o audio y te ayudo por WhatsApp.';
+    || 'Hola, soy Valeria Zambrano del equipo de la doctora Maria Fernandes. En este momento no atendemos llamadas por aqui. Enviame tu duda por texto o audio y te ayudo por WhatsApp.';
 const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
     || 'Señor, por favor envíeme un mensaje por audio o texto.';
 const autoRecoverConflict = String(process.env.WHATSAPP_AUTO_RECOVER_CONFLICT || 'true').toLowerCase() !== 'false';

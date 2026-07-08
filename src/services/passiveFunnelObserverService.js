@@ -300,7 +300,7 @@ const productionDraftForIntent = ({ intent, failures = [], idea = null }) => {
             title: 'Social / ligacao',
             audioScriptEs: 'Trabajo ayudando a los clientes con sus pedidos de VIPower. Le puedo atender por aqui con mensaje o audio. Para orientarle mejor, busca informacion o desea ver el precio?',
             textScriptEs: 'Le atiendo por aqui con mensaje o audio. Busca informacion o desea ver el precio?',
-            imagePromptPt: 'Avatar profissional de atendente Ana Lopez, visual humano, simpatico, consultivo, fundo neutro.'
+            imagePromptPt: 'Avatar profissional de atendente Valeria Zambrano, visual humano, simpatico, consultivo, fundo neutro.'
         }
     };
     return {

@@ -10,7 +10,9 @@ dotenv.config();
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID_ANA || 'EtnafgWR3KNOASvt1grF'; // Default to Ana Lopez provided by user
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID_VALERIA
+    || process.env.ELEVENLABS_VOICE_ID_ANA
+    || 'EtnafgWR3KNOASvt1grF'; // Default to Valeria Zambrano voice provided by user
 let ttsDisabledReason = null;
 let ttsDisabledLogged = false;
 

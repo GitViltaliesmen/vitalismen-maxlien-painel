@@ -15,7 +15,7 @@ Nao ha autorizacao para mexer no motor principal do bot. Apenas micro camada pon
 - Processo PM2: vitalismen-automation online
 - Porta da aplicacao no VPS: 3001
 - WhatsApp oficial: 553183002800
-- Estado Z-API no health check: connected, Ana Lopez 2800
+- Estado Z-API no health check: connected, Valeria Zambrano 2800
 - Commit local congelado: 760f523 Restore EC observer services for deploy
 - Backup/snapshot VPS criado: /root/codex_deploy_backups/ec-nitrix-bot-freeze-20260708133556
 
@@ -152,3 +152,13 @@ Camada permitida sem mexer no motor principal do bot:
 - O frasco isolado `nitrix_frasco` permanece disponivel como bloco manual separado.
 - O bloco legado `vit_power_inicio_completo` permanece somente quando o contato estiver marcado como Vit Power.
 - O funil automatico e o motor principal continuam congelados; esta camada apenas deixa o material aprovado no painel/manual e pronto para validacao controlada.
+
+## Micro camada de identidade do atendimento
+
+Identidade oficial do atendimento EC atualizada para `Valeria Zambrano`:
+
+- Textos ativos do bot, prompts, saudacoes, rejeicao de chamadas, aviso de salvar contato, painel e slot de conexao `553183002800` passam a usar `Valeria Zambrano`.
+- O painel passa a apontar para o avatar publico `/media/agent/valeria-zambrano-avatar.jpg`.
+- O nome antigo `Ana Lopez`/`Ana Lopes` fica proibido em texto operacional ativo.
+- A variavel de voz oficial passa a ser `ELEVENLABS_VOICE_ID_VALERIA`, mantendo fallback tecnico para a antiga variavel se algum ambiente legado ainda existir.
+- Guard da camada: `node scripts/audit-ec-valeria-identity.mjs`.
