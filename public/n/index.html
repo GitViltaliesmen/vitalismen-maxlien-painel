@@ -39,6 +39,11 @@
       background:#0b0b0b;
       display:none; /* sÃ³ aparece no final */
     }
+    .card.whatsapp-ready{
+      cursor:pointer;
+      border-color:#25d366;
+      box-shadow:0 0 0 1px rgba(37,211,102,.22),0 14px 34px rgba(37,211,102,.16);
+    }
     h2{ margin:0 0 8px; font-size:18px; }
     p{ margin:0 0 12px; font-size:14px; opacity:.85; }
     label{ display:block; margin:10px 0 6px; font-size:13px; opacity:.8; }
@@ -89,6 +94,17 @@
     }
 
     .fine{ margin-top:10px; font-size:12px; opacity:.6; }
+    .tap-anywhere-hint{
+      margin:0 0 12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#122718;
+      color:#d9ffe4;
+      font-size:13px;
+      font-weight:800;
+      opacity:1;
+      text-align:center;
+    }
     .desktop-only-block{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;background:#fff;color:#172033}
     .desktop-only-block .box{width:min(900px,100%);border:1px solid #e6e8ee;border-radius:10px;padding:24px;background:#f8fafc}
     .desktop-only-block h1{font-size:34px;margin:0 0 10px;text-align:center}
@@ -297,10 +313,11 @@
     <!-- VSL VTURB - injected only for mobile visitors -->
     <div id="vturbMount"></div>
 
-    <!-- ENTRADA WHATSAPP (SO NO FINAL) -->
-    <section class="card" id="orderForm">
-	      <label>Nombre completo opcional</label>
-	      <input type="text" id="customerFullName" name="name" autocomplete="name" placeholder="Ej: Maria Fernanda Lopez">
+	    <!-- ENTRADA WHATSAPP (SO NO FINAL) -->
+	    <section class="card" id="orderForm">
+		      <div class="tap-anywhere-hint">Toca aqui para abrir WhatsApp despues de escribir tu celular</div>
+		      <label>Nombre completo opcional</label>
+		      <input type="text" id="customerFullName" name="name" autocomplete="name" placeholder="Ej: Maria Fernanda Lopez">
 	      <div id="nameError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Puedes continuar sin nombre; tambien puedes escribirlo para atencion mas rapida.</div>
 
 	      <label>Celular WhatsApp</label>
@@ -664,13 +681,14 @@
 	    } catch(e) {}
 	  }
 
-	  function showForm(reason){
-	    const box = document.getElementById("orderForm");
-	    if(box) {
-	      box.style.display = "block";
-	      recordFormVisible(reason || "show_form");
-	      const btn = document.getElementById("btnSubmit");
-	      if(btn) setTimeout(() => btn.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+		  function showForm(reason){
+		    const box = document.getElementById("orderForm");
+		    if(box) {
+		      box.style.display = "block";
+		      box.classList.add("whatsapp-ready");
+		      recordFormVisible(reason || "show_form");
+		      const btn = document.getElementById("btnSubmit");
+		      if(btn) setTimeout(() => btn.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
 	    }
   }
   window.__MAXLIEN_SHOW_FORM__ = showForm;
@@ -968,22 +986,44 @@ async function openWhatsappEntry(baseMessage, fullName, phone){
   setTimeout(recoverWhatsappButton, 3500);
 }
 
+function submitWhatsappFromForm(){
+  const fullName = customerFullName();
+  const phone = customerPhone();
+  const phoneInput = document.getElementById("customerPhone");
+  const rawPhone = normalizeCustomerPhoneDigits((phoneInput || {}).value);
+  if (!isAllowedCheckoutPhone(rawPhone || phone)) {
+    showPhoneError(true);
+    if (phoneInput) phoneInput.focus();
+    return;
+  }
+  showNameError(false);
+  showPhoneError(false);
+  openWhatsappEntry(pickInitialCtaMessage(), fullName, phone);
+}
+
 document.addEventListener("click", function(event){
   if (event.target && event.target.id === "btnSubmit") {
     event.preventDefault();
-	    const fullName = customerFullName();
-	    const phone = customerPhone();
-	    const rawPhone = normalizeCustomerPhoneDigits((document.getElementById("customerPhone") || {}).value);
-	    if (!isAllowedCheckoutPhone(rawPhone || phone)) {
-	      showPhoneError(true);
-	      const input = document.getElementById("customerPhone");
-	      if (input) input.focus();
-      return;
-    }
-    showNameError(false);
-    showPhoneError(false);
-    openWhatsappEntry(pickInitialCtaMessage(), fullName, phone);
+    submitWhatsappFromForm();
   }
+});
+
+document.addEventListener("click", function(event){
+  const box = document.getElementById("orderForm");
+  if (!box || box.style.display !== "block") return;
+  if (!event.target || !event.target.closest || !event.target.closest("#orderForm")) return;
+  if (event.target.closest("input,select,textarea,button,a,label")) return;
+  event.preventDefault();
+  submitWhatsappFromForm();
+});
+
+document.addEventListener("keydown", function(event){
+  if (event.key !== "Enter") return;
+  const box = document.getElementById("orderForm");
+  if (!box || box.style.display !== "block") return;
+  if (!event.target || !event.target.closest || !event.target.closest("#orderForm")) return;
+  event.preventDefault();
+  submitWhatsappFromForm();
 });
 </script>
 
