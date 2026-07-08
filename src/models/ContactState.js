@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 
+const EC_AGENT_KEYS = ['vit_power_ec', 'nitrix_ec'];
+
 const contactStateSchema = new mongoose.Schema({
     chatId: {
         type: String,
@@ -18,14 +20,14 @@ const contactStateSchema = new mongoose.Schema({
     },
     assignedAgent: {
         type: String,
-        enum: ['vit_power_ec'],
+        enum: EC_AGENT_KEYS,
         default: 'vit_power_ec'
     },
     agentHistory: {
         type: [{
             agent: {
                 type: String,
-                enum: ['vit_power_ec']
+                enum: EC_AGENT_KEYS
             },
             reason: String,
             at: Date

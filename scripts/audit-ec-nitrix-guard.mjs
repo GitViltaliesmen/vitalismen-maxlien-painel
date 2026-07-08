@@ -14,6 +14,7 @@ const assertMatches = (file, regex, message) => assert(regex.test(read(file)), `
 const assertNotMatches = (file, regex, message) => assert(!regex.test(read(file)), `${message} (${file})`);
 
 const files = [
+    'src/models/ContactState.js',
     'src/services/agentProfiles.js',
     'src/routes/whatsapp.js',
     'src/services/conversationEngine.js',
@@ -40,6 +41,9 @@ for (const file of files.filter(exists)) {
 assertIncludes('src/services/agentProfiles.js', "key: 'nitrix_ec'", 'Perfil Nitrix EC existe');
 assertIncludes('src/services/agentProfiles.js', 'manualOnly: true', 'Perfil Nitrix marcado como manual');
 assertMatches('src/services/agentProfiles.js', /getAgentProfile\s*=\s*\(key\s*=\s*'nitrix_ec'\)/, 'Default de agente permanece Nitrix');
+
+assertIncludes('src/models/ContactState.js', "'nitrix_ec'", 'ContactState aceita Nitrix EC como agente');
+assertIncludes('src/models/ContactState.js', "'vit_power_ec'", 'ContactState mantem Vit Power EC como agente separado');
 
 assertIncludes('src/routes/whatsapp.js', "nitrix: 'nitrix_ec'", 'Rota publica reconhece Nitrix');
 assertIncludes('src/routes/whatsapp.js', "vitPower: 'vit_power_ec'", 'Vit Power continua produto separado');

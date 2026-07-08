@@ -1,5 +1,31 @@
 # Regras Fixas do Projeto
 
+## Regra maxima EC Maxlien Nitrix
+
+Regra maxima e permanente: este projeto, quando tratar de `ec.maxlien.shop/n/`, e somente Equador na VPS Hostinger oficial, Git Equador e dominio publico oficial:
+
+```sh
+https://ec.maxlien.shop/n/
+ssh root@72.60.137.77
+/opt/vitalismen-automacao/current
+```
+
+Produto oficial do trafego `/n/`: Nitrix Oxide Ecuador.
+
+Produto legado permitido sob demanda: Vit Power Ecuador, somente quando o cliente perguntar explicitamente por Vit Power.
+
+Correcao obrigatoria de nomenclatura: nao e Superfull. Superfull nao deve ser criado, roteado, citado, reaproveitado ou tratado como produto deste fluxo.
+
+E proibido misturar, importar, copiar, comparar ou publicar qualquer coisa de Colombia, Contabo, Maxtourus, outro dominio, outro numero, outro banco, outro pixel, outro funil, outro VPS ou outro Git sem pedido explicito do operador citando exatamente essa origem.
+
+Qualquer mudanca neste fluxo deve ser micro camada pontual. Nao esta autorizado mexer no motor principal do bot, preco, checkout, Dropi, Meta/CAPI, pixel, Z-API, numero de WhatsApp, funil comercial ou memoria de pedidos sem aprovacao explicita.
+
+Estado congelado e trava de escopo:
+
+```sh
+FREEZE_EC_NITRIX_VIT_POWER_MICRO_LAYER_20260708.md
+```
+
 ## Congelamento total atual
 
 O estado aprovado em 2026-05-17 esta congelado em:
