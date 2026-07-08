@@ -91,3 +91,16 @@ Validacoes locais executadas nesta retomada:
 - `scripts/guard-public-funnel.mjs`: OK.
 - `scripts/guard-freeze-lock-ec.mjs`: OK.
 - `scripts/official-state-audit.mjs`: OK com avisos locais de API/Mongo indisponiveis no Mac.
+
+## Publicacao da retomada
+
+- Commit de implementacao: `4e19a5b Add EC product micro-layer guard`.
+- Release VPS ativo: `/opt/vitalismen-automacao/releases/20260708144807`.
+- Symlink ativo: `/opt/vitalismen-automacao/current -> /opt/vitalismen-automacao/releases/20260708144807`.
+- PM2 `vitalismen-automation`: online com `pm_cwd` e `pm_exec_path` apontando para `20260708144807`.
+- URL publica validada: `https://ec.maxlien.shop/n/` respondeu 200 com `productKey: "nitrix_ec"` e WhatsApp `553183002800`.
+- Guards no VPS:
+  - `scripts/audit-ec-product-micro-layer.mjs`: OK.
+  - `scripts/audit-ec-nitrix-guard.mjs`: OK.
+  - `scripts/audit-guide-print-spam-guard.mjs`: OK.
+  - `scripts/guard-freeze-lock-ec.mjs`: OK.
