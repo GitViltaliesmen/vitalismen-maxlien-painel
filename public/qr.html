@@ -8271,8 +8271,6 @@
         };
         const allowedBrazilTestPhones = new Set([
             '5515998038637',
-            '15991418416',
-            '5515991418416',
             '553171862958',
             '5531971862958',
             '5531983002800',
@@ -8872,8 +8870,7 @@
 
         const requiredConnectionSlots = [
             { sessionId: '553183002800', finalLabel: '8300' },
-            { sessionId: '553171862958', finalLabel: '2958' },
-            { sessionId: '5515991418416', finalLabel: '8416' }
+            { sessionId: '553171862958', finalLabel: '2958' }
         ];
 
         const connectionAlertLabel = (alert) => ({
@@ -9910,6 +9907,7 @@
         const agentLabel = (agent) => ({
             warmup: 'Aquecimento',
             vitalismen: 'Vitalismen high-ticket',
+            nitrix_ec: 'Nitrix EC',
             vit_power_ec: 'Vit Power EC',
             fallback: 'Geral'
         }[agent] || 'Geral');
@@ -13450,17 +13448,27 @@
 
         const footerMediaFiles = () => {
             const country = currentTemplateCountry();
+            const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
+            const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
             const productMedia = country === 'CO'
                 ? { label: 'Frasco especial', value: '/media/sales/co/special_bottle.png' }
-                : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
+                : isNitrix
+                    ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
+                    : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
+            const alternateProductMedia = country === 'EC'
+                ? (isNitrix
+                    ? { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Vit Power', detail: footerFileName('/media/sales/ec/vit_power.jpeg'), value: '/media/sales/ec/vit_power.jpeg' }
+                    : { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Nitrix', detail: footerFileName('/media/sales/ec/nitrix_bottle.png'), value: '/media/sales/ec/nitrix_bottle.png' })
+                : null;
             return [
                 { code: 'M01', type: 'media', typeLabel: 'midia', label: productMedia.label, detail: footerFileName(productMedia.value), value: productMedia.value },
                 { code: 'M02', type: 'media', typeLabel: 'midia', label: 'Prova 1', detail: footerFileName('/media/sales/shared/social_01.jpeg'), value: '/media/sales/shared/social_01.jpeg' },
                 { code: 'M03', type: 'media', typeLabel: 'midia', label: 'Prova 2', detail: footerFileName('/media/sales/shared/social_02.jpeg'), value: '/media/sales/shared/social_02.jpeg' },
                 { code: 'M04', type: 'media', typeLabel: 'midia', label: 'Prova 3', detail: footerFileName('/media/sales/shared/social_03.jpeg'), value: '/media/sales/shared/social_03.jpeg' },
                 { code: 'M05', type: 'media', typeLabel: 'midia', label: 'Prova 4', detail: footerFileName('/media/sales/shared/social_04.jpeg'), value: '/media/sales/shared/social_04.jpeg' },
-                { code: 'M06', type: 'media', typeLabel: 'video', label: 'Video', detail: footerFileName('/media/sales/shared/prova_social_video_boquet.mp4'), value: '/media/sales/shared/prova_social_video_boquet.mp4', viewOnce: true }
-            ];
+                { code: 'M06', type: 'media', typeLabel: 'video', label: 'Video', detail: footerFileName('/media/sales/shared/prova_social_video_boquet.mp4'), value: '/media/sales/shared/prova_social_video_boquet.mp4', viewOnce: true },
+                alternateProductMedia
+            ].filter(Boolean);
         };
 
         const randomBetween = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
@@ -14244,6 +14252,8 @@
 
         const footerFunnelBlocks = () => {
             const country = currentTemplateCountry();
+            const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
+            const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
             const defaultBlocks = country === 'CO'
                 ? [{
                     code: 'B01',
@@ -14256,7 +14266,17 @@
                         { type: 'media', label: 'Frasco especial', value: '/media/sales/co/special_bottle.png', waitAfterMs: 0 }
                     ]
                 }]
-                : [{
+                : isNitrix ? [{
+                    code: 'B01',
+                    type: 'block',
+                    typeLabel: 'bloco',
+                    label: 'Frasco Nitrix',
+                    detail: 'Imagem do produto Nitrix para atendimento manual',
+                    value: 'nitrix_frasco',
+                    steps: [
+                        { type: 'media', label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png', waitAfterMs: 0 }
+                    ]
+                }] : [{
                     code: 'B01',
                     type: 'block',
                     typeLabel: 'bloco',

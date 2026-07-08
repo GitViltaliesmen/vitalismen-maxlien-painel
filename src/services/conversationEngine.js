@@ -26,6 +26,49 @@ import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const NITRIX_AGENT_KEY = 'nitrix_ec';
+const VIT_POWER_AGENT_KEY = 'vit_power_ec';
+const NITRIX_PRODUCT_NAME = 'Nitrix Oxide Ecuador';
+const NITRIX_BOTTLE_MEDIA = '/media/sales/ec/nitrix_bottle.png';
+const normalizeProductRouteText = (value) => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s_/-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const explicitlyMentionsVitPower = (value) => {
+    const body = normalizeProductRouteText(value);
+    return /\b(vit\s*power|vitpower|vipower|vi\s*power)\b/i.test(body);
+};
+const contactCameFromNitrix = (contactState = {}) => {
+    const metadata = contactState?.metadata || {};
+    const draft = metadata.customerDraft || {};
+    const keys = [
+        contactState?.assignedAgent,
+        metadata.productKey,
+        draft.productKey,
+        draft.productName,
+        metadata.productName,
+        metadata.vslPage,
+        metadata.vslPath,
+        metadata.vslSourceUrl
+    ].map(normalizeProductRouteText);
+    return keys.some((item) => (
+        item === NITRIX_AGENT_KEY
+        || item === 'nx_ec'
+        || item.includes('nitrix')
+        || item.includes('nx_ec')
+        || item.startsWith('/n')
+        || item.includes('maxlien.shop/n')
+    ));
+};
+const resolveAgentProfileForMessage = ({ text = '', contactState = {}, requestedProfile = null } = {}) => {
+    if (explicitlyMentionsVitPower(text)) return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile;
+    if (contactCameFromNitrix(contactState)) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
+    if (requestedProfile?.key === VIT_POWER_AGENT_KEY) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
+    return requestedProfile || AGENT_PROFILES[NITRIX_AGENT_KEY] || AGENT_PROFILES[VIT_POWER_AGENT_KEY];
+};
 const noDropiBotTestPhones = () => [
     '5515998038637',
     process.env.WHATSAPP_PRIORITY_TEST_PHONES
@@ -2845,6 +2888,16 @@ const inferCustomerCountry = (chatId) => {
 
 const customerContextFromCountryCode = (countryCode, fallbackPhonePrefix = null) => {
     return inferCustomerCountry('593');
+};
+
+const customerContextForAgentProfile = (agentProfile, fallbackPhonePrefix = null) => {
+    const base = customerContextFromCountryCode('EC', fallbackPhonePrefix);
+    if (agentProfile?.key !== NITRIX_AGENT_KEY) return base;
+    return {
+        ...base,
+        product: NITRIX_PRODUCT_NAME,
+        priceTable: 'Nitrix Oxide Ecuador: atencion manual; no enviar precios automaticos.'
+    };
 };
 
 const hasBotIntroducedItself = async (chatId) => {
@@ -7826,7 +7879,48 @@ const maybeHandleUnansweredInboundFallback = async ({
     return true;
 };
 
-export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES.vit_power_ec) => {
+const holdNitrixForHuman = async ({
+    contactStateId,
+    inboundText = '',
+    agentProfile
+}) => {
+    if (!contactStateId) return false;
+    const now = new Date();
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                assignedAgent: NITRIX_AGENT_KEY,
+                'human.mode': 'manual',
+                'human.assignedName': 'Atendimento Nitrix EC',
+                'human.lastManualAt': now,
+                'human.lastManualBy': 'nitrix_route_guard',
+                'human.note': 'Lead do /n/ Nitrix. Bot Vit Power bloqueado; atendimento humano deve seguir Nitrix.',
+                'metadata.productKey': NITRIX_AGENT_KEY,
+                'metadata.productName': NITRIX_PRODUCT_NAME,
+                'metadata.productMedia': NITRIX_BOTTLE_MEDIA,
+                'metadata.automationHandoffSuggestedReason': 'nitrix_manual_only',
+                'metadata.automationHandoffSuggestedAt': now,
+                'metadata.automationHandoffSuggestedNote': 'Lead Nitrix isolado do funil Vit Power. Nao liberar bot Vit Power salvo pedido explicito do cliente.',
+                'metadata.customerDraft.productKey': NITRIX_AGENT_KEY,
+                'metadata.customerDraft.productName': NITRIX_PRODUCT_NAME,
+                'metadata.customerDraft.productMedia': NITRIX_BOTTLE_MEDIA,
+                'metadata.customerDraft.source': 'vsl_ec_nitrix',
+                'metadata.customerDraft.message': String(inboundText || '').slice(0, 700),
+                'metadata.customerDraft.updatedAt': now.toISOString(),
+                [`metadata.perAgentMemory.${agentProfile.key}.humanHandoffAt`]: now,
+                [`metadata.perAgentMemory.${agentProfile.key}.humanHandoffReason`]: 'nitrix_manual_only',
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'nitrix_manual_handoff'
+            },
+            $addToSet: {
+                tags: { $each: ['NITRIX_EC', 'BOT_VIT_POWER_BLOQUEADO', 'AGUARDANDO_ATENDIMENTO'] }
+            }
+        }
+    );
+    return true;
+};
+
+export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES.nitrix_ec) => {
     try {
         console.log(`[LOG_HANDLER_ENTER] 🚀 Processando mensagem... agente=${agentProfile.key}`);
 
@@ -7840,16 +7934,11 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         }
 
         const contactState = msg.contactStateId ? await ContactState.findById(msg.contactStateId).lean() : null;
+        agentProfile = resolveAgentProfileForMessage({ text, contactState, requestedProfile: agentProfile });
         const chatId = resolveRealChatId(msg, contactState);
         const peerPhone = digitsOnly(msg.senderPn) || digitsOnly(contactState?.phoneDigits) || digitsOnly(chatId);
-        let customerContext = customerContextFromCountryCode('EC', peerPhone);
-        const alreadyIntroduced = await hasBotIntroducedItself(chatId);
-        const memoryOrder = await updateOrderConversationMemory({ chatId, customerContext, text, agentProfile, phoneDigits: peerPhone });
+        let customerContext = customerContextForAgentProfile(agentProfile, peerPhone);
         const resolvedCountryCode = 'EC';
-        const customerMemory = await buildCustomerMemory({ chatId, customerContext, phoneDigits: peerPhone });
-        const sentImageKeys = (((contactState?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).sentImageKeys || [];
-        const agentMemorySnapshot = (((contactState?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {});
-        let checkoutOrderData = parseCheckoutOrderMessage(text);
         console.log(`[BOT] ✅ Trabalhando no Chat: ${chatId} | agente=${agentProfile.key}`);
 
         if (!msg.recovered) {
@@ -7870,6 +7959,23 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
             }
         }
+
+        if (agentProfile?.key === NITRIX_AGENT_KEY) {
+            await holdNitrixForHuman({
+                contactStateId: msg.contactStateId,
+                inboundText: text,
+                agentProfile
+            });
+            console.log(`[NITRIX-GUARD] Bot Vit Power bloqueado; contato em atendimento manual -> ${chatId}`);
+            return;
+        }
+
+        const alreadyIntroduced = await hasBotIntroducedItself(chatId);
+        const memoryOrder = await updateOrderConversationMemory({ chatId, customerContext, text, agentProfile, phoneDigits: peerPhone });
+        const customerMemory = await buildCustomerMemory({ chatId, customerContext, phoneDigits: peerPhone });
+        const sentImageKeys = (((contactState?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {}).sentImageKeys || [];
+        const agentMemorySnapshot = (((contactState?.metadata || {}).perAgentMemory || {})[agentProfile.key] || {});
+        let checkoutOrderData = parseCheckoutOrderMessage(text);
 
         const unansweredInboundFallbackHandled = await maybeHandleUnansweredInboundFallback({
             text,

@@ -25,9 +25,9 @@ export const ECUADOR_PRODUCTS = {
     },
     nitrix: {
         key: 'nitrix_ec',
-        name: 'Nitrix',
-        contentName: 'Nitrix Ecuador',
-        contentIds: ['nitrix_ec'],
+        name: 'Nitrix Oxide Ecuador',
+        contentName: 'Nitrix Oxide Ecuador WhatsApp',
+        contentIds: ['nitrix_oxide_ec'],
         dropiName: 'NITRIX',
         dropiAliases: [
             'NITRIX',
@@ -78,4 +78,3 @@ export const ecuadorProductMetadata = (productInfo) => ({
     contentName: productInfo?.contentName || ECUADOR_PRODUCTS.vitPower.contentName,
     contentIds: productInfo?.contentIds || ECUADOR_PRODUCTS.vitPower.contentIds
 });
-

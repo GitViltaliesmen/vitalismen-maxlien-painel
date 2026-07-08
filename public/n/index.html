@@ -303,11 +303,11 @@
 	      <input type="text" id="customerFullName" name="name" autocomplete="name" placeholder="Ej: Maria Fernanda Lopez">
 	      <div id="nameError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Puedes continuar sin nombre; tambien puedes escribirlo para atencion mas rapida.</div>
 
-	      <label>Celular WhatsApp opcional</label>
-	      <input type="tel" id="customerPhone" name="phone" autocomplete="tel" inputmode="tel" placeholder="Ej: 0987654321">
-	      <div id="phoneError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Si quieres dejar tu numero aqui, usa un celular valido de Ecuador. Tambien puedes continuar sin escribirlo.</div>
+	      <label>Celular WhatsApp</label>
+	      <input type="tel" id="customerPhone" name="phone" autocomplete="tel" inputmode="tel" required placeholder="Ej: 0987654321">
+	      <div id="phoneError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Para abrir WhatsApp, escribe un celular valido de Ecuador.</div>
 
-	      <button id="btnSubmit" type="button">Finalizar por WhatsApp</button>
+	      <button id="btnSubmit" type="button">Abrir WhatsApp</button>
 
       <div id="waManualBox" class="fine" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:12px;padding:12px;margin-top:12px;opacity:1">
         Si WhatsApp no se abre automaticamente, toca el enlace de abajo:<br>
@@ -319,7 +319,7 @@
   </div>
 
   <div id="version-badge">
-    EC /m â€¢ build: <span id="vb-hash"></span> â€¢ <span id="vb-ts"></span>
+    EC /n â€¢ build: <span id="vb-hash"></span> â€¢ <span id="vb-ts"></span>
   </div>
 
   <script>
@@ -327,6 +327,31 @@
      CONFIGURAÃ‡ÃƒO â€“ EQUADOR
   ============================= */
   const EC_PREFIX = "593";
+  const EC_PUBLIC_HOSTS = ["ec.maxlien.shop", "maxlien.shop", "www.maxlien.shop"];
+  const EC_CANONICAL_N_URL = "https://ec.maxlien.shop/n/";
+
+  function currentHost(){
+    return String(location.hostname || "").trim().toLowerCase();
+  }
+
+  function isEcPublicHost(host){
+    host = String(host || "").trim().toLowerCase();
+    return EC_PUBLIC_HOSTS.indexOf(host) >= 0
+      || host === "localhost"
+      || host === "127.0.0.1";
+  }
+
+  function enforceEcNitrixHost(){
+    const host = currentHost();
+    if (!host || isEcPublicHost(host)) return;
+    location.replace(EC_CANONICAL_N_URL + (location.search || "") + (location.hash || ""));
+  }
+
+  function ecApiPath(path){
+    return isEcPublicHost(currentHost()) ? path : ("https://ec.maxlien.shop" + path);
+  }
+
+  enforceEcNitrixHost();
 
   /* Z-API: numero unico oficial. A VSL busca o telefone atual da instancia. */
   const OFFICIAL_ZAPI_SELLER_E164 = "553183002800";
@@ -366,14 +391,17 @@
     } catch(e) {}
     try {
       const origin = window.__MAXLIEN_ORIGIN || {};
-      fetch("/api/whatsapp/vsl-entry", {
+      fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         keepalive: true,
         body: JSON.stringify(Object.assign({}, origin, {
           country: "EC",
+          productKey: "nitrix_ec",
+          productName: "Nitrix Oxide Ecuador",
+          productMedia: "/media/sales/ec/nitrix_bottle.png",
           page: "nx_ec_mobile",
-          path: location.pathname || "/m/",
+          path: location.pathname || "/n/",
           visitorId: origin.external_id || "",
           sessionId: vslSessionId(),
           pageViewEventId: window.__MAXLIEN_PAGEVIEW_EVENT_ID || "",
@@ -554,7 +582,7 @@
       const qs = new URLSearchParams({
         message: message
       });
-      const response = await fetch('/api/zapi/whatsapp-link?' + qs.toString(), {
+      const response = await fetch(ecApiPath('/api/zapi/whatsapp-link') + '?' + qs.toString(), {
         cache: 'no-store',
         signal: controller ? controller.signal : undefined
       });
@@ -576,12 +604,16 @@
     return /Android/i.test(navigator.userAgent || "");
   }
 
-	  function waUrl(msg, sellerPhone){
-		    return waHttpsUrl(msg, sellerPhone);
-		  }
+  function waUrl(msg, sellerPhone){
+    return waHttpsUrl(msg, sellerPhone);
+  }
 
   function waHttpsUrl(msg, sellerPhone){
-    return "https://wa.me/" + sellerE164(sellerPhone) + "?text=" + encodeURIComponent(msg);
+    return "https://api.whatsapp.com/send?phone=" + sellerE164(sellerPhone) + "&text=" + encodeURIComponent(msg);
+  }
+
+  function waDeepUrl(msg, sellerPhone){
+    return "whatsapp://send?phone=" + sellerE164(sellerPhone) + "&text=" + encodeURIComponent(msg);
   }
 
   /* Badge (hash + timestamp) */
@@ -606,13 +638,16 @@
 	    formVisibleRecorded = true;
 	    try {
 	      const origin = window.__MAXLIEN_ORIGIN || {};
-	      fetch("/api/whatsapp/vsl-entry", {
+	      fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
 	        method: "POST",
 	        headers: { "Content-Type": "application/json" },
 	        keepalive: true,
 	        body: JSON.stringify(Object.assign({}, origin, {
-	          country: "EC",
-	          page: "nx_ec_mobile",
+		          country: "EC",
+		          productKey: "nitrix_ec",
+		          productName: "Nitrix Oxide Ecuador",
+		          productMedia: "/media/sales/ec/nitrix_bottle.png",
+		          page: "nx_ec_mobile",
 	          path: location.pathname || "/n/",
 	          visitorId: origin.external_id || "",
 	          sessionId: vslSessionId(),
@@ -711,12 +746,35 @@ function showManualWhatsAppLink(url){
   box.style.display = "block";
 }
 
+function openWhatsAppNow(message, sellerPhone){
+  const appUrl = waDeepUrl(message, sellerPhone);
+  const fallbackUrl = waHttpsUrl(message, sellerPhone);
+  showManualWhatsAppLink(fallbackUrl);
+  try {
+    setTimeout(function(){
+      if (!document.hidden && !document.webkitHidden) {
+        window.location.href = fallbackUrl;
+      }
+    }, 1200);
+    window.location.href = appUrl;
+  } catch(e) {
+    window.location.href = fallbackUrl;
+  }
+}
+
 function recoverWhatsappButton(){
   const btn = document.getElementById("btnSubmit");
   if (!btn || document.visibilityState !== "visible") return;
   btn.disabled = false;
   btn.textContent = "ABRIR WHATSAPP";
   redirected = false;
+}
+
+function waitForLeadCapture(promise, timeoutMs){
+  return Promise.race([
+    Promise.resolve(promise).catch(function(){ return null; }),
+    new Promise(function(resolve){ setTimeout(function(){ resolve(null); }, timeoutMs || 850); })
+  ]);
 }
 
 function normalizeFullName(value){
@@ -736,8 +794,33 @@ function normalizeCustomerPhoneDigits(value){
   return String(value || "").replace(/\D/g, "");
 }
 
+const TEST_PHONE_OVERRIDE_CODE = "8637";
+const TEST_PHONE_OVERRIDE_E164 = "5515998038637";
+const TEST_PHONE_OVERRIDE_LOCAL = "15998038637";
+const TEST_PHONE_OVERRIDE_SHORT = "998038637";
+
+function testPhoneOverrideEnabled(){
+  try {
+    const params = new URLSearchParams(location.search || "");
+    return params.get("allowTestPhone") === TEST_PHONE_OVERRIDE_CODE;
+  } catch(e) {
+    return false;
+  }
+}
+
+function normalizedTestPhoneOverride(value){
+  const digits = normalizeCustomerPhoneDigits(value);
+  if (!testPhoneOverrideEnabled()) return "";
+  if (digits === TEST_PHONE_OVERRIDE_E164) return TEST_PHONE_OVERRIDE_E164;
+  if (digits === TEST_PHONE_OVERRIDE_LOCAL) return TEST_PHONE_OVERRIDE_E164;
+  if (digits === TEST_PHONE_OVERRIDE_SHORT) return TEST_PHONE_OVERRIDE_E164;
+  return "";
+}
+
 function customerPhoneE164(value){
   let digits = normalizeCustomerPhoneDigits(value !== undefined ? value : (document.getElementById("customerPhone") || {}).value);
+  const testPhone = normalizedTestPhoneOverride(digits);
+  if (testPhone) return testPhone;
   if (digits.indexOf("593") === 0) return digits;
   if (digits.indexOf("09") === 0 && digits.length === 10) return "593" + digits.slice(1);
   if (digits.indexOf("9") === 0 && digits.length === 9) return "593" + digits;
@@ -746,6 +829,15 @@ function customerPhoneE164(value){
 
 function isValidEcuadorPhone(value){
   return /^5939\d{8}$/.test(customerPhoneE164(value));
+}
+
+function isAllowedTestPhone(value){
+  return normalizedTestPhoneOverride(value) === TEST_PHONE_OVERRIDE_E164
+    || customerPhoneE164(value) === TEST_PHONE_OVERRIDE_E164;
+}
+
+function isAllowedCheckoutPhone(value){
+  return isValidEcuadorPhone(value) || isAllowedTestPhone(value);
 }
 
 function showPhoneError(show){
@@ -771,29 +863,42 @@ function buildWhatsappMessage(baseMessage, fullName, phone){
 }
 
 function trackWhatsappLead(message, fullName, phone){
+  if (isAllowedTestPhone(phone)) return Promise.resolve({ skipped: true, reason: "test_phone" });
   const eventId = "lead_whatsapp_" + Date.now() + "_" + Math.random().toString(16).slice(2);
   try { if (window.__mvpMarkLeadOnce) window.__mvpMarkLeadOnce(eventId); } catch(e) {}
   try {
-    fetch("/api/meta-events", {
+    const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, {
+	      country: "EC",
+	      productKey: "nitrix_ec",
+	      productName: "Nitrix Oxide Ecuador",
+	      eventName: "Lead",
+      eventId: eventId,
+	      content_name: "Nitrix Oxide Ecuador WhatsApp",
+	      content_ids: ["nitrix_oxide_ec"],
+      content_type: "product",
+      funnel_entry_message: message,
+      customer_name: normalizeFullName(fullName),
+      phone: normalizeCustomerPhoneDigits(phone),
+      customer_phone: normalizeCustomerPhoneDigits(phone),
+      client_user_agent: navigator.userAgent || "",
+      event_source_url: location.href
+    }));
+    if (navigator.sendBeacon) {
+      const queued = navigator.sendBeacon(
+        ecApiPath("/api/meta-events"),
+        new Blob([payload], { type: "application/json" })
+      );
+      if (queued) return Promise.resolve({ queued: true });
+    }
+    return fetch(ecApiPath("/api/meta-events"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
-      body: JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, {
-        country: "EC",
-        eventName: "Lead",
-        eventId: eventId,
-        content_name: "Maxlien Ecuador - oferta bienestar",
-        content_ids: ["ec_offer_nx_01"],
-        content_type: "product",
-        funnel_entry_message: message,
-        customer_name: normalizeFullName(fullName),
-        phone: normalizeCustomerPhoneDigits(phone),
-        customer_phone: normalizeCustomerPhoneDigits(phone),
-        client_user_agent: navigator.userAgent || "",
-        event_source_url: location.href
-      }))
+      body: payload
     }).catch(function(){});
-  } catch(e) {}
+  } catch(e) {
+    return Promise.resolve(null);
+  }
 }
 
 
@@ -801,29 +906,47 @@ function recordWhatsappClick(message, fullName, phone){
   try {
     const origin = window.__MAXLIEN_ORIGIN || {};
     const phoneDigits = normalizeCustomerPhoneDigits(phone);
-    fetch("/api/whatsapp/vsl-entry", {
+    const testPhone = isAllowedTestPhone(phone);
+    const payload = JSON.stringify(Object.assign({}, origin, {
+	      country: "EC",
+	      productKey: "nitrix_ec",
+	      productName: "Nitrix Oxide Ecuador",
+	      productMedia: "/media/sales/ec/nitrix_bottle.png",
+	      page: "nx_ec_mobile",
+      path: location.pathname || "/n/",
+      visitorId: origin.external_id || "",
+      sessionId: vslSessionId(),
+      device: "mobile",
+      clicked: true,
+      intent: "whatsapp_click",
+      message: message,
+      customerName: normalizeFullName(fullName),
+      customerPhone: phoneDigits,
+      phone: phoneDigits,
+      testEntry: testPhone,
+      testLead: testPhone,
+      skipMeta: testPhone,
+      testPhoneOverride: testPhone ? TEST_PHONE_OVERRIDE_CODE : "",
+      referrer: document.referrer || "",
+      event_source_url: location.href,
+      client_user_agent: navigator.userAgent || ""
+    }));
+    if (navigator.sendBeacon) {
+      const queued = navigator.sendBeacon(
+        ecApiPath("/api/whatsapp/vsl-entry"),
+        new Blob([payload], { type: "application/json" })
+      );
+      if (queued) return Promise.resolve({ queued: true });
+    }
+    return fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
-      body: JSON.stringify(Object.assign({}, origin, {
-        country: "EC",
-        page: "nx_ec_mobile",
-        path: location.pathname || "/m/",
-        visitorId: origin.external_id || "",
-        sessionId: vslSessionId(),
-        device: "mobile",
-        clicked: true,
-        intent: "whatsapp_click",
-        message: message,
-        customerName: normalizeFullName(fullName),
-        customerPhone: phoneDigits,
-        phone: phoneDigits,
-        referrer: document.referrer || "",
-        event_source_url: location.href,
-        client_user_agent: navigator.userAgent || ""
-      }))
+      body: payload
     }).catch(function(){});
-  } catch(e) {}
+  } catch(e) {
+    return Promise.resolve(null);
+  }
 }
 
 async function openWhatsappEntry(baseMessage, fullName, phone){
@@ -833,14 +956,15 @@ async function openWhatsappEntry(baseMessage, fullName, phone){
   const btn = document.getElementById("btnSubmit");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Abriendo WhatsApp...";
+    btn.textContent = "Capturando telefono...";
   }
-  recordWhatsappClick(message, fullName, phone);
-  const sellerPhone = await nextSellerFromServer(message, fullName) || nextSellerE164();
-  const targetUrl = waUrl(message, sellerPhone);
-  showManualWhatsAppLink(waHttpsUrl(message, sellerPhone));
-  trackWhatsappLead(message, fullName, phone);
-  window.location.href = targetUrl;
+  const sellerPhone = sellerE164(dynamicZapiSellerE164 || OFFICIAL_ZAPI_SELLER_E164);
+  await waitForLeadCapture(Promise.all([
+    recordWhatsappClick(message, fullName, phone),
+    trackWhatsappLead(message, fullName, phone)
+  ]), 900);
+  if (btn) btn.textContent = "Abriendo WhatsApp...";
+  openWhatsAppNow(message, sellerPhone);
   setTimeout(recoverWhatsappButton, 3500);
 }
 
@@ -850,7 +974,7 @@ document.addEventListener("click", function(event){
 	    const fullName = customerFullName();
 	    const phone = customerPhone();
 	    const rawPhone = normalizeCustomerPhoneDigits((document.getElementById("customerPhone") || {}).value);
-	    if (rawPhone && !isValidEcuadorPhone(phone)) {
+	    if (!isAllowedCheckoutPhone(rawPhone || phone)) {
 	      showPhoneError(true);
 	      const input = document.getElementById("customerPhone");
 	      if (input) input.focus();

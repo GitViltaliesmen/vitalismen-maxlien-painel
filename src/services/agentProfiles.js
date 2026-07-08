@@ -121,8 +121,35 @@ ${COMMUNICATION_RULES_PROMPT}
 `.trim()
 };
 
+const nitrixProfile = {
+    key: 'nitrix_ec',
+    label: 'Nitrix Ecuador',
+    mode: 'manual_country_offer',
+    lockedCountryCode: 'EC',
+    outputStrategy: 'manual_only',
+    productKey: 'nitrix_ec',
+    productName: 'Nitrix Oxide Ecuador',
+    manualOnly: true,
+    greeting: {
+        introduced: 'Hola, ya le atiendo por aqui con Nitrix Oxide.',
+        firstTouch: 'Hola, soy Ana Lopez. Ya reviso su mensaje de Nitrix Oxide y le atiendo por aqui.'
+    },
+    systemPrompt: `
+Modo del agente: Nitrix Ecuador manual.
+- Este contacto pertenece al camino /n/ de Nitrix Oxide Ecuador.
+- No uses el funil, audios, precios, pruebas, imagenes ni oferta de Vit Power por defecto.
+- No vendas otros productos ni otros paises.
+- Mantener atencion humana/manual hasta que un operador confirme el flujo correcto.
+- Solo cambiar a Vit Power si el cliente pide explicitamente Vit Power.
+`.trim(),
+    promptAddOn: `
+Nitrix Ecuador manual: no activar automatizacion Vit Power salvo pedido explicito del cliente.
+`.trim()
+};
+
 export const AGENT_PROFILES = {
+    nitrix_ec: nitrixProfile,
     vit_power_ec: vitPowerProfile
 };
 
-export const getAgentProfile = () => vitPowerProfile;
+export const getAgentProfile = (key = 'nitrix_ec') => AGENT_PROFILES[key] || nitrixProfile;

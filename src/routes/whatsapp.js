@@ -129,7 +129,6 @@ const isSamePhone = (left, right) => {
 const operationalPanelPhones = () => [
     '553183002800',
     '553171862958',
-    '5515991418416',
     process.env.WHATSAPP_DEFAULT_SESSION_ID,
     process.env.WHATSAPP_SESSION_IDS,
     process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS,
@@ -765,8 +764,7 @@ const stableChatEntryMs = (chat = {}) => {
 
 const CONNECTION_OPERATOR_SLOTS = [
     { sessionId: '553183002800', code: 'AL', name: 'Ana Lopez' },
-    { sessionId: '553171862958', code: 'GA', name: 'Gabriela Ambrosio' },
-    { sessionId: '5515991418416', code: 'VR', name: 'Valentina Rojas' }
+    { sessionId: '553171862958', code: 'GA', name: 'Gabriela Ambrosio' }
 ];
 
 const connectionOperatorSlots = () => {
@@ -1179,6 +1177,182 @@ const metaEventResponseSnapshot = (result = {}, fallbackEventId = '') => ({
     eventId: result.eventId || fallbackEventId || ''
 });
 
+const EC_PRODUCT_KEYS = {
+    nitrix: 'nitrix_ec',
+    vitPower: 'vit_power_ec'
+};
+
+const EC_PRODUCT_NAMES = {
+    nitrix_ec: 'Nitrix Oxide Ecuador',
+    vit_power_ec: 'Vit Power Ecuador'
+};
+
+const sourceUrlPathname = (value = '') => {
+    try {
+        return new URL(String(value || '')).pathname || '';
+    } catch {
+        return '';
+    }
+};
+
+const publicEcVslProductFromBody = (body = {}) => {
+    const page = cleanText(body.page).toLowerCase();
+    const bodyPath = cleanText(body.path);
+    const sourceUrl = cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl);
+    const sourcePath = sourceUrlPathname(sourceUrl);
+    const rawProductKey = cleanText(body.productKey || body.product_key || body.product || body.offerKey || body.offer_key)
+        .toLowerCase()
+        .replace(/[^a-z0-9_/-]/g, '');
+
+    const nitrixSignal = rawProductKey.includes('nitrix')
+        || rawProductKey === 'nx_ec'
+        || rawProductKey === EC_PRODUCT_KEYS.nitrix
+        || page.includes('nx_')
+        || page.includes('nitrix')
+        || bodyPath.startsWith('/n')
+        || sourcePath.startsWith('/n');
+    if (nitrixSignal) {
+        return {
+            productKey: EC_PRODUCT_KEYS.nitrix,
+            productName: EC_PRODUCT_NAMES.nitrix_ec,
+            agentKey: EC_PRODUCT_KEYS.nitrix,
+            tag: 'NITRIX_EC',
+            source: 'ec_nitrix_vsl'
+        };
+    }
+
+    const vitPowerSignal = rawProductKey === EC_PRODUCT_KEYS.vitPower
+        || rawProductKey.includes('vitpower')
+        || rawProductKey.includes('vit_power')
+        || bodyPath.startsWith('/m')
+        || sourcePath.startsWith('/m');
+    if (vitPowerSignal) {
+        return {
+            productKey: EC_PRODUCT_KEYS.vitPower,
+            productName: EC_PRODUCT_NAMES.vit_power_ec,
+            agentKey: EC_PRODUCT_KEYS.vitPower,
+            tag: 'VIT_POWER_EC',
+            source: 'ec_vit_power_vsl'
+        };
+    }
+
+    return {
+        productKey: EC_PRODUCT_KEYS.nitrix,
+        productName: EC_PRODUCT_NAMES.nitrix_ec,
+        agentKey: EC_PRODUCT_KEYS.nitrix,
+        tag: 'NITRIX_EC',
+        source: 'ec_manual_default'
+    };
+};
+
+const vslCustomerPhoneFromBody = (body = {}, country = 'EC') => {
+    const raw = cleanText(
+        body.customerPhone
+        || body.customer_phone
+        || body.phone
+        || body.phoneDigits
+        || body.phone_digits
+    );
+    const normalized = normalizeClientPhoneDigits(raw, country);
+    return isAllowedPanelPhoneForCountry(normalized, country) ? normalized : '';
+};
+
+const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assignedSeller = '', clicked = false } = {}) => {
+    if (!clicked) return { ok: false, skipped: true, reason: 'not_clicked' };
+
+    const effectiveCountry = normalizePanelCountry(country || 'EC');
+    const phoneDigits = vslCustomerPhoneFromBody(body, effectiveCountry);
+    if (!phoneDigits) return { ok: false, skipped: true, reason: 'customer_phone_missing_or_invalid' };
+
+    const now = new Date();
+    const product = publicEcVslProductFromBody(body);
+    const customerName = cleanText(body.customerName || body.customer_name || body.name).slice(0, 180);
+    const entryMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 700);
+    const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+    const sessionId = cleanText(body.sessionId || body.session_id);
+    const sellerDigits = digitsOnly(assignedSeller);
+    const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country: effectiveCountry });
+    const existingDraft = state.metadata?.customerDraft || {};
+
+    state.phoneDigits = phoneDigits;
+    state.countryCode = effectiveCountry;
+    state.assignedAgent = product.agentKey;
+    state.firstInboundAt = state.firstInboundAt || now;
+    state.lastInboundAt = now;
+    state.firstInboundText = state.firstInboundText || entryMessage || 'Entrada pela VSL do Equador';
+    state.lastInboundText = entryMessage || state.lastInboundText || 'Entrada pela VSL do Equador';
+    state.human = {
+        ...(state.human || {}),
+        mode: 'manual',
+        assignedTo: state.human?.assignedTo || '',
+        assignedName: state.human?.assignedName || 'Atendimento EC',
+        assignedAt: state.human?.assignedAt || now,
+        lastManualAt: now,
+        lastManualBy: 'vsl_ec',
+        note: state.human?.note || 'Cliente entrou pela VSL EC e abriu WhatsApp. Atender pelo painel.'
+    };
+    state.tags = [...new Set([
+        ...(Array.isArray(state.tags) ? state.tags : []),
+        'VSL_EC',
+        product.tag,
+        'WHATSAPP_CLICK',
+        'AGUARDANDO_ATENDIMENTO'
+    ])];
+    state.metadata = {
+        ...(state.metadata || {}),
+        vslEntryPanelLead: true,
+        vslEntryPanelLeadAt: now.toISOString(),
+        vslVisitId: visit?._id?.toString?.() || '',
+        vslVisitorId: visitorId,
+        vslSessionId: sessionId,
+        vslPage: cleanText(body.page),
+        vslPath: cleanText(body.path),
+        vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
+        vslReferrer: cleanText(body.referrer),
+        productKey: product.productKey,
+        productName: product.productName,
+        productSource: product.source,
+        assignedSeller: sellerDigits,
+        lastSessionId: sellerDigits || state.metadata?.lastSessionId || '',
+        customerDraft: {
+            ...existingDraft,
+            name: customerName || existingDraft.name || '',
+            phone: `+${phoneDigits}`,
+            country: effectiveCountry,
+            status: existingDraft.status || 'novo',
+            entryAt: existingDraft.entryAt || now.toISOString(),
+            source: 'vsl_ec_mobile',
+            productKey: product.productKey,
+            productName: product.productName,
+            productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
+                ? '/media/sales/ec/nitrix_bottle.png'
+                : '/media/sales/ec/vit_power.jpeg',
+            message: entryMessage || existingDraft.message || '',
+            assignedSeller: sellerDigits || existingDraft.assignedSeller || '',
+            updatedAt: now.toISOString()
+        },
+        tracking: {
+            ...(state.metadata?.tracking || {}),
+            utm_source: cleanText(body.utm_source),
+            utm_medium: cleanText(body.utm_medium),
+            utm_campaign: cleanText(body.utm_campaign),
+            utm_content: cleanText(body.utm_content),
+            utm_term: cleanText(body.utm_term),
+            fbclid: cleanText(body.fbclid),
+            fbc: cleanText(body.fbc),
+            fbp: cleanText(body.fbp),
+            external_id: cleanText(body.external_id || body.externalId)
+        }
+    };
+    await state.save();
+    return {
+        ok: true,
+        contactStateId: state._id?.toString?.() || '',
+        productKey: product.productKey,
+        productName: product.productName
+    };
+};
+
 const sendVslPageViewForVisit = async ({ visit, body, req, country, visitorKey }) => {
     if (!visit || visit.metaPageViewSentAt) {
         return { alreadySent: Boolean(visit?.metaPageViewSentAt), eventId: visit?.metaPageViewEventId || '' };
@@ -1287,6 +1461,9 @@ const sendVslLeadForVisit = async ({ visit, body, req, country, visitorKey }) =>
         fbc: tracking.fbc || body.fbc,
         fbp: tracking.fbp || body.fbp,
         external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        content_name: body.content_name || body.contentName || publicEcVslProductFromBody(body).productName,
+        content_ids: body.content_ids || body.contentIds || [publicEcVslProductFromBody(body).productKey],
+        content_type: body.content_type || body.contentType || 'product',
         funnel_entry_message: visit.lastEntryMessage || body.message || body.funnel_entry_message,
         customer_name: visit.customerName || body.customerName || body.customer_name
     }, req);
@@ -2138,6 +2315,7 @@ router.post('/vsl-entry', async (req, res) => {
     try {
         const body = req.body || {};
         const country = normalizePanelCountry(body.country || 'EC');
+        const product = publicEcVslProductFromBody(body);
         const now = new Date();
         const visitorKey = vslVisitorKey({ country, body, req });
         const ipHash = shortHash(requestIp(req));
@@ -2170,6 +2348,9 @@ router.post('/vsl-entry', async (req, res) => {
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
                 customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15),
+                productKey: product.productKey,
+                productName: product.productName,
+                productSource: product.source,
                 tracking: {
                     utm_source: cleanText(body.utm_source),
                     utm_medium: cleanText(body.utm_medium),
@@ -2224,11 +2405,17 @@ router.post('/vsl-entry', async (req, res) => {
         const lead = clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
+        const panelLead = clicked
+            ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+            : null;
 
         return res.json({
             ok: true,
             assignedSeller,
             seller: assignedSeller,
+            productKey: product.productKey,
+            productName: product.productName,
+            panelLead,
             reusedAssignment: Boolean(existing?.assignedSeller && !assignment),
             seller_rotation: assignment,
             visitId: visit?._id?.toString?.() || '',
@@ -3686,6 +3873,9 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 quantity: String(customerDraft.quantity ?? '').trim(),
                 total: String(customerDraft.total || '').trim(),
                 product: String(customerDraft.product || customerDraft.productName || state.metadata?.customerDraft?.product || '').trim(),
+                productKey: String(customerDraft.productKey || state.metadata?.customerDraft?.productKey || '').trim(),
+                productName: String(customerDraft.productName || customerDraft.product || state.metadata?.customerDraft?.productName || '').trim(),
+                productMedia: String(customerDraft.productMedia || state.metadata?.customerDraft?.productMedia || '').trim(),
                 country: internalOrTest ? 'BR' : effectiveCountry,
                 updatedAt: new Date().toISOString()
             };
@@ -3702,7 +3892,16 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 state.phoneDigits = normalizedDraftPhoneDigits;
             }
             state.countryCode = cleanDraft.country;
-            const agentKey = state.assignedAgent || 'vit_power_ec';
+            if (cleanDraft.productKey) {
+                state.assignedAgent = cleanDraft.productKey;
+                state.metadata = {
+                    ...(state.metadata || {}),
+                    productKey: cleanDraft.productKey,
+                    productName: cleanDraft.productName || state.metadata?.productName || '',
+                    productMedia: cleanDraft.productMedia || state.metadata?.productMedia || ''
+                };
+            }
+            const agentKey = state.assignedAgent || 'nitrix_ec';
             const agentMemory = ((state.metadata || {}).perAgentMemory || {})[agentKey] || {};
             const pendingOrder = agentMemory.pendingCheckoutOrder || null;
             if (pendingOrder && typeof pendingOrder === 'object') {
