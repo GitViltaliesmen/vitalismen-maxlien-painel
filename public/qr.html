@@ -14295,6 +14295,37 @@
             showToast('Bloco excluido');
         };
 
+        const NITRIX_INTRO_AUDIO_AM_EC = '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg';
+        const NITRIX_INTRO_AUDIO_PM_EC = '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL.ogg';
+
+        const ecuadorMinutesOfDay = (date = new Date()) => {
+            try {
+                const parts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Guayaquil',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).formatToParts(date);
+                const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+                const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+                return ((hour === 24 ? 0 : hour) * 60) + minute;
+            } catch {
+                const utcMinutes = (date.getUTCHours() * 60) + date.getUTCMinutes();
+                return (utcMinutes - 300 + 1440) % 1440;
+            }
+        };
+
+        const nitrixIntroAudioByEcuadorTime = (date = new Date()) => (
+            ecuadorMinutesOfDay(date) >= ((12 * 60) + 1)
+                ? NITRIX_INTRO_AUDIO_PM_EC
+                : NITRIX_INTRO_AUDIO_AM_EC
+        );
+
+        const resolveFunnelStepMediaValue = (step = {}) => {
+            if (step.dynamicValue === 'nitrix_intro_by_ecuador_time') return nitrixIntroAudioByEcuadorTime();
+            return String(step.value || '').trim();
+        };
+
         const footerFunnelBlocks = () => {
             const country = currentTemplateCountry();
             const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
@@ -14319,7 +14350,7 @@
                     detail: 'Inicio Nitrix + Prova 1 + Frasco Nitrix',
                     value: 'nitrix_inicio_completo',
                     steps: [
-                        { type: 'audio', label: 'Inicio Nitrix', value: '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg' },
+                        { type: 'audio', label: 'Inicio Nitrix', value: NITRIX_INTRO_AUDIO_AM_EC, dynamicValue: 'nitrix_intro_by_ecuador_time' },
                         { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
                         { type: 'media', label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png', waitAfterMs: 0 }
                     ]
@@ -14783,13 +14814,14 @@
                 };
             }
 
-            const mediaPath = String(step.value || '').trim();
+            const mediaPath = resolveFunnelStepMediaValue(step);
             if (!mediaPath) throw new Error(`Midia vazia no item ${position}: ${label}`);
             if (!mediaPath.startsWith('/media/') && !mediaPath.startsWith('data:')) {
                 throw new Error(`Midia invalida no item ${position}: use arquivo importado no funil`);
             }
             return {
                 message: mediaPath,
+                mediaPath,
                 isMedia: true,
                 type: String(step.type || '') === 'audio' ? 'audio' : inferMediaType({ mediaUrl: mediaPath }),
                 label,
@@ -14872,11 +14904,12 @@
                     });
                     activeStepConfirmed = false;
                     if (state.selectedChat === targetChatId) {
+                        const previewMediaUrl = payload.mediaPath || step.value;
                         activePendingMessage = payload.isMedia
                             ? appendLocalMessage(`Bloco ${block.code}: ${index + 1}/${block.steps.length} ${payload.label}`, {
                                 type: payload.type,
-                                mediaUrl: step.value,
-                                mediaPreviewUrl: step.value
+                                mediaUrl: previewMediaUrl,
+                                mediaPreviewUrl: previewMediaUrl
                             })
                             : appendLocalMessage(payload.message, { type: 'text' });
                     }
@@ -14913,11 +14946,12 @@
                     activeStepConfirmed = true;
                     activePendingMessage = null;
                     sentCount = index + 1;
-                    rememberFunnelRef(findFooterFileItem(step.type, step.value) || {
+                    const rememberedValue = payload.mediaPath || step.value;
+                    rememberFunnelRef(findFooterFileItem(step.type, rememberedValue) || {
                         type: step.type,
                         typeLabel: step.type === 'audio' ? 'audio' : inferMediaType({ mediaUrl: step.value }),
                         label: payload.label,
-                        value: step.value
+                        value: rememberedValue
                     });
                     setFunnelProgress({
                         status: 'sending',

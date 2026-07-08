@@ -152,6 +152,10 @@ Camada permitida sem mexer no motor principal do bot:
 - O frasco isolado `nitrix_frasco` permanece disponivel como bloco manual separado.
 - O bloco legado `vit_power_inicio_completo` permanece somente quando o contato estiver marcado como Vit Power.
 - O funil automatico e o motor principal continuam congelados; esta camada apenas deixa o material aprovado no painel/manual e pronto para validacao controlada.
+- Ajuste aprovado de horario EC para o audio do bloco `nitrix_inicio_completo`:
+  - de `00:00` ate `12:00` no horario `America/Guayaquil`: `NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg`;
+  - de `12:01` ate `23:59` no horario `America/Guayaquil`: `NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL.ogg`;
+  - a escolha acontece no momento do envio manual pelo painel, sem depender do horario do Brasil e sem ativar bot automatico.
 
 ## Micro camada de identidade do atendimento
 

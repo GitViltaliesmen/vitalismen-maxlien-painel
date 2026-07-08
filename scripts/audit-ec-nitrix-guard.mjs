@@ -64,8 +64,12 @@ assertIncludes('public/qr.html', '/media/sales/ec/nitrix_bottle.png', 'Painel us
 assertIncludes('public/qr.html', 'nitrix_inicio_completo', 'Painel tem bloco manual completo Nitrix');
 assertIncludes('public/qr.html', 'Inicio Nitrix + Prova 1 + Frasco Nitrix', 'Bloco manual Nitrix mantem prova e frasco corretos');
 assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg', 'Bloco manual Nitrix usa audio aprovado');
+assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL.ogg', 'Bloco manual Nitrix usa audio oficial da tarde/noite');
+assertIncludes('public/qr.html', "timeZone: 'America/Guayaquil'", 'Bloco manual Nitrix usa horario do Equador');
+assertIncludes('public/qr.html', "dynamicValue: 'nitrix_intro_by_ecuador_time'", 'Bloco manual Nitrix escolhe audio por horario EC');
 assertIncludes('public/qr.html', "nitrix_ec: 'Nitrix EC'", 'Painel nomeia agente Nitrix');
 assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_01_VALERIA_ZAMBRANO'", 'Audio Nitrix aprovado na biblioteca EC');
+assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL'", 'Audio Nitrix oficial aprovado na biblioteca EC');
 assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';", 'Identidade oficial do atendimento e Valeria');
 assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Valeria Zambrano.', 'Prompt de atendimento usa Valeria');
 
@@ -93,6 +97,10 @@ if (exists(bottlePath)) assert(fs.statSync(path.join(root, bottlePath)).size > 1
 const nitrixIntroAudioPath = 'public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg';
 assert(exists(nitrixIntroAudioPath), 'Audio inicial Nitrix existe em public/media/templates/EC');
 if (exists(nitrixIntroAudioPath)) assert(fs.statSync(path.join(root, nitrixIntroAudioPath)).size > 100000, 'Audio inicial Nitrix nao esta vazio');
+
+const nitrixIntroOfficialAudioPath = 'public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL.ogg';
+assert(exists(nitrixIntroOfficialAudioPath), 'Audio inicial Nitrix oficial existe em public/media/templates/EC');
+if (exists(nitrixIntroOfficialAudioPath)) assert(fs.statSync(path.join(root, nitrixIntroOfficialAudioPath)).size > 100000, 'Audio inicial Nitrix oficial nao esta vazio');
 
 if (failures.length) {
     console.error('EC Nitrix guard: FALHOU');
