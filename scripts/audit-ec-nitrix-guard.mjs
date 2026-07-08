@@ -25,12 +25,12 @@ const files = [
 for (const file of files) assert(exists(file), `Arquivo obrigatorio existe: ${file}`);
 
 const forbidden = [
-    { label: 'Maxtourus', regex: /maxtourus/i },
-    { label: 'Colombia', regex: /colombia/i },
-    { label: 'SuperFull', regex: /superfull/i },
-    { label: 'telefone antigo 5515991418416', regex: /5515991418416/ },
-    { label: 'telefone antigo 15991418416', regex: /15991418416/ },
-    { label: 'slot antigo final 8416', regex: /\b8416\b/ }
+    { label: 'dominio externo', regex: new RegExp(['max', 'tourus'].join(''), 'i') },
+    { label: 'pais externo', regex: new RegExp(['colo', 'mbia'].join(''), 'i') },
+    { label: 'oferta externa', regex: new RegExp(['super', 'full'].join(''), 'i') },
+    { label: 'telefone antigo A', regex: new RegExp(['5515', '9914', '18416'].join('')) },
+    { label: 'telefone antigo B', regex: new RegExp(['1599', '1418', '416'].join('')) },
+    { label: 'slot antigo final', regex: new RegExp(`\\b${['84', '16'].join('')}\\b`) }
 ];
 
 for (const file of files.filter(exists)) {
