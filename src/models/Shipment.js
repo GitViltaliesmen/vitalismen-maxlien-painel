@@ -52,6 +52,8 @@ const shipmentSchema = new mongoose.Schema({
         agencyName: { type: String, default: '' },
         invoiceUrl: { type: String, default: '' },
         invoicePath: { type: String, default: '' },
+        guidePrintUrl: { type: String, default: '' },
+        guidePrintPath: { type: String, default: '' },
         lastStatusAt: { type: Date, default: null }
     },
     automation: {
@@ -66,6 +68,10 @@ const shipmentSchema = new mongoose.Schema({
         browserCheckpoint: { type: String, default: '' },
         browserLastError: { type: String, default: '' },
         guiaNotifiedAt: { type: Date, default: null },
+        guidePrintNotifiedAt: { type: Date, default: null },
+        guidePrintDispatchLockedUntil: { type: Date, default: null },
+        guidePrintLastAttemptAt: { type: Date, default: null },
+        guidePrintLastError: { type: String, default: '' },
         inTransitNotifiedAt: { type: Date, default: null },
         readyForPickupNotifiedAt: { type: Date, default: null },
         reminderDay1At: { type: Date, default: null },

@@ -936,6 +936,45 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
         return { success: false, imageSent: false, reason: image.reason || 'guide_print_unavailable' };
     }
 
+    const existingGuidePrintMessage = !force
+        ? await Message.findOne({
+            orderId: shipment?.orderId || '',
+            isFromMe: true,
+            isBot: true,
+            type: 'image',
+            $or: [
+                { mediaUrl: image.url || '' },
+                { mediaUrl: shipment?.logistics?.guidePrintUrl || '' }
+            ].filter((item) => Object.values(item)[0])
+        }).sort({ createdAt: -1 }).lean().catch(() => null)
+        : null;
+    if (existingGuidePrintMessage) {
+        const recoveredAt = existingGuidePrintMessage.createdAt || new Date();
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.guidePrintNotifiedAt': recoveredAt,
+                    'automation.guidePrintLastAttemptAt': new Date(),
+                    'automation.guidePrintLastError': '',
+                    'automation.lastReminderAt': shipment?.automation?.lastReminderAt || recoveredAt,
+                    'automation.lastReminderKind': shipment?.automation?.lastReminderKind || 'guide_print'
+                }
+            }
+        );
+        await appendEvent(shipment._id, 'guide_print_recovered_existing_message', {
+            trackingNumber: shipment?.logistics?.trackingNumber || '',
+            guidePrintUrl: image.url || '',
+            messageId: existingGuidePrintMessage._id || ''
+        });
+        return {
+            success: false,
+            imageSent: false,
+            reason: 'already_notified_existing_message',
+            guidePrintUrl: image.url || ''
+        };
+    }
+
     const sent = await sendImage(chatId, image.path, '', {
         ...shipmentOutboundOptions(shipment),
         outboundContext: 'shipment_guide_print',

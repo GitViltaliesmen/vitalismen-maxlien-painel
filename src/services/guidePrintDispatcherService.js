@@ -143,6 +143,7 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
             {
                 _id: candidate._id,
                 'automation.guidePrintNotifiedAt': null,
+                'review.manualOnly': { $ne: true },
                 $or: [
                     { 'automation.guidePrintDispatchLockedUntil': null },
                     { 'automation.guidePrintDispatchLockedUntil': { $exists: false } },
@@ -187,6 +188,15 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
                     provider: sendResult.provider || '',
                     providerMessageId: sendResult.providerMessageId || '',
                     providerZaapId: sendResult.providerZaapId || ''
+                });
+            } else if (/already_notified/i.test(String(sendResult.reason || ''))) {
+                result.skipped += 1;
+                result.items.push({
+                    ...describeCandidate(locked),
+                    guidePrintUrl: conversion.url || '',
+                    conversionStatus: 'ready',
+                    sent: false,
+                    reason: sendResult.reason || 'already_notified'
                 });
             } else {
                 result.failed += 1;
