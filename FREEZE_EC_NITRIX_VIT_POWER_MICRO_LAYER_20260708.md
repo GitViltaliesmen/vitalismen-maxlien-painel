@@ -124,3 +124,21 @@ Congelamento operacional aprovado em 2026-07-08 apos teste real do operador:
 - Z-API/WhatsApp validado: endpoints internos `/api/zapi/status`, `/api/zapi/device` e `/api/health` responderam OK.
 - GitHub e Git VPS sincronizados na branch `codex-vitpower-unified-front`.
 - Proibido deixar divergencia entre Git, VPS, PM2 e pagina publica antes de novo trafego.
+
+## Validacao controlada da Ficha
+
+Validacao feita no contato de teste `5515998038637`:
+
+- Ficha salva no VPS com produto `Nitrix Oxide Ecuador`.
+- `productKey`: `nitrix_ec`.
+- Quantidade: `1`.
+- Valor: `39.99`.
+- Status final do contato: teste/BR interno, sem cliente real.
+- Resultado operacional: nenhum pedido real criado para o telefone BR de teste.
+- Resultado de seguranca: nenhum Dropi e nenhum Purchase real disparado.
+- Validacao seca de Purchase EC com pedido sintetico Nitrix:
+  - `event_name`: `Purchase`.
+  - `content_name`: `Nitrix Oxide Ecuador WhatsApp`.
+  - `content_ids`: `["nitrix_oxide_ec"]`.
+  - `contents[0].id`: `nitrix_oxide_ec`.
+- Guard executado apos a validacao: `scripts/audit-ec-product-micro-layer.mjs`: OK.
