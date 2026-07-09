@@ -22,6 +22,104 @@ router.use(authMiddleware);
 const flag = (name) => String(process.env[name] || '').toLowerCase() === 'true';
 const enabledUnlessOne = (name) => String(process.env[name] || '') !== '1';
 const maskedTokenLength = (name) => String(process.env[name] || '').length;
+const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
+
+const manualReviewShipmentQuery = {
+    country: 'EC',
+    $or: [
+        { 'review.manualOnly': true },
+        { 'review.reviewStatus': 'manual_send_required' }
+    ]
+};
+
+const phoneTailCandidates = (phone = '') => {
+    const digits = digitsOnly(phone);
+    return [...new Set([
+        digits,
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 9 ? digits.slice(-9) : '',
+        digits.length >= 8 ? digits.slice(-8) : ''
+    ].filter(Boolean))];
+};
+
+const manualReviewAlertAnchor = (shipment = {}) => {
+    const reviewEvents = Array.isArray(shipment.events)
+        ? shipment.events.filter((event) => ['manual_send_required', 'manual_review_updated'].includes(String(event.kind || '')))
+        : [];
+    const latestReviewEvent = reviewEvents
+        .map((event) => new Date(event.at || 0))
+        .filter((date) => Number.isFinite(date.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+    return latestReviewEvent || new Date(shipment.createdAt || 0);
+};
+
+const manualReviewAlertIsActive = (shipment = {}) => {
+    const acknowledgedAt = shipment.automation?.opsAlertAcknowledgedAt
+        ? new Date(shipment.automation.opsAlertAcknowledgedAt)
+        : null;
+    if (!acknowledgedAt || !Number.isFinite(acknowledgedAt.getTime())) return true;
+    return acknowledgedAt < manualReviewAlertAnchor(shipment);
+};
+
+const acknowledgeManualReviewAlert = async ({ orderId = '', phone = '', user = null } = {}) => {
+    const tails = phoneTailCandidates(phone);
+    const targetClauses = [
+        ...(orderId ? [{ orderId }] : []),
+        ...tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }))
+    ];
+    if (!targetClauses.length) return { matched: 0, modified: 0 };
+    const query = {
+        $and: [
+            manualReviewShipmentQuery,
+            { $or: targetClauses }
+        ]
+    };
+
+    const shipments = await Shipment.find(query).limit(12);
+    const now = new Date();
+    let modified = 0;
+    for (const shipment of shipments) {
+        shipment.automation.opsAlertAcknowledgedAt = now;
+        shipment.automation.opsAlertAcknowledgedBy = user?.email || user?.name || 'painel';
+        shipment.automation.opsAlertAcknowledgedKind = 'manual_review';
+        shipment.events.push({
+            kind: 'ops_alert_acknowledged',
+            at: now,
+            payload: {
+                kind: 'manual_review',
+                orderId: shipment.orderId,
+                phone: shipment.client?.phone || phone || '',
+                by: user?.email || user?.name || 'painel'
+            }
+        });
+        shipment.events = shipment.events.slice(-60);
+        await shipment.save();
+        modified += 1;
+    }
+    return { matched: shipments.length, modified };
+};
+
+const acknowledgeReengagementAlert = async ({ chatId = '', phone = '', user = null } = {}) => {
+    const rawChatId = String(chatId || '').trim();
+    const tails = phoneTailCandidates(phone || chatId);
+    const query = {
+        $or: [
+            ...(rawChatId ? [{ chatId: rawChatId }] : []),
+            ...tails.map((tail) => ({ phoneDigits: { $regex: `${tail}$` } })),
+            ...tails.map((tail) => ({ chatId: { $regex: tail } }))
+        ]
+    };
+    if (!query.$or.length) return { matched: 0, modified: 0 };
+    const result = await ContactState.updateMany(query, {
+        $set: {
+            'metadata.operationalAlerts.reengagementAcknowledgedAt': new Date(),
+            'metadata.operationalAlerts.reengagementAcknowledgedBy': user?.email || user?.name || 'painel',
+            'metadata.lastHumanActionAt': new Date(),
+            'metadata.lastHumanAction': 'ops_alert_opened'
+        }
+    });
+    return { matched: result.matchedCount || 0, modified: result.modifiedCount || 0 };
+};
 
 const buildPipelineNotes = ({ flags, counts }) => {
     const notes = [];
@@ -119,7 +217,6 @@ router.get('/status', async (_req, res) => {
 
         const [
             dropiPaymentRequired,
-            manualSendRequired,
             buyLater,
             humanHeld,
             recentShipmentCandidates,
@@ -132,12 +229,6 @@ router.get('/status', async (_req, res) => {
                 $or: [
                     { 'review.reviewStatus': 'dropi_payment_required' },
                     { 'automation.browserCheckpoint': 'dropi_payment_required' }
-                ]
-            }),
-            Shipment.countDocuments({
-                $or: [
-                    { 'review.manualOnly': true },
-                    { 'review.reviewStatus': 'manual_send_required' }
                 ]
             }),
             Order.countDocuments({
@@ -187,20 +278,15 @@ router.get('/status', async (_req, res) => {
             .limit(12)
             .lean();
 
-        const manualReviewOrders = await Shipment.find({
-            country: 'EC',
-            $or: [
-                { 'review.manualOnly': true },
-                { 'review.reviewStatus': 'manual_send_required' }
-            ]
-        })
+        const manualReviewOrdersAll = await Shipment.find(manualReviewShipmentQuery)
             .sort({ updatedAt: -1 })
-            .limit(12)
+            .limit(60)
             .lean();
+        const manualReviewOrders = manualReviewOrdersAll.filter(manualReviewAlertIsActive).slice(0, 12);
 
         const counts = {
             dropiPaymentRequired,
-            manualSendRequired,
+            manualSendRequired: manualReviewOrdersAll.filter(manualReviewAlertIsActive).length,
             buyLater,
             humanHeld,
             shipmentNotificationCandidates: recentShipmentCandidates,
@@ -243,11 +329,41 @@ router.get('/status', async (_req, res) => {
                 reviewStatus: shipment.review?.reviewStatus || '',
                 reason: shipment.review?.reviewReason || shipment.automation?.browserLastError || ''
             })),
+            reengagementCandidates: reengagementCandidates.slice(0, 12).map((candidate) => ({
+                chatId: candidate.chatId || '',
+                phone: candidate.phone || '',
+                lastInboundAt: candidate.lastInboundAt || '',
+                lastInboundText: candidate.lastInboundText || '',
+                ageHours: candidate.ageHours || 0,
+                templateKey: candidate.templateKey || ''
+            })),
             notes: buildPipelineNotes({ flags, counts })
         });
     } catch (error) {
         console.error('Automation status error:', error);
         res.status(500).json({ error: 'Failed to load automation status' });
+    }
+});
+
+router.post('/alerts/acknowledge', async (req, res) => {
+    try {
+        const kind = String(req.body?.kind || '').trim();
+        const phone = String(req.body?.phone || '').trim();
+        const chatId = String(req.body?.chatId || '').trim();
+        const orderId = String(req.body?.orderId || '').trim();
+        const results = {};
+
+        if (kind === 'manual_review' || orderId) {
+            results.manualReview = await acknowledgeManualReviewAlert({ orderId, phone, user: req.user });
+        }
+        if (kind === 'reengagement' || chatId) {
+            results.reengagement = await acknowledgeReengagementAlert({ chatId, phone, user: req.user });
+        }
+
+        res.json({ ok: true, results });
+    } catch (error) {
+        console.error('Automation alert acknowledge error:', error);
+        res.status(500).json({ error: 'Failed to acknowledge operational alert' });
     }
 });
 

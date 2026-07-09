@@ -427,6 +427,39 @@
             background: #fff7ed;
         }
 
+        .ops-alert-client-list {
+            display: grid;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .ops-alert-client {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            padding: 7px 8px;
+            text-align: left;
+        }
+
+        .ops-alert-client strong,
+        .ops-alert-client span {
+            min-width: 0;
+        }
+
+        .ops-alert-client em {
+            font-style: normal;
+            font-weight: 900;
+            font-size: 11px;
+            color: #2563eb;
+        }
+
         .shell {
             height: calc(100vh - 64px);
             display: grid;
@@ -8810,7 +8843,7 @@
             return 'info';
         };
 
-        const addOperationalAlert = (alerts, { kind = 'attention', label = 'Aviso', detail = '', source = '' } = {}) => {
+        const addOperationalAlert = (alerts, { kind = 'attention', label = 'Aviso', detail = '', source = '', items = [] } = {}) => {
             const normalized = normalizeAlertKind(kind);
             const key = `${normalized}:${label}:${detail}`;
             if (alerts.some((item) => item.key === key)) return;
@@ -8819,9 +8852,20 @@
                 kind: normalized,
                 label: String(label || 'Aviso'),
                 detail: String(detail || ''),
-                source: String(source || '')
+                source: String(source || ''),
+                items: Array.isArray(items) ? items : []
             });
         };
+
+        const operationalAlertClientItem = ({ kind = '', phone = '', chatId = '', orderId = '', name = '', reason = '', detail = '' } = {}) => ({
+            kind: String(kind || ''),
+            phone: String(phone || '').replace(/\D/g, ''),
+            chatId: String(chatId || ''),
+            orderId: String(orderId || ''),
+            name: String(name || '').trim(),
+            reason: String(reason || '').replace(/_/g, ' '),
+            detail: String(detail || '').trim()
+        });
 
         const buildOperationalAlerts = () => {
             const alerts = [];
@@ -8856,13 +8900,23 @@
             const flags = status.flags || {};
             const counts = status.counts || {};
             const manualReviewOrders = Array.isArray(status.manualReviewOrders) ? status.manualReviewOrders : [];
-            const manualReviewDetail = manualReviewOrders.length
-                ? manualReviewOrders.slice(0, 4).map((order) => {
-                    const phone = String(order.phone || '').replace(/\D/g, '') || 'sem telefone';
-                    const name = String(order.clientName || 'sem nome').trim();
-                    const reason = String(order.reason || order.reviewStatus || 'revisar').replace(/_/g, ' ');
-                    return `${phone} ${name} (${reason})`;
-                }).join(' | ')
+            const manualReviewItems = manualReviewOrders.map((order) => operationalAlertClientItem({
+                kind: 'manual_review',
+                phone: order.phone || '',
+                orderId: order.orderId || '',
+                name: order.clientName || 'sem nome',
+                reason: order.reason || order.reviewStatus || 'revisar'
+            }));
+            const reengagementItems = (Array.isArray(status.reengagementCandidates) ? status.reengagementCandidates : []).map((candidate) => operationalAlertClientItem({
+                kind: 'reengagement',
+                phone: candidate.phone || '',
+                chatId: candidate.chatId || '',
+                name: candidate.phone || candidate.chatId || 'cliente',
+                detail: candidate.lastInboundText || '',
+                reason: candidate.ageHours ? `${candidate.ageHours}h sem resposta humana` : 'retomar atendimento'
+            }));
+            const manualReviewDetail = manualReviewItems.length
+                ? `${manualReviewItems.length} pedido(s) precisam revisao humana. Clique no cliente para abrir.`
                 : `${counts.manualSendRequired || 0} pedido(s) precisam acao humana antes de seguir.`;
             if (flags.scheduler && !flags.scheduler.enabled) addOperationalAlert(alerts, { kind: 'blocked', label: 'Agendador pausado', detail: 'Ciclos automaticos nao estao rodando.', source: 'Scheduler' });
             if (flags.autoReply && !flags.autoReply.enabled) addOperationalAlert(alerts, { kind: 'blocked', label: 'IA sem auto-resposta', detail: 'WHATSAPP_AUTO_REPLY_ENABLED esta desligado.', source: 'IA' });
@@ -8870,10 +8924,10 @@
             if (flags.shipments && !flags.shipments.enabled) addOperationalAlert(alerts, { kind: 'attention', label: 'Avisos de pedido pausados', detail: 'Avisos de guia, retirada e entrega nao estao ativos.', source: 'Pedidos' });
             if (flags.whatsappQueue && !flags.whatsappQueue.globalEnabled) addOperationalAlert(alerts, { kind: 'attention', label: 'Fila WhatsApp pausada', detail: 'Fila global humanizada nao esta ativa.', source: 'WhatsApp' });
             if ((counts.dropiPaymentRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Dropi aguardando saldo', detail: `${counts.dropiPaymentRequired} pedido(s) parados por saldo.`, source: 'Dropi' });
-            if ((counts.manualSendRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Pedido exige revisao manual', detail: manualReviewDetail, source: 'Pedidos' });
+            if ((counts.manualSendRequired || 0) > 0) addOperationalAlert(alerts, { kind: 'blocked', label: 'Pedido exige revisao manual', detail: manualReviewDetail, source: 'Pedidos', items: manualReviewItems });
             if ((counts.shipmentDispatchCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Avisos pendentes', detail: `${counts.shipmentDispatchCandidates} aviso(s) de guia, retirada, entrega ou devolucao pendente(s).`, source: 'Pedidos' });
             if ((counts.pickupReminderCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Lembretes de retirada pendentes', detail: `${counts.pickupReminderCandidates} lembrete(s) aguardando fila segura.`, source: 'Pedidos' });
-            if ((counts.reengagementCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Clientes aguardando retomada', detail: `${counts.reengagementCandidates} conversa(s) candidatas a retomada segura.`, source: 'Atendimento' });
+            if ((counts.reengagementCandidates || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Clientes aguardando retomada', detail: `${counts.reengagementCandidates} conversa(s) candidatas a retomada segura.`, source: 'Atendimento', items: reengagementItems });
             if ((counts.adminPanelAtendimentoGaps || 0) > 0) addOperationalAlert(alerts, { kind: 'attention', label: 'Atendimento fora de sincronia', detail: `${counts.adminPanelAtendimentoGaps} lead(s) precisam sincronizar com o painel.`, source: 'Painel' });
             if ((counts.whatsappQueue || 0) > 50) addOperationalAlert(alerts, { kind: 'blocked', label: 'Fila WhatsApp alta', detail: `${counts.whatsappQueue} tarefa(s) pendente(s) na fila.`, source: 'WhatsApp' });
 
@@ -8903,6 +8957,37 @@
             return alerts.slice(0, 12);
         };
 
+        const renderOperationalAlertClients = (items = []) => {
+            const safeItems = (Array.isArray(items) ? items : [])
+                .filter((item) => item.phone || item.chatId || item.orderId)
+                .slice(0, 8);
+            if (!safeItems.length) return '';
+            return `
+                <div class="ops-alert-client-list">
+                    ${safeItems.map((item) => {
+                        const phone = item.phone || '';
+                        const title = item.name && item.name !== phone
+                            ? `${item.name} · ${phone || item.chatId || item.orderId}`
+                            : (phone || item.chatId || item.orderId || 'cliente');
+                        const reason = item.reason || item.detail || 'abrir atendimento';
+                        return `
+                            <button class="ops-alert-client" type="button"
+                                data-ops-alert-kind="${escapeHtml(item.kind || '')}"
+                                data-ops-alert-phone="${escapeHtml(phone)}"
+                                data-ops-alert-chat-id="${escapeHtml(item.chatId || '')}"
+                                data-ops-alert-order-id="${escapeHtml(item.orderId || '')}">
+                                <span>
+                                    <strong class="truncate">${escapeHtml(title)}</strong>
+                                    <span class="meta truncate">${escapeHtml(reason)}</span>
+                                </span>
+                                <em>Atender</em>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        };
+
         const renderOperationalAlerts = () => {
             const btn = el('opsAlertBtn');
             const popover = el('opsAlertPopover');
@@ -8926,14 +9011,15 @@
                 <div class="ops-alert-list">
                     ${alerts.length ? alerts.map((alert) => `
                         <div class="ops-alert-item ${escapeHtml(alert.kind)}">
-                            <div class="row">
-                                <strong>${escapeHtml(alert.label)}</strong>
-                                <span class="badge ${alert.kind === 'blocked' ? 'red' : 'orange'}">${escapeHtml(alert.source || alert.kind)}</span>
-                            </div>
-                            <div class="meta">${escapeHtml(alert.detail || 'Sem detalhe adicional.')}</div>
-                        </div>
-                    `).join('') : '<div class="meta">WhatsApp, IA e rotinas principais sem alerta relevante.</div>'}
-                </div>
+	                            <div class="row">
+	                                <strong>${escapeHtml(alert.label)}</strong>
+	                                <span class="badge ${alert.kind === 'blocked' ? 'red' : 'orange'}">${escapeHtml(alert.source || alert.kind)}</span>
+	                            </div>
+	                            <div class="meta">${escapeHtml(alert.detail || 'Sem detalhe adicional.')}</div>
+                                ${renderOperationalAlertClients(alert.items)}
+	                        </div>
+	                    `).join('') : '<div class="meta">WhatsApp, IA e rotinas principais sem alerta relevante.</div>'}
+	                </div>
             `;
             popover.classList.toggle('hidden', !state.opsAlertOpen);
         };
@@ -9752,6 +9838,68 @@
                 return chatDigits === digits || chatDigits.endsWith(tail) || digits.endsWith(chatDigits.slice(-9));
             }) || null;
         };
+        const setChatFilterAll = () => {
+            state.chatFilter = 'all';
+            document.querySelectorAll('[data-chat-filter]').forEach((button) => {
+                button.classList.toggle('active', button.dataset.chatFilter === 'all');
+            });
+        };
+        const findChatByAlertTarget = ({ phone = '', chatId = '', orderId = '' } = {}) => {
+            const direct = state.chats.find((chat) => (
+                (chatId && chat.id === chatId)
+                || (orderId && chat.orderId === orderId)
+            ));
+            return direct || findChatByPhone(phone) || null;
+        };
+        const acknowledgeOperationalAlert = async ({ kind = '', phone = '', chatId = '', orderId = '' } = {}) => api('/api/automation/alerts/acknowledge', {
+            method: 'POST',
+            body: JSON.stringify({ kind, phone, chatId, orderId })
+        });
+        async function openOperationalAlertCustomer(button) {
+            if (!button || state.busy) return;
+            const kind = button.dataset.opsAlertKind || '';
+            const phone = button.dataset.opsAlertPhone || '';
+            const chatId = button.dataset.opsAlertChatId || '';
+            const orderId = button.dataset.opsAlertOrderId || '';
+            const targetDigits = digitsOnlyText(phone || chatId);
+            const previousText = button.querySelector('em')?.textContent || 'Atender';
+            button.disabled = true;
+            const label = button.querySelector('em');
+            if (label) label.textContent = 'Abrindo';
+            try {
+                setActiveModule('all');
+                setChatFilterAll();
+                if (el('chatSearch')) el('chatSearch').value = targetDigits ? targetDigits.slice(-9) : String(orderId || chatId || '').trim();
+                let chat = findChatByAlertTarget({ phone, chatId, orderId });
+                if (!chat) {
+                    await loadChats();
+                    chat = findChatByAlertTarget({ phone, chatId, orderId });
+                }
+                renderChats();
+                if (!chat) {
+                    showToast('Nao encontrei este cliente na lista atual. Use o telefone no campo de busca.');
+                    return;
+                }
+                await selectChat(chat.id);
+                await api(`/api/whatsapp/contact-state/${encodeURIComponent(chat.id || chat.phone || phone)}/claim`, {
+                    method: 'POST',
+                    body: JSON.stringify({ minutes: 5, note: 'Aberto pelo alerta operacional do painel.' })
+                }).catch(() => null);
+                await acknowledgeOperationalAlert({ kind, phone: phone || chat.phone, chatId: chat.id || chatId, orderId });
+                state.opsAlertOpen = false;
+                await Promise.all([
+                    loadAutomationStatus(),
+                    loadChats()
+                ]);
+                showToast('Atendimento aberto e alerta baixado.');
+                document.querySelector('.chat-pane')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                showToast(error.message || 'Nao consegui abrir o atendimento do alerta.');
+            } finally {
+                if (label) label.textContent = previousText;
+                button.disabled = false;
+            }
+        }
         const clearCustomerFormDirty = () => {
             state.customerFormDirty = false;
             state.customerFormDirtyChatId = '';
@@ -18106,6 +18254,13 @@
             if (recoveryButton) {
                 applySalesRecovery(recoveryButton.dataset.salesRecovery);
             }
+        });
+        el('opsAlertPopover')?.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-ops-alert-kind]');
+            if (!button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            openOperationalAlertCustomer(button);
         });
         document.addEventListener('click', (event) => {
             if (!event.target.closest('.flow-correction-wrap')) closeFlowCorrectionMenu();

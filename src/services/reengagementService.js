@@ -178,15 +178,25 @@ export const listReengagementCandidates = async ({ hours = 48, limit = 100 } = {
 
     const candidates = [];
     for (const inbound of latestInboundByChat.values()) {
-        const lastBotReply = await Message.findOne({
+        const lastOutboundReply = await Message.findOne({
             chatId: inbound.chatId,
-            isBot: true,
-            createdAt: { $gte: inbound.createdAt }
+            isFromMe: true,
+            createdAt: { $gte: inbound.createdAt },
+            deliveryStatus: { $nin: ['failed', 'undelivered'] }
         }).sort({ createdAt: -1 }).lean();
 
-        if (lastBotReply) continue;
-
         const state = await ContactState.findOne({ chatId: inbound.chatId });
+        const lastManualAt = state?.human?.lastManualAt ? new Date(state.human.lastManualAt) : null;
+        const lastHumanActionAt = state?.metadata?.lastHumanActionAt ? new Date(state.metadata.lastHumanActionAt) : null;
+        const acknowledgedAt = state?.metadata?.operationalAlerts?.reengagementAcknowledgedAt
+            ? new Date(state.metadata.operationalAlerts.reengagementAcknowledgedAt)
+            : null;
+        const inboundAt = new Date(inbound.createdAt);
+        if (lastOutboundReply) continue;
+        if (lastManualAt && lastManualAt >= inboundAt) continue;
+        if (lastHumanActionAt && lastHumanActionAt >= inboundAt) continue;
+        if (acknowledgedAt && acknowledgedAt >= inboundAt) continue;
+
         const metadata = state ? normalizeStateMetadata(state) : { reengagement: { sentHashes: [] } };
         const ageMs = Date.now() - new Date(inbound.createdAt).getTime();
         const template = getTemplateForAge(ageMs);
