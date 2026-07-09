@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T11:19:42.232Z",
+  "updatedAt": "2026-07-09T12:01:11.526Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -315,6 +315,97 @@
           "value": "CREATE TABLE IF NOT EXISTS purchase_capi_lock"
         }
       ]
+    },
+    {
+      "id": "ops_alerts_click_to_attend_ec",
+      "status": "active",
+      "description": "Alertas operacionais EC ficam clicaveis por cliente, abrem atendimento, registram baixa auditavel e nao contam retomada ja respondida por humano.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "data-ops-alert-kind"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "openOperationalAlertCustomer"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Atendimento aberto e alerta baixado."
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "router.post('/alerts/acknowledge'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "manualReviewAlertIsActive"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "lastOutboundReply"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "reengagementAcknowledgedAt"
+        },
+        {
+          "type": "includes",
+          "file": "src/models/Shipment.js",
+          "value": "opsAlertAcknowledgedAt"
+        }
+      ]
+    },
+    {
+      "id": "customer_ficha_autosave_orderid_ec",
+      "status": "active",
+      "description": "Ficha do cliente EC preserva orderId/sourceOrderId e salva alteracoes manuais automaticamente sem perder rascunho durante refresh do painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "customerEditingDrafts"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "rememberEditingCustomerDraft"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "scheduleCustomerFieldAutoSave"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Ficha alterada; salvando automaticamente..."
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "orderId: String(customerDraft.orderId"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "sourceOrderId: String(customerDraft.sourceOrderId"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "/api/automation/alerts/acknowledge"
+        }
+      ]
     }
   ],
   "freezeGuards": [
@@ -402,12 +493,47 @@
         "meta_pixel_lead_ec_dataset",
         "meta_purchase_confirmed_order_lock_ec"
       ]
+    },
+    {
+      "at": "2026-07-09T11:52:29.640Z",
+      "description": "Aprovado: congelar alerta operacional clicavel EC com botao Atender, baixa auditavel e retomada sem falso positivo humano",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709115229.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T12:01:11.526Z",
+      "description": "Aprovado: congelar ficha cliente EC com autosave, orderId preservado e requeue Dropi seguro",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709120111.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T11:19:42.232Z",
-    "description": "Aprovado: congelar VSL /n Nitrix EC e marcacao de venda Facebook Purchase EC funcionando antes de corrigir painel",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709111942.md",
+    "at": "2026-07-09T12:01:11.526Z",
+    "description": "Aprovado: congelar ficha cliente EC com autosave, orderId preservado e requeue Dropi seguro",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709120111.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -417,7 +543,9 @@
       "shipment_dispatch_8_per_hour",
       "vsl_nitrix_mobile_entry_ec",
       "meta_pixel_lead_ec_dataset",
-      "meta_purchase_confirmed_order_lock_ec"
+      "meta_purchase_confirmed_order_lock_ec",
+      "ops_alerts_click_to_attend_ec",
+      "customer_ficha_autosave_orderid_ec"
     ]
   }
 }

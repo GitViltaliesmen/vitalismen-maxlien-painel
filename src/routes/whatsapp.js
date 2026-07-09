@@ -4043,6 +4043,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 status: normalizePanelStatus(customerDraft.status),
                 quantity: String(customerDraft.quantity ?? '').trim(),
                 total: String(customerDraft.total || '').trim(),
+                orderId: String(customerDraft.orderId || state.metadata?.customerDraft?.orderId || '').trim(),
+                sourceOrderId: String(customerDraft.sourceOrderId || state.metadata?.customerDraft?.sourceOrderId || '').trim(),
                 product: String(customerDraft.product || customerDraft.productName || state.metadata?.customerDraft?.product || '').trim(),
                 productKey: String(customerDraft.productKey || state.metadata?.customerDraft?.productKey || '').trim(),
                 productName: String(customerDraft.productName || customerDraft.product || state.metadata?.customerDraft?.productName || '').trim(),

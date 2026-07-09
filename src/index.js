@@ -119,6 +119,7 @@ const isPanelOperationalWriteRequest = (req) => {
     if (method === 'POST' && pathname === '/api/whatsapp/contacts') return true;
     if (method === 'POST' && pathname === '/api/whatsapp/chats/action') return true;
     if (method === 'POST' && pathname === '/api/whatsapp/chats/read') return true;
+    if (method === 'POST' && pathname === '/api/automation/alerts/acknowledge') return true;
     if (method === 'PATCH' && /^\/api\/whatsapp\/contact-state\/[^/]+$/.test(pathname)) return true;
     if (method === 'POST' && /^\/api\/whatsapp\/contact-state\/[^/]+\/(?:claim|release)$/.test(pathname)) return true;
     if (method === 'PATCH' && /^\/api\/orders\/[^/]+$/.test(pathname)) return true;

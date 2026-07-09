@@ -8122,10 +8122,12 @@
             customerFormDirty: false,
             customerFormDirtyChatId: '',
             customerSavedDrafts: new Map(),
+            customerEditingDrafts: new Map(),
             statusAutoSaveTimer: null,
             statusAutoSaveSeq: 0,
             customerFieldAutoSaveTimer: null,
-            customerFieldAutoSaveSeq: 0
+            customerFieldAutoSaveSeq: 0,
+            customerFieldAutoSaveInFlight: false
         };
 
         const escapeHtml = (value) => String(value ?? '')
@@ -8149,58 +8151,78 @@
             const id = String(record.id || '').trim();
             return id ? `id:${id}` : '';
         };
-        const rememberSavedCustomerDraft = (draft = {}, { note = '', chat = state.selectedChat } = {}) => {
-            const saved = {
+        const rememberCustomerDraftInCache = (cache, draft = {}, { note = '', chat = state.selectedChat } = {}) => {
+            const cached = {
                 ...draft,
                 notes: note,
                 note,
                 savedAt: Date.now()
             };
             [
-                customerDraftCacheKey(saved),
+                customerDraftCacheKey(cached),
                 customerDraftCacheKey(chat || {}),
-                saved.orderId ? `order:${saved.orderId}` : ''
-            ].filter(Boolean).forEach((key) => state.customerSavedDrafts.set(key, saved));
+                cached.orderId ? `order:${cached.orderId}` : ''
+            ].filter(Boolean).forEach((key) => cache.set(key, cached));
+            return cached;
         };
-        const savedCustomerDraftForChat = (chat = {}) => {
+        const forgetCustomerDraftFromCache = (cache, chat = {}, draft = {}) => {
+            [
+                customerDraftCacheKey(draft || {}),
+                customerDraftCacheKey(chat || {}),
+                draft?.orderId ? `order:${draft.orderId}` : '',
+                chat?.orderId ? `order:${chat.orderId}` : ''
+            ].filter(Boolean).forEach((key) => cache.delete(key));
+        };
+        const rememberSavedCustomerDraft = (draft = {}, { note = '', chat = state.selectedChat } = {}) => {
+            const saved = rememberCustomerDraftInCache(state.customerSavedDrafts, draft, { note, chat });
+            forgetCustomerDraftFromCache(state.customerEditingDrafts, chat, saved);
+            return saved;
+        };
+        const cachedCustomerDraftForChat = (cache, chat = {}, maxAgeMs = 10 * 60 * 1000) => {
             const keys = [
                 customerDraftCacheKey(chat),
                 chat.orderId ? `order:${chat.orderId}` : ''
             ].filter(Boolean);
             const now = Date.now();
             for (const key of keys) {
-                const draft = state.customerSavedDrafts.get(key);
+                const draft = cache.get(key);
                 if (!draft) continue;
-                if (draft.savedAt && now - draft.savedAt > 10 * 60 * 1000) {
-                    state.customerSavedDrafts.delete(key);
+                if (draft.savedAt && now - draft.savedAt > maxAgeMs) {
+                    cache.delete(key);
                     continue;
                 }
                 return draft;
             }
             return null;
         };
-        const mergeSavedCustomerDraftIntoChat = (chat = {}) => {
-            const saved = savedCustomerDraftForChat(chat);
-            if (!saved) return chat;
+        const savedCustomerDraftForChat = (chat = {}) => cachedCustomerDraftForChat(state.customerSavedDrafts, chat);
+        const editingCustomerDraftForChat = (chat = {}) => cachedCustomerDraftForChat(state.customerEditingDrafts, chat, 5 * 60 * 1000);
+        const applyCustomerDraftToChat = (chat = {}, draft = {}) => {
+            const valueOrCurrent = (key, current) => Object.prototype.hasOwnProperty.call(draft, key) ? draft[key] : current;
             return {
                 ...chat,
-                name: saved.name || chat.name,
-                phone: saved.phone || chat.phone,
-                country: saved.country || chat.country,
-                city: saved.city || chat.city,
-                province: saved.province || chat.province,
-                address: saved.address || chat.address,
-                reference: saved.reference || chat.reference,
-                quantity: saved.quantity || chat.quantity,
-                total: saved.total || chat.total,
-                orderId: saved.orderId || chat.orderId,
-                orderStatus: saved.status || chat.orderStatus,
-                notes: saved.notes ?? chat.notes,
+                name: valueOrCurrent('name', chat.name),
+                phone: valueOrCurrent('phone', chat.phone),
+                country: valueOrCurrent('country', chat.country),
+                city: valueOrCurrent('city', chat.city),
+                province: valueOrCurrent('province', chat.province),
+                address: valueOrCurrent('address', chat.address),
+                reference: valueOrCurrent('reference', chat.reference),
+                quantity: valueOrCurrent('quantity', chat.quantity),
+                total: valueOrCurrent('total', chat.total),
+                orderId: draft.orderId || chat.orderId,
+                orderStatus: valueOrCurrent('status', chat.orderStatus),
+                notes: valueOrCurrent('notes', chat.notes),
                 customerDraft: {
                     ...(chat.customerDraft || {}),
-                    ...saved
+                    ...draft
                 }
             };
+        };
+        const mergeSavedCustomerDraftIntoChat = (chat = {}) => {
+            const saved = savedCustomerDraftForChat(chat);
+            const editing = editingCustomerDraftForChat(chat);
+            return [saved, editing].filter(Boolean).reduce((merged, draft) => applyCustomerDraftToChat(merged, draft), chat);
         };
         const chatIdentityDigits = (chat = {}) => [
             chat.phone,
@@ -9526,6 +9548,7 @@
             if (!state.selectedChat) return;
             state.customerFormDirty = true;
             state.customerFormDirtyChatId = state.selectedChat.id;
+            rememberEditingCustomerDraft();
             el('customerFormState').textContent = 'editando, salve para fixar';
             el('customerSyncBadge').textContent = 'editando';
             el('customerSyncBadge').className = 'badge orange';
@@ -9692,8 +9715,11 @@
                 input.focus();
                 if (typeof input.setSelectionRange === 'function') input.setSelectionRange(input.value.length, input.value.length);
             }
-            if (!config.composer) markCustomerFormDirty();
-            showToast(config.composer ? 'Trecho colocado na resposta' : `${config.label} aplicado na ficha. Saia do campo para salvar.`);
+            if (!config.composer) {
+                markCustomerFormDirty();
+                scheduleCustomerFieldAutoSave({ delay: 600, source: 'quick-copy' });
+            }
+            showToast(config.composer ? 'Trecho colocado na resposta' : `${config.label} aplicado na ficha. Salvando automaticamente.`);
             closeMessageQuickCopyMenu();
         };
         const panelSyncMessage = (result, fallback = 'Dados do cliente salvos') => {
@@ -9764,6 +9790,14 @@
                 } : {})
             };
         };
+        function rememberEditingCustomerDraft() {
+            if (!state.selectedChat) return;
+            const draft = customerDraftFromForm();
+            const note = draft.note || '';
+            const cachedDraft = { ...draft, notes: note };
+            rememberCustomerDraftInCache(state.customerEditingDrafts, cachedDraft, { note, chat: state.selectedChat });
+            state.selectedChat = applyCustomerDraftToChat(state.selectedChat, cachedDraft);
+        }
         const customerRequiredFields = [
             ['name', 'nome', 'customerNameInput'],
             ['phone', 'telefone', 'customerPhoneInput'],
@@ -9901,6 +9935,9 @@
             }
         }
         const clearCustomerFormDirty = () => {
+            if (state.selectedChat) {
+                forgetCustomerDraftFromCache(state.customerEditingDrafts, state.selectedChat, customerDraftFromForm());
+            }
             state.customerFormDirty = false;
             state.customerFormDirtyChatId = '';
         };
@@ -9959,6 +9996,7 @@
             el('customerReferenceInput').value = '';
             el('customerSyncHint').textContent = 'Agencia aplicada na ficha. Para retirada em agencia, referencia fica opcional.';
             markCustomerFormDirty();
+            scheduleCustomerFieldAutoSave({ delay: 600, source: 'agency' });
             showToast('Agencia Servientrega aplicada na ficha');
         };
         const sendAgencyMessagesToCustomer = async (agencies = [], button = null, options = {}) => {
@@ -16310,6 +16348,8 @@
             const note = el('customerNoteInput').value.trim();
             const productInfo = productInfoForKey(el('customerProductInput')?.value || productKeyFromChat(chat));
             let orderNotice = '';
+            const formOrderId = el('customerOrderInput').value.trim();
+            const chatOrderId = String(chat.orderId || '').trim();
             const customerDraft = {
                 name: el('customerNameInput').value.trim(),
                 phone: el('customerPhoneInput').value.trim(),
@@ -16320,7 +16360,7 @@
                 status: normalizePanelStatus(el('customerStatusInput').value),
                 quantity: normalizeCustomerQuantityValue(el('customerQuantityInput').value),
                 total: el('customerTotalInput').value,
-                orderId: chat.orderId || el('customerOrderInput').value.trim()
+                orderId: formOrderId || chatOrderId
             };
             customerDraft.country = el('customerCountryInput').value || state.selectedChat.country || selectedPanelCountry();
             const draftCountry = String(customerDraft.country || '').toUpperCase();
@@ -16581,20 +16621,25 @@
             }, 300);
         };
 
-        const autoSaveCustomerFieldBlur = (event) => {
+        const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
             if (!state.selectedChat || state.busy) return;
-            const input = event?.target;
-            if (!input || input.id === 'customerStatusInput') return;
+            rememberEditingCustomerDraft();
             const selectedChatId = state.selectedChat.id;
             const seq = state.customerFieldAutoSaveSeq + 1;
             state.customerFieldAutoSaveSeq = seq;
             window.clearTimeout(state.customerFieldAutoSaveTimer);
-            el('customerSyncHint').textContent = 'Salvando ficha automaticamente...';
+            el('customerSyncHint').textContent = source === 'blur'
+                ? 'Salvando ficha automaticamente...'
+                : 'Ficha alterada; salvando automaticamente...';
             el('customerSyncBadge').textContent = 'salvando';
             el('customerSyncBadge').className = 'badge orange';
             state.customerFieldAutoSaveTimer = window.setTimeout(async () => {
                 if (!state.selectedChat || state.selectedChat.id !== selectedChatId || state.customerFieldAutoSaveSeq !== seq) return;
-                if (state.busy) return;
+                if (state.busy || state.customerFieldAutoSaveInFlight) {
+                    scheduleCustomerFieldAutoSave({ delay: 700, source });
+                    return;
+                }
+                state.customerFieldAutoSaveInFlight = true;
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     if (state.selectedChat?.id === selectedChatId) {
@@ -16608,8 +16653,17 @@
                     el('customerSyncBadge').textContent = 'erro';
                     el('customerSyncBadge').className = 'badge red';
                     showToast(error.message);
+                } finally {
+                    state.customerFieldAutoSaveInFlight = false;
                 }
-            }, 250);
+            }, delay);
+        };
+
+        const autoSaveCustomerFieldBlur = (event) => {
+            if (!state.selectedChat || state.busy) return;
+            const input = event?.target;
+            if (!input || input.id === 'customerStatusInput') return;
+            scheduleCustomerFieldAutoSave({ delay: 250, source: 'blur' });
         };
 
         async function sendManualGuideFromForm() {
@@ -17822,8 +17876,18 @@
         el('customerForm').addEventListener('submit', saveCustomerForm);
         el('confirmCustomerDataBtn').addEventListener('click', () => el('customerForm').requestSubmit());
         ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
-            el(id).addEventListener('input', markCustomerFormDirty);
-            el(id).addEventListener('change', markCustomerFormDirty);
+            el(id).addEventListener('input', () => {
+                markCustomerFormDirty();
+                if (id !== 'customerStatusInput') {
+                    scheduleCustomerFieldAutoSave({ delay: 900, source: 'input' });
+                }
+            });
+            el(id).addEventListener('change', () => {
+                markCustomerFormDirty();
+                if (id !== 'customerStatusInput') {
+                    scheduleCustomerFieldAutoSave({ delay: 450, source: 'change' });
+                }
+            });
         });
         ['customerNameInput', 'customerCountryInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput'].forEach((id) => {
             el(id).addEventListener('blur', (event) => {
@@ -18541,6 +18605,7 @@
                 state.selectedChat.name = row.customer_name || state.selectedChat.name;
             }
             markCustomerFormDirty();
+            scheduleCustomerFieldAutoSave({ delay: 600, source: 'tracking-row' });
             showToast(`Pedido ${row.source_admin_order_id} carregado na ficha.`);
         });
         el('sendSelectedDropiBtn').addEventListener('click', openSelectedCustomerInLeads);
