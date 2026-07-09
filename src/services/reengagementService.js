@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
@@ -64,6 +65,24 @@ const PENDING_CHECKOUT_STAGES = new Set([
 
 const hashText = (text) => crypto.createHash('sha1').update(String(text || '')).digest('hex');
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+const ACTIVE_POST_SALE_ORDER_STATUSES = new Set(['confirmed', 'processing', 'shipped', 'delivered']);
+const TERMINAL_SHIPMENT_STATUSES = new Set([
+    'ENTREGADO',
+    'DEVUELTO',
+    'CANCELADO',
+    'CANCELADO_SERVIENTREGA',
+    'CANCELADO SERVIENTREGA'
+]);
+
+const reengagementPhoneTails = (value = '') => {
+    const digits = digitsOnly(value);
+    return [...new Set([
+        digits,
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 9 ? digits.slice(-9) : '',
+        digits.length >= 8 ? digits.slice(-8) : ''
+    ].filter(Boolean))];
+};
 
 const getTemplateForAge = (ageMs) => {
     if (ageMs <= 6 * 60 * 60 * 1000) {
@@ -161,7 +180,44 @@ const isEligibleInbound = (message) => {
     return true;
 };
 
-export const listReengagementCandidates = async ({ hours = 48, limit = 100 } = {}) => {
+const hasActivePostSaleFlow = async ({ inbound = {}, state = null, country = 'EC' } = {}) => {
+    const phoneDigits = digitsOnly(
+        inbound.peerPhone
+        || state?.phoneDigits
+        || state?.metadata?.customerDraft?.phone
+        || state?.metadata?.lastSenderPn
+        || inbound.chatId
+    );
+    const tails = reengagementPhoneTails(phoneDigits);
+    if (!tails.length) return false;
+    const shipment = await Shipment.findOne({
+        country,
+        $or: tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }))
+    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 }).lean().catch(() => null);
+    if (shipment) {
+        const logisticsStatus = String(shipment.logistics?.status || '').trim().toUpperCase();
+        const reviewStatus = String(shipment.review?.reviewStatus || '').trim().toLowerCase();
+        const hasSubmittedFlow = Boolean(
+            shipment.submittedToDroppiAt
+            || shipment.dropiOrderId
+            || shipment.logistics?.trackingNumber
+            || shipment.logistics?.invoiceUrl
+            || shipment.logistics?.invoicePath
+            || reviewStatus === 'submitted'
+        );
+        if (hasSubmittedFlow && !TERMINAL_SHIPMENT_STATUSES.has(logisticsStatus)) return true;
+    }
+
+    const order = await Order.findOne({
+        country,
+        status: { $in: Array.from(ACTIVE_POST_SALE_ORDER_STATUSES) },
+        $or: tails.map((tail) => ({ 'customer.phone': { $regex: `${tail}$` } }))
+    }).sort({ entryAt: -1, createdAt: -1 }).lean().catch(() => null);
+
+    return Boolean(order);
+};
+
+export const listReengagementCandidates = async ({ hours = 48, limit = 100, country = 'EC' } = {}) => {
     const since = new Date(Date.now() - (hours * 60 * 60 * 1000));
     const inboundMessages = await Message.find({
         createdAt: { $gte: since }
@@ -186,6 +242,14 @@ export const listReengagementCandidates = async ({ hours = 48, limit = 100 } = {
         }).sort({ createdAt: -1 }).lean();
 
         const state = await ContactState.findOne({ chatId: inbound.chatId });
+        const phoneDigits = digitsOnly(
+            inbound.peerPhone
+            || state?.phoneDigits
+            || state?.metadata?.customerDraft?.phone
+            || state?.metadata?.lastSenderPn
+            || inbound.chatId
+        );
+        if (String(country || '').toUpperCase() === 'EC' && !phoneDigits.startsWith('593')) continue;
         const lastManualAt = state?.human?.lastManualAt ? new Date(state.human.lastManualAt) : null;
         const lastHumanActionAt = state?.metadata?.lastHumanActionAt ? new Date(state.metadata.lastHumanActionAt) : null;
         const acknowledgedAt = state?.metadata?.operationalAlerts?.reengagementAcknowledgedAt
@@ -196,6 +260,7 @@ export const listReengagementCandidates = async ({ hours = 48, limit = 100 } = {
         if (lastManualAt && lastManualAt >= inboundAt) continue;
         if (lastHumanActionAt && lastHumanActionAt >= inboundAt) continue;
         if (acknowledgedAt && acknowledgedAt >= inboundAt) continue;
+        if (await hasActivePostSaleFlow({ inbound, state, country })) continue;
 
         const metadata = state ? normalizeStateMetadata(state) : { reengagement: { sentHashes: [] } };
         const ageMs = Date.now() - new Date(inbound.createdAt).getTime();

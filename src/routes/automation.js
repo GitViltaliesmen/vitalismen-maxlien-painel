@@ -255,7 +255,7 @@ router.get('/status', async (_req, res) => {
                     { 'automation.returnedNotifiedAt': { $exists: false } }
                 ]
             }),
-            listReengagementCandidates({ hours: 48, limit: 20 }).catch(() => []),
+            listReengagementCandidates({ hours: 48, limit: 20, country: 'EC' }).catch(() => []),
             countAdminPanelAtendimentoGaps({
                 fromId: Number.parseInt(process.env.ADMIN_PANEL_ATENDIMENTO_FROM_ID || '1725', 10) || 1725
             }).catch(() => ({ ok: false, adminNovoInManual: 0, manualWithoutAdmin: 0 })),

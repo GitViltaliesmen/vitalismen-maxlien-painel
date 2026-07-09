@@ -13,6 +13,31 @@ const hasVitPowerSignal = (value = '') => {
     return /\b(vit[\s_-]*power|vit[\s_-]*powers|vitpower|vitpowers)\b/.test(text);
 };
 
+const extractEcuadorProductSignalTexts = (values = []) => values
+    .flatMap((value) => {
+        if (!value || typeof value !== 'object') return [value];
+        return [
+            value.productName,
+            value.product,
+            value.productKey,
+            value.contentName,
+            value.contentIds,
+            value.package?.label,
+            value.notes,
+            value.entryReason,
+            value.tracking?.productKey,
+            value.tracking?.productName,
+            value.tracking?.contentName,
+            value.tracking?.contentIds,
+            value.tracking?.sourceUrl,
+            value.tracking?.utm_campaign,
+            value.tracking?.utm_content,
+            value.tracking?.utm_source
+        ];
+    })
+    .filter(Boolean)
+    .map((value) => (Array.isArray(value) ? value.join(' ') : String(value)));
+
 export const ECUADOR_PRODUCTS = {
     vitPower: {
         key: 'vit_power_ec',
@@ -44,38 +69,21 @@ export const ECUADOR_PRODUCTS = {
     }
 };
 
-export const resolveEcuadorProductInfo = (...values) => {
-    const signalTexts = values
-        .flatMap((value) => {
-            if (!value || typeof value !== 'object') return [value];
-            return [
-                value.productName,
-                value.product,
-                value.productKey,
-                value.contentName,
-                value.contentIds,
-                value.package?.label,
-                value.notes,
-                value.entryReason,
-                value.tracking?.productKey,
-                value.tracking?.productName,
-                value.tracking?.contentName,
-                value.tracking?.contentIds,
-                value.tracking?.sourceUrl,
-                value.tracking?.utm_campaign,
-                value.tracking?.utm_content,
-                value.tracking?.utm_source
-            ];
-        })
-        .filter(Boolean)
-        .map((value) => (Array.isArray(value) ? value.join(' ') : String(value)));
+export const detectExplicitEcuadorProductKey = (...values) => {
+    const signalTexts = extractEcuadorProductSignalTexts(values);
     const haystack = signalTexts.join(' | ');
     const hasExplicitNitrixKey = signalTexts.some((value) => normalizeText(value).includes('nitrix_ec') || normalizeText(value).includes('nitrix_oxide_ec'));
     const hasExplicitVitPowerKey = signalTexts.some((value) => normalizeText(value).includes('vit_power_ec'));
 
-    if (hasExplicitNitrixKey) return ECUADOR_PRODUCTS.nitrix;
-    if (hasExplicitVitPowerKey || hasVitPowerSignal(haystack)) return ECUADOR_PRODUCTS.vitPower;
-    if (hasNitrixSignal(haystack)) return ECUADOR_PRODUCTS.nitrix;
+    if (hasExplicitNitrixKey) return ECUADOR_PRODUCTS.nitrix.key;
+    if (hasExplicitVitPowerKey || hasVitPowerSignal(haystack)) return ECUADOR_PRODUCTS.vitPower.key;
+    if (hasNitrixSignal(haystack)) return ECUADOR_PRODUCTS.nitrix.key;
+    return '';
+};
+
+export const resolveEcuadorProductInfo = (...values) => {
+    const productKey = detectExplicitEcuadorProductKey(...values);
+    if (productKey === ECUADOR_PRODUCTS.vitPower.key) return ECUADOR_PRODUCTS.vitPower;
     return ECUADOR_PRODUCTS.nitrix;
 };
 

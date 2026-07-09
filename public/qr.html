@@ -8210,6 +8210,9 @@
                 reference: valueOrCurrent('reference', chat.reference),
                 quantity: valueOrCurrent('quantity', chat.quantity),
                 total: valueOrCurrent('total', chat.total),
+                productKey: valueOrCurrent('productKey', chat.productKey),
+                productName: valueOrCurrent('productName', chat.productName),
+                productMedia: valueOrCurrent('productMedia', chat.productMedia),
                 orderId: draft.orderId || chat.orderId,
                 orderStatus: valueOrCurrent('status', chat.orderStatus),
                 notes: valueOrCurrent('notes', chat.notes),
@@ -10441,17 +10444,18 @@
             const reviewCount = Number.isFinite(state.dropiOrderStats?.authorization)
                 ? state.dropiOrderStats.authorization
                 : confirmedOrders;
+            const totalClients = Number(state.dashboardMetrics?.totalClients || 0) || visibleChats.length;
 
             el('metricChats').textContent = String(visibleChats.length);
             el('metricManual').textContent = String(manualCount);
             el('metricMine').textContent = String(mineCount);
             el('metricClosed').textContent = String(closedCount);
             el('metricConfirming').textContent = String(reviewCount);
-            el('careMetricEntered').textContent = String(visibleChats.length);
+            el('careMetricEntered').textContent = String(totalClients);
             el('careMetricHuman').textContent = String(salesCount);
             el('careMetricClosed').textContent = String(lostCount);
             el('careMetricReview').textContent = `${conversionRate}%`;
-            el('careMetricEntered')?.closest('.care-metric')?.setAttribute('title', `${visibleChats.length} cliente(s) visiveis no pais/filtro atual`);
+            el('careMetricEntered')?.closest('.care-metric')?.setAttribute('title', `${totalClients} cliente(s) EC no banco operacional; ${visibleChats.length} conversa(s) visiveis no painel`);
             el('careMetricHuman')?.closest('.care-metric')?.setAttribute('title', `${salesCount} venda(s): confirmado, enviado, entregue, recompra ou finalizado`);
             el('careMetricClosed')?.closest('.care-metric')?.setAttribute('title', `${lostCount} desistente(s): comprar depois, cancelado ou devolvido`);
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
@@ -10467,13 +10471,13 @@
             const today = metrics.today || {};
             const week = metrics.week || {};
             const month = metrics.month || {};
-            el('statEnteredToday').textContent = String(today.entered || 0);
+            el('statEnteredToday').textContent = String(today.totalEntries ?? today.entered ?? 0);
             el('statActiveToday').textContent = String(today.active || 0);
             el('statManualNow').textContent = String(metrics.manualNow || 0);
             el('statClosedToday').textContent = String(today.closed || 0);
-            el('statEnteredWeek').textContent = String(week.entered || 0);
+            el('statEnteredWeek').textContent = String(week.totalEntries ?? week.entered ?? 0);
             el('statSalesWeek').textContent = moneyShort(week.revenue || 0);
-            el('statEnteredMonth').textContent = String(month.entered || 0);
+            el('statEnteredMonth').textContent = String(month.totalEntries ?? month.entered ?? 0);
             el('statSalesMonth').textContent = moneyShort(month.revenue || 0);
         };
 
@@ -17889,7 +17893,7 @@
                 }
             });
         });
-        ['customerNameInput', 'customerCountryInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput'].forEach((id) => {
+        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('blur', (event) => {
                 if (id === 'customerQuantityInput') {
                     setInputValue('customerQuantityInput', normalizeCustomerQuantityValue(event.target.value));

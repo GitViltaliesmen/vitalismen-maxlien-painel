@@ -30,7 +30,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
-import { ECUADOR_PRODUCTS, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -406,6 +406,9 @@ const mergePanelDuplicateChat = (current = {}, incoming = {}) => {
         reference: primary.reference || secondary.reference,
         quantity: primary.quantity || secondary.quantity,
         total: primary.total || secondary.total,
+        productKey: primary.productKey || secondary.productKey,
+        productName: primary.productName || secondary.productName,
+        productMedia: primary.productMedia || secondary.productMedia,
         orderId: primary.orderId || secondary.orderId,
         orderStatus: primary.orderStatus || secondary.orderStatus,
         profilePictureUrl: primary.profilePictureUrl || secondary.profilePictureUrl,
@@ -1820,6 +1823,121 @@ const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = fals
         .every((field) => String(draft[field] || '').trim());
 };
 
+const ecuadorProductInfoForKey = (productKey = '') => (
+    productKey === ECUADOR_PRODUCTS.vitPower.key ? ECUADOR_PRODUCTS.vitPower : ECUADOR_PRODUCTS.nitrix
+);
+
+const ecuadorProductMediaForInfo = (productInfo = {}) => (
+    productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
+        ? '/media/sales/ec/vit_power.jpeg'
+        : '/media/sales/ec/nitrix_bottle.png'
+);
+
+const panelProductContextForChat = async ({ contactState = null, order = null, customerDraft = {}, lastMessage = null, phoneDigits = '' } = {}) => {
+    const stateCountry = String(contactState?.countryCode || customerDraft.country || order?.country || '').toUpperCase();
+    const isEcuador = order?.country === 'EC'
+        || stateCountry === 'EC'
+        || countryPrefixFromDigits(phoneDigits || customerDraft.phone || order?.customer?.phone) === 'EC';
+    if (!isEcuador) {
+        return {
+            productKey: '',
+            productName: '',
+            productMedia: '',
+            customerDraft
+        };
+    }
+
+    const latestTextProductKey = detectExplicitEcuadorProductKey(
+        lastMessage?.body || '',
+        contactState?.lastInboundText || '',
+        contactState?.metadata?.lastIncomingText || ''
+    );
+    const orderProductKey = detectExplicitEcuadorProductKey(order || {});
+    const draftProductKey = detectExplicitEcuadorProductKey(
+        customerDraft || {},
+        contactState?.metadata || {}
+    );
+    const productInfo = orderProductKey
+        ? ecuadorProductInfoForKey(orderProductKey)
+        : latestTextProductKey
+            ? ecuadorProductInfoForKey(latestTextProductKey)
+            : draftProductKey
+                ? ecuadorProductInfoForKey(draftProductKey)
+                : resolveEcuadorProductInfo(customerDraft || {}, contactState?.metadata || {});
+    const productMedia = ecuadorProductMediaForInfo(productInfo);
+    const currentOrderId = String(customerDraft.orderId || '').trim();
+    const activeOrderId = String(order?.orderId || '').trim();
+    const sourceOrderId = activeOrderId && currentOrderId && currentOrderId !== activeOrderId
+        ? currentOrderId
+        : String(customerDraft.sourceOrderId || '').trim();
+    const panelDraft = {
+        ...customerDraft,
+        ...(order?.customer?.name ? { name: order.customer.name } : {}),
+        phone: order?.customer?.phone || customerDraft.phone || (phoneDigits ? `+${phoneDigits}` : ''),
+        country: 'EC',
+        ...(order?.customer?.city ? { city: order.customer.city } : {}),
+        ...(order?.customer?.province ? { province: order.customer.province } : {}),
+        ...(order?.customer?.address ? { address: order.customer.address } : {}),
+        ...(order?.customer?.reference ? { reference: order.customer.reference } : {}),
+        ...(order?.status ? { status: normalizePanelStatus(order.status) } : {}),
+        quantity: order?.package?.quantity ?? customerDraft.quantity ?? '',
+        total: order?.total ?? customerDraft.total ?? '',
+        ...(activeOrderId ? { orderId: activeOrderId } : {}),
+        ...(sourceOrderId ? { sourceOrderId } : {}),
+        product: productInfo.name,
+        productKey: productInfo.key,
+        productName: productInfo.name,
+        productMedia
+    };
+
+    const shouldPersist = Boolean(contactState?._id && (activeOrderId || latestTextProductKey || draftProductKey));
+    if (shouldPersist) {
+        const currentDraft = contactState?.metadata?.customerDraft || {};
+        const productMismatch = String(contactState?.assignedAgent || '') !== productInfo.key
+            || String(contactState?.metadata?.productKey || '') !== productInfo.key
+            || String(contactState?.metadata?.productName || '') !== productInfo.name
+            || String(currentDraft.productKey || '') !== productInfo.key
+            || String(currentDraft.productName || '') !== productInfo.name
+            || String(currentDraft.product || '') !== productInfo.name
+            || String(currentDraft.productMedia || '') !== productMedia;
+        const orderMismatch = Boolean(activeOrderId) && (
+            String(currentDraft.orderId || '') !== activeOrderId
+            || (sourceOrderId && String(currentDraft.sourceOrderId || '') !== sourceOrderId)
+        );
+        if (productMismatch || orderMismatch) {
+            const updatedDraft = {
+                ...panelDraft,
+                updatedAt: new Date().toISOString()
+            };
+            await ContactState.updateOne(
+                { _id: contactState._id },
+                {
+                    $set: {
+                        assignedAgent: productInfo.key,
+                        'metadata.productKey': productInfo.key,
+                        'metadata.productName': productInfo.name,
+                        'metadata.productMedia': productMedia,
+                        'metadata.customerDraft': updatedDraft
+                    }
+                }
+            ).catch((error) => console.warn('[PANEL_PRODUCT_SYNC] falha ao alinhar ficha:', error.message));
+            return {
+                productKey: productInfo.key,
+                productName: productInfo.name,
+                productMedia,
+                customerDraft: updatedDraft
+            };
+        }
+    }
+
+    return {
+        productKey: productInfo.key,
+        productName: productInfo.name,
+        productMedia,
+        customerDraft: panelDraft
+    };
+};
+
 const inferProductInfoForDraft = async ({ draft = {}, state = null } = {}) => {
     const directProduct = resolveEcuadorProductInfo(
         draft,
@@ -2737,14 +2855,48 @@ router.get('/dashboard-metrics', async (req, res) => {
                 revenue: periodOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0)
             };
         };
+        const vslCounts = async (start) => {
+            const [visitors, clicks, leads] = await Promise.all([
+                VslVisit.countDocuments({
+                    country,
+                    $or: [
+                        { firstSeenAt: { $gte: start } },
+                        { createdAt: { $gte: start } }
+                    ]
+                }),
+                VslVisit.countDocuments({ country, lastClickAt: { $gte: start } }),
+                VslVisit.countDocuments({ country, metaLeadSentAt: { $gte: start } })
+            ]);
+            return {
+                vslVisitors: visitors,
+                vslClicks: clicks,
+                vslLeads: leads
+            };
+        };
+        const [todayVsl, weekVsl, monthVsl] = await Promise.all([
+            vslCounts(startOfDay),
+            vslCounts(startOfWeek),
+            vslCounts(startOfMonth)
+        ]);
+        const periodCounts = (start, vsl) => {
+            const contactsInPeriod = contactCounts(start);
+            return {
+                ...contactsInPeriod,
+                ...orderCounts(start),
+                ...vsl,
+                totalEntries: Math.max(contactsInPeriod.entered, vsl.vslClicks || 0, vsl.vslLeads || 0)
+            };
+        };
+        const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
 
         res.json({
             country,
             generatedAt: now.toISOString(),
-            manualNow: contacts.filter((contact) => realPhoneFromState(contact) && contact.human?.mode === 'manual').length,
-            today: { ...contactCounts(startOfDay), ...orderCounts(startOfDay) },
-            week: { ...contactCounts(startOfWeek), ...orderCounts(startOfWeek) },
-            month: { ...contactCounts(startOfMonth), ...orderCounts(startOfMonth) }
+            totalClients: realContacts.length,
+            manualNow: realContacts.filter((contact) => contact.human?.mode === 'manual').length,
+            today: periodCounts(startOfDay, todayVsl),
+            week: periodCounts(startOfWeek, weekVsl),
+            month: periodCounts(startOfMonth, monthVsl)
         });
     } catch (error) {
         console.error('Dashboard metrics error:', error);
@@ -3101,7 +3253,7 @@ router.get('/chats', async (req, res) => {
                     || null;
             };
 
-            const fastChats = allChats.map((c) => {
+            const fastChats = (await Promise.all(allChats.map(async (c) => {
                 const phoneDigits = digitsOnly(c.phoneHint || c.id.user);
                 const contactState = statesByPhone.get(phoneDigits) || statesByChatId.get(c.id._serialized) || null;
                 const customerDraft = contactState?.metadata?.customerDraft || {};
@@ -3111,10 +3263,18 @@ router.get('/chats', async (req, res) => {
                     lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null
                 );
                 const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
+                const productContext = await panelProductContextForChat({
+                    contactState,
+                    order,
+                    customerDraft,
+                    lastMessage,
+                    phoneDigits
+                });
+                const panelDraft = productContext.customerDraft || customerDraft;
                 return {
                     id: c.id._serialized,
-                    name: order?.customer?.name || customerDraft.name || lastMessage?.notifyName || c.name || c.id.user,
-                    phone: order?.customer?.phone || customerDraft.phone || c.phoneHint || c.id.user,
+                    name: order?.customer?.name || panelDraft.name || lastMessage?.notifyName || c.name || c.id.user,
+                    phone: order?.customer?.phone || panelDraft.phone || c.phoneHint || c.id.user,
                     entryAt: latestDateValue(order?.entryAt, order?.createdAt, entryAt),
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: 0,
@@ -3126,24 +3286,28 @@ router.get('/chats', async (req, res) => {
                     } : null,
                     isGroup: c.isGroup,
                     country: contactState?.countryCode || null,
-                    city: order?.customer?.city || customerDraft.city || null,
-                    province: order?.customer?.province || customerDraft.province || null,
-                    address: order?.customer?.address || customerDraft.address || null,
-                    reference: order?.customer?.reference || customerDraft.reference || null,
-                    flowDataOk: customerDraft.flowDataOk || {},
-                    orderId: order?.orderId || null,
-                    orderStatus: order?.status || customerDraft.status || null,
-                    quantity: order?.package?.quantity ?? customerDraft.quantity ?? null,
+                    city: order?.customer?.city || panelDraft.city || null,
+                    province: order?.customer?.province || panelDraft.province || null,
+                    address: order?.customer?.address || panelDraft.address || null,
+                    reference: order?.customer?.reference || panelDraft.reference || null,
+                    flowDataOk: panelDraft.flowDataOk || {},
+                    orderId: order?.orderId || panelDraft.orderId || null,
+                    orderStatus: order?.status || panelDraft.status || null,
+                    quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
                     packageLabel: order?.package?.label || null,
-                    total: order?.total ?? customerDraft.total ?? null,
+                    total: order?.total ?? panelDraft.total ?? null,
                     currency: order?.currency || null,
                     notes: contactState?.human?.note || '',
-                    assignedAgent: contactState?.assignedAgent || null,
+                    assignedAgent: productContext.productKey || contactState?.assignedAgent || null,
+                    productKey: productContext.productKey || null,
+                    productName: productContext.productName || null,
+                    productMedia: productContext.productMedia || null,
+                    customerDraft: panelDraft,
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
                     zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
                 };
-            })
+            })))
                 .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
                 .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
                 .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
@@ -3289,11 +3453,19 @@ router.get('/chats', async (req, res) => {
                     linkedIds,
                     phoneDigits
                 });
+            const productContext = await panelProductContextForChat({
+                contactState,
+                order,
+                customerDraft,
+                lastMessage,
+                phoneDigits
+            });
+            const panelDraft = productContext.customerDraft || customerDraft;
 
             return {
                 id: c.id._serialized,
-                name: order?.customer?.name || customerDraft.name || c.name || c.id.user,
-                phone: order?.customer?.phone || customerDraft.phone || phone, // This is now the real phone number (resolved)
+                name: order?.customer?.name || panelDraft.name || c.name || c.id.user,
+                phone: order?.customer?.phone || panelDraft.phone || phone, // This is now the real phone number (resolved)
                 entryAt: latestDateValue(
                     stableOrderEntryAt(order),
                     stableContactEntryAt(contactState),
@@ -3310,19 +3482,23 @@ router.get('/chats', async (req, res) => {
                 isGroup: c.isGroup,
                 // Enriched Fields
                 country: order ? order.country : contactState?.countryCode || null,
-                city: order?.customer?.city || customerDraft.city || null,
-                province: order?.customer?.province || customerDraft.province || null,
-                address: order?.customer?.address || customerDraft.address || null,
-                reference: order?.customer?.reference || customerDraft.reference || null,
-                flowDataOk: customerDraft.flowDataOk || {},
-                orderId: order ? order.orderId : null,
-                orderStatus: order ? order.status : customerDraft.status || null,
-                quantity: order?.package?.quantity ?? customerDraft.quantity ?? null,
+                city: order?.customer?.city || panelDraft.city || null,
+                province: order?.customer?.province || panelDraft.province || null,
+                address: order?.customer?.address || panelDraft.address || null,
+                reference: order?.customer?.reference || panelDraft.reference || null,
+                flowDataOk: panelDraft.flowDataOk || {},
+                orderId: order ? order.orderId : panelDraft.orderId || null,
+                orderStatus: order ? order.status : panelDraft.status || null,
+                quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
                 packageLabel: order?.package?.label || null,
-                total: order?.total ?? customerDraft.total ?? null,
+                total: order?.total ?? panelDraft.total ?? null,
                 currency: order?.currency || null,
                 notes: order?.notes || contactState?.human?.note || '',
-                assignedAgent: contactState?.assignedAgent || null,
+                assignedAgent: productContext.productKey || contactState?.assignedAgent || null,
+                productKey: productContext.productKey || null,
+                productName: productContext.productName || null,
+                productMedia: productContext.productMedia || null,
+                customerDraft: panelDraft,
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },
                 zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
@@ -4215,7 +4391,8 @@ router.get('/reengagement/preview', adminOnly, async (req, res) => {
     try {
         const hours = Number.parseInt(String(req.query.hours || '48'), 10);
         const limit = Number.parseInt(String(req.query.limit || '50'), 10);
-        const candidates = await listReengagementCandidates({ hours, limit });
+        const country = normalizePanelCountry(req.query.country || 'EC');
+        const candidates = await listReengagementCandidates({ hours, limit, country });
         res.json({ candidates });
     } catch (error) {
         console.error('Reengagement preview error:', error);

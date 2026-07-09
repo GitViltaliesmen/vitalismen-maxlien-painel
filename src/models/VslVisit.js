@@ -58,6 +58,19 @@ const vslVisitSchema = new mongoose.Schema({
         default: '',
         index: true
     },
+    productKey: {
+        type: String,
+        default: '',
+        index: true
+    },
+    productName: {
+        type: String,
+        default: ''
+    },
+    productSource: {
+        type: String,
+        default: ''
+    },
     lastWhatsappMessage: {
         type: String,
         default: ''

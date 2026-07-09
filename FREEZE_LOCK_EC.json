@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T12:01:11.526Z",
+  "updatedAt": "2026-07-09T13:21:51.101Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -406,6 +406,100 @@
           "value": "/api/automation/alerts/acknowledge"
         }
       ]
+    },
+    {
+      "id": "ops_alert_post_sale_reengagement_guard_ec",
+      "status": "active",
+      "description": "Alerta de retomada EC nao inclui telefone fora do Equador nem cliente que ja esta em pos-venda/pedido ativo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "hasActivePostSaleFlow"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "ACTIVE_POST_SALE_ORDER_STATUSES"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "phoneDigits.startsWith('593')"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "listReengagementCandidates({ hours: 48, limit: 20, country: 'EC' })"
+        }
+      ]
+    },
+    {
+      "id": "panel_product_autodetect_customer_draft_ec",
+      "status": "active",
+      "description": "Painel EC auto-seleciona Nitrix/Vit Power por pedido ativo ou mencao explicita e registra produto correto na ficha.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "panelProductContextForChat"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "detectExplicitEcuadorProductKey"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "'metadata.customerDraft': updatedDraft"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "customerDraft: panelDraft"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "productKey: valueOrCurrent('productKey'"
+        }
+      ]
+    },
+    {
+      "id": "panel_real_entry_metrics_ec",
+      "status": "active",
+      "description": "Painel EC usa total real de clientes e entradas VSL/WhatsApp nas metricas, sem depender do limite de conversas carregadas.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalClients: realContacts.length"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslClicks"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalEntries: Math.max"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "state.dashboardMetrics?.totalClients"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "today.totalEntries"
+        }
+      ]
     }
   ],
   "freezeGuards": [
@@ -528,12 +622,51 @@
         "ops_alerts_click_to_attend_ec",
         "customer_ficha_autosave_orderid_ec"
       ]
+    },
+    {
+      "at": "2026-07-09T12:26:30.466Z",
+      "description": "Aprovado: congelar estado EC publicado antes de revisar alertas pos-venda, produto automatico e contador de entradas",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709122630.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T13:21:51.101Z",
+      "description": "Aprovado: alerta EC ignora pos-venda ativo, painel registra produto automatico Nitrix/Vit Power e metricas usam total real de clientes",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709132151.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T12:01:11.526Z",
-    "description": "Aprovado: congelar ficha cliente EC com autosave, orderId preservado e requeue Dropi seguro",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709120111.md",
+    "at": "2026-07-09T13:21:51.101Z",
+    "description": "Aprovado: alerta EC ignora pos-venda ativo, painel registra produto automatico Nitrix/Vit Power e metricas usam total real de clientes",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709132151.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -545,7 +678,10 @@
       "meta_pixel_lead_ec_dataset",
       "meta_purchase_confirmed_order_lock_ec",
       "ops_alerts_click_to_attend_ec",
-      "customer_ficha_autosave_orderid_ec"
+      "customer_ficha_autosave_orderid_ec",
+      "ops_alert_post_sale_reengagement_guard_ec",
+      "panel_product_autodetect_customer_draft_ec",
+      "panel_real_entry_metrics_ec"
     ]
   }
 }
