@@ -4673,6 +4673,11 @@
             line-height: 1;
         }
 
+        .wa-audio-card.audio-error .wa-audio-time {
+            color: #b42318;
+            font-weight: 800;
+        }
+
         .message-media-image,
         .message-media-video {
             display: block;
@@ -10914,12 +10919,34 @@
             return `${mediaPublicOrigin()}${value}`;
         };
 
+        const decodedMediaUrlForCheck = (url = '') => {
+            const value = String(url || '');
+            try {
+                return decodeURIComponent(value);
+            } catch {
+                return value;
+            }
+        };
+
+        const isTemporaryRemoteAudioUrl = (url = '') => (
+            /backblazeb2\.com|z-api\.(?:io|net)|temp-file-download/i.test(decodedMediaUrlForCheck(url))
+        );
+
         const audioFallbackUrl = (url = '') => {
             const value = String(url || '');
             if (!value) return '';
+            if (isTemporaryRemoteAudioUrl(value)) return '';
             if (/\.mp3(?:\?|$)/i.test(value)) return value.replace(/\.mp3(\?|$)/i, '.ogg$1');
             if (/\.ogg(?:\?|$)/i.test(value)) return value.replace(/\.ogg(\?|$)/i, '.mp3$1');
             return '';
+        };
+
+        const audioPrimarySourceUrl = ({ mediaUrl = '', previewUrl = '' } = {}) => {
+            const original = absoluteMediaUrl(mediaUrl);
+            const preview = previewUrl ? absoluteMediaUrl(previewUrl) : '';
+            if (!preview) return original;
+            if (isTemporaryRemoteAudioUrl(original) || isTemporaryRemoteAudioUrl(preview)) return original || preview;
+            return preview || original;
         };
 
         const ATTENDANT_PHOTO_URL = `${mediaPublicOrigin()}/media/agent/valeria-zambrano-avatar.jpg?v=20260517-real`;
@@ -11075,10 +11102,18 @@
                             : 'Midia';
                 return `<div class="message-media-fallback">${escapeHtml(typeLabel)} registrado no WhatsApp, aguardando espelho do arquivo no painel</div>`;
             }
-            const src = escapeHtml(absoluteMediaUrl(attachment.mediaPreviewUrl || mediaUrl));
-            const original = escapeHtml(absoluteMediaUrl(mediaUrl));
+            const originalUrl = absoluteMediaUrl(mediaUrl);
+            const previewUrl = attachment.mediaPreviewUrl ? absoluteMediaUrl(attachment.mediaPreviewUrl) : '';
+            const src = escapeHtml(previewUrl || originalUrl);
+            const original = escapeHtml(originalUrl);
             if (type === 'audio' || type === 'ptt') {
-                const fallback = escapeHtml(audioFallbackUrl(original) || audioFallbackUrl(src) || original);
+                const audioSourceUrl = audioPrimarySourceUrl({
+                    mediaUrl,
+                    previewUrl: attachment.mediaPreviewUrl || ''
+                }) || originalUrl;
+                const fallbackUrl = audioFallbackUrl(audioSourceUrl) || (audioSourceUrl !== originalUrl ? originalUrl : '');
+                const audioSrc = escapeHtml(audioSourceUrl);
+                const fallback = escapeHtml(fallbackUrl);
                 return `
                     <div class="wa-audio-card ${message.isFromMe ? '' : 'no-avatar'}" data-audio-player>
                         ${message.isFromMe ? attendantAvatarHtml() : ''}
@@ -11088,7 +11123,7 @@
                                 <canvas class="wa-waveform-canvas" width="460" height="48"></canvas>
                             </div>
                             <div class="wa-audio-time">0:00</div>
-                            <audio preload="metadata" controls="controls" src="${src}" data-original-src="${original}" data-fallback-src="${fallback}"></audio>
+                            <audio preload="metadata" controls="controls" src="${audioSrc}" data-original-src="${original}" data-fallback-src="${fallback}"></audio>
                         </div>
                     </div>
                 `;
@@ -11241,6 +11276,7 @@
                     const current = audio.currentSrc || audio.src || '';
                     if (!fallback || fallback === current || card.dataset.fallbackTried === 'true') return false;
                     card.dataset.fallbackTried = 'true';
+                    card.classList.remove('audio-error');
                     const position = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
                     audio.src = fallback;
                     audio.load();
@@ -11265,6 +11301,8 @@
                             } catch { }
                         }
                         audio.setAttribute('controls', 'controls');
+                        card.classList.add('audio-error');
+                        if (time) time.textContent = 'Audio indisponivel';
                         return false;
                     }
                 };
@@ -11302,12 +11340,15 @@
                         hydrateAudioPeaks();
                     } else {
                         audio.setAttribute('controls', 'controls');
+                        card.classList.add('audio-error');
+                        if (time) time.textContent = 'Audio indisponivel';
                     }
                 });
                 audio.addEventListener('play', () => {
                     rememberAudioPlayback(audio);
                     button.innerHTML = pauseIcon();
                     card.classList.add('playing');
+                    card.classList.remove('audio-error');
                 });
                 audio.addEventListener('pause', () => {
                     rememberAudioPlayback(audio);

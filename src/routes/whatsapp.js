@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import axios from 'axios';
 import { listAudioTemplates, resolveCountryAudio } from '../services/audioTemplateService.js';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Order from '../models/Order.js';
@@ -39,6 +40,105 @@ const resolveChatId = (phone, country) => (
 );
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const isAllowedRemoteMediaUrl = (value = '') => {
+    try {
+        const parsed = new URL(String(value || ''));
+        if (parsed.protocol !== 'https:') return false;
+        const host = parsed.hostname.toLowerCase();
+        return host === 'f004.backblazeb2.com'
+            || host.endsWith('.backblazeb2.com')
+            || host.endsWith('.z-api.io')
+            || host.endsWith('.z-api.net')
+            || host === 'ec.maxlien.shop'
+            || host === 'maxlien.shop';
+    } catch {
+        return false;
+    }
+};
+
+const remoteMediaCacheDir = () => path.join(process.cwd(), 'public', 'media', 'remote-cache');
+
+const contentTypeFromMediaPath = (filePath = '') => {
+    const ext = path.extname(String(filePath || '')).slice(1).toLowerCase();
+    return {
+        mp3: 'audio/mpeg',
+        mpeg: 'audio/mpeg',
+        ogg: 'audio/ogg',
+        opus: 'audio/ogg',
+        webm: 'audio/webm',
+        m4a: 'audio/mp4',
+        aac: 'audio/aac',
+        wav: 'audio/wav',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+        gif: 'image/gif',
+        mp4: 'video/mp4',
+        mov: 'video/quicktime',
+        pdf: 'application/pdf'
+    }[ext] || 'application/octet-stream';
+};
+
+const mediaExtFromUrlOrType = (url = '', contentType = '') => {
+    try {
+        const ext = path.extname(new URL(url).pathname).slice(1).toLowerCase();
+        if (/^[a-z0-9]{2,8}$/.test(ext)) return ext;
+    } catch {}
+    const cleanType = String(contentType || '').split(';')[0].trim().toLowerCase();
+    return {
+        'audio/mpeg': 'mp3',
+        'audio/mp3': 'mp3',
+        'audio/ogg': 'ogg',
+        'audio/opus': 'ogg',
+        'audio/webm': 'webm',
+        'audio/mp4': 'm4a',
+        'audio/aac': 'aac',
+        'audio/wav': 'wav',
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+        'video/mp4': 'mp4',
+        'video/quicktime': 'mov',
+        'application/pdf': 'pdf'
+    }[cleanType] || 'bin';
+};
+
+const remoteMediaCachePaths = (url = '', contentType = '') => {
+    const key = crypto.createHash('sha256').update(String(url || '')).digest('hex');
+    const ext = mediaExtFromUrlOrType(url, contentType);
+    const dir = remoteMediaCacheDir();
+    return {
+        dir,
+        metaPath: path.join(dir, `${key}.json`),
+        filePath: path.join(dir, `${key}.${ext}`)
+    };
+};
+
+const serveLocalMediaFile = (req, res, filePath, contentType = '') => {
+    const stat = fs.statSync(filePath);
+    const total = stat.size;
+    const range = String(req.headers.range || '');
+    res.setHeader('Content-Type', contentType || contentTypeFromMediaPath(filePath));
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (range) {
+        const match = range.match(/bytes=(\d*)-(\d*)/);
+        const start = match?.[1] ? Number.parseInt(match[1], 10) : 0;
+        const end = match?.[2] ? Number.parseInt(match[2], 10) : total - 1;
+        const safeStart = Math.max(0, Math.min(start, total - 1));
+        const safeEnd = Math.max(safeStart, Math.min(end, total - 1));
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${safeStart}-${safeEnd}/${total}`);
+        res.setHeader('Content-Length', String(safeEnd - safeStart + 1));
+        fs.createReadStream(filePath, { start: safeStart, end: safeEnd }).pipe(res);
+        return;
+    }
+    res.setHeader('Content-Length', String(total));
+    fs.createReadStream(filePath).pipe(res);
+};
 
 const legacyMediaPathAliases = new Map([
     ['/media/templates/EC/Inicio_01.ogg', '/media/templates/EC/01_B_Buenos_dias.ogg'],
@@ -3240,6 +3340,77 @@ router.get('/chats', async (req, res) => {
     } catch (error) {
         console.error('Get chats error:', error);
         res.status(500).json({ error: 'Failed to fetch chats' });
+    }
+});
+
+router.get('/media-proxy', async (req, res) => {
+    const url = String(req.query.url || '');
+    try {
+        if (!isAllowedRemoteMediaUrl(url)) {
+            return res.status(400).json({ error: 'remote_media_url_not_allowed' });
+        }
+
+        const cachedMetaPaths = remoteMediaCachePaths(url);
+        if (fs.existsSync(cachedMetaPaths.metaPath)) {
+            try {
+                const meta = JSON.parse(fs.readFileSync(cachedMetaPaths.metaPath, 'utf8'));
+                if (meta?.filePath && fs.existsSync(meta.filePath)) {
+                    return serveLocalMediaFile(req, res, meta.filePath, meta.contentType);
+                }
+            } catch {}
+        }
+
+        const upstreamHeaders = {
+            'User-Agent': 'VitalismenPanel/1.0'
+        };
+        if (req.headers.range) upstreamHeaders.Range = req.headers.range;
+
+        const response = await axios.get(url, {
+            responseType: 'stream',
+            timeout: Number(process.env.REMOTE_MEDIA_PROXY_TIMEOUT_MS || 30000),
+            maxRedirects: 3,
+            headers: upstreamHeaders,
+            validateStatus: (status) => status >= 200 && status < 300
+        });
+
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        const contentLength = response.headers['content-length'];
+        const contentRange = response.headers['content-range'];
+        res.status(response.status || 200);
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        res.setHeader('Accept-Ranges', response.headers['accept-ranges'] || 'bytes');
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+        if (contentRange) res.setHeader('Content-Range', contentRange);
+
+        const canCacheFullBody = !req.headers.range && Number(response.status) === 200;
+        let cacheWriteStream = null;
+        let cacheFilePath = '';
+        if (canCacheFullBody) {
+            const cachePaths = remoteMediaCachePaths(url, contentType);
+            fs.mkdirSync(cachePaths.dir, { recursive: true });
+            cacheFilePath = cachePaths.filePath;
+            cacheWriteStream = fs.createWriteStream(cacheFilePath);
+            response.data.on('data', (chunk) => cacheWriteStream.write(chunk));
+            response.data.on('end', () => {
+                cacheWriteStream.end();
+                fs.writeFileSync(cachePaths.metaPath, JSON.stringify({
+                    url,
+                    filePath: cacheFilePath,
+                    contentType,
+                    cachedAt: new Date().toISOString()
+                }));
+            });
+            response.data.on('error', () => {
+                cacheWriteStream.destroy();
+                fs.rm(cacheFilePath, { force: true }, () => {});
+            });
+        }
+
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('[MEDIA_PROXY] falha ao carregar midia remota:', error?.response?.status || error.message);
+        res.status(error?.response?.status || 502).json({ error: 'remote_media_proxy_failed' });
     }
 });
 
