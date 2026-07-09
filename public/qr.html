@@ -13779,10 +13779,10 @@
 
         const footerDraftFiles = () => ([
             ...(state.customFunnelTexts || []),
-            { code: 'T01', type: 'draft', typeLabel: 'texto', label: 'Oferta', detail: 'Rascunho de oferta e preco', value: 'offer' },
-            { code: 'T02', type: 'draft', typeLabel: 'texto', label: 'Prova social', detail: 'Rascunho de confianca e resultado', value: 'proof' },
-            { code: 'T03', type: 'draft', typeLabel: 'texto', label: 'Pedir dados', detail: 'Nome, cidade e endereco', value: 'data' },
-            { code: 'T04', type: 'draft', typeLabel: 'texto', label: 'Confirmar', detail: 'Confirmacao do pedido', value: 'close' },
+            { code: 'T01', type: 'draft', typeLabel: 'texto', label: 'Oferta', detail: 'Envia oferta e preco direto', value: 'offer' },
+            { code: 'T02', type: 'draft', typeLabel: 'texto', label: 'Prova social', detail: 'Envia confianca e resultado direto', value: 'proof' },
+            { code: 'T03', type: 'draft', typeLabel: 'texto', label: 'Pedir dados', detail: 'Envia pedido de nome, cidade e endereco', value: 'data' },
+            { code: 'T04', type: 'draft', typeLabel: 'texto', label: 'Confirmar', detail: 'Envia confirmacao do pedido direto', value: 'close' },
             { code: 'C01', type: 'draft', typeLabel: 'acao', label: '#euatendo', detail: 'Assumir atendimento humano', value: 'cmd_euatendo' },
             { code: 'C02', type: 'draft', typeLabel: 'acao', label: '#botliberado', detail: 'Liberar bot novamente', value: 'cmd_botliberado' }
         ]);
@@ -14676,6 +14676,7 @@
 
         const footerFileItems = (templates = []) => [
             ...footerFunnelBlocks(),
+            ...footerDraftFiles(),
             ...sortedFooterAudioTemplates(templates).map((template, index) => ({
                 code: footerShortCode('A', index),
                 type: 'audio',
@@ -14685,7 +14686,6 @@
                 value: template.mediaUrl
             })),
             ...(state.customFunnelUploads || []),
-            ...footerDraftFiles(),
             ...footerMediaFiles()
         ];
 
@@ -17372,6 +17372,72 @@
             showToast('Rascunho pronto para revisar');
         };
 
+        async function sendFooterDraftTemplate(kind, button = null) {
+            if (!state.selectedChat || state.sendingMessage) return;
+            const text = buildDraftTemplate(kind);
+            if (!text) return;
+            const phone = currentChatPhone();
+            if (!digitsOnlyText(phone)) {
+                showToast('Selecione o cliente novamente: telefone da conversa nao foi localizado.');
+                return;
+            }
+            const item = findFooterFileItem('draft', kind) || {
+                type: 'draft',
+                typeLabel: 'texto',
+                label: 'Texto do funil',
+                value: kind
+            };
+            const originalHtml = button?.innerHTML || '';
+            const internalPanelCommand = isInternalPanelCommandText(text);
+            let pending = null;
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Enviando';
+            }
+            state.sendingMessage = true;
+            updateMessageComposerControls();
+            if (!internalPanelCommand) {
+                pending = appendLocalMessage(text, { type: 'text', deliveryStatus: 'sending' });
+            }
+            try {
+                const result = await api('/api/whatsapp/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        phone,
+                        message: text,
+                        sessionId,
+                        delayTypingSeconds: 0,
+                        sendMode: 'manual_panel',
+                        country: currentTemplateCountry()
+                    })
+                });
+                if (!result?.success) {
+                    throw new Error(result?.error || 'WhatsApp nao confirmou o envio do texto.');
+                }
+                if (result?.handled && pending?._id) {
+                    removePendingLocalMessage(pending._id);
+                }
+                rememberFunnelRef(item);
+                el('messageInput').value = '';
+                showToast(result?.handled ? (result.message || 'Comando aplicado') : 'Texto do funil enviado direto');
+                Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
+                window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
+            } catch (error) {
+                markPendingLocalMessageStatus(pending?._id, 'unconfirmed');
+                if (!String(el('messageInput')?.value || '').trim()) {
+                    el('messageInput').value = text;
+                }
+                showToast(`Texto nao enviado; preservado no campo: ${error.message}`);
+            } finally {
+                state.sendingMessage = false;
+                updateMessageComposerControls();
+                if (button) {
+                    button.disabled = !state.selectedChat;
+                    button.innerHTML = originalHtml;
+                }
+            }
+        }
+
         const tomorrowMorningInput = () => {
             const date = new Date();
             date.setDate(date.getDate() + 1);
@@ -17952,7 +18018,7 @@
             });
         });
         document.querySelectorAll('[data-footer-draft-template]').forEach((button) => {
-            button.addEventListener('click', () => fillDraftTemplate(button.dataset.footerDraftTemplate));
+            button.addEventListener('click', () => sendFooterDraftTemplate(button.dataset.footerDraftTemplate, button));
         });
         document.querySelectorAll('[data-module]').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -18660,7 +18726,7 @@
                 const value = button.dataset.footerFileValue;
                 if (type === 'block') sendFunnelBlock(value, button);
                 if (type === 'audio') sendFunnelAudio(value, button);
-                if (type === 'draft') fillDraftTemplate(value);
+                if (type === 'draft') sendFooterDraftTemplate(value, button);
                 if (type === 'media') sendFooterMedia(value, button);
             }
         });
@@ -18671,7 +18737,7 @@
             const value = button.dataset.footerFileValue;
             if (type === 'block') sendFunnelBlock(value, button);
             if (type === 'audio') sendFunnelAudio(value, button);
-            if (type === 'draft') fillDraftTemplate(value);
+            if (type === 'draft') sendFooterDraftTemplate(value, button);
             if (type === 'media') sendFooterMedia(value, button);
         });
         el('composerQuickStatusList')?.addEventListener('click', (event) => {
@@ -18681,7 +18747,7 @@
             const value = button.dataset.footerFileValue;
             if (type === 'block') sendFunnelBlock(value, button);
             if (type === 'audio') sendFunnelAudio(value, button);
-            if (type === 'draft') fillDraftTemplate(value);
+            if (type === 'draft') sendFooterDraftTemplate(value, button);
             if (type === 'media') sendFooterMedia(value, button);
         });
         el('footerAudioQuickList').addEventListener('toggle', (event) => {
@@ -18718,7 +18784,7 @@
             }
         });
         document.querySelectorAll('[data-draft-template]').forEach((button) => {
-            button.addEventListener('click', () => fillDraftTemplate(button.dataset.draftTemplate));
+            button.addEventListener('click', () => sendFooterDraftTemplate(button.dataset.draftTemplate, button));
         });
         el('messageInput').addEventListener('input', updateMessageComposerControls);
         el('messageInput').addEventListener('paste', handleComposerPaste);

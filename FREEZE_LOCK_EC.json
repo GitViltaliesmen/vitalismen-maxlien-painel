@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T13:21:51.101Z",
+  "updatedAt": "2026-07-09T13:41:55.691Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -500,6 +500,39 @@
           "value": "today.totalEntries"
         }
       ]
+    },
+    {
+      "id": "manual_funnel_text_send_direct_ec",
+      "status": "active",
+      "description": "Textos do funil manual EC, incluindo Oferta, sao enviados diretamente ao clicar Enviar e nao ficam como rascunho.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "sendFooterDraftTemplate"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Texto do funil enviado direto"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (type === 'draft') sendFooterDraftTemplate(value, button);"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Envia oferta e preco direto"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "...footerDraftFiles(),"
+        }
+      ]
     }
   ],
   "freezeGuards": [
@@ -661,12 +694,55 @@
         "panel_product_autodetect_customer_draft_ec",
         "panel_real_entry_metrics_ec"
       ]
+    },
+    {
+      "at": "2026-07-09T13:38:34.313Z",
+      "description": "Aprovado: congelar estado EC publicado antes de ajustar envio imediato do funil manual",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709133834.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T13:41:55.691Z",
+      "description": "Aprovado: textos do funil manual EC enviam direto no clique Enviar sem virar rascunho",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709134155.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T13:21:51.101Z",
-    "description": "Aprovado: alerta EC ignora pos-venda ativo, painel registra produto automatico Nitrix/Vit Power e metricas usam total real de clientes",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709132151.md",
+    "at": "2026-07-09T13:41:55.691Z",
+    "description": "Aprovado: textos do funil manual EC enviam direto no clique Enviar sem virar rascunho",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709134155.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -681,7 +757,8 @@
       "customer_ficha_autosave_orderid_ec",
       "ops_alert_post_sale_reengagement_guard_ec",
       "panel_product_autodetect_customer_draft_ec",
-      "panel_real_entry_metrics_ec"
+      "panel_real_entry_metrics_ec",
+      "manual_funnel_text_send_direct_ec"
     ]
   }
 }
