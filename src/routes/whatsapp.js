@@ -824,6 +824,17 @@ const latestDateValue = (...values) => {
     return latest || null;
 };
 
+const earliestDateValue = (...values) => {
+    const earliest = values
+        .map((value) => {
+            const ms = dateValueMs(value);
+            return ms ? new Date(ms) : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+    return earliest || null;
+};
+
 const stableContactEntryAt = (state = {}) => (
     state.firstInboundAt
     || state.metadata?.customerDraft?.entryAt
@@ -3032,6 +3043,8 @@ router.get('/chats', async (req, res) => {
                 tags: 1,
                 human: 1,
                 firstInboundAt: 1,
+                lastInboundAt: 1,
+                lastOutboundAt: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 metadata: 1
@@ -3064,6 +3077,8 @@ router.get('/chats', async (req, res) => {
                     tags: 1,
                     human: 1,
                     firstInboundAt: 1,
+                    lastInboundAt: 1,
+                    lastOutboundAt: 1,
                     createdAt: 1,
                     updatedAt: 1,
                     metadata: 1
@@ -3258,11 +3273,21 @@ router.get('/chats', async (req, res) => {
                 const contactState = statesByPhone.get(phoneDigits) || statesByChatId.get(c.id._serialized) || null;
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
-                const entryAt = latestDateValue(
-                    stableContactEntryAt(contactState),
-                    lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null
-                );
                 const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
+                const contactEntryAt = stableContactEntryAt(contactState);
+                const orderEntryAt = stableOrderEntryAt(order);
+                const fallbackActivityAt = lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null;
+                const entryAt = earliestDateValue(orderEntryAt, contactEntryAt)
+                    || orderEntryAt
+                    || contactEntryAt
+                    || fallbackActivityAt;
+                const lastActivityAt = latestDateValue(
+                    fallbackActivityAt,
+                    contactState?.lastInboundAt,
+                    contactState?.lastOutboundAt,
+                    contactState?.updatedAt,
+                    contactState?.createdAt
+                );
                 const productContext = await panelProductContextForChat({
                     contactState,
                     order,
@@ -3275,7 +3300,12 @@ router.get('/chats', async (req, res) => {
                     id: c.id._serialized,
                     name: order?.customer?.name || panelDraft.name || lastMessage?.notifyName || c.name || c.id.user,
                     phone: order?.customer?.phone || panelDraft.phone || c.phoneHint || c.id.user,
-                    entryAt: latestDateValue(order?.entryAt, order?.createdAt, entryAt),
+                    entryAt,
+                    firstInboundAt: contactState?.firstInboundAt || null,
+                    lastInboundAt: contactState?.lastInboundAt || null,
+                    lastActivityAt,
+                    createdAt: contactState?.createdAt || null,
+                    updatedAt: contactState?.updatedAt || null,
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: 0,
                     lastMessage: lastMessage ? {
@@ -3461,16 +3491,31 @@ router.get('/chats', async (req, res) => {
                 phoneDigits
             });
             const panelDraft = productContext.customerDraft || customerDraft;
+            const contactEntryAt = stableContactEntryAt(contactState);
+            const orderEntryAt = stableOrderEntryAt(order);
+            const fallbackActivityAt = lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null;
+            const entryAt = earliestDateValue(orderEntryAt, contactEntryAt)
+                || orderEntryAt
+                || contactEntryAt
+                || fallbackActivityAt;
+            const lastActivityAt = latestDateValue(
+                fallbackActivityAt,
+                contactState?.lastInboundAt,
+                contactState?.lastOutboundAt,
+                contactState?.updatedAt,
+                contactState?.createdAt
+            );
 
             return {
                 id: c.id._serialized,
                 name: order?.customer?.name || panelDraft.name || c.name || c.id.user,
                 phone: order?.customer?.phone || panelDraft.phone || phone, // This is now the real phone number (resolved)
-                entryAt: latestDateValue(
-                    stableOrderEntryAt(order),
-                    stableContactEntryAt(contactState),
-                    lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null
-                ),
+                entryAt,
+                firstInboundAt: contactState?.firstInboundAt || null,
+                lastInboundAt: contactState?.lastInboundAt || null,
+                lastActivityAt,
+                createdAt: contactState?.createdAt || null,
+                updatedAt: contactState?.updatedAt || null,
                 profilePictureUrl,
                 unreadCount,
                 lastMessage: lastMessage ? {

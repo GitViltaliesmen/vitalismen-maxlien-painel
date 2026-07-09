@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T14:04:12.613Z",
+  "updatedAt": "2026-07-09T14:22:20.216Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -533,6 +533,44 @@
           "value": "...footerDraftFiles(),"
         }
       ]
+    },
+    {
+      "id": "panel_chat_entry_time_badge_ec",
+      "status": "active",
+      "description": "Lista e cabecalho do painel EC mostram horario de primeira entrada do cliente e se ele e novo hoje ou antigo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "earliestDateValue"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "firstInboundAt: contactState?.firstInboundAt || null"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "chatEntryInfo"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Novo hoje"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Antigo"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "chat-entry-line"
+        }
+      ]
     }
   ],
   "freezeGuards": [
@@ -759,12 +797,35 @@
         "panel_real_entry_metrics_ec",
         "manual_funnel_text_send_direct_ec"
       ]
+    },
+    {
+      "at": "2026-07-09T14:22:20.216Z",
+      "description": "Aprovado: painel EC mostra horario de entrada e novo ou antigo por cliente",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709142220.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T14:04:12.613Z",
-    "description": "Aprovado: fechamento total EC sem arquivos soltos apos funil manual direto",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709140412.md",
+    "at": "2026-07-09T14:22:20.216Z",
+    "description": "Aprovado: painel EC mostra horario de entrada e novo ou antigo por cliente",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709142220.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -780,7 +841,8 @@
       "ops_alert_post_sale_reengagement_guard_ec",
       "panel_product_autodetect_customer_draft_ec",
       "panel_real_entry_metrics_ec",
-      "manual_funnel_text_send_direct_ec"
+      "manual_funnel_text_send_direct_ec",
+      "panel_chat_entry_time_badge_ec"
     ]
   }
 }
