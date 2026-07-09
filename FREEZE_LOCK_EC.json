@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T13:41:55.691Z",
+  "updatedAt": "2026-07-09T14:04:12.613Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -737,12 +737,34 @@
         "panel_real_entry_metrics_ec",
         "manual_funnel_text_send_direct_ec"
       ]
+    },
+    {
+      "at": "2026-07-09T14:04:12.613Z",
+      "description": "Aprovado: fechamento total EC sem arquivos soltos apos funil manual direto",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709140412.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T13:41:55.691Z",
-    "description": "Aprovado: textos do funil manual EC enviam direto no clique Enviar sem virar rascunho",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709134155.md",
+    "at": "2026-07-09T14:04:12.613Z",
+    "description": "Aprovado: fechamento total EC sem arquivos soltos apos funil manual direto",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709140412.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
