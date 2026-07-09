@@ -7989,6 +7989,9 @@
             users: [],
             whatsappSessions: [],
             zapiDevice: null,
+            lastZapiOkAt: 0,
+            lastZapiSnapshot: null,
+            lastZapiStatusError: '',
             connectionWorkload: { sessions: [] },
             chats: [],
             shipments: [],
@@ -8694,10 +8697,48 @@
             target.help.classList.remove('hidden');
         };
 
+        const cleanPanelResponsePreview = (value = '') => String(value || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 110);
+
+        async function fetchPanelJson(path, options = {}) {
+            const { label = path, ...fetchOptions } = options;
+            const response = await fetch(path, {
+                cache: 'no-store',
+                credentials: 'same-origin',
+                ...fetchOptions
+            });
+            const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            let data = {};
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    const preview = cleanPanelResponsePreview(text);
+                    const error = new Error(`${label}: resposta ${response.status || 'sem status'} nao JSON${preview ? ` (${preview})` : ''}`);
+                    error.status = response.status;
+                    error.contentType = contentType;
+                    error.preview = preview;
+                    throw error;
+                }
+            }
+            if (!response.ok) {
+                const error = new Error(data.error || data.message || `${label}: erro ${response.status}`);
+                error.status = response.status;
+                error.response = data;
+                throw error;
+            }
+            return data;
+        }
+
+        const zapiStatusGraceMs = 120000;
+
         async function checkStatus() {
             try {
                 const ts = Date.now();
-                const zapiStatus = await fetch(`/api/zapi/status?_=${ts}`).then((res) => res.json());
+                const zapiStatus = await fetchPanelJson(`/api/zapi/status?_=${ts}`, { label: 'Z-API status' });
                 const statusData = zapiStatus?.status || {};
                 const errorDetail = String(statusData.error || zapiStatus?.error || '').toLowerCase();
                 const alreadyConnected = errorDetail.includes('already connected');
@@ -8720,6 +8761,11 @@
                     }
                 };
                 state.zapiDevice = zapi || null;
+                if (connected) {
+                    state.lastZapiOkAt = Date.now();
+                    state.lastZapiSnapshot = zapi;
+                    state.lastZapiStatusError = '';
+                }
                 const status = connected ? 'connected' : 'disconnected';
                 document.body.classList.toggle('zapi-offline', !connected);
 
@@ -8728,12 +8774,31 @@
                 setZapiLoginState({ status: el('statusText'), image: el('qrcode'), help: el('qrHelp') }, zapi);
                 setZapiLoginState({ status: el('loginStatusText'), image: el('loginQrcode'), help: el('loginQrHelp') }, zapi);
             } catch (error) {
+                const now = Date.now();
+                const hasFreshConnectedStatus = Boolean(state.lastZapiSnapshot?.ok && state.lastZapiOkAt && now - state.lastZapiOkAt < zapiStatusGraceMs);
+                const message = error.message || 'Falha ao ler status Z-API';
+                state.lastZapiStatusError = message;
+                if (hasFreshConnectedStatus) {
+                    document.body.classList.remove('zapi-offline');
+                    el('waBadge').textContent = 'Z-API';
+                    el('waBadge').className = 'badge green';
+                    const staleStatus = {
+                        ...state.lastZapiSnapshot,
+                        transientStatusError: message
+                    };
+                    state.zapiDevice = staleStatus;
+                    const lastTime = new Date(state.lastZapiOkAt).toLocaleTimeString('pt-BR');
+                    const stableText = `Z-API CONECTADO | ultima leitura ${lastTime}`;
+                    el('statusText').textContent = stableText;
+                    el('loginStatusText').textContent = stableText;
+                    return;
+                }
                 document.body.classList.add('zapi-offline');
                 el('waBadge').textContent = 'ERRO';
                 el('waBadge').className = 'badge red';
-                el('statusText').textContent = error.message;
-                el('loginStatusText').textContent = error.message;
-                state.zapiDevice = { ok: false, error: error.message };
+                el('statusText').textContent = message;
+                el('loginStatusText').textContent = message;
+                state.zapiDevice = { ok: false, error: message };
             }
             renderOperationalAlerts();
         }
@@ -9103,12 +9168,12 @@
             const country = selectedPanelCountry();
             const [payload, workload, zapiDevice] = await Promise.all([
                 state.token
-                    ? api('/api/whatsapp/sessions').catch(async () => fetch(`/api/whatsapp/status?_=${Date.now()}`).then((res) => res.json()))
-                    : fetch(`/api/whatsapp/status?_=${Date.now()}`).then((res) => res.json()),
+                    ? api('/api/whatsapp/sessions').catch(async () => fetchPanelJson(`/api/whatsapp/status?_=${Date.now()}`, { label: 'WhatsApp status' }))
+                    : fetchPanelJson(`/api/whatsapp/status?_=${Date.now()}`, { label: 'WhatsApp status' }),
                 state.token
                     ? api(`/api/whatsapp/connection-workload?country=${encodeURIComponent(country || 'EC')}`).catch(() => ({ sessions: [] }))
                     : Promise.resolve({ sessions: [] }),
-                fetch(`/api/zapi/device?_=${Date.now()}`).then((res) => res.json()).catch((error) => ({ ok: false, error: error.message }))
+                fetchPanelJson(`/api/zapi/device?_=${Date.now()}`, { label: 'Z-API device' }).catch((error) => ({ ok: false, error: error.message }))
             ]);
             state.whatsappSessions = normalizeSessionsPayload(payload);
             state.connectionWorkload = workload || { sessions: [] };

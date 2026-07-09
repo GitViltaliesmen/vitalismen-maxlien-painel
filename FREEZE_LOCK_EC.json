@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-06-26T20:33:07.598Z",
+  "updatedAt": "2026-07-09T11:19:42.232Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -161,6 +161,160 @@
           "value": "SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT"
         }
       ]
+    },
+    {
+      "id": "vsl_nitrix_mobile_entry_ec",
+      "status": "active",
+      "description": "VSL /n do Equador permanece no funil Nitrix mobile aprovado, com desktop fora da VSL e entrada WhatsApp no telefone oficial.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "<!-- VSL VTURB - injected only for mobile visitors -->"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "function isMobileVisitor()"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "if (!IS_MOBILE_VISITOR) return;"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const OFFICIAL_ZAPI_SELLER_E164 = \"553183002800\";"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/whatsapp/vsl-entry\")"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "productKey: \"nitrix_ec\""
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "productName: \"Nitrix Oxide Ecuador\""
+        }
+      ]
+    },
+    {
+      "id": "meta_pixel_lead_ec_dataset",
+      "status": "active",
+      "description": "Marcacao Facebook/Meta da VSL usa dataset EC correto, PageView/Lead deduplicados e CAPI EC sem token de outro pais.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fbq('init', '1468946114265008');"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "window.__mvpMarkLeadOnce = markLeadOnce;"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "eventName: \"Lead\""
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "content_ids: [\"nitrix_oxide_ec\"]"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/meta-events\")"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "accessToken: process.env.META_ACCESS_TOKEN_EC"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "eventName: 'PageView'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "eventName: 'Lead'"
+        }
+      ]
+    },
+    {
+      "id": "meta_purchase_confirmed_order_lock_ec",
+      "status": "active",
+      "description": "Venda/Purchase Facebook EC dispara somente em pedido confirmado, com valor positivo, moeda USD, produto EC e lock anti-duplicidade no painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "status: 'confirmed'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "currency: 'USD'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "sendPurchaseEventForOrder(order);"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "recordOnlineAdminPurchaseLock({"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "error: 'META Purchase missing positive value'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "error: 'META Purchase missing valid quantity'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "event_name: 'Purchase'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "currency,"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "value,"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "ecuadorProductMetadata(resolveEcuadorProductInfo(order))"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/adminPanelStatusService.js",
+          "value": "CREATE TABLE IF NOT EXISTS purchase_capi_lock"
+        }
+      ]
     }
   ],
   "freezeGuards": [
@@ -175,6 +329,18 @@
     [
       "node",
       "scripts/audit-customer-draft-zero-quantity.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-no-regression-meta-country.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-ec-nitrix-guard.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-ec-product-micro-layer.mjs"
     ],
     [
       "node",
@@ -220,19 +386,38 @@
         "zapi_technical_alert_hidden_from_panel",
         "shipment_dispatch_8_per_hour"
       ]
+    },
+    {
+      "at": "2026-07-09T11:19:42.232Z",
+      "description": "Aprovado: congelar VSL /n Nitrix EC e marcacao de venda Facebook Purchase EC funcionando antes de corrigir painel",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709111942.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-06-26T20:33:07.598Z",
-    "description": "Aprovado: congelar tudo auditado hoje antes de pausar; bot texto OK; pendencias mapeadas sem alterar codigo",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260626203307.md",
+    "at": "2026-07-09T11:19:42.232Z",
+    "description": "Aprovado: congelar VSL /n Nitrix EC e marcacao de venda Facebook Purchase EC funcionando antes de corrigir painel",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709111942.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
       "panel_rate_limit_operational_writes",
       "servientrega_agency_search_not_rate_limited",
       "zapi_technical_alert_hidden_from_panel",
-      "shipment_dispatch_8_per_hour"
+      "shipment_dispatch_8_per_hour",
+      "vsl_nitrix_mobile_entry_ec",
+      "meta_pixel_lead_ec_dataset",
+      "meta_purchase_confirmed_order_lock_ec"
     ]
   }
 }
