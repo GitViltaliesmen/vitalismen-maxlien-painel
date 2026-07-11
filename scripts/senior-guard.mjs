@@ -65,6 +65,12 @@ const forbiddenContextPatterns = [
 const ignoredContextFiles = new Set([
     'src/data/agencia_LISTA.json'
 ]);
+// A referencia aprovada a consulta da Dra. Maria pertence exclusivamente ao
+// contrato isolado do Nitrix. Ela nao faz parte do texto ou do estado do
+// funil Vit Power, que continua protegido pela regra geral abaixo.
+const productScopedProtocolFiles = new Set([
+    'src/services/nitrixProductProfile.js'
+]);
 
 assert(
     [localOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some((allowed) => normalizePath(root).startsWith(normalizePath(allowed))),
@@ -121,7 +127,9 @@ for (const file of sourceFiles) {
     assert(!/generateWelcomeMessage|rewriteMessage/.test(body), `${rel} referencia IA legada de recuperacao.`);
     assert(!/shipmentSchedulerService|processShipmentNotifications/.test(body), `${rel} referencia scheduler paralelo de entregas.`);
     assert(!/DRAFT_RECOVERY_ENABLED|LEGACY_ORDER_FUNNEL_ENABLED|SHIPMENT_NOTIFICATIONS_ENABLED/.test(body), `${rel} referencia flag legada removida.`);
-    assert(!/\bprotocolo\b/i.test(body), `${rel} menciona protocolo; foco atual e Vit Power.`);
+    if (!productScopedProtocolFiles.has(rel)) {
+        assert(!/\bprotocolo\b/i.test(body), `${rel} menciona protocolo; foco atual e Vit Power.`);
+    }
 }
 
 const projectFiles = [
