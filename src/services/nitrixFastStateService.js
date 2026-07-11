@@ -16,18 +16,29 @@ const AGENT_KEY = NITRIX_EC_PRODUCT_PROFILE.key;
 const memoryPath = `metadata.perAgentMemory.${AGENT_KEY}`;
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
 const enabled = () => String(process.env.NITRIX_FAST_STATE_ENABLED || 'false').toLowerCase() === 'true';
-// Quando definido, o modo de teste permite a sequencia apenas para este
-// telefone. Assim a validacao real usa o mesmo caminho de producao sem
-// expor nenhum cliente Nitrix antes da aprovacao explicita.
-const testPhone = () => digitsOnly(process.env.NITRIX_FAST_STATE_TEST_PHONE || '');
-const allowedByTestGate = (state = {}) => {
-    const configured = testPhone();
-    return !configured || digitsOnly(state.phoneDigits || state.chatId || '').endsWith(configured);
+// A liberacao e fechada por padrao. Um telefone de QA vazio jamais pode abrir
+// clientes reais; somente `ROLLOUT_MODE=full` e uma decisao operacional
+// explicita liberam a camada para toda entrada VSL Nitrix comprovada.
+export const nitrixFastStateRolloutMode = (env = process.env) => (
+    String(env.NITRIX_FAST_STATE_ROLLOUT_MODE || 'qa').trim().toLowerCase() === 'full'
+        ? 'full'
+        : 'qa'
+);
+const testPhone = (env = process.env) => digitsOnly(env.NITRIX_FAST_STATE_TEST_PHONE || '');
+export const nitrixFastStateAllowsState = (state = {}, env = process.env) => {
+    if (nitrixFastStateRolloutMode(env) === 'full') return true;
+    const configured = testPhone(env);
+    return Boolean(configured) && digitsOnly(state.phoneDigits || state.chatId || '').endsWith(configured);
 };
 // O contato de QA pode repetir a mesma sequencia apos um reset controlado.
 // Em producao isto permanece sempre falso e a trava global anti-audio-repetido
 // continua obrigatoria para todos os clientes.
-const bypassAudioDedupeOnlyForConfiguredTest = (state = {}) => Boolean(testPhone()) && allowedByTestGate(state);
+export const nitrixFastStateAllowsQaDedupeBypass = (state = {}, env = process.env) => (
+    nitrixFastStateRolloutMode(env) === 'qa'
+    && Boolean(testPhone(env))
+    && nitrixFastStateAllowsState(state, env)
+);
+const bypassAudioDedupeOnlyForConfiguredTest = (state = {}) => nitrixFastStateAllowsQaDedupeBypass(state);
 // O worker e' serial dentro deste processo: duas chamadas do scheduler ou de
 // timers de entrada nunca disparam uma rajada em paralelo.
 let isProcessingFastStateJobs = false;
@@ -643,12 +654,16 @@ const processState = async (state, now) => {
 
 export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
     if (!enabled()) return { enabled: false, processed: 0 };
+    const rolloutMode = nitrixFastStateRolloutMode();
+    const configuredTestPhone = testPhone();
+    if (rolloutMode === 'qa' && !configuredTestPhone) {
+        return { enabled: true, mode: rolloutMode, blocked: 'qa_phone_missing', processed: 0 };
+    }
     if (isProcessingFastStateJobs) return { enabled: true, busy: true, processed: 0 };
     isProcessingFastStateJobs = true;
     try {
         const query = { assignedAgent: AGENT_KEY, [`${memoryPath}.fastState.status`]: 'running' };
-        const configuredTestPhone = testPhone();
-        if (configuredTestPhone) query.phoneDigits = { $regex: `${configuredTestPhone}$` };
+        if (rolloutMode === 'qa') query.phoneDigits = { $regex: `${configuredTestPhone}$` };
         const states = await ContactState.find(query).sort({ updatedAt: 1 }).limit(Math.max(1, limit));
         const now = new Date();
         // O job vencido mais antigo e' avaliado primeiro. Isso preserva a
@@ -672,7 +687,7 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
 export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText, sessionId = null } = {}) => {
     if (!enabled() || !contactStateId) return false;
     const state = await ContactState.findById(contactStateId);
-    if (!state || !allowedByTestGate(state) || isExplicitHumanHold(state)) return false;
+    if (!state || !nitrixFastStateAllowsState(state) || isExplicitHumanHold(state)) return false;
     const current = clone(flowOf(state));
     if (current?.startedAt) {
         if (current.status === 'running') cancelPendingJobs(current, 'customer_reply');
