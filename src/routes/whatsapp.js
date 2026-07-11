@@ -1351,11 +1351,11 @@ const publicEcVslProductFromBody = (body = {}) => {
     }
 
     return {
-        productKey: EC_PRODUCT_KEYS.nitrix,
-        productName: EC_PRODUCT_NAMES.nitrix_ec,
-        agentKey: EC_PRODUCT_KEYS.nitrix,
-        tag: 'NITRIX_EC',
-        source: 'ec_manual_default'
+        productKey: EC_PRODUCT_KEYS.vitPower,
+        productName: EC_PRODUCT_NAMES.vit_power_ec,
+        agentKey: EC_PRODUCT_KEYS.vitPower,
+        tag: 'VIT_POWER_EC',
+        source: 'ec_vit_power_legacy_default'
     };
 };
 
@@ -3200,14 +3200,34 @@ router.get('/chats', async (req, res) => {
                 .catch(() => []);
 
             const lastMessageByKey = new Map();
-            recentMessages.forEach((message) => {
+            const unreadCountByKey = new Map();
+            const fastContactStateForChat = (chat) => {
+                const phone = digitsOnly(chat.phoneHint || chat.id?.user);
+                return statesByPhone.get(phone) || statesByChatId.get(chat.id?._serialized) || null;
+            };
+            const messageBelongsToFastChat = (message, chat) => {
                 const peerPhone = digitsOnly(message.peerPhone);
                 const ids = [message.chatId, message.from, message.to].filter(Boolean);
+                const chatPhone = digitsOnly(chat.phoneHint || chat.id?.user);
+                return (peerPhone && chatPhone && peerPhone === chatPhone)
+                    || ids.some((id) => chat.linkedIds.includes(id));
+            };
+            recentMessages.forEach((message) => {
                 for (const chat of allChats) {
-                    if (lastMessageByKey.has(chat.conversationKey)) continue;
-                    const chatPhone = digitsOnly(chat.phoneHint || chat.id?.user);
-                    if ((peerPhone && chatPhone && peerPhone === chatPhone) || ids.some((id) => chat.linkedIds.includes(id))) {
+                    if (!messageBelongsToFastChat(message, chat)) continue;
+                    if (!lastMessageByKey.has(chat.conversationKey)) {
                         lastMessageByKey.set(chat.conversationKey, message);
+                    }
+                    if (message.isFromMe) continue;
+                    const contactState = fastContactStateForChat(chat);
+                    const panelLastReadAt = contactState?.metadata?.panelLastReadAt
+                        ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
+                        : 0;
+                    if (Number(message.timestamp || 0) > panelLastReadAt) {
+                        unreadCountByKey.set(
+                            chat.conversationKey,
+                            (unreadCountByKey.get(chat.conversationKey) || 0) + 1
+                        );
                     }
                 }
             });
@@ -3270,7 +3290,7 @@ router.get('/chats', async (req, res) => {
 
             const fastChats = (await Promise.all(allChats.map(async (c) => {
                 const phoneDigits = digitsOnly(c.phoneHint || c.id.user);
-                const contactState = statesByPhone.get(phoneDigits) || statesByChatId.get(c.id._serialized) || null;
+                const contactState = fastContactStateForChat(c);
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
                 const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
@@ -3307,7 +3327,7 @@ router.get('/chats', async (req, res) => {
                     createdAt: contactState?.createdAt || null,
                     updatedAt: contactState?.updatedAt || null,
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
-                    unreadCount: 0,
+                    unreadCount: unreadCountByKey.get(c.conversationKey) || 0,
                     lastMessage: lastMessage ? {
                         body: lastMessage.body,
                         timestamp: lastMessage.timestamp,

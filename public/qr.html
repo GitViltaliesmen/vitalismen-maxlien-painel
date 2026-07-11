@@ -1297,6 +1297,30 @@
             white-space: nowrap;
         }
 
+        .chat-entry-line .source-badge {
+            flex: 0 0 auto;
+            border-radius: 999px;
+            padding: 1px 6px;
+            background: #e8f0fe;
+            color: #174ea6;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .02em;
+            line-height: 1.45;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .chat-entry-line .source-badge.old-client {
+            background: #eef2f5;
+            color: #536471;
+        }
+
+        .chat-entry-line .source-badge.direct-entry {
+            background: #fff4d6;
+            color: #9a5b00;
+        }
+
         .chat-entry-line.old .entry-badge {
             background: #eef2f5;
             color: #536471;
@@ -3989,6 +4013,25 @@
             color: #006c55;
         }
 
+        .tabs button .tab-unread-count {
+            display: none;
+            min-width: 16px;
+            height: 16px;
+            margin-left: 3px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #d63638;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 16px;
+            text-align: center;
+        }
+
+        .tabs button.has-unread .tab-unread-count {
+            display: inline-block;
+        }
+
         .contact-actions {
             display: flex;
             justify-content: flex-start;
@@ -5568,6 +5611,11 @@
             text-align: center;
         }
 
+        .chat-item.has-unread {
+            background: #f0f8ff;
+            box-shadow: inset 3px 0 0 #25d366;
+        }
+
         .custom-funnel-preview-empty strong,
         .custom-funnel-preview-content strong {
             color: #075e54;
@@ -7087,7 +7135,7 @@
 
                 <div class="tabs">
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
-                    <button data-chat-filter="unread" type="button">Não lidas</button>
+                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -7528,6 +7576,7 @@
                             <div class="price-preset-group" aria-label="Precos de recuperacao">
                                 <div class="price-preset-group-title">Recuperacao / desconto</div>
                                 <button class="price-preset" data-price-preset="1:35" type="button" disabled><strong>USD 35</strong> · 1 frasco</button>
+                                <button class="price-preset" data-price-preset="2:70" type="button" disabled hidden><strong>USD 70</strong> · 2 frascos</button>
                                 <button class="price-preset" data-price-preset="3:80" type="button" disabled><strong>USD 80</strong> · 3 frascos</button>
                                 <button class="price-preset" data-price-preset="6:147" type="button" disabled><strong>USD 147</strong> · 6 frascos</button>
                             </div>
@@ -8479,6 +8528,44 @@
                 label,
                 header: `${isToday ? 'novo hoje' : 'antigo'}; ${label.toLowerCase()}`,
                 title: `Primeira entrada registrada: ${formatTime(raw)}`
+            };
+        };
+
+        const chatSourceInfo = (chat = {}) => {
+            const tags = chatTags(chat).map((tag) => String(tag || '').toUpperCase());
+            const draft = chat.customerDraft || {};
+            const productKey = String(
+                chat.productKey
+                || draft.productKey
+                || chat.assignedAgent
+                || draft.productName
+                || chat.productName
+                || ''
+            ).toLowerCase();
+            const cameFromVsl = tags.includes('VSL_EC')
+                || String(draft.source || '').toLowerCase().includes('vsl');
+            const isNitrix = productKey.includes('nitrix') || productKey === 'nx_ec';
+            if (cameFromVsl) {
+                return {
+                    badge: isNitrix ? 'VSL · Nitrix' : 'VSL · Vit Power',
+                    className: 'vsl',
+                    title: isNitrix
+                        ? 'Entrada registrada pela VSL Nitrix EC'
+                        : 'Entrada registrada pela VSL Vit Power EC'
+                };
+            }
+            const entry = chatEntryInfo(chat);
+            if (entry.className === 'old') {
+                return {
+                    badge: 'Cliente antigo',
+                    className: 'old-client',
+                    title: 'Contato anterior, sem registro de entrada atual pela VSL'
+                };
+            }
+            return {
+                badge: 'Entrada direta',
+                className: 'direct-entry',
+                title: 'Contato sem registro de entrada pela VSL'
             };
         };
 
@@ -9568,6 +9655,7 @@
                 ['3', '95.99', 'USD 95.99', '3 frascos'],
                 ['6', '167.99', 'USD 167.99', '6 frascos'],
                 ['1', '35', 'USD 35', '1 frasco'],
+                ['2', '70', 'USD 70', '2 frascos'],
                 ['3', '80', 'USD 80', '3 frascos'],
                 ['6', '147', 'USD 147', '6 frascos']
             ],
@@ -10497,12 +10585,14 @@
             const query = String(search || '').trim().toLowerCase();
             if (!query) return true;
             const queryDigits = digitsOnlyText(query);
+            const source = chatSourceInfo(chat);
             const haystack = [
                 chat.name,
                 chat.phone,
                 chat.id,
                 chat.orderId,
                 chat.lastMessage?.body,
+                source.badge,
                 ...chatTags(chat)
             ];
             const textMatch = haystack.some((value) => String(value || '').toLowerCase().includes(query));
@@ -10561,10 +10651,16 @@
             el('careMetricClosed')?.closest('.care-metric')?.setAttribute('title', `${lostCount} desistente(s): comprar depois, cancelado ou devolvido`);
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
+            const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
             el('chatTotalCounter')?.setAttribute('title', `${visibleChats.length} conversa${visibleChats.length === 1 ? '' : 's'} visiveis${unreadTotal ? ` | ${unreadTotal} nao lida${unreadTotal === 1 ? '' : 's'}` : ''}`);
+            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = unreadChats > 99 ? '99+' : String(unreadChats);
+            el('newMessagesFilterBtn')?.classList.toggle('has-unread', unreadChats > 0);
+            el('newMessagesFilterBtn')?.setAttribute('title', unreadChats
+                ? `${unreadChats} cliente${unreadChats === 1 ? '' : 's'} com mensagem nova para responder`
+                : 'Nenhuma mensagem nova para responder');
         };
 
         const renderDashboardMetrics = () => {
@@ -10762,6 +10858,12 @@
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
                 return chatMatchesSearch(chat, search);
+            }).sort((left, right) => {
+                const unreadDifference = Number(Number(right.unreadCount || 0) > 0) - Number(Number(left.unreadCount || 0) > 0);
+                if (unreadDifference) return unreadDifference;
+                const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
+                if (activityDifference) return activityDifference;
+                return parsePanelDateMs(chatEntryAtRaw(right)) - parsePanelDateMs(chatEntryAtRaw(left));
             });
 
             el('chatList').innerHTML = filtered.map((chat) => {
@@ -10780,11 +10882,12 @@
                 const unreadCount = Math.max(0, Number(chat.unreadCount || 0));
                 const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
                 const entryInfo = chatEntryInfo(chat);
+                const sourceInfo = chatSourceInfo(chat);
                 const avatar = chat.profilePictureUrl
                     ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="">`
                     : escapeHtml(avatarInitial(title));
                 return `
-                    <button class="chat-item ${isActive ? 'active' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
+                    <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
                         <div class="chat-row">
                             <div class="chat-avatar ${status.closed ? 'closed' : ''}">${avatar}</div>
                             <div class="chat-main">
@@ -10798,6 +10901,7 @@
                                 <div class="chat-phone-line">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</div>
                                 <div class="chat-entry-line ${escapeHtml(entryInfo.className)}" title="${escapeHtml(entryInfo.title)}">
                                     <span class="entry-badge">${escapeHtml(entryInfo.badge)}</span>
+                                    <span class="source-badge ${escapeHtml(sourceInfo.className)}" title="${escapeHtml(sourceInfo.title)}">${escapeHtml(sourceInfo.badge)}</span>
                                     <span class="truncate">${escapeHtml(entryInfo.label)}</span>
                                 </div>
                                 <div class="chat-preview">

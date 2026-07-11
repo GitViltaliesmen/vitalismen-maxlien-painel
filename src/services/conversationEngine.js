@@ -24,6 +24,7 @@ import { orderLooksClosedForRepurchase } from './orderDuplicateGuardService.js';
 import { searchDroppiEcuadorOrdersFromPanel, syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
+import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -45,7 +46,6 @@ const contactCameFromNitrix = (contactState = {}) => {
     const metadata = contactState?.metadata || {};
     const draft = metadata.customerDraft || {};
     const keys = [
-        contactState?.assignedAgent,
         metadata.productKey,
         draft.productKey,
         draft.productName,
@@ -54,7 +54,7 @@ const contactCameFromNitrix = (contactState = {}) => {
         metadata.vslPath,
         metadata.vslSourceUrl
     ].map(normalizeProductRouteText);
-    return keys.some((item) => (
+    const hasNitrixContext = keys.some((item) => (
         item === NITRIX_AGENT_KEY
         || item === 'nx_ec'
         || item.includes('nitrix')
@@ -62,12 +62,24 @@ const contactCameFromNitrix = (contactState = {}) => {
         || item.startsWith('/n')
         || item.includes('maxlien.shop/n')
     ));
+    if (hasNitrixContext) return true;
+    const hasVitPowerContext = keys.some((item) => (
+        item === VIT_POWER_AGENT_KEY
+        || item.includes('vit_power')
+        || item.includes('vit power')
+        || item.startsWith('/m')
+        || item.includes('maxlien.shop/m')
+    ));
+    if (hasVitPowerContext) return false;
+    return normalizeProductRouteText(contactState?.assignedAgent) === NITRIX_AGENT_KEY;
 };
 const resolveAgentProfileForMessage = ({ text = '', contactState = {}, requestedProfile = null } = {}) => {
-    if (explicitlyMentionsVitPower(text)) return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile;
+    // Product provenance is persistent. A word typed in a message must not
+    // switch an established Nitrix client into the Vit Power funnel.
     if (contactCameFromNitrix(contactState)) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
-    if (requestedProfile?.key === VIT_POWER_AGENT_KEY) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
-    return requestedProfile || AGENT_PROFILES[NITRIX_AGENT_KEY] || AGENT_PROFILES[VIT_POWER_AGENT_KEY];
+    if (requestedProfile?.key === NITRIX_AGENT_KEY || requestedProfile?.key === VIT_POWER_AGENT_KEY) return requestedProfile;
+    if (explicitlyMentionsVitPower(text)) return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile;
+    return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile || AGENT_PROFILES[NITRIX_AGENT_KEY];
 };
 const noDropiBotTestPhones = () => [
     '5515998038637',
@@ -7963,6 +7975,18 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
         }
 
         if (agentProfile?.key === NITRIX_AGENT_KEY) {
+            // A camada Nitrix somente assume quando a chave EC estiver ativa.
+            // Se estiver desligada ou houver uma retencao humana explicita, a
+            // barreira manual existente continua sendo a fonte de verdade.
+            const fastStateHandled = await handleNitrixFastStateInbound({
+                contactStateId: msg.contactStateId,
+                inboundText: text,
+                sessionId: msg.sessionId || null
+            });
+            if (fastStateHandled) {
+                console.log(`[NITRIX-FAST-STATE] entrada tratada sem acessar Vit Power -> ${chatId}`);
+                return;
+            }
             await holdNitrixForHuman({
                 contactStateId: msg.contactStateId,
                 inboundText: text,

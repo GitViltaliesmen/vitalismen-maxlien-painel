@@ -6,7 +6,72 @@ import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 
 const OFFICIAL_AGENT = 'vit_power_ec';
+const NITRIX_AGENT = 'nitrix_ec';
 const OFFICIAL_COUNTRY = 'EC';
+
+const productRouteText = (value) => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const productRouteForState = (state = {}) => {
+    const metadata = state?.metadata || {};
+    const draft = metadata.customerDraft || {};
+    const explicitValues = [
+        metadata.productKey,
+        draft.productKey,
+        metadata.productName,
+        draft.productName,
+        metadata.productSource,
+        metadata.vslPath,
+        metadata.vslPage,
+        metadata.vslSourceUrl
+    ].map(productRouteText).filter(Boolean);
+    const tags = Array.isArray(state.tags) ? state.tags.map(productRouteText) : [];
+    const hasNitrixContext = explicitValues.some((value) => (
+        value === NITRIX_AGENT
+        || value === 'nx_ec'
+        || value.includes('nitrix')
+        || value.startsWith('/n')
+        || value.includes('maxlien.shop/n')
+    ));
+    if (hasNitrixContext) {
+        return { assignedAgent: NITRIX_AGENT, reason: 'explicit_nitrix_vsl_or_product_context' };
+    }
+
+    const hasVitPowerContext = explicitValues.some((value) => (
+        value === OFFICIAL_AGENT
+        || value.includes('vit_power')
+        || value.includes('vit power')
+        || value.startsWith('/m')
+        || value.includes('maxlien.shop/m')
+    ));
+    if (hasVitPowerContext) {
+        return { assignedAgent: OFFICIAL_AGENT, reason: 'explicit_vit_power_vsl_or_product_context' };
+    }
+
+    // `assignedAgent` and tags are weaker, historical hints. They are only
+    // used when the durable VSL/product fields above are absent.
+    if (productRouteText(state.assignedAgent) === NITRIX_AGENT || tags.includes('nitrix_ec')) {
+        return { assignedAgent: NITRIX_AGENT, reason: 'stored_nitrix_agent_context' };
+    }
+
+    // Legacy/unknown contacts predate product attribution. Keep them on the
+    // established Vit Power route; never promote an ambiguous record to Nitrix.
+    return { assignedAgent: OFFICIAL_AGENT, reason: 'legacy_or_unknown_defaults_to_vit_power' };
+};
+
+const isNitrixVslInitialInbound = (state = {}) => {
+    if (productRouteForState(state).assignedAgent !== NITRIX_AGENT) return false;
+    const metadata = state.metadata || {};
+    const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
+        .map(productRouteText);
+    return metadata.vslEntryPanelLead === true
+        || values.some((value) => value.startsWith('/n') || value.includes('maxlien.shop/n') || value.includes('vsl'))
+        || (state.tags || []).includes('VSL_EC');
+};
 
 const autoReplyEnabled = () => String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || '').toLowerCase() === 'true';
 
@@ -447,7 +512,8 @@ const contactIdentityQuery = ({ chatId = '', senderPn = '', phoneDigits = '' } =
 };
 
 const stateContinuityRank = (state, currentChatId = '') => {
-    const memory = state?.metadata?.perAgentMemory?.[OFFICIAL_AGENT] || {};
+    const agentMemory = state?.metadata?.perAgentMemory || {};
+    const memory = agentMemory[NITRIX_AGENT] || agentMemory[OFFICIAL_AGENT] || {};
     let score = 0;
     if (state?.chatId === currentChatId) score += 20;
     if (state?.human?.mode === 'manual') score += 80;
@@ -660,6 +726,10 @@ const ensureTag = (state, tag) => {
     }
 };
 
+const removeTag = (state, tag) => {
+    state.tags = (state.tags || []).filter((item) => item !== tag);
+};
+
 const chooseAssignedAgent = ({
     state,
     body,
@@ -668,11 +738,13 @@ const chooseAssignedAgent = ({
     latestOrder = null,
     recentCommercialPrompt = null
 }) => {
-    return { assignedAgent: OFFICIAL_AGENT, reason: 'official_vit_power_only' };
+    return productRouteForState(state);
 };
 
 const appendAgentHistory = ({ state, assignedAgent, reason }) => {
-    state.agentHistory = (state.agentHistory || []).filter((entry) => entry?.agent === OFFICIAL_AGENT);
+    state.agentHistory = (state.agentHistory || []).filter((entry) => (
+        entry?.agent === OFFICIAL_AGENT || entry?.agent === NITRIX_AGENT
+    ));
     const lastEntry = state.agentHistory[state.agentHistory.length - 1];
     if (lastEntry?.agent === assignedAgent) return;
     state.agentHistory.push({
@@ -685,7 +757,14 @@ const appendAgentHistory = ({ state, assignedAgent, reason }) => {
 
 const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason, signals, sessionId = null }) => {
     ensureTag(state, 'COMMERCIAL_READY');
-    if (countryCode === 'EC') ensureTag(state, 'VIT_POWER_EC_ONLY');
+    if (countryCode === 'EC' && assignedAgent === NITRIX_AGENT) {
+        removeTag(state, 'VIT_POWER_EC_ONLY');
+        removeTag(state, 'VIT_POWER_EC');
+        ensureTag(state, 'NITRIX_EC');
+    } else if (countryCode === 'EC') {
+        removeTag(state, 'NITRIX_EC');
+        ensureTag(state, 'VIT_POWER_EC');
+    }
     if (signals.asksPrice) ensureTag(state, 'ASKS_PRICE');
     if (signals.asksProof) ensureTag(state, 'ASKS_PROOF');
     if (signals.requestsQuantity || signals.closing) ensureTag(state, 'HOT_LEAD');
@@ -694,14 +773,14 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
     if (signals.postSale) ensureTag(state, 'POST_SALE');
 
     state.countryCode = countryCode || OFFICIAL_COUNTRY;
-    state.assignedAgent = OFFICIAL_AGENT;
+    state.assignedAgent = assignedAgent;
     appendAgentHistory({ state, assignedAgent, reason });
     state.metadata = {
         ...(state.metadata || {}),
         lastSessionId: sessionId || state.metadata?.lastSessionId || null,
         lastRouterDecisionAt: new Date(),
         lastRouterDecisionText: body,
-        lastRouterDecisionAgent: OFFICIAL_AGENT,
+        lastRouterDecisionAgent: assignedAgent,
         lastRouterDecisionReason: reason,
         lastDetectedSignals: {
             wantsConsultation: signals.wantsConsultation,
@@ -728,8 +807,8 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
         buyerScore: signals.buyerScore,
         perAgentMemory: {
             ...((state.metadata || {}).perAgentMemory || {}),
-            [OFFICIAL_AGENT]: {
-                ...(((state.metadata || {}).perAgentMemory || {})[OFFICIAL_AGENT] || {}),
+            [assignedAgent]: {
+                ...(((state.metadata || {}).perAgentMemory || {})[assignedAgent] || {}),
                 lastInboundAt: new Date(),
                 lastInboundText: body,
                 lastReason: reason,
@@ -741,10 +820,10 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
 };
 
 const dispatchToAgent = async ({ assignedAgent, payload }) => {
-    console.log(`[ROUTER] agente selecionado -> ${OFFICIAL_AGENT} | chat=${payload.from}`);
+    console.log(`[ROUTER] agente selecionado -> ${assignedAgent} | chat=${payload.from}`);
     await vitPowerAgent.handleIncomingMessage({
         ...payload,
-        agent: OFFICIAL_AGENT
+        agent: assignedAgent
     });
 };
 
@@ -941,6 +1020,25 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] atendimento manual expirado; automacao retomada | chat=${chatId}`);
+    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && isNitrixVslInitialInbound(state) && human.lastManualBy === 'vsl_ec') {
+        // A VSL registra o lead inicialmente como manual para ele aparecer no
+        // painel. Quando ele efetivamente escreve, somente o Nitrix /n/ pode
+        // sair desse estado e seguir para o gate do Fast State.
+        state.human = {
+            ...human,
+            mode: 'auto',
+            pausedUntil: null,
+            lastManualAt: new Date(),
+            lastManualBy: 'nitrix_vsl_entry_auto',
+            note: 'Entrada VSL Nitrix confirmada; aguardando fluxo Fast State ou resposta direta à pergunta inicial.'
+        };
+        state.metadata = {
+            ...(state.metadata || {}),
+            nitrixVslInboundAt: new Date(),
+            nitrixVslInboundAutoReleased: true
+        };
+        await state.save();
+        console.log(`[ROUTER] entrada VSL Nitrix liberada para o gate do bot | chat=${chatId}`);
     } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
         const manualReason = String(
             state.metadata?.automationPausedReason
