@@ -16,7 +16,7 @@ Este documento permite retomar o projeto em outro computador sem expor senhas, c
 | App na VPS | `/opt/vitalismen-automacao` |
 | Repositório bare na VPS | `/opt/git/vitalismen-automacao.git` |
 
-No momento deste registro, o Git compartilhado está no commit `f36a248bde736cb7c48e7e252f5170b87d4e13f3`. O runtime executável permanece intencionalmente no código `d861889c3933bc4808c339e628ef7ec4e4a722f6`, porque os commits posteriores são documentação de handoff/observação, sem mudança de aplicação.
+No momento deste registro, a correção ativa da entrada VSL Nitrix está no commit `486616d916cd074056779ba675310b8a3620cdb0`, release `/opt/vitalismen-automacao/releases/20260712023500_git_486616d`. Documentação posterior pode avançar o Git sem exigir restart; confira sempre o commit da branch antes de retomar o trabalho.
 
 ## O que copiar do Mac
 
@@ -50,6 +50,8 @@ Em `2026-07-12T02:23:25Z` foi criado na VPS, sem reinício do PM2, o snapshot do
 - manifesto root-only: arquivo homônimo com sufixo `.manifest.txt`.
 
 Esse arquivo contém segredos operacionais. Ele é recuperação do servidor, não arquivo para baixar aberto no computador local. Se for transferido ao Windows, deve entrar diretamente no contêiner criptografado.
+
+Após a correção de entrada VSL Nitrix, há também o backup runtime ativo `/root/codex_deploy_backups/ec-post-nitrix-vsl-auto-20260712T023452Z.tar.gz`, com SHA-256 `1ad70ecc67ce95946c29b5e0dfbc67ed688ad44d778ebb28a94aea13d1cd0d98`. A mesma regra de armazenamento criptografado se aplica.
 
 ## Credenciais: como levar sem expor
 
