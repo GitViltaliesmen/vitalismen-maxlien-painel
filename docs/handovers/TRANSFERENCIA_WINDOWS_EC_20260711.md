@@ -30,6 +30,15 @@ No momento deste registro, o Git compartilhado está no commit `f36a248bde736cb7
 
 O arquivo `EC_FULL_RELEASE_20260711_203456_private-handoff.tar.gz` contém um `.env`. Ele é um `tar.gz` válido, mas **não é criptografado**; a permissão local `600` não protege após ser copiado. Por isso ele só pode ser transportado dentro de armazenamento criptografado.
 
+Para gerar esse contêiner sem criar um `tar.gz` aberto no disco, execute no Terminal do Mac:
+
+```bash
+cd "/Users/greson/Documents/Vitalismen Automacao"
+bash scripts/create-windows-transfer-encrypted.sh "/Volumes/NOME_DO_DISCO"
+```
+
+Troque `NOME_DO_DISCO` pelo seu HD/pendrive montado, ou omita o argumento para gerar no Desktop. O script pede a senha diretamente no Terminal, inclui os dois diretórios completos e produz somente `EC_TRANSFER_*.tar.gz.enc` e o respectivo `.sha256`. Ele não copia a chave SSH privada antiga; crie uma nova chave no Windows antes de revogar a do Mac.
+
 ## Backup exato do bot em funcionamento
 
 Em `2026-07-12T02:23:25Z` foi criado na VPS, sem reinício do PM2, o snapshot do release que está atendendo clientes:
