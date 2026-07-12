@@ -42,7 +42,8 @@ assertIncludes('.env.example', 'VITALISMEN_OFFICIAL_AGENT=Valeria Zambrano', 'En
 assertIncludes('.env.example', 'ELEVENLABS_VOICE_ID_VALERIA', 'Env exemplo usa variavel de voz Valeria');
 assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';", 'Operadora oficial e Valeria');
 assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Valeria Zambrano.', 'Prompt trava persona Valeria');
-assertIncludes('src/routes/whatsapp.js', "{ sessionId: '553183002800', code: 'VZ', name: 'Valeria Zambrano' }", 'Conexao 2800 nomeada como Valeria');
+assertIncludes('src/routes/whatsapp.js', 'const CONNECTION_OPERATOR_SLOTS = [];', 'Identidade da conexao vem somente da configuracao operacional atual');
+assertIncludes('src/routes/whatsapp.js', 'WHATSAPP_CONNECTION_OPERATORS', 'Conexao operacional permite nomear Valeria por configuracao');
 assertIncludes('public/qr.html', '/media/agent/valeria-zambrano-avatar.jpg', 'Painel usa avatar Valeria');
 assertIncludes('public/qr.html', 'title="Valeria Zambrano"', 'Painel mostra Valeria no avatar');
 assert(exists('public/media/agent/valeria-zambrano-avatar.jpg'), 'Avatar Valeria existe no public/media/agent');

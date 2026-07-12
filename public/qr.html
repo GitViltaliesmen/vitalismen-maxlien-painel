@@ -8457,13 +8457,7 @@
             });
             return deduped.filter(Boolean);
         };
-        const allowedBrazilTestPhones = new Set([
-            '5515998038637',
-            '553171862958',
-            '5531971862958',
-            '5531983002800',
-            '553183002800'
-        ]);
+        const allowedBrazilTestPhones = new Set(['5515991418416']);
 
         const isBrazilTestRecord = (record = {}) => {
             const customer = record.customer || record.client || {};
@@ -9244,8 +9238,7 @@
         };
 
         const requiredConnectionSlots = [
-            { sessionId: '553183002800', finalLabel: '8300' },
-            { sessionId: '553171862958', finalLabel: '2958' }
+            { sessionId: '5515991418416', finalLabel: '8416' }
         ];
 
         const connectionAlertLabel = (alert) => ({

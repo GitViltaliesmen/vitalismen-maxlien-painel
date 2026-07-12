@@ -371,14 +371,14 @@
   enforceEcNitrixHost();
 
   /* Z-API: numero unico oficial. A VSL busca o telefone atual da instancia. */
-  const OFFICIAL_ZAPI_SELLER_E164 = "553183002800";
+  const OFFICIAL_ZAPI_SELLER_E164 = "5515991418416";
   let dynamicZapiSellerE164 = OFFICIAL_ZAPI_SELLER_E164;
   const SELLER_EC_LOCAL = OFFICIAL_ZAPI_SELLER_E164;
   const SELLER_E164_FALLBACK = OFFICIAL_ZAPI_SELLER_E164;
   const SELLER_RAMP_START_AT = "2026-05-20T01:10:00Z";
   const SELLER_RAMP_DAYS = 7;
   const SELLER_ROTATION = [
-    { phone: "553183002800", startSlots: 1, targetSlots: 1 }
+    { phone: "5515991418416", startSlots: 1, targetSlots: 1 }
   ];
 
   function isMobileVisitor(){
@@ -976,7 +976,7 @@ async function openWhatsappEntry(baseMessage, fullName, phone){
     btn.disabled = true;
     btn.textContent = "Capturando telefono...";
   }
-  const sellerPhone = sellerE164(dynamicZapiSellerE164 || OFFICIAL_ZAPI_SELLER_E164);
+  const sellerPhone = await nextSellerFromServer(message, fullName);
   await waitForLeadCapture(Promise.all([
     recordWhatsappClick(message, fullName, phone),
     trackWhatsappLead(message, fullName, phone)

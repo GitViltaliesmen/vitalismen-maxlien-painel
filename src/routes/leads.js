@@ -43,7 +43,7 @@ const pickSellerAssignment = async ({ country = 'EC', source = 'checkout' } = {}
     const assignment = await nextSellerForNewLead({ country, source });
     return {
         ...assignment,
-        seller: digitsOnly(assignment?.seller || process.env.WHATSAPP_SELLER_E164 || process.env.WHATSAPP_DEFAULT_SESSION_ID || '553183002800')
+        seller: digitsOnly(assignment?.seller || process.env.WHATSAPP_SELLER_E164 || process.env.WHATSAPP_DEFAULT_SESSION_ID)
     };
 };
 
@@ -63,12 +63,12 @@ const pickExistingOrActiveSellerAssignment = async ({ existingSeller = '', count
 };
 
 const buildWhatsAppUrl = ({ seller, message }) => {
-    const phone = digitsOnly(seller || process.env.WHATSAPP_SELLER_E164 || '553183002800');
+    const phone = digitsOnly(seller || process.env.WHATSAPP_SELLER_E164 || process.env.WHATSAPP_DEFAULT_SESSION_ID);
     return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 };
 
 const buildWhatsAppIntentUrl = ({ seller, message }) => {
-    const phone = digitsOnly(seller || process.env.WHATSAPP_SELLER_E164 || '553183002800');
+    const phone = digitsOnly(seller || process.env.WHATSAPP_SELLER_E164 || process.env.WHATSAPP_DEFAULT_SESSION_ID);
     return `intent://send?phone=${phone}&text=${encodeURIComponent(message)}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
 };
 

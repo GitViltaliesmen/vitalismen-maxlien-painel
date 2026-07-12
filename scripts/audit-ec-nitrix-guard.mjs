@@ -29,9 +29,8 @@ const forbidden = [
     { label: 'dominio externo', regex: new RegExp(['max', 'tourus'].join(''), 'i') },
     { label: 'pais externo', regex: new RegExp(['colo', 'mbia'].join(''), 'i') },
     { label: 'oferta externa', regex: new RegExp(['super', 'full'].join(''), 'i') },
-    { label: 'telefone antigo A', regex: new RegExp(['5515', '9914', '18416'].join('')) },
-    { label: 'telefone antigo B', regex: new RegExp(['1599', '1418', '416'].join('')) },
-    { label: 'slot antigo final', regex: new RegExp(`\\b${['84', '16'].join('')}\\b`) }
+    { label: 'telefone operacional desativado 2800', regex: /553183002800/ },
+    { label: 'telefone operacional desativado 2958', regex: /553171862958/ }
 ];
 
 for (const file of files.filter(exists)) {
@@ -74,7 +73,8 @@ assertNotMatches('src/services/audioTemplateService.js', /NITRIX_INICIO_01_VALER
 assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';", 'Identidade oficial do atendimento e Valeria');
 assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Valeria Zambrano.', 'Prompt de atendimento usa Valeria');
 
-assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "553183002800"', 'VSL /n mantem telefone 2800');
+assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "5515991418416"', 'VSL /n usa telefone 8416');
+assertIncludes('public/n/index.html', 'await nextSellerFromServer(message, fullName)', 'VSL /n confirma o telefone conectado antes de abrir WhatsApp');
 assertIncludes('public/n/index.html', 'productKey: "nitrix_ec"', 'VSL /n envia productKey Nitrix');
 assertIncludes('public/n/index.html', 'productName: "Nitrix Oxide Ecuador"', 'VSL /n envia produto Nitrix');
 assertIncludes('public/n/index.html', 'content_ids: ["nitrix_oxide_ec"]', 'Meta Lead usa content_id Nitrix');

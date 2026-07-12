@@ -21,11 +21,6 @@ const isSamePhone = (left, right) => {
 const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
 
 const zapiOperationalTestRecipients = () => parsePhoneList(
-    '5515998038637',
-    '553171862958',
-    '5531971862958',
-    '553183002800',
-    '5531983002800',
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
     process.env.WHATSAPP_PRIORITY_TEST_PHONES,
@@ -51,4 +46,3 @@ export const shouldUseZapiForOutbound = ({ targetJid, recipientDigits = '', opti
 export const zapiPhoneForOutbound = ({ targetJid, recipientDigits = '' } = {}) => (
     digitsOnly(recipientDigits) || digitsOnly(targetJid)
 );
-

@@ -228,8 +228,6 @@ const isSamePhone = (left, right) => {
 };
 
 const operationalPanelPhones = () => [
-    '553183002800',
-    '553171862958',
     process.env.WHATSAPP_DEFAULT_SESSION_ID,
     process.env.WHATSAPP_SESSION_IDS,
     process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS,
@@ -237,11 +235,6 @@ const operationalPanelPhones = () => [
 ].flatMap(parseDigitsList);
 
 const brazilPanelTestPhones = () => [
-    '5515998038637',
-    '553171862958',
-    '5531971862958',
-    '553183002800',
-    '5531983002800',
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_AUTOMATION_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS,
@@ -877,10 +870,7 @@ const stableChatEntryMs = (chat = {}) => {
     return Math.max(entryMs || 0, Number.isFinite(messageMs) ? messageMs : 0);
 };
 
-const CONNECTION_OPERATOR_SLOTS = [
-    { sessionId: '553183002800', code: 'VZ', name: 'Valeria Zambrano' },
-    { sessionId: '553171862958', code: 'GA', name: 'Gabriela Ambrosio' }
-];
+const CONNECTION_OPERATOR_SLOTS = [];
 
 const connectionOperatorSlots = () => {
     const configured = String(process.env.WHATSAPP_CONNECTION_OPERATORS || '').trim();

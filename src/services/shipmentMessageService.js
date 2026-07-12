@@ -174,7 +174,7 @@ const zapiOwnerPhoneDigits = () => String(
     || process.env.ZAPI_DEFAULT_PHONE
     || process.env.ZAPI_OPERATION_PHONE
     || process.env.ZAPI_CONNECTED_PHONE
-    || '553183002800'
+    || process.env.WHATSAPP_DEFAULT_SESSION_ID
 ).replace(/\D/g, '');
 
 const publicMediaUrlForPath = (filePath = '') => {
@@ -1017,8 +1017,8 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
                 hasMedia: true,
                 mediaUrl: image.url || '',
                 timestamp: Math.floor(now.getTime() / 1000),
-                sessionId: shipment?.automation?.sessionId || process.env.ZAPI_PHONE || process.env.ZAPI_DEFAULT_PHONE || '553183002800',
-                ownerPhoneDigits: process.env.ZAPI_PHONE || process.env.ZAPI_DEFAULT_PHONE || '553183002800',
+                sessionId: shipment?.automation?.sessionId || zapiOwnerPhoneDigits(),
+                ownerPhoneDigits: zapiOwnerPhoneDigits(),
                 isFromMe: true,
                 isBot: true,
                 orderId: shipment?.orderId || ''

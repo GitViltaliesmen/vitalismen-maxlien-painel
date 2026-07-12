@@ -21,11 +21,12 @@ const normalizeCountry = (country = 'EC') => {
     return ['EC', 'CO'].includes(value) ? value : 'EC';
 };
 
-const defaultSequence = () => [
-    '553183002800',
-    '553171862958',
-    '5515991418416'
-];
+const defaultSequence = (country = 'EC') => parseList(
+    process.env[`WHATSAPP_SELLER_E164_${normalizeCountry(country)}`]
+    || process.env.WHATSAPP_SELLER_E164
+    || process.env[`WHATSAPP_DEFAULT_SESSION_ID_${normalizeCountry(country)}`]
+    || process.env.WHATSAPP_DEFAULT_SESSION_ID
+);
 
 const configuredSequence = (country = 'EC') => {
     const normalized = normalizeCountry(country);
@@ -34,7 +35,7 @@ const configuredSequence = (country = 'EC') => {
         || process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE
     );
     if (fromEnv.length) return fromEnv;
-    if (normalized === 'EC') return defaultSequence();
+    if (normalized === 'EC') return defaultSequence(normalized);
     return parseList(
         process.env.WHATSAPP_SELLER_POOL_CO
         || process.env.WHATSAPP_SELLER_POOL
@@ -131,7 +132,6 @@ export const nextSellerForNewLead = async ({ country = 'EC', source = 'vsl_whats
         || process.env[`WHATSAPP_SELLER_E164_${normalizedCountry}`]
         || process.env.WHATSAPP_SELLER_E164
         || sequence[0]
-        || '553183002800'
     );
     if (!sequence.length) {
         return { seller: fallback, index: 0, sequence: [fallback], reason: 'fallback_no_sequence' };

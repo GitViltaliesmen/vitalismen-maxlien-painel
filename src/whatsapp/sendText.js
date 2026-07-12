@@ -42,10 +42,6 @@ const isSamePhone = (left, right) => {
 const looksLikeRealPhoneDigits = (value = '') => /^(593|57|55)\d{8,13}$/.test(digitsOnly(value));
 const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
 const zapiOperationalTestRecipients = () => parsePhoneList(
-    '553171862958',
-    '5531971862958',
-    '553183002800',
-    '5531983002800',
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
     process.env.WHATSAPP_PRIORITY_TEST_PHONES,

@@ -186,7 +186,7 @@ const applyAdminLeadToContactState = (state, lead, phone) => {
         adminPanelCreatedAt: lead.created_at || '',
         adminPanelUpdatedAt: lead.updated_at || '',
         adminPanelSyncedAt: new Date(),
-        lastSessionId: state.metadata?.lastSessionId || process.env.WHATSAPP_DEFAULT_SESSION_ID || '553183002800',
+        lastSessionId: state.metadata?.lastSessionId || process.env.WHATSAPP_DEFAULT_SESSION_ID || '',
         lastActiveChatId: state.chatId,
         customerDraft: {
             ...draft,

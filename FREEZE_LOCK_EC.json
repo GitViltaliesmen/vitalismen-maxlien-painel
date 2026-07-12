@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-09T14:22:20.216Z",
+  "updatedAt": "2026-07-12T03:42:00.000Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -165,7 +165,7 @@
     {
       "id": "vsl_nitrix_mobile_entry_ec",
       "status": "active",
-      "description": "VSL /n do Equador permanece no funil Nitrix mobile aprovado, com desktop fora da VSL e entrada WhatsApp no telefone oficial.",
+      "description": "VSL /n do Equador permanece no funil Nitrix mobile aprovado, com desktop fora da VSL e entrada WhatsApp no telefone oficial 8416, definido por configuracao e confirmado pela instancia Z-API conectada.",
       "requiresWrittenAuthorizationToChange": true,
       "checks": [
         {
@@ -186,7 +186,12 @@
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "const OFFICIAL_ZAPI_SELLER_E164 = \"553183002800\";"
+          "value": "const OFFICIAL_ZAPI_SELLER_E164 = \"5515991418416\";"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const sellerPhone = await nextSellerFromServer(message, fullName);"
         },
         {
           "type": "includes",
