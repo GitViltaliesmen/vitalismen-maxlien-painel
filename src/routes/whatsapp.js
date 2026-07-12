@@ -1387,30 +1387,62 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const sellerDigits = digitsOnly(assignedSeller);
     const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country: effectiveCountry });
     const existingDraft = state.metadata?.customerDraft || {};
+    const existingHuman = state.human || {};
+    const existingManualActor = String(existingHuman.lastManualBy || '').trim();
+    const isNitrixVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.nitrix;
+    const existingNitrixFlow = state.metadata?.perAgentMemory?.nitrix_ec?.fastState || null;
+    const hasRunningNitrixFlow = isNitrixVsl && ['running', 'waiting_bottle_confirmation'].includes(existingNitrixFlow?.status);
+    // O clique da VSL e' apenas um registro no painel: para Nitrix ele nao
+    // pode transformar uma entrada nova em atendimento manual. Ao mesmo
+    // tempo, um atendente real continua sendo soberano em cliques repetidos.
+    const preserveNitrixHumanTakeover = isNitrixVsl
+        && existingHuman.mode === 'manual'
+        && existingManualActor
+        && !['vsl_ec', 'nitrix_vsl_entry_auto', 'nitrix_vsl_entry_ready', 'nitrix_fast_state', 'nitrix_route_guard'].includes(existingManualActor);
 
     state.phoneDigits = phoneDigits;
     state.countryCode = effectiveCountry;
     state.assignedAgent = product.agentKey;
-    state.firstInboundAt = state.firstInboundAt || now;
-    state.lastInboundAt = now;
-    state.firstInboundText = state.firstInboundText || entryMessage || 'Entrada pela VSL do Equador';
-    state.lastInboundText = entryMessage || state.lastInboundText || 'Entrada pela VSL do Equador';
-    state.human = {
-        ...(state.human || {}),
-        mode: 'manual',
-        assignedTo: state.human?.assignedTo || '',
-        assignedName: state.human?.assignedName || 'Atendimento EC',
-        assignedAt: state.human?.assignedAt || now,
-        lastManualAt: now,
-        lastManualBy: 'vsl_ec',
-        note: state.human?.note || 'Cliente entrou pela VSL EC e abriu WhatsApp. Atender pelo painel.'
-    };
+    // O clique na VSL registra origem e painel; ele nao e' uma nova mensagem
+    // WhatsApp. Depois que o Fast State iniciou, nao pode atualizar
+    // lastInboundAt nem cancelar a cadencia como se o cliente tivesse escrito.
+    if (!hasRunningNitrixFlow) {
+        state.firstInboundAt = state.firstInboundAt || now;
+        state.lastInboundAt = now;
+        state.firstInboundText = state.firstInboundText || entryMessage || 'Entrada pela VSL do Equador';
+        state.lastInboundText = entryMessage || state.lastInboundText || 'Entrada pela VSL do Equador';
+    }
+    if (isNitrixVsl && !preserveNitrixHumanTakeover) {
+        state.human = {
+            ...existingHuman,
+            mode: 'auto',
+            pausedUntil: null,
+            assignedTo: existingHuman.assignedTo || '',
+            assignedName: existingHuman.assignedName || 'Atendimento Nitrix EC',
+            assignedAt: existingHuman.assignedAt || now,
+            lastManualAt: existingHuman.lastManualAt || now,
+            lastManualBy: 'nitrix_vsl_entry_ready',
+            note: 'Entrada VSL Nitrix registrada no painel e liberada para o Fast State; atendimento humano pode assumir a qualquer momento.'
+        };
+    } else if (!isNitrixVsl) {
+        state.human = {
+            ...existingHuman,
+            mode: 'manual',
+            assignedTo: existingHuman.assignedTo || '',
+            assignedName: existingHuman.assignedName || 'Atendimento EC',
+            assignedAt: existingHuman.assignedAt || now,
+            lastManualAt: now,
+            lastManualBy: 'vsl_ec',
+            note: existingHuman.note || 'Cliente entrou pela VSL EC e abriu WhatsApp. Atender pelo painel.'
+        };
+    }
     state.tags = [...new Set([
         ...(Array.isArray(state.tags) ? state.tags : []),
         'VSL_EC',
         product.tag,
         'WHATSAPP_CLICK',
-        'AGUARDANDO_ATENDIMENTO'
+        'AGUARDANDO_ATENDIMENTO',
+        ...(isNitrixVsl && !preserveNitrixHumanTakeover ? ['NITRIX_FAST_STATE_READY'] : [])
     ])];
     state.metadata = {
         ...(state.metadata || {}),
@@ -1423,6 +1455,13 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslPath: cleanText(body.path),
         vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
         vslReferrer: cleanText(body.referrer),
+        ...(isNitrixVsl && !preserveNitrixHumanTakeover ? {
+            nitrixVslEntryReadyAt: now.toISOString(),
+            nitrixVslEntryHumanHoldPreserved: false
+        } : {}),
+        ...(isNitrixVsl && preserveNitrixHumanTakeover ? {
+            nitrixVslEntryHumanHoldPreserved: true
+        } : {}),
         productKey: product.productKey,
         productName: product.productName,
         productSource: product.source,

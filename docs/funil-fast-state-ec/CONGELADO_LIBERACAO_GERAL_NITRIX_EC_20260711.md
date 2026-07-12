@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Camada de controle de rollout da entrada Nitrix no Equador. Não altera preço, mídia, áudio, uso, regras de saúde, Vit Power, Colômbia, Dropi, Pixel, banco ou WhatsApp de outro produto/país.
+Camada de controle de rollout da entrada Nitrix no Equador. Não altera preço, mídia, áudio, uso, regras de saúde, Vit Power, Dropi, Pixel, banco ou WhatsApp de outro produto ou país.
 
 ## Estado publicado
 
