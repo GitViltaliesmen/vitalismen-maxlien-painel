@@ -6,6 +6,7 @@ const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
 const publicBase = String(process.env.ZAPI_PUBLIC_WEBHOOK_BASE || process.env.EC_PUBLIC_BASE_URL || 'https://ec.maxlien.shop').replace(/\/+$/, '');
 const deliveryWebhookUrl = `${publicBase}/api/zapi/webhook/delivery`;
+const receivedWebhookUrl = `${publicBase}/api/zapi/webhook/received`;
 
 const cfg = zapiConfig();
 if (!cfg.enabled) {
@@ -51,6 +52,11 @@ const result = {
 };
 
 for (const item of [
+    {
+        label: 'received',
+        path: 'update-webhook-received',
+        value: receivedWebhookUrl
+    },
     {
         label: 'delivery',
         path: 'update-webhook-delivery',
