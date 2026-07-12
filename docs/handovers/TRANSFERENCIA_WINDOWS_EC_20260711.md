@@ -30,6 +30,18 @@ No momento deste registro, o Git compartilhado está no commit `f36a248bde736cb7
 
 O arquivo `EC_FULL_RELEASE_20260711_203456_private-handoff.tar.gz` contém um `.env`. Ele é um `tar.gz` válido, mas **não é criptografado**; a permissão local `600` não protege após ser copiado. Por isso ele só pode ser transportado dentro de armazenamento criptografado.
 
+## Backup exato do bot em funcionamento
+
+Em `2026-07-12T02:23:25Z` foi criado na VPS, sem reinício do PM2, o snapshot do release que está atendendo clientes:
+
+- arquivo: `/root/codex_deploy_backups/ec-current-bot-runtime-20260712T022325Z.tar.gz`;
+- release incluído: `20260711233201_git_d861889` / código `d861889c3933bc4808c339e628ef7ec4e4a722f6`;
+- inclui: árvore da aplicação e `.env` do release; exclui `.git` e `runtime`;
+- SHA-256: `e00b35dd6cd58bf9bcc5c9d67e1b14896261255fd746f48255fe5003adbbe500`;
+- manifesto root-only: arquivo homônimo com sufixo `.manifest.txt`.
+
+Esse arquivo contém segredos operacionais. Ele é recuperação do servidor, não arquivo para baixar aberto no computador local. Se for transferido ao Windows, deve entrar diretamente no contêiner criptografado.
+
 ## Credenciais: como levar sem expor
 
 Não colocar valores em Markdown, e-mail, chat, GitHub, planilha ou pendrive aberto. No novo computador, registrar em um gerenciador de senhas confiável, em campos separados:
@@ -60,6 +72,7 @@ Para SSH, preferir criar uma nova chave `ed25519` no Windows. Antes de devolver 
 - O único diff após o release executável `d861889` é documentação; não há código de aplicação local sem deploy.
 - PM2 está `online`; saúde sem degradação; WhatsApp e Z-API conectados; fila inbound vazia.
 - O bundle `EC_CAMADA_1_OBSERVACAO_20260711_210650.bundle` e o `tar.gz` privado foram validados.
+- O snapshot runtime acima foi criado e validado por `gzip -t` e SHA-256.
 - O `.env` local foi encontrado fora do Git e protegido com permissão `600`.
 
 ## Ação de segurança pendente
