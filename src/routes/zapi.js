@@ -71,6 +71,64 @@ const zapiRawChatIdentifiers = (payload = {}) => [
     payload.data?.sender
 ].map((value) => String(value || '').trim()).filter(Boolean);
 
+// A unica instancia Z-API compartilhada entrega o webhook primeiro ao EC.
+// O dado comercial nao e compartilhado: contato +593 continua aqui e contato
+// +57 e encaminhado integralmente ao backend CO, que conserva seu proprio
+// banco, funil, pedido e painel. Se o CO estiver indisponivel, falhamos o
+// webhook para a Z-API repetir depois, em vez de gravar o cliente CO no EC.
+export const zapiPayloadCountry = (payload = {}) => {
+    const candidates = [
+        ...zapiRawChatIdentifiers(payload),
+        payload.senderPhone,
+        payload.customerPhone,
+        payload.chat?.phone,
+        payload.message?.senderPhone,
+        payload.data?.senderPhone
+    ];
+    for (const candidate of candidates) {
+        const country = countryFromPhone(candidate);
+        if (country === 'EC' || country === 'CO') return country;
+    }
+    return countryFromPhone(zapiPhoneFromPayload(payload));
+};
+
+const coWebhookForwardUrl = () => String(process.env.ZAPI_CO_WEBHOOK_FORWARD_URL || '').trim();
+const coWebhookForwardTimeoutMs = () => {
+    const configured = Number.parseInt(String(process.env.ZAPI_CO_WEBHOOK_FORWARD_TIMEOUT_MS || '12000'), 10);
+    return Number.isFinite(configured) ? Math.min(30000, Math.max(3000, configured)) : 12000;
+};
+
+const forwardColombiaZapiWebhook = async (payload = {}) => {
+    if (zapiPayloadCountry(payload) !== 'CO') return { forwarded: false };
+    const url = coWebhookForwardUrl();
+    if (!url) {
+        const error = new Error('co_webhook_forward_not_configured');
+        error.statusCode = 503;
+        throw error;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), coWebhookForwardTimeoutMs());
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Vitalismen-Webhook-Route': 'co'
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+        if (!response.ok) {
+            const error = new Error(`co_webhook_forward_http_${response.status}`);
+            error.statusCode = 502;
+            throw error;
+        }
+        return { forwarded: true, country: 'CO' };
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
 const isLikelyWhatsAppGroupIdentifier = (value = '') => {
     const raw = String(value || '').trim();
     const numeric = digits(raw);
@@ -777,7 +835,13 @@ router.get('/whatsapp-link', async (req, res) => {
 
 router.post('/webhook/delivery', async (req, res) => {
     try {
-        const result = await applyZapiDeliveryPayload(req.body || {});
+        const payload = req.body || {};
+        const forwarded = await forwardColombiaZapiWebhook(payload);
+        if (forwarded.forwarded) {
+            console.log('[ZAPI-WEBHOOK] delivery forwarded to CO');
+            return res.json({ ok: true, routed: 'co_forward' });
+        }
+        const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         res.json({ ok: true, result });
     } catch (error) {
@@ -789,6 +853,11 @@ router.post('/webhook/delivery', async (req, res) => {
 router.post('/webhook', async (req, res) => {
     try {
         const payload = req.body || {};
+        const forwarded = await forwardColombiaZapiWebhook(payload);
+        if (forwarded.forwarded) {
+            console.log('[ZAPI-WEBHOOK] event forwarded to CO');
+            return res.json({ ok: true, routed: 'co_forward' });
+        }
         const fromMe = zapiFromMeFromPayload(payload);
         const looksLikeDelivery = Boolean(
             payload.status
@@ -824,11 +893,17 @@ router.post('/webhook', async (req, res) => {
 
 router.post('/webhook/received', async (req, res) => {
     try {
-        const providerMessageId = zapiMessageIdFromPayload(req.body || {});
-        const phone = zapiPhoneFromPayload(req.body || {});
-        const fromMe = zapiFromMeFromPayload(req.body || {});
+        const payload = req.body || {};
+        const forwarded = await forwardColombiaZapiWebhook(payload);
+        if (forwarded.forwarded) {
+            console.log('[ZAPI-WEBHOOK] received forwarded to CO');
+            return res.json({ ok: true, routed: 'co_forward' });
+        }
+        const providerMessageId = zapiMessageIdFromPayload(payload);
+        const phone = zapiPhoneFromPayload(payload);
+        const fromMe = zapiFromMeFromPayload(payload);
         if (!fromMe) {
-            const result = await recordZapiInboundPayload(req.body || {});
+            const result = await recordZapiInboundPayload(payload);
             if (result.routeToBot) {
                 scheduleVslFirstResponseWatchdog(result);
                 await routeIncomingMessage({
@@ -844,8 +919,8 @@ router.post('/webhook/received', async (req, res) => {
             return res.json({ ok: true, result });
         }
         const result = await applyZapiDeliveryPayload({
-            ...(req.body || {}),
-            status: firstString(req.body?.status, req.body?.messageStatus, req.body?.deliveryStatus, 'sent')
+            ...payload,
+            status: firstString(payload.status, payload.messageStatus, payload.deliveryStatus, 'sent')
         });
         console.log(`[ZAPI-WEBHOOK] received | fromMe=${fromMe} | matched=${result.matched} | method=${result.method || 'none'} | phone=${phone || result.phone || ''} | id=${providerMessageId || result.providerMessageId || ''}`);
         res.json({ ok: true, result });
