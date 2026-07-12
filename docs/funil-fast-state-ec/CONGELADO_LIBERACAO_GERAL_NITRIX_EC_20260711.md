@@ -7,8 +7,9 @@ Camada de controle de rollout da entrada Nitrix no Equador. Não altera preço, 
 ## Estado publicado
 
 - Liberação inicial: `d861889c3933bc4808c339e628ef7ec4e4a722f6`.
-- Correção ativa de entrada VSL Nitrix: `486616d916cd074056779ba675310b8a3620cdb0`.
-- Release VPS ativo: `/opt/vitalismen-automacao/releases/20260712023500_git_486616d`.
+- Correção intermediária de entrada VSL Nitrix: `486616d916cd074056779ba675310b8a3620cdb0`.
+- Entrada VSL imediata ativa: `27c6f93767c4345153bb3cdafdcc557d18b735d2`.
+- Release VPS ativo: `/opt/vitalismen-automacao/releases/20260712024530_git_27c6f93`.
 - Ambiente: `NITRIX_FAST_STATE_ENABLED=true` e `NITRIX_FAST_STATE_ROLLOUT_MODE=full`.
 - O código é fechado por padrão: sem `ROLLOUT_MODE=full`, o modo é `qa` e exige telefone de QA configurado.
 - Em `full`, não há bypass de deduplicação de áudio/texto do QA.
@@ -35,6 +36,15 @@ Camada de controle de rollout da entrada Nitrix no Equador. Não altera preço, 
 - O cliente identificado durante a auditoria foi atendido manualmente e não foi reprocessado pelo bot.
 - PM2 reiniciado após a ativação; `/api/health` retornou `online`, sem degradação, WhatsApp/Z-API conectados e fila inbound vazia.
 - Backup pós-correção: `/root/codex_deploy_backups/ec-post-nitrix-vsl-auto-20260712T023452Z.tar.gz` (SHA-256 `1ad70ecc67ce95946c29b5e0dfbc67ed688ad44d778ebb28a94aea13d1cd0d98`).
+
+## Entrada VSL sem espera — 12/07/2026
+
+- Regra ativa: entrada VSL Nitrix comprovada inicia o Fast State mesmo quando o cliente ainda não escreveu no WhatsApp.
+- A primeira mensagem aprovada de Valeria é sorteada e enviada em 0–800 ms; Áudio 1 segue na janela humana aprovada. Se o cliente escrever em qualquer ponto, as etapas pendentes são canceladas e a pergunta recebe resposta antes de qualquer nova mídia.
+- O scheduler Nitrix roda a cada 1 segundo e retoma jobs persistidos após restart; nenhuma etapa depende apenas de timer em memória.
+- Teste real controlado: entrada VSL Nitrix sem mensagem recebeu texto de apresentação, Áudio 1, Áudio 2 e prova social, todos aceitos e gravados no estado persistido, sem inbound e sem falha.
+- PM2 foi corrigido para iniciar por `/opt/vitalismen-automacao/current/src/index.js`, evitando manter caminho absoluto de release antigo após uma ativação.
+- Backup pós-validação: `/root/codex_deploy_backups/ec-nitrix-vsl-immediate-20260712T025232Z.tar.gz` (SHA-256 `4e46285a07fad23b46435720cf9ea674ecea48240936ee85c2bec0a3368b8f6b`).
 
 ## Limites operacionais
 

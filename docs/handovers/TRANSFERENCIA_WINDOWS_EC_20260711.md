@@ -16,7 +16,7 @@ Este documento permite retomar o projeto em outro computador sem expor senhas, c
 | App na VPS | `/opt/vitalismen-automacao` |
 | Repositório bare na VPS | `/opt/git/vitalismen-automacao.git` |
 
-No momento deste registro, a correção ativa da entrada VSL Nitrix está no commit `486616d916cd074056779ba675310b8a3620cdb0`, release `/opt/vitalismen-automacao/releases/20260712023500_git_486616d`. Documentação posterior pode avançar o Git sem exigir restart; confira sempre o commit da branch antes de retomar o trabalho.
+No momento deste registro, a entrada imediata VSL Nitrix está no commit `27c6f93767c4345153bb3cdafdcc557d18b735d2`, release `/opt/vitalismen-automacao/releases/20260712024530_git_27c6f93`. O PM2 deve executar `/opt/vitalismen-automacao/current/src/index.js`, e não o caminho fixo de um release anterior. Documentação posterior pode avançar o Git sem exigir restart; confira sempre o commit da branch antes de retomar o trabalho.
 
 ## O que copiar do Mac
 
@@ -52,6 +52,8 @@ Em `2026-07-12T02:23:25Z` foi criado na VPS, sem reinício do PM2, o snapshot do
 Esse arquivo contém segredos operacionais. Ele é recuperação do servidor, não arquivo para baixar aberto no computador local. Se for transferido ao Windows, deve entrar diretamente no contêiner criptografado.
 
 Após a correção de entrada VSL Nitrix, há também o backup runtime ativo `/root/codex_deploy_backups/ec-post-nitrix-vsl-auto-20260712T023452Z.tar.gz`, com SHA-256 `1ad70ecc67ce95946c29b5e0dfbc67ed688ad44d778ebb28a94aea13d1cd0d98`. A mesma regra de armazenamento criptografado se aplica.
+
+O backup do runtime com entrada VSL imediata é `/root/codex_deploy_backups/ec-nitrix-vsl-immediate-20260712T025232Z.tar.gz`, SHA-256 `4e46285a07fad23b46435720cf9ea674ecea48240936ee85c2bec0a3368b8f6b`. Ele contém o release e ambiente operacional; transferi-lo requer o mesmo contêiner criptografado.
 
 ## Credenciais: como levar sem expor
 
