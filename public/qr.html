@@ -11876,6 +11876,15 @@
             || /^ALERTA: o WhatsApp conectado/i.test(String(message?.body || ''))
         );
 
+        // Historico interno do painel: permanece no banco para auditoria, mas nunca e uma
+        // mensagem enviada/recebida pelo cliente. Sem este filtro, cada salvamento de status
+        // aparece como balao verde e esconde a conversa real do atendente.
+        const isInternalPanelStatusAuditMessage = (message = {}) => (
+            String(message?.type || '').toLowerCase() === 'system'
+            && /^\[PAINEL\]\s*Status alterado no Painel Unificado(?:\s*-|\s*$)/i
+                .test(String(message?.body || '').trim())
+        );
+
         const cleanDisplayMessageBody = (message, hasMedia = false) => {
             if (isTechnicalZapiAlertMessage(message)) return '';
             const body = String(message?.body || '');
@@ -13099,7 +13108,8 @@
             const box = el('conversation');
             const previousBottom = box.scrollHeight - box.scrollTop;
             const visibleMessages = (messages || []).filter((message) => !isTechnicalZapiAlertMessage(message));
-            box.innerHTML = visibleMessages.map((message) => {
+            const conversationMessages = visibleMessages.filter((message) => !isInternalPanelStatusAuditMessage(message));
+            box.innerHTML = conversationMessages.map((message) => {
                 const messageId = String(message._id || '');
                 const media = renderMessageMedia(message);
                 const transcript = messageAudioTranscript(message);
