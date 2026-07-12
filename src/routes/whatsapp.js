@@ -31,6 +31,7 @@ import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconc
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1498,11 +1499,22 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         }
     };
     await state.save();
+    const fastState = isNitrixVsl && !preserveNitrixHumanTakeover
+        ? await startNitrixFastStateFromVslEntry({
+            contactStateId: state._id?.toString?.() || '',
+            sessionId: sessionId || sellerDigits || null
+        })
+        : { handled: false, reason: isNitrixVsl ? 'human_takeover_preserved' : 'not_nitrix' };
     return {
         ok: true,
         contactStateId: state._id?.toString?.() || '',
         productKey: product.productKey,
-        productName: product.productName
+        productName: product.productName,
+        fastState: {
+            handled: Boolean(fastState.handled),
+            started: Boolean(fastState.started),
+            reason: fastState.reason || ''
+        }
     };
 };
 

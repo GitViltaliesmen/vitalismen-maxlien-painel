@@ -22,6 +22,7 @@ import {
 import { processAdminBuyLaterFollowups } from './adminBuyLaterFollowupService.js';
 import { processZapiChatWatchdog } from './zapiChatWatchdogService.js';
 import { processPassiveFunnelObserver } from './passiveFunnelObserverService.js';
+import { processNitrixFastStateJobs } from './nitrixFastStateService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
@@ -38,6 +39,7 @@ let isRunningAdminPanelAtendimentoReconcile = false;
 let isRunningAdminBuyLaterFollowups = false;
 let isRunningZapiChatWatchdog = false;
 let isRunningPassiveFunnelObserver = false;
+let isRunningNitrixFastState = false;
 let lastHealthAlertAt = 0;
 let lastHealthAlertKey = '';
 
@@ -205,6 +207,14 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Passive funnel observer disabled. Set PASSIVE_FUNNEL_OBSERVER_ENABLED=true to enable.');
     }
+    if (flagEnabled('NITRIX_FAST_STATE_ENABLED', false)) {
+        const intervalMs = Math.max(1000, parseNumber('NITRIX_FAST_STATE_SCHEDULER_INTERVAL_MS', 1000));
+        setInterval(checkNitrixFastState, intervalMs);
+        setTimeout(() => checkNitrixFastState(), 250);
+        console.log(`[SCHEDULER] Nitrix Fast State enabled every ${intervalMs}ms.`);
+    } else {
+        console.log('[SCHEDULER] Nitrix Fast State disabled. Set NITRIX_FAST_STATE_ENABLED=true to enable.');
+    }
     // Watchdog: restart Baileys only when Baileys is the active engine.
     if (flagEnabled('WHATSAPP_CONNECT_ENABLED', true)) {
         setInterval(() => {
@@ -258,6 +268,9 @@ export const startScheduler = () => {
     if (flagEnabled('ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED', true)) {
         setTimeout(() => checkAdminPanelAtendimentoReconcile(), 75000);
     }
+    if (flagEnabled('NITRIX_FAST_STATE_ENABLED', false)) {
+        setTimeout(() => checkNitrixFastState(), 500);
+    }
 
     // Also run immediately once WhatsApp becomes ready
     onWhatsAppReady(() => {
@@ -292,6 +305,18 @@ export const startScheduler = () => {
             setTimeout(() => checkAdminPanelAtendimentoReconcile(), 55000);
         }
     });
+};
+
+const checkNitrixFastState = async () => {
+    if (isRunningNitrixFastState) return;
+    isRunningNitrixFastState = true;
+    try {
+        await processNitrixFastStateJobs({ limit: 50 });
+    } catch (error) {
+        console.error('[NITRIX-FAST-STATE] scheduler failure:', error?.message || error);
+    } finally {
+        isRunningNitrixFastState = false;
+    }
 };
 
 const checkHealthAlert = async () => {

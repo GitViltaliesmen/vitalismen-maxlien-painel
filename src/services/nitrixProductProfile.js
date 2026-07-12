@@ -25,12 +25,12 @@ export const NITRIX_EC_PRODUCT_PROFILE = Object.freeze({
         // Acolhimento curto para quem iniciou o WhatsApp pela VSL /n/.
         // Nao pede preco, nao faz promessa e nao substitui os dois audios.
         openingVariants: Object.freeze([
-            '¡Hola! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Gracias por escribirnos; ya le explico por audio.',
-            '¡Hola! Le saluda Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix; permítame explicarle por audio.',
-            'Hola, mucho gusto. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Gracias por entrar en contacto; le envío un audio enseguida.',
-            '¡Hola! Gracias por escribirnos. Le habla Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Ya le cuento por audio sobre lo que vio.',
-            'Hola, qué gusto atenderle. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Enseguida le envío un audio para orientarle.',
-            '¡Bienvenido! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Gracias por llegar desde la presentación de Nitrix; ya le explico por audio.'
+            '¡Hola! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix; enseguida le explico por audio.',
+            '¡Hola! Le saluda Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Llegó desde la presentación de Nitrix; permítame explicarle por audio.',
+            'Hola, mucho gusto. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por Nitrix; le envío un audio enseguida.',
+            '¡Hola! Le habla Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Ya le cuento por audio sobre la presentación de Nitrix.',
+            'Hola, qué gusto atenderle. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Enseguida le envío un audio para orientarle sobre Nitrix.',
+            '¡Bienvenido! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó desde la presentación de Nitrix; ya le explico por audio.'
         ]),
         // Esta identificacao ocorre somente apos o audio 2, se o nome completo
         // ainda nao estiver salvo. Cada conversa recebe uma unica variante.

@@ -61,8 +61,8 @@ const randomizedDelayMs = (minName, maxName, fallbackMin, fallbackMax) => {
 const openingTextDelayMs = () => randomizedDelayMs(
     'NITRIX_FAST_STATE_OPENING_TEXT_MIN_MS',
     'NITRIX_FAST_STATE_OPENING_TEXT_MAX_MS',
-    1500,
-    3500
+    0,
+    800
 );
 const firstAudioAfterOpeningMs = () => randomizedDelayMs(
     'NITRIX_FAST_STATE_FIRST_AUDIO_AFTER_OPENING_MIN_MS',
@@ -97,6 +97,22 @@ const queueSlaMsForJob = (job = {}) => parseMs(
 );
 const nowIso = () => new Date().toISOString();
 const toMs = (value) => new Date(value || '').getTime();
+
+const scheduleFastStateProcessingAt = (dueAt, limit = 4) => {
+    const dueAtMs = toMs(dueAt);
+    if (!Number.isFinite(dueAtMs)) return;
+    const waitMs = Math.max(0, dueAtMs - Date.now());
+    setTimeout(() => processNitrixFastStateJobs({ limit }).catch(() => null), waitMs);
+};
+
+const scheduleNextFastStateJob = (flow = {}, limit = 4) => {
+    if (flow.status !== 'running') return;
+    const nextDueAt = (flow.jobs || [])
+        .filter((job) => job.status === 'pending' && Number.isFinite(toMs(job.dueAt)))
+        .map((job) => job.dueAt)
+        .sort((left, right) => toMs(left) - toMs(right))[0];
+    if (nextDueAt) scheduleFastStateProcessingAt(nextDueAt, limit);
+};
 
 const reserveScheduledMediaSlot = (now = Date.now()) => {
     if (now < nextScheduledMediaSlotAt) return { allowed: false, availableAt: nextScheduledMediaSlotAt };
@@ -587,14 +603,20 @@ const processState = async (state, now) => {
         return false;
     }
     const ready = nextReadyJob(flow, now);
-    if (!ready) return false;
+    if (!ready) {
+        scheduleNextFastStateJob(flow);
+        return false;
+    }
     const { index, job } = ready;
     if (queueWaitExceeded(job, now)) {
         await handoffQueueWait({ state, flow, job });
         return false;
     }
     const queueSlot = reserveScheduledMediaSlot(now.getTime());
-    if (!queueSlot.allowed) return false;
+    if (!queueSlot.allowed) {
+        scheduleFastStateProcessingAt(new Date(queueSlot.availableAt).toISOString());
+        return false;
+    }
     job.status = 'sending';
     job.startedAt = nowIso();
     await updateFlow(state, flow, { lastFunnelStage: `nitrix_fast_state_${job.id}_sending` });
@@ -628,6 +650,7 @@ const processState = async (state, now) => {
             jobIndex: index,
             extra: { lastFunnelStage: freshFlow.status === 'waiting_bottle_confirmation' ? 'nitrix_fast_state_waiting_bottle_confirmation' : `nitrix_fast_state_${completed.id}_sent` }
         });
+        if (committed) scheduleNextFastStateJob(freshFlow);
         return committed;
     }
     completed.lastError = result.error || 'send_failed';
@@ -649,6 +672,7 @@ const processState = async (state, now) => {
         jobIndex: index,
         extra: { lastFunnelStage: freshFlow.status === 'needs_human' ? 'nitrix_fast_state_failed_human' : `nitrix_fast_state_${completed.id}_retry` }
     });
+    scheduleNextFastStateJob(freshFlow);
     return false;
 };
 
@@ -682,6 +706,47 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
     } finally {
         isProcessingFastStateJobs = false;
     }
+};
+
+// A VSL /n/ e' um opt-in comercial comprovado. O primeiro acolhimento nao
+// depende de uma mensagem adicional do cliente: o estado e persistido antes
+// de qualquer envio e toda resposta posterior continua vencendo a cadencia.
+export const startNitrixFastStateFromVslEntry = async ({ contactStateId, sessionId = null } = {}) => {
+    if (!enabled() || !contactStateId) return { handled: false, reason: 'disabled_or_missing_contact' };
+    const state = await ContactState.findById(contactStateId);
+    if (!state || !nitrixFastStateAllowsState(state) || isExplicitHumanHold(state)) {
+        return { handled: false, reason: 'state_not_allowed' };
+    }
+    const current = clone(flowOf(state));
+    if (current?.startedAt) return { handled: true, started: false, reason: 'flow_already_exists', flowStatus: current.status || null };
+    if (!vslNitrixSourceConfirmed(state)) return { handled: false, reason: 'vsl_nitrix_source_not_confirmed' };
+
+    const startedAt = new Date();
+    const flow = {
+        version: 4,
+        generation: crypto.randomBytes(8).toString('hex'),
+        status: 'running',
+        startedAt: startedAt.toISOString(),
+        sessionId: sessionId || state.metadata?.lastSessionId || null,
+        copyPlan: entryCopyPlan(state),
+        jobs: buildNitrixEntryJobsForTest(startedAt, { hasKnownName: knownCustomerFullName(state) }),
+        bottle: { sentAt: '', reason: '', confirmedAt: '' },
+        healthTopics: {},
+        entryTrigger: 'vsl_click'
+    };
+    state.assignedAgent = AGENT_KEY;
+    state.human = {
+        ...(state.human || {}),
+        mode: 'auto',
+        pausedUntil: null,
+        lastManualAt: startedAt,
+        lastManualBy: 'nitrix_fast_state_vsl_entry',
+        note: 'Entrada VSL Nitrix confirmada; acolhimento imediato e cadencia persistente ativos.'
+    };
+    state.tags = [...new Set([...(state.tags || []), 'NITRIX_EC', 'NITRIX_FAST_STATE', 'BOT_VIT_POWER_BLOQUEADO'])];
+    await updateFlow(state, flow, { lastFunnelStage: 'nitrix_fast_state_vsl_scheduled' });
+    scheduleNextFastStateJob(flow);
+    return { handled: true, started: true, generation: flow.generation };
 };
 
 export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText, sessionId = null } = {}) => {
@@ -752,8 +817,7 @@ export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText
     state.human = { ...(state.human || {}), mode: 'auto', lastManualAt: startedAt, lastManualBy: 'nitrix_fast_state', note: 'Fast State Nitrix EC ativo, com jobs persistentes e cancelamento imediato por resposta.' };
     state.tags = [...new Set([...(state.tags || []), 'NITRIX_EC', 'NITRIX_FAST_STATE', 'BOT_VIT_POWER_BLOQUEADO'])];
     await updateFlow(state, flow, { lastFunnelStage: 'nitrix_fast_state_scheduled' });
-    const firstJob = flow.jobs[0];
-    setTimeout(() => processNitrixFastStateJobs({ limit: 4 }).catch(() => null), Math.max(0, new Date(firstJob.dueAt).getTime() - Date.now()));
+    scheduleNextFastStateJob(flow);
     return true;
 };
 
