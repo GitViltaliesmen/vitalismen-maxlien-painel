@@ -21,13 +21,16 @@ export const nitrixEntryLayerMode = (env = process.env) => (
 export const buildNitrixTwoAudioEntryJobs = (startedAt, { env = process.env, random = Math.random } = {}) => {
     const startMs = new Date(startedAt).getTime();
     if (!Number.isFinite(startMs)) throw new Error('nitrix_two_audio_start_invalid');
-    const firstAudioDelay = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_01_DELAY_MS, 10000);
-    // Mantem compatibilidade com a configuracao fixa anterior, mas a camada
-    // oficial usa a janela 5–30 s para que a segunda midia nao tenha ritmo
-    // mecanico entre entradas reais.
-    const legacySecondDelay = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MS, 20000);
-    const secondAudioMin = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MIN_MS, legacySecondDelay);
-    const secondAudioMax = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MAX_MS, secondAudioMin);
+    // O primeiro audio usa uma janela curta a partir da entrada. Dez segundos
+    // e' a referencia operacional; o sorteio 5–30 s evita rajada identica.
+    const legacyFirstDelay = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_01_DELAY_MS, 10000);
+    const firstAudioMin = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_01_MIN_MS, legacyFirstDelay);
+    const firstAudioMax = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_01_MAX_MS, firstAudioMin);
+    const firstAudioDelay = randomDelayMs(firstAudioMin, firstAudioMax, random);
+    // O segundo audio e' medido desde a entrada, nao desde o primeiro. Assim
+    // ele sempre ocupa a janela total de 35–59 s e nunca adianta a conversa.
+    const secondAudioMin = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_ENTRY_MIN_MS, 35000);
+    const secondAudioMax = parseNonNegativeMs(env.NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_ENTRY_MAX_MS, secondAudioMin);
     const secondAudioDelay = randomDelayMs(secondAudioMin, secondAudioMax, random);
     const skipReason = 'entry_layer_two_audio_only';
     return [
@@ -39,7 +42,14 @@ export const buildNitrixTwoAudioEntryJobs = (startedAt, { env = process.env, ran
             status: 'pending',
             attempts: 0
         },
-        { id: 'audio_02', dueAt: '', scheduledAfterMs: secondAudioDelay, status: 'pending', attempts: 0 },
+        {
+            id: 'audio_02',
+            dueAt: new Date(startMs + secondAudioDelay).toISOString(),
+            scheduledAfterMs: secondAudioDelay,
+            relativeTo: 'entry',
+            status: 'pending',
+            attempts: 0
+        },
         { id: 'name_intro', dueAt: '', scheduledAfterMs: 0, status: 'skipped', attempts: 0, skipReason },
         { id: 'proof', dueAt: '', scheduledAfterMs: 0, status: 'skipped', attempts: 0, relativeTo: 'audio_02', skipReason },
         { id: 'bottle', dueAt: '', scheduledAfterMs: 0, status: 'skipped', attempts: 0, skipReason }

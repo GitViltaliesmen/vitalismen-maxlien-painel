@@ -597,6 +597,9 @@ const releaseFollowingJobs = (flow, completed) => {
     if (completed.id === 'name_intro') return;
     const currentIndex = (flow.jobs || []).findIndex((job) => job.id === completed.id);
     const nextJob = currentIndex >= 0 ? flow.jobs[currentIndex + 1] : null;
+    // A segunda midia da camada de entrada ja recebeu hora absoluta desde a
+    // entrada. Nao a mova para frente ao sair da fila do audio 1.
+    if (nextJob?.relativeTo === 'entry' && nextJob.dueAt) return;
     releaseJobAfterMs(nextJob, nextJob?.scheduledAfterMs);
 };
 
@@ -709,6 +712,11 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
         states.sort((left, right) => {
             const leftReady = nextReadyJob(flowOf(left), now)?.job;
             const rightReady = nextReadyJob(flowOf(right), now)?.job;
+            // Em pico de entradas, todo cliente recebe primeiro o audio 1
+            // antes de a fila voltar a processar segundos audios.
+            const priority = (job) => job?.id === 'audio_01' ? 0 : (job?.id === 'audio_02' ? 1 : 2);
+            const priorityDifference = priority(leftReady) - priority(rightReady);
+            if (priorityDifference) return priorityDifference;
             return (toMs(leftReady?.dueAt) || Number.POSITIVE_INFINITY)
                 - (toMs(rightReady?.dueAt) || Number.POSITIVE_INFINITY);
         });
