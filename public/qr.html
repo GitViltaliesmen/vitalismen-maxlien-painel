@@ -5635,6 +5635,18 @@
             box-shadow: inset 3px 0 0 #25d366;
         }
 
+        /* Entrada da VSL ainda sem um humano no comando. Nao e' mensagem
+           recebida: o destaque existe para o atendente nao perder o lead. */
+        .chat-item.has-vsl-waiting {
+            background: #fff8e6;
+            box-shadow: inset 4px 0 0 #d97706;
+        }
+
+        .chat-item.has-vsl-waiting.has-unread,
+        .chat-item.has-vsl-waiting.has-unanswered {
+            box-shadow: inset 4px 0 0 #d63638;
+        }
+
         .custom-funnel-preview-empty strong,
         .custom-funnel-preview-content strong {
             color: #075e54;
@@ -8584,6 +8596,16 @@
             };
         };
 
+        // O clique na VSL cria um lead mesmo antes de o cliente enviar uma
+        // mensagem no WhatsApp. Ele deve ficar em "Novas" ate um atendente
+        // assumir o atendimento; abrir o cartao nao remove este aviso.
+        const isVslAwaitingHuman = (chat = {}) => {
+            const source = chatSourceInfo(chat);
+            if (source.className !== 'vsl') return false;
+            if (chat.orderId || closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))) return false;
+            return chat.human?.mode !== 'manual';
+        };
+
         const badgeClass = (value) => {
             const text = String(value || '').toUpperCase();
             if (/ATEND|MANUAL|IN[_\s-]*SERVICE/.test(text)) return 'attending';
@@ -10668,15 +10690,19 @@
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
             const unansweredTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unansweredCount || 0)), 0);
             const unansweredChats = visibleChats.filter((chat) => Number(chat.unansweredCount || 0) > 0).length;
+            const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
+            const newActionableChats = visibleChats.filter((chat) => (
+                Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat)
+            )).length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
             el('chatTotalCounter')?.setAttribute('title', `${visibleChats.length} conversa${visibleChats.length === 1 ? '' : 's'} visiveis${unreadTotal ? ` | ${unreadTotal} nao lida${unreadTotal === 1 ? '' : 's'}` : ''}`);
-            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = unreadChats > 99 ? '99+' : String(unreadChats);
-            el('newMessagesFilterBtn')?.classList.toggle('has-unread', unreadChats > 0);
-            el('newMessagesFilterBtn')?.setAttribute('title', unreadChats
-                ? `${unreadChats} cliente${unreadChats === 1 ? '' : 's'} com mensagem nova para responder`
-                : 'Nenhuma mensagem nova para responder');
+            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newActionableChats > 99 ? '99+' : String(newActionableChats);
+            el('newMessagesFilterBtn')?.classList.toggle('has-unread', newActionableChats > 0);
+            el('newMessagesFilterBtn')?.setAttribute('title', newActionableChats
+                ? `${newActionableChats} cliente${newActionableChats === 1 ? '' : 's'} sem atendimento (${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL e ${unansweredChats} com mensagem para responder)`
+                : 'Nenhum cliente sem atendimento');
             if (el('chatUnansweredTabCount')) el('chatUnansweredTabCount').textContent = unansweredTotal > 99 ? '99+' : String(unansweredTotal);
             el('unansweredFilterBtn')?.classList.toggle('has-unanswered', unansweredChats > 0);
             el('unansweredFilterBtn')?.setAttribute('title', unansweredChats
@@ -10874,7 +10900,7 @@
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0)) return false;
+                if (state.chatFilter === 'unread' && !(Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
                 if (state.chatFilter === 'unanswered' && !(Number(chat.unansweredCount || 0) > 0)) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
@@ -10907,13 +10933,14 @@
                 const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
                 const unansweredCount = Math.max(0, Number(chat.unansweredCount || 0));
                 const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
+                const vslWaiting = isVslAwaitingHuman(chat);
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
                 const avatar = chat.profilePictureUrl
                     ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="">`
                     : escapeHtml(avatarInitial(title));
                 return `
-                    <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${unansweredCount ? 'has-unanswered' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
+                    <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${unansweredCount ? 'has-unanswered' : ''} ${vslWaiting ? 'has-vsl-waiting' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
                         <div class="chat-row">
                             <div class="chat-avatar ${status.closed ? 'closed' : ''}">${avatar}</div>
                             <div class="chat-main">
@@ -10933,6 +10960,7 @@
                                 <div class="chat-preview">
                                     <span class="chat-badges">
                                         ${orderBadge}
+                                        ${vslWaiting ? '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>' : ''}
                                         ${unansweredCount ? `<span class="badge orange" title="${escapeHtml(`${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} sem resposta`)}">${escapeHtml(unansweredLabel)} pendente${unansweredCount === 1 ? '' : 's'}</span>` : ''}
                                         <span class="badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}">${escapeHtml(owner)}</span>
                                     </span>
