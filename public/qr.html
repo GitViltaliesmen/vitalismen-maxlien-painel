@@ -4032,6 +4032,25 @@
             display: inline-block;
         }
 
+        .tabs button .tab-unanswered-count {
+            display: none;
+            min-width: 16px;
+            height: 16px;
+            margin-left: 3px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #d97706;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 16px;
+            text-align: center;
+        }
+
+        .tabs button.has-unanswered .tab-unanswered-count {
+            display: inline-block;
+        }
+
         .contact-actions {
             display: flex;
             justify-content: flex-start;
@@ -7136,6 +7155,7 @@
                 <div class="tabs">
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
                     <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
+                    <button id="unansweredFilterBtn" data-chat-filter="unanswered" type="button" title="Mostra clientes que escreveram e ainda não receberam resposta">Pendentes <span id="chatUnansweredTabCount" class="tab-unanswered-count">0</span></button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -8424,6 +8444,7 @@
                 updatedAt: latestPanelDateValue(current.updatedAt, incoming.updatedAt) || primary.updatedAt || secondary.updatedAt || '',
                 lastMessage: latestMessage,
                 unreadCount: Math.max(0, Number(current.unreadCount || 0), Number(incoming.unreadCount || 0)),
+                unansweredCount: Math.max(0, Number(current.unansweredCount || 0), Number(incoming.unansweredCount || 0)),
                 tags: uniqueChatArray([...(current.tags || []), ...(incoming.tags || [])]),
                 labels: uniqueChatArray([...(current.labels || []), ...(incoming.labels || [])]),
                 human: manualHuman || primary.human || secondary.human,
@@ -10645,6 +10666,8 @@
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
+            const unansweredTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unansweredCount || 0)), 0);
+            const unansweredChats = visibleChats.filter((chat) => Number(chat.unansweredCount || 0) > 0).length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
@@ -10654,6 +10677,11 @@
             el('newMessagesFilterBtn')?.setAttribute('title', unreadChats
                 ? `${unreadChats} cliente${unreadChats === 1 ? '' : 's'} com mensagem nova para responder`
                 : 'Nenhuma mensagem nova para responder');
+            if (el('chatUnansweredTabCount')) el('chatUnansweredTabCount').textContent = unansweredTotal > 99 ? '99+' : String(unansweredTotal);
+            el('unansweredFilterBtn')?.classList.toggle('has-unanswered', unansweredChats > 0);
+            el('unansweredFilterBtn')?.setAttribute('title', unansweredChats
+                ? `${unansweredTotal} mensagem${unansweredTotal === 1 ? '' : 'ns'} de ${unansweredChats} cliente${unansweredChats === 1 ? '' : 's'} ainda sem resposta`
+                : 'Nenhuma mensagem pendente de resposta');
         };
 
         const renderDashboardMetrics = () => {
@@ -10847,11 +10875,14 @@
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
                 if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0)) return false;
+                if (state.chatFilter === 'unanswered' && !(Number(chat.unansweredCount || 0) > 0)) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
                 return chatMatchesSearch(chat, search);
             }).sort((left, right) => {
+                const unansweredDifference = Number(Number(right.unansweredCount || 0) > 0) - Number(Number(left.unansweredCount || 0) > 0);
+                if (unansweredDifference) return unansweredDifference;
                 const unreadDifference = Number(Number(right.unreadCount || 0) > 0) - Number(Number(left.unreadCount || 0) > 0);
                 if (unreadDifference) return unreadDifference;
                 const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
@@ -10874,13 +10905,15 @@
                 const lastTime = chat.lastMessage?.timestamp ? formatTime(chat.lastMessage.timestamp).split(', ').pop() : '';
                 const unreadCount = Math.max(0, Number(chat.unreadCount || 0));
                 const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
+                const unansweredCount = Math.max(0, Number(chat.unansweredCount || 0));
+                const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
                 const avatar = chat.profilePictureUrl
                     ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="">`
                     : escapeHtml(avatarInitial(title));
                 return `
-                    <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
+                    <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${unansweredCount ? 'has-unanswered' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
                         <div class="chat-row">
                             <div class="chat-avatar ${status.closed ? 'closed' : ''}">${avatar}</div>
                             <div class="chat-main">
@@ -10900,6 +10933,7 @@
                                 <div class="chat-preview">
                                     <span class="chat-badges">
                                         ${orderBadge}
+                                        ${unansweredCount ? `<span class="badge orange" title="${escapeHtml(`${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} sem resposta`)}">${escapeHtml(unansweredLabel)} pendente${unansweredCount === 1 ? '' : 's'}</span>` : ''}
                                         <span class="badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}">${escapeHtml(owner)}</span>
                                     </span>
                                     <span class="chat-status-pill ${status.className}">${escapeHtml(status.label)}</span>
@@ -10938,6 +10972,7 @@
                 chat.name || '',
                 chat.profilePictureUrl || '',
                 chat.unreadCount || 0,
+                chat.unansweredCount || 0,
                 chat.orderId || '',
                 chat.orderStatus || '',
                 chat.entryAt || '',

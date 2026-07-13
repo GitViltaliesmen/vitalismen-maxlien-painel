@@ -408,6 +408,7 @@ const mergePanelDuplicateChat = (current = {}, incoming = {}) => {
         profilePictureUrl: primary.profilePictureUrl || secondary.profilePictureUrl,
         lastMessage: latestMessage,
         unreadCount: Math.max(0, Number(current.unreadCount || 0), Number(incoming.unreadCount || 0)),
+        unansweredCount: Math.max(0, Number(current.unansweredCount || 0), Number(incoming.unansweredCount || 0)),
         tags: uniquePanelValues([...(current.tags || []), ...(incoming.tags || [])]),
         labels: uniquePanelValues([...(current.labels || []), ...(incoming.labels || [])]),
         human: manualHuman || primary.human || secondary.human,
@@ -3242,6 +3243,8 @@ router.get('/chats', async (req, res) => {
 
             const lastMessageByKey = new Map();
             const unreadCountByKey = new Map();
+            const inboundMessageTimesByKey = new Map();
+            const lastOutboundAtByKey = new Map();
             const fastContactStateForChat = (chat) => {
                 const phone = digitsOnly(chat.phoneHint || chat.id?.user);
                 return statesByPhone.get(phone) || statesByChatId.get(chat.id?._serialized) || null;
@@ -3259,7 +3262,19 @@ router.get('/chats', async (req, res) => {
                     if (!lastMessageByKey.has(chat.conversationKey)) {
                         lastMessageByKey.set(chat.conversationKey, message);
                     }
-                    if (message.isFromMe) continue;
+                    const messageAt = Number(message.timestamp || 0);
+                    if (message.isFromMe) {
+                        lastOutboundAtByKey.set(
+                            chat.conversationKey,
+                            Math.max(lastOutboundAtByKey.get(chat.conversationKey) || 0, messageAt)
+                        );
+                        continue;
+                    }
+                    if (messageAt > 0) {
+                        const inboundTimes = inboundMessageTimesByKey.get(chat.conversationKey) || [];
+                        inboundTimes.push(messageAt);
+                        inboundMessageTimesByKey.set(chat.conversationKey, inboundTimes);
+                    }
                     const contactState = fastContactStateForChat(chat);
                     const panelLastReadAt = contactState?.metadata?.panelLastReadAt
                         ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
@@ -3271,6 +3286,12 @@ router.get('/chats', async (req, res) => {
                         );
                     }
                 }
+            });
+            const unansweredCountByKey = new Map();
+            inboundMessageTimesByKey.forEach((inboundTimes, conversationKey) => {
+                const lastOutboundAt = lastOutboundAtByKey.get(conversationKey) || 0;
+                const unansweredCount = inboundTimes.filter((timestamp) => timestamp > lastOutboundAt).length;
+                if (unansweredCount > 0) unansweredCountByKey.set(conversationKey, unansweredCount);
             });
 
             const ecPhoneTails = [...new Set(allChats
@@ -3369,6 +3390,7 @@ router.get('/chats', async (req, res) => {
                     updatedAt: contactState?.updatedAt || null,
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: unreadCountByKey.get(c.conversationKey) || 0,
+                    unansweredCount: unansweredCountByKey.get(c.conversationKey) || 0,
                     lastMessage: lastMessage ? {
                         body: lastMessage.body,
                         timestamp: lastMessage.timestamp,
@@ -3535,6 +3557,22 @@ router.get('/chats', async (req, res) => {
                 isFromMe: false,
                 timestamp: { $gt: panelLastReadAt || 0 }
             })).catch(() => 0);
+            const lastOutboundMessage = await Message.findOne(withVisiblePanelMessages({
+                $or: [
+                    ...linkedConditions,
+                    ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
+                ],
+                isFromMe: true
+            })).sort({ timestamp: -1, createdAt: -1 }).lean().catch(() => null);
+            const lastOutboundAt = Number(lastOutboundMessage?.timestamp || 0);
+            const unansweredCount = await Message.countDocuments(withVisiblePanelMessages({
+                $or: [
+                    ...linkedConditions,
+                    ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
+                ],
+                isFromMe: false,
+                timestamp: { $gt: lastOutboundAt }
+            })).catch(() => 0);
             const profilePictureUrl = fastMode
                 ? String(contactState?.metadata?.profilePictureUrl || '')
                 : await resolveProfilePictureUrl({
@@ -3579,6 +3617,7 @@ router.get('/chats', async (req, res) => {
                 updatedAt: contactState?.updatedAt || null,
                 profilePictureUrl,
                 unreadCount,
+                unansweredCount,
                 lastMessage: lastMessage ? {
                     body: lastMessage.body,
                     timestamp: lastMessage.timestamp,
