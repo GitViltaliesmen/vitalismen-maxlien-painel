@@ -11,6 +11,7 @@ import { getSalesMedia } from './salesMediaCatalog.js';
 import { getNextItemByPurpose, markPurposeItemSent } from './funnelPurposeMemoryService.js';
 import { NITRIX_EC_PRODUCT_PROFILE, nitrixPriceForQuantity, nitrixPriceText } from './nitrixProductProfile.js';
 import { isSimpleGreeting, startsWithOfficialInitialCtaMessage } from './initialFunnelTriggers.js';
+import { buildNitrixTwoAudioEntryJobs, nitrixEntryLayerMode } from './nitrixEntryTwoAudioLayer.js';
 
 const AGENT_KEY = NITRIX_EC_PRODUCT_PROFILE.key;
 const memoryPath = `metadata.perAgentMemory.${AGENT_KEY}`;
@@ -429,7 +430,11 @@ const respondToCustomer = async ({ state, flow, text }) => {
     return sendPlainText({ state, flow, text: 'Le entiendo. Dígame su duda concreta sobre Nitrix —por ejemplo precio, garantía, uso o entrega— y le respondo por aquí.', context: 'nitrix_general' });
 };
 
-export const buildNitrixEntryJobsForTest = (startedAt, { hasKnownName = false } = {}) => {
+export const buildNitrixEntryJobsForTest = (startedAt, {
+    hasKnownName = false,
+    entryLayer = nitrixEntryLayerMode()
+} = {}) => {
+    if (entryLayer === 'two_audio_only') return buildNitrixTwoAudioEntryJobs(startedAt);
     // Sorteia uma vez por conversa e persiste os prazos abaixo. Assim, a
     // sequencia parece humana e um reinicio nao recalcula nem deixa os envios
     // cairem em um ritmo mecanico.
@@ -686,7 +691,11 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
     if (isProcessingFastStateJobs) return { enabled: true, busy: true, processed: 0 };
     isProcessingFastStateJobs = true;
     try {
-        const query = { assignedAgent: AGENT_KEY, [`${memoryPath}.fastState.status`]: 'running' };
+        const query = {
+            assignedAgent: AGENT_KEY,
+            [`${memoryPath}.fastState.status`]: 'running',
+            [`${memoryPath}.fastState.jobs`]: { $elemMatch: { status: 'pending' } }
+        };
         if (rolloutMode === 'qa') query.phoneDigits = { $regex: `${configuredTestPhone}$` };
         const states = await ContactState.find(query).sort({ updatedAt: 1 }).limit(Math.max(1, limit));
         const now = new Date();
@@ -729,6 +738,7 @@ export const startNitrixFastStateFromVslEntry = async ({ contactStateId, session
         startedAt: startedAt.toISOString(),
         sessionId: sessionId || state.metadata?.lastSessionId || null,
         copyPlan: entryCopyPlan(state),
+        entryLayer: nitrixEntryLayerMode(),
         jobs: buildNitrixEntryJobsForTest(startedAt, { hasKnownName: knownCustomerFullName(state) }),
         bottle: { sentAt: '', reason: '', confirmedAt: '' },
         healthTopics: {},
@@ -809,6 +819,7 @@ export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText
         startedAt: startedAt.toISOString(),
         sessionId,
         copyPlan: entryCopyPlan(state),
+        entryLayer: nitrixEntryLayerMode(),
         jobs: buildNitrixEntryJobsForTest(startedAt, { hasKnownName: knownCustomerFullName(state) }),
         bottle: { sentAt: '', reason: '', confirmedAt: '' },
         healthTopics: {}

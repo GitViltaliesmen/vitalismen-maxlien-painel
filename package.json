@@ -22,6 +22,7 @@
         "guard:freeze-lock": "node scripts/guard-freeze-lock-ec.mjs",
         "guard:ec-nitrix": "node scripts/audit-ec-nitrix-guard.mjs",
         "test:nitrix-rollout-gate": "node scripts/test-nitrix-rollout-gate.mjs",
+        "test:nitrix-two-audio-entry": "node scripts/test-nitrix-two-audio-entry.mjs",
         "guard:ec-product-micro-layer": "node scripts/audit-ec-product-micro-layer.mjs",
         "guard:guide-print-spam": "node scripts/audit-guide-print-spam-guard.mjs",
         "freeze:ec": "node scripts/freeze-ec-layer.mjs",
