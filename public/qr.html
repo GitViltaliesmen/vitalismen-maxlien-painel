@@ -8597,13 +8597,21 @@
         };
 
         // O clique na VSL cria um lead mesmo antes de o cliente enviar uma
-        // mensagem no WhatsApp. Ele deve ficar em "Novas" ate um atendente
-        // assumir o atendimento; abrir o cartao nao remove este aviso.
+        // mensagem no WhatsApp. Ele deve ficar em "Novas" ate receber uma
+        // resposta (humana ou do fluxo aprovado). Abrir o cartao nao remove
+        // este aviso. Se o cliente escrever depois, Pendentes assume a fila.
         const isVslAwaitingHuman = (chat = {}) => {
             const source = chatSourceInfo(chat);
             if (source.className !== 'vsl') return false;
             if (chat.orderId || closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))) return false;
-            return chat.human?.mode !== 'manual';
+            if (Number(chat.unansweredCount || 0) > 0) return false;
+            if (chat.human?.mode === 'manual') return false;
+            const entryAt = parsePanelDateMs(chatEntryAtRaw(chat));
+            const lastMessageAt = parsePanelDateMs(chat.lastMessage?.timestamp);
+            const receivedResponseAfterEntry = chat.lastMessage?.isFromMe === true
+                && lastMessageAt > 0
+                && (!entryAt || lastMessageAt >= entryAt);
+            return !receivedResponseAfterEntry;
         };
 
         const badgeClass = (value) => {
