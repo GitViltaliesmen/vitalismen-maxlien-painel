@@ -696,6 +696,11 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
             [`${memoryPath}.fastState.status`]: 'running',
             [`${memoryPath}.fastState.jobs`]: { $elemMatch: { status: 'pending' } }
         };
+        // Ao liberar somente a camada nova, fluxos antigos (sem a marca de
+        // camada) jamais voltam a enviar audio por acidente.
+        if (nitrixEntryLayerMode() === 'two_audio_only') {
+            query[`${memoryPath}.fastState.entryLayer`] = 'two_audio_only';
+        }
         if (rolloutMode === 'qa') query.phoneDigits = { $regex: `${configuredTestPhone}$` };
         const states = await ContactState.find(query).sort({ updatedAt: 1 }).limit(Math.max(1, limit));
         const now = new Date();

@@ -15,8 +15,10 @@ assert(nitrixEntryLayerMode({}) === 'full_sequence', 'sem liberacao explicita de
 const jobs = buildNitrixTwoAudioEntryJobs(startedAt, {
     env: {
         NITRIX_FAST_STATE_ENTRY_AUDIO_01_DELAY_MS: '10000',
-        NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MS: '20000'
-    }
+        NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MIN_MS: '5000',
+        NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MAX_MS: '30000'
+    },
+    random: () => 0
 });
 const byId = (id) => jobs.find((job) => job.id === id);
 
@@ -25,10 +27,20 @@ assert(byId('audio_01')?.status === 'pending', 'audio 1 deve entrar na fila');
 assert(new Date(byId('audio_01')?.dueAt).getTime() === startedAt.getTime() + 10000, 'audio 1 deve ficar em 10 segundos');
 assert(byId('audio_02')?.status === 'pending', 'audio 2 deve entrar na fila');
 assert(byId('audio_02')?.dueAt === '', 'audio 2 deve esperar o envio aceito do audio 1');
-assert(byId('audio_02')?.scheduledAfterMs === 20000, 'audio 2 deve esperar 20 segundos apos o audio 1');
+assert(byId('audio_02')?.scheduledAfterMs === 5000, 'limite inferior do audio 2 deve ser 5 segundos apos o audio 1');
 for (const id of ['name_intro', 'proof', 'bottle']) {
     assert(byId(id)?.status === 'skipped', `${id} nao pode ser enviado nesta camada`);
     assert(byId(id)?.skipReason === 'entry_layer_two_audio_only', `${id} deve registrar o bloqueio da camada`);
 }
+
+const maxJobs = buildNitrixTwoAudioEntryJobs(startedAt, {
+    env: {
+        NITRIX_FAST_STATE_ENTRY_AUDIO_01_DELAY_MS: '10000',
+        NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MIN_MS: '5000',
+        NITRIX_FAST_STATE_ENTRY_AUDIO_02_AFTER_FIRST_MAX_MS: '30000'
+    },
+    random: () => 1
+});
+assert(maxJobs.find((job) => job.id === 'audio_02')?.scheduledAfterMs === 30000, 'limite superior do audio 2 deve ser 30 segundos apos o audio 1');
 
 console.log('Nitrix two-audio entry layer: OK');
