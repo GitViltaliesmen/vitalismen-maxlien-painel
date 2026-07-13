@@ -1296,8 +1296,10 @@
             line-height: 1;
         }
 
-        .chat-phone-attention.urgent {
-            background: #d63638;
+        /* Mesmo sinal visual do WhatsApp: numero verde = mensagem real do
+           cliente ainda sem resposta. Laranja permanece apenas para VSL. */
+        .chat-phone-attention.customer-message {
+            background: #25d366;
         }
 
         .chat-entry-line {
@@ -10979,6 +10981,7 @@
                 const attentionTitle = unansweredCount > 0
                     ? `${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} do cliente sem resposta`
                     : 'Cliente da VSL sem atendimento';
+                const attentionLabel = unansweredCount > 0 ? unansweredLabel : '!';
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
                 const avatar = chat.profilePictureUrl
@@ -10998,7 +11001,7 @@
                                 </div>
                                 <div class="chat-phone-line">
                                     <span class="chat-phone-value">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</span>
-                                    ${needsAttention ? `<span class="chat-phone-attention ${unansweredCount > 0 ? 'urgent' : ''}" title="${escapeHtml(attentionTitle)}" aria-label="${escapeHtml(attentionTitle)}">!</span>` : ''}
+                                    ${needsAttention ? `<span class="chat-phone-attention ${unansweredCount > 0 ? 'customer-message' : ''}" title="${escapeHtml(attentionTitle)}" aria-label="${escapeHtml(attentionTitle)}">${escapeHtml(attentionLabel)}</span>` : ''}
                                 </div>
                                 <div class="chat-entry-line ${escapeHtml(entryInfo.className)}" title="${escapeHtml(entryInfo.title)}">
                                     <span class="entry-badge">${escapeHtml(entryInfo.badge)}</span>
