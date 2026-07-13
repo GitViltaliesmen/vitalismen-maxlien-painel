@@ -1264,13 +1264,40 @@
         }
 
         .chat-phone-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             color: #667781;
             font-size: 12px;
             line-height: 1.25;
             min-width: 0;
             overflow: hidden;
+        }
+
+        .chat-phone-value {
+            min-width: 0;
+            overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .chat-phone-attention {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: #d97706;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .chat-phone-attention.urgent {
+            background: #d63638;
         }
 
         .chat-entry-line {
@@ -8451,6 +8478,7 @@
                 entryAt,
                 firstInboundAt: earliestPanelDateValue(current.firstInboundAt, incoming.firstInboundAt) || primary.firstInboundAt || secondary.firstInboundAt || '',
                 lastInboundAt: latestPanelDateValue(current.lastInboundAt, incoming.lastInboundAt) || primary.lastInboundAt || secondary.lastInboundAt || '',
+                lastOutboundAt: latestPanelDateValue(current.lastOutboundAt, incoming.lastOutboundAt) || primary.lastOutboundAt || secondary.lastOutboundAt || '',
                 lastActivityAt: latestPanelDateValue(current.lastActivityAt, incoming.lastActivityAt, current.updatedAt, incoming.updatedAt, current.lastMessage?.timestamp, incoming.lastMessage?.timestamp),
                 createdAt: earliestPanelDateValue(current.createdAt, incoming.createdAt) || primary.createdAt || secondary.createdAt || '',
                 updatedAt: latestPanelDateValue(current.updatedAt, incoming.updatedAt) || primary.updatedAt || secondary.updatedAt || '',
@@ -8607,10 +8635,15 @@
             if (Number(chat.unansweredCount || 0) > 0) return false;
             if (chat.human?.mode === 'manual') return false;
             const entryAt = parsePanelDateMs(chatEntryAtRaw(chat));
-            const lastMessageAt = parsePanelDateMs(chat.lastMessage?.timestamp);
-            const receivedResponseAfterEntry = chat.lastMessage?.isFromMe === true
-                && lastMessageAt > 0
-                && (!entryAt || lastMessageAt >= entryAt);
+            const lastMessageAt = chat.lastMessage?.isFromMe === true
+                ? parsePanelDateMs(chat.lastMessage?.timestamp)
+                : 0;
+            const lastOutboundAt = Math.max(
+                parsePanelDateMs(chat.lastOutboundAt),
+                lastMessageAt
+            );
+            const receivedResponseAfterEntry = lastOutboundAt > 0
+                && (!entryAt || lastOutboundAt >= entryAt);
             return !receivedResponseAfterEntry;
         };
 
@@ -10942,6 +10975,10 @@
                 const unansweredCount = Math.max(0, Number(chat.unansweredCount || 0));
                 const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
                 const vslWaiting = isVslAwaitingHuman(chat);
+                const needsAttention = vslWaiting || unansweredCount > 0;
+                const attentionTitle = unansweredCount > 0
+                    ? `${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} do cliente sem resposta`
+                    : 'Cliente da VSL sem atendimento';
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
                 const avatar = chat.profilePictureUrl
@@ -10959,7 +10996,10 @@
                                         ${unreadCount ? `<span class="chat-unread-count">${escapeHtml(unreadLabel)}</span>` : ''}
                                     </span>
                                 </div>
-                                <div class="chat-phone-line">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</div>
+                                <div class="chat-phone-line">
+                                    <span class="chat-phone-value">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</span>
+                                    ${needsAttention ? `<span class="chat-phone-attention ${unansweredCount > 0 ? 'urgent' : ''}" title="${escapeHtml(attentionTitle)}" aria-label="${escapeHtml(attentionTitle)}">!</span>` : ''}
+                                </div>
                                 <div class="chat-entry-line ${escapeHtml(entryInfo.className)}" title="${escapeHtml(entryInfo.title)}">
                                     <span class="entry-badge">${escapeHtml(entryInfo.badge)}</span>
                                     <span class="source-badge ${escapeHtml(sourceInfo.className)}" title="${escapeHtml(sourceInfo.title)}">${escapeHtml(sourceInfo.badge)}</span>
