@@ -857,22 +857,50 @@ const TEST_PHONE_OVERRIDE_CODE = "8637";
 const TEST_PHONE_OVERRIDE_E164 = "5515998038637";
 const TEST_PHONE_OVERRIDE_LOCAL = "15998038637";
 const TEST_PHONE_OVERRIDE_SHORT = "998038637";
+const TEST_PHONE_OVERRIDES = {
+  "8637": {
+    e164: TEST_PHONE_OVERRIDE_E164,
+    local: TEST_PHONE_OVERRIDE_LOCAL,
+    short: TEST_PHONE_OVERRIDE_SHORT
+  },
+  "2958": {
+    e164: "5531971862958",
+    local: "31971862958",
+    short: "971862958"
+  }
+};
 
-function testPhoneOverrideEnabled(){
+function activeTestPhoneOverride(){
   try {
     const params = new URLSearchParams(location.search || "");
-    return params.get("allowTestPhone") === TEST_PHONE_OVERRIDE_CODE;
+    const code = String(params.get("allowTestPhone") || "").trim();
+    return TEST_PHONE_OVERRIDES[code] || null;
   } catch(e) {
-    return false;
+    return null;
+  }
+}
+
+function testPhoneOverrideEnabled(){
+  return Boolean(activeTestPhoneOverride());
+}
+
+function activeTestPhoneOverrideCode(){
+  try {
+    const params = new URLSearchParams(location.search || "");
+    const code = String(params.get("allowTestPhone") || "").trim();
+    return TEST_PHONE_OVERRIDES[code] ? code : "";
+  } catch(e) {
+    return "";
   }
 }
 
 function normalizedTestPhoneOverride(value){
   const digits = normalizeCustomerPhoneDigits(value);
-  if (!testPhoneOverrideEnabled()) return "";
-  if (digits === TEST_PHONE_OVERRIDE_E164) return TEST_PHONE_OVERRIDE_E164;
-  if (digits === TEST_PHONE_OVERRIDE_LOCAL) return TEST_PHONE_OVERRIDE_E164;
-  if (digits === TEST_PHONE_OVERRIDE_SHORT) return TEST_PHONE_OVERRIDE_E164;
+  const override = activeTestPhoneOverride();
+  if (!override) return "";
+  if (digits === override.e164) return override.e164;
+  if (digits === override.local) return override.e164;
+  if (digits === override.short) return override.e164;
   return "";
 }
 
@@ -985,7 +1013,7 @@ function recordWhatsappClick(message, fullName, phone){
       testEntry: testPhone,
       testLead: testPhone,
       skipMeta: testPhone,
-      testPhoneOverride: testPhone ? TEST_PHONE_OVERRIDE_CODE : "",
+      testPhoneOverride: testPhone ? activeTestPhoneOverrideCode() : "",
       referrer: document.referrer || "",
       event_source_url: location.href,
       client_user_agent: navigator.userAgent || ""
