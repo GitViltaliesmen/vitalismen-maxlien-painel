@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-12T03:42:00.000Z",
+  "updatedAt": "2026-07-17T00:23:00.592Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -318,6 +318,64 @@
           "type": "includes",
           "file": "src/services/adminPanelStatusService.js",
           "value": "CREATE TABLE IF NOT EXISTS purchase_capi_lock"
+        }
+      ]
+    },
+    {
+      "id": "site_entry_lead_panel_path_before_vsl_ab_ec",
+      "status": "active",
+      "description": "Antes do teste A/B de VSL, a entrada EC fica congelada no mesmo caminho: /n/ mobile, CTA WhatsApp/Z-API, Meta EC e Leads Clientes/Painel Unificado EC.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "vturbMount"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fetch(ecApiPath(\"/api/whatsapp/vsl-entry\"),"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath('/api/zapi/whatsapp-link')"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/meta-events\")"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fbq('init', '1468946114265008');"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "window.__MAXLIEN_SHOW_FORM__ = showForm;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "id=\"leadDashboardFrame\""
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "/leads-window.html?country=EC"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalEntries: Math.max"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/leads.js",
+          "value": "syncVslOrderToPanel"
         }
       ]
     },
@@ -825,12 +883,36 @@
         "manual_funnel_text_send_direct_ec",
         "panel_chat_entry_time_badge_ec"
       ]
+    },
+    {
+      "at": "2026-07-17T00:23:00.592Z",
+      "description": "Aprovado: congelar entrada /n EC e lead no painel antes do teste AB de VSL",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717002300.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-09T14:22:20.216Z",
-    "description": "Aprovado: painel EC mostra horario de entrada e novo ou antigo por cliente",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260709142220.md",
+    "at": "2026-07-17T00:23:00.592Z",
+    "description": "Aprovado: congelar entrada /n EC e lead no painel antes do teste AB de VSL",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717002300.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -841,6 +923,7 @@
       "vsl_nitrix_mobile_entry_ec",
       "meta_pixel_lead_ec_dataset",
       "meta_purchase_confirmed_order_lock_ec",
+      "site_entry_lead_panel_path_before_vsl_ab_ec",
       "ops_alerts_click_to_attend_ec",
       "customer_ficha_autosave_orderid_ec",
       "ops_alert_post_sale_reengagement_guard_ec",
