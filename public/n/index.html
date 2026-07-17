@@ -72,8 +72,9 @@
       font-weight:900;
       font-size:18px;
       cursor:pointer;
-      text-transform:uppercase;
-      letter-spacing:.3px;
+      text-transform:none;
+      letter-spacing:0;
+      line-height:1.22;
       box-shadow:0 10px 28px rgba(230,0,0,.35);
       animation:pulseCta 1.1s infinite;
     }
@@ -86,6 +87,9 @@
       opacity:.65;
       cursor:not-allowed;
       animation:none;
+    }
+    .card.cta-only button{
+      margin-top:0;
     }
     .vturb-native-cta-hidden{
       display:none!important;
@@ -314,24 +318,13 @@
     <div id="vturbMount"></div>
 
 	    <!-- ENTRADA WHATSAPP (SO NO FINAL) -->
-	    <section class="card" id="orderForm">
-		      <div class="tap-anywhere-hint">Toca aqui para abrir WhatsApp despues de escribir tu celular</div>
-		      <label>Nombre completo opcional</label>
-		      <input type="text" id="customerFullName" name="name" autocomplete="name" placeholder="Ej: Maria Fernanda Lopez">
-	      <div id="nameError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Puedes continuar sin nombre; tambien puedes escribirlo para atencion mas rapida.</div>
-
-	      <label>Celular WhatsApp</label>
-	      <input type="tel" id="customerPhone" name="phone" autocomplete="tel" inputmode="tel" required placeholder="Ej: 0987654321">
-	      <div id="phoneError" class="fine" style="display:none;color:#ffb4b4;opacity:1;margin-top:8px">Para abrir WhatsApp, escribe un celular valido de Ecuador.</div>
-
+	    <section class="card cta-only" id="orderForm">
 	      <button id="btnSubmit" type="button">Abrir WhatsApp</button>
 
       <div id="waManualBox" class="fine" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:12px;padding:12px;margin-top:12px;opacity:1">
         Si WhatsApp no se abre automaticamente, toca el enlace de abajo:<br>
         <a id="waManualLink" href="#" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;color:#fff;font-weight:900;text-decoration:underline">Abrir WhatsApp</a>
       </div>
-
-      <div class="fine">Atencion por WhatsApp. Confirmamos datos antes del envio.</div>
     </section>
   </div>
 
@@ -417,6 +410,10 @@
 
   function vslAbEntryMessage(){
     return VSL_AB_ENTRY_MESSAGES[vslAbVariant()] || VSL_AB_ENTRY_MESSAGES.a;
+  }
+
+  function vslAbButtonLabel(){
+    return vslAbEntryMessage();
   }
 
   function vslAbPayload(){
@@ -729,7 +726,10 @@
 		      box.classList.add("whatsapp-ready");
 		      recordFormVisible(reason || "show_form");
 		      const btn = document.getElementById("btnSubmit");
-		      if(btn) setTimeout(() => btn.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+		      if(btn) {
+		        btn.textContent = vslAbButtonLabel();
+		        setTimeout(() => btn.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+		      }
 	    }
   }
   window.__MAXLIEN_SHOW_FORM__ = showForm;
@@ -825,7 +825,7 @@ function recoverWhatsappButton(){
   const btn = document.getElementById("btnSubmit");
   if (!btn || document.visibilityState !== "visible") return;
   btn.disabled = false;
-  btn.textContent = "ABRIR WHATSAPP";
+  btn.textContent = vslAbButtonLabel();
   redirected = false;
 }
 
@@ -919,8 +919,12 @@ function isValidEcuadorPhone(value){
 }
 
 function isAllowedTestPhone(value){
-  return normalizedTestPhoneOverride(value) === TEST_PHONE_OVERRIDE_E164
-    || customerPhoneE164(value) === TEST_PHONE_OVERRIDE_E164;
+  const normalized = normalizedTestPhoneOverride(value);
+  const phone = customerPhoneE164(value);
+  return Object.keys(TEST_PHONE_OVERRIDES).some(function(code){
+    const override = TEST_PHONE_OVERRIDES[code];
+    return normalized === override.e164 || phone === override.e164;
+  });
 }
 
 function isAllowedCheckoutPhone(value){
@@ -933,20 +937,16 @@ function showPhoneError(show){
 }
 
 function customerFullName(){
-  const input = document.getElementById("customerFullName");
-  return normalizeFullName(input && input.value);
+  return "";
 }
 
 function customerPhone(){
-  return customerPhoneE164();
+  const override = activeTestPhoneOverride();
+  return override ? override.e164 : "";
 }
 
 function buildWhatsappMessage(baseMessage, fullName, phone){
-  const name = normalizeFullName(fullName);
-  const phoneDigits = normalizeCustomerPhoneDigits(phone);
-  return String(baseMessage || "").trim()
-    + (name ? "\n\nNombre completo: " + name : "")
-    + (phoneDigits ? "\nTelefono: +" + phoneDigits : "");
+  return String(baseMessage || "").trim();
 }
 
 function trackWhatsappLead(message, fullName, phone){
@@ -1043,7 +1043,7 @@ async function openWhatsappEntry(baseMessage, fullName, phone){
   const btn = document.getElementById("btnSubmit");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Capturando telefono...";
+    btn.textContent = "Preparando WhatsApp...";
   }
   const sellerPhone = await nextSellerFromServer(message, fullName);
   await waitForLeadCapture(Promise.all([
@@ -1058,15 +1058,6 @@ async function openWhatsappEntry(baseMessage, fullName, phone){
 function submitWhatsappFromForm(){
   const fullName = customerFullName();
   const phone = customerPhone();
-  const phoneInput = document.getElementById("customerPhone");
-  const rawPhone = normalizeCustomerPhoneDigits((phoneInput || {}).value);
-  if (!isAllowedCheckoutPhone(rawPhone || phone)) {
-    showPhoneError(true);
-    if (phoneInput) phoneInput.focus();
-    return;
-  }
-  showNameError(false);
-  showPhoneError(false);
   openWhatsappEntry(vslAbEntryMessage(), fullName, phone);
 }
 
@@ -1075,15 +1066,6 @@ document.addEventListener("click", function(event){
     event.preventDefault();
     submitWhatsappFromForm();
   }
-});
-
-document.addEventListener("click", function(event){
-  const box = document.getElementById("orderForm");
-  if (!box || box.style.display !== "block") return;
-  if (!event.target || !event.target.closest || !event.target.closest("#orderForm")) return;
-  if (event.target.closest("input,select,textarea,button,a,label")) return;
-  event.preventDefault();
-  submitWhatsappFromForm();
 });
 
 document.addEventListener("keydown", function(event){
