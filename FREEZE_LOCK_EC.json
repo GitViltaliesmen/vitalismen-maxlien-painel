@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-17T01:16:47.437Z",
+  "updatedAt": "2026-07-17T03:37:15.912Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -1084,12 +1084,38 @@
         "manual_funnel_text_send_direct_ec",
         "panel_chat_entry_time_badge_ec"
       ]
+    },
+    {
+      "at": "2026-07-17T03:37:15.912Z",
+      "description": "Aprovado: funil inicial Nitrix EC completo, pos-fechamento ativo e teste 2958 validado",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717033715.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "vsl_manual_test_2958_skipmeta_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-17T01:16:47.437Z",
-    "description": "Aprovado: liberar 2958 apenas como teste manual VSL EC com skipMeta",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717011647.md",
+    "at": "2026-07-17T03:37:15.912Z",
+    "description": "Aprovado: funil inicial Nitrix EC completo, pos-fechamento ativo e teste 2958 validado",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717033715.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
