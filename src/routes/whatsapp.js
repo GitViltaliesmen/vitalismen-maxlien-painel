@@ -266,6 +266,24 @@ const matchBrazilPanelTestPhone = (...identifiers) => {
 
 const isBrazilPanelTestPhone = (...identifiers) => Boolean(matchBrazilPanelTestPhone(...identifiers));
 
+const PUBLIC_VSL_TEST_PHONE_OVERRIDES = {
+    2958: '5531971862958'
+};
+
+const publicVslTestPhoneOverrideDigits = (body = {}) => {
+    const code = cleanText(body.testPhoneOverride || body.test_phone_override);
+    const allowed = PUBLIC_VSL_TEST_PHONE_OVERRIDES[code];
+    if (!allowed || body.testEntry !== true || body.testLead !== true || body.skipMeta !== true) return '';
+    const raw = digitsOnly(
+        body.customerPhone
+        || body.customer_phone
+        || body.phone
+        || body.phoneDigits
+        || body.phone_digits
+    );
+    return isSamePhone(raw, allowed) ? allowed : '';
+};
+
 const zapiOperationalPanelPhone = () => digitsOnly(
     process.env.ZAPI_OPERATIONAL_PHONE
     || process.env.ZAPI_CONNECTED_PHONE
@@ -1352,6 +1370,8 @@ const publicEcVslProductFromBody = (body = {}) => {
 };
 
 const vslCustomerPhoneFromBody = (body = {}, country = 'EC') => {
+    const overridePhone = publicVslTestPhoneOverrideDigits(body);
+    if (overridePhone) return overridePhone;
     const raw = cleanText(
         body.customerPhone
         || body.customer_phone
