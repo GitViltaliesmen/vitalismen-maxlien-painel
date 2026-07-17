@@ -11,8 +11,8 @@
 <!-- END PATCH: MX_VTURB_PRELOAD_V1 -->
 
 <!-- PATCH: MX_NX_VTURB_PRELOAD_V1 -->
-<link rel="preload" href="https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/players/6a4ad9fafede7452274da725/v4/player.js" as="script">
-<link rel="preload" href="https://cdn.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/6a4ad9ba3c0695cdbfa9ddd8/main.m3u8" as="fetch">
+<link rel="preload" href="https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/ab-test/6a5976494d4b86598b3690f9/player.js" as="script">
+<link rel="dns-prefetch" href="https://m3u8.vturb.net">
 <!-- END PATCH: MX_NX_VTURB_PRELOAD_V1 -->
 
   <meta charset="utf-8" />
@@ -386,6 +386,50 @@
   }
 
   const IS_MOBILE_VISITOR = isMobileVisitor();
+  const VSL_AB_TEST_ID = "ab-6a5976494d4b86598b3690f9";
+  const VSL_AB_PLAYER_URL = "https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/ab-test/6a5976494d4b86598b3690f9/player.js";
+  const VSL_AB_STORAGE_KEY = "mx_ec_vsl_ab_variant_v1";
+  const VSL_AB_ENTRY_MESSAGES = {
+    a: "Hola, quiero saber mas sobre Nitrix Oxide.",
+    b: "Hola, deseo recibir mas informacion sobre el producto."
+  };
+  let vslAbVariantMemo = "";
+
+  function vslAbVariant(){
+    if (vslAbVariantMemo) return vslAbVariantMemo;
+    try {
+      const saved = localStorage.getItem(VSL_AB_STORAGE_KEY);
+      if (saved === "a" || saved === "b") {
+        vslAbVariantMemo = saved;
+        return vslAbVariantMemo;
+      }
+      const values = window.crypto && window.crypto.getRandomValues ? new Uint32Array(1) : null;
+      if (values) window.crypto.getRandomValues(values);
+      const chosen = ((values ? values[0] : Math.floor(Math.random() * 1000000)) % 2) === 0 ? "a" : "b";
+      localStorage.setItem(VSL_AB_STORAGE_KEY, chosen);
+      vslAbVariantMemo = chosen;
+      return vslAbVariantMemo;
+    } catch(e) {
+      vslAbVariantMemo = Math.random() < 0.5 ? "a" : "b";
+      return vslAbVariantMemo;
+    }
+  }
+
+  function vslAbEntryMessage(){
+    return VSL_AB_ENTRY_MESSAGES[vslAbVariant()] || VSL_AB_ENTRY_MESSAGES.a;
+  }
+
+  function vslAbPayload(){
+    const variant = vslAbVariant();
+    return {
+      vslTestId: VSL_AB_TEST_ID,
+      vsl_test_id: VSL_AB_TEST_ID,
+      vslVariant: variant,
+      vsl_variant: variant,
+      vslEntryMessage: VSL_AB_ENTRY_MESSAGES[variant],
+      vsl_entry_message: VSL_AB_ENTRY_MESSAGES[variant]
+    };
+  }
 
   function vslSessionId(){
     try {
@@ -412,7 +456,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         keepalive: true,
-        body: JSON.stringify(Object.assign({}, origin, {
+        body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
           country: "EC",
           productKey: "nitrix_ec",
           productName: "Nitrix Oxide Ecuador",
@@ -441,19 +485,16 @@
     const mount = document.getElementById("vturbMount");
     if (!mount || mount.getAttribute("data-loaded") === "1") return;
     mount.setAttribute("data-loaded", "1");
-    mount.innerHTML = '<vturb-smartplayer id="vid-6a4ad9fafede7452274da725" style="display:block;margin:0 auto;width:100%;max-width:400px;"><div class="vturb-player-placeholder" style="position:relative;width:100%;padding:177.77777777777777% 0 0;z-index:0;background-color:black;"></div></vturb-smartplayer>';
+    mount.setAttribute("data-vsl-ab-test-id", VSL_AB_TEST_ID);
+    mount.setAttribute("data-vsl-ab-variant", vslAbVariant());
+    mount.innerHTML = '<vturb-smartplayer id="' + VSL_AB_TEST_ID + '" style="display:block;margin:0 auto;width:100%;max-width:400px;"><div class="vturb-player-placeholder" style="position:relative;width:100%;padding:177.77777777777777% 0 0;z-index:0;background-color:black;"></div></vturb-smartplayer>';
     var preload = document.createElement("link");
     preload.rel = "preload";
-    preload.href = "https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/players/6a4ad9fafede7452274da725/v4/player.js";
+    preload.href = VSL_AB_PLAYER_URL;
     preload.as = "script";
     document.head.appendChild(preload);
-    var videoPreload = document.createElement("link");
-    videoPreload.rel = "preload";
-    videoPreload.href = "https://cdn.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/6a4ad9ba3c0695cdbfa9ddd8/main.m3u8";
-    videoPreload.as = "fetch";
-    document.head.appendChild(videoPreload);
     var script = document.createElement("script");
-    script.src = "https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/players/6a4ad9fafede7452274da725/v4/player.js";
+    script.src = VSL_AB_PLAYER_URL;
     script.async = true;
     document.head.appendChild(script);
   }
@@ -659,7 +700,7 @@
 	        method: "POST",
 	        headers: { "Content-Type": "application/json" },
 	        keepalive: true,
-	        body: JSON.stringify(Object.assign({}, origin, {
+	        body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 		          country: "EC",
 		          productKey: "nitrix_ec",
 		          productName: "Nitrix Oxide Ecuador",
@@ -885,7 +926,7 @@ function trackWhatsappLead(message, fullName, phone){
   const eventId = "lead_whatsapp_" + Date.now() + "_" + Math.random().toString(16).slice(2);
   try { if (window.__mvpMarkLeadOnce) window.__mvpMarkLeadOnce(eventId); } catch(e) {}
   try {
-    const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, {
+    const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, vslAbPayload(), {
 	      country: "EC",
 	      productKey: "nitrix_ec",
 	      productName: "Nitrix Oxide Ecuador",
@@ -925,7 +966,7 @@ function recordWhatsappClick(message, fullName, phone){
     const origin = window.__MAXLIEN_ORIGIN || {};
     const phoneDigits = normalizeCustomerPhoneDigits(phone);
     const testPhone = isAllowedTestPhone(phone);
-    const payload = JSON.stringify(Object.assign({}, origin, {
+    const payload = JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 	      country: "EC",
 	      productKey: "nitrix_ec",
 	      productName: "Nitrix Oxide Ecuador",
@@ -998,7 +1039,7 @@ function submitWhatsappFromForm(){
   }
   showNameError(false);
   showPhoneError(false);
-  openWhatsappEntry(pickInitialCtaMessage(), fullName, phone);
+  openWhatsappEntry(vslAbEntryMessage(), fullName, phone);
 }
 
 document.addEventListener("click", function(event){

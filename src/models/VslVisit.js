@@ -71,6 +71,20 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    vslTestId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    vslVariant: {
+        type: String,
+        default: '',
+        index: true
+    },
+    vslEntryMessage: {
+        type: String,
+        default: ''
+    },
     lastWhatsappMessage: {
         type: String,
         default: ''

@@ -1374,6 +1374,9 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const product = publicEcVslProductFromBody(body);
     const customerName = cleanText(body.customerName || body.customer_name || body.name).slice(0, 180);
     const entryMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 700);
+    const vslTestId = cleanText(body.vslTestId || body.vsl_test_id).slice(0, 120);
+    const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
+    const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
     const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
     const sessionId = cleanText(body.sessionId || body.session_id);
     const sellerDigits = digitsOnly(assignedSeller);
@@ -1445,6 +1448,9 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslSessionId: sessionId,
         vslPage: cleanText(body.page),
         vslPath: cleanText(body.path),
+        vslTestId: vslTestId || state.metadata?.vslTestId || '',
+        vslVariant: vslVariant || state.metadata?.vslVariant || '',
+        vslEntryMessage: vslEntryMessage || entryMessage || state.metadata?.vslEntryMessage || '',
         vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
         vslReferrer: cleanText(body.referrer),
         ...(isNitrixVsl && !preserveNitrixHumanTakeover ? {
@@ -1473,6 +1479,9 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
                 ? '/media/sales/ec/nitrix_bottle.png'
                 : '/media/sales/ec/vit_power.jpeg',
             message: entryMessage || existingDraft.message || '',
+            vslTestId: vslTestId || existingDraft.vslTestId || '',
+            vslVariant: vslVariant || existingDraft.vslVariant || '',
+            vslEntryMessage: vslEntryMessage || entryMessage || existingDraft.vslEntryMessage || '',
             assignedSeller: sellerDigits || existingDraft.assignedSeller || '',
             updatedAt: now.toISOString()
         },
@@ -1486,7 +1495,9 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             fbclid: cleanText(body.fbclid),
             fbc: cleanText(body.fbc),
             fbp: cleanText(body.fbp),
-            external_id: cleanText(body.external_id || body.externalId)
+            external_id: cleanText(body.external_id || body.externalId),
+            vsl_test_id: vslTestId,
+            vsl_variant: vslVariant
         }
     };
     await state.save();
@@ -2591,6 +2602,9 @@ router.post('/vsl-entry', async (req, res) => {
         const visitorKey = vslVisitorKey({ country, body, req });
         const ipHash = shortHash(requestIp(req));
         const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+        const vslTestId = cleanText(body.vslTestId || body.vsl_test_id).slice(0, 120);
+        const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
+        const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
         const intent = cleanText(body.intent || body.action).toLowerCase();
         const clicked = body.clicked === false
             ? false
@@ -2622,6 +2636,9 @@ router.post('/vsl-entry', async (req, res) => {
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,
+                vslTestId: vslTestId || existing?.vslTestId || '',
+                vslVariant: vslVariant || existing?.vslVariant || '',
+                vslEntryMessage: vslEntryMessage || existing?.vslEntryMessage || '',
                 tracking: {
                     utm_source: cleanText(body.utm_source),
                     utm_medium: cleanText(body.utm_medium),
@@ -2631,7 +2648,9 @@ router.post('/vsl-entry', async (req, res) => {
                     fbclid: cleanText(body.fbclid),
                     fbc: cleanText(body.fbc),
                     fbp: cleanText(body.fbp),
-                    external_id: cleanText(body.external_id || body.externalId)
+                    external_id: cleanText(body.external_id || body.externalId),
+                    vsl_test_id: vslTestId,
+                    vsl_variant: vslVariant
                 },
                 assignedSeller,
                 assignedSellerAt: existing?.assignedSellerAt || now,

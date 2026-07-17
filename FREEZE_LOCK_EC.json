@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-17T00:23:00.592Z",
+  "updatedAt": "2026-07-17T00:41:25.316Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -376,6 +376,59 @@
           "type": "includes",
           "file": "src/routes/leads.js",
           "value": "syncVslOrderToPanel"
+        }
+      ]
+    },
+    {
+      "id": "vsl_ab_test_player_entry_phrases_ec",
+      "status": "active",
+      "description": "Teste A/B de VSL no /n/ EC usa somente o player VTurb AB aprovado e grava a variante com frase de entrada em espanhol no WhatsApp, painel, visita VSL e Meta Lead.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const VSL_AB_TEST_ID = \"ab-6a5976494d4b86598b3690f9\";"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ab-test/6a5976494d4b86598b3690f9/player.js"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "Hola, quiero saber mas sobre Nitrix Oxide."
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "Hola, deseo recibir mas informacion sobre el producto."
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "function vslAbPayload()"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "openWhatsappEntry(vslAbEntryMessage(), fullName, phone);"
+        },
+        {
+          "type": "includes",
+          "file": "src/models/VslVisit.js",
+          "value": "vslVariant"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslTestId: vslTestId || existing?.vslTestId || ''"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslVariant: vslVariant || state.metadata?.vslVariant || ''"
         }
       ]
     },
@@ -907,12 +960,37 @@
         "manual_funnel_text_send_direct_ec",
         "panel_chat_entry_time_badge_ec"
       ]
+    },
+    {
+      "at": "2026-07-17T00:41:25.316Z",
+      "description": "Aprovado: trocar VSL /n EC para teste AB VTurb mantendo caminho, CTA, Meta, painel e WhatsApp",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717004125.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
     }
   ],
   "lastApproval": {
-    "at": "2026-07-17T00:23:00.592Z",
-    "description": "Aprovado: congelar entrada /n EC e lead no painel antes do teste AB de VSL",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717002300.md",
+    "at": "2026-07-17T00:41:25.316Z",
+    "description": "Aprovado: trocar VSL /n EC para teste AB VTurb mantendo caminho, CTA, Meta, painel e WhatsApp",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717004125.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -924,6 +1002,7 @@
       "meta_pixel_lead_ec_dataset",
       "meta_purchase_confirmed_order_lock_ec",
       "site_entry_lead_panel_path_before_vsl_ab_ec",
+      "vsl_ab_test_player_entry_phrases_ec",
       "ops_alerts_click_to_attend_ec",
       "customer_ficha_autosave_orderid_ec",
       "ops_alert_post_sale_reengagement_guard_ec",
