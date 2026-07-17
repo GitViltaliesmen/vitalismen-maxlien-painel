@@ -52,6 +52,37 @@ const looksLikePublicVslLeadText = (text = '') => {
         && (/nombre completo|telefono|tel[eé]fono/.test(value));
 };
 
+const EC_NITRIX_VSL_AB_TEST_ID = 'ab-6a5976494d4b86598b3690f9';
+const EC_NITRIX_VSL_AB_MESSAGES = {
+    a: 'Hola, quiero saber mas sobre Nitrix Oxide.',
+    b: 'Hola, deseo recibir mas informacion sobre el producto.'
+};
+
+const normalizeVslText = (text = '') => String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const ecNitrixVslAbContextFromText = (text = '') => {
+    const value = normalizeVslText(text);
+    const normalizedMessages = Object.entries(EC_NITRIX_VSL_AB_MESSAGES)
+        .map(([variant, message]) => [variant, normalizeVslText(message)]);
+    const match = normalizedMessages.find(([, message]) => value === message || value.includes(message));
+    if (!match) return null;
+    const [variant] = match;
+    return {
+        productKey: 'nitrix_ec',
+        productName: 'Nitrix Oxide Ecuador',
+        productMedia: '/media/sales/ec/nitrix_bottle.png',
+        vslTestId: EC_NITRIX_VSL_AB_TEST_ID,
+        vslVariant: variant,
+        vslEntryMessage: EC_NITRIX_VSL_AB_MESSAGES[variant]
+    };
+};
+
 const zapiRawChatIdentifiers = (payload = {}) => [
     payload.chatId,
     payload.remoteJid,
@@ -610,7 +641,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
 
     const isNewState = !state;
     const inferredCountry = countryFromPhone(phone);
-    const publicVslLeadEntry = inferredCountry === 'EC' && looksLikePublicVslLeadText(normalizedBody);
+    const ecNitrixVslAbContext = ecNitrixVslAbContextFromText(normalizedBody);
+    const publicVslLeadEntry = inferredCountry === 'EC'
+        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(ecNitrixVslAbContext));
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
@@ -619,6 +652,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
+    if (ecNitrixVslAbContext) targetState.assignedAgent = ecNitrixVslAbContext.productKey;
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
@@ -639,6 +673,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.tags = [...new Set([
         ...(Array.isArray(targetState.tags) ? targetState.tags : []),
         'ZAPI_INBOUND_CAPTURED',
+        ...(publicVslLeadEntry ? ['VSL_EC', 'WHATSAPP_CLICK'] : []),
+        ...(ecNitrixVslAbContext ? ['NITRIX_EC', 'NITRIX_VSL_AB_ENTRY'] : []),
         ...(inferredCountry === 'BR' ? ['BR_CAPTURADO_CELULAR'] : [])
     ])];
     targetState.metadata = {
@@ -652,7 +688,34 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedAt: targetState.metadata?.zapiCapturedAt || now.toISOString(),
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
-        publicVslLeadEntry
+        publicVslLeadEntry,
+        ...(ecNitrixVslAbContext ? {
+            vslEntryPanelLead: true,
+            vslPhonePending: false,
+            vslEntryPanelLeadAt: now.toISOString(),
+            vslTestId: ecNitrixVslAbContext.vslTestId,
+            vslVariant: ecNitrixVslAbContext.vslVariant,
+            vslEntryMessage: ecNitrixVslAbContext.vslEntryMessage,
+            productKey: ecNitrixVslAbContext.productKey,
+            productName: ecNitrixVslAbContext.productName,
+            productSource: 'zapi_public_vsl_ab_entry',
+            customerDraft: {
+                ...(targetState.metadata?.customerDraft || {}),
+                phone: `+${phone}`,
+                country: 'EC',
+                status: targetState.metadata?.customerDraft?.status || 'novo',
+                entryAt: targetState.metadata?.customerDraft?.entryAt || now.toISOString(),
+                source: 'public_vsl_whatsapp_entry',
+                productKey: ecNitrixVslAbContext.productKey,
+                productName: ecNitrixVslAbContext.productName,
+                productMedia: ecNitrixVslAbContext.productMedia,
+                message: normalizedBody,
+                vslTestId: ecNitrixVslAbContext.vslTestId,
+                vslVariant: ecNitrixVslAbContext.vslVariant,
+                vslEntryMessage: ecNitrixVslAbContext.vslEntryMessage,
+                updatedAt: now.toISOString()
+            }
+        } : {})
     };
     await targetState.save();
 
