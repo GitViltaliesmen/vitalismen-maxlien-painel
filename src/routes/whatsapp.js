@@ -1383,6 +1383,45 @@ const vslCustomerPhoneFromBody = (body = {}, country = 'EC') => {
     return isAllowedPanelPhoneForCountry(normalized, country) ? normalized : '';
 };
 
+const upsertVslPanelPreviewMessage = async ({ state, phoneDigits = '', body = '', now = new Date(), visit = null } = {}) => {
+    const chatId = state?.chatId || (phoneDigits ? `${phoneDigits}@c.us` : '');
+    const messageBody = cleanText(body || 'Entrada pela VSL do Equador').slice(0, 1200);
+    if (!chatId || !phoneDigits || !messageBody) return { ok: false, skipped: true, reason: 'missing_chat_phone_or_message' };
+    const messageId = `vsl_entry_${visit?._id?.toString?.() || shortHash(chatId)}_${shortHash(messageBody).slice(0, 10)}`;
+    await Message.updateOne(
+        { _id: messageId },
+        {
+            $setOnInsert: {
+                _id: messageId,
+                chatId,
+                peerPhone: phoneDigits,
+                from: chatId,
+                to: 'vsl_ec',
+                body: messageBody,
+                type: 'chat',
+                hasMedia: false,
+                timestamp: Math.floor(now.getTime() / 1000),
+                sessionId: 'vsl_ec',
+                ownerPhoneDigits: '',
+                isFromMe: false,
+                isBot: false,
+                notifyName: state?.metadata?.customerDraft?.name || 'Entrada VSL',
+                deliveryStatus: 'received',
+                provider: 'vsl_entry',
+                providerStatus: 'received',
+                providerPayload: {
+                    vslVisitId: visit?._id?.toString?.() || '',
+                    source: 'public_vsl_click'
+                }
+            }
+        },
+        { upsert: true }
+    ).catch((error) => {
+        if (error.code !== 11000) console.warn('[VSL-PANEL] falha ao registrar preview:', error.message);
+    });
+    return { ok: true, messageId };
+};
+
 const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assignedSeller = '', clicked = false } = {}) => {
     if (!clicked) return { ok: false, skipped: true, reason: 'not_clicked' };
 
@@ -1521,6 +1560,13 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         }
     };
     await state.save();
+    await upsertVslPanelPreviewMessage({
+        state,
+        phoneDigits,
+        body: entryMessage || vslEntryMessage || 'Entrada pela VSL do Equador',
+        now,
+        visit
+    });
     const fastState = isNitrixVsl && !preserveNitrixHumanTakeover
         ? await startNitrixFastStateFromVslEntry({
             contactStateId: state._id?.toString?.() || '',
