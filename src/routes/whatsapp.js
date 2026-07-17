@@ -2606,6 +2606,10 @@ router.post('/vsl-entry', async (req, res) => {
         const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
         const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
         const intent = cleanText(body.intent || body.action).toLowerCase();
+        const skipMeta = body.skipMeta === true
+            || body.skip_meta === true
+            || body.testLead === true
+            || body.testEntry === true;
         const clicked = body.clicked === false
             ? false
             : (body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent) || body.clicked !== false);
@@ -2683,16 +2687,16 @@ router.post('/vsl-entry', async (req, res) => {
             { upsert: true, new: true, setDefaultsOnInsert: true }
         ).lean();
 
-        const pageView = clicked
+        const pageView = skipMeta || clicked
             ? null
             : await sendVslPageViewForVisit({ visit, body, req, country, visitorKey });
-        const viewContent = clicked
+        const viewContent = skipMeta || clicked
             ? null
             : await sendVslViewContentForVisit({ visit, body, req, country, visitorKey });
-        const initiateCheckout = clicked
+        const initiateCheckout = !skipMeta && clicked
             ? await sendVslInitiateCheckoutForVisit({ visit, body, req, country, visitorKey })
             : null;
-        const lead = clicked
+        const lead = !skipMeta && clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
         const panelLead = clicked
