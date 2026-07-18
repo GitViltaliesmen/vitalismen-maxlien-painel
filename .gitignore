@@ -1,0 +1,15 @@
+# This release commit records only the audited source delta and its freeze note.
+# Runtime data, credentials, dependencies and unrelated release files remain
+# intentionally ignored and are never committed.
+*
+!.gitignore
+!src/
+src/*
+!src/services/
+src/services/*
+!src/services/nitrixFastStateService.js
+!docs/
+docs/*
+!docs/funil-fast-state-ec/
+docs/funil-fast-state-ec/*
+!docs/funil-fast-state-ec/CONGELADO_EC_VSL_SAIDA_CONFIRMADA_3304_20260718.md
