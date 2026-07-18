@@ -8,8 +8,12 @@ src/*
 !src/services/
 src/services/*
 !src/services/nitrixFastStateService.js
+!public/
+public/*
+!public/qr.html
 !docs/
 docs/*
 !docs/funil-fast-state-ec/
 docs/funil-fast-state-ec/*
 !docs/funil-fast-state-ec/CONGELADO_EC_VSL_SAIDA_CONFIRMADA_3304_20260718.md
+!docs/funil-fast-state-ec/CONGELADO_EC_PAINEL_NEGRITO_RASCUNHO_20260718.md
