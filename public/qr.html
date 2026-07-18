@@ -4480,9 +4480,9 @@
             pointer-events: auto;
         }
 
-        /* A mensagem do cliente sempre deixa o lápis visível: ele prepara
-           somente uma cópia no campo de resposta, sem tocar no histórico. */
-        .message-row.has-edit-source .message-actions {
+        /* Mensagem verde enviada manualmente: lápis sempre acessível durante
+           os 15 minutos em que o próprio WhatsApp permite edição. */
+        .message-row.has-outbound-edit .message-actions {
             opacity: 1;
             pointer-events: auto;
         }
@@ -4686,10 +4686,28 @@
             color: #b42318;
         }
 
-        .message-action.edit-source {
-            color: #047857;
+        .message-action.edit-outbound {
+            color: #075e54;
             border-color: #6ee7b7;
             background: #ecfdf5;
+        }
+
+        .message-action.edit-outbound:disabled {
+            cursor: not-allowed;
+            color: #8b98a0;
+            border-color: #d7dde0;
+            background: #f0f2f5;
+            opacity: 1;
+        }
+
+        .message-edited {
+            color: #52717d;
+            font-style: italic;
+        }
+
+        .edit-message-context {
+            border-left-color: #00a884;
+            background: #e8f7f2;
         }
 
         .reply-context {
@@ -7406,6 +7424,10 @@
                                 <div id="replyContextText" class="reply-context-text"></div>
                                 <button id="cancelReplyBtn" type="button" title="Cancelar resposta">×</button>
                             </div>
+                            <div id="editMessageContext" class="reply-context edit-message-context">
+                                <div id="editMessageContextText" class="reply-context-text"></div>
+                                <button id="cancelEditMessageBtn" type="button" title="Cancelar edição">×</button>
+                            </div>
                             <textarea id="messageInput" placeholder="Digite a resposta ao cliente" title="Ctrl/Cmd+B aplica negrito do WhatsApp"></textarea>
                             <button id="messageBoldBtn" class="message-bold-toggle" type="button" title="Negrito no WhatsApp (Ctrl/Cmd+B)" aria-label="Aplicar negrito no WhatsApp">B</button>
                         </div>
@@ -8325,6 +8347,7 @@
             manualMessageQueueProcessing: false,
             manualMessageQueueStartedAt: 0,
             replyToMessage: null,
+            editingOutboundMessage: null,
             chatsLoading: false,
             chatsRefreshQueued: false,
             dashboardLastLoadedAt: 0,
@@ -11674,7 +11697,9 @@
             if (!sendButton) return;
             const hasText = String(input?.value || '').trim().length > 0;
             sendButton.disabled = !state.selectedChat || state.sendingMessage || !hasText;
-            sendButton.textContent = state.sendingMessage ? 'Enviando' : 'Enviar';
+            sendButton.textContent = state.sendingMessage
+                ? (state.editingOutboundMessage ? 'Salvando' : 'Enviando')
+                : (state.editingOutboundMessage ? 'Salvar edição' : 'Enviar');
             if (emojiButton) {
                 emojiButton.disabled = !state.selectedChat;
             }
@@ -12197,6 +12222,27 @@
             || ['bot', 'system'].includes(String(message?.from || '').toLowerCase())
         );
 
+        const WHATSAPP_EDIT_WINDOW_MS = 15 * 60 * 1000;
+        const messageTimestampMs = (message = {}) => {
+            const timestamp = Number(message.timestamp || 0);
+            if (timestamp > 0) return timestamp * 1000;
+            const fallback = new Date(message.createdAt || 0).getTime();
+            return Number.isFinite(fallback) ? fallback : 0;
+        };
+        const outboundEditAvailability = (message = {}) => {
+            if (!message?.isFromMe || message?.isBot || !['chat', 'text'].includes(String(message.type || '').toLowerCase())) {
+                return { show: false, allowed: false, reason: '' };
+            }
+            if (String(message.provider || '').toLowerCase() !== 'zapi' || !String(message.providerMessageId || message.providerPayload?.messageId || message.providerPayload?.id || '').trim()) {
+                return { show: true, allowed: false, reason: 'Esta mensagem nao possui ID editavel da Z-API.' };
+            }
+            const sentAtMs = messageTimestampMs(message);
+            if (!sentAtMs || Date.now() - sentAtMs > WHATSAPP_EDIT_WINDOW_MS) {
+                return { show: true, allowed: false, reason: 'O WhatsApp permite editar apenas nos primeiros 15 minutos.' };
+            }
+            return { show: true, allowed: true, reason: 'Editar esta mensagem no WhatsApp' };
+        };
+
         const updateReplyContext = () => {
             const context = el('replyContext');
             const textBox = el('replyContextText');
@@ -12212,9 +12258,56 @@
             context.classList.add('active');
         };
 
+        const updateEditMessageContext = () => {
+            const context = el('editMessageContext');
+            const textBox = el('editMessageContextText');
+            if (!context || !textBox) return;
+            const editing = state.editingOutboundMessage;
+            if (!editing) {
+                context.classList.remove('active');
+                textBox.textContent = '';
+                return;
+            }
+            textBox.textContent = 'Editando mensagem enviada — altere o texto e clique em Salvar edição';
+            context.classList.add('active');
+        };
+
+        const clearEditingOutboundMessage = ({ clearInput = false } = {}) => {
+            state.editingOutboundMessage = null;
+            if (clearInput) {
+                const input = el('messageInput');
+                if (input) input.value = '';
+            }
+            updateEditMessageContext();
+            updateMessageComposerControls();
+        };
+
+        const startEditingOutboundMessage = (messageId) => {
+            const message = (state.currentMessages || []).find((item) => String(item._id || '') === String(messageId || ''));
+            const availability = outboundEditAvailability(message || {});
+            if (!message || !availability.allowed) {
+                showToast(availability.reason || 'Esta mensagem nao pode mais ser editada.');
+                return;
+            }
+            const input = el('messageInput');
+            if (!input) return;
+            state.replyToMessage = null;
+            updateReplyContext();
+            state.editingOutboundMessage = {
+                id: String(message._id || ''),
+                originalBody: String(message.body || '')
+            };
+            input.value = String(message.body || '');
+            input.focus();
+            input.setSelectionRange(0, input.value.length);
+            updateEditMessageContext();
+            updateMessageComposerControls();
+        };
+
         const setReplyToMessage = (messageId) => {
             const message = (state.currentMessages || []).find((item) => String(item._id || '') === String(messageId || ''));
             if (!message) return;
+            clearEditingOutboundMessage();
             state.replyToMessage = message;
             updateReplyContext();
             el('messageInput').focus();
@@ -13374,17 +13467,21 @@
                 const deleteButton = canDeletePanelMessage(message) && messageId
                     ? `<button class="message-action danger" data-message-delete="${escapeHtml(messageId)}" type="button" title="Apagar mensagem">×</button>`
                     : '';
-                const editSourceButton = !message.isFromMe && messageId
-                    ? `<button class="message-action edit-source" data-message-edit-source="${escapeHtml(messageId)}" type="button" title="Editar uma cópia desta mensagem no campo de resposta" aria-label="Editar uma cópia desta mensagem no campo de resposta">✎</button>`
+                const outboundEdit = outboundEditAvailability(message);
+                const editOutboundButton = outboundEdit.show && messageId
+                    ? `<button class="message-action edit-outbound" data-message-edit-outbound="${escapeHtml(messageId)}" type="button" title="${escapeHtml(outboundEdit.reason)}" aria-label="Editar mensagem enviada" ${outboundEdit.allowed ? '' : 'disabled'}>✎</button>`
+                    : '';
+                const editedIndicator = message.editedAt
+                    ? ' · <span class="message-edited" title="Mensagem alterada no WhatsApp">editada</span>'
                     : '';
                 const observerHint = !message.isFromMe ? renderMessageObserverHint(messageId, message) : '';
                 return `
-                    <div class="message-row ${message.isFromMe ? 'me' : ''} ${editSourceButton ? 'has-edit-source' : ''}" data-message-id="${escapeHtml(messageId)}">
+                    <div class="message-row ${message.isFromMe ? 'me' : ''} ${editOutboundButton ? 'has-outbound-edit' : ''}" data-message-id="${escapeHtml(messageId)}">
                         ${message.isFromMe ? attendantAvatarHtml() : ''}
                         <div class="bubble ${message.isFromMe ? 'me' : ''} ${readByClient ? 'is-read' : ''}">
                             <div class="message-actions">
                                 <button class="message-action" data-message-reply="${escapeHtml(messageId)}" type="button" title="Responder esta mensagem">↩</button>
-                                ${editSourceButton}
+                                ${editOutboundButton}
                                 ${deleteButton}
                             </div>
                             ${renderQuotedPreview(message)}
@@ -13392,7 +13489,7 @@
                             ${media}
                             ${transcriptHtml}
                             ${observerHint}
-                            <div class="time">${escapeHtml(senderLabel)} · ${formatTime(message.timestamp)}${deliveryInfo}</div>
+                            <div class="time">${escapeHtml(senderLabel)} · ${formatTime(message.timestamp)}${editedIndicator}${deliveryInfo}</div>
                         </div>
                     </div>
                 `;
@@ -13477,6 +13574,7 @@
             const chat = state.chats.find((item) => item.id === chatId);
             if (!chat) return;
             clearReplyToMessage();
+            clearEditingOutboundMessage({ clearInput: true });
             const chatKey = chat.id || chat.phone || '';
             const loadSeq = (state.selectedChatLoadSeq || 0) + 1;
             state.selectedChatLoadSeq = loadSeq;
@@ -13531,6 +13629,7 @@
             const chat = state.selectedChat;
             if (!chat) {
                 clearReplyToMessage();
+                clearEditingOutboundMessage({ clearInput: true });
                 state.actionableSamples = [];
                 state.actionableSignature = '';
                 state.observerBlueprint = null;
@@ -17536,6 +17635,7 @@
         }
 
         async function sendMessage() {
+            if (state.editingOutboundMessage) return saveEditedOutboundMessage();
             const input = el('messageInput');
             const text = String(input.value || '').trim();
             if (!text) return;
@@ -17592,6 +17692,50 @@
                     input.value = text;
                 }
                 showToast(`Mensagem nao enviada; texto preservado: ${error.message}`);
+            } finally {
+                state.sendingMessage = false;
+                updateMessageComposerControls();
+                input.focus();
+            }
+        }
+
+        async function saveEditedOutboundMessage() {
+            const editing = state.editingOutboundMessage;
+            const input = el('messageInput');
+            const text = String(input?.value || '').trim();
+            if (!editing || !input || !text) return;
+            if (text === String(editing.originalBody || '').trim()) {
+                showToast('Altere o texto antes de salvar a edição.');
+                return;
+            }
+            const phone = currentChatPhone();
+            if (!digitsOnlyText(phone)) {
+                showToast('Selecione o cliente novamente: telefone da conversa nao foi localizado.');
+                return;
+            }
+            state.sendingMessage = true;
+            updateMessageComposerControls();
+            try {
+                const result = await api(`/api/whatsapp/messages/${encodeURIComponent(phone)}/edit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ messageId: editing.id, message: text })
+                });
+                if (!result?.success) throw new Error(result?.error || 'WhatsApp nao confirmou a edição.');
+                const editedAt = result.editedAt || new Date().toISOString();
+                state.currentMessages = (state.currentMessages || []).map((message) => (
+                    String(message._id || '') === String(editing.id)
+                        ? { ...message, body: result.body || text, editedAt, editCount: result.editCount || Number(message.editCount || 0) + 1 }
+                        : message
+                ));
+                state.messageSignature = getMessageSignature(state.currentMessages);
+                renderMessages(state.currentMessages, { preserveScroll: true });
+                input.value = '';
+                state.editingOutboundMessage = null;
+                updateEditMessageContext();
+                showToast(result.unchanged ? 'Mensagem ja estava com este texto.' : 'Mensagem editada no WhatsApp.');
+                loadSelectedMessages({ force: true }).catch(() => null);
+            } catch (error) {
+                showToast(`Nao foi possivel editar: ${error.message}`);
             } finally {
                 state.sendingMessage = false;
                 updateMessageComposerControls();
@@ -18643,17 +18787,9 @@
                 setReplyToMessage(replyButton.dataset.messageReply);
                 return;
             }
-            const editSourceButton = event.target.closest('[data-message-edit-source]');
-            if (editSourceButton) {
-                const message = (state.currentMessages || []).find((item) => String(item._id || '') === String(editSourceButton.dataset.messageEditSource || ''));
-                const text = cleanDisplayMessageBody(message || {}, Boolean(message?.mediaUrl || message?.mediaAttachments?.length)) || messagePreviewText(message || {});
-                if (!text || !setComposerDraft(text, { selectAll: true })) {
-                    showToast('Nao consegui carregar o texto desta mensagem para editar.');
-                    return;
-                }
-                showToast(message?.isFromMe
-                    ? 'Copia colocada no campo para editar e reenviar. Nada foi enviado agora.'
-                    : 'Texto do cliente colocado no campo para editar a resposta. O historico foi preservado.');
+            const editOutboundButton = event.target.closest('[data-message-edit-outbound]');
+            if (editOutboundButton) {
+                startEditingOutboundMessage(editOutboundButton.dataset.messageEditOutbound);
                 return;
             }
             const deleteButton = event.target.closest('[data-message-delete]');
@@ -18841,6 +18977,7 @@
         el('releaseBtn').addEventListener('click', releaseSelected);
         el('clearRepeatedBotBtn').addEventListener('click', clearRepeatedBotMessages);
         el('cancelReplyBtn').addEventListener('click', clearReplyToMessage);
+        el('cancelEditMessageBtn').addEventListener('click', () => clearEditingOutboundMessage({ clearInput: true }));
         document.addEventListener('click', (event) => {
             if (!event.target.closest?.('#sendBtn')) return;
             event.preventDefault();

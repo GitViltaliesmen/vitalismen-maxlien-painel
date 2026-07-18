@@ -1,0 +1,260 @@
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+
+const DEFAULT_BASE_URL = 'https://api.z-api.io';
+
+const clean = (value) => String(value || '').trim();
+const digits = (value) => String(value || '').replace(/\D/g, '');
+
+export const zapiConfig = () => {
+    const instanceId = clean(process.env.ZAPI_INSTANCE_ID);
+    const instanceToken = clean(process.env.ZAPI_INSTANCE_TOKEN || process.env.ZAPI_TOKEN);
+    const clientToken = clean(process.env.ZAPI_CLIENT_TOKEN || process.env.ZAPI_ACCOUNT_SECURITY_TOKEN);
+    const baseUrl = (clean(process.env.ZAPI_BASE_URL) || DEFAULT_BASE_URL).replace(/\/+$/, '');
+
+    return {
+        baseUrl,
+        instanceId,
+        instanceToken,
+        clientToken,
+        enabled: Boolean(instanceId && instanceToken && clientToken)
+    };
+};
+
+const endpoint = (path) => {
+    const cfg = zapiConfig();
+    if (!cfg.enabled) {
+        const error = new Error('zapi_not_configured');
+        error.statusCode = 503;
+        throw error;
+    }
+    return `${cfg.baseUrl}/instances/${cfg.instanceId}/token/${cfg.instanceToken}/${path.replace(/^\/+/, '')}`;
+};
+
+const headers = () => ({
+    'Client-Token': zapiConfig().clientToken,
+    'Content-Type': 'application/json'
+});
+
+export const zapiPublicStatus = () => {
+    const cfg = zapiConfig();
+    return {
+        enabled: cfg.enabled,
+        baseUrl: cfg.baseUrl,
+        instanceConfigured: Boolean(cfg.instanceId),
+        tokenConfigured: Boolean(cfg.instanceToken),
+        clientTokenConfigured: Boolean(cfg.clientToken)
+    };
+};
+
+export const getZapiStatus = async () => {
+    const response = await axios.get(endpoint('/status'), {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_TIMEOUT_MS || 15000)
+    });
+    return response.data;
+};
+
+export const getZapiDevice = async () => {
+    const response = await axios.get(endpoint('/device'), {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_TIMEOUT_MS || 15000)
+    });
+    return response.data;
+};
+
+export const getZapiChats = async ({ page = 1, pageSize = 80 } = {}) => {
+    const response = await axios.get(endpoint('/chats'), {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_TIMEOUT_MS || 15000),
+        params: {
+            page: Math.max(1, Number.parseInt(String(page || 1), 10) || 1),
+            pageSize: Math.min(200, Math.max(1, Number.parseInt(String(pageSize || 80), 10) || 80))
+        }
+    });
+    return response.data;
+};
+
+const boundedDelaySeconds = (value, fallback = null) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(15, Math.max(1, parsed));
+};
+
+export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
+    const cleanPhone = digits(phone);
+    const cleanMessage = clean(message);
+    if (!cleanPhone || !cleanMessage) {
+        const error = new Error('zapi_phone_and_message_required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const payload = {
+        phone: cleanPhone,
+        message: cleanMessage
+    };
+    if (messageId) payload.messageId = clean(messageId);
+    const safeDelayMessage = boundedDelaySeconds(delayMessage);
+    const safeDelayTyping = boundedDelaySeconds(delayTyping);
+    if (safeDelayMessage) payload.delayMessage = safeDelayMessage;
+    if (safeDelayTyping) payload.delayTyping = safeDelayTyping;
+
+    const response = await axios.post(endpoint('/send-text'), payload, {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
+    });
+    return response.data;
+};
+
+// A Z-API edita texto pelo mesmo endpoint de envio, com o ID original em
+// editMessageId. Nunca use esta função para criar uma nova mensagem.
+export const editZapiText = async ({ phone, message, editMessageId = '' } = {}) => {
+    const cleanPhone = digits(phone);
+    const cleanMessage = clean(message);
+    const originalMessageId = clean(editMessageId);
+    if (!cleanPhone || !cleanMessage || !originalMessageId) {
+        const error = new Error('zapi_phone_message_and_edit_message_id_required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const response = await axios.post(endpoint('/send-text'), {
+        phone: cleanPhone,
+        message: cleanMessage,
+        editMessageId: originalMessageId
+    }, {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
+    });
+    return response.data;
+};
+
+const mimeFromFilePath = (filePath = '', fallback = 'application/octet-stream') => {
+    const ext = path.extname(String(filePath || '')).toLowerCase();
+    const map = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.heic': 'image/heic',
+        '.heif': 'image/heif',
+        '.mp3': 'audio/mpeg',
+        '.mpeg': 'audio/mpeg',
+        '.ogg': 'audio/ogg',
+        '.opus': 'audio/ogg',
+        '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac',
+        '.wav': 'audio/wav',
+        '.webm': 'video/webm',
+        '.mp4': 'video/mp4',
+        '.mov': 'video/quicktime',
+        '.avi': 'video/x-msvideo',
+        '.mkv': 'video/x-matroska',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+    return map[ext] || fallback;
+};
+
+const mediaValue = ({ media = '', filePath = '', mime = '' } = {}) => {
+    const value = clean(media);
+    if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+    const resolved = filePath || value;
+    if (!resolved || !fs.existsSync(resolved)) {
+        const error = new Error('zapi_media_file_not_found');
+        error.statusCode = 400;
+        throw error;
+    }
+    const finalMime = clean(mime) || mimeFromFilePath(resolved);
+    return `data:${finalMime};base64,${fs.readFileSync(resolved).toString('base64')}`;
+};
+
+const sendZapiMedia = async ({
+    pathName,
+    payloadKey,
+    phone,
+    media = '',
+    filePath = '',
+    mime = '',
+    caption = '',
+    fileName = '',
+    extension = '',
+    messageId = '',
+    delayMessage = null,
+    delayTyping = null,
+    viewOnce = false,
+    waveform = false,
+    async = false
+} = {}) => {
+    const cleanPhone = digits(phone);
+    if (!cleanPhone) {
+        const error = new Error('zapi_phone_required');
+        error.statusCode = 400;
+        throw error;
+    }
+    const payload = {
+        phone: cleanPhone,
+        [payloadKey]: mediaValue({ media, filePath, mime })
+    };
+    if (caption) payload.caption = clean(caption);
+    if (fileName) payload.fileName = clean(fileName);
+    if (messageId) payload.messageId = clean(messageId);
+    const safeDelayMessage = boundedDelaySeconds(delayMessage);
+    const safeDelayTyping = boundedDelaySeconds(delayTyping);
+    if (safeDelayMessage) payload.delayMessage = safeDelayMessage;
+    if (safeDelayTyping) payload.delayTyping = safeDelayTyping;
+    if (viewOnce) payload.viewOnce = true;
+    if (waveform) payload.waveform = true;
+    if (async) payload.async = true;
+
+    const response = await axios.post(endpoint(pathName.replace('{extension}', clean(extension))), payload, {
+        headers: headers(),
+        timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
+    });
+    return response.data;
+};
+
+export const sendZapiAudio = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-audio',
+    payloadKey: 'audio'
+});
+
+export const sendZapiImage = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-image',
+    payloadKey: 'image'
+});
+
+export const sendZapiVideo = (options = {}) => sendZapiMedia({
+    ...options,
+    pathName: '/send-video',
+    payloadKey: 'video'
+});
+
+export const sendZapiDocument = (options = {}) => {
+    const extension = clean(options.extension || path.extname(String(options.filePath || options.media || '')).slice(1) || 'bin');
+    return sendZapiMedia({
+        ...options,
+        extension,
+        pathName: '/send-document/{extension}',
+        payloadKey: 'document'
+    });
+};
+
+export const normalizeZapiDevice = (device = {}) => {
+    const phone = digits(device.phone || device.connectedPhone || device.device?.phone || '');
+    return {
+        phone,
+        name: clean(device.name || device.device?.name || ''),
+        isBusiness: Boolean(device.isBusiness),
+        originalDevice: clean(device.originalDevice || ''),
+        sessionName: clean(device.device?.sessionName || '')
+    };
+};
