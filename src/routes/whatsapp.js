@@ -30,7 +30,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
-import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, getEcuadorProductInfoByKey, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
 
 const router = express.Router();
@@ -1311,12 +1311,14 @@ const metaEventResponseSnapshot = (result = {}, fallbackEventId = '') => ({
 
 const EC_PRODUCT_KEYS = {
     nitrix: 'nitrix_ec',
-    vitPower: 'vit_power_ec'
+    vitPower: 'vit_power_ec',
+    texUltra: 'tex_ultra_ec'
 };
 
 const EC_PRODUCT_NAMES = {
     nitrix_ec: 'Nitrix Oxide Ecuador',
-    vit_power_ec: 'Vit Power Ecuador'
+    vit_power_ec: 'Vit Power Ecuador',
+    tex_ultra_ec: 'Tex Ultra Ecuador'
 };
 
 const sourceUrlPathname = (value = '') => {
@@ -1335,6 +1337,23 @@ const publicEcVslProductFromBody = (body = {}) => {
     const rawProductKey = cleanText(body.productKey || body.product_key || body.product || body.offerKey || body.offer_key)
         .toLowerCase()
         .replace(/[^a-z0-9_/-]/g, '');
+
+    const texUltraSignal = rawProductKey.includes('tex_ultra')
+        || rawProductKey.includes('texultra')
+        || rawProductKey === EC_PRODUCT_KEYS.texUltra
+        || page.includes('tex_ultra')
+        || page.includes('tex-ultra')
+        || bodyPath.startsWith('/tex-ultra')
+        || sourcePath.startsWith('/tex-ultra');
+    if (texUltraSignal) {
+        return {
+            productKey: EC_PRODUCT_KEYS.texUltra,
+            productName: EC_PRODUCT_NAMES.tex_ultra_ec,
+            agentKey: EC_PRODUCT_KEYS.texUltra,
+            tag: 'TEX_ULTRA_EC',
+            source: 'ec_tex_ultra_vsl'
+        };
+    }
 
     const nitrixSignal = rawProductKey.includes('nitrix')
         || rawProductKey === 'nx_ec'
@@ -1542,9 +1561,11 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             source: 'vsl_ec_mobile',
             productKey: product.productKey,
             productName: product.productName,
-            productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
-                ? '/media/sales/ec/nitrix_bottle.png'
-                : '/media/sales/ec/vit_power.jpeg',
+            productMedia: product.productKey === EC_PRODUCT_KEYS.texUltra
+                ? '/media/sales/ec/tex_ultra.png'
+                : product.productKey === EC_PRODUCT_KEYS.nitrix
+                    ? '/media/sales/ec/nitrix_bottle.png'
+                    : '/media/sales/ec/vit_power.jpeg',
             message: entryMessage || existingDraft.message || '',
             vslTestId: vslTestId || existingDraft.vslTestId || '',
             vslVariant: vslVariant || existingDraft.vslVariant || '',
@@ -1962,13 +1983,13 @@ const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = fals
 };
 
 const ecuadorProductInfoForKey = (productKey = '') => (
-    productKey === ECUADOR_PRODUCTS.vitPower.key ? ECUADOR_PRODUCTS.vitPower : ECUADOR_PRODUCTS.nitrix
+    getEcuadorProductInfoByKey(productKey) || ECUADOR_PRODUCTS.nitrix
 );
 
 const ecuadorProductMediaForInfo = (productInfo = {}) => (
-    productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
+    productInfo?.media || (productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
         ? '/media/sales/ec/vit_power.jpeg'
-        : '/media/sales/ec/nitrix_bottle.png'
+        : '/media/sales/ec/nitrix_bottle.png')
 );
 
 const panelProductContextForChat = async ({ contactState = null, order = null, customerDraft = {}, lastMessage = null, phoneDigits = '' } = {}) => {
@@ -2084,7 +2105,7 @@ const inferProductInfoForDraft = async ({ draft = {}, state = null } = {}) => {
         state?.lastMessage,
         Array.isArray(state?.tags) ? state.tags.join(' ') : ''
     );
-    if (directProduct.key === 'nitrix_ec') return directProduct;
+    if ([ECUADOR_PRODUCTS.nitrix.key, ECUADOR_PRODUCTS.texUltra.key].includes(directProduct.key)) return directProduct;
 
     const tail = digitsOnly(draft.phone || state?.phoneDigits || state?.chatId).slice(-9);
     if (!tail) return directProduct;
@@ -4567,19 +4588,15 @@ router.patch('/contact-state/:phone', async (req, res) => {
             cleanDraft.flowDataOk = flowDataOk;
             if (cleanDraft.country === 'EC') {
                 const resolvedDraftProduct = resolveEcuadorProductInfo(cleanDraft, state.metadata?.customerDraft || {}, state.metadata || {});
-                const allowedDraftProductKeys = new Set([ECUADOR_PRODUCTS.nitrix.key, ECUADOR_PRODUCTS.vitPower.key]);
+                const allowedDraftProductKeys = new Set(Object.values(ECUADOR_PRODUCTS).map((product) => product.key));
                 const allowedDraftProductKey = allowedDraftProductKeys.has(cleanDraft.productKey)
                     ? cleanDraft.productKey
                     : resolvedDraftProduct.key;
-                const draftProductInfo = allowedDraftProductKey === ECUADOR_PRODUCTS.vitPower.key
-                    ? ECUADOR_PRODUCTS.vitPower
-                    : ECUADOR_PRODUCTS.nitrix;
+                const draftProductInfo = getEcuadorProductInfoByKey(allowedDraftProductKey) || ECUADOR_PRODUCTS.nitrix;
                 cleanDraft.productKey = draftProductInfo.key;
                 cleanDraft.productName = cleanDraft.productName || draftProductInfo.name;
                 cleanDraft.product = cleanDraft.product || draftProductInfo.name;
-                cleanDraft.productMedia = cleanDraft.productMedia || (draftProductInfo.key === ECUADOR_PRODUCTS.vitPower.key
-                    ? '/media/sales/ec/vit_power.jpeg'
-                    : '/media/sales/ec/nitrix_bottle.png');
+                cleanDraft.productMedia = cleanDraft.productMedia || ecuadorProductMediaForInfo(draftProductInfo);
             }
             if (normalizedDraftPhoneDigits.length >= 9) {
                 state.phoneDigits = normalizedDraftPhoneDigits;

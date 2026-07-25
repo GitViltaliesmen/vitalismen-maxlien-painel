@@ -7703,6 +7703,7 @@
                             <select id="customerProductInput">
                                 <option value="nitrix_ec">Nitrix Oxide Ecuador</option>
                                 <option value="vit_power_ec">Vit Power Ecuador</option>
+                                <option value="tex_ultra_ec">Tex Ultra Ecuador</option>
                             </select>
                         </label>
                         <div class="form-grid three">
@@ -9828,6 +9829,12 @@
                 ['3', '80', 'USD 80', '3 frascos'],
                 ['6', '147', 'USD 147', '6 frascos']
             ],
+            EC_TEX_ULTRA: [
+                ['1', '35.99', 'USD 35.99', '1 frasco'],
+                ['3', '80.99', 'USD 80.99', '3 frascos'],
+                ['6', '147.99', 'USD 147.99', '6 frascos'],
+                ['2', '70.00', 'USD 70.00', '2 frascos']
+            ],
             CO: [
                 ['1', '149000', '149000 CO', '1 frasco'],
                 ['2', '270000', '270000 CO', '2 frascos'],
@@ -9879,7 +9886,8 @@
             if (el('customerProvinceInput')) el('customerProvinceInput').placeholder = isCO ? 'Departamento' : 'Provincia';
             if (el('customerTotalLabel')) el('customerTotalLabel').textContent = isCO ? 'Valor CO' : 'Valor USD';
             if (el('customerTotalInput')) el('customerTotalInput').placeholder = isCO ? '149000' : '39.99';
-            const presets = customerPricePresetsByCountry[isCO ? 'CO' : 'EC'];
+            const productKey = String(el('customerProductInput')?.value || '').toLowerCase();
+            const presets = customerPricePresetsByCountry[isCO ? 'CO' : (productKey === 'tex_ultra_ec' ? 'EC_TEX_ULTRA' : 'EC')];
             document.querySelectorAll('[data-price-preset]').forEach((button, index) => {
                 const preset = presets[index];
                 button.hidden = !preset;
@@ -9902,6 +9910,8 @@
                 input.dataset.prevStatus = input.value || 'novo';
                 updateCustomerStatusStyle();
             } else if (id === 'customerCountryInput') {
+                applyCustomerCountryUi();
+            } else if (id === 'customerProductInput') {
                 applyCustomerCountryUi();
             }
         };
@@ -10586,6 +10596,7 @@
             vitalismen: 'Vitalismen high-ticket',
             nitrix_ec: 'Nitrix EC',
             vit_power_ec: 'Vit Power EC',
+            tex_ultra_ec: 'Tex Ultra EC',
             fallback: 'Geral'
         }[agent] || 'Geral');
 
@@ -10599,10 +10610,16 @@
                 key: 'vit_power_ec',
                 name: 'Vit Power Ecuador',
                 media: '/media/sales/ec/vit_power.jpeg'
+            },
+            tex_ultra_ec: {
+                key: 'tex_ultra_ec',
+                name: 'Tex Ultra Ecuador',
+                media: '/media/sales/ec/tex_ultra.png'
             }
         };
         const normalizeCustomerProductKey = (value = '', fallback = 'nitrix_ec') => {
             const raw = String(value || '').trim().toLowerCase();
+            if (raw === 'tex_ultra_ec' || /tex[\s_-]*ultra/.test(raw)) return 'tex_ultra_ec';
             if (raw === 'vit_power_ec' || /vit[\s_-]*power/.test(raw)) return 'vit_power_ec';
             if (raw === 'nitrix_ec' || raw === 'nx_ec' || /nitrix|nitric|oxido\s+nitric|nitrico|oxide/.test(raw)) return 'nitrix_ec';
             return EC_PRODUCT_CATALOG[fallback] ? fallback : 'nitrix_ec';
@@ -18573,6 +18590,7 @@
             });
         });
         el('customerCountryInput').addEventListener('change', applyCustomerCountryUi);
+        el('customerProductInput').addEventListener('change', applyCustomerCountryUi);
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
         updateCustomerStatusStyle();
         applyCustomerCountryUi();
