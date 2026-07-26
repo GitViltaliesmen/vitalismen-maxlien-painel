@@ -261,6 +261,106 @@ print(json.dumps({"ok": True, "source": "sqlite_or_ssh", "count": len(leads), "l
     };
 };
 
+export const updateOnlineAdminLeadProductSelection = ({
+    leadId,
+    country = 'EC',
+    productKey = '',
+    productName = '',
+    priceCatalog = 'normal',
+    quantity = 0,
+    total = 0,
+    requestedBy = ''
+} = {}) => {
+    const normalizedCountry = String(country || 'EC').trim().toUpperCase();
+    const dbPath = resolveAdminDbPath(normalizedCountry);
+    const numericLeadId = Number.parseInt(String(leadId || ''), 10);
+    if (normalizedCountry !== 'EC' || !dbPath || !numericLeadId) {
+        return { ok: false, skipped: true, reason: 'invalid_ec_admin_lead' };
+    }
+
+    const payload = {
+        db_path: dbPath,
+        lead_id: numericLeadId,
+        productKey: String(productKey || '').trim(),
+        productName: String(productName || '').trim(),
+        priceCatalog: String(priceCatalog || 'normal').trim(),
+        quantity: normalizeAdminPackageQuantity(quantity),
+        total: Number(total || 0),
+        requestedBy: String(requestedBy || 'panel').trim()
+    };
+    if (!payload.productKey || !payload.productName || !payload.quantity || payload.total <= 0) {
+        return { ok: false, skipped: true, reason: 'invalid_product_selection' };
+    }
+
+    const python = `
+import sqlite3, json, datetime, re
+payload = ${JSON.stringify(payload)}
+db_path = payload["db_path"]
+lead_id = int(payload["lead_id"])
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+con = sqlite3.connect(db_path)
+con.row_factory = sqlite3.Row
+cur = con.cursor()
+cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
+hist_cols = {row[1] for row in cur.execute("PRAGMA table_info(lead_history)").fetchall()}
+row = cur.execute("SELECT * FROM leads WHERE id=?", (lead_id,)).fetchone()
+if not row:
+    print(json.dumps({"ok": False, "reason": "lead_not_found", "leadId": lead_id}))
+else:
+    data = dict(row)
+    status = str(data.get("status") or "").strip().lower()
+    if status in {"pedido_enviado", "enviado", "entregue", "devolvido", "cancelado", "finalizado"}:
+        print(json.dumps({"ok": False, "reason": "lead_status_not_editable", "status": status, "leadId": lead_id}))
+    else:
+        old_notes = str(data.get("notes") or "").strip()
+        old_notes = re.sub(r"(?m)^\\[DROPI_PRODUCT\\].*$\\n?", "", old_notes).strip()
+        marker = (
+            "[DROPI_PRODUCT] key=" + payload["productKey"]
+            + "; name=" + payload["productName"]
+            + "; priceCatalog=" + payload["priceCatalog"]
+            + "; quantity=" + str(payload["quantity"])
+            + "; total=" + format(float(payload["total"]), ".2f")
+        )
+        notes = (old_notes + "\\n" + marker).strip() if old_notes else marker
+        fields = {
+            "product_qty": payload["quantity"],
+            "product_value": payload["total"],
+            "notes": notes,
+            "updated_at": now
+        }
+        fields = {key: value for key, value in fields.items() if key in cols}
+        assignments = ", ".join([key + "=?" for key in fields])
+        cur.execute("UPDATE leads SET " + assignments + " WHERE id=?", list(fields.values()) + [lead_id])
+        if {"lead_id", "action", "old_value", "new_value", "created_at"}.issubset(hist_cols):
+            cur.execute(
+                "INSERT INTO lead_history (lead_id, action, old_value, new_value, created_at) VALUES (?, ?, ?, ?, ?)",
+                (
+                    lead_id,
+                    "dropi_product_price_configured",
+                    str(data.get("product_qty") or "") + "/" + str(data.get("product_value") or ""),
+                    payload["productKey"] + "/" + payload["priceCatalog"] + "/" + str(payload["quantity"]) + "/" + format(float(payload["total"]), ".2f"),
+                    now
+                )
+            )
+        con.commit()
+        print(json.dumps({
+            "ok": True,
+            "leadId": lead_id,
+            "status": status,
+            "productKey": payload["productKey"],
+            "productName": payload["productName"],
+            "priceCatalog": payload["priceCatalog"],
+            "quantity": payload["quantity"],
+            "total": payload["total"],
+            "notes": notes,
+            "requestedBy": payload["requestedBy"]
+        }, ensure_ascii=False))
+con.close()
+`;
+
+    return runAdminPanelPython({ country: normalizedCountry, python });
+};
+
 export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_sync' } = {}) => {
     if (!order || process.env.ONLINE_ADMIN_PANEL_SYNC_ENABLED === 'false') {
         return { ok: false, skipped: true, reason: 'disabled_or_missing_order' };

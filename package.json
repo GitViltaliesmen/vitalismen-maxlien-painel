@@ -24,6 +24,7 @@
         "test:nitrix-rollout-gate": "node scripts/test-nitrix-rollout-gate.mjs",
         "test:nitrix-two-audio-entry": "node scripts/test-nitrix-two-audio-entry.mjs",
         "guard:ec-product-micro-layer": "node scripts/audit-ec-product-micro-layer.mjs",
+        "guard:ec-dropi-catalog": "node scripts/audit-ec-dropi-product-price-catalog.mjs",
         "guard:guide-print-spam": "node scripts/audit-guide-print-spam-guard.mjs",
         "freeze:ec": "node scripts/freeze-ec-layer.mjs",
         "learning:whatsapp": "node scripts/analyze-whatsapp-funnel-learning.mjs",

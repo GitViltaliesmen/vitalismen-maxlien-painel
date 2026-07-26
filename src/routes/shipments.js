@@ -3,7 +3,11 @@ import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
 import AutomationRun from '../models/AutomationRun.js';
-import { upsertDroppiEcuadorShipment, validateEcuadorDropiPhone } from '../services/droppiEcuadorService.js';
+import {
+    buildDroppiEcuadorOrderPayload,
+    upsertDroppiEcuadorShipment,
+    validateEcuadorDropiPhone
+} from '../services/droppiEcuadorService.js';
 import {
     notifyReadyForPickup,
     notifyPickupBonus,
@@ -29,7 +33,11 @@ import {
     saveCarrierTrackingResult,
     trackCarrierGuide
 } from '../services/carrierTrackingService.js';
-import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import {
+    markOnlineAdminPedidoEnviado,
+    syncOrderToOnlineAdminPanel,
+    updateOnlineAdminLeadProductSelection
+} from '../services/adminPanelStatusService.js';
 import {
     countCarrierStatusSweepCandidates,
     countShipmentDispatchCandidates,
@@ -45,7 +53,17 @@ import {
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
 import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
-import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import {
+    ECUADOR_PRODUCTS,
+    detectExplicitEcuadorProductKey,
+    ecuadorPackageLabel,
+    ecuadorProductMetadata,
+    findEcuadorOfferByTotal,
+    getEcuadorOffer,
+    getEcuadorProductInfoByKey,
+    listEcuadorDropiProducts,
+    resolveEcuadorProductInfo
+} from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -88,7 +106,7 @@ lead_id = int(${JSON.stringify(leadId)})
 con = sqlite3.connect(db_path)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
-row = cur.execute("SELECT id, name, phone, address, city, province, product_qty, product_value, status, created_at, updated_at FROM leads WHERE id=?", (lead_id,)).fetchone()
+row = cur.execute("SELECT * FROM leads WHERE id=?", (lead_id,)).fetchone()
 print(json.dumps(dict(row) if row else None, ensure_ascii=False))
 con.close()
 `;
@@ -193,6 +211,34 @@ const findOrderForDropiRequest = async (requestedOrderId) => {
 const appendAuditNote = (current = '', note = '') => {
     const prefix = current ? `${String(current).trim()}\n` : '';
     return `${prefix}[${new Date().toISOString()}] ${note}`.trim();
+};
+
+const dropiProductSelectionMarker = ({ product, offer }) => (
+    `[DROPI_PRODUCT] key=${product.key}; name=${product.name}; priceCatalog=${offer.priceCatalog}; quantity=${offer.quantity}; total=${offer.total.toFixed(2)}`
+);
+
+const replaceDropiProductSelectionMarker = (current = '', marker = '') => {
+    const withoutPrevious = String(current || '')
+        .split(/\r?\n/)
+        .filter((line) => !line.trim().startsWith('[DROPI_PRODUCT]'))
+        .join('\n')
+        .trim();
+    return [withoutPrevious, marker].filter(Boolean).join('\n');
+};
+
+const dropiProductEnabled = (product = {}) => {
+    if (product.key === ECUADOR_PRODUCTS.vitPower.key) return true;
+    if (product.key === ECUADOR_PRODUCTS.nitrix.key) {
+        return String(process.env.DROPPI_EC_NITRIX_PRODUCT_ENABLED || '').toLowerCase() === 'true'
+            && Boolean(String(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || '').trim())
+            && Boolean(String(process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || '').trim());
+    }
+    if (product.key === ECUADOR_PRODUCTS.texUltra.key) {
+        return String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ENABLED || '').toLowerCase() === 'true'
+            && Boolean(String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_URL || product.dropiUrl || '').trim())
+            && Boolean(String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_NAME || product.dropiName || '').trim());
+    }
+    return false;
 };
 
 const markAdminLeadCancelled = ({ orderId, user = null, reason = 'fake_order_deleted' } = {}) => {
@@ -1367,6 +1413,189 @@ router.post('/droppi/ec/orders/:orderId/invoice/sync', adminOnly, async (req, re
     }
 });
 
+router.get('/droppi/ec/products', adminOnly, (_req, res) => {
+    const products = listEcuadorDropiProducts().map((item) => ({
+        ...item,
+        dropiEnabled: dropiProductEnabled(getEcuadorProductInfoByKey(item.key))
+    }));
+    res.json({
+        success: true,
+        products,
+        authorizationRequired: true,
+        directAutomaticSend: false
+    });
+});
+
+router.post('/droppi/ec/admin-leads/:leadId/configure-order', adminOnly, async (req, res) => {
+    try {
+        const leadId = Number.parseInt(String(req.params.leadId || ''), 10);
+        const product = getEcuadorProductInfoByKey(req.body?.productKey);
+        const requestedPriceCatalog = String(req.body?.priceCatalog || '').trim().toLowerCase();
+        const offer = getEcuadorOffer({
+            productKey: product?.key,
+            priceCatalog: requestedPriceCatalog,
+            quantity: req.body?.quantity
+        });
+        if (!leadId || !product || !['normal', 'promotional'].includes(requestedPriceCatalog) || !offer) {
+            return res.status(400).json({
+                success: false,
+                error: 'Selecione produto, tabela e quantidade validos.',
+                allowedProducts: Object.values(ECUADOR_PRODUCTS).map((item) => item.key)
+            });
+        }
+
+        const adminOrderId = `EC-ADMIN-${leadId}`;
+        const requestedOrderId = String(req.body?.orderId || adminOrderId).trim();
+        let lead = getAdminLeadSnapshot({ orderId: adminOrderId });
+        if (!lead) return res.status(404).json({ success: false, error: 'Lead EC nao encontrado.' });
+        const leadStatus = String(lead.status || '').trim().toLowerCase();
+        if (['pedido_enviado', 'enviado', 'entregue', 'devolvido', 'cancelado', 'finalizado'].includes(leadStatus)) {
+            return res.status(409).json({
+                success: false,
+                error: 'Este pedido ja foi enviado ou esta bloqueado para alteracao de produto/preco.',
+                status: leadStatus
+            });
+        }
+
+        let order = await Order.findOne({ orderId: requestedOrderId });
+        if (!order && requestedOrderId !== adminOrderId) {
+            order = await Order.findOne({ orderId: adminOrderId });
+        }
+        if (order) {
+            const leadPhone = String(lead.phone || '').replace(/\D/g, '').slice(-9);
+            const orderPhone = String(order.customer?.phone || '').replace(/\D/g, '').slice(-9);
+            if (!leadPhone || !orderPhone || leadPhone !== orderPhone) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'O pedido operacional nao pertence ao telefone deste lead.'
+                });
+            }
+            if (!['draft', 'pending', 'confirmed'].includes(String(order.status || ''))) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Produto/preco so pode ser alterado antes do envio para Dropi.',
+                    status: order.status
+                });
+            }
+            const existingShipment = await Shipment.findOne({ orderId: order.orderId });
+            const submitted = alreadySubmittedResponse(order, existingShipment);
+            if (submitted) {
+                return res.status(409).json({
+                    success: false,
+                    error: submitted.message,
+                    alreadySubmitted: true,
+                    dropiOrderId: submitted.dropiOrderId
+                });
+            }
+        }
+
+        const marker = dropiProductSelectionMarker({ product, offer });
+        const leadUpdate = updateOnlineAdminLeadProductSelection({
+            leadId,
+            country: 'EC',
+            productKey: product.key,
+            productName: product.name,
+            priceCatalog: offer.priceCatalog,
+            quantity: offer.quantity,
+            total: offer.total,
+            requestedBy: req.user?.email || req.user?.name || ''
+        });
+        if (!leadUpdate?.ok) {
+            return res.status(409).json({
+                success: false,
+                error: 'Nao foi possivel atualizar produto/preco no lead.',
+                detail: leadUpdate
+            });
+        }
+
+        lead = {
+            ...lead,
+            product_qty: offer.quantity,
+            product_value: offer.total,
+            notes: leadUpdate.notes || replaceDropiProductSelectionMarker(lead.notes, marker)
+        };
+        if (!order) {
+            order = await createOperationalOrderFromAdminLead(adminOrderId, lead);
+        }
+        if (!order) {
+            return res.status(409).json({
+                success: false,
+                error: 'O lead precisa estar confirmado e completo antes de preparar o pedido Dropi.'
+            });
+        }
+
+        order.package = {
+            ...(order.package || {}),
+            id: offer.quantity,
+            quantity: offer.quantity,
+            label: ecuadorPackageLabel(product, offer.quantity)
+        };
+        order.total = offer.total;
+        order.notes = replaceDropiProductSelectionMarker(order.notes, marker);
+        order.tracking = {
+            ...(order.tracking?.toObject?.() || order.tracking || {}),
+            ...ecuadorProductMetadata(product)
+        };
+        await order.save();
+
+        let shipment = await Shipment.findOne({ orderId: order.orderId });
+        if (shipment) {
+            shipment.productName = product.name;
+            shipment.raw = {
+                ...(shipment.raw || {}),
+                productSelection: {
+                    ...offer,
+                    configuredAt: new Date().toISOString(),
+                    configuredBy: req.user?.email || req.user?.name || ''
+                }
+            };
+            shipment.automation.dropiSubmitAuthorizedAt = null;
+            shipment.automation.dropiSubmitAuthorizedBy = '';
+            shipment.automation.dropiSubmitAuthorizationNote = '';
+            const productReviewStatuses = new Set([
+                '',
+                'pending_review',
+                'wrong_product_nitrix_manual_review',
+                'dropi_product_price_selection_required',
+                'dropi_product_target_not_enabled',
+                'awaiting_dropi_authorization',
+                'dropi_submit_authorized',
+                'dropi_submit_authorization_revoked'
+            ]);
+            if (productReviewStatuses.has(String(shipment.review.reviewStatus || ''))) {
+                shipment.review.manualOnly = false;
+                shipment.review.reviewReason = '';
+                shipment.review.reviewStatus = 'awaiting_dropi_authorization';
+            }
+            shipment.events.push({
+                kind: 'dropi_product_price_configured',
+                at: new Date(),
+                payload: {
+                    ...offer,
+                    configuredBy: req.user?.email || req.user?.name || ''
+                }
+            });
+            shipment.events = shipment.events.slice(-60);
+            await shipment.save();
+        }
+
+        const payload = buildDroppiEcuadorOrderPayload({ order });
+        res.json({
+            success: true,
+            orderId: order.orderId,
+            product,
+            offer,
+            payload,
+            dropiEnabled: dropiProductEnabled(product),
+            authorizationRequired: true,
+            message: `${product.name} ${offer.quantity} unidade(s) por USD ${offer.total.toFixed(2)} configurado. Autorize antes do envio real.`
+        });
+    } catch (error) {
+        console.error('Configure Dropi EC product/price error:', error);
+        res.status(500).json({ error: error.message || 'Failed to configure Dropi EC product/price' });
+    }
+});
+
 router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => {
     try {
         const order = await findOrderForDropiRequest(req.params.orderId);
@@ -1483,6 +1712,48 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         const shipment = await ensureShipmentForOrder(order, 'EC');
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
+        const selectedOffer = findEcuadorOfferByTotal({
+            productKey: explicitProductKey,
+            quantity: order.package?.quantity || order.package?.id,
+            total: order.total
+        });
+        if (!explicitProductKey || !selectedOffer) {
+            return res.status(409).json({
+                success: false,
+                productSelectionRequired: true,
+                error: 'Selecione produto e uma opcao oficial de preco antes de autorizar a Dropi.',
+                message: 'Abra Produto e preco Dropi no menu do lead antes de autorizar.'
+            });
+        }
+        const selectedProduct = getEcuadorProductInfoByKey(explicitProductKey);
+        if (!dropiProductEnabled(selectedProduct)) {
+            return res.status(409).json({
+                success: false,
+                productSelectionRequired: false,
+                productTargetRequired: true,
+                reason: 'dropi_product_target_not_enabled',
+                error: `${selectedProduct?.name || 'Produto'} ainda nao foi validado no catalogo Dropi EC.`
+            });
+        }
+        const productOnlyReviewStatuses = new Set([
+            '',
+            'pending_review',
+            'wrong_product_nitrix_manual_review',
+            'dropi_product_price_selection_required',
+            'dropi_product_target_not_enabled',
+            'awaiting_dropi_authorization',
+            'dropi_submit_authorized',
+            'dropi_submit_authorization_revoked'
+        ]);
+        if (shipment.review?.manualOnly && !productOnlyReviewStatuses.has(String(shipment.review.reviewStatus || ''))) {
+            return res.status(409).json({
+                success: false,
+                manualSendRequired: true,
+                reason: shipment.review.reviewReason || shipment.review.reviewStatus || 'manual_review_required',
+                error: 'Este pedido possui uma revisao manual de rota/agencia que precisa ser resolvida antes da autorizacao Dropi.'
+            });
+        }
         const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
         if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
         if (!looksLikeEcuadorOrder(order, shipment)) {

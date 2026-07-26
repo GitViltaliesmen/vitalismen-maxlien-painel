@@ -800,6 +800,136 @@
             border-color: #22c55e;
         }
 
+        .dropi-product-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: grid;
+            place-items: center;
+            padding: 22px;
+            background: rgba(2, 6, 23, 0.82);
+        }
+
+        .dropi-product-card {
+            width: min(760px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            background: #0f172a;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+        }
+
+        .dropi-product-head,
+        .dropi-product-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 16px;
+        }
+
+        .dropi-product-head {
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .dropi-product-head div {
+            display: grid;
+            gap: 4px;
+        }
+
+        .dropi-product-head span,
+        .dropi-product-summary,
+        .dropi-product-availability {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .dropi-product-body {
+            display: grid;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .dropi-product-grid,
+        .dropi-price-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .dropi-price-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dropi-product-option,
+        .dropi-price-option {
+            display: grid;
+            gap: 4px;
+            width: 100%;
+            min-height: 62px;
+            text-align: left;
+            background: #111c32;
+            border-color: #334155;
+        }
+
+        .dropi-product-option.selected,
+        .dropi-price-option.selected {
+            color: #dcfce7;
+            border-color: #22c55e;
+            background: rgba(21, 128, 61, 0.28);
+        }
+
+        .dropi-product-option:disabled {
+            opacity: 0.58;
+        }
+
+        .dropi-price-section {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid #26344b;
+            border-radius: 12px;
+        }
+
+        .dropi-price-options {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .dropi-price-option strong {
+            color: #86efac;
+        }
+
+        .dropi-product-summary {
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .dropi-product-summary.ready {
+            color: #dcfce7;
+            border: 1px solid rgba(34, 197, 94, 0.48);
+        }
+
+        .dropi-product-actions {
+            border-top: 1px solid #1e293b;
+            justify-content: flex-end;
+        }
+
+        .product-badge {
+            display: inline-flex;
+            width: fit-content;
+            padding: 2px 7px;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            color: #bfdbfe;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
         @media (max-width: 760px) {
             header,
             .tools {
@@ -812,6 +942,12 @@
             button,
             .filter-select-control {
                 width: 100%;
+            }
+
+            .dropi-product-grid,
+            .dropi-price-grid,
+            .dropi-price-options {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -910,6 +1046,7 @@
             dropiBusy: new Set(),
             selectedDropi: new Set(),
             repurchaseChecked: new Set(),
+            dropiCatalog: null,
             dropiMessages: new Map(),
             loadError: ''
         };
@@ -919,6 +1056,15 @@
         const EXTENDED_STATUSES = new Set(['pedido_enviado', 'enviado', 'entregue']);
         const ALWAYS_VISIBLE_STATUSES = new Set(['confirmado', 'recompra']);
         const DROPI_READY_STATUSES = new Set(['confirmado']);
+        const DROPI_EC_PRICE_CATALOGS = Object.freeze({
+            normal: Object.freeze({ 1: 39.99, 2: 70.00, 3: 95.99, 6: 167.99 }),
+            promotional: Object.freeze({ 1: 35.99, 2: 70.00, 3: 80.99, 6: 147.99 })
+        });
+        const DROPI_EC_PRODUCT_NAMES = Object.freeze({
+            vit_power_ec: 'Vit Power',
+            nitrix_ec: 'Nitrix',
+            tex_ultra_ec: 'Tex Ultra'
+        });
 
         const el = (id) => document.getElementById(id);
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -1157,6 +1303,96 @@
             return data;
         };
 
+        const parseDropiProductMarker = (value = '') => {
+            const match = String(value || '').match(
+                /\[DROPI_PRODUCT\]\s*key=([^;\r\n]+);\s*name=([^;\r\n]+);\s*priceCatalog=([^;\r\n]+);\s*quantity=(\d+);\s*total=([0-9.,]+)/i
+            );
+            if (!match) return null;
+            return {
+                productKey: match[1].trim(),
+                productName: match[2].trim(),
+                priceCatalog: match[3].trim().toLowerCase(),
+                quantity: Number(match[4]),
+                total: Number(match[5].replace(',', '.'))
+            };
+        };
+
+        const leadProductKey = (lead = {}) => {
+            const marker = parseDropiProductMarker(lead.notes || lead.note || lead.observacao || '');
+            const explicit = String(
+                lead.productKey
+                || lead.product_key
+                || lead?._ops?.productKey
+                || lead?._ops?.productSelection?.productKey
+                || marker?.productKey
+                || ''
+            ).trim();
+            if (DROPI_EC_PRODUCT_NAMES[explicit]) return explicit;
+            const signal = normalize([
+                lead.productName,
+                lead.product_name,
+                lead?._ops?.productName,
+                lead?._ops?.productSelection?.productName,
+                lead.package?.label,
+                lead.notes,
+                lead.note,
+                lead.observacao
+            ].filter(Boolean).join(' '));
+            if (/\btex[\s_-]*ultra\b|\btexultra\b/.test(signal)) return 'tex_ultra_ec';
+            if (/\bnitrix\b|\boxido nitrico\b|\bnitric oxide\b/.test(signal)) return 'nitrix_ec';
+            if (/\bvit[\s_-]*power/.test(signal)) return 'vit_power_ec';
+            return '';
+        };
+
+        const leadConfiguredOffer = (lead = {}) => {
+            const productKey = leadProductKey(lead);
+            if (!productKey) return null;
+            const marker = parseDropiProductMarker(lead.notes || lead.note || lead.observacao || '');
+            const quantity = Number(lead.quantity || lead.product_qty || lead.package?.quantity || marker?.quantity || 0);
+            const total = Number(lead.value || lead.product_value || lead.total || marker?.total || 0);
+            const preferredCatalog = String(
+                lead.priceCatalog
+                || lead.price_catalog
+                || lead?._ops?.priceCatalog
+                || lead?._ops?.productSelection?.priceCatalog
+                || marker?.priceCatalog
+                || ''
+            ).trim().toLowerCase();
+            const catalogs = preferredCatalog && DROPI_EC_PRICE_CATALOGS[preferredCatalog]
+                ? [preferredCatalog, ...Object.keys(DROPI_EC_PRICE_CATALOGS).filter((key) => key !== preferredCatalog)]
+                : Object.keys(DROPI_EC_PRICE_CATALOGS);
+            const priceCatalog = catalogs.find((key) => (
+                Number.isFinite(DROPI_EC_PRICE_CATALOGS[key]?.[quantity])
+                && Math.abs(DROPI_EC_PRICE_CATALOGS[key][quantity] - total) < 0.005
+            ));
+            if (!priceCatalog) return null;
+            return {
+                productKey,
+                productName: DROPI_EC_PRODUCT_NAMES[productKey],
+                priceCatalog,
+                quantity,
+                total: DROPI_EC_PRICE_CATALOGS[priceCatalog][quantity]
+            };
+        };
+
+        const leadHasExplicitDropiSelection = (lead) => Boolean(leadConfiguredOffer(lead));
+
+        const leadProductBadgeHtml = (lead) => {
+            if (leadCountryCode(lead) !== 'EC') return '';
+            const offer = leadConfiguredOffer(lead);
+            if (!offer) return '';
+            const catalogLabel = offer.priceCatalog === 'promotional' ? 'promocional' : 'normal';
+            return `<span class="product-badge">${escapeHtml(offer.productName)} · ${escapeHtml(offer.quantity)} un. · USD ${escapeHtml(offer.total.toFixed(2))} · ${catalogLabel}</span>`;
+        };
+
+        const loadDropiCatalog = async ({ force = false } = {}) => {
+            if (state.dropiCatalog && !force) return state.dropiCatalog;
+            if (!hasAuthToken() || !['EC', 'ALL'].includes(state.country)) return null;
+            const data = await api('/api/shipments/droppi/ec/products');
+            state.dropiCatalog = Array.isArray(data.products) ? data.products : [];
+            return state.dropiCatalog;
+        };
+
         const phoneTail = (value, size = 9) => String(value || '').replace(/\D/g, '').slice(-size);
 
         const operationalOrderToLead = (order = {}) => {
@@ -1176,6 +1412,9 @@
                 province: customer.province || order.province || '',
                 quantity: quantity || '',
                 value: Number(order.total || order.value || 0) || '',
+                productKey: order.tracking?.productKey || order.productKey || '',
+                productName: order.tracking?.productName || order.productName || '',
+                priceCatalog: order.tracking?.priceCatalog || order.tracking?.productSelection?.priceCatalog || '',
                 status,
                 _opsStatus: status,
                 created_at: order.entryAt || order.createdAt || order.confirmedAt || '',
@@ -1184,6 +1423,9 @@
                 _ops: {
                     currentOrderId: orderId,
                     stagedOrderId: orderId,
+                    productKey: order.tracking?.productKey || order.productKey || '',
+                    productName: order.tracking?.productName || order.productName || '',
+                    productSelection: order.tracking?.productSelection || null,
                     shipment: order.shipment || null,
                     metaPurchaseSentAt: order.tracking?.metaPurchaseSentAt || '',
                     metaPurchaseEventId: order.tracking?.metaPurchaseEventId || '',
@@ -1300,11 +1542,13 @@
           }
           await hydrateLeadOperationalFlags();
           await hydrateOperationalOrderLeads();
+          await loadDropiCatalog().catch((error) => console.warn('Catalogo Dropi indisponivel:', error));
          render();
         } catch (error) {
           console.error(error);
           state.leads = [];
           await hydrateOperationalOrderLeads();
+          await loadDropiCatalog().catch(() => null);
           state.loading = false;
           state.loadError = state.leads.length ? '' : (error.message || 'Falha ao carregar leads');
           render();
@@ -1450,6 +1694,7 @@
             return DROPI_READY_STATUSES.has(status)
                 && (!usesEcuadorOperationalRules || !isConfirmedBeforeJune2026(lead) || hasCurrentOperationalOrder)
                 && (!usesEcuadorOperationalRules || !isRepurchaseLead(lead) || hasCurrentOperationalOrder)
+                && (!usesEcuadorOperationalRules || leadHasExplicitDropiSelection(lead))
                 && ['EC', 'CO'].includes(country)
                 && String(lead.name || '').trim()
                 && String(lead.phone || '').replace(/\D/g, '').length >= 9
@@ -1465,7 +1710,8 @@
             const country = leadCountryCode(lead);
             return DROPI_READY_STATUSES.has(status)
                 && ['EC', 'CO'].includes(country)
-                && leadReadyForCustomerConfirmation(lead);
+                && leadReadyForCustomerConfirmation(lead)
+                && (country !== 'EC' || leadHasExplicitDropiSelection(lead));
         };
 
         const leadReadyForCustomerConfirmation = (lead) => {
@@ -1477,6 +1723,15 @@
                 && String(lead.province || '').trim()
                 && Number(lead.quantity || 0) > 0
                 && Number(lead.value || 0) > 0;
+        };
+
+        const leadReadyForDropiProductSelection = (lead) => {
+            return lead
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim();
         };
 
         const missingDropiFields = (lead) => {
@@ -1536,11 +1791,24 @@
                 menuItems.push('<span class="action-info">Dropi enviado</span>');
             }
 
-            if (status === 'confirmado' && leadReadyForDropi(lead)) {
+            const isEcuador = leadCountryCode(lead) === 'EC';
+            const hasDropiSelection = leadHasExplicitDropiSelection(lead);
+            const specialEcuadorFlow = isEcuador && (
+                isRepurchaseLead(lead)
+                || isManualReviewLead(lead)
+                || isResendCandidateLead(lead)
+                || isConfirmedBeforeJune2026(lead)
+            );
+
+            if (status === 'confirmado' && isEcuador && leadReadyForDropiProductSelection(lead)) {
+                menuItems.push(`<button data-configure-dropi-product="${escapeHtml(lead.id)}" type="button">${hasDropiSelection ? 'Alterar produto/preco' : 'Escolher produto/preco'}</button>`);
+            }
+
+            if (status === 'confirmado' && leadReadyForDropi(lead) && !specialEcuadorFlow) {
                 menuItems.push(`<button class="success-action" data-submit-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
             }
 
-            if (leadCountryCode(lead) === 'EC') {
+            if (isEcuador && hasDropiSelection) {
                 if (isRepurchaseLead(lead) && leadReadyForCustomerConfirmation(lead)) {
                     menuItems.push(`<button class="success-action" data-authorize-repurchase-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
                 }
@@ -1714,6 +1982,187 @@
             document.body.appendChild(modal);
         };
 
+        const closeDropiProductModal = () => {
+            document.querySelector('.dropi-product-modal')?.remove();
+        };
+
+        const openDropiProductModal = async (lead) => {
+            if (!lead) return;
+            const id = String(lead.id || '');
+            const adminLeadId = String(lead.adminLeadId || id).match(/(?:EC-ADMIN-)?(\d+)$/i)?.[1] || '';
+            if (!adminLeadId) {
+                state.dropiMessages.set(id, { text: 'lead administrativo nao localizado', error: true });
+                render();
+                return;
+            }
+
+            let products;
+            try {
+                products = await loadDropiCatalog({ force: true });
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'catalogo Dropi indisponivel', error: true });
+                render();
+                return;
+            }
+            if (!Array.isArray(products) || !products.length) {
+                state.dropiMessages.set(id, { text: 'nenhum produto Dropi configurado', error: true });
+                render();
+                return;
+            }
+
+            closeDropiProductModal();
+            const current = leadConfiguredOffer(lead);
+            const selection = {
+                productKey: current?.productKey || '',
+                priceCatalog: current?.priceCatalog || '',
+                quantity: current?.quantity || 0
+            };
+            const modal = document.createElement('div');
+            modal.className = 'dropi-product-modal';
+            modal.innerHTML = `
+                <div class="dropi-product-card" role="dialog" aria-modal="true" aria-label="Selecionar produto e preco Dropi">
+                    <div class="dropi-product-head">
+                        <div>
+                            <strong>Produto e preco do pedido Dropi</strong>
+                            <span>${escapeHtml(lead.name || '')} · ${escapeHtml(lead.phone || '')} · pedido ${escapeHtml(leadOrderId(lead))}</span>
+                        </div>
+                        <button class="repurchase-check-close" data-dropi-product-close="1" type="button">x</button>
+                    </div>
+                    <div class="dropi-product-body">
+                        <section class="dropi-price-section">
+                            <strong>1. Escolha o produto</strong>
+                            <div class="dropi-product-grid">
+                                ${products.map((product) => `
+                                    <button class="dropi-product-option" data-dropi-product-key="${escapeHtml(product.key)}" type="button">
+                                        <strong>${escapeHtml(DROPI_EC_PRODUCT_NAMES[product.key] || product.name || product.key)}</strong>
+                                        <span class="dropi-product-availability">${product.dropiEnabled ? 'Produto Dropi validado' : 'Aguardando validacao do produto na Dropi'}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </section>
+                        <section class="dropi-price-section">
+                            <strong>2. Escolha a tabela e o kit</strong>
+                            <span class="dropi-product-availability">O valor total e os centavos serao enviados exatamente como selecionados.</span>
+                            ${[
+                                ['normal', 'Preco normal'],
+                                ['promotional', 'Preco promocional']
+                            ].map(([catalogKey, label]) => `
+                                <div>
+                                    <b>${label}</b>
+                                    <div class="dropi-price-options">
+                                        ${Object.entries(DROPI_EC_PRICE_CATALOGS[catalogKey]).map(([quantity, total]) => `
+                                            <button class="dropi-price-option" data-dropi-price-catalog="${catalogKey}" data-dropi-quantity="${quantity}" type="button">
+                                                <span>${quantity} ${Number(quantity) === 1 ? 'mes' : 'meses'}</span>
+                                                <strong>USD ${Number(total).toFixed(2)}</strong>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </section>
+                        <div class="dropi-product-summary" data-dropi-product-summary>Escolha o produto e o preco.</div>
+                    </div>
+                    <div class="dropi-product-actions">
+                        <button data-dropi-product-close="1" type="button">Cancelar</button>
+                        <button class="success-action" data-dropi-product-save="${escapeHtml(adminLeadId)}" type="button" disabled>Salvar e autorizar</button>
+                    </div>
+                </div>
+            `;
+
+            const syncSelection = () => {
+                modal.querySelectorAll('[data-dropi-product-key]').forEach((button) => {
+                    button.classList.toggle('selected', button.dataset.dropiProductKey === selection.productKey);
+                });
+                modal.querySelectorAll('[data-dropi-price-catalog]').forEach((button) => {
+                    button.classList.toggle(
+                        'selected',
+                        button.dataset.dropiPriceCatalog === selection.priceCatalog
+                            && Number(button.dataset.dropiQuantity) === Number(selection.quantity)
+                    );
+                });
+                const total = DROPI_EC_PRICE_CATALOGS[selection.priceCatalog]?.[selection.quantity];
+                const product = products.find((item) => item.key === selection.productKey);
+                const ready = Boolean(product && Number.isFinite(total));
+                const summary = modal.querySelector('[data-dropi-product-summary]');
+                const save = modal.querySelector('[data-dropi-product-save]');
+                summary.classList.toggle('ready', ready);
+                summary.textContent = ready
+                    ? `${DROPI_EC_PRODUCT_NAMES[product.key] || product.name} · ${selection.quantity} unidade(s) · USD ${Number(total).toFixed(2)} · ${selection.priceCatalog === 'promotional' ? 'promocional' : 'normal'}${product.dropiEnabled ? '' : ' · envio bloqueado ate validar o produto na Dropi'}`
+                    : 'Escolha o produto e o preco.';
+                save.disabled = !ready;
+            };
+
+            modal.addEventListener('click', async (event) => {
+                if (event.target === modal || event.target.closest('[data-dropi-product-close]')) {
+                    closeDropiProductModal();
+                    return;
+                }
+                const productButton = event.target.closest('[data-dropi-product-key]');
+                if (productButton) {
+                    selection.productKey = productButton.dataset.dropiProductKey || '';
+                    syncSelection();
+                    return;
+                }
+                const priceButton = event.target.closest('[data-dropi-price-catalog]');
+                if (priceButton) {
+                    selection.priceCatalog = priceButton.dataset.dropiPriceCatalog || '';
+                    selection.quantity = Number(priceButton.dataset.dropiQuantity || 0);
+                    syncSelection();
+                    return;
+                }
+                const saveButton = event.target.closest('[data-dropi-product-save]');
+                if (!saveButton || saveButton.disabled) return;
+                saveButton.disabled = true;
+                saveButton.textContent = 'Salvando...';
+                try {
+                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(adminLeadId)}/configure-order`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            orderId: leadOrderId(lead),
+                            productKey: selection.productKey,
+                            priceCatalog: selection.priceCatalog,
+                            quantity: selection.quantity
+                        })
+                    });
+                    const offer = result.offer || {};
+                    const marker = `[DROPI_PRODUCT] key=${offer.productKey}; name=${offer.productName}; priceCatalog=${offer.priceCatalog}; quantity=${offer.quantity}; total=${Number(offer.total).toFixed(2)}`;
+                    lead.notes = `${String(lead.notes || '').replace(/(?:^|\n)\[DROPI_PRODUCT\][^\r\n]*/gi, '').trim()}${lead.notes ? '\n' : ''}${marker}`.trim();
+                    lead.productKey = offer.productKey;
+                    lead.productName = offer.productName;
+                    lead.priceCatalog = offer.priceCatalog;
+                    lead.quantity = offer.quantity;
+                    lead.value = offer.total;
+                    lead._ops = {
+                        ...(lead._ops || {}),
+                        currentOrderId: result.orderId,
+                        stagedOrderId: result.orderId,
+                        productKey: offer.productKey,
+                        productName: offer.productName,
+                        priceCatalog: offer.priceCatalog,
+                        productSelection: offer
+                    };
+                    state.dropiMessages.set(id, {
+                        text: result.dropiEnabled
+                            ? 'produto/preco salvo; autorize o pedido'
+                            : 'produto/preco salvo; produto ainda nao validado na Dropi',
+                        error: !result.dropiEnabled,
+                        success: Boolean(result.dropiEnabled)
+                    });
+                    closeDropiProductModal();
+                    render();
+                    await submitLeadToDropi(lead, result.orderId);
+                    await fetchLeads();
+                } catch (error) {
+                    state.dropiMessages.set(id, { text: error.message || 'erro ao configurar produto/preco', error: true });
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Salvar e autorizar';
+                    render();
+                }
+            });
+            document.body.appendChild(modal);
+            syncSelection();
+        };
+
         const render = () => {
             const leads = visibleLeads();
             el('countText').textContent = `${leads.length} cliente${leads.length === 1 ? '' : 's'}`;
@@ -1748,6 +2197,7 @@
                             <strong>${escapeHtml(lead.name || '')}</strong>
                             <span class="lead-date">${escapeHtml(formatLeadDate(lead))}${hasSearch() && isHistoricalLead(lead) ? ' · historico' : ''}</span>
                             ${purchaseCountLabel(lead) ? `<span class="lead-date">${escapeHtml(purchaseCountLabel(lead))}</span>` : ''}
+                            ${leadProductBadgeHtml(lead)}
                             ${metaPurchaseBadgeHtml(lead)}
                         </div>
                     </td>
@@ -2316,6 +2766,7 @@
 
         const setCountry = (country) => {
             state.country = ['EC', 'CO', 'ALL'].includes(country) ? country : 'EC';
+            state.dropiCatalog = null;
             loadRepurchaseChecked();
             el('countryFilter').value = state.country;
             el('newLeadBtn').href = `${apiBase}/admin/new?country=${encodeURIComponent(state.country === 'ALL' ? 'EC' : state.country)}`;
@@ -2402,6 +2853,7 @@
             if (event.key !== 'Escape') return;
             el('statusFilterControl').classList.remove('open');
             syncStatusFilterControl();
+            closeDropiProductModal();
         });
         el('refreshBtn').addEventListener('click', () => fetchLeads().catch((error) => {
             state.loadError = error.message;
@@ -2435,6 +2887,13 @@
             const repurchaseButton = event.target.closest('[data-authorize-repurchase-dropi]');
             if (repurchaseButton) {
                 authorizeRepurchaseDropi(repurchaseButton);
+                return;
+            }
+            const configureProductButton = event.target.closest('[data-configure-dropi-product]');
+            if (configureProductButton) {
+                const id = String(configureProductButton.dataset.configureDropiProduct || '');
+                const lead = state.leads.find((item) => String(item.id) === id);
+                openDropiProductModal(lead);
                 return;
             }
             const submitDropiButton = event.target.closest('[data-submit-dropi]');

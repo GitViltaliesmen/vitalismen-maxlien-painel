@@ -100,6 +100,7 @@ const isPanelPollingRequest = (req) => {
         || pathname === '/api/shipments/dispatch/status'
         || pathname === '/api/shipments/dispatch/history'
         || pathname === '/api/shipments/servientrega/ec/agencies'
+        || pathname === '/api/shipments/droppi/ec/products'
         || pathname === '/api/whatsapp/status'
         || pathname === '/api/whatsapp/chats'
         || pathname === '/api/whatsapp/dashboard-metrics'
@@ -129,6 +130,7 @@ const isPanelOperationalWriteRequest = (req) => {
     if (method === 'POST' && /^\/api\/shipments\/dispatch\/(?:pause|resume)$/.test(pathname)) return true;
     if (method === 'POST' && /^\/api\/shipments\/[^/]+\/(?:panel-sync|manual-review|manual-send-required|requeue-dropi-submit|mark-manual-sent|remove-from-confirmed)$/.test(pathname)) return true;
     if (method === 'POST' && /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/(?:authorize-submit|revoke-submit-authorization)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/shipments\/droppi\/ec\/admin-leads\/[^/]+\/configure-order$/.test(pathname)) return true;
     return false;
 };
 

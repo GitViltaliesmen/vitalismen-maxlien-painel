@@ -6,7 +6,12 @@ import Order from '../models/Order.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
-import { ECUADOR_PRODUCTS, resolveEcuadorProductInfo } from './ecuadorProductService.js';
+import {
+    ECUADOR_PRODUCTS,
+    detectExplicitEcuadorProductKey,
+    findEcuadorOfferByTotal,
+    resolveEcuadorProductInfo
+} from './ecuadorProductService.js';
 import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
 
@@ -824,17 +829,28 @@ const splitAliases = (value = '') => String(value || '')
 
 const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) => {
     const isNitrix = productInfo.key === ECUADOR_PRODUCTS.nitrix.key;
-    const productUrl = isNitrix
-        ? privateProductUrl(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || PRODUCT_URL)
-        : PRIVATE_PRODUCT_URL;
-    const productName = isNitrix
-        ? (process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || productInfo.dropiName)
-        : PRODUCT_NAME;
-    const aliases = isNitrix
-        ? (splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES).length
+    const isTexUltra = productInfo.key === ECUADOR_PRODUCTS.texUltra.key;
+    const nitrixProductUrl = String(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || '').trim();
+    const texUltraProductUrl = String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_URL || productInfo.dropiUrl || '').trim();
+    const productUrl = isTexUltra
+        ? (texUltraProductUrl ? privateProductUrl(texUltraProductUrl) : '')
+        : isNitrix
+            ? (nitrixProductUrl ? privateProductUrl(nitrixProductUrl) : '')
+            : PRIVATE_PRODUCT_URL;
+    const productName = isTexUltra
+        ? String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_NAME || productInfo.dropiName || '').trim()
+        : isNitrix
+            ? (process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || productInfo.dropiName)
+            : PRODUCT_NAME;
+    const aliases = isTexUltra
+        ? (splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES).length
+            ? splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES)
+            : productInfo.dropiAliases)
+        : isNitrix
+            ? (splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES).length
             ? splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES)
             : productInfo.dropiAliases)
-        : (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases);
+            : (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases);
     return {
         key: productInfo.key,
         name: productName,
@@ -2602,6 +2618,22 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
     const alreadySubmitted = alreadySubmittedDropiResult({ order, shipment });
     if (alreadySubmitted) return alreadySubmitted;
 
+    const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
+    const selectedOffer = findEcuadorOfferByTotal({
+        productKey: explicitProductKey,
+        quantity: order?.package?.quantity || order?.package?.id,
+        total: order?.total
+    });
+    if (!explicitProductKey || !selectedOffer) {
+        return {
+            ok: false,
+            success: false,
+            reason: 'dropi_product_price_selection_required',
+            error: 'Selecione produto e uma opcao oficial de preco antes de enviar para Dropi.',
+            message: 'Produto/preco Dropi ainda nao foi configurado neste pedido.',
+            shipment
+        };
+    }
     const directProduct = resolveEcuadorProductInfo(order, shipment?.productName, shipment?.notes);
     const phoneTail = String(order?.customer?.phone || shipment?.client?.phone || '').replace(/\D/g, '').slice(-9);
     const recentNitrixMessage = phoneTail
@@ -2615,7 +2647,12 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
             ]
         }).sort({ createdAt: -1 }).lean().catch(() => null)
         : null;
-    if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key) {
+    const hasPanelProductSelection = /\[DROPI_PRODUCT\]\s*key=/i.test([
+        order?.notes,
+        shipment?.notes,
+        shipment?.raw?.productSelection?.productKey
+    ].filter(Boolean).join(' | '));
+    if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key && !hasPanelProductSelection) {
         return {
             ok: false,
             success: false,
@@ -2625,16 +2662,33 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
             shipment
         };
     }
-    if (directProduct.key === ECUADOR_PRODUCTS.nitrix.key
-        && String(process.env.DROPPI_EC_NITRIX_PRODUCT_ENABLED || '').toLowerCase() !== 'true') {
-        return {
-            ok: false,
-            success: false,
-            reason: 'nitrix_dropi_product_not_enabled',
-            error: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Configure DROPPI_EC_NITRIX_PRODUCT_* e habilite antes de enviar.',
-            message: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Configure DROPPI_EC_NITRIX_PRODUCT_* e habilite antes de enviar.',
-            shipment
-        };
+    if (directProduct.key === ECUADOR_PRODUCTS.nitrix.key) {
+        const nitrixEnabled = String(process.env.DROPPI_EC_NITRIX_PRODUCT_ENABLED || '').toLowerCase() === 'true';
+        const nitrixTarget = dropiProductTargetForProduct(directProduct);
+        if (!nitrixEnabled || !nitrixTarget.productUrl || !nitrixTarget.name) {
+            return {
+                ok: false,
+                success: false,
+                reason: 'nitrix_dropi_product_not_enabled',
+                error: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Configure e valide DROPPI_EC_NITRIX_PRODUCT_URL e DROPPI_EC_NITRIX_PRODUCT_NAME antes de enviar.',
+                message: 'Produto Nitrix ainda nao esta habilitado no catalogo Dropi EC. Falta validar o produto exato.',
+                shipment
+            };
+        }
+    }
+    if (directProduct.key === ECUADOR_PRODUCTS.texUltra.key) {
+        const texUltraEnabled = String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ENABLED || '').toLowerCase() === 'true';
+        const texUltraTarget = dropiProductTargetForProduct(directProduct);
+        if (!texUltraEnabled || !texUltraTarget.productUrl || !texUltraTarget.name) {
+            return {
+                ok: false,
+                success: false,
+                reason: 'tex_ultra_dropi_product_not_ready',
+                error: 'Tex Ultra esta isolado, mas o produto exato do Dropi ainda nao foi validado. Configure DROPPI_EC_TEX_ULTRA_PRODUCT_URL, DROPPI_EC_TEX_ULTRA_PRODUCT_NAME e habilite somente depois da conferencia.',
+                message: 'Tex Ultra ainda nao esta liberado para envio ao Dropi. Falta validar o produto exato no catalogo EC.',
+                shipment
+            };
+        }
     }
 
     const currentOrderId = String(order?.orderId || shipment?.orderId || '');

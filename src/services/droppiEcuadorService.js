@@ -151,12 +151,8 @@ const normalizeShippingType = (value) => {
 
 const ecuadorUnitPriceForQuantity = (quantity, total = 0) => {
     const qty = Number(quantity || 1) || 1;
-    if (qty === 1) return 40;
-    if (qty === 2) return 35;
-    if (qty === 3) return 32;
-    if (qty === 6) return 28;
     const numericTotal = Number(total || 0);
-    return numericTotal > 0 ? numericTotal / qty : numericTotal;
+    return numericTotal > 0 ? numericTotal / qty : 0;
 };
 
 export const upsertDroppiEcuadorShipment = async (payload) => {
@@ -293,7 +289,8 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         city
     });
     const quantity = Number(order?.package?.id || order?.package?.quantity || 1) || 1;
-    const unitPrice = ecuadorUnitPriceForQuantity(quantity, order?.total);
+    const exactTotal = Number(order?.total || 0);
+    const unitPrice = ecuadorUnitPriceForQuantity(quantity, exactTotal);
     const productInfo = resolveEcuadorProductInfo(order);
     const productMetadata = ecuadorProductMetadata(productInfo);
     return {
@@ -308,7 +305,7 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         email: String(order?.customer?.email || '').trim(),
         ...productMetadata,
         quantity,
-        price: unitPrice * quantity,
+        price: exactTotal,
         unitPrice,
         paymentMode: 'CON_RECAUDO',
         preferredCarrier: 'SERVIENTREGA',

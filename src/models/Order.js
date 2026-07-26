@@ -99,6 +99,10 @@ const orderSchema = new mongoose.Schema({
         lockUntil: Date
     },
     tracking: {
+        productKey: String,
+        productName: String,
+        contentName: String,
+        contentIds: [String],
         fbclid: String,
         fbc: String,
         fbp: String,
