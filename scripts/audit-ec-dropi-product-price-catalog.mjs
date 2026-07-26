@@ -21,12 +21,17 @@ const expected = {
 };
 const products = listEcuadorDropiProducts();
 const productKeys = products.map((product) => product.key).sort();
+const vitPowerProduct = products.find((product) => product.key === 'vit_power_ec');
 
 assert(
     JSON.stringify(productKeys) === JSON.stringify(['nitrix_ec', 'tex_ultra_ec', 'vit_power_ec']),
     'Catalogo deve conter somente Vit Power, Nitrix e Tex Ultra'
 );
 assert(JSON.stringify(ECUADOR_PRICE_CATALOGS) === JSON.stringify(expected), 'Tabela central de precos diverge do solicitado');
+assert(
+    vitPowerProduct?.dropiUrl === 'https://app.dropi.ec/dashboard/product-details/103743/vit-powerss-1000-ml-x1-comunidad',
+    'Vit Power deve usar o produto Dropi oficial ID 103743'
+);
 assert(
     getEcuadorOffer({ productKey: 'vit_power_ec', priceCatalog: 'valor_digitado', quantity: 1 }) === null,
     'Servidor nao pode aceitar uma tabela de preco arbitraria como normal'
@@ -127,6 +132,10 @@ assert(
 assert(
     !browserService.includes('DROPPI_EC_NITRIX_PRODUCT_URL || PRODUCT_URL'),
     'Nitrix nunca pode usar o URL de Vit Power como fallback'
+);
+assert(
+    browserService.includes('ECUADOR_PRODUCTS.vitPower.dropiUrl'),
+    'Browser Dropi deve derivar o alvo Vit Power do catalogo oficial'
 );
 
 if (failures.length) {

@@ -18,7 +18,7 @@
 
 - Nitrix / Nitric Oxide: ID 105825.
 - Tex Ultra 120 Cap Energia: ID 110681.
-- Vit Power: alvo legado oficial preservado.
+- Vit Power / Vit Powerss 1000 ML X1 Comunidad: ID 103743.
 
 A validacao foi somente leitura. Nenhum pedido real foi criado durante a conferencia.
 

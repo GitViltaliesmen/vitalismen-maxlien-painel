@@ -50,6 +50,7 @@ export const ECUADOR_PRODUCTS = {
         contentName: 'Vit Power Ecuador',
         contentIds: ['vit_power_ec'],
         dropiName: 'VIT POWERS 1000ML COMUNIDAD',
+        dropiUrl: 'https://app.dropi.ec/dashboard/product-details/103743/vit-powerss-1000-ml-x1-comunidad',
         dropiAliases: [
             'VIT POWERS 1000ML COMUNIDAD',
             'VIT POWERS 1000 ML X1 COMUNIDAD',
@@ -151,6 +152,7 @@ export const listEcuadorDropiProducts = () => Object.values(ECUADOR_PRODUCTS).ma
     key: product.key,
     name: product.name,
     dropiName: product.dropiName,
+    dropiUrl: product.dropiUrl || '',
     prices: ECUADOR_PRICE_CATALOGS
 }));
 

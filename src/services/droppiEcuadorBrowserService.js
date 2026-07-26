@@ -25,7 +25,9 @@ const TOTP_SECRET_FILE_PATH = process.env.DROPI_TOTP_SECRET_FILE
 const DOWNLOAD_DIR = process.env.DROPPI_EC_DOWNLOAD_DIR
     || path.join(process.cwd(), 'public', 'media', 'droppi-ec');
 const LOGIN_URL = process.env.DROPPI_EC_LOGIN_URL || 'https://app.dropi.ec/auth/login';
-const PRODUCT_URL = process.env.DROPPI_EC_PRODUCT_URL || 'https://app.dropi.ec/dashboard/product-details/103743/vit-powerss-1000-ml-x1-comunidad';
+const PRODUCT_URL = process.env.DROPPI_EC_PRODUCT_URL
+    || ECUADOR_PRODUCTS.vitPower.dropiUrl
+    || 'https://app.dropi.ec/dashboard/product-details/103743/vit-powerss-1000-ml-x1-comunidad';
 const PRIVATE_PRODUCT_URL = (() => {
     try {
         const url = new URL(PRODUCT_URL);
