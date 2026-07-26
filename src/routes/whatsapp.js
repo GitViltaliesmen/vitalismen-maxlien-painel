@@ -1528,6 +1528,8 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslEntryMessage: vslEntryMessage || entryMessage || state.metadata?.vslEntryMessage || '',
         vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
         vslReferrer: cleanText(body.referrer),
+        vslProductKey: product.productKey,
+        vslProductName: product.productName,
         ...(isNitrixVsl && !preserveNitrixHumanTakeover ? {
             nitrixVslEntryReadyAt: now.toISOString(),
             nitrixVslEntryHumanHoldPreserved: false
@@ -3541,6 +3543,9 @@ router.get('/chats', async (req, res) => {
                     productKey: productContext.productKey || null,
                     productName: productContext.productName || null,
                     productMedia: productContext.productMedia || null,
+                    vslProductKey: contactState?.metadata?.vslProductKey || null,
+                    vslProductName: contactState?.metadata?.vslProductName || null,
+                    vslPath: contactState?.metadata?.vslPath || null,
                     customerDraft: panelDraft,
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
@@ -3770,6 +3775,9 @@ router.get('/chats', async (req, res) => {
                 productKey: productContext.productKey || null,
                 productName: productContext.productName || null,
                 productMedia: productContext.productMedia || null,
+                vslProductKey: contactState?.metadata?.vslProductKey || null,
+                vslProductName: contactState?.metadata?.vslProductName || null,
+                vslPath: contactState?.metadata?.vslPath || null,
                 customerDraft: panelDraft,
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },

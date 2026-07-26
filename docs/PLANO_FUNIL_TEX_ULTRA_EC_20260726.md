@@ -3,12 +3,14 @@
 ## Decisao aprovada
 
 - A VSL publica atual `https://ec.maxlien.shop/n/` passa a atribuir os novos contatos ao produto `tex_ultra_ec`.
+- Cada VSL mantem sua atribuicao propria: `/n/` para Tex Ultra, `/m/` para Vit Power e entradas Nitrix explicitamente identificadas para Nitrix.
 - A oferta usa frascos:
   - 1 frasco: USD 35.99;
   - 2 frascos: USD 70.00;
   - 3 frascos: USD 80.99;
   - 6 frascos: USD 147.99.
 - Nitrix Oxide, Vit Power e Tex Ultra permanecem selecionaveis no painel antes do envio.
+- A troca manual no painel altera somente o produto da ficha/pedido atual. A origem da VSL continua registrada para auditoria e nenhuma outra VSL e modificada.
 - Produto e preco podem ser alterados enquanto o pedido estiver em rascunho, pendente ou confirmado e ainda nao tiver sido submetido.
 - O envio real continua exigindo autorizacao e clique separados. Nunca enviar automaticamente apenas pela selecao.
 

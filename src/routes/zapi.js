@@ -699,6 +699,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
             productKey: ecTexUltraVslAbContext.productKey,
             productName: ecTexUltraVslAbContext.productName,
             productSource: 'zapi_public_vsl_ab_entry',
+            vslProductKey: ecTexUltraVslAbContext.productKey,
+            vslProductName: ecTexUltraVslAbContext.productName,
             customerDraft: {
                 ...(targetState.metadata?.customerDraft || {}),
                 phone: `+${phone}`,

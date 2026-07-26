@@ -15,6 +15,9 @@ Decisao operacional mais recente, autorizada pelo operador em 2026-07-26:
 - produto oficial do trafego atual `/n/`: Tex Ultra Ecuador;
 - tabela promocional Tex Ultra: 1 frasco USD 35.99, 2 frascos USD 70.00, 3 frascos USD 80.99 e 6 frascos USD 147.99;
 - Nitrix Oxide Ecuador e Vit Power Ecuador continuam disponiveis para selecao/alteracao manual no painel e envio controlado ao Dropi;
+- cada VSL conserva seu proprio produto de origem: `/n/` abre Tex Ultra, `/m/` abre Vit Power e uma entrada Nitrix explicitamente identificada abre Nitrix;
+- o painel e multiproduto, mas a troca manual vale somente para a ficha/pedido daquele cliente e nunca altera a atribuicao das outras VSLs;
+- a origem da VSL deve permanecer registrada separadamente mesmo quando o operador troca o produto do pedido a pedido do cliente;
 - toda oferta deve usar `frasco`/`frascos`, nunca `mes`/`meses`;
 - nenhum funil, audio, imagem ou prova de outro produto pode ser aplicado automaticamente ao Tex Ultra.
 

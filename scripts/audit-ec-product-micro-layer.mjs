@@ -19,6 +19,11 @@ assertIncludes('public/qr.html', 'id="customerProductInput"', 'Ficha do Cliente 
 assertIncludes('public/qr.html', 'Nitrix Oxide Ecuador', 'Ficha mostra Nitrix');
 assertIncludes('public/qr.html', 'Vit Power Ecuador', 'Ficha mantem Vit Power para recompra/pedido explicito');
 assertIncludes('public/qr.html', 'Tex Ultra Ecuador', 'Ficha mostra Tex Ultra');
+assertIncludes('public/qr.html', 'data-customer-product-key="tex_ultra_ec"', 'Ficha tem botao rapido Tex Ultra');
+assertIncludes('public/qr.html', 'data-customer-product-key="nitrix_ec"', 'Ficha tem botao rapido Nitrix');
+assertIncludes('public/qr.html', 'data-customer-product-key="vit_power_ec"', 'Ficha tem botao rapido Vit Power');
+assertIncludes('public/qr.html', 'VSL de origem:', 'Ficha diferencia origem VSL do produto atual do pedido');
+assertIncludes('public/qr.html', "scheduleCustomerFieldAutoSave({ delay: 250, source: 'product_button' })", 'Botao de produto salva somente a ficha atual');
 assertIncludes('public/qr.html', 'EC_PRODUCT_CATALOG', 'Ficha usa catalogo EC local');
 assertIncludes('public/qr.html', "return 'vit_power_ec';", 'Ficha reconhece Vit Power explicitamente');
 assertIncludes('public/qr.html', "return 'nitrix_ec';", 'Ficha reconhece Nitrix explicitamente');
@@ -42,6 +47,8 @@ assertIncludes('src/services/metaConversionsService.js', 'content_ids: contentId
 assertIncludes('src/services/metaConversionsService.js', 'id: contentIds[0]', 'Purchase usa id do produto');
 assertIncludes('src/routes/whatsapp.js', 'allowedDraftProductKeys', 'WhatsApp aceita so whitelist de produtos EC');
 assertIncludes('src/routes/whatsapp.js', "cleanDraft.country === 'EC'", 'Whitelist de produto fica restrita a EC');
+assertIncludes('src/routes/whatsapp.js', 'vslProductKey: product.productKey', 'Entrada conserva produto original da VSL');
+assertIncludes('src/routes/whatsapp.js', 'vslProductKey: contactState?.metadata?.vslProductKey || null', 'Painel recebe produto original da VSL separado do pedido');
 
 const {
     ECUADOR_PRODUCTS,

@@ -2927,6 +2927,42 @@
             align-items: start;
         }
 
+        .customer-product-quick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+            margin-top: -2px;
+        }
+
+        .customer-product-quick {
+            min-height: 38px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #fff;
+            color: #334155;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .customer-product-quick:hover {
+            border-color: #0f766e;
+            background: #f0fdfa;
+        }
+
+        .customer-product-quick.selected {
+            border-color: #0f766e;
+            background: #ccfbf1;
+            color: #115e59;
+            box-shadow: inset 0 0 0 1px #0f766e;
+        }
+
+        .customer-product-origin-hint {
+            margin: -1px 0 3px;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
         .price-preset-grid--grouped {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -7610,13 +7646,19 @@
                             <input id="customerReferenceInput" autocomplete="off" placeholder="Ponto de referencia">
                         </label>
                         <div class="customer-form-title">Detalhes do pedido</div>
-                        <label>Produto
+                        <label>Produto deste pedido
                             <select id="customerProductInput">
                                 <option value="tex_ultra_ec">Tex Ultra Ecuador</option>
                                 <option value="nitrix_ec">Nitrix Oxide Ecuador</option>
                                 <option value="vit_power_ec">Vit Power Ecuador</option>
                             </select>
                         </label>
+                        <div class="customer-product-quick-grid" aria-label="Trocar produto deste pedido">
+                            <button class="customer-product-quick" data-customer-product-key="tex_ultra_ec" type="button" disabled>Tex Ultra</button>
+                            <button class="customer-product-quick" data-customer-product-key="nitrix_ec" type="button" disabled>Nitrix Oxide</button>
+                            <button class="customer-product-quick" data-customer-product-key="vit_power_ec" type="button" disabled>Vit Power</button>
+                        </div>
+                        <div id="customerProductOriginHint" class="customer-product-origin-hint">A VSL define o produto inicial. Troque aqui somente se o cliente pedir outro produto.</div>
                         <div class="form-grid three">
                             <label>Qtd
                                 <input id="customerQuantityInput" type="number" min="0" step="1" placeholder="0">
@@ -8593,7 +8635,8 @@
             const tags = chatTags(chat).map((tag) => String(tag || '').toUpperCase());
             const draft = chat.customerDraft || {};
             const productKey = String(
-                chat.productKey
+                chat.vslProductKey
+                || chat.productKey
                 || draft.productKey
                 || chat.assignedAgent
                 || draft.productName
@@ -8603,11 +8646,14 @@
             const cameFromVsl = tags.includes('VSL_EC')
                 || String(draft.source || '').toLowerCase().includes('vsl');
             const isNitrix = productKey.includes('nitrix') || productKey === 'nx_ec';
+            const isTexUltra = productKey.includes('tex_ultra') || productKey.includes('tex ultra');
             if (cameFromVsl) {
                 return {
-                    badge: isNitrix ? 'VSL · Nitrix' : 'VSL · Vit Power',
+                    badge: isTexUltra ? 'VSL · Tex Ultra' : isNitrix ? 'VSL · Nitrix' : 'VSL · Vit Power',
                     className: 'vsl',
-                    title: isNitrix
+                    title: isTexUltra
+                        ? 'Entrada registrada pela VSL Tex Ultra EC'
+                        : isNitrix
                         ? 'Entrada registrada pela VSL Nitrix EC'
                         : 'Entrada registrada pela VSL Vit Power EC'
                 };
@@ -10483,6 +10529,42 @@
             chat.productKey || chat.customerDraft?.productKey || chat.assignedAgent || chat.productName || chat.customerDraft?.productName || chat.customerDraft?.product || '',
             'nitrix_ec'
         );
+        const vslProductKeyFromChat = (chat = state.selectedChat || {}) => {
+            const explicit = String(chat.vslProductKey || '').trim();
+            if (explicit) return normalizeCustomerProductKey(explicit);
+            const tags = chatTags(chat).map((tag) => String(tag || '').toUpperCase());
+            if (tags.includes('TEX_ULTRA_EC')) return 'tex_ultra_ec';
+            if (tags.includes('NITRIX_EC')) return 'nitrix_ec';
+            if (tags.includes('VIT_POWER_EC')) return 'vit_power_ec';
+            const path = String(chat.vslPath || '').trim().toLowerCase();
+            if (path.startsWith('/n')) return 'tex_ultra_ec';
+            if (path.startsWith('/m')) return 'vit_power_ec';
+            return '';
+        };
+        const renderCustomerProductSelection = (chat = state.selectedChat) => {
+            const selectedKey = normalizeCustomerProductKey(el('customerProductInput')?.value || productKeyFromChat(chat || {}));
+            document.querySelectorAll('[data-customer-product-key]').forEach((button) => {
+                button.disabled = !chat || state.busy;
+                button.classList.toggle('selected', button.dataset.customerProductKey === selectedKey);
+                button.setAttribute('aria-pressed', button.dataset.customerProductKey === selectedKey ? 'true' : 'false');
+            });
+            const hint = el('customerProductOriginHint');
+            if (!hint) return;
+            if (!chat) {
+                hint.textContent = 'A VSL define o produto inicial. Troque aqui somente se o cliente pedir outro produto.';
+                return;
+            }
+            const originKey = vslProductKeyFromChat(chat);
+            if (!originKey) {
+                hint.textContent = `Produto atual: ${productInfoForKey(selectedKey).name}. A troca vale somente para este cliente/pedido.`;
+                return;
+            }
+            const origin = productInfoForKey(originKey);
+            const current = productInfoForKey(selectedKey);
+            hint.textContent = originKey === selectedKey
+                ? `VSL de origem: ${origin.name}. O pedido ja veio selecionado corretamente.`
+                : `VSL de origem: ${origin.name}. Produto alterado neste pedido para ${current.name}.`;
+        };
         const currentCustomerProduct = () => productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
         const productLabelForQuantity = (quantity, product = currentCustomerProduct()) => {
             const qty = Number(quantity || 0) || 0;
@@ -13436,6 +13518,7 @@
                 el('customerFormState').textContent = 'selecione um cliente';
                 ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
                 setInputValue('customerProductInput', 'nitrix_ec');
+                renderCustomerProductSelection(null);
                 setInputValue('customerCountryInput', ['EC', 'CO'].includes(selectedOperationalCountry()) ? selectedOperationalCountry() : 'EC');
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
@@ -13528,6 +13611,7 @@
                 setInputValue('customerNameInput', chat.name || '');
                 setInputValue('customerCountryInput', ['EC', 'CO'].includes(String(chat.country || '').toUpperCase()) ? chat.country : selectedPanelCountry());
                 setInputValue('customerProductInput', productKeyFromChat(chat));
+                renderCustomerProductSelection(chat);
                 setInputValue('customerPhoneInput', chat.phone || '');
                 setInputValue('customerStatusInput', chat.orderStatus || '');
                 setInputValue('customerCityInput', chat.city || '');
@@ -13574,6 +13658,7 @@
             document.querySelectorAll('[data-price-preset]').forEach((button) => {
                 button.disabled = false;
             });
+            renderCustomerProductSelection(chat);
             if (chat.human?.mode === 'manual') {
                 if (isMine(chat)) {
                     el('claimBtn').textContent = autoReplyGloballyActive() ? 'Renovar 10 min' : 'Manual assistido';
@@ -18311,6 +18396,16 @@
             });
         });
         el('customerCountryInput').addEventListener('change', applyCustomerCountryUi);
+        el('customerProductInput').addEventListener('change', () => renderCustomerProductSelection());
+        document.querySelectorAll('[data-customer-product-key]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (!state.selectedChat || state.busy) return;
+                setInputValue('customerProductInput', button.dataset.customerProductKey || '');
+                markCustomerFormDirty();
+                renderCustomerProductSelection();
+                scheduleCustomerFieldAutoSave({ delay: 250, source: 'product_button' });
+            });
+        });
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
         updateCustomerStatusStyle();
         applyCustomerCountryUi();
