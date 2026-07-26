@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const EC_AGENT_KEYS = ['vit_power_ec', 'nitrix_ec'];
+const EC_AGENT_KEYS = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
 
 const contactStateSchema = new mongoose.Schema({
     chatId: {

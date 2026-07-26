@@ -52,9 +52,9 @@ const looksLikePublicVslLeadText = (text = '') => {
         && (/nombre completo|telefono|tel[eé]fono/.test(value));
 };
 
-const EC_NITRIX_VSL_AB_TEST_ID = 'ab-6a5976494d4b86598b3690f9';
-const EC_NITRIX_VSL_AB_MESSAGES = {
-    a: 'Hola, quiero saber mas sobre Nitrix Oxide.',
+const EC_TEX_ULTRA_VSL_AB_TEST_ID = 'ab-6a5976494d4b86598b3690f9';
+const EC_TEX_ULTRA_VSL_AB_MESSAGES = {
+    a: 'Hola, quiero saber mas sobre Tex Ultra.',
     b: 'Hola, deseo recibir mas informacion sobre el producto.'
 };
 
@@ -66,20 +66,20 @@ const normalizeVslText = (text = '') => String(text || '')
     .replace(/\s+/g, ' ')
     .trim();
 
-const ecNitrixVslAbContextFromText = (text = '') => {
+const ecTexUltraVslAbContextFromText = (text = '') => {
     const value = normalizeVslText(text);
-    const normalizedMessages = Object.entries(EC_NITRIX_VSL_AB_MESSAGES)
+    const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
         .map(([variant, message]) => [variant, normalizeVslText(message)]);
     const match = normalizedMessages.find(([, message]) => value === message || value.includes(message));
     if (!match) return null;
     const [variant] = match;
     return {
-        productKey: 'nitrix_ec',
-        productName: 'Nitrix Oxide Ecuador',
-        productMedia: '/media/sales/ec/nitrix_bottle.png',
-        vslTestId: EC_NITRIX_VSL_AB_TEST_ID,
+        productKey: 'tex_ultra_ec',
+        productName: 'Tex Ultra Ecuador',
+        productMedia: '',
+        vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
         vslVariant: variant,
-        vslEntryMessage: EC_NITRIX_VSL_AB_MESSAGES[variant]
+        vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
     };
 };
 
@@ -641,9 +641,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
 
     const isNewState = !state;
     const inferredCountry = countryFromPhone(phone);
-    const ecNitrixVslAbContext = ecNitrixVslAbContextFromText(normalizedBody);
+    const ecTexUltraVslAbContext = ecTexUltraVslAbContextFromText(normalizedBody);
     const publicVslLeadEntry = inferredCountry === 'EC'
-        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(ecNitrixVslAbContext));
+        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(ecTexUltraVslAbContext));
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
@@ -652,7 +652,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
-    if (ecNitrixVslAbContext) targetState.assignedAgent = ecNitrixVslAbContext.productKey;
+    if (ecTexUltraVslAbContext) targetState.assignedAgent = ecTexUltraVslAbContext.productKey;
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
@@ -674,7 +674,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ...(Array.isArray(targetState.tags) ? targetState.tags : []),
         'ZAPI_INBOUND_CAPTURED',
         ...(publicVslLeadEntry ? ['VSL_EC', 'WHATSAPP_CLICK'] : []),
-        ...(ecNitrixVslAbContext ? ['NITRIX_EC', 'NITRIX_VSL_AB_ENTRY'] : []),
+        ...(ecTexUltraVslAbContext ? ['TEX_ULTRA_EC', 'TEX_ULTRA_VSL_AB_ENTRY'] : []),
         ...(inferredCountry === 'BR' ? ['BR_CAPTURADO_CELULAR'] : [])
     ])];
     targetState.metadata = {
@@ -689,15 +689,15 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
         publicVslLeadEntry,
-        ...(ecNitrixVslAbContext ? {
+        ...(ecTexUltraVslAbContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
             vslEntryPanelLeadAt: now.toISOString(),
-            vslTestId: ecNitrixVslAbContext.vslTestId,
-            vslVariant: ecNitrixVslAbContext.vslVariant,
-            vslEntryMessage: ecNitrixVslAbContext.vslEntryMessage,
-            productKey: ecNitrixVslAbContext.productKey,
-            productName: ecNitrixVslAbContext.productName,
+            vslTestId: ecTexUltraVslAbContext.vslTestId,
+            vslVariant: ecTexUltraVslAbContext.vslVariant,
+            vslEntryMessage: ecTexUltraVslAbContext.vslEntryMessage,
+            productKey: ecTexUltraVslAbContext.productKey,
+            productName: ecTexUltraVslAbContext.productName,
             productSource: 'zapi_public_vsl_ab_entry',
             customerDraft: {
                 ...(targetState.metadata?.customerDraft || {}),
@@ -706,13 +706,13 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 status: targetState.metadata?.customerDraft?.status || 'novo',
                 entryAt: targetState.metadata?.customerDraft?.entryAt || now.toISOString(),
                 source: 'public_vsl_whatsapp_entry',
-                productKey: ecNitrixVslAbContext.productKey,
-                productName: ecNitrixVslAbContext.productName,
-                productMedia: ecNitrixVslAbContext.productMedia,
+                productKey: ecTexUltraVslAbContext.productKey,
+                productName: ecTexUltraVslAbContext.productName,
+                productMedia: ecTexUltraVslAbContext.productMedia,
                 message: normalizedBody,
-                vslTestId: ecNitrixVslAbContext.vslTestId,
-                vslVariant: ecNitrixVslAbContext.vslVariant,
-                vslEntryMessage: ecNitrixVslAbContext.vslEntryMessage,
+                vslTestId: ecTexUltraVslAbContext.vslTestId,
+                vslVariant: ecTexUltraVslAbContext.vslVariant,
+                vslEntryMessage: ecTexUltraVslAbContext.vslEntryMessage,
                 updatedAt: now.toISOString()
             }
         } : {})

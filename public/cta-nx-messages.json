@@ -1,16 +1,16 @@
 {
   "country": "EC",
-  "productKey": "nitrix_ec",
-  "product": "Nitrix Oxide Ecuador",
-  "productMedia": "/media/sales/ec/nitrix_bottle.png",
+  "productKey": "tex_ultra_ec",
+  "product": "Tex Ultra Ecuador",
+  "productMedia": "",
   "messages": [
-    "Hola, vengo del video de Nitrix",
-    "Hola, acabo de ver el video de Nitrix",
-    "Hola, vi la presentacion de Nitrix",
-    "Hola, llegue desde la pagina de Nitrix",
-    "Hola, vengo de la informacion del video de Nitrix",
-    "Hola, termine de ver el video de Nitrix",
-    "Hola, estoy entrando desde el video de Nitrix",
-    "Hola, vi el video completo de Nitrix"
+    "Hola, vengo del video de Tex Ultra",
+    "Hola, acabo de ver el video de Tex Ultra",
+    "Hola, vi la presentacion de Tex Ultra",
+    "Hola, llegue desde la pagina de Tex Ultra",
+    "Hola, vengo de la informacion del video de Tex Ultra",
+    "Hola, termine de ver el video de Tex Ultra",
+    "Hola, estoy entrando desde el video de Tex Ultra",
+    "Hola, vi el video completo de Tex Ultra"
   ]
 }

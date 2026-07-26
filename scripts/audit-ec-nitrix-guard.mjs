@@ -46,7 +46,8 @@ assertIncludes('src/models/ContactState.js', "'vit_power_ec'", 'ContactState man
 
 assertIncludes('src/routes/whatsapp.js', "nitrix: 'nitrix_ec'", 'Rota publica reconhece Nitrix');
 assertIncludes('src/routes/whatsapp.js', "vitPower: 'vit_power_ec'", 'Vit Power continua produto separado');
-assertMatches('src/routes/whatsapp.js', /bodyPath\.startsWith\('\/n'\)[\s\S]{0,80}sourcePath\.startsWith\('\/n'\)/, 'Caminho /n mapeia para Nitrix');
+assertIncludes('src/routes/whatsapp.js', "texUltra: 'tex_ultra_ec'", 'Rota publica reconhece Tex Ultra');
+assertIncludes('src/routes/whatsapp.js', "source: 'ec_tex_ultra_vsl'", 'Caminho atual /n atribui Tex Ultra');
 assertIncludes('src/routes/whatsapp.js', "tag: 'NITRIX_EC'", 'Lead Nitrix recebe tag propria');
 assertIncludes('src/routes/whatsapp.js', "/media/sales/ec/nitrix_bottle.png", 'Lead Nitrix leva frasco Nitrix');
 
@@ -75,18 +76,18 @@ assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe sa
 
 assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "5515991418416"', 'VSL /n usa telefone 8416');
 assertIncludes('public/n/index.html', 'await nextSellerFromServer(message, fullName)', 'VSL /n confirma o telefone conectado antes de abrir WhatsApp');
-assertIncludes('public/n/index.html', 'productKey: "nitrix_ec"', 'VSL /n envia productKey Nitrix');
-assertIncludes('public/n/index.html', 'productName: "Nitrix Oxide Ecuador"', 'VSL /n envia produto Nitrix');
-assertIncludes('public/n/index.html', 'content_ids: ["nitrix_oxide_ec"]', 'Meta Lead usa content_id Nitrix');
+assertIncludes('public/n/index.html', 'productKey: "tex_ultra_ec"', 'VSL /n envia productKey Tex Ultra');
+assertIncludes('public/n/index.html', 'productName: "Tex Ultra Ecuador"', 'VSL /n envia produto Tex Ultra');
+assertIncludes('public/n/index.html', 'content_ids: ["tex_ultra_ec"]', 'Meta Lead usa content_id Tex Ultra');
 
 try {
     const cta = JSON.parse(read('public/cta-nx-messages.json'));
     assert(cta.country === 'EC', 'CTA JSON permanece EC');
-    assert(cta.productKey === 'nitrix_ec', 'CTA JSON productKey Nitrix');
-    assert(/Nitrix Oxide Ecuador/i.test(String(cta.product || '')), 'CTA JSON produto Nitrix');
-    assert(cta.productMedia === '/media/sales/ec/nitrix_bottle.png', 'CTA JSON midia Nitrix');
+    assert(cta.productKey === 'tex_ultra_ec', 'CTA JSON productKey Tex Ultra');
+    assert(/Tex Ultra Ecuador/i.test(String(cta.product || '')), 'CTA JSON produto Tex Ultra');
+    assert(cta.productMedia === '', 'CTA JSON nao reutiliza midia de outro produto');
     assert(Array.isArray(cta.messages) && cta.messages.length >= 4, 'CTA JSON tem mensagens suficientes');
-    assert(cta.messages.every((message) => /nitrix/i.test(String(message))), 'CTA JSON fala Nitrix nas mensagens');
+    assert(cta.messages.every((message) => /tex ultra/i.test(String(message))), 'CTA JSON fala Tex Ultra nas mensagens');
 } catch (error) {
     failures.push(`CTA JSON invalido: ${error.message}`);
 }

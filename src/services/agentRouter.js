@@ -7,6 +7,7 @@ import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js
 
 const OFFICIAL_AGENT = 'vit_power_ec';
 const NITRIX_AGENT = 'nitrix_ec';
+const TEX_ULTRA_AGENT = 'tex_ultra_ec';
 const OFFICIAL_COUNTRY = 'EC';
 
 const productRouteText = (value) => String(value || '')
@@ -19,43 +20,71 @@ const productRouteText = (value) => String(value || '')
 export const productRouteForState = (state = {}) => {
     const metadata = state?.metadata || {};
     const draft = metadata.customerDraft || {};
-    const explicitValues = [
+    const explicitProductValues = [
         metadata.productKey,
         draft.productKey,
         metadata.productName,
-        draft.productName,
+        draft.productName
+    ].map(productRouteText).filter(Boolean);
+    const vslValues = [
         metadata.productSource,
         metadata.vslPath,
         metadata.vslPage,
         metadata.vslSourceUrl
     ].map(productRouteText).filter(Boolean);
     const tags = Array.isArray(state.tags) ? state.tags.map(productRouteText) : [];
-    const hasNitrixContext = explicitValues.some((value) => (
+    const hasTexUltraContext = explicitProductValues.some((value) => (
+        value === TEX_ULTRA_AGENT
+        || value.includes('tex_ultra')
+        || value.includes('tex ultra')
+    ));
+    if (hasTexUltraContext) {
+        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'explicit_tex_ultra_vsl_or_product_context' };
+    }
+
+    const hasNitrixContext = explicitProductValues.some((value) => (
         value === NITRIX_AGENT
         || value === 'nx_ec'
         || value.includes('nitrix')
-        || value.startsWith('/n')
-        || value.includes('maxlien.shop/n')
     ));
     if (hasNitrixContext) {
         return { assignedAgent: NITRIX_AGENT, reason: 'explicit_nitrix_vsl_or_product_context' };
     }
 
-    const hasVitPowerContext = explicitValues.some((value) => (
+    const hasVitPowerContext = explicitProductValues.some((value) => (
         value === OFFICIAL_AGENT
         || value.includes('vit_power')
         || value.includes('vit power')
-        || value.startsWith('/m')
-        || value.includes('maxlien.shop/m')
     ));
     if (hasVitPowerContext) {
-        return { assignedAgent: OFFICIAL_AGENT, reason: 'explicit_vit_power_vsl_or_product_context' };
+        return { assignedAgent: OFFICIAL_AGENT, reason: 'explicit_vit_power_product_context' };
+    }
+
+    const hasTexUltraVslContext = vslValues.some((value) => (
+        value.includes('tex_ultra')
+        || value.includes('tex ultra')
+        || value.startsWith('/n')
+        || value.includes('maxlien.shop/n')
+    ));
+    if (hasTexUltraVslContext) {
+        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'tex_ultra_vsl_context' };
+    }
+
+    const hasVitPowerVslContext = vslValues.some((value) => (
+        value.startsWith('/m')
+        || value.includes('maxlien.shop/m')
+    ));
+    if (hasVitPowerVslContext) {
+        return { assignedAgent: OFFICIAL_AGENT, reason: 'vit_power_vsl_context' };
     }
 
     // `assignedAgent` and tags are weaker, historical hints. They are only
     // used when the durable VSL/product fields above are absent.
     if (productRouteText(state.assignedAgent) === NITRIX_AGENT || tags.includes('nitrix_ec')) {
         return { assignedAgent: NITRIX_AGENT, reason: 'stored_nitrix_agent_context' };
+    }
+    if (productRouteText(state.assignedAgent) === TEX_ULTRA_AGENT || tags.includes('tex_ultra_ec')) {
+        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'stored_tex_ultra_agent_context' };
     }
 
     // Legacy/unknown contacts predate product attribution. Keep them on the
@@ -743,7 +772,7 @@ const chooseAssignedAgent = ({
 
 const appendAgentHistory = ({ state, assignedAgent, reason }) => {
     state.agentHistory = (state.agentHistory || []).filter((entry) => (
-        entry?.agent === OFFICIAL_AGENT || entry?.agent === NITRIX_AGENT
+        entry?.agent === OFFICIAL_AGENT || entry?.agent === NITRIX_AGENT || entry?.agent === TEX_ULTRA_AGENT
     ));
     const lastEntry = state.agentHistory[state.agentHistory.length - 1];
     if (lastEntry?.agent === assignedAgent) return;
@@ -758,10 +787,17 @@ const appendAgentHistory = ({ state, assignedAgent, reason }) => {
 const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason, signals, sessionId = null }) => {
     ensureTag(state, 'COMMERCIAL_READY');
     if (countryCode === 'EC' && assignedAgent === NITRIX_AGENT) {
+        removeTag(state, 'TEX_ULTRA_EC');
         removeTag(state, 'VIT_POWER_EC_ONLY');
         removeTag(state, 'VIT_POWER_EC');
         ensureTag(state, 'NITRIX_EC');
+    } else if (countryCode === 'EC' && assignedAgent === TEX_ULTRA_AGENT) {
+        removeTag(state, 'NITRIX_EC');
+        removeTag(state, 'VIT_POWER_EC_ONLY');
+        removeTag(state, 'VIT_POWER_EC');
+        ensureTag(state, 'TEX_ULTRA_EC');
     } else if (countryCode === 'EC') {
+        removeTag(state, 'TEX_ULTRA_EC');
         removeTag(state, 'NITRIX_EC');
         ensureTag(state, 'VIT_POWER_EC');
     }

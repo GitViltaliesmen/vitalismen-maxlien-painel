@@ -77,7 +77,7 @@ export const ECUADOR_PRODUCTS = {
         name: 'Tex Ultra Ecuador',
         contentName: 'Tex Ultra Ecuador WhatsApp',
         contentIds: ['tex_ultra_ec'],
-        media: '/media/sales/ec/tex_ultra.png',
+        defaultPriceCatalog: 'promotional',
         dropiName: 'TEXULTRA 120 CAP ENERGIA',
         dropiUrl: 'https://app.dropi.ec/dashboard/product-details/110681/texultra-120-cap-energia',
         dropiAliases: [

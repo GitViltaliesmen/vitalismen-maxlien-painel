@@ -29,7 +29,9 @@ import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
 const VIT_POWER_AGENT_KEY = 'vit_power_ec';
+const TEX_ULTRA_AGENT_KEY = 'tex_ultra_ec';
 const NITRIX_PRODUCT_NAME = 'Nitrix Oxide Ecuador';
+const TEX_ULTRA_PRODUCT_NAME = 'Tex Ultra Ecuador';
 const NITRIX_BOTTLE_MEDIA = '/media/sales/ec/nitrix_bottle.png';
 const normalizeProductRouteText = (value) => String(value || '')
     .toLowerCase()
@@ -41,6 +43,25 @@ const normalizeProductRouteText = (value) => String(value || '')
 const explicitlyMentionsVitPower = (value) => {
     const body = normalizeProductRouteText(value);
     return /\b(vit\s*power|vitpower|vipower|vi\s*power)\b/i.test(body);
+};
+const contactCameFromTexUltra = (contactState = {}) => {
+    const metadata = contactState?.metadata || {};
+    const draft = metadata.customerDraft || {};
+    const keys = [
+        metadata.productKey,
+        draft.productKey,
+        draft.productName,
+        metadata.productName,
+        metadata.vslPage,
+        metadata.vslPath,
+        metadata.vslSourceUrl
+    ].map(normalizeProductRouteText);
+    return keys.some((item) => (
+        item === TEX_ULTRA_AGENT_KEY
+        || item.includes('tex_ultra')
+        || item.includes('tex ultra')
+        || item.includes('texultra')
+    )) || normalizeProductRouteText(contactState?.assignedAgent) === TEX_ULTRA_AGENT_KEY;
 };
 const contactCameFromNitrix = (contactState = {}) => {
     const metadata = contactState?.metadata || {};
@@ -59,8 +80,6 @@ const contactCameFromNitrix = (contactState = {}) => {
         || item === 'nx_ec'
         || item.includes('nitrix')
         || item.includes('nx_ec')
-        || item.startsWith('/n')
-        || item.includes('maxlien.shop/n')
     ));
     if (hasNitrixContext) return true;
     const hasVitPowerContext = keys.some((item) => (
@@ -76,8 +95,9 @@ const contactCameFromNitrix = (contactState = {}) => {
 const resolveAgentProfileForMessage = ({ text = '', contactState = {}, requestedProfile = null } = {}) => {
     // Product provenance is persistent. A word typed in a message must not
     // switch an established Nitrix client into the Vit Power funnel.
+    if (contactCameFromTexUltra(contactState)) return AGENT_PROFILES[TEX_ULTRA_AGENT_KEY] || requestedProfile;
     if (contactCameFromNitrix(contactState)) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
-    if (requestedProfile?.key === NITRIX_AGENT_KEY || requestedProfile?.key === VIT_POWER_AGENT_KEY) return requestedProfile;
+    if ([NITRIX_AGENT_KEY, VIT_POWER_AGENT_KEY, TEX_ULTRA_AGENT_KEY].includes(requestedProfile?.key)) return requestedProfile;
     if (explicitlyMentionsVitPower(text)) return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile;
     return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile || AGENT_PROFILES[NITRIX_AGENT_KEY];
 };
@@ -7934,6 +7954,48 @@ const holdNitrixForHuman = async ({
     return true;
 };
 
+const holdTexUltraForHuman = async ({
+    contactStateId,
+    inboundText = '',
+    agentProfile
+}) => {
+    if (!contactStateId) return false;
+    const now = new Date();
+    await ContactState.updateOne(
+        { _id: contactStateId },
+        {
+            $set: {
+                assignedAgent: TEX_ULTRA_AGENT_KEY,
+                'human.mode': 'manual',
+                'human.assignedName': 'Atendimento Tex Ultra EC',
+                'human.lastManualAt': now,
+                'human.lastManualBy': 'tex_ultra_route_guard',
+                'human.note': 'Lead da VSL Tex Ultra. Venda manual com tabela promocional aprovada; materiais de outros produtos bloqueados.',
+                'metadata.productKey': TEX_ULTRA_AGENT_KEY,
+                'metadata.productName': TEX_ULTRA_PRODUCT_NAME,
+                'metadata.productMedia': '',
+                'metadata.automationHandoffSuggestedReason': 'tex_ultra_manual_only',
+                'metadata.automationHandoffSuggestedAt': now,
+                'metadata.automationHandoffSuggestedNote': 'Tex Ultra isolado dos funis Nitrix/Vit Power ate aprovacao de textos, audios e imagens proprios.',
+                'metadata.customerDraft.productKey': TEX_ULTRA_AGENT_KEY,
+                'metadata.customerDraft.productName': TEX_ULTRA_PRODUCT_NAME,
+                'metadata.customerDraft.productMedia': '',
+                'metadata.customerDraft.source': 'vsl_ec_tex_ultra',
+                'metadata.customerDraft.priceCatalog': 'promotional',
+                'metadata.customerDraft.message': String(inboundText || '').slice(0, 700),
+                'metadata.customerDraft.updatedAt': now.toISOString(),
+                [`metadata.perAgentMemory.${agentProfile.key}.humanHandoffAt`]: now,
+                [`metadata.perAgentMemory.${agentProfile.key}.humanHandoffReason`]: 'tex_ultra_manual_only',
+                [`metadata.perAgentMemory.${agentProfile.key}.lastFunnelStage`]: 'tex_ultra_manual_handoff'
+            },
+            $addToSet: {
+                tags: { $each: ['TEX_ULTRA_EC', 'BOT_OUTROS_PRODUTOS_BLOQUEADO', 'AGUARDANDO_ATENDIMENTO'] }
+            }
+        }
+    );
+    return true;
+};
+
 export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES.nitrix_ec) => {
     try {
         console.log(`[LOG_HANDLER_ENTER] 🚀 Processando mensagem... agente=${agentProfile.key}`);
@@ -7993,6 +8055,15 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
                 agentProfile
             });
             console.log(`[NITRIX-GUARD] Bot Vit Power bloqueado; contato em atendimento manual -> ${chatId}`);
+            return;
+        }
+        if (agentProfile?.key === TEX_ULTRA_AGENT_KEY) {
+            await holdTexUltraForHuman({
+                contactStateId: msg.contactStateId,
+                inboundText: text,
+                agentProfile
+            });
+            console.log(`[TEX-ULTRA-GUARD] Funis Nitrix/Vit Power bloqueados; contato em atendimento manual -> ${chatId}`);
             return;
         }
 

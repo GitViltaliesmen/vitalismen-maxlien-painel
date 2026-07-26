@@ -1,6 +1,6 @@
 # Regras Fixas do Projeto
 
-## Regra maxima EC Maxlien Nitrix
+## Regra maxima EC Maxlien — Tex Ultra / Nitrix / Vit Power
 
 Regra maxima e permanente: este projeto, quando tratar de `ec.maxlien.shop/n/`, e somente Equador na VPS Hostinger oficial, Git Equador e dominio publico oficial:
 
@@ -10,9 +10,13 @@ ssh root@72.60.137.77
 /opt/vitalismen-automacao/current
 ```
 
-Produto oficial do trafego `/n/`: Nitrix Oxide Ecuador.
+Decisao operacional mais recente, autorizada pelo operador em 2026-07-26:
 
-Produto legado permitido sob demanda: Vit Power Ecuador, somente quando o cliente perguntar explicitamente por Vit Power.
+- produto oficial do trafego atual `/n/`: Tex Ultra Ecuador;
+- tabela promocional Tex Ultra: 1 frasco USD 35.99, 2 frascos USD 70.00, 3 frascos USD 80.99 e 6 frascos USD 147.99;
+- Nitrix Oxide Ecuador e Vit Power Ecuador continuam disponiveis para selecao/alteracao manual no painel e envio controlado ao Dropi;
+- toda oferta deve usar `frasco`/`frascos`, nunca `mes`/`meses`;
+- nenhum funil, audio, imagem ou prova de outro produto pode ser aplicado automaticamente ao Tex Ultra.
 
 Correcao obrigatoria de nomenclatura: nao e Superfull. Superfull nao deve ser criado, roteado, citado, reaproveitado ou tratado como produto deste fluxo.
 

@@ -147,7 +147,34 @@ Nitrix Ecuador manual: no activar automatizacion Vit Power salvo pedido explicit
 `.trim()
 };
 
+const texUltraProfile = {
+    key: 'tex_ultra_ec',
+    label: 'Tex Ultra Ecuador',
+    mode: 'manual_country_offer',
+    lockedCountryCode: 'EC',
+    outputStrategy: 'manual_only',
+    productKey: 'tex_ultra_ec',
+    productName: 'Tex Ultra Ecuador',
+    manualOnly: true,
+    greeting: {
+        introduced: 'Hola, ya le atiendo por aqui con Tex Ultra.',
+        firstTouch: 'Hola, soy Valeria Zambrano. Ya reviso su mensaje de Tex Ultra y le atiendo por aqui.'
+    },
+    systemPrompt: `
+Modo del agente: Tex Ultra Ecuador manual.
+- Este contacto pertenece a la VSL actual de Tex Ultra Ecuador.
+- La oferta promocional usa frascos: 1 por 35.99 USD, 2 por 70.00 USD, 3 por 80.99 USD y 6 por 147.99 USD.
+- No uses el funil, audios, precios, pruebas ni imagenes de Nitrix o Vit Power.
+- No inventes indicaciones medicas, garantias, audios o materiales que no hayan sido aprobados.
+- Mantener atencion humana/manual hasta que exista contenido comercial Tex Ultra aprobado.
+`.trim(),
+    promptAddOn: `
+Tex Ultra Ecuador manual: usar frascos y la tabla promocional aprobada; no activar materiales de Nitrix o Vit Power.
+`.trim()
+};
+
 export const AGENT_PROFILES = {
+    tex_ultra_ec: texUltraProfile,
     nitrix_ec: nitrixProfile,
     vit_power_ec: vitPowerProfile
 };

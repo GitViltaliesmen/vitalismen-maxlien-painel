@@ -383,7 +383,7 @@
   const VSL_AB_PLAYER_URL = "https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/ab-test/6a5976494d4b86598b3690f9/player.js";
   const VSL_AB_STORAGE_KEY = "mx_ec_vsl_ab_variant_v1";
   const VSL_AB_ENTRY_MESSAGES = {
-    a: "Hola, quiero saber mas sobre Nitrix Oxide.",
+    a: "Hola, quiero saber mas sobre Tex Ultra.",
     b: "Hola, deseo recibir mas informacion sobre el producto."
   };
   let vslAbVariantMemo = "";
@@ -455,10 +455,10 @@
         keepalive: true,
         body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
           country: "EC",
-          productKey: "nitrix_ec",
-          productName: "Nitrix Oxide Ecuador",
-          productMedia: "/media/sales/ec/nitrix_bottle.png",
-          page: "nx_ec_mobile",
+          productKey: "tex_ultra_ec",
+          productName: "Tex Ultra Ecuador",
+          productMedia: "",
+          page: "tex_ultra_ec_mobile",
           path: location.pathname || "/n/",
           visitorId: origin.external_id || "",
           sessionId: vslSessionId(),
@@ -521,7 +521,7 @@
 
 
   /* PreÃ§os */
-  const PRICE_MAP = { 1: 39.99, 3: 95.99, 6: 167.99 };
+  const PRICE_MAP = { 1: 35.99, 2: 70.00, 3: 80.99, 6: 147.99 };
   const DEFAULT_CTA_MESSAGES = [
     "Hola, vengo del video",
     "Hola, acabo de ver el video",
@@ -699,10 +699,10 @@
 	        keepalive: true,
 	        body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 		          country: "EC",
-		          productKey: "nitrix_ec",
-		          productName: "Nitrix Oxide Ecuador",
-		          productMedia: "/media/sales/ec/nitrix_bottle.png",
-		          page: "nx_ec_mobile",
+		          productKey: "tex_ultra_ec",
+		          productName: "Tex Ultra Ecuador",
+		          productMedia: "",
+		          page: "tex_ultra_ec_mobile",
 	          path: location.pathname || "/n/",
 	          visitorId: origin.external_id || "",
 	          sessionId: vslSessionId(),
@@ -956,12 +956,12 @@ function trackWhatsappLead(message, fullName, phone){
   try {
     const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, vslAbPayload(), {
 	      country: "EC",
-	      productKey: "nitrix_ec",
-	      productName: "Nitrix Oxide Ecuador",
+	      productKey: "tex_ultra_ec",
+	      productName: "Tex Ultra Ecuador",
 	      eventName: "Lead",
       eventId: eventId,
-	      content_name: "Nitrix Oxide Ecuador WhatsApp",
-	      content_ids: ["nitrix_oxide_ec"],
+	      content_name: "Tex Ultra Ecuador WhatsApp",
+	      content_ids: ["tex_ultra_ec"],
       content_type: "product",
       funnel_entry_message: message,
       customer_name: normalizeFullName(fullName),
@@ -996,10 +996,10 @@ function recordWhatsappClick(message, fullName, phone){
     const testPhone = isAllowedTestPhone(phone);
     const payload = JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 	      country: "EC",
-	      productKey: "nitrix_ec",
-	      productName: "Nitrix Oxide Ecuador",
-	      productMedia: "/media/sales/ec/nitrix_bottle.png",
-	      page: "nx_ec_mobile",
+	      productKey: "tex_ultra_ec",
+	      productName: "Tex Ultra Ecuador",
+	      productMedia: "",
+	      page: "tex_ultra_ec_mobile",
       path: location.pathname || "/n/",
       visitorId: origin.external_id || "",
       sessionId: vslSessionId(),

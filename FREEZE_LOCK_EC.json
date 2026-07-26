@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-17T03:37:15.912Z",
+  "updatedAt": "2026-07-26T20:09:07.590Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -165,7 +165,7 @@
     {
       "id": "vsl_nitrix_mobile_entry_ec",
       "status": "active",
-      "description": "VSL /n do Equador permanece no funil Nitrix mobile aprovado, com desktop fora da VSL e entrada WhatsApp no telefone oficial 8416, definido por configuracao e confirmado pela instancia Z-API conectada.",
+      "description": "VSL /n do Equador permanece no caminho mobile aprovado, agora atribuindo Tex Ultra, com desktop fora da VSL e entrada WhatsApp no telefone oficial definido por configuracao e confirmado pela instancia Z-API conectada.",
       "requiresWrittenAuthorizationToChange": true,
       "checks": [
         {
@@ -201,12 +201,12 @@
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "productKey: \"nitrix_ec\""
+          "value": "productKey: \"tex_ultra_ec\""
         },
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "productName: \"Nitrix Oxide Ecuador\""
+          "value": "productName: \"Tex Ultra Ecuador\""
         }
       ]
     },
@@ -234,7 +234,7 @@
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "content_ids: [\"nitrix_oxide_ec\"]"
+          "value": "content_ids: [\"tex_ultra_ec\"]"
         },
         {
           "type": "includes",
@@ -398,7 +398,7 @@
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "Hola, quiero saber mas sobre Nitrix Oxide."
+          "value": "Hola, quiero saber mas sobre Tex Ultra."
         },
         {
           "type": "includes",
@@ -1113,9 +1113,9 @@
     }
   ],
   "lastApproval": {
-    "at": "2026-07-17T03:37:15.912Z",
-    "description": "Aprovado: funil inicial Nitrix EC completo, pos-fechamento ativo e teste 2958 validado",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260717033715.md",
+    "at": "2026-07-26T20:09:07.590Z",
+    "description": "Aprovado pelo operador: VSL atual passa a Tex Ultra com tabela promocional por frascos; Nitrix e Vit Power seguem selecionaveis e Dropi controlado",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260726200907.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",

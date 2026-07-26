@@ -18,9 +18,11 @@ const assertNotMatches = (file, regex, message) => {
 assertIncludes('public/qr.html', 'id="customerProductInput"', 'Ficha do Cliente tem seletor de produto');
 assertIncludes('public/qr.html', 'Nitrix Oxide Ecuador', 'Ficha mostra Nitrix');
 assertIncludes('public/qr.html', 'Vit Power Ecuador', 'Ficha mantem Vit Power para recompra/pedido explicito');
+assertIncludes('public/qr.html', 'Tex Ultra Ecuador', 'Ficha mostra Tex Ultra');
 assertIncludes('public/qr.html', 'EC_PRODUCT_CATALOG', 'Ficha usa catalogo EC local');
 assertIncludes('public/qr.html', "return 'vit_power_ec';", 'Ficha reconhece Vit Power explicitamente');
 assertIncludes('public/qr.html', "return 'nitrix_ec';", 'Ficha reconhece Nitrix explicitamente');
+assertIncludes('public/qr.html', "return 'tex_ultra_ec';", 'Ficha reconhece Tex Ultra explicitamente');
 assertIncludes('public/qr.html', 'productLabelForQuantity', 'Ficha monta label por produto selecionado');
 assertIncludes('public/qr.html', 'payload.productKey = customerDraft.productKey;', 'PATCH de pedido leva productKey');
 assertIncludes('public/qr.html', 'orderPayload.productKey = customerDraft.productKey;', 'POST de pedido leva productKey');

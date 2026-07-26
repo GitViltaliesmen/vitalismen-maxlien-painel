@@ -1303,12 +1303,14 @@ const metaEventResponseSnapshot = (result = {}, fallbackEventId = '') => ({
 
 const EC_PRODUCT_KEYS = {
     nitrix: 'nitrix_ec',
-    vitPower: 'vit_power_ec'
+    vitPower: 'vit_power_ec',
+    texUltra: 'tex_ultra_ec'
 };
 
 const EC_PRODUCT_NAMES = {
     nitrix_ec: 'Nitrix Oxide Ecuador',
-    vit_power_ec: 'Vit Power Ecuador'
+    vit_power_ec: 'Vit Power Ecuador',
+    tex_ultra_ec: 'Tex Ultra Ecuador'
 };
 
 const sourceUrlPathname = (value = '') => {
@@ -1328,13 +1330,26 @@ const publicEcVslProductFromBody = (body = {}) => {
         .toLowerCase()
         .replace(/[^a-z0-9_/-]/g, '');
 
+    const texUltraSignal = rawProductKey === EC_PRODUCT_KEYS.texUltra
+        || rawProductKey.includes('texultra')
+        || rawProductKey.includes('tex_ultra')
+        || page.includes('tex_ultra')
+        || page.includes('texultra');
+    if (texUltraSignal || (!rawProductKey && (bodyPath.startsWith('/n') || sourcePath.startsWith('/n')))) {
+        return {
+            productKey: EC_PRODUCT_KEYS.texUltra,
+            productName: EC_PRODUCT_NAMES.tex_ultra_ec,
+            agentKey: EC_PRODUCT_KEYS.texUltra,
+            tag: 'TEX_ULTRA_EC',
+            source: 'ec_tex_ultra_vsl'
+        };
+    }
+
     const nitrixSignal = rawProductKey.includes('nitrix')
         || rawProductKey === 'nx_ec'
         || rawProductKey === EC_PRODUCT_KEYS.nitrix
         || page.includes('nx_')
-        || page.includes('nitrix')
-        || bodyPath.startsWith('/n')
-        || sourcePath.startsWith('/n');
+        || page.includes('nitrix');
     if (nitrixSignal) {
         return {
             productKey: EC_PRODUCT_KEYS.nitrix,
@@ -1444,6 +1459,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const existingHuman = state.human || {};
     const existingManualActor = String(existingHuman.lastManualBy || '').trim();
     const isNitrixVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.nitrix;
+    const isTexUltraVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.texUltra;
     const existingNitrixFlow = state.metadata?.perAgentMemory?.nitrix_ec?.fastState || null;
     const hasRunningNitrixFlow = isNitrixVsl && ['running', 'waiting_bottle_confirmation'].includes(existingNitrixFlow?.status);
     // O clique da VSL e' apenas um registro no painel: para Nitrix ele nao
@@ -1536,7 +1552,10 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             productName: product.productName,
             productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
                 ? '/media/sales/ec/nitrix_bottle.png'
-                : '/media/sales/ec/vit_power.jpeg',
+                : product.productKey === EC_PRODUCT_KEYS.vitPower
+                    ? '/media/sales/ec/vit_power.jpeg'
+                    : '',
+            priceCatalog: isTexUltraVsl ? 'promotional' : (existingDraft.priceCatalog || ''),
             message: entryMessage || existingDraft.message || '',
             vslTestId: vslTestId || existingDraft.vslTestId || '',
             vslVariant: vslVariant || existingDraft.vslVariant || '',
@@ -1961,7 +1980,9 @@ const ecuadorProductMediaForInfo = (productInfo = {}) => (
     productInfo?.media
     || (productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
         ? '/media/sales/ec/vit_power.jpeg'
-        : '/media/sales/ec/nitrix_bottle.png')
+        : productInfo?.key === ECUADOR_PRODUCTS.nitrix.key
+            ? '/media/sales/ec/nitrix_bottle.png'
+            : '')
 );
 
 const panelProductContextForChat = async ({ contactState = null, order = null, customerDraft = {}, lastMessage = null, phoneDigits = '' } = {}) => {

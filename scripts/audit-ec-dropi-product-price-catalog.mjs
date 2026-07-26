@@ -97,6 +97,28 @@ assert(
     'Fluxo deve manter autorizacao separada do envio real'
 );
 
+const qrHtml = read('public/qr.html');
+for (const value of ['tex_ultra_ec', '35.99', '70.00', '80.99', '147.99']) {
+    assert(qrHtml.includes(value), `Ficha WhatsApp deve conter ${value}`);
+}
+assert(
+    qrHtml.includes('<option value="tex_ultra_ec">Tex Ultra Ecuador</option>'),
+    'Ficha WhatsApp deve permitir selecionar Tex Ultra'
+);
+
+const vslHtml = read('public/n/index.html');
+const ctaConfig = read('public/cta-nx-messages.json');
+assert(vslHtml.includes('productKey: "tex_ultra_ec"'), 'VSL /n/ deve atribuir Tex Ultra');
+assert(vslHtml.includes('const PRICE_MAP = { 1: 35.99, 2: 70.00, 3: 80.99, 6: 147.99 };'), 'VSL /n/ deve usar a tabela promocional Tex Ultra');
+assert(!vslHtml.includes('productKey: "nitrix_ec"'), 'VSL /n/ nao pode continuar atribuindo Nitrix');
+assert(ctaConfig.includes('"productKey": "tex_ultra_ec"'), 'CTA /n/ deve abrir WhatsApp como Tex Ultra');
+
+const contactStateModel = read('src/models/ContactState.js');
+assert(contactStateModel.includes("'tex_ultra_ec'"), 'ContactState deve aceitar Tex Ultra');
+const agentProfiles = read('src/services/agentProfiles.js');
+assert(agentProfiles.includes("key: 'tex_ultra_ec'"), 'Roteador deve ter perfil isolado Tex Ultra');
+assert(agentProfiles.includes('1 por 35.99 USD, 2 por 70.00 USD, 3 por 80.99 USD y 6 por 147.99 USD'), 'Perfil Tex Ultra deve registrar a oferta promocional aprovada');
+
 const browserService = read('src/services/droppiEcuadorBrowserService.js');
 assert(
     browserService.includes('dropi_product_price_selection_required'),
