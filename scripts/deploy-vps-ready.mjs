@@ -10,6 +10,7 @@ const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(process.env.HOME || '
 const releaseName = process.env.VITALISMEN_DEPLOY_RELEASE || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
 const baseDir = process.env.VITALISMEN_DEPLOY_BASE_DIR || '/opt/vitalismen-automacao';
 const releaseDir = `${baseDir}/releases/${releaseName}`;
+const vpsGitRemote = process.env.VITALISMEN_DEPLOY_GIT_REMOTE || '/opt/git/vitalismen-automacao.git';
 
 const run = (cmd, args, options = {}) => {
     console.log(`$ ${cmd} ${args.join(' ')}`);
@@ -19,6 +20,25 @@ const run = (cmd, args, options = {}) => {
         stdio: 'inherit',
         timeout: options.timeout || 120000
     });
+};
+
+const output = (cmd, args) => execFileSync(cmd, args, {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 30000
+}).trim();
+
+const commandExists = (cmd) => {
+    try {
+        execFileSync(cmd, ['--version'], {
+            cwd: root,
+            stdio: 'ignore',
+            timeout: 10000
+        });
+        return true;
+    } catch {
+        return false;
+    }
 };
 
 if (!root.endsWith('Vitalismen Automacao')) {
@@ -53,26 +73,44 @@ run(process.execPath, ['scripts/guard-freeze-lock-ec.mjs'], {
     timeout: 60000
 });
 
-run('rsync', [
-    '-az',
-    '--delete',
-    '--exclude', '.git/',
-    '--exclude', '.env',
-    '--exclude', '.codex_tmp/',
-    '--exclude', '.codex-tmp/',
-    '--exclude', '.local/',
-    '--exclude', '.DS_Store',
-    '--exclude', 'auth_info_baileys/',
-    '--exclude', 'backups/',
-    '--exclude', 'exports/',
-    '--exclude', '*.log',
-    '--exclude', 'node_modules/',
-    '--exclude', 'public/media/generated/',
-    '--exclude', 'public/media/templates/CO/',
-    '-e', `ssh -i ${key} -o StrictHostKeyChecking=accept-new`,
-    './',
-    `${host}:${releaseDir}/`
-], { timeout: 300000 });
+if (commandExists('rsync')) {
+    run('rsync', [
+        '-az',
+        '--delete',
+        '--exclude', '.git/',
+        '--exclude', '.env',
+        '--exclude', '.codex_tmp/',
+        '--exclude', '.codex-tmp/',
+        '--exclude', '.local/',
+        '--exclude', '.DS_Store',
+        '--exclude', 'auth_info_baileys/',
+        '--exclude', 'backups/',
+        '--exclude', 'exports/',
+        '--exclude', '*.log',
+        '--exclude', 'node_modules/',
+        '--exclude', 'public/media/generated/',
+        '--exclude', 'public/media/templates/CO/',
+        '-e', `ssh -i ${key} -o StrictHostKeyChecking=accept-new`,
+        './',
+        `${host}:${releaseDir}/`
+    ], { timeout: 300000 });
+} else {
+    const branch = output('git', ['branch', '--show-current']);
+    const commit = output('git', ['rev-parse', 'HEAD']);
+    console.log(`[DEPLOY] rsync indisponivel; usando espelho Git do VPS em ${vpsGitRemote}.`);
+    run('ssh', [
+        '-i', key,
+        '-o', 'StrictHostKeyChecking=accept-new',
+        host,
+        [
+            `test "$(git --git-dir=${vpsGitRemote} rev-parse refs/heads/${branch})" = "${commit}"`,
+            `git clone --single-branch --branch ${branch} ${vpsGitRemote} ${releaseDir}`,
+            `rm -rf ${releaseDir}/.git`,
+            `rm -rf ${releaseDir}/public/media/generated`,
+            `rm -rf ${releaseDir}/public/media/templates/CO`
+        ].join(' && ')
+    ], { timeout: 300000 });
+}
 
 run('ssh', [
     '-i', key,
@@ -93,6 +131,19 @@ run('ssh', [
         `test -f ${releaseDir}/.env`
     ].join(' && ')
 ], { timeout: 60000 });
+
+run('ssh', [
+    '-i', key,
+    '-o', 'StrictHostKeyChecking=accept-new',
+    host,
+    [
+        `cd ${releaseDir}`,
+        'npm run senior:check',
+        'npm run guard:ec-product-micro-layer',
+        'npm run guard:ec-dropi-catalog',
+        'npm run guard:freeze-lock'
+    ].join(' && ')
+], { timeout: 180000 });
 
 if (activate) {
     run('ssh', [
