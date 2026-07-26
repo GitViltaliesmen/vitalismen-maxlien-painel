@@ -228,7 +228,8 @@ const auditVps = () => {
         warn('auditoria VPS pulada por OFFICIAL_AUDIT_SKIP_VPS=true.');
         return;
     }
-    const key = `${process.env.HOME || ''}/.ssh/vps_auditoria_codex`;
+    const key = process.env.VITALISMEN_DEPLOY_KEY
+        || path.join(process.env.HOME || '', '.ssh', 'vps_auditoria_codex');
     if (!fs.existsSync(key)) {
         warn('chave do VPS nao encontrada; auditoria VPS pulada.');
         return;

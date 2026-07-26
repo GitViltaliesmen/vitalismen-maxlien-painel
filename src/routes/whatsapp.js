@@ -1954,13 +1954,14 @@ const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = fals
 };
 
 const ecuadorProductInfoForKey = (productKey = '') => (
-    productKey === ECUADOR_PRODUCTS.vitPower.key ? ECUADOR_PRODUCTS.vitPower : ECUADOR_PRODUCTS.nitrix
+    resolveEcuadorProductInfo({ productKey })
 );
 
 const ecuadorProductMediaForInfo = (productInfo = {}) => (
-    productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
+    productInfo?.media
+    || (productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
         ? '/media/sales/ec/vit_power.jpeg'
-        : '/media/sales/ec/nitrix_bottle.png'
+        : '/media/sales/ec/nitrix_bottle.png')
 );
 
 const panelProductContextForChat = async ({ contactState = null, order = null, customerDraft = {}, lastMessage = null, phoneDigits = '' } = {}) => {
@@ -2157,7 +2158,17 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     if (!order.confirmedAt) order.confirmedAt = new Date();
     await order.save();
 
-    let purchase = { ok: false, skipped: true, reason: 'already_sent' };
+    let purchase = order.tracking?.metaPurchaseSentAt
+        ? {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            reason: 'already_sent',
+            eventId: order.tracking?.metaPurchaseEventId || order.orderId,
+            response: order.tracking?.metaPurchaseResponse || null,
+            sentAt: order.tracking?.metaPurchaseSentAt
+        }
+        : { ok: false, skipped: true, reason: 'not_sent' };
     if (!order.tracking?.metaPurchaseSentAt) {
         const result = await sendPurchaseEventForOrder(order);
         order.tracking = order.tracking || {};
@@ -2197,9 +2208,13 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         createdFromAdminOrder: sourceIsAdminOrder,
         purchase: {
             ok: purchase.ok === true,
+            alreadySent: purchase.alreadySent === true,
+            skipped: purchase.skipped === true,
+            reason: purchase.reason || '',
             eventId: purchase.eventId || order.tracking?.metaPurchaseEventId || '',
             response: purchase.response || order.tracking?.metaPurchaseResponse || null,
-            error: purchase.error || ''
+            error: purchase.error || '',
+            sentAt: purchase.sentAt || order.tracking?.metaPurchaseSentAt || null
         },
         adminPurchaseLock
     };
@@ -4475,19 +4490,19 @@ router.patch('/contact-state/:phone', async (req, res) => {
             cleanDraft.flowDataOk = flowDataOk;
             if (cleanDraft.country === 'EC') {
                 const resolvedDraftProduct = resolveEcuadorProductInfo(cleanDraft, state.metadata?.customerDraft || {}, state.metadata || {});
-                const allowedDraftProductKeys = new Set([ECUADOR_PRODUCTS.nitrix.key, ECUADOR_PRODUCTS.vitPower.key]);
+                const allowedDraftProductKeys = new Set([
+                    ECUADOR_PRODUCTS.nitrix.key,
+                    ECUADOR_PRODUCTS.vitPower.key,
+                    ECUADOR_PRODUCTS.texUltra.key
+                ]);
                 const allowedDraftProductKey = allowedDraftProductKeys.has(cleanDraft.productKey)
                     ? cleanDraft.productKey
                     : resolvedDraftProduct.key;
-                const draftProductInfo = allowedDraftProductKey === ECUADOR_PRODUCTS.vitPower.key
-                    ? ECUADOR_PRODUCTS.vitPower
-                    : ECUADOR_PRODUCTS.nitrix;
+                const draftProductInfo = ecuadorProductInfoForKey(allowedDraftProductKey);
                 cleanDraft.productKey = draftProductInfo.key;
                 cleanDraft.productName = cleanDraft.productName || draftProductInfo.name;
                 cleanDraft.product = cleanDraft.product || draftProductInfo.name;
-                cleanDraft.productMedia = cleanDraft.productMedia || (draftProductInfo.key === ECUADOR_PRODUCTS.vitPower.key
-                    ? '/media/sales/ec/vit_power.jpeg'
-                    : '/media/sales/ec/nitrix_bottle.png');
+                cleanDraft.productMedia = cleanDraft.productMedia || ecuadorProductMediaForInfo(draftProductInfo);
             }
             if (normalizedDraftPhoneDigits.length >= 9) {
                 state.phoneDigits = normalizedDraftPhoneDigits;

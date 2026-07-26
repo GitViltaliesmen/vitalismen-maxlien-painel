@@ -1,10 +1,18 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 const root = process.cwd();
 const markerPath = path.join(root, '.vitalismen-official-root');
 const packagePath = path.join(root, 'package.json');
 const localOfficialPath = '/Users/greson/Documents/Vitalismen Automacao';
+const windowsOfficialPath = path.join(
+    os.homedir(),
+    'Documents',
+    'SITES',
+    'MAXLIENSHOP_JULHO_2026',
+    'Vitalismen Automacao'
+);
 const vpsOfficialPath = '/opt/vitalismen-automacao/current';
 
 const normalizePath = (value) => {
@@ -20,6 +28,7 @@ const fail = (message) => {
     console.error(message);
     console.error('\nCaminho unico local permitido:');
     console.error(`  ${localOfficialPath}`);
+    console.error(`  ${windowsOfficialPath}`);
     console.error('\nCaminho oficial VPS permitido:');
     console.error(`  ${vpsOfficialPath}`);
     console.error('\nPare aqui e reabra o projeto pelo caminho oficial antes de continuar.\n');
@@ -28,6 +37,7 @@ const fail = (message) => {
 
 const allowedRoots = new Set([
     normalizePath(localOfficialPath),
+    normalizePath(windowsOfficialPath),
     normalizePath(vpsOfficialPath)
 ]);
 

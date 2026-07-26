@@ -1,8 +1,16 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 const root = process.cwd();
 const localOfficialPath = '/Users/greson/Documents/Vitalismen Automacao';
+const windowsOfficialPath = path.join(
+    os.homedir(),
+    'Documents',
+    'SITES',
+    'MAXLIENSHOP_JULHO_2026',
+    'Vitalismen Automacao'
+);
 const vpsOfficialPath = '/opt/vitalismen-automacao/current';
 const normalizePath = (value) => {
     try {
@@ -73,8 +81,10 @@ const productScopedProtocolFiles = new Set([
 ]);
 
 assert(
-    [localOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some((allowed) => normalizePath(root).startsWith(normalizePath(allowed))),
-    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`
+    [localOfficialPath, windowsOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
+        (allowed) => normalizePath(root).startsWith(normalizePath(allowed))
+    ),
+    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${windowsOfficialPath} no Windows, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`
 );
 assert(marker.includes('VITALISMEN_OFFICIAL_PROJECT=vit_power_ec'), 'Marcador .vitalismen-official-root ausente ou invalido.');
 assert(marker.includes('DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true'), 'Marcador oficial deve bloquear projetos paralelos de automacao.');
@@ -120,7 +130,7 @@ for (const forbidden of ['LEGACY_ORDER_FUNNEL_ENABLED', 'DRAFT_RECOVERY_ENABLED'
 
 const sourceFiles = scanFiles('src', (file) => /\.(js|mjs|ts)$/.test(file));
 for (const file of sourceFiles) {
-    const rel = path.relative(root, file);
+    const rel = path.relative(root, file).split(path.sep).join('/');
     const body = fs.readFileSync(file, 'utf8');
     assert(!/funnelService/.test(body), `${rel} referencia funnelService legado.`);
     assert(!/processPendingFunnelByOrderId|processDuePendingFunnels/.test(body), `${rel} referencia funil pendente legado.`);
@@ -142,7 +152,7 @@ const projectFiles = [
 ].filter((file) => fs.existsSync(file));
 
 for (const file of projectFiles) {
-    const rel = path.relative(root, file);
+    const rel = path.relative(root, file).split(path.sep).join('/');
     if (ignoredContextFiles.has(rel)) continue;
     const body = fs.readFileSync(file, 'utf8');
     for (const pattern of forbiddenContextPatterns) {
