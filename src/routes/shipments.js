@@ -449,10 +449,15 @@ const markManualSent = async (shipment, { note = '', user = null } = {}) => {
         { $set: { status: 'processing' } }
     ).catch(() => null);
 
-    const adminStatusResult = await markOnlineAdminPedidoEnviado({
-        orderId: shipment.orderId,
-        country: shipment.country || 'EC'
-    }).catch((error) => ({ ok: false, error: error.message || 'admin_status_update_failed' }));
+    let adminStatusResult;
+    try {
+        adminStatusResult = await Promise.resolve(markOnlineAdminPedidoEnviado({
+            orderId: shipment.orderId,
+            country: shipment.country || 'EC'
+        }));
+    } catch (error) {
+        adminStatusResult = { ok: false, error: error.message || 'admin_status_update_failed' };
+    }
     if (adminStatusResult?.ok) {
         shipment.events.push({
             kind: 'online_admin_status_updated',
