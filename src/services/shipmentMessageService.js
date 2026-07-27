@@ -181,10 +181,9 @@ export const messageMatchesPickupNoticeKind = (message = {}, kind = '') => {
     return pickupNoticeMessagePatternsForKind(kind).some((pattern) => pattern.test(body));
 };
 
-const pickupAudioAllowedForShipment = (shipment = {}) => {
-    const family = shipmentProductFamily(shipment);
-    if (family !== 'tex_ultra') return true;
-    return String(process.env.SHIPMENT_TEX_ULTRA_PICKUP_AUDIO_APPROVED || 'false').toLowerCase() === 'true';
+export const pickupLogisticsAudioForShipment = (_shipment = {}, kind = '') => {
+    const configured = PICKUP_AUDIO_BY_KIND[kind];
+    return Array.isArray(configured) ? configured.filter(Boolean) : [configured].filter(Boolean);
 };
 
 export const pickupHowToUseAudioForShipment = (shipment = {}) => {
@@ -522,9 +521,7 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
 };
 
 const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {}) => {
-    const baseNames = Array.isArray(PICKUP_AUDIO_BY_KIND[kind])
-        ? PICKUP_AUDIO_BY_KIND[kind]
-        : [PICKUP_AUDIO_BY_KIND[kind]].filter(Boolean);
+    const baseNames = pickupLogisticsAudioForShipment(shipment, kind);
     if (!baseNames.length) {
         return {
             sentAny: false,
@@ -544,18 +541,6 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {})
 
     for (let index = 0; index < baseNames.length; index += 1) {
         const baseName = baseNames[index];
-        if (!pickupAudioAllowedForShipment(shipment)) {
-            console.warn(`[SHIPMENT] Audio ${baseName} bloqueado para ${shipmentProductFamily(shipment)} no shipment ${shipment.orderId}.`);
-            detail.failed.push({ baseName, reason: 'product_audio_not_approved' });
-            await registerAudioAttempt(shipment, {
-                kind,
-                baseName,
-                at: new Date(),
-                sent: false,
-                reason: 'product_audio_not_approved'
-            });
-            continue;
-        }
         if (shipment?.country === 'EC' && !SHIPMENT_EC_PICKUP_AUDIO_APPROVED) {
             console.warn(`[SHIPMENT] Audio ${baseName} bloqueado para EC. Defina SHIPMENT_EC_PICKUP_AUDIO_APPROVED=true apenas depois de validar os audios corretos.`);
             detail.failed.push({ baseName, reason: 'audio_not_approved' });

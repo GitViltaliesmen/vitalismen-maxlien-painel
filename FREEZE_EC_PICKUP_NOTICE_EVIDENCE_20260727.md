@@ -44,13 +44,23 @@ shipment não prova nenhuma dessas etapas.
 - Campos antigos sem evidência só podem ser limpos depois que o novo aviso de
   chegada for confirmado.
 
-## Isolamento de produto
+## Regra universal por produto
 
-- Vit Power: áudio de uso `COMO_SE_TOMA_VIT_POWER`.
-- Nitrix: áudio de uso `NITRIX_USO_OXIDE_EC`.
-- Tex Ultra: nenhum áudio de retirada ou uso é liberado por padrão. Áudio de
-  retirada exige aprovação explícita em
-  `SHIPMENT_TEX_ULTRA_PICKUP_AUDIO_APPROVED=true`.
+O pós-venda logístico é obrigatório e idêntico para todos os pedidos EC de
+Nitrix Oxide, Tex Ultra e Vit Power. O produto nunca pode bloquear:
+
+- aviso de chegada com texto, PDF e áudio `Chegou_01`;
+- lembretes 1–6, incluindo `Chegou_02` no dia 3 e `Chegou_03` no dia 5;
+- confirmação de retirada e entrega dos bônus.
+
+Somente o áudio de orientação de uso é específico por produto:
+
+- Vit Power: `COMO_SE_TOMA_VIT_POWER`;
+- Nitrix Oxide: `NITRIX_USO_OXIDE_EC`;
+- Tex Ultra: sem áudio de uso até existir uma mídia Tex Ultra aprovada.
+
+A ausência de áudio de uso do Tex Ultra não pode impedir o agradecimento, o
+bônus nem qualquer aviso logístico.
 
 ## Comandos obrigatórios
 

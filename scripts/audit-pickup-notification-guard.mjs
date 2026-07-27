@@ -26,10 +26,15 @@ rejectText(
     '/(retiro|retirar|recordar|recordarte|agencia|servientrega|comprobante|bonus)/i',
     'Padrao generico antigo de retirada nao pode voltar'
 );
-requireText(
+rejectText(
     'src/services/shipmentMessageService.js',
     'SHIPMENT_TEX_ULTRA_PICKUP_AUDIO_APPROVED',
-    'Audio de retirada precisa respeitar isolamento Tex Ultra'
+    'Audio logistico de retirada nao pode ser bloqueado por produto'
+);
+requireText(
+    'src/services/shipmentMessageService.js',
+    'pickupLogisticsAudioForShipment',
+    'Audio logistico precisa de regra universal testavel'
 );
 requireText(
     'src/services/shipmentMessageService.js',
@@ -55,6 +60,11 @@ requireText(
     'tests/shipment-pickup-notification.test.mjs',
     'mensagem de guia ou transito nao comprova chegada nem lembretes',
     'Regressao de falsa evidencia precisa de teste'
+);
+requireText(
+    'tests/shipment-pickup-notification.test.mjs',
+    'audios logisticos de retirada sao universais para os tres produtos',
+    'Nitrix, Tex Ultra e Vit Power precisam compartilhar o pos-venda logistico'
 );
 
 if (failures.length) {

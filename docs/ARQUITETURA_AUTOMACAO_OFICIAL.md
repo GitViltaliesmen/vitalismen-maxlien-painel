@@ -295,6 +295,12 @@ Estas partes foram removidas do caminho automatico do sistema para evitar confus
   - serviço de mensagens: `src/services/shipmentMessageService.js`;
   - status: autorizado para guia, status Servientrega, chegada, lembretes 1–6,
     comprovante e bônus;
+  - cobertura obrigatória: todos os pedidos EC de Nitrix Oxide, Tex Ultra e
+    Vit Power seguem a mesma cadência logística; nenhum produto pode bloquear
+    chegada, lembretes, confirmação de retirada ou bônus;
+  - somente a orientação de uso é específica: Vit Power usa
+    `COMO_SE_TOMA_VIT_POWER`, Nitrix usa `NITRIX_USO_OXIDE_EC` e Tex Ultra fica
+    sem áudio de uso enquanto não houver mídia própria aprovada;
   - regra de evidência e recuperação:
     `FREEZE_EC_PICKUP_NOTICE_EVIDENCE_20260727.md`;
   - o arquivo legado `shipmentSchedulerService.js` continua proibido e não deve
