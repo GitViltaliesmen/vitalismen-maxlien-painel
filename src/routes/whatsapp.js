@@ -2058,7 +2058,9 @@ const panelProductContextForChat = async ({ contactState = null, order = null, c
             String(currentDraft.orderId || '') !== activeOrderId
             || (sourceOrderId && String(currentDraft.sourceOrderId || '') !== sourceOrderId)
         );
-        if (productMismatch || orderMismatch) {
+        const statusMismatch = Boolean(order?.status)
+            && normalizePanelStatus(currentDraft.status) !== normalizePanelStatus(panelDraft.status);
+        if (productMismatch || orderMismatch || statusMismatch) {
             const updatedDraft = {
                 ...panelDraft,
                 updatedAt: new Date().toISOString()
@@ -2143,6 +2145,15 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
                 'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
             };
     let order = await Order.findOne(query);
+    const existingOrderStatus = String(order?.status || '').trim().toLowerCase();
+    const preserveExistingOrderStatus = [
+        'processing',
+        'shipped',
+        'delivered',
+        'cancelled',
+        'canceled',
+        'returned'
+    ].includes(existingOrderStatus);
     const baseData = {
         country: 'EC',
         customer: {
@@ -2161,7 +2172,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         total,
         currency: 'USD',
         source: 'manual',
-        status: 'confirmed',
+        status: preserveExistingOrderStatus ? order.status : 'confirmed',
         notes: sourceIsAdminOrder
             ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
             : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,

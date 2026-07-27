@@ -2816,7 +2816,12 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
                 'metadata.dropi.dropiOrderId': dropiOrderId,
                 'metadata.dropi.trackingNumber': trackingNumber,
                 'metadata.dropi.submittedAt': submittedAt,
-                'metadata.dropi.lastError': ''
+                'metadata.dropi.lastError': '',
+                'metadata.customerDraft.status': 'pedido_enviado',
+                'metadata.customerDraft.flowDataOk.venda_finalizada.ok': true,
+                'metadata.customerDraft.flowDataOk.venda_finalizada.value': 'pedido_enviado',
+                'metadata.customerDraft.flowDataOk.venda_finalizada.label': 'Venda finalizada',
+                'metadata.customerDraft.updatedAt': submittedAt.toISOString()
             }
         });
 
