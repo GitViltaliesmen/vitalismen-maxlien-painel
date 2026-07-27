@@ -62,6 +62,11 @@ requireText(
     'Recuperacao deve ser obrigatoriamente individual'
 );
 requireText(
+    'src/services/shipmentMessageService.js',
+    'allowHistoryDedupeBypass: force',
+    'Somente recuperacao explicita deve atravessar historico falso'
+);
+requireText(
     'tests/shipment-pickup-notification.test.mjs',
     'mensagem de guia ou transito nao comprova chegada nem lembretes',
     'Regressao de falsa evidencia precisa de teste'

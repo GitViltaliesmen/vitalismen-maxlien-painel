@@ -1402,7 +1402,9 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_ready_for_pickup_text',
-        bypassDedupe: force
+        bypassDedupe: force,
+        allowTextDedupeBypass: force,
+        allowHistoryDedupeBypass: force
     });
     if (!sent) return false;
     const invoiceResult = await sendShipmentInvoicePdf(
