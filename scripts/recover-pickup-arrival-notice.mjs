@@ -92,20 +92,31 @@ const main = async () => {
     const evidenceBefore = Object.fromEntries(
         Object.keys(NOTICE_FIELDS).map((kind) => [kind, hasEvidence(shipment, messages, kind)])
     );
-    if (evidenceBefore.ready_for_pickup) {
-        console.log(JSON.stringify({
-            dryRun: !send,
-            orderId,
-            skipped: true,
-            reason: 'arrival_notice_already_has_exact_evidence',
-            evidenceBefore
-        }, null, 2));
-        return;
-    }
-
     const staleFields = Object.entries(NOTICE_FIELDS)
         .filter(([kind, field]) => shipment.automation?.[field] && !evidenceBefore[kind])
         .map(([, field]) => field);
+
+    if (evidenceBefore.ready_for_pickup) {
+        const staleReminderFields = staleFields.filter((field) => field !== 'readyForPickupNotifiedAt');
+        if (staleReminderFields.length && send) {
+            const reset = Object.fromEntries(
+                staleReminderFields.map((field) => [`automation.${field}`, null])
+            );
+            await Shipment.updateOne({ _id: shipment._id }, { $set: reset });
+        }
+        console.log(JSON.stringify({
+            dryRun: !send,
+            orderId,
+            skipped: staleReminderFields.length === 0,
+            reason: staleReminderFields.length
+                ? 'arrival_notice_preserved_and_false_reminder_fields_restarted'
+                : 'arrival_notice_already_has_exact_evidence',
+            evidenceBefore,
+            resetReminderFields: send ? staleReminderFields : [],
+            pendingResetReminderFields: send ? [] : staleReminderFields
+        }, null, 2));
+        return;
+    }
 
     if (!send) {
         console.log(JSON.stringify({

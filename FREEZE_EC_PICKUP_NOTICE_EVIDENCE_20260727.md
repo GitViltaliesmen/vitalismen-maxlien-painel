@@ -68,6 +68,7 @@ bônus nem qualquer aviso logístico.
 npm run test:pickup-notifications
 npm run guard:pickup-notifications
 npm run audit:pickup-evidence
+npm run audit:pickup-proofs
 ```
 
 Antes de recuperar um cliente:
