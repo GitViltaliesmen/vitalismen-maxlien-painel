@@ -2534,8 +2534,11 @@
                 }
                 if (isVerifiedDropiSubmission(result)) {
                     lead.status = 'pedido_enviado';
+                    lead._opsStatus = 'pedido_enviado';
                     state.selectedDropi.delete(String(id));
                     state.dropiMessages.delete(id);
+                    notifyIntegratedPanelStatus(lead, 'pedido_enviado');
+                    syncIntegratedPanelOrderStatus(lead, 'pedido_enviado').catch(() => null);
                     setMsg(result.alreadySubmitted ? 'ja enviado' : 'enviado', false, true);
                     return;
                 }

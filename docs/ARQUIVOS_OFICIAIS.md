@@ -86,6 +86,8 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
   - `public/leads-window.html` preserva o status atual do lead quando um pedido operacional antigo ainda estiver como `confirmed`;
   - estados `atendendo`, `pedido_enviado`, `entregue`, `finalizado`, `cancelado` e `devolvido` não podem voltar visualmente para `confirmado`;
   - pedidos efetivamente enviados permanecem acessíveis pelo filtro `pedido_enviado`;
+  - ao receber confirmação de envio da Dropi, `public/leads-window.html` atualiza `_opsStatus` e notifica imediatamente o painel integrado com `vitalismen:lead-status-updated`;
+  - a extensão local v0.11.4 consulta `/api/whatsapp/chats?country=EC&fast=1` a cada 3,5 segundos e reconhece `processing`/`submitted` como `pedido_enviado`, mantendo a ficha aberta alinhada sem recarregar a página;
   - teste de regressão: `tests/leads-window-status-merge.test.cjs`;
   - backup anterior no VPS: `/opt/vitalismen-automacao/backups/leads-window-before-status-view-20260727003734.html`.
 

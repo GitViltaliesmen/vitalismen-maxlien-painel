@@ -12,6 +12,11 @@ for (const source of scripts) {
 assert.match(html, /const mergedOperationalStatus = \(existing = \{\}, operational = \{\}\) =>/);
 assert.match(html, /operationalStatus === 'confirmado' && authoritativeLeadStatuses\.has\(currentStatus\)/);
 assert.match(html, /'atendendo',[\s\S]*'pedido_enviado',[\s\S]*'entregue'/);
+assert.match(
+    html,
+    /if \(isVerifiedDropiSubmission\(result\)\)[\s\S]*lead\._opsStatus = 'pedido_enviado'[\s\S]*notifyIntegratedPanelStatus\(lead, 'pedido_enviado'\)/,
+    'envio confirmado pela Dropi deve notificar imediatamente o painel integrado'
+);
 assert.match(html, /status: mergedStatus,[\s\S]*_opsStatus: mergedStatus/);
 
 console.log('leads-window operational status precedence: ok');
