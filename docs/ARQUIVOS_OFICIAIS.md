@@ -82,6 +82,12 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
   - `docs/BASELINE_EC_INTEGRADA_2026-06-12.md`
   - `public/qr.html`
   - `public/leads-window.html`
+- Ajuste operacional autorizado em 2026-07-26:
+  - `public/leads-window.html` preserva o status atual do lead quando um pedido operacional antigo ainda estiver como `confirmed`;
+  - estados `atendendo`, `pedido_enviado`, `entregue`, `finalizado`, `cancelado` e `devolvido` não podem voltar visualmente para `confirmado`;
+  - pedidos efetivamente enviados permanecem acessíveis pelo filtro `pedido_enviado`;
+  - teste de regressão: `tests/leads-window-status-merge.test.cjs`;
+  - backup anterior no VPS: `/opt/vitalismen-automacao/backups/leads-window-before-status-view-20260727003734.html`.
 
 ## Como trabalhar com copia temporaria
 

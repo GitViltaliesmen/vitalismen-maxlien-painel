@@ -1434,6 +1434,24 @@
             };
         };
 
+        const mergedOperationalStatus = (existing = {}, operational = {}) => {
+            const currentStatus = normalizePanelStatus(existing._opsStatus || existing.status || '');
+            const operationalStatus = normalizePanelStatus(operational._opsStatus || operational.status || '');
+            const authoritativeLeadStatuses = new Set([
+                'atendendo',
+                'comprar_depois',
+                'pedido_enviado',
+                'entregue',
+                'finalizado',
+                'cancelado',
+                'devolvido'
+            ]);
+            if (operationalStatus === 'confirmado' && authoritativeLeadStatuses.has(currentStatus)) {
+                return currentStatus;
+            }
+            return operationalStatus || currentStatus;
+        };
+
         const mergeOperationalOrdersIntoLeads = (orders = []) => {
             if (!Array.isArray(orders) || !orders.length) return;
             const merged = [...state.leads];
@@ -1457,11 +1475,14 @@
                 if (Number.isInteger(existingIndex) && existingIndex >= 0) {
                     const existing = merged[existingIndex] || {};
                     const keepAdminId = existing.id && !/^[A-Z]{2}-/.test(String(existing.id));
+                    const mergedStatus = mergedOperationalStatus(existing, opsLead);
                     merged[existingIndex] = {
                         ...existing,
                         ...opsLead,
                         id: keepAdminId ? existing.id : opsLead.id,
                         adminLeadId: keepAdminId ? existing.id : existing.adminLeadId,
+                        status: mergedStatus,
+                        _opsStatus: mergedStatus,
                         notes: existing.notes || opsLead.notes,
                         _ops: {
                             ...(existing._ops || {}),
