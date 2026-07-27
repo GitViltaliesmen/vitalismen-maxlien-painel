@@ -290,6 +290,15 @@ Estas partes foram removidas do caminho automatico do sistema para evitar confus
 - avisos automaticos de envio/retirada em `src/services/shipmentSchedulerService.js`
   - status: apagado;
   - motivo: so ativar depois de validar textos/audios de pos-envio;
+- scheduler oficial atual de pós-venda:
+  - arquivo: `src/services/schedulerService.js`;
+  - serviço de mensagens: `src/services/shipmentMessageService.js`;
+  - status: autorizado para guia, status Servientrega, chegada, lembretes 1–6,
+    comprovante e bônus;
+  - regra de evidência e recuperação:
+    `FREEZE_EC_PICKUP_NOTICE_EVIDENCE_20260727.md`;
+  - o arquivo legado `shipmentSchedulerService.js` continua proibido e não deve
+    ser recriado.
 - TTS gerado em `public/media/generated`
   - status: nao oficial para o funil Vit Power;
   - regra: `BOT_USE_APPROVED_AUDIO_ONLY=true`.

@@ -82,9 +82,15 @@ const GUIDE_PRINT_DIR = path.join(SHIPMENT_FILES_DIR, 'guide-prints');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS = Math.max(6, Number.parseInt(process.env.SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS || '10', 10) || 10);
 const SHIPMENT_GLOBAL_NOTICE_LOCK_DAYS = Math.max(1, Number.parseInt(process.env.SHIPMENT_GLOBAL_NOTICE_LOCK_DAYS || '10', 10) || 10);
+const PICKUP_PROOF_DISPATCH_LOCK_MS = Math.max(
+    60_000,
+    Number.parseInt(process.env.PICKUP_PROOF_DISPATCH_LOCK_MS || '300000', 10) || 300_000
+);
 const PICKUP_AUDIO_BY_KIND = {
     guia: 'CONFIRMACION_Y_REGALITO_ESPECIAL',
-    ready_for_pickup: process.env.SHIPMENT_PICKUP_READY_AUDIO || 'Chegou_01',
+    ready_for_pickup: process.env.SHIPMENT_PICKUP_READY_AUDIO
+        || process.env.SHIPMENT_PICKUP_REMINDER_AUDIO_DAY1
+        || 'Chegou_01',
     day3: process.env.SHIPMENT_PICKUP_REMINDER_AUDIO_DAY3 || 'Chegou_02',
     day5: process.env.SHIPMENT_PICKUP_REMINDER_AUDIO_DAY5 || 'Chegou_03'
 };
@@ -121,6 +127,71 @@ const PICKUP_NOTICE_EVENT_BY_KIND = {
     soft_day4: 'reminder_soft_day4',
     day5: 'reminder_day5',
     soft_day6: 'reminder_soft_day6'
+};
+const PICKUP_NOTICE_MESSAGE_PATTERNS_BY_KIND = {
+    ready_for_pickup: [
+        /\*PEDIDO LISTO PARA RETIRO\*/i,
+        /\*PEDIDO PARA RETIRO\*/i,
+        /\*SU PEDIDO ESTA EN AGENCIA\*/i,
+        /\*AVISO DE RETIRO SERVIENTREGA\*/i,
+        /^\[AUDIO\]\s*Chegou_01\b/i
+    ],
+    day1: [
+        /^Hola\. Su pedido esta para retiro en agencia\./i
+    ],
+    soft_day2: [
+        /Si ya retiro, envieme una foto del retiro\./i
+    ],
+    day3: [
+        /^\[AUDIO\]\s*Chegou_02\b/i
+    ],
+    soft_day4: [
+        /Puede acercarse a Servientrega\./i
+    ],
+    day5: [
+        /^\[AUDIO\]\s*Chegou_03\b/i
+    ],
+    soft_day6: [
+        /^Ultimo aviso\. Su pedido sigue para retiro en agencia\./i
+    ]
+};
+
+const shipmentProductText = (shipment = {}) => [
+    shipment?.productName,
+    shipment?.raw?.productKey,
+    shipment?.raw?.productName,
+    shipment?.raw?.latestDroppiPayload?.productName,
+    shipment?.raw?.latestDroppiPayload?.productKey
+].filter(Boolean).join(' ').toLowerCase();
+
+export const shipmentProductFamily = (shipment = {}) => {
+    const value = shipmentProductText(shipment);
+    if (/tex[\s_-]*ultra|texultra/.test(value)) return 'tex_ultra';
+    if (/nitrix/.test(value)) return 'nitrix';
+    if (/vit[\s_-]*power|vitpower/.test(value)) return 'vit_power';
+    return 'unknown';
+};
+
+export const pickupNoticeMessagePatternsForKind = (kind = '') => (
+    PICKUP_NOTICE_MESSAGE_PATTERNS_BY_KIND[kind] || []
+);
+
+export const messageMatchesPickupNoticeKind = (message = {}, kind = '') => {
+    const body = String(message?.body || '');
+    return pickupNoticeMessagePatternsForKind(kind).some((pattern) => pattern.test(body));
+};
+
+const pickupAudioAllowedForShipment = (shipment = {}) => {
+    const family = shipmentProductFamily(shipment);
+    if (family !== 'tex_ultra') return true;
+    return String(process.env.SHIPMENT_TEX_ULTRA_PICKUP_AUDIO_APPROVED || 'false').toLowerCase() === 'true';
+};
+
+export const pickupHowToUseAudioForShipment = (shipment = {}) => {
+    const family = shipmentProductFamily(shipment);
+    if (family === 'vit_power') return 'COMO_SE_TOMA_VIT_POWER';
+    if (family === 'nitrix') return 'NITRIX_USO_OXIDE_EC';
+    return '';
 };
 
 const chooseStableVariant = (items, key = '') => {
@@ -473,6 +544,18 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {})
 
     for (let index = 0; index < baseNames.length; index += 1) {
         const baseName = baseNames[index];
+        if (!pickupAudioAllowedForShipment(shipment)) {
+            console.warn(`[SHIPMENT] Audio ${baseName} bloqueado para ${shipmentProductFamily(shipment)} no shipment ${shipment.orderId}.`);
+            detail.failed.push({ baseName, reason: 'product_audio_not_approved' });
+            await registerAudioAttempt(shipment, {
+                kind,
+                baseName,
+                at: new Date(),
+                sent: false,
+                reason: 'product_audio_not_approved'
+            });
+            continue;
+        }
         if (shipment?.country === 'EC' && !SHIPMENT_EC_PICKUP_AUDIO_APPROVED) {
             console.warn(`[SHIPMENT] Audio ${baseName} bloqueado para EC. Defina SHIPMENT_EC_PICKUP_AUDIO_APPROVED=true apenas depois de validar os audios corretos.`);
             detail.failed.push({ baseName, reason: 'audio_not_approved' });
@@ -1142,19 +1225,19 @@ const findExistingGlobalShipmentNotice = async ({ shipment, chatId, kind }) => {
     const since = globalNoticeSinceDate();
     if (!trackingNumber || !field || !phoneClauses.length) return null;
 
-    const shipmentNoticeClauses = [
-        { [`automation.${field}`]: { $ne: null, $gte: since } }
-    ];
+    const shipmentNoticeClauses = [];
     if (eventKind) {
         shipmentNoticeClauses.push({
             events: {
                 $elemMatch: {
                     kind: eventKind,
-                    at: { $gte: since }
+                    at: { $gte: since },
+                    'payload.recoveredFromExistingNotice': { $ne: true }
                 }
             }
         });
     }
+    if (!shipmentNoticeClauses.length) return null;
 
     const existingShipment = await Shipment.findOne({
         _id: { $ne: shipment._id },
@@ -1166,8 +1249,10 @@ const findExistingGlobalShipmentNotice = async ({ shipment, chatId, kind }) => {
         ]
     }).sort({ updatedAt: -1, createdAt: -1 }).lean().catch(() => null);
     if (existingShipment) {
-        const existingAt = existingShipment.automation?.[field]
-            || existingShipment.events?.find?.((event) => event?.kind === eventKind)?.at
+        const existingAt = existingShipment.events?.find?.((event) => (
+            event?.kind === eventKind
+            && event?.payload?.recoveredFromExistingNotice !== true
+        ))?.at
             || existingShipment.updatedAt
             || existingShipment.createdAt;
         return {
@@ -1179,21 +1264,14 @@ const findExistingGlobalShipmentNotice = async ({ shipment, chatId, kind }) => {
     }
 
     if (!messagePhoneClauses.length) return null;
-    const messagePatterns = kind === 'ready_for_pickup'
-        ? [
-            new RegExp(trackingNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
-            /(retiro|retirar|agencia|servientrega|pedido ya esta|pedido ya aparece)/i
-        ]
-        : [
-            new RegExp(trackingNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
-            /(retiro|retirar|recordar|recordarte|agencia|servientrega|comprobante|bonus)/i
-        ];
+    const messagePatterns = pickupNoticeMessagePatternsForKind(kind);
+    if (!messagePatterns.length) return null;
     const existingMessage = await Message.findOne({
         $and: [
             { $or: [{ fromMe: true }, { isFromMe: true }, { from: 'bot' }] },
             { $or: messagePhoneClauses },
             { createdAt: { $gte: since } },
-            ...messagePatterns.map((pattern) => ({ body: pattern }))
+            { $or: messagePatterns.map((pattern) => ({ body: pattern })) }
         ]
     }).sort({ createdAt: -1 }).lean().catch(() => null);
     if (!existingMessage) return null;
@@ -1577,11 +1655,14 @@ export const notifyPickupBonus = async (shipment) => {
         dedupeValue: `${text}|${bonusDedupeScope}`
     });
     if (!sent) return false;
-    const howToUseAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'COMO_SE_TOMA_VIT_POWER' });
+    const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);
+    const howToUseAudioPath = howToUseAudioBaseName
+        ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: howToUseAudioBaseName })
+        : '';
     const howToUseAudioSent = howToUseAudioPath
         ? await sendShipmentAudioFile(shipment, chatId, howToUseAudioPath, {
             kind: 'shipment_pickup_bonus_how_to_use_audio',
-            baseName: 'COMO_SE_TOMA_VIT_POWER',
+            baseName: howToUseAudioBaseName,
             dedupeValue: `${howToUseAudioPath}|${bonusDedupeScope}`
         })
         : false;
@@ -1700,6 +1781,31 @@ const confirmPickupFromProof = async ({
         };
     }
 
+    const lockNow = new Date();
+    const lockedShipment = await Shipment.findOneAndUpdate(
+        {
+            _id: shipment._id,
+            'automation.bonusNotifiedAt': null,
+            $or: [
+                { 'automation.pickupProofDispatchLockedUntil': { $exists: false } },
+                { 'automation.pickupProofDispatchLockedUntil': null },
+                { 'automation.pickupProofDispatchLockedUntil': { $lte: lockNow } }
+            ]
+        },
+        {
+            $set: {
+                'automation.pickupProofDispatchLockedUntil': new Date(lockNow.getTime() + PICKUP_PROOF_DISPATCH_LOCK_MS),
+                'automation.pickupProofLastAttemptAt': lockNow,
+                'automation.pickupProofLastError': ''
+            }
+        },
+        { new: true }
+    );
+    if (!lockedShipment) {
+        return { handled: false, reason: 'pickup_proof_locked_or_already_processed' };
+    }
+    shipment = lockedShipment;
+
     const pickedAt = new Date();
     const { treatmentEndsAt, refillReminderDueAt } = calculateTreatmentDates(shipment, pickedAt);
 
@@ -1730,24 +1836,46 @@ const confirmPickupFromProof = async ({
         }
     });
     shipment.events = shipment.events.slice(-60);
-    await shipment.save();
+    try {
+        await shipment.save();
 
-    const order = await findOrderForPickupShipment(shipment);
-    if (order) {
-        order.status = 'delivered';
-        order.shippingStatus = 'ENTREGADO';
-        if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-        order.notes = [
-            order.notes || '',
-            `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus-retirada liberado.`
-        ].filter(Boolean).join('\n');
-        await order.save();
-        syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_proof_auto_confirmed' });
+        const order = await findOrderForPickupShipment(shipment);
+        if (order) {
+            order.status = 'delivered';
+            order.shippingStatus = 'ENTREGADO';
+            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
+            order.notes = [
+                order.notes || '',
+                `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus-retirada liberado.`
+            ].filter(Boolean).join('\n');
+            await order.save();
+            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_proof_auto_confirmed' });
+        }
+
+        const bonusSent = await notifyPickupBonus(shipment);
+        await markSenderWalletDelivered({ jid: chatId, phone: shipment.client?.phone });
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.pickupProofDispatchLockedUntil': null,
+                    'automation.pickupProofLastError': ''
+                }
+            }
+        );
+        return { handled: true, orderId: shipment.orderId, bonusSent, orderSynced: Boolean(order) };
+    } catch (error) {
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.pickupProofDispatchLockedUntil': null,
+                    'automation.pickupProofLastError': String(error?.message || error || 'pickup_proof_processing_failed').slice(0, 500)
+                }
+            }
+        ).catch(() => null);
+        throw error;
     }
-
-    const bonusSent = await notifyPickupBonus(shipment);
-    await markSenderWalletDelivered({ jid: chatId, phone: shipment.client?.phone });
-    return { handled: true, orderId: shipment.orderId, bonusSent, orderSynced: Boolean(order) };
 };
 
 export const handlePickupProofInbound = async ({ chatId, messageId = '', sessionId = '' }) => {
@@ -1900,7 +2028,7 @@ export const getPendingShipmentReminders = async () => {
         .filter(Boolean);
 };
 
-const getDuePickupReminderStep = (shipment, now = new Date()) => {
+export const getDuePickupReminderStep = (shipment, now = new Date()) => {
     const anchor = shipment?.automation?.readyForPickupNotifiedAt;
     const anchorTime = anchor?.getTime?.();
     if (!anchorTime) return null;

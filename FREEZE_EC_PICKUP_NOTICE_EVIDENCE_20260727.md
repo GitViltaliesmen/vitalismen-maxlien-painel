@@ -1,0 +1,70 @@
+# Freeze EC — evidência de aviso de retirada e bônus
+
+Data: 2026-07-27
+
+## Escopo autorizado
+
+Correção pontual do pós-venda oficial no bot principal Vitalismen. Não foi
+criado outro bot e o scheduler não foi movido para a extensão.
+
+## Problema confirmado
+
+A trava global de histórico aceitava textos genéricos contendo guia,
+Servientrega, agência ou retirada como evidência de qualquer etapa. Assim, uma
+mensagem de guia ou trânsito podia preencher `readyForPickupNotifiedAt` e os
+campos dos dias 1–6 sem que o aviso ou o áudio correspondente tivesse sido
+enviado.
+
+## Regra congelada
+
+Cada etapa só pode ser recuperada por evidência exata da própria etapa:
+
+- chegada: texto oficial de chegada ou áudio `Chegou_01`;
+- dia 1: texto específico do dia 1;
+- dia 2: texto específico pedindo foto/confirmação;
+- dia 3: áudio `Chegou_02`;
+- dia 4: texto específico do dia 4;
+- dia 5: áudio `Chegou_03`;
+- dia 6: texto específico de último aviso.
+
+Mensagem de guia, mensagem em trânsito ou marcação recuperada de outro
+shipment não prova nenhuma dessas etapas.
+
+## Antiduplicidade e recuperação
+
+- A evidência recuperada de outro registro nunca pode ser propagada novamente.
+- Áudio só marca a etapa depois de envio confirmado e registro em
+  `automation.sentAudioLog`.
+- Comprovantes de retirada usam lock persistido antes de confirmar entrega e
+  liberar bônus.
+- A varredura de comprovantes roda no scheduler oficial somente com
+  `PICKUP_PROOF_SWEEP_ENABLED=true`.
+- Recuperação retroativa é individual, exige `--order=ORDER_ID` e funciona em
+  dry-run até receber `--send`.
+- Campos antigos sem evidência só podem ser limpos depois que o novo aviso de
+  chegada for confirmado.
+
+## Isolamento de produto
+
+- Vit Power: áudio de uso `COMO_SE_TOMA_VIT_POWER`.
+- Nitrix: áudio de uso `NITRIX_USO_OXIDE_EC`.
+- Tex Ultra: nenhum áudio de retirada ou uso é liberado por padrão. Áudio de
+  retirada exige aprovação explícita em
+  `SHIPMENT_TEX_ULTRA_PICKUP_AUDIO_APPROVED=true`.
+
+## Comandos obrigatórios
+
+```sh
+npm run test:pickup-notifications
+npm run guard:pickup-notifications
+npm run audit:pickup-evidence
+```
+
+Antes de recuperar um cliente:
+
+```sh
+npm run recover:pickup-arrival -- --order=ORDER_ID
+```
+
+O envio real exige o mesmo pedido explícito com `--send`. Shipment
+`manualOnly` continua bloqueado até revisão individual.

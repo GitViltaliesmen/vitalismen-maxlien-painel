@@ -1,4 +1,5 @@
 VITALISMEN_OFFICIAL_PROJECT=vit_power_ec
 LOCAL_OFFICIAL_PATH=/Users/greson/Documents/Vitalismen Automacao
+WINDOWS_LOCAL_OFFICIAL_PATH=C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
 VPS_OFFICIAL_PATH=/opt/vitalismen-automacao/current
 DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true

@@ -84,10 +84,11 @@ Regra dura: nao alterar, remover, reordenar, simplificar ou refazer comportament
 
 Este projeto e somente a automacao oficial Vitalismen / Vit Power Ecuador.
 
-O caminho local unico e obrigatorio:
+Os caminhos locais oficiais e autorizados são:
 
 ```sh
 /Users/greson/Documents/Vitalismen Automacao
+C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
 ```
 
 O caminho oficial no VPS e:
@@ -106,10 +107,11 @@ Projetos fora de escopo incluem, mas nao se limitam a:
 - qualquer automacao de aquecimento separada da Vitalismen;
 - copias antigas, zips, pastas temporarias ou projetos paralelos.
 
-Se a conversa disser apenas "retome", "continue", "o bot", "a automacao" ou algo semelhante, assumir sempre esta pasta oficial:
+Se a conversa disser apenas "retome", "continue", "o bot", "a automacao" ou algo semelhante, assumir sempre a pasta oficial do sistema operacional atual:
 
 ```sh
 /Users/greson/Documents/Vitalismen Automacao
+C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
 ```
 
 Antes de usar outra pasta, confirmar com o usuario. Se houver confusao de contexto, parar e reancorar em `.vitalismen-official-root`, `docs/CAMINHO_OFICIAL_UNICO.md`, `PROJETO_OFICIAL_VITALISMEN.md`, `docs/RETOMADA_2026-05-10.md` e nesta regra.

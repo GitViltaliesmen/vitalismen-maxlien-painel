@@ -1,10 +1,19 @@
-# PROJETO OFICIAL VITALISMEN
+# Vitalismen Automação Oficial
 
-Esta e a pasta local oficial do projeto Vitalismen no MacBook:
+Esta é a pasta local oficial do projeto Vitalismen neste computador Windows:
+
+```text
+C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
+```
+
+No MacBook, o caminho oficial equivalente permanece:
 
 ```sh
 cd "/Users/greson/Documents/Vitalismen Automacao"
 ```
+
+O índice de contexto e referências que deve ser consultado ao abrir o projeto
+está em `REFERENCIAS_DO_PROJETO.md`.
 
 ## Regra principal
 
@@ -14,10 +23,11 @@ O ambiente oficial de operacao e consolidacao e o VPS. A pasta local existe para
 
 Quando o usuario pedir para "retomar", "continuar" ou trabalhar na automacao sem citar outro caminho explicitamente, assumir sempre este projeto Vitalismen.
 
-O caminho unico local e:
+Os caminhos locais autorizados são:
 
 ```text
 /Users/greson/Documents/Vitalismen Automacao
+C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
 ```
 
 O caminho oficial em producao e:

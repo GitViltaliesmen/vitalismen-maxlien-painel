@@ -4,7 +4,11 @@ import {
     processPendingCheckoutInfoFollowups,
     processPostSaleRepurchase30dFollowups
 } from './reengagementService.js';
-import { getPendingShipmentReminders, processShipmentPickupReminders } from './shipmentMessageService.js';
+import {
+    getPendingShipmentReminders,
+    processPickupProofSweep,
+    processShipmentPickupReminders
+} from './shipmentMessageService.js';
 import {
     countShipmentDispatchCandidates,
     processCarrierStatusSweep,
@@ -29,6 +33,7 @@ let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
 let isRunningPostSaleRepurchaseFollowups = false;
 let isRunningPickupReminders = false;
+let isRunningPickupProofSweep = false;
 let isRunningShipmentStatusDispatch = false;
 let isRunningCarrierStatusSweep = false;
 let isRunningGuidePrintDispatch = false;
@@ -123,6 +128,14 @@ export const startScheduler = () => {
         console.log(`[SCHEDULER] Pickup reminders enabled every ${Math.round(intervalMs / 60000)} minutes.`);
     } else {
         console.log('[SCHEDULER] Pickup reminders disabled. Set SHIPMENT_PICKUP_REMINDERS_ENABLED=true to enable.');
+    }
+    if (flagEnabled('PICKUP_PROOF_SWEEP_ENABLED', false)) {
+        const intervalMinutes = parseNumber('PICKUP_PROOF_SWEEP_INTERVAL_MINUTES', 15);
+        const intervalMs = Math.max(5, intervalMinutes) * 60 * 1000;
+        setInterval(checkPickupProofSweep, intervalMs);
+        console.log(`[SCHEDULER] Pickup proof sweep enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] Pickup proof sweep disabled. Set PICKUP_PROOF_SWEEP_ENABLED=true to enable.');
     }
     if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
         const intervalMinutes = parseNumber('SHIPMENT_STATUS_DISPATCH_INTERVAL_MINUTES', 60);
@@ -250,6 +263,9 @@ export const startScheduler = () => {
     if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
         setTimeout(() => checkPickupReminders(), 30000);
     }
+    if (flagEnabled('PICKUP_PROOF_SWEEP_ENABLED', false)) {
+        setTimeout(() => checkPickupProofSweep(), 60000);
+    }
     if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
         setTimeout(() => checkShipmentStatusDispatch(), 45000);
     }
@@ -285,6 +301,9 @@ export const startScheduler = () => {
         }
         if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
             setTimeout(() => checkPickupReminders(), 10000);
+        }
+        if (flagEnabled('PICKUP_PROOF_SWEEP_ENABLED', false)) {
+            setTimeout(() => checkPickupProofSweep(), 30000);
         }
         if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
             setTimeout(() => checkShipmentStatusDispatch(), 20000);
@@ -548,6 +567,22 @@ const checkPickupReminders = async () => {
         console.error('Pickup Reminder Scheduler Error:', error);
     } finally {
         isRunningPickupReminders = false;
+    }
+};
+
+const checkPickupProofSweep = async () => {
+    if (isRunningPickupProofSweep) return;
+    isRunningPickupProofSweep = true;
+    try {
+        const limit = parseNumber('PICKUP_PROOF_SWEEP_BATCH_LIMIT', 25);
+        const result = await processPickupProofSweep({ limit, dryRun: false });
+        if (result.confirmed || result.bonusSent) {
+            console.log(`[PICKUP_PROOF_SWEEP] Confirmados ${result.confirmed}/${result.processed}; bonus ${result.bonusSent}.`);
+        }
+    } catch (error) {
+        console.error('Pickup Proof Sweep Scheduler Error:', error);
+    } finally {
+        isRunningPickupProofSweep = false;
     }
 };
 

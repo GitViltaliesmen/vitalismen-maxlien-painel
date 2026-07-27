@@ -2,10 +2,11 @@
 
 ## Regra
 
-O unico caminho local autorizado para a automacao Vitalismen e:
+Os caminhos locais autorizados para a automacao Vitalismen são:
 
 ```text
 /Users/greson/Documents/Vitalismen Automacao
+C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao
 ```
 
 O caminho oficial em producao no VPS e:
@@ -27,7 +28,7 @@ A raiz oficial possui o marcador:
 Antes de trabalhar, rode:
 
 ```sh
-cd "/Users/greson/Documents/Vitalismen Automacao"
+cd "C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\Vitalismen Automacao"
 npm run official:path
 npm run senior:check
 ```

@@ -141,6 +141,8 @@ run('ssh', [
         'npm run senior:check',
         'npm run guard:ec-product-micro-layer',
         'npm run guard:ec-dropi-catalog',
+        'npm run guard:pickup-notifications',
+        'npm run test:pickup-notifications',
         'npm run guard:freeze-lock'
     ].join(' && ')
 ], { timeout: 180000 });
