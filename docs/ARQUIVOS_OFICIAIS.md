@@ -91,6 +91,19 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
   - teste de regressão: `tests/leads-window-status-merge.test.cjs`;
   - backup anterior no VPS: `/opt/vitalismen-automacao/backups/leads-window-before-status-view-20260727003734.html`.
 
+### Extensao Chrome WhatsApp oficial
+
+- Fonte oficial versionada:
+  - `extensions/vitalismen-whatsapp-official`
+- Copia local carregada sem compactacao no Chrome deste computador:
+  - `C:\Users\Wolfe\Documents\SITES\MAXLIENSHOP_JULHO_2026\CARREGAR_ESTA_PASTA_FUNIL_FLUTUANTE_V051`
+- Versao oficial em 2026-07-27: `0.11.5`.
+- A fonte versionada e a copia carregada foram conferidas por SHA-256, excluindo apenas `node_modules`.
+- O ajuste `0.11.5` libera o clique humano em `Enviar completo` sem o conflito do evento do elemento expansivel e valida novamente a conversa ativa antes de cada etapa.
+- A extensao nunca deve enviar o funil automaticamente; o envio completo continua exigindo clique humano.
+- `node_modules`, tokens, senhas, arquivos `.env` e diagnosticos locais nao fazem parte da fonte versionada.
+- O deploy da aplicacao publica inclui esta fonte para auditoria e recuperacao, mas o Chrome executa a copia local carregada sem compactacao. Depois de atualizar a copia local, e obrigatorio clicar em `Atualizar` na extensao em `chrome://extensions`.
+
 ## Como trabalhar com copia temporaria
 
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:

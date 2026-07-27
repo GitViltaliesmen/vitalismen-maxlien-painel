@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "Vitalismen • WhatsApp Oficial",
+  "version": "0.11.5",
+  "description": "CRM Vitalismen com funil antigo completo congelado e funis assistidos separados.",
+  "minimum_chrome_version": "114",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "tabs",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://ec.maxlien.shop/*",
+    "https://web.whatsapp.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ec.maxlien.shop/*"
+      ],
+      "js": [
+        "panel-session-bridge.js"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "content-script.js",
+        "whatsapp-funnel-launcher.js"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://ec.maxlien.shop; media-src 'self' https://ec.maxlien.shop blob:"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "funnel-overlay.html",
+        "funnel-overlay.css",
+        "funnel-overlay.js",
+        "funnel-shadow.js",
+        "product-funnel-library.js",
+        "legacy-funnel-library.js",
+        "vendor/wppconnect-wa.js",
+        "legacy-media/*"
+      ],
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "Abrir Vitalismen ao lado do WhatsApp"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
