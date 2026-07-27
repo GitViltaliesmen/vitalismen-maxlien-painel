@@ -1505,7 +1505,10 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         'automation.lastReminderKind': kind
     };
     if (kind === 'day1') setFields['automation.reminderDay1At'] = now;
-    if (kind === 'soft_day2') setFields['automation.reminderSoftDay2At'] = now;
+    if (kind === 'soft_day2') {
+        setFields['automation.reminderSoftDay2At'] = now;
+        setFields['automation.pickupProofRequestedAt'] = now;
+    }
     if (kind === 'day3') setFields['automation.reminderDay3At'] = now;
     if (kind === 'soft_day4') setFields['automation.reminderSoftDay4At'] = now;
     if (kind === 'day5') setFields['automation.reminderDay5At'] = now;
@@ -1716,17 +1719,27 @@ const messagePhoneQueryForShipment = (shipment = {}) => {
     ]));
 };
 
+export const pickupProofMediaAllowedForShipment = (shipment = {}, message = {}) => {
+    const requestedAt = shipment?.automation?.pickupProofRequestedAt;
+    const messageAt = message?.createdAt;
+    if (!requestedAt || !messageAt) return false;
+    return new Date(messageAt).getTime() >= new Date(requestedAt).getTime();
+};
+
 const findPickupProofMessageForShipment = async (shipment, { since = null } = {}) => {
     const phoneClauses = messagePhoneQueryForShipment(shipment);
     if (!phoneClauses.length) return null;
 
     const createdAt = since ? { $gte: since } : {};
+    const allowRequestedMedia = Boolean(shipment?.automation?.pickupProofRequestedAt);
     const candidates = await Message.find({
         $and: [
             { $or: phoneClauses },
             {
                 $or: [
-                    { hasMedia: true, type: { $in: ['image', 'video', 'document'] } },
+                    ...(allowRequestedMedia
+                        ? [{ hasMedia: true, type: { $in: ['image', 'video', 'document'] } }]
+                        : []),
                     { body: PICKUP_PROOF_TEXT_REGEX }
                 ]
             }
@@ -1737,8 +1750,10 @@ const findPickupProofMessageForShipment = async (shipment, { since = null } = {}
     }).sort({ createdAt: -1 }).limit(10).lean();
 
     return candidates.find((message) => {
-        if (message.hasMedia && ['image', 'video', 'document'].includes(String(message.type || ''))) return true;
-        return isPickupProofText(message.body || '');
+        if (isPickupProofText(message.body || '')) return true;
+        return message.hasMedia
+            && ['image', 'video', 'document'].includes(String(message.type || ''))
+            && pickupProofMediaAllowedForShipment(shipment, message);
     }) || null;
 };
 
@@ -1863,8 +1878,15 @@ const confirmPickupFromProof = async ({
     }
 };
 
-export const handlePickupProofInbound = async ({ chatId, messageId = '', sessionId = '' }) => {
+export const handlePickupProofInbound = async ({
+    chatId,
+    messageId = '',
+    sessionId = '',
+    proofText = '',
+    hasMedia = false
+}) => {
     if (!chatId) return { handled: false, reason: 'missing_chat' };
+    const explicitTextProof = isPickupProofText(proofText);
 
     const shipment = await Shipment.findOne({
         $and: [
@@ -1872,7 +1894,7 @@ export const handlePickupProofInbound = async ({ chatId, messageId = '', session
             {
                 $or: [
                     { 'automation.pickupProofRequestedAt': { $ne: null } },
-                    { 'automation.readyForPickupNotifiedAt': { $ne: null } },
+                    ...(explicitTextProof ? [{ 'automation.readyForPickupNotifiedAt': { $ne: null } }] : []),
                     { 'review.reviewStatus': 'awaiting_pickup_proof' }
                 ]
             }
@@ -1882,6 +1904,15 @@ export const handlePickupProofInbound = async ({ chatId, messageId = '', session
     }).sort({ updatedAt: -1 });
 
     if (!shipment) return { handled: false, reason: 'no_matching_shipment' };
+    if (hasMedia && !explicitTextProof) {
+        const message = messageId ? await Message.findById(messageId).lean().catch(() => null) : null;
+        if (!pickupProofMediaAllowedForShipment(shipment, message || {})) {
+            return { handled: false, reason: 'media_without_explicit_pickup_request' };
+        }
+    }
+    if (!hasMedia && !explicitTextProof) {
+        return { handled: false, reason: 'text_without_pickup_confirmation' };
+    }
 
     return confirmPickupFromProof({
         shipment,
@@ -1912,8 +1943,8 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
 
     for (const shipment of shipments) {
         processed += 1;
-        const since = shipment.automation?.readyForPickupNotifiedAt
-            || shipment.automation?.pickupProofRequestedAt
+        const since = shipment.automation?.pickupProofRequestedAt
+            || shipment.automation?.readyForPickupNotifiedAt
             || new Date(Date.now() - (30 * DAY_MS));
         const proof = await findPickupProofMessageForShipment(shipment, { since });
         if (!proof) {

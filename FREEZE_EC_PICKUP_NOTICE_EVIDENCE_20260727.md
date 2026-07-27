@@ -37,6 +37,9 @@ shipment não prova nenhuma dessas etapas.
   `automation.sentAudioLog`.
 - Comprovantes de retirada usam lock persistido antes de confirmar entrega e
   liberar bônus.
+- Foto, vídeo ou documento sem texto explícito só vale como comprovante quando
+  foi recebido depois de `pickupProofRequestedAt`; mídia genérica nunca confirma
+  retirada.
 - A varredura de comprovantes roda no scheduler oficial somente com
   `PICKUP_PROOF_SWEEP_ENABLED=true`.
 - Recuperação retroativa é individual, exige `--order=ORDER_ID` e funciona em

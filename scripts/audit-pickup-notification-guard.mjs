@@ -38,6 +38,11 @@ requireText(
 );
 requireText(
     'src/services/shipmentMessageService.js',
+    'pickupProofMediaAllowedForShipment',
+    'Midia de cliente so pode confirmar retirada apos pedido explicito'
+);
+requireText(
+    'src/services/shipmentMessageService.js',
     "if (family === 'nitrix') return 'NITRIX_USO_OXIDE_EC';",
     'Bonus Nitrix precisa usar audio de uso Nitrix'
 );

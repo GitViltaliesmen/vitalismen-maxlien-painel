@@ -6,6 +6,7 @@ import {
     messageMatchesPickupNoticeKind,
     pickupHowToUseAudioForShipment,
     pickupLogisticsAudioForShipment,
+    pickupProofMediaAllowedForShipment,
     shipmentProductFamily
 } from '../src/services/shipmentMessageService.js';
 
@@ -99,4 +100,21 @@ test('audios logisticos de retirada sao universais para os tres produtos', () =>
         assert.deepEqual(pickupLogisticsAudioForShipment(shipment, 'day3'), ['Chegou_02']);
         assert.deepEqual(pickupLogisticsAudioForShipment(shipment, 'day5'), ['Chegou_03']);
     }
+});
+
+test('midia so comprova retirada depois de pedido explicito de comprovante', () => {
+    const requestedAt = new Date('2026-07-03T12:00:00.000Z');
+    const shipment = { automation: { pickupProofRequestedAt: requestedAt } };
+    assert.equal(
+        pickupProofMediaAllowedForShipment(shipment, { createdAt: new Date('2026-07-03T12:01:00.000Z') }),
+        true
+    );
+    assert.equal(
+        pickupProofMediaAllowedForShipment(shipment, { createdAt: new Date('2026-07-03T11:59:00.000Z') }),
+        false
+    );
+    assert.equal(
+        pickupProofMediaAllowedForShipment({ automation: {} }, { createdAt: new Date('2026-07-03T12:01:00.000Z') }),
+        false
+    );
 });

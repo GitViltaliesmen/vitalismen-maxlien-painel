@@ -317,7 +317,9 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
                     const proofResult = await handlePickupProofInbound({
                         chatId: remoteJid,
                         messageId: msg.key.id,
-                        sessionId
+                        sessionId,
+                        proofText: effectiveText,
+                        hasMedia: true
                     });
                     if (proofResult.handled) {
                         console.log(`[DISPATCHER] comprovante de retirada processado -> ${remoteJid} | order=${proofResult.orderId} | bonus=${proofResult.bonusSent}`);
@@ -333,7 +335,9 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
                     const proofResult = await handlePickupProofInbound({
                         chatId: remoteJid,
                         messageId: msg.key.id,
-                        sessionId
+                        sessionId,
+                        proofText: effectiveText,
+                        hasMedia: false
                     });
                     if (proofResult.handled) {
                         console.log(`[DISPATCHER] texto de retirada processado -> ${remoteJid} | order=${proofResult.orderId} | bonus=${proofResult.bonusSent}`);
