@@ -95,7 +95,7 @@ const PICKUP_AUDIO_BY_KIND = {
     day5: process.env.SHIPMENT_PICKUP_REMINDER_AUDIO_DAY5 || 'Chegou_03'
 };
 const AUDIO_ONLY_REMINDER_KINDS = new Set(['day3', 'day5']);
-const PICKUP_PROOF_TEXT_REGEX = /\b(ya\s+(lo\s+)?(retire|retir[eé]|recogi|recog[ií])|retir[eé]\s+(mi\s+)?pedido|ya\s+tengo\s+(el\s+)?producto|me\s+entregaron|comprobante\s+de\s+retiro|foto\s+del\s+(producto|retiro|comprobante)|guia\s+de\s+retiro)\b/i;
+const PICKUP_PROOF_TEXT_REGEX = /\b(ya\s+(lo\s+)?(retire|retir[eé]|recogi|recog[ií])|acabo\s+de\s+retirar|retir[eé]\s+(mi\s+)?pedido|ya\s+tengo\s+(el\s+)?producto|me\s+entregaron|comprobante\s+de\s+retiro|foto\s+del\s+(producto|retiro|comprobante)|guia\s+de\s+retiro)\b/i;
 const PICKUP_PROOF_FUTURE_TEXT_REGEX = /\bcuando\s+ya\s+(lo\s+)?(retire|retir[eé]|recoja|recoga|recog[ií])\b/i;
 
 export const isPickupProofText = (text = '') => {

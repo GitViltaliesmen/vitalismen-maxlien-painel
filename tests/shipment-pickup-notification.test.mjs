@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
     buildReminderText,
     getDuePickupReminderStep,
+    isPickupProofText,
     messageMatchesPickupNoticeKind,
     pickupHowToUseAudioForShipment,
     pickupLogisticsAudioForShipment,
@@ -117,4 +118,12 @@ test('midia so comprova retirada depois de pedido explicito de comprovante', () 
         pickupProofMediaAllowedForShipment({ automation: {} }, { createdAt: new Date('2026-07-03T12:01:00.000Z') }),
         false
     );
+});
+
+test('confirmacao textual acabo de retirar libera comprovante', () => {
+    assert.equal(
+        isPickupProofText('Acabo de retirar también éste producto en Servientrega servicio contra entrega'),
+        true
+    );
+    assert.equal(isPickupProofText('Pues enviame el nombre de producto'), false);
 });
