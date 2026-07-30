@@ -447,6 +447,15 @@ const buildMessageHash = ({ kind, text, trackingNumber }) => crypto
 const hasAlreadySentHash = (shipment, hash) => Array.isArray(shipment?.automation?.sentMessageHashes)
     && shipment.automation.sentMessageHashes.includes(hash);
 
+export const shouldBlockPickupReminderByHash = (shipment, kind, hash) => {
+    const field = PICKUP_NOTICE_FIELDS_BY_KIND[kind];
+    return Boolean(
+        field
+        && shipment?.automation?.[field]
+        && hasAlreadySentHash(shipment, hash)
+    );
+};
+
 const registerSentHash = (shipment, hash) => {
     shipment.automation.sentMessageHashes = Array.isArray(shipment.automation.sentMessageHashes)
         ? shipment.automation.sentMessageHashes
@@ -1479,7 +1488,13 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         text: audioOnly ? `audio:${PICKUP_AUDIO_BY_KIND[kind] || kind}` : text,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (hasAlreadySentHash(shipment, hash)) return false;
+    if (shouldBlockPickupReminderByHash(shipment, kind, hash)) return false;
+    if (hasAlreadySentHash(shipment, hash)) {
+        console.warn(
+            `[SHIPMENT] hash antigo sem etapa confirmada; revalidando aviso -> order=${shipment.orderId} `
+            + `tracking=${shipment.logistics?.trackingNumber || ''} kind=${kind}`
+        );
+    }
     const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
     if (existingNotice) {
         return recoverExistingGlobalShipmentNotice({

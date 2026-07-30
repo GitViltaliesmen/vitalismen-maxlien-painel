@@ -8,6 +8,7 @@ import {
     pickupHowToUseAudioForShipment,
     pickupLogisticsAudioForShipment,
     pickupProofMediaAllowedForShipment,
+    shouldBlockPickupReminderByHash,
     shipmentProductFamily
 } from '../src/services/shipmentMessageService.js';
 
@@ -126,4 +127,19 @@ test('confirmacao textual acabo de retirar libera comprovante', () => {
         true
     );
     assert.equal(isPickupProofText('Pues enviame el nombre de producto'), false);
+});
+
+test('hash antigo sem campo confirmado nao bloqueia lembrete diario', () => {
+    const hash = 'hash-dia-1';
+    const shipment = {
+        automation: {
+            sentMessageHashes: [hash],
+            reminderDay1At: null
+        }
+    };
+
+    assert.equal(shouldBlockPickupReminderByHash(shipment, 'day1', hash), false);
+
+    shipment.automation.reminderDay1At = new Date('2026-07-02T12:00:00.000Z');
+    assert.equal(shouldBlockPickupReminderByHash(shipment, 'day1', hash), true);
 });
