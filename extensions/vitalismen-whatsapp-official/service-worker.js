@@ -132,7 +132,13 @@ const ensureWhatsAppContentScripts = async () => {
                 }
                 await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
-                    files: ['content-script.js', 'whatsapp-funnel-launcher.js']
+                    files: [
+                        'content-script.js',
+                        'quick-price-funnel-library.js',
+                        'quick-price-funnels/tex-ultra-ec.js',
+                        'quick-price-active-product.js',
+                        'whatsapp-funnel-launcher.js'
+                    ]
                 });
                 const startedAt = Date.now();
                 do {

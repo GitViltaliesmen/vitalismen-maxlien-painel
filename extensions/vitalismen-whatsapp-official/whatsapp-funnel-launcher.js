@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const INSTALL_VERSION = '0.11.5';
+    const INSTALL_VERSION = '0.12.5';
     if (window.__vitalismenFunnelLauncherInstalled === INSTALL_VERSION) return;
     window.__vitalismenFunnelLauncherInstalled = INSTALL_VERSION;
 
@@ -15,8 +15,151 @@
     const DEFAULT_HEIGHT = 820;
     let overlay = null;
     let launcherButton = null;
+    let quickDefinition = null;
+    let quickContextSequence = 0;
+    let lastQuickSelectionSignature = '';
     let minimized = false;
     let lastExpandedHeight = 620;
+
+    const quickLibrary = globalThis.VitalismenQuickPriceFunnel;
+    const activeQuickProduct = globalThis.VitalismenActiveQuickPriceProduct;
+    const activeQuickDefinition = () => quickLibrary?.definition(
+        String(activeQuickProduct?.productKey || '').trim().toLowerCase()
+    ) || null;
+    quickDefinition = activeQuickDefinition();
+    const sendRuntime = (message) => new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            if (!response?.ok) return reject(new Error(response?.error || 'Falha na extensao'));
+            resolve(response.data);
+        });
+    });
+    const api = (path) => sendRuntime({ action: 'api', request: { path, method: 'GET' } });
+    const digits = (value) => String(value || '').replace(/\D/g, '');
+    const normalized = (value) => String(value || '').normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const chatPhone = (chat) => digits(chat?.phone || chat?.peerPhone || chat?.id);
+    const chatName = (chat) => String(chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || '');
+    const findChat = (chats, selection = {}) => {
+        const selectedPhone = digits(selection.phone);
+        const byPhone = selectedPhone ? chats.find((chat) => {
+            const candidate = chatPhone(chat);
+            return candidate === selectedPhone || candidate.endsWith(selectedPhone) || selectedPhone.endsWith(candidate);
+        }) : null;
+        if (byPhone) return byPhone;
+        const selectedName = normalized(selection.name);
+        if (!selectedName) return null;
+        const matches = chats.filter((chat) => normalized(chatName(chat)) === selectedName);
+        return matches.length === 1 ? matches[0] : null;
+    };
+    const launcherRoot = () => document.getElementById(LAUNCHER_HOST_ID)?.shadowRoot || null;
+    const setQuickStatus = (message = '', error = false) => {
+        const status = launcherRoot()?.querySelector('[data-role="quick-status"]');
+        if (!status) return;
+        status.textContent = message;
+        status.classList.toggle('error', Boolean(error));
+    };
+    const insertQuickTextIntoComposer = (text) => {
+        const input = document.querySelector('[data-testid="conversation-compose-box-input"]')
+            || document.querySelector('#main footer [contenteditable="true"]');
+        if (!input) throw new Error('Caixa de mensagem nao encontrada.');
+        if (String(input.innerText || '').replace(/\u200B/g, '').trim()) {
+            throw new Error('A caixa ja possui texto. Apague-o antes de escolher o preco.');
+        }
+        input.focus();
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(input);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const inserted = document.execCommand('insertText', false, text);
+        if (!inserted) {
+            input.textContent = text;
+            input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+        }
+        input.focus();
+    };
+    const renderQuickFunnel = () => {
+        const root = launcherRoot();
+        if (!root) return;
+        const quickButton = root.querySelector('[data-action="quick-toggle"]');
+        const offers = root.querySelector('[data-role="quick-offers"]');
+        if (!quickButton || !offers) return;
+        offers.replaceChildren();
+        if (!quickDefinition) {
+            quickButton.hidden = true;
+            offers.hidden = true;
+            setQuickStatus('');
+            return;
+        }
+        quickButton.hidden = false;
+        quickButton.textContent = `Preço ${quickDefinition.productName}`;
+        quickButton.title = `Abrir preços rápidos de ${quickDefinition.productName}`;
+        const appendLabel = (text) => {
+            const label = document.createElement('span');
+            label.className = 'quick-label';
+            label.textContent = text;
+            offers.append(label);
+        };
+        const appendFillButton = (item, className) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = className;
+            button.textContent = item.buttonLabel;
+            button.title = item.text;
+            button.addEventListener('click', () => {
+                try {
+                    insertQuickTextIntoComposer(item.text);
+                    setQuickStatus('Texto colocado na caixa. Revise e envie pelo WhatsApp.');
+                } catch (error) {
+                    setQuickStatus(error.message, true);
+                }
+            });
+            offers.append(button);
+        };
+        appendLabel('Frascos Tex Ultra');
+        quickDefinition.offers.forEach((offer) => appendFillButton(offer, 'offer'));
+        if (quickDefinition.prompts?.length) {
+            appendLabel('Dados do cliente');
+            quickDefinition.prompts.forEach((prompt) => appendFillButton(prompt, 'prompt'));
+        }
+    };
+    const refreshQuickContext = async (providedSelection = null) => {
+        const sequence = ++quickContextSequence;
+        quickDefinition = activeQuickDefinition();
+        renderQuickFunnel();
+        try {
+            if (!quickLibrary) return;
+            const selection = providedSelection || await sendRuntime({ action: 'activeChatStatus' });
+            if (!selection || selection.pending) return;
+            const chatData = await api('/api/whatsapp/chats?country=EC&fast=1');
+            const chats = Array.isArray(chatData) ? chatData : (chatData?.chats || []);
+            const chat = findChat(chats, selection);
+            const productKey = String(chat?.vslProductKey || chat?.productKey
+                || chat?.customerDraft?.productKey || chat?.assignedAgent || '').trim().toLowerCase();
+            if (sequence !== quickContextSequence) return;
+            quickDefinition = quickLibrary.definition(productKey) || activeQuickDefinition();
+            renderQuickFunnel();
+        } catch {
+            if (sequence === quickContextSequence) {
+                quickDefinition = activeQuickDefinition();
+                renderQuickFunnel();
+            }
+        }
+    };
+    const pollQuickContext = async () => {
+        try {
+            const selection = await sendRuntime({ action: 'activeChatStatus' });
+            const signature = selection?.pending
+                ? `pending:${selection?.observedAt || ''}`
+                : `${digits(selection?.phone)}|${normalized(selection?.name)}`;
+            if (signature === lastQuickSelectionSignature) return;
+            lastQuickSelectionSignature = signature;
+            await refreshQuickContext(selection);
+        } catch {
+            // O proximo ciclo tenta novamente sem interferir no WhatsApp.
+        }
+    };
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const saveLayout = () => {
@@ -92,6 +235,16 @@
     const toggleOverlay = () => {
         if (overlay && !overlay.hidden) hideOverlay();
         else showOverlay();
+    };
+
+    const handleGeneralFunnelClick = async () => {
+        const opening = !overlay || overlay.hidden;
+        toggleOverlay();
+        if (!opening) return;
+        const auth = await sendRuntime({ action: 'authStatus' }).catch(() => null);
+        if (!auth?.authenticated) {
+            setQuickStatus('Sessão expirada: entre novamente no painel lateral para carregar o Funil.', true);
+        }
     };
 
     const startDrag = (event) => {
@@ -266,34 +419,82 @@
             host = document.createElement('span');
             host.id = LAUNCHER_HOST_ID;
         }
-        if (!host.shadowRoot) {
-            const root = host.attachShadow({ mode: 'open' });
+        const needsBuild = !host.shadowRoot || !host.shadowRoot.querySelector('[data-toolbar-version="0.12.5"]');
+        if (needsBuild) {
+            const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
             root.innerHTML = `
                 <style>
-                    :host { display: inline-flex; flex: 0 0 auto; align-items: center; margin: 0 5px; }
+                    :host {
+                        display: flex;
+                        flex: 1 0 100%;
+                        width: calc(100% - 10px);
+                        height: 39px;
+                        min-height: 39px;
+                        align-items: center;
+                        margin: 0 5px;
+                        overflow: hidden;
+                    }
+                    .toolbar {
+                        display: flex;
+                        align-items: center;
+                        flex-wrap: nowrap;
+                        gap: 6px;
+                        width: 100%;
+                        min-width: 0;
+                        padding-bottom: 3px;
+                        overflow-x: auto;
+                        overflow-y: hidden;
+                        scrollbar-width: thin;
+                        scrollbar-color: #98b9b2 transparent;
+                    }
+                    .toolbar::-webkit-scrollbar { height: 4px; }
+                    .toolbar::-webkit-scrollbar-thumb { border-radius: 4px; background: #98b9b2; }
                     button {
-                        height: 38px;
-                        padding: 0 16px;
+                        flex: 0 0 auto;
+                        height: 30px;
+                        padding: 0 14px;
                         border: 1px solid #087f70;
-                        border-radius: 19px;
+                        border-radius: 17px;
                         color: #075e54;
                         background: #fff;
                         cursor: pointer;
-                        font: 700 13px Arial, sans-serif;
+                        font: 700 12px Arial, sans-serif;
                         box-shadow: 0 1px 2px rgba(0,0,0,.08);
                     }
                     button:hover, button.is-active { color: #fff; background: #0b9b7e; }
+                    button[hidden], [hidden] { display: none !important; }
+                    .offers { display: flex; flex: 0 0 auto; flex-wrap: nowrap; align-items: center; gap: 5px; }
+                    .quick-label { flex: 0 0 auto; margin: 0 2px 0 4px; color: #52716b; white-space: nowrap; font: 700 10px Arial, sans-serif; }
+                    .offer { height: 30px; padding: 0 10px; border-color: #d6a100; color: #6c5100; background: #fff9d8; }
+                    .offer:hover { color: #fff; background: #c58f00; }
+                    .prompt { height: 30px; padding: 0 10px; border-color: #5b8def; color: #2454a6; background: #eef4ff; }
+                    .prompt:hover { color: #fff; background: #3974d7; }
+                    .status { flex: 0 0 auto; color: #52716b; white-space: nowrap; font: 600 10px Arial, sans-serif; }
+                    .status:empty { display: none; }
+                    .status.error { color: #b3261e; }
                 </style>
-                <button type="button" title="Abrir funil móvel Vitalismen">Funil</button>
+                <div class="toolbar" data-toolbar-version="0.12.5">
+                    <button type="button" data-action="general" title="Abrir funil geral Vitalismen">Funil</button>
+                    <button type="button" data-action="quick-toggle" hidden>Preço rápido</button>
+                    <div class="offers" data-role="quick-offers" hidden></div>
+                    <span class="status" data-role="quick-status" aria-live="polite"></span>
+                </div>
             `;
-            launcherButton = root.querySelector('button');
-            launcherButton.addEventListener('click', toggleOverlay);
+            launcherButton = root.querySelector('[data-action="general"]');
+            launcherButton.addEventListener('click', handleGeneralFunnelClick);
+            root.querySelector('[data-action="quick-toggle"]').addEventListener('click', (event) => {
+                const offers = root.querySelector('[data-role="quick-offers"]');
+                offers.hidden = !offers.hidden;
+                event.currentTarget.classList.toggle('is-active', !offers.hidden);
+                setQuickStatus(offers.hidden ? '' : 'Escolha uma opção para preencher a caixa de mensagem.');
+            });
         } else {
-            const previousButton = host.shadowRoot.querySelector('button');
+            const previousButton = host.shadowRoot.querySelector('[data-action="general"]');
             launcherButton = previousButton.cloneNode(true);
             previousButton.replaceWith(launcherButton);
-            launcherButton.addEventListener('click', toggleOverlay);
+            launcherButton.addEventListener('click', handleGeneralFunnelClick);
         }
+        renderQuickFunnel();
         return host;
     };
 
@@ -314,9 +515,12 @@
     observer.observe(document.documentElement, { childList: true, subtree: true });
     ensureLauncher();
     ensureOverlay();
+    pollQuickContext();
+    setInterval(pollQuickContext, 1800);
     window.addEventListener('resize', constrainOverlay);
     chrome.runtime.onMessage.addListener((message) => {
         if (message?.action !== 'activeWhatsAppChat' && message?.action !== 'whatsAppChatSwitchStarted') return;
+        pollQuickContext();
         overlay?.querySelector('iframe')?.contentWindow?.postMessage(
             { source: 'vitalismen-funnel-shell', action: 'refresh' },
             '*'

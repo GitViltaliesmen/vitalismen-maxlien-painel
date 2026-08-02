@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vitalismen • WhatsApp Oficial",
-  "version": "0.11.5",
-  "description": "CRM Vitalismen com funil antigo completo congelado e funis assistidos separados.",
+  "version": "0.12.5",
+  "description": "CRM Vitalismen com funis gerais e precos rapidos independentes por produto.",
   "minimum_chrome_version": "114",
   "permissions": [
     "sidePanel",
@@ -32,6 +32,9 @@
       ],
       "js": [
         "content-script.js",
+        "quick-price-funnel-library.js",
+        "quick-price-funnels/tex-ultra-ec.js",
+        "quick-price-active-product.js",
         "whatsapp-funnel-launcher.js"
       ],
       "run_at": "document_idle",
@@ -52,6 +55,10 @@
         "funnel-overlay.js",
         "funnel-shadow.js",
         "product-funnel-library.js",
+        "product-funnels/*.js",
+        "quick-price-funnel-library.js",
+        "quick-price-funnels/*.js",
+        "quick-price-active-product.js",
         "legacy-funnel-library.js",
         "vendor/wppconnect-wa.js",
         "legacy-media/*"

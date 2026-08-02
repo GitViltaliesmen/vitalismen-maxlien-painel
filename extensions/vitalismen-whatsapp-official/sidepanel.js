@@ -63,7 +63,6 @@ const state = {
 const orderCatalog = globalThis.VitalismenOrderCatalog;
 const agencyCatalog = globalThis.VitalismenAgencyCatalog;
 const agencyBatch = globalThis.VitalismenAgencyBatch;
-const currentSellingProductKey = orderCatalog?.CURRENT_PRODUCT_KEY || 'tex_ultra_ec';
 
 const send = (message) => new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
@@ -282,6 +281,47 @@ const productNameForKey = (key) => ({
     nitrix_ec: 'Nitrix Oxide Ecuador',
     tex_ultra_ec: 'Tex Ultra Ecuador'
 })[key] || '';
+const safeProductKey = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 64);
+const ensureDraftProductOption = (productKey, productName = '') => {
+    const key = safeProductKey(productKey);
+    if (!key || !elements.draftProduct) return '';
+    const existing = [...elements.draftProduct.options].find((option) => option.value === key);
+    if (existing) {
+        if (productName && !existing.dataset.fixedLabel) existing.textContent = productName;
+        return key;
+    }
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = String(productName || key).trim();
+    option.dataset.vslProduct = 'true';
+    elements.draftProduct.append(option);
+    return key;
+};
+const selectedProductName = (productKey) => {
+    const key = safeProductKey(productKey);
+    const option = [...(elements.draftProduct?.options || [])].find((candidate) => candidate.value === key);
+    return productNameForKey(key) || String(option?.textContent || '').trim();
+};
+const authoritativeProductFromChat = ({ chat = {}, draft = {}, order = {}, suggestion = {} } = {}) => {
+    const candidates = [
+        [chat.vslProductKey, chat.vslProductName],
+        [chat.productKey, chat.productName],
+        [draft.productKey, draft.productName || draft.product],
+        [chat.assignedAgent, chat.productName],
+        [productKeyFromText(order.productName || order.package?.label), order.productName || order.package?.label],
+        [productKeyFromText(draft.productName || draft.product), draft.productName || draft.product],
+        [suggestion.productKey, productNameForKey(suggestion.productKey)]
+    ];
+    for (const [candidateKey, candidateName] of candidates) {
+        const key = safeProductKey(candidateKey);
+        if (key) return { productKey: key, productName: String(candidateName || productNameForKey(key) || key).trim() };
+    }
+    return { productKey: '', productName: '' };
+};
 const productKeyFromText = (value) => {
     const text = normalizedText(value);
     if (/\btex ultra\b/.test(text)) return 'tex_ultra_ec';
@@ -543,8 +583,8 @@ const customerDraftFromForm = () => {
         phone,
         country: elements.draftCountry.value,
         productKey,
-        productName: productNameForKey(productKey),
-        product: productNameForKey(productKey),
+        productName: selectedProductName(productKey),
+        product: selectedProductName(productKey),
         address: elements.draftAddress.value.trim(),
         city: elements.draftCity.value.trim(),
         province: elements.draftProvince.value.trim(),
@@ -862,7 +902,7 @@ const activeProductFunnelKey = () => {
     const selected = elements.draftProduct.value;
     return globalThis.VitalismenProductFunnel?.PRODUCTS?.[selected]
         ? selected
-        : currentSellingProductKey;
+        : '';
 };
 
 const mountProductFunnelAtRoot = () => {
@@ -1177,11 +1217,16 @@ const populateSmartForm = () => {
     const order = profile.activeOrder || {};
     const customer = order.customer || {};
     const suggestion = state.suggestions || {};
-    const productKey = draft.productKey
-        || productKeyFromText(order.productName || order.package?.label)
-        || productKeyFromText(draft.productName)
-        || suggestion.productKey
-        || currentSellingProductKey;
+    const authoritativeProduct = authoritativeProductFromChat({
+        chat: state.selectedChat,
+        draft,
+        order,
+        suggestion
+    });
+    const productKey = ensureDraftProductOption(
+        authoritativeProduct.productKey,
+        authoritativeProduct.productName
+    );
     const selectedPhone = chatPhone(state.selectedChat);
     const detectedName = profile.displayName || customer.name || draft.name || suggestion.name || chatName(state.selectedChat);
     const safeDetectedName = digits(detectedName) === selectedPhone ? '' : detectedName;
@@ -1579,6 +1624,8 @@ elements.sendAgencyListBtn?.addEventListener('click', () => {
     });
 });
 elements.draftProduct.addEventListener('change', () => {
+    state.formDirty = true;
+    state.manualFieldIds.add('draftProduct');
     syncCatalogPricing({ force: true });
     renderFunnelShadow();
     queueAutomaticDraftSave();

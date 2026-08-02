@@ -11,7 +11,7 @@
     ].map((id) => [id, document.getElementById(id)]));
     const state = {
         source: 'legacy',
-        productKey: 'tex_ultra_ec',
+        productKey: '',
         contentType: 'todos',
         category: 'todos',
         search: '',
@@ -624,10 +624,12 @@
             state.audioTemplates = Array.isArray(templateData) ? templateData : (templateData?.templates || []);
             const draft = state.chat.customerDraft || {};
             const order = state.profile.activeOrder || {};
-            const productKey = draft.productKey
+            const productKey = state.chat.vslProductKey
                 || state.chat.productKey
+                || draft.productKey
+                || state.chat.assignedAgent
                 || productKeyFromText(draft.productName || state.chat.productName || order.productName);
-            if (productKey && assistedLibrary.PRODUCTS[productKey]) state.productKey = productKey;
+            state.productKey = productKey && assistedLibrary.PRODUCTS[productKey] ? productKey : '';
             const analysis = shadow?.analyze({
                 draft: draftSnapshot(),
                 profile: state.profile,
