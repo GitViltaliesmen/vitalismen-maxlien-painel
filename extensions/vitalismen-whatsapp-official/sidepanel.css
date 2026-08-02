@@ -906,6 +906,22 @@ input:focus { border-color: #128c7e; box-shadow: 0 0 0 3px rgba(18, 140, 126, .1
     gap: 8px;
     align-items: end;
 }
+.buy-later-schedule {
+    padding: 8px;
+    border: 1px solid #fbbf24;
+    border-radius: 9px;
+    background: #fffbeb;
+    color: #78350f;
+}
+.buy-later-schedule small {
+    color: #92400e;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+.buy-later-schedule input:invalid {
+    border-color: #dc2626;
+}
 .status-select { border-width: 2px !important; color: #0e7490 !important; background: #ecfeff !important; }
 .order-code {
     display: grid;

@@ -1,5 +1,8 @@
 const assert = require('node:assert/strict');
 const funnel = require('../product-funnel-library.js');
+require('../product-funnels/vit-power-ec.js');
+require('../product-funnels/nitrix-ec.js');
+require('../product-funnels/tex-ultra-ec.js');
 
 assert.deepEqual(Object.keys(funnel.PRODUCTS), [
     'vit_power_ec',

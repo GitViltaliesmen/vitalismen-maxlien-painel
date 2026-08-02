@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const INSTALL_VERSION = '0.12.5';
+    const INSTALL_VERSION = '0.12.6';
     if (window.__vitalismenFunnelLauncherInstalled === INSTALL_VERSION) return;
     window.__vitalismenFunnelLauncherInstalled = INSTALL_VERSION;
 
@@ -419,7 +419,7 @@
             host = document.createElement('span');
             host.id = LAUNCHER_HOST_ID;
         }
-        const needsBuild = !host.shadowRoot || !host.shadowRoot.querySelector('[data-toolbar-version="0.12.5"]');
+        const needsBuild = !host.shadowRoot || !host.shadowRoot.querySelector('[data-toolbar-version="0.12.6"]');
         if (needsBuild) {
             const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
             root.innerHTML = `
@@ -473,7 +473,7 @@
                     .status:empty { display: none; }
                     .status.error { color: #b3261e; }
                 </style>
-                <div class="toolbar" data-toolbar-version="0.12.5">
+                <div class="toolbar" data-toolbar-version="0.12.6">
                     <button type="button" data-action="general" title="Abrir funil geral Vitalismen">Funil</button>
                     <button type="button" data-action="quick-toggle" hidden>Preço rápido</button>
                     <div class="offers" data-role="quick-offers" hidden></div>

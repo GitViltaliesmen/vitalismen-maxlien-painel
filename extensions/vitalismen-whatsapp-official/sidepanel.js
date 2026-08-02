@@ -16,7 +16,8 @@ const elements = Object.fromEntries(
         'toggleProductFunnelSizeButton',
         'draftName', 'draftPhone', 'draftCountry', 'draftProduct', 'draftAddress',
         'draftCity', 'draftProvince', 'draftReference', 'draftQuantity', 'draftTotal',
-        'draftStatus', 'saveDraftButton', 'saveStatus', 'historyDetails', 'autoSaveState',
+        'draftStatus', 'buyLaterSchedule', 'draftBuyLaterFollowupAt',
+        'saveDraftButton', 'saveStatus', 'historyDetails', 'autoSaveState',
         'texUltraKitSection', 'orderKitOptions', 'orderReadiness', 'orderSummary',
         'markPurchaseButton', 'metaPurchaseStatus',
         'agencySuggestions', 'agencySuggestionsState', 'agencySearchInput',
@@ -87,10 +88,23 @@ const normalizedText = (value) => String(value || '')
 const chatPhone = (chat) => digits(chat?.phone || chat?.peerPhone || chat?.id);
 const countryFromPhone = (phone) => {
     const normalized = digits(phone);
+    if (normalized.startsWith('55')) return 'BR';
     if (normalized.startsWith('57')) return 'CO';
     if (normalized.startsWith('593')) return 'EC';
     if (normalized.startsWith('502')) return 'GT';
     return 'EC';
+};
+const dateTimeLocalValue = (value) => {
+    const date = dateValue(value);
+    if (!date) return '';
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+};
+const dateTimeIsoValue = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 };
 const chatName = (chat) => String(
     chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
@@ -475,8 +489,30 @@ const funnelDraftSnapshot = () => ({
     reference: elements.draftReference.value,
     quantity: elements.draftQuantity.value,
     total: elements.draftTotal.value,
-    status: elements.draftStatus.value
+    status: elements.draftStatus.value,
+    buyLaterFollowupAt: dateTimeIsoValue(elements.draftBuyLaterFollowupAt?.value)
 });
+
+const renderBuyLaterSchedule = () => {
+    const enabled = elements.draftStatus?.value === 'comprar_depois';
+    elements.buyLaterSchedule?.classList.toggle('hidden', !enabled);
+    if (elements.draftBuyLaterFollowupAt) {
+        elements.draftBuyLaterFollowupAt.required = enabled;
+        elements.draftBuyLaterFollowupAt.min = dateTimeLocalValue(Date.now());
+    }
+};
+
+const validateBuyLaterSchedule = (draft = {}) => {
+    if (draft.status !== 'comprar_depois') return { ok: true, error: '' };
+    const parsed = new Date(draft.buyLaterFollowupAt || '');
+    if (Number.isNaN(parsed.getTime())) {
+        return { ok: false, error: 'Informe a data e a hora combinadas para “Comprar depois”.' };
+    }
+    if (parsed.getTime() <= Date.now()) {
+        return { ok: false, error: 'A data de “Comprar depois” precisa estar no futuro.' };
+    }
+    return { ok: true, error: '' };
+};
 
 const orderSummaryText = (draft = {}) => {
     const product = productNameForKey(draft.productKey) || 'Produto não selecionado';
@@ -570,7 +606,7 @@ const syncCatalogPricing = ({ force = false } = {}) => {
 
 const autoSaveFields = [
     'name', 'phone', 'country', 'productKey', 'productName', 'product',
-    'address', 'city', 'province', 'reference', 'quantity', 'total', 'status'
+    'address', 'city', 'province', 'reference', 'quantity', 'total', 'status', 'buyLaterFollowupAt'
 ];
 
 const customerDraftFromForm = () => {
@@ -591,7 +627,10 @@ const customerDraftFromForm = () => {
         reference: elements.draftReference.value.trim(),
         quantity: elements.draftQuantity.value,
         total: elements.draftTotal.value.trim().replace(',', '.'),
-        status: elements.draftStatus.value
+        status: elements.draftStatus.value,
+        buyLaterFollowupAt: elements.draftStatus.value === 'comprar_depois'
+            ? dateTimeIsoValue(elements.draftBuyLaterFollowupAt?.value)
+            : ''
     };
 };
 
@@ -626,6 +665,11 @@ const performAutomaticDraftSave = async () => {
     const epoch = state.selectionEpoch;
     const customerDraft = customerDraftFromForm();
     if (!phone || !autoSaveHasCustomerData(customerDraft)) return;
+    const buyLaterValidation = validateBuyLaterSchedule(customerDraft);
+    if (!buyLaterValidation.ok) {
+        setAutoSaveState('paused', 'Aguardando data de “Comprar depois”');
+        return;
+    }
     if (customerDraft.status === 'confirmado') {
         setAutoSaveState('paused', 'Confirmação exige clique humano em “Cadastrar pedido confirmado”');
         return;
@@ -1255,6 +1299,8 @@ const populateSmartForm = () => {
     applyValue(elements.draftQuantity, order.quantity || draft.quantity || suggestion.quantity);
     applyValue(elements.draftTotal, order.total ?? draft.total ?? suggestion.total);
     applyValue(elements.draftStatus, normalizedDraftStatus(order.status || draft.status));
+    applyValue(elements.draftBuyLaterFollowupAt, dateTimeLocalValue(draft.buyLaterFollowupAt));
+    renderBuyLaterSchedule();
     syncCatalogPricing();
     renderFunnelShadow();
     if (elements.draftCountry.value === 'EC' && elements.draftCity.value.trim().length >= 3) {
@@ -1636,6 +1682,10 @@ elements.draftQuantity.addEventListener('change', () => {
     queueAutomaticDraftSave();
 });
 elements.draftStatus.addEventListener('change', () => {
+    if (elements.draftStatus.value !== 'comprar_depois' && elements.draftBuyLaterFollowupAt) {
+        elements.draftBuyLaterFollowupAt.value = '';
+    }
+    renderBuyLaterSchedule();
     renderOrderRegistration();
     queueAutomaticDraftSave();
 });
@@ -1704,6 +1754,13 @@ const persistCustomerDraft = async ({ markPurchase = false } = {}) => {
     if (!state.selectedChat) return;
     const phone = chatPhone(state.selectedChat);
     const customerDraft = customerDraftFromForm();
+    const buyLaterValidation = validateBuyLaterSchedule(customerDraft);
+    if (!buyLaterValidation.ok) {
+        elements.draftBuyLaterFollowupAt?.focus();
+        showError(buyLaterValidation.error);
+        renderOrderRegistration();
+        return;
+    }
     const validation = orderCatalog?.validateForSave(customerDraft) || { ok: true, issues: [] };
     if (!validation.ok) {
         elements.saveStatus.textContent = '';

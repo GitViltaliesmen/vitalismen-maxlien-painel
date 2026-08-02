@@ -1,6 +1,9 @@
 const assert = require('node:assert/strict');
 const catalog = require('../tex-ultra-order-catalog.js');
 const funnel = require('../product-funnel-library.js');
+require('../product-funnels/vit-power-ec.js');
+require('../product-funnels/nitrix-ec.js');
+require('../product-funnels/tex-ultra-ec.js');
 
 const productKeys = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
 assert.deepEqual(Object.keys(funnel.PRODUCTS), productKeys);

@@ -40,7 +40,7 @@
                 <div>
                         <strong id="operatorName">Atendimento EC</strong>
                         <span id="syncStatus">Somente leitura</span>
-                        <span class="extension-version">Extensão v0.11.5 • Envio completo liberado</span>
+                        <span class="extension-version">Extensão v0.12.6 • Envio completo liberado</span>
                 </div>
                 <button id="refreshButton" class="secondary-button" type="button" title="Sincroniza os clientes; não atualiza a extensão">Sincronizar clientes</button>
             </div>
@@ -176,6 +176,11 @@
                             </label>
                             <button id="saveDraftButton" class="save-button" type="submit">Salvar dados</button>
                         </div>
+                        <label id="buyLaterSchedule" class="profile-input buy-later-schedule hidden">
+                            Data e hora combinadas com o cliente
+                            <input id="draftBuyLaterFollowupAt" type="datetime-local" autocomplete="off">
+                            <small>Obrigatória para “Comprar depois”. O lembrete não é enviado ao salvar a ficha.</small>
+                        </label>
                         <div id="orderReadiness" class="order-readiness" aria-live="polite"></div>
                     </section>
 
@@ -189,6 +194,7 @@
                             <select id="draftCountry">
                                 <option value="EC">Equador</option>
                                 <option value="CO">Colômbia</option>
+                                <option value="BR">Brasil (somente teste liberado)</option>
                             </select>
                         </label>
                         <label class="profile-input">
