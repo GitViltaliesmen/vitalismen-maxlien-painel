@@ -22,11 +22,12 @@
 
 ## Ativacao segura
 
-1. Configurar na VPS `GOOGLE_CONTACTS_CLIENT_ID`, `GOOGLE_CONTACTS_CLIENT_SECRET` e uma chave aleatoria forte em `GOOGLE_CONTACTS_TOKEN_ENCRYPTION_KEY`.
-2. Registrar o callback `https://ec.maxlien.shop/api/integrations/google-contacts/callback` no Google Cloud e habilitar People API.
-3. Conectar a conta pelo botao administrativo da extensao.
-4. Confirmar um pedido piloto novo e verificar o contato no Google/telefone.
-5. Nunca retroagir `enabledAt` nem importar historico sem nova autorizacao.
+1. Manter o proxy Nginx versionado em `ops/nginx/ec.maxlien.shop-api-integrations.conf` ativo no servidor HTTPS.
+2. Configurar na VPS `GOOGLE_CONTACTS_CLIENT_ID`, `GOOGLE_CONTACTS_CLIENT_SECRET` e uma chave aleatoria forte em `GOOGLE_CONTACTS_TOKEN_ENCRYPTION_KEY`.
+3. Registrar o callback `https://ec.maxlien.shop/api/integrations/google-contacts/callback` no Google Cloud e habilitar People API.
+4. Conectar a conta pelo botao administrativo da extensao.
+5. Confirmar um pedido piloto novo e verificar o contato no Google/telefone.
+6. Nunca retroagir `enabledAt` nem importar historico sem nova autorizacao.
 
 ## Guard obrigatorio
 

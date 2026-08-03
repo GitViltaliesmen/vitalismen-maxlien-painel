@@ -7,6 +7,7 @@ const statusService = read('src/services/operationalChatStatusService.js');
 const googleService = read('src/services/googleContactsService.js');
 const routes = read('src/routes/whatsapp.js');
 const integrationRoutes = read('src/routes/integrations.js');
+const nginxSnippet = read('ops/nginx/ec.maxlien.shop-api-integrations.conf');
 const extensionWorker = read('extensions/vitalismen-whatsapp-official/service-worker.js');
 const launcher = read('extensions/vitalismen-whatsapp-official/whatsapp-funnel-launcher.js');
 
@@ -21,6 +22,8 @@ assert.match(routes, /router\.patch\('\/chat-labels\/:phone'/);
 assert.match(routes, /kind: 'whatsapp_label_override'/);
 assert.match(integrationRoutes, /google-contacts\/callback/);
 assert.match(integrationRoutes, /adminOnly/);
+assert.match(nginxSnippet, /location \^~ \/api\/integrations\//);
+assert.match(nginxSnippet, /proxy_pass http:\/\/127\.0\.0\.1:3001/);
 assert.match(googleService, /createCipheriv\('aes-256-gcm'/);
 assert.match(googleService, /confirmedAt: \{ \$gte: integration\.enabledAt \}/);
 assert.match(googleService, /phoneDigits\.startsWith\('593'\)/);
