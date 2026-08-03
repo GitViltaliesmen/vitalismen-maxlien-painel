@@ -24,11 +24,13 @@
     const LABELS_KEY = 'vitalismenWhatsAppLabelsV1';
     const LABEL_DEFINITIONS = {
         atendendo: { label: 'Atendendo', color: '#0b9b7e' },
+        comprar_depois: { label: 'Comprar depois', color: '#b77900' },
         confirmado: { label: 'Confirmado', color: '#2467c9' },
         enviado: { label: 'Enviado', color: '#7b50b3' },
         em_rota: { label: 'Em rota', color: '#bd6a00' },
+        na_agencia: { label: 'Na agência', color: '#d25f00' },
         entregue: { label: 'Entregue', color: '#218739' },
-        retorno: { label: 'Retorno', color: '#a3457a' },
+        devolvido: { label: 'Devolvido', color: '#a3457a' },
         cancelado: { label: 'Cancelado', color: '#b33939' }
     };
 
@@ -40,6 +42,10 @@
         });
     });
     const api = (path) => send({ action: 'api', request: { path, method: 'GET' } });
+    const apiRequest = (path, { method = 'GET', body } = {}) => send({
+        action: 'api',
+        request: { path, method, ...(body === undefined ? {} : { body }) }
+    });
     const digits = (value) => String(value || '').replace(/\D/g, '');
     const normalized = (value) => String(value || '')
         .normalize('NFD')
@@ -131,8 +137,9 @@
     };
     const refreshLabelButtons = async () => {
         const phone = chatPhone(state.chat);
-        const stored = await chrome.storage.local.get([LABELS_KEY]);
-        const selected = phone ? stored?.[LABELS_KEY]?.[phone]?.key || '' : '';
+        const selected = state.profile?.operationalStatus?.manual
+            ? state.profile.operationalStatus.key
+            : '';
         elements.labelButtons?.querySelectorAll('[data-label]').forEach((button) => {
             button.classList.toggle('active', Boolean(selected) && button.dataset.label === selected);
         });
@@ -140,25 +147,20 @@
     const saveContactLabel = async (key) => {
         const phone = chatPhone(state.chat);
         if (!phone) throw new Error('Selecione uma conversa com telefone antes de criar a etiqueta.');
-        const stored = await chrome.storage.local.get([LABELS_KEY]);
-        const labels = { ...(stored?.[LABELS_KEY] || {}) };
-        if (!key) {
-            delete labels[phone];
-        } else {
-            const definition = LABEL_DEFINITIONS[key];
-            if (!definition) throw new Error('Etiqueta inválida.');
-            labels[phone] = {
-                key,
-                ...definition,
-                name: chatName(state.chat),
-                updatedAt: new Date().toISOString()
-            };
-        }
-        await chrome.storage.local.set({ [LABELS_KEY]: labels });
+        if (key && !LABEL_DEFINITIONS[key]) throw new Error('Etiqueta inválida.');
+        const result = await apiRequest(`/api/whatsapp/chat-labels/${encodeURIComponent(phone)}`, {
+            method: 'PATCH',
+            body: { overrideStatus: key || null }
+        });
+        state.profile = {
+            ...(state.profile || {}),
+            operationalStatus: result.operationalStatus || state.profile?.operationalStatus || null
+        };
+        await send({ action: 'syncOperationalLabels' }).catch(() => null);
         await refreshLabelButtons();
         setCopyStatus(key
-            ? `Etiqueta “${LABEL_DEFINITIONS[key].label}” aplicada ao cliente no WhatsApp.`
-            : 'Etiqueta removida do cliente.');
+            ? `Ajuste manual “${LABEL_DEFINITIONS[key].label}” aplicado e auditado.`
+            : 'Etiqueta voltou a acompanhar o pedido automaticamente.');
     };
     const safeFilename = (value, fallback = 'arquivo') => String(value || fallback)
         .replace(/^EC:/i, '')

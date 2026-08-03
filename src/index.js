@@ -18,6 +18,7 @@ import { publicWhatsAppRedirect } from './routes/leads.js';
 import metaEventsRoutes from './routes/metaEvents.js';
 import zapiRoutes from './routes/zapi.js';
 import observationRoutes from './routes/observation.js';
+import integrationsRoutes from './routes/integrations.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -105,6 +106,8 @@ const isPanelPollingRequest = (req) => {
         || pathname === '/api/whatsapp/chats'
         || pathname === '/api/whatsapp/dashboard-metrics'
         || pathname === '/api/whatsapp/templates'
+        || pathname === '/api/whatsapp/chat-labels'
+        || pathname === '/api/integrations/google-contacts/status'
         || /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/submit-status$/.test(pathname)
         || pathname.startsWith('/api/whatsapp/messages/')
         || pathname.startsWith('/api/whatsapp/customer-profile/')
@@ -122,6 +125,10 @@ const isPanelOperationalWriteRequest = (req) => {
     if (method === 'POST' && pathname === '/api/whatsapp/chats/read') return true;
     if (method === 'POST' && pathname === '/api/automation/alerts/acknowledge') return true;
     if (method === 'PATCH' && /^\/api\/whatsapp\/contact-state\/[^/]+$/.test(pathname)) return true;
+    if (method === 'PATCH' && /^\/api\/whatsapp\/chat-labels\/[^/]+$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/(?:connect|disconnect)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/sync\/[^/]+\/retry$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/sync\/[^/]+\/resolve-name$/.test(pathname)) return true;
     if (method === 'POST' && /^\/api\/whatsapp\/contact-state\/[^/]+\/(?:claim|release)$/.test(pathname)) return true;
     if (method === 'PATCH' && /^\/api\/orders\/[^/]+$/.test(pathname)) return true;
     if (method === 'POST' && pathname === '/api/orders') return true;
@@ -244,6 +251,7 @@ app.use('/api/automation', automationRoutes);
 app.use('/api/meta-events', metaEventsRoutes);
 app.use('/api/zapi', zapiRoutes);
 app.use('/api/observation', observationRoutes);
+app.use('/api/integrations', integrationsRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);

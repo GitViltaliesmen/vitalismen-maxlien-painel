@@ -40,7 +40,7 @@
                 <div>
                         <strong id="operatorName">Atendimento EC</strong>
                         <span id="syncStatus">Somente leitura</span>
-                        <span class="extension-version">Extensão v0.12.6 • Envio completo liberado</span>
+                        <span class="extension-version">Extensão v0.13.0 • Status e agenda sincronizados</span>
                 </div>
                 <button id="refreshButton" class="secondary-button" type="button" title="Sincroniza os clientes; não atualiza a extensão">Sincronizar clientes</button>
             </div>
@@ -52,6 +52,17 @@
                     <span id="detectedChatText">Aguardando seleção…</span>
                 </div>
             </div>
+
+            <section id="googleContactsCard" class="google-contacts-card" aria-label="Google Contatos">
+                <div>
+                    <strong>Google Contatos</strong>
+                    <span id="googleContactsStatus">Consultando conexão…</span>
+                </div>
+                <div class="google-contacts-actions">
+                    <button id="googleConnectButton" type="button">Conectar</button>
+                    <button id="googleDisconnectButton" class="hidden" type="button">Desconectar</button>
+                </div>
+            </section>
 
             <label class="search-box">
                 <span>Buscar</span>
@@ -72,9 +83,12 @@
                     <div>
                         <strong id="customerName">Cliente</strong>
                         <span id="customerPhone"></span>
+                        <span id="googleContactStatus" class="google-contact-status">Agenda: aguardando confirmação</span>
                     </div>
                     <div class="customer-actions">
                         <button id="openProductFunnelButton" class="funnel-launcher" type="button" hidden aria-hidden="true">Funil</button>
+                        <button id="retryGoogleContactButton" class="secondary-button hidden" type="button">Tentar agenda</button>
+                        <button id="resolveGoogleContactNameButton" class="secondary-button hidden" type="button">Atualizar nome</button>
                         <button id="openWhatsAppButton" class="whatsapp-button" type="button">Abrir no WhatsApp oficial</button>
                     </div>
                 </div>

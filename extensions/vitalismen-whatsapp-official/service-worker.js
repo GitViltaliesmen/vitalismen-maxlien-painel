@@ -6,6 +6,9 @@ const SESSION_KEYS = {
 };
 const LOCAL_UPDATE_ALARM = 'vitalismenLocalUpdateCheck';
 const LOCAL_UPDATE_MARKER = 'vitalismenReloadRequestedFor';
+const LABELS_SYNC_ALARM = 'vitalismenOperationalLabelsSync';
+const LABELS_KEY = 'vitalismenWhatsAppLabelsV1';
+const LABELS_META_KEY = 'vitalismenWhatsAppLabelsMetaV2';
 
 chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
@@ -67,6 +70,10 @@ const ensureLocalUpdateAlarm = () => {
     try {
         chrome.alarms.create(LOCAL_UPDATE_ALARM, {
             delayInMinutes: 1,
+            periodInMinutes: 1
+        });
+        chrome.alarms.create(LABELS_SYNC_ALARM, {
+            delayInMinutes: 0.25,
             periodInMinutes: 1
         });
     } catch {
@@ -173,9 +180,11 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(() => {
     ensureLocalUpdateAlarm();
     ensureWhatsAppContentScripts().catch(() => {});
+    syncOperationalLabels().catch(() => {});
 });
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === LOCAL_UPDATE_ALARM) checkLocalUpdate().catch(() => {});
+    if (alarm.name === LABELS_SYNC_ALARM) syncOperationalLabels().catch(() => {});
 });
 ensureLocalUpdateAlarm();
 ensureWhatsAppContentScripts().catch(() => {});
@@ -185,10 +194,16 @@ const allowedRequest = (method, path) => {
     if (method === 'POST' && pathname === '/api/auth/login') return true;
     if (method === 'POST' && /^\/api\/whatsapp\/contact-state\/[^/]+\/claim$/.test(pathname)) return true;
     if (method === 'PATCH' && /^\/api\/whatsapp\/contact-state\/[^/]+$/.test(pathname)) return true;
+    if (method === 'PATCH' && /^\/api\/whatsapp\/chat-labels\/[^/]+$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/(?:connect|disconnect)$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/sync\/[^/]+\/retry$/.test(pathname)) return true;
+    if (method === 'POST' && /^\/api\/integrations\/google-contacts\/sync\/[^/]+\/resolve-name$/.test(pathname)) return true;
     if (method !== 'GET') return false;
     return pathname === '/api/auth/me'
         || pathname === '/api/whatsapp/chats'
         || pathname === '/api/whatsapp/templates'
+        || pathname === '/api/whatsapp/chat-labels'
+        || pathname === '/api/integrations/google-contacts/status'
         || pathname === '/api/shipments/servientrega/ec/agencies'
         || pathname.startsWith('/api/whatsapp/messages/')
         || pathname.startsWith('/api/whatsapp/customer-profile/');
@@ -220,6 +235,7 @@ const adoptPanelToken = async (rawToken) => {
         [SESSION_KEYS.user]: data.user
     };
     await Promise.all([sessionSet(authenticated), localSet(authenticated)]);
+    syncOperationalLabels().catch(() => {});
     chrome.runtime.sendMessage({
         action: 'panelAuthAvailable',
         user: data.user
@@ -278,6 +294,49 @@ const apiRequest = async ({ path, method = 'GET', body }) => {
     return data;
 };
 
+const syncOperationalLabels = async () => {
+    const session = await authGet();
+    if (!session[SESSION_KEYS.token]) return { synced: false, reason: 'not_authenticated' };
+    try {
+        const data = await apiRequest({ path: '/api/whatsapp/chat-labels?country=EC', method: 'GET' });
+        const labels = {};
+        for (const item of Array.isArray(data?.labels) ? data.labels : []) {
+            const phone = String(item?.phone || '').replace(/\D/g, '');
+            const status = item?.operationalStatus || null;
+            if (!phone || !status?.key || !status?.label) continue;
+            labels[phone] = {
+                key: status.key,
+                label: status.label,
+                color: status.color || '#0b9b7e',
+                name: String(item?.name || '').trim(),
+                source: status.source || 'draft',
+                manual: status.manual === true,
+                updatedAt: status.updatedAt || item.updatedAt || null,
+                syncedAt: data.generatedAt || new Date().toISOString()
+            };
+        }
+        await localSet({
+            [LABELS_KEY]: labels,
+            [LABELS_META_KEY]: {
+                syncedAt: data.generatedAt || new Date().toISOString(),
+                stale: false,
+                count: Object.keys(labels).length
+            }
+        });
+        return { synced: true, count: Object.keys(labels).length };
+    } catch (error) {
+        const current = await localGet([LABELS_META_KEY]);
+        await localSet({
+            [LABELS_META_KEY]: {
+                ...(current[LABELS_META_KEY] || {}),
+                stale: true,
+                lastErrorAt: new Date().toISOString()
+            }
+        });
+        throw error;
+    }
+};
+
 const login = async ({ email, password }) => {
     const data = await apiRequest({
         path: '/api/auth/login',
@@ -290,6 +349,7 @@ const login = async ({ email, password }) => {
         [SESSION_KEYS.user]: data.user || null
     };
     await Promise.all([sessionSet(authenticated), localSet(authenticated)]);
+    syncOperationalLabels().catch(() => {});
     return { user: data.user || null };
 };
 
@@ -382,6 +442,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const activeChat = normalizeActiveChat(message.selection);
             if (!activeChat) throw new Error('Conversa sem identificação utilizável.');
             await sessionSet({ [SESSION_KEYS.activeChat]: activeChat });
+            syncOperationalLabels().catch(() => {});
             return activeChat;
         }
         case 'whatsAppChatSwitchStarted': {
@@ -403,6 +464,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             case 'checkLocalUpdate':
                 return checkLocalUpdate();
+            case 'syncOperationalLabels':
+                return syncOperationalLabels();
             case 'panelAuthCandidate':
                 if (!String(sender?.url || '').startsWith(`${API_ORIGIN}/`)) {
                     throw new Error('Origem não autorizada para importar sessão.');

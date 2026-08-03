@@ -16,7 +16,7 @@ const whatsAppScripts = manifest.content_scripts
     .find((entry) => entry.matches.includes('https://web.whatsapp.com/*') && entry.world === 'ISOLATED')
     .js;
 
-assert.equal(manifest.version, '0.12.6');
+assert.equal(manifest.version, '0.13.0');
 assert.ok(whatsAppScripts.includes('whatsapp-funnel-launcher.js'));
 assert.ok(manifest.web_accessible_resources[0].resources.includes('funnel-overlay.html'));
 assert.match(launcher, /document\.querySelector\('#main footer'\)/);
@@ -24,7 +24,7 @@ assert.match(launcher, /startDrag/);
 assert.match(launcher, /startResize/);
 assert.match(launcher, /overlay\.offsetHeight < MIN_HEIGHT/);
 assert.match(launcher, /savedHeight >= MIN_HEIGHT/);
-assert.match(launcher, /INSTALL_VERSION = '0\.12\.6'/);
+assert.match(launcher, /INSTALL_VERSION = '0\.13\.0'/);
 assert.match(launcher, /previousButton\.cloneNode/);
 assert.match(overlay, /\/api\/whatsapp\/templates\?country=EC/);
 assert.match(overlay, /sendThroughWhatsAppWeb/);
@@ -51,7 +51,14 @@ assert.match(serviceWorker, /document\.readyState !== 'complete'/);
 assert.match(serviceWorker, /chrome\.tabs\.reload/);
 assert.match(contentScript, /vitalismenWhatsAppLabelsV1/);
 assert.match(contentScript, /cell-frame-title/);
+assert.match(contentScript, /matches\.length === 1/);
+assert.match(contentScript, /data-stale/);
 assert.match(overlay, /saveContactLabel/);
+assert.match(overlay, /\/api\/whatsapp\/chat-labels\//);
+assert.match(launcher, /data-action="status-select"/);
+assert.match(serviceWorker, /vitalismenOperationalLabelsSync/);
+assert.match(sidepanelHtml, /id="googleContactsCard"/);
+assert.match(sidepanel, /\/api\/integrations\/google-contacts\/status/);
 assert.match(sidepanel, /action: 'sendWhatsAppText'/);
 assert.doesNotMatch(sidepanel, /textContent = 'Copiar'/);
 assert.equal(manifest.permissions.includes('clipboardWrite'), false);

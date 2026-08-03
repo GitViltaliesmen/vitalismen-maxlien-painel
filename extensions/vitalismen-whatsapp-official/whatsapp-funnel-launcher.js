@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const INSTALL_VERSION = '0.12.6';
+    const INSTALL_VERSION = '0.13.0';
     if (window.__vitalismenFunnelLauncherInstalled === INSTALL_VERSION) return;
     window.__vitalismenFunnelLauncherInstalled = INSTALL_VERSION;
 
@@ -20,6 +20,7 @@
     let lastQuickSelectionSignature = '';
     let minimized = false;
     let lastExpandedHeight = 620;
+    let currentStatusPhone = '';
 
     const quickLibrary = globalThis.VitalismenQuickPriceFunnel;
     const activeQuickProduct = globalThis.VitalismenActiveQuickPriceProduct;
@@ -35,6 +36,10 @@
         });
     });
     const api = (path) => sendRuntime({ action: 'api', request: { path, method: 'GET' } });
+    const apiRequest = (path, { method = 'GET', body } = {}) => sendRuntime({
+        action: 'api',
+        request: { path, method, ...(body === undefined ? {} : { body }) }
+    });
     const digits = (value) => String(value || '').replace(/\D/g, '');
     const normalized = (value) => String(value || '').normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -58,6 +63,32 @@
         if (!status) return;
         status.textContent = message;
         status.classList.toggle('error', Boolean(error));
+    };
+    const renderOperationalStatus = (operationalStatus = null, phone = '') => {
+        const select = launcherRoot()?.querySelector('[data-action="status-select"]');
+        if (!select) return;
+        currentStatusPhone = digits(phone);
+        select.disabled = !currentStatusPhone;
+        const automaticOption = select.querySelector('option[value=""]');
+        if (automaticOption) automaticOption.textContent = operationalStatus?.manual
+            ? 'Voltar ao automático'
+            : `Status: ${operationalStatus?.label || 'Atendendo'}`;
+        select.value = operationalStatus?.manual ? operationalStatus.key : '';
+        select.title = operationalStatus?.manual
+            ? `Ajuste manual: ${operationalStatus.label}`
+            : `Automático pelo ${operationalStatus?.source || 'painel'}: ${operationalStatus?.label || 'Atendendo'}`;
+    };
+    const saveOperationalStatus = async (key) => {
+        if (!currentStatusPhone) throw new Error('Selecione uma conversa com telefone.');
+        const result = await apiRequest(`/api/whatsapp/chat-labels/${encodeURIComponent(currentStatusPhone)}`, {
+            method: 'PATCH',
+            body: { overrideStatus: key || null }
+        });
+        renderOperationalStatus(result.operationalStatus, currentStatusPhone);
+        await sendRuntime({ action: 'syncOperationalLabels' }).catch(() => null);
+        setQuickStatus(key
+            ? `Status manual salvo: ${result.operationalStatus?.label || key}.`
+            : `Status automático restaurado: ${result.operationalStatus?.label || 'Atendendo'}.`);
     };
     const insertQuickTextIntoComposer = (text) => {
         const input = document.querySelector('[data-testid="conversation-compose-box-input"]')
@@ -132,14 +163,20 @@
             if (!quickLibrary) return;
             const selection = providedSelection || await sendRuntime({ action: 'activeChatStatus' });
             if (!selection || selection.pending) return;
+            renderOperationalStatus(null, '');
             const chatData = await api('/api/whatsapp/chats?country=EC&fast=1');
             const chats = Array.isArray(chatData) ? chatData : (chatData?.chats || []);
             const chat = findChat(chats, selection);
+            const phone = chatPhone(chat) || digits(selection.phone);
+            const profile = phone
+                ? await api(`/api/whatsapp/customer-profile/${encodeURIComponent(phone)}`).catch(() => ({}))
+                : {};
             const productKey = String(chat?.vslProductKey || chat?.productKey
                 || chat?.customerDraft?.productKey || chat?.assignedAgent || '').trim().toLowerCase();
             if (sequence !== quickContextSequence) return;
             quickDefinition = quickLibrary.definition(productKey) || activeQuickDefinition();
             renderQuickFunnel();
+            renderOperationalStatus(profile?.operationalStatus || null, phone);
         } catch {
             if (sequence === quickContextSequence) {
                 quickDefinition = activeQuickDefinition();
@@ -419,7 +456,7 @@
             host = document.createElement('span');
             host.id = LAUNCHER_HOST_ID;
         }
-        const needsBuild = !host.shadowRoot || !host.shadowRoot.querySelector('[data-toolbar-version="0.12.6"]');
+        const needsBuild = !host.shadowRoot || !host.shadowRoot.querySelector('[data-toolbar-version="0.13.0"]');
         if (needsBuild) {
             const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
             root.innerHTML = `
@@ -463,6 +500,19 @@
                     }
                     button:hover, button.is-active { color: #fff; background: #0b9b7e; }
                     button[hidden], [hidden] { display: none !important; }
+                    select {
+                        flex: 0 0 auto;
+                        height: 30px;
+                        max-width: 190px;
+                        padding: 0 28px 0 11px;
+                        border: 1px solid #087f70;
+                        border-radius: 17px;
+                        color: #075e54;
+                        background: #fff;
+                        font: 700 12px Arial, sans-serif;
+                        cursor: pointer;
+                    }
+                    select:disabled { opacity: .55; cursor: default; }
                     .offers { display: flex; flex: 0 0 auto; flex-wrap: nowrap; align-items: center; gap: 5px; }
                     .quick-label { flex: 0 0 auto; margin: 0 2px 0 4px; color: #52716b; white-space: nowrap; font: 700 10px Arial, sans-serif; }
                     .offer { height: 30px; padding: 0 10px; border-color: #d6a100; color: #6c5100; background: #fff9d8; }
@@ -473,9 +523,21 @@
                     .status:empty { display: none; }
                     .status.error { color: #b3261e; }
                 </style>
-                <div class="toolbar" data-toolbar-version="0.12.6">
+                <div class="toolbar" data-toolbar-version="0.13.0">
                     <button type="button" data-action="general" title="Abrir funil geral Vitalismen">Funil</button>
                     <button type="button" data-action="quick-toggle" hidden>Preço rápido</button>
+                    <select data-action="status-select" title="Status operacional do cliente" disabled>
+                        <option value="">Status: Atendendo</option>
+                        <option value="atendendo">Manual: Atendendo</option>
+                        <option value="comprar_depois">Manual: Comprar depois</option>
+                        <option value="confirmado">Manual: Confirmado</option>
+                        <option value="enviado">Manual: Enviado</option>
+                        <option value="em_rota">Manual: Em rota</option>
+                        <option value="na_agencia">Manual: Na agência</option>
+                        <option value="entregue">Manual: Entregue</option>
+                        <option value="devolvido">Manual: Devolvido</option>
+                        <option value="cancelado">Manual: Cancelado</option>
+                    </select>
                     <div class="offers" data-role="quick-offers" hidden></div>
                     <span class="status" data-role="quick-status" aria-live="polite"></span>
                 </div>
@@ -487,6 +549,13 @@
                 offers.hidden = !offers.hidden;
                 event.currentTarget.classList.toggle('is-active', !offers.hidden);
                 setQuickStatus(offers.hidden ? '' : 'Escolha uma opção para preencher a caixa de mensagem.');
+            });
+            root.querySelector('[data-action="status-select"]').addEventListener('change', (event) => {
+                const select = event.currentTarget;
+                select.disabled = true;
+                saveOperationalStatus(select.value)
+                    .catch((error) => setQuickStatus(error.message, true))
+                    .finally(() => { select.disabled = !currentStatusPhone; });
             });
         } else {
             const previousButton = host.shadowRoot.querySelector('[data-action="general"]');

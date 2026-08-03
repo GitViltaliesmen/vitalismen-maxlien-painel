@@ -142,6 +142,8 @@ run('ssh', [
         'npm run guard:ec-product-micro-layer',
         'npm run guard:ec-dropi-catalog',
         'npm run guard:pickup-notifications',
+        'npm run guard:whatsapp-status-contacts',
+        'npm run test:operational-labels',
         'npm run test:pickup-notifications',
         'npm run guard:freeze-lock'
     ].join(' && ')

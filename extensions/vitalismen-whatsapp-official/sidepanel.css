@@ -1122,3 +1122,32 @@ input:focus { border-color: #128c7e; box-shadow: 0 0 0 3px rgba(18, 140, 126, .1
 .message small { display: block; margin-top: 5px; color: #72857e; text-align: right; font-size: 9px; }
 .empty-state { padding: 24px 12px; color: #72857e; text-align: center; font-size: 12px; }
 .app-error { padding: 10px; border-radius: 10px; background: #ffeded; }
+.google-contacts-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 9px;
+    margin: 0 0 10px;
+    padding: 9px 11px;
+    border: 1px solid #b9ddd3;
+    border-radius: 12px;
+    background: #f1fbf7;
+}
+.google-contacts-card > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.google-contacts-card strong { color: #174d40; font-size: 11px; }
+.google-contacts-card span { overflow: hidden; color: #54766d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.google-contacts-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.google-contacts-actions button {
+    padding: 6px 8px;
+    border: 1px solid #0b9b7e;
+    border-radius: 9px;
+    color: #08705f;
+    background: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.google-contact-status { display: block; margin-top: 2px; color: #5c756d; font-size: 9px; }
+.google-contact-status[data-status="synced"] { color: #19723b; font-weight: 800; }
+.google-contact-status[data-status="conflict"],
+.google-contact-status[data-status="error"] { color: #a54b00; font-weight: 800; }

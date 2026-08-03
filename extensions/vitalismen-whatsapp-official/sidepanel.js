@@ -22,7 +22,9 @@ const elements = Object.fromEntries(
         'markPurchaseButton', 'metaPurchaseStatus',
         'agencySuggestions', 'agencySuggestionsState', 'agencySearchInput',
         'agencySuggestionList', 'prevAgencyBatchBtn', 'sendAgencyListBtn',
-        'nextAgencyBatchBtn'
+        'nextAgencyBatchBtn', 'googleContactsCard', 'googleContactsStatus',
+        'googleConnectButton', 'googleDisconnectButton', 'googleContactStatus',
+        'retryGoogleContactButton', 'resolveGoogleContactNameButton'
     ].map((id) => [id, document.getElementById(id)])
 );
 
@@ -58,7 +60,10 @@ const state = {
     agencyLookupKey: '',
     agencyIntroSentPhones: new Set(),
     metaPurchase: null,
-    metaPurchaseInFlight: false
+    metaPurchaseInFlight: false,
+    user: null,
+    googleContacts: null,
+    googleStatusTimer: null
 };
 
 const orderCatalog = globalThis.VitalismenOrderCatalog;
@@ -143,14 +148,17 @@ const clearTimers = () => {
     clearInterval(state.messageTimer);
     clearInterval(state.activeChatTimer);
     clearTimeout(state.autoSaveTimer);
+    clearInterval(state.googleStatusTimer);
     state.chatTimer = null;
     state.messageTimer = null;
     state.activeChatTimer = null;
     state.autoSaveTimer = null;
+    state.googleStatusTimer = null;
 };
 
 const setAuthenticated = (authenticated, user = null) => {
     state.authenticated = authenticated;
+    state.user = authenticated ? user : null;
     elements.loginView.classList.toggle('hidden', authenticated);
     elements.appView.classList.toggle('hidden', !authenticated);
     elements.logoutButton.classList.toggle('hidden', !authenticated);
@@ -163,6 +171,57 @@ const setAuthenticated = (authenticated, user = null) => {
         state.lastAutoSaveFingerprint = '';
         state.productFunnelOpen = false;
         applyProductFunnelLayout();
+    }
+};
+
+const GOOGLE_CONTACT_SYNC_LABELS = {
+    pending: 'Agenda: pendente',
+    syncing: 'Agenda: salvando…',
+    synced: 'Agenda: contato salvo',
+    conflict: 'Agenda: revisar contato existente',
+    error: 'Agenda: erro; nova tentativa disponível',
+    skipped: 'Agenda: não aplicável'
+};
+
+const renderGoogleContactSync = (sync = null) => {
+    const status = String(sync?.status || '');
+    elements.googleContactStatus.textContent = GOOGLE_CONTACT_SYNC_LABELS[status]
+        || 'Agenda: será salva após pedido confirmado';
+    elements.googleContactStatus.dataset.status = status || 'waiting';
+    elements.retryGoogleContactButton.classList.toggle('hidden', !['conflict', 'error'].includes(status));
+    elements.retryGoogleContactButton.title = sync?.lastError || '';
+    elements.resolveGoogleContactNameButton.classList.toggle(
+        'hidden',
+        status !== 'conflict' || state.user?.role !== 'admin'
+    );
+    elements.resolveGoogleContactNameButton.title = status === 'conflict'
+        ? `Substituir “${sync?.existingName || 'nome atual'}” por “${sync?.name || 'nome da ficha'}”`
+        : '';
+};
+
+const renderGoogleIntegration = (integration = {}) => {
+    state.googleContacts = integration;
+    const isAdmin = state.user?.role === 'admin';
+    if (!integration.configured) {
+        elements.googleContactsStatus.textContent = 'VPS aguardando credenciais seguras';
+    } else if (integration.connected) {
+        const pending = Number(integration.counts?.pending || 0);
+        const conflict = Number(integration.counts?.conflict || 0);
+        elements.googleContactsStatus.textContent = `${integration.accountEmail}${pending ? ` • ${pending} pendente(s)` : ''}${conflict ? ` • ${conflict} revisão(ões)` : ''}${integration.lastError ? ' • verificar conexão' : ''}`;
+    } else {
+        elements.googleContactsStatus.textContent = integration.lastError || 'Conta ainda não conectada';
+    }
+    elements.googleConnectButton.classList.toggle('hidden', !isAdmin);
+    elements.googleConnectButton.textContent = integration.connected ? 'Reconectar' : 'Conectar';
+    elements.googleDisconnectButton.classList.toggle('hidden', !isAdmin || !integration.connected);
+};
+
+const loadGoogleIntegration = async () => {
+    if (!state.authenticated) return;
+    try {
+        renderGoogleIntegration(await api('/api/integrations/google-contacts/status'));
+    } catch (error) {
+        elements.googleContactsStatus.textContent = error.message;
     }
 };
 
@@ -701,6 +760,7 @@ const performAutomaticDraftSave = async () => {
         state.lastAutoSaveFingerprint = autoSaveFingerprint(savedDraft);
         setAutoSaveState('saved', `Dados gravados automaticamente às ${shortTime(Date.now())}`);
         elements.saveStatus.textContent = 'Dados do cliente salvos. Pedido ainda não confirmado.';
+        send({ action: 'syncOperationalLabels' }).catch(() => null);
         showError('');
     } catch (error) {
         setAutoSaveState('paused', 'Falha na gravação automática');
@@ -1320,6 +1380,7 @@ const renderProfile = (profile = {}) => {
         ? `${order.currency || 'USD'} ${order.total}`
         : (draft.total ? `${draft.currency || 'USD'} ${draft.total}` : '');
     state.profile = profile;
+    renderGoogleContactSync(profile.googleContactSync || null);
     setProfileValue(elements.profileOrderId, order.orderId || draft.orderId);
     setProfileValue(elements.profileOrderStatus, order.shippingStatus || order.status || draft.status);
     setProfileValue(elements.profileQuantity, order.quantity || draft.quantity);
@@ -1525,6 +1586,8 @@ const startAuthenticatedApp = async (user = null) => {
     setAuthenticated(true, user);
     if (alreadyRunning) return;
     clearTimers();
+    await loadGoogleIntegration();
+    state.googleStatusTimer = setInterval(loadGoogleIntegration, 60000);
     await loadChats();
     state.chatTimer = setInterval(() => loadChats({ quiet: true }), 3500);
     await pollActiveSelection();
@@ -1556,6 +1619,58 @@ elements.logoutButton.addEventListener('click', async () => {
     setAuthenticated(false);
 });
 elements.refreshButton.addEventListener('click', () => loadChats());
+elements.googleConnectButton?.addEventListener('click', async () => {
+    try {
+        elements.googleConnectButton.disabled = true;
+        const result = await apiRequest('/api/integrations/google-contacts/connect', { method: 'POST', body: {} });
+        if (!/^https:\/\/accounts\.google\.com\//.test(String(result.authUrl || ''))) {
+            throw new Error('URL de autorização Google inválida.');
+        }
+        await chrome.tabs.create({ url: result.authUrl, active: true });
+        elements.googleContactsStatus.textContent = 'Conclua a autorização na nova aba';
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        elements.googleConnectButton.disabled = false;
+    }
+});
+elements.googleDisconnectButton?.addEventListener('click', async () => {
+    if (!window.confirm('Desconectar o Google Contatos? Nenhum contato será apagado.')) return;
+    try {
+        await apiRequest('/api/integrations/google-contacts/disconnect', { method: 'POST', body: {} });
+        await loadGoogleIntegration();
+    } catch (error) {
+        showError(error.message);
+    }
+});
+elements.retryGoogleContactButton?.addEventListener('click', async () => {
+    const phone = chatPhone(state.selectedChat);
+    if (!phone) return;
+    try {
+        elements.retryGoogleContactButton.disabled = true;
+        await apiRequest(`/api/integrations/google-contacts/sync/${encodeURIComponent(phone)}/retry`, { method: 'POST', body: {} });
+        await loadProfile();
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        elements.retryGoogleContactButton.disabled = false;
+    }
+});
+elements.resolveGoogleContactNameButton?.addEventListener('click', async () => {
+    const phone = chatPhone(state.selectedChat);
+    const sync = state.profile?.googleContactSync || {};
+    if (!phone || sync.status !== 'conflict') return;
+    if (!window.confirm(`Atualizar o nome existente “${sync.existingName || ''}” para “${sync.name || ''}” no Google Contatos?`)) return;
+    try {
+        elements.resolveGoogleContactNameButton.disabled = true;
+        await apiRequest(`/api/integrations/google-contacts/sync/${encodeURIComponent(phone)}/resolve-name`, { method: 'POST', body: {} });
+        await loadProfile();
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        elements.resolveGoogleContactNameButton.disabled = false;
+    }
+});
 elements.searchInput.addEventListener('input', renderChats);
 elements.backButton.addEventListener('click', () => {
     clearInterval(state.messageTimer);
@@ -1827,6 +1942,7 @@ const persistCustomerDraft = async ({ markPurchase = false } = {}) => {
                 : `Pedido ${orderId} cadastrado. Nenhum pedido Dropi foi enviado automaticamente.`)
             : 'Ficha salva no backend. Nenhuma mensagem foi enviada.';
         showError('');
+        await send({ action: 'syncOperationalLabels' }).catch(() => null);
         await loadProfile();
     } catch (error) {
         elements.saveStatus.textContent = '';

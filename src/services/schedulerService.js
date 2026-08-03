@@ -27,6 +27,7 @@ import { processAdminBuyLaterFollowups } from './adminBuyLaterFollowupService.js
 import { processZapiChatWatchdog } from './zapiChatWatchdogService.js';
 import { processPassiveFunnelObserver } from './passiveFunnelObserverService.js';
 import { processNitrixFastStateJobs } from './nitrixFastStateService.js';
+import { enqueueEligibleGoogleContacts, processNextGoogleContactSync } from './googleContactsService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
@@ -45,6 +46,7 @@ let isRunningAdminBuyLaterFollowups = false;
 let isRunningZapiChatWatchdog = false;
 let isRunningPassiveFunnelObserver = false;
 let isRunningNitrixFastState = false;
+let isRunningGoogleContactsSync = false;
 let lastHealthAlertAt = 0;
 let lastHealthAlertKey = '';
 
@@ -227,6 +229,15 @@ export const startScheduler = () => {
         console.log(`[SCHEDULER] Nitrix Fast State enabled every ${intervalMs}ms.`);
     } else {
         console.log('[SCHEDULER] Nitrix Fast State disabled. Set NITRIX_FAST_STATE_ENABLED=true to enable.');
+    }
+    if (flagEnabled('GOOGLE_CONTACTS_SYNC_ENABLED', true)) {
+        const intervalSeconds = parseNumber('GOOGLE_CONTACTS_SYNC_INTERVAL_SECONDS', 60);
+        const intervalMs = Math.max(60, intervalSeconds) * 1000;
+        setInterval(checkGoogleContactsSync, intervalMs);
+        setTimeout(() => checkGoogleContactsSync(), 30000);
+        console.log(`[SCHEDULER] Google Contacts sync enabled every ${Math.round(intervalMs / 1000)} seconds; concurrency=1.`);
+    } else {
+        console.log('[SCHEDULER] Google Contacts sync disabled. Set GOOGLE_CONTACTS_SYNC_ENABLED=true after OAuth validation.');
     }
     // Watchdog: restart Baileys only when Baileys is the active engine.
     if (flagEnabled('WHATSAPP_CONNECT_ENABLED', true)) {
@@ -567,6 +578,22 @@ const checkPickupReminders = async () => {
         console.error('Pickup Reminder Scheduler Error:', error);
     } finally {
         isRunningPickupReminders = false;
+    }
+};
+
+const checkGoogleContactsSync = async () => {
+    if (isRunningGoogleContactsSync) return;
+    isRunningGoogleContactsSync = true;
+    try {
+        const queued = await enqueueEligibleGoogleContacts({ limit: 100 });
+        const result = await processNextGoogleContactSync();
+        if (queued.queued || result.processed) {
+            console.log(`[GOOGLE_CONTACTS] elegiveis=${queued.eligible || 0}; novos=${queued.queued || 0}; processados=${result.processed || 0}; sincronizados=${result.synced || 0}; conflitos=${result.conflict || 0}; falhas=${result.failed || 0}${result.reason ? `; motivo=${result.reason}` : ''}.`);
+        }
+    } catch (error) {
+        console.error('[GOOGLE_CONTACTS] scheduler failure:', error?.message || error);
+    } finally {
+        isRunningGoogleContactsSync = false;
     }
 };
 

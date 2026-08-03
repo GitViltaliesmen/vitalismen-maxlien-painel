@@ -11,7 +11,9 @@
     let lastActivationSignature = '';
     let lastActivationAt = 0;
     const LABELS_KEY = 'vitalismenWhatsAppLabelsV1';
+    const LABELS_META_KEY = 'vitalismenWhatsAppLabelsMetaV2';
     let contactLabels = {};
+    let labelsMeta = {};
     let paintTimer = null;
 
     const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -43,6 +45,10 @@
                 font: 700 9px/1.2 Arial, sans-serif !important;
                 letter-spacing: .01em;
                 white-space: nowrap;
+            }
+            .vitalismen-chat-label[data-stale="true"] {
+                opacity: .68;
+                outline: 1px dashed rgba(255,255,255,.85);
             }
         `;
         (document.head || document.documentElement).appendChild(style);
@@ -84,6 +90,11 @@
             if (chip.textContent !== label.label) chip.textContent = label.label;
             const color = label.color || '#0b9b7e';
             if (chip.style.backgroundColor !== color) chip.style.backgroundColor = color;
+            const stale = labelsMeta?.stale === true;
+            chip.dataset.stale = stale ? 'true' : 'false';
+            chip.title = stale
+                ? `${label.label} · aguardando sincronização com o painel`
+                : `${label.label} · ${label.manual ? 'ajuste manual' : 'automático'}`;
         });
     };
     const scheduleLabelPaint = (delay = 80) => {
@@ -263,13 +274,15 @@
 
     window.addEventListener('popstate', scheduleRead);
     window.addEventListener('hashchange', scheduleRead);
-    chrome.storage?.local?.get?.([LABELS_KEY], (stored) => {
+    chrome.storage?.local?.get?.([LABELS_KEY, LABELS_META_KEY], (stored) => {
         contactLabels = stored?.[LABELS_KEY] || {};
+        labelsMeta = stored?.[LABELS_META_KEY] || {};
         scheduleLabelPaint(0);
     });
     chrome.storage?.onChanged?.addListener?.((changes, area) => {
-        if (area !== 'local' || !changes[LABELS_KEY]) return;
-        contactLabels = changes[LABELS_KEY].newValue || {};
+        if (area !== 'local' || (!changes[LABELS_KEY] && !changes[LABELS_META_KEY])) return;
+        if (changes[LABELS_KEY]) contactLabels = changes[LABELS_KEY].newValue || {};
+        if (changes[LABELS_META_KEY]) labelsMeta = changes[LABELS_META_KEY].newValue || {};
         scheduleLabelPaint(0);
     });
     scheduleRead(50);

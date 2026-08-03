@@ -10,6 +10,8 @@ import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import VslVisit from '../models/VslVisit.js';
+import AutomationRun from '../models/AutomationRun.js';
+import GoogleContactSync from '../models/GoogleContactSync.js';
 import { getSalesMedia } from '../services/salesMediaCatalog.js';
 import { disconnectWhatsApp, getAllStatuses, getOwnPhoneDigits, getSock, getStatus, registerWhatsAppSession, startWhatsApp } from '../whatsapp/connection.js';
 import { sendText } from '../whatsapp/sendText.js';
@@ -32,6 +34,11 @@ import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
+import {
+    isOperationalChatStatusKey,
+    resolveOperationalChatStatus
+} from '../services/operationalChatStatusService.js';
+import { publicGoogleContactSync } from '../services/googleContactsService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2969,6 +2976,119 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
 
+const latestByPhoneTail = (records = [], phoneSelector = () => '') => {
+    const map = new Map();
+    records.forEach((record) => {
+        phoneTailCandidates(phoneSelector(record)).forEach((tail) => {
+            if (!map.has(tail)) map.set(tail, record);
+        });
+    });
+    return map;
+};
+
+const recordForPhoneTail = (map, phone = '') => phoneTailCandidates(phone)
+    .sort((left, right) => right.length - left.length)
+    .map((tail) => map.get(tail))
+    .find(Boolean) || null;
+
+router.get('/chat-labels', async (req, res) => {
+    try {
+        const country = normalizePanelCountry(req.query.country || 'EC');
+        if (country !== 'EC') return res.json({ labels: [], generatedAt: new Date().toISOString() });
+        const states = await ContactState.find({
+            $or: [
+                { countryCode: 'EC' },
+                { phoneDigits: /^593/ },
+                { 'metadata.customerDraft.phone': /^\+?593/ }
+            ]
+        }).sort({ updatedAt: -1 }).limit(700).lean();
+        const phones = [...new Set(states
+            .map((state) => realPhoneFromState(state) || digitsOnly(state.metadata?.customerDraft?.phone))
+            .filter((phone) => phone.startsWith('593') && phone.length >= 11))];
+        if (!phones.length) return res.json({ labels: [], generatedAt: new Date().toISOString() });
+        const tails = [...new Set(phones.flatMap(phoneTailCandidates))];
+        const phoneConditions = tails.map((tail) => ({ 'customer.phone': { $regex: `${tail}$` } }));
+        const shipmentConditions = tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } }));
+        const [orders, shipments, contactSyncs] = await Promise.all([
+            Order.find({ country: 'EC', $or: phoneConditions })
+                .sort({ updatedAt: -1, entryAt: -1, createdAt: -1 }).limit(1000).lean(),
+            Shipment.find({ country: 'EC', $or: shipmentConditions })
+                .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 }).limit(1000).lean(),
+            GoogleContactSync.find({ phoneDigits: { $in: phones } }).lean().catch(() => [])
+        ]);
+        const orderMap = latestByPhoneTail(orders, (order) => order.customer?.phone);
+        const shipmentMap = latestByPhoneTail(shipments, (shipment) => shipment.client?.phone);
+        const syncMap = new Map(contactSyncs.map((sync) => [sync.phoneDigits, sync]));
+        const seen = new Set();
+        const labels = [];
+        for (const state of states) {
+            const phone = realPhoneFromState(state) || digitsOnly(state.metadata?.customerDraft?.phone);
+            if (!phone.startsWith('593') || seen.has(phone)) continue;
+            seen.add(phone);
+            const order = recordForPhoneTail(orderMap, phone);
+            const phoneShipment = recordForPhoneTail(shipmentMap, phone);
+            const shipment = order?.orderId
+                ? (shipments.find((candidate) => candidate.orderId === order.orderId) || phoneShipment)
+                : phoneShipment;
+            const operationalStatus = resolveOperationalChatStatus({ contactState: state, order, shipment });
+            labels.push({
+                phone,
+                name: order?.customer?.name
+                    || state.metadata?.customerDraft?.name
+                    || state.metadata?.profileName
+                    || phone,
+                operationalStatus,
+                googleContactSync: publicGoogleContactSync(syncMap.get(phone) || null),
+                updatedAt: operationalStatus.updatedAt || state.updatedAt || state.createdAt
+            });
+        }
+        return res.json({ labels, generatedAt: new Date().toISOString() });
+    } catch (error) {
+        console.error('[WHATSAPP_LABELS] falha ao listar etiquetas:', error);
+        return res.status(500).json({ error: 'Falha ao carregar etiquetas operacionais.' });
+    }
+});
+
+router.patch('/chat-labels/:phone', async (req, res) => {
+    try {
+        const phoneDigits = digitsOnly(req.params.phone);
+        if (!phoneDigits.startsWith('593') || phoneDigits.length < 11) {
+            return res.status(400).json({ error: 'Etiqueta permitida somente para cliente real EC.' });
+        }
+        const overrideStatus = req.body?.overrideStatus === null
+            ? ''
+            : String(req.body?.overrideStatus || '').trim().toLowerCase();
+        if (overrideStatus && !isOperationalChatStatusKey(overrideStatus)) {
+            return res.status(400).json({ error: 'Status operacional invalido.' });
+        }
+        const state = await findOrCreateContactState(phoneDigits);
+        const before = state.metadata?.whatsappLabelOverride?.key || '';
+        const metadata = { ...(state.metadata || {}) };
+        if (overrideStatus) {
+            metadata.whatsappLabelOverride = {
+                key: overrideStatus,
+                updatedAt: new Date().toISOString(),
+                updatedBy: req.user?.email || req.user?.name || 'operador'
+            };
+        } else {
+            delete metadata.whatsappLabelOverride;
+        }
+        state.metadata = metadata;
+        state.markModified('metadata');
+        await state.save();
+        const operationalStatus = resolveOperationalChatStatus({ contactState: state });
+        await AutomationRun.create({
+            kind: 'whatsapp_label_override',
+            requestedBy: req.user?.email || req.user?.name || 'operador',
+            payload: { phoneDigits, before, after: overrideStatus || 'automatico' }
+        });
+        return res.json({ success: true, operationalStatus });
+    } catch (error) {
+        console.error('[WHATSAPP_LABELS] falha ao alterar etiqueta:', error);
+        return res.status(500).json({ error: 'Falha ao salvar ajuste da etiqueta.' });
+    }
+});
+
 router.get('/sessions', adminOnly, (req, res) => {
     res.json({
         defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
@@ -4166,6 +4286,17 @@ router.get('/customer-profile/:phone', async (req, res) => {
             || orders.find((order) => !['delivered', 'cancelled', 'returned'].includes(String(order.status || '').toLowerCase()))
             || orders[0]
             || null;
+        const statusShipment = (activeOrder?.orderId
+            ? shipmentCandidates.find((shipment) => shipment.orderId === activeOrder.orderId)
+            : null) || shipmentCandidates[0] || null;
+        const operationalStatus = resolveOperationalChatStatus({
+            contactState: latestState,
+            order: activeOrder,
+            shipment: statusShipment
+        });
+        const googleContactSync = primaryPhone
+            ? await GoogleContactSync.findOne({ phoneDigits: primaryPhone }).lean().catch(() => null)
+            : null;
         const allChannels = [...new Set([
             ...chatIds,
             ...realPhones,
@@ -4215,6 +4346,8 @@ router.get('/customer-profile/:phone', async (req, res) => {
                 shippingStatus: activeOrder.shippingStatus || '',
                 customer: activeOrder.customer || {}
             } : null,
+            operationalStatus,
+            googleContactSync: publicGoogleContactSync(googleContactSync),
             continuity: {
                 canContinueAcrossNumbers: true,
                 lastSessionId: latestState?.metadata?.lastSessionId || '',

@@ -17,6 +17,8 @@ run(process.execPath, ['scripts/guard-freeze-lock-ec.mjs'], { timeout: 60000 });
 run(process.execPath, ['scripts/guard-status-panels-freeze.mjs'], { timeout: 60000 });
 run(process.execPath, ['scripts/audit-customer-draft-zero-quantity.mjs'], { timeout: 60000 });
 run(process.execPath, ['scripts/audit-pickup-notification-guard.mjs'], { timeout: 60000 });
+run(process.execPath, ['scripts/audit-whatsapp-status-google-contacts.mjs'], { timeout: 60000 });
+run(process.execPath, ['--test', 'tests/operational-chat-status.test.mjs', 'tests/google-contacts-security.test.mjs'], { timeout: 60000 });
 run(process.execPath, ['--test', 'tests/shipment-pickup-notification.test.mjs'], { timeout: 60000 });
 
 if (!confirm) {

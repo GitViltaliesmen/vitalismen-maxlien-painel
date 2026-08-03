@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vitalismen • WhatsApp Oficial",
-  "version": "0.12.6",
-  "description": "CRM Vitalismen com funis gerais e precos rapidos independentes por produto.",
+  "version": "0.13.0",
+  "description": "CRM Vitalismen com status operacional e agenda Google independentes dos funis por produto.",
   "minimum_chrome_version": "114",
   "permissions": [
     "sidePanel",
