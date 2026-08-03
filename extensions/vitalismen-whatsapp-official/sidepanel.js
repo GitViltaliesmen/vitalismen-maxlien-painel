@@ -111,6 +111,16 @@ const dateTimeIsoValue = (value) => {
     const date = new Date(raw);
     return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 };
+const BUY_LATER_MIN_LEAD_MS = 5 * 60 * 1000;
+const buyLaterMinimumLocalValue = (now = Date.now()) => (
+    dateTimeLocalValue(Math.ceil((now + BUY_LATER_MIN_LEAD_MS) / 60000) * 60000)
+);
+const defaultBuyLaterLocalValue = (now = Date.now()) => {
+    const date = new Date(now);
+    date.setDate(date.getDate() + 1);
+    date.setHours(9, 0, 0, 0);
+    return dateTimeLocalValue(date);
+};
 const chatName = (chat) => String(
     chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
 );
@@ -557,7 +567,10 @@ const renderBuyLaterSchedule = () => {
     elements.buyLaterSchedule?.classList.toggle('hidden', !enabled);
     if (elements.draftBuyLaterFollowupAt) {
         elements.draftBuyLaterFollowupAt.required = enabled;
-        elements.draftBuyLaterFollowupAt.min = dateTimeLocalValue(Date.now());
+        elements.draftBuyLaterFollowupAt.min = buyLaterMinimumLocalValue();
+        if (enabled && !elements.draftBuyLaterFollowupAt.value) {
+            elements.draftBuyLaterFollowupAt.value = defaultBuyLaterLocalValue();
+        }
     }
 };
 
