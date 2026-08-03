@@ -115,11 +115,20 @@ const BUY_LATER_MIN_LEAD_MS = 5 * 60 * 1000;
 const buyLaterMinimumLocalValue = (now = Date.now()) => (
     dateTimeLocalValue(Math.ceil((now + BUY_LATER_MIN_LEAD_MS) / 60000) * 60000)
 );
+const buyLaterMaximumLocalValue = (now = Date.now()) => {
+    const date = new Date(now);
+    date.setMonth(11, 31);
+    date.setHours(23, 59, 0, 0);
+    return dateTimeLocalValue(date);
+};
 const defaultBuyLaterLocalValue = (now = Date.now()) => {
     const date = new Date(now);
     date.setDate(date.getDate() + 1);
     date.setHours(9, 0, 0, 0);
-    return dateTimeLocalValue(date);
+    const yearEnd = new Date(now);
+    yearEnd.setMonth(11, 31);
+    yearEnd.setHours(23, 59, 0, 0);
+    return dateTimeLocalValue(date <= yearEnd ? date : yearEnd);
 };
 const chatName = (chat) => String(
     chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
@@ -568,6 +577,7 @@ const renderBuyLaterSchedule = () => {
     if (elements.draftBuyLaterFollowupAt) {
         elements.draftBuyLaterFollowupAt.required = enabled;
         elements.draftBuyLaterFollowupAt.min = buyLaterMinimumLocalValue();
+        elements.draftBuyLaterFollowupAt.max = buyLaterMaximumLocalValue();
         if (enabled && !elements.draftBuyLaterFollowupAt.value) {
             elements.draftBuyLaterFollowupAt.value = defaultBuyLaterLocalValue();
         }
@@ -582,6 +592,9 @@ const validateBuyLaterSchedule = (draft = {}) => {
     }
     if (parsed.getTime() <= Date.now()) {
         return { ok: false, error: 'A data de “Comprar depois” precisa estar no futuro.' };
+    }
+    if (parsed.getFullYear() !== new Date().getFullYear()) {
+        return { ok: false, error: 'Escolha uma data dentro do ano atual.' };
     }
     return { ok: true, error: '' };
 };
