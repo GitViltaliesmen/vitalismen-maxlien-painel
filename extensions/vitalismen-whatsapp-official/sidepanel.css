@@ -919,6 +919,15 @@ input:focus { border-color: #128c7e; box-shadow: 0 0 0 3px rgba(18, 140, 126, .1
     font-weight: 600;
     line-height: 1.3;
 }
+.buy-later-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 7px;
+}
+.buy-later-actions small { flex: 1; }
+.buy-later-actions button { flex: 0 0 auto; }
 .buy-later-schedule input:invalid {
     border-color: #dc2626;
 }
