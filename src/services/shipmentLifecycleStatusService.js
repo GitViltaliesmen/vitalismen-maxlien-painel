@@ -36,6 +36,10 @@ export const orderStatusForLogisticsStatus = (status = '') => {
     return '';
 };
 
+export const adminStatusForLogisticsStatus = (status = '') => (
+    orderStatusForLogisticsStatus(status)
+);
+
 const applyShipmentOutcome = (shipment, status, now) => {
     shipment.outcomes = shipment.outcomes || {};
     shipment.automation = shipment.automation || {};
@@ -159,7 +163,10 @@ export const applyShipmentLifecycleStatus = async ({
                 );
             }
             await order.save();
-            const adminStatus = normalizedStatus === 'NOVEDAD' ? 'conferir_pedidos' : orderStatus;
+            // NOVEDAD e' uma revisao logistica de um pedido que ja foi enviado.
+            // A ocorrencia permanece na reviewQueue, mas nao pode rebaixar o
+            // cliente para a fila operacional de pedidos ainda nao enviados.
+            const adminStatus = adminStatusForLogisticsStatus(normalizedStatus);
             adminSync = syncOrderToOnlineAdminPanel(order, {
                 status: adminStatus,
                 action: `carrier_status_${normalizedStatus.toLowerCase()}`
