@@ -10,7 +10,9 @@ import { resolveCountryAudio } from '../services/audioTemplateService.js';
 import Message from '../models/Message.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
-const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
+const AUTH_BASE_DIR = process.env.WHATSAPP_AUTH_DIR
+    ? path.resolve(process.env.WHATSAPP_AUTH_DIR)
+    : path.join(process.cwd(), 'auth_info_baileys');
 const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
