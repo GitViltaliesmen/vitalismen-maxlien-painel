@@ -10,9 +10,10 @@ import {
     resolveOutboundPhoneDigits
 } from '../services/outboundDedupeService.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
-import { sendZapiText, zapiConfig } from '../services/zapiClient.js';
+import { sendZapiText } from '../services/zapiClient.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { shouldUseZapiForOutbound } from './zapiOutboundRouting.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 
@@ -27,32 +28,7 @@ const withTimeout = (promise, ms, label) => Promise.race([
     new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms))
 ]);
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
-const parsePhoneList = (...values) => [
-    ...new Set(
-        values
-            .flatMap((value) => String(value || '').split(','))
-            .map((item) => digitsOnly(item))
-            .filter(Boolean)
-    )
-];
-const isSamePhone = (left, right) => {
-    const a = digitsOnly(left);
-    const b = digitsOnly(right);
-    if (!a || !b) return false;
-    return a === b || a.startsWith(b) || b.startsWith(a);
-};
 const looksLikeRealPhoneDigits = (value = '') => /^(593|57|55)\d{8,13}$/.test(digitsOnly(value));
-const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
-const zapiOperationalTestRecipients = () => parsePhoneList(
-    process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
-    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
-    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
-    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS
-);
-const isZapiOperationalTestRecipient = (phone = '') => {
-    const digits = digitsOnly(phone);
-    return Boolean(digits && zapiOperationalTestRecipients().some((allowed) => isSamePhone(digits, allowed)));
-};
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeAntiSpamTextKey = (value = '') => String(value || '')
     .normalize('NFD')
@@ -167,23 +143,15 @@ const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
         return { blocked: false, key };
     }
 };
-const shouldUseZapiForText = ({ targetJid, recipientDigits, options = {} }) => {
-    if (!zapiConfig().enabled) return false;
-    const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
-    if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
-    const country = String(options.country || '').toUpperCase();
-    return options.provider === 'zapi'
-        || options.sessionId === 'zapi'
-        || options.sendMode === 'manual_panel'
-        || ['EC', 'CO'].includes(country);
-};
 const zapiFailoverEnabled = () => String(process.env.OUTBOUND_ZAPI_FAILOVER_ENABLED || 'true').toLowerCase() !== 'false';
 const shouldTryZapiTextFailover = ({ targetJid, recipientDigits, options = {}, reason = '' } = {}) => {
     if (!zapiFailoverEnabled() || options.zapiFailoverAttempt === true) return false;
     if (options.provider === 'zapi' || options.sessionId === 'zapi') return false;
-    if (!zapiConfig().enabled) return false;
-    const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
-    if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
+    if (!shouldUseZapiForOutbound({
+        targetJid,
+        recipientDigits,
+        options: { ...options, provider: 'zapi' }
+    })) return false;
     const value = String(reason || '').toLowerCase();
     return !value || /timeout|not.*ready|ready|closed|unauthorized_session|blocked_session|session|socket|connection|baileys|send_text/.test(value);
 };
@@ -323,7 +291,7 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
         return false;
     }
 
-    if (shouldUseZapiForText({ targetJid, recipientDigits, options })) {
+    if (shouldUseZapiForOutbound({ targetJid, recipientDigits, options })) {
         try {
             const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
             const response = await sendZapiText({

@@ -1,4 +1,5 @@
 import { zapiConfig } from '../services/zapiClient.js';
+import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -37,10 +38,11 @@ export const shouldUseZapiForOutbound = ({ targetJid, recipientDigits = '', opti
     const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
     if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
     const country = String(options.country || '').toUpperCase();
-    return options.provider === 'zapi'
+    const legacyEligible = options.provider === 'zapi'
         || options.sessionId === 'zapi'
         || options.sendMode === 'manual_panel'
         || ['EC', 'CO'].includes(country);
+    return whatsappWebCutoverPolicy().shouldUseZapiOutbound({ phone, country, legacyEligible });
 };
 
 export const zapiPhoneForOutbound = ({ targetJid, recipientDigits = '' } = {}) => (

@@ -9,6 +9,7 @@ import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
+import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -1142,16 +1143,28 @@ router.post('/webhook/delivery', async (req, res) => {
 router.post('/webhook', async (req, res) => {
     try {
         const payload = req.body || {};
+        const classification = classifyZapiGenericWebhookPayload(payload);
+        if (classification.kind === 'delivery') {
+            const forwarded = await forwardColombiaZapiWebhook(payload);
+            if (forwarded.forwarded) {
+                console.log('[ZAPI-WEBHOOK] delivery forwarded to CO');
+                return res.json({ ok: true, routed: 'co_forward' });
+            }
+            const result = await applyZapiDeliveryPayload(payload);
+            console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
+            return res.json({ ok: true, result, routed: 'delivery' });
+        }
+        const cutoverPolicy = whatsappWebCutoverPolicy();
+        const phone = zapiPhoneFromPayload(payload);
+        const country = zapiPayloadCountry(payload);
+        if (!cutoverPolicy.canProcessZapiInbound(phone, country)) {
+            console.log(`[ZAPI-WEBHOOK] inbound ignorado pela politica de transicao | mode=${cutoverPolicy.mode}`);
+            return res.json({ ok: true, skipped: true, reason: 'cutover_policy', mode: cutoverPolicy.mode });
+        }
         const forwarded = await forwardColombiaZapiWebhook(payload);
         if (forwarded.forwarded) {
             console.log('[ZAPI-WEBHOOK] event forwarded to CO');
             return res.json({ ok: true, routed: 'co_forward' });
-        }
-        const classification = classifyZapiGenericWebhookPayload(payload);
-        if (classification.kind === 'delivery') {
-            const result = await applyZapiDeliveryPayload(payload);
-            console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
-            return res.json({ ok: true, result, routed: 'delivery' });
         }
         const result = await recordZapiInboundPayload(payload);
         const buyLaterReply = result.body
@@ -1187,15 +1200,21 @@ router.post('/webhook', async (req, res) => {
 router.post('/webhook/received', async (req, res) => {
     try {
         const payload = req.body || {};
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] received forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
-        }
         const providerMessageId = zapiMessageIdFromPayload(payload);
         const phone = zapiPhoneFromPayload(payload);
         const fromMe = zapiFromMeFromPayload(payload);
         if (!fromMe) {
+            const cutoverPolicy = whatsappWebCutoverPolicy();
+            const country = zapiPayloadCountry(payload);
+            if (!cutoverPolicy.canProcessZapiInbound(phone, country)) {
+                console.log(`[ZAPI-WEBHOOK] received ignorado pela politica de transicao | mode=${cutoverPolicy.mode}`);
+                return res.json({ ok: true, skipped: true, reason: 'cutover_policy', mode: cutoverPolicy.mode });
+            }
+            const forwarded = await forwardColombiaZapiWebhook(payload);
+            if (forwarded.forwarded) {
+                console.log('[ZAPI-WEBHOOK] received forwarded to CO');
+                return res.json({ ok: true, routed: 'co_forward' });
+            }
             const result = await recordZapiInboundPayload(payload);
             const buyLaterReply = result.body
                 ? await handleBuyLaterConfirmationReply({
@@ -1221,6 +1240,11 @@ router.post('/webhook/received', async (req, res) => {
             }
             console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
             return res.json({ ok: true, result });
+        }
+        const forwarded = await forwardColombiaZapiWebhook(payload);
+        if (forwarded.forwarded) {
+            console.log('[ZAPI-WEBHOOK] received delivery forwarded to CO');
+            return res.json({ ok: true, routed: 'co_forward' });
         }
         const result = await applyZapiDeliveryPayload({
             ...payload,

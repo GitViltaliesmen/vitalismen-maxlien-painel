@@ -39,6 +39,7 @@ import {
     resolveOperationalChatStatus
 } from '../services/operationalChatStatusService.js';
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
+import { assessWhatsAppWebCutoverReadiness } from '../services/whatsappWebCutoverPolicy.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2975,6 +2976,10 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
+
+router.get('/cutover-readiness', adminOnly, (_req, res) => {
+    return res.json(assessWhatsAppWebCutoverReadiness({ statuses: getAllStatuses() }));
+});
 
 const latestByPhoneTail = (records = [], phoneSelector = () => '') => {
     const map = new Map();

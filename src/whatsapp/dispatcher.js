@@ -9,6 +9,7 @@ import { handlePickupProofInbound, isPickupProofText } from '../services/shipmen
 import { transcribeInboundAudioBuffer } from '../services/inboundAudioTranscriptionService.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 
 const debugUpsert = String(process.env.WHATSAPP_DEBUG_UPSERT || '') === 'true';
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
@@ -35,6 +36,7 @@ const operationalPanelPhones = () => [
     process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
     process.env.WHATSAPP_AUTOMATION_ALLOWED_RECIPIENTS,
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
+    process.env.WHATSAPP_WEB_TEST_RECIPIENTS,
     process.env.WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS
 ].flatMap(parseDigitsList);
 
@@ -230,7 +232,14 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
         const senderPn = msg.key?.senderPn || msg.key?.participant || null;
         const knownEcPhone = await knownEcuadorPhoneForLid(remoteJid);
         const operationalPanelPhone = isOperationalPanelPhone(remoteJid, senderPn);
-        if (ecOnlyInboundEnabled() && !operationalPanelPhone && !isAllowedEcuadorCustomerJid(remoteJid, senderPn) && !knownEcPhone) {
+        const cutoverPolicy = whatsappWebCutoverPolicy();
+        const cutoverPhone = knownEcPhone || senderPn || remoteJid;
+        const cutoverCountry = knownEcPhone || isAllowedEcuadorCustomerJid(remoteJid, senderPn) ? 'EC' : '';
+        if (!cutoverPolicy.canProcessWebInbound(cutoverPhone, cutoverCountry)) {
+            console.log(`[DISPATCHER] inbound Web isolado pela politica de transicao | mode=${cutoverPolicy.mode} | session=${sessionId}`);
+            return;
+        }
+        if (ecOnlyInboundEnabled() && cutoverPolicy.mode !== 'web_only' && !operationalPanelPhone && !isAllowedEcuadorCustomerJid(remoteJid, senderPn) && !knownEcPhone) {
             console.log(`[DISPATCHER] inbound bloqueado fora do EC -> ${remoteJid} | senderPn=${senderPn || 'sem_senderPn'} | session=${sessionId}`);
             return;
         }

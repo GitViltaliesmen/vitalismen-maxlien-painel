@@ -4,6 +4,11 @@ import { getQueueSize } from '../whatsapp/queue.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import { getZapiDevice, getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
+import {
+    assessWhatsAppWebCutoverReadiness,
+    WHATSAPP_WEB_CUTOVER_MODES,
+    whatsappWebCutoverPolicy
+} from '../services/whatsappWebCutoverPolicy.js';
 
 const router = express.Router();
 
@@ -22,8 +27,13 @@ router.get('/', async (req, res) => {
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
         const whatsappConnectEnabled = String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() !== 'false';
-        const zapiFrozen = String(process.env.WHATSAPP_OUTBOUND_PROVIDER || '').toLowerCase() === 'zapi'
-            || Boolean(process.env.ZAPI_OPERATIONAL_PHONE || process.env.ZAPI_CONNECTED_PHONE || process.env.ZAPI_OPERATION_PHONE);
+        const cutoverPolicy = whatsappWebCutoverPolicy();
+        const webSessionRequired = [
+            WHATSAPP_WEB_CUTOVER_MODES.WEB_TEST,
+            WHATSAPP_WEB_CUTOVER_MODES.WEB_PRIMARY,
+            WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY
+        ].includes(cutoverPolicy.mode);
+        const zapiRequired = cutoverPolicy.mode !== WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
@@ -31,7 +41,7 @@ router.get('/', async (req, res) => {
             name: '',
             error: ''
         };
-        if (!whatsappConnectEnabled && zapiFrozen && zapi.configured.enabled) {
+        if (zapiRequired && zapi.configured.enabled) {
             try {
                 const [zapiStatus, zapiDevice] = await Promise.all([
                     getZapiStatus(),
@@ -51,25 +61,28 @@ router.get('/', async (req, res) => {
         const memoryBackedContacts = await ContactState.countDocuments({ 'metadata.aiMemory.updatedAt': { $exists: true } });
         const lastInbound = await Message.findOne({ isFromMe: false, isBot: false })
             .sort({ createdAt: -1, timestamp: -1 })
-            .select('chatId peerPhone body createdAt sessionId')
+            .select('createdAt sessionId provider type')
             .lean();
         const degradedReasons = [];
 
-        if (whatsappConnectEnabled && !connectedSessions.length) degradedReasons.push('no_connected_whatsapp_session');
-        if (!whatsappConnectEnabled && zapiFrozen && !zapi.connected) degradedReasons.push('zapi_not_connected');
-        if (loggedOutSessions.length) degradedReasons.push('logged_out_session_present');
+        if (webSessionRequired && (!whatsappConnectEnabled || !connectedSessions.length)) degradedReasons.push('no_connected_whatsapp_session');
+        if (zapiRequired && !zapi.connected) degradedReasons.push('zapi_not_connected');
+        if (webSessionRequired && loggedOutSessions.length) degradedReasons.push('logged_out_session_present');
         if (pendingTasks > 50) degradedReasons.push('large_inbound_queue');
 
         const zapiSession = {
-            sessionId: zapi.phone || process.env.ZAPI_OPERATIONAL_PHONE || process.env.ZAPI_CONNECTED_PHONE || 'zapi',
-            ownPhoneDigits: zapi.phone || process.env.ZAPI_OPERATIONAL_PHONE || process.env.ZAPI_CONNECTED_PHONE || '',
+            sessionId: 'zapi',
             isReady: zapi.connected,
             status: zapi.connected ? 'connected' : 'disconnected',
-            provider: 'zapi',
-            name: zapi.name || 'Z-API',
-            qrCode: null
+            provider: 'zapi'
         };
-        const exposedWhatsapp = (!whatsappConnectEnabled && zapiFrozen)
+        const safeWebSessions = sessions.map((session) => ({
+            sessionId: session.sessionId,
+            isReady: Boolean(session.isReady),
+            status: session.status,
+            provider: 'whatsapp_web'
+        }));
+        const exposedWhatsapp = !webSessionRequired
             ? {
                 state: zapi.connected ? 'connected' : 'disconnected',
                 ready: zapi.connected,
@@ -84,19 +97,35 @@ router.get('/', async (req, res) => {
                 connectEnabled: whatsappConnectEnabled,
                 connectedSessions: connectedSessions.length,
                 loggedOutSessions: loggedOutSessions.length,
-                sessions
+                sessions: zapiRequired ? [...safeWebSessions, zapiSession] : safeWebSessions
             };
+        const cutover = assessWhatsAppWebCutoverReadiness({
+            statuses: sessions,
+            zapiConnected: zapiRequired ? zapi.connected : null
+        });
+        const engineByMode = {
+            [WHATSAPP_WEB_CUTOVER_MODES.HOLD_CURRENT]: 'Z-API',
+            [WHATSAPP_WEB_CUTOVER_MODES.WEB_TEST]: 'WhatsApp Web test + Z-API',
+            [WHATSAPP_WEB_CUTOVER_MODES.WEB_PRIMARY]: 'WhatsApp Web + Z-API CO fallback',
+            [WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY]: 'WhatsApp Web',
+            [WHATSAPP_WEB_CUTOVER_MODES.ZAPI_ROLLBACK]: 'Z-API rollback'
+        };
 
         return res.json({
             status: degradedReasons.length ? 'degraded' : 'online',
             timestamp: new Date().toISOString(),
-            engine: whatsappConnectEnabled ? 'Baileys' : 'Z-API',
+            engine: engineByMode[cutoverPolicy.mode] || 'Z-API',
             pid: process.pid,
             uptime_seconds: process.uptime(),
             runner: 'node src/index.js',
             degradedReasons,
+            cutover,
             whatsapp: exposedWhatsapp,
-            zapi,
+            zapi: {
+                configured: zapi.configured,
+                connected: zapi.connected,
+                error: zapi.error ? 'status_unavailable' : ''
+            },
             bot_inbound_queue: {
                 pendingTasks: pendingTasks
             },
@@ -107,11 +136,10 @@ router.get('/', async (req, res) => {
                 recentOutboundContacts24h: recentOutboundContacts,
                 recentlyProcessedMessages15m: recentlyProcessedMessages,
                 lastInbound: lastInbound ? {
-                    chatId: lastInbound.chatId,
-                    peerPhone: lastInbound.peerPhone || '',
                     sessionId: lastInbound.sessionId || '',
                     at: lastInbound.createdAt,
-                    preview: String(lastInbound.body || '').slice(0, 120)
+                    provider: lastInbound.provider || '',
+                    type: lastInbound.type || ''
                 } : null
             }
         });

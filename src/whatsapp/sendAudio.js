@@ -81,36 +81,14 @@ const getAudioMimetype = (audioPath, isPtt) => {
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const zapiFailoverEnabled = () => String(process.env.OUTBOUND_ZAPI_FAILOVER_ENABLED || 'true').toLowerCase() !== 'false';
-const looksLikeZapiFailoverPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
-const parsePhoneList = (...values) => [
-    ...new Set(
-        values
-            .flatMap((value) => String(value || '').split(','))
-            .map((item) => digitsOnly(item))
-            .filter(Boolean)
-    )
-];
-const isSamePhone = (left, right) => {
-    const a = digitsOnly(left);
-    const b = digitsOnly(right);
-    if (!a || !b) return false;
-    return a === b || a.startsWith(b) || b.startsWith(a);
-};
-const zapiFailoverTestRecipients = () => parsePhoneList(
-    process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
-    process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,
-    process.env.WHATSAPP_PRIORITY_TEST_PHONES,
-    process.env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS
-);
-const isZapiFailoverTestRecipient = (phone = '') => {
-    const digits = digitsOnly(phone);
-    return Boolean(digits && zapiFailoverTestRecipients().some((allowed) => isSamePhone(digits, allowed)));
-};
 const shouldTryZapiAudioFailover = ({ jid = '', options = {}, reason = '' } = {}) => {
     if (!zapiFailoverEnabled() || options.zapiFailoverAttempt === true) return false;
     if (options.provider === 'zapi' || options.sessionId === 'zapi') return false;
-    const phone = digitsOnly(options.recipientDigits) || digitsOnly(jid);
-    if (!looksLikeZapiFailoverPhone(phone) && !isZapiFailoverTestRecipient(phone)) return false;
+    if (!shouldUseZapiForOutbound({
+        targetJid: jid,
+        recipientDigits: options.recipientDigits || '',
+        options: { ...options, provider: 'zapi' }
+    })) return false;
     const value = String(reason || '').toLowerCase();
     return !value || /timeout|not.*ready|ready|closed|unauthorized_session|blocked_session|session|socket|connection|baileys/.test(value);
 };
