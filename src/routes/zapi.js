@@ -10,6 +10,8 @@ import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
+import { getAllStatuses } from '../whatsapp/connection.js';
+import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 import {
     extractVslAttributionRef,
     linkVslVisitToCustomerByReference
@@ -1179,6 +1181,11 @@ router.post('/webhook', async (req, res) => {
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
+        const cutoverPolicy = whatsappWebCutoverPolicy();
+        if (!cutoverPolicy.canProcessZapiInbound(result.phone, getAllStatuses())) {
+            console.log(`[ZAPI-WEBHOOK] inbound preservado somente para observacao | mode=${cutoverPolicy.mode} | phone=${result.phone || ''}`);
+            return res.json({ ok: true, result, routed: 'inbound_observed_only' });
+        }
         const buyLaterReply = result.body
             ? await handleBuyLaterConfirmationReply({
                 phone: result.phone,
@@ -1221,6 +1228,11 @@ router.post('/webhook/received', async (req, res) => {
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
             const result = await recordZapiInboundPayload(payload);
+            const cutoverPolicy = whatsappWebCutoverPolicy();
+            if (!cutoverPolicy.canProcessZapiInbound(result.phone, getAllStatuses())) {
+                console.log(`[ZAPI-WEBHOOK] inbound preservado somente para observacao | mode=${cutoverPolicy.mode} | phone=${result.phone || phone || ''}`);
+                return res.json({ ok: true, result, routed: 'inbound_observed_only' });
+            }
             const buyLaterReply = result.body
                 ? await handleBuyLaterConfirmationReply({
                     phone: result.phone,
