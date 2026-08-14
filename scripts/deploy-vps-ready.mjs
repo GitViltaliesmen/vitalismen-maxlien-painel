@@ -6,7 +6,11 @@ const root = process.cwd();
 const confirm = process.env.VITALISMEN_DEPLOY_CONFIRM === 'YES';
 const activate = process.env.VITALISMEN_DEPLOY_ACTIVATE === 'YES';
 const host = process.env.VITALISMEN_DEPLOY_HOST || 'root@maxlien.shop';
-const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(process.env.HOME || '', '.ssh', 'vps_auditoria_codex');
+const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(
+    process.env.USERPROFILE || process.env.HOME || '',
+    '.ssh',
+    'vps_auditoria_codex_ec_20260719'
+);
 const releaseName = process.env.VITALISMEN_DEPLOY_RELEASE || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
 const baseDir = process.env.VITALISMEN_DEPLOY_BASE_DIR || '/opt/vitalismen-automacao';
 const releaseDir = `${baseDir}/releases/${releaseName}`;

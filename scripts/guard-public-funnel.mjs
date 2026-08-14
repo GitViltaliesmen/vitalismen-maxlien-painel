@@ -6,7 +6,10 @@ const failures = [];
 const warnings = [];
 const notes = [];
 
-const sshKey = process.env.VITALISMEN_DEPLOY_KEY || `${process.env.HOME || ''}/.ssh/vps_auditoria_codex`;
+const runningOnOfficialVps = root === '/opt/vitalismen-automacao/current'
+    || root.startsWith('/opt/vitalismen-automacao/releases/');
+const sshKey = process.env.VITALISMEN_DEPLOY_KEY
+    || `${process.env.USERPROFILE || process.env.HOME || ''}/.ssh/vps_auditoria_codex_ec_20260719`;
 const sshTarget = process.env.VITALISMEN_GUARD_SSH_TARGET || process.env.VITALISMEN_DEPLOY_HOST || 'root@maxlien.shop';
 const sshAlias = process.env.VITALISMEN_GUARD_SSH_ALIAS || '';
 const publicBase = process.env.VITALISMEN_GUARD_PUBLIC_BASE || 'https://maxlien.shop';
@@ -31,6 +34,9 @@ const sshArgs = (remoteCommand) => {
 };
 
 const ssh = (remoteCommand, options = {}) => {
+    if (runningOnOfficialVps) {
+        return run('bash', ['-lc', remoteCommand], { timeout: options.timeout || 30000 });
+    }
     if (!fs.existsSync(sshKey)) {
         return { status: 127, stdout: '', stderr: `missing ssh key: ${sshKey}` };
     }
