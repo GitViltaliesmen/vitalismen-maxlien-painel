@@ -127,19 +127,19 @@ Uma inspeção dinâmica corrigiu a conclusão estática inicial sobre `https://
 
 O problema é de continuidade entre sistemas: essa landing usa uma infraestrutura paralela e não chama `/api/whatsapp/vsl-entry`, não cria `VslVisit`, não gera `TX` e não transfere os sinais ao `Order` deste backend.
 
-A landing canônica tecnicamente recomendada é:
+A decisão operacional confirmada é manter como URL pública permanente do anúncio Tex Ultra:
 
-`https://ec.maxlien.shop/n/`
+`https://vilaliemen.shop/protocolo-g`
 
-Motivos: ela também é Tex Ultra, usa o mesmo número oficial, preserva a query string, usa o dataset correto e agora está integrada ao caminho `VslVisit → ContactState → Order → Purchase`.
+`https://ec.maxlien.shop/n/` permanece uma landing técnica separada e já integrada ao caminho `VslVisit → ContactState → Order → Purchase`; ela não é substituta da URL oficial do anúncio. Para preservar atribuição sem trocar a URL, a próxima correção deverá ocorrer na infraestrutura da própria `/protocolo-g`: localizar sua fonte de verdade, criar backup e conectar a captura que ela já realiza ao contrato de `VslVisit`/`TX` deste backend. Essa integração externa não fez parte desta implantação.
 
-## 7. Meta Ads — deliberadamente não alterado
+## 7. Meta Ads — URL permanente, deliberadamente não alterada
 
-- URL atual informada do anúncio: `https://vilaliemen.shop/protocolo-g`
-- URL recomendada: `https://ec.maxlien.shop/n/`
-- Motivo: manter a identidade do clique no mesmo sistema que forma o pedido e envia o `Purchase`.
+- URL oficial que deve permanecer: `https://vilaliemen.shop/protocolo-g`
+- Troca para `/n/`: **cancelada e não autorizada**
+- Próxima solução técnica: integrar a landing externa ao backend de atribuição sem mudar anúncio, domínio, caminho ou parâmetros.
 
-Não houve acesso de escrita ao Meta Ads. Anúncio, URL final, campanha, conjunto e criativo permanecem como estavam. A alteração da URL deve ser uma etapa separada, depois de autorização expressa e conferência final no Ads Manager.
+Não houve acesso de escrita ao Meta Ads. Anúncio, URL final, campanha, conjunto e criativo permanecem como estavam. Não há etapa futura planejada de mudança da URL no Ads Manager.
 
 ## 8. Rollback exato
 
@@ -164,12 +164,13 @@ Após o rollback, também confirmar `pm2 jlist` e o hash público da landing. O 
 
 ## 9. Riscos, limitações e pendências reais
 
-- Enquanto o anúncio continuar apontando para a landing externa, os cliques desse anúncio não usarão a nova ponte deste backend. A correção está pronta, mas o ganho de atribuição depende da etapa futura de URL.
-- A proporção de Purchases com sinais deve ser monitorada por 24–72 horas depois da mudança autorizada da URL; não há tráfego futuro suficiente no instante do deploy para declarar melhora percentual.
+- A correção publicada beneficia tráfego que entra por `/n/`; os cliques do anúncio permanente em `/protocolo-g` ainda não usam a ponte deste backend.
+- Para resolver o fluxo do anúncio sem trocar sua URL, falta uma implantação controlada na fonte de verdade da landing externa, conectando a captura existente a `VslVisit`/`TX`.
+- A proporção de Purchases com sinais deverá ser monitorada por 24–72 horas depois dessa integração externa; não há evidência para declarar melhora percentual antes dela.
 - Compras sem identificadores legítimos continuarão sem atribuição; o sistema falha fechado e não inventa dados.
 - O guard legado de texto permanece desatualizado e foi mantido fora do escopo.
 - Nenhuma ação foi realizada no Dropi, nas contas Colômbia/Brave, em 2FA ou nas sessões de navegador.
 
 ## 10. Estado de parada
 
-A etapa técnica autorizada foi concluída. O sistema está online e o rollback está disponível. O trabalho para neste ponto, antes de qualquer alteração no Meta Ads, conforme solicitado.
+A etapa técnica autorizada foi concluída. O sistema está online e o rollback está disponível. A URL do Meta Ads permanece definitivamente em `https://vilaliemen.shop/protocolo-g`; qualquer continuação deve atuar na integração da landing externa, não no anúncio.
