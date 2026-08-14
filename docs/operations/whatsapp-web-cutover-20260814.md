@@ -59,7 +59,7 @@ WHATSAPP_WEB_CO_ENABLED=true
 
 1. Publicar a nova release com `hold_current` e `WHATSAPP_CONNECT_ENABLED=false`.
 2. Confirmar PM2, `/health`, `/api/health`, Z-API conectada, VSL e painel sem regressão.
-3. Configurar somente a sessão oficial do servidor e habilitar o motor Web ainda em `hold_current`.
+3. Definir `WHATSAPP_AUTH_DIR=/opt/vitalismen-automacao/shared/auth_info_baileys`, configurar somente a sessão oficial do servidor e habilitar o motor Web ainda em `hold_current`.
 4. Ler o QR em **WhatsApp > Aparelhos conectados > Conectar aparelho**.
 5. Confirmar que a sessão conectada pertence exatamente a `5515991418416`.
 6. Definir um único número de QA em `WHATSAPP_WEB_TEST_RECIPIENTS` e ativar `web_test`.

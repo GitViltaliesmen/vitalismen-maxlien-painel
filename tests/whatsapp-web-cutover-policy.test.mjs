@@ -136,6 +136,7 @@ test('as quatro fronteiras usam a mesma política e o health não expõe conteú
     const outbound = read('src/whatsapp/zapiOutboundRouting.js');
     const sendText = read('src/whatsapp/sendText.js');
     const sendAudio = read('src/whatsapp/sendAudio.js');
+    const connection = read('src/whatsapp/connection.js');
     const health = read('src/routes/health.js');
 
     assert.match(dispatcher, /canProcessWebInbound/);
@@ -145,6 +146,8 @@ test('as quatro fronteiras usam a mesma política e o health não expõe conteú
     assert.match(sendText, /shouldUseZapiForOutbound/);
     assert.match(sendAudio, /options: \{ \.\.\.options, provider: 'zapi' \}/);
     assert.doesNotMatch(sendAudio, /looksLikeZapiFailoverPhone/);
+    assert.match(connection, /process\.env\.WHATSAPP_AUTH_DIR/);
+    assert.match(connection, /fs\.mkdirSync\(dir, \{ recursive: true, mode: 0o700 \}\)/);
     assert.doesNotMatch(health, /\.select\('chatId peerPhone body createdAt sessionId'\)/);
     assert.doesNotMatch(health, /preview: String\(lastInbound\.body/);
     assert.doesNotMatch(health, /chatId: lastInbound\.chatId/);
