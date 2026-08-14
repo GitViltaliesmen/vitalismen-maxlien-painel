@@ -7,7 +7,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'u
 const html = fs.readFileSync(path.join(root, 'sidepanel.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'sidepanel.js'), 'utf8');
 
-assert.equal(manifest.version, '0.13.3');
+assert.equal(manifest.version, '0.13.5');
 assert.match(html, /id="autoSaveState"/);
 assert.match(html, /conversation-data-extractor\.js/);
 assert.match(script, /performAutomaticDraftSave/);

@@ -1,8 +1,10 @@
 (function (root, factory) {
-    const api = factory();
+    const normalizer = root.VitalismenCustomerDataNormalizer
+        || (typeof module === 'object' && module.exports ? require('./customer-data-normalizer.js') : null);
+    const api = factory(normalizer);
     if (typeof module === 'object' && module.exports) module.exports = api;
     root.VitalismenConversationData = api;
-}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (customerDataNormalizer) {
     'use strict';
 
     const normalize = (value) => String(value || '')
@@ -83,7 +85,9 @@
             const delivery = text.match(/(servientrega\s+.{4,130}?)(?=\s+(?:ciudad|cant[oó]n|provincia|referencia)\b|\n|$)/iu);
             if (delivery) result.address = delivery[1].trim();
         }
-        return result;
+        return customerDataNormalizer?.normalizeCustomerData
+            ? customerDataNormalizer.normalizeCustomerData(result)
+            : result;
     };
 
     return Object.freeze({ extract, productKey });

@@ -31,4 +31,29 @@ assert.match(
     'o ponto de referência deve priorizar a agência correspondente'
 );
 
+const cayambe = catalog.resolveLocation(rows, { city: 'cayambe' });
+assert.deepEqual(cayambe, {
+    matched: true,
+    ambiguous: false,
+    city: 'Cayambe',
+    province: 'Pichincha',
+    inferredProvince: true
+});
+
+const salinas = catalog.resolveLocation(rows, { city: 'salinas' });
+assert.equal(salinas.matched, true);
+assert.equal(salinas.city, 'Salinas (Santa Elena)');
+assert.equal(salinas.province, 'Santa Elena');
+assert.equal(salinas.inferredProvince, true);
+
+const unknownCity = catalog.search(rows, {
+    city: 'Cidade Inexistente',
+    query: 'mercado central',
+    limit: 100
+});
+assert.deepEqual(unknownCity, [], 'cidade desconhecida não pode sugerir agências de outro local');
+
+const incompleteCity = catalog.resolveLocation(rows, { city: 'cay' });
+assert.equal(incompleteCity.matched, false, 'cidade ainda incompleta não pode ser autocompletada durante a digitação');
+
 console.log('local Servientrega agency catalog search: ok');

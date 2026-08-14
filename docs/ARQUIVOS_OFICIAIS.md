@@ -103,6 +103,8 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - A extensao nunca deve enviar o funil automaticamente; o envio completo continua exigindo clique humano.
 - `node_modules`, tokens, senhas, arquivos `.env` e diagnosticos locais nao fazem parte da fonte versionada.
 - O deploy da aplicacao publica inclui esta fonte para auditoria e recuperacao, mas o Chrome executa a copia local carregada sem compactacao. Depois de atualizar a copia local, e obrigatorio clicar em `Atualizar` na extensao em `chrome://extensions`.
+- Release local preparada em 2026-08-14: `0.13.5`, com padronização de nome/cidade/província e bloqueio de sugestões de agências fora de uma cidade confirmada.
+- Registro técnico e rollback: `docs/EXTENSAO_PADRONIZACAO_DADOS_EC_20260814.md`.
 
 ## Como trabalhar com copia temporaria
 

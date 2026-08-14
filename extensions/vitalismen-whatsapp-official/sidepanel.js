@@ -69,6 +69,7 @@ const state = {
 const orderCatalog = globalThis.VitalismenOrderCatalog;
 const agencyCatalog = globalThis.VitalismenAgencyCatalog;
 const agencyBatch = globalThis.VitalismenAgencyBatch;
+const customerDataNormalizer = globalThis.VitalismenCustomerDataNormalizer;
 
 const send = (message) => new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
@@ -129,9 +130,13 @@ const defaultBuyLaterLocalValue = (now = Date.now()) => {
     yearEnd.setHours(23, 59, 0, 0);
     return dateTimeLocalValue(date <= yearEnd ? date : yearEnd);
 };
-const chatName = (chat) => String(
-    chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
-);
+const chatName = (chat) => {
+    const value = String(
+        chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
+    );
+    if (digits(value)) return value;
+    return customerDataNormalizer?.formatPersonName?.(value) || value;
+};
 const initials = (value) => String(value || '?')
     .trim()
     .split(/\s+/)
@@ -706,7 +711,7 @@ const customerDraftFromForm = () => {
     const phone = elements.draftPhone.value.trim();
     const rawName = elements.draftName.value.trim();
     const name = digits(rawName) && digits(rawName) === digits(phone) ? '' : rawName;
-    return {
+    const customerDraft = {
         name,
         phone,
         country: elements.draftCountry.value,
@@ -724,6 +729,7 @@ const customerDraftFromForm = () => {
             ? dateTimeIsoValue(elements.draftBuyLaterFollowupAt?.value)
             : ''
     };
+    return customerDataNormalizer?.normalizeCustomerData?.(customerDraft) || customerDraft;
 };
 
 const autoSaveFingerprint = (draft = {}) => JSON.stringify(Object.fromEntries(
@@ -991,8 +997,8 @@ const lookupAgencySuggestions = ({ immediate = false } = {}) => {
             clearAgencySuggestions('Disponível somente para Equador');
             return;
         }
-        const city = elements.draftCity.value.trim();
-        const province = elements.draftProvince.value.trim();
+        let city = elements.draftCity.value.trim();
+        let province = elements.draftProvince.value.trim();
         const reference = elements.draftReference.value.trim();
         const search = elements.agencySearchInput?.value.trim() || reference;
         if (city.length < 3 && province.length < 3 && search.length < 3) {
@@ -1006,6 +1012,29 @@ const lookupAgencySuggestions = ({ immediate = false } = {}) => {
         elements.agencySuggestionsState.textContent = 'Buscando…';
         elements.agencySuggestionList.replaceChildren();
         try {
+            const resolvedLocation = await agencyCatalog.resolveLocationFromUrl(
+                chrome.runtime.getURL('agencia_LISTA.json'),
+                { city, province }
+            );
+            if ((city || province) && !resolvedLocation.matched) {
+                state.agencySuggestionsAll = [];
+                state.agencySuggestionOffset = 0;
+                renderAgencySuggestionPage();
+                return;
+            }
+            if (resolvedLocation.matched) {
+                city = resolvedLocation.city || city;
+                province = resolvedLocation.province || province;
+                const locationChanged = elements.draftCity.value !== city
+                    || elements.draftProvince.value !== province;
+                if (locationChanged) {
+                    setInputValue(elements.draftCity, city);
+                    setInputValue(elements.draftProvince, province);
+                    renderOrderRegistration();
+                    renderFunnelShadow();
+                    queueAutomaticDraftSave();
+                }
+            }
             state.agencySuggestionsAll = await agencyCatalog.searchFromUrl(
                 chrome.runtime.getURL('agencia_LISTA.json'),
                 { city, province, query: search, limit: 500 }
@@ -1353,7 +1382,9 @@ const populateSmartForm = () => {
     const profile = state.profile || {};
     const order = profile.activeOrder || {};
     const customer = order.customer || {};
-    const suggestion = state.suggestions || {};
+    const suggestion = customerDataNormalizer?.normalizeCustomerData?.(state.suggestions || {})
+        || state.suggestions
+        || {};
     const authoritativeProduct = authoritativeProductFromChat({
         chat: state.selectedChat,
         draft,
@@ -1365,11 +1396,22 @@ const populateSmartForm = () => {
         authoritativeProduct.productName
     );
     const selectedPhone = chatPhone(state.selectedChat);
-    const detectedName = profile.displayName || customer.name || draft.name || suggestion.name || chatName(state.selectedChat);
+    const detectedName = customer.name || draft.name || suggestion.name || profile.displayName || chatName(state.selectedChat);
     const safeDetectedName = digits(detectedName) === selectedPhone ? '' : detectedName;
     let applied = 0;
     const applyValue = (element, value) => {
-        const next = String(value ?? '').trim();
+        const fieldByElementId = {
+            draftName: 'name',
+            draftAddress: 'address',
+            draftCity: 'city',
+            draftProvince: 'province',
+            draftReference: 'reference'
+        };
+        const field = fieldByElementId[element.id];
+        const normalized = field
+            ? customerDataNormalizer?.normalizeCustomerData?.({ [field]: value })?.[field]
+            : value;
+        const next = String(normalized ?? '').trim();
         const manuallyProtected = state.manualFieldIds.has(element.id);
         if (state.formDirty && (manuallyProtected || element.value || !next)) return;
         if (element.value !== next) {
@@ -1792,6 +1834,29 @@ elements.customerForm.addEventListener('input', (event) => {
 ['draftCity', 'draftProvince', 'draftReference'].forEach((id) => {
     elements[id].addEventListener('input', () => lookupAgencySuggestions());
 });
+const normalizeCustomerFieldOnBlur = (id, field) => {
+    elements[id]?.addEventListener('blur', () => {
+        const normalized = customerDataNormalizer?.normalizeCustomerData?.({
+            [field]: elements[id].value
+        })?.[field];
+        if (typeof normalized === 'string' && elements[id].value !== normalized) {
+            setInputValue(elements[id], normalized);
+            renderOrderRegistration();
+            renderFunnelShadow();
+            queueAutomaticDraftSave();
+        }
+        if (id === 'draftCity' || id === 'draftProvince' || id === 'draftReference') {
+            lookupAgencySuggestions({ immediate: true });
+        }
+    });
+};
+[
+    ['draftName', 'name'],
+    ['draftAddress', 'address'],
+    ['draftCity', 'city'],
+    ['draftProvince', 'province'],
+    ['draftReference', 'reference']
+].forEach(([id, field]) => normalizeCustomerFieldOnBlur(id, field));
 elements.agencySearchInput?.addEventListener('input', () => lookupAgencySuggestions());
 elements.draftCountry.addEventListener('change', () => {
     if (elements.draftCountry.value === 'EC') lookupAgencySuggestions({ immediate: true });

@@ -27,4 +27,13 @@ assert.equal(outgoingIgnored.name, undefined);
 assert.equal(outgoingIgnored.city, undefined);
 assert.equal(outgoingIgnored.quantity, '2');
 
+const formattedLead = extractor.extract([{
+    isFromMe: false,
+    body: 'Hola, quiero el tratamiento.\nNombre: enrique tapia\nTeléfono: 0983709502\nCiudad: cayambe\nReferencia: mercado central'
+}]);
+assert.equal(formattedLead.name, 'Enrique Tapia');
+assert.equal(formattedLead.city, 'Cayambe');
+assert.equal(formattedLead.reference, 'mercado central');
+assert.equal(formattedLead.name.includes('0983709502'), false);
+
 console.log('conversation data extractor: ok');

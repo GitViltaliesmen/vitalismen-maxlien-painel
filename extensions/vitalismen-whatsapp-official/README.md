@@ -1,4 +1,4 @@
-# Vitalismen · WhatsApp Oficial v0.11.5
+# Vitalismen · WhatsApp Oficial v0.13.5
 
 Esta versão adiciona o `Funil antigo completo` como biblioteca congelada e separada dos funis assistidos.
 
@@ -23,6 +23,15 @@ mostra o CRM Vitalismen no painel lateral.
 - o status `Confirmado` nunca é gravado automaticamente;
 - confirmar pedido continua exigindo clique humano;
 - autosave não assume atendimento, não envia mensagem e não envia ao Dropi.
+
+## Padronização segura dos dados do cliente
+
+- nomes são gravados com iniciais maiúsculas e conectores internos em minúsculas;
+- cidade e província são padronizadas sem alterar telefone, produto, quantidade ou valor;
+- a província é preenchida a partir do catálogo local somente quando a cidade tem correspondência única;
+- cidades desconhecidas ou ambíguas não recebem província nem agências de outro local;
+- o ponto de referência prioriza as agências compatíveis, mas nunca dispara mensagem automaticamente;
+- o nome declarado pelo cliente tem prioridade sobre o nome de exibição do WhatsApp.
 
 ## Cadastro Tex Ultra
 
@@ -96,4 +105,5 @@ mostra o CRM Vitalismen no painel lateral.
 5. Selecione a pasta que contém este arquivo e o `manifest.json`.
 6. Abra o WhatsApp Web e clique no ícone da extensão.
 
-Após carregar a versão 0.11.5, a extensão recarrega a aba do WhatsApp Web para inicializar o novo motor de envio.
+Após carregar a versão 0.13.5, recarregue a extensão e a aba do WhatsApp Web uma única vez.
+O motor interno de transporte permanece congelado na revisão 0.11.5.
