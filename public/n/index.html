@@ -379,13 +379,22 @@
   }
 
   const IS_MOBILE_VISITOR = isMobileVisitor();
+  /* Fonte unica da oferta desta VSL. Ao trocar a campanha, altere somente este objeto. */
+  const ACTIVE_VSL_PRODUCT = Object.freeze({
+    key: "tex_ultra_ec",
+    name: "Tex Ultra Ecuador",
+    media: "",
+    page: "tex_ultra_ec_mobile",
+    contentName: "Tex Ultra Ecuador WhatsApp",
+    entryMessages: Object.freeze({
+      a: "Hola, quiero saber mas sobre Tex Ultra.",
+      b: "Hola, deseo recibir mas informacion sobre el producto."
+    })
+  });
   const VSL_AB_TEST_ID = "ab-6a5976494d4b86598b3690f9";
   const VSL_AB_PLAYER_URL = "https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/ab-test/6a5976494d4b86598b3690f9/player.js";
   const VSL_AB_STORAGE_KEY = "mx_ec_vsl_ab_variant_v1";
-  const VSL_AB_ENTRY_MESSAGES = {
-    a: "Hola, quiero saber mas sobre Tex Ultra.",
-    b: "Hola, deseo recibir mas informacion sobre el producto."
-  };
+  const VSL_AB_ENTRY_MESSAGES = ACTIVE_VSL_PRODUCT.entryMessages;
   let vslAbVariantMemo = "";
 
   function vslAbVariant(){
@@ -455,10 +464,10 @@
         keepalive: true,
         body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
           country: "EC",
-          productKey: "tex_ultra_ec",
-          productName: "Tex Ultra Ecuador",
-          productMedia: "",
-          page: "tex_ultra_ec_mobile",
+          productKey: ACTIVE_VSL_PRODUCT.key,
+          productName: ACTIVE_VSL_PRODUCT.name,
+          productMedia: ACTIVE_VSL_PRODUCT.media,
+          page: ACTIVE_VSL_PRODUCT.page,
           path: location.pathname || "/n/",
           visitorId: origin.external_id || "",
           sessionId: vslSessionId(),
@@ -699,10 +708,10 @@
 	        keepalive: true,
 	        body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 		          country: "EC",
-		          productKey: "tex_ultra_ec",
-		          productName: "Tex Ultra Ecuador",
-		          productMedia: "",
-		          page: "tex_ultra_ec_mobile",
+		          productKey: ACTIVE_VSL_PRODUCT.key,
+		          productName: ACTIVE_VSL_PRODUCT.name,
+		          productMedia: ACTIVE_VSL_PRODUCT.media,
+		          page: ACTIVE_VSL_PRODUCT.page,
 	          path: location.pathname || "/n/",
 	          visitorId: origin.external_id || "",
 	          sessionId: vslSessionId(),
@@ -956,12 +965,12 @@ function trackWhatsappLead(message, fullName, phone){
   try {
     const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, vslAbPayload(), {
 	      country: "EC",
-	      productKey: "tex_ultra_ec",
-	      productName: "Tex Ultra Ecuador",
+	      productKey: ACTIVE_VSL_PRODUCT.key,
+	      productName: ACTIVE_VSL_PRODUCT.name,
 	      eventName: "Lead",
       eventId: eventId,
-	      content_name: "Tex Ultra Ecuador WhatsApp",
-	      content_ids: ["tex_ultra_ec"],
+	      content_name: ACTIVE_VSL_PRODUCT.contentName,
+	      content_ids: [ACTIVE_VSL_PRODUCT.key],
       content_type: "product",
       funnel_entry_message: message,
       customer_name: normalizeFullName(fullName),
@@ -996,10 +1005,10 @@ function recordWhatsappClick(message, fullName, phone){
     const testPhone = isAllowedTestPhone(phone);
     const payload = JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
 	      country: "EC",
-	      productKey: "tex_ultra_ec",
-	      productName: "Tex Ultra Ecuador",
-	      productMedia: "",
-	      page: "tex_ultra_ec_mobile",
+	      productKey: ACTIVE_VSL_PRODUCT.key,
+	      productName: ACTIVE_VSL_PRODUCT.name,
+	      productMedia: ACTIVE_VSL_PRODUCT.media,
+	      page: ACTIVE_VSL_PRODUCT.page,
       path: location.pathname || "/n/",
       visitorId: origin.external_id || "",
       sessionId: vslSessionId(),
