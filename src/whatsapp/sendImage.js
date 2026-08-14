@@ -5,8 +5,14 @@ import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } fr
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiImage } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
+import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
+import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
+        console.log(`[LOG_SEND_BLOCKED] imagem bloqueada por protecao manual anti-reenvio -> ${jid}`);
+        return false;
+    }
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid, country: options.country || '' });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
@@ -39,6 +45,15 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
             });
             console.log(`[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> ${phone} | Arquivo: ${imagePath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });
+            await recordZapiOutboundMirror({
+                phone,
+                jid,
+                type: 'image',
+                body: caption || '[image]',
+                mediaUrl: imagePath,
+                response,
+                isBot: options.sendMode !== 'manual_panel'
+            });
             const details = {
                 ok: true,
                 provider: 'zapi',

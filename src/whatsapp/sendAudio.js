@@ -16,6 +16,8 @@ import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGua
 import { sendZapiAudio } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import ContactState from '../models/ContactState.js';
+import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
+import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -144,6 +146,10 @@ const failoverWasSent = (result) => (result === true || result?.ok === true);
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
+    if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
+        console.log(`[LOG_SEND_BLOCKED] audio bloqueado por protecao manual anti-reenvio -> ${jid}`);
+        return false;
+    }
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid, country: options.country || '' });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
@@ -225,6 +231,15 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
             });
             console.log(`[LOG_SEND_USING_ZAPI] Audio enfileirado na Z-API -> ${phone} | Arquivo: ${sendPath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });
+            await recordZapiOutboundMirror({
+                phone,
+                jid,
+                type: 'audio',
+                body: '[audio]',
+                mediaUrl: sendPath,
+                response,
+                isBot: options.sendMode !== 'manual_panel'
+            });
             await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
             const details = {
                 ok: true,

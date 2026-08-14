@@ -11,6 +11,8 @@ import {
 } from '../services/outboundDedupeService.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiText, zapiConfig } from '../services/zapiClient.js';
+import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
+import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 
@@ -249,6 +251,10 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
     if (finalText !== humanizedText) {
         console.warn(`[TEXT-GUARD] marcador tecnico removido antes do envio -> ${targetJid}`);
     }
+    if (await operatorNoAutoResendForTarget({ jid: targetJid, recipientDigits, sendMode: options.sendMode || '' })) {
+        console.log(`[LOG_SEND_BLOCKED] texto bloqueado por protecao manual anti-reenvio -> ${targetJid}`);
+        return false;
+    }
     const bypassDedupe = options.bypassDedupe === true || options.force === true;
     const bypassTextDedupe = bypassDedupe && options.allowTextDedupeBypass === true;
     const antiSpamKey = options.antiSpamKey
@@ -329,6 +335,14 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             });
             console.log(`[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> ${phone} | Tamanho: ${finalText.length} chars | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid: targetJid });
+            await recordZapiOutboundMirror({
+                phone,
+                jid: targetJid,
+                type: 'chat',
+                body: finalText,
+                response,
+                isBot: options.sendMode !== 'manual_panel'
+            });
             await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
             const details = {
                 ok: true,

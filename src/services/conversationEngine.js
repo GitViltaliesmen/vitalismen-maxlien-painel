@@ -25,6 +25,7 @@ import { searchDroppiEcuadorOrdersFromPanel, syncDroppiEcuadorFromPanel } from '
 import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
+import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -8058,6 +8059,15 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             return;
         }
         if (agentProfile?.key === TEX_ULTRA_AGENT_KEY) {
+            const handled = await handleTexUltraFunnelInbound({
+                contactStateId: msg.contactStateId,
+                inboundText: text,
+                sessionId: msg.sessionId || null
+            });
+            if (handled) {
+                console.log(`[TEX-ULTRA] entrada tratada no funil isolado -> ${chatId}`);
+                return;
+            }
             await holdTexUltraForHuman({
                 contactStateId: msg.contactStateId,
                 inboundText: text,

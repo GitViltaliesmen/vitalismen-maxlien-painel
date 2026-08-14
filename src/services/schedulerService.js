@@ -28,6 +28,7 @@ import { processZapiChatWatchdog } from './zapiChatWatchdogService.js';
 import { processPassiveFunnelObserver } from './passiveFunnelObserverService.js';
 import { processNitrixFastStateJobs } from './nitrixFastStateService.js';
 import { enqueueEligibleGoogleContacts, processNextGoogleContactSync } from './googleContactsService.js';
+import { processTexUltraConfirmedPostSaleQueue } from './texUltraConfirmedPostSaleLayerService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
@@ -47,6 +48,7 @@ let isRunningZapiChatWatchdog = false;
 let isRunningPassiveFunnelObserver = false;
 let isRunningNitrixFastState = false;
 let isRunningGoogleContactsSync = false;
+let isRunningTexUltraConfirmedPostSale = false;
 let lastHealthAlertAt = 0;
 let lastHealthAlertKey = '';
 
@@ -122,6 +124,14 @@ export const startScheduler = () => {
         console.log(`[SCHEDULER] Post-sale repurchase 30d enabled every ${Math.round(intervalMs / 60000)} minutes.`);
     } else {
         console.log('[SCHEDULER] Post-sale repurchase 30d disabled. Set POST_SALE_REPURCHASE_30D_ENABLED=true to enable.');
+    }
+    if (flagEnabled('TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED', false)) {
+        const intervalSeconds = parseNumber('TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_INTERVAL_SECONDS', 60);
+        const intervalMs = Math.max(30, intervalSeconds) * 1000;
+        setInterval(checkTexUltraConfirmedPostSale, intervalMs);
+        console.log(`[SCHEDULER] Tex Ultra confirmed post-sale enabled every ${Math.round(intervalMs / 1000)} seconds.`);
+    } else {
+        console.log('[SCHEDULER] Tex Ultra confirmed post-sale queue disabled.');
     }
     if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
         const intervalMinutes = parseNumber('SHIPMENT_PICKUP_REMINDER_INTERVAL_MINUTES', 60);
@@ -610,6 +620,22 @@ const checkPickupProofSweep = async () => {
         console.error('Pickup Proof Sweep Scheduler Error:', error);
     } finally {
         isRunningPickupProofSweep = false;
+    }
+};
+
+const checkTexUltraConfirmedPostSale = async () => {
+    if (isRunningTexUltraConfirmedPostSale) return;
+    isRunningTexUltraConfirmedPostSale = true;
+    try {
+        const limit = parseNumber('TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_BATCH_LIMIT', 1);
+        const result = await processTexUltraConfirmedPostSaleQueue({ limit });
+        if (result.processed || result.candidates || result.reason) {
+            console.log(`[TEX-ULTRA-POSTSALE] processados=${result.processed}; completos=${result.completed}; candidatos=${result.candidates}; reason=${result.reason || 'ok'}`);
+        }
+    } catch (error) {
+        console.error('[TEX-ULTRA-POSTSALE] Scheduler Error:', error?.message || error);
+    } finally {
+        isRunningTexUltraConfirmedPostSale = false;
     }
 };
 

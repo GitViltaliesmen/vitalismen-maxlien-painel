@@ -16,7 +16,7 @@ const elements = Object.fromEntries(
         'toggleProductFunnelSizeButton',
         'draftName', 'draftPhone', 'draftCountry', 'draftProduct', 'draftAddress',
         'draftCity', 'draftProvince', 'draftReference', 'draftQuantity', 'draftTotal',
-        'draftStatus', 'buyLaterSchedule', 'draftBuyLaterFollowupAt',
+        'draftStatus', 'buyLaterSchedule', 'draftBuyLaterFollowupAt', 'addBuyLaterScheduleButton',
         'saveDraftButton', 'saveStatus', 'historyDetails', 'autoSaveState',
         'texUltraKitSection', 'orderKitOptions', 'orderReadiness', 'orderSummary',
         'markPurchaseButton', 'metaPurchaseStatus',
@@ -111,6 +111,25 @@ const dateTimeIsoValue = (value) => {
     const date = new Date(raw);
     return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 };
+const BUY_LATER_MIN_LEAD_MS = 5 * 60 * 1000;
+const buyLaterMinimumLocalValue = (now = Date.now()) => (
+    dateTimeLocalValue(Math.ceil((now + BUY_LATER_MIN_LEAD_MS) / 60000) * 60000)
+);
+const buyLaterMaximumLocalValue = (now = Date.now()) => {
+    const date = new Date(now);
+    date.setMonth(11, 31);
+    date.setHours(23, 59, 0, 0);
+    return dateTimeLocalValue(date);
+};
+const defaultBuyLaterLocalValue = (now = Date.now()) => {
+    const date = new Date(now);
+    date.setDate(date.getDate() + 1);
+    date.setHours(9, 0, 0, 0);
+    const yearEnd = new Date(now);
+    yearEnd.setMonth(11, 31);
+    yearEnd.setHours(23, 59, 0, 0);
+    return dateTimeLocalValue(date <= yearEnd ? date : yearEnd);
+};
 const chatName = (chat) => String(
     chat?.name || chat?.pushName || chat?.customerName || chat?.customerDraft?.name || chatPhone(chat) || 'Cliente'
 );
@@ -121,6 +140,7 @@ const initials = (value) => String(value || '?')
     .map((part) => part[0]?.toUpperCase() || '')
     .join('') || '?';
 const dateValue = (value) => {
+    if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) return null;
     const numeric = Number(value);
     if (Number.isFinite(numeric) && numeric > 0) {
         return new Date(numeric < 1e12 ? numeric * 1000 : numeric);
@@ -557,7 +577,18 @@ const renderBuyLaterSchedule = () => {
     elements.buyLaterSchedule?.classList.toggle('hidden', !enabled);
     if (elements.draftBuyLaterFollowupAt) {
         elements.draftBuyLaterFollowupAt.required = enabled;
-        elements.draftBuyLaterFollowupAt.min = dateTimeLocalValue(Date.now());
+        elements.draftBuyLaterFollowupAt.min = buyLaterMinimumLocalValue();
+        elements.draftBuyLaterFollowupAt.max = buyLaterMaximumLocalValue();
+        if (enabled && !elements.draftBuyLaterFollowupAt.value) {
+            elements.draftBuyLaterFollowupAt.value = defaultBuyLaterLocalValue();
+        }
+        const value = elements.draftBuyLaterFollowupAt.value;
+        if (elements.addBuyLaterScheduleButton) {
+            elements.addBuyLaterScheduleButton.disabled = !enabled
+                || !value
+                || value < elements.draftBuyLaterFollowupAt.min
+                || value > elements.draftBuyLaterFollowupAt.max;
+        }
     }
 };
 
@@ -569,6 +600,9 @@ const validateBuyLaterSchedule = (draft = {}) => {
     }
     if (parsed.getTime() <= Date.now()) {
         return { ok: false, error: 'A data de “Comprar depois” precisa estar no futuro.' };
+    }
+    if (parsed.getFullYear() !== new Date().getFullYear()) {
+        return { ok: false, error: 'Escolha uma data dentro do ano atual.' };
     }
     return { ok: true, error: '' };
 };
@@ -713,7 +747,7 @@ const setAutoSaveState = (kind, text) => {
     elements.autoSaveState.textContent = text;
 };
 
-const performAutomaticDraftSave = async () => {
+const performAutomaticDraftSave = async ({ force = false } = {}) => {
     state.autoSaveTimer = null;
     if (!state.authenticated || !state.selectedChat) return;
     if (state.autoSaveInFlight) {
@@ -723,7 +757,7 @@ const performAutomaticDraftSave = async () => {
     const phone = chatPhone(state.selectedChat);
     const epoch = state.selectionEpoch;
     const customerDraft = customerDraftFromForm();
-    if (!phone || !autoSaveHasCustomerData(customerDraft)) return;
+    if (!phone || (!force && !autoSaveHasCustomerData(customerDraft))) return;
     const buyLaterValidation = validateBuyLaterSchedule(customerDraft);
     if (!buyLaterValidation.ok) {
         setAutoSaveState('paused', 'Aguardando data de “Comprar depois”');
@@ -1803,6 +1837,24 @@ elements.draftStatus.addEventListener('change', () => {
     renderBuyLaterSchedule();
     renderOrderRegistration();
     queueAutomaticDraftSave();
+});
+elements.addBuyLaterScheduleButton?.addEventListener('click', async () => {
+    const customerDraft = customerDraftFromForm();
+    const validation = validateBuyLaterSchedule(customerDraft);
+    if (!validation.ok) {
+        elements.draftBuyLaterFollowupAt?.focus();
+        showError(validation.error);
+        return;
+    }
+    clearTimeout(state.autoSaveTimer);
+    elements.addBuyLaterScheduleButton.disabled = true;
+    elements.addBuyLaterScheduleButton.textContent = 'Adicionando…';
+    try {
+        await performAutomaticDraftSave({ force: true });
+    } finally {
+        elements.addBuyLaterScheduleButton.textContent = 'Adicionar';
+        renderBuyLaterSchedule();
+    }
 });
 elements.orderKitOptions.addEventListener('click', (event) => {
     const button = event.target.closest('[data-kit-quantity]');

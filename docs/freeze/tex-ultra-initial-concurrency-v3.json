@@ -1,0 +1,29 @@
+{
+  "freezeId": "tex-ultra-initial-concurrency-v3-approved-20260803",
+  "status": "approved_frozen",
+  "productKey": "tex_ultra_ec",
+  "scope": "initial_layer_only",
+  "operatorApproximateOffsetsSeconds": [20, 29, 50, 82, 116],
+  "observedDeliveredOffsetsSeconds": [18, 29, 50, 80, 114],
+  "sequence": ["intro01", "intro02", "proof", "bottle", "offer"],
+  "timingMode": "cumulative_between_steps",
+  "cumulativeMinimumOffsetsMs": [2000, 13000, 34000, 62000, 97000],
+  "cumulativeMaximumOffsetsMs": [10000, 30000, 55000, 88000, 128000],
+  "concurrency": {
+    "perContactTimers": true,
+    "fullSequenceQueueing": false,
+    "globalQueueScope": "provider_send_only",
+    "waveJoinMs": 20000,
+    "simulatedContacts": 50,
+    "simulatedBatchMaximumMs": 148000,
+    "forbiddenSequentialBatchMs": 6400000
+  },
+  "protectedFiles": {
+    "src/services/texUltraInitialLayerService.js": "1735080dd525dd9205de1b87778f105be955667d5b220b39c5e6955a66fd9ccd",
+    "src/services/texUltraProductProfile.js": "2adcf0206737993ba5da92557076bbf0308b62216647774a3cc68a49ed58187e",
+    "public/media/sales/ec/tex_ultra.png": "450122a3db3823d012770a20f25f311be66a564b8fb23d9d0d47f0207d3ce2f7",
+    "scripts/test-tex-ultra-initial-cadence.mjs": "75182573ae0b3e81764e843c62a2a56e48d41de414b1ad23f1d49824a151be8a",
+    "scripts/test-tex-ultra-initial-concurrency.mjs": "5c35a84b4ce31dfd510fbe4c24d3faf9f75b55c242f1aaf3be13fee850d6f7ad",
+    "docs/TEX_ULTRA_INITIAL_CONCURRENCY_FREEZE_20260803.md": "fee80ea87ba57029a1befaa2fba46f5877c09cee0e6530db7276c10dd4b11284"
+  }
+}

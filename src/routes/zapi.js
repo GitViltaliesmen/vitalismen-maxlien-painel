@@ -8,6 +8,7 @@ import {
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
+import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -43,6 +44,19 @@ const countryFromPhone = (phone = '') => {
     return 'OTHER';
 };
 
+export const authorizedVslTestRecipient = (phone = '', env = process.env) => {
+    const target = digits(phone);
+    if (!target) return false;
+    const allowed = [
+        env.WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS,
+        env.WHATSAPP_TEST_ALLOWED_RECIPIENTS
+    ]
+        .flatMap((value) => String(value || '').split(','))
+        .map(digits)
+        .filter(Boolean);
+    return allowed.includes(target);
+};
+
 const looksLikePublicVslLeadText = (text = '') => {
     const value = String(text || '')
         .normalize('NFD')
@@ -57,6 +71,56 @@ const EC_TEX_ULTRA_VSL_AB_MESSAGES = {
     a: 'Hola, quiero saber mas sobre Tex Ultra.',
     b: 'Hola, deseo recibir mas informacion sobre el producto.'
 };
+const EC_TEX_ULTRA_CURRENT_MESSAGES = [
+    'Hola, vengo de la presentacion de Tex Ultra',
+    'Hola, quiero conocer la promocion de Tex Ultra',
+    'Hola, vi la informacion de Tex Ultra',
+    'Hola, deseo saber mas sobre Tex Ultra'
+];
+
+const EC_VSL_PRODUCT_PROFILES = Object.freeze({
+    tex_ultra_ec: {
+        productKey: 'tex_ultra_ec',
+        productName: 'Tex Ultra Ecuador',
+        productMedia: '/media/sales/ec/tex_ultra.png',
+        productTag: 'TEX_ULTRA_EC'
+    },
+    nitrix_ec: {
+        productKey: 'nitrix_ec',
+        productName: 'Nitrix Oxide Ecuador',
+        productMedia: '/media/sales/ec/nitrix_bottle.png',
+        productTag: 'NITRIX_EC'
+    },
+    vit_power_ec: {
+        productKey: 'vit_power_ec',
+        productName: 'Vit Power Ecuador',
+        productMedia: '/media/sales/ec/vit_power.jpeg',
+        productTag: 'VIT_POWER_EC'
+    }
+});
+const EC_VSL_PRODUCT_TAGS = new Set(Object.values(EC_VSL_PRODUCT_PROFILES).map((profile) => profile.productTag));
+const AUTOMATED_EC_VSL_PRODUCT_KEYS = new Set(['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']);
+
+export const automatedEcVslProductKey = (productKey = '') => (
+    AUTOMATED_EC_VSL_PRODUCT_KEYS.has(String(productKey || '').trim().toLowerCase())
+);
+
+export const canPromoteAutomatedVslEntry = ({
+    isNewState = false,
+    automatedVslProduct = false,
+    humanMode = '',
+    lastManualBy = '',
+    storedProductKey = '',
+    incomingProductKey = ''
+} = {}) => {
+    if (isNewState || !automatedVslProduct || humanMode !== 'manual') return false;
+    if (!['vsl_ec', 'nitrix_vsl_entry_ready', 'tex_ultra_vsl_entry_ready', 'zapi_watchdog'].includes(lastManualBy)) {
+        return false;
+    }
+    const stored = String(storedProductKey || '').trim().toLowerCase();
+    const incoming = String(incomingProductKey || '').trim().toLowerCase();
+    return Boolean(incoming) && (!stored || stored === incoming);
+};
 
 const normalizeVslText = (text = '') => String(text || '')
     .normalize('NFD')
@@ -66,20 +130,96 @@ const normalizeVslText = (text = '') => String(text || '')
     .replace(/\s+/g, ' ')
     .trim();
 
-const ecTexUltraVslAbContextFromText = (text = '') => {
+const ACTIVE_VSL_GENERIC_ENTRY_PATTERNS = Object.freeze([
+    /^hola quiero el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
+    /^hola deseo el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
+    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:de )?[1236] frascos?(?: \d{1,3}(?: \d{1,2})?)?$/
+]);
+
+export const activeEcVslProductContextFromText = (text = '', env = process.env) => {
     const value = normalizeVslText(text);
+    if (!ACTIVE_VSL_GENERIC_ENTRY_PATTERNS.some((pattern) => pattern.test(value))) return null;
+    const productKey = String(env.VITALISMEN_ACTIVE_VSL_PRODUCT || '').trim().toLowerCase();
+    const profile = EC_VSL_PRODUCT_PROFILES[productKey];
+    if (!profile) return null;
+    return {
+        ...profile,
+        productSource: 'active_vsl_generic_entry',
+        vslTestId: '',
+        vslVariant: 'active_product',
+        vslEntryMessage: String(text || '').trim()
+    };
+};
+
+export const explicitEcVslProductContextFromText = (text = '') => {
+    const value = normalizeVslText(text);
+    if (!value) return null;
+    if (/\bnitrix\b|oxido nitrico/.test(value)) {
+        return {
+            ...EC_VSL_PRODUCT_PROFILES.nitrix_ec,
+            productSource: 'zapi_explicit_product_text',
+            vslTestId: '',
+            vslVariant: '',
+            vslEntryMessage: String(text || '').trim()
+        };
+    }
+    if (/\bvit power\b|\bvitpower\b/.test(value)) {
+        return {
+            ...EC_VSL_PRODUCT_PROFILES.vit_power_ec,
+            productSource: 'zapi_explicit_product_text',
+            vslTestId: '',
+            vslVariant: '',
+            vslEntryMessage: String(text || '').trim()
+        };
+    }
+    const currentMessage = EC_TEX_ULTRA_CURRENT_MESSAGES.find((message) => normalizeVslText(message) === value);
+    if (currentMessage || /\btex ultra\b/.test(value)) {
+        return {
+            ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
+            productSource: 'zapi_explicit_product_text',
+            vslTestId: '',
+            vslVariant: '',
+            vslEntryMessage: currentMessage || String(text || '').trim()
+        };
+    }
+    const activeProductContext = activeEcVslProductContextFromText(text);
+    if (activeProductContext) return activeProductContext;
     const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
+        .filter(([variant]) => variant === 'a')
         .map(([variant, message]) => [variant, normalizeVslText(message)]);
     const match = normalizedMessages.find(([, message]) => value === message || value.includes(message));
     if (!match) return null;
     const [variant] = match;
     return {
-        productKey: 'tex_ultra_ec',
-        productName: 'Tex Ultra Ecuador',
-        productMedia: '',
+        ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
+        productSource: 'zapi_public_tex_ultra_entry',
         vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
         vslVariant: variant,
         vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
+    };
+};
+
+export const ecTexUltraVslContextFromText = (text = '') => {
+    const context = explicitEcVslProductContextFromText(text);
+    return context?.productKey === 'tex_ultra_ec' ? context : null;
+};
+
+export const freshPersistedEcVslProductContext = (state = {}, now = new Date()) => {
+    const productKey = String(state?.metadata?.vslProductKey || '').trim().toLowerCase();
+    const profile = EC_VSL_PRODUCT_PROFILES[productKey];
+    if (!profile) return null;
+    const attributionAt = new Date(state?.metadata?.vslEntryPanelLeadAt || 0);
+    if (Number.isNaN(attributionAt.getTime())) return null;
+    const configuredHours = Number.parseFloat(process.env.VSL_PRODUCT_ATTRIBUTION_TTL_HOURS || '72');
+    const ttlHours = Number.isFinite(configuredHours) && configuredHours > 0 ? configuredHours : 72;
+    if (now.getTime() - attributionAt.getTime() > ttlHours * 60 * 60 * 1000) return null;
+    return {
+        ...profile,
+        productName: String(state?.metadata?.vslProductName || profile.productName).trim(),
+        productSource: 'persisted_authoritative_vsl_attribution',
+        vslTestId: String(state?.metadata?.vslTestId || '').trim(),
+        vslVariant: String(state?.metadata?.vslVariant || '').trim(),
+        vslEntryMessage: String(state?.metadata?.vslEntryMessage || '').trim()
     };
 };
 
@@ -364,6 +504,19 @@ const vslFirstResponseWatchdogDelayMs = () => {
     return Number.isFinite(parsed) && parsed >= 15000 ? parsed : 75000;
 };
 
+export const hasOutboundMarkerSince = (value, since = new Date()) => {
+    const sinceMs = since instanceof Date ? since.getTime() : new Date(since).getTime();
+    if (!Number.isFinite(sinceMs) || !value || typeof value !== 'object') return false;
+    return Object.entries(value).some(([key, nested]) => {
+        if (/(?:sent|outbound)At$/i.test(key)) {
+            const markerMs = new Date(nested || 0).getTime();
+            if (Number.isFinite(markerMs) && markerMs >= sinceMs) return true;
+        }
+        if (!nested || typeof nested !== 'object') return false;
+        return hasOutboundMarkerSince(nested, since);
+    });
+};
+
 const hasRecentOutboundForZapiLead = async ({ chatId = '', phone = '', since = new Date() } = {}) => {
     const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
     const or = [
@@ -376,6 +529,16 @@ const hasRecentOutboundForZapiLead = async ({ chatId = '', phone = '', since = n
         tail ? { chatId: { $regex: tail } } : null
     ].filter(Boolean);
     if (!or.length) return false;
+    const state = await ContactState.findOne({ $or: [
+        chatId ? { chatId } : null,
+        phone ? { phoneDigits: phone } : null,
+        tail ? { phoneDigits: { $regex: `${tail}$` } } : null
+    ].filter(Boolean) })
+        .sort({ updatedAt: -1 })
+        .select({ 'metadata.perAgentMemory': 1 })
+        .lean()
+        .catch(() => null);
+    if (hasOutboundMarkerSince(state?.metadata?.perAgentMemory, since)) return true;
     const sinceDate = since instanceof Date ? since : new Date(since);
     const sinceTimestamp = Math.floor(sinceDate.getTime() / 1000);
     const found = await Message.exists({
@@ -641,9 +804,18 @@ const recordZapiInboundPayload = async (payload = {}) => {
 
     const isNewState = !state;
     const inferredCountry = countryFromPhone(phone);
-    const ecTexUltraVslAbContext = ecTexUltraVslAbContextFromText(normalizedBody);
-    const publicVslLeadEntry = inferredCountry === 'EC'
-        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(ecTexUltraVslAbContext));
+    const authorizedTestRecipient = authorizedVslTestRecipient(phone);
+    const vslRoutingAllowed = inferredCountry === 'EC' || authorizedTestRecipient;
+    const persistedVslProductContext = freshPersistedEcVslProductContext(state, now);
+    const hasPersistedVslProduct = Boolean(String(state?.metadata?.vslProductKey || '').trim());
+    const explicitTextProductContext = hasPersistedVslProduct || !vslRoutingAllowed
+        ? null
+        : explicitEcVslProductContextFromText(normalizedBody);
+    const vslProductContext = persistedVslProductContext || explicitTextProductContext;
+    const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
+    const publicVslLeadEntry = vslRoutingAllowed
+        && Boolean(vslProductContext)
+        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(vslProductContext));
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
@@ -652,18 +824,26 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
-    if (ecTexUltraVslAbContext) targetState.assignedAgent = ecTexUltraVslAbContext.productKey;
+    if (vslProductContext) targetState.assignedAgent = vslProductContext.productKey;
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
     if (!targetState.firstInboundText) targetState.firstInboundText = targetState.lastInboundText;
-    if (isNewState) {
+    const promoteRegisteredVslEntry = canPromoteAutomatedVslEntry({
+        isNewState,
+        automatedVslProduct,
+        humanMode: targetState.human?.mode,
+        lastManualBy: targetState.human?.lastManualBy,
+        storedProductKey: targetState.metadata?.productKey || targetState.assignedAgent || '',
+        incomingProductKey: vslProductContext?.productKey || ''
+    });
+    if (isNewState || promoteRegisteredVslEntry) {
         targetState.human = {
             ...(targetState.human || {}),
-            mode: publicVslLeadEntry ? 'auto' : 'manual',
+            mode: publicVslLeadEntry && automatedVslProduct ? 'auto' : 'manual',
             pausedUntil: null,
-            assignedName: publicVslLeadEntry ? 'Entrada VSL' : 'Captura Z-API',
-            note: publicVslLeadEntry
+            assignedName: publicVslLeadEntry && automatedVslProduct ? 'Entrada VSL' : 'Captura Z-API',
+            note: publicVslLeadEntry && automatedVslProduct
                 ? 'Entrada VSL EC capturada pela Z-API; bot liberado para primeira resposta.'
                 : 'Contato capturado do WhatsApp conectado. Revisar no painel antes de qualquer automacao.',
             lastManualAt: now,
@@ -671,10 +851,12 @@ const recordZapiInboundPayload = async (payload = {}) => {
         };
     }
     targetState.tags = [...new Set([
-        ...(Array.isArray(targetState.tags) ? targetState.tags : []),
+        ...(Array.isArray(targetState.tags) ? targetState.tags.filter((tag) => !EC_VSL_PRODUCT_TAGS.has(tag)) : []),
         'ZAPI_INBOUND_CAPTURED',
         ...(publicVslLeadEntry ? ['VSL_EC', 'WHATSAPP_CLICK'] : []),
-        ...(ecTexUltraVslAbContext ? ['TEX_ULTRA_EC', 'TEX_ULTRA_VSL_AB_ENTRY'] : []),
+        ...(vslProductContext ? [vslProductContext.productTag] : []),
+        ...(vslProductContext?.productKey === 'tex_ultra_ec' ? ['TEX_ULTRA_VSL_AB_ENTRY'] : []),
+        ...(authorizedTestRecipient ? ['AUTHORIZED_VSL_TEST_RECIPIENT'] : []),
         ...(inferredCountry === 'BR' ? ['BR_CAPTURADO_CELULAR'] : [])
     ])];
     targetState.metadata = {
@@ -689,18 +871,29 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
         publicVslLeadEntry,
-        ...(ecTexUltraVslAbContext ? {
+        ...(vslProductContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
-            vslEntryPanelLeadAt: now.toISOString(),
-            vslTestId: ecTexUltraVslAbContext.vslTestId,
-            vslVariant: ecTexUltraVslAbContext.vslVariant,
-            vslEntryMessage: ecTexUltraVslAbContext.vslEntryMessage,
-            productKey: ecTexUltraVslAbContext.productKey,
-            productName: ecTexUltraVslAbContext.productName,
-            productSource: 'zapi_public_vsl_ab_entry',
-            vslProductKey: ecTexUltraVslAbContext.productKey,
-            vslProductName: ecTexUltraVslAbContext.productName,
+            vslEntryPanelLeadAt: targetState.metadata?.vslEntryPanelLeadAt || now.toISOString(),
+            vslTestId: vslProductContext.vslTestId,
+            vslVariant: vslProductContext.vslVariant,
+            vslEntryMessage: vslProductContext.vslEntryMessage || normalizedBody,
+            productKey: vslProductContext.productKey,
+            productName: vslProductContext.productName,
+            productSource: vslProductContext.productSource || 'zapi_public_vsl_entry',
+            vslProductKey: vslProductContext.productKey,
+            vslProductName: vslProductContext.productName,
+            productRouteLock: targetState.metadata?.productRouteLock?.active === true
+                && targetState.metadata?.productRouteLock?.productKey === vslProductContext.productKey
+                ? targetState.metadata.productRouteLock
+                : {
+                    active: true,
+                    productKey: vslProductContext.productKey,
+                    productName: vslProductContext.productName,
+                    lockedAt: now.toISOString(),
+                    source: vslProductContext.productSource || 'zapi_public_vsl_entry',
+                    reason: 'authoritative_vsl_product_attribution'
+                },
             customerDraft: {
                 ...(targetState.metadata?.customerDraft || {}),
                 phone: `+${phone}`,
@@ -708,13 +901,13 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 status: targetState.metadata?.customerDraft?.status || 'novo',
                 entryAt: targetState.metadata?.customerDraft?.entryAt || now.toISOString(),
                 source: 'public_vsl_whatsapp_entry',
-                productKey: ecTexUltraVslAbContext.productKey,
-                productName: ecTexUltraVslAbContext.productName,
-                productMedia: ecTexUltraVslAbContext.productMedia,
+                productKey: vslProductContext.productKey,
+                productName: vslProductContext.productName,
+                productMedia: vslProductContext.productMedia,
                 message: normalizedBody,
-                vslTestId: ecTexUltraVslAbContext.vslTestId,
-                vslVariant: ecTexUltraVslAbContext.vslVariant,
-                vslEntryMessage: ecTexUltraVslAbContext.vslEntryMessage,
+                vslTestId: vslProductContext.vslTestId,
+                vslVariant: vslProductContext.vslVariant,
+                vslEntryMessage: vslProductContext.vslEntryMessage || normalizedBody,
                 updatedAt: now.toISOString()
             }
         } : {})
@@ -733,7 +926,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
         bodyLength: normalizedBody.length,
         readInference,
         publicVslLeadEntry,
-        routeToBot: inferredCountry === 'EC' && Boolean(normalizedBody) && targetState.human?.mode !== 'manual'
+        routeToBot: Boolean(normalizedBody)
+            && targetState.human?.mode !== 'manual'
+            && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry))
     };
 };
 
@@ -898,6 +1093,35 @@ router.get('/whatsapp-link', async (req, res) => {
     }
 });
 
+export const classifyZapiGenericWebhookPayload = (payload = {}) => {
+    const fromMe = zapiFromMeFromPayload(payload);
+    const callbackType = firstString(payload.type, payload.event, payload.data?.type);
+    // O callback oficial de entrada da Z-API traz `status: RECEIVED`.
+    // Classificar qualquer status como entrega impedia a mensagem real do
+    // cliente de chegar ao funil. Identificamos a entrada antes da entrega.
+    const receivedInboundCallback = !fromMe && (
+        /receivedcallback/i.test(callbackType)
+        || (
+            String(firstString(payload.status, payload.data?.status)).toUpperCase() === 'RECEIVED'
+            && Boolean(zapiTextFromPayload(payload) || zapiMediaUrlFromPayload(payload))
+        )
+    );
+    const looksLikeDelivery = Boolean(
+        payload.status
+        || payload.messageStatus
+        || payload.deliveryStatus
+        || payload.ack
+        || /delivery|message-status|status/i.test(callbackType)
+    );
+    return {
+        kind: fromMe || (looksLikeDelivery && !receivedInboundCallback) ? 'delivery' : 'inbound',
+        fromMe,
+        callbackType,
+        receivedInboundCallback,
+        looksLikeDelivery
+    };
+};
+
 router.post('/webhook/delivery', async (req, res) => {
     try {
         const payload = req.body || {};
@@ -923,30 +1147,34 @@ router.post('/webhook', async (req, res) => {
             console.log('[ZAPI-WEBHOOK] event forwarded to CO');
             return res.json({ ok: true, routed: 'co_forward' });
         }
-        const fromMe = zapiFromMeFromPayload(payload);
-        const looksLikeDelivery = Boolean(
-            payload.status
-            || payload.messageStatus
-            || payload.deliveryStatus
-            || payload.ack
-            || /delivery|message-status|status/i.test(firstString(payload.type, payload.event, payload.data?.type))
-        );
-        if (fromMe || looksLikeDelivery) {
+        const classification = classifyZapiGenericWebhookPayload(payload);
+        if (classification.kind === 'delivery') {
             const result = await applyZapiDeliveryPayload(payload);
             console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
             return res.json({ ok: true, result, routed: 'delivery' });
         }
         const result = await recordZapiInboundPayload(payload);
+        const buyLaterReply = result.body
+            ? await handleBuyLaterConfirmationReply({
+                phone: result.phone,
+                chatId: result.chatId,
+                body: result.body,
+                messageId: result.messageId,
+                sessionId: 'zapi'
+            })
+            : { handled: false };
         if (result.routeToBot) {
             scheduleVslFirstResponseWatchdog(result);
-            await routeIncomingMessage({
-                id: result.messageId,
-                from: result.chatId,
-                body: result.body,
-                sessionId: 'zapi',
-                senderPn: result.phone,
-                fullMessage: { key: { senderPn: result.phone } }
-            });
+            if (!buyLaterReply.handled) {
+                await routeIncomingMessage({
+                    id: result.messageId,
+                    from: result.chatId,
+                    body: result.body,
+                    sessionId: 'zapi',
+                    senderPn: result.phone,
+                    fullMessage: { key: { senderPn: result.phone } }
+                });
+            }
         }
         console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         return res.json({ ok: true, result, routed: 'inbound' });
@@ -969,16 +1197,27 @@ router.post('/webhook/received', async (req, res) => {
         const fromMe = zapiFromMeFromPayload(payload);
         if (!fromMe) {
             const result = await recordZapiInboundPayload(payload);
+            const buyLaterReply = result.body
+                ? await handleBuyLaterConfirmationReply({
+                    phone: result.phone,
+                    chatId: result.chatId,
+                    body: result.body,
+                    messageId: result.messageId,
+                    sessionId: 'zapi'
+                })
+                : { handled: false };
             if (result.routeToBot) {
                 scheduleVslFirstResponseWatchdog(result);
-                await routeIncomingMessage({
-                    id: result.messageId,
-                    from: result.chatId,
-                    body: result.body,
-                    sessionId: 'zapi',
-                    senderPn: result.phone,
-                    fullMessage: { key: { senderPn: result.phone } }
-                });
+                if (!buyLaterReply.handled) {
+                    await routeIncomingMessage({
+                        id: result.messageId,
+                        from: result.chatId,
+                        body: result.body,
+                        sessionId: 'zapi',
+                        senderPn: result.phone,
+                        fullMessage: { key: { senderPn: result.phone } }
+                    });
+                }
             }
             console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
             return res.json({ ok: true, result });

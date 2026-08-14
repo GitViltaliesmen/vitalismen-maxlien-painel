@@ -4,6 +4,7 @@ import Order from '../models/Order.js';
 import { vitPowerAgent } from './agents/vitPowerAgent.js';
 import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
+import { activeProductRouteLock } from './productRouteLockService.js';
 
 const OFFICIAL_AGENT = 'vit_power_ec';
 const NITRIX_AGENT = 'nitrix_ec';
@@ -20,6 +21,10 @@ const productRouteText = (value) => String(value || '')
 export const productRouteForState = (state = {}) => {
     const metadata = state?.metadata || {};
     const draft = metadata.customerDraft || {};
+    const routeLock = activeProductRouteLock(state);
+    if (routeLock) {
+        return { assignedAgent: routeLock.productKey, reason: 'active_operator_product_route_lock' };
+    }
     const explicitProductValues = [
         metadata.productKey,
         draft.productKey,
@@ -100,6 +105,23 @@ const isNitrixVslInitialInbound = (state = {}) => {
     return metadata.vslEntryPanelLead === true
         || values.some((value) => value.startsWith('/n') || value.includes('maxlien.shop/n') || value.includes('vsl'))
         || (state.tags || []).includes('VSL_EC');
+};
+
+const isTexUltraVslInitialInbound = (state = {}) => {
+    if (productRouteForState(state).assignedAgent !== TEX_ULTRA_AGENT) return false;
+    const metadata = state.metadata || {};
+    const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
+        .map(productRouteText);
+    return metadata.vslEntryPanelLead === true
+        || values.some((value) => value.startsWith('/tex-ultra') || value.includes('maxlien.shop/tex-ultra') || value.includes('vsl'))
+        || (state.tags || []).includes('VSL_EC');
+};
+
+export const automatedVslEntryAgentForState = (state = {}) => {
+    if (String(state?.human?.lastManualBy || '') !== 'vsl_ec') return '';
+    if (isNitrixVslInitialInbound(state)) return NITRIX_AGENT;
+    if (isTexUltraVslInitialInbound(state)) return TEX_ULTRA_AGENT;
+    return '';
 };
 
 const autoReplyEnabled = () => String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || '').toLowerCase() === 'true';
@@ -1056,7 +1078,8 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] atendimento manual expirado; automacao retomada | chat=${chatId}`);
-    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && isNitrixVslInitialInbound(state) && human.lastManualBy === 'vsl_ec') {
+    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && automatedVslEntryAgentForState(state)) {
+        const vslEntryAgent = automatedVslEntryAgentForState(state);
         // A VSL registra o lead inicialmente como manual para ele aparecer no
         // painel. Quando ele efetivamente escreve, somente o Nitrix /n/ pode
         // sair desse estado e seguir para o gate do Fast State.
@@ -1065,16 +1088,19 @@ export const routeIncomingMessage = async (payload) => {
             mode: 'auto',
             pausedUntil: null,
             lastManualAt: new Date(),
-            lastManualBy: 'nitrix_vsl_entry_auto',
-            note: 'Entrada VSL Nitrix confirmada; aguardando fluxo Fast State ou resposta direta à pergunta inicial.'
+            lastManualBy: vslEntryAgent === TEX_ULTRA_AGENT ? 'tex_ultra_vsl_entry_auto' : 'nitrix_vsl_entry_auto',
+            note: vslEntryAgent === TEX_ULTRA_AGENT
+                ? 'Entrada VSL Tex Ultra confirmada; liberada exclusivamente para o funil Tex Ultra.'
+                : 'Entrada VSL Nitrix confirmada; aguardando fluxo Fast State ou resposta direta à pergunta inicial.'
         };
         state.metadata = {
             ...(state.metadata || {}),
-            nitrixVslInboundAt: new Date(),
-            nitrixVslInboundAutoReleased: true
+            ...(vslEntryAgent === TEX_ULTRA_AGENT
+                ? { texUltraVslInboundAt: new Date(), texUltraVslInboundAutoReleased: true }
+                : { nitrixVslInboundAt: new Date(), nitrixVslInboundAutoReleased: true })
         };
         await state.save();
-        console.log(`[ROUTER] entrada VSL Nitrix liberada para o gate do bot | chat=${chatId}`);
+        console.log(`[ROUTER] entrada VSL ${vslEntryAgent} liberada para o gate do bot | chat=${chatId}`);
     } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
         const manualReason = String(
             state.metadata?.automationPausedReason

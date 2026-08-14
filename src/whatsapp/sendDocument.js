@@ -7,6 +7,8 @@ import { applyHumanPacing } from './humanPacing.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiDocument } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
+import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
+import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 
 const isRemoteUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -25,6 +27,10 @@ const sendDocumentFailure = (options, payload = {}) => (
 );
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
+    if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
+        console.log(`[LOG_SEND_BLOCKED] documento bloqueado por protecao manual anti-reenvio -> ${jid}`);
+        return sendDocumentFailure(options, { reason: 'operator_no_auto_resend' });
+    }
     const route = await resolveOutboundSessionForJid({ requestedSessionId: options.sessionId || null, jid, country: options.country || '' });
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
@@ -63,6 +69,15 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
             });
             console.log(`[LOG_SEND_USING_ZAPI] Documento enfileirado na Z-API -> ${phone} | Arquivo: ${filePath} | messageId=${response?.messageId || response?.id || ''}`);
             recordOutboundSend({ sessionId: 'zapi', jid });
+            await recordZapiOutboundMirror({
+                phone,
+                jid,
+                type: 'document',
+                body: caption || fileName || path.basename(filePath),
+                mediaUrl: filePath,
+                response,
+                isBot: options.sendMode !== 'manual_panel'
+            });
             const details = {
                 ok: true,
                 provider: 'zapi',

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
+import './services/texUltraApprovedFreezeRuntimeGuard.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -22,6 +23,7 @@ import integrationsRoutes from './routes/integrations.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
+import { pauseOrphanedTexUltraInitialFlowsOnStartup } from './services/texUltraInitialLayerService.js';
 
 const isProductionVpsPath = process.cwd().startsWith('/opt/vitalismen-automacao/');
 const isRunningUnderPm2 = Boolean(process.env.pm_id || process.env.PM2_HOME);
@@ -50,8 +52,11 @@ process.on('unhandledRejection', (reason, promise) => {
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-// Connect to MongoDB
-connectDB();
+// A recuperacao de cadencia e somente de estado: ela pausa timers orfaos e
+// nunca envia WhatsApp durante o boot/deploy.
+connectDB()
+    .then(() => pauseOrphanedTexUltraInitialFlowsOnStartup())
+    .catch((error) => console.error('[TEX-ULTRA-INITIAL] falha no startup seguro:', error.message));
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';

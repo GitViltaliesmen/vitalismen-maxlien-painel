@@ -40,7 +40,7 @@
                 <div>
                         <strong id="operatorName">Atendimento EC</strong>
                         <span id="syncStatus">Somente leitura</span>
-                        <span class="extension-version">Extensão v0.13.0 • Status e agenda sincronizados</span>
+                        <span class="extension-version">Extensão v0.13.3 • Status e agenda sincronizados</span>
                 </div>
                 <button id="refreshButton" class="secondary-button" type="button" title="Sincroniza os clientes; não atualiza a extensão">Sincronizar clientes</button>
             </div>
@@ -190,11 +190,16 @@
                             </label>
                             <button id="saveDraftButton" class="save-button" type="submit">Salvar dados</button>
                         </div>
-                        <label id="buyLaterSchedule" class="profile-input buy-later-schedule hidden">
-                            Data e hora combinadas com o cliente
-                            <input id="draftBuyLaterFollowupAt" type="datetime-local" autocomplete="off">
-                            <small>Obrigatória para “Comprar depois”. O lembrete não é enviado ao salvar a ficha.</small>
-                        </label>
+                        <div id="buyLaterSchedule" class="buy-later-schedule hidden">
+                            <label class="profile-input">
+                                Data e hora combinadas com o cliente
+                                <input id="draftBuyLaterFollowupAt" type="datetime-local" autocomplete="off">
+                            </label>
+                            <div class="buy-later-actions">
+                                <small>Obrigatória para “Comprar depois”. O lembrete não é enviado ao salvar a ficha.</small>
+                                <button id="addBuyLaterScheduleButton" class="secondary-button" type="button" disabled>Adicionar</button>
+                            </div>
+                        </div>
                         <div id="orderReadiness" class="order-readiness" aria-live="polite"></div>
                     </section>
 
