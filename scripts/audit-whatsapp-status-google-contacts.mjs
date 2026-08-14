@@ -11,7 +11,7 @@ const nginxSnippet = read('ops/nginx/ec.maxlien.shop-api-integrations.conf');
 const extensionWorker = read('extensions/vitalismen-whatsapp-official/service-worker.js');
 const launcher = read('extensions/vitalismen-whatsapp-official/whatsapp-funnel-launcher.js');
 
-assert.equal(manifest.version, '0.13.5');
+assert.equal(manifest.version, '0.13.6');
 for (const key of [
     'atendendo', 'comprar_depois', 'confirmado', 'enviado', 'em_rota',
     'na_agencia', 'entregue', 'devolvido', 'cancelado'

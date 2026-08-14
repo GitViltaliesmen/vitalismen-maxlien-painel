@@ -405,11 +405,11 @@ const selectedProductName = (productKey) => {
 };
 const authoritativeProductFromChat = ({ chat = {}, draft = {}, order = {}, suggestion = {} } = {}) => {
     const candidates = [
-        [chat.vslProductKey, chat.vslProductName],
-        [chat.productKey, chat.productName],
         [draft.productKey, draft.productName || draft.product],
-        [chat.assignedAgent, chat.productName],
         [productKeyFromText(order.productName || order.package?.label), order.productName || order.package?.label],
+        [chat.productKey, chat.productName],
+        [chat.vslProductKey, chat.vslProductName],
+        [chat.assignedAgent, chat.productName],
         [productKeyFromText(draft.productName || draft.product), draft.productName || draft.product],
         [suggestion.productKey, productNameForKey(suggestion.productKey)]
     ];

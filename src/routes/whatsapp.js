@@ -32,7 +32,13 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
-import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import {
+    ECUADOR_PRODUCTS,
+    detectExplicitEcuadorProductKey,
+    ecuadorPackageLabel,
+    resolveEcuadorProductInfo,
+    selectEcuadorPanelProductInfo
+} from '../services/ecuadorProductService.js';
 import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
 import {
     isOperationalChatStatusKey,
@@ -2002,18 +2008,20 @@ const panelProductContextForChat = async ({ contactState = null, order = null, c
         contactState?.lastInboundText || '',
         contactState?.metadata?.lastIncomingText || ''
     );
-    const orderProductKey = detectExplicitEcuadorProductKey(order || {});
     const draftProductKey = detectExplicitEcuadorProductKey(
-        customerDraft || {},
-        contactState?.metadata || {}
+        customerDraft || {}
     );
-    const productInfo = orderProductKey
-        ? ecuadorProductInfoForKey(orderProductKey)
-        : latestTextProductKey
-            ? ecuadorProductInfoForKey(latestTextProductKey)
-            : draftProductKey
-                ? ecuadorProductInfoForKey(draftProductKey)
-                : resolveEcuadorProductInfo(customerDraft || {}, contactState?.metadata || {});
+    const productInfo = selectEcuadorPanelProductInfo({
+        customerDraft,
+        order,
+        vslProductKey: contactState?.metadata?.vslProductKey || '',
+        latestTexts: [
+            lastMessage?.body || '',
+            contactState?.lastInboundText || '',
+            contactState?.metadata?.lastIncomingText || ''
+        ],
+        metadata: contactState?.metadata || {}
+    });
     const productMedia = ecuadorProductMediaForInfo(productInfo);
     const currentOrderId = String(customerDraft.orderId || '').trim();
     const activeOrderId = String(order?.orderId || '').trim();
@@ -2040,7 +2048,12 @@ const panelProductContextForChat = async ({ contactState = null, order = null, c
         productMedia
     };
 
-    const shouldPersist = Boolean(contactState?._id && (activeOrderId || latestTextProductKey || draftProductKey));
+    const shouldPersist = Boolean(contactState?._id && (
+        activeOrderId
+        || latestTextProductKey
+        || draftProductKey
+        || contactState?.metadata?.vslProductKey
+    ));
     if (shouldPersist) {
         const currentDraft = contactState?.metadata?.customerDraft || {};
         const productMismatch = String(contactState?.assignedAgent || '') !== productInfo.key
