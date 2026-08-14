@@ -1,5 +1,4 @@
 import { zapiConfig } from '../services/zapiClient.js';
-import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -19,7 +18,7 @@ const isSamePhone = (left, right) => {
     return a === b || a.startsWith(b) || b.startsWith(a);
 };
 
-const looksLikeZapiRoutedPhone = (value = '') => /^(593|57)\d{8,13}$/.test(digitsOnly(value));
+const looksLikeZapiRoutedPhone = (value = '') => /^593\d{8,13}$/.test(digitsOnly(value));
 
 const zapiOperationalTestRecipients = () => parsePhoneList(
     process.env.WHATSAPP_TEST_ALLOWED_RECIPIENTS,
@@ -38,11 +37,10 @@ export const shouldUseZapiForOutbound = ({ targetJid, recipientDigits = '', opti
     const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
     if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;
     const country = String(options.country || '').toUpperCase();
-    const legacyEligible = options.provider === 'zapi'
+    return options.provider === 'zapi'
         || options.sessionId === 'zapi'
         || options.sendMode === 'manual_panel'
-        || ['EC', 'CO'].includes(country);
-    return whatsappWebCutoverPolicy().shouldUseZapiOutbound({ phone, country, legacyEligible });
+        || country === 'EC';
 };
 
 export const zapiPhoneForOutbound = ({ targetJid, recipientDigits = '' } = {}) => (

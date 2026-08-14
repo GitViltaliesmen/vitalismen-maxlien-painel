@@ -4,11 +4,6 @@ import { getQueueSize } from '../whatsapp/queue.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import { getZapiDevice, getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
-import {
-    assessWhatsAppWebCutoverReadiness,
-    WHATSAPP_WEB_CUTOVER_MODES,
-    whatsappWebCutoverPolicy
-} from '../services/whatsappWebCutoverPolicy.js';
 
 const router = express.Router();
 
@@ -27,13 +22,7 @@ router.get('/', async (req, res) => {
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
         const whatsappConnectEnabled = String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() !== 'false';
-        const cutoverPolicy = whatsappWebCutoverPolicy();
-        const webSessionRequired = [
-            WHATSAPP_WEB_CUTOVER_MODES.WEB_TEST,
-            WHATSAPP_WEB_CUTOVER_MODES.WEB_PRIMARY,
-            WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY
-        ].includes(cutoverPolicy.mode);
-        const zapiRequired = cutoverPolicy.mode !== WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY;
+        const zapiPrimary = !whatsappConnectEnabled;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
@@ -41,7 +30,7 @@ router.get('/', async (req, res) => {
             name: '',
             error: ''
         };
-        if (zapiRequired && zapi.configured.enabled) {
+        if (zapiPrimary && zapi.configured.enabled) {
             try {
                 const [zapiStatus, zapiDevice] = await Promise.all([
                     getZapiStatus(),
@@ -65,9 +54,9 @@ router.get('/', async (req, res) => {
             .lean();
         const degradedReasons = [];
 
-        if (webSessionRequired && (!whatsappConnectEnabled || !connectedSessions.length)) degradedReasons.push('no_connected_whatsapp_session');
-        if (zapiRequired && !zapi.connected) degradedReasons.push('zapi_not_connected');
-        if (webSessionRequired && loggedOutSessions.length) degradedReasons.push('logged_out_session_present');
+        if (whatsappConnectEnabled && !connectedSessions.length) degradedReasons.push('no_connected_whatsapp_session');
+        if (zapiPrimary && !zapi.connected) degradedReasons.push('zapi_not_connected');
+        if (whatsappConnectEnabled && loggedOutSessions.length) degradedReasons.push('logged_out_session_present');
         if (pendingTasks > 50) degradedReasons.push('large_inbound_queue');
 
         const zapiSession = {
@@ -82,7 +71,7 @@ router.get('/', async (req, res) => {
             status: session.status,
             provider: 'whatsapp_web'
         }));
-        const exposedWhatsapp = !webSessionRequired
+        const exposedWhatsapp = zapiPrimary
             ? {
                 state: zapi.connected ? 'connected' : 'disconnected',
                 ready: zapi.connected,
@@ -97,29 +86,17 @@ router.get('/', async (req, res) => {
                 connectEnabled: whatsappConnectEnabled,
                 connectedSessions: connectedSessions.length,
                 loggedOutSessions: loggedOutSessions.length,
-                sessions: zapiRequired ? [...safeWebSessions, zapiSession] : safeWebSessions
+                sessions: safeWebSessions
             };
-        const cutover = assessWhatsAppWebCutoverReadiness({
-            statuses: sessions,
-            zapiConnected: zapiRequired ? zapi.connected : null
-        });
-        const engineByMode = {
-            [WHATSAPP_WEB_CUTOVER_MODES.HOLD_CURRENT]: 'Z-API',
-            [WHATSAPP_WEB_CUTOVER_MODES.WEB_TEST]: 'WhatsApp Web test + Z-API',
-            [WHATSAPP_WEB_CUTOVER_MODES.WEB_PRIMARY]: 'WhatsApp Web + Z-API CO fallback',
-            [WHATSAPP_WEB_CUTOVER_MODES.WEB_ONLY]: 'WhatsApp Web',
-            [WHATSAPP_WEB_CUTOVER_MODES.ZAPI_ROLLBACK]: 'Z-API rollback'
-        };
 
         return res.json({
             status: degradedReasons.length ? 'degraded' : 'online',
             timestamp: new Date().toISOString(),
-            engine: engineByMode[cutoverPolicy.mode] || 'Z-API',
+            engine: zapiPrimary ? 'Z-API' : 'Baileys',
             pid: process.pid,
             uptime_seconds: process.uptime(),
             runner: 'node src/index.js',
             degradedReasons,
-            cutover,
             whatsapp: exposedWhatsapp,
             zapi: {
                 configured: zapi.configured,

@@ -970,9 +970,7 @@
 
         <section class="tools">
             <select id="countryFilter" aria-label="Pais">
-                <option value="EC">EC</option>
-                <option value="CO">CO</option>
-                <option value="ALL">Todos</option>
+                <option value="EC">Equador</option>
             </select>
             <input id="searchInput" autocomplete="off" placeholder="Buscar nome, telefone, cidade, status">
             <select id="statusFilter" aria-label="Status">
@@ -1039,7 +1037,7 @@
         const operationalApiBase = apiBase;
         const state = {
             leads: [],
-            country: (params.get('country') || 'EC').toUpperCase(),
+            country: 'EC',
             q: '',
             status: '',
             dateFilter: params.get('period') || '',
@@ -1170,12 +1168,10 @@
             if (leadAgeDays(lead) > EXTENDED_OPERATIONAL_DAYS && EXTENDED_STATUSES.has(status)) return true;
             return leadAgeDays(lead) > OPERATIONAL_DAYS && !EXTENDED_STATUSES.has(status);
         };
-        const money = (value, country) => {
+        const money = (value) => {
             const number = Number(value || 0);
             if (!number) return '';
-            return country === 'CO'
-                ? number.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
-                : number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
 
         const formatFollowupDate = (value) => {
@@ -1716,7 +1712,7 @@
                 && (!usesEcuadorOperationalRules || !isConfirmedBeforeJune2026(lead) || hasCurrentOperationalOrder)
                 && (!usesEcuadorOperationalRules || !isRepurchaseLead(lead) || hasCurrentOperationalOrder)
                 && (!usesEcuadorOperationalRules || leadHasExplicitDropiSelection(lead))
-                && ['EC', 'CO'].includes(country)
+                && country === 'EC'
                 && String(lead.name || '').trim()
                 && String(lead.phone || '').replace(/\D/g, '').length >= 9
                 && String(lead.address || '').trim()
@@ -1730,7 +1726,7 @@
             const status = statusValue(lead);
             const country = leadCountryCode(lead);
             return DROPI_READY_STATUSES.has(status)
-                && ['EC', 'CO'].includes(country)
+                && country === 'EC'
                 && leadReadyForCustomerConfirmation(lead)
                 && (country !== 'EC' || leadHasExplicitDropiSelection(lead));
         };
@@ -1757,7 +1753,7 @@
 
         const missingDropiFields = (lead) => {
             const missing = [];
-            if (!['EC', 'CO'].includes(leadCountryCode(lead))) missing.push('pais');
+            if (leadCountryCode(lead) !== 'EC') missing.push('pais');
             if (!String(lead.name || '').trim()) missing.push('nome');
             if (String(lead.phone || '').replace(/\D/g, '').length < 9) missing.push('telefone');
             if (!String(lead.address || '').trim()) missing.push('endereco');
@@ -2459,25 +2455,6 @@
                 render();
                 return;
             }
-            if (leadCountryCode(lead) === 'CO') {
-                try {
-                    state.dropiBusy.add(String(id));
-                    setMsg('enfileirando CO...');
-                    render();
-                    const result = await api(['/api/shipments/droppi', 'co', 'admin-leads', encodeURIComponent(id), 'queue-submit'].join('/'), {
-                        method: 'POST',
-                        body: JSON.stringify({ note: 'Enfileirado em Leads Clientes CO' })
-                    });
-                    state.selectedDropi.delete(String(id));
-                    setMsg(result.message || 'pedido CO enfileirado', false, true);
-                } catch (error) {
-                    setMsg(error.message || 'erro ao enfileirar CO', true);
-                } finally {
-                    state.dropiBusy.delete(String(id));
-                    render();
-                }
-                return;
-            }
             state.dropiBusy.add(String(id));
             render();
 
@@ -2594,11 +2571,6 @@
             const id = String(button.dataset.authorizeRepurchaseDropi || '');
             const lead = state.leads.find((item) => String(item.id) === id);
             if (!lead) return;
-            if (leadCountryCode(lead) === 'CO') {
-                await submitLeadToDropi(lead);
-                await fetchLeads();
-                return;
-            }
             if (!leadReadyForCustomerConfirmation(lead)) {
                 state.dropiMessages.set(id, { text: 'complete os dados antes', error: true });
                 render();
@@ -2660,11 +2632,6 @@
             const id = String(button.dataset.authorizeResendDropi || '');
             const lead = state.leads.find((item) => String(item.id) === id);
             if (!lead) return;
-            if (leadCountryCode(lead) === 'CO') {
-                await submitLeadToDropi(lead);
-                await fetchLeads();
-                return;
-            }
             if (!leadReadyForCustomerConfirmation(lead)) {
                 state.dropiMessages.set(id, { text: 'complete os dados antes', error: true });
                 render();
@@ -2789,11 +2756,11 @@
         };
 
         const setCountry = (country) => {
-            state.country = ['EC', 'CO', 'ALL'].includes(country) ? country : 'EC';
+            state.country = 'EC';
             state.dropiCatalog = null;
             loadRepurchaseChecked();
             el('countryFilter').value = state.country;
-            el('newLeadBtn').href = `${apiBase}/admin/new?country=${encodeURIComponent(state.country === 'ALL' ? 'EC' : state.country)}`;
+            el('newLeadBtn').href = `${apiBase}/admin/new?country=EC`;
             const nextUrl = new URL(window.location.href);
             nextUrl.searchParams.set('country', state.country);
             window.history.replaceState({}, '', nextUrl);
@@ -2835,11 +2802,11 @@
             }
         };
 
-        el('countryFilter').value = ['EC', 'CO', 'ALL'].includes(state.country) ? state.country : 'EC';
+        el('countryFilter').value = 'EC';
         state.country = el('countryFilter').value;
         el('dateFilter').value = ['', 'today', '7d', 'all'].includes(state.dateFilter) ? state.dateFilter : '';
         state.dateFilter = el('dateFilter').value;
-        el('newLeadBtn').href = `${apiBase}/admin/new?country=${encodeURIComponent(state.country === 'ALL' ? 'EC' : state.country)}`;
+        el('newLeadBtn').href = `${apiBase}/admin/new?country=EC`;
         setupStatusFilter();
 
         el('countryFilter').addEventListener('change', (event) => setCountry(event.target.value));

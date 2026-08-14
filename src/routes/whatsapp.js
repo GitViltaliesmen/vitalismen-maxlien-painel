@@ -39,7 +39,6 @@ import {
     resolveOperationalChatStatus
 } from '../services/operationalChatStatusService.js';
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
-import { assessWhatsAppWebCutoverReadiness } from '../services/whatsappWebCutoverPolicy.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -205,22 +204,18 @@ const isVisiblePanelMessage = (message = {}) => (
     && !TECHNICAL_ZAPI_ALERT_REGEX.test(String(message.body || ''))
 );
 
-const normalizePanelCountry = (value, fallback = 'EC') => {
-    const normalized = String(value || '').trim().toUpperCase();
-    return ['EC', 'CO'].includes(normalized) ? normalized : fallback;
-};
+const normalizePanelCountry = () => 'EC';
 
 const countryPrefixFromDigits = (value) => {
     const digits = digitsOnly(value);
     if (digits.startsWith('593')) return 'EC';
     if (digits.startsWith('55')) return 'BR';
-    if (digits.startsWith('57')) return 'CO';
     return '';
 };
 
 const inferCountryFromPhoneDigits = (value, fallback = 'EC') => {
     const inferred = countryPrefixFromDigits(value);
-    return ['EC', 'CO', 'BR'].includes(inferred) ? inferred : fallback;
+    return ['EC', 'BR'].includes(inferred) ? inferred : fallback;
 };
 
 const parseDigitsList = (value) => String(value || '')
@@ -321,17 +316,14 @@ const isAllowedPanelPhoneForCountry = (phone = '', country = 'EC') => {
     if (isOperationalPanelPhone(digits)) return true;
     const normalizedCountry = normalizePanelCountry(country);
     if (normalizedCountry === 'EC') return /^5939\d{8}$/.test(digits);
-    if (normalizedCountry === 'CO') return /^573\d{9}$/.test(digits);
-    return true;
+    return false;
 };
 
 const inferPanelCountryFromPhone = (phone = '', fallback = 'EC') => {
     const value = digitsOnly(phone);
     if (value.startsWith('593')) return 'EC';
-    if (value.startsWith('57')) return 'CO';
     if (value.startsWith('55')) return 'BR';
     if (/^9\d{8}$/.test(value)) return 'EC';
-    if (/^3\d{9}$/.test(value)) return 'CO';
     return normalizePanelCountry(fallback || 'EC');
 };
 
@@ -342,10 +334,6 @@ const normalizeClientPhoneDigits = (phone = '', country = 'EC') => {
         if (digits.startsWith('593')) return digits;
         if (digits.startsWith('09') && digits.length === 10) return `593${digits.slice(1)}`;
         if (digits.startsWith('9') && digits.length === 9) return `593${digits}`;
-    }
-    if (normalizedCountry === 'CO') {
-        if (digits.startsWith('57')) return digits;
-        if (digits.startsWith('3') && digits.length === 10) return `57${digits}`;
     }
     return digits;
 };
@@ -2977,10 +2965,6 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
 
-router.get('/cutover-readiness', adminOnly, (_req, res) => {
-    return res.json(assessWhatsAppWebCutoverReadiness({ statuses: getAllStatuses() }));
-});
-
 const latestByPhoneTail = (records = [], phoneSelector = () => '') => {
     const map = new Map();
     records.forEach((record) => {
@@ -3277,9 +3261,8 @@ router.post('/sessions/:sessionId/disconnect', adminOnly, async (req, res) => {
 router.get('/chats', async (req, res) => {
     try {
         const onlyLinked = String(req.query.onlyLinked || '').toLowerCase() === 'true' || String(req.query.onlyLinked || '') === '1';
-        const allCountries = String(req.query.allCountries || '').toLowerCase() === 'true' || String(req.query.allCountries || '') === '1';
         const fastMode = String(req.query.fast || '').toLowerCase() === 'true' || String(req.query.fast || '') === '1';
-        const countryFilter = allCountries ? null : normalizePanelCountry(req.query.country);
+        const countryFilter = normalizePanelCountry(req.query.country);
         const pictureSock = fastMode ? null : getSock(req.query.sessionId);
 
         const buildPhoneKeys = ({ digits, country }) => {
@@ -3291,7 +3274,6 @@ router.get('/chats', async (req, res) => {
             if (last10) keys.add(last10);
             if (!last10 && last9) keys.add(last9);
             if (inferredCountry === 'EC' && last10) keys.add(`593${last10}`);
-            if (inferredCountry === 'CO' && last10) keys.add(`57${last10}`);
             if (d.length >= 10 && d.length <= 15) keys.add(d);
             return Array.from(keys);
         };
@@ -3335,9 +3317,7 @@ router.get('/chats', async (req, res) => {
             }
         };
 
-        const recentStateQuery = allCountries
-            ? { chatId: { $exists: true, $nin: ['', 'status@broadcast'], $not: /@g\.us$/ } }
-            : scopedContactQuery({ country: countryFilter || 'EC', sessionId: req.query.sessionId });
+        const recentStateQuery = scopedContactQuery({ country: countryFilter, sessionId: req.query.sessionId });
         let recentStates = await ContactState.find(
             recentStateQuery,
             {
@@ -4264,7 +4244,7 @@ router.get('/customer-profile/:phone', async (req, res) => {
         const lastOutbound = messages.find((message) => message.isFromMe) || null;
         const latestState = states[0] || null;
         const customerDraft = latestState?.metadata?.customerDraft || {};
-        const primaryPhone = realPhones.find((phone) => phone.startsWith('55') || phone.startsWith('593') || phone.startsWith('57')) || realPhones[0] || digits || '';
+        const primaryPhone = realPhones.find((phone) => phone.startsWith('55') || phone.startsWith('593')) || realPhones[0] || digits || '';
 
         const canMatchOrders = countryPrefixFromDigits(primaryPhone) !== 'BR';
         const orderTails = canMatchOrders ? [...new Set(realPhones.flatMap(phoneTailCandidates))] : [];
@@ -4424,7 +4404,7 @@ router.post('/contacts', async (req, res) => {
             : isOperationalPanelPhone(digits);
         const normalizedDigits = matchedBrazilTestPhone || (internalOrTest ? digits : normalizeClientPhoneDigits(digits, effectiveCountry));
         if (!internalOrTest && !isAllowedPanelPhoneForCountry(normalizedDigits, effectiveCountry)) {
-            return res.status(400).json({ error: 'Cliente precisa ser EC +593 ou CO +57. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
+            return res.status(400).json({ error: 'Cliente precisa ser Ecuador +593. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
         }
 
         const state = await findOrCreateContactState(normalizedDigits);
@@ -4634,7 +4614,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 ? (matchedBrazilTestPhone || draftPhoneDigits || digitsOnly(req.params.phone))
                 : normalizeClientPhoneDigits(draftPhoneDigits, effectiveCountry);
             if (!internalOrTest && normalizedDraftPhoneDigits && !isAllowedPanelPhoneForCountry(normalizedDraftPhoneDigits, effectiveCountry)) {
-                return res.status(400).json({ error: 'Cliente precisa ser EC +593 ou CO +57. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
+                return res.status(400).json({ error: 'Cliente precisa ser Ecuador +593. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
             }
             const cleanDraft = {
                 name: String(customerDraft.name || '').trim(),

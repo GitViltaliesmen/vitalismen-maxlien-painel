@@ -30,7 +30,7 @@ const parseLimitValue = (value) => {
 const rotationEnabled = () => String(process.env.WHATSAPP_ROTATION_ENABLED || '').toLowerCase() === 'true';
 const normalizeCountry = (value = '') => {
     const country = String(value || '').trim().toUpperCase();
-    return ['EC', 'CO'].includes(country) ? country : '';
+    return country === 'EC' ? country : '';
 };
 
 const defaultSessionId = (country = '') => {

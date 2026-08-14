@@ -3148,51 +3148,6 @@
             background: #eff6ff;
         }
 
-        .co-tracking-panel {
-            display: grid;
-            gap: 8px;
-            border: 1px solid #bfdbfe;
-            border-radius: 10px;
-            background: #eff6ff;
-            padding: 8px;
-        }
-
-        .co-tracking-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .co-tracking-list {
-            display: grid;
-            gap: 6px;
-            max-height: 190px;
-            overflow: auto;
-        }
-
-        .co-tracking-item {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 6px;
-            align-items: center;
-            border: 1px solid #dbeafe;
-            border-radius: 8px;
-            background: #ffffff;
-            padding: 7px;
-        }
-
-        .co-tracking-item strong,
-        .co-tracking-item span {
-            display: block;
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .co-tracking-item .meta {
-            font-size: 11px;
-        }
-
         .customer-section > .row {
             order: -20;
         }
@@ -7132,9 +7087,7 @@
             </nav>
             <label class="country-switch main-country">País do atendimento
                 <select id="countryFilter">
-                    <option value="EC" selected>EC</option>
-                    <option value="CO">CO</option>
-                    <option value="ALL">Todos</option>
+                    <option value="EC" selected>Equador</option>
                 </select>
             </label>
             <div class="top-actions">
@@ -7501,7 +7454,6 @@
                     </div>
                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
                         <button data-connection-country="EC" class="active" type="button">Equador</button>
-                        <button data-connection-country="CO" type="button">CO</button>
                     </div>
                     <div id="connectionSourceNote" class="connection-source-note">Conexao puxada da Z-API. O pareamento do celular e feito fora deste painel.</div>
                     <form id="connectionForm" class="connection-form">
@@ -7611,7 +7563,6 @@
                             <label>País
                                 <select id="customerCountryInput">
                                     <option value="EC">Equador</option>
-                                    <option value="CO">CO</option>
                                 </select>
                             </label>
                             <label><span id="customerPhoneLabel">Telefone</span>
@@ -7708,18 +7659,7 @@
                             </label>
                         </div>
                         <div class="customer-form-actions manual-guide-actions">
-                            <button id="saveCoGuideBtn" type="button" hidden>Salvar guia CO</button>
                             <button id="sendManualGuideBtn" class="success" type="button">Adicionar e avisar guia</button>
-                        </div>
-                        <div id="coTrackingPanel" class="co-tracking-panel" hidden>
-                            <div class="co-tracking-head">
-                                <strong>Rastreamento CO</strong>
-                                <button id="refreshCoTrackingBtn" type="button">Atualizar</button>
-                            </div>
-                            <div id="coTrackingSummary" class="meta">Pedidos CO sem guia.</div>
-                            <div id="coTrackingList" class="co-tracking-list">
-                                <div class="empty">Atualize para ver pedidos sem guia.</div>
-                            </div>
                         </div>
                         <div class="customer-form-actions">
                             <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Abrir no Leads</button>
@@ -7998,7 +7938,6 @@
                 <label>País de atendimento
                     <select id="newContactCountry">
                         <option value="EC">Equador</option>
-                        <option value="CO">CO</option>
                     </select>
                 </label>
                 <label>Telefone / WhatsApp
@@ -8728,8 +8667,8 @@
         };
 
         const selectedOperationalCountry = () => el('countryFilter')?.value || 'EC';
-        const selectedPanelCountry = () => selectedOperationalCountry() === 'ALL' ? 'EC' : selectedOperationalCountry();
-        const panelCountryName = (country) => country === 'CO' ? 'CO' : country === 'EC' ? 'Equador' : 'pais';
+        const selectedPanelCountry = () => 'EC';
+        const panelCountryName = () => 'Equador';
         function setSaveCustomerButtonDisabled(disabled) {
             const button = el('saveCustomerBtn');
             if (button) button.disabled = disabled;
@@ -8769,9 +8708,7 @@
         };
 
         const notifyLeadsClientsRefresh = (country = selectedPanelCountry()) => {
-            const nextCountry = ['EC', 'CO', 'ALL'].includes(String(country || '').toUpperCase())
-                ? String(country || '').toUpperCase()
-                : selectedPanelCountry();
+            const nextCountry = 'EC';
             const message = {
                 type: 'vitalismen:refresh-leads',
                 country: nextCountry,
@@ -9547,21 +9484,18 @@
         };
 
         const renderConnections = () => {
-            const country = selectedPanelCountry();
+            const country = 'EC';
             syncConnectionCountryTabs();
             const sessions = normalizeConnectionSessions(state.whatsappSessions || []);
             const workloadBySession = connectionWorkloadBySession();
             const zapi = state.zapiDevice || {};
-            const zapiSharedHumanCountries = ['EC', 'CO'];
-            const zapiAvailableForCountry = zapiSharedHumanCountries.includes(country) && zapi.ok;
+            const zapiAvailableForCountry = zapi.ok;
             const zapiStatus = zapiAvailableForCountry ? 'connected' : 'disconnected';
             const zapiPhone = zapiAvailableForCountry ? (zapi.device?.phone || '') : '';
             const zapiKey = digitsOnlyText(zapiPhone);
             const zapiItem = workloadBySession.get(zapiKey) || {};
-            const countryLabel = country === 'CO' ? 'CO' : 'Equador';
-            const sourceText = country === 'CO'
-                ? 'Z-API compartilhada temporariamente para atendimento humano CO/EC. Funil CO segue congelado.'
-                : 'Z-API compartilhada temporariamente para atendimento humano EC/CO. O pareamento do celular e feito fora deste painel.';
+            const countryLabel = 'Equador';
+            const sourceText = 'Z-API da operacao Ecuador. O pareamento do celular e feito fora deste painel.';
             if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
             const zapiCard = `
                     <article class="connection-card">
@@ -9573,7 +9507,7 @@
                         <div class="meta">${escapeHtml(zapiPhone ? `numero conectado: ${zapiPhone}` : 'sem telefone conectado para esta operacao')}</div>
                         ${renderConnectionStatusBlock(zapiItem)}
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? (zapi.device?.name || 'Instancia Z-API') : `Operacao ${countryLabel}`)}</div>
-                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para atendimento humano nos dois paises.' : (zapi.error || 'Z-API ainda nao respondeu.'))}</div>
+                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para atendimento humano no Ecuador.' : (zapi.error || 'Z-API ainda nao respondeu.'))}</div>
                     </article>
                 `;
             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -9699,13 +9633,11 @@
             el('commandCodesModal').setAttribute('aria-hidden', 'true');
         };
         const applyNewContactCountryUi = () => {
-            const country = String(el('newContactCountry')?.value || selectedPanelCountry() || 'EC').toUpperCase();
-            if (el('newContactPhone')) el('newContactPhone').placeholder = country === 'CO' ? '+57...' : '+593...';
+            if (el('newContactPhone')) el('newContactPhone').placeholder = '+593...';
         };
         const inferPanelCountryFromPhoneInput = (phone = '') => {
             const digits = digitsOnlyText(phone);
             if (digits.startsWith('593')) return 'EC';
-            if (digits.startsWith('57')) return 'CO';
             return '';
         };
         const syncNewContactCountryFromPhone = () => {
@@ -9718,7 +9650,7 @@
         const openNewContactModal = () => {
             el('newContactModal').classList.remove('hidden');
             el('newContactModal').setAttribute('aria-hidden', 'false');
-            setInputValue('newContactCountry', ['EC', 'CO'].includes(selectedOperationalCountry()) ? selectedOperationalCountry() : 'EC');
+            setInputValue('newContactCountry', 'EC');
             applyNewContactCountryUi();
             window.setTimeout(() => el('newContactPhone').focus(), 30);
         };
@@ -9784,12 +9716,6 @@
                 ['2', '70.00', 'USD 70.00', '2 frascos'],
                 ['3', '80.99', 'USD 80.99', '3 frascos'],
                 ['6', '147.99', 'USD 147.99', '6 frascos']
-            ],
-            CO: [
-                ['1', '149000', '149000 CO', '1 frasco'],
-                ['2', '270000', '270000 CO', '2 frascos'],
-                ['3', '291000', '291000 CO', '3 frascos'],
-                ['6', '510000', '510000 CO', '6 frascos']
             ]
         };
         const setSelectOptions = (select, options = []) => {
@@ -9801,42 +9727,30 @@
             if (options.some((item) => item.value === current)) select.value = current;
         };
         const applyManualGuideCountryUi = (country) => {
-            const isCO = String(country || '').toUpperCase() === 'CO';
-            if (el('manualGuideTitle')) el('manualGuideTitle').textContent = isCO ? 'Guia CO' : 'Guia manual';
-            if (el('manualGuideTrackingLabel')) el('manualGuideTrackingLabel').textContent = isCO ? 'Guia / rastreo' : 'Guia / rastreio';
-            if (el('manualGuideTrackingInput')) el('manualGuideTrackingInput').placeholder = isCO ? 'Numero de guia' : 'Ex: 1851574972';
-            if (el('manualGuideStatusLabel')) el('manualGuideStatusLabel').textContent = isCO ? 'Etapa do aviso' : 'Status da guia';
-            setSelectOptions(el('manualGuideStatusInput'), isCO ? [
-                { value: 'GUIA_GENERADA', label: 'Guia gerada' },
-                { value: 'EN_RUTA', label: 'Em transito' },
-                { value: 'READY_FOR_PICKUP', label: 'Pronto para retirada' }
-            ] : [
+            if (el('manualGuideTitle')) el('manualGuideTitle').textContent = 'Guia manual';
+            if (el('manualGuideTrackingLabel')) el('manualGuideTrackingLabel').textContent = 'Guia / rastreio';
+            if (el('manualGuideTrackingInput')) el('manualGuideTrackingInput').placeholder = 'Ex: 1851574972';
+            if (el('manualGuideStatusLabel')) el('manualGuideStatusLabel').textContent = 'Status da guia';
+            setSelectOptions(el('manualGuideStatusInput'), [
                 { value: 'GUIA_GENERADA', label: 'Pedido enviado / guia' },
                 { value: 'READY_FOR_PICKUP', label: 'Pronto para retirada' },
                 { value: 'EN_RUTA', label: 'Em andamento' }
             ]);
-            if (el('manualGuideCarrierLabel')) el('manualGuideCarrierLabel').textContent = isCO ? 'Transportadora' : 'Retirada agencia';
-            setSelectOptions(el('manualGuideAgencyInput'), isCO ? [
-                { value: 'transportadora', label: 'Transportadora' },
-                { value: 'coordinadora', label: 'Coordinadora' }
-            ] : [
+            if (el('manualGuideCarrierLabel')) el('manualGuideCarrierLabel').textContent = 'Retirada agencia';
+            setSelectOptions(el('manualGuideAgencyInput'), [
                 { value: 'true', label: 'Sim' },
                 { value: 'false', label: 'Nao' }
             ]);
-            if (el('sendManualGuideBtn')) el('sendManualGuideBtn').textContent = isCO ? 'Preparar aviso de guia' : 'Adicionar e avisar guia';
-            if (el('saveCoGuideBtn')) el('saveCoGuideBtn').hidden = !isCO;
-            if (el('coTrackingPanel')) el('coTrackingPanel').hidden = !isCO;
+            if (el('sendManualGuideBtn')) el('sendManualGuideBtn').textContent = 'Adicionar e avisar guia';
         };
         const applyCustomerCountryUi = () => {
-            const country = String(el('customerCountryInput')?.value || selectedPanelCountry() || 'EC').toUpperCase();
-            const isCO = country === 'CO';
             if (el('customerPhoneLabel')) el('customerPhoneLabel').textContent = 'Telefone';
-            if (el('customerPhoneInput')) el('customerPhoneInput').placeholder = isCO ? '+57...' : '+593...';
-            if (el('customerProvinceLabel')) el('customerProvinceLabel').textContent = isCO ? 'Departamento' : 'Provincia';
-            if (el('customerProvinceInput')) el('customerProvinceInput').placeholder = isCO ? 'Departamento' : 'Provincia';
-            if (el('customerTotalLabel')) el('customerTotalLabel').textContent = isCO ? 'Valor CO' : 'Valor USD';
-            if (el('customerTotalInput')) el('customerTotalInput').placeholder = isCO ? '149000' : '39.99';
-            const presets = customerPricePresetsByCountry[isCO ? 'CO' : 'EC'];
+            if (el('customerPhoneInput')) el('customerPhoneInput').placeholder = '+593...';
+            if (el('customerProvinceLabel')) el('customerProvinceLabel').textContent = 'Provincia';
+            if (el('customerProvinceInput')) el('customerProvinceInput').placeholder = 'Provincia';
+            if (el('customerTotalLabel')) el('customerTotalLabel').textContent = 'Valor USD';
+            if (el('customerTotalInput')) el('customerTotalInput').placeholder = '39.99';
+            const presets = customerPricePresetsByCountry.EC;
             document.querySelectorAll('[data-price-preset]').forEach((button, index) => {
                 const preset = presets[index];
                 button.hidden = !preset;
@@ -9845,7 +9759,7 @@
                 button.dataset.pricePreset = `${quantity}:${total}`;
                 button.innerHTML = `<strong>${amountLabel}</strong> · ${quantityLabel}`;
             });
-            applyManualGuideCountryUi(country);
+            applyManualGuideCountryUi('EC');
         };
         const setInputValue = (id, value) => {
             const input = el(id);
@@ -10083,7 +9997,7 @@
         const customerDraftFromForm = () => {
             const phone = el('customerPhoneInput').value.trim();
             const formCountry = el('customerCountryInput').value || state.selectedChat?.country || selectedOperationalCountry() || 'EC';
-            const normalizedCountry = ['EC', 'CO', 'BR'].includes(String(formCountry).toUpperCase())
+            const normalizedCountry = ['EC', 'BR'].includes(String(formCountry).toUpperCase())
                 ? String(formCountry).toUpperCase()
                 : 'EC';
             const productInfo = productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
@@ -11341,13 +11255,8 @@
                 return;
             }
             state.chatsLoading = true;
-            const country = selectedOperationalCountry();
             const qs = new URLSearchParams();
-            if (country === 'ALL') {
-                qs.set('allCountries', '1');
-            } else if (country) {
-                qs.set('country', country);
-            }
+            qs.set('country', 'EC');
             qs.set('fast', '1');
             try {
                 const chats = await api(`/api/whatsapp/chats?${qs.toString()}`);
@@ -12632,11 +12541,6 @@
                 feedbackReason = window.prompt('O que esta errado nesta dica? Escreva a decisao correta para o Observador aprender.') || '';
                 if (!feedbackReason.trim()) return;
             }
-            if (kind === 'apply' && selectedPanelCountry() === 'CO') {
-                copyActionableScriptToComposer(actionableId);
-                showToast('CO: dica colocada no campo. Revise e clique Enviar manualmente.');
-                return;
-            }
             state.busy = true;
             try {
                 const endpoint = kind === 'save'
@@ -13519,7 +13423,7 @@
                 ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
                 setInputValue('customerProductInput', 'nitrix_ec');
                 renderCustomerProductSelection(null);
-                setInputValue('customerCountryInput', ['EC', 'CO'].includes(selectedOperationalCountry()) ? selectedOperationalCountry() : 'EC');
+                setInputValue('customerCountryInput', 'EC');
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
                 setInputValue('manualGuideAgencyInput', 'true');
@@ -13609,7 +13513,7 @@
                 : (chat.orderId ? `pedido ${chat.orderId}` : 'sem pedido vinculado');
             if (!keepManualEdit) {
                 setInputValue('customerNameInput', chat.name || '');
-                setInputValue('customerCountryInput', ['EC', 'CO'].includes(String(chat.country || '').toUpperCase()) ? chat.country : selectedPanelCountry());
+                setInputValue('customerCountryInput', String(chat.country || '').toUpperCase() === 'EC' ? 'EC' : selectedPanelCountry());
                 setInputValue('customerProductInput', productKeyFromChat(chat));
                 renderCustomerProductSelection(chat);
                 setInputValue('customerPhoneInput', chat.phone || '');
@@ -13682,29 +13586,16 @@
         };
 
         const currentTemplateCountry = () => {
-            const selected = String(state.selectedChat?.country || '').toUpperCase();
-            if (selected === 'CO' || selected === 'EC') return selected;
-            const filtered = String(selectedOperationalCountry()).toUpperCase();
-            return filtered === 'CO' ? 'CO' : 'EC';
+            return 'EC';
         };
 
-        const frontendProductInfo = (country = currentTemplateCountry()) => (
-            String(country || '').toUpperCase() === 'CO'
-                ? {
-                    name: 'FrascoEspecial',
-                    priceLine: '1 frasco por 149.000, 2 frascos por 270.000, 3 frascos por 291.000 y 6 frascos por 510.000',
-                    carrier: 'la transportadora disponible',
-                    useAudioCandidates: ['COMO SE TOMA', 'DEPOIMENTO AUDIO PRODUTO'],
-                    priceAudioCandidates: ['TRATAMENTO Y PRECIOS', 'QUANTOS FRASCOS']
-                }
-                : {
-                    name: 'Vit Power',
-                    priceLine: '1 frasco por USD 39.99, 3 frascos por USD 95.99 y 6 frascos por USD 167.99',
-                    carrier: 'Servientrega',
-                    useAudioCandidates: ['FUNCIONA VIT POWER', 'COMO SE TOMA', 'DEPOIMENTO AUDIO PRODUTO'],
-                    priceAudioCandidates: ['TRATAMENTO Y PRECIOS', 'QUANTOS FRASCOS']
-                }
-        );
+        const frontendProductInfo = () => ({
+            name: 'Vit Power',
+            priceLine: '1 frasco por USD 39.99, 3 frascos por USD 95.99 y 6 frascos por USD 167.99',
+            carrier: 'Servientrega',
+            useAudioCandidates: ['FUNCIONA VIT POWER', 'COMO SE TOMA', 'DEPOIMENTO AUDIO PRODUTO'],
+            priceAudioCandidates: ['TRATAMENTO Y PRECIOS', 'QUANTOS FRASCOS']
+        });
 
         const funnelAudioLabel = (template) => {
             const product = frontendProductInfo().name;
@@ -14217,16 +14108,12 @@
             const isTexUltra = selectedProductKey === 'tex_ultra_ec' || selectedProductKey.includes('tex_ultra') || selectedProductKey.includes('tex ultra');
             if (country === 'EC' && isTexUltra) return [];
             const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
-            const productMedia = country === 'CO'
-                ? { label: 'Frasco especial', value: '/media/sales/co/special_bottle.png' }
-                : isNitrix
-                    ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
-                    : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
-            const alternateProductMedia = country === 'EC'
-                ? (isNitrix
-                    ? { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Vit Power', detail: footerFileName('/media/sales/ec/vit_power.jpeg'), value: '/media/sales/ec/vit_power.jpeg' }
-                    : { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Nitrix', detail: footerFileName('/media/sales/ec/nitrix_bottle.png'), value: '/media/sales/ec/nitrix_bottle.png' })
-                : null;
+            const productMedia = isNitrix
+                ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
+                : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
+            const alternateProductMedia = isNitrix
+                ? { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Vit Power', detail: footerFileName('/media/sales/ec/vit_power.jpeg'), value: '/media/sales/ec/vit_power.jpeg' }
+                : { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Nitrix', detail: footerFileName('/media/sales/ec/nitrix_bottle.png'), value: '/media/sales/ec/nitrix_bottle.png' };
             return [
                 { code: 'M01', type: 'media', typeLabel: 'midia', label: productMedia.label, detail: footerFileName(productMedia.value), value: productMedia.value },
                 { code: 'M02', type: 'media', typeLabel: 'midia', label: 'Prova 1', detail: footerFileName('/media/sales/shared/social_01.jpeg'), value: '/media/sales/shared/social_01.jpeg' },
@@ -15025,19 +14912,7 @@
             const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
             const isTexUltra = selectedProductKey === 'tex_ultra_ec' || selectedProductKey.includes('tex_ultra') || selectedProductKey.includes('tex ultra');
             const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
-            const defaultBlocks = country === 'CO'
-                ? [{
-                    code: 'B01',
-                    type: 'block',
-                    typeLabel: 'bloco',
-                    label: 'Frasco FrascoEspecial',
-                    detail: 'Imagem do produto para enviar amostra',
-                    value: 'special_co_frasco',
-                    steps: [
-                        { type: 'media', label: 'Frasco especial', value: '/media/sales/co/special_bottle.png', waitAfterMs: 0 }
-                    ]
-                }]
-                : isTexUltra ? []
+            const defaultBlocks = isTexUltra ? []
                 : isNitrix ? [{
                     code: 'B01',
                     type: 'block',
@@ -16796,7 +16671,6 @@
             };
             customerDraft.country = el('customerCountryInput').value || state.selectedChat.country || selectedPanelCountry();
             const draftCountry = String(customerDraft.country || '').toUpperCase();
-            const isCODraft = draftCountry === 'CO';
             if (draftCountry === 'EC') {
                 customerDraft.product = productInfo.name;
                 customerDraft.productKey = productInfo.key;
@@ -16820,7 +16694,7 @@
                     throw new Error(`Complete antes de confirmar: ${missing.map((item) => item.label).join(', ')}.`);
                 }
             }
-            if (!isCODraft && chat.orderId && !isAdminLeadOrder && !shouldCreateNewConfirmedOrder) {
+            if (chat.orderId && !isAdminLeadOrder && !shouldCreateNewConfirmedOrder) {
                 const payload = {
                     customer: {
                         name: customerDraft.name,
@@ -16849,7 +16723,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if (!isCODraft && !isAdminLeadOrder && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if (!isAdminLeadOrder && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -17112,35 +16986,8 @@
                 showToast('Informe a guia/rastreio.');
                 return;
             }
-            if (country === 'CO') {
-                const carrier = el('manualGuideAgencyInput').value || 'transportadora_co';
-                const carrierLabel = carrier === 'coordinadora' ? 'Coordinadora' : 'Transportadora';
-                const trackingUrl = carrier === 'coordinadora'
-                    ? 'https://coordinadora.com/rastreo/rastreo-de-guia/'
-                    : 'https://siguetuenvio.example.com/';
-                const customerName = String(draft.name || state.selectedChat?.name || '').trim().split(/\s+/)[0] || '';
-                const statusLine = guideStatus === 'READY_FOR_PICKUP'
-                    ? 'Su pedido ya aparece listo para retiro o gestion en la transportadora.'
-                    : guideStatus === 'EN_RUTA'
-                        ? 'Su pedido ya esta en transito.'
-                        : 'Su pedido ya fue despachado.';
-                const message = [
-                    customerName ? `Hola ${customerName}, ${statusLine}` : `Hola, ${statusLine}`,
-                    '',
-                    `Transportadora: ${carrierLabel}`,
-                    `Guia: ${trackingNumber}`,
-                    `Rastreo: ${trackingUrl}`,
-                    '',
-                    'Por favor este pendiente del telefono y de la entrega. Si la transportadora solicita confirmacion, respondales lo antes posible para evitar devolucion.'
-                ].join('\n');
-                el('messageInput').value = message;
-                el('messageInput').focus();
-                updateMessageComposerControls();
-                showToast('Aviso de guia CO preparado. Revise e clique Enviar.');
-                return;
-            }
             if (country !== 'EC') {
-                showToast('Selecione Equador ou CO antes de avisar guia.');
+                showToast('Selecione Equador antes de avisar guia.');
                 return;
             }
 
@@ -17190,101 +17037,6 @@
                 button.disabled = false;
                 button.textContent = label;
                 if (state.selectedChat) renderSelectedDetails();
-            }
-        }
-
-        const coTrackingOrderIdentifier = (draft = customerDraftFromForm()) => {
-            const candidates = [
-                draft.orderId,
-                state.selectedChat?.orderId,
-                el('customerOrderInput')?.value
-            ].map((value) => String(value || '').trim()).filter(Boolean);
-            return candidates.find((value) => /^CO-ADMIN-\d+$/i.test(value)) || candidates[0] || '';
-        };
-
-        const renderCoTrackingRows = (rows = []) => {
-            const list = el('coTrackingList');
-            if (!list) return;
-            if (!rows.length) {
-                list.innerHTML = '<div class="empty">Nenhum pedido CO oficial sem guia.</div>';
-                return;
-            }
-            list.innerHTML = rows.map((row) => `
-                <div class="co-tracking-item">
-                    <div>
-                        <strong>${escapeHtml(row.source_admin_order_id || row.id || 'Pedido CO')}</strong>
-                        <span>${escapeHtml(row.customer_name || '')}</span>
-                        <span class="meta">${escapeHtml(row.city || '')} · ${escapeHtml(row.province || '')} · final ${escapeHtml(row.customer_phone_tail || '')} · ${escapeHtml(row.status || '')}/${escapeHtml(row.tracking_status || '')}</span>
-                    </div>
-                    <button data-co-tracking-use="${escapeHtml(row.source_admin_order_id || '')}" data-co-tracking-phone-tail="${escapeHtml(row.customer_phone_tail || '')}" type="button">Usar</button>
-                </div>
-            `).join('');
-        };
-
-        async function loadCoTrackingObserver() {
-            const summary = el('coTrackingSummary');
-            if (summary) summary.textContent = 'Buscando pedidos CO sem guia...';
-            try {
-                const result = await api('/api/shipments/co/tracking-observer?limit=50');
-                const rows = Array.isArray(result.rows) ? result.rows : [];
-                state.coTrackingRows = rows;
-                const grouped = result.grouped || {};
-                const groupText = Object.entries(grouped).map(([key, value]) => `${key}: ${value}`).join(' · ');
-                if (summary) summary.textContent = `${rows.length} pedido(s) CO sem guia${groupText ? ` · ${groupText}` : ''}`;
-                renderCoTrackingRows(rows);
-            } catch (error) {
-                if (summary) summary.textContent = `Erro ao buscar rastreamento CO: ${error.message}`;
-                renderCoTrackingRows([]);
-            }
-        }
-
-        async function saveCoGuideFromForm() {
-            if (state.busy) return;
-            const draft = customerDraftFromForm();
-            if (String(draft.country || '').toUpperCase() !== 'CO') {
-                showToast('Salvar guia CO so aparece para CO.');
-                return;
-            }
-            const sourceAdminOrderId = coTrackingOrderIdentifier(draft);
-            const trackingNumber = el('manualGuideTrackingInput').value.trim();
-            const carrier = el('manualGuideAgencyInput').value || 'transportadora';
-            const status = el('manualGuideStatusInput').value || 'GUIA_GENERADA';
-            if (!/^CO-ADMIN-\d+$/i.test(sourceAdminOrderId)) {
-                showToast('Este cliente precisa estar vinculado a um pedido CO-ADMIN para salvar guia.');
-                return;
-            }
-            if (!trackingNumber) {
-                showToast('Informe a guia/rastreo antes de salvar.');
-                return;
-            }
-            const button = el('saveCoGuideBtn');
-            const label = button.textContent;
-            state.busy = true;
-            button.disabled = true;
-            button.textContent = 'Salvando...';
-            try {
-                const result = await api('/api/shipments/co/register-guide', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        sourceAdminOrderId,
-                        trackingNumber,
-                        carrier,
-                        status
-                    })
-                });
-                const order = result.order || {};
-                if (order.official_tracking_url) {
-                    showToast(`Guia CO salva: ${order.tracking_number || trackingNumber}`);
-                } else {
-                    showToast('Guia CO salva.');
-                }
-                await loadCoTrackingObserver();
-            } catch (error) {
-                showToast(error.message);
-            } finally {
-                state.busy = false;
-                button.disabled = false;
-                button.textContent = label;
             }
         }
 
@@ -18506,7 +18258,7 @@
             const button = event.target.closest('[data-connection-country]');
             if (!button) return;
             const country = button.dataset.connectionCountry;
-            if (!['EC', 'CO'].includes(country)) return;
+            if (country !== 'EC') return;
             if (el('countryFilter').value !== country) {
                 el('countryFilter').value = country;
                 updateCountryDependentViews();
@@ -19094,28 +18846,6 @@
             renderCustomFunnelDraft();
         });
         el('sendManualGuideBtn')?.addEventListener('click', sendManualGuideFromForm);
-        el('saveCoGuideBtn')?.addEventListener('click', saveCoGuideFromForm);
-        el('refreshCoTrackingBtn')?.addEventListener('click', loadCoTrackingObserver);
-        el('coTrackingList')?.addEventListener('click', (event) => {
-            const button = event.target.closest?.('[data-co-tracking-use]');
-            if (!button) return;
-            const orderId = button.dataset.coTrackingUse || '';
-            const row = (state.coTrackingRows || []).find((item) => item.source_admin_order_id === orderId);
-            if (!row) return;
-            setInputValue('customerOrderInput', row.source_admin_order_id || '');
-            if (row.customer_name) setInputValue('customerNameInput', row.customer_name);
-            if (row.city) setInputValue('customerCityInput', row.city);
-            if (row.province) setInputValue('customerProvinceInput', row.province);
-            if (row.quantity) setInputValue('customerQuantityInput', row.quantity);
-            if (row.total_value) setInputValue('customerTotalInput', row.total_value);
-            if (state.selectedChat) {
-                state.selectedChat.orderId = row.source_admin_order_id || state.selectedChat.orderId;
-                state.selectedChat.name = row.customer_name || state.selectedChat.name;
-            }
-            markCustomerFormDirty();
-            scheduleCustomerFieldAutoSave({ delay: 600, source: 'tracking-row' });
-            showToast(`Pedido ${row.source_admin_order_id} carregado na ficha.`);
-        });
         el('sendSelectedDropiBtn').addEventListener('click', openSelectedCustomerInLeads);
         el('dryRunDropiDispatchBtn').addEventListener('click', () => runDropiDispatchRetroactive({
             dryRun: true,

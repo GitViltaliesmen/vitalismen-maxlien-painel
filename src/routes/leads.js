@@ -16,7 +16,6 @@ const digitsOnly = (value) => clean(value).replace(/\D/g, '');
 
 const inferCountryFromPhone = (phone = '') => {
     const digits = digitsOnly(phone);
-    if (digits.startsWith('57')) return 'CO';
     if (digits.startsWith('593')) return 'EC';
     return 'EC';
 };
@@ -24,13 +23,6 @@ const inferCountryFromPhone = (phone = '') => {
 const normalizePhoneByCountry = (value, country = 'EC') => {
     let digits = digitsOnly(value);
     if (!digits) return '';
-    const normalizedCountry = clean(country).toUpperCase();
-    if (normalizedCountry === 'CO') {
-        if (digits.startsWith('57')) return `+${digits}`;
-        if (digits.startsWith('0') && digits.length === 10) digits = digits.slice(1);
-        if (!digits.startsWith('57')) digits = `57${digits}`;
-        return `+${digits}`;
-    }
     if (digits.startsWith('593')) return `+${digits}`;
     if (digits.length === 10 && digits.startsWith('0')) digits = digits.slice(1);
     if (!digits.startsWith('593')) digits = `593${digits}`;
@@ -184,7 +176,7 @@ router.post('/', async (req, res) => {
         const payloadCustomer = req.body?.customer || {};
         const country = clean(req.body?.country || inferCountryFromPhone(req.body?.phone || payloadCustomer.phone || req.body?.phone_number) || 'EC').toUpperCase();
         const phone = normalizePhoneByCountry(req.body?.phone || payloadCustomer.phone || req.body?.phone_number, country);
-        if (!['EC', 'CO'].includes(country)) {
+        if (country !== 'EC') {
             return res.status(400).json({ error: 'Unsupported lead country' });
         }
         const lead = {

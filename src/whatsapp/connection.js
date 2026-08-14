@@ -10,10 +10,7 @@ import { resolveCountryAudio } from '../services/audioTemplateService.js';
 import Message from '../models/Message.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
-const configuredAuthBaseDir = String(process.env.WHATSAPP_AUTH_DIR || '').trim();
-const AUTH_BASE_DIR = configuredAuthBaseDir
-    ? path.resolve(configuredAuthBaseDir)
-    : path.join(process.cwd(), 'auth_info_baileys');
+const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
 const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
@@ -152,7 +149,7 @@ const discoverSessionIdsFromAuthDir = () => {
 const ensureAuthDir = (sessionId) => {
     migrateLegacyAuthStorage();
     const dir = path.join(AUTH_BASE_DIR, sanitizeSessionId(sessionId));
-    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    fs.mkdirSync(dir, { recursive: true });
     return dir;
 };
 

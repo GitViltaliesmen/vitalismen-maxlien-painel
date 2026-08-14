@@ -8,16 +8,14 @@ import Shipment from '../src/models/Shipment.js';
 dotenv.config();
 
 const ADMIN_DBS = {
-    EC: '/opt/maxlien-mvp/leads_ec.sqlite3',
-    CO: '/opt/maxlien-mvp/leads_co.sqlite3'
+    EC: '/opt/maxlien-mvp/leads_ec.sqlite3'
 };
 
 const OPERATIONAL_PHONES = new Set([
     '553183002800',
     '553171862958',
     '5515991418416',
-    '5515998038637',
-    '573001234567'
+    '5515998038637'
 ]);
 
 const args = new Set(process.argv.slice(2));

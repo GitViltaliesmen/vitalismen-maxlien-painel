@@ -89,7 +89,6 @@ if (commandExists('rsync')) {
         '--exclude', '*.log',
         '--exclude', 'node_modules/',
         '--exclude', 'public/media/generated/',
-        '--exclude', 'public/media/templates/CO/',
         '-e', `ssh -i ${key} -o StrictHostKeyChecking=accept-new`,
         './',
         `${host}:${releaseDir}/`
@@ -106,8 +105,7 @@ if (commandExists('rsync')) {
             `test "$(git --git-dir=${vpsGitRemote} rev-parse refs/heads/${branch})" = "${commit}"`,
             `git clone --single-branch --branch ${branch} ${vpsGitRemote} ${releaseDir}`,
             `rm -rf ${releaseDir}/.git`,
-            `rm -rf ${releaseDir}/public/media/generated`,
-            `rm -rf ${releaseDir}/public/media/templates/CO`
+            `rm -rf ${releaseDir}/public/media/generated`
         ].join(' && ')
     ], { timeout: 300000 });
 }

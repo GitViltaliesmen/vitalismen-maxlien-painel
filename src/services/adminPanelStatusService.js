@@ -9,7 +9,6 @@ const ADMIN_STATUS_ATENDENDO = 'atendendo';
 const resolveAdminDbPath = (country) => {
     const normalized = String(country || '').trim().toUpperCase();
     if (normalized === 'EC') return '/opt/maxlien-mvp/leads_ec.sqlite3';
-    if (normalized === 'CO') return '/opt/maxlien-mvp/leads_co.sqlite3';
     return '';
 };
 
@@ -28,10 +27,6 @@ const normalizePanelPhoneDigits = (phone = '', country = 'EC') => {
         if (digits.startsWith('09') && digits.length === 10) return `593${digits.slice(1)}`;
         if (digits.startsWith('9') && digits.length === 9) return `593${digits}`;
     }
-    if (normalizedCountry === 'CO') {
-        if (digits.startsWith('57')) return digits;
-        if (digits.startsWith('3') && digits.length === 10) return `57${digits}`;
-    }
     return digits;
 };
 
@@ -39,7 +34,6 @@ const isSupportedClientPhone = (phone = '', country = 'EC') => {
     const normalizedCountry = String(country || 'EC').trim().toUpperCase();
     const digits = normalizePanelPhoneDigits(phone, normalizedCountry);
     if (normalizedCountry === 'EC') return /^5939\d{8}$/.test(digits);
-    if (normalizedCountry === 'CO') return /^573\d{9}$/.test(digits);
     return false;
 };
 

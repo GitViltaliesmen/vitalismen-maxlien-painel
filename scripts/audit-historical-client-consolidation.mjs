@@ -8,15 +8,13 @@ import Shipment from '../src/models/Shipment.js';
 dotenv.config();
 
 const ADMIN_DBS = {
-    EC: '/opt/maxlien-mvp/leads_ec.sqlite3',
-    CO: '/opt/maxlien-mvp/leads_co.sqlite3'
+    EC: '/opt/maxlien-mvp/leads_ec.sqlite3'
 };
 const OPERATIONAL_PHONES = new Set([
     '553183002800',
     '553171862958',
     '5515991418416',
-    '5515998038637',
-    '573001234567'
+    '5515998038637'
 ]);
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
@@ -26,7 +24,7 @@ const isOperationalOrTest = (phone, name = '') => {
     const tail = phoneTail(normalizedPhone);
     if (OPERATIONAL_PHONES.has(normalizedPhone) || [...OPERATIONAL_PHONES].some((item) => phoneTail(item) === tail)) return true;
     if (/guard codex|teste|^test$/i.test(String(name || '').trim())) return true;
-    return ['3000000001', '573000000000'].includes(normalizedPhone);
+    return normalizedPhone === '3000000001';
 };
 
 const normalizeStatus = (raw = '', source = {}) => {

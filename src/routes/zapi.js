@@ -9,7 +9,6 @@ import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
-import { whatsappWebCutoverPolicy } from '../services/whatsappWebCutoverPolicy.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -40,7 +39,6 @@ const firstPlainString = (...values) => values
 const countryFromPhone = (phone = '') => {
     const value = digits(phone);
     if (value.startsWith('593')) return 'EC';
-    if (value.startsWith('57')) return 'CO';
     if (value.startsWith('55')) return 'BR';
     return 'OTHER';
 };
@@ -243,11 +241,6 @@ const zapiRawChatIdentifiers = (payload = {}) => [
     payload.data?.sender
 ].map((value) => String(value || '').trim()).filter(Boolean);
 
-// A unica instancia Z-API compartilhada entrega o webhook primeiro ao EC.
-// O dado comercial nao e compartilhado: contato +593 continua aqui e contato
-// +57 e encaminhado integralmente ao backend CO, que conserva seu proprio
-// banco, funil, pedido e painel. Se o CO estiver indisponivel, falhamos o
-// webhook para a Z-API repetir depois, em vez de gravar o cliente CO no EC.
 export const zapiPayloadCountry = (payload = {}) => {
     const candidates = [
         ...zapiRawChatIdentifiers(payload),
@@ -259,46 +252,14 @@ export const zapiPayloadCountry = (payload = {}) => {
     ];
     for (const candidate of candidates) {
         const country = countryFromPhone(candidate);
-        if (country === 'EC' || country === 'CO') return country;
+        if (country === 'EC') return country;
     }
     return countryFromPhone(zapiPhoneFromPayload(payload));
 };
 
-const coWebhookForwardUrl = () => String(process.env.ZAPI_CO_WEBHOOK_FORWARD_URL || '').trim();
-const coWebhookForwardTimeoutMs = () => {
-    const configured = Number.parseInt(String(process.env.ZAPI_CO_WEBHOOK_FORWARD_TIMEOUT_MS || '12000'), 10);
-    return Number.isFinite(configured) ? Math.min(30000, Math.max(3000, configured)) : 12000;
-};
-
-const forwardColombiaZapiWebhook = async (payload = {}) => {
-    if (zapiPayloadCountry(payload) !== 'CO') return { forwarded: false };
-    const url = coWebhookForwardUrl();
-    if (!url) {
-        const error = new Error('co_webhook_forward_not_configured');
-        error.statusCode = 503;
-        throw error;
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), coWebhookForwardTimeoutMs());
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Vitalismen-Webhook-Route': 'co'
-            },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        if (!response.ok) {
-            const error = new Error(`co_webhook_forward_http_${response.status}`);
-            error.statusCode = 502;
-            throw error;
-        }
-        return { forwarded: true, country: 'CO' };
-    } finally {
-        clearTimeout(timer);
-    }
+const isAllowedEcuadorInboundPayload = (payload = {}) => {
+    if (zapiPayloadCountry(payload) === 'EC') return true;
+    return authorizedVslTestRecipient(zapiPhoneFromPayload(payload));
 };
 
 const isLikelyWhatsAppGroupIdentifier = (value = '') => {
@@ -1126,11 +1087,6 @@ export const classifyZapiGenericWebhookPayload = (payload = {}) => {
 router.post('/webhook/delivery', async (req, res) => {
     try {
         const payload = req.body || {};
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] delivery forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
-        }
         const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         res.json({ ok: true, result });
@@ -1145,26 +1101,13 @@ router.post('/webhook', async (req, res) => {
         const payload = req.body || {};
         const classification = classifyZapiGenericWebhookPayload(payload);
         if (classification.kind === 'delivery') {
-            const forwarded = await forwardColombiaZapiWebhook(payload);
-            if (forwarded.forwarded) {
-                console.log('[ZAPI-WEBHOOK] delivery forwarded to CO');
-                return res.json({ ok: true, routed: 'co_forward' });
-            }
             const result = await applyZapiDeliveryPayload(payload);
             console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
             return res.json({ ok: true, result, routed: 'delivery' });
         }
-        const cutoverPolicy = whatsappWebCutoverPolicy();
-        const phone = zapiPhoneFromPayload(payload);
-        const country = zapiPayloadCountry(payload);
-        if (!cutoverPolicy.canProcessZapiInbound(phone, country)) {
-            console.log(`[ZAPI-WEBHOOK] inbound ignorado pela politica de transicao | mode=${cutoverPolicy.mode}`);
-            return res.json({ ok: true, skipped: true, reason: 'cutover_policy', mode: cutoverPolicy.mode });
-        }
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] event forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
+        if (!isAllowedEcuadorInboundPayload(payload)) {
+            console.log('[ZAPI-WEBHOOK] inbound ignorado fora da operacao Ecuador');
+            return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
         const buyLaterReply = result.body
@@ -1204,16 +1147,9 @@ router.post('/webhook/received', async (req, res) => {
         const phone = zapiPhoneFromPayload(payload);
         const fromMe = zapiFromMeFromPayload(payload);
         if (!fromMe) {
-            const cutoverPolicy = whatsappWebCutoverPolicy();
-            const country = zapiPayloadCountry(payload);
-            if (!cutoverPolicy.canProcessZapiInbound(phone, country)) {
-                console.log(`[ZAPI-WEBHOOK] received ignorado pela politica de transicao | mode=${cutoverPolicy.mode}`);
-                return res.json({ ok: true, skipped: true, reason: 'cutover_policy', mode: cutoverPolicy.mode });
-            }
-            const forwarded = await forwardColombiaZapiWebhook(payload);
-            if (forwarded.forwarded) {
-                console.log('[ZAPI-WEBHOOK] received forwarded to CO');
-                return res.json({ ok: true, routed: 'co_forward' });
+            if (!isAllowedEcuadorInboundPayload(payload)) {
+                console.log('[ZAPI-WEBHOOK] received ignorado fora da operacao Ecuador');
+                return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
             const result = await recordZapiInboundPayload(payload);
             const buyLaterReply = result.body
@@ -1240,11 +1176,6 @@ router.post('/webhook/received', async (req, res) => {
             }
             console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
             return res.json({ ok: true, result });
-        }
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] received delivery forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
         }
         const result = await applyZapiDeliveryPayload({
             ...payload,

@@ -8,7 +8,7 @@ const orderSchema = new mongoose.Schema({
     },
     country: {
         type: String,
-        enum: ['EC', 'CO'],
+        enum: ['EC'],
         required: true
     },
     customer: {
@@ -149,10 +149,9 @@ orderSchema.pre('save', async function (next) {
         this.entryAt = this.draftCreatedAt || this.createdAt || new Date();
     }
     if (!this.orderId) {
-        const prefix = this.country === 'CO' ? 'CO' : 'EC';
         const stamp = Date.now().toString(36).toUpperCase();
         const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-        this.orderId = `${prefix}-${stamp}-${random}`;
+        this.orderId = `EC-${stamp}-${random}`;
     }
     if ((this.isNew || this.isModified('status')) && this.status === 'confirmed' && !this.confirmedAt) {
         this.confirmedAt = new Date();

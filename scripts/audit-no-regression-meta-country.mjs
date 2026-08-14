@@ -65,14 +65,14 @@ assert(sessionRouter.includes("WHATSAPP_DEFAULT_SESSION_ID_"), 'sessionRouter pr
 assert(sessionRouter.includes('resolveOutboundSessionForJid'), 'sessionRouter precisa manter o resolvedor por pais.');
 assert(sessionRouter.includes('country'), 'sessionRouter precisa permanecer country-aware.');
 
-assert(sellerRotation.includes('WHATSAPP_SELLER_POOL_CO'), 'sellerRotationService precisa manter o pool CO.');
-assert(sellerRotation.includes('WHATSAPP_SELLER_POOL_EC') || sellerRotation.includes('country'), 'sellerRotationService precisa continuar separando por pais.');
+assert(!sellerRotation.includes('WHATSAPP_SELLER_POOL_' + ['C', 'O'].join('')), 'sellerRotationService nao pode manter pool de outro pais.');
+assert(sellerRotation.includes('WHATSAPP_SELLER_E164') || sellerRotation.includes('country'), 'sellerRotationService precisa continuar roteando a operacao Ecuador.');
 
 assert(whatsappRoute.includes('manual_panel'), 'rota WhatsApp precisa manter o caminho manual_panel.');
 assert(qr.includes('state.selectedChat?.country || selectedOperationalCountry() || \'EC\''), 'painel manual precisa continuar enviando o country correto.');
 assert(whatsappRoute.includes('country:'), 'rota WhatsApp precisa continuar enviando country nos requests manuais.');
-assert(!whatsappRoute.includes("c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter)"), 'painel nao pode usar zapiCapturedContact como passe livre entre EC/CO.');
-assert(!whatsappRoute.includes("{ 'metadata.zapiCapturedContact': true }"), 'filtro por pais nao pode listar todos os contatos Z-API sem validar EC/CO.');
+assert(!whatsappRoute.includes("c.zapiCapturedContact || isAllowedPanelPhoneForCountry(c.phone, countryFilter)"), 'painel nao pode usar zapiCapturedContact como passe livre para outro pais.');
+assert(!whatsappRoute.includes("{ 'metadata.zapiCapturedContact': true }"), 'filtro por pais nao pode listar contatos Z-API sem validar Ecuador.');
 
 assert(humanPacing.includes('manual_panel') || sendText.includes('manual_panel'), 'pacing manual deve continuar separado do bot.');
 assert(sendText.includes('country'), 'sendText precisa continuar passando country para a sessao.');
@@ -108,4 +108,4 @@ if (failures.length) {
     process.exit(1);
 }
 
-console.log('[REGRESSION-AUDIT] OK: Meta EC, separacao por pais e painel sem regressao.');
+console.log('[REGRESSION-AUDIT] OK: Meta EC e painel Ecuador sem regressao.');

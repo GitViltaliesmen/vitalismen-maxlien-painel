@@ -88,16 +88,16 @@ const clickMessages = runScenario({
     titles: ['+593 98 430 2981'],
     headerText: '+593 98 430 2981',
     clickedRow: {
-        text: '+57 322 2278487\nÚltima mensagem',
-        titles: ['+57 322 2278487']
+        text: '+593 98 765 4321\nÚltima mensagem',
+        titles: ['+593 98 765 4321']
     }
 });
 const pending = clickMessages.find((message) => message.action === 'whatsAppChatSwitchStarted');
 const clicked = clickMessages.find((message) => (
     message.action === 'activeWhatsAppChat' && message.selection.source === 'list_click'
 ));
-assert.equal(pending.selection.phone, '573222278487');
-assert.equal(clicked.selection.phone, '573222278487');
+assert.equal(pending.selection.phone, '593987654321');
+assert.equal(clicked.selection.phone, '593987654321');
 const pendingIndex = clickMessages.indexOf(pending);
 assert.equal(
     clickMessages.slice(pendingIndex + 1).some((message) => (

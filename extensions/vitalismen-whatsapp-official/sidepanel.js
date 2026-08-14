@@ -94,7 +94,6 @@ const chatPhone = (chat) => digits(chat?.phone || chat?.peerPhone || chat?.id);
 const countryFromPhone = (phone) => {
     const normalized = digits(phone);
     if (normalized.startsWith('55')) return 'BR';
-    if (normalized.startsWith('57')) return 'CO';
     if (normalized.startsWith('593')) return 'EC';
     if (normalized.startsWith('502')) return 'GT';
     return 'EC';

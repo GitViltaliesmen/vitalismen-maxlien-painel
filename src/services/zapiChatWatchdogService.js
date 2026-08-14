@@ -14,7 +14,6 @@ const parseZapiChatTime = (value) => {
 const countryFromPhone = (phone = '') => {
     const digits = digitsOnly(phone);
     if (digits.startsWith('593')) return 'EC';
-    if (digits.startsWith('57')) return 'CO';
     if (digits.startsWith('55')) return 'BR';
     return 'OTHER';
 };

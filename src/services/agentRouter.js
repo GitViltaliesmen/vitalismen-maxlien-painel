@@ -138,7 +138,6 @@ const isBlockedBroadcastOrGroup = (chatId = '') => {
 const countryCodeFromDigits = (value = '') => {
     const digits = digitsOnly(value);
     if (digits.startsWith('593')) return 'EC';
-    if (digits.startsWith('57')) return 'CO';
     return '';
 };
 
@@ -452,7 +451,7 @@ const ensureInboundContactInAdminPanel = ({ chatId = '', senderPn = '', state = 
     if (!phone) return { ok: false, skipped: true, reason: 'no_allowed_phone' };
     const country = countryCodeFromDigits(phone) || countryCode || OFFICIAL_COUNTRY;
     const draft = state?.metadata?.customerDraft || {};
-    const manualActive = state?.human?.mode === 'manual' || country === 'CO';
+    const manualActive = state?.human?.mode === 'manual';
     const result = syncContactDraftToOnlineAdminPanel({
         ...draft,
         phone: draft.phone || phone,
@@ -460,9 +459,7 @@ const ensureInboundContactInAdminPanel = ({ chatId = '', senderPn = '', state = 
         status: manualActive ? 'atendendo' : (draft.status || 'novo')
     }, {
         country: draft.country || country,
-        note: country === 'CO'
-            ? 'Entrada WhatsApp CO: contato enviado direto para atendimento humano'
-            : 'Entrada WhatsApp: contato criado automaticamente no Painel Unificado',
+        note: 'Entrada WhatsApp: contato criado automaticamente no Painel Unificado',
         action: 'whatsapp_inbound_contact_guard',
         adminStatus: manualActive ? 'atendendo' : 'novo'
     });
@@ -917,7 +914,7 @@ export const routeIncomingMessage = async (payload) => {
     }
 
     if (countryRestrictedInboundEnabled() && !priorityBotTestPhone && !operationalPanelPhone && !isAllowedCustomerCountry({ chatId, senderPn, phoneDigits: senderPhoneDigits || state?.phoneDigits || state?.metadata?.lastSenderPn })) {
-        console.log(`[ROUTER] inbound bloqueado: somente clientes EC/CO 593/57 | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
+        console.log(`[ROUTER] inbound bloqueado: somente clientes Ecuador +593 | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
         return;
     }
 
@@ -1026,35 +1023,6 @@ export const routeIncomingMessage = async (payload) => {
             fullFunnelTestEnabled: true,
             lastHumanHoldReason: ''
         };
-    }
-
-    if (countryCode === 'CO') {
-        state.countryCode = 'CO';
-        state.human = {
-            ...(state.human || {}),
-            mode: 'manual',
-            pausedUntil: null,
-            assignedName: state.human?.assignedName || 'Atendimento CO',
-            note: 'Cliente CO: direcionado automaticamente para atendimento humano. Bot comercial nao responde.',
-            lastManualAt: new Date(),
-            lastManualBy: 'sistema'
-        };
-        state.tags = [...new Set([
-            ...(state.tags || []),
-            'CO_ATENDIMENTO_MANUAL',
-            'BOT_BLOQUEADO_CO',
-            'ATENDENDO'
-        ])];
-        state.metadata = {
-            ...(state.metadata || {}),
-            lastHumanHoldAt: new Date(),
-            lastHumanHoldReason: 'co_direct_to_human',
-            coDirectToHuman: true
-        };
-        await state.save();
-        ensureInboundContactInAdminPanel({ chatId, senderPn, state, countryCode: 'CO' });
-        console.log(`[ROUTER] cliente CO enviado direto para atendimento humano | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'} | session=${sessionId || 'sem_session'}`);
-        return;
     }
 
     const human = state.human || {};

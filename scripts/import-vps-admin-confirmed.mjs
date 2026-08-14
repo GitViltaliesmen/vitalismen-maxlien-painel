@@ -26,9 +26,7 @@ if (country !== 'EC') {
     process.exit(1);
 }
 
-const dbPath = country === 'EC'
-    ? '/opt/maxlien-mvp/leads_ec.sqlite3'
-    : '/opt/maxlien-mvp/leads_co.sqlite3';
+const dbPath = '/opt/maxlien-mvp/leads_ec.sqlite3';
 
 const remotePython = `
 import sqlite3, json

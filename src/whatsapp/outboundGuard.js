@@ -71,9 +71,9 @@ export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = 
     const isExplicitAllowedRecipient = targetDigits
         && explicitAllowedRecipients.some((allowed) => isSamePhone(targetDigits, allowed));
 
-    const isRealCustomerCountry = targetDigits.startsWith('593') || targetDigits.startsWith('57');
+    const isRealCustomerCountry = targetDigits.startsWith('593');
     if (ecOnlyOutboundEnabled() && targetDigits && !isRealCustomerCountry && !isExplicitAllowedRecipient) {
-        return { allowed: false, reason: `non_ec_co_recipient:${targetDigits}` };
+        return { allowed: false, reason: `non_ec_recipient:${targetDigits}` };
     }
 
     if (normalizedSessionId && blockedSessions.some((blocked) => isSamePhone(normalizedSessionId, blocked))) {

@@ -16,10 +16,7 @@ const isSamePhone = (left, right) => {
     return a === b || a.endsWith(b) || b.endsWith(a);
 };
 
-const normalizeCountry = (country = 'EC') => {
-    const value = String(country || 'EC').trim().toUpperCase();
-    return ['EC', 'CO'].includes(value) ? value : 'EC';
-};
+const normalizeCountry = () => 'EC';
 
 const defaultSequence = (country = 'EC') => parseList(
     process.env[`WHATSAPP_SELLER_E164_${normalizeCountry(country)}`]
@@ -35,13 +32,7 @@ const configuredSequence = (country = 'EC') => {
         || process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE
     );
     if (fromEnv.length) return fromEnv;
-    if (normalized === 'EC') return defaultSequence(normalized);
-    return parseList(
-        process.env.WHATSAPP_SELLER_POOL_CO
-        || process.env.WHATSAPP_SELLER_POOL
-        || process.env.WHATSAPP_SESSION_IDS_CO
-        || process.env.WHATSAPP_SESSION_IDS
-    );
+    return defaultSequence(normalized);
 };
 
 const healthySellerSet = () => {
