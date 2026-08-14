@@ -16,7 +16,7 @@ const whatsAppScripts = manifest.content_scripts
     .find((entry) => entry.matches.includes('https://web.whatsapp.com/*') && entry.world === 'ISOLATED')
     .js;
 
-assert.equal(manifest.version, '0.13.5');
+assert.equal(manifest.version, '0.13.6');
 assert.ok(whatsAppScripts.includes('whatsapp-funnel-launcher.js'));
 assert.ok(manifest.web_accessible_resources[0].resources.includes('funnel-overlay.html'));
 assert.match(launcher, /document\.querySelector\('#main footer'\)/);
@@ -24,7 +24,7 @@ assert.match(launcher, /startDrag/);
 assert.match(launcher, /startResize/);
 assert.match(launcher, /overlay\.offsetHeight < MIN_HEIGHT/);
 assert.match(launcher, /savedHeight >= MIN_HEIGHT/);
-assert.match(launcher, /INSTALL_VERSION = '0\.13\.5'/);
+assert.match(launcher, /INSTALL_VERSION = '0\.13\.6'/);
 assert.match(launcher, /previousButton\.cloneNode/);
 assert.match(overlay, /\/api\/whatsapp\/templates\?country=EC/);
 assert.match(overlay, /sendThroughWhatsAppWeb/);
