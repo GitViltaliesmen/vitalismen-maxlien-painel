@@ -2,6 +2,7 @@ import VslVisit from '../models/VslVisit.js';
 
 const clean = (value) => String(value || '').trim();
 const digitsOnly = (value) => clean(value).replace(/\D/g, '');
+const VSL_ATTRIBUTION_REF_PATTERN = /\bTX-[A-Z0-9]{10,20}\b/i;
 
 const attributionKeys = [
     'fbclid',
@@ -25,11 +26,34 @@ export const hasMetaAdAttribution = (tracking = {}) => Boolean(
     || tracking.utm_term
 );
 
-const buildFbcFromFbclid = (fbclid = '', date = new Date()) => {
+const hasDirectMetaAttribution = (tracking = {}) => Boolean(
+    tracking.fbc
+    || tracking.fbp
+    || tracking.fbclid
+);
+
+export const buildFbcFromFbclid = (fbclid = '', date = new Date()) => {
     const click = clean(fbclid);
     if (!click) return '';
-    const seconds = Math.floor(new Date(date).getTime() / 1000);
-    return `fb.1.${Number.isFinite(seconds) ? seconds : Math.floor(Date.now() / 1000)}.${click}`;
+    const milliseconds = new Date(date).getTime();
+    return `fb.1.${Number.isFinite(milliseconds) ? milliseconds : Date.now()}.${click}`;
+};
+
+export const normalizeVslAttributionRef = (value = '') => {
+    const match = clean(value).toUpperCase().match(VSL_ATTRIBUTION_REF_PATTERN);
+    return match ? match[0] : '';
+};
+
+export const extractVslAttributionRef = (message = '') => normalizeVslAttributionRef(message);
+
+export const normalizeLegacyFbcInTracking = (tracking = {}, date = new Date()) => {
+    const legacyFbc = /^fb\.1\.(\d{10})\./.exec(clean(tracking.fbc));
+    if (tracking.fbclid && legacyFbc) {
+        tracking.fbc = `fb.1.${Number(legacyFbc[1]) * 1000}.${clean(tracking.fbclid)}`;
+    } else if (tracking.fbclid && !tracking.fbc) {
+        tracking.fbc = buildFbcFromFbclid(tracking.fbclid, date);
+    }
+    return tracking;
 };
 
 export const metaAttributionTrackingFromVisit = (visit = {}) => {
@@ -38,11 +62,66 @@ export const metaAttributionTrackingFromVisit = (visit = {}) => {
     for (const key of attributionKeys) {
         if (tracking[key]) out[key] = tracking[key];
     }
-    if (!out.fbc && out.fbclid) out.fbc = buildFbcFromFbclid(out.fbclid, visit.firstSeenAt || visit.createdAt);
+    normalizeLegacyFbcInTracking(out, visit.firstSeenAt || visit.createdAt);
     if (visit.sourceUrl) out.sourceUrl = visit.sourceUrl;
     if (visit.userAgent) out.userAgent = visit.userAgent;
     if (visit.visitorId) out.ext_id = visit.visitorId;
     return out;
+};
+
+export const linkVslVisitToCustomerByReference = async ({
+    attributionRef = '',
+    message = '',
+    phone = '',
+    lookbackDays = 30
+} = {}) => {
+    const reference = normalizeVslAttributionRef(attributionRef) || extractVslAttributionRef(message);
+    if (!reference) return { ok: false, skipped: true, reason: 'missing_attribution_reference' };
+
+    const phoneDigits = digitsOnly(phone).slice(-15);
+    if (phoneDigits.length < 9) return { ok: false, skipped: true, reason: 'missing_phone' };
+
+    const since = new Date(Date.now() - Math.max(1, Number(lookbackDays) || 30) * 24 * 60 * 60 * 1000);
+    const linkedAt = new Date();
+    const visit = await VslVisit.findOneAndUpdate(
+        {
+            country: 'EC',
+            attributionRef: reference,
+            lastSeenAt: { $gte: since },
+            $or: [
+                { customerPhone: '' },
+                { customerPhone: phoneDigits },
+                { customerPhone: { $exists: false } }
+            ]
+        },
+        {
+            $set: {
+                customerPhone: phoneDigits,
+                attributionLinkedAt: linkedAt
+            }
+        },
+        { new: true }
+    ).lean();
+
+    if (!visit) return { ok: false, skipped: true, reason: 'reference_not_found', attributionRef: reference };
+
+    const tracking = metaAttributionTrackingFromVisit(visit);
+    return {
+        ok: true,
+        linked: true,
+        claimed: true,
+        confidence: 'unique_reference_inbound_match',
+        claimedAt: linkedAt,
+        attributionRef: reference,
+        visitId: visit._id?.toString?.() || '',
+        visitorKey: visit.visitorKey || '',
+        visitorId: visit.visitorId || '',
+        sourceUrl: visit.sourceUrl || '',
+        productKey: visit.productKey || '',
+        productName: visit.productName || '',
+        tracking,
+        hasAttribution: hasMetaAdAttribution(tracking)
+    };
 };
 
 export const enrichOrderWithMetaAttribution = async (order, { lookbackDays = 30 } = {}) => {
@@ -50,7 +129,8 @@ export const enrichOrderWithMetaAttribution = async (order, { lookbackDays = 30 
         return { ok: false, skipped: true, reason: 'unsupported_order' };
     }
     order.tracking = order.tracking || {};
-    if (hasMetaAdAttribution(order.tracking)) {
+    normalizeLegacyFbcInTracking(order.tracking, order.confirmedAt || order.createdAt || new Date());
+    if (hasDirectMetaAttribution(order.tracking)) {
         return { ok: true, skipped: true, reason: 'order_already_has_attribution' };
     }
 

@@ -32,6 +32,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { normalizeVslAttributionRef } from '../services/metaAttributionService.js';
 import {
     ECUADOR_PRODUCTS,
     detectExplicitEcuadorProductKey,
@@ -1240,6 +1241,26 @@ const isLocalRequest = (req) => {
 
 const cleanText = (value) => String(value || '').trim();
 
+const nonEmptyVslTracking = ({ body = {}, vslTestId = '', vslVariant = '' } = {}) => {
+    const values = {
+        utm_source: cleanText(body.utm_source),
+        utm_medium: cleanText(body.utm_medium),
+        utm_campaign: cleanText(body.utm_campaign),
+        utm_content: cleanText(body.utm_content),
+        utm_term: cleanText(body.utm_term),
+        fbclid: cleanText(body.fbclid),
+        fbc: cleanText(body.fbc),
+        fbp: cleanText(body.fbp),
+        external_id: cleanText(body.external_id || body.externalId),
+        ext_id: cleanText(body.external_id || body.externalId),
+        sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
+        userAgent: cleanText(body.client_user_agent || body.clientUserAgent),
+        vsl_test_id: cleanText(vslTestId),
+        vsl_variant: cleanText(vslVariant)
+    };
+    return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''));
+};
+
 const requestIp = (req) => cleanText(
     req.get?.('cf-connecting-ip')
     || req.get?.('x-real-ip')
@@ -1455,6 +1476,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
     const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
     const sessionId = cleanText(body.sessionId || body.session_id);
+    const attributionRef = normalizeVslAttributionRef(body.attributionRef || body.attribution_ref || entryMessage);
     const sellerDigits = digitsOnly(assignedSeller);
     const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country: effectiveCountry });
     const existingDraft = state.metadata?.customerDraft || {};
@@ -1523,6 +1545,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslVisitId: visit?._id?.toString?.() || '',
         vslVisitorId: visitorId,
         vslSessionId: sessionId,
+        vslAttributionRef: attributionRef || state.metadata?.vslAttributionRef || '',
         vslPage: cleanText(body.page),
         vslPath: cleanText(body.path),
         vslTestId: vslTestId || state.metadata?.vslTestId || '',
@@ -1569,17 +1592,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         },
         tracking: {
             ...(state.metadata?.tracking || {}),
-            utm_source: cleanText(body.utm_source),
-            utm_medium: cleanText(body.utm_medium),
-            utm_campaign: cleanText(body.utm_campaign),
-            utm_content: cleanText(body.utm_content),
-            utm_term: cleanText(body.utm_term),
-            fbclid: cleanText(body.fbclid),
-            fbc: cleanText(body.fbc),
-            fbp: cleanText(body.fbp),
-            external_id: cleanText(body.external_id || body.externalId),
-            vsl_test_id: vslTestId,
-            vsl_variant: vslVariant
+            ...nonEmptyVslTracking({ body, vslTestId, vslVariant })
         }
     };
     await state.save();
@@ -2143,6 +2156,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
     if (total <= 0) return { ok: false, skipped: true, reason: 'missing_positive_total' };
     const productInfo = await inferProductInfoForDraft({ draft, state });
+    const stateTracking = state?.metadata?.tracking || {};
 
     const query = sourceIsAdminOrder
         ? { previousOrderId: sourceOrderId }
@@ -2188,9 +2202,11 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         previousOrderId: sourceIsAdminOrder ? sourceOrderId : '',
         entryReason: sourceIsAdminOrder ? 'admin_panel_confirmed_whatsapp_mirror' : 'whatsapp_panel_confirmed',
         tracking: {
+            ...stateTracking,
             ...(order?.tracking || {}),
-            ip: order?.tracking?.ip || req?.ip || '',
-            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || ''
+            ext_id: order?.tracking?.ext_id || stateTracking.ext_id || stateTracking.external_id || '',
+            ip: order?.tracking?.ip || stateTracking.ip || req?.ip || '',
+            userAgent: order?.tracking?.userAgent || stateTracking.userAgent || req?.get?.('user-agent') || ''
         }
     };
     if (order) {
@@ -2729,16 +2745,25 @@ router.post('/vsl-entry', async (req, res) => {
         const vslTestId = cleanText(body.vslTestId || body.vsl_test_id).slice(0, 120);
         const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
         const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
+        const attributionRef = normalizeVslAttributionRef(
+            body.attributionRef
+            || body.attribution_ref
+            || body.message
+            || body.entryMessage
+            || body.funnel_entry_message
+        );
         const intent = cleanText(body.intent || body.action).toLowerCase();
         const skipMeta = body.skipMeta === true
             || body.skip_meta === true
             || body.testLead === true
             || body.testEntry === true;
-        const clicked = body.clicked === false
-            ? false
-            : (body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent) || body.clicked !== false);
+        const clicked = body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent);
         const formVisible = body.formVisible === true || ['form_visible', 'cta_visible', 'checkout_visible'].includes(intent);
         const existing = await VslVisit.findOne({ visitorKey });
+        const sessionId = cleanText(body.sessionId || body.session_id);
+        const customerName = cleanText(body.customerName || body.customer_name || body.name).slice(0, 180);
+        const customerPhone = digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15);
+        const incomingVslTracking = nonEmptyVslTracking({ body, vslTestId, vslVariant });
         let assignment = null;
         let assignedSeller = digitsOnly(existing?.assignedSeller || '');
 
@@ -2749,8 +2774,6 @@ router.post('/vsl-entry', async (req, res) => {
 
         const update = {
             $set: {
-                visitorId,
-                sessionId: cleanText(body.sessionId || body.session_id),
                 country,
                 page: cleanText(body.page),
                 path: cleanText(body.path),
@@ -2759,27 +2782,12 @@ router.post('/vsl-entry', async (req, res) => {
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
                 ipHash,
                 device: cleanText(body.device),
-                customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
-                customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15),
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,
                 vslTestId: vslTestId || existing?.vslTestId || '',
                 vslVariant: vslVariant || existing?.vslVariant || '',
                 vslEntryMessage: vslEntryMessage || existing?.vslEntryMessage || '',
-                tracking: {
-                    utm_source: cleanText(body.utm_source),
-                    utm_medium: cleanText(body.utm_medium),
-                    utm_campaign: cleanText(body.utm_campaign),
-                    utm_content: cleanText(body.utm_content),
-                    utm_term: cleanText(body.utm_term),
-                    fbclid: cleanText(body.fbclid),
-                    fbc: cleanText(body.fbc),
-                    fbp: cleanText(body.fbp),
-                    external_id: cleanText(body.external_id || body.externalId),
-                    vsl_test_id: vslTestId,
-                    vsl_variant: vslVariant
-                },
                 assignedSeller,
                 assignedSellerAt: existing?.assignedSellerAt || now,
                 assignmentReason: assignment?.reason || existing?.assignmentReason || 'existing_assignment',
@@ -2795,6 +2803,14 @@ router.post('/vsl-entry', async (req, res) => {
                 formVisibleCount: formVisible ? 1 : 0
             }
         };
+        if (visitorId) update.$set.visitorId = visitorId;
+        if (sessionId) update.$set.sessionId = sessionId;
+        if (attributionRef) update.$set.attributionRef = attributionRef;
+        if (customerName) update.$set.customerName = customerName;
+        if (customerPhone) update.$set.customerPhone = customerPhone;
+        for (const [key, value] of Object.entries(incomingVslTracking)) {
+            update.$set[`tracking.${key}`] = value;
+        }
         if (clicked) {
             update.$set.lastClickAt = now;
             update.$set.lastEntryMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500);

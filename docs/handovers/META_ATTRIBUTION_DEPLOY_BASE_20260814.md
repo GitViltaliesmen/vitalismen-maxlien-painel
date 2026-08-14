@@ -48,4 +48,4 @@ Caso o candidato seja publicado e o smoke test falhe:
 3. reiniciar somente `vitalismen-automation`;
 4. validar `/api/health`, o status do PM2 e o hash da landing restaurada.
 
-Os comandos exatos, o nome da nova release e os hashes serão registrados no relatório pós-deploy. Nenhum banco, anúncio, Dropi ou ambiente da Colômbia faz parte deste rollback.
+Os comandos exatos, o nome da nova release e os hashes serão registrados no relatório pós-deploy. Nenhum banco, anúncio, Dropi ou ambiente externo ao Equador faz parte deste rollback.

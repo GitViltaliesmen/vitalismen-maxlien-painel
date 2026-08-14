@@ -16,6 +16,12 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    attributionRef: {
+        type: String,
+        default: '',
+        index: true
+    },
+    attributionLinkedAt: Date,
     country: {
         type: String,
         default: 'EC',
@@ -193,6 +199,7 @@ vslVisitSchema.index({ country: 1, firstSeenAt: -1 });
 vslVisitSchema.index({ country: 1, lastSeenAt: -1 });
 vslVisitSchema.index({ country: 1, assignedSeller: 1, lastClickAt: -1 });
 vslVisitSchema.index({ country: 1, lastClickAt: -1, attributionClaimedAt: -1 });
+vslVisitSchema.index({ country: 1, attributionRef: 1, lastSeenAt: -1 });
 
 const VslVisit = mongoose.model('VslVisit', vslVisitSchema);
 

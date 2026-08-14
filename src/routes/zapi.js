@@ -10,6 +10,10 @@ import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
+import {
+    extractVslAttributionRef,
+    linkVslVisitToCustomerByReference
+} from '../services/metaAttributionService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -776,8 +780,22 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
     const vslProductContext = persistedVslProductContext || explicitTextProductContext;
-    const vslAttribution = vslRoutingAllowed
-        ? await claimMetaAttributionForInboundWhatsapp({
+    const vslAttributionRef = extractVslAttributionRef(normalizedBody);
+    let vslAttribution = { ok: false, skipped: true, reason: 'missing_attribution_reference' };
+    if (inferredCountry === 'EC' && vslAttributionRef) {
+        vslAttribution = await linkVslVisitToCustomerByReference({
+            attributionRef: vslAttributionRef,
+            message: normalizedBody,
+            phone
+        }).catch((error) => ({
+            ok: false,
+            skipped: true,
+            reason: 'reference_link_failed',
+            error: error.message || String(error)
+        }));
+    }
+    if (!vslAttribution.ok && vslRoutingAllowed) {
+        vslAttribution = await claimMetaAttributionForInboundWhatsapp({
             country: inferredCountry,
             phone,
             message: normalizedBody,
@@ -787,12 +805,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
             skipped: true,
             reason: 'attribution_bridge_error',
             error: error.message || String(error)
-        }))
-        : { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
-    const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
-    const publicVslLeadEntry = vslRoutingAllowed
-        && Boolean(vslProductContext)
-        && (looksLikePublicVslLeadText(normalizedBody) || Boolean(vslProductContext));
+        }));
+    }
+    if (!vslRoutingAllowed) {
+        vslAttribution = { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
+    }
+    const attributionResolved = vslAttribution.ok && (vslAttribution.linked || vslAttribution.claimed);
+    const attributedProductKey = vslProductContext?.productKey || vslAttribution.productKey || '';
+    const automatedVslProduct = automatedEcVslProductKey(attributedProductKey);
+    const publicVslLeadEntry = vslRoutingAllowed && (
+        (Boolean(vslProductContext)
+            && (looksLikePublicVslLeadText(normalizedBody) || Boolean(vslProductContext)))
+        || attributionResolved
+    );
     const targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
@@ -802,6 +827,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
     if (vslProductContext) targetState.assignedAgent = vslProductContext.productKey;
+    else if (attributionResolved && vslAttribution.productKey) targetState.assignedAgent = vslAttribution.productKey;
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
@@ -812,7 +838,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         humanMode: targetState.human?.mode,
         lastManualBy: targetState.human?.lastManualBy,
         storedProductKey: targetState.metadata?.productKey || targetState.assignedAgent || '',
-        incomingProductKey: vslProductContext?.productKey || ''
+        incomingProductKey: attributedProductKey
     });
     if (isNewState || promoteRegisteredVslEntry) {
         targetState.human = {
@@ -848,18 +874,32 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
         publicVslLeadEntry,
-        ...(vslAttribution.ok && vslAttribution.claimed ? {
+        ...(attributionResolved ? {
             vslVisitId: vslAttribution.visitId,
             vslVisitorId: vslAttribution.visitorId,
             vslSourceUrl: vslAttribution.sourceUrl,
+            ...(vslAttribution.attributionRef ? {
+                vslAttributionRef: vslAttribution.attributionRef,
+                vslAttributionLinkedAt: vslAttribution.claimedAt?.toISOString?.() || now.toISOString(),
+                vslProductKey: vslAttribution.productKey || targetState.metadata?.vslProductKey || '',
+                vslProductName: vslAttribution.productName || targetState.metadata?.vslProductName || ''
+            } : {}),
             metaAttributionBridge: {
-                source: 'zapi_exact_message_unique_120s',
+                source: vslAttribution.attributionRef
+                    ? 'zapi_unique_reference'
+                    : 'zapi_exact_message_unique_120s',
                 confidence: vslAttribution.confidence,
                 claimedAt: vslAttribution.claimedAt
             },
             tracking: {
                 ...(targetState.metadata?.tracking || {}),
-                ...(vslAttribution.tracking || {})
+                ...(vslAttribution.tracking || {}),
+                ...(vslAttribution.attributionRef ? {
+                    attributionSource: 'vsl_reference_inbound_match',
+                    attributionVisitorKey: vslAttribution.visitorKey || '',
+                    attributionMatchedAt: now,
+                    attributionConfidence: 'unique_reference_inbound_match'
+                } : {})
             }
         } : {}),
         ...(vslProductContext ? {

@@ -262,7 +262,7 @@
     return String(base || "mx_ec_test") + "_test_" + Date.now() + "_" + Math.random().toString(16).slice(2);
   }
   function mkFbc(fbclid){
-    return "fb.1." + Math.floor(Date.now()/1000) + "." + fbclid;
+    return "fb.1." + Date.now() + "." + fbclid;
   }
 
   var o = qparams();
@@ -274,6 +274,12 @@
   o.client_user_agent = navigator.userAgent || "";
 
   window.__MAXLIEN_ORIGIN = o;
+  window.__MAXLIEN_REFRESH_ORIGIN = function(){
+    var current = Object.assign({}, window.__MAXLIEN_ORIGIN || o);
+    current.fbp = getCookie("_fbp") || current.fbp || "";
+    current.fbc = getCookie("_fbc") || current.fbc || (current.fbclid ? mkFbc(current.fbclid) : "");
+    return current;
+  };
 })();
 </script>
 </head>
@@ -450,6 +456,30 @@
     }
   }
 
+  function vslAttributionRef(){
+    const key = "mx_ec_vsl_attribution_ref_v1";
+    try {
+      const saved = String(sessionStorage.getItem(key) || "").toUpperCase();
+      if (/^TX-[A-F0-9]{12}$/.test(saved)) return saved;
+      const values = window.crypto && window.crypto.getRandomValues ? new Uint32Array(2) : null;
+      if (values) window.crypto.getRandomValues(values);
+      const seed = values
+        ? Array.from(values).map(function(value){ return value.toString(16).padStart(8, "0"); }).join("")
+        : (Date.now().toString(16) + Math.random().toString(16).slice(2));
+      const reference = "TX-" + seed.replace(/[^a-f0-9]/gi, "").slice(0, 12).toUpperCase().padEnd(12, "0");
+      sessionStorage.setItem(key, reference);
+      return reference;
+    } catch(e) {
+      return "TX-" + (Date.now().toString(16) + Math.random().toString(16).slice(2)).replace(/[^a-f0-9]/gi, "").slice(0, 12).toUpperCase().padEnd(12, "0");
+    }
+  }
+
+  function currentVslOrigin(){
+    return window.__MAXLIEN_REFRESH_ORIGIN
+      ? window.__MAXLIEN_REFRESH_ORIGIN()
+      : (window.__MAXLIEN_ORIGIN || {});
+  }
+
   function trackVslEntryOnce(){
     if (!IS_MOBILE_VISITOR) return;
     const key = "mx_ec_vsl_entry_recorded_v1";
@@ -457,7 +487,7 @@
       if (sessionStorage.getItem(key) === "1") return;
     } catch(e) {}
     try {
-      const origin = window.__MAXLIEN_ORIGIN || {};
+      const origin = currentVslOrigin();
       fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -471,6 +501,7 @@
           path: location.pathname || "/n/",
           visitorId: origin.external_id || "",
           sessionId: vslSessionId(),
+          attributionRef: vslAttributionRef(),
           pageViewEventId: window.__MAXLIEN_PAGEVIEW_EVENT_ID || "",
           device: "mobile",
           clicked: false,
@@ -701,7 +732,7 @@
 	    if (formVisibleRecorded) return;
 	    formVisibleRecorded = true;
 	    try {
-	      const origin = window.__MAXLIEN_ORIGIN || {};
+	      const origin = currentVslOrigin();
 	      fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
 	        method: "POST",
 	        headers: { "Content-Type": "application/json" },
@@ -715,6 +746,7 @@
 	          path: location.pathname || "/n/",
 	          visitorId: origin.external_id || "",
 	          sessionId: vslSessionId(),
+	          attributionRef: vslAttributionRef(),
 	          device: "mobile",
 	          clicked: false,
 	          formVisible: true,
@@ -955,7 +987,8 @@ function customerPhone(){
 }
 
 function buildWhatsappMessage(baseMessage, fullName, phone){
-  return String(baseMessage || "").trim();
+  const base = String(baseMessage || "").trim();
+  return base + "\n\nReferencia: " + vslAttributionRef();
 }
 
 function trackWhatsappLead(message, fullName, phone){
@@ -963,7 +996,7 @@ function trackWhatsappLead(message, fullName, phone){
   const eventId = "lead_whatsapp_" + Date.now() + "_" + Math.random().toString(16).slice(2);
   try { if (window.__mvpMarkLeadOnce) window.__mvpMarkLeadOnce(eventId); } catch(e) {}
   try {
-    const payload = JSON.stringify(Object.assign({}, window.__MAXLIEN_ORIGIN || {}, vslAbPayload(), {
+    const payload = JSON.stringify(Object.assign({}, currentVslOrigin(), vslAbPayload(), {
 	      country: "EC",
 	      productKey: ACTIVE_VSL_PRODUCT.key,
 	      productName: ACTIVE_VSL_PRODUCT.name,
@@ -976,6 +1009,7 @@ function trackWhatsappLead(message, fullName, phone){
       customer_name: normalizeFullName(fullName),
       phone: normalizeCustomerPhoneDigits(phone),
       customer_phone: normalizeCustomerPhoneDigits(phone),
+      attributionRef: vslAttributionRef(),
       client_user_agent: navigator.userAgent || "",
       event_source_url: location.href
     }));
@@ -1000,7 +1034,7 @@ function trackWhatsappLead(message, fullName, phone){
 
 function recordWhatsappClick(message, fullName, phone){
   try {
-    const origin = window.__MAXLIEN_ORIGIN || {};
+    const origin = currentVslOrigin();
     const phoneDigits = normalizeCustomerPhoneDigits(phone);
     const testPhone = isAllowedTestPhone(phone);
     const payload = JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
@@ -1012,6 +1046,7 @@ function recordWhatsappClick(message, fullName, phone){
       path: location.pathname || "/n/",
       visitorId: origin.external_id || "",
       sessionId: vslSessionId(),
+      attributionRef: vslAttributionRef(),
       device: "mobile",
       clicked: true,
       intent: "whatsapp_click",
