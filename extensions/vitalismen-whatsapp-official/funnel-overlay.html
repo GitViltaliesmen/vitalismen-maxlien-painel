@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Funil Vitalismen</title>
+    <link rel="stylesheet" href="funnel-overlay.css">
+</head>
+<body>
+    <main>
+        <section id="connectionStatus" class="status loading">Conectando ao cliente selecionado…</section>
+        <section class="context">
+            <div>
+                <span>Cliente atual</span>
+                <strong id="clientName">Aguardando conversa</strong>
+                <small id="clientPhone"></small>
+            </div>
+            <span id="stageBadge" class="stage">Funil assistido</span>
+        </section>
+
+        <section class="label-editor" aria-label="Etiqueta do cliente">
+            <span>Etiqueta no WhatsApp</span>
+            <nav id="labelButtons" class="label-buttons">
+                <button type="button" data-label="atendendo">Atendendo</button>
+                <button type="button" data-label="comprar_depois">Comprar depois</button>
+                <button type="button" data-label="confirmado">Confirmado</button>
+                <button type="button" data-label="enviado">Enviado</button>
+                <button type="button" data-label="em_rota">Em rota</button>
+                <button type="button" data-label="na_agencia">Na agência</button>
+                <button type="button" data-label="entregue">Entregue</button>
+                <button type="button" data-label="devolvido">Devolvido</button>
+                <button type="button" data-label="cancelado">Cancelado</button>
+                <button type="button" data-label="">Voltar ao automático</button>
+            </nav>
+        </section>
+
+        <nav id="sourceTabs" class="source-tabs" aria-label="Biblioteca">
+            <button type="button" data-source="legacy">Funil antigo completo</button>
+            <button type="button" data-source="assisted">Funis assistidos</button>
+        </nav>
+
+        <nav id="productTabs" class="product-tabs" aria-label="Produto">
+            <button type="button" data-product="vit_power_ec">Vit Power</button>
+            <button type="button" data-product="nitrix_ec">Nitrix</button>
+            <button type="button" data-product="tex_ultra_ec">Tex Ultra</button>
+        </nav>
+
+        <label class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="funnelSearch" type="search" placeholder="Buscar texto, áudio, etapa ou código">
+        </label>
+
+        <nav id="typeTabs" class="type-tabs" aria-label="Tipo de conteúdo">
+            <button type="button" data-type="todos">Todos</button>
+            <button type="button" data-type="audio">Áudio</button>
+            <button type="button" data-type="texto">Texto</button>
+            <button type="button" data-type="midia">Mídia</button>
+            <button type="button" data-type="bloco">Blocos</button>
+        </nav>
+
+        <nav id="categoryTabs" class="categories" aria-label="Etapa">
+            <button type="button" data-category="todos">Todos</button>
+            <button type="button" data-category="abertura">Abertura</button>
+            <button type="button" data-category="oferta">Oferta</button>
+            <button type="button" data-category="confianca">Confiança</button>
+            <button type="button" data-category="dados">Dados</button>
+            <button type="button" data-category="confirmacao">Confirmar</button>
+            <button type="button" data-category="retorno">Retorno</button>
+        </nav>
+
+        <div class="library-title">
+            <span id="productLabel">Respostas do produto</span>
+            <b id="responseCount">0</b>
+        </div>
+        <section id="responseList" class="response-list"></section>
+        <p id="copyStatus" class="copy-status">Texto, áudio, imagem e vídeo são enviados diretamente à conversa aberta.</p>
+    </main>
+    <script src="funnel-shadow.js"></script>
+    <script src="product-funnel-library.js"></script>
+    <script src="product-funnels/vit-power-ec.js"></script>
+    <script src="product-funnels/nitrix-ec.js"></script>
+    <script src="product-funnels/tex-ultra-ec.js"></script>
+    <script src="legacy-funnel-library.js"></script>
+    <script src="funnel-overlay.js"></script>
+</body>
+</html>

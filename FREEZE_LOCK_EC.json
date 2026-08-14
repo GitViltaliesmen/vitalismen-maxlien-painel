@@ -1,0 +1,1141 @@
+{
+  "country": "EC",
+  "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
+  "updatedAt": "2026-07-26T20:09:07.590Z",
+  "rules": [
+    {
+      "id": "panel_add_contact_button_fixed",
+      "status": "active",
+      "description": "Botao Adicionar cliente fica fixo e modal nao fecha por clique acidental no fundo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": ".searchbar .add-chat-contact"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "width: 104px;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "el('newContactModal')?.querySelector('.modal-card')?.addEventListener('click', (event) => event.stopPropagation());"
+        }
+      ]
+    },
+    {
+      "id": "message_inline_hover_popup_disabled",
+      "status": "active",
+      "description": "Popup inline de estrategia sugerida nao abre ao passar o mouse em mensagens.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "const inlineMessageObserverHintsEnabled = false;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (!inlineMessageObserverHintsEnabled) return '';"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (!inlineMessageObserverHintsEnabled) return;"
+        },
+        {
+          "type": "excludes",
+          "file": "public/qr.html",
+          "value": "addEventListener('mouseover'"
+        }
+      ]
+    },
+    {
+      "id": "panel_rate_limit_operational_writes",
+      "status": "active",
+      "description": "Salvar ficha, adicionar cliente e acoes operacionais do painel nao podem cair no rate limiter global.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "isPanelOperationalWriteRequest(req)"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/whatsapp/contacts'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/whatsapp/chats/action'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "method === 'PATCH' && /^\\/api\\/whatsapp\\/contact-state\\/[^/]+$/.test(pathname)"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "method === 'POST' && pathname === '/api/orders'"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "skip: (req) => isLocalRequest(req) || isStaticPanelRequest(req) || isPanelPollingRequest(req) || isPanelOperationalWriteRequest(req)"
+        }
+      ]
+    },
+    {
+      "id": "servientrega_agency_search_not_rate_limited",
+      "status": "active",
+      "description": "Busca de agencias Servientrega EC continua liberada da cota global.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "pathname === '/api/shipments/servientrega/ec/agencies'"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "id=\"customerCityInput\""
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "/api/shipments/servientrega/ec/agencies"
+        }
+      ]
+    },
+    {
+      "id": "zapi_technical_alert_hidden_from_panel",
+      "status": "active",
+      "description": "Alertas tecnicos da Z-API nao aparecem como mensagens de cliente no painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "TECHNICAL_ZAPI_ALERT_REGEX"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "visiblePanelMessageQuery"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "isTechnicalZapiAlertMessage"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "const visibleMessages = (messages || []).filter((message) => !isTechnicalZapiAlertMessage(message));"
+        }
+      ]
+    },
+    {
+      "id": "shipment_dispatch_8_per_hour",
+      "status": "active",
+      "description": "Lote operacional de avisos/rastreio EC fica em 8 por hora.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": ".env",
+          "value": "SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT=8",
+          "optional": true
+        },
+        {
+          "type": "includes",
+          "file": "src/services/schedulerService.js",
+          "value": "SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT"
+        }
+      ]
+    },
+    {
+      "id": "vsl_nitrix_mobile_entry_ec",
+      "status": "active",
+      "description": "VSL /n do Equador permanece no caminho mobile aprovado, agora atribuindo Tex Ultra, com desktop fora da VSL e entrada WhatsApp no telefone oficial definido por configuracao e confirmado pela instancia Z-API conectada.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "<!-- VSL VTURB - injected only for mobile visitors -->"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "function isMobileVisitor()"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "if (!IS_MOBILE_VISITOR) return;"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const OFFICIAL_ZAPI_SELLER_E164 = \"5515991418416\";"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const sellerPhone = await nextSellerFromServer(message, fullName);"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/whatsapp/vsl-entry\")"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "productKey: \"tex_ultra_ec\""
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "productName: \"Tex Ultra Ecuador\""
+        }
+      ]
+    },
+    {
+      "id": "meta_pixel_lead_ec_dataset",
+      "status": "active",
+      "description": "Marcacao Facebook/Meta da VSL usa dataset EC correto, PageView/Lead deduplicados e CAPI EC sem token de outro pais.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fbq('init', '1468946114265008');"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "window.__mvpMarkLeadOnce = markLeadOnce;"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "eventName: \"Lead\""
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "content_ids: [\"tex_ultra_ec\"]"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/meta-events\")"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "accessToken: process.env.META_ACCESS_TOKEN_EC"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "eventName: 'PageView'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "eventName: 'Lead'"
+        }
+      ]
+    },
+    {
+      "id": "meta_purchase_confirmed_order_lock_ec",
+      "status": "active",
+      "description": "Venda/Purchase Facebook EC dispara somente em pedido confirmado, com valor positivo, moeda USD, produto EC e lock anti-duplicidade no painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "status: 'confirmed'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "currency: 'USD'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "sendPurchaseEventForOrder(order);"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "recordOnlineAdminPurchaseLock({"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "error: 'META Purchase missing positive value'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "error: 'META Purchase missing valid quantity'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "event_name: 'Purchase'"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "currency,"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "value,"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/metaConversionsService.js",
+          "value": "ecuadorProductMetadata(resolveEcuadorProductInfo(order))"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/adminPanelStatusService.js",
+          "value": "CREATE TABLE IF NOT EXISTS purchase_capi_lock"
+        }
+      ]
+    },
+    {
+      "id": "site_entry_lead_panel_path_before_vsl_ab_ec",
+      "status": "active",
+      "description": "Antes do teste A/B de VSL, a entrada EC fica congelada no mesmo caminho: /n/ mobile, CTA WhatsApp/Z-API, Meta EC e Leads Clientes/Painel Unificado EC.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "vturbMount"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fetch(ecApiPath(\"/api/whatsapp/vsl-entry\"),"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath('/api/zapi/whatsapp-link')"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ecApiPath(\"/api/meta-events\")"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "fbq('init', '1468946114265008');"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "window.__MAXLIEN_SHOW_FORM__ = showForm;"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "id=\"leadDashboardFrame\""
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "/leads-window.html?country=EC"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalEntries: Math.max"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/leads.js",
+          "value": "syncVslOrderToPanel"
+        }
+      ]
+    },
+    {
+      "id": "vsl_ab_test_player_entry_phrases_ec",
+      "status": "active",
+      "description": "Teste A/B de VSL no /n/ EC usa somente o player VTurb AB aprovado e grava a variante com frase de entrada em espanhol no WhatsApp, painel, visita VSL e Meta Lead.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "const VSL_AB_TEST_ID = \"ab-6a5976494d4b86598b3690f9\";"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "ab-test/6a5976494d4b86598b3690f9/player.js"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "Hola, quiero saber mas sobre Tex Ultra."
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "Hola, deseo recibir mas informacion sobre el producto."
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "function vslAbPayload()"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "openWhatsappEntry(vslAbEntryMessage(), fullName, phone);"
+        },
+        {
+          "type": "includes",
+          "file": "src/models/VslVisit.js",
+          "value": "vslVariant"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslTestId: vslTestId || existing?.vslTestId || ''"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "const skipMeta = body.skipMeta === true"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslVariant: vslVariant || state.metadata?.vslVariant || ''"
+        }
+      ]
+    },
+    {
+      "id": "vsl_manual_test_2958_skipmeta_ec",
+      "status": "active",
+      "description": "Telefone 2958 fica liberado somente como teste manual da VSL EC, com skipMeta/testEntry/testLead, sem transformar numero BR em cliente real nem trocar vendedor oficial 8416.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "\"2958\": {"
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "e164: \"5531971862958\""
+        },
+        {
+          "type": "includes",
+          "file": "public/n/index.html",
+          "value": "testPhoneOverride: testPhone ? activeTestPhoneOverrideCode() : \"\""
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "const PUBLIC_VSL_TEST_PHONE_OVERRIDES = {"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "2958: '5531971862958'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "body.testEntry !== true || body.testLead !== true || body.skipMeta !== true"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "if (overridePhone) return overridePhone;"
+        }
+      ]
+    },
+    {
+      "id": "ops_alerts_click_to_attend_ec",
+      "status": "active",
+      "description": "Alertas operacionais EC ficam clicaveis por cliente, abrem atendimento, registram baixa auditavel e nao contam retomada ja respondida por humano.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "data-ops-alert-kind"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "openOperationalAlertCustomer"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Atendimento aberto e alerta baixado."
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "router.post('/alerts/acknowledge'"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "manualReviewAlertIsActive"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "lastOutboundReply"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "reengagementAcknowledgedAt"
+        },
+        {
+          "type": "includes",
+          "file": "src/models/Shipment.js",
+          "value": "opsAlertAcknowledgedAt"
+        }
+      ]
+    },
+    {
+      "id": "customer_ficha_autosave_orderid_ec",
+      "status": "active",
+      "description": "Ficha do cliente EC preserva orderId/sourceOrderId e salva alteracoes manuais automaticamente sem perder rascunho durante refresh do painel.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "customerEditingDrafts"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "rememberEditingCustomerDraft"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "scheduleCustomerFieldAutoSave"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Ficha alterada; salvando automaticamente..."
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "orderId: String(customerDraft.orderId"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "sourceOrderId: String(customerDraft.sourceOrderId"
+        },
+        {
+          "type": "includes",
+          "file": "src/index.js",
+          "value": "/api/automation/alerts/acknowledge"
+        }
+      ]
+    },
+    {
+      "id": "ops_alert_post_sale_reengagement_guard_ec",
+      "status": "active",
+      "description": "Alerta de retomada EC nao inclui telefone fora do Equador nem cliente que ja esta em pos-venda/pedido ativo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "hasActivePostSaleFlow"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "ACTIVE_POST_SALE_ORDER_STATUSES"
+        },
+        {
+          "type": "includes",
+          "file": "src/services/reengagementService.js",
+          "value": "phoneDigits.startsWith('593')"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/automation.js",
+          "value": "listReengagementCandidates({ hours: 48, limit: 20, country: 'EC' })"
+        }
+      ]
+    },
+    {
+      "id": "panel_product_autodetect_customer_draft_ec",
+      "status": "active",
+      "description": "Painel EC auto-seleciona Nitrix/Vit Power por pedido ativo ou mencao explicita e registra produto correto na ficha.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "panelProductContextForChat"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "detectExplicitEcuadorProductKey"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "'metadata.customerDraft': updatedDraft"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "customerDraft: panelDraft"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "productKey: valueOrCurrent('productKey'"
+        }
+      ]
+    },
+    {
+      "id": "panel_real_entry_metrics_ec",
+      "status": "active",
+      "description": "Painel EC usa total real de clientes e entradas VSL/WhatsApp nas metricas, sem depender do limite de conversas carregadas.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalClients: realContacts.length"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "vslClicks"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "totalEntries: Math.max"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "state.dashboardMetrics?.totalClients"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "today.totalEntries"
+        }
+      ]
+    },
+    {
+      "id": "manual_funnel_text_send_direct_ec",
+      "status": "active",
+      "description": "Textos do funil manual EC, incluindo Oferta, sao enviados diretamente ao clicar Enviar e nao ficam como rascunho.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "sendFooterDraftTemplate"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Texto do funil enviado direto"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "if (type === 'draft') sendFooterDraftTemplate(value, button);"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Envia oferta e preco direto"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "...footerDraftFiles(),"
+        }
+      ]
+    },
+    {
+      "id": "panel_chat_entry_time_badge_ec",
+      "status": "active",
+      "description": "Lista e cabecalho do painel EC mostram horario de primeira entrada do cliente e se ele e novo hoje ou antigo.",
+      "requiresWrittenAuthorizationToChange": true,
+      "checks": [
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "earliestDateValue"
+        },
+        {
+          "type": "includes",
+          "file": "src/routes/whatsapp.js",
+          "value": "firstInboundAt: contactState?.firstInboundAt || null"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "chatEntryInfo"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Novo hoje"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "Antigo"
+        },
+        {
+          "type": "includes",
+          "file": "public/qr.html",
+          "value": "chat-entry-line"
+        }
+      ]
+    }
+  ],
+  "freezeGuards": [
+    [
+      "node",
+      "scripts/guard-freeze-lock-ec.mjs"
+    ],
+    [
+      "node",
+      "scripts/guard-status-panels-freeze.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-customer-draft-zero-quantity.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-no-regression-meta-country.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-ec-nitrix-guard.mjs"
+    ],
+    [
+      "node",
+      "scripts/audit-ec-product-micro-layer.mjs"
+    ],
+    [
+      "node",
+      "scripts/guard-public-funnel.mjs"
+    ]
+  ],
+  "approvals": [
+    {
+      "at": "2026-06-26T20:05:18.577Z",
+      "description": "Aprovado: implantacao inicial do Freeze Lock EC",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626200518.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    },
+    {
+      "at": "2026-06-26T20:21:30.569Z",
+      "description": "Aprovado: congelar tudo que fizemos hoje em 2026-06-26",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626202130.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    },
+    {
+      "at": "2026-06-26T20:33:07.598Z",
+      "description": "Aprovado: congelar tudo auditado hoje antes de pausar; bot texto OK; pendencias mapeadas sem alterar codigo",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260626203307.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour"
+      ]
+    },
+    {
+      "at": "2026-07-09T11:19:42.232Z",
+      "description": "Aprovado: congelar VSL /n Nitrix EC e marcacao de venda Facebook Purchase EC funcionando antes de corrigir painel",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709111942.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T11:52:29.640Z",
+      "description": "Aprovado: congelar alerta operacional clicavel EC com botao Atender, baixa auditavel e retomada sem falso positivo humano",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709115229.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T12:01:11.526Z",
+      "description": "Aprovado: congelar ficha cliente EC com autosave, orderId preservado e requeue Dropi seguro",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709120111.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T12:26:30.466Z",
+      "description": "Aprovado: congelar estado EC publicado antes de revisar alertas pos-venda, produto automatico e contador de entradas",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709122630.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T13:21:51.101Z",
+      "description": "Aprovado: alerta EC ignora pos-venda ativo, painel registra produto automatico Nitrix/Vit Power e metricas usam total real de clientes",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709132151.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T13:38:34.313Z",
+      "description": "Aprovado: congelar estado EC publicado antes de ajustar envio imediato do funil manual",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709133834.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T13:41:55.691Z",
+      "description": "Aprovado: textos do funil manual EC enviam direto no clique Enviar sem virar rascunho",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709134155.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T14:04:12.613Z",
+      "description": "Aprovado: fechamento total EC sem arquivos soltos apos funil manual direto",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709140412.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec"
+      ]
+    },
+    {
+      "at": "2026-07-09T14:22:20.216Z",
+      "description": "Aprovado: painel EC mostra horario de entrada e novo ou antigo por cliente",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260709142220.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-07-17T00:23:00.592Z",
+      "description": "Aprovado: congelar entrada /n EC e lead no painel antes do teste AB de VSL",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717002300.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-07-17T00:41:25.316Z",
+      "description": "Aprovado: trocar VSL /n EC para teste AB VTurb mantendo caminho, CTA, Meta, painel e WhatsApp",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717004125.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-07-17T00:48:40.743Z",
+      "description": "Aprovado: VSL AB EC respeita skipMeta em teste e mantem painel/WhatsApp",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717004840.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-07-17T01:16:47.437Z",
+      "description": "Aprovado: liberar 2958 apenas como teste manual VSL EC com skipMeta",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717011647.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "vsl_manual_test_2958_skipmeta_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-07-17T03:37:15.912Z",
+      "description": "Aprovado: funil inicial Nitrix EC completo, pos-fechamento ativo e teste 2958 validado",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260717033715.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "vsl_manual_test_2958_skipmeta_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    }
+  ],
+  "lastApproval": {
+    "at": "2026-07-26T20:09:07.590Z",
+    "description": "Aprovado pelo operador: VSL atual passa a Tex Ultra com tabela promocional por frascos; Nitrix e Vit Power seguem selecionaveis e Dropi controlado",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260726200907.md",
+    "activeRuleIds": [
+      "panel_add_contact_button_fixed",
+      "message_inline_hover_popup_disabled",
+      "panel_rate_limit_operational_writes",
+      "servientrega_agency_search_not_rate_limited",
+      "zapi_technical_alert_hidden_from_panel",
+      "shipment_dispatch_8_per_hour",
+      "vsl_nitrix_mobile_entry_ec",
+      "meta_pixel_lead_ec_dataset",
+      "meta_purchase_confirmed_order_lock_ec",
+      "site_entry_lead_panel_path_before_vsl_ab_ec",
+      "vsl_ab_test_player_entry_phrases_ec",
+      "vsl_manual_test_2958_skipmeta_ec",
+      "ops_alerts_click_to_attend_ec",
+      "customer_ficha_autosave_orderid_ec",
+      "ops_alert_post_sale_reengagement_guard_ec",
+      "panel_product_autodetect_customer_draft_ec",
+      "panel_real_entry_metrics_ec",
+      "manual_funnel_text_send_direct_ec",
+      "panel_chat_entry_time_badge_ec"
+    ]
+  }
+}

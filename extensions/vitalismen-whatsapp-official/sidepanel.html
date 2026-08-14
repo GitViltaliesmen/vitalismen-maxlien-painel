@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vitalismen • WhatsApp Oficial</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand-mark">VA</div>
+        <div>
+            <strong>Vitalismen</strong>
+            <span>Companion seguro</span>
+        </div>
+        <button id="logoutButton" class="icon-button hidden" type="button" title="Sair">Sair</button>
+    </header>
+
+    <main>
+        <section id="loginView" class="login-card">
+            <div class="official-badge">WHATSAPP OFICIAL</div>
+            <h1>Seu histórico ao lado do WhatsApp</h1>
+            <p>Esta versão apenas consulta o painel e abre conversas por clique. Ela não envia mensagens automaticamente.</p>
+            <form id="loginForm">
+                <label>
+                    E-mail do painel
+                    <input id="emailInput" name="email" type="email" autocomplete="username" required>
+                </label>
+                <label>
+                    Senha
+                    <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+                </label>
+                <button id="loginButton" class="primary-button" type="submit">Entrar com segurança</button>
+            </form>
+            <p id="loginError" class="error-text" role="alert"></p>
+        </section>
+
+        <section id="appView" class="app-view hidden">
+            <div class="toolbar">
+                <div>
+                        <strong id="operatorName">Atendimento EC</strong>
+                        <span id="syncStatus">Somente leitura</span>
+                        <span class="extension-version">Extensão v0.13.3 • Status e agenda sincronizados</span>
+                </div>
+                <button id="refreshButton" class="secondary-button" type="button" title="Sincroniza os clientes; não atualiza a extensão">Sincronizar clientes</button>
+            </div>
+
+            <div id="detectedChatBanner" class="detected-chat hidden">
+                <span class="live-dot"></span>
+                <div>
+                    <strong>Conversa detectada no WhatsApp</strong>
+                    <span id="detectedChatText">Aguardando seleção…</span>
+                </div>
+            </div>
+
+            <section id="googleContactsCard" class="google-contacts-card" aria-label="Google Contatos">
+                <div>
+                    <strong>Google Contatos</strong>
+                    <span id="googleContactsStatus">Consultando conexão…</span>
+                </div>
+                <div class="google-contacts-actions">
+                    <button id="googleConnectButton" type="button">Conectar</button>
+                    <button id="googleDisconnectButton" class="hidden" type="button">Desconectar</button>
+                </div>
+            </section>
+
+            <label class="search-box">
+                <span>Buscar</span>
+                <input id="searchInput" type="search" placeholder="Nome ou telefone">
+            </label>
+
+            <div id="listView">
+                <div class="list-heading">
+                    <strong>Clientes</strong>
+                    <span id="clientCount">0</span>
+                </div>
+                <div id="clientList" class="client-list" aria-live="polite"></div>
+            </div>
+
+            <div id="historyView" class="history-view hidden">
+                <button id="backButton" class="back-button" type="button">← Voltar aos clientes</button>
+                <div class="customer-card">
+                    <div>
+                        <strong id="customerName">Cliente</strong>
+                        <span id="customerPhone"></span>
+                        <span id="googleContactStatus" class="google-contact-status">Agenda: aguardando confirmação</span>
+                    </div>
+                    <div class="customer-actions">
+                        <button id="openProductFunnelButton" class="funnel-launcher" type="button" hidden aria-hidden="true">Funil</button>
+                        <button id="retryGoogleContactButton" class="secondary-button hidden" type="button">Tentar agenda</button>
+                        <button id="resolveGoogleContactNameButton" class="secondary-button hidden" type="button">Atualizar nome</button>
+                        <button id="openWhatsAppButton" class="whatsapp-button" type="button">Abrir no WhatsApp oficial</button>
+                    </div>
+                </div>
+                <div class="safety-note">Histórico salvo no Vitalismen. Texto e mídia só são enviados quando você pressiona Enviar no funil.</div>
+                <div class="human-control">
+                    <div>
+                        <strong id="humanControlTitle">Atendimento protegido</strong>
+                        <span id="humanControlStatus">Assuma o cliente antes de responder.</span>
+                    </div>
+                    <button id="claimButton" class="claim-button" type="button">Assumir</button>
+                </div>
+                <section class="funnel-shadow" aria-labelledby="funnelTitle">
+                    <div class="funnel-heading">
+                        <div>
+                            <span class="shadow-badge">Shadow • não grava</span>
+                            <h2 id="funnelTitle">Funil assistido</h2>
+                        </div>
+                        <span id="funnelPriority" class="funnel-priority">—</span>
+                    </div>
+                    <div class="funnel-progress" aria-hidden="true">
+                        <span id="funnelProgressBar"></span>
+                    </div>
+                    <div class="funnel-stage-line">
+                        <strong id="funnelStage">Analisando…</strong>
+                        <span id="funnelAge"></span>
+                    </div>
+                    <div class="next-action-card">
+                        <span>Próxima melhor ação</span>
+                        <strong id="funnelNextAction">Aguardando dados</strong>
+                    </div>
+                    <div id="funnelMissing" class="funnel-missing" aria-label="Dados faltantes"></div>
+                </section>
+                <section id="productFunnelPanel" class="product-funnel floating-product-funnel" aria-labelledby="productFunnelTitle">
+                    <div id="productFunnelDragHandle" class="product-funnel-heading funnel-drag-handle">
+                        <div>
+                            <span class="assisted-badge">Arraste para mover • uso humano</span>
+                            <h2 id="productFunnelTitle">Respostas do funil</h2>
+                        </div>
+                        <div class="floating-funnel-actions">
+                            <span id="productFunnelCount" class="product-funnel-count">0</span>
+                            <button id="toggleProductFunnelSizeButton" type="button" title="Alternar tamanho" aria-label="Alternar tamanho do funil">↙</button>
+                            <button id="minimizeProductFunnelButton" type="button" title="Minimizar" aria-label="Minimizar funil">—</button>
+                            <button id="closeProductFunnelButton" type="button" title="Fechar" aria-label="Fechar funil">×</button>
+                        </div>
+                    </div>
+                    <div class="product-funnel-body">
+                    <div id="productFunnelTabs" class="product-tabs" role="tablist" aria-label="Produto">
+                        <button type="button" data-product="vit_power_ec">Vit Power</button>
+                        <button type="button" data-product="nitrix_ec">Nitrix</button>
+                        <button type="button" data-product="tex_ultra_ec">Tex Ultra</button>
+                    </div>
+                    <label class="funnel-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="productFunnelSearch" type="search" placeholder="Buscar resposta, etapa ou código" autocomplete="off">
+                    </label>
+                    <div id="productFunnelCategories" class="funnel-categories" aria-label="Categorias">
+                        <button type="button" data-category="todos">Todos</button>
+                        <button type="button" data-category="oferta">Oferta</button>
+                        <button type="button" data-category="confianca">Confiança</button>
+                        <button type="button" data-category="dados">Dados</button>
+                        <button type="button" data-category="confirmacao">Confirmar</button>
+                        <button type="button" data-category="retorno">Retorno</button>
+                    </div>
+                    <p id="productFunnelCopyStatus" class="copy-status" aria-live="polite"></p>
+                    <div id="productFunnelList" class="product-funnel-list"></div>
+                    </div>
+                    <div id="productFunnelResizeHandle" class="funnel-resize-handle" title="Arraste para redimensionar" aria-hidden="true"></div>
+                </section>
+                <form id="customerForm" class="profile-section smart-form customer-form-modern">
+                    <div class="form-heading">
+                        <div>
+                            <span class="current-product-label">Ficha do cliente</span>
+                            <h2>Cadastro de pedido</h2>
+                        </div>
+                        <button id="analyzeButton" class="analysis-button" type="button">Analisar histórico</button>
+                    </div>
+                    <div id="analysisResult" class="analysis-result hidden"></div>
+
+                    <div class="customer-form-title">Dados do cliente</div>
+                    <section class="customer-primary-panel">
+                        <div class="customer-primary-head">
+                            <strong>Status e próxima ação</strong>
+                            <span id="autoSaveState" class="auto-save-state">Gravação automática ativa</span>
+                        </div>
+                        <div class="customer-primary-controls">
+                            <label class="profile-input">
+                                Status
+                                <select id="draftStatus" class="status-select">
+                                    <option value="novo">Novo</option>
+                                    <option value="atendendo">Atendendo</option>
+                                    <option value="comprar_depois">Comprar depois</option>
+                                    <option value="confirmado">Confirmar pedido</option>
+                                    <option value="pedido_enviado">Pedido enviado</option>
+                                    <option value="entregue">Entregue</option>
+                                    <option value="recompra">Recompra</option>
+                                    <option value="cancelado">Cancelado</option>
+                                    <option value="devolvido">Devolvido</option>
+                                </select>
+                            </label>
+                            <button id="saveDraftButton" class="save-button" type="submit">Salvar dados</button>
+                        </div>
+                        <div id="buyLaterSchedule" class="buy-later-schedule hidden">
+                            <label class="profile-input">
+                                Data e hora combinadas com o cliente
+                                <input id="draftBuyLaterFollowupAt" type="datetime-local" autocomplete="off">
+                            </label>
+                            <div class="buy-later-actions">
+                                <small>Obrigatória para “Comprar depois”. O lembrete não é enviado ao salvar a ficha.</small>
+                                <button id="addBuyLaterScheduleButton" class="secondary-button" type="button" disabled>Adicionar</button>
+                            </div>
+                        </div>
+                        <div id="orderReadiness" class="order-readiness" aria-live="polite"></div>
+                    </section>
+
+                    <div class="profile-grid">
+                        <label class="profile-input wide">
+                            Nome completo
+                            <input id="draftName" type="text" autocomplete="off" placeholder="Nome do cliente">
+                        </label>
+                        <label class="profile-input">
+                            País
+                            <select id="draftCountry">
+                                <option value="EC">Equador</option>
+                                <option value="CO">Colômbia</option>
+                                <option value="BR">Brasil (somente teste liberado)</option>
+                            </select>
+                        </label>
+                        <label class="profile-input">
+                            Telefone
+                            <input id="draftPhone" type="text" readonly>
+                        </label>
+                        <label class="profile-input">
+                            Cidade
+                            <input id="draftCity" type="text" autocomplete="off" placeholder="Cidade">
+                        </label>
+                        <label class="profile-input">
+                            Província
+                            <input id="draftProvince" type="text" autocomplete="off" placeholder="Província">
+                        </label>
+
+                        <section id="agencySuggestions" class="agency-suggestions wide hidden">
+                            <div class="agency-suggestions-header">
+                                <div>
+                                    <strong>Agências Servientrega</strong>
+                                    <span id="agencySuggestionsState">Digite a cidade</span>
+                                </div>
+                                <div class="agency-suggestions-actions">
+                                    <button id="prevAgencyBatchBtn" type="button" disabled>Voltar 4</button>
+                                    <button id="sendAgencyListBtn" type="button" disabled>Enviar 4</button>
+                                    <button id="nextAgencyBatchBtn" type="button" disabled>Próximas 4</button>
+                                </div>
+                            </div>
+                            <input id="agencySearchInput" class="agency-search-input" autocomplete="off" placeholder="Ponto de referência, bairro, rua ou agência">
+                            <div id="agencySuggestionList" class="agency-suggestion-list"></div>
+                        </section>
+
+                        <label class="profile-input wide">
+                            Endereço ou agência
+                            <textarea id="draftAddress" autocomplete="off" placeholder="Rua, número, bairro ou agência Servientrega"></textarea>
+                        </label>
+                        <label class="profile-input wide">
+                            Referência
+                            <input id="draftReference" type="text" autocomplete="off" placeholder="Ponto de referência para localizar a agência mais próxima">
+                        </label>
+                    </div>
+
+                    <div class="customer-form-title">Detalhes do pedido</div>
+                    <div class="profile-grid order-detail-grid">
+                        <label class="profile-input wide">
+                            Produto
+                            <select id="draftProduct">
+                                <option value="">Selecionar</option>
+                                <option value="vit_power_ec">Vit Power</option>
+                                <option value="nitrix_ec">Nitrix</option>
+                                <option value="tex_ultra_ec">Tex Ultra</option>
+                            </select>
+                        </label>
+                        <label class="profile-input">
+                            Quantidade
+                            <select id="draftQuantity">
+                                <option value="">—</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="6">6</option>
+                            </select>
+                        </label>
+                        <label class="profile-input">
+                            Valor USD
+                            <input id="draftTotal" type="text" inputmode="decimal" autocomplete="off" aria-describedby="priceRuleHint">
+                        </label>
+                        <div class="profile-input order-code">
+                            <span>Pedido</span>
+                            <strong id="profileOrderId">—</strong>
+                        </div>
+                    </div>
+
+                    <section id="texUltraKitSection" class="order-kit-section">
+                        <div class="order-kit-heading">
+                            <strong>Escolha o kit</strong>
+                            <span>Quantidade e valor são preenchidos juntos</span>
+                        </div>
+                        <div id="orderKitOptions" class="order-kit-options" role="group" aria-label="Kits Tex Ultra">
+                            <button type="button" data-kit-quantity="1"><span>1 mês</span><strong>USD 35,99</strong></button>
+                            <button type="button" data-kit-quantity="2"><span>2 meses</span><strong>USD 70,00</strong></button>
+                            <button type="button" data-kit-quantity="3"><span>3 meses</span><strong>USD 80,99</strong></button>
+                            <button type="button" data-kit-quantity="6"><span>6 meses</span><strong>USD 147,99</strong><small>Tratamento completo</small></button>
+                        </div>
+                    </section>
+
+                    <div id="orderSummary" class="order-summary" aria-live="polite"></div>
+                    <section class="meta-purchase-action" aria-label="Marcar compra no Facebook">
+                        <button id="markPurchaseButton" type="button">Marcar compra</button>
+                        <span id="metaPurchaseStatus" aria-live="polite">
+                            Complete a ficha e confirme o pedido para liberar.
+                        </span>
+                    </section>
+                    <p id="priceRuleHint" class="price-rule-hint">O valor selecionado permanece ligado à quantidade do pedido.</p>
+                    <span id="saveStatus" class="save-status"></span>
+                    <div class="compatibility-fields" aria-hidden="true">
+                        <strong id="profileOrderStatus">—</strong>
+                        <strong id="profileQuantity">—</strong>
+                        <strong id="profileTotal">—</strong>
+                        <strong id="profileStats">—</strong>
+                    </div>
+                </form>
+                <details id="historyDetails" class="history-details">
+                    <summary>
+                        <strong>Histórico Vitalismen</strong>
+                        <span>Backend • somente leitura</span>
+                    </summary>
+                    <div id="messageList" class="message-list" aria-live="polite"></div>
+                </details>
+            </div>
+
+            <div id="appError" class="app-error hidden" role="alert"></div>
+        </section>
+    </main>
+
+    <script src="funnel-shadow.js"></script>
+    <script src="conversation-data-extractor.js"></script>
+    <script src="tex-ultra-order-catalog.js"></script>
+    <script src="product-funnel-library.js"></script>
+    <script src="product-funnels/vit-power-ec.js"></script>
+    <script src="product-funnels/nitrix-ec.js"></script>
+    <script src="product-funnels/tex-ultra-ec.js"></script>
+    <script src="agency-catalog.js"></script>
+    <script src="agency-batch.js"></script>
+    <script src="sidepanel.js"></script>
+</body>
+</html>

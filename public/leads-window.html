@@ -1,0 +1,2974 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Leads Clientes - Vitalismen</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #111827;
+            --surface-soft: #182235;
+            --line: rgba(148, 163, 184, 0.22);
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --orange: #ca8a04;
+            --orange-soft: #3f2f0a;
+            --green: #16a34a;
+            --green-soft: #0f2f1d;
+            --red: #dc2626;
+            --red-soft: #3f1515;
+            --attending: #0e7490;
+            --attending-soft: #083344;
+            --sent: #3730a3;
+            --sent-soft: #1e1b4b;
+            --confirmed: #6d28d9;
+            --confirmed-soft: #2e1065;
+            --repurchase: #be185d;
+            --repurchase-soft: #500724;
+            --returned: #9a3412;
+            --returned-soft: #431407;
+            --status-select-width: 174px;
+            --status-column-width: 248px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: #0b1220;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .subtitle {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .tools {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        input,
+        select,
+        button,
+        .button-link {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            color: var(--text);
+            padding: 8px 10px;
+            font: inherit;
+        }
+
+        select {
+            color-scheme: dark;
+            font-weight: 900;
+        }
+
+        select option {
+            background: #24195a;
+            color: #f8fafc;
+            font-weight: 800;
+        }
+
+        select option:checked {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        input {
+            min-width: min(360px, 100%);
+            flex: 1;
+        }
+
+        button,
+        .button-link {
+            cursor: pointer;
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button.primary,
+        .button-link.primary {
+            background: #2563eb;
+            border-color: #60a5fa;
+        }
+
+        button.success {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .review-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        @keyframes approvalPulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.72); }
+            70% { box-shadow: 0 0 0 9px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+
+        .publication-review-link {
+            min-height: 44px;
+            padding: 7px 12px;
+            border-color: #60a5fa;
+            background: #2563eb;
+            color: #ffffff;
+            animation: approvalPulse 1.35s ease-out infinite;
+            white-space: nowrap;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            line-height: 1.1;
+        }
+
+        .publication-review-link strong {
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .publication-review-link span {
+            color: #dbeafe;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            min-height: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 1520px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--line);
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: middle;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #0b1220;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 34px; text-align: center; }
+        th:nth-child(2), td:nth-child(2) { width: 180px; color: var(--muted); }
+        th:nth-child(3), td:nth-child(3) { width: 128px; }
+        th:nth-child(4), td:nth-child(4) { width: 260px; }
+        th:nth-child(5), td:nth-child(5) { width: 330px; }
+        th:nth-child(6), td:nth-child(6) { width: 138px; }
+        th:nth-child(7), td:nth-child(7) { width: 138px; }
+        th:nth-child(8), td:nth-child(8) { width: 52px; text-align: center; }
+        th:nth-child(9), td:nth-child(9) { width: 70px; text-align: right; }
+        th:nth-child(10), td:nth-child(10) { width: var(--status-column-width); }
+
+        th:nth-child(2),
+        td:nth-child(2),
+        th:nth-child(3),
+        td:nth-child(3) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        .nowrap { white-space: nowrap; }
+        .addr {
+            color: #cbd5e1;
+            white-space: normal;
+        }
+
+        .addr-text {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        .lead-name {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .lead-name strong {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 800;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lead-date {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            color: #facc15;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            border-radius: 999px;
+            padding: 0 9px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: lowercase;
+            border: 1px solid transparent;
+        }
+
+        .st-novo { background: #374151; color: #f3f4f6; }
+        .st-comprar_depois { background: var(--orange-soft); color: #fde68a; border-color: #92400e; }
+        .st-entregue { background: var(--green-soft); color: #bbf7d0; border-color: #166534; }
+        .st-atendendo { background: var(--attending-soft); color: #67e8f9; border-color: #0e7490; }
+        .st-pedido_enviado { background: var(--sent-soft); color: #c7d2fe; border-color: #3730a3; }
+        .st-confirmado { background: var(--confirmed-soft); color: #ddd6fe; border-color: #6d28d9; }
+        .st-recompra { background: var(--repurchase-soft); color: #fbcfe8; border-color: #be185d; }
+        .st-devolvido { background: var(--returned-soft); color: #fed7aa; border-color: #9a3412; }
+        .st-cancelado { background: var(--red-soft); color: #fecaca; border-color: #991b1b; }
+
+        .meta-purchase-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            min-height: 20px;
+            border-radius: 6px;
+            padding: 0 7px;
+            border: 1px solid transparent;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        .meta-purchase-sent { background: rgba(22, 101, 52, .24); color: #bbf7d0; border-color: #166534; }
+        .meta-purchase-pending { background: rgba(146, 64, 14, .24); color: #fde68a; border-color: #92400e; }
+        .meta-purchase-error { background: rgba(153, 27, 27, .28); color: #fecaca; border-color: #991b1b; }
+        .meta-purchase-offline { background: rgba(88, 28, 135, .28); color: #e9d5ff; border-color: #7e22ce; }
+
+        select.status-select {
+            width: var(--status-select-width);
+            flex: 0 0 var(--status-select-width);
+            min-width: 0;
+            height: 36px;
+            font-weight: 900;
+            text-transform: lowercase;
+            font-size: 12px;
+        }
+
+        select.status-select.st-novo { background: #374151; }
+        select.status-select.st-comprar_depois { background: var(--orange-soft); color: #fde68a; }
+        select.status-select.st-entregue { background: var(--green-soft); color: #bbf7d0; }
+        select.status-select.st-atendendo { background: var(--attending-soft); color: #67e8f9; }
+        select.status-select.st-pedido_enviado { background: var(--sent-soft); color: #c7d2fe; }
+        select.status-select.st-confirmado { background: var(--confirmed-soft); color: #ddd6fe; }
+        select.status-select.st-recompra { background: var(--repurchase-soft); color: #fbcfe8; }
+        select.status-select.st-devolvido { background: var(--returned-soft); color: #fed7aa; }
+        select.status-select.st-cancelado { background: var(--red-soft); color: #fecaca; }
+
+        .status-static {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--status-select-width);
+            min-height: 36px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: lowercase;
+        }
+
+        #statusFilter {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .filter-select-control {
+            position: relative;
+            width: var(--status-filter-width, 226px);
+            min-width: 186px;
+            max-width: 260px;
+            flex: 0 0 var(--status-filter-width, 226px);
+        }
+
+        .filter-select-button {
+            width: 100%;
+            height: 36px;
+            justify-content: space-between;
+            gap: 10px;
+            border-color: #6d28d9;
+            background: var(--confirmed-soft);
+            color: #ddd6fe;
+            text-align: left;
+            text-transform: none;
+        }
+
+        .filter-select-arrow {
+            color: #cbd5e1;
+            font-size: 11px;
+        }
+
+        .filter-select-control.st-all .filter-select-button {
+            background: #1e1b4b;
+            color: #c7d2fe;
+            border-color: #3730a3;
+        }
+
+        .filter-select-control.st-novo .filter-select-button { background: #374151; color: #f3f4f6; }
+        .filter-select-control.st-comprar_depois .filter-select-button { background: var(--orange-soft); color: #fde68a; }
+        .filter-select-control.st-entregue .filter-select-button { background: var(--green-soft); color: #bbf7d0; }
+        .filter-select-control.st-atendendo .filter-select-button { background: var(--attending-soft); color: #67e8f9; }
+        .filter-select-control.st-pedido_enviado .filter-select-button { background: var(--sent-soft); color: #c7d2fe; }
+        .filter-select-control.st-confirmado .filter-select-button { background: var(--confirmed-soft); color: #ddd6fe; }
+        .filter-select-control.st-recompra .filter-select-button { background: var(--repurchase-soft); color: #fbcfe8; }
+        .filter-select-control.st-devolvido .filter-select-button { background: var(--returned-soft); color: #fed7aa; }
+        .filter-select-control.st-cancelado .filter-select-button { background: var(--red-soft); color: #fecaca; }
+
+        .filter-select-options {
+            position: absolute;
+            top: calc(100% + 3px);
+            left: 0;
+            z-index: 25;
+            display: none;
+            width: 100%;
+            border: 1px solid #64748b;
+            background: #4a3705;
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35);
+        }
+
+        .filter-select-control.open .filter-select-options {
+            display: grid;
+        }
+
+        .filter-select-option {
+            width: 100%;
+            min-height: 30px;
+            justify-content: flex-start;
+            border: 0;
+            border-radius: 0;
+            background: #4a3705;
+            color: #fff7d6;
+            padding: 5px 14px;
+            text-align: left;
+            text-transform: none;
+        }
+
+        .filter-select-option:hover,
+        .filter-select-option.is-selected {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .empty {
+            padding: 26px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .saved {
+            display: block;
+            margin-top: 4px;
+            color: #86efac;
+            font-size: 11px;
+        }
+
+        .followup-note {
+            display: block;
+            margin-top: 4px;
+            color: #fde68a;
+            font-size: 11px;
+            line-height: 1.35;
+            white-space: normal;
+        }
+
+        .error { color: #fecaca; }
+
+        .action-stack {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .action-stack a,
+        .action-stack button {
+            min-height: 30px;
+            padding: 6px 8px;
+            border-radius: 7px;
+            font-size: 12px;
+        }
+
+        @keyframes missingDataPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65); transform: translateY(0); }
+            70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); transform: translateY(-1px); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: translateY(0); }
+        }
+
+        .action-stack .missing-data-action {
+            background: #f59e0b;
+            border: 1px solid #fde68a;
+            color: #111827;
+            font-weight: 900;
+            text-decoration: none;
+            animation: missingDataPulse 1.35s ease-out infinite;
+        }
+
+        .action-stack .missing-data-action:hover {
+            background: #fbbf24;
+            color: #0f172a;
+        }
+
+        .lead-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-end;
+            min-width: 216px;
+        }
+
+        .lead-action-menu {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .lead-action-menu summary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 900;
+            list-style: none;
+        }
+
+        .lead-action-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .lead-action-menu[open] summary {
+            border-color: #60a5fa;
+            background: #172554;
+        }
+
+        .lead-action-list {
+            position: absolute;
+            z-index: 10;
+            right: 0;
+            top: calc(100% + 6px);
+            display: grid;
+            gap: 6px;
+            width: 210px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0b1220;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .lead-action-list a,
+        .lead-action-list button,
+        .lead-action-list .dropi-check,
+        .lead-action-list .action-info {
+            width: 100%;
+            min-height: 32px;
+            justify-content: flex-start;
+            border-radius: 7px;
+            padding: 7px 9px;
+            font-size: 12px;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .lead-action-list a {
+            border: 1px solid var(--line);
+            color: var(--text);
+        }
+
+        .lead-action-list button {
+            border: 1px solid var(--line);
+        }
+
+        .lead-action-list .primary-action {
+            background: #f59e0b;
+            border-color: #fde68a;
+            color: #111827;
+        }
+
+        .lead-action-list .success-action {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        .lead-action-list .abandon-action {
+            background: var(--orange-soft);
+            border-color: #92400e;
+            color: #fde68a;
+        }
+
+        .lead-action-list .danger-action {
+            border-color: rgba(220, 38, 38, 0.55);
+            color: #fecaca;
+            background: rgba(127, 29, 29, 0.3);
+        }
+
+        .lead-action-list .action-info {
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+            background: rgba(22, 163, 74, 0.14);
+            font-weight: 900;
+        }
+
+        .action-message {
+            display: block;
+            width: 100%;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .action-message.success {
+            color: #22c55e;
+            font-weight: 900;
+        }
+
+        .history-note {
+            display: block;
+            margin-top: 4px;
+            color: #fbbf24;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .mode-note {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .bulk-dropi {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 260px;
+        }
+
+        .bulk-dropi button {
+            white-space: nowrap;
+        }
+
+        .dropi-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 30px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .dropi-check input {
+            min-width: auto;
+            width: 16px;
+            height: 16px;
+            flex: 0 0 auto;
+        }
+
+        .row-dropi-check {
+            width: 16px;
+            height: 16px;
+            accent-color: #22c55e;
+            cursor: pointer;
+        }
+
+        .row-dropi-check:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
+
+        .status-extra {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-top: 7px;
+        }
+
+        .status-extra .primary-action {
+            min-height: 30px;
+        }
+
+        .status-extra .success-action {
+            min-height: 30px;
+            border-color: #22c55e;
+            background: #15803d;
+            color: #ecfdf5;
+        }
+
+        .status-extra .success-action:disabled,
+        .lead-action-list .success-action:disabled {
+            cursor: not-allowed;
+            opacity: 0.48;
+            filter: grayscale(0.4);
+        }
+
+        .status-missing {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.25;
+        }
+
+        .repurchase-check-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2, 6, 23, 0.68);
+        }
+
+        .repurchase-check-card {
+            width: min(620px, 96vw);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            background: #0f172a;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+        }
+
+        .repurchase-check-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .repurchase-check-head strong {
+            display: block;
+            font-size: 17px;
+        }
+
+        .repurchase-check-head span {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .repurchase-check-close {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+        }
+
+        .repurchase-check-body {
+            display: grid;
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .repurchase-check-row {
+            display: grid;
+            grid-template-columns: 20px 120px 1fr;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.74);
+        }
+
+        .repurchase-check-row input {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            accent-color: #22c55e;
+        }
+
+        .repurchase-check-row b {
+            color: #bfdbfe;
+            font-size: 12px;
+        }
+
+        .repurchase-check-row span {
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .repurchase-check-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 14px 16px 16px;
+            border-top: 1px solid #1e293b;
+        }
+
+        .repurchase-check-actions .success {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        .dropi-product-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: grid;
+            place-items: center;
+            padding: 22px;
+            background: rgba(2, 6, 23, 0.82);
+        }
+
+        .dropi-product-card {
+            width: min(760px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            background: #0f172a;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+        }
+
+        .dropi-product-head,
+        .dropi-product-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 16px;
+        }
+
+        .dropi-product-head {
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .dropi-product-head div {
+            display: grid;
+            gap: 4px;
+        }
+
+        .dropi-product-head span,
+        .dropi-product-summary,
+        .dropi-product-availability {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .dropi-product-body {
+            display: grid;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .dropi-product-grid,
+        .dropi-price-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .dropi-price-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dropi-product-option,
+        .dropi-price-option {
+            display: grid;
+            gap: 4px;
+            width: 100%;
+            min-height: 62px;
+            text-align: left;
+            background: #111c32;
+            border-color: #334155;
+        }
+
+        .dropi-product-option.selected,
+        .dropi-price-option.selected {
+            color: #dcfce7;
+            border-color: #22c55e;
+            background: rgba(21, 128, 61, 0.28);
+        }
+
+        .dropi-product-option:disabled {
+            opacity: 0.58;
+        }
+
+        .dropi-price-section {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid #26344b;
+            border-radius: 12px;
+        }
+
+        .dropi-price-options {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .dropi-price-option strong {
+            color: #86efac;
+        }
+
+        .dropi-product-summary {
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .dropi-product-summary.ready {
+            color: #dcfce7;
+            border: 1px solid rgba(34, 197, 94, 0.48);
+        }
+
+        .dropi-product-actions {
+            border-top: 1px solid #1e293b;
+            justify-content: flex-end;
+        }
+
+        .product-badge {
+            display: inline-flex;
+            width: fit-content;
+            padding: 2px 7px;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            color: #bfdbfe;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        @media (max-width: 760px) {
+            header,
+            .tools {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            input,
+            select,
+            button,
+            .filter-select-control {
+                width: 100%;
+            }
+
+            .dropi-product-grid,
+            .dropi-price-grid,
+            .dropi-price-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <header>
+            <div>
+                <h1>Leads Clientes</h1>
+                <div id="subtitle" class="subtitle">Lista operacional do painel integrado</div>
+            </div>
+            <div class="review-actions">
+                <a class="button-link publication-review-link" href="/release-approval.html" target="_blank" rel="noopener" title="Abrir decisao de publicacao">
+                    <strong>Aprovado para publicacao</strong>
+                    <span>ou continua em revisao - clique aqui</span>
+                </a>
+                <div id="updatedAt" class="meta">carregando</div>
+            </div>
+        </header>
+
+        <section class="tools">
+            <select id="countryFilter" aria-label="Pais">
+                <option value="EC">EC</option>
+                <option value="CO">CO</option>
+                <option value="ALL">Todos</option>
+            </select>
+            <input id="searchInput" autocomplete="off" placeholder="Buscar nome, telefone, cidade, status">
+            <select id="statusFilter" aria-label="Status">
+                <option value="">Todos status</option>
+            </select>
+            <div id="statusFilterControl" class="filter-select-control st-all">
+                <button id="statusFilterButton" class="filter-select-button" type="button" aria-haspopup="listbox" aria-expanded="false">
+                    <span id="statusFilterText">Todos status</span>
+                    <span class="filter-select-arrow">v</span>
+                </button>
+                <div id="statusFilterOptions" class="filter-select-options" role="listbox"></div>
+            </div>
+            <select id="dateFilter" aria-label="Periodo">
+                <option value="">Fila operacional</option>
+                <option value="today">Hoje</option>
+                <option value="7d">Recentes 7 dias</option>
+                <option value="all">Todos historico</option>
+            </select>
+            <a id="newLeadBtn" class="button-link primary" href="/admin/new?country=EC" target="_blank" rel="noopener">Novo pedido</a>
+            <button id="refreshBtn" class="primary" type="button">Atualizar</button>
+            <span id="modeText" class="mode-note">Fila operacional</span>
+            <div class="bulk-dropi">
+                <button id="bulkDropiSelectAllBtn" type="button" disabled>Marcar todos</button>
+                <button id="bulkDropiSendBtn" class="success" type="button" disabled>Enviar marcados para Dropi</button>
+                <span id="bulkDropiCount" class="meta">0 marcados</span>
+            </div>
+            <span id="countText" class="meta">0 clientes</span>
+        </section>
+
+        <section class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Telefone</th>
+                        <th>Nome</th>
+                        <th>Endereco</th>
+                        <th>Cidade</th>
+                        <th>Provincia</th>
+                        <th>Qtd</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="leadRows">
+                    <tr><td colspan="10"><div class="empty">Carregando leads...</div></td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        const STATUSES = ['novo', 'atendendo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'finalizado', 'cancelado', 'devolvido'];
+        const REQUIRED_STATUS_OPTIONS = ['finalizado'];
+        const params = new URLSearchParams(window.location.search);
+        const isLocal = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+        const localPreview = params.get('preview') === '1' || params.get('review') === '1';
+        if (isLocal && !localPreview) {
+            window.location.replace(`https://ec.maxlien.shop/leads-window.html${window.location.search || '?country=EC'}`);
+        }
+        const apiBase = isLocal ? 'https://ec.maxlien.shop' : '';
+        const adminApiBase = isLocal ? '' : apiBase;
+        const operationalApiBase = apiBase;
+        const state = {
+            leads: [],
+            country: (params.get('country') || 'EC').toUpperCase(),
+            q: '',
+            status: '',
+            dateFilter: params.get('period') || '',
+            dropiBusy: new Set(),
+            selectedDropi: new Set(),
+            repurchaseChecked: new Set(),
+            dropiCatalog: null,
+            dropiMessages: new Map(),
+            loadError: ''
+        };
+        const OPERATIONAL_DAYS = 7;
+        const EXTENDED_OPERATIONAL_DAYS = 30;
+        const HISTORICAL_STATUSES = new Set(['finalizado', 'cancelado', 'devolvido', 'pago']);
+        const EXTENDED_STATUSES = new Set(['pedido_enviado', 'enviado', 'entregue']);
+        const ALWAYS_VISIBLE_STATUSES = new Set(['confirmado', 'recompra']);
+        const DROPI_READY_STATUSES = new Set(['confirmado']);
+        const DROPI_EC_PRICE_CATALOGS = Object.freeze({
+            normal: Object.freeze({ 1: 39.99, 2: 70.00, 3: 95.99, 6: 167.99 }),
+            promotional: Object.freeze({ 1: 35.99, 2: 70.00, 3: 80.99, 6: 147.99 })
+        });
+        const DROPI_EC_PRODUCT_NAMES = Object.freeze({
+            vit_power_ec: 'Vit Power',
+            nitrix_ec: 'Nitrix',
+            tex_ultra_ec: 'Tex Ultra'
+        });
+
+        const el = (id) => document.getElementById(id);
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+        const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normalizeLegacyStatus = (value) => {
+            const normalized = String(value || '').toLowerCase().replace(/-/g, '_').trim();
+            if (normalized === 'recompra' || normalized === 'conferir_pedidos') return 'confirmado';
+            return normalized;
+        };
+        const statusClass = (status) => `st-${normalizeLegacyStatus(status || 'novo')}`;
+        const statusValue = (lead) => normalizeLegacyStatus(lead?._opsStatus || lead?.status || '');
+        const leadCountryCode = (lead) => String(lead?.country || state.country || 'EC').toUpperCase();
+        const repurchaseCheckStorageKey = () => `vitalismen_repurchase_checked_${state.country || 'EC'}`;
+        const loadRepurchaseChecked = () => {
+            try {
+                const values = JSON.parse(window.localStorage.getItem(repurchaseCheckStorageKey()) || '[]');
+                state.repurchaseChecked = new Set(Array.isArray(values) ? values.map(String) : []);
+            } catch (_) {
+                state.repurchaseChecked = new Set();
+            }
+        };
+        const saveRepurchaseChecked = () => {
+            try {
+                window.localStorage.setItem(repurchaseCheckStorageKey(), JSON.stringify([...state.repurchaseChecked]));
+            } catch (_) {}
+        };
+        const markRepurchaseChecked = (leadId) => {
+            state.repurchaseChecked.add(String(leadId));
+            saveRepurchaseChecked();
+        };
+        const isRepurchaseChecked = (lead) => state.repurchaseChecked.has(String(lead?.id || ''));
+        const normalizePanelStatus = (status) => {
+            const value = normalizeLegacyStatus(status);
+            const aliases = {
+                '': 'novo',
+                draft: 'novo',
+                pending: 'novo',
+                manual: 'atendendo',
+                in_service: 'atendendo',
+                buy_later: 'comprar_depois',
+                confirmed: 'confirmado',
+                repurchase: 'confirmado',
+                processing: 'pedido_enviado',
+                shipped: 'pedido_enviado',
+                enviado: 'pedido_enviado',
+                delivered: 'entregue',
+                cancelled: 'cancelado',
+                canceled: 'cancelado',
+                returned: 'devolvido'
+            };
+            return aliases[value] || (STATUSES.includes(value) ? value : 'novo');
+        };
+        const orderStatusForApi = (status) => ({
+            confirmado: 'confirmed',
+            pedido_enviado: 'processing',
+            entregue: 'delivered',
+            cancelado: 'cancelled',
+            devolvido: 'returned'
+        })[normalizePanelStatus(status)] || '';
+        const hasSearch = () => normalize(state.q).length > 0;
+        const leadDate = (lead) => {
+            const raw = String(lead?.created_at || lead?.createdAt || lead?.created_at_display || '').trim();
+            if (!raw) return null;
+            const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (br) return new Date(`${br[3]}-${br[2]}-${br[1]}T00:00:00Z`);
+            const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z');
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        };
+        const startOfSaoPauloDay = () => {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(new Date()).reduce((acc, part) => {
+                if (part.type !== 'literal') acc[part.type] = part.value;
+                return acc;
+            }, {});
+            return new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00-03:00`);
+        };
+        const leadMatchesDateFilter = (lead) => {
+            if (!state.dateFilter || state.dateFilter === 'all') return true;
+            const date = leadActivityDate(lead);
+            if (!date) return false;
+            if (state.dateFilter === 'today') return date >= startOfSaoPauloDay();
+            if (state.dateFilter === '7d') return (Date.now() - date.getTime()) <= 7 * 86400000;
+            return true;
+        };
+        const leadAgeDays = (lead) => {
+            const date = leadDate(lead);
+            if (!date) return Infinity;
+            return (Date.now() - date.getTime()) / 86400000;
+        };
+        const isHistoricalLead = (lead) => {
+            const status = statusValue(lead);
+            const date = leadDate(lead);
+            if (isRepurchaseLead(lead)) return false;
+            if (ALWAYS_VISIBLE_STATUSES.has(status)) return false;
+            if (status === 'confirmado' && date && date < new Date('2026-06-01T00:00:00Z')) return true;
+            if (HISTORICAL_STATUSES.has(status)) return true;
+            if (leadAgeDays(lead) > EXTENDED_OPERATIONAL_DAYS && EXTENDED_STATUSES.has(status)) return true;
+            return leadAgeDays(lead) > OPERATIONAL_DAYS && !EXTENDED_STATUSES.has(status);
+        };
+        const money = (value, country) => {
+            const number = Number(value || 0);
+            if (!number) return '';
+            return country === 'CO'
+                ? number.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+                : number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        const formatFollowupDate = (value) => {
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) return '';
+            return parsed.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
+        const buyLaterFollowupHtml = (lead) => {
+            if (String(lead.status || '').toLowerCase() !== 'comprar_depois') return '';
+            const targetRaw = lead.buy_later_followup_at || lead.followup_at || lead.followUpAt || '';
+            const target = new Date(targetRaw);
+            if (Number.isNaN(target.getTime())) {
+                return '<span class="followup-note">sem data de compra/envio</span>';
+            }
+            const notifyAt = new Date(target.getTime() - (3 * 24 * 60 * 60 * 1000));
+            return `<span class="followup-note">Envio provavel: ${escapeHtml(formatFollowupDate(target))}<br>Aviso: ${escapeHtml(formatFollowupDate(notifyAt))}</span>`;
+        };
+
+        const setStatusClass = (select) => {
+            select.className = `status-select ${statusClass(select.value)}`;
+        };
+
+        const filterStatusClass = (value) => {
+            if (!value) return 'st-all';
+            return statusClass(value);
+        };
+
+        const statusFilterLabel = (value) => {
+            if (!value) return 'Todos status';
+            return String(value).replace(/_/g, ' ');
+        };
+
+        const statusFilterItems = () => [
+            { value: '', label: 'Todos status' },
+            ...STATUSES.map((status) => ({ value: status, label: statusFilterLabel(status) }))
+        ];
+
+        const syncStatusFilterControl = () => {
+            const control = el('statusFilterControl');
+            const button = el('statusFilterButton');
+            const text = el('statusFilterText');
+            if (!control || !button || !text) return;
+            const open = control.classList.contains('open');
+            control.className = `filter-select-control ${filterStatusClass(state.status)}${open ? ' open' : ''}`;
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            text.textContent = statusFilterLabel(state.status);
+        };
+
+        const renderStatusFilterOptions = () => {
+            const options = el('statusFilterOptions');
+            if (!options) return;
+            options.innerHTML = statusFilterItems().map((item) => (
+                `<button class="filter-select-option ${item.value === state.status ? 'is-selected' : ''}" type="button" role="option" aria-selected="${item.value === state.status ? 'true' : 'false'}" data-status-filter-option="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`
+            )).join('');
+            syncStatusFilterControl();
+        };
+
+        const setStatusFilterValue = (value) => {
+            state.status = value;
+            el('statusFilter').value = state.status;
+            el('statusFilter').className = filterStatusClass(state.status);
+            renderStatusFilterOptions();
+            render();
+        };
+
+        const buildStatusOptions = (selected = '') => {
+            const normalizedSelected = String(selected || '').toLowerCase();
+            const statuses = [...STATUSES];
+            if (normalizedSelected && !statuses.includes(normalizedSelected)) statuses.push(normalizedSelected);
+            return statuses.map((status) => (
+                `<option value="${status}" ${status === normalizedSelected ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`
+            )).join('');
+        };
+
+        const updateStatusSelectWidth = () => {
+            const canvas = updateStatusSelectWidth.canvas || (updateStatusSelectWidth.canvas = document.createElement('canvas'));
+            const ctx = canvas.getContext('2d');
+            ctx.font = '900 12px Arial, sans-serif';
+            const longest = STATUSES.reduce((max, status) => {
+                const label = status.replace(/_/g, ' ');
+                return Math.max(max, ctx.measureText(label).width);
+            }, 0);
+            const selectWidth = Math.ceil(Math.min(Math.max(longest + 58, 160), 186));
+            const filterWidth = Math.ceil(Math.min(Math.max(ctx.measureText('comprar depois').width + 62, 202), 260));
+            document.documentElement.style.setProperty('--status-select-width', `${selectWidth}px`);
+            document.documentElement.style.setProperty('--status-column-width', `${selectWidth + 74}px`);
+            document.documentElement.style.setProperty('--status-filter-width', `${filterWidth}px`);
+        };
+
+        const setupStatusFilter = () => {
+            updateStatusSelectWidth();
+            const filterOptions = STATUSES.map((status) => {
+                const label = status.replace(/_/g, ' ');
+                return `<option value="${status}" ${status === state.status ? 'selected' : ''}>${label}</option>`;
+            }).join('');
+            el('statusFilter').innerHTML = `<option value="">Todos status</option>` + filterOptions;
+            el('statusFilter').className = filterStatusClass(state.status);
+            renderStatusFilterOptions();
+        };
+
+        const tokenKey = 'vitalismen_admin_token';
+        const hasAuthToken = () => Boolean(window.localStorage.getItem(tokenKey) || '');
+        const api = async (path, options = {}) => {
+            const token = window.localStorage.getItem(tokenKey) || '';
+            const headers = {
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(options.headers || {})
+            };
+            const response = await fetch(`${operationalApiBase}${path}`, { cache: 'no-store', ...options, headers });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const error = new Error(data.message || data.error || data.reason || `Erro ${response.status}`);
+                error.status = response.status;
+                error.data = data;
+                throw error;
+            }
+            return data;
+        };
+
+        const parseDropiProductMarker = (value = '') => {
+            const match = String(value || '').match(
+                /\[DROPI_PRODUCT\]\s*key=([^;\r\n]+);\s*name=([^;\r\n]+);\s*priceCatalog=([^;\r\n]+);\s*quantity=(\d+);\s*total=([0-9.,]+)/i
+            );
+            if (!match) return null;
+            return {
+                productKey: match[1].trim(),
+                productName: match[2].trim(),
+                priceCatalog: match[3].trim().toLowerCase(),
+                quantity: Number(match[4]),
+                total: Number(match[5].replace(',', '.'))
+            };
+        };
+
+        const leadProductKey = (lead = {}) => {
+            const marker = parseDropiProductMarker(lead.notes || lead.note || lead.observacao || '');
+            const explicit = String(
+                lead.productKey
+                || lead.product_key
+                || lead?._ops?.productKey
+                || lead?._ops?.productSelection?.productKey
+                || marker?.productKey
+                || ''
+            ).trim();
+            if (DROPI_EC_PRODUCT_NAMES[explicit]) return explicit;
+            const signal = normalize([
+                lead.productName,
+                lead.product_name,
+                lead?._ops?.productName,
+                lead?._ops?.productSelection?.productName,
+                lead.package?.label,
+                lead.notes,
+                lead.note,
+                lead.observacao
+            ].filter(Boolean).join(' '));
+            if (/\btex[\s_-]*ultra\b|\btexultra\b/.test(signal)) return 'tex_ultra_ec';
+            if (/\bnitrix\b|\boxido nitrico\b|\bnitric oxide\b/.test(signal)) return 'nitrix_ec';
+            if (/\bvit[\s_-]*power/.test(signal)) return 'vit_power_ec';
+            return '';
+        };
+
+        const leadConfiguredOffer = (lead = {}) => {
+            const productKey = leadProductKey(lead);
+            if (!productKey) return null;
+            const marker = parseDropiProductMarker(lead.notes || lead.note || lead.observacao || '');
+            const quantity = Number(lead.quantity || lead.product_qty || lead.package?.quantity || marker?.quantity || 0);
+            const total = Number(lead.value || lead.product_value || lead.total || marker?.total || 0);
+            const preferredCatalog = String(
+                lead.priceCatalog
+                || lead.price_catalog
+                || lead?._ops?.priceCatalog
+                || lead?._ops?.productSelection?.priceCatalog
+                || marker?.priceCatalog
+                || ''
+            ).trim().toLowerCase();
+            const catalogs = preferredCatalog && DROPI_EC_PRICE_CATALOGS[preferredCatalog]
+                ? [preferredCatalog, ...Object.keys(DROPI_EC_PRICE_CATALOGS).filter((key) => key !== preferredCatalog)]
+                : Object.keys(DROPI_EC_PRICE_CATALOGS);
+            const priceCatalog = catalogs.find((key) => (
+                Number.isFinite(DROPI_EC_PRICE_CATALOGS[key]?.[quantity])
+                && Math.abs(DROPI_EC_PRICE_CATALOGS[key][quantity] - total) < 0.005
+            ));
+            if (!priceCatalog) return null;
+            return {
+                productKey,
+                productName: DROPI_EC_PRODUCT_NAMES[productKey],
+                priceCatalog,
+                quantity,
+                total: DROPI_EC_PRICE_CATALOGS[priceCatalog][quantity]
+            };
+        };
+
+        const leadHasExplicitDropiSelection = (lead) => Boolean(leadConfiguredOffer(lead));
+
+        const leadProductBadgeHtml = (lead) => {
+            if (leadCountryCode(lead) !== 'EC') return '';
+            const offer = leadConfiguredOffer(lead);
+            if (!offer) return '';
+            const catalogLabel = offer.priceCatalog === 'promotional' ? 'promocional' : 'normal';
+            return `<span class="product-badge">${escapeHtml(offer.productName)} · ${escapeHtml(offer.quantity)} un. · USD ${escapeHtml(offer.total.toFixed(2))} · ${catalogLabel}</span>`;
+        };
+
+        const loadDropiCatalog = async ({ force = false } = {}) => {
+            if (state.dropiCatalog && !force) return state.dropiCatalog;
+            if (!hasAuthToken() || !['EC', 'ALL'].includes(state.country)) return null;
+            const data = await api('/api/shipments/droppi/ec/products');
+            state.dropiCatalog = Array.isArray(data.products) ? data.products : [];
+            return state.dropiCatalog;
+        };
+
+        const phoneTail = (value, size = 9) => String(value || '').replace(/\D/g, '').slice(-size);
+
+        const operationalOrderToLead = (order = {}) => {
+            const customer = order.customer || {};
+            const quantity = Number(order.package?.quantity || order.quantity || 0);
+            const status = normalizePanelStatus(order.status);
+            const orderId = String(order.orderId || '').trim();
+            return {
+                id: orderId,
+                orderId,
+                order_id: orderId,
+                country: String(order.country || state.country || 'EC').toUpperCase(),
+                name: customer.name || order.name || '',
+                phone: customer.phone || order.phone || '',
+                address: customer.address || order.address || '',
+                city: customer.city || order.city || '',
+                province: customer.province || order.province || '',
+                quantity: quantity || '',
+                value: Number(order.total || order.value || 0) || '',
+                productKey: order.tracking?.productKey || order.productKey || '',
+                productName: order.tracking?.productName || order.productName || '',
+                priceCatalog: order.tracking?.priceCatalog || order.tracking?.productSelection?.priceCatalog || '',
+                status,
+                _opsStatus: status,
+                created_at: order.entryAt || order.createdAt || order.confirmedAt || '',
+                updated_at: order.updatedAt || order.confirmedAt || order.createdAt || '',
+                notes: order.notes || 'Pedido operacional confirmado',
+                _ops: {
+                    currentOrderId: orderId,
+                    stagedOrderId: orderId,
+                    productKey: order.tracking?.productKey || order.productKey || '',
+                    productName: order.tracking?.productName || order.productName || '',
+                    productSelection: order.tracking?.productSelection || null,
+                    shipment: order.shipment || null,
+                    metaPurchaseSentAt: order.tracking?.metaPurchaseSentAt || '',
+                    metaPurchaseEventId: order.tracking?.metaPurchaseEventId || '',
+                    metaPurchaseResponse: order.tracking?.metaPurchaseResponse || null
+                }
+            };
+        };
+
+        const mergedOperationalStatus = (existing = {}, operational = {}) => {
+            const currentStatus = normalizePanelStatus(existing._opsStatus || existing.status || '');
+            const operationalStatus = normalizePanelStatus(operational._opsStatus || operational.status || '');
+            const authoritativeLeadStatuses = new Set([
+                'atendendo',
+                'comprar_depois',
+                'pedido_enviado',
+                'entregue',
+                'finalizado',
+                'cancelado',
+                'devolvido'
+            ]);
+            if (operationalStatus === 'confirmado' && authoritativeLeadStatuses.has(currentStatus)) {
+                return currentStatus;
+            }
+            return operationalStatus || currentStatus;
+        };
+
+        const mergeOperationalOrdersIntoLeads = (orders = []) => {
+            if (!Array.isArray(orders) || !orders.length) return;
+            const merged = [...state.leads];
+            const byOrderId = new Map();
+            const byPhoneTail = new Map();
+
+            merged.forEach((lead, index) => {
+                const orderId = leadOrderId(lead);
+                if (orderId) byOrderId.set(String(orderId), index);
+                const tail = phoneTail(lead.phone || lead.phone_e164 || '');
+                if (tail && !byPhoneTail.has(tail)) byPhoneTail.set(tail, index);
+            });
+
+            orders.map(operationalOrderToLead).forEach((opsLead) => {
+                if (!opsLead.orderId) return;
+                const tail = phoneTail(opsLead.phone || '');
+                const existingIndex = byOrderId.has(opsLead.orderId)
+                    ? byOrderId.get(opsLead.orderId)
+                    : byPhoneTail.get(tail);
+
+                if (Number.isInteger(existingIndex) && existingIndex >= 0) {
+                    const existing = merged[existingIndex] || {};
+                    const keepAdminId = existing.id && !/^[A-Z]{2}-/.test(String(existing.id));
+                    const mergedStatus = mergedOperationalStatus(existing, opsLead);
+                    merged[existingIndex] = {
+                        ...existing,
+                        ...opsLead,
+                        id: keepAdminId ? existing.id : opsLead.id,
+                        adminLeadId: keepAdminId ? existing.id : existing.adminLeadId,
+                        status: mergedStatus,
+                        _opsStatus: mergedStatus,
+                        notes: existing.notes || opsLead.notes,
+                        _ops: {
+                            ...(existing._ops || {}),
+                            ...(opsLead._ops || {}),
+                            currentOrderId: opsLead.orderId,
+                            stagedOrderId: opsLead.orderId
+                        }
+                    };
+                    return;
+                }
+
+                merged.push(opsLead);
+                byOrderId.set(opsLead.orderId, merged.length - 1);
+                if (tail && !byPhoneTail.has(tail)) byPhoneTail.set(tail, merged.length - 1);
+            });
+
+            state.leads = merged;
+        };
+
+        const hydrateOperationalOrderLeads = async () => {
+            const country = String(state.country || 'EC').toUpperCase();
+            if (country !== 'EC') return;
+            try {
+                const data = await api(`/api/orders?country=${encodeURIComponent(country)}&status=dropi_pipeline&includeShipment=1&limit=300`);
+                mergeOperationalOrdersIntoLeads(Array.isArray(data.orders) ? data.orders : []);
+            } catch (error) {
+                console.warn('Nao foi possivel hidratar pedidos operacionais:', error);
+            }
+        };
+
+        const notifyIntegratedPanelStatus = (lead, status) => {
+            const country = String(lead?.country || state.country || 'EC').toUpperCase();
+            const message = {
+                type: 'vitalismen:lead-status-updated',
+                leadId: String(lead?.id || ''),
+                country,
+                status: normalizePanelStatus(status),
+                orderId: lead ? leadOrderId(lead) : '',
+                at: Date.now()
+            };
+            try {
+                window.opener?.postMessage(message, window.location.origin);
+            } catch (_) {}
+            try {
+                window.localStorage.setItem('vitalismen_panel_refresh', JSON.stringify(message));
+            } catch (_) {}
+        };
+
+        const syncIntegratedPanelOrderStatus = async (lead, status) => {
+            const apiStatus = orderStatusForApi(status);
+            if (!lead || !apiStatus) return { skipped: true, reason: 'status_not_order_status' };
+            const orderId = leadOrderId(lead);
+            if (/^EC-ADMIN-\d+$/i.test(orderId)) {
+                return { skipped: true, reason: 'admin_lead_not_mongo_order', orderId };
+            }
+            try {
+                return await api(`/api/orders/${encodeURIComponent(orderId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: apiStatus })
+                });
+            } catch (error) {
+                return { skipped: true, error: error.message || 'integrated_panel_sync_failed' };
+            }
+        };
+
+        const fetchLeads = async () => {
+        const country = state.country || 'EC';
+       try {
+          const leadsUrl = '/admin/api/leads?country=' + encodeURIComponent(country) + '&limit=3000';
+          const response = await fetch(leadsUrl, { cache: 'no-store', credentials: 'include' });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || (!data.ok && !data.success && !Array.isArray(data.leads))) throw new Error(data.error || 'Erro ' + response.status);
+          state.leads = Array.isArray(data.leads) ? data.leads : [];
+          state.loading = false;
+          state.loadError = '';
+          if (Array.isArray(data.statuses) && data.statuses.length) {
+            STATUSES.splice(0, STATUSES.length, ...data.statuses);
+          }
+          await hydrateLeadOperationalFlags();
+          await hydrateOperationalOrderLeads();
+          await loadDropiCatalog().catch((error) => console.warn('Catalogo Dropi indisponivel:', error));
+         render();
+        } catch (error) {
+          console.error(error);
+          state.leads = [];
+          await hydrateOperationalOrderLeads();
+          await loadDropiCatalog().catch(() => null);
+          state.loading = false;
+          state.loadError = state.leads.length ? '' : (error.message || 'Falha ao carregar leads');
+          render();
+        }
+      };
+
+      const hydrateLeadOperationalFlags = async () => {
+            if (!hasAuthToken() || !state.leads.length) return;
+            if (String(state.country || 'EC').toUpperCase() !== 'EC') return;
+            const ids = state.leads.map((lead) => lead.id).filter(Boolean).join(',');
+            if (!ids) return;
+            try {
+                const data = await api(`/api/shipments/droppi/ec/admin-leads/flags?ids=${encodeURIComponent(ids)}`);
+                const flags = data.flags || {};
+                state.leads = state.leads.map((lead) => {
+                    const flag = flags[String(lead.id)];
+                    if (!flag) return lead;
+                    const next = { ...lead, _ops: flag };
+                    if (flag.suggestedStatus) next._opsStatus = flag.repurchase ? 'confirmado' : flag.suggestedStatus;
+                    if (flag.notes) next.notes = flag.notes;
+                    return next;
+                });
+            } catch (error) {
+                console.warn('Nao foi possivel hidratar flags operacionais:', error);
+            }
+        };
+
+        const visibleLeads = () => {
+            const q = normalize(state.q);
+            return state.leads.filter((lead) => {
+                const status = statusValue(lead);
+                if (!leadMatchesDateFilter(lead)) return false;
+                if (state.status) {
+                    if (state.status === 'confirmado') {
+                        if (status !== state.status && lead?._opsStatus !== 'confirmado') return false;
+                    } else if (status !== state.status) {
+                        return false;
+                    }
+                }
+                if (!q) return !isHistoricalLead(lead);
+                const haystack = normalize([
+                    lead.id, lead.name, lead.phone, lead.address, lead.city,
+                    lead.province, lead.status, lead.country
+                ].join(' '));
+                return haystack.includes(q);
+            });
+        };
+
+        const leadOrderId = (lead) => {
+            const directOrderId = String(lead?._ops?.currentOrderId || lead?._ops?.stagedOrderId || lead?.order_id || lead?.orderId || '').trim();
+            if (directOrderId) return directOrderId;
+            const id = String(lead?.id || '').trim();
+            if (/^[A-Z]{2}-/.test(id)) return id;
+            return `${leadCountryCode(lead)}-ADMIN-${id}`;
+        };
+        const purchaseCountLabel = (lead) => {
+            const count = Number(lead?._ops?.purchaseCount || 0);
+            if (!Number.isFinite(count) || count <= 0) return '';
+            return `${count} compra${count === 1 ? '' : 's'}`;
+        };
+
+        const metaPurchaseBadgeHtml = (lead) => {
+            const status = statusValue(lead);
+            if (!['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) return '';
+            const ops = lead?._ops || {};
+            const response = ops.metaPurchaseResponse || {};
+            const responseData = response.data || {};
+            const eventsReceived = Number(response.events_received ?? responseData.events_received ?? 0) || 0;
+            const error = response.error || responseData.error?.message || '';
+            if (ops.metaPurchaseSentAt || eventsReceived > 0) {
+                const title = ops.metaPurchaseEventId
+                    ? `Meta Purchase enviado: ${ops.metaPurchaseEventId}`
+                    : 'Meta Purchase enviado';
+                return `<span class="meta-purchase-badge meta-purchase-sent" title="${escapeHtml(title)}">Meta Purchase enviado</span>`;
+            }
+            if (error) {
+                return `<span class="meta-purchase-badge meta-purchase-error" title="${escapeHtml(error)}">Meta erro</span>`;
+            }
+            if (String(lead.orderId || lead.id || '').startsWith('EC-')) {
+                return '<span class="meta-purchase-badge meta-purchase-pending" title="Pedido confirmado sem tracking.metaPurchaseSentAt">Meta pendente</span>';
+            }
+            return '<span class="meta-purchase-badge meta-purchase-offline" title="Lead historico sem pedido operacional vinculado">Meta offline</span>';
+        };
+
+        const formatLeadDate = (lead) => {
+            const raw = String(lead?.created_at_display || lead?.created_at || lead?.createdAt || '').trim();
+            if (!raw) return '';
+            if (/^\d{2}\/\d{2}\/\d{4}(?:\s+\d{1,2}:\d{2})?/.test(raw)) return raw;
+            const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+            if (Number.isNaN(parsed.getTime())) return raw;
+            return parsed.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace(',', '');
+        };
+
+        const leadCreatedDate = (lead) => {
+            const raw = String(lead?.created_at || lead?.createdAt || lead?.created_at_display || '').trim();
+            const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (br) return new Date(`${br[3]}-${br[2]}-${br[1]}T00:00:00Z`);
+            const parsed = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        };
+
+        const isConfirmedBeforeJune2026 = (lead) => {
+            const date = leadCreatedDate(lead);
+            return statusValue(lead) === 'confirmado'
+                && Boolean(date)
+                && date < new Date('2026-06-01T00:00:00Z');
+        };
+
+        const isRepurchaseLead = (lead) => {
+            const notes = normalize(lead?.notes || lead?.note || lead?.observacao || '');
+            return lead?._ops?.repurchase === true
+                || /\brecompra\b/.test(notes)
+                || /cliente marcado como recompra/.test(notes)
+                || /pedido anterior fechado/.test(notes);
+        };
+
+        const isManualReviewLead = (lead) => {
+            const notes = normalize(lead?.notes || lead?.note || lead?.observacao || '');
+            return lead?._ops?.manualReview === true
+                || (!/rota dropi corrigida/.test(notes) && /dropi recusou/.test(notes))
+                || /metodo.*envio|con recaudo|revisar manual|manual_send_required|nao enviar para dropi sem autorizacao|dropi exige autorizacao manual/.test(notes);
+        };
+
+        const isResendCandidateLead = (lead) => {
+            const status = statusValue(lead);
+            const notes = normalize(lead?.notes || lead?.note || lead?.observacao || '');
+            return status === 'confirmado'
+                && /pedido enviado para dropi|dropi_order_submitted|dropi recusou|reenvio/.test(notes);
+        };
+
+        const leadReadyForDropi = (lead) => {
+            const status = statusValue(lead);
+            const country = leadCountryCode(lead);
+            const hasCurrentOperationalOrder = Boolean(lead?._ops?.currentOrderId || lead?._ops?.stagedOrderId);
+            const usesEcuadorOperationalRules = country === 'EC';
+            return DROPI_READY_STATUSES.has(status)
+                && (!usesEcuadorOperationalRules || !isConfirmedBeforeJune2026(lead) || hasCurrentOperationalOrder)
+                && (!usesEcuadorOperationalRules || !isRepurchaseLead(lead) || hasCurrentOperationalOrder)
+                && (!usesEcuadorOperationalRules || leadHasExplicitDropiSelection(lead))
+                && ['EC', 'CO'].includes(country)
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim()
+                && Number(lead.quantity || 0) > 0
+                && Number(lead.value || 0) > 0;
+        };
+
+        const leadSelectableForDropi = (lead) => {
+            const status = statusValue(lead);
+            const country = leadCountryCode(lead);
+            return DROPI_READY_STATUSES.has(status)
+                && ['EC', 'CO'].includes(country)
+                && leadReadyForCustomerConfirmation(lead)
+                && (country !== 'EC' || leadHasExplicitDropiSelection(lead));
+        };
+
+        const leadReadyForCustomerConfirmation = (lead) => {
+            return lead
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim()
+                && Number(lead.quantity || 0) > 0
+                && Number(lead.value || 0) > 0;
+        };
+
+        const leadReadyForDropiProductSelection = (lead) => {
+            return lead
+                && String(lead.name || '').trim()
+                && String(lead.phone || '').replace(/\D/g, '').length >= 9
+                && String(lead.address || '').trim()
+                && String(lead.city || '').trim()
+                && String(lead.province || '').trim();
+        };
+
+        const missingDropiFields = (lead) => {
+            const missing = [];
+            if (!['EC', 'CO'].includes(leadCountryCode(lead))) missing.push('pais');
+            if (!String(lead.name || '').trim()) missing.push('nome');
+            if (String(lead.phone || '').replace(/\D/g, '').length < 9) missing.push('telefone');
+            if (!String(lead.address || '').trim()) missing.push('endereco');
+            if (!String(lead.city || '').trim()) missing.push('cidade');
+            if (!String(lead.province || '').trim()) missing.push('provincia');
+            if (!(Number(lead.quantity || 0) > 0)) missing.push('quantidade');
+            if (!(Number(lead.value || 0) > 0)) missing.push('valor');
+            return missing;
+        };
+
+        const missingHumanFields = (lead) => missingDropiFields(lead).filter((field) => field !== 'pais');
+
+        const leadActivityDate = (lead) => {
+            const raw = lead.lastInteractionAt
+                || lead.last_interaction_at
+                || lead.last_message_at
+                || lead.lastMessageAt
+                || lead.updated_at
+                || lead.updatedAt
+                || lead.created_at
+                || lead.createdAt
+                || lead.created_at_display
+                || '';
+            const value = String(raw || '').trim();
+            const br = value.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+            const date = br
+                ? new Date(`${br[3]}-${br[2]}-${br[1]}T${String(br[4] || '00').padStart(2, '0')}:${br[5] || '00'}:00-03:00`)
+                : new Date(value.includes('T') ? value : value.replace(' ', 'T') + 'Z');
+            return Number.isNaN(date.getTime()) ? null : date;
+        };
+
+        const isAbandonedLead = (lead) => {
+            const status = statusValue(lead);
+            if (['confirmado', 'pedido_enviado', 'entregue', 'cancelado', 'devolvido'].includes(status)) return false;
+            const date = leadActivityDate(lead);
+            if (!date) return false;
+            return (Date.now() - date.getTime()) >= (12 * 60 * 60 * 1000);
+        };
+
+        const leadActionMenuHtml = (lead) => {
+            const status = statusValue(lead);
+            if (status === 'entregue') return '';
+            const editHref = `${apiBase}/admin/edit/${encodeURIComponent(lead.id)}?country=${encodeURIComponent(lead.country || state.country)}`;
+            const message = state.dropiMessages.get(String(lead.id)) || {};
+            const menuItems = [];
+
+            if (isAbandonedLead(lead)) {
+                menuItems.push(`<button class="abandon-action" data-abandon-lead="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" type="button">Abandono 12h</button>`);
+            }
+
+            if (status === 'pedido_enviado') {
+                menuItems.push('<span class="action-info">Dropi enviado</span>');
+            }
+
+            const isEcuador = leadCountryCode(lead) === 'EC';
+            const hasDropiSelection = leadHasExplicitDropiSelection(lead);
+            const specialEcuadorFlow = isEcuador && (
+                isRepurchaseLead(lead)
+                || isManualReviewLead(lead)
+                || isResendCandidateLead(lead)
+                || isConfirmedBeforeJune2026(lead)
+            );
+
+            if (status === 'confirmado' && isEcuador && leadReadyForDropiProductSelection(lead)) {
+                menuItems.push(`<button data-configure-dropi-product="${escapeHtml(lead.id)}" type="button">${hasDropiSelection ? 'Alterar produto/preco' : 'Escolher produto/preco'}</button>`);
+            }
+
+            if (status === 'confirmado' && leadReadyForDropi(lead) && !specialEcuadorFlow) {
+                menuItems.push(`<button class="success-action" data-submit-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
+            }
+
+            if (isEcuador && hasDropiSelection) {
+                if (isRepurchaseLead(lead) && leadReadyForCustomerConfirmation(lead)) {
+                    menuItems.push(`<button class="success-action" data-authorize-repurchase-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
+                }
+
+                if (isManualReviewLead(lead) && leadReadyForCustomerConfirmation(lead)) {
+                    menuItems.push(`<button class="success-action" data-authorize-resend-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
+                } else if (isResendCandidateLead(lead) && leadReadyForCustomerConfirmation(lead)) {
+                    menuItems.push(`<button class="success-action" data-authorize-resend-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
+                } else if (isConfirmedBeforeJune2026(lead) && leadReadyForCustomerConfirmation(lead)) {
+                    menuItems.push(`<button class="success-action" data-authorize-resend-dropi="${escapeHtml(lead.id)}" type="button">Enviar para Dropi</button>`);
+                }
+            }
+
+            menuItems.push(`<a href="${editHref}" target="_blank" rel="noopener">Editar</a>`);
+            menuItems.push(`<button class="danger-action" data-delete-lead="${escapeHtml(lead.id)}" type="button">Excluir</button>`);
+
+            return `
+                <details class="lead-action-menu">
+                    <summary aria-label="Acoes do lead ${escapeHtml(lead.id)}">...</summary>
+                    <div class="lead-action-list">${menuItems.join('')}</div>
+                </details>
+                <span class="action-message${message.error ? ' error' : ''}${message.success ? ' success' : ''}" data-dropi-msg="${escapeHtml(lead.id)}">${escapeHtml(message.text || '')}</span>
+            `;
+        };
+
+        const leadDropiCheckboxHtml = (lead) => {
+            const id = String(lead.id);
+            const orderId = leadOrderId(lead);
+            const busy = state.dropiBusy.has(id);
+            const checked = state.selectedDropi.has(id);
+            const ready = leadSelectableForDropi(lead) && hasAuthToken() && !busy;
+            const title = ready
+                ? 'Marcar este pedido para envio Dropi'
+                : 'Complete/confirme este pedido antes de marcar para Dropi';
+            return `<input class="row-dropi-check" data-dropi-select="${escapeHtml(id)}" data-order="${escapeHtml(orderId)}" type="checkbox" aria-label="Selecionar pedido ${escapeHtml(orderId)} para Dropi" ${checked ? 'checked' : ''} ${ready ? '' : 'disabled'} title="${title}">`;
+        };
+
+        const leadStatusExtraHtml = (lead) => {
+            const status = statusValue(lead);
+            if (status === 'entregue') return '';
+            const editHref = `${apiBase}/admin/edit/${encodeURIComponent(lead.id)}?country=${encodeURIComponent(lead.country || state.country)}`;
+            const confirmBusy = state.dropiBusy.has(`confirm-${lead.id}`);
+            const missing = missingDropiFields(lead);
+
+            if (status === 'pedido_enviado') {
+                return '<div class="status-extra"><span class="action-info">Dropi enviado</span></div>';
+            }
+            if (missing.length) {
+                return `
+                    <div class="status-extra">
+                        <a class="primary-action" href="${editHref}" target="_blank" rel="noopener">Completar dados</a>
+                        <span class="status-missing">Falta: ${escapeHtml(missing.join(', '))}</span>
+                    </div>
+                `;
+            }
+            if (!DROPI_READY_STATUSES.has(status) && leadReadyForCustomerConfirmation(lead)) {
+                return `
+                    <div class="status-extra">
+                        <button class="primary-action" data-confirm-lead="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" type="button" ${confirmBusy ? 'disabled' : ''}>${confirmBusy ? 'Confirmando' : 'Confirmar cliente'}</button>
+                    </div>
+                `;
+            }
+            return '';
+        };
+
+        const leadStatusControlHtml = (lead) => {
+            const status = statusValue(lead) || 'novo';
+            if (status === 'entregue') {
+                return `<span class="status-static ${statusClass(status)}">entregue</span>`;
+            }
+            return `
+                <select class="status-select ${statusClass(status)}" data-lead-status="${escapeHtml(lead.id)}" data-country="${escapeHtml(lead.country || state.country)}" data-prev="${escapeHtml(status)}">
+                    ${buildStatusOptions(status)}
+                </select>
+            `;
+        };
+
+        const updateBulkDropiBar = () => {
+            const hasAuth = hasAuthToken();
+            const visibleReadyIds = visibleLeads()
+                .filter((lead) => leadSelectableForDropi(lead) && !state.dropiBusy.has(String(lead.id)))
+                .map((lead) => String(lead.id));
+            const selected = [...state.selectedDropi].filter((id) => {
+                const lead = state.leads.find((item) => String(item.id) === String(id));
+                return lead && leadSelectableForDropi(lead) && !state.dropiBusy.has(String(id));
+            });
+            state.selectedDropi = new Set(selected);
+            const allVisibleSelected = visibleReadyIds.length > 0 && visibleReadyIds.every((id) => state.selectedDropi.has(id));
+            el('bulkDropiCount').textContent = `${selected.length} marcado${selected.length === 1 ? '' : 's'}`;
+            el('bulkDropiSelectAllBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
+            el('bulkDropiSelectAllBtn').textContent = allVisibleSelected ? 'Desmarcar todos' : 'Marcar todos';
+            el('bulkDropiSendBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
+            el('bulkDropiSendBtn').textContent = selected.length ? 'Enviar marcados para Dropi' : 'Enviar visiveis para Dropi';
+        };
+
+        const toggleVisibleDropiSelection = () => {
+            const visibleReadyIds = visibleLeads()
+                .filter((lead) => leadSelectableForDropi(lead) && !state.dropiBusy.has(String(lead.id)))
+                .map((lead) => String(lead.id));
+            if (!visibleReadyIds.length) return;
+            const allVisibleSelected = visibleReadyIds.every((id) => state.selectedDropi.has(id));
+            if (allVisibleSelected) {
+                visibleReadyIds.forEach((id) => state.selectedDropi.delete(id));
+            } else {
+                visibleReadyIds.forEach((id) => state.selectedDropi.add(id));
+            }
+            render();
+        };
+
+        const repurchaseCheckRows = (lead) => ([
+            ['nome', 'Nome', lead.name || ''],
+            ['telefone', 'Telefone', lead.phone || lead.phone_e164 || ''],
+            ['cidade', 'Ciudad', lead.city || ''],
+            ['provincia', 'Provincia', lead.province || ''],
+            ['endereco', 'Agencia/endereco', lead.address || ''],
+            ['quantidade', 'Qtd/valor', `${lead.quantity || ''} unidade(s) / ${money(lead.value, lead.country || state.country) || lead.value || ''}`]
+        ]);
+
+        const closeRepurchaseCheckModal = () => {
+            document.querySelector('.repurchase-check-modal')?.remove();
+        };
+
+        const openRepurchaseCheckModal = (lead) => {
+            if (!lead) return;
+            closeRepurchaseCheckModal();
+            const rows = repurchaseCheckRows(lead);
+            const modal = document.createElement('div');
+            modal.className = 'repurchase-check-modal';
+            modal.innerHTML = `
+                <div class="repurchase-check-card" role="dialog" aria-modal="true" aria-label="Conferir dados do pedido recorrente">
+                    <div class="repurchase-check-head">
+                        <div>
+                            <strong>Conferir dados do pedido recorrente</strong>
+                            <span>${escapeHtml(lead.name || '')} · ${escapeHtml(lead.phone || '')}</span>
+                        </div>
+                        <button class="repurchase-check-close" data-repurchase-check-close="1" type="button">x</button>
+                    </div>
+                    <div class="repurchase-check-body">
+                        ${rows.map(([key, label, value]) => `
+                            <label class="repurchase-check-row">
+                                <input data-repurchase-check-item="${escapeHtml(key)}" type="checkbox">
+                                <b>${escapeHtml(label)}</b>
+                                <span>${escapeHtml(value || 'sem dado')}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="repurchase-check-actions">
+                        <a class="primary-action" href="${apiBase}/admin/edit/${encodeURIComponent(lead.id)}?country=${encodeURIComponent(lead.country || state.country)}" target="_blank" rel="noopener">Editar dados</a>
+                        <button data-repurchase-check-close="1" type="button">Voltar</button>
+                        <button class="success" data-repurchase-check-confirm="${escapeHtml(lead.id)}" type="button">Marcar conferido</button>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal || event.target.closest('[data-repurchase-check-close]')) {
+                    closeRepurchaseCheckModal();
+                    return;
+                }
+                const confirmButton = event.target.closest('[data-repurchase-check-confirm]');
+                if (!confirmButton) return;
+                const unchecked = [...modal.querySelectorAll('[data-repurchase-check-item]')]
+                    .filter((input) => !input.checked);
+                if (unchecked.length) {
+                    window.alert('Marque todos os dados conferidos com o cliente antes de autorizar.');
+                    return;
+                }
+                markRepurchaseChecked(confirmButton.dataset.repurchaseCheckConfirm);
+                closeRepurchaseCheckModal();
+                render();
+            });
+            document.body.appendChild(modal);
+        };
+
+        const closeDropiProductModal = () => {
+            document.querySelector('.dropi-product-modal')?.remove();
+        };
+
+        const openDropiProductModal = async (lead) => {
+            if (!lead) return;
+            const id = String(lead.id || '');
+            const adminLeadId = String(lead.adminLeadId || id).match(/(?:EC-ADMIN-)?(\d+)$/i)?.[1] || '';
+            if (!adminLeadId) {
+                state.dropiMessages.set(id, { text: 'lead administrativo nao localizado', error: true });
+                render();
+                return;
+            }
+
+            let products;
+            try {
+                products = await loadDropiCatalog({ force: true });
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'catalogo Dropi indisponivel', error: true });
+                render();
+                return;
+            }
+            if (!Array.isArray(products) || !products.length) {
+                state.dropiMessages.set(id, { text: 'nenhum produto Dropi configurado', error: true });
+                render();
+                return;
+            }
+
+            closeDropiProductModal();
+            const current = leadConfiguredOffer(lead);
+            const selection = {
+                productKey: current?.productKey || '',
+                priceCatalog: current?.priceCatalog || '',
+                quantity: current?.quantity || 0
+            };
+            const modal = document.createElement('div');
+            modal.className = 'dropi-product-modal';
+            modal.innerHTML = `
+                <div class="dropi-product-card" role="dialog" aria-modal="true" aria-label="Selecionar produto e preco Dropi">
+                    <div class="dropi-product-head">
+                        <div>
+                            <strong>Produto e preco do pedido Dropi</strong>
+                            <span>${escapeHtml(lead.name || '')} · ${escapeHtml(lead.phone || '')} · pedido ${escapeHtml(leadOrderId(lead))}</span>
+                        </div>
+                        <button class="repurchase-check-close" data-dropi-product-close="1" type="button">x</button>
+                    </div>
+                    <div class="dropi-product-body">
+                        <section class="dropi-price-section">
+                            <strong>1. Escolha o produto</strong>
+                            <div class="dropi-product-grid">
+                                ${products.map((product) => `
+                                    <button class="dropi-product-option" data-dropi-product-key="${escapeHtml(product.key)}" type="button">
+                                        <strong>${escapeHtml(DROPI_EC_PRODUCT_NAMES[product.key] || product.name || product.key)}</strong>
+                                        <span class="dropi-product-availability">${product.dropiEnabled ? 'Produto Dropi validado' : 'Aguardando validacao do produto na Dropi'}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </section>
+                        <section class="dropi-price-section">
+                            <strong>2. Escolha a tabela e o kit</strong>
+                            <span class="dropi-product-availability">O valor total e os centavos serao enviados exatamente como selecionados.</span>
+                            ${[
+                                ['normal', 'Preco normal'],
+                                ['promotional', 'Preco promocional']
+                            ].map(([catalogKey, label]) => `
+                                <div>
+                                    <b>${label}</b>
+                                    <div class="dropi-price-options">
+                                        ${Object.entries(DROPI_EC_PRICE_CATALOGS[catalogKey]).map(([quantity, total]) => `
+                                            <button class="dropi-price-option" data-dropi-price-catalog="${catalogKey}" data-dropi-quantity="${quantity}" type="button">
+                                                <span>${quantity} ${Number(quantity) === 1 ? 'mes' : 'meses'}</span>
+                                                <strong>USD ${Number(total).toFixed(2)}</strong>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </section>
+                        <div class="dropi-product-summary" data-dropi-product-summary>Escolha o produto e o preco.</div>
+                    </div>
+                    <div class="dropi-product-actions">
+                        <button data-dropi-product-close="1" type="button">Cancelar</button>
+                        <button class="success-action" data-dropi-product-save="${escapeHtml(adminLeadId)}" type="button" disabled>Salvar e autorizar</button>
+                    </div>
+                </div>
+            `;
+
+            const syncSelection = () => {
+                modal.querySelectorAll('[data-dropi-product-key]').forEach((button) => {
+                    button.classList.toggle('selected', button.dataset.dropiProductKey === selection.productKey);
+                });
+                modal.querySelectorAll('[data-dropi-price-catalog]').forEach((button) => {
+                    button.classList.toggle(
+                        'selected',
+                        button.dataset.dropiPriceCatalog === selection.priceCatalog
+                            && Number(button.dataset.dropiQuantity) === Number(selection.quantity)
+                    );
+                });
+                const total = DROPI_EC_PRICE_CATALOGS[selection.priceCatalog]?.[selection.quantity];
+                const product = products.find((item) => item.key === selection.productKey);
+                const ready = Boolean(product && Number.isFinite(total));
+                const summary = modal.querySelector('[data-dropi-product-summary]');
+                const save = modal.querySelector('[data-dropi-product-save]');
+                summary.classList.toggle('ready', ready);
+                summary.textContent = ready
+                    ? `${DROPI_EC_PRODUCT_NAMES[product.key] || product.name} · ${selection.quantity} unidade(s) · USD ${Number(total).toFixed(2)} · ${selection.priceCatalog === 'promotional' ? 'promocional' : 'normal'}${product.dropiEnabled ? '' : ' · envio bloqueado ate validar o produto na Dropi'}`
+                    : 'Escolha o produto e o preco.';
+                save.disabled = !ready;
+            };
+
+            modal.addEventListener('click', async (event) => {
+                if (event.target === modal || event.target.closest('[data-dropi-product-close]')) {
+                    closeDropiProductModal();
+                    return;
+                }
+                const productButton = event.target.closest('[data-dropi-product-key]');
+                if (productButton) {
+                    selection.productKey = productButton.dataset.dropiProductKey || '';
+                    syncSelection();
+                    return;
+                }
+                const priceButton = event.target.closest('[data-dropi-price-catalog]');
+                if (priceButton) {
+                    selection.priceCatalog = priceButton.dataset.dropiPriceCatalog || '';
+                    selection.quantity = Number(priceButton.dataset.dropiQuantity || 0);
+                    syncSelection();
+                    return;
+                }
+                const saveButton = event.target.closest('[data-dropi-product-save]');
+                if (!saveButton || saveButton.disabled) return;
+                saveButton.disabled = true;
+                saveButton.textContent = 'Salvando...';
+                try {
+                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(adminLeadId)}/configure-order`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            orderId: leadOrderId(lead),
+                            productKey: selection.productKey,
+                            priceCatalog: selection.priceCatalog,
+                            quantity: selection.quantity
+                        })
+                    });
+                    const offer = result.offer || {};
+                    const marker = `[DROPI_PRODUCT] key=${offer.productKey}; name=${offer.productName}; priceCatalog=${offer.priceCatalog}; quantity=${offer.quantity}; total=${Number(offer.total).toFixed(2)}`;
+                    lead.notes = `${String(lead.notes || '').replace(/(?:^|\n)\[DROPI_PRODUCT\][^\r\n]*/gi, '').trim()}${lead.notes ? '\n' : ''}${marker}`.trim();
+                    lead.productKey = offer.productKey;
+                    lead.productName = offer.productName;
+                    lead.priceCatalog = offer.priceCatalog;
+                    lead.quantity = offer.quantity;
+                    lead.value = offer.total;
+                    lead._ops = {
+                        ...(lead._ops || {}),
+                        currentOrderId: result.orderId,
+                        stagedOrderId: result.orderId,
+                        productKey: offer.productKey,
+                        productName: offer.productName,
+                        priceCatalog: offer.priceCatalog,
+                        productSelection: offer
+                    };
+                    state.dropiMessages.set(id, {
+                        text: result.dropiEnabled
+                            ? 'produto/preco salvo; autorize o pedido'
+                            : 'produto/preco salvo; produto ainda nao validado na Dropi',
+                        error: !result.dropiEnabled,
+                        success: Boolean(result.dropiEnabled)
+                    });
+                    closeDropiProductModal();
+                    render();
+                    await submitLeadToDropi(lead, result.orderId);
+                    await fetchLeads();
+                } catch (error) {
+                    state.dropiMessages.set(id, { text: error.message || 'erro ao configurar produto/preco', error: true });
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Salvar e autorizar';
+                    render();
+                }
+            });
+            document.body.appendChild(modal);
+            syncSelection();
+        };
+
+        const render = () => {
+            const leads = visibleLeads();
+            el('countText').textContent = `${leads.length} cliente${leads.length === 1 ? '' : 's'}`;
+            el('updatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+            el('subtitle').textContent = `Fonte unica: Leads Clientes ${state.country}`;
+            el('modeText').textContent = hasSearch()
+                ? 'Busca historica ativa'
+                : state.dateFilter === 'today'
+                    ? 'Atendidos/salvos hoje'
+                    : state.dateFilter === '7d'
+                        ? 'Atendidos/salvos 7 dias'
+                        : state.dateFilter === 'all'
+                            ? 'Historico completo'
+                            : 'Fila operacional limpa';
+            if (state.loadError) {
+                el('leadRows').innerHTML = `<tr><td colspan="10"><div class="empty error">${escapeHtml(state.loadError)}</div></td></tr>`;
+                updateBulkDropiBar();
+                return;
+            }
+            if (!leads.length) {
+                el('leadRows').innerHTML = '<tr><td colspan="10"><div class="empty">Nenhum lead encontrado.</div></td></tr>';
+                updateBulkDropiBar();
+                return;
+            }
+            el('leadRows').innerHTML = leads.map((lead) => `
+                <tr data-lead-row="${escapeHtml(lead.id)}">
+                    <td>${leadDropiCheckboxHtml(lead)}</td>
+                    <td class="nowrap">${escapeHtml(lead.id)}</td>
+                    <td class="nowrap">${escapeHtml(lead.phone || '')}</td>
+                    <td>
+                        <div class="lead-name">
+                            <strong>${escapeHtml(lead.name || '')}</strong>
+                            <span class="lead-date">${escapeHtml(formatLeadDate(lead))}${hasSearch() && isHistoricalLead(lead) ? ' · historico' : ''}</span>
+                            ${purchaseCountLabel(lead) ? `<span class="lead-date">${escapeHtml(purchaseCountLabel(lead))}</span>` : ''}
+                            ${leadProductBadgeHtml(lead)}
+                            ${metaPurchaseBadgeHtml(lead)}
+                        </div>
+                    </td>
+                    <td class="addr"><div class="addr-text">${escapeHtml(lead.address || '')}</div></td>
+                    <td>${escapeHtml(lead.city || '')}</td>
+                    <td>${escapeHtml(lead.province || '')}</td>
+                    <td class="nowrap">${escapeHtml(lead.quantity || '')}</td>
+                    <td class="nowrap">${escapeHtml(money(lead.value, lead.country || state.country))}</td>
+                    <td>
+                        <div class="lead-controls">
+                            ${leadStatusControlHtml(lead)}
+                            ${leadActionMenuHtml(lead)}
+                        </div>
+                        ${leadStatusExtraHtml(lead)}
+                        ${buyLaterFollowupHtml(lead)}
+                        <span class="saved" data-status-msg="${escapeHtml(lead.id)}"></span>
+                    </td>
+                </tr>
+            `).join('');
+            updateBulkDropiBar();
+        };
+
+        const askFollowupAt = () => {
+            const now = new Date();
+            now.setDate(now.getDate() + 1);
+            const pad = (value) => String(value).padStart(2, '0');
+            return window.prompt('Data possivel de compra/envio ao cliente (DD-MM-AAAA HH:MM). O aviso sera enviado 3 dias antes:', `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()} 09:00`) || '';
+        };
+
+        const parseFollowup = (value) => {
+            const match = String(value || '').trim().match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2})$/);
+            if (!match) return '';
+            return `${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:00-03:00`;
+        };
+
+        const saveStatus = async (select) => {
+            const id = select.dataset.leadStatus;
+            const country = select.dataset.country || state.country;
+            const status = select.value;
+            const msg = document.querySelector(`[data-status-msg="${CSS.escape(id)}"]`);
+            const previous = select.dataset.prev || 'novo';
+            const previousOperationalStatus = normalizePanelStatus(previous);
+            const lead = state.leads.find((item) => String(item.id) === String(id));
+            const adminOrderId = lead ? leadOrderId(lead) : '';
+            const shouldStageOperationalConfirmed = lead
+                && status === 'confirmado'
+                && hasAuthToken()
+                && /^EC-ADMIN-\d+$/i.test(adminOrderId);
+            if (lead && status === 'confirmado' && isManualReviewLead(lead)) {
+                select.value = previous;
+                setStatusClass(select);
+                if (msg) msg.textContent = 'use Enviar agencia';
+                window.alert('Este pedido precisa de ajuste de agencia/cidade. Use Enviar agencia ou corrija o destino antes de confirmar novamente.');
+                return;
+            }
+            let followupAt = '';
+            if (status === 'comprar_depois') {
+                followupAt = parseFollowup(askFollowupAt());
+                if (!followupAt) {
+                    select.value = previous;
+                    setStatusClass(select);
+                    if (msg) msg.textContent = 'data invalida';
+                    return;
+                }
+            }
+            setStatusClass(select);
+            select.disabled = true;
+            if (msg) {
+                msg.className = 'saved';
+                msg.textContent = 'salvando';
+            }
+            try {
+                if (shouldStageOperationalConfirmed) {
+                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/stage-confirmed`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            note: 'Confirmado pelo seletor em Leads Clientes',
+                            forceRepurchase: previousOperationalStatus === 'entregue'
+                                || isHistoricalLead({ ...lead, status: previousOperationalStatus, _opsStatus: previousOperationalStatus })
+                                || isRepurchaseLead(lead)
+                        })
+                    });
+                    select.dataset.prev = 'confirmado';
+                    lead.status = 'confirmado';
+                    lead._opsStatus = 'confirmado';
+                    lead._ops = {
+                        ...(lead._ops || {}),
+                        repurchase: Boolean(result.repurchase),
+                        stagedOrderId: result.orderId,
+                        currentOrderId: result.orderId
+                    };
+                    state.dropiMessages.set(id, { text: result.message || 'em confirmados', error: false, success: true });
+                    notifyIntegratedPanelStatus(lead, 'confirmado');
+                    if (msg) msg.textContent = 'salvo';
+                    await fetchLeads();
+                    return;
+                }
+
+                const response = await fetch(`${adminApiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status, followup_at: followupAt })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                select.dataset.prev = status;
+                const lead = state.leads.find((item) => String(item.id) === String(id));
+                if (lead) {
+                    lead.status = status;
+                    lead._opsStatus = status;
+                    if (status === 'comprar_depois') {
+                        lead.buy_later_followup_at = followupAt;
+                        lead.buy_later_notified_at = '';
+                    }
+                    const integratedSync = await syncIntegratedPanelOrderStatus(lead, status);
+                    notifyIntegratedPanelStatus(lead, status);
+                    if (integratedSync?.error && msg) {
+                        msg.className = 'saved error';
+                        msg.textContent = 'lead salvo; painel integrado pendente';
+                        return;
+                    }
+                }
+                if (msg) msg.textContent = 'salvo';
+                render();
+            } catch (error) {
+                select.value = previous;
+                setStatusClass(select);
+                if (msg) {
+                    msg.className = 'saved error';
+                    msg.textContent = error.message || 'erro';
+                }
+            } finally {
+                select.disabled = false;
+            }
+        };
+
+        const confirmLeadCustomerData = async (button) => {
+            const id = String(button.dataset.confirmLead || '');
+            const country = button.dataset.country || state.country;
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead || !leadReadyForCustomerConfirmation(lead)) return;
+            const repurchaseCandidate = isHistoricalLead(lead) || statusValue(lead) === 'entregue' || isRepurchaseLead(lead);
+            const confirmText = repurchaseCandidate
+                ? 'Colocar este cliente em Pedidos Confirmados como pedido operacional novo? Ele nao sera enviado para Dropi ate voce autorizar.'
+                : 'Confirmar dados deste cliente e mover para Confirmado?';
+            if (!window.confirm(confirmText)) return;
+            const busyKey = `confirm-${id}`;
+            state.dropiBusy.add(busyKey);
+            state.dropiMessages.set(id, { text: 'colocando em confirmados...', error: false });
+            render();
+            try {
+                if (hasAuthToken()) {
+                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/stage-confirmed`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            note: 'Confirmado em Leads Clientes',
+                            forceRepurchase: repurchaseCandidate
+                        })
+                    });
+                    lead.status = 'confirmado';
+                    lead._opsStatus = 'confirmado';
+                    lead._ops = {
+                        ...(lead._ops || {}),
+                        repurchase: Boolean(result.repurchase),
+                        stagedOrderId: result.orderId
+                    };
+                    state.dropiMessages.set(id, { text: result.message || 'em confirmados', error: false, success: true });
+                    notifyIntegratedPanelStatus(lead, 'confirmado');
+                    await fetchLeads();
+                    return;
+                }
+
+                const response = await fetch(`${adminApiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status: 'confirmado' })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                lead.status = 'confirmado';
+                await syncIntegratedPanelOrderStatus(lead, 'confirmado');
+                notifyIntegratedPanelStatus(lead, 'confirmado');
+                state.status = state.status === 'novo' ? '' : state.status;
+                render();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao confirmar', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(busyKey);
+                render();
+            }
+        };
+
+        const markAbandonedLeadAsAttending = async (button) => {
+            const id = String(button.dataset.abandonLead || '');
+            const country = button.dataset.country || state.country;
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (!window.confirm('Mover este cliente de abandono para Atendendo?')) return;
+            state.dropiBusy.add(`abandon-${id}`);
+            render();
+            try {
+                const response = await fetch(`${adminApiBase}/admin/api/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id, country, status: 'atendendo' })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || `Erro ${response.status}`);
+                lead.status = 'atendendo';
+                notifyIntegratedPanelStatus(lead, 'atendendo');
+                render();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao retomar', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(`abandon-${id}`);
+                render();
+            }
+        };
+
+        const submitLeadToDropi = async (lead, overrideOrderId = '') => {
+            const id = String(lead.id);
+            const orderId = overrideOrderId || leadOrderId(lead);
+            const setMsg = (text, error = false, success = false) => {
+                state.dropiMessages.set(id, { text, error, success });
+                const msg = document.querySelector(`[data-dropi-msg="${CSS.escape(id)}"]`);
+                if (msg) {
+                    msg.textContent = text;
+                    msg.className = `action-message${error ? ' error' : ''}${success ? ' success' : ''}`;
+                }
+            };
+            if (!hasAuthToken()) {
+                setMsg('entre no painel integrado', true);
+                render();
+                return;
+            }
+            if (leadCountryCode(lead) === 'CO') {
+                try {
+                    state.dropiBusy.add(String(id));
+                    setMsg('enfileirando CO...');
+                    render();
+                    const result = await api(['/api/shipments/droppi', 'co', 'admin-leads', encodeURIComponent(id), 'queue-submit'].join('/'), {
+                        method: 'POST',
+                        body: JSON.stringify({ note: 'Enfileirado em Leads Clientes CO' })
+                    });
+                    state.selectedDropi.delete(String(id));
+                    setMsg(result.message || 'pedido CO enfileirado', false, true);
+                } catch (error) {
+                    setMsg(error.message || 'erro ao enfileirar CO', true);
+                } finally {
+                    state.dropiBusy.delete(String(id));
+                    render();
+                }
+                return;
+            }
+            state.dropiBusy.add(String(id));
+            render();
+
+            const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+            const readDropiSubmitStatus = async () => api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit-status`);
+            const isVerifiedDropiSubmission = (result = {}) => Boolean(
+                result.alreadySubmitted
+                || result.status === 'submitted'
+                || result.dropiOrderId
+                || result.trackingNumber
+                || result.shipment?.raw?.droppiOrder?.id
+                || result.shipment?.raw?.droppiOrder?.order_id
+                || result.shipment?.raw?.manualDropiOrderId
+                || result.shipment?.raw?.latestDroppiPayload?.dropiOrderId
+                || result.shipment?.raw?.latestDroppiPayload?.trackingNumber
+                || result.shipment?.logistics?.trackingNumber
+            );
+            const waitDropiSubmitResult = async () => {
+                const startedAt = Date.now();
+                const maxWaitMs = 9 * 60 * 1000;
+                while ((Date.now() - startedAt) < maxWaitMs) {
+                    await sleep(15000);
+                    const status = await readDropiSubmitStatus();
+                    if (status.alreadySubmitted || status.status === 'submitted') return status;
+                    if (status.paymentRequired || status.authRequired || status.manualSendRequired || status.authorizationRequired) return status;
+                    setMsg(status.message || 'processando na Dropi');
+                }
+                return {
+                    processing: true,
+                    submitQueued: true,
+                    message: 'Dropi ainda esta processando. Atualize em instantes.'
+                };
+            };
+            const applyDropiSubmitResult = (result = {}) => {
+                if (result.paymentRequired) {
+                    setMsg('sem saldo Dropi', true);
+                    return;
+                }
+                if (result.authRequired) {
+                    setMsg(result.message || 'sessao Dropi/2FA', true);
+                    return;
+                }
+                if (result.authorizationRequired) {
+                    setMsg(result.message || 'autorize antes de enviar', true);
+                    return;
+                }
+                if (result.manualSendRequired) {
+                    setMsg(result.message || 'revisar manual', true);
+                    return;
+                }
+                if (result.processing) {
+                    setMsg(result.message || 'processando na Dropi', true);
+                    return;
+                }
+                if (isVerifiedDropiSubmission(result)) {
+                    lead.status = 'pedido_enviado';
+                    lead._opsStatus = 'pedido_enviado';
+                    state.selectedDropi.delete(String(id));
+                    state.dropiMessages.delete(id);
+                    notifyIntegratedPanelStatus(lead, 'pedido_enviado');
+                    syncIntegratedPanelOrderStatus(lead, 'pedido_enviado').catch(() => null);
+                    setMsg(result.alreadySubmitted ? 'ja enviado' : 'enviado', false, true);
+                    return;
+                }
+                setMsg(result.message || 'Dropi sem confirmacao. Confira antes de marcar enviado.', true);
+            };
+
+            try {
+                setMsg('verificando autorizacao...');
+                const status = await readDropiSubmitStatus().catch(() => null);
+                if (status?.alreadySubmitted || status?.status === 'submitted' || status?.paymentRequired || status?.authRequired || status?.manualSendRequired || status?.processing) {
+                    applyDropiSubmitResult(status);
+                    return;
+                }
+                if (status?.authorizationRequired || status?.status === 'authorization_required') {
+                    if (!window.confirm(`Autorizar ${orderId} para a etapa Enviar para Dropi?\n\nNada sera enviado agora. O envio real exige outro clique em Enviar para Dropi.`)) {
+                        setMsg('aguardando autorizacao');
+                        return;
+                    }
+                    setMsg('autorizando...');
+                    await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/authorize-submit`, {
+                        method: 'POST',
+                        body: JSON.stringify({ note: overrideOrderId ? 'Autorizado em Leads Clientes - Recompra' : 'Autorizado em Leads Clientes' })
+                    });
+                    state.selectedDropi.delete(String(id));
+                    setMsg('autorizado; clique novamente para enviar', false, true);
+                    return;
+                }
+                setMsg('enviando...');
+                let result = await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ async: true })
+                });
+                if (result.submitQueued || result.processing) {
+                    setMsg('processando na Dropi');
+                    result = await waitDropiSubmitResult();
+                }
+                applyDropiSubmitResult(result);
+            } catch (error) {
+                if (error.status === 504 || /Erro 504/i.test(error.message || '')) {
+                    setMsg('Dropi demorou. Conferindo envio...');
+                    const result = await waitDropiSubmitResult();
+                    applyDropiSubmitResult(result);
+                } else {
+                    setMsg(error.message || 'erro Dropi', true);
+                }
+            } finally {
+                state.dropiBusy.delete(String(id));
+                render();
+            }
+        };
+
+        const authorizeRepurchaseDropi = async (button, { skipConfirm = false } = {}) => {
+            const id = String(button.dataset.authorizeRepurchaseDropi || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (leadCountryCode(lead) === 'CO') {
+                await submitLeadToDropi(lead);
+                await fetchLeads();
+                return;
+            }
+            if (!leadReadyForCustomerConfirmation(lead)) {
+                state.dropiMessages.set(id, { text: 'complete os dados antes', error: true });
+                render();
+                return;
+            }
+            const currentOrderId = lead?._ops?.currentOrderId || lead?._ops?.stagedOrderId || '';
+            if (currentOrderId) {
+                if (!skipConfirm && !window.confirm(`Enviar o pedido atual ${currentOrderId} para Dropi?`)) return;
+                state.dropiBusy.add(id);
+                state.dropiMessages.set(id, { text: 'enviando pedido atual...', error: false });
+                render();
+                try {
+                    await submitLeadToDropi(lead, currentOrderId);
+                    await fetchLeads();
+                } catch (error) {
+                    state.dropiMessages.set(id, { text: error.message || 'erro ao enviar pedido atual', error: true });
+                    render();
+                } finally {
+                    state.dropiBusy.delete(id);
+                    render();
+                }
+                return;
+            }
+            if (!skipConfirm && !window.confirm('Autorizar envio de novo pedido Dropi para este cliente? O historico anterior sera fechado quando houver evidencia de retirada/Dropi, para evitar duplicidade.')) return;
+            state.dropiBusy.add(id);
+            state.dropiMessages.set(id, { text: 'autorizando novo pedido...', error: false });
+            render();
+            try {
+                const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/authorize-repurchase`, {
+                    method: 'POST',
+                    body: JSON.stringify({ note: 'Autorizado em Leads Clientes' })
+                });
+                state.dropiMessages.set(id, { text: result.message || 'novo pedido autorizado; clique novamente para enviar', error: false, success: true });
+                state.selectedDropi.delete(id);
+                await fetchLeads();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro no novo pedido', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(id);
+                render();
+            }
+        };
+
+        const submitDropiFromButton = async (button) => {
+            const id = String(button.dataset.submitDropi || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (!leadReadyForCustomerConfirmation(lead)) {
+                state.dropiMessages.set(id, { text: 'complete os dados antes', error: true });
+                render();
+                return;
+            }
+            await submitLeadToDropi(lead);
+            await fetchLeads();
+        };
+
+        const authorizeResendDropi = async (button, { skipConfirm = false } = {}) => {
+            const id = String(button.dataset.authorizeResendDropi || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (leadCountryCode(lead) === 'CO') {
+                await submitLeadToDropi(lead);
+                await fetchLeads();
+                return;
+            }
+            if (!leadReadyForCustomerConfirmation(lead)) {
+                state.dropiMessages.set(id, { text: 'complete os dados antes', error: true });
+                render();
+                return;
+            }
+            if (!skipConfirm && !window.confirm('Autorizar REENVIO com novo pedido Dropi usando os dados atuais da ficha? O pedido anterior sera preservado no historico.')) return;
+            state.dropiBusy.add(id);
+            state.dropiMessages.set(id, { text: 'autorizando reenvio...', error: false });
+            render();
+            try {
+                const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/authorize-resend`, {
+                    method: 'POST',
+                    body: JSON.stringify({ note: 'Reenvio autorizado em Leads Clientes' })
+                });
+                state.dropiMessages.set(id, { text: result.message || 'reenvio autorizado; clique novamente para enviar', error: false, success: true });
+                state.selectedDropi.delete(id);
+                await fetchLeads();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro reenvio', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(id);
+                render();
+            }
+        };
+
+        const openManualDropiLink = async (button) => {
+            const id = String(button.dataset.manualDropiLink || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            const orderId = leadOrderId(lead);
+            state.dropiBusy.add(`manual-${id}`);
+            state.dropiMessages.set(id, { text: 'preparando envio por agencia...', error: false });
+            render();
+            try {
+                const result = await api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/manual-link?reason=leads_clientes_revisao`);
+                if (result.copyText && navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(result.copyText).catch(() => {});
+                }
+                if (result.dropiUrl) {
+                    window.open(result.dropiUrl, '_blank', 'noopener');
+                }
+                state.dropiMessages.set(id, {
+                    text: result.dropiUrl ? 'Dropi aberto; confira agencia e envie' : (result.message || 'agencia pronta'),
+                    error: false
+                });
+                render();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro envio agencia', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(`manual-${id}`);
+                render();
+            }
+        };
+
+        const finalizeHistoricalLead = async (button) => {
+            const id = String(button.dataset.finalizeHistoricalLead || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            if (!window.confirm('Finalizar este pedido historico antigo e retirar da fila Confirmado? Se houver sinal de devolucao, ele sera bloqueado como devolvido.')) return;
+            state.dropiBusy.add(id);
+            state.dropiMessages.set(id, { text: 'finalizando historico...', error: false });
+            render();
+            try {
+                const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/finalize-historical`, {
+                    method: 'POST',
+                    body: JSON.stringify({ note: 'Finalizado em Leads Clientes' })
+                });
+                lead.status = 'finalizado';
+                state.dropiMessages.set(id, { text: result.message || 'historico finalizado', error: false });
+                await fetchLeads();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao finalizar', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(id);
+                render();
+            }
+        };
+
+        const sendLeadToDropiFromSelection = async (lead) => {
+            const id = String(lead?.id || '');
+            if (!id) return;
+            if (leadReadyForDropi(lead)) {
+                await submitLeadToDropi(lead);
+                return;
+            }
+            if (isRepurchaseLead(lead)) {
+                await authorizeRepurchaseDropi({ dataset: { authorizeRepurchaseDropi: id } }, { skipConfirm: true });
+                return;
+            }
+            if (isManualReviewLead(lead) || isResendCandidateLead(lead) || isConfirmedBeforeJune2026(lead)) {
+                await authorizeResendDropi({ dataset: { authorizeResendDropi: id } }, { skipConfirm: true });
+                return;
+            }
+            await submitLeadToDropi(lead);
+        };
+
+        const sendSelectedDropi = async () => {
+            const selectedLeads = [...state.selectedDropi]
+                .map((id) => state.leads.find((lead) => String(lead.id) === String(id)))
+                .filter((lead) => lead && leadSelectableForDropi(lead));
+            const leadsToSend = selectedLeads.length
+                ? selectedLeads
+                : visibleLeads().filter((lead) => leadSelectableForDropi(lead) && !state.dropiBusy.has(String(lead.id)));
+            if (!leadsToSend.length) {
+                window.alert('Nenhum pedido confirmado e completo visivel para enviar.');
+                return;
+            }
+            const orderIds = leadsToSend.map(leadOrderId);
+            const scopeLabel = selectedLeads.length ? 'marcado(s)' : 'visivel(is)';
+            if (!window.confirm(`Enviar ${orderIds.length} pedido(s) ${scopeLabel} ja autorizado(s) para Dropi?\n\nPedido sem autorizacao previa sera apenas autorizado e vai exigir outro clique para envio real.\n\n${orderIds.join('\n')}`)) return;
+            el('bulkDropiSendBtn').disabled = true;
+            el('bulkDropiSendBtn').textContent = 'Processando...';
+            for (const lead of leadsToSend) {
+                await sendLeadToDropiFromSelection(lead);
+                await new Promise((resolve) => window.setTimeout(resolve, 4000));
+            }
+            el('bulkDropiSendBtn').textContent = 'Enviar marcados para Dropi';
+            await fetchLeads();
+        };
+
+        const setCountry = (country) => {
+            state.country = ['EC', 'CO', 'ALL'].includes(country) ? country : 'EC';
+            state.dropiCatalog = null;
+            loadRepurchaseChecked();
+            el('countryFilter').value = state.country;
+            el('newLeadBtn').href = `${apiBase}/admin/new?country=${encodeURIComponent(state.country === 'ALL' ? 'EC' : state.country)}`;
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.set('country', state.country);
+            window.history.replaceState({}, '', nextUrl);
+            fetchLeads().catch((error) => {
+                state.loadError = error.message;
+                render();
+            });
+        };
+
+        const deleteLead = async (button) => {
+            const id = String(button.dataset.deleteLead || '');
+            const lead = state.leads.find((item) => String(item.id) === id);
+            if (!lead) return;
+            const label = [lead.name, lead.phone].filter(Boolean).join(' / ') || `lead ${id}`;
+            if (!window.confirm(`Excluir este pedido da lista?\n\n${label}`)) return;
+            state.dropiBusy.add(`delete-${id}`);
+            state.dropiMessages.set(id, { text: 'excluindo...', error: false });
+            render();
+            try {
+                const form = new URLSearchParams();
+                form.set('country', lead.country || state.country || 'EC');
+                const response = await fetch(`${adminApiBase}/admin/delete/${encodeURIComponent(id)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    credentials: 'include',
+                    body: form.toString()
+                });
+                if (!response.ok) throw new Error(`Erro ${response.status} ao excluir`);
+                state.leads = state.leads.filter((item) => String(item.id) !== id);
+                state.selectedDropi.delete(id);
+                state.dropiMessages.delete(id);
+                await fetchLeads();
+            } catch (error) {
+                state.dropiMessages.set(id, { text: error.message || 'erro ao excluir', error: true });
+                render();
+            } finally {
+                state.dropiBusy.delete(`delete-${id}`);
+                render();
+            }
+        };
+
+        el('countryFilter').value = ['EC', 'CO', 'ALL'].includes(state.country) ? state.country : 'EC';
+        state.country = el('countryFilter').value;
+        el('dateFilter').value = ['', 'today', '7d', 'all'].includes(state.dateFilter) ? state.dateFilter : '';
+        state.dateFilter = el('dateFilter').value;
+        el('newLeadBtn').href = `${apiBase}/admin/new?country=${encodeURIComponent(state.country === 'ALL' ? 'EC' : state.country)}`;
+        setupStatusFilter();
+
+        el('countryFilter').addEventListener('change', (event) => setCountry(event.target.value));
+        el('searchInput').addEventListener('input', (event) => {
+            state.q = event.target.value;
+            render();
+        });
+        el('statusFilter').addEventListener('change', (event) => {
+            setStatusFilterValue(event.target.value);
+        });
+        el('dateFilter').addEventListener('change', (event) => {
+            state.dateFilter = event.target.value;
+            const nextUrl = new URL(window.location.href);
+            if (state.dateFilter) nextUrl.searchParams.set('period', state.dateFilter);
+            else nextUrl.searchParams.delete('period');
+            window.history.replaceState({}, '', nextUrl);
+            render();
+        });
+        el('statusFilterButton').addEventListener('click', () => {
+            el('statusFilterControl').classList.toggle('open');
+            syncStatusFilterControl();
+        });
+        el('statusFilterOptions').addEventListener('click', (event) => {
+            const option = event.target.closest('[data-status-filter-option]');
+            if (!option) return;
+            el('statusFilterControl').classList.remove('open');
+            setStatusFilterValue(option.dataset.statusFilterOption || '');
+        });
+        document.addEventListener('click', (event) => {
+            if (el('statusFilterControl').contains(event.target)) return;
+            el('statusFilterControl').classList.remove('open');
+            syncStatusFilterControl();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            el('statusFilterControl').classList.remove('open');
+            syncStatusFilterControl();
+            closeDropiProductModal();
+        });
+        el('refreshBtn').addEventListener('click', () => fetchLeads().catch((error) => {
+            state.loadError = error.message;
+            render();
+        }));
+        el('leadRows').addEventListener('change', (event) => {
+            const select = event.target.closest('[data-lead-status]');
+            if (select) {
+                saveStatus(select);
+                return;
+            }
+            const checkbox = event.target.closest('[data-dropi-select]');
+            if (checkbox) {
+                const id = String(checkbox.dataset.dropiSelect || '');
+                if (checkbox.checked) state.selectedDropi.add(id);
+                else state.selectedDropi.delete(id);
+                updateBulkDropiBar();
+            }
+        });
+        el('leadRows').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-confirm-lead]');
+            if (button) {
+                confirmLeadCustomerData(button);
+                return;
+            }
+            const abandonButton = event.target.closest('[data-abandon-lead]');
+            if (abandonButton) {
+                markAbandonedLeadAsAttending(abandonButton);
+                return;
+            }
+            const repurchaseButton = event.target.closest('[data-authorize-repurchase-dropi]');
+            if (repurchaseButton) {
+                authorizeRepurchaseDropi(repurchaseButton);
+                return;
+            }
+            const configureProductButton = event.target.closest('[data-configure-dropi-product]');
+            if (configureProductButton) {
+                const id = String(configureProductButton.dataset.configureDropiProduct || '');
+                const lead = state.leads.find((item) => String(item.id) === id);
+                openDropiProductModal(lead);
+                return;
+            }
+            const submitDropiButton = event.target.closest('[data-submit-dropi]');
+            if (submitDropiButton) {
+                submitDropiFromButton(submitDropiButton);
+                return;
+            }
+            const resendButton = event.target.closest('[data-authorize-resend-dropi]');
+            if (resendButton) {
+                authorizeResendDropi(resendButton);
+                return;
+            }
+            const deleteButton = event.target.closest('[data-delete-lead]');
+            if (deleteButton) {
+                deleteLead(deleteButton);
+            }
+        });
+        el('bulkDropiSelectAllBtn').addEventListener('click', toggleVisibleDropiSelection);
+        el('bulkDropiSendBtn').addEventListener('click', sendSelectedDropi);
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const country = event.data?.country;
+            if (event.data?.type === 'vitalismen:set-leads-country' && country) setCountry(country);
+            if (event.data?.type === 'vitalismen:refresh-leads') {
+                if (country && country !== state.country) setCountry(country);
+                else fetchLeads().catch((error) => {
+                    state.loadError = error.message;
+                    render();
+                });
+            }
+        });
+
+        window.addEventListener('storage', (event) => {
+            if (event.key !== 'vitalismen_leads_refresh') return;
+            const data = JSON.parse(event.newValue || '{}');
+            const country = data?.country;
+            if (country && country !== state.country) setCountry(country);
+            else fetchLeads().catch((error) => {
+                state.loadError = error.message;
+                render();
+            });
+        });
+
+        loadRepurchaseChecked();
+        fetchLeads().catch((error) => {
+            state.loadError = error.message;
+            render();
+            el('updatedAt').textContent = 'erro';
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"43bfd4280f8046b7bf2a511a21946254","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>

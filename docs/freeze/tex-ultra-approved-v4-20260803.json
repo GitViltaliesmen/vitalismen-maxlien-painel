@@ -1,0 +1,65 @@
+{
+  "freezeId": "tex-ultra-approved-start-and-confirmed-postsale-v4-20260803",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-03T04:01:39.139Z",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceRelease": "/opt/vitalismen-automacao/releases/20260803T033900Z_whatsapp_tex_recovery_final",
+  "publishedRelease": "/opt/vitalismen-automacao/releases/20260803T040300Z_tex_ultra_approved_freeze_v4",
+  "parentFreezeIds": [
+    "tex-ultra-initial-cadence-v2-approved-20260802",
+    "tex-ultra-postsale-approved-v3-20260802"
+  ],
+  "initialLayer": {
+    "enabledFlag": "TEX_ULTRA_INITIAL_LAYER_ENABLED=true",
+    "timingMode": "cumulative_between_steps",
+    "waveJoinMs": 20000,
+    "cadence": [
+      { "key": "intro01", "minMs": 2000, "maxMs": 10000 },
+      { "key": "intro02", "minMs": 11000, "maxMs": 20000 },
+      { "key": "proof", "minMs": 21000, "maxMs": 25000 },
+      { "key": "bottle", "minMs": 28000, "maxMs": 33000 },
+      { "key": "offer", "minMs": 35000, "maxMs": 40000 }
+    ],
+    "pauseOnCustomerInteraction": true,
+    "pauseOrphanedFlowsOnStartup": true,
+    "automaticReplayAfterRestart": false
+  },
+  "confirmedPostSaleLayer": {
+    "enabledFlag": "TEX_ULTRA_CONFIRMED_POSTSALE_AUDIO_ENABLED=true",
+    "queueEnabledFlag": "TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED=true",
+    "queueIntervalSeconds": 60,
+    "batchLimit": 1,
+    "audioOrder": [
+      "AGRADECIMENTO_AGENCIA_DE_ENTREGA",
+      "BONUS_RETIRADA"
+    ],
+    "persistentOrderLock": true,
+    "persistentSentAt": true,
+    "duplicateProtection": true,
+    "productIsolation": true,
+    "operatorNoAutoResendProtection": true
+  },
+  "productionReceipt": {
+    "orderId": "EC-MSCNC7NL-EQGQ",
+    "phoneTail": "997120",
+    "thankYouProviderMessageId": "C3BDC37B21CA096C1F5A",
+    "pickupBonusProviderMessageId": "3EB04B1870F5D08F2BB896",
+    "thankYouDeliveryStatus": "delivered",
+    "pickupBonusDeliveryStatus": "delivered",
+    "outboundMessagesPersisted": 2,
+    "duplicateAfterAdditionalQueueCycles": false
+  },
+  "protectedFiles": {
+    "src/index.js": "a09c35dec44a7f768af19e3d28fe4c201fa9c973693f50c561e0a86a2c497692",
+    "src/services/texUltraInitialLayerService.js": "1735080dd525dd9205de1b87778f105be955667d5b220b39c5e6955a66fd9ccd",
+    "src/services/texUltraConfirmedPostSaleLayerService.js": "61906ee3fa2205d238d5cef4adedd682d76ddd9d0457273df6d3123b6c6ee342",
+    "src/services/texUltraProductProfile.js": "ec247a5d0cb0a112a8236b33ee5a3f44a05a41b94467cef25f1bec85fff7b74c",
+    "src/services/schedulerService.js": "d292a5481fcd249b2ae713a8d3ff9a407a5eca6e0b8b28d60f659381f5bb73e9",
+    "src/services/operatorNoAutoResendService.js": "d48aa3016414cefc40ff1fd28521fa3dfb4e96b1327f5ce144d56f400e7b8925",
+    "src/services/texUltraApprovedFreezeRuntimeGuard.js": "391e6150a8d15cd22ced02e923af132396e937ab509cf08d45082962dea48340",
+    "public/media/templates/EC/AGRADECIMENTO_AGENCIA_DE_ENTREGA.ogg": "1098a5fa0eef19415f4dce4f4d061333188f9f70c8a024456bd55b48ad0770cc",
+    "public/media/templates/EC/BONUS_RETIRADA.ogg": "d9929c5469fee53114fba65a7fc707a641042eec56ff271b70c08ca3e4fd5bdc"
+  }
+}
