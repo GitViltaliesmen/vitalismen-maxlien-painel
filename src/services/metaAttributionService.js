@@ -14,12 +14,15 @@ const attributionKeys = [
     'utm_term'
 ];
 
-const hasAttribution = (tracking = {}) => Boolean(
+export const hasMetaAdAttribution = (tracking = {}) => Boolean(
     tracking.fbc
     || tracking.fbp
     || tracking.fbclid
+    || tracking.utm_source
+    || tracking.utm_medium
     || tracking.utm_campaign
-    || tracking.sourceUrl
+    || tracking.utm_content
+    || tracking.utm_term
 );
 
 const buildFbcFromFbclid = (fbclid = '', date = new Date()) => {
@@ -29,7 +32,7 @@ const buildFbcFromFbclid = (fbclid = '', date = new Date()) => {
     return `fb.1.${Number.isFinite(seconds) ? seconds : Math.floor(Date.now() / 1000)}.${click}`;
 };
 
-const trackingFromVisit = (visit = {}) => {
+export const metaAttributionTrackingFromVisit = (visit = {}) => {
     const tracking = visit.tracking || {};
     const out = {};
     for (const key of attributionKeys) {
@@ -47,7 +50,7 @@ export const enrichOrderWithMetaAttribution = async (order, { lookbackDays = 30 
         return { ok: false, skipped: true, reason: 'unsupported_order' };
     }
     order.tracking = order.tracking || {};
-    if (hasAttribution(order.tracking)) {
+    if (hasMetaAdAttribution(order.tracking)) {
         return { ok: true, skipped: true, reason: 'order_already_has_attribution' };
     }
 
@@ -73,8 +76,8 @@ export const enrichOrderWithMetaAttribution = async (order, { lookbackDays = 30 
 
     if (!visit) return { ok: false, skipped: true, reason: 'no_visit_match' };
 
-    const attribution = trackingFromVisit(visit);
-    if (!hasAttribution(attribution)) {
+    const attribution = metaAttributionTrackingFromVisit(visit);
+    if (!hasMetaAdAttribution(attribution)) {
         return { ok: false, skipped: true, reason: 'visit_without_attribution', visitorKey: visit.visitorKey };
     }
 
@@ -98,4 +101,4 @@ export const enrichOrderWithMetaAttribution = async (order, { lookbackDays = 30 
     };
 };
 
-export const orderHasMetaAttribution = (order = {}) => hasAttribution(order.tracking || {});
+export const orderHasMetaAttribution = (order = {}) => hasMetaAdAttribution(order.tracking || {});

@@ -42,6 +42,7 @@
         "panel:audio-sent-sweep": "node scripts/mark-audio-panel-sent.mjs",
         "media:install:evolved": "node scripts/install-evolved-audios.mjs",
         "meta:audit:purchases": "node scripts/audit-meta-purchase-ec.mjs",
+        "test:meta-attribution": "node --test tests/meta-attribution-bridge.test.mjs",
         "meta:retro:purchases": "node scripts/send-meta-retro-purchases.mjs",
         "meta:export:offline": "node scripts/export-meta-offline-purchases.mjs",
         "sync:official": "scripts/sync-official-remotes.sh"

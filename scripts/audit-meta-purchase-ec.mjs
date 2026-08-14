@@ -49,7 +49,16 @@ const compactOrder = (order = {}) => {
     const saleDate = resolveOriginalSaleDate(order);
     const response = responseStatus(order.tracking?.metaPurchaseResponse);
     const tracking = order.tracking || {};
-    const hasAttribution = Boolean(tracking.fbc || tracking.fbp || tracking.fbclid || tracking.utm_campaign || tracking.sourceUrl);
+    const hasAttribution = Boolean(
+        tracking.fbc
+        || tracking.fbp
+        || tracking.fbclid
+        || tracking.utm_source
+        || tracking.utm_medium
+        || tracking.utm_campaign
+        || tracking.utm_content
+        || tracking.utm_term
+    );
     return {
         orderId: order.orderId,
         status: order.status,
@@ -136,7 +145,30 @@ const main = async () => {
         .lean();
     const attributedSent = sentOrdersForAttribution.filter((order) => {
         const tracking = order.tracking || {};
-        return Boolean(tracking.fbc || tracking.fbp || tracking.fbclid || tracking.utm_campaign || tracking.sourceUrl);
+        return Boolean(
+            tracking.fbc
+            || tracking.fbp
+            || tracking.fbclid
+            || tracking.utm_source
+            || tracking.utm_medium
+            || tracking.utm_campaign
+            || tracking.utm_content
+            || tracking.utm_term
+        );
+    }).length;
+    const sourceUrlOnlySent = sentOrdersForAttribution.filter((order) => {
+        const tracking = order.tracking || {};
+        const hasAdAttribution = Boolean(
+            tracking.fbc
+            || tracking.fbp
+            || tracking.fbclid
+            || tracking.utm_source
+            || tracking.utm_medium
+            || tracking.utm_campaign
+            || tracking.utm_content
+            || tracking.utm_term
+        );
+        return !hasAdAttribution && Boolean(tracking.sourceUrl);
     }).length;
 
     const report = {
@@ -158,6 +190,7 @@ const main = async () => {
             purchasePending: pending,
             purchaseFailed: failed,
             purchaseSentWithAttribution: attributedSent,
+            purchaseSentSourceUrlOnly: sourceUrlOnlySent,
             purchaseSentBlind: Math.max(0, sent - attributedSent),
             pageView,
             viewContent,
@@ -185,7 +218,7 @@ const main = async () => {
         report.recommendations.push(`${offlineRequired} Purchase(s) pendente(s) estao fora da janela CAPI e devem ir para exportacao Offline/Compradores.`);
     }
     if (report.counts.purchaseSentBlind) {
-        report.recommendations.push(`${report.counts.purchaseSentBlind} Purchase(s) enviados foram aceitos pela Meta, mas estao sem fbc/fbp/fbclid/UTM/sourceUrl e podem nao atribuir no Ads Manager.`);
+        report.recommendations.push(`${report.counts.purchaseSentBlind} Purchase(s) enviados foram aceitos pela Meta, mas estao sem fbc/fbp/fbclid/UTM e podem nao atribuir no Ads Manager; ${report.counts.purchaseSentSourceUrlOnly} possuem apenas sourceUrl.`);
     }
     if (!report.recommendations.length) {
         report.recommendations.push('Camada Meta EC sem pendencias criticas no periodo auditado.');

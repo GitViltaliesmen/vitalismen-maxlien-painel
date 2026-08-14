@@ -9,6 +9,7 @@ import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
+import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -171,6 +172,19 @@ export const explicitEcVslProductContextFromText = (text = '') => {
             vslEntryMessage: String(text || '').trim()
         };
     }
+    const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
+        .map(([variant, message]) => [variant, normalizeVslText(message)]);
+    const abMatch = normalizedMessages.find(([, message]) => value === message || value.startsWith(`${message} `));
+    if (abMatch) {
+        const [variant] = abMatch;
+        return {
+            ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
+            productSource: 'zapi_public_tex_ultra_entry',
+            vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
+            vslVariant: variant,
+            vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
+        };
+    }
     const currentMessage = EC_TEX_ULTRA_CURRENT_MESSAGES.find((message) => normalizeVslText(message) === value);
     if (currentMessage || /\btex ultra\b/.test(value)) {
         return {
@@ -183,19 +197,7 @@ export const explicitEcVslProductContextFromText = (text = '') => {
     }
     const activeProductContext = activeEcVslProductContextFromText(text);
     if (activeProductContext) return activeProductContext;
-    const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
-        .filter(([variant]) => variant === 'a')
-        .map(([variant, message]) => [variant, normalizeVslText(message)]);
-    const match = normalizedMessages.find(([, message]) => value === message || value.includes(message));
-    if (!match) return null;
-    const [variant] = match;
-    return {
-        ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
-        productSource: 'zapi_public_tex_ultra_entry',
-        vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
-        vslVariant: variant,
-        vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
-    };
+    return null;
 };
 
 export const ecTexUltraVslContextFromText = (text = '') => {
@@ -774,6 +776,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
     const vslProductContext = persistedVslProductContext || explicitTextProductContext;
+    const vslAttribution = vslRoutingAllowed
+        ? await claimMetaAttributionForInboundWhatsapp({
+            country: inferredCountry,
+            phone,
+            message: normalizedBody,
+            inboundAt: now
+        }).catch((error) => ({
+            ok: false,
+            skipped: true,
+            reason: 'attribution_bridge_error',
+            error: error.message || String(error)
+        }))
+        : { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
     const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
@@ -833,6 +848,20 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
         publicVslLeadEntry,
+        ...(vslAttribution.ok && vslAttribution.claimed ? {
+            vslVisitId: vslAttribution.visitId,
+            vslVisitorId: vslAttribution.visitorId,
+            vslSourceUrl: vslAttribution.sourceUrl,
+            metaAttributionBridge: {
+                source: 'zapi_exact_message_unique_120s',
+                confidence: vslAttribution.confidence,
+                claimedAt: vslAttribution.claimedAt
+            },
+            tracking: {
+                ...(targetState.metadata?.tracking || {}),
+                ...(vslAttribution.tracking || {})
+            }
+        } : {}),
         ...(vslProductContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
