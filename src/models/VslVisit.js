@@ -121,6 +121,20 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    attributionClaimedAt: Date,
+    attributionClaimSource: {
+        type: String,
+        default: ''
+    },
+    attributionClaimPhoneHash: {
+        type: String,
+        default: ''
+    },
+    attributionClaimMessageHash: {
+        type: String,
+        default: ''
+    },
+    attributionClaimInboundAt: Date,
     firstSeenAt: {
         type: Date,
         default: Date.now,
@@ -178,6 +192,7 @@ const vslVisitSchema = new mongoose.Schema({
 vslVisitSchema.index({ country: 1, firstSeenAt: -1 });
 vslVisitSchema.index({ country: 1, lastSeenAt: -1 });
 vslVisitSchema.index({ country: 1, assignedSeller: 1, lastClickAt: -1 });
+vslVisitSchema.index({ country: 1, lastClickAt: -1, attributionClaimedAt: -1 });
 
 const VslVisit = mongoose.model('VslVisit', vslVisitSchema);
 

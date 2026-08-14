@@ -9,6 +9,7 @@ import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
+import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -39,7 +40,6 @@ const firstPlainString = (...values) => values
 const countryFromPhone = (phone = '') => {
     const value = digits(phone);
     if (value.startsWith('593')) return 'EC';
-    if (value.startsWith('57')) return 'CO';
     if (value.startsWith('55')) return 'BR';
     return 'OTHER';
 };
@@ -172,6 +172,19 @@ export const explicitEcVslProductContextFromText = (text = '') => {
             vslEntryMessage: String(text || '').trim()
         };
     }
+    const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
+        .map(([variant, message]) => [variant, normalizeVslText(message)]);
+    const abMatch = normalizedMessages.find(([, message]) => value === message || value.startsWith(`${message} `));
+    if (abMatch) {
+        const [variant] = abMatch;
+        return {
+            ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
+            productSource: 'zapi_public_tex_ultra_entry',
+            vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
+            vslVariant: variant,
+            vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
+        };
+    }
     const currentMessage = EC_TEX_ULTRA_CURRENT_MESSAGES.find((message) => normalizeVslText(message) === value);
     if (currentMessage || /\btex ultra\b/.test(value)) {
         return {
@@ -184,19 +197,7 @@ export const explicitEcVslProductContextFromText = (text = '') => {
     }
     const activeProductContext = activeEcVslProductContextFromText(text);
     if (activeProductContext) return activeProductContext;
-    const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
-        .filter(([variant]) => variant === 'a')
-        .map(([variant, message]) => [variant, normalizeVslText(message)]);
-    const match = normalizedMessages.find(([, message]) => value === message || value.includes(message));
-    if (!match) return null;
-    const [variant] = match;
-    return {
-        ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
-        productSource: 'zapi_public_tex_ultra_entry',
-        vslTestId: EC_TEX_ULTRA_VSL_AB_TEST_ID,
-        vslVariant: variant,
-        vslEntryMessage: EC_TEX_ULTRA_VSL_AB_MESSAGES[variant]
-    };
+    return null;
 };
 
 export const ecTexUltraVslContextFromText = (text = '') => {
@@ -242,11 +243,6 @@ const zapiRawChatIdentifiers = (payload = {}) => [
     payload.data?.sender
 ].map((value) => String(value || '').trim()).filter(Boolean);
 
-// A unica instancia Z-API compartilhada entrega o webhook primeiro ao EC.
-// O dado comercial nao e compartilhado: contato +593 continua aqui e contato
-// +57 e encaminhado integralmente ao backend CO, que conserva seu proprio
-// banco, funil, pedido e painel. Se o CO estiver indisponivel, falhamos o
-// webhook para a Z-API repetir depois, em vez de gravar o cliente CO no EC.
 export const zapiPayloadCountry = (payload = {}) => {
     const candidates = [
         ...zapiRawChatIdentifiers(payload),
@@ -258,46 +254,14 @@ export const zapiPayloadCountry = (payload = {}) => {
     ];
     for (const candidate of candidates) {
         const country = countryFromPhone(candidate);
-        if (country === 'EC' || country === 'CO') return country;
+        if (country === 'EC') return country;
     }
     return countryFromPhone(zapiPhoneFromPayload(payload));
 };
 
-const coWebhookForwardUrl = () => String(process.env.ZAPI_CO_WEBHOOK_FORWARD_URL || '').trim();
-const coWebhookForwardTimeoutMs = () => {
-    const configured = Number.parseInt(String(process.env.ZAPI_CO_WEBHOOK_FORWARD_TIMEOUT_MS || '12000'), 10);
-    return Number.isFinite(configured) ? Math.min(30000, Math.max(3000, configured)) : 12000;
-};
-
-const forwardColombiaZapiWebhook = async (payload = {}) => {
-    if (zapiPayloadCountry(payload) !== 'CO') return { forwarded: false };
-    const url = coWebhookForwardUrl();
-    if (!url) {
-        const error = new Error('co_webhook_forward_not_configured');
-        error.statusCode = 503;
-        throw error;
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), coWebhookForwardTimeoutMs());
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Vitalismen-Webhook-Route': 'co'
-            },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        if (!response.ok) {
-            const error = new Error(`co_webhook_forward_http_${response.status}`);
-            error.statusCode = 502;
-            throw error;
-        }
-        return { forwarded: true, country: 'CO' };
-    } finally {
-        clearTimeout(timer);
-    }
+const isAllowedEcuadorInboundPayload = (payload = {}) => {
+    if (zapiPayloadCountry(payload) === 'EC') return true;
+    return authorizedVslTestRecipient(zapiPhoneFromPayload(payload));
 };
 
 const isLikelyWhatsAppGroupIdentifier = (value = '') => {
@@ -812,6 +776,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
     const vslProductContext = persistedVslProductContext || explicitTextProductContext;
+    const vslAttribution = vslRoutingAllowed
+        ? await claimMetaAttributionForInboundWhatsapp({
+            country: inferredCountry,
+            phone,
+            message: normalizedBody,
+            inboundAt: now
+        }).catch((error) => ({
+            ok: false,
+            skipped: true,
+            reason: 'attribution_bridge_error',
+            error: error.message || String(error)
+        }))
+        : { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
     const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
@@ -871,6 +848,20 @@ const recordZapiInboundPayload = async (payload = {}) => {
         zapiCapturedCountry: inferredCountry,
         zapiCapturedSource: publicVslLeadEntry ? 'public_vsl_whatsapp_entry' : 'connected_phone_inbound',
         publicVslLeadEntry,
+        ...(vslAttribution.ok && vslAttribution.claimed ? {
+            vslVisitId: vslAttribution.visitId,
+            vslVisitorId: vslAttribution.visitorId,
+            vslSourceUrl: vslAttribution.sourceUrl,
+            metaAttributionBridge: {
+                source: 'zapi_exact_message_unique_120s',
+                confidence: vslAttribution.confidence,
+                claimedAt: vslAttribution.claimedAt
+            },
+            tracking: {
+                ...(targetState.metadata?.tracking || {}),
+                ...(vslAttribution.tracking || {})
+            }
+        } : {}),
         ...(vslProductContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
@@ -1125,11 +1116,6 @@ export const classifyZapiGenericWebhookPayload = (payload = {}) => {
 router.post('/webhook/delivery', async (req, res) => {
     try {
         const payload = req.body || {};
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] delivery forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
-        }
         const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         res.json({ ok: true, result });
@@ -1142,16 +1128,15 @@ router.post('/webhook/delivery', async (req, res) => {
 router.post('/webhook', async (req, res) => {
     try {
         const payload = req.body || {};
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] event forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
-        }
         const classification = classifyZapiGenericWebhookPayload(payload);
         if (classification.kind === 'delivery') {
             const result = await applyZapiDeliveryPayload(payload);
             console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
             return res.json({ ok: true, result, routed: 'delivery' });
+        }
+        if (!isAllowedEcuadorInboundPayload(payload)) {
+            console.log('[ZAPI-WEBHOOK] inbound ignorado fora da operacao Ecuador');
+            return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
         const buyLaterReply = result.body
@@ -1187,15 +1172,14 @@ router.post('/webhook', async (req, res) => {
 router.post('/webhook/received', async (req, res) => {
     try {
         const payload = req.body || {};
-        const forwarded = await forwardColombiaZapiWebhook(payload);
-        if (forwarded.forwarded) {
-            console.log('[ZAPI-WEBHOOK] received forwarded to CO');
-            return res.json({ ok: true, routed: 'co_forward' });
-        }
         const providerMessageId = zapiMessageIdFromPayload(payload);
         const phone = zapiPhoneFromPayload(payload);
         const fromMe = zapiFromMeFromPayload(payload);
         if (!fromMe) {
+            if (!isAllowedEcuadorInboundPayload(payload)) {
+                console.log('[ZAPI-WEBHOOK] received ignorado fora da operacao Ecuador');
+                return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
+            }
             const result = await recordZapiInboundPayload(payload);
             const buyLaterReply = result.body
                 ? await handleBuyLaterConfirmationReply({

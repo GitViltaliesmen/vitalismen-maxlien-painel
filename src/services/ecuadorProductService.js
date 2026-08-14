@@ -187,6 +187,30 @@ export const resolveEcuadorProductInfo = (...values) => {
     return getEcuadorProductInfoByKey(productKey) || ECUADOR_PRODUCTS.nitrix;
 };
 
+export const selectEcuadorPanelProductInfo = ({
+    customerDraft = {},
+    order = null,
+    vslProductKey = '',
+    latestTexts = [],
+    metadata = {}
+} = {}) => {
+    // A ficha e' a fonte estruturada que recebe tanto a origem da VSL quanto
+    // uma escolha manual posterior do atendente. Texto livre so entra como
+    // fallback para nao trocar o produto por uma mencao casual na conversa.
+    const structuredCandidates = [
+        detectExplicitEcuadorProductKey(customerDraft || {}),
+        detectExplicitEcuadorProductKey(order || {}),
+        getEcuadorProductInfoByKey(vslProductKey)?.key || ''
+    ];
+    const structuredProductKey = structuredCandidates.find(Boolean);
+    if (structuredProductKey) return getEcuadorProductInfoByKey(structuredProductKey);
+
+    const latestTextProductKey = detectExplicitEcuadorProductKey(...latestTexts);
+    if (latestTextProductKey) return getEcuadorProductInfoByKey(latestTextProductKey);
+
+    return resolveEcuadorProductInfo(customerDraft || {}, metadata || {});
+};
+
 export const ecuadorPackageLabel = (productInfo, quantity) => {
     const product = productInfo?.name || ECUADOR_PRODUCTS.nitrix.name;
     const qty = Number(quantity || 0) || 0;
