@@ -1,0 +1,65 @@
+{
+  "freezeId": "ec-manual-product-dropi-hotfix-v8-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T11:44:16.0349730-03:00",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/ec-manual-product-dropi-hotfix-20260815",
+  "sourceBaselineCommit": "b53e575b832e28a970bf9c8165e2513e933c0890",
+  "publicationStatus": "authorized_pending_validated_release",
+  "parentFreezeIds": [
+    "tex-ultra-manual-history-metrics-v5-20260815"
+  ],
+  "supersededParentProtectedFiles": [
+    "src/index.js",
+    "public/qr.html"
+  ],
+  "manualProductPolicy": {
+    "currentDraftWins": true,
+    "conversationHistoryIsFallbackOnly": true,
+    "trackingMetadataFollowsCurrentDraft": true,
+    "dropiSafetyAcceptsStructuredManualSelection": true
+  },
+  "priceTable": {
+    "appliesToAllEcuadorProducts": true,
+    "original": [
+      "1:39.99",
+      "2:70.00",
+      "3:95.99",
+      "6:167.99"
+    ],
+    "promotional": [
+      "1:35.99",
+      "2:70.00",
+      "3:80.99",
+      "6:147.99"
+    ]
+  },
+  "dropiSession": {
+    "releaseLocalPathForbidden": true,
+    "relativeConfiguredPathIgnored": true,
+    "stableHomeDirectory": ".vitalismen-secrets",
+    "storageStateFile": "droppi-ec-storage.json"
+  },
+  "preservation": {
+    "automaticFunnelsUnchanged": true,
+    "audiosAndTimingUnchanged": true,
+    "dependenciesUnchanged": true,
+    "priorFreezesUnchanged": true,
+    "metaPurchaseV2NotIncluded": true,
+    "whatsappCallPolicyStage2ANotIncluded": true
+  },
+  "protectedFiles": {
+    "src/index.js": "a63d75e800eb9a57d68e9622fb92ba9b3701d96b46eb20d9b89405bb631ba222",
+    "public/qr.html": "f462eea87d03081581260940a7e03d553fbe306982f96bd1e7cebb09550ee732",
+    "src/routes/whatsapp.js": "7e9941d1c40bd9985ac69dcfe98757395cf160c9d5a15558be90105aa219e0ba",
+    "src/services/droppiEcuadorBrowserService.js": "8ce80419769fac02b0e9dd75618ea7543208d9084fc65b813d253458de84e381",
+    "scripts/save-dropi-session.mjs": "9e5f8d196b39cb2250cdee4ebdc2bdc81b4f7e3d8fb939396ef7b9efc54059c0",
+    "tests/ec-manual-product-dropi-hotfix.test.mjs": "730db97d069d8ce4409c74aeb4c71b82cf966c47d253496252c5e6f0ba8a83ca",
+    "src/services/texUltraApprovedFreezeRuntimeGuardV8.js": "727ba334bde3ce2fe62cc63919d5c06300aff4f0714ecc900d81a690e801e49f",
+    "scripts/guard-ec-manual-product-dropi-hotfix-v8.mjs": "eee11bac9ede92cf9e9fb02ee1fc9537c4c7c38cdba1106a7fc3d777f2065846",
+    "package.json": "04c9b25fcca0d8ba735c9ce9b731d86d2e0efc36ade3e1a39bd7c270c6ccf5c9",
+    "docs/EC_MANUAL_PRODUCT_DROPI_HOTFIX_FREEZE_V8_20260815.md": "e6609019939da01145d12fccc78462170092da6c6b7f1fd271857dd2ce908350"
+  }
+}

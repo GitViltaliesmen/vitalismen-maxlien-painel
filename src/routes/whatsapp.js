@@ -36,6 +36,7 @@ import {
     ECUADOR_PRODUCTS,
     detectExplicitEcuadorProductKey,
     ecuadorPackageLabel,
+    ecuadorProductMetadata,
     resolveEcuadorProductInfo,
     selectEcuadorPanelProductInfo
 } from '../services/ecuadorProductService.js';
@@ -2104,6 +2105,14 @@ const panelProductContextForChat = async ({ contactState = null, order = null, c
 };
 
 const inferProductInfoForDraft = async ({ draft = {}, state = null } = {}) => {
+    // A escolha estruturada feita pelo operador na ficha atual e autoritativa.
+    // Historico de conversa so pode servir de fallback quando a ficha nao
+    // informa produto algum.
+    const explicitDraftProductKey = detectExplicitEcuadorProductKey(draft);
+    if (explicitDraftProductKey) {
+        return resolveEcuadorProductInfo({ productKey: explicitDraftProductKey });
+    }
+
     const directProduct = resolveEcuadorProductInfo(
         draft,
         state?.metadata?.customerDraft || {},
@@ -2190,7 +2199,9 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         tracking: {
             ...(order?.tracking || {}),
             ip: order?.tracking?.ip || req?.ip || '',
-            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || ''
+            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || '',
+            productSelectionSource: 'manual_customer_draft',
+            ...ecuadorProductMetadata(productInfo)
         }
     };
     if (order) {

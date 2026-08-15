@@ -17,8 +17,18 @@ import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
 const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
-const STORAGE_STATE_PATH = process.env.DROPPI_EC_STORAGE_STATE_PATH
-    || path.join(process.cwd(), '.local', 'droppi-ec-storage.json');
+const DEFAULT_STORAGE_STATE_PATH = path.join(
+    process.env.HOME || process.cwd(),
+    '.vitalismen-secrets',
+    'droppi-ec-storage.json'
+);
+const CONFIGURED_STORAGE_STATE_PATH = String(process.env.DROPPI_EC_STORAGE_STATE_PATH || '').trim();
+const STORAGE_STATE_PATH = CONFIGURED_STORAGE_STATE_PATH && path.isAbsolute(CONFIGURED_STORAGE_STATE_PATH)
+    ? CONFIGURED_STORAGE_STATE_PATH
+    : DEFAULT_STORAGE_STATE_PATH;
+if (CONFIGURED_STORAGE_STATE_PATH && !path.isAbsolute(CONFIGURED_STORAGE_STATE_PATH)) {
+    console.warn('[DROPI-EC] DROPPI_EC_STORAGE_STATE_PATH relativo ignorado; usando caminho persistente fora do release.');
+}
 const TOTP_SECRET_FILE_PATH = process.env.DROPI_TOTP_SECRET_FILE
     || process.env.DROPPI_TOTP_SECRET_FILE
     || path.join(process.env.HOME || process.cwd(), '.vitalismen-secrets', 'dropi-2fa.env');
@@ -2653,7 +2663,8 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
         order?.notes,
         shipment?.notes,
         shipment?.raw?.productSelection?.productKey
-    ].filter(Boolean).join(' | '));
+    ].filter(Boolean).join(' | '))
+        || order?.tracking?.productSelectionSource === 'manual_customer_draft';
     if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key && !hasPanelProductSelection) {
         return {
             ok: false,

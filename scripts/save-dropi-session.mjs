@@ -19,7 +19,9 @@ const config = {
     ordersUrl: process.env.DROPPI_EC_ORDERS_URL || 'https://app.dropi.ec/dashboard/orders',
     email: process.env.DROPI_EC_EMAIL || '',
     password: process.env.DROPI_EC_PASSWORD || '',
-    storageStatePath: process.env.DROPPI_EC_STORAGE_STATE_PATH || path.join(process.cwd(), '.local', 'droppi-ec-storage.json')
+    storageStatePath: process.env.DROPPI_EC_STORAGE_STATE_PATH && path.isAbsolute(process.env.DROPPI_EC_STORAGE_STATE_PATH)
+        ? process.env.DROPPI_EC_STORAGE_STATE_PATH
+        : path.join(process.env.HOME || process.cwd(), '.vitalismen-secrets', 'droppi-ec-storage.json')
 };
 
 if (!manualLogin && (!config.email || !config.password)) {
