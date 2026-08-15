@@ -10917,11 +10917,10 @@
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
-            const unansweredChats = visibleChats.filter((chat) => Number(chat.unansweredCount || 0) > 0).length;
             const readChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) === 0).length;
             const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
-            const newActionableChats = visibleChats.filter((chat) => (
-                Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat)
+            const newUnreadChats = visibleChats.filter((chat) => (
+                Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat)
             )).length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
@@ -10931,11 +10930,11 @@
             el('markVisibleReadBtn')?.setAttribute('title', unreadChats > 0
                 ? `Marcar como lidas ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} antiga${unreadTotal === 1 ? '' : 's'} em ${unreadChats} conversa${unreadChats === 1 ? '' : 's'}, sem apagar o historico`
                 : 'Nao ha mensagens antigas para marcar como lidas');
-            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newActionableChats > 99 ? '99+' : String(newActionableChats);
-            el('newMessagesFilterBtn')?.classList.toggle('has-unread', newActionableChats > 0);
-            el('newMessagesFilterBtn')?.setAttribute('title', newActionableChats
-                ? `${newActionableChats} cliente${newActionableChats === 1 ? '' : 's'} sem atendimento (${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL e ${unansweredChats} com mensagem para responder)`
-                : 'Nenhum cliente sem atendimento');
+            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newUnreadChats > 99 ? '99+' : String(newUnreadChats);
+            el('newMessagesFilterBtn')?.classList.toggle('has-unread', newUnreadChats > 0);
+            el('newMessagesFilterBtn')?.setAttribute('title', newUnreadChats
+                ? `${newUnreadChats} conversa${newUnreadChats === 1 ? '' : 's'} nova${newUnreadChats === 1 ? '' : 's'} (${unreadChats} com mensagem nao lida e ${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL aguardando atendimento)`
+                : 'Nenhuma mensagem nova');
             if (el('chatReadTabCount')) el('chatReadTabCount').textContent = readChats > 99 ? '99+' : String(readChats);
             el('readMessagesFilterBtn')?.classList.toggle('has-read', readChats > 0);
             el('readMessagesFilterBtn')?.setAttribute('title', unreadChats > 0
@@ -11145,7 +11144,7 @@
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (state.chatFilter === 'unread' && !(Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
+                if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
                 if (state.chatFilter === 'read' && Number(chat.unreadCount || 0) > 0) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
