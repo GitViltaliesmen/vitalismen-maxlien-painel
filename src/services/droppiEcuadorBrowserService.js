@@ -2790,6 +2790,13 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             ...(dropiOrderId ? { id: dropiOrderId } : {}),
             ...(trackingNumber ? { sticker: trackingNumber } : {})
         };
+        const latestDroppiPayload = {
+            ...(latestShipment?.raw?.latestDroppiPayload || {}),
+            status: 'submitted',
+            dropiOrderId,
+            trackingNumber,
+            submittedAt: submittedAt.toISOString()
+        };
 
         await Shipment.updateOne(
             { _id: shipment._id },
@@ -2805,7 +2812,8 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
                     'logistics.chosenCarrier': result.chosenCarrier,
                     'logistics.distributionCompany': result.dropiResponse?.objects?.shipping_company || result.chosenCarrier || '',
                     ...(trackingNumber ? { 'logistics.trackingNumber': trackingNumber } : {}),
-                    'raw.droppiOrder': Object.keys(dropiOrderObject).length ? dropiOrderObject : null
+                    'raw.droppiOrder': Object.keys(dropiOrderObject).length ? dropiOrderObject : null,
+                    'raw.latestDroppiPayload': latestDroppiPayload
                 },
                 $push: {
                     events: {

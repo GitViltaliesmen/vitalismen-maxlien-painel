@@ -34,6 +34,12 @@ test('seguranca Dropi reconhece escolha estruturada da ficha sem impor mensagem 
     assert.match(service, /order\?\.tracking\?\.productSelectionSource === 'manual_customer_draft'/);
 });
 
+test('envio confirmado atualiza tambem o espelho legado de submissao Dropi', () => {
+    const service = read('src/services/droppiEcuadorBrowserService.js');
+    assert.match(service, /status: 'submitted',[\s\S]*?dropiOrderId,[\s\S]*?trackingNumber,[\s\S]*?submittedAt: submittedAt\.toISOString\(\)/);
+    assert.match(service, /'raw\.latestDroppiPayload': latestDroppiPayload/);
+});
+
 test('sessao Dropi usa caminho persistente fora do release e ignora configuracao relativa', () => {
     const service = read('src/services/droppiEcuadorBrowserService.js');
     const sessionScript = read('scripts/save-dropi-session.mjs');

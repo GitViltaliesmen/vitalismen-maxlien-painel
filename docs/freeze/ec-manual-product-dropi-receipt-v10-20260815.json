@@ -1,0 +1,41 @@
+{
+  "freezeId": "ec-manual-product-dropi-receipt-v10-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T12:00:43.8298765-03:00",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/ec-manual-product-dropi-hotfix-20260815",
+  "parentFreezeIds": [
+    "ec-manual-product-dropi-security-v9-20260815"
+  ],
+  "supersededParentProtectedFiles": [
+    "src/index.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "tests/ec-manual-product-dropi-hotfix.test.mjs",
+    "package.json"
+  ],
+  "dropiReceipt": {
+    "latestPayloadStatus": "submitted",
+    "dropiOrderIdRequired": true,
+    "preservesOriginalPayload": true,
+    "preventsLegacyDuplicatePresentation": true
+  },
+  "preservation": {
+    "v9BehaviorUnchanged": true,
+    "productPolicyUnchanged": true,
+    "priceTableUnchanged": true,
+    "sessionPermissionsUnchanged": true,
+    "customerDataUnchanged": true,
+    "dependenciesUnchanged": true
+  },
+  "protectedFiles": {
+    "src/index.js": "8cfbebfccd36b20e8e21ce63ab3b38cf77812c4716523e482734086a75ce40dd",
+    "src/services/droppiEcuadorBrowserService.js": "26a765c586b4170bcc9e38abaccada4e2759525c687eda9350c4c165d06e8a3d",
+    "tests/ec-manual-product-dropi-hotfix.test.mjs": "62947901cca4c0186bac999f6fe8b44179f869b83765b26617428e77ff7d83bb",
+    "package.json": "ceda828a667ce7da65ed676e615d83716c28c93ab87a48b581d662fa8cfdecf4",
+    "src/services/texUltraApprovedFreezeRuntimeGuardV10.js": "df39a5af51c1903b0d322570ce3d58d6ca7e354e2fd5343bcbd4fc0f5d71688a",
+    "scripts/guard-ec-manual-product-dropi-receipt-v10.mjs": "71f5a1ac83330acf42fad3a6c2470ffe9355c8a283fa4a1e1bff5e35f334873b",
+    "docs/EC_MANUAL_PRODUCT_DROPI_RECEIPT_FREEZE_V10_20260815.md": "29e8d10599a5767ea3b9c9d7285ead7ee60e45877345cd2765408bbbcff4ef80"
+  }
+}
