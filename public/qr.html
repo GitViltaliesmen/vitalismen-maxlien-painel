@@ -4030,6 +4030,37 @@
             display: inline-block;
         }
 
+        .mark-visible-read-btn {
+            display: none;
+            align-items: center;
+            min-height: 26px;
+            border: 1px solid #a7d7c9;
+            border-radius: 999px;
+            background: #ecfdf5;
+            color: #06735f;
+            padding: 3px 9px;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .mark-visible-read-btn.has-unread {
+            display: inline-flex;
+        }
+
+        .mark-visible-read-btn:hover:not(:disabled),
+        .mark-visible-read-btn:focus-visible {
+            border-color: #00a884;
+            background: #dff8ef;
+            outline: none;
+        }
+
+        .mark-visible-read-btn:disabled {
+            cursor: wait;
+            opacity: .65;
+        }
+
         .contact-pane .wa-card .meta {
             display: none;
         }
@@ -7271,6 +7302,7 @@
                                 <span>conversas</span>
                                 <em id="chatUnreadCounterValue">0</em>
                             </span>
+                            <button id="markVisibleReadBtn" class="mark-visible-read-btn" type="button" title="Marca como lidas as mensagens antigas visiveis, sem apagar conversas">✓ Marcar lidas</button>
                         </div>
                     </div>
                     <img id="qrcode" class="qr-image" src="" alt="QR Code WhatsApp">
@@ -10895,6 +10927,10 @@
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
             el('chatTotalCounter')?.setAttribute('title', `${visibleChats.length} conversa${visibleChats.length === 1 ? '' : 's'} visiveis${unreadTotal ? ` | ${unreadTotal} nao lida${unreadTotal === 1 ? '' : 's'}` : ''}`);
+            el('markVisibleReadBtn')?.classList.toggle('has-unread', unreadChats > 0);
+            el('markVisibleReadBtn')?.setAttribute('title', unreadChats > 0
+                ? `Marcar como lidas ${unreadTotal} mensagem${unreadTotal === 1 ? '' : 'ns'} antiga${unreadTotal === 1 ? '' : 's'} em ${unreadChats} conversa${unreadChats === 1 ? '' : 's'}, sem apagar o historico`
+                : 'Nao ha mensagens antigas para marcar como lidas');
             if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newActionableChats > 99 ? '99+' : String(newActionableChats);
             el('newMessagesFilterBtn')?.classList.toggle('has-unread', newActionableChats > 0);
             el('newMessagesFilterBtn')?.setAttribute('title', newActionableChats
@@ -13552,6 +13588,63 @@
                 method: 'POST',
                 body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
             }).catch(() => null);
+        };
+
+        const markVisibleChatsRead = async () => {
+            if (!state.token) {
+                showToast('Entre no painel para marcar mensagens como lidas');
+                return;
+            }
+            const unreadChats = visibleOperationalChats().filter((chat) => Number(chat.unreadCount || 0) > 0);
+            const unreadMessages = unreadChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
+            if (!unreadChats.length) {
+                showToast('Nao ha mensagens antigas para marcar como lidas');
+                return;
+            }
+            const confirmed = window.confirm(
+                `Marcar ${unreadMessages} mensagem${unreadMessages === 1 ? '' : 'ns'} antiga${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}?\n\n`+
+                'Nenhuma conversa sera apagada. Clientes pendentes continuarao em Pendentes e mensagens novas voltarao a aparecer como nao lidas.'
+            );
+            if (!confirmed) return;
+
+            const button = el('markVisibleReadBtn');
+            const originalLabel = button?.textContent || '✓ Marcar lidas';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Marcando...';
+            }
+            let markedChats = 0;
+            let failedChats = 0;
+            try {
+                for (let index = 0; index < unreadChats.length; index += 6) {
+                    const batch = unreadChats.slice(index, index + 6);
+                    const results = await Promise.allSettled(batch.map((chat) => api('/api/whatsapp/chats/read', {
+                        method: 'POST',
+                        body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
+                    })));
+                    results.forEach((result, resultIndex) => {
+                        if (result.status === 'fulfilled') {
+                            batch[resultIndex].unreadCount = 0;
+                            markedChats += 1;
+                        } else {
+                            failedChats += 1;
+                        }
+                    });
+                    renderChats();
+                }
+                await loadChats().catch(() => null);
+                if (failedChats) {
+                    showToast(`${markedChats} conversa(s) marcada(s); ${failedChats} nao puderam ser atualizadas`);
+                } else {
+                    showToast(`${unreadMessages} mensagem${unreadMessages === 1 ? '' : 'ns'} antiga${unreadMessages === 1 ? '' : 's'} marcada${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}, sem apagar o historico`);
+                }
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalLabel;
+                }
+                renderOperationalMetrics();
+            }
         };
 
         async function loadSelectedMessages(options = {}) {
@@ -18560,6 +18653,7 @@
 
         el('logoutBtn').addEventListener('click', () => setAuth(''));
         el('refreshBtn').addEventListener('click', refreshAll);
+        el('markVisibleReadBtn')?.addEventListener('click', () => markVisibleChatsRead().catch((error) => showToast(error.message)));
         el('opsAlertBtn')?.addEventListener('click', (event) => {
             event.stopPropagation();
             state.opsAlertOpen = !state.opsAlertOpen;
