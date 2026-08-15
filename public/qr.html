@@ -5084,38 +5084,112 @@
             left: 0;
             right: 0;
             bottom: calc(100% + 6px);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            display: flex;
+            align-items: stretch;
             gap: 8px;
-            max-height: min(430px, 66vh);
-            padding: 10px;
-            overflow: auto;
+            padding: 10px 10px 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-inline: contain;
+            scroll-behavior: smooth;
+            scroll-snap-type: inline proximity;
+            scrollbar-color: #00a884 #e2e8f0;
+            scrollbar-width: thin;
             border: 1px solid #cbd5e1;
             border-radius: 14px;
             background: #fff;
             box-shadow: 0 16px 36px rgba(15, 23, 42, 0.24);
         }
 
-        .sales-quick-funnel-group {
+        .sales-quick-funnel-menu::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .sales-quick-funnel-menu::-webkit-scrollbar-track {
+            border-radius: 999px;
+            background: #e2e8f0;
+        }
+
+        .sales-quick-funnel-menu::-webkit-scrollbar-thumb {
+            border: 2px solid #e2e8f0;
+            border-radius: 999px;
+            background: #00a884;
+        }
+
+        .sales-quick-funnel-product {
             display: grid;
-            align-content: start;
-            gap: 6px;
+            grid-template-columns: 74px minmax(104px, 1fr);
+            align-items: center;
+            gap: 9px;
+            flex: 0 0 206px;
             min-width: 0;
+            margin: 0;
             padding: 8px;
+            scroll-snap-align: start;
+            border: 1px solid #99d8bf;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #e0f2fe 100%);
+        }
+
+        .sales-quick-funnel-product img {
+            display: block;
+            width: 74px;
+            height: 96px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #dff5fa;
+        }
+
+        .sales-quick-funnel-product figcaption {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+            color: #075e54;
+        }
+
+        .sales-quick-funnel-product strong {
+            font-size: 13px;
+            line-height: 1.1;
+        }
+
+        .sales-quick-funnel-product span {
+            color: #475569;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .sales-quick-funnel-group {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            flex: 0 0 auto;
+            min-width: max-content;
+            padding: 32px 8px 8px;
+            scroll-snap-align: start;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
             background: #f8fafc;
         }
 
         .sales-quick-funnel-group h4 {
+            position: absolute;
+            top: 9px;
+            left: 9px;
+            right: 9px;
             margin: 0;
             color: #0f172a;
             font-size: 11px;
+            line-height: 1.1;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
-        .sales-quick-funnel-group button {
-            min-height: 34px;
+        .composer .sales-quick-funnel-group button {
+            flex: 0 0 122px;
+            width: 122px;
+            min-height: 64px;
             padding: 6px 8px;
             border: 1px solid #b8c3cc;
             border-radius: 8px;
@@ -5124,16 +5198,17 @@
             font-size: 11px;
             font-weight: 800;
             line-height: 1.2;
-            text-align: left;
+            text-align: center;
+            white-space: normal;
         }
 
-        .sales-quick-funnel-group button:hover:not(:disabled) {
+        .composer .sales-quick-funnel-group button:hover:not(:disabled) {
             border-color: #00a884;
             background: #ecfdf5;
             color: #075e54;
         }
 
-        .sales-quick-funnel-group button:disabled {
+        .composer .sales-quick-funnel-group button:disabled {
             opacity: 0.46;
             cursor: not-allowed;
         }
@@ -5143,7 +5218,9 @@
             border-color: #fed7aa;
         }
 
-        .sales-quick-funnel-group.offer button {
+        .composer .sales-quick-funnel-group.offer button {
+            flex-basis: 154px;
+            width: 154px;
             border-color: #fdba74;
             background: #fff;
             color: #9a3412;
@@ -5151,7 +5228,35 @@
 
         @media (max-width: 700px) {
             .sales-quick-funnel-menu {
-                grid-template-columns: minmax(0, 1fr);
+                gap: 6px;
+                padding: 8px 8px 10px;
+            }
+
+            .sales-quick-funnel-product {
+                grid-template-columns: 58px minmax(92px, 1fr);
+                flex-basis: 174px;
+                gap: 7px;
+                padding: 7px;
+            }
+
+            .sales-quick-funnel-product img {
+                width: 58px;
+                height: 76px;
+            }
+
+            .sales-quick-funnel-group {
+                padding-top: 30px;
+            }
+
+            .composer .sales-quick-funnel-group button {
+                flex-basis: 108px;
+                width: 108px;
+                min-height: 58px;
+            }
+
+            .composer .sales-quick-funnel-group.offer button {
+                flex-basis: 138px;
+                width: 138px;
             }
         }
 
@@ -7590,7 +7695,14 @@
                             <strong id="salesQuickFunnelTitle">Selecione um cliente Tex Ultra EC</strong>
                             <em>revisar</em>
                         </summary>
-                        <div class="sales-quick-funnel-menu" aria-label="Atalhos manuais do Tex Ultra Ecuador">
+                        <div class="sales-quick-funnel-menu" aria-label="Atalhos manuais do Tex Ultra Ecuador" tabindex="0" title="Role horizontalmente para ver todos os atalhos">
+                            <figure class="sales-quick-funnel-product">
+                                <img src="/media/sales/ec/tex_ultra.png" alt="Frasco do Tex Ultra Ecuador">
+                                <figcaption>
+                                    <strong>Tex Ultra</strong>
+                                    <span>Funil manual · Ecuador</span>
+                                </figcaption>
+                            </figure>
                             <section class="sales-quick-funnel-group">
                                 <h4>Nome</h4>
                                 <button data-sales-quick-template="name_1" type="button" disabled title="¿Cuál es su nombre completo, por favor?">Nome 1</button>
