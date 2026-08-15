@@ -7291,8 +7291,8 @@
                 </div>
 
                 <div class="tabs">
-                    <button class="active" data-chat-filter="all" type="button">Tudo</button>
-                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
+                    <button data-chat-filter="all" type="button">Tudo</button>
+                    <button id="newMessagesFilterBtn" class="active" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
@@ -8296,7 +8296,7 @@
             lastQrAt: 0,
             selectedChat: null,
             customerProfile: null,
-            chatFilter: 'all',
+            chatFilter: 'unread',
             activeModule: 'all',
             dashboardMetrics: null,
             chatSignature: '',
