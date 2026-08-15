@@ -692,7 +692,7 @@ const scheduleVslFirstResponseWatchdog = (result = {}) => {
     }, delayMs).unref?.();
 };
 
-const recordZapiInboundPayload = async (payload = {}) => {
+const recordZapiInboundPayload = async (payload = {}, { observationOnly = false } = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);
     const providerZaapId = zapiZaapIdFromPayload(payload);
     const phone = zapiPhoneFromPayload(payload);
@@ -761,6 +761,21 @@ const recordZapiInboundPayload = async (payload = {}) => {
         },
         { upsert: true }
     );
+    if (observationOnly) {
+        return {
+            recorded: true,
+            observationOnly: true,
+            phone,
+            chatId,
+            type: effectiveType,
+            providerMessageId,
+            providerZaapId,
+            messageId,
+            body: normalizedBody,
+            bodyLength: normalizedBody.length,
+            routeToBot: false
+        };
+    }
     const readInference = await markPreviousOutboundReadFromCustomerReply({ chatId, phone, inboundAt: now });
 
     const state = await ContactState.findOne({
@@ -1180,9 +1195,10 @@ router.post('/webhook', async (req, res) => {
             console.log('[ZAPI-WEBHOOK] inbound ignorado fora da operacao Ecuador');
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
-        const result = await recordZapiInboundPayload(payload);
         const cutoverPolicy = whatsappWebCutoverPolicy();
-        if (!cutoverPolicy.canProcessZapiInbound(result.phone, getAllStatuses())) {
+        const observationOnly = !cutoverPolicy.canProcessZapiInbound(zapiPhoneFromPayload(payload), getAllStatuses());
+        const result = await recordZapiInboundPayload(payload, { observationOnly });
+        if (result.observationOnly) {
             console.log(`[ZAPI-WEBHOOK] inbound preservado somente para observacao | mode=${cutoverPolicy.mode} | phone=${result.phone || ''}`);
             return res.json({ ok: true, result, routed: 'inbound_observed_only' });
         }
@@ -1227,9 +1243,10 @@ router.post('/webhook/received', async (req, res) => {
                 console.log('[ZAPI-WEBHOOK] received ignorado fora da operacao Ecuador');
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
-            const result = await recordZapiInboundPayload(payload);
             const cutoverPolicy = whatsappWebCutoverPolicy();
-            if (!cutoverPolicy.canProcessZapiInbound(result.phone, getAllStatuses())) {
+            const observationOnly = !cutoverPolicy.canProcessZapiInbound(zapiPhoneFromPayload(payload), getAllStatuses());
+            const result = await recordZapiInboundPayload(payload, { observationOnly });
+            if (result.observationOnly) {
                 console.log(`[ZAPI-WEBHOOK] inbound preservado somente para observacao | mode=${cutoverPolicy.mode} | phone=${result.phone || phone || ''}`);
                 return res.json({ ok: true, result, routed: 'inbound_observed_only' });
             }
