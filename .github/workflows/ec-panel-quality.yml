@@ -1,0 +1,77 @@
+name: EC panel quality gate
+
+on:
+  pull_request:
+    paths:
+      - public/qr.html
+      - public/panel-intelligence/**
+      - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/audit-ec-tex-ultra-isolation.mjs
+      - tests/customer-form-intelligence.test.cjs
+      - package.json
+      - .github/workflows/ec-panel-quality.yml
+  push:
+    branches:
+      - main
+      - codex/**
+    paths:
+      - public/qr.html
+      - public/panel-intelligence/**
+      - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/audit-ec-tex-ultra-isolation.mjs
+      - tests/customer-form-intelligence.test.cjs
+      - package.json
+      - .github/workflows/ec-panel-quality.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ec-panel-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  customer-form:
+    name: Customer form, Ecuador-only and Tex Ultra
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout audited commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Verify tracked audit inputs
+        shell: bash
+        run: |
+          git ls-files --error-unmatch \
+            public/qr.html \
+            public/panel-intelligence/customer-data-normalizer.js \
+            public/panel-intelligence/conversation-data-extractor.js \
+            public/panel-intelligence/agency-catalog.js \
+            public/panel-intelligence/customer-form-intelligence.js \
+            scripts/audit-ec-panel-smart-customer.mjs \
+            tests/customer-form-intelligence.test.cjs
+
+      - name: Run deterministic customer-form tests
+        run: npm run test:customer-form
+
+      - name: Preserve Tex Ultra approved layer
+        run: node scripts/audit-ec-tex-ultra-isolation.mjs
+
+      - name: Reject whitespace errors
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$PR_BASE_SHA" ]]; then
+            git diff --check "$PR_BASE_SHA"...HEAD
+          else
+            git show --check --oneline HEAD
+          fi

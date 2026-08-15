@@ -25,6 +25,7 @@
         "test:nitrix-two-audio-entry": "node scripts/test-nitrix-two-audio-entry.mjs",
         "guard:ec-product-micro-layer": "node scripts/audit-ec-product-micro-layer.mjs",
         "guard:ec-tex-ultra": "node scripts/audit-ec-tex-ultra-isolation.mjs",
+        "test:customer-form": "node tests/customer-form-intelligence.test.cjs && node scripts/audit-ec-panel-smart-customer.mjs",
         "guard:guide-print-spam": "node scripts/audit-guide-print-spam-guard.mjs",
         "freeze:ec": "node scripts/freeze-ec-layer.mjs",
         "learning:whatsapp": "node scripts/analyze-whatsapp-funnel-learning.mjs",
