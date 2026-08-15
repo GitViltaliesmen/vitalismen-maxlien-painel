@@ -14,7 +14,7 @@ const requiredBaseEnv = {
     PENDING_CHECKOUT_FOLLOWUP_ENABLED: 'false',
     OBSERVER_OPENAI_ENABLED: 'true',
     BOT_USE_APPROVED_AUDIO_ONLY: 'true',
-    WHATSAPP_AUTO_REJECT_CALLS: 'true'
+    WHATSAPP_AUTO_REJECT_CALLS: 'false'
 };
 
 const requiredObservationEnv = {

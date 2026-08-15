@@ -1,0 +1,40 @@
+{
+  "freezeId": "whatsapp-auto-reject-policy-v14-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T13:29:04-03:00",
+  "country": "EC",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/whatsapp-auto-reject-policy-v14-20260815",
+  "sourceParentCommit": "f8734e87b6f75a4c97c4988bf495d2ac09bc1c87",
+  "parentFreezeIds": [
+    "ec-product-funnel-isolation-v13-20260815"
+  ],
+  "publicationStatus": "not_published",
+  "policy": {
+    "environmentVariable": "WHATSAPP_AUTO_REJECT_CALLS",
+    "approvedValue": "false",
+    "rejectCallWhenFalse": false,
+    "sendAudioWhenFalse": false,
+    "sendTextWhenFalse": false,
+    "recordAutomaticReplyWhenFalse": false
+  },
+  "preservation": {
+    "priorFreezeManifestsUnchanged": true,
+    "executionCodeUnchanged": true,
+    "productionEnvironmentUnchanged": true,
+    "customerDataUnchanged": true,
+    "databaseUnchanged": true,
+    "dependenciesUnchanged": true,
+    "dropiMetaZapiUnchanged": true,
+    "noRealMessageSent": true,
+    "vpsUnchanged": true
+  },
+  "protectedFiles": {
+    ".env.example": "d2dcb6a34bdb8525b083d317faab90c737035a4ab5651e4717e03ee94b80679a",
+    "scripts/official-state-audit.mjs": "94c627f80aed03b99867bfb6f3c440161ec12a5781813411734b8a78accdc7d9",
+    "src/whatsapp/connection.js": "a2133ffb019acc0a1af2357465a3d0ad1d6258895984d6fce3e382b9d2d4b751",
+    "docs/WHATSAPP_AUTO_REJECT_POLICY_FREEZE_V14_20260815.md": "ac834ca71f157dc10bf621169d5074031c6483eabafb05a0652e302f8644e75f",
+    "docs/freeze/ec-product-funnel-isolation-v13-20260815.json": "be4d7363662b1a9f85c927da366d7c2cedc9beb61c3b56dee5f02173e499575d",
+    "docs/EC_PRODUCT_FUNNEL_ISOLATION_FREEZE_V13_20260815.md": "c8c6f14df485347afcb405ec87e4f5667056427426a37b365acc288e950d709c"
+  }
+}
