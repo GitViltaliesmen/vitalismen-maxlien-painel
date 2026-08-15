@@ -10929,7 +10929,7 @@
             el('chatTotalCounter')?.setAttribute('title', `${visibleChats.length} conversa${visibleChats.length === 1 ? '' : 's'} visiveis${unreadTotal ? ` | ${unreadTotal} nao lida${unreadTotal === 1 ? '' : 's'}` : ''}`);
             el('markVisibleReadBtn')?.classList.toggle('has-unread', unreadChats > 0);
             el('markVisibleReadBtn')?.setAttribute('title', unreadChats > 0
-                ? `Marcar como lidas ${unreadTotal} mensagem${unreadTotal === 1 ? '' : 'ns'} antiga${unreadTotal === 1 ? '' : 's'} em ${unreadChats} conversa${unreadChats === 1 ? '' : 's'}, sem apagar o historico`
+                ? `Marcar como lidas ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} antiga${unreadTotal === 1 ? '' : 's'} em ${unreadChats} conversa${unreadChats === 1 ? '' : 's'}, sem apagar o historico`
                 : 'Nao ha mensagens antigas para marcar como lidas');
             if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newActionableChats > 99 ? '99+' : String(newActionableChats);
             el('newMessagesFilterBtn')?.classList.toggle('has-unread', newActionableChats > 0);
@@ -13602,7 +13602,7 @@
                 return;
             }
             const confirmed = window.confirm(
-                `Marcar ${unreadMessages} mensagem${unreadMessages === 1 ? '' : 'ns'} antiga${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}?\n\n`+
+                `Marcar ${unreadMessages} mensagen${unreadMessages === 1 ? 'm' : 's'} antiga${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}?\n\n`+
                 'Nenhuma conversa sera apagada. Clientes pendentes continuarao em Pendentes e mensagens novas voltarao a aparecer como nao lidas.'
             );
             if (!confirmed) return;
@@ -13636,7 +13636,7 @@
                 if (failedChats) {
                     showToast(`${markedChats} conversa(s) marcada(s); ${failedChats} nao puderam ser atualizadas`);
                 } else {
-                    showToast(`${unreadMessages} mensagem${unreadMessages === 1 ? '' : 'ns'} antiga${unreadMessages === 1 ? '' : 's'} marcada${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}, sem apagar o historico`);
+                    showToast(`${unreadMessages} mensagen${unreadMessages === 1 ? 'm' : 's'} antiga${unreadMessages === 1 ? '' : 's'} marcada${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}, sem apagar o historico`);
                 }
             } finally {
                 if (button) {
