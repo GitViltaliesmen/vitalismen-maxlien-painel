@@ -58,10 +58,17 @@ test('pedido antigo do Angel fica historico e um pedido novo fica ligado a negoc
     const angel = {
         orderId: 'EC-ADMIN-3338',
         status: 'atendendo',
-        tags: ['ANTIGO', 'CLIENTE ANTIGO'],
-        currentNegotiationOrderId: ''
+        tags: ['ZAPI_INBOUND_CAPTURED', 'PANEL_UNIFIED_IMPORTED', 'admin:atendendo', 'manual:atendimento_iniciado'],
+        currentNegotiationOrderId: '',
+        legacyEntry: true
     };
     assert.equal(policy.historicalOrderId(angel), 'EC-ADMIN-3338');
+    assert.equal(policy.isAdministrativeOrderId(angel.orderId), true);
+    assert.equal(policy.historicalOrderId({ ...angel, legacyEntry: false }), '');
+    assert.equal(policy.historicalOrderId({
+        ...angel,
+        currentNegotiationOrderId: 'EC-ADMIN-3338'
+    }), '');
     assert.equal(policy.historicalOrderId({
         ...angel,
         orderId: 'EC-NEW-1',
@@ -77,6 +84,8 @@ test('pedido antigo do Angel fica historico e um pedido novo fica ligado a negoc
 
     const html = fs.readFileSync(panelPath, 'utf8');
     assert.match(html, /customer-order-policy\.js/);
+    assert.match(html, /legacyEntry: chatEntryInfo\(chat\)\.className === 'old'/);
+    assert.match(html, /importedHistoricalLead/);
     assert.match(html, /chat\.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder/);
     assert.match(html, /reason: 'historical_order_preserved'/);
     assert.match(html, /orderPayload\.previousOrderId = historicalOrderId/);

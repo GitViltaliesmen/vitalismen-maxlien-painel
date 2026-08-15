@@ -10960,13 +10960,15 @@
                 orderId,
                 status: chat.orderStatus || chat.customerDraft?.status,
                 tags: chatTags(chat),
-                currentNegotiationOrderId: chat.currentNegotiationOrderId || chat.customerDraft?.currentNegotiationOrderId || ''
+                currentNegotiationOrderId: chat.currentNegotiationOrderId || chat.customerDraft?.currentNegotiationOrderId || '',
+                legacyEntry: chatEntryInfo(chat).className === 'old'
             };
             const policy = window.VitalismenCustomerOrderPolicy;
             if (policy?.historicalOrderId) return policy.historicalOrderId(context);
             const legacyTag = context.tags.some((tag) => /^(?:CLIENTE[_\s-]*)?ANTIGO$/i.test(String(tag || '').trim()));
+            const importedHistoricalLead = context.legacyEntry && /^[A-Z]{2}-ADMIN-\d+$/i.test(orderId);
             const belongsToCurrentNegotiation = String(context.currentNegotiationOrderId || '').trim() === orderId;
-            return cannotReuseOrderForNewConfirmation(context.status) || (legacyTag && !belongsToCurrentNegotiation) ? orderId : '';
+            return cannotReuseOrderForNewConfirmation(context.status) || ((legacyTag || importedHistoricalLead) && !belongsToCurrentNegotiation) ? orderId : '';
         };
         const vslProductKeyFromChat = (chat = state.selectedChat || {}) => {
             const explicit = String(chat.vslProductKey || '').trim();
