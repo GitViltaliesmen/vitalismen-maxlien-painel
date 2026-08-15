@@ -3521,6 +3521,13 @@ router.get('/chats', async (req, res) => {
                 const phone = digitsOnly(chat.phoneHint || chat.id?.user);
                 return statesByPhone.get(phone) || statesByChatId.get(chat.id?._serialized) || null;
             };
+            const panelLastReadAtByKey = new Map(allChats.map((chat) => {
+                const contactState = fastContactStateForChat(chat);
+                const timestamp = contactState?.metadata?.panelLastReadAt
+                    ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
+                    : 0;
+                return [chat.conversationKey, Number.isFinite(timestamp) ? timestamp : 0];
+            }));
             const messageBelongsToFastChat = (message, chat) => {
                 const peerPhone = digitsOnly(message.peerPhone);
                 const ids = [message.chatId, message.from, message.to].filter(Boolean);
@@ -3547,10 +3554,7 @@ router.get('/chats', async (req, res) => {
                         inboundTimes.push(messageAt);
                         inboundMessageTimesByKey.set(chat.conversationKey, inboundTimes);
                     }
-                    const contactState = fastContactStateForChat(chat);
-                    const panelLastReadAt = contactState?.metadata?.panelLastReadAt
-                        ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
-                        : 0;
+                    const panelLastReadAt = panelLastReadAtByKey.get(chat.conversationKey) || 0;
                     if (Number(message.timestamp || 0) > panelLastReadAt) {
                         unreadCountByKey.set(
                             chat.conversationKey,
@@ -3562,7 +3566,9 @@ router.get('/chats', async (req, res) => {
             const unansweredCountByKey = new Map();
             inboundMessageTimesByKey.forEach((inboundTimes, conversationKey) => {
                 const lastOutboundAt = lastOutboundAtByKey.get(conversationKey) || 0;
-                const unansweredCount = inboundTimes.filter((timestamp) => timestamp > lastOutboundAt).length;
+                const panelLastReadAt = panelLastReadAtByKey.get(conversationKey) || 0;
+                const panelAttentionAfter = Math.max(lastOutboundAt, panelLastReadAt);
+                const unansweredCount = inboundTimes.filter((timestamp) => timestamp > panelAttentionAfter).length;
                 if (unansweredCount > 0) unansweredCountByKey.set(conversationKey, unansweredCount);
             });
 
@@ -3841,13 +3847,14 @@ router.get('/chats', async (req, res) => {
                 isFromMe: true
             })).sort({ timestamp: -1, createdAt: -1 }).lean().catch(() => null);
             const lastOutboundAt = Number(lastOutboundMessage?.timestamp || 0);
+            const panelAttentionAfter = Math.max(lastOutboundAt, panelLastReadAt);
             const unansweredCount = await Message.countDocuments(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
                     ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
                 ],
                 isFromMe: false,
-                timestamp: { $gt: lastOutboundAt }
+                timestamp: { $gt: panelAttentionAfter }
             })).catch(() => 0);
             const profilePictureUrl = fastMode
                 ? String(contactState?.metadata?.profilePictureUrl || '')
