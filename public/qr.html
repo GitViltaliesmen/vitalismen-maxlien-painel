@@ -5018,6 +5018,143 @@
             scrollbar-width: thin;
         }
 
+        .sales-quick-funnel {
+            position: relative;
+            margin-top: 6px;
+            z-index: 48;
+        }
+
+        .sales-quick-funnel > summary {
+            min-height: 34px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border: 1px solid #99d8bf;
+            border-radius: 12px;
+            background: #e7f7ee;
+            color: #075e54;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .sales-quick-funnel > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sales-quick-funnel > summary span,
+        .sales-quick-funnel > summary strong,
+        .sales-quick-funnel > summary em {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sales-quick-funnel > summary span {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .sales-quick-funnel > summary strong {
+            font-size: 12px;
+        }
+
+        .sales-quick-funnel > summary em {
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #fff;
+            color: #075e54;
+            font-size: 10px;
+            font-style: normal;
+            font-weight: 900;
+        }
+
+        .sales-quick-funnel.is-disabled > summary {
+            border-color: #d1d7db;
+            background: #f8fafc;
+            color: #667781;
+        }
+
+        .sales-quick-funnel-menu {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: calc(100% + 6px);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            max-height: min(430px, 66vh);
+            padding: 10px;
+            overflow: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.24);
+        }
+
+        .sales-quick-funnel-group {
+            display: grid;
+            align-content: start;
+            gap: 6px;
+            min-width: 0;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .sales-quick-funnel-group h4 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .sales-quick-funnel-group button {
+            min-height: 34px;
+            padding: 6px 8px;
+            border: 1px solid #b8c3cc;
+            border-radius: 8px;
+            background: #fff;
+            color: #1f2937;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-align: left;
+        }
+
+        .sales-quick-funnel-group button:hover:not(:disabled) {
+            border-color: #00a884;
+            background: #ecfdf5;
+            color: #075e54;
+        }
+
+        .sales-quick-funnel-group button:disabled {
+            opacity: 0.46;
+            cursor: not-allowed;
+        }
+
+        .sales-quick-funnel-group.offer {
+            background: #fff7ed;
+            border-color: #fed7aa;
+        }
+
+        .sales-quick-funnel-group.offer button {
+            border-color: #fdba74;
+            background: #fff;
+            color: #9a3412;
+        }
+
+        @media (max-width: 700px) {
+            .sales-quick-funnel-menu {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
         .composer-quick-status-chip {
             display: inline-grid;
             grid-template-columns: 14px minmax(80px, auto);
@@ -7447,6 +7584,51 @@
                         <button id="sendBtn" class="success" type="button">Enviar</button>
                         <div id="emojiPanel" class="emoji-panel hidden"></div>
                     </div>
+                    <details id="salesQuickFunnel" class="sales-quick-funnel is-disabled" aria-disabled="true">
+                        <summary>
+                            <span>Funil rapido</span>
+                            <strong id="salesQuickFunnelTitle">Selecione um cliente Tex Ultra EC</strong>
+                            <em>revisar</em>
+                        </summary>
+                        <div class="sales-quick-funnel-menu" aria-label="Atalhos manuais do Tex Ultra Ecuador">
+                            <section class="sales-quick-funnel-group">
+                                <h4>Nome</h4>
+                                <button data-sales-quick-template="name_1" type="button" disabled title="¿Cuál es su nombre completo, por favor?">Nome 1</button>
+                                <button data-sales-quick-template="name_2" type="button" disabled title="Por favor, ¿me confirma su nombre completo?">Nome 2</button>
+                                <button data-sales-quick-template="name_3" type="button" disabled title="¿Me indica su nombre completo?">Nome 3</button>
+                                <button data-sales-quick-template="name_4" type="button" disabled title="Para continuar, ¿cuál es su nombre completo?">Nome 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Cidade e provincia</h4>
+                                <button data-sales-quick-template="location_1" type="button" disabled title="Por favor, ¿cuál es su ciudad y provincia?">Cidade 1</button>
+                                <button data-sales-quick-template="location_2" type="button" disabled title="¿En qué ciudad y provincia se encuentra?">Cidade 2</button>
+                                <button data-sales-quick-template="location_3" type="button" disabled title="Para el envío, ¿me confirma su ciudad y provincia?">Cidade 3</button>
+                                <button data-sales-quick-template="location_4" type="button" disabled title="¿Me indica su ciudad y provincia, por favor?">Cidade 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Agencia Servientrega</h4>
+                                <button data-sales-quick-template="agency_1" type="button" disabled title="¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?">Agencia 1</button>
+                                <button data-sales-quick-template="agency_2" type="button" disabled title="¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?">Agencia 2</button>
+                                <button data-sales-quick-template="agency_3" type="button" disabled title="Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?">Agencia 3</button>
+                                <button data-sales-quick-template="agency_4" type="button" disabled title="¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.">Agencia 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group offer">
+                                <h4>Promocion 35</h4>
+                                <button data-sales-quick-template="offer_35" type="button" disabled title="Tabela promocional Tex Ultra: 1, 2, 3 e 6 frascos">Oferta completa</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Confirmar quantidade</h4>
+                                <button data-sales-quick-template="confirm_1a" type="button" disabled title="1 frasco por $35,99">1 frasco · confirmar</button>
+                                <button data-sales-quick-template="confirm_1b" type="button" disabled title="1 frasco por $35,99">1 frasco · variar</button>
+                                <button data-sales-quick-template="confirm_2a" type="button" disabled title="2 frascos por $70,00">2 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_2b" type="button" disabled title="2 frascos por $70,00">2 frascos · variar</button>
+                                <button data-sales-quick-template="confirm_3a" type="button" disabled title="3 frascos por $80,99">3 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_3b" type="button" disabled title="3 frascos por $80,99">3 frascos · variar</button>
+                                <button data-sales-quick-template="confirm_6a" type="button" disabled title="6 frascos por $147,99">6 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_6b" type="button" disabled title="6 frascos por $147,99">6 frascos · variar</button>
+                            </section>
+                        </div>
+                    </details>
                     <div id="composerQuickStatusBar" class="composer-quick-status-bar flow-data-footer" aria-label="Dados fixados do funil">
                         <span class="composer-quick-status-label">Dados</span>
                         <div id="composerQuickStatusList" class="composer-quick-status-list">
@@ -9910,6 +10092,7 @@
                 button.innerHTML = `<strong>${amountLabel}</strong> · ${quantityLabel}`;
             });
             applyManualGuideCountryUi(country);
+            syncSalesQuickFunnelAvailability();
         };
         const setInputValue = (id, value) => {
             const input = el(id);
@@ -13784,6 +13967,7 @@
                 document.querySelectorAll('[data-draft-template]').forEach((button) => {
                     button.disabled = true;
                 });
+                syncSalesQuickFunnelAvailability();
                 renderAudioTemplates();
                 return;
             }
@@ -13901,6 +14085,7 @@
             document.querySelectorAll('[data-draft-template]').forEach((button) => {
                 button.disabled = false;
             });
+            syncSalesQuickFunnelAvailability();
             renderAudioTemplates();
         };
 
@@ -18028,6 +18213,74 @@
             })().catch((error) => showToast(error.message));
         };
 
+        const TEX_ULTRA_SALES_QUICK_TEMPLATES = Object.freeze({
+            name_1: '¿Cuál es su nombre completo, por favor?',
+            name_2: 'Por favor, ¿me confirma su nombre completo?',
+            name_3: '¿Me indica su nombre completo?',
+            name_4: 'Para continuar, ¿cuál es su nombre completo?',
+            location_1: 'Por favor, ¿cuál es su ciudad y provincia?',
+            location_2: '¿En qué ciudad y provincia se encuentra?',
+            location_3: 'Para el envío, ¿me confirma su ciudad y provincia?',
+            location_4: '¿Me indica su ciudad y provincia, por favor?',
+            agency_1: '¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?',
+            agency_2: '¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?',
+            agency_3: 'Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?',
+            agency_4: '¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.',
+            offer_35: `📦 Hoy tenemos kits promocionales disponibles con precios especiales:
+🟢 1 frasco por solo $35,99
+🟡 2 frascos por $70,00
+🟠 3 frascos por $80,99
+🔴 6 frascos (tratamiento completo) por $147,99
+
+¿Cuántos frascos desea?`,
+            confirm_1a: '✅ ¡Claro! Le envío 1 frasco por $35,99. ¿Está de acuerdo?',
+            confirm_1b: 'Perfecto, le separo 1 frasco por $35,99. ¿Confirmamos?',
+            confirm_2a: '✅ ¡Claro! Le envío 2 frascos por $70,00. ¿Está de acuerdo?',
+            confirm_2b: 'Perfecto, le separo 2 frascos por $70,00. ¿Confirmamos?',
+            confirm_3a: '✅ ¡Claro! Le envío 3 frascos por $80,99. ¿Está de acuerdo?',
+            confirm_3b: 'Perfecto, le separo 3 frascos por $80,99. ¿Confirmamos?',
+            confirm_6a: '✅ ¡Claro! Le envío 6 frascos por $147,99. ¿Está de acuerdo?',
+            confirm_6b: 'Perfecto, le separo el tratamiento completo de 6 frascos por $147,99. ¿Confirmamos?'
+        });
+
+        const texUltraSalesQuickFunnelAvailable = () => {
+            const country = String(el('customerCountryInput')?.value || state.selectedChat?.country || '').toUpperCase();
+            const productKey = normalizeCustomerProductKey(el('customerProductInput')?.value || productKeyFromChat());
+            return Boolean(state.selectedChat) && country === 'EC' && productKey === 'tex_ultra_ec';
+        };
+
+        const syncSalesQuickFunnelAvailability = () => {
+            const drawer = el('salesQuickFunnel');
+            if (!drawer) return;
+            const enabled = texUltraSalesQuickFunnelAvailable();
+            drawer.classList.toggle('is-disabled', !enabled);
+            drawer.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+            if (el('salesQuickFunnelTitle')) {
+                el('salesQuickFunnelTitle').textContent = enabled
+                    ? 'Tex Ultra EC · Promocion $35,99'
+                    : 'Selecione um cliente Tex Ultra EC';
+            }
+            drawer.querySelectorAll('[data-sales-quick-template]').forEach((button) => {
+                button.disabled = !enabled;
+            });
+            if (!enabled) drawer.removeAttribute('open');
+        };
+
+        const fillSalesQuickTemplate = (key) => {
+            if (!texUltraSalesQuickFunnelAvailable()) {
+                showToast('Este funil rapido e exclusivo para cliente Tex Ultra EC.');
+                syncSalesQuickFunnelAvailability();
+                return;
+            }
+            const text = TEX_ULTRA_SALES_QUICK_TEMPLATES[key] || '';
+            if (!text) return;
+            el('messageInput').value = text;
+            el('messageInput').focus();
+            updateMessageComposerControls();
+            el('salesQuickFunnel')?.removeAttribute('open');
+            showToast('Texto preparado. Revise e clique Enviar.');
+        };
+
         const buildDraftTemplate = (kind) => {
             const chat = state.selectedChat || {};
             const productInfo = frontendProductInfo();
@@ -18713,6 +18966,11 @@
         });
         document.querySelectorAll('[data-footer-draft-template]').forEach((button) => {
             button.addEventListener('click', () => sendFooterDraftTemplate(button.dataset.footerDraftTemplate, button));
+        });
+        el('salesQuickFunnel')?.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-sales-quick-template]');
+            if (!button || button.disabled) return;
+            fillSalesQuickTemplate(button.dataset.salesQuickTemplate);
         });
         document.querySelectorAll('[data-module]').forEach((button) => {
             button.addEventListener('click', (event) => {
