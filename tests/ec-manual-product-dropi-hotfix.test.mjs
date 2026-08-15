@@ -77,6 +77,22 @@ test('todos os produtos EC exibem a mesma tabela completa de oito precos aprovad
     assert.match(panel, /EC_TEX_ULTRA: customerPricePresetsEc/);
 });
 
+test('ficha de leads reidrata produto somente pelo marcador estruturado persistido', () => {
+    const route = read('src/routes/shipments.js');
+    const panel = read('public/leads-window.html');
+
+    assert.match(route, /router\.get\('\/droppi\/ec\/admin-leads\/flags', adminOnly/);
+    assert.match(route, /marker_pattern = re\.compile\(/);
+    assert.match(route, /allowed_products = \{"tex_ultra_ec", "nitrix_ec", "vit_power_ec"\}/);
+    assert.match(route, /flag\["productSelection"\] = product_selection/);
+    assert.doesNotMatch(route, /flag\["notes"\]/);
+    assert.doesNotMatch(route, /"suggestedStatus": suggested_status/);
+    assert.match(panel, /lead\?\._ops\?\.productSelection\?\.productKey/);
+    assert.match(panel, /lead\?\._ops\?\.productSelection\?\.priceCatalog/);
+    assert.match(panel, /hydrateLeadOperationalFlags\(\)/);
+    assert.doesNotMatch(route, /product_key\s*=.*product_value/);
+});
+
 test('scripts inline do painel continuam sintaticamente validos', () => {
     const panel = read('public/qr.html');
     const scripts = [...panel.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]

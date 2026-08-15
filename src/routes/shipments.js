@@ -124,6 +124,72 @@ con.close()
     }
 };
 
+const getAdminLeadOperationalFlags = ({ ids = [] } = {}) => {
+    const leadIds = Array.from(new Set((ids || [])
+        .map((id) => Number.parseInt(String(id || '').trim(), 10))
+        .filter((id) => Number.isFinite(id) && id > 0)))
+        .slice(0, 3000);
+    if (!leadIds.length) return {};
+
+    const python = `
+import sqlite3, json, re
+db_path = "/opt/maxlien-mvp/leads_ec.sqlite3"
+ids = ${JSON.stringify(leadIds)}
+con = sqlite3.connect(db_path)
+con.row_factory = sqlite3.Row
+cur = con.cursor()
+cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
+wanted = [column for column in ["id", "status", "notes", "product_qty", "product_value"] if column in cols]
+flags = {}
+if wanted:
+    placeholders = ",".join(["?"] * len(ids))
+    rows = cur.execute("SELECT " + ",".join(wanted) + " FROM leads WHERE id IN (" + placeholders + ")", ids).fetchall()
+    marker_pattern = re.compile(
+        r"\\[DROPI_PRODUCT\\]\\s*key=([^;\\r\\n]+);\\s*name=([^;\\r\\n]+);\\s*priceCatalog=([^;\\r\\n]+);\\s*quantity=(\\d+);\\s*total=([0-9.,]+)",
+        re.IGNORECASE,
+    )
+    allowed_products = {"tex_ultra_ec", "nitrix_ec", "vit_power_ec"}
+    allowed_catalogs = {"normal", "promotional"}
+    for row in rows:
+        data = dict(row)
+        lead_id = str(data.get("id"))
+        status = str(data.get("status") or "").strip().lower().replace("-", "_")
+        notes = str(data.get("notes") or "")
+        flag = {"status": status}
+        marker = marker_pattern.search(notes)
+        if marker:
+            product_key = marker.group(1).strip().lower()
+            product_name = marker.group(2).strip()
+            price_catalog = marker.group(3).strip().lower()
+            quantity = int(marker.group(4))
+            total = float(marker.group(5).replace(",", "."))
+            if product_key in allowed_products and price_catalog in allowed_catalogs and quantity in (1, 2, 3, 6) and total > 0:
+                product_selection = {
+                    "productKey": product_key,
+                    "productName": product_name,
+                    "priceCatalog": price_catalog,
+                    "quantity": quantity,
+                    "total": total,
+                }
+                flag.update(product_selection)
+                flag["productSelection"] = product_selection
+        flags[lead_id] = flag
+print(json.dumps({"flags": flags}, ensure_ascii=False))
+con.close()
+`;
+
+    const result = spawnSync('python3', ['-'], {
+        input: python,
+        encoding: 'utf8',
+        maxBuffer: 2 * 1024 * 1024
+    });
+    if (result.status !== 0) {
+        throw new Error(result.stderr || result.stdout || 'admin_lead_flags_failed');
+    }
+    const parsed = JSON.parse(result.stdout || '{"flags":{}}');
+    return parsed.flags || {};
+};
+
 const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
     const leadId = getAdminLeadIdFromOrderId(requestedOrderId);
     if (!leadId || !lead) return null;
@@ -1429,6 +1495,20 @@ router.get('/droppi/ec/products', adminOnly, (_req, res) => {
         authorizationRequired: true,
         directAutomaticSend: false
     });
+});
+
+router.get('/droppi/ec/admin-leads/flags', adminOnly, (req, res) => {
+    try {
+        const ids = String(req.query.ids || '')
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean);
+        const flags = getAdminLeadOperationalFlags({ ids });
+        res.json({ success: true, flags });
+    } catch (error) {
+        console.error('Admin lead EC flags error:', error);
+        res.status(500).json({ error: error.message || 'Failed to read admin lead flags' });
+    }
 });
 
 router.post('/droppi/ec/admin-leads/:leadId/configure-order', adminOnly, async (req, res) => {

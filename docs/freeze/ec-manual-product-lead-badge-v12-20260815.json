@@ -1,0 +1,46 @@
+{
+  "freezeId": "ec-manual-product-lead-badge-v12-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T12:30:32.2497792-03:00",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/ec-manual-product-dropi-hotfix-20260815",
+  "parentFreezeIds": [
+    "ec-manual-product-dropi-sync-v11-20260815"
+  ],
+  "supersededParentProtectedFiles": [
+    "src/index.js",
+    "tests/ec-manual-product-dropi-hotfix.test.mjs",
+    "package.json"
+  ],
+  "leadBadge": {
+    "structuredMarkerIsAuthoritative": true,
+    "priceInferenceForbidden": true,
+    "authenticatedReadOnlyHydration": true,
+    "allowedProducts": [
+      "tex_ultra_ec",
+      "nitrix_ec",
+      "vit_power_ec"
+    ]
+  },
+  "preservation": {
+    "v11BehaviorUnchanged": true,
+    "dropiSubmissionNotRepeated": true,
+    "productPolicyUnchanged": true,
+    "priceTableUnchanged": true,
+    "customerDataUnchanged": true,
+    "dependenciesUnchanged": true,
+    "whatsappAndMetaUnchanged": true
+  },
+  "protectedFiles": {
+    "src/index.js": "74dc5e7802d44cbf497fd3c905f4ebc566360a947c614ac74e4439b31ba5da1d",
+    "src/routes/shipments.js": "3aefa5e70dae064850d57a4da99d6cbee8d670aaf1aa79a5e607476b9d81a269",
+    "public/leads-window.html": "62baac646ab44be81755cf155ed2a17a25bc26528bb8331c8019988b50160ea5",
+    "tests/ec-manual-product-dropi-hotfix.test.mjs": "f3c748198ca77df5e6395884a7ccee5738088a5e8bf68cfab98f50522eea0d11",
+    "package.json": "ab38298171740a93e91c0e011d8fc263a67557c33cf22facc5a0dc894cf30bd6",
+    "src/services/texUltraApprovedFreezeRuntimeGuardV12.js": "3390c76cc9b4c6856429d33864e57d053bbc18675196a443fe326bfc38af4c3d",
+    "scripts/guard-ec-manual-product-lead-badge-v12.mjs": "b970ecfb48acdf8b678362a0609cccbc9eb1c2f7546b8dd0d92fffc27ad7fb51",
+    "docs/EC_MANUAL_PRODUCT_LEAD_BADGE_FREEZE_V12_20260815.md": "1b69e44327ff0ef0a44625d1f631250448f0047c7511c8ea589efcb67be80795"
+  }
+}
