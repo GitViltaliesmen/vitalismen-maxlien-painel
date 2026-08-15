@@ -111,6 +111,7 @@ try {
         throw new Error(`Dropi orders page still requires login: ${await getBodyExcerpt()}`);
     }
     await context.storageState({ path: config.storageStatePath });
+    fs.chmodSync(config.storageStatePath, 0o600);
 
     console.log(JSON.stringify({
         success: true,

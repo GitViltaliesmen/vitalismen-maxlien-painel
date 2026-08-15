@@ -1489,6 +1489,7 @@ export const performLogin = async (page) => {
 const persistStorageState = async (context) => {
     ensureDir(path.dirname(STORAGE_STATE_PATH));
     await context.storageState({ path: STORAGE_STATE_PATH });
+    fs.chmodSync(STORAGE_STATE_PATH, 0o600);
 };
 
 const withBrowserSession = async (work) => {

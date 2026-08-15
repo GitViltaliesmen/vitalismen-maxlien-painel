@@ -41,6 +41,8 @@ test('sessao Dropi usa caminho persistente fora do release e ignora configuracao
     assert.match(service, /'\.vitalismen-secrets',[\s\S]*?'droppi-ec-storage\.json'/);
     assert.match(service, /path\.isAbsolute\(CONFIGURED_STORAGE_STATE_PATH\)/);
     assert.match(sessionScript, /path\.isAbsolute\(process\.env\.DROPPI_EC_STORAGE_STATE_PATH\)/);
+    assert.match(service, /fs\.chmodSync\(STORAGE_STATE_PATH, 0o600\)/);
+    assert.match(sessionScript, /fs\.chmodSync\(config\.storageStatePath, 0o600\)/);
     assert.doesNotMatch(service, /path\.join\(process\.cwd\(\), '\.local', 'droppi-ec-storage\.json'\)/);
 });
 
