@@ -124,6 +124,7 @@
 
     const CUSTOM_BLOCKS = Object.freeze([
         {
+            productKey: 'vit_power_ec',
             label: 'INICIO_01_02_PROVA01_FRASCO_VIT_POWER',
             detail: 'INICIO 01 + INICIO 02 + Produto + Prova 1',
             value: 'custom_1780182896042_1b91ef',
@@ -135,6 +136,7 @@
             ]
         },
         {
+            productKey: 'vit_power_ec',
             label: 'INFORMAÇÕES: DUVIDA, 100 NATURAL, PROSTATA, FUNCIONA',
             detail: 'DUVIDAS + 100 NATURAL SEM CONTRA INDICACAO + AJUDA PROSTATA + Explicar se funciona',
             value: 'custom_1780196676304_4b628b',
@@ -146,6 +148,7 @@
             ]
         },
         {
+            productKey: 'vit_power_ec',
             label: 'BO1',
             detail: '1 BOTELLA POR 39 + Claro! Le envio 1 frasco por 40. ¿De acuerdo?',
             value: 'custom_1780268918250_4add3e',
@@ -259,13 +262,14 @@
                 type: 'block',
                 typeLabel: 'bloco',
                 label: 'Inicio completo Tex Ultra',
-                detail: 'Inicio 01 + Inicio 02 + Prova 1 + Frasco Tex Ultra',
+                detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Tex Ultra + Valores promocionais',
                 value: 'tex_ultra_inicio_completo',
                 steps: [
-                    { type: 'audio', label: 'Inicio 01', value: 'legacy-media/templates/EC/01_B_Buenos_dias.ogg' },
-                    { type: 'audio', label: 'Inicio 02', value: 'legacy-media/templates/EC/01_C_Buenos_tardes.ogg' },
+                    { type: 'audio', label: 'Inicio universal 01', value: 'legacy-media/templates/EC/01_B_Buenos_dias.ogg' },
+                    { type: 'audio', label: 'Inicio universal 02', value: 'legacy-media/templates/EC/01_C_Buenos_tardes.ogg' },
                     { type: 'media', label: 'Prova 1', value: 'legacy-media/sales/shared/social_01.jpeg' },
-                    { type: 'media', label: 'Frasco Tex Ultra', value: 'legacy-media/sales/ec/tex_ultra_bottle.png' }
+                    { type: 'media', label: 'Frasco Tex Ultra', value: 'legacy-media/sales/ec/tex_ultra_bottle.png' },
+                    { type: 'draft', label: 'Valores promocionais · desde USD 35.99', value: 'custom_text:text_1780282158837_bf20c0' }
                 ]
             }];
         }
@@ -273,43 +277,31 @@
             code: 'B01',
             type: 'block',
             typeLabel: 'bloco',
-            label: 'Inicio completo',
-            detail: 'Inicio 01 + Inicio 02 + Prova 1 + Frasco Vit Power',
+            label: 'Inicio completo Vit Power',
+            detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Vit Power',
             value: 'vit_power_inicio_completo',
             steps: [
-                { type: 'audio', label: 'Inicio 01', value: 'legacy-media/templates/EC/01_B_Buenos_dias.ogg' },
-                { type: 'audio', label: 'Inicio 02', value: 'legacy-media/templates/EC/01_C_Buenos_tardes.ogg' },
+                { type: 'audio', label: 'Inicio universal 01', value: 'legacy-media/templates/EC/01_B_Buenos_dias.ogg' },
+                { type: 'audio', label: 'Inicio universal 02', value: 'legacy-media/templates/EC/01_C_Buenos_tardes.ogg' },
                 { type: 'media', label: 'Prova 1', value: 'legacy-media/sales/shared/social_01.jpeg' },
                 { type: 'media', label: 'Frasco Vit Power', value: 'legacy-media/sales/ec/vit_power.jpeg' }
             ]
         }];
     };
 
-    const productAwareCustomBlock = (item, productKey) => {
-        if (!isTexUltra(productKey) || item.value !== 'custom_1780182896042_1b91ef') return item;
-        return {
-            ...item,
-            label: 'INICIO_01_02_PROVA01_FRASCO_TEX_ULTRA',
-            detail: 'INICIO 01 + INICIO 02 + Prova 1 + Frasco Tex Ultra',
-            steps: [
-                { type: 'audio', label: 'INICIO 01', value: 'legacy-media/templates/EC/01_B_Buenos_dias.ogg' },
-                { type: 'audio', label: 'INICIO 02', value: 'legacy-media/templates/EC/01_C_Buenos_tardes.ogg' },
-                { type: 'media', label: 'Prova 1', value: 'legacy-media/sales/shared/social_01.jpeg' },
-                { type: 'media', label: 'Frasco Tex Ultra', value: 'legacy-media/sales/ec/tex_ultra_bottle.png' }
-            ]
-        };
+    const blocks = (productKey) => {
+        const defaults = defaultBlocks(productKey);
+        const custom = CUSTOM_BLOCKS
+            .filter((item) => item.productKey === productKey)
+            .map((item, index) => ({
+                ...item,
+                code: shortCode('B', defaults.length + index),
+                type: 'block',
+                typeLabel: 'bloco',
+                custom: true
+            }));
+        return [...defaults, ...custom];
     };
-
-    const blocks = (productKey) => [
-        ...defaultBlocks(productKey),
-        ...CUSTOM_BLOCKS.map((item, index) => ({
-            ...productAwareCustomBlock(item, productKey),
-            code: shortCode('B', index + 1),
-            type: 'block',
-            typeLabel: 'bloco',
-            custom: true
-        }))
-    ];
 
     const draftText = (kind, productKey) => {
         const product = productName(productKey);

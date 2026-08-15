@@ -1,0 +1,87 @@
+{
+  "freezeId": "ec-product-funnel-isolation-v13-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T12:58:46-03:00",
+  "country": "EC",
+  "productKeys": [
+    "nitrix_ec",
+    "vit_power_ec",
+    "tex_ultra_ec"
+  ],
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/ec-product-funnel-isolation-v13-20260815",
+  "sourceParentCommit": "dbe5f3af960cb0b48009ac81736b552d54e910b5",
+  "parentFreezeIds": [
+    "ec-manual-product-lead-badge-v12-20260815"
+  ],
+  "supersededParentProtectedFiles": [
+    "src/index.js",
+    "package.json"
+  ],
+  "supersededAncestorProtectedFiles": [
+    {
+      "freezeId": "ec-manual-product-dropi-hotfix-v8-20260815",
+      "relativePath": "public/qr.html",
+      "historicalHash": "f462eea87d03081581260940a7e03d553fbe306982f96bd1e7cebb09550ee732",
+      "reason": "nova camada autorizada para isolar os funis iniciais por produto"
+    }
+  ],
+  "extensionVersion": "0.13.7",
+  "manualSendOnly": true,
+  "realCustomerTestForbidden": true,
+  "publicationStatus": "not_published",
+  "funnelPolicy": {
+    "nitrixInitialBlockIsolated": true,
+    "vitPowerInitialBlockIsolated": true,
+    "texUltraInitialBlockIsolated": true,
+    "texUltraPromotionOneStartsAtUsd": "35.99",
+    "texUltraPromotionTwoStartsAtUsd": "39.99",
+    "promotionTwoExcludedFromInitialSequence": true,
+    "legacyVitPowerCustomBlocksPreserved": true,
+    "legacyVitPowerCustomBlocksVisibleOnlyInVitPower": true,
+    "newCustomBlocksScopedToSelectedProduct": true,
+    "unknownGenericBlocksPreserveAllScope": true
+  },
+  "preservation": {
+    "priorFreezeManifestsUnchanged": true,
+    "nitrixApprovedAudiosUnchanged": true,
+    "vitPowerApprovedMediaUnchanged": true,
+    "customerDataUnchanged": true,
+    "databaseUnchanged": true,
+    "dependenciesUnchanged": true,
+    "dropiMetaZapiUnchanged": true,
+    "whatsappTransportUnchanged": true,
+    "noRealMessageSent": true,
+    "loadedChromeCopyUnchanged": true,
+    "vpsUnchanged": true
+  },
+  "protectedFiles": {
+    "docs/freeze/ec-manual-product-dropi-hotfix-v8-20260815.json": "bcf82e189e23e8546a698845fc2542fb6aad1796ef0920c97abd67057e64095b",
+    "docs/freeze/ec-manual-product-dropi-security-v9-20260815.json": "2bba295337928466f5eafbb67bb81ab5d5efb58ff2bd4ba4bfcc0256d8922dc5",
+    "docs/freeze/ec-manual-product-dropi-receipt-v10-20260815.json": "ebe7189168dd764f48bf213876ec48d773c0500c021ce39e9d9c65163dbbad2c",
+    "docs/freeze/ec-manual-product-dropi-sync-v11-20260815.json": "eb9a2a0d6f390d21d46bea2a8db33160e6f787d50f8389af7c8be21f34be8c5a",
+    "docs/freeze/ec-manual-product-lead-badge-v12-20260815.json": "faa5f822719faec6b50425c4adffe1534c9076786cf62230ee524fce9473a736",
+    "public/qr.html": "b6dc120de32e9a2971db856ae9ef861b4659c231f5f3e4d720b702d739c40af4",
+    "extensions/vitalismen-whatsapp-official/README.md": "08f804b965e936d6220642d9aca6e25d4843b7d7e322aa8e3b18f02857566bcc",
+    "extensions/vitalismen-whatsapp-official/legacy-funnel-library.js": "3b09091de4d5d9d59e1c398670dfc92a6135744f3c2cbd2ca53ab3a4213975f6",
+    "extensions/vitalismen-whatsapp-official/manifest.json": "97540453c092654a23a036f3ab4f9c81fc1a4d83ab8ae6e89cbc06f287c1b056",
+    "extensions/vitalismen-whatsapp-official/product-funnels/tex-ultra-ec.js": "dd4dfc2a12dfa5cab0489eaa3bc5ed02a03edde6de360a4e0d8ccb35e283afba",
+    "extensions/vitalismen-whatsapp-official/release.json": "9c9fb2bb5f5193a389c18e3a8596e9c372990fa27d5d2f7fa94a769eb76a08fb",
+    "extensions/vitalismen-whatsapp-official/sidepanel.html": "41c53eded2df671c8891ac46ad8733c02aeb5cd95732deffa5470356fdf65248",
+    "extensions/vitalismen-whatsapp-official/tex-ultra-order-catalog.js": "f4d5d580974ba82bc922b90cac945ee35610427bfcdbc61fcdc93b60f78c5704",
+    "extensions/vitalismen-whatsapp-official/whatsapp-funnel-launcher.js": "20a27ca8bf5c822df1e8c12798bdfae3488be547a03f8f4531cea251166c5795",
+    "extensions/vitalismen-whatsapp-official/tests/automatic-data-save.test.cjs": "7622094823d49bba2d2596f368fe8bfe3cb5b614953707f60f2c64312733fb83",
+    "extensions/vitalismen-whatsapp-official/tests/buy-later-schedule.test.cjs": "4977ae7e37a1afba7bd5c8d303c6651cc8240bca97b5979c94a497eefe233d2b",
+    "extensions/vitalismen-whatsapp-official/tests/funnel-overlay.test.cjs": "f18226c8dde2b907d4d76c5f7f0ddbee99a4470ab65fbf6a51874a999c36f17e",
+    "extensions/vitalismen-whatsapp-official/tests/legacy-funnel-library.test.cjs": "80268c13e890317ec2bc9df97b18c4589234d5f7c0fb4e18b95e1b440e3feba7",
+    "extensions/vitalismen-whatsapp-official/tests/product-funnel-isolation.test.cjs": "97fcfec16627d1534cb3b6fc2299d87ab5402896487977c8a5cfd72d3fac8634",
+    "extensions/vitalismen-whatsapp-official/tests/tex-ultra-order-catalog.test.cjs": "be30a229b325c69e7b7485637ae0b1dd2910689c969ea1192238602d81057489",
+    "package.json": "19245c3d4e938e2d549b696e31de46f568f04fac12bfa039b2ea13ba312f25be",
+    "src/index.js": "c2a94de455f80f5d4190c0336aab32d7dd5ee7b0be3f05677cdb17c87916f9b0",
+    "src/services/ecProductFunnelIsolationFreezeRuntimeGuardV13.js": "883ae45c35da65a519307a2fc156720b85fd01b33ae996c14921297adb3d49f0",
+    "scripts/guard-ec-product-funnel-isolation-v13.mjs": "458bc244ef582d37cb354b3bda63bae56a71985c6f5b5d7ef49ce0b4bcad60a4",
+    "scripts/audit-whatsapp-status-google-contacts.mjs": "d29b3256a7b2929a9d88c3b029539712bbca7bf2b313fd36811a8de4ab965597",
+    "tests/ec-product-funnel-isolation-v13.test.mjs": "b70459b73491a5037def436773a057d9a36ed6df71d474512b058596cacc00fb",
+    "docs/EC_PRODUCT_FUNNEL_ISOLATION_FREEZE_V13_20260815.md": "c8c6f14df485347afcb405ec87e4f5667056427426a37b365acc288e950d709c"
+  }
+}

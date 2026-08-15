@@ -14819,8 +14819,17 @@
             showToast(`Arquivo selecionado: ${file.name}. Clique em Salvar arquivo.`);
         };
 
+        const activeFunnelProductKey = () => normalizeCustomerProductKey(
+            el('customerProductInput')?.value || productKeyFromChat(),
+            'nitrix_ec'
+        );
+
         const footerDraftFiles = () => ([
             ...(state.customFunnelTexts || []),
+            ...(activeFunnelProductKey() === 'tex_ultra_ec' ? [
+                { code: 'TX1', type: 'draft', typeLabel: 'texto', label: 'Tex Ultra · Promocao 1', detail: 'Tabela promocional · 1 frasco desde USD 35.99', value: 'tex_ultra_promotion_1' },
+                { code: 'TX2', type: 'draft', typeLabel: 'texto', label: 'Tex Ultra · Promocao 2 / preco original', detail: 'Tabela original · 1 frasco desde USD 39.99', value: 'tex_ultra_promotion_2' }
+            ] : []),
             { code: 'T01', type: 'draft', typeLabel: 'texto', label: 'Oferta', detail: 'Envia oferta e preco direto', value: 'offer' },
             { code: 'T02', type: 'draft', typeLabel: 'texto', label: 'Prova social', detail: 'Envia confianca e resultado direto', value: 'proof' },
             { code: 'T03', type: 'draft', typeLabel: 'texto', label: 'Pedir dados', detail: 'Envia pedido de nome, cidade e endereco', value: 'data' },
@@ -14830,12 +14839,17 @@
         ]);
 
         const footerMediaFiles = () => {
-            const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
-            const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
-            const productMedia = isNitrix
-                ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
-                : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
-            const alternateProductMedia = isNitrix
+            const selectedProductKey = activeFunnelProductKey();
+            const isNitrix = selectedProductKey === 'nitrix_ec';
+            const isTexUltra = selectedProductKey === 'tex_ultra_ec';
+            const productMedia = isTexUltra
+                ? { label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra_bottle.png' }
+                : isNitrix
+                    ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
+                    : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
+            const alternateProductMedia = isTexUltra
+                ? null
+                : isNitrix
                 ? { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Vit Power', detail: footerFileName('/media/sales/ec/vit_power.jpeg'), value: '/media/sales/ec/vit_power.jpeg' }
                 : { code: 'M07', type: 'media', typeLabel: 'midia', label: 'Frasco Nitrix', detail: footerFileName('/media/sales/ec/nitrix_bottle.png'), value: '/media/sales/ec/nitrix_bottle.png' };
             return [
@@ -14921,6 +14935,29 @@
             return cleanValue;
         };
 
+        const knownVitPowerCustomBlockValues = new Set([
+            'custom_1780182896042_1b91ef',
+            'custom_1780196676304_4b628b',
+            'custom_1780268918250_4add3e'
+        ]);
+
+        const customFunnelBlockProductKey = (block = {}) => {
+            const explicit = String(block.productKey || '').trim().toLowerCase();
+            if (explicit === 'all') return 'all';
+            if (['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec'].includes(explicit)) return explicit;
+            if (knownVitPowerCustomBlockValues.has(String(block.value || ''))) return 'vit_power_ec';
+            const haystack = [
+                block.label,
+                block.detail,
+                block.value,
+                ...(Array.isArray(block.steps) ? block.steps.flatMap((step) => [step.label, step.value]) : [])
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (/tex[\s_-]*ultra|tex_ultra/.test(haystack)) return 'tex_ultra_ec';
+            if (/nitrix|nitric|oxide/.test(haystack)) return 'nitrix_ec';
+            if (/vit[\s_-]*power|funciona_vit_power|como_se_toma_vit_power/.test(haystack)) return 'vit_power_ec';
+            return 'all';
+        };
+
         const normalizeCustomFunnelBlocks = (blocks = []) => (Array.isArray(blocks) ? blocks : [])
             .map((block, index) => {
                 const steps = (Array.isArray(block.steps) ? block.steps : [])
@@ -14945,6 +14982,7 @@
                     label: block.label || `Bloco ${index + 2}`,
                     detail: block.detail || steps.map((step) => step.label).join(' + '),
                     value: block.value || `custom_${Date.now()}_${index}`,
+                    productKey: customFunnelBlockProductKey(block),
                     steps,
                     custom: true
                 };
@@ -14965,6 +15003,7 @@
                 label: block.label,
                 detail: block.detail,
                 value: block.value,
+                productKey: block.productKey,
                 steps: block.steps
             }));
             window.localStorage?.setItem(customFunnelStorageKey, JSON.stringify(payload));
@@ -15305,6 +15344,7 @@
                 label: `${block.label || 'Bloco personalizado'} copia`,
                 detail: block.detail || '',
                 value: `custom_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+                productKey: block.productKey || activeFunnelProductKey(),
                 steps: (block.steps || []).map((step) => ({ ...step }))
             };
             state.customFunnelBlocks = normalizeCustomFunnelBlocks([
@@ -15563,10 +15603,14 @@
             const label = (el('customFunnelName')?.value || '').trim() || `Bloco personalizado ${state.customFunnelBlocks.length + 1}`;
             const isEditingBlock = Boolean(state.editingCustomFunnelBlockValue);
             const value = state.editingCustomFunnelBlockValue || `custom_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+            const existingBlock = isEditingBlock
+                ? (state.customFunnelBlocks || []).find((block) => block.value === value)
+                : null;
             const savedBlock = {
                 label,
                 detail: steps.map((step) => step.label).join(' + '),
                 value,
+                productKey: existingBlock?.productKey || activeFunnelProductKey(),
                 steps: steps.map((step) => ({
                     type: step.type,
                     label: step.label,
@@ -15630,11 +15674,12 @@
 
         const NITRIX_INTRO_AUDIO_01_EC = '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
         const NITRIX_INTRO_AUDIO_02_EC = '/media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
+        const UNIVERSAL_INTRO_AUDIO_01_EC = '/media/templates/EC/01_B_Buenos_dias.ogg';
+        const UNIVERSAL_INTRO_AUDIO_02_EC = '/media/templates/EC/01_C_Buenos_tardes.ogg';
 
         const footerFunnelBlocks = () => {
-            const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
-            const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
-            const defaultBlocks = isNitrix ? [{
+            const selectedProductKey = activeFunnelProductKey();
+            const defaultBlocks = selectedProductKey === 'nitrix_ec' ? [{
                     code: 'B01',
                     type: 'block',
                     typeLabel: 'bloco',
@@ -15657,23 +15702,40 @@
                     steps: [
                         { type: 'media', label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png', waitAfterMs: 0 }
                     ]
+                }] : selectedProductKey === 'tex_ultra_ec' ? [{
+                    code: 'B01',
+                    type: 'block',
+                    typeLabel: 'bloco',
+                    label: 'Inicio completo Tex Ultra',
+                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Tex Ultra + Valores promocionais',
+                    value: 'tex_ultra_inicio_completo',
+                    steps: [
+                        { type: 'audio', label: 'Inicio universal 01', value: UNIVERSAL_INTRO_AUDIO_01_EC },
+                        { type: 'audio', label: 'Inicio universal 02', value: UNIVERSAL_INTRO_AUDIO_02_EC },
+                        { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
+                        { type: 'media', label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra_bottle.png', waitAfterMs: 0 },
+                        { type: 'draft', label: 'Valores promocionais · desde USD 35.99', value: 'tex_ultra_promotion_1' }
+                    ]
                 }] : [{
                     code: 'B01',
                     type: 'block',
                     typeLabel: 'bloco',
-                    label: 'Inicio completo',
-                    detail: 'Inicio 01 + Inicio 02 + Prova 1 + Frasco Vit Power',
+                    label: 'Inicio completo Vit Power',
+                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Vit Power',
                     value: 'vit_power_inicio_completo',
                     steps: [
-                        { type: 'audio', label: 'Inicio 01', value: '/media/templates/EC/01_B_Buenos_dias.ogg' },
-                        { type: 'audio', label: 'Inicio 02', value: '/media/templates/EC/01_C_Buenos_tardes.ogg' },
+                        { type: 'audio', label: 'Inicio universal 01', value: UNIVERSAL_INTRO_AUDIO_01_EC },
+                        { type: 'audio', label: 'Inicio universal 02', value: UNIVERSAL_INTRO_AUDIO_02_EC },
                         { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
                         { type: 'media', label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg', waitAfterMs: 0 }
                     ]
                 }];
+            const customBlocks = (state.customFunnelBlocks || [])
+                .filter((block) => block.productKey === 'all' || block.productKey === selectedProductKey)
+                .map((block, index) => ({ ...block, code: customFunnelCode(defaultBlocks.length + index) }));
             return [
                 ...defaultBlocks,
-                ...(state.customFunnelBlocks || [])
+                ...customBlocks
             ];
         };
 
@@ -18381,6 +18443,8 @@
             }
 
             const templates = {
+                tex_ultra_promotion_1: '📦 Hoy tenemos kits promocionales disponibles con precios especiales:\n\n🟢 1 frasco por solo $35,99\n🟡 2 frascos por $70,00\n🟠 3 frascos por $80,99\n🔴 6 frascos (tratamiento completo) por $147,99\n\n¿Cuántos frascos desea?',
+                tex_ultra_promotion_2: '📦 Precios originales de los kits disponibles:\n\n🟢 1 frasco por solo $39,99\n🟡 2 frascos por $70,00\n🟠 3 frascos por $95,99\n🔴 6 frascos (tratamiento completo) por $167,99\n\n¿Cuántos frascos desea?',
                 offer: `Le confirmo la promocion de ${product}: ${price}. La opcion mas recomendada es la de 3 frascos porque aprovecha mejor el tratamiento y trae regalo sorpresa. Cual le gustaria separar?`,
                 proof: `Le comparto algo importante: varios clientes que tenian la misma duda ya recibieron su pedido y nos contaron que les fue muy bien. Si quiere, le ayudo a dejar el suyo listo hoy.`,
                 data: 'Perfecto, para dejarlo listo me confirma por favor: nombre completo, ciudad y direccion completa para la entrega?',

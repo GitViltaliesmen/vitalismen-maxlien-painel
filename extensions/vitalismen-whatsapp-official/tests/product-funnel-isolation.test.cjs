@@ -28,6 +28,9 @@ const texOffer = funnel.LIBRARY.tex_ultra_ec.find((item) => item.code === 'P02')
 const nitrixOffer = funnel.LIBRARY.nitrix_ec.find((item) => item.code === 'P02').text;
 const vitOffer = funnel.LIBRARY.vit_power_ec.find((item) => item.code === 'P02').text;
 assert.match(texOffer, /\$147,99/);
+assert.match(texOffer, /1 frasco/);
+assert.match(texOffer, /2 frascos/);
+assert.doesNotMatch(texOffer, /\bmes(?:es)?\b|mês/i);
 assert.doesNotMatch(nitrixOffer, /\$147,99/);
 assert.doesNotMatch(vitOffer, /\$147,99/);
 

@@ -8,10 +8,10 @@
     const CURRENT_PRODUCT_KEY = 'tex_ultra_ec';
     const CURRENT_PRODUCT_NAME = 'Tex Ultra Ecuador';
     const KITS = Object.freeze([
-        Object.freeze({ quantity: '1', duration: '1 mês', price: 35.99, priceText: '35.99', offerPrice: '35,99', color: 'green' }),
-        Object.freeze({ quantity: '2', duration: '2 meses', price: 70, priceText: '70.00', offerPrice: '70,00', color: 'yellow' }),
-        Object.freeze({ quantity: '3', duration: '3 meses', price: 80.99, priceText: '80.99', offerPrice: '80,99', color: 'orange' }),
-        Object.freeze({ quantity: '6', duration: '6 meses', price: 147.99, priceText: '147.99', offerPrice: '147,99', color: 'red', featured: true })
+        Object.freeze({ quantity: '1', duration: '1 frasco', price: 35.99, priceText: '35.99', offerPrice: '35,99', color: 'green' }),
+        Object.freeze({ quantity: '2', duration: '2 frascos', price: 70, priceText: '70.00', offerPrice: '70,00', color: 'yellow' }),
+        Object.freeze({ quantity: '3', duration: '3 frascos', price: 80.99, priceText: '80.99', offerPrice: '80,99', color: 'orange' }),
+        Object.freeze({ quantity: '6', duration: '6 frascos', price: 147.99, priceText: '147.99', offerPrice: '147,99', color: 'red', featured: true })
     ]);
 
     const REQUIRED_CONFIRMED_FIELDS = Object.freeze([
@@ -72,10 +72,10 @@
 
     const offerText = () => [
         '📦 *Hoy tenemos kits promocionales disponibles con precios especiales*:',
-        '🟢 1 mes por solo $35,99',
-        '🟡 2 meses por $70,00',
-        '🟠 3 meses por $80,99',
-        '🔴 6 meses (tratamiento completo) por $147,99',
+        '🟢 1 frasco por solo $35,99',
+        '🟡 2 frascos por $70,00',
+        '🟠 3 frascos por $80,99',
+        '🔴 6 frascos (tratamiento completo) por $147,99',
         '',
         '¿Cuántos frascos desea?'
     ].join('\n');

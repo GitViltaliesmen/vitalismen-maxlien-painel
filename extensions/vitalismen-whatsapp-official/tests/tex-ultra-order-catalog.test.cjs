@@ -18,6 +18,8 @@ assert.deepEqual(
 for (const kit of catalog.KITS) {
     assert.equal(catalog.expectedPrice('tex_ultra_ec', kit.quantity), kit.priceText);
     assert.equal(catalog.isExpectedPrice('tex_ultra_ec', kit.quantity, kit.offerPrice), true);
+    assert.match(kit.duration, /frasco/);
+    assert.doesNotMatch(kit.duration, /\bmes(?:es)?\b|mês/i);
 }
 assert.equal(catalog.isExpectedPrice('tex_ultra_ec', '3', '95.99'), false);
 
@@ -50,6 +52,7 @@ assert.match(offer, /\$70,00/);
 assert.match(offer, /\$80,99/);
 assert.match(offer, /\$147,99/);
 assert.match(offer, /¿Cuántos frascos desea\?/);
+assert.doesNotMatch(offer, /\bmes(?:es)?\b|mês/i);
 
 const extensionRoot = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(extensionRoot, 'sidepanel.html'), 'utf8');
@@ -57,6 +60,9 @@ const script = fs.readFileSync(path.join(extensionRoot, 'sidepanel.js'), 'utf8')
 assert.match(html, /id="orderKitOptions"/);
 assert.match(html, /id="orderReadiness"/);
 assert.match(html, /Cadastro de pedido/);
+assert.match(html, />1 frasco</);
+assert.match(html, />2 frascos</);
+assert.doesNotMatch(html, /data-kit-quantity="[1236]"[^>]*><span>\d+ (?:mês|meses)</i);
 assert.match(script, /Cadastrar pedido confirmado/);
 assert.match(script, /operationalOrderSync/);
 

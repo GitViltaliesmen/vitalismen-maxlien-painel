@@ -1,11 +1,13 @@
-# Vitalismen · WhatsApp Oficial v0.13.5
+# Vitalismen · WhatsApp Oficial v0.13.7
 
-Esta versão adiciona o `Funil antigo completo` como biblioteca congelada e separada dos funis assistidos.
+Esta versão isola os blocos iniciais de Nitrix, Vit Power e Tex Ultra e completa o início manual do Tex Ultra.
 
-- 79 itens em Vit Power e Tex Ultra;
-- 80 itens em Nitrix;
+- 79 itens em Vit Power;
+- 77 itens em Nitrix;
+- 76 itens em Tex Ultra;
 - 62 arquivos locais de áudio, imagem e vídeo;
 - `PROMOCION_1_3_6` e `PRECIO_REAL_1_3_6` disponíveis nos três produtos;
+- blocos personalizados antigos de Vit Power aparecem somente em Vit Power;
 - textos, áudios, imagens e vídeos em modo enviar;
 - blocos expansíveis com etapas;
 - nenhum envio automático.
@@ -35,7 +37,8 @@ mostra o CRM Vitalismen no painel lateral.
 
 ## Cadastro Tex Ultra
 
-- o bloco `Inicio completo Tex Ultra` envia, mediante um clique humano por etapa: Inicio 01, Inicio 02, Prova 1 e Frasco Tex Ultra;
+- o bloco `Inicio completo Tex Ultra` envia, mediante um clique humano por etapa: Inicio universal 01, Inicio universal 02, Prova 1, Frasco Tex Ultra e a tabela promocional desde USD 35,99;
+- a tabela de preço original desde USD 39,99 permanece separada para escolha manual e não é enviada junto com a promoção;
 - a mídia principal do Tex Ultra usa exclusivamente `legacy-media/sales/ec/tex_ultra_bottle.png`;
 - o frasco Vit Power não aparece dentro da biblioteca Tex Ultra;
 - Tex Ultra é o produto atual para novas fichas sem produto previamente salvo;
@@ -105,5 +108,5 @@ mostra o CRM Vitalismen no painel lateral.
 5. Selecione a pasta que contém este arquivo e o `manifest.json`.
 6. Abra o WhatsApp Web e clique no ícone da extensão.
 
-Após carregar a versão 0.13.5, recarregue a extensão e a aba do WhatsApp Web uma única vez.
+Após carregar a versão 0.13.7, recarregue a extensão e a aba do WhatsApp Web uma única vez.
 O motor interno de transporte permanece congelado na revisão 0.11.5.

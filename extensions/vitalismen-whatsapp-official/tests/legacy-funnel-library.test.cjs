@@ -21,8 +21,8 @@ assert.equal(library.CUSTOM_BLOCKS.length, 3);
 
 const expected = {
     vit_power_ec: { total: 79, blocks: 4 },
-    nitrix_ec: { total: 80, blocks: 5 },
-    tex_ultra_ec: { total: 79, blocks: 4 }
+    nitrix_ec: { total: 77, blocks: 2 },
+    tex_ultra_ec: { total: 76, blocks: 1 }
 };
 const referencedAssets = new Set();
 for (const [productKey, counts] of Object.entries(expected)) {
@@ -60,9 +60,11 @@ const texStart = texItems.find((item) => item.value === 'tex_ultra_inicio_comple
 assert.ok(texStart, 'bloco inicial Tex Ultra ausente');
 assert.deepEqual(
     Array.from(texStart.steps, (step) => `${step.type}:${step.label}`),
-    ['audio:Inicio 01', 'audio:Inicio 02', 'media:Prova 1', 'media:Frasco Tex Ultra']
+    ['audio:Inicio universal 01', 'audio:Inicio universal 02', 'media:Prova 1', 'media:Frasco Tex Ultra', 'draft:Valores promocionais · desde USD 35.99']
 );
-assert.equal(texStart.steps.at(-1).value, 'legacy-media/sales/ec/tex_ultra_bottle.png');
+assert.equal(texStart.steps[3].value, 'legacy-media/sales/ec/tex_ultra_bottle.png');
+assert.equal(texStart.steps[4].value, 'custom_text:text_1780282158837_bf20c0');
+assert.match(library.resolveText(texStart.steps[4].value, 'tex_ultra_ec'), /1 frasco[^\n]+\$35,99/);
 assert.equal(
     texItems.filter((item) => item.type === 'media' && item.code === 'M01')[0]?.value,
     'legacy-media/sales/ec/tex_ultra_bottle.png'
@@ -71,6 +73,17 @@ assert.equal(
     texItems.some((item) => [item.value, item.mediaUrl, ...(item.steps || []).map((step) => step.value)].includes('legacy-media/sales/ec/vit_power.jpeg')),
     false,
     'biblioteca Tex Ultra nao pode mostrar frasco Vit Power'
+);
+assert.equal(
+    texItems.some((item) => item.type === 'block' && item.productKey === 'vit_power_ec'),
+    false,
+    'blocos personalizados de Vit Power nao podem aparecer em Tex Ultra'
+);
+const nitrixItems = library.list({ productKey: 'nitrix_ec' });
+assert.equal(
+    nitrixItems.some((item) => item.type === 'block' && item.productKey === 'vit_power_ec'),
+    false,
+    'blocos personalizados de Vit Power nao podem aparecer em Nitrix'
 );
 
 assert.ok(manifest.web_accessible_resources[0].resources.includes('legacy-funnel-library.js'));
