@@ -170,11 +170,7 @@ const createOrConfirmOrder = async (state, draft) => {
     if (!order.tracking?.metaPurchaseSentAt) {
         await enrichOrderWithMetaAttribution(order).catch(() => null);
         const result = await sendPurchaseEventForOrder(order).catch((error) => ({ ok: false, error: error.message }));
-        order.tracking = order.tracking || {};
-        order.tracking.metaPurchaseEventId = result.eventId || order.orderId;
-        order.tracking.metaPurchaseResponse = result.ok ? result.response : { ok: false, error: result.error || 'meta_purchase_failed' };
-        if (result.ok) order.tracking.metaPurchaseSentAt = new Date();
-        await order.save();
+        order = result.order || order;
     }
     return order;
 };

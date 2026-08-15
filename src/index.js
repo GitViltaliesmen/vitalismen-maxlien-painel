@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/texUltraApprovedFreezeRuntimeGuardV5.js';
+import './services/texUltraApprovedFreezeRuntimeGuardV6.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -226,7 +226,9 @@ app.use(cors({
         'http://127.0.0.1:5173',
         'http://127.0.0.1:8080',
         'https://maxtourus.com.br',
-        'https://www.maxtourus.com.br'
+        'https://www.maxtourus.com.br',
+        'https://vilaliemen.shop',
+        'https://www.vilaliemen.shop'
     ],
     credentials: true
 }));

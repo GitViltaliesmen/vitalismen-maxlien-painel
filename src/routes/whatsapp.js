@@ -2188,9 +2188,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         previousOrderId: sourceIsAdminOrder ? sourceOrderId : '',
         entryReason: sourceIsAdminOrder ? 'admin_panel_confirmed_whatsapp_mirror' : 'whatsapp_panel_confirmed',
         tracking: {
-            ...(order?.tracking || {}),
-            ip: order?.tracking?.ip || req?.ip || '',
-            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || ''
+            ...(order?.tracking || {})
         }
     };
     if (order) {
@@ -2214,20 +2212,7 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         : { ok: false, skipped: true, reason: 'not_sent' };
     if (!order.tracking?.metaPurchaseSentAt) {
         const result = await sendPurchaseEventForOrder(order);
-        order.tracking = order.tracking || {};
-        order.tracking.metaPurchaseEventId = result.eventId || order.orderId;
-        if (result.ok) {
-            order.tracking.metaPurchaseSentAt = new Date();
-            order.tracking.metaPurchaseResponse = result.response;
-        } else {
-            order.tracking.metaPurchaseResponse = {
-                ok: false,
-                status: result.status,
-                data: result.data,
-                error: result.error
-            };
-        }
-        await order.save();
+        order = result.order || order;
         purchase = result;
     }
     let adminPurchaseLock = { ok: false, skipped: true, reason: 'purchase_not_sent' };
@@ -2757,6 +2742,8 @@ router.post('/vsl-entry', async (req, res) => {
                 sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
                 referrer: cleanText(body.referrer),
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
+                clientIpOriginal: requestIp(req),
+                clientUserAgentOriginal: cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
@@ -2777,6 +2764,12 @@ router.post('/vsl-entry', async (req, res) => {
                     fbc: cleanText(body.fbc),
                     fbp: cleanText(body.fbp),
                     external_id: cleanText(body.external_id || body.externalId),
+                    metaCampaignId: cleanText(body.meta_campaign_id || body.metaCampaignId || body.campaign_id),
+                    metaAdsetId: cleanText(body.meta_adset_id || body.metaAdsetId || body.adset_id),
+                    metaAdId: cleanText(body.meta_ad_id || body.metaAdId || body.ad_id),
+                    metaCampaignName: cleanText(body.meta_campaign_name || body.metaCampaignName || body.campaign_name),
+                    metaAdsetName: cleanText(body.meta_adset_name || body.metaAdsetName || body.adset_name),
+                    metaAdName: cleanText(body.meta_ad_name || body.metaAdName || body.ad_name || body.creative_name),
                     vsl_test_id: vslTestId,
                     vsl_variant: vslVariant
                 },

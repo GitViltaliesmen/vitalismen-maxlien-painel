@@ -41,6 +41,14 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    clientIpOriginal: {
+        type: String,
+        default: ''
+    },
+    clientUserAgentOriginal: {
+        type: String,
+        default: ''
+    },
     ipHash: {
         type: String,
         default: ''

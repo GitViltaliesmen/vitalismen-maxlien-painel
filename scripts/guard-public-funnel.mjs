@@ -14,6 +14,7 @@ const sshTarget = process.env.VITALISMEN_GUARD_SSH_TARGET || process.env.VITALIS
 const sshAlias = process.env.VITALISMEN_GUARD_SSH_ALIAS || '';
 const publicBase = process.env.VITALISMEN_GUARD_PUBLIC_BASE || 'https://maxlien.shop';
 const ecBase = process.env.VITALISMEN_GUARD_EC_BASE || 'https://ec.maxlien.shop';
+const allowProductionMutationTest = process.env.PUBLIC_FUNNEL_MUTATION_TEST === 'YES';
 
 const ok = (message) => notes.push(`OK  ${message}`);
 const warn = (message) => warnings.push(`WARN ${message}`);
@@ -300,8 +301,15 @@ const auditPm2 = () => {
     if (output.includes('online')) ok('PM2 vitalismen-automation online.');
     else fail('PM2 vitalismen-automation nao esta online.');
 
-    if (output.includes('/opt/vitalismen-automacao/releases/')) ok('PM2 aponta para release oficial em /opt/vitalismen-automacao.');
-    else fail('PM2 nao aponta para release oficial da automacao.');
+    const activeRelease = ssh('readlink -f /opt/vitalismen-automacao/current');
+    const currentSymlinkIsOfficial = output.includes('/opt/vitalismen-automacao/current')
+        && activeRelease.status === 0
+        && activeRelease.stdout.includes('/opt/vitalismen-automacao/releases/');
+    if (output.includes('/opt/vitalismen-automacao/releases/') || currentSymlinkIsOfficial) {
+        ok('PM2 aponta para release oficial em /opt/vitalismen-automacao.');
+    } else {
+        fail('PM2 nao aponta para release oficial da automacao.');
+    }
 };
 
 const auditLeadsDashboardAccess = async () => {
@@ -360,6 +368,11 @@ const auditLeadEndpoint = async () => {
         ok('/api/lead publico responde pela API nova e rejeita lead sem nome/telefone.');
     } else {
         fail(`/api/lead publico nao rejeitou falta de nome/telefone como esperado: status=${invalid.status} body=${invalid.text.slice(0, 200)}`);
+    }
+
+    if (!allowProductionMutationTest) {
+        ok('Teste mutavel de criacao/limpeza de lead pulado; exige PUBLIC_FUNNEL_MUTATION_TEST=YES.');
+        return;
     }
 
     const testPhone = `099${String(Date.now()).slice(-7)}`;

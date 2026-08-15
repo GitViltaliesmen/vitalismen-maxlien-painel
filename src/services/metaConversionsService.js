@@ -1,5 +1,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import Order from '../models/Order.js';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 
@@ -42,11 +43,52 @@ const getConfigForCountry = (country) => {
     return { pixelId: null, accessToken: null };
 };
 
-const getActionSourceForOrder = (order) => (
-    (order?.tracking?.sourceUrl || order?.tracking?.fbc || order?.tracking?.fbp || order?.tracking?.fbclid)
-        ? 'website'
-        : (order?.source === 'whatsapp' ? 'business_messaging' : 'website')
+const websiteUrl = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+        const hostname = parsed.hostname.toLowerCase();
+        const privateHost = hostname === 'localhost'
+            || hostname === '127.0.0.1'
+            || hostname === '::1'
+            || hostname.endsWith('.local')
+            || /^10\./.test(hostname)
+            || /^192\.168\./.test(hostname)
+            || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+        if (privateHost) return '';
+        const path = parsed.pathname.toLowerCase();
+        if (/^\/(api|admin)(\/|$)/.test(path)) return '';
+        if (/^\/(qr|leads-window|funnel-metrics)(\.html)?(\/|$)/.test(path)) return '';
+        parsed.hash = '';
+        return parsed.toString();
+    } catch {
+        return '';
+    }
+};
+
+export const resolvePurchaseEventSourceUrl = (order = {}) => websiteUrl(
+    order?.tracking?.landingUrl || order?.tracking?.sourceUrl
 );
+
+export const getActionSourceForOrder = (order = {}) => {
+    if (resolvePurchaseEventSourceUrl(order)) return 'website';
+    const tracking = order.tracking || {};
+    const hasWebAttribution = Boolean(
+        tracking.fbc
+        || tracking.fbp
+        || tracking.fbclid
+        || tracking.utm_source
+        || tracking.utm_medium
+        || tracking.utm_campaign
+        || tracking.utm_content
+        || tracking.utm_term
+    );
+    if (String(order.source || '').toLowerCase() === 'checkout' || hasWebAttribution) return 'website';
+    if (['manual', 'whatsapp'].includes(String(order.source || '').toLowerCase())) return 'business_messaging';
+    return 'website';
+};
 
 const VALID_META_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
@@ -79,6 +121,21 @@ const toUnixSeconds = (value) => {
     const time = date.getTime();
     return Number.isFinite(time) ? Math.floor(time / 1000) : null;
 };
+
+export const resolvePurchaseEventDate = (order = {}) => {
+    const values = [order.confirmedAt, order.entryAt, order.draftCreatedAt, order.createdAt];
+    for (const value of values) {
+        const date = value instanceof Date ? value : new Date(value || 0);
+        if (Number.isFinite(date.getTime()) && date.getTime() > 0) return date;
+    }
+    return null;
+};
+
+export const metaEventsReceived = (response = null) => (
+    Number(response?.events_received ?? response?.data?.events_received ?? 0) || 0
+);
+
+export const metaResponseAccepted = (response = null) => metaEventsReceived(response) > 0;
 
 const TRACKABLE_BROWSER_SERVER_EVENTS = new Set(['PageView', 'ViewContent', 'InitiateCheckout', 'Lead']);
 
@@ -228,8 +285,13 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         return { ok: false, eventId, error: 'META Purchase missing positive value' };
     }
 
-    const eventTime = toUnixSeconds(options.eventTime) || Math.floor(Date.now() / 1000);
+    const eventDate = options.eventTime || resolvePurchaseEventDate(order);
+    const eventTime = toUnixSeconds(eventDate) || Math.floor(Date.now() / 1000);
     const actionSource = options.actionSource || getActionSourceForOrder(order);
+    const eventSourceUrl = actionSource === 'website' ? resolvePurchaseEventSourceUrl(order) : '';
+    if (actionSource === 'website' && !eventSourceUrl) {
+        return { ok: false, eventId, eventTime, error: 'META Purchase website missing valid event_source_url' };
+    }
     const messagingChannel = actionSource === 'business_messaging' ? 'whatsapp' : undefined;
     const quantity = normalizeMetaPackageQuantity(order?.package?.quantity ?? order?.package?.id);
     if (!quantity) {
@@ -250,16 +312,21 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
+    const hasOriginalWebContext = Boolean(eventSourceUrl && String(order?.source || '').toLowerCase() === 'checkout');
+    const clientIp = order?.tracking?.clientIpOriginal || (hasOriginalWebContext ? order?.tracking?.ip : '');
+    const clientUserAgent = order?.tracking?.clientUserAgentOriginal || (hasOriginalWebContext ? order?.tracking?.userAgent : '');
 
     const userData = {
+        em: order?.customer?.email ? [sha256hex(order.customer.email)] : undefined,
         fn: firstName ? [sha256hex(firstName)] : undefined,
         ln: lastName ? [sha256hex(lastName)] : undefined,
         ph: phoneE164 ? [sha256hex(phoneE164)] : undefined,
         ct: order?.customer?.city ? [sha256hex(order.customer.city)] : undefined,
         st: order?.customer?.province ? [sha256hex(order.customer.province)] : undefined,
+        zp: order?.customer?.zip ? [sha256hex(order.customer.zip)] : undefined,
         country: country ? [sha256hex(country)] : undefined,
-        client_ip_address: order?.tracking?.ip || undefined,
-        client_user_agent: order?.tracking?.userAgent || undefined,
+        client_ip_address: clientIp || undefined,
+        client_user_agent: clientUserAgent || undefined,
         fbc: order?.tracking?.fbc || undefined,
         fbp: order?.tracking?.fbp || undefined,
         external_id: order?.tracking?.ext_id ? [sha256hex(order.tracking.ext_id)] : undefined
@@ -273,13 +340,13 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
     const payload = {
         data: [
-            {
+            cleanObject({
                 event_name: 'Purchase',
                 event_time: eventTime,
                 event_id: eventId,
                 action_source: actionSource,
                 messaging_channel: messagingChannel,
-                event_source_url: actionSource === 'website' ? order?.tracking?.sourceUrl || undefined : undefined,
+                event_source_url: eventSourceUrl || undefined,
                 user_data: userData,
                 custom_data: {
                     currency,
@@ -296,17 +363,118 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
                     ],
                     content_type: 'product'
                 }
-            }
+            })
         ]
     };
 
     const testEventCode = String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim();
     if (testEventCode) payload.test_event_code = testEventCode;
 
-    return { ok: true, payload, eventId, eventTime };
+    return { ok: true, payload, eventId, eventTime, actionSource, eventSourceUrl };
+};
+
+const PURCHASE_LOCK_TIMEOUT_MS = 2 * 60 * 1000;
+
+const sameOrderId = (order = {}) => order?._id || order?.id || null;
+
+const purchaseState = (order = {}) => order?.tracking || {};
+
+export const claimMetaPurchaseForOrder = async (order, {
+    OrderModel = Order,
+    now = new Date(),
+    lockTimeoutMs = PURCHASE_LOCK_TIMEOUT_MS,
+    eventId = order?.orderId || order?._id?.toString?.(),
+    eventTime = resolvePurchaseEventDate(order)
+} = {}) => {
+    const orderDbId = sameOrderId(order);
+    if (!orderDbId) return { ok: false, error: 'META Purchase requires persisted order' };
+    if (purchaseState(order).metaPurchaseSentAt) {
+        return { ok: true, claimed: false, alreadySent: true, order };
+    }
+
+    const claimAt = new Date(now);
+    const expiredAt = new Date(claimAt.getTime() - Math.max(1000, Number(lockTimeoutMs) || PURCHASE_LOCK_TIMEOUT_MS));
+    const claimed = await OrderModel.findOneAndUpdate(
+        {
+            _id: orderDbId,
+            $and: [
+                {
+                    $or: [
+                        { 'tracking.metaPurchaseSentAt': { $exists: false } },
+                        { 'tracking.metaPurchaseSentAt': null }
+                    ]
+                },
+                {
+                    $or: [
+                        { 'tracking.metaPurchaseInFlightAt': { $exists: false } },
+                        { 'tracking.metaPurchaseInFlightAt': null },
+                        { 'tracking.metaPurchaseInFlightAt': { $lt: expiredAt } }
+                    ]
+                }
+            ]
+        },
+        {
+            $set: {
+                'tracking.metaPurchaseEventId': String(eventId || ''),
+                'tracking.metaPurchaseEventTime': eventTime ? new Date(eventTime) : claimAt,
+                'tracking.metaPurchaseInFlightAt': claimAt,
+                'tracking.metaPurchaseLastAttemptAt': claimAt,
+                'tracking.metaPurchaseLastError': ''
+            },
+            $inc: { 'tracking.metaPurchaseAttempts': 1 }
+        },
+        { new: true }
+    );
+    if (claimed) return { ok: true, claimed: true, claimAt, order: claimed };
+
+    const current = await OrderModel.findById(orderDbId);
+    if (purchaseState(current).metaPurchaseSentAt) {
+        return { ok: true, claimed: false, alreadySent: true, order: current };
+    }
+    return { ok: false, claimed: false, skipped: true, reason: 'purchase_send_in_progress', order: current || order };
+};
+
+const finalizeMetaPurchase = async ({
+    OrderModel = Order,
+    order,
+    claimAt,
+    eventId,
+    eventTime,
+    response = null,
+    error = ''
+}) => {
+    const accepted = metaResponseAccepted(response);
+    const set = {
+        'tracking.metaPurchaseEventId': String(eventId || ''),
+        'tracking.metaPurchaseEventTime': new Date(Number(eventTime) * 1000),
+        'tracking.metaPurchaseResponse': response || { ok: false, error },
+        'tracking.metaPurchaseLastError': accepted ? '' : String(error || 'META Purchase response not accepted').slice(0, 1000)
+    };
+    if (accepted) set['tracking.metaPurchaseSentAt'] = new Date();
+
+    const finalized = await OrderModel.findOneAndUpdate(
+        { _id: sameOrderId(order), 'tracking.metaPurchaseInFlightAt': claimAt },
+        { $set: set, $unset: { 'tracking.metaPurchaseInFlightAt': 1 } },
+        { new: true }
+    );
+    // Preserve the existing Order post-save synchronization with the operational panel.
+    if (finalized && typeof finalized.save === 'function') await finalized.save();
+    return finalized;
 };
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
+    if (purchaseState(order).metaPurchaseSentAt) {
+        return {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            reason: 'already_sent',
+            eventId: purchaseState(order).metaPurchaseEventId || order?.orderId || '',
+            eventTime: toUnixSeconds(purchaseState(order).metaPurchaseEventTime || resolvePurchaseEventDate(order)),
+            response: purchaseState(order).metaPurchaseResponse || null,
+            order
+        };
+    }
     const country = order?.country;
     const { pixelId, accessToken } = getConfigForCountry(country);
     if (!pixelId || !accessToken) {
@@ -325,24 +493,96 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
         return { ok: true, dryRun: true, payload, eventId, eventTime, attribution };
     }
 
+    if (attribution?.enriched && typeof order?.save === 'function') await order.save();
+    const claim = await claimMetaPurchaseForOrder(order, {
+        OrderModel: options.OrderModel || Order,
+        now: options.now || new Date(),
+        lockTimeoutMs: options.lockTimeoutMs,
+        eventId,
+        eventTime: new Date(eventTime * 1000)
+    });
+    if (!claim.claimed) {
+        if (claim.alreadySent) {
+            return {
+                ok: true,
+                skipped: true,
+                alreadySent: true,
+                reason: 'already_sent',
+                eventId: purchaseState(claim.order).metaPurchaseEventId || eventId,
+                eventTime: toUnixSeconds(purchaseState(claim.order).metaPurchaseEventTime) || eventTime,
+                response: purchaseState(claim.order).metaPurchaseResponse || null,
+                order: claim.order,
+                attribution
+            };
+        }
+        return { ...claim, eventId, eventTime, attribution };
+    }
+
+    const claimedBuilt = buildPurchaseEventPayloadForOrder(claim.order, options);
+    if (!claimedBuilt.ok) {
+        const finalized = await finalizeMetaPurchase({
+            OrderModel: options.OrderModel || Order,
+            order: claim.order,
+            claimAt: claim.claimAt,
+            eventId,
+            eventTime,
+            error: claimedBuilt.error
+        });
+        return { ...claimedBuilt, order: finalized || claim.order, attribution };
+    }
+
     try {
         const apiVersion = process.env.META_CAPI_API_VERSION || 'v20.0';
         const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events`;
-        const response = await axios.post(url, payload, {
+        const response = await (options.httpClient || axios).post(url, claimedBuilt.payload, {
             params: { access_token: accessToken },
             timeout: 15000
         });
-
-        return { ok: true, response: response.data, eventId, eventTime, attribution };
+        const accepted = metaResponseAccepted(response.data);
+        const finalized = await finalizeMetaPurchase({
+            OrderModel: options.OrderModel || Order,
+            order: claim.order,
+            claimAt: claim.claimAt,
+            eventId,
+            eventTime,
+            response: response.data,
+            error: accepted ? '' : 'META Purchase response did not confirm events_received'
+        });
+        return {
+            ok: accepted,
+            response: response.data,
+            eventId,
+            eventTime,
+            order: finalized || claim.order,
+            error: accepted ? undefined : 'META Purchase response did not confirm events_received',
+            attribution
+        };
     } catch (e) {
         const status = e?.response?.status;
         const data = e?.response?.data;
+        const failureResponse = {
+            ok: false,
+            status,
+            data,
+            error: 'META CAPI request failed'
+        };
+        const finalized = await finalizeMetaPurchase({
+            OrderModel: options.OrderModel || Order,
+            order: claim.order,
+            claimAt: claim.claimAt,
+            eventId,
+            eventTime,
+            response: failureResponse,
+            error: failureResponse.error
+        });
         return {
             ok: false,
             eventId,
             error: 'META CAPI request failed',
             status,
-            data
+            data,
+            order: finalized || claim.order,
+            attribution
         };
     }
 };

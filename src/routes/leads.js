@@ -3,6 +3,7 @@ import Order from '../models/Order.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
 import { nextSellerForNewLead, sellerIsActive } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
+import { normalizeMetaTrackingInput } from '../services/metaAttributionService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
@@ -80,26 +81,11 @@ const requestIp = (req) => firstClean(
     req.socket?.remoteAddress
 );
 
-const trackingFromBody = (body, req) => {
-    const tracking = {};
-
-    const directKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'fbc', 'fbp'];
-    for (const key of directKeys) {
-        const value = clean(body?.[key]);
-        if (value) tracking[key] = value;
-    }
-
-    tracking.ext_id = firstClean(body?.external_id, body?.externalId, body?.ext_id);
-    tracking.sourceUrl = firstClean(body?.event_source_url, body?.eventSourceUrl, body?.sourceUrl);
-    tracking.userAgent = firstClean(body?.client_user_agent, body?.clientUserAgent, body?.user_agent, req.get('user-agent'));
-    tracking.ip = firstClean(requestIp(req), body?.client_ip_address, body?.clientIpAddress, body?.ip);
-
-    for (const key of Object.keys(tracking)) {
-        if (!tracking[key]) delete tracking[key];
-    }
-
-    return tracking;
-};
+const trackingFromBody = (body, req) => normalizeMetaTrackingInput(body, {
+    captureOriginalClient: true,
+    clientIp: requestIp(req),
+    clientUserAgent: req.get('user-agent') || ''
+});
 
 const buildSellerMessage = ({ name, phone, province, city, address, reference, quantity, total, productInfo }) => [
     'Hola, quiero hacer mi pedido',
@@ -127,9 +113,9 @@ const sendInitiateCheckoutForLead = async ({ order, lead, body, req, quantity, t
             country: order?.country || 'EC',
             eventName: 'InitiateCheckout',
             event_id: eventId,
-            event_source_url: firstClean(body?.event_source_url, body?.eventSourceUrl, body?.sourceUrl, order?.tracking?.sourceUrl),
-            client_user_agent: firstClean(body?.client_user_agent, body?.clientUserAgent, order?.tracking?.userAgent),
-            client_ip_address: firstClean(body?.client_ip_address, body?.clientIpAddress, order?.tracking?.ip),
+            event_source_url: firstClean(body?.event_source_url, body?.eventSourceUrl, body?.sourceUrl, order?.tracking?.landingUrl, order?.tracking?.sourceUrl),
+            client_user_agent: firstClean(order?.tracking?.clientUserAgentOriginal, body?.client_user_agent, body?.clientUserAgent),
+            client_ip_address: firstClean(order?.tracking?.clientIpOriginal, body?.client_ip_address, body?.clientIpAddress),
             fbc: firstClean(body?.fbc, order?.tracking?.fbc),
             fbp: firstClean(body?.fbp, order?.tracking?.fbp),
             external_id: firstClean(body?.external_id, body?.externalId, order?.tracking?.ext_id, order?.orderId),
@@ -182,10 +168,12 @@ router.post('/', async (req, res) => {
         const lead = {
             name: clean(req.body?.name || payloadCustomer.name),
             phone,
+            email: clean(req.body?.email || payloadCustomer.email),
             address: clean(req.body?.address || payloadCustomer.address),
             reference: clean(req.body?.reference || payloadCustomer.reference),
             city: clean(req.body?.city || payloadCustomer.city),
-            province: clean(req.body?.province || payloadCustomer.province)
+            province: clean(req.body?.province || payloadCustomer.province),
+            zip: clean(req.body?.zip || req.body?.postal_code || payloadCustomer.zip)
         };
         const productInfo = resolveEcuadorProductInfo(
             req.body?.product,

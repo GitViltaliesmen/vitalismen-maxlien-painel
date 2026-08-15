@@ -13,7 +13,7 @@ const capiMaxServerDays = Math.min(days, 7);
 const limit = Number(process.env.META_RETRO_LIMIT || 500);
 const dryRun = process.env.META_RETRO_SEND !== 'YES';
 const includeAlreadySent = process.env.META_RETRO_INCLUDE_SENT === 'YES';
-const actionSource = process.env.META_RETRO_ACTION_SOURCE || 'system_generated';
+const actionSource = process.env.META_RETRO_ACTION_SOURCE || '';
 const statuses = String(process.env.META_RETRO_STATUSES || 'confirmed,processing,shipped,delivered')
     .split(',')
     .map((item) => item.trim())
@@ -32,9 +32,11 @@ const parseOnlineCreatedAtFromNotes = (notes = '') => {
 };
 
 const resolveOriginalSaleDate = (order) => (
-    parseOnlineCreatedAtFromNotes(order.notes)
+    order.confirmedAt
+    || parseOnlineCreatedAtFromNotes(order.notes)
     || order.purchaseIntent?.readyConfirmedAt
-    || order.updatedAt
+    || order.entryAt
+    || order.draftCreatedAt
     || order.createdAt
 );
 
@@ -195,11 +197,6 @@ const main = async () => {
 
         const sendResult = await sendPurchaseEventForOrder(order, { eventTime, actionSource });
         if (sendResult.ok) {
-            order.tracking = order.tracking || {};
-            order.tracking.metaPurchaseEventId = sendResult.eventId;
-            order.tracking.metaPurchaseSentAt = new Date();
-            order.tracking.metaPurchaseResponse = sendResult.response;
-            await order.save();
             result.sent += 1;
         } else {
             result.failed += 1;

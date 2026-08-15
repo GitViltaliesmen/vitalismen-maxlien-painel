@@ -868,20 +868,10 @@ const markMetaPurchaseForConfirmedOrder = async (order) => {
     if (order.tracking.metaPurchaseSentAt) return true;
 
     const result = await sendPurchaseEventForOrder(order);
-    order.tracking.metaPurchaseEventId = result.eventId;
-    if (result.ok) {
-        order.tracking.metaPurchaseSentAt = new Date();
-        order.tracking.metaPurchaseResponse = result.response;
-    } else {
-        order.tracking.metaPurchaseResponse = {
-            ok: false,
-            status: result.status,
-            data: result.data,
-            error: result.error
-        };
+    if (result.order?.tracking) order.tracking = result.order.tracking;
+    if (!result.ok && !result.skipped) {
         console.warn(`[META] Purchase CAPI falhou para pedido ${order.orderId}: ${result.error || result.status || 'unknown'}`);
     }
-    await order.save();
     return Boolean(result.ok);
 };
 

@@ -4,6 +4,7 @@ import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { normalizeMetaTrackingInput } from '../services/metaAttributionService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import {
     getCustomerPurchaseEligibility,
@@ -32,6 +33,15 @@ const normalizeOrderStatus = (status) => {
 };
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+
+const requestIp = (req) => String(
+    req?.get?.('cf-connecting-ip')
+    || req?.get?.('x-real-ip')
+    || req?.headers?.['x-forwarded-for']?.split(',')?.[0]
+    || req?.ip
+    || req?.socket?.remoteAddress
+    || ''
+).trim();
 
 const VALID_PACKAGE_QUANTITIES = new Set([1, 2, 3, 6]);
 
@@ -170,7 +180,7 @@ const sendBrazilTestOnlyError = (res) => res.status(409).json({
     message: 'Numero brasileiro liberado somente para teste de atendimento. Nao criar, confirmar ou enviar pedido.'
 });
 
-const markPurchaseEventForOrder = async (order, req) => {
+const markPurchaseEventForOrder = async (order) => {
     if (!orderHasValidPackage(order)) {
         return { ok: false, skipped: true, reason: 'missing_valid_quantity', order };
     }
@@ -179,33 +189,15 @@ const markPurchaseEventForOrder = async (order, req) => {
     }
     if (!order.confirmedAt) order.confirmedAt = new Date();
     order.status = 'confirmed';
-
     order.tracking = order.tracking || {};
-    if (!order.tracking.ip) order.tracking.ip = req.ip;
-    if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
-
-    if (order.tracking.metaPurchaseSentAt) {
-        await order.save();
-        return { ok: true, alreadySent: true, order };
-    }
-
-    const result = await sendPurchaseEventForOrder(order);
-
-    order.tracking.metaPurchaseEventId = result.eventId;
-    if (result.ok) {
-        order.tracking.metaPurchaseSentAt = new Date();
-        order.tracking.metaPurchaseResponse = result.response;
-    } else {
-        order.tracking.metaPurchaseResponse = {
-            ok: false,
-            status: result.status,
-            data: result.data,
-            error: result.error
-        };
-    }
-
     await order.save();
-    return { ok: result.ok, result, order };
+    const result = await sendPurchaseEventForOrder(order);
+    return {
+        ok: result.ok,
+        alreadySent: result.alreadySent === true,
+        result,
+        order: result.order || order
+    };
 };
 
 const assertCashOnDeliveryEligible = async ({ phone, country = 'EC' }) => {
@@ -578,9 +570,11 @@ router.post('/draft', async (req, res) => {
             if (tracking) {
                 existingDraft.tracking = {
                     ...(existingDraft.tracking || {}),
-                    ...(tracking || {}),
-                    ip: req.ip,
-                    userAgent: req.get('user-agent') || ''
+                    ...normalizeMetaTrackingInput(tracking || {}, {
+                        captureOriginalClient: true,
+                        clientIp: requestIp(req),
+                        clientUserAgent: req.get('user-agent') || ''
+                    })
                 };
             }
 
@@ -615,11 +609,11 @@ router.post('/draft', async (req, res) => {
             status: 'draft',
             source: 'checkout',
             draftCreatedAt: new Date(),
-            tracking: {
-                ...(tracking || {}),
-                ip: req.ip,
-                userAgent: req.get('user-agent') || ''
-            }
+            tracking: normalizeMetaTrackingInput(tracking || {}, {
+                captureOriginalClient: true,
+                clientIp: requestIp(req),
+                clientUserAgent: req.get('user-agent') || ''
+            })
         });
 
         await draft.save();
@@ -656,9 +650,9 @@ router.get('/draft/:id/tracking', async (req, res) => {
                 fbclid: t.fbclid || null,
                 fbc: t.fbc || null,
                 fbp: t.fbp || null,
-                sourceUrl: t.sourceUrl || null,
-                ip: t.ip || null,
-                userAgentLength: typeof t.userAgent === 'string' ? t.userAgent.length : null,
+                sourceUrl: t.landingUrl || t.sourceUrl || null,
+                hasClientIpOriginal: Boolean(t.clientIpOriginal),
+                clientUserAgentOriginalLength: typeof t.clientUserAgentOriginal === 'string' ? t.clientUserAgentOriginal.length : null,
                 metaPurchaseSentAt: t.metaPurchaseSentAt || null
             }
         });
@@ -684,10 +678,12 @@ router.patch('/draft/:id', async (req, res) => {
         if (customer) {
             if (customer.name) order.customer.name = customer.name;
             if (customer.phone) order.customer.phone = customer.phone;
+            if (customer.email !== undefined) order.customer.email = customer.email || '';
             if (customer.address) order.customer.address = customer.address;
             if (customer.reference !== undefined) order.customer.reference = customer.reference || '';
             if (customer.city) order.customer.city = customer.city;
             if (customer.province) order.customer.province = customer.province;
+            if (customer.zip !== undefined) order.customer.zip = customer.zip || '';
         }
 
         // Update package if provided
@@ -705,14 +701,16 @@ router.patch('/draft/:id', async (req, res) => {
 
         if (tracking) {
             order.tracking = order.tracking || {};
-            for (const [k, v] of Object.entries(tracking)) {
+            const normalizedTracking = normalizeMetaTrackingInput(tracking, {
+                captureOriginalClient: true,
+                clientIp: requestIp(req),
+                clientUserAgent: req.get('user-agent') || ''
+            });
+            for (const [k, v] of Object.entries(normalizedTracking)) {
                 if (v !== undefined && v !== null && String(v).length > 0) {
                     order.tracking[k] = v;
                 }
             }
-            // Always refresh IP/UA if missing
-            if (!order.tracking.ip) order.tracking.ip = req.ip;
-            if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
         }
 
         if (purchaseIntent) {
@@ -787,11 +785,6 @@ router.post('/draft/:id/submit', async (req, res) => {
             };
         }
 
-        // Ensure we store IP/UA for later CAPI usage
-        order.tracking = order.tracking || {};
-        if (!order.tracking.ip) order.tracking.ip = req.ip;
-        if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
-
         await order.save();
 
         console.log(`✅ Draft submitted: ${order.orderId} -> pending`);
@@ -864,6 +857,11 @@ router.post('/', async (req, res) => {
             tracking
         });
         const productTracking = productTrackingMetadata(productInfo);
+        const normalizedTracking = normalizeMetaTrackingInput(tracking || {}, {
+            captureOriginalClient: String(source || '').toLowerCase() === 'checkout',
+            clientIp: requestIp(req),
+            clientUserAgent: req.get('user-agent') || ''
+        });
 
         // Create order
         const order = new Order({
@@ -871,10 +869,12 @@ router.post('/', async (req, res) => {
             customer: {
                 name: customer.name,
                 phone: customer.phone,
+                email: customer.email || '',
                 address: customer.address,
                 reference: customer.reference || '',
                 city: customer.city,
-                province: customer.province
+                province: customer.province,
+                zip: customer.zip || customer.postal_code || ''
             },
             package: {
                 id: normalizedPackageQuantity,
@@ -894,17 +894,15 @@ router.post('/', async (req, res) => {
             notes: typeof notes === 'string' ? notes : '',
             purchaseIntent: purchaseIntent || {},
             tracking: {
-                ...(tracking || {}),
-                ...productTracking,
-                ip: req.ip,
-                userAgent: req.get('user-agent') || ''
+                ...normalizedTracking,
+                ...productTracking
             }
         });
 
         await order.save();
         let purchase = null;
         if (initialStatus === 'confirmed') {
-            purchase = await markPurchaseEventForOrder(order, req);
+            purchase = await markPurchaseEventForOrder(order);
         }
 
         console.log(`✅ New order created: ${order.orderId} - ${country} - ${customer.name}`);
@@ -963,7 +961,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             };
         }
         if (customer && typeof customer === 'object') {
-            const allowedCustomerFields = ['name', 'phone', 'address', 'reference', 'city', 'province'];
+            const allowedCustomerFields = ['name', 'phone', 'email', 'address', 'reference', 'city', 'province', 'zip'];
             allowedCustomerFields.forEach((field) => {
                 if (typeof customer[field] === 'string') {
                     order.customer[field] = customer[field].trim();
@@ -1010,7 +1008,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             } catch (duplicateError) {
                 return sendDuplicateOrderError(res, duplicateError);
             }
-            const purchase = await markPurchaseEventForOrder(order, req);
+            const purchase = await markPurchaseEventForOrder(order);
             return res.json({
                 ok: purchase.ok,
                 success: purchase.ok,
@@ -1064,7 +1062,7 @@ router.post('/:id/confirm-payment', authMiddleware, async (req, res) => {
             return sendDuplicateOrderError(res, duplicateError);
         }
 
-        const purchase = await markPurchaseEventForOrder(order, req);
+        const purchase = await markPurchaseEventForOrder(order);
         return res.json({
             ok: purchase.ok,
             success: purchase.ok,
