@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metricas do Funil EC</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #eef2f6;
+            --surface: #ffffff;
+            --surface-soft: #f7f9fc;
+            --line: #d7dee8;
+            --text: #1d2733;
+            --muted: #667488;
+            --blue: #1c5fd6;
+            --green: #107a4a;
+            --orange: #a65d00;
+            --red: #b42318;
+            --shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            padding: 0 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--surface-soft);
+            border-color: #b8c2d0;
+        }
+
+        button.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        input,
+        select {
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            padding: 0 10px;
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .topbar {
+            min-height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 18px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: #0d1420;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 18px;
+            letter-spacing: 0;
+        }
+
+        h2 {
+            font-size: 16px;
+            letter-spacing: 0;
+        }
+
+        h3 {
+            font-size: 14px;
+            letter-spacing: 0;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        main {
+            width: min(1280px, 100%);
+            margin: 0 auto;
+            padding: 18px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel,
+        .metric,
+        .login {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .login {
+            width: min(430px, calc(100vw - 36px));
+            margin: 56px auto;
+            padding: 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .login label {
+            display: grid;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric {
+            min-height: 112px;
+            padding: 14px;
+            display: grid;
+            align-content: space-between;
+            gap: 10px;
+        }
+
+        .metric strong {
+            font-size: 26px;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .metric span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .metric.good strong {
+            color: var(--green);
+        }
+
+        .metric.warn strong {
+            color: var(--orange);
+        }
+
+        .metric.bad strong {
+            color: var(--red);
+        }
+
+        .panel {
+            overflow: hidden;
+        }
+
+        .panel-head {
+            min-height: 52px;
+            padding: 0 14px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 860px;
+        }
+
+        th,
+        td {
+            padding: 11px 12px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .status {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 1040px) {
+            .grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 14px;
+            }
+
+            .actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            main {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="login" class="login hidden">
+        <h1>Acesso administrativo</h1>
+        <p class="meta">Use o mesmo login do painel.</p>
+        <label>Email
+            <input id="email" type="email" autocomplete="username">
+        </label>
+        <label>Senha
+            <input id="password" type="password" autocomplete="current-password">
+        </label>
+        <button id="loginBtn" class="primary" type="button">Entrar</button>
+        <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div id="app" class="app hidden">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">EC</div>
+                <div>
+                    <h1>Metricas do Funil</h1>
+                    <p id="updatedAt" class="meta">Carregando...</p>
+                </div>
+            </div>
+            <div class="actions">
+                <select id="days">
+                    <option value="1">Hoje</option>
+                    <option value="3">3 dias</option>
+                    <option value="7" selected>7 dias</option>
+                    <option value="14">14 dias</option>
+                    <option value="30">30 dias</option>
+                </select>
+                <button id="refreshBtn" type="button">Atualizar</button>
+                <button id="logoutBtn" type="button">Sair</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="grid" id="metrics"></section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Dia a dia</h2>
+                    <p class="meta">Horario do Equador</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Dia</th>
+                                <th>Entradas VSL</th>
+                                <th>PageView CAPI</th>
+                                <th>Cliques WhatsApp</th>
+                                <th>CTR WhatsApp</th>
+                                <th>Leads Meta</th>
+                                <th>Vendas criadas</th>
+                                <th>Purchase enviado</th>
+                                <th>Valor marcado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Ultimos Purchases enviados</h2>
+                    <p class="meta">Pedidos aceitos para marcacao</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pedido</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Enviado para</th>
+                                <th>Status Facebook</th>
+                                <th>Marcado em</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Vendas recentes sem Purchase</h2>
+                    <p class="meta">Janela de 7 dias da Meta</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pedido</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Criado em</th>
+                                <th>Status Facebook</th>
+                                <th>Tracking</th>
+                            </tr>
+                        </thead>
+                        <tbody id="missingRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <div id="status" class="status"></div>
+        </main>
+    </div>
+
+    <script>
+        const tokenKey = 'vitalismen_admin_token';
+        const state = {
+            token: localStorage.getItem(tokenKey) || '',
+            data: null
+        };
+
+        const el = (id) => document.getElementById(id);
+        const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+        const number = new Intl.NumberFormat('pt-BR');
+        const escapeHtml = (value = '') => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char]);
+
+        const setVisible = () => {
+            el('login').classList.toggle('hidden', Boolean(state.token));
+            el('app').classList.toggle('hidden', !state.token);
+        };
+
+        const setStatus = (message, target = 'status') => {
+            el(target).textContent = message || '';
+        };
+
+        const api = async (path, options = {}) => {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+                ...(options.headers || {})
+            };
+            const response = await fetch(path, { ...options, headers });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const error = new Error(body.error || 'Falha na requisicao');
+                error.status = response.status;
+                throw error;
+            }
+            return body;
+        };
+
+        const metricCard = (label, value, sub, tone = '') => `
+            <article class="metric ${tone}">
+                <span>${label}</span>
+                <strong>${value}</strong>
+                <span>${sub || ''}</span>
+            </article>
+        `;
+
+        const emptyRow = (cols, message) => `<tr><td colspan="${cols}" class="meta">${message}</td></tr>`;
+
+        const formatDate = (value) => {
+            if (!value) return '-';
+            return new Date(value).toLocaleString('pt-BR', { timeZone: 'America/Guayaquil' });
+        };
+
+        const metaDestination = (order) => {
+            const delivery = order.metaDelivery || {};
+            const pixel = delivery.pixelId ? `Pixel ${delivery.pixelId}` : 'Pixel EC';
+            return `${delivery.destination || 'Meta CAPI'} / ${pixel}`;
+        };
+
+        const facebookStatus = (order) => {
+            const delivery = order.metaDelivery || {};
+            const received = Number(delivery.eventsReceived || 0);
+            if (received > 0) {
+                return `${delivery.facebookStatus || 'Recebido pela Meta'} (${received})`;
+            }
+            return delivery.facebookStatus || 'Venda ainda nao apareceu no Facebook';
+        };
+
+        const render = () => {
+            const data = state.data;
+            if (!data) return;
+            const totals = data.totals || {};
+            const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
+            el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
+            el('metrics').innerHTML = [
+                metricCard('Entradas VSL', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
+                metricCard('PageView CAPI', number.format(totals.pageViewsSent || 0), 'Recebidos pela Meta', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
+                metricCard('Visitantes no WhatsApp', number.format(totals.whatsappVisitors || 0), `${totals.clickRate || 0}% das entradas`, (totals.whatsappVisitors || 0) ? 'good' : 'warn'),
+                metricCard('Leads Meta', number.format(totals.leadsSent || 0), 'Eventos Lead enviados'),
+                metricCard('Purchase enviado', number.format(totals.purchasesSent || 0), 'Eventos enviados no periodo', (totals.purchasesSent || 0) ? 'good' : 'warn'),
+                metricCard('Valor marcado', currency.format(totals.purchaseValueSent || 0), `${totals.purchaseCoverage || 0}% de cobertura`, (totals.purchaseValueSent || 0) ? 'good' : 'warn'),
+                metricCard('Sem Purchase', number.format(totals.missingPurchaseEligible || 0), 'Vendas recentes elegiveis', missingTone)
+            ].join('');
+
+            el('dailyRows').innerHTML = (data.rows || []).map((row) => `
+                <tr>
+                    <td>${escapeHtml(row.day)}</td>
+                    <td>${number.format(row.entries || 0)}</td>
+                    <td>${number.format(row.pageViewsSent || 0)}</td>
+                    <td>${number.format(row.whatsappVisitors || 0)}</td>
+                    <td>${row.clickRate || 0}%</td>
+                    <td>${number.format(row.leadsSent || 0)}</td>
+                    <td>${number.format(row.salesCreated || 0)} / ${currency.format(row.salesValue || 0)}</td>
+                    <td>${number.format(row.purchasesSent || 0)}</td>
+                    <td>${currency.format(row.purchaseValueSent || 0)}</td>
+                </tr>
+            `).join('') || emptyRow(9, 'Sem dados no periodo.');
+
+            el('purchaseRows').innerHTML = (data.recentPurchases || []).map((order) => `
+                <tr>
+                    <td>${escapeHtml(order.orderId || '-')}</td>
+                    <td>${escapeHtml(order.customer?.name || '-')}</td>
+                    <td>${escapeHtml(order.status || '-')}</td>
+                    <td>${currency.format(order.total || 0)}</td>
+                    <td>${escapeHtml(metaDestination(order))}</td>
+                    <td>${escapeHtml(facebookStatus(order))}<br><span class="meta">${escapeHtml(order.metaDelivery?.panelStatus || 'Pode demorar aparecer no Facebook')}</span></td>
+                    <td>${formatDate(order.tracking?.metaPurchaseSentAt)}</td>
+                </tr>
+            `).join('') || emptyRow(7, 'Nenhum Purchase enviado no periodo.');
+
+            el('missingRows').innerHTML = (data.recentMissingPurchases || []).map((order) => {
+                const tracking = [order.tracking?.fbclid ? 'fbclid' : '', order.tracking?.fbp ? 'fbp' : '', order.tracking?.fbc ? 'fbc' : ''].filter(Boolean).join(', ') || '-';
+                return `
+                    <tr>
+                        <td>${escapeHtml(order.orderId || '-')}</td>
+                        <td>${escapeHtml(order.customer?.name || '-')}</td>
+                        <td>${escapeHtml(order.status || '-')}</td>
+                        <td>${currency.format(order.total || 0)}</td>
+                        <td>${formatDate(order.createdAt)}</td>
+                        <td>${escapeHtml(facebookStatus(order))}<br><span class="meta">${escapeHtml(order.metaDelivery?.panelStatus || 'Aguardando envio')}</span></td>
+                        <td>${escapeHtml(tracking)}</td>
+                    </tr>
+                `;
+            }).join('') || emptyRow(7, 'Nenhuma venda recente elegivel pendente.');
+        };
+
+        const loadMetrics = async () => {
+            if (!state.token) {
+                setVisible();
+                return;
+            }
+            setStatus('Carregando...');
+            try {
+                const days = el('days').value || '7';
+                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}`);
+                render();
+                setStatus('');
+            } catch (error) {
+                if (error.status === 401) {
+                    localStorage.removeItem(tokenKey);
+                    state.token = '';
+                    setVisible();
+                    setStatus('Sessao expirada.', 'loginStatus');
+                    return;
+                }
+                el('updatedAt').textContent = 'Falha ao carregar';
+                setStatus(error.message || 'Erro ao carregar metricas.');
+            }
+        };
+
+        el('loginBtn').addEventListener('click', async () => {
+            setStatus('Entrando...', 'loginStatus');
+            try {
+                const result = await api('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: el('email').value.trim(),
+                        password: el('password').value
+                    }),
+                    headers: {}
+                });
+                state.token = result.token;
+                localStorage.setItem(tokenKey, state.token);
+                setStatus('', 'loginStatus');
+                setVisible();
+                await loadMetrics();
+            } catch (error) {
+                setStatus(error.message || 'Nao foi possivel entrar.', 'loginStatus');
+            }
+        });
+
+        el('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem(tokenKey);
+            state.token = '';
+            setVisible();
+        });
+
+        el('refreshBtn').addEventListener('click', loadMetrics);
+        el('days').addEventListener('change', loadMetrics);
+
+        setVisible();
+        loadMetrics();
+    </script>
+</body>
+
+</html>

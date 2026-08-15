@@ -1,0 +1,124 @@
+name: EC panel quality gate
+
+on:
+  pull_request:
+    paths:
+      - public/qr.html
+      - public/funnel-metrics.html
+      - public/panel-intelligence/**
+      - src/index.js
+      - src/routes/funnelMetrics.js
+      - src/routes/orders.js
+      - src/services/funnelMetricsService.js
+      - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
+      - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/audit-ec-product-micro-layer.mjs
+      - scripts/guard-tex-ultra-approved-v5.mjs
+      - tests/customer-form-intelligence.test.cjs
+      - tests/funnel-metrics-*.test.mjs
+      - tests/manual-quick-funnel.test.cjs
+      - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
+      - package.json
+      - package-lock.json
+      - .github/workflows/ec-panel-quality.yml
+  push:
+    branches:
+      - main
+      - codex/**
+    paths:
+      - public/qr.html
+      - public/funnel-metrics.html
+      - public/panel-intelligence/**
+      - src/index.js
+      - src/routes/funnelMetrics.js
+      - src/routes/orders.js
+      - src/services/funnelMetricsService.js
+      - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
+      - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/audit-ec-product-micro-layer.mjs
+      - scripts/guard-tex-ultra-approved-v5.mjs
+      - tests/customer-form-intelligence.test.cjs
+      - tests/funnel-metrics-*.test.mjs
+      - tests/manual-quick-funnel.test.cjs
+      - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
+      - package.json
+      - package-lock.json
+      - .github/workflows/ec-panel-quality.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ec-panel-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ec-quality:
+    name: Manual funnel, history and metrics (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - name: Checkout audited commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify tracked audit inputs
+        shell: bash
+        run: |
+          git ls-files --error-unmatch \
+            public/qr.html \
+            public/funnel-metrics.html \
+            public/panel-intelligence/customer-data-normalizer.js \
+            public/panel-intelligence/conversation-data-extractor.js \
+            public/panel-intelligence/agency-catalog.js \
+            public/panel-intelligence/customer-form-intelligence.js \
+            public/panel-intelligence/manual-funnel-policy.js \
+            public/panel-intelligence/customer-order-policy.js \
+            src/routes/funnelMetrics.js \
+            src/services/funnelMetricsService.js \
+            scripts/guard-tex-ultra-approved-v5.mjs \
+            tests/funnel-metrics-route.test.mjs \
+            tests/funnel-metrics-service.test.mjs \
+            tests/manual-quick-funnel.test.cjs
+
+      - name: Validate customer intelligence
+        run: npm run test:customer-form
+
+      - name: Validate manual funnel and historical order policy
+        run: npm run test:manual-funnel
+
+      - name: Validate authenticated funnel metrics
+        run: npm run test:funnel-metrics
+
+      - name: Preserve product, country and approved freeze layers
+        run: |
+          npm run guard:ec-product-micro-layer
+          npm run guard:ec-tex-ultra
+          npm run guard:freeze-lock
+          npm run senior:check
+
+      - name: Reject whitespace errors
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$PR_BASE_SHA" ]]; then
+            git diff --check "$PR_BASE_SHA"...HEAD
+          else
+            git show --check --oneline HEAD
+          fi

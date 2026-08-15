@@ -1360,6 +1360,29 @@
             color: #9a5b00;
         }
 
+        .chat-vsl-entry {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            min-width: 0;
+            margin-top: 4px;
+            padding: 4px 6px;
+            border: 1px solid #b9d7ff;
+            border-radius: 7px;
+            background: #f0f7ff;
+            color: #174ea6;
+            font-size: 11px;
+            line-height: 1.25;
+        }
+
+        .chat-vsl-entry strong {
+            flex: 0 0 auto;
+            color: #0b5f4a;
+            font-size: 10px;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
         .truncate {
             min-width: 0;
             overflow: hidden;
@@ -3998,6 +4021,37 @@
             display: inline-block;
         }
 
+        .mark-visible-read-btn {
+            display: none;
+            align-items: center;
+            min-height: 26px;
+            border: 1px solid #a7d7c9;
+            border-radius: 999px;
+            background: #ecfdf5;
+            color: #06735f;
+            padding: 3px 9px;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .mark-visible-read-btn.has-unread {
+            display: inline-flex;
+        }
+
+        .mark-visible-read-btn:hover:not(:disabled),
+        .mark-visible-read-btn:focus-visible {
+            border-color: #00a884;
+            background: #dff8ef;
+            outline: none;
+        }
+
+        .mark-visible-read-btn:disabled {
+            cursor: wait;
+            opacity: .65;
+        }
+
         .contact-pane .wa-card .meta {
             display: none;
         }
@@ -4049,25 +4103,6 @@
         }
 
         .tabs button.has-unread .tab-unread-count {
-            display: inline-block;
-        }
-
-        .tabs button .tab-unanswered-count {
-            display: none;
-            min-width: 16px;
-            height: 16px;
-            margin-left: 3px;
-            padding: 0 4px;
-            border-radius: 999px;
-            background: #d97706;
-            color: #fff;
-            font-size: 9px;
-            font-weight: 900;
-            line-height: 16px;
-            text-align: center;
-        }
-
-        .tabs button.has-unanswered .tab-unanswered-count {
             display: inline-block;
         }
 
@@ -4345,6 +4380,10 @@
             cursor: text;
         }
 
+        .message-copy-source {
+            white-space: pre-wrap;
+        }
+
         .message-quick-copy-menu {
             position: fixed;
             z-index: 2400;
@@ -4440,6 +4479,13 @@
 
         .message-row:hover .message-actions,
         .message-row:focus-within .message-actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Mensagem verde enviada manualmente: lápis sempre acessível durante
+           os 15 minutos em que o próprio WhatsApp permite edição. */
+        .message-row.has-outbound-edit .message-actions {
             opacity: 1;
             pointer-events: auto;
         }
@@ -4641,6 +4687,30 @@
 
         .message-action.danger {
             color: #b42318;
+        }
+
+        .message-action.edit-outbound {
+            color: #075e54;
+            border-color: #6ee7b7;
+            background: #ecfdf5;
+        }
+
+        .message-action.edit-outbound:disabled {
+            cursor: not-allowed;
+            color: #8b98a0;
+            border-color: #d7dde0;
+            background: #f0f2f5;
+            opacity: 1;
+        }
+
+        .message-edited {
+            color: #52717d;
+            font-style: italic;
+        }
+
+        .edit-message-context {
+            border-left-color: #00a884;
+            background: #e8f7f2;
         }
 
         .reply-context {
@@ -4937,6 +5007,248 @@
             overflow-x: auto;
             overflow-y: hidden;
             scrollbar-width: thin;
+        }
+
+        .sales-quick-funnel {
+            position: relative;
+            margin-top: 6px;
+            z-index: 48;
+        }
+
+        .sales-quick-funnel > summary {
+            min-height: 34px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border: 1px solid #99d8bf;
+            border-radius: 12px;
+            background: #e7f7ee;
+            color: #075e54;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .sales-quick-funnel > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sales-quick-funnel > summary span,
+        .sales-quick-funnel > summary strong,
+        .sales-quick-funnel > summary em {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sales-quick-funnel > summary span {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .sales-quick-funnel > summary strong {
+            font-size: 12px;
+        }
+
+        .sales-quick-funnel > summary em {
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #fff;
+            color: #075e54;
+            font-size: 10px;
+            font-style: normal;
+            font-weight: 900;
+        }
+
+        .sales-quick-funnel.is-disabled > summary {
+            border-color: #d1d7db;
+            background: #f8fafc;
+            color: #667781;
+        }
+
+        .sales-quick-funnel-menu {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: calc(100% + 6px);
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            padding: 10px 10px 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-inline: contain;
+            scroll-behavior: smooth;
+            scroll-snap-type: inline proximity;
+            scrollbar-color: #00a884 #e2e8f0;
+            scrollbar-width: thin;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.24);
+        }
+
+        .sales-quick-funnel-menu::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .sales-quick-funnel-menu::-webkit-scrollbar-track {
+            border-radius: 999px;
+            background: #e2e8f0;
+        }
+
+        .sales-quick-funnel-menu::-webkit-scrollbar-thumb {
+            border: 2px solid #e2e8f0;
+            border-radius: 999px;
+            background: #00a884;
+        }
+
+        .sales-quick-funnel-product {
+            display: grid;
+            grid-template-columns: 74px minmax(104px, 1fr);
+            align-items: center;
+            gap: 9px;
+            flex: 0 0 206px;
+            min-width: 0;
+            margin: 0;
+            padding: 8px;
+            scroll-snap-align: start;
+            border: 1px solid #99d8bf;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #e0f2fe 100%);
+        }
+
+        .sales-quick-funnel-product img {
+            display: block;
+            width: 74px;
+            height: 96px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #dff5fa;
+        }
+
+        .sales-quick-funnel-product figcaption {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+            color: #075e54;
+        }
+
+        .sales-quick-funnel-product strong {
+            font-size: 13px;
+            line-height: 1.1;
+        }
+
+        .sales-quick-funnel-product span {
+            color: #475569;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .sales-quick-funnel-group {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            flex: 0 0 auto;
+            min-width: max-content;
+            padding: 32px 8px 8px;
+            scroll-snap-align: start;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .sales-quick-funnel-group h4 {
+            position: absolute;
+            top: 9px;
+            left: 9px;
+            right: 9px;
+            margin: 0;
+            color: #0f172a;
+            font-size: 11px;
+            line-height: 1.1;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .composer .sales-quick-funnel-group button {
+            flex: 0 0 122px;
+            width: 122px;
+            min-height: 64px;
+            padding: 6px 8px;
+            border: 1px solid #b8c3cc;
+            border-radius: 8px;
+            background: #fff;
+            color: #1f2937;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-align: center;
+            white-space: normal;
+        }
+
+        .composer .sales-quick-funnel-group button:hover:not(:disabled) {
+            border-color: #00a884;
+            background: #ecfdf5;
+            color: #075e54;
+        }
+
+        .composer .sales-quick-funnel-group button:disabled {
+            opacity: 0.46;
+            cursor: not-allowed;
+        }
+
+        .sales-quick-funnel-group.offer {
+            background: #fff7ed;
+            border-color: #fed7aa;
+        }
+
+        .composer .sales-quick-funnel-group.offer button {
+            flex-basis: 154px;
+            width: 154px;
+            border-color: #fdba74;
+            background: #fff;
+            color: #9a3412;
+        }
+
+        @media (max-width: 700px) {
+            .sales-quick-funnel-menu {
+                gap: 6px;
+                padding: 8px 8px 10px;
+            }
+
+            .sales-quick-funnel-product {
+                grid-template-columns: 58px minmax(92px, 1fr);
+                flex-basis: 174px;
+                gap: 7px;
+                padding: 7px;
+            }
+
+            .sales-quick-funnel-product img {
+                width: 58px;
+                height: 76px;
+            }
+
+            .sales-quick-funnel-group {
+                padding-top: 30px;
+            }
+
+            .composer .sales-quick-funnel-group button {
+                flex-basis: 108px;
+                width: 108px;
+                min-height: 58px;
+            }
+
+            .composer .sales-quick-funnel-group.offer button {
+                flex-basis: 138px;
+                width: 138px;
+            }
         }
 
         .composer-quick-status-chip {
@@ -6598,6 +6910,7 @@
             gap: 0;
             min-width: 0;
             width: 100%;
+            position: relative;
         }
 
         .composer #sendBtn {
@@ -6639,10 +6952,35 @@
             resize: none;
             border: 0;
             border-radius: 18px;
-            padding: 10px 16px;
+            padding: 10px 48px 10px 16px;
             background: #fff;
             line-height: 1.35;
             overflow-y: auto;
+        }
+
+        .composer .message-bold-toggle {
+            position: absolute;
+            right: 9px;
+            bottom: 7px;
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            min-height: 28px;
+            padding: 0;
+            border: 1px solid #b7c4cc;
+            border-radius: 8px;
+            background: #f0f2f5;
+            color: #253238;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .composer .message-bold-toggle:hover:not(:disabled),
+        .composer .message-bold-toggle:focus-visible {
+            border-color: #00a884;
+            background: #e0f2ed;
+            color: #005c4b;
+            outline: none;
         }
 
         .composer button {
@@ -7176,6 +7514,7 @@
                                 <span>conversas</span>
                                 <em id="chatUnreadCounterValue">0</em>
                             </span>
+                            <button id="markVisibleReadBtn" class="mark-visible-read-btn" type="button" title="Marca como lidas as mensagens antigas visiveis, sem apagar conversas">✓ Marcar lidas</button>
                         </div>
                     </div>
                     <img id="qrcode" class="qr-image" src="" alt="QR Code WhatsApp">
@@ -7183,9 +7522,9 @@
                 </div>
 
                 <div class="tabs">
-                    <button class="active" data-chat-filter="all" type="button">Tudo</button>
-                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
-                    <button id="unansweredFilterBtn" data-chat-filter="unanswered" type="button" title="Mostra clientes que escreveram e ainda não receberam resposta">Pendentes <span id="chatUnansweredTabCount" class="tab-unanswered-count">0</span></button>
+                    <button data-chat-filter="all" type="button">Tudo</button>
+                    <button id="newMessagesFilterBtn" class="active" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
+                    <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -7329,11 +7668,68 @@
                                 <div id="replyContextText" class="reply-context-text"></div>
                                 <button id="cancelReplyBtn" type="button" title="Cancelar resposta">×</button>
                             </div>
-                            <textarea id="messageInput" placeholder="Digite a resposta ao cliente"></textarea>
+                            <div id="editMessageContext" class="reply-context edit-message-context">
+                                <div id="editMessageContextText" class="reply-context-text"></div>
+                                <button id="cancelEditMessageBtn" type="button" title="Cancelar edição">×</button>
+                            </div>
+                            <textarea id="messageInput" placeholder="Digite a resposta ao cliente" title="Ctrl/Cmd+B aplica negrito do WhatsApp"></textarea>
+                            <button id="messageBoldBtn" class="message-bold-toggle" type="button" title="Negrito no WhatsApp (Ctrl/Cmd+B)" aria-label="Aplicar negrito no WhatsApp">B</button>
                         </div>
                         <button id="sendBtn" class="success" type="button">Enviar</button>
                         <div id="emojiPanel" class="emoji-panel hidden"></div>
                     </div>
+                    <details id="salesQuickFunnel" class="sales-quick-funnel is-disabled" aria-disabled="true">
+                        <summary>
+                            <span>Funil rapido</span>
+                            <strong id="salesQuickFunnelTitle">Selecione um cliente Tex Ultra EC</strong>
+                            <em>revisar</em>
+                        </summary>
+                        <div class="sales-quick-funnel-menu" aria-label="Atalhos manuais do Tex Ultra Ecuador" tabindex="0" title="Role horizontalmente para ver todos os atalhos">
+                            <figure class="sales-quick-funnel-product">
+                                <img src="/media/sales/ec/tex_ultra.png" alt="Frasco do Tex Ultra Ecuador">
+                                <figcaption>
+                                    <strong>Tex Ultra</strong>
+                                    <span>Funil manual · Ecuador</span>
+                                </figcaption>
+                            </figure>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Nome</h4>
+                                <button data-sales-quick-template="name_1" type="button" disabled title="¿Cuál es su nombre completo, por favor?">Nome 1</button>
+                                <button data-sales-quick-template="name_2" type="button" disabled title="Por favor, ¿me confirma su nombre completo?">Nome 2</button>
+                                <button data-sales-quick-template="name_3" type="button" disabled title="¿Me indica su nombre completo?">Nome 3</button>
+                                <button data-sales-quick-template="name_4" type="button" disabled title="Para continuar, ¿cuál es su nombre completo?">Nome 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Cidade e provincia</h4>
+                                <button data-sales-quick-template="location_1" type="button" disabled title="Por favor, ¿cuál es su ciudad y provincia?">Cidade 1</button>
+                                <button data-sales-quick-template="location_2" type="button" disabled title="¿En qué ciudad y provincia se encuentra?">Cidade 2</button>
+                                <button data-sales-quick-template="location_3" type="button" disabled title="Para el envío, ¿me confirma su ciudad y provincia?">Cidade 3</button>
+                                <button data-sales-quick-template="location_4" type="button" disabled title="¿Me indica su ciudad y provincia, por favor?">Cidade 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Agencia Servientrega</h4>
+                                <button data-sales-quick-template="agency_1" type="button" disabled title="¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?">Agencia 1</button>
+                                <button data-sales-quick-template="agency_2" type="button" disabled title="¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?">Agencia 2</button>
+                                <button data-sales-quick-template="agency_3" type="button" disabled title="Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?">Agencia 3</button>
+                                <button data-sales-quick-template="agency_4" type="button" disabled title="¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.">Agencia 4</button>
+                            </section>
+                            <section class="sales-quick-funnel-group offer">
+                                <h4>Promocion 35</h4>
+                                <button data-sales-quick-template="offer_35" type="button" disabled title="Tabela promocional Tex Ultra: 1, 2, 3 e 6 frascos">Oferta completa</button>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Confirmar quantidade</h4>
+                                <button data-sales-quick-template="confirm_1a" type="button" disabled title="1 frasco por $35,99">1 frasco · confirmar</button>
+                                <button data-sales-quick-template="confirm_1b" type="button" disabled title="1 frasco por $35,99">1 frasco · variar</button>
+                                <button data-sales-quick-template="confirm_2a" type="button" disabled title="2 frascos por $70,00">2 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_2b" type="button" disabled title="2 frascos por $70,00">2 frascos · variar</button>
+                                <button data-sales-quick-template="confirm_3a" type="button" disabled title="3 frascos por $80,99">3 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_3b" type="button" disabled title="3 frascos por $80,99">3 frascos · variar</button>
+                                <button data-sales-quick-template="confirm_6a" type="button" disabled title="6 frascos por $147,99">6 frascos · confirmar</button>
+                                <button data-sales-quick-template="confirm_6b" type="button" disabled title="6 frascos por $147,99">6 frascos · variar</button>
+                            </section>
+                        </div>
+                    </details>
                     <div id="composerQuickStatusBar" class="composer-quick-status-bar flow-data-footer" aria-label="Dados fixados do funil">
                         <span class="composer-quick-status-label">Dados</span>
                         <div id="composerQuickStatusList" class="composer-quick-status-list">
@@ -7597,19 +7993,19 @@
                             <input id="customerReferenceInput" autocomplete="off" placeholder="Ponto de referencia">
                         </label>
                         <div class="customer-form-title">Detalhes do pedido</div>
-                        <label>Produto deste pedido
+                        <label>Produto desta negociacao
                             <select id="customerProductInput">
                                 <option value="tex_ultra_ec">Tex Ultra Ecuador</option>
                                 <option value="nitrix_ec">Nitrix Oxide Ecuador</option>
                                 <option value="vit_power_ec">Vit Power Ecuador</option>
                             </select>
                         </label>
-                        <div class="customer-product-quick-grid" aria-label="Trocar produto deste pedido">
+                        <div class="customer-product-quick-grid" aria-label="Trocar produto desta negociacao">
                             <button class="customer-product-quick" data-customer-product-key="tex_ultra_ec" type="button" disabled>Tex Ultra</button>
                             <button class="customer-product-quick" data-customer-product-key="nitrix_ec" type="button" disabled>Nitrix Oxide</button>
                             <button class="customer-product-quick" data-customer-product-key="vit_power_ec" type="button" disabled>Vit Power</button>
                         </div>
-                        <div id="customerProductOriginHint" class="customer-product-origin-hint">A VSL define o produto inicial. Troque aqui somente se o cliente pedir outro produto.</div>
+                        <div id="customerProductOriginHint" class="customer-product-origin-hint">A VSL define o produto de origem. Troque aqui somente se a negociacao atual for de outro produto.</div>
                         <div class="form-grid three">
                             <label>Qtd
                                 <input id="customerQuantityInput" type="number" min="0" step="1" placeholder="0">
@@ -7630,10 +8026,10 @@
                             </div>
                             <div class="price-preset-group" aria-label="Precos de recuperacao">
                                 <div class="price-preset-group-title">Recuperacao / desconto</div>
-                                <button class="price-preset" data-price-preset="1:35.99" type="button" disabled><strong>USD 35.99</strong> · 1 frasco</button>
-                                <button class="price-preset" data-price-preset="2:70.00" type="button" disabled><strong>USD 70.00</strong> · 2 frascos</button>
-                                <button class="price-preset" data-price-preset="3:80.99" type="button" disabled><strong>USD 80.99</strong> · 3 frascos</button>
-                                <button class="price-preset" data-price-preset="6:147.99" type="button" disabled><strong>USD 147.99</strong> · 6 frascos</button>
+                                <button class="price-preset" data-price-preset="1:35" type="button" disabled><strong>USD 35</strong> · 1 frasco</button>
+                                <button class="price-preset" data-price-preset="2:70" type="button" disabled hidden><strong>USD 70</strong> · 2 frascos</button>
+                                <button class="price-preset" data-price-preset="3:80" type="button" disabled><strong>USD 80</strong> · 3 frascos</button>
+                                <button class="price-preset" data-price-preset="6:147" type="button" disabled><strong>USD 147</strong> · 6 frascos</button>
                             </div>
                         </div>
                         <label>Observacao interna
@@ -8118,6 +8514,12 @@
     </div>
     <div id="toast" class="toast"></div>
 
+    <script src="/panel-intelligence/customer-data-normalizer.js"></script>
+    <script src="/panel-intelligence/conversation-data-extractor.js"></script>
+    <script src="/panel-intelligence/agency-catalog.js"></script>
+    <script src="/panel-intelligence/customer-form-intelligence.js"></script>
+    <script src="/panel-intelligence/manual-funnel-policy.js"></script>
+    <script src="/panel-intelligence/customer-order-policy.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8175,7 +8577,7 @@
             lastQrAt: 0,
             selectedChat: null,
             customerProfile: null,
-            chatFilter: 'all',
+            chatFilter: 'unread',
             activeModule: 'all',
             dashboardMetrics: null,
             chatSignature: '',
@@ -8240,6 +8642,7 @@
             manualMessageQueueProcessing: false,
             manualMessageQueueStartedAt: 0,
             replyToMessage: null,
+            editingOutboundMessage: null,
             chatsLoading: false,
             chatsRefreshQueued: false,
             dashboardLastLoadedAt: 0,
@@ -9712,10 +10115,16 @@
                 ['1', '39.99', 'USD 39.99', '1 frasco'],
                 ['3', '95.99', 'USD 95.99', '3 frascos'],
                 ['6', '167.99', 'USD 167.99', '6 frascos'],
+                ['1', '35', 'USD 35', '1 frasco'],
+                ['2', '70', 'USD 70', '2 frascos'],
+                ['3', '80', 'USD 80', '3 frascos'],
+                ['6', '147', 'USD 147', '6 frascos']
+            ],
+            EC_TEX_ULTRA: [
                 ['1', '35.99', 'USD 35.99', '1 frasco'],
-                ['2', '70.00', 'USD 70.00', '2 frascos'],
                 ['3', '80.99', 'USD 80.99', '3 frascos'],
-                ['6', '147.99', 'USD 147.99', '6 frascos']
+                ['6', '147.99', 'USD 147.99', '6 frascos'],
+                ['2', '70.00', 'USD 70.00', '2 frascos']
             ]
         };
         const setSelectOptions = (select, options = []) => {
@@ -9726,7 +10135,7 @@
             )).join('');
             if (options.some((item) => item.value === current)) select.value = current;
         };
-        const applyManualGuideCountryUi = (country) => {
+        const applyManualGuideCountryUi = () => {
             if (el('manualGuideTitle')) el('manualGuideTitle').textContent = 'Guia manual';
             if (el('manualGuideTrackingLabel')) el('manualGuideTrackingLabel').textContent = 'Guia / rastreio';
             if (el('manualGuideTrackingInput')) el('manualGuideTrackingInput').placeholder = 'Ex: 1851574972';
@@ -9750,7 +10159,8 @@
             if (el('customerProvinceInput')) el('customerProvinceInput').placeholder = 'Provincia';
             if (el('customerTotalLabel')) el('customerTotalLabel').textContent = 'Valor USD';
             if (el('customerTotalInput')) el('customerTotalInput').placeholder = '39.99';
-            const presets = customerPricePresetsByCountry.EC;
+            const productKey = String(el('customerProductInput')?.value || '').toLowerCase();
+            const presets = customerPricePresetsByCountry[productKey === 'tex_ultra_ec' ? 'EC_TEX_ULTRA' : 'EC'];
             document.querySelectorAll('[data-price-preset]').forEach((button, index) => {
                 const preset = presets[index];
                 button.hidden = !preset;
@@ -9759,7 +10169,8 @@
                 button.dataset.pricePreset = `${quantity}:${total}`;
                 button.innerHTML = `<strong>${amountLabel}</strong> · ${quantityLabel}`;
             });
-            applyManualGuideCountryUi('EC');
+            applyManualGuideCountryUi();
+            syncSalesQuickFunnelAvailability();
         };
         const setInputValue = (id, value) => {
             const input = el(id);
@@ -9773,6 +10184,8 @@
                 input.dataset.prevStatus = input.value || 'novo';
                 updateCustomerStatusStyle();
             } else if (id === 'customerCountryInput') {
+                applyCustomerCountryUi();
+            } else if (id === 'customerProductInput') {
                 applyCustomerCountryUi();
             }
         };
@@ -9852,6 +10265,53 @@
             } catch (_) {
                 return false;
             }
+        };
+        const setComposerDraft = (text, { selectAll = false } = {}) => {
+            const input = el('messageInput');
+            const value = String(text || '').trim();
+            if (!input || !value) return false;
+            input.value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+            const cursor = selectAll ? 0 : value.length;
+            input.setSelectionRange(cursor, selectAll ? value.length : cursor);
+            return true;
+        };
+        const toggleWhatsappBoldInComposer = (input) => {
+            if (!input) return;
+            const value = String(input.value || '');
+            const start = Math.max(0, Number(input.selectionStart || 0));
+            const end = Math.max(start, Number(input.selectionEnd || start));
+            const applyInput = () => input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            if (start === end) {
+                if (value === '**' && start === 1) {
+                    input.value = '';
+                    input.setSelectionRange(0, 0);
+                    applyInput();
+                    return;
+                }
+                if (value[start] === '*' && start > 0 && value[start - 1] !== '*') {
+                    input.setSelectionRange(start + 1, start + 1);
+                    return;
+                }
+                input.setRangeText('**', start, end, 'end');
+                input.setSelectionRange(start + 1, start + 1);
+                applyInput();
+                return;
+            }
+
+            const selected = value.slice(start, end);
+            const wrappedOutside = start > 0 && value[start - 1] === '*' && value[end] === '*';
+            const wrappedInside = selected.length >= 2 && selected.startsWith('*') && selected.endsWith('*');
+            if (wrappedOutside) {
+                input.setRangeText(selected, start - 1, end + 1, 'select');
+            } else if (wrappedInside) {
+                input.setRangeText(selected.slice(1, -1), start, end, 'select');
+            } else {
+                input.setRangeText(`*${selected}*`, start, end, 'select');
+            }
+            applyInput();
         };
         const ensureMessageQuickCopyMenu = () => {
             let menu = el('messageQuickCopyMenu');
@@ -10146,7 +10606,7 @@
                     showToast('Nao encontrei este cliente na lista atual. Use o telefone no campo de busca.');
                     return;
                 }
-                await selectChat(chat.id);
+                await selectChat(chat.id, { markRead: true });
                 await api(`/api/whatsapp/contact-state/${encodeURIComponent(chat.id || chat.phone || phone)}/claim`, {
                     method: 'POST',
                     body: JSON.stringify({ minutes: 5, note: 'Aberto pelo alerta operacional do painel.' })
@@ -10220,16 +10680,19 @@
                 `Ciudad / Provincia: ${location}`
             ].join('\n');
         };
-        const applyAgencySuggestion = (agency) => {
+        const applyAgencySuggestion = (agency, { automatic = false } = {}) => {
             if (!agency) return;
             setInputValue('customerCityInput', agency.city || el('customerCityInput').value);
             setInputValue('customerProvinceInput', agency.province || el('customerProvinceInput').value);
             setInputValue('customerAddressInput', agencyLine(agency));
-            el('customerReferenceInput').value = '';
-            el('customerSyncHint').textContent = 'Agencia aplicada na ficha. Para retirada em agencia, referencia fica opcional.';
+            el('customerSyncHint').textContent = automatic
+                ? 'Agencia, cidade e provincia identificadas com correspondencia unica.'
+                : 'Agencia aplicada na ficha; a referencia informada foi preservada.';
             markCustomerFormDirty();
             scheduleCustomerFieldAutoSave({ delay: 600, source: 'agency' });
-            showToast('Agencia Servientrega aplicada na ficha');
+            showToast(automatic
+                ? 'Agencia Servientrega identificada e salva na ficha'
+                : 'Agencia Servientrega aplicada na ficha');
         };
         const sendAgencyMessagesToCustomer = async (agencies = [], button = null, options = {}) => {
             if (!state.selectedChat || state.sendingMessage || state.busy) return;
@@ -10366,7 +10829,8 @@
                 const city = el('customerCityInput').value.trim();
                 const province = el('customerProvinceInput').value.trim();
                 const agencySearch = el('agencySearchInput')?.value?.trim() || '';
-                const q = agencySearch;
+                const reference = el('customerReferenceInput')?.value?.trim() || '';
+                const q = agencySearch || reference;
                 const operationalCountry = String(
                     el('customerCountryInput')?.value
                     || state.selectedChat?.country
@@ -10377,18 +10841,55 @@
                     clearAgencySuggestions('agencias Servientrega EC indisponiveis neste pais');
                     return;
                 }
-                if (city.length < 3 && province.length < 3 && agencySearch.length < 3) {
-                    clearAgencySuggestions('digite cidade, agencia ou rua');
+                if (city.length < 3 && province.length < 3 && q.length < 3) {
+                    clearAgencySuggestions('digite cidade, agencia, referencia ou rua');
                     return;
                 }
-                const key = `${city}|${province}|${agencySearch}`;
+                const key = `${city}|${province}|${agencySearch}|${reference}`;
                 if (key === state.agencyLookupKey && !immediate) return;
                 state.agencyLookupKey = key;
                 el('agencySuggestions').classList.remove('hidden');
                 el('agencySuggestionsState').textContent = 'buscando...';
                 try {
-                    const payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100`);
-                    renderAgencySuggestions(payload.agencies || []);
+                    let automaticQuery = q;
+                    let cityUsedAsAgencyQuery = false;
+                    let payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100`);
+                    let agencies = payload.agencies || [];
+                    if (!agencies.length && !q && city.length >= 3 && !province) {
+                        payload = await api(`/api/shipments/servientrega/ec/agencies?city=&province=&q=${encodeURIComponent(city)}&limit=100`);
+                        agencies = payload.agencies || [];
+                        automaticQuery = city;
+                        cityUsedAsAgencyQuery = agencies.length > 0;
+                    }
+                    renderAgencySuggestions(agencies);
+
+                    const intelligence = window.VitalismenCustomerFormIntelligence;
+                    if (!cityUsedAsAgencyQuery && intelligence?.resolveAgencyLocation) {
+                        const location = intelligence.resolveAgencyLocation(agencies, { city, province });
+                        const nextCity = location.matched && location.city ? location.city : '';
+                        const nextProvince = location.matched && location.province ? location.province : '';
+                        const locationChanged = Boolean(
+                            (nextCity && nextCity !== city)
+                            || (nextProvince && nextProvince !== province)
+                        );
+                        if (locationChanged) {
+                            if (nextCity) setInputValue('customerCityInput', nextCity);
+                            if (nextProvince) setInputValue('customerProvinceInput', nextProvince);
+                            markCustomerFormDirty();
+                            scheduleCustomerFieldAutoSave({ delay: 600, source: 'agency-location' });
+                            el('customerSyncHint').textContent = location.inferredProvince
+                                ? 'Provincia identificada automaticamente pelo catalogo oficial Servientrega.'
+                                : 'Cidade e provincia validadas pelo catalogo oficial Servientrega.';
+                        }
+                    }
+                    if (automaticQuery && intelligence?.selectAutomaticAgency) {
+                        const automaticMatch = intelligence.selectAutomaticAgency(agencies, { query: automaticQuery });
+                        if (automaticMatch.matched && automaticMatch.agency) {
+                            applyAgencySuggestion(automaticMatch.agency, { automatic: true });
+                        } else if (automaticMatch.ambiguous) {
+                            el('customerSyncHint').textContent = 'Referencia corresponde a mais de uma agencia; escolha uma sugestao para evitar erro.';
+                        }
+                    }
                 } catch (error) {
                     el('agencySuggestionsState').textContent = 'erro';
                     el('agencySuggestionList').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
@@ -10408,18 +10909,13 @@
         const agentLabel = (agent) => ({
             warmup: 'Aquecimento',
             vitalismen: 'Vitalismen high-ticket',
-            tex_ultra_ec: 'Tex Ultra EC',
             nitrix_ec: 'Nitrix EC',
             vit_power_ec: 'Vit Power EC',
+            tex_ultra_ec: 'Tex Ultra EC',
             fallback: 'Geral'
         }[agent] || 'Geral');
 
         const EC_PRODUCT_CATALOG = {
-            tex_ultra_ec: {
-                key: 'tex_ultra_ec',
-                name: 'Tex Ultra Ecuador',
-                media: ''
-            },
             nitrix_ec: {
                 key: 'nitrix_ec',
                 name: 'Nitrix Oxide Ecuador',
@@ -10429,6 +10925,11 @@
                 key: 'vit_power_ec',
                 name: 'Vit Power Ecuador',
                 media: '/media/sales/ec/vit_power.jpeg'
+            },
+            tex_ultra_ec: {
+                key: 'tex_ultra_ec',
+                name: 'Tex Ultra Ecuador',
+                media: '/media/sales/ec/tex_ultra.png'
             }
         };
         const normalizeCustomerProductKey = (value = '', fallback = 'nitrix_ec') => {
@@ -10440,9 +10941,33 @@
         };
         const productInfoForKey = (key = 'nitrix_ec') => EC_PRODUCT_CATALOG[normalizeCustomerProductKey(key)] || EC_PRODUCT_CATALOG.nitrix_ec;
         const productKeyFromChat = (chat = state.selectedChat || {}) => normalizeCustomerProductKey(
-            chat.productKey || chat.customerDraft?.productKey || chat.assignedAgent || chat.productName || chat.customerDraft?.productName || chat.customerDraft?.product || '',
+            chat.currentNegotiationProductKey
+            || chat.customerDraft?.negotiationProductKey
+            || chat.customerDraft?.currentProductKey
+            || chat.customerDraft?.productKey
+            || chat.productKey
+            || chat.assignedAgent
+            || chat.productName
+            || chat.customerDraft?.productName
+            || chat.customerDraft?.product
+            || '',
             'nitrix_ec'
         );
+        const historicalOrderIdFromChat = (chat = state.selectedChat || {}) => {
+            const orderId = String(chat.orderId || chat.customerDraft?.orderId || '').trim();
+            if (!orderId) return '';
+            const context = {
+                orderId,
+                status: chat.orderStatus || chat.customerDraft?.status,
+                tags: chatTags(chat),
+                currentNegotiationOrderId: chat.currentNegotiationOrderId || chat.customerDraft?.currentNegotiationOrderId || ''
+            };
+            const policy = window.VitalismenCustomerOrderPolicy;
+            if (policy?.historicalOrderId) return policy.historicalOrderId(context);
+            const legacyTag = context.tags.some((tag) => /^(?:CLIENTE[_\s-]*)?ANTIGO$/i.test(String(tag || '').trim()));
+            const belongsToCurrentNegotiation = String(context.currentNegotiationOrderId || '').trim() === orderId;
+            return cannotReuseOrderForNewConfirmation(context.status) || (legacyTag && !belongsToCurrentNegotiation) ? orderId : '';
+        };
         const vslProductKeyFromChat = (chat = state.selectedChat || {}) => {
             const explicit = String(chat.vslProductKey || '').trim();
             if (explicit) return normalizeCustomerProductKey(explicit);
@@ -10465,19 +10990,23 @@
             const hint = el('customerProductOriginHint');
             if (!hint) return;
             if (!chat) {
-                hint.textContent = 'A VSL define o produto inicial. Troque aqui somente se o cliente pedir outro produto.';
+                hint.textContent = 'A VSL define o produto de origem. Troque aqui somente se a negociacao atual for de outro produto.';
                 return;
             }
             const originKey = vslProductKeyFromChat(chat);
             if (!originKey) {
-                hint.textContent = `Produto atual: ${productInfoForKey(selectedKey).name}. A troca vale somente para este cliente/pedido.`;
+                hint.textContent = `Produto da negociacao atual: ${productInfoForKey(selectedKey).name}. Nenhum pedido anterior sera reescrito.`;
                 return;
             }
             const origin = productInfoForKey(originKey);
             const current = productInfoForKey(selectedKey);
+            const historicalOrderId = historicalOrderIdFromChat(chat);
+            const historySuffix = historicalOrderId
+                ? ` Pedido anterior ${historicalOrderId} preservado.`
+                : '';
             hint.textContent = originKey === selectedKey
-                ? `VSL de origem: ${origin.name}. O pedido ja veio selecionado corretamente.`
-                : `VSL de origem: ${origin.name}. Produto alterado neste pedido para ${current.name}.`;
+                ? `VSL de origem: ${origin.name}. Produto atual preservado.${historySuffix}`
+                : `VSL de origem: ${origin.name}. Negociacao atual: ${current.name}. O historico anterior permanece preservado.${historySuffix}`;
         };
         const currentCustomerProduct = () => productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
         const productLabelForQuantity = (quantity, product = currentCustomerProduct()) => {
@@ -10735,26 +11264,26 @@
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
-            const unansweredTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unansweredCount || 0)), 0);
-            const unansweredChats = visibleChats.filter((chat) => Number(chat.unansweredCount || 0) > 0).length;
             const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
-            const newActionableChats = visibleChats.filter((chat) => (
-                Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat)
+            const newUnreadChats = visibleChats.filter((chat) => (
+                Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat)
             )).length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
             el('chatTotalCounter')?.setAttribute('title', `${visibleChats.length} conversa${visibleChats.length === 1 ? '' : 's'} visiveis${unreadTotal ? ` | ${unreadTotal} nao lida${unreadTotal === 1 ? '' : 's'}` : ''}`);
-            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newActionableChats > 99 ? '99+' : String(newActionableChats);
-            el('newMessagesFilterBtn')?.classList.toggle('has-unread', newActionableChats > 0);
-            el('newMessagesFilterBtn')?.setAttribute('title', newActionableChats
-                ? `${newActionableChats} cliente${newActionableChats === 1 ? '' : 's'} sem atendimento (${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL e ${unansweredChats} com mensagem para responder)`
-                : 'Nenhum cliente sem atendimento');
-            if (el('chatUnansweredTabCount')) el('chatUnansweredTabCount').textContent = unansweredTotal > 99 ? '99+' : String(unansweredTotal);
-            el('unansweredFilterBtn')?.classList.toggle('has-unanswered', unansweredChats > 0);
-            el('unansweredFilterBtn')?.setAttribute('title', unansweredChats
-                ? `${unansweredTotal} mensagem${unansweredTotal === 1 ? '' : 'ns'} de ${unansweredChats} cliente${unansweredChats === 1 ? '' : 's'} ainda sem resposta`
-                : 'Nenhuma mensagem pendente de resposta');
+            el('markVisibleReadBtn')?.classList.toggle('has-unread', unreadChats > 0);
+            el('markVisibleReadBtn')?.setAttribute('title', unreadChats > 0
+                ? `Marcar como lidas ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} antiga${unreadTotal === 1 ? '' : 's'} em ${unreadChats} conversa${unreadChats === 1 ? '' : 's'}, sem apagar o historico`
+                : 'Nao ha mensagens antigas para marcar como lidas');
+            if (el('chatUnreadTabCount')) el('chatUnreadTabCount').textContent = newUnreadChats > 99 ? '99+' : String(newUnreadChats);
+            el('newMessagesFilterBtn')?.classList.toggle('has-unread', newUnreadChats > 0);
+            el('newMessagesFilterBtn')?.setAttribute('title', newUnreadChats
+                ? `${newUnreadChats} conversa${newUnreadChats === 1 ? '' : 's'} nova${newUnreadChats === 1 ? '' : 's'} (${unreadChats} com mensagem nao lida e ${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL aguardando atendimento)`
+                : 'Nenhuma mensagem nova');
+            el('readMessagesFilterBtn')?.setAttribute('title', unreadChats > 0
+                ? `Marcar ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} como lida${unreadTotal === 1 ? '' : 's'} e limpar Novas`
+                : 'Nenhuma mensagem nova para marcar como lida');
         };
 
         const renderDashboardMetrics = () => {
@@ -10928,6 +11457,18 @@
             )).join('')}</div>`;
         };
 
+        const vslEntryPhraseForPanel = (chat = {}) => {
+            const draft = chat?.customerDraft || {};
+            const phrase = String(draft.vslEntryMessage || '').trim();
+            if (!phrase) return '';
+            const rawVariant = String(draft.vslVariant || '').trim().toUpperCase();
+            const variant = ['A', 'B'].includes(rawVariant) ? `VSL ${rawVariant}` : 'VSL';
+            return `<div class="chat-vsl-entry" title="Frase inicial enviada pelo botão ${escapeHtml(variant)}">
+                <strong>${escapeHtml(variant)}</strong>
+                <span class="truncate">${escapeHtml(phrase)}</span>
+            </div>`;
+        };
+
         const renderTeamList = () => {
             const active = visibleOperationalChats().filter((chat) => chat.human?.mode === 'manual');
             const byOwner = active.reduce((acc, chat) => {
@@ -10947,8 +11488,7 @@
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (state.chatFilter === 'unread' && !(Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
-                if (state.chatFilter === 'unanswered' && !(Number(chat.unansweredCount || 0) > 0)) return false;
+                if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
@@ -11012,6 +11552,7 @@
                                     <span class="source-badge ${escapeHtml(sourceInfo.className)}" title="${escapeHtml(sourceInfo.title)}">${escapeHtml(sourceInfo.badge)}</span>
                                     <span class="truncate">${escapeHtml(entryInfo.label)}</span>
                                 </div>
+                                ${vslEntryPhraseForPanel(chat)}
                                 <div class="chat-preview">
                                     <span class="chat-badges">
                                         ${orderBadge}
@@ -11546,7 +12087,9 @@
             if (!sendButton) return;
             const hasText = String(input?.value || '').trim().length > 0;
             sendButton.disabled = !state.selectedChat || state.sendingMessage || !hasText;
-            sendButton.textContent = state.sendingMessage ? 'Enviando' : 'Enviar';
+            sendButton.textContent = state.sendingMessage
+                ? (state.editingOutboundMessage ? 'Salvando' : 'Enviando')
+                : (state.editingOutboundMessage ? 'Salvar edição' : 'Enviar');
             if (emojiButton) {
                 emojiButton.disabled = !state.selectedChat;
             }
@@ -12069,6 +12612,27 @@
             || ['bot', 'system'].includes(String(message?.from || '').toLowerCase())
         );
 
+        const WHATSAPP_EDIT_WINDOW_MS = 15 * 60 * 1000;
+        const messageTimestampMs = (message = {}) => {
+            const timestamp = Number(message.timestamp || 0);
+            if (timestamp > 0) return timestamp * 1000;
+            const fallback = new Date(message.createdAt || 0).getTime();
+            return Number.isFinite(fallback) ? fallback : 0;
+        };
+        const outboundEditAvailability = (message = {}) => {
+            if (!message?.isFromMe || message?.isBot || !['chat', 'text'].includes(String(message.type || '').toLowerCase())) {
+                return { show: false, allowed: false, reason: '' };
+            }
+            if (String(message.provider || '').toLowerCase() !== 'zapi' || !String(message.providerMessageId || message.providerPayload?.messageId || message.providerPayload?.id || '').trim()) {
+                return { show: true, allowed: false, reason: 'Esta mensagem nao possui ID editavel da Z-API.' };
+            }
+            const sentAtMs = messageTimestampMs(message);
+            if (!sentAtMs || Date.now() - sentAtMs > WHATSAPP_EDIT_WINDOW_MS) {
+                return { show: true, allowed: false, reason: 'O WhatsApp permite editar apenas nos primeiros 15 minutos.' };
+            }
+            return { show: true, allowed: true, reason: 'Editar esta mensagem no WhatsApp' };
+        };
+
         const updateReplyContext = () => {
             const context = el('replyContext');
             const textBox = el('replyContextText');
@@ -12084,9 +12648,56 @@
             context.classList.add('active');
         };
 
+        const updateEditMessageContext = () => {
+            const context = el('editMessageContext');
+            const textBox = el('editMessageContextText');
+            if (!context || !textBox) return;
+            const editing = state.editingOutboundMessage;
+            if (!editing) {
+                context.classList.remove('active');
+                textBox.textContent = '';
+                return;
+            }
+            textBox.textContent = 'Editando mensagem enviada — altere o texto e clique em Salvar edição';
+            context.classList.add('active');
+        };
+
+        const clearEditingOutboundMessage = ({ clearInput = false } = {}) => {
+            state.editingOutboundMessage = null;
+            if (clearInput) {
+                const input = el('messageInput');
+                if (input) input.value = '';
+            }
+            updateEditMessageContext();
+            updateMessageComposerControls();
+        };
+
+        const startEditingOutboundMessage = (messageId) => {
+            const message = (state.currentMessages || []).find((item) => String(item._id || '') === String(messageId || ''));
+            const availability = outboundEditAvailability(message || {});
+            if (!message || !availability.allowed) {
+                showToast(availability.reason || 'Esta mensagem nao pode mais ser editada.');
+                return;
+            }
+            const input = el('messageInput');
+            if (!input) return;
+            state.replyToMessage = null;
+            updateReplyContext();
+            state.editingOutboundMessage = {
+                id: String(message._id || ''),
+                originalBody: String(message.body || '')
+            };
+            input.value = String(message.body || '');
+            input.focus();
+            input.setSelectionRange(0, input.value.length);
+            updateEditMessageContext();
+            updateMessageComposerControls();
+        };
+
         const setReplyToMessage = (messageId) => {
             const message = (state.currentMessages || []).find((item) => String(item._id || '') === String(messageId || ''));
             if (!message) return;
+            clearEditingOutboundMessage();
             state.replyToMessage = message;
             updateReplyContext();
             el('messageInput').focus();
@@ -13241,13 +13852,21 @@
                 const deleteButton = canDeletePanelMessage(message) && messageId
                     ? `<button class="message-action danger" data-message-delete="${escapeHtml(messageId)}" type="button" title="Apagar mensagem">×</button>`
                     : '';
+                const outboundEdit = outboundEditAvailability(message);
+                const editOutboundButton = outboundEdit.show && messageId
+                    ? `<button class="message-action edit-outbound" data-message-edit-outbound="${escapeHtml(messageId)}" type="button" title="${escapeHtml(outboundEdit.reason)}" aria-label="Editar mensagem enviada" ${outboundEdit.allowed ? '' : 'disabled'}>✎</button>`
+                    : '';
+                const editedIndicator = message.editedAt
+                    ? ' · <span class="message-edited" title="Mensagem alterada no WhatsApp">editada</span>'
+                    : '';
                 const observerHint = !message.isFromMe ? renderMessageObserverHint(messageId, message) : '';
                 return `
-                    <div class="message-row ${message.isFromMe ? 'me' : ''}" data-message-id="${escapeHtml(messageId)}">
+                    <div class="message-row ${message.isFromMe ? 'me' : ''} ${editOutboundButton ? 'has-outbound-edit' : ''}" data-message-id="${escapeHtml(messageId)}">
                         ${message.isFromMe ? attendantAvatarHtml() : ''}
                         <div class="bubble ${message.isFromMe ? 'me' : ''} ${readByClient ? 'is-read' : ''}">
                             <div class="message-actions">
                                 <button class="message-action" data-message-reply="${escapeHtml(messageId)}" type="button" title="Responder esta mensagem">↩</button>
+                                ${editOutboundButton}
                                 ${deleteButton}
                             </div>
                             ${renderQuotedPreview(message)}
@@ -13255,7 +13874,7 @@
                             ${media}
                             ${transcriptHtml}
                             ${observerHint}
-                            <div class="time">${escapeHtml(senderLabel)} · ${formatTime(message.timestamp)}${deliveryInfo}</div>
+                            <div class="time">${escapeHtml(senderLabel)} · ${formatTime(message.timestamp)}${editedIndicator}${deliveryInfo}</div>
                         </div>
                     </div>
                 `;
@@ -13268,30 +13887,79 @@
             initializeAudioPlayers(box);
         };
 
-        const extractCustomerNameFromMessages = (messages = []) => {
-            for (const message of [...(messages || [])].reverse()) {
-                if (message?.isFromMe) continue;
-                const body = String(message?.body || '').replace(/\r/g, '\n');
-                const match = body.match(/\b(?:nombre\s+completo|nombre|nomre|nome\s+completo|nome)\s*[:：]\s*([^\n,.;]+)/i)
-                    || body.match(/\bmi\s+nom(?:b|r)re\s+es\s*[:.]?\s*([^\n,.;]+)/i);
-                const name = String(match?.[1] || '').replace(/\s+/g, ' ').trim();
-                if (name && name.length >= 5 && name.length <= 80 && !/[0-9@]/.test(name)) return name;
-            }
-            return '';
-        };
+        const extractCustomerNameFromMessages = (messages = []) => (
+            window.VitalismenCustomerFormIntelligence?.extractCustomerData(messages)?.name || ''
+        );
 
-        const syncDetectedCustomerNameFromMessages = (messages = []) => {
+        const syncDetectedCustomerDataFromMessages = (messages = []) => {
             if (!state.selectedChat) return;
-            const input = el('customerNameInput');
-            if (!input) return;
-            const current = String(input.value || '').trim();
-            const currentDigits = digitsOnlyText(current);
+            const intelligence = window.VitalismenCustomerFormIntelligence;
+            if (!intelligence?.extractCustomerData) return;
+            const detected = intelligence.extractCustomerData(messages);
+            const changedFields = [];
+            const nameInput = el('customerNameInput');
+            const currentName = String(nameInput?.value || '').trim();
+            const currentDigits = digitsOnlyText(currentName);
             const phoneDigits = digitsOnlyText(state.selectedChat.phone || state.selectedChat.id || '');
-            if (current && !(currentDigits && phoneDigits && (currentDigits === phoneDigits || phoneDigits.endsWith(currentDigits)))) return;
-            const detectedName = extractCustomerNameFromMessages(messages);
-            if (!detectedName) return;
-            setInputValue('customerNameInput', detectedName);
-            el('customerSyncHint').textContent = 'Nome detectado na conversa. Use Salvar dados para fixar.';
+            const nameCanBeFilled = !currentName || Boolean(
+                currentDigits
+                && phoneDigits
+                && (currentDigits === phoneDigits || phoneDigits.endsWith(currentDigits))
+            );
+            if (nameCanBeFilled && detected.name) {
+                setInputValue('customerNameInput', detected.name);
+                changedFields.push('nome');
+            }
+
+            const fillEmpty = (inputId, value, label) => {
+                const input = el(inputId);
+                if (!input || !String(value || '').trim() || String(input.value || '').trim()) return;
+                setInputValue(inputId, value);
+                changedFields.push(label);
+            };
+            fillEmpty('customerCityInput', detected.city, 'cidade');
+            fillEmpty('customerProvinceInput', detected.province, 'provincia');
+            fillEmpty('customerReferenceInput', detected.reference, 'referencia');
+            fillEmpty('customerAddressInput', detected.address, 'agencia/endereco');
+
+            const storedProductKey = String(
+                state.selectedChat.productKey
+                || state.selectedChat.customerDraft?.productKey
+                || ''
+            ).trim();
+            if (detected.productKey && !storedProductKey) {
+                setInputValue('customerProductInput', detected.productKey);
+                changedFields.push('produto');
+            }
+
+            const currentQuantity = normalizeCustomerQuantityValue(el('customerQuantityInput')?.value);
+            if (detected.quantity && currentQuantity === '0') {
+                setInputValue('customerQuantityInput', detected.quantity);
+                changedFields.push('quantidade');
+            }
+            const effectiveQuantity = detected.quantity || normalizeCustomerQuantityValue(el('customerQuantityInput')?.value);
+            const selectedProductKey = String(el('customerProductInput')?.value || '').trim();
+            const effectiveProductKey = storedProductKey || selectedProductKey || detected.productKey;
+            const productConflict = Boolean(
+                storedProductKey
+                && detected.productKey
+                && storedProductKey !== detected.productKey
+            );
+            const approvedTotal = productConflict
+                ? ''
+                : detected.total || intelligence.approvedTotal({
+                    productKey: effectiveProductKey,
+                    quantity: effectiveQuantity
+                });
+            fillEmpty('customerTotalInput', approvedTotal, detected.total ? 'valor informado' : 'valor aprovado');
+
+            if (!changedFields.length) return;
+            markCustomerFormDirty();
+            scheduleCustomerFieldAutoSave({ delay: 600, source: 'conversation-data' });
+            el('customerSyncHint').textContent = `Ficha preenchida e salvando: ${changedFields.join(', ')}.`;
+            if (detected.city || detected.province || detected.reference || detected.address) {
+                lookupAgencySuggestions({ immediate: true }).catch(() => null);
+            }
         };
 
         const markSelectedChatRead = () => {
@@ -13301,6 +13969,64 @@
                 method: 'POST',
                 body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
             }).catch(() => null);
+        };
+
+        const markVisibleChatsRead = async () => {
+            if (!state.token) {
+                showToast('Entre no painel para marcar mensagens como lidas');
+                return false;
+            }
+            const unreadChats = visibleOperationalChats().filter((chat) => Number(chat.unreadCount || 0) > 0);
+            const unreadMessages = unreadChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
+            if (!unreadChats.length) {
+                showToast('Nao ha mensagens antigas para marcar como lidas');
+                return true;
+            }
+            const confirmed = window.confirm(
+                `Marcar ${unreadMessages} mensagen${unreadMessages === 1 ? 'm' : 's'} antiga${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}?\n\n`+
+                'Nenhuma conversa sera apagada. Clientes sem resposta continuarao identificados em Novas e mensagens novas voltarao a aparecer como nao lidas.'
+            );
+            if (!confirmed) return false;
+
+            const button = el('markVisibleReadBtn');
+            const originalLabel = button?.textContent || '✓ Marcar lidas';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Marcando...';
+            }
+            let markedChats = 0;
+            let failedChats = 0;
+            try {
+                for (let index = 0; index < unreadChats.length; index += 6) {
+                    const batch = unreadChats.slice(index, index + 6);
+                    const results = await Promise.allSettled(batch.map((chat) => api('/api/whatsapp/chats/read', {
+                        method: 'POST',
+                        body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
+                    })));
+                    results.forEach((result, resultIndex) => {
+                        if (result.status === 'fulfilled' && Number(result.value?.matched || 0) > 0) {
+                            batch[resultIndex].unreadCount = 0;
+                            markedChats += 1;
+                        } else {
+                            failedChats += 1;
+                        }
+                    });
+                    renderChats();
+                }
+                await loadChats().catch(() => null);
+                if (failedChats) {
+                    showToast(`${markedChats} conversa(s) marcada(s); ${failedChats} nao puderam ser atualizadas`);
+                } else {
+                    showToast(`${unreadMessages} mensagen${unreadMessages === 1 ? 'm' : 's'} antiga${unreadMessages === 1 ? '' : 's'} marcada${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}, sem apagar o historico`);
+                }
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalLabel;
+                }
+                renderOperationalMetrics();
+            }
+            return failedChats === 0;
         };
 
         async function loadSelectedMessages(options = {}) {
@@ -13325,8 +14051,7 @@
                     state.messageSignature = signature;
                     renderMessages(messages, { preserveScroll: !nearBottom && !options.force });
                     renderActionableSamples();
-                    syncDetectedCustomerNameFromMessages(messages);
-                    markSelectedChatRead();
+                    syncDetectedCustomerDataFromMessages(messages);
                 }
             } finally {
                 state.messagesLoading = false;
@@ -13337,10 +14062,11 @@
             }
         }
 
-        async function selectChat(chatId) {
+        async function selectChat(chatId, { markRead = false } = {}) {
             const chat = state.chats.find((item) => item.id === chatId);
             if (!chat) return;
             clearReplyToMessage();
+            clearEditingOutboundMessage({ clearInput: true });
             const chatKey = chat.id || chat.phone || '';
             const loadSeq = (state.selectedChatLoadSeq || 0) + 1;
             state.selectedChatLoadSeq = loadSeq;
@@ -13375,7 +14101,7 @@
             renderSelectedDetails();
             renderCustomerProfile();
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
-            markSelectedChatRead();
+            if (markRead) markSelectedChatRead();
             loadSelectedMessages({ force: true, limit: 60, bypassLoading: true }).catch((error) => showToast(error.message));
             state.selectedChatProfileTimer = window.setTimeout(() => {
                 if (state.selectedChatLoadSeq === loadSeq) loadCustomerProfileForChat(chatKey).catch(() => null);
@@ -13395,6 +14121,7 @@
             const chat = state.selectedChat;
             if (!chat) {
                 clearReplyToMessage();
+                clearEditingOutboundMessage({ clearInput: true });
                 state.actionableSamples = [];
                 state.actionableSignature = '';
                 state.observerBlueprint = null;
@@ -13463,6 +14190,7 @@
                 document.querySelectorAll('[data-draft-template]').forEach((button) => {
                     button.disabled = true;
                 });
+                syncSalesQuickFunnelAvailability();
                 renderAudioTemplates();
                 return;
             }
@@ -13582,6 +14310,7 @@
             document.querySelectorAll('[data-draft-template]').forEach((button) => {
                 button.disabled = false;
             });
+            syncSalesQuickFunnelAvailability();
             renderAudioTemplates();
         };
 
@@ -14103,10 +14832,7 @@
         ]);
 
         const footerMediaFiles = () => {
-            const country = currentTemplateCountry();
             const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
-            const isTexUltra = selectedProductKey === 'tex_ultra_ec' || selectedProductKey.includes('tex_ultra') || selectedProductKey.includes('tex ultra');
-            if (country === 'EC' && isTexUltra) return [];
             const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
             const productMedia = isNitrix
                 ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
@@ -14908,12 +15634,9 @@
         const NITRIX_INTRO_AUDIO_02_EC = '/media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
 
         const footerFunnelBlocks = () => {
-            const country = currentTemplateCountry();
             const selectedProductKey = String(state.selectedChat?.productKey || state.selectedChat?.customerDraft?.productKey || state.selectedChat?.assignedAgent || '').toLowerCase();
-            const isTexUltra = selectedProductKey === 'tex_ultra_ec' || selectedProductKey.includes('tex_ultra') || selectedProductKey.includes('tex ultra');
             const isNitrix = selectedProductKey === 'nitrix_ec' || selectedProductKey === 'nx_ec' || selectedProductKey.includes('nitrix');
-            const defaultBlocks = isTexUltra ? []
-                : isNitrix ? [{
+            const defaultBlocks = isNitrix ? [{
                     code: 'B01',
                     type: 'block',
                     typeLabel: 'bloco',
@@ -16676,14 +17399,18 @@
                 customerDraft.productKey = productInfo.key;
                 customerDraft.productName = productInfo.name;
                 customerDraft.productMedia = productInfo.media;
+                customerDraft.negotiationProductKey = productInfo.key;
+                customerDraft.negotiationProductName = productInfo.name;
             }
             const apiOrderStatus = orderStatusForApi(customerDraft.status);
             const isAdminLeadOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(String(chat.orderId || customerDraft.orderId || ''));
+            const historicalOrderId = historicalOrderIdFromChat(chat);
+            if (historicalOrderId) {
+                customerDraft.previousOrderId = historicalOrderId;
+            }
             const shouldCreateNewConfirmedOrder = Boolean(
                 customerDraft.status === 'confirmado'
-                && chat.orderId
-                && !isAdminLeadOrder
-                && cannotReuseOrderForNewConfirmation(chat.orderStatus)
+                && historicalOrderId
             );
             if (shouldCreateNewConfirmedOrder) {
                 customerDraft.orderId = '';
@@ -16694,7 +17421,7 @@
                     throw new Error(`Complete antes de confirmar: ${missing.map((item) => item.label).join(', ')}.`);
                 }
             }
-            if (chat.orderId && !isAdminLeadOrder && !shouldCreateNewConfirmedOrder) {
+            if (chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder) {
                 const payload = {
                     customer: {
                         name: customerDraft.name,
@@ -16723,7 +17450,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if (!isAdminLeadOrder && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if ((!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -16742,6 +17469,9 @@
                     status: apiOrderStatus,
                     notes: note
                 };
+                if (historicalOrderId) {
+                    orderPayload.previousOrderId = historicalOrderId;
+                }
                 if (draftCountry === 'EC') {
                     orderPayload.productKey = customerDraft.productKey;
                     orderPayload.productName = customerDraft.productName;
@@ -16755,6 +17485,7 @@
                     chat.orderId = created.orderId;
                     state.selectedChat.orderId = created.orderId;
                     customerDraft.orderId = created.orderId;
+                    customerDraft.currentNegotiationOrderId = created.orderId;
                     setInputValue('customerOrderInput', created.orderId);
                     orderNotice = `Pedido novo criado: ${created.orderId}`;
                 }
@@ -16767,12 +17498,14 @@
                     customerDraft
                 })
             });
-            const adminLeadSync = await syncAdminLeadStatus({
-                orderId: chat.orderId || el('customerOrderInput').value.trim(),
-                country: customerDraft.country,
-                status: customerDraft.status,
-                customerDraft
-            });
+            const adminLeadSync = historicalOrderId
+                ? { skipped: true, reason: 'historical_order_preserved', previousOrderId: historicalOrderId }
+                : await syncAdminLeadStatus({
+                    orderId: chat.orderId || el('customerOrderInput').value.trim(),
+                    country: customerDraft.country,
+                    status: customerDraft.status,
+                    customerDraft
+                });
             const syncedDraft = contactSave?.state?.metadata?.customerDraft || {};
             if (syncedDraft.orderId && syncedDraft.orderId !== customerDraft.orderId) {
                 customerDraft.orderId = syncedDraft.orderId;
@@ -17255,6 +17988,7 @@
         }
 
         async function sendMessage() {
+            if (state.editingOutboundMessage) return saveEditedOutboundMessage();
             const input = el('messageInput');
             const text = String(input.value || '').trim();
             if (!text) return;
@@ -17311,6 +18045,50 @@
                     input.value = text;
                 }
                 showToast(`Mensagem nao enviada; texto preservado: ${error.message}`);
+            } finally {
+                state.sendingMessage = false;
+                updateMessageComposerControls();
+                input.focus();
+            }
+        }
+
+        async function saveEditedOutboundMessage() {
+            const editing = state.editingOutboundMessage;
+            const input = el('messageInput');
+            const text = String(input?.value || '').trim();
+            if (!editing || !input || !text) return;
+            if (text === String(editing.originalBody || '').trim()) {
+                showToast('Altere o texto antes de salvar a edição.');
+                return;
+            }
+            const phone = currentChatPhone();
+            if (!digitsOnlyText(phone)) {
+                showToast('Selecione o cliente novamente: telefone da conversa nao foi localizado.');
+                return;
+            }
+            state.sendingMessage = true;
+            updateMessageComposerControls();
+            try {
+                const result = await api(`/api/whatsapp/messages/${encodeURIComponent(phone)}/edit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ messageId: editing.id, message: text })
+                });
+                if (!result?.success) throw new Error(result?.error || 'WhatsApp nao confirmou a edição.');
+                const editedAt = result.editedAt || new Date().toISOString();
+                state.currentMessages = (state.currentMessages || []).map((message) => (
+                    String(message._id || '') === String(editing.id)
+                        ? { ...message, body: result.body || text, editedAt, editCount: result.editCount || Number(message.editCount || 0) + 1 }
+                        : message
+                ));
+                state.messageSignature = getMessageSignature(state.currentMessages);
+                renderMessages(state.currentMessages, { preserveScroll: true });
+                input.value = '';
+                state.editingOutboundMessage = null;
+                updateEditMessageContext();
+                showToast(result.unchanged ? 'Mensagem ja estava com este texto.' : 'Mensagem editada no WhatsApp.');
+                loadSelectedMessages({ force: true }).catch(() => null);
+            } catch (error) {
+                showToast(`Nao foi possivel editar: ${error.message}`);
             } finally {
                 state.sendingMessage = false;
                 updateMessageComposerControls();
@@ -17514,6 +18292,84 @@
                     await sendMediaAttachment(file);
                 }
             })().catch((error) => showToast(error.message));
+        };
+
+        const TEX_ULTRA_SALES_QUICK_TEMPLATES = Object.freeze({
+            name_1: '¿Cuál es su nombre completo, por favor?',
+            name_2: 'Por favor, ¿me confirma su nombre completo?',
+            name_3: '¿Me indica su nombre completo?',
+            name_4: 'Para continuar, ¿cuál es su nombre completo?',
+            location_1: 'Por favor, ¿cuál es su ciudad y provincia?',
+            location_2: '¿En qué ciudad y provincia se encuentra?',
+            location_3: 'Para el envío, ¿me confirma su ciudad y provincia?',
+            location_4: '¿Me indica su ciudad y provincia, por favor?',
+            agency_1: '¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?',
+            agency_2: '¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?',
+            agency_3: 'Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?',
+            agency_4: '¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.',
+            offer_35: `📦 Hoy tenemos kits promocionales disponibles con precios especiales:
+🟢 1 frasco por solo $35,99
+🟡 2 frascos por $70,00
+🟠 3 frascos por $80,99
+🔴 6 frascos (tratamiento completo) por $147,99
+
+¿Cuántos frascos desea?`,
+            confirm_1a: '✅ ¡Claro! Le envío 1 frasco por $35,99. ¿Está de acuerdo?',
+            confirm_1b: 'Perfecto, le separo 1 frasco por $35,99. ¿Confirmamos?',
+            confirm_2a: '✅ ¡Claro! Le envío 2 frascos por $70,00. ¿Está de acuerdo?',
+            confirm_2b: 'Perfecto, le separo 2 frascos por $70,00. ¿Confirmamos?',
+            confirm_3a: '✅ ¡Claro! Le envío 3 frascos por $80,99. ¿Está de acuerdo?',
+            confirm_3b: 'Perfecto, le separo 3 frascos por $80,99. ¿Confirmamos?',
+            confirm_6a: '✅ ¡Claro! Le envío 6 frascos por $147,99. ¿Está de acuerdo?',
+            confirm_6b: 'Perfecto, le separo el tratamiento completo de 6 frascos por $147,99. ¿Confirmamos?'
+        });
+
+        const manualEcSalesQuickFunnelContext = () => ({
+            hasSelectedChat: Boolean(state.selectedChat),
+            country: String(el('customerCountryInput')?.value || state.selectedChat?.country || '').toUpperCase(),
+            humanMode: String(state.selectedChat?.human?.mode || '').toLowerCase()
+        });
+
+        const manualEcSalesQuickFunnelAvailable = () => {
+            const context = manualEcSalesQuickFunnelContext();
+            const policy = window.VitalismenManualFunnelPolicy;
+            return policy?.isAvailable
+                ? policy.isAvailable(context)
+                : context.hasSelectedChat && context.country === 'EC' && context.humanMode === 'manual';
+        };
+
+        const syncSalesQuickFunnelAvailability = () => {
+            const drawer = el('salesQuickFunnel');
+            if (!drawer) return;
+            const context = manualEcSalesQuickFunnelContext();
+            const enabled = manualEcSalesQuickFunnelAvailable();
+            drawer.classList.toggle('is-disabled', !enabled);
+            drawer.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+            if (el('salesQuickFunnelTitle')) {
+                const policy = window.VitalismenManualFunnelPolicy;
+                el('salesQuickFunnelTitle').textContent = policy?.titleFor
+                    ? policy.titleFor(context)
+                    : enabled ? 'Manual EC · Funil rapido Tex Ultra' : 'Assuma o atendimento para liberar';
+            }
+            drawer.querySelectorAll('[data-sales-quick-template]').forEach((button) => {
+                button.disabled = !enabled;
+            });
+            if (!enabled) drawer.removeAttribute('open');
+        };
+
+        const fillSalesQuickTemplate = (key) => {
+            if (!manualEcSalesQuickFunnelAvailable()) {
+                showToast('Assuma o atendimento manual de um cliente EC para usar o funil rapido.');
+                syncSalesQuickFunnelAvailability();
+                return;
+            }
+            const text = TEX_ULTRA_SALES_QUICK_TEMPLATES[key] || '';
+            if (!text) return;
+            el('messageInput').value = text;
+            el('messageInput').focus();
+            updateMessageComposerControls();
+            el('salesQuickFunnel')?.removeAttribute('open');
+            showToast('Texto preparado. Revise e clique Enviar.');
         };
 
         const buildDraftTemplate = (kind) => {
@@ -18118,6 +18974,7 @@
 
         el('logoutBtn').addEventListener('click', () => setAuth(''));
         el('refreshBtn').addEventListener('click', refreshAll);
+        el('markVisibleReadBtn')?.addEventListener('click', () => markVisibleChatsRead().catch((error) => showToast(error.message)));
         el('opsAlertBtn')?.addEventListener('click', (event) => {
             event.stopPropagation();
             state.opsAlertOpen = !state.opsAlertOpen;
@@ -18148,12 +19005,16 @@
             });
         });
         el('customerCountryInput').addEventListener('change', applyCustomerCountryUi);
-        el('customerProductInput').addEventListener('change', () => renderCustomerProductSelection());
+        el('customerProductInput').addEventListener('change', () => {
+            applyCustomerCountryUi();
+            renderCustomerProductSelection();
+        });
         document.querySelectorAll('[data-customer-product-key]').forEach((button) => {
             button.addEventListener('click', () => {
                 if (!state.selectedChat || state.busy) return;
                 setInputValue('customerProductInput', button.dataset.customerProductKey || '');
                 markCustomerFormDirty();
+                applyCustomerCountryUi();
                 renderCustomerProductSelection();
                 scheduleCustomerFieldAutoSave({ delay: 250, source: 'product_button' });
             });
@@ -18163,6 +19024,7 @@
         applyCustomerCountryUi();
         el('customerCityInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
         el('customerProvinceInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
+        el('customerReferenceInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
         el('agencySearchInput')?.addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
         el('prevAgencyBatchBtn')?.addEventListener('click', () => {
             state.agencySuggestionOffset = Math.max(0, (state.agencySuggestionOffset || 0) - 4);
@@ -18209,6 +19071,11 @@
         });
         document.querySelectorAll('[data-footer-draft-template]').forEach((button) => {
             button.addEventListener('click', () => sendFooterDraftTemplate(button.dataset.footerDraftTemplate, button));
+        });
+        el('salesQuickFunnel')?.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-sales-quick-template]');
+            if (!button || button.disabled) return;
+            fillSalesQuickTemplate(button.dataset.salesQuickTemplate);
         });
         document.querySelectorAll('[data-module]').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -18349,9 +19216,26 @@
                 renderChats();
             });
         });
+        el('readMessagesFilterBtn')?.addEventListener('click', async () => {
+            const button = el('readMessagesFilterBtn');
+            button.disabled = true;
+            let allMarked = false;
+            try {
+                allMarked = await markVisibleChatsRead();
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                button.disabled = false;
+            }
+            if (!allMarked) return;
+            state.chatFilter = 'unread';
+            document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
+            el('newMessagesFilterBtn')?.classList.add('active');
+            renderChats();
+        });
         el('chatList').addEventListener('click', (event) => {
             const button = event.target.closest('[data-chat-id]');
-            if (button) selectChat(button.dataset.chatId);
+            if (button) selectChat(button.dataset.chatId, { markRead: true });
         });
         el('conversation').addEventListener('click', (event) => {
             closeMessageQuickCopyMenu();
@@ -18370,6 +19254,11 @@
             const replyButton = event.target.closest('[data-message-reply]');
             if (replyButton) {
                 setReplyToMessage(replyButton.dataset.messageReply);
+                return;
+            }
+            const editOutboundButton = event.target.closest('[data-message-edit-outbound]');
+            if (editOutboundButton) {
+                startEditingOutboundMessage(editOutboundButton.dataset.messageEditOutbound);
                 return;
             }
             const deleteButton = event.target.closest('[data-message-delete]');
@@ -18557,6 +19446,7 @@
         el('releaseBtn').addEventListener('click', releaseSelected);
         el('clearRepeatedBotBtn').addEventListener('click', clearRepeatedBotMessages);
         el('cancelReplyBtn').addEventListener('click', clearReplyToMessage);
+        el('cancelEditMessageBtn').addEventListener('click', () => clearEditingOutboundMessage({ clearInput: true }));
         document.addEventListener('click', (event) => {
             if (!event.target.closest?.('#sendBtn')) return;
             event.preventDefault();
@@ -18956,7 +19846,17 @@
         });
         el('messageInput').addEventListener('input', updateMessageComposerControls);
         el('messageInput').addEventListener('paste', handleComposerPaste);
+        el('messageBoldBtn')?.addEventListener('click', () => {
+            const input = el('messageInput');
+            toggleWhatsappBoldInComposer(input);
+            input?.focus();
+        });
         el('messageInput').addEventListener('keydown', (event) => {
+            if ((event.ctrlKey || event.metaKey) && !event.altKey && String(event.key || '').toLowerCase() === 'b') {
+                event.preventDefault();
+                toggleWhatsappBoldInComposer(event.currentTarget);
+                return;
+            }
             if (event.key !== 'Enter') return;
             if (event.shiftKey) return;
             event.preventDefault();

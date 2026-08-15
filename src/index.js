@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/texUltraApprovedFreezeRuntimeGuard.js';
+import './services/texUltraApprovedFreezeRuntimeGuardV5.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -20,6 +20,7 @@ import metaEventsRoutes from './routes/metaEvents.js';
 import zapiRoutes from './routes/zapi.js';
 import observationRoutes from './routes/observation.js';
 import integrationsRoutes from './routes/integrations.js';
+import funnelMetricsRoutes from './routes/funnelMetrics.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -87,7 +88,7 @@ const clientRateLimitKey = (req) => {
 const isStaticPanelRequest = (req) => {
     if (!['GET', 'HEAD'].includes(String(req.method || '').toUpperCase())) return false;
     const pathname = String(req.path || req.originalUrl || '').split('?')[0];
-    if (['/', '/qr.html', '/leads-window.html', '/favicon.ico'].includes(pathname)) return true;
+    if (['/', '/qr.html', '/leads-window.html', '/funnel-metrics.html', '/favicon.ico'].includes(pathname)) return true;
     if (pathname.startsWith('/media/')) return true;
     return /\.(?:css|js|map|png|jpe?g|webp|gif|svg|ico|mp3|ogg|opus|m4a|mp4|mov|webm|wav|pdf)$/i.test(pathname);
 };
@@ -112,6 +113,7 @@ const isPanelPollingRequest = (req) => {
         || pathname === '/api/whatsapp/dashboard-metrics'
         || pathname === '/api/whatsapp/templates'
         || pathname === '/api/whatsapp/chat-labels'
+        || pathname === '/api/funnel-metrics'
         || pathname === '/api/integrations/google-contacts/status'
         || /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/submit-status$/.test(pathname)
         || pathname.startsWith('/api/whatsapp/messages/')
@@ -178,6 +180,11 @@ app.get('/qr.html', (_req, res) => {
 app.get('/leads-window.html', (_req, res) => {
     res.set(noStoreHeaders);
     res.sendFile(path.join(process.cwd(), 'public', 'leads-window.html'));
+});
+
+app.get('/funnel-metrics.html', (_req, res) => {
+    res.set(noStoreHeaders);
+    res.sendFile(path.join(process.cwd(), 'public', 'funnel-metrics.html'));
 });
 
 app.use('/media', express.static('public/media', {
@@ -257,6 +264,7 @@ app.use('/api/meta-events', metaEventsRoutes);
 app.use('/api/zapi', zapiRoutes);
 app.use('/api/observation', observationRoutes);
 app.use('/api/integrations', integrationsRoutes);
+app.use('/api/funnel-metrics', funnelMetricsRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);

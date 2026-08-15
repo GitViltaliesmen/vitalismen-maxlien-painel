@@ -814,7 +814,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // POST /api/orders - Create order directly (public - from checkout)
 router.post('/', async (req, res) => {
     try {
-        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product } = req.body;
+        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product, previousOrderId } = req.body;
 
         // Validation
         if (!country || !customer || !packageId || !total) {
@@ -890,6 +890,7 @@ router.post('/', async (req, res) => {
             currency: orderCurrency,
             source,
             status: initialStatus,
+            previousOrderId: String(previousOrderId || '').trim().slice(0, 100),
             notes: typeof notes === 'string' ? notes : '',
             purchaseIntent: purchaseIntent || {},
             tracking: {

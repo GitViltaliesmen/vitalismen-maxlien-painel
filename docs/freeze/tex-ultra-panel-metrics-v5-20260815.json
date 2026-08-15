@@ -1,0 +1,91 @@
+{
+  "freezeId": "tex-ultra-manual-history-metrics-v5-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T04:37:50.052Z",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/ec-universal-funnel-metrics-20260815",
+  "publicationStatus": "not_published",
+  "parentFreezeIds": [
+    "tex-ultra-approved-start-and-confirmed-postsale-v4-20260803"
+  ],
+  "initialLayer": {
+    "enabledFlag": "TEX_ULTRA_INITIAL_LAYER_ENABLED=true",
+    "timingMode": "cumulative_between_steps",
+    "waveJoinMs": 20000,
+    "cadence": [
+      { "key": "intro01", "minMs": 2000, "maxMs": 10000 },
+      { "key": "intro02", "minMs": 11000, "maxMs": 20000 },
+      { "key": "proof", "minMs": 21000, "maxMs": 25000 },
+      { "key": "bottle", "minMs": 28000, "maxMs": 33000 },
+      { "key": "offer", "minMs": 35000, "maxMs": 40000 }
+    ],
+    "pauseOnCustomerInteraction": true,
+    "pauseOrphanedFlowsOnStartup": true,
+    "automaticReplayAfterRestart": false
+  },
+  "confirmedPostSaleLayer": {
+    "enabledFlag": "TEX_ULTRA_CONFIRMED_POSTSALE_AUDIO_ENABLED=true",
+    "queueEnabledFlag": "TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED=true",
+    "queueIntervalSeconds": 60,
+    "batchLimit": 1,
+    "audioOrder": [
+      "AGRADECIMENTO_AGENCIA_DE_ENTREGA",
+      "BONUS_RETIRADA"
+    ],
+    "persistentOrderLock": true,
+    "persistentSentAt": true,
+    "duplicateProtection": true,
+    "productIsolation": true,
+    "operatorNoAutoResendProtection": true
+  },
+  "manualQuickFunnel": {
+    "manualEcOnly": true,
+    "automaticVslFunnelUnchanged": true,
+    "historicalOrderMutationBlocked": true,
+    "currentNegotiationStoredSeparately": true,
+    "templateDoesNotAutoSend": true,
+    "templateDoesNotChangeProduct": true
+  },
+  "metrics": {
+    "page": "/funnel-metrics.html",
+    "endpoint": "/api/funnel-metrics",
+    "bearerAuthentication": true,
+    "adminOnly": true,
+    "country": "EC",
+    "timeZone": "America/Guayaquil",
+    "maximumDays": 90,
+    "cacheControl": "no-store"
+  },
+  "productionReceiptInheritedFromV4": {
+    "orderId": "EC-MSCNC7NL-EQGQ",
+    "outboundMessagesPersisted": 2,
+    "duplicateAfterAdditionalQueueCycles": false
+  },
+  "protectedFiles": {
+    "src/index.js": "52def501a6d810ab7fe5f6c237c5416746062e2af817f62b277e41c1c5d52c34",
+    "src/services/texUltraInitialLayerService.js": "1735080dd525dd9205de1b87778f105be955667d5b220b39c5e6955a66fd9ccd",
+    "src/services/texUltraConfirmedPostSaleLayerService.js": "61906ee3fa2205d238d5cef4adedd682d76ddd9d0457273df6d3123b6c6ee342",
+    "src/services/texUltraProductProfile.js": "ec247a5d0cb0a112a8236b33ee5a3f44a05a41b94467cef25f1bec85fff7b74c",
+    "src/services/schedulerService.js": "d292a5481fcd249b2ae713a8d3ff9a407a5eca6e0b8b28d60f659381f5bb73e9",
+    "src/services/operatorNoAutoResendService.js": "d48aa3016414cefc40ff1fd28521fa3dfb4e96b1327f5ce144d56f400e7b8925",
+    "src/services/texUltraApprovedFreezeRuntimeGuard.js": "391e6150a8d15cd22ced02e923af132396e937ab509cf08d45082962dea48340",
+    "src/services/texUltraApprovedFreezeRuntimeGuardV5.js": "b62a409c4fd8c1d493486120b6c680269297f6bfcb57218c695223ae286e0b7f",
+    "public/media/templates/EC/AGRADECIMENTO_AGENCIA_DE_ENTREGA.ogg": "1098a5fa0eef19415f4dce4f4d061333188f9f70c8a024456bd55b48ad0770cc",
+    "public/media/templates/EC/BONUS_RETIRADA.ogg": "d9929c5469fee53114fba65a7fc707a641042eec56ff271b70c08ca3e4fd5bdc",
+    "public/qr.html": "93f0d30624260e9870ec5148c2b0c8fc3ea73912aab7a4e0b65d5ab596922c7c",
+    "public/panel-intelligence/customer-data-normalizer.js": "943dc306edd61adc7517f3907637884572fa34ffaa77a28903a336632ed1e29d",
+    "public/panel-intelligence/conversation-data-extractor.js": "8e2caaf19b925f671cb273d8abb248ad41bb9f67e02f60d3a13701d8f5e5a09b",
+    "public/panel-intelligence/agency-catalog.js": "2d54b6f821d8976352ef682fda10a83689bcda13800558cb5425cdd94cf3d2dc",
+    "public/panel-intelligence/customer-form-intelligence.js": "b73f6545279436d30013efc28ac358fdc4074e30b06d932dbe603e51c9d5955f",
+    "public/panel-intelligence/manual-funnel-policy.js": "4100b0d5f377d45e040e35b6b3992a9abd220a2a533922f7c9f6d059d3a398de",
+    "public/panel-intelligence/customer-order-policy.js": "96248c42d2a47debd87870316b60814802156fcadd7e185025a0ecdaa4bfb83c",
+    "public/funnel-metrics.html": "3638c3b78037ca50a4f4801aeb60f0e080a7eb58c46cc085cdea5fade0d7d097",
+    "src/routes/orders.js": "c638de815f6ab8ac4925008a06e995fcc7cd2f445b3229f5eb8961f89b143947",
+    "src/routes/funnelMetrics.js": "acd1150bca2a0492028d8b1d443177dddb2ae0aa8d98940b05ef8a4ebb6accb7",
+    "src/services/funnelMetricsService.js": "c2ba0b2e0d7ebc9a67263cbdc6820c97df031a61a46af6527bab7d22ce1757a8",
+    "scripts/audit-ec-tex-ultra-isolation.mjs": "6f0cf18a910ff86720d5e5821310485e0227b9f58f4dbffe8ee4df5fdeb5b493",
+    "scripts/guard-tex-ultra-approved-v5.mjs": "325c7283bd111482ce6157a3a337042cb2d82a13960af2a03d9919350ebd1c2a"
+  }
+}
