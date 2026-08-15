@@ -4115,25 +4115,6 @@
             display: inline-block;
         }
 
-        .tabs button .tab-read-count {
-            display: none;
-            min-width: 16px;
-            height: 16px;
-            margin-left: 3px;
-            padding: 0 4px;
-            border-radius: 999px;
-            background: #64748b;
-            color: #fff;
-            font-size: 9px;
-            font-weight: 900;
-            line-height: 16px;
-            text-align: center;
-        }
-
-        .tabs button.has-read .tab-read-count {
-            display: inline-block;
-        }
-
         .contact-actions {
             display: flex;
             justify-content: flex-start;
@@ -7312,7 +7293,7 @@
                 <div class="tabs">
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
                     <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
-                    <button id="readMessagesFilterBtn" data-chat-filter="read" type="button" title="Mostra conversas que nao possuem mensagens novas">Lidas <span id="chatReadTabCount" class="tab-read-count">0</span></button>
+                    <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -10917,7 +10898,6 @@
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
-            const readChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) === 0).length;
             const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
             const newUnreadChats = visibleChats.filter((chat) => (
                 Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat)
@@ -10935,11 +10915,9 @@
             el('newMessagesFilterBtn')?.setAttribute('title', newUnreadChats
                 ? `${newUnreadChats} conversa${newUnreadChats === 1 ? '' : 's'} nova${newUnreadChats === 1 ? '' : 's'} (${unreadChats} com mensagem nao lida e ${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL aguardando atendimento)`
                 : 'Nenhuma mensagem nova');
-            if (el('chatReadTabCount')) el('chatReadTabCount').textContent = readChats > 99 ? '99+' : String(readChats);
-            el('readMessagesFilterBtn')?.classList.toggle('has-read', readChats > 0);
             el('readMessagesFilterBtn')?.setAttribute('title', unreadChats > 0
-                ? `Clique para marcar ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} como lida${unreadTotal === 1 ? '' : 's'} e abrir as conversas lidas`
-                : `${readChats} conversa${readChats === 1 ? '' : 's'} lida${readChats === 1 ? '' : 's'}, sem mensagens novas`);
+                ? `Marcar ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} como lida${unreadTotal === 1 ? '' : 's'} e limpar Novas`
+                : 'Nenhuma mensagem nova para marcar como lida');
         };
 
         const renderDashboardMetrics = () => {
@@ -11145,7 +11123,6 @@
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
                 if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
-                if (state.chatFilter === 'read' && Number(chat.unreadCount || 0) > 0) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
@@ -18869,24 +18846,29 @@
             await Promise.all([loadChats(), loadShipments(), loadDashboardMetrics(), loadAudioTemplates(), loadConnections()]);
         });
         document.querySelectorAll('[data-chat-filter]').forEach((button) => {
-            button.addEventListener('click', async () => {
-                if (button.dataset.chatFilter === 'read') {
-                    button.disabled = true;
-                    let allMarked = false;
-                    try {
-                        allMarked = await markVisibleChatsRead();
-                    } catch (error) {
-                        showToast(error.message);
-                    } finally {
-                        button.disabled = false;
-                    }
-                    if (!allMarked) return;
-                }
+            button.addEventListener('click', () => {
                 state.chatFilter = button.dataset.chatFilter;
                 document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
                 button.classList.add('active');
                 renderChats();
             });
+        });
+        el('readMessagesFilterBtn')?.addEventListener('click', async () => {
+            const button = el('readMessagesFilterBtn');
+            button.disabled = true;
+            let allMarked = false;
+            try {
+                allMarked = await markVisibleChatsRead();
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                button.disabled = false;
+            }
+            if (!allMarked) return;
+            state.chatFilter = 'unread';
+            document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
+            el('newMessagesFilterBtn')?.classList.add('active');
+            renderChats();
         });
         el('chatList').addEventListener('click', (event) => {
             const button = event.target.closest('[data-chat-id]');
