@@ -10938,9 +10938,9 @@
                 : 'Nenhum cliente sem atendimento');
             if (el('chatReadTabCount')) el('chatReadTabCount').textContent = readChats > 99 ? '99+' : String(readChats);
             el('readMessagesFilterBtn')?.classList.toggle('has-read', readChats > 0);
-            el('readMessagesFilterBtn')?.setAttribute('title', readChats
-                ? `${readChats} conversa${readChats === 1 ? '' : 's'} lida${readChats === 1 ? '' : 's'}, sem mensagens novas`
-                : 'Nenhuma conversa lida no filtro atual');
+            el('readMessagesFilterBtn')?.setAttribute('title', unreadChats > 0
+                ? `Clique para marcar ${unreadTotal} mensagen${unreadTotal === 1 ? 'm' : 's'} como lida${unreadTotal === 1 ? '' : 's'} e abrir as conversas lidas`
+                : `${readChats} conversa${readChats === 1 ? '' : 's'} lida${readChats === 1 ? '' : 's'}, sem mensagens novas`);
         };
 
         const renderDashboardMetrics = () => {
@@ -13593,19 +13593,19 @@
         const markVisibleChatsRead = async () => {
             if (!state.token) {
                 showToast('Entre no painel para marcar mensagens como lidas');
-                return;
+                return false;
             }
             const unreadChats = visibleOperationalChats().filter((chat) => Number(chat.unreadCount || 0) > 0);
             const unreadMessages = unreadChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             if (!unreadChats.length) {
                 showToast('Nao ha mensagens antigas para marcar como lidas');
-                return;
+                return true;
             }
             const confirmed = window.confirm(
                 `Marcar ${unreadMessages} mensagen${unreadMessages === 1 ? 'm' : 's'} antiga${unreadMessages === 1 ? '' : 's'} como lida${unreadMessages === 1 ? '' : 's'}?\n\n`+
-                'Nenhuma conversa sera apagada. Clientes pendentes continuarao em Pendentes e mensagens novas voltarao a aparecer como nao lidas.'
+                'Nenhuma conversa sera apagada. Clientes sem resposta continuarao identificados em Novas e mensagens novas voltarao a aparecer como nao lidas.'
             );
-            if (!confirmed) return;
+            if (!confirmed) return false;
 
             const button = el('markVisibleReadBtn');
             const originalLabel = button?.textContent || '✓ Marcar lidas';
@@ -13623,7 +13623,7 @@
                         body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
                     })));
                     results.forEach((result, resultIndex) => {
-                        if (result.status === 'fulfilled') {
+                        if (result.status === 'fulfilled' && Number(result.value?.matched || 0) > 0) {
                             batch[resultIndex].unreadCount = 0;
                             markedChats += 1;
                         } else {
@@ -13645,6 +13645,7 @@
                 }
                 renderOperationalMetrics();
             }
+            return failedChats === 0;
         };
 
         async function loadSelectedMessages(options = {}) {
@@ -18869,7 +18870,19 @@
             await Promise.all([loadChats(), loadShipments(), loadDashboardMetrics(), loadAudioTemplates(), loadConnections()]);
         });
         document.querySelectorAll('[data-chat-filter]').forEach((button) => {
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
+                if (button.dataset.chatFilter === 'read') {
+                    button.disabled = true;
+                    let allMarked = false;
+                    try {
+                        allMarked = await markVisibleChatsRead();
+                    } catch (error) {
+                        showToast(error.message);
+                    } finally {
+                        button.disabled = false;
+                    }
+                    if (!allMarked) return;
+                }
                 state.chatFilter = button.dataset.chatFilter;
                 document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
                 button.classList.add('active');
