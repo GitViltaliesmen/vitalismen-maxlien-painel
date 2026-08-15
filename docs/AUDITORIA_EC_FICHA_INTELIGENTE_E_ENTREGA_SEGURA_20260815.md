@@ -24,7 +24,7 @@ node scripts/audit-ec-tex-ultra-isolation.mjs
 git diff --check
 ```
 
-O workflow `.github/workflows/ec-panel-quality.yml` executa os mesmos guardas em `pull_request`, em branches `codex/**`, em `main` e manualmente. As actions externas estão fixadas por SHA completo e o token do workflow tem apenas `contents: read`.
+O workflow `.github/workflows/ec-panel-quality.yml` executa os mesmos guardas em `pull_request`, em branches `codex/**`, em `main` e manualmente, tanto no Node 20 usado pela VPS quanto no Node 22 atual de desenvolvimento. As actions externas estão fixadas por SHA completo e o token do workflow tem apenas `contents: read`.
 
 ## Estado do GitHub encontrado em 2026-08-15
 
@@ -46,7 +46,7 @@ O quality gate deste branch só se torna uma regra institucional depois de entra
 3. Testes locais específicos passam; o diff completo e o status são revisados.
 4. O agente cria um commit único e intencional e envia a branch ao GitHub.
 5. Um pull request registra escopo, arquivos, testes, riscos e rollback.
-6. O ruleset de `main` exige pull request, um revisor e o check `Customer form, Ecuador-only and Tex Ultra` verde.
+6. O ruleset de `main` exige pull request, um revisor e os checks `Customer form, Ecuador-only and Tex Ultra` de Node 20 e Node 22 verdes.
 7. Depois do merge, um job separado usa o ambiente GitHub `production`, que exige aprovação humana.
 8. O job de produção cria release imutável na VPS, troca o symlink `current`, reinicia apenas o processo PM2 autorizado, verifica saúde local e conteúdo público e reverte automaticamente em caso de falha.
 9. O deploy registra SHA do commit, release anterior, release nova, hashes dos arquivos críticos, horário e resultado das verificações.
