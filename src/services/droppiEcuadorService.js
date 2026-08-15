@@ -242,9 +242,29 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         returned: isReturned ? true : (isDelivered ? false : shipment.outcomes?.returned),
         prepaidOnly: isReturned ? true : (isDelivered ? false : shipment.outcomes?.prepaidOnly)
     };
+    const submittedDropiOrderId = String(
+        payload.dropiOrderId
+        || payload.manualDropiOrderId
+        || shipment.raw?.droppiOrder?.id
+        || shipment.raw?.latestDroppiPayload?.dropiOrderId
+        || ''
+    ).trim();
+    const preserveSubmittedReceipt = Boolean(
+        shipment.automation?.submittedToDroppiAt
+        && submittedDropiOrderId
+    );
+    const latestDroppiPayload = preserveSubmittedReceipt
+        ? {
+            ...payload,
+            status: 'submitted',
+            dropiStatus: payload.status || normalizedStatus || '',
+            dropiOrderId: submittedDropiOrderId,
+            submittedAt: shipment.automation.submittedToDroppiAt
+        }
+        : payload;
     shipment.raw = {
         ...(shipment.raw || {}),
-        latestDroppiPayload: payload,
+        latestDroppiPayload,
         ...(payload.manualDropiOrderId || payload.dropiOrderId
             ? { manualDropiOrderId: payload.manualDropiOrderId || payload.dropiOrderId }
             : {})
