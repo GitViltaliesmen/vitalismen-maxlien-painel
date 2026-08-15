@@ -4115,14 +4115,14 @@
             display: inline-block;
         }
 
-        .tabs button .tab-unanswered-count {
+        .tabs button .tab-read-count {
             display: none;
             min-width: 16px;
             height: 16px;
             margin-left: 3px;
             padding: 0 4px;
             border-radius: 999px;
-            background: #d97706;
+            background: #64748b;
             color: #fff;
             font-size: 9px;
             font-weight: 900;
@@ -4130,7 +4130,7 @@
             text-align: center;
         }
 
-        .tabs button.has-unanswered .tab-unanswered-count {
+        .tabs button.has-read .tab-read-count {
             display: inline-block;
         }
 
@@ -7312,7 +7312,7 @@
                 <div class="tabs">
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
                     <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
-                    <button id="unansweredFilterBtn" data-chat-filter="unanswered" type="button" title="Mostra clientes que escreveram e ainda não receberam resposta">Pendentes <span id="chatUnansweredTabCount" class="tab-unanswered-count">0</span></button>
+                    <button id="readMessagesFilterBtn" data-chat-filter="read" type="button" title="Mostra conversas que nao possuem mensagens novas">Lidas <span id="chatReadTabCount" class="tab-read-count">0</span></button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -10917,8 +10917,8 @@
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
             const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
-            const unansweredTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unansweredCount || 0)), 0);
             const unansweredChats = visibleChats.filter((chat) => Number(chat.unansweredCount || 0) > 0).length;
+            const readChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) === 0).length;
             const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
             const newActionableChats = visibleChats.filter((chat) => (
                 Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat)
@@ -10936,11 +10936,11 @@
             el('newMessagesFilterBtn')?.setAttribute('title', newActionableChats
                 ? `${newActionableChats} cliente${newActionableChats === 1 ? '' : 's'} sem atendimento (${vslWaitingChats} entrada${vslWaitingChats === 1 ? '' : 's'} da VSL e ${unansweredChats} com mensagem para responder)`
                 : 'Nenhum cliente sem atendimento');
-            if (el('chatUnansweredTabCount')) el('chatUnansweredTabCount').textContent = unansweredTotal > 99 ? '99+' : String(unansweredTotal);
-            el('unansweredFilterBtn')?.classList.toggle('has-unanswered', unansweredChats > 0);
-            el('unansweredFilterBtn')?.setAttribute('title', unansweredChats
-                ? `${unansweredTotal} mensagem${unansweredTotal === 1 ? '' : 'ns'} de ${unansweredChats} cliente${unansweredChats === 1 ? '' : 's'} ainda sem resposta`
-                : 'Nenhuma mensagem pendente de resposta');
+            if (el('chatReadTabCount')) el('chatReadTabCount').textContent = readChats > 99 ? '99+' : String(readChats);
+            el('readMessagesFilterBtn')?.classList.toggle('has-read', readChats > 0);
+            el('readMessagesFilterBtn')?.setAttribute('title', readChats
+                ? `${readChats} conversa${readChats === 1 ? '' : 's'} lida${readChats === 1 ? '' : 's'}, sem mensagens novas`
+                : 'Nenhuma conversa lida no filtro atual');
         };
 
         const renderDashboardMetrics = () => {
@@ -11146,7 +11146,7 @@
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
                 if (state.chatFilter === 'unread' && !(Number(chat.unansweredCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
-                if (state.chatFilter === 'unanswered' && !(Number(chat.unansweredCount || 0) > 0)) return false;
+                if (state.chatFilter === 'read' && Number(chat.unreadCount || 0) > 0) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
