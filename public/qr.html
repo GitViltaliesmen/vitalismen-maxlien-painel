@@ -10863,7 +10863,16 @@
 
                     const intelligence = window.VitalismenCustomerFormIntelligence;
                     if (!cityUsedAsAgencyQuery && intelligence?.resolveAgencyLocation) {
-                        const location = intelligence.resolveAgencyLocation(agencies, { city, province });
+                        const serverLocation = payload.location || {};
+                        const location = (serverLocation.cityMatched || serverLocation.provinceMatched)
+                            ? {
+                                matched: true,
+                                ambiguous: false,
+                                city: serverLocation.city || '',
+                                province: serverLocation.province || '',
+                                inferredProvince: Boolean(serverLocation.cityMatched && !province && serverLocation.province)
+                            }
+                            : intelligence.resolveAgencyLocation(agencies, { city, province });
                         const nextCity = location.matched && location.city ? location.city : '';
                         const nextProvince = location.matched && location.province ? location.province : '';
                         const locationChanged = Boolean(
@@ -12275,6 +12284,19 @@
                 }] : []));
             if (!attachments.length) return '';
             return `<div class="message-media">${attachments.map((attachment) => renderMediaAttachment(attachment, message)).join('')}</div>`;
+        };
+
+        const messageHasReadableCustomerImage = (message = {}) => {
+            if (message.isFromMe || !message._id) return false;
+            const attachments = Array.isArray(message.mediaAttachments) && message.mediaAttachments.length
+                ? message.mediaAttachments
+                : (message.mediaUrl ? [{
+                    type: message.type || 'media',
+                    mediaUrl: message.mediaUrl
+                }] : []);
+            return attachments.some((attachment) => (
+                attachment.mediaUrl && inferMediaType(attachment) === 'image'
+            ));
         };
 
         const audioContextState = { context: null, peaks: new Map() };
@@ -13850,6 +13872,9 @@
                 const deleteButton = canDeletePanelMessage(message) && messageId
                     ? `<button class="message-action danger" data-message-delete="${escapeHtml(messageId)}" type="button" title="Apagar mensagem">×</button>`
                     : '';
+                const imageReaderButton = messageHasReadableCustomerImage(message)
+                    ? `<button class="message-action" data-message-read-customer-image="${escapeHtml(messageId)}" type="button" title="Ler dados visíveis desta imagem" aria-label="Ler dados visíveis desta imagem">OCR</button>`
+                    : '';
                 const outboundEdit = outboundEditAvailability(message);
                 const editOutboundButton = outboundEdit.show && messageId
                     ? `<button class="message-action edit-outbound" data-message-edit-outbound="${escapeHtml(messageId)}" type="button" title="${escapeHtml(outboundEdit.reason)}" aria-label="Editar mensagem enviada" ${outboundEdit.allowed ? '' : 'disabled'}>✎</button>`
@@ -13864,6 +13889,7 @@
                         <div class="bubble ${message.isFromMe ? 'me' : ''} ${readByClient ? 'is-read' : ''}">
                             <div class="message-actions">
                                 <button class="message-action" data-message-reply="${escapeHtml(messageId)}" type="button" title="Responder esta mensagem">↩</button>
+                                ${imageReaderButton}
                                 ${editOutboundButton}
                                 ${deleteButton}
                             </div>
@@ -13899,11 +13925,18 @@
             const currentName = String(nameInput?.value || '').trim();
             const currentDigits = digitsOnlyText(currentName);
             const phoneDigits = digitsOnlyText(state.selectedChat.phone || state.selectedChat.id || '');
+            const manualEditActive = state.customerFormDirty && state.customerFormDirtyChatId === state.selectedChat.id;
+            const preferExplicitName = window.VitalismenCustomerDataNormalizer?.shouldPreferExplicitPersonName?.({
+                currentName,
+                detectedName: detected.name,
+                detectedSource: detected.nameSource,
+                manual: manualEditActive
+            }) || false;
             const nameCanBeFilled = !currentName || Boolean(
                 currentDigits
                 && phoneDigits
                 && (currentDigits === phoneDigits || phoneDigits.endsWith(currentDigits))
-            );
+            ) || preferExplicitName;
             if (nameCanBeFilled && detected.name) {
                 setInputValue('customerNameInput', detected.name);
                 changedFields.push('nome');
@@ -13959,6 +13992,61 @@
                 lookupAgencySuggestions({ immediate: true }).catch(() => null);
             }
         };
+
+        async function readCustomerDataFromImage(messageId, button = null) {
+            if (!state.selectedChat || !messageId) return;
+            const originalLabel = button?.textContent || 'OCR';
+            if (button) {
+                button.disabled = true;
+                button.textContent = '...';
+            }
+            try {
+                const result = await api(`/api/whatsapp/messages/${encodeURIComponent(currentChatPhone())}/read-customer-image`, {
+                    method: 'POST',
+                    body: JSON.stringify({ messageId })
+                });
+                const data = result?.data || {};
+                if (['none', 'low'].includes(data.confidence)) {
+                    showToast('A imagem não contém dados de entrega legíveis o bastante para preencher a ficha.');
+                    return;
+                }
+                const intelligence = window.VitalismenCustomerFormIntelligence;
+                const safeName = intelligence?.confidentPersonName?.(data.name) || '';
+                const fields = [
+                    ['Nome', 'customerNameInput', safeName],
+                    ['Endereço', 'customerAddressInput', data.address],
+                    ['Referência', 'customerReferenceInput', data.reference],
+                    ['Cidade', 'customerCityInput', data.city],
+                    ['Província', 'customerProvinceInput', data.province]
+                ].filter(([, , value]) => String(value || '').trim());
+                if (!fields.length) {
+                    showToast('Nenhum dado logístico validável foi encontrado na imagem.');
+                    return;
+                }
+                const preview = fields.map(([label, , value]) => `${label}: ${value}`).join('\n');
+                const evidence = String(data.evidence || '').trim();
+                const accepted = window.confirm(
+                    `Dados visíveis identificados na imagem:\n\n${preview}`
+                    + `${evidence ? `\n\nTexto de apoio: ${evidence}` : ''}`
+                    + '\n\nAplicar estes campos à ficha? Você poderá editar tudo normalmente antes do envio.'
+                );
+                if (!accepted) return;
+                fields.forEach(([, inputId, value]) => setInputValue(inputId, value));
+                markCustomerFormDirty();
+                scheduleCustomerFieldAutoSave({ delay: 700, source: 'customer-image-reader' });
+                el('customerSyncHint').textContent = `Dados da imagem aplicados e salvando: ${fields.map(([label]) => label.toLowerCase()).join(', ')}.`;
+                if (data.city || data.province || data.reference || data.address) {
+                    lookupAgencySuggestions({ immediate: true }).catch(() => null);
+                }
+            } catch (error) {
+                showToast(error.message || 'Não foi possível ler esta imagem agora.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalLabel;
+                }
+            }
+        }
 
         const markSelectedChatRead = () => {
             const chat = state.selectedChat;
@@ -19316,6 +19404,14 @@
             const replyButton = event.target.closest('[data-message-reply]');
             if (replyButton) {
                 setReplyToMessage(replyButton.dataset.messageReply);
+                return;
+            }
+            const imageReaderButton = event.target.closest('[data-message-read-customer-image]');
+            if (imageReaderButton) {
+                readCustomerDataFromImage(
+                    imageReaderButton.dataset.messageReadCustomerImage,
+                    imageReaderButton
+                );
                 return;
             }
             const editOutboundButton = event.target.closest('[data-message-edit-outbound]');

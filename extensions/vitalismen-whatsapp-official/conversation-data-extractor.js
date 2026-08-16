@@ -53,8 +53,8 @@
         for (let index = lines.length - 1; index >= 0; index -= 1) {
             const line = lines[index];
             const name = line.match(/(?:mi+\s+nombre(?:\s+es)?|me\s+llamo|nombre(?:\s+completo)?)\s*[:,-]?\s*([\p{L}][\p{L}\s.'-]{2,60}?)(?=\s+(?:c[eé]dula|ci\b|tel[eé]fono|direcci[oó]n|ciudad|provincia|servientrega)\b|[,;]|$)/iu);
-            const city = line.match(/(?:ciudad|cant[oó]n)\s*[:,-]?\s*([\p{L}\s.'-]{2,45})$/iu);
-            const province = line.match(/provincia\s*[:,-]?\s*([\p{L}\s.'-]{2,45})$/iu);
+            const city = line.match(/(?:ciudad|cant[oó]n)\s*[:,-]?\s*([\p{L}\s.'-]{2,45}?)(?=\s+(?:provincia|direcci[oó]n|domicilio|referencia|tel[eé]fono|c[eé]dula|ci\b)\s*[:,-]?|[,;]|$)/iu);
+            const province = line.match(/(?<!\/\s)provincia\s*[:,-]?\s*([\p{L}\s.'-]{2,45}?)(?=\s+(?:ciudad|cant[oó]n|direcci[oó]n|domicilio|referencia|tel[eé]fono|c[eé]dula|ci\b)\s*[:,-]?|[,;]|$)/iu);
             const reference = line.match(/(?:referencia|punto\s+de\s+referencia)\s*[:,-]?\s*(.{3,100}?)(?=\s+(?:ciudad|cant[oó]n|provincia)\s*(?:\/|:)|$)/iu);
             const agency = line.match(/(servientrega\s+.{3,100}?)(?=\s+(?:direcci[oó]n|ciudad|cant[oó]n|provincia|referencia)\b|$)/iu);
             const address = line.match(/(?:direcci[oó]n|domicilio|agencia|calle|avenida|avda\.?)\s*[:,-]?\s*(.{5,150})$/iu);
@@ -62,7 +62,10 @@
                 || line.match(/([0-9]{1,4}(?:[.,][0-9]{1,2})?)\s*(?:usd|d[oó]lares?)/iu);
             const qty = line.match(/\b(1|2|3|6|uno|una|un|dos|tres|seis)\s*(?:frascos?|botellas?|unidades?)\b/iu);
 
-            if (!result.name && name) result.name = name[1].trim();
+            if (!result.name && name) {
+                result.name = name[1].trim();
+                result.nameSource = 'explicit_label';
+            }
             if (!result.city && city) result.city = city[1].trim();
             if (!result.province && province) result.province = province[1].trim();
             if (!result.reference && reference) result.reference = reference[1].trim();

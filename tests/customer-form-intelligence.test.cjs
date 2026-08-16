@@ -68,10 +68,50 @@ const ambiguousReference = intelligence.selectAutomaticAgency(agencies, { query:
 assert.equal(ambiguousReference.matched, false);
 assert.equal(ambiguousReference.ambiguous, true);
 
+const noisyLocation = intelligence.resolveAgencyLocation([
+    ...agencies,
+    { name: 'Portoviejo Centro', city: 'PORTOVIEJO', province: 'MANABI' }
+], { city: 'CIVO Portoviejo', province: 'EM MANAVI' });
+assert.equal(noisyLocation.matched, true);
+assert.equal(noisyLocation.city, 'Portoviejo');
+assert.equal(noisyLocation.province, 'Manabi');
+
 assert.equal(intelligence.approvedTotal({ productKey: 'tex_ultra_ec', quantity: '1' }), '35.99');
 assert.equal(intelligence.approvedTotal({ productKey: 'tex_ultra_ec', quantity: '2' }), '70.00');
 assert.equal(intelligence.approvedTotal({ productKey: 'tex_ultra_ec', quantity: '3' }), '80.99');
 assert.equal(intelligence.approvedTotal({ productKey: 'tex_ultra_ec', quantity: '6' }), '147.99');
 assert.equal(intelligence.approvedTotal({ productKey: 'vit_power_ec', quantity: '3' }), '');
+
+const currentProtocolGLead = intelligence.extractCustomerData([{
+    isFromMe: false,
+    body: 'Hola, quiero el tratamiento. Nombre: Marcos Eduardo Teléfono: 0992439779'
+}]);
+assert.equal(currentProtocolGLead.name, 'Marcos Eduardo');
+assert.equal(currentProtocolGLead.nameSource, 'explicit_label');
+
+const requestedProtocolGLead = intelligence.extractCustomerData([{
+    isFromMe: false,
+    body: 'Hola, quiero el tratamiento.\nNombre: Marcos Eduardo\nCIUDAD: Portoviejo\nPROVINCIA: Manabi'
+}]);
+assert.equal(requestedProtocolGLead.name, 'Marcos Eduardo');
+assert.equal(requestedProtocolGLead.city, 'Portoviejo');
+assert.equal(requestedProtocolGLead.province, 'Manabi');
+
+assert.equal(
+    context.VitalismenCustomerDataNormalizer.shouldPreferExplicitPersonName({
+        currentName: 'Marcoseduarvarelavaldiezo',
+        detectedName: currentProtocolGLead.name,
+        detectedSource: currentProtocolGLead.nameSource
+    }),
+    true
+);
+assert.equal(
+    context.VitalismenCustomerDataNormalizer.shouldPreferExplicitPersonName({
+        currentName: 'Nombre Editado Manualmente',
+        detectedName: currentProtocolGLead.name,
+        detectedSource: currentProtocolGLead.nameSource
+    }),
+    false
+);
 
 console.log('customer form intelligence: OK');

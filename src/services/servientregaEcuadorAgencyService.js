@@ -437,8 +437,8 @@ export const findServientregaEcuadorAgencies = ({
 } = {}) => {
     const agencies = loadServientregaEcuadorAgencies();
     const knownLocation = findKnownServientregaEcuadorLocation({ city, province, text: query });
-    const normalizedCity = normalizeAgencyText(city || knownLocation.city);
-    const normalizedProvince = normalizeAgencyText(province || knownLocation.province);
+    const normalizedCity = normalizeAgencyText(knownLocation.city || city);
+    const normalizedProvince = normalizeAgencyText(knownLocation.province || province);
     const normalizedQuery = normalizeAgencyText(query);
     const queryIsSpecific = normalizedQuery.length >= 4;
     const queryTokens = tokensFor(query);

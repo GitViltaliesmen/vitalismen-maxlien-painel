@@ -9,7 +9,10 @@ import {
     orderHasMetaAttribution
 } from '../src/services/metaAttributionService.js';
 import { buildPurchaseEventPayloadForOrder } from '../src/services/metaConversionsService.js';
-import { explicitEcVslProductContextFromText } from '../src/routes/zapi.js';
+import {
+    activeEcVslProductContextFromText,
+    explicitEcVslProductContextFromText
+} from '../src/routes/zapi.js';
 
 const inboundAt = new Date('2026-08-14T03:00:00.000Z');
 
@@ -69,6 +72,34 @@ test('as duas frases A/B ativas identificam Tex Ultra na entrada', () => {
     assert.equal(variantA?.vslVariant, 'a');
     assert.equal(variantB?.productKey, 'tex_ultra_ec');
     assert.equal(variantB?.vslVariant, 'b');
+});
+
+test('a CTA generica da protocolo-g aceita os dados do lead e usa o produto ativo', () => {
+    const env = { VITALISMEN_ACTIVE_VSL_PRODUCT: 'tex_ultra_ec' };
+    const current = activeEcVslProductContextFromText(
+        'Hola, quiero el tratamiento. Nombre: Marcos Eduardo Teléfono: 0992439779',
+        env
+    );
+    const requested = activeEcVslProductContextFromText(
+        'Hola, quiero el tratamiento.\nNombre: Marcos Eduardo\nCIUDAD: Portoviejo\nPROVINCIA: Manabi',
+        env
+    );
+    assert.equal(current?.productKey, 'tex_ultra_ec');
+    assert.equal(requested?.productKey, 'tex_ultra_ec');
+    assert.equal(requested?.productSource, 'active_vsl_generic_entry');
+});
+
+test('a mesma CTA generica respeita a configuracao independente dos tres produtos', () => {
+    const text = 'Hola, quiero el tratamiento. Nombre: Cliente Prueba';
+    assert.equal(activeEcVslProductContextFromText(text, {
+        VITALISMEN_ACTIVE_VSL_PRODUCT: 'tex_ultra_ec'
+    })?.productKey, 'tex_ultra_ec');
+    assert.equal(activeEcVslProductContextFromText(text, {
+        VITALISMEN_ACTIVE_VSL_PRODUCT: 'nitrix_ec'
+    })?.productKey, 'nitrix_ec');
+    assert.equal(activeEcVslProductContextFromText(text, {
+        VITALISMEN_ACTIVE_VSL_PRODUCT: 'vit_power_ec'
+    })?.productKey, 'vit_power_ec');
 });
 
 test('payload seco de Purchase preserva valor, USD, event_id e identificadores Meta', () => {

@@ -45,6 +45,67 @@
         ))
     );
 
+    const editDistance = (left = '', right = '') => {
+        const a = String(left);
+        const b = String(right);
+        const row = Array.from({ length: b.length + 1 }, (_, index) => index);
+        for (let aIndex = 1; aIndex <= a.length; aIndex += 1) {
+            let diagonal = row[0];
+            row[0] = aIndex;
+            for (let bIndex = 1; bIndex <= b.length; bIndex += 1) {
+                const above = row[bIndex];
+                row[bIndex] = Math.min(
+                    row[bIndex] + 1,
+                    row[bIndex - 1] + 1,
+                    diagonal + (a[aIndex - 1] === b[bIndex - 1] ? 0 : 1)
+                );
+                diagonal = above;
+            }
+        }
+        return row[b.length];
+    };
+
+    const uniqueCatalogOptions = (values = []) => {
+        const options = new Map();
+        values.filter(Boolean).forEach((value) => {
+            const normalized = normalize(value);
+            if (!normalized || options.has(normalized)) return;
+            options.set(normalized, {
+                value,
+                normalized,
+                aliases: [...new Set([
+                    normalized,
+                    normalize(String(value).replace(/\s*\([^)]*\)\s*$/u, ''))
+                ].filter(Boolean))]
+            });
+        });
+        return [...options.values()];
+    };
+
+    const resolveKnownCatalogOption = (input = '', options = []) => {
+        const requested = normalize(input);
+        if (!requested) return null;
+        const exact = options.filter((option) => option.aliases.includes(requested));
+        if (exact.length === 1) return exact[0];
+
+        const contained = options.filter((option) => option.aliases.some((alias) => (
+            alias.length >= 5 && requested.includes(alias)
+        )));
+        if (contained.length === 1) return contained[0];
+
+        const tokens = requested.split(/\s+/).filter((token) => token.length >= 5);
+        const fuzzy = options.map((option) => ({
+            option,
+            distance: Math.min(...option.aliases
+                .filter((alias) => alias.length >= 5)
+                .flatMap((alias) => tokens.map((token) => editDistance(token, alias))))
+        })).filter((candidate) => Number.isFinite(candidate.distance) && candidate.distance <= 1)
+            .sort((left, right) => left.distance - right.distance);
+        if (!fuzzy.length) return null;
+        if (fuzzy.length > 1 && fuzzy[0].distance === fuzzy[1].distance) return null;
+        return fuzzy[0].option;
+    };
+
     const queryScore = (agency, query) => {
         if (!query) return 0;
         const name = normalize(agency.name);
@@ -124,12 +185,11 @@
 
         let candidates = formatted;
         if (normalizedCity) {
-            const exact = candidates.filter((agency) => normalize(agency.city) === normalizedCity);
-            const parentheticalAlias = candidates.filter((agency) => (
-                normalize(String(agency.city || '').replace(/\s*\([^)]*\)\s*$/u, '')) === normalizedCity
-            ));
-            candidates = exact.length ? exact : parentheticalAlias;
-            if (!candidates.length) {
+            const cityMatch = resolveKnownCatalogOption(
+                normalizedCity,
+                uniqueCatalogOptions(candidates.map((agency) => agency.city))
+            );
+            if (!cityMatch) {
                 return {
                     matched: false,
                     ambiguous: false,
@@ -138,11 +198,14 @@
                     inferredProvince: false
                 };
             }
+            candidates = candidates.filter((agency) => normalize(agency.city) === cityMatch.normalized);
         }
         if (normalizedProvince) {
-            const exact = candidates.filter((agency) => normalize(agency.province) === normalizedProvince);
-            candidates = exact;
-            if (!candidates.length) {
+            const provinceMatch = resolveKnownCatalogOption(
+                normalizedProvince,
+                uniqueCatalogOptions(candidates.map((agency) => agency.province))
+            );
+            if (!provinceMatch) {
                 return {
                     matched: false,
                     ambiguous: false,
@@ -151,6 +214,7 @@
                     inferredProvince: false
                 };
             }
+            candidates = candidates.filter((agency) => normalize(agency.province) === provinceMatch.normalized);
         }
 
         const locations = new Map();

@@ -46,6 +46,14 @@ assert.equal(salinas.city, 'Salinas (Santa Elena)');
 assert.equal(salinas.province, 'Santa Elena');
 assert.equal(salinas.inferredProvince, true);
 
+const noisyPortoviejo = catalog.resolveLocation(rows, {
+    city: 'CIVO Portoviejo',
+    province: 'EM MANAVI'
+});
+assert.equal(noisyPortoviejo.matched, true);
+assert.equal(noisyPortoviejo.city, 'Portoviejo');
+assert.equal(noisyPortoviejo.province, 'Manabi');
+
 const unknownCity = catalog.search(rows, {
     city: 'Cidade Inexistente',
     query: 'mercado central',

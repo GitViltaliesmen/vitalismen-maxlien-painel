@@ -1,0 +1,74 @@
+{
+  "freezeId": "customer-data-intelligence-v15-20260815",
+  "status": "approved_frozen",
+  "approvedAt": "2026-08-15T15:36:16-03:00",
+  "country": "EC",
+  "productKeys": [
+    "nitrix_ec",
+    "vit_power_ec",
+    "tex_ultra_ec"
+  ],
+  "requiresWrittenAuthorizationToChange": true,
+  "sourceBranch": "codex/whatsapp-auto-reject-policy-v14-20260815",
+  "sourceParentCommit": "e479ab61701619c35153d61063585cb4d92919a6",
+  "parentFreezeIds": [
+    "whatsapp-auto-reject-policy-v14-20260815"
+  ],
+  "supersededAncestorProtectedFiles": [
+    "package.json",
+    "src/index.js",
+    "public/qr.html"
+  ],
+  "publicationStatus": "not_published",
+  "productionUnchanged": true,
+  "policy": {
+    "genericVslUsesConfiguredProduct": true,
+    "activeVslProduct": "tex_ultra_ec",
+    "explicitNameMayRepairConcatenatedName": true,
+    "manualFieldEditHasPriority": true,
+    "locationRequiresOfficialCatalogMatch": true,
+    "imageReadRequiresOperatorClick": true,
+    "imageApplyRequiresOperatorConfirmation": true,
+    "openAiResponseStored": false,
+    "dropiSendRemainsManual": true
+  },
+  "preservation": {
+    "priorFreezeManifestsUnchanged": true,
+    "customerDataUnchanged": true,
+    "databaseUnchanged": true,
+    "dependenciesUnchanged": true,
+    "vpsUnchanged": true,
+    "externalVslUnchanged": true,
+    "noRealMessageSent": true,
+    "noDropiOrderSent": true,
+    "noMetaEventSent": true
+  },
+  "protectedFiles": {
+    "package.json": "304f43aba88a0e1edd813db28693c7cccb689027c293b137d96049b5494f60e9",
+    "src/index.js": "3daa6d1691419a37ca82fc7d93bf5fba9b73be08fa4a2408484bfeae01323177",
+    "public/qr.html": "a6163101ceb73bd6828c75f532ed3556a4c949006bad8db75c212438b0fbfcd6",
+    "public/panel-intelligence/agency-catalog.js": "303849a8cd799ae4a7eb6201222e69813f56abbb1b9817ea94c33132818a10d6",
+    "public/panel-intelligence/conversation-data-extractor.js": "db81074a976f5828174ab47982c4cc5d974e3a8d34940026d0b64ec0110d073d",
+    "public/panel-intelligence/customer-data-normalizer.js": "1f5a7f32e584bd3c437ddb2245f7efce2b7cfc972382cf0f6e9f3bab714927f1",
+    "extensions/vitalismen-whatsapp-official/agency-catalog.js": "303849a8cd799ae4a7eb6201222e69813f56abbb1b9817ea94c33132818a10d6",
+    "extensions/vitalismen-whatsapp-official/conversation-data-extractor.js": "db81074a976f5828174ab47982c4cc5d974e3a8d34940026d0b64ec0110d073d",
+    "extensions/vitalismen-whatsapp-official/customer-data-normalizer.js": "1f5a7f32e584bd3c437ddb2245f7efce2b7cfc972382cf0f6e9f3bab714927f1",
+    "extensions/vitalismen-whatsapp-official/sidepanel.js": "a2475045f884199a12a86e9cb00ea3bcba2545a08bb6363df7253846227b5fd8",
+    "extensions/vitalismen-whatsapp-official/tests/agency-catalog.test.cjs": "aef3ebd16c486c52a23714143d907aabbc3fb48211c0c5f3f567e5b4db0c75ea",
+    "extensions/vitalismen-whatsapp-official/tests/conversation-data-extractor.test.cjs": "7dc55c95b03496d335eda77de47d374af4849c1032abdceb5d325e7c3165c42a",
+    "extensions/vitalismen-whatsapp-official/tests/customer-data-normalizer.test.cjs": "b8bcd1557a477ecaf4c0dc26cd3505381ff55b71f05766fd1979df8ab613e38a",
+    "src/routes/whatsapp.js": "83647d60603d1cefe8ff43f4407caea3bc333ed07080d46b5396a611b4b35c75",
+    "src/routes/zapi.js": "6942af3d50d197bca9351198155175e8751f33c450bed201edeeda7cdf92473d",
+    "src/services/servientregaEcuadorAgencyService.js": "4a8569296ea0bcc9460d9154c75236fa12943c1c616314a3c564d0fac14d7d18",
+    "src/services/customerImageDataReaderService.js": "06b9354a409cc95bc3c4beb3dc19c3bec2ae0cbcdc720860515fbf667c9ec371",
+    "src/services/customerDataIntelligenceFreezeRuntimeGuardV15.js": "f0144d6216e9afcfec9b4908a3598f33ab097ada8b98910adb0aaeca972382e4",
+    "scripts/audit-ec-panel-smart-customer.mjs": "e4f5ef414c87e193611d4f5a0eea90cd84e2260c6a6cf384eb6253fd514fc1e5",
+    "scripts/guard-customer-data-intelligence-v15.mjs": "e45d0583938bdce56a4c9e4491611857995fe79f8bf15fe7049633b4984ebaa3",
+    "tests/customer-form-intelligence.test.cjs": "62867d8dd20854df115435284446726520fabcd3425550e824e3056f42426505",
+    "tests/meta-attribution-bridge.test.mjs": "93d1b8c818403f427f2a57e448e44c54b0d4bc6732825ed0255902cc7ec58cab",
+    "tests/customer-image-data-reader.test.mjs": "5c2a80b346f2d1d00086c0e01af72f070330969bcaa0e2fe772f24a231aeb51e",
+    "docs/CUSTOMER_DATA_INTELLIGENCE_FREEZE_V15_20260815.md": "77f889853d8d5938c9f1cc6285fa7d711df1937927d1baa175ad4097987c49be",
+    "docs/freeze/whatsapp-auto-reject-policy-v14-20260815.json": "8faa6aafc5024e4471810f1f611b6a85cfac060b3083371374cd2190e5f98c07",
+    "docs/WHATSAPP_AUTO_REJECT_POLICY_FREEZE_V14_20260815.md": "ac834ca71f157dc10bf621169d5074031c6483eabafb05a0652e302f8644e75f"
+  }
+}

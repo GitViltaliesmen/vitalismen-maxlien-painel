@@ -133,7 +133,8 @@ const normalizeVslText = (text = '') => String(text || '')
 const ACTIVE_VSL_GENERIC_ENTRY_PATTERNS = Object.freeze([
     /^hola quiero el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
     /^hola deseo el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
-    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:de )?[1236] frascos?(?: \d{1,3}(?: \d{1,2})?)?$/
+    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:de )?[1236] frascos?(?: \d{1,3}(?: \d{1,2})?)?$/,
+    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:nombre(?: completo)?|telefono|cedula|ci|ciudad|canton|provincia|direccion|domicilio|referencia)\b/
 ]);
 
 export const activeEcVslProductContextFromText = (text = '', env = process.env) => {

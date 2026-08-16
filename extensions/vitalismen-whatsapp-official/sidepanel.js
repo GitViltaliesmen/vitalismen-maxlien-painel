@@ -1396,7 +1396,16 @@ const populateSmartForm = () => {
         authoritativeProduct.productName
     );
     const selectedPhone = chatPhone(state.selectedChat);
-    const detectedName = customer.name || draft.name || suggestion.name || profile.displayName || chatName(state.selectedChat);
+    const existingName = customer.name || draft.name || '';
+    const preferExplicitName = customerDataNormalizer?.shouldPreferExplicitPersonName?.({
+        currentName: existingName,
+        detectedName: suggestion.name,
+        detectedSource: suggestion.nameSource,
+        manual: state.manualFieldIds.has('draftName')
+    }) || false;
+    const detectedName = preferExplicitName
+        ? suggestion.name
+        : customer.name || draft.name || suggestion.name || profile.displayName || chatName(state.selectedChat);
     const safeDetectedName = digits(detectedName) === selectedPhone ? '' : detectedName;
     let applied = 0;
     const applyValue = (element, value) => {

@@ -34,5 +34,18 @@ assert.deepEqual(
         address: 'Calle Vivar'
     }
 );
+assert.equal(normalizer.isLikelyConcatenatedPersonName('Marcoseduarvarelavaldiezo'), true);
+assert.equal(normalizer.isLikelyConcatenatedPersonName('Marcos Eduardo'), false);
+assert.equal(normalizer.shouldPreferExplicitPersonName({
+    currentName: 'Marcoseduarvarelavaldiezo',
+    detectedName: 'Marcos Eduardo',
+    detectedSource: 'explicit_label'
+}), true);
+assert.equal(normalizer.shouldPreferExplicitPersonName({
+    currentName: 'Marcoseduarvarelavaldiezo',
+    detectedName: 'Marcos Eduardo',
+    detectedSource: 'explicit_label',
+    manual: true
+}), false);
 
 console.log('customer data normalizer: ok');

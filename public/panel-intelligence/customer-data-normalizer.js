@@ -43,6 +43,24 @@
     const formatReference = (value) => cleanSpaces(value);
     const formatAddress = (value) => cleanSpaces(value);
 
+    const isLikelyConcatenatedPersonName = (value) => {
+        const compact = cleanSpaces(value);
+        if (compact.length < 10 || /\s/u.test(compact)) return false;
+        return /^[\p{L}.'’-]+$/u.test(compact);
+    };
+
+    const shouldPreferExplicitPersonName = ({
+        currentName = '',
+        detectedName = '',
+        detectedSource = '',
+        manual = false
+    } = {}) => {
+        if (manual || detectedSource !== 'explicit_label') return false;
+        const detected = formatPersonName(detectedName);
+        if (!detected || detected.split(/\s+/u).filter(Boolean).length < 2) return false;
+        return isLikelyConcatenatedPersonName(currentName);
+    };
+
     const normalizeCustomerData = (data = {}) => {
         const normalized = { ...data };
         if (Object.prototype.hasOwnProperty.call(normalized, 'name')) {
@@ -69,6 +87,8 @@
         formatLocationName,
         formatReference,
         formatAddress,
+        isLikelyConcatenatedPersonName,
+        shouldPreferExplicitPersonName,
         normalizeCustomerData
     });
 });

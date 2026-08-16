@@ -28,6 +28,9 @@ assert.doesNotMatch(panel, /customerReferenceInput'\)\.value\s*=\s*''/, 'selecio
 assert.match(panel, /resolveAgencyLocation/, 'cidade deve validar e inferir provincia pelo catalogo');
 assert.match(panel, /selectAutomaticAgency/, 'agencia so deve ser aplicada por correspondencia deterministica');
 assert.match(panel, /syncDetectedCustomerDataFromMessages/, 'conversa deve preencher a ficha por extrator validado');
+assert.match(panel, /data-message-read-customer-image/, 'imagem recebida deve oferecer leitura assistida pelo operador');
+assert.match(panel, /customer-image-reader/, 'leitura de imagem deve usar autosave identificado e auditavel');
+assert.match(panel, /window\.confirm\([\s\S]{0,700}Aplicar estes campos à ficha/, 'dados da imagem exigem confirmacao humana antes de preencher');
 
 assert.match(panel, /sales-quick-funnel-menu[\s\S]{0,400}overflow-x:\s*auto/, 'funil rapido horizontal deve permanecer rolavel');
 assert.match(panel, /\/media\/sales\/ec\/tex_ultra\.png/, 'frasco Tex Ultra deve permanecer visivel');

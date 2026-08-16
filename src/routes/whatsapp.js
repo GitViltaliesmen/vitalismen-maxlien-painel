@@ -46,6 +46,7 @@ import {
     resolveOperationalChatStatus
 } from '../services/operationalChatStatusService.js';
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
+import { readEcuadorCustomerImage } from '../services/customerImageDataReaderService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -190,6 +191,71 @@ const publicMediaUrlForLocalPath = (filePath = '') => {
     if (!resolved.startsWith(`${mediaRoot}${path.sep}`)) return '';
     const relative = resolved.slice(mediaRoot.length + 1).split(path.sep).map(encodeURIComponent).join('/');
     return `${publicMediaBaseUrl()}/media/${relative}`;
+};
+
+const CUSTOMER_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const CUSTOMER_IMAGE_CONTENT_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif'
+]);
+
+const customerImageContentType = (value = '', fallbackPath = '') => {
+    const declared = String(value || '').split(';')[0].trim().toLowerCase();
+    if (CUSTOMER_IMAGE_CONTENT_TYPES.has(declared)) return declared;
+    const inferred = contentTypeFromMediaPath(fallbackPath);
+    return CUSTOMER_IMAGE_CONTENT_TYPES.has(inferred) ? inferred : '';
+};
+
+const localCustomerImagePath = (mediaUrl = '') => {
+    const value = String(mediaUrl || '').split(/[?#]/)[0].trim();
+    const mediaRoot = path.resolve(process.cwd(), 'public', 'media');
+    let candidate = '';
+    if (path.isAbsolute(value)) {
+        candidate = path.resolve(value);
+    } else if (value.startsWith('/media/')) {
+        let decoded = '';
+        try {
+            decoded = decodeURIComponent(value.slice('/media/'.length));
+        } catch {
+            return '';
+        }
+        candidate = path.resolve(mediaRoot, decoded);
+    }
+    if (!candidate || !candidate.startsWith(`${mediaRoot}${path.sep}`)) return '';
+    return candidate;
+};
+
+const customerImageDataUrlFromMedia = async (mediaUrl = '') => {
+    const localPath = localCustomerImagePath(mediaUrl);
+    let bytes = null;
+    let contentType = '';
+    if (localPath) {
+        const stat = await fs.promises.stat(localPath);
+        if (!stat.isFile() || stat.size <= 0 || stat.size > CUSTOMER_IMAGE_MAX_BYTES) {
+            throw new Error('customer_image_invalid_size');
+        }
+        contentType = customerImageContentType('', localPath);
+        bytes = await fs.promises.readFile(localPath);
+    } else {
+        if (!isAllowedRemoteMediaUrl(mediaUrl)) throw new Error('customer_image_url_not_allowed');
+        const response = await axios.get(mediaUrl, {
+            responseType: 'arraybuffer',
+            timeout: 20000,
+            maxRedirects: 2,
+            maxContentLength: CUSTOMER_IMAGE_MAX_BYTES,
+            maxBodyLength: CUSTOMER_IMAGE_MAX_BYTES,
+            validateStatus: (status) => status >= 200 && status < 300
+        });
+        const finalUrl = String(response.request?.res?.responseUrl || mediaUrl);
+        if (!isAllowedRemoteMediaUrl(finalUrl)) throw new Error('customer_image_redirect_not_allowed');
+        contentType = customerImageContentType(response.headers?.['content-type'], finalUrl);
+        bytes = Buffer.from(response.data || []);
+    }
+    if (!contentType) throw new Error('customer_image_unsupported_type');
+    if (!bytes?.length || bytes.length > CUSTOMER_IMAGE_MAX_BYTES) throw new Error('customer_image_invalid_size');
+    return `data:${contentType};base64,${bytes.toString('base64')}`;
 };
 
 const TECHNICAL_ZAPI_ALERT_REGEX = /^ALERTA: o WhatsApp conectado/i;
@@ -4096,6 +4162,37 @@ router.get('/messages/:phone', async (req, res) => {
     } catch (error) {
         console.error('Get messages error:', error);
         res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+});
+
+router.post('/messages/:phone/read-customer-image', adminOnly, async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const messageId = String(req.body?.messageId || '').trim();
+        if (!messageId) return res.status(400).json({ error: 'messageId required' });
+        const { or } = await resolveMessageLookupForPhone(phone, { fastMode: true });
+        if (!or.length) return res.status(404).json({ error: 'Conversa nao encontrada' });
+        const message = await Message.findOne(withVisiblePanelMessages({
+            _id: messageId,
+            $or: or
+        })).lean();
+        if (!message) return res.status(404).json({ error: 'Imagem nao encontrada neste atendimento' });
+        if (message.isFromMe) return res.status(403).json({ error: 'Somente imagens recebidas do cliente podem ser lidas.' });
+        const mediaUrl = String(message.mediaUrl || '').trim();
+        if (!mediaUrl) return res.status(400).json({ error: 'A imagem ainda nao possui arquivo disponivel.' });
+        const imageDataUrl = await customerImageDataUrlFromMedia(mediaUrl);
+        const data = await readEcuadorCustomerImage({ imageDataUrl });
+        res.json({ success: true, data });
+    } catch (error) {
+        const reason = String(error?.message || 'customer_image_reader_failed');
+        console.error('[CUSTOMER_IMAGE_READER] falha controlada:', error?.status || reason);
+        if (reason === 'customer_image_reader_not_configured') {
+            return res.status(503).json({ error: 'Leitor de imagem ainda nao configurado no servidor.' });
+        }
+        if (reason.startsWith('customer_image_')) {
+            return res.status(400).json({ error: 'Nao foi possivel usar esta imagem. Envie PNG, JPG ou WEBP com ate 10 MB.' });
+        }
+        return res.status(502).json({ error: 'Nao foi possivel ler a imagem agora. Tente novamente.' });
     }
 });
 

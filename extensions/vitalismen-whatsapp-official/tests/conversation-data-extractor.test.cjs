@@ -35,5 +35,15 @@ assert.equal(formattedLead.name, 'Enrique Tapia');
 assert.equal(formattedLead.city, 'Cayambe');
 assert.equal(formattedLead.reference, 'mercado central');
 assert.equal(formattedLead.name.includes('0983709502'), false);
+assert.equal(formattedLead.nameSource, 'explicit_label');
+
+const protocolGLead = extractor.extract([{
+    isFromMe: false,
+    body: 'Hola, quiero el tratamiento.\nNombre: Marcos Eduardo\nCIUDAD: Portoviejo\nPROVINCIA: Manabi'
+}]);
+assert.equal(protocolGLead.name, 'Marcos Eduardo');
+assert.equal(protocolGLead.city, 'Portoviejo');
+assert.equal(protocolGLead.province, 'Manabi');
+assert.equal(protocolGLead.nameSource, 'explicit_label');
 
 console.log('conversation data extractor: ok');
