@@ -1,6 +1,13 @@
 import { execFileSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import {
+    OFFICIAL_GITHUB_CLONE_URL,
+    PRODUCTION_BRANCH,
+    remoteTagCommitFromLsRemote,
+    validateReleaseSource
+} from './release-source-policy.mjs';
 
 const root = process.cwd();
 const confirm = process.env.VITALISMEN_DEPLOY_CONFIRM === 'YES';
@@ -11,15 +18,13 @@ const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(
     '.ssh',
     'vps_auditoria_codex_ec_20260719'
 );
-const releaseName = process.env.VITALISMEN_DEPLOY_RELEASE || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
 const baseDir = process.env.VITALISMEN_DEPLOY_BASE_DIR || '/opt/vitalismen-automacao';
-const releaseDir = `${baseDir}/releases/${releaseName}`;
-const vpsGitRemote = process.env.VITALISMEN_DEPLOY_GIT_REMOTE || '/opt/git/vitalismen-automacao.git';
+const deployTag = String(process.env.VITALISMEN_DEPLOY_TAG || '').trim();
 
 const run = (cmd, args, options = {}) => {
     console.log(`$ ${cmd} ${args.join(' ')}`);
     execFileSync(cmd, args, {
-        cwd: root,
+        cwd: options.cwd || root,
         env: options.env || process.env,
         stdio: 'inherit',
         timeout: options.timeout || 120000
@@ -45,26 +50,97 @@ const commandExists = (cmd) => {
     }
 };
 
+const assertSafeRemotePath = (value, label) => {
+    if (!/^\/[A-Za-z0-9._/-]+$/.test(value) || value.includes('..')) {
+        throw new Error(`[DEPLOY] ${label} invalido: ${value}`);
+    }
+};
+
+const assertSafeReleaseName = (value) => {
+    if (!/^[A-Za-z0-9._-]{1,140}$/.test(value)) {
+        throw new Error(`[DEPLOY] Nome de release invalido: ${value}`);
+    }
+};
+
 if (!root.endsWith('Vitalismen Automacao')) {
     console.error(`[DEPLOY] Pasta errada: ${root}`);
     process.exit(1);
 }
 
-if (!fs.existsSync(key)) {
-    console.error(`[DEPLOY] Chave SSH nao encontrada: ${key}`);
-    process.exit(1);
+assertSafeRemotePath(baseDir, 'diretorio base');
+
+const branch = output('git', ['branch', '--show-current']);
+const commit = output('git', ['rev-parse', 'HEAD']).toLowerCase();
+const status = output('git', ['status', '--porcelain=v1', '--untracked-files=all']);
+const originUrl = output('git', ['remote', 'get-url', 'origin']);
+let tagCommit = '';
+let remoteProductionCommit = '';
+let remoteTagCommit = '';
+
+if (deployTag) {
+    try {
+        tagCommit = output('git', ['rev-list', '-n', '1', deployTag]).toLowerCase();
+    } catch {
+        tagCommit = '';
+    }
 }
+
+try {
+    remoteProductionCommit = output('git', [
+        'ls-remote',
+        '--heads',
+        'origin',
+        `refs/heads/${PRODUCTION_BRANCH}`
+    ]).split(/\s+/, 1)[0]?.toLowerCase() || '';
+    const remoteTags = output('git', [
+        'ls-remote',
+        '--tags',
+        'origin',
+        `refs/tags/${deployTag}`,
+        `refs/tags/${deployTag}^{}`
+    ]);
+    remoteTagCommit = remoteTagCommitFromLsRemote(remoteTags, deployTag).toLowerCase();
+} catch {
+    remoteProductionCommit = '';
+    remoteTagCommit = '';
+}
+
+const releaseSource = validateReleaseSource({
+    status,
+    branch,
+    commit,
+    tag: deployTag,
+    tagCommit,
+    originUrl,
+    remoteProductionCommit,
+    remoteTagCommit
+});
+
+const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+const releaseName = process.env.VITALISMEN_DEPLOY_RELEASE || `${timestamp}_${deployTag}`;
+assertSafeReleaseName(releaseName);
+const releaseDir = `${baseDir}/releases/${releaseName}`;
+assertSafeRemotePath(releaseDir, 'diretorio da release');
 
 if (!confirm) {
     console.error([
-        '[DEPLOY] Bloqueado por seguranca.',
-        'Este comando so sobe para o VPS quando voce confirmar explicitamente:',
+        '[DEPLOY] Fonte oficial validada, mas deploy bloqueado por seguranca.',
+        `Repositorio: ${releaseSource.repository}`,
+        `Branch: ${releaseSource.branch}`,
+        `Commit: ${releaseSource.commit}`,
+        `Tag: ${releaseSource.tag}`,
         '',
-        'VITALISMEN_DEPLOY_CONFIRM=YES npm run deploy:vps',
+        'Para enviar sem ativar:',
+        `VITALISMEN_DEPLOY_TAG=${deployTag} VITALISMEN_DEPLOY_CONFIRM=YES npm run deploy:vps`,
         '',
-        'Para tambem apontar /opt/vitalismen-automacao/current para o release enviado:',
-        'VITALISMEN_DEPLOY_CONFIRM=YES VITALISMEN_DEPLOY_ACTIVATE=YES npm run deploy:vps'
+        'Para enviar e apontar current para a nova release:',
+        `VITALISMEN_DEPLOY_TAG=${deployTag} VITALISMEN_DEPLOY_CONFIRM=YES VITALISMEN_DEPLOY_ACTIVATE=YES npm run deploy:vps`
     ].join('\n'));
+    process.exit(1);
+}
+
+if (!fs.existsSync(key)) {
+    console.error(`[DEPLOY] Chave SSH nao encontrada: ${key}`);
     process.exit(1);
 }
 
@@ -77,41 +153,61 @@ run(process.execPath, ['scripts/guard-freeze-lock-ec.mjs'], {
     timeout: 60000
 });
 
-if (commandExists('rsync')) {
-    run('rsync', [
-        '-az',
-        '--delete',
-        '--exclude', '.git/',
-        '--exclude', '.env',
-        '--exclude', '.codex_tmp/',
-        '--exclude', '.codex-tmp/',
-        '--exclude', '.local/',
-        '--exclude', '.DS_Store',
-        '--exclude', 'auth_info_baileys/',
-        '--exclude', 'backups/',
-        '--exclude', 'exports/',
-        '--exclude', '*.log',
-        '--exclude', 'node_modules/',
-        '--exclude', 'public/media/generated/',
-        '-e', `ssh -i ${key} -o StrictHostKeyChecking=accept-new`,
-        './',
-        `${host}:${releaseDir}/`
-    ], { timeout: 300000 });
-} else {
-    const branch = output('git', ['branch', '--show-current']);
-    const commit = output('git', ['rev-parse', 'HEAD']);
-    console.log(`[DEPLOY] rsync indisponivel; usando espelho Git do VPS em ${vpsGitRemote}.`);
-    run('ssh', [
-        '-i', key,
-        '-o', 'StrictHostKeyChecking=accept-new',
-        host,
-        [
-            `test "$(git --git-dir=${vpsGitRemote} rev-parse refs/heads/${branch})" = "${commit}"`,
-            `git clone --single-branch --branch ${branch} ${vpsGitRemote} ${releaseDir}`,
-            `rm -rf ${releaseDir}/.git`,
-            `rm -rf ${releaseDir}/public/media/generated`
-        ].join(' && ')
-    ], { timeout: 300000 });
+const releaseMetadata = {
+    ...releaseSource,
+    createdAt: new Date().toISOString(),
+    releaseName
+};
+const metadataJson = `${JSON.stringify(releaseMetadata, null, 2)}\n`;
+const metadataBase64 = Buffer.from(metadataJson, 'utf8').toString('base64');
+
+run('ssh', [
+    '-i', key,
+    '-o', 'StrictHostKeyChecking=accept-new',
+    host,
+    `mkdir -p ${baseDir}/releases && test ! -e ${releaseDir}`
+], { timeout: 60000 });
+
+let temporaryRoot = '';
+try {
+    if (commandExists('rsync')) {
+        if (!commandExists('tar')) throw new Error('[DEPLOY] tar e obrigatorio para montar a arvore exata do commit.');
+        temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vitalismen-release-'));
+        const archivePath = path.join(temporaryRoot, 'release.tar');
+        const sourceDir = path.join(temporaryRoot, 'source');
+        fs.mkdirSync(sourceDir);
+        run('git', ['archive', '--format=tar', '-o', archivePath, commit]);
+        run('tar', ['-xf', archivePath, '-C', sourceDir]);
+        fs.writeFileSync(path.join(sourceDir, '.release-source.json'), metadataJson, 'utf8');
+        run('rsync', [
+            '-az',
+            '--delete',
+            '-e', `ssh -i ${key} -o StrictHostKeyChecking=accept-new`,
+            `${sourceDir}/`,
+            `${host}:${releaseDir}/`
+        ], { timeout: 300000 });
+    } else {
+        console.log('[DEPLOY] rsync indisponivel; clonando a branch production diretamente do GitHub oficial.');
+        run('ssh', [
+            '-i', key,
+            '-o', 'StrictHostKeyChecking=accept-new',
+            host,
+            [
+                `git clone --single-branch --branch ${PRODUCTION_BRANCH} ${OFFICIAL_GITHUB_CLONE_URL} ${releaseDir}`,
+                `test "$(git -C ${releaseDir} rev-parse HEAD)" = "${commit}"`,
+                `rm -rf ${releaseDir}/.git`,
+                `printf '%s' '${metadataBase64}' | base64 -d > ${releaseDir}/.release-source.json`
+            ].join(' && ')
+        ], { timeout: 300000 });
+    }
+} finally {
+    if (temporaryRoot) {
+        const resolvedTemporary = path.resolve(temporaryRoot);
+        const resolvedSystemTemp = path.resolve(os.tmpdir());
+        if (resolvedTemporary.startsWith(`${resolvedSystemTemp}${path.sep}`)) {
+            fs.rmSync(resolvedTemporary, { recursive: true, force: true });
+        }
+    }
 }
 
 run('ssh', [
@@ -119,6 +215,8 @@ run('ssh', [
     '-o', 'StrictHostKeyChecking=accept-new',
     host,
     [
+        `test -f ${releaseDir}/.release-source.json`,
+        `chmod 600 ${releaseDir}/.release-source.json`,
         `cd ${releaseDir}`,
         'npm ci --omit=dev'
     ].join(' && ')
@@ -156,11 +254,16 @@ if (activate) {
         '-i', key,
         '-o', 'StrictHostKeyChecking=accept-new',
         host,
-        `ln -sfn ${releaseDir} ${baseDir}/current && ls -la ${baseDir}/current`
+        [
+            `previous="$(readlink -f ${baseDir}/current 2>/dev/null || true)"`,
+            `printf '%s\\n' "$previous" > ${releaseDir}/.previous-release`,
+            `ln -sfn ${releaseDir} ${baseDir}/current`,
+            `ls -la ${baseDir}/current`
+        ].join(' && ')
     ], { timeout: 60000 });
 }
 
-console.log(`[DEPLOY] Release enviado para ${host}:${releaseDir}`);
+console.log(`[DEPLOY] Release exata ${commit} enviada para ${host}:${releaseDir}`);
 console.log(activate
-    ? '[DEPLOY] Release ativado em /opt/vitalismen-automacao/current. Restart PM2 deve ser decisao explicita.'
-    : '[DEPLOY] Release nao ativado. Revise no VPS antes de apontar current/restart PM2.');
+    ? '[DEPLOY] Release ativada em current. Restart PM2 continua sendo uma decisao explicita.'
+    : '[DEPLOY] Release nao ativada. Revise no VPS antes de alterar current ou reiniciar o PM2.');
