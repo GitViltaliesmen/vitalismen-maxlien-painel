@@ -1904,7 +1904,7 @@ const profilePictureJidCandidates = ({ primaryId = '', linkedIds = [], phoneDigi
     return [...candidates].filter((jid) => jid && jid !== 'status@broadcast' && !jid.includes('@g.us'));
 };
 
-const resolveProfilePictureUrl = async ({ sock, contactState, primaryId, linkedIds, phoneDigits }) => {
+export const resolveProfilePictureUrl = async ({ sock, contactState, primaryId, linkedIds, phoneDigits, persistCache = true }) => {
     const cachedUrl = String(contactState?.metadata?.profilePictureUrl || '');
     const fetchedAt = contactState?.metadata?.profilePictureFetchedAt
         ? new Date(contactState.metadata.profilePictureFetchedAt).getTime()
@@ -1918,7 +1918,7 @@ const resolveProfilePictureUrl = async ({ sock, contactState, primaryId, linkedI
         try {
             const url = await sock.profilePictureUrl(jid, 'image');
             if (url) {
-                if (contactState?._id) {
+                if (persistCache && contactState?._id) {
                     await ContactState.updateOne(
                         { _id: contactState._id },
                         {
@@ -2056,7 +2056,14 @@ const ecuadorProductMediaForInfo = (productInfo = {}) => (
             : '')
 );
 
-const panelProductContextForChat = async ({ contactState = null, order = null, customerDraft = {}, lastMessage = null, phoneDigits = '' } = {}) => {
+export const panelProductContextForChat = async ({
+    contactState = null,
+    order = null,
+    customerDraft = {},
+    lastMessage = null,
+    phoneDigits = '',
+    persistChanges = true
+} = {}) => {
     const stateCountry = String(contactState?.countryCode || customerDraft.country || order?.country || '').toUpperCase();
     const isEcuador = order?.country === 'EC'
         || stateCountry === 'EC'
@@ -2141,18 +2148,20 @@ const panelProductContextForChat = async ({ contactState = null, order = null, c
                 ...panelDraft,
                 updatedAt: new Date().toISOString()
             };
-            await ContactState.updateOne(
-                { _id: contactState._id },
-                {
-                    $set: {
-                        assignedAgent: productInfo.key,
-                        'metadata.productKey': productInfo.key,
-                        'metadata.productName': productInfo.name,
-                        'metadata.productMedia': productMedia,
-                        'metadata.customerDraft': updatedDraft
+            if (persistChanges) {
+                await ContactState.updateOne(
+                    { _id: contactState._id },
+                    {
+                        $set: {
+                            assignedAgent: productInfo.key,
+                            'metadata.productKey': productInfo.key,
+                            'metadata.productName': productInfo.name,
+                            'metadata.productMedia': productMedia,
+                            'metadata.customerDraft': updatedDraft
+                        }
                     }
-                }
-            ).catch((error) => console.warn('[PANEL_PRODUCT_SYNC] falha ao alinhar ficha:', error.message));
+                ).catch((error) => console.warn('[PANEL_PRODUCT_SYNC] falha ao alinhar ficha:', error.message));
+            }
             return {
                 productKey: productInfo.key,
                 productName: productInfo.name,
@@ -3708,7 +3717,8 @@ router.get('/chats', async (req, res) => {
                     order,
                     customerDraft,
                     lastMessage,
-                    phoneDigits
+                    phoneDigits,
+                    persistChanges: false
                 });
                 const panelDraft = productContext.customerDraft || customerDraft;
                 return {
@@ -3917,14 +3927,16 @@ router.get('/chats', async (req, res) => {
                     contactState,
                     primaryId: c.id._serialized,
                     linkedIds,
-                    phoneDigits
+                    phoneDigits,
+                    persistCache: false
                 });
             const productContext = await panelProductContextForChat({
                 contactState,
                 order,
                 customerDraft,
                 lastMessage,
-                phoneDigits
+                phoneDigits,
+                persistChanges: false
             });
             const panelDraft = productContext.customerDraft || customerDraft;
             const contactEntryAt = stableContactEntryAt(contactState);

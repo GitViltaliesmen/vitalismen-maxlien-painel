@@ -1,0 +1,61 @@
+{
+  "freezeId": "whatsapp-chats-readonly-hardening-v16-20260816",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-16T19:54:42-03:00",
+  "country": "EC",
+  "parentFreezeId": "customer-current-context-v16-20260816",
+  "publicationStatus": "not_published",
+  "productionUnchanged": true,
+  "requiresWrittenAuthorizationToChange": true,
+  "supersededParentProtectedFiles": [
+    "package.json",
+    "src/index.js"
+  ],
+  "supersededAncestorProtectedFiles": [
+    {
+      "freezeId": "customer-data-intelligence-v15-20260815",
+      "relativePath": "src/routes/whatsapp.js",
+      "historicalHash": "83647d60603d1cefe8ff43f4407caea3bc333ed07080d46b5396a611b4b35c75",
+      "replacementHash": "536abb3e0a1e704bf5bec05bdb58ed98685deeaeaebbb7820547df8333dd0308",
+      "reason": "hardening autorizado para impedir persistência em GET /api/whatsapp/chats"
+    }
+  ],
+  "policy": {
+    "route": "GET /api/whatsapp/chats",
+    "readOnly": true,
+    "databaseWritesAllowed": false,
+    "responseContractChanged": false,
+    "markReadChanged": false,
+    "externalCallsAdded": false,
+    "productionUnchanged": true,
+    "fastReadOnly": true,
+    "enrichedReadOnly": true,
+    "productCalculationPreserved": true,
+    "persistenceRequiresExplicitOptIn": true,
+    "profileCachePersistenceOnGet": false,
+    "customerContextV16Changed": false
+  },
+  "preservation": {
+    "v15ManifestUnchanged": true,
+    "v16ManifestUnchanged": true,
+    "customerCurrentContextBackendUnchanged": true,
+    "customerCurrentContextPanelUnchanged": true,
+    "markReadFlowUnchanged": true,
+    "chatsReadRouteUnchanged": true,
+    "panelLastReadAtUnchanged": true,
+    "databaseUnchanged": true,
+    "vpsUnchanged": true,
+    "noPush": true,
+    "noDeploy": true
+  },
+  "protectedFiles": {
+    "package.json": "c22fbab02f66f5a5671b5357c973d3cb3c6406aeefd2163c9d6f1c1b79d93b4b",
+    "src/index.js": "c03a98b4eb97f3d0cdb3c5f47cc313d75eaebec5eda98d9ead1f30e60a67778b",
+    "src/routes/whatsapp.js": "536abb3e0a1e704bf5bec05bdb58ed98685deeaeaebbb7820547df8333dd0308",
+    "src/services/whatsappChatsReadonlyFreezeRuntimeGuardV16.js": "5526100034a06cafbca55aff6d652fe5fb991c2b5f235816bdd25c7ed55aa648",
+    "scripts/guard-whatsapp-chats-readonly-v16.mjs": "872f19b029bba2588397b765c2cac40eb316a5fb34e0a551ff30eaf42b5f08ff",
+    "tests/whatsapp-chats-readonly.test.mjs": "df1b0e623d8deb119d87272e6d002310d21748d880ff2b9129c6462f63f158c8",
+    "docs/WHATSAPP_CHATS_READONLY_HARDENING_FREEZE_V16_20260816.md": "f47ac416f78416902746107c71677b87078e4ae25c70b52d197d980f01aa0ad6",
+    "docs/freeze/customer-current-context-v16-20260816.json": "9686e05ab51060b5849e2a50c0d7fb2a49fad3eb8bccd094a09855db9b766c9a"
+  }
+}
