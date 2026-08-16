@@ -1,0 +1,33 @@
+{
+  "freezeId": "customer-current-context-v16-20260816",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-16T16:24:24-03:00",
+  "country": "EC",
+  "parentFreezeId": "customer-data-intelligence-v15-20260815",
+  "publicationStatus": "not_published",
+  "productionUnchanged": true,
+  "supersededParentProtectedFiles": [
+    "package.json",
+    "src/index.js"
+  ],
+  "policy": {
+    "route": "GET /api/customer-context/:phone",
+    "readOnly": true,
+    "applicationAllowed": false,
+    "databaseSchemaChanged": false,
+    "externalCallsAllowed": false
+  },
+  "protectedFiles": {
+    "package.json": "3219130495604ccb2686275f230146cd226c9c625aef46869db61658d4c2d69c",
+    "src/index.js": "ad42a35ef1c80c19603ef6468378d629648111653e49a88d5b84d985dd6fd6f7",
+    "src/routes/customerContext.js": "2c8e67544266505d81b2f1bcef8f97e1b8ee5099cb82999b62bc45bfdf425ddd",
+    "src/services/customerCurrentContextService.js": "0310e2a9e476e2e6251852fb9f6dc04947863b14fa4ec44f27b84251abf258c2",
+    "src/services/customerCurrentContextFreezeRuntimeGuardV16.js": "85d9706842fa50aac53659de28fbb7ad20c555e07d4fc55e7d03ca790a3b7b21",
+    "scripts/guard-customer-current-context-v16.mjs": "406464bc8433601681101b115e48004a05107c12900322e42f60460bc84e743f",
+    "tests/customer-current-context.test.mjs": "17d34fd813bd0106f916797167302f609f4bf308b30722d927751b2ad4285380",
+    "tests/customer-current-context-route.test.mjs": "8d09fc3460e1bb63eb9e4cb6d319bc2f3540b66172ebf7b4290ba1bfc15c2256",
+    "docs/ESPECIFICACAO_V16_CONTEXTO_ATUAL_CLIENTE.md": "fbd26570a2f1243939e8ebaaefa0f7e2ed67aa960df73e25579c960ccb69bb9b",
+    "docs/CUSTOMER_CURRENT_CONTEXT_FREEZE_V16_20260816.md": "6dfd46cb8e5363a438502ed757c5ffd5a93b3a133c78aa9fb61e79d2a82ba57d",
+    "docs/freeze/customer-data-intelligence-v15-20260815.json": "72a86cf6bfe5305894d12bd3ae313e8ed2eef4684f5a9de3242eb980d0220ac9"
+  }
+}

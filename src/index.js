@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/customerDataIntelligenceFreezeRuntimeGuardV15.js';
+import './services/customerCurrentContextFreezeRuntimeGuardV16.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -21,6 +21,7 @@ import zapiRoutes from './routes/zapi.js';
 import observationRoutes from './routes/observation.js';
 import integrationsRoutes from './routes/integrations.js';
 import funnelMetricsRoutes from './routes/funnelMetrics.js';
+import customerContextRoutes from './routes/customerContext.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
@@ -265,6 +266,7 @@ app.use('/api/zapi', zapiRoutes);
 app.use('/api/observation', observationRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/funnel-metrics', funnelMetricsRoutes);
+app.use('/api/customer-context', customerContextRoutes);
 
 // Observability endpoints
 app.use('/api/health', healthRoutes);
