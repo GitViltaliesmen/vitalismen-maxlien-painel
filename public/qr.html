@@ -8530,10 +8530,6 @@
         }
         const isPrivateLanHost = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(window.location.hostname);
         const isLocalDevPanel = ['127.0.0.1', 'localhost'].includes(window.location.hostname) || isPrivateLanHost;
-        const localDevLogin = {
-            email: 'teste@local.com',
-            password: 'Teste1234'
-        };
         const leadDashboardUrl = '/leads-window.html?country=EC';
         const leadDashboardExternalUrl = 'https://ec.maxlien.shop/leads-window.html?country=EC';
         const leadDashboardFrame = document.getElementById('leadDashboardFrame');

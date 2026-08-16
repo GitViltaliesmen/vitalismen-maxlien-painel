@@ -50,7 +50,7 @@ producao e deve ser preservada como legado antes de uma futura troca da branch p
 
 ## Bloqueios antes de promover a V15
 
-- Remover do `public/qr.html` a credencial local antiga embutida no JavaScript e validar o login local sem segredo no frontend.
+- A credencial local antiga foi removida do JavaScript; antes da promocao, rotacionar ou excluir no banco qualquer conta de teste equivalente.
 - Confirmar a URI do MongoDB no ambiente de destino e executar o health check sem `ECONNREFUSED 127.0.0.1:27017`.
 - Publicar `production`, `staging` e a tag de producao no GitHub oficial antes de tentar qualquer deploy novo.
 - Tornar `production` a branch padrao e protegida somente depois de preservar a `main` antiga como legado.

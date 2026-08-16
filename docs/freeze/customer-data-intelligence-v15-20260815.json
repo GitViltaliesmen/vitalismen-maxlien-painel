@@ -46,7 +46,7 @@
   "protectedFiles": {
     "package.json": "304f43aba88a0e1edd813db28693c7cccb689027c293b137d96049b5494f60e9",
     "src/index.js": "3daa6d1691419a37ca82fc7d93bf5fba9b73be08fa4a2408484bfeae01323177",
-    "public/qr.html": "a6163101ceb73bd6828c75f532ed3556a4c949006bad8db75c212438b0fbfcd6",
+    "public/qr.html": "627d1ace0203e88fbe102b45f7425ac815b857d30eaf168c3b469acc247e13bd",
     "public/panel-intelligence/agency-catalog.js": "303849a8cd799ae4a7eb6201222e69813f56abbb1b9817ea94c33132818a10d6",
     "public/panel-intelligence/conversation-data-extractor.js": "db81074a976f5828174ab47982c4cc5d974e3a8d34940026d0b64ec0110d073d",
     "public/panel-intelligence/customer-data-normalizer.js": "1f5a7f32e584bd3c437ddb2245f7efce2b7cfc972382cf0f6e9f3bab714927f1",
