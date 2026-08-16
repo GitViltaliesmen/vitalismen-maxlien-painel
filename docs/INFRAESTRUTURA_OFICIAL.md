@@ -16,7 +16,7 @@ Ele nao autoriza deploy, alteracao de producao ou operacao sobre clientes.
 - Git interno do VPS: `/opt/git/vitalismen-automacao.git`
 - Caminho da producao: `/opt/vitalismen-automacao/current`
 - Branch operacional consolidada: `codex/source-of-truth-hardening-20260816`
-- Baseline operacional preservado: `44504f2a503b4beef5ff4c5b0a0d8a34548c46e3`
+- HEAD operacional preservado: `36a6fb3c1421f888711aec938292abbd1e0b153b`
 
 O nome historico do repositorio menciona `painel`, mas a linha oficial contem backend,
 painel, extensao, integracoes Ecuador, documentacao e testes.
@@ -68,8 +68,12 @@ hardening da fonte de release
 c62be2cfcc6eea1c66cdde4347d2d1fa3ea54659
   |
   v
-baseline operacional preservado no GitHub
+hardening de seguranca do painel publico
 44504f2a503b4beef5ff4c5b0a0d8a34548c46e3
+  |
+  v
+bootstrap operacional atual preservado no GitHub
+36a6fb3c1421f888711aec938292abbd1e0b153b
 ```
 
 Interpretacao:
@@ -77,8 +81,9 @@ Interpretacao:
 - `dbe5f3a` e o codigo atualmente implantado no VPS;
 - `a19c271` congela a V15 e inclui V13 e V14 como ancestrais;
 - `44504f2` inclui V15 e os hardenings posteriores;
-- commits puramente documentais/operacionais podem aparecer depois de `44504f2`
-  sem significar que a producao mudou;
+- `36a6fb3` acrescenta somente o bootstrap documental/operacional e e o HEAD atual;
+- commits documentais/operacionais posteriores ao baseline funcional nao significam
+  que a producao mudou;
 - somente o HEAD lido em `/opt/vitalismen-automacao/current` determina a producao ativa.
 
 ## Remotes Git
@@ -156,7 +161,7 @@ risco critico. Um alerta deve ser investigado; nao contornar o script para conti
 Use somente esta raiz para o projeto Vitalismen Ecuador. Nao abrir, comparar, testar,
 copiar, empacotar, publicar ou usar como referencia:
 
-- projetos de Colombia;
+- projetos de outros paises ou operacoes externas;
 - Contabo ou Maxtourus;
 - automacoes de aquecimento separadas;
 - pastas `New project*`;

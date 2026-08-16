@@ -1,0 +1,18 @@
+CONGELADO TOTAL VITALISMEN - 2026-05-17 02:12
+
+Operador pediu: "congela tudo, todo nossos aqui".
+
+Congelado:
+- painel WhatsApp aprovado;
+- audio, imagem, video e ondas reais;
+- foto Ana Lopez antes das mensagens;
+- funil Vit Power sem contaminacao;
+- atendimento EC somente 593 valido;
+- Brasil somente teste, nunca Dropi;
+- envio Dropi Ecuador autorizado, sem duplicidade, com retry transitorio;
+- produto Dropi VIT POWERS 1000ML COMUNIDAD;
+- botoes Salvar ficha, Enviar pedido Dropi e Comprar depois no rodape;
+- memoria/historico do cliente.
+
+Regra: nao mexer nesses pontos sem pedido explicito.
+

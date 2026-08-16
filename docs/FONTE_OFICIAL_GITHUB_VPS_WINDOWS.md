@@ -15,7 +15,7 @@ contem backend, painel, WhatsApp, Dropi Ecuador, Meta, extensao e testes.
 
 - `production`: commit `dbe5f3af960cb0b48009ac81736b552d54e910b5`, igual a release ativa auditada no VPS.
 - V15 congelada: commit `a19c2711bc28ba9ddffc04b0c226c1e42a342071`, preservado no GitHub em `codex/customer-data-intelligence-v15-20260815` e ainda nao publicado em producao.
-- HEAD operacional atual: commit `44504f2a503b4beef5ff4c5b0a0d8a34548c46e3`, preservado no GitHub em `codex/source-of-truth-hardening-20260816`.
+- HEAD operacional atual: commit `36a6fb3c1421f888711aec938292abbd1e0b153b`, preservado no GitHub em `codex/source-of-truth-hardening-20260816`; ele acrescenta somente o bootstrap documental/operacional ao hardening `44504f2`.
 - `staging` local atual: commit `44504f2a503b4beef5ff4c5b0a0d8a34548c46e3`; a branch `staging` ainda nao foi publicada remotamente.
 - tag da producao auditada: `production-20260815-dbe5f3a`.
 - branch de preservacao V15: `codex/customer-data-intelligence-v15-20260815`.

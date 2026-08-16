@@ -68,11 +68,17 @@ const statusService = readFirst([
     '/opt/vitalismen-automacao/current/src/services/adminPanelStatusService.js'
 ], 'Servico de status do Painel Unificado');
 
-const maxlien = readFirst([
-    process.env.MAXLIEN_APP_PATH || '',
+const explicitMaxlienPath = String(process.env.MAXLIEN_APP_PATH || '').trim();
+const maxlienCandidates = [
+    explicitMaxlienPath,
     '.codex-tmp/status-align/maxlien/app.py',
-    '/opt/maxlien-mvp/app.py'
-].filter(Boolean), 'Painel Maxlien app.py');
+    ...(process.platform === 'win32' ? [] : ['/opt/maxlien-mvp/app.py'])
+].filter(Boolean);
+const maxlien = readFirst(
+    maxlienCandidates,
+    'Painel externo app.py (verificacao cross-project)',
+    { required: Boolean(explicitMaxlienPath) }
+);
 
 const qrOptions = orderedOptions(qr.body);
 assert(
@@ -85,12 +91,14 @@ assert(qr.body.includes('normalizePanelStatus'), 'Painel Integrado perdeu normal
 assert(qr.body.includes('orderStatusForApi'), 'Painel Integrado perdeu mapeamento seguro para API de pedidos.');
 assert(!/>Finalizar<\/button>/.test(qr.body), 'Painel Integrado voltou a mostrar botao Finalizar; use Arquivar para nao virar status.');
 
-assert(maxlien.body.includes(pythonList), `Lista STATUSES do Maxlien alterada. Esperado: ${pythonList}`);
-assert(maxlien.body.includes(confirmationText), 'Maxlien precisa confirmar antes de alterar dados/status.');
-assert(maxlien.body.includes('mirror_status_to_whatsapp_panel'), 'Maxlien perdeu espelhamento de status para o Painel Integrado.');
-assert(maxlien.body.includes('"whatsapp_panel_sync": mirror_result'), 'API /admin/api/status deve retornar resultado do espelhamento WhatsApp.');
-assert(!maxlien.body.includes('STATUS AUTOSAVE FINAL'), 'Maxlien voltou com autosave duplicado de status.');
-assert(!maxlien.body.includes('quick status colorize'), 'Maxlien voltou com listener duplicado de status.');
+if (maxlien.body) {
+    assert(maxlien.body.includes(pythonList), `Lista STATUSES do Maxlien alterada. Esperado: ${pythonList}`);
+    assert(maxlien.body.includes(confirmationText), 'Maxlien precisa confirmar antes de alterar dados/status.');
+    assert(maxlien.body.includes('mirror_status_to_whatsapp_panel'), 'Maxlien perdeu espelhamento de status para o Painel Integrado.');
+    assert(maxlien.body.includes('"whatsapp_panel_sync": mirror_result'), 'API /admin/api/status deve retornar resultado do espelhamento WhatsApp.');
+    assert(!maxlien.body.includes('STATUS AUTOSAVE FINAL'), 'Maxlien voltou com autosave duplicado de status.');
+    assert(!maxlien.body.includes('quick status colorize'), 'Maxlien voltou com listener duplicado de status.');
+}
 
 assert(whatsapp.body.includes('PANEL_STATUSES'), 'WhatsApp perdeu lista canonica PANEL_STATUSES.');
 assert(whatsapp.body.includes('internal/admin-status-sync'), 'WhatsApp perdeu rota local de espelhamento do Painel Unificado.');
@@ -112,4 +120,4 @@ if (failures.length) {
     process.exit(1);
 }
 
-console.log('[STATUS-PANELS-FREEZE] OK: status dos paineis congelados e protegidos contra alteracao acidental.');
+console.log('[STATUS-PANELS-FREEZE] OK: painel desta raiz protegido; painel externo validado somente quando disponivel ou informado explicitamente.');
