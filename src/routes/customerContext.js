@@ -7,6 +7,11 @@ import {
 
 const router = express.Router();
 
+export const customerContextNoStore = (_req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    return next();
+};
+
 export const createCustomerCurrentContextHandler = ({
     readContext = readCustomerCurrentContext
 } = {}) => async (req, res) => {
@@ -35,6 +40,7 @@ export const createCustomerCurrentContextHandler = ({
     }
 };
 
+router.use(customerContextNoStore);
 router.get('/:phone', authMiddleware, createCustomerCurrentContextHandler());
 
 export default router;

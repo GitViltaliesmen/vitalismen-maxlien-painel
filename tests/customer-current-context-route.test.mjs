@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import customerContextRoutes, { createCustomerCurrentContextHandler } from '../src/routes/customerContext.js';
+import customerContextRoutes, {
+    createCustomerCurrentContextHandler,
+    customerContextNoStore
+} from '../src/routes/customerContext.js';
 import { authMiddleware } from '../src/middleware/auth.js';
 import { CustomerContextInputError } from '../src/services/customerCurrentContextService.js';
 
@@ -19,7 +22,11 @@ const fakeResponse = () => ({
 });
 
 test('rota GET segue a convencao /api/customer-context/:phone e exige authMiddleware', () => {
-    const layer = customerContextRoutes.stack.find((item) => item.route?.path === '/:phone');
+    const noStoreLayerIndex = customerContextRoutes.stack.findIndex((item) => item.handle === customerContextNoStore);
+    const routeLayerIndex = customerContextRoutes.stack.findIndex((item) => item.route?.path === '/:phone');
+    const layer = customerContextRoutes.stack[routeLayerIndex];
+    assert.ok(noStoreLayerIndex >= 0, 'middleware no-store da rota V16 nao encontrado');
+    assert.ok(noStoreLayerIndex < routeLayerIndex, 'no-store precisa executar antes da autenticacao');
     assert.ok(layer, 'rota GET /:phone nao encontrada');
     assert.equal(layer.route.methods.get, true);
     assert.equal(Boolean(layer.route.methods.post || layer.route.methods.patch || layer.route.methods.delete), false);
@@ -30,22 +37,30 @@ test('rota GET segue a convencao /api/customer-context/:phone e exige authMiddle
     assert.match(indexSource, /app\.use\('\/api\/customer-context', customerContextRoutes\);/);
 });
 
-test('autenticacao existente rejeita acesso publico quando o painel exige Bearer', async () => {
+test('rota aplica no-store antes da autenticacao e rejeita sem consultar cliente', async () => {
     const previous = process.env.PANEL_AUTH_DISABLED;
     process.env.PANEL_AUTH_DISABLED = 'false';
     try {
         const request = {
+            params: { phone: '593991234567' },
             hostname: 'ec.maxlien.shop',
             headers: { host: 'ec.maxlien.shop' },
             ip: '203.0.113.20',
             socket: { remoteAddress: '203.0.113.20' }
         };
         const response = fakeResponse();
-        let nextCalled = false;
-        await authMiddleware(request, response, () => { nextCalled = true; });
-        assert.equal(nextCalled, false);
+        let customerReads = 0;
+        const handler = createCustomerCurrentContextHandler({
+            readContext: async () => {
+                customerReads += 1;
+                throw new Error('consulta de cliente nao deveria ocorrer sem autenticacao');
+            }
+        });
+        await customerContextNoStore(request, response, () => authMiddleware(request, response, () => handler(request, response)));
         assert.equal(response.statusCode, 401);
         assert.deepEqual(response.body, { error: 'No token provided' });
+        assert.equal(response.headers['Cache-Control'], 'no-store');
+        assert.equal(customerReads, 0);
     } finally {
         if (previous === undefined) delete process.env.PANEL_AUTH_DISABLED;
         else process.env.PANEL_AUTH_DISABLED = previous;
