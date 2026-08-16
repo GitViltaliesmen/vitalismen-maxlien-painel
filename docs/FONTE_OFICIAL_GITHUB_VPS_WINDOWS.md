@@ -14,12 +14,15 @@ contem backend, painel, WhatsApp, Dropi Ecuador, Meta, extensao e testes.
 ## Referencias consolidadas
 
 - `production`: commit `dbe5f3af960cb0b48009ac81736b552d54e910b5`, igual a release ativa auditada no VPS.
-- `staging`: commit `a19c2711bc28ba9ddffc04b0c226c1e42a342071`, V15 local testada e ainda nao publicada.
+- V15 congelada: commit `a19c2711bc28ba9ddffc04b0c226c1e42a342071`, preservado no GitHub em `codex/customer-data-intelligence-v15-20260815` e ainda nao publicado em producao.
+- HEAD operacional atual: commit `44504f2a503b4beef5ff4c5b0a0d8a34548c46e3`, preservado no GitHub em `codex/source-of-truth-hardening-20260816`.
+- `staging` local atual: commit `44504f2a503b4beef5ff4c5b0a0d8a34548c46e3`; a branch `staging` ainda nao foi publicada remotamente.
 - tag da producao auditada: `production-20260815-dbe5f3a`.
 - branch de preservacao V15: `codex/customer-data-intelligence-v15-20260815`.
 
-As referencias acima foram criadas primeiro no repositorio local. A publicacao no GitHub,
-a troca da branch padrao e qualquer deploy continuam exigindo autorizacao separada.
+As branches de preservacao V15 e do HEAD operacional foram publicadas no GitHub somente
+para eliminar risco de perda. `production`, `staging`, a troca da branch padrao e qualquer
+deploy continuam exigindo autorizacao separada.
 
 ## Regras obrigatorias
 
