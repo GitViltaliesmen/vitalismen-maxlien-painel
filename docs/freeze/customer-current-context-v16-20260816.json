@@ -8,26 +8,38 @@
   "productionUnchanged": true,
   "supersededParentProtectedFiles": [
     "package.json",
-    "src/index.js"
+    "src/index.js",
+    "public/qr.html"
   ],
   "policy": {
     "route": "GET /api/customer-context/:phone",
     "readOnly": true,
     "applicationAllowed": false,
     "databaseSchemaChanged": false,
-    "externalCallsAllowed": false
+    "externalCallsAllowed": false,
+    "schemaVersion": "v16.customer-current-context.readonly.1",
+    "interfaceReadOnly": true,
+    "interfaceMethodsAllowed": [
+      "GET"
+    ],
+    "interfaceApplicationAllowed": false
   },
   "protectedFiles": {
-    "package.json": "3219130495604ccb2686275f230146cd226c9c625aef46869db61658d4c2d69c",
+    "package.json": "f2eee5d16a13cedf96b04e8b4a39860131b6a7652428679a439eabcd1200b1c7",
     "src/index.js": "ad42a35ef1c80c19603ef6468378d629648111653e49a88d5b84d985dd6fd6f7",
     "src/routes/customerContext.js": "e9b4b4c1e279931ebe4e6aeed482fbb9e07679f56991aa0a82bab3c0d1cb6117",
     "src/services/customerCurrentContextService.js": "0310e2a9e476e2e6251852fb9f6dc04947863b14fa4ec44f27b84251abf258c2",
     "src/services/customerCurrentContextFreezeRuntimeGuardV16.js": "85d9706842fa50aac53659de28fbb7ad20c555e07d4fc55e7d03ca790a3b7b21",
-    "scripts/guard-customer-current-context-v16.mjs": "406464bc8433601681101b115e48004a05107c12900322e42f60460bc84e743f",
+    "scripts/guard-customer-current-context-v16.mjs": "de78cc06fede79370babdb6960888fd72b5a62a4aa72d7ad10b6fd8ce4944e3d",
+    "scripts/guard-customer-current-context-panel-v16.mjs": "aea282b28ee3b1d182c22710981ae7839b1f2cc2b8118bca237486c998de27ea",
     "tests/customer-current-context.test.mjs": "17d34fd813bd0106f916797167302f609f4bf308b30722d927751b2ad4285380",
     "tests/customer-current-context-route.test.mjs": "859dfac1e1dca65642b8583e3809abcff644465fac705addd497a5bd0586035c",
+    "tests/customer-current-context-panel.test.mjs": "f09bdb51ec698a7930415f69cda5a07c670ce73a416cfe02492d648e2b0c7381",
+    "public/qr.html": "32e84404358faf3f06f8cf1238c2b2cd44aa9d14e5a2be31a4b1de71895032f5",
+    "public/panel-intelligence/customer-current-context-v16.js": "0d74ccf717f1b8a9446ca56b76f48b04926011c3ac1577182a7cb97c8dfbfd52",
+    "public/panel-intelligence/customer-current-context-v16.css": "e67d4a2d86a19222a6b2c0f3b63a89a38cc39363b389ce2c609cfdc7a636b050",
     "docs/ESPECIFICACAO_V16_CONTEXTO_ATUAL_CLIENTE.md": "fbd26570a2f1243939e8ebaaefa0f7e2ed67aa960df73e25579c960ccb69bb9b",
-    "docs/CUSTOMER_CURRENT_CONTEXT_FREEZE_V16_20260816.md": "6dfd46cb8e5363a438502ed757c5ffd5a93b3a133c78aa9fb61e79d2a82ba57d",
+    "docs/CUSTOMER_CURRENT_CONTEXT_FREEZE_V16_20260816.md": "2ca100aee5c5a1f1cd228bed831fd6f6c0188d27f06a9254eb9e401189615b6a",
     "docs/freeze/customer-data-intelligence-v15-20260815.json": "72a86cf6bfe5305894d12bd3ae313e8ed2eef4684f5a9de3242eb980d0220ac9"
   }
 }

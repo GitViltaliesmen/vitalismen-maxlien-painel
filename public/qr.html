@@ -8,6 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Vitalismen Automacao</title>
+    <link rel="stylesheet" href="/panel-intelligence/customer-current-context-v16.css">
     <style>
         :root {
             color-scheme: light;
@@ -8063,6 +8064,7 @@
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
                         </div>
                     </form>
+                    <div id="customerCurrentContextV16"></div>
                 </div>
 
                 <div class="side-section customer-funnel-section hidden">
@@ -8521,6 +8523,7 @@
     <script src="/panel-intelligence/customer-form-intelligence.js"></script>
     <script src="/panel-intelligence/manual-funnel-policy.js"></script>
     <script src="/panel-intelligence/customer-order-policy.js"></script>
+    <script src="/panel-intelligence/customer-current-context-v16.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -9269,6 +9272,11 @@
             }
             return data;
         };
+
+        const customerCurrentContextPanel = window.VitalismenCustomerCurrentContextV16?.mount({
+            rootElement: el('customerCurrentContextV16'),
+            request: (path, options) => api(path, options)
+        }) || null;
 
         const setAuth = (token) => {
             state.token = token || '';
@@ -14181,6 +14189,7 @@
             markActiveChatInList(chat.id);
             el('sendBtn').disabled = false;
             renderSelectedDetails();
+            customerCurrentContextPanel?.selectPhone(currentChatPhone(), { force: true }).catch(() => null);
             renderCustomerProfile();
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
             if (markRead) markSelectedChatRead();
@@ -14274,6 +14283,7 @@
                 });
                 syncSalesQuickFunnelAvailability();
                 renderAudioTemplates();
+                customerCurrentContextPanel?.clear();
                 return;
             }
             const owner = chat.human?.mode === 'manual'

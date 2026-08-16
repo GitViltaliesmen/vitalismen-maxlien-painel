@@ -11,7 +11,7 @@
         "local:mongo": "./scripts/start-mongo-local.sh",
         "local:health": "./scripts/check-health-local.sh",
         "official:path": "node scripts/assert-official-root.mjs",
-        "senior:check": "node scripts/guard-customer-current-context-v16.mjs && node --test tests/customer-current-context.test.mjs tests/customer-current-context-route.test.mjs tests/ec-product-funnel-isolation-v13.test.mjs tests/ec-manual-product-dropi-hotfix.test.mjs tests/ecuador-only-operation.test.mjs && node scripts/senior-guard.mjs",
+        "senior:check": "node scripts/guard-customer-current-context-v16.mjs && node --test tests/customer-current-context.test.mjs tests/customer-current-context-route.test.mjs tests/customer-current-context-panel.test.mjs tests/ec-product-funnel-isolation-v13.test.mjs tests/ec-manual-product-dropi-hotfix.test.mjs tests/ecuador-only-operation.test.mjs && node scripts/senior-guard.mjs",
         "test:ecuador-only": "node --test tests/ecuador-only-operation.test.mjs",
         "audit:no-regression": "node scripts/audit-no-regression-meta-country.mjs",
         "audit:funil-context": "node scripts/audit-funil-context-rules.mjs",

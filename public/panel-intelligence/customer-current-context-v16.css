@@ -1,0 +1,279 @@
+.customer-current-context-v16 {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid #dbe5df;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fbfdfc 0%, #f5f9f7 100%);
+    color: #20332a;
+}
+
+.v16-context-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.v16-context-header > div {
+    display: grid;
+    gap: 3px;
+}
+
+.v16-context-header strong {
+    font-size: 13px;
+    letter-spacing: .02em;
+}
+
+.v16-context-eyebrow {
+    color: #16704a;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.v16-context-readonly {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border: 1px solid #bcd8ca;
+    border-radius: 999px;
+    background: #edf8f2;
+    color: #206344;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+}
+
+.v16-context-note,
+.v16-context-state-message {
+    margin: 8px 0 0;
+    color: #607068;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.v16-context-state-message {
+    padding: 9px 10px;
+    border-radius: 10px;
+    background: #eef4f1;
+}
+
+.customer-current-context-v16[data-v16-context-state="ambiguous"] .v16-context-state-message,
+.customer-current-context-v16[data-v16-context-state="incompatible"] .v16-context-state-message,
+.customer-current-context-v16[data-v16-context-state="error"] .v16-context-state-message {
+    border: 1px solid #efc7bd;
+    background: #fff2ef;
+    color: #873628;
+}
+
+.v16-context-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 11px;
+}
+
+.v16-context-block {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #dfe8e3;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.v16-context-block--conflicts {
+    grid-column: 1 / -1;
+}
+
+.v16-context-block h4 {
+    margin: 0 0 8px;
+    color: #4b5e54;
+    font-size: 10px;
+    letter-spacing: .08em;
+}
+
+.v16-context-block-body,
+.v16-context-field,
+.v16-context-candidates,
+.v16-context-history-item {
+    display: grid;
+    gap: 7px;
+}
+
+.v16-context-field + .v16-context-field,
+.v16-context-history-item + .v16-context-history-item {
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid #edf1ef;
+}
+
+.v16-context-field-head,
+.v16-context-conflict-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.v16-context-field-head > span:first-child,
+.v16-context-order-summary span,
+.v16-context-provenance dt,
+.v16-context-candidates > span {
+    color: #718078;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.v16-context-value {
+    overflow-wrap: anywhere;
+    color: #20332a;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.v16-context-confidence {
+    display: inline-flex;
+    width: fit-content;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: #edf1ef;
+    color: #526159;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .04em;
+}
+
+.v16-context-confidence--confirmado,
+.v16-context-confidence--alta-confianca {
+    background: #e5f6ed;
+    color: #17633f;
+}
+
+.v16-context-confidence--provavel {
+    background: #edf3fb;
+    color: #315f92;
+}
+
+.v16-context-confidence--ambiguo,
+.v16-context-confidence--conflito {
+    background: #ffebe6;
+    color: #9b3325;
+}
+
+.v16-context-confidence--desconhecido {
+    background: #f0f1f1;
+    color: #69716d;
+}
+
+.v16-context-provenance {
+    display: grid;
+    gap: 3px;
+    margin: 0;
+}
+
+.v16-context-provenance div {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 6px;
+}
+
+.v16-context-provenance dt,
+.v16-context-provenance dd {
+    margin: 0;
+    font-size: 9px;
+    line-height: 1.35;
+}
+
+.v16-context-provenance dd {
+    overflow-wrap: anywhere;
+    color: #526159;
+}
+
+.v16-context-candidates {
+    padding: 7px;
+    border-radius: 9px;
+    background: #f7f9f8;
+}
+
+.v16-context-candidate {
+    display: grid;
+    gap: 2px;
+}
+
+.v16-context-candidate strong,
+.v16-context-candidate small {
+    overflow-wrap: anywhere;
+    font-size: 9px;
+}
+
+.v16-context-candidate small {
+    color: #6c7771;
+}
+
+.v16-context-order-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.v16-context-order-summary > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.v16-context-order-summary strong {
+    overflow-wrap: anywhere;
+    font-size: 10px;
+}
+
+.v16-context-history-item {
+    padding: 8px;
+    border-radius: 9px;
+    background: #f8faf9;
+}
+
+.v16-context-conflict {
+    display: grid;
+    gap: 7px;
+    padding: 9px;
+    border: 1px solid #f1c5bb;
+    border-radius: 10px;
+    background: #fff5f2;
+}
+
+.v16-context-conflict + .v16-context-conflict {
+    margin-top: 8px;
+}
+
+.v16-context-conflict-head strong,
+.v16-context-conflict-head span {
+    color: #9b3325;
+    font-size: 9px;
+    letter-spacing: .05em;
+}
+
+.v16-context-conflict p,
+.v16-context-conflict > small {
+    margin: 0;
+    color: #74372d;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.v16-context-empty-line {
+    color: #7a8580;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+@media (max-width: 1180px) {
+    .v16-context-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .v16-context-block--conflicts {
+        grid-column: auto;
+    }
+}

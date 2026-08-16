@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 await import('../src/services/customerCurrentContextFreezeRuntimeGuardV16.js');
+await import('./guard-customer-current-context-panel-v16.mjs');
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -20,8 +21,13 @@ const requiredProtectedFiles = [
     'src/services/customerCurrentContextService.js',
     'src/services/customerCurrentContextFreezeRuntimeGuardV16.js',
     'scripts/guard-customer-current-context-v16.mjs',
+    'scripts/guard-customer-current-context-panel-v16.mjs',
     'tests/customer-current-context.test.mjs',
     'tests/customer-current-context-route.test.mjs',
+    'tests/customer-current-context-panel.test.mjs',
+    'public/qr.html',
+    'public/panel-intelligence/customer-current-context-v16.js',
+    'public/panel-intelligence/customer-current-context-v16.css',
     'docs/ESPECIFICACAO_V16_CONTEXTO_ATUAL_CLIENTE.md',
     'docs/CUSTOMER_CURRENT_CONTEXT_FREEZE_V16_20260816.md',
     'docs/freeze/customer-data-intelligence-v15-20260815.json'
@@ -36,7 +42,11 @@ assert.equal(manifest.policy.applicationAllowed, false);
 assert.equal(manifest.policy.databaseSchemaChanged, false);
 assert.equal(manifest.policy.externalCallsAllowed, false);
 assert.equal(manifest.policy.route, 'GET /api/customer-context/:phone');
-assert.deepEqual(manifest.supersededParentProtectedFiles, ['package.json', 'src/index.js']);
+assert.equal(manifest.policy.schemaVersion, 'v16.customer-current-context.readonly.1');
+assert.equal(manifest.policy.interfaceReadOnly, true);
+assert.deepEqual(manifest.policy.interfaceMethodsAllowed, ['GET']);
+assert.equal(manifest.policy.interfaceApplicationAllowed, false);
+assert.deepEqual(manifest.supersededParentProtectedFiles, ['package.json', 'src/index.js', 'public/qr.html']);
 assert.deepEqual(Object.keys(manifest.protectedFiles).sort(), requiredProtectedFiles.slice().sort());
 
 assert.match(service, /ContactStateModel[\s\S]*MessageModel[\s\S]*OrderModel[\s\S]*ShipmentModel[\s\S]*VslVisitModel/);
@@ -54,5 +64,6 @@ for (const scriptName of ['senior:check', 'guard:tex-ultra-approved', 'guard:ec-
 }
 assert.match(packageJson.scripts['senior:check'], /tests\/customer-current-context\.test\.mjs/);
 assert.match(packageJson.scripts['senior:check'], /tests\/customer-current-context-route\.test\.mjs/);
+assert.match(packageJson.scripts['senior:check'], /tests\/customer-current-context-panel\.test\.mjs/);
 
-console.log(`OK: ${manifest.freezeId} herda V15 e bloqueia escrita ou integracao externa na fatia backend.`);
+console.log(`OK: ${manifest.freezeId} herda V15 e bloqueia escrita ou integracao externa nas fatias backend e painel read-only.`);
