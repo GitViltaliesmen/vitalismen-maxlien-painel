@@ -16,7 +16,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 test('resposta de chamada fica desligada por padrao e aceita ativacao explicita', () => {
     assert.equal(callAutoReplyEnabled({}), false);
-    assert.equal(callAutoReplyEnabled({ WHATSAPP_AUTO_REJECT_CALLS: 'true' }), true);
+    assert.equal(callAutoReplyEnabled({ WHATSAPP_AUTO_REJECT_CALLS: 'true' }), false);
     assert.equal(callAutoReplyEnabled({
         WHATSAPP_AUTO_REJECT_CALLS: 'true',
         WHATSAPP_CALL_AUTO_REPLY_ENABLED: 'false'

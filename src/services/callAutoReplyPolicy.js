@@ -6,8 +6,7 @@ const dateValue = (value) => {
 
 export const callAutoReplyEnabled = (env = process.env) => {
     const explicit = String(env.WHATSAPP_CALL_AUTO_REPLY_ENABLED || '').trim().toLowerCase();
-    if (explicit) return explicit === 'true';
-    return String(env.WHATSAPP_AUTO_REJECT_CALLS || '').trim().toLowerCase() === 'true';
+    return explicit === 'true';
 };
 
 export const normalizeCallReplyPhoneKey = (value = '') => {
