@@ -500,6 +500,15 @@ Produto EC desconhecido nao recebe mais um produto real por default. A chave fic
 
 Esta camada nao muda preco, funil, cadencia, audio, midia, numero, pixel, scheduler, memoria, schema ou regra de autorizacao Dropi.
 
+## Microcamada V18 de confiabilidade do envio Dropi
+
+O freeze `docs/DROPI_AUTOMATIC_SUBMIT_RELIABILITY_FREEZE_V18_20260817.md` sucede a V17 e corrige duas causas comprovadas nos pedidos reais de Santa Elena e El Coca:
+
+- token antigo presente no navegador nao autentica uma pagina que continua exibindo o login do Dropi;
+- a cidade esperada `Santa Elena` nao aceita mais a opcao distinta `El Tambo Santa Elena` apenas porque o nome esperado aparece como sufixo.
+
+Se a sessao expirar ao abrir o produto, o navegador tenta novamente uma vez e, persistindo a tela de login, registra erro de autenticacao em vez de declarar falsamente que o produto nao existe. A autorizacao humana, deduplicacao, produto Tex Ultra, tabela oficial, transportadora e modo `CON RECAUDO` permanecem inalterados.
+
 Antes de mudar qualquer resposta:
 
 1. verificar se a mensagem pertence ao funil oficial, formulario CTA, pedido, Dropi ou pos-envio;

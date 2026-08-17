@@ -117,6 +117,16 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Escopo: autenticar dados operacionais sensiveis e impedir fallback silencioso de produto; sem preco, funil, envio, scheduler, schema ou migracao de banco.
 - A validacao de producao deve registrar aqui o novo release, tag, health e PM2 depois da ativacao.
 
+### Microcamada V18 — 2026-08-17
+
+- Evidencia real: Dropi aceitou manualmente Santa Elena/Santa Elena e Orellana/El Coca usando os dados persistidos pelo bot.
+- Causas confirmadas: sessao vencida mascarada por token antigo em El Coca; correspondencia por sufixo escolheu `El Tambo Santa Elena` no envio automatico de Santa Elena.
+- Arquivo oficial alterado: `src/services/droppiEcuadorBrowserService.js`.
+- Teste sem envio externo: `tests/dropi-automatic-submit-regression.test.mjs`.
+- Freeze/rollback: `docs/DROPI_AUTOMATIC_SUBMIT_RELIABILITY_FREEZE_V18_20260817.md`; o rollback funcional permanece no commit V17 `5b7f823670cad8a650af644d1f03f88c0708e85c` enquanto a V18 nao for ativada.
+- Preservado: produto, precos, funil, autorizacao manual, deduplicacao, scheduler, WhatsApp, Meta/CAPI, schema e memoria de pedidos.
+- A validacao de producao deve acrescentar release, tag, health, `pm_cwd` e `pm_exec_path` somente depois da ativacao real.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.
