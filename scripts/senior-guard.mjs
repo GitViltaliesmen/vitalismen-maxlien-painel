@@ -1,6 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { isOfficialGithubActionsWorkspace } from './senior-guard-workspace-policy.mjs';
 
 const root = process.cwd();
 const localOfficialPath = '/Users/greson/Documents/Vitalismen Automacao';
@@ -79,9 +80,14 @@ const ignoredContextFiles = new Set([
 const productScopedProtocolFiles = new Set([
     'src/services/nitrixProductProfile.js'
 ]);
+const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
+    env: process.env,
+    cwd: root
+});
 
 assert(
-    [localOfficialPath, windowsOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
+    officialGithubActionsWorkspace
+    || [localOfficialPath, windowsOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
         (allowed) => normalizePath(root).startsWith(normalizePath(allowed))
     ),
     `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${windowsOfficialPath} no Windows, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`

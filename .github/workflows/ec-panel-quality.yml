@@ -8,15 +8,22 @@ on:
       - public/panel-intelligence/**
       - src/index.js
       - src/routes/funnelMetrics.js
+      - src/routes/leads.js
       - src/routes/orders.js
+      - src/routes/shipments.js
+      - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
+      - scripts/senior-guard.mjs
+      - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
+      - tests/review-v17-v19-p1.test.mjs
+      - tests/senior-guard-github-actions.test.mjs
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - package.json
       - package-lock.json
@@ -31,15 +38,22 @@ on:
       - public/panel-intelligence/**
       - src/index.js
       - src/routes/funnelMetrics.js
+      - src/routes/leads.js
       - src/routes/orders.js
+      - src/routes/shipments.js
+      - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
+      - scripts/senior-guard.mjs
+      - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
+      - tests/review-v17-v19-p1.test.mjs
+      - tests/senior-guard-github-actions.test.mjs
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - package.json
       - package-lock.json
@@ -106,11 +120,26 @@ jobs:
         run: npm run test:funnel-metrics
 
       - name: Preserve product, country and approved freeze layers
+        shell: bash
+        env:
+          CI: 'true'
+          GITHUB_ACTIONS: 'true'
         run: |
+          test "$GITHUB_REPOSITORY" = "GitViltaliesmen/vitalismen-maxlien-painel"
+          test "$(realpath "$PWD")" = "$(realpath "$GITHUB_WORKSPACE")"
+          cp -- .env.example .env
+          cleanup() { rm -f -- .env; }
+          trap cleanup EXIT
           npm run guard:ec-product-micro-layer
           npm run guard:ec-tex-ultra
           npm run guard:freeze-lock
+          node --test tests/review-v17-v19-p1.test.mjs tests/senior-guard-github-actions.test.mjs
           npm run senior:check
+
+      - name: Confirm temporary environment cleanup
+        if: always()
+        shell: bash
+        run: test ! -e .env
 
       - name: Reject whitespace errors
         shell: bash
