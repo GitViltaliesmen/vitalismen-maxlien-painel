@@ -2,7 +2,7 @@ import express from 'express';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, isPanelAuthDisabled } from '../middleware/auth.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import {
@@ -13,7 +13,12 @@ import {
     assertNoActiveDuplicateOrder,
     getOrderDuplicateGuard
 } from '../services/orderDuplicateGuardService.js';
-import { ecuadorPackageLabel, ecuadorProductMetadata, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import {
+    ecuadorPackageLabel,
+    ecuadorProductMetadata,
+    resolveEcuadorProductInfo,
+    validateExplicitEcuadorProductSelection
+} from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -44,26 +49,60 @@ const orderHasValidPackage = (order) => normalizePackageQuantity(order?.package?
 
 const isEcuadorCountry = (country = '') => String(country || '').trim().toUpperCase() === 'EC';
 
-const productInfoFromOrderRequest = ({
-    country = 'EC',
+const productSelectionInput = ({
     productKey = '',
     productName = '',
     product = '',
     packageLabel = '',
-    notes = '',
-    tracking = {},
-    existingOrder = null
-} = {}) => {
-    if (!isEcuadorCountry(country)) return null;
-    return resolveEcuadorProductInfo(
-        productKey,
+    tracking = {}
+} = {}) => ({
+    productKey,
+    identifiers: [
+        tracking?.productKey,
+        tracking?.productName,
+        tracking?.contentName,
         productName,
         product,
-        packageLabel,
-        notes,
-        tracking,
-        existingOrder || {}
+        packageLabel
+    ]
+});
+
+const hasExplicitProductSelectionInput = (input = {}) => {
+    const selection = productSelectionInput(input);
+    return Boolean(
+        String(selection.productKey || '').trim()
+        || selection.identifiers.some((value) => String(value || '').trim())
     );
+};
+
+const strictEcuadorProductSelection = (input = {}) => (
+    validateExplicitEcuadorProductSelection(productSelectionInput(input))
+);
+
+const productInfoFromOrderRequest = ({ country = 'EC', ...input } = {}) => (
+    isEcuadorCountry(country) ? strictEcuadorProductSelection(input) : null
+);
+
+const sendExplicitProductError = (res, selection = {}) => res.status(400).json({
+    error: 'Produto EC explicito obrigatorio: tex_ultra_ec, nitrix_ec ou vit_power_ec.',
+    reason: selection.reason || 'missing_explicit_product'
+});
+
+const isLocalPanelAuthBypassRequest = (req = {}) => {
+    const host = String(req.hostname || req.headers?.host || '').split(':')[0];
+    const ip = String(req.ip || req.socket?.remoteAddress || '');
+    return ['localhost', '127.0.0.1', '::1'].includes(host)
+        || /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)
+        || ip === '127.0.0.1'
+        || ip === '::1'
+        || ip === '::ffff:127.0.0.1';
+};
+
+const optionalPanelAuth = (req, res, next) => {
+    const hasBearer = String(req.headers?.authorization || '').startsWith('Bearer ');
+    if (isLocalPanelAuthBypassRequest(req)) return authMiddleware(req, res, next);
+    if (!hasBearer || isPanelAuthDisabled(req)) return next();
+    return authMiddleware(req, res, next);
 };
 
 const productAwarePackageLabel = ({ country = 'EC', productInfo = null, quantity = 0, fallback = '' } = {}) => (
@@ -538,7 +577,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 // Called when user enters phone + full name (2 names)
 router.post('/draft', async (req, res) => {
     try {
-        const { country, phone, name, tracking } = req.body;
+        const {
+            country,
+            phone,
+            name,
+            tracking,
+            productKey,
+            productName,
+            product
+        } = req.body;
 
         if (!country || !phone || !name) {
             return res.status(400).json({ error: 'Country, phone and name are required' });
@@ -549,6 +596,18 @@ router.post('/draft', async (req, res) => {
         if (nameParts.length < 2) {
             return res.status(400).json({ error: 'Full name must have at least 2 names' });
         }
+
+        const requestedProductInput = { productKey, productName, product, tracking };
+        const hasRequestedProduct = hasExplicitProductSelectionInput(requestedProductInput);
+        const requestedProductSelection = hasRequestedProduct && isEcuadorCountry(country)
+            ? strictEcuadorProductSelection(requestedProductInput)
+            : null;
+        if (requestedProductSelection && !requestedProductSelection.ok) {
+            return sendExplicitProductError(res, requestedProductSelection);
+        }
+        const requestedProductMetadata = requestedProductSelection?.ok
+            ? productTrackingMetadata(requestedProductSelection.product)
+            : {};
 
         // Determine currency from country
         const currency = 'USD';
@@ -579,9 +638,21 @@ router.post('/draft', async (req, res) => {
                 existingDraft.tracking = {
                     ...(existingDraft.tracking || {}),
                     ...(tracking || {}),
+                    ...requestedProductMetadata,
                     ip: req.ip,
                     userAgent: req.get('user-agent') || ''
                 };
+            } else if (requestedProductSelection?.ok) {
+                existingDraft.tracking = {
+                    ...(existingDraft.tracking || {}),
+                    ...requestedProductMetadata
+                };
+            }
+            if (requestedProductSelection?.ok && normalizePackageQuantity(existingDraft.package?.quantity || existingDraft.package?.id)) {
+                existingDraft.package.label = ecuadorPackageLabel(
+                    requestedProductSelection.product,
+                    normalizePackageQuantity(existingDraft.package?.quantity || existingDraft.package?.id)
+                );
             }
 
             await existingDraft.save();
@@ -617,6 +688,7 @@ router.post('/draft', async (req, res) => {
             draftCreatedAt: new Date(),
             tracking: {
                 ...(tracking || {}),
+                ...requestedProductMetadata,
                 ip: req.ip,
                 userAgent: req.get('user-agent') || ''
             }
@@ -672,12 +744,37 @@ router.get('/draft/:id/tracking', async (req, res) => {
 // Called as user fills form fields
 router.patch('/draft/:id', async (req, res) => {
     try {
-        const { customer, packageId, packageLabel, total, tracking, purchaseIntent } = req.body;
+        const {
+            customer,
+            packageId,
+            packageLabel,
+            total,
+            tracking,
+            purchaseIntent,
+            productKey,
+            productName,
+            product
+        } = req.body;
 
         const order = await Order.findOne({ orderId: req.params.id, status: 'draft' });
 
         if (!order) {
             return res.status(404).json({ error: 'Draft not found' });
+        }
+
+        const requestedProductInput = { productKey, productName, product, packageLabel, tracking };
+        const hasRequestedProduct = Boolean(
+            String(productKey || '').trim()
+            || String(productName || '').trim()
+            || String(product || '').trim()
+            || String(tracking?.productKey || '').trim()
+            || String(tracking?.productName || '').trim()
+        );
+        const requestedProductSelection = hasRequestedProduct && isEcuadorCountry(order.country)
+            ? strictEcuadorProductSelection(requestedProductInput)
+            : null;
+        if (requestedProductSelection && !requestedProductSelection.ok) {
+            return sendExplicitProductError(res, requestedProductSelection);
         }
 
         // Update customer data if provided
@@ -714,6 +811,14 @@ router.patch('/draft/:id', async (req, res) => {
             if (!order.tracking.ip) order.tracking.ip = req.ip;
             if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
         }
+        if (requestedProductSelection?.ok) {
+            order.tracking = {
+                ...(order.tracking || {}),
+                ...productTrackingMetadata(requestedProductSelection.product)
+            };
+            const quantity = normalizePackageQuantity(order.package?.quantity || order.package?.id);
+            if (quantity) order.package.label = ecuadorPackageLabel(requestedProductSelection.product, quantity);
+        }
 
         if (purchaseIntent) {
             order.purchaseIntent = {
@@ -739,7 +844,13 @@ router.patch('/draft/:id', async (req, res) => {
 // Called on final form submit
 router.post('/draft/:id/submit', async (req, res) => {
     try {
-        const { purchaseIntent } = req.body || {};
+        const {
+            purchaseIntent,
+            productKey,
+            productName,
+            product,
+            tracking
+        } = req.body || {};
         const order = await Order.findOne({ orderId: req.params.id, status: 'draft' });
 
         if (!order) {
@@ -758,6 +869,22 @@ router.post('/draft/:id/submit', async (req, res) => {
 
         if (isBrazilTestOnly({ phone: order.customer?.phone, country: order.country })) {
             return sendBrazilTestOnlyError(res);
+        }
+
+        let submittedProduct = null;
+        if (isEcuadorCountry(order.country)) {
+            const requestedProductInput = { productKey, productName, product, tracking };
+            const storedProductInput = {
+                productKey: order.tracking?.productKey,
+                productName: order.tracking?.productName,
+                tracking: order.tracking || {},
+                packageLabel: order.package?.label || ''
+            };
+            const productSelection = hasExplicitProductSelectionInput(requestedProductInput)
+                ? strictEcuadorProductSelection(requestedProductInput)
+                : strictEcuadorProductSelection(storedProductInput);
+            if (!productSelection.ok) return sendExplicitProductError(res, productSelection);
+            submittedProduct = productSelection.product;
         }
 
         try {
@@ -791,6 +918,13 @@ router.post('/draft/:id/submit', async (req, res) => {
         order.tracking = order.tracking || {};
         if (!order.tracking.ip) order.tracking.ip = req.ip;
         if (!order.tracking.userAgent) order.tracking.userAgent = req.get('user-agent') || '';
+        if (submittedProduct) {
+            order.tracking = {
+                ...order.tracking,
+                ...productTrackingMetadata(submittedProduct)
+            };
+            order.package.label = ecuadorPackageLabel(submittedProduct, order.package.quantity || order.package.id);
+        }
 
         await order.save();
 
@@ -812,7 +946,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // ==========================================
 
 // POST /api/orders - Create order directly (public - from checkout)
-router.post('/', async (req, res) => {
+router.post('/', optionalPanelAuth, async (req, res) => {
     try {
         const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product, previousOrderId } = req.body;
 
@@ -833,6 +967,42 @@ router.post('/', async (req, res) => {
             return sendBrazilTestOnlyError(res);
         }
 
+        const requestedStatus = normalizeOrderStatus(status);
+        const allowedPublicInitialStatuses = new Set(['draft', 'pending']);
+        const allowedAuthenticatedInitialStatuses = new Set([
+            'draft',
+            'pending',
+            'confirmed',
+            'processing',
+            'shipped',
+            'delivered',
+            'cancelled',
+            'returned'
+        ]);
+        const allowedInitialStatuses = req.user
+            ? allowedAuthenticatedInitialStatuses
+            : allowedPublicInitialStatuses;
+        if (requestedStatus && !allowedInitialStatuses.has(requestedStatus)) {
+            return res.status(400).json({
+                error: 'public_order_status_not_allowed',
+                message: 'Pedido publico pode iniciar somente como draft ou pending.'
+            });
+        }
+        const initialStatus = requestedStatus || 'pending';
+
+        const productSelection = productInfoFromOrderRequest({
+            country,
+            productKey,
+            productName,
+            product,
+            packageLabel,
+            tracking
+        });
+        if (productSelection && !productSelection.ok) {
+            return sendExplicitProductError(res, productSelection);
+        }
+        const productInfo = productSelection?.product || null;
+
         try {
             await assertNoActiveDuplicateOrder({
                 phone: customer.phone,
@@ -851,23 +1021,6 @@ router.post('/', async (req, res) => {
 
         // Determine currency from country
         const orderCurrency = currency || 'USD';
-        const requestedStatus = normalizeOrderStatus(status);
-        const allowedInitialStatuses = new Set(['draft', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned']);
-        const initialStatus = allowedInitialStatuses.has(requestedStatus) ? requestedStatus : 'pending';
-        const productInfo = productInfoFromOrderRequest({
-            country,
-            productKey,
-            productName,
-            product,
-            packageLabel,
-            notes,
-            tracking
-        });
-        if (isEcuadorCountry(country) && !productInfo?.key) {
-            return res.status(400).json({
-                error: 'Produto EC explicito obrigatorio: tex_ultra_ec, nitrix_ec ou vit_power_ec.'
-            });
-        }
         const productTracking = productTrackingMetadata(productInfo);
 
         // Create order
@@ -908,7 +1061,7 @@ router.post('/', async (req, res) => {
 
         await order.save();
         let purchase = null;
-        if (initialStatus === 'confirmed') {
+        if (initialStatus === 'confirmed' && req.user) {
             purchase = await markPurchaseEventForOrder(order, req);
         }
 
@@ -951,16 +1104,24 @@ router.patch('/:id', authMiddleware, async (req, res) => {
 
         if (typeof notes === 'string') order.notes = notes;
         if (trackingNumber) order.trackingNumber = trackingNumber;
-        const productInfo = productInfoFromOrderRequest({
-            country: order.country,
-            productKey,
-            productName,
-            product,
-            packageLabel: packageData?.label,
-            notes,
-            tracking: order.tracking || {},
-            existingOrder: order
-        });
+        const hasRequestedProduct = Boolean(
+            String(productKey || '').trim()
+            || String(productName || '').trim()
+            || String(product || '').trim()
+        );
+        const productSelection = hasRequestedProduct && isEcuadorCountry(order.country)
+            ? strictEcuadorProductSelection({
+                productKey,
+                productName,
+                product,
+                packageLabel: packageData?.label
+            })
+            : null;
+        if (productSelection && !productSelection.ok) {
+            return sendExplicitProductError(res, productSelection);
+        }
+        const productInfo = productSelection?.product
+            || (isEcuadorCountry(order.country) ? resolveEcuadorProductInfo(order) : null);
         if (productInfo?.key) {
             order.tracking = {
                 ...(order.tracking || {}),

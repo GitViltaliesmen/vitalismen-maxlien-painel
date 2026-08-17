@@ -515,6 +515,12 @@ O freeze `docs/META_PURCHASE_PANEL_LINKAGE_FREEZE_V19_20260817.md` sucede a V18 
 
 Ausencia de vinculo passa a ser apresentada como `Meta sem vinculo`, pois nao permite concluir que a Meta esteja offline. O `event_id`, o bloqueio por `tracking.metaPurchaseSentAt`, o payload, o pixel, a confirmacao de pedido e todas as integracoes externas permanecem inalterados. A consulta e somente leitura e nao cria reenvio.
 
+## Microcamada V20 de integridade do pedido publico EC
+
+O freeze `docs/ORDER_PUBLIC_PRODUCT_INTEGRITY_FREEZE_V20_20260817.md` sucede a V19 no candidato ainda nao publicado. A criacao publica de pedido aceita apenas `draft` e `pending`; estados operacionais continuam restritos ao painel autenticado, e Meta Purchase na criacao direta exige esse contexto autenticado.
+
+Produto EC ausente, invalido ou conflitante e bloqueado antes de persistencia ou efeito externo. A captura inicial de rascunho sem produto permanece permitida, mas a conversao para `pending` exige produto explicito e valido. Precos, ofertas, funil, Dropi, Meta/CAPI, scheduler, WhatsApp, schema e memoria permanecem inalterados.
+
 Antes de mudar qualquer resposta:
 
 1. verificar se a mensagem pertence ao funil oficial, formulario CTA, pedido, Dropi ou pos-envio;

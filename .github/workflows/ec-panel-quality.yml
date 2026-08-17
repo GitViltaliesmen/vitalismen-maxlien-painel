@@ -13,18 +13,22 @@ on:
       - src/routes/shipments.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
+      - scripts/guard-order-public-product-integrity-v20.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
       - tests/review-v17-v19-p1.test.mjs
+      - tests/order-public-product-integrity-v20.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
+      - docs/freeze/order-public-product-integrity-v20-20260817.json
       - package.json
       - package-lock.json
       - .github/workflows/ec-panel-quality.yml
@@ -43,18 +47,22 @@ on:
       - src/routes/shipments.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
+      - scripts/guard-order-public-product-integrity-v20.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
       - tests/review-v17-v19-p1.test.mjs
+      - tests/order-public-product-integrity-v20.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
+      - docs/freeze/order-public-product-integrity-v20-20260817.json
       - package.json
       - package-lock.json
       - .github/workflows/ec-panel-quality.yml
@@ -106,9 +114,11 @@ jobs:
             src/routes/funnelMetrics.js \
             src/services/funnelMetricsService.js \
             scripts/guard-tex-ultra-approved-v5.mjs \
+            scripts/guard-order-public-product-integrity-v20.mjs \
             tests/funnel-metrics-route.test.mjs \
             tests/funnel-metrics-service.test.mjs \
-            tests/manual-quick-funnel.test.cjs
+            tests/manual-quick-funnel.test.cjs \
+            tests/order-public-product-integrity-v20.test.mjs
 
       - name: Validate customer intelligence
         run: npm run test:customer-form

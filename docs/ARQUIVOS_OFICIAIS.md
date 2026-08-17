@@ -137,6 +137,17 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Preservado: endpoint Meta/CAPI, `event_id`, `tracking.metaPurchaseSentAt`, payload, pixel, Dropi V18, produto, precos, funil, scheduler, WhatsApp, schema e memoria.
 - A validacao de producao deve acrescentar release, tag, health, `pm_cwd`, `pm_exec_path` e conferencia visual do final `6060` somente depois da ativacao real.
 
+### Microcamada V20 — 2026-08-17
+
+- Origem: revisao final local dos commits V17 `5b7f823`, V18 `7fc27b4` e V19 `fe7d4ca`, sem alteracao desses commits historicos.
+- Riscos corrigidos: estado operacional em criacao publica de pedido, resolucao permissiva de produto conflitante e rascunho promovido para `pending` sem produto EC explicito.
+- Arquivo funcional alterado: `src/routes/orders.js`.
+- Testes sem envio externo: `tests/review-v17-v19-p1.test.mjs`, `tests/order-public-product-integrity-v20.test.mjs` e a regressao preservada `tests/meta-purchase-panel-linkage.test.mjs`.
+- Freeze/guard: `docs/ORDER_PUBLIC_PRODUCT_INTEGRITY_FREEZE_V20_20260817.md`, `docs/freeze/order-public-product-integrity-v20-20260817.json` e `scripts/guard-order-public-product-integrity-v20.mjs`.
+- Estado: candidato validado, nao publicado; nenhuma branch remota, PR, producao, PM2 ou symlink foi alterado nesta preparacao.
+- Preservado: V17, Dropi V18, painel Meta V19, produto/precos, funil, scheduler, WhatsApp, schema, memoria e autorizacao humana Dropi.
+- A validacao de producao deve ser registrada somente depois de autorizacao separada e ativacao real.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

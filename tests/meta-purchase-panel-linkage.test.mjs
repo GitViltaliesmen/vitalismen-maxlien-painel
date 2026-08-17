@@ -29,15 +29,21 @@ test('painel combina flags sem perder vinculo existente e nao chama lead sem ped
     assert.doesNotMatch(panel, />Meta offline<\/span>/);
 });
 
-test('envio Meta confirmado continua protegido pelo event id e pelo sentAt', () => {
+test('envio Meta autenticado continua protegido e a criacao publica nao dispara Purchase', () => {
     const ordersRoute = read('src/routes/orders.js');
     const adminStatusService = read('src/services/adminPanelStatusService.js');
+    const publicStart = ordersRoute.indexOf("router.post('/', optionalPanelAuth");
+    const publicEnd = ordersRoute.indexOf("router.patch('/:id'", publicStart);
+    const publicRoute = ordersRoute.slice(publicStart, publicEnd);
 
     assert.match(ordersRoute, /if \(order\.tracking\.metaPurchaseSentAt\)/);
     assert.match(ordersRoute, /order\.tracking\.metaPurchaseEventId = result\.eventId/);
     assert.match(ordersRoute, /order\.tracking\.metaPurchaseSentAt = new Date\(\)/);
     assert.match(ordersRoute, /sendPurchaseEventForOrder/);
-    assert.match(ordersRoute, /if \(initialStatus === 'confirmed'\)/);
+    assert.match(publicRoute, /if \(initialStatus === 'confirmed' && req\.user\)/);
+    assert.match(ordersRoute, /router\.patch\('\/:id', authMiddleware/);
+    assert.match(ordersRoute, /if \(nextStatus === 'confirmed'\)/);
+    assert.match(ordersRoute, /router\.post\('\/:id\/confirm-payment', authMiddleware/);
     assert.match(adminStatusService, /export const recordOnlineAdminPurchaseLock/);
     assert.match(adminStatusService, /purchase_capi_lock/);
 });
