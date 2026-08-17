@@ -236,7 +236,8 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         return { ok: false, eventId, error: 'META Purchase missing valid quantity' };
     }
     const currency = order?.currency || 'USD';
-    const productMetadata = String(country || '').toUpperCase() === 'EC'
+    const isEcuador = String(country || '').toUpperCase() === 'EC';
+    const productMetadata = isEcuador
         ? ecuadorProductMetadata(resolveEcuadorProductInfo(order))
         : {
             productKey: 'vit_power_ec',
@@ -244,6 +245,9 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
             contentName: 'Vit Power Ecuador',
             contentIds: ['vit_power_ec']
         };
+    if (isEcuador && !productMetadata.productKey) {
+        return { ok: false, eventId, error: 'META Purchase missing explicit EC product' };
+    }
     const contentIds = Array.isArray(productMetadata.contentIds) && productMetadata.contentIds.length
         ? productMetadata.contentIds
         : [productMetadata.productKey || 'vit_power_ec'];

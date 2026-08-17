@@ -4,7 +4,12 @@ import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.j
 import { nextSellerForNewLead, sellerIsActive } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
-import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import {
+    ecuadorPackageLabel,
+    ecuadorProductMetadata,
+    resolveEcuadorProductInfo,
+    validateExplicitEcuadorProductSelection
+} from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -188,6 +193,7 @@ router.post('/', async (req, res) => {
             province: clean(req.body?.province || payloadCustomer.province)
         };
         const productInfo = resolveEcuadorProductInfo(
+            req.body?.productKey,
             req.body?.product,
             req.body?.productName,
             req.body?.content_name,
@@ -197,6 +203,27 @@ router.post('/', async (req, res) => {
             req.body?.utm_campaign,
             req.body?.utm_content
         );
+
+        const productSelection = validateExplicitEcuadorProductSelection({
+            productKey: req.body?.productKey,
+            identifiers: [
+                req.body?.product,
+                req.body?.productName,
+                req.body?.content_name,
+                req.body?.event_source_url,
+                req.body?.eventSourceUrl,
+                req.body?.sourceUrl,
+                req.body?.utm_campaign,
+                req.body?.utm_content
+            ]
+        });
+
+        if (!productSelection.ok || !productInfo.key) {
+            return res.status(400).json({
+                error: 'Produto EC explicito obrigatorio: tex_ultra_ec, nitrix_ec ou vit_power_ec.',
+                reason: productSelection.reason || 'missing_explicit_product'
+            });
+        }
 
         if (!lead.name || !lead.phone) {
             return res.status(400).json({ error: 'Incomplete lead data' });
@@ -234,7 +261,10 @@ router.post('/', async (req, res) => {
                 requestedPackageLabel: packageLabel(safeQuantity, productInfo),
                 readyConfirmedAt: new Date()
             },
-            tracking: trackingFromBody(req.body, req)
+            tracking: {
+                ...trackingFromBody(req.body, req),
+                ...ecuadorProductMetadata(productInfo)
+            }
         };
 
         const isMutableExisting = existing && ['draft', 'pending'].includes(String(existing.status || '').toLowerCase());

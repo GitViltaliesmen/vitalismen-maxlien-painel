@@ -8,6 +8,7 @@ import Message from '../models/Message.js';
 import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import {
     ECUADOR_PRODUCTS,
+    ECUADOR_UNKNOWN_PRODUCT,
     detectExplicitEcuadorProductKey,
     findEcuadorOfferByTotal,
     resolveEcuadorProductInfo
@@ -193,7 +194,7 @@ const isDropiPaymentRequiredError = (value) => (
 );
 
 const isTransientDropiBrowserError = (value) => (
-    /Target page|context.*closed|browser.*closed|ERR_CONNECTION|ERR_SOCKET|ERR_CERT|net::|Timeout|Execution context was destroyed|Navigation failed/i
+    /Target page|context.*closed|browser.*closed|ERR_CONNECTION|ERR_SOCKET|ERR_CERT|net::|Timeout|Execution context was destroyed|Navigation failed|session expired while opening product/i
         .test(String(value || ''))
 );
 
@@ -245,7 +246,7 @@ const tagDropiContactState = async ({ shipment, tag, payload = {} }) => {
     });
 };
 
-const autocompleteTextAccepts = (actual, expected) => {
+export const autocompleteTextAccepts = (actual, expected) => {
     const normalizedActual = normalizeAutocompleteText(actual);
     const normalizedExpected = normalizeAutocompleteText(expected);
     if (!normalizedActual || !normalizedExpected) return false;
@@ -256,8 +257,12 @@ const autocompleteTextAccepts = (actual, expected) => {
     const actualTokens = normalizedActual.split(/\s+/).filter(Boolean);
     const expectedIsSingleToken = expectedTokens.length === 1;
     if (normalizedActual === normalizedExpected) return true;
-    if (!expectedIsSingleToken && normalizedActual.includes(normalizedExpected)) return true;
-    if (normalizedExpected.includes(normalizedActual) && normalizedActual.length >= Math.min(normalizedExpected.length, 5)) return true;
+    if (!expectedIsSingleToken && normalizedActual.startsWith(`${normalizedExpected} `)) return true;
+    if (
+        actualTokens.length >= 2
+        && normalizedExpected.startsWith(`${normalizedActual} `)
+        && normalizedActual.length >= Math.min(normalizedExpected.length, 5)
+    ) return true;
 
     const looseActual = normalizeAutocompleteLoose(normalizedActual);
     const looseExpected = normalizeAutocompleteLoose(normalizedExpected);
@@ -265,8 +270,12 @@ const autocompleteTextAccepts = (actual, expected) => {
     const compactLooseExpected = normalizeAutocompleteCompact(looseExpected);
     if (looseActual === looseExpected) return true;
     if (compactLooseActual && compactLooseActual === compactLooseExpected) return true;
-    if (!expectedIsSingleToken && looseActual.includes(looseExpected)) return true;
-    if (looseExpected.includes(looseActual) && looseActual.length >= Math.min(looseExpected.length, 5)) return true;
+    if (!expectedIsSingleToken && looseActual.startsWith(`${looseExpected} `)) return true;
+    if (
+        actualTokens.length >= 2
+        && looseExpected.startsWith(`${looseActual} `)
+        && looseActual.length >= Math.min(looseExpected.length, 5)
+    ) return true;
     if (expectedIsSingleToken && actualTokens.length > 1) return false;
 
     const maxDistance = Math.max(looseActual.length, looseExpected.length) <= 8 ? 1 : 2;
@@ -302,6 +311,14 @@ const isLoginUrl = (url) => {
     }
 };
 
+export const classifyDropiPageAuthState = ({ url = '', loginPrompt = false, sessionToken = false } = {}) => {
+    const loginScreen = isLoginUrl(url) || Boolean(loginPrompt);
+    return {
+        loginScreen,
+        authenticated: !loginScreen && Boolean(sessionToken)
+    };
+};
+
 const hasTwoFactorPrompt = async (page) => {
     const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
     return /autenticaci[oó]n de dos factores|two[-\s]?factor|authenticator|otp|c[oó]digo de verificaci[oó]n|codigo de seguridad|six digits|seis d[ií]gitos/i.test(bodyText);
@@ -325,6 +342,12 @@ const hasDropiSessionToken = async (page) => page.evaluate(() => {
     ];
     return keys.some((key) => Boolean(window.localStorage?.getItem(key) || window.sessionStorage?.getItem(key)));
 }).catch(() => false);
+
+const inspectDropiPageAuthState = async (page) => classifyDropiPageAuthState({
+    url: page.url(),
+    loginPrompt: await hasLoginPrompt(page),
+    sessionToken: await hasDropiSessionToken(page)
+});
 
 const getPageExcerpt = async (page, limit = 500) => {
     const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
@@ -839,7 +862,8 @@ const splitAliases = (value = '') => String(value || '')
     .map((item) => item.trim())
     .filter(Boolean);
 
-const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) => {
+const dropiProductTargetForProduct = (productInfo = ECUADOR_UNKNOWN_PRODUCT) => {
+    const isVitPower = productInfo.key === ECUADOR_PRODUCTS.vitPower.key;
     const isNitrix = productInfo.key === ECUADOR_PRODUCTS.nitrix.key;
     const isTexUltra = productInfo.key === ECUADOR_PRODUCTS.texUltra.key;
     const nitrixProductUrl = String(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || '').trim();
@@ -848,12 +872,16 @@ const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) =
         ? (texUltraProductUrl ? privateProductUrl(texUltraProductUrl) : '')
         : isNitrix
             ? (nitrixProductUrl ? privateProductUrl(nitrixProductUrl) : '')
-            : PRIVATE_PRODUCT_URL;
+            : isVitPower
+                ? PRIVATE_PRODUCT_URL
+                : '';
     const productName = isTexUltra
         ? String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_NAME || productInfo.dropiName || '').trim()
         : isNitrix
             ? (process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || productInfo.dropiName)
-            : PRODUCT_NAME;
+            : isVitPower
+                ? PRODUCT_NAME
+                : '';
     const aliases = isTexUltra
         ? (splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES).length
             ? splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES)
@@ -862,7 +890,9 @@ const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) =
             ? (splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES).length
             ? splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES)
             : productInfo.dropiAliases)
-            : (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases);
+            : isVitPower
+                ? (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases)
+                : [];
     return {
         key: productInfo.key,
         name: productName,
@@ -905,6 +935,11 @@ const openCreateOrderPanel = async (page, { timeoutMs = PRODUCT_CARD_WAIT_MS, ta
 
     while (Date.now() < deadline) {
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
+
+        const authState = await inspectDropiPageAuthState(page);
+        if (authState.loginScreen) {
+            throw buildNotReadyError('session expired while opening product; login required');
+        }
 
         const productCards = page.locator('app-card-product');
         const count = await productCards.count();
@@ -1438,7 +1473,8 @@ export const performLogin = async (page) => {
     if (getUsableStorageStatePath()) {
         await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
-        if (!isLoginUrl(page.url()) && !(await hasLoginPrompt(page)) && await hasDropiSessionToken(page)) return;
+        const storedAuthState = await inspectDropiPageAuthState(page);
+        if (storedAuthState.authenticated) return;
     }
 
     const email = process.env[EMAIL_ENV];
@@ -1460,28 +1496,25 @@ export const performLogin = async (page) => {
     if (!clicked) {
         throw buildNotReadyError('login submit selector not found');
     }
-    await Promise.race([
-        page.waitForURL(/\/dashboard\//, { timeout: 45000 }).catch(() => null),
-        page.waitForFunction(() => Boolean(
-            window.localStorage?.getItem('DROPI_token')
-            || window.localStorage?.getItem('DROPI_SessionData')
-            || window.localStorage?.getItem('casUser')
-            || window.localStorage?.getItem('token')
-            || window.sessionStorage?.getItem('access_token')
-        ), null, { timeout: 45000 }).catch(() => null)
-    ]);
+    await page.waitForFunction(() => {
+        const loginPath = /\/(auth\/)?login\b/i.test(window.location.pathname);
+        const bodyText = String(document.body?.innerText || document.body?.textContent || '');
+        const loginPrompt = /usuario\s+contrase[nñ]a|iniciar sesi[oó]n|olvid[oó] su contrase[nñ]a|username\s+password|forgot password|remember me|log in/i.test(bodyText);
+        const twoFactorPrompt = /autenticaci[oó]n de dos factores|two[-\s]?factor|authenticator|otp|c[oó]digo de verificaci[oó]n|codigo de seguridad|six digits|seis d[ií]gitos/i.test(bodyText);
+        return twoFactorPrompt || (!loginPath && !loginPrompt);
+    }, null, { timeout: 45000 }).catch(() => null);
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
     if (await hasTwoFactorPrompt(page)) {
         await completeTwoFactorIfNeeded(page);
     }
-    if ((isLoginUrl(page.url()) || await hasLoginPrompt(page)) && !(await hasDropiSessionToken(page))) {
+    if ((await inspectDropiPageAuthState(page)).loginScreen) {
         throw buildNotReadyError(`login did not reach dashboard: ${await getPageExcerpt(page)}`);
     }
     if (!/\/dashboard\//i.test(page.url())) {
         await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
     }
-    if ((isLoginUrl(page.url()) || await hasLoginPrompt(page)) && !(await hasDropiSessionToken(page))) {
+    if ((await inspectDropiPageAuthState(page)).loginScreen) {
         throw buildNotReadyError(`login session still on login screen: ${await getPageExcerpt(page)}`);
     }
 };
@@ -1895,6 +1928,7 @@ const dropiRowProductMatchesShipment = (row, shipment) => {
     if (!row || !shipment) return true;
     const rowProduct = resolveEcuadorProductInfo(row.rawText || row.productName || '');
     const shipmentProduct = resolveEcuadorProductInfo(shipment.productName, shipment.notes, shipment.raw?.adminLead, shipment.raw?.latestDroppiPayload);
+    if (!rowProduct.key || !shipmentProduct.key) return false;
     return rowProduct.key === shipmentProduct.key;
 };
 

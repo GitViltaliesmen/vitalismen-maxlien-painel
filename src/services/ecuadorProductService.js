@@ -89,6 +89,18 @@ export const ECUADOR_PRODUCTS = {
     }
 };
 
+// Estado sentinela: dado ausente nunca pode escolher silenciosamente um produto real.
+// A chave vazia impede que esta entrada passe pelos guards de Meta/Dropi.
+export const ECUADOR_UNKNOWN_PRODUCT = Object.freeze({
+    key: '',
+    name: 'Produto EC nao configurado',
+    contentName: '',
+    contentIds: Object.freeze([]),
+    dropiName: '',
+    dropiUrl: '',
+    dropiAliases: Object.freeze([])
+});
+
 export const ECUADOR_PRICE_CATALOGS = Object.freeze({
     normal: Object.freeze({
         1: 39.99,
@@ -181,10 +193,66 @@ export const detectExplicitEcuadorProductKey = (...values) => {
     return '';
 };
 
+export const validateExplicitEcuadorProductSelection = ({
+    productKey = '',
+    identifiers = []
+} = {}) => {
+    const requestedKey = String(productKey || '').trim();
+    const requestedProduct = requestedKey ? getEcuadorProductInfoByKey(requestedKey) : null;
+    if (requestedKey && !requestedProduct) {
+        return {
+            ok: false,
+            reason: 'invalid_product_key',
+            product: ECUADOR_UNKNOWN_PRODUCT,
+            detectedKeys: []
+        };
+    }
+
+    const detectedKeys = new Set();
+    if (requestedProduct) detectedKeys.add(requestedProduct.key);
+    for (const identifier of identifiers) {
+        const text = normalizeText(identifier);
+        if (!text) continue;
+        if (text.includes('tex_ultra_ec') || hasTexUltraSignal(text)) {
+            detectedKeys.add(ECUADOR_PRODUCTS.texUltra.key);
+        }
+        if (text.includes('nitrix_ec') || text.includes('nitrix_oxide_ec') || hasNitrixSignal(text)) {
+            detectedKeys.add(ECUADOR_PRODUCTS.nitrix.key);
+        }
+        if (text.includes('vit_power_ec') || hasVitPowerSignal(text)) {
+            detectedKeys.add(ECUADOR_PRODUCTS.vitPower.key);
+        }
+    }
+
+    const keys = [...detectedKeys];
+    if (!keys.length) {
+        return {
+            ok: false,
+            reason: 'missing_explicit_product',
+            product: ECUADOR_UNKNOWN_PRODUCT,
+            detectedKeys: []
+        };
+    }
+    if (keys.length > 1) {
+        return {
+            ok: false,
+            reason: 'conflicting_product_identifiers',
+            product: ECUADOR_UNKNOWN_PRODUCT,
+            detectedKeys: keys
+        };
+    }
+    return {
+        ok: true,
+        reason: '',
+        product: getEcuadorProductInfoByKey(keys[0]) || ECUADOR_UNKNOWN_PRODUCT,
+        detectedKeys: keys
+    };
+};
+
 export const resolveEcuadorProductInfo = (...values) => {
     const productKey = detectExplicitEcuadorProductKey(...values);
-    if (!productKey) return ECUADOR_PRODUCTS.nitrix;
-    return getEcuadorProductInfoByKey(productKey) || ECUADOR_PRODUCTS.nitrix;
+    if (!productKey) return ECUADOR_UNKNOWN_PRODUCT;
+    return getEcuadorProductInfoByKey(productKey) || ECUADOR_UNKNOWN_PRODUCT;
 };
 
 export const selectEcuadorPanelProductInfo = ({
@@ -212,15 +280,23 @@ export const selectEcuadorPanelProductInfo = ({
 };
 
 export const ecuadorPackageLabel = (productInfo, quantity) => {
-    const product = productInfo?.name || ECUADOR_PRODUCTS.nitrix.name;
+    const product = productInfo?.name || ECUADOR_UNKNOWN_PRODUCT.name;
     const qty = Number(quantity || 0) || 0;
     if (!qty) return `${product} sem quantidade`;
     return `${product} ${qty} frasco${qty > 1 ? 's' : ''}`;
 };
 
-export const ecuadorProductMetadata = (productInfo) => ({
-    productKey: productInfo?.key || ECUADOR_PRODUCTS.nitrix.key,
-    productName: productInfo?.name || ECUADOR_PRODUCTS.nitrix.name,
-    contentName: productInfo?.contentName || ECUADOR_PRODUCTS.nitrix.contentName,
-    contentIds: productInfo?.contentIds || ECUADOR_PRODUCTS.nitrix.contentIds
-});
+export const ecuadorProductMetadata = (productInfo) => {
+    const explicitProduct = getEcuadorProductInfoByKey(productInfo?.key);
+    return explicitProduct ? {
+        productKey: explicitProduct.key,
+        productName: explicitProduct.name,
+        contentName: explicitProduct.contentName,
+        contentIds: explicitProduct.contentIds
+    } : {
+        productKey: '',
+        productName: '',
+        contentName: '',
+        contentIds: []
+    };
+};

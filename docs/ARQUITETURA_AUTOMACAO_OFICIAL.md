@@ -492,6 +492,35 @@ O VPS tem muitos backups e paginas antigas (`m-sandbox`, `m-treino`, `m2`). Eles
 
 ## Regra para avancar
 
+## Camada V17 de seguranca publica e integridade de produto
+
+O freeze `docs/PRODUCTION_SECURITY_PRODUCT_INTEGRITY_FREEZE_V17_20260817.md` sucede a reconciliacao operacional V16 sem alterar seus dois modos. Rotas que exibem QR, telefone/aparelho Z-API ou relatorios com texto/telefone de clientes exigem o Bearer do painel. A VSL, o resolvedor publico de link WhatsApp, os webhooks Z-API e o health somente leitura permanecem publicos.
+
+Produto EC desconhecido nao recebe mais um produto real por default. A chave fica vazia ate existir sinal estruturado de `tex_ultra_ec`, `nitrix_ec` ou `vit_power_ec`; neste estado, pedido/lead novo, Purchase Meta e alvo Dropi ficam bloqueados. A escolha manual por cliente e a origem separada da VSL permanecem preservadas.
+
+Esta camada nao muda preco, funil, cadencia, audio, midia, numero, pixel, scheduler, memoria, schema ou regra de autorizacao Dropi.
+
+## Microcamada V18 de confiabilidade do envio Dropi
+
+O freeze `docs/DROPI_AUTOMATIC_SUBMIT_RELIABILITY_FREEZE_V18_20260817.md` sucede a V17 e corrige duas causas comprovadas nos pedidos reais de Santa Elena e El Coca:
+
+- token antigo presente no navegador nao autentica uma pagina que continua exibindo o login do Dropi;
+- a cidade esperada `Santa Elena` nao aceita mais a opcao distinta `El Tambo Santa Elena` apenas porque o nome esperado aparece como sufixo.
+
+Se a sessao expirar ao abrir o produto, o navegador tenta novamente uma vez e, persistindo a tela de login, registra erro de autenticacao em vez de declarar falsamente que o produto nao existe. A autorizacao humana, deduplicacao, produto Tex Ultra, tabela oficial, transportadora e modo `CON RECAUDO` permanecem inalterados.
+
+## Microcamada V19 de vinculo do comprovante Meta Purchase
+
+O freeze `docs/META_PURCHASE_PANEL_LINKAGE_FREEZE_V19_20260817.md` sucede a V18 sem mudar o envio CAPI. O painel consulta `purchase_capi_lock` por `lead_id`, inclusive quando o mesmo telefone possui linhas historicas duplicadas, e exibe `Meta Purchase enviado` quando existe comprovante persistido com status `sent` ou `events_received > 0`.
+
+Ausencia de vinculo passa a ser apresentada como `Meta sem vinculo`, pois nao permite concluir que a Meta esteja offline. O `event_id`, o bloqueio por `tracking.metaPurchaseSentAt`, o payload, o pixel, a confirmacao de pedido e todas as integracoes externas permanecem inalterados. A consulta e somente leitura e nao cria reenvio.
+
+## Microcamada V20 de integridade do pedido publico EC
+
+O freeze `docs/ORDER_PUBLIC_PRODUCT_INTEGRITY_FREEZE_V20_20260817.md` sucede a V19 no candidato ainda nao publicado. A criacao publica de pedido aceita apenas `draft` e `pending`; estados operacionais continuam restritos ao painel autenticado, e Meta Purchase na criacao direta exige esse contexto autenticado.
+
+Produto EC ausente, invalido ou conflitante e bloqueado antes de persistencia ou efeito externo. A captura inicial de rascunho sem produto permanece permitida, mas a conversao para `pending` exige produto explicito e valido. Precos, ofertas, funil, Dropi, Meta/CAPI, scheduler, WhatsApp, schema e memoria permanecem inalterados.
+
 Antes de mudar qualquer resposta:
 
 1. verificar se a mensagem pertence ao funil oficial, formulario CTA, pedido, Dropi ou pos-envio;

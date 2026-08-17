@@ -108,6 +108,46 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 
 ## Como trabalhar com copia temporaria
 
+### Microcamada V17 — 2026-08-17
+
+- Fonte lida antes da alteracao: release `/opt/vitalismen-automacao/releases/20260817T022344Z_production-20260816-e0e2c54`, commit `e0e2c548be9aeecf076fc5b5ec2a1405f0e0e0e0`.
+- Fonte Git oficial confirmada: branch `production` e tag `production-20260816-e0e2c54` no GitHub oficial.
+- Arquivos oficiais da mudanca: `src/routes/whatsapp.js`, `src/routes/zapi.js`, `src/routes/observation.js`, `public/qr.html`, `src/services/ecuadorProductService.js`, `src/services/droppiEcuadorBrowserService.js`, `src/services/metaConversionsService.js`, `src/routes/orders.js` e `src/routes/leads.js`.
+- Freeze/rollback: `docs/PRODUCTION_SECURITY_PRODUCT_INTEGRITY_FREEZE_V17_20260817.md`.
+- Escopo: autenticar dados operacionais sensiveis e impedir fallback silencioso de produto; sem preco, funil, envio, scheduler, schema ou migracao de banco.
+- A validacao de producao deve registrar aqui o novo release, tag, health e PM2 depois da ativacao.
+
+### Microcamada V18 — 2026-08-17
+
+- Evidencia real: Dropi aceitou manualmente Santa Elena/Santa Elena e Orellana/El Coca usando os dados persistidos pelo bot.
+- Causas confirmadas: sessao vencida mascarada por token antigo em El Coca; correspondencia por sufixo escolheu `El Tambo Santa Elena` no envio automatico de Santa Elena.
+- Arquivo oficial alterado: `src/services/droppiEcuadorBrowserService.js`.
+- Teste sem envio externo: `tests/dropi-automatic-submit-regression.test.mjs`.
+- Freeze/rollback: `docs/DROPI_AUTOMATIC_SUBMIT_RELIABILITY_FREEZE_V18_20260817.md`; o rollback funcional permanece no commit V17 `5b7f823670cad8a650af644d1f03f88c0708e85c` enquanto a V18 nao for ativada.
+- Preservado: produto, precos, funil, autorizacao manual, deduplicacao, scheduler, WhatsApp, Meta/CAPI, schema e memoria de pedidos.
+- A validacao de producao deve acrescentar release, tag, health, `pm_cwd` e `pm_exec_path` somente depois da ativacao real.
+
+### Microcamada V19 — 2026-08-17
+
+- Evidencia real: pedido `EC-MSWR401B-KNHS`, final `6060`, aceito pela Meta com `events_received: 1`; leads duplicados `3382` e `3383` possuem o mesmo `event_id` persistido como `sent`.
+- Causa confirmada: a mesclagem por telefone vinculava o pedido operacional a somente uma linha e a API de flags ignorava `purchase_capi_lock`, produzindo o falso rotulo `Meta offline` na outra.
+- Arquivos oficiais alterados: `src/routes/shipments.js` e `public/leads-window.html`.
+- Teste sem envio externo: `tests/meta-purchase-panel-linkage.test.mjs`.
+- Freeze/rollback: `docs/META_PURCHASE_PANEL_LINKAGE_FREEZE_V19_20260817.md`; rollback funcional no commit V18 `7fc27b43f0aacc1777f89a11d46353f862beda26` enquanto a V19 nao for ativada.
+- Preservado: endpoint Meta/CAPI, `event_id`, `tracking.metaPurchaseSentAt`, payload, pixel, Dropi V18, produto, precos, funil, scheduler, WhatsApp, schema e memoria.
+- A validacao de producao deve acrescentar release, tag, health, `pm_cwd`, `pm_exec_path` e conferencia visual do final `6060` somente depois da ativacao real.
+
+### Microcamada V20 — 2026-08-17
+
+- Origem: revisao final local dos commits V17 `5b7f823`, V18 `7fc27b4` e V19 `fe7d4ca`, sem alteracao desses commits historicos.
+- Riscos corrigidos: estado operacional em criacao publica de pedido, resolucao permissiva de produto conflitante e rascunho promovido para `pending` sem produto EC explicito.
+- Arquivo funcional alterado: `src/routes/orders.js`.
+- Testes sem envio externo: `tests/review-v17-v19-p1.test.mjs`, `tests/order-public-product-integrity-v20.test.mjs` e a regressao preservada `tests/meta-purchase-panel-linkage.test.mjs`.
+- Freeze/guard: `docs/ORDER_PUBLIC_PRODUCT_INTEGRITY_FREEZE_V20_20260817.md`, `docs/freeze/order-public-product-integrity-v20-20260817.json` e `scripts/guard-order-public-product-integrity-v20.mjs`.
+- Estado: candidato validado, nao publicado; nenhuma branch remota, PR, producao, PM2 ou symlink foi alterado nesta preparacao.
+- Preservado: V17, Dropi V18, painel Meta V19, produto/precos, funil, scheduler, WhatsApp, schema, memoria e autorizacao humana Dropi.
+- A validacao de producao deve ser registrada somente depois de autorizacao separada e ativacao real.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

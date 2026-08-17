@@ -2122,7 +2122,7 @@ export const panelProductContextForChat = async ({
         productMedia
     };
 
-    const shouldPersist = Boolean(contactState?._id && (
+    const shouldPersist = Boolean(productInfo.key && contactState?._id && (
         activeOrderId
         || latestTextProductKey
         || draftProductKey
@@ -2227,6 +2227,9 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
     if (total <= 0) return { ok: false, skipped: true, reason: 'missing_positive_total' };
     const productInfo = await inferProductInfoForDraft({ draft, state });
+    if (!productInfo.key) {
+        return { ok: false, skipped: true, reason: 'missing_explicit_ec_product' };
+    }
 
     const query = sourceIsAdminOrder
         ? { previousOrderId: sourceOrderId }
@@ -2786,8 +2789,8 @@ const applyPanelActionCommand = async ({ phone, message, user, country = 'EC' })
     };
 };
 
-// GET /api/whatsapp/status - PUBLIC for QR Code
-router.get('/status', (req, res) => {
+// GET /api/whatsapp/status - painel autenticado; pode conter QR bruto da sessao.
+router.get('/status', authMiddleware, (req, res) => {
     const sessionId = req.query.sessionId ? String(req.query.sessionId) : null;
     if (sessionId) {
         return res.json(getStatus(sessionId));
@@ -4789,11 +4792,13 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 const allowedDraftProductKey = allowedDraftProductKeys.has(cleanDraft.productKey)
                     ? cleanDraft.productKey
                     : resolvedDraftProduct.key;
-                const draftProductInfo = ecuadorProductInfoForKey(allowedDraftProductKey);
-                cleanDraft.productKey = draftProductInfo.key;
-                cleanDraft.productName = cleanDraft.productName || draftProductInfo.name;
-                cleanDraft.product = cleanDraft.product || draftProductInfo.name;
-                cleanDraft.productMedia = cleanDraft.productMedia || ecuadorProductMediaForInfo(draftProductInfo);
+                if (allowedDraftProductKey) {
+                    const draftProductInfo = ecuadorProductInfoForKey(allowedDraftProductKey);
+                    cleanDraft.productKey = draftProductInfo.key;
+                    cleanDraft.productName = cleanDraft.productName || draftProductInfo.name;
+                    cleanDraft.product = cleanDraft.product || draftProductInfo.name;
+                    cleanDraft.productMedia = cleanDraft.productMedia || ecuadorProductMediaForInfo(draftProductInfo);
+                }
             }
             if (normalizedDraftPhoneDigits.length >= 9) {
                 state.phoneDigits = normalizedDraftPhoneDigits;
