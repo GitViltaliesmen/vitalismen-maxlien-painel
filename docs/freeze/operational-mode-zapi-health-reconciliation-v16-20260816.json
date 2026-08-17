@@ -1,0 +1,56 @@
+{
+  "freezeId": "operational-mode-zapi-health-reconciliation-v16-20260816",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-16T22:38:04-03:00",
+  "country": "EC",
+  "parentFreezeId": "whatsapp-chats-readonly-hardening-v16-20260816",
+  "publicationStatus": "not_published",
+  "productionUnchanged": true,
+  "requiresWrittenAuthorizationToChange": true,
+  "supersededParentProtectedFiles": [
+    "package.json",
+    "src/index.js"
+  ],
+  "supersededAncestorProtectedFiles": [],
+  "policy": {
+    "modeContractStrict": true,
+    "operationalModePreserved": true,
+    "observationModePreserved": true,
+    "isolatedFunnelFlagChangesAllowed": false,
+    "officialTransport": "zapi",
+    "baileysRequiredWhenZapiHealthy": false,
+    "healthReadOnly": true,
+    "databaseWritesAllowed": false,
+    "externalSendsAllowed": false,
+    "productionUnchanged": true
+  },
+  "preservation": {
+    "whatsappChatsReadonlyHardeningPreserved": true,
+    "customerCurrentContextV16Preserved": true,
+    "customerDataIntelligenceV15Preserved": true,
+    "markReadChanged": false,
+    "panelChanged": false,
+    "commercialFunnelChanged": false,
+    "databaseSchemaChanged": false,
+    "environmentChanged": false,
+    "credentialsChanged": false,
+    "productionUnchanged": true
+  },
+  "protectedFiles": {
+    "AGENTS.md": "8e3432d0bfdd242d19813fc6d605ffada6d916b2f31a185b1ef546c5bab341f8",
+    "package.json": "aa38ece47f19fe3c5483abace1ab4784e1ff661ca44f0b8e95ac99923d00045b",
+    "src/index.js": "3ed2ceece80ddd0947e9aa5bf33ff5d6376a83deae95fb5d4f7102ca479610a1",
+    "src/routes/health.js": "23a7470bff7dee0d1f2b2a15571bc3b87cc1c03153e33517b25bf1c60400c46c",
+    "src/services/operationalModeZapiHealthFreezeRuntimeGuardV16.js": "4535577898decc46a653cfb100c261f2b8a4d9968982633dff75389a885f7bbc",
+    "scripts/guard-operational-mode-zapi-health-v16.mjs": "aeaa234fb5d31fb7b281e210deb36dddf6a0f0dc1a1b0923f1b750c7ef397c93",
+    "scripts/senior-guard.mjs": "d13a66440900fea6689db21fb2cea45bd97d40474cb45bd99c31b4db60791db2",
+    "scripts/official-state-audit.mjs": "94c627f80aed03b99867bfb6f3c440161ec12a5781813411734b8a78accdc7d9",
+    "tests/operational-mode-zapi-health.test.mjs": "4ba394433d6e94d4e1d4f147a8324f59867ba8d8c1ff0d8798e88a4525913255",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "feecbeef38ca7302e153a95dee79efba79c390caf91b52b272cf11c214e45765",
+    "docs/OPERATIONAL_MODE_ZAPI_HEALTH_RECONCILIATION_FREEZE_V16_20260816.md": "95275ad152c3571def7dec060569cd6f24fec2aed0219036833a93fd982902cf",
+    "docs/freeze/whatsapp-chats-readonly-hardening-v16-20260816.json": "321caa871c888d6a669278efcc00817451d63789955fe56bed4fee346e266c83",
+    "FREEZE_EC_8637_ZAPI_PUBLIC_RESET_20260622.md": "e7e46355bef4a172721b49710e525b10337f9ed60ddcafbcd983e8933e368224",
+    "FREEZE_EC_VSL_ZAPI_AUTORESOLVER_20260623.md": "cc9a777bd3dc692511b03d2846552743023787648f8324ef1268b404930a316e",
+    "FREEZE_EC_MANUAL_SEND_1621_RECOVERY_20260623.md": "ccef2046837be30435c4dbc4400118124fe8548b5c2c25b69019db2fdf17e5d5"
+  }
+}

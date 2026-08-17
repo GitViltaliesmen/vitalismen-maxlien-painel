@@ -3,9 +3,42 @@ import { getAllStatuses, getStatus } from '../whatsapp/connection.js';
 import { getQueueSize } from '../whatsapp/queue.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
-import { getZapiDevice, getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
+import { getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
 
 const router = express.Router();
+
+export const zapiConnectedFromStatus = (status = {}) => {
+    const alreadyConnected = String(status?.error || '').toLowerCase().includes('already connected');
+    return Boolean(status?.connected || status?.smartphoneConnected || alreadyConnected);
+};
+
+export const evaluateOperationalWhatsappHealth = ({
+    zapiConfigured = false,
+    zapiConnected = false,
+    whatsappConnectEnabled = true,
+    connectedSessionCount = 0,
+    loggedOutSessionCount = 0,
+    pendingTasks = 0
+} = {}) => {
+    const officialTransport = zapiConfigured ? 'zapi' : 'baileys';
+    const zapiRequired = officialTransport === 'zapi';
+    const baileysRequired = officialTransport === 'baileys' && whatsappConnectEnabled;
+    const degradedReasons = [];
+
+    if (zapiRequired && !zapiConnected) degradedReasons.push('zapi_not_connected');
+    if (baileysRequired && connectedSessionCount < 1) degradedReasons.push('no_connected_whatsapp_session');
+    if (baileysRequired && loggedOutSessionCount > 0) degradedReasons.push('logged_out_session_present');
+    if (!zapiRequired && !whatsappConnectEnabled) degradedReasons.push('no_operational_whatsapp_transport');
+    if (pendingTasks > 50) degradedReasons.push('large_inbound_queue');
+
+    return {
+        officialTransport,
+        ready: zapiRequired ? zapiConnected : connectedSessionCount > 0,
+        zapiRequired,
+        baileysRequired,
+        degradedReasons
+    };
+};
 
 /**
  * Enterprise Healthcheck
@@ -22,24 +55,14 @@ router.get('/', async (req, res) => {
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
         const whatsappConnectEnabled = String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() !== 'false';
-        const zapiPrimary = !whatsappConnectEnabled;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
-            phone: '',
-            name: '',
             error: ''
         };
-        if (zapiPrimary && zapi.configured.enabled) {
+        if (zapi.configured.enabled) {
             try {
-                const [zapiStatus, zapiDevice] = await Promise.all([
-                    getZapiStatus(),
-                    getZapiDevice().catch(() => null)
-                ]);
-                const alreadyConnected = String(zapiStatus?.error || '').toLowerCase().includes('already connected');
-                zapi.connected = Boolean(zapiStatus?.connected || zapiStatus?.smartphoneConnected || alreadyConnected);
-                zapi.phone = String(zapiDevice?.phone || process.env.ZAPI_OPERATIONAL_PHONE || process.env.ZAPI_CONNECTED_PHONE || '');
-                zapi.name = String(zapiDevice?.name || zapiDevice?.sessionName || 'Z-API');
+                zapi.connected = zapiConnectedFromStatus(await getZapiStatus());
             } catch (error) {
                 zapi.error = error.message || 'zapi_status_failed';
             }
@@ -52,12 +75,15 @@ router.get('/', async (req, res) => {
             .sort({ createdAt: -1, timestamp: -1 })
             .select('createdAt sessionId provider type')
             .lean();
-        const degradedReasons = [];
-
-        if (whatsappConnectEnabled && !connectedSessions.length) degradedReasons.push('no_connected_whatsapp_session');
-        if (zapiPrimary && !zapi.connected) degradedReasons.push('zapi_not_connected');
-        if (whatsappConnectEnabled && loggedOutSessions.length) degradedReasons.push('logged_out_session_present');
-        if (pendingTasks > 50) degradedReasons.push('large_inbound_queue');
+        const transportHealth = evaluateOperationalWhatsappHealth({
+            zapiConfigured: zapi.configured.enabled,
+            zapiConnected: zapi.connected,
+            whatsappConnectEnabled,
+            connectedSessionCount: connectedSessions.length,
+            loggedOutSessionCount: loggedOutSessions.length,
+            pendingTasks
+        });
+        const degradedReasons = transportHealth.degradedReasons;
 
         const zapiSession = {
             sessionId: 'zapi',
@@ -71,7 +97,7 @@ router.get('/', async (req, res) => {
             status: session.status,
             provider: 'whatsapp_web'
         }));
-        const exposedWhatsapp = zapiPrimary
+        const exposedWhatsapp = transportHealth.officialTransport === 'zapi'
             ? {
                 state: zapi.connected ? 'connected' : 'disconnected',
                 ready: zapi.connected,
@@ -92,7 +118,7 @@ router.get('/', async (req, res) => {
         return res.json({
             status: degradedReasons.length ? 'degraded' : 'online',
             timestamp: new Date().toISOString(),
-            engine: zapiPrimary ? 'Z-API' : 'Baileys',
+            engine: transportHealth.officialTransport === 'zapi' ? 'Z-API' : 'Baileys',
             pid: process.pid,
             uptime_seconds: process.uptime(),
             runner: 'node src/index.js',
@@ -102,6 +128,23 @@ router.get('/', async (req, res) => {
                 configured: zapi.configured,
                 connected: zapi.connected,
                 error: zapi.error ? 'status_unavailable' : ''
+            },
+            transports: {
+                official: transportHealth.officialTransport,
+                ready: transportHealth.ready,
+                zapi: {
+                    required: transportHealth.zapiRequired,
+                    configured: zapi.configured.enabled,
+                    connected: zapi.connected
+                },
+                baileys: {
+                    required: transportHealth.baileysRequired,
+                    enabled: whatsappConnectEnabled,
+                    state: status,
+                    ready: connectedSessions.length > 0,
+                    connectedSessions: connectedSessions.length,
+                    loggedOutSessions: loggedOutSessions.length
+                }
             },
             bot_inbound_queue: {
                 pendingTasks: pendingTasks

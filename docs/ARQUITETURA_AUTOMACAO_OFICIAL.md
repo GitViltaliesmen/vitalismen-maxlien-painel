@@ -309,17 +309,62 @@ Estas partes foram removidas do caminho automatico do sistema para evitar confus
   - status: nao oficial para o funil Vit Power;
   - regra: `BOT_USE_APPROVED_AUDIO_ONLY=true`.
 
-## Flags oficiais atuais
+## Modos oficiais de automacao
+
+O contrato executavel de `scripts/senior-guard.mjs` e `scripts/official-state-audit.mjs` distingue exatamente dois modos. Nao existe modo intermediario e nenhuma flag acoplada pode ser alterada isoladamente.
+
+Flags comuns aos dois modos:
 
 ```text
 BOT_FORCE_AGENT=vit_power_ec
-WHATSAPP_AUTO_REPLY_ENABLED=true
-WHATSAPP_FUNNEL_ENABLED=false
-WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=true
+WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false
+PENDING_CHECKOUT_FOLLOWUP_ENABLED=false
+OBSERVER_OPENAI_ENABLED=true
 BOT_USE_APPROVED_AUDIO_ONLY=true
 ```
 
-`WHATSAPP_FUNNEL_ENABLED` fica falso para impedir retorno do fluxo antigo. Nao recriar flags de funil legado, recuperacao de rascunho ou envio automatico de entrega sem decisao explicita.
+### Modo observacao / nao operacional
+
+Quando `VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true` nao esta ativo, o guard exige:
+
+```text
+VIT_POWER_FUNNEL_ACTIVE=false
+WHATSAPP_AUTO_REPLY_ENABLED=false
+ZAPI_ROUTE_INBOUND_TO_BOT=false
+WHATSAPP_FUNNEL_ENABLED=false
+DISABLE_SCHEDULER=1
+SHIPMENT_STATUS_DISPATCH_ENABLED=false
+SHIPMENT_PICKUP_REMINDERS_ENABLED=false
+PICKUP_PROOF_SWEEP_ENABLED=false
+```
+
+Nesse modo, `WHATSAPP_FUNNEL_ENABLED=false` e a trava contra ativacao acidental do funil legado.
+
+### Modo operacional aprovado
+
+Quando `VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true`, o guard exige o conjunto completo:
+
+```text
+VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true
+VIT_POWER_FUNNEL_ACTIVE=true
+WHATSAPP_AUTO_REPLY_ENABLED=true
+ZAPI_ROUTE_INBOUND_TO_BOT=true
+WHATSAPP_FUNNEL_ENABLED=true
+DISABLE_SCHEDULER=0
+SHIPMENT_STATUS_DISPATCH_ENABLED=true
+SHIPMENT_PICKUP_REMINDERS_ENABLED=true
+PICKUP_PROOF_SWEEP_ENABLED=true
+```
+
+Nesse modo completo, `WHATSAPP_FUNNEL_ENABLED=true` nao e uma violacao. A flag nao recria nem autoriza `src/services/funnelService.js`, recuperacao de rascunho ou schedulers paralelos removidos. Nunca alterar apenas `WHATSAPP_FUNNEL_ENABLED`: a troca entre modos e coordenada, exige decisao operacional explicita e deve preservar toda a combinacao validada pelos guards.
+
+### Transporte e health operacional
+
+Na operacao EC atual, Z-API e o transporte oficial de entrada/saida publica conforme os freezes aprovados. Baileys pode coexistir habilitado, inclusive em `scanning`, sem substituir a Z-API por inferencia.
+
+O health deve consultar o status Z-API sempre que ela estiver configurada. Z-API conectada torna o transporte oficial pronto mesmo quando nao existe sessao Baileys autenticada; nesse caso, a ausencia Baileys nao pode gerar `no_connected_whatsapp_session`. Z-API desconectada deve manter o health degradado com `zapi_not_connected`. Se Z-API nao estiver configurada e Baileys for o transporte exigido pela configuracao, a ausencia de sessao Baileys continua gerando `no_connected_whatsapp_session`. Outros motivos de degradacao permanecem cumulativos.
+
+A consulta de health e somente leitura: nao envia mensagem, nao cria/autentica sessao, nao escaneia QR, nao escreve banco e nao altera credenciais.
 
 ## Comando senior
 
@@ -438,8 +483,10 @@ O VPS tem muitos backups e paginas antigas (`m-sandbox`, `m-treino`, `m2`). Eles
   - `VITALISMEN_OFFICIAL_AGENT=Ana Lopez`;
   - `VITALISMEN_OFFICIAL_DOCTOR=Dra. Maria Fernandes`;
   - `BOT_FORCE_AGENT=vit_power_ec`;
-  - `WHATSAPP_AUTO_REPLY_ENABLED=true`;
-  - `WHATSAPP_FUNNEL_ENABLED=false`;
+  - o conjunto integral do modo observacao ou do modo operacional aprovado descrito em `Modos oficiais de automacao`;
+  - no modo operacional aprovado, `VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true` e `WHATSAPP_FUNNEL_ENABLED=true` permanecem coordenados com todas as demais flags exigidas pelo guard;
+  - `WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false`;
+  - `PENDING_CHECKOUT_FOLLOWUP_ENABLED=false`;
   - `BOT_USE_APPROVED_AUDIO_ONLY=true`;
 - comando oficial no VPS: `cd /opt/vitalismen-automacao/current && npm run senior:check`.
 

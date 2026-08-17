@@ -67,6 +67,18 @@ Qualquer scheduler que envia ao cliente precisa ter:
 - busca por historico antes de reenviar;
 - guard automatizado cobrindo os pontos acima.
 
+## Modos operacionais oficiais e transporte WhatsApp EC
+
+O contrato versionado de `scripts/senior-guard.mjs` e a fonte de verdade para a combinacao de flags. Existem somente dois estados validos; combinacoes parciais sao proibidas.
+
+No modo observacao/nao operacional, identificado pela ausencia de `VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true`, as flags de funil, resposta automatica, roteamento inbound, scheduler e automacoes pos-venda protegidas pelo guard permanecem desligadas. Nesse modo, `WHATSAPP_FUNNEL_ENABLED=false` e uma trava anti-legado.
+
+No modo operacional aprovado, identificado por `VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true`, todas as flags acopladas devem ter exatamente os valores exigidos pelo senior guard. Nesse modo completo, `WHATSAPP_FUNNEL_ENABLED=true` nao e violacao e nao autoriza retorno de `src/services/funnelService.js` ou de qualquer fluxo removido.
+
+Nunca alterar apenas `WHATSAPP_FUNNEL_ENABLED`. A troca entre modos e uma mudanca operacional coordenada, exige decisao explicita e deve manter o conjunto inteiro validado pelo senior guard.
+
+Para a operacao EC atual, Z-API e o transporte oficial de entrada/saida publica. Baileys pode permanecer habilitado ou em `scanning` como camada coexistente, mas a falta de sessao Baileys pronta nao torna a operacao indisponivel quando a Z-API oficial estiver configurada e conectada. O health deve consultar a Z-API por mecanismo somente leitura, sem enviar mensagens, criar sessao ou modificar estado.
+
 ## Congelamento total atual
 
 O estado aprovado em 2026-05-17 esta congelado em:
