@@ -3,6 +3,8 @@ import {
     getZapiDevice,
     getZapiStatus,
     normalizeZapiDevice,
+    sendZapiAudio,
+    sendZapiText,
     zapiPublicStatus
 } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
@@ -11,10 +13,21 @@ import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { resolveCountryAudio } from '../services/audioTemplateService.js';
+import {
+    callAutoReplyEnabled,
+    finalizeCallAutoReply,
+    recordCallAutoReplyMessage,
+    reserveCallAutoReply,
+    zapiCallNotification
+} from '../services/callAutoReplySafetyService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
+const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
+const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
+    || 'Señor, por favor envíeme un mensaje por audio o texto.';
 
 const exposeError = (error) => ({
     ok: false,
@@ -1086,6 +1099,77 @@ router.get('/whatsapp-link', async (req, res) => {
     }
 });
 
+const handleZapiCallWebhook = async (payload = {}) => {
+    const event = zapiCallNotification(payload);
+    if (!event) return null;
+    const phone = zapiPhoneFromPayload(payload);
+    if (event.fromMe || !event.incoming) {
+        return { handled: true, sent: false, reason: 'outgoing_or_self_call_event', notification: event.notification };
+    }
+    if (!event.actionable) {
+        return { handled: true, sent: false, reason: 'non_actionable_call_state', notification: event.notification };
+    }
+    if (!isAllowedEcuadorInboundPayload(payload)) {
+        return { handled: true, sent: false, reason: 'outside_ec_operation', notification: event.notification };
+    }
+    if (!callAutoReplyEnabled()) {
+        return { handled: true, sent: false, reason: 'call_auto_reply_disabled', notification: event.notification };
+    }
+
+    const reservation = await reserveCallAutoReply({
+        phone,
+        provider: 'zapi',
+        callId: event.callId
+    });
+    if (!reservation.acquired || reservation.action === 'none') {
+        if (reservation.acquired) await finalizeCallAutoReply(reservation, { sent: false });
+        return {
+            handled: true,
+            sent: false,
+            reason: reservation.reason || 'contact_call_reply_busy',
+            notification: event.notification
+        };
+    }
+
+    if (reservation.action === 'audio') {
+        const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
+        if (!audioPath) {
+            await finalizeCallAutoReply(reservation, { sent: false, error: 'call_audio_not_found' });
+            return { handled: true, sent: false, reason: 'call_audio_not_found', notification: event.notification };
+        }
+        const response = await sendZapiAudio({ phone, filePath: audioPath, waveform: true });
+        const providerMessageId = String(response?.messageId || response?.zaapId || response?.id || '');
+        await recordCallAutoReplyMessage({
+            phone,
+            sessionId: 'zapi',
+            provider: 'zapi',
+            providerCallId: event.callId,
+            providerMessageId,
+            action: 'audio',
+            body: `[CALL_AUTO_REPLY_AUDIO] ${callAutoReplyAudioName}`,
+            type: 'audio',
+            mediaUrl: audioPath
+        });
+        await finalizeCallAutoReply(reservation, { sent: true, providerMessageId });
+        return { handled: true, sent: true, action: 'audio', notification: event.notification };
+    }
+
+    const response = await sendZapiText({ phone, message: callSecondReplyText });
+    const providerMessageId = String(response?.messageId || response?.zaapId || response?.id || '');
+    await recordCallAutoReplyMessage({
+        phone,
+        sessionId: 'zapi',
+        provider: 'zapi',
+        providerCallId: event.callId,
+        providerMessageId,
+        action: 'text',
+        body: `[CALL_AUTO_REPLY_SECOND_TEXT] ${callSecondReplyText}`,
+        type: 'chat'
+    });
+    await finalizeCallAutoReply(reservation, { sent: true, providerMessageId });
+    return { handled: true, sent: true, action: 'text', notification: event.notification };
+};
+
 export const classifyZapiGenericWebhookPayload = (payload = {}) => {
     const fromMe = zapiFromMeFromPayload(payload);
     const callbackType = firstString(payload.type, payload.event, payload.data?.type);
@@ -1130,6 +1214,11 @@ router.post('/webhook/delivery', async (req, res) => {
 router.post('/webhook', async (req, res) => {
     try {
         const payload = req.body || {};
+        const callResult = await handleZapiCallWebhook(payload);
+        if (callResult) {
+            console.log(`[ZAPI-WEBHOOK] chamada | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);
+            return res.json({ ok: true, result: callResult, routed: 'call' });
+        }
         const classification = classifyZapiGenericWebhookPayload(payload);
         if (classification.kind === 'delivery') {
             const result = await applyZapiDeliveryPayload(payload);
@@ -1174,6 +1263,11 @@ router.post('/webhook', async (req, res) => {
 router.post('/webhook/received', async (req, res) => {
     try {
         const payload = req.body || {};
+        const callResult = await handleZapiCallWebhook(payload);
+        if (callResult) {
+            console.log(`[ZAPI-WEBHOOK] chamada recebida | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);
+            return res.json({ ok: true, result: callResult, routed: 'call' });
+        }
         const providerMessageId = zapiMessageIdFromPayload(payload);
         const phone = zapiPhoneFromPayload(payload);
         const fromMe = zapiFromMeFromPayload(payload);
