@@ -8,6 +8,7 @@ import Message from '../models/Message.js';
 import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import {
     ECUADOR_PRODUCTS,
+    ECUADOR_UNKNOWN_PRODUCT,
     detectExplicitEcuadorProductKey,
     findEcuadorOfferByTotal,
     resolveEcuadorProductInfo
@@ -839,7 +840,8 @@ const splitAliases = (value = '') => String(value || '')
     .map((item) => item.trim())
     .filter(Boolean);
 
-const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) => {
+const dropiProductTargetForProduct = (productInfo = ECUADOR_UNKNOWN_PRODUCT) => {
+    const isVitPower = productInfo.key === ECUADOR_PRODUCTS.vitPower.key;
     const isNitrix = productInfo.key === ECUADOR_PRODUCTS.nitrix.key;
     const isTexUltra = productInfo.key === ECUADOR_PRODUCTS.texUltra.key;
     const nitrixProductUrl = String(process.env.DROPPI_EC_NITRIX_PRODUCT_URL || '').trim();
@@ -848,12 +850,16 @@ const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) =
         ? (texUltraProductUrl ? privateProductUrl(texUltraProductUrl) : '')
         : isNitrix
             ? (nitrixProductUrl ? privateProductUrl(nitrixProductUrl) : '')
-            : PRIVATE_PRODUCT_URL;
+            : isVitPower
+                ? PRIVATE_PRODUCT_URL
+                : '';
     const productName = isTexUltra
         ? String(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_NAME || productInfo.dropiName || '').trim()
         : isNitrix
             ? (process.env.DROPPI_EC_NITRIX_PRODUCT_NAME || productInfo.dropiName)
-            : PRODUCT_NAME;
+            : isVitPower
+                ? PRODUCT_NAME
+                : '';
     const aliases = isTexUltra
         ? (splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES).length
             ? splitAliases(process.env.DROPPI_EC_TEX_ULTRA_PRODUCT_ALIASES)
@@ -862,7 +868,9 @@ const dropiProductTargetForProduct = (productInfo = ECUADOR_PRODUCTS.vitPower) =
             ? (splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES).length
             ? splitAliases(process.env.DROPPI_EC_NITRIX_PRODUCT_ALIASES)
             : productInfo.dropiAliases)
-            : (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases);
+            : isVitPower
+                ? (PRODUCT_ALIASES.length ? PRODUCT_ALIASES : productInfo.dropiAliases)
+                : [];
     return {
         key: productInfo.key,
         name: productName,
@@ -1895,6 +1903,7 @@ const dropiRowProductMatchesShipment = (row, shipment) => {
     if (!row || !shipment) return true;
     const rowProduct = resolveEcuadorProductInfo(row.rawText || row.productName || '');
     const shipmentProduct = resolveEcuadorProductInfo(shipment.productName, shipment.notes, shipment.raw?.adminLead, shipment.raw?.latestDroppiPayload);
+    if (!rowProduct.key || !shipmentProduct.key) return false;
     return rowProduct.key === shipmentProduct.key;
 };
 

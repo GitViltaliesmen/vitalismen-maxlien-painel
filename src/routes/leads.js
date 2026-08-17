@@ -4,7 +4,7 @@ import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.j
 import { nextSellerForNewLead, sellerIsActive } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
-import { ecuadorPackageLabel, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
+import { ecuadorPackageLabel, ecuadorProductMetadata, resolveEcuadorProductInfo } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
 
@@ -198,6 +198,12 @@ router.post('/', async (req, res) => {
             req.body?.utm_content
         );
 
+        if (!productInfo.key) {
+            return res.status(400).json({
+                error: 'Produto EC explicito obrigatorio: tex_ultra_ec, nitrix_ec ou vit_power_ec.'
+            });
+        }
+
         if (!lead.name || !lead.phone) {
             return res.status(400).json({ error: 'Incomplete lead data' });
         }
@@ -234,7 +240,10 @@ router.post('/', async (req, res) => {
                 requestedPackageLabel: packageLabel(safeQuantity, productInfo),
                 readyConfirmedAt: new Date()
             },
-            tracking: trackingFromBody(req.body, req)
+            tracking: {
+                ...trackingFromBody(req.body, req),
+                ...ecuadorProductMetadata(productInfo)
+            }
         };
 
         const isMutableExisting = existing && ['draft', 'pending'].includes(String(existing.status || '').toLowerCase());

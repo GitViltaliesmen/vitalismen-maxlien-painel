@@ -108,6 +108,15 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 
 ## Como trabalhar com copia temporaria
 
+### Microcamada V17 — 2026-08-17
+
+- Fonte lida antes da alteracao: release `/opt/vitalismen-automacao/releases/20260817T022344Z_production-20260816-e0e2c54`, commit `e0e2c548be9aeecf076fc5b5ec2a1405f0e0e0e0`.
+- Fonte Git oficial confirmada: branch `production` e tag `production-20260816-e0e2c54` no GitHub oficial.
+- Arquivos oficiais da mudanca: `src/routes/whatsapp.js`, `src/routes/zapi.js`, `src/routes/observation.js`, `public/qr.html`, `src/services/ecuadorProductService.js`, `src/services/droppiEcuadorBrowserService.js`, `src/services/metaConversionsService.js`, `src/routes/orders.js` e `src/routes/leads.js`.
+- Freeze/rollback: `docs/PRODUCTION_SECURITY_PRODUCT_INTEGRITY_FREEZE_V17_20260817.md`.
+- Escopo: autenticar dados operacionais sensiveis e impedir fallback silencioso de produto; sem preco, funil, envio, scheduler, schema ou migracao de banco.
+- A validacao de producao deve registrar aqui o novo release, tag, health e PM2 depois da ativacao.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

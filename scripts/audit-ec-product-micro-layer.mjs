@@ -37,7 +37,7 @@ assertNotMatches('public/qr.html', /label:\s*chat\.packageLabel\s*\|\|\s*`Vit Po
 
 assertIncludes('src/services/ecuadorProductService.js', 'ECUADOR_PRODUCTS', 'Servico centraliza produtos EC');
 assertIncludes('src/services/ecuadorProductService.js', 'hasVitPowerSignal', 'Servico reconhece Vit Power explicitamente');
-assertIncludes('src/services/ecuadorProductService.js', 'return ECUADOR_PRODUCTS.nitrix;', 'Servico usa Nitrix como default');
+assertIncludes('src/services/ecuadorProductService.js', 'return ECUADOR_UNKNOWN_PRODUCT;', 'Servico bloqueia fallback silencioso para produto real');
 assertIncludes('src/routes/orders.js', 'productInfoFromOrderRequest', 'Orders resolve produto do pedido');
 assertIncludes('src/routes/orders.js', 'productAwarePackageLabel', 'Orders monta label por produto');
 assertIncludes('src/routes/orders.js', 'productTrackingMetadata', 'Orders salva tracking de produto');
@@ -58,7 +58,7 @@ const {
     buildPurchaseEventPayloadForOrder
 } = await import('../src/services/metaConversionsService.js');
 
-assert(resolveEcuadorProductInfo({ package: { label: 'Package 3' } }).key === ECUADOR_PRODUCTS.nitrix.key, 'Resolver default EC e Nitrix');
+assert(resolveEcuadorProductInfo({ package: { label: 'Package 3' } }).key === '', 'Resolver EC sem produto nao escolhe produto real');
 assert(resolveEcuadorProductInfo({ productKey: 'nitrix_ec' }).key === ECUADOR_PRODUCTS.nitrix.key, 'Resolver aceita productKey Nitrix');
 assert(resolveEcuadorProductInfo({ productKey: 'vit_power_ec' }).key === ECUADOR_PRODUCTS.vitPower.key, 'Resolver aceita productKey Vit Power');
 assert(resolveEcuadorProductInfo({ productName: 'Vit Power Ecuador' }).key === ECUADOR_PRODUCTS.vitPower.key, 'Resolver aceita pedido explicito Vit Power');

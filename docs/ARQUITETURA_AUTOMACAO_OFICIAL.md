@@ -492,6 +492,14 @@ O VPS tem muitos backups e paginas antigas (`m-sandbox`, `m-treino`, `m2`). Eles
 
 ## Regra para avancar
 
+## Camada V17 de seguranca publica e integridade de produto
+
+O freeze `docs/PRODUCTION_SECURITY_PRODUCT_INTEGRITY_FREEZE_V17_20260817.md` sucede a reconciliacao operacional V16 sem alterar seus dois modos. Rotas que exibem QR, telefone/aparelho Z-API ou relatorios com texto/telefone de clientes exigem o Bearer do painel. A VSL, o resolvedor publico de link WhatsApp, os webhooks Z-API e o health somente leitura permanecem publicos.
+
+Produto EC desconhecido nao recebe mais um produto real por default. A chave fica vazia ate existir sinal estruturado de `tex_ultra_ec`, `nitrix_ec` ou `vit_power_ec`; neste estado, pedido/lead novo, Purchase Meta e alvo Dropi ficam bloqueados. A escolha manual por cliente e a origem separada da VSL permanecem preservadas.
+
+Esta camada nao muda preco, funil, cadencia, audio, midia, numero, pixel, scheduler, memoria, schema ou regra de autorizacao Dropi.
+
 Antes de mudar qualquer resposta:
 
 1. verificar se a mensagem pertence ao funil oficial, formulario CTA, pedido, Dropi ou pos-envio;

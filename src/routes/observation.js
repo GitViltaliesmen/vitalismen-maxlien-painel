@@ -15,8 +15,13 @@ import {
     readSalesHoursSpreadsheet,
     scanSalesHoursAnalytics
 } from '../services/salesHoursAnalyticsService.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Relatorios do observador incluem telefone, texto de cliente e resposta do bot.
+// Mantemos a analise somente leitura, mas nunca publica na internet sem login.
+router.use(authMiddleware);
 
 const countryFromReq = (req) => String(req.query.country || req.body?.country || 'EC').toUpperCase();
 const limitFromReq = (req, fallback = 80) => {

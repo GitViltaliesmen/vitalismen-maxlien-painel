@@ -9422,10 +9422,15 @@
 
         async function fetchPanelJson(path, options = {}) {
             const { label = path, ...fetchOptions } = options;
+            const headers = {
+                ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+                ...(fetchOptions.headers || {})
+            };
             const response = await fetch(path, {
                 cache: 'no-store',
                 credentials: 'same-origin',
-                ...fetchOptions
+                ...fetchOptions,
+                headers
             });
             const contentType = response.headers.get('content-type') || '';
             const text = await response.text();

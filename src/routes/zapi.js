@@ -10,6 +10,7 @@ import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
+import { authMiddleware } from '../middleware/auth.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -1003,14 +1004,14 @@ const applyZapiDeliveryPayload = async (payload = {}) => {
     return { matched: false, phone, providerMessageId, providerZaapId, ...normalized };
 };
 
-router.get('/config', (_req, res) => {
+router.get('/config', authMiddleware, (_req, res) => {
     res.json({
         ok: true,
         zapi: zapiPublicStatus()
     });
 });
 
-router.get('/status', async (_req, res) => {
+router.get('/status', authMiddleware, async (_req, res) => {
     try {
         const status = await getZapiStatus();
         const connected = connectedFromStatus(status);
@@ -1037,7 +1038,7 @@ router.get('/status', async (_req, res) => {
     }
 });
 
-router.get('/device', async (_req, res) => {
+router.get('/device', authMiddleware, async (_req, res) => {
     try {
         const device = normalizeZapiDevice(await getZapiDevice());
         res.json({

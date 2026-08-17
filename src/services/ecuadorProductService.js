@@ -89,6 +89,18 @@ export const ECUADOR_PRODUCTS = {
     }
 };
 
+// Estado sentinela: dado ausente nunca pode escolher silenciosamente um produto real.
+// A chave vazia impede que esta entrada passe pelos guards de Meta/Dropi.
+export const ECUADOR_UNKNOWN_PRODUCT = Object.freeze({
+    key: '',
+    name: 'Produto EC nao configurado',
+    contentName: '',
+    contentIds: Object.freeze([]),
+    dropiName: '',
+    dropiUrl: '',
+    dropiAliases: Object.freeze([])
+});
+
 export const ECUADOR_PRICE_CATALOGS = Object.freeze({
     normal: Object.freeze({
         1: 39.99,
@@ -183,8 +195,8 @@ export const detectExplicitEcuadorProductKey = (...values) => {
 
 export const resolveEcuadorProductInfo = (...values) => {
     const productKey = detectExplicitEcuadorProductKey(...values);
-    if (!productKey) return ECUADOR_PRODUCTS.nitrix;
-    return getEcuadorProductInfoByKey(productKey) || ECUADOR_PRODUCTS.nitrix;
+    if (!productKey) return ECUADOR_UNKNOWN_PRODUCT;
+    return getEcuadorProductInfoByKey(productKey) || ECUADOR_UNKNOWN_PRODUCT;
 };
 
 export const selectEcuadorPanelProductInfo = ({
@@ -212,15 +224,23 @@ export const selectEcuadorPanelProductInfo = ({
 };
 
 export const ecuadorPackageLabel = (productInfo, quantity) => {
-    const product = productInfo?.name || ECUADOR_PRODUCTS.nitrix.name;
+    const product = productInfo?.name || ECUADOR_UNKNOWN_PRODUCT.name;
     const qty = Number(quantity || 0) || 0;
     if (!qty) return `${product} sem quantidade`;
     return `${product} ${qty} frasco${qty > 1 ? 's' : ''}`;
 };
 
-export const ecuadorProductMetadata = (productInfo) => ({
-    productKey: productInfo?.key || ECUADOR_PRODUCTS.nitrix.key,
-    productName: productInfo?.name || ECUADOR_PRODUCTS.nitrix.name,
-    contentName: productInfo?.contentName || ECUADOR_PRODUCTS.nitrix.contentName,
-    contentIds: productInfo?.contentIds || ECUADOR_PRODUCTS.nitrix.contentIds
-});
+export const ecuadorProductMetadata = (productInfo) => {
+    const explicitProduct = getEcuadorProductInfoByKey(productInfo?.key);
+    return explicitProduct ? {
+        productKey: explicitProduct.key,
+        productName: explicitProduct.name,
+        contentName: explicitProduct.contentName,
+        contentIds: explicitProduct.contentIds
+    } : {
+        productKey: '',
+        productName: '',
+        contentName: '',
+        contentIds: []
+    };
+};

@@ -863,6 +863,11 @@ router.post('/', async (req, res) => {
             notes,
             tracking
         });
+        if (isEcuadorCountry(country) && !productInfo?.key) {
+            return res.status(400).json({
+                error: 'Produto EC explicito obrigatorio: tex_ultra_ec, nitrix_ec ou vit_power_ec.'
+            });
+        }
         const productTracking = productTrackingMetadata(productInfo);
 
         // Create order
@@ -956,7 +961,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             tracking: order.tracking || {},
             existingOrder: order
         });
-        if (productInfo) {
+        if (productInfo?.key) {
             order.tracking = {
                 ...(order.tracking || {}),
                 ...productTrackingMetadata(productInfo)

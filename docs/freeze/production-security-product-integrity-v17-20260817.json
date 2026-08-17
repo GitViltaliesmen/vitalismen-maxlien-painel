@@ -1,0 +1,71 @@
+{
+  "freezeId": "production-security-product-integrity-v17-20260817",
+  "status": "approved_frozen",
+  "lockedAt": "2026-08-17T13:05:00Z",
+  "country": "EC",
+  "parentFreezeId": "operational-mode-zapi-health-reconciliation-v16-20260816",
+  "publicationStatus": "approved_for_production",
+  "requiresWrittenAuthorizationToChange": true,
+  "supersededProtectedFiles": [
+    "package.json",
+    "src/index.js",
+    "public/qr.html",
+    "src/routes/whatsapp.js",
+    "src/routes/zapi.js"
+  ],
+  "policy": {
+    "authenticatedSensitiveRoutes": true,
+    "publicVslEntryPreserved": true,
+    "publicZapiWhatsappLinkPreserved": true,
+    "publicZapiWebhooksPreserved": true,
+    "unknownProductSelectsRealProduct": false,
+    "pricesChanged": false,
+    "commercialFunnelChanged": false,
+    "externalSendsAdded": false,
+    "databaseMigrationRequired": false,
+    "dependencyAuditBefore": 14,
+    "dependencyAuditAfter": 3,
+    "baileysMajorUpgradeDeferred": true
+  },
+  "preservation": {
+    "officialTransport": "zapi",
+    "officialPublicPhoneFinal": "8416",
+    "currentVslProduct": "tex_ultra_ec",
+    "manualProducts": [
+      "tex_ultra_ec",
+      "nitrix_ec",
+      "vit_power_ec"
+    ],
+    "dropiManualAuthorizationRequired": true,
+    "antiSpamPersistentGuardsPreserved": true,
+    "schedulerChanged": false,
+    "schemaChanged": false,
+    "credentialsChanged": false
+  },
+  "protectedFiles": {
+    ".env.example": "e6d34e16aa2f5edbc785ed4aeafdf898fbfdf53e47a6d9f02024225e855a9959",
+    "package.json": "da3797e08cf1ef6da27ba1a9e6e14858f37ec730f5569b3610499b09ecf07400",
+    "package-lock.json": "2bda898cef875d844edf859c8518ebfd6036c2b11374a33c26202ffefb150d26",
+    "public/qr.html": "22514c4477b33fb15dcec3b363452042c20b85bd663cce74f09dd64842e5f55e",
+    "scripts/audit-ec-product-micro-layer.mjs": "e3076f4043f7cce8e4fac44d0ca244967be05d65a2d87508fc93d08d70ca48d5",
+    "scripts/guard-production-security-product-integrity-v17.mjs": "3e706e71bea77b01c02d67cbbb0a17090d76b9df9c5fad1ef8b9583b820064b8",
+    "src/index.js": "d92cc31533fb477b0eceacf169a1dfef14e143e6a7b329d7cbf5f7db5bfb4156",
+    "src/routes/leads.js": "ab0211f85aef0256275e9d8fbc90af651d3ce6fcd3c5f3c19b91f6aa43569f68",
+    "src/routes/observation.js": "caf01db7eff7703db438c65cb0e2997d940306eca660eafb7e9f1f0c481d550c",
+    "src/routes/orders.js": "fe868cc253c6d1cc09f099338fe3a48e610aea17aee899e3abababb03be5aa8c",
+    "src/routes/whatsapp.js": "f20c21aaf1bc23d2075565f7f360b80f1cd1fa4057628dd2fe2a3e624261aec4",
+    "src/routes/zapi.js": "e9aab27e3f1cdaeee0b51c05948144f1f417672ce9499721edc4da749f69006d",
+    "src/services/droppiEcuadorBrowserService.js": "50db5557932de6c83a25f5b256ba1b129586ac51a2686d67c11a969991a4a481",
+    "src/services/ecuadorProductService.js": "738477008843f64020e286c3a28b48616d898bd59c85a7a81e99f48b6adc1123",
+    "src/services/metaConversionsService.js": "9937fc04734ff15c2f13f5bec83be22c1bf3c24c0154322f67f8f830bae4cea6",
+    "src/services/productionSecurityProductIntegrityFreezeRuntimeGuardV17.js": "101909049a1fc18794817389d797fbb427024b68fe7244d4956a60c2a8b2525b",
+    "tests/ecuador-product-unknown.test.mjs": "d74ed0324a11d4272c370804a076d57ee9a42bbd765826bca030c39413f5a812",
+    "tests/panel-sensitive-routes-auth.test.mjs": "c54228d01a242549cad367d7323fca987b6ebd27f98706a052744d964fc46146",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "6ce5c1875de35c48f643d58e92abe9c45778d5b0a3d26ab29c56e6ad91ff885a",
+    "docs/ARQUIVOS_OFICIAIS.md": "9f4cdd139bb7948fc5f3860a8a33c3d3d01bb60b611b886b783c4b53a44c95ca",
+    "docs/FONTE_OFICIAL_GITHUB_VPS_WINDOWS.md": "946cf29d53f4d8a076f0bed0583990b6ae3dc96539bfe9b41ad9eb410d45b852",
+    "docs/INFRAESTRUTURA_OFICIAL.md": "81ae18d00487d0e1cb61c3c7078c3dda577d4f852eed3d15932270961de74cc2",
+    "docs/PRODUCTION_SECURITY_PRODUCT_INTEGRITY_FREEZE_V17_20260817.md": "90f5bc97a6c384380f5a5b861e77b3c19279a743d642b6deb3c70aee307cd326",
+    "docs/freeze/operational-mode-zapi-health-reconciliation-v16-20260816.json": "2acffc9a3dbe0ef21af31d0fcfeed9e0c14ed0a0c04ff7e8596c769880d8f1e5"
+  }
+}
