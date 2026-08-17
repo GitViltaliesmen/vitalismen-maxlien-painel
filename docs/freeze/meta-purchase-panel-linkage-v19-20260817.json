@@ -7,6 +7,7 @@
   "publicationStatus": "approved_for_production",
   "requiresWrittenAuthorizationToChange": true,
   "supersededParentProtectedFiles": [
+    ".env.example",
     "package.json",
     "src/index.js",
     "src/routes/leads.js",
@@ -37,7 +38,7 @@
     "credentialsChanged": false
   },
   "protectedFiles": {
-    ".env.example": "e6d34e16aa2f5edbc785ed4aeafdf898fbfdf53e47a6d9f02024225e855a9959",
+    ".env.example": "7ee8e12b7b96d03de6f05581bda6783666ac249127ab457fd5ff2e1f973887db",
     "package.json": "dcb6482f596c20f36e02d2d8589c9b2cb33a5755d8516bf300d9c9f58c960c6e",
     "package-lock.json": "2bda898cef875d844edf859c8518ebfd6036c2b11374a33c26202ffefb150d26",
     "public/qr.html": "22514c4477b33fb15dcec3b363452042c20b85bd663cce74f09dd64842e5f55e",
@@ -58,7 +59,7 @@
     "src/services/metaConversionsService.js": "9937fc04734ff15c2f13f5bec83be22c1bf3c24c0154322f67f8f830bae4cea6",
     "src/services/productionSecurityProductIntegrityFreezeRuntimeGuardV17.js": "101909049a1fc18794817389d797fbb427024b68fe7244d4956a60c2a8b2525b",
     "src/services/dropiAutomaticSubmitReliabilityFreezeRuntimeGuardV18.js": "ad72cc63188e8579ec86994554a394b1b437e8e8685090e7aa2a85259ea7fd68",
-    "src/services/metaPurchasePanelLinkageFreezeRuntimeGuardV19.js": "42dfc428861c6ade66f4bf4f999bb18ba3a3f8c42d1c0e80b668c69f0066d879",
+    "src/services/metaPurchasePanelLinkageFreezeRuntimeGuardV19.js": "7b4defac37950ec84db8f8f6bc607dc2466530b94208575b9dd1cea71fed4b94",
     "tests/ecuador-product-unknown.test.mjs": "d74ed0324a11d4272c370804a076d57ee9a42bbd765826bca030c39413f5a812",
     "tests/panel-sensitive-routes-auth.test.mjs": "c54228d01a242549cad367d7323fca987b6ebd27f98706a052744d964fc46146",
     "tests/dropi-automatic-submit-regression.test.mjs": "5fd58c18f987200dc5536a033cd46f68bdaffe362a507d976779cab930093cde",

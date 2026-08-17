@@ -8,6 +8,7 @@ const parentRelativePath = 'docs/freeze/dropi-automatic-submit-reliability-v18-2
 const expectedFreezeId = 'meta-purchase-panel-linkage-v19-20260817';
 const expectedParentFreezeId = 'dropi-automatic-submit-reliability-v18-20260817';
 const expectedSupersededParentFiles = [
+    '.env.example',
     'package.json',
     'src/index.js',
     'src/routes/leads.js',
