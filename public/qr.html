@@ -8,7 +8,6 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Vitalismen Automacao</title>
-    <link rel="stylesheet" href="/panel-intelligence/customer-current-context-v16.css">
     <style>
         :root {
             color-scheme: light;
@@ -2643,6 +2642,44 @@
             color: #1d4ed8;
         }
 
+        .customer-smart-search {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+            padding: 9px 10px;
+            border: 1px solid #a7f3d0;
+            border-radius: 10px;
+            background: #ecfdf5;
+        }
+
+        .customer-smart-search-copy {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .customer-smart-search-copy strong {
+            color: #065f46;
+            font-size: 12px;
+        }
+
+        .customer-smart-search-copy span {
+            color: #475569;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        .customer-smart-search button {
+            min-height: 34px;
+            padding: 7px 10px;
+            border-color: #34d399;
+            background: #fff;
+            color: #047857;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
         @keyframes attendancePulse {
             0%, 100% {
                 box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.22);
@@ -5151,6 +5188,16 @@
             line-height: 1.25;
         }
 
+        .composer .sales-quick-funnel-product button {
+            min-height: 34px;
+            padding: 6px 8px;
+            border-color: #10b981;
+            background: #047857;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
         .sales-quick-funnel-group {
             position: relative;
             display: flex;
@@ -5203,6 +5250,58 @@
         .composer .sales-quick-funnel-group button:disabled {
             opacity: 0.46;
             cursor: not-allowed;
+        }
+
+        .sales-quick-funnel-variants {
+            position: relative;
+            flex: 0 0 112px;
+            width: 112px;
+        }
+
+        .sales-quick-funnel-variants > summary {
+            min-height: 64px;
+            display: grid;
+            place-items: center;
+            padding: 6px 8px;
+            border: 1px dashed #94a3b8;
+            border-radius: 8px;
+            background: #fff;
+            color: #475569;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 900;
+            list-style: none;
+            text-align: center;
+        }
+
+        .sales-quick-funnel-variants > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sales-quick-funnel-variants > summary::after {
+            content: "▾";
+            display: block;
+            color: #00a884;
+        }
+
+        .sales-quick-funnel-variants[open] > summary::after {
+            content: "▴";
+        }
+
+        .sales-quick-funnel-variants-menu {
+            position: static;
+            display: grid;
+            grid-template-columns: 122px;
+            gap: 6px;
+            width: 122px;
+            max-height: 240px;
+            overflow: auto;
+            margin-top: 6px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
         }
 
         .sales-quick-funnel-group.offer {
@@ -7691,29 +7790,9 @@
                                 <figcaption>
                                     <strong>Tex Ultra</strong>
                                     <span>Funil manual · Ecuador</span>
+                                    <button data-sales-quick-media="/media/sales/ec/tex_ultra.png" type="button" disabled>Enviar frasco</button>
                                 </figcaption>
                             </figure>
-                            <section class="sales-quick-funnel-group">
-                                <h4>Nome</h4>
-                                <button data-sales-quick-template="name_1" type="button" disabled title="¿Cuál es su nombre completo, por favor?">Nome 1</button>
-                                <button data-sales-quick-template="name_2" type="button" disabled title="Por favor, ¿me confirma su nombre completo?">Nome 2</button>
-                                <button data-sales-quick-template="name_3" type="button" disabled title="¿Me indica su nombre completo?">Nome 3</button>
-                                <button data-sales-quick-template="name_4" type="button" disabled title="Para continuar, ¿cuál es su nombre completo?">Nome 4</button>
-                            </section>
-                            <section class="sales-quick-funnel-group">
-                                <h4>Cidade e provincia</h4>
-                                <button data-sales-quick-template="location_1" type="button" disabled title="Por favor, ¿cuál es su ciudad y provincia?">Cidade 1</button>
-                                <button data-sales-quick-template="location_2" type="button" disabled title="¿En qué ciudad y provincia se encuentra?">Cidade 2</button>
-                                <button data-sales-quick-template="location_3" type="button" disabled title="Para el envío, ¿me confirma su ciudad y provincia?">Cidade 3</button>
-                                <button data-sales-quick-template="location_4" type="button" disabled title="¿Me indica su ciudad y provincia, por favor?">Cidade 4</button>
-                            </section>
-                            <section class="sales-quick-funnel-group">
-                                <h4>Agencia Servientrega</h4>
-                                <button data-sales-quick-template="agency_1" type="button" disabled title="¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?">Agencia 1</button>
-                                <button data-sales-quick-template="agency_2" type="button" disabled title="¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?">Agencia 2</button>
-                                <button data-sales-quick-template="agency_3" type="button" disabled title="Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?">Agencia 3</button>
-                                <button data-sales-quick-template="agency_4" type="button" disabled title="¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.">Agencia 4</button>
-                            </section>
                             <section class="sales-quick-funnel-group offer">
                                 <h4>Promocion 35</h4>
                                 <button data-sales-quick-template="offer_35" type="button" disabled title="Tabela promocional Tex Ultra: 1, 2, 3 e 6 frascos">Oferta completa</button>
@@ -7721,13 +7800,54 @@
                             <section class="sales-quick-funnel-group">
                                 <h4>Confirmar quantidade</h4>
                                 <button data-sales-quick-template="confirm_1a" type="button" disabled title="1 frasco por $35,99">1 frasco · confirmar</button>
-                                <button data-sales-quick-template="confirm_1b" type="button" disabled title="1 frasco por $35,99">1 frasco · variar</button>
-                                <button data-sales-quick-template="confirm_2a" type="button" disabled title="2 frascos por $70,00">2 frascos · confirmar</button>
-                                <button data-sales-quick-template="confirm_2b" type="button" disabled title="2 frascos por $70,00">2 frascos · variar</button>
-                                <button data-sales-quick-template="confirm_3a" type="button" disabled title="3 frascos por $80,99">3 frascos · confirmar</button>
-                                <button data-sales-quick-template="confirm_3b" type="button" disabled title="3 frascos por $80,99">3 frascos · variar</button>
-                                <button data-sales-quick-template="confirm_6a" type="button" disabled title="6 frascos por $147,99">6 frascos · confirmar</button>
-                                <button data-sales-quick-template="confirm_6b" type="button" disabled title="6 frascos por $147,99">6 frascos · variar</button>
+                                <details class="sales-quick-funnel-variants">
+                                    <summary>Outras quantidades</summary>
+                                    <div class="sales-quick-funnel-variants-menu">
+                                        <button data-sales-quick-template="confirm_1b" type="button" disabled title="1 frasco por $35,99">1 frasco · variar</button>
+                                        <button data-sales-quick-template="confirm_2a" type="button" disabled title="2 frascos por $70,00">2 frascos · confirmar</button>
+                                        <button data-sales-quick-template="confirm_2b" type="button" disabled title="2 frascos por $70,00">2 frascos · variar</button>
+                                        <button data-sales-quick-template="confirm_3a" type="button" disabled title="3 frascos por $80,99">3 frascos · confirmar</button>
+                                        <button data-sales-quick-template="confirm_3b" type="button" disabled title="3 frascos por $80,99">3 frascos · variar</button>
+                                        <button data-sales-quick-template="confirm_6a" type="button" disabled title="6 frascos por $147,99">6 frascos · confirmar</button>
+                                        <button data-sales-quick-template="confirm_6b" type="button" disabled title="6 frascos por $147,99">6 frascos · variar</button>
+                                    </div>
+                                </details>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Cidade e provincia</h4>
+                                <button data-sales-quick-template="location_1" type="button" disabled title="Por favor, ¿cuál es su ciudad y provincia?">Cidade 1</button>
+                                <details class="sales-quick-funnel-variants">
+                                    <summary>Outras cidades</summary>
+                                    <div class="sales-quick-funnel-variants-menu">
+                                        <button data-sales-quick-template="location_2" type="button" disabled title="¿En qué ciudad y provincia se encuentra?">Cidade 2</button>
+                                        <button data-sales-quick-template="location_3" type="button" disabled title="Para el envío, ¿me confirma su ciudad y provincia?">Cidade 3</button>
+                                        <button data-sales-quick-template="location_4" type="button" disabled title="¿Me indica su ciudad y provincia, por favor?">Cidade 4</button>
+                                    </div>
+                                </details>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Agencia Servientrega</h4>
+                                <button data-sales-quick-template="agency_1" type="button" disabled title="¿Puedo enviar su pedido a una agencia de Servientrega? ¿Cuál agencia prefiere?">Agencia 1</button>
+                                <details class="sales-quick-funnel-variants">
+                                    <summary>Outras agências</summary>
+                                    <div class="sales-quick-funnel-variants-menu">
+                                        <button data-sales-quick-template="agency_2" type="button" disabled title="¿Desea recibirlo en una agencia de Servientrega? ¿Cuál es el nombre de la agencia?">Agencia 2</button>
+                                        <button data-sales-quick-template="agency_3" type="button" disabled title="Podemos enviarlo a una agencia de Servientrega. ¿A cuál desea que llegue?">Agencia 3</button>
+                                        <button data-sales-quick-template="agency_4" type="button" disabled title="¿Le envío el pedido a una agencia de Servientrega? Indíqueme el nombre, por favor.">Agencia 4</button>
+                                    </div>
+                                </details>
+                            </section>
+                            <section class="sales-quick-funnel-group">
+                                <h4>Nome</h4>
+                                <button data-sales-quick-template="name_1" type="button" disabled title="¿Cuál es su nombre completo, por favor?">Nome 1</button>
+                                <details class="sales-quick-funnel-variants">
+                                    <summary>Outros nomes</summary>
+                                    <div class="sales-quick-funnel-variants-menu">
+                                        <button data-sales-quick-template="name_2" type="button" disabled title="Por favor, ¿me confirma su nombre completo?">Nome 2</button>
+                                        <button data-sales-quick-template="name_3" type="button" disabled title="¿Me indica su nombre completo?">Nome 3</button>
+                                        <button data-sales-quick-template="name_4" type="button" disabled title="Para continuar, ¿cuál es su nombre completo?">Nome 4</button>
+                                    </div>
+                                </details>
                             </section>
                         </div>
                     </details>
@@ -7904,6 +8024,13 @@
                         <div id="customerSyncHint" class="meta">Selecione um cliente</div>
                         <span id="customerSyncBadge" class="badge orange">selecione</span>
                     </div>
+                    <div class="customer-smart-search" aria-live="polite">
+                        <div class="customer-smart-search-copy">
+                            <strong>Busca inteligente na conversa</strong>
+                            <span id="customerSmartDataStatus">Selecione um cliente para localizar nome, cidade, agência, quantidade e valor.</span>
+                        </div>
+                        <button id="scanCustomerDataBtn" type="button" disabled>Buscar e aplicar</button>
+                    </div>
                     <div id="permanentProfile" class="permanent-profile">
                         <div class="row">
                             <strong>Historico permanente</strong>
@@ -8064,7 +8191,6 @@
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
                         </div>
                     </form>
-                    <div id="customerCurrentContextV16"></div>
                 </div>
 
                 <div class="side-section customer-funnel-section hidden">
@@ -8523,7 +8649,6 @@
     <script src="/panel-intelligence/customer-form-intelligence.js"></script>
     <script src="/panel-intelligence/manual-funnel-policy.js"></script>
     <script src="/panel-intelligence/customer-order-policy.js"></script>
-    <script src="/panel-intelligence/customer-current-context-v16.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8654,6 +8779,7 @@
             agencySuggestionOffset: 0,
             customerFormDirty: false,
             customerFormDirtyChatId: '',
+            customerSmartDetected: null,
             customerSavedDrafts: new Map(),
             customerEditingDrafts: new Map(),
             statusAutoSaveTimer: null,
@@ -9272,11 +9398,6 @@
             }
             return data;
         };
-
-        const customerCurrentContextPanel = window.VitalismenCustomerCurrentContextV16?.mount({
-            rootElement: el('customerCurrentContextV16'),
-            request: (path, options) => api(path, options)
-        }) || null;
 
         const setAuth = (token) => {
             state.token = token || '';
@@ -13924,11 +14045,39 @@
             window.VitalismenCustomerFormIntelligence?.extractCustomerData(messages)?.name || ''
         );
 
-        const syncDetectedCustomerDataFromMessages = (messages = []) => {
+        const customerSmartDetectedEntries = (detected = {}) => [
+            ['nome', detected.name],
+            ['cidade', detected.city],
+            ['província', detected.province],
+            ['agência/endereço', detected.address],
+            ['referência', detected.reference],
+            ['quantidade', detected.quantity],
+            ['valor', detected.total],
+            ['produto', detected.productKey]
+        ].filter(([, value]) => String(value || '').trim());
+
+        const renderCustomerSmartDetectedStatus = (detected = {}, message = '') => {
+            const status = el('customerSmartDataStatus');
+            if (!status) return;
+            if (message) {
+                status.textContent = message;
+                return;
+            }
+            const entries = customerSmartDetectedEntries(detected);
+            status.textContent = entries.length
+                ? `Encontrado: ${entries.map(([label]) => label).join(', ')}. Clique para aplicar com revisão.`
+                : 'Nenhum dado estruturado foi localizado nas mensagens recebidas deste cliente.';
+        };
+
+        const syncDetectedCustomerDataFromMessages = (messages = [], { operatorRequested = false } = {}) => {
             if (!state.selectedChat) return;
             const intelligence = window.VitalismenCustomerFormIntelligence;
             if (!intelligence?.extractCustomerData) return;
             const detected = intelligence.extractCustomerData(messages);
+            state.customerSmartDetected = detected;
+            renderCustomerSmartDetectedStatus(detected);
+            if (!operatorRequested) return;
+
             const changedFields = [];
             const nameInput = el('customerNameInput');
             const currentName = String(nameInput?.value || '').trim();
@@ -13993,10 +14142,15 @@
                 });
             fillEmpty('customerTotalInput', approvedTotal, detected.total ? 'valor informado' : 'valor aprovado');
 
-            if (!changedFields.length) return;
+            if (!changedFields.length) {
+                renderCustomerSmartDetectedStatus(detected, customerSmartDetectedEntries(detected).length
+                    ? 'Os dados encontrados já estão preenchidos ou divergem da ficha. Nada foi sobrescrito.'
+                    : 'Nenhum dado estruturado foi localizado nas mensagens recebidas deste cliente.');
+                return;
+            }
             markCustomerFormDirty();
-            scheduleCustomerFieldAutoSave({ delay: 600, source: 'conversation-data' });
-            el('customerSyncHint').textContent = `Ficha preenchida e salvando: ${changedFields.join(', ')}.`;
+            el('customerSyncHint').textContent = `Busca inteligente aplicou: ${changedFields.join(', ')}. Revise e salve a ficha.`;
+            renderCustomerSmartDetectedStatus(detected, `Aplicado para revisão: ${changedFields.join(', ')}.`);
             if (detected.city || detected.province || detected.reference || detected.address) {
                 lookupAgencySuggestions({ immediate: true }).catch(() => null);
             }
@@ -14194,7 +14348,6 @@
             markActiveChatInList(chat.id);
             el('sendBtn').disabled = false;
             renderSelectedDetails();
-            customerCurrentContextPanel?.selectPhone(currentChatPhone(), { force: true }).catch(() => null);
             renderCustomerProfile();
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
             if (markRead) markSelectedChatRead();
@@ -14241,6 +14394,9 @@
                 el('customerSyncBadge').textContent = 'selecione';
                 el('customerSyncBadge').className = 'badge orange';
                 el('customerSyncHint').textContent = 'Selecione um cliente';
+                el('customerSmartDataStatus').textContent = 'Selecione um cliente para localizar nome, cidade, agência, quantidade e valor.';
+                el('scanCustomerDataBtn').disabled = true;
+                state.customerSmartDetected = null;
                 renderFlowCorrectionStatus(null);
                 el('customerFormState').textContent = 'selecione um cliente';
                 ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
@@ -14288,12 +14444,13 @@
                 });
                 syncSalesQuickFunnelAvailability();
                 renderAudioTemplates();
-                customerCurrentContextPanel?.clear();
                 return;
             }
             const owner = chat.human?.mode === 'manual'
                 ? (chat.human?.assignedName || 'Atendimento humano')
                 : (autoReplyGloballyActive() ? 'Automacao ativa' : 'Observador ativo');
+            el('scanCustomerDataBtn').disabled = false;
+            el('customerSmartDataStatus').textContent = 'Analisando apenas as mensagens recebidas deste cliente...';
             const status = orderStatusInfo(chat.orderStatus);
             const entryInfo = chatEntryInfo(chat);
             el('activeName').textContent = chatDisplayName(chat);
@@ -18510,7 +18667,7 @@
                     ? policy.titleFor(context)
                     : enabled ? 'Manual EC · Funil rapido Tex Ultra' : 'Assuma o atendimento para liberar';
             }
-            drawer.querySelectorAll('[data-sales-quick-template]').forEach((button) => {
+            drawer.querySelectorAll('[data-sales-quick-template], [data-sales-quick-media]').forEach((button) => {
                 button.disabled = !enabled;
             });
             if (!enabled) drawer.removeAttribute('open');
@@ -19143,6 +19300,10 @@
         });
         el('customerForm').addEventListener('submit', saveCustomerForm);
         el('confirmCustomerDataBtn').addEventListener('click', () => el('customerForm').requestSubmit());
+        el('scanCustomerDataBtn')?.addEventListener('click', () => {
+            if (!state.selectedChat) return;
+            syncDetectedCustomerDataFromMessages(state.currentMessages || [], { operatorRequested: true });
+        });
         ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('input', () => {
                 markCustomerFormDirty();
@@ -19234,8 +19395,13 @@
             button.addEventListener('click', () => sendFooterDraftTemplate(button.dataset.footerDraftTemplate, button));
         });
         el('salesQuickFunnel')?.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-sales-quick-template]');
+            const button = event.target.closest('[data-sales-quick-template], [data-sales-quick-media]');
             if (!button || button.disabled) return;
+            if (button.dataset.salesQuickMedia) {
+                if (!window.confirm('Enviar agora a imagem do frasco Tex Ultra para este cliente?')) return;
+                sendFooterMedia(button.dataset.salesQuickMedia, button).catch((error) => showToast(error.message));
+                return;
+            }
             fillSalesQuickTemplate(button.dataset.salesQuickTemplate);
         });
         document.querySelectorAll('[data-module]').forEach((button) => {

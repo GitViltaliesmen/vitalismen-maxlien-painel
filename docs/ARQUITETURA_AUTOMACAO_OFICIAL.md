@@ -529,6 +529,17 @@ Antes de mudar qualquer resposta:
 4. atualizar este documento se uma regra operacional mudar;
 5. testar com um contato piloto antes de liberar para mais numeros.
 
+## Microcamada V21 de painel, chamadas e destino Dropi
+
+O freeze `docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md` sucede a V20 como candidato ainda nao publicado.
+
+- O funil rapido Tex Ultra continua exclusivamente manual e agora oferece o frasco oficial `/media/sales/ec/tex_ultra.png` com confirmacao humana antes do envio. Quantidade vem antes de cidade; cidade, agencia e nome mantem uma opcao primaria e alternativas recolhidas; nome fica por ultimo.
+- O contexto tecnico V16 continua disponivel no backend para auditoria, mas deixa de ser montado na ficha principal. A ficha mostra uma busca inteligente compacta, alimentada somente por mensagens recebidas, que preserva campos preenchidos e exige clique do operador para aplicar dados encontrados.
+- Chamadas usam estado persistente por telefone e uma trava unica entre Z-API e Baileys. A politica permite uma tentativa de audio `CLIENTES_QUE_LIGAM`, ignora repeticoes proximas, permite no maximo um texto curto em nova tentativa posterior e ignora as demais durante a janela. `WHATSAPP_CALL_AUTO_REPLY_ENABLED=false` mantem esta automacao desligada por padrao; ativacao operacional exige decisao separada.
+- O payload final Dropi passa pelo normalizador oficial `dropiDataNormalizationService`, que cruza cidade, provincia e agencia com o catalogo Servientrega antes de abrir o formulario. A validacao estrita V18 e a autorizacao humana antes do envio permanecem obrigatorias.
+
+Esta camada nao altera precos, ofertas, produto de origem, pixel, Meta/CAPI, scheduler, symlink, PM2, servicos ou producao. Nenhum pedido Dropi ou mensagem real faz parte dos testes da camada.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:

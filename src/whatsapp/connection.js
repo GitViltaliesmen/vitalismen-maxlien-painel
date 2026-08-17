@@ -7,26 +7,24 @@ import QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import { setupDispatcher } from './dispatcher.js';
 import { resolveCountryAudio } from '../services/audioTemplateService.js';
-import Message from '../models/Message.js';
+import {
+    callAutoReplyEnabled,
+    finalizeCallAutoReply,
+    recordCallAutoReplyMessage,
+    reserveCallAutoReply
+} from '../services/callAutoReplySafetyService.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
 const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
 const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
-const callAutoReplyText = process.env.WHATSAPP_CALL_AUTO_REPLY
-    || 'Hola, soy Valeria Zambrano del equipo de la doctora Maria Fernandes. En este momento no atendemos llamadas por aqui. Enviame tu duda por texto o audio y te ayudo por WhatsApp.';
 const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
     || 'Señor, por favor envíeme un mensaje por audio o texto.';
 const autoRecoverConflict = String(process.env.WHATSAPP_AUTO_RECOVER_CONFLICT || 'true').toLowerCase() !== 'false';
 
 const sessions = new Map();
-const recentCallAutoReplies = new Map();
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
-const callReplyWindowMs = () => {
-    const hours = Number.parseInt(String(process.env.WHATSAPP_CALL_REPLY_WINDOW_HOURS || '24'), 10);
-    return Math.max(1, Number.isFinite(hours) ? hours : 24) * 60 * 60 * 1000;
-};
 
 const parsePausedSessionIds = () => String(process.env.WHATSAPP_PAUSED_SESSION_IDS || '')
     .split(',')
@@ -62,62 +60,6 @@ const jidUserDigits = (jid = '') => String(jid || '')
     .split('@')[0]
     .split(':')[0]
     .replace(/\D/g, '');
-
-const callReplyKey = ({ jid = '', sessionId = '' } = {}) => `${digitsOnly(sessionId) || sessionId}:${digitsOnly(jid) || String(jid || '').trim()}`;
-
-const rememberCallAutoReply = ({ jid = '', sessionId = '', count = 1 } = {}) => {
-    const key = callReplyKey({ jid, sessionId });
-    if (!key) return;
-    recentCallAutoReplies.set(key, { count, at: Date.now() });
-};
-
-const recentCallReplyCount = async ({ jid = '', sessionId = '' } = {}) => {
-    const key = callReplyKey({ jid, sessionId });
-    const now = Date.now();
-    const windowMs = callReplyWindowMs();
-    const memory = recentCallAutoReplies.get(key);
-    if (memory && now - memory.at <= windowMs) return memory.count;
-    if (memory) recentCallAutoReplies.delete(key);
-
-    const digits = digitsOnly(jid);
-    if (!digits || Message?.db?.readyState !== 1) return 0;
-    const tail = digits.length > 10 ? digits.slice(-10) : digits;
-    const since = new Date(now - windowMs);
-    const count = await Message.countDocuments({
-        isFromMe: true,
-        body: { $regex: '^\\[CALL_AUTO_REPLY' },
-        createdAt: { $gte: since },
-        $or: [
-            { chatId: jid },
-            { to: jid },
-            { peerPhone: { $regex: `${tail}$` } }
-        ]
-    }).catch(() => 0);
-    if (count > 0) rememberCallAutoReply({ jid, sessionId, count });
-    return count;
-};
-
-const recordCallAutoReply = async ({ jid = '', sessionId = '', body = '', type = 'chat', mediaUrl = '' } = {}) => {
-    try {
-        await Message.create({
-            _id: `call_auto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-            chatId: jid,
-            peerPhone: digitsOnly(jid),
-            from: 'bot',
-            to: jid,
-            body,
-            type,
-            mediaUrl,
-            sessionId,
-            ownerPhoneDigits: digitsOnly(sessionId),
-            isFromMe: true,
-            isBot: true,
-            timestamp: Math.floor(Date.now() / 1000)
-        });
-    } catch (error) {
-        if (error?.code !== 11000) console.warn(`[CALL] falha ao registrar auto-resposta de chamada -> ${jid}: ${error.message}`);
-    }
-};
 
 const migrateLegacyAuthStorage = () => {
     if (!fs.existsSync(AUTH_BASE_DIR)) return;
@@ -298,55 +240,73 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
 
                 try {
                     console.log(`[CALL] [socketId=${session.currentSocketId}] llamada entrante de ${call.from} | session=${session.sessionId}`);
-                    if (!autoRejectCalls) {
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] auto-rechazo desativado por WHATSAPP_AUTO_REJECT_CALLS | session=${session.sessionId}`);
+                    if (autoRejectCalls) {
+                        await session.sock.rejectCall(call.id, call.from);
+                    } else {
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] rejeicao automatica desativada | session=${session.sessionId}`);
+                    }
+                    if (!callAutoReplyEnabled()) {
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] resposta automatica de chamada desativada | session=${session.sessionId}`);
                         continue;
                     }
-                    await session.sock.rejectCall(call.id, call.from);
-                    const previousReplies = await recentCallReplyCount({ jid: call.from, sessionId: session.sessionId });
-                    const nextReplyNumber = previousReplies + 1;
+                    const reservation = await reserveCallAutoReply({
+                        phone: call.from,
+                        provider: 'baileys',
+                        callId: call.id
+                    });
+                    if (!reservation.acquired || reservation.action === 'none') {
+                        if (reservation.acquired) await finalizeCallAutoReply(reservation, { sent: false });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] chamada sem novo envio | reason=${reservation.reason || 'busy'} | session=${session.sessionId}`);
+                        continue;
+                    }
 
-                    if (nextReplyNumber === 1) {
+                    if (reservation.action === 'audio') {
                         const audioPath = await resolveCountryAudio({ country: 'EC', baseName: callAutoReplyAudioName });
                         if (audioPath) {
-                            await session.sock.sendMessage(call.from, {
+                            const response = await session.sock.sendMessage(call.from, {
                                 audio: { url: audioPath },
                                 mimetype: 'audio/ogg; codecs=opus',
                                 ptt: true
                             });
-                            await recordCallAutoReply({
-                                jid: call.from,
+                            await recordCallAutoReplyMessage({
+                                phone: call.from,
+                                chatId: call.from,
                                 sessionId: session.sessionId,
+                                provider: 'baileys',
+                                providerCallId: call.id,
+                                providerMessageId: response?.key?.id || '',
+                                action: 'audio',
                                 body: `[CALL_AUTO_REPLY_AUDIO] ${callAutoReplyAudioName}`,
                                 type: 'audio',
                                 mediaUrl: audioPath
                             });
-                            rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
-                            console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e primeiro audio enviado para ${call.from} | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
-                        } else {
-                            await session.sock.sendMessage(call.from, { text: callAutoReplyText });
-                            await recordCallAutoReply({
-                                jid: call.from,
-                                sessionId: session.sessionId,
-                                body: `[CALL_AUTO_REPLY_FALLBACK_TEXT] ${callAutoReplyText}`,
-                                type: 'chat'
+                            await finalizeCallAutoReply(reservation, {
+                                sent: true,
+                                providerMessageId: response?.key?.id || ''
                             });
-                            rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
-                            console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e texto fallback enviado para ${call.from} | audio_no_encontrado=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                            console.log(`[CALL] [socketId=${session.currentSocketId}] primeiro audio unico enviado | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
+                        } else {
+                            await finalizeCallAutoReply(reservation, { sent: false, error: 'call_audio_not_found' });
+                            console.warn(`[CALL] audio aprovado nao localizado; nenhum texto substituto enviado | audio=${callAutoReplyAudioName} | session=${session.sessionId}`);
                         }
-                    } else if (nextReplyNumber === 2) {
-                        await session.sock.sendMessage(call.from, { text: callSecondReplyText });
-                        await recordCallAutoReply({
-                            jid: call.from,
+                    } else if (reservation.action === 'text') {
+                        const response = await session.sock.sendMessage(call.from, { text: callSecondReplyText });
+                        await recordCallAutoReplyMessage({
+                            phone: call.from,
+                            chatId: call.from,
                             sessionId: session.sessionId,
+                            provider: 'baileys',
+                            providerCallId: call.id,
+                            providerMessageId: response?.key?.id || '',
+                            action: 'text',
                             body: `[CALL_AUTO_REPLY_SECOND_TEXT] ${callSecondReplyText}`,
                             type: 'chat'
                         });
-                        rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada rechazada e texto curto enviado para ${call.from} | tentativa=${nextReplyNumber} | session=${session.sessionId}`);
-                    } else {
-                        rememberCallAutoReply({ jid: call.from, sessionId: session.sessionId, count: nextReplyNumber });
-                        console.log(`[CALL] [socketId=${session.currentSocketId}] llamada repetida ignorada sem nova mensagem para ${call.from} | tentativa=${nextReplyNumber} | session=${session.sessionId}`);
+                        await finalizeCallAutoReply(reservation, {
+                            sent: true,
+                            providerMessageId: response?.key?.id || ''
+                        });
+                        console.log(`[CALL] [socketId=${session.currentSocketId}] unico texto de insistencia enviado | session=${session.sessionId}`);
                     }
                 } catch (error) {
                     console.error(`[CALL] [socketId=${session.currentSocketId}] fallo al manejar llamada de ${call.from} | session=${session.sessionId}:`, error);

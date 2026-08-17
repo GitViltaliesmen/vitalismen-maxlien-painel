@@ -2,6 +2,7 @@ import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
 import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
+import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
 export const normalizeEcuadorLocalPhone = (value) => {
@@ -299,17 +300,22 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
 };
 
 export const buildDroppiEcuadorOrderPayload = ({ order }) => {
-    const splitName = splitClientName(order?.customer?.name || '');
-    const rawAddress = cleanDropiAgencyAddressTypo(order?.customer?.address || '');
-    const normalizedAddress = normalizeRouteText(rawAddress);
-    const isAgencyPickup = /servientrega|agencia|concesion|retiro/i.test(normalizedAddress);
-    const city = resolveEcuadorCity(order?.customer?.city);
-    const department = resolveEcuadorProvince({
-        province: order?.customer?.province,
-        city
-    });
     const quantity = Number(order?.package?.id || order?.package?.quantity || 1) || 1;
     const exactTotal = Number(order?.total || 0);
+    const sourceCity = resolveEcuadorCity(order?.customer?.city);
+    const normalized = normalizeEcuadorOrderFieldsForDropi({
+        name: order?.customer?.name || '',
+        phone: order?.customer?.phone || '',
+        address: cleanDropiAgencyAddressTypo(order?.customer?.address || ''),
+        city: sourceCity,
+        province: resolveEcuadorProvince({
+            province: order?.customer?.province,
+            city: sourceCity
+        }),
+        quantity,
+        total: exactTotal
+    });
+    const splitName = splitClientName(normalized.name);
     const unitPrice = ecuadorUnitPriceForQuantity(quantity, exactTotal);
     const productInfo = resolveEcuadorProductInfo(order);
     const productMetadata = ecuadorProductMetadata(productInfo);
@@ -317,10 +323,10 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         orderId: String(order?.orderId || order?._id || '').trim(),
         firstName: splitName.firstName.trim(),
         lastName: splitName.lastName.trim(),
-        phone: normalizeEcuadorLocalPhone(order?.customer?.phone),
-        department,
-        city,
-        address: rawAddress,
+        phone: normalizeEcuadorLocalPhone(normalized.phone),
+        department: normalized.province,
+        city: normalized.city,
+        address: normalized.address,
         reference: String(order?.customer?.reference || '').trim(),
         email: String(order?.customer?.email || '').trim(),
         ...productMetadata,
@@ -329,7 +335,10 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
         unitPrice,
         paymentMode: 'CON_RECAUDO',
         preferredCarrier: 'SERVIENTREGA',
-        fallbackCarrier: isAgencyPickup ? '' : 'LAARCOURIER',
-        agencyPickup: isAgencyPickup
+        fallbackCarrier: normalized.agencyPickup ? '' : 'LAARCOURIER',
+        agencyPickup: normalized.agencyPickup,
+        agencyName: normalized.agencyName || '',
+        agencyValidated: normalized.agencyValidated === true,
+        normalizedBy: normalized.normalizedBy || ''
     };
 };
