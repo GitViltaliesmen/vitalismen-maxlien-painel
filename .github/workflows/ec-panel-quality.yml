@@ -3,6 +3,7 @@ name: EC panel quality gate
 on:
   pull_request:
     paths:
+      - .env.example
       - public/qr.html
       - public/funnel-metrics.html
       - public/panel-intelligence/**
@@ -11,14 +12,22 @@ on:
       - src/routes/leads.js
       - src/routes/orders.js
       - src/routes/shipments.js
+      - src/routes/zapi.js
+      - src/models/CallAutoReplyState.js
+      - src/services/callAutoReplyPolicy.js
+      - src/services/callAutoReplySafetyService.js
+      - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
       - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
+      - src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
+      - src/whatsapp/connection.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
       - scripts/guard-order-public-product-integrity-v20.mjs
+      - scripts/guard-panel-call-dropi-safety-v21.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
@@ -26,9 +35,15 @@ on:
       - tests/manual-quick-funnel.test.cjs
       - tests/review-v17-v19-p1.test.mjs
       - tests/order-public-product-integrity-v20.test.mjs
+      - tests/panel-call-dropi-safety.test.mjs
+      - tests/panel-call-dropi-safety-v21.test.mjs
       - tests/senior-guard-github-actions.test.mjs
+      - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
+      - docs/ARQUIVOS_OFICIAIS.md
+      - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
+      - docs/freeze/panel-call-dropi-safety-v21-20260817.json
       - package.json
       - package-lock.json
       - .github/workflows/ec-panel-quality.yml
@@ -37,6 +52,7 @@ on:
       - main
       - codex/**
     paths:
+      - .env.example
       - public/qr.html
       - public/funnel-metrics.html
       - public/panel-intelligence/**
@@ -45,14 +61,22 @@ on:
       - src/routes/leads.js
       - src/routes/orders.js
       - src/routes/shipments.js
+      - src/routes/zapi.js
+      - src/models/CallAutoReplyState.js
+      - src/services/callAutoReplyPolicy.js
+      - src/services/callAutoReplySafetyService.js
+      - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
       - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
+      - src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
+      - src/whatsapp/connection.js
       - scripts/audit-ec-panel-smart-customer.mjs
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
       - scripts/guard-order-public-product-integrity-v20.mjs
+      - scripts/guard-panel-call-dropi-safety-v21.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
       - tests/customer-form-intelligence.test.cjs
@@ -60,9 +84,15 @@ on:
       - tests/manual-quick-funnel.test.cjs
       - tests/review-v17-v19-p1.test.mjs
       - tests/order-public-product-integrity-v20.test.mjs
+      - tests/panel-call-dropi-safety.test.mjs
+      - tests/panel-call-dropi-safety-v21.test.mjs
       - tests/senior-guard-github-actions.test.mjs
+      - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
+      - docs/ARQUIVOS_OFICIAIS.md
+      - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
+      - docs/freeze/panel-call-dropi-safety-v21-20260817.json
       - package.json
       - package-lock.json
       - .github/workflows/ec-panel-quality.yml
@@ -103,6 +133,7 @@ jobs:
         shell: bash
         run: |
           git ls-files --error-unmatch \
+            .env.example \
             public/qr.html \
             public/funnel-metrics.html \
             public/panel-intelligence/customer-data-normalizer.js \
@@ -112,13 +143,25 @@ jobs:
             public/panel-intelligence/manual-funnel-policy.js \
             public/panel-intelligence/customer-order-policy.js \
             src/routes/funnelMetrics.js \
+            src/routes/zapi.js \
+            src/models/CallAutoReplyState.js \
+            src/services/callAutoReplyPolicy.js \
+            src/services/callAutoReplySafetyService.js \
+            src/services/droppiEcuadorService.js \
             src/services/funnelMetricsService.js \
+            src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js \
+            src/whatsapp/connection.js \
+            scripts/guard-panel-call-dropi-safety-v21.mjs \
             scripts/guard-tex-ultra-approved-v5.mjs \
             scripts/guard-order-public-product-integrity-v20.mjs \
             tests/funnel-metrics-route.test.mjs \
             tests/funnel-metrics-service.test.mjs \
             tests/manual-quick-funnel.test.cjs \
-            tests/order-public-product-integrity-v20.test.mjs
+            tests/order-public-product-integrity-v20.test.mjs \
+            tests/panel-call-dropi-safety.test.mjs \
+            tests/panel-call-dropi-safety-v21.test.mjs \
+            docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md \
+            docs/freeze/panel-call-dropi-safety-v21-20260817.json
 
       - name: Validate customer intelligence
         run: npm run test:customer-form

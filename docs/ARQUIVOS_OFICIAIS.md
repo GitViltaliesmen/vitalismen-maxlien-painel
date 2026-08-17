@@ -148,6 +148,17 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Preservado: V17, Dropi V18, painel Meta V19, produto/precos, funil, scheduler, WhatsApp, schema, memoria e autorizacao humana Dropi.
 - A validacao de producao deve ser registrada somente depois de autorizacao separada e ativacao real.
 
+### Microcamada V21 — 2026-08-17
+
+- Fonte base: commit de producao `3b6adfb081f2391262e7b356d47473013e071cc7` em worktree isolado; producao nao foi alterada.
+- Painel oficial alterado: `public/qr.html`; o backend V16 de contexto permanece versionado, mas o bloco tecnico nao e montado na ficha principal.
+- Chamada oficial: `src/services/callAutoReplyPolicy.js`, `src/services/callAutoReplySafetyService.js`, `src/models/CallAutoReplyState.js`, `src/routes/zapi.js` e `src/whatsapp/connection.js`.
+- Dropi oficial: `src/services/droppiEcuadorService.js` passa a usar `src/services/dropiDataNormalizationService.js` e o catalogo `src/services/servientregaEcuadorAgencyService.js` antes do formulario.
+- Teste sem envio externo: `tests/panel-call-dropi-safety.test.mjs`.
+- Freeze/guard: `docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md`, `docs/freeze/panel-call-dropi-safety-v21-20260817.json` e `scripts/guard-panel-call-dropi-safety-v21.mjs`.
+- Estado: candidato local, nao publicado; resposta de chamada desligada por padrao; nenhuma mensagem, pedido Dropi, evento Meta, branch remota, PR, release, PM2 ou symlink foi alterado.
+- Rollback funcional: retornar ao commit `3b6adfb081f2391262e7b356d47473013e071cc7`; nenhuma migracao destrutiva de banco e necessaria.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.
