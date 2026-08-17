@@ -127,6 +127,16 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Preservado: produto, precos, funil, autorizacao manual, deduplicacao, scheduler, WhatsApp, Meta/CAPI, schema e memoria de pedidos.
 - A validacao de producao deve acrescentar release, tag, health, `pm_cwd` e `pm_exec_path` somente depois da ativacao real.
 
+### Microcamada V19 — 2026-08-17
+
+- Evidencia real: pedido `EC-MSWR401B-KNHS`, final `6060`, aceito pela Meta com `events_received: 1`; leads duplicados `3382` e `3383` possuem o mesmo `event_id` persistido como `sent`.
+- Causa confirmada: a mesclagem por telefone vinculava o pedido operacional a somente uma linha e a API de flags ignorava `purchase_capi_lock`, produzindo o falso rotulo `Meta offline` na outra.
+- Arquivos oficiais alterados: `src/routes/shipments.js` e `public/leads-window.html`.
+- Teste sem envio externo: `tests/meta-purchase-panel-linkage.test.mjs`.
+- Freeze/rollback: `docs/META_PURCHASE_PANEL_LINKAGE_FREEZE_V19_20260817.md`; rollback funcional no commit V18 `7fc27b43f0aacc1777f89a11d46353f862beda26` enquanto a V19 nao for ativada.
+- Preservado: endpoint Meta/CAPI, `event_id`, `tracking.metaPurchaseSentAt`, payload, pixel, Dropi V18, produto, precos, funil, scheduler, WhatsApp, schema e memoria.
+- A validacao de producao deve acrescentar release, tag, health, `pm_cwd`, `pm_exec_path` e conferencia visual do final `6060` somente depois da ativacao real.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

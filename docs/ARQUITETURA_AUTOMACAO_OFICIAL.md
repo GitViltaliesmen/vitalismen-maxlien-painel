@@ -509,6 +509,12 @@ O freeze `docs/DROPI_AUTOMATIC_SUBMIT_RELIABILITY_FREEZE_V18_20260817.md` sucede
 
 Se a sessao expirar ao abrir o produto, o navegador tenta novamente uma vez e, persistindo a tela de login, registra erro de autenticacao em vez de declarar falsamente que o produto nao existe. A autorizacao humana, deduplicacao, produto Tex Ultra, tabela oficial, transportadora e modo `CON RECAUDO` permanecem inalterados.
 
+## Microcamada V19 de vinculo do comprovante Meta Purchase
+
+O freeze `docs/META_PURCHASE_PANEL_LINKAGE_FREEZE_V19_20260817.md` sucede a V18 sem mudar o envio CAPI. O painel consulta `purchase_capi_lock` por `lead_id`, inclusive quando o mesmo telefone possui linhas historicas duplicadas, e exibe `Meta Purchase enviado` quando existe comprovante persistido com status `sent` ou `events_received > 0`.
+
+Ausencia de vinculo passa a ser apresentada como `Meta sem vinculo`, pois nao permite concluir que a Meta esteja offline. O `event_id`, o bloqueio por `tracking.metaPurchaseSentAt`, o payload, o pixel, a confirmacao de pedido e todas as integracoes externas permanecem inalterados. A consulta e somente leitura e nao cria reenvio.
+
 Antes de mudar qualquer resposta:
 
 1. verificar se a mensagem pertence ao funil oficial, formulario CTA, pedido, Dropi ou pos-envio;

@@ -1583,7 +1583,13 @@
                 state.leads = state.leads.map((lead) => {
                     const flag = flags[String(lead.id)];
                     if (!flag) return lead;
-                    const next = { ...lead, _ops: flag };
+                    const next = {
+                        ...lead,
+                        _ops: {
+                            ...(lead._ops || {}),
+                            ...flag
+                        }
+                    };
                     if (flag.suggestedStatus) next._opsStatus = flag.repurchase ? 'confirmado' : flag.suggestedStatus;
                     if (flag.notes) next.notes = flag.notes;
                     return next;
@@ -1647,7 +1653,7 @@
             if (String(lead.orderId || lead.id || '').startsWith('EC-')) {
                 return '<span class="meta-purchase-badge meta-purchase-pending" title="Pedido confirmado sem tracking.metaPurchaseSentAt">Meta pendente</span>';
             }
-            return '<span class="meta-purchase-badge meta-purchase-offline" title="Lead historico sem pedido operacional vinculado">Meta offline</span>';
+            return '<span class="meta-purchase-badge meta-purchase-offline" title="Lead historico sem pedido Purchase vinculado">Meta sem vinculo</span>';
         };
 
         const formatLeadDate = (lead) => {

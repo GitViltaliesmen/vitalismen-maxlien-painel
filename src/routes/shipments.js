@@ -103,7 +103,7 @@ const getAdminLeadSnapshot = ({ orderId } = {}) => {
 import sqlite3, json
 db_path = "/opt/maxlien-mvp/leads_ec.sqlite3"
 lead_id = int(${JSON.stringify(leadId)})
-con = sqlite3.connect(db_path)
+con = sqlite3.connect("file:" + db_path + "?mode=ro", uri=True)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
 row = cur.execute("SELECT * FROM leads WHERE id=?", (lead_id,)).fetchone()
@@ -135,7 +135,7 @@ const getAdminLeadOperationalFlags = ({ ids = [] } = {}) => {
 import sqlite3, json, re
 db_path = "/opt/maxlien-mvp/leads_ec.sqlite3"
 ids = ${JSON.stringify(leadIds)}
-con = sqlite3.connect(db_path)
+con = sqlite3.connect("file:" + db_path + "?mode=ro", uri=True)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
 cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
@@ -174,6 +174,39 @@ if wanted:
                 flag.update(product_selection)
                 flag["productSelection"] = product_selection
         flags[lead_id] = flag
+
+lock_table_exists = cur.execute(
+    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='purchase_capi_lock'"
+).fetchone()
+if lock_table_exists:
+    lock_cols = {row[1] for row in cur.execute("PRAGMA table_info(purchase_capi_lock)").fetchall()}
+    required_lock_cols = {"lead_id", "status", "event_id", "response_payload", "error", "created_at", "updated_at"}
+    if required_lock_cols.issubset(lock_cols):
+        placeholders = ",".join(["?"] * len(ids))
+        locks = cur.execute(
+            "SELECT lead_id,status,event_id,response_payload,error,created_at,updated_at "
+            "FROM purchase_capi_lock WHERE lead_id IN (" + placeholders + ")",
+            ids,
+        ).fetchall()
+        for lock in locks:
+            data = dict(lock)
+            lead_id = str(data.get("lead_id"))
+            flag = flags.setdefault(lead_id, {})
+            response = {}
+            try:
+                response = json.loads(data.get("response_payload") or "{}")
+            except Exception:
+                response = {}
+            if not isinstance(response, dict):
+                response = {}
+            lock_status = str(data.get("status") or "").strip().lower()
+            lock_error = str(data.get("error") or "").strip()
+            if lock_error and not response.get("error"):
+                response["error"] = lock_error
+            flag["metaPurchaseEventId"] = str(data.get("event_id") or "")
+            flag["metaPurchaseResponse"] = response
+            if lock_status == "sent":
+                flag["metaPurchaseSentAt"] = data.get("updated_at") or data.get("created_at") or ""
 print(json.dumps({"flags": flags}, ensure_ascii=False))
 con.close()
 `;
