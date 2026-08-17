@@ -62,7 +62,8 @@ import {
     getEcuadorOffer,
     getEcuadorProductInfoByKey,
     listEcuadorDropiProducts,
-    resolveEcuadorProductInfo
+    resolveEcuadorProductInfo,
+    validateExplicitEcuadorProductSelection
 } from '../services/ecuadorProductService.js';
 
 const router = express.Router();
@@ -2154,6 +2155,28 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
             });
         }
 
+        const manualGuideProductSelection = validateExplicitEcuadorProductSelection({
+            productKey: req.body?.productKey,
+            identifiers: [req.body?.productName, req.body?.product]
+        });
+        if (!manualGuideProductSelection.ok) {
+            return res.status(400).json({
+                success: false,
+                error: 'manual_guide_explicit_ec_product_required',
+                reason: manualGuideProductSelection.reason,
+                message: 'Selecione um produto EC valido e sem conflito antes de criar ou avisar a guia.'
+            });
+        }
+        const manualGuideProduct = manualGuideProductSelection.product;
+        if (!dropiProductEnabled(manualGuideProduct)) {
+            return res.status(409).json({
+                success: false,
+                error: 'manual_guide_ec_product_not_configured',
+                reason: 'dropi_product_target_not_enabled',
+                message: `${manualGuideProduct.name} ainda nao esta configurado no catalogo Dropi EC.`
+            });
+        }
+
         let cleanPhone = normalizeManualPhone(phone, effectiveCountry);
         const cleanTracking = String(trackingNumber || '').replace(/\s+/g, '').trim();
         if (!cleanTracking) {
@@ -2227,7 +2250,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
                 },
                 package: {
                     id: qty,
-                    label: ecuadorPackageLabel(resolveEcuadorProductInfo(req.body?.productName, req.body?.product, operatorNote), qty),
+                    label: ecuadorPackageLabel(manualGuideProduct, qty),
                     quantity: qty
                 },
                 total: amount,
@@ -2239,6 +2262,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
                         : 'shipped',
                 source: 'manual',
                 notes: operatorNote,
+                tracking: ecuadorProductMetadata(manualGuideProduct),
                 trackingNumber: cleanTracking,
                 shippingStatus: normalizedStatus
             });
@@ -2256,8 +2280,12 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
             order.package = {
                 ...(order.package || {}),
                 id: order.package?.id || qty,
-                label: order.package?.label || ecuadorPackageLabel(resolveEcuadorProductInfo(req.body?.productName, req.body?.product, operatorNote), qty),
+                label: order.package?.label || ecuadorPackageLabel(manualGuideProduct, qty),
                 quantity: order.package?.quantity || qty
+            };
+            order.tracking = {
+                ...(order.tracking?.toObject?.() || order.tracking || {}),
+                ...ecuadorProductMetadata(manualGuideProduct)
             };
             if (amount) order.total = amount;
             order.trackingNumber = cleanTracking;
@@ -2273,7 +2301,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
 
         let shipment = await upsertDroppiEcuadorShipment({
             orderId: order.orderId,
-            productName: resolveEcuadorProductInfo(req.body?.productName, req.body?.product, order.package?.label, operatorNote).name,
+            productName: manualGuideProduct.name,
             clientName: String(name || '').trim() || order.customer?.name || '',
             phone: cleanPhone,
             address: String(address || '').trim() || order.customer?.address || '',

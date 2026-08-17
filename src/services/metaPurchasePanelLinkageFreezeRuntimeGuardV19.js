@@ -10,6 +10,8 @@ const expectedParentFreezeId = 'dropi-automatic-submit-reliability-v18-20260817'
 const expectedSupersededParentFiles = [
     'package.json',
     'src/index.js',
+    'src/routes/leads.js',
+    'src/services/ecuadorProductService.js',
     'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
     'docs/ARQUIVOS_OFICIAIS.md'
 ];
