@@ -1,0 +1,67 @@
+{
+  "freezeId": "guard-alias-integration-v29-2-20260818",
+  "status": "release_preparation_authorized_activation_locked",
+  "lockedAt": "2026-08-18T18:50:59Z",
+  "country": "EC",
+  "parentFreezeId": "deploy-integration-v29-1-20260818",
+  "parentManifestSha256": "c2e80fa82432eadef07850948bb654a789b6d4e6b9d1e238cbe11f86bfbc4fe1",
+  "baseV291Sha": "0c2c23a3c1f3bb270e258822c185000f5cea2601",
+  "publicationStatus": "release_train_authorized",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T18:50:59Z",
+    "scope": "implement_guard_alias_successor_without_deploy"
+  },
+  "operatorPublicationApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T21:24:36Z",
+    "scope": "commit_push_pr_ci_backup_tag_and_staging_without_activation"
+  },
+  "operatorActivationApproval": {
+    "status": "required_explicit",
+    "approvedAt": "",
+    "scope": "transactional_activate_guard_alias_v29_2"
+  },
+  "rollback": {
+    "functional": "2e57156ea0bccf2b82c9cd374e64634f584a61f7",
+    "operational": "20260818T042423Z_production-20260818-bb2d92f"
+  },
+  "policy": {
+    "ancestorFreezesPreserved": true,
+    "guardAliasesUseLatestSuccessor": true,
+    "sourcePromotionAuthorized": true,
+    "remoteStagingAuthorized": true,
+    "directActivationBlocked": true,
+    "flowChanged": false
+  },
+  "realEffects": {
+    "whatsappMessage": false,
+    "order": false,
+    "metaCapi": false,
+    "dropi": false,
+    "deploy": false,
+    "activation": false
+  },
+  "declaredParentOverrides": [
+    "package.json",
+    "src/index.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/GUARD_ALIAS_INTEGRATION_FREEZE_V29_2_20260818.md",
+    "scripts/assert-guard-alias-integration-approved-v29-2.mjs",
+    "scripts/guard-alias-integration-v29-2.mjs",
+    "src/services/guardAliasIntegrationFreezeRuntimeGuardV292.js",
+    "tests/guard-alias-integration-v29-2.test.mjs"
+  ],
+  "protectedFiles": {
+    "package.json": "42b297c52a75bb4acb4ae1886d882edfbc04dda4dc631ee5430afd9a86db45b3",
+    "src/index.js": "fcea783b6cc131278811c57451d04167ec835d74063f5e9f61cb6bb1263b333e",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "b2885d38d77d1cbba0092ee895a52573eaf20f312c56b464b8ee579b48c0eaa6",
+    "docs/GUARD_ALIAS_INTEGRATION_FREEZE_V29_2_20260818.md": "0486bac4f25e7b187951bea3311ced0ffef4bcd3b8acb8bd911838d06ca8ac18",
+    "scripts/assert-guard-alias-integration-approved-v29-2.mjs": "d6fd8499da45aafbdcd201edc04266516098f3946f357c798d811908ff912599",
+    "scripts/guard-alias-integration-v29-2.mjs": "b4060bb939987c1d5b11fb9c874df905f1c72cc016715586f627100d92677706",
+    "src/services/guardAliasIntegrationFreezeRuntimeGuardV292.js": "070a3469cbdc6008ac565de5e67f885f76f16905437306357bbf80bba780d9a2",
+    "tests/guard-alias-integration-v29-2.test.mjs": "f196cc1a230db816c783d44cf8e25be9e51856c8fb531b618b89dae7f1f151ba"
+  }
+}
