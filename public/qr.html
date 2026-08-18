@@ -15988,6 +15988,17 @@
         const UNIVERSAL_INTRO_AUDIO_01_EC = '/media/templates/EC/01_B_Buenos_dias.ogg';
         const UNIVERSAL_INTRO_AUDIO_02_EC = '/media/templates/EC/01_C_Buenos_tardes.ogg';
         const TEX_ULTRA_UNIVERSAL_ENTRY_AUDIO_EC = '/media/templates/EC/CONHECER_NECESSIDADES_CLIENTES.ogg';
+        const TEX_ULTRA_ENTRY_GREETING_EMOJIS = Object.freeze(['👋', '😊', '🙂', '🙏', '✅']);
+        let texUltraEntryGreetingEmojiCursor = 0;
+
+        const nextTexUltraPanelGreetingEmoji = () => {
+            const emoji = TEX_ULTRA_ENTRY_GREETING_EMOJIS[
+                texUltraEntryGreetingEmojiCursor % TEX_ULTRA_ENTRY_GREETING_EMOJIS.length
+            ];
+            texUltraEntryGreetingEmojiCursor = (texUltraEntryGreetingEmojiCursor + 1)
+                % TEX_ULTRA_ENTRY_GREETING_EMOJIS.length;
+            return emoji;
+        };
 
         const texUltraPanelGreetingPeriod = (date = new Date()) => {
             const parts = new Intl.DateTimeFormat('en-US', {
@@ -16014,7 +16025,7 @@
             const opening = name
                 ? `Hola, ${name}, ${texUltraPanelGreetingPeriod(date)}.`
                 : `Hola, ${texUltraPanelGreetingPeriod(date)}.`;
-            return `${opening} Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?`;
+            return `${nextTexUltraPanelGreetingEmoji()} ${opening} Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?`;
         };
 
         const footerFunnelBlocks = () => {

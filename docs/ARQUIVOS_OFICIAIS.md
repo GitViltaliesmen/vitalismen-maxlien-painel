@@ -190,6 +190,17 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Estado: candidato local; nenhum cliente foi identificado ou agendado, nenhuma mensagem foi enviada e nenhum pedido, Dropi, Meta/CAPI, banco oficial, PM2, `current`, servico ou producao foi alterado.
 - Rollback funcional: retornar ao commit `bb2d92f65040fc678685358b626c2a4a8a5e9623`; o novo subdocumento Mongo e aditivo e pode permanecer sem uso.
 
+### Microcamada V25 — 2026-08-18
+
+- Fonte base: branch local `codex/command-center-mvp-20260818`, commit `d8ea5f0efbc96a6b4c9fd536aae4b485e9c52743`; producao permanecia na release `20260818T042423Z_production-20260818-bb2d92f` durante a implementacao.
+- Abertura: `src/services/texUltraEntryGreetingService.js` e `public/qr.html` preservam a frase aprovada e acrescentam somente o rodizio de um emoji discreto no inicio.
+- Interrupcao: `src/services/texUltraInitialLayerService.js` conserva as duas verificacoes de entrada nova; `src/services/texUltraFunnelService.js` responde preco, quantidade e uso de modo deterministico e passa outras duvidas ao humano com a cadencia pausada.
+- Minutagem preservada: 2–6s, +4–8s, +21–25s, +28–33s e +35–40s; total de 90–112s.
+- Testes sem envio: `tests/tex-ultra-entry-interrupt-v25.test.mjs`, `tests/tex-ultra-entry-unread-v22.test.mjs`, `scripts/test-tex-ultra-initial-cadence.mjs` e `scripts/test-tex-ultra-initial-concurrency.mjs`.
+- Freeze/guard: `docs/TEX_ULTRA_ENTRY_INTERRUPT_FREEZE_V25_20260818.md`, `docs/freeze/tex-ultra-entry-interrupt-v25-20260818.json` e `scripts/guard-tex-ultra-entry-interrupt-v25.mjs`.
+- Estado: candidato local aprovado para publicacao controlada em 2026-08-18T14:12:47Z, exclusivamente para teste no telefone `5515998038637`; nenhum envio, pedido, Dropi, Meta/CAPI, banco oficial, PM2, `current`, servico ou producao havia sido alterado no momento da aprovacao.
+- Rollback funcional: retornar ao commit `d8ea5f0efbc96a6b4c9fd536aae4b485e9c52743` enquanto a V25 nao for publicada.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

@@ -5,7 +5,9 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
     buildTexUltraEntryGreeting,
+    TEX_ULTRA_GREETING_EMOJIS,
     texUltraCustomerName,
+    texUltraGreetingEmojiAt,
     texUltraGreetingPeriod
 } from '../src/services/texUltraEntryGreetingService.js';
 import {
@@ -22,15 +24,22 @@ test('saudacao Tex Ultra usa o periodo de Guayaquil e o nome validado', () => {
     assert.equal(texUltraGreetingPeriod(new Date('2026-08-18T23:30:00.000Z')), 'night');
     assert.equal(texUltraCustomerName('+593999999999', 'Cliente', 'Miguel Angel'), 'Miguel Angel');
     assert.equal(
-        buildTexUltraEntryGreeting({ name: 'Miguel Angel', date: new Date('2026-08-18T14:30:00.000Z') }),
-        'Hola, Miguel Angel, buenos días. Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?'
+        buildTexUltraEntryGreeting({ name: 'Miguel Angel', date: new Date('2026-08-18T14:30:00.000Z'), emoji: '👋' }),
+        '👋 Hola, Miguel Angel, buenos días. Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?'
     );
 });
 
 test('saudacao nunca expoe placeholder ou telefone quando o nome falta', () => {
-    const text = buildTexUltraEntryGreeting({ name: '+593999999999', date: new Date('2026-08-18T19:30:00.000Z') });
-    assert.equal(text.startsWith('Hola, buenas tardes.'), true);
+    const text = buildTexUltraEntryGreeting({ name: '+593999999999', date: new Date('2026-08-18T19:30:00.000Z'), emoji: '😊' });
+    assert.equal(text.startsWith('😊 Hola, buenas tardes.'), true);
     assert.doesNotMatch(text, /\[NOMBRE\]|593999999999/);
+});
+
+test('rodizio usa um emoji discreto por abertura sem repetir em sequencia', () => {
+    assert.deepEqual(TEX_ULTRA_GREETING_EMOJIS, ['👋', '😊', '🙂', '🙏', '✅']);
+    const cycle = Array.from({ length: 10 }, (_, index) => texUltraGreetingEmojiAt(index));
+    assert.deepEqual(cycle, [...TEX_ULTRA_GREETING_EMOJIS, ...TEX_ULTRA_GREETING_EMOJIS]);
+    cycle.slice(1).forEach((emoji, index) => assert.notEqual(emoji, cycle[index]));
 });
 
 test('Tex Ultra automatico e manual usam exatamente um audio universal', () => {

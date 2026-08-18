@@ -1,5 +1,22 @@
 const ECUADOR_TIMEZONE = 'America/Guayaquil';
 
+export const TEX_ULTRA_GREETING_EMOJIS = Object.freeze(['👋', '😊', '🙂', '🙏', '✅']);
+let greetingEmojiCursor = 0;
+
+export const texUltraGreetingEmojiAt = (index = 0) => {
+    const safeIndex = Number.isFinite(Number(index)) ? Math.trunc(Number(index)) : 0;
+    return TEX_ULTRA_GREETING_EMOJIS[
+        ((safeIndex % TEX_ULTRA_GREETING_EMOJIS.length) + TEX_ULTRA_GREETING_EMOJIS.length)
+        % TEX_ULTRA_GREETING_EMOJIS.length
+    ];
+};
+
+export const nextTexUltraGreetingEmoji = () => {
+    const emoji = texUltraGreetingEmojiAt(greetingEmojiCursor);
+    greetingEmojiCursor = (greetingEmojiCursor + 1) % TEX_ULTRA_GREETING_EMOJIS.length;
+    return emoji;
+};
+
 const normalizeDisplayName = (value = '') => String(value || '')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -44,14 +61,18 @@ export const texUltraGreetingSalutation = (date = new Date(), timezone = ECUADOR
 export const buildTexUltraEntryGreeting = ({
     name = '',
     date = new Date(),
-    timezone = ECUADOR_TIMEZONE
+    timezone = ECUADOR_TIMEZONE,
+    emoji = ''
 } = {}) => {
     const customerName = texUltraCustomerName(name);
     const salutation = texUltraGreetingSalutation(date, timezone);
+    const openingEmoji = TEX_ULTRA_GREETING_EMOJIS.includes(String(emoji || '').trim())
+        ? String(emoji).trim()
+        : nextTexUltraGreetingEmoji();
     const opening = customerName
         ? `Hola, ${customerName}, ${salutation}.`
         : `Hola, ${salutation}.`;
-    return `${opening} Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?`;
+    return `${openingEmoji} ${opening} Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?`;
 };
 
 export const TEX_ULTRA_ENTRY_TIMEZONE = ECUADOR_TIMEZONE;

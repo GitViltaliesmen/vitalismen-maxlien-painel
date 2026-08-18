@@ -83,6 +83,49 @@ const sendFunnelText = async ({ state, text, context }) => Boolean(await sendTex
     antiSpamKey: `${AGENT_KEY}:${context}:${state._id}`
 }));
 
+export const texUltraInterruptedInboundRoute = (text = '') => {
+    if (texUltraSelectedQuantity(text)) return 'quantity';
+    if (asksUsage(text)) return 'usage';
+    if (asksPrice(text)) return 'price';
+    return 'human';
+};
+
+const holdInterruptedTexUltraQuestionForHuman = async ({ state, inboundText = '', draft = draftOf(state) }) => {
+    const now = new Date();
+    const pausedMemory = memoryOf(state);
+    state.human = {
+        ...(state.human || {}),
+        mode: 'manual',
+        pausedUntil: null,
+        assignedName: 'Atendimento Tex Ultra EC',
+        lastManualAt: now,
+        lastManualBy: 'tex_ultra_customer_question',
+        note: 'Cliente interrompeu a cadencia com uma duvida; funil pausado para resposta humana.'
+    };
+    state.tags = [...new Set([...(state.tags || []), 'AGUARDANDO_ATENDIMENTO', 'TEX_ULTRA_DUVIDA_CLIENTE'])];
+    state.metadata = {
+        ...(state.metadata || {}),
+        automationHandoffSuggestedReason: 'tex_ultra_customer_question',
+        automationHandoffSuggestedAt: now,
+        automationHandoffSuggestedNote: String(inboundText || '').slice(0, 700)
+    };
+    await saveState(state, {
+        memory: {
+            ...pausedMemory,
+            customerQuestionAt: now.toISOString(),
+            customerQuestionText: String(inboundText || '').slice(0, 700)
+        },
+        draft,
+        stage: 'question_handoff'
+    });
+    await sendFunnelText({
+        state,
+        text: 'Gracias por su pregunta. Detuve los demás mensajes para atender primero su duda. Ya la reviso y continúo con usted por aquí.',
+        context: 'tex_ultra_customer_question_handoff'
+    });
+    return true;
+};
+
 const sendUniversalEntryAudio = async (state) => {
     const baseName = TEX_ULTRA_EC_PRODUCT_PROFILE.entry.universalAudioName;
     const audioPath = await resolveCountryAudio({ country: 'EC', baseName });
@@ -213,16 +256,18 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     let draft = { ...draftOf(state), phone: draftOf(state).phone || (state.phoneDigits ? `+${digitsOnly(state.phoneDigits)}` : '') };
     const quantity = texUltraSelectedQuantity(inboundText);
     const initialLayerInbound = await interruptTexUltraInitialLayerOnInbound({ state, inboundText });
+    const interruptedInboundRoute = texUltraInterruptedInboundRoute(inboundText);
+    memory = memoryOf(state);
     if (initialLayerInbound.handled) return true;
 
-    if (asksUsage(inboundText)) {
+    if (interruptedInboundRoute === 'usage') {
         await sendFunnelText({ state, text: 'Para no darle una indicacion incorrecta, el modo de uso de Tex Ultra sera confirmado por una asesora con base en la etiqueta oficial. ¿Desea que le muestre primero las opciones disponibles?', context: 'tex_ultra_usage_guard' });
         await saveState(state, { memory, draft, stage: memory.stage || 'awaiting_interest' });
         return true;
     }
 
     const dataCollectionStages = new Set(['awaiting_name', 'awaiting_city', 'awaiting_province', 'awaiting_address', 'awaiting_reference']);
-    if (quantity && !dataCollectionStages.has(memory.stage)) {
+    if (interruptedInboundRoute === 'quantity' && quantity && !dataCollectionStages.has(memory.stage)) {
         const selected = texUltraPriceForQuantity(quantity);
         if (!selected) return true;
         draft = { ...draft, quantity, total: selected.amount, status: 'atendendo' };
@@ -232,11 +277,12 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     }
 
     if (initialLayerInbound.interrupted) {
-        if (asksPrice(inboundText)) {
+        if (interruptedInboundRoute === 'price') {
             await sendFunnelText({ state, text: offerText(), context: 'tex_ultra_offer_requested_after_interrupt' });
             await saveState(state, { memory: memoryOf(state), draft, stage: 'awaiting_quantity' });
+            return true;
         }
-        return true;
+        return holdInterruptedTexUltraQuestionForHuman({ state, inboundText, draft });
     }
 
     if (!memory.presentationSentAt) {
