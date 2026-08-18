@@ -16,7 +16,7 @@ const panelBlocks = panel.slice(panelBlockStart, panelBlockEnd);
 assert.match(panel, /const activeFunnelProductKey = \(\) => normalizeCustomerProductKey/);
 assert.match(panel, /Frasco Tex Ultra[^\n]+tex_ultra_bottle\.png/);
 assert.match(panelBlocks, /value: 'tex_ultra_inicio_completo'/);
-assert.match(panelBlocks, /Inicio universal 01 \+ Inicio universal 02 \+ Prova 1 \+ Frasco Tex Ultra \+ Valores promocionais/);
+assert.match(panelBlocks, /Saudacao com nome \+ um audio universal \+ Prova 1 \+ Frasco Tex Ultra \+ Valores promocionais/);
 assert.match(panelBlocks, /value: 'tex_ultra_promotion_1'/);
 assert.doesNotMatch(panelBlocks, /value: 'tex_ultra_promotion_2'/);
 assert.match(panel, /tex_ultra_promotion_1: '📦 Hoy tenemos kits promocionales disponibles con precios especiales:/);

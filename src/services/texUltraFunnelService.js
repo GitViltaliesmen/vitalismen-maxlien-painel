@@ -1,11 +1,14 @@
 import path from 'path';
 import ContactState from '../models/ContactState.js';
 import Order from '../models/Order.js';
+import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendText } from '../whatsapp/sendText.js';
 import { sendImage } from '../whatsapp/sendImage.js';
+import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
+import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntryGreetingService.js';
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPriceForQuantity, texUltraPublicOfferText } from './texUltraProductProfile.js';
 import { interruptTexUltraInitialLayerOnInbound, startTexUltraInitialLayer } from './texUltraInitialLayerService.js';
 import { sendTexUltraConfirmedPostSaleAudios } from './texUltraConfirmedPostSaleLayerService.js';
@@ -80,6 +83,18 @@ const sendFunnelText = async ({ state, text, context }) => Boolean(await sendTex
     antiSpamKey: `${AGENT_KEY}:${context}:${state._id}`
 }));
 
+const sendUniversalEntryAudio = async (state) => {
+    const baseName = TEX_ULTRA_EC_PRODUCT_PROFILE.entry.universalAudioName;
+    const audioPath = await resolveCountryAudio({ country: 'EC', baseName });
+    if (!audioPath) return false;
+    return Boolean(await sendAudio(stateChatId(state), audioPath, true, {
+        sessionId: state?.metadata?.lastSessionId || null,
+        country: 'EC',
+        outboundContext: 'tex_ultra_inicio_universal_fallback',
+        dedupeValue: `${AGENT_KEY}:universal_entry:${state._id}`
+    }));
+};
+
 const sendBottle = async (state) => sendImage(
     stateChatId(state),
     path.join(process.cwd(), 'public', TEX_ULTRA_EC_PRODUCT_PROFILE.bottle.media.replace(/^\/+/, '')),
@@ -99,9 +114,14 @@ const sendSharedProof = async (state) => {
     });
 };
 
-const presentationText = () => (
-    'Hola, soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Tex Ultra es un suplemento alimenticio en capsulas. Le acompano por aqui con la presentacion, precios y entrega en Ecuador. ¿Desea conocer la promocion disponible?'
-);
+const presentationText = (state = {}) => buildTexUltraEntryGreeting({
+    name: texUltraCustomerName(
+        draftOf(state).name,
+        draftOf(state).customerName,
+        state?.metadata?.notifyName,
+        state?.metadata?.profileName
+    )
+});
 
 const offerText = () => (
     `Hoy tenemos estas opciones de Tex Ultra:\n${texUltraPublicOfferText()}\n\n¿Cuantos frascos desea?`
@@ -226,11 +246,20 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         if (Number.isFinite(presentationLockAt) && Date.now() - presentationLockAt < 120000) return true;
         memory = { ...memory, presentationSendingAt: new Date().toISOString() };
         await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
-        await sendFunnelText({ state, text: asksPrice(inboundText) ? offerText() : presentationText(), context: asksPrice(inboundText) ? 'tex_ultra_offer' : 'tex_ultra_presentation' });
+        const directOffer = asksPrice(inboundText);
+        await sendFunnelText({ state, text: directOffer ? offerText() : presentationText(state), context: directOffer ? 'tex_ultra_offer' : 'tex_ultra_presentation' });
+        const universalIntroSent = directOffer ? false : await sendUniversalEntryAudio(state);
         await sendBottle(state);
         await sendSharedProof(state);
-        memory = { ...memory, presentationSendingAt: '', presentationSentAt: new Date().toISOString(), bottleSentAt: new Date().toISOString(), proofSentAt: new Date().toISOString() };
-        await saveState(state, { memory, draft, stage: asksPrice(inboundText) ? 'awaiting_quantity' : 'awaiting_interest' });
+        memory = {
+            ...memory,
+            presentationSendingAt: '',
+            presentationSentAt: new Date().toISOString(),
+            ...(universalIntroSent ? { universalIntroSentAt: new Date().toISOString() } : {}),
+            bottleSentAt: new Date().toISOString(),
+            proofSentAt: new Date().toISOString()
+        };
+        await saveState(state, { memory, draft, stage: directOffer ? 'awaiting_quantity' : 'awaiting_interest' });
         return true;
     }
 

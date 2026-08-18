@@ -2934,9 +2934,9 @@ const customerContextForAgentProfile = (agentProfile, fallbackPhonePrefix = null
 };
 
 const hasBotIntroducedItself = async (chatId) => {
-    const legacyName = ['ana', 'lopez'].join(' ');
-    const legacyAltName = ['ana', 'lopes'].join(' ');
-    const introRegex = new RegExp(`soy (?:valeria zambrano|${legacyName}|${legacyAltName})`, 'i');
+    // Reconhece apresentacoes anteriores pela estrutura da mensagem, sem
+    // conservar nomes de personas desativadas no runtime.
+    const introRegex = /(?:soy|le saluda|le habla)\s+.{2,120}(?:equipo de la (?:doctora|dra\.)|ya (?:le )?(?:atiendo|reviso))/i;
     const introMessage = await Message.findOne({
         chatId,
         isBot: true,
@@ -5939,7 +5939,7 @@ const buildOrderClosedThankYouText = ({ deliveryMode, customerContext }) => {
         return [
             'Gracias por confirmar sus datos.',
             `En breve preparamos su pedido y apenas este disponible en la agencia ${carrier}, le avisamos para que pueda retirarlo con tranquilidad.`,
-            'Guarde este numero como Valeria Zambrano, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.'
+            'Guarde este numero como Ana López, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.'
         ].join('\n');
     }
 
@@ -5947,7 +5947,7 @@ const buildOrderClosedThankYouText = ({ deliveryMode, customerContext }) => {
         '*Gracias por confirmar sus datos.*',
         '*Su pedido fue confirmado para entrega a domicilio.*',
         'En breve preparamos su pedido para envio a su direccion. Quede atento al telefono cuando la transportadora se comunique con usted.',
-        'Guarde este numero como Valeria Zambrano, porque por aqui le aviso sobre la guia, la entrega y cualquier soporte de su pedido.'
+        'Guarde este numero como Ana López, porque por aqui le aviso sobre la guia, la entrega y cualquier soporte de su pedido.'
     ].join('\n');
 };
 
@@ -6238,9 +6238,9 @@ const firstResponseSlaEnabled = () => (
 
 const firstResponseSlaAckText = () => {
     const variants = [
-        'Hola, soy Valeria Zambrano. Ya le atiendo por aquí con Vit Power.',
-        'Hola, soy Valeria Zambrano. Ya reviso su mensaje y le explico paso a paso.',
-        'Hola, soy Valeria Zambrano. Le atiendo por aquí, un momento.'
+        'Hola, soy Ana López. Ya le atiendo por aquí con Vit Power.',
+        'Hola, soy Ana López. Ya reviso su mensaje y le explico paso a paso.',
+        'Hola, soy Ana López. Le atiendo por aquí, un momento.'
     ];
     return variants[Math.floor(Math.random() * variants.length)];
 };

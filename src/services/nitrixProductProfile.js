@@ -18,33 +18,34 @@ export const NITRIX_EC_PRODUCT_PROFILE = Object.freeze({
         confirmationText: '¿Es este el producto que desea?'
     }),
     entry: Object.freeze({
-        audioNames: Object.freeze([
-            'NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL',
-            'NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL'
-        ]),
+        // Os dois audios da identidade anterior permanecem
+        // inativos. Uma nova midia so pode entrar depois de gravacao e aceite
+        // explicitos com a identidade Ana Lopez.
+        audioNames: Object.freeze([]),
+        legacyIdentityAudioQuarantined: true,
         // Acolhimento curto para quem iniciou o WhatsApp pela VSL /n/.
-        // Nao pede preco, nao faz promessa e nao substitui os dois audios.
+        // Nao pede preco, nao faz promessa e nao depende de audio legado.
         openingVariants: Object.freeze([
-            '¡Hola! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix; enseguida le explico por audio.',
-            '¡Hola! Le saluda Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Llegó desde la presentación de Nitrix; permítame explicarle por audio.',
-            'Hola, mucho gusto. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por Nitrix; le envío un audio enseguida.',
-            '¡Hola! Le habla Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Ya le cuento por audio sobre la presentación de Nitrix.',
-            'Hola, qué gusto atenderle. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Enseguida le envío un audio para orientarle sobre Nitrix.',
-            '¡Bienvenido! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó desde la presentación de Nitrix; ya le explico por audio.'
+            '¡Hola! Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix; enseguida le ayudo por aquí.',
+            '¡Hola! Le saluda Ana López, del equipo de la Dra. Maria Fernandes. Llegó desde la presentación de Nitrix; permítame orientarle.',
+            'Hola, mucho gusto. Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó por Nitrix; ya reviso su mensaje.',
+            '¡Hola! Le habla Ana López, del equipo de la Dra. Maria Fernandes. Ya le cuento sobre la presentación de Nitrix.',
+            'Hola, qué gusto atenderle. Soy Ana López, del equipo de la Dra. Maria Fernandes. Enseguida le oriento sobre Nitrix.',
+            '¡Bienvenido! Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó desde la presentación de Nitrix; ya le ayudo por aquí.'
         ]),
-        // Esta identificacao ocorre somente apos o audio 2, se o nome completo
+        // Esta identificacao ocorre somente apos a abertura, se o nome completo
         // ainda nao estiver salvo. Cada conversa recebe uma unica variante.
         nameIntroVariants: Object.freeze([
-            '¡Hola! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix. Para atenderle mejor, ¿me indica su nombre completo, por favor?',
-            'Hola, mucho gusto. Le habla Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que nos escribió después de conocer Nitrix. ¿Con quién tengo el gusto?',
-            '¡Bienvenido! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Para acompañar su atención de forma más personal, ¿me comparte su nombre completo?',
-            'Hola, gracias por escribirnos. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que viene de la presentación de Nitrix. ¿Me confirma su nombre completo, por favor?',
-            '¡Hola! Le saluda Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Será un gusto ayudarle. Antes de continuar, ¿cómo se llama?',
-            'Hola, soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó por la información de Nitrix. Para saber cómo llamarle, ¿me dice su nombre completo?',
-            '¡Qué gusto tenerle por aquí! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Para seguir con su atención, ¿me indica su nombre completo?',
-            'Hola, le habla Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Estoy aquí para ayudarle con cualquier duda sobre lo que vio. ¿Me comparte su nombre completo?',
-            '¡Hola! Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Vi que llegó desde la presentación de Nitrix. Antes de seguir, ¿me confirma su nombre completo?',
-            'Hola, mucho gusto. Soy Valeria Zambrano, del equipo de la Dra. Maria Fernandes. Para dejar su atención bien identificada, ¿podría decirme su nombre completo?'
+            '¡Hola! Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó por la presentación de Nitrix. Para atenderle mejor, ¿me indica su nombre completo, por favor?',
+            'Hola, mucho gusto. Le habla Ana López, del equipo de la Dra. Maria Fernandes. Vi que nos escribió después de conocer Nitrix. ¿Con quién tengo el gusto?',
+            '¡Bienvenido! Soy Ana López, del equipo de la Dra. Maria Fernandes. Para acompañar su atención de forma más personal, ¿me comparte su nombre completo?',
+            'Hola, gracias por escribirnos. Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que viene de la presentación de Nitrix. ¿Me confirma su nombre completo, por favor?',
+            '¡Hola! Le saluda Ana López, del equipo de la Dra. Maria Fernandes. Será un gusto ayudarle. Antes de continuar, ¿cómo se llama?',
+            'Hola, soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó por la información de Nitrix. Para saber cómo llamarle, ¿me dice su nombre completo?',
+            '¡Qué gusto tenerle por aquí! Soy Ana López, del equipo de la Dra. Maria Fernandes. Para seguir con su atención, ¿me indica su nombre completo?',
+            'Hola, le habla Ana López, del equipo de la Dra. Maria Fernandes. Estoy aquí para ayudarle con cualquier duda sobre lo que vio. ¿Me comparte su nombre completo?',
+            '¡Hola! Soy Ana López, del equipo de la Dra. Maria Fernandes. Vi que llegó desde la presentación de Nitrix. Antes de seguir, ¿me confirma su nombre completo?',
+            'Hola, mucho gusto. Soy Ana López, del equipo de la Dra. Maria Fernandes. Para dejar su atención bien identificada, ¿podría decirme su nombre completo?'
         ]),
         proofPurpose: 'nitrix_prova',
         proofItems: Object.freeze([

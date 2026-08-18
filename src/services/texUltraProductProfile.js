@@ -15,10 +15,8 @@ export const TEX_ULTRA_EC_PRODUCT_PROFILE = Object.freeze({
         caption: 'Este es el producto oficial Tex Ultra Ecuador.'
     }),
     entry: Object.freeze({
-        audioNames: Object.freeze([
-            '01_B_Buenos_dias',
-            '01_C_Buenos_tardes'
-        ]),
+        universalAudioName: 'CONHECER_NECESSIDADES_CLIENTES',
+        audioNames: Object.freeze(['CONHECER_NECESSIDADES_CLIENTES']),
         proofPurpose: 'tex_ultra_prova_compartilhada',
         proofItems: Object.freeze([
             'image:social_01',

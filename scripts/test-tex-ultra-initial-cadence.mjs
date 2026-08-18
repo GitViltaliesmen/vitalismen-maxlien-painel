@@ -13,13 +13,13 @@ const minimumSteps = buildTexUltraInitialSteps({
     anchor,
     randomBetweenFn: (minimum) => minimum
 });
-assert.deepEqual(offsetsFrom(minimumSteps), [2000, 13000, 34000, 62000, 97000]);
+assert.deepEqual(offsetsFrom(minimumSteps), [2000, 6000, 27000, 55000, 90000]);
 
 const maximumSteps = buildTexUltraInitialSteps({
     anchor,
     randomBetweenFn: (_minimum, maximum) => maximum
 });
-assert.deepEqual(offsetsFrom(maximumSteps), [10000, 30000, 55000, 88000, 128000]);
+assert.deepEqual(offsetsFrom(maximumSteps), [6000, 14000, 39000, 72000, 112000]);
 
 for (const steps of [minimumSteps, maximumSteps]) {
     let previousDueAt = anchor.getTime();
@@ -34,10 +34,10 @@ for (const steps of [minimumSteps, maximumSteps]) {
 
 const resumed = buildTexUltraInitialSteps({
     anchor,
-    previous: { intro01: { sentAt: '2026-08-01T23:59:00.000Z' } },
+    previous: { greeting: { sentAt: '2026-08-01T23:59:00.000Z' } },
     randomBetweenFn: (minimum) => minimum
 });
-assert.equal(resumed.intro01.sentAt, '2026-08-01T23:59:00.000Z');
-assert.deepEqual(offsetsFrom(resumed).slice(1), [11000, 32000, 60000, 95000]);
+assert.equal(resumed.greeting.sentAt, '2026-08-01T23:59:00.000Z');
+assert.deepEqual(offsetsFrom(resumed).slice(1), [4000, 25000, 53000, 88000]);
 
-console.log('OK: cadencia inicial Tex Ultra usa intervalos cumulativos entre etapas (97-128s).');
+console.log('OK: cadencia inicial Tex Ultra envia texto e um unico audio antes das demais etapas (90-112s).');
