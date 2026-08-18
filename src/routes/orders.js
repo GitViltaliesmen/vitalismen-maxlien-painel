@@ -19,6 +19,10 @@ import {
     resolveEcuadorProductInfo,
     validateExplicitEcuadorProductSelection
 } from '../services/ecuadorProductService.js';
+import {
+    assertCustomerOrderDataReady,
+    resolveCustomerDataDraft
+} from '../services/customerDataResolutionService.js';
 
 const router = express.Router();
 
@@ -126,6 +130,61 @@ const appendAuditNote = (current = '', note = '') => {
     return `${prefix}[${new Date().toISOString()}] ${note}`.trim();
 };
 
+const resolveOrderCustomerData = ({
+    country = 'EC',
+    customer = {},
+    delivery = {},
+    previousResolution = null,
+    source = 'structured_form'
+} = {}) => resolveCustomerDataDraft({
+    draft: {
+        country,
+        name: customer?.name || '',
+        phone: customer?.phone || '',
+        city: customer?.city || '',
+        province: customer?.province || '',
+        address: customer?.address || '',
+        reference: customer?.reference || '',
+        deliveryMode: delivery?.mode || customer?.deliveryMode || '',
+        agencyId: delivery?.agencyId || customer?.agencyId || '',
+        agencyName: delivery?.agencyName || customer?.agencyName || ''
+    },
+    previousResolution,
+    conversationPhone: '',
+    source
+});
+
+const applyCustomerDataResolutionToOrder = (order, result) => {
+    const draft = result.draft;
+    order.customer = {
+        ...(order.customer?.toObject?.() || order.customer || {}),
+        name: draft.name || '',
+        phone: draft.phone || '',
+        city: draft.city || '',
+        province: draft.province || '',
+        address: draft.address || '',
+        reference: draft.reference || ''
+    };
+    order.delivery = {
+        mode: draft.deliveryMode || '',
+        agencyId: draft.agencyId || '',
+        agencyName: draft.agencyName || ''
+    };
+    order.customerDataResolution = result.resolution;
+    return order;
+};
+
+const sendCustomerDataResolutionError = (res, errorOrResolution) => {
+    const resolution = errorOrResolution?.resolution || errorOrResolution || {};
+    return res.status(422).json({
+        success: false,
+        error: 'customer_data_not_ready',
+        message: 'Pedido bloqueado: os dados do cliente ainda precisam de validação.',
+        reasons: resolution.blockedReasons || [],
+        customerDataResolution: resolution
+    });
+};
+
 const blankReviewQueueFilter = {
     $or: [
         { 'reviewQueue.status': { $exists: false } },
@@ -210,6 +269,7 @@ const sendBrazilTestOnlyError = (res) => res.status(409).json({
 });
 
 const markPurchaseEventForOrder = async (order, req) => {
+    assertCustomerOrderDataReady(order.customerDataResolution?.toObject?.() || order.customerDataResolution || {});
     if (!orderHasValidPackage(order)) {
         return { ok: false, skipped: true, reason: 'missing_valid_quantity', order };
     }
@@ -581,6 +641,7 @@ router.post('/draft', async (req, res) => {
             country,
             phone,
             name,
+            delivery,
             tracking,
             productKey,
             productName,
@@ -591,11 +652,12 @@ router.post('/draft', async (req, res) => {
             return res.status(400).json({ error: 'Country, phone and name are required' });
         }
 
-        // Validate name has at least 2 words
-        const nameParts = name.trim().split(/\s+/);
-        if (nameParts.length < 2) {
-            return res.status(400).json({ error: 'Full name must have at least 2 names' });
-        }
+        const resolvedCustomerData = resolveOrderCustomerData({
+            country,
+            customer: { phone, name },
+            delivery,
+            source: 'structured_form'
+        });
 
         const requestedProductInput = { productKey, productName, product, tracking };
         const hasRequestedProduct = hasExplicitProductSelectionInput(requestedProductInput);
@@ -630,8 +692,13 @@ router.post('/draft', async (req, res) => {
 
         if (existingDraft) {
             // Update the existing draft with latest name/formatting
-            existingDraft.customer.name = name;
-            existingDraft.customer.phone = phone; // update to latest format used by user
+            applyCustomerDataResolutionToOrder(existingDraft, resolveOrderCustomerData({
+                country,
+                customer: { ...(existingDraft.customer?.toObject?.() || existingDraft.customer || {}), phone, name },
+                delivery: delivery || existingDraft.delivery,
+                previousResolution: existingDraft.customerDataResolution?.toObject?.() || existingDraft.customerDataResolution || null,
+                source: 'structured_form'
+            }));
             existingDraft.updatedAt = new Date();
 
             if (tracking) {
@@ -670,13 +737,19 @@ router.post('/draft', async (req, res) => {
             country,
             currency,
             customer: {
-                phone: phone,
-                name: name,
+                phone: resolvedCustomerData.draft.phone,
+                name: resolvedCustomerData.draft.name,
                 address: '',
                 reference: '',
                 city: '',
                 province: ''
             },
+            delivery: {
+                mode: resolvedCustomerData.draft.deliveryMode,
+                agencyId: resolvedCustomerData.draft.agencyId,
+                agencyName: resolvedCustomerData.draft.agencyName
+            },
+            customerDataResolution: resolvedCustomerData.resolution,
             package: {
                 id: 0,
                 label: '',
@@ -751,6 +824,7 @@ router.patch('/draft/:id', async (req, res) => {
             total,
             tracking,
             purchaseIntent,
+            delivery,
             productKey,
             productName,
             product
@@ -785,6 +859,14 @@ router.patch('/draft/:id', async (req, res) => {
             if (customer.reference !== undefined) order.customer.reference = customer.reference || '';
             if (customer.city) order.customer.city = customer.city;
             if (customer.province) order.customer.province = customer.province;
+        }
+        if (delivery && typeof delivery === 'object') {
+            order.delivery = {
+                ...(order.delivery?.toObject?.() || order.delivery || {}),
+                ...(typeof delivery.mode === 'string' ? { mode: delivery.mode.trim() } : {}),
+                ...(typeof delivery.agencyId === 'string' ? { agencyId: delivery.agencyId.trim() } : {}),
+                ...(typeof delivery.agencyName === 'string' ? { agencyName: delivery.agencyName.trim() } : {})
+            };
         }
 
         // Update package if provided
@@ -827,6 +909,14 @@ router.patch('/draft/:id', async (req, res) => {
             };
         }
 
+        applyCustomerDataResolutionToOrder(order, resolveOrderCustomerData({
+            country: order.country,
+            customer: order.customer,
+            delivery: order.delivery,
+            previousResolution: order.customerDataResolution?.toObject?.() || order.customerDataResolution || null,
+            source: 'structured_form'
+        }));
+
         await order.save();
 
         res.json({
@@ -857,12 +947,6 @@ router.post('/draft/:id/submit', async (req, res) => {
             return res.status(404).json({ error: 'Draft not found' });
         }
 
-        // Validate required fields before submitting
-        if (!order.customer.name || !order.customer.phone ||
-            !order.customer.address || !order.customer.city || !order.customer.province) {
-            return res.status(400).json({ error: 'Incomplete customer data' });
-        }
-
         if (!order.package.id || order.total <= 0) {
             return res.status(400).json({ error: 'Package not selected' });
         }
@@ -885,6 +969,19 @@ router.post('/draft/:id/submit', async (req, res) => {
                 : strictEcuadorProductSelection(storedProductInput);
             if (!productSelection.ok) return sendExplicitProductError(res, productSelection);
             submittedProduct = productSelection.product;
+        }
+
+        const resolvedCustomerData = resolveOrderCustomerData({
+            country: order.country,
+            customer: order.customer,
+            delivery: order.delivery,
+            previousResolution: order.customerDataResolution?.toObject?.() || order.customerDataResolution || null,
+            source: 'structured_form'
+        });
+        applyCustomerDataResolutionToOrder(order, resolvedCustomerData);
+        if (resolvedCustomerData.resolution.orderDataReady !== true) {
+            await order.save();
+            return sendCustomerDataResolutionError(res, resolvedCustomerData.resolution);
         }
 
         try {
@@ -948,7 +1045,7 @@ router.post('/draft/:id/submit', async (req, res) => {
 // POST /api/orders - Create order directly (public - from checkout)
 router.post('/', optionalPanelAuth, async (req, res) => {
     try {
-        const { country, customer, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product, previousOrderId } = req.body;
+        const { country, customer, delivery, packageId, packageLabel, total, currency, source = 'checkout', tracking, purchaseIntent, status, notes, productKey, productName, product, previousOrderId } = req.body;
 
         // Validation
         if (!country || !customer || !packageId || !total) {
@@ -957,10 +1054,6 @@ router.post('/', optionalPanelAuth, async (req, res) => {
         const normalizedPackageQuantity = normalizePackageQuantity(packageId);
         if (!normalizedPackageQuantity) {
             return res.status(400).json({ error: 'Quantidade valida obrigatoria: 1, 2, 3 ou 6 frascos.' });
-        }
-
-        if (!customer.name || !customer.phone || !customer.address || !customer.city || !customer.province) {
-            return res.status(400).json({ error: 'Incomplete customer data' });
         }
 
         if (isBrazilTestOnly({ phone: customer.phone, country })) {
@@ -989,7 +1082,6 @@ router.post('/', optionalPanelAuth, async (req, res) => {
             });
         }
         const initialStatus = requestedStatus || 'pending';
-
         const productSelection = productInfoFromOrderRequest({
             country,
             productKey,
@@ -1002,14 +1094,23 @@ router.post('/', optionalPanelAuth, async (req, res) => {
             return sendExplicitProductError(res, productSelection);
         }
         const productInfo = productSelection?.product || null;
+        const resolvedCustomerData = resolveOrderCustomerData({
+            country,
+            customer,
+            delivery,
+            source: 'structured_form'
+        });
+        if (initialStatus !== 'draft' && resolvedCustomerData.resolution.orderDataReady !== true) {
+            return sendCustomerDataResolutionError(res, resolvedCustomerData.resolution);
+        }
 
         try {
             await assertNoActiveDuplicateOrder({
-                phone: customer.phone,
+                phone: resolvedCustomerData.draft.phone,
                 country
             });
             await assertCashOnDeliveryEligible({
-                phone: customer.phone,
+                phone: resolvedCustomerData.draft.phone,
                 country
             });
         } catch (eligibilityError) {
@@ -1027,13 +1128,19 @@ router.post('/', optionalPanelAuth, async (req, res) => {
         const order = new Order({
             country,
             customer: {
-                name: customer.name,
-                phone: customer.phone,
-                address: customer.address,
-                reference: customer.reference || '',
-                city: customer.city,
-                province: customer.province
+                name: resolvedCustomerData.draft.name,
+                phone: resolvedCustomerData.draft.phone,
+                address: resolvedCustomerData.draft.address,
+                reference: resolvedCustomerData.draft.reference,
+                city: resolvedCustomerData.draft.city,
+                province: resolvedCustomerData.draft.province
             },
+            delivery: {
+                mode: resolvedCustomerData.draft.deliveryMode,
+                agencyId: resolvedCustomerData.draft.agencyId,
+                agencyName: resolvedCustomerData.draft.agencyName
+            },
+            customerDataResolution: resolvedCustomerData.resolution,
             package: {
                 id: normalizedPackageQuantity,
                 label: productAwarePackageLabel({
@@ -1087,7 +1194,7 @@ router.post('/', optionalPanelAuth, async (req, res) => {
 // PATCH /api/orders/:id - Update order status (authenticated)
 router.patch('/:id', authMiddleware, async (req, res) => {
     try {
-        const { status, notes, trackingNumber, purchaseIntent, customer, package: packageData, total, productKey, productName, product } = req.body;
+        const { status, notes, trackingNumber, purchaseIntent, customer, delivery, package: packageData, total, productKey, productName, product } = req.body;
         const nextStatus = normalizeOrderStatus(status);
 
         const order = await Order.findOne({ orderId: req.params.id });
@@ -1136,6 +1243,14 @@ router.patch('/:id', authMiddleware, async (req, res) => {
                 }
             });
         }
+        if (delivery && typeof delivery === 'object') {
+            order.delivery = {
+                ...(order.delivery?.toObject?.() || order.delivery || {}),
+                ...(typeof delivery.mode === 'string' ? { mode: delivery.mode.trim() } : {}),
+                ...(typeof delivery.agencyId === 'string' ? { agencyId: delivery.agencyId.trim() } : {}),
+                ...(typeof delivery.agencyName === 'string' ? { agencyName: delivery.agencyName.trim() } : {})
+            };
+        }
         if (packageData && typeof packageData === 'object') {
             if (Object.prototype.hasOwnProperty.call(packageData, 'quantity')) {
                 const normalizedQuantity = normalizePackageQuantity(packageData.quantity);
@@ -1166,7 +1281,20 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             };
         }
 
+        const resolvedCustomerData = resolveOrderCustomerData({
+            country: order.country,
+            customer: order.customer,
+            delivery: order.delivery,
+            previousResolution: order.customerDataResolution?.toObject?.() || order.customerDataResolution || null,
+            source: 'structured_form'
+        });
+        applyCustomerDataResolutionToOrder(order, resolvedCustomerData);
+
         if (nextStatus === 'confirmed') {
+            if (resolvedCustomerData.resolution.orderDataReady !== true) {
+                await order.save();
+                return sendCustomerDataResolutionError(res, resolvedCustomerData.resolution);
+            }
             try {
                 await assertNoActiveDuplicateOrder({
                     phone: order.customer?.phone,
@@ -1219,6 +1347,18 @@ router.post('/:id/confirm-payment', authMiddleware, async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found' });
         if (isBrazilTestOnly({ phone: order.customer?.phone, country: order.country })) {
             return sendBrazilTestOnlyError(res);
+        }
+        const resolvedCustomerData = resolveOrderCustomerData({
+            country: order.country,
+            customer: order.customer,
+            delivery: order.delivery,
+            previousResolution: order.customerDataResolution?.toObject?.() || order.customerDataResolution || null,
+            source: 'structured_form'
+        });
+        applyCustomerDataResolutionToOrder(order, resolvedCustomerData);
+        if (resolvedCustomerData.resolution.orderDataReady !== true) {
+            await order.save();
+            return sendCustomerDataResolutionError(res, resolvedCustomerData.resolution);
         }
         try {
             await assertNoActiveDuplicateOrder({

@@ -12,6 +12,11 @@ import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntr
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPriceForQuantity, texUltraPublicOfferText } from './texUltraProductProfile.js';
 import { interruptTexUltraInitialLayerOnInbound, startTexUltraInitialLayer } from './texUltraInitialLayerService.js';
 import { sendTexUltraConfirmedPostSaleAudios } from './texUltraConfirmedPostSaleLayerService.js';
+import {
+    assertCustomerOrderDataReady,
+    CUSTOMER_DATA_STATUS,
+    resolveCustomerDataDraft
+} from './customerDataResolutionService.js';
 
 const AGENT_KEY = TEX_ULTRA_EC_PRODUCT_PROFILE.key;
 export const texUltraFunnelEnabled = (env = process.env) => String(env.TEX_ULTRA_FUNNEL_ENABLED || 'false').toLowerCase() === 'true';
@@ -133,9 +138,56 @@ export const texUltraInboundNeedsHuman = (text = '') => {
 };
 const affirmative = (text = '') => /^(si|correcto|confirmo|esta correcto|todo correcto|ok|listo)\b/.test(normalize(text));
 const negative = (text = '') => /^(no|corregir|incorrecto|cambiar)\b/.test(normalize(text));
-const looksLikeFullName = (text = '') => {
-    const parts = String(text || '').trim().split(/\s+/).filter(Boolean);
-    return parts.length >= 2 && parts.length <= 6 && parts.every((part) => /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'-]{2,}$/.test(part));
+const acceptedResolvedName = (resolution = {}) => ['VERIFIED', 'HIGH_CONFIDENCE'].includes(resolution?.fields?.name?.validation_status);
+
+export const texUltraDeliveryData = (text = '') => {
+    const raw = String(text || '').trim();
+    const normalized = normalize(raw);
+    if (/\b(agencia|servientrega|oficina|retiro|retirar)\b/.test(normalized)) {
+        return { deliveryMode: 'agency', agencyName: raw, address: raw };
+    }
+    if (/\b(domicilio|casa|residencia|calle|avenida|av\.?|barrio|sector|manzana|mz\.?|edificio|departamento)\b/.test(normalized)) {
+        return { deliveryMode: 'home', address: raw };
+    }
+    return { deliveryMode: '', address: raw };
+};
+
+const resolveTexUltraDraft = ({ state, draft, source, sourceMessageId = '', confirmedByCustomerFields = [] }) => {
+    const result = resolveCustomerDataDraft({
+        draft,
+        previousResolution: state.customerDataResolution?.version ? state.customerDataResolution.toObject?.() || state.customerDataResolution : null,
+        conversationPhone: state.phoneDigits || state.chatId || draft.phone || '',
+        source,
+        sourceMessageId,
+        confirmedByCustomerFields
+    });
+    state.customerDataResolution = result.resolution;
+    state.markModified('customerDataResolution');
+    return result;
+};
+
+const dataGatePrompt = (resolution = {}) => {
+    const reason = resolution.blockedReasons?.[0] || '';
+    if (reason === 'NAME_SEGMENTATION_REQUIRED' || reason === 'NAME_NOT_RESOLVED') {
+        return 'Para registrar correctamente su pedido, ¿me confirma por favor su nombre completo, con nombres y apellidos separados?';
+    }
+    if (reason === 'CITY_NOT_CANONICAL' || reason === 'LOCATION_CONFLICT' || reason === 'PROVINCE_NOT_RESOLVED') {
+        return 'Antes de confirmar, necesito corregir la ciudad y la provincia. ¿Me las indica nuevamente, por favor?';
+    }
+    if (reason === 'DELIVERY_MODE_REQUIRED') return '¿Prefiere entrega a domicilio o retiro en una agencia Servientrega?';
+    if (reason === 'HOME_ADDRESS_REQUIRED') return 'Envíeme por favor la dirección completa para la entrega a domicilio.';
+    if (reason === 'AUTHORIZED_AGENCY_REQUIRED' || reason === 'AGENCY_LOCATION_CONFLICT') {
+        return 'Necesito una agencia Servientrega autorizada de su ciudad. Envíeme el nombre exacto de la agencia, por favor.';
+    }
+    return 'Antes de confirmar, un asesor revisará los datos que todavía necesitan validación.';
+};
+
+const dataGateStage = (resolution = {}) => {
+    const reason = resolution.blockedReasons?.[0] || '';
+    if (reason === 'NAME_SEGMENTATION_REQUIRED' || reason === 'NAME_NOT_RESOLVED') return 'awaiting_name_resolution';
+    if (reason === 'CITY_NOT_CANONICAL' || reason === 'LOCATION_CONFLICT' || reason === 'PROVINCE_NOT_RESOLVED') return 'awaiting_city';
+    if (['DELIVERY_MODE_REQUIRED', 'HOME_ADDRESS_REQUIRED', 'AUTHORIZED_AGENCY_REQUIRED', 'AGENCY_LOCATION_CONFLICT'].includes(reason)) return 'awaiting_address';
+    return 'data_quality_handoff';
 };
 
 const saveState = async (state, { memory = memoryOf(state), draft = draftOf(state), stage = memory.stage || 'presentation' } = {}) => {
@@ -285,6 +337,8 @@ const confirmationText = (draft = {}) => [
 ].join('\n');
 
 const createOrConfirmOrder = async (state, draft) => {
+    const resolution = state.customerDataResolution?.toObject?.() || state.customerDataResolution || {};
+    assertCustomerOrderDataReady(resolution);
     const phone = digitsOnly(draft.phone || state.phoneDigits || state.chatId);
     let order = await Order.findOne({
         country: 'EC',
@@ -302,6 +356,12 @@ const createOrConfirmOrder = async (state, draft) => {
             city: draft.city,
             province: draft.province
         },
+        delivery: {
+            mode: draft.deliveryMode || '',
+            agencyId: draft.agencyId || '',
+            agencyName: draft.agencyName || ''
+        },
+        customerDataResolution: resolution,
         package: {
             id: Number(draft.quantity),
             quantity: Number(draft.quantity),
@@ -343,7 +403,7 @@ const createOrConfirmOrder = async (state, draft) => {
     return order;
 };
 
-export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inboundText = '', sessionId = null } = {}) => {
+export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inboundText = '', sessionId = null, sourceMessageId = '' } = {}) => {
     if (!texUltraFunnelEnabled()) return false;
     if (!contactStateId) return false;
     const state = await ContactState.findById(contactStateId);
@@ -356,11 +416,52 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     let memory = memoryOf(state);
     let draft = { ...draftOf(state), phone: draftOf(state).phone || (state.phoneDigits ? `+${digitsOnly(state.phoneDigits)}` : '') };
     const vslPayload = texUltraVslPayloadData(inboundText);
+
+    if (memory.stage === 'awaiting_name_resolution' && !vslPayload) {
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, name: String(inboundText || '').trim(), name_raw: String(inboundText || '').trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['name']
+        });
+        draft = resolved.draft;
+        if (!acceptedResolvedName(resolved.resolution)) {
+            state.human = {
+                ...(state.human || {}),
+                mode: 'manual',
+                pausedUntil: null,
+                lastManualAt: new Date(),
+                lastManualBy: 'customer_data_resolution_v28',
+                note: 'Nome continuou ambiguo após a única pergunta automática; revisão humana obrigatória.'
+            };
+            state.tags = [...new Set([...(state.tags || []), 'CUSTOMER_DATA_REVIEW', 'NAME_REVIEW_REQUIRED'])];
+            await saveState(state, { memory, draft, stage: 'name_resolution_handoff' });
+            return true;
+        }
+        memory = await saveState(state, {
+            memory: { ...memory, nameConfirmedAt: new Date().toISOString(), nameConfirmationMessageId: sourceMessageId },
+            draft,
+            stage: 'presentation'
+        });
+    }
+
     if (vslPayload) {
         const mergedDraft = mergeTexUltraVslPayloadDraft(draft, vslPayload);
-        if (JSON.stringify(mergedDraft) !== JSON.stringify(draft)) {
-            draft = mergedDraft;
-            memory = await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
+        const resolved = resolveTexUltraDraft({ state, draft: mergedDraft, source: 'explicit_label', sourceMessageId });
+        draft = resolved.draft;
+        memory = await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
+        if (resolved.resolution.fields?.name?.validation_status === CUSTOMER_DATA_STATUS.SEGMENTATION_REQUIRED) {
+            if (!memory.nameSegmentationQuestionSentAt) {
+                const sent = await sendFunnelText({
+                    state,
+                    text: 'Para registrar correctamente su pedido, ¿me confirma por favor su nombre completo, con nombres y apellidos separados?',
+                    context: 'tex_ultra_name_segmentation_v28'
+                });
+                if (sent) memory.nameSegmentationQuestionSentAt = new Date().toISOString();
+            }
+            await saveState(state, { memory, draft, stage: 'awaiting_name_resolution' });
+            return true;
         }
     }
     const quantity = texUltraSelectedQuantity(inboundText);
@@ -375,7 +476,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         return true;
     }
 
-    const dataCollectionStages = new Set(['awaiting_name', 'awaiting_city', 'awaiting_province', 'awaiting_address', 'awaiting_reference']);
+    const dataCollectionStages = new Set(['awaiting_name', 'awaiting_name_resolution', 'awaiting_city', 'awaiting_province', 'awaiting_address', 'awaiting_reference']);
     if (interruptedInboundRoute === 'quantity' && quantity && !dataCollectionStages.has(memory.stage)) {
         const selected = texUltraPriceForQuantity(quantity);
         if (!selected) return true;
@@ -449,40 +550,112 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     }
 
     if (memory.stage === 'awaiting_name') {
-        if (!looksLikeFullName(inboundText)) {
-            await sendFunnelText({ state, text: 'Para evitar errores en el pedido, necesito nombre y apellido. ¿Me los confirma, por favor?', context: 'tex_ultra_name_retry' });
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, name: String(inboundText).trim(), name_raw: String(inboundText).trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['name']
+        });
+        draft = resolved.draft;
+        if (!acceptedResolvedName(resolved.resolution)) {
+            await sendFunnelText({ state, text: dataGatePrompt(resolved.resolution), context: 'tex_ultra_name_retry' });
+            await saveState(state, { memory, draft, stage: 'awaiting_name' });
             return true;
         }
-        draft = { ...draft, name: String(inboundText).trim() };
         await sendFunnelText({ state, text: 'Gracias. ¿En que ciudad de Ecuador desea recibir o retirar el pedido?', context: 'tex_ultra_ask_city' });
         await saveState(state, { memory, draft, stage: 'awaiting_city' });
         return true;
     }
     if (memory.stage === 'awaiting_city') {
-        draft = { ...draft, city: String(inboundText).trim() };
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, city: String(inboundText).trim(), city_raw: String(inboundText).trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['city']
+        });
+        draft = resolved.draft;
+        if (!['VERIFIED', 'CANONICAL'].includes(resolved.resolution.fields?.city?.validation_status)) {
+            await sendFunnelText({ state, text: 'No pude validar esa ciudad en Ecuador. ¿Me confirma la ciudad nuevamente?', context: 'tex_ultra_city_retry_v28' });
+            await saveState(state, { memory, draft, stage: 'awaiting_city' });
+            return true;
+        }
+        if (resolved.resolution.fields?.province?.validation_status === CUSTOMER_DATA_STATUS.AUTO_FROM_CITY) {
+            await sendFunnelText({ state, text: 'Gracias. ¿Prefiere entrega a domicilio o retiro en una agencia Servientrega? Envieme la direccion o el nombre de la agencia.', context: 'tex_ultra_ask_address' });
+            await saveState(state, { memory, draft, stage: 'awaiting_address' });
+            return true;
+        }
         await sendFunnelText({ state, text: '¿A que provincia pertenece?', context: 'tex_ultra_ask_province' });
         await saveState(state, { memory, draft, stage: 'awaiting_province' });
         return true;
     }
     if (memory.stage === 'awaiting_province') {
-        draft = { ...draft, province: String(inboundText).trim() };
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, province: String(inboundText).trim(), province_raw: String(inboundText).trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['province']
+        });
+        draft = resolved.draft;
+        if (resolved.resolution.conflicts?.length || !['VERIFIED', 'CANONICAL', 'AUTO_FROM_CITY'].includes(resolved.resolution.fields?.province?.validation_status)) {
+            await sendFunnelText({ state, text: 'La ciudad y la provincia no coinciden en el registro de Ecuador. ¿Me confirma ambas nuevamente?', context: 'tex_ultra_location_conflict_v28' });
+            await saveState(state, { memory, draft: { ...draft, city: '', city_raw: '', province: '', province_raw: '' }, stage: 'awaiting_city' });
+            return true;
+        }
         await sendFunnelText({ state, text: '¿Prefiere entrega a domicilio o retiro en una agencia Servientrega? Envieme la direccion o el nombre de la agencia.', context: 'tex_ultra_ask_address' });
         await saveState(state, { memory, draft, stage: 'awaiting_address' });
         return true;
     }
     if (memory.stage === 'awaiting_address') {
-        draft = { ...draft, address: String(inboundText).trim() };
+        const delivery = texUltraDeliveryData(inboundText);
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, ...delivery, address_raw: String(inboundText).trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['deliveryMode', 'address', ...(delivery.deliveryMode === 'agency' ? ['agency'] : [])]
+        });
+        draft = resolved.draft;
+        if (!draft.deliveryMode) {
+            await sendFunnelText({ state, text: '¿Prefiere domicilio o agencia Servientrega? Indique primero una de esas dos opciones.', context: 'tex_ultra_delivery_mode_retry_v28' });
+            await saveState(state, { memory, draft, stage: 'awaiting_address' });
+            return true;
+        }
+        if (draft.deliveryMode === 'agency' && resolved.resolution.fields?.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED) {
+            await sendFunnelText({ state, text: 'No pude validar esa agencia en el catálogo autorizado. Envíeme el nombre exacto de la agencia Servientrega de su ciudad.', context: 'tex_ultra_agency_retry_v28' });
+            await saveState(state, { memory, draft, stage: 'awaiting_address' });
+            return true;
+        }
         await sendFunnelText({ state, text: 'Indiqueme un punto de referencia para completar la entrega.', context: 'tex_ultra_ask_reference' });
         await saveState(state, { memory, draft, stage: 'awaiting_reference' });
         return true;
     }
     if (memory.stage === 'awaiting_reference') {
-        draft = { ...draft, reference: String(inboundText).trim() };
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: { ...draft, reference: String(inboundText).trim(), reference_raw: String(inboundText).trim() },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['reference']
+        });
+        draft = resolved.draft;
         await sendFunnelText({ state, text: confirmationText(draft), context: 'tex_ultra_confirmation' });
         await saveState(state, { memory, draft, stage: 'awaiting_confirmation' });
         return true;
     }
     if (memory.stage === 'awaiting_confirmation' && affirmative(inboundText)) {
+        const resolution = state.customerDataResolution?.toObject?.() || state.customerDataResolution || {};
+        if (resolution.orderDataReady !== true) {
+            await sendFunnelText({ state, text: dataGatePrompt(resolution), context: 'tex_ultra_order_data_gate_v28' });
+            const nextStage = dataGateStage(resolution);
+            if (nextStage === 'data_quality_handoff') {
+                state.human = { ...(state.human || {}), mode: 'manual', pausedUntil: null, lastManualAt: new Date(), lastManualBy: 'customer_data_resolution_v28', note: 'Pedido bloqueado pelo gate V28; revisão humana necessária.' };
+            }
+            await saveState(state, { memory, draft, stage: nextStage });
+            return true;
+        }
         const order = await createOrConfirmOrder(state, draft);
         draft = { ...draft, status: 'confirmed', orderId: order.orderId };
         state.human = { ...(state.human || {}), mode: 'manual', lastManualBy: 'tex_ultra_funnel', lastManualAt: new Date(), note: 'Venda Tex Ultra confirmada; Dropi permanece bloqueado.' };

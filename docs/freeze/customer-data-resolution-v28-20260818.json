@@ -1,0 +1,113 @@
+{
+  "freezeId": "customer-data-resolution-v28-20260818",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-18T15:51:55Z",
+  "country": "EC",
+  "parentFreezeId": "tex-ultra-vsl-payload-v27-20260818",
+  "parentManifestSha256": "604c527b5499ea5c764f8c2ef6c2b2776f7e4ebe9bd3c06e93ae8be208854758",
+  "baseCommit": "15b9857f7b6e33975af52a5f61f797cd7468e102",
+  "publicationStatus": "local_candidate_not_authorized",
+  "stagingStatus": "approved_local_synthetic_only",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T15:51:55Z",
+    "scope": "implement_v28_customer_identity_location_delivery_without_deploy"
+  },
+  "operatorPublicationApproval": {
+    "status": "required_explicit",
+    "approvedAt": "",
+    "scope": "controlled_deploy_v28_after_explicit_operator_approval"
+  },
+  "operatorStagingApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T16:20:00Z",
+    "scope": "freeze_commit_and_local_synthetic_staging_without_production"
+  },
+  "requiresWrittenAuthorizationToChange": true,
+  "diagnosis": {
+    "v27ExtractedNameCityProvince": true,
+    "v27PersistedPerFieldProvenance": false,
+    "v27BlockedSuspiciousNameSegmentation": false,
+    "v27EnforcedCanonicalLocationAndDeliveryGate": false,
+    "v28UsesOnlyAuthorizedInternalRegistry": true,
+    "externalGeoAdapterUsed": false,
+    "testMessagesSent": false,
+    "productionInspectedOrChanged": false
+  },
+  "policy": {
+    "preserveRaw": true,
+    "neverInventNameSegmentation": true,
+    "registryDecidesLocation": true,
+    "authorizedAgencyRegistryOnly": true,
+    "humanOverrideLock": true,
+    "orderDataGate": true,
+    "v27BehaviorPreserved": true,
+    "vslChanged": false,
+    "productionChanged": false
+  },
+  "preservation": {
+    "v27Preserved": true,
+    "priorDeployAuthorizationReused": false,
+    "productsChanged": false,
+    "pricesChanged": false,
+    "cadenceChanged": false,
+    "audiosChanged": false,
+    "imagesChanged": false,
+    "vslChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "zapiChanged": false,
+    "whatsappNumberChanged": false,
+    "productionDatabaseChanged": false,
+    "currentChanged": false,
+    "pm2Changed": false,
+    "servicesChanged": false,
+    "realMessageSentDuringValidation": false
+  },
+  "declaredParentOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/index.js",
+    "src/services/texUltraFunnelService.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/CUSTOMER_IDENTITY_LOCATION_DELIVERY_FREEZE_V28_20260818.md",
+    "public/qr.html",
+    "scripts/assert-customer-data-resolution-approved-v28.mjs",
+    "scripts/guard-customer-data-resolution-v28.mjs",
+    "src/models/ContactState.js",
+    "src/models/Order.js",
+    "src/routes/orders.js",
+    "src/routes/whatsapp.js",
+    "src/services/conversationEngine.js",
+    "src/services/customerDataResolutionFreezeRuntimeGuardV28.js",
+    "src/services/customerDataResolutionService.js",
+    "tests/customer-data-resolution-v28-integration.test.mjs",
+    "tests/customer-data-resolution-v28.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "2748a7157e4f6e7918561dbc162d1969f110a35da065797cabe9f28b9b962ded",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "9f9020ed6563c6f302db8e2f04e443d6732933c8e8c2e83667f5508e99dcdeef",
+    "docs/ARQUIVOS_OFICIAIS.md": "38806e5315cd9708b3b03368fa7877667e17abb414e627272ddfae08491c95aa",
+    "docs/CUSTOMER_IDENTITY_LOCATION_DELIVERY_FREEZE_V28_20260818.md": "e0750a1c2d544ef6ab9b2aab99b7f7af20e68db84cf5850e185e5b3839ec12ee",
+    "package.json": "fa1c8dd3b619bf3c92fab67cc2ee0a20ac53e676ad4b8f898940a8e1aa78a5f2",
+    "public/qr.html": "494ac5047ed3177eef727321f2c25031d6f5c09e0208aa5be78c2070555b72b7",
+    "scripts/assert-customer-data-resolution-approved-v28.mjs": "777cbe5c8ed2924b9ed947295938cf5c134b5e5ff7a09fd30e8478a7bf24056c",
+    "scripts/guard-customer-data-resolution-v28.mjs": "ecd28efcf327d10855ec9c7225aad4a8d52199e8cc49de1617bd83bad54fe640",
+    "src/index.js": "df7e94ed0ce720aab8469774c5f72bfd2c1f252bc82826cb6a2565cb327dbe60",
+    "src/models/ContactState.js": "c201f4bea6f74ae84e5e08763c941ae00afd548053cef40e4683df058d2d7634",
+    "src/models/Order.js": "e7d23306651dacad33f8160027edabf72ee06f9fadd4bfc9cdd9d2d12e077cc9",
+    "src/routes/orders.js": "1622ae6a9ce1252b956faf690719fe438aa7a90cdff1c9826753e5d02c4f5457",
+    "src/routes/whatsapp.js": "32d80e0c3adb37ef565624567f2cb9b8aa755232842cb8ba3ef15d99f1ea1d74",
+    "src/services/conversationEngine.js": "c49df7a3bb35a2e5d84ccaa7e352b34256e02bd893bdf80d25118752b73b26b2",
+    "src/services/customerDataResolutionFreezeRuntimeGuardV28.js": "62bd79ed018f602555c8c5b09855140968f2194f5b10dd0469f93fdb00929ef1",
+    "src/services/customerDataResolutionService.js": "f4c05dc849ca3a4bdf86cc8e9739cb9581f604889af450b5e3aa075a9c0f9e3f",
+    "src/services/texUltraFunnelService.js": "7e2fc9e69c573e73bd092aca8b630a10a9eacc9eb1900bec6c8e6761d87bb780",
+    "tests/customer-data-resolution-v28-integration.test.mjs": "abbd2b67c1447ca97d64af213bcf557b0738268702ecddf6b3af9b98383a06ad",
+    "tests/customer-data-resolution-v28.test.mjs": "c2377e0669a2cbb56d23fbed355f31c647ea3595a4e527ea9ba48dc049e33f25",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "405cfbcf19ebaba549cc47b693dfde35f40a22343e2988ab147cfc392b739103"
+  }
+}

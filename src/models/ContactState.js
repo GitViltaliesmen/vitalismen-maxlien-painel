@@ -2,6 +2,19 @@ import mongoose from 'mongoose';
 
 const EC_AGENT_KEYS = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
 
+const customerDataResolutionSchema = new mongoose.Schema({
+    version: { type: Number, default: 28 },
+    country: { type: String, enum: ['', 'EC'], default: '' },
+    fields: { type: mongoose.Schema.Types.Mixed, default: {} },
+    conflicts: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    qualityScore: { type: Number, min: 0, max: 100, default: 0 },
+    orderDataReady: { type: Boolean, default: false, index: true },
+    blockedReasons: { type: [String], default: [] },
+    nextRequiredField: { type: String, default: '' },
+    evaluatedAt: Date,
+    externalGeoAdapter: { type: mongoose.Schema.Types.Mixed, default: {} }
+}, { _id: false, strict: false });
+
 const contactStateSchema = new mongoose.Schema({
     chatId: {
         type: String,
@@ -129,6 +142,10 @@ const contactStateSchema = new mongoose.Schema({
         },
         cancelledAt: Date
     },
+    customerDataResolution: {
+        type: customerDataResolutionSchema,
+        default: () => ({})
+    },
     metadata: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
@@ -139,6 +156,7 @@ const contactStateSchema = new mongoose.Schema({
 
 contactStateSchema.index({ assignedAgent: 1, countryCode: 1 });
 contactStateSchema.index({ 'human.mode': 1, 'human.assignedTo': 1 });
+contactStateSchema.index({ 'customerDataResolution.orderDataReady': 1, updatedAt: -1 });
 contactStateSchema.index({
     'buyLaterReminder.active': 1,
     'buyLaterReminder.sentAt': 1,

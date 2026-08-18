@@ -8062,7 +8062,8 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             const handled = await handleTexUltraFunnelInbound({
                 contactStateId: msg.contactStateId,
                 inboundText: text,
-                sessionId: msg.sessionId || null
+                sessionId: msg.sessionId || null,
+                sourceMessageId: msg.id || ''
             });
             if (handled) {
                 console.log(`[TEX-ULTRA] entrada tratada no funil isolado -> ${chatId}`);

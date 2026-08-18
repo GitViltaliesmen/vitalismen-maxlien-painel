@@ -19,6 +19,23 @@ const orderSchema = new mongoose.Schema({
         city: { type: String, default: '' },
         province: { type: String, default: '' }
     },
+    delivery: {
+        mode: { type: String, enum: ['', 'home', 'agency'], default: '' },
+        agencyId: { type: String, default: '' },
+        agencyName: { type: String, default: '' }
+    },
+    customerDataResolution: {
+        version: { type: Number, default: 28 },
+        country: { type: String, enum: ['', 'EC'], default: '' },
+        fields: { type: mongoose.Schema.Types.Mixed, default: {} },
+        conflicts: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        qualityScore: { type: Number, min: 0, max: 100, default: 0 },
+        orderDataReady: { type: Boolean, default: false, index: true },
+        blockedReasons: { type: [String], default: [] },
+        nextRequiredField: { type: String, default: '' },
+        evaluatedAt: Date,
+        externalGeoAdapter: { type: mongoose.Schema.Types.Mixed, default: {} }
+    },
     package: {
         id: { type: Number, default: 0 },
         label: { type: String, default: '' },
