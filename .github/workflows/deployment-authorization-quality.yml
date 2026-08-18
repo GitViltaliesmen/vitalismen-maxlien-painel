@@ -44,6 +44,17 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Match the production Node.js path
+        shell: bash
+        run: |
+          selected_node="$(command -v node)"
+          if [[ ! -e /usr/bin/node ]]; then
+            sudo ln -s "$selected_node" /usr/bin/node
+          fi
+          test -x /usr/bin/node
+          test "$(readlink -f /usr/bin/node)" = "$(readlink -f "$selected_node")"
+          test "$(/usr/bin/node --version)" = "$(node --version)"
+
       - name: Verify tracked authorization inputs
         shell: bash
         run: |
