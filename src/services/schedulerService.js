@@ -206,7 +206,7 @@ export const startScheduler = () => {
     } else {
         console.log('[SCHEDULER] Atendimento/admin reconciliation disabled. Set ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED=true to enable.');
     }
-    if (flagEnabled('ADMIN_BUY_LATER_FOLLOWUP_ENABLED', true)) {
+    if (flagEnabled('ADMIN_BUY_LATER_FOLLOWUP_ENABLED', false)) {
         const intervalMinutes = parseNumber('ADMIN_BUY_LATER_FOLLOWUP_INTERVAL_MINUTES', 15);
         const intervalMs = Math.max(5, intervalMinutes) * 60 * 1000;
         setInterval(checkAdminBuyLaterFollowups, intervalMs);

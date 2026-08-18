@@ -2903,6 +2903,21 @@
             min-height: 38px;
         }
 
+        .customer-buy-later-date {
+            padding: 8px;
+            border: 1px solid #f0bd76;
+            border-radius: 9px;
+            background: #fff8ed;
+        }
+
+        .customer-buy-later-date small {
+            color: #8a4b08;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.35;
+            text-transform: none;
+        }
+
         .customer-action-hint {
             color: #475569;
             font-size: 11px;
@@ -8078,6 +8093,10 @@
                                 </label>
                                 <button id="confirmCustomerDataBtn" class="success" type="button" disabled>Salvar dados</button>
                             </div>
+                            <label id="customerBuyLaterDateField" class="customer-buy-later-date hidden">Data desejada para o pedido
+                                <input id="customerBuyLaterDateInput" type="date" autocomplete="off">
+                                <small>O bot enviará uma única mensagem nominal entre 4 e 3 dias antes, perguntando se pode preparar o pedido. Nenhum pedido será criado automaticamente.</small>
+                            </label>
                             <div id="customerActionHint" class="customer-action-hint">Selecione um cliente para ver a proxima acao.</div>
                         </div>
                         <label>Nome completo
@@ -9272,6 +9291,9 @@
                     id: lead.id,
                     country: lead.country || country || selectedPanelCountry(),
                     status: nextStatus,
+                    followup_at: nextStatus === 'comprar_depois'
+                        ? (customerDraft?.buyLaterFollowupAt || '')
+                        : '',
                     customerDraft
                 })
             });
@@ -10240,6 +10262,11 @@
             if (!input) return;
             const visual = statusVisualInfo(input.value);
             input.className = `status-select ${visual.selectClass}`;
+            const buyLater = normalizePanelStatus(input.value) === 'comprar_depois';
+            const dateField = el('customerBuyLaterDateField');
+            const dateInput = el('customerBuyLaterDateInput');
+            dateField?.classList.toggle('hidden', !buyLater);
+            if (dateInput) dateInput.required = buyLater;
         };
         const customerPricePresetsEc = [
             ['1', '39.99', 'USD 39.99', '1 frasco'],
@@ -10598,6 +10625,9 @@
                 address: el('customerAddressInput').value.trim(),
                 reference: el('customerReferenceInput').value.trim(),
                 status: normalizePanelStatus(el('customerStatusInput').value),
+                buyLaterFollowupAt: normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois'
+                    ? el('customerBuyLaterDateInput').value
+                    : '',
                 quantity: normalizeCustomerQuantityValue(el('customerQuantityInput').value),
                 total: el('customerTotalInput').value,
                 orderId: el('customerOrderInput').value.trim(),
@@ -14425,7 +14455,7 @@
                 state.customerSmartDetected = null;
                 renderFlowCorrectionStatus(null);
                 el('customerFormState').textContent = 'selecione um cliente';
-                ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
+                ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'customerBuyLaterDateInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
                 setInputValue('customerProductInput', 'nitrix_ec');
                 renderCustomerProductSelection(null);
                 setInputValue('customerCountryInput', 'EC');
@@ -14526,6 +14556,7 @@
                 renderCustomerProductSelection(chat);
                 setInputValue('customerPhoneInput', chat.phone || '');
                 setInputValue('customerStatusInput', chat.orderStatus || '');
+                setInputValue('customerBuyLaterDateInput', chat.customerDraft?.buyLaterFollowupAt || chat.buyLaterFollowupAt || '');
                 setInputValue('customerCityInput', chat.city || '');
                 setInputValue('customerProvinceInput', chat.province || '');
                 setInputValue('customerAddressInput', chat.address || '');
@@ -17756,6 +17787,9 @@
                 address: el('customerAddressInput').value.trim(),
                 reference: el('customerReferenceInput').value.trim(),
                 status: normalizePanelStatus(el('customerStatusInput').value),
+                buyLaterFollowupAt: normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois'
+                    ? el('customerBuyLaterDateInput').value
+                    : '',
                 quantity: normalizeCustomerQuantityValue(el('customerQuantityInput').value),
                 total: el('customerTotalInput').value,
                 orderId: formOrderId || chatOrderId
@@ -17788,6 +17822,10 @@
                 if (missing.length) {
                     throw new Error(`Complete antes de confirmar: ${missing.map((item) => item.label).join(', ')}.`);
                 }
+            }
+            if (customerDraft.status === 'comprar_depois' && !/^\d{4}-\d{2}-\d{2}$/.test(customerDraft.buyLaterFollowupAt || '')) {
+                el('customerBuyLaterDateInput').focus();
+                throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
             if (chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder) {
                 const payload = {
@@ -17894,6 +17932,7 @@
                 reference: customerDraft.reference,
                 orderId: customerDraft.orderId || state.selectedChat.orderId,
                 orderStatus: customerDraft.status,
+                buyLaterFollowupAt: customerDraft.buyLaterFollowupAt,
                 quantity: customerDraft.quantity,
                 total: customerDraft.total,
                 ...(draftCountry === 'EC' ? {
@@ -17989,6 +18028,14 @@
             const input = el('customerStatusInput');
             const previousStatus = normalizePanelStatus(input.dataset.prevStatus || state.selectedChat.orderStatus || 'novo');
             const nextStatus = normalizePanelStatus(input.value);
+            if (nextStatus === 'comprar_depois' && !el('customerBuyLaterDateInput').value) {
+                markCustomerFormDirty();
+                el('customerSyncHint').textContent = 'Escolha a data desejada para concluir Comprar depois.';
+                el('customerSyncBadge').textContent = 'aguarda data';
+                el('customerSyncBadge').className = 'badge orange';
+                el('customerBuyLaterDateInput').focus();
+                return;
+            }
             if (previousStatus !== nextStatus && !window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) {
                 input.value = previousStatus;
                 updateCustomerStatusStyle();
@@ -19358,16 +19405,16 @@
             if (!state.selectedChat) return;
             syncDetectedCustomerDataFromMessages(state.currentMessages || [], { operatorRequested: true });
         });
-        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
+        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerBuyLaterDateInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('input', () => {
                 markCustomerFormDirty();
-                if (id !== 'customerStatusInput') {
+                if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 900, source: 'input' });
                 }
             });
             el(id).addEventListener('change', () => {
                 markCustomerFormDirty();
-                if (id !== 'customerStatusInput') {
+                if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 450, source: 'change' });
                 }
             });
@@ -19396,6 +19443,7 @@
             });
         });
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
+        el('customerBuyLaterDateInput').addEventListener('change', autoSaveCustomerStatusChange);
         updateCustomerStatusStyle();
         applyCustomerCountryUi();
         el('customerCityInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
