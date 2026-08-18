@@ -3,6 +3,11 @@ import { execFileSync } from 'child_process';
 const confirm = process.env.EC_SAFE_DEPLOY_CONFIRM === 'YES';
 const activate = process.env.EC_SAFE_DEPLOY_ACTIVATE === 'YES';
 
+if (activate) {
+    console.error('[DEPLOY-INTEGRATION-V29.1] ativação direta bloqueada; use o helper root transacional com permit de uso único.');
+    process.exit(78);
+}
+
 const run = (cmd, args, options = {}) => {
     console.log(`$ ${cmd} ${args.join(' ')}`);
     execFileSync(cmd, args, {
@@ -28,10 +33,7 @@ if (!confirm) {
         'Para publicar depois da aprovacao escrita:',
         'EC_SAFE_DEPLOY_CONFIRM=YES npm run deploy:ec-safe',
         '',
-        'Para publicar e tambem ativar o release em /opt/vitalismen-automacao/current:',
-        'EC_SAFE_DEPLOY_CONFIRM=YES EC_SAFE_DEPLOY_ACTIVATE=YES npm run deploy:ec-safe',
-        '',
-        'Observacao: ativar/reiniciar producao continua sendo uma decisao explicita.'
+        'Ativação não é aceita por este comando; use o helper root transacional após staging e permit de uso único.'
     ].join('\n'));
     process.exit(1);
 }
@@ -41,6 +43,6 @@ run(process.execPath, ['scripts/deploy-vps-ready.mjs'], {
     env: {
         ...process.env,
         VITALISMEN_DEPLOY_CONFIRM: 'YES',
-        VITALISMEN_DEPLOY_ACTIVATE: activate ? 'YES' : (process.env.VITALISMEN_DEPLOY_ACTIVATE || '')
+        VITALISMEN_DEPLOY_ACTIVATE: ''
     }
 });
