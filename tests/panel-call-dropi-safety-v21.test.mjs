@@ -17,10 +17,10 @@ test('V21 sucede V20 sem publicar ou alterar producao', () => {
     assert.equal(manifest.policy.pricesChanged, false);
 });
 
-test('guard sucessor V26 e a unica entrada ativa da cadeia', () => {
+test('guard sucessor V29.1 e a unica entrada ativa da cadeia', () => {
     const index = read('src/index.js');
-    assert.match(index, /texUltraStrongIntentFreezeRuntimeGuardV26/);
-    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22|23|24|25)\.js';/m);
+    assert.match(index, /deployIntegrationFreezeRuntimeGuardV291/);
+    assert.doesNotMatch(index, /^import '.+(?:logisticsCleanChatFreezeRuntimeGuardV29|FreezeRuntimeGuardV(?:17|18|19|20|21|22|23|24|25|26|27|28))\.js';/m);
 });
 
 test('politica operacional de chamada permanece desligada no exemplo', () => {
@@ -75,7 +75,15 @@ test('workflow Node 20 e 22 preserva V21/V22 e protege os arquivos V23', () => {
         'src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js',
         'scripts/guard-tex-ultra-strong-intent-v26.mjs',
         'tests/tex-ultra-strong-intent-v26.test.mjs',
-        'docs/freeze/tex-ultra-strong-intent-v26-20260818.json'
+        'docs/freeze/tex-ultra-strong-intent-v26-20260818.json',
+        'src/services/texUltraVslPayloadFreezeRuntimeGuardV27.js',
+        'scripts/guard-tex-ultra-vsl-payload-v27.mjs',
+        'tests/tex-ultra-vsl-payload-v27.test.mjs',
+        'docs/freeze/tex-ultra-vsl-payload-v27-20260818.json',
+        'src/services/customerDataResolutionFreezeRuntimeGuardV28.js',
+        'scripts/guard-customer-data-resolution-v28.mjs',
+        'tests/customer-data-resolution-v28.test.mjs',
+        'docs/freeze/customer-data-resolution-v28-20260818.json'
     ]) {
         const occurrences = workflow.split(relativePath).length - 1;
         assert.ok(occurrences >= 3, `${relativePath} deve disparar PR, push e ser conferido pelo workflow`);

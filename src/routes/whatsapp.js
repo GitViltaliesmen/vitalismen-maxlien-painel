@@ -52,6 +52,15 @@ import {
     nextBuyLaterReminderState,
     normalizeBuyLaterDesiredDate
 } from '../services/adminBuyLaterFollowupService.js';
+import {
+    assertCustomerOrderDataReady,
+    CUSTOMER_DATA_STATUS,
+    resolveCustomerDataDraft
+} from '../services/customerDataResolutionService.js';
+import {
+    evaluateLogisticsOutbound,
+    publicLogisticsStateV29
+} from '../services/logisticsCommunicationV29.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2073,6 +2082,24 @@ const normalizePanelPackageQuantity = (quantity) => {
 
 const isValidPanelPackageQuantity = (quantity) => normalizePanelPackageQuantity(quantity) > 0;
 
+const PANEL_CUSTOMER_DATA_FIELDS = new Set(['name', 'city', 'province', 'address', 'reference', 'deliveryMode', 'agency']);
+
+const panelCorrectionFields = (confirmation = {}) => (
+    [...new Set(Array.isArray(confirmation?.correctedByHumanFields) ? confirmation.correctedByHumanFields : [])]
+        .filter((field) => PANEL_CUSTOMER_DATA_FIELDS.has(field))
+);
+
+export const resolvePanelCustomerData = ({ state = null, draft = {}, confirmation = {}, sourceMessageId = '' } = {}) => (
+    resolveCustomerDataDraft({
+        draft,
+        previousResolution: state?.customerDataResolution?.toObject?.() || state?.customerDataResolution || null,
+        conversationPhone: state?.phoneDigits || state?.chatId || draft.phone || '',
+        source: 'structured_form',
+        sourceMessageId,
+        correctedByHumanFields: panelCorrectionFields(confirmation)
+    })
+);
+
 const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = false) => {
     if (internalOrTest) return false;
     if (normalizePanelStatus(draft.status) !== 'confirmado') return false;
@@ -2082,6 +2109,7 @@ const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = fals
     if (!isValidPanelPackageQuantity(draft.quantity)) return false;
     const total = Number.parseFloat(String(draft.total || '0').replace(',', '.')) || 0;
     if (total <= 0) return false;
+    if (draft.dataQuality?.version === 28 && draft.dataQuality?.orderDataReady !== true) return false;
     return ['name', 'phone', 'city', 'province', 'address', 'quantity', 'total']
         .every((field) => String(draft[field] || '').trim());
 };
@@ -2262,6 +2290,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
         return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
     }
+    const customerDataResolution = state?.customerDataResolution?.toObject?.() || state?.customerDataResolution || {};
+    assertCustomerOrderDataReady(customerDataResolution);
     const sourceOrderId = String(draft.orderId || '').trim();
     const sourceIsAdminOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(sourceOrderId);
     const phoneDigits = digitsOnly(draft.phone);
@@ -2303,6 +2333,12 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
             address: String(draft.address || '').trim(),
             reference: String(draft.reference || '').trim()
         },
+        delivery: {
+            mode: String(draft.deliveryMode || '').trim(),
+            agencyId: String(draft.agencyId || '').trim(),
+            agencyName: String(draft.agencyName || '').trim()
+        },
+        customerDataResolution,
         package: {
             id: quantity,
             label: ecuadorPackageLabel(productInfo, quantity),
@@ -2599,13 +2635,14 @@ const recordManualOutboundMessage = async ({
     providerMessageId = '',
     providerZaapId = '',
     providerStatus = '',
-    providerPayload = null
+    providerPayload = null,
+    clientGeneratedId = ''
 }) => {
     const chatId = resolveChatId(phone);
     const digits = String(phone || '').replace(/\D/g, '');
-    if (!chatId) return;
+    if (!chatId) return null;
 
-    await Message.create({
+    const manualRecord = {
         _id: `manual_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
         chatId,
         peerPhone: digits,
@@ -2617,6 +2654,9 @@ const recordManualOutboundMessage = async ({
         timestamp: Math.floor(Date.now() / 1000),
         isFromMe: true,
         isBot: false,
+        senderRole: type === 'system' ? 'system' : 'human',
+        attendantId: user?._id?.toString?.() || 'ana_lopez',
+        clientGeneratedId: String(clientGeneratedId || '').trim(),
         sessionId: sessionId || '',
         ownerPhoneDigits: digitsOnly(sessionId),
         notifyName: user?.name || user?.email || '',
@@ -2630,7 +2670,72 @@ const recordManualOutboundMessage = async ({
         providerZaapId,
         providerStatus,
         providerPayload
-    }).catch(() => null);
+    };
+
+    const providerIdentity = [
+        providerMessageId ? { providerMessageId } : null,
+        providerZaapId ? { providerZaapId } : null
+    ].filter(Boolean);
+    if (providerIdentity.length) {
+        const existing = await Message.findOne({
+            $and: [
+                { $or: providerIdentity },
+                { $or: [{ peerPhone: digits }, { chatId }, { to: chatId }] }
+            ]
+        }).catch(() => null);
+        if (existing) {
+            const statusRank = (value = '') => ({
+                failed: -1,
+                unconfirmed: 0,
+                pending: 1,
+                pending_confirmation: 2,
+                sent: 3,
+                delivered: 4,
+                read: 5,
+                played: 5
+            }[String(value || '').toLowerCase()] ?? 0);
+            const nextDeliveryStatus = statusRank(deliveryStatus) > statusRank(existing.deliveryStatus)
+                ? deliveryStatus
+                : existing.deliveryStatus;
+            existing.set({
+                body: String(body || existing.body || ''),
+                type: type || existing.type,
+                mediaUrl: mediaUrl || existing.mediaUrl || '',
+                hasMedia: Boolean(mediaUrl || existing.hasMedia || type !== 'chat'),
+                isBot: false,
+                senderRole: type === 'system' ? 'system' : 'human',
+                attendantId: user?._id?.toString?.() || existing.attendantId || 'ana_lopez',
+                clientGeneratedId: String(clientGeneratedId || existing.clientGeneratedId || '').trim(),
+                notifyName: user?.name || user?.email || existing.notifyName || '',
+                quotedMessageId: quotedMessage?._id || existing.quotedMessageId || '',
+                quotedBody: quotedMessage ? quotedBodyFromRecord(quotedMessage).slice(0, 500) : existing.quotedBody || '',
+                quotedFromMe: quotedMessage ? Boolean(quotedMessage.isFromMe) : existing.quotedFromMe,
+                deliveryStatus: nextDeliveryStatus,
+                sendError: statusRank(nextDeliveryStatus) >= 2 ? '' : String(sendError || existing.sendError || '').slice(0, 240),
+                provider: provider || existing.provider || '',
+                providerMessageId: providerMessageId || existing.providerMessageId || '',
+                providerZaapId: providerZaapId || existing.providerZaapId || '',
+                providerStatus: providerStatus || existing.providerStatus || '',
+                providerPayload: providerPayload || existing.providerPayload || null
+            });
+            return existing.save().catch(() => existing);
+        }
+    }
+
+    return Message.create(manualRecord).catch(() => null);
+};
+
+const findActiveShipmentForOutboundPhone = async (phone = '') => {
+    const digits = digitsOnly(phone);
+    if (digits.length < 8) return null;
+    const tails = [...new Set([digits, digits.slice(-10), digits.slice(-9), digits.slice(-8)].filter((tail) => tail.length >= 8))];
+    return Shipment.findOne({
+        country: 'EC',
+        $or: tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } })),
+        'outcomes.delivered': { $ne: true },
+        'outcomes.pickedUp': { $ne: true },
+        'outcomes.returned': { $ne: true }
+    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1 }).lean();
 };
 
 const applyManualSendHold = (state, { phone = '', user = null } = {}) => {
@@ -3833,7 +3938,10 @@ router.get('/chats', async (req, res) => {
                     vslProductKey: contactState?.metadata?.vslProductKey || null,
                     vslProductName: contactState?.metadata?.vslProductName || null,
                     vslPath: contactState?.metadata?.vslPath || null,
-                    customerDraft: panelDraft,
+                    customerDraft: {
+                        ...panelDraft,
+                        dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                    },
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
                     zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
@@ -4064,7 +4172,10 @@ router.get('/chats', async (req, res) => {
                 vslProductKey: contactState?.metadata?.vslProductKey || null,
                 vslProductName: contactState?.metadata?.vslProductName || null,
                 vslPath: contactState?.metadata?.vslPath || null,
-                customerDraft: panelDraft,
+                customerDraft: {
+                    ...panelDraft,
+                    dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                },
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },
                 zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
@@ -4557,6 +4668,7 @@ router.get('/customer-profile/:phone', async (req, res) => {
                 customer: activeOrder.customer || {}
             } : null,
             operationalStatus,
+            shipment: publicLogisticsStateV29(statusShipment),
             googleContactSync: publicGoogleContactSync(googleContactSync),
             continuity: {
                 canContinueAcrossNumbers: true,
@@ -4806,11 +4918,31 @@ router.post('/contact-state/:phone/release', async (req, res) => {
     }
 });
 
+router.post('/contact-state/:phone/resolve-customer-data', async (req, res) => {
+    try {
+        const state = await findOrCreateContactState(req.params.phone);
+        const draft = req.body?.customerDraft && typeof req.body.customerDraft === 'object'
+            ? req.body.customerDraft
+            : {};
+        const result = resolvePanelCustomerData({
+            state,
+            draft,
+            confirmation: req.body?.customerDataConfirmation || {},
+            sourceMessageId: `panel-preview:${req.user?._id || req.user?.email || 'operator'}`
+        });
+        return res.json({ success: true, customerDraft: result.draft, customerDataResolution: result.resolution });
+    } catch (error) {
+        console.error('Resolve customer data preview error:', error);
+        return res.status(500).json({ error: 'Failed to resolve customer data' });
+    }
+});
+
 router.patch('/contact-state/:phone', async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
-        const { note, mode, assignedName, country, customerDraft } = req.body || {};
+        const { note, mode, assignedName, country, customerDraft, customerDataConfirmation } = req.body || {};
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
+        let customerDataBlockedResponse = null;
         state.human = {
             ...(state.human || {}),
             ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
@@ -4841,7 +4973,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
             if (!internalOrTest && normalizedDraftPhoneDigits && !isAllowedPanelPhoneForCountry(normalizedDraftPhoneDigits, effectiveCountry)) {
                 return res.status(400).json({ error: 'Cliente precisa ser Ecuador +593. Para teste BR, use somente os numeros liberados com DDD 15 ou 31.' });
             }
-            const cleanDraft = {
+            let cleanDraft = {
                 name: String(customerDraft.name || '').trim(),
                 phone: normalizedDraftPhoneDigits && !internalOrTest
                     ? `+${normalizedDraftPhoneDigits}`
@@ -4850,6 +4982,9 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 province: String(customerDraft.province || '').trim(),
                 address: String(customerDraft.address || '').trim(),
                 reference: String(customerDraft.reference || '').trim(),
+                deliveryMode: String(customerDraft.deliveryMode || '').trim(),
+                agencyId: String(customerDraft.agencyId || '').trim(),
+                agencyName: String(customerDraft.agencyName || '').trim(),
                 status: normalizePanelStatus(customerDraft.status),
                 quantity: String(customerDraft.quantity ?? '').trim(),
                 total: String(customerDraft.total || '').trim(),
@@ -4868,11 +5003,35 @@ router.patch('/contact-state/:phone', async (req, res) => {
             if (cleanDraft.status === 'comprar_depois' && !cleanDraft.buyLaterFollowupAt) {
                 return res.status(400).json({ error: 'Informe a data desejada do pedido para usar Comprar depois.' });
             }
+            if (!internalOrTest && cleanDraft.country === 'EC') {
+                const result = resolvePanelCustomerData({
+                    state,
+                    draft: cleanDraft,
+                    confirmation: customerDataConfirmation || {},
+                    sourceMessageId: `panel-save:${req.user?._id || req.user?.email || 'operator'}`
+                });
+                cleanDraft = result.draft;
+                state.customerDataResolution = result.resolution;
+                state.markModified('customerDataResolution');
+                if (normalizePanelStatus(cleanDraft.status) === 'confirmado' && result.resolution.orderDataReady !== true) {
+                    customerDataBlockedResponse = {
+                        error: 'customer_data_not_ready',
+                        message: 'Pedido bloqueado: revise os dados destacados antes de confirmar.',
+                        customerDataResolution: result.resolution,
+                        customerDraft: cleanDraft
+                    };
+                }
+            }
+            const dataFields = state.customerDataResolution?.fields || {};
+            const nameReady = internalOrTest ? Boolean(String(cleanDraft.name || '').trim()) : ['VERIFIED', 'HIGH_CONFIDENCE'].includes(dataFields.name?.validation_status);
+            const cityReady = internalOrTest ? Boolean(String(cleanDraft.city || '').trim()) : ['VERIFIED', 'CANONICAL'].includes(dataFields.city?.validation_status);
+            const provinceReady = internalOrTest ? Boolean(String(cleanDraft.province || '').trim()) : ['VERIFIED', 'CANONICAL', 'AUTO_FROM_CITY'].includes(dataFields.province?.validation_status);
             const flowDataOk = {
-                ...(String(cleanDraft.name || '').trim() ? { nome_completo: { ok: true, value: cleanDraft.name, label: 'Nome OK' } } : {}),
-                ...(String(cleanDraft.city || '').trim() ? { ciudad: { ok: true, value: cleanDraft.city, label: 'Cidade OK' } } : {}),
-                ...(String(cleanDraft.address || '').trim() ? { agencia: { ok: true, value: cleanDraft.address, label: 'Agencia OK' } } : {}),
-                ...(String(cleanDraft.province || '').trim() ? { provincia: { ok: true, value: cleanDraft.province, label: 'Provincia OK' } } : {}),
+                ...(nameReady ? { nome_completo: { ok: true, value: cleanDraft.name, label: 'Nome OK' } } : {}),
+                ...(cityReady ? { ciudad: { ok: true, value: cleanDraft.city, label: 'Cidade OK' } } : {}),
+                ...((internalOrTest ? String(cleanDraft.address || '').trim() : dataFields.address?.canonical_value) ? { endereco: { ok: true, value: cleanDraft.address, label: 'Endereco registrado' } } : {}),
+                ...(dataFields.agency?.validation_status === CUSTOMER_DATA_STATUS.VERIFIED ? { agencia: { ok: true, value: cleanDraft.agencyName, label: 'Agencia autorizada' } } : {}),
+                ...(provinceReady ? { provincia: { ok: true, value: cleanDraft.province, label: 'Provincia OK' } } : {}),
                 ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantidade: { ok: true, value: cleanDraft.quantity, label: 'Quantidade OK' } } : {}),
                 ...(String(cleanDraft.status || '').trim() ? { venda_finalizada: { ok: ['confirmado', 'confirmed', 'pedido_enviado', 'entregue', 'recompra', 'finalizado'].includes(normalizePanelStatus(cleanDraft.status)), value: cleanDraft.status, label: 'Venda finalizada' } } : {})
             };
@@ -4978,7 +5137,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     mode: state.human?.mode || 'manual'
                 });
                 operationalOrderSync = { ok: false, skipped: true, reason: 'test_contact_no_dropi_or_meta' };
-            } else if (shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
+            } else if (!customerDataBlockedResponse && shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
                 operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({ draft: cleanDraft, req, state });
                 if (operationalOrderSync?.orderId) {
                     state.metadata = {
@@ -4995,6 +5154,9 @@ router.patch('/contact-state/:phone', async (req, res) => {
             }
         }
         await state.save();
+        if (customerDataBlockedResponse) {
+            return res.status(422).json({ success: false, state, ...customerDataBlockedResponse });
+        }
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
@@ -5018,7 +5180,11 @@ router.patch('/contact-state/:phone', async (req, res) => {
         res.json({ success: true, state, unifiedSync, operationalOrderSync });
     } catch (error) {
         console.error('Update contact state error:', error);
-        res.status(500).json({ error: 'Failed to update contact state' });
+        res.status(error.status || 500).json({
+            error: error.code || 'Failed to update contact state',
+            message: error.status === 422 ? error.message : undefined,
+            customerDataResolution: error.status === 422 ? error.resolution : undefined
+        });
     }
 });
 
@@ -5069,8 +5235,18 @@ router.get('/reengagement/templates', adminOnly, async (_req, res) => {
 // POST /api/whatsapp/send
 router.post('/send', authMiddleware, async (req, res) => {
     try {
-        const { phone, message, isMedia, sessionId, fileName = '', quotedMessageId = '', country = '' } = req.body;
+        const {
+            phone,
+            message,
+            isMedia,
+            sessionId,
+            fileName = '',
+            quotedMessageId = '',
+            country = '',
+            clientGeneratedId = ''
+        } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
+        let storedMessageRecordId = '';
         const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
@@ -5146,6 +5322,33 @@ router.post('/send', authMiddleware, async (req, res) => {
                 command: result?.command,
                 label: result?.label
             });
+        }
+
+        if (sendMode === 'manual_panel') {
+            const activeShipment = await findActiveShipmentForOutboundPhone(phone);
+            const mediaKind = isMedia
+                ? (/\.pdf(?:$|[?#])/i.test(String(fileName || message || '')) ? 'document'
+                    : /\.(?:jpe?g|png|webp|gif|heic|heif)(?:$|[?#])/i.test(String(fileName || message || ''))
+                        || String(message || '').startsWith('data:image/') ? 'image' : 'media')
+                : '';
+            const pickupAudio = Boolean(isMedia && /(?:chegou|pickup|retir|agencia|ready)/i.test(String(fileName || message || '')));
+            const outboundPolicy = evaluateLogisticsOutbound(activeShipment || {}, {
+                text: isMedia ? '' : message,
+                mediaKind,
+                fileName,
+                mediaUrl: isMedia ? message : '',
+                outboundContext: 'manual_panel',
+                pickupAudio
+            });
+            if (!outboundPolicy.allowed) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'pickup_communication_blocked',
+                    reason: outboundPolicy.reason,
+                    message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA',
+                    shipment: publicLogisticsStateV29(activeShipment)
+                });
+            }
         }
 
         if (isMedia) {
@@ -5225,7 +5428,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 const state = await findOrCreateContactState(phone);
                 applyManualSendHold(state, { phone, user: req.user });
                 await state.save();
-                await recordManualOutboundMessage({
+                const messageRecord = await recordManualOutboundMessage({
                     phone,
                     body: '',
                     type: mediaKind,
@@ -5240,7 +5443,8 @@ router.post('/send', authMiddleware, async (req, res) => {
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
                     providerStatus: sendResult?.providerStatus || '',
-                    providerPayload: sendResult?.providerPayload || null
+                    providerPayload: sendResult?.providerPayload || null,
+                    clientGeneratedId
                 });
                 return res.json({
                     success: sent,
@@ -5248,6 +5452,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     provider: sendResult?.provider || '',
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
+                    messageRecordId: messageRecord?._id || '',
                     deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
                 });
             }
@@ -5284,7 +5489,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: '',
                 type: mediaKind,
@@ -5299,13 +5504,15 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
             return res.json({
                 success: sent,
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
+                messageRecordId: messageRecord?._id || '',
                 deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
             });
         }
@@ -5334,7 +5541,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: message,
                 type: 'chat',
@@ -5348,10 +5555,12 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
+            storedMessageRecordId = messageRecord?._id || '';
         } else {
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: message,
                 type: 'chat',
@@ -5366,14 +5575,17 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
+            storedMessageRecordId = messageRecord?._id || '';
         }
         res.json({
             success: sent,
             provider: sendResult?.provider || '',
             providerMessageId: sendResult?.providerMessageId || '',
             providerZaapId: sendResult?.providerZaapId || '',
+            messageRecordId: storedMessageRecordId,
             deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'failed'
         });
     } catch (error) {

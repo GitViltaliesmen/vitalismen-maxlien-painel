@@ -1,0 +1,93 @@
+{
+  "freezeId": "tex-ultra-vsl-payload-v27-20260818",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-18T14:49:41.000Z",
+  "country": "EC",
+  "parentFreezeId": "tex-ultra-strong-intent-v26-20260818",
+  "parentManifestSha256": "2b55a9aa30fab90ea98103f562ce471ba476e0eeede4ce3d951d0c74c0758ce0",
+  "baseCommit": "23a395e9a4eec72450cee0608ba4bb32606fa53e",
+  "publicationStatus": "local_candidate_not_authorized",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T14:49:41Z",
+    "scope": "accept_official_multiline_vsl_payload_without_changing_vsl"
+  },
+  "operatorPublicationApproval": {
+    "status": "required_explicit",
+    "approvedAt": "",
+    "scope": "controlled_deploy_v27_test_phone_5515998038637"
+  },
+  "requiresWrittenAuthorizationToChange": true,
+  "diagnosis": {
+    "observedPayload": "Hola, quiero el tratamiento.\\nNombre: Luis Zapata\\nCIUDAD: Salcedo\\nPROVINCIA: Cotopaxi",
+    "activeVslAlreadySendsMultilinePayload": true,
+    "vslChangeRequired": false,
+    "productAttributionAlreadyRecognizedPayload": true,
+    "texUltraDraftCapturedPayloadBeforeV27": false,
+    "knownFieldsCouldBeAskedAgainBeforeV27": true,
+    "v26Staged": false,
+    "activeReleaseDuringImplementation": "20260818T042423Z_production-20260818-bb2d92f",
+    "testPhone": "5515998038637"
+  },
+  "policy": {
+    "exactOfficialMultilinePayload": true,
+    "captureNameCityProvinceOnly": true,
+    "captureBeforeCadence": true,
+    "preserveExistingDraftValues": true,
+    "skipKnownFieldsAfterQuantity": true,
+    "v26BehaviorPreserved": true,
+    "initialCadencePreserved": true,
+    "vslChanged": false,
+    "productionChanged": false
+  },
+  "preservation": {
+    "v26Preserved": true,
+    "v26DeployAuthorizationReused": false,
+    "productsChanged": false,
+    "pricesChanged": false,
+    "audiosChanged": false,
+    "imagesChanged": false,
+    "ordersChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "zapiChanged": false,
+    "vslChanged": false,
+    "whatsappNumberChanged": false,
+    "productionDatabaseChanged": false,
+    "currentChanged": false,
+    "pm2Changed": false,
+    "servicesChanged": false,
+    "testPhoneReset": false,
+    "realMessageSentDuringValidation": false
+  },
+  "declaredParentOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/index.js",
+    "src/services/texUltraFunnelService.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md",
+    "scripts/assert-tex-ultra-vsl-payload-approved-v27.mjs",
+    "scripts/guard-tex-ultra-vsl-payload-v27.mjs",
+    "src/services/texUltraVslPayloadFreezeRuntimeGuardV27.js",
+    "tests/tex-ultra-vsl-payload-v27.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "752a5356d11e487ac6edf3562af2c202da702b418f5239109177454a38e18812",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "e64fb3019fad519b3ec476ea165f9bf849b6b9c5942681836c6e8387ef4596e7",
+    "docs/ARQUIVOS_OFICIAIS.md": "36d33d96bde6e748d821bf5e3108cbf09a51c22dedd2510b9e5bcd522bc8eaf3",
+    "docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md": "d95a5369ea7dd0afcc59f1506f24aecbfa4299526702c24480b6828e62a9811b",
+    "package.json": "5e9813d2075ba54cf778aedceffee3aecce7cf6ba712ac6b7817954456745928",
+    "scripts/assert-tex-ultra-vsl-payload-approved-v27.mjs": "5915155083b76e9d1f99353248335dc6ca688000d6a81dd71bdf4d86cd777e2f",
+    "scripts/guard-tex-ultra-vsl-payload-v27.mjs": "de5861fae2cac48cc637e0f55c939107474f10f21444a858b5d5ceda282b8a9a",
+    "src/index.js": "68039af236927ba47a9ef843e586fbaf374ee0945fe379e47b309e8df1b271f6",
+    "src/services/texUltraFunnelService.js": "3aba9894348df104ef4af45b7a477b00cd32e0d7e38b0d417ea2465a662b308e",
+    "src/services/texUltraVslPayloadFreezeRuntimeGuardV27.js": "b49e94745cbf22fcab12b6f0c6b32b0652b85561abbfff0b8365059bf98471fe",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "89761a6d1d88de46e8be2c79e84b52accc53acfa0ec0e2f31104f9e8b1881943",
+    "tests/tex-ultra-vsl-payload-v27.test.mjs": "276717adcb7e695072644000cc2cb298078f742ea8eb617fe64658a962fcc09a"
+  }
+}

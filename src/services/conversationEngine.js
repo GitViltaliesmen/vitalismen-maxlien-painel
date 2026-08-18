@@ -7274,6 +7274,7 @@ const postOrderShipmentStatus = (shipment = null) => {
         status: status || 'shipment_active',
         orderId: shipment.orderId || '',
         trackingNumber: shipment.logistics?.trackingNumber || '',
+        pickupReadyVerified: shipment.logistics?.pickupReadyVerified === true,
         agencyPickup: Boolean(shipment.logistics?.agencyPickup),
         agencyName: shipment.logistics?.agencyName || '',
         carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || shipment.logistics?.preferredCarrier || '',
@@ -7297,7 +7298,7 @@ const buildActiveShipmentStatusText = (shipmentStatus = {}) => {
     const carrier = shipmentStatus.carrier ? `\nTransportadora: ${shipmentStatus.carrier}` : '';
     const agency = shipmentStatus.agencyName ? `\nAgencia: ${shipmentStatus.agencyName}` : '';
     const status = String(shipmentStatus.status || '').toUpperCase();
-    if (status === 'READY_FOR_PICKUP') {
+    if (status === 'READY_FOR_PICKUP' && shipmentStatus.pickupReadyVerified === true) {
         return [
             'Señor, su pedido ya aparece listo para retirar.',
             `${guide}${carrier}${agency}`.trim(),
@@ -7309,7 +7310,7 @@ const buildActiveShipmentStatusText = (shipmentStatus = {}) => {
             `Señor, su pedido ya tiene guia y figura ${humanShipmentStatusLabel(status)}.`,
             `${guide}${carrier}${agency}`.trim(),
             shipmentStatus.agencyPickup
-                ? 'Si Servientrega lo marca listo para retirar, puede acercarse a la agencia con su documento.'
+                ? 'Por favor, no vaya todavía a la agencia. Le avisaremos por aquí apenas Servientrega confirme que está disponible para retiro.'
                 : 'Le voy acompañando por aqui con cualquier novedad de entrega.'
         ].filter(Boolean).join('\n\n');
     }
@@ -8062,7 +8063,8 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             const handled = await handleTexUltraFunnelInbound({
                 contactStateId: msg.contactStateId,
                 inboundText: text,
-                sessionId: msg.sessionId || null
+                sessionId: msg.sessionId || null,
+                sourceMessageId: msg.id || ''
             });
             if (handled) {
                 console.log(`[TEX-ULTRA] entrada tratada no funil isolado -> ${chatId}`);

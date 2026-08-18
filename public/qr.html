@@ -2996,6 +2996,35 @@
             grid-template-columns: 0.7fr 1fr 1fr;
         }
 
+        .customer-data-quality {
+            display: grid;
+            gap: 7px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .customer-data-quality.is-ready { border-color: #86efac; background: #f0fdf4; }
+        .customer-data-quality.is-blocked { border-color: #fdba74; background: #fff7ed; }
+
+        .customer-data-quality-head,
+        .customer-data-quality-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .customer-data-quality-head strong { color: #0f172a; font-size: 12px; }
+        .customer-data-quality-score { color: #0f766e; font-size: 12px; font-weight: 900; }
+        .customer-data-quality-list { display: grid; gap: 4px; }
+        .customer-data-quality-row { color: #475569; font-size: 10px; font-weight: 800; }
+        .customer-data-quality-row .ok { color: #15803d; }
+        .customer-data-quality-row .warn { color: #c2410c; }
+        .customer-data-quality-blockers { color: #9a3412; font-size: 10px; line-height: 1.35; }
+        .customer-data-quality button { min-height: 32px; font-size: 10px; }
+
         .price-preset-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4876,7 +4905,55 @@
         }
 
         .message-row:not(.me) .message-sender-avatar {
-            visibility: hidden;
+            background: linear-gradient(145deg, #64748b, #475569);
+        }
+
+        .message-sender-avatar {
+            position: relative;
+        }
+
+        .message-sender-avatar img,
+        .chat-avatar img {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .logistics-state-banner {
+            margin: 8px 12px 0;
+            padding: 10px 14px;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            background: #fffbeb;
+            color: #92400e;
+            font-weight: 900;
+            display: grid;
+            gap: 3px;
+        }
+
+        .logistics-state-banner.ready {
+            border-color: #059669;
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .logistics-state-banner[hidden] { display: none; }
+
+        .technical-chat-details {
+            margin: 6px 12px 0;
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .technical-chat-details > summary { cursor: pointer; font-weight: 800; }
+
+        .manual-ready-verification {
+            margin-top: 8px;
+            padding: 9px 10px;
+            border: 2px solid #dc2626;
+            border-radius: 10px;
+            background: #fef2f2;
+            font-weight: 800;
         }
 
         .wa-audio-card {
@@ -7698,6 +7775,11 @@
                     </div>
                 </div>
                 <div id="actionableSamples" class="actionable-samples"></div>
+                <div id="logisticsStateBanner" class="logistics-state-banner" hidden></div>
+                <details id="technicalChatDetails" class="technical-chat-details" hidden>
+                    <summary id="technicalChatSummary">DETALHES TÉCNICOS · 0</summary>
+                    <div id="technicalChatTimeline"></div>
+                </details>
                 <div id="conversation" class="conversation">
                     <div class="empty">Nenhuma conversa selecionada.</div>
                 </div>
@@ -8120,6 +8202,29 @@
                                 <input id="customerProvinceInput" autocomplete="off" placeholder="Provincia">
                             </label>
                         </div>
+                        <div class="form-grid">
+                            <label>Modalidade de entrega
+                                <select id="customerDeliveryModeInput">
+                                    <option value="">Selecione</option>
+                                    <option value="home">Domicílio</option>
+                                    <option value="agency">Agência Servientrega</option>
+                                </select>
+                            </label>
+                            <label>Agência autorizada
+                                <input id="customerAgencyNameInput" autocomplete="off" placeholder="Nome exato da agência">
+                            </label>
+                        </div>
+                        <section id="customerDataQuality" class="customer-data-quality is-blocked" aria-live="polite">
+                            <div class="customer-data-quality-head">
+                                <strong>Qualidade dos dados</strong>
+                                <span id="customerDataQualityScore" class="customer-data-quality-score">0/100</span>
+                            </div>
+                            <div id="customerDataQualityList" class="customer-data-quality-list">
+                                <div class="customer-data-quality-row"><span>Selecione um cliente</span><span class="warn">PENDENTE</span></div>
+                            </div>
+                            <div id="customerDataQualityBlockers" class="customer-data-quality-blockers">Pedido bloqueado até validação segura.</div>
+                            <button id="confirmCustomerNameBtn" type="button" disabled>Confirmar nome corrigido</button>
+                        </section>
                         <div id="agencySuggestions" class="agency-suggestions hidden">
                             <div class="agency-suggestions-header">
                                 <span>Agencias Servientrega</span>
@@ -8205,6 +8310,10 @@
                         <div class="customer-form-actions manual-guide-actions">
                             <button id="sendManualGuideBtn" class="success" type="button">Adicionar e avisar guia</button>
                         </div>
+                        <label id="manualReadyVerificationWrap" class="manual-ready-verification hidden">
+                            <input id="manualReadyVerificationInput" type="checkbox">
+                            Confirmo que o status real da Servientrega está disponível para retirada.
+                        </label>
                         <div class="customer-form-actions">
                             <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Abrir no Leads</button>
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
@@ -8222,6 +8331,7 @@
                         <button data-draft-template="proof" type="button" disabled>Prova social</button>
                         <button data-draft-template="data" type="button" disabled>Pedir dados</button>
                         <button data-draft-template="close" type="button" disabled>Confirmar</button>
+                        <button data-draft-template="early_pickup_correction" type="button" disabled>Corrigir retirada antecipada</button>
                     </div>
                     <div class="customer-audio-footer">
                         <input id="audioTemplateSearch" class="audio-search-input" autocomplete="off" placeholder="Buscar audio rapido: preco, endereco, funciona, chegou">
@@ -8668,6 +8778,7 @@
     <script src="/panel-intelligence/customer-form-intelligence.js"></script>
     <script src="/panel-intelligence/manual-funnel-policy.js"></script>
     <script src="/panel-intelligence/customer-order-policy.js"></script>
+    <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8805,7 +8916,9 @@
             statusAutoSaveSeq: 0,
             customerFieldAutoSaveTimer: null,
             customerFieldAutoSaveSeq: 0,
-            customerFieldAutoSaveInFlight: false
+            customerFieldAutoSaveInFlight: false,
+            customerCorrectedFields: new Set(),
+            customerDataResolution: null
         };
 
         const escapeHtml = (value) => String(value ?? '')
@@ -8886,6 +8999,9 @@
                 province: valueOrCurrent('province', chat.province),
                 address: valueOrCurrent('address', chat.address),
                 reference: valueOrCurrent('reference', chat.reference),
+                deliveryMode: valueOrCurrent('deliveryMode', chat.deliveryMode),
+                agencyId: valueOrCurrent('agencyId', chat.agencyId),
+                agencyName: valueOrCurrent('agencyName', chat.agencyName),
                 quantity: valueOrCurrent('quantity', chat.quantity),
                 total: valueOrCurrent('total', chat.total),
                 productKey: valueOrCurrent('productKey', chat.productKey),
@@ -9070,11 +9186,7 @@
         const brazilTestMessage = 'BR teste: sem pedido/Dropi.';
 
         const avatarInitial = (value) => {
-            const text = String(value || '').trim();
-            if (!text) return '?';
-            if (/^\+?\d/.test(text)) return 'C';
-            const firstWord = text.split(/\s+/).find(Boolean) || text;
-            return firstWord.slice(0, 1).toUpperCase();
+            return window.VitalismenCleanChatV29?.initialsForName(value, 'C') || 'C';
         };
 
         const formatTime = (value) => {
@@ -10342,6 +10454,8 @@
                 applyCustomerCountryUi();
             } else if (id === 'customerProductInput') {
                 applyCustomerCountryUi();
+            } else if (id === 'customerDeliveryModeInput') {
+                if (el('customerAgencyNameInput')) el('customerAgencyNameInput').disabled = input.value !== 'agency';
             }
         };
         const markCustomerFormDirty = () => {
@@ -10624,6 +10738,9 @@
                 province: el('customerProvinceInput').value.trim(),
                 address: el('customerAddressInput').value.trim(),
                 reference: el('customerReferenceInput').value.trim(),
+                deliveryMode: el('customerDeliveryModeInput').value,
+                agencyId: el('customerAgencyNameInput').dataset.agencyId || '',
+                agencyName: el('customerAgencyNameInput').value.trim(),
                 status: normalizePanelStatus(el('customerStatusInput').value),
                 buyLaterFollowupAt: normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois'
                     ? el('customerBuyLaterDateInput').value
@@ -10653,18 +10770,70 @@
             ['phone', 'telefone', 'customerPhoneInput'],
             ['city', 'cidade', 'customerCityInput'],
             ['province', 'provincia', 'customerProvinceInput'],
-            ['address', 'endereco', 'customerAddressInput'],
+            ['deliveryMode', 'modalidade de entrega', 'customerDeliveryModeInput'],
             ['quantity', 'quantidade', 'customerQuantityInput'],
             ['total', 'valor', 'customerTotalInput']
         ];
-        const missingCustomerFields = (draft = customerDraftFromForm()) => customerRequiredFields
+        const missingCustomerFields = (draft = customerDraftFromForm()) => [
+            ...customerRequiredFields,
+            ...(draft.deliveryMode === 'home' ? [['address', 'endereco', 'customerAddressInput']] : []),
+            ...(draft.deliveryMode === 'agency' ? [['agencyName', 'agencia autorizada', 'customerAgencyNameInput']] : [])
+        ]
             .filter(([key]) => {
                 if (key === 'quantity') return !hasValidCustomerQuantity(draft.quantity);
                 if (key === 'total') return !(Number(String(draft.total || '').replace(',', '.')) > 0);
                 return !String(draft[key] ?? '').trim();
             })
             .map(([, label, inputId]) => ({ label, inputId }));
-        const customerReadyForConfirmation = (draft = customerDraftFromForm()) => missingCustomerFields(draft).length === 0;
+        const customerReadyForConfirmation = (draft = customerDraftFromForm()) => (
+            missingCustomerFields(draft).length === 0
+            && (state.customerDataResolution?.version !== 28 || state.customerDataResolution.orderDataReady === true)
+        );
+        const customerDataReasonLabels = {
+            NAME_SEGMENTATION_REQUIRED: 'confirmar separacao do nome',
+            NAME_NOT_RESOLVED: 'validar nome',
+            PHONE_NOT_VERIFIED: 'validar telefone EC',
+            COUNTRY_NOT_EC: 'pais fora do escopo EC',
+            CITY_NOT_CANONICAL: 'validar cidade',
+            PROVINCE_NOT_RESOLVED: 'validar provincia',
+            LOCATION_CONFLICT: 'corrigir conflito cidade/provincia',
+            DELIVERY_MODE_REQUIRED: 'selecionar modalidade de entrega',
+            HOME_ADDRESS_REQUIRED: 'informar endereco domiciliar',
+            AUTHORIZED_AGENCY_REQUIRED: 'selecionar agencia autorizada',
+            AGENCY_LOCATION_CONFLICT: 'corrigir agencia de outra cidade'
+        };
+        const goodCustomerDataStatuses = new Set(['VERIFIED', 'HIGH_CONFIDENCE', 'CANONICAL', 'AUTO_FROM_CITY', 'NOT_APPLICABLE']);
+        const renderCustomerDataQuality = (resolution = state.customerDataResolution) => {
+            const card = el('customerDataQuality');
+            const list = el('customerDataQualityList');
+            const blockers = el('customerDataQualityBlockers');
+            const score = el('customerDataQualityScore');
+            const confirmName = el('confirmCustomerNameBtn');
+            if (!card || !list || !blockers || !score || !confirmName) return;
+            const fields = resolution?.fields || {};
+            const entries = [
+                ['name', 'Nome'], ['phone', 'Telefone'], ['city', 'Cidade'], ['province', 'Provincia'],
+                ['delivery_mode', 'Entrega'], ['address', 'Endereco'], ['reference', 'Referencia'], ['agency', 'Agencia']
+            ];
+            score.textContent = `${Number(resolution?.qualityScore || 0)}/100`;
+            card.classList.toggle('is-ready', resolution?.orderDataReady === true);
+            card.classList.toggle('is-blocked', resolution?.orderDataReady !== true);
+            list.innerHTML = entries.map(([key, label]) => {
+                const status = String(fields[key]?.validation_status || 'MISSING');
+                const ok = goodCustomerDataStatuses.has(status);
+                return `<div class="customer-data-quality-row"><span>${escapeHtml(label)}</span><span class="${ok ? 'ok' : 'warn'}">${ok ? '✓ ' : '⚠ '}${escapeHtml(status.replace(/_/g, ' '))}</span></div>`;
+            }).join('');
+            const reasons = Array.isArray(resolution?.blockedReasons) ? resolution.blockedReasons : [];
+            blockers.textContent = resolution?.orderDataReady === true
+                ? 'ORDER DATA READY — dados operacionais validados.'
+                : `Pedido bloqueado: ${reasons.map((reason) => customerDataReasonLabels[reason] || reason).join(', ') || 'aguardando validacao'}.`;
+            const nameStatus = String(fields.name?.validation_status || '');
+            confirmName.hidden = !['SEGMENTATION_REQUIRED', 'NEEDS_CONFIRMATION'].includes(nameStatus);
+            confirmName.disabled = !state.selectedChat;
+            confirmName.textContent = nameStatus === 'SEGMENTATION_REQUIRED'
+                ? 'Corrigir separacao e confirmar nome'
+                : 'Confirmar nome corrigido';
+        };
         const updateCustomerPrimaryAction = () => {
             const button = el('confirmCustomerDataBtn');
             const stateBadge = el('customerActionState');
@@ -10681,6 +10850,7 @@
             const brazilTestOnly = isBrazilBlockedRecord(state.selectedChat);
             const draft = customerDraftFromForm();
             const missing = missingCustomerFields(draft);
+            const qualityBlocked = state.customerDataResolution?.version === 28 && state.customerDataResolution.orderDataReady !== true;
             const status = normalizePanelStatus(draft.status || state.selectedChat.orderStatus || '');
             if (brazilTestOnly) {
                 button.textContent = 'BR teste bloqueado';
@@ -10693,9 +10863,11 @@
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
                 button.textContent = 'Salvar dados';
                 button.disabled = state.busy;
-                stateBadge.textContent = status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
-                stateBadge.className = 'badge green';
-                hint.textContent = status === 'confirmado'
+                stateBadge.textContent = status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
+                stateBadge.className = `badge ${status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
+                hint.textContent = status === 'confirmado' && (missing.length || qualityBlocked)
+                    ? `Nao confirma enquanto faltar: ${missing.map((item) => item.label).join(', ') || 'validacao de qualidade'}.`
+                    : status === 'confirmado'
                     ? 'Ao salvar, este cliente entra automaticamente em Pedidos confirmados.'
                     : 'Pedido ja esta em fluxo. Use Salvar dados apenas para corrigir a ficha.';
                 return;
@@ -10842,7 +11014,11 @@
             if (!agency) return;
             setInputValue('customerCityInput', agency.city || el('customerCityInput').value);
             setInputValue('customerProvinceInput', agency.province || el('customerProvinceInput').value);
+            setInputValue('customerDeliveryModeInput', 'agency');
+            setInputValue('customerAgencyNameInput', agency.name || '');
+            el('customerAgencyNameInput').dataset.agencyId = agency.agency_id || agency.id || '';
             setInputValue('customerAddressInput', agencyLine(agency));
+            ['city', 'province', 'deliveryMode', 'agency', 'address'].forEach((field) => state.customerCorrectedFields.add(field));
             el('customerSyncHint').textContent = automatic
                 ? 'Agencia, cidade e provincia identificadas com correspondencia unica.'
                 : 'Agencia aplicada na ficha; a referencia informada foi preservada.';
@@ -11297,6 +11473,7 @@
 
         const renderCustomerProfile = () => {
             const profile = state.customerProfile;
+            const logisticsBanner = el('logisticsStateBanner');
             if (!profile) {
                 el('profileMasterPhone').textContent = 'Selecione';
                 el('profileChannels').textContent = '0';
@@ -11305,6 +11482,7 @@
                 el('profileContinuityBadge').className = 'badge green';
                 el('profileContinuityText').textContent = 'A ficha acompanha o cliente mesmo se trocar o numero conectado.';
                 el('profileTimeline').innerHTML = '<div class="empty">Abra um cliente para ver a linha do tempo.</div>';
+                if (logisticsBanner) logisticsBanner.hidden = true;
                 return;
             }
 
@@ -11325,6 +11503,23 @@
                     <span class="meta">${escapeHtml(formatTime(event.at))}${event.detail ? ' · ' + escapeHtml(event.detail) : ''}</span>
                 </div>
             `).join('') || '<div class="empty">Sem eventos salvos ainda.</div>';
+
+            const shipment = profile.shipment;
+            if (!logisticsBanner || !shipment) {
+                if (logisticsBanner) logisticsBanner.hidden = true;
+                return;
+            }
+            logisticsBanner.hidden = false;
+            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified ? 'ready' : ''}`;
+            if (shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified) {
+                logisticsBanner.innerHTML = '<span>✅ PRONTO PARA RETIRADA</span><span>✅ CLIENTE JÁ PODE IR</span>';
+            } else if (['SHIPPED', 'IN_TRANSIT', 'READY_FOR_PICKUP'].includes(shipment.status)) {
+                logisticsBanner.innerHTML = shipment.status === 'READY_FOR_PICKUP'
+                    ? '<span>⚠️ READY NÃO VERIFICADO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>'
+                    : '<span>📦 ENVIADO</span><span>🚚 EM TRÂNSITO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>';
+            } else {
+                logisticsBanner.innerHTML = `<span>LOGÍSTICA: ${escapeHtml(shipment.status || 'UNKNOWN')}</span>`;
+            }
         };
 
         const loadCustomerProfileForChat = async (chatKey) => {
@@ -11695,9 +11890,9 @@
                 const attentionLabel = unansweredCount > 0 ? unansweredLabel : '!';
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
-                const avatar = chat.profilePictureUrl
-                    ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="">`
-                    : escapeHtml(avatarInitial(title));
+                const avatar = `<span>${escapeHtml(avatarInitial(title))}</span>${chat.profilePictureUrl
+                    ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="" loading="lazy" onerror="this.remove()">`
+                    : ''}`;
                 return `
                     <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${unansweredCount ? 'has-unanswered' : ''} ${vslWaiting ? 'has-vsl-waiting' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
                         <div class="chat-row">
@@ -12067,7 +12262,7 @@
 
         const getMessageSignature = (messages) => (messages || [])
             .map((message) => [
-                message._id || '',
+                window.VitalismenCleanChatV29?.canonicalMessageIdentity(message) || message._id || '',
                 message.timestamp || '',
                 message.isFromMe ? '1' : '0',
                 message.body || '',
@@ -12075,6 +12270,9 @@
                 message.type || '',
                 message.mediaUrl || '',
                 message.mediaPreviewUrl || '',
+                message.deliveryStatus || '',
+                message.providerStatus || '',
+                message.ack || '',
                 (message.mediaAttachments || []).map((item) => `${item.type || ''}:${item.mediaUrl || ''}:${item.mediaPreviewUrl || ''}`).join(',')
             ].join(':'))
             .join('|');
@@ -12127,8 +12325,10 @@
 
         const appendLocalMessage = (body, options = {}) => {
             const now = Math.floor(Date.now() / 1000);
+            const localId = `local_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
             const localMessage = {
-                _id: `local_${Date.now()}`,
+                _id: localId,
+                clientGeneratedId: localId,
                 body,
                 type: options.type || 'chat',
                 mediaUrl: options.mediaUrl || '',
@@ -12137,6 +12337,8 @@
                 localCreatedAt: Date.now(),
                 isFromMe: true,
                 isBot: false,
+                senderRole: 'human',
+                attendantId: state.user?.id || state.user?._id || 'ana_lopez',
                 notifyName: state.user?.name || state.user?.email || 'Atendente',
                 quotedMessageId: options.quotedMessage?._id || '',
                 quotedBody: options.quotedMessage ? messagePreviewText(options.quotedMessage).slice(0, 500) : '',
@@ -12157,6 +12359,22 @@
             state.currentMessages = (state.currentMessages || []).filter((message) => String(message._id || '') !== id);
             state.messageSignature = getMessageSignature(state.currentMessages);
             renderMessages(state.currentMessages, { preserveScroll: true });
+        };
+
+        const confirmPendingLocalMessage = (messageId, result = {}) => {
+            const id = String(messageId || '');
+            if (!id) return;
+            state.pendingLocalMessages = (state.pendingLocalMessages || []).map((message) => (
+                String(message._id || '') === id
+                    ? {
+                        ...message,
+                        _id: result.messageRecordId || message._id,
+                        providerMessageId: result.providerMessageId || message.providerMessageId || '',
+                        providerZaapId: result.providerZaapId || message.providerZaapId || '',
+                        deliveryStatus: result.deliveryStatus || 'sent'
+                    }
+                    : message
+            ));
         };
 
         const inferMediaType = (attachment = {}) => {
@@ -12236,7 +12454,21 @@
             return preview || original;
         };
 
-        const attendantAvatarHtml = () => '<div class="message-sender-avatar" title="Ana López" aria-label="Ana López">AL</div>';
+        const messageAvatarHtml = (message = {}) => {
+            const identity = window.VitalismenCleanChatV29;
+            const role = identity?.senderRole(message) || (message.isFromMe ? 'human' : 'client');
+            const clientName = state.selectedChat ? chatDisplayName(state.selectedChat) : '';
+            const descriptor = identity?.avatarDescriptor({
+                role,
+                name: role === 'client' ? clientName : message.notifyName,
+                avatar: role === 'client' ? state.selectedChat?.profilePictureUrl : message.attendantAvatar,
+                attendantId: message.attendantId || (role === 'human' ? 'ana_lopez' : '')
+            }) || { displayName: role === 'client' ? clientName || 'Cliente' : 'Ana López', initials: role === 'client' ? avatarInitial(clientName) : 'AL', avatar: '' };
+            if (role === 'human' && descriptor.attendantId === 'ana_lopez' && !descriptor.avatar) {
+                return '<div class="message-sender-avatar" title="Ana López" aria-label="Ana López">AL</div>';
+            }
+            return `<div class="message-sender-avatar role-${escapeHtml(role)}" title="${escapeHtml(descriptor.displayName)}" aria-label="${escapeHtml(descriptor.displayName)}"><span>${escapeHtml(descriptor.initials)}</span>${descriptor.avatar ? `<img src="${escapeHtml(descriptor.avatar)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>`;
+        };
 
         const playIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
         const pauseIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>';
@@ -12403,8 +12635,7 @@
                 const audioSrc = escapeHtml(audioSourceUrl);
                 const fallback = escapeHtml(fallbackUrl);
                 return `
-                    <div class="wa-audio-card ${message.isFromMe ? '' : 'no-avatar'}" data-audio-player>
-                        ${message.isFromMe ? attendantAvatarHtml() : ''}
+                    <div class="wa-audio-card no-avatar" data-audio-player>
                         <button class="wa-audio-play" type="button" aria-label="Tocar audio">${playIcon()}</button>
                         <div class="wa-audio-main">
                             <div class="wa-waveform-wrap">
@@ -14004,7 +14235,16 @@
             const box = el('conversation');
             const previousBottom = box.scrollHeight - box.scrollTop;
             const visibleMessages = (messages || []).filter((message) => !isTechnicalZapiAlertMessage(message));
-            const conversationMessages = visibleMessages.filter((message) => !isInternalPanelStatusAuditMessage(message));
+            const presentation = window.VitalismenCleanChatV29?.presentMessages(visibleMessages) || { visible: visibleMessages, technical: [], duplicatesCollapsed: 0 };
+            const conversationMessages = presentation.visible.filter((message) => !isInternalPanelStatusAuditMessage(message));
+            const legacyTechnical = (messages || []).filter((message) => isTechnicalZapiAlertMessage(message) || isInternalPanelStatusAuditMessage(message));
+            const technical = [...presentation.technical, ...legacyTechnical].filter((message, index, list) => list.findIndex((item) => String(item._id || item.presentationIdentity || '') === String(message._id || message.presentationIdentity || '')) === index);
+            const technicalDetails = el('technicalChatDetails');
+            if (technicalDetails) {
+                technicalDetails.hidden = technical.length === 0 && presentation.duplicatesCollapsed === 0;
+                el('technicalChatSummary').textContent = `DETALHES TÉCNICOS · ${technical.length} eventos · ${presentation.duplicatesCollapsed} espelhos unificados`;
+                el('technicalChatTimeline').innerHTML = technical.slice(-20).map((message) => `<div>${escapeHtml(message.type || 'system')} · ${escapeHtml(formatTime(message.timestamp || message.createdAt))}</div>`).join('');
+            }
             box.innerHTML = conversationMessages.map((message) => {
                 const messageId = String(message._id || '');
                 const media = renderMessageMedia(message);
@@ -14020,9 +14260,8 @@
                 const transcriptHtml = transcript
                     ? `<div class="message-transcript"><strong>Audio transcrito</strong>${escapeHtml(transcript)}</div>`
                     : '';
-                const senderLabel = message.isFromMe
-                    ? 'atendente'
-                    : 'cliente';
+                const senderRole = window.VitalismenCleanChatV29?.senderRole(message) || (message.isFromMe ? 'human' : 'client');
+                const senderLabel = senderRole === 'bot' ? 'bot' : senderRole === 'human' ? (message.notifyName || 'Ana López') : 'cliente';
                 const deliveryStatus = String(message.deliveryStatus || '').toLowerCase();
                 const providerStatus = String(message.providerStatus || '').toLowerCase();
                 const ack = Number(message.ack);
@@ -14049,7 +14288,7 @@
                 const observerHint = !message.isFromMe ? renderMessageObserverHint(messageId, message) : '';
                 return `
                     <div class="message-row ${message.isFromMe ? 'me' : ''} ${editOutboundButton ? 'has-outbound-edit' : ''}" data-message-id="${escapeHtml(messageId)}">
-                        ${message.isFromMe ? attendantAvatarHtml() : ''}
+                        ${messageAvatarHtml(message)}
                         <div class="bubble ${message.isFromMe ? 'me' : ''} ${readByClient ? 'is-read' : ''}">
                             <div class="message-actions">
                                 <button class="message-action" data-message-reply="${escapeHtml(messageId)}" type="button" title="Responder esta mensagem">↩</button>
@@ -14453,15 +14692,21 @@
                 el('customerSmartDataStatus').textContent = 'Selecione um cliente para localizar nome, cidade, agência, quantidade e valor.';
                 el('scanCustomerDataBtn').disabled = true;
                 state.customerSmartDetected = null;
+                state.customerDataResolution = null;
+                state.customerCorrectedFields.clear();
+                renderCustomerDataQuality(null);
                 renderFlowCorrectionStatus(null);
                 el('customerFormState').textContent = 'selecione um cliente';
-                ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'customerBuyLaterDateInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
+                ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerDeliveryModeInput', 'customerAgencyNameInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'customerBuyLaterDateInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
+                el('customerAgencyNameInput').dataset.agencyId = '';
                 setInputValue('customerProductInput', 'nitrix_ec');
                 renderCustomerProductSelection(null);
                 setInputValue('customerCountryInput', 'EC');
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
                 setInputValue('manualGuideAgencyInput', 'true');
+                if (el('manualReadyVerificationInput')) el('manualReadyVerificationInput').checked = false;
+                el('manualReadyVerificationWrap')?.classList.add('hidden');
                 clearCustomerFormDirty();
                 state.agencyLookupKey = '';
                 clearAgencySuggestions();
@@ -14545,6 +14790,9 @@
                 ? 'Pedido salvo; envio Dropi em Leads Clientes'
                 : 'Atendimento sem pedido';
             renderFlowCorrectionStatus(chat);
+            state.customerDataResolution = chat.customerDataResolution || chat.customerDraft?.dataResolution || null;
+            state.customerCorrectedFields.clear();
+            renderCustomerDataQuality(state.customerDataResolution);
             const keepManualEdit = state.customerFormDirty && state.customerFormDirtyChatId === chat.id;
             el('customerFormState').textContent = keepManualEdit
                 ? 'editando, salve para fixar'
@@ -14559,6 +14807,9 @@
                 setInputValue('customerBuyLaterDateInput', chat.customerDraft?.buyLaterFollowupAt || chat.buyLaterFollowupAt || '');
                 setInputValue('customerCityInput', chat.city || '');
                 setInputValue('customerProvinceInput', chat.province || '');
+                setInputValue('customerDeliveryModeInput', chat.deliveryMode || chat.customerDraft?.deliveryMode || '');
+                setInputValue('customerAgencyNameInput', chat.agencyName || chat.customerDraft?.agencyName || '');
+                el('customerAgencyNameInput').dataset.agencyId = chat.agencyId || chat.customerDraft?.agencyId || '';
                 setInputValue('customerAddressInput', chat.address || '');
                 setInputValue('customerReferenceInput', chat.reference || '');
                 setInputValue('customerQuantityInput', chat.quantity ?? '0');
@@ -17797,6 +18048,9 @@
                 province: el('customerProvinceInput').value.trim(),
                 address: el('customerAddressInput').value.trim(),
                 reference: el('customerReferenceInput').value.trim(),
+                deliveryMode: el('customerDeliveryModeInput').value,
+                agencyId: el('customerAgencyNameInput').dataset.agencyId || '',
+                agencyName: el('customerAgencyNameInput').value.trim(),
                 status: normalizePanelStatus(el('customerStatusInput').value),
                 buyLaterFollowupAt: normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois'
                     ? el('customerBuyLaterDateInput').value
@@ -17814,6 +18068,30 @@
                 customerDraft.productMedia = productInfo.media;
                 customerDraft.negotiationProductKey = productInfo.key;
                 customerDraft.negotiationProductName = productInfo.name;
+            }
+            let resolvedCustomerData = state.customerDataResolution;
+            if (draftCountry === 'EC') {
+                const preview = await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentContactStateKey())}/resolve-customer-data`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        customerDraft,
+                        customerDataConfirmation: {
+                            correctedByHumanFields: [...state.customerCorrectedFields]
+                        }
+                    })
+                });
+                Object.assign(customerDraft, preview.customerDraft || {});
+                resolvedCustomerData = preview.customerDataResolution || null;
+                state.customerDataResolution = resolvedCustomerData;
+                renderCustomerDataQuality(resolvedCustomerData);
+                ['name', 'city', 'province', 'address', 'reference', 'deliveryMode', 'agencyName'].forEach((field) => {
+                    const inputId = {
+                        name: 'customerNameInput', city: 'customerCityInput', province: 'customerProvinceInput',
+                        address: 'customerAddressInput', reference: 'customerReferenceInput', deliveryMode: 'customerDeliveryModeInput',
+                        agencyName: 'customerAgencyNameInput'
+                    }[field];
+                    if (inputId && Object.prototype.hasOwnProperty.call(customerDraft, field)) setInputValue(inputId, customerDraft[field]);
+                });
             }
             const apiOrderStatus = orderStatusForApi(customerDraft.status);
             const isAdminLeadOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(String(chat.orderId || customerDraft.orderId || ''));
@@ -17833,12 +18111,17 @@
                 if (missing.length) {
                     throw new Error(`Complete antes de confirmar: ${missing.map((item) => item.label).join(', ')}.`);
                 }
+                if (resolvedCustomerData?.version === 28 && resolvedCustomerData.orderDataReady !== true) {
+                    const reasons = (resolvedCustomerData.blockedReasons || []).map((reason) => customerDataReasonLabels[reason] || reason);
+                    throw new Error(`Pedido bloqueado pela qualidade dos dados: ${reasons.join(', ') || 'revisao necessaria'}.`);
+                }
             }
             if (customerDraft.status === 'comprar_depois' && !/^\d{4}-\d{2}-\d{2}$/.test(customerDraft.buyLaterFollowupAt || '')) {
                 el('customerBuyLaterDateInput').focus();
                 throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
-            if (chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder) {
+            const customerDataAllowsOrderWrite = apiOrderStatus !== 'confirmed' || resolvedCustomerData?.orderDataReady === true;
+            if (chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder && customerDataAllowsOrderWrite) {
                 const payload = {
                     customer: {
                         name: customerDraft.name,
@@ -17849,7 +18132,12 @@
                         reference: customerDraft.reference
                     },
                     total: customerDraft.total,
-                    notes: note
+                    notes: note,
+                    delivery: {
+                        mode: customerDraft.deliveryMode,
+                        agencyId: customerDraft.agencyId,
+                        agencyName: customerDraft.agencyName
+                    }
                 };
                 if (draftCountry === 'EC') {
                     payload.productKey = customerDraft.productKey;
@@ -17867,7 +18155,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if ((!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDraft.name && customerDraft.phone && customerDraft.address && customerDraft.city && customerDraft.province && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if ((!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -17884,7 +18172,12 @@
                     currency: 'USD',
                     source: 'manual',
                     status: apiOrderStatus,
-                    notes: note
+                    notes: note,
+                    delivery: {
+                        mode: customerDraft.deliveryMode,
+                        agencyId: customerDraft.agencyId,
+                        agencyName: customerDraft.agencyName
+                    }
                 };
                 if (historicalOrderId) {
                     orderPayload.previousOrderId = historicalOrderId;
@@ -17912,7 +18205,10 @@
                 method: 'PATCH',
                 body: JSON.stringify({
                     note,
-                    customerDraft
+                    customerDraft,
+                    customerDataConfirmation: {
+                        correctedByHumanFields: [...state.customerCorrectedFields]
+                    }
                 })
             });
             const adminLeadSync = historicalOrderId
@@ -17924,6 +18220,8 @@
                     customerDraft
                 });
             const syncedDraft = contactSave?.state?.metadata?.customerDraft || {};
+            state.customerDataResolution = contactSave?.state?.customerDataResolution || resolvedCustomerData || null;
+            renderCustomerDataQuality(state.customerDataResolution);
             if (syncedDraft.orderId && syncedDraft.orderId !== customerDraft.orderId) {
                 customerDraft.orderId = syncedDraft.orderId;
                 setInputValue('customerOrderInput', syncedDraft.orderId);
@@ -17941,6 +18239,10 @@
                 province: customerDraft.province,
                 address: customerDraft.address,
                 reference: customerDraft.reference,
+                deliveryMode: customerDraft.deliveryMode,
+                agencyId: customerDraft.agencyId,
+                agencyName: customerDraft.agencyName,
+                customerDataResolution: state.customerDataResolution,
                 orderId: customerDraft.orderId || state.selectedChat.orderId,
                 orderStatus: customerDraft.status,
                 buyLaterFollowupAt: customerDraft.buyLaterFollowupAt,
@@ -17961,6 +18263,7 @@
                 }
             };
             rememberSavedCustomerDraft(customerDraft, { note, chat: state.selectedChat });
+            state.customerCorrectedFields.clear();
             loadCustomerProfile().catch(() => null);
             clearCustomerFormDirty();
             notifyLeadsClientsRefresh(customerDraft.country);
@@ -18149,6 +18452,12 @@
                 showToast('Selecione Equador antes de avisar guia.');
                 return;
             }
+            const pickupReadyVerified = guideStatus === 'READY_FOR_PICKUP'
+                && el('manualReadyVerificationInput')?.checked === true;
+            if (guideStatus === 'READY_FOR_PICKUP' && !pickupReadyVerified) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
 
             state.busy = true;
             const button = el('sendManualGuideBtn');
@@ -18164,6 +18473,7 @@
                         trackingNumber,
                         status: guideStatus,
                         agencyPickup: el('manualGuideAgencyInput').value === 'true',
+                        pickupReadyVerified,
                         notifyNow: true,
                         forceNotify: true
                     })
@@ -18418,6 +18728,14 @@
             const input = el('messageInput');
             const text = String(input.value || '').trim();
             if (!text) return;
+            const shipmentPolicy = state.customerProfile?.shipment;
+            if (
+                window.VitalismenCleanChatV29?.containsPickupAuthorizationLanguage(text)
+                && shipmentPolicy?.allowPickupLanguage !== true
+            ) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
             const replyTo = state.replyToMessage;
             const phone = currentChatPhone();
             if (!digitsOnlyText(phone)) {
@@ -18451,6 +18769,7 @@
                         sessionId,
                         delayTypingSeconds: 0,
                         quotedMessageId: replyTo?._id || '',
+                        clientGeneratedId: pending?.clientGeneratedId || '',
                         sendMode: 'manual_panel',
                         country: state.country || 'EC'
                     })
@@ -18458,6 +18777,7 @@
                 if (!result?.success) {
                     throw new Error(result?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.');
                 }
+                if (pending?._id) confirmPendingLocalMessage(pending._id, result);
                 if (result?.handled) {
                     showToast(result.message || 'Comando aplicado');
                     if (pending?._id) removePendingLocalMessage(pending._id);
@@ -18612,6 +18932,13 @@
                 showToast('Arquivo muito grande. Use ate 16 MB para envio pelo painel.');
                 return;
             }
+            if (
+                window.VitalismenCleanChatV29?.isGuideMediaCandidate(file.name || '')
+                && state.customerProfile?.shipment?.allowGuideImage !== true
+            ) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
             const attachButton = el('attachMediaBtn');
             const sendButton = el('sendBtn');
             const originalAttachText = attachButton.textContent;
@@ -18635,6 +18962,7 @@
                         message: dataUrl,
                         isMedia: true,
                         fileName: file.name || '',
+                        clientGeneratedId: pendingMessage?.clientGeneratedId || '',
                         sessionId,
                         delayTypingSeconds: manualRecordingDelaySeconds(file),
                         recordedAudio: mediaTypeFromFile(file) === 'audio',
@@ -18644,24 +18972,17 @@
                     })
                 });
                 apiResponded = true;
-                removePendingLocalMessage(pendingMessage?._id);
                 if (!result?.success) {
                     await loadSelectedMessages({ force: true });
                     throw new Error(result?.error || 'WhatsApp nao retornou confirmacao da midia; confira no aparelho.');
                 }
-                if (result.storedMediaUrl) {
-                    appendLocalMessage(`${mediaKindFromFile(file)} enviado`, {
-                        type: result.mediaType || inferMediaType({ mediaUrl: result.storedMediaUrl }),
-                        mediaUrl: result.storedMediaUrl,
-                        mediaPreviewUrl: result.storedMediaUrl
-                    });
-                }
+                if (pendingMessage?._id) confirmPendingLocalMessage(pendingMessage._id, result);
                 showToast(`${mediaKindFromFile(file)} enviado`);
                 loadSelectedMessages({ force: true }).catch(() => null);
                 loadChats().catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
             } catch (error) {
-                if (!apiResponded && pendingMessage?._id) {
+                if (pendingMessage?._id) {
                     state.pendingLocalMessages = (state.pendingLocalMessages || []).map((item) => (
                         String(item._id || '') === String(pendingMessage._id)
                             ? { ...item, deliveryStatus: 'unconfirmed' }
@@ -18817,6 +19138,7 @@
                 proof: `Le comparto algo importante: varios clientes que tenian la misma duda ya recibieron su pedido y nos contaron que les fue muy bien. Si quiere, le ayudo a dejar el suyo listo hoy.`,
                 data: 'Perfecto, para dejarlo listo me confirma por favor: nombre completo, ciudad y direccion completa para la entrega?',
                 close: 'Listo, entonces le confirmo el pedido con esos datos. Lo dejamos preparado para envio y la transportadora se comunica antes de la entrega. Esta correcto?',
+                early_pickup_correction: `Disculpe la confusión, ${chat.name || chat.customerDraft?.name || 'cliente'}. Su pedido fue enviado, pero todavía no estaba habilitado para retiro en la agencia. No necesita volver todavía. En cuanto Servientrega lo confirme como disponible, le avisaremos por aquí para que pueda ir con seguridad y no pierda tiempo nuevamente.`,
                 cmd_euatendo: '#euatendo',
                 cmd_botliberado: '#botliberado'
             };
@@ -19412,25 +19734,53 @@
         });
         el('customerForm').addEventListener('submit', saveCustomerForm);
         el('confirmCustomerDataBtn').addEventListener('click', () => el('customerForm').requestSubmit());
+        el('confirmCustomerNameBtn')?.addEventListener('click', async () => {
+            const name = el('customerNameInput').value.trim();
+            const status = String(state.customerDataResolution?.fields?.name?.validation_status || '');
+            if (status === 'SEGMENTATION_REQUIRED' && !/\s/u.test(name)) {
+                el('customerNameInput').focus();
+                showToast('Separe o nome exatamente como o cliente confirmou antes de fixar.');
+                return;
+            }
+            if (!name) return;
+            state.customerCorrectedFields.add('name');
+            try {
+                await persistSelectedCustomerData({ silent: true });
+                showToast('Nome corrigido e bloqueado contra sobrescrita automatica.');
+            } catch (error) {
+                showToast(error.message);
+            }
+        });
         el('scanCustomerDataBtn')?.addEventListener('click', () => {
             if (!state.selectedChat) return;
             syncDetectedCustomerDataFromMessages(state.currentMessages || [], { operatorRequested: true });
         });
-        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerBuyLaterDateInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
+        const customerResolutionFieldByInput = {
+            customerNameInput: 'name',
+            customerCityInput: 'city',
+            customerProvinceInput: 'province',
+            customerDeliveryModeInput: 'deliveryMode',
+            customerAgencyNameInput: 'agency',
+            customerAddressInput: 'address',
+            customerReferenceInput: 'reference'
+        };
+        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerBuyLaterDateInput', 'customerCityInput', 'customerProvinceInput', 'customerDeliveryModeInput', 'customerAgencyNameInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('input', () => {
+                if (customerResolutionFieldByInput[id]) state.customerCorrectedFields.add(customerResolutionFieldByInput[id]);
                 markCustomerFormDirty();
                 if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 900, source: 'input' });
                 }
             });
             el(id).addEventListener('change', () => {
+                if (customerResolutionFieldByInput[id]) state.customerCorrectedFields.add(customerResolutionFieldByInput[id]);
                 markCustomerFormDirty();
                 if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 450, source: 'change' });
                 }
             });
         });
-        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
+        ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerDeliveryModeInput', 'customerAgencyNameInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('blur', (event) => {
                 if (id === 'customerQuantityInput') {
                     setInputValue('customerQuantityInput', normalizeCustomerQuantityValue(event.target.value));
@@ -19439,6 +19789,16 @@
             });
         });
         el('customerCountryInput').addEventListener('change', applyCustomerCountryUi);
+        el('customerDeliveryModeInput').addEventListener('change', () => {
+            const agencyInput = el('customerAgencyNameInput');
+            const agencyMode = el('customerDeliveryModeInput').value === 'agency';
+            agencyInput.disabled = !agencyMode;
+            if (!agencyMode) {
+                agencyInput.value = '';
+                agencyInput.dataset.agencyId = '';
+            }
+            updateCustomerPrimaryAction();
+        });
         el('customerProductInput').addEventListener('change', () => {
             applyCustomerCountryUi();
             renderCustomerProductSelection();
@@ -20184,6 +20544,14 @@
             renderCustomFunnelDraft();
         });
         el('sendManualGuideBtn')?.addEventListener('click', sendManualGuideFromForm);
+        el('manualGuideStatusInput')?.addEventListener('change', () => {
+            const ready = el('manualGuideStatusInput')?.value === 'READY_FOR_PICKUP';
+            el('manualReadyVerificationWrap')?.classList.toggle('hidden', !ready);
+            if (!ready && el('manualReadyVerificationInput')) el('manualReadyVerificationInput').checked = false;
+            if (el('sendManualGuideBtn')) {
+                el('sendManualGuideBtn').textContent = ready ? 'Confirmar READY e avisar retirada' : 'Adicionar guia (somente rastreio)';
+            }
+        });
         el('sendSelectedDropiBtn').addEventListener('click', openSelectedCustomerInLeads);
         el('dryRunDropiDispatchBtn').addEventListener('click', () => runDropiDispatchRetroactive({
             dryRun: true,

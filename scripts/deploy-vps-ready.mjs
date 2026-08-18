@@ -21,6 +21,11 @@ const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(
 const baseDir = process.env.VITALISMEN_DEPLOY_BASE_DIR || '/opt/vitalismen-automacao';
 const deployTag = String(process.env.VITALISMEN_DEPLOY_TAG || '').trim();
 
+if (activate) {
+    console.error('[DEPLOY-INTEGRATION-V29.1] ativação direta bloqueada; use o helper root transacional com permit de uso único.');
+    process.exit(78);
+}
+
 const run = (cmd, args, options = {}) => {
     console.log(`$ ${cmd} ${args.join(' ')}`);
     execFileSync(cmd, args, {
@@ -133,8 +138,7 @@ if (!confirm) {
         'Para enviar sem ativar:',
         `VITALISMEN_DEPLOY_TAG=${deployTag} VITALISMEN_DEPLOY_CONFIRM=YES npm run deploy:vps`,
         '',
-        'Para enviar e apontar current para a nova release:',
-        `VITALISMEN_DEPLOY_TAG=${deployTag} VITALISMEN_DEPLOY_CONFIRM=YES VITALISMEN_DEPLOY_ACTIVATE=YES npm run deploy:vps`
+        'A ativação não é aceita por este comando. Use o helper root transacional somente após staging e permit de uso único.'
     ].join('\n'));
     process.exit(1);
 }
@@ -249,21 +253,5 @@ run('ssh', [
     ].join(' && ')
 ], { timeout: 180000 });
 
-if (activate) {
-    run('ssh', [
-        '-i', key,
-        '-o', 'StrictHostKeyChecking=accept-new',
-        host,
-        [
-            `previous="$(readlink -f ${baseDir}/current 2>/dev/null || true)"`,
-            `printf '%s\\n' "$previous" > ${releaseDir}/.previous-release`,
-            `ln -sfn ${releaseDir} ${baseDir}/current`,
-            `ls -la ${baseDir}/current`
-        ].join(' && ')
-    ], { timeout: 60000 });
-}
-
 console.log(`[DEPLOY] Release exata ${commit} enviada para ${host}:${releaseDir}`);
-console.log(activate
-    ? '[DEPLOY] Release ativada em current. Restart PM2 continua sendo uma decisao explicita.'
-    : '[DEPLOY] Release nao ativada. Revise no VPS antes de alterar current ou reiniciar o PM2.');
+console.log('[DEPLOY] Release não ativada. Current e PM2 permanecem inalterados; ativação exige helper root transacional.');

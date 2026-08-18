@@ -1,0 +1,73 @@
+{
+  "freezeId": "deploy-integration-v29-1-20260818",
+  "status": "release_preparation_candidate_locked",
+  "lockedAt": "2026-08-18T18:06:52Z",
+  "country": "EC",
+  "parentFreezeId": "logistics-clean-chat-v29-20260818",
+  "parentManifestSha256": "6569acc57662ac8aba1852836d68e77382dc650c373a3f94eafb44a5358950dc",
+  "baseV28Sha": "7bd1418caf81b832f30acb7926f023df7a2e711e",
+  "baseV29Sha": "5c9f0fd96ddc0f3bd3cc02c24014e6b885c22b77",
+  "publicationStatus": "approved_for_release_preparation",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T18:06:52Z",
+    "scope": "prepare_and_promote_v29_1_without_activation"
+  },
+  "operatorActivationApproval": {
+    "status": "required_explicit",
+    "approvedAt": "",
+    "scope": "transactional_activate_v29_1_with_single_use_root_permit"
+  },
+  "technicalTag": "freeze-v29-1-deploy-integration-20260818",
+  "productionTagFormat": "production-20260818-<real_sha7>",
+  "commit": "resolved-by-technical-and-production-tags-after-final-regression",
+  "rollback": {
+    "functional": "5c9f0fd96ddc0f3bd3cc02c24014e6b885c22b77",
+    "operational": "must_be_read_from_vps_current_before_activation"
+  },
+  "policy": {
+    "v29FunctionalFreezePreserved": true,
+    "exactLineageRequired": true,
+    "legacyV28DeployGuardRejected": true,
+    "directActivationBlocked": true,
+    "transactionalRootHelperRequired": true,
+    "wildcardReleaseAuthorization": false,
+    "stagingAllowlistChanged": false
+  },
+  "realEffects": {
+    "whatsappMessage": false,
+    "order": false,
+    "metaCapi": false,
+    "dropi": false,
+    "deploy": false,
+    "activation": false
+  },
+  "declaredParentOverrides": [
+    "package.json",
+    "src/index.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/DEPLOY_INTEGRATION_HOTFIX_FREEZE_V29_1_20260818.md",
+    "scripts/assert-deploy-integration-approved-v29-1.mjs",
+    "scripts/deploy-ec-safe.mjs",
+    "scripts/deploy-vps-ready.mjs",
+    "scripts/guard-deploy-integration-v29-1.mjs",
+    "src/services/deployIntegrationFreezeRuntimeGuardV291.js",
+    "src/services/deployIntegrationPolicyV291.js",
+    "tests/deploy-integration-v29-1.test.mjs"
+  ],
+  "protectedFiles": {
+    "package.json": "132613111a7ffbf9f698b9cc51aad94757b3c4722905b4505f8beb77d1c7055f",
+    "src/index.js": "35f2a1bf68e2fac518ae0a0c399b7f6da5d75c5608d14d4ed698ca0e36257f73",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "e1cc1e81f4289615b6ecba6d5467abd0dd71c5722c238378399c587927fe673f",
+    "docs/DEPLOY_INTEGRATION_HOTFIX_FREEZE_V29_1_20260818.md": "c51b6d80439348f859ff989c624d09425c2015c1a2f8a62ad5708ba38665ec20",
+    "scripts/assert-deploy-integration-approved-v29-1.mjs": "9a5edd86d63d11f9539f9c8b6c8e1a255b60d6319f6f59bbefaadba4320ecbf6",
+    "scripts/deploy-ec-safe.mjs": "b32c058c29eb3afcc46af178b1a3dee799aa780c4cdf9a032159e6179ce2e010",
+    "scripts/deploy-vps-ready.mjs": "3999ef942783d7c5a930b482065591747cd9192cc1d578537e0ef08653cc640c",
+    "scripts/guard-deploy-integration-v29-1.mjs": "eba4c1665881ea2c09590ba937c9c1ab4f78f3ef1d9f94c6b6177e0637dc7267",
+    "src/services/deployIntegrationFreezeRuntimeGuardV291.js": "5b0383173f7183ae39b8590d23d48492127bf938fad8968c747eeaa89e9a9414",
+    "src/services/deployIntegrationPolicyV291.js": "840f3d9cae8253a97394f1398adfac0d819aa400ca129520cb8e3399dc5e144a",
+    "tests/deploy-integration-v29-1.test.mjs": "829861950929023c7d74989d7c550923d27a687ced45083a8b16ff2d8ecf2c1f"
+  }
+}

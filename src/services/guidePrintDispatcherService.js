@@ -2,21 +2,11 @@ import Shipment from '../models/Shipment.js';
 import { ensureGuidePrintImage, notifyGuidePrintImage } from './shipmentMessageService.js';
 
 export const GUIDE_PRINT_ACTIVE_STATUSES = [
-    'READY_FOR_PICKUP',
-    'EN_RUTA',
-    'EN_REPARTO',
-    'EN_DESPACHO',
-    'EN_BODEGA_TRANSPORTADORA',
-    'GUIA_GENERADA'
+    'READY_FOR_PICKUP'
 ];
 
 const STATUS_PRIORITY = new Map([
-    ['READY_FOR_PICKUP', 0],
-    ['EN_REPARTO', 1],
-    ['EN_RUTA', 2],
-    ['EN_DESPACHO', 3],
-    ['EN_BODEGA_TRANSPORTADORA', 4],
-    ['GUIA_GENERADA', 5]
+    ['READY_FOR_PICKUP', 0]
 ]);
 
 const phoneTail = (phone = '') => {
@@ -29,6 +19,7 @@ const nonEmptyField = (field) => ({ [field]: { $exists: true, $nin: ['', null] }
 const activeGuidePrintQuery = ({ requireSource = false } = {}) => ({
     country: 'EC',
     'logistics.status': { $in: GUIDE_PRINT_ACTIVE_STATUSES },
+    'logistics.pickupReadyVerified': true,
     'logistics.trackingNumber': { $exists: true, $nin: ['', null] },
     'client.phone': { $exists: true, $nin: ['', null] },
     'automation.guidePrintNotifiedAt': null,
@@ -142,6 +133,8 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
         const locked = await Shipment.findOneAndUpdate(
             {
                 _id: candidate._id,
+                'logistics.status': 'READY_FOR_PICKUP',
+                'logistics.pickupReadyVerified': true,
                 'automation.guidePrintNotifiedAt': null,
                 'review.manualOnly': { $ne: true },
                 $or: [

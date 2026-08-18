@@ -212,6 +212,30 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Estado: candidato local autorizado para publicacao controlada em 2026-08-18T14:38:20Z, exclusivamente para teste no telefone `5515998038637`; nenhum reset, envio, banco, PM2, `current`, servico ou producao havia sido alterado no momento da autorizacao.
 - Rollback funcional: retornar ao commit `e268e61f6d18c4057bb3b01e4e30c0df0c3ae725`.
 
+### Microcamada V27 — 2026-08-18
+
+- Base Git: `23a395e9a4eec72450cee0608ba4bb32606fa53e`, merge oficial da V26; VPS ainda executando `20260818T042423Z_production-20260818-bb2d92f` durante a implementacao.
+- Evidencia: a VSL envia `Hola, quiero el tratamiento.` junto com `Nombre`, `CIUDAD` e `PROVINCIA` em uma unica mensagem multilinha.
+- Arquivo funcional alterado: `src/services/texUltraFunnelService.js`; a VSL e `src/routes/zapi.js` permanecem inalterados.
+- Correcao: capturar os tres campos antes da cadencia, preencher somente lacunas e, depois da quantidade, pedir entrega sem repetir nome/cidade/provincia.
+- Teste sem envio: `tests/tex-ultra-vsl-payload-v27.test.mjs` e regressoes V26/atribuicao VSL.
+- Freeze/guard: `docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md`, `docs/freeze/tex-ultra-vsl-payload-v27-20260818.json` e `scripts/guard-tex-ultra-vsl-payload-v27.mjs`.
+- Estado: candidato local; autorizacao V26 nao reutilizada. Nenhum reset, envio, pedido, Dropi, Meta/CAPI, banco, PM2, `current`, servico ou producao foi alterado.
+- Rollback funcional: retornar ao commit `23a395e9a4eec72450cee0608ba4bb32606fa53e`.
+
+### V28 — Customer Identity, Location & Delivery — 2026-08-18
+
+- Base Git: commit local V27 `15b9857f7b6e33975af52a5f61f797cd7468e102`; branch `codex/customer-data-resolution-v28-20260818`.
+- Motor canônico: `src/services/customerDataResolutionService.js`.
+- Persistência: `src/models/ContactState.js` e `src/models/Order.js`.
+- Gates: `src/services/texUltraFunnelService.js`, `src/routes/whatsapp.js` e `src/routes/orders.js`.
+- UX oficial: `public/qr.html`, com modalidade, agência autorizada, score, estados e motivos de bloqueio.
+- Fonte de localidades/agências: `src/data/agencia_LISTA.json`; nenhum serviço externo acionado.
+- Testes sem envio: `tests/customer-data-resolution-v28.test.mjs` e `tests/customer-data-resolution-v28-integration.test.mjs` mais regressão V27/V26/painel/pedido.
+- Freeze/guard: `docs/CUSTOMER_IDENTITY_LOCATION_DELIVERY_FREEZE_V28_20260818.md`, `docs/freeze/customer-data-resolution-v28-20260818.json` e `scripts/guard-customer-data-resolution-v28.mjs`.
+- Estado: candidato local, não publicado e sem autorização de deploy. Nenhuma VSL, mensagem real, pedido real, Dropi, Meta/CAPI, banco oficial, PM2, `current`, serviço ou produção foi alterado.
+- Rollback funcional: retornar ao commit `15b9857f7b6e33975af52a5f61f797cd7468e102`; schema aditivo pode permanecer sem uso.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

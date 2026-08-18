@@ -16,6 +16,13 @@ import { resolveCountryAudio } from './audioTemplateService.js';
 import { VIT_POWER_PICKUP_BONUS_TEXT } from './vitPowerEvolvedWorkflow.js';
 import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
+import {
+    buildNotificationLedgerEntryV29,
+    buildPickupReminderV29,
+    buildReadyForPickupCommunicationV29,
+    buildShippedCommunicationV29,
+    logisticsCommunicationPolicy
+} from './logisticsCommunicationV29.js';
 
 const BONUS_URL = process.env.PICKUP_BONUS_URL || 'https://zapgersonecvo.cloud';
 const BONUS_TEXT_VARIANTS = [
@@ -134,10 +141,12 @@ const PICKUP_NOTICE_MESSAGE_PATTERNS_BY_KIND = {
         /\*PEDIDO PARA RETIRO\*/i,
         /\*SU PEDIDO ESTA EN AGENCIA\*/i,
         /\*AVISO DE RETIRO SERVIENTREGA\*/i,
-        /^\[AUDIO\]\s*Chegou_01\b/i
+        /^\[AUDIO\]\s*Chegou_01\b/i,
+        /pedido ya está disponible para retiro en Servientrega/i
     ],
     day1: [
-        /^Hola\. Su pedido esta para retiro en agencia\./i
+        /^Hola\. Su pedido esta para retiro en agencia\./i,
+        /pedido continúa disponible en Servientrega.*retirarlo hoy/i
     ],
     soft_day2: [
         /Si ya retiro, envieme una foto del retiro\./i
@@ -152,7 +161,8 @@ const PICKUP_NOTICE_MESSAGE_PATTERNS_BY_KIND = {
         /^\[AUDIO\]\s*Chegou_03\b/i
     ],
     soft_day6: [
-        /^Ultimo aviso\. Su pedido sigue para retiro en agencia\./i
+        /^Ultimo aviso\. Su pedido sigue para retiro en agencia\./i,
+        /se acerca el plazo de devolución/i
     ]
 };
 
@@ -400,6 +410,8 @@ const ensureInvoiceAvailableLocally = async (shipment) => {
 };
 
 const sendShipmentInvoicePdf = async (shipment, chatId, caption) => {
+    const policy = logisticsCommunicationPolicy(shipment);
+    if (!policy.allowGuidePdf) return { sent: false, reason: policy.blockReason || 'guide_pdf_blocked' };
     const invoiceSource = resolveInvoiceSource(shipment);
     if (!invoiceSource) return { sent: false, reason: 'missing_invoice_source' };
 
@@ -643,6 +655,7 @@ const pickupAgencyLine = (shipment) => {
 };
 
 export const buildShipmentGuideText = (shipment) => {
+    if (isAgencyPickup(shipment)) return buildShippedCommunicationV29(shipment);
     const name = shipment?.client?.name || 'cliente';
     const tracking = shipment?.logistics?.trackingNumber || '';
     const carrier = shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || 'la transportadora';
@@ -663,16 +676,7 @@ export const buildShipmentGuideText = (shipment) => {
 };
 
 export const buildReadyForPickupText = (shipment) => {
-    const name = shipment?.client?.name || 'cliente';
-    const tracking = shipment?.logistics?.trackingNumber || '';
-    const carrier = shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || 'la transportadora';
-    const agencyLine = pickupAgencyLine(shipment);
-    return renderShipmentTextVariant([
-        ({ name, tracking, agencyLine }) => `*PEDIDO LISTO PARA RETIRO*\n\nHola ${name}. Su pedido ya esta disponible en agencia Servientrega.\nGuia: *${tracking}*.${agencyLine}\n\nPor favor acerquese con su documento de identidad y esta guia.`,
-        ({ name, tracking, agencyLine }) => `*PEDIDO PARA RETIRO*\n\n${name}, ya puede retirar su pedido en Servientrega.\nGuia: *${tracking}*.${agencyLine}\n\nLleve su documento y muestre esta guia en la agencia.`,
-        ({ name, tracking, agencyLine }) => `*SU PEDIDO ESTA EN AGENCIA*\n\nListo, ${name}. Servientrega ya lo tiene disponible para retiro.\nGuia: *${tracking}*.${agencyLine}\n\nRetire con su documento de identidad.`,
-        ({ name, tracking, agencyLine }) => `*AVISO DE RETIRO SERVIENTREGA*\n\n${name}, su pedido esta listo para retirar.\nGuia: *${tracking}*.${agencyLine}\n\nGuarde este mensaje para mostrarlo en agencia.`
-    ], shipment, 'ready_for_pickup', { name, carrier, tracking, agencyLine });
+    return buildReadyForPickupCommunicationV29(shipment);
 };
 
 export const buildInTransitText = (shipment) => {
@@ -681,11 +685,7 @@ export const buildInTransitText = (shipment) => {
     const carrier = shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || 'la transportadora';
     const trackingLine = tracking ? ` Guia: ${tracking}.` : '';
     if (isAgencyPickup(shipment)) {
-        return withSaveContactReminder(renderShipmentTextVariant([
-            ({ name, carrier, trackingLine }) => `Hola ${name} 😊 su pedido ya aparece en ruta por ${carrier}.${trackingLine} Apenas este disponible en agencia, le aviso por aqui para que pueda retirarlo tranquilo.`,
-            ({ name, carrier, trackingLine }) => `${name}, le confirmo movimiento de su pedido 📦 Ya esta en ruta con ${carrier}.${trackingLine} Cuando la agencia lo libere para retiro, le escribo aqui.`,
-            ({ name, carrier, trackingLine }) => `Buenas noticias, ${name} ✅ su pedido ya esta avanzando por ${carrier}.${trackingLine} Guarde este numero porque por aqui le aviso el momento correcto para retirar.`
-        ], shipment, 'in_transit_agency', { name, carrier, trackingLine }));
+        return buildShippedCommunicationV29(shipment);
     }
     return withSaveContactReminder(renderShipmentTextVariant([
         ({ name, carrier, trackingLine }) => `Hola ${name} 😊 su pedido ya esta en ruta por ${carrier}.${trackingLine} Por favor este pendiente del telefono cuando la transportadora se comunique para la entrega.`,
@@ -735,7 +735,11 @@ const buildReminderTextBody = (shipment, kind) => {
     return SOFT_REMINDER_TEXT;
 };
 
-export const buildReminderText = (shipment, kind) => buildReminderTextBody(shipment, kind).trim();
+export const buildReminderText = (shipment, kind) => {
+    if (kind === 'day1') return buildPickupReminderV29(shipment, 1);
+    if (kind === 'soft_day6') return buildPickupReminderV29(shipment, 2);
+    return buildReminderTextBody(shipment, kind).trim();
+};
 
 export const buildPickupProofText = () => (
     'Perfecto. Envieme una foto del producto o del comprobante de retiro.'
@@ -772,6 +776,21 @@ const appendEvent = async (shipmentId, kind, payload = {}) => {
                         payload
                     }],
                     $slice: -60
+                }
+            }
+        }
+    );
+};
+
+const appendNotificationLedgerV29 = async (shipment, details = {}) => {
+    if (!shipment?._id) return;
+    await Shipment.updateOne(
+        { _id: shipment._id },
+        {
+            $push: {
+                notificationLedger: {
+                    $each: [buildNotificationLedgerEntryV29({ shipment, ...details })],
+                    $slice: -200
                 }
             }
         }
@@ -1002,6 +1021,14 @@ export const ensureGuidePrintImage = async (shipment, { force = false } = {}) =>
 };
 
 export const notifyGuidePrintImage = async (shipment, { force = false } = {}) => {
+    const policy = logisticsCommunicationPolicy(shipment);
+    if (!policy.allowGuideImage) {
+        await appendNotificationLedgerV29(shipment, {
+            notificationType: 'guide_print_image',
+            blockedReason: policy.blockReason || 'guide_image_blocked'
+        });
+        return { success: false, imageSent: false, reason: policy.blockReason || 'guide_image_blocked' };
+    }
     const chatId = resolveChatId(shipment);
     if (!chatId) return { success: false, imageSent: false, reason: 'invalid_chat' };
     if (!force && shipment?.automation?.guidePrintNotifiedAt) {
@@ -1134,6 +1161,11 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
         providerMessageId: sent.providerMessageId || '',
         providerZaapId: sent.providerZaapId || '',
         providerStatus: sent.providerStatus || ''
+    });
+    await appendNotificationLedgerV29(shipment, {
+        notificationType: 'guide_print_image',
+        sentAt: now,
+        providerMessageId: sent.providerMessageId || sent.providerZaapId || ''
     });
     return {
         success: true,
@@ -1323,6 +1355,14 @@ const recoverExistingGlobalShipmentNotice = async ({ shipment, kind, hash, exist
 
 
 export const notifyShipmentGuideGenerated = async (shipment, { force = false } = {}) => {
+    const policy = logisticsCommunicationPolicy(shipment);
+    if (!policy.allowGuideNumber) {
+        await appendNotificationLedgerV29(shipment, {
+            notificationType: 'shipment_guide_text',
+            blockedReason: policy.blockReason || 'guide_number_not_available'
+        });
+        return { success: false, textSent: false, invoiceSent: false, audioSent: false, reason: policy.blockReason || 'guide_number_not_available' };
+    }
     const chatId = resolveChatId(shipment);
     if (!chatId || (!force && shipment.automation.guiaNotifiedAt)) {
         return { success: false, textSent: false, invoiceSent: false, reason: 'already_notified_or_invalid_chat' };
@@ -1348,20 +1388,11 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         return { success: false, textSent: false, invoiceSent: false, reason: 'text_send_failed' };
     }
 
-    const invoiceResult = await sendShipmentInvoicePdf(
-        shipment,
-        chatId,
-        `Guia/factura PDF de su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''}. Guarde este archivo junto con el aviso de envio.`
-    );
-    const invoiceSent = invoiceResult.sent;
-    if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceSent) {
-        console.warn(`[SHIPMENT] Falha ao enviar fatura PDF para shipment ${shipment.orderId}: ${invoiceResult.reason}`);
-    }
-    const guideAudioSent = await sendShipmentAudio(shipment, chatId, 'guia', { force });
-    const partialAttachmentFailures = await appendPartialAttachmentEvents(shipment._id, 'guide', {
-        invoice: invoiceResult,
-        audio: guideAudioSent
-    });
+    // V29: envio/guia pode comunicar somente texto + numero. PDF, imagem e
+    // audio de retirada pertencem exclusivamente a READY_FOR_PICKUP verificado.
+    const invoiceSent = false;
+    const guideAudioSent = false;
+    const partialAttachmentFailures = [];
 
     const now = new Date();
     await persistAutomationUpdate(shipment._id, {
@@ -1373,20 +1404,36 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         trackingNumber: shipment.logistics.trackingNumber,
         audio: guideAudioSent,
         invoiceSent,
-        invoiceReason: invoiceResult.reason,
+        invoiceReason: 'blocked_until_ready_for_pickup_verified',
         primaryTextSent: true,
         partialAttachmentFailures
+    });
+    await appendNotificationLedgerV29(shipment, {
+        notificationType: 'shipment_guide_text',
+        sentAt: now,
+        providerMessageId: textSent?.providerMessageId || textSent?.providerZaapId || ''
     });
     return {
         success: true,
         textSent: true,
         invoiceSent,
+        audioSent: false,
+        invoiceReason: 'blocked_until_ready_for_pickup_verified',
+        audioReason: 'blocked_until_ready_for_pickup_verified',
         partialAttachmentFailures,
         reason: 'ok'
     };
 };
 
 export const notifyReadyForPickup = async (shipment, { force = false } = {}) => {
+    const policy = logisticsCommunicationPolicy(shipment);
+    if (!policy.allowPickupLanguage) {
+        await appendNotificationLedgerV29(shipment, {
+            notificationType: 'ready_for_pickup',
+            blockedReason: policy.blockReason || 'pickup_ready_not_verified'
+        });
+        return false;
+    }
     const chatId = resolveChatId(shipment);
     if (!chatId || (!force && shipment.automation.readyForPickupNotifiedAt)) return false;
     const text = buildReadyForPickupText(shipment);
@@ -1445,6 +1492,11 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         primaryTextSent: true,
         partialAttachmentFailures
     });
+    await appendNotificationLedgerV29(shipment, {
+        notificationType: 'ready_for_pickup',
+        sentAt: now,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
+    });
     return true;
 };
 
@@ -1479,6 +1531,14 @@ export const notifyShipmentInTransit = async (shipment) => {
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {
+    const policy = logisticsCommunicationPolicy(shipment);
+    if (!policy.allowReminders) {
+        await appendNotificationLedgerV29(shipment, {
+            notificationType: `pickup_reminder_${kind}`,
+            blockedReason: policy.blockReason || 'pickup_reminder_blocked'
+        });
+        return false;
+    }
     const chatId = resolveChatId(shipment);
     if (!chatId) return false;
     const text = buildReminderText(shipment, kind);
@@ -1532,6 +1592,15 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     if (kind === 'soft_day6') setFields['automation.reminderSoftDay6At'] = now;
     await persistAutomationUpdate(shipment._id, setFields, hash);
     await appendEvent(shipment._id, `reminder_${kind}`, { audio: audioSent, audioOnly });
+    await appendNotificationLedgerV29(shipment, {
+        notificationType: `pickup_reminder_${kind}`,
+        sentAt: now,
+        providerMessageId: sent?.providerMessageId
+            || sent?.providerZaapId
+            || audioSent?.sentDetails?.[0]?.providerMessageId
+            || audioSent?.sentDetails?.[0]?.providerZaapId
+            || ''
+    });
     return true;
 };
 
@@ -2044,6 +2113,7 @@ export const getPendingShipmentReminders = async () => {
         country: 'EC',
         'client.phone': { $exists: true, $ne: '' },
         'logistics.status': 'READY_FOR_PICKUP',
+        'logistics.pickupReadyVerified': true,
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         'automation.readyForPickupNotifiedAt': { $ne: null, $gte: oldestReadyForPickupAt },
@@ -2062,6 +2132,7 @@ export const getPendingShipmentReminders = async () => {
 };
 
 export const getDuePickupReminderStep = (shipment, now = new Date()) => {
+    if (!logisticsCommunicationPolicy(shipment).allowReminders) return null;
     const anchor = shipment?.automation?.readyForPickupNotifiedAt;
     const anchorTime = anchor?.getTime?.();
     if (!anchorTime) return null;
