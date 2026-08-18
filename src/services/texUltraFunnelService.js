@@ -26,6 +26,81 @@ const stateChatId = (state = {}) => state.chatId || (state.phoneDigits ? `${digi
 const memoryOf = (state = {}) => state?.metadata?.perAgentMemory?.[AGENT_KEY] || {};
 const draftOf = (state = {}) => state?.metadata?.customerDraft || {};
 
+const officialVslEntryLine = (value = '') => normalize(value)
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const safeVslPersonOrLocation = (value = '', maxLength = 80) => {
+    const clean = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!clean || clean.length > maxLength) return '';
+    return /^[\p{L}][\p{L}\s.'’-]*$/u.test(clean) ? clean : '';
+};
+
+export const texUltraVslPayloadData = (text = '') => {
+    const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (officialVslEntryLine(lines[0]) !== 'hola quiero el tratamiento') return null;
+
+    const fields = {};
+    for (const line of lines.slice(1)) {
+        const match = line.match(/^([^:：]{2,24})\s*[:：]\s*(.+)$/u);
+        if (!match) continue;
+        const label = normalize(match[1]).replace(/[^\p{L}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+        const value = safeVslPersonOrLocation(match[2]);
+        if (!value) continue;
+        if (/^(?:nombre|nombre completo)$/.test(label)) fields.name = value;
+        else if (label === 'ciudad') fields.city = value;
+        else if (label === 'provincia') fields.province = value;
+    }
+    return Object.keys(fields).length ? fields : null;
+};
+
+export const mergeTexUltraVslPayloadDraft = (draft = {}, payload = {}, capturedAt = new Date().toISOString()) => {
+    const next = { ...draft };
+    const capturedFields = [];
+    for (const field of ['name', 'city', 'province']) {
+        if (!String(next[field] || '').trim() && String(payload[field] || '').trim()) {
+            next[field] = payload[field];
+            capturedFields.push(field);
+        }
+    }
+    if (!capturedFields.length) return next;
+    return {
+        ...next,
+        vslPayloadSource: 'official_multiline_cta',
+        vslPayloadCapturedAt: draft.vslPayloadCapturedAt || capturedAt,
+        vslPayloadFields: [...new Set([...(draft.vslPayloadFields || []), ...capturedFields])]
+    };
+};
+
+export const texUltraNextDataCollectionStep = (draft = {}) => {
+    if (!String(draft.name || '').trim()) return {
+        stage: 'awaiting_name',
+        context: 'tex_ultra_ask_name',
+        text: 'Para registrar correctamente, ¿me indica su nombre completo?'
+    };
+    if (!String(draft.city || '').trim()) return {
+        stage: 'awaiting_city',
+        context: 'tex_ultra_ask_city',
+        text: '¿En que ciudad de Ecuador desea recibir o retirar el pedido?'
+    };
+    if (!String(draft.province || '').trim()) return {
+        stage: 'awaiting_province',
+        context: 'tex_ultra_ask_province',
+        text: '¿A que provincia pertenece?'
+    };
+    if (!String(draft.address || '').trim()) return {
+        stage: 'awaiting_address',
+        context: 'tex_ultra_ask_address',
+        text: 'Ya tengo su nombre, ciudad y provincia. ¿Prefiere entrega a domicilio o retiro en una agencia Servientrega? Envieme la direccion o el nombre de la agencia.'
+    };
+    if (!String(draft.reference || '').trim()) return {
+        stage: 'awaiting_reference',
+        context: 'tex_ultra_ask_reference',
+        text: 'Indiqueme un punto de referencia para completar la entrega.'
+    };
+    return { stage: 'awaiting_confirmation', context: 'tex_ultra_confirmation', text: '' };
+};
+
 export const texUltraSelectedQuantity = (text = '') => {
     const value = normalize(text).replace(/\s+/g, ' ');
     const match = value.match(/^(1|2|3|6|un|uno|dos|tres|seis)(?:\s+(?:frasco|frascos|botella|botellas|mes|meses))?$/)
@@ -280,6 +355,14 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     if (sessionId) state.metadata = { ...(state.metadata || {}), lastSessionId: sessionId };
     let memory = memoryOf(state);
     let draft = { ...draftOf(state), phone: draftOf(state).phone || (state.phoneDigits ? `+${digitsOnly(state.phoneDigits)}` : '') };
+    const vslPayload = texUltraVslPayloadData(inboundText);
+    if (vslPayload) {
+        const mergedDraft = mergeTexUltraVslPayloadDraft(draft, vslPayload);
+        if (JSON.stringify(mergedDraft) !== JSON.stringify(draft)) {
+            draft = mergedDraft;
+            memory = await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
+        }
+    }
     const quantity = texUltraSelectedQuantity(inboundText);
     const initialLayerInbound = await interruptTexUltraInitialLayerOnInbound({ state, inboundText });
     const interruptedInboundRoute = texUltraInterruptedInboundRoute(inboundText);
@@ -297,8 +380,15 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         const selected = texUltraPriceForQuantity(quantity);
         if (!selected) return true;
         draft = { ...draft, quantity, total: selected.amount, status: 'atendendo' };
-        await sendFunnelText({ state, text: `Perfecto: ${selected.label}. Para registrar correctamente, ¿me indica su nombre completo?`, context: `tex_ultra_quantity_${quantity}` });
-        await saveState(state, { memory: { ...memory, selectedQuantity: quantity }, draft, stage: 'awaiting_name' });
+        const nextStep = texUltraNextDataCollectionStep(draft);
+        await sendFunnelText({
+            state,
+            text: nextStep.stage === 'awaiting_confirmation'
+                ? confirmationText(draft)
+                : `Perfecto: ${selected.label}. ${nextStep.text}`,
+            context: nextStep.stage === 'awaiting_confirmation' ? nextStep.context : `tex_ultra_quantity_${quantity}_${nextStep.stage}`
+        });
+        await saveState(state, { memory: { ...memory, selectedQuantity: quantity }, draft, stage: nextStep.stage });
         return true;
     }
 

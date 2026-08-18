@@ -586,6 +586,14 @@ Perguntas livres passam ao atendimento humano mesmo depois da cadencia concluida
 
 A autorizacao anterior era especifica para V25 e nao foi reutilizada. Em 2026-08-18T14:38:20Z, o operador autorizou expressamente o deploy controlado da V26 para teste exclusivo no telefone `5515998038637`, mantendo staging oficial, permit root de uso unico, validacao de health e rollback transacional obrigatorios.
 
+## Microcamada V27 de payload multilinha da VSL Tex Ultra
+
+O freeze `docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md` sucede a V26 para aceitar o contrato real da VSL sem alterar a pagina. A primeira linha `Hola, quiero el tratamiento.` pode ser seguida por linhas `Nombre:`, `CIUDAD:` e `PROVINCIA:` na mesma mensagem.
+
+Somente esses tres campos rotulados sao capturados por esta microcamada, e apenas quando a CTA oficial ocupa a primeira linha. O `customerDraft` recebe apenas lacunas: dado ja salvo ou corrigido nunca e sobrescrito. A captura ocorre antes da cadencia, de modo que o nome pode ser usado na saudacao. Depois da quantidade, nome, cidade e provincia ja conhecidos nao sao perguntados novamente; o proximo campo e entrega/endereco.
+
+A V27 nao muda frase, emojis, minutagem, midia, oferta, preco, produto, pedido, Dropi, Meta/CAPI, transporte, scheduler ou numero. A autorizacao de deploy da V26 nao e transferida para o novo artefato; publicacao e ativacao V27 permanecem bloqueadas ate nova autorizacao explicita.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:
