@@ -564,6 +564,18 @@ Cada agenda conserva o produto selecionado na ficha (`tex_ultra_ec`, `nitrix_ec`
 
 O envio e fail-closed por `ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false` quando a flag estiver ausente ou desligada. Quando houver ativacao operacional separada, o scheduler exige lock atomico persistido, campo `sentAt`, chave antirrepeticao e consulta do historico antes de qualquer tentativa. Falha de transporte libera o lock, grava `failedAt` sem preencher `sentAt` e nao e repetida automaticamente; trocar data ou produto cria uma nova agenda, enquanto salvar novamente a mesma agenda preserva o comprovante anterior.
 
+## Microcamada V25 de abertura variada e interrupcao Tex Ultra
+
+O freeze `docs/TEX_ULTRA_ENTRY_INTERRUPT_FREEZE_V25_20260818.md` sucede a V24. A frase aprovada da abertura Tex Ultra permanece textual e estruturalmente igual, recebendo apenas um emoji discreto no inicio. O runtime e o painel manual usam o rodizio `👋`, `😊`, `🙂`, `🙏`, `✅`, sem dois itens iguais consecutivos dentro do processo ativo.
+
+A cadencia aprovada permanece inalterada: abertura em 2–6 segundos; audio universal 4–8 segundos depois; prova 21–25 segundos depois; frasco 28–33 segundos depois; oferta 35–40 segundos depois. O total teorico permanece entre 90 e 112 segundos desde a entrada.
+
+Qualquer nova entrada do cliente durante essa cadencia cancela os timers restantes e volta a conferir o cancelamento imediatamente antes de um envio enfileirado. Preco, quantidade e modo de uso recebem a resposta deterministica Tex Ultra correspondente. Outra duvida recebe uma confirmacao curta, entra em `human.mode=manual` e fica marcada como `AGUARDANDO_ATENDIMENTO`; nenhuma midia restante do funil continua automaticamente. A continuidade automatica so ocorre quando o cliente pede explicitamente para continuar.
+
+Esta camada nao altera produtos, precos, audios, imagens, pedidos, Dropi, Meta/CAPI, numero WhatsApp, transporte, scheduler, PM2, `current` ou producao.
+
+O operador autorizou o deploy controlado da V25 em 2026-08-18T14:12:47Z para teste exclusivo no telefone `5515998038637`. A ativacao continua condicionada ao staging oficial, permit root de uso unico, validacao de health e rollback transacional.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:

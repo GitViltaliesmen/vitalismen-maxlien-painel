@@ -17,10 +17,10 @@ test('V21 sucede V20 sem publicar ou alterar producao', () => {
     assert.equal(manifest.policy.pricesChanged, false);
 });
 
-test('guard sucessor V24 e a unica entrada ativa da cadeia', () => {
+test('guard sucessor V25 e a unica entrada ativa da cadeia', () => {
     const index = read('src/index.js');
-    assert.match(index, /buyLaterDateReminderFreezeRuntimeGuardV24/);
-    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22|23)\.js';/m);
+    assert.match(index, /texUltraEntryInterruptFreezeRuntimeGuardV25/);
+    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22|23|24)\.js';/m);
 });
 
 test('politica operacional de chamada permanece desligada no exemplo', () => {
@@ -67,7 +67,11 @@ test('workflow Node 20 e 22 preserva V21/V22 e protege os arquivos V23', () => {
         'src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js',
         'scripts/guard-buy-later-date-reminder-v24.mjs',
         'tests/buy-later-date-reminder-v24.test.mjs',
-        'docs/freeze/buy-later-date-reminder-v24-20260818.json'
+        'docs/freeze/buy-later-date-reminder-v24-20260818.json',
+        'src/services/texUltraEntryInterruptFreezeRuntimeGuardV25.js',
+        'scripts/guard-tex-ultra-entry-interrupt-v25.mjs',
+        'tests/tex-ultra-entry-interrupt-v25.test.mjs',
+        'docs/freeze/tex-ultra-entry-interrupt-v25-20260818.json'
     ]) {
         const occurrences = workflow.split(relativePath).length - 1;
         assert.ok(occurrences >= 3, `${relativePath} deve disparar PR, push e ser conferido pelo workflow`);
