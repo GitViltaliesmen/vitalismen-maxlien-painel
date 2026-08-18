@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/texUltraEntryInterruptFreezeRuntimeGuardV25.js';
+import './services/texUltraStrongIntentFreezeRuntimeGuardV26.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';

@@ -31,6 +31,7 @@ on:
       - src/services/ecAnaIdentityFreezeRuntimeGuardV23.js
       - src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js
       - src/services/texUltraEntryInterruptFreezeRuntimeGuardV25.js
+      - src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js
       - src/services/adminBuyLaterFollowupService.js
       - src/services/buyLaterConfirmationService.js
       - src/services/agentProfiles.js
@@ -65,6 +66,8 @@ on:
       - scripts/guard-buy-later-date-reminder-v24.mjs
       - scripts/assert-tex-ultra-entry-interrupt-approved-v25.mjs
       - scripts/guard-tex-ultra-entry-interrupt-v25.mjs
+      - scripts/assert-tex-ultra-strong-intent-approved-v26.mjs
+      - scripts/guard-tex-ultra-strong-intent-v26.mjs
       - scripts/plan-2800-failover-rescue.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
@@ -79,6 +82,7 @@ on:
       - tests/ec-ana-identity-v23.test.mjs
       - tests/buy-later-date-reminder-v24.test.mjs
       - tests/tex-ultra-entry-interrupt-v25.test.mjs
+      - tests/tex-ultra-strong-intent-v26.test.mjs
       - tests/whatsapp-chat-read-persistence-v22.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
@@ -88,6 +92,7 @@ on:
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
       - docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md
       - docs/TEX_ULTRA_ENTRY_INTERRUPT_FREEZE_V25_20260818.md
+      - docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
@@ -95,6 +100,7 @@ on:
       - docs/freeze/ec-ana-identity-v23-20260818.json
       - docs/freeze/buy-later-date-reminder-v24-20260818.json
       - docs/freeze/tex-ultra-entry-interrupt-v25-20260818.json
+      - docs/freeze/tex-ultra-strong-intent-v26-20260818.json
       - extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
       - package.json
       - package-lock.json
@@ -132,6 +138,7 @@ on:
       - src/services/ecAnaIdentityFreezeRuntimeGuardV23.js
       - src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js
       - src/services/texUltraEntryInterruptFreezeRuntimeGuardV25.js
+      - src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js
       - src/services/adminBuyLaterFollowupService.js
       - src/services/buyLaterConfirmationService.js
       - src/services/agentProfiles.js
@@ -166,6 +173,8 @@ on:
       - scripts/guard-buy-later-date-reminder-v24.mjs
       - scripts/assert-tex-ultra-entry-interrupt-approved-v25.mjs
       - scripts/guard-tex-ultra-entry-interrupt-v25.mjs
+      - scripts/assert-tex-ultra-strong-intent-approved-v26.mjs
+      - scripts/guard-tex-ultra-strong-intent-v26.mjs
       - scripts/plan-2800-failover-rescue.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
@@ -180,6 +189,7 @@ on:
       - tests/ec-ana-identity-v23.test.mjs
       - tests/buy-later-date-reminder-v24.test.mjs
       - tests/tex-ultra-entry-interrupt-v25.test.mjs
+      - tests/tex-ultra-strong-intent-v26.test.mjs
       - tests/whatsapp-chat-read-persistence-v22.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
@@ -189,6 +199,7 @@ on:
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
       - docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md
       - docs/TEX_ULTRA_ENTRY_INTERRUPT_FREEZE_V25_20260818.md
+      - docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
@@ -196,6 +207,7 @@ on:
       - docs/freeze/ec-ana-identity-v23-20260818.json
       - docs/freeze/buy-later-date-reminder-v24-20260818.json
       - docs/freeze/tex-ultra-entry-interrupt-v25-20260818.json
+      - docs/freeze/tex-ultra-strong-intent-v26-20260818.json
       - extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
       - package.json
       - package-lock.json
@@ -264,6 +276,7 @@ jobs:
             src/services/ecAnaIdentityFreezeRuntimeGuardV23.js \
             src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js \
             src/services/texUltraEntryInterruptFreezeRuntimeGuardV25.js \
+            src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js \
             src/services/adminBuyLaterFollowupService.js \
             src/services/buyLaterConfirmationService.js \
             src/services/agentProfiles.js \
@@ -293,6 +306,8 @@ jobs:
             scripts/guard-buy-later-date-reminder-v24.mjs \
             scripts/assert-tex-ultra-entry-interrupt-approved-v25.mjs \
             scripts/guard-tex-ultra-entry-interrupt-v25.mjs \
+            scripts/assert-tex-ultra-strong-intent-approved-v26.mjs \
+            scripts/guard-tex-ultra-strong-intent-v26.mjs \
             scripts/plan-2800-failover-rescue.mjs \
             scripts/guard-tex-ultra-approved-v5.mjs \
             scripts/guard-order-public-product-integrity-v20.mjs \
@@ -306,17 +321,20 @@ jobs:
             tests/ec-ana-identity-v23.test.mjs \
             tests/buy-later-date-reminder-v24.test.mjs \
             tests/tex-ultra-entry-interrupt-v25.test.mjs \
+            tests/tex-ultra-strong-intent-v26.test.mjs \
             tests/whatsapp-chat-read-persistence-v22.test.mjs \
             docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md \
             docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md \
             docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md \
             docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md \
             docs/TEX_ULTRA_ENTRY_INTERRUPT_FREEZE_V25_20260818.md \
+            docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md \
             docs/freeze/panel-call-dropi-safety-v21-20260817.json \
             docs/freeze/tex-ultra-entry-unread-v22-20260818.json \
             docs/freeze/ec-ana-identity-v23-20260818.json \
             docs/freeze/buy-later-date-reminder-v24-20260818.json \
             docs/freeze/tex-ultra-entry-interrupt-v25-20260818.json \
+            docs/freeze/tex-ultra-strong-intent-v26-20260818.json \
             extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
 
       - name: Validate customer intelligence

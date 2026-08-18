@@ -28,13 +28,34 @@ const draftOf = (state = {}) => state?.metadata?.customerDraft || {};
 
 export const texUltraSelectedQuantity = (text = '') => {
     const value = normalize(text).replace(/\s+/g, ' ');
-    const match = value.match(/^(1|2|3|6|un|uno|dos|tres|seis)(?:\s+(?:frasco|frascos|botella|botellas|mes|meses))?$/);
+    const match = value.match(/^(1|2|3|6|un|uno|dos|tres|seis)(?:\s+(?:frasco|frascos|botella|botellas|mes|meses))?$/)
+        || value.match(/\b(1|2|3|6|un|uno|dos|tres|seis)\s+(?:frasco|frascos|botella|botellas)\b/);
     if (!match) return 0;
     return ({ un: 1, uno: 1, dos: 2, tres: 3, seis: 6 })[match[1]] || Number(match[1]);
 };
 
 const asksPrice = (text = '') => /\b(precio|precios|valor|cuanto|costo|promo|promocion|oferta)\b/.test(normalize(text));
 const asksUsage = (text = '') => /\b(como se toma|como tomar|como usar|dosis|posologia)\b/.test(normalize(text));
+export const texUltraStrongPurchaseIntent = (text = '') => {
+    const value = normalize(text)
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return [
+        /\b(?:quiero|deseo|necesito|busco)\s+(?:(?:el|un|este|ese)\s+)?(?:tratamiento|producto|tex ultra)\b/,
+        /\b(?:lo|la)\s+(?:quiero|deseo|necesito)\b/,
+        /\b(?:quiero|deseo)\s+(?:comprar|pedir|ordenar|adquirir)(?:lo)?\b/,
+        /\bme interesa(?:\s+(?:el|este))?\s+(?:tratamiento|producto|tex ultra)\b/
+    ].some((pattern) => pattern.test(value));
+};
+export const texUltraInboundNeedsHuman = (text = '') => {
+    const value = normalize(text)
+        .replace(/[^\p{L}\p{N}\s?¿]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return /[?¿]/.test(value)
+        || /\b(?:quiero saber|necesito saber|tengo una pregunta|tengo una duda|puedo|puede|podria|funciona|sirve|contiene|es seguro|que pasa|por que|cuando|donde|quien)\b/.test(value);
+};
 const affirmative = (text = '') => /^(si|correcto|confirmo|esta correcto|todo correcto|ok|listo)\b/.test(normalize(text));
 const negative = (text = '') => /^(no|corregir|incorrecto|cambiar)\b/.test(normalize(text));
 const looksLikeFullName = (text = '') => {
@@ -87,8 +108,13 @@ export const texUltraInterruptedInboundRoute = (text = '') => {
     if (texUltraSelectedQuantity(text)) return 'quantity';
     if (asksUsage(text)) return 'usage';
     if (asksPrice(text)) return 'price';
+    if (texUltraStrongPurchaseIntent(text)) return 'purchase';
     return 'human';
 };
+
+const purchaseIntentPrompt = () => (
+    '¡Perfecto! Para continuar con su pedido de Tex Ultra, ¿qué opción desea reservar: 1, 2, 3 o 6 frascos?'
+);
 
 const holdInterruptedTexUltraQuestionForHuman = async ({ state, inboundText = '', draft = draftOf(state) }) => {
     const now = new Date();
@@ -282,6 +308,11 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             await saveState(state, { memory: memoryOf(state), draft, stage: 'awaiting_quantity' });
             return true;
         }
+        if (interruptedInboundRoute === 'purchase') {
+            await sendFunnelText({ state, text: purchaseIntentPrompt(), context: 'tex_ultra_purchase_intent_after_interrupt' });
+            await saveState(state, { memory: memoryOf(state), draft, stage: 'awaiting_quantity' });
+            return true;
+        }
         return holdInterruptedTexUltraQuestionForHuman({ state, inboundText, draft });
     }
 
@@ -313,6 +344,18 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         await sendFunnelText({ state, text: offerText(), context: 'tex_ultra_offer' });
         await saveState(state, { memory: { ...memory, offerSentAt: new Date().toISOString() }, draft, stage: 'awaiting_quantity' });
         return true;
+    }
+
+    if (['awaiting_interest', 'awaiting_quantity'].includes(memory.stage) && interruptedInboundRoute === 'purchase') {
+        await sendFunnelText({ state, text: purchaseIntentPrompt(), context: 'tex_ultra_purchase_intent_after_offer' });
+        await saveState(state, { memory, draft, stage: 'awaiting_quantity' });
+        return true;
+    }
+
+    if (!dataCollectionStages.has(memory.stage)
+        && interruptedInboundRoute === 'human'
+        && texUltraInboundNeedsHuman(inboundText)) {
+        return holdInterruptedTexUltraQuestionForHuman({ state, inboundText, draft });
     }
 
     if (memory.stage === 'awaiting_name') {
@@ -370,6 +413,6 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         return true;
     }
 
-    await sendFunnelText({ state, text: 'Sigo com usted. Para avanzar, indiqueme cuantos frascos desea: 1, 3 o 6.', context: 'tex_ultra_resume' });
+    await sendFunnelText({ state, text: 'Sigo con usted. Para avanzar, indíqueme cuántos frascos desea: 1, 2, 3 o 6.', context: 'tex_ultra_resume' });
     return true;
 };

@@ -1,0 +1,88 @@
+{
+  "freezeId": "tex-ultra-strong-intent-v26-20260818",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-18T14:32:39.000Z",
+  "country": "EC",
+  "parentFreezeId": "tex-ultra-entry-interrupt-v25-20260818",
+  "parentManifestSha256": "9de0f7780682fe49984db352729c07b2385d728dadc18c1fad4c86bb5f3e135e",
+  "baseCommit": "e268e61f6d18c4057bb3b01e4e30c0df0c3ae725",
+  "publicationStatus": "approved_for_publication",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T14:32:39Z",
+    "scope": "tex_ultra_strong_purchase_intent_and_post_offer_question_handoff"
+  },
+  "operatorPublicationApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T14:38:20Z",
+    "scope": "controlled_deploy_v26_test_phone_5515998038637"
+  },
+  "requiresWrittenAuthorizationToChange": true,
+  "diagnosis": {
+    "v25ActiveOnVpsDuringTest": false,
+    "activeReleaseDuringTest": "20260818T042423Z_production-20260818-bb2d92f",
+    "testPhone": "5515998038637",
+    "observedInbound": "Hola, quiero el tratamiento.",
+    "generalRouterDetectedPurchaseIntent": true,
+    "texUltraFunnelDetectedPurchaseIntentBeforeV26": false,
+    "persistentDedupeCouldBlockGenericFallbackOnDirtyTestState": true
+  },
+  "policy": {
+    "strongPurchaseIntentRoutesToQuantity": true,
+    "contextualQuantityRecognized": true,
+    "freeQuestionHumanHandoffAfterOffer": true,
+    "initialCadencePreserved": true,
+    "v25GreetingAndTimingPreserved": true,
+    "quantityOptions": [1, 2, 3, 6],
+    "remainingCadenceStopsOnCustomerReply": true,
+    "mediaReplayOnPurchaseIntent": false,
+    "productionChanged": false
+  },
+  "preservation": {
+    "v25Preserved": true,
+    "productsChanged": false,
+    "pricesChanged": false,
+    "audiosChanged": false,
+    "imagesChanged": false,
+    "ordersChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "whatsappNumberChanged": false,
+    "productionDatabaseChanged": false,
+    "currentChanged": false,
+    "pm2Changed": false,
+    "servicesChanged": false,
+    "testPhoneReset": false,
+    "realMessageSentDuringValidation": false
+  },
+  "declaredParentOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/index.js",
+    "src/services/texUltraFunnelService.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md",
+    "scripts/assert-tex-ultra-strong-intent-approved-v26.mjs",
+    "scripts/guard-tex-ultra-strong-intent-v26.mjs",
+    "src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js",
+    "tests/tex-ultra-strong-intent-v26.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "6060796e22dd3028b571880bdc5dd9c5a685e2763cfde4957fb80b89e9f2d5f7",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "21cc4b611e40db9d606742fc705173709a8ef2909720162252c476dd9e15715c",
+    "docs/ARQUIVOS_OFICIAIS.md": "bb86f61fa206abb2af53d19714d09a7fd9a234bf5f5f94a6222662403d0606e6",
+    "docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md": "3a3220e9b22cb50055498bd2fee956a9dfa6c215fb40dcf6c53ccd899d2a16c8",
+    "package.json": "56302153243b2c1a84f4680f1b3189bf777ea851d4adae275c346e03d94c1e81",
+    "scripts/assert-tex-ultra-strong-intent-approved-v26.mjs": "960602a07cc1bae218336d87f6df06cdde6af013c2c376f1ae78a30df12cbb48",
+    "scripts/guard-tex-ultra-strong-intent-v26.mjs": "befa5f7445d58c844f09bd45b86945dd9ff33b8b1cc4cd23fc447f3330fe2dba",
+    "src/index.js": "30423d884cf58efb5452b603d5a35ec401ea3c8add82467b7f348874659d3f82",
+    "src/services/texUltraFunnelService.js": "232adf017055f43b5e04044de843919c43777b087ac712c5ec679f8d7ac81edb",
+    "src/services/texUltraStrongIntentFreezeRuntimeGuardV26.js": "2bd7d2e020a7c3be592c5fd285e445a4e2ba89c5ac8873abf010cb6103ed923f",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "9bb9fa6dbbc0d0cd86c3ff82d69c092dfb07b7c2d4a72e625af1ed6b0870f9b4",
+    "tests/tex-ultra-strong-intent-v26.test.mjs": "04a1ef7aedae795dab5f8e181f91c442d329a2e2c7e5728186450a0ca218c372"
+  }
+}
