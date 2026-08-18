@@ -556,6 +556,14 @@ Os dois pares MP3/OGG Nitrix explicitamente identificados com a persona anterior
 
 O operador aceitou expressamente a identidade Ana Lopez e os audios ativos em 2026-08-18. O gate local de publicacao foi liberado, mas este registro nao autoriza commit, push, merge, deploy ou mudanca de producao. Esta camada nao altera produto, preco, Dropi, Meta/CAPI, banco, scheduler, transporte, PM2, `current`, servicos ou producao.
 
+## Microcamada V24 de Comprar depois com data
+
+O freeze `docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md` sucede a V23 a partir do commit ativo `bb2d92f65040fc678685358b626c2a4a8a5e9623`, em candidato local ainda nao publicado. Ao selecionar `Comprar depois`, o painel exige a data desejada pelo cliente e grava uma agenda explicita no `ContactState`.
+
+Cada agenda conserva o produto selecionado na ficha (`tex_ultra_ec`, `nitrix_ec` ou `vit_power_ec`) e nao altera a origem VSL. Entre 4 e 3 dias antes da data, em horario do Equador, a camada pode enviar um unico texto nominal de Ana Lopez perguntando se o pedido pode ser preparado para a data combinada. A mensagem nao cria pedido, nao confirma venda, nao abre Dropi, nao envia Meta/CAPI e nao inclui audio ou outra midia.
+
+O envio e fail-closed por `ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false` quando a flag estiver ausente ou desligada. Quando houver ativacao operacional separada, o scheduler exige lock atomico persistido, campo `sentAt`, chave antirrepeticao e consulta do historico antes de qualquer tentativa. Falha de transporte libera o lock, grava `failedAt` sem preencher `sentAt` e nao e repetida automaticamente; trocar data ou produto cria uma nova agenda, enquanto salvar novamente a mesma agenda preserva o comprovante anterior.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:

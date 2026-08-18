@@ -33,12 +33,17 @@ const findStateForPhone = (phone) => {
 
 const affirmativeReply = (draft = {}) => {
     const firstName = String(draft.name || '').trim().split(/\s+/)[0] || 'señor';
-    return `Perfecto, ${firstName}. Retomamos su pedido. Antes de preparar el envío, vamos a revisar sus datos para evitar cualquier error. ¿Su nombre completo sigue siendo ${draft.name || 'el mismo que nos indicó'}?`;
+    const productName = String(draft.productName || draft.product || '').trim();
+    const productText = productName ? ` de ${productName.replace(/ Ecuador$/i, '')}` : '';
+    return `Perfecto, ${firstName}. Retomamos su pedido${productText}. Antes de preparar el envío, vamos a revisar sus datos para evitar cualquier error. ¿Su nombre completo sigue siendo ${draft.name || 'el mismo que nos indicó'}?`;
 };
 
 export const handleBuyLaterConfirmationReply = async ({ phone, chatId, body, messageId, sessionId = 'zapi' } = {}) => {
     const state = await findStateForPhone(phone || chatId);
-    const followup = state?.metadata?.buyLaterFollowup || {};
+    const followup = {
+        ...(state?.metadata?.buyLaterFollowup || {}),
+        ...(state?.buyLaterReminder?.toObject?.() || state?.buyLaterReminder || {})
+    };
     if (!state || followup.awaitingReply !== true) return { handled: false, reason: 'not_awaiting_buy_later_reply' };
     if (messageId && followup.lastResponseMessageId === messageId) return { handled: true, reason: 'duplicate_reply' };
 
@@ -62,6 +67,9 @@ export const handleBuyLaterConfirmationReply = async ({ phone, chatId, body, mes
             lastResponseMessageId: messageId || ''
         }
     };
+    if (state.buyLaterReminder) {
+        state.buyLaterReminder.awaitingReply = false;
+    }
     await state.save();
     syncContactDraftToOnlineAdminPanel(state.metadata.customerDraft, {
         country: state.countryCode || 'EC',

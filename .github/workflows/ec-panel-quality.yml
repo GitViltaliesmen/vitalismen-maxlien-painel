@@ -6,6 +6,7 @@ on:
       - .env.example
       - AGENTS.md
       - public/qr.html
+      - public/leads-window.html
       - public/funnel-metrics.html
       - public/panel-intelligence/**
       - src/index.js
@@ -16,6 +17,7 @@ on:
       - src/routes/zapi.js
       - src/routes/whatsapp.js
       - src/models/CallAutoReplyState.js
+      - src/models/ContactState.js
       - src/services/callAutoReplyPolicy.js
       - src/services/callAutoReplySafetyService.js
       - src/services/droppiEcuadorService.js
@@ -27,7 +29,9 @@ on:
       - src/services/texUltraEntryGreetingService.js
       - src/services/texUltraEntryUnreadFreezeRuntimeGuardV22.js
       - src/services/ecAnaIdentityFreezeRuntimeGuardV23.js
+      - src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js
       - src/services/adminBuyLaterFollowupService.js
+      - src/services/buyLaterConfirmationService.js
       - src/services/agentProfiles.js
       - src/services/aiRouter.js
       - src/services/audioService.js
@@ -38,6 +42,7 @@ on:
       - src/services/openaiService.js
       - src/services/passiveFunnelObserverService.js
       - src/services/shipmentMessageService.js
+      - src/services/schedulerService.js
       - src/services/vitPowerAudioComplementService.js
       - src/services/vitPowerEvolvedWorkflow.js
       - src/services/texUltraFunnelService.js
@@ -56,6 +61,7 @@ on:
       - scripts/audit-ec-ana-identity.mjs
       - scripts/audit-ec-nitrix-guard.mjs
       - scripts/guard-ec-ana-identity-v23.mjs
+      - scripts/guard-buy-later-date-reminder-v24.mjs
       - scripts/plan-2800-failover-rescue.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
@@ -68,6 +74,7 @@ on:
       - tests/panel-call-dropi-safety-v21.test.mjs
       - tests/tex-ultra-entry-unread-v22.test.mjs
       - tests/ec-ana-identity-v23.test.mjs
+      - tests/buy-later-date-reminder-v24.test.mjs
       - tests/whatsapp-chat-read-persistence-v22.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
@@ -75,11 +82,13 @@ on:
       - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
+      - docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
       - docs/freeze/tex-ultra-entry-unread-v22-20260818.json
       - docs/freeze/ec-ana-identity-v23-20260818.json
+      - docs/freeze/buy-later-date-reminder-v24-20260818.json
       - extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
       - package.json
       - package-lock.json
@@ -92,6 +101,7 @@ on:
       - .env.example
       - AGENTS.md
       - public/qr.html
+      - public/leads-window.html
       - public/funnel-metrics.html
       - public/panel-intelligence/**
       - src/index.js
@@ -102,6 +112,7 @@ on:
       - src/routes/zapi.js
       - src/routes/whatsapp.js
       - src/models/CallAutoReplyState.js
+      - src/models/ContactState.js
       - src/services/callAutoReplyPolicy.js
       - src/services/callAutoReplySafetyService.js
       - src/services/droppiEcuadorService.js
@@ -113,7 +124,9 @@ on:
       - src/services/texUltraEntryGreetingService.js
       - src/services/texUltraEntryUnreadFreezeRuntimeGuardV22.js
       - src/services/ecAnaIdentityFreezeRuntimeGuardV23.js
+      - src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js
       - src/services/adminBuyLaterFollowupService.js
+      - src/services/buyLaterConfirmationService.js
       - src/services/agentProfiles.js
       - src/services/aiRouter.js
       - src/services/audioService.js
@@ -124,6 +137,7 @@ on:
       - src/services/openaiService.js
       - src/services/passiveFunnelObserverService.js
       - src/services/shipmentMessageService.js
+      - src/services/schedulerService.js
       - src/services/vitPowerAudioComplementService.js
       - src/services/vitPowerEvolvedWorkflow.js
       - src/services/texUltraFunnelService.js
@@ -142,6 +156,7 @@ on:
       - scripts/audit-ec-ana-identity.mjs
       - scripts/audit-ec-nitrix-guard.mjs
       - scripts/guard-ec-ana-identity-v23.mjs
+      - scripts/guard-buy-later-date-reminder-v24.mjs
       - scripts/plan-2800-failover-rescue.mjs
       - scripts/senior-guard.mjs
       - scripts/senior-guard-workspace-policy.mjs
@@ -154,6 +169,7 @@ on:
       - tests/panel-call-dropi-safety-v21.test.mjs
       - tests/tex-ultra-entry-unread-v22.test.mjs
       - tests/ec-ana-identity-v23.test.mjs
+      - tests/buy-later-date-reminder-v24.test.mjs
       - tests/whatsapp-chat-read-persistence-v22.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
@@ -161,11 +177,13 @@ on:
       - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
+      - docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
       - docs/freeze/tex-ultra-entry-unread-v22-20260818.json
       - docs/freeze/ec-ana-identity-v23-20260818.json
+      - docs/freeze/buy-later-date-reminder-v24-20260818.json
       - extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
       - package.json
       - package-lock.json
@@ -210,6 +228,7 @@ jobs:
             .env.example \
             AGENTS.md \
             public/qr.html \
+            public/leads-window.html \
             public/funnel-metrics.html \
             public/panel-intelligence/customer-data-normalizer.js \
             public/panel-intelligence/conversation-data-extractor.js \
@@ -221,6 +240,7 @@ jobs:
             src/routes/zapi.js \
             src/routes/whatsapp.js \
             src/models/CallAutoReplyState.js \
+            src/models/ContactState.js \
             src/services/callAutoReplyPolicy.js \
             src/services/callAutoReplySafetyService.js \
             src/services/droppiEcuadorService.js \
@@ -230,7 +250,9 @@ jobs:
             src/services/texUltraEntryGreetingService.js \
             src/services/texUltraEntryUnreadFreezeRuntimeGuardV22.js \
             src/services/ecAnaIdentityFreezeRuntimeGuardV23.js \
+            src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js \
             src/services/adminBuyLaterFollowupService.js \
+            src/services/buyLaterConfirmationService.js \
             src/services/agentProfiles.js \
             src/services/aiRouter.js \
             src/services/audioService.js \
@@ -241,6 +263,7 @@ jobs:
             src/services/openaiService.js \
             src/services/passiveFunnelObserverService.js \
             src/services/shipmentMessageService.js \
+            src/services/schedulerService.js \
             src/services/vitPowerAudioComplementService.js \
             src/services/vitPowerEvolvedWorkflow.js \
             src/services/texUltraFunnelService.js \
@@ -254,6 +277,7 @@ jobs:
             scripts/audit-ec-ana-identity.mjs \
             scripts/audit-ec-nitrix-guard.mjs \
             scripts/guard-ec-ana-identity-v23.mjs \
+            scripts/guard-buy-later-date-reminder-v24.mjs \
             scripts/plan-2800-failover-rescue.mjs \
             scripts/guard-tex-ultra-approved-v5.mjs \
             scripts/guard-order-public-product-integrity-v20.mjs \
@@ -265,13 +289,16 @@ jobs:
             tests/panel-call-dropi-safety-v21.test.mjs \
             tests/tex-ultra-entry-unread-v22.test.mjs \
             tests/ec-ana-identity-v23.test.mjs \
+            tests/buy-later-date-reminder-v24.test.mjs \
             tests/whatsapp-chat-read-persistence-v22.test.mjs \
             docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md \
             docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md \
             docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md \
+            docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md \
             docs/freeze/panel-call-dropi-safety-v21-20260817.json \
             docs/freeze/tex-ultra-entry-unread-v22-20260818.json \
             docs/freeze/ec-ana-identity-v23-20260818.json \
+            docs/freeze/buy-later-date-reminder-v24-20260818.json \
             extensions/vitalismen-whatsapp-official/legacy-funnel-library.js
 
       - name: Validate customer intelligence

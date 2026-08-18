@@ -180,6 +180,16 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Estado: candidato local aprovado para publicacao, ainda nao publicado; aceite da identidade Ana Lopez e da biblioteca ativa registrado em 2026-08-18; nenhum envio, pedido Dropi, evento Meta, banco oficial, PM2, `current`, servico ou producao foi alterado.
 - Rollback funcional: retornar ao commit `46a81f5fe5f0dc89cc41353ae5eacefce08e82a5`.
 
+### Microcamada V24 — 2026-08-18
+
+- Fonte base: release ativa `20260818T042423Z_production-20260818-bb2d92f`, commit `bb2d92f65040fc678685358b626c2a4a8a5e9623`; desenvolvimento somente no worktree `/home/codex/worktrees/vitalismen-buy-later-reminder-20260818`.
+- Painel e persistencia: `public/qr.html`, `public/leads-window.html`, `src/routes/whatsapp.js` e `src/models/ContactState.js` registram a data desejada e a agenda por produto.
+- Lembrete: `src/services/adminBuyLaterFollowupService.js`, `src/services/schedulerService.js` e `src/services/buyLaterConfirmationService.js` preservam produto, nome, lock, comprovante de envio e resposta.
+- Teste sem envio: `tests/buy-later-date-reminder-v24.test.mjs`.
+- Freeze/guard: `docs/BUY_LATER_DATE_REMINDER_FREEZE_V24_20260818.md`, `docs/freeze/buy-later-date-reminder-v24-20260818.json` e `scripts/guard-buy-later-date-reminder-v24.mjs`.
+- Estado: candidato local; nenhum cliente foi identificado ou agendado, nenhuma mensagem foi enviada e nenhum pedido, Dropi, Meta/CAPI, banco oficial, PM2, `current`, servico ou producao foi alterado.
+- Rollback funcional: retornar ao commit `bb2d92f65040fc678685358b626c2a4a8a5e9623`; o novo subdocumento Mongo e aditivo e pode permanecer sem uso.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

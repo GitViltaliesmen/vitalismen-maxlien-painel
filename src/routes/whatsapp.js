@@ -48,6 +48,10 @@ import {
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
 import { readEcuadorCustomerImage } from '../services/customerImageDataReaderService.js';
 import { panelLastReadMarkerSeconds, panelReadIdentityQuery } from '../services/panelReadStateService.js';
+import {
+    nextBuyLaterReminderState,
+    normalizeBuyLaterDesiredDate
+} from '../services/adminBuyLaterFollowupService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2013,6 +2017,44 @@ const normalizePanelStatus = (status = '') => {
     return PANEL_STATUSES.has(normalized) ? normalized : 'novo';
 };
 
+const applyBuyLaterReminderFromDraft = ({ state, draft = {}, status = '', now = new Date() } = {}) => {
+    const normalizedStatus = normalizePanelStatus(status || draft.status);
+    const desiredOrderDate = normalizedStatus === 'comprar_depois'
+        ? normalizeBuyLaterDesiredDate(draft.buyLaterFollowupAt || draft.buy_later_followup_at || '')
+        : '';
+    if (normalizedStatus === 'comprar_depois' && !desiredOrderDate) {
+        throw new Error('buy_later_date_required');
+    }
+    const product = resolveEcuadorProductInfo(
+        draft,
+        state?.metadata?.customerDraft || {},
+        state?.metadata || {}
+    );
+    const reminder = nextBuyLaterReminderState({
+        previous: state?.buyLaterReminder,
+        status: normalizedStatus,
+        desiredOrderDate,
+        productKey: product.key,
+        productName: product.name,
+        customerName: draft.name || state?.metadata?.customerDraft?.name || '',
+        now
+    });
+    state.buyLaterReminder = reminder;
+    state.metadata = {
+        ...(state.metadata || {}),
+        buyLaterFollowup: {
+            ...((state.metadata || {}).buyLaterFollowup || {}),
+            awaitingReply: reminder.awaitingReply === true,
+            desiredOrderDate: reminder.desiredOrderDate || '',
+            productKey: reminder.productKey || '',
+            productName: reminder.productName || '',
+            scheduledAt: reminder.scheduledAt || null,
+            cancelledAt: reminder.cancelledAt || null
+        }
+    };
+    return reminder;
+};
+
 const orderStatusFromPanelStatus = (status = '') => ({
     confirmado: 'confirmed',
     pedido_enviado: 'processing',
@@ -3013,6 +3055,12 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 
         const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country });
         const draft = state.metadata?.customerDraft || {};
+        const buyLaterFollowupAt = status === 'comprar_depois'
+            ? normalizeBuyLaterDesiredDate(body.buy_later_followup_at || draft.buyLaterFollowupAt || '')
+            : '';
+        if (status === 'comprar_depois' && !buyLaterFollowupAt) {
+            return res.status(400).json({ ok: false, error: 'buy_later_date_required' });
+        }
         state.phoneDigits = state.phoneDigits || phoneDigits;
         state.countryCode = country;
         state.metadata = {
@@ -3023,7 +3071,7 @@ router.post('/internal/admin-status-sync', async (req, res) => {
                 phone: phone.startsWith('+') ? phone : `+${phoneDigits}`,
                 country,
                 status,
-                buyLaterFollowupAt: cleanText(body.buy_later_followup_at || draft.buyLaterFollowupAt || ''),
+                buyLaterFollowupAt,
                 updatedAt: new Date().toISOString()
             },
             adminPanelStatus: {
@@ -3034,6 +3082,15 @@ router.post('/internal/admin-status-sync', async (req, res) => {
                 syncedAt: new Date().toISOString()
             }
         };
+        try {
+            applyBuyLaterReminderFromDraft({
+                state,
+                draft: state.metadata.customerDraft,
+                status
+            });
+        } catch (error) {
+            return res.status(400).json({ ok: false, error: error.message });
+        }
         await state.save();
         await registerPanelAction({
             state,
@@ -4802,9 +4859,15 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 productKey: String(customerDraft.productKey || state.metadata?.customerDraft?.productKey || '').trim(),
                 productName: String(customerDraft.productName || customerDraft.product || state.metadata?.customerDraft?.productName || '').trim(),
                 productMedia: String(customerDraft.productMedia || state.metadata?.customerDraft?.productMedia || '').trim(),
+                buyLaterFollowupAt: normalizePanelStatus(customerDraft.status) === 'comprar_depois'
+                    ? normalizeBuyLaterDesiredDate(customerDraft.buyLaterFollowupAt || customerDraft.buy_later_followup_at || '')
+                    : '',
                 country: internalOrTest ? 'BR' : effectiveCountry,
                 updatedAt: new Date().toISOString()
             };
+            if (cleanDraft.status === 'comprar_depois' && !cleanDraft.buyLaterFollowupAt) {
+                return res.status(400).json({ error: 'Informe a data desejada do pedido para usar Comprar depois.' });
+            }
             const flowDataOk = {
                 ...(String(cleanDraft.name || '').trim() ? { nome_completo: { ok: true, value: cleanDraft.name, label: 'Nome OK' } } : {}),
                 ...(String(cleanDraft.city || '').trim() ? { ciudad: { ok: true, value: cleanDraft.city, label: 'Cidade OK' } } : {}),
@@ -4901,6 +4964,11 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     ...(state.metadata || {}),
                     customerDraft: cleanDraft
                 };
+            }
+            try {
+                applyBuyLaterReminderFromDraft({ state, draft: cleanDraft, status: cleanDraft.status });
+            } catch (error) {
+                return res.status(400).json({ error: error.message });
             }
             if (internalOrTest) {
                 markPanelContactAsTestOnly(state, {

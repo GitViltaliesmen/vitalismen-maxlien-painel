@@ -17,10 +17,10 @@ test('V21 sucede V20 sem publicar ou alterar producao', () => {
     assert.equal(manifest.policy.pricesChanged, false);
 });
 
-test('guard sucessor V23 e a unica entrada ativa da cadeia', () => {
+test('guard sucessor V24 e a unica entrada ativa da cadeia', () => {
     const index = read('src/index.js');
-    assert.match(index, /ecAnaIdentityFreezeRuntimeGuardV23/);
-    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22)\.js';/m);
+    assert.match(index, /buyLaterDateReminderFreezeRuntimeGuardV24/);
+    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22|23)\.js';/m);
 });
 
 test('politica operacional de chamada permanece desligada no exemplo', () => {
@@ -63,7 +63,11 @@ test('workflow Node 20 e 22 preserva V21/V22 e protege os arquivos V23', () => {
         'src/services/ecAnaIdentityFreezeRuntimeGuardV23.js',
         'scripts/guard-ec-ana-identity-v23.mjs',
         'tests/ec-ana-identity-v23.test.mjs',
-        'docs/freeze/ec-ana-identity-v23-20260818.json'
+        'docs/freeze/ec-ana-identity-v23-20260818.json',
+        'src/services/buyLaterDateReminderFreezeRuntimeGuardV24.js',
+        'scripts/guard-buy-later-date-reminder-v24.mjs',
+        'tests/buy-later-date-reminder-v24.test.mjs',
+        'docs/freeze/buy-later-date-reminder-v24-20260818.json'
     ]) {
         const occurrences = workflow.split(relativePath).length - 1;
         assert.ok(occurrences >= 3, `${relativePath} deve disparar PR, push e ser conferido pelo workflow`);
