@@ -1,0 +1,96 @@
+{
+  "freezeId": "logistics-clean-chat-v29-20260818",
+  "status": "implementation_candidate_locked",
+  "lockedAt": "2026-08-18T17:16:42Z",
+  "country": "EC",
+  "parentFreezeId": "customer-data-resolution-v28-20260818",
+  "parentManifestSha256": "b86645ebfbf87d7d84ed737e596ae34f8e21b57e84e615cb5070e6583484e4a3",
+  "baseV28Sha": "7bd1418caf81b832f30acb7926f023df7a2e711e",
+  "publicationStatus": "local_candidate_not_authorized",
+  "requiresWrittenAuthorizationToChange": true,
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-18T17:16:42Z",
+    "scope": "implement_v29_logistics_clean_chat_without_deploy"
+  },
+  "operatorPublicationApproval": {
+    "status": "required_explicit",
+    "approvedAt": "",
+    "scope": "controlled_deploy_v29_after_explicit_operator_approval"
+  },
+  "rollback": {
+    "primary": "7bd1418caf81b832f30acb7926f023df7a2e711e",
+    "previous": "15b9857f7b6e33975af52a5f61f797cd7468e102"
+  },
+  "tag": "freeze-v29-logistics-clean-chat-20260818",
+  "commit": "resolved-by-local-tag-after-final-regression",
+  "policy": {
+    "v28Preserved": true,
+    "oneRealMessageOneBubble": true,
+    "messageHistoryPreserved": true,
+    "shippedIsNotReady": true,
+    "pickupRequiresVerifiedReady": true,
+    "guideNumberAllowedBeforeReady": true,
+    "guideMediaBlockedBeforeReady": true,
+    "systemEventsOutsideMainChat": true,
+    "productionChanged": false
+  },
+  "realEffects": {
+    "whatsappMessage": false,
+    "order": false,
+    "metaCapi": false,
+    "dropi": false,
+    "deploy": false
+  },
+  "declaredParentOverrides": [
+    "package.json",
+    "public/qr.html",
+    "src/index.js",
+    "src/routes/whatsapp.js",
+    "src/services/conversationEngine.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/LOGISTICS_CLEAN_CHAT_UX_FREEZE_V29_20260818.md",
+    "public/panel-intelligence/clean-chat-v29.js",
+    "scripts/guard-logistics-clean-chat-v29.mjs",
+    "src/models/Message.js",
+    "src/models/Shipment.js",
+    "src/routes/shipments.js",
+    "src/services/carrierTrackingService.js",
+    "src/services/guidePrintDispatcherService.js",
+    "src/services/logisticsCleanChatFreezeRuntimeGuardV29.js",
+    "src/services/logisticsCommunicationV29.js",
+    "src/services/shipmentLifecycleStatusService.js",
+    "src/services/shipmentMessageService.js",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/logistics-clean-chat-v29-integration.test.mjs",
+    "tests/logistics-clean-chat-v29.test.mjs",
+    "tests/shipment-pickup-notification.test.mjs"
+  ],
+  "protectedFiles": {
+    "package.json": "e5bb8533ee118cffef916083282059e212869f601834ab4461e982ce4ca222ab",
+    "public/qr.html": "0165a5ed80a437e2700c9c83b3d765c417cc44f5f4a05eaa2e62382e74502c3c",
+    "src/index.js": "0a35aa437fa62fc4a12e890149cc5fa78251e72e37aca0850ccfb5b4f630d9f9",
+    "src/routes/whatsapp.js": "e62ac33c9da6f6808ac8e192cbfac2aea197dbcafb63239b4e0e320c502c0212",
+    "src/services/conversationEngine.js": "f37e6c49d767e3e0e0de2cf41ded978b356689d101c3d3dadc3153742c5ae168",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "f0f2abd1822c4372892149805598124035c573ab1e444e48f58fc8fa9e6f991d",
+    "docs/LOGISTICS_CLEAN_CHAT_UX_FREEZE_V29_20260818.md": "054ff084c27fee9806bee07c06894c6eb2fc334410c6f399d400a53294701db2",
+    "public/panel-intelligence/clean-chat-v29.js": "b095ed43e5ebfe2726c210d6245328c7277355b642e020309cc78656c51d5a39",
+    "scripts/guard-logistics-clean-chat-v29.mjs": "ba25ddb3a5fca14c0039ceb14a4999835e6f8dd27ba137726dbe09175336051a",
+    "src/models/Message.js": "e22a7203111cd79f170f09d33c002e0a1d7e0bc99f5f393d1ed3c75da36797fe",
+    "src/models/Shipment.js": "bf903ebf5e53c776fbd74c87a87b28e6fb860069f9aebb67e626722aca804c6e",
+    "src/routes/shipments.js": "c9576c0950a7faaf3e85ce575df14ce6154df0548587a9d7139cecd67c73f87a",
+    "src/services/carrierTrackingService.js": "2db0414c1ca86bd499367e0e1fbe4cc60b165b5a8ba001308c5fed05dfb14be5",
+    "src/services/guidePrintDispatcherService.js": "86d4feb9d5e93839ce1786c569b10c7d60c55916eb610b1612348dbdb0da547c",
+    "src/services/logisticsCleanChatFreezeRuntimeGuardV29.js": "68ab0adf3aef688c74b4715c12aa223e968e0d4fec678f631cb4ad92033a74da",
+    "src/services/logisticsCommunicationV29.js": "b86eb31fe26abc8e942d74e565c95c421dc19e9339b134e64a67b04d0745f7b5",
+    "src/services/shipmentLifecycleStatusService.js": "484a8f427fb921c92d5514a183e4aa12ad5053b8fb915aad9c8c55697bff12b9",
+    "src/services/shipmentMessageService.js": "83a92e4863f4e5bcf6bc25631fc237263d2a5a951fc8aded2fce18bd44dd9fe8",
+    "src/services/shipmentStatusDispatcherService.js": "fa1ac12ae874cf3c1fc4da04ac867d0ff18a7ac69560f95dc3901cb047bfd309",
+    "tests/logistics-clean-chat-v29-integration.test.mjs": "be2fe97f0994336d2dfa06258d052748c26b6bead118f33402492e9b6f337aff",
+    "tests/logistics-clean-chat-v29.test.mjs": "0374a604d05b4b8caec878992666e5d1344e5f9c35fd83440eba8ccf9458e87d",
+    "tests/shipment-pickup-notification.test.mjs": "0b98e7e2f8b6d89ecfa37a092cb739f6dfbfebe9926243e807adf1391a368226"
+  },
+  "visualEvidence": "/home/codex/.codex/visualizations/2026/08/18/01a0148c-ae8c-7722-8a43-764f22253c8b/v29-logistics-clean-chat.png"
+}

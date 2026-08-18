@@ -65,6 +65,10 @@ import {
     resolveEcuadorProductInfo,
     validateExplicitEcuadorProductSelection
 } from '../services/ecuadorProductService.js';
+import {
+    logisticsCommunicationPolicy,
+    publicLogisticsStateV29
+} from '../services/logisticsCommunicationV29.js';
 
 const router = express.Router();
 
@@ -445,8 +449,8 @@ const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
 const normalizeManualShipmentStatus = (value) => {
     const raw = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
-    if (['READY_FOR_PICKUP', 'AGENCIA', 'RETIRADA', 'RETIRO'].includes(raw)) return 'READY_FOR_PICKUP';
-    if (['EN_RUTA', 'RUTA', 'TRANSITO', 'IN_TRANSIT'].includes(raw)) return 'EN_RUTA';
+    if (['READY_FOR_PICKUP', 'LISTO_PARA_RETIRO', 'DISPONIBLE_PARA_RETIRO'].includes(raw)) return 'READY_FOR_PICKUP';
+    if (['EN_RUTA', 'RUTA', 'TRANSITO', 'IN_TRANSIT', 'AGENCIA', 'RETIRADA', 'RETIRO', 'INGRESANDO_EN_AGENCIA'].includes(raw)) return 'EN_RUTA';
     if (['EN_REPARTO', 'REPARTO'].includes(raw)) return 'EN_REPARTO';
     if (['DEVUELTO', 'RETURNED'].includes(raw)) return 'DEVUELTO';
     if (['ENTREGADO', 'DELIVERED'].includes(raw)) return 'ENTREGADO';
@@ -2144,6 +2148,7 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
             agencyPickup = false,
             notifyNow = true,
             forceNotify = true,
+            pickupReadyVerified = false,
             note = ''
         } = req.body || {};
 
@@ -2187,6 +2192,14 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
         }
 
         const normalizedStatus = normalizeManualShipmentStatus(status);
+        const manualPickupReadyVerified = normalizeManualBoolean(pickupReadyVerified);
+        if (normalizedStatus === 'READY_FOR_PICKUP' && !manualPickupReadyVerified) {
+            return res.status(409).json({
+                success: false,
+                error: 'pickup_ready_verification_required',
+                message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA'
+            });
+        }
         const manualAgencyPickup = normalizeManualBoolean(agencyPickup)
             || normalizedStatus === 'READY_FOR_PICKUP'
             || /servientrega|agencia|retiro|concesion/i.test(String(address || ''));
@@ -2333,6 +2346,11 @@ router.post('/manual-guide', adminOnly, async (req, res) => {
             }
         });
         shipment.events = shipment.events.slice(-60);
+        shipment.logistics.pickupReadyVerified = normalizedStatus === 'READY_FOR_PICKUP' && manualPickupReadyVerified;
+        shipment.logistics.pickupReadyVerifiedAt = shipment.logistics.pickupReadyVerified ? new Date() : null;
+        shipment.logistics.pickupReadyVerifiedSource = shipment.logistics.pickupReadyVerified
+            ? `manual_panel:${req.user?.email || req.user?.name || 'operator'}`
+            : '';
         if (forceNotify !== false) {
             shipment.automation.guiaNotifiedAt = null;
             shipment.automation.readyForPickupNotifiedAt = null;
@@ -2417,6 +2435,15 @@ router.post('/:orderId/notify-pickup', adminOnly, async (req, res) => {
     try {
         const shipment = await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+        const policy = logisticsCommunicationPolicy(shipment);
+        if (!policy.allowPickupLanguage) {
+            return res.status(409).json({
+                success: false,
+                error: 'pickup_ready_verification_required',
+                message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA',
+                shipment: publicLogisticsStateV29(shipment)
+            });
+        }
         const success = await notifyReadyForPickup(shipment, { force: req.body?.force === true });
         res.json({ success });
     } catch (error) {

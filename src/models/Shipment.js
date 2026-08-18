@@ -6,6 +6,23 @@ const shipmentEventSchema = new mongoose.Schema({
     payload: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { _id: false });
 
+const shipmentNotificationLedgerSchema = new mongoose.Schema({
+    notification_id: { type: String, required: true },
+    order_id: { type: String, default: '' },
+    notification_type: { type: String, default: '' },
+    logistics_status: { type: String, default: 'UNKNOWN' },
+    pickup_ready_verified: { type: Boolean, default: false },
+    template_version: { type: String, default: 'v29' },
+    created_at: { type: Date, default: Date.now },
+    sent_at: { type: Date, default: null },
+    delivered_at: { type: Date, default: null },
+    read_at: { type: Date, default: null },
+    source: { type: String, default: '' },
+    mode: { type: String, enum: ['automatic', 'manual'], default: 'automatic' },
+    blocked_reason: { type: String, default: '' },
+    provider_message_id: { type: String, default: '' }
+}, { _id: false });
+
 const shipmentSchema = new mongoose.Schema({
     orderId: {
         type: String,
@@ -54,6 +71,9 @@ const shipmentSchema = new mongoose.Schema({
         invoicePath: { type: String, default: '' },
         guidePrintUrl: { type: String, default: '' },
         guidePrintPath: { type: String, default: '' },
+        pickupReadyVerified: { type: Boolean, default: false, index: true },
+        pickupReadyVerifiedAt: { type: Date, default: null },
+        pickupReadyVerifiedSource: { type: String, default: '' },
         lastStatusAt: { type: Date, default: null }
     },
     automation: {
@@ -138,6 +158,10 @@ const shipmentSchema = new mongoose.Schema({
     },
     events: {
         type: [shipmentEventSchema],
+        default: []
+    },
+    notificationLedger: {
+        type: [shipmentNotificationLedgerSchema],
         default: []
     }
 }, {

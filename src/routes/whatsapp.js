@@ -57,6 +57,10 @@ import {
     CUSTOMER_DATA_STATUS,
     resolveCustomerDataDraft
 } from '../services/customerDataResolutionService.js';
+import {
+    evaluateLogisticsOutbound,
+    publicLogisticsStateV29
+} from '../services/logisticsCommunicationV29.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2631,13 +2635,14 @@ const recordManualOutboundMessage = async ({
     providerMessageId = '',
     providerZaapId = '',
     providerStatus = '',
-    providerPayload = null
+    providerPayload = null,
+    clientGeneratedId = ''
 }) => {
     const chatId = resolveChatId(phone);
     const digits = String(phone || '').replace(/\D/g, '');
-    if (!chatId) return;
+    if (!chatId) return null;
 
-    await Message.create({
+    const manualRecord = {
         _id: `manual_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
         chatId,
         peerPhone: digits,
@@ -2649,6 +2654,9 @@ const recordManualOutboundMessage = async ({
         timestamp: Math.floor(Date.now() / 1000),
         isFromMe: true,
         isBot: false,
+        senderRole: type === 'system' ? 'system' : 'human',
+        attendantId: user?._id?.toString?.() || 'ana_lopez',
+        clientGeneratedId: String(clientGeneratedId || '').trim(),
         sessionId: sessionId || '',
         ownerPhoneDigits: digitsOnly(sessionId),
         notifyName: user?.name || user?.email || '',
@@ -2662,7 +2670,72 @@ const recordManualOutboundMessage = async ({
         providerZaapId,
         providerStatus,
         providerPayload
-    }).catch(() => null);
+    };
+
+    const providerIdentity = [
+        providerMessageId ? { providerMessageId } : null,
+        providerZaapId ? { providerZaapId } : null
+    ].filter(Boolean);
+    if (providerIdentity.length) {
+        const existing = await Message.findOne({
+            $and: [
+                { $or: providerIdentity },
+                { $or: [{ peerPhone: digits }, { chatId }, { to: chatId }] }
+            ]
+        }).catch(() => null);
+        if (existing) {
+            const statusRank = (value = '') => ({
+                failed: -1,
+                unconfirmed: 0,
+                pending: 1,
+                pending_confirmation: 2,
+                sent: 3,
+                delivered: 4,
+                read: 5,
+                played: 5
+            }[String(value || '').toLowerCase()] ?? 0);
+            const nextDeliveryStatus = statusRank(deliveryStatus) > statusRank(existing.deliveryStatus)
+                ? deliveryStatus
+                : existing.deliveryStatus;
+            existing.set({
+                body: String(body || existing.body || ''),
+                type: type || existing.type,
+                mediaUrl: mediaUrl || existing.mediaUrl || '',
+                hasMedia: Boolean(mediaUrl || existing.hasMedia || type !== 'chat'),
+                isBot: false,
+                senderRole: type === 'system' ? 'system' : 'human',
+                attendantId: user?._id?.toString?.() || existing.attendantId || 'ana_lopez',
+                clientGeneratedId: String(clientGeneratedId || existing.clientGeneratedId || '').trim(),
+                notifyName: user?.name || user?.email || existing.notifyName || '',
+                quotedMessageId: quotedMessage?._id || existing.quotedMessageId || '',
+                quotedBody: quotedMessage ? quotedBodyFromRecord(quotedMessage).slice(0, 500) : existing.quotedBody || '',
+                quotedFromMe: quotedMessage ? Boolean(quotedMessage.isFromMe) : existing.quotedFromMe,
+                deliveryStatus: nextDeliveryStatus,
+                sendError: statusRank(nextDeliveryStatus) >= 2 ? '' : String(sendError || existing.sendError || '').slice(0, 240),
+                provider: provider || existing.provider || '',
+                providerMessageId: providerMessageId || existing.providerMessageId || '',
+                providerZaapId: providerZaapId || existing.providerZaapId || '',
+                providerStatus: providerStatus || existing.providerStatus || '',
+                providerPayload: providerPayload || existing.providerPayload || null
+            });
+            return existing.save().catch(() => existing);
+        }
+    }
+
+    return Message.create(manualRecord).catch(() => null);
+};
+
+const findActiveShipmentForOutboundPhone = async (phone = '') => {
+    const digits = digitsOnly(phone);
+    if (digits.length < 8) return null;
+    const tails = [...new Set([digits, digits.slice(-10), digits.slice(-9), digits.slice(-8)].filter((tail) => tail.length >= 8))];
+    return Shipment.findOne({
+        country: 'EC',
+        $or: tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } })),
+        'outcomes.delivered': { $ne: true },
+        'outcomes.pickedUp': { $ne: true },
+        'outcomes.returned': { $ne: true }
+    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1 }).lean();
 };
 
 const applyManualSendHold = (state, { phone = '', user = null } = {}) => {
@@ -4595,6 +4668,7 @@ router.get('/customer-profile/:phone', async (req, res) => {
                 customer: activeOrder.customer || {}
             } : null,
             operationalStatus,
+            shipment: publicLogisticsStateV29(statusShipment),
             googleContactSync: publicGoogleContactSync(googleContactSync),
             continuity: {
                 canContinueAcrossNumbers: true,
@@ -5161,8 +5235,18 @@ router.get('/reengagement/templates', adminOnly, async (_req, res) => {
 // POST /api/whatsapp/send
 router.post('/send', authMiddleware, async (req, res) => {
     try {
-        const { phone, message, isMedia, sessionId, fileName = '', quotedMessageId = '', country = '' } = req.body;
+        const {
+            phone,
+            message,
+            isMedia,
+            sessionId,
+            fileName = '',
+            quotedMessageId = '',
+            country = '',
+            clientGeneratedId = ''
+        } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
+        let storedMessageRecordId = '';
         const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
@@ -5238,6 +5322,33 @@ router.post('/send', authMiddleware, async (req, res) => {
                 command: result?.command,
                 label: result?.label
             });
+        }
+
+        if (sendMode === 'manual_panel') {
+            const activeShipment = await findActiveShipmentForOutboundPhone(phone);
+            const mediaKind = isMedia
+                ? (/\.pdf(?:$|[?#])/i.test(String(fileName || message || '')) ? 'document'
+                    : /\.(?:jpe?g|png|webp|gif|heic|heif)(?:$|[?#])/i.test(String(fileName || message || ''))
+                        || String(message || '').startsWith('data:image/') ? 'image' : 'media')
+                : '';
+            const pickupAudio = Boolean(isMedia && /(?:chegou|pickup|retir|agencia|ready)/i.test(String(fileName || message || '')));
+            const outboundPolicy = evaluateLogisticsOutbound(activeShipment || {}, {
+                text: isMedia ? '' : message,
+                mediaKind,
+                fileName,
+                mediaUrl: isMedia ? message : '',
+                outboundContext: 'manual_panel',
+                pickupAudio
+            });
+            if (!outboundPolicy.allowed) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'pickup_communication_blocked',
+                    reason: outboundPolicy.reason,
+                    message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA',
+                    shipment: publicLogisticsStateV29(activeShipment)
+                });
+            }
         }
 
         if (isMedia) {
@@ -5317,7 +5428,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 const state = await findOrCreateContactState(phone);
                 applyManualSendHold(state, { phone, user: req.user });
                 await state.save();
-                await recordManualOutboundMessage({
+                const messageRecord = await recordManualOutboundMessage({
                     phone,
                     body: '',
                     type: mediaKind,
@@ -5332,7 +5443,8 @@ router.post('/send', authMiddleware, async (req, res) => {
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
                     providerStatus: sendResult?.providerStatus || '',
-                    providerPayload: sendResult?.providerPayload || null
+                    providerPayload: sendResult?.providerPayload || null,
+                    clientGeneratedId
                 });
                 return res.json({
                     success: sent,
@@ -5340,6 +5452,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     provider: sendResult?.provider || '',
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
+                    messageRecordId: messageRecord?._id || '',
                     deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
                 });
             }
@@ -5376,7 +5489,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: '',
                 type: mediaKind,
@@ -5391,13 +5504,15 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
             return res.json({
                 success: sent,
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
+                messageRecordId: messageRecord?._id || '',
                 deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
             });
         }
@@ -5426,7 +5541,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: message,
                 type: 'chat',
@@ -5440,10 +5555,12 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
+            storedMessageRecordId = messageRecord?._id || '';
         } else {
-            await recordManualOutboundMessage({
+            const messageRecord = await recordManualOutboundMessage({
                 phone,
                 body: message,
                 type: 'chat',
@@ -5458,14 +5575,17 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 providerStatus: sendResult?.providerStatus || '',
-                providerPayload: sendResult?.providerPayload || null
+                providerPayload: sendResult?.providerPayload || null,
+                clientGeneratedId
             });
+            storedMessageRecordId = messageRecord?._id || '';
         }
         res.json({
             success: sent,
             provider: sendResult?.provider || '',
             providerMessageId: sendResult?.providerMessageId || '',
             providerZaapId: sendResult?.providerZaapId || '',
+            messageRecordId: storedMessageRecordId,
             deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'failed'
         });
     } catch (error) {

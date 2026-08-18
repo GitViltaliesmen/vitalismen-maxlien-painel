@@ -64,6 +64,10 @@ const messageSchema = new mongoose.Schema({
     provider: { type: String, index: true },
     providerMessageId: { type: String, index: true },
     providerZaapId: { type: String, index: true },
+    externalId: { type: String, index: true },
+    clientGeneratedId: { type: String, index: true },
+    attendantId: { type: String, default: '' },
+    senderRole: { type: String, enum: ['client', 'human', 'bot', 'system', ''], default: '' },
     providerStatus: String,
     providerPayload: mongoose.Schema.Types.Mixed,
     orderId: { type: String, ref: 'Order' }, // Optional link to an order if we can correlate

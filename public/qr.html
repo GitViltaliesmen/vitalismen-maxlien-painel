@@ -4905,7 +4905,55 @@
         }
 
         .message-row:not(.me) .message-sender-avatar {
-            visibility: hidden;
+            background: linear-gradient(145deg, #64748b, #475569);
+        }
+
+        .message-sender-avatar {
+            position: relative;
+        }
+
+        .message-sender-avatar img,
+        .chat-avatar img {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .logistics-state-banner {
+            margin: 8px 12px 0;
+            padding: 10px 14px;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            background: #fffbeb;
+            color: #92400e;
+            font-weight: 900;
+            display: grid;
+            gap: 3px;
+        }
+
+        .logistics-state-banner.ready {
+            border-color: #059669;
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .logistics-state-banner[hidden] { display: none; }
+
+        .technical-chat-details {
+            margin: 6px 12px 0;
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .technical-chat-details > summary { cursor: pointer; font-weight: 800; }
+
+        .manual-ready-verification {
+            margin-top: 8px;
+            padding: 9px 10px;
+            border: 2px solid #dc2626;
+            border-radius: 10px;
+            background: #fef2f2;
+            font-weight: 800;
         }
 
         .wa-audio-card {
@@ -7727,6 +7775,11 @@
                     </div>
                 </div>
                 <div id="actionableSamples" class="actionable-samples"></div>
+                <div id="logisticsStateBanner" class="logistics-state-banner" hidden></div>
+                <details id="technicalChatDetails" class="technical-chat-details" hidden>
+                    <summary id="technicalChatSummary">DETALHES TÉCNICOS · 0</summary>
+                    <div id="technicalChatTimeline"></div>
+                </details>
                 <div id="conversation" class="conversation">
                     <div class="empty">Nenhuma conversa selecionada.</div>
                 </div>
@@ -8257,6 +8310,10 @@
                         <div class="customer-form-actions manual-guide-actions">
                             <button id="sendManualGuideBtn" class="success" type="button">Adicionar e avisar guia</button>
                         </div>
+                        <label id="manualReadyVerificationWrap" class="manual-ready-verification hidden">
+                            <input id="manualReadyVerificationInput" type="checkbox">
+                            Confirmo que o status real da Servientrega está disponível para retirada.
+                        </label>
                         <div class="customer-form-actions">
                             <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Abrir no Leads</button>
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
@@ -8274,6 +8331,7 @@
                         <button data-draft-template="proof" type="button" disabled>Prova social</button>
                         <button data-draft-template="data" type="button" disabled>Pedir dados</button>
                         <button data-draft-template="close" type="button" disabled>Confirmar</button>
+                        <button data-draft-template="early_pickup_correction" type="button" disabled>Corrigir retirada antecipada</button>
                     </div>
                     <div class="customer-audio-footer">
                         <input id="audioTemplateSearch" class="audio-search-input" autocomplete="off" placeholder="Buscar audio rapido: preco, endereco, funciona, chegou">
@@ -8720,6 +8778,7 @@
     <script src="/panel-intelligence/customer-form-intelligence.js"></script>
     <script src="/panel-intelligence/manual-funnel-policy.js"></script>
     <script src="/panel-intelligence/customer-order-policy.js"></script>
+    <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -9127,11 +9186,7 @@
         const brazilTestMessage = 'BR teste: sem pedido/Dropi.';
 
         const avatarInitial = (value) => {
-            const text = String(value || '').trim();
-            if (!text) return '?';
-            if (/^\+?\d/.test(text)) return 'C';
-            const firstWord = text.split(/\s+/).find(Boolean) || text;
-            return firstWord.slice(0, 1).toUpperCase();
+            return window.VitalismenCleanChatV29?.initialsForName(value, 'C') || 'C';
         };
 
         const formatTime = (value) => {
@@ -11418,6 +11473,7 @@
 
         const renderCustomerProfile = () => {
             const profile = state.customerProfile;
+            const logisticsBanner = el('logisticsStateBanner');
             if (!profile) {
                 el('profileMasterPhone').textContent = 'Selecione';
                 el('profileChannels').textContent = '0';
@@ -11426,6 +11482,7 @@
                 el('profileContinuityBadge').className = 'badge green';
                 el('profileContinuityText').textContent = 'A ficha acompanha o cliente mesmo se trocar o numero conectado.';
                 el('profileTimeline').innerHTML = '<div class="empty">Abra um cliente para ver a linha do tempo.</div>';
+                if (logisticsBanner) logisticsBanner.hidden = true;
                 return;
             }
 
@@ -11446,6 +11503,23 @@
                     <span class="meta">${escapeHtml(formatTime(event.at))}${event.detail ? ' · ' + escapeHtml(event.detail) : ''}</span>
                 </div>
             `).join('') || '<div class="empty">Sem eventos salvos ainda.</div>';
+
+            const shipment = profile.shipment;
+            if (!logisticsBanner || !shipment) {
+                if (logisticsBanner) logisticsBanner.hidden = true;
+                return;
+            }
+            logisticsBanner.hidden = false;
+            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified ? 'ready' : ''}`;
+            if (shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified) {
+                logisticsBanner.innerHTML = '<span>✅ PRONTO PARA RETIRADA</span><span>✅ CLIENTE JÁ PODE IR</span>';
+            } else if (['SHIPPED', 'IN_TRANSIT', 'READY_FOR_PICKUP'].includes(shipment.status)) {
+                logisticsBanner.innerHTML = shipment.status === 'READY_FOR_PICKUP'
+                    ? '<span>⚠️ READY NÃO VERIFICADO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>'
+                    : '<span>📦 ENVIADO</span><span>🚚 EM TRÂNSITO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>';
+            } else {
+                logisticsBanner.innerHTML = `<span>LOGÍSTICA: ${escapeHtml(shipment.status || 'UNKNOWN')}</span>`;
+            }
         };
 
         const loadCustomerProfileForChat = async (chatKey) => {
@@ -11816,9 +11890,9 @@
                 const attentionLabel = unansweredCount > 0 ? unansweredLabel : '!';
                 const entryInfo = chatEntryInfo(chat);
                 const sourceInfo = chatSourceInfo(chat);
-                const avatar = chat.profilePictureUrl
-                    ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="">`
-                    : escapeHtml(avatarInitial(title));
+                const avatar = `<span>${escapeHtml(avatarInitial(title))}</span>${chat.profilePictureUrl
+                    ? `<img src="${escapeHtml(chat.profilePictureUrl)}" alt="" loading="lazy" onerror="this.remove()">`
+                    : ''}`;
                 return `
                     <button class="chat-item ${isActive ? 'active' : ''} ${unreadCount ? 'has-unread' : ''} ${unansweredCount ? 'has-unanswered' : ''} ${vslWaiting ? 'has-vsl-waiting' : ''} ${modeClass} ${orderClass}" data-chat-id="${escapeHtml(chat.id)}" type="button">
                         <div class="chat-row">
@@ -12188,7 +12262,7 @@
 
         const getMessageSignature = (messages) => (messages || [])
             .map((message) => [
-                message._id || '',
+                window.VitalismenCleanChatV29?.canonicalMessageIdentity(message) || message._id || '',
                 message.timestamp || '',
                 message.isFromMe ? '1' : '0',
                 message.body || '',
@@ -12196,6 +12270,9 @@
                 message.type || '',
                 message.mediaUrl || '',
                 message.mediaPreviewUrl || '',
+                message.deliveryStatus || '',
+                message.providerStatus || '',
+                message.ack || '',
                 (message.mediaAttachments || []).map((item) => `${item.type || ''}:${item.mediaUrl || ''}:${item.mediaPreviewUrl || ''}`).join(',')
             ].join(':'))
             .join('|');
@@ -12248,8 +12325,10 @@
 
         const appendLocalMessage = (body, options = {}) => {
             const now = Math.floor(Date.now() / 1000);
+            const localId = `local_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
             const localMessage = {
-                _id: `local_${Date.now()}`,
+                _id: localId,
+                clientGeneratedId: localId,
                 body,
                 type: options.type || 'chat',
                 mediaUrl: options.mediaUrl || '',
@@ -12258,6 +12337,8 @@
                 localCreatedAt: Date.now(),
                 isFromMe: true,
                 isBot: false,
+                senderRole: 'human',
+                attendantId: state.user?.id || state.user?._id || 'ana_lopez',
                 notifyName: state.user?.name || state.user?.email || 'Atendente',
                 quotedMessageId: options.quotedMessage?._id || '',
                 quotedBody: options.quotedMessage ? messagePreviewText(options.quotedMessage).slice(0, 500) : '',
@@ -12278,6 +12359,22 @@
             state.currentMessages = (state.currentMessages || []).filter((message) => String(message._id || '') !== id);
             state.messageSignature = getMessageSignature(state.currentMessages);
             renderMessages(state.currentMessages, { preserveScroll: true });
+        };
+
+        const confirmPendingLocalMessage = (messageId, result = {}) => {
+            const id = String(messageId || '');
+            if (!id) return;
+            state.pendingLocalMessages = (state.pendingLocalMessages || []).map((message) => (
+                String(message._id || '') === id
+                    ? {
+                        ...message,
+                        _id: result.messageRecordId || message._id,
+                        providerMessageId: result.providerMessageId || message.providerMessageId || '',
+                        providerZaapId: result.providerZaapId || message.providerZaapId || '',
+                        deliveryStatus: result.deliveryStatus || 'sent'
+                    }
+                    : message
+            ));
         };
 
         const inferMediaType = (attachment = {}) => {
@@ -12357,7 +12454,21 @@
             return preview || original;
         };
 
-        const attendantAvatarHtml = () => '<div class="message-sender-avatar" title="Ana López" aria-label="Ana López">AL</div>';
+        const messageAvatarHtml = (message = {}) => {
+            const identity = window.VitalismenCleanChatV29;
+            const role = identity?.senderRole(message) || (message.isFromMe ? 'human' : 'client');
+            const clientName = state.selectedChat ? chatDisplayName(state.selectedChat) : '';
+            const descriptor = identity?.avatarDescriptor({
+                role,
+                name: role === 'client' ? clientName : message.notifyName,
+                avatar: role === 'client' ? state.selectedChat?.profilePictureUrl : message.attendantAvatar,
+                attendantId: message.attendantId || (role === 'human' ? 'ana_lopez' : '')
+            }) || { displayName: role === 'client' ? clientName || 'Cliente' : 'Ana López', initials: role === 'client' ? avatarInitial(clientName) : 'AL', avatar: '' };
+            if (role === 'human' && descriptor.attendantId === 'ana_lopez' && !descriptor.avatar) {
+                return '<div class="message-sender-avatar" title="Ana López" aria-label="Ana López">AL</div>';
+            }
+            return `<div class="message-sender-avatar role-${escapeHtml(role)}" title="${escapeHtml(descriptor.displayName)}" aria-label="${escapeHtml(descriptor.displayName)}"><span>${escapeHtml(descriptor.initials)}</span>${descriptor.avatar ? `<img src="${escapeHtml(descriptor.avatar)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>`;
+        };
 
         const playIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
         const pauseIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>';
@@ -12524,8 +12635,7 @@
                 const audioSrc = escapeHtml(audioSourceUrl);
                 const fallback = escapeHtml(fallbackUrl);
                 return `
-                    <div class="wa-audio-card ${message.isFromMe ? '' : 'no-avatar'}" data-audio-player>
-                        ${message.isFromMe ? attendantAvatarHtml() : ''}
+                    <div class="wa-audio-card no-avatar" data-audio-player>
                         <button class="wa-audio-play" type="button" aria-label="Tocar audio">${playIcon()}</button>
                         <div class="wa-audio-main">
                             <div class="wa-waveform-wrap">
@@ -14125,7 +14235,16 @@
             const box = el('conversation');
             const previousBottom = box.scrollHeight - box.scrollTop;
             const visibleMessages = (messages || []).filter((message) => !isTechnicalZapiAlertMessage(message));
-            const conversationMessages = visibleMessages.filter((message) => !isInternalPanelStatusAuditMessage(message));
+            const presentation = window.VitalismenCleanChatV29?.presentMessages(visibleMessages) || { visible: visibleMessages, technical: [], duplicatesCollapsed: 0 };
+            const conversationMessages = presentation.visible.filter((message) => !isInternalPanelStatusAuditMessage(message));
+            const legacyTechnical = (messages || []).filter((message) => isTechnicalZapiAlertMessage(message) || isInternalPanelStatusAuditMessage(message));
+            const technical = [...presentation.technical, ...legacyTechnical].filter((message, index, list) => list.findIndex((item) => String(item._id || item.presentationIdentity || '') === String(message._id || message.presentationIdentity || '')) === index);
+            const technicalDetails = el('technicalChatDetails');
+            if (technicalDetails) {
+                technicalDetails.hidden = technical.length === 0 && presentation.duplicatesCollapsed === 0;
+                el('technicalChatSummary').textContent = `DETALHES TÉCNICOS · ${technical.length} eventos · ${presentation.duplicatesCollapsed} espelhos unificados`;
+                el('technicalChatTimeline').innerHTML = technical.slice(-20).map((message) => `<div>${escapeHtml(message.type || 'system')} · ${escapeHtml(formatTime(message.timestamp || message.createdAt))}</div>`).join('');
+            }
             box.innerHTML = conversationMessages.map((message) => {
                 const messageId = String(message._id || '');
                 const media = renderMessageMedia(message);
@@ -14141,9 +14260,8 @@
                 const transcriptHtml = transcript
                     ? `<div class="message-transcript"><strong>Audio transcrito</strong>${escapeHtml(transcript)}</div>`
                     : '';
-                const senderLabel = message.isFromMe
-                    ? 'atendente'
-                    : 'cliente';
+                const senderRole = window.VitalismenCleanChatV29?.senderRole(message) || (message.isFromMe ? 'human' : 'client');
+                const senderLabel = senderRole === 'bot' ? 'bot' : senderRole === 'human' ? (message.notifyName || 'Ana López') : 'cliente';
                 const deliveryStatus = String(message.deliveryStatus || '').toLowerCase();
                 const providerStatus = String(message.providerStatus || '').toLowerCase();
                 const ack = Number(message.ack);
@@ -14170,7 +14288,7 @@
                 const observerHint = !message.isFromMe ? renderMessageObserverHint(messageId, message) : '';
                 return `
                     <div class="message-row ${message.isFromMe ? 'me' : ''} ${editOutboundButton ? 'has-outbound-edit' : ''}" data-message-id="${escapeHtml(messageId)}">
-                        ${message.isFromMe ? attendantAvatarHtml() : ''}
+                        ${messageAvatarHtml(message)}
                         <div class="bubble ${message.isFromMe ? 'me' : ''} ${readByClient ? 'is-read' : ''}">
                             <div class="message-actions">
                                 <button class="message-action" data-message-reply="${escapeHtml(messageId)}" type="button" title="Responder esta mensagem">↩</button>
@@ -14587,6 +14705,8 @@
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
                 setInputValue('manualGuideAgencyInput', 'true');
+                if (el('manualReadyVerificationInput')) el('manualReadyVerificationInput').checked = false;
+                el('manualReadyVerificationWrap')?.classList.add('hidden');
                 clearCustomerFormDirty();
                 state.agencyLookupKey = '';
                 clearAgencySuggestions();
@@ -18332,6 +18452,12 @@
                 showToast('Selecione Equador antes de avisar guia.');
                 return;
             }
+            const pickupReadyVerified = guideStatus === 'READY_FOR_PICKUP'
+                && el('manualReadyVerificationInput')?.checked === true;
+            if (guideStatus === 'READY_FOR_PICKUP' && !pickupReadyVerified) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
 
             state.busy = true;
             const button = el('sendManualGuideBtn');
@@ -18347,6 +18473,7 @@
                         trackingNumber,
                         status: guideStatus,
                         agencyPickup: el('manualGuideAgencyInput').value === 'true',
+                        pickupReadyVerified,
                         notifyNow: true,
                         forceNotify: true
                     })
@@ -18601,6 +18728,14 @@
             const input = el('messageInput');
             const text = String(input.value || '').trim();
             if (!text) return;
+            const shipmentPolicy = state.customerProfile?.shipment;
+            if (
+                window.VitalismenCleanChatV29?.containsPickupAuthorizationLanguage(text)
+                && shipmentPolicy?.allowPickupLanguage !== true
+            ) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
             const replyTo = state.replyToMessage;
             const phone = currentChatPhone();
             if (!digitsOnlyText(phone)) {
@@ -18634,6 +18769,7 @@
                         sessionId,
                         delayTypingSeconds: 0,
                         quotedMessageId: replyTo?._id || '',
+                        clientGeneratedId: pending?.clientGeneratedId || '',
                         sendMode: 'manual_panel',
                         country: state.country || 'EC'
                     })
@@ -18641,6 +18777,7 @@
                 if (!result?.success) {
                     throw new Error(result?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.');
                 }
+                if (pending?._id) confirmPendingLocalMessage(pending._id, result);
                 if (result?.handled) {
                     showToast(result.message || 'Comando aplicado');
                     if (pending?._id) removePendingLocalMessage(pending._id);
@@ -18795,6 +18932,13 @@
                 showToast('Arquivo muito grande. Use ate 16 MB para envio pelo painel.');
                 return;
             }
+            if (
+                window.VitalismenCleanChatV29?.isGuideMediaCandidate(file.name || '')
+                && state.customerProfile?.shipment?.allowGuideImage !== true
+            ) {
+                showToast('PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA');
+                return;
+            }
             const attachButton = el('attachMediaBtn');
             const sendButton = el('sendBtn');
             const originalAttachText = attachButton.textContent;
@@ -18818,6 +18962,7 @@
                         message: dataUrl,
                         isMedia: true,
                         fileName: file.name || '',
+                        clientGeneratedId: pendingMessage?.clientGeneratedId || '',
                         sessionId,
                         delayTypingSeconds: manualRecordingDelaySeconds(file),
                         recordedAudio: mediaTypeFromFile(file) === 'audio',
@@ -18827,24 +18972,17 @@
                     })
                 });
                 apiResponded = true;
-                removePendingLocalMessage(pendingMessage?._id);
                 if (!result?.success) {
                     await loadSelectedMessages({ force: true });
                     throw new Error(result?.error || 'WhatsApp nao retornou confirmacao da midia; confira no aparelho.');
                 }
-                if (result.storedMediaUrl) {
-                    appendLocalMessage(`${mediaKindFromFile(file)} enviado`, {
-                        type: result.mediaType || inferMediaType({ mediaUrl: result.storedMediaUrl }),
-                        mediaUrl: result.storedMediaUrl,
-                        mediaPreviewUrl: result.storedMediaUrl
-                    });
-                }
+                if (pendingMessage?._id) confirmPendingLocalMessage(pendingMessage._id, result);
                 showToast(`${mediaKindFromFile(file)} enviado`);
                 loadSelectedMessages({ force: true }).catch(() => null);
                 loadChats().catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
             } catch (error) {
-                if (!apiResponded && pendingMessage?._id) {
+                if (pendingMessage?._id) {
                     state.pendingLocalMessages = (state.pendingLocalMessages || []).map((item) => (
                         String(item._id || '') === String(pendingMessage._id)
                             ? { ...item, deliveryStatus: 'unconfirmed' }
@@ -19000,6 +19138,7 @@
                 proof: `Le comparto algo importante: varios clientes que tenian la misma duda ya recibieron su pedido y nos contaron que les fue muy bien. Si quiere, le ayudo a dejar el suyo listo hoy.`,
                 data: 'Perfecto, para dejarlo listo me confirma por favor: nombre completo, ciudad y direccion completa para la entrega?',
                 close: 'Listo, entonces le confirmo el pedido con esos datos. Lo dejamos preparado para envio y la transportadora se comunica antes de la entrega. Esta correcto?',
+                early_pickup_correction: `Disculpe la confusión, ${chat.name || chat.customerDraft?.name || 'cliente'}. Su pedido fue enviado, pero todavía no estaba habilitado para retiro en la agencia. No necesita volver todavía. En cuanto Servientrega lo confirme como disponible, le avisaremos por aquí para que pueda ir con seguridad y no pierda tiempo nuevamente.`,
                 cmd_euatendo: '#euatendo',
                 cmd_botliberado: '#botliberado'
             };
@@ -20405,6 +20544,14 @@
             renderCustomFunnelDraft();
         });
         el('sendManualGuideBtn')?.addEventListener('click', sendManualGuideFromForm);
+        el('manualGuideStatusInput')?.addEventListener('change', () => {
+            const ready = el('manualGuideStatusInput')?.value === 'READY_FOR_PICKUP';
+            el('manualReadyVerificationWrap')?.classList.toggle('hidden', !ready);
+            if (!ready && el('manualReadyVerificationInput')) el('manualReadyVerificationInput').checked = false;
+            if (el('sendManualGuideBtn')) {
+                el('sendManualGuideBtn').textContent = ready ? 'Confirmar READY e avisar retirada' : 'Adicionar guia (somente rastreio)';
+            }
+        });
         el('sendSelectedDropiBtn').addEventListener('click', openSelectedCustomerInLeads);
         el('dryRunDropiDispatchBtn').addEventListener('click', () => runDropiDispatchRetroactive({
             dryRun: true,

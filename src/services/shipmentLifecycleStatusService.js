@@ -123,6 +123,15 @@ export const applyShipmentLifecycleStatus = async ({
     shipment.logistics = shipment.logistics || {};
     shipment.logistics.status = normalizedStatus;
     shipment.logistics.lastStatusAt = now;
+    if (normalizedStatus === 'READY_FOR_PICKUP' && source === 'carrier_tracking') {
+        shipment.logistics.pickupReadyVerified = true;
+        shipment.logistics.pickupReadyVerifiedAt = now;
+        shipment.logistics.pickupReadyVerifiedSource = 'carrier_tracking';
+    } else if (normalizedStatus !== 'READY_FOR_PICKUP') {
+        shipment.logistics.pickupReadyVerified = false;
+        shipment.logistics.pickupReadyVerifiedAt = null;
+        shipment.logistics.pickupReadyVerifiedSource = '';
+    }
     if (carrierResult?.trackingNumber) shipment.logistics.trackingNumber = carrierResult.trackingNumber;
     if (carrierResult?.carrier) shipment.logistics.distributionCompany = String(carrierResult.carrier || '').toUpperCase();
 
@@ -138,6 +147,7 @@ export const applyShipmentLifecycleStatus = async ({
             orderStatus: orderStatusForLogisticsStatus(normalizedStatus),
             trackingNumber: shipment.logistics?.trackingNumber || '',
             carrier: shipment.logistics?.distributionCompany || '',
+            pickupReadyVerified: shipment.logistics?.pickupReadyVerified === true,
             customerEligibility: normalizedStatus === 'ENTREGADO'
                 ? 'released_for_new_order'
                 : (normalizedStatus === 'DEVUELTO' ? 'prepaid_only_required' : 'unchanged')

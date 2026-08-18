@@ -16,6 +16,8 @@ const agencyShipment = (overrides = {}) => ({
     productName: 'Nitrix Oxide Ecuador',
     logistics: {
         agencyPickup: true,
+        status: 'READY_FOR_PICKUP',
+        pickupReadyVerified: true,
         trackingNumber: '188000001',
         ...overrides.logistics
     },
@@ -74,12 +76,12 @@ test('cadencia retorna uma unica proxima etapa vencida por execucao', () => {
 
 test('textos da agencia mantem os seis passos previstos', () => {
     const shipment = agencyShipment();
-    assert.match(buildReminderText(shipment, 'day1'), /para retiro en agencia/i);
+    assert.match(buildReminderText(shipment, 'day1'), /continúa disponible en Servientrega/i);
     assert.match(buildReminderText(shipment, 'soft_day2'), /foto del retiro/i);
     assert.equal(buildReminderText(shipment, 'day3'), '');
     assert.match(buildReminderText(shipment, 'soft_day4'), /Servientrega/i);
     assert.equal(buildReminderText(shipment, 'day5'), '');
-    assert.match(buildReminderText(shipment, 'soft_day6'), /Ultimo aviso/i);
+    assert.match(buildReminderText(shipment, 'soft_day6'), /plazo de devolución/i);
 });
 
 test('audio de uso respeita o produto e bloqueia fallback Vit Power', () => {

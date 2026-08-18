@@ -654,6 +654,7 @@ const candidateQuery = (actions = []) => {
     if (actionSet.has('ready_for_pickup')) {
         branches.push({
             'logistics.status': 'READY_FOR_PICKUP',
+            'logistics.pickupReadyVerified': true,
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
             'automation.readyForPickupNotifiedAt': null,
