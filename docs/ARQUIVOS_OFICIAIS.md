@@ -159,6 +159,27 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Estado: candidato local, nao publicado; resposta de chamada desligada por padrao; nenhuma mensagem, pedido Dropi, evento Meta, branch remota, PR, release, PM2 ou symlink foi alterado.
 - Rollback funcional: retornar ao commit `3b6adfb081f2391262e7b356d47473013e071cc7`; nenhuma migracao destrutiva de banco e necessaria.
 
+### Microcamada V22 — 2026-08-18
+
+- Fonte base: commit ativo `46a81f5fe5f0dc89cc41353ae5eacefce08e82a5`, copiado para o worktree isolado `/home/codex/worktrees/vitalismen-tex-ultra-entry-unread-20260818`; producao nao foi alterada.
+- Abertura Tex Ultra: `src/services/texUltraProductProfile.js`, `src/services/texUltraEntryGreetingService.js`, `src/services/texUltraInitialLayerService.js` e `src/services/texUltraFunnelService.js`.
+- Leitura do painel: `src/services/panelReadStateService.js`, `src/routes/whatsapp.js` e `public/qr.html`.
+- Testes sem envio: `tests/tex-ultra-entry-unread-v22.test.mjs`, `tests/whatsapp-chat-read-persistence-v22.test.mjs`, `scripts/test-tex-ultra-initial-cadence.mjs` e `scripts/test-tex-ultra-initial-concurrency.mjs`.
+- Freeze/guard: `docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md`, `docs/freeze/tex-ultra-entry-unread-v22-20260818.json` e `scripts/guard-tex-ultra-entry-unread-v22.mjs`.
+- Audio candidato: `public/media/templates/EC/CONHECER_NECESSIDADES_CLIENTES.ogg`; risco de ausencia de transcricao apresentado e conteudo ativo aprovado pelo operador em 2026-08-18.
+- Estado: candidato local, nao publicado; nenhum envio, pedido Dropi, evento Meta, alteracao de banco oficial, PM2, `current`, servico ou producao.
+- Rollback funcional: retornar ao commit `46a81f5fe5f0dc89cc41353ae5eacefce08e82a5`.
+
+### Microcamada V23 — 2026-08-18
+
+- Fonte base: candidato V22 no worktree isolado `/home/codex/worktrees/vitalismen-tex-ultra-entry-unread-20260818`; producao nao foi alterada.
+- Identidade textual: `.env.example`, `src/services/agentProfiles.js`, `src/services/openaiService.js`, `src/services/aiRouter.js`, `src/services/vitPowerEvolvedWorkflow.js`, `src/services/adminBuyLaterFollowupService.js`, `src/services/shipmentMessageService.js`, `src/services/vitPowerAudioComplementService.js`, `src/services/nitrixProductProfile.js` e `public/qr.html`.
+- Midia fail-closed: `src/services/audioService.js` exige `ELEVENLABS_VOICE_ID_ANA_LOPEZ`; audios Nitrix identificados com a persona anterior ficam fora de `src/services/audioTemplateService.js`, do painel e da extensao.
+- Compatibilidade segura: `src/services/conversationEngine.js` reconhece apresentacoes antigas pela estrutura generica da mensagem, sem conservar o nome da persona desativada no runtime.
+- Freeze/guard/teste: `docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md`, `docs/freeze/ec-ana-identity-v23-20260818.json`, `scripts/guard-ec-ana-identity-v23.mjs`, `scripts/audit-ec-ana-identity.mjs` e `tests/ec-ana-identity-v23.test.mjs`.
+- Estado: candidato local aprovado para publicacao, ainda nao publicado; aceite da identidade Ana Lopez e da biblioteca ativa registrado em 2026-08-18; nenhum envio, pedido Dropi, evento Meta, banco oficial, PM2, `current`, servico ou producao foi alterado.
+- Rollback funcional: retornar ao commit `46a81f5fe5f0dc89cc41353ae5eacefce08e82a5`.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

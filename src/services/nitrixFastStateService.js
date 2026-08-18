@@ -520,6 +520,9 @@ const dispatchJob = async ({ state, flow, job }) => {
     }
     if (job.id === 'audio_01' || job.id === 'audio_02') {
         const audioName = NITRIX_EC_PRODUCT_PROFILE.entry.audioNames[job.id === 'audio_01' ? 0 : 1];
+        if (!audioName && NITRIX_EC_PRODUCT_PROFILE.entry.legacyIdentityAudioQuarantined) {
+            return { ok: true, receipt: 'legacy_identity_audio_quarantined', skipped: true };
+        }
         const audioPath = await resolveCountryAudio({ country: 'EC', baseName: audioName });
         if (!audioPath) return { ok: false, error: `${job.id}_not_found` };
         const sent = await sendAudio(chatId, audioPath, true, {

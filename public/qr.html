@@ -4842,9 +4842,9 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: #dfe5e7;
+            background: linear-gradient(145deg, #2563eb, #1d4ed8);
             color: #fff;
-            font-size: 0;
+            font-size: 11px;
             font-weight: 900;
             letter-spacing: 0;
             box-shadow: 0 1px 2px rgba(11, 20, 26, 0.18);
@@ -11945,12 +11945,14 @@
                         return !(chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)));
                     })
                     : chats;
+                let selectedUnreadObserved = false;
                 if (state.selectedChat) {
                     const selectedPhone = digitsOnlyText(state.selectedChat.phone || state.selectedChat.id || '');
                     nextChats = nextChats.map((chat) => {
                         const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                         const isSelected = chat.id === state.selectedChat.id
                             || (selectedPhone && chatPhone && (chatPhone === selectedPhone || chatPhone.endsWith(selectedPhone) || selectedPhone.endsWith(chatPhone)));
+                        if (isSelected && Number(chat.unreadCount || 0) > 0) selectedUnreadObserved = true;
                         return isSelected ? { ...chat, unreadCount: 0 } : chat;
                     });
                 }
@@ -11967,6 +11969,9 @@
                     state.chatSignature = signature;
                     renderChats();
                     renderSelectedDetails();
+                }
+                if (selectedUnreadObserved) {
+                    markSelectedChatRead({ silent: true }).catch(() => null);
                 }
             } finally {
                 state.chatsLoading = false;
@@ -12201,8 +12206,7 @@
             return preview || original;
         };
 
-        const ATTENDANT_PHOTO_URL = `${mediaPublicOrigin()}/media/agent/valeria-zambrano-avatar.jpg?v=20260517-real`;
-        const attendantAvatarHtml = () => `<div class="message-sender-avatar" title="Valeria Zambrano"><img src="${escapeHtml(ATTENDANT_PHOTO_URL)}" alt="Valeria Zambrano"></div>`;
+        const attendantAvatarHtml = () => '<div class="message-sender-avatar" title="Ana López" aria-label="Ana López">AL</div>';
 
         const playIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
         const pauseIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>';
@@ -14211,13 +14215,35 @@
             }
         }
 
-        const markSelectedChatRead = () => {
+        const markSelectedChatRead = async ({ silent = false } = {}) => {
             const chat = state.selectedChat;
-            if (!state.token || !chat) return;
-            api('/api/whatsapp/chats/read', {
-                method: 'POST',
-                body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
-            }).catch(() => null);
+            if (!state.token || !chat) return false;
+            const identity = chatDedupeKey(chat) || chat.id || chat.phone || '';
+            if (state.markReadPendingIdentity === identity) return false;
+            state.markReadPendingIdentity = identity;
+            try {
+                const result = await api('/api/whatsapp/chats/read', {
+                    method: 'POST',
+                    body: JSON.stringify({ chatId: chat.id, phone: chat.phone })
+                });
+                if (!result?.success || Number(result.matched || 0) < 1) {
+                    throw new Error('A conversa nao foi localizada para marcar como lida.');
+                }
+                state.chats.forEach((item) => {
+                    if (sameChatIdentity(chat, item)) item.unreadCount = 0;
+                });
+                if (state.selectedChat && sameChatIdentity(chat, state.selectedChat)) {
+                    state.selectedChat.unreadCount = 0;
+                }
+                renderChats();
+                renderOperationalMetrics();
+                return true;
+            } catch (error) {
+                if (!silent) showToast(error.message || 'Nao foi possivel marcar a conversa como lida.');
+                return false;
+            } finally {
+                if (state.markReadPendingIdentity === identity) state.markReadPendingIdentity = '';
+            }
         };
 
         const markVisibleChatsRead = async () => {
@@ -14350,7 +14376,7 @@
             renderSelectedDetails();
             renderCustomerProfile();
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
-            if (markRead) markSelectedChatRead();
+            if (markRead) markSelectedChatRead().catch(() => null);
             loadSelectedMessages({ force: true, limit: 60, bypassLoading: true }).catch((error) => showToast(error.message));
             state.selectedChatProfileTimer = window.setTimeout(() => {
                 if (state.selectedChatLoadSeq === loadSeq) loadCustomerProfileForChat(chatKey).catch(() => null);
@@ -15928,10 +15954,37 @@
             showToast('Bloco excluido');
         };
 
-        const NITRIX_INTRO_AUDIO_01_EC = '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
-        const NITRIX_INTRO_AUDIO_02_EC = '/media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
         const UNIVERSAL_INTRO_AUDIO_01_EC = '/media/templates/EC/01_B_Buenos_dias.ogg';
         const UNIVERSAL_INTRO_AUDIO_02_EC = '/media/templates/EC/01_C_Buenos_tardes.ogg';
+        const TEX_ULTRA_UNIVERSAL_ENTRY_AUDIO_EC = '/media/templates/EC/CONHECER_NECESSIDADES_CLIENTES.ogg';
+
+        const texUltraPanelGreetingPeriod = (date = new Date()) => {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Guayaquil',
+                hour: '2-digit',
+                hourCycle: 'h23'
+            }).formatToParts(date instanceof Date ? date : new Date(date));
+            const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+            if (hour >= 5 && hour <= 11) return 'buenos días';
+            if (hour >= 12 && hour <= 17) return 'buenas tardes';
+            return 'buenas noches';
+        };
+
+        const texUltraPanelGreetingName = (chat = state.selectedChat || {}) => {
+            const candidates = [chat.customerDraft?.name, chat.name]
+                .map((value) => String(value || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80));
+            return candidates.find((value) => value
+                && !/^\+?[\d\s().-]{7,}$/.test(value)
+                && !/^(cliente|customer|entrada vsl|desconocido|desconocida|unknown)$/i.test(value)) || '';
+        };
+
+        const buildTexUltraPanelGreeting = (chat = state.selectedChat || {}, date = new Date()) => {
+            const name = texUltraPanelGreetingName(chat);
+            const opening = name
+                ? `Hola, ${name}, ${texUltraPanelGreetingPeriod(date)}.`
+                : `Hola, ${texUltraPanelGreetingPeriod(date)}.`;
+            return `${opening} Soy Ana López, asistente de la Dra. María Fernandes. Vi su mensaje y será un gusto atenderle personalmente. Estoy aquí para ayudarle. ¿En qué puedo ayudarle?`;
+        };
 
         const footerFunnelBlocks = () => {
             const selectedProductKey = activeFunnelProductKey();
@@ -15940,11 +15993,10 @@
                     type: 'block',
                     typeLabel: 'bloco',
                     label: 'Inicio completo Nitrix',
-                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Nitrix',
+                    detail: 'Saudacao Ana Lopez + Prova 1 + Frasco Nitrix; audios da identidade anterior bloqueados',
                     value: 'nitrix_inicio_completo',
                     steps: [
-                        { type: 'audio', label: 'Inicio universal 01', value: NITRIX_INTRO_AUDIO_01_EC },
-                        { type: 'audio', label: 'Inicio universal 02', value: NITRIX_INTRO_AUDIO_02_EC },
+                        { type: 'draft', label: 'Saudacao Ana Lopez', value: 'nitrix_ana_entry' },
                         { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
                         { type: 'media', label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png', waitAfterMs: 0 }
                     ]
@@ -15963,11 +16015,11 @@
                     type: 'block',
                     typeLabel: 'bloco',
                     label: 'Inicio completo Tex Ultra',
-                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Tex Ultra + Valores promocionais',
+                    detail: 'Saudacao com nome + um audio universal + Prova 1 + Frasco Tex Ultra + Valores promocionais',
                     value: 'tex_ultra_inicio_completo',
                     steps: [
-                        { type: 'audio', label: 'Inicio universal 01', value: UNIVERSAL_INTRO_AUDIO_01_EC },
-                        { type: 'audio', label: 'Inicio universal 02', value: UNIVERSAL_INTRO_AUDIO_02_EC },
+                        { type: 'draft', label: 'Saudacao personalizada', value: 'tex_ultra_personalized_entry' },
+                        { type: 'audio', label: 'Inicio universal Tex Ultra', value: TEX_ULTRA_UNIVERSAL_ENTRY_AUDIO_EC },
                         { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
                         { type: 'media', label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra_bottle.png', waitAfterMs: 0 },
                         { type: 'draft', label: 'Valores promocionais · desde USD 35.99', value: 'tex_ultra_promotion_1' }
@@ -18699,6 +18751,8 @@
             }
 
             const templates = {
+                nitrix_ana_entry: 'Hola, soy Ana López, del equipo de la Dra. Maria Fernandes. Ya reviso su mensaje de Nitrix Oxide y será un gusto ayudarle por aquí. ¿Qué información desea confirmar?',
+                tex_ultra_personalized_entry: buildTexUltraPanelGreeting(chat),
                 tex_ultra_promotion_1: '📦 Hoy tenemos kits promocionales disponibles con precios especiales:\n\n🟢 1 frasco por solo $35,99\n🟡 2 frascos por $70,00\n🟠 3 frascos por $80,99\n🔴 6 frascos (tratamiento completo) por $147,99\n\n¿Cuántos frascos desea?',
                 tex_ultra_promotion_2: '📦 Precios originales de los kits disponibles:\n\n🟢 1 frasco por solo $39,99\n🟡 2 frascos por $70,00\n🟠 3 frascos por $95,99\n🔴 6 frascos (tratamiento completo) por $167,99\n\n¿Cuántos frascos desea?',
                 offer: `Le confirmo la promocion de ${product}: ${price}. La opcion mas recomendada es la de 3 frascos porque aprovecha mejor el tratamiento y trae regalo sorpresa. Cual le gustaria separar?`,

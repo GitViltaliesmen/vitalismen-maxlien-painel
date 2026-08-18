@@ -22,21 +22,21 @@ const completions = Array.from({ length: contactCount }, (_, index) => {
 });
 
 for (const contact of completions) {
-    assert.equal(contact.offerAt - contact.anchor, 128000);
+    assert.equal(contact.offerAt - contact.anchor, 112000);
 }
 
 const batchElapsedMs = Math.max(...completions.map(({ offerAt }) => offerAt)) - batchAnchor.getTime();
-const sequentialElapsedMs = contactCount * 128000;
-assert.equal(batchElapsedMs, 128000 + TEX_ULTRA_INITIAL_WAVE_JOIN_MS);
+const sequentialElapsedMs = contactCount * 112000;
+assert.equal(batchElapsedMs, 112000 + TEX_ULTRA_INITIAL_WAVE_JOIN_MS);
 assert.ok(batchElapsedMs < sequentialElapsedMs / 40);
 
 assert.deepEqual(
     TEX_ULTRA_INITIAL_CADENCE.map(({ key }) => key),
-    ['intro01', 'intro02', 'proof', 'bottle', 'offer']
+    ['greeting', 'intro', 'proof', 'bottle', 'offer']
 );
 assert.match(source, /const flowTimers = new Map\(\)/);
 assert.match(source, /flowTimers\.set\(flow\.id, timers\)/);
 assert.match(source, /executeScheduledStep\(\{ contactStateId, flowId: flow\.id, stepKey: definition\.key \}\)/);
 assert.match(source, /const outcome = await withLayerSendQueue\(async \(\) =>/);
 
-console.log('OK: 50 contatos mantêm cronômetros próprios; o lote conclui em até 148s teóricos, não 6.400s sequenciais.');
+console.log('OK: 50 contatos mantêm cronômetros próprios; o lote conclui em até 132s teóricos, sem fila sequencial.');

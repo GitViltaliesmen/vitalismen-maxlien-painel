@@ -17,10 +17,10 @@ test('V21 sucede V20 sem publicar ou alterar producao', () => {
     assert.equal(manifest.policy.pricesChanged, false);
 });
 
-test('guard de startup V21 e a unica entrada ativa da cadeia', () => {
+test('guard sucessor V23 e a unica entrada ativa da cadeia', () => {
     const index = read('src/index.js');
-    assert.match(index, /panelCallDropiSafetyFreezeRuntimeGuardV21/);
-    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20)\.js';/m);
+    assert.match(index, /ecAnaIdentityFreezeRuntimeGuardV23/);
+    assert.doesNotMatch(index, /^import '.+FreezeRuntimeGuardV(?:17|18|19|20|21|22)\.js';/m);
 });
 
 test('politica operacional de chamada permanece desligada no exemplo', () => {
@@ -38,7 +38,7 @@ test('nenhum envio Dropi perdeu a autorizacao humana existente', () => {
     assert.match(routes, /authorizationRequired/);
 });
 
-test('workflow Node 20 e 22 protege e confere os arquivos V21', () => {
+test('workflow Node 20 e 22 preserva V21/V22 e protege os arquivos V23', () => {
     const workflow = read('.github/workflows/ec-panel-quality.yml');
     assert.match(workflow, /matrix:[\s\S]*?node: \['20', '22'\]/);
     for (const relativePath of [
@@ -51,7 +51,19 @@ test('workflow Node 20 e 22 protege e confere os arquivos V21', () => {
         'scripts/guard-panel-call-dropi-safety-v21.mjs',
         'tests/panel-call-dropi-safety.test.mjs',
         'tests/panel-call-dropi-safety-v21.test.mjs',
-        'docs/freeze/panel-call-dropi-safety-v21-20260817.json'
+        'docs/freeze/panel-call-dropi-safety-v21-20260817.json',
+        'src/routes/whatsapp.js',
+        'src/services/panelReadStateService.js',
+        'src/services/texUltraEntryGreetingService.js',
+        'src/services/texUltraEntryUnreadFreezeRuntimeGuardV22.js',
+        'scripts/guard-tex-ultra-entry-unread-v22.mjs',
+        'tests/tex-ultra-entry-unread-v22.test.mjs',
+        'tests/whatsapp-chat-read-persistence-v22.test.mjs',
+        'docs/freeze/tex-ultra-entry-unread-v22-20260818.json',
+        'src/services/ecAnaIdentityFreezeRuntimeGuardV23.js',
+        'scripts/guard-ec-ana-identity-v23.mjs',
+        'tests/ec-ana-identity-v23.test.mjs',
+        'docs/freeze/ec-ana-identity-v23-20260818.json'
     ]) {
         const occurrences = workflow.split(relativePath).length - 1;
         assert.ok(occurrences >= 3, `${relativePath} deve disparar PR, push e ser conferido pelo workflow`);

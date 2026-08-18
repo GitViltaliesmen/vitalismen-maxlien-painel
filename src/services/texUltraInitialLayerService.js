@@ -1,10 +1,12 @@
 import path from 'path';
 import ContactState from '../models/ContactState.js';
+import Message from '../models/Message.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { sendText } from '../whatsapp/sendText.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
+import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntryGreetingService.js';
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPublicOfferText } from './texUltraProductProfile.js';
 
 export const TEX_ULTRA_INITIAL_LAYER_ID = 'tex_ultra_initial_cancellable_v1';
@@ -13,8 +15,8 @@ export const texUltraInitialLayerEnabled = (env = process.env) => (
 );
 
 export const TEX_ULTRA_INITIAL_CADENCE = Object.freeze([
-    Object.freeze({ key: 'intro01', minMs: 2000, maxMs: 10000 }),
-    Object.freeze({ key: 'intro02', minMs: 11000, maxMs: 20000 }),
+    Object.freeze({ key: 'greeting', minMs: 2000, maxMs: 6000 }),
+    Object.freeze({ key: 'intro', minMs: 4000, maxMs: 8000 }),
     Object.freeze({ key: 'proof', minMs: 21000, maxMs: 25000 }),
     Object.freeze({ key: 'bottle', minMs: 28000, maxMs: 33000 }),
     Object.freeze({ key: 'offer', minMs: 35000, maxMs: 40000 })
@@ -129,7 +131,7 @@ const newFlow = ({ state, previous = null, sourceInboundAt = null } = {}) => {
         : waveForStart(anchor);
     return {
         id: `${TEX_ULTRA_INITIAL_LAYER_ID}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        version: 2,
+        version: 3,
         timingMode: 'cumulative_between_steps',
         status: 'running',
         startedAt: anchor.toISOString(),
@@ -143,6 +145,47 @@ const newFlow = ({ state, previous = null, sourceInboundAt = null } = {}) => {
         proofKey: previous?.proofKey || proofKeyForState(state),
         steps: buildTexUltraInitialSteps({ anchor, previous: previous?.steps || {} })
     };
+};
+
+const resolveGreetingName = async (state = {}) => {
+    const draft = state?.metadata?.customerDraft || {};
+    const persisted = texUltraCustomerName(
+        draft.name,
+        draft.customerName,
+        state?.metadata?.notifyName,
+        state?.metadata?.profileName
+    );
+    if (persisted) return persisted;
+
+    const chatId = stateChatId(state);
+    const phone = digitsOnly(draft.phone || state.phoneDigits || state.chatId);
+    const identity = [
+        ...(chatId ? [{ chatId }, { from: chatId }] : []),
+        ...(phone ? [{ peerPhone: phone }, { peerPhone: { $regex: `${phone.slice(-9)}$` } }] : [])
+    ];
+    if (!identity.length) return '';
+    const latestInbound = await Message.findOne({
+        isFromMe: false,
+        $or: identity
+    }).sort({ timestamp: -1, createdAt: -1 }).select({ notifyName: 1 }).lean().catch(() => null);
+    return texUltraCustomerName(latestInbound?.notifyName);
+};
+
+const sendGreeting = async (state) => {
+    const name = await resolveGreetingName(state);
+    return Boolean(await sendText(
+        stateChatId(state),
+        buildTexUltraEntryGreeting({ name }),
+        null,
+        {
+            sessionId: state?.metadata?.lastSessionId || null,
+            country: 'EC',
+            outboundContext: 'tex_ultra_initial_personalized_greeting',
+            humanize: false,
+            antiSpamKey: `${TEX_ULTRA_INITIAL_LAYER_ID}:greeting:${state._id}`,
+            dedupeValue: `${TEX_ULTRA_INITIAL_LAYER_ID}:greeting:${state._id}`
+        }
+    ));
 };
 
 const sendLayerAudio = async ({ state, baseName, context }) => {
@@ -191,9 +234,9 @@ const sendOffer = async (state) => Boolean(await sendText(
 ));
 
 const sendStep = async ({ state, flow, stepKey }) => {
-    const [intro01, intro02] = TEX_ULTRA_EC_PRODUCT_PROFILE.entry.audioNames;
-    if (stepKey === 'intro01') return sendLayerAudio({ state, baseName: intro01, context: 'tex_ultra_inicio_01' });
-    if (stepKey === 'intro02') return sendLayerAudio({ state, baseName: intro02, context: 'tex_ultra_inicio_02' });
+    const universalAudio = TEX_ULTRA_EC_PRODUCT_PROFILE.entry.universalAudioName;
+    if (stepKey === 'greeting') return sendGreeting(state);
+    if (stepKey === 'intro') return sendLayerAudio({ state, baseName: universalAudio, context: 'tex_ultra_inicio_universal' });
     if (stepKey === 'proof') return sendProof({ state, proofKey: flow.proofKey });
     if (stepKey === 'bottle') return sendBottle(state);
     if (stepKey === 'offer') return sendOffer(state);
@@ -222,10 +265,10 @@ const firstWaveComplete = async (flow = {}) => {
         [`${cadencePath}.waveId`]: flow.waveId,
         [`${cadencePath}.status`]: 'running',
         $or: [
-            { [`${cadencePath}.steps.intro01.sentAt`]: { $in: ['', null] } },
-            { [`${cadencePath}.steps.intro01.sentAt`]: { $exists: false } },
-            { [`${cadencePath}.steps.intro02.sentAt`]: { $in: ['', null] } },
-            { [`${cadencePath}.steps.intro02.sentAt`]: { $exists: false } }
+            { [`${cadencePath}.steps.greeting.sentAt`]: { $in: ['', null] } },
+            { [`${cadencePath}.steps.greeting.sentAt`]: { $exists: false } },
+            { [`${cadencePath}.steps.intro.sentAt`]: { $in: ['', null] } },
+            { [`${cadencePath}.steps.intro.sentAt`]: { $exists: false } }
         ]
     });
     return blockers === 0;
@@ -266,7 +309,7 @@ async function executeScheduledStep({ contactStateId, flowId, stepKey }) {
         return;
     }
 
-    if (!['intro01', 'intro02'].includes(stepKey) && !await firstWaveComplete(flow)) {
+    if (!['greeting', 'intro'].includes(stepKey) && !await firstWaveComplete(flow)) {
         scheduleStepRetry({ contactStateId, flowId, stepKey });
         return;
     }
@@ -347,8 +390,8 @@ async function executeScheduledStep({ contactStateId, flowId, stepKey }) {
         steps: { ...(flow.steps || {}), [stepKey]: nextStep }
     };
     const memoryPatch = {
-        ...(stepKey === 'intro01' && sent ? { intro01SentAt: finishedAt } : {}),
-        ...(stepKey === 'intro02' && sent ? { intro02SentAt: finishedAt } : {}),
+        ...(stepKey === 'greeting' && sent ? { greetingSentAt: finishedAt } : {}),
+        ...(stepKey === 'intro' && sent ? { universalIntroSentAt: finishedAt } : {}),
         ...(stepKey === 'proof' && sent ? { proofSentAt: finishedAt, initialProofKey: flow.proofKey } : {}),
         ...(stepKey === 'bottle' && sent ? { bottleSentAt: finishedAt, presentationSentAt: finishedAt } : {}),
         ...(stepKey === 'offer' && sent ? { offerSentAt: finishedAt } : {}),

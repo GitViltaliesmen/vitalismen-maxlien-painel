@@ -47,6 +47,7 @@ import {
 } from '../services/operationalChatStatusService.js';
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
 import { readEcuadorCustomerImage } from '../services/customerImageDataReaderService.js';
+import { panelLastReadMarkerSeconds, panelReadIdentityQuery } from '../services/panelReadStateService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -3562,10 +3563,15 @@ router.get('/chats', async (req, res) => {
         if (fastMode) {
             const statesByPhone = new Map();
             const statesByChatId = new Map();
+            const readMarkerByPhone = new Map();
+            const readMarkerByChatId = new Map();
             recentStates.forEach((state) => {
                 const phone = realPhoneFromState(state);
                 if (phone && !statesByPhone.has(phone)) statesByPhone.set(phone, state);
                 if (state.chatId && !statesByChatId.has(state.chatId)) statesByChatId.set(state.chatId, state);
+                const readMarker = panelLastReadMarkerSeconds([state]);
+                if (phone) readMarkerByPhone.set(phone, Math.max(readMarkerByPhone.get(phone) || 0, readMarker));
+                if (state.chatId) readMarkerByChatId.set(state.chatId, Math.max(readMarkerByChatId.get(state.chatId) || 0, readMarker));
             });
 
             const recentMessages = await Message.find(withVisiblePanelMessages({
@@ -3594,6 +3600,14 @@ router.get('/chats', async (req, res) => {
                 const phone = digitsOnly(chat.phoneHint || chat.id?.user);
                 return statesByPhone.get(phone) || statesByChatId.get(chat.id?._serialized) || null;
             };
+            const fastReadMarkerForChat = (chat) => {
+                const phone = digitsOnly(chat.phoneHint || chat.id?.user);
+                return Math.max(
+                    readMarkerByPhone.get(phone) || 0,
+                    readMarkerByChatId.get(chat.id?._serialized) || 0,
+                    ...(Array.isArray(chat.linkedIds) ? chat.linkedIds.map((id) => readMarkerByChatId.get(id) || 0) : [])
+                );
+            };
             const messageBelongsToFastChat = (message, chat) => {
                 const peerPhone = digitsOnly(message.peerPhone);
                 const ids = [message.chatId, message.from, message.to].filter(Boolean);
@@ -3620,10 +3634,7 @@ router.get('/chats', async (req, res) => {
                         inboundTimes.push(messageAt);
                         inboundMessageTimesByKey.set(chat.conversationKey, inboundTimes);
                     }
-                    const contactState = fastContactStateForChat(chat);
-                    const panelLastReadAt = contactState?.metadata?.panelLastReadAt
-                        ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
-                        : 0;
+                    const panelLastReadAt = fastReadMarkerForChat(chat);
                     if (Number(message.timestamp || 0) > panelLastReadAt) {
                         unreadCountByKey.set(
                             chat.conversationKey,
@@ -3883,15 +3894,12 @@ router.get('/chats', async (req, res) => {
             }
 
             const stateOr = linkedIds.map((id) => ({ chatId: id }));
-            if (phoneDigits) {
-                stateOr.push({ phoneDigits: phoneDigits });
-                stateOr.push({ phoneDigits: { $regex: `${phoneDigits}$` } });
-            }
-            const contactState = await ContactState.findOne({ $or: stateOr }).sort({ updatedAt: -1 }).lean().catch(() => null);
+            const identityQuery = panelReadIdentityQuery({ chatId: c.id._serialized, phone: phoneDigits });
+            stateOr.push(...(identityQuery.$or || []));
+            const contactStates = await ContactState.find({ $or: stateOr }).sort({ updatedAt: -1 }).limit(20).lean().catch(() => []);
+            const contactState = contactStates[0] || null;
             const customerDraft = contactState?.metadata?.customerDraft || {};
-            const panelLastReadAt = contactState?.metadata?.panelLastReadAt
-                ? Math.floor(new Date(contactState.metadata.panelLastReadAt).getTime() / 1000)
-                : 0;
+            const panelLastReadAt = panelLastReadMarkerSeconds(contactStates);
 
             const lastMessage = lastMessageForChat || await Message.findOne(withVisiblePanelMessages({
                 $or: [
@@ -4316,26 +4324,50 @@ router.post('/chats/read', async (req, res) => {
         const { chatId = '', phone = '' } = req.body || {};
         const rawChatId = String(chatId || '');
         const digits = digitsOnly(phone || chatId);
-        const query = {
-            $or: [
-                ...(rawChatId ? [{ chatId: rawChatId }] : []),
-                ...(digits ? [
-                    { phoneDigits: digits },
-                    { phoneDigits: { $regex: `${digits}$` } },
-                    { 'metadata.lastSenderPn': { $regex: digits } }
-                ] : [])
-            ]
-        };
+        const query = panelReadIdentityQuery({ chatId: rawChatId, phone: digits });
         if (!query.$or.length) {
             return res.status(400).json({ error: 'Chat ou telefone obrigatorio' });
         }
 
+        const matchingStates = await ContactState.find(query).sort({ updatedAt: -1 }).limit(20).lean().catch(() => []);
+        const stateIds = matchingStates.map((state) => state?._id).filter(Boolean);
+        if (stateIds.length) query.$or.push({ _id: { $in: stateIds } });
+        const linkedChatIds = [...new Set([
+            rawChatId,
+            ...matchingStates.map((state) => state?.chatId)
+        ].filter(isValidPanelChatId))];
+        const realPhones = [...new Set([
+            digits,
+            ...matchingStates.map(realPhoneFromState),
+            ...matchingStates.map((state) => digitsOnly(state?.metadata?.customerDraft?.phone))
+        ].filter((value) => value && value.length >= 9))];
+        const messageIdentity = [
+            ...linkedChatIds.flatMap((id) => [{ chatId: id }, { from: id }, { to: id }]),
+            ...realPhones.flatMap((value) => [
+                { peerPhone: value },
+                { peerPhone: { $regex: `${value.slice(-9)}$` } }
+            ])
+        ];
+        const latestInbound = messageIdentity.length
+            ? await Message.findOne(withVisiblePanelMessages({
+                $or: messageIdentity,
+                isFromMe: false
+            })).sort({ timestamp: -1, createdAt: -1 }).select({ timestamp: 1 }).lean().catch(() => null)
+            : null;
+        const latestInboundTimestamp = Math.max(0, Number(latestInbound?.timestamp || 0));
+
         const result = await ContactState.updateMany(query, {
             $set: {
-                'metadata.panelLastReadAt': new Date()
+                'metadata.panelLastReadAt': new Date(),
+                'metadata.panelLastReadMessageTimestamp': latestInboundTimestamp
             }
         });
-        res.json({ success: true, matched: result.matchedCount || 0, modified: result.modifiedCount || 0 });
+        res.json({
+            success: true,
+            matched: result.matchedCount || 0,
+            modified: result.modifiedCount || 0,
+            readThroughTimestamp: latestInboundTimestamp
+        });
     } catch (error) {
         console.error('Mark chat read error:', error);
         res.status(500).json({ error: 'Failed to mark chat as read' });

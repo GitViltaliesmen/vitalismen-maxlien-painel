@@ -62,17 +62,14 @@ assertMatches('src/services/conversationEngine.js', /if\s*\(agentProfile\?\.key\
 assertIncludes('public/qr.html', 'Frasco Nitrix', 'Painel mostra frasco Nitrix');
 assertIncludes('public/qr.html', '/media/sales/ec/nitrix_bottle.png', 'Painel usa midia Nitrix');
 assertIncludes('public/qr.html', 'nitrix_inicio_completo', 'Painel tem bloco manual completo Nitrix');
-assertIncludes('public/qr.html', 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Nitrix', 'Bloco manual Nitrix mantem audios universais, prova e frasco corretos');
-assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL.ogg', 'Bloco manual Nitrix usa audio universal 01 aprovado');
-assertIncludes('public/qr.html', '/media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg', 'Bloco manual Nitrix usa audio universal 02 aprovado');
-assertNotMatches('public/qr.html', /NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL/, 'Audio oficial contaminado removido do painel');
-assertNotMatches('public/qr.html', /nitrix_intro_by_ecuador_time|America\/Guayaquil/, 'Regra de horario removida do bloco manual');
+assertIncludes('public/qr.html', 'Saudacao Ana Lopez + Prova 1 + Frasco Nitrix', 'Bloco manual Nitrix usa identidade Ana e preserva prova e frasco');
+assertIncludes('public/qr.html', "nitrix_ana_entry: 'Hola, soy Ana López", 'Bloco manual Nitrix prepara a saudacao Ana');
+assertNotMatches('public/qr.html', /NITRIX_INICIO_/, 'Audios Nitrix da identidade anterior nao ficam ativos no painel');
 assertIncludes('public/qr.html', "nitrix_ec: 'Nitrix EC'", 'Painel nomeia agente Nitrix');
-assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL'", 'Audio Nitrix universal 01 aprovado na biblioteca EC');
-assertIncludes('src/services/audioTemplateService.js', "'NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL'", 'Audio Nitrix universal 02 aprovado na biblioteca EC');
-assertNotMatches('src/services/audioTemplateService.js', /NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL/, 'Audio oficial contaminado removido da biblioteca EC');
-assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Valeria Zambrano';", 'Identidade oficial do atendimento e Valeria');
-assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Valeria Zambrano.', 'Prompt de atendimento usa Valeria');
+assertNotMatches('src/services/audioTemplateService.js', /NITRIX_INICIO_/, 'Audios Nitrix da identidade anterior foram removidos da biblioteca ativa');
+assertIncludes('src/services/nitrixProductProfile.js', 'legacyIdentityAudioQuarantined: true', 'Perfil Nitrix bloqueia os audios da identidade anterior');
+assertIncludes('src/services/vitPowerEvolvedWorkflow.js', "export const VIT_POWER_OPERATOR_NAME = 'Ana López';", 'Identidade oficial do atendimento e Ana');
+assertIncludes('src/services/agentProfiles.js', 'La conversacion siempre debe salir como Ana López.', 'Prompt de atendimento usa Ana');
 
 assertIncludes('public/n/index.html', 'OFFICIAL_ZAPI_SELLER_E164 = "5515991418416"', 'VSL /n usa telefone 8416');
 assertIncludes('public/n/index.html', 'await nextSellerFromServer(message, fullName)', 'VSL /n confirma o telefone conectado antes de abrir WhatsApp');
@@ -96,16 +93,9 @@ const bottlePath = 'public/media/sales/ec/nitrix_bottle.png';
 assert(exists(bottlePath), 'Frasco Nitrix existe em public/media/sales/ec');
 if (exists(bottlePath)) assert(fs.statSync(path.join(root, bottlePath)).size > 100000, 'Frasco Nitrix nao esta vazio');
 
-const nitrixIntroAudioPath = 'public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
-assert(exists(nitrixIntroAudioPath), 'Audio inicial Nitrix universal 01 existe em public/media/templates/EC');
-if (exists(nitrixIntroAudioPath)) assert(fs.statSync(path.join(root, nitrixIntroAudioPath)).size > 100000, 'Audio inicial Nitrix universal 01 nao esta vazio');
-
-const nitrixIntroSecondAudioPath = 'public/media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg';
-assert(exists(nitrixIntroSecondAudioPath), 'Audio inicial Nitrix universal 02 existe em public/media/templates/EC');
-if (exists(nitrixIntroSecondAudioPath)) assert(fs.statSync(path.join(root, nitrixIntroSecondAudioPath)).size > 100000, 'Audio inicial Nitrix universal 02 nao esta vazio');
-
-assert(!exists('public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_OFICIAL.ogg'), 'Audio contaminado oficial foi removido do Git ativo');
-assert(!exists('public/media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO.ogg'), 'Audio contaminado anterior foi removido do Git ativo');
+const nitrixIntroArtifacts = fs.readdirSync(path.join(root, 'public/media/templates/EC'))
+    .filter((name) => /^NITRIX_INICIO_/i.test(name));
+assert(nitrixIntroArtifacts.length === 0, 'Nenhum audio da identidade anterior permanece no diretorio publico');
 
 if (failures.length) {
     console.error('EC Nitrix guard: FALHOU');

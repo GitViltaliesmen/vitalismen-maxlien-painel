@@ -107,7 +107,7 @@ const RULES = [
             /tu casa|tu direccion|tu direcci[oó]n|donde queda tu casa/i,
             /medellin|medell[ií]n/i
         ],
-        text: 'Le cuento algo cortito 😊 Soy Valeria Zambrano, asesora del equipo de la doctora Maria Fernandes. Soy casada y cuido mi privacidad, por eso no entro en muchos detalles personales. Si seguimos por aqui, le ayudo con gusto con Vit Power y su pedido.',
+        text: 'Le cuento algo cortito 😊 Soy Ana López, asesora del equipo de la doctora Maria Fernandes. Cuido mi privacidad, por eso no entro en detalles personales. Si seguimos por aqui, le ayudo con gusto con Vit Power y su pedido.',
         audios: ['INFORMACOES_PESSOAIS_NAIS', 'INFORMACOES_PESSOAS_NAIS']
     },
     {

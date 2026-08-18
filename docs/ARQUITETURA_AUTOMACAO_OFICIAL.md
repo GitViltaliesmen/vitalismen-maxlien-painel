@@ -540,6 +540,22 @@ O freeze `docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md` sucede a V20 como
 
 Esta camada nao altera precos, ofertas, produto de origem, pixel, Meta/CAPI, scheduler, symlink, PM2, servicos ou producao. Nenhum pedido Dropi ou mensagem real faz parte dos testes da camada.
 
+## Microcamada V22 de abertura Tex Ultra e leitura persistente
+
+O freeze `docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md` sucede a V21 como candidato local nao publicado. A abertura Tex Ultra deixa de tratar os audios de manha e tarde como uma sequencia: envia primeiro um texto com nome validado e periodo calculado em `America/Guayaquil`, depois somente o audio candidato `CONHECER_NECESSIDADES_CLIENTES`, seguido da prova, frasco e oferta ja existentes.
+
+A frase com Ana Lopez e Dra. Maria Fernandes nasceu nesta abertura Tex Ultra. A decisao posterior V23 amplia Ana Lopez para toda nova comunicacao EC. O repositorio nao possui transcricao confiavel do audio candidato; esse risco foi apresentado e a biblioteca ativa recebeu aceite explicito do operador em 2026-08-18.
+
+O POST autenticado de leitura passa a persistir todos os aliases do telefone e o timestamp da ultima entrada visivel. O GET continua somente leitura, e o painel persiste a leitura quando uma conversa aberta recebe nova mensagem. Nenhum preco, pedido, Dropi, Meta/CAPI, scheduler, chamada, PM2 ou producao e alterado por esta camada.
+
+## Microcamada V23 de identidade oficial Ana Lopez
+
+O freeze `docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md` sucede a V22 como candidato local aprovado para publicacao, ainda nao publicado. Tex Ultra, Nitrix e Vit Power usam `Ana López` em toda nova saida textual: prompts, primeira resposta, follow-ups, acompanhamento logistico, rejeicao de chamada e painel. O nome da persona desativada foi removido do runtime; conversas antigas continuam reconhecidas pela estrutura generica de uma apresentacao, sem conservar o nome anterior no codigo.
+
+Os dois pares MP3/OGG Nitrix explicitamente identificados com a persona anterior foram excluidos do diretorio publico e os jobs antigos os marcam como `legacy_identity_audio_quarantined`, sem envio. O painel usa as iniciais `AL`, pois nao existe foto oficial Ana no repositorio ou na URL publica. TTS fica fail-closed sem `ELEVENLABS_VOICE_ID_ANA_LOPEZ`.
+
+O operador aceitou expressamente a identidade Ana Lopez e os audios ativos em 2026-08-18. O gate local de publicacao foi liberado, mas este registro nao autoriza commit, push, merge, deploy ou mudanca de producao. Esta camada nao altera produto, preco, Dropi, Meta/CAPI, banco, scheduler, transporte, PM2, `current`, servicos ou producao.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:

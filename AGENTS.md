@@ -88,7 +88,7 @@ docs/CONGELAMENTO_TOTAL_VITALISMEN_2026-05-17.md
 approved_freezes/CONGELADO_TOTAL_VITALISMEN_20260517_021215.txt
 ```
 
-Antes de mexer em painel WhatsApp, Dropi Ecuador, funil Vit Power, midia, audio, imagem, video, foto da Valeria, memoria de cliente, numeros conectados, filtro EC, pedidos confirmados ou formulario de cliente, ler esse congelamento.
+Antes de mexer em painel WhatsApp, Dropi Ecuador, funil Vit Power, midia, audio, imagem, video, foto da atendente, memoria de cliente, numeros conectados, filtro EC, pedidos confirmados ou formulario de cliente, ler esse congelamento.
 
 Regra dura: nao alterar, remover, reordenar, simplificar ou refazer comportamento congelado sem pedido explicito do operador citando o ponto que deve mudar.
 

@@ -10,16 +10,16 @@ dotenv.config();
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID_VALERIA
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID_ANA_LOPEZ
     || process.env.ELEVENLABS_VOICE_ID_ANA
-    || 'EtnafgWR3KNOASvt1grF'; // Default to Valeria Zambrano voice provided by user
+    || '';
 let ttsDisabledReason = null;
 let ttsDisabledLogged = false;
 
 export const generateAudio = async (text, outputPath) => {
     // If no API key, return null (skip audio)
-    if (!process.env.ELEVENLABS_API_KEY) {
-        console.warn('ElevenLabs API Key missing. Skipping audio generation.');
+    if (!process.env.ELEVENLABS_API_KEY || !VOICE_ID) {
+        console.warn('ElevenLabs API key or approved Ana Lopez voice missing. Skipping audio generation.');
         return null;
     }
 

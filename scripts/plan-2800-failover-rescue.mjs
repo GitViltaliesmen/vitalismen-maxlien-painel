@@ -198,7 +198,7 @@ for (const phone of phones) {
         needsReply,
         batch: assignment.batch,
         assignedSession,
-        handoffText: `Señor, le escribe Valeria Zambrano por este numero final ${suffix}. El otro numero esta temporalmente fuera de servicio, pero ya tengo su historial aqui y seguimos sin repetir todo.`,
+        handoffText: `Señor, le escribe Ana López por este numero final ${suffix}. El otro numero esta temporalmente fuera de servicio, pero ya tengo su historial aqui y seguimos sin repetir todo.`,
         summaryText: `Resumen: ${summary}`,
         productPhoto: 'vit_power_bottle',
         nextText: casePlan.text,

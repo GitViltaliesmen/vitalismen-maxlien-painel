@@ -11,8 +11,6 @@
         '01_A_buenas_noches',
         '01_B_Buenos_dias',
         '01_C_Buenos_tardes',
-        'NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL',
-        'NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL',
         'NITRIX_USO_OXIDE_EC',
         'NOME_CIUDAD_PROVICINCIA',
         'PERGUNTA_AGENCIA_DOMICILIO',
@@ -234,11 +232,9 @@
                     type: 'block',
                     typeLabel: 'bloco',
                     label: 'Inicio completo Nitrix',
-                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Nitrix',
+                    detail: 'Prova 1 + Frasco Nitrix; audios de identidade legada bloqueados',
                     value: 'nitrix_inicio_completo',
                     steps: [
-                        { type: 'audio', label: 'Inicio universal 01', value: 'legacy-media/templates/EC/NITRIX_INICIO_01_VALERIA_ZAMBRANO_UNIVERSAL.ogg' },
-                        { type: 'audio', label: 'Inicio universal 02', value: 'legacy-media/templates/EC/NITRIX_INICIO_02_VALERIA_ZAMBRANO_UNIVERSAL.ogg' },
                         { type: 'media', label: 'Prova 1', value: 'legacy-media/sales/shared/social_01.jpeg' },
                         { type: 'media', label: 'Frasco Nitrix', value: 'legacy-media/sales/ec/nitrix_bottle.png' }
                     ]
