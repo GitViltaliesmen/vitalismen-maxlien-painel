@@ -201,6 +201,17 @@ Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirm
 - Estado: candidato local aprovado para publicacao controlada em 2026-08-18T14:12:47Z, exclusivamente para teste no telefone `5515998038637`; nenhum envio, pedido, Dropi, Meta/CAPI, banco oficial, PM2, `current`, servico ou producao havia sido alterado no momento da aprovacao.
 - Rollback funcional: retornar ao commit `d8ea5f0efbc96a6b4c9fd536aae4b485e9c52743` enquanto a V25 nao for publicada.
 
+### Microcamada V26 — 2026-08-18
+
+- Base Git: `e268e61f6d18c4057bb3b01e4e30c0df0c3ae725`, com a V25 integrada na branch `production`; VPS ainda executando `20260818T042423Z_production-20260818-bb2d92f` durante o diagnostico.
+- Evidencia: no QA `5515998038637`, a cadencia antiga respondeu a entrada inicial, mas `Hola, quiero el tratamiento.` nao exibiu resposta posterior.
+- Causa: o roteador geral marcava `quiero` como compra, mas `src/services/texUltraFunnelService.js` nao possuia a rota forte correspondente; o fallback ainda podia ser barrado pelo antirrepeticao persistente do teste.
+- Correcao: classificar compra forte, reconhecer quantidade contextual, perguntar `1, 2, 3 ou 6`, e passar pergunta livre ao humano mesmo depois da oferta.
+- Teste: `tests/tex-ultra-strong-intent-v26.test.mjs`, sem transporte ou envio real.
+- Freeze/guard: `docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md`, `docs/freeze/tex-ultra-strong-intent-v26-20260818.json` e `scripts/guard-tex-ultra-strong-intent-v26.mjs`.
+- Estado: candidato local autorizado para publicacao controlada em 2026-08-18T14:38:20Z, exclusivamente para teste no telefone `5515998038637`; nenhum reset, envio, banco, PM2, `current`, servico ou producao havia sido alterado no momento da autorizacao.
+- Rollback funcional: retornar ao commit `e268e61f6d18c4057bb3b01e4e30c0df0c3ae725`.
+
 Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois:
 
 1. Validar a copia local.

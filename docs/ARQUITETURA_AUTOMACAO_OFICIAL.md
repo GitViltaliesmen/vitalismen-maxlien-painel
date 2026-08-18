@@ -576,6 +576,16 @@ Esta camada nao altera produtos, precos, audios, imagens, pedidos, Dropi, Meta/C
 
 O operador autorizou o deploy controlado da V25 em 2026-08-18T14:12:47Z para teste exclusivo no telefone `5515998038637`. A ativacao continua condicionada ao staging oficial, permit root de uso unico, validacao de health e rollback transacional.
 
+## Microcamada V26 de intencao forte Tex Ultra
+
+O freeze `docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md` sucede a V25 depois do teste visual no telefone `5515998038637`. A frase `Hola, quiero el tratamiento.` passa a ser intencao forte de compra no funil Tex Ultra, coerente com o sinal que o roteador geral ja registrava.
+
+Na primeira entrada, a frase generica da VSL continua iniciando a cadencia oficial. Se o cliente declarar compra durante a cadencia, os timers restantes param e o bot pergunta somente a quantidade `1, 2, 3 ou 6`. Depois da oferta, a mesma intencao pergunta quantidade sem repetir texto de abertura, audio, prova, frasco ou tabela. Quantidade acompanhada de `frasco(s)`/`botella(s)` tem prioridade e segue a coleta deterministica.
+
+Perguntas livres passam ao atendimento humano mesmo depois da cadencia concluida. A confirmacao curta da pausa permanece uma unica tentativa protegida pelo antirrepeticao. Nenhum scheduler, produto, preco, midia, pedido, Dropi, Meta/CAPI, transporte ou numero WhatsApp e alterado.
+
+A autorizacao anterior era especifica para V25 e nao foi reutilizada. Em 2026-08-18T14:38:20Z, o operador autorizou expressamente o deploy controlado da V26 para teste exclusivo no telefone `5515998038637`, mantendo staging oficial, permit root de uso unico, validacao de health e rollback transacional obrigatorios.
+
 ## Regra de finalizacao e retomada
 
 No fim de cada ciclo de trabalho:
