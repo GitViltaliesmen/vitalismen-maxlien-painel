@@ -23,6 +23,11 @@ import {
     buildShippedCommunicationV29,
     logisticsCommunicationPolicy
 } from './logisticsCommunicationV29.js';
+import { TEX_ULTRA_EC_PRODUCT_PROFILE } from './texUltraProductProfile.js';
+import {
+    findTexUltraHowToUseAudioSentRecord,
+    texUltraHowToUseAudioDedupeValue
+} from './texUltraHowToUseAudioService.js';
 
 const BONUS_URL = process.env.PICKUP_BONUS_URL || 'https://zapgersonecvo.cloud';
 const BONUS_TEXT_VARIANTS = [
@@ -198,6 +203,7 @@ export const pickupLogisticsAudioForShipment = (_shipment = {}, kind = '') => {
 
 export const pickupHowToUseAudioForShipment = (shipment = {}) => {
     const family = shipmentProductFamily(shipment);
+    if (family === 'tex_ultra') return TEX_ULTRA_EC_PRODUCT_PROFILE.postSale.howToUseAudioName;
     if (family === 'vit_power') return 'COMO_SE_TOMA_VIT_POWER';
     if (family === 'nitrix') return 'NITRIX_USO_OXIDE_EC';
     return '';
@@ -1737,9 +1743,34 @@ export const notifyPickupBonus = async (shipment) => {
         ? await sendShipmentAudioFile(shipment, chatId, howToUseAudioPath, {
             kind: 'shipment_pickup_bonus_how_to_use_audio',
             baseName: howToUseAudioBaseName,
-            dedupeValue: `${howToUseAudioPath}|${bonusDedupeScope}`
+            dedupeValue: shipmentProductFamily(shipment) === 'tex_ultra'
+                ? texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
+                : `${howToUseAudioPath}|${bonusDedupeScope}`
         })
         : false;
+    const texUltraHowToUseRecord = howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra'
+        ? await findTexUltraHowToUseAudioSentRecord({
+            jid: chatId,
+            recipientDigits: shipmentPhoneDigits(shipment),
+            dedupeValue: texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
+        })
+        : null;
+    if (howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra') {
+        await registerAudioAttempt(shipment, {
+            kind: 'pickup_bonus_how_to_use',
+            baseName: howToUseAudioBaseName,
+            at: new Date(),
+            sent: sendResultOk(howToUseAudioSent),
+            reason: sendResultOk(howToUseAudioSent)
+                ? 'sent'
+                : texUltraHowToUseRecord
+                    ? 'already_sent'
+                    : howToUseAudioPath ? 'send_failed' : 'audio_not_found',
+            sessionId: shipment.automation?.sessionId || null,
+            providerMessageId: howToUseAudioSent?.providerMessageId || '',
+            providerZaapId: howToUseAudioSent?.providerZaapId || ''
+        });
+    }
 
     const now = new Date();
     await persistAutomationUpdate(shipment._id, {
@@ -1747,7 +1778,12 @@ export const notifyPickupBonus = async (shipment) => {
         'automation.lastReminderAt': now,
         'automation.lastReminderKind': 'pickup_bonus'
     }, hash);
-    await appendEvent(shipment._id, 'pickup_bonus_notified', { bonusUrl: BONUS_URL, thankYouAudioSent, howToUseAudioSent });
+    await appendEvent(shipment._id, 'pickup_bonus_notified', {
+        bonusUrl: BONUS_URL,
+        thankYouAudioSent,
+        howToUseAudioSent,
+        howToUseAudioAlreadySent: Boolean(texUltraHowToUseRecord && !sendResultOk(howToUseAudioSent))
+    });
     return true;
 };
 

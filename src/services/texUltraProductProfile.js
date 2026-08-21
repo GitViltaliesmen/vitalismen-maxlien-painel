@@ -33,7 +33,7 @@ export const TEX_ULTRA_EC_PRODUCT_PROFILE = Object.freeze({
     }),
     postSale: Object.freeze({
         thankYouAudioName: 'OBRIGADO_PAGOU',
-        howToUseAudioName: '',
+        howToUseAudioName: 'MODO_DE_USO_TEX_ULTRA',
         refillAudioName: ''
     })
 });

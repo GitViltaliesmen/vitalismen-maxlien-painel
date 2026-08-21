@@ -1,0 +1,113 @@
+{
+  "freezeId": "tex-ultra-how-to-use-audio-v31-20260821",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-21T19:24:02Z",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "parentFreezeId": "media-durability-auth-v30-20260821",
+  "parentManifestSha256": "417f17324d9fec08459e26d3c1a64078aa180bc94c4b5baabab766794c165647",
+  "baseProductionSha": "7cd02383911f4660a577d84e58c58d0d00396d27",
+  "publicationStatus": "authorized_for_draft_pr_and_controlled_activation",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-21T19:24:02Z",
+    "scope": "implement_and_activate_tex_ultra_how_to_use_audio_v31_ec",
+    "constraints": [
+      "no_mass_sends",
+      "tex_ultra_only",
+      "preserve_zapi",
+      "real_inbound_canary_required_for_v30_provider_proof"
+    ]
+  },
+  "audio": {
+    "baseName": "MODO_DE_USO_TEX_ULTRA",
+    "mp3Sha256": "5bd4a1661f0ee3dee7b45cd146ba0b37d6776339f1835bda4613949d71a38a8a",
+    "oggSha256": "c232e5fff4d9418698397e2aa736e56446fff211d62a2943ea53860d1a909d1d",
+    "oggCodec": "opus",
+    "oggSampleRate": 48000,
+    "channels": 1
+  },
+  "policy": {
+    "sharedPersistentDedupe": true,
+    "pickupTrigger": true,
+    "usageQuestionTrigger": true,
+    "otherProductsPreserved": true,
+    "v30Preserved": true,
+    "commercialCoreChanged": false
+  },
+  "inboundCanary": {
+    "attachmentCountsAsProviderInbound": false,
+    "realNewWhatsappMediaStillRequired": true,
+    "massSendAllowed": false
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "massSend": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260821T185008Z_production-20260821-7cd0238",
+    "preserveSharedInboundStorage": true
+  },
+  "overriddenParentHashes": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "95e448c36d9b4de3e6e6c11edfc1416dad42abb1ca2086021aa0443791cd05b8",
+    "docs/ARQUIVOS_OFICIAIS.md": "230cae8f0369c3f0852f87aaa3b289f9fbbe3a88988e002b06fcfc082346a81c",
+    "package.json": "d551d3536c19486af97680f37ba398438a9dacceefe938fa42427b2a3d5cd67a",
+    "src/index.js": "28c5c25664c6be90dc6d7dadbfda0d2c988250860bdd0a28741077eac073ae93",
+    "src/services/audioTemplateService.js": "a55aad66ea06d0dccdd4d7e7f70219cc29c0224262122eb30cdba9cad33ba114",
+    "src/services/shipmentMessageService.js": "83a92e4863f4e5bcf6bc25631fc237263d2a5a951fc8aded2fce18bd44dd9fe8",
+    "src/services/texUltraFunnelService.js": "7e2fc9e69c573e73bd092aca8b630a10a9eacc9eb1900bec6c8e6761d87bb780",
+    "src/services/texUltraProductProfile.js": "12818423601cde41ea858556526997b53ae96d34f310db06396f118ee6ee2549",
+    "tests/media-durability-auth-v30.test.mjs": "567935532f428bb4c7401e49dc60ec5b2efe5bde79c606075a42f85bb5e3a925",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "49839f9a1d7a3994e7181162441b6d0605ab8a89481aaa5094bbab715db1005e",
+    "tests/shipment-pickup-notification.test.mjs": "0b98e7e2f8b6d89ecfa37a092cb739f6dfbfebe9926243e807adf1391a368226"
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/index.js",
+    "src/services/audioTemplateService.js",
+    "src/services/shipmentMessageService.js",
+    "src/services/texUltraFunnelService.js",
+    "src/services/texUltraProductProfile.js",
+    "tests/media-durability-auth-v30.test.mjs",
+    "tests/panel-call-dropi-safety-v21.test.mjs",
+    "tests/shipment-pickup-notification.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/TEX_ULTRA_HOW_TO_USE_AUDIO_FREEZE_V31_20260821.md",
+    "public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.mp3",
+    "public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg",
+    "scripts/assert-tex-ultra-how-to-use-activation-approved-v31.mjs",
+    "scripts/guard-tex-ultra-how-to-use-v31.mjs",
+    "src/services/texUltraHowToUseAudioFreezeRuntimeGuardV31.js",
+    "src/services/texUltraHowToUseAudioService.js",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "ddf2d7abba88ccc57a8e471d19bcb3d82f220ede2aaf8cf3e500c98086b23648",
+    "docs/ARQUIVOS_OFICIAIS.md": "fa5ba4e7d578c0a9a414adf20d11d9014fc46b90428a3e9a556bdd370be41b8f",
+    "package.json": "b82efc5c778e93c9c314951a274f8d110b5c7938af2d668a696947a88b18c31d",
+    "src/index.js": "5c5fc5a9083c33a97137a8ff2588a3c4659cccefeb7d286017f3a8a189b5db28",
+    "src/services/audioTemplateService.js": "8d60e7d08dd03a1ba85aad598105d57a7fb9d35cb8413730f941789929e0418c",
+    "src/services/shipmentMessageService.js": "4dc49702ef652948b9ed69ea9b863b73a8f989abc0cc408764bccbd9a7b49db9",
+    "src/services/texUltraFunnelService.js": "ec50cd5e5e003e2cf9044926d8e797afd37ad3acb72a5f946d77dacf73374c63",
+    "src/services/texUltraProductProfile.js": "53a15a623a726cce8a38a7e0ef315cc5ada61534325f348d318ae3e50016a807",
+    "tests/media-durability-auth-v30.test.mjs": "eef249767c0a63387e1b87b0fe3aaa6885cfb90f8996f1c431fb386a0846591e",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "792b1764a57c33a516d202f638fb4c680ae48f4696f8e7e55b87157faea1316d",
+    "tests/shipment-pickup-notification.test.mjs": "f3103a2ddafaf421cf339f6e68bfd0107ee02ffaed1912bd9ee94b6fffbe7f8c",
+    "docs/TEX_ULTRA_HOW_TO_USE_AUDIO_FREEZE_V31_20260821.md": "aafdfdcd015564c2048ae9530ce63c408e2ef2c88e94e0311bffe0342459859c",
+    "public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.mp3": "5bd4a1661f0ee3dee7b45cd146ba0b37d6776339f1835bda4613949d71a38a8a",
+    "public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg": "c232e5fff4d9418698397e2aa736e56446fff211d62a2943ea53860d1a909d1d",
+    "scripts/assert-tex-ultra-how-to-use-activation-approved-v31.mjs": "ea9aab207d3a6dc1b4d611fcda3852f97536df8edea9253f8491225010f81358",
+    "scripts/guard-tex-ultra-how-to-use-v31.mjs": "354f7e60dd7480ae527da3c26901fd9b52d93430ac86a38df34e0a6b87304d98",
+    "src/services/texUltraHowToUseAudioFreezeRuntimeGuardV31.js": "5a737e34682584f6d735708c239f19dd94ece6c43ee878c69305a3d7bf3aaa4a",
+    "src/services/texUltraHowToUseAudioService.js": "fb2fceac4fe5360dc2725d2103e479e980b97a95134076fcf93024904fe53374",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs": "5435815adab477680eef2f382561d8abc46aa63b2e9ea1a0f3e404fba5545ff6"
+  }
+}

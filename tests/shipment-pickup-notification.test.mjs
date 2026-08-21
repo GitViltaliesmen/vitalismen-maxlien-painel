@@ -90,7 +90,7 @@ test('audio de uso respeita o produto e bloqueia fallback Vit Power', () => {
     assert.equal(shipmentProductFamily({ productName: 'TEXULTRA 120 CAP ENERGIA' }), 'tex_ultra');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'Vit Power Ecuador' }), 'COMO_SE_TOMA_VIT_POWER');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'NITRIX' }), 'NITRIX_USO_OXIDE_EC');
-    assert.equal(pickupHowToUseAudioForShipment({ productName: 'TEXULTRA 120 CAP ENERGIA' }), '');
+    assert.equal(pickupHowToUseAudioForShipment({ productName: 'TEXULTRA 120 CAP ENERGIA' }), 'MODO_DE_USO_TEX_ULTRA');
 });
 
 test('audios logisticos de retirada sao universais para os tres produtos', () => {
