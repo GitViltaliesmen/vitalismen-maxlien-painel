@@ -11,6 +11,7 @@ import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
+import { handleExpandedPickupConfirmationInbound } from '../services/postSalePickupReconciliationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { resolveCountryAudio } from '../services/audioTemplateService.js';
@@ -28,6 +29,10 @@ const digits = (value) => String(value || '').replace(/\D/g, '');
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
     || 'Señor, por favor envíeme un mensaje por audio o texto.';
+
+const pickupProofBonusEnabled = () => (
+    String(process.env.PICKUP_PROOF_BONUS_ENABLED || 'false').toLowerCase() === 'true'
+);
 
 const exposeError = (error) => ({
     ok: false,
@@ -938,6 +943,23 @@ const recordZapiInboundPayload = async (payload = {}) => {
     };
 };
 
+const handleZapiPickupConfirmation = async (result = {}) => {
+    if (!pickupProofBonusEnabled() || !result.body || !result.chatId) {
+        return { handled: false, reason: 'disabled_or_missing_message' };
+    }
+    const pickupResult = await handleExpandedPickupConfirmationInbound({
+        chatId: result.chatId,
+        messageId: result.messageId,
+        sessionId: 'zapi',
+        proofText: result.body,
+        hasMedia: false
+    });
+    if (pickupResult.handled) {
+        console.log(`[ZAPI-PICKUP-PROOF] retirada confirmada | phone=${result.phone || ''} | orderId=${pickupResult.orderId || ''} | bonus=${pickupResult.bonusSent === true}`);
+    }
+    return pickupResult;
+};
+
 const normalizeDeliveryStatus = (payload = {}) => {
     const raw = firstString(
         payload.status,
@@ -1230,7 +1252,8 @@ router.post('/webhook', async (req, res) => {
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
-        const buyLaterReply = result.body
+        const pickupReply = await handleZapiPickupConfirmation(result);
+        const buyLaterReply = result.body && !pickupReply.handled
             ? await handleBuyLaterConfirmationReply({
                 phone: result.phone,
                 chatId: result.chatId,
@@ -1241,7 +1264,7 @@ router.post('/webhook', async (req, res) => {
             : { handled: false };
         if (result.routeToBot) {
             scheduleVslFirstResponseWatchdog(result);
-            if (!buyLaterReply.handled) {
+            if (!pickupReply.handled && !buyLaterReply.handled) {
                 await routeIncomingMessage({
                     id: result.messageId,
                     from: result.chatId,
@@ -1277,7 +1300,8 @@ router.post('/webhook/received', async (req, res) => {
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
             const result = await recordZapiInboundPayload(payload);
-            const buyLaterReply = result.body
+            const pickupReply = await handleZapiPickupConfirmation(result);
+            const buyLaterReply = result.body && !pickupReply.handled
                 ? await handleBuyLaterConfirmationReply({
                     phone: result.phone,
                     chatId: result.chatId,
@@ -1288,7 +1312,7 @@ router.post('/webhook/received', async (req, res) => {
                 : { handled: false };
             if (result.routeToBot) {
                 scheduleVslFirstResponseWatchdog(result);
-                if (!buyLaterReply.handled) {
+                if (!pickupReply.handled && !buyLaterReply.handled) {
                     await routeIncomingMessage({
                         id: result.messageId,
                         from: result.chatId,

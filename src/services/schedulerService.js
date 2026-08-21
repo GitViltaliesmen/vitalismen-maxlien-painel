@@ -29,6 +29,10 @@ import { processPassiveFunnelObserver } from './passiveFunnelObserverService.js'
 import { processNitrixFastStateJobs } from './nitrixFastStateService.js';
 import { enqueueEligibleGoogleContacts, processNextGoogleContactSync } from './googleContactsService.js';
 import { processTexUltraConfirmedPostSaleQueue } from './texUltraConfirmedPostSaleLayerService.js';
+import {
+    processExpandedPickupConfirmationSweep,
+    processExplicitDropiPickupReleaseQueue
+} from './postSalePickupReconciliationService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
 let isRunningProductFollowups = false;
@@ -417,6 +421,21 @@ const checkDropiActiveSync = async () => {
         if (result.synced?.length || result.skipped?.length) {
             console.log(`[DROPPI_ACTIVE_SYNC] linhas=${result.rowCount || 0}; unicos=${result.unique || 0}; atualizados=${result.synced?.length || 0}; ignorados=${result.skipped?.length || 0}.`);
         }
+        const syncedOrderIds = (result.synced || [])
+            .map((item) => String(item?.orderId || '').trim())
+            .filter(Boolean);
+        if (syncedOrderIds.length) {
+            const pickupRelease = await processExplicitDropiPickupReleaseQueue({
+                orderIds: syncedOrderIds,
+                limit: Math.min(8, Math.max(1, syncedOrderIds.length))
+            });
+            if (pickupRelease.sent || pickupRelease.recovered || pickupRelease.reconciliation?.changed) {
+                console.log(`[DROPI_PICKUP_RELEASE] reconciliados=${pickupRelease.reconciliation?.changed || 0}; enviados=${pickupRelease.sent}; recuperados=${pickupRelease.recovered}; ignorados=${pickupRelease.skipped}.`);
+                if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+                    setTimeout(() => checkPickupReminders(), 5000);
+                }
+            }
+        }
         if (flagEnabled('SHIPMENT_STATUS_DISPATCH_ENABLED', false)) {
             setTimeout(() => checkShipmentStatusDispatch(), 5000);
         }
@@ -616,6 +635,10 @@ const checkPickupProofSweep = async () => {
         if (result.confirmed || result.bonusSent) {
             console.log(`[PICKUP_PROOF_SWEEP] Confirmados ${result.confirmed}/${result.processed}; bonus ${result.bonusSent}.`);
         }
+        const expanded = await processExpandedPickupConfirmationSweep({ limit, dryRun: false });
+        if (expanded.confirmed) {
+            console.log(`[PICKUP_PROOF_EXPANDED] Confirmados ${expanded.confirmed}/${expanded.results.length} por confirmacao textual ampliada.`);
+        }
     } catch (error) {
         console.error('Pickup Proof Sweep Scheduler Error:', error);
     } finally {
@@ -678,6 +701,21 @@ const checkCarrierStatusSweep = async () => {
         const result = await processCarrierStatusSweep({ limit });
         if (result.refreshed || result.statusChanged || result.failed) {
             console.log(`[CARRIER_SWEEP] Guias ${result.refreshed}/${result.processed}; alteradas ${result.statusChanged}; falhas ${result.failed}; limite ${limit}.`);
+        }
+        const refreshedOrderIds = (result.results || [])
+            .map((item) => String(item?.orderId || '').trim())
+            .filter(Boolean);
+        if (refreshedOrderIds.length) {
+            const pickupRelease = await processExplicitDropiPickupReleaseQueue({
+                orderIds: refreshedOrderIds,
+                limit: Math.min(8, Math.max(1, refreshedOrderIds.length))
+            });
+            if (pickupRelease.sent || pickupRelease.recovered || pickupRelease.reconciliation?.changed) {
+                console.log(`[DROPI_PICKUP_RELEASE_AFTER_CARRIER] reconciliados=${pickupRelease.reconciliation?.changed || 0}; enviados=${pickupRelease.sent}; recuperados=${pickupRelease.recovered}; ignorados=${pickupRelease.skipped}.`);
+                if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+                    setTimeout(() => checkPickupReminders(), 5000);
+                }
+            }
         }
         const verifiedReady = (result.results || []).filter((item) => (
             item.success

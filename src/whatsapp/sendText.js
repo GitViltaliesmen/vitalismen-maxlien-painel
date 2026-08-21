@@ -16,6 +16,7 @@ import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendS
 import { shouldUseZapiForOutbound } from './zapiOutboundRouting.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import { shipmentHistoryRepeatKey } from '../services/postSalePickupReconciliationPolicy.js';
 
 const SEND_TEXT_TIMEOUT_MS = Number.parseInt(process.env.WHATSAPP_SEND_TEXT_TIMEOUT_MS || '45000', 10);
 const HISTORY_DEDUPE_WINDOW_MINUTES = Math.max(5, Number.parseInt(process.env.WHATSAPP_HISTORY_DEDUPE_WINDOW_MINUTES || '1440', 10) || 1440);
@@ -59,42 +60,6 @@ const sanitizeClientVisibleText = (value = '') => {
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 };
-const historyRepeatKey = (text = '') => {
-    const body = normalizeHistoryText(text);
-    if (!body) return '';
-    const guideMatch = body.match(/\b(?:guia|guia numero|numero de guia|tracking)\s*(?:es|numero|nro|num|:|#|-)?\s*(\d{5,})\b/);
-    const readyPickupNotice = (
-        /\b(pedido\s+listo\s+para\s+retiro|pedido\s+para\s+retiro|aviso\s+de\s+retiro|ya\s+puede\s+retirar|puede\s+acercarse|acerquese|lleve\s+su\s+documento|muestre\s+esta\s+guia|retir[aeiou]?\s+(?:su|mi|el)?\s*pedido|retirarlo|retirar\s+en\s+agencia|comprobante\s+de\s+retiro)\b/.test(body)
-        || /\b(?:su\s+pedido|pedido)\s+(?:ya\s+)?(?:esta|aparece)\s+(?:listo|disponible)\s+(?:para\s+retiro|en\s+agencia)\b/.test(body)
-        || /\b(?:su\s+pedido|pedido)\s+(?:ya\s+)?(?:esta|sigue)\s+para\s+retiro\b/.test(body)
-    );
-    const guideGeneratedNotice = (
-        /\b(ya\s+fue\s+enviado|ya\s+salio|ya\s+se\s+genero\s+la\s+guia|se\s+genero\s+la\s+guia|ya\s+tiene\s+guia|tiene\s+guia|guia\s+generada|le\s+confirmo\s+el\s+envio|fue\s+enviado\s+por|salio\s+por)\b/.test(body)
-        || (/\bguia\b/.test(body) && /\b(transportadora|en\s+camino|enviado|envio|ruta|servientrega)\b/.test(body))
-    );
-    if (readyPickupNotice) {
-        return guideMatch ? `logistics_ready_for_pickup:${guideMatch[1]}` : 'logistics_ready_for_pickup';
-    }
-    if (guideGeneratedNotice) {
-        return guideMatch ? `logistics_guide:${guideMatch[1]}` : 'logistics_guide';
-    }
-    if (/(pedido ya quedo registrado|pedido esta registrado|su pedido quedo registrado|su pedido ya esta registrado|apenas tenga la guia|novedad de servientrega)/.test(body)) return 'order_registered_waiting_guide';
-    if (/(le envio|envio|enviamos)\s+(?:1|2|3|6|un|una|dos|tres|seis)\s+(?:botella|botellas|frasco|frascos)/.test(body)
-        && /(listo|de acuerdo|esta correcto|esta bien)/.test(body)) return 'ask_value_confirmation';
-    if (/\b(cual es su nombre completo|nombre completo|nombre y apellido)\b/.test(body)) return 'ask_name';
-    if (/\bque dia desea que le escribamos nuevamente\b/.test(body)) return 'ask_followup_date';
-    if (/(cuantos frascos|indiqueme cuantos frascos|elige la cantidad|escoja la cantidad|1\s*3\s*o\s*6|1\s*,\s*3\s*o\s*6)/.test(body)) return 'ask_quantity';
-    if (/(esta bien para usted reservar|me confirma si esta de acuerdo|le parece bien|confirma.*valor|confirmar.*cantidad)/.test(body) && /frasco/.test(body)) return 'ask_value_confirmation';
-    if (/(puedo enviar su pedido por una agencia de servientrega|agencia servientrega cercana|prefiere agencia|prefiere domicilio|agencia o domicilio|por agencia o domicilio)/.test(body)) return 'ask_delivery_mode';
-    if (/(elija una de las agencias|escoja una de las agencias|responda solo con la letra|a\)\s*servientrega|b\)\s*servientrega)/.test(body)) return 'ask_agency_selection';
-    if (/(envieme|envienos|indiqueme|proporcione|cual es|por favor.*(?:direccion|barrio|sector|referencia))/.test(body)
-        && /(direccion completa|direccion exacta|barrio|sector|referencia cercana|punto de referencia)/.test(body)) return 'ask_home_address';
-    if (/(autoriza el despacho|revise.*datos.*correctos|si todo esta bien|confirma.*despacho|confirmar.*pedido)/.test(body)) return 'ask_final_confirmation';
-    if (/(pedido quedo confirmado|gracias por confirmar sus datos|su pedido fue confirmado|venta confirmada)/.test(body)) return 'order_closed_confirmation';
-    if (/(cual es|indiqueme|en que|por favor.*provincia|escriba.*provincia)/.test(body) && /\bprovincia\b/.test(body)) return 'ask_province';
-    if (/(cual es|indiqueme|en que|por favor.*ciudad|escriba.*ciudad)/.test(body) && /\bciudad\b/.test(body)) return 'ask_city';
-    return body.length >= 25 ? `exactish:${body.slice(0, 220)}` : '';
-};
 const recentHistoryPhoneClauses = ({ targetJid, recipientDigits }) => {
     const clauses = [];
     const jid = String(targetJid || '').trim();
@@ -114,7 +79,7 @@ const recentHistoryPhoneClauses = ({ targetJid, recipientDigits }) => {
     return clauses;
 };
 const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
-    const key = historyRepeatKey(body);
+    const key = shipmentHistoryRepeatKey(body);
     if (!key || Message?.db?.readyState !== 1) return { blocked: false, key };
     const phoneClauses = recentHistoryPhoneClauses({ targetJid, recipientDigits });
     if (!phoneClauses.length) return { blocked: false, key };
@@ -135,7 +100,7 @@ const hasRecentHistoryRepeat = async ({ targetJid, recipientDigits, body }) => {
             .lean();
         const repeated = recentMessages.find((message) => {
             const previousBody = message?.body || '';
-            return historyRepeatKey(previousBody) === key || normalizeHistoryText(previousBody) === currentNormalized;
+            return shipmentHistoryRepeatKey(previousBody) === key || normalizeHistoryText(previousBody) === currentNormalized;
         });
         return repeated ? { blocked: true, key } : { blocked: false, key };
     } catch (error) {
