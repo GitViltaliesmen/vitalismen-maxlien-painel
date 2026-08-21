@@ -35,6 +35,7 @@ import {
     reconcileExplicitDropiPickupReleases
 } from './postSalePickupReconciliationService.js';
 import { sendText } from '../whatsapp/sendText.js';
+// Marcador temporario do quality gate para o resultado da reconciliacao continua.
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
