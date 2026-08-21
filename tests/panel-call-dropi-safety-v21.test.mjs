@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-// Gatilho temporário do gate documental V33; revertido no commit seguinte.
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
