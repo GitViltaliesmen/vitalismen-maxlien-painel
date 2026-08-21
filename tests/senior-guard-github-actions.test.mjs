@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -47,4 +48,13 @@ test('auditoria de retirada reconhece ledger e evento recuperado com comprovante
     });
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.match(result.stdout, /PICKUP_NOTIFICATION_EVIDENCE_AUDIT_SELF_TEST=OK/);
+});
+
+test('registro final identifica release, rollback e ausência de disparos', () => {
+    const result = readFileSync('docs/RESULTADO_ATIVACAO_MEDIA_V30_20260821.md', 'utf8');
+    assert.match(result, /production-20260821-7cd0238/);
+    assert.match(result, /20260821T185008Z_production-20260821-7cd0238/);
+    assert.match(result, /Rollback preservado:.*20260821T180758Z_production-20260821-937ae43/);
+    assert.match(result, /nenhuma mensagem enviada/i);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
