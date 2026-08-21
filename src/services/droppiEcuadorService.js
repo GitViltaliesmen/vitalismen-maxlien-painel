@@ -3,6 +3,7 @@ import Order from '../models/Order.js';
 import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
+import { isExplicitDropiPickupReleaseStatus } from './postSalePickupReconciliationPolicy.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
 export const normalizeEcuadorLocalPhone = (value) => {
@@ -170,6 +171,11 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     });
 
     const normalizedStatus = normalizeDroppiEcuadorStatus(payload.status || shipment.logistics.status);
+    const explicitPickupRelease = normalizedStatus === 'READY_FOR_PICKUP'
+        && isExplicitDropiPickupReleaseStatus(payload.status || normalizedStatus);
+    const pickupReleaseVerifiedAt = explicitPickupRelease
+        ? (shipment.logistics?.pickupReadyVerifiedAt || new Date())
+        : shipment.logistics?.pickupReadyVerifiedAt;
     const isDelivered = normalizedStatus === 'ENTREGADO';
     const isReturned = normalizedStatus === 'DEVUELTO';
     const normalizedShippingType = normalizeShippingType(payload.shippingType || shipment.logistics.shippingType);
@@ -213,6 +219,11 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         agencyName: payload.agencyName || shipment.logistics.agencyName,
         invoiceUrl: payload.invoiceUrl || shipment.logistics.invoiceUrl,
         invoicePath: payload.invoicePath || shipment.logistics.invoicePath,
+        pickupReadyVerified: explicitPickupRelease ? true : shipment.logistics.pickupReadyVerified,
+        pickupReadyVerifiedAt: pickupReleaseVerifiedAt,
+        pickupReadyVerifiedSource: explicitPickupRelease
+            ? 'dropi_explicit_pickup_release'
+            : shipment.logistics.pickupReadyVerifiedSource,
         lastStatusAt: payload.lastStatusAt || new Date()
     };
     shipment.automation = {
@@ -278,7 +289,11 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     shipment.events.push({
         kind: 'droppi_sync',
         at: new Date(),
-        payload
+        payload: {
+            ...payload,
+            pickupReadyVerified: explicitPickupRelease,
+            pickupReadyVerifiedSource: explicitPickupRelease ? 'dropi_explicit_pickup_release' : ''
+        }
     });
     shipment.events = shipment.events.slice(-60);
 
