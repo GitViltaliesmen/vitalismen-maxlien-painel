@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-await import('../src/services/mediaDurabilityAuthFreezeRuntimeGuardV30.js');
+await import('../src/services/texUltraHowToUseAudioFreezeRuntimeGuardV31.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const manifest = JSON.parse(read('docs/freeze/media-durability-auth-v30-20260821.json'));
@@ -27,10 +27,10 @@ test('V30 sucede exatamente V29.2 e registra autorização posterior ao relatór
     assert.equal(manifest.policy.commercialFlowChanged, false);
 });
 
-test('startup e aliases oficiais usam somente o sucessor V30', () => {
+test('startup e aliases oficiais preservam V30 sob o sucessor V31', () => {
     const index = read('src/index.js');
-    const successor = 'node src/services/mediaDurabilityAuthFreezeRuntimeGuardV30.js';
-    assert.match(index, /mediaDurabilityAuthFreezeRuntimeGuardV30/);
+    const successor = 'node src/services/texUltraHowToUseAudioFreezeRuntimeGuardV31.js';
+    assert.match(index, /texUltraHowToUseAudioFreezeRuntimeGuardV31/);
     assert.doesNotMatch(index, /guardAliasIntegrationFreezeRuntimeGuardV292/);
     for (const scriptName of [
         'senior:check',

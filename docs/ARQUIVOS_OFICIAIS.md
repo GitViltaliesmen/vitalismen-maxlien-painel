@@ -259,3 +259,16 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Storage oficial quando ativado: `/opt/vitalismen-automacao/shared/media/inbound`; o runtime cria subdiretórios por data com nomes derivados de SHA-256, sem telefone ou token.
 - Estado: PR rascunho #17 publicado; ativação controlada autorizada em `2026-08-21T18:00:25Z`, sem disparos em massa e com Z-API preservada até o WhatsApp Web estar pronto. No momento da autorização, nenhuma mensagem real, pedido, Dropi, Meta/CAPI, banco oficial, PM2, symlink ou serviço havia sido alterado.
 - Rollback funcional: retornar a `b26bacdd6c72711a70834e69915285e677649f1a`; os campos Mongo aditivos podem permanecer sem uso.
+
+### Microcamada V31 — áudio de uso Tex Ultra — 2026-08-21
+
+- Base de produção lida antes da alteração: `/opt/vitalismen-automacao/releases/20260821T185008Z_production-20260821-7cd0238`; os quatro arquivos funcionais comparados tinham os mesmos hashes da cópia local.
+- Áudio oficial fornecido pelo operador: `public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.mp3`, SHA-256 `5bd4a1661f0ee3dee7b45cd146ba0b37d6776339f1835bda4613949d71a38a8a`, 28,24 segundos, mono, 44,1 kHz e 128 kbps.
+- Nota de voz derivada: `public/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg`, OGG/Opus 48 kHz mono, SHA-256 `c232e5fff4d9418698397e2aa736e56446fff211d62a2943ea53860d1a909d1d`.
+- Seleção por produto: `src/services/texUltraProductProfile.js`, `src/services/audioTemplateService.js` e `src/services/shipmentMessageService.js`; Vit Power e Nitrix conservam seus próprios áudios.
+- Pergunta de uso: `src/services/texUltraHowToUseAudioService.js` e `src/services/texUltraFunnelService.js`; uma chave `OutboundDedupe` compartilhada entre pergunta e retirada impede repetição automática.
+- Testes sem envio: `tests/tex-ultra-how-to-use-audio-v31.test.mjs`, `tests/shipment-pickup-notification.test.mjs` e regressões do funil/pós-venda.
+- Freeze/guard: `docs/TEX_ULTRA_HOW_TO_USE_AUDIO_FREEZE_V31_20260821.md`, `docs/freeze/tex-ultra-how-to-use-audio-v31-20260821.json` e `scripts/guard-tex-ultra-how-to-use-v31.mjs`.
+- Ponto externo V30: o anexo local não substitui uma mídia inbound real; a prova final exige nova mídia enviada pelo WhatsApp de teste e validada como `READY` no storage/painel autenticado.
+- Autorização: implementação e finalização operacional solicitadas pelo operador nesta tarefa em `2026-08-21T19:24:02Z`, sem disparos em massa.
+- Rollback funcional: retornar à release `/opt/vitalismen-automacao/releases/20260821T185008Z_production-20260821-7cd0238`; o storage inbound compartilhado deve ser preservado.

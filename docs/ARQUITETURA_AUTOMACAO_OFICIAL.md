@@ -634,3 +634,13 @@ O `Message` preserva `providerMessageId`, `providerMediaId`, MIME original e arm
 Histórico anterior continua usando o proxy autenticado com o mesmo carregamento por Blob. Se a URL antiga já expirou, o painel mostra o motivo em vez de renderizar player ou imagem quebrados. A apresentação V29 continua responsável por unificar registros com o mesmo provider ID: uma mensagem real permanece uma bolha e seus estados `sent/delivered/read` continuam na mesma identidade.
 
 A V30 foi publicada no PR rascunho #17 e recebeu autorização posterior ao relatório em `2026-08-21T18:00:25Z` para ativação controlada. A autorização exige canário de áudio/imagem, proíbe disparos em massa e preserva a Z-API até o WhatsApp Web estar efetivamente conectado; retirada do transporte Z-API continua sendo uma migração separada.
+
+## Microcamada V31 de orientação de uso do Tex Ultra
+
+O freeze `docs/TEX_ULTRA_HOW_TO_USE_AUDIO_FREEZE_V31_20260821.md` sucede a V30 e aprova exclusivamente o áudio `MODO_DE_USO_TEX_ULTRA` para o produto `tex_ultra_ec`. O MP3 fornecido pelo operador é preservado e a cópia OGG/Opus 48 kHz mono é a mídia enviada como nota de voz.
+
+Existem dois gatilhos e uma única chave persistente de antirrepetição: confirmação de retirada/entrega no pós-venda oficial e pergunta determinística de uso (`como se toma`, `como se usa`, `como tomar`, `como usar`, `modo de uso`, `dosis` ou `posologia`). Se qualquer gatilho já tiver enviado o áudio ao telefone, o outro não o reenvia automaticamente. Falha de transporte permanece retentável; arquivo ausente falha fechado e nunca usa áudio de Vit Power ou Nitrix como fallback.
+
+O pós-venda continua em `src/services/shipmentMessageService.js`, sem scheduler paralelo. A pergunta continua no funil isolado `src/services/texUltraFunnelService.js`, com memória em `metadata.perAgentMemory.tex_ultra_ec.howToUseAudio`. Preços, oferta, pedido, Dropi, Meta/CAPI, pixel, número WhatsApp, Z-API, Vit Power e Nitrix permanecem inalterados.
+
+A mídia anexada diretamente a esta tarefa não comprova o elo inbound do provider porque não atravessou o WhatsApp/Z-API. A comprovação V30 continua exigindo uma nova mídia enviada pelo WhatsApp de teste ao número oficial, seguida da conferência de `READY`, arquivo no storage compartilhado e reprodução autenticada no painel. Esse canário é individual e não autoriza disparo em massa.

@@ -12,6 +12,7 @@ import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntr
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPriceForQuantity, texUltraPublicOfferText } from './texUltraProductProfile.js';
 import { interruptTexUltraInitialLayerOnInbound, startTexUltraInitialLayer } from './texUltraInitialLayerService.js';
 import { sendTexUltraConfirmedPostSaleAudios } from './texUltraConfirmedPostSaleLayerService.js';
+import { sendTexUltraHowToUseAudio } from './texUltraHowToUseAudioService.js';
 import {
     assertCustomerOrderDataReady,
     CUSTOMER_DATA_STATUS,
@@ -115,7 +116,7 @@ export const texUltraSelectedQuantity = (text = '') => {
 };
 
 const asksPrice = (text = '') => /\b(precio|precios|valor|cuanto|costo|promo|promocion|oferta)\b/.test(normalize(text));
-const asksUsage = (text = '') => /\b(como se toma|como tomar|como usar|dosis|posologia)\b/.test(normalize(text));
+const asksUsage = (text = '') => /\b(como se toma|como se usa|como tomar|como usar|modo de uso|dosis|posologia)\b/.test(normalize(text));
 export const texUltraStrongPurchaseIntent = (text = '') => {
     const value = normalize(text)
         .replace(/[^\p{L}\p{N}\s]/gu, ' ')
@@ -471,8 +472,35 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     if (initialLayerInbound.handled) return true;
 
     if (interruptedInboundRoute === 'usage') {
-        await sendFunnelText({ state, text: 'Para no darle una indicacion incorrecta, el modo de uso de Tex Ultra sera confirmado por una asesora con base en la etiqueta oficial. ¿Desea que le muestre primero las opciones disponibles?', context: 'tex_ultra_usage_guard' });
-        await saveState(state, { memory, draft, stage: memory.stage || 'awaiting_interest' });
+        const usageAudio = await sendTexUltraHowToUseAudio({ state });
+        const usageRequestedAt = new Date().toISOString();
+        if (usageAudio.reason === 'already_sent') {
+            await sendFunnelText({
+                state,
+                text: 'El audio oficial con el modo de uso de Tex Ultra ya está disponible arriba en esta conversación.',
+                context: 'tex_ultra_usage_audio_already_sent'
+            });
+        } else if (!usageAudio.sent) {
+            await sendFunnelText({
+                state,
+                text: 'Para no darle una indicacion incorrecta, el modo de uso de Tex Ultra sera confirmado por una asesora con base en la etiqueta oficial.',
+                context: 'tex_ultra_usage_audio_unavailable'
+            });
+        }
+        await saveState(state, {
+            memory: {
+                ...memory,
+                howToUseAudio: {
+                    ...(memory.howToUseAudio || {}),
+                    baseName: usageAudio.baseName,
+                    status: usageAudio.sent ? 'sent' : usageAudio.reason,
+                    requestedAt: usageRequestedAt,
+                    ...((usageAudio.sent || usageAudio.sentAt) ? { sentAt: usageAudio.sentAt || usageRequestedAt } : {})
+                }
+            },
+            draft,
+            stage: memory.stage || 'awaiting_interest'
+        });
         return true;
     }
 
