@@ -105,6 +105,7 @@ on:
       - docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md
       - docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md
       - docs/CUSTOMER_IDENTITY_LOCATION_DELIVERY_FREEZE_V28_20260818.md
+      - docs/REMEDIACAO_FILA_URGENTE_RETIRADA_20260821.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
@@ -226,6 +227,7 @@ on:
       - docs/TEX_ULTRA_STRONG_INTENT_FREEZE_V26_20260818.md
       - docs/TEX_ULTRA_VSL_PAYLOAD_FREEZE_V27_20260818.md
       - docs/CUSTOMER_IDENTITY_LOCATION_DELIVERY_FREEZE_V28_20260818.md
+      - docs/REMEDIACAO_FILA_URGENTE_RETIRADA_20260821.md
       - docs/freeze/tex-ultra-panel-metrics-v5-20260815.json
       - docs/freeze/order-public-product-integrity-v20-20260817.json
       - docs/freeze/panel-call-dropi-safety-v21-20260817.json
