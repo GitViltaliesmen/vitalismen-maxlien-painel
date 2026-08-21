@@ -34,7 +34,6 @@ import {
     processExplicitDropiPickupReleaseQueue
 } from './postSalePickupReconciliationService.js';
 import { sendText } from '../whatsapp/sendText.js';
-// Marcador temporario do quality gate para o registro operacional do pos-venda.
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
