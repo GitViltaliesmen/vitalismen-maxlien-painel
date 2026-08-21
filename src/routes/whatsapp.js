@@ -373,7 +373,7 @@ const matchBrazilPanelTestPhone = (...identifiers) => {
 const isBrazilPanelTestPhone = (...identifiers) => Boolean(matchBrazilPanelTestPhone(...identifiers));
 
 const PUBLIC_VSL_TEST_PHONE_OVERRIDES = {
-    2958: '5531971862958'
+    8637: '5515998038637'
 };
 
 const publicVslTestPhoneOverrideDigits = (body = {}) => {

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/texUltraHowToUseAudioFreezeRuntimeGuardV31.js';
+import './services/officialWhatsappPhoneFreezeRuntimeGuardV32.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';

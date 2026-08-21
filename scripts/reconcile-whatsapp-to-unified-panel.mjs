@@ -7,7 +7,7 @@ import Message from '../src/models/Message.js';
 dotenv.config();
 
 const ADMIN_DB_EC = '/opt/maxlien-mvp/leads_ec.sqlite3';
-const OFFICIAL_SESSIONS = ['553183002800', '553171862958', '5515991418416'];
+const OFFICIAL_SESSIONS = ['5515991418416'];
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has('--apply');

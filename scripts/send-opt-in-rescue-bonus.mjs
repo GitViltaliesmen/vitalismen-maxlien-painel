@@ -53,8 +53,6 @@ const phoneTailCandidates = (...values) => [...new Set(values
 
 const operationalPhones = () => [
     '5515998038637',
-    '553183002800',
-    '553171862958',
     '5515991418416',
     process.env.WHATSAPP_PRIORITY_TEST_PHONES,
     process.env.WHATSAPP_PANEL_OPERATIONAL_NUMBERS,

@@ -272,3 +272,15 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Ponto externo V30: o anexo local não substitui uma mídia inbound real; a prova final exige nova mídia enviada pelo WhatsApp de teste e validada como `READY` no storage/painel autenticado.
 - Autorização: implementação e finalização operacional solicitadas pelo operador nesta tarefa em `2026-08-21T19:24:02Z`, sem disparos em massa.
 - Rollback funcional: retornar à release `/opt/vitalismen-automacao/releases/20260821T185008Z_production-20260821-7cd0238`; o storage inbound compartilhado deve ser preservado.
+
+### Microcamada V32 — telefone oficial e teste de mídia — 2026-08-21
+
+- Base oficial lida antes da alteração: release ativa `/opt/vitalismen-automacao/releases/20260821T193942Z_production-20260821-03cee3a`, commit `03cee3af70538862a5424d4e3e4266577eab435c`.
+- Número oficial confirmado pelo device Z-API e pela configuração do VPS: `5515991418416`.
+- Telefone único de teste autorizado: `5515998038637`.
+- Fontes públicas: `public/n/index.html`, `public/qr.html` e `src/routes/whatsapp.js`.
+- Configuração versionada: `.env.example` e `docs/WHATSAPP_POOL_ATE_6_NUMEROS.md`.
+- Scripts operacionais sem defaults desativados: `scripts/apply-historical-client-consolidation.mjs`, `scripts/audit-historical-client-consolidation.mjs`, `scripts/send-opt-in-rescue-bonus.mjs`, `scripts/reconcile-whatsapp-to-unified-panel.mjs` e `scripts/plan-2800-failover-rescue.mjs`.
+- Freeze: `docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md` e `docs/freeze/official-whatsapp-phone-test-v32-20260821.json`.
+- Autorização: ajuste, deploy e canário individual de áudio/imagem solicitados pelo operador em `2026-08-21T22:05:22Z`; disparo em massa continua proibido.
+- Rollback: retornar à release `/opt/vitalismen-automacao/releases/20260821T193942Z_production-20260821-03cee3a` e restaurar o backup do `.env` V32.

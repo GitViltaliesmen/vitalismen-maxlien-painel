@@ -12,8 +12,6 @@ const ADMIN_DBS = {
 };
 
 const OPERATIONAL_PHONES = new Set([
-    '553183002800',
-    '553171862958',
     '5515991418416',
     '5515998038637'
 ]);
