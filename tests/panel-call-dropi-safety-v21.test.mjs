@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-// Gatilho temporário do gate do freeze V33; revertido imediatamente.
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
