@@ -316,6 +316,35 @@ export const handleExpandedPickupConfirmationInbound = async ({
 } = {}) => {
     const recognized = isPickupProofText(proofText) || isExpandedCustomerPickupConfirmation(proofText);
     if (!recognized) return { handled: false, reason: 'text_without_pickup_confirmation' };
+    const phoneDigits = digitsOnly(chatId);
+    if (phoneDigits.length >= 8) {
+        const tails = [...new Set([
+            phoneDigits,
+            phoneDigits.length >= 10 ? phoneDigits.slice(-10) : '',
+            phoneDigits.length >= 9 ? phoneDigits.slice(-9) : ''
+        ].filter(Boolean))];
+        const latestPickupShipment = await Shipment.findOne({
+            country: 'EC',
+            'logistics.agencyPickup': true,
+            $or: tails.map((tail) => ({ 'client.phone': { $regex: `${escapeRegex(tail)}$` } })),
+            $and: [{
+                $or: [
+                    { 'automation.readyForPickupNotifiedAt': { $ne: null } },
+                    { 'automation.pickupProofRequestedAt': { $ne: null } },
+                    { 'review.reviewStatus': 'awaiting_pickup_proof' },
+                    { 'review.reviewStatus': 'pickup_confirmed' }
+                ]
+            }]
+        }).sort({ updatedAt: -1 }).lean().catch(() => null);
+        if (latestPickupShipment?.outcomes?.pickedUp === true || latestPickupShipment?.outcomes?.delivered === true) {
+            return {
+                handled: true,
+                reason: 'pickup_already_confirmed',
+                orderId: latestPickupShipment.orderId,
+                bonusSent: false
+            };
+        }
+    }
     return handlePickupProofInbound({
         chatId,
         messageId,
