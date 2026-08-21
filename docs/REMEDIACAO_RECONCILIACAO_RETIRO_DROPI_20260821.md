@@ -33,7 +33,7 @@ Nao foram alterados produto, preco, checkout, criacao de pedido, formulario Drop
 - `src/services/postSalePickupReconciliationPolicy.js`: separa mensagens de guia/espera de avisos reais de retirada, aceita somente liberacao explicita do Dropi e amplia a confirmacao textual de retirada.
 - `src/services/postSalePickupReconciliationService.js`: reconcilia o status explicito, usa lock persistido, procura historico antes de enviar, recupera aviso ja entregue e processa confirmacoes antigas que ficaram pendentes.
 - `src/services/droppiEcuadorService.js`: registra a liberacao explicita do Dropi como evidencia verificada.
-- `src/services/schedulerService.js`: executa a fila urgente depois da sincronizacao Dropi e reconcilia novamente depois da consulta publica da transportadora e da atualizacao previa do dispatcher; a sequencia normal de lembretes continua no scheduler oficial.
+- `src/services/schedulerService.js`: executa a fila urgente depois da sincronizacao Dropi, reconcilia depois da consulta publica e do dispatcher e mantem uma reconciliacao leve de status a cada 15 segundos; a sequencia normal de lembretes continua no scheduler oficial.
 - `src/routes/zapi.js`: processa a confirmacao de retirada na entrada oficial Z-API, antes do roteamento comercial.
 - `src/whatsapp/sendText.js`: conserva a deduplicacao global, mas usa chaves distintas para `aguarde` e `ja pode retirar`.
 

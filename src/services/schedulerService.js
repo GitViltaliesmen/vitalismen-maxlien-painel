@@ -31,7 +31,8 @@ import { enqueueEligibleGoogleContacts, processNextGoogleContactSync } from './g
 import { processTexUltraConfirmedPostSaleQueue } from './texUltraConfirmedPostSaleLayerService.js';
 import {
     processExpandedPickupConfirmationSweep,
-    processExplicitDropiPickupReleaseQueue
+    processExplicitDropiPickupReleaseQueue,
+    reconcileExplicitDropiPickupReleases
 } from './postSalePickupReconciliationService.js';
 import { sendText } from '../whatsapp/sendText.js';
 
@@ -44,6 +45,7 @@ let isRunningShipmentStatusDispatch = false;
 let isRunningCarrierStatusSweep = false;
 let isRunningGuidePrintDispatch = false;
 let isRunningDropiActiveSync = false;
+let isRunningDropiPickupReleaseReconciliation = false;
 let isRunningAdminPanelImport = false;
 let isRunningBacklogRecovery = false;
 let isRunningAdminPanelAtendimentoReconcile = false;
@@ -181,8 +183,15 @@ export const startScheduler = () => {
     if (flagEnabled('DROPPI_EC_ACTIVE_SYNC_ENABLED', false)) {
         const intervalMinutes = parseNumber('DROPPI_EC_ACTIVE_SYNC_INTERVAL_MINUTES', 30);
         const intervalMs = Math.max(10, intervalMinutes) * 60 * 1000;
+        const pickupReconciliationSeconds = Math.max(
+            10,
+            parseNumber('DROPI_PICKUP_RELEASE_RECONCILE_INTERVAL_SECONDS', 15)
+        );
         setInterval(checkDropiActiveSync, intervalMs);
+        setInterval(checkDropiPickupReleaseReconciliation, pickupReconciliationSeconds * 1000);
+        setTimeout(() => checkDropiPickupReleaseReconciliation(), 10000);
         console.log(`[SCHEDULER] Dropi active orders sync enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+        console.log(`[SCHEDULER] Dropi pickup release reconciliation enabled every ${pickupReconciliationSeconds} seconds.`);
     } else {
         console.log('[SCHEDULER] Dropi active orders sync disabled. Set DROPPI_EC_ACTIVE_SYNC_ENABLED=true to enable.');
     }
@@ -443,6 +452,21 @@ const checkDropiActiveSync = async () => {
         console.error('Dropi Active Sync Scheduler Error:', error);
     } finally {
         isRunningDropiActiveSync = false;
+    }
+};
+
+const checkDropiPickupReleaseReconciliation = async () => {
+    if (isRunningDropiPickupReleaseReconciliation) return;
+    isRunningDropiPickupReleaseReconciliation = true;
+    try {
+        const result = await reconcileExplicitDropiPickupReleases({ limit: 500 });
+        if (result.changed) {
+            console.log(`[DROPI_PICKUP_RELEASE_RECONCILE] restaurados=${result.changed}; candidatos=${result.candidates}.`);
+        }
+    } catch (error) {
+        console.error('Dropi Pickup Release Reconciliation Scheduler Error:', error);
+    } finally {
+        isRunningDropiPickupReleaseReconciliation = false;
     }
 };
 
