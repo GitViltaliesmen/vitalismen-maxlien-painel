@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import {
@@ -34,4 +35,16 @@ test('senior guard rejeita ambientes GitHub Actions parcialmente falsificados', 
         env: { ...officialEnvironment, GITHUB_WORKSPACE: '' },
         cwd
     }), false);
+});
+
+test('auditoria de retirada reconhece ledger e evento recuperado com comprovante', () => {
+    const result = spawnSync(process.execPath, [
+        'scripts/audit-pickup-notification-evidence.mjs',
+        '--self-test'
+    ], {
+        cwd: process.cwd(),
+        encoding: 'utf8'
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /PICKUP_NOTIFICATION_EVIDENCE_AUDIT_SELF_TEST=OK/);
 });
