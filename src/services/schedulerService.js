@@ -686,6 +686,22 @@ const checkShipmentStatusDispatch = async () => {
                 : '';
             console.log(`[SHIPMENT_DISPATCH] Enviados ${result.sent}/${result.processed}; pendentes ${backlog}; limite ${limit}; actions=${actions.join(',') || 'default'}${quotaInfo}.`);
         }
+        const refreshedOrderIds = (result.results || [])
+            .filter((item) => item?.preDispatchSync)
+            .map((item) => String(item?.orderId || '').trim())
+            .filter(Boolean);
+        if (refreshedOrderIds.length) {
+            const pickupRelease = await processExplicitDropiPickupReleaseQueue({
+                orderIds: refreshedOrderIds,
+                limit: Math.min(8, Math.max(1, refreshedOrderIds.length))
+            });
+            if (pickupRelease.sent || pickupRelease.recovered || pickupRelease.reconciliation?.changed) {
+                console.log(`[DROPI_PICKUP_RELEASE_AFTER_DISPATCH] reconciliados=${pickupRelease.reconciliation?.changed || 0}; enviados=${pickupRelease.sent}; recuperados=${pickupRelease.recovered}; ignorados=${pickupRelease.skipped}.`);
+                if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
+                    setTimeout(() => checkPickupReminders(), 5000);
+                }
+            }
+        }
     } catch (error) {
         console.error('Shipment Status Dispatch Scheduler Error:', error);
     } finally {

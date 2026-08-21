@@ -111,6 +111,7 @@ test('microcamada urgente roda depois do Dropi e reconcilia depois da transporta
 
     assert.match(scheduler, /processExplicitDropiPickupReleaseQueue/);
     assert.match(scheduler, /DROPI_PICKUP_RELEASE_AFTER_CARRIER/);
+    assert.match(scheduler, /DROPI_PICKUP_RELEASE_AFTER_DISPATCH/);
     assert.match(scheduler, /processExpandedPickupConfirmationSweep/);
     assert.match(zapi, /handleZapiPickupConfirmation/);
     assert.match(zapi, /handleExpandedPickupConfirmationInbound/);
@@ -118,4 +119,5 @@ test('microcamada urgente roda depois do Dropi e reconcilia depois da transporta
     assert.match(reconciliation, /automation\.dispatchLockedUntil/);
     assert.match(reconciliation, /findExistingPickupNotice/);
     assert.match(reconciliation, /notificationLedger/);
+    assert.match(reconciliation, /pickup_already_confirmed/);
 });
