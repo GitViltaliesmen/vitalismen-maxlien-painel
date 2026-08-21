@@ -113,8 +113,11 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     if (/NOVEDAD|INCIDENCIA|REPROGRAMAD[OA]/.test(raw)) return 'NOVEDAD';
     if (/DEVUELT[OA]|DEVOLUCION|NO[\s_]?RETIRAD[OA]|RETORNAD[OA]|RETURNED/.test(raw)) return 'DEVUELTO';
     if (/ENTREGAD[OA]|DELIVERED|REPORTADO ENTREGADO|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
-    if (/^INGRESANDO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
     if (/^PARA RETIRO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/^LIST[OA] PARA RETIRO\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/^DISPONIBLE.*RETIRO\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/^INGRESANDO EN AGENCIA\b/.test(raw)) return 'EN_RUTA';
+    if (/^PUNTO DE RETIRO\b/.test(raw)) return 'EN_RUTA';
     if (/^EN RUTA A CONCESION\b/.test(raw)) return 'EN_RUTA';
     if (/^EN RUTA A CENTRO LOGISTICO\b/.test(raw)) return 'EN_RUTA';
     if (/^EN DISTRIBUCION\b/.test(raw)) return 'EN_RUTA';
@@ -128,7 +131,8 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     if (raw === 'EN RUTA') return 'EN_RUTA';
     if (raw === 'EN REPARTO') return 'EN_REPARTO';
     if (raw === 'EN PROCESAMIENTO') return 'EN_PROCESAMIENTO';
-    if (raw === 'EN AGENCIA' || raw === 'LISTO PARA RETIRO' || raw === 'READY_FOR_PICKUP') {
+    if (raw === 'EN AGENCIA') return 'EN_RUTA';
+    if (raw === 'LISTO PARA RETIRO' || raw === 'READY_FOR_PICKUP') {
         return 'READY_FOR_PICKUP';
     }
     return raw.replace(/\s+/g, '_');

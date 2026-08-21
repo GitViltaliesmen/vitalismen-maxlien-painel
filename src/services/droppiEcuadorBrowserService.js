@@ -2349,7 +2349,7 @@ const findOrderViaOrdersApi = async (page, shipment) => {
     return { panelMatched: false };
 };
 
-const extractStatusFromPanelText = (panelText = '', fallback = '') => {
+export const extractStatusFromPanelText = (panelText = '', fallback = '') => {
     const raw = String(panelText || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -2358,9 +2358,9 @@ const extractStatusFromPanelText = (panelText = '', fallback = '') => {
     if (/ENTREGAD[OA]|MERCANCIA ENTREGADA|PEDIDO ENTREGADO|REPORTADO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/DEVUELT[OA]|DEVOLUCION|NO RETIRAD[OA]/.test(raw)) return 'DEVUELTO';
     if (/NOVEDAD/.test(raw)) return 'NOVEDAD';
-    if (/INGRESANDO EN AGENCIA|LISTO PARA RETIRO|PARA RETIRO EN AGENCIA|PUNTO DE RETIRO/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/LIST[OA] PARA RETIRO|PARA RETIRO EN AGENCIA|DISPONIBLE.*RETIRO/.test(raw)) return 'READY_FOR_PICKUP';
     if (/GUIA GENERADA|GUIA_GENERADA|PREPARADO PARA TRANSPORTADORA/.test(raw)) return 'GUIA_GENERADA';
-    if (/EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA|EN DISTRIBUCION|INGRESANDO OPERATIVO A|EN RUTA A CENTRO LOGISTICO/.test(raw)) return 'EN_RUTA';
+    if (/EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA|EN DISTRIBUCION|INGRESANDO OPERATIVO A|INGRESANDO EN AGENCIA|PUNTO DE RETIRO|EN AGENCIA|EN RUTA A CENTRO LOGISTICO/.test(raw)) return 'EN_RUTA';
     return fallback;
 };
 
