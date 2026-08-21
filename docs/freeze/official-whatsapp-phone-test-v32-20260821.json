@@ -46,6 +46,7 @@
   "overriddenParentHashes": {
     ".env.example": "159268d4926cfcc5cadd3885ae7e299f27f0addab0e89e2043d4311f1daeee5f",
     "AGENTS.md": "37f87c6f62547bbd7155748bc396181853227ba60acf22a4ac699d7443dafcfe",
+    "FREEZE_LOCK_EC.json": "102713172219ae16062823f547c21d1053454eec14f115d2ccc6be5e3826b207",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "ddf2d7abba88ccc57a8e471d19bcb3d82f220ede2aaf8cf3e500c98086b23648",
     "docs/ARQUIVOS_OFICIAIS.md": "fa5ba4e7d578c0a9a414adf20d11d9014fc46b90428a3e9a556bdd370be41b8f",
     "docs/WHATSAPP_POOL_ATE_6_NUMEROS.md": "47b9d8829cc0c0aed90e3951706285b0c89a92e006b499b37fa8b3cd1bbebd51",
@@ -66,6 +67,7 @@
   "declaredParentOverrides": [
     ".env.example",
     "AGENTS.md",
+    "FREEZE_LOCK_EC.json",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
     "docs/ARQUIVOS_OFICIAIS.md",
     "docs/WHATSAPP_POOL_ATE_6_NUMEROS.md",
@@ -84,6 +86,7 @@
     "tests/panel-call-dropi-safety-v21.test.mjs"
   ],
   "newProtectedFiles": [
+    "approved_freezes/APPROVED_FREEZE_EC_20260821221511.md",
     "docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md",
     "scripts/assert-official-whatsapp-phone-activation-approved-v32.mjs",
     "scripts/guard-official-whatsapp-phone-v32.mjs",
@@ -93,6 +96,7 @@
   "protectedFiles": {
     ".env.example": "d7eaa20d2e3c1ee5fd9e643b716c8e260f4726c246719f17e31a4f9583933d2b",
     "AGENTS.md": "60e432611a897d9f2770b2e95a004c1ec4d4de1d05c2d1d3adae9240898cec15",
+    "FREEZE_LOCK_EC.json": "1fbc313f45ab2746e351ffded5e09591e2248e52c1332d25f8b933f12a7a2198",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "03e5f319e48657b80b5213901f24a0622c7cd8cd4c92ac23f4c8a2692b8cff28",
     "docs/ARQUIVOS_OFICIAIS.md": "c147e12b1ecae0e3d38a99953a1e4bf544f1ba85eab656e380df641fef86f4e7",
     "docs/WHATSAPP_POOL_ATE_6_NUMEROS.md": "d46303360972d035b5a06ee1d9b7979143a19e54c0f050fe3ee01956f673cc2b",
@@ -109,10 +113,11 @@
     "src/routes/whatsapp.js": "699e97067cc8fbfcfd951eb1369f25563294b714854c28524b4b7b39475bdd86",
     "tests/media-durability-auth-v30.test.mjs": "40e03ed02641a9302bfe71888522ffecf8d6b4bd34063c4722ce93da7bfcfb81",
     "tests/panel-call-dropi-safety-v21.test.mjs": "dd968957e15034199d659ca0e2e7858d98da2295dd9e7a6b6e51bd99bc050eb5",
+    "approved_freezes/APPROVED_FREEZE_EC_20260821221511.md": "dae3594ca7cd4899de1336076e6d6a8ad56ce165a856943d92a0416e9004fd24",
     "docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md": "3b1ef33269d0bc6b083aab9d0f4c9c221d389dfa79eb728b537d7a04473cb4ad",
     "scripts/assert-official-whatsapp-phone-activation-approved-v32.mjs": "3d8b392a9f15d434e775f3e2fd7fba7cb08b825acafa74928dd0b9eba687a030",
     "scripts/guard-official-whatsapp-phone-v32.mjs": "6ea930b727c23a2a17c58de13efbecb9eb72fd6d114bd3f8f6da59a4a1c1fe7d",
-    "src/services/officialWhatsappPhoneFreezeRuntimeGuardV32.js": "bb0861ed950ce5513c73f8cc6da03508137a942e99332b779782e653348f2e96",
-    "tests/official-whatsapp-phone-v32.test.mjs": "19018ec41c61b25c33b502ba8e3c54e433ae0c8f2fa1cd9d3b107622f2fbae38"
+    "src/services/officialWhatsappPhoneFreezeRuntimeGuardV32.js": "9b6b4daf6bc2125d018372e3a868b26b6f1e30956ff85310bc64da99d09b0796",
+    "tests/official-whatsapp-phone-v32.test.mjs": "12fe63da540f99b8bd327b3b2cd4506429c6b40198f53bbc064e0ab5fef1678f"
   }
 }

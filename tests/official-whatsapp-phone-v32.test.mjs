@@ -76,6 +76,7 @@ test('V32 autoriza somente o telefone brasileiro de QA na entrada e saída Z-API
 
 test('V32 remove overrides brasileiros adicionais dos caminhos ativos', () => {
     const files = [
+        'FREEZE_LOCK_EC.json',
         'public/n/index.html',
         'public/qr.html',
         'src/routes/whatsapp.js',

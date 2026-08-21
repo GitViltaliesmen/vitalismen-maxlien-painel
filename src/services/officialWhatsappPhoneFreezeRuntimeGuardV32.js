@@ -39,6 +39,7 @@ const ancestorSpecs = [
 const declaredParentOverrides = [
     '.env.example',
     'AGENTS.md',
+    'FREEZE_LOCK_EC.json',
     'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
     'docs/ARQUIVOS_OFICIAIS.md',
     'docs/WHATSAPP_POOL_ATE_6_NUMEROS.md',
@@ -57,6 +58,7 @@ const declaredParentOverrides = [
     'tests/panel-call-dropi-safety-v21.test.mjs'
 ];
 const newProtectedFiles = [
+    'approved_freezes/APPROVED_FREEZE_EC_20260821221511.md',
     'docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md',
     'scripts/assert-official-whatsapp-phone-activation-approved-v32.mjs',
     'scripts/guard-official-whatsapp-phone-v32.mjs',
