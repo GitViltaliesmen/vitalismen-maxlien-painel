@@ -43,7 +43,11 @@ node scripts/audit-ec-product-micro-layer.mjs
 
 Nunca deixar scheduler reenviar automaticamente a mesma midia, guia, print, fatura, audio ou mensagem para o mesmo cliente/pedido.
 
-Risco maximo: repeticao automatica pode banir o WhatsApp oficial `553183002800`.
+Risco maximo: repeticao automatica pode banir o WhatsApp oficial `5515991418416`.
+
+O unico telefone brasileiro autorizado para testes controlados de entrada e saida e
+`5515998038637`. Ele nunca deve ser tratado como cliente real, gerar pedido, Dropi,
+Meta/CAPI ou disparo em massa.
 
 Incidente congelado:
 

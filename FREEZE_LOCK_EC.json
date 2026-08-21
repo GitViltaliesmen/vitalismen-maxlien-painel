@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-07-26T20:09:07.590Z",
+  "updatedAt": "2026-08-21T22:15:11Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -438,20 +438,20 @@
       ]
     },
     {
-      "id": "vsl_manual_test_2958_skipmeta_ec",
+      "id": "vsl_manual_test_8637_skipmeta_ec",
       "status": "active",
-      "description": "Telefone 2958 fica liberado somente como teste manual da VSL EC, com skipMeta/testEntry/testLead, sem transformar numero BR em cliente real nem trocar vendedor oficial 8416.",
+      "description": "Telefone 8637 fica liberado somente como teste manual da VSL EC, com skipMeta/testEntry/testLead, sem transformar numero BR em cliente real nem trocar o telefone oficial 8416.",
       "requiresWrittenAuthorizationToChange": true,
       "checks": [
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "\"2958\": {"
+          "value": "\"8637\": {"
         },
         {
           "type": "includes",
           "file": "public/n/index.html",
-          "value": "e164: \"5531971862958\""
+          "value": "const TEST_PHONE_OVERRIDE_E164 = \"5515998038637\";"
         },
         {
           "type": "includes",
@@ -466,7 +466,7 @@
         {
           "type": "includes",
           "file": "src/routes/whatsapp.js",
-          "value": "2958: '5531971862958'"
+          "value": "8637: '5515998038637'"
         },
         {
           "type": "includes",
@@ -1061,7 +1061,7 @@
     },
     {
       "at": "2026-07-17T01:16:47.437Z",
-      "description": "Aprovado: liberar 2958 apenas como teste manual VSL EC com skipMeta",
+      "description": "Aprovação histórica de QA substituída pela decisão V32; telefone de teste vigente 8637",
       "file": "approved_freezes/APPROVED_FREEZE_EC_20260717011647.md",
       "activeRuleIds": [
         "panel_add_contact_button_fixed",
@@ -1075,7 +1075,7 @@
         "meta_purchase_confirmed_order_lock_ec",
         "site_entry_lead_panel_path_before_vsl_ab_ec",
         "vsl_ab_test_player_entry_phrases_ec",
-        "vsl_manual_test_2958_skipmeta_ec",
+        "vsl_manual_test_8637_skipmeta_ec",
         "ops_alerts_click_to_attend_ec",
         "customer_ficha_autosave_orderid_ec",
         "ops_alert_post_sale_reengagement_guard_ec",
@@ -1087,7 +1087,7 @@
     },
     {
       "at": "2026-07-17T03:37:15.912Z",
-      "description": "Aprovado: funil inicial Nitrix EC completo, pos-fechamento ativo e teste 2958 validado",
+      "description": "Aprovação histórica preservada; telefone de teste atualizado para 8637 pela decisão V32",
       "file": "approved_freezes/APPROVED_FREEZE_EC_20260717033715.md",
       "activeRuleIds": [
         "panel_add_contact_button_fixed",
@@ -1101,7 +1101,33 @@
         "meta_purchase_confirmed_order_lock_ec",
         "site_entry_lead_panel_path_before_vsl_ab_ec",
         "vsl_ab_test_player_entry_phrases_ec",
-        "vsl_manual_test_2958_skipmeta_ec",
+        "vsl_manual_test_8637_skipmeta_ec",
+        "ops_alerts_click_to_attend_ec",
+        "customer_ficha_autosave_orderid_ec",
+        "ops_alert_post_sale_reengagement_guard_ec",
+        "panel_product_autodetect_customer_draft_ec",
+        "panel_real_entry_metrics_ec",
+        "manual_funnel_text_send_direct_ec",
+        "panel_chat_entry_time_badge_ec"
+      ]
+    },
+    {
+      "at": "2026-08-21T22:15:11Z",
+      "description": "Aprovado pelo operador: telefone oficial 5515991418416 e único telefone QA 5515998038637 para canário controlado de áudio e imagem",
+      "file": "approved_freezes/APPROVED_FREEZE_EC_20260821221511.md",
+      "activeRuleIds": [
+        "panel_add_contact_button_fixed",
+        "message_inline_hover_popup_disabled",
+        "panel_rate_limit_operational_writes",
+        "servientrega_agency_search_not_rate_limited",
+        "zapi_technical_alert_hidden_from_panel",
+        "shipment_dispatch_8_per_hour",
+        "vsl_nitrix_mobile_entry_ec",
+        "meta_pixel_lead_ec_dataset",
+        "meta_purchase_confirmed_order_lock_ec",
+        "site_entry_lead_panel_path_before_vsl_ab_ec",
+        "vsl_ab_test_player_entry_phrases_ec",
+        "vsl_manual_test_8637_skipmeta_ec",
         "ops_alerts_click_to_attend_ec",
         "customer_ficha_autosave_orderid_ec",
         "ops_alert_post_sale_reengagement_guard_ec",
@@ -1113,9 +1139,9 @@
     }
   ],
   "lastApproval": {
-    "at": "2026-07-26T20:09:07.590Z",
-    "description": "Aprovado pelo operador: VSL atual passa a Tex Ultra com tabela promocional por frascos; Nitrix e Vit Power seguem selecionaveis e Dropi controlado",
-    "file": "approved_freezes/APPROVED_FREEZE_EC_20260726200907.md",
+    "at": "2026-08-21T22:15:11Z",
+    "description": "Aprovado pelo operador: telefone oficial 5515991418416 e único telefone QA 5515998038637 para canário controlado de áudio e imagem",
+    "file": "approved_freezes/APPROVED_FREEZE_EC_20260821221511.md",
     "activeRuleIds": [
       "panel_add_contact_button_fixed",
       "message_inline_hover_popup_disabled",
@@ -1128,7 +1154,7 @@
       "meta_purchase_confirmed_order_lock_ec",
       "site_entry_lead_panel_path_before_vsl_ab_ec",
       "vsl_ab_test_player_entry_phrases_ec",
-      "vsl_manual_test_2958_skipmeta_ec",
+      "vsl_manual_test_8637_skipmeta_ec",
       "ops_alerts_click_to_attend_ec",
       "customer_ficha_autosave_orderid_ec",
       "ops_alert_post_sale_reengagement_guard_ec",

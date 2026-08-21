@@ -29,8 +29,7 @@ const forbidden = [
     { label: 'dominio externo', regex: new RegExp(['max', 'tourus'].join(''), 'i') },
     { label: 'pais externo', regex: new RegExp(['colo', 'mbia'].join(''), 'i') },
     { label: 'oferta externa', regex: new RegExp(['super', 'full'].join(''), 'i') },
-    { label: 'telefone operacional desativado 2800', regex: /553183002800/ },
-    { label: 'telefone operacional desativado 2958', regex: /553171862958/ }
+    { label: 'telefone brasileiro fora da operacao atual', regex: /5531\d{8,9}/ }
 ];
 
 for (const file of files.filter(exists)) {

@@ -644,3 +644,20 @@ Existem dois gatilhos e uma única chave persistente de antirrepetição: confir
 O pós-venda continua em `src/services/shipmentMessageService.js`, sem scheduler paralelo. A pergunta continua no funil isolado `src/services/texUltraFunnelService.js`, com memória em `metadata.perAgentMemory.tex_ultra_ec.howToUseAudio`. Preços, oferta, pedido, Dropi, Meta/CAPI, pixel, número WhatsApp, Z-API, Vit Power e Nitrix permanecem inalterados.
 
 A mídia anexada diretamente a esta tarefa não comprova o elo inbound do provider porque não atravessou o WhatsApp/Z-API. A comprovação V30 continua exigindo uma nova mídia enviada pelo WhatsApp de teste ao número oficial, seguida da conferência de `READY`, arquivo no storage compartilhado e reprodução autenticada no painel. Esse canário é individual e não autoriza disparo em massa.
+
+## Microcamada V32 de telefone oficial e QA de mídia
+
+O freeze `docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md` sucede a V31 e
+fixa `5515991418416` como único número oficial de recebimento e saída. A Z-API
+continua sendo o transporte oficial. Slots, pool, fallback e configuração ativa
+não podem usar outro número brasileiro como origem da operação.
+
+O único telefone brasileiro autorizado para QA é `5515998038637`. Ele é aceito
+na entrada Z-API, no envio individual pelo painel/provider e na lista do painel,
+mas continua protegido contra pedido, Dropi, Meta/CAPI e disparo em massa.
+Overrides públicos adicionais e defaults de failover antigos foram removidos.
+
+O canário V32 permite uma saída individual de áudio e imagem aprovados para o
+telefone de QA. A confirmação inbound exige que o operador responda a partir
+desse telefone com uma mídia de voz e uma imagem novas; só então podem ser
+comprovados provider, `READY`, storage compartilhado e painel autenticado.

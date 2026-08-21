@@ -13,11 +13,14 @@ const normalize = (value = '') => String(value || '')
     .toLowerCase();
 
 const since = new Date(process.env.FAILOVER_SINCE || '2026-05-23T00:00:00.000Z');
-const downSessionId = digitsOnly(process.env.FAILOVER_DOWN_SESSION_ID || '553183002800');
-const connectedSessions = String(process.env.FAILOVER_CONNECTED_SESSIONS || '553171862958,5515991418416')
+const downSessionId = digitsOnly(process.env.FAILOVER_DOWN_SESSION_ID || '');
+const connectedSessions = String(process.env.FAILOVER_CONNECTED_SESSIONS || '5515991418416')
     .split(',')
     .map((item) => digitsOnly(item))
     .filter(Boolean);
+if (!downSessionId) {
+    throw new Error('FAILOVER_DOWN_SESSION_ID e obrigatorio; nenhum telefone antigo e assumido por padrao.');
+}
 const maxPerSession = Math.max(1, Number.parseInt(process.env.FAILOVER_MAX_PER_SESSION || '2', 10) || 2);
 
 const argvPhones = process.argv.slice(2)

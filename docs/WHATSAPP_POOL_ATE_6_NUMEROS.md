@@ -1,69 +1,71 @@
-# Pool WhatsApp Real - Estrutura Ate 6 Numeros
+# Transporte WhatsApp oficial — número único
 
-Status aprovado em 2026-05-15:
+Estado operacional atualizado e autorizado em 2026-08-21.
 
-- Painel Atendimento: `https://ec.maxlien.shop/qr.html`
-- Leads Clientes: `https://ec.maxlien.shop/admin/dashboard?country=EC`
-- Nao mexer nas paginas congeladas sem autorizacao explicita.
+## Número oficial
 
-## Configuracao atual
+Existe um único número oficial de recebimento e saída da operação:
 
-O painel real ja esta preparado para revezamento/failover por sessoes WhatsApp.
+```text
+5515991418416
+```
 
-Configuracao online atual:
+Formato visual: `+55 15 99141-8416`.
+
+A Z-API é o transporte oficial enquanto o WhatsApp Web/Baileys não estiver
+pareado, pronto e validado. A existência de estrutura de pool no código não
+autoriza cadastrar, revezar ou publicar outro número.
+
+Configuração esperada:
 
 ```env
-WHATSAPP_DEFAULT_SESSION_ID=553183002800
-WHATSAPP_SESSION_IDS=553183002800,553171862958,5515991418416
-WHATSAPP_ROTATION_ENABLED=true
-WHATSAPP_SENDER_AFFINITY_DAYS=45
-WHATSAPP_SENDER_DAILY_LIMITS=553171862958:5
-WHATSAPP_AUTOMATION_PILOT_ONLY=false
+WHATSAPP_DEFAULT_SESSION_ID=5515991418416
+WHATSAPP_SESSION_IDS=5515991418416
+WHATSAPP_DEFAULT_SESSION_ID_EC=5515991418416
+WHATSAPP_SESSION_IDS_EC=5515991418416
+WHATSAPP_ALLOWED_OUTBOUND_SESSION_IDS=5515991418416
+WHATSAPP_SELLER_ROTATION_SEQUENCE_EC=5515991418416
+WHATSAPP_SELLER_POOL_EC=5515991418416
+WHATSAPP_SELLER_POOL=5515991418416
+WHATSAPP_SELLER_E164=5515991418416
+ZAPI_OPERATION_PHONE=5515991418416
+ZAPI_CONNECTED_PHONE=5515991418416
+ZAPI_OPERATIONAL_PHONE=5515991418416
+WHATSAPP_ROTATION_ENABLED=false
 ```
 
-Numeros atuais:
+## Telefone de teste autorizado
 
-- `553183002800`
-- `553171862958`
-- `5515991418416`
+O único telefone brasileiro liberado para teste controlado é:
 
-## Estrutura pronta para 6 numeros
+```text
+5515998038637
+```
 
-Quando existirem mais 3 celulares reais, adicionar somente numeros reais em `WHATSAPP_SESSION_IDS`.
+Formato local: `15 99803-8637`.
 
-Para aquecer um celular novo aos poucos, usar `WHATSAPP_SENDER_DAILY_LIMITS`.
-Exemplo: `553171862958:5` limita o numero final 2958 a 5 clientes/envios no dia, enquanto os outros numeros seguem o limite geral.
-Nao adicionar numero falso ou placeholder, porque o sistema vai criar QR fantasma.
-
-Modelo:
+Configuração esperada:
 
 ```env
-WHATSAPP_DEFAULT_SESSION_ID=553183002800
-WHATSAPP_SESSION_IDS=553183002800,553171862958,5515991418416,55NOVO_NUMERO_4,55NOVO_NUMERO_5,55NOVO_NUMERO_6
-WHATSAPP_ROTATION_ENABLED=true
-WHATSAPP_SENDER_AFFINITY_DAYS=45
+WHATSAPP_TEST_ALLOWED_RECIPIENTS=5515998038637
+WHATSAPP_AUTOMATION_ALLOWED_RECIPIENTS=5515998038637
+WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS=5515998038637
+WHATSAPP_PRIORITY_TEST_PHONES=5515998038637
+WHATSAPP_PANEL_OPERATIONAL_NUMBERS=5515991418416
 ```
 
-Depois de alterar:
+`WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS` permanece vazio no modo operacional
+completo porque preenchê-lo apenas com o telefone de teste bloquearia respostas
+a clientes EC reais. A exceção brasileira de entrada e saída usa as listas
+específicas acima.
 
-```bash
-pm2 reload vitalismen-automation --update-env
-```
+## Travas do teste
 
-## Como conectar cada numero
+- nunca criar pedido, Dropi ou evento Meta/CAPI para o telefone de teste;
+- nunca incluí-lo em disparo em massa;
+- mídia inbound deve entrar pela Z-API e chegar a `READY` no storage compartilhado;
+- saída deve ser individual e explícita;
+- qualquer futura troca de número exige nova autorização, backup, canário de
+  texto/áudio/imagem e validação de health.
 
-Abrir o QR pelo `sessionId` exato:
-
-- `https://ec.maxlien.shop/qr.html?sessionId=553183002800`
-- `https://ec.maxlien.shop/qr.html?sessionId=553171862958`
-- `https://ec.maxlien.shop/qr.html?sessionId=5515991418416`
-- `https://ec.maxlien.shop/qr.html?sessionId=55NOVO_NUMERO_4`
-- `https://ec.maxlien.shop/qr.html?sessionId=55NOVO_NUMERO_5`
-- `https://ec.maxlien.shop/qr.html?sessionId=55NOVO_NUMERO_6`
-
-## Regra operacional
-
-- Cliente novo: sistema escolhe o numero com menor uso/capacidade disponivel.
-- Cliente com historico: sistema tenta manter o mesmo numero/carteira.
-- Numero caiu/restrito/desconectado: sistema tenta outro numero conectado e preserva o historico no banco.
-- Nao usar o mesmo numero em outro WhatsApp Web fora do painel, para evitar conflito.
+Painel oficial: `https://ec.maxlien.shop/qr.html`.
