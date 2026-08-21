@@ -33,8 +33,12 @@ Data: 2026-08-21
 
 - Um áudio OGG/Opus oficial de uso do Tex Ultra foi enviado somente para `5515998038637` e confirmado como entregue (`ack=2`).
 - Uma imagem PNG oficial do Tex Ultra foi enviada somente para `5515998038637` e confirmada como entregue (`ack=2`).
+- O telefone QA respondeu ao número oficial com um áudio e três imagens novos.
+- O áudio inbound foi persistido como MP3 e as três imagens como JPEG; os quatro arquivos terminaram em `READY`, sem erro de download, no storage compartilhado `/opt/vitalismen-automacao/shared/media/inbound`.
+- O endpoint público sem autenticação respondeu HTTP 401.
+- O painel autenticado serviu o áudio e uma das imagens com HTTP 206, suporte a `Range`, MIME correto e conteúdo físico compatível com o tamanho persistido.
 - Nenhum disparo em massa foi executado.
-- A prova inbound depende de um áudio e uma imagem novos enviados pelo telefone QA ao número oficial; a captura deve terminar em `READY` no storage compartilhado antes de ser considerada concluída.
+- O canário real de envio e recebimento de áudio/imagem foi concluído.
 
 ## Preservado
 
