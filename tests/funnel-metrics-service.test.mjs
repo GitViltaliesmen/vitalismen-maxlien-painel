@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+// Acionamento transitório do quality gate para o relatório operacional V32.
 import test from 'node:test';
 import {
     buildFunnelMetricsSnapshot,
