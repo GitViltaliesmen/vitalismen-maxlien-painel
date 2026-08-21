@@ -8778,6 +8778,7 @@
     <script src="/panel-intelligence/customer-form-intelligence.js"></script>
     <script src="/panel-intelligence/manual-funnel-policy.js"></script>
     <script src="/panel-intelligence/customer-order-policy.js"></script>
+    <script src="/panel-intelligence/authenticated-media.js"></script>
     <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
@@ -9543,6 +9544,7 @@
                 setActiveModule(state.activeModule);
                 refreshAll();
             } else {
+                clearAuthenticatedMediaObjectUrls();
                 localStorage.removeItem(tokenKey);
                 state.user = null;
                 state.users = [];
@@ -12273,6 +12275,10 @@
                 message.deliveryStatus || '',
                 message.providerStatus || '',
                 message.ack || '',
+                message.mediaStorageStatus || '',
+                message.mediaDownloadError || '',
+                message.storedMime || '',
+                message.mediaSize || '',
                 (message.mediaAttachments || []).map((item) => `${item.type || ''}:${item.mediaUrl || ''}:${item.mediaPreviewUrl || ''}`).join(',')
             ].join(':'))
             .join('|');
@@ -12422,6 +12428,91 @@
                 }
             }
             return `${mediaPublicOrigin()}${value}`;
+        };
+
+        const protectedMediaRuntime = window.VitalismenAuthenticatedMedia;
+        const authenticatedMediaObjectUrls = new Map();
+
+        const clearAuthenticatedMediaObjectUrls = () => {
+            for (const pending of authenticatedMediaObjectUrls.values()) {
+                Promise.resolve(pending).then((objectUrl) => {
+                    try { window.URL.revokeObjectURL(objectUrl); } catch { }
+                }).catch(() => null);
+            }
+            authenticatedMediaObjectUrls.clear();
+        };
+
+        const isProtectedPanelMediaUrl = (url = '') => Boolean(
+            protectedMediaRuntime?.isProtectedMediaUrl(url, window.location.origin)
+        );
+
+        const mediaHealthFallbackText = (message = {}, kind = 'media', reasonOverride = '') => (
+            protectedMediaRuntime?.failureText({
+                kind,
+                status: message.mediaStorageStatus || '',
+                reason: reasonOverride || message.mediaDownloadError || ''
+            }) || 'Mídia indisponível · o arquivo não pôde ser carregado'
+        );
+
+        const mediaHealthBlocksRendering = (message = {}) => {
+            const status = String(message.mediaStorageStatus || '').toUpperCase();
+            return ['RECEIVED', 'FETCHING', 'STORED', 'FAILED'].includes(status);
+        };
+
+        const authenticatedMediaObjectUrl = (url = '') => {
+            if (!authenticatedMediaObjectUrls.has(url)) {
+                const promise = protectedMediaRuntime.fetchObjectUrl(url, { token: state.token })
+                    .then((result) => result.objectUrl)
+                    .catch((error) => {
+                        authenticatedMediaObjectUrls.delete(url);
+                        throw error;
+                    });
+                authenticatedMediaObjectUrls.set(url, promise);
+            }
+            return authenticatedMediaObjectUrls.get(url);
+        };
+
+        const markAuthenticatedMediaFailure = (node, reason = '') => {
+            const shell = node.closest('[data-media-shell], [data-audio-player]');
+            if (!shell) return;
+            const kind = shell.dataset.mediaKind || 'media';
+            const fallback = shell.querySelector('[data-auth-media-fallback]');
+            if (fallback) {
+                fallback.textContent = protectedMediaRuntime?.failureText({ kind, reason })
+                    || mediaHealthFallbackText({}, kind, reason);
+                fallback.classList.remove('hidden');
+            }
+            shell.classList.add('media-auth-error');
+            const button = shell.querySelector('.wa-audio-play');
+            if (button) button.disabled = true;
+            const time = shell.querySelector('.wa-audio-time');
+            if (time && (kind === 'audio' || kind === 'ptt')) time.textContent = 'Áudio indisponível';
+            if (node.matches('img, video')) node.style.display = 'none';
+        };
+
+        const hydrateAuthenticatedMedia = (scope = document) => {
+            if (!protectedMediaRuntime?.fetchObjectUrl || !state.token) return;
+            scope.querySelectorAll('[data-auth-media-src]:not([data-auth-media-hydrated])').forEach((node) => {
+                const source = node.dataset.authMediaSrc || '';
+                if (!source) return;
+                node.dataset.authMediaHydrated = 'pending';
+                authenticatedMediaObjectUrl(source).then((objectUrl) => {
+                    node.src = objectUrl;
+                    node.dataset.authMediaHydrated = 'ready';
+                    const shell = node.closest('[data-media-shell], [data-audio-player]');
+                    shell?.querySelectorAll('[data-auth-media-link]').forEach((link) => {
+                        link.href = objectUrl;
+                    });
+                    const fallback = shell?.querySelector('[data-auth-media-fallback]');
+                    fallback?.classList.add('hidden');
+                    const button = shell?.querySelector('.wa-audio-play');
+                    if (button) button.disabled = false;
+                    if (node.tagName === 'AUDIO' || node.tagName === 'VIDEO') node.load();
+                }).catch((error) => {
+                    node.dataset.authMediaHydrated = 'failed';
+                    markAuthenticatedMediaFailure(node, error?.reason || error?.message || 'panel_media_load_failed');
+                });
+            });
         };
 
         const decodedMediaUrlForCheck = (url = '') => {
@@ -12626,6 +12717,9 @@
             const previewUrl = attachment.mediaPreviewUrl ? absoluteMediaUrl(attachment.mediaPreviewUrl) : '';
             const src = escapeHtml(previewUrl || originalUrl);
             const original = escapeHtml(originalUrl);
+            if (mediaHealthBlocksRendering(message)) {
+                return `<div class="message-media-fallback">${escapeHtml(mediaHealthFallbackText(message, type))}</div>`;
+            }
             if (type === 'audio' || type === 'ptt') {
                 const audioSourceUrl = audioPrimarySourceUrl({
                     mediaUrl,
@@ -12634,24 +12728,31 @@
                 const fallbackUrl = audioFallbackUrl(audioSourceUrl) || (audioSourceUrl !== originalUrl ? originalUrl : '');
                 const audioSrc = escapeHtml(audioSourceUrl);
                 const fallback = escapeHtml(fallbackUrl);
+                const protectedSource = isProtectedPanelMediaUrl(audioSourceUrl);
                 return `
-                    <div class="wa-audio-card no-avatar" data-audio-player>
-                        <button class="wa-audio-play" type="button" aria-label="Tocar audio">${playIcon()}</button>
+                    <div class="wa-audio-card no-avatar" data-audio-player data-media-shell data-media-kind="${escapeHtml(type)}">
+                        <button class="wa-audio-play" type="button" aria-label="Tocar audio" ${protectedSource ? 'disabled' : ''}>${playIcon()}</button>
                         <div class="wa-audio-main">
                             <div class="wa-waveform-wrap">
                                 <canvas class="wa-waveform-canvas" width="460" height="48"></canvas>
                             </div>
                             <div class="wa-audio-time">0:00</div>
-                            <audio preload="metadata" controls="controls" src="${audioSrc}" data-original-src="${original}" data-fallback-src="${fallback}"></audio>
+                            <audio preload="metadata" controls="controls" ${protectedSource ? `data-auth-media-src="${audioSrc}"` : `src="${audioSrc}"`} data-original-src="${original}" data-fallback-src="${protectedSource ? '' : fallback}"></audio>
+                            <div class="message-media-fallback hidden" data-auth-media-fallback></div>
                         </div>
                     </div>
                 `;
             }
             if (type === 'image') {
-                return `<a href="${original}" target="_blank" rel="noopener" title="Abrir imagem"><img class="message-media-image" src="${original}" alt="${label}" loading="lazy" onerror="this.style.display='none';this.closest('a').insertAdjacentHTML('afterend','<a class=&quot;message-media-fallback&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; href=&quot;${original}&quot;>Abrir imagem</a>')"></a>`;
+                const protectedSource = isProtectedPanelMediaUrl(originalUrl);
+                return `<div data-media-shell data-media-kind="image"><a ${protectedSource ? 'data-auth-media-link' : `href="${original}"`} target="_blank" rel="noopener" title="Abrir imagem"><img class="message-media-image" ${protectedSource ? `data-auth-media-src="${original}"` : `src="${original}"`} alt="${label}" loading="lazy" onerror="this.style.display='none';this.closest('[data-media-shell]').querySelector('[data-auth-media-fallback]').classList.remove('hidden')"></a><div class="message-media-fallback hidden" data-auth-media-fallback>${escapeHtml(mediaHealthFallbackText(message, 'image'))}</div></div>`;
             }
             if (type === 'video') {
-                return `<video class="message-media-video" controls preload="none" src="${original}"></video>`;
+                const protectedSource = isProtectedPanelMediaUrl(originalUrl);
+                return `<div data-media-shell data-media-kind="video"><video class="message-media-video" controls preload="none" ${protectedSource ? `data-auth-media-src="${original}"` : `src="${original}"`}></video><div class="message-media-fallback hidden" data-auth-media-fallback>${escapeHtml(mediaHealthFallbackText(message, 'video'))}</div></div>`;
+            }
+            if (isProtectedPanelMediaUrl(originalUrl)) {
+                return `<div data-media-shell data-media-kind="media"><a class="message-media-link" data-auth-media-link target="_blank" rel="noopener"><span data-auth-media-src="${original}"></span>${label}</a><div class="message-media-fallback hidden" data-auth-media-fallback>${escapeHtml(mediaHealthFallbackText(message, 'media'))}</div></div>`;
             }
             return `<a class="message-media-link" href="${original}" target="_blank" rel="noopener">${label}</a>`;
         };
@@ -14312,6 +14413,7 @@
                 box.scrollTop = box.scrollHeight;
             }
             initializeAudioPlayers(box);
+            hydrateAuthenticatedMedia(box);
         };
 
         const extractCustomerNameFromMessages = (messages = []) => (

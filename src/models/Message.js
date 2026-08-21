@@ -70,6 +70,25 @@ const messageSchema = new mongoose.Schema({
     senderRole: { type: String, enum: ['client', 'human', 'bot', 'system', ''], default: '' },
     providerStatus: String,
     providerPayload: mongoose.Schema.Types.Mixed,
+    providerMediaId: { type: String, index: true },
+    originalMime: String,
+    storedMime: String,
+    mediaCodec: String,
+    mediaSize: Number,
+    mediaSha256: String,
+    mediaReceivedAt: Date,
+    mediaStoredAt: Date,
+    mediaReadyAt: Date,
+    mediaFailedAt: Date,
+    mediaStorageStatus: {
+        type: String,
+        enum: ['RECEIVED', 'FETCHING', 'STORED', 'READY', 'FAILED', ''],
+        default: ''
+    },
+    mediaDownloadError: String,
+    storedMediaPath: { type: String, select: false },
+    mediaFetchLockToken: { type: String, select: false },
+    mediaFetchLockExpiresAt: { type: Date, select: false },
     orderId: { type: String, ref: 'Order' }, // Optional link to an order if we can correlate
     isBot: { type: Boolean, default: false } // True if sent by the automation system
 }, {

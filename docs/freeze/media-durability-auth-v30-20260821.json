@@ -1,0 +1,94 @@
+{
+  "freezeId": "media-durability-auth-v30-20260821",
+  "status": "candidate_validated_activation_locked",
+  "lockedAt": "2026-08-21T17:24:26Z",
+  "country": "EC",
+  "parentFreezeId": "guard-alias-integration-v29-2-20260818",
+  "parentManifestSha256": "aa41a329514f72b2b372c622c3bd992db0e5fe6d98a26902ebaf819a5b00e4ee",
+  "baseProductionSha": "b26bacdd6c72711a70834e69915285e677649f1a",
+  "publicationStatus": "local_candidate_not_published",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-21T17:24:26Z",
+    "scope": "implement_media_durability_audit_without_deploy_or_send"
+  },
+  "operatorActivationApproval": {
+    "status": "required_explicit_after_report",
+    "approvedAt": "",
+    "scope": "activate_media_durability_v30_ec"
+  },
+  "rollback": {
+    "functional": "b26bacdd6c72711a70834e69915285e677649f1a",
+    "operational": "production_release_current_before_v30"
+  },
+  "storage": {
+    "productionRoot": "/opt/vitalismen-automacao/shared/media/inbound",
+    "publicEndpoint": "/api/whatsapp/media/:messageId",
+    "providerUrlExposedToPanel": false,
+    "tokenInUrl": false
+  },
+  "policy": {
+    "ancestorFreezesPreserved": true,
+    "cleanChatV29Preserved": true,
+    "providerIdentityPreserved": true,
+    "persistentInboundStorage": true,
+    "authenticatedBlobLoading": true,
+    "directActivationBlocked": true,
+    "commercialFlowChanged": false
+  },
+  "realEffects": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false,
+    "activation": false
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "src/index.js",
+    "src/models/Message.js",
+    "src/routes/whatsapp.js",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/MEDIA_DURABILITY_AUTH_FREEZE_V30_20260821.md",
+    "public/panel-intelligence/authenticated-media.js",
+    "scripts/assert-media-durability-activation-approved-v30.mjs",
+    "scripts/guard-media-durability-auth-v30.mjs",
+    "src/routes/zapi.js",
+    "src/services/inboundMediaStorageService.js",
+    "src/services/mediaDurabilityAuthFreezeRuntimeGuardV30.js",
+    "src/services/zapiClient.js",
+    "tests/inbound-media-storage.test.mjs",
+    "tests/media-durability-auth-v30.test.mjs",
+    "tests/panel-authenticated-media.test.mjs",
+    "tests/zapi-outbound-audio-contract.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "9278dc9647d50f1e4d79e0cb7acf3873cd56b3cd9fe9bebabb3254054217a881",
+    "docs/ARQUIVOS_OFICIAIS.md": "45a52e66854669f365c13251418489a259b23335fefebc123709ec3cefffae48",
+    "package.json": "d551d3536c19486af97680f37ba398438a9dacceefe938fa42427b2a3d5cd67a",
+    "public/qr.html": "b7b41e130000e93965c60d69d2df67512eb7c7408acba333c5a2cad8b7399b47",
+    "src/index.js": "28c5c25664c6be90dc6d7dadbfda0d2c988250860bdd0a28741077eac073ae93",
+    "src/models/Message.js": "58a851cb4bc1ae563760309356f0da1c88e81ebfabe3a1834abf9028649b2203",
+    "src/routes/whatsapp.js": "defeb9f87b675436eef4d6ded0d29a18b3519038729c973d2cc8020f73d9f339",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "49839f9a1d7a3994e7181162441b6d0605ab8a89481aaa5094bbab715db1005e",
+    "docs/MEDIA_DURABILITY_AUTH_FREEZE_V30_20260821.md": "e7b1c1f30c9284f06d15a8a3266ab8ce2ea23405eb9980cb9f7b08aae3d4f2e8",
+    "public/panel-intelligence/authenticated-media.js": "b0ddf95aeb874e8a5e7543f120a87f295692adec6f9ff674db83a3b2388c7a87",
+    "scripts/assert-media-durability-activation-approved-v30.mjs": "79e7c099447077fff50e5217da2c5088ce039b6a6caeb926f36ab153c91e7abd",
+    "scripts/guard-media-durability-auth-v30.mjs": "048766254a368843dcadd20d5443c6a1fa57cbaccae54e282d39a33679b5396c",
+    "src/routes/zapi.js": "7440c78c4b8fad5a6af857baf04a39d0528470db1030090400d7a1858f2ceb34",
+    "src/services/inboundMediaStorageService.js": "6c39737c8f87b339940631806385b7cdbe90955e9088b6c019430fbe6b4c4ce1",
+    "src/services/mediaDurabilityAuthFreezeRuntimeGuardV30.js": "32ff529f1af10d76ddeab05592ed3b26d77dfb116f8f2ab9d986135cc1585b96",
+    "src/services/zapiClient.js": "175d7a3121686f1c629df7d1cd668c6960c9ffcec370d78d7c15142de9e6eb0c",
+    "tests/inbound-media-storage.test.mjs": "eaaa7ee98f5b8ae5cbf5395d9475faf15385ea3ff5501ec1ea56207b003b503d",
+    "tests/media-durability-auth-v30.test.mjs": "f2b7184d8ca3104eee47496a8ad648bc9ca02675a8f93f692a88bfcdea61a98c",
+    "tests/panel-authenticated-media.test.mjs": "aa6df633d8f4ed5ec62a0afb15a1089e033c4b75a6e6b6b0a8565552bcf4178d",
+    "tests/zapi-outbound-audio-contract.test.mjs": "58f0ef5a7a6eab77c50e352302be8d1af41a3e6a92fcc58c3f49d3fb1d088a6a"
+  }
+}
