@@ -141,7 +141,25 @@ const mimeFromFilePath = (filePath = '', fallback = 'application/octet-stream') 
 
 const mediaValue = ({ media = '', filePath = '', mime = '' } = {}) => {
     const value = clean(media);
-    if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+    if (/^https?:\/\//i.test(value)) {
+        try {
+            const parsed = new URL(value);
+            if (parsed.protocol !== 'https:' || !parsed.hostname) throw new Error('invalid');
+        } catch {
+            const error = new Error('zapi_media_url_invalid_or_insecure');
+            error.statusCode = 400;
+            throw error;
+        }
+        return value;
+    }
+    if (value.startsWith('data:')) {
+        if (!/^data:[^;,]+;base64,[a-z0-9+/]+=*$/i.test(value)) {
+            const error = new Error('zapi_media_data_url_invalid');
+            error.statusCode = 400;
+            throw error;
+        }
+        return value;
+    }
     const resolved = filePath || value;
     if (!resolved || !fs.existsSync(resolved)) {
         const error = new Error('zapi_media_file_not_found');
@@ -150,6 +168,20 @@ const mediaValue = ({ media = '', filePath = '', mime = '' } = {}) => {
     }
     const finalMime = clean(mime) || mimeFromFilePath(resolved);
     return `data:${finalMime};base64,${fs.readFileSync(resolved).toString('base64')}`;
+};
+
+const assertMediaKind = (options = {}, expectedKind = '') => {
+    const rawMedia = clean(options.media);
+    if (/^https:\/\//i.test(rawMedia)) return;
+    let mime = clean(options.mime).split(';')[0].toLowerCase();
+    if (!mime && rawMedia.startsWith('data:')) mime = clean(rawMedia.slice(5).split(/[;,]/)[0]).toLowerCase();
+    const localPath = options.filePath || (!rawMedia.startsWith('data:') ? rawMedia : '');
+    if (!mime && localPath) mime = mimeFromFilePath(localPath);
+    if (!mime.startsWith(`${expectedKind}/`)) {
+        const error = new Error('zapi_media_mime_mismatch');
+        error.statusCode = 400;
+        throw error;
+    }
 };
 
 const sendZapiMedia = async ({
@@ -197,23 +229,32 @@ const sendZapiMedia = async ({
     return response.data;
 };
 
-export const sendZapiAudio = (options = {}) => sendZapiMedia({
-    ...options,
-    pathName: '/send-audio',
-    payloadKey: 'audio'
-});
+export const sendZapiAudio = (options = {}) => {
+    assertMediaKind(options, 'audio');
+    return sendZapiMedia({
+        ...options,
+        pathName: '/send-audio',
+        payloadKey: 'audio'
+    });
+};
 
-export const sendZapiImage = (options = {}) => sendZapiMedia({
-    ...options,
-    pathName: '/send-image',
-    payloadKey: 'image'
-});
+export const sendZapiImage = (options = {}) => {
+    assertMediaKind(options, 'image');
+    return sendZapiMedia({
+        ...options,
+        pathName: '/send-image',
+        payloadKey: 'image'
+    });
+};
 
-export const sendZapiVideo = (options = {}) => sendZapiMedia({
-    ...options,
-    pathName: '/send-video',
-    payloadKey: 'video'
-});
+export const sendZapiVideo = (options = {}) => {
+    assertMediaKind(options, 'video');
+    return sendZapiMedia({
+        ...options,
+        pathName: '/send-video',
+        payloadKey: 'video'
+    });
+};
 
 export const sendZapiDocument = (options = {}) => {
     const extension = clean(options.extension || path.extname(String(options.filePath || options.media || '')).slice(1) || 'bin');

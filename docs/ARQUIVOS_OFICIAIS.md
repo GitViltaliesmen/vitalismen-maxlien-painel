@@ -244,3 +244,18 @@ Pode baixar arquivo oficial para `.codex-tmp/` apenas para preparar diff. Depois
 4. Validar em producao.
 
 Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" quando isso nao estiver claro.
+
+### Microcamada V30 — mídia inbound persistente e painel autenticado — 2026-08-21
+
+- Base Git reconstruída: `production` em `b26bacdd6c72711a70834e69915285e677649f1a`; branch isolada `codex/media-durability-auth-20260821`.
+- Produção lida antes da alteração: `/opt/vitalismen-automacao/current`, release funcional baseada em `b26bacd`; nenhum arquivo de produção foi substituído nesta preparação.
+- Causa comprovada: `/api/whatsapp/media-proxy` está após `authMiddleware`, enquanto `<audio>` e `<img>` não enviavam Bearer; a chamada anônima retornava 401. O cache do proxy estava em `public/media/remote-cache` dentro do release.
+- Captura e persistência: `src/services/inboundMediaStorageService.js`, `src/routes/zapi.js` e os campos aditivos de `src/models/Message.js`.
+- Leitura autenticada e Range: `src/routes/whatsapp.js`, endpoint `/api/whatsapp/media/:messageId`.
+- UX sem segredo na URL: `public/panel-intelligence/authenticated-media.js` e `public/qr.html`.
+- Contrato outbound endurecido: `src/services/zapiClient.js` rejeita arquivo/MIME incompatível, data URL inválida e URL remota não HTTPS antes da chamada ao provider.
+- Testes sem envio: `tests/inbound-media-storage.test.mjs`, `tests/panel-authenticated-media.test.mjs`, `tests/zapi-outbound-audio-contract.test.mjs` e regressões V29.
+- Freeze/guard: `docs/MEDIA_DURABILITY_AUTH_FREEZE_V30_20260821.md`, `docs/freeze/media-durability-auth-v30-20260821.json` e `scripts/guard-media-durability-auth-v30.mjs`.
+- Storage oficial quando ativado: `/opt/vitalismen-automacao/shared/media/inbound`; o runtime cria subdiretórios por data com nomes derivados de SHA-256, sem telefone ou token.
+- Estado: PR rascunho #17 publicado; ativação controlada autorizada em `2026-08-21T18:00:25Z`, sem disparos em massa e com Z-API preservada até o WhatsApp Web estar pronto. No momento da autorização, nenhuma mensagem real, pedido, Dropi, Meta/CAPI, banco oficial, PM2, symlink ou serviço havia sido alterado.
+- Rollback funcional: retornar a `b26bacdd6c72711a70834e69915285e677649f1a`; os campos Mongo aditivos podem permanecer sem uso.

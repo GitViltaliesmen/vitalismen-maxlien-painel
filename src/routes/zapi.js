@@ -22,6 +22,11 @@ import {
     reserveCallAutoReply,
     zapiCallNotification
 } from '../services/callAutoReplySafetyService.js';
+import {
+    captureInboundMedia,
+    inboundMediaInternalUrl,
+    INBOUND_MEDIA_STATUS
+} from '../services/inboundMediaStorageService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -440,6 +445,31 @@ const zapiMediaMimeTypeFromPayload = (payload = {}) => firstString(
     payload.data?.document?.mimetype
 );
 
+const zapiMediaIdFromPayload = (payload = {}) => firstString(
+    payload.mediaId,
+    payload.media?.id,
+    payload.image?.id,
+    payload.image?.mediaId,
+    payload.audio?.id,
+    payload.audio?.mediaId,
+    payload.video?.id,
+    payload.video?.mediaId,
+    payload.document?.id,
+    payload.document?.mediaId,
+    payload.sticker?.id,
+    payload.sticker?.mediaId,
+    payload.message?.mediaId,
+    payload.message?.image?.id,
+    payload.message?.audio?.id,
+    payload.message?.video?.id,
+    payload.message?.document?.id,
+    payload.data?.mediaId,
+    payload.data?.image?.id,
+    payload.data?.audio?.id,
+    payload.data?.video?.id,
+    payload.data?.document?.id
+);
+
 const zapiMediaTypeFromUrlOrMime = (url = '', mime = '') => {
     const mediaUrl = String(url || '').toLowerCase();
     const mediaMime = String(mime || '').toLowerCase();
@@ -713,6 +743,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const body = zapiTextFromPayload(payload);
     const type = zapiMessageTypeFromPayload(payload);
     const mediaUrl = zapiMediaUrlFromPayload(payload);
+    const mediaMime = zapiMediaMimeTypeFromPayload(payload);
+    const providerMediaId = zapiMediaIdFromPayload(payload);
     if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
     if (zapiInboundLooksLikeGroup(payload, phone)) {
         return { recorded: false, reason: 'group_or_community_ignored', phone, providerMessageId, providerZaapId };
@@ -725,6 +757,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const typeByFile = zapiMediaTypeFromUrlOrMime(mediaUrl, zapiMediaMimeTypeFromPayload(payload));
     const effectiveType = typeByFile || (!mediaUrl && bodyText && type !== 'chat' && !zapiBodyLooksLikeMediaToken(bodyText) ? 'chat' : type);
     const hasDeclaredMedia = Boolean(mediaUrl) || effectiveType !== 'chat';
+    const internalMediaUrl = hasDeclaredMedia ? inboundMediaInternalUrl(messageId) : '';
     const normalizedBody = typeof body === 'string' && body.trim()
         ? body
         : hasDeclaredMedia
@@ -757,8 +790,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 body: normalizedBody,
                 type: effectiveType,
                 hasMedia: Boolean(mediaUrl) || effectiveType !== 'chat',
-                mediaUrl,
-                mediaPreviewUrl: mediaUrl,
+                mediaUrl: internalMediaUrl,
+                mediaPreviewUrl: internalMediaUrl,
                 timestamp: Math.floor(now.getTime() / 1000),
                 sessionId: 'zapi',
                 ownerPhoneDigits: '',
@@ -770,11 +803,28 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 providerMessageId,
                 providerZaapId,
                 providerStatus: 'received',
-                providerPayload: payload
+                providerPayload: payload,
+                ...(hasDeclaredMedia ? {
+                    providerMediaId,
+                    originalMime: mediaMime,
+                    mediaReceivedAt: now,
+                    mediaStorageStatus: INBOUND_MEDIA_STATUS.RECEIVED,
+                    mediaDownloadError: ''
+                } : {})
             }
         },
         { upsert: true }
     );
+    const mediaHealth = hasDeclaredMedia
+        ? await captureInboundMedia({
+            messageId,
+            providerUrl: mediaUrl,
+            providerMediaId,
+            originalMime: mediaMime,
+            expectedType: effectiveType,
+            receivedAt: now
+        })
+        : null;
     const readInference = await markPreviousOutboundReadFromCustomerReply({ chatId, phone, inboundAt: now });
 
     const state = await ContactState.findOne({
@@ -935,6 +985,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         messageId,
         body: normalizedBody,
         bodyLength: normalizedBody.length,
+        mediaHealth,
         readInference,
         publicVslLeadEntry,
         routeToBot: Boolean(normalizedBody)
@@ -985,6 +1036,9 @@ const normalizeDeliveryStatus = (payload = {}) => {
     }
     return { deliveryStatus: 'sent', providerStatus: raw || 'delivery_callback', ack: 1, sendError: '' };
 };
+
+export const normalizeZapiDeliveryStatus = (payload = {}) => normalizeDeliveryStatus(payload);
+export const zapiDeliveryStatusRank = (status = '', ack = 0) => deliveryRank(status, ack);
 
 const applyZapiDeliveryPayload = async (payload = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);

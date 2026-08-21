@@ -61,6 +61,10 @@ import {
     evaluateLogisticsOutbound,
     publicLogisticsStateV29
 } from '../services/logisticsCommunicationV29.js';
+import {
+    inboundMediaStorageRoot,
+    loadStoredInboundMedia
+} from '../services/inboundMediaStorageService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -270,6 +274,18 @@ const customerImageDataUrlFromMedia = async (mediaUrl = '') => {
     if (!contentType) throw new Error('customer_image_unsupported_type');
     if (!bytes?.length || bytes.length > CUSTOMER_IMAGE_MAX_BYTES) throw new Error('customer_image_invalid_size');
     return `data:${contentType};base64,${bytes.toString('base64')}`;
+};
+
+const customerImageDataUrlFromStoredMessage = async (message = {}) => {
+    const mime = customerImageContentType(message.storedMime, message.storedMediaPath);
+    if (!mime) throw new Error('customer_image_type_not_allowed');
+    const stored = await loadStoredInboundMedia({
+        filePath: message.storedMediaPath,
+        maxBytes: CUSTOMER_IMAGE_MAX_BYTES
+    });
+    const buffer = await fs.promises.readFile(stored.filePath);
+    if (!buffer.length) throw new Error('customer_image_empty');
+    return `data:${mime};base64,${buffer.toString('base64')}`;
 };
 
 const TECHNICAL_ZAPI_ALERT_REGEX = /^ALERTA: o WhatsApp conectado/i;
@@ -1890,8 +1906,19 @@ const resolveMessageMediaAttachments = async (message = {}) => {
     return attachments;
 };
 
+const panelSafeProviderPayload = (payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+    const safe = {};
+    for (const key of ['messageId', 'message_id', 'id', 'zaapId', 'status', 'ack', 'type']) {
+        const value = payload[key];
+        if (['string', 'number', 'boolean'].includes(typeof value)) safe[key] = value;
+    }
+    return Object.keys(safe).length ? safe : null;
+};
+
 const enrichMessagesWithMedia = async (messages = []) => Promise.all((messages || []).map(async (message) => {
     const item = typeof message.toObject === 'function' ? message.toObject() : { ...message };
+    item.providerPayload = panelSafeProviderPayload(item.providerPayload);
     const mediaAttachments = await resolveMessageMediaAttachments(item);
     if (mediaAttachments.length && !item.mediaUrl) {
         item.mediaUrl = mediaAttachments[0].mediaUrl;
@@ -4267,6 +4294,36 @@ router.get('/media-proxy', async (req, res) => {
     }
 });
 
+router.get('/media/:messageId', async (req, res) => {
+    try {
+        const messageId = String(req.params.messageId || '').trim();
+        if (!messageId) return res.status(400).json({ error: 'media_message_id_required' });
+        const message = await Message.findById(messageId)
+            .select('+storedMediaPath')
+            .lean();
+        if (!message || !message.hasMedia) return res.status(404).json({ error: 'media_not_found' });
+        if (message.mediaStorageStatus !== 'READY') {
+            return res.status(409).json({
+                error: 'media_not_ready',
+                storageStatus: message.mediaStorageStatus || 'FAILED',
+                reason: message.mediaDownloadError || 'media_not_ready'
+            });
+        }
+        const stored = await loadStoredInboundMedia({
+            filePath: message.storedMediaPath,
+            storageRoot: inboundMediaStorageRoot()
+        });
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        return serveLocalMediaFile(req, res, stored.filePath, message.storedMime || 'application/octet-stream');
+    } catch (error) {
+        const code = String(error?.code || 'stored_media_unavailable');
+        const status = Number(error?.statusCode) || (code === 'stored_file_missing' ? 404 : 500);
+        console.error('[INBOUND_MEDIA] falha ao servir arquivo persistido:', code);
+        return res.status(status).json({ error: 'stored_media_unavailable', reason: code });
+    }
+});
+
 // GET /api/whatsapp/messages/:phone
 router.get('/messages/:phone', async (req, res) => {
     try {
@@ -4366,12 +4423,14 @@ router.post('/messages/:phone/read-customer-image', adminOnly, async (req, res) 
         const message = await Message.findOne(withVisiblePanelMessages({
             _id: messageId,
             $or: or
-        })).lean();
+        })).select('+storedMediaPath').lean();
         if (!message) return res.status(404).json({ error: 'Imagem nao encontrada neste atendimento' });
         if (message.isFromMe) return res.status(403).json({ error: 'Somente imagens recebidas do cliente podem ser lidas.' });
         const mediaUrl = String(message.mediaUrl || '').trim();
         if (!mediaUrl) return res.status(400).json({ error: 'A imagem ainda nao possui arquivo disponivel.' });
-        const imageDataUrl = await customerImageDataUrlFromMedia(mediaUrl);
+        const imageDataUrl = message.mediaStorageStatus === 'READY' && message.storedMediaPath
+            ? await customerImageDataUrlFromStoredMessage(message)
+            : await customerImageDataUrlFromMedia(mediaUrl);
         const data = await readEcuadorCustomerImage({ imageDataUrl });
         res.json({ success: true, data });
     } catch (error) {

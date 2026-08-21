@@ -622,3 +622,15 @@ Ao retomar:
 2. rodar `npm run official:audit`;
 3. ler o resultado antes de qualquer alteracao;
 4. so mexer no funil depois de confirmar que o VPS segue com o fluxo antigo bloqueado.
+
+## Microcamada V30 de durabilidade e autenticação de mídia
+
+O freeze `docs/MEDIA_DURABILITY_AUTH_FREEZE_V30_20260821.md` sucede a V29.2 sem alterar funil, produto, preço, Dropi, Meta/CAPI, scheduler, número WhatsApp ou regras de pós-venda. A causa reproduzida no painel era arquitetural: `PANEL_AUTH_DISABLED=false`, mas elementos HTML de áudio e imagem tentavam abrir diretamente o proxy protegido sem poder enviar o Bearer, gerando HTTP 401. Além disso, o cache remoto ficava dentro de cada release e não sobrevivia à próxima ativação.
+
+Para toda nova mídia inbound Z-API, o webhook registra `RECEIVED`, baixa uma única vez, passa por `FETCHING`, valida HTTPS/allowlist, redirects, limite, assinatura, MIME e codec, grava atomicamente na raiz compartilhada `/opt/vitalismen-automacao/shared/media/inbound`, marca `STORED` e somente então libera `READY`. Falhas ficam em `FAILED` com um código explícito e sem novo download automático durante a apresentação do painel.
+
+O `Message` preserva `providerMessageId`, `providerMediaId`, MIME original e armazenado, codec, tamanho, SHA-256, timestamps e diagnóstico. A URL temporária do provedor fica fora da resposta comum do painel. O navegador usa o endpoint autenticado `/api/whatsapp/media/:messageId`, envia Bearer por `fetch` e aplica uma URL `blob:` ao player/imagem; nenhum token é colocado em query string.
+
+Histórico anterior continua usando o proxy autenticado com o mesmo carregamento por Blob. Se a URL antiga já expirou, o painel mostra o motivo em vez de renderizar player ou imagem quebrados. A apresentação V29 continua responsável por unificar registros com o mesmo provider ID: uma mensagem real permanece uma bolha e seus estados `sent/delivered/read` continuam na mesma identidade.
+
+A V30 foi publicada no PR rascunho #17 e recebeu autorização posterior ao relatório em `2026-08-21T18:00:25Z` para ativação controlada. A autorização exige canário de áudio/imagem, proíbe disparos em massa e preserva a Z-API até o WhatsApp Web estar efetivamente conectado; retirada do transporte Z-API continua sendo uma migração separada.
