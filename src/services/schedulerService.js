@@ -679,6 +679,21 @@ const checkCarrierStatusSweep = async () => {
         if (result.refreshed || result.statusChanged || result.failed) {
             console.log(`[CARRIER_SWEEP] Guias ${result.refreshed}/${result.processed}; alteradas ${result.statusChanged}; falhas ${result.failed}; limite ${limit}.`);
         }
+        const verifiedReady = (result.results || []).filter((item) => (
+            item.success
+            && item.afterStatus === 'READY_FOR_PICKUP'
+        )).length;
+        if (verifiedReady > 0) {
+            const urgentLimit = Math.max(
+                verifiedReady,
+                Math.min(8, parseNumber('SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT', 8))
+            );
+            const urgent = await processShipmentStatusDispatch({
+                limit: urgentLimit,
+                actions: ['ready_for_pickup']
+            });
+            console.log(`[PICKUP_URGENT_DISPATCH] Servientrega confirmou ${verifiedReady}; enviados ${urgent.sent}/${urgent.processed}; pendentes permanecem na fila persistida.`);
+        }
     } catch (error) {
         console.error('Carrier Status Sweep Scheduler Error:', error);
     } finally {
