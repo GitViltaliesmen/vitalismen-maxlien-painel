@@ -6,6 +6,7 @@ import test from 'node:test';
 const helperSource = fs.readFileSync('public/panel-intelligence/authenticated-media.js', 'utf8');
 const panelSource = fs.readFileSync('public/qr.html', 'utf8');
 const whatsappRouteSource = fs.readFileSync('src/routes/whatsapp.js', 'utf8');
+const indexSource = fs.readFileSync('src/index.js', 'utf8');
 
 const loadRuntime = ({ fetchImpl = async () => new Response('missing', { status: 404 }) } = {}) => {
     const window = {
@@ -58,6 +59,8 @@ test('imagem autenticada também vira Blob local utilizável pelo link e pelo im
     assert.equal(result.objectUrl, 'blob:test-10');
     assert.equal(result.contentType, 'image/jpeg');
     assert.equal(result.size, 10);
+    assert.match(indexSource, /"img-src": \["'self'", "data:", "blob:", "https:"\]/);
+    assert.match(indexSource, /"media-src": \["'self'", "data:", "blob:", "https:"\]/);
 });
 
 test('falha de provider tem motivo visível e específico para áudio e imagem', () => {
