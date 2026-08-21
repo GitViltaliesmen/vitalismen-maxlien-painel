@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/officialWhatsappPhoneFreezeRuntimeGuardV32.js';
+import './services/panelImageCspFreezeRuntimeGuardV33.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -162,7 +162,7 @@ app.use(helmet({
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "script-src": ["'self'", "'unsafe-inline'"],
-            "img-src": ["'self'", "data:", "https:"],
+            "img-src": ["'self'", "data:", "blob:", "https:"],
             "media-src": ["'self'", "data:", "blob:", "https:"]
         }
     },

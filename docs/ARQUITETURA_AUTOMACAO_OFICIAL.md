@@ -661,3 +661,16 @@ O canário V32 permite uma saída individual de áudio e imagem aprovados para o
 telefone de QA. A confirmação inbound exige que o operador responda a partir
 desse telefone com uma mídia de voz e uma imagem novas; só então podem ser
 comprovados provider, `READY`, storage compartilhado e painel autenticado.
+
+## Microcamada V33 de imagem autenticada no painel
+
+O freeze `docs/PANEL_IMAGE_CSP_BLOB_FREEZE_V33_20260821.md` sucede a V32 e
+corrige exclusivamente a política de conteúdo do painel. A captura inbound,
+persistência `READY` e endpoint autenticado já entregavam JPEG válido, mas a
+diretiva `img-src` não permitia a URL `blob:` criada no navegador depois do
+`fetch` com Bearer. A diretiva passa a aceitar `blob:` para imagens, assim como
+`media-src` já aceitava para áudio e vídeo.
+
+Autenticação, Bearer, endpoint `/api/whatsapp/media/:messageId`, storage
+compartilhado, `default-src`, `object-src`, `script-src`, Z-API, números,
+clientes, pedidos, Dropi, Meta/CAPI, funil e pós-venda permanecem inalterados.

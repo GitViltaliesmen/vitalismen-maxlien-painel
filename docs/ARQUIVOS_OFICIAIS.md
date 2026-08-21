@@ -284,3 +284,14 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Freeze: `docs/OFFICIAL_WHATSAPP_PHONE_TEST_V32_20260821.md` e `docs/freeze/official-whatsapp-phone-test-v32-20260821.json`.
 - Autorização: ajuste, deploy e canário individual de áudio/imagem solicitados pelo operador em `2026-08-21T22:05:22Z`; disparo em massa continua proibido.
 - Rollback: retornar à release `/opt/vitalismen-automacao/releases/20260821T193942Z_production-20260821-03cee3a` e restaurar o backup do `.env` V32.
+
+### Microcamada V33 — imagem autenticada no painel — 2026-08-21
+
+- Produção lida antes da alteração: `/opt/vitalismen-automacao/releases/20260821T222100Z_production-20260821-4dbb541`.
+- Evidência real: três imagens inbound JPEG em `READY`; endpoint autenticado HTTP 200/206; `<img>` com URL `blob:` bloqueado pela CSP pública.
+- Causa: `src/index.js` autorizava `blob:` em `media-src`, mas não em `img-src`.
+- Correção oficial: adicionar somente `blob:` à diretiva `img-src` do Helmet.
+- Testes: `tests/panel-authenticated-media.test.mjs` e `tests/panel-image-csp-v33.test.mjs`.
+- Freeze/guard: `docs/PANEL_IMAGE_CSP_BLOB_FREEZE_V33_20260821.md`, `docs/freeze/panel-image-csp-blob-v33-20260821.json` e `scripts/guard-panel-image-csp-v33.mjs`.
+- Preservado: autenticação, endpoint, storage, áudio, Z-API, números, clientes, pedidos, Dropi, Meta/CAPI, funil e pós-venda.
+- Rollback funcional: retornar à release V32 e preservar o storage compartilhado inbound.

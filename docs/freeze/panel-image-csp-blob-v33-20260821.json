@@ -1,0 +1,84 @@
+{
+  "freezeId": "panel-image-csp-blob-v33-20260821",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-21T22:43:28Z",
+  "country": "EC",
+  "parentFreezeId": "official-whatsapp-phone-test-v32-20260821",
+  "parentManifestSha256": "ac0ad90730931ec3f15fc6a0effe424044afffa88fc59b943901262f525d1e37",
+  "baseProductionSha": "14ad0a797c10a7133235b75509c00eb6b57777ee",
+  "publicationStatus": "authorized_for_draft_pr_and_controlled_activation",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-21T22:43:28Z",
+    "scope": "fix_authenticated_inbound_images_in_panel_v33",
+    "constraints": [
+      "img_src_add_blob_only",
+      "preserve_authenticated_media_endpoint",
+      "preserve_zapi_and_phone_policy",
+      "no_whatsapp_sends",
+      "no_commercial_flow_changes"
+    ]
+  },
+  "policy": {
+    "authenticatedImageBlobAllowed": true,
+    "authenticatedMediaEndpointPreserved": true,
+    "cspChangeLimitedToImgBlob": true,
+    "zapiAndPhonePolicyPreserved": true,
+    "commercialFlowChanged": false
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260821T222100Z_production-20260821-4dbb541",
+    "preserveSharedInboundStorage": true,
+    "restoreEnvBackup": true
+  },
+  "overriddenParentHashes": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "03e5f319e48657b80b5213901f24a0622c7cd8cd4c92ac23f4c8a2692b8cff28",
+    "docs/ARQUIVOS_OFICIAIS.md": "c147e12b1ecae0e3d38a99953a1e4bf544f1ba85eab656e380df641fef86f4e7",
+    "package.json": "1d92f21b680b4f3dfe4dfe9bd14e0ed28781593b7d81e14feff54ed3814653e0",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "6ea930b727c23a2a17c58de13efbecb9eb72fd6d114bd3f8f6da59a4a1c1fe7d",
+    "src/index.js": "68fecd3d0df2e7f5156e1eaf92c1e7464297b0ecf6aac5bbb5f6cbaa19042d7f",
+    "tests/media-durability-auth-v30.test.mjs": "40e03ed02641a9302bfe71888522ffecf8d6b4bd34063c4722ce93da7bfcfb81",
+    "tests/panel-authenticated-media.test.mjs": "aa6df633d8f4ed5ec62a0afb15a1089e033c4b75a6e6b6b0a8565552bcf4178d",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "dd968957e15034199d659ca0e2e7858d98da2295dd9e7a6b6e51bd99bc050eb5"
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "scripts/guard-official-whatsapp-phone-v32.mjs",
+    "src/index.js",
+    "tests/media-durability-auth-v30.test.mjs",
+    "tests/panel-authenticated-media.test.mjs",
+    "tests/panel-call-dropi-safety-v21.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/PANEL_IMAGE_CSP_BLOB_FREEZE_V33_20260821.md",
+    "scripts/assert-panel-image-csp-activation-approved-v33.mjs",
+    "scripts/guard-panel-image-csp-v33.mjs",
+    "src/services/panelImageCspFreezeRuntimeGuardV33.js",
+    "tests/panel-image-csp-v33.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "d4d2211d2308b3cea3fd1df12906057a844c1acd76a254e95b8a163d943023c2",
+    "docs/ARQUIVOS_OFICIAIS.md": "e462486020d067cc17b530519fd2cdd77e4c7b0c435e1e286e6318dd2540bb0c",
+    "package.json": "505866363647727f27c2039a2dc435e3f6fb749be11eae540237d56e4ecf5f75",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "8c79572fd5d6434cfb8661059f382c6637938a8c970f6a7b2d07dba2da312269",
+    "src/index.js": "eb84da092d7a43ffa4844d0a7b4693d8e9f9a5f79bcad7aa967095a333ffb833",
+    "tests/media-durability-auth-v30.test.mjs": "14c097419a2ce9d9a15dc656e28652faf6199ab636c4704f446e438372d26a0f",
+    "tests/panel-authenticated-media.test.mjs": "5c01652f2ac371e820bdea02abd17085ce86f5e15ad478c5d70ef717bc767559",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "be275996d8b7fb6d1fa4734e842ba457b2bfcadb40ea730656555c84b154b507",
+    "docs/PANEL_IMAGE_CSP_BLOB_FREEZE_V33_20260821.md": "21b06db16e4a60f98fffe4f429b19f977da06f25198d8bd6df0f434b24a83f4b",
+    "scripts/assert-panel-image-csp-activation-approved-v33.mjs": "b146140dc95e2fd8c0f7e41940e9f9dea9aa28fcd4d42179d17ca4fd0a3fceb6",
+    "scripts/guard-panel-image-csp-v33.mjs": "c419fc3bd7d0a1eec5e4f64a09ceeef067d6b0b3f9c67aba271b388f27189335",
+    "src/services/panelImageCspFreezeRuntimeGuardV33.js": "07b3243541814f04497f2f69af94c143bab883e5f1d55d69041cde6abefbc2ed",
+    "tests/panel-image-csp-v33.test.mjs": "4beee0a813503b47b35ecd3b974889adda9d8e78fae4bfecb45091bf33c2a95f"
+  }
+}
