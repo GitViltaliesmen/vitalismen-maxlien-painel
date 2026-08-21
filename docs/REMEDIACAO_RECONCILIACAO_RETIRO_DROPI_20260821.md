@@ -77,3 +77,18 @@ Reativar a release anterior no mecanismo oficial de releases. Os marcos persisti
 - PM2: `vitalismen-automation` online, `pm_cwd=/opt/vitalismen-automacao/current` e `pm_exec_path=/opt/vitalismen-automacao/current/src/index.js`.
 - Health oficial e `/n/`: HTTP 200.
 - Rollback funcional preservado: `/opt/vitalismen-automacao/releases/20260821T164039Z_production-20260821-0186125`.
+
+## Auditoria final sem disparos — 2026-08-21T18:42:16Z
+
+A revisão consolidada considerou mensagem, áudio, evento automático, evento recuperado do histórico e notification ledger. O estado encontrado foi:
+
+- 27 pedidos de agência com liberação explícita `PARA RETIRO EN AGENCIA SERVIENTREGA` no Dropi e `pickupReadyVerified=true`;
+- 19 com evidência persistida de aviso;
+- oito sem aviso e protegidos por `manualOnly=true`;
+- `EN_RUTA / Ingresando en Agencia`: `189375168`, `189375575`, `189381404` e `189381405`;
+- `NOVEDAD`: `189375430`, `189375463`, `189380633` e `189381403`;
+- zero candidatos seguros para envio e zero mensagens disparadas durante a auditoria.
+
+Os oito registros foram revisados individualmente e permanecem bloqueados. A liberação explícita do Dropi continua registrada sem apagar a evidência, mas a divergência da transportadora impede qualquer aviso novo até uma revisão posterior.
+
+O auditor `scripts/audit-pickup-notification-evidence.mjs` passa a reconhecer ledger persistido e evento recuperado com `sourceMessageId`. A mudança corrige apenas o relatório: não altera o scheduler, o dispatcher, os locks, o histórico ou o transporte WhatsApp.

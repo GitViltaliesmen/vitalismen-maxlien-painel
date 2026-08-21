@@ -67,6 +67,31 @@ const eventEvidence = (shipment, kind) => {
     ));
 };
 
+const recoveredEventEvidence = (shipment, kind) => {
+    const expectedKind = {
+        ready_for_pickup: 'ready_for_pickup_notified',
+        day1: 'reminder_day1',
+        soft_day2: 'reminder_soft_day2',
+        day3: 'reminder_day3',
+        soft_day4: 'reminder_soft_day4',
+        day5: 'reminder_day5',
+        soft_day6: 'reminder_soft_day6'
+    }[kind];
+    return (shipment?.events || []).some((event) => (
+        event?.kind === expectedKind
+        && event?.payload?.recoveredFromExistingNotice === true
+        && Boolean(event?.payload?.sourceMessageId)
+    ));
+};
+
+const ledgerEvidence = (shipment, kind) => (
+    (shipment?.notificationLedger || []).some((entry) => (
+        entry?.notification_type === kind
+        && Boolean(entry?.provider_message_id)
+        && Boolean(entry?.sent_at || entry?.delivered_at || entry?.read_at)
+    ))
+);
+
 const main = async () => {
     if (!process.env.MONGODB_URI) {
         throw new Error('MONGODB_URI ausente.');
@@ -94,7 +119,9 @@ const main = async () => {
             const exactMessage = messages.some((message) => messageMatchesPickupNoticeKind(message, kind));
             const exactAudio = audioEvidence(shipment, kind);
             const exactEvent = eventEvidence(shipment, kind);
-            const hasEvidence = exactMessage || exactAudio || exactEvent;
+            const recoveredEvent = recoveredEventEvidence(shipment, kind);
+            const exactLedger = ledgerEvidence(shipment, kind);
+            const hasEvidence = exactMessage || exactAudio || exactEvent || recoveredEvent || exactLedger;
             notices[kind] = {
                 marked: Boolean(markedAt),
                 markedAt,
@@ -102,6 +129,8 @@ const main = async () => {
                 message: exactMessage,
                 audio: exactAudio,
                 event: exactEvent,
+                recoveredEvent,
+                ledger: exactLedger,
                 falsePositive: Boolean(markedAt) && !hasEvidence
             };
         }
@@ -134,11 +163,42 @@ const main = async () => {
     }, null, 2));
 };
 
-main()
-    .catch((error) => {
-        console.error(`[PICKUP-EVIDENCE-AUDIT] ${error.message || error}`);
-        process.exitCode = 1;
-    })
-    .finally(async () => {
-        await mongoose.disconnect().catch(() => null);
-    });
+const runSelfTest = () => {
+    const recoveredFixture = {
+        events: [{
+            kind: 'ready_for_pickup_notified',
+            payload: {
+                recoveredFromExistingNotice: true,
+                sourceMessageId: 'provider-message-fixture'
+            }
+        }],
+        notificationLedger: [{
+            notification_type: 'ready_for_pickup',
+            provider_message_id: 'provider-message-fixture',
+            sent_at: new Date('2026-08-21T13:42:11Z')
+        }]
+    };
+    if (!recoveredEventEvidence(recoveredFixture, 'ready_for_pickup')) {
+        throw new Error('evento recuperado valido nao foi reconhecido');
+    }
+    if (!ledgerEvidence(recoveredFixture, 'ready_for_pickup')) {
+        throw new Error('notification ledger valido nao foi reconhecido');
+    }
+    if (ledgerEvidence({ notificationLedger: [{ notification_type: 'ready_for_pickup' }] }, 'ready_for_pickup')) {
+        throw new Error('ledger sem comprovante foi aceito');
+    }
+    console.log('PICKUP_NOTIFICATION_EVIDENCE_AUDIT_SELF_TEST=OK');
+};
+
+if (process.argv.includes('--self-test')) {
+    runSelfTest();
+} else {
+    main()
+        .catch((error) => {
+            console.error(`[PICKUP-EVIDENCE-AUDIT] ${error.message || error}`);
+            process.exitCode = 1;
+        })
+        .finally(async () => {
+            await mongoose.disconnect().catch(() => null);
+        });
+}
