@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-// Acionamento transitório do quality gate para a evidência inbound V32.
 import test from 'node:test';
 import {
     buildFunnelMetricsSnapshot,
