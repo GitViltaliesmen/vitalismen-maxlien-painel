@@ -64,6 +64,19 @@ Em `2026-08-21T18:42:16Z`, a leitura do banco oficial encontrou 27 pedidos de ag
 
 O auditor `scripts/audit-pickup-notification-evidence.mjs` foi corrigido para considerar o notification ledger e eventos recuperados do histórico. Isso elimina a classificação incorreta de aviso recuperado como falso positivo, sem mudar scheduler, dispatcher ou regra de envio.
 
+## Publicação final do auditor
+
+- PR de finalização: `#19`, mesclado em `2026-08-21T18:49:06Z`.
+- Commit de produção: `7cd02383911f4660a577d84e58c58d0d00396d27`.
+- Tag e GitHub Release: `production-20260821-7cd0238`.
+- Release ativa no VPS: `/opt/vitalismen-automacao/releases/20260821T185008Z_production-20260821-7cd0238`.
+- Ativação transacional concluída em `2026-08-21T18:51:20Z`.
+- Rollback preservado: `/opt/vitalismen-automacao/releases/20260821T180758Z_production-20260821-937ae43`.
+- Auditor corrigido em produção: 27 ativos, zero falso positivo, oito sem aviso e todos protegidos para revisão manual.
+- PM2 online, `unstable_restarts=0`; health local, health oficial e `/n/` em HTTP 200.
+- Z-API após a ativação: `PAID`, instância conectada e smartphone conectado.
+- Permit root consumido; nenhum rollback e nenhuma mensagem enviada.
+
 ## Riscos remanescentes
 
 - mídia histórica com URL já expirada não pode ser recuperada retroativamente;
