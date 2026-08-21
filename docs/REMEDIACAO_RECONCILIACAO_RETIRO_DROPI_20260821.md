@@ -61,3 +61,18 @@ Antes da publicacao:
 ## Rollback
 
 Reativar a release anterior no mecanismo oficial de releases. Os marcos persistidos de aviso entregue e retirada confirmada representam fatos ja comprovados e nao devem ser apagados no rollback do codigo.
+
+## Resultado em producao
+
+- PR funcional: `#12`, merge `11d631485923a1164554c742d91872fd7d962bf0`.
+- PR de estabilizacao apos o refresh do dispatcher: `#13`, merge `596401b490dbef839c0c9b8666be884d601912d1`.
+- Release ativa validada: `/opt/vitalismen-automacao/releases/20260821T161844Z_production-20260821-596401b`.
+- Backup protegido: `/opt/vitalismen-automacao/backups/pickup_reconciliation_20260821T154200Z`, diretorio `0700` e arquivos `0600`.
+- Guia `189375473`: `READY_FOR_PICKUP`, verificada pelo Dropi; aviso manual entregue em 2026-08-21T13:42:11Z recuperado no ledger; zero reenvio; dia 1 permanece corretamente agendado para depois de 24 horas.
+- Guia `189266685`: `ENTREGADO`, com `pickedUp=true` e `delivered=true` depois da confirmacao textual do cliente.
+- Varredura complementar: a guia `189266683` ja tinha aviso de retirada entregue em 2026-08-15; o marco foi recuperado sem repetir o aviso e o lembrete dia 1 pendente foi aceito pela Z-API em 2026-08-21T16:32:19Z.
+- Varredura global final: `statusChanges=0` e `noticeCandidates=0`.
+- Teste real de oscilacao da guia `189375473`: refresh publico mudou temporariamente para `EN_RUTA`; a microcamada restaurou `READY_FOR_PICKUP`, manteve a verificacao e enviou zero mensagens.
+- PM2: `vitalismen-automation` online, `pm_cwd=/opt/vitalismen-automacao/current` e `pm_exec_path=/opt/vitalismen-automacao/current/src/index.js`.
+- Health oficial e `/n/`: HTTP 200.
+- Rollback imediato preservado: `/opt/vitalismen-automacao/releases/20260821T153838Z_production-20260821-11d6314`.
