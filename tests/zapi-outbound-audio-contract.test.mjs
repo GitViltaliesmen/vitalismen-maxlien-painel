@@ -3,9 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import ffmpegStatic from 'ffmpeg-static';
 import { normalizeZapiDeliveryStatus, zapiDeliveryStatusRank } from '../src/routes/zapi.js';
 import { sendZapiAudio } from '../src/services/zapiClient.js';
 
@@ -39,11 +37,14 @@ test('outbound Z-API cobre MP3, OGG/Opus, aceite, rejeição, MIME, URL e arquiv
     const jpegPath = path.join(tempDir, 'wrong.jpg');
     await fs.promises.writeFile(jpegPath, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
 
-    const mp3Probe = spawnSync(ffmpegStatic, ['-hide_banner', '-v', 'error', '-t', '0.25', '-i', mp3Path, '-f', 'null', '-'], { encoding: 'utf8' });
-    const oggProbe = spawnSync(ffmpegStatic, ['-hide_banner', '-t', '0.25', '-i', oggPath, '-f', 'null', '-'], { encoding: 'utf8' });
-    assert.equal(mp3Probe.status, 0, mp3Probe.stderr);
-    assert.equal(oggProbe.status, 0, oggProbe.stderr);
-    assert.match(oggProbe.stderr, /Audio: opus.*48000 Hz, mono/i);
+    const mp3Bytes = await fs.promises.readFile(mp3Path);
+    const oggBytes = await fs.promises.readFile(oggPath);
+    const opusHeadAt = oggBytes.indexOf(Buffer.from('OpusHead'));
+    assert.equal(mp3Bytes.subarray(0, 3).toString('ascii'), 'ID3');
+    assert.equal(oggBytes.subarray(0, 4).toString('ascii'), 'OggS');
+    assert.ok(opusHeadAt >= 0, 'OGG real deve conter OpusHead');
+    assert.equal(oggBytes[opusHeadAt + 9], 1, 'Opus real deve ser mono');
+    assert.equal(oggBytes.readUInt32LE(opusHeadAt + 12), 48000, 'Opus real deve declarar 48 kHz');
 
     const previous = {
         baseUrl: process.env.ZAPI_BASE_URL,

@@ -257,5 +257,5 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Testes sem envio: `tests/inbound-media-storage.test.mjs`, `tests/panel-authenticated-media.test.mjs`, `tests/zapi-outbound-audio-contract.test.mjs` e regressões V29.
 - Freeze/guard: `docs/MEDIA_DURABILITY_AUTH_FREEZE_V30_20260821.md`, `docs/freeze/media-durability-auth-v30-20260821.json` e `scripts/guard-media-durability-auth-v30.mjs`.
 - Storage oficial quando ativado: `/opt/vitalismen-automacao/shared/media/inbound`; o runtime cria subdiretórios por data com nomes derivados de SHA-256, sem telefone ou token.
-- Estado: candidato local, não publicado e sem autorização de deploy/ativação. Nenhuma mensagem real, pedido, Dropi, Meta/CAPI, banco oficial, PM2, symlink ou serviço foi alterado.
+- Estado: PR rascunho #17 publicado; ativação controlada autorizada em `2026-08-21T18:00:25Z`, sem disparos em massa e com Z-API preservada até o WhatsApp Web estar pronto. No momento da autorização, nenhuma mensagem real, pedido, Dropi, Meta/CAPI, banco oficial, PM2, symlink ou serviço havia sido alterado.
 - Rollback funcional: retornar a `b26bacdd6c72711a70834e69915285e677649f1a`; os campos Mongo aditivos podem permanecer sem uso.

@@ -633,4 +633,4 @@ O `Message` preserva `providerMessageId`, `providerMediaId`, MIME original e arm
 
 Histórico anterior continua usando o proxy autenticado com o mesmo carregamento por Blob. Se a URL antiga já expirou, o painel mostra o motivo em vez de renderizar player ou imagem quebrados. A apresentação V29 continua responsável por unificar registros com o mesmo provider ID: uma mensagem real permanece uma bolha e seus estados `sent/delivered/read` continuam na mesma identidade.
 
-A V30 está somente em candidato local validado. Deploy, ativação, alteração de `current`, PM2 e envio real permanecem bloqueados até autorização posterior baseada no relatório desta retomada.
+A V30 foi publicada no PR rascunho #17 e recebeu autorização posterior ao relatório em `2026-08-21T18:00:25Z` para ativação controlada. A autorização exige canário de áudio/imagem, proíbe disparos em massa e preserva a Z-API até o WhatsApp Web estar efetivamente conectado; retirada do transporte Z-API continua sendo uma migração separada.

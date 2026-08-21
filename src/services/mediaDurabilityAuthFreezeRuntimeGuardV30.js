@@ -87,20 +87,27 @@ const expectedProtectedFiles = [...declaredAncestorOverrides, ...newProtectedFil
 const protectedFiles = Object.keys(manifest.protectedFiles || {}).sort();
 if (
     manifest.freezeId !== 'media-durability-auth-v30-20260821'
-    || manifest.status !== 'candidate_validated_activation_locked'
-    || manifest.publicationStatus !== 'local_candidate_not_published'
+    || manifest.status !== 'activation_approved'
+    || manifest.publicationStatus !== 'draft_pr_published_activation_authorized'
     || manifest.country !== 'EC'
     || manifest.baseProductionSha !== 'b26bacdd6c72711a70834e69915285e677649f1a'
     || manifest.operatorApproval?.status !== 'approved_in_thread'
     || manifest.operatorApproval?.approvedAt !== '2026-08-21T17:24:26Z'
     || manifest.operatorApproval?.scope !== 'implement_media_durability_audit_without_deploy_or_send'
-    || manifest.operatorActivationApproval?.status !== 'required_explicit_after_report'
+    || manifest.operatorActivationApproval?.status !== 'approved_in_thread'
+    || manifest.operatorActivationApproval?.approvedAt !== '2026-08-21T18:00:25Z'
+    || manifest.operatorActivationApproval?.scope !== 'activate_media_durability_v30_ec'
+    || JSON.stringify(manifest.operatorActivationApproval?.constraints || []) !== JSON.stringify([
+        'no_mass_sends',
+        'controlled_audio_image_canary',
+        'preserve_zapi_until_whatsapp_web_is_ready'
+    ])
     || manifest.policy?.ancestorFreezesPreserved !== true
     || manifest.policy?.cleanChatV29Preserved !== true
     || manifest.policy?.providerIdentityPreserved !== true
     || manifest.policy?.persistentInboundStorage !== true
     || manifest.policy?.authenticatedBlobLoading !== true
-    || manifest.policy?.directActivationBlocked !== true
+    || manifest.policy?.directActivationBlocked !== false
     || manifest.policy?.commercialFlowChanged !== false
     || manifest.realEffects?.whatsappMessage !== false
     || manifest.realEffects?.order !== false
@@ -135,4 +142,4 @@ for (const [relativePath, approvedHash] of Object.entries(manifest.protectedFile
     }
 }
 
-console.log('[MEDIA-V30] lineage V28 → V29 → V29.1 → V29.2 → V30 verificada; candidato local válido e ativação bloqueada.');
+console.log('[MEDIA-V30] lineage V28 → V29 → V29.1 → V29.2 → V30 verificada; ativação controlada autorizada, sem disparos em massa.');

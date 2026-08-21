@@ -52,7 +52,11 @@ Pai: `guard-alias-integration-v29-2-20260818`
 - imagem: JPEG, PNG, WebP, assinatura inválida e MIME divergente;
 - UI: Bearer no header, ausência de token na URL, Blob, fallback explícito, endpoint após auth e regressão V29 de uma bolha.
 
-## Efeitos reais bloqueados
+## Autorização posterior ao relatório
+
+Em `2026-08-21T18:00:25Z`, o operador autorizou a publicação, release e ativação controlada da V30. Permanecem obrigatórios: nenhum disparo em massa, canário de áudio e imagem e manutenção da Z-API até o WhatsApp Web estar efetivamente conectado. A retirada da Z-API não faz parte desta ativação.
+
+## Efeitos reais antes da ativação
 
 - mensagem WhatsApp: não;
 - aviso de retirada: não;
@@ -60,7 +64,7 @@ Pai: `guard-alias-integration-v29-2-20260818`
 - Meta/CAPI: não;
 - escrita no banco oficial: não;
 - deploy/release/PM2/current: não;
-- ativação: exige nova autorização explícita depois do relatório.
+- ativação: autorizada de forma controlada, condicionada aos guards e ao canário.
 
 ## Rollback
 
