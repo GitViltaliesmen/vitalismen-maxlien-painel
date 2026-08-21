@@ -46,3 +46,25 @@ node scripts/audit-ec-product-micro-layer.mjs
 Após ativação, confirmar `current`, `pm_cwd`, `pm_exec_path`, executar uma
 varredura controlada da transportadora e auditar novamente a evidência de
 chegada.
+
+## Registro de produção
+
+- PR oficial: `#10`.
+- Commit/tag: `f6b74c7f584b943c5291c8d89dca2ba0f0e34353` /
+  `production-20260821-f6b74c7`.
+- Release ativa:
+  `/opt/vitalismen-automacao/releases/20260821T140217Z_production-20260821-f6b74c7`.
+- Rollback imutável:
+  `/opt/vitalismen-automacao/releases/20260818T221709Z_production-20260818-d6dc4a8`.
+- Backup protegido de Shipments e Orders antes da reconciliação:
+  `/opt/vitalismen-automacao/backups/pickup-urgent-sweep-20260821T140504Z`.
+- PM2 confirmado com `pm_cwd=/opt/vitalismen-automacao/current` e
+  `pm_exec_path=/opt/vitalismen-automacao/current/src/index.js`.
+- Rastreamento e despacho configurados em ciclos de 20 minutos, lote 8, com
+  estado salvo no PM2.
+- Varredura real: 32/32 guias consultadas; 26 `EN_RUTA`, quatro `NOVEDAD`,
+  duas pendentes, zero falhas e zero `READY_FOR_PICKUP` verificado.
+- Dispatcher urgente executado em modo real: zero candidatos, zero envios e
+  zero mensagens de retirada criadas durante a correção.
+- Health local/oficial e `/n/`: OK/HTTP 200.
+- `senior:check`: 213/213 testes aprovados em produção.
