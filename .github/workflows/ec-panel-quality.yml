@@ -1,4 +1,5 @@
 name: EC panel quality gate
+# Acionamento temporário do gate para a correção documental de deploy V38.
 
 on:
   pull_request:
