@@ -58,3 +58,17 @@ test('registro final identifica release, rollback e ausência de disparos', () =
     assert.match(result, /nenhuma mensagem enviada/i);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V39 comprova commit, PM2, rollback e ausência de canário real', () => {
+    const result = readFileSync(
+        'docs/EC_DIRECT_PRODUCT_NAME_POSTSALE_ACTIVATION_RESULT_V39_20260822.md',
+        'utf8'
+    );
+    assert.match(result, /e191a6e212af866f25528fdd8af5ff517ca247a2/);
+    assert.match(result, /20260822T152503Z_production-20260822-e191a6e/);
+    assert.match(result, /PID atual: `2161976`/);
+    assert.match(result, /20260822T143218Z_production-20260822-dbc3cbd/);
+    assert.match(result, /Nenhum canário real foi enviado/);
+    assert.match(result, /document\.querySelectorAll\('\.chat-preview \.meta'\)\.length === 0/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
