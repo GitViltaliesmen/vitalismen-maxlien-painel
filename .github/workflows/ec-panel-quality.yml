@@ -1,5 +1,4 @@
 name: EC panel quality gate
-# Acionamento temporário do gate para o relatório documental V36.
 
 on:
   pull_request:
