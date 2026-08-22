@@ -890,3 +890,21 @@ regra de não renderizar texto de mensagem na coluna esquerda permanecem intacta
 A alteração é somente visual e local ao navegador. Produtos, ofertas, funis,
 checkout, pedidos, Dropi, Meta/CAPI, pixel, Z-API, número oficial, mídias,
 pós-venda, banco, scheduler e PM2 permanecem inalterados.
+
+## Microcamada V45 de recompra após entrega EC
+
+O freeze `docs/EC_DELIVERED_REPURCHASE_FREEZE_V45_20260822.md` sucede a V44 e
+corrige a tentativa de confirmar uma nova venda para cliente cujo Shipment já
+está entregue, mas cujo `Order` antigo ainda aparece com status não terminal.
+
+O Shipment entregue passa a projetar o pedido anterior como histórico no
+painel. Ao selecionar `Confirmar pedido`, a ação autenticada exige o mesmo
+telefone e evidência de entrega, preserva o pedido anterior e cria um novo
+`EC-RECOMPRA-*` com `previousOrderId`, `previousDeliveredAt` e motivo explícito
+de recompra. O lead único pode voltar para `confirmado` somente por esse novo
+ciclo. A confirmação continua gerando o Purchase próprio da venda nova, mas não
+autoriza nem envia automaticamente para Dropi.
+
+A fila V44 permanece inalterada: `AQUECIMENTO` só fica fora de `Novas` enquanto
+o bucket for `engagement`. Intenção comercial e pedido novo têm prioridade e
+devem aparecer nas filas comerciais.

@@ -381,6 +381,10 @@ export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_syn
         product_qty: quantity,
         product_value: Number(order.total || 0) || 0,
         buy_later_followup_at: order.purchaseIntent?.followUpAt || '',
+        repurchase_cycle: Boolean(
+            String(order.previousOrderId || '').trim()
+            && String(order.entryReason || '').trim() === 'repeat_purchase_after_delivered'
+        ),
         status: normalizeAdminStatus({
             status: status || order.status,
             shippingStatus: order.shippingStatus
@@ -500,6 +504,8 @@ def should_keep_existing_status(old_status, incoming_status):
     old = str(old_status or "").strip().lower()
     new = str(incoming_status or "").strip().lower()
     if not old or not new or old == new:
+        return False
+    if payload.get("repurchase_cycle") and old in {"entregue", "recompra"} and new in {"confirmado", "pedido_enviado", "enviado"}:
         return False
     if old in archived_statuses:
         return True

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 await import('./guard-panel-global-new-messages-v44.mjs');
+await import('./guard-ec-delivered-repurchase-v45.mjs');
 await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');

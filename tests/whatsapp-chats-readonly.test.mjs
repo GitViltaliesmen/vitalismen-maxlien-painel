@@ -121,9 +121,9 @@ const fixture = () => {
 
 const responseContractKeys = [
     'address', 'assignedAgent', 'city', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
-    'entryAt', 'firstInboundAt', 'flowDataOk', 'human', 'id', 'isGroup', 'lastActivityAt',
+    'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'isGroup', 'lastActivityAt',
     'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'name', 'notes', 'orderId', 'orderStatus',
-    'packageLabel', 'phone', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
+    'packageLabel', 'phone', 'previousDeliveredAt', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
     'province', 'quantity', 'reference', 'tags', 'total', 'unansweredCount', 'unreadCount', 'updatedAt', 'vslPath',
     'vslProductKey', 'vslProductName', 'zapiCapturedContact'
 ].sort();
@@ -217,6 +217,8 @@ test('caminhos fast e enriched preservam resposta e nao alteram modelos nem time
             assert.equal(response.body[0].id, state.chatId);
             assert.equal(response.body[0].phone.replace(/\D/g, ''), state.phoneDigits);
             assert.equal(response.body[0].customerDraft.orderId, order.orderId);
+            assert.equal(response.body[0].historicalOrderId, null);
+            assert.equal(response.body[0].previousDeliveredAt, null);
             responses.push(response.body[0]);
         }
 
