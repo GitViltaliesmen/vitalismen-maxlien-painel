@@ -443,3 +443,18 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   pedido novo permanecem prioritários.
 - Rollback funcional: release V44 acima, preservando pedidos, Shipments, bancos
   e mídias compartilhadas.
+
+### Microcamada V46 — preservação da recompra na ficha EC — 2026-08-22
+
+- Base funcional: V45, release
+  `/opt/vitalismen-automacao/releases/20260822T203010Z_production-20260822-a4cc06d`.
+- Correção: `src/services/ecDeliveredRepurchaseService.js` e
+  `src/routes/whatsapp.js` preservam a linhagem da ordem `EC-RECOMPRA-*` durante
+  o salvamento da ficha.
+- Teste: `tests/ec-repurchase-sync-preservation-v46.test.mjs`.
+- Freeze/guard:
+  `docs/EC_REPURCHASE_SYNC_PRESERVATION_FREEZE_V46_20260822.md`,
+  `docs/freeze/ec-repurchase-sync-preservation-v46-20260822.json` e
+  `scripts/guard-ec-repurchase-sync-preservation-v46.mjs`.
+- Preservado: pedido e Purchase já criados, entrega histórica, Dropi manual,
+  preços/produtos e exclusão de AQUECIMENTO da aba global `Novas`.
