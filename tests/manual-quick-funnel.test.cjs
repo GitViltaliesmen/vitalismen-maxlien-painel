@@ -83,3 +83,30 @@ test('pedido antigo do Angel fica historico e um pedido novo fica ligado a negoc
     const ordersRoute = fs.readFileSync(path.join(projectRoot, 'src', 'routes', 'orders.js'), 'utf8');
     assert.match(ordersRoute, /previousOrderId: String\(previousOrderId \|\| ''\)\.trim\(\)\.slice\(0, 100\)/);
 });
+
+test('midia manual pode ser enviada no pos-venda sem desligar o guard automatico do Dropi', () => {
+    for (const relativePath of [
+        'src/whatsapp/sendAudio.js',
+        'src/whatsapp/sendImage.js',
+        'src/whatsapp/sendVideo.js'
+    ]) {
+        const source = fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
+        assert.match(source, /const sendMode = options\.sendMode \|\| '';/, `${relativePath} deve identificar o envio manual`);
+        assert.match(
+            source,
+            /allowExistingDropiOrder: options\.allowExistingDropiOrder === true \|\| sendMode === 'manual_panel'/,
+            `${relativePath} deve liberar pedido Dropi existente somente para o operador manual`
+        );
+        assert.match(source, /checkDropiOrderBeforeOutbound\s*\(/, `${relativePath} deve preservar o guard Dropi`);
+        assert.match(source, /if \(!dropiGuard\.allowed\)/, `${relativePath} deve continuar bloqueando automacao nao autorizada`);
+    }
+});
+
+test('rota manual continua declarando o modo manual para audio, imagem e video', () => {
+    const source = fs.readFileSync(path.join(projectRoot, 'src', 'routes', 'whatsapp.js'), 'utf8');
+    const mediaDispatcher = source.slice(source.indexOf('const sendWhatsAppMessage = async'));
+    assert.match(mediaDispatcher, /const sendMode = options\.sendMode === 'manual_panel' \? 'manual_panel' : '';/);
+    assert.match(mediaDispatcher, /sendAudio\([\s\S]*?sendMode,/);
+    assert.match(mediaDispatcher, /sendImage\([\s\S]*?sendMode,/);
+    assert.match(mediaDispatcher, /sendVideo\([\s\S]*?sendMode,/);
+});

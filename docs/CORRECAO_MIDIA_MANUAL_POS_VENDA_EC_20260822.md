@@ -35,7 +35,7 @@ Cada emissor agora considera `sendMode === 'manual_panel'` como autorização ex
 
 Teste de regressão:
 
-- `tests/manual-panel-media-existing-order.test.mjs`.
+- `tests/manual-quick-funnel.test.cjs`.
 
 ## Preservado
 
