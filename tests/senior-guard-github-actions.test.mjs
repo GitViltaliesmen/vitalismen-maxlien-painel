@@ -87,3 +87,18 @@ test('registro V40 comprova release, auditoria, PM2 e ausência de envio real', 
     assert.match(result, /20260822T152503Z_production-20260822-e191a6e/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V41 comprova busca publicada, backup, PM2 e ausência de efeitos externos', () => {
+    const result = readFileSync(
+        'docs/PANEL_CLIENT_SEARCH_ACTIVATION_RESULT_V41_20260822.md',
+        'utf8'
+    );
+    assert.match(result, /1f4895bdf7f00a00831484e9e2fe1b832658dd74/);
+    assert.match(result, /20260822T180506Z_production-20260822-1f4895b/);
+    assert.match(result, /PID atual após ativação: `2181029`/);
+    assert.match(result, /qr\.html\.before-v41-20260822T180506Z/);
+    assert.match(result, /20260822T172707Z_production-20260822-d1a142a/);
+    assert.match(result, /Nenhuma mensagem real, mídia, pedido, Dropi, Meta\/CAPI, escrita de banco/);
+    assert.match(result, /chat-search-v41\.js`: HTTP `200`/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
