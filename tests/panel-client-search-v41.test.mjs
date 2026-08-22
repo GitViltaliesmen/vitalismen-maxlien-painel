@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 import './ec-engagement-command-reply-v42.test.mjs';
 import './ec-engagement-priority-v43.test.mjs';
+import './panel-global-new-messages-v44.test.mjs';
 
 const sandbox = {};
 sandbox.globalThis = sandbox;
@@ -70,7 +71,8 @@ test('V41 painel usa somente busca de identidade e preserva lista sem mensagem',
     const panel = fs.readFileSync('public/qr.html', 'utf8');
     assert.match(panel, /chat-search-v41\.js/);
     assert.match(panel, /VitalismenChatSearchV41\?\.matchesChat/);
-    assert.match(panel, /!searchActive && state\.conversationBucketFilter/);
+    assert.match(panel, /shouldApplyOperationalBucketFilter/);
+    assert.match(panel, /applyOperationalBucketFilter && chatConversationBucket\(chat\)/);
     assert.match(panel, /!searchActive && state\.chatFilter === 'unread'/);
     assert.doesNotMatch(panel, /const haystack = \[[\s\S]{0,300}chat\.lastMessage\?\.body/);
     assert.doesNotMatch(panel, /chat\.lastMessage\.body[\s\S]{0,120}class="chat-preview/);

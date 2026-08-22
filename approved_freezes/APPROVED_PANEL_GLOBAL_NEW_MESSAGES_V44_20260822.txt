@@ -1,0 +1,16 @@
+APPROVED=true
+FREEZE_ID=panel-global-new-messages-v44-20260822
+COUNTRY=EC
+APPROVAL_SOURCE=operator_thread_20260822
+APPROVED_AT=2026-08-22
+SCOPE=global_commercial_new_messages_counter_list_alignment_commit_publish_transactional_activation
+GLOBAL_COMMERCIAL_NEW_MESSAGES=true
+ENGAGEMENT_EXCLUDED=true
+DEFAULT_RETURN_BUCKET=attendance
+NO_REAL_TEST_MESSAGES=true
+NO_DATABASE_WRITE=true
+NO_COMMERCIAL_FLOW_CHANGE=true
+NO_ORDER_WRITE=true
+NO_DROPI=true
+NO_META_CAPI=true
+NO_EXTERNAL_PROJECT=true

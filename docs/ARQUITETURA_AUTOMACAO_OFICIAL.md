@@ -873,3 +873,20 @@ humana recente, cooldown, teto diário, lock, histórico, deduplicação e ausê
 de retry automático continuam obrigatórios. Produtos, ofertas, origem VSL,
 checkout, Dropi, Meta/CAPI, pixel, Z-API, número oficial, mídias, pós-venda,
 scheduler e PM2 permanecem inalterados.
+
+## Microcamada V44 de fila global de novas mensagens comerciais EC
+
+O freeze `docs/PANEL_GLOBAL_NEW_MESSAGES_FREEZE_V44_20260822.md` sucede a V43 e
+corrige a divergência entre o contador `Novas` e a lista renderizada. Ao clicar
+em `Novas`, o painel deixa temporariamente de aplicar a fila operacional ativa e
+mostra todas as conversas comerciais novas de `ATENDIMENTO`, `PEDIDOS` e
+`REVISAR`, usando exatamente o mesmo predicado do contador.
+
+`AQUECIMENTO` continua excluído de `Novas` e conserva seu selo próprio de não
+lidas. A visão global não destaca uma fila operacional; ao retornar a `Tudo`,
+`ATENDIMENTO` é restaurado se nenhuma fila tiver sido escolhida. A busca V41 e a
+regra de não renderizar texto de mensagem na coluna esquerda permanecem intactas.
+
+A alteração é somente visual e local ao navegador. Produtos, ofertas, funis,
+checkout, pedidos, Dropi, Meta/CAPI, pixel, Z-API, número oficial, mídias,
+pós-venda, banco, scheduler e PM2 permanecem inalterados.

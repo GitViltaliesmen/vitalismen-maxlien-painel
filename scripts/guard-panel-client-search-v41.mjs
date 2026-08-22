@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('./guard-ec-engagement-priority-v43.mjs');
+await import('./guard-panel-global-new-messages-v44.mjs');
 await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
@@ -13,7 +13,8 @@ const freeze = read('docs/PANEL_CLIENT_SEARCH_FREEZE_V41_20260822.md');
 
 assert.match(panel, /chat-search-v41\.js/);
 assert.match(panel, /VitalismenChatSearchV41\?\.matchesChat/);
-assert.match(panel, /!searchActive && state\.conversationBucketFilter/);
+assert.match(panel, /shouldApplyOperationalBucketFilter/);
+assert.match(panel, /applyOperationalBucketFilter && chatConversationBucket\(chat\)/);
 assert.match(panel, /!searchActive && state\.chatFilter === 'unread'/);
 assert.doesNotMatch(panel, /const haystack = \[[\s\S]{0,300}chat\.lastMessage\?\.body/);
 assert.match(search, /MIN_PHONE_QUERY_DIGITS = 3/);

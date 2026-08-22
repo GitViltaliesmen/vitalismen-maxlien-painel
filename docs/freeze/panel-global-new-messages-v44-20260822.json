@@ -1,0 +1,94 @@
+{
+  "freezeId": "panel-global-new-messages-v44-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "ec-engagement-priority-v43-20260822",
+  "parentManifestSha256": "ab4cecc831102ab1257f0f37b6ef8730aaab5a57e63f7759fcdcf0622ffe6034",
+  "baseProductionSha": "3f82a754c2872dd65f47e4691e624062b39e8143",
+  "baseFunctionalReleaseSha": "3f82a754c2872dd65f47e4691e624062b39e8143",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T193613Z_production-20260822-3f82a75",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_and_activation_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "panel_global_new_messages_v44",
+    "constraints": [
+      "global_commercial_new_messages",
+      "counter_and_list_same_predicate",
+      "engagement_excluded",
+      "engagement_own_unread_badge_preserved",
+      "default_return_bucket_attendance",
+      "identity_search_preserved",
+      "no_left_message_preview",
+      "no_real_test_messages",
+      "no_database_write",
+      "no_commercial_flow_change",
+      "no_external_project"
+    ]
+  },
+  "policy": {
+    "globalCommercialNewMessages": true,
+    "engagementExcludedFromNewMessages": true,
+    "engagementOwnUnreadBadgePreserved": true,
+    "defaultReturnBucket": "attendance",
+    "identitySearchPreserved": true,
+    "leftMessagePreviewAdded": false,
+    "databaseWriteAdded": false,
+    "commercialFlowChanged": false,
+    "orderWriteAdded": false,
+    "dropiChanged": false,
+    "metaCapiChanged": false,
+    "officialPricesChanged": false,
+    "externalWarmupProjectUsed": false,
+    "deployAuthorized": true
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T193613Z_production-20260822-3f82a75",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveContactOrderAndBucketHistory": true
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "public/qr.html",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/senior-guard.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_GLOBAL_NEW_MESSAGES_V44_20260822.txt",
+    "docs/PANEL_GLOBAL_NEW_MESSAGES_FREEZE_V44_20260822.md",
+    "public/panel-intelligence/panel-global-new-messages-v44.js",
+    "scripts/assert-panel-global-new-messages-activation-approved-v44.mjs",
+    "scripts/guard-panel-global-new-messages-v44.mjs",
+    "src/services/panelGlobalNewMessagesFreezeRuntimeGuardV44.js",
+    "tests/panel-global-new-messages-v44.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "10f632560a9f91b3dcd053ad998f7f04843b570f7ce1f9032fd0bdb7caf63a5a",
+    "public/qr.html": "803ec5abc3a4a8d0d882c86433d11bc192764a4a0f5a956d915cc2ea002d8988",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs": "3ac1bf72ec5daed3af8fdf5629f34b0205d86a9428a81d0b7dc7a7958c77f6da",
+    "scripts/guard-panel-client-search-v41.mjs": "18edf883f0fccb9412a6009eca09722c9aed17eaca1395f4f63a32a21dafd2dd",
+    "scripts/senior-guard.mjs": "a3b56130ffbb2c286afb8f2119c792657344e7374b7ef7ef4d599a4db7a16861",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "e30ac0db910dd5e69011f088b5bcd65bbc22f4bc21e77a92a8b9b30e5ebfb361",
+    "tests/panel-client-search-v41.test.mjs": "35468e832243f2f5173a4bb8a9dad76782ccde1296bb2bc487a2d4cf4a034a65",
+    "approved_freezes/APPROVED_PANEL_GLOBAL_NEW_MESSAGES_V44_20260822.txt": "974b59c765d710bcd2a8200054c2c7b1c23d454a9d650f3983904cbbcbfa501a",
+    "docs/PANEL_GLOBAL_NEW_MESSAGES_FREEZE_V44_20260822.md": "4154c65c4f02c75ebe3f737e46345386063d16c07c92fccf0bc4641a815b2f4b",
+    "public/panel-intelligence/panel-global-new-messages-v44.js": "d6560dbe36a0bf5c8c312e6b2230ab2453144f437f0c022ceabe3cf9075c87b6",
+    "scripts/assert-panel-global-new-messages-activation-approved-v44.mjs": "719dcb38ef17ff3a7b6bf3d514fc8904b0391637100755c76e1aec990d7e9c48",
+    "scripts/guard-panel-global-new-messages-v44.mjs": "8a5a89963302bc8e3840227dfd1c51523a18c987750a4671ca0962ac1deeae43",
+    "src/services/panelGlobalNewMessagesFreezeRuntimeGuardV44.js": "5f5194e18ce5a216228028a145659cf4a0625b78ae7aabae944d2c7c17626525",
+    "tests/panel-global-new-messages-v44.test.mjs": "fc8d09eba50498d3809cdbb40bff601e029ef5c7bb39298c29a76ce0efdb3eb3"
+  }
+}
