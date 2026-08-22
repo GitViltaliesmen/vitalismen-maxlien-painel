@@ -27,7 +27,16 @@ import {
     inboundMediaInternalUrl,
     INBOUND_MEDIA_STATUS
 } from '../services/inboundMediaStorageService.js';
-import { vslProductAssignmentPolicy } from '../services/vslProductAssignmentService.js';
+import {
+    applyCurrentProductToState,
+    currentProductRouteForState,
+    vslProductAssignmentPolicy
+} from '../services/vslProductAssignmentService.js';
+import { ECUADOR_PRODUCTS, getEcuadorProductInfoByKey } from '../services/ecuadorProductService.js';
+import {
+    applyInboundCustomerNameEvidence,
+    extractSubmittedVslName
+} from '../services/customerNameResolutionService.js';
 import { shouldRouteDirectProductInbound } from '../services/ecDirectProductInquiryService.js';
 import {
     classifyAndPersistEcConversation,
@@ -128,26 +137,14 @@ const EC_TEX_ULTRA_CURRENT_MESSAGES = [
     'Hola, deseo saber mas sobre Tex Ultra'
 ];
 
-const EC_VSL_PRODUCT_PROFILES = Object.freeze({
-    tex_ultra_ec: {
-        productKey: 'tex_ultra_ec',
-        productName: 'Tex Ultra Ecuador',
-        productMedia: '/media/sales/ec/tex_ultra.png',
-        productTag: 'TEX_ULTRA_EC'
-    },
-    nitrix_ec: {
-        productKey: 'nitrix_ec',
-        productName: 'Nitrix Oxide Ecuador',
-        productMedia: '/media/sales/ec/nitrix_bottle.png',
-        productTag: 'NITRIX_EC'
-    },
-    vit_power_ec: {
-        productKey: 'vit_power_ec',
-        productName: 'Vit Power Ecuador',
-        productMedia: '/media/sales/ec/vit_power.jpeg',
-        productTag: 'VIT_POWER_EC'
-    }
-});
+const EC_VSL_PRODUCT_PROFILES = Object.freeze(Object.fromEntries(
+    Object.values(ECUADOR_PRODUCTS).map((product) => [product.key, Object.freeze({
+        productKey: product.key,
+        productName: product.displayName || product.name,
+        productMedia: product.media,
+        productTag: product.tag
+    })])
+));
 const EC_VSL_PRODUCT_TAGS = new Set(Object.values(EC_VSL_PRODUCT_PROFILES).map((profile) => profile.productTag));
 const AUTOMATED_EC_VSL_PRODUCT_KEYS = new Set(['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']);
 
@@ -180,13 +177,6 @@ const normalizeVslText = (text = '') => String(text || '')
     .replace(/\s+/g, ' ')
     .trim();
 
-const ACTIVE_VSL_GENERIC_ENTRY_PATTERNS = Object.freeze([
-    /^hola quiero el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
-    /^hola deseo el tratamiento(?: buenos dias| buenas tardes| buenas noches)?$/,
-    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:de )?[1236] frascos?(?: \d{1,3}(?: \d{1,2})?)?$/,
-    /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:nombre(?: completo)?|telefono|cedula|ci|ciudad|canton|provincia|direccion|domicilio|referencia)\b/
-]);
-
 export const protocoloGTexUltraContextFromText = (text = '') => {
     const lines = String(text || '')
         .replace(/\r\n?/g, '\n')
@@ -209,29 +199,22 @@ export const protocoloGTexUltraContextFromText = (text = '') => {
     const allowedLabels = new Set(['nombre', 'ciudad', 'provincia']);
     if (labeledFields.some((field) => !allowedLabels.has(field.label))) return null;
     if (!labeledFields.some((field) => field.label === 'nombre' && field.value)) return null;
+    const fieldValue = (label) => labeledFields.find((field) => field.label === label)?.value || '';
     return {
         ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
         productSource: 'zapi_protocolo_g_tex_ultra_payload',
         vslTestId: '',
         vslVariant: 'protocolo_g',
-        vslEntryMessage: String(text || '').trim()
+        vslEntryMessage: String(text || '').trim(),
+        submittedName: extractSubmittedVslName(text),
+        submittedCity: fieldValue('ciudad'),
+        submittedProvince: fieldValue('provincia')
     };
 };
 
-export const activeEcVslProductContextFromText = (text = '', env = process.env) => {
-    const value = normalizeVslText(text);
-    if (!ACTIVE_VSL_GENERIC_ENTRY_PATTERNS.some((pattern) => pattern.test(value))) return null;
-    const productKey = String(env.VITALISMEN_ACTIVE_VSL_PRODUCT || '').trim().toLowerCase();
-    const profile = EC_VSL_PRODUCT_PROFILES[productKey];
-    if (!profile) return null;
-    return {
-        ...profile,
-        productSource: 'active_vsl_generic_entry',
-        vslTestId: '',
-        vslVariant: 'active_product',
-        vslEntryMessage: String(text || '').trim()
-    };
-};
+// Compatibilidade de importacao para testes/consumidores antigos. Uma CTA
+// generica sem origem estruturada nao escolhe mais um produto global.
+export const activeEcVslProductContextFromText = () => null;
 
 export const explicitEcVslProductContextFromText = (text = '') => {
     const value = normalizeVslText(text);
@@ -254,6 +237,8 @@ export const explicitEcVslProductContextFromText = (text = '') => {
             vslEntryMessage: String(text || '').trim()
         };
     }
+    const protocoloGContext = protocoloGTexUltraContextFromText(text);
+    if (protocoloGContext) return protocoloGContext;
     const normalizedMessages = Object.entries(EC_TEX_ULTRA_VSL_AB_MESSAGES)
         .map(([variant, message]) => [variant, normalizeVslText(message)]);
     const abMatch = normalizedMessages.find(([, message]) => value === message || value.startsWith(`${message} `));
@@ -277,10 +262,6 @@ export const explicitEcVslProductContextFromText = (text = '') => {
             vslEntryMessage: currentMessage || String(text || '').trim()
         };
     }
-    const protocoloGContext = protocoloGTexUltraContextFromText(text);
-    if (protocoloGContext) return protocoloGContext;
-    const activeProductContext = activeEcVslProductContextFromText(text);
-    if (activeProductContext) return activeProductContext;
     return null;
 };
 
@@ -921,7 +902,6 @@ const recordZapiInboundPayload = async (payload = {}) => {
         && detectedTextProductContext?.productSource === 'zapi_explicit_product_text'
         ? null
         : detectedTextProductContext;
-    const vslProductContext = persistedVslProductContext || explicitTextProductContext;
     const vslAttribution = vslRoutingAllowed
         ? await claimMetaAttributionForInboundWhatsapp({
             country: inferredCountry,
@@ -935,6 +915,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
             error: error.message || String(error)
         }))
         : { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
+    const attributedProduct = vslAttribution.ok && vslAttribution.claimed
+        ? getEcuadorProductInfoByKey(vslAttribution.productKey)
+        : null;
+    const attributedProductContext = attributedProduct ? {
+        ...EC_VSL_PRODUCT_PROFILES[attributedProduct.key],
+        productSource: 'zapi_structured_vsl_attribution',
+        vslTestId: vslAttribution.vslTestId || '',
+        vslVariant: vslAttribution.vslVariant || '',
+        vslEntryMessage: normalizedBody
+    } : null;
+    const vslProductContext = persistedVslProductContext
+        || attributedProductContext
+        || explicitTextProductContext;
     const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
@@ -952,7 +945,14 @@ const recordZapiInboundPayload = async (payload = {}) => {
         incomingProductKey: vslProductContext?.productKey || ''
     });
     if (vslProductContext && !vslProductAssignment.preserveOperatorSelection) {
-        targetState.assignedAgent = vslProductContext.productKey;
+        applyCurrentProductToState({
+            state: targetState,
+            productKey: vslProductContext.productKey,
+            productName: vslProductContext.productName,
+            productMedia: vslProductContext.productMedia,
+            source: vslProductContext.productSource || 'zapi_public_vsl_entry',
+            at: now
+        });
     }
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
@@ -965,7 +965,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         lastManualBy: targetState.human?.lastManualBy,
         storedProductKey: vslProductAssignment.preserveOperatorSelection
             ? vslProductAssignment.currentProductKey
-            : targetState.metadata?.productKey || targetState.assignedAgent || '',
+            : currentProductRouteForState(targetState).productKey,
         incomingProductKey: vslProductContext?.productKey || ''
     });
     if (isNewState || promoteRegisteredVslEntry) {
@@ -1037,6 +1037,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
             vslProductKey: vslProductContext.productKey,
             vslProductName: vslProductContext.productName,
             vslProductSource: vslProductContext.productSource || 'zapi_public_vsl_entry',
+            ...(vslProductContext.submittedName ? { submittedName: vslProductContext.submittedName } : {}),
             ...(!vslProductAssignment.preserveOperatorSelection ? {
                 productKey: vslProductContext.productKey,
                 productName: vslProductContext.productName,
@@ -1062,6 +1063,12 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 status: targetState.metadata?.customerDraft?.status || 'novo',
                 entryAt: targetState.metadata?.customerDraft?.entryAt || now.toISOString(),
                 source: 'public_vsl_whatsapp_entry',
+                ...(vslProductContext.submittedCity && !targetState.metadata?.customerDraft?.city
+                    ? { city: vslProductContext.submittedCity }
+                    : {}),
+                ...(vslProductContext.submittedProvince && !targetState.metadata?.customerDraft?.province
+                    ? { province: vslProductContext.submittedProvince }
+                    : {}),
                 ...(!vslProductAssignment.preserveOperatorSelection ? {
                     productKey: vslProductContext.productKey,
                     productName: vslProductContext.productName,
@@ -1075,12 +1082,17 @@ const recordZapiInboundPayload = async (payload = {}) => {
             }
         } : {})
     };
-    if (inboundProfileName) {
+    applyInboundCustomerNameEvidence({
+        state: targetState,
+        submittedName: vslProductContext?.submittedName || '',
+        profileName: inboundProfileName,
+        at: now,
+        sourceMessageId: messageId
+    });
+    if (inboundProfileName || vslProductContext?.submittedName) {
         const currentDraft = targetState.metadata?.customerDraft || {};
-        targetState.metadata.profileName = String(targetState.metadata?.profileName || inboundProfileName).trim();
         targetState.metadata.customerDraft = {
             ...currentDraft,
-            ...(!String(currentDraft.name || '').trim() ? { name: inboundProfileName } : {}),
             phone: currentDraft.phone || `+${phone}`,
             country: currentDraft.country || 'EC',
             updatedAt: now.toISOString()
@@ -1143,7 +1155,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
             replyEligibleByHistory: conversationClassification.replyEligibleByHistory === true,
             metrics: conversationClassification.metrics
         } : null,
-        routeToBot: Boolean(normalizedBody)
+        routeToBot: newMessage
+            && Boolean(normalizedBody)
             && conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
             && conversationBucket !== EC_CONVERSATION_BUCKETS.REVIEW
             && (targetState.human?.mode !== 'manual' || directProductInbound)

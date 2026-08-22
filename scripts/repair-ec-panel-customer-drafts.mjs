@@ -3,7 +3,12 @@ import mongoose from 'mongoose';
 import connectDB from '../src/config/db.js';
 import ContactState from '../src/models/ContactState.js';
 import Order from '../src/models/Order.js';
-import { ECUADOR_PRODUCTS, detectExplicitEcuadorProductKey, resolveEcuadorProductInfo } from '../src/services/ecuadorProductService.js';
+import {
+    ECUADOR_PRODUCT_KEYS,
+    detectExplicitEcuadorProductKey,
+    getEcuadorProductInfoByKey,
+    resolveEcuadorProductInfo
+} from '../src/services/ecuadorProductService.js';
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -29,14 +34,8 @@ const panelStatusFromOrder = (status = '') => ({
     cancelled: 'cancelado',
     returned: 'devolvido'
 })[String(status || '').trim().toLowerCase()] || 'novo';
-const productInfoForKey = (key = '') => (
-    key === ECUADOR_PRODUCTS.vitPower.key ? ECUADOR_PRODUCTS.vitPower : ECUADOR_PRODUCTS.nitrix
-);
-const productMediaForInfo = (productInfo = {}) => (
-    productInfo?.key === ECUADOR_PRODUCTS.vitPower.key
-        ? '/media/sales/ec/vit_power.jpeg'
-        : '/media/sales/ec/nitrix_bottle.png'
-);
+const productInfoForKey = (key = '') => getEcuadorProductInfoByKey(key);
+const productMediaForInfo = (productInfo = {}) => String(productInfo?.media || '').trim();
 
 await connectDB();
 
@@ -77,6 +76,7 @@ try {
         const currentDraft = state.metadata?.customerDraft || {};
         const productKey = detectExplicitEcuadorProductKey(order, currentDraft, state.metadata || {});
         const productInfo = productKey ? productInfoForKey(productKey) : resolveEcuadorProductInfo(order, currentDraft, state.metadata || {});
+        if (!productInfo?.key) continue;
         const productMedia = productMediaForInfo(productInfo);
         const currentOrderId = String(currentDraft.orderId || '').trim();
         const sourceOrderId = currentOrderId && currentOrderId !== order.orderId
@@ -103,7 +103,8 @@ try {
             updatedAt: new Date().toISOString()
         };
 
-        const needsChange = String(state.assignedAgent || '') !== productInfo.key
+        const legacyProductInAssignedAgent = ECUADOR_PRODUCT_KEYS.includes(String(state.assignedAgent || '').trim());
+        const needsChange = legacyProductInAssignedAgent
             || String(state.metadata?.productKey || '') !== productInfo.key
             || String(currentDraft.orderId || '') !== order.orderId
             || String(currentDraft.productKey || '') !== productInfo.key
@@ -125,7 +126,7 @@ try {
                 { _id: state._id },
                 {
                     $set: {
-                        assignedAgent: productInfo.key,
+                        ...(legacyProductInAssignedAgent ? { assignedAgent: null } : {}),
                         phoneDigits: state.phoneDigits || digitsOnly(order.customer?.phone),
                         countryCode: 'EC',
                         'metadata.productKey': productInfo.key,

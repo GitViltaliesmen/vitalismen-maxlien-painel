@@ -4,12 +4,12 @@ import Order from '../models/Order.js';
 import { vitPowerAgent } from './agents/vitPowerAgent.js';
 import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
-import { activeProductRouteLock } from './productRouteLockService.js';
 import { shouldRouteDirectProductInbound } from './ecDirectProductInquiryService.js';
+import { currentProductRouteForState } from './vslProductAssignmentService.js';
 
-const OFFICIAL_AGENT = 'vit_power_ec';
-const NITRIX_AGENT = 'nitrix_ec';
-const TEX_ULTRA_AGENT = 'tex_ultra_ec';
+const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
+const NITRIX_PRODUCT_KEY = 'nitrix_ec';
+const TEX_ULTRA_PRODUCT_KEY = 'tex_ultra_ec';
 const OFFICIAL_COUNTRY = 'EC';
 
 const productRouteText = (value) => String(value || '')
@@ -20,86 +20,11 @@ const productRouteText = (value) => String(value || '')
     .trim();
 
 export const productRouteForState = (state = {}) => {
-    const metadata = state?.metadata || {};
-    const draft = metadata.customerDraft || {};
-    const routeLock = activeProductRouteLock(state);
-    if (routeLock) {
-        return { assignedAgent: routeLock.productKey, reason: 'active_operator_product_route_lock' };
-    }
-    const explicitProductValues = [
-        metadata.productKey,
-        draft.productKey,
-        metadata.productName,
-        draft.productName
-    ].map(productRouteText).filter(Boolean);
-    const vslValues = [
-        metadata.productSource,
-        metadata.vslPath,
-        metadata.vslPage,
-        metadata.vslSourceUrl
-    ].map(productRouteText).filter(Boolean);
-    const tags = Array.isArray(state.tags) ? state.tags.map(productRouteText) : [];
-    const hasTexUltraContext = explicitProductValues.some((value) => (
-        value === TEX_ULTRA_AGENT
-        || value.includes('tex_ultra')
-        || value.includes('tex ultra')
-    ));
-    if (hasTexUltraContext) {
-        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'explicit_tex_ultra_vsl_or_product_context' };
-    }
-
-    const hasNitrixContext = explicitProductValues.some((value) => (
-        value === NITRIX_AGENT
-        || value === 'nx_ec'
-        || value.includes('nitrix')
-    ));
-    if (hasNitrixContext) {
-        return { assignedAgent: NITRIX_AGENT, reason: 'explicit_nitrix_vsl_or_product_context' };
-    }
-
-    const hasVitPowerContext = explicitProductValues.some((value) => (
-        value === OFFICIAL_AGENT
-        || value.includes('vit_power')
-        || value.includes('vit power')
-    ));
-    if (hasVitPowerContext) {
-        return { assignedAgent: OFFICIAL_AGENT, reason: 'explicit_vit_power_product_context' };
-    }
-
-    const hasTexUltraVslContext = vslValues.some((value) => (
-        value.includes('tex_ultra')
-        || value.includes('tex ultra')
-        || value.startsWith('/n')
-        || value.includes('maxlien.shop/n')
-    ));
-    if (hasTexUltraVslContext) {
-        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'tex_ultra_vsl_context' };
-    }
-
-    const hasVitPowerVslContext = vslValues.some((value) => (
-        value.startsWith('/m')
-        || value.includes('maxlien.shop/m')
-    ));
-    if (hasVitPowerVslContext) {
-        return { assignedAgent: OFFICIAL_AGENT, reason: 'vit_power_vsl_context' };
-    }
-
-    // `assignedAgent` and tags are weaker, historical hints. They are only
-    // used when the durable VSL/product fields above are absent.
-    if (productRouteText(state.assignedAgent) === NITRIX_AGENT || tags.includes('nitrix_ec')) {
-        return { assignedAgent: NITRIX_AGENT, reason: 'stored_nitrix_agent_context' };
-    }
-    if (productRouteText(state.assignedAgent) === TEX_ULTRA_AGENT || tags.includes('tex_ultra_ec')) {
-        return { assignedAgent: TEX_ULTRA_AGENT, reason: 'stored_tex_ultra_agent_context' };
-    }
-
-    // Legacy/unknown contacts predate product attribution. Keep them on the
-    // established Vit Power route; never promote an ambiguous record to Nitrix.
-    return { assignedAgent: OFFICIAL_AGENT, reason: 'legacy_or_unknown_defaults_to_vit_power' };
+    return currentProductRouteForState(state);
 };
 
 const isNitrixVslInitialInbound = (state = {}) => {
-    if (productRouteForState(state).assignedAgent !== NITRIX_AGENT) return false;
+    if (productRouteForState(state).productKey !== NITRIX_PRODUCT_KEY) return false;
     const metadata = state.metadata || {};
     const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
         .map(productRouteText);
@@ -109,7 +34,7 @@ const isNitrixVslInitialInbound = (state = {}) => {
 };
 
 const isTexUltraVslInitialInbound = (state = {}) => {
-    if (productRouteForState(state).assignedAgent !== TEX_ULTRA_AGENT) return false;
+    if (productRouteForState(state).productKey !== TEX_ULTRA_PRODUCT_KEY) return false;
     const metadata = state.metadata || {};
     const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
         .map(productRouteText);
@@ -120,8 +45,8 @@ const isTexUltraVslInitialInbound = (state = {}) => {
 
 export const automatedVslEntryAgentForState = (state = {}) => {
     if (String(state?.human?.lastManualBy || '') !== 'vsl_ec') return '';
-    if (isNitrixVslInitialInbound(state)) return NITRIX_AGENT;
-    if (isTexUltraVslInitialInbound(state)) return TEX_ULTRA_AGENT;
+    if (isNitrixVslInitialInbound(state)) return NITRIX_PRODUCT_KEY;
+    if (isTexUltraVslInitialInbound(state)) return TEX_ULTRA_PRODUCT_KEY;
     return '';
 };
 
@@ -356,7 +281,7 @@ const resetPriorityBotTestConversationMemory = (state) => {
         ...metadata,
         perAgentMemory: {
             ...perAgentMemory,
-            [OFFICIAL_AGENT]: {}
+            [VIT_POWER_PRODUCT_KEY]: {}
         },
         lastKnownFunnelStage: '',
         lastKnownFunnelBucket: '',
@@ -375,14 +300,14 @@ const resetPriorityBotTestConversationMemory = (state) => {
     delete state.metadata.lastProcessedInboundAt;
     delete state.metadata.lastComplementAt;
     delete state.metadata.lastComplementKey;
-    if (state.metadata.perAgentMemory?.[OFFICIAL_AGENT]) {
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].audioComplements;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastComplementAt;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastComplementKey;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastInterruptAnsweredAt;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].lastInterruptKey;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].resumeFunnelStageAfterInterrupt;
-        delete state.metadata.perAgentMemory[OFFICIAL_AGENT].resumeConversationStageAfterInterrupt;
+    if (state.metadata.perAgentMemory?.[VIT_POWER_PRODUCT_KEY]) {
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].audioComplements;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].lastComplementAt;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].lastComplementKey;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].lastInterruptAnsweredAt;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].lastInterruptKey;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].resumeFunnelStageAfterInterrupt;
+        delete state.metadata.perAgentMemory[VIT_POWER_PRODUCT_KEY].resumeConversationStageAfterInterrupt;
     }
     state.firstInboundText = '';
     state.firstInboundAt = null;
@@ -515,7 +440,7 @@ const markBotAttendanceInAdminPanel = ({ chatId = '', senderPn = '', state = nul
 };
 
 const forcedAgent = () => {
-    return OFFICIAL_AGENT;
+    return VIT_POWER_PRODUCT_KEY;
 };
 
 const isAffirmativeConfirmation = (body) => {
@@ -562,7 +487,7 @@ const contactIdentityQuery = ({ chatId = '', senderPn = '', phoneDigits = '' } =
 
 const stateContinuityRank = (state, currentChatId = '') => {
     const agentMemory = state?.metadata?.perAgentMemory || {};
-    const memory = agentMemory[NITRIX_AGENT] || agentMemory[OFFICIAL_AGENT] || {};
+    const memory = agentMemory[NITRIX_PRODUCT_KEY] || agentMemory[VIT_POWER_PRODUCT_KEY] || {};
     let score = 0;
     if (state?.chatId === currentChatId) score += 20;
     if (state?.human?.mode === 'manual') score += 80;
@@ -670,7 +595,7 @@ const applyPostOrderFunnelLockFromOrder = ({ state, order, reason = 'active_orde
     if (!state || !orderRequiresClosedFunnelLock(order)) return false;
     const metadata = state.metadata || {};
     const perAgentMemory = metadata.perAgentMemory || {};
-    const currentAgentMemory = perAgentMemory[OFFICIAL_AGENT] || {};
+    const currentAgentMemory = perAgentMemory[VIT_POWER_PRODUCT_KEY] || {};
     const nextAgentMemory = {
         ...currentAgentMemory,
         lastFunnelStage: 'order_closed',
@@ -691,7 +616,7 @@ const applyPostOrderFunnelLockFromOrder = ({ state, order, reason = 'active_orde
         activeOrderId: order.orderId || metadata.activeOrderId || '',
         perAgentMemory: {
             ...perAgentMemory,
-            [OFFICIAL_AGENT]: nextAgentMemory
+            [VIT_POWER_PRODUCT_KEY]: nextAgentMemory
         }
     };
     state.markModified?.('metadata');
@@ -779,7 +704,7 @@ const removeTag = (state, tag) => {
     state.tags = (state.tags || []).filter((item) => item !== tag);
 };
 
-const chooseAssignedAgent = ({
+const chooseProductRoute = ({
     state,
     body,
     countryCode,
@@ -790,36 +715,45 @@ const chooseAssignedAgent = ({
     return productRouteForState(state);
 };
 
-const appendAgentHistory = ({ state, assignedAgent, reason }) => {
-    state.agentHistory = (state.agentHistory || []).filter((entry) => (
-        entry?.agent === OFFICIAL_AGENT || entry?.agent === NITRIX_AGENT || entry?.agent === TEX_ULTRA_AGENT
-    ));
-    const lastEntry = state.agentHistory[state.agentHistory.length - 1];
-    if (lastEntry?.agent === assignedAgent) return;
-    state.agentHistory.push({
-        agent: assignedAgent,
+const appendProductHistory = ({ state, productKey, reason }) => {
+    if (!productKey) return;
+    state.productHistory = Array.isArray(state.productHistory) ? state.productHistory : [];
+    const lastEntry = state.productHistory[state.productHistory.length - 1];
+    if (lastEntry?.productKey === productKey) return;
+    state.productHistory.push({
+        productKey,
         reason,
         at: new Date()
     });
-    state.agentHistory = state.agentHistory.slice(-12);
+    state.productHistory = state.productHistory.slice(-20);
 };
 
-const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason, signals, sessionId = null }) => {
-    ensureTag(state, 'COMMERCIAL_READY');
-    if (countryCode === 'EC' && assignedAgent === NITRIX_AGENT) {
+const updateTagsAndMetadata = ({ state, productKey, countryCode, body, reason, signals, sessionId = null }) => {
+    if (productKey) ensureTag(state, 'COMMERCIAL_READY');
+    if (countryCode === 'EC' && productKey === NITRIX_PRODUCT_KEY) {
         removeTag(state, 'TEX_ULTRA_EC');
         removeTag(state, 'VIT_POWER_EC_ONLY');
         removeTag(state, 'VIT_POWER_EC');
         ensureTag(state, 'NITRIX_EC');
-    } else if (countryCode === 'EC' && assignedAgent === TEX_ULTRA_AGENT) {
+    } else if (countryCode === 'EC' && productKey === TEX_ULTRA_PRODUCT_KEY) {
         removeTag(state, 'NITRIX_EC');
         removeTag(state, 'VIT_POWER_EC_ONLY');
         removeTag(state, 'VIT_POWER_EC');
         ensureTag(state, 'TEX_ULTRA_EC');
-    } else if (countryCode === 'EC') {
+    } else if (countryCode === 'EC' && productKey === VIT_POWER_PRODUCT_KEY) {
         removeTag(state, 'TEX_ULTRA_EC');
         removeTag(state, 'NITRIX_EC');
         ensureTag(state, 'VIT_POWER_EC');
+    } else if (countryCode === 'EC') {
+        ensureTag(state, 'PRODUCT_REVIEW_REQUIRED');
+        state.conversationBucket = {
+            ...(state.conversationBucket || {}),
+            value: 'review',
+            source: 'product_router',
+            confidence: 'high',
+            reasons: ['unknown_product_requires_review'],
+            classifiedAt: new Date()
+        };
     }
     if (signals.asksPrice) ensureTag(state, 'ASKS_PRICE');
     if (signals.asksProof) ensureTag(state, 'ASKS_PROOF');
@@ -829,14 +763,14 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
     if (signals.postSale) ensureTag(state, 'POST_SALE');
 
     state.countryCode = countryCode || OFFICIAL_COUNTRY;
-    state.assignedAgent = assignedAgent;
-    appendAgentHistory({ state, assignedAgent, reason });
+    appendProductHistory({ state, productKey, reason });
+    const previousMemory = (state.metadata || {}).perAgentMemory || {};
     state.metadata = {
         ...(state.metadata || {}),
         lastSessionId: sessionId || state.metadata?.lastSessionId || null,
         lastRouterDecisionAt: new Date(),
         lastRouterDecisionText: body,
-        lastRouterDecisionAgent: assignedAgent,
+        lastRouterDecisionProductKey: productKey,
         lastRouterDecisionReason: reason,
         lastDetectedSignals: {
             wantsConsultation: signals.wantsConsultation,
@@ -861,25 +795,25 @@ const updateTagsAndMetadata = ({ state, assignedAgent, countryCode, body, reason
         },
         lastKnownFunnelBucket: signals.funnelBucket,
         buyerScore: signals.buyerScore,
-        perAgentMemory: {
-            ...((state.metadata || {}).perAgentMemory || {}),
-            [assignedAgent]: {
-                ...(((state.metadata || {}).perAgentMemory || {})[assignedAgent] || {}),
+        perAgentMemory: productKey ? {
+            ...previousMemory,
+            [productKey]: {
+                ...(previousMemory[productKey] || {}),
                 lastInboundAt: new Date(),
                 lastInboundText: body,
                 lastReason: reason,
                 lastFunnelBucket: signals.funnelBucket,
                 buyerScore: signals.buyerScore
             }
-        }
+        } : previousMemory
     };
 };
 
-const dispatchToAgent = async ({ assignedAgent, payload }) => {
-    console.log(`[ROUTER] agente selecionado -> ${assignedAgent} | chat=${payload.from}`);
+const dispatchToProduct = async ({ productKey, payload }) => {
+    console.log(`[ROUTER] produto selecionado -> ${productKey} | chat=${payload.from}`);
     await vitPowerAgent.handleIncomingMessage({
         ...payload,
-        agent: assignedAgent
+        agent: productKey
     });
 };
 
@@ -1058,14 +992,14 @@ export const routeIncomingMessage = async (payload) => {
             mode: 'auto',
             pausedUntil: null,
             lastManualAt: new Date(),
-            lastManualBy: vslEntryAgent === TEX_ULTRA_AGENT ? 'tex_ultra_vsl_entry_auto' : 'nitrix_vsl_entry_auto',
-            note: vslEntryAgent === TEX_ULTRA_AGENT
+            lastManualBy: vslEntryAgent === TEX_ULTRA_PRODUCT_KEY ? 'tex_ultra_vsl_entry_auto' : 'nitrix_vsl_entry_auto',
+            note: vslEntryAgent === TEX_ULTRA_PRODUCT_KEY
                 ? 'Entrada VSL Tex Ultra confirmada; liberada exclusivamente para o funil Tex Ultra.'
                 : 'Entrada VSL Nitrix confirmada; aguardando fluxo Fast State ou resposta direta à pergunta inicial.'
         };
         state.metadata = {
             ...(state.metadata || {}),
-            ...(vslEntryAgent === TEX_ULTRA_AGENT
+            ...(vslEntryAgent === TEX_ULTRA_PRODUCT_KEY
                 ? { texUltraVslInboundAt: new Date(), texUltraVslInboundAutoReleased: true }
                 : { nitrixVslInboundAt: new Date(), nitrixVslInboundAutoReleased: true })
         };
@@ -1121,7 +1055,7 @@ export const routeIncomingMessage = async (payload) => {
         console.log(`[ROUTER] contexto de pedido ativo/fechado aplicado antes do bot | chat=${chatId} | order=${latestOrder?.orderId || ''} | status=${latestOrder?.status || ''}`);
     }
 
-    const decision = chooseAssignedAgent({
+    const decision = chooseProductRoute({
         state,
         body,
         countryCode: resolvedCountryCode,
@@ -1131,7 +1065,7 @@ export const routeIncomingMessage = async (payload) => {
     });
     updateTagsAndMetadata({
         state,
-        assignedAgent: decision.assignedAgent,
+        productKey: decision.productKey,
         countryCode: resolvedCountryCode,
         body,
         reason: decision.reason,
@@ -1139,6 +1073,11 @@ export const routeIncomingMessage = async (payload) => {
         sessionId
     });
     await state.save();
+
+    if (!decision.productKey) {
+        console.warn(`[ROUTER] produto desconhecido; contato enviado para revisao sem resposta automatica | chat=${chatId}`);
+        return;
+    }
 
     if (!autoReplyEnabled()) {
         console.log(`[ROUTER] auto-resposta pausada por WHATSAPP_AUTO_REPLY_ENABLED!=true | chat=${chatId}`);
@@ -1168,8 +1107,8 @@ export const routeIncomingMessage = async (payload) => {
         const outboundFrom = priorityBotTestPhone && senderPhoneDigits
             ? `${senderPhoneDigits}@s.whatsapp.net`
             : chatId;
-        await dispatchToAgent({
-            assignedAgent: decision.assignedAgent,
+        await dispatchToProduct({
+            productKey: decision.productKey,
             payload: {
                 ...payload,
                 from: outboundFrom,

@@ -341,7 +341,7 @@ export const processPendingCheckoutInfoFollowups = async ({ limit = 20 } = {}) =
 
     try {
         const states = await ContactState.find({
-            assignedAgent: 'vit_power_ec',
+            'metadata.productKey': 'vit_power_ec',
             'metadata.perAgentMemory.vit_power_ec.pendingCheckoutOrder': { $exists: true }
         }).sort({ updatedAt: -1 }).limit(limit);
 
@@ -350,7 +350,7 @@ export const processPendingCheckoutInfoFollowups = async ({ limit = 20 } = {}) =
 
         for (const state of states) {
             processed += 1;
-            const agentKey = state.assignedAgent || 'vit_power_ec';
+            const agentKey = 'vit_power_ec';
             const metadata = normalizeStateMetadata(state);
             const memory = getAgentMemory(state, agentKey);
             const stage = getPendingCheckoutStage(memory);
@@ -516,7 +516,7 @@ const contactStateQueryForShipment = (shipment = {}) => {
     const tails = uniquePhoneTails(shipment?.client?.phone);
     if (!tails.length) return null;
     return {
-        assignedAgent: 'vit_power_ec',
+        'metadata.productKey': 'vit_power_ec',
         $or: tails.flatMap((tail) => ([
             { phoneDigits: { $regex: `${tail}$` } },
             { chatId: { $regex: tail } },
@@ -700,7 +700,7 @@ export const processPostSaleRepurchase30dFollowups = async ({
                 });
             }
 
-            const agentKey = state?.assignedAgent || 'vit_power_ec';
+            const agentKey = 'vit_power_ec';
             const proof = state
                 ? await getNextItemByPurpose(state.phoneDigits || shipment.client?.phone || chatId, 'prova', {
                     candidates: PRODUCT_FOLLOWUP_PROOFS,
@@ -784,7 +784,7 @@ export const processInitialProductFollowups = async ({ limit = 30 } = {}) => {
         const delayMs = PRODUCT_FOLLOWUP_DELAY_MINUTES * 60 * 1000;
         const cutoff = new Date(Date.now() - delayMs);
         const states = await ContactState.find({
-            assignedAgent: 'vit_power_ec',
+            'metadata.productKey': 'vit_power_ec',
             'metadata.perAgentMemory.vit_power_ec.initialProductPresentationSentAt': { $lte: cutoff }
         }).sort({ updatedAt: -1 }).limit(limit);
 
@@ -793,7 +793,7 @@ export const processInitialProductFollowups = async ({ limit = 30 } = {}) => {
 
         for (const state of states) {
             processed += 1;
-            const agentKey = state.assignedAgent || 'vit_power_ec';
+            const agentKey = 'vit_power_ec';
             const memory = getAgentMemory(state, agentKey);
             if (memory.pendingCheckoutOrder && PENDING_CHECKOUT_STAGES.has(getPendingCheckoutStage(memory))) {
                 continue;

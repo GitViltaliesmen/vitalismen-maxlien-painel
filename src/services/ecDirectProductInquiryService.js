@@ -186,7 +186,6 @@ const productContextUpdate = ({ state = {}, productKey = '', productName = '', p
     return {
         preserveOperatorSelection,
         set: {
-            assignedAgent: productKey,
             'metadata.productKey': productKey,
             'metadata.productName': productName,
             'metadata.productSource': 'client_direct_product_request',
@@ -212,9 +211,9 @@ const productContextUpdate = ({ state = {}, productKey = '', productName = '', p
         },
         operatorProductPreserved,
         push: {
-            agentHistory: {
+            productHistory: {
                 $each: [{
-                    agent: productKey,
+                    productKey,
                     reason: 'client_direct_product_request',
                     at: now
                 }],

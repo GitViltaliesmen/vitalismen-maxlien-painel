@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const EC_AGENT_KEYS = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
+const EC_PRODUCT_KEYS = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
 
 const customerDataResolutionSchema = new mongoose.Schema({
     version: { type: Number, default: 28 },
@@ -52,15 +52,21 @@ const contactStateSchema = new mongoose.Schema({
     },
     assignedAgent: {
         type: String,
-        enum: EC_AGENT_KEYS,
-        default: 'vit_power_ec'
+        default: null
     },
+    productHistory: {
+        type: [{
+            productKey: { type: String, default: '' },
+            reason: String,
+            at: Date
+        }],
+        default: []
+    },
+    // Legado V47 e anteriores. Mantido somente para leitura/migracao; novas
+    // decisoes de produto sao registradas em `productHistory`.
     agentHistory: {
         type: [{
-            agent: {
-                type: String,
-                enum: EC_AGENT_KEYS
-            },
+            agent: String,
             reason: String,
             at: Date
         }],
@@ -176,7 +182,7 @@ const contactStateSchema = new mongoose.Schema({
         },
         productKey: {
             type: String,
-            enum: ['', ...EC_AGENT_KEYS],
+            enum: ['', ...EC_PRODUCT_KEYS],
             default: ''
         },
         productName: {

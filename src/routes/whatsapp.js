@@ -41,9 +41,18 @@ import {
     selectEcuadorPanelProductInfo
 } from '../services/ecuadorProductService.js';
 import {
+    applyCurrentProductToState,
+    currentProductRouteForState,
     operatorProductRouteLock,
     vslProductAssignmentPolicy
 } from '../services/vslProductAssignmentService.js';
+import {
+    applyInboundCustomerNameEvidence,
+    applyVerifiedCustomerName,
+    resolveCustomerDisplayName,
+    resolveIdentityConflict
+} from '../services/customerNameResolutionService.js';
+import { panelAuditTransition } from '../services/panelAuditIdempotencyService.js';
 import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
 import {
     isOperationalChatStatusKey,
@@ -836,10 +845,22 @@ const registerPanelAction = async ({
     by = '',
     detail = '',
     chatId = '',
-    phone = ''
+    phone = '',
+    before,
+    after,
+    entity = 'contact_state'
 } = {}) => {
     if (!state) return null;
     const normalizedAction = normalizeManualAction(action || 'acao_manual');
+    const hasTransition = before !== undefined || after !== undefined;
+    const transition = hasTransition ? panelAuditTransition({
+        entity,
+        entityId: state._id?.toString?.() || state.chatId || state.phoneDigits || phone,
+        action: normalizedAction,
+        before: before ?? null,
+        after: after ?? null
+    }) : null;
+    if (transition && !transition.changed) return null;
     const finalLabel = label || MANUAL_ACTION_TAGS[normalizedAction] || normalizedAction.replace(/_/g, ' ');
     const at = new Date();
     const operator = by || 'painel';
@@ -863,7 +884,7 @@ const registerPanelAction = async ({
     const resolvedChatId = state.chatId || chatId || (digitsOnly(phone || state.phoneDigits) ? `${digitsOnly(phone || state.phoneDigits)}@c.us` : '');
     if (resolvedChatId) {
         await Message.create({
-            _id: `panel_action_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+            _id: transition?.messageId || `panel_action_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
             chatId: resolvedChatId,
             peerPhone: state.phoneDigits || digitsOnly(phone),
             from: 'system',
@@ -872,7 +893,18 @@ const registerPanelAction = async ({
             type: 'system',
             isFromMe: true,
             isBot: false,
-            timestamp: Math.floor(at.getTime() / 1000)
+            timestamp: Math.floor(at.getTime() / 1000),
+            ...(transition ? {
+                provider: 'panel_audit',
+                providerMessageId: transition.transitionHash,
+                providerPayload: {
+                    entity,
+                    action: normalizedAction,
+                    beforeHash: transition.beforeHash,
+                    afterHash: transition.afterHash,
+                    transitionHash: transition.transitionHash
+                }
+            } : {})
         }).catch((error) => {
             if (error.code !== 11000) console.warn('[PAINEL] falha ao registrar acao:', error.message);
         });
@@ -1432,6 +1464,11 @@ const EC_PRODUCT_NAMES = {
     tex_ultra_ec: 'Tex Ultra Ecuador'
 };
 
+const panelHumanAgentId = (state = {}) => {
+    const assigned = String(state?.human?.assignedTo || state?.assignedAgent || '').trim();
+    return Object.values(EC_PRODUCT_KEYS).includes(assigned) ? null : (assigned || null);
+};
+
 const sourceUrlPathname = (value = '') => {
     try {
         return new URL(String(value || '')).pathname || '';
@@ -1510,11 +1547,11 @@ export const publicEcVslProductFromBody = (body = {}) => {
     }
 
     return {
-        productKey: EC_PRODUCT_KEYS.vitPower,
-        productName: EC_PRODUCT_NAMES.vit_power_ec,
-        agentKey: EC_PRODUCT_KEYS.vitPower,
-        tag: 'VIT_POWER_EC',
-        source: 'ec_vit_power_legacy_default'
+        productKey: '',
+        productName: '',
+        agentKey: '',
+        tag: 'PRODUCT_REVIEW_REQUIRED',
+        source: 'unknown_vsl_product_requires_review'
     };
 };
 
@@ -1592,6 +1629,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const existingDraft = state.metadata?.customerDraft || {};
     const existingHuman = state.human || {};
     const existingManualActor = String(existingHuman.lastManualBy || '').trim();
+    const knownVslProduct = Boolean(product.productKey);
     const isNitrixVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.nitrix;
     const isTexUltraVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.texUltra;
     const productAssignment = vslProductAssignmentPolicy({
@@ -1610,7 +1648,15 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
 
     state.phoneDigits = phoneDigits;
     state.countryCode = effectiveCountry;
-    if (!productAssignment.preserveOperatorSelection) state.assignedAgent = product.agentKey;
+    if (knownVslProduct && !productAssignment.preserveOperatorSelection) {
+        applyCurrentProductToState({
+            state,
+            productKey: product.productKey,
+            productName: product.productName,
+            source: product.source,
+            at: now
+        });
+    }
     // O clique na VSL registra origem e painel; ele nao e' uma nova mensagem
     // WhatsApp. Depois que o Fast State iniciou, nao pode atualizar
     // lastInboundAt nem cancelar a cadencia como se o cliente tivesse escrito.
@@ -1652,6 +1698,25 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         'AGUARDANDO_ATENDIMENTO',
         ...(isNitrixVsl && !preserveNitrixHumanTakeover ? ['NITRIX_FAST_STATE_READY'] : [])
     ])];
+    if (!knownVslProduct) {
+        state.conversationBucket = {
+            ...(state.conversationBucket || {}),
+            value: 'review',
+            source: 'vsl_entry',
+            confidence: 'high',
+            reasons: ['unknown_vsl_product_requires_review'],
+            classifiedAt: now
+        };
+    }
+    const historicalVslAttribution = state.metadata?.vslProductKey ? {
+        vslProductKey: state.metadata.vslProductKey,
+        vslProductName: state.metadata.vslProductName || '',
+        vslProductSource: state.metadata.vslProductSource || ''
+    } : {
+        vslProductKey: product.productKey,
+        vslProductName: product.productName,
+        vslProductSource: product.source
+    };
     state.metadata = {
         ...(state.metadata || {}),
         vslEntryPanelLead: true,
@@ -1666,9 +1731,8 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslEntryMessage: vslEntryMessage || entryMessage || state.metadata?.vslEntryMessage || '',
         vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
         vslReferrer: cleanText(body.referrer),
-        vslProductKey: product.productKey,
-        vslProductName: product.productName,
-        vslProductSource: product.source,
+        ...historicalVslAttribution,
+        ...(customerName ? { submittedName: state.metadata?.submittedName || customerName } : {}),
         ...(isNitrixVsl && !preserveNitrixHumanTakeover ? {
             nitrixVslEntryReadyAt: now.toISOString(),
             nitrixVslEntryHumanHoldPreserved: false
@@ -1676,7 +1740,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         ...(isNitrixVsl && preserveNitrixHumanTakeover ? {
             nitrixVslEntryHumanHoldPreserved: true
         } : {}),
-        ...(!productAssignment.preserveOperatorSelection ? {
+        ...(knownVslProduct && !productAssignment.preserveOperatorSelection ? {
             productKey: product.productKey,
             productName: product.productName,
             productSource: product.source,
@@ -1698,13 +1762,13 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         lastSessionId: sellerDigits || state.metadata?.lastSessionId || '',
         customerDraft: {
             ...existingDraft,
-            name: customerName || existingDraft.name || '',
+            name: existingDraft.name || customerName || '',
             phone: `+${phoneDigits}`,
             country: effectiveCountry,
             status: existingDraft.status || 'novo',
             entryAt: existingDraft.entryAt || now.toISOString(),
             source: 'vsl_ec_mobile',
-            ...(!productAssignment.preserveOperatorSelection ? {
+            ...(knownVslProduct && !productAssignment.preserveOperatorSelection ? {
                 productKey: product.productKey,
                 productName: product.productName,
                 productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
@@ -1736,6 +1800,12 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             vsl_variant: vslVariant
         }
     };
+    applyInboundCustomerNameEvidence({
+        state,
+        submittedName: customerName,
+        at: now,
+        sourceMessageId: visit?._id?.toString?.() || ''
+    });
     await state.save();
     await upsertVslPanelPreviewMessage({
         state,
@@ -2285,8 +2355,7 @@ export const panelProductContextForChat = async ({
     ));
     if (shouldPersist) {
         const currentDraft = contactState?.metadata?.customerDraft || {};
-        const productMismatch = String(contactState?.assignedAgent || '') !== productInfo.key
-            || String(contactState?.metadata?.productKey || '') !== productInfo.key
+        const productMismatch = String(contactState?.metadata?.productKey || '') !== productInfo.key
             || String(contactState?.metadata?.productName || '') !== productInfo.name
             || String(currentDraft.productKey || '') !== productInfo.key
             || String(currentDraft.productName || '') !== productInfo.name
@@ -2308,7 +2377,6 @@ export const panelProductContextForChat = async ({
                     { _id: contactState._id },
                     {
                         $set: {
-                            assignedAgent: productInfo.key,
                             'metadata.productKey': productInfo.key,
                             'metadata.productName': productInfo.name,
                             'metadata.productMedia': productMedia,
@@ -3258,50 +3326,77 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 
         const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country });
         const draft = state.metadata?.customerDraft || {};
+        const lockedName = state.metadata?.manualNameLock?.active === true
+            ? state.metadata.manualNameLock.name
+            : '';
         const buyLaterFollowupAt = status === 'comprar_depois'
             ? normalizeBuyLaterDesiredDate(body.buy_later_followup_at || draft.buyLaterFollowupAt || '')
             : '';
         if (status === 'comprar_depois' && !buyLaterFollowupAt) {
             return res.status(400).json({ ok: false, error: 'buy_later_date_required' });
         }
-        state.phoneDigits = state.phoneDigits || phoneDigits;
-        state.countryCode = country;
-        state.metadata = {
-            ...(state.metadata || {}),
-            customerDraft: {
-                ...draft,
-                name: cleanText(body.name) || draft.name || '',
-                phone: phone.startsWith('+') ? phone : `+${phoneDigits}`,
-                country,
-                status,
-                buyLaterFollowupAt,
-                updatedAt: new Date().toISOString()
-            },
-            adminPanelStatus: {
-                leadId: body.id || body.lead_id || '',
-                oldStatus,
-                status,
-                country,
-                syncedAt: new Date().toISOString()
-            }
+        const targetPhone = phone.startsWith('+') ? phone : `+${phoneDigits}`;
+        const targetLeadId = body.id || body.lead_id || '';
+        const beforeStatus = {
+            name: draft.name || '',
+            phone: draft.phone || '',
+            country: draft.country || state.countryCode || '',
+            status: normalizePanelStatus(draft.status),
+            buyLaterFollowupAt: draft.buyLaterFollowupAt || '',
+            leadId: state.metadata?.adminPanelStatus?.leadId || ''
         };
-        try {
-            applyBuyLaterReminderFromDraft({
-                state,
-                draft: state.metadata.customerDraft,
-                status
-            });
-        } catch (error) {
-            return res.status(400).json({ ok: false, error: error.message });
-        }
-        await state.save();
-        await registerPanelAction({
-            state,
+        const afterStatus = {
+            name: lockedName || cleanText(body.name) || draft.name || '',
+            phone: targetPhone,
+            country,
+            status,
+            buyLaterFollowupAt,
+            leadId: targetLeadId
+        };
+        const statusTransition = panelAuditTransition({
+            entityId: state._id?.toString?.() || state.chatId || phoneDigits,
             action: 'status_painel_unificado',
-            label: 'Status alterado no Painel Unificado',
-            detail: `${oldStatus || 'sem_status'} -> ${status}`,
-            phone: phoneDigits
+            before: beforeStatus,
+            after: afterStatus
         });
+        if (statusTransition.changed) {
+            state.phoneDigits = state.phoneDigits || phoneDigits;
+            state.countryCode = country;
+            state.metadata = {
+                ...(state.metadata || {}),
+                customerDraft: {
+                    ...draft,
+                    ...afterStatus,
+                    updatedAt: new Date().toISOString()
+                },
+                adminPanelStatus: {
+                    leadId: targetLeadId,
+                    oldStatus,
+                    status,
+                    country,
+                    syncedAt: new Date().toISOString()
+                }
+            };
+            try {
+                applyBuyLaterReminderFromDraft({
+                    state,
+                    draft: state.metadata.customerDraft,
+                    status
+                });
+            } catch (error) {
+                return res.status(400).json({ ok: false, error: error.message });
+            }
+            await state.save();
+            await registerPanelAction({
+                state,
+                action: 'status_painel_unificado',
+                label: 'Status alterado no Painel Unificado',
+                detail: `${beforeStatus.status || 'sem_status'} -> ${status}`,
+                phone: phoneDigits,
+                before: beforeStatus,
+                after: afterStatus
+            });
+        }
 
         let orderUpdated = false;
         const orderStatus = orderStatusFromPanelStatus(status);
@@ -3318,7 +3413,14 @@ router.post('/internal/admin-status-sync', async (req, res) => {
             }
         }
 
-        return res.json({ ok: true, status, contactStateId: state._id?.toString?.() || '', orderUpdated });
+        return res.json({
+            ok: true,
+            status,
+            contactStateId: state._id?.toString?.() || '',
+            orderUpdated,
+            stateChanged: statusTransition.changed,
+            auditRecorded: statusTransition.changed
+        });
     } catch (error) {
         console.error('[ADMIN_STATUS_SYNC] falha ao espelhar status:', error);
         return res.status(500).json({ ok: false, error: error.message });
@@ -4130,7 +4232,12 @@ router.get('/chats', async (req, res) => {
                 const panelDraft = productContext.customerDraft || customerDraft;
                 return {
                     id: c.id._serialized,
-                    name: order?.customer?.name || panelDraft.name || contactState?.metadata?.profileName || lastMessage?.notifyName || c.name || c.id.user,
+                    name: resolveCustomerDisplayName({
+                        state: contactState,
+                        orderName: order?.customer?.name || '',
+                        lastMessageName: lastMessage?.notifyName || '',
+                        fallback: c.name || c.id.user
+                    }),
                     phone: order?.customer?.phone || panelDraft.phone || c.phoneHint || c.id.user,
                     entryAt,
                     firstInboundAt: contactState?.firstInboundAt || null,
@@ -4164,13 +4271,14 @@ router.get('/chats', async (req, res) => {
                     total: order?.total ?? panelDraft.total ?? null,
                     currency: order?.currency || null,
                     notes: contactState?.human?.note || '',
-                    assignedAgent: productContext.productKey || contactState?.assignedAgent || null,
+                    assignedAgent: panelHumanAgentId(contactState),
                     productKey: productContext.productKey || null,
                     productName: productContext.productName || null,
                     productMedia: productContext.productMedia || null,
                     vslProductKey: contactState?.metadata?.vslProductKey || null,
                     vslProductName: contactState?.metadata?.vslProductName || null,
                     vslPath: contactState?.metadata?.vslPath || null,
+                    identityConflict: contactState?.metadata?.identityConflict || null,
                     customerDraft: {
                         ...panelDraft,
                         dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
@@ -4375,7 +4483,12 @@ router.get('/chats', async (req, res) => {
 
             return {
                 id: c.id._serialized,
-                name: order?.customer?.name || panelDraft.name || contactState?.metadata?.profileName || lastMessageForChat?.notifyName || c.name || c.id.user,
+                name: resolveCustomerDisplayName({
+                    state: contactState,
+                    orderName: order?.customer?.name || '',
+                    lastMessageName: lastMessageForChat?.notifyName || '',
+                    fallback: c.name || c.id.user
+                }),
                 phone: order?.customer?.phone || panelDraft.phone || phone, // This is now the real phone number (resolved)
                 entryAt,
                 firstInboundAt: contactState?.firstInboundAt || null,
@@ -4410,13 +4523,14 @@ router.get('/chats', async (req, res) => {
                 total: order?.total ?? panelDraft.total ?? null,
                 currency: order?.currency || null,
                 notes: order?.notes || contactState?.human?.note || '',
-                assignedAgent: productContext.productKey || contactState?.assignedAgent || null,
+                assignedAgent: panelHumanAgentId(contactState),
                 productKey: productContext.productKey || null,
                 productName: productContext.productName || null,
                 productMedia: productContext.productMedia || null,
                 vslProductKey: contactState?.metadata?.vslProductKey || null,
                 vslProductName: contactState?.metadata?.vslProductName || null,
                 vslPath: contactState?.metadata?.vslPath || null,
+                identityConflict: contactState?.metadata?.identityConflict || null,
                 customerDraft: {
                     ...panelDraft,
                     dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
@@ -5221,6 +5335,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const { note, mode, assignedName, country, customerDraft, customerDataConfirmation } = req.body || {};
+        const productBeforeSave = currentProductRouteForState(state).productKey;
+        let productAfterSave = productBeforeSave;
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
         let customerDataBlockedResponse = null;
         state.human = {
@@ -5344,7 +5460,14 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 const selectedAt = new Date();
                 const selectedBy = req.user.name || req.user.email || '';
                 cleanDraft.negotiationProductKey = cleanDraft.productKey;
-                state.assignedAgent = cleanDraft.productKey;
+                applyCurrentProductToState({
+                    state,
+                    productKey: cleanDraft.productKey,
+                    productName: cleanDraft.productName,
+                    productMedia: cleanDraft.productMedia,
+                    source: 'panel_customer_product_selection',
+                    at: selectedAt
+                });
                 state.metadata = {
                     ...(state.metadata || {}),
                     productKey: cleanDraft.productKey,
@@ -5357,9 +5480,20 @@ router.patch('/contact-state/:phone', async (req, res) => {
                         selectedAt
                     })
                 };
+                productAfterSave = cleanDraft.productKey;
             }
-            const agentKey = state.assignedAgent || 'nitrix_ec';
-            const agentMemory = ((state.metadata || {}).perAgentMemory || {})[agentKey] || {};
+            if ((customerDataConfirmation?.correctedByHumanFields || []).includes('name')) {
+                applyVerifiedCustomerName({
+                    state,
+                    name: cleanDraft.name,
+                    by: req.user.name || req.user.email || '',
+                    at: new Date()
+                });
+            }
+            const productMemoryKey = productAfterSave || currentProductRouteForState(state).productKey;
+            const agentMemory = productMemoryKey
+                ? ((state.metadata || {}).perAgentMemory || {})[productMemoryKey] || {}
+                : {};
             const pendingOrder = agentMemory.pendingCheckoutOrder || null;
             if (pendingOrder && typeof pendingOrder === 'object') {
                 const previousCity = String(pendingOrder.city || '').trim();
@@ -5402,11 +5536,11 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     customerDraft: cleanDraft,
                     perAgentMemory: {
                         ...((state.metadata || {}).perAgentMemory || {}),
-                        [agentKey]: {
+                        ...(productMemoryKey ? { [productMemoryKey]: {
                             ...agentMemory,
                             pendingCheckoutOrder: mergedPendingOrder,
                             lastPanelResumeDraftAt: new Date()
-                        }
+                        } } : {})
                     }
                 };
             } else {
@@ -5447,6 +5581,15 @@ router.patch('/contact-state/:phone', async (req, res) => {
             }
         }
         await state.save();
+        await registerPanelAction({
+            state,
+            action: 'produto_negociacao_alterado',
+            label: 'Produto da negociação alterado',
+            by: req.user?.name || req.user?.email || '',
+            detail: `${productBeforeSave || 'nao_definido'} -> ${productAfterSave || 'nao_definido'}`,
+            before: { productKey: productBeforeSave || '' },
+            after: { productKey: productAfterSave || '' }
+        });
         if (customerDataBlockedResponse) {
             return res.status(422).json({ success: false, state, ...customerDataBlockedResponse });
         }
@@ -5478,6 +5621,39 @@ router.patch('/contact-state/:phone', async (req, res) => {
             message: error.status === 422 ? error.message : undefined,
             customerDataResolution: error.status === 422 ? error.resolution : undefined
         });
+    }
+});
+
+router.post('/contact-state/:phone/identity-conflict', async (req, res) => {
+    try {
+        const state = await findOrCreateContactState(req.params.phone);
+        const resolution = String(req.body?.resolution || '').trim().toUpperCase();
+        if (!['KEEP_CURRENT', 'USE_RECEIVED'].includes(resolution)) {
+            return res.status(400).json({ error: 'invalid_identity_resolution' });
+        }
+        const before = state.metadata?.identityConflict || null;
+        if (!resolveIdentityConflict({
+            state,
+            resolution,
+            by: req.user?.name || req.user?.email || '',
+            at: new Date()
+        })) {
+            return res.status(409).json({ error: 'identity_conflict_not_pending' });
+        }
+        await state.save();
+        await registerPanelAction({
+            state,
+            action: 'conflito_identidade_resolvido',
+            label: 'Conflito de nome resolvido',
+            by: req.user?.name || req.user?.email || '',
+            detail: resolution,
+            before,
+            after: state.metadata?.identityConflict || null
+        });
+        return res.json({ success: true, state });
+    } catch (error) {
+        console.error('Resolve identity conflict error:', error);
+        return res.status(500).json({ error: 'failed_to_resolve_identity_conflict' });
     }
 });
 

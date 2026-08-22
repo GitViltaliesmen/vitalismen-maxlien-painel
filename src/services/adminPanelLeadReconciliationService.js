@@ -173,7 +173,6 @@ const applyAdminLeadToContactState = (state, lead, phone) => {
         state.phoneDigits = state.phoneDigits || normalizedPhone || phone;
     }
     state.countryCode = 'EC';
-    state.assignedAgent = 'vit_power_ec';
     state.updatedAt = validAdminUpdatedAt;
     if (!state.createdAt && lead.created_at) {
         const adminCreatedAt = new Date(lead.created_at);
@@ -190,7 +189,9 @@ const applyAdminLeadToContactState = (state, lead, phone) => {
         lastActiveChatId: state.chatId,
         customerDraft: {
             ...draft,
-            name: lead.name || draft.name || '',
+            name: state.metadata?.manualNameLock?.active === true
+                ? state.metadata.manualNameLock.name
+                : draft.name || lead.name || '',
             phone: isValidEcPhone(normalizedPhone) ? normalizedPhone : (draft.phone || phone),
             country: draft.country || 'EC',
             address: lead.address || draft.address || '',
@@ -536,8 +537,7 @@ export const reconcileAdminLeadsToWhatsappPanel = async ({
             state = new ContactState({
                 chatId: `${phone}@c.us`,
                 phoneDigits: phone,
-                countryCode: 'EC',
-                assignedAgent: 'vit_power_ec'
+                countryCode: 'EC'
             });
             applyAdminLeadToContactState(state, lead, phone);
             const savedState = await saveAdminLeadContactState(state, lead, phone);

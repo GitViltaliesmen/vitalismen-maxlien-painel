@@ -179,4 +179,4 @@ export const AGENT_PROFILES = {
     vit_power_ec: vitPowerProfile
 };
 
-export const getAgentProfile = (key = 'nitrix_ec') => AGENT_PROFILES[key] || nitrixProfile;
+export const getAgentProfile = (key = '') => AGENT_PROFILES[key] || null;

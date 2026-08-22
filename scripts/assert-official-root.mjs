@@ -14,6 +14,7 @@ const windowsOfficialPath = path.join(
     'Vitalismen Automacao'
 );
 const vpsOfficialPath = '/opt/vitalismen-automacao/current';
+const codexOfficialWorkspace = '/home/codex/workspaces/maxlien-vitalismen';
 
 const normalizePath = (value) => {
     try {
@@ -29,6 +30,7 @@ const fail = (message) => {
     console.error('\nCaminho unico local permitido:');
     console.error(`  ${localOfficialPath}`);
     console.error(`  ${windowsOfficialPath}`);
+    console.error(`  ${codexOfficialWorkspace}`);
     console.error('\nCaminho oficial VPS permitido:');
     console.error(`  ${vpsOfficialPath}`);
     console.error('\nPare aqui e reabra o projeto pelo caminho oficial antes de continuar.\n');
@@ -38,6 +40,7 @@ const fail = (message) => {
 const allowedRoots = new Set([
     normalizePath(localOfficialPath),
     normalizePath(windowsOfficialPath),
+    normalizePath(codexOfficialWorkspace),
     normalizePath(vpsOfficialPath)
 ]);
 

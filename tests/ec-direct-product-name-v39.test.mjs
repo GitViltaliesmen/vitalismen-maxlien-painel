@@ -126,9 +126,9 @@ test('painel usa nome salvo no cabeçalho e preenche a ficha automaticamente', (
     assert.match(panel, /const displayIdentity = displayName && displayName !== displayPhone/);
     assert.match(panel, /activeMeta.*displayIdentity/);
     assert.match(panel, /chat\.name \|\| chat\.customerDraft\?\.name \|\| chat\.profileName/);
-    assert.match(whatsapp, /panelDraft\.name \|\| contactState\?\.metadata\?\.profileName/);
-    assert.match(zapi, /targetState\.metadata\.profileName/);
-    assert.match(zapi, /!String\(currentDraft\.name \|\| ''\)\.trim\(\)/);
+    assert.match(whatsapp, /resolveCustomerDisplayName/);
+    assert.match(zapi, /applyInboundCustomerNameEvidence/);
+    assert.match(zapi, /submittedName: vslProductContext\?\.submittedName/);
 });
 
 test('pós-venda congelado mantém agradecimento e bônus sem reenvio', () => {

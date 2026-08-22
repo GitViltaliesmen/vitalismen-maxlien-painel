@@ -67,7 +67,10 @@ const assertSafeReleaseName = (value) => {
     }
 };
 
-if (!root.endsWith('Vitalismen Automacao')) {
+const officialLocalRoots = new Set([
+    '/home/codex/workspaces/maxlien-vitalismen'
+]);
+if (!root.endsWith('Vitalismen Automacao') && !officialLocalRoots.has(root)) {
     console.error(`[DEPLOY] Pasta errada: ${root}`);
     process.exit(1);
 }

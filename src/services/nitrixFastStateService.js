@@ -184,8 +184,7 @@ const vslNitrixSourceConfirmed = (state = {}) => {
         metadata.productSource,
         metadata.vslPath,
         metadata.vslPage,
-        metadata.vslSourceUrl,
-        state.assignedAgent
+        metadata.vslSourceUrl
     ].map((value) => String(value || '').toLowerCase());
     const isNitrix = values.some((value) => (
         value === AGENT_KEY
@@ -698,7 +697,7 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
     isProcessingFastStateJobs = true;
     try {
         const query = {
-            assignedAgent: AGENT_KEY,
+            'metadata.productKey': AGENT_KEY,
             [`${memoryPath}.fastState.status`]: 'running',
             [`${memoryPath}.fastState.jobs`]: { $elemMatch: { status: 'pending' } }
         };
@@ -760,7 +759,6 @@ export const startNitrixFastStateFromVslEntry = async ({ contactStateId, session
         healthTopics: {},
         entryTrigger: 'vsl_click'
     };
-    state.assignedAgent = AGENT_KEY;
     state.human = {
         ...(state.human || {}),
         mode: 'auto',
@@ -819,7 +817,6 @@ export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText
             interruptReason: 'first_inbound_question',
             interruptedAt: nowIso()
         };
-        state.assignedAgent = AGENT_KEY;
         state.human = { ...(state.human || {}), mode: 'auto', lastManualAt: startedAt, lastManualBy: 'nitrix_fast_state_question', note: 'Pergunta inicial da VSL Nitrix respondida antes de qualquer mídia do funil.' };
         state.tags = [...new Set([...(state.tags || []), 'NITRIX_EC', 'NITRIX_FAST_STATE', 'NITRIX_INITIAL_QUESTION'])];
         await updateFlow(state, responseFlow, { lastFunnelStage: 'nitrix_fast_state_first_question' });
@@ -840,7 +837,6 @@ export const handleNitrixFastStateInbound = async ({ contactStateId, inboundText
         bottle: { sentAt: '', reason: '', confirmedAt: '' },
         healthTopics: {}
     };
-    state.assignedAgent = AGENT_KEY;
     state.human = { ...(state.human || {}), mode: 'auto', lastManualAt: startedAt, lastManualBy: 'nitrix_fast_state', note: 'Fast State Nitrix EC ativo, com jobs persistentes e cancelamento imediato por resposta.' };
     state.tags = [...new Set([...(state.tags || []), 'NITRIX_EC', 'NITRIX_FAST_STATE', 'BOT_VIT_POWER_BLOQUEADO'])];
     await updateFlow(state, flow, { lastFunnelStage: 'nitrix_fast_state_scheduled' });
