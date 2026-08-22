@@ -1,3 +1,3 @@
 // Entrada de compatibilidade preservada para todos os guards anteriores.
-// A V41 valida integralmente o manifesto V40 e somente as substituições declaradas.
-await import('./panelClientSearchFreezeRuntimeGuardV41.js');
+// A V42 valida integralmente a linhagem V28–V41 e somente as substituições declaradas.
+await import('./ecEngagementCommandReplyFreezeRuntimeGuardV42.js');

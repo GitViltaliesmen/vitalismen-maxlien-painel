@@ -824,3 +824,29 @@ O classificador e os templates usam zero chamadas de modelo e custo de IA zero.
 
 Produto, preço, origem VSL, checkout, pedido, Dropi, Meta/CAPI, pixel, Z-API,
 número oficial, funis, mídias, pós-venda, scheduler e PM2 permanecem inalterados.
+
+## Microcamada V42 de comando e resposta local do AQUECIMENTO EC
+
+O freeze `docs/EC_ENGAGEMENT_COMMAND_REPLY_FREEZE_V42_20260822.md` sucede a V41
+e corrige a apresentação da fila interna V40. O painel passa a confiar primeiro
+no `conversationBucket` projetado pelo backend. Um identificador administrativo
+histórico `EC-ADMIN-*`, sem `Order` ou `Shipment` real, não transforma mais um
+contato manualmente aprovado em `PEDIDOS`. Obrigações operacionais reais continuam
+projetadas como `orders` pelo backend e permanecem soberanas.
+
+`#AQUECE`, `#AQUECE#` e `/AQUECE` são aliases internos equivalentes, nunca
+enviados ao cliente. As tags de auditoria continuam persistidas, mas rótulos
+visuais idênticos são consolidados em uma única etiqueta `AQUECE`.
+
+Somente contatos aprovados manualmente para `AQUECIMENTO` recebem a extensão de
+resposta passiva V42. Nova entrada voluntária sem pergunta — saudação curta,
+`gracias`, emoji, mídia, sticker ou link isolado — pode receber uma confirmação
+local curta e sem pergunta. A camada não abre link, não analisa mídia, não
+transcreve áudio e não chama modelo de IA. Debounce, atividade humana recente,
+cooldown, teto diário, lock, histórico e antirrepetição da V40 permanecem
+obrigatórios.
+
+Intenção comercial, suporte, risco e opt-out continuam bloqueando essa resposta e
+movendo a conversa para a fila prioritária adequada. Produtos, preços, origem VSL,
+checkout, pedido, Dropi, Meta/CAPI, pixel, Z-API, número oficial, funis, mídias,
+pós-venda e scheduler permanecem inalterados.

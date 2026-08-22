@@ -1,0 +1,109 @@
+{
+  "freezeId": "ec-engagement-command-reply-v42-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "panel-client-search-v41-20260822",
+  "parentManifestSha256": "a5f6c2a44621e3887f23b88384eea2ae3612fef54501b8a99aef5cb3201a94f7",
+  "baseProductionSha": "18bac1a79c00359cc6edd0945dbfa4592e0a1155",
+  "baseFunctionalReleaseSha": "1f4895bdf7f00a00831484e9e2fe1b832658dd74",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T180506Z_production-20260822-1f4895b",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_and_activation_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "ec_engagement_command_reply_v42",
+    "constraints": [
+      "manual_command_never_sent_to_customer",
+      "stored_bucket_before_historical_admin_order_fallback",
+      "real_operational_order_remains_sovereign",
+      "manual_approval_required_for_passive_acknowledgement",
+      "local_templates_without_ai",
+      "no_question_for_passive_inbound",
+      "persistent_lock_cooldown_daily_limit_and_history",
+      "no_bulk_send_or_artificial_conversation",
+      "no_external_warmup_project",
+      "no_real_test_messages"
+    ]
+  },
+  "policy": {
+    "storedBucketBeforeHistoricalOrderFallback": true,
+    "realOperationalOrderRemainsSovereign": true,
+    "visualWarmupLabelDeduplication": true,
+    "manualApprovedPassiveAcknowledgements": true,
+    "passiveTemplatesAskQuestions": false,
+    "mediaOrLinkContentInspected": false,
+    "modelCallsPerDecision": 0,
+    "estimatedAiCostUsd": 0,
+    "persistentReplyLockAndHistory": true,
+    "automaticCommercialExit": true,
+    "bulkSendAdded": false,
+    "artificialConversationAdded": false,
+    "externalWarmupProjectUsed": false,
+    "orderWriteAdded": false,
+    "checkoutChanged": false,
+    "dropiChanged": false,
+    "metaCapiChanged": false,
+    "officialPricesChanged": false,
+    "deployAuthorized": true
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "auditedContact": {
+    "phone": "+593986247702",
+    "administrativeId": "EC-ADMIN-2856",
+    "storedBucket": "engagement",
+    "mongoOrders": 0,
+    "mongoShipments": 0,
+    "auditMode": "read_only"
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T180506Z_production-20260822-1f4895b",
+    "emergencyFlag": "EC_ENGAGEMENT_AUTO_REPLY_ENABLED=false",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveContactOrderAndBucketHistory": true
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "public/qr.html",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/senior-guard.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/ecEngagementReplyService.js",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_EC_ENGAGEMENT_COMMAND_REPLY_V42_20260822.txt",
+    "docs/EC_ENGAGEMENT_COMMAND_REPLY_FREEZE_V42_20260822.md",
+    "public/panel-intelligence/ec-engagement-panel-v42.js",
+    "scripts/assert-ec-engagement-command-reply-activation-approved-v42.mjs",
+    "scripts/guard-ec-engagement-command-reply-v42.mjs",
+    "src/services/ecEngagementCommandReplyFreezeRuntimeGuardV42.js",
+    "tests/ec-engagement-command-reply-v42.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "1b44a310933bd3674d5e03b61c5563a5dcd3c017711525b0c6aa597a2dd417a2",
+    "public/qr.html": "a46c7bd1ca5999c545248428af837bc613225a0b79f962f84f6ca2423b71a5fd",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs": "fd1166b8c4b25a0c4f304a6e43198a721e4c9c0abcce5993c0cbc47cdb4927c0",
+    "scripts/guard-panel-client-search-v41.mjs": "ef27f984c7547e41824da8a0e759e5ed8ee1c83596b350bdd29e3c6e1864f896",
+    "scripts/senior-guard.mjs": "1ab1ee0e05dfb810e0cc2a02714546327634bfa1af2ad987e3d65a29d2111662",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "18b8671eb360a0a0db421f79c6ea552195d887ed6d83b370e95cd9c4b20ae474",
+    "src/services/ecEngagementReplyService.js": "ce91f1ae4a1b1068ee49cdcd8e1664ff7fedbda3791d4ac87b50fd64bc80632d",
+    "tests/panel-client-search-v41.test.mjs": "008bda53c7d102f9e5c8d4e176c4f47d72d390198159baeb9d8543ac0b90d1b3",
+    "approved_freezes/APPROVED_EC_ENGAGEMENT_COMMAND_REPLY_V42_20260822.txt": "d326e9f7cacfc0bf7279fba5e216b213531e22d968ca5fa0b31b91420f628864",
+    "docs/EC_ENGAGEMENT_COMMAND_REPLY_FREEZE_V42_20260822.md": "59b7713cb47cd0a19d5aa512ab3bbfd0cd91ff3f98a1cb249725352c65958010",
+    "public/panel-intelligence/ec-engagement-panel-v42.js": "b66779883354958f71e61785009856daac26a64ac95a3bef82116280d68752f8",
+    "scripts/assert-ec-engagement-command-reply-activation-approved-v42.mjs": "e6dea19a90c17636277ac860058c84f877f0038361deca8352983295340cc38a",
+    "scripts/guard-ec-engagement-command-reply-v42.mjs": "7ef1a463be767579bda524614efae683602bf0f1c9a98c22008472d698155d17",
+    "src/services/ecEngagementCommandReplyFreezeRuntimeGuardV42.js": "9d966aebfc8e4df2b67ca2c1f103e4fbad1985d250938ba9c0623b614690ff2c",
+    "tests/ec-engagement-command-reply-v42.test.mjs": "b37dc0a9b005d886fce1a2372138dd84e71ba7499195fca19e3bfe8da3488fa6"
+  }
+}

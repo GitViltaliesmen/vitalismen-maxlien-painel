@@ -8828,6 +8828,7 @@
     <script src="/panel-intelligence/authenticated-media.js"></script>
     <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script src="/panel-intelligence/chat-search-v41.js"></script>
+    <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -11665,10 +11666,12 @@
         };
 
         const chatConversationBucket = (chat = {}) => {
-            const orderStatus = String(chat.orderStatus || '').trim().toLowerCase();
-            if (chat.orderId && !['delivered', 'cancelled', 'returned'].includes(orderStatus)) return 'orders';
+            const resolved = window.VitalismenEngagementPanelV42?.resolveConversationBucket?.(chat);
+            if (resolved) return resolved;
             const stored = String(chat.conversationBucket?.value || '').trim().toLowerCase();
             if (['attendance', 'engagement', 'orders', 'review'].includes(stored)) return stored;
+            const orderStatus = String(chat.orderStatus || chat.customerDraft?.status || '').trim().toLowerCase();
+            if (chat.orderId && !['delivered', 'cancelled', 'returned', 'entregue', 'entregado', 'cancelado', 'devolvido', 'devuelto'].includes(orderStatus)) return 'orders';
             const tags = chatTags(chat).map((tag) => String(tag || '').toLowerCase());
             if (tags.includes('warmup:risk') || tags.includes('conversation:review')) return 'review';
             if (tags.includes('warmup:allowed') || tags.includes('conversation:engagement')) return 'engagement';
@@ -11907,7 +11910,12 @@
                 return { label: tagLabel(tag), className, title: '' };
             });
             const notices = visibleShipmentNoticeLabels(chat);
-            const labels = [...tags, ...notices];
+            const combinedLabels = [...tags, ...notices];
+            const labels = window.VitalismenEngagementPanelV42?.dedupeVisibleLabels?.(combinedLabels)
+                || combinedLabels.filter((item, index, list) => list.findIndex((candidate) => (
+                    String(candidate?.label || '').trim().toLowerCase() === String(item?.label || '').trim().toLowerCase()
+                    && String(candidate?.className || 'auto') === String(item?.className || 'auto')
+                )) === index);
             if (!labels.length) return '';
             return `<div class="chat-labels">${labels.map((item) => (
                 `<span class="wa-label ${escapeHtml(item.className || 'auto')}"${item.title ? ` title="${escapeHtml(item.title)}"` : ''}>${escapeHtml(item.label)}</span>`

@@ -11,6 +11,7 @@ const MAX_REPLY_HISTORY = 50;
 
 const GREETING_REGEX = /\b(?:hola|buenos\s+dias|buenas\s+tardes|buenas\s+noches|saludos|como\s+esta|como\s+estas|que\s+tal)\b/i;
 const WELLBEING_REGEX = /\b(?:como\s+amanec|como\s+sigue|como\s+le\s+va|como\s+ha\s+estado|todo\s+bien)\b/i;
+const GRATITUDE_REGEX = /\b(?:gracias|muchas\s+gracias|mil\s+gracias|agradecido|agradecida|bendiciones|dios\s+le\s+bendiga)\b/i;
 
 const REPLY_VARIANTS = Object.freeze({
     greeting: [
@@ -32,6 +33,21 @@ const REPLY_VARIANTS = Object.freeze({
         'Entiendo 😊 Gracias por contarme. ¿Y cómo siguió todo?',
         'Imagino. Gracias por compartirlo 😊 ¿Cómo está ahora?',
         'Qué bueno saber de usted 😊 ¿Y cómo va todo por allá?'
+    ],
+    passive_greeting: [
+        '¡Hola! 😊',
+        'Buen día 🙏',
+        'Saludos 😊'
+    ],
+    gratitude: [
+        'Gracias a usted 😊',
+        'Con gusto 🙏',
+        'Igualmente, gracias 😊'
+    ],
+    passive_acknowledgement: [
+        '😊🙏',
+        '👍😊',
+        'Gracias por compartir 😊'
     ]
 });
 
@@ -60,9 +76,24 @@ const deterministicIndex = (seed = '', length = 1) => {
     return Math.abs(hash >>> 0) % Math.max(1, length);
 };
 
-const templateCategory = (message = {}) => {
+const manualPassiveAcknowledgementApproved = (state = {}) => (
+    state.conversationBucket?.value === EC_CONVERSATION_BUCKETS.ENGAGEMENT
+    && Boolean(state.conversationBucket?.manualSelectedAt)
+    && state.metadata?.warmup?.allowed === true
+    && state.metadata?.warmup?.blocked !== true
+    && state.metadata?.warmup?.risk !== true
+);
+
+const templateCategory = (message = {}, { allowPassiveAcknowledgement = false } = {}) => {
     const kind = currentInboundKind(message);
     const text = normalizeConversationText(message.body || '');
+    if (allowPassiveAcknowledgement) {
+        if (kind === 'empty') return '';
+        if (kind === 'question') return WELLBEING_REGEX.test(text) ? 'wellbeing' : 'question';
+        if (GRATITUDE_REGEX.test(text)) return 'gratitude';
+        if (kind === 'greeting' || GREETING_REGEX.test(text)) return 'passive_greeting';
+        if (['media_only', 'link_only', 'reaction_only', 'statement'].includes(kind)) return 'passive_acknowledgement';
+    }
     if (['empty', 'media_only', 'link_only', 'reaction_only'].includes(kind)) return '';
     if (WELLBEING_REGEX.test(text)) return 'wellbeing';
     if (GREETING_REGEX.test(text) && text.length <= 120) return 'greeting';
@@ -84,7 +115,10 @@ export const buildEcEngagementReplyPlan = ({ state = {}, classification = {}, me
     if (message.isFromMe || String(message.senderRole || '').toLowerCase() === 'system') return { send: false, reason: 'not_customer_inbound' };
     const phone = digitsOnly(state.phoneDigits || state.chatId);
     if (!phone.startsWith('593') || phone.endsWith('998038637')) return { send: false, reason: 'phone_not_eligible' };
-    const category = templateCategory(message);
+    const passiveAcknowledgementApproved = manualPassiveAcknowledgementApproved(state);
+    const category = templateCategory(message, {
+        allowPassiveAcknowledgement: passiveAcknowledgementApproved
+    });
     if (!category) return { send: false, reason: `local_no_reply:${currentInboundKind(message)}` };
     const referenceNow = now instanceof Date ? now : new Date(now);
     const lastManualAt = state.human?.lastManualAt ? new Date(state.human.lastManualAt) : null;
@@ -121,7 +155,10 @@ export const buildEcEngagementReplyPlan = ({ state = {}, classification = {}, me
         chatId: String(state.chatId || `${phone}@c.us`),
         dailyKey,
         dailyLimit,
-        delayMs
+        delayMs,
+        localOnly: true,
+        modelCalls: 0,
+        passiveAcknowledgement: passiveAcknowledgementApproved
     };
 };
 
@@ -287,5 +324,7 @@ export const ecEngagementReplyPolicy = () => ({
     maxDelayMs: integerEnv('EC_ENGAGEMENT_REPLY_MAX_DELAY_MS', DEFAULT_MAX_DELAY_MS, { min: DEFAULT_MIN_DELAY_MS, max: 120000 }),
     noOutboundInitiation: true,
     noBulkDispatch: true,
-    noReplyKinds: ['empty', 'media_only', 'link_only', 'reaction_only']
+    noReplyKinds: ['empty', 'media_only', 'link_only', 'reaction_only'],
+    manualApprovedPassiveAcknowledgements: true,
+    manualPassiveTemplatesAskQuestions: false
 });
