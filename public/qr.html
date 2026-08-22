@@ -4219,6 +4219,25 @@
             background: rgba(0, 108, 85, .14);
         }
 
+        .operational-bucket-tabs .bucket-unread-count {
+            display: none;
+            min-width: 17px;
+            height: 17px;
+            margin-left: 3px;
+            padding: 0 4px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #d63638;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .operational-bucket-tabs button.has-unread .bucket-unread-count {
+            display: inline-flex;
+        }
+
         .message-filter-tabs {
             padding-top: 4px;
         }
@@ -7750,13 +7769,13 @@
 
                 <div class="tabs operational-bucket-tabs" aria-label="Filas operacionais">
                     <button class="active" data-operational-bucket="attendance" type="button">ATENDIMENTO <span id="bucketAttendanceCount" class="bucket-count">0</span></button>
-                    <button data-operational-bucket="engagement" type="button">AQUECIMENTO <span id="bucketEngagementCount" class="bucket-count">0</span></button>
+                    <button id="bucketEngagementBtn" data-operational-bucket="engagement" type="button">AQUECIMENTO <span id="bucketEngagementCount" class="bucket-count">0</span><span id="bucketEngagementUnreadCount" class="bucket-unread-count" aria-label="Conversas não lidas no aquecimento">0</span></button>
                     <button data-operational-bucket="orders" type="button">PEDIDOS <span id="bucketOrdersCount" class="bucket-count">0</span></button>
                     <button data-operational-bucket="review" type="button">REVISAR <span id="bucketReviewCount" class="bucket-count">0</span></button>
                 </div>
                 <div class="tabs message-filter-tabs">
-                    <button data-chat-filter="all" type="button">Tudo</button>
-                    <button id="newMessagesFilterBtn" class="active" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
+                    <button class="active" data-chat-filter="all" type="button">Tudo</button>
+                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes comerciais com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
@@ -8829,6 +8848,7 @@
     <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script src="/panel-intelligence/chat-search-v41.js"></script>
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
+    <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8882,7 +8902,7 @@
             lastQrAt: 0,
             selectedChat: null,
             customerProfile: null,
-            chatFilter: 'unread',
+            chatFilter: 'all',
             conversationBucketFilter: 'attendance',
             activeModule: 'all',
             dashboardMetrics: null,
@@ -11679,6 +11699,16 @@
             return 'attendance';
         };
 
+        const isNewMessagesChatForPanel = (chat = {}) => (
+            window.VitalismenEngagementPriorityV43?.isNewMessagesChat?.(chat, {
+                resolveConversationBucket: chatConversationBucket,
+                isVslAwaitingHuman
+            }) ?? (
+                chatConversationBucket(chat) !== 'engagement'
+                && (Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))
+            )
+        );
+
         const renderConversationBucketCounts = (chats = []) => {
             const counts = { attendance: 0, engagement: 0, orders: 0, review: 0 };
             (chats || []).forEach((chat) => {
@@ -11689,6 +11719,18 @@
             if (el('bucketEngagementCount')) el('bucketEngagementCount').textContent = String(counts.engagement);
             if (el('bucketOrdersCount')) el('bucketOrdersCount').textContent = String(counts.orders);
             if (el('bucketReviewCount')) el('bucketReviewCount').textContent = String(counts.review);
+            const unreadCounts = window.VitalismenEngagementPriorityV43?.bucketUnreadCounts?.(
+                chats,
+                chatConversationBucket
+            ) || { engagement: 0 };
+            const engagementUnread = Math.max(0, Number(unreadCounts.engagement || 0));
+            if (el('bucketEngagementUnreadCount')) {
+                el('bucketEngagementUnreadCount').textContent = engagementUnread > 99 ? '99+' : String(engagementUnread);
+            }
+            el('bucketEngagementBtn')?.classList.toggle('has-unread', engagementUnread > 0);
+            el('bucketEngagementBtn')?.setAttribute('title', engagementUnread > 0
+                ? `${engagementUnread} conversa${engagementUnread === 1 ? '' : 's'} não lida${engagementUnread === 1 ? '' : 's'} no aquecimento`
+                : 'Nenhuma conversa não lida no aquecimento');
             return counts;
         };
 
@@ -11723,11 +11765,10 @@
             el('careMetricClosed')?.closest('.care-metric')?.setAttribute('title', `${lostCount} desistente(s): comprar depois, cancelado ou devolvido`);
             el('careMetricReview')?.closest('.care-metric')?.setAttribute('title', `Conversao atual: ${salesCount}/${visibleChats.length || 0}`);
             const unreadTotal = visibleChats.reduce((total, chat) => total + Math.max(0, Number(chat.unreadCount || 0)), 0);
-            const unreadChats = visibleChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
-            const vslWaitingChats = visibleChats.filter(isVslAwaitingHuman).length;
-            const newUnreadChats = visibleChats.filter((chat) => (
-                Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat)
-            )).length;
+            const commercialNewChats = visibleChats.filter(isNewMessagesChatForPanel);
+            const unreadChats = commercialNewChats.filter((chat) => Number(chat.unreadCount || 0) > 0).length;
+            const vslWaitingChats = commercialNewChats.filter(isVslAwaitingHuman).length;
+            const newUnreadChats = commercialNewChats.length;
             if (el('chatTotalCounterValue')) el('chatTotalCounterValue').textContent = String(visibleChats.length);
             if (el('chatUnreadCounterValue')) el('chatUnreadCounterValue').textContent = unreadTotal > 99 ? '99+' : String(unreadTotal);
             el('chatTotalCounter')?.classList.toggle('has-unread', unreadTotal > 0);
@@ -11955,7 +11996,7 @@
             const searchActive = window.VitalismenChatSearchV41?.isSearchActive(search) ?? Boolean(search);
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
                 if (!searchActive && state.conversationBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
-                if (!searchActive && state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
+                if (!searchActive && state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
                 if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (!searchActive && state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (!searchActive && state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
@@ -20318,9 +20359,10 @@
                 button.disabled = false;
             }
             if (!allMarked) return;
-            state.chatFilter = 'unread';
-            document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
-            el('newMessagesFilterBtn')?.classList.add('active');
+            state.chatFilter = 'all';
+            document.querySelectorAll('[data-chat-filter]').forEach((item) => {
+                item.classList.toggle('active', item.dataset.chatFilter === 'all');
+            });
             renderChats();
         });
         el('chatList').addEventListener('click', (event) => {

@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
+
+const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
+const packageJson = JSON.parse(read('package.json'));
+const panel = read('public/qr.html');
+const panelPolicy = read('public/panel-intelligence/ec-engagement-priority-v43.js');
+const stateModel = read('src/models/ContactState.js');
+const bucketService = read('src/services/ecConversationBucketService.js');
+const replyService = read('src/services/ecEngagementReplyService.js');
+const testFile = read('tests/ec-engagement-priority-v43.test.mjs');
+const freeze = read('docs/EC_ENGAGEMENT_PRIORITY_FREEZE_V43_20260822.md');
+const parentGuard = read('scripts/guard-panel-client-search-v41.mjs');
+const parentApproval = read('scripts/assert-panel-client-search-activation-approved-v41.mjs');
+const parentTest = read('tests/panel-client-search-v41.test.mjs');
+
+assert.match(panel, /ec-engagement-priority-v43\.js/);
+assert.match(panel, /<button class="active" data-chat-filter="all"/);
+assert.match(panel, /chatFilter:\s*'all'/);
+assert.doesNotMatch(panel, /id="newMessagesFilterBtn" class="active"/);
+assert.match(panel, /bucketEngagementUnreadCount/);
+assert.match(panel, /isNewMessagesChatForPanel/);
+assert.match(panelPolicy, /DEFAULT_CHAT_FILTER = 'all'/);
+assert.match(panelPolicy, /if \(isEngagementChat\(chat, resolveConversationBucket\)\) return false/);
+assert.match(panelPolicy, /bucketUnreadCounts/);
+assert.match(stateModel, /passiveInboundCount/);
+assert.match(stateModel, /passiveReplyTarget/);
+assert.match(stateModel, /passiveReplyCycle/);
+assert.match(stateModel, /passiveLastCountedMessageId/);
+assert.match(bucketService, /countEcEngagementPassiveInbound/);
+assert.match(bucketService, /countInbound:\s*true/);
+assert.match(replyService, /passive_batch_wait/);
+assert.match(replyService, /passive_thumbs_up/);
+assert.match(replyService, /'👍'/);
+assert.match(replyService, /modelCalls:\s*0/);
+assert.match(replyService, /passiveLastCountedMessageId/);
+assert.match(replyService, /replyHistory\.inboundMessageId/);
+assert.match(replyService, /newer_inbound_buffered/);
+assert.match(testFile, /alterna o próximo lote de duas para três/);
+assert.match(testFile, /mantém comercial, suporte, risco e opt-out acima/);
+assert.match(freeze, /alternância continua `2, 3, 2, 3`/);
+assert.match(freeze, /Não há prompt, API de modelo/);
+assert.match(packageJson.scripts['senior:check'], /guard-panel-client-search-v41\.mjs/);
+assert.match(packageJson.scripts['deploy:vps'], /assert-panel-client-search-activation-approved-v41\.mjs/);
+assert.match(packageJson.scripts['deploy:ec-safe'], /assert-panel-client-search-activation-approved-v41\.mjs/);
+assert.match(parentGuard, /guard-ec-engagement-priority-v43\.mjs/);
+assert.match(parentApproval, /assert-ec-engagement-priority-activation-approved-v43\.mjs/);
+assert.match(parentTest, /ec-engagement-priority-v43\.test\.mjs/);
+assert.doesNotMatch(panel, /chat\.lastMessage\.body[\s\S]{0,120}class="chat-preview/);
+
+console.log('EC_ENGAGEMENT_PRIORITY_V43_GUARD=OK');

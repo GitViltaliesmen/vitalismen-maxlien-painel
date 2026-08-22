@@ -48,6 +48,9 @@ const REPLY_VARIANTS = Object.freeze({
         '😊🙏',
         '👍😊',
         'Gracias por compartir 😊'
+    ],
+    passive_thumbs_up: [
+        '👍'
     ]
 });
 
@@ -84,6 +87,15 @@ const manualPassiveAcknowledgementApproved = (state = {}) => (
     && state.metadata?.warmup?.risk !== true
 );
 
+export const nextEcEngagementPassiveBatchState = (automation = {}) => {
+    const nextCycle = Math.max(0, Number(automation.passiveReplyCycle || 0)) + 1;
+    return {
+        passiveInboundCount: 0,
+        passiveReplyCycle: nextCycle,
+        passiveReplyTarget: 2 + (nextCycle % 2)
+    };
+};
+
 const templateCategory = (message = {}, { allowPassiveAcknowledgement = false } = {}) => {
     const kind = currentInboundKind(message);
     const text = normalizeConversationText(message.body || '');
@@ -116,10 +128,28 @@ export const buildEcEngagementReplyPlan = ({ state = {}, classification = {}, me
     const phone = digitsOnly(state.phoneDigits || state.chatId);
     if (!phone.startsWith('593') || phone.endsWith('998038637')) return { send: false, reason: 'phone_not_eligible' };
     const passiveAcknowledgementApproved = manualPassiveAcknowledgementApproved(state);
-    const category = templateCategory(message, {
+    let category = templateCategory(message, {
         allowPassiveAcknowledgement: passiveAcknowledgementApproved
     });
     if (!category) return { send: false, reason: `local_no_reply:${currentInboundKind(message)}` };
+    const passiveReplyCycle = Math.max(0, Number(state.engagementAutomation?.passiveReplyCycle || 0));
+    const passiveReplyTarget = [2, 3].includes(Number(state.engagementAutomation?.passiveReplyTarget))
+        ? Number(state.engagementAutomation.passiveReplyTarget)
+        : 2 + (passiveReplyCycle % 2);
+    const passiveInboundCount = Math.max(0, Number(state.engagementAutomation?.passiveInboundCount || 0));
+    if (passiveAcknowledgementApproved && passiveInboundCount < passiveReplyTarget) {
+        return {
+            send: false,
+            reason: `passive_batch_wait:${passiveInboundCount}/${passiveReplyTarget}`,
+            localOnly: true,
+            modelCalls: 0,
+            passiveBatchAcknowledgement: true,
+            passiveInboundCount,
+            passiveReplyTarget,
+            passiveReplyCycle
+        };
+    }
+    if (passiveAcknowledgementApproved) category = 'passive_thumbs_up';
     const referenceNow = now instanceof Date ? now : new Date(now);
     const lastManualAt = state.human?.lastManualAt ? new Date(state.human.lastManualAt) : null;
     if (lastManualAt && !Number.isNaN(lastManualAt.getTime()) && referenceNow.getTime() - lastManualAt.getTime() < 10 * 60 * 1000) {
@@ -158,7 +188,11 @@ export const buildEcEngagementReplyPlan = ({ state = {}, classification = {}, me
         delayMs,
         localOnly: true,
         modelCalls: 0,
-        passiveAcknowledgement: passiveAcknowledgementApproved
+        passiveAcknowledgement: passiveAcknowledgementApproved,
+        passiveBatchAcknowledgement: passiveAcknowledgementApproved,
+        passiveInboundCount,
+        passiveReplyTarget,
+        passiveReplyCycle
     };
 };
 
@@ -194,6 +228,11 @@ export const executeEcEngagementReply = async ({ stateId, plan, sendTextFn = nul
             'conversationBucket.value': EC_CONVERSATION_BUCKETS.ENGAGEMENT,
             'engagementAutomation.lastInboundMessageId': plan.inboundMessageId,
             'engagementAutomation.replyHistory.inboundMessageId': { $ne: plan.inboundMessageId },
+            ...(plan.passiveBatchAcknowledgement ? {
+                'engagementAutomation.passiveLastCountedMessageId': plan.inboundMessageId,
+                'engagementAutomation.passiveReplyTarget': plan.passiveReplyTarget,
+                'engagementAutomation.passiveInboundCount': { $gte: plan.passiveReplyTarget }
+            } : {}),
             $or: [
                 { 'engagementAutomation.replyLockUntil': { $exists: false } },
                 { 'engagementAutomation.replyLockUntil': null },
@@ -269,6 +308,12 @@ export const executeEcEngagementReply = async ({ stateId, plan, sendTextFn = nul
     const dailyCount = claimed.engagementAutomation?.dailyKey === plan.dailyKey
         ? Number(claimed.engagementAutomation?.dailyReplyCount || 0) + 1
         : 1;
+    const nextPassiveBatch = nextEcEngagementPassiveBatchState(claimed.engagementAutomation || {});
+    const passiveSuccessState = plan.passiveBatchAcknowledgement ? {
+        'engagementAutomation.passiveInboundCount': nextPassiveBatch.passiveInboundCount,
+        'engagementAutomation.passiveReplyCycle': nextPassiveBatch.passiveReplyCycle,
+        'engagementAutomation.passiveReplyTarget': nextPassiveBatch.passiveReplyTarget
+    } : {};
     await ContactState.updateOne(
         { _id: stateId, 'engagementAutomation.replyLockedForMessageId': plan.inboundMessageId },
         {
@@ -281,7 +326,8 @@ export const executeEcEngagementReply = async ({ stateId, plan, sendTextFn = nul
                 'engagementAutomation.lastFailure': '',
                 'engagementAutomation.dailyKey': plan.dailyKey,
                 'engagementAutomation.dailyReplyCount': dailyCount,
-                'engagementAutomation.lastDecision': `reply_sent:${plan.templateKey}`
+                'engagementAutomation.lastDecision': `reply_sent:${plan.templateKey}`,
+                ...passiveSuccessState
             },
             $push: {
                 'engagementAutomation.replyHistory': {
@@ -290,7 +336,9 @@ export const executeEcEngagementReply = async ({ stateId, plan, sendTextFn = nul
                         templateKey: plan.templateKey,
                         providerMessageId,
                         status: 'sent',
-                        reason: 'customer_inbound_local_template',
+                        reason: plan.passiveBatchAcknowledgement
+                            ? 'customer_inbound_local_thumbs_batch'
+                            : 'customer_inbound_local_template',
                         at: referenceNow
                     }],
                     $slice: -MAX_REPLY_HISTORY
@@ -326,5 +374,7 @@ export const ecEngagementReplyPolicy = () => ({
     noBulkDispatch: true,
     noReplyKinds: ['empty', 'media_only', 'link_only', 'reaction_only'],
     manualApprovedPassiveAcknowledgements: true,
-    manualPassiveTemplatesAskQuestions: false
+    manualPassiveTemplatesAskQuestions: false,
+    passiveBatchPattern: [2, 3],
+    passiveBatchText: '👍'
 });

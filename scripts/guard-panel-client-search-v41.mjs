@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('./guard-ec-engagement-command-reply-v42.mjs');
+await import('./guard-ec-engagement-priority-v43.mjs');
 await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
