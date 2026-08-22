@@ -67,6 +67,7 @@ if (
     || manifest.policy?.vslOriginImmutable !== true
     || manifest.policy?.manualProductOverridePreserved !== true
     || manifest.policy?.auditWriteOnReadAllowed !== false
+    || manifest.policy?.auditCleanupNoOpOnly !== true
     || manifest.policy?.realCanaryAuthorized !== false
     || manifest.policy?.deployAuthorized !== true
     || JSON.stringify([...(manifest.declaredAncestorOverrides || [])].sort()) !== JSON.stringify(declaredAncestorOverrides)

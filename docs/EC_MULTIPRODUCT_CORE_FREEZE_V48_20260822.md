@@ -21,3 +21,5 @@ Origens oficiais preservadas:
 A release não autoriza canário real, envio WhatsApp, Dropi, Meta/CAPI, mudança
 de transporte, scheduler/mídia, pedidos históricos ou qualquer alteração na VSL
 externa. O saneamento de dados exige dry-run, backup e confirmação nominal.
+Na auditoria histórica, somente status sem transição (`X -> X`) posteriores ao
+marco V34 podem ser removidos automaticamente; outras repetições são preservadas.

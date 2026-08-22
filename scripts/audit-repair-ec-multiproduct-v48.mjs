@@ -23,6 +23,7 @@ const applying = applyAssignedAgent || applyNames || applyAuditCleanup;
 const confirmation = String(args.get('confirm') || '');
 const backupPath = String(args.get('backup') || '');
 const since = new Date(String(args.get('since') || '2026-08-22T00:22:28.000Z'));
+const summaryOnly = args.has('summary');
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGODB_URL || '';
 
 if (!mongoUri) throw new Error('MONGODB_URI/MONGO_URI ausente.');
@@ -53,7 +54,13 @@ try {
             body: { $regex: /nombre(?:\s+completo)?\s*:/i }
         }).sort({ timestamp: 1 }).lean(),
         Message.aggregate([
-            { $match: { _id: /^panel_action_/, type: 'system' } },
+            {
+                $match: {
+                    _id: /^panel_action_/,
+                    type: 'system',
+                    timestamp: { $gte: Math.floor(since.getTime() / 1000) }
+                }
+            },
             { $sort: { timestamp: 1, _id: 1 } },
             { $group: {
                 _id: {
@@ -73,6 +80,15 @@ try {
             { $sort: { count: -1 } }
         ])
     ]);
+
+    const noOpStatusTransition = (group) => {
+        const match = String(group?._id?.body || '').match(
+            /^\[PAINEL\] Status alterado no Painel Unificado - ([a-z_]+) -> ([a-z_]+)$/i
+        );
+        return Boolean(match && match[1].toLowerCase() === match[2].toLowerCase());
+    };
+    const removableNoOpAuditGroups = duplicateAuditGroups.filter(noOpStatusTransition);
+    const preservedRepeatedAuditGroups = duplicateAuditGroups.filter((group) => !noOpStatusTransition(group));
 
     const submittedByTail = new Map();
     for (const message of submittedMessages) {
@@ -119,7 +135,10 @@ try {
         }
     }
 
-    const duplicateAuditCount = duplicateAuditGroups.reduce((sum, group) => sum + group.count - 1, 0);
+    // X -> X nao e' uma transicao real: depois do backup, todos os eventos do
+    // grupo podem ser removidos. Qualquer outra repeticao permanece intocada.
+    const removableNoOpAuditCount = removableNoOpAuditGroups.reduce((sum, group) => sum + group.count, 0);
+    const preservedRepeatedAuditCount = preservedRepeatedAuditGroups.reduce((sum, group) => sum + group.count, 0);
     const report = {
         mode: applying ? 'CONTROLLED_APPLY' : 'DRY_RUN',
         since: since.toISOString(),
@@ -132,25 +151,35 @@ try {
         })),
         recoverableNames,
         identityConflicts,
-        duplicateAuditGroups: duplicateAuditGroups.map((group) => ({
+        duplicateAuditGroups: removableNoOpAuditGroups.map((group) => ({
             canonicalId: group.ids[0],
             duplicateIds: group.ids.slice(1),
+            removableIds: group.ids,
             count: group.count,
             chatId: group._id.chatId,
             body: group._id.body,
             firstTimestamp: group.firstTimestamp
         })),
+        preservedRepeatedAuditGroups: preservedRepeatedAuditGroups.map((group) => ({
+            count: group.count,
+            chatId: group._id.chatId,
+            body: group._id.body,
+            firstTimestamp: group.firstTimestamp,
+            reason: 'not_provably_no_op_preserved'
+        })),
         totals: {
             invalidAssignedAgent: invalidAssignedAgentStates.length,
             recoverableNames: recoverableNames.length,
             identityConflicts: identityConflicts.length,
-            duplicateAuditGroups: duplicateAuditGroups.length,
-            duplicateAuditRecords: duplicateAuditCount
+            duplicateAuditGroups: removableNoOpAuditGroups.length,
+            duplicateAuditRecords: removableNoOpAuditCount,
+            preservedRepeatedAuditGroups: preservedRepeatedAuditGroups.length,
+            preservedRepeatedAuditRecords: preservedRepeatedAuditCount
         }
     };
 
     if (applying) {
-        const auditIds = duplicateAuditGroups.flatMap((group) => group.ids);
+        const auditIds = removableNoOpAuditGroups.flatMap((group) => group.ids);
         const auditDocuments = auditIds.length ? await Message.find({ _id: { $in: auditIds } }).lean() : [];
         const backup = {
             generatedAt: new Date().toISOString(),
@@ -213,27 +242,24 @@ try {
             }
         }
         if (applyAuditCleanup) {
-            for (const group of duplicateAuditGroups) {
-                const canonicalId = group.ids[0];
-                const duplicateIds = group.ids.slice(1);
-                await Message.updateOne(
-                    { _id: canonicalId },
-                    {
-                        $set: {
-                            'providerPayload.v48DeduplicatedCount': duplicateIds.length,
-                            'providerPayload.v48DeduplicatedAt': new Date().toISOString(),
-                            'providerPayload.v48BackupPath': backupPath
-                        }
-                    }
-                );
-                await Message.deleteMany({ _id: { $in: duplicateIds } });
+            for (const group of removableNoOpAuditGroups) {
+                await Message.deleteMany({ _id: { $in: group.ids } });
             }
         }
         report.backupPath = backupPath;
         report.applied = { applyAssignedAgent, applyNames, applyAuditCleanup };
     }
 
-    console.log(JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(summaryOnly ? {
+        mode: report.mode,
+        since: report.since,
+        totals: report.totals,
+        recoverableNames: report.recoverableNames,
+        identityConflicts: report.identityConflicts,
+        removableAuditSamples: report.duplicateAuditGroups.slice(0, 10),
+        preservedAuditSamples: report.preservedRepeatedAuditGroups.slice(0, 10),
+        ...(report.backupPath ? { backupPath: report.backupPath, applied: report.applied } : {})
+    } : report, null, 2));
 } finally {
     await mongoose.disconnect();
 }

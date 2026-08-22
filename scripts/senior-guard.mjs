@@ -55,6 +55,7 @@ const envExample = read('.env.example');
 const codexWorkspaceActive = normalizePath(root) === normalizePath(codexOfficialWorkspace);
 // O workspace Codex nao recebe segredos nem a configuracao operacional do
 // VPS. Nesse caminho exato, o contrato seguro versionado e a fonte de flags.
+// A V48 preserva este gate também durante o saneamento restrito a status X -> X.
 const env = codexWorkspaceActive && !localEnv ? envExample : localEnv;
 const marker = read('.vitalismen-official-root');
 const hasEnv = (key, value) => new RegExp(`^${key}=${value}$`, 'm').test(env);
