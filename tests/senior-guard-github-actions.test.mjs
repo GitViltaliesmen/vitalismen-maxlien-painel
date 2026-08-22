@@ -72,3 +72,18 @@ test('registro V39 comprova commit, PM2, rollback e ausência de canário real',
     assert.match(result, /document\.querySelectorAll\('\.chat-preview \.meta'\)\.length === 0/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V40 comprova release, auditoria, PM2 e ausência de envio real', () => {
+    const result = readFileSync(
+        'docs/EC_ENGAGEMENT_INTERNAL_BUCKET_ACTIVATION_RESULT_V40_20260822.md',
+        'utf8'
+    );
+    assert.match(result, /d1a142ab44aeb7eca03fef25f91bba39252c13a9/);
+    assert.match(result, /20260822T172707Z_production-20260822-d1a142a/);
+    assert.match(result, /PID atual: `2173631`/);
+    assert.match(result, /candidatos seguros a `AQUECIMENTO`: `19`/);
+    assert.match(result, /registros técnicos antes e depois: `294`/);
+    assert.match(result, /Nenhuma mensagem, mídia,\s*pedido, Dropi ou evento Meta\/CAPI foi criado/);
+    assert.match(result, /20260822T152503Z_production-20260822-e191a6e/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
