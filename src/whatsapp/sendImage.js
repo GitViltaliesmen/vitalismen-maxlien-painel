@@ -26,7 +26,7 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
         jid,
         recipientDigits: options.recipientDigits || '',
         text: options.guardText || caption || imagePath,
-        allowExistingDropiOrder: options.allowExistingDropiOrder === true,
+        allowExistingDropiOrder: options.allowExistingDropiOrder === true || sendMode === 'manual_panel',
         outboundContext: options.outboundContext || ''
     });
     if (!dropiGuard.allowed) {
