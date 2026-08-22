@@ -342,3 +342,24 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Rollback funcional: retornar à release V35
   `/opt/vitalismen-automacao/releases/20260822T033359Z_production-20260822-503c49d`
   e preservar o storage compartilhado inbound.
+
+### Microcamada V37 — status Z-API após autenticação — 2026-08-22
+
+- Painel oficial: `public/qr.html`.
+- Evidência: instância `EQUADOR_8416` conectada e health Z-API saudável,
+  enquanto a tela sem login mostrava `No token provided`.
+- Causa: `checkStatus()` era executado antes de `bootstrapAuth()` e consultava
+  a rota protegida sem Bearer.
+- Correção: autenticar primeiro, não consultar status sem token, limpar o
+  indicador no logout e traduzir `401/403` para sessão expirada.
+- Teste: `tests/panel-zapi-auth-status-v37.test.mjs`.
+- Freeze/guard: `docs/PANEL_ZAPI_AUTH_STATUS_FREEZE_V37_20260822.md`,
+  `docs/freeze/panel-zapi-auth-status-v37-20260822.json` e
+  `scripts/guard-panel-zapi-auth-status-v37.mjs`.
+- Preservado: autenticação obrigatória da rota, número oficial, transporte,
+  funis, preços, mídias, pedidos, Dropi, Meta/CAPI, scheduler e pós-venda.
+- No momento do candidato V37: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
+  escrita no banco oficial, PM2, symlink ou deploy havia sido executado.
+- Rollback funcional: retornar à release V36
+  `/opt/vitalismen-automacao/releases/20260822T035923Z_production-20260822-1dbbbe5`
+  e preservar o storage compartilhado inbound.

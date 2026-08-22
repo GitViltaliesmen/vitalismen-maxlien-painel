@@ -9534,6 +9534,28 @@
             return data;
         };
 
+        const signedOutZapiText = 'Faça login para consultar a conexão';
+
+        const setSignedOutZapiState = () => {
+            document.body.classList.remove('zapi-offline');
+            state.zapiDevice = null;
+            state.lastZapiStatusError = '';
+            el('waBadge').textContent = 'SEM LOGIN';
+            el('waBadge').className = 'badge';
+            el('statusText').textContent = signedOutZapiText;
+            el('loginStatusText').textContent = signedOutZapiText;
+            for (const imageId of ['qrcode', 'loginQrcode']) {
+                const image = el(imageId);
+                image.style.display = 'none';
+                image.removeAttribute('src');
+            }
+            for (const helpId of ['qrHelp', 'loginQrHelp']) {
+                const help = el(helpId);
+                help.textContent = 'Entre no painel para consultar o status da conexão oficial.';
+                help.classList.remove('hidden');
+            }
+        };
+
         const setAuth = (token) => {
             state.token = token || '';
             if (state.token) {
@@ -9554,6 +9576,7 @@
                 el('operatorBadge').textContent = 'sem login';
                 el('userAdminSection').classList.add('hidden');
                 setActiveModule('all');
+                setSignedOutZapiState();
             }
         };
 
@@ -9705,6 +9728,13 @@
                 }
             }
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    setAuth('');
+                    const error = new Error('Sessão expirada. Entre novamente.');
+                    error.status = response.status;
+                    error.response = data;
+                    throw error;
+                }
                 const error = new Error(data.error || data.message || `${label}: erro ${response.status}`);
                 error.status = response.status;
                 error.response = data;
@@ -9716,6 +9746,11 @@
         const zapiStatusGraceMs = 120000;
 
         async function checkStatus() {
+            if (!state.token) {
+                setSignedOutZapiState();
+                renderOperationalAlerts();
+                return;
+            }
             try {
                 const ts = Date.now();
                 const zapiStatus = await fetchPanelJson(`/api/zapi/status?_=${ts}`, { label: 'Z-API status' });
@@ -20886,7 +20921,6 @@
             setAuth('');
         }
 
-        checkStatus();
         bootstrapAuth();
     </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"43bfd4280f8046b7bf2a511a21946254","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>

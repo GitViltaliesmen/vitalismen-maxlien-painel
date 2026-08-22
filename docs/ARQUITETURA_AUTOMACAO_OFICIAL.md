@@ -738,3 +738,19 @@ cooldown e anti-spam próprios para não colidir com a resposta individual.
 
 Preço, oferta, cadência, mídia, pedido, Dropi, Meta/CAPI, pixel, transporte,
 scheduler, pós-venda e PM2 permanecem inalterados.
+
+## Microcamada V37 de status Z-API após autenticação
+
+O freeze `docs/PANEL_ZAPI_AUTH_STATUS_FREEZE_V37_20260822.md` sucede a V36 e
+corrige um falso alerta visual do painel. A instância Z-API oficial permanecia
+conectada, mas `public/qr.html` consultava `/api/zapi/status` antes de terminar
+o bootstrap de autenticação. Sem Bearer, o `401` correto era exibido ao
+operador como `No token provided`.
+
+A V37 mantém a rota sensível autenticada e faz o frontend retornar antes da
+consulta quando não há token. O bootstrap começa pela autenticação; logout e
+sessão expirada limpam o falso erro e mostram estado neutro `SEM LOGIN`. Uma
+leitura Z-API só ocorre depois que o painel possui sessão válida.
+
+Credenciais, Z-API, número oficial, funil, mídia, pedidos, Dropi, Meta/CAPI,
+scheduler, pós-venda, banco, PM2 e storage inbound permanecem inalterados.

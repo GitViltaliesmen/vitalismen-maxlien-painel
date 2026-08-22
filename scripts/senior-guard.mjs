@@ -89,7 +89,9 @@ const productScopedProtocolFiles = new Set([
     // O conteúdo comercial novo continua isolado por productKey.
     'src/services/ecProductIngredientsFreezeRuntimeGuardV35.js',
     // A V36 cita os manifestos V34/V35 somente para preservar a linhagem.
-    'src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js'
+    'src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js',
+    // A V37 cita os manifestos anteriores somente para preservar a linhagem.
+    'src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
