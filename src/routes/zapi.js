@@ -28,6 +28,7 @@ import {
     INBOUND_MEDIA_STATUS
 } from '../services/inboundMediaStorageService.js';
 import { vslProductAssignmentPolicy } from '../services/vslProductAssignmentService.js';
+import { shouldRouteDirectProductInbound } from '../services/ecDirectProductInquiryService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -61,6 +62,25 @@ const firstPlainString = (...values) => values
     .filter((value) => ['string', 'number', 'boolean'].includes(typeof value))
     .map((value) => String(value || '').trim())
     .find(Boolean) || '';
+
+export const normalizedInboundProfileName = (...values) => {
+    const candidate = firstString(...values)
+        .replace(/[\u0000-\u001f\u007f]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 120);
+    const candidateDigits = digits(candidate);
+    if (
+        !candidate
+        || !/[\p{L}]/u.test(candidate)
+        || /^https?:\/\//i.test(candidate)
+        || /^(whatsapp|entrada vsl|cliente|contacto|contato)$/i.test(candidate)
+        || (candidateDigits.length >= 8 && candidateDigits.length >= candidate.replace(/\D/g, '').length && !/\s+[\p{L}]/u.test(candidate))
+    ) {
+        return '';
+    }
+    return candidate;
+};
 
 const countryFromPhone = (phone = '') => {
     const value = digits(phone);
@@ -246,7 +266,7 @@ export const explicitEcVslProductContextFromText = (text = '') => {
     if (currentMessage || /\btex ultra\b/.test(value)) {
         return {
             ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
-            productSource: 'zapi_explicit_product_text',
+            productSource: currentMessage ? 'zapi_public_tex_ultra_entry' : 'zapi_explicit_product_text',
             vslTestId: '',
             vslVariant: '',
             vslEntryMessage: currentMessage || String(text || '').trim()
@@ -797,6 +817,14 @@ const recordZapiInboundPayload = async (payload = {}) => {
         : hasDeclaredMedia
             ? `[${effectiveType === 'image' && (payload.sticker || payload.message?.sticker || payload.data?.sticker) ? 'sticker' : effectiveType}]`
             : '';
+    const inboundProfileName = normalizedInboundProfileName(
+        payload.senderName,
+        payload.notifyName,
+        payload.name,
+        payload.pushName,
+        payload.message?.senderName,
+        payload.data?.senderName
+    );
     if (!normalizedBody && !mediaUrl) {
         return {
             recorded: false,
@@ -831,7 +859,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 ownerPhoneDigits: '',
                 isFromMe: false,
                 isBot: false,
-                notifyName: firstString(payload.senderName, payload.notifyName, payload.name, payload.pushName, payload.message?.senderName, payload.data?.senderName),
+                notifyName: inboundProfileName,
                 deliveryStatus: 'received',
                 provider: 'zapi',
                 providerMessageId,
@@ -874,11 +902,19 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const inferredCountry = countryFromPhone(phone);
     const authorizedTestRecipient = authorizedVslTestRecipient(phone);
     const vslRoutingAllowed = inferredCountry === 'EC' || authorizedTestRecipient;
+    const directProductInbound = shouldRouteDirectProductInbound({
+        text: normalizedBody,
+        state
+    });
     const persistedVslProductContext = freshPersistedEcVslProductContext(state, now);
     const hasPersistedVslProduct = Boolean(String(state?.metadata?.vslProductKey || '').trim());
-    const explicitTextProductContext = hasPersistedVslProduct || !vslRoutingAllowed
+    const detectedTextProductContext = hasPersistedVslProduct || !vslRoutingAllowed
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
+    const explicitTextProductContext = directProductInbound
+        && detectedTextProductContext?.productSource === 'zapi_explicit_product_text'
+        ? null
+        : detectedTextProductContext;
     const vslProductContext = persistedVslProductContext || explicitTextProductContext;
     const vslAttribution = vslRoutingAllowed
         ? await claimMetaAttributionForInboundWhatsapp({
@@ -927,16 +963,23 @@ const recordZapiInboundPayload = async (payload = {}) => {
         incomingProductKey: vslProductContext?.productKey || ''
     });
     if (isNewState || promoteRegisteredVslEntry) {
+        const automationEntry = (publicVslLeadEntry && automatedVslProduct) || directProductInbound;
         targetState.human = {
             ...(targetState.human || {}),
-            mode: publicVslLeadEntry && automatedVslProduct ? 'auto' : 'manual',
+            mode: automationEntry ? 'auto' : 'manual',
             pausedUntil: null,
-            assignedName: publicVslLeadEntry && automatedVslProduct ? 'Entrada VSL' : 'Captura Z-API',
+            assignedName: publicVslLeadEntry && automatedVslProduct
+                ? 'Entrada VSL'
+                : directProductInbound
+                ? 'Consulta direta de produto'
+                : 'Captura Z-API',
             note: publicVslLeadEntry && automatedVslProduct
                 ? 'Entrada VSL EC capturada pela Z-API; bot liberado para primeira resposta.'
+                : directProductInbound
+                ? 'Cliente pediu diretamente um produto EC; microcamada informativa liberada.'
                 : 'Contato capturado do WhatsApp conectado. Revisar no painel antes de qualquer automacao.',
             lastManualAt: now,
-            lastManualBy: 'zapi'
+            lastManualBy: directProductInbound ? 'ec_direct_product_inquiry' : 'zapi'
         };
     }
     const preservedProductProfile = vslProductAssignment.preserveOperatorSelection
@@ -1026,6 +1069,18 @@ const recordZapiInboundPayload = async (payload = {}) => {
             }
         } : {})
     };
+    if (inboundProfileName) {
+        const currentDraft = targetState.metadata?.customerDraft || {};
+        targetState.metadata.profileName = String(targetState.metadata?.profileName || inboundProfileName).trim();
+        targetState.metadata.customerDraft = {
+            ...currentDraft,
+            ...(!String(currentDraft.name || '').trim() ? { name: inboundProfileName } : {}),
+            phone: currentDraft.phone || `+${phone}`,
+            country: currentDraft.country || 'EC',
+            updatedAt: now.toISOString()
+        };
+        targetState.markModified('metadata');
+    }
     await targetState.save();
 
     return {
@@ -1041,8 +1096,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
         mediaHealth,
         readInference,
         publicVslLeadEntry,
+        directProductInbound,
         routeToBot: Boolean(normalizedBody)
-            && targetState.human?.mode !== 'manual'
+            && (targetState.human?.mode !== 'manual' || directProductInbound)
             && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry))
     };
 };

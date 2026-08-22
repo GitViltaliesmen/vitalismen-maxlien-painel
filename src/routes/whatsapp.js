@@ -3967,7 +3967,7 @@ router.get('/chats', async (req, res) => {
                 const panelDraft = productContext.customerDraft || customerDraft;
                 return {
                     id: c.id._serialized,
-                    name: order?.customer?.name || panelDraft.name || lastMessage?.notifyName || c.name || c.id.user,
+                    name: order?.customer?.name || panelDraft.name || contactState?.metadata?.profileName || lastMessage?.notifyName || c.name || c.id.user,
                     phone: order?.customer?.phone || panelDraft.phone || c.phoneHint || c.id.user,
                     entryAt,
                     firstInboundAt: contactState?.firstInboundAt || null,
@@ -4200,7 +4200,7 @@ router.get('/chats', async (req, res) => {
 
             return {
                 id: c.id._serialized,
-                name: order?.customer?.name || panelDraft.name || c.name || c.id.user,
+                name: order?.customer?.name || panelDraft.name || contactState?.metadata?.profileName || lastMessageForChat?.notifyName || c.name || c.id.user,
                 phone: order?.customer?.phone || panelDraft.phone || phone, // This is now the real phone number (resolved)
                 entryAt,
                 firstInboundAt: contactState?.firstInboundAt || null,

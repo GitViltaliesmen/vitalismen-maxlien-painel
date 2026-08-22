@@ -10532,7 +10532,7 @@
             return /^user[_-]?\d{11,}$/i.test(raw) || /^chat[_-]?\d{11,}$/i.test(raw);
         };
         const chatDisplayName = (chat = {}) => {
-            const name = String(chat.name || '').trim();
+            const name = String(chat.name || chat.customerDraft?.name || chat.profileName || '').trim();
             if (name && !looksLikeInternalNameId(name)) return compact(name, 'Cliente');
             const phone = String(chat.phone || chat.id || '').trim();
             return compact(phone || name, 'Cliente');
@@ -14891,8 +14891,13 @@
             el('customerSmartDataStatus').textContent = 'Analisando apenas as mensagens recebidas deste cliente...';
             const status = orderStatusInfo(chat.orderStatus);
             const entryInfo = chatEntryInfo(chat);
-            el('activeName').textContent = chatDisplayName(chat);
-            el('activeMeta').textContent = `${compact(chat.phone || chat.id)} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
+            const displayName = chatDisplayName(chat);
+            const displayPhone = compact(chat.phone || chat.id);
+            const displayIdentity = displayName && displayName !== displayPhone
+                ? `${displayName} · ${displayPhone}`
+                : displayPhone;
+            el('activeName').textContent = displayName;
+            el('activeMeta').textContent = `${displayIdentity} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
             el('detailOwner').textContent = owner;
             el('detailOrder').textContent = chat.orderId ? `${chat.orderId} · ${status.label}` : 'Sem pedido vinculado';
             el('detailLocation').textContent = [chat.country, chat.city].filter(Boolean).join(' / ') || 'Sem dados';
@@ -14935,7 +14940,7 @@
                 ? 'editando, salve para fixar'
                 : (chat.orderId ? `pedido ${chat.orderId}` : 'sem pedido vinculado');
             if (!keepManualEdit) {
-                setInputValue('customerNameInput', chat.name || '');
+                setInputValue('customerNameInput', chat.name || chat.customerDraft?.name || chat.profileName || '');
                 setInputValue('customerCountryInput', String(chat.country || '').toUpperCase() === 'EC' ? 'EC' : selectedPanelCountry());
                 setInputValue('customerProductInput', productKeyFromChat(chat));
                 renderCustomerProductSelection(chat);
