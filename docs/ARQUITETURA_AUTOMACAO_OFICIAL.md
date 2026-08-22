@@ -921,3 +921,14 @@ novo ciclo `confirmado` depois de `entregue`. A ordem existente e seu Purchase
 são reaproveitados; nenhum pedido, evento, Shipment, autorização ou submissão
 Dropi adicional é criado. A separação V44 entre `Novas` e `AQUECIMENTO` continua
 inalterada.
+
+## Microcamada V47 de serialização SQLite da recompra EC
+
+O freeze `docs/EC_REPURCHASE_SQLITE_SERIALIZATION_FREEZE_V47_20260822.md`
+sucede a V46. O campo interno `repurchase_cycle` passa a ser serializado como
+inteiro `1/0`, compatível com o script Python que atualiza o SQLite do painel
+administrativo. A regra funcional não muda: somente a ordem com vínculo de
+entrega preservado pode iniciar o novo ciclo `confirmado`.
+
+Nenhuma ordem, Shipment ou Purchase é recriado. Dropi continua manual e a fila
+global `Novas` permanece sem contatos do bucket `AQUECIMENTO`.

@@ -1,0 +1,86 @@
+{
+  "freezeId": "ec-repurchase-sqlite-serialization-v47-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "ec-repurchase-sync-preservation-v46-20260822",
+  "parentManifestSha256": "42249b08bf742479d0c890058463ba2206ea9cee3e1370700e65f89170f3f2fd",
+  "baseProductionSha": "ee9bc9dd8654558412ec5dbfdfef122bf2338086",
+  "baseFunctionalReleaseSha": "ee9bc9dd8654558412ec5dbfdfef122bf2338086",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T204600Z_production-20260822-ee9bc9d",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_activation_and_target_resync_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "serialize_repurchase_cycle_for_sqlite_and_resync_lead_1621",
+    "constraints": [
+      "repurchase_cycle_integer_only",
+      "preserve_existing_order",
+      "preserve_existing_purchase_event",
+      "no_duplicate_order",
+      "no_automatic_dropi_authorization",
+      "no_real_test_messages",
+      "no_external_project"
+    ]
+  },
+  "policy": {
+    "repurchaseCycleIntegerOnly": true,
+    "preserveExistingOrder": true,
+    "preservePurchaseEvent": true,
+    "duplicateOrderAllowed": false,
+    "automaticDropiAuthorization": false,
+    "engagementExcludedFromNewMessages": true,
+    "officialPricesChanged": false,
+    "productRoutingChanged": false,
+    "whatsappAutomationChanged": false,
+    "deployAuthorized": true,
+    "targetResyncAuthorized": true
+  },
+  "realEffectsBeforeFreeze": {
+    "orderId": "EC-RECOMPRA-MT4U9N2Y-JC2J",
+    "purchaseEventId": "EC-RECOMPRA-MT4U9N2Y-JC2J",
+    "dropiAuthorized": false,
+    "dropiSubmitted": false,
+    "v47Deploy": false,
+    "v47TargetResync": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T204600Z_production-20260822-ee9bc9d",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveOrdersAndShipments": true,
+    "preservePurchaseEvents": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/senior-guard.mjs",
+    "src/services/adminPanelStatusService.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_EC_REPURCHASE_SQLITE_SERIALIZATION_V47_20260822.txt",
+    "docs/EC_REPURCHASE_SQLITE_SERIALIZATION_FREEZE_V47_20260822.md",
+    "scripts/assert-ec-repurchase-sqlite-activation-approved-v47.mjs",
+    "scripts/guard-ec-repurchase-sqlite-serialization-v47.mjs",
+    "src/services/ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js",
+    "tests/ec-repurchase-sqlite-serialization-v47.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "d15bf8ecf23653ec80fbb535fa3005cf6ca6031a1c02e94c3fe8274379529274",
+    "docs/ARQUIVOS_OFICIAIS.md": "884fc181b71908d56b2d40a94930f2fec2b3c8a2a10d3d3313668f5cac185bc4",
+    "scripts/guard-panel-client-search-v41.mjs": "3a5dcede36f7432ed2dda759fe3c6aa1fb26d3bb4d1f5051416419f56d25c141",
+    "scripts/senior-guard.mjs": "98f51ec8ec1035c553c93648e12cbdcd4d598d4273bb6ed2f52bf9d5208d9478",
+    "src/services/adminPanelStatusService.js": "b465b3fa14b11848b12ae00d7eeae31b01a6c64ec8b322f06649cda4fe372adc",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "8ccdfb6e670af1b501371cb7f0c7bb44c5185b25e8f6d3d14409a6c0d8672f53",
+    "tests/panel-client-search-v41.test.mjs": "742123cad851a6fb953c566384734b1b2eca779158161306bb08f6c451986ec9",
+    "approved_freezes/APPROVED_EC_REPURCHASE_SQLITE_SERIALIZATION_V47_20260822.txt": "7d2002365f46a2638a9a630c8b350fd60a7e661f65acfc3fcfdc7f0bd7461e44",
+    "docs/EC_REPURCHASE_SQLITE_SERIALIZATION_FREEZE_V47_20260822.md": "b6dc17294eead10a8237e2f92ac5aa90e58b908f2c295e630ee33414babeaa49",
+    "scripts/assert-ec-repurchase-sqlite-activation-approved-v47.mjs": "252ef0afdb74a921b499bb332d63e87375e79eb1b221708aa84d60500ec19383",
+    "scripts/guard-ec-repurchase-sqlite-serialization-v47.mjs": "d363b796e6aaa9cfc743fa36f931a663f51427c4982432bebefe6144b513249d",
+    "src/services/ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js": "68eaeaad69d940cb87ed4bf662fa9d543fe0d53b9a31eba37af7ea8f8c4fefa1",
+    "tests/ec-repurchase-sqlite-serialization-v47.test.mjs": "877f6e92d0c54ad29300b324627e123b0a3dd4c3e94a429fc077cc721a1a8488"
+  }
+}

@@ -1,0 +1,14 @@
+APPROVED=true
+FREEZE_ID=ec-repurchase-sqlite-serialization-v47-20260822
+COUNTRY=EC
+APPROVAL_SOURCE=operator_thread_20260822
+APPROVED_AT=2026-08-22
+SCOPE=serialize_repurchase_cycle_for_sqlite_commit_publish_transactional_activation_and_target_resync
+REPURCHASE_CYCLE_INTEGER_ONLY=true
+PRESERVE_EXISTING_ORDER=true
+PRESERVE_PURCHASE_EVENT=true
+NO_DUPLICATE_ORDER=true
+NO_AUTOMATIC_DROPI_AUTHORIZATION=true
+TARGET_LEAD_ID=1621
+NO_REAL_TEST_MESSAGES=true
+NO_EXTERNAL_PROJECT=true
