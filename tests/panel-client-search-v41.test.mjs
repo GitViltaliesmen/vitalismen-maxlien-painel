@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 import './ec-engagement-command-reply-v42.test.mjs';
+import './ec-engagement-priority-v43.test.mjs';
 
 const sandbox = {};
 sandbox.globalThis = sandbox;

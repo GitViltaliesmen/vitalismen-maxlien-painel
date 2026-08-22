@@ -850,3 +850,26 @@ Intenção comercial, suporte, risco e opt-out continuam bloqueando essa respost
 movendo a conversa para a fila prioritária adequada. Produtos, preços, origem VSL,
 checkout, pedido, Dropi, Meta/CAPI, pixel, Z-API, número oficial, funis, mídias,
 pós-venda e scheduler permanecem inalterados.
+
+## Microcamada V43 de prioridade e confirmação local do AQUECIMENTO EC
+
+O freeze `docs/EC_ENGAGEMENT_PRIORITY_FREEZE_V43_20260822.md` sucede a V42.
+`Tudo` passa a ser o filtro principal de mensagens ao abrir o painel. Os demais
+filtros são aplicados somente após clique do operador.
+
+Conversas do bucket `engagement` deixam de compor o contador e o filtro
+`Novas`. Suas não lidas são exibidas em selo próprio no botão `AQUECIMENTO`,
+mantendo a prioridade comercial separada sem esconder a atividade social.
+
+Contatos aprovados manualmente por `#aquece` acumulam um contador persistente e
+recebem somente `👍` depois de lotes alternados de duas e três entradas
+voluntárias. O envio confirmado zera o lote e muda o próximo alvo entre 2 e 3.
+A decisão é determinística, local, sem prompt, sem chamada de modelo e sem custo
+de IA.
+
+Produto, preço, pedido, suporte, risco e opt-out permanecem prioritários e
+retiram o contato do caminho passivo antes de qualquer `👍`. Debounce, atividade
+humana recente, cooldown, teto diário, lock, histórico, deduplicação e ausência
+de retry automático continuam obrigatórios. Produtos, ofertas, origem VSL,
+checkout, Dropi, Meta/CAPI, pixel, Z-API, número oficial, mídias, pós-venda,
+scheduler e PM2 permanecem inalterados.

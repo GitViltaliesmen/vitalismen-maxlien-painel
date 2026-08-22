@@ -1,0 +1,16 @@
+APPROVED=true
+FREEZE_ID=ec-engagement-priority-v43-20260822
+COUNTRY=EC
+APPROVAL_SOURCE=operator_thread_20260822
+APPROVED_AT=2026-08-22
+SCOPE=default_all_filter_isolated_engagement_unread_local_thumbs_batch_commit_publish_transactional_activation
+NO_BULK_SEND=true
+NO_ARTIFICIAL_CONVERSATION=true
+NO_EXTERNAL_WARMUP_PROJECT=true
+NO_REAL_TEST_MESSAGES=true
+NO_ORDER_WRITE=true
+NO_DROPI=true
+NO_META_CAPI=true
+ZERO_AI_MODEL_CALLS=true
+PASSIVE_BATCH_PATTERN=2,3
+PASSIVE_BATCH_TEXT=👍

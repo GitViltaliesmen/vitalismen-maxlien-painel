@@ -31,6 +31,25 @@ const RISK_REGEX = /\b(?:sexo|sexual|porn|pornografia|xxx|desnud|chup|culo|pene|
 const OPT_OUT_REGEX = /\b(?:no\s+me\s+escrib|no\s+quiero\s+mensaje|deje\s+de\s+escribir|no\s+contacte|basta|bloquear|pare|no\s+moleste)\b/i;
 const GREETING_REGEX = /\b(?:hola|buenos\s+dias|buenas\s+tardes|buenas\s+noches|saludos|como\s+esta|como\s+estas|que\s+tal)\b/i;
 
+export const countEcEngagementPassiveInbound = ({ automation = {}, messageId = '', eligible = false } = {}) => {
+    const normalizedMessageId = String(messageId || '').trim();
+    const cycle = Math.max(0, Number(automation.passiveReplyCycle || 0));
+    const target = [2, 3].includes(Number(automation.passiveReplyTarget))
+        ? Number(automation.passiveReplyTarget)
+        : 2 + (cycle % 2);
+    const previousMessageId = String(automation.passiveLastCountedMessageId || '');
+    const shouldCount = Boolean(eligible && normalizedMessageId && normalizedMessageId !== previousMessageId);
+    return {
+        passiveInboundCount: shouldCount
+            ? Math.max(0, Number(automation.passiveInboundCount || 0)) + 1
+            : Math.max(0, Number(automation.passiveInboundCount || 0)),
+        passiveReplyTarget: target,
+        passiveReplyCycle: cycle,
+        passiveLastCountedMessageId: shouldCount ? normalizedMessageId : previousMessageId,
+        counted: shouldCount
+    };
+};
+
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
 const escapeRegex = (value = '') => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const normalizeConversationText = (value = '') => String(value || '')
@@ -359,6 +378,7 @@ export const persistEcConversationClassification = async ({
     source = 'inbound_rule_v40',
     by = '',
     manual = false,
+    countInbound = false,
     reason = ''
 } = {}) => {
     if (!state || !classification || !VALID_BUCKETS.has(classification.bucket)) {
@@ -392,14 +412,37 @@ export const persistEcConversationClassification = async ({
         ...(classification.metrics?.risk ? { riskDetectedAt: now } : {}),
         history
     };
+    const previousEngagementAutomation = state.engagementAutomation?.toObject?.()
+        || state.engagementAutomation
+        || {};
+    const currentMessageId = String(classification.currentMessageId || '').trim();
+    const manuallyApprovedEngagement = classification.bucket === EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        && Boolean(state.conversationBucket?.manualSelectedAt)
+        && state.metadata?.warmup?.allowed === true
+        && state.metadata?.warmup?.blocked !== true
+        && state.metadata?.warmup?.risk !== true
+        && !(classification.hardExclusions || []).length;
+    const countThisInbound = countInbound
+        && manuallyApprovedEngagement
+        && currentMessageId
+        && currentMessageId !== String(previousEngagementAutomation.passiveLastCountedMessageId || '');
+    const passiveCounter = countEcEngagementPassiveInbound({
+        automation: previousEngagementAutomation,
+        messageId: currentMessageId,
+        eligible: countThisInbound
+    });
     state.engagementAutomation = {
-        ...(state.engagementAutomation?.toObject?.() || state.engagementAutomation || {}),
+        ...previousEngagementAutomation,
         lastEvaluatedAt: now,
         lastDecision: `${classification.bucket}:${classification.reasons?.[0] || 'classified'}`,
-        lastInboundMessageId: classification.currentMessageId || state.engagementAutomation?.lastInboundMessageId || '',
-        localDecisionCount: Number(state.engagementAutomation?.localDecisionCount || 0) + 1,
-        modelCallCount: Number(state.engagementAutomation?.modelCallCount || 0),
-        estimatedCostUsd: Number(state.engagementAutomation?.estimatedCostUsd || 0),
+        lastInboundMessageId: currentMessageId || previousEngagementAutomation.lastInboundMessageId || '',
+        passiveInboundCount: passiveCounter.passiveInboundCount,
+        passiveReplyTarget: passiveCounter.passiveReplyTarget,
+        passiveReplyCycle: passiveCounter.passiveReplyCycle,
+        passiveLastCountedMessageId: passiveCounter.passiveLastCountedMessageId,
+        localDecisionCount: Number(previousEngagementAutomation.localDecisionCount || 0) + 1,
+        modelCallCount: Number(previousEngagementAutomation.modelCallCount || 0),
+        estimatedCostUsd: Number(previousEngagementAutomation.estimatedCostUsd || 0),
         ...(classification.metrics?.risk || classification.metrics?.optOut ? {
             blockedAt: now,
             blockedReason: classification.metrics?.risk ? 'safety_risk' : 'opt_out'
@@ -462,7 +505,12 @@ export const classifyAndPersistEcConversation = async ({
         classification.reasons = ['manual_engagement_preserved_without_exclusion'];
         classification.replyEligibleByHistory = true;
     }
-    return persistEcConversationClassification({ state, classification, source });
+    return persistEcConversationClassification({
+        state,
+        classification,
+        source,
+        countInbound: true
+    });
 };
 
 export const setEcConversationBucketManually = async ({
@@ -515,7 +563,11 @@ export const setEcConversationBucketManually = async ({
             approvedBy: by || 'painel',
             approvalSource: source,
             blockedAt: null,
-            blockedReason: ''
+            blockedReason: '',
+            passiveInboundCount: 0,
+            passiveReplyTarget: 2,
+            passiveReplyCycle: 0,
+            passiveLastCountedMessageId: ''
         };
         state.markModified('metadata');
         state.markModified('engagementAutomation');
@@ -535,6 +587,14 @@ export const setEcConversationBucketManually = async ({
             }
         };
         state.markModified('metadata');
+        state.engagementAutomation = {
+            ...(state.engagementAutomation?.toObject?.() || state.engagementAutomation || {}),
+            passiveInboundCount: 0,
+            passiveReplyTarget: 2,
+            passiveReplyCycle: 0,
+            passiveLastCountedMessageId: ''
+        };
+        state.markModified('engagementAutomation');
     }
     return persistEcConversationClassification({
         state,
@@ -569,6 +629,11 @@ export const conversationBucketPanelView = (state = {}, { hasOperationalOrder = 
             lastReplyAt: state.engagementAutomation?.lastReplyAt || null,
             lastDecision: state.engagementAutomation?.lastDecision || '',
             dailyReplyCount: Number(state.engagementAutomation?.dailyReplyCount || 0),
+            passiveInboundCount: Number(state.engagementAutomation?.passiveInboundCount || 0),
+            passiveReplyTarget: [2, 3].includes(Number(state.engagementAutomation?.passiveReplyTarget))
+                ? Number(state.engagementAutomation.passiveReplyTarget)
+                : 2,
+            passiveReplyCycle: Number(state.engagementAutomation?.passiveReplyCycle || 0),
             localDecisionCount: Number(state.engagementAutomation?.localDecisionCount || 0),
             modelCallCount: Number(state.engagementAutomation?.modelCallCount || 0),
             estimatedCostUsd: Number(state.engagementAutomation?.estimatedCostUsd || 0)

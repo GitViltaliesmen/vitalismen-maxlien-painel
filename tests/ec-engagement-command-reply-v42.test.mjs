@@ -53,7 +53,11 @@ const manualEngagementState = (extra = {}) => ({
         }
     },
     human: { mode: 'manual' },
-    engagementAutomation: {},
+    engagementAutomation: {
+        passiveInboundCount: 2,
+        passiveReplyTarget: 2,
+        passiveReplyCycle: 0
+    },
     ...extra
 });
 
@@ -114,7 +118,8 @@ test('V42 consolida etiquetas visuais AQUECE duplicadas sem apagar tags persisti
 test('V42 responde a gracias com template local curto e sem pergunta', () => {
     const plan = planFor(inbound('thanks-v42', 'gracias'));
     assert.equal(plan.send, true);
-    assert.match(plan.templateKey, /^gratitude:/);
+    assert.match(plan.templateKey, /^passive_thumbs_up:/);
+    assert.equal(plan.text, '👍');
     assert.doesNotMatch(plan.text, /[?¿]/);
     assert.equal(plan.localOnly, true);
     assert.equal(plan.modelCalls, 0);
@@ -123,7 +128,8 @@ test('V42 responde a gracias com template local curto e sem pergunta', () => {
 test('V42 responde a emoji isolado somente após aprovação manual #AQUECE', () => {
     const plan = planFor(inbound('emoji-v42', '🙏'));
     assert.equal(plan.send, true);
-    assert.match(plan.templateKey, /^passive_acknowledgement:/);
+    assert.match(plan.templateKey, /^passive_thumbs_up:/);
+    assert.equal(plan.text, '👍');
     assert.doesNotMatch(plan.text, /[?¿]/);
 });
 
@@ -135,7 +141,8 @@ test('V42 reconhece imagem, sticker e link isolados sem inspecionar conteúdo ne
     ]) {
         const plan = planFor(message);
         assert.equal(plan.send, true);
-        assert.match(plan.templateKey, /^passive_acknowledgement:/);
+        assert.match(plan.templateKey, /^passive_thumbs_up:/);
+        assert.equal(plan.text, '👍');
         assert.doesNotMatch(plan.text, /[?¿]/);
         assert.equal(plan.modelCalls, 0);
     }
