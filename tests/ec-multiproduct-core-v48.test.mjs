@@ -167,6 +167,14 @@ test('auditoria nao grava refresh e deduplica a mesma transicao real', () => {
     assert.equal(first.messageId, repeated.messageId);
 });
 
+test('saneamento de auditoria limita remocao a status X para X desde o marco', () => {
+    const repair = read('scripts/audit-repair-ec-multiproduct-v48.mjs');
+    assert.match(repair, /timestamp:\s*\{ \$gte: Math\.floor\(since\.getTime\(\) \/ 1000\) \}/);
+    assert.match(repair, /const removableNoOpAuditGroups = duplicateAuditGroups\.filter\(noOpStatusTransition\)/);
+    assert.match(repair, /not_provably_no_op_preserved/);
+    assert.match(repair, /Message\.deleteMany\(\{ _id: \{ \$in: group\.ids \} \}\)/);
+});
+
 test('dashboard usa productKey, preserva seletor e exibe resolucao de conflito', () => {
     const panel = read('public/qr.html');
     assert.match(panel, /<select id="customerProductInput">[\s\S]*value="tex_ultra_ec"[\s\S]*value="nitrix_ec"[\s\S]*value="vit_power_ec"/);

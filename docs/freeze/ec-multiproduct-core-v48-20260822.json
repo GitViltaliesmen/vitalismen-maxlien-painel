@@ -19,6 +19,7 @@
     "vslOriginImmutable": true,
     "manualProductOverridePreserved": true,
     "auditWriteOnReadAllowed": false,
+    "auditCleanupNoOpOnly": true,
     "realCanaryAuthorized": false,
     "deployAuthorized": true
   },
@@ -65,12 +66,12 @@
   ],
   "protectedFiles": {
     "approved_freezes/APPROVED_EC_MULTIPRODUCT_CORE_V48_20260822.txt": "35fb676050bd2715cd34690dddb6172e534a19069e320f281cb701854f7a2268",
-    "docs/EC_MULTIPRODUCT_CORE_FREEZE_V48_20260822.md": "bafa353d51af9e6eaeb38a8fbe2d2848fc23209c0d077d3bdbaba50dc78d5454",
+    "docs/EC_MULTIPRODUCT_CORE_FREEZE_V48_20260822.md": "bbeed368896f2671a4d72f6f90845551afa6e74daca9961a970e861ae93ebcad",
     "package.json": "1676aa74ae15cd8305f5c5556e7d20125c097253ba892b4cda54a8016df9c62e",
     "public/qr.html": "1acd1f2407c2c140b4ffe0b8f3ac76de5b1ebcb5edec6312c4935535060ae764",
     "scripts/assert-ec-multiproduct-core-activation-approved-v48.mjs": "5120482612d0925615ca249c30da2c6079982c2d2fa3f62bb4db4db555862c03",
     "scripts/assert-official-root.mjs": "be7a3ee39e4a626180d08129e70548ae565fbf0a9238579dd9531e978d55bcc6",
-    "scripts/audit-repair-ec-multiproduct-v48.mjs": "d08fbb543bff3a79cc6950a32933ca3974be41b654f1be1e5b5ee13288515b71",
+    "scripts/audit-repair-ec-multiproduct-v48.mjs": "132134adc798d3ac469e77b5960a2bd1ed5594e2c4192af5e5e8a0f1f5c2d383",
     "scripts/deploy-vps-ready.mjs": "98926ddf040b29bcfaff13cfae7937dbbd726ea39f3d57635dd144cb4104ded3",
     "scripts/guard-ec-multiproduct-core-v48.mjs": "a0d5f658d4e04f0a518d886c606e7c15e901ed4cb0da6f3acd1a0cb4f9a9bb66",
     "scripts/repair-ec-panel-customer-drafts.mjs": "786a6827b4b3132525d31b441015b659abff3b3df1f6ec5c1dac2d996003a1e1",
@@ -86,7 +87,7 @@
     "src/services/customerNameResolutionService.js": "55d835ac3652beb7a845eace2d197b92f1be8ef454861f673cd94a674d24e578",
     "src/services/ecDirectProductInquiryService.js": "b9acaea5022c94f5b4eefa1f8181bd1ea837557bea2aa9ed3b75dbd842ea6fae",
     "src/services/ecEngagementFreezeRuntimeGuardV40.js": "2b9fb51ffb54a91e2af44c4aa3987ff11017855fc0f142a348853b3769c3538c",
-    "src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js": "61341739b44fdfc9f7b6692272f768a28d8feb536bcb93ffcf370e3c23b60c9d",
+    "src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js": "2f67b354dbdcda9469808f42132b5f1cdcca976809e601feb5cf338d6e2acae9",
     "src/services/ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js": "39e955857813a8450ba948e4333d8214f6fa5039d869777a12ec89b9bf32a520",
     "src/services/ecuadorProductService.js": "74690d7cff998ac5d52aab0568029f03d834f00680598e1107b6b1c78d467f13",
     "src/services/memoryStore.js": "3bf823197889b1d8963178d0ccf7c6e519cea3340c6a950f0a45c017573d446f",
@@ -98,7 +99,7 @@
     "src/services/vslProductAssignmentService.js": "64963da53740a4de4d861f30b48559324c6c88e452a1cce0caf84d0b3c108d58",
     "src/whatsapp/sessionRouter.js": "5a21051264a36d96790812bcf3bf74fc7c68920769cf6f0e0d1cd870ef4198e7",
     "tests/ec-direct-product-name-v39.test.mjs": "c5ec9507b437381dedc97019049584c6135c6cd68a27273c89eaa11a86075232",
-    "tests/ec-multiproduct-core-v48.test.mjs": "107e50a603ba6bdb721a52e220eb9b0486e77c22e31a95e530903beefcd2bf68",
+    "tests/ec-multiproduct-core-v48.test.mjs": "636ae9ae406f5b942d77cc3771bf9a13c1a3677c2ffea3b7429d9a5cb078f0a9",
     "tests/meta-attribution-bridge.test.mjs": "a70ac60657ec840aa6ab5be93539e378a442bf2b03bf2254d67c395a1215bcd2",
     "tests/whatsapp-chats-readonly.test.mjs": "ba35869536ba14ccda2478711d4fdccbd09d5b7c6c74a19773c3af1ecbcf857a"
   }
