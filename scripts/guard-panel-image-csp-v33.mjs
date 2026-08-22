@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js');
+await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
-const successor = 'node src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js';
+const successor = 'node src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js';
 
 for (const scriptName of [
     'senior:check',
@@ -25,10 +25,10 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V33 sob V37`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V33 sob V38`);
 }
 
-assert.match(index, /import '\.\/services\/panelZapiAuthStatusFreezeRuntimeGuardV37\.js';/);
+assert.match(index, /import '\.\/services\/inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/);
 assert.doesNotMatch(index, /import '\.\/services\/officialWhatsappPhoneFreezeRuntimeGuardV32\.js';/);
 assert.match(index, /"img-src": \["'self'", "data:", "blob:", "https:"\]/);
 assert.match(index, /"media-src": \["'self'", "data:", "blob:", "https:"\]/);

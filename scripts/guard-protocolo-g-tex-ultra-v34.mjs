@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js');
+await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
@@ -9,7 +9,7 @@ const index = read('src/index.js');
 const zapi = read('src/routes/zapi.js');
 const whatsapp = read('src/routes/whatsapp.js');
 const panel = read('public/qr.html');
-const successor = 'node src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js';
+const successor = 'node src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js';
 
 for (const scriptName of [
     'senior:check',
@@ -29,10 +29,10 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V34 sob V37`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V34 sob V38`);
 }
 
-assert.match(index, /import '\.\/services\/panelZapiAuthStatusFreezeRuntimeGuardV37\.js';/);
+assert.match(index, /import '\.\/services\/inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/);
 assert.match(zapi, /zapi_protocolo_g_tex_ultra_payload/);
 assert.match(zapi, /vslProductAssignmentPolicy/);
 assert.match(whatsapp, /ec_protocolo_g_tex_ultra_vsl/);
