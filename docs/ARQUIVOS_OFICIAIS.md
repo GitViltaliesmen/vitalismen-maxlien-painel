@@ -324,3 +324,21 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Rollback funcional: retornar à release
   `/opt/vitalismen-automacao/releases/20260822T025119Z_production-20260822-eedf503`
   e preservar o storage compartilhado inbound.
+
+### Microcamada V36 — lista consolidada de ingredientes EC — 2026-08-22
+
+- Serviço oficial: `src/services/ecProductIngredientsService.js`.
+- Respostas individuais V35 permanecem ativas e isoladas por produto.
+- Novo gatilho: pedido de todos, comparação ou citação de pelo menos dois
+  produtos em pergunta de ingredientes/comparação.
+- Teste: `tests/ec-all-products-ingredients-v36.test.mjs`.
+- Freeze/guard: `docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md`,
+  `docs/freeze/ec-all-products-ingredients-v36-20260822.json` e
+  `scripts/guard-ec-all-products-ingredients-v36.mjs`.
+- Preservado: ficha/produto atual, origem VSL, seleção manual, funis, preços,
+  mídias, pedidos, Dropi, Meta/CAPI, transporte, scheduler e pós-venda.
+- No momento do candidato V36: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
+  escrita no banco oficial, PM2, symlink ou deploy havia sido executado.
+- Rollback funcional: retornar à release V35
+  `/opt/vitalismen-automacao/releases/20260822T033359Z_production-20260822-503c49d`
+  e preservar o storage compartilhado inbound.

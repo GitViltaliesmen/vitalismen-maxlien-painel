@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/ecProductIngredientsFreezeRuntimeGuardV35.js');
+await import('../src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
@@ -9,7 +9,7 @@ const index = read('src/index.js');
 const zapi = read('src/routes/zapi.js');
 const whatsapp = read('src/routes/whatsapp.js');
 const panel = read('public/qr.html');
-const successor = 'node src/services/ecProductIngredientsFreezeRuntimeGuardV35.js';
+const successor = 'node src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js';
 
 for (const scriptName of [
     'senior:check',
@@ -29,10 +29,10 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V34 sob V35`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V34 sob V36`);
 }
 
-assert.match(index, /import '\.\/services\/ecProductIngredientsFreezeRuntimeGuardV35\.js';/);
+assert.match(index, /import '\.\/services\/ecAllProductsIngredientsFreezeRuntimeGuardV36\.js';/);
 assert.match(zapi, /zapi_protocolo_g_tex_ultra_payload/);
 assert.match(zapi, /vslProductAssignmentPolicy/);
 assert.match(whatsapp, /ec_protocolo_g_tex_ultra_vsl/);

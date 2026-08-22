@@ -1,0 +1,122 @@
+{
+  "freezeId": "ec-all-products-ingredients-v36-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22T03:48:44Z",
+  "country": "EC",
+  "parentFreezeId": "ec-product-ingredients-v35-20260822",
+  "parentManifestSha256": "59892692a76472715d5bf0b256f65e5d8537490341277a070fb7e7f8e34cb0ae",
+  "baseProductionSha": "2fe85dc44c1e874748a55cdfeda34829fe4b8332",
+  "publicationStatus": "authorized_for_draft_pr_and_controlled_activation",
+  "operatorApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-22T03:48:44Z",
+    "scope": "ec_all_products_ingredients_v36",
+    "constraints": [
+      "single_consolidated_message_with_separate_product_sections",
+      "only_for_all_comparison_or_multiple_products",
+      "single_product_replies_preserved",
+      "no_product_route_switch",
+      "medical_context_handoff_preserved",
+      "separate_persistent_lock_and_cooldown",
+      "no_media_price_order_or_post_sale_changes",
+      "no_real_whatsapp_sends_at_freeze"
+    ]
+  },
+  "policy": {
+    "triggerScopes": [
+      "all_products",
+      "comparison",
+      "multiple_explicit_products"
+    ],
+    "formulasSeparatedByProduct": true,
+    "singleProductRepliesPreserved": true,
+    "activeProductRequired": true,
+    "activeProductChanged": false,
+    "vslOriginChanged": false,
+    "medicalSensitiveReplyBlocked": true,
+    "combinedMemoryField": "productIngredientsFaqAllProducts",
+    "antiSpamScope": "product_ingredients_faq:all_products",
+    "persistentLockMinutes": 2,
+    "cooldownMinutes": 30,
+    "funnelOrderChanged": false,
+    "pricesChanged": false,
+    "mediaChanged": false,
+    "dropiChanged": false,
+    "metaPixelChanged": false,
+    "schedulerChanged": false,
+    "postSaleChanged": false
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T033359Z_production-20260822-503c49d",
+    "preserveSharedInboundStorage": true,
+    "restoreEnvBackup": true
+  },
+  "overriddenParentHashes": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "cb4b88ef659a414cb1f7e7c3aeb21df4cd96b16fe2819decca3b7f28206235be",
+    "docs/ARQUIVOS_OFICIAIS.md": "05a6c202b0800dfbf738d5cdfca5fd93271f8a79d51becaa1ca6e161514c6387",
+    "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md": "fff2560b39fd25335d2957d974eb8c6159b359d16f80ae0cede1a928cea12166",
+    "package.json": "23dafcc15c8284c63ff42f14d4ef948a33a972c8dcd6fee7bfb99b1d0a7ad0de",
+    "scripts/guard-ec-product-ingredients-v35.mjs": "89736848a08fcc526e9c188a7a36e3bda71024ae2469e266a91fedfdb41d3d9a",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "c544492e3c79bee71379ffee1f8989ad921f3acbab66793ee70bc06941d6c9b4",
+    "scripts/guard-panel-image-csp-v33.mjs": "f4964eec44cd24b0e10ff06f72712bfd61e737f0ac7c68f0a77074a7c314e8a1",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs": "510c32f1c745ba6bc79141531cd967bebcd09d984f856c3f145b260322ea43ae",
+    "scripts/senior-guard.mjs": "4bb5811a923b68ca6d5ae579b1ef5272af79f816de7e80c2e380fafdc67cc14f",
+    "src/index.js": "c70597bb062c0d42d18f82f7f5c0eb9029cbea9411d9fdff0e4fb5fdd1cc7597",
+    "src/services/ecProductIngredientsService.js": "05fbe501b506d6998f08fca3bc8464d4ecc125559397faed4be6349e738eb44e",
+    "tests/media-durability-auth-v30.test.mjs": "b81a2dc123a55d8671884ad54491b17f1e87949133ab2f0f090198f28f681169",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "2c62638c2e50e9339825b6b4f780f0b2f4ac74491749e8f46d2474143cefb447",
+    "tests/panel-image-csp-v33.test.mjs": "a967d8cea783b2fd68c51d003c72eb16f8ff4d04ee37d1e47f4dfdbcb87e97e2"
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md",
+    "package.json",
+    "scripts/guard-ec-product-ingredients-v35.mjs",
+    "scripts/guard-official-whatsapp-phone-v32.mjs",
+    "scripts/guard-panel-image-csp-v33.mjs",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs",
+    "scripts/senior-guard.mjs",
+    "src/index.js",
+    "src/services/ecProductIngredientsService.js",
+    "tests/media-durability-auth-v30.test.mjs",
+    "tests/panel-call-dropi-safety-v21.test.mjs",
+    "tests/panel-image-csp-v33.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md",
+    "scripts/assert-ec-all-products-ingredients-activation-approved-v36.mjs",
+    "scripts/guard-ec-all-products-ingredients-v36.mjs",
+    "src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js",
+    "tests/ec-all-products-ingredients-v36.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "ee57324ed1b87783e570c11385521d5045b0bb1eef0fabb8d4b8aa196686b948",
+    "docs/ARQUIVOS_OFICIAIS.md": "1bbd8469ff702eb864490c6c62cf310899dab9911db4e8cc545edbde13f13e3f",
+    "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md": "a53280b378c8bc5ca06290da4425f42e3364d0d88895951f9faa8d6dee8e00a3",
+    "package.json": "7bd16887825647d134cba1c71bf224b656d436e9d1820fbc2e9f0e428dc5fd55",
+    "scripts/guard-ec-product-ingredients-v35.mjs": "33fada6cc9703b309ecf3e48a952e5e6c07acc36343210fdb48a5d87a41bcdcc",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "e270341f49c442a3c274b535b768aed797600180b18343a7b165f05babf3dcdd",
+    "scripts/guard-panel-image-csp-v33.mjs": "5ea201f20963aaee60cb7b55cd9fb45b904df608c586e157825ba55611d09964",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs": "fed8666831839df04752492a9308eee4594fbfc78b23417dfbd8a749ffb7ffc2",
+    "scripts/senior-guard.mjs": "185366c10621c64d24421309260acf710efd72ff4b8fc71a9286742d3f22c96b",
+    "src/index.js": "b0447021999f7ba1e6ade8ced53862720dbaf203e5e23173e21d95e7112d0df9",
+    "src/services/ecProductIngredientsService.js": "aec27f81d366e7269a5c0d1e6d89a1e6a210dac44330ced068db3c40848af243",
+    "tests/media-durability-auth-v30.test.mjs": "6ffd7f181835ed166efd587896af81b63e1f20573bdc5d6eef0cebaa7c541c91",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "066cd55325c048055eaa4b0e7656c039c20987de4853f6889efd47243b1cefbf",
+    "tests/panel-image-csp-v33.test.mjs": "ae03e29722cd54cb55d6f2e35243c521d95c93022a846678b0d9563e59dc40e1",
+    "docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md": "0afbabf1e29547764f595057f884b09feca63cb12f3d86386dec717f43349cac",
+    "scripts/assert-ec-all-products-ingredients-activation-approved-v36.mjs": "07e849d9b9a72ba5ec5e590f929b460283deaf1c3cabbca79c641818dcb01744",
+    "scripts/guard-ec-all-products-ingredients-v36.mjs": "99acef92b7d4b6fad5d45e1754d13bb9e5da2eac02307258f36ac39e38445423",
+    "src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js": "2820ed38dbc583349ba50c35966715c3ac0de38a7809cebfc13accc295737917",
+    "tests/ec-all-products-ingredients-v36.test.mjs": "04c6319e795397207b199e634af6fc8b71beae85bb286fbbb0283deef217f023"
+  }
+}

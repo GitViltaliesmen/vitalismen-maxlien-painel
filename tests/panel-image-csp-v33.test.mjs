@@ -36,7 +36,7 @@ test('imagem continua usando fetch autenticado e URL blob sem token na URL', () 
 });
 
 test('V33 preserva o endpoint autenticado e não altera o telefone oficial', () => {
-    assert.match(index, /ecProductIngredientsFreezeRuntimeGuardV35/);
+    assert.match(index, /ecAllProductsIngredientsFreezeRuntimeGuardV36/);
     assert.match(panel, /sessionId: '5515991418416'/);
     assert.match(panel, /allowedBrazilTestPhones = new Set\(\['5515991418416', '5515998038637'\]\)/);
 });

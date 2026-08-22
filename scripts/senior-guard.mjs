@@ -87,7 +87,9 @@ const productScopedProtocolFiles = new Set([
     'src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js',
     // A V35 cita o manifesto V34 apenas para preservar a cadeia de freezes.
     // O conteúdo comercial novo continua isolado por productKey.
-    'src/services/ecProductIngredientsFreezeRuntimeGuardV35.js'
+    'src/services/ecProductIngredientsFreezeRuntimeGuardV35.js',
+    // A V36 cita os manifestos V34/V35 somente para preservar a linhagem.
+    'src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/ecProductIngredientsFreezeRuntimeGuardV35.js';
+import './services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js';
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';

@@ -719,3 +719,22 @@ saúde ou medicamento continua sob segurança médica/atendimento humano.
 
 Preço, oferta, cadência, áudio, imagem, pedido, Dropi, Meta/CAPI, pixel, Z-API,
 número, scheduler, pós-venda, PM2 e origem da VSL permanecem inalterados.
+
+## Microcamada V36 de lista consolidada de ingredientes EC
+
+O freeze `docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md` sucede a
+V35. Quando o cliente pedir todos os produtos, comparar fórmulas ou citar pelo
+menos dois produtos, o bot pode enviar uma única mensagem com três seções
+claramente identificadas: Tex Ultra, Nitrix Oxide e Vit Power.
+
+A V36 não transforma as três fórmulas em uma só. Cada seção conserva os
+ingredientes registrados na V35, e a própria mensagem explica que as fórmulas
+são diferentes e não devem ser confundidas. Perguntas de um único produto
+continuam usando somente sua resposta individual.
+
+A lista consolidada exige ficha EC ativa, não muda o produto atual, não
+reescreve a origem VSL e não altera a etapa do funil. Usa memória, lock,
+cooldown e anti-spam próprios para não colidir com a resposta individual.
+
+Preço, oferta, cadência, mídia, pedido, Dropi, Meta/CAPI, pixel, transporte,
+scheduler, pós-venda e PM2 permanecem inalterados.
