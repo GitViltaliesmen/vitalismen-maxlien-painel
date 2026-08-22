@@ -155,3 +155,16 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 - Memória, lock, cooldown, histórico e anti-spam consolidados ficam separados
   da resposta individual.
 - Contrato completo: `docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md`.
+
+## Complemento lateral V40 — fila interna de relacionamento
+
+- `AQUECIMENTO` é apenas um bucket visual interno do mesmo contato Vitalismen;
+  não é outro bot nem o projeto externo historicamente isolado.
+- Compra, preço, produto, quantidade, pedido, pagamento, logística, suporte,
+  reclamação e pós-venda sempre saem dessa fila e voltam ao fluxo competente.
+- A camada nunca inicia conversa. Só pode responder a nova mensagem recebida de
+  contato elegível, usando template local, lock, histórico, cooldown e teto diário.
+- Emoji, sticker, mídia, link simples e reação isolada não geram resposta.
+- Risco/opt-out vai para `REVISAR`; pedido ativo vai para `PEDIDOS`.
+- Não altera a ordem A/B, produto, preço, mídia, Dropi, Meta/CAPI ou pós-venda.
+- Contrato completo: `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md`.

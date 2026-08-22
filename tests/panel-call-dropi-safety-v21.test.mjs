@@ -17,9 +17,9 @@ test('V21 sucede V20 sem publicar ou alterar producao', () => {
     assert.equal(manifest.policy.pricesChanged, false);
 });
 
-test('guard sucessor V38 e a unica entrada ativa da cadeia', () => {
+test('guard sucessor V40 e a unica entrada ativa da cadeia', () => {
     const index = read('src/index.js');
-    assert.match(index, /ecDirectProductNameFreezeRuntimeGuardV39/);
+    assert.match(index, /ecEngagementFreezeRuntimeGuardV40/);
     assert.doesNotMatch(index, /^import '.+(?:logisticsCleanChatFreezeRuntimeGuardV29|FreezeRuntimeGuardV(?:17|18|19|20|21|22|23|24|25|26|27|28))\.js';/m);
 });
 

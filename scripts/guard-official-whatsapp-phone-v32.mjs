@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
@@ -9,7 +9,7 @@ const index = read('src/index.js');
 const vsl = read('public/n/index.html');
 const panel = read('public/qr.html');
 const route = read('src/routes/whatsapp.js');
-const successor = 'node src/services/ecDirectProductNameFreezeRuntimeGuardV39.js';
+const successor = 'node src/services/ecEngagementFreezeRuntimeGuardV40.js';
 
 for (const scriptName of [
     'senior:check',
@@ -30,7 +30,7 @@ for (const scriptName of [
     assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V32 sob V38`);
 }
 
-assert.match(index, /import '\.\/services\/ecDirectProductNameFreezeRuntimeGuardV39\.js';/);
+assert.match(index, /import '\.\/services\/ecEngagementFreezeRuntimeGuardV40\.js';/);
 assert.doesNotMatch(index, /texUltraHowToUseAudioFreezeRuntimeGuardV31/);
 assert.match(vsl, /OFFICIAL_ZAPI_SELLER_E164 = "5515991418416"/);
 assert.match(vsl, /const TEST_PHONE_OVERRIDES = \{\s*"8637":/);

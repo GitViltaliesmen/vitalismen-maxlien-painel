@@ -4188,6 +4188,41 @@
             display: inline-block;
         }
 
+        .operational-bucket-tabs {
+            gap: 5px;
+            padding-bottom: 4px;
+            overflow-x: auto;
+        }
+
+        .operational-bucket-tabs button {
+            min-width: max-content;
+            padding: 0 8px;
+            font-size: 9px;
+            letter-spacing: .01em;
+        }
+
+        .operational-bucket-tabs .bucket-count {
+            display: inline-flex;
+            min-width: 17px;
+            height: 17px;
+            margin-left: 3px;
+            padding: 0 4px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: rgba(84, 101, 111, .12);
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .operational-bucket-tabs button.active .bucket-count {
+            background: rgba(0, 108, 85, .14);
+        }
+
+        .message-filter-tabs {
+            padding-top: 4px;
+        }
+
         .contact-actions {
             display: flex;
             justify-content: flex-start;
@@ -7713,7 +7748,13 @@
                     <div id="qrHelp" class="meta hidden">Use Aparelhos conectados no celular para ler o QR.</div>
                 </div>
 
-                <div class="tabs">
+                <div class="tabs operational-bucket-tabs" aria-label="Filas operacionais">
+                    <button class="active" data-operational-bucket="attendance" type="button">ATENDIMENTO <span id="bucketAttendanceCount" class="bucket-count">0</span></button>
+                    <button data-operational-bucket="engagement" type="button">AQUECIMENTO <span id="bucketEngagementCount" class="bucket-count">0</span></button>
+                    <button data-operational-bucket="orders" type="button">PEDIDOS <span id="bucketOrdersCount" class="bucket-count">0</span></button>
+                    <button data-operational-bucket="review" type="button">REVISAR <span id="bucketReviewCount" class="bucket-count">0</span></button>
+                </div>
+                <div class="tabs message-filter-tabs">
                     <button data-chat-filter="all" type="button">Tudo</button>
                     <button id="newMessagesFilterBtn" class="active" data-chat-filter="unread" type="button" title="Mostra somente clientes com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
@@ -7753,6 +7794,12 @@
                         <div id="activeMeta" class="subtitle">Automação ativa; intervenha só quando precisar.</div>
                     </div>
                     <div class="actions">
+                        <select id="conversationBucketSelect" class="action-select" disabled title="Mover esta conversa entre as filas operacionais">
+                            <option value="attendance">Atendimento</option>
+                            <option value="engagement">Aquecimento</option>
+                            <option value="orders">Pedidos</option>
+                            <option value="review">Revisar</option>
+                        </select>
                         <select id="chatActionSelect" class="action-select" disabled>
                             <option value="">Marcar ação feita</option>
                             <option value="atendimento_iniciado">Atendimento iniciado</option>
@@ -8834,6 +8881,7 @@
             selectedChat: null,
             customerProfile: null,
             chatFilter: 'unread',
+            conversationBucketFilter: 'attendance',
             activeModule: 'all',
             dashboardMetrics: null,
             chatSignature: '',
@@ -11632,8 +11680,34 @@
             });
         };
 
+        const chatConversationBucket = (chat = {}) => {
+            const orderStatus = String(chat.orderStatus || '').trim().toLowerCase();
+            if (chat.orderId && !['delivered', 'cancelled', 'returned'].includes(orderStatus)) return 'orders';
+            const stored = String(chat.conversationBucket?.value || '').trim().toLowerCase();
+            if (['attendance', 'engagement', 'orders', 'review'].includes(stored)) return stored;
+            const tags = chatTags(chat).map((tag) => String(tag || '').toLowerCase());
+            if (tags.includes('warmup:risk') || tags.includes('conversation:review')) return 'review';
+            if (tags.includes('warmup:allowed') || tags.includes('conversation:engagement')) return 'engagement';
+            if (tags.includes('conversation:orders')) return 'orders';
+            return 'attendance';
+        };
+
+        const renderConversationBucketCounts = (chats = []) => {
+            const counts = { attendance: 0, engagement: 0, orders: 0, review: 0 };
+            (chats || []).forEach((chat) => {
+                const bucket = chatConversationBucket(chat);
+                if (Object.prototype.hasOwnProperty.call(counts, bucket)) counts[bucket] += 1;
+            });
+            if (el('bucketAttendanceCount')) el('bucketAttendanceCount').textContent = String(counts.attendance);
+            if (el('bucketEngagementCount')) el('bucketEngagementCount').textContent = String(counts.engagement);
+            if (el('bucketOrdersCount')) el('bucketOrdersCount').textContent = String(counts.orders);
+            if (el('bucketReviewCount')) el('bucketReviewCount').textContent = String(counts.review);
+            return counts;
+        };
+
         const renderOperationalMetrics = () => {
             const visibleChats = visibleOperationalChats();
+            renderConversationBucketCounts(visibleChats);
             const manualCount = visibleChats.filter((chat) => chat.human?.mode === 'manual').length;
             const mineCount = visibleChats.filter(isMine).length;
             const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus))).length;
@@ -11887,6 +11961,7 @@
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
+                if (state.conversationBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
                 if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
                 if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (state.chatFilter === 'groups' && !chat.isGroup) return false;
@@ -11913,6 +11988,13 @@
                 const orderBadge = chat.orderId
                     ? `<span class="badge ${status.className}">${escapeHtml(status.label)}</span>`
                     : '';
+                const bucket = chatConversationBucket(chat);
+                const bucketInfo = {
+                    attendance: { label: 'ATENDIMENTO', className: 'orange' },
+                    engagement: { label: 'AQUECIMENTO', className: 'green' },
+                    orders: { label: 'PEDIDOS', className: 'orange' },
+                    review: { label: 'REVISAR', className: 'red' }
+                }[bucket] || { label: 'ATENDIMENTO', className: 'orange' };
                 const title = chatDisplayName(chat);
                 const lastTime = chat.lastMessage?.timestamp ? formatTime(chat.lastMessage.timestamp).split(', ').pop() : '';
                 const unreadCount = Math.max(0, Number(chat.unreadCount || 0));
@@ -11954,6 +12036,7 @@
                                 ${vslEntryPhraseForPanel(chat)}
                                 <div class="chat-preview">
                                     <span class="chat-badges">
+                                        <span class="badge ${escapeHtml(bucketInfo.className)}">${escapeHtml(bucketInfo.label)}</span>
                                         ${orderBadge}
                                         ${vslWaiting ? '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>' : ''}
                                         ${unansweredCount ? `<span class="badge orange" title="${escapeHtml(`${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} sem resposta`)}">${escapeHtml(unansweredLabel)} pendente${unansweredCount === 1 ? '' : 's'}</span>` : ''}
@@ -12003,6 +12086,8 @@
                 chat.lastActivityAt || '',
                 chat.human?.mode || '',
                 chat.human?.assignedName || '',
+                chat.conversationBucket?.value || '',
+                chat.conversationBucket?.classifiedAt || '',
                 chat.lastMessage?.timestamp || '',
                 chat.lastMessage?.body || ''
             ].join(':'))
@@ -14862,6 +14947,8 @@
                 setAttendancePulse(null);
                 el('chatActionSelect').value = '';
                 el('chatActionSelect').disabled = true;
+                el('conversationBucketSelect').value = 'attendance';
+                el('conversationBucketSelect').disabled = true;
                 el('sendSelectedDropiBtn').disabled = true;
                 el('buyLaterBtn').disabled = true;
                 el('attachMediaBtn').disabled = true;
@@ -14896,8 +14983,17 @@
             const displayIdentity = displayName && displayName !== displayPhone
                 ? `${displayName} · ${displayPhone}`
                 : displayPhone;
+            const selectedBucket = chatConversationBucket(chat);
+            const selectedBucketLabel = {
+                attendance: 'ATENDIMENTO',
+                engagement: 'AQUECIMENTO',
+                orders: 'PEDIDOS',
+                review: 'REVISAR'
+            }[selectedBucket] || 'ATENDIMENTO';
             el('activeName').textContent = displayName;
-            el('activeMeta').textContent = `${displayIdentity} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
+            el('activeMeta').textContent = `${displayIdentity} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · fila ${selectedBucketLabel} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
+            el('conversationBucketSelect').value = selectedBucket;
+            el('conversationBucketSelect').disabled = false;
             el('detailOwner').textContent = owner;
             el('detailOrder').textContent = chat.orderId ? `${chat.orderId} · ${status.label}` : 'Sem pedido vinculado';
             el('detailLocation').textContent = [chat.country, chat.city].filter(Boolean).join(' / ') || 'Sem dados';
@@ -18681,6 +18777,44 @@
             }
         }
 
+        async function moveSelectedConversationBucket(bucket) {
+            if (!state.selectedChat || !bucket) return;
+            const chat = state.selectedChat;
+            const previousBucket = chatConversationBucket(chat);
+            try {
+                const result = await api('/api/whatsapp/chats/bucket', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        chatId: chat.id,
+                        phone: chat.phone,
+                        country: chat.country || selectedOperationalCountry(),
+                        bucket
+                    })
+                });
+                const conversationBucket = result.conversationBucket || { value: bucket };
+                state.selectedChat = { ...state.selectedChat, conversationBucket };
+                state.chats = dedupeChatsForPanel(state.chats.map((item) => (
+                    sameChatIdentity(item, state.selectedChat) ? { ...item, conversationBucket } : item
+                )));
+                state.conversationBucketFilter = bucket;
+                state.chatFilter = 'all';
+                document.querySelectorAll('[data-operational-bucket]').forEach((button) => {
+                    button.classList.toggle('active', button.dataset.operationalBucket === bucket);
+                });
+                document.querySelectorAll('[data-chat-filter]').forEach((button) => {
+                    button.classList.toggle('active', button.dataset.chatFilter === 'all');
+                });
+                state.chatSignature = '';
+                renderChats();
+                renderSelectedDetails();
+                showToast(`Conversa movida para ${{ attendance: 'ATENDIMENTO', engagement: 'AQUECIMENTO', orders: 'PEDIDOS', review: 'REVISAR' }[bucket] || bucket}`);
+                loadChats().catch(() => null);
+            } catch (error) {
+                el('conversationBucketSelect').value = previousBucket;
+                showToast(error.message);
+            }
+        }
+
         const closeFlowCorrectionMenu = () => {
             el('flowCorrectionMenu')?.classList.add('hidden');
             el('flowCorrectionBtn')?.classList.remove('active');
@@ -20104,6 +20238,13 @@
             event.target.disabled = !state.selectedChat;
             event.target.value = '';
         });
+        el('conversationBucketSelect').addEventListener('change', async (event) => {
+            const bucket = event.target.value;
+            if (!bucket) return;
+            event.target.disabled = true;
+            await moveSelectedConversationBucket(bucket);
+            event.target.disabled = !state.selectedChat;
+        });
         el('chatSearch').addEventListener('input', renderChats);
         el('newContactBtn')?.addEventListener('click', openNewContactModal);
         el('newContactSearchBtn')?.addEventListener('click', openNewContactModal);
@@ -20155,6 +20296,18 @@
                 state.chatFilter = button.dataset.chatFilter;
                 document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
                 button.classList.add('active');
+                renderChats();
+            });
+        });
+        document.querySelectorAll('[data-operational-bucket]').forEach((button) => {
+            button.addEventListener('click', () => {
+                state.conversationBucketFilter = button.dataset.operationalBucket || 'attendance';
+                state.chatFilter = 'all';
+                document.querySelectorAll('[data-operational-bucket]').forEach((item) => item.classList.remove('active'));
+                button.classList.add('active');
+                document.querySelectorAll('[data-chat-filter]').forEach((item) => {
+                    item.classList.toggle('active', item.dataset.chatFilter === 'all');
+                });
                 renderChats();
             });
         });

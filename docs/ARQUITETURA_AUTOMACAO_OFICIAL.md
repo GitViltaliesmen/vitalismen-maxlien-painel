@@ -804,3 +804,23 @@ explicitamente o histórico por mensagem/mídia antes de tentar enviar. Nenhum
 
 Checkout, pedido, Dropi, Meta/CAPI, pixel, número, transporte, mídias de produto,
 ordem dos funis, scheduler e operações fora do Equador permanecem preservados.
+
+## Microcamada V40 de fila interna de relacionamento EC
+
+O freeze `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md` sucede a
+V39. `AQUECIMENTO` passa a ser somente o rótulo visual de um bucket interno do
+mesmo atendimento Vitalismen. Nenhum projeto externo de aquecimento é ligado,
+consultado, copiado ou integrado.
+
+Cada contato continua único e recebe uma das filas `ATENDIMENTO`, `AQUECIMENTO`,
+`PEDIDOS` ou `REVISAR`. Pedido/suporte, intenção comercial, risco e opt-out têm
+prioridade sobre relacionamento. `#AQUECE`, `#NAOAQUECE` e `#RISCO` continuam
+internos e nunca são enviados ao cliente.
+
+A camada não inicia conversa. Uma resposta local só pode nascer de nova entrada
+voluntária, exige elegibilidade, lock persistente, histórico, cooldown e teto
+diário. Emoji, mídia, sticker, link simples e reação isolada não geram resposta.
+O classificador e os templates usam zero chamadas de modelo e custo de IA zero.
+
+Produto, preço, origem VSL, checkout, pedido, Dropi, Meta/CAPI, pixel, Z-API,
+número oficial, funis, mídias, pós-venda, scheduler e PM2 permanecem inalterados.
