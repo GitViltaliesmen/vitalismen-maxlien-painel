@@ -78,7 +78,13 @@ const ignoredContextFiles = new Set([
 // contrato isolado do Nitrix. Ela nao faz parte do texto ou do estado do
 // funil Vit Power, que continua protegido pela regra geral abaixo.
 const productScopedProtocolFiles = new Set([
-    'src/services/nitrixProductProfile.js'
+    'src/services/nitrixProductProfile.js',
+    // Autorização V34: estes dois arquivos reconhecem somente a origem
+    // comercial da VSL Protocolo G como Tex Ultra. O projeto externo da VSL
+    // continua separado e nenhum asset/código dela é importado para cá.
+    'src/routes/whatsapp.js',
+    'src/routes/zapi.js',
+    'src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

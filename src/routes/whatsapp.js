@@ -40,6 +40,10 @@ import {
     resolveEcuadorProductInfo,
     selectEcuadorPanelProductInfo
 } from '../services/ecuadorProductService.js';
+import {
+    operatorProductRouteLock,
+    vslProductAssignmentPolicy
+} from '../services/vslProductAssignmentService.js';
 import { startNitrixFastStateFromVslEntry } from '../services/nitrixFastStateService.js';
 import {
     isOperationalChatStatusKey,
@@ -1420,7 +1424,7 @@ const sourceUrlPathname = (value = '') => {
     }
 };
 
-const publicEcVslProductFromBody = (body = {}) => {
+export const publicEcVslProductFromBody = (body = {}) => {
     const page = cleanText(body.page).toLowerCase();
     const bodyPath = cleanText(body.path);
     const sourceUrl = cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl);
@@ -1428,6 +1432,21 @@ const publicEcVslProductFromBody = (body = {}) => {
     const rawProductKey = cleanText(body.productKey || body.product_key || body.product || body.offerKey || body.offer_key)
         .toLowerCase()
         .replace(/[^a-z0-9_/-]/g, '');
+
+    const protocoloGSignal = page.includes('protocolo-g')
+        || bodyPath === '/protocolo-g'
+        || bodyPath.startsWith('/protocolo-g/')
+        || sourcePath === '/protocolo-g'
+        || sourcePath.startsWith('/protocolo-g/');
+    if (protocoloGSignal) {
+        return {
+            productKey: EC_PRODUCT_KEYS.texUltra,
+            productName: EC_PRODUCT_NAMES.tex_ultra_ec,
+            agentKey: EC_PRODUCT_KEYS.texUltra,
+            tag: 'TEX_ULTRA_EC',
+            source: 'ec_protocolo_g_tex_ultra_vsl'
+        };
+    }
 
     const texUltraSignal = rawProductKey === EC_PRODUCT_KEYS.texUltra
         || rawProductKey.includes('texultra')
@@ -1559,6 +1578,10 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const existingManualActor = String(existingHuman.lastManualBy || '').trim();
     const isNitrixVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.nitrix;
     const isTexUltraVsl = effectiveCountry === 'EC' && product.agentKey === EC_PRODUCT_KEYS.texUltra;
+    const productAssignment = vslProductAssignmentPolicy({
+        state,
+        incomingProductKey: product.productKey
+    });
     const existingNitrixFlow = state.metadata?.perAgentMemory?.nitrix_ec?.fastState || null;
     const hasRunningNitrixFlow = isNitrixVsl && ['running', 'waiting_bottle_confirmation'].includes(existingNitrixFlow?.status);
     // O clique da VSL e' apenas um registro no painel: para Nitrix ele nao
@@ -1571,7 +1594,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
 
     state.phoneDigits = phoneDigits;
     state.countryCode = effectiveCountry;
-    state.assignedAgent = product.agentKey;
+    if (!productAssignment.preserveOperatorSelection) state.assignedAgent = product.agentKey;
     // O clique na VSL registra origem e painel; ele nao e' uma nova mensagem
     // WhatsApp. Depois que o Fast State iniciou, nao pode atualizar
     // lastInboundAt nem cancelar a cadencia como se o cliente tivesse escrito.
@@ -1593,7 +1616,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             lastManualBy: 'nitrix_vsl_entry_ready',
             note: 'Entrada VSL Nitrix registrada no painel e liberada para o Fast State; atendimento humano pode assumir a qualquer momento.'
         };
-    } else if (!isNitrixVsl) {
+    } else if (!isNitrixVsl && !productAssignment.preserveOperatorSelection) {
         state.human = {
             ...existingHuman,
             mode: 'manual',
@@ -1629,6 +1652,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslReferrer: cleanText(body.referrer),
         vslProductKey: product.productKey,
         vslProductName: product.productName,
+        vslProductSource: product.source,
         ...(isNitrixVsl && !preserveNitrixHumanTakeover ? {
             nitrixVslEntryReadyAt: now.toISOString(),
             nitrixVslEntryHumanHoldPreserved: false
@@ -1636,9 +1660,24 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         ...(isNitrixVsl && preserveNitrixHumanTakeover ? {
             nitrixVslEntryHumanHoldPreserved: true
         } : {}),
-        productKey: product.productKey,
-        productName: product.productName,
-        productSource: product.source,
+        ...(!productAssignment.preserveOperatorSelection ? {
+            productKey: product.productKey,
+            productName: product.productName,
+            productSource: product.source,
+            productRouteLock: state.metadata?.productRouteLock?.active === true
+                && state.metadata?.productRouteLock?.productKey === product.productKey
+                ? state.metadata.productRouteLock
+                : {
+                    active: true,
+                    productKey: product.productKey,
+                    productName: product.productName,
+                    lockedAt: now.toISOString(),
+                    source: product.source,
+                    reason: 'authoritative_vsl_product_attribution'
+                }
+        } : {
+            productRouteLock: productAssignment.operatorLock
+        }),
         assignedSeller: sellerDigits,
         lastSessionId: sellerDigits || state.metadata?.lastSessionId || '',
         customerDraft: {
@@ -1649,14 +1688,16 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             status: existingDraft.status || 'novo',
             entryAt: existingDraft.entryAt || now.toISOString(),
             source: 'vsl_ec_mobile',
-            productKey: product.productKey,
-            productName: product.productName,
-            productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
-                ? '/media/sales/ec/nitrix_bottle.png'
-                : product.productKey === EC_PRODUCT_KEYS.vitPower
-                    ? '/media/sales/ec/vit_power.jpeg'
-                    : '',
-            priceCatalog: isTexUltraVsl ? 'promotional' : (existingDraft.priceCatalog || ''),
+            ...(!productAssignment.preserveOperatorSelection ? {
+                productKey: product.productKey,
+                productName: product.productName,
+                productMedia: product.productKey === EC_PRODUCT_KEYS.nitrix
+                    ? '/media/sales/ec/nitrix_bottle.png'
+                    : product.productKey === EC_PRODUCT_KEYS.vitPower
+                        ? '/media/sales/ec/vit_power.jpeg'
+                        : '',
+                priceCatalog: isTexUltraVsl ? 'promotional' : (existingDraft.priceCatalog || '')
+            } : {}),
             message: entryMessage || existingDraft.message || '',
             vslTestId: vslTestId || existingDraft.vslTestId || '',
             vslVariant: vslVariant || existingDraft.vslVariant || '',
@@ -5118,12 +5159,21 @@ router.patch('/contact-state/:phone', async (req, res) => {
             }
             state.countryCode = cleanDraft.country;
             if (cleanDraft.productKey) {
+                const selectedAt = new Date();
+                const selectedBy = req.user.name || req.user.email || '';
+                cleanDraft.negotiationProductKey = cleanDraft.productKey;
                 state.assignedAgent = cleanDraft.productKey;
                 state.metadata = {
                     ...(state.metadata || {}),
                     productKey: cleanDraft.productKey,
                     productName: cleanDraft.productName || state.metadata?.productName || '',
-                    productMedia: cleanDraft.productMedia || state.metadata?.productMedia || ''
+                    productMedia: cleanDraft.productMedia || state.metadata?.productMedia || '',
+                    productRouteLock: operatorProductRouteLock({
+                        productKey: cleanDraft.productKey,
+                        productName: cleanDraft.productName || state.metadata?.productName || '',
+                        selectedBy,
+                        selectedAt
+                    })
                 };
             }
             const agentKey = state.assignedAgent || 'nitrix_ec';

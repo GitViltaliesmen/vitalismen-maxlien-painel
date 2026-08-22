@@ -27,6 +27,7 @@ import {
     inboundMediaInternalUrl,
     INBOUND_MEDIA_STATUS
 } from '../services/inboundMediaStorageService.js';
+import { vslProductAssignmentPolicy } from '../services/vslProductAssignmentService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -161,6 +162,37 @@ const ACTIVE_VSL_GENERIC_ENTRY_PATTERNS = Object.freeze([
     /^hola (?:quiero|deseo) el tratamiento(?: buenos dias| buenas tardes| buenas noches)? (?:nombre(?: completo)?|telefono|cedula|ci|ciudad|canton|provincia|direccion|domicilio|referencia)\b/
 ]);
 
+export const protocoloGTexUltraContextFromText = (text = '') => {
+    const lines = String(text || '')
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    if (lines.length < 2 || lines.length > 4) return null;
+    const firstLine = normalizeVslText(lines[0]);
+    if (![
+        'hola quiero el tratamiento',
+        'hola quiero el tratamiento tex ultra'
+    ].includes(firstLine)) return null;
+    const labeledFields = lines.slice(1).map((line) => {
+        const match = line.match(/^\s*([^:]+)\s*:\s*(.*)$/u);
+        return match
+            ? { label: normalizeVslText(match[1]), value: String(match[2] || '').trim() }
+            : null;
+    });
+    if (labeledFields.some((field) => !field)) return null;
+    const allowedLabels = new Set(['nombre', 'ciudad', 'provincia']);
+    if (labeledFields.some((field) => !allowedLabels.has(field.label))) return null;
+    if (!labeledFields.some((field) => field.label === 'nombre' && field.value)) return null;
+    return {
+        ...EC_VSL_PRODUCT_PROFILES.tex_ultra_ec,
+        productSource: 'zapi_protocolo_g_tex_ultra_payload',
+        vslTestId: '',
+        vslVariant: 'protocolo_g',
+        vslEntryMessage: String(text || '').trim()
+    };
+};
+
 export const activeEcVslProductContextFromText = (text = '', env = process.env) => {
     const value = normalizeVslText(text);
     if (!ACTIVE_VSL_GENERIC_ENTRY_PATTERNS.some((pattern) => pattern.test(value))) return null;
@@ -220,6 +252,8 @@ export const explicitEcVslProductContextFromText = (text = '') => {
             vslEntryMessage: currentMessage || String(text || '').trim()
         };
     }
+    const protocoloGContext = protocoloGTexUltraContextFromText(text);
+    if (protocoloGContext) return protocoloGContext;
     const activeProductContext = activeEcVslProductContextFromText(text);
     if (activeProductContext) return activeProductContext;
     return null;
@@ -871,7 +905,13 @@ const recordZapiInboundPayload = async (payload = {}) => {
     targetState.chatId = targetState.chatId || chatId;
     targetState.phoneDigits = targetState.phoneDigits || phone;
     targetState.countryCode = targetState.countryCode || inferredCountry;
-    if (vslProductContext) targetState.assignedAgent = vslProductContext.productKey;
+    const vslProductAssignment = vslProductAssignmentPolicy({
+        state: targetState,
+        incomingProductKey: vslProductContext?.productKey || ''
+    });
+    if (vslProductContext && !vslProductAssignment.preserveOperatorSelection) {
+        targetState.assignedAgent = vslProductContext.productKey;
+    }
     targetState.lastInboundText = normalizedBody || `[${effectiveType}] recebido`;
     targetState.lastInboundAt = now;
     if (!targetState.firstInboundAt) targetState.firstInboundAt = now;
@@ -881,7 +921,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
         automatedVslProduct,
         humanMode: targetState.human?.mode,
         lastManualBy: targetState.human?.lastManualBy,
-        storedProductKey: targetState.metadata?.productKey || targetState.assignedAgent || '',
+        storedProductKey: vslProductAssignment.preserveOperatorSelection
+            ? vslProductAssignment.currentProductKey
+            : targetState.metadata?.productKey || targetState.assignedAgent || '',
         incomingProductKey: vslProductContext?.productKey || ''
     });
     if (isNewState || promoteRegisteredVslEntry) {
@@ -897,11 +939,15 @@ const recordZapiInboundPayload = async (payload = {}) => {
             lastManualBy: 'zapi'
         };
     }
+    const preservedProductProfile = vslProductAssignment.preserveOperatorSelection
+        ? EC_VSL_PRODUCT_PROFILES[vslProductAssignment.currentProductKey]
+        : null;
     targetState.tags = [...new Set([
         ...(Array.isArray(targetState.tags) ? targetState.tags.filter((tag) => !EC_VSL_PRODUCT_TAGS.has(tag)) : []),
         'ZAPI_INBOUND_CAPTURED',
         ...(publicVslLeadEntry ? ['VSL_EC', 'WHATSAPP_CLICK'] : []),
         ...(vslProductContext ? [vslProductContext.productTag] : []),
+        ...(preservedProductProfile ? [preservedProductProfile.productTag] : []),
         ...(vslProductContext?.productKey === 'tex_ultra_ec' ? ['TEX_ULTRA_VSL_AB_ENTRY'] : []),
         ...(authorizedTestRecipient ? ['AUTHORIZED_VSL_TEST_RECIPIENT'] : []),
         ...(inferredCountry === 'BR' ? ['BR_CAPTURADO_CELULAR'] : [])
@@ -939,12 +985,17 @@ const recordZapiInboundPayload = async (payload = {}) => {
             vslTestId: vslProductContext.vslTestId,
             vslVariant: vslProductContext.vslVariant,
             vslEntryMessage: vslProductContext.vslEntryMessage || normalizedBody,
-            productKey: vslProductContext.productKey,
-            productName: vslProductContext.productName,
-            productSource: vslProductContext.productSource || 'zapi_public_vsl_entry',
             vslProductKey: vslProductContext.productKey,
             vslProductName: vslProductContext.productName,
-            productRouteLock: targetState.metadata?.productRouteLock?.active === true
+            vslProductSource: vslProductContext.productSource || 'zapi_public_vsl_entry',
+            ...(!vslProductAssignment.preserveOperatorSelection ? {
+                productKey: vslProductContext.productKey,
+                productName: vslProductContext.productName,
+                productSource: vslProductContext.productSource || 'zapi_public_vsl_entry'
+            } : {}),
+            productRouteLock: vslProductAssignment.preserveOperatorSelection
+                ? vslProductAssignment.operatorLock
+                : targetState.metadata?.productRouteLock?.active === true
                 && targetState.metadata?.productRouteLock?.productKey === vslProductContext.productKey
                 ? targetState.metadata.productRouteLock
                 : {
@@ -962,9 +1013,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
                 status: targetState.metadata?.customerDraft?.status || 'novo',
                 entryAt: targetState.metadata?.customerDraft?.entryAt || now.toISOString(),
                 source: 'public_vsl_whatsapp_entry',
-                productKey: vslProductContext.productKey,
-                productName: vslProductContext.productName,
-                productMedia: vslProductContext.productMedia,
+                ...(!vslProductAssignment.preserveOperatorSelection ? {
+                    productKey: vslProductContext.productKey,
+                    productName: vslProductContext.productName,
+                    productMedia: vslProductContext.productMedia
+                } : {}),
                 message: normalizedBody,
                 vslTestId: vslProductContext.vslTestId,
                 vslVariant: vslProductContext.vslVariant,

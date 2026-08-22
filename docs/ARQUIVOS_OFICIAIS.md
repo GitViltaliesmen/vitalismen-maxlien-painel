@@ -295,3 +295,15 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Freeze/guard: `docs/PANEL_IMAGE_CSP_BLOB_FREEZE_V33_20260821.md`, `docs/freeze/panel-image-csp-blob-v33-20260821.json` e `scripts/guard-panel-image-csp-v33.mjs`.
 - Preservado: autenticação, endpoint, storage, áudio, Z-API, números, clientes, pedidos, Dropi, Meta/CAPI, funil e pós-venda.
 - Rollback funcional: retornar à release V32 e preservar o storage compartilhado inbound.
+
+### Microcamada V34 — Protocolo G abre Tex Ultra — 2026-08-22
+
+- Base Git: `production` em `4bd6903a9f470fb075554670348743bf3e59735c`; branch isolada `codex/protocolo-g-tex-ultra-v34-20260821`.
+- VSL externa oficial: `https://vilaliemen.shop/protocolo-g`; produto comercial Tex Ultra Ecuador e nome legado do asset Pixel Vit Power preservado.
+- Resolução da origem: `src/routes/zapi.js` e `src/routes/whatsapp.js`.
+- Separação entre origem e negociação atual: `src/services/vslProductAssignmentService.js`; a escolha manual por cliente não reescreve `vslProductKey`.
+- Painel: `public/qr.html` não foi alterado; seletor dos três produtos e gate V28 de qualidade permanecem congelados.
+- Testes sem envio: `tests/protocolo-g-tex-ultra-origin-v34.test.mjs`, regressões V28–V33 e guards oficiais.
+- Freeze/guard: `docs/PROTOCOLO_G_TEX_ULTRA_ORIGIN_FREEZE_V34_20260822.md`, `docs/freeze/protocolo-g-tex-ultra-origin-v34-20260822.json` e `scripts/guard-protocolo-g-tex-ultra-v34.mjs`.
+- No momento do candidato: nenhuma mensagem, pedido, Dropi, Meta/CAPI, escrita no banco oficial, PM2, symlink ou deploy do dashboard havia sido executado.
+- Rollback funcional: retornar à release V33 `/opt/vitalismen-automacao/releases/20260821T225331Z_production-20260821-cb8f6fe` e preservar o storage compartilhado inbound.

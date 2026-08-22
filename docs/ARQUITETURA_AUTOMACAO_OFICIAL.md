@@ -674,3 +674,28 @@ diretiva `img-src` não permitia a URL `blob:` criada no navegador depois do
 Autenticação, Bearer, endpoint `/api/whatsapp/media/:messageId`, storage
 compartilhado, `default-src`, `object-src`, `script-src`, Z-API, números,
 clientes, pedidos, Dropi, Meta/CAPI, funil e pós-venda permanecem inalterados.
+
+## Microcamada V34 de origem independente do Protocolo G
+
+O freeze `docs/PROTOCOLO_G_TEX_ULTRA_ORIGIN_FREEZE_V34_20260822.md` sucede a
+V33 e fixa a VSL `https://vilaliemen.shop/protocolo-g` como origem de **Tex
+Ultra Ecuador**. O nome legado `vitpowers` do asset de Pixel não participa da
+seleção comercial e permanece preservado.
+
+O endpoint público reconhece o caminho `/protocolo-g` antes de qualquer chave
+legada. A entrada Z-API reconhece tanto a nova primeira linha explícita `Hola,
+quiero el tratamiento Tex Ultra.` quanto o payload multilinha legado estrito
+com `Nombre`, `CIUDAD` e `PROVINCIA`, sem consultar
+`VITALISMEN_ACTIVE_VSL_PRODUCT`. `/n/`, `/m/` e Nitrix mantêm seus contratos
+independentes.
+
+A origem fica em `metadata.vslProductKey`/`vslProductName`/`vslProductSource`.
+O produto da negociação atual continua em `metadata.productKey` e
+`customerDraft.productKey`. Quando o operador salva uma escolha no seletor do
+painel, uma `productRouteLock` de fonte `panel_customer_product_selection`
+impede cliques ou mensagens posteriores da VSL de sobrescrever essa negociação,
+sem apagar a origem histórica.
+
+O bloco V28 `Qualidade dos dados` permanece obrigatório. Ele valida identidade,
+telefone, cidade/província e modalidade/endereço/agência antes de permitir
+pedido, Dropi ou Purchase; o score visual nunca elimina um bloqueador.
