@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/ecProductIngredientsFreezeRuntimeGuardV35.js');
+await import('../src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
 const engine = read('src/services/conversationEngine.js');
 const service = read('src/services/ecProductIngredientsService.js');
-const successor = 'node src/services/ecProductIngredientsFreezeRuntimeGuardV35.js';
+const successor = 'node src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js';
 
 for (const scriptName of [
     'senior:check',
@@ -22,6 +22,7 @@ for (const scriptName of [
     'guard:panel-image-csp-v33',
     'guard:protocolo-g-tex-ultra-v34',
     'guard:ec-product-ingredients-v35',
+    'guard:ec-all-products-ingredients-v36',
     'guard:ec-nitrix',
     'guard:ec-identity',
     'guard:tex-ultra-approved',
@@ -29,10 +30,10 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não usa V35`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V35 sob V36`);
 }
 
-assert.match(index, /import '\.\/services\/ecProductIngredientsFreezeRuntimeGuardV35\.js';/);
+assert.match(index, /import '\.\/services\/ecAllProductsIngredientsFreezeRuntimeGuardV36\.js';/);
 assert.doesNotMatch(index, /^import '.+protocoloGTexUltraFreezeRuntimeGuardV34\.js';/m);
 assert.match(engine, /import \{ maybeHandleEcuadorProductIngredients \} from '\.\/ecProductIngredientsService\.js';/);
 assert.match(engine, /activeProductKey: agentProfile\?\.key \|\| ''/);
@@ -44,10 +45,11 @@ assert.ok(
 assert.match(service, /tex_ultra_ec:[\s\S]+maca peruana[\s\S]+Tribulus terrestris[\s\S]+catuaba[\s\S]+marapuama[\s\S]+zinc[\s\S]+magnesio/);
 assert.match(service, /nitrix_ec:[\s\S]+fenogreco \(fenugreek\)[\s\S]+ginseng Panax \(ginseng rojo coreano\)[\s\S]+ashwagandha[\s\S]+Ginkgo biloba[\s\S]+L-arginina/);
 assert.match(service, /vit_power_ec:[\s\S]+borojó[\s\S]+chontaduro[\s\S]+noni[\s\S]+guaraná[\s\S]+vitaminas/);
-assert.match(service, /productIngredientsFaq\.lockedUntil/);
+assert.match(service, /memoryField: 'productIngredientsFaq'/);
+assert.match(service, /const lockPath = `\$\{memoryPath\}\.lockedUntil`/);
 assert.match(service, /FAQ_COOLDOWN_MS = 30 \* 60 \* 1000/);
 assert.match(service, /allowExistingDropiOrder: true/);
-assert.match(service, /antiSpamKey: `product_ingredients_faq:\$\{reply\.productKey\}`/);
+assert.match(service, /antiSpamScope = reply\.scope === 'all_products' \? 'all_products' : reply\.productKey/);
 assert.match(service, /explicit\[0\] !== active/);
 assert.match(service, /hasSensitiveHealthContext\(text\)/);
 assert.doesNotMatch(service, /cura|sin contraindicaciones|100% seguro/i);

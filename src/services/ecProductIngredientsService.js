@@ -52,6 +52,25 @@ export const EC_PRODUCT_INGREDIENTS = Object.freeze({
     })
 });
 
+export const EC_ALL_PRODUCTS_INGREDIENTS_TEXT = [
+    'Claro. Estos son los ingredientes de cada uno de nuestros productos:',
+    '',
+    '🔵 *Tex Ultra*',
+    'Contiene maca peruana, Tribulus terrestris, catuaba, marapuama, zinc y magnesio.',
+    '',
+    '🟠 *Nitrix Oxide*',
+    'Contiene fenogreco (fenugreek), Tribulus terrestris, ginseng Panax —también conocido como ginseng rojo coreano—, ashwagandha, Ginkgo biloba y L-arginina.',
+    '',
+    '🟢 *Vit Power*',
+    'Contiene borojó, chontaduro, noni, L-arginina, maca, guaraná y vitaminas.',
+    '',
+    'Cada producto tiene una fórmula diferente; por eso, los ingredientes de un producto no deben confundirse con los de los demás.',
+    '',
+    'Si usa medicamentos o tiene alguna condición de salud, consulte a su médico antes de utilizar cualquier suplemento.',
+    '',
+    '¿Sobre cuál de los tres productos desea recibir más información: Tex Ultra, Nitrix Oxide o Vit Power?'
+].join('\n');
+
 const normalize = (value = '') => String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -69,7 +88,7 @@ export const isProductIngredientsQuestion = (text = '') => {
         /\bcomposicion\b/,
         /\bformula\b/,
         /\bcomponentes?\b/,
-        /\bque\s+(?:tiene|contiene|trae)\b/,
+        /\bque\s+(?:tiene|contiene|trae|tienen|contienen|traen)\b/,
         /\bquais?\s+ingredientes?\b/,
         /\bo\s+que\s+(?:tem|contem)\b/,
         /\b(?:maca|tribulus|catuaba|marapuama|fenogreco|fenugreek|ginseng|ashwagandha|ginkgo|arginina)\b/
@@ -90,6 +109,22 @@ const explicitProductKeys = (text = '') => {
     ].filter(([pattern]) => pattern.test(body)).map(([, productKey]) => productKey);
 };
 
+export const isAllProductsIngredientsQuestion = (text = '') => {
+    const body = normalize(text);
+    if (!body) return false;
+    const explicit = [...new Set(explicitProductKeys(text))];
+    const mentionsPluralProducts = /\b(?:productos|produtos)\b/.test(body);
+    const asksAll = /\b(?:todos|todas|diversos|varios|diferentes)\b/.test(body)
+        || /\b(?:los|os)\s+(?:tres|3)\b/.test(body);
+    const pluralProductScope = /\b(?:los|estos|nuestros|os|dos|estes|nossos)\s+(?:productos|produtos)\b/.test(body);
+    const asksComparison = /\b(?:diferencia|diferencias|diferenca|diferencas|compara(?:r|cion|cao)?|compare)\b/.test(body);
+    const hasAllProductScope = explicit.length >= 2
+        || (mentionsPluralProducts && (asksAll || pluralProductScope));
+
+    return (isProductIngredientsQuestion(text) && hasAllProductScope)
+        || (asksComparison && (explicit.length >= 2 || (mentionsPluralProducts && asksAll)));
+};
+
 export const resolveIngredientsProductKey = ({ text = '', activeProductKey = '' } = {}) => {
     const active = PRODUCT_KEYS.has(activeProductKey) ? activeProductKey : '';
     if (!active) return '';
@@ -100,15 +135,31 @@ export const resolveIngredientsProductKey = ({ text = '', activeProductKey = '' 
 };
 
 export const productIngredientsReply = ({ text = '', activeProductKey = '' } = {}) => {
-    if (!isProductIngredientsQuestion(text) || hasSensitiveHealthContext(text)) return null;
+    const asksAllProducts = isAllProductsIngredientsQuestion(text);
+    if ((!isProductIngredientsQuestion(text) && !asksAllProducts) || hasSensitiveHealthContext(text)) return null;
+    if (asksAllProducts) {
+        if (!PRODUCT_KEYS.has(activeProductKey)) return null;
+        return {
+            productKey: activeProductKey,
+            productName: 'Tex Ultra, Nitrix Oxide y Vit Power',
+            scope: 'all_products',
+            memoryField: 'productIngredientsFaqAllProducts',
+            text: EC_ALL_PRODUCTS_INGREDIENTS_TEXT
+        };
+    }
     const productKey = resolveIngredientsProductKey({ text, activeProductKey });
     const profile = EC_PRODUCT_INGREDIENTS[productKey];
     if (!profile) return null;
-    return { productKey, ...profile };
+    return {
+        productKey,
+        ...profile,
+        scope: 'single_product',
+        memoryField: 'productIngredientsFaq'
+    };
 };
 
-const memoryOf = (state = {}, productKey = '') => (
-    state?.metadata?.perAgentMemory?.[productKey]?.productIngredientsFaq || {}
+const memoryOf = (state = {}, productKey = '', memoryField = 'productIngredientsFaq') => (
+    state?.metadata?.perAgentMemory?.[productKey]?.[memoryField] || {}
 );
 
 const blockedByHumanOperator = (state = {}) => {
@@ -138,14 +189,16 @@ export const maybeHandleEcuadorProductIngredients = async ({
     const reply = productIngredientsReply({ text, activeProductKey });
     if (!reply) return { handled: false };
 
-    const memory = memoryOf(contactState, reply.productKey);
+    const memory = memoryOf(contactState, reply.productKey, reply.memoryField);
     if (recentEnough(memory.lastSentAt, FAQ_COOLDOWN_MS)) {
         return { handled: true, skipped: 'cooldown', productKey: reply.productKey };
     }
 
     const now = new Date();
-    const lockPath = `metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.lockedUntil`;
-    const lockMessagePath = `metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.lockSourceMessageId`;
+    const memoryPath = `metadata.perAgentMemory.${reply.productKey}.${reply.memoryField}`;
+    const lockPath = `${memoryPath}.lockedUntil`;
+    const lockMessagePath = `${memoryPath}.lockSourceMessageId`;
+    const antiSpamScope = reply.scope === 'all_products' ? 'all_products' : reply.productKey;
     const claim = await ContactState.updateOne(
         {
             _id: contactStateId,
@@ -172,8 +225,8 @@ export const maybeHandleEcuadorProductIngredients = async ({
             sessionId,
             sendMode: 'product_ingredients_faq',
             allowExistingDropiOrder: true,
-            outboundContext: `product_ingredients_faq:${reply.productKey}`,
-            antiSpamKey: `product_ingredients_faq:${reply.productKey}`
+            outboundContext: `product_ingredients_faq:${antiSpamScope}`,
+            antiSpamKey: `product_ingredients_faq:${antiSpamScope}`
         });
     } catch (error) {
         console.error(`[PRODUCT-INGREDIENTS-FAQ] falha de transporte -> ${chatId}: ${error.message}`);
@@ -183,7 +236,7 @@ export const maybeHandleEcuadorProductIngredients = async ({
             { _id: contactStateId },
             {
                 $set: {
-                    [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.failedAt`]: new Date()
+                    [`${memoryPath}.failedAt`]: new Date()
                 },
                 $unset: {
                     [lockPath]: '',
@@ -198,15 +251,16 @@ export const maybeHandleEcuadorProductIngredients = async ({
         { _id: contactStateId },
         {
             $set: {
-                [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.lastSentAt`]: new Date(),
-                [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.productKey`]: reply.productKey,
-                [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.textHash`]: hashText(reply.text),
-                [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.sourceMessageId`]: String(sourceMessageId || '')
+                [`${memoryPath}.lastSentAt`]: new Date(),
+                [`${memoryPath}.productKey`]: reply.productKey,
+                [`${memoryPath}.scope`]: reply.scope,
+                [`${memoryPath}.textHash`]: hashText(reply.text),
+                [`${memoryPath}.sourceMessageId`]: String(sourceMessageId || '')
             },
             $unset: {
                 [lockPath]: '',
                 [lockMessagePath]: '',
-                [`metadata.perAgentMemory.${reply.productKey}.productIngredientsFaq.failedAt`]: ''
+                [`${memoryPath}.failedAt`]: ''
             }
         }
     );
@@ -214,6 +268,7 @@ export const maybeHandleEcuadorProductIngredients = async ({
     return {
         handled: true,
         productKey: reply.productKey,
+        scope: reply.scope,
         textSent: true
     };
 };

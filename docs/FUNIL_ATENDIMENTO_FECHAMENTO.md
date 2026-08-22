@@ -140,3 +140,18 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 - Contexto médico sensível tem prioridade e não recebe promessa comercial.
 - Lock persistido e cooldown de trinta minutos impedem repetição.
 - Contrato completo: `docs/EC_PRODUCT_INGREDIENTS_FAQ_FREEZE_V35_20260822.md`.
+
+## Complemento lateral V36 — lista consolidada de ingredientes
+
+- Pedido de todos, comparação ou citação de pelo menos dois produtos recebe
+  uma única mensagem em espanhol com seções separadas de Tex Ultra, Nitrix
+  Oxide e Vit Power.
+- A mensagem não mistura as fórmulas: identifica os ingredientes de cada
+  produto e avisa que uma composição não deve ser confundida com a outra.
+- Pergunta de um único produto continua usando somente a resposta individual
+  V35.
+- A lista exige ficha EC ativa, não troca o produto atual e não reinicia o
+  funil.
+- Memória, lock, cooldown, histórico e anti-spam consolidados ficam separados
+  da resposta individual.
+- Contrato completo: `docs/EC_ALL_PRODUCTS_INGREDIENTS_FREEZE_V36_20260822.md`.
