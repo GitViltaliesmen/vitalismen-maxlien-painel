@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js');
+await import('../src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
 const engine = read('src/services/conversationEngine.js');
 const service = read('src/services/ecProductIngredientsService.js');
-const successor = 'node src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js';
+const successor = 'node src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js';
 
 for (const scriptName of [
     'senior:check',
@@ -23,6 +23,7 @@ for (const scriptName of [
     'guard:protocolo-g-tex-ultra-v34',
     'guard:ec-product-ingredients-v35',
     'guard:ec-all-products-ingredients-v36',
+    'guard:panel-zapi-auth-status-v37',
     'guard:ec-nitrix',
     'guard:ec-identity',
     'guard:tex-ultra-approved',
@@ -30,10 +31,10 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V35 sob V36`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V35 sob V37`);
 }
 
-assert.match(index, /import '\.\/services\/ecAllProductsIngredientsFreezeRuntimeGuardV36\.js';/);
+assert.match(index, /import '\.\/services\/panelZapiAuthStatusFreezeRuntimeGuardV37\.js';/);
 assert.doesNotMatch(index, /^import '.+protocoloGTexUltraFreezeRuntimeGuardV34\.js';/m);
 assert.match(engine, /import \{ maybeHandleEcuadorProductIngredients \} from '\.\/ecProductIngredientsService\.js';/);
 assert.match(engine, /activeProductKey: agentProfile\?\.key \|\| ''/);
