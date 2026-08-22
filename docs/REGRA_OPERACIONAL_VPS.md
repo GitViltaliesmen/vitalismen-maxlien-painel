@@ -117,10 +117,10 @@ Fluxo correto:
 4. testar contato piloto;
 5. somente entao subir para o VPS com confirmacao explicita.
 
-Comando de deploy protegido:
+O comando local abaixo monta e envia uma release candidata, mas nunca a ativa:
 
 ```sh
-VITALISMEN_DEPLOY_CONFIRM=YES npm run deploy:vps
+VITALISMEN_DEPLOY_TAG=production-YYYYMMDD-abcdef0 VITALISMEN_DEPLOY_CONFIRM=YES npm run deploy:vps
 ```
 
 Esse comando:
@@ -129,15 +129,34 @@ Esse comando:
 - confere o `senior:check` do VPS legado;
 - envia a versao local para `/opt/vitalismen-automacao/releases/<timestamp>`;
 - nao copia `.env`, `auth_info_baileys`, `.local`, `node_modules` nem audios gerados;
-- nao ativa o release automaticamente, salvo se for chamado com `VITALISMEN_DEPLOY_ACTIVATE=YES`.
+- nao troca o symlink `current` e nao reinicia o PM2.
 
-Para ativar o release enviado:
+`VITALISMEN_DEPLOY_ACTIVATE=YES` e bloqueado pelo contrato atual e termina com
+codigo `78`. A publicacao oficial completa usa o helper root transacional, uma
+tag anotada exata e uma autorizacao de uso unico:
 
 ```sh
-VITALISMEN_DEPLOY_CONFIRM=YES VITALISMEN_DEPLOY_ACTIVATE=YES npm run deploy:vps
+ssh root@72.60.137.77 "/usr/local/sbin/vitalismen-stage stage production-YYYYMMDD-abcdef0 YYYYMMDDTHHMMSSZ_production-YYYYMMDD-abcdef0"
+ssh root@72.60.137.77 "/usr/local/sbin/vitalismen-authorize production-YYYYMMDD-abcdef0"
+ssh root@72.60.137.77 "/usr/local/sbin/vitalismen-stage activate"
 ```
 
-Mesmo ativando o symlink `/opt/vitalismen-automacao/current`, restart de PM2 continua sendo decisao explicita. Isso evita que uma versao local ainda em teste derrube producao.
+O primeiro comando faz staging e executa os gates sem alterar `current`. O
+segundo cria a permissao root vinculada ao tag, commit e release exatos. O
+terceiro consome essa permissao uma unica vez, troca `current` atomicamente,
+reinicia somente `vitalismen-automation`, valida health e dominio, salva o PM2
+e executa rollback automatico se algum gate falhar.
+
+Depois da ativacao, a verificacao obrigatoria e:
+
+```sh
+ssh root@72.60.137.77 "readlink -f /opt/vitalismen-automacao/current && pm2 jlist"
+```
+
+O processo `vitalismen-automation` precisa estar `online`, com `pm_cwd` e
+`pm_exec_path` passando por `/opt/vitalismen-automacao/current`, e o CWD real
+do PID precisa resolver para a mesma release ativada. Nunca usar
+`pm2 restart all`, porque o VPS contem processos fora do escopo Vitalismen EC.
 
 ## Estado atual registrado
 
