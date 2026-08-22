@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 import {
     buildDirectProductReply,

@@ -120,7 +120,7 @@ const fixture = () => {
 };
 
 const responseContractKeys = [
-    'address', 'assignedAgent', 'city', 'country', 'createdAt', 'currency', 'customerDraft',
+    'address', 'assignedAgent', 'city', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
     'entryAt', 'firstInboundAt', 'flowDataOk', 'human', 'id', 'isGroup', 'lastActivityAt',
     'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'name', 'notes', 'orderId', 'orderStatus',
     'packageLabel', 'phone', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',

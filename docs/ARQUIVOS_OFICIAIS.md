@@ -1,5 +1,20 @@
 # Arquivos oficiais e fonte de verdade
 
+## Microcamada V40 — fila interna de relacionamento EC (2026-08-22)
+
+- Contrato: `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md`.
+- Estado e memória únicos: `src/models/ContactState.js`.
+- Classificador determinístico: `src/services/ecConversationBucketService.js`.
+- Resposta local somente após inbound: `src/services/ecEngagementReplyService.js`.
+- Entrada oficial Z-API: `src/routes/zapi.js`.
+- API/painel oficial: `src/routes/whatsapp.js` e `public/qr.html`.
+- Auditoria sem escrita: `scripts/audit-ec-engagement-readonly.mjs`.
+- Guard: `scripts/guard-ec-engagement-v40.mjs`.
+- Testes: `tests/ec-engagement-buckets-v40.test.mjs`.
+- Não existe arquivo, processo, banco ou integração com o projeto externo de
+  aquecimento; o rótulo `AQUECIMENTO` é apenas uma fila visual do painel oficial.
+- Nenhuma migração em massa ou mensagem real faz parte da implementação/teste.
+
 Regra geral: antes de mexer em qualquer fluxo, primeiro localizar, ler e confirmar o arquivo oficial. Copias temporarias servem apenas para comparar ou preparar patch, nunca como fonte final.
 
 ## Regra obrigatoria

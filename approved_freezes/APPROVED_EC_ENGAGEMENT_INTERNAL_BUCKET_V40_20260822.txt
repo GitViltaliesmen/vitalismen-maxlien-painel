@@ -1,0 +1,10 @@
+APPROVED=true
+FREEZE_ID=ec-engagement-internal-bucket-v40-20260822
+COUNTRY=EC
+APPROVAL_SOURCE=operator_thread_and_attached_mission
+APPROVED_AT=2026-08-22
+SCOPE=read_only_audit_implementation_tests_commit_publish_transactional_activation
+NO_BULK_SEND=true
+NO_ARTIFICIAL_CONVERSATION=true
+NO_EXTERNAL_WARMUP_PROJECT=true
+NO_REAL_TEST_MESSAGES=true

@@ -15,6 +15,25 @@ const customerDataResolutionSchema = new mongoose.Schema({
     externalGeoAdapter: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { _id: false, strict: false });
 
+const conversationBucketHistorySchema = new mongoose.Schema({
+    from: { type: String, enum: ['', 'attendance', 'engagement', 'orders', 'review'], default: '' },
+    to: { type: String, enum: ['attendance', 'engagement', 'orders', 'review'], required: true },
+    source: { type: String, default: '' },
+    reason: { type: String, default: '' },
+    score: { type: Number, min: 0, max: 100, default: 0 },
+    by: { type: String, default: '' },
+    at: { type: Date, default: Date.now }
+}, { _id: false });
+
+const engagementReplyHistorySchema = new mongoose.Schema({
+    inboundMessageId: { type: String, default: '' },
+    templateKey: { type: String, default: '' },
+    providerMessageId: { type: String, default: '' },
+    status: { type: String, enum: ['sent', 'failed', 'skipped'], default: 'skipped' },
+    reason: { type: String, default: '' },
+    at: { type: Date, default: Date.now }
+}, { _id: false });
+
 const contactStateSchema = new mongoose.Schema({
     chatId: {
         type: String,
@@ -78,6 +97,57 @@ const contactStateSchema = new mongoose.Schema({
             type: String,
             default: ''
         }
+    },
+    conversationBucket: {
+        value: {
+            type: String,
+            enum: ['attendance', 'engagement', 'orders', 'review'],
+            default: 'attendance',
+            index: true
+        },
+        previousValue: {
+            type: String,
+            enum: ['', 'attendance', 'engagement', 'orders', 'review'],
+            default: ''
+        },
+        source: { type: String, default: 'default' },
+        confidence: {
+            type: String,
+            enum: ['low', 'medium', 'high'],
+            default: 'low'
+        },
+        score: { type: Number, min: 0, max: 100, default: 0 },
+        reasons: { type: [String], default: [] },
+        classifiedAt: Date,
+        manualSelectedAt: Date,
+        manualSelectedBy: { type: String, default: '' },
+        commercialInterruptedAt: Date,
+        riskDetectedAt: Date,
+        history: { type: [conversationBucketHistorySchema], default: [] }
+    },
+    engagementAutomation: {
+        approvedAt: Date,
+        approvedBy: { type: String, default: '' },
+        approvalSource: { type: String, default: '' },
+        blockedAt: Date,
+        blockedReason: { type: String, default: '' },
+        lastEvaluatedAt: Date,
+        lastDecision: { type: String, default: '' },
+        lastInboundMessageId: { type: String, default: '' },
+        replyLockUntil: Date,
+        replyLockedAt: Date,
+        replyLockedForMessageId: { type: String, default: '' },
+        lastReplyAt: Date,
+        lastReplyTemplateKey: { type: String, default: '' },
+        lastReplyProviderMessageId: { type: String, default: '' },
+        lastFailureAt: Date,
+        lastFailure: { type: String, default: '' },
+        dailyKey: { type: String, default: '' },
+        dailyReplyCount: { type: Number, default: 0 },
+        localDecisionCount: { type: Number, default: 0 },
+        modelCallCount: { type: Number, default: 0 },
+        estimatedCostUsd: { type: Number, default: 0 },
+        replyHistory: { type: [engagementReplyHistorySchema], default: [] }
     },
     firstInboundText: {
         type: String,
@@ -156,6 +226,7 @@ const contactStateSchema = new mongoose.Schema({
 
 contactStateSchema.index({ assignedAgent: 1, countryCode: 1 });
 contactStateSchema.index({ 'human.mode': 1, 'human.assignedTo': 1 });
+contactStateSchema.index({ 'conversationBucket.value': 1, 'conversationBucket.classifiedAt': -1 });
 contactStateSchema.index({ 'customerDataResolution.orderDataReady': 1, updatedAt: -1 });
 contactStateSchema.index({
     'buyLaterReminder.active': 1,

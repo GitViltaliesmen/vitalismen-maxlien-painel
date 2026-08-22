@@ -69,6 +69,14 @@ import {
     inboundMediaStorageRoot,
     loadStoredInboundMedia
 } from '../services/inboundMediaStorageService.js';
+import {
+    auditEcConversationContact,
+    conversationBucketPanelView,
+    EC_CONVERSATION_BUCKETS,
+    findEcContactState,
+    setEcConversationBucketManually
+} from '../services/ecConversationBucketService.js';
+import { ecEngagementReplyPolicy } from '../services/ecEngagementReplyService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -666,6 +674,7 @@ const WARMUP_PANEL_COMMANDS = {
         addTags: ['warmup:allowed'],
         removeTags: ['warmup:blocked', 'warmup:risk', 'warmup:manual_only'],
         warmup: { allowed: true, vip: false, risk: false, manualOnly: false, blocked: false, category: 'allowed' },
+        bucket: EC_CONVERSATION_BUCKETS.ENGAGEMENT,
         message: 'Contato marcado para aquecimento seguro.'
     },
     '#aquecevip#': {
@@ -675,6 +684,7 @@ const WARMUP_PANEL_COMMANDS = {
         addTags: ['warmup:allowed', 'warmup:vip'],
         removeTags: ['warmup:blocked', 'warmup:risk', 'warmup:manual_only'],
         warmup: { allowed: true, vip: true, risk: false, manualOnly: false, blocked: false, category: 'vip' },
+        bucket: EC_CONVERSATION_BUCKETS.ENGAGEMENT,
         message: 'Contato marcado como aquecimento VIP.'
     },
     '#naoaquece#': {
@@ -684,6 +694,7 @@ const WARMUP_PANEL_COMMANDS = {
         addTags: ['warmup:blocked'],
         removeTags: ['warmup:allowed', 'warmup:vip', 'warmup:risk', 'warmup:manual_only'],
         warmup: { allowed: false, vip: false, risk: false, manualOnly: false, blocked: true, category: 'blocked' },
+        bucket: EC_CONVERSATION_BUCKETS.ATTENDANCE,
         message: 'Contato removido do aquecimento.'
     },
     '#risco#': {
@@ -693,6 +704,7 @@ const WARMUP_PANEL_COMMANDS = {
         addTags: ['warmup:risk', 'warmup:manual_only'],
         removeTags: ['warmup:allowed', 'warmup:vip', 'warmup:blocked'],
         warmup: { allowed: false, vip: false, risk: true, manualOnly: true, blocked: false, category: 'risk' },
+        bucket: EC_CONVERSATION_BUCKETS.REVIEW,
         message: 'Contato marcado como risco/manual somente.'
     }
 };
@@ -2927,10 +2939,17 @@ const applyWarmupPanelCommand = async ({ phone, message, user, sessionId = '', c
     const config = warmupPanelCommandConfig(message);
     if (!config) return null;
     const effectiveCountry = inferPanelCountryFromPhone(phone, country);
-    const state = await findOrCreateContactStateForPanel({
+    let state = await findOrCreateContactStateForPanel({
         phone,
         country: effectiveCountry
     });
+    const manualBucket = await setEcConversationBucketManually({
+        state,
+        bucket: config.bucket,
+        by: user?.name || user?.email || 'painel',
+        source: 'panel_command'
+    });
+    state = manualBucket.state;
     const now = new Date();
     const tagSet = new Set(Array.isArray(state.tags) ? state.tags : []);
     for (const tag of config.removeTags || []) tagSet.delete(tag);
@@ -3567,6 +3586,86 @@ router.post('/chats/action', async (req, res) => {
     }
 });
 
+router.post('/chats/bucket', async (req, res) => {
+    try {
+        const bucket = String(req.body?.bucket || '').trim().toLowerCase();
+        if (!Object.values(EC_CONVERSATION_BUCKETS).includes(bucket)) {
+            return res.status(400).json({ error: 'Fila operacional invalida' });
+        }
+        const chatId = String(req.body?.chatId || '').trim();
+        const phone = String(req.body?.phone || '').trim();
+        const country = normalizePanelCountry(req.body?.country || 'EC');
+        const state = await findOrCreateContactStateForPanel({ chatId, phone, country });
+        const result = await setEcConversationBucketManually({
+            state,
+            bucket,
+            by: req.user?.name || req.user?.email || '',
+            source: 'panel_bucket_selection'
+        });
+        await registerPanelAction({
+            state: result.state,
+            action: `fila_${bucket}`,
+            label: `Fila ${bucket}`,
+            by: req.user?.name || req.user?.email || '',
+            detail: `Conversa movida manualmente para ${bucket}.`,
+            chatId,
+            phone
+        });
+        await result.state.save();
+        return res.json({
+            success: true,
+            conversationBucket: conversationBucketPanelView(result.state),
+            classification: {
+                bucket: result.classification.bucket,
+                score: result.classification.score,
+                confidence: result.classification.confidence,
+                reasons: result.classification.reasons,
+                hardExclusions: result.classification.hardExclusions
+            }
+        });
+    } catch (error) {
+        if (error?.code === 'ENGAGEMENT_BLOCKED' || error?.code === 'ORDERS_BUCKET_REQUIRES_OBLIGATION') {
+            return res.status(409).json({
+                error: error.message,
+                code: error.code,
+                classification: error.classification ? {
+                    bucket: error.classification.bucket,
+                    score: error.classification.score,
+                    confidence: error.classification.confidence,
+                    reasons: error.classification.reasons,
+                    hardExclusions: error.classification.hardExclusions
+                } : null
+            });
+        }
+        console.error('Chat bucket update error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to update conversation bucket' });
+    }
+});
+
+router.get('/engagement/audit', async (req, res) => {
+    try {
+        const state = await findEcContactState({
+            phone: String(req.query.phone || ''),
+            chatId: String(req.query.chatId || '')
+        });
+        if (!state) return res.status(404).json({ error: 'Contato nao encontrado' });
+        const classification = await auditEcConversationContact(state);
+        return res.json({
+            contact: {
+                phone: state.phoneDigits || '',
+                chatId: state.chatId || '',
+                name: state.metadata?.customerDraft?.name || state.metadata?.profileName || '',
+                currentBucket: conversationBucketPanelView(state)
+            },
+            classification,
+            policy: ecEngagementReplyPolicy()
+        });
+    } catch (error) {
+        console.error('Engagement read-only audit error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to audit engagement contact' });
+    }
+});
+
 router.post('/sessions/:sessionId/start', adminOnly, async (req, res) => {
     try {
         const sessionId = registerWhatsAppSession(req.params.sessionId);
@@ -3660,6 +3759,8 @@ router.get('/chats', async (req, res) => {
                 assignedAgent: 1,
                 tags: 1,
                 human: 1,
+                conversationBucket: 1,
+                engagementAutomation: 1,
                 firstInboundAt: 1,
                 lastInboundAt: 1,
                 lastOutboundAt: 1,
@@ -3672,6 +3773,46 @@ router.get('/chats', async (req, res) => {
             .limit(fastMode ? 180 : 500)
             .lean()
             .catch(() => []);
+
+        if (countryFilter === 'EC') {
+            const classifiedQueueStates = await ContactState.find(
+                {
+                    countryCode: 'EC',
+                    $or: [
+                        { 'conversationBucket.value': { $in: [EC_CONVERSATION_BUCKETS.ENGAGEMENT, EC_CONVERSATION_BUCKETS.REVIEW, EC_CONVERSATION_BUCKETS.ORDERS] } },
+                        { tags: { $in: ['warmup:allowed', 'warmup:risk', 'conversation:engagement', 'conversation:review', 'conversation:orders'] } }
+                    ]
+                },
+                {
+                    chatId: 1,
+                    phoneDigits: 1,
+                    countryCode: 1,
+                    assignedAgent: 1,
+                    tags: 1,
+                    human: 1,
+                    conversationBucket: 1,
+                    engagementAutomation: 1,
+                    firstInboundAt: 1,
+                    lastInboundAt: 1,
+                    lastOutboundAt: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    metadata: 1
+                }
+            )
+                .sort({ 'conversationBucket.classifiedAt': -1, updatedAt: -1 })
+                .limit(350)
+                .lean()
+                .catch(() => []);
+            const mergedStates = new Map();
+            [...classifiedQueueStates, ...recentStates].forEach((state) => {
+                const phone = realPhoneFromState(state) || digitsOnly(state.phoneDigits);
+                const key = state.chatId || phone;
+                if (!key || mergedStates.has(key)) return;
+                mergedStates.set(key, state);
+            });
+            recentStates = [...mergedStates.values()];
+        }
 
         const pinnedPanelPhones = countryFilter ? scopedPanelPhones(countryFilter) : [];
         if (countryFilter === 'EC' && pinnedPanelPhones.length) {
@@ -3694,6 +3835,8 @@ router.get('/chats', async (req, res) => {
                     assignedAgent: 1,
                     tags: 1,
                     human: 1,
+                    conversationBucket: 1,
+                    engagementAutomation: 1,
                     firstInboundAt: 1,
                     lastInboundAt: 1,
                     lastOutboundAt: 1,
@@ -4012,6 +4155,9 @@ router.get('/chats', async (req, res) => {
                     },
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
+                    conversationBucket: conversationBucketPanelView(contactState || {}, {
+                        hasOperationalOrder: Boolean(order) && !['delivered', 'cancelled', 'returned'].includes(String(order?.status || '').toLowerCase())
+                    }),
                     zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
                 };
             })))
@@ -4246,6 +4392,9 @@ router.get('/chats', async (req, res) => {
                 },
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },
+                conversationBucket: conversationBucketPanelView(contactState || {}, {
+                    hasOperationalOrder: Boolean(order) && !['delivered', 'cancelled', 'returned'].includes(String(order?.status || '').toLowerCase())
+                }),
                 zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
             };
         }));

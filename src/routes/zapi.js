@@ -29,6 +29,11 @@ import {
 } from '../services/inboundMediaStorageService.js';
 import { vslProductAssignmentPolicy } from '../services/vslProductAssignmentService.js';
 import { shouldRouteDirectProductInbound } from '../services/ecDirectProductInquiryService.js';
+import {
+    classifyAndPersistEcConversation,
+    EC_CONVERSATION_BUCKETS
+} from '../services/ecConversationBucketService.js';
+import { scheduleEcEngagementReply } from '../services/ecEngagementReplyService.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -840,7 +845,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         };
     }
 
-    await Message.updateOne(
+    const messageWrite = await Message.updateOne(
         { _id: messageId },
         {
             $setOnInsert: {
@@ -877,6 +882,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         },
         { upsert: true }
     );
+    const newMessage = Number(messageWrite?.upsertedCount || 0) > 0 || Boolean(messageWrite?.upsertedId);
     const mediaHealth = hasDeclaredMedia
         ? await captureInboundMedia({
             messageId,
@@ -1082,9 +1088,35 @@ const recordZapiInboundPayload = async (payload = {}) => {
         targetState.markModified('metadata');
     }
     await targetState.save();
+    let conversationClassification = null;
+    if (newMessage && inferredCountry === 'EC') {
+        try {
+            const classified = await classifyAndPersistEcConversation({
+                state: targetState,
+                currentMessage: {
+                    _id: messageId,
+                    body: normalizedBody,
+                    type: effectiveType,
+                    hasMedia: hasDeclaredMedia,
+                    timestamp: Math.floor(now.getTime() / 1000),
+                    isFromMe: false,
+                    senderRole: 'client',
+                    providerMessageId
+                },
+                source: 'zapi_inbound_rule_v40'
+            });
+            conversationClassification = classified.classification;
+        } catch (error) {
+            console.error(`[EC-BUCKET] falha fechada ao classificar ${phone}:`, error.message || error);
+        }
+    }
+    const conversationBucket = conversationClassification?.bucket
+        || targetState.conversationBucket?.value
+        || EC_CONVERSATION_BUCKETS.ATTENDANCE;
 
     return {
         recorded: true,
+        newMessage,
         phone,
         chatId,
         type: effectiveType,
@@ -1097,10 +1129,53 @@ const recordZapiInboundPayload = async (payload = {}) => {
         readInference,
         publicVslLeadEntry,
         directProductInbound,
+        contactStateId: String(targetState._id),
+        conversationBucket,
+        engagementReplyEligible: conversationClassification?.replyEligibleByHistory === true,
+        conversationClassification: conversationClassification ? {
+            bucket: conversationClassification.bucket,
+            score: conversationClassification.score,
+            confidence: conversationClassification.confidence,
+            reasons: conversationClassification.reasons,
+            hardExclusions: conversationClassification.hardExclusions,
+            currentInboundKind: conversationClassification.currentInboundKind,
+            eligibleForEngagement: conversationClassification.eligibleForEngagement === true,
+            replyEligibleByHistory: conversationClassification.replyEligibleByHistory === true,
+            metrics: conversationClassification.metrics
+        } : null,
         routeToBot: Boolean(normalizedBody)
+            && conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+            && conversationBucket !== EC_CONVERSATION_BUCKETS.REVIEW
             && (targetState.human?.mode !== 'manual' || directProductInbound)
             && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry))
     };
+};
+
+const scheduleClassifiedEngagementReply = async (result = {}, { skip = false } = {}) => {
+    if (
+        skip
+        || result.newMessage !== true
+        || result.conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        || result.engagementReplyEligible !== true
+        || !result.contactStateId
+    ) {
+        return { scheduled: false, reason: skip ? 'higher_priority_handler' : 'not_eligible' };
+    }
+    const state = await ContactState.findById(result.contactStateId).catch(() => null);
+    if (!state) return { scheduled: false, reason: 'contact_state_not_found' };
+    return scheduleEcEngagementReply({
+        state,
+        classification: result.conversationClassification || {},
+        message: {
+            _id: result.messageId,
+            body: result.body,
+            type: result.type,
+            hasMedia: !['chat', 'system'].includes(String(result.type || 'chat')),
+            timestamp: Math.floor(Date.now() / 1000),
+            isFromMe: false,
+            senderRole: 'client'
+        }
+    });
 };
 
 const handleZapiPickupConfirmation = async (result = {}) => {
@@ -1425,6 +1500,9 @@ router.post('/webhook', async (req, res) => {
                 sessionId: 'zapi'
             })
             : { handled: false };
+        const engagementReply = await scheduleClassifiedEngagementReply(result, {
+            skip: pickupReply.handled || buyLaterReply.handled
+        });
         if (result.routeToBot) {
             scheduleVslFirstResponseWatchdog(result);
             if (!pickupReply.handled && !buyLaterReply.handled) {
@@ -1439,7 +1517,7 @@ router.post('/webhook', async (req, res) => {
             }
         }
         console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || result.providerZaapId || ''}`);
-        return res.json({ ok: true, result, routed: 'inbound' });
+        return res.json({ ok: true, result, engagementReply, routed: 'inbound' });
     } catch (error) {
         console.error('[ZAPI-WEBHOOK] error:', error?.response?.data || error.message || error);
         res.status(500).json(exposeError(error));
@@ -1473,6 +1551,9 @@ router.post('/webhook/received', async (req, res) => {
                     sessionId: 'zapi'
                 })
                 : { handled: false };
+            const engagementReply = await scheduleClassifiedEngagementReply(result, {
+                skip: pickupReply.handled || buyLaterReply.handled
+            });
             if (result.routeToBot) {
                 scheduleVslFirstResponseWatchdog(result);
                 if (!pickupReply.handled && !buyLaterReply.handled) {
@@ -1487,7 +1568,7 @@ router.post('/webhook/received', async (req, res) => {
                 }
             }
             console.log(`[ZAPI-WEBHOOK] inbound | recorded=${result.recorded} | phone=${result.phone || phone || ''} | type=${result.type || ''} | id=${result.providerMessageId || providerMessageId || ''}`);
-            return res.json({ ok: true, result });
+            return res.json({ ok: true, result, engagementReply });
         }
         const result = await applyZapiDeliveryPayload({
             ...payload,

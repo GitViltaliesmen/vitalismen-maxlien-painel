@@ -197,3 +197,16 @@ Se bloquear, parar, fazer backup do estado atual e corrigir isolamento antes de 
 Vitalismen deve ser tratado como producao critica.
 
 Para isolamento absoluto pratico: Vitalismen em VPS propria, Aquecimento fora. Se Aquecimento voltar, volta como outro ambiente, sem qualquer comunicacao com Vitalismen.
+
+## Sucessão pontual V40 — nome visual da fila interna
+
+Em 2026-08-22, o operador autorizou `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md`.
+Essa microcamada não reativa nem integra o projeto externo Aquecimento. Ela apenas
+usa o rótulo visual `AQUECIMENTO` para um bucket de relacionamento dentro do mesmo
+`ContactState` oficial, sem bot, VPS, Git, banco, sessão, número, scheduler ou
+credencial paralela.
+
+Portanto, as proibições deste documento continuam valendo integralmente para
+qualquer projeto/processo externo. A única sucessão é nominal e operacional no
+painel oficial: classificar conversas reais já recebidas, sem iniciar contato,
+sem conversa artificial, sem disparo e sem compartilhar dados com outro ambiente.

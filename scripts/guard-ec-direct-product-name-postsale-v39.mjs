@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
@@ -13,7 +13,7 @@ const engine = read('src/services/conversationEngine.js');
 const panel = read('public/qr.html');
 const chatsRoute = read('src/routes/whatsapp.js');
 const postSale = read('src/services/texUltraConfirmedPostSaleLayerService.js');
-const successor = 'node src/services/ecDirectProductNameFreezeRuntimeGuardV39.js';
+const successor = 'node src/services/ecEngagementFreezeRuntimeGuardV40.js';
 
 for (const scriptName of [
     'senior:check',
@@ -41,7 +41,7 @@ for (const scriptName of [
     assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não usa V39`);
 }
 
-assert.match(index, /import '\.\/services\/ecDirectProductNameFreezeRuntimeGuardV39\.js';/);
+assert.match(index, /import '\.\/services\/ecEngagementFreezeRuntimeGuardV40\.js';/);
 assert.doesNotMatch(index, /^import '.+inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/m);
 assert.match(engine, /maybeHandleEcuadorDirectProductInquiry/);
 assert.match(router, /shouldRouteDirectProductInbound/);
