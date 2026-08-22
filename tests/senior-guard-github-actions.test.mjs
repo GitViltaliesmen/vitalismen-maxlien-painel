@@ -102,3 +102,21 @@ test('registro V41 comprova busca publicada, backup, PM2 e ausência de efeitos 
     assert.match(result, /chat-search-v41\.js`: HTTP `200`/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V42 comprova aquecimento publicado, contato auditado e ausência de envio real', () => {
+    const result = readFileSync(
+        'docs/EC_ENGAGEMENT_COMMAND_REPLY_ACTIVATION_RESULT_V42_20260822.md',
+        'utf8'
+    );
+    assert.match(result, /cbd6dfcbf3f43c36ccfe2057ab79d32353d6a76d/);
+    assert.match(result, /20260822T185502Z_production-20260822-cbd6dfc/);
+    assert.match(result, /PID atual após ativação: `2188070`/);
+    assert.match(result, /qr\.html\.before-v42-20260822T185502Z/);
+    assert.match(result, /20260822T180506Z_production-20260822-1f4895b/);
+    assert.match(result, /bucket persistido: `engagement`/);
+    assert.match(result, /pedidos ativos: `0`/);
+    assert.match(result, /shipments ativos: `0`/);
+    assert.match(result, /Nenhuma mensagem real, mídia, pedido, Dropi, Meta\/CAPI/);
+    assert.match(result, /ec-engagement-panel-v42\.js`:[\s\S]*HTTP `200`/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
