@@ -7781,7 +7781,7 @@
                     </div>
                 </div>
                 <div class="searchbar">
-                    <input id="chatSearch" placeholder="Buscar cliente ou telefone">
+                    <input id="chatSearch" placeholder="Buscar nome, número ou últimos 3+ dígitos" autocomplete="off">
                     <button id="newContactSearchBtn" class="primary add-chat-contact" type="button" title="Adicionar novo cliente">Adicionar</button>
                 </div>
                 <div id="chatList" class="chat-list"></div>
@@ -8827,6 +8827,7 @@
     <script src="/panel-intelligence/customer-order-policy.js"></script>
     <script src="/panel-intelligence/authenticated-media.js"></script>
     <script src="/panel-intelligence/clean-chat-v29.js"></script>
+    <script src="/panel-intelligence/chat-search-v41.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -11643,24 +11644,7 @@
         const chatMatchesSearch = (chat, search = '') => {
             const query = String(search || '').trim().toLowerCase();
             if (!query) return true;
-            const queryDigits = digitsOnlyText(query);
-            const source = chatSourceInfo(chat);
-            const haystack = [
-                chat.name,
-                chat.phone,
-                chat.id,
-                chat.orderId,
-                chat.lastMessage?.body,
-                source.badge,
-                ...chatTags(chat)
-            ];
-            const textMatch = haystack.some((value) => String(value || '').toLowerCase().includes(query));
-            if (textMatch) return true;
-            if (!queryDigits) return false;
-            return haystack
-                .map((value) => digitsOnlyText(value))
-                .filter(Boolean)
-                .some((value) => value.includes(queryDigits) || queryDigits.includes(value));
+            return window.VitalismenChatSearchV41?.matchesChat(chat, query) === true;
         };
 
         const visibleOperationalChats = (options = {}) => {
@@ -11960,12 +11944,13 @@
 
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
+            const searchActive = window.VitalismenChatSearchV41?.isSearchActive(search) ?? Boolean(search);
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (state.conversationBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
-                if (state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
-                if (state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
-                if (state.chatFilter === 'groups' && !chat.isGroup) return false;
-                if (state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
+                if (!searchActive && state.conversationBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
+                if (!searchActive && state.chatFilter === 'unread' && !(Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))) return false;
+                if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
+                if (!searchActive && state.chatFilter === 'groups' && !chat.isGroup) return false;
+                if (!searchActive && state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
                 return chatMatchesSearch(chat, search);
             }).sort((left, right) => {
                 const unansweredDifference = Number(Number(right.unansweredCount || 0) > 0) - Number(Number(left.unansweredCount || 0) > 0);
@@ -12053,7 +12038,9 @@
                         </div>
                     </button>
                 `;
-            }).join('') || '<div class="empty">Nenhum chat encontrado.</div>';
+            }).join('') || `<div class="empty">${escapeHtml(
+                window.VitalismenChatSearchV41?.emptyStateMessage(search) || 'Nenhum chat encontrado.'
+            )}</div>`;
 
             renderOperationalMetrics();
             renderTeamList();
