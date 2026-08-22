@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
     buildFunnelMetricsSnapshot,
@@ -118,4 +119,16 @@ test('consulta Mongo cobre cada timestamp usado pelo contrato', () => {
         window.orderQuery.$or.map((item) => Object.keys(item)[0]),
         ['entryAt', 'draftCreatedAt', 'createdAt', 'tracking.metaPurchaseSentAt']
     );
+});
+
+test('registro operacional V34 fixa release e rollback sem expor credenciais', () => {
+    const record = fs.readFileSync(new URL(
+        '../docs/RESULTADO_ATIVACAO_PROTOCOLO_G_TEX_ULTRA_V34_20260822.md',
+        import.meta.url
+    ), 'utf8');
+    assert.match(record, /20260822T002400Z_production-20260822-b50a86b/);
+    assert.match(record, /20260821T225331Z_production-20260821-cb8f6fe/);
+    assert.match(record, /257\/257/);
+    assert.doesNotMatch(record, /(?:TOKEN|SECRET|PASSWORD|OPENAI_API_KEY|ZAPI_CLIENT_TOKEN)\s*=/i);
+    assert.doesNotMatch(record, /\b(?:gho_|ghp_|sk-)[A-Za-z0-9_-]{12,}/);
 });
