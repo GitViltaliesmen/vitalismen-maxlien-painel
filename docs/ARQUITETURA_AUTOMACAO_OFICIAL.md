@@ -908,3 +908,16 @@ autoriza nem envia automaticamente para Dropi.
 A fila V44 permanece inalterada: `AQUECIMENTO` só fica fora de `Novas` enquanto
 o bucket for `engagement`. Intenção comercial e pedido novo têm prioridade e
 devem aparecer nas filas comerciais.
+
+## Microcamada V46 de preservação da recompra ao salvar a ficha EC
+
+O freeze `docs/EC_REPURCHASE_SYNC_PRESERVATION_FREEZE_V46_20260822.md` sucede a
+V45. O salvamento da ficha reconhece uma ordem já criada com
+`entryReason=repeat_purchase_after_delivered` e conserva `previousOrderId`,
+`previousDeliveredAt`, o motivo de entrada e as notas de auditoria.
+
+Assim, o sincronizador administrativo mantém a prova necessária para permitir o
+novo ciclo `confirmado` depois de `entregue`. A ordem existente e seu Purchase
+são reaproveitados; nenhum pedido, evento, Shipment, autorização ou submissão
+Dropi adicional é criado. A separação V44 entre `Novas` e `AQUECIMENTO` continua
+inalterada.

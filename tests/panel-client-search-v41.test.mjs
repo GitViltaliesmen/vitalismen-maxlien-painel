@@ -7,6 +7,7 @@ import './ec-engagement-command-reply-v42.test.mjs';
 import './ec-engagement-priority-v43.test.mjs';
 import './panel-global-new-messages-v44.test.mjs';
 import './ec-delivered-repurchase-v45.test.mjs';
+import './ec-repurchase-sync-preservation-v46.test.mjs';
 
 const sandbox = {};
 sandbox.globalThis = sandbox;

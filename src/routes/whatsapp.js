@@ -77,7 +77,10 @@ import {
     setEcConversationBucketManually
 } from '../services/ecConversationBucketService.js';
 import { ecEngagementReplyPolicy } from '../services/ecEngagementReplyService.js';
-import { panelOrderLifecycle } from '../services/ecDeliveredRepurchaseService.js';
+import {
+    operationalOrderLineage,
+    panelOrderLifecycle
+} from '../services/ecDeliveredRepurchaseService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2404,6 +2407,11 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         'canceled',
         'returned'
     ].includes(existingOrderStatus);
+    const orderLineage = operationalOrderLineage({
+        existingOrder: order,
+        sourceOrderId,
+        sourceIsAdminOrder
+    });
     const baseData = {
         country: 'EC',
         customer: {
@@ -2429,11 +2437,13 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         currency: 'USD',
         source: 'manual',
         status: preserveExistingOrderStatus ? order.status : 'confirmed',
-        notes: sourceIsAdminOrder
-            ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
-            : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,
-        previousOrderId: sourceIsAdminOrder ? sourceOrderId : '',
-        entryReason: sourceIsAdminOrder ? 'admin_panel_confirmed_whatsapp_mirror' : 'whatsapp_panel_confirmed',
+        notes: orderLineage.preserveExistingNotes
+            ? String(order?.notes || '').trim()
+            : sourceIsAdminOrder
+                ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
+                : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,
+        previousOrderId: orderLineage.previousOrderId,
+        entryReason: orderLineage.entryReason,
         tracking: {
             ...(order?.tracking || {}),
             ip: order?.tracking?.ip || req?.ip || '',
@@ -5260,6 +5270,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 total: String(customerDraft.total || '').trim(),
                 orderId: String(customerDraft.orderId || state.metadata?.customerDraft?.orderId || '').trim(),
                 sourceOrderId: String(customerDraft.sourceOrderId || state.metadata?.customerDraft?.sourceOrderId || '').trim(),
+                previousOrderId: String(customerDraft.previousOrderId || state.metadata?.customerDraft?.previousOrderId || '').trim(),
+                currentNegotiationOrderId: String(customerDraft.currentNegotiationOrderId || state.metadata?.customerDraft?.currentNegotiationOrderId || '').trim(),
                 product: String(customerDraft.product || customerDraft.productName || state.metadata?.customerDraft?.product || '').trim(),
                 productKey: String(customerDraft.productKey || state.metadata?.customerDraft?.productKey || '').trim(),
                 productName: String(customerDraft.productName || customerDraft.product || state.metadata?.customerDraft?.productName || '').trim(),
@@ -5426,7 +5438,9 @@ router.patch('/contact-state/:phone', async (req, res) => {
                             orderId: operationalOrderSync.orderId,
                             product: operationalOrderSync.productName || cleanDraft.product || '',
                             productKey: operationalOrderSync.productKey || '',
-                            sourceOrderId: cleanDraft.orderId || ''
+                            sourceOrderId: cleanDraft.sourceOrderId || cleanDraft.orderId || '',
+                            previousOrderId: cleanDraft.previousOrderId || '',
+                            currentNegotiationOrderId: cleanDraft.currentNegotiationOrderId || operationalOrderSync.orderId
                         }
                     };
                 }

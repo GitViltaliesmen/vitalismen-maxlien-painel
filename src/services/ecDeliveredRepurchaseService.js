@@ -100,3 +100,34 @@ export const repurchaseOrderCreationPolicy = ({
         entryReason: 'repeat_purchase_after_delivered'
     });
 };
+
+export const operationalOrderLineage = ({
+    existingOrder = null,
+    sourceOrderId = '',
+    sourceIsAdminOrder = false
+} = {}) => {
+    const existingPreviousOrderId = String(existingOrder?.previousOrderId || '').trim();
+    const existingEntryReason = String(existingOrder?.entryReason || '').trim();
+    const deliveredRepurchase = Boolean(
+        existingPreviousOrderId
+        && existingEntryReason === 'repeat_purchase_after_delivered'
+    );
+
+    if (deliveredRepurchase) {
+        return Object.freeze({
+            deliveredRepurchase: true,
+            previousOrderId: existingPreviousOrderId,
+            entryReason: existingEntryReason,
+            preserveExistingNotes: true
+        });
+    }
+
+    return Object.freeze({
+        deliveredRepurchase: false,
+        previousOrderId: sourceIsAdminOrder ? String(sourceOrderId || '').trim() : '',
+        entryReason: sourceIsAdminOrder
+            ? 'admin_panel_confirmed_whatsapp_mirror'
+            : 'whatsapp_panel_confirmed',
+        preserveExistingNotes: false
+    });
+};

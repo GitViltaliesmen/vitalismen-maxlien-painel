@@ -1,0 +1,90 @@
+{
+  "freezeId": "ec-repurchase-sync-preservation-v46-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "ec-delivered-repurchase-v45-20260822",
+  "parentManifestSha256": "610708aa94f6d96efc2dc544c7154fbd1c5716662217d76838f00396a93ffa92",
+  "baseProductionSha": "a4cc06dee26089d1d18474613cb5bc121887c14d",
+  "baseFunctionalReleaseSha": "a4cc06dee26089d1d18474613cb5bc121887c14d",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T203010Z_production-20260822-a4cc06d",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_activation_and_target_repair_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "preserve_delivered_repurchase_lineage_and_repair_target_1956",
+    "constraints": [
+      "preserve_existing_repurchase_order",
+      "preserve_existing_purchase_event",
+      "preserve_previous_order_delivery",
+      "no_duplicate_order",
+      "no_automatic_dropi_authorization",
+      "engagement_excluded_from_new_messages",
+      "no_real_test_messages",
+      "no_external_project"
+    ]
+  },
+  "policy": {
+    "preservePreviousOrderId": true,
+    "preserveEntryReason": true,
+    "preservePurchaseEvent": true,
+    "duplicateOrderAllowed": false,
+    "automaticDropiAuthorization": false,
+    "engagementExcludedFromNewMessages": true,
+    "officialPricesChanged": false,
+    "productRoutingChanged": false,
+    "whatsappAutomationChanged": false,
+    "deployAuthorized": true,
+    "targetRepairAuthorized": true
+  },
+  "realEffectsBeforeFreeze": {
+    "orderId": "EC-RECOMPRA-MT4U9N2Y-JC2J",
+    "purchaseEventId": "EC-RECOMPRA-MT4U9N2Y-JC2J",
+    "dropiAuthorized": false,
+    "dropiSubmitted": false,
+    "v46Deploy": false,
+    "v46TargetRepair": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T203010Z_production-20260822-a4cc06d",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveOrdersAndShipments": true,
+    "preservePurchaseEvents": true,
+    "doNotDeleteCreatedRepurchaseOrders": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/senior-guard.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecDeliveredRepurchaseService.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_EC_REPURCHASE_SYNC_PRESERVATION_V46_20260822.txt",
+    "docs/EC_REPURCHASE_SYNC_PRESERVATION_FREEZE_V46_20260822.md",
+    "scripts/assert-ec-repurchase-sync-preservation-activation-approved-v46.mjs",
+    "scripts/guard-ec-repurchase-sync-preservation-v46.mjs",
+    "src/services/ecRepurchaseSyncPreservationFreezeRuntimeGuardV46.js",
+    "tests/ec-repurchase-sync-preservation-v46.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "425e2b86d87dce8ce1443fb94a6171c0b1e40416b15721dbd7eb4bc8d412c19c",
+    "docs/ARQUIVOS_OFICIAIS.md": "ae5ef9c5452f842e4cb4f1a99418b98440965612c7e9bb86861c9175d8dfe819",
+    "scripts/guard-panel-client-search-v41.mjs": "73112700270d3712e94643c82f3d55205e46a9a9e9e1ba344979db22f85887db",
+    "scripts/senior-guard.mjs": "0305e8faffbaa4f946e7e9b99cc630ea3f92fb2ddd6fecf19e6e47e53aadc023",
+    "src/routes/whatsapp.js": "a3a8e5ab90d3f32cade5088ccd672cf50792f419db1fa2db17f22bd823502044",
+    "src/services/ecDeliveredRepurchaseService.js": "9d667f27ff6cb696e2c455d3dcc2aeaecbca757e9032b808dd94e8738416af3a",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "3d392da11887ff9c14a07f881fb01d9a4e098c16f1043e77bde9c1d8f2f97e37",
+    "tests/panel-client-search-v41.test.mjs": "4a518f7929f6f360fbf8d6ebb3a3dc021667d902784b1c02c9139d934115b4ee",
+    "approved_freezes/APPROVED_EC_REPURCHASE_SYNC_PRESERVATION_V46_20260822.txt": "ae46fd448cc2494c84b25a90e54e4b6460c3f6bbbeebd198c03e92ba5c4fc1cb",
+    "docs/EC_REPURCHASE_SYNC_PRESERVATION_FREEZE_V46_20260822.md": "a07c83526596f84d2511c54f565d828d4f47fecdf41354b31fba5cf0821d929c",
+    "scripts/assert-ec-repurchase-sync-preservation-activation-approved-v46.mjs": "df7a37ceaa5af30ff0950db8f1b6bfe76dbd0ae8379a4caf9e69c2dccc8e9b15",
+    "scripts/guard-ec-repurchase-sync-preservation-v46.mjs": "8077ff182bc8f88f9a3ffcab1f78f73581b95738951190b900c3a359f0a63ce5",
+    "src/services/ecRepurchaseSyncPreservationFreezeRuntimeGuardV46.js": "c64f574c2a5cb36e7c273fc72971a8ce4b1497bceb2701b13d30a24881d5849e",
+    "tests/ec-repurchase-sync-preservation-v46.test.mjs": "07d975f6c6171132506f7354600aa5857b53aec0c6f7160f8cb3490e19b94e4c"
+  }
+}

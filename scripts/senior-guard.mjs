@@ -107,7 +107,9 @@ const productScopedProtocolFiles = new Set([
     // A V44 cita V28–V43 somente para preservar a linhagem de freezes.
     'src/services/panelGlobalNewMessagesFreezeRuntimeGuardV44.js',
     // A V45 cita V28–V44 somente para preservar a linhagem de freezes.
-    'src/services/ecDeliveredRepurchaseFreezeRuntimeGuardV45.js'
+    'src/services/ecDeliveredRepurchaseFreezeRuntimeGuardV45.js',
+    // A V46 cita V28–V45 somente para preservar a linhagem de freezes.
+    'src/services/ecRepurchaseSyncPreservationFreezeRuntimeGuardV46.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
