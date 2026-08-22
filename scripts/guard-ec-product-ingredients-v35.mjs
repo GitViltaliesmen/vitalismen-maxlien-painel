@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js');
+await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
 const engine = read('src/services/conversationEngine.js');
 const service = read('src/services/ecProductIngredientsService.js');
-const successor = 'node src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js';
+const successor = 'node src/services/ecDirectProductNameFreezeRuntimeGuardV39.js';
 
 for (const scriptName of [
     'senior:check',
@@ -34,7 +34,7 @@ for (const scriptName of [
     assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V35 sob V38`);
 }
 
-assert.match(index, /import '\.\/services\/inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/);
+assert.match(index, /import '\.\/services\/ecDirectProductNameFreezeRuntimeGuardV39\.js';/);
 assert.doesNotMatch(index, /^import '.+protocoloGTexUltraFreezeRuntimeGuardV34\.js';/m);
 assert.match(engine, /import \{ maybeHandleEcuadorProductIngredients \} from '\.\/ecProductIngredientsService\.js';/);
 assert.match(engine, /activeProductKey: agentProfile\?\.key \|\| ''/);

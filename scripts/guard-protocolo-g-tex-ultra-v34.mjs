@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js');
+await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
@@ -9,7 +9,7 @@ const index = read('src/index.js');
 const zapi = read('src/routes/zapi.js');
 const whatsapp = read('src/routes/whatsapp.js');
 const panel = read('public/qr.html');
-const successor = 'node src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js';
+const successor = 'node src/services/ecDirectProductNameFreezeRuntimeGuardV39.js';
 
 for (const scriptName of [
     'senior:check',
@@ -32,7 +32,7 @@ for (const scriptName of [
     assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V34 sob V38`);
 }
 
-assert.match(index, /import '\.\/services\/inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/);
+assert.match(index, /import '\.\/services\/ecDirectProductNameFreezeRuntimeGuardV39\.js';/);
 assert.match(zapi, /zapi_protocolo_g_tex_ultra_payload/);
 assert.match(zapi, /vslProductAssignmentPolicy/);
 assert.match(whatsapp, /ec_protocolo_g_tex_ultra_vsl/);

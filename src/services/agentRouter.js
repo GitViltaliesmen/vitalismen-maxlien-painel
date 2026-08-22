@@ -5,6 +5,7 @@ import { vitPowerAgent } from './agents/vitPowerAgent.js';
 import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { activeProductRouteLock } from './productRouteLockService.js';
+import { shouldRouteDirectProductInbound } from './ecDirectProductInquiryService.js';
 
 const OFFICIAL_AGENT = 'vit_power_ec';
 const NITRIX_AGENT = 'nitrix_ec';
@@ -1026,6 +1027,7 @@ export const routeIncomingMessage = async (payload) => {
     }
 
     const human = state.human || {};
+    const directProductInbound = shouldRouteDirectProductInbound({ text: body, state });
     const pausedUntil = human.pausedUntil ? new Date(human.pausedUntil).getTime() : 0;
     const lastManualAt = human.lastManualAt ? new Date(human.lastManualAt).getTime() : 0;
     const manualExpired = human.mode === 'manual' && (
@@ -1069,6 +1071,15 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] entrada VSL ${vslEntryAgent} liberada para o gate do bot | chat=${chatId}`);
+    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && directProductInbound) {
+        state.metadata = {
+            ...(state.metadata || {}),
+            directProductInquiryAllowedAt: new Date(),
+            directProductInquiryAllowedReason: 'client_explicit_product_request',
+            directProductInquiryHumanModePreserved: true
+        };
+        await state.save();
+        console.log(`[ROUTER] consulta direta de produto liberada sem retirar o atendimento humano -> ${chatId}`);
     } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
         const manualReason = String(
             state.metadata?.automationPausedReason

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import ContactState from '../models/ContactState.js';
+import Message from '../models/Message.js';
 import Order from '../models/Order.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
@@ -22,6 +23,7 @@ const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
 const chatIdOf = (state = {}) => state.chatId || (state.phoneDigits ? `${digitsOnly(state.phoneDigits)}@c.us` : '');
 const memoryPath = `metadata.perAgentMemory.${AGENT_KEY}.confirmedPostSale`;
 const nowIso = () => new Date().toISOString();
+const escapeRegex = (value = '') => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const postSaleStepOf = ({ state = {}, orderId = '', stepKey = '' }) => (
     state?.metadata?.perAgentMemory?.[AGENT_KEY]?.confirmedPostSale?.[orderId]?.[stepKey] || {}
 );
@@ -89,10 +91,72 @@ const finishAudioStep = async ({ contactStateId, orderId, stepKey, lockId, sent,
     );
 };
 
+const confirmedAudioHistory = async ({ state = {}, audioName = '' } = {}) => {
+    if (!audioName || Message?.db?.readyState !== 1) return null;
+    const chatId = chatIdOf(state);
+    const phone = digitsOnly(state.phoneDigits || chatId);
+    const tail = phone.length >= 9 ? phone.slice(-9) : '';
+    const identityClauses = [
+        chatId ? { chatId } : null,
+        chatId ? { to: chatId } : null,
+        phone ? { peerPhone: phone } : null,
+        tail ? { peerPhone: { $regex: `${tail}$` } } : null
+    ].filter(Boolean);
+    if (!identityClauses.length) return null;
+    const audioPattern = new RegExp(escapeRegex(audioName), 'i');
+    return Message.findOne({
+        $and: [
+            { $or: identityClauses },
+            { $or: [{ isFromMe: true }, { isBot: true }, { from: 'bot' }] },
+            {
+                $or: [
+                    { body: audioPattern },
+                    { mediaUrl: audioPattern },
+                    { mediaPreviewUrl: audioPattern }
+                ]
+            }
+        ]
+    }).sort({ createdAt: -1, timestamp: -1 }).lean().catch(() => null);
+};
+
+const finishAudioStepFromHistory = async ({ contactStateId, orderId, stepKey, lockId, history }) => {
+    const matchedAt = history?.createdAt || history?.updatedAt || (history?.timestamp ? new Date(history.timestamp * 1000) : new Date());
+    await ContactState.updateOne(
+        {
+            _id: contactStateId,
+            [`${memoryPath}.${orderId}.${stepKey}.lockId`]: lockId
+        },
+        {
+            $set: {
+                [`${memoryPath}.${orderId}.${stepKey}.lockId`]: '',
+                [`${memoryPath}.${orderId}.${stepKey}.lockAt`]: '',
+                [`${memoryPath}.${orderId}.${stepKey}.sentAt`]: matchedAt,
+                [`${memoryPath}.${orderId}.${stepKey}.historyMatchedAt`]: nowIso(),
+                [`${memoryPath}.${orderId}.${stepKey}.historyMessageId`]: String(history?._id || ''),
+                [`${memoryPath}.${orderId}.${stepKey}.failedAt`]: '',
+                [`${memoryPath}.${orderId}.${stepKey}.lastError`]: '',
+                [`${memoryPath}.${orderId}.updatedAt`]: nowIso()
+            }
+        }
+    );
+};
+
 const sendConfirmedAudio = async ({ contactStateId, orderId, sessionId, stepKey, audioName }) => {
     const claim = await claimAudioStep({ contactStateId, orderId, stepKey });
     if (!claim) return { sent: false, skipped: true, reason: 'locked' };
     if (claim.alreadySent) return { sent: false, skipped: true, reason: 'already_sent' };
+
+    const history = await confirmedAudioHistory({ state: claim.state, audioName });
+    if (history) {
+        await finishAudioStepFromHistory({
+            contactStateId,
+            orderId,
+            stepKey,
+            lockId: claim.lockId,
+            history
+        });
+        return { sent: false, skipped: true, reason: 'history_already_sent' };
+    }
 
     let sent = false;
     let error = '';
@@ -134,7 +198,7 @@ export const sendTexUltraConfirmedPostSaleAudios = async ({ contactStateId, orde
         audioName: TEX_ULTRA_CONFIRMED_POSTSALE_AUDIO_NAMES[0]
     });
     results.push(thankYou);
-    if (!thankYou.sent && thankYou.reason !== 'already_sent') {
+    if (!thankYou.sent && !['already_sent', 'history_already_sent'].includes(thankYou.reason)) {
         return { handled: true, reason: 'thank_you_not_confirmed', results };
     }
     results.push(await sendConfirmedAudio({
@@ -256,7 +320,7 @@ export const processTexUltraConfirmedPostSaleQueue = async ({
         cutoff,
         candidates: candidates.length,
         processed: results.length,
-        completed: results.filter((result) => result.results?.every((step) => step.sent || step.reason === 'already_sent')).length,
+        completed: results.filter((result) => result.results?.every((step) => step.sent || ['already_sent', 'history_already_sent'].includes(step.reason))).length,
         results
     };
 };

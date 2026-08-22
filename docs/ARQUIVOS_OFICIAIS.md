@@ -381,3 +381,29 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   PR, tag oficial, staging, permit root de uso único e validações pós-ativação.
 - No momento do candidato V38: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
   escrita no banco oficial, PM2, symlink ou deploy havia sido executado.
+
+### Microcamada V39 — produto direto, nome e anti-reenvio — 2026-08-22
+
+- Serviço novo: `src/services/ecDirectProductInquiryService.js`.
+- Composição oficial: `src/services/conversationEngine.js`, antes das barreiras
+  isoladas de Tex Ultra/Nitrix e sem substituir o motor principal.
+- Entrada/roteamento: `src/routes/zapi.js` e
+  `src/services/agentRouter.js`; a consulta direta pode ser respondida mantendo
+  o modo humano e sem apagar seleção manual divergente.
+- Painel: `src/routes/whatsapp.js` e `public/qr.html`; nome de pedido/ficha/perfil
+  aparece no cabeçalho e preenche a ficha, sem prévia de mensagem à esquerda.
+- Pós-venda preservado e reforçado:
+  `src/services/texUltraConfirmedPostSaleLayerService.js`, com consulta de
+  histórico antes dos dois áudios já congelados.
+- Teste: `tests/ec-direct-product-name-v39.test.mjs`.
+- Freeze/guard:
+  `docs/EC_DIRECT_PRODUCT_NAME_POSTSALE_FREEZE_V39_20260822.md`,
+  `docs/freeze/ec-direct-product-name-postsale-v39-20260822.json` e
+  `scripts/guard-ec-direct-product-name-postsale-v39.mjs`.
+- Preço fora da VSL: normal primeiro; promoção somente após objeção explícita.
+- Origem VSL, checkout, Dropi, Meta/CAPI, pixel, transporte, número, mídias,
+  ordem dos funis e outros projetos permanecem preservados.
+- Rollback funcional: release V38
+  `/opt/vitalismen-automacao/releases/20260822T143218Z_production-20260822-dbc3cbd`.
+- No momento do candidato V39: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
+  escrita no banco oficial, PM2, symlink ou deploy havia sido executado.

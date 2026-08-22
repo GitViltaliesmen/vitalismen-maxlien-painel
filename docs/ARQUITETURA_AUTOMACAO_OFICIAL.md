@@ -771,3 +771,36 @@ commit, PR, tag imutável, staging, permit root de uso único, rollback preserva
 e validação obrigatória de `current`, PM2, health e domínio. Funil, preço,
 mídia, pedido, Dropi, Meta/CAPI, Z-API, número, scheduler, pós-venda e banco
 permanecem inalterados.
+
+## Microcamada V39 de produto direto, nome e anti-reenvio pós-venda
+
+O freeze `docs/EC_DIRECT_PRODUCT_NAME_POSTSALE_FREEZE_V39_20260822.md` sucede
+a V38. A composição ocorre antes das barreiras isoladas dos produtos, mas
+somente para uma consulta direta explicitamente reconhecida. A camada não
+substitui nem reordena os funis de VSL.
+
+`src/services/ecDirectProductInquiryService.js` mantém memória, lock, histórico
+e deduplicação próprios. Uma entrada fora da VSL recebe informação do produto
+pedido e, quando perguntar preço, começa pela tabela normal. A tabela
+promocional só fica disponível após objeção explícita de preço ou pedido de
+desconto/valor mais baixo. Se dois produtos forem citados, a camada pede uma
+escolha antes de responder.
+
+`src/routes/zapi.js` deixa de classificar uma citação direta simples como prova
+de origem VSL, registra um nome de perfil válido na ficha vazia e libera essa
+consulta específica sem desativar um atendimento humano existente.
+`src/services/agentRouter.js` conserva o modo humano enquanto permite somente
+a microresposta direta. Uma seleção manual divergente e `metadata.vslProduct*`
+continuam soberanos e imutáveis.
+
+O painel prioriza nome de pedido, ficha e perfil, mostra nome e telefone no
+`#activeMeta` e continua sem texto de mensagem na lista esquerda.
+
+O pós-venda confirmado conserva os áudios
+`AGRADECIMENTO_AGENCIA_DE_ENTREGA` e `BONUS_RETIRADA`. Além de `sentAt`, lock e
+deduplicação, `src/services/texUltraConfirmedPostSaleLayerService.js` consulta
+explicitamente o histórico por mensagem/mídia antes de tentar enviar. Nenhum
+áudio já registrado pode ser repetido.
+
+Checkout, pedido, Dropi, Meta/CAPI, pixel, número, transporte, mídias de produto,
+ordem dos funis, scheduler e operações fora do Equador permanecem preservados.

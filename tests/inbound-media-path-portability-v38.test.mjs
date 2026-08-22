@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js');
+await import('../src/services/ecDirectProductNameFreezeRuntimeGuardV39.js');
 
 import { inboundMediaStorageRoot } from '../src/services/inboundMediaStorageService.js';
 

@@ -27,6 +27,7 @@ import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
 import { maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
+import { maybeHandleEcuadorDirectProductInquiry } from './ecDirectProductInquiryService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -8037,6 +8038,20 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             } catch (dbErr) {
                 if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
             }
+        }
+
+        const directProductInquiry = await maybeHandleEcuadorDirectProductInquiry({
+            text,
+            chatId,
+            phoneDigits: peerPhone,
+            contactStateId: msg.contactStateId,
+            contactState,
+            sourceMessageId: msg.id || '',
+            sessionId: msg.sessionId || null
+        });
+        if (directProductInquiry.handled) {
+            console.log(`[EC-DIRECT-PRODUCT] entrada direta tratada -> ${chatId} | produto=${directProductInquiry.productKey || 'escolha'} | resposta=${directProductInquiry.responseKind || directProductInquiry.skipped || 'ok'}`);
+            return;
         }
 
         const ingredientsFaq = await maybeHandleEcuadorProductIngredients({
