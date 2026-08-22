@@ -91,7 +91,9 @@ const productScopedProtocolFiles = new Set([
     // A V36 cita os manifestos V34/V35 somente para preservar a linhagem.
     'src/services/ecAllProductsIngredientsFreezeRuntimeGuardV36.js',
     // A V37 cita os manifestos anteriores somente para preservar a linhagem.
-    'src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js'
+    'src/services/panelZapiAuthStatusFreezeRuntimeGuardV37.js',
+    // A V38 cita V28–V37 somente para preservar a linhagem.
+    'src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

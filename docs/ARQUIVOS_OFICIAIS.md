@@ -363,3 +363,21 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Rollback funcional: retornar à release V36
   `/opt/vitalismen-automacao/releases/20260822T035923Z_production-20260822-1dbbbe5`
   e preservar o storage compartilhado inbound.
+
+### Microcamada V38 — portabilidade do teste de caminho inbound — 2026-08-22
+
+- Serviço preservado: `src/services/inboundMediaStorageService.js`, sem
+  alteração em relação ao hash protegido pela V30.
+- Teste corrigido: `tests/inbound-media-storage.test.mjs`.
+- Teste da camada: `tests/inbound-media-path-portability-v38.test.mjs`.
+- Freeze/guard: `docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md`,
+  `docs/freeze/inbound-media-path-portability-v38-20260822.json` e
+  `scripts/guard-inbound-media-path-portability-v38.mjs`.
+- Escopo: expectativa de caminho nativa no Windows e contrato POSIX no Linux;
+  nenhum teste é pulado.
+- Preservado: comportamento da mídia inbound, painel, Z-API, funis, preços,
+  pedidos, Dropi, Meta/CAPI, scheduler e pós-venda.
+- Estado: ativação transacional autorizada em `2026-08-22T14:27:24Z`, sujeita a
+  PR, tag oficial, staging, permit root de uso único e validações pós-ativação.
+- No momento do candidato V38: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
+  escrita no banco oficial, PM2, symlink ou deploy havia sido executado.

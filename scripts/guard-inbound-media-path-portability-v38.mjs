@@ -6,8 +6,8 @@ await import('../src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.j
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
-const panel = read('public/qr.html');
-const zapiRoute = read('src/routes/zapi.js');
+const storageTest = read('tests/inbound-media-storage.test.mjs');
+const storageService = read('src/services/inboundMediaStorageService.js');
 const successor = 'node src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js';
 
 for (const scriptName of [
@@ -24,6 +24,7 @@ for (const scriptName of [
     'guard:ec-product-ingredients-v35',
     'guard:ec-all-products-ingredients-v36',
     'guard:panel-zapi-auth-status-v37',
+    'guard:inbound-media-path-portability-v38',
     'guard:ec-nitrix',
     'guard:ec-identity',
     'guard:tex-ultra-approved',
@@ -35,18 +36,13 @@ for (const scriptName of [
 }
 
 assert.match(index, /import '\.\/services\/inboundMediaPathPortabilityFreezeRuntimeGuardV38\.js';/);
-assert.doesNotMatch(index, /^import '.+ecAllProductsIngredientsFreezeRuntimeGuardV36\.js';/m);
-assert.match(zapiRoute, /router\.get\('\/status', authMiddleware,/);
-assert.match(panel, /const signedOutZapiText = 'Faça login para consultar a conexão'/);
-assert.match(panel, /async function checkStatus\(\) \{\s*if \(!state\.token\)/);
-assert.match(panel, /setSignedOutZapiState\(\);\s*renderOperationalAlerts\(\);\s*return;/);
-assert.match(panel, /response\.status === 401 \|\| response\.status === 403/);
-assert.match(panel, /new Error\('Sessão expirada\. Entre novamente\.'\)/);
-assert.match(panel, /bootstrapAuth\(\);\s*<\/script>/);
-assert.doesNotMatch(panel, /checkStatus\(\);\s*bootstrapAuth\(\);/);
-assert.match(packageJson.scripts['senior:check'], /panel-zapi-auth-status-v37\.test\.mjs/);
-assert.match(packageJson.scripts['deploy:vps'], /assert-panel-zapi-auth-status-activation-approved-v37\.mjs/);
-assert.doesNotMatch(panel, /ZAPI_TOKEN\s*=/);
-assert.doesNotMatch(panel, /ZAPI_INSTANCE_ID\s*=/);
+assert.doesNotMatch(index, /^import '.+panelZapiAuthStatusFreezeRuntimeGuardV37\.js';/m);
+assert.match(storageTest, /process\.platform === 'win32'/);
+assert.match(storageTest, /path\.join\(path\.resolve\(linuxReleaseRoot\), '\.runtime', 'media', 'inbound'\)/);
+assert.match(storageTest, /path\.join\(path\.resolve\('\/tmp\/vitalismen-candidate'\), '\.runtime', 'media', 'inbound'\)/);
+assert.match(storageService, /const normalizedCwd = path\.resolve\(cwd\)/);
+assert.match(storageService, /return '\/opt\/vitalismen-automacao\/shared\/media\/inbound'/);
+assert.match(packageJson.scripts['senior:check'], /inbound-media-path-portability-v38\.test\.mjs/);
+assert.match(packageJson.scripts['deploy:vps'], /assert-inbound-media-path-portability-activation-approved-v38\.mjs/);
 
-console.log('PANEL_ZAPI_AUTH_STATUS_V37_GUARD=OK');
+console.log('INBOUND_MEDIA_PATH_PORTABILITY_V38_GUARD=OK');

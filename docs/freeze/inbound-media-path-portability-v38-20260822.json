@@ -1,0 +1,124 @@
+{
+  "freezeId": "inbound-media-path-portability-v38-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22T14:15:52Z",
+  "country": "EC",
+  "parentFreezeId": "panel-zapi-auth-status-v37-20260822",
+  "parentManifestSha256": "f10f437eb91834d77e96df9d76ec1cc31dd3b7daa7ffdc2962bbd25faf8a86e6",
+  "baseProductionSha": "680e9c693270a18edd0aa7dc1031e6f09bb53b2d",
+  "publicationStatus": "authorized_for_controlled_activation",
+  "operatorApproval": {
+    "status": "implementation_approved",
+    "approvedAt": "2026-08-22T14:15:52Z",
+    "scope": "inbound_media_path_portability_v38",
+    "constraints": [
+      "test_only_portability_adjustment",
+      "linux_production_path_contract_preserved",
+      "windows_local_path_uses_native_resolver",
+      "no_application_runtime_change",
+      "no_whatsapp_media_funnel_price_order_or_post_sale_change",
+      "no_real_effects_or_deploy"
+    ]
+  },
+  "operatorActivationApproval": {
+    "status": "approved_in_thread",
+    "approvedAt": "2026-08-22T14:27:24Z",
+    "scope": "inbound_media_path_portability_v38",
+    "constraints": [
+      "commit_push_pr_ci_backup_tag_and_transactional_activation",
+      "no_runtime_media_behavior_change",
+      "single_use_root_permit",
+      "verify_current_pm2_health_and_domain",
+      "preserve_previous_release_for_rollback"
+    ]
+  },
+  "policy": {
+    "testOnlyChange": true,
+    "applicationRuntimeChanged": false,
+    "linuxProductionPathContractChanged": false,
+    "windowsNativePathExpected": true,
+    "testSkippedOnWindows": false,
+    "pricesChanged": false,
+    "mediaBehaviorChanged": false,
+    "funnelChanged": false,
+    "orderChanged": false,
+    "postSaleChanged": false,
+    "deployAuthorized": true
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T052803Z_production-20260822-f2e7a69",
+    "preserveSharedInboundStorage": true,
+    "restoreTestFromFreeze": "media-durability-auth-v30-20260821"
+  },
+  "overriddenParentHashes": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "246326f214621533fe23127686a33e80e12560b8e63642ffe9f824e32a702827",
+    "docs/ARQUIVOS_OFICIAIS.md": "375bd2c6a4247a5e9261118d666775ba690e2ece056fc59e6abc96e539129c79",
+    "package.json": "378e0f925cd0e3444fb38b2af5576a77bdbb1113faf89f4626f554f34f8da229",
+    "scripts/guard-ec-all-products-ingredients-v36.mjs": "3744f7ec67c6bd20cf46c634b95be0d89c9a2a192e3edfdc40d8c72fca1550ae",
+    "scripts/guard-ec-product-ingredients-v35.mjs": "d7e81d2998e5cf651972094a84fd7da78753b07f197db016652da0aa832e5933",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "16afb1eb55e7fa4879ea80828465f6547d6cf8b6a653d094fae4e5ae4948b369",
+    "scripts/guard-panel-image-csp-v33.mjs": "07359614ddba221357b0186f33371cdde05be61e31f3ef8569000ce243faf215",
+    "scripts/guard-panel-zapi-auth-status-v37.mjs": "f74b164388c173083f6fc3815a05c2be56c3140ceb18ea3a5a0c15e84bd9e5c3",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs": "289cb84351db38b055878de62d48b6521169a0b167b74106bbb98815882efad0",
+    "scripts/senior-guard.mjs": "e5057ab41931aece6c9e4418a91c7a76fb32fe90bb572db78831d2508db5bdd5",
+    "src/index.js": "ab231bfdc9421f7c5bdd3bc88075bed896f245e25462dd1029ce356f5df7faaf",
+    "tests/inbound-media-storage.test.mjs": "eaaa7ee98f5b8ae5cbf5395d9475faf15385ea3ff5501ec1ea56207b003b503d",
+    "tests/media-durability-auth-v30.test.mjs": "493c99e49d3a9c91e4b1abea67a6a337fe62cb680d15a8caf6f80fa5cbe91499",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "03db11abe032ebf2211790026a5c079d630d59cae5161138917cc0a1e296fec6",
+    "tests/panel-image-csp-v33.test.mjs": "f6201f58ea64bba4b2ae76ca8b279958ba9177c24c65a9d0cba929901971bafa"
+  },
+  "declaredParentOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "scripts/guard-ec-all-products-ingredients-v36.mjs",
+    "scripts/guard-ec-product-ingredients-v35.mjs",
+    "scripts/guard-official-whatsapp-phone-v32.mjs",
+    "scripts/guard-panel-image-csp-v33.mjs",
+    "scripts/guard-panel-zapi-auth-status-v37.mjs",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs",
+    "scripts/senior-guard.mjs",
+    "src/index.js",
+    "tests/inbound-media-storage.test.mjs",
+    "tests/media-durability-auth-v30.test.mjs",
+    "tests/panel-call-dropi-safety-v21.test.mjs",
+    "tests/panel-image-csp-v33.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md",
+    "scripts/assert-inbound-media-path-portability-activation-approved-v38.mjs",
+    "scripts/guard-inbound-media-path-portability-v38.mjs",
+    "src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js",
+    "tests/inbound-media-path-portability-v38.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "3e4fa29b155dde431416d157ebf467f6528b00bf3680d9e0dd746f4f9b4bf6aa",
+    "docs/ARQUIVOS_OFICIAIS.md": "b19a446452f1bd0809bc9d2be4d869d06f7ba014b28746998ab8692d47258c29",
+    "package.json": "8a1521b1e0320ea0601f4f59840fdf264cd4647e59a74499895ee4e90bcd8c91",
+    "scripts/guard-ec-all-products-ingredients-v36.mjs": "cfd99aab54e7a1a499348112fb8f691c52229651b47132c4ffc7970ad57d80ef",
+    "scripts/guard-ec-product-ingredients-v35.mjs": "acd0a66255d5656c27e90d4721b0a6b792eb111ee59651ede343c89fe685806a",
+    "scripts/guard-official-whatsapp-phone-v32.mjs": "a2899a0883721b8656021a301b8fc4d9ba0c1a4c73482334a30533b8d1707391",
+    "scripts/guard-panel-image-csp-v33.mjs": "dcd30c36f2d97d8429bdeb10fa419a85da6cbbfb58d956ff85b35baf8f62c042",
+    "scripts/guard-panel-zapi-auth-status-v37.mjs": "ab34a9abf3726d44bc53295bb67e15faafbda000b2e9213888a97832d3e015bc",
+    "scripts/guard-protocolo-g-tex-ultra-v34.mjs": "70031a2bc60a7930acd4e8c46858a3ebcc2e28091b7ba7c7c3e9444566be1655",
+    "scripts/senior-guard.mjs": "d013c7185f519ef481fac58f7ef145cef03d9a7717819bf97d1c7b8cbe9801cf",
+    "src/index.js": "231dda40191b49eca0ef53d6b0efa30343a0f326c9f925c92f8ac5cbb369e810",
+    "tests/inbound-media-storage.test.mjs": "4d8948f9619adc4d8f0a2c78a4e800bc7e3f3f31d6d58d3191bcc2973b4c5b2f",
+    "tests/media-durability-auth-v30.test.mjs": "ccdac7e495d176ddc8e31db49711c623568f623b936ed3e159346a86a2c2cf08",
+    "tests/panel-call-dropi-safety-v21.test.mjs": "094eebf38b81087fa2bf6a83b6d76189cdc3be2f6df9debf73327d546031a12e",
+    "tests/panel-image-csp-v33.test.mjs": "95171236966aaa551f3ecf958b7b01aa6109835a386495bc3b5ac743bd4a660f",
+    "docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md": "d5dad4cca0c693c0c8a558366e53ddd7166e3cdba62e73d8edd72e417172f7a3",
+    "scripts/assert-inbound-media-path-portability-activation-approved-v38.mjs": "0cc2863d5e8556d4a15037c39ffa1de71d228c30ec9bff61eada647dec7dd98d",
+    "scripts/guard-inbound-media-path-portability-v38.mjs": "ff1c7490a17dfeb2f8b91e4e1d97e70e60abfcfb795774cfface834ad4040210",
+    "src/services/inboundMediaPathPortabilityFreezeRuntimeGuardV38.js": "23f4172e1fd673f8a46969884b21d0a6d05f74d343653e3a0b5a82bc4c362444",
+    "tests/inbound-media-path-portability-v38.test.mjs": "e7d9412323d49e9ac534063fa0e89bec942a7bd0471d2d24147352f747856baf"
+  }
+}

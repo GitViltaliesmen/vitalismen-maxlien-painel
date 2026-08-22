@@ -240,9 +240,15 @@ test('arquivo vazio, tamanho excedido, redirect inseguro e URL inválida falham 
 });
 
 test('raiz de produção é compartilhada entre releases e raiz local permanece isolada', () => {
+    const linuxReleaseRoot = '/opt/vitalismen-automacao/releases/20260821T000000Z_candidate';
     assert.equal(
-        inboundMediaStorageRoot({}, '/opt/vitalismen-automacao/releases/20260821T000000Z_candidate'),
-        '/opt/vitalismen-automacao/shared/media/inbound'
+        inboundMediaStorageRoot({}, linuxReleaseRoot),
+        process.platform === 'win32'
+            ? path.join(path.resolve(linuxReleaseRoot), '.runtime', 'media', 'inbound')
+            : '/opt/vitalismen-automacao/shared/media/inbound'
     );
-    assert.match(inboundMediaStorageRoot({}, '/tmp/vitalismen-candidate'), /\.runtime\/media\/inbound$/);
+    assert.equal(
+        inboundMediaStorageRoot({}, '/tmp/vitalismen-candidate'),
+        path.join(path.resolve('/tmp/vitalismen-candidate'), '.runtime', 'media', 'inbound')
+    );
 });

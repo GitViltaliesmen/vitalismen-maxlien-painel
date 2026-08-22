@@ -754,3 +754,20 @@ leitura Z-API só ocorre depois que o painel possui sessão válida.
 
 Credenciais, Z-API, número oficial, funil, mídia, pedidos, Dropi, Meta/CAPI,
 scheduler, pós-venda, banco, PM2 e storage inbound permanecem inalterados.
+
+## Microcamada V38 de portabilidade do teste de caminho inbound
+
+O freeze `docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md` sucede a
+V37 e corrige somente a expectativa multiplataforma do teste de armazenamento
+inbound. O serviço oficial permanece byte a byte igual ao contrato V30.
+
+No Linux, a raiz de releases `/opt/vitalismen-automacao/` continua apontando
+para o storage compartilhado. No Windows, caminhos e separadores locais são
+comparados com `path.resolve()` e `path.join()`, sem fingir que o runtime atual
+é a VPS Linux e sem pular o teste.
+
+A ativação transacional da V38 foi autorizada em `2026-08-22T14:27:24Z`, com
+commit, PR, tag imutável, staging, permit root de uso único, rollback preservado
+e validação obrigatória de `current`, PM2, health e domínio. Funil, preço,
+mídia, pedido, Dropi, Meta/CAPI, Z-API, número, scheduler, pós-venda e banco
+permanecem inalterados.
