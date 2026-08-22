@@ -27,7 +27,7 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
         jid,
         recipientDigits: options.recipientDigits || '',
         text: options.guardText || caption || videoPath,
-        allowExistingDropiOrder: options.allowExistingDropiOrder === true,
+        allowExistingDropiOrder: options.allowExistingDropiOrder === true || sendMode === 'manual_panel',
         outboundContext: options.outboundContext || ''
     });
     if (!dropiGuard.allowed) {

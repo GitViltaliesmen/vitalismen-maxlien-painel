@@ -162,7 +162,7 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         jid,
         recipientDigits: options.recipientDigits || '',
         text: options.guardText || options.outboundContext || audioPath,
-        allowExistingDropiOrder: options.allowExistingDropiOrder === true,
+        allowExistingDropiOrder: options.allowExistingDropiOrder === true || sendMode === 'manual_panel',
         outboundContext: options.outboundContext || ''
     });
     if (!dropiGuard.allowed) {
