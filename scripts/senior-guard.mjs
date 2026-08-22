@@ -97,7 +97,9 @@ const productScopedProtocolFiles = new Set([
     // A V39 permanece como ancestral imutável da V40.
     'src/services/ecDirectProductNameFreezeRuntimeGuardV39.js',
     // A V40 cita os manifestos anteriores somente para preservar a linhagem.
-    'src/services/ecEngagementFreezeRuntimeGuardV40.js'
+    'src/services/ecEngagementFreezeRuntimeGuardV40.js',
+    // A V41 cita V28–V40 somente para preservar a linhagem de freezes.
+    'src/services/panelClientSearchFreezeRuntimeGuardV41.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

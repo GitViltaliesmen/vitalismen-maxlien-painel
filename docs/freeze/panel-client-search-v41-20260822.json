@@ -1,0 +1,82 @@
+{
+  "freezeId": "panel-client-search-v41-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "ec-engagement-internal-bucket-v40-20260822",
+  "parentManifestSha256": "535541c6fbeb55c6722fe1bd1a80766d55e6533592e4f7ea8b7458ed877765c6",
+  "baseProductionSha": "d1a142ab44aeb7eca03fef25f91bba39252c13a9",
+  "baseRepositorySha": "2ace977e1e7b23fb1df63c63a19d43f40b2aef91",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T172707Z_production-20260822-d1a142a",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_and_activation_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "panel_client_identity_search_v41",
+    "constraints": [
+      "identity_fields_only",
+      "phone_suffix_or_full_number",
+      "minimum_three_phone_digits",
+      "no_message_content_search",
+      "no_database_write",
+      "no_real_test_messages"
+    ]
+  },
+  "policy": {
+    "identityFieldsOnly": true,
+    "phoneSuffixSearch": true,
+    "minimumPhoneDigits": 3,
+    "searchBypassesPresentationFilters": true,
+    "messageContentSearch": false,
+    "databaseWriteAdded": false,
+    "outboundMessageAdded": false,
+    "commercialFlowChanged": false,
+    "checkoutChanged": false,
+    "dropiChanged": false,
+    "metaCapiChanged": false,
+    "officialPricesChanged": false,
+    "deployAuthorized": true
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T172707Z_production-20260822-d1a142a",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveContactOrderAndBucketHistory": true
+  },
+  "declaredParentOverrides": [
+    "package.json",
+    "public/qr.html",
+    "scripts/senior-guard.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_CLIENT_SEARCH_V41_20260822.txt",
+    "docs/PANEL_CLIENT_SEARCH_FREEZE_V41_20260822.md",
+    "public/panel-intelligence/chat-search-v41.js",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "src/services/panelClientSearchFreezeRuntimeGuardV41.js",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "protectedFiles": {
+    "package.json": "e3ca5232d81f604609533453c72ccc9bf72638f66dd75d76ae1ee8cb8483affa",
+    "public/qr.html": "dc3f6395f485064b7f858d4e4b63f8438c5d5a4404d8574d246e559c8a878e38",
+    "scripts/senior-guard.mjs": "71d0023fd42b311bc41d69e0586bf10300114d04131dc70245c708ba897f558e",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "fb9488f6987b4a246a5ccce9491abc5eee418bf14adbcd612752dc83de9d5d23",
+    "approved_freezes/APPROVED_PANEL_CLIENT_SEARCH_V41_20260822.txt": "c4397c1a96fe45ae0a1642a41b65db5c18393da1ec3d5c639e4bdc1bf7aa328c",
+    "docs/PANEL_CLIENT_SEARCH_FREEZE_V41_20260822.md": "01b7f6adbf41c4c8e604c3ff7df30c2bff7baf446f4ee39d8de692491685680a",
+    "public/panel-intelligence/chat-search-v41.js": "0f84faf6495d6441e9667970ae03135f5ab08551b23c1dd8920a83372a20cbfa",
+    "scripts/assert-panel-client-search-activation-approved-v41.mjs": "339cd182241ce014f22cadedbddbfda573f422a95f66d935a655f825a28df9df",
+    "scripts/guard-panel-client-search-v41.mjs": "82fd1ff0cc94e983a220dbad4c1e8ba9d0c84cfa59be97d4b3cc4bcb5c77aa76",
+    "src/services/panelClientSearchFreezeRuntimeGuardV41.js": "ee929da4f1ec892d7b1bfd252f65f32de18bc1b91d3a7ec9b2900eb7d5ad334a",
+    "tests/panel-client-search-v41.test.mjs": "44fd9fd9729a81a5854576df7ce853a715167b2d9b51d32351f77e3dad2013e6"
+  }
+}

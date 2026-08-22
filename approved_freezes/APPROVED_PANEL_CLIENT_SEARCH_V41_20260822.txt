@@ -1,0 +1,10 @@
+APPROVED=true
+FREEZE_ID=panel-client-search-v41-20260822
+COUNTRY=EC
+APPROVAL_SOURCE=operator_request_2026-08-22
+APPROVED_AT=2026-08-22
+SCOPE=panel_client_identity_search_fix_tests_commit_publish_transactional_activation
+NO_REAL_TEST_MESSAGES=true
+NO_DATABASE_WRITE=true
+NO_COMMERCIAL_FLOW_CHANGE=true
+NO_EXTERNAL_PROJECT=true
