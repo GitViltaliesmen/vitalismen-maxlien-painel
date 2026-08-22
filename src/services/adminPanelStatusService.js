@@ -82,6 +82,11 @@ const isArchivedDuplicateOrder = (order) => {
         && /duplicad|duplicate/.test(text);
 };
 
+export const adminRepurchaseCycleFlag = (order = {}) => Number(Boolean(
+    String(order.previousOrderId || '').trim()
+    && String(order.entryReason || '').trim() === 'repeat_purchase_after_delivered'
+));
+
 const runAdminPanelPython = ({ country, python }) => {
     const dbPath = resolveAdminDbPath(country);
     if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
@@ -381,10 +386,7 @@ export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_syn
         product_qty: quantity,
         product_value: Number(order.total || 0) || 0,
         buy_later_followup_at: order.purchaseIntent?.followUpAt || '',
-        repurchase_cycle: Boolean(
-            String(order.previousOrderId || '').trim()
-            && String(order.entryReason || '').trim() === 'repeat_purchase_after_delivered'
-        ),
+        repurchase_cycle: adminRepurchaseCycleFlag(order),
         status: normalizeAdminStatus({
             status: status || order.status,
             shippingStatus: order.shippingStatus

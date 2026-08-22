@@ -458,3 +458,16 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `scripts/guard-ec-repurchase-sync-preservation-v46.mjs`.
 - Preservado: pedido e Purchase já criados, entrega histórica, Dropi manual,
   preços/produtos e exclusão de AQUECIMENTO da aba global `Novas`.
+
+### Microcamada V47 — serialização SQLite da recompra EC — 2026-08-22
+
+- Base funcional: V46, release
+  `/opt/vitalismen-automacao/releases/20260822T204600Z_production-20260822-ee9bc9d`.
+- Correção: `src/services/adminPanelStatusService.js` converte
+  `repurchase_cycle` para inteiro `1/0` antes de montar o script Python.
+- Teste: `tests/ec-repurchase-sqlite-serialization-v47.test.mjs`.
+- Freeze/guard: `docs/EC_REPURCHASE_SQLITE_SERIALIZATION_FREEZE_V47_20260822.md`,
+  `docs/freeze/ec-repurchase-sqlite-serialization-v47-20260822.json` e
+  `scripts/guard-ec-repurchase-sqlite-serialization-v47.mjs`.
+- Preservado: ordem/Purchase existentes, entrega histórica, Dropi manual e
+  separação de AQUECIMENTO da aba `Novas`.
