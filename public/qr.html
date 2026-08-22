@@ -7775,7 +7775,7 @@
                 </div>
                 <div class="tabs message-filter-tabs">
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
-                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra somente clientes comerciais com mensagem nova para responder">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
+                    <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra mensagens novas de todas as filas comerciais, sem incluir AQUECIMENTO">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
@@ -8849,6 +8849,7 @@
     <script src="/panel-intelligence/chat-search-v41.js"></script>
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
+    <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -11001,12 +11002,26 @@
                 return chatDigits === digits || chatDigits.endsWith(tail) || digits.endsWith(chatDigits.slice(-9));
             }) || null;
         };
-        const setChatFilterAll = () => {
-            state.chatFilter = 'all';
+        const setPanelMessageFilter = (filter = 'all') => {
+            const next = window.VitalismenGlobalNewMessagesV44?.messageFilterState?.({
+                filter,
+                conversationBucketFilter: state.conversationBucketFilter
+            }) ?? {
+                chatFilter: filter,
+                conversationBucketFilter: filter === 'unread'
+                    ? ''
+                    : (state.conversationBucketFilter || 'attendance')
+            };
+            state.chatFilter = next.chatFilter;
+            state.conversationBucketFilter = next.conversationBucketFilter;
             document.querySelectorAll('[data-chat-filter]').forEach((button) => {
-                button.classList.toggle('active', button.dataset.chatFilter === 'all');
+                button.classList.toggle('active', button.dataset.chatFilter === state.chatFilter);
+            });
+            document.querySelectorAll('[data-operational-bucket]').forEach((button) => {
+                button.classList.toggle('active', button.dataset.operationalBucket === state.conversationBucketFilter);
             });
         };
+        const setChatFilterAll = () => setPanelMessageFilter('all');
         const findChatByAlertTarget = ({ phone = '', chatId = '', orderId = '' } = {}) => {
             const direct = state.chats.find((chat) => (
                 (chatId && chat.id === chatId)
@@ -11994,8 +12009,17 @@
         const renderChats = () => {
             const search = el('chatSearch').value.trim().toLowerCase();
             const searchActive = window.VitalismenChatSearchV41?.isSearchActive(search) ?? Boolean(search);
+            const applyOperationalBucketFilter = window.VitalismenGlobalNewMessagesV44?.shouldApplyOperationalBucketFilter?.({
+                searchActive,
+                chatFilter: state.chatFilter,
+                conversationBucketFilter: state.conversationBucketFilter
+            }) ?? (
+                !searchActive
+                && state.chatFilter !== 'unread'
+                && Boolean(state.conversationBucketFilter)
+            );
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (!searchActive && state.conversationBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
+                if (applyOperationalBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
                 if (!searchActive && state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
                 if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (!searchActive && state.chatFilter === 'groups' && !chat.isGroup) return false;
@@ -20329,9 +20353,7 @@
         });
         document.querySelectorAll('[data-chat-filter]').forEach((button) => {
             button.addEventListener('click', () => {
-                state.chatFilter = button.dataset.chatFilter;
-                document.querySelectorAll('[data-chat-filter]').forEach((item) => item.classList.remove('active'));
-                button.classList.add('active');
+                setPanelMessageFilter(button.dataset.chatFilter);
                 renderChats();
             });
         });
@@ -20359,10 +20381,7 @@
                 button.disabled = false;
             }
             if (!allMarked) return;
-            state.chatFilter = 'all';
-            document.querySelectorAll('[data-chat-filter]').forEach((item) => {
-                item.classList.toggle('active', item.dataset.chatFilter === 'all');
-            });
+            setChatFilterAll();
             renderChats();
         });
         el('chatList').addEventListener('click', (event) => {

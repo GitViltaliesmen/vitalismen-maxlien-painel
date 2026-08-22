@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-await import('./assert-ec-engagement-priority-activation-approved-v43.mjs');
+await import('./assert-panel-global-new-messages-activation-approved-v44.mjs');
 
 const approvalPath = 'approved_freezes/APPROVED_PANEL_CLIENT_SEARCH_V41_20260822.txt';
 if (!fs.existsSync(approvalPath)) {
