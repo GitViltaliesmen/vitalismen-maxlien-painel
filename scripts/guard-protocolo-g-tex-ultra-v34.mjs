@@ -6,9 +6,9 @@ await import('../src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js');
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const packageJson = JSON.parse(read('package.json'));
 const index = read('src/index.js');
-const vsl = read('public/n/index.html');
+const zapi = read('src/routes/zapi.js');
+const whatsapp = read('src/routes/whatsapp.js');
 const panel = read('public/qr.html');
-const route = read('src/routes/whatsapp.js');
 const successor = 'node src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js';
 
 for (const scriptName of [
@@ -20,6 +20,8 @@ for (const scriptName of [
     'guard:media-durability-v30',
     'guard:tex-ultra-how-to-use-v31',
     'guard:official-whatsapp-phone-v32',
+    'guard:panel-image-csp-v33',
+    'guard:protocolo-g-tex-ultra-v34',
     'guard:ec-nitrix',
     'guard:ec-identity',
     'guard:tex-ultra-approved',
@@ -27,18 +29,18 @@ for (const scriptName of [
     'deploy:ec-safe',
     'deploy:vps'
 ]) {
-    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não preserva V32 sob V34`);
+    assert.equal(String(packageJson.scripts[scriptName] || '').startsWith(successor), true, `${scriptName} não usa V34`);
 }
 
 assert.match(index, /import '\.\/services\/protocoloGTexUltraFreezeRuntimeGuardV34\.js';/);
-assert.doesNotMatch(index, /texUltraHowToUseAudioFreezeRuntimeGuardV31/);
-assert.match(vsl, /OFFICIAL_ZAPI_SELLER_E164 = "5515991418416"/);
-assert.match(vsl, /const TEST_PHONE_OVERRIDES = \{\s*"8637":/);
-assert.doesNotMatch(vsl, /"2958"\s*:/);
+assert.match(zapi, /zapi_protocolo_g_tex_ultra_payload/);
+assert.match(zapi, /vslProductAssignmentPolicy/);
+assert.match(whatsapp, /ec_protocolo_g_tex_ultra_vsl/);
+assert.match(whatsapp, /operatorProductRouteLock/);
+assert.match(panel, /<option value="tex_ultra_ec">Tex Ultra Ecuador<\/option>/);
+assert.match(panel, /id="customerDataQuality"/);
 assert.match(panel, /allowedBrazilTestPhones = new Set\(\['5515991418416', '5515998038637'\]\)/);
-assert.match(panel, /sessionId: '5515991418416'/);
-assert.match(route, /PUBLIC_VSL_TEST_PHONE_OVERRIDES = \{\s*8637: '5515998038637'/);
-assert.match(packageJson.scripts['senior:check'], /official-whatsapp-phone-v32\.test\.mjs/);
-assert.match(packageJson.scripts['deploy:vps'], /assert-official-whatsapp-phone-activation-approved-v32\.mjs/);
+assert.match(packageJson.scripts['senior:check'], /protocolo-g-tex-ultra-origin-v34\.test\.mjs/);
+assert.match(packageJson.scripts['deploy:vps'], /assert-protocolo-g-tex-ultra-activation-approved-v34\.mjs/);
 
-console.log('OFFICIAL_WHATSAPP_PHONE_V32_GUARD=OK');
+console.log('PROTOCOLO_G_TEX_ULTRA_V34_GUARD=OK');

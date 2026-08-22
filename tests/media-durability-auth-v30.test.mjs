@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-await import('../src/services/panelImageCspFreezeRuntimeGuardV33.js');
+await import('../src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js');
 
 const read = (relativePath) => fs.readFileSync(relativePath, 'utf8');
 const manifest = JSON.parse(read('docs/freeze/media-durability-auth-v30-20260821.json'));
@@ -27,10 +27,10 @@ test('V30 sucede exatamente V29.2 e registra autorização posterior ao relatór
     assert.equal(manifest.policy.commercialFlowChanged, false);
 });
 
-test('startup e aliases oficiais preservam V30 sob o sucessor V33', () => {
+test('startup e aliases oficiais preservam V30 sob o sucessor V34', () => {
     const index = read('src/index.js');
-    const successor = 'node src/services/panelImageCspFreezeRuntimeGuardV33.js';
-    assert.match(index, /panelImageCspFreezeRuntimeGuardV33/);
+    const successor = 'node src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js';
+    assert.match(index, /protocoloGTexUltraFreezeRuntimeGuardV34/);
     assert.doesNotMatch(index, /guardAliasIntegrationFreezeRuntimeGuardV292/);
     for (const scriptName of [
         'senior:check',
