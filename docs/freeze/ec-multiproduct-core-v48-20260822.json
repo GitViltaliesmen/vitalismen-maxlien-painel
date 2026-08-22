@@ -75,7 +75,7 @@
     "scripts/deploy-vps-ready.mjs": "98926ddf040b29bcfaff13cfae7937dbbd726ea39f3d57635dd144cb4104ded3",
     "scripts/guard-ec-multiproduct-core-v48.mjs": "a0d5f658d4e04f0a518d886c606e7c15e901ed4cb0da6f3acd1a0cb4f9a9bb66",
     "scripts/repair-ec-panel-customer-drafts.mjs": "786a6827b4b3132525d31b441015b659abff3b3df1f6ec5c1dac2d996003a1e1",
-    "scripts/senior-guard.mjs": "2234596164c2dd7b277169b95885e1a55f3c91856bfa6c70a3db8ee49d752ec5",
+    "scripts/senior-guard.mjs": "7048894d95006f3ce6ab87a86a2c1cb4da5452cfcabefe2b2d689d11b50da821",
     "src/models/ContactState.js": "a955359b7d53d19ac96330e5e09d0f402256e7ca4471be9867c7d3e0574b6831",
     "src/routes/whatsapp.js": "2eae800d84aee38b5041de91bba16b6b76bb38c246eda09e9882b47c165daaa8",
     "src/routes/zapi.js": "90598abc9fa5fce58ad69d0c70596c8c2cb803dd899080a43412b5e21b9c2670",
