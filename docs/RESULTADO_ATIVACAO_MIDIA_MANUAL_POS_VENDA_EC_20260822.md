@@ -90,4 +90,3 @@ telefone QA deve enviar um vídeo novo ao número oficial.
 O conjunto oficial permaneceu no modo operacional aprovado, incluindo resposta
 automática, roteamento inbound pela Z-API, funil e schedulers protegidos de
 pós-venda. Nenhuma flag isolada foi alterada e nenhum fluxo legado foi religado.
-
