@@ -26,6 +26,7 @@ import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
+import { maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -8036,6 +8037,20 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
             } catch (dbErr) {
                 if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
             }
+        }
+
+        const ingredientsFaq = await maybeHandleEcuadorProductIngredients({
+            text,
+            chatId,
+            contactStateId: msg.contactStateId,
+            contactState,
+            activeProductKey: agentProfile?.key || '',
+            sourceMessageId: msg.id || '',
+            sessionId: msg.sessionId || null
+        });
+        if (ingredientsFaq.handled) {
+            console.log(`[PRODUCT-INGREDIENTS-FAQ] pergunta tratada -> ${chatId} | produto=${ingredientsFaq.productKey} | skipped=${ingredientsFaq.skipped || 'no'}`);
+            return;
         }
 
         if (agentProfile?.key === NITRIX_AGENT_KEY) {

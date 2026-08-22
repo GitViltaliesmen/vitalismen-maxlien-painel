@@ -699,3 +699,23 @@ sem apagar a origem histórica.
 O bloco V28 `Qualidade dos dados` permanece obrigatório. Ele valida identidade,
 telefone, cidade/província e modalidade/endereço/agência antes de permitir
 pedido, Dropi ou Purchase; o score visual nunca elimina um bloqueador.
+
+## Microcamada V35 de ingredientes por produto EC
+
+O freeze `docs/EC_PRODUCT_INGREDIENTS_FAQ_FREEZE_V35_20260822.md` sucede a V34
+como complemento lateral determinístico. Perguntas por ingredientes,
+composição, fórmula ou conteúdo recebem texto em espanhol conforme o produto
+atual da ficha.
+
+Tex Ultra usa maca peruana, Tribulus terrestris, catuaba, marapuama, zinco e
+magnésio. Nitrix Oxide usa feno-grego, Tribulus terrestris, ginseng Panax,
+ashwagandha, Ginkgo biloba e L-arginina. Vit Power preserva borojó, chontaduro,
+noni, L-arginina, maca, guaraná e vitaminas.
+
+A camada não troca produto por texto livre. Uma pergunta que nomeia produto
+diferente da ficha não recebe fórmula automática. Memória, lock e cooldown são
+persistidos por `productKey`; falha de transporte não marca envio. Condição de
+saúde ou medicamento continua sob segurança médica/atendimento humano.
+
+Preço, oferta, cadência, áudio, imagem, pedido, Dropi, Meta/CAPI, pixel, Z-API,
+número, scheduler, pós-venda, PM2 e origem da VSL permanecem inalterados.

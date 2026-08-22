@@ -307,3 +307,20 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Freeze/guard: `docs/PROTOCOLO_G_TEX_ULTRA_ORIGIN_FREEZE_V34_20260822.md`, `docs/freeze/protocolo-g-tex-ultra-origin-v34-20260822.json` e `scripts/guard-protocolo-g-tex-ultra-v34.mjs`.
 - No momento do candidato: nenhuma mensagem, pedido, Dropi, Meta/CAPI, escrita no banco oficial, PM2, symlink ou deploy do dashboard havia sido executado.
 - Rollback funcional: retornar à release V33 `/opt/vitalismen-automacao/releases/20260821T225331Z_production-20260821-cb8f6fe` e preservar o storage compartilhado inbound.
+
+### Microcamada V35 — ingredientes isolados por produto EC — 2026-08-22
+
+- Serviço oficial: `src/services/ecProductIngredientsService.js`.
+- Ponto de composição: `src/services/conversationEngine.js`, antes das
+  barreiras isoladas de Tex Ultra e Nitrix e antes do funil Vit Power.
+- Teste: `tests/ec-product-ingredients-v35.test.mjs`.
+- Freeze/guard: `docs/EC_PRODUCT_INGREDIENTS_FAQ_FREEZE_V35_20260822.md`,
+  `docs/freeze/ec-product-ingredients-v35-20260822.json` e
+  `scripts/guard-ec-product-ingredients-v35.mjs`.
+- Preservado: origem VSL, seleção manual, funis, preços, mídias, pedidos,
+  Dropi, Meta/CAPI, transporte, scheduler e pós-venda.
+- No momento do candidato V35: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
+  escrita no banco oficial, PM2, symlink ou deploy havia sido executado.
+- Rollback funcional: retornar à release
+  `/opt/vitalismen-automacao/releases/20260822T025119Z_production-20260822-eedf503`
+  e preservar o storage compartilhado inbound.

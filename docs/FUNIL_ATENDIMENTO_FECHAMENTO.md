@@ -126,3 +126,17 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
   - `Chegou_02`
   - `Chegou_03`
 - Qualquer contexto fora de Ecuador/Vit Power deve permanecer fora deste projeto.
+
+## Complemento lateral V35 — ingredientes por produto
+
+- Perguntas de ingredientes, composição, fórmula ou conteúdo do produto usam
+  resposta determinística em espanhol.
+- A resposta é isolada pelo produto atual da ficha: Tex Ultra, Nitrix Oxide ou
+  Vit Power.
+- A camada não troca produto, não reinicia apresentação e não altera a etapa do
+  funil.
+- Pergunta que cita outro produto diferente da ficha não recebe composição
+  automática, evitando contaminação entre VSLs.
+- Contexto médico sensível tem prioridade e não recebe promessa comercial.
+- Lock persistido e cooldown de trinta minutos impedem repetição.
+- Contrato completo: `docs/EC_PRODUCT_INGREDIENTS_FAQ_FREEZE_V35_20260822.md`.

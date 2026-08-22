@@ -84,7 +84,10 @@ const productScopedProtocolFiles = new Set([
     // continua separado e nenhum asset/código dela é importado para cá.
     'src/routes/whatsapp.js',
     'src/routes/zapi.js',
-    'src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js'
+    'src/services/protocoloGTexUltraFreezeRuntimeGuardV34.js',
+    // A V35 cita o manifesto V34 apenas para preservar a cadeia de freezes.
+    // O conteúdo comercial novo continua isolado por productKey.
+    'src/services/ecProductIngredientsFreezeRuntimeGuardV35.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
