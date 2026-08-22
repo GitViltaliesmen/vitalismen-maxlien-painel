@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 
+await import('./assert-ec-engagement-command-reply-activation-approved-v42.mjs');
+
 const approvalPath = 'approved_freezes/APPROVED_PANEL_CLIENT_SEARCH_V41_20260822.txt';
 if (!fs.existsSync(approvalPath)) {
     throw new Error('[PANEL-CLIENT-SEARCH-V41] aprovação de ativação ausente.');

@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
+import './ec-engagement-command-reply-v42.test.mjs';
+
 const sandbox = {};
 sandbox.globalThis = sandbox;
 vm.runInNewContext(fs.readFileSync('public/panel-intelligence/chat-search-v41.js', 'utf8'), sandbox);
