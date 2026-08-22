@@ -132,3 +132,18 @@ test('registro operacional V34 fixa release e rollback sem expor credenciais', (
     assert.doesNotMatch(record, /(?:TOKEN|SECRET|PASSWORD|OPENAI_API_KEY|ZAPI_CLIENT_TOKEN)\s*=/i);
     assert.doesNotMatch(record, /\b(?:gho_|ghp_|sk-)[A-Za-z0-9_-]{12,}/);
 });
+
+test('registro da mídia manual fixa release, rollback e canários sem expor credenciais', () => {
+    const record = fs.readFileSync(new URL(
+        '../docs/RESULTADO_ATIVACAO_MIDIA_MANUAL_POS_VENDA_EC_20260822.md',
+        import.meta.url
+    ), 'utf8');
+    assert.match(record, /20260822T025119Z_production-20260822-eedf503/);
+    assert.match(record, /20260822T002400Z_production-20260822-b50a86b/);
+    assert.match(record, /257\/257/);
+    assert.match(record, /3EB048B7F966B52EB879B3/);
+    assert.match(record, /3EB06945CA631B7AD042C5/);
+    assert.match(record, /vídeo externo novo[\s\S]*permanece pendente/i);
+    assert.doesNotMatch(record, /(?:TOKEN|SECRET|PASSWORD|OPENAI_API_KEY|ZAPI_CLIENT_TOKEN)\s*=/i);
+    assert.doesNotMatch(record, /\b(?:gho_|ghp_|sk-)[A-Za-z0-9_-]{12,}/);
+});
