@@ -1,0 +1,103 @@
+{
+  "freezeId": "ec-delivered-repurchase-v45-20260822",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-22",
+  "country": "EC",
+  "parentFreezeId": "panel-global-new-messages-v44-20260822",
+  "parentManifestSha256": "239795973a82cec2beea290e449298641b42bb8a4e0627e7a352e71509cb97c5",
+  "baseProductionSha": "50b6a6cb95493957fe8dc68cd9021a60270891e8",
+  "baseFunctionalReleaseSha": "50b6a6cb95493957fe8dc68cd9021a60270891e8",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260822T195713Z_production-20260822-50b6a6c",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "implementation_and_activation_approved",
+    "approvedAt": "2026-08-22",
+    "scope": "delivered_customer_new_repurchase_order_v45",
+    "constraints": [
+      "previous_order_and_shipment_immutable",
+      "new_ec_recompra_order",
+      "authenticated_panel_confirmation",
+      "same_phone_and_delivery_evidence",
+      "normal_purchase_event_for_new_sale",
+      "no_automatic_dropi_authorization",
+      "engagement_excluded_from_new_messages",
+      "commercial_priority_preserved",
+      "no_real_test_messages",
+      "no_external_project"
+    ]
+  },
+  "policy": {
+    "previousOrderImmutable": true,
+    "newOrderPrefix": "EC-RECOMPRA-",
+    "panelAuthRequired": true,
+    "samePhoneRequired": true,
+    "deliveryEvidenceRequired": true,
+    "purchaseEventForNewSale": true,
+    "automaticDropiAuthorization": false,
+    "engagementExcludedFromNewMessages": true,
+    "commercialPriorityPreserved": true,
+    "officialPricesChanged": false,
+    "productRoutingChanged": false,
+    "whatsappAutomationChanged": false,
+    "deployAuthorized": true
+  },
+  "realEffectsAtFreeze": {
+    "whatsappMessage": false,
+    "order": false,
+    "dropi": false,
+    "metaCapi": false,
+    "officialDatabaseWrite": false,
+    "deploy": false
+  },
+  "rollback": {
+    "release": "/opt/vitalismen-automacao/releases/20260822T195713Z_production-20260822-50b6a6c",
+    "preserveDatabases": true,
+    "preserveSharedMedia": true,
+    "preserveOrdersAndShipments": true,
+    "doNotDeleteCreatedRepurchaseOrders": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "public/qr.html",
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/senior-guard.mjs",
+    "src/routes/orders.js",
+    "src/routes/whatsapp.js",
+    "src/services/adminPanelStatusService.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/manual-quick-funnel.test.cjs",
+    "tests/panel-client-search-v41.test.mjs",
+    "tests/whatsapp-chats-readonly.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_EC_DELIVERED_REPURCHASE_V45_20260822.txt",
+    "docs/EC_DELIVERED_REPURCHASE_FREEZE_V45_20260822.md",
+    "scripts/assert-ec-delivered-repurchase-activation-approved-v45.mjs",
+    "scripts/guard-ec-delivered-repurchase-v45.mjs",
+    "src/services/ecDeliveredRepurchaseFreezeRuntimeGuardV45.js",
+    "src/services/ecDeliveredRepurchaseService.js",
+    "tests/ec-delivered-repurchase-v45.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "ca9239724778b421c859edc8f008cb8c83bd7ecb021d1830b9c6cf9bb28cb4fc",
+    "docs/ARQUIVOS_OFICIAIS.md": "70fa20dd927c1ed6681c09f0ce06d469ec6e0cad1287f3f48c0cbbdca5ce103c",
+    "public/qr.html": "9a4585beab98fd394a7abc6e04a63742654053f8af7f747f99fcdf9878b1c41e",
+    "scripts/guard-panel-client-search-v41.mjs": "4ac74ef4010e1097829e60b039c45f66d7bf2f1348bbd80db01439304e0bdd6a",
+    "scripts/senior-guard.mjs": "d3deb7c98686c763f8ff2440a51cb1eeb99e3ddc16769c559702e0d2c8b56f64",
+    "src/routes/orders.js": "725cebc3da1bbedc215e71383bfd820d0fc4fbf6f0a33c5bffbc89d7f702d82e",
+    "src/routes/whatsapp.js": "67a74b61f54066dfe6e5413b15ba5aea33e486251e13ebc3bd58fc89a8bfe661",
+    "src/services/adminPanelStatusService.js": "7cc978a8d1ca29cedcf89f8efdbb814bdf943caf142db72b2334d3551c465295",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "4a0a1874508204759c0302bf2f8897f7f0a595cb5e7e2a5c155782eac7342c44",
+    "tests/manual-quick-funnel.test.cjs": "d0dc06c13dd3e6e6018115369e02ac279819f32581cef44f88c437a070eca45c",
+    "tests/panel-client-search-v41.test.mjs": "f5b38685cb6fa4ac1dad6bbd060885d58ad3f0c855c805bcdd1d3573ee3b7608",
+    "approved_freezes/APPROVED_EC_DELIVERED_REPURCHASE_V45_20260822.txt": "02fbfccb03e7cbc91f649d85796760b31dc714e491176420f3f5855ac159622b",
+    "docs/EC_DELIVERED_REPURCHASE_FREEZE_V45_20260822.md": "0028552eae1c562b577c6b57181c5fb5dc4af0bd152642ba461f75d1f0c74c47",
+    "scripts/assert-ec-delivered-repurchase-activation-approved-v45.mjs": "57b005aac5f85c31ac359c6ab13117fdc2565ac16cad4c2b6807d77c79a095f6",
+    "scripts/guard-ec-delivered-repurchase-v45.mjs": "d675d7236ee4ba44288ca8d3742c42ada83861c8b82d402e313b1d170e6d76ae",
+    "src/services/ecDeliveredRepurchaseFreezeRuntimeGuardV45.js": "4884b86ef37a130de1402d857e9e206b42d602aad3619c6b8c1fa1f66cbe53e3",
+    "src/services/ecDeliveredRepurchaseService.js": "5dac40d4f7c6ea670aff04d10b0b3c87d7f36c1d2feaf04789513a34dcd687f2",
+    "tests/ec-delivered-repurchase-v45.test.mjs": "ae8aa40f72b60cb931c3cd2584a6c53486d3789c4f2e98b7ae2c75efc3646088",
+    "tests/whatsapp-chats-readonly.test.mjs": "a5de9316949f21f0db7109c96f5955590c130c52f03a7d0ac740857358c05b27"
+  }
+}

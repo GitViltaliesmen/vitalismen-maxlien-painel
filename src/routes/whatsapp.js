@@ -77,6 +77,7 @@ import {
     setEcConversationBucketManually
 } from '../services/ecConversationBucketService.js';
 import { ecEngagementReplyPolicy } from '../services/ecEngagementReplyService.js';
+import { panelOrderLifecycle } from '../services/ecDeliveredRepurchaseService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -4049,6 +4050,11 @@ router.get('/chats', async (req, res) => {
                     .catch(() => [])
                 : [];
             const activePanelShipments = activeShipments.filter(isPanelActiveShipment);
+            const shipmentByOrderId = new Map();
+            activeShipments.forEach((shipment) => {
+                const orderId = String(shipment?.orderId || '').trim();
+                if (orderId && !shipmentByOrderId.has(orderId)) shipmentByOrderId.set(orderId, shipment);
+            });
             const shipmentOrderIds = [...new Set(activePanelShipments.map((shipment) => shipment.orderId).filter(Boolean))];
             const shipmentOrders = shipmentOrderIds.length
                 ? await Order.find({ country: 'EC', orderId: { $in: shipmentOrderIds } }).lean().catch(() => [])
@@ -4085,6 +4091,10 @@ router.get('/chats', async (req, res) => {
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
                 const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
+                const orderLifecycle = panelOrderLifecycle({
+                    order,
+                    shipment: order?.orderId ? shipmentByOrderId.get(order.orderId) || null : null
+                });
                 const contactEntryAt = stableContactEntryAt(contactState);
                 const orderEntryAt = stableOrderEntryAt(order);
                 const fallbackActivityAt = lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null;
@@ -4136,7 +4146,9 @@ router.get('/chats', async (req, res) => {
                     reference: order?.customer?.reference || panelDraft.reference || null,
                     flowDataOk: panelDraft.flowDataOk || {},
                     orderId: order?.orderId || panelDraft.orderId || null,
-                    orderStatus: order?.status || panelDraft.status || null,
+                    orderStatus: orderLifecycle.effectiveStatus || panelDraft.status || null,
+                    historicalOrderId: orderLifecycle.historicalOrderId || null,
+                    previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
                     quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
                     packageLabel: order?.package?.label || null,
                     total: order?.total ?? panelDraft.total ?? null,
@@ -4156,7 +4168,7 @@ router.get('/chats', async (req, res) => {
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
                     conversationBucket: conversationBucketPanelView(contactState || {}, {
-                        hasOperationalOrder: Boolean(order) && !['delivered', 'cancelled', 'returned'].includes(String(order?.status || '').toLowerCase())
+                        hasOperationalOrder: orderLifecycle.hasOperationalOrder
                     }),
                     zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
                 };
@@ -4210,6 +4222,7 @@ router.get('/chats', async (req, res) => {
 
             let order = null;
             const canMatchEcuadorOrder = phoneCountryPrefix !== 'BR';
+            let shipmentCandidates = [];
             if (!fastMode && canMatchEcuadorOrder && keys.length) {
                 const sortedKeys = [...keys].sort((a, b) => b.length - a.length);
                 const orConditions = sortedKeys
@@ -4244,7 +4257,7 @@ router.get('/chats', async (req, res) => {
                     .map((k) => fuzzyDigitsPattern(k))
                     .filter(Boolean)
                     .map((pattern) => ({ 'client.phone': { $regex: `${pattern}\\D*$`, $options: 'i' } }));
-                const shipmentCandidates = shipmentConditions.length
+                shipmentCandidates = shipmentConditions.length
                     ? await Shipment.find({
                         country: 'EC',
                         $or: shipmentConditions
@@ -4329,6 +4342,12 @@ router.get('/chats', async (req, res) => {
                 persistChanges: false
             });
             const panelDraft = productContext.customerDraft || customerDraft;
+            const orderLifecycle = panelOrderLifecycle({
+                order,
+                shipment: order?.orderId
+                    ? shipmentCandidates.find((shipment) => shipment?.orderId === order.orderId) || null
+                    : null
+            });
             const contactEntryAt = stableContactEntryAt(contactState);
             const orderEntryAt = stableOrderEntryAt(order);
             const fallbackActivityAt = lastMessage?.timestamp ? new Date(lastMessage.timestamp * 1000) : null;
@@ -4373,7 +4392,9 @@ router.get('/chats', async (req, res) => {
                 reference: order?.customer?.reference || panelDraft.reference || null,
                 flowDataOk: panelDraft.flowDataOk || {},
                 orderId: order ? order.orderId : panelDraft.orderId || null,
-                orderStatus: order ? order.status : panelDraft.status || null,
+                orderStatus: orderLifecycle.effectiveStatus || panelDraft.status || null,
+                historicalOrderId: orderLifecycle.historicalOrderId || null,
+                previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
                 quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
                 packageLabel: order?.package?.label || null,
                 total: order?.total ?? panelDraft.total ?? null,
@@ -4393,7 +4414,7 @@ router.get('/chats', async (req, res) => {
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },
                 conversationBucket: conversationBucketPanelView(contactState || {}, {
-                    hasOperationalOrder: Boolean(order) && !['delivered', 'cancelled', 'returned'].includes(String(order?.status || '').toLowerCase())
+                    hasOperationalOrder: orderLifecycle.hasOperationalOrder
                 }),
                 zapiCapturedContact: contactState?.metadata?.zapiCapturedContact === true
             };

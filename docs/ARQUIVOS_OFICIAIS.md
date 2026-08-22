@@ -422,3 +422,24 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `/opt/vitalismen-automacao/releases/20260822T143218Z_production-20260822-dbc3cbd`.
 - No momento do candidato V39: nenhuma mensagem, pedido, Dropi, Meta/CAPI,
   escrita no banco oficial, PM2, symlink ou deploy havia sido executado.
+
+### Microcamada V45 — recompra após entrega EC — 2026-08-22
+
+- Base oficial lida antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260822T195713Z_production-20260822-50b6a6c`,
+  commit `50b6a6cb95493957fe8dc68cd9021a60270891e8`.
+- Política determinística: `src/services/ecDeliveredRepurchaseService.js`.
+- Projeção do histórico no painel: `src/routes/whatsapp.js` e `public/qr.html`.
+- Criação autenticada do novo pedido: `src/routes/orders.js`.
+- Sincronização do novo ciclo no lead único:
+  `src/services/adminPanelStatusService.js`.
+- Teste: `tests/ec-delivered-repurchase-v45.test.mjs`.
+- Freeze/guard: `docs/EC_DELIVERED_REPURCHASE_FREEZE_V45_20260822.md`,
+  `docs/freeze/ec-delivered-repurchase-v45-20260822.json` e
+  `scripts/guard-ec-delivered-repurchase-v45.mjs`.
+- Contrato: pedido entregue permanece histórico; nova confirmação cria
+  `EC-RECOMPRA-*`; Dropi continua dependendo de autorização manual.
+- A fila V44 continua separando `AQUECIMENTO` de `Novas`; intenção comercial e
+  pedido novo permanecem prioritários.
+- Rollback funcional: release V44 acima, preservando pedidos, Shipments, bancos
+  e mídias compartilhadas.

@@ -23,6 +23,10 @@ import {
     assertCustomerOrderDataReady,
     resolveCustomerDataDraft
 } from '../services/customerDataResolutionService.js';
+import {
+    buildDeliveredRepurchaseOrderId,
+    repurchaseOrderCreationPolicy
+} from '../services/ecDeliveredRepurchaseService.js';
 
 const router = express.Router();
 
@@ -1104,6 +1108,35 @@ router.post('/', optionalPanelAuth, async (req, res) => {
             return sendCustomerDataResolutionError(res, resolvedCustomerData.resolution);
         }
 
+        const normalizedPreviousOrderId = String(previousOrderId || '').trim().slice(0, 100);
+        let repurchaseContext = null;
+        if (normalizedPreviousOrderId) {
+            const previousOrder = await Order.findOne({
+                country,
+                orderId: normalizedPreviousOrderId
+            }).lean().catch(() => null);
+            const previousShipment = previousOrder
+                ? await Shipment.findOne({ country, orderId: normalizedPreviousOrderId })
+                    .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 })
+                    .lean()
+                    .catch(() => null)
+                : null;
+            repurchaseContext = repurchaseOrderCreationPolicy({
+                authenticated: Boolean(req.user),
+                previousOrder,
+                previousShipment,
+                newCustomerPhone: resolvedCustomerData.draft.phone
+            });
+            if (!repurchaseContext.allowed) {
+                return res.status(repurchaseContext.statusCode || 409).json({
+                    error: repurchaseContext.reason,
+                    message: repurchaseContext.reason === 'repurchase_requires_panel_auth'
+                        ? 'Recompra exige confirmação autenticada no painel.'
+                        : 'O pedido anterior precisa estar entregue e pertencer ao mesmo cliente.'
+                });
+            }
+        }
+
         try {
             await assertNoActiveDuplicateOrder({
                 phone: resolvedCustomerData.draft.phone,
@@ -1126,6 +1159,7 @@ router.post('/', optionalPanelAuth, async (req, res) => {
 
         // Create order
         const order = new Order({
+            orderId: repurchaseContext ? buildDeliveredRepurchaseOrderId() : undefined,
             country,
             customer: {
                 name: resolvedCustomerData.draft.name,
@@ -1155,7 +1189,9 @@ router.post('/', optionalPanelAuth, async (req, res) => {
             currency: orderCurrency,
             source,
             status: initialStatus,
-            previousOrderId: String(previousOrderId || '').trim().slice(0, 100),
+            entryReason: repurchaseContext?.entryReason || 'new_purchase',
+            previousOrderId: repurchaseContext?.previousOrderId || '',
+            previousDeliveredAt: repurchaseContext?.previousDeliveredAt || null,
             notes: typeof notes === 'string' ? notes : '',
             purchaseIntent: purchaseIntent || {},
             tracking: {
@@ -1177,6 +1213,10 @@ router.post('/', optionalPanelAuth, async (req, res) => {
         res.status(201).json({
             success: true,
             orderId: order.orderId,
+            repurchase: repurchaseContext ? {
+                previousOrderId: repurchaseContext.previousOrderId,
+                previousDeliveredAt: repurchaseContext.previousDeliveredAt
+            } : null,
             purchase: purchase ? {
                 ok: purchase.ok,
                 alreadySent: purchase.alreadySent || false,

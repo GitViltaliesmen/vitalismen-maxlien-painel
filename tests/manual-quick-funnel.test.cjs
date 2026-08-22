@@ -81,7 +81,9 @@ test('pedido antigo do Angel fica historico e um pedido novo fica ligado a negoc
     assert.match(html, /reason: 'historical_order_preserved'/);
     assert.match(html, /orderPayload\.previousOrderId = historicalOrderId/);
     const ordersRoute = fs.readFileSync(path.join(projectRoot, 'src', 'routes', 'orders.js'), 'utf8');
-    assert.match(ordersRoute, /previousOrderId: String\(previousOrderId \|\| ''\)\.trim\(\)\.slice\(0, 100\)/);
+    assert.match(ordersRoute, /previousOrderId: repurchaseContext\?\.previousOrderId \|\| ''/);
+    assert.match(ordersRoute, /buildDeliveredRepurchaseOrderId\(\)/);
+    assert.match(ordersRoute, /repurchase_requires_panel_auth/);
 });
 
 test('midia manual pode ser enviada no pos-venda sem desligar o guard automatico do Dropi', () => {

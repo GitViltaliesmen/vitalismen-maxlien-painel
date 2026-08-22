@@ -11421,6 +11421,10 @@
         const historicalOrderIdFromChat = (chat = state.selectedChat || {}) => {
             const orderId = String(chat.orderId || chat.customerDraft?.orderId || '').trim();
             if (!orderId) return '';
+            const projectedHistoricalOrderId = String(chat.historicalOrderId || chat.customerDraft?.historicalOrderId || '').trim();
+            if (projectedHistoricalOrderId && projectedHistoricalOrderId === orderId) {
+                return projectedHistoricalOrderId;
+            }
             const context = {
                 orderId,
                 status: chat.orderStatus || chat.customerDraft?.status,
