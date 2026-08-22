@@ -97,7 +97,6 @@ on:
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
       - docs/ARQUIVOS_OFICIAIS.md
-      - docs/*_ACTIVATION_RESULT_*.md
       - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
@@ -219,7 +218,6 @@ on:
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
       - docs/ARQUIVOS_OFICIAIS.md
-      - docs/*_ACTIVATION_RESULT_*.md
       - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md
       - docs/EC_ANA_IDENTITY_FREEZE_V23_20260818.md
