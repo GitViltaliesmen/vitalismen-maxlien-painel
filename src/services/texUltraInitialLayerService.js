@@ -64,7 +64,6 @@ const withLayerSendQueue = (task) => {
 
 const saveFlow = async (state, flow, memoryPatch = {}) => {
     const currentMemory = memoryOf(state);
-    state.assignedAgent = AGENT_KEY;
     state.countryCode = 'EC';
     state.tags = [...new Set([...(state.tags || []), 'TEX_ULTRA_EC'])];
     state.metadata = {
@@ -477,7 +476,6 @@ export const pauseOrphanedTexUltraInitialFlowsOnStartup = async (env = process.e
         {
             [`${cadencePath}.status`]: 'running',
             $or: [
-                { assignedAgent: AGENT_KEY },
                 { 'metadata.productKey': AGENT_KEY },
                 { tags: 'TEX_ULTRA_EC' }
             ]

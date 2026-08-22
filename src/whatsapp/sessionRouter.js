@@ -325,7 +325,6 @@ const persistWalletAssignment = async ({
                 $setOnInsert: {
                     chatId: jid,
                     countryCode: 'EC',
-                    assignedAgent: 'vit_power_ec',
                     'metadata.senderWallet.assignedAt': now
                 },
                 $push: {

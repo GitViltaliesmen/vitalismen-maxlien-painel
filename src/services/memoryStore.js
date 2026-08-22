@@ -108,7 +108,6 @@ export async function pushHistory(phoneE164, userText, botText) {
                 $setOnInsert: {
                     chatId: `${digits}@s.whatsapp.net`,
                     countryCode: digits.startsWith('593') ? 'EC' : '',
-                    assignedAgent: 'vit_power_ec',
                     firstInboundText: String(userText || '').trim(),
                     firstInboundAt: new Date()
                 }

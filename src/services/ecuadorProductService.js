@@ -47,6 +47,12 @@ export const ECUADOR_PRODUCTS = {
     vitPower: {
         key: 'vit_power_ec',
         name: 'Vit Power',
+        displayName: 'Vit Power Ecuador',
+        country: 'EC',
+        enabled: true,
+        tag: 'VIT_POWER_EC',
+        media: '/media/sales/ec/vit_power.jpeg',
+        vslOrigins: Object.freeze(['/m/', '/m']),
         contentName: 'Vit Power Ecuador',
         contentIds: ['vit_power_ec'],
         dropiName: 'VIT POWERS 1000ML COMUNIDAD',
@@ -62,6 +68,12 @@ export const ECUADOR_PRODUCTS = {
     nitrix: {
         key: 'nitrix_ec',
         name: 'Nitrix Oxide Ecuador',
+        displayName: 'Nitrix Oxide Ecuador',
+        country: 'EC',
+        enabled: true,
+        tag: 'NITRIX_EC',
+        media: '/media/sales/ec/nitrix_bottle.png',
+        vslOrigins: Object.freeze([]),
         contentName: 'Nitrix Oxide Ecuador WhatsApp',
         contentIds: ['nitrix_oxide_ec'],
         dropiName: 'NITRIX',
@@ -76,6 +88,12 @@ export const ECUADOR_PRODUCTS = {
     texUltra: {
         key: 'tex_ultra_ec',
         name: 'Tex Ultra Ecuador',
+        displayName: 'Tex Ultra Ecuador',
+        country: 'EC',
+        enabled: true,
+        tag: 'TEX_ULTRA_EC',
+        media: '/media/sales/ec/tex_ultra.png',
+        vslOrigins: Object.freeze(['/protocolo-g', '/n/', '/n']),
         contentName: 'Tex Ultra Ecuador WhatsApp',
         contentIds: ['tex_ultra_ec'],
         defaultPriceCatalog: 'promotional',
@@ -119,6 +137,34 @@ export const ECUADOR_PRICE_CATALOGS = Object.freeze({
 export const getEcuadorProductInfoByKey = (productKey = '') => (
     Object.values(ECUADOR_PRODUCTS).find((product) => product.key === String(productKey || '').trim()) || null
 );
+
+export const ECUADOR_PRODUCT_KEYS = Object.freeze(
+    Object.values(ECUADOR_PRODUCTS).map((product) => product.key)
+);
+
+export const isEcuadorProductKey = (value = '') => (
+    ECUADOR_PRODUCT_KEYS.includes(String(value || '').trim().toLowerCase())
+);
+
+const normalizeVslOrigin = (value = '') => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw, 'https://ec.maxlien.shop');
+        return parsed.pathname.replace(/\/+$/, '') || '/';
+    } catch {
+        return raw.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+    }
+};
+
+export const ecuadorProductForVslOrigin = (...values) => {
+    const normalizedOrigins = values.map(normalizeVslOrigin).filter(Boolean);
+    for (const product of Object.values(ECUADOR_PRODUCTS)) {
+        const knownOrigins = (product.vslOrigins || []).map(normalizeVslOrigin);
+        if (normalizedOrigins.some((origin) => knownOrigins.includes(origin))) return product;
+    }
+    return null;
+};
 
 export const normalizeEcuadorPriceCatalog = (value = '') => {
     const normalized = normalizeText(value).replace(/[^a-z0-9]+/g, '_');

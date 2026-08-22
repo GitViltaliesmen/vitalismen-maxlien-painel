@@ -8171,7 +8171,7 @@
                             <strong id="detailAutomation">Auto</strong>
                         </div>
                         <div class="detail">
-                            <span>Agente IA</span>
+                            <span>Perfil comercial</span>
                             <strong id="detailAgent">Sem agente</strong>
                         </div>
                         <div class="detail">
@@ -8250,6 +8250,15 @@
                         <label>Nome completo
                             <input id="customerNameInput" autocomplete="off" placeholder="Nome do cliente">
                         </label>
+                        <div id="identityConflictPanel" class="customer-product-origin-hint hidden" role="alert">
+                            <strong>⚠ Nome divergente</strong>
+                            <div>Recebido: <span id="identityConflictReceived">-</span></div>
+                            <div>Atual: <span id="identityConflictCurrent">-</span></div>
+                            <div class="row">
+                                <button id="identityKeepCurrentBtn" type="button">Manter atual</button>
+                                <button id="identityUseReceivedBtn" type="button">Usar recebido</button>
+                            </div>
+                        </div>
                         <div class="form-grid">
                             <label>País
                                 <select id="customerCountryInput">
@@ -8313,6 +8322,7 @@
                         <div class="customer-form-title">Detalhes do pedido</div>
                         <label>Produto desta negociacao
                             <select id="customerProductInput">
+                                <option value="">Não definido / revisar</option>
                                 <option value="tex_ultra_ec">Tex Ultra Ecuador</option>
                                 <option value="nitrix_ec">Nitrix Oxide Ecuador</option>
                                 <option value="vit_power_ec">Vit Power Ecuador</option>
@@ -9309,7 +9319,6 @@
                 chat.vslProductKey
                 || chat.productKey
                 || draft.productKey
-                || chat.assignedAgent
                 || draft.productName
                 || chat.productName
                 || ''
@@ -9320,7 +9329,7 @@
             const isTexUltra = productKey.includes('tex_ultra') || productKey.includes('tex ultra');
             if (cameFromVsl) {
                 return {
-                    badge: isTexUltra ? 'VSL · Tex Ultra' : isNitrix ? 'VSL · Nitrix' : 'VSL · Vit Power',
+                    badge: isTexUltra ? 'VSL · Tex Ultra' : isNitrix ? 'VSL · Nitrix' : productKey.includes('vit_power') ? 'VSL · Vit Power' : 'VSL · revisar',
                     className: 'vsl',
                     title: isTexUltra
                         ? 'Entrada registrada pela VSL Tex Ultra EC'
@@ -11378,7 +11387,7 @@
             vit_power_ec: 'Vit Power EC',
             tex_ultra_ec: 'Tex Ultra EC',
             fallback: 'Geral'
-        }[agent] || 'Geral');
+        }[agent] || 'Não definido / revisar');
 
         const EC_PRODUCT_CATALOG = {
             nitrix_ec: {
@@ -11397,26 +11406,29 @@
                 media: '/media/sales/ec/tex_ultra.png'
             }
         };
-        const normalizeCustomerProductKey = (value = '', fallback = 'nitrix_ec') => {
+        const normalizeCustomerProductKey = (value = '', fallback = '') => {
             const raw = String(value || '').trim().toLowerCase();
             if (raw === 'tex_ultra_ec' || /tex[\s_-]*ultra|texultra/.test(raw)) return 'tex_ultra_ec';
             if (raw === 'vit_power_ec' || /vit[\s_-]*power/.test(raw)) return 'vit_power_ec';
             if (raw === 'nitrix_ec' || raw === 'nx_ec' || /nitrix|nitric|oxido\s+nitric|nitrico|oxide/.test(raw)) return 'nitrix_ec';
-            return EC_PRODUCT_CATALOG[fallback] ? fallback : 'nitrix_ec';
+            return EC_PRODUCT_CATALOG[fallback] ? fallback : '';
         };
-        const productInfoForKey = (key = 'nitrix_ec') => EC_PRODUCT_CATALOG[normalizeCustomerProductKey(key)] || EC_PRODUCT_CATALOG.nitrix_ec;
+        const productInfoForKey = (key = '') => EC_PRODUCT_CATALOG[normalizeCustomerProductKey(key)] || {
+            key: '',
+            name: 'Não definido / revisar',
+            media: ''
+        };
         const productKeyFromChat = (chat = state.selectedChat || {}) => normalizeCustomerProductKey(
             chat.currentNegotiationProductKey
             || chat.customerDraft?.negotiationProductKey
             || chat.customerDraft?.currentProductKey
             || chat.customerDraft?.productKey
             || chat.productKey
-            || chat.assignedAgent
             || chat.productName
             || chat.customerDraft?.productName
             || chat.customerDraft?.product
             || '',
-            'nitrix_ec'
+            ''
         );
         const historicalOrderIdFromChat = (chat = state.selectedChat || {}) => {
             const orderId = String(chat.orderId || chat.customerDraft?.orderId || '').trim();
@@ -11476,6 +11488,17 @@
             hint.textContent = originKey === selectedKey
                 ? `VSL de origem: ${origin.name}. Produto atual preservado.${historySuffix}`
                 : `VSL de origem: ${origin.name}. Negociacao atual: ${current.name}. O historico anterior permanece preservado.${historySuffix}`;
+        };
+        const renderIdentityConflict = (chat = state.selectedChat) => {
+            const panel = el('identityConflictPanel');
+            if (!panel) return;
+            const conflict = chat?.identityConflict;
+            const pending = conflict?.status === 'IDENTITY_CONFLICT';
+            panel.classList.toggle('hidden', !pending);
+            el('identityConflictReceived').textContent = pending ? compact(conflict.receivedName) : '-';
+            el('identityConflictCurrent').textContent = pending ? compact(conflict.currentName) : '-';
+            el('identityKeepCurrentBtn').disabled = !pending || state.busy;
+            el('identityUseReceivedBtn').disabled = !pending || state.busy;
         };
         const currentCustomerProduct = () => productInfoForKey(el('customerProductInput')?.value || productKeyFromChat());
         const productLabelForQuantity = (quantity, product = currentCustomerProduct()) => {
@@ -14985,8 +15008,9 @@
                 el('customerFormState').textContent = 'selecione um cliente';
                 ['customerNameInput', 'customerPhoneInput', 'customerCityInput', 'customerProvinceInput', 'customerDeliveryModeInput', 'customerAgencyNameInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerOrderInput', 'customerNoteInput', 'customerBuyLaterDateInput', 'manualGuideTrackingInput'].forEach((id) => setInputValue(id, ''));
                 el('customerAgencyNameInput').dataset.agencyId = '';
-                setInputValue('customerProductInput', 'nitrix_ec');
+                setInputValue('customerProductInput', '');
                 renderCustomerProductSelection(null);
+                renderIdentityConflict(null);
                 setInputValue('customerCountryInput', 'EC');
                 setInputValue('customerStatusInput', '');
                 setInputValue('manualGuideStatusInput', 'GUIA_GENERADA');
@@ -15062,7 +15086,7 @@
             el('detailOrder').textContent = chat.orderId ? `${chat.orderId} · ${status.label}` : 'Sem pedido vinculado';
             el('detailLocation').textContent = [chat.country, chat.city].filter(Boolean).join(' / ') || 'Sem dados';
             el('detailAutomation').textContent = chat.human?.mode === 'manual' ? 'Pausada para humano' : (autoReplyGloballyActive() ? 'Auto' : 'Funil desligado');
-            el('detailAgent').textContent = agentLabel(chat.assignedAgent);
+            el('detailAgent').textContent = agentLabel(chat.productKey);
             const selectedOrder = selectedOrderForChat(chat);
             const dropiProcess = selectedOrder ? getOrderProcessInfo(selectedOrder) : null;
             const dropiStage = selectedOrder ? getDropiStage(selectedOrder) : '';
@@ -15125,6 +15149,7 @@
                     clearAgencySuggestions();
                 }
             }
+            renderIdentityConflict(chat);
             setSaveCustomerButtonDisabled(false);
             el('confirmCustomerDataBtn').disabled = brazilTestOnly || !state.selectedChat || state.busy;
             updateCustomerPrimaryAction();
@@ -18599,6 +18624,26 @@
             }
         }
 
+        async function resolveSelectedIdentityConflict(resolution) {
+            if (!state.selectedChat || state.busy) return;
+            state.busy = true;
+            renderIdentityConflict(state.selectedChat);
+            try {
+                await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentContactStateKey())}/identity-conflict`, {
+                    method: 'POST',
+                    body: JSON.stringify({ resolution })
+                });
+                await loadChats();
+                renderSelectedDetails();
+                showToast(resolution === 'USE_RECEIVED' ? 'Nome recebido confirmado.' : 'Nome atual mantido.');
+            } catch (error) {
+                showToast(error.message);
+            } finally {
+                state.busy = false;
+                renderIdentityConflict(state.selectedChat);
+            }
+        }
+
         async function confirmCustomerDataFromForm() {
             if (!state.selectedChat || state.busy) return;
             if (isBrazilBlockedRecord(state.selectedChat)) {
@@ -20091,6 +20136,8 @@
                 showToast(error.message);
             }
         });
+        el('identityKeepCurrentBtn')?.addEventListener('click', () => resolveSelectedIdentityConflict('KEEP_CURRENT'));
+        el('identityUseReceivedBtn')?.addEventListener('click', () => resolveSelectedIdentityConflict('USE_RECEIVED'));
         el('scanCustomerDataBtn')?.addEventListener('click', () => {
             if (!state.selectedChat) return;
             syncDetectedCustomerDataFromMessages(state.currentMessages || [], { operatorRequested: true });

@@ -193,7 +193,6 @@ const dataGateStage = (resolution = {}) => {
 
 const saveState = async (state, { memory = memoryOf(state), draft = draftOf(state), stage = memory.stage || 'presentation' } = {}) => {
     const nextMemory = { ...memory, stage, updatedAt: new Date().toISOString() };
-    state.assignedAgent = AGENT_KEY;
     state.countryCode = 'EC';
     if (state.human?.mode === 'manual' && String(state.human?.lastManualBy || '') === 'vsl_ec') {
         state.human = { ...state.human, mode: 'auto', lastManualBy: 'tex_ultra_funnel', note: 'Funil Tex Ultra isolado em andamento.' };
@@ -410,7 +409,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     const state = await ContactState.findById(contactStateId);
     if (!state) return false;
     const explicitTex = /tex[\s_-]*ultra/i.test(inboundText);
-    if (state.assignedAgent !== AGENT_KEY && state.metadata?.productKey !== AGENT_KEY && !explicitTex) return false;
+    if (state.metadata?.productKey !== AGENT_KEY && !explicitTex) return false;
     if (state.human?.mode === 'manual' && !['', 'vsl_ec', 'tex_ultra_funnel'].includes(String(state.human?.lastManualBy || ''))) return false;
 
     if (sessionId) state.metadata = { ...(state.metadata || {}), lastSessionId: sessionId };

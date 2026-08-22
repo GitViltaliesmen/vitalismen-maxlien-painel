@@ -1,4 +1,10 @@
 import { activeProductRouteLock } from './productRouteLockService.js';
+import {
+    detectExplicitEcuadorProductKey,
+    ecuadorProductForVslOrigin,
+    getEcuadorProductInfoByKey,
+    isEcuadorProductKey
+} from './ecuadorProductService.js';
 
 const normalizeProductKey = (value = '') => String(value || '').trim().toLowerCase();
 const LOCKABLE_PRODUCT_KEYS = new Set(['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec']);
@@ -71,6 +77,121 @@ export const vslProductAssignmentPolicy = ({ state = {}, incomingProductKey = ''
         preserveOperatorSelection,
         operatorLock
     };
+};
+
+const firstKnownProductKey = (...values) => values
+    .map(normalizeProductKey)
+    .find(isEcuadorProductKey) || '';
+
+export const currentProductRouteForState = (state = {}) => {
+    const metadata = state?.metadata || {};
+    const draft = metadata.customerDraft || {};
+    const routeLock = activeProductRouteLock(state);
+    if (routeLock) {
+        return {
+            productKey: routeLock.productKey,
+            product: getEcuadorProductInfoByKey(routeLock.productKey),
+            reason: 'active_product_route_lock',
+            needsReview: false
+        };
+    }
+
+    const currentProductKey = firstKnownProductKey(
+        draft.negotiationProductKey,
+        draft.currentProductKey,
+        draft.productKey,
+        metadata.productKey
+    ) || detectExplicitEcuadorProductKey(
+        { productKey: draft.productKey, productName: draft.productName },
+        { productKey: metadata.productKey, productName: metadata.productName }
+    );
+    if (currentProductKey) {
+        return {
+            productKey: currentProductKey,
+            product: getEcuadorProductInfoByKey(currentProductKey),
+            reason: 'current_negotiation_product',
+            needsReview: false
+        };
+    }
+
+    const vslProductKey = firstKnownProductKey(metadata.vslProductKey);
+    if (vslProductKey) {
+        return {
+            productKey: vslProductKey,
+            product: getEcuadorProductInfoByKey(vslProductKey),
+            reason: 'historical_vsl_product',
+            needsReview: false
+        };
+    }
+
+    const originProduct = ecuadorProductForVslOrigin(
+        metadata.vslPath,
+        metadata.vslPage,
+        metadata.vslSourceUrl,
+        metadata.productSource
+    );
+    if (originProduct) {
+        return {
+            productKey: originProduct.key,
+            product: originProduct,
+            reason: 'known_vsl_origin',
+            needsReview: false
+        };
+    }
+
+    return {
+        productKey: '',
+        product: null,
+        reason: 'unknown_product_requires_review',
+        needsReview: true
+    };
+};
+
+export const applyCurrentProductToState = ({
+    state,
+    productKey = '',
+    productName = '',
+    productMedia = '',
+    source = '',
+    at = new Date()
+} = {}) => {
+    if (!state || !isEcuadorProductKey(productKey)) return false;
+    const product = getEcuadorProductInfoByKey(productKey);
+    const normalizedAt = new Date(at);
+    const now = Number.isNaN(normalizedAt.getTime()) ? new Date() : normalizedAt;
+    const finalName = String(productName || product?.displayName || product?.name || '').trim();
+    const finalMedia = String(productMedia || product?.media || '').trim();
+    const draft = state.metadata?.customerDraft || {};
+    const previousProductKey = firstKnownProductKey(
+        draft.negotiationProductKey,
+        draft.productKey,
+        state.metadata?.productKey
+    );
+    state.metadata = {
+        ...(state.metadata || {}),
+        productKey,
+        productName: finalName,
+        ...(finalMedia ? { productMedia: finalMedia } : {}),
+        ...(source ? { productSource: source } : {}),
+        customerDraft: {
+            ...draft,
+            product: finalName,
+            productKey,
+            productName: finalName,
+            negotiationProductKey: productKey,
+            negotiationProductName: finalName,
+            ...(source ? { negotiationProductSource: source } : {}),
+            ...(finalMedia ? { productMedia: finalMedia } : {}),
+            updatedAt: now.toISOString()
+        }
+    };
+    state.productHistory = Array.isArray(state.productHistory) ? state.productHistory : [];
+    if (previousProductKey !== productKey) {
+        state.productHistory.push({ productKey, reason: source || 'product_context_update', at: now });
+        state.productHistory = state.productHistory.slice(-20);
+    }
+    state.markModified?.('metadata');
+    return true;
 };
 
 export const operatorProductRouteLock = ({

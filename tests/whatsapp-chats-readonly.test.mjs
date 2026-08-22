@@ -121,7 +121,7 @@ const fixture = () => {
 
 const responseContractKeys = [
     'address', 'assignedAgent', 'city', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
-    'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'isGroup', 'lastActivityAt',
+    'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'identityConflict', 'isGroup', 'lastActivityAt',
     'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'name', 'notes', 'orderId', 'orderStatus',
     'packageLabel', 'phone', 'previousDeliveredAt', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
     'province', 'quantity', 'reference', 'tags', 'total', 'unansweredCount', 'unreadCount', 'updatedAt', 'vslPath',

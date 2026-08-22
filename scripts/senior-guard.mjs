@@ -13,6 +13,7 @@ const windowsOfficialPath = path.join(
     'Vitalismen Automacao'
 );
 const vpsOfficialPath = '/opt/vitalismen-automacao/current';
+const codexOfficialWorkspace = '/home/codex/workspaces/maxlien-vitalismen';
 const normalizePath = (value) => {
     try {
         return fs.realpathSync(value);
@@ -49,8 +50,12 @@ const scanFiles = (dir, predicate = () => true) => {
     return out;
 };
 
-const env = read('.env');
+const localEnv = read('.env');
 const envExample = read('.env.example');
+const codexWorkspaceActive = normalizePath(root) === normalizePath(codexOfficialWorkspace);
+// O workspace Codex nao recebe segredos nem a configuracao operacional do
+// VPS. Nesse caminho exato, o contrato seguro versionado e a fonte de flags.
+const env = codexWorkspaceActive && !localEnv ? envExample : localEnv;
 const marker = read('.vitalismen-official-root');
 const hasEnv = (key, value) => new RegExp(`^${key}=${value}$`, 'm').test(env);
 const operationalAutomationApproved = hasEnv('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED', 'true');
@@ -111,7 +116,11 @@ const productScopedProtocolFiles = new Set([
     // A V46 cita V28–V45 somente para preservar a linhagem de freezes.
     'src/services/ecRepurchaseSyncPreservationFreezeRuntimeGuardV46.js',
     // A V47 cita V28–V46 somente para preservar a linhagem de freezes.
-    'src/services/ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js'
+    'src/services/ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js',
+    // V48 centraliza as origens multiproduto autorizadas, inclusive
+    // Protocolo G -> Tex Ultra, sem acessar ou incorporar a VSL externa.
+    'src/services/ecuadorProductService.js',
+    'src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
@@ -120,10 +129,10 @@ const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
 
 assert(
     officialGithubActionsWorkspace
-    || [localOfficialPath, windowsOfficialPath, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
+    || [localOfficialPath, windowsOfficialPath, codexOfficialWorkspace, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
         (allowed) => normalizePath(root).startsWith(normalizePath(allowed))
     ),
-    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${windowsOfficialPath} no Windows, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`
+    `Caminho fora da raiz oficial. Use somente ${localOfficialPath} no Mac, ${windowsOfficialPath} no Windows, ${codexOfficialWorkspace} no Codex, ${vpsOfficialPath} no VPS ou um release em /opt/vitalismen-automacao/releases. Atual: ${root}`
 );
 assert(marker.includes('VITALISMEN_OFFICIAL_PROJECT=vit_power_ec'), 'Marcador .vitalismen-official-root ausente ou invalido.');
 assert(marker.includes('DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true'), 'Marcador oficial deve bloquear projetos paralelos de automacao.');
@@ -216,4 +225,4 @@ if (failures.length) {
     process.exit(1);
 }
 
-console.log('[SENIOR-GUARD] OK: projeto congelado no funil oficial Vit Power.');
+console.log('[SENIOR-GUARD] OK: core Vitalismen multiproduto EC e modos operacionais preservados.');

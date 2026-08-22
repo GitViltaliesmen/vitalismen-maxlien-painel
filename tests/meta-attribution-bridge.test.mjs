@@ -74,7 +74,7 @@ test('as duas frases A/B ativas identificam Tex Ultra na entrada', () => {
     assert.equal(variantB?.vslVariant, 'b');
 });
 
-test('a CTA generica da protocolo-g aceita os dados do lead e usa o produto ativo', () => {
+test('CTA generica sem origem estruturada falha fechada e nao usa produto global', () => {
     const env = { VITALISMEN_ACTIVE_VSL_PRODUCT: 'tex_ultra_ec' };
     const current = activeEcVslProductContextFromText(
         'Hola, quiero el tratamiento. Nombre: Marcos Eduardo Teléfono: 0992439779',
@@ -84,22 +84,21 @@ test('a CTA generica da protocolo-g aceita os dados do lead e usa o produto ativ
         'Hola, quiero el tratamiento.\nNombre: Marcos Eduardo\nCIUDAD: Portoviejo\nPROVINCIA: Manabi',
         env
     );
-    assert.equal(current?.productKey, 'tex_ultra_ec');
-    assert.equal(requested?.productKey, 'tex_ultra_ec');
-    assert.equal(requested?.productSource, 'active_vsl_generic_entry');
+    assert.equal(current, null);
+    assert.equal(requested, null);
 });
 
-test('a mesma CTA generica respeita a configuracao independente dos tres produtos', () => {
+test('flag global nao escolhe produto para CTA ambigua', () => {
     const text = 'Hola, quiero el tratamiento. Nombre: Cliente Prueba';
     assert.equal(activeEcVslProductContextFromText(text, {
         VITALISMEN_ACTIVE_VSL_PRODUCT: 'tex_ultra_ec'
-    })?.productKey, 'tex_ultra_ec');
+    }), null);
     assert.equal(activeEcVslProductContextFromText(text, {
         VITALISMEN_ACTIVE_VSL_PRODUCT: 'nitrix_ec'
-    })?.productKey, 'nitrix_ec');
+    }), null);
     assert.equal(activeEcVslProductContextFromText(text, {
         VITALISMEN_ACTIVE_VSL_PRODUCT: 'vit_power_ec'
-    })?.productKey, 'vit_power_ec');
+    }), null);
 });
 
 test('payload seco de Purchase preserva valor, USD, event_id e identificadores Meta', () => {

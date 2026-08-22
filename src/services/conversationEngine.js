@@ -64,7 +64,7 @@ const contactCameFromTexUltra = (contactState = {}) => {
         || item.includes('tex_ultra')
         || item.includes('tex ultra')
         || item.includes('texultra')
-    )) || normalizeProductRouteText(contactState?.assignedAgent) === TEX_ULTRA_AGENT_KEY;
+    ));
 };
 const contactCameFromNitrix = (contactState = {}) => {
     const metadata = contactState?.metadata || {};
@@ -93,7 +93,7 @@ const contactCameFromNitrix = (contactState = {}) => {
         || item.includes('maxlien.shop/m')
     ));
     if (hasVitPowerContext) return false;
-    return normalizeProductRouteText(contactState?.assignedAgent) === NITRIX_AGENT_KEY;
+    return false;
 };
 const resolveAgentProfileForMessage = ({ text = '', contactState = {}, requestedProfile = null } = {}) => {
     // Product provenance is persistent. A word typed in a message must not
@@ -102,7 +102,7 @@ const resolveAgentProfileForMessage = ({ text = '', contactState = {}, requested
     if (contactCameFromNitrix(contactState)) return AGENT_PROFILES[NITRIX_AGENT_KEY] || requestedProfile;
     if ([NITRIX_AGENT_KEY, VIT_POWER_AGENT_KEY, TEX_ULTRA_AGENT_KEY].includes(requestedProfile?.key)) return requestedProfile;
     if (explicitlyMentionsVitPower(text)) return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile;
-    return AGENT_PROFILES[VIT_POWER_AGENT_KEY] || requestedProfile || AGENT_PROFILES[NITRIX_AGENT_KEY];
+    return requestedProfile || null;
 };
 const noDropiBotTestPhones = () => [
     '5515998038637',
@@ -7928,7 +7928,6 @@ const holdNitrixForHuman = async ({
         { _id: contactStateId },
         {
             $set: {
-                assignedAgent: NITRIX_AGENT_KEY,
                 'human.mode': 'manual',
                 'human.assignedName': 'Atendimento Nitrix EC',
                 'human.lastManualAt': now,
@@ -7969,7 +7968,6 @@ const holdTexUltraForHuman = async ({
         { _id: contactStateId },
         {
             $set: {
-                assignedAgent: TEX_ULTRA_AGENT_KEY,
                 'human.mode': 'manual',
                 'human.assignedName': 'Atendimento Tex Ultra EC',
                 'human.lastManualAt': now,
@@ -8000,9 +7998,9 @@ const holdTexUltraForHuman = async ({
     return true;
 };
 
-export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES.nitrix_ec) => {
+export const handleAgentConversation = async (msg, agentProfile = null) => {
     try {
-        console.log(`[LOG_HANDLER_ENTER] 🚀 Processando mensagem... agente=${agentProfile.key}`);
+        console.log(`[LOG_HANDLER_ENTER] 🚀 Processando mensagem... produto=${agentProfile?.key || 'nao_definido'}`);
 
         const text = msg.body || '';
         const jid = msg.from;
@@ -8015,6 +8013,10 @@ export const handleAgentConversation = async (msg, agentProfile = AGENT_PROFILES
 
         const contactState = msg.contactStateId ? await ContactState.findById(msg.contactStateId).lean() : null;
         agentProfile = resolveAgentProfileForMessage({ text, contactState, requestedProfile: agentProfile });
+        if (!agentProfile?.key) {
+            console.warn(`[BOT] produto nao definido; resposta comercial bloqueada | chat=${jid}`);
+            return;
+        }
         const chatId = resolveRealChatId(msg, contactState);
         const peerPhone = digitsOnly(msg.senderPn) || digitsOnly(contactState?.phoneDigits) || digitsOnly(chatId);
         let customerContext = customerContextForAgentProfile(agentProfile, peerPhone);

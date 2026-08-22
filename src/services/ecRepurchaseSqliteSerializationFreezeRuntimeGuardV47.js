@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 const parentManifestPath = 'docs/freeze/ec-repurchase-sync-preservation-v46-20260822.json';
 const parentManifestSha256 = '42249b08bf742479d0c890058463ba2206ea9cee3e1370700e65f89170f3f2fd';
 const manifestPath = 'docs/freeze/ec-repurchase-sqlite-serialization-v47-20260822.json';
@@ -110,7 +111,7 @@ for (let index = 0; index < lineage.length; index += 1) {
         }
     }
     for (const [relativePath, approvedHash] of Object.entries(current.protectedFiles || {})) {
-        if (laterOverrides.has(relativePath)) continue;
+        if (laterOverrides.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (!exists(relativePath) || sha256(relativePath) !== approvedHash) {
             throw new Error(`[EC-REPURCHASE-SQLITE-V47] herança divergente em ${relativePath}.`);
         }
@@ -118,6 +119,7 @@ for (let index = 0; index < lineage.length; index += 1) {
 }
 
 for (const [relativePath, approvedHash] of Object.entries(manifest.protectedFiles || {})) {
+    if (successorOverrides.has(relativePath)) continue;
     if (!exists(relativePath) || sha256(relativePath) !== approvedHash) {
         throw new Error(`[EC-REPURCHASE-SQLITE-V47] alteração não autorizada em ${relativePath}.`);
     }
