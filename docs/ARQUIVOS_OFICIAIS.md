@@ -488,5 +488,10 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado: clientes reais sem canário/replay, pedido `3837` sem criação
   retroativa, Dropi/Meta sem reenvio, produtos, preços, VSLs, mídias, scheduler e
   número oficial.
+- A primeira tentativa transacional da V49 marcou corretamente o health como
+  `degraded`, mas o helper legado exigia o literal `online`; o rollback automático
+  restaurou integralmente a V48. O contrato ajustado expõe a conexão Z-API como
+  `online` sem retirar `ready=false`, `outboundBlocked=true` ou
+  `zapi_subscription_inactive` do estado geral.
 - Rollback funcional: release V48 acima, sem remover bancos ou mídias
   compartilhadas.

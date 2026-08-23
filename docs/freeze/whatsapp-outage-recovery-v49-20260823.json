@@ -42,7 +42,7 @@
   "protectedFiles": {
     "approved_freezes/APPROVED_WHATSAPP_OUTAGE_RECOVERY_V49_20260823.txt": "3ee3ae55591f92dee610ce8f5d66c18fff5019e65a9de342affe3551dd3458df",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "01164316a4792c3c8d4cd9762c42eaa4603f4e2ef1c4791fd7430fa4dca70c36",
-    "docs/ARQUIVOS_OFICIAIS.md": "6e0f5395369ce3f03df0b2c924fcebf3950dfbc6801b74057d13e6de17a6beae",
+    "docs/ARQUIVOS_OFICIAIS.md": "fa56089b393507b29291f026e1ae797a9eb8191459ebdcabed2be850926b75a6",
     "docs/WHATSAPP_OUTAGE_RECOVERY_FREEZE_V49_20260823.md": "482cee95ef88a903a13029d5cd762bc6d80275c53b839b80f413752fa72979bc",
     "package.json": "8322e38c4a565bbff64f0b0fb794618980b8f19de82962e4707fd247dafff54a",
     "scripts/assert-whatsapp-outage-recovery-activation-approved-v49.mjs": "d5982e1a2ef2a7a3a5ea2f69cfe8311330c7df4194c69d74ca8fa69a0ed3d3fb",
