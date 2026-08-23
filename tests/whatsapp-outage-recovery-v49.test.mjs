@@ -98,4 +98,8 @@ test('V49 mantém o health somente leitura e sem envio de canário', () => {
     assert.doesNotMatch(source, /sendZapi(?:Text|Audio|Image|Video|Document)/);
     assert.doesNotMatch(source, /router\.(?:post|put|patch|delete)\s*\(/);
     assert.match(source, /zapi_subscription_inactive/);
+    assert.equal(
+        [...source.matchAll(/connectionStatus:\s*zapi\.connected\s*\?\s*'online'\s*:\s*'offline'/g)].length,
+        2
+    );
 });
