@@ -120,3 +120,17 @@ test('registro V42 comprova aquecimento publicado, contato auditado e ausência 
     assert.match(result, /ec-engagement-panel-v42\.js`:[\s\S]*HTTP `200`/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V50 comprova painel publicado, PM2, rollback e validação sem cliente real', () => {
+    const result = readFileSync(
+        'docs/PANEL_MANUAL_EDIT_PERSISTENCE_ACTIVATION_RESULT_V50_20260823.md',
+        'utf8'
+    );
+    assert.match(result, /a17e51905c88c0d8bc2d605c7f3f837f2dd5b8d1/);
+    assert.match(result, /20260823T235000Z_production-20260823-a17e519/);
+    assert.match(result, /PID após reinício controlado: `2406151`/);
+    assert.match(result, /20260823T231500Z_production-20260823-cbc845b/);
+    assert.match(result, /correctedByHumanFields: \["name"\]/);
+    assert.match(result, /Nenhum cliente real foi editado/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
