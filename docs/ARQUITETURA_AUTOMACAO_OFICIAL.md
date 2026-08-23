@@ -944,3 +944,17 @@ Durante uma etapa comercial ativa `awaiting_*` ou `sdr_awaiting_*`, texto útil
 do cliente permanece em `ATENDIMENTO` e chega ao funil determinístico. Handoff,
 pausa e etapas terminais continuam bloqueadas. A correção não renova assinatura,
 não repete mensagens históricas e não cria pedidos ou autorizações Dropi.
+
+## Microcamada V50 de persistência da edição manual no painel EC
+
+O freeze `docs/PANEL_MANUAL_EDIT_PERSISTENCE_FREEZE_V50_20260823.md` sucede a
+V49. A ficha captura o contato, a revisão de edição e os campos marcados como
+correção humana antes de iniciar o salvamento. Recargas periódicas preservam o
+rascunho enquanto o operador está editando, e respostas assíncronas antigas não
+podem reaplicar valores anteriores nem atingir outro cliente.
+
+Os salvamentos são serializados e continuam usando as rotas autenticadas V28.
+Nome digitado ou aplicado por uma ação aceita pelo operador permanece com
+prioridade `human_correction`, `corrected_by_human=true` e lock persistente. A
+camada não envia WhatsApp, não altera pedido, Dropi, Meta/CAPI, produto, preço,
+VSL, funil, mídia, scheduler ou PM2.

@@ -1,0 +1,62 @@
+{
+  "freezeId": "panel-manual-edit-persistence-v50-20260823",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-23",
+  "country": "EC",
+  "parentFreezeId": "whatsapp-outage-recovery-v49-20260823",
+  "parentManifestSha256": "21d3268f2fc0e576c36c2fbe5ff5064999985855b8e830b145eec700e94e20dd",
+  "baseProductionSha": "cbc845b977930d586626c993d965d3633e0b929f",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260823T231500Z_production-20260823-cbc845b",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_test_and_activation_approved",
+    "approvedAt": "2026-08-23",
+    "source": "explicit_request_panel_manual_changes_are_undone_fix_and_complete_sweep"
+  },
+  "policy": {
+    "manualOperatorEditsAuthoritative": true,
+    "staleAsyncResponseCanOverwrite": false,
+    "savesSerialized": true,
+    "contactTargetCaptured": true,
+    "automaticOutboundChanged": false,
+    "realClientMutationForValidation": false,
+    "realClientSendAuthorized": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "scripts/guard-whatsapp-outage-recovery-v49.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_MANUAL_EDIT_PERSISTENCE_V50_20260823.txt",
+    "docs/PANEL_MANUAL_EDIT_PERSISTENCE_FREEZE_V50_20260823.md",
+    "public/panel-intelligence/customer-edit-guard-v50.js",
+    "scripts/assert-panel-manual-edit-persistence-activation-approved-v50.mjs",
+    "scripts/guard-panel-manual-edit-persistence-v50.mjs",
+    "src/services/panelManualEditPersistenceFreezeRuntimeGuardV50.js",
+    "tests/panel-manual-edit-persistence-v50.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_MANUAL_EDIT_PERSISTENCE_V50_20260823.txt": "43598361b27aa6b2b6a6fa1f82b0fad39e56a9f780027734753f39dbcf8ab9a4",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "cbf7b53df4b4ec1c73c3e7de1c3edc2d3926a6be68047f1a9def2984b7d0334b",
+    "docs/ARQUIVOS_OFICIAIS.md": "0107139cf7ec797f286860d8afd9d66e42dfdccbde1a0859b3c6bc1a71a15088",
+    "docs/PANEL_MANUAL_EDIT_PERSISTENCE_FREEZE_V50_20260823.md": "7ed80eca1ad389126021d851e95d2fc9a67c67917597d5ee3d3f9c1a2b207b02",
+    "package.json": "e5683de8b1eb0514d0f2b04a6cf56c25c1a906d0192651d1063f431bab08c560",
+    "public/panel-intelligence/customer-edit-guard-v50.js": "acf05791b4ac32228b5e016f7a6d06ab9b03c35b4a3b6ae664e652530ee7209e",
+    "public/qr.html": "446776c4ec43cbbb284334348637bf9ce428bdbae6a3f41f6ac796064043fd83",
+    "scripts/assert-panel-manual-edit-persistence-activation-approved-v50.mjs": "89e98ae98f0a92eaf44b3764b58fd49f9c9c050bb28516ab806ffd54a99bb1c6",
+    "scripts/guard-panel-manual-edit-persistence-v50.mjs": "cd5c3c935f27c000de9b62c308e500c57ba4a6b572e6446651cf02ff48fdc3fa",
+    "scripts/guard-whatsapp-outage-recovery-v49.mjs": "79f9f09d3dbb54b378d82173c245876349ca73f521dfb2337151cc2f6aa70ade",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "ca00e98fceb6593f918792ede40f99631aac168bd1807aaf26af9ed86db1bf05",
+    "src/services/panelManualEditPersistenceFreezeRuntimeGuardV50.js": "0abf284f900d74a31504d6ada0ab4fa9b805834e1db70238587ccb83afbafbb6",
+    "tests/panel-manual-edit-persistence-v50.test.mjs": "dfdb04dd8889ebafa538912fa452b007451b913c14152b8bc878577acbd9efd5",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "ab9bb1a714a0d5e34a021db45cb71a8aa56de123117cebdcabbe582cecf2e39e"
+  }
+}

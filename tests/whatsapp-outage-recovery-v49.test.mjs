@@ -103,3 +103,8 @@ test('V49 mantém o health somente leitura e sem envio de canário', () => {
         2
     );
 });
+
+test('V49 permanece encadeada pelo guard atual ou por sucessor declarado', () => {
+    const entryGuard = fs.readFileSync(new URL('../src/services/ecEngagementFreezeRuntimeGuardV40.js', import.meta.url), 'utf8');
+    assert.match(entryGuard, /(?:whatsappOutageRecoveryFreezeRuntimeGuardV49|panelManualEditPersistenceFreezeRuntimeGuardV50)\.js/);
+});
