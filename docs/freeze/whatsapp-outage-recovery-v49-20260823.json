@@ -47,11 +47,11 @@
     "package.json": "8322e38c4a565bbff64f0b0fb794618980b8f19de82962e4707fd247dafff54a",
     "scripts/assert-whatsapp-outage-recovery-activation-approved-v49.mjs": "d5982e1a2ef2a7a3a5ea2f69cfe8311330c7df4194c69d74ca8fa69a0ed3d3fb",
     "scripts/guard-whatsapp-outage-recovery-v49.mjs": "135c6f47383cea19a2f87779d1080d8b5aae2f7e3ee79907cb55d39bd0eea7b7",
-    "src/routes/health.js": "be49a7f478d7492cd60bcffb1a03130aa4df716f31bca798e2be307e04c1165f",
+    "src/routes/health.js": "5def28237bb8ee77498a2c44c1913dde32dbbfcafca77fec5e05bea71cd43060",
     "src/services/ecConversationBucketService.js": "5b40b8fd179dd8ee1357d733b5c04089fcd9963698f5f3829a417dce1dec8ab8",
     "src/services/ecEngagementFreezeRuntimeGuardV40.js": "acc324264d656e9ea162fd0009baa3217792ea45af04aa6f59b070565a45c0e2",
     "src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js": "46c4625dbca8774c5a1b9217294c56ce2fb3461d80204dc9271086b621de38c7",
     "src/services/whatsappOutageRecoveryFreezeRuntimeGuardV49.js": "270b84d3523a0873f85306a5eff9dab1c4d718ce4008fbcfe0c481133498a1b4",
-    "tests/whatsapp-outage-recovery-v49.test.mjs": "99258857f5e1527ce81d8cc9ce3fbbd3c7fe9dafa4d577e43bce314ed2c32aa7"
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "d63be3c52d06cfe8e9ffaed1347494105b7712ac00a22887efbff295b5dc3d56"
   }
 }

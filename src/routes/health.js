@@ -162,6 +162,7 @@ router.get('/', async (req, res) => {
             zapi: {
                 configured: zapi.configured,
                 connected: zapi.connected,
+                connectionStatus: zapi.connected ? 'online' : 'offline',
                 outboundBlocked: zapi.outboundBlocked,
                 error: zapi.error ? 'status_unavailable' : ''
             },
@@ -172,6 +173,7 @@ router.get('/', async (req, res) => {
                     required: transportHealth.zapiRequired,
                     configured: zapi.configured.enabled,
                     connected: zapi.connected,
+                    connectionStatus: zapi.connected ? 'online' : 'offline',
                     outboundBlocked: zapi.outboundBlocked
                 },
                 baileys: {
