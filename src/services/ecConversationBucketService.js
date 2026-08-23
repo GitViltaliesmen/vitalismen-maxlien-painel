@@ -30,6 +30,8 @@ const PRICE_OBJECTION_REGEX = /\b(?:muy\s+caro|esta\s+caro|mas\s+barato|precio\s
 const RISK_REGEX = /\b(?:sexo|sexual|porn|pornografia|xxx|desnud|chup|culo|pene|vagina|meterte|metertelo|violacion|amenaz|matar|violencia|arma|droga|extors|codigo\s+de\s+verificacion|contrasena|clave\s+bancaria)\b/i;
 const OPT_OUT_REGEX = /\b(?:no\s+me\s+escrib|no\s+quiero\s+mensaje|deje\s+de\s+escribir|no\s+contacte|basta|bloquear|pare|no\s+moleste)\b/i;
 const GREETING_REGEX = /\b(?:hola|buenos\s+dias|buenas\s+tardes|buenas\s+noches|saludos|como\s+esta|como\s+estas|que\s+tal)\b/i;
+const ACTIVE_FUNNEL_STAGE_REGEX = /^(?:awaiting_|sdr_awaiting_)/;
+const TERMINAL_OR_HUMAN_STAGE_REGEX = /(?:confirmed|cancelled|closed|handoff|paused|completed|failed)/;
 
 export const countEcEngagementPassiveInbound = ({ automation = {}, messageId = '', eligible = false } = {}) => {
     const normalizedMessageId = String(messageId || '').trim();
@@ -116,6 +118,21 @@ const statePhoneDigits = (state = {}) => digitsOnly(
     || state.metadata?.customerDraft?.phone
     || state.chatId
 );
+
+export const activeEcCommercialFunnelStage = (state = {}) => {
+    const productKey = String(state.metadata?.productKey || '').trim();
+    if (!['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec'].includes(productKey)) return '';
+    const productMemory = state.metadata?.perAgentMemory?.[productKey] || {};
+    const stage = normalizeConversationText(
+        productMemory.stage
+        || productMemory.principalSdrStage
+        || productMemory.lastFunnelStage
+        || state.metadata?.lastKnownFunnelStage
+        || ''
+    ).replace(/\s+/g, '_');
+    if (!ACTIVE_FUNNEL_STAGE_REGEX.test(stage) || TERMINAL_OR_HUMAN_STAGE_REGEX.test(stage)) return '';
+    return stage;
+};
 
 const phoneTails = (value = '') => {
     const digits = digitsOnly(value);
@@ -247,9 +264,14 @@ export const classifyEcConversationSnapshot = ({
     const optOut = OPT_OUT_REGEX.test(recentCommercialText) || OPT_OUT_REGEX.test(latestText);
     const strongPurchase = STRONG_PURCHASE_REGEX.test(latestText);
     const priceObjection = PRICE_OBJECTION_REGEX.test(latestText);
+    const activeCommercialStage = activeEcCommercialFunnelStage(state);
+    const inboundKind = currentInboundKind(latestInbound || {});
+    const contextualFunnelReply = Boolean(activeCommercialStage)
+        && !['empty', 'reaction_only', 'media_only', 'link_only'].includes(inboundKind);
     const supportIntent = SUPPORT_REGEX.test(latestText)
         || (activeOrders.length + activeShipments.length > 0 && SUPPORT_REGEX.test(recentCommercialText));
-    const commercialIntent = strongPurchase
+    const commercialIntent = contextualFunnelReply
+        || strongPurchase
         || priceObjection
         || COMMERCIAL_REGEX.test(latestText)
         || (recentCommercialInbound.length <= 4 && COMMERCIAL_REGEX.test(recentCommercialText));
@@ -288,8 +310,16 @@ export const classifyEcConversationSnapshot = ({
         reasons.push(activeOrders.length || activeShipments.length ? 'active_order_obligation' : 'support_intent');
     } else if (commercialIntent) {
         bucket = EC_CONVERSATION_BUCKETS.ATTENDANCE;
-        score = strongPurchase ? 100 : 95;
-        reasons.push(strongPurchase ? 'strong_purchase_intent' : priceObjection ? 'price_objection' : 'commercial_intent');
+        score = strongPurchase || contextualFunnelReply ? 100 : 95;
+        reasons.push(
+            contextualFunnelReply
+                ? 'active_funnel_reply'
+                : strongPurchase
+                    ? 'strong_purchase_intent'
+                    : priceObjection
+                        ? 'price_objection'
+                        : 'commercial_intent'
+        );
     } else if (highConfidenceEngagement) {
         bucket = EC_CONVERSATION_BUCKETS.ENGAGEMENT;
         score = Math.min(98, 72 + Math.min(10, activeDays.size) + Math.min(8, recentEngagementInbound.length) + Math.min(8, questions));
@@ -333,6 +363,8 @@ export const classifyEcConversationSnapshot = ({
             optOut,
             supportIntent,
             commercialIntent,
+            contextualFunnelReply,
+            activeCommercialStage,
             strongPurchase,
             priceObjection,
             legacyManualAllowed,

@@ -932,3 +932,15 @@ entrega preservado pode iniciar o novo ciclo `confirmado`.
 
 Nenhuma ordem, Shipment ou Purchase é recriado. Dropi continua manual e a fila
 global `Novas` permanece sem contatos do bucket `AQUECIMENTO`.
+
+## Microcamada V49 de recuperação da indisponibilidade WhatsApp EC
+
+O freeze `docs/WHATSAPP_OUTAGE_RECOVERY_FREEZE_V49_20260823.md` sucede a V48.
+O transporte oficial continua sendo a Z-API, mas o health deixa de considerar
+o sistema pronto quando há um erro persistido de assinatura posterior à última
+saída bem-sucedida. A consulta é somente leitura e não envia canário.
+
+Durante uma etapa comercial ativa `awaiting_*` ou `sdr_awaiting_*`, texto útil
+do cliente permanece em `ATENDIMENTO` e chega ao funil determinístico. Handoff,
+pausa e etapas terminais continuam bloqueadas. A correção não renova assinatura,
+não repete mensagens históricas e não cria pedidos ou autorizações Dropi.

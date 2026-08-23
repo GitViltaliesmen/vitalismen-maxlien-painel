@@ -471,3 +471,22 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `scripts/guard-ec-repurchase-sqlite-serialization-v47.mjs`.
 - Preservado: ordem/Purchase existentes, entrega histórica, Dropi manual e
   separação de AQUECIMENTO da aba `Novas`.
+
+### Microcamada V49 — recuperação da indisponibilidade WhatsApp EC — 2026-08-23
+
+- Base oficial lida antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260822T232706Z_production-20260822-cd61ae1`,
+  commit `cd61ae1df2103c31790dde2b45d03be36f3de34f`.
+- Diagnóstico externo: Z-API conectada para leitura/webhook, mas saídas bloqueadas
+  por assinatura inativa; renovação manual permanece responsabilidade do operador.
+- Health somente leitura: `src/routes/health.js`.
+- Roteamento contextual: `src/services/ecConversationBucketService.js`.
+- Teste: `tests/whatsapp-outage-recovery-v49.test.mjs`.
+- Freeze/guard: `docs/WHATSAPP_OUTAGE_RECOVERY_FREEZE_V49_20260823.md`,
+  `docs/freeze/whatsapp-outage-recovery-v49-20260823.json` e
+  `scripts/guard-whatsapp-outage-recovery-v49.mjs`.
+- Preservado: clientes reais sem canário/replay, pedido `3837` sem criação
+  retroativa, Dropi/Meta sem reenvio, produtos, preços, VSLs, mídias, scheduler e
+  número oficial.
+- Rollback funcional: release V48 acima, sem remover bancos ou mídias
+  compartilhadas.

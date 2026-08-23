@@ -15,6 +15,7 @@ export const zapiConnectedFromStatus = (status = {}) => {
 export const evaluateOperationalWhatsappHealth = ({
     zapiConfigured = false,
     zapiConnected = false,
+    zapiOutboundBlocked = false,
     whatsappConnectEnabled = true,
     connectedSessionCount = 0,
     loggedOutSessionCount = 0,
@@ -26,6 +27,7 @@ export const evaluateOperationalWhatsappHealth = ({
     const degradedReasons = [];
 
     if (zapiRequired && !zapiConnected) degradedReasons.push('zapi_not_connected');
+    if (zapiRequired && zapiOutboundBlocked) degradedReasons.push('zapi_subscription_inactive');
     if (baileysRequired && connectedSessionCount < 1) degradedReasons.push('no_connected_whatsapp_session');
     if (baileysRequired && loggedOutSessionCount > 0) degradedReasons.push('logged_out_session_present');
     if (!zapiRequired && !whatsappConnectEnabled) degradedReasons.push('no_operational_whatsapp_transport');
@@ -33,11 +35,25 @@ export const evaluateOperationalWhatsappHealth = ({
 
     return {
         officialTransport,
-        ready: zapiRequired ? zapiConnected : connectedSessionCount > 0,
+        ready: zapiRequired ? zapiConnected && !zapiOutboundBlocked : connectedSessionCount > 0,
         zapiRequired,
         baileysRequired,
         degradedReasons
     };
+};
+
+const messageDate = (message = {}) => {
+    const value = message.createdAt || message.updatedAt || null;
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+
+export const zapiSubscriptionBlockedFromMessages = ({ lastFailure = null, lastSuccess = null } = {}) => {
+    if (!/subscribe to this instance again/i.test(String(lastFailure?.sendError || ''))) return false;
+    const failureAt = messageDate(lastFailure);
+    if (!failureAt) return false;
+    const successAt = messageDate(lastSuccess);
+    return !successAt || successAt.getTime() <= failureAt.getTime();
 };
 
 /**
@@ -58,6 +74,7 @@ router.get('/', async (req, res) => {
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
+            outboundBlocked: false,
             error: ''
         };
         if (zapi.configured.enabled) {
@@ -66,6 +83,23 @@ router.get('/', async (req, res) => {
             } catch (error) {
                 zapi.error = error.message || 'zapi_status_failed';
             }
+            const [lastSubscriptionFailure, lastSuccessfulOutbound] = await Promise.all([
+                Message.findOne({
+                    isFromMe: true,
+                    deliveryStatus: 'failed',
+                    sendError: { $regex: 'subscribe to this instance again', $options: 'i' }
+                }).sort({ createdAt: -1 }).select('createdAt updatedAt sendError').lean(),
+                Message.findOne({
+                    isFromMe: true,
+                    provider: 'zapi',
+                    deliveryStatus: { $in: ['sent', 'delivered', 'read'] },
+                    providerMessageId: { $nin: ['', null] }
+                }).sort({ createdAt: -1 }).select('createdAt updatedAt').lean()
+            ]);
+            zapi.outboundBlocked = zapiSubscriptionBlockedFromMessages({
+                lastFailure: lastSubscriptionFailure,
+                lastSuccess: lastSuccessfulOutbound
+            });
         }
         const recentInboundContacts = await ContactState.countDocuments({ lastInboundAt: { $gte: last24Hours } });
         const recentOutboundContacts = await ContactState.countDocuments({ lastOutboundAt: { $gte: last24Hours } });
@@ -78,6 +112,7 @@ router.get('/', async (req, res) => {
         const transportHealth = evaluateOperationalWhatsappHealth({
             zapiConfigured: zapi.configured.enabled,
             zapiConnected: zapi.connected,
+            zapiOutboundBlocked: zapi.outboundBlocked,
             whatsappConnectEnabled,
             connectedSessionCount: connectedSessions.length,
             loggedOutSessionCount: loggedOutSessions.length,
@@ -127,6 +162,7 @@ router.get('/', async (req, res) => {
             zapi: {
                 configured: zapi.configured,
                 connected: zapi.connected,
+                outboundBlocked: zapi.outboundBlocked,
                 error: zapi.error ? 'status_unavailable' : ''
             },
             transports: {
@@ -135,7 +171,8 @@ router.get('/', async (req, res) => {
                 zapi: {
                     required: transportHealth.zapiRequired,
                     configured: zapi.configured.enabled,
-                    connected: zapi.connected
+                    connected: zapi.connected,
+                    outboundBlocked: zapi.outboundBlocked
                 },
                 baileys: {
                     required: transportHealth.baileysRequired,
