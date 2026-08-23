@@ -8860,6 +8860,7 @@
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
+    <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8999,6 +9000,8 @@
             customerFieldAutoSaveTimer: null,
             customerFieldAutoSaveSeq: 0,
             customerFieldAutoSaveInFlight: false,
+            customerFormEditRevision: 0,
+            customerDataSaveQueue: Promise.resolve(),
             customerCorrectedFields: new Set(),
             customerDataResolution: null
         };
@@ -9509,7 +9512,12 @@
             if (state.selectedChat?.orderId === adminOrderId) {
                 state.selectedChat.orderStatus = status;
                 setInputValue('customerStatusInput', status);
-                clearCustomerFormDirty();
+                const preserveManualEdit = window.VitalismenCustomerEditGuardV50?.shouldPreserveManualEdit?.({
+                    dirty: state.customerFormDirty,
+                    dirtyChatId: state.customerFormDirtyChatId,
+                    selectedChatId: state.selectedChat.id
+                }) ?? (state.customerFormDirty && state.customerFormDirtyChatId === state.selectedChat.id);
+                if (!preserveManualEdit) clearCustomerFormDirty();
                 renderSelectedDetails();
             }
             await Promise.all([
@@ -10577,6 +10585,7 @@
         };
         const markCustomerFormDirty = () => {
             if (!state.selectedChat) return;
+            state.customerFormEditRevision += 1;
             state.customerFormDirty = true;
             state.customerFormDirtyChatId = state.selectedChat.id;
             rememberEditingCustomerDraft();
@@ -10625,6 +10634,20 @@
             quantity: { label: 'Quantidade', inputId: 'customerQuantityInput' },
             reference: { label: 'Referencia', inputId: 'customerReferenceInput' },
             reply: { label: 'Resposta', inputId: 'messageInput', composer: true }
+        };
+        const customerResolutionFieldForInput = (inputId = '') => ({
+            customerNameInput: 'name',
+            customerCityInput: 'city',
+            customerProvinceInput: 'province',
+            customerDeliveryModeInput: 'deliveryMode',
+            customerAgencyNameInput: 'agency',
+            customerAddressInput: 'address',
+            customerReferenceInput: 'reference'
+        })[inputId] || '';
+        const markCustomerInputCorrectedByHuman = (inputId = '') => {
+            const field = customerResolutionFieldForInput(inputId);
+            if (field) state.customerCorrectedFields.add(field);
+            return field;
         };
         const copyTextToClipboard = async (text) => {
             const value = normalizeQuickCopyText(text);
@@ -10794,6 +10817,7 @@
                 if (typeof input.setSelectionRange === 'function') input.setSelectionRange(input.value.length, input.value.length);
             }
             if (!config.composer) {
+                markCustomerInputCorrectedByHuman(config.inputId);
                 markCustomerFormDirty();
                 scheduleCustomerFieldAutoSave({ delay: 600, source: 'quick-copy' });
             }
@@ -11313,6 +11337,7 @@
                 const key = `${city}|${province}|${agencySearch}|${reference}`;
                 if (key === state.agencyLookupKey && !immediate) return;
                 state.agencyLookupKey = key;
+                const lookupChatId = state.selectedChat?.id || '';
                 el('agencySuggestions').classList.remove('hidden');
                 el('agencySuggestionsState').textContent = 'buscando...';
                 try {
@@ -11326,6 +11351,10 @@
                         automaticQuery = city;
                         cityUsedAsAgencyQuery = agencies.length > 0;
                     }
+                    if (
+                        state.selectedChat?.id !== lookupChatId
+                        || state.agencyLookupKey !== key
+                    ) return;
                     renderAgencySuggestions(agencies);
 
                     const intelligence = window.VitalismenCustomerFormIntelligence;
@@ -12447,6 +12476,7 @@
 
         async function addCustomerContactFromForm({ silent = false } = {}) {
             const draft = customerDraftFromForm();
+            const selectedChatAtStart = state.selectedChat;
             if (!draft.phone) {
                 showToast('Informe o WhatsApp do cliente na ficha.');
                 return null;
@@ -12465,7 +12495,9 @@
             if (!silent) showToast(panelSyncMessage(result, 'Cliente adicionado ao atendimento'));
             await loadChats();
             const added = findChatByPhone(payload.phone);
-            if (added) selectChat(added.id);
+            if (added && (!selectedChatAtStart || sameChatIdentity(state.selectedChat, selectedChatAtStart))) {
+                selectChat(added.id);
+            }
             return result;
         }
 
@@ -14679,6 +14711,7 @@
             ) || preferExplicitName;
             if (nameCanBeFilled && detected.name) {
                 setInputValue('customerNameInput', detected.name);
+                markCustomerInputCorrectedByHuman('customerNameInput');
                 changedFields.push('nome');
             }
 
@@ -14686,6 +14719,7 @@
                 const input = el(inputId);
                 if (!input || !String(value || '').trim() || String(input.value || '').trim()) return;
                 setInputValue(inputId, value);
+                markCustomerInputCorrectedByHuman(inputId);
                 changedFields.push(label);
             };
             fillEmpty('customerCityInput', detected.city, 'cidade');
@@ -14776,7 +14810,10 @@
                     + '\n\nAplicar estes campos à ficha? Você poderá editar tudo normalmente antes do envio.'
                 );
                 if (!accepted) return;
-                fields.forEach(([, inputId, value]) => setInputValue(inputId, value));
+                fields.forEach(([, inputId, value]) => {
+                    setInputValue(inputId, value);
+                    markCustomerInputCorrectedByHuman(inputId);
+                });
                 markCustomerFormDirty();
                 scheduleCustomerFieldAutoSave({ delay: 700, source: 'customer-image-reader' });
                 el('customerSyncHint').textContent = `Dados da imagem aplicados e salvando: ${fields.map(([label]) => label.toLowerCase()).join(', ')}.`;
@@ -15117,9 +15154,13 @@
                 : 'Atendimento sem pedido';
             renderFlowCorrectionStatus(chat);
             state.customerDataResolution = chat.customerDataResolution || chat.customerDraft?.dataResolution || null;
-            state.customerCorrectedFields.clear();
+            const keepManualEdit = window.VitalismenCustomerEditGuardV50?.shouldPreserveManualEdit?.({
+                dirty: state.customerFormDirty,
+                dirtyChatId: state.customerFormDirtyChatId,
+                selectedChatId: chat.id
+            }) ?? (state.customerFormDirty && state.customerFormDirtyChatId === chat.id);
+            if (!keepManualEdit) state.customerCorrectedFields.clear();
             renderCustomerDataQuality(state.customerDataResolution);
-            const keepManualEdit = state.customerFormDirty && state.customerFormDirtyChatId === chat.id;
             el('customerFormState').textContent = keepManualEdit
                 ? 'editando, salve para fixar'
                 : (chat.orderId ? `pedido ${chat.orderId}` : 'sem pedido vinculado');
@@ -18360,9 +18401,30 @@
             }
         }
 
-        async function persistSelectedCustomerData({ silent = false, allowPartialConfirmedSave = false } = {}) {
+        async function persistSelectedCustomerDataNow({ silent = false, allowPartialConfirmedSave = false } = {}) {
             if (!state.selectedChat) return;
             const chat = state.selectedChat;
+            const saveSnapshot = window.VitalismenCustomerEditGuardV50?.captureSaveSnapshot?.({
+                chatId: chat.id,
+                contactStateKey: currentContactStateKey(),
+                editRevision: state.customerFormEditRevision,
+                correctedFields: [...state.customerCorrectedFields]
+            }) || {
+                chatId: chat.id,
+                contactStateKey: currentContactStateKey(),
+                editRevision: state.customerFormEditRevision,
+                correctedFields: [...state.customerCorrectedFields]
+            };
+            const saveSnapshotIsCurrent = () => (
+                window.VitalismenCustomerEditGuardV50?.isSaveSnapshotCurrent?.({
+                    snapshot: saveSnapshot,
+                    selectedChatId: state.selectedChat?.id || '',
+                    editRevision: state.customerFormEditRevision
+                }) ?? (
+                    saveSnapshot.chatId === state.selectedChat?.id
+                    && saveSnapshot.editRevision === state.customerFormEditRevision
+                )
+            );
             const note = el('customerNoteInput').value.trim();
             const productInfo = productInfoForKey(el('customerProductInput')?.value || productKeyFromChat(chat));
             let orderNotice = '';
@@ -18386,7 +18448,7 @@
                 total: el('customerTotalInput').value,
                 orderId: formOrderId || chatOrderId
             };
-            customerDraft.country = el('customerCountryInput').value || state.selectedChat.country || selectedPanelCountry();
+            customerDraft.country = el('customerCountryInput').value || chat.country || selectedPanelCountry();
             const draftCountry = String(customerDraft.country || '').toUpperCase();
             if (draftCountry === 'EC') {
                 customerDraft.product = productInfo.name;
@@ -18398,27 +18460,29 @@
             }
             let resolvedCustomerData = state.customerDataResolution;
             if (draftCountry === 'EC') {
-                const preview = await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentContactStateKey())}/resolve-customer-data`, {
+                const preview = await api(`/api/whatsapp/contact-state/${encodeURIComponent(saveSnapshot.contactStateKey)}/resolve-customer-data`, {
                     method: 'POST',
                     body: JSON.stringify({
                         customerDraft,
                         customerDataConfirmation: {
-                            correctedByHumanFields: [...state.customerCorrectedFields]
+                            correctedByHumanFields: saveSnapshot.correctedFields
                         }
                     })
                 });
                 Object.assign(customerDraft, preview.customerDraft || {});
                 resolvedCustomerData = preview.customerDataResolution || null;
-                state.customerDataResolution = resolvedCustomerData;
-                renderCustomerDataQuality(resolvedCustomerData);
-                ['name', 'city', 'province', 'address', 'reference', 'deliveryMode', 'agencyName'].forEach((field) => {
-                    const inputId = {
-                        name: 'customerNameInput', city: 'customerCityInput', province: 'customerProvinceInput',
-                        address: 'customerAddressInput', reference: 'customerReferenceInput', deliveryMode: 'customerDeliveryModeInput',
-                        agencyName: 'customerAgencyNameInput'
-                    }[field];
-                    if (inputId && Object.prototype.hasOwnProperty.call(customerDraft, field)) setInputValue(inputId, customerDraft[field]);
-                });
+                if (saveSnapshotIsCurrent()) {
+                    state.customerDataResolution = resolvedCustomerData;
+                    renderCustomerDataQuality(resolvedCustomerData);
+                    ['name', 'city', 'province', 'address', 'reference', 'deliveryMode', 'agencyName'].forEach((field) => {
+                        const inputId = {
+                            name: 'customerNameInput', city: 'customerCityInput', province: 'customerProvinceInput',
+                            address: 'customerAddressInput', reference: 'customerReferenceInput', deliveryMode: 'customerDeliveryModeInput',
+                            agencyName: 'customerAgencyNameInput'
+                        }[field];
+                        if (inputId && Object.prototype.hasOwnProperty.call(customerDraft, field)) setInputValue(inputId, customerDraft[field]);
+                    });
+                }
             }
             const apiOrderStatus = orderStatusForApi(customerDraft.status);
             const isAdminLeadOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(String(chat.orderId || customerDraft.orderId || ''));
@@ -18520,48 +18584,53 @@
                 });
                 if (created.orderId) {
                     chat.orderId = created.orderId;
-                    state.selectedChat.orderId = created.orderId;
                     customerDraft.orderId = created.orderId;
                     customerDraft.currentNegotiationOrderId = created.orderId;
-                    setInputValue('customerOrderInput', created.orderId);
+                    if (saveSnapshotIsCurrent()) {
+                        state.selectedChat.orderId = created.orderId;
+                        setInputValue('customerOrderInput', created.orderId);
+                    }
                     orderNotice = `Pedido novo criado: ${created.orderId}`;
                 }
             }
 
-            const contactSave = await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentContactStateKey())}`, {
+            const contactSave = await api(`/api/whatsapp/contact-state/${encodeURIComponent(saveSnapshot.contactStateKey)}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
                     note,
                     customerDraft,
                     customerDataConfirmation: {
-                        correctedByHumanFields: [...state.customerCorrectedFields]
+                        correctedByHumanFields: saveSnapshot.correctedFields
                     }
                 })
             });
             const adminLeadSync = historicalOrderId
                 ? { skipped: true, reason: 'historical_order_preserved', previousOrderId: historicalOrderId }
                 : await syncAdminLeadStatus({
-                    orderId: chat.orderId || el('customerOrderInput').value.trim(),
+                    orderId: chat.orderId || customerDraft.orderId,
                     country: customerDraft.country,
                     status: customerDraft.status,
                     customerDraft
                 });
             const syncedDraft = contactSave?.state?.metadata?.customerDraft || {};
-            state.customerDataResolution = contactSave?.state?.customerDataResolution || resolvedCustomerData || null;
-            renderCustomerDataQuality(state.customerDataResolution);
+            const savedCustomerDataResolution = contactSave?.state?.customerDataResolution || resolvedCustomerData || null;
+            if (saveSnapshotIsCurrent()) {
+                state.customerDataResolution = savedCustomerDataResolution;
+                renderCustomerDataQuality(state.customerDataResolution);
+            }
             if (syncedDraft.orderId && syncedDraft.orderId !== customerDraft.orderId) {
                 customerDraft.orderId = syncedDraft.orderId;
-                setInputValue('customerOrderInput', syncedDraft.orderId);
+                if (saveSnapshotIsCurrent()) setInputValue('customerOrderInput', syncedDraft.orderId);
             }
             if (syncedDraft.flowDataOk) {
                 customerDraft.flowDataOk = syncedDraft.flowDataOk;
             }
 
-            state.selectedChat = {
-                ...state.selectedChat,
-                name: customerDraft.name || state.selectedChat.name,
-                phone: customerDraft.phone || state.selectedChat.phone,
-                country: customerDraft.country || state.selectedChat.country,
+            const savedChat = {
+                ...chat,
+                name: customerDraft.name || chat.name,
+                phone: customerDraft.phone || chat.phone,
+                country: customerDraft.country || chat.country,
                 city: customerDraft.city,
                 province: customerDraft.province,
                 address: customerDraft.address,
@@ -18569,8 +18638,8 @@
                 deliveryMode: customerDraft.deliveryMode,
                 agencyId: customerDraft.agencyId,
                 agencyName: customerDraft.agencyName,
-                customerDataResolution: state.customerDataResolution,
-                orderId: customerDraft.orderId || state.selectedChat.orderId,
+                customerDataResolution: savedCustomerDataResolution,
+                orderId: customerDraft.orderId || chat.orderId,
                 orderStatus: customerDraft.status,
                 buyLaterFollowupAt: customerDraft.buyLaterFollowupAt,
                 quantity: customerDraft.quantity,
@@ -18581,21 +18650,47 @@
                     productMedia: customerDraft.productMedia
                 } : {}),
                 notes: note,
-                flowDataOk: syncedDraft.flowDataOk || customerDraft.flowDataOk || state.selectedChat.flowDataOk || {},
+                flowDataOk: syncedDraft.flowDataOk || customerDraft.flowDataOk || chat.flowDataOk || {},
                 customerDraft: {
-                    ...(state.selectedChat.customerDraft || {}),
+                    ...(chat.customerDraft || {}),
                     ...customerDraft,
                     ...(syncedDraft.flowDataOk ? { flowDataOk: syncedDraft.flowDataOk } : {}),
                     note
                 }
             };
-            rememberSavedCustomerDraft(customerDraft, { note, chat: state.selectedChat });
-            state.customerCorrectedFields.clear();
-            loadCustomerProfile().catch(() => null);
-            clearCustomerFormDirty();
+            const selectedChatStillMatches = sameChatIdentity(state.selectedChat, chat);
+            const saveIsCurrent = selectedChatStillMatches && saveSnapshotIsCurrent();
+            const newerManualEditExists = selectedChatStillMatches && !saveIsCurrent;
+            if (selectedChatStillMatches) {
+                state.selectedChat = newerManualEditExists
+                    ? applyCustomerDraftToChat(savedChat, customerDraftFromForm())
+                    : savedChat;
+            }
+            if (newerManualEditExists) {
+                rememberCustomerDraftInCache(state.customerSavedDrafts, customerDraft, { note, chat: savedChat });
+                rememberEditingCustomerDraft();
+            } else {
+                rememberSavedCustomerDraft(customerDraft, { note, chat: savedChat });
+            }
+            if (saveIsCurrent) {
+                state.customerCorrectedFields.clear();
+                clearCustomerFormDirty();
+                loadCustomerProfile().catch(() => null);
+            }
             notifyLeadsClientsRefresh(customerDraft.country);
             if (!silent) showToast(orderNotice || panelSyncMessage(contactSave, 'Dados do cliente salvos'));
-            return { ...contactSave, adminLeadSync, orderNotice };
+            return { ...contactSave, adminLeadSync, orderNotice, preservedNewerEdits: newerManualEditExists };
+        }
+
+        async function persistSelectedCustomerData(options = {}) {
+            const queueSave = window.VitalismenCustomerEditGuardV50?.queueSave
+                || ((previousSave, operation) => Promise.resolve(previousSave).catch(() => undefined).then(operation));
+            const queuedSave = queueSave(
+                state.customerDataSaveQueue,
+                () => persistSelectedCustomerDataNow(options)
+            );
+            state.customerDataSaveQueue = queuedSave.catch(() => undefined);
+            return queuedSave;
         }
 
         async function saveCustomerForm(event) {
@@ -18737,7 +18832,7 @@
         };
 
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat) return;
             rememberEditingCustomerDraft();
             const selectedChatId = state.selectedChat.id;
             const seq = state.customerFieldAutoSaveSeq + 1;
@@ -18758,10 +18853,15 @@
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     if (state.selectedChat?.id === selectedChatId) {
-                        el('customerSyncHint').textContent = 'Ficha salva automaticamente.';
-                        el('customerSyncBadge').textContent = 'salvo';
-                        el('customerSyncBadge').className = 'badge green';
-                        el('customerFormState').textContent = result?.orderNotice || 'salvo automaticamente';
+                        const newerEdit = result?.preservedNewerEdits === true;
+                        el('customerSyncHint').textContent = newerEdit
+                            ? 'Nova alteração detectada; mantendo o que você digitou e salvando em seguida.'
+                            : 'Ficha salva automaticamente.';
+                        el('customerSyncBadge').textContent = newerEdit ? 'editando' : 'salvo';
+                        el('customerSyncBadge').className = `badge ${newerEdit ? 'orange' : 'green'}`;
+                        el('customerFormState').textContent = newerEdit
+                            ? 'editando, sem sobrescrever'
+                            : (result?.orderNotice || 'salvo automaticamente');
                     }
                 } catch (error) {
                     el('customerSyncHint').textContent = 'Erro ao salvar automaticamente. Use Salvar dados.';
@@ -18775,7 +18875,7 @@
         };
 
         const autoSaveCustomerFieldBlur = (event) => {
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat) return;
             const input = event?.target;
             if (!input || input.id === 'customerStatusInput') return;
             scheduleCustomerFieldAutoSave({ delay: 250, source: 'blur' });
@@ -18784,6 +18884,8 @@
         async function sendManualGuideFromForm() {
             if (state.busy) return;
             const draft = customerDraftFromForm();
+            const guideChatId = state.selectedChat?.id || '';
+            const guideEditRevision = state.customerFormEditRevision;
             const trackingNumber = el('manualGuideTrackingInput').value.trim();
             const guideStatus = el('manualGuideStatusInput').value || 'GUIA_GENERADA';
             const country = String(draft.country || '').toUpperCase();
@@ -18827,22 +18929,29 @@
                 });
                 const orderId = result?.order?.orderId || result?.shipment?.orderId || '';
                 const resolvedCustomer = result?.order?.customer || {};
-                if (resolvedCustomer.name) setInputValue('customerNameInput', resolvedCustomer.name);
-                if (resolvedCustomer.phone) setInputValue('customerPhoneInput', resolvedCustomer.phone);
-                if (resolvedCustomer.city) setInputValue('customerCityInput', resolvedCustomer.city);
-                if (resolvedCustomer.province) setInputValue('customerProvinceInput', resolvedCustomer.province);
-                if (resolvedCustomer.address) setInputValue('customerAddressInput', resolvedCustomer.address);
-                if (resolvedCustomer.reference) setInputValue('customerReferenceInput', resolvedCustomer.reference);
-                if (orderId) {
-                    setInputValue('customerOrderInput', orderId);
-                    if (state.selectedChat) state.selectedChat.orderId = orderId;
+                const guideChatStillSelected = state.selectedChat?.id === guideChatId;
+                const guideFormStillCurrent = guideChatStillSelected
+                    && state.customerFormEditRevision === guideEditRevision;
+                if (guideFormStillCurrent) {
+                    if (resolvedCustomer.name) setInputValue('customerNameInput', resolvedCustomer.name);
+                    if (resolvedCustomer.phone) setInputValue('customerPhoneInput', resolvedCustomer.phone);
+                    if (resolvedCustomer.city) setInputValue('customerCityInput', resolvedCustomer.city);
+                    if (resolvedCustomer.province) setInputValue('customerProvinceInput', resolvedCustomer.province);
+                    if (resolvedCustomer.address) setInputValue('customerAddressInput', resolvedCustomer.address);
+                    if (resolvedCustomer.reference) setInputValue('customerReferenceInput', resolvedCustomer.reference);
                 }
-                setInputValue('customerStatusInput', 'pedido_enviado');
-                await addCustomerContactFromForm({ silent: true });
-                clearCustomerFormDirty();
+                if (orderId && guideChatStillSelected) {
+                    setInputValue('customerOrderInput', orderId);
+                    state.selectedChat.orderId = orderId;
+                }
+                if (guideChatStillSelected) {
+                    setInputValue('customerStatusInput', 'pedido_enviado');
+                    await addCustomerContactFromForm({ silent: true });
+                    if (guideFormStillCurrent) clearCustomerFormDirty();
+                }
                 await Promise.all([loadChats(), loadShipments(), loadDashboardMetrics()]);
                 const added = findChatByPhone(resolvedCustomer.phone || draft.phone);
-                if (added) selectChat(added.id);
+                if (added && state.selectedChat?.id === guideChatId) selectChat(added.id);
                 showToast(result?.notifyResult?.success === false
                     ? `Guia criada, mas o envio nao confirmou: ${result.notifyResult.reason || 'verifique WhatsApp'}`
                     : 'Guia manual adicionada e aviso enviado');
@@ -20142,25 +20251,16 @@
             if (!state.selectedChat) return;
             syncDetectedCustomerDataFromMessages(state.currentMessages || [], { operatorRequested: true });
         });
-        const customerResolutionFieldByInput = {
-            customerNameInput: 'name',
-            customerCityInput: 'city',
-            customerProvinceInput: 'province',
-            customerDeliveryModeInput: 'deliveryMode',
-            customerAgencyNameInput: 'agency',
-            customerAddressInput: 'address',
-            customerReferenceInput: 'reference'
-        };
         ['customerNameInput', 'customerCountryInput', 'customerProductInput', 'customerPhoneInput', 'customerStatusInput', 'customerBuyLaterDateInput', 'customerCityInput', 'customerProvinceInput', 'customerDeliveryModeInput', 'customerAgencyNameInput', 'customerAddressInput', 'customerReferenceInput', 'customerQuantityInput', 'customerTotalInput', 'customerNoteInput'].forEach((id) => {
             el(id).addEventListener('input', () => {
-                if (customerResolutionFieldByInput[id]) state.customerCorrectedFields.add(customerResolutionFieldByInput[id]);
+                markCustomerInputCorrectedByHuman(id);
                 markCustomerFormDirty();
                 if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 900, source: 'input' });
                 }
             });
             el(id).addEventListener('change', () => {
-                if (customerResolutionFieldByInput[id]) state.customerCorrectedFields.add(customerResolutionFieldByInput[id]);
+                markCustomerInputCorrectedByHuman(id);
                 markCustomerFormDirty();
                 if (!['customerStatusInput', 'customerBuyLaterDateInput'].includes(id)) {
                     scheduleCustomerFieldAutoSave({ delay: 450, source: 'change' });

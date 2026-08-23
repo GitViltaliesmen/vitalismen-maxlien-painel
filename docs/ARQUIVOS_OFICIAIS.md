@@ -495,3 +495,24 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `zapi_subscription_inactive` do estado geral.
 - Rollback funcional: release V48 acima, sem remover bancos ou mídias
   compartilhadas.
+
+### Microcamada V50 — persistência da edição manual no painel EC — 2026-08-23
+
+- Base oficial lida antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260823T231500Z_production-20260823-cbc845b`,
+  commit `cbc845b977930d586626c993d965d3633e0b929f`.
+- Painel oficial: `public/qr.html`.
+- Política local e testável:
+  `public/panel-intelligence/customer-edit-guard-v50.js`.
+- Persistência do nome: rotas autenticadas em `src/routes/whatsapp.js` e lock
+  humano preservado por `src/services/customerNameResolutionService.js`; ambos
+  foram inspecionados e não alterados.
+- Teste: `tests/panel-manual-edit-persistence-v50.test.mjs` e navegador real com
+  API simulada, duas respostas fora de ordem e recarga periódica.
+- Freeze/guard: `docs/PANEL_MANUAL_EDIT_PERSISTENCE_FREEZE_V50_20260823.md`,
+  `docs/freeze/panel-manual-edit-persistence-v50-20260823.json` e
+  `scripts/guard-panel-manual-edit-persistence-v50.mjs`.
+- Preservado: nenhum cliente real editado no teste; nenhum envio WhatsApp,
+  pedido, Dropi, Meta/CAPI, produto, preço, VSL, mídia ou scheduler alterado.
+- Rollback funcional: release V49 acima, preservando bancos, mensagens e mídias
+  compartilhados.
