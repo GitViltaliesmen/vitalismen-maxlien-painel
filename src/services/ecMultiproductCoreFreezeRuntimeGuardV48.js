@@ -77,14 +77,24 @@ if (
     throw new Error('[EC-MULTIPRODUCT-V48] manifesto ou política inválida; startup bloqueado.');
 }
 
-globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = manifest.declaredAncestorOverrides || [];
+const inheritedSuccessorOverrides = globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || [];
+const successorOverrides = new Set(inheritedSuccessorOverrides);
+globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
+    ...successorOverrides,
+    ...(manifest.declaredAncestorOverrides || [])
+];
 try {
     await import('./ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js');
 } finally {
-    delete globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES;
+    if (inheritedSuccessorOverrides.length > 0) {
+        globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = inheritedSuccessorOverrides;
+    } else {
+        delete globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES;
+    }
 }
 
 for (const [relativePath, approvedHash] of Object.entries(manifest.protectedFiles || {})) {
+    if (successorOverrides.has(relativePath)) continue;
     if (!fs.existsSync(absolute(relativePath)) || sha256(relativePath) !== approvedHash) {
         throw new Error(`[EC-MULTIPRODUCT-V48] alteração não autorizada em ${relativePath}.`);
     }
