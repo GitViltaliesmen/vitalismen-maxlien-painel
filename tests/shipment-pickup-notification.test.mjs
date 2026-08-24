@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+    buildRefillReminderText,
     buildReminderText,
     getDuePickupReminderStep,
     isPickupProofText,
@@ -8,9 +9,11 @@ import {
     pickupHowToUseAudioForShipment,
     pickupLogisticsAudioForShipment,
     pickupProofMediaAllowedForShipment,
+    repurchaseProductPolicyForShipment,
     shouldBlockPickupReminderByHash,
     shipmentProductFamily
 } from '../src/services/shipmentMessageService.js';
+import { shipmentHistoryRepeatKey } from '../src/services/postSalePickupReconciliationPolicy.js';
 
 const agencyShipment = (overrides = {}) => ({
     productName: 'Nitrix Oxide Ecuador',
@@ -74,6 +77,25 @@ test('cadencia retorna uma unica proxima etapa vencida por execucao', () => {
     );
 });
 
+test('cadencia nunca seleciona shipment reservado ao operador manual', () => {
+    const shipment = agencyShipment({ review: { manualOnly: true } });
+    assert.equal(
+        getDuePickupReminderStep(shipment, new Date('2026-07-03T12:01:00.000Z')),
+        null
+    );
+});
+
+test('historico anti-spam separa as etapas aprovadas de retirada', () => {
+    const shipment = agencyShipment();
+    const keys = ['day1', 'soft_day2', 'soft_day4', 'soft_day6']
+        .map((kind) => shipmentHistoryRepeatKey(buildReminderText(shipment, kind)));
+    assert.equal(new Set(keys).size, 4);
+    assert.match(keys[0], /logistics_pickup_reminder:day1/);
+    assert.match(keys[1], /logistics_pickup_reminder:soft_day2/);
+    assert.match(keys[2], /logistics_pickup_reminder:soft_day4/);
+    assert.match(keys[3], /logistics_pickup_reminder:soft_day6/);
+});
+
 test('textos da agencia mantem os seis passos previstos', () => {
     const shipment = agencyShipment();
     assert.match(buildReminderText(shipment, 'day1'), /continúa disponible en Servientrega/i);
@@ -91,6 +113,26 @@ test('audio de uso respeita o produto e bloqueia fallback Vit Power', () => {
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'Vit Power Ecuador' }), 'COMO_SE_TOMA_VIT_POWER');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'NITRIX' }), 'NITRIX_USO_OXIDE_EC');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'TEXULTRA 120 CAP ENERGIA' }), 'MODO_DE_USO_TEX_ULTRA');
+});
+
+test('recompra usa somente texto, memoria e audio do produto do shipment', () => {
+    const vit = agencyShipment({ productName: 'Vit Power Ecuador' });
+    const nitrix = agencyShipment({ productName: 'Nitrix Oxide Ecuador' });
+    const tex = agencyShipment({ productName: 'TEXULTRA 120 CAP ENERGIA' });
+
+    assert.equal(repurchaseProductPolicyForShipment(vit).audioName, 'TEMPO_RESULTADO_VIT_POWER');
+    assert.equal(repurchaseProductPolicyForShipment(vit).allowSharedProof, true);
+    assert.equal(repurchaseProductPolicyForShipment(nitrix).audioName, 'NITRIX_USO_OXIDE_EC');
+    assert.equal(repurchaseProductPolicyForShipment(nitrix).allowSharedProof, false);
+    assert.equal(repurchaseProductPolicyForShipment(tex).audioName, 'MODO_DE_USO_TEX_ULTRA');
+    assert.equal(repurchaseProductPolicyForShipment(tex).allowSharedProof, false);
+
+    assert.match(buildRefillReminderText(vit), /Vit Power/);
+    assert.doesNotMatch(buildRefillReminderText(vit), /Nitrix|Tex Ultra/);
+    assert.match(buildRefillReminderText(nitrix), /Nitrix Oxide/);
+    assert.doesNotMatch(buildRefillReminderText(nitrix), /Vit Power|Tex Ultra/);
+    assert.match(buildRefillReminderText(tex), /Tex Ultra/);
+    assert.doesNotMatch(buildRefillReminderText(tex), /Vit Power|Nitrix/);
 });
 
 test('audios logisticos de retirada sao universais para os tres produtos', () => {
