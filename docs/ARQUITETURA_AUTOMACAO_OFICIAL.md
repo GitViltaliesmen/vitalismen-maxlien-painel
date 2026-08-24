@@ -1090,3 +1090,15 @@ frasco Tex Ultra e tabela promocional 1/2/3/6 frascos por USD
 35.99/70.00/80.99/147.99. Produto, preco, VSL, checkout, Dropi, Meta/CAPI,
 pixel, transporte, numero, audios, provas, memoria, pedidos, scheduler,
 pos-venda e outros produtos permanecem inalterados.
+
+## Microcamada V59 de saneamento Baileys/libsignal/protobufjs
+
+O freeze `docs/BAILEYS_LIBSIGNAL_SECURITY_FREEZE_V59_20260824.md` sucede a
+V58. O transporte oficial continua sendo a Z-API e o Baileys permanece na
+linha estavel congelada `6.7.24`. Somente a dependencia indireta `libsignal`
+passa para a release oficial `6.0.0`, cujo codigo de execucao e equivalente ao
+commit anterior e cuja cadeia usa `protobufjs@7.6.5`.
+
+O lockfile proibe o commit antigo e `protobufjs@6.8.8`; o guard exige auditoria
+de producao com zero vulnerabilidades. Nenhum socket, sessao, envio, funil,
+pedido, Dropi, Meta/CAPI, produto, preco, numero ou scheduler e alterado.

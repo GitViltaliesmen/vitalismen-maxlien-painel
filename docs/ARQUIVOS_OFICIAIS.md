@@ -694,3 +694,22 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   Dropi, Meta/CAPI, Z-API, numero, memoria, scheduler e pos-venda.
 - Rollback funcional: release V57 acima, preservando bancos, mensagens,
   pedidos e midias compartilhadas.
+
+### Microcamada V59 — saneamento Baileys/libsignal/protobufjs — 2026-08-24
+
+- Base oficial inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260824T123239Z_production-20260824-812fb25`,
+  commit funcional `812fb25f0e585c0906cde47f4d4b1570511c3fda`.
+- Arquivos de dependencia oficiais: `package.json` e `package-lock.json`.
+- Baileys preservado em `6.7.24`; `libsignal` atualizado para a release oficial
+  `6.0.0`, commit `bcea72df9ec34d9d9140ab30619cf479c7c144c7`.
+- `protobufjs@6.8.8` removido; a cadeia inteira usa `protobufjs@7.6.5`.
+- Teste sem transporte: `tests/baileys-libsignal-security-v59.test.mjs` carrega
+  Baileys e libsignal sem criar socket, sessao ou mensagem.
+- Freeze/guard: `docs/BAILEYS_LIBSIGNAL_SECURITY_FREEZE_V59_20260824.md`,
+  `docs/freeze/baileys-libsignal-security-v59-20260824.json` e
+  `scripts/guard-baileys-libsignal-security-v59.mjs`.
+- Preservado: Z-API oficial, painel, numero, funis, produtos, precos, VSL,
+  checkout, Dropi, Meta/CAPI, pixel, midias, pedidos, scheduler e pos-venda.
+- Rollback funcional: release V58 acima, preservando bancos, mensagens,
+  pedidos e midias compartilhadas.
