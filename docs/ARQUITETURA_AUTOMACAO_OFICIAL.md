@@ -1050,3 +1050,16 @@ O reparo V55 é restrito aos dois pedidos de agência encontrados com endereço
 vazio e a uma ficha histórica com telefone divergente. Exige backup, preserva o
 pedido entregue histórico e não envia WhatsApp, Meta/CAPI ou Dropi. Produtos,
 preços, VSL, checkout, mídia, pós-venda e scheduler permanecem inalterados.
+
+## Microcamada V56 de reparo residual exato da ficha EC
+
+O freeze `docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_FREEZE_V56_20260824.md` sucede a
+V55 sem alterar o painel ou a API preventiva. Ele autoriza somente a limpeza dos
+quatro pedidos de agência residuais encontrados na varredura ampliada e a
+separação das fichas 5201/6060.
+
+O pedido enviado histórico `EC-MSWR401B-KNHS` permanece inalterado. As fichas
+perdem vínculos cruzados de pedido, Dropi e lead administrativo; a conversa 5201
+fica em revisão com os dados explícitos de Segundo e a 6060 conserva somente o
+nome Charly e telefone até confirmar os campos faltantes. O reparo exige backup
+e não chama WhatsApp, Meta/CAPI ou Dropi.
