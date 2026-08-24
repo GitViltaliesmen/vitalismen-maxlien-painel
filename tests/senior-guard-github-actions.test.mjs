@@ -134,3 +134,17 @@ test('registro V50 comprova painel publicado, PM2, rollback e validação sem cl
     assert.match(result, /Nenhum cliente real foi editado/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V57 comprova alias corrigido, backup, PM2 e zero envio', () => {
+    const result = readFileSync(
+        'docs/PANEL_CUSTOMER_ALIAS_REPAIR_ACTIVATION_RESULT_V57_20260824.md',
+        'utf8'
+    );
+    assert.match(result, /33e48fc82d480646993fe52abdb9a31bf071357d/);
+    assert.match(result, /20260824T045910Z_production-20260824-33e48fc/);
+    assert.match(result, /PID `2525370`/);
+    assert.match(result, /alias-before-20260824T050025Z\.json/);
+    assert.match(result, /Divergencias reais de identidade apos normalizacao EC: `0`/);
+    assert.match(result, /Mensagens enviadas aos telefones envolvidos depois do inicio do reparo: `0`/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
