@@ -516,3 +516,27 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   pedido, Dropi, Meta/CAPI, produto, preço, VSL, mídia ou scheduler alterado.
 - Rollback funcional: release V49 acima, preservando bancos, mensagens e mídias
   compartilhados.
+
+### Microcamada V51 — isolamento da ficha selecionada no painel EC — 2026-08-24
+
+- Base oficial lida antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260823T235000Z_production-20260823-a17e519`,
+  commit funcional `a17e51905c88c0d8bc2d605c7f3f837f2dd5b8d1`.
+- Incidente auditado em modo somente leitura: o final `1150` recebeu
+  temporariamente `Mira / Carchi / Mira Principal`, dados presentes na ficha do
+  final `2490`; a operação já havia restaurado `Guayaquil / Guayas` antes desta
+  implementação.
+- Painel oficial: `public/qr.html`.
+- Política local e testável:
+  `public/panel-intelligence/customer-selection-guard-v51.js`.
+- Testes: `tests/panel-customer-selection-isolation-v51.test.mjs` e
+  `scripts/test-panel-customer-selection-browser-v51.mjs`, com troca simulada
+  `2490 -> 1150`, resposta atrasada de Mira e verificação de autosave único.
+- Freeze/guard:
+  `docs/PANEL_CUSTOMER_SELECTION_ISOLATION_FREEZE_V51_20260824.md`,
+  `docs/freeze/panel-customer-selection-isolation-v51-20260824.json` e
+  `scripts/guard-panel-customer-selection-isolation-v51.mjs`.
+- Preservado: auditoria de produção sem escrita; teste sem cliente real, envio
+  WhatsApp, pedido, Dropi, Meta/CAPI, produto, preço, VSL, mídia ou scheduler.
+- Rollback funcional: release V50 acima, preservando bancos, mensagens e mídias
+  compartilhados.

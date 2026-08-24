@@ -1,0 +1,64 @@
+{
+  "freezeId": "panel-customer-selection-isolation-v51-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-manual-edit-persistence-v50-20260823",
+  "parentManifestSha256": "dad3edb214e95c6e508dae977bb691d5523fa06593d2fe6f47d1b369e97e0f7e",
+  "baseProductionSha": "a17e51905c88c0d8bc2d605c7f3f837f2dd5b8d1",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260823T235000Z_production-20260823-a17e519",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_test_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_request_fix_customer_card_retaining_previous_customer_after_switch"
+  },
+  "policy": {
+    "selectionScopedByEpoch": true,
+    "staleSelectionWorkCanWrite": false,
+    "selectionTimersInvalidated": true,
+    "agencyAutosaveIdempotent": true,
+    "automaticOutboundChanged": false,
+    "realClientMutationForValidation": false,
+    "realClientSendAuthorized": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/panel-manual-edit-persistence-v50.test.mjs",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_SELECTION_ISOLATION_V51_20260824.txt",
+    "docs/PANEL_CUSTOMER_SELECTION_ISOLATION_FREEZE_V51_20260824.md",
+    "public/panel-intelligence/customer-selection-guard-v51.js",
+    "scripts/assert-panel-customer-selection-isolation-activation-approved-v51.mjs",
+    "scripts/guard-panel-customer-selection-isolation-v51.mjs",
+    "scripts/test-panel-customer-selection-browser-v51.mjs",
+    "src/services/panelCustomerSelectionIsolationFreezeRuntimeGuardV51.js",
+    "tests/panel-customer-selection-isolation-v51.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_SELECTION_ISOLATION_V51_20260824.txt": "88ac5df59777eb05da998a6386b76418909d3dd2c5f69d11b46bd6ff26e99656",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "f5c8dc1cea3e1763bc17437970a7b71ebb38bdd6a2e13e10f6e4b23dadc51877",
+    "docs/ARQUIVOS_OFICIAIS.md": "708142ea71325cfa835f0da59f55be926bd73730b8ff819ce2f38f1bfc3076a6",
+    "docs/PANEL_CUSTOMER_SELECTION_ISOLATION_FREEZE_V51_20260824.md": "c7aac2472e6382c554dfef8fe64a08f73ce097a67290e7684140daaa5a77a9db",
+    "package.json": "eded02eb49ef12a30bd56a882ffb6be42c2cb095707b14954e540a8c32b53e11",
+    "public/panel-intelligence/customer-selection-guard-v51.js": "378da40b813e751b933b308d5d791ac83b406c49bc7483e08adb7f181e6d759a",
+    "public/qr.html": "bc674e373f0a800ccbb6db98130cffc6138a0094bcfcf70f6f63f01a97abeccf",
+    "scripts/assert-panel-customer-selection-isolation-activation-approved-v51.mjs": "c9133850bac25f800d71164e445dda459e13e06cd0ac29f1533c6a02cc0b6fe6",
+    "scripts/guard-panel-customer-selection-isolation-v51.mjs": "e694afc6c1c8cc50c7c29f24b95a7328aa4776708372cfd7a406ffa7afc67839",
+    "scripts/test-panel-customer-selection-browser-v51.mjs": "09d07de3a78e058cb0ac5773fb5130d6ab2ddb9bec5d32d8d0aee56b1076fa06",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "abcbb6c2fee74f95f6b919f73209fa63a1b2eca46abb461da0b92926f52a1d4a",
+    "src/services/panelCustomerSelectionIsolationFreezeRuntimeGuardV51.js": "30e3497eb659ab4471772f86359be727215e3125c3428243144e45661f027854",
+    "tests/panel-customer-selection-isolation-v51.test.mjs": "177a579d4016b7836377aa1a55689445d1c12b1b69bf8505a693f13d93f9b177",
+    "tests/panel-manual-edit-persistence-v50.test.mjs": "fbcdf4619196ec26065912d9d35e9edc1480c93f0deedda137cbeba0e6b7a741",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "ed93bfeac610fa4edea862ed6c04512a0a377db6907153c9b64924b0ed587eae"
+  }
+}

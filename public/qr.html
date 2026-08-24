@@ -8861,6 +8861,7 @@
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
     <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
+    <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -8953,6 +8954,7 @@
             messagesRefreshQueued: false,
             messagesRequestKey: '',
             selectedChatLoadSeq: 0,
+            selectedChatEpoch: 0,
             selectedChatProfileTimer: null,
             selectedChatActionableTimer: null,
             actionableSamples: [],
@@ -8987,6 +8989,7 @@
             busy: false,
             agencyLookupTimer: null,
             agencyLookupKey: '',
+            agencyLookupSeq: 0,
             agencySuggestionsAll: [],
             agencySuggestions: [],
             agencySuggestionOffset: 0,
@@ -10375,6 +10378,55 @@
             return fromState || activeChatId || titleText || '';
         };
         const currentContactStateKey = () => state.selectedChat?.id || state.selectedChat?.phone || '';
+        const captureCustomerSelectionScope = () => (
+            window.VitalismenCustomerSelectionGuardV51?.captureSelectionScope?.({
+                epoch: state.selectedChatEpoch,
+                chatId: state.selectedChat?.id || '',
+                contactStateKey: currentContactStateKey()
+            }) || {
+                epoch: state.selectedChatEpoch,
+                chatId: state.selectedChat?.id || '',
+                contactStateKey: currentContactStateKey()
+            }
+        );
+        const isCustomerSelectionScopeCurrent = (scope = {}) => (
+            window.VitalismenCustomerSelectionGuardV51?.isSelectionScopeCurrent?.({
+                scope,
+                epoch: state.selectedChatEpoch,
+                selectedChatId: state.selectedChat?.id || '',
+                contactStateKey: currentContactStateKey()
+            }) ?? (
+                scope.epoch === state.selectedChatEpoch
+                && scope.chatId === state.selectedChat?.id
+                && scope.contactStateKey === currentContactStateKey()
+            )
+        );
+        const invalidateCustomerSelectionWork = () => {
+            window.clearTimeout(state.agencyLookupTimer);
+            window.clearTimeout(state.customerFieldAutoSaveTimer);
+            window.clearTimeout(state.statusAutoSaveTimer);
+            state.agencyLookupSeq += 1;
+            state.customerFieldAutoSaveSeq += 1;
+            state.statusAutoSaveSeq += 1;
+            state.agencyLookupKey = '';
+            state.customerFormEditRevision += 1;
+        };
+        const blankCustomerFormForSelection = () => {
+            [
+                'customerNameInput', 'customerPhoneInput', 'customerCityInput',
+                'customerProvinceInput', 'customerDeliveryModeInput',
+                'customerAgencyNameInput', 'customerAddressInput',
+                'customerReferenceInput', 'customerQuantityInput',
+                'customerTotalInput', 'customerOrderInput', 'customerNoteInput',
+                'customerBuyLaterDateInput'
+            ].forEach((id) => setInputValue(id, ''));
+            el('customerAgencyNameInput').dataset.agencyId = '';
+            setInputValue('customerProductInput', '');
+            setInputValue('customerStatusInput', '');
+            state.customerCorrectedFields.clear();
+            state.customerDataResolution = null;
+            clearAgencySuggestions('carregando cliente');
+        };
         const internalPanelCommands = new Set([
             '#humano',
             '#atendendo',
@@ -11165,8 +11217,22 @@
                 `Ciudad / Provincia: ${location}`
             ].join('\n');
         };
-        const applyAgencySuggestion = (agency, { automatic = false } = {}) => {
+        const applyAgencySuggestion = (agency, { automatic = false, selectionScope = null } = {}) => {
             if (!agency) return;
+            if (selectionScope && !isCustomerSelectionScopeCurrent(selectionScope)) return false;
+            const currentAgencyDraft = {
+                city: el('customerCityInput').value,
+                province: el('customerProvinceInput').value,
+                deliveryMode: el('customerDeliveryModeInput').value,
+                agencyId: el('customerAgencyNameInput').dataset.agencyId || '',
+                agencyName: el('customerAgencyNameInput').value,
+                address: el('customerAddressInput').value
+            };
+            const changesForm = window.VitalismenCustomerSelectionGuardV51?.agencySuggestionChangesForm?.({
+                agency,
+                current: currentAgencyDraft
+            }) ?? true;
+            if (!changesForm) return false;
             setInputValue('customerCityInput', agency.city || el('customerCityInput').value);
             setInputValue('customerProvinceInput', agency.province || el('customerProvinceInput').value);
             setInputValue('customerDeliveryModeInput', 'agency');
@@ -11182,6 +11248,7 @@
             showToast(automatic
                 ? 'Agencia Servientrega identificada e salva na ficha'
                 : 'Agencia Servientrega aplicada na ficha');
+            return true;
         };
         const sendAgencyMessagesToCustomer = async (agencies = [], button = null, options = {}) => {
             if (!state.selectedChat || state.sendingMessage || state.busy) return;
@@ -11314,18 +11381,23 @@
         const lookupAgencySuggestions = async ({ immediate = false } = {}) => {
             if (!state.token || !state.selectedChat) return;
             window.clearTimeout(state.agencyLookupTimer);
+            const selectionScope = captureCustomerSelectionScope();
+            const lookupSeq = state.agencyLookupSeq + 1;
+            state.agencyLookupSeq = lookupSeq;
+            const city = el('customerCityInput').value.trim();
+            const province = el('customerProvinceInput').value.trim();
+            const agencySearch = el('agencySearchInput')?.value?.trim() || '';
+            const reference = el('customerReferenceInput')?.value?.trim() || '';
+            const q = agencySearch || reference;
+            const operationalCountry = String(
+                el('customerCountryInput')?.value
+                || state.selectedChat?.country
+                || selectedPanelCountry()
+                || 'EC'
+            ).toUpperCase();
+            const key = `${selectionScope.epoch}|${selectionScope.chatId}|${city}|${province}|${agencySearch}|${reference}`;
             const run = async () => {
-                const city = el('customerCityInput').value.trim();
-                const province = el('customerProvinceInput').value.trim();
-                const agencySearch = el('agencySearchInput')?.value?.trim() || '';
-                const reference = el('customerReferenceInput')?.value?.trim() || '';
-                const q = agencySearch || reference;
-                const operationalCountry = String(
-                    el('customerCountryInput')?.value
-                    || state.selectedChat?.country
-                    || selectedPanelCountry()
-                    || 'EC'
-                ).toUpperCase();
+                if (!isCustomerSelectionScopeCurrent(selectionScope) || state.agencyLookupSeq !== lookupSeq) return;
                 if (operationalCountry !== 'EC') {
                     clearAgencySuggestions('agencias Servientrega EC indisponiveis neste pais');
                     return;
@@ -11334,10 +11406,8 @@
                     clearAgencySuggestions('digite cidade, agencia, referencia ou rua');
                     return;
                 }
-                const key = `${city}|${province}|${agencySearch}|${reference}`;
                 if (key === state.agencyLookupKey && !immediate) return;
                 state.agencyLookupKey = key;
-                const lookupChatId = state.selectedChat?.id || '';
                 el('agencySuggestions').classList.remove('hidden');
                 el('agencySuggestionsState').textContent = 'buscando...';
                 try {
@@ -11352,7 +11422,8 @@
                         cityUsedAsAgencyQuery = agencies.length > 0;
                     }
                     if (
-                        state.selectedChat?.id !== lookupChatId
+                        !isCustomerSelectionScopeCurrent(selectionScope)
+                        || state.agencyLookupSeq !== lookupSeq
                         || state.agencyLookupKey !== key
                     ) return;
                     renderAgencySuggestions(agencies);
@@ -11388,12 +11459,16 @@
                     if (automaticQuery && intelligence?.selectAutomaticAgency) {
                         const automaticMatch = intelligence.selectAutomaticAgency(agencies, { query: automaticQuery });
                         if (automaticMatch.matched && automaticMatch.agency) {
-                            applyAgencySuggestion(automaticMatch.agency, { automatic: true });
+                            applyAgencySuggestion(automaticMatch.agency, {
+                                automatic: true,
+                                selectionScope
+                            });
                         } else if (automaticMatch.ambiguous) {
                             el('customerSyncHint').textContent = 'Referencia corresponde a mais de uma agencia; escolha uma sugestao para evitar erro.';
                         }
                     }
                 } catch (error) {
+                    if (!isCustomerSelectionScopeCurrent(selectionScope) || state.agencyLookupSeq !== lookupSeq) return;
                     el('agencySuggestionsState').textContent = 'erro';
                     el('agencySuggestionList').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
                 }
@@ -14962,9 +15037,13 @@
             state.selectedChatLoadSeq = loadSeq;
             window.clearTimeout(state.selectedChatProfileTimer);
             window.clearTimeout(state.selectedChatActionableTimer);
-            if (!state.selectedChat || state.selectedChat.id !== chat.id) {
+            const switchingCustomer = !state.selectedChat || state.selectedChat.id !== chat.id;
+            if (switchingCustomer) {
                 clearCustomerFormDirty();
             }
+            invalidateCustomerSelectionWork();
+            state.selectedChatEpoch += 1;
+            if (switchingCustomer) blankCustomerFormForSelection();
             state.selectedChat = chat;
             state.selectedChatFastMode = true;
             window.clearTimeout(state.selectedChatFastTimer);
@@ -18404,25 +18483,29 @@
         async function persistSelectedCustomerDataNow({ silent = false, allowPartialConfirmedSave = false } = {}) {
             if (!state.selectedChat) return;
             const chat = state.selectedChat;
+            const selectionScope = captureCustomerSelectionScope();
             const saveSnapshot = window.VitalismenCustomerEditGuardV50?.captureSaveSnapshot?.({
                 chatId: chat.id,
-                contactStateKey: currentContactStateKey(),
+                contactStateKey: selectionScope.contactStateKey,
                 editRevision: state.customerFormEditRevision,
                 correctedFields: [...state.customerCorrectedFields]
             }) || {
                 chatId: chat.id,
-                contactStateKey: currentContactStateKey(),
+                contactStateKey: selectionScope.contactStateKey,
                 editRevision: state.customerFormEditRevision,
                 correctedFields: [...state.customerCorrectedFields]
             };
             const saveSnapshotIsCurrent = () => (
-                window.VitalismenCustomerEditGuardV50?.isSaveSnapshotCurrent?.({
-                    snapshot: saveSnapshot,
-                    selectedChatId: state.selectedChat?.id || '',
-                    editRevision: state.customerFormEditRevision
-                }) ?? (
-                    saveSnapshot.chatId === state.selectedChat?.id
-                    && saveSnapshot.editRevision === state.customerFormEditRevision
+                isCustomerSelectionScopeCurrent(selectionScope)
+                && (
+                    window.VitalismenCustomerEditGuardV50?.isSaveSnapshotCurrent?.({
+                        snapshot: saveSnapshot,
+                        selectedChatId: state.selectedChat?.id || '',
+                        editRevision: state.customerFormEditRevision
+                    }) ?? (
+                        saveSnapshot.chatId === state.selectedChat?.id
+                        && saveSnapshot.editRevision === state.customerFormEditRevision
+                    )
                 )
             );
             const note = el('customerNoteInput').value.trim();
@@ -18683,11 +18766,26 @@
         }
 
         async function persistSelectedCustomerData(options = {}) {
+            if (!state.selectedChat) return null;
             const queueSave = window.VitalismenCustomerEditGuardV50?.queueSave
                 || ((previousSave, operation) => Promise.resolve(previousSave).catch(() => undefined).then(operation));
+            const queuedSelectionScope = captureCustomerSelectionScope();
+            const queuedEditRevision = state.customerFormEditRevision;
             const queuedSave = queueSave(
                 state.customerDataSaveQueue,
-                () => persistSelectedCustomerDataNow(options)
+                () => {
+                    if (
+                        !isCustomerSelectionScopeCurrent(queuedSelectionScope)
+                        || queuedEditRevision !== state.customerFormEditRevision
+                    ) {
+                        return {
+                            skipped: true,
+                            reason: 'customer_selection_or_form_changed',
+                            preservedNewerEdits: true
+                        };
+                    }
+                    return persistSelectedCustomerDataNow(options);
+                }
             );
             state.customerDataSaveQueue = queuedSave.catch(() => undefined);
             return queuedSave;
@@ -18797,7 +18895,7 @@
                 updateCustomerStatusStyle();
                 return;
             }
-            const selectedChatId = state.selectedChat.id;
+            const selectionScope = captureCustomerSelectionScope();
             const seq = state.statusAutoSaveSeq + 1;
             state.statusAutoSaveSeq = seq;
             window.clearTimeout(state.statusAutoSaveTimer);
@@ -18805,7 +18903,7 @@
             el('customerSyncBadge').textContent = 'salvando';
             el('customerSyncBadge').className = 'badge orange';
             state.statusAutoSaveTimer = window.setTimeout(async () => {
-                if (!state.selectedChat || state.selectedChat.id !== selectedChatId || state.statusAutoSaveSeq !== seq) return;
+                if (!isCustomerSelectionScopeCurrent(selectionScope) || state.statusAutoSaveSeq !== seq) return;
                 if (state.busy) {
                     autoSaveCustomerStatusChange();
                     return;
@@ -18815,12 +18913,13 @@
                     const tasks = [loadChats(), loadDashboardMetrics()];
                     if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                     await Promise.all(tasks);
-                    if (state.selectedChat?.id === selectedChatId) {
+                    if (isCustomerSelectionScopeCurrent(selectionScope)) {
                         renderSelectedDetails();
+                        input.dataset.prevStatus = nextStatus;
+                        showToast(result?.orderNotice || 'Status salvo no painel unificado');
                     }
-                    input.dataset.prevStatus = nextStatus;
-                    showToast(result?.orderNotice || 'Status salvo no painel unificado');
                 } catch (error) {
+                    if (!isCustomerSelectionScopeCurrent(selectionScope)) return;
                     input.value = previousStatus;
                     updateCustomerStatusStyle();
                     el('customerSyncHint').textContent = 'Erro ao salvar status automaticamente. Use Salvar dados.';
@@ -18834,7 +18933,7 @@
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
             if (!state.selectedChat) return;
             rememberEditingCustomerDraft();
-            const selectedChatId = state.selectedChat.id;
+            const selectionScope = captureCustomerSelectionScope();
             const seq = state.customerFieldAutoSaveSeq + 1;
             state.customerFieldAutoSaveSeq = seq;
             window.clearTimeout(state.customerFieldAutoSaveTimer);
@@ -18844,7 +18943,7 @@
             el('customerSyncBadge').textContent = 'salvando';
             el('customerSyncBadge').className = 'badge orange';
             state.customerFieldAutoSaveTimer = window.setTimeout(async () => {
-                if (!state.selectedChat || state.selectedChat.id !== selectedChatId || state.customerFieldAutoSaveSeq !== seq) return;
+                if (!isCustomerSelectionScopeCurrent(selectionScope) || state.customerFieldAutoSaveSeq !== seq) return;
                 if (state.busy || state.customerFieldAutoSaveInFlight) {
                     scheduleCustomerFieldAutoSave({ delay: 700, source });
                     return;
@@ -18852,7 +18951,7 @@
                 state.customerFieldAutoSaveInFlight = true;
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
-                    if (state.selectedChat?.id === selectedChatId) {
+                    if (isCustomerSelectionScopeCurrent(selectionScope)) {
                         const newerEdit = result?.preservedNewerEdits === true;
                         el('customerSyncHint').textContent = newerEdit
                             ? 'Nova alteração detectada; mantendo o que você digitou e salvando em seguida.'
@@ -18864,6 +18963,7 @@
                             : (result?.orderNotice || 'salvo automaticamente');
                     }
                 } catch (error) {
+                    if (!isCustomerSelectionScopeCurrent(selectionScope)) return;
                     el('customerSyncHint').textContent = 'Erro ao salvar automaticamente. Use Salvar dados.';
                     el('customerSyncBadge').textContent = 'erro';
                     el('customerSyncBadge').className = 'badge red';
