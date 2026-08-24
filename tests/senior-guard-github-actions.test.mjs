@@ -148,3 +148,19 @@ test('registro V57 comprova alias corrigido, backup, PM2 e zero envio', () => {
     assert.match(result, /Mensagens enviadas aos telefones envolvidos depois do inicio do reparo: `0`/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V58 comprova frasco, valores, PM2 e canario somente no QA', () => {
+    const result = readFileSync(
+        'docs/PANEL_TEX_ULTRA_BOTTLE_BLOCK_ACTIVATION_RESULT_V58_20260824.md',
+        'utf8'
+    );
+    assert.match(result, /812fb25f0e585c0906cde47f4d4b1570511c3fda/);
+    assert.match(result, /20260824T123239Z_production-20260824-812fb25/);
+    assert.match(result, /PID `2558794`/);
+    assert.match(result, /tex_ultra\.png`, SHA-256[\s\S]*450122a3db3823d012770a20f25f311be66a564b8fb23d9d0d47f0207d3ce2f7/);
+    assert.match(result, /O unico telefone usado foi o QA autorizado `5515998038637`/);
+    assert.match(result, /estado final `delivered`/);
+    assert.match(result, /Pedidos e shipments criados para o QA na janela do canario: `0` e `0`/);
+    assert.match(result, /Nenhum cliente real recebeu validacao/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
