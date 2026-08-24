@@ -14,7 +14,7 @@ assert.ok(panelBlockStart >= 0 && panelBlockEnd > panelBlockStart, 'construtor d
 const panelBlocks = panel.slice(panelBlockStart, panelBlockEnd);
 
 assert.match(panel, /const activeFunnelProductKey = \(\) => normalizeCustomerProductKey/);
-assert.match(panel, /Frasco Tex Ultra[^\n]+tex_ultra_bottle\.png/);
+assert.match(panel, /Frasco Tex Ultra[^\n]+tex_ultra\.png/);
 assert.match(panelBlocks, /value: 'tex_ultra_inicio_completo'/);
 assert.match(panelBlocks, /Saudacao com nome \+ um audio universal \+ Prova 1 \+ Frasco Tex Ultra \+ Valores promocionais/);
 assert.match(panelBlocks, /value: 'tex_ultra_promotion_1'/);

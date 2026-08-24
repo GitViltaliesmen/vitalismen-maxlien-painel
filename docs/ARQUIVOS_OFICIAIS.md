@@ -675,3 +675,22 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado: pedidos, mensagens, Shipments, lead, Dropi, Meta/CAPI, produto,
   preco, funil, midia, pos-venda e scheduler.
 - Rollback funcional: release V56 acima e backup especifico V57.
+
+### Microcamada V58 — frasco e continuidade do B01 Tex Ultra — 2026-08-24
+
+- Base oficial inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260824T045910Z_production-20260824-33e48fc`,
+  commit `33e48fc82d480646993fe52abdb9a31bf071357d`.
+- Painel oficial alterado: `public/qr.html`, somente nas referencias Tex Ultra
+  do M01, do bloco `tex_ultra_inicio_completo` e na reconciliacao persistente
+  das etapas manuais do mesmo bloco.
+- Arquivo oficial preservado: `public/media/sales/ec/tex_ultra.png`, SHA-256
+  `450122a3db3823d012770a20f25f311be66a564b8fb23d9d0d47f0207d3ce2f7`.
+- Teste: `tests/panel-tex-ultra-bottle-block-v58.test.mjs`.
+- Freeze/guard: `docs/PANEL_TEX_ULTRA_BOTTLE_BLOCK_FREEZE_V58_20260824.md`,
+  `docs/freeze/panel-tex-ultra-bottle-block-v58-20260824.json` e
+  `scripts/guard-panel-tex-ultra-bottle-block-v58.mjs`.
+- Preservado: sequencia B01, tabela promocional oficial, demais produtos,
+  Dropi, Meta/CAPI, Z-API, numero, memoria, scheduler e pos-venda.
+- Rollback funcional: release V57 acima, preservando bancos, mensagens,
+  pedidos e midias compartilhadas.
