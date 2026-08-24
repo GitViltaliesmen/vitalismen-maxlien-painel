@@ -1,7 +1,7 @@
 # Resultado da ativação V54 — fechamento Tex Ultra por agência e domicílio
 
-Data: 2026-08-24  
-País: Equador  
+Data: 2026-08-24
+País: Equador
 Status: ativa e validada em produção
 
 ## Fonte imutável
