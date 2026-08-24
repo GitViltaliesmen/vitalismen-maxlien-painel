@@ -1032,3 +1032,21 @@ o resumo corrigido é mostrado novamente antes do fechamento.
 O reparo V54 é restrito ao pedido exato autorizado, exige backup e não chama
 WhatsApp, Meta/CAPI ou Dropi. Produto, preços, VSL, checkout, pixel, Z-API,
 mídias, pós-venda e scheduler permanecem inalterados.
+
+## Microcamada V55 de persistência integral da ficha do cliente EC
+
+O freeze `docs/PANEL_CUSTOMER_FORM_PERSISTENCE_FREEZE_V55_20260824.md` sucede a
+V54. A identidade da conversa deixa de depender do telefone editável: remetente,
+`phoneDigits` e `chatId` real têm prioridade sobre o rascunho. O navegador mantém
+a chave do cache estável e a API rejeita um número realmente diferente sem
+apagar nome, endereço ou os demais campos digitados.
+
+No modo agência, o motor V28/V54 continua marcando endereço do cliente como
+`NOT_APPLICABLE`, mas a projeção operacional do painel materializa o endereço
+canônico do registro Servientrega antes de salvar o pedido. Assim, a fala do
+cliente não vira endereço e o endereço oficial também não é apagado.
+
+O reparo V55 é restrito aos dois pedidos de agência encontrados com endereço
+vazio e a uma ficha histórica com telefone divergente. Exige backup, preserva o
+pedido entregue histórico e não envia WhatsApp, Meta/CAPI ou Dropi. Produtos,
+preços, VSL, checkout, mídia, pós-venda e scheduler permanecem inalterados.

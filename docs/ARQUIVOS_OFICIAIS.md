@@ -618,3 +618,26 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado: preços, produtos, VSL, checkout, Dropi bloqueado, Meta/CAPI, pixel,
   Z-API, número oficial, mídia, pós-venda e scheduler.
 - Rollback funcional: release V53 acima e backup específico do pedido reparado.
+
+### Microcamada V55 — persistência integral da ficha EC — 2026-08-24
+
+- Base oficial inspecionada antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260824T040419Z_production-20260824-8801624`,
+  commit `c8bcfe9c805aee0568d79040b533c96502d11f82`.
+- Painel oficial: `public/qr.html`; política testável no navegador:
+  `public/panel-intelligence/customer-form-persistence-guard-v55.js`.
+- API e materialização de agência: `src/routes/whatsapp.js` e
+  `src/services/panelCustomerFormPersistenceService.js`.
+- Varredura somente leitura: 199 pedidos e 856 estados EC. Encontrados dois
+  pedidos de agência com endereço vazio (finais 4663 e 1150) e uma ficha antiga
+  cujo telefone do rascunho divergia da conversa (5541/4364).
+- Reparo controlado: `scripts/repair-panel-customer-form-v55.mjs`, limitado aos
+  três registros exatos, com confirmação literal e backup absoluto.
+- Teste: `tests/panel-customer-form-persistence-v55.test.mjs`, mais regressões
+  V50, V51 e V54 no guard dedicado.
+- Freeze/guard: `docs/PANEL_CUSTOMER_FORM_PERSISTENCE_FREEZE_V55_20260824.md`,
+  `docs/freeze/panel-customer-form-persistence-v55-20260824.json` e
+  `scripts/guard-panel-customer-form-persistence-v55.mjs`.
+- Preservado: mensagens e pedido entregue histórico; nenhum WhatsApp, Meta/CAPI,
+  Dropi, produto, preço, VSL, checkout, mídia, pós-venda ou scheduler alterado.
+- Rollback funcional: release V54 acima e backup específico V55.
