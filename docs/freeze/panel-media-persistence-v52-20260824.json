@@ -1,0 +1,61 @@
+{
+  "freezeId": "panel-media-persistence-v52-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-customer-selection-isolation-v51-20260824",
+  "parentManifestSha256": "3c8177b57966f64a1237f10f2ac55979786073f7cdfa23ae7311d5f960ab6246",
+  "baseProductionSha": "bab7bbbb8fab1d9a539a1df12097d7ba2953a735",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T001100Z_production-20260824-bab7bbb",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_test_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_urgent_request_fix_thank_you_audio_disappearing_and_check_others"
+  },
+  "policy": {
+    "commercialAgencyAudioIsPickupStage": false,
+    "pickupStageAudioRequiresVerifiedReady": true,
+    "manualMediaUsesClientGeneratedId": true,
+    "failedManualMediaDisappearsImmediately": false,
+    "automaticOutboundChanged": false,
+    "realClientSendForValidation": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "src/routes/whatsapp.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/logisticsCommunicationV29.js",
+    "tests/logistics-clean-chat-v29.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_MEDIA_PERSISTENCE_V52_20260824.txt",
+    "docs/PANEL_MEDIA_PERSISTENCE_FREEZE_V52_20260824.md",
+    "scripts/assert-panel-media-persistence-activation-approved-v52.mjs",
+    "scripts/guard-panel-media-persistence-v52.mjs",
+    "src/services/panelMediaPersistenceFreezeRuntimeGuardV52.js",
+    "tests/panel-funnel-media-confirmation-v52.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_MEDIA_PERSISTENCE_V52_20260824.txt": "14872f1f7232e0543e2ee74aeb62eac9dc0631245d26336a044fadfffd62ad31",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "1fbf8f70377ebb708bc1180c33e9af82bc877b1fa08998730eaa7a0d26e52eec",
+    "docs/ARQUIVOS_OFICIAIS.md": "ca3a3b07c3ae4620b8b7deef4eaef2536fd2115d9fa7f8395d0d3a91cea58f1a",
+    "docs/PANEL_MEDIA_PERSISTENCE_FREEZE_V52_20260824.md": "8493bcc77e9995b718d3f09c8ad36661fb6f4cd251e9e89e71ea3258d421a8a8",
+    "package.json": "dd276fb214d5242fa1509fc3b6344276eef7f18fc4df3b3cecc5b9d8060e62af",
+    "public/qr.html": "aa93c7006fcbbd648e54667034e5a233e8f2c2a44b74e48fb46fbe2c294a664b",
+    "scripts/assert-panel-media-persistence-activation-approved-v52.mjs": "3f45c0f2f2bdf6177d17793511575d8ab69db3c6b8e261936ded1aa16e59bdcf",
+    "scripts/guard-panel-media-persistence-v52.mjs": "a4368188f4f53bd6e68b60ec0f95e17cd3504a0ee3671c05fa24479be3a809e3",
+    "src/routes/whatsapp.js": "6495cf16dc019e11d1a620f96b9648ec73520a589a299d8dddbf20ce4c643a4e",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "ff07ed35080aa36b15bd5da64dda234f9fb1a5e970c6ec0322244afd0b1a938b",
+    "src/services/logisticsCommunicationV29.js": "ee798920a1627d94c4bcf5fed8a8aaf94595d9a2ed45d0f6726b746f0c46f9f6",
+    "src/services/panelMediaPersistenceFreezeRuntimeGuardV52.js": "0dfbd27dceec0e426f5d5b4add742f5bb815094aa184bfefdef0138a68376827",
+    "tests/logistics-clean-chat-v29.test.mjs": "a2432cc4f771cbc1d00a5be921e95312efe8bea44d6dad36a6c838bd50f74dc0",
+    "tests/panel-funnel-media-confirmation-v52.test.mjs": "6cb012d225a15cdc183118baed76532d6ce5d3b7993f04cf4fb3087f5f8c65ce"
+  }
+}

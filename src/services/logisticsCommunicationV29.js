@@ -137,6 +137,14 @@ export const isGuideMediaCandidate = ({ fileName = '', mediaUrl = '', body = '',
         || /shipment_(?:invoice|guide)/.test(value);
 };
 
+const PICKUP_STAGE_AUDIO_TOKEN = /(?:^|_)(?:CHEGOU_0?[1-3]|PICKUP(?:_READY)?|READY_FOR_PICKUP|LISTO_PARA_RETIRO|DISPONIBLE_PARA_RETIRO)(?:_|$)/;
+
+export const isPickupStageAudioCandidate = ({ fileName = '', mediaUrl = '' } = {}) => {
+    const value = normalizeToken([fileName, mediaUrl].filter(Boolean).join(' '))
+        .replace(/[^A-Z0-9]+/g, '_');
+    return PICKUP_STAGE_AUDIO_TOKEN.test(value);
+};
+
 export const evaluateLogisticsOutbound = (shipment = {}, {
     text = '',
     mediaKind = '',

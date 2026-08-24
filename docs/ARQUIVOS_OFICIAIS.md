@@ -540,3 +540,27 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   WhatsApp, pedido, Dropi, Meta/CAPI, produto, preço, VSL, mídia ou scheduler.
 - Rollback funcional: release V50 acima, preservando bancos, mensagens e mídias
   compartilhados.
+
+### Microcamada V52 — persistência do áudio e mídia manual no painel EC — 2026-08-24
+
+- Base oficial lida antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260824T001100Z_production-20260824-bab7bbb`,
+  commit funcional `bab7bbbb8fab1d9a539a1df12097d7ba2953a735`.
+- Arquivos oficiais alterados: `public/qr.html`, `src/routes/whatsapp.js` e
+  `src/services/logisticsCommunicationV29.js`.
+- Causa reproduzida: o atalho `/chegou|pickup|retir|agencia|ready/i` marcava
+  `Agradecimento_Agencia_01` como áudio de retirada antecipada. A API bloqueava
+  a tentativa e o painel removia imediatamente a bolha provisória.
+- Auditoria do catálogo ativo: 51 áudios; somente `Chegou_01`, `Chegou_02` e
+  `Chegou_03` são classificados como etapa de retirada. Nove falsos positivos
+  comerciais deixam de ser bloqueados.
+- Testes sem envio real:
+  `tests/panel-funnel-media-confirmation-v52.test.mjs`, testes V29 de logística,
+  `senior:check` e `scripts/audit-ec-product-micro-layer.mjs`.
+- Freeze/guard: `docs/PANEL_MEDIA_PERSISTENCE_FREEZE_V52_20260824.md`,
+  `docs/freeze/panel-media-persistence-v52-20260824.json` e
+  `scripts/guard-panel-media-persistence-v52.mjs`.
+- Preservado: nenhum cliente recebeu mídia de teste; não houve criação/alteração
+  de pedido, Dropi, Meta/CAPI, produto, preço, VSL, scheduler ou número oficial.
+- Rollback funcional: release V51 acima, preservando bancos, mensagens e mídias
+  compartilhados.
