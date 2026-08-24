@@ -1,0 +1,74 @@
+{
+  "freezeId": "panel-customer-form-persistence-v55-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "tex-ultra-delivery-closure-v54-20260824",
+  "parentManifestSha256": "7c4587234a36e61bcee7c6f8d3bcbcacfcca6746b037f747886fb7ea82bca2db",
+  "baseProductionSha": "c8bcfe9c805aee0568d79040b533c96502d11f82",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T040419Z_production-20260824-8801624",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_repair_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_request_fix_case_4663_and_similar_cases"
+  },
+  "policy": {
+    "canonicalAgencyAddressInPanel": true,
+    "stableConversationPhoneIdentity": true,
+    "backendPhoneIdentityMismatchRejected": true,
+    "exactAffectedRecordsRepairWithBackup": true,
+    "affectedOrderIds": [
+      "EC-MT6GO9YX-4QS9",
+      "EC-MT6GWGA2-9ZUZ"
+    ],
+    "affectedContactStateIds": [
+      "6a7de6a3f24ae26732b457a8"
+    ],
+    "historicalDeliveredOrderMutation": false,
+    "realClientCanaryAuthorized": false,
+    "whatsappSendAuthorized": false,
+    "metaPurchaseResendAllowed": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "src/routes/whatsapp.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_FORM_PERSISTENCE_V55_20260824.txt",
+    "docs/PANEL_CUSTOMER_FORM_PERSISTENCE_FREEZE_V55_20260824.md",
+    "public/panel-intelligence/customer-form-persistence-guard-v55.js",
+    "scripts/assert-panel-customer-form-persistence-activation-approved-v55.mjs",
+    "scripts/guard-panel-customer-form-persistence-v55.mjs",
+    "scripts/repair-panel-customer-form-v55.mjs",
+    "src/services/panelCustomerFormPersistenceFreezeRuntimeGuardV55.js",
+    "src/services/panelCustomerFormPersistenceService.js",
+    "tests/panel-customer-form-persistence-v55.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_FORM_PERSISTENCE_V55_20260824.txt": "808306f4282fb2c40605f3f7bf53ac1f8a3fbd05269a328a20aaf4aac634540f",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "9cd19e3a97653c8517f95a41a43dc6161dc154af186d075a0e34e714f1a0ff25",
+    "docs/ARQUIVOS_OFICIAIS.md": "9570df62387a033b89094af1a74683e3fae826b523197c97a8dba938f24dc754",
+    "docs/PANEL_CUSTOMER_FORM_PERSISTENCE_FREEZE_V55_20260824.md": "f2068cd370fdbb62d986b273daf4b72e1a85efe5404bffe0116a5837b283385d",
+    "package.json": "c724680dcddc4a38e2dc5323b2f86cbfc80e266f6026b86805cab2fe1545288b",
+    "public/panel-intelligence/customer-form-persistence-guard-v55.js": "f7aebad1309d84f99768bca557cd4d076e6c5c83d09bf6e464cefa91a2fcaba8",
+    "public/qr.html": "d523022e34862824465893621238bbf0e513ee71694f7a9ecfb8842a7943be9a",
+    "scripts/assert-panel-customer-form-persistence-activation-approved-v55.mjs": "bad66b98ae4a43f07966311d1c86c15d9efa4ec0d4390b175bdc8664a657f86e",
+    "scripts/guard-panel-customer-form-persistence-v55.mjs": "ac929b96eb55b85a023f3dda1dc4d6443275061f95ef2d2221b5d753c75ab7ae",
+    "scripts/repair-panel-customer-form-v55.mjs": "2d84a82a022cc52f2cb945d2e4aa5a85e18fe821ec6195b790d60fcab3e3a95c",
+    "src/routes/whatsapp.js": "dd42eb3971fddc540352296e4a506c6a7e5d2d097ddc751698a641b0e2416017",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "c5ad9c4b775ce25de37acb12698054dcd9933073d12b7ba0038e8b28e862fabf",
+    "src/services/panelCustomerFormPersistenceFreezeRuntimeGuardV55.js": "60ca4ac38d84318106fef0263984eab5594322958248d53120752dd066687479",
+    "src/services/panelCustomerFormPersistenceService.js": "ac852ca6bb1388bcd51cdb5e916fc25a4356c929ef64d020fde1f793d242062f",
+    "tests/panel-customer-form-persistence-v55.test.mjs": "4c746348ac898a011bf1b0aeb09b284c23bee701b36bdcacaaafd301eb517a4c",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "bb372b1c33808e409938e0b0eeef3bbec7f7138e72bd1b627abb0b48d00ba092"
+  }
+}

@@ -71,6 +71,10 @@ import {
     resolveCustomerDataDraft
 } from '../services/customerDataResolutionService.js';
 import {
+    materializePanelAgencyAddress,
+    protectPanelCustomerPhone
+} from '../services/panelCustomerFormPersistenceService.js';
+import {
     evaluateLogisticsOutbound,
     isPickupStageAudioCandidate,
     publicLogisticsStateV29
@@ -965,11 +969,12 @@ const isLikelyWhatsAppGroupIdentifier = (value = '') => {
 const realPhoneFromState = (state = {}) => {
     const sender = digitsOnly(state.metadata?.lastSenderPn);
     if (sender.length >= 9) return sender;
-    const draftPhone = digitsOnly(state.metadata?.customerDraft?.phone);
-    if (draftPhone.length >= 9) return draftPhone;
     const phone = digitsOnly(state.phoneDigits);
     const chatDigits = digitsOnly(state.chatId);
     if (phone.length >= 9 && !(String(state.chatId || '').endsWith('@lid') && phone === chatDigits)) return phone;
+    if (chatDigits.length >= 9 && !String(state.chatId || '').endsWith('@lid')) return chatDigits;
+    const draftPhone = digitsOnly(state.metadata?.customerDraft?.phone);
+    if (draftPhone.length >= 9) return draftPhone;
     return '';
 };
 
@@ -2244,16 +2249,20 @@ const panelCorrectionFields = (confirmation = {}) => (
         .filter((field) => PANEL_CUSTOMER_DATA_FIELDS.has(field))
 );
 
-export const resolvePanelCustomerData = ({ state = null, draft = {}, confirmation = {}, sourceMessageId = '' } = {}) => (
-    resolveCustomerDataDraft({
+export const resolvePanelCustomerData = ({ state = null, draft = {}, confirmation = {}, sourceMessageId = '' } = {}) => {
+    const result = resolveCustomerDataDraft({
         draft,
         previousResolution: state?.customerDataResolution?.toObject?.() || state?.customerDataResolution || null,
         conversationPhone: state?.phoneDigits || state?.chatId || draft.phone || '',
         source: 'structured_form',
         sourceMessageId,
         correctedByHumanFields: panelCorrectionFields(confirmation)
-    })
-);
+    });
+    return {
+        ...result,
+        draft: materializePanelAgencyAddress(result)
+    };
+};
 
 const shouldCreateOperationalOrderFromDraft = (draft = {}, internalOrTest = false) => {
     if (internalOrTest) return false;
@@ -5351,7 +5360,19 @@ router.patch('/contact-state/:phone', async (req, res) => {
             lastManualBy: req.user.name || req.user.email
         };
         if (customerDraft && typeof customerDraft === 'object') {
-            const draftPhoneDigits = String(customerDraft.phone || '').replace(/\D/g, '');
+            const protectedPhone = protectPanelCustomerPhone({
+                inputPhone: customerDraft.phone,
+                state,
+                requestPhone: req.params.phone
+            });
+            if (protectedPhone.mismatch) {
+                return res.status(409).json({
+                    error: 'customer_phone_identity_mismatch',
+                    message: 'O telefone identifica esta conversa do WhatsApp e não pode ser trocado nesta ficha. Abra ou adicione o contato correto; os demais campos foram preservados.',
+                    customerPhone: protectedPhone.phone
+                });
+            }
+            const draftPhoneDigits = String(protectedPhone.phone || '').replace(/\D/g, '');
             const matchedBrazilTestPhone = matchBrazilPanelTestPhone(draftPhoneDigits || state.phoneDigits || req.params.phone);
             const inferredCountry = inferPanelCountryFromPhone(draftPhoneDigits || state.phoneDigits || req.params.phone, customerDraft.country || country || state.countryCode || 'EC');
             const effectiveCountry = inferredCountry === 'BR' || matchedBrazilTestPhone

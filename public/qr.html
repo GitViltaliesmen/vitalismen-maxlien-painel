@@ -8862,6 +8862,7 @@
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
     <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
     <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
+    <script src="/panel-intelligence/customer-form-persistence-guard-v55.js?v=20260824"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -9078,10 +9079,14 @@
         const editingCustomerDraftForChat = (chat = {}) => cachedCustomerDraftForChat(state.customerEditingDrafts, chat, 5 * 60 * 1000);
         const applyCustomerDraftToChat = (chat = {}, draft = {}) => {
             const valueOrCurrent = (key, current) => Object.prototype.hasOwnProperty.call(draft, key) ? draft[key] : current;
+            const stableConversationPhone = window.VitalismenCustomerFormPersistenceGuardV55?.stableConversationPhone?.({
+                chat,
+                draft
+            }) || chat.phone || draft.phone || '';
             return {
                 ...chat,
                 name: valueOrCurrent('name', chat.name),
-                phone: valueOrCurrent('phone', chat.phone),
+                phone: stableConversationPhone,
                 country: valueOrCurrent('country', chat.country),
                 city: valueOrCurrent('city', chat.city),
                 province: valueOrCurrent('province', chat.province),
@@ -9100,7 +9105,8 @@
                 notes: valueOrCurrent('notes', chat.notes),
                 customerDraft: {
                     ...(chat.customerDraft || {}),
-                    ...draft
+                    ...draft,
+                    phone: stableConversationPhone
                 }
             };
         };
@@ -18517,9 +18523,22 @@
             let orderNotice = '';
             const formOrderId = el('customerOrderInput').value.trim();
             const chatOrderId = String(chat.orderId || '').trim();
+            const protectedPhone = window.VitalismenCustomerFormPersistenceGuardV55?.protectFormPhone?.({
+                inputPhone: el('customerPhoneInput').value,
+                chat,
+                draft: chat.customerDraft || {}
+            }) || {
+                phone: el('customerPhoneInput').value.trim() || chat.phone || '',
+                mismatch: false,
+                restored: false
+            };
+            if (protectedPhone.restored) setInputValue('customerPhoneInput', protectedPhone.phone);
+            if (protectedPhone.mismatch) {
+                throw new Error('O telefone identifica esta conversa do WhatsApp e não pode ser trocado nesta ficha. Abra ou adicione o contato correto; os demais campos foram preservados.');
+            }
             const customerDraft = {
                 name: el('customerNameInput').value.trim(),
-                phone: el('customerPhoneInput').value.trim(),
+                phone: protectedPhone.phone,
                 city: el('customerCityInput').value.trim(),
                 province: el('customerProvinceInput').value.trim(),
                 address: el('customerAddressInput').value.trim(),
