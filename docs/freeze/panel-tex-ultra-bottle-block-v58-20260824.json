@@ -1,0 +1,61 @@
+{
+  "freezeId": "panel-tex-ultra-bottle-block-v58-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-customer-alias-repair-v57-20260824",
+  "parentManifestSha256": "5ec04a8e005e08df215c05e8926811329a89ed0743366948d43db57962371ffa",
+  "baseProductionSha": "33e48fc82d480646993fe52abdb9a31bf071357d",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T045910Z_production-20260824-33e48fc",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_block_repair_audit_freeze_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_request_to_fix_freeze_audit_publish_and_validate_tex_ultra_manual_block"
+  },
+  "policy": {
+    "officialBottlePathRepair": true,
+    "fullB01SequencePreserved": true,
+    "promotionalPricesChanged": false,
+    "realClientSendAuthorized": false,
+    "qaPhoneCanaryAuthorized": true,
+    "automaticDropiAuthorization": false,
+    "metaPurchaseResendAllowed": false,
+    "otherProductMediaChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/qr.html",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/ec-product-funnel-isolation-v13.test.mjs",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_TEX_ULTRA_BOTTLE_BLOCK_V58_20260824.txt",
+    "docs/PANEL_TEX_ULTRA_BOTTLE_BLOCK_FREEZE_V58_20260824.md",
+    "public/media/sales/ec/tex_ultra.png",
+    "scripts/assert-panel-tex-ultra-bottle-block-activation-approved-v58.mjs",
+    "scripts/guard-panel-tex-ultra-bottle-block-v58.mjs",
+    "src/services/panelTexUltraBottleBlockFreezeRuntimeGuardV58.js",
+    "tests/panel-tex-ultra-bottle-block-v58.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_TEX_ULTRA_BOTTLE_BLOCK_V58_20260824.txt": "bf8efb410925b071d11d412df04894c1e9aac23c21466af268e8c57961c63261",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "2055e9ced360c1cd0eabe31034158a3291720593ccd7b1e4b7c15669f51ca9ee",
+    "docs/ARQUIVOS_OFICIAIS.md": "021a66d6bf2d30b331e7c4ecd3823909ddca951226c7a9024891428ae2d76b09",
+    "docs/PANEL_TEX_ULTRA_BOTTLE_BLOCK_FREEZE_V58_20260824.md": "52d12ceba5dde854a8f37b3261964e6ab38e07f3f9687f5f6596e0137ac43b3f",
+    "package.json": "b09c6f525d36ff941c02e06a02908542005230015a4555385e30085f415fed67",
+    "public/media/sales/ec/tex_ultra.png": "450122a3db3823d012770a20f25f311be66a564b8fb23d9d0d47f0207d3ce2f7",
+    "public/qr.html": "ec3b7cf3bc159c3a560bbfb56e6c7edb1478aac1d28a89ecf2292f43ab03c633",
+    "scripts/assert-panel-tex-ultra-bottle-block-activation-approved-v58.mjs": "c40a6b20cab5ebfc87d044df4de94aa8e3c02b4039954c125497880bc7807925",
+    "scripts/guard-panel-tex-ultra-bottle-block-v58.mjs": "d0289474c45c089f1025f397b5d6f33158aeee5cb7fb084bcc1716f340b5b126",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "3ae1a4dfe96ca008b6d07b797e27ac98cbc088a2d508b5719797cedc2c24ccaa",
+    "src/services/panelTexUltraBottleBlockFreezeRuntimeGuardV58.js": "c75faad3e070008a34d51716d75bd5689343d86d67cc4857073918865e2adfc9",
+    "tests/ec-product-funnel-isolation-v13.test.mjs": "873d25ded236f033cc5237018bf5964f53edb6ce9eb4d5d97661ddd3212f171c",
+    "tests/panel-tex-ultra-bottle-block-v58.test.mjs": "1eec39e14983df777cfc068bc90d0136fef640828140a7783e09a0853e3d760d",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "57ac2fb89611c7f17ef89b98fa2e518d47895d697b65aa159d3465d474ecd493"
+  }
+}

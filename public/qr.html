@@ -15860,7 +15860,7 @@
             const isNitrix = selectedProductKey === 'nitrix_ec';
             const isTexUltra = selectedProductKey === 'tex_ultra_ec';
             const productMedia = isTexUltra
-                ? { label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra_bottle.png' }
+                ? { label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra.png' }
                 : isNitrix
                     ? { label: 'Frasco Nitrix', value: '/media/sales/ec/nitrix_bottle.png' }
                     : { label: 'Frasco Vit Power', value: '/media/sales/ec/vit_power.jpeg' };
@@ -16767,7 +16767,7 @@
                         { type: 'draft', label: 'Saudacao personalizada', value: 'tex_ultra_personalized_entry' },
                         { type: 'audio', label: 'Inicio universal Tex Ultra', value: TEX_ULTRA_UNIVERSAL_ENTRY_AUDIO_EC },
                         { type: 'media', label: 'Prova 1', value: '/media/sales/shared/social_01.jpeg' },
-                        { type: 'media', label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra_bottle.png', waitAfterMs: 0 },
+                        { type: 'media', label: 'Frasco Tex Ultra', value: '/media/sales/ec/tex_ultra.png', waitAfterMs: 0 },
                         { type: 'draft', label: 'Valores promocionais · desde USD 35.99', value: 'tex_ultra_promotion_1' }
                     ]
                 }] : [{
@@ -17332,8 +17332,11 @@
                             phone: targetPhone,
                             message: payload.message,
                             isMedia: payload.isMedia,
+                            sessionId,
+                            clientGeneratedId: activePendingMessage?.clientGeneratedId || '',
                             sendMode: 'manual_panel',
                             allowAudioDedupeBypass: true,
+                            country: currentTemplateCountry(),
                             delayTypingSeconds: payload.delayTypingSeconds || 0,
                             recordedAudio: payload.recordedAudio === true,
                             viewOnce: payload.viewOnce === true,
@@ -17356,6 +17359,7 @@
                     if (!result?.success) {
                         throw new Error(result?.error || `WhatsApp nao confirmou: ${payload.label}`);
                     }
+                    confirmPendingLocalMessage(activePendingMessage?._id, result);
                     activeStepConfirmed = true;
                     activePendingMessage = null;
                     sentCount = index + 1;
@@ -17393,7 +17397,11 @@
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
             } catch (error) {
                 if (!activeStepConfirmed) {
-                    removePendingLocalMessage(activePendingMessage?._id);
+                    markPendingLocalMessageStatus(
+                        activePendingMessage?._id,
+                        'unconfirmed',
+                        error.message || 'Etapa do bloco sem confirmacao da Z-API.'
+                    );
                 }
                 const message = funnelErrorMessage(error);
                 setFunnelProgress({

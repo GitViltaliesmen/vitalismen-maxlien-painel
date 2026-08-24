@@ -1073,3 +1073,20 @@ canonica `593983125541@c.us` e recebe a mesma identidade, resolucao e ficha V55.
 
 Somente o alias e atualizado. Pedido, mensagem, Shipment, lead, Dropi, Meta,
 produto, preco, funil, midia, pos-venda e scheduler permanecem inalterados.
+
+## Microcamada V58 do frasco oficial no bloco manual Tex Ultra
+
+O freeze `docs/PANEL_TEX_ULTRA_BOTTLE_BLOCK_FREEZE_V58_20260824.md` sucede a
+V57 e corrige somente duas referencias quebradas do painel. O atalho M01 e a
+etapa de frasco do bloco manual `tex_ultra_inicio_completo` passam a usar o
+arquivo oficial existente `/media/sales/ec/tex_ultra.png`.
+
+As etapas do bloco usam a mesma identidade persistente da V52: enviam
+`clientGeneratedId`, sessao e pais, confirmam a bolha local com a resposta da
+API e conservam a falha como `unconfirmed` em vez de apagar a evidencia.
+
+A sequencia B01 permanece saudacao personalizada, um audio universal, Prova 1,
+frasco Tex Ultra e tabela promocional 1/2/3/6 frascos por USD
+35.99/70.00/80.99/147.99. Produto, preco, VSL, checkout, Dropi, Meta/CAPI,
+pixel, transporte, numero, audios, provas, memoria, pedidos, scheduler,
+pos-venda e outros produtos permanecem inalterados.
