@@ -1014,3 +1014,21 @@ Nitrix e Tex Ultra usam exclusivamente seus áudios aprovados e não recebem pro
 Vit Power. Produto desconhecido e caso manual permanecem bloqueados. Dropi,
 Meta/CAPI, checkout, preço, VSL, número oficial, credenciais e funil comercial
 não foram alterados.
+
+## Microcamada V54 de fechamento logístico Tex Ultra EC
+
+O freeze `docs/TEX_ULTRA_DELIVERY_CLOSURE_FREEZE_V54_20260824.md` sucede a
+V53. A fala do cliente é evidência para localizar a agência, mas nunca volta a
+ser endereço operacional. Retirada confirmada usa exclusivamente ID, nome e
+endereço de `src/data/agencia_LISTA.json`; o campo referência fica
+`NOT_APPLICABLE` e o resumo segue diretamente para o `SI`.
+
+Uma busca empatada ou genérica não produz `agencyId`. O funil mostra até três
+agências da cidade/província e aceita apenas `A`, `B` ou `C`. Domicílio sem
+logradouro, setor, numeração ou outro sinal operacional permanece bloqueado em
+coleta. Correções rotuladas durante o resumo são reaplicadas pelo motor V28 e
+o resumo corrigido é mostrado novamente antes do fechamento.
+
+O reparo V54 é restrito ao pedido exato autorizado, exige backup e não chama
+WhatsApp, Meta/CAPI ou Dropi. Produto, preços, VSL, checkout, pixel, Z-API,
+mídias, pós-venda e scheduler permanecem inalterados.
