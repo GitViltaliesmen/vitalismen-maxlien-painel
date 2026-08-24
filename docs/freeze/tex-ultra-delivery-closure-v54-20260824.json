@@ -1,0 +1,65 @@
+{
+  "freezeId": "tex-ultra-delivery-closure-v54-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "post-sale-health-recovery-v53-20260824",
+  "parentManifestSha256": "b28b607bad84af601a9699da2396faa1183805f815ce9cfd41a0385591f16fae",
+  "baseProductionSha": "04b1e8e6084a78da7ad4254ca1c979996a7484f9",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T025315Z_production-20260824-04b1e8e",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "explicit_correction_authorized",
+    "approvedAt": "2026-08-24",
+    "source": "operator_accepted_and_authorized_correction"
+  },
+  "policy": {
+    "canonicalAgencyRegistryOnly": true,
+    "agencyReferenceNotApplicable": true,
+    "ambiguousAgencyRequiresLetterSelection": true,
+    "homeModeAloneIsNotAddress": true,
+    "structuredConfirmationCorrections": true,
+    "exactOrderRepairWithBackup": true,
+    "realClientCanaryAuthorized": false,
+    "metaPurchaseResendAllowed": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/services/customerDataResolutionService.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/servientregaEcuadorAgencyService.js",
+    "src/services/texUltraFunnelService.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_TEX_ULTRA_DELIVERY_CLOSURE_V54_20260824.txt",
+    "docs/TEX_ULTRA_DELIVERY_CLOSURE_FREEZE_V54_20260824.md",
+    "scripts/assert-tex-ultra-delivery-closure-activation-approved-v54.mjs",
+    "scripts/guard-tex-ultra-delivery-closure-v54.mjs",
+    "scripts/repair-tex-ultra-agency-order-v54.mjs",
+    "src/services/texUltraDeliveryClosureFreezeRuntimeGuardV54.js",
+    "tests/tex-ultra-delivery-closure-v54.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_TEX_ULTRA_DELIVERY_CLOSURE_V54_20260824.txt": "23a547f1d8a737517dbeab27819503c8a1ef74b921e4f62fc16decb83a1e541e",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "b4b3ea210f7bf7f19e5172de45657edaf8d80c914a1493f5d11e0df04247e2db",
+    "docs/ARQUIVOS_OFICIAIS.md": "5d3e59d6b7dbde7cece77f1837b80c2c9f250f1429cc94796a334cbe225bd0c2",
+    "docs/TEX_ULTRA_DELIVERY_CLOSURE_FREEZE_V54_20260824.md": "e49a188efe8b51fe4d803bcc7024a8d27577168c8af3785c1323b594a398eb24",
+    "package.json": "b1eac5e9a79923b884d6edc3a25b4ddaa78633b7bc8033cb3d569ca2577176bc",
+    "scripts/assert-tex-ultra-delivery-closure-activation-approved-v54.mjs": "ce26a89dd2db31a5fce1d43affca937c9f6dc32d75daec11b8f54fc5abb68e77",
+    "scripts/guard-tex-ultra-delivery-closure-v54.mjs": "46940e2ba1026c87ce37bd201c325d7b5562c2ce00fa6d290146f7edeea1ffd9",
+    "scripts/repair-tex-ultra-agency-order-v54.mjs": "cb1c9aa20ea3e6cb22f554f344d32621433b582439249c16d9563bee12d9d199",
+    "src/services/customerDataResolutionService.js": "ef3620b61cbbe22fd98190ddb98415cb9df0b083d04058d98b21488ccaf90235",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "0e64de934fbd12aa2477c2494f04bad3bf4f585a9af82f17f1e3887319c8998b",
+    "src/services/servientregaEcuadorAgencyService.js": "6d2c5102fd49e6aee2615e4a36ccea6fbe6dba95e1063a9896b8fd46cd1d6b4a",
+    "src/services/texUltraDeliveryClosureFreezeRuntimeGuardV54.js": "63790e54fa7b9e83d4458059e5166ba18b7508a0d659bf98aaee3d217154e39a",
+    "src/services/texUltraFunnelService.js": "27d4ea57c122012492f634d804b929c58e17b31010483f024983e8b4907a47d2",
+    "tests/tex-ultra-delivery-closure-v54.test.mjs": "da65b110cbe83d1e0afc589686cc2963644cff0ae3217bed1e31b5ef0e7d48b5",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "0246f7eb3cd7e45055af714edaf8b6bb08669c7038cd7f488cbebe91bfe74c7e"
+  }
+}

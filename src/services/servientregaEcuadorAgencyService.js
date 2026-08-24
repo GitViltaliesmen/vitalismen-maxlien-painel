@@ -67,6 +67,8 @@ const GENERIC_AGENCY_LOCATION_TOKENS = new Set([
     'NORESTE',
     'SUROESTE',
     'SURESTE',
+    'PLAZA',
+    'PRINCIPAL',
     'AGENCIA',
     'OFICINA',
     'SERVIENTREGA',
@@ -560,8 +562,10 @@ export const resolveServientregaEcuadorAgency = ({
         limit
     });
     const best = suggestions[0] || null;
+    const second = suggestions[1] || null;
     const hasScopedLocation = Boolean(normalizeAgencyText(city) || normalizeAgencyText(province));
     const hasMultipleUnscopedMatches = Boolean(!hasScopedLocation && suggestions.length > 1);
+    const hasUniqueBestScore = Boolean(best && (!second || Number(best.score || 0) > Number(second.score || 0)));
     const hasSpecificMatch = Boolean(best && (
         best.queryNameTokenMatched
         || best.queryAddressTokenMatched
@@ -570,7 +574,7 @@ export const resolveServientregaEcuadorAgency = ({
             && !GENERIC_AGENCY_LOCATION_TOKENS.has(normalizeAgencyText(query))
         )
     ));
-    const confident = Boolean(best && !hasMultipleUnscopedMatches && (
+    const confident = Boolean(best && hasUniqueBestScore && !hasMultipleUnscopedMatches && (
         (hasSpecificMatch && best.score >= 75)
         || (suggestions.length === 1 && best.score >= 60 && (best.cityMatched || best.queryCityMatched || best.provinceMatched || best.queryProvinceMatched))
     ));

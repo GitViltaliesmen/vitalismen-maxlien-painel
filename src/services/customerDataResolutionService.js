@@ -509,6 +509,35 @@ const normalizeDeliveryMode = (value = '') => {
     return '';
 };
 
+const HOME_DELIVERY_ONLY_PATTERNS = [
+    /^(?:la\s+)?entrega\s+(?:es\s+)?a\s+domicilio$/,
+    /^(?:a\s+)?domicilio$/,
+    /^(?:en\s+)?mi\s+casa$/,
+    /^(?:a\s+)?casa$/,
+    /^(?:en\s+)?mi\s+residencia$/,
+    /^residencia$/
+];
+
+export const operationalHomeAddress = (value = '') => {
+    const clean = cleanSpaces(value)
+        .replace(/^(?:(?:la\s+)?entrega\s+(?:es\s+)?a\s+domicilio|(?:a\s+)?domicilio)(?:\s+(?:en|para))?\s*[:,-]?\s*/iu, '')
+        .replace(/^(?:en\s+)?mi\s+(?:casa|residencia)(?:\s+(?:en|queda\s+en))?\s*[:,-]?\s*/iu, '')
+        .trim();
+    const normalized = normalizedKey(value).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!clean || HOME_DELIVERY_ONLY_PATTERNS.some((pattern) => pattern.test(normalized))) return '';
+    const hasAddressMarker = /\b(?:av|avenida|calle|carrera|barrio|sector|manzana|mz|lote|solar|edificio|departamento|casa|recinto|comunidad|urbanizacion|ciudadela|cdla|km|via|diagonal|frente|junto|entre)\b/u.test(normalized);
+    const hasNumber = /\d/u.test(clean);
+    return hasAddressMarker || hasNumber ? clean : '';
+};
+
+export const authorizedAgencyOrderAddress = ({ agencyName = '', agencyAddress = '', city = '', province = '' } = {}) => {
+    const name = cleanSpaces(agencyName);
+    const address = cleanSpaces(agencyAddress);
+    const location = [cleanSpaces(city), cleanSpaces(province)].filter(Boolean).join(', ');
+    if (!name || !address) return '';
+    return [`Servientrega ${name}`, address, location].filter(Boolean).join(' - ');
+};
+
 const agencyIdentifier = (agency = {}) => {
     const stable = [agency.province, agency.city, agency.name, agency.address].map(normalizeAgencyText).join('|');
     return `EC-SA-${crypto.createHash('sha256').update(stable).digest('hex').slice(0, 16).toUpperCase()}`;
@@ -560,7 +589,7 @@ export const resolveAuthorizedAgency = ({
         source: correctedByHuman ? 'human_correction' : confirmedByCustomer ? 'customer_confirmation' : 'servientrega_authorized_registry',
         sourceMessageId,
         extractedAt,
-        confidence: correctedByHuman ? 100 : confirmedByCustomer ? 98 : valid ? 95 : conflict ? 0 : 45,
+        confidence: correctedByHuman && valid ? 100 : confirmedByCustomer && valid ? 98 : valid ? 95 : conflict ? 0 : 45,
         status,
         confirmedByCustomer,
         correctedByHuman,
@@ -632,8 +661,13 @@ export const evaluateOrderDataGate = ({ fields = {}, deliveryMode = '' } = {}) =
     if (!acceptedLocationStatus(fields.province?.validation_status)) reasons.push('PROVINCE_NOT_RESOLVED');
     if ([fields.city?.validation_status, fields.province?.validation_status].includes(CUSTOMER_DATA_STATUS.CONFLICT)) reasons.push('LOCATION_CONFLICT');
     if (!mode) reasons.push('DELIVERY_MODE_REQUIRED');
-    if (mode === 'home' && !fields.address?.canonical_value) reasons.push('HOME_ADDRESS_REQUIRED');
-    if (mode === 'agency' && fields.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED) reasons.push(fields.agency?.validation_status === CUSTOMER_DATA_STATUS.CONFLICT ? 'AGENCY_LOCATION_CONFLICT' : 'AUTHORIZED_AGENCY_REQUIRED');
+    if (mode === 'home' && !operationalHomeAddress(fields.address?.canonical_value)) reasons.push('HOME_ADDRESS_REQUIRED');
+    if (mode === 'agency' && (
+        fields.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED
+        || !fields.agency?.agency_id
+        || !fields.agency?.name
+        || !fields.agency?.address
+    )) reasons.push(fields.agency?.validation_status === CUSTOMER_DATA_STATUS.CONFLICT ? 'AGENCY_LOCATION_CONFLICT' : 'AUTHORIZED_AGENCY_REQUIRED');
     return { orderDataReady: reasons.length === 0, blockedReasons: [...new Set(reasons)], deliveryMode: mode };
 };
 
@@ -645,8 +679,10 @@ const qualityScore = ({ fields = {}, gate = {} } = {}) => {
         ['city', 15, acceptedLocationStatus(fields.city?.validation_status)],
         ['province', 10, acceptedLocationStatus(fields.province?.validation_status)],
         ['delivery_mode', 10, Boolean(gate.deliveryMode)],
-        ['address', 10, gate.deliveryMode === 'agency' || Boolean(fields.address?.canonical_value)],
-        ['reference', 5, Boolean(fields.reference?.canonical_value)],
+        ['address', 10, gate.deliveryMode === 'agency'
+            ? Boolean(fields.agency?.address)
+            : Boolean(operationalHomeAddress(fields.address?.canonical_value))],
+        ['reference', 5, gate.deliveryMode === 'agency' || Boolean(fields.reference?.canonical_value)],
         ['agency', 10, gate.deliveryMode !== 'agency' || fields.agency?.validation_status === CUSTOMER_DATA_STATUS.VERIFIED]
     ];
     return weighted.reduce((sum, [, weight, valid]) => sum + (valid ? weight : 0), 0);
@@ -731,31 +767,31 @@ export const resolveCustomerDataDraft = ({
         : withHistory(deliveryCandidate, previousFields.delivery_mode);
     const resolvedDeliveryModeValue = deliveryMode.canonical_value || '';
     const address = textField({
-        raw: draft.address_raw || draft.address || '',
+        raw: resolvedDeliveryModeValue === 'agency' ? '' : draft.address_raw || draft.address || '',
         source,
         sourceMessageId,
         extractedAt,
-        previous: previousFields.address,
+        previous: resolvedDeliveryModeValue === 'agency' ? null : previousFields.address,
         correctedByHuman: corrected.has('address'),
         confirmedByCustomer: confirmed.has('address'),
         required: resolvedDeliveryModeValue === 'home',
         metadata: {
-            normalized_value: cleanSpaces(draft.address_raw || draft.address || ''),
+            normalized_value: resolvedDeliveryModeValue === 'agency' ? '' : cleanSpaces(draft.address_raw || draft.address || ''),
             lat: null,
             lng: null,
-            external_validation_pending: Boolean(draft.address_raw || draft.address)
+            external_validation_pending: resolvedDeliveryModeValue === 'home' && Boolean(draft.address_raw || draft.address)
         }
     });
     const reference = textField({
-        raw: draft.reference_raw || draft.reference || '',
+        raw: resolvedDeliveryModeValue === 'agency' ? '' : draft.reference_raw || draft.reference || '',
         source,
         sourceMessageId,
         extractedAt,
-        previous: previousFields.reference,
+        previous: resolvedDeliveryModeValue === 'agency' ? null : previousFields.reference,
         correctedByHuman: corrected.has('reference'),
         confirmedByCustomer: confirmed.has('reference'),
         metadata: {
-            normalized_value: cleanSpaces(draft.reference_raw || draft.reference || ''),
+            normalized_value: resolvedDeliveryModeValue === 'agency' ? '' : cleanSpaces(draft.reference_raw || draft.reference || ''),
             place_candidate: '',
             reference_lat: null,
             reference_lng: null
@@ -763,7 +799,7 @@ export const resolveCustomerDataDraft = ({
     });
     const agency = resolveAuthorizedAgency({
         agencyRaw: draft.agencyName || draft.agency || (resolvedDeliveryModeValue === 'agency' ? draft.address || '' : ''),
-        addressRaw: draft.address || '',
+        addressRaw: resolvedDeliveryModeValue === 'agency' ? draft.agencyAddress || '' : '',
         deliveryMode: resolvedDeliveryModeValue,
         city: location.city.canonical_value,
         province: location.province.canonical_value,
@@ -809,13 +845,14 @@ export const resolveCustomerDataDraft = ({
         city: location.city.canonical_value || location.city.display_value || location.city.raw_value,
         province_raw: location.province.raw_value,
         province: location.province.canonical_value || location.province.display_value || location.province.raw_value,
-        address_raw: address.raw_value,
-        address: address.canonical_value || address.display_value,
-        reference_raw: reference.raw_value,
-        reference: reference.canonical_value || reference.display_value,
+        address_raw: resolvedDeliveryModeValue === 'agency' ? '' : address.raw_value,
+        address: resolvedDeliveryModeValue === 'agency' ? '' : address.canonical_value || address.display_value,
+        reference_raw: resolvedDeliveryModeValue === 'agency' ? '' : reference.raw_value,
+        reference: resolvedDeliveryModeValue === 'agency' ? '' : reference.canonical_value || reference.display_value,
         deliveryMode: gate.deliveryMode,
         agencyId: gate.deliveryMode === 'agency' && agency.validation_status === CUSTOMER_DATA_STATUS.VERIFIED ? agency.agency_id || '' : '',
         agencyName: gate.deliveryMode === 'agency' ? agency.canonical_value || draft.agencyName || '' : '',
+        agencyAddress: gate.deliveryMode === 'agency' && agency.validation_status === CUSTOMER_DATA_STATUS.VERIFIED ? agency.address || '' : '',
         dataQuality: {
             version: CUSTOMER_DATA_RESOLUTION_VERSION,
             score,

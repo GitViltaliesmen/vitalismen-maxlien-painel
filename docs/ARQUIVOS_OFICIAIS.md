@@ -592,3 +592,29 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   autorização Dropi, nenhuma mudança de preço/produto/VSL/checkout/Meta/pixel.
 - Rollback funcional: release V52 acima, preservando bancos, pedidos, Shipments,
   mensagens e mídias compartilhadas.
+
+### Microcamada V54 — fechamento logístico Tex Ultra EC — 2026-08-24
+
+- Base oficial inspecionada antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260824T025315Z_production-20260824-04b1e8e`;
+  hashes de `texUltraFunnelService`, `customerDataResolutionService` e
+  `servientregaEcuadorAgencyService` idênticos à cópia local.
+- Arquivos funcionais: `src/services/texUltraFunnelService.js`,
+  `src/services/customerDataResolutionService.js` e
+  `src/services/servientregaEcuadorAgencyService.js`.
+- Agência: frase do cliente preservada como evidência; nome, ID e endereço do
+  pedido saem do catálogo oficial. Empate oferece seleção `A/B/C` e não cria ID.
+- Domicílio: texto de modalidade não é aceito como endereço; referência continua
+  exclusiva do modo domiciliar.
+- Confirmação: correções rotuladas voltam ao motor determinístico e o resumo é
+  reapresentado antes de aceitar `SI`.
+- Reparo controlado: `scripts/repair-tex-ultra-agency-order-v54.mjs`, limitado a
+  um `order-id` exato, confirmação literal e backup absoluto, sem envio externo.
+- Testes: `tests/tex-ultra-delivery-closure-v54.test.mjs`, regressões V27/V28 e
+  `tests/whatsapp-outage-recovery-v49.test.mjs` incluído no `senior:check`.
+- Freeze/guard: `docs/TEX_ULTRA_DELIVERY_CLOSURE_FREEZE_V54_20260824.md`,
+  `docs/freeze/tex-ultra-delivery-closure-v54-20260824.json` e
+  `scripts/guard-tex-ultra-delivery-closure-v54.mjs`.
+- Preservado: preços, produtos, VSL, checkout, Dropi bloqueado, Meta/CAPI, pixel,
+  Z-API, número oficial, mídia, pós-venda e scheduler.
+- Rollback funcional: release V53 acima e backup específico do pedido reparado.

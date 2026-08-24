@@ -15,9 +15,12 @@ import { sendTexUltraConfirmedPostSaleAudios } from './texUltraConfirmedPostSale
 import { sendTexUltraHowToUseAudio } from './texUltraHowToUseAudioService.js';
 import {
     assertCustomerOrderDataReady,
+    authorizedAgencyOrderAddress,
     CUSTOMER_DATA_STATUS,
+    operationalHomeAddress,
     resolveCustomerDataDraft
 } from './customerDataResolutionService.js';
+import { formatAgencyOptionLine } from './servientregaEcuadorAgencyService.js';
 
 const AGENT_KEY = TEX_ULTRA_EC_PRODUCT_PROFILE.key;
 export const texUltraFunnelEnabled = (env = process.env) => String(env.TEX_ULTRA_FUNNEL_ENABLED || 'false').toLowerCase() === 'true';
@@ -94,12 +97,22 @@ export const texUltraNextDataCollectionStep = (draft = {}) => {
         context: 'tex_ultra_ask_province',
         text: '¿A que provincia pertenece?'
     };
-    if (!String(draft.address || '').trim()) return {
+    if (!String(draft.deliveryMode || '').trim()) return {
         stage: 'awaiting_address',
         context: 'tex_ultra_ask_address',
         text: 'Ya tengo su nombre, ciudad y provincia. ¿Prefiere entrega a domicilio o retiro en una agencia Servientrega? Envieme la direccion o el nombre de la agencia.'
     };
-    if (!String(draft.reference || '').trim()) return {
+    if (draft.deliveryMode === 'home' && !operationalHomeAddress(draft.address)) return {
+        stage: 'awaiting_address',
+        context: 'tex_ultra_ask_home_address',
+        text: 'Envíeme por favor la dirección completa para la entrega a domicilio, incluyendo calle, sector o numeración.'
+    };
+    if (draft.deliveryMode === 'agency' && (!draft.agencyId || !draft.agencyName || !draft.agencyAddress)) return {
+        stage: 'awaiting_address',
+        context: 'tex_ultra_ask_agency',
+        text: 'Envíeme el nombre exacto de la agencia Servientrega donde desea retirar.'
+    };
+    if (draft.deliveryMode === 'home' && !String(draft.reference || '').trim()) return {
         stage: 'awaiting_reference',
         context: 'tex_ultra_ask_reference',
         text: 'Indiqueme un punto de referencia para completar la entrega.'
@@ -141,22 +154,81 @@ const affirmative = (text = '') => /^(si|correcto|confirmo|esta correcto|todo co
 const negative = (text = '') => /^(no|corregir|incorrecto|cambiar)\b/.test(normalize(text));
 const acceptedResolvedName = (resolution = {}) => ['VERIFIED', 'HIGH_CONFIDENCE'].includes(resolution?.fields?.name?.validation_status);
 
-export const texUltraDeliveryData = (text = '') => {
+export const texUltraDeliveryData = (text = '', currentMode = '') => {
     const raw = String(text || '').trim();
     const normalized = normalize(raw);
     if (/\b(agencia|servientrega|oficina|retiro|retirar)\b/.test(normalized)) {
-        return { deliveryMode: 'agency', agencyName: raw, address: raw };
+        return { deliveryMode: 'agency', agencyName: raw, agencyAddress: '', address: '', reference: '' };
     }
     if (/\b(domicilio|casa|residencia|calle|avenida|av\.?|barrio|sector|manzana|mz\.?|edificio|departamento)\b/.test(normalized)) {
-        return { deliveryMode: 'home', address: raw };
+        return { deliveryMode: 'home', agencyId: '', agencyName: '', agencyAddress: '', address: operationalHomeAddress(raw) };
     }
+    if (currentMode === 'agency') return { deliveryMode: 'agency', agencyName: raw, agencyAddress: '', address: '', reference: '' };
+    if (currentMode === 'home') return { deliveryMode: 'home', agencyId: '', agencyName: '', agencyAddress: '', address: operationalHomeAddress(raw) };
     return { deliveryMode: '', address: raw };
 };
 
-const resolveTexUltraDraft = ({ state, draft, source, sourceMessageId = '', confirmedByCustomerFields = [] }) => {
+export const texUltraAgencySelectionIndex = (text = '') => {
+    const value = normalize(text).replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const match = value.match(/^(?:opcion\s+)?([abc])$/);
+    return match ? match[1].charCodeAt(0) - 97 : -1;
+};
+
+export const texUltraAgencyCandidatesText = (candidates = []) => {
+    const safe = (Array.isArray(candidates) ? candidates : []).slice(0, 3);
+    if (!safe.length) return '';
+    return [
+        'Encontré estas agencias autorizadas. Responda solo con la letra de la agencia:',
+        ...safe.map((agency, index) => formatAgencyOptionLine(agency, String.fromCharCode(65 + index)))
+    ].join('\n');
+};
+
+export const texUltraConfirmationCorrections = (text = '') => {
+    const raw = String(text || '').trim();
+    if (!raw) return {};
+    const corrections = {};
+    const aliases = new Map([
+        ['nombre', 'name'],
+        ['nombre completo', 'name'],
+        ['ciudad', 'city'],
+        ['provincia', 'province'],
+        ['direccion', 'address'],
+        ['dirección', 'address'],
+        ['referencia', 'reference'],
+        ['agencia', 'agencyName'],
+        ['cantidad', 'quantity']
+    ]);
+    for (const line of raw.split(/\r?\n|;/).map((item) => item.trim()).filter(Boolean)) {
+        const labeled = line.match(/^([^:：]{3,24})\s*[:：]\s*(.+)$/u);
+        if (!labeled) continue;
+        const field = aliases.get(normalize(labeled[1]));
+        const value = String(labeled[2] || '').trim();
+        if (field && value) corrections[field] = value;
+    }
+    if (Object.keys(corrections).length) return corrections;
+    const natural = raw.match(/^(?:perdon|perdón|disculpe|corregir|correccion|corrección)\s*[,.:;-]?\s*(nombre|ciudad|provincia|direccion|dirección|referencia|agencia|cantidad)\s+(?:es|seria|sería|correcta|correcto)\s+(.+)$/iu);
+    if (natural) {
+        const field = aliases.get(normalize(natural[1]));
+        if (field) corrections[field] = String(natural[2] || '').trim();
+    }
+    return corrections;
+};
+
+const resolveTexUltraDraft = ({ state, draft, source, sourceMessageId = '', confirmedByCustomerFields = [], resetPreviousFields = [] }) => {
+    const storedResolution = state.customerDataResolution?.version
+        ? state.customerDataResolution.toObject?.() || state.customerDataResolution
+        : null;
+    const previousResolution = storedResolution && resetPreviousFields.length
+        ? {
+            ...storedResolution,
+            fields: Object.fromEntries(Object.entries(storedResolution.fields || {}).filter(([field, value]) => (
+                !resetPreviousFields.includes(field) || value?.corrected_by_human === true
+            )))
+        }
+        : storedResolution;
     const result = resolveCustomerDataDraft({
         draft,
-        previousResolution: state.customerDataResolution?.version ? state.customerDataResolution.toObject?.() || state.customerDataResolution : null,
+        previousResolution,
         conversationPhone: state.phoneDigits || state.chatId || draft.phone || '',
         source,
         sourceMessageId,
@@ -323,18 +395,52 @@ const offerText = () => (
     `Hoy tenemos estas opciones de Tex Ultra:\n${texUltraPublicOfferText()}\n\n¿Cuantos frascos desea?`
 );
 
-const confirmationText = (draft = {}) => [
-    '*CONFIRMACION TEX ULTRA*',
-    `Nombre: ${draft.name || ''}`,
-    `Ciudad: ${draft.city || ''}`,
-    `Provincia: ${draft.province || ''}`,
-    `Direccion/agencia: ${draft.address || ''}`,
-    `Referencia: ${draft.reference || ''}`,
-    `Cantidad: ${draft.quantity || ''} frasco${Number(draft.quantity) > 1 ? 's' : ''}`,
-    `Total: USD ${draft.total || ''}`,
-    '',
-    '¿Los datos estan correctos? Responda SI para confirmar.'
-].join('\n');
+export const texUltraConfirmationText = (draft = {}) => {
+    const deliveryLines = draft.deliveryMode === 'agency'
+        ? [
+            'Modalidad: Retiro en agencia Servientrega',
+            `Agencia: ${draft.agencyName || ''}`,
+            `Direccion de agencia: ${draft.agencyAddress || ''}`
+        ]
+        : [
+            'Modalidad: Entrega a domicilio',
+            `Direccion: ${draft.address || ''}`,
+            `Referencia: ${draft.reference || ''}`
+        ];
+    return [
+        '*CONFIRMACION TEX ULTRA*',
+        `Nombre: ${draft.name || ''}`,
+        `Ciudad: ${draft.city || ''}`,
+        `Provincia: ${draft.province || ''}`,
+        ...deliveryLines,
+        `Cantidad: ${draft.quantity || ''} frasco${Number(draft.quantity) > 1 ? 's' : ''}`,
+        `Total: USD ${draft.total || ''}`,
+        '',
+        '¿Los datos estan correctos? Responda SI para confirmar o indique el campo que desea corregir.'
+    ].join('\n');
+};
+
+export const texUltraOrderDeliveryData = (draft = {}) => {
+    if (draft.deliveryMode === 'agency') return {
+        address: authorizedAgencyOrderAddress({
+            agencyName: draft.agencyName,
+            agencyAddress: draft.agencyAddress,
+            city: draft.city,
+            province: draft.province
+        }),
+        reference: '',
+        delivery: {
+            mode: 'agency',
+            agencyId: draft.agencyId || '',
+            agencyName: draft.agencyName || ''
+        }
+    };
+    return {
+        address: operationalHomeAddress(draft.address),
+        reference: String(draft.reference || '').trim(),
+        delivery: { mode: 'home', agencyId: '', agencyName: '' }
+    };
+};
 
 const createOrConfirmOrder = async (state, draft) => {
     const resolution = state.customerDataResolution?.toObject?.() || state.customerDataResolution || {};
@@ -346,21 +452,18 @@ const createOrConfirmOrder = async (state, draft) => {
         status: { $in: ['draft', 'pending', 'confirmed'] },
         'tracking.productKey': AGENT_KEY
     }).sort({ updatedAt: -1 }).catch(() => null);
+    const operationalDelivery = texUltraOrderDeliveryData(draft);
     const payload = {
         country: 'EC',
         customer: {
             name: draft.name,
             phone: phone ? `+${phone}` : '',
-            address: draft.address,
-            reference: draft.reference,
+            address: operationalDelivery.address,
+            reference: operationalDelivery.reference,
             city: draft.city,
             province: draft.province
         },
-        delivery: {
-            mode: draft.deliveryMode || '',
-            agencyId: draft.agencyId || '',
-            agencyName: draft.agencyName || ''
-        },
+        delivery: operationalDelivery.delivery,
         customerDataResolution: resolution,
         package: {
             id: Number(draft.quantity),
@@ -503,7 +606,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         return true;
     }
 
-    const dataCollectionStages = new Set(['awaiting_name', 'awaiting_name_resolution', 'awaiting_city', 'awaiting_province', 'awaiting_address', 'awaiting_reference']);
+    const dataCollectionStages = new Set(['awaiting_name', 'awaiting_name_resolution', 'awaiting_city', 'awaiting_province', 'awaiting_address', 'awaiting_agency_selection', 'awaiting_reference']);
     if (interruptedInboundRoute === 'quantity' && quantity && !dataCollectionStages.has(memory.stage)) {
         const selected = texUltraPriceForQuantity(quantity);
         if (!selected) return true;
@@ -512,7 +615,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         await sendFunnelText({
             state,
             text: nextStep.stage === 'awaiting_confirmation'
-                ? confirmationText(draft)
+                ? texUltraConfirmationText(draft)
                 : `Perfecto: ${selected.label}. ${nextStep.text}`,
             context: nextStep.stage === 'awaiting_confirmation' ? nextStep.context : `tex_ultra_quantity_${quantity}_${nextStep.stage}`
         });
@@ -636,13 +739,26 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         return true;
     }
     if (memory.stage === 'awaiting_address') {
-        const delivery = texUltraDeliveryData(inboundText);
+        const delivery = texUltraDeliveryData(inboundText, draft.deliveryMode);
+        const addressRaw = delivery.deliveryMode === 'home' ? delivery.address || '' : '';
         const resolved = resolveTexUltraDraft({
             state,
-            draft: { ...draft, ...delivery, address_raw: String(inboundText).trim() },
+            draft: {
+                ...draft,
+                ...delivery,
+                address_raw: addressRaw,
+                reference_raw: delivery.deliveryMode === 'agency' ? '' : draft.reference_raw || ''
+            },
             source: 'customer_confirmation',
             sourceMessageId,
-            confirmedByCustomerFields: ['deliveryMode', 'address', ...(delivery.deliveryMode === 'agency' ? ['agency'] : [])]
+            confirmedByCustomerFields: [
+                'deliveryMode',
+                ...(delivery.deliveryMode === 'home' && addressRaw ? ['address'] : []),
+                ...(delivery.deliveryMode === 'agency' ? ['agency'] : [])
+            ],
+            resetPreviousFields: delivery.deliveryMode === 'agency'
+                ? ['address', 'reference', 'agency']
+                : delivery.deliveryMode === 'home' ? ['agency'] : []
         });
         draft = resolved.draft;
         if (!draft.deliveryMode) {
@@ -651,12 +767,71 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             return true;
         }
         if (draft.deliveryMode === 'agency' && resolved.resolution.fields?.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED) {
-            await sendFunnelText({ state, text: 'No pude validar esa agencia en el catálogo autorizado. Envíeme el nombre exacto de la agencia Servientrega de su ciudad.', context: 'tex_ultra_agency_retry_v28' });
-            await saveState(state, { memory, draft, stage: 'awaiting_address' });
+            const candidates = resolved.resolution.fields?.agency?.candidates || [];
+            const candidatesText = texUltraAgencyCandidatesText(candidates);
+            await sendFunnelText({
+                state,
+                text: candidatesText || 'No pude validar esa agencia en el catálogo autorizado. Envíeme el nombre exacto de la agencia Servientrega de su ciudad.',
+                context: candidatesText ? 'tex_ultra_agency_candidates_v54' : 'tex_ultra_agency_retry_v28'
+            });
+            await saveState(state, {
+                memory: { ...memory, agencyCandidates: candidates.slice(0, 3), agencyCandidatesAt: new Date().toISOString() },
+                draft,
+                stage: candidatesText ? 'awaiting_agency_selection' : 'awaiting_address'
+            });
             return true;
         }
-        await sendFunnelText({ state, text: 'Indiqueme un punto de referencia para completar la entrega.', context: 'tex_ultra_ask_reference' });
-        await saveState(state, { memory, draft, stage: 'awaiting_reference' });
+        const nextStep = texUltraNextDataCollectionStep(draft);
+        await sendFunnelText({
+            state,
+            text: nextStep.stage === 'awaiting_confirmation' ? texUltraConfirmationText(draft) : nextStep.text,
+            context: nextStep.context
+        });
+        await saveState(state, { memory, draft, stage: nextStep.stage });
+        return true;
+    }
+    if (memory.stage === 'awaiting_agency_selection') {
+        const selectionIndex = texUltraAgencySelectionIndex(inboundText);
+        const candidates = Array.isArray(memory.agencyCandidates) ? memory.agencyCandidates.slice(0, 3) : [];
+        const selected = selectionIndex >= 0 ? candidates[selectionIndex] : null;
+        if (!selected) {
+            await sendFunnelText({
+                state,
+                text: texUltraAgencyCandidatesText(candidates) || 'Envíeme nuevamente el nombre de la agencia Servientrega de su ciudad.',
+                context: 'tex_ultra_agency_selection_retry_v54'
+            });
+            await saveState(state, { memory, draft, stage: candidates.length ? 'awaiting_agency_selection' : 'awaiting_address' });
+            return true;
+        }
+        const resolved = resolveTexUltraDraft({
+            state,
+            draft: {
+                ...draft,
+                deliveryMode: 'agency',
+                agencyName: selected.name,
+                agencyAddress: selected.address,
+                address: '',
+                address_raw: '',
+                reference: '',
+                reference_raw: ''
+            },
+            source: 'customer_confirmation',
+            sourceMessageId,
+            confirmedByCustomerFields: ['deliveryMode', 'agency'],
+            resetPreviousFields: ['address', 'reference', 'agency']
+        });
+        draft = resolved.draft;
+        if (resolved.resolution.fields?.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED || draft.agencyId !== selected.agency_id) {
+            await sendFunnelText({ state, text: 'No pude fijar esa agencia con seguridad. Envíeme el nombre exacto para revisarla nuevamente.', context: 'tex_ultra_agency_selection_mismatch_v54' });
+            await saveState(state, { memory: { ...memory, agencyCandidates: [] }, draft, stage: 'awaiting_address' });
+            return true;
+        }
+        await sendFunnelText({ state, text: texUltraConfirmationText(draft), context: 'tex_ultra_confirmation' });
+        await saveState(state, {
+            memory: { ...memory, agencyCandidates: [], agencySelectedAt: new Date().toISOString() },
+            draft,
+            stage: 'awaiting_confirmation'
+        });
         return true;
     }
     if (memory.stage === 'awaiting_reference') {
@@ -668,11 +843,108 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             confirmedByCustomerFields: ['reference']
         });
         draft = resolved.draft;
-        await sendFunnelText({ state, text: confirmationText(draft), context: 'tex_ultra_confirmation' });
+        await sendFunnelText({ state, text: texUltraConfirmationText(draft), context: 'tex_ultra_confirmation' });
         await saveState(state, { memory, draft, stage: 'awaiting_confirmation' });
         return true;
     }
+    if (memory.stage === 'awaiting_confirmation') {
+        const corrections = texUltraConfirmationCorrections(inboundText);
+        if (Object.keys(corrections).length) {
+            const correctedFields = [];
+            const resetPreviousFields = [];
+            let correctedDraft = { ...draft };
+            for (const field of ['name', 'city', 'province', 'reference']) {
+                if (!corrections[field]) continue;
+                correctedDraft[field] = corrections[field];
+                correctedDraft[`${field}_raw`] = corrections[field];
+                correctedFields.push(field);
+            }
+            if (corrections.address) {
+                correctedDraft = {
+                    ...correctedDraft,
+                    deliveryMode: 'home',
+                    address: operationalHomeAddress(corrections.address),
+                    address_raw: operationalHomeAddress(corrections.address),
+                    agencyId: '',
+                    agencyName: '',
+                    agencyAddress: ''
+                };
+                correctedFields.push('deliveryMode', 'address');
+                resetPreviousFields.push('delivery_mode', 'agency');
+            }
+            if (corrections.agencyName) {
+                correctedDraft = {
+                    ...correctedDraft,
+                    deliveryMode: 'agency',
+                    agencyId: '',
+                    agencyName: corrections.agencyName,
+                    agencyAddress: '',
+                    address: '',
+                    address_raw: '',
+                    reference: '',
+                    reference_raw: ''
+                };
+                correctedFields.push('deliveryMode', 'agency');
+                resetPreviousFields.push('delivery_mode', 'address', 'reference', 'agency');
+            }
+            if (corrections.city || corrections.province) resetPreviousFields.push('agency');
+            if (corrections.quantity) {
+                const correctedQuantity = texUltraSelectedQuantity(corrections.quantity);
+                const selected = texUltraPriceForQuantity(correctedQuantity);
+                if (!selected) {
+                    await sendFunnelText({ state, text: 'La cantidad debe ser 1, 2, 3 o 6 frascos. Indique nuevamente la cantidad.', context: 'tex_ultra_correction_quantity_retry_v54' });
+                    await saveState(state, { memory, draft, stage: 'awaiting_confirmation' });
+                    return true;
+                }
+                correctedDraft.quantity = correctedQuantity;
+                correctedDraft.total = selected.amount;
+            }
+            const resolved = resolveTexUltraDraft({
+                state,
+                draft: correctedDraft,
+                source: 'customer_confirmation',
+                sourceMessageId,
+                confirmedByCustomerFields: [...new Set(correctedFields)],
+                resetPreviousFields: [...new Set(resetPreviousFields)]
+            });
+            draft = resolved.draft;
+            if (draft.deliveryMode === 'agency' && resolved.resolution.fields?.agency?.validation_status !== CUSTOMER_DATA_STATUS.VERIFIED) {
+                const candidates = resolved.resolution.fields?.agency?.candidates || [];
+                const candidatesText = texUltraAgencyCandidatesText(candidates);
+                await sendFunnelText({
+                    state,
+                    text: candidatesText || dataGatePrompt(resolved.resolution),
+                    context: candidatesText ? 'tex_ultra_correction_agency_candidates_v54' : 'tex_ultra_correction_gate_v54'
+                });
+                await saveState(state, {
+                    memory: { ...memory, agencyCandidates: candidates.slice(0, 3), agencyCandidatesAt: new Date().toISOString() },
+                    draft,
+                    stage: candidatesText ? 'awaiting_agency_selection' : dataGateStage(resolved.resolution)
+                });
+                return true;
+            }
+            if (!resolved.resolution.orderDataReady) {
+                await sendFunnelText({ state, text: dataGatePrompt(resolved.resolution), context: 'tex_ultra_correction_gate_v54' });
+                await saveState(state, { memory, draft, stage: dataGateStage(resolved.resolution) });
+                return true;
+            }
+            const nextStep = texUltraNextDataCollectionStep(draft);
+            await sendFunnelText({
+                state,
+                text: nextStep.stage === 'awaiting_confirmation' ? texUltraConfirmationText(draft) : nextStep.text,
+                context: nextStep.stage === 'awaiting_confirmation' ? 'tex_ultra_confirmation_corrected_v54' : nextStep.context
+            });
+            await saveState(state, { memory: { ...memory, correctedAt: new Date().toISOString() }, draft, stage: nextStep.stage });
+            return true;
+        }
+    }
     if (memory.stage === 'awaiting_confirmation' && affirmative(inboundText)) {
+        const missingStep = texUltraNextDataCollectionStep(draft);
+        if (missingStep.stage !== 'awaiting_confirmation') {
+            await sendFunnelText({ state, text: missingStep.text, context: missingStep.context });
+            await saveState(state, { memory, draft, stage: missingStep.stage });
+            return true;
+        }
         const resolution = state.customerDataResolution?.toObject?.() || state.customerDataResolution || {};
         if (resolution.orderDataReady !== true) {
             await sendFunnelText({ state, text: dataGatePrompt(resolution), context: 'tex_ultra_order_data_gate_v28' });
@@ -697,9 +969,13 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
         return true;
     }
     if (memory.stage === 'awaiting_confirmation' && negative(inboundText)) {
-        await sendFunnelText({ state, text: 'Claro. Diga qual dado deseja corrigir e um atendente ajustara antes da confirmacao.', context: 'tex_ultra_correction_handoff' });
-        state.human = { ...(state.human || {}), mode: 'manual', lastManualBy: 'tex_ultra_funnel', lastManualAt: new Date(), note: 'Cliente pediu correcao dos dados Tex Ultra.' };
-        await saveState(state, { memory, draft, stage: 'correction_handoff' });
+        await sendFunnelText({ state, text: 'Claro. Escriba el campo y el valor correcto, por ejemplo: Ciudad: Guayaquil o Agencia: Piazza Ceibos.', context: 'tex_ultra_correction_prompt_v54' });
+        await saveState(state, { memory, draft, stage: 'awaiting_confirmation' });
+        return true;
+    }
+    if (memory.stage === 'awaiting_confirmation') {
+        await sendFunnelText({ state, text: 'Responda SI para confirmar. Si desea corregir algo, escriba el campo y el valor, por ejemplo: Nombre: Juan Pérez.', context: 'tex_ultra_confirmation_reply_retry_v54' });
+        await saveState(state, { memory, draft, stage: 'awaiting_confirmation' });
         return true;
     }
 
