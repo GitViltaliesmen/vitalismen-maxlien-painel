@@ -1,0 +1,59 @@
+{
+  "freezeId": "baileys-libsignal-security-v59-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-tex-ultra-bottle-block-v58-20260824",
+  "parentManifestSha256": "e146e793aaa9d126a09dc4a4f8e9fbb53d5b625aead2cbc8cfba105d57c85a3f",
+  "baseProductionSha": "812fb25f0e585c0906cde47f4d4b1570511c3fda",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T123239Z_production-20260824-812fb25",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "dependency_security_repair_audit_freeze_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_authorization_to_update_baileys_libsignal_protobufjs_chain_and_restore_healthy_audit"
+  },
+  "policy": {
+    "dependencySecurityRepair": true,
+    "directBaileysVersionChanged": false,
+    "baileysMajorUpgradeAuthorized": false,
+    "libsignalRuntimeSourceChanged": false,
+    "officialZapiTransportPreserved": true,
+    "productionAuditZeroRequired": true,
+    "realClientSendAuthorized": false,
+    "automaticDropiAuthorization": false,
+    "metaPurchaseResendAllowed": false,
+    "commercialFunnelChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package-lock.json",
+    "package.json",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_BAILEYS_LIBSIGNAL_SECURITY_V59_20260824.txt",
+    "docs/BAILEYS_LIBSIGNAL_SECURITY_FREEZE_V59_20260824.md",
+    "scripts/assert-baileys-libsignal-security-activation-approved-v59.mjs",
+    "scripts/guard-baileys-libsignal-security-v59.mjs",
+    "src/services/baileysLibsignalSecurityFreezeRuntimeGuardV59.js",
+    "tests/baileys-libsignal-security-v59.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_BAILEYS_LIBSIGNAL_SECURITY_V59_20260824.txt": "114a2e6716320ae7609e2bdb59dec5e4daceb476d1047056503823674a52f40b",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "57ce8bebd98e5abde5a78d083676edc92dc4ad16a665eb7513dfbea59c937e10",
+    "docs/ARQUIVOS_OFICIAIS.md": "07c51287fe166043b32a08979f2efce1833be1a31936702b0175fcf933c977a1",
+    "docs/BAILEYS_LIBSIGNAL_SECURITY_FREEZE_V59_20260824.md": "f6eba493d3e4627e73fc78a8692f2a4ad8f931d127da594a2440209970c9b24a",
+    "package-lock.json": "de640685829d298e4c230522a3f39f4fbf94248a5e5c42583513e0263790874a",
+    "package.json": "c073a87c0670a2496f94da567705ec350c699558f47ed7f4d9f880f8558e77fa",
+    "scripts/assert-baileys-libsignal-security-activation-approved-v59.mjs": "9d07e15d0b0a9c33f143a3645a4d04f4884498d2b10f47547c1ba4360fd74334",
+    "scripts/guard-baileys-libsignal-security-v59.mjs": "fc803fe7803be9a801aa9d6c1db8d4d78d4ef7eeef1b6a23069134fe2c44cf3f",
+    "src/services/baileysLibsignalSecurityFreezeRuntimeGuardV59.js": "5235abd495b17821325290e32a473b23c71df9d506a02c1c67722fcd1711a374",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "fd4cd754627257a54f29461e6395d21be909bb6b70275ed025d3c9e94422ae01",
+    "tests/baileys-libsignal-security-v59.test.mjs": "a48c062edaa23f8f2db050fcf47d12b2b8e50607f2981736761c9768c953d422",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "ad26bbccc3530a160365773e281e4b0156177fba59768c9b2037d3b7e9d05452"
+  }
+}
