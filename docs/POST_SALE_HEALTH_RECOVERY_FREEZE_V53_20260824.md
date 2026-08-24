@@ -1,7 +1,7 @@
 # Freeze V53 — saúde e recuperação segura do pós-venda EC
 
-Data: 2026-08-24  
-País: Equador  
+Data: 2026-08-24
+País: Equador
 Pai: `panel-media-persistence-v52-20260824`
 
 ## Incidentes confirmados

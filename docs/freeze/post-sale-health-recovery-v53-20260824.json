@@ -54,7 +54,7 @@
     "approved_freezes/APPROVED_POST_SALE_HEALTH_RECOVERY_V53_20260824.txt": "d512d27ca776a92ca41245aea0dc235ce789b1bd8545c6438123d76e2b4e3a62",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "9a3e3b186d984b9e0cc9fc233be83a58c85dabe4dbb0cf755a30701427eb4d59",
     "docs/ARQUIVOS_OFICIAIS.md": "2c0e7e7433d309dc0cc5cb3e785cfd52f815f9fabb8d31b04848b6017478c4f6",
-    "docs/POST_SALE_HEALTH_RECOVERY_FREEZE_V53_20260824.md": "a8d705cde2fd51b70b6def469cf2fb8c8e75ee1ccf0914d2ded9cb02a225776d",
+    "docs/POST_SALE_HEALTH_RECOVERY_FREEZE_V53_20260824.md": "a7e555ca9be6fc69a572729760024e93047603a80ffee2d23074adacd40c2dc3",
     "package.json": "6cc6763dffa255d2a1c4f3bf47a3f90c24f240b0df9e08c6099e9202ae342d0e",
     "scripts/assert-post-sale-health-activation-approved-v53.mjs": "c866a9b1e0e2764f00c74652f23a279954d04918f8b76c9fbb5febb5bb2658e8",
     "scripts/guard-ec-direct-product-name-postsale-v39.mjs": "fc1076a894ec53d060b1d7337561724ac01abdd38dfb6d236d4602349468e473",
