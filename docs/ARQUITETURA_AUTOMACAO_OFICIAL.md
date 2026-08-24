@@ -974,3 +974,23 @@ autosalvamento, encerrando o ciclo de `resolve-customer-data` e `PATCH`.
 Nome, cidade, província, endereço, agência, quantidade e status continuam com as
 mesmas regras V28/V50. A camada não envia WhatsApp e não altera bot, produto,
 preço, VSL, funil, mídia, pedido, Dropi, Meta/CAPI, banco ou scheduler.
+
+## Microcamada V52 de persistência do áudio e mídia manual no painel EC
+
+O freeze `docs/PANEL_MEDIA_PERSISTENCE_FREEZE_V52_20260824.md` sucede a V51.
+O envio manual deixa de classificar todo arquivo que contenha `agencia` ou
+`retir` como aviso de pedido pronto para retirada. Somente os áudios de etapa
+logística real `Chegou_01`, `Chegou_02`, `Chegou_03` e equivalentes técnicos
+explícitos continuam submetidos ao bloqueio `READY_FOR_PICKUP` verificado.
+
+`Agradecimento_Agencia_01`, `AGRADECIMENTO_AGENCIA_DE_ENTREGA`,
+`BONUS_RETIRADA` e os áudios comerciais de endereço, modalidade e segurança de
+agência continuam aprovados em suas etapas originais e não são confundidos com
+aviso de retirada. A proteção contra avisar retirada antes da hora permanece
+fechada para os três áudios `Chegou_*`.
+
+Áudio e mídia disparados pela biblioteca manual passam a enviar um
+`clientGeneratedId`, confirmar a mesma bolha com o registro persistido e manter
+na tela um estado `sem confirmação` quando a API rejeitar a tentativa. A camada
+não realiza disparo de validação, não muda automação, pedido, Dropi, Meta/CAPI,
+produto, preço, VSL, scheduler, Z-API ou número oficial.

@@ -12,6 +12,7 @@ import {
     canonicalLogisticsState,
     containsPickupAuthorizationLanguage,
     evaluateLogisticsOutbound,
+    isPickupStageAudioCandidate,
     logisticsCommunicationPolicy
 } from '../src/services/logisticsCommunicationV29.js';
 
@@ -137,6 +138,37 @@ test('V29 SHIPPED permite número e bloqueia imagem, linguagem e áudio de retir
     assert.equal(evaluateLogisticsOutbound(current, { mediaKind: 'image', fileName: 'guia.png' }).allowed, false);
     assert.equal(evaluateLogisticsOutbound(current, { text: 'Ya puede retirar su pedido.' }).allowed, false);
     assert.equal(evaluateLogisticsOutbound(current, { pickupAudio: true }).allowed, false);
+});
+
+test('painel distingue aviso real de retirada dos áudios comerciais com agência no nome', () => {
+    const notReady = shipment('GUIA_GENERADA');
+    for (const mediaUrl of [
+        '/media/templates/EC/Chegou_01.ogg',
+        '/media/templates/EC/Chegou_02.ogg',
+        '/media/templates/EC/Chegou_03.ogg',
+        '/media/uploads/READY_FOR_PICKUP.ogg'
+    ]) {
+        assert.equal(isPickupStageAudioCandidate({ mediaUrl }), true, mediaUrl);
+        assert.equal(evaluateLogisticsOutbound(notReady, {
+            pickupAudio: isPickupStageAudioCandidate({ mediaUrl })
+        }).allowed, false, mediaUrl);
+    }
+    for (const mediaUrl of [
+        '/media/templates/EC/Agradecimento_Agencia_01.ogg',
+        '/media/templates/EC/AGRADECIMENTO_AGENCIA_DE_ENTREGA.ogg',
+        '/media/templates/EC/BONUS_RETIRADA.ogg',
+        '/media/templates/EC/DOMICILIO_A_AGENCIA_DE_SERVIENTREGA.ogg',
+        '/media/templates/EC/ENDERECO_CIDADE_PROVINCIA_AGENCIA.ogg',
+        '/media/templates/EC/ENTREGA_SEGURA_RETIRE_NA_AGENCIA.ogg',
+        '/media/templates/EC/ENVIO_AGENCIA_100_SEGURO.ogg',
+        '/media/templates/EC/PERGUNTA_AGENCIA_DOMICILIO.ogg',
+        '/media/templates/EC/QUANDO_DIZER_NAO_PODE_RETIRAR_PRODUTO.ogg'
+    ]) {
+        assert.equal(isPickupStageAudioCandidate({ mediaUrl }), false, mediaUrl);
+        assert.equal(evaluateLogisticsOutbound(notReady, {
+            pickupAudio: isPickupStageAudioCandidate({ mediaUrl })
+        }).allowed, true, mediaUrl);
+    }
 });
 
 test('V29 READY não verificado bloqueia e READY verificado permite retirada/guia', () => {

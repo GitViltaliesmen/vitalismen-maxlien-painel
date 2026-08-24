@@ -72,6 +72,7 @@ import {
 } from '../services/customerDataResolutionService.js';
 import {
     evaluateLogisticsOutbound,
+    isPickupStageAudioCandidate,
     publicLogisticsStateV29
 } from '../services/logisticsCommunicationV29.js';
 import {
@@ -5800,7 +5801,10 @@ router.post('/send', authMiddleware, async (req, res) => {
                     : /\.(?:jpe?g|png|webp|gif|heic|heif)(?:$|[?#])/i.test(String(fileName || message || ''))
                         || String(message || '').startsWith('data:image/') ? 'image' : 'media')
                 : '';
-            const pickupAudio = Boolean(isMedia && /(?:chegou|pickup|retir|agencia|ready)/i.test(String(fileName || message || '')));
+            const pickupAudio = Boolean(isMedia && isPickupStageAudioCandidate({
+                fileName,
+                mediaUrl: message
+            }));
             const outboundPolicy = evaluateLogisticsOutbound(activeShipment || {}, {
                 text: isMedia ? '' : message,
                 mediaKind,

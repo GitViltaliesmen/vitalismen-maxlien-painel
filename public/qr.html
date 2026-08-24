@@ -17089,7 +17089,8 @@
             const pendingMessage = appendLocalMessage(`Enviando audio: ${cleanLabel}`, {
                 type: 'audio',
                 mediaUrl,
-                mediaPreviewUrl: mediaUrl
+                mediaPreviewUrl: mediaUrl,
+                deliveryStatus: 'sending'
             });
             try {
                 const result = await api('/api/whatsapp/send', {
@@ -17099,6 +17100,7 @@
                         message: mediaUrl,
                         isMedia: true,
                         sessionId,
+                        clientGeneratedId: pendingMessage?.clientGeneratedId || '',
                         sendMode: 'manual_panel',
                         allowAudioDedupeBypass: true,
                         country: currentTemplateCountry(),
@@ -17108,7 +17110,7 @@
                 if (!result?.success) {
                     throw new Error(result?.error || 'WhatsApp nao confirmou o envio do audio.');
                 }
-                const storedMediaUrl = result.storedMediaUrl || mediaUrl;
+                confirmPendingLocalMessage(pendingMessage?._id, result);
                 rememberFunnelRef(findFooterFileItem('audio', mediaUrl) || {
                     type: 'audio',
                     typeLabel: 'audio',
@@ -17119,7 +17121,7 @@
                 Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
             } catch (error) {
-                removePendingLocalMessage(pendingMessage?._id);
+                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Audio sem confirmacao da Z-API.');
                 showToast(error.message);
             } finally {
                 state.busy = false;
@@ -17140,7 +17142,8 @@
             const pendingMessage = appendLocalMessage(`Enviando ${mediaType === 'image' ? 'imagem' : mediaType === 'video' ? 'video' : 'midia'}: ${cleanLabel}`, {
                 type: mediaType,
                 mediaUrl,
-                mediaPreviewUrl: mediaUrl
+                mediaPreviewUrl: mediaUrl,
+                deliveryStatus: 'sending'
             });
             try {
                 const result = await api('/api/whatsapp/send', {
@@ -17150,6 +17153,7 @@
                         message: mediaUrl,
                         isMedia: true,
                         sessionId,
+                        clientGeneratedId: pendingMessage?.clientGeneratedId || '',
                         sendMode: 'manual_panel',
                         allowAudioDedupeBypass: true,
                         country: currentTemplateCountry(),
@@ -17159,7 +17163,7 @@
                 if (!result?.success) {
                     throw new Error(result?.error || 'WhatsApp nao confirmou o envio da midia.');
                 }
-                const storedMediaUrl = result.storedMediaUrl || mediaUrl;
+                confirmPendingLocalMessage(pendingMessage?._id, result);
                 rememberFunnelRef(mediaItem.value ? mediaItem : {
                     type: 'media',
                     typeLabel: inferMediaType({ mediaUrl }),
@@ -17170,7 +17174,7 @@
                 Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
             } catch (error) {
-                removePendingLocalMessage(pendingMessage?._id);
+                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Midia sem confirmacao da Z-API.');
                 showToast(error.message);
             } finally {
                 state.busy = false;
@@ -19245,14 +19249,14 @@
             }
         }
 
-        const markPendingLocalMessageStatus = (messageId, deliveryStatus) => {
+        const markPendingLocalMessageStatus = (messageId, deliveryStatus, sendError = '') => {
             const id = String(messageId || '');
             if (!id) return;
             state.pendingLocalMessages = (state.pendingLocalMessages || []).map((message) => (
-                String(message._id || '') === id ? { ...message, deliveryStatus } : message
+                String(message._id || '') === id ? { ...message, deliveryStatus, sendError } : message
             ));
             state.currentMessages = (state.currentMessages || []).map((message) => (
-                String(message._id || '') === id ? { ...message, deliveryStatus } : message
+                String(message._id || '') === id ? { ...message, deliveryStatus, sendError } : message
             ));
             state.messageSignature = getMessageSignature(state.currentMessages);
             renderMessages(state.currentMessages, { preserveScroll: true });

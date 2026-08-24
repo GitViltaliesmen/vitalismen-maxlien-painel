@@ -1,3 +1,3 @@
 // Entrada de compatibilidade preservada para todos os guards anteriores.
-// A V51 valida integralmente a linhagem V28–V50 e somente as substituições declaradas.
-await import('./panelCustomerSelectionIsolationFreezeRuntimeGuardV51.js');
+// A V52 valida integralmente a linhagem V28–V51 e somente as substituições declaradas.
+await import('./panelMediaPersistenceFreezeRuntimeGuardV52.js');
