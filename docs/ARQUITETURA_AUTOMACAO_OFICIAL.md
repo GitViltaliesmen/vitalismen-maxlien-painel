@@ -958,3 +958,19 @@ Nome digitado ou aplicado por uma ação aceita pelo operador permanece com
 prioridade `human_correction`, `corrected_by_human=true` e lock persistente. A
 camada não envia WhatsApp, não altera pedido, Dropi, Meta/CAPI, produto, preço,
 VSL, funil, mídia, scheduler ou PM2.
+
+## Microcamada V51 de isolamento da ficha selecionada no painel EC
+
+O freeze `docs/PANEL_CUSTOMER_SELECTION_ISOLATION_FREEZE_V51_20260824.md`
+sucede a V50. Cada seleção de conversa recebe uma geração própria, vinculada ao
+`chatId` e ao `ContactState`. A troca de cliente invalida buscas de agência,
+autosalvamentos e respostas assíncronas da ficha anterior antes de hidratar os
+novos campos.
+
+A fila de salvamento volta a validar essa geração quando a operação realmente
+começa. Uma agência automática que já está aplicada deixa de produzir novo
+autosalvamento, encerrando o ciclo de `resolve-customer-data` e `PATCH`.
+
+Nome, cidade, província, endereço, agência, quantidade e status continuam com as
+mesmas regras V28/V50. A camada não envia WhatsApp e não altera bot, produto,
+preço, VSL, funil, mídia, pedido, Dropi, Meta/CAPI, banco ou scheduler.

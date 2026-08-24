@@ -101,6 +101,6 @@ test('V50 integra proteção no campo de nome, recarga, autosave e destino fixo'
     assert.match(panelSource, /encodeURIComponent\(saveSnapshot\.contactStateKey\).*resolve-customer-data/);
     assert.match(panelSource, /correctedByHumanFields:\s*saveSnapshot\.correctedFields/g);
     assert.match(panelSource, /newerManualEditExists[\s\S]{0,450}rememberEditingCustomerDraft\(\)/);
-    assert.match(panelSource, /queueSave\([\s\S]{0,180}persistSelectedCustomerDataNow/);
+    assert.match(panelSource, /const queuedSave = queueSave\([\s\S]{0,1200}persistSelectedCustomerDataNow\(options\)/);
     assert.doesNotMatch(helperSource, /fetch\(|XMLHttpRequest|sendZapi|Dropi|Meta|setInterval/);
 });

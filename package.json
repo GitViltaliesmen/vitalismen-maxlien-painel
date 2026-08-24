@@ -6,7 +6,7 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "npm run guard:panel-manual-edit-v50 && npm run senior:check",
+        "test": "npm run guard:panel-customer-selection-v51 && npm run senior:check",
         "dev": "node src/index.js",
         "start": "node src/index.js",
         "local:api": "./scripts/start-api-local.sh",
@@ -78,7 +78,9 @@
         "guard:whatsapp-outage-recovery-v49": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node scripts/guard-whatsapp-outage-recovery-v49.mjs && node --test tests/whatsapp-outage-recovery-v49.test.mjs",
         "deploy:v49": "npm run guard:whatsapp-outage-recovery-v49 && node scripts/assert-whatsapp-outage-recovery-activation-approved-v49.mjs && npm run deploy:vps",
         "guard:panel-manual-edit-v50": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node scripts/guard-panel-manual-edit-persistence-v50.mjs && node --test tests/whatsapp-outage-recovery-v49.test.mjs tests/panel-manual-edit-persistence-v50.test.mjs",
-        "deploy:v50": "npm run guard:panel-manual-edit-v50 && node scripts/assert-panel-manual-edit-persistence-activation-approved-v50.mjs && npm run deploy:vps"
+        "deploy:v50": "npm run guard:panel-manual-edit-v50 && node scripts/assert-panel-manual-edit-persistence-activation-approved-v50.mjs && npm run deploy:vps",
+        "guard:panel-customer-selection-v51": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node scripts/guard-panel-customer-selection-isolation-v51.mjs && node --test tests/whatsapp-outage-recovery-v49.test.mjs tests/panel-manual-edit-persistence-v50.test.mjs tests/panel-customer-selection-isolation-v51.test.mjs && node scripts/test-panel-customer-selection-browser-v51.mjs",
+        "deploy:v51": "npm run guard:panel-customer-selection-v51 && node scripts/assert-panel-customer-selection-isolation-activation-approved-v51.mjs && npm run deploy:vps"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",
