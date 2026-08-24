@@ -294,6 +294,9 @@ export const startScheduler = () => {
     if (flagEnabled('POST_SALE_REPURCHASE_30D_ENABLED', true)) {
         setTimeout(() => checkPostSaleRepurchaseFollowups(), 90000);
     }
+    if (flagEnabled('TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED', false)) {
+        setTimeout(() => checkTexUltraConfirmedPostSale(), 45000);
+    }
     if (flagEnabled('SHIPMENT_PICKUP_REMINDERS_ENABLED', false)) {
         setTimeout(() => checkPickupReminders(), 30000);
     }
@@ -676,8 +679,8 @@ const checkTexUltraConfirmedPostSale = async () => {
     try {
         const limit = parseNumber('TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_BATCH_LIMIT', 1);
         const result = await processTexUltraConfirmedPostSaleQueue({ limit });
-        if (result.processed || result.candidates || result.reason) {
-            console.log(`[TEX-ULTRA-POSTSALE] processados=${result.processed}; completos=${result.completed}; candidatos=${result.candidates}; reason=${result.reason || 'ok'}`);
+        if (result.processed || result.candidates || result.staleCandidates || result.reason) {
+            console.log(`[TEX-ULTRA-POSTSALE] processados=${result.processed}; completos=${result.completed}; candidatos=${result.candidates}; antigos_nao_reenviados=${result.staleCandidates || 0}; antigos_reconciliados=${result.staleReconciled || 0}; antigos_suprimidos=${result.staleSuppressed || 0}; verificados=${result.scanned || 0}; reason=${result.reason || 'ok'}`);
         }
     } catch (error) {
         console.error('[TEX-ULTRA-POSTSALE] Scheduler Error:', error?.message || error);

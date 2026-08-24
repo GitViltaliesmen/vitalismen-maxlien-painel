@@ -19,6 +19,16 @@ export const shipmentHistoryRepeatKey = (text = '') => {
     const body = normalizeText(text);
     if (!body) return '';
     const guideMatch = body.match(/\b(?:guia|guia numero|numero de guia|tracking)(?:\s+para\s+seguimiento)?\s*(?:es|numero|nro|num|:|#|-)?\s*(\d{5,})\b/);
+    const pickupReminderStage = (() => {
+        if (/\bfoto\s+del\s+retiro\b/.test(body)) return 'soft_day2';
+        if (/\bpuede\s+acercarse\s+a\s+servientrega\b/.test(body)) return 'soft_day4';
+        if (/\b(?:ultimo\s+aviso|plazo\s+de\s+devolucion)\b/.test(body)) return 'soft_day6';
+        if (
+            /\bcontinua\s+disponible\s+en\s+servientrega\b.*\bretirarlo\s+hoy\b/.test(body)
+            || /^hola\.\s+su\s+pedido\s+esta\s+para\s+retiro\s+en\s+agencia\b/.test(body)
+        ) return 'day1';
+        return '';
+    })();
     const waitingForPickupRelease = (
         /\b(no\s+vaya\s+(?:todavia|aun)|todavia\s+no\s+vaya)\b/.test(body)
         || /\b(?:espere|esperar|debe\s+esperar).*\b(?:aviso|retirarlo|retirar)\b/.test(body)
@@ -33,6 +43,14 @@ export const shipmentHistoryRepeatKey = (text = '') => {
     );
     if (waitingForPickupRelease) {
         return guideMatch ? `logistics_guide:${guideMatch[1]}` : 'logistics_guide';
+    }
+    // Cada dia da cadencia e uma comunicacao aprovada diferente. A chave
+    // continua bloqueando a repeticao da mesma etapa, mas nao pode transformar
+    // day1/soft_day2/soft_day4/soft_day6 em um unico aviso generico de retirada.
+    if (pickupReminderStage) {
+        return guideMatch
+            ? `logistics_pickup_reminder:${pickupReminderStage}:${guideMatch[1]}`
+            : `logistics_pickup_reminder:${pickupReminderStage}`;
     }
     const readyPickupNotice = (
         /\b(pedido\s+listo\s+para\s+retiro|pedido\s+para\s+retiro|aviso\s+de\s+retiro|ya\s+puede\s+retirar|puede\s+acercarse|acerquese|lleve\s+su\s+documento|muestre\s+esta\s+guia|retir[aeiou]?\s+(?:su|mi|el)?\s*pedido|retirarlo|retirar\s+en\s+agencia|comprobante\s+de\s+retiro)\b/.test(body)

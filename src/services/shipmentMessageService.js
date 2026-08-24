@@ -98,6 +98,10 @@ const PICKUP_PROOF_DISPATCH_LOCK_MS = Math.max(
     60_000,
     Number.parseInt(process.env.PICKUP_PROOF_DISPATCH_LOCK_MS || '300000', 10) || 300_000
 );
+const PICKUP_REMINDER_DISPATCH_LOCK_MS = Math.max(
+    60_000,
+    Number.parseInt(process.env.PICKUP_REMINDER_DISPATCH_LOCK_MS || '300000', 10) || 300_000
+);
 const PICKUP_AUDIO_BY_KIND = {
     guia: 'CONFIRMACION_Y_REGALITO_ESPECIAL',
     ready_for_pickup: process.env.SHIPMENT_PICKUP_READY_AUDIO
@@ -185,6 +189,52 @@ export const shipmentProductFamily = (shipment = {}) => {
     if (/nitrix/.test(value)) return 'nitrix';
     if (/vit[\s_-]*power|vitpower/.test(value)) return 'vit_power';
     return 'unknown';
+};
+
+export const repurchaseProductPolicyForShipment = (shipment = {}) => {
+    const family = shipmentProductFamily(shipment);
+    if (family === 'tex_ultra') {
+        return Object.freeze({
+            enabled: true,
+            family,
+            productKey: 'tex_ultra_ec',
+            productName: 'Tex Ultra',
+            agentKey: 'tex_ultra_ec',
+            audioName: TEX_ULTRA_EC_PRODUCT_PROFILE.postSale.howToUseAudioName,
+            allowSharedProof: false
+        });
+    }
+    if (family === 'nitrix') {
+        return Object.freeze({
+            enabled: true,
+            family,
+            productKey: 'nitrix_ec',
+            productName: 'Nitrix Oxide',
+            agentKey: 'nitrix_ec',
+            audioName: 'NITRIX_USO_OXIDE_EC',
+            allowSharedProof: false
+        });
+    }
+    if (family === 'vit_power') {
+        return Object.freeze({
+            enabled: true,
+            family,
+            productKey: 'vit_power_ec',
+            productName: 'Vit Power',
+            agentKey: 'vit_power_ec',
+            audioName: 'TEMPO_RESULTADO_VIT_POWER',
+            allowSharedProof: true
+        });
+    }
+    return Object.freeze({
+        enabled: false,
+        family: 'unknown',
+        productKey: '',
+        productName: '',
+        agentKey: '',
+        audioName: '',
+        allowSharedProof: false
+    });
 };
 
 export const pickupNoticeMessagePatternsForKind = (kind = '') => (
@@ -760,7 +810,12 @@ export const buildPickupBonusText = (shipment = null) => {
 export const buildRefillReminderText = (shipment) => {
     const units = Number(shipment?.treatment?.unitsPurchased || 1) || 1;
     const unitsLabel = `${units} frasco${units > 1 ? 's' : ''}`;
-    return withSaveContactReminder(`Hola, señor 😊 Vi que compro ${unitsLabel} de Vit Power y ya le tenemos reservada una oferta especial para que pueda completar el tratamiento con tranquilidad.\n\nLe envio tambien una orientacion sobre el tiempo de resultado. Si desea continuar, le ayudo a separar su recompra por aqui.\n\nAl cerrar esta recompra, le voy a liberar un regalo especial para usted.`);
+    const product = repurchaseProductPolicyForShipment(shipment);
+    if (!product.enabled) return '';
+    const orientation = product.family === 'vit_power'
+        ? 'Le envio tambien una orientacion sobre el tiempo de resultado.'
+        : `Le envio tambien la orientacion aprobada de uso de ${product.productName}.`;
+    return withSaveContactReminder(`Hola, señor 😊 Vi que compro ${unitsLabel} de ${product.productName} y ya le tenemos reservada una oferta especial para que pueda completar el tratamiento con tranquilidad.\n\n${orientation} Si desea continuar, le ayudo a separar su recompra por aqui.\n\nAl cerrar esta recompra, le voy a liberar un regalo especial para usted.`);
 };
 
 export const repurchaseReminderDelayDaysForUnits = (unitsValue = 1) => {
@@ -1537,6 +1592,13 @@ export const notifyShipmentInTransit = async (shipment) => {
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {
+    if (shipment?.review?.manualOnly === true) {
+        await appendNotificationLedgerV29(shipment, {
+            notificationType: `pickup_reminder_${kind}`,
+            blockedReason: 'shipment_manual_only'
+        });
+        return false;
+    }
     const policy = logisticsCommunicationPolicy(shipment);
     if (!policy.allowReminders) {
         await appendNotificationLedgerV29(shipment, {
@@ -1555,6 +1617,34 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         trackingNumber: shipment.logistics.trackingNumber
     });
     if (shouldBlockPickupReminderByHash(shipment, kind, hash)) return false;
+
+    const noticeField = PICKUP_NOTICE_FIELDS_BY_KIND[kind];
+    const lockNow = new Date();
+    const lockedShipment = await Shipment.findOneAndUpdate(
+        {
+            _id: shipment._id,
+            'review.manualOnly': { $ne: true },
+            ...(noticeField ? { [`automation.${noticeField}`]: null } : {}),
+            $or: [
+                { 'automation.pickupReminderDispatchLockedUntil': null },
+                { 'automation.pickupReminderDispatchLockedUntil': { $exists: false } },
+                { 'automation.pickupReminderDispatchLockedUntil': { $lte: lockNow } }
+            ]
+        },
+        {
+            $set: {
+                'automation.pickupReminderDispatchLockedUntil': new Date(lockNow.getTime() + PICKUP_REMINDER_DISPATCH_LOCK_MS),
+                'automation.pickupReminderLastAttemptAt': lockNow,
+                'automation.pickupReminderLastError': ''
+            }
+        },
+        { new: true }
+    );
+    if (!lockedShipment) return false;
+    shipment = lockedShipment;
+
+    let completed = false;
+    try {
     if (hasAlreadySentHash(shipment, hash)) {
         console.warn(
             `[SHIPMENT] hash antigo sem etapa confirmada; revalidando aviso -> order=${shipment.orderId} `
@@ -1563,12 +1653,14 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     }
     const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
     if (existingNotice) {
-        return recoverExistingGlobalShipmentNotice({
+        const recovered = await recoverExistingGlobalShipmentNotice({
             shipment,
             kind,
             hash,
             existing: existingNotice
         });
+        completed = Boolean(recovered);
+        return recovered;
     }
     if (!hasMinGapElapsed(shipment)) return false;
 
@@ -1607,7 +1699,21 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             || audioSent?.sentDetails?.[0]?.providerZaapId
             || ''
     });
+    completed = true;
     return true;
+    } finally {
+        await Shipment.updateOne(
+            { _id: shipment._id },
+            {
+                $set: {
+                    'automation.pickupReminderDispatchLockedUntil': null,
+                    'automation.pickupReminderLastError': completed ? '' : 'not_sent_or_not_recovered'
+                }
+            }
+        ).catch((error) => {
+            console.warn(`[SHIPMENT] falha ao liberar lock de lembrete ${shipment.orderId || ''}: ${error.message}`);
+        });
+    }
 };
 
 export const notifyShipmentReturned = async (shipment) => {
@@ -2105,7 +2211,13 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
 
 export const notifyTreatmentRefillReminder = async (shipment) => {
     const chatId = resolveChatId(shipment);
-    if (!chatId || shipment.automation.refillReminderAt) return false;
+    if (!chatId || shipment.automation.refillReminderAt || shipment?.review?.manualOnly === true) return false;
+
+    const product = repurchaseProductPolicyForShipment(shipment);
+    if (!product.enabled) {
+        console.warn(`[SHIPMENT] recompra bloqueada por produto desconhecido -> order=${shipment.orderId || ''}`);
+        return false;
+    }
 
     const text = buildRefillReminderText(shipment);
     const hash = buildMessageHash({
@@ -2121,12 +2233,15 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     });
     if (!sent) return false;
 
-    const tempoAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'TEMPO_RESULTADO_VIT_POWER' });
-    const audioSent = tempoAudioPath
-        ? await sendShipmentAudioFile(shipment, chatId, tempoAudioPath, {
+    const approvedAudioPath = await resolveCountryAudio({
+        country: shipment.country || 'EC',
+        baseName: product.audioName
+    });
+    const audioSent = approvedAudioPath
+        ? await sendShipmentAudioFile(shipment, chatId, approvedAudioPath, {
             kind: 'shipment_refill_reminder_audio',
-            baseName: 'TEMPO_RESULTADO_VIT_POWER',
-            dedupeValue: `refill_reminder_audio|TEMPO_RESULTADO_VIT_POWER|${shipment.orderId || shipment.logistics?.trackingNumber || ''}`
+            baseName: product.audioName,
+            dedupeValue: `refill_reminder_audio|${product.audioName}|${shipment.orderId || shipment.logistics?.trackingNumber || ''}`
         })
         : false;
 
@@ -2138,7 +2253,11 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     };
     if (audioSent) setFields['automation.lastAudioAt'] = now;
     await persistAutomationUpdate(shipment._id, setFields, hash);
-    await appendEvent(shipment._id, 'refill_reminder_notified', { audioSent });
+    await appendEvent(shipment._id, 'refill_reminder_notified', {
+        audioSent,
+        audioName: product.audioName,
+        productKey: product.productKey
+    });
     return true;
 };
 
@@ -2148,6 +2267,7 @@ export const getPendingShipmentReminders = async () => {
     const shipments = await Shipment.find({
         country: 'EC',
         'client.phone': { $exists: true, $ne: '' },
+        'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
         'logistics.agencyPickup': true,
@@ -2168,6 +2288,7 @@ export const getPendingShipmentReminders = async () => {
 };
 
 export const getDuePickupReminderStep = (shipment, now = new Date()) => {
+    if (shipment?.review?.manualOnly === true) return null;
     if (!logisticsCommunicationPolicy(shipment).allowReminders) return null;
     const anchor = shipment?.automation?.readyForPickupNotifiedAt;
     const anchorTime = anchor?.getTime?.();
@@ -2194,27 +2315,41 @@ export const processShipmentPickupReminders = async ({
     const pending = await getPendingShipmentReminders();
     const allDueItems = pending
         .filter((item) => item?.dueAt && item.dueAt.getTime() <= now.getTime());
-    const dueItems = allDueItems.slice(0, safeLimit);
-
     const result = {
         dryRun,
         candidates: allDueItems.length,
-        selected: dueItems.length,
+        selected: 0,
         processed: 0,
         sent: 0,
-        items: dueItems.map(({ shipment, kind, dueAt }) => ({
+        items: []
+    };
+
+    if (dryRun) {
+        const selected = allDueItems.slice(0, safeLimit);
+        result.selected = selected.length;
+        result.items = selected.map(({ shipment, kind, dueAt }) => ({
             orderId: shipment.orderId,
             phoneTail: String(shipment.client?.phone || '').slice(-4),
             trackingNumber: shipment.logistics?.trackingNumber || '',
             kind,
             dueAt
-        }))
-    };
+        }));
+        return result;
+    }
 
-    if (dryRun) return result;
-
-    for (const item of dueItems) {
+    // O limite controla envios, nao tentativas. Um registro bloqueado por
+    // historico/lock nao pode congelar todos os clientes que estao atras dele.
+    for (const item of allDueItems) {
+        if (result.sent >= safeLimit) break;
+        result.selected += 1;
         result.processed += 1;
+        result.items.push({
+            orderId: item.shipment.orderId,
+            phoneTail: String(item.shipment.client?.phone || '').slice(-4),
+            trackingNumber: item.shipment.logistics?.trackingNumber || '',
+            kind: item.kind,
+            dueAt: item.dueAt
+        });
         const sent = await notifyShipmentReminder(item.shipment, item.kind);
         if (sent) result.sent += 1;
     }

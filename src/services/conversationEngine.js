@@ -16,7 +16,10 @@ import { maybeHandleVitPowerAudioComplement } from './vitPowerAudioComplementSer
 import { getNextItemByPurpose, markPurposeItemSent } from './funnelPurposeMemoryService.js';
 import { isInitialProductInquiry, isSimpleGreeting, looksLikeOrderDataMessage, startsWithOfficialInitialCtaMessage } from './initialFunnelTriggers.js';
 import { formatAgencyOptionLine, formatServientregaAgency, findKnownServientregaEcuadorLocation, findServientregaEcuadorAgencies, loadServientregaEcuadorAgencies, resolveServientregaEcuadorAgency } from './servientregaEcuadorAgencyService.js';
-import { buildRefillReminderText } from './shipmentMessageService.js';
+import {
+    buildRefillReminderText,
+    repurchaseProductPolicyForShipment
+} from './shipmentMessageService.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
 import { VIT_POWER_APPROVED_AUDIO_CANDIDATES } from './vitPowerEvolvedWorkflow.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
@@ -4794,6 +4797,7 @@ const findDueRefillShipmentForGreeting = async ({ phoneDigits = '' } = {}) => {
         country: 'EC',
         $or: phoneFilters,
         'automation.refillReminderAt': null,
+        'review.manualOnly': { $ne: true },
         $and: [{
             $or: [
                 { 'outcomes.pickedUp': true },
@@ -4828,16 +4832,31 @@ const maybeHandleSimpleGreetingRefill = async ({
     const shipment = await findDueRefillShipmentForGreeting({ phoneDigits: peerPhone || chatId });
     if (!shipment) return false;
 
+    const product = repurchaseProductPolicyForShipment(shipment);
+    if (!product.enabled) return false;
+
     const reminderText = buildRefillReminderText(shipment);
-    const textSent = await sendText(chatId, reminderText, null, { sessionId });
+    const textSent = await sendText(chatId, reminderText, null, {
+        sessionId,
+        country: 'EC',
+        allowExistingDropiOrder: true,
+        outboundContext: `refill_reminder_inbound_greeting_${product.productKey}`,
+        dedupeValue: `refill_reminder_inbound_greeting|${product.productKey}|${shipment.orderId || peerPhone}`
+    });
     if (!textSent) return false;
 
     const audioPath = await resolveCountryAudio({
         country: 'EC',
-        baseName: 'TEMPO_RESULTADO_VIT_POWER'
+        baseName: product.audioName
     });
     const audioSent = audioPath
-        ? await sendAudio(chatId, audioPath, true, { sessionId })
+        ? await sendAudio(chatId, audioPath, true, {
+            sessionId,
+            country: 'EC',
+            allowExistingDropiOrder: true,
+            outboundContext: `refill_reminder_inbound_greeting_audio_${product.productKey}`,
+            dedupeValue: `refill_reminder_inbound_greeting_audio|${product.audioName}|${shipment.orderId || peerPhone}`
+        })
         : false;
 
     const now = new Date();
@@ -4847,7 +4866,12 @@ const maybeHandleSimpleGreetingRefill = async ({
     shipment.events.push({
         kind: 'refill_reminder_from_inbound_greeting',
         at: now,
-        payload: { chatId, audioSent }
+        payload: {
+            chatId,
+            audioSent,
+            audioName: product.audioName,
+            productKey: product.productKey
+        }
     });
     shipment.events = shipment.events.slice(-60);
     await shipment.save();

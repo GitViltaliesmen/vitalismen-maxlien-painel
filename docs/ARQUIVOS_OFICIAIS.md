@@ -564,3 +564,31 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   de pedido, Dropi, Meta/CAPI, produto, preço, VSL, scheduler ou número oficial.
 - Rollback funcional: release V51 acima, preservando bancos, mensagens e mídias
   compartilhados.
+
+### Microcamada V53 — saúde e recuperação segura do pós-venda EC — 2026-08-24
+
+- Base oficial inspecionada antes da alteração: release
+  `/opt/vitalismen-automacao/releases/20260824T020500Z_production-20260824-1bf5013`.
+- Fila de retirada e antispam:
+  `src/models/Shipment.js`,
+  `src/services/shipmentMessageService.js`,
+  `src/services/postSalePickupReconciliationPolicy.js` e
+  `src/services/schedulerService.js`.
+- Fila imediata Tex Ultra:
+  `src/services/texUltraConfirmedPostSaleLayerService.js`.
+- Isolamento da recompra:
+  `src/services/reengagementService.js`,
+  `src/services/conversationEngine.js` e
+  `src/services/shipmentMessageService.js`.
+- Guard V39 atualizado para a fonte oficial de nome
+  `resolveCustomerDisplayName`, sem alterar o painel.
+- Testes: `tests/shipment-pickup-notification.test.mjs` e
+  `tests/post-sale-health-v53.test.mjs`.
+- Freeze/guard:
+  `docs/POST_SALE_HEALTH_RECOVERY_FREEZE_V53_20260824.md`,
+  `docs/freeze/post-sale-health-recovery-v53-20260824.json` e
+  `scripts/guard-post-sale-health-v53.mjs`.
+- Preservado: nenhum canário em cliente real, nenhum replay massivo, nenhuma
+  autorização Dropi, nenhuma mudança de preço/produto/VSL/checkout/Meta/pixel.
+- Rollback funcional: release V52 acima, preservando bancos, pedidos, Shipments,
+  mensagens e mídias compartilhadas.

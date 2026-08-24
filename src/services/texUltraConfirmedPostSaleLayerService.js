@@ -217,6 +217,74 @@ const confirmedPostSaleComplete = ({ state = {}, orderId = '' } = {}) => {
     return Boolean(orderMemory.thankYouAgency?.sentAt && orderMemory.pickupBonus?.sentAt);
 };
 
+const confirmedPostSaleStaleSuppressed = ({ state = {}, orderId = '' } = {}) => (
+    state?.metadata?.perAgentMemory?.[AGENT_KEY]?.confirmedPostSale?.[orderId]?.historicalRecoveryStatus
+    === 'stale_missing_not_replayed'
+);
+
+const reconcileConfirmedAudioStepFromHistoryOnly = async ({
+    state,
+    contactStateId,
+    orderId,
+    stepKey,
+    audioName
+}) => {
+    if (postSaleStepOf({ state, orderId, stepKey }).sentAt) {
+        return { stepKey, reconciled: false, reason: 'already_sent' };
+    }
+    const history = await confirmedAudioHistory({ state, audioName });
+    if (!history) return { stepKey, reconciled: false, reason: 'history_missing' };
+    const claim = await claimAudioStep({ contactStateId, orderId, stepKey });
+    if (!claim) return { stepKey, reconciled: false, reason: 'locked' };
+    if (claim.alreadySent) return { stepKey, reconciled: false, reason: 'already_sent' };
+    await finishAudioStepFromHistory({
+        contactStateId,
+        orderId,
+        stepKey,
+        lockId: claim.lockId,
+        history
+    });
+    return { stepKey, reconciled: true, reason: 'history_already_sent' };
+};
+
+const reconcileStaleConfirmedPostSaleHistory = async ({ state, orderId }) => {
+    const steps = [
+        ['thankYouAgency', TEX_ULTRA_CONFIRMED_POSTSALE_AUDIO_NAMES[0]],
+        ['pickupBonus', TEX_ULTRA_CONFIRMED_POSTSALE_AUDIO_NAMES[1]]
+    ];
+    const results = [];
+    for (const [stepKey, audioName] of steps) {
+        results.push(await reconcileConfirmedAudioStepFromHistoryOnly({
+            state,
+            contactStateId: state._id,
+            orderId,
+            stepKey,
+            audioName
+        }));
+    }
+    if (results.some((result) => result.reason === 'locked')) {
+        return { status: 'pending_lock', results };
+    }
+    const refreshed = await ContactState.findById(state._id).lean();
+    const complete = confirmedPostSaleComplete({ state: refreshed, orderId });
+    const checkedAt = nowIso();
+    const status = complete ? 'complete_from_history' : 'stale_missing_not_replayed';
+    await ContactState.updateOne(
+        { _id: state._id },
+        {
+            $set: {
+                [`${memoryPath}.${orderId}.historicalRecoveryCheckedAt`]: checkedAt,
+                [`${memoryPath}.${orderId}.historicalRecoveryStatus`]: status,
+                [`${memoryPath}.${orderId}.historicalRecoveryMissingSteps`]: complete
+                    ? []
+                    : results.filter((result) => result.reason === 'history_missing').map((result) => result.stepKey),
+                [`${memoryPath}.${orderId}.updatedAt`]: checkedAt
+            }
+        }
+    );
+    return { status, results };
+};
+
 const contactStateForOrder = async (order = {}) => {
     const phone = digitsOnly(order?.customer?.phone);
     const tail = phone.slice(-9);
@@ -260,6 +328,30 @@ const queueStartAt = (value = process.env.TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_STA
     return Number.isFinite(parsed.getTime()) ? parsed : null;
 };
 
+export const texUltraConfirmedPostSaleQueuePolicy = ({
+    env = process.env,
+    now = new Date(),
+    batchLimit = 3
+} = {}) => {
+    const parsedScanLimit = Number.parseInt(String(env.TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_SCAN_LIMIT || '500'), 10);
+    const parsedMaxAgeHours = Number.parseInt(String(env.TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_MAX_AGE_HOURS || '72'), 10);
+    const parsedReconcileLimit = Number.parseInt(String(env.TEX_ULTRA_CONFIRMED_POSTSALE_HISTORY_RECONCILE_LIMIT || '25'), 10);
+    const safeBatchLimit = Math.max(1, Math.min(Number(batchLimit) || 3, 10));
+    const scanLimit = Math.max(
+        safeBatchLimit * 8,
+        Math.min(Number.isFinite(parsedScanLimit) ? parsedScanLimit : 500, 2000)
+    );
+    const maxAgeHours = Math.max(1, Math.min(Number.isFinite(parsedMaxAgeHours) ? parsedMaxAgeHours : 72, 24 * 30));
+    const historyReconcileLimit = Math.max(1, Math.min(Number.isFinite(parsedReconcileLimit) ? parsedReconcileLimit : 25, 100));
+    return Object.freeze({
+        batchLimit: safeBatchLimit,
+        scanLimit,
+        maxAgeHours,
+        historyReconcileLimit,
+        oldestAutomaticSendAt: new Date(now.getTime() - (maxAgeHours * 60 * 60 * 1000))
+    });
+};
+
 export const processTexUltraConfirmedPostSaleQueue = async ({
     limit = 3,
     dryRun = false,
@@ -272,23 +364,38 @@ export const processTexUltraConfirmedPostSaleQueue = async ({
     if (!cutoff || !Number.isFinite(cutoff.getTime())) {
         return { enabled: true, dryRun, candidates: 0, processed: 0, completed: 0, reason: 'missing_valid_cutoff', results: [] };
     }
-    const safeLimit = Math.max(1, Math.min(Number(limit) || 3, 10));
+    const now = new Date();
+    const queuePolicy = texUltraConfirmedPostSaleQueuePolicy({ now, batchLimit: limit });
+    const safeLimit = queuePolicy.batchLimit;
     const orders = await Order.find({
         country: 'EC',
-        confirmedAt: { $gte: cutoff, $lte: new Date() },
+        confirmedAt: { $gte: cutoff, $lte: now },
         status: { $in: [...ACTIVE_POST_SALE_STATUSES] },
         $or: [
             { 'tracking.productKey': ECUADOR_PRODUCTS.texUltra.key },
             { 'tracking.contentIds': ECUADOR_PRODUCTS.texUltra.key },
             { notes: /Produto: Tex Ultra Ecuador/i }
         ]
-    }).sort({ confirmedAt: 1 }).limit(safeLimit * 8).lean();
+    }).sort({ confirmedAt: 1 }).limit(queuePolicy.scanLimit).lean();
 
     const candidates = [];
+    const stalePendingReconciliation = [];
+    let staleCandidates = 0;
+    let staleSuppressedCandidates = 0;
     for (const order of orders) {
         if (!isEligibleTexUltraOrder(order)) continue;
         const state = await contactStateForOrder(order);
         if (!state || operatorNoAutoResendState(state) || confirmedPostSaleComplete({ state, orderId: order.orderId })) continue;
+        const confirmedAt = new Date(order.confirmedAt);
+        if (confirmedAt.getTime() < queuePolicy.oldestAutomaticSendAt.getTime()) {
+            staleCandidates += 1;
+            if (confirmedPostSaleStaleSuppressed({ state, orderId: order.orderId })) {
+                staleSuppressedCandidates += 1;
+            } else {
+                stalePendingReconciliation.push({ order, state });
+            }
+            continue;
+        }
         candidates.push({ order, state });
         if (candidates.length >= safeLimit) break;
     }
@@ -297,12 +404,25 @@ export const processTexUltraConfirmedPostSaleQueue = async ({
             enabled: true,
             dryRun: true,
             cutoff,
+            scanned: orders.length,
+            staleCandidates,
+            staleSuppressedCandidates,
+            stalePendingReconciliation: stalePendingReconciliation.length,
+            maxAgeHours: queuePolicy.maxAgeHours,
             candidates: candidates.length,
             processed: 0,
             completed: 0,
             orderIds: candidates.map(({ order }) => order.orderId),
             results: []
         };
+    }
+
+    const staleReconciliationResults = [];
+    for (const { order, state } of stalePendingReconciliation.slice(0, queuePolicy.historyReconcileLimit)) {
+        staleReconciliationResults.push({
+            orderId: order.orderId,
+            ...(await reconcileStaleConfirmedPostSaleHistory({ state, orderId: order.orderId }))
+        });
     }
 
     const results = [];
@@ -318,6 +438,14 @@ export const processTexUltraConfirmedPostSaleQueue = async ({
         enabled: true,
         dryRun: false,
         cutoff,
+        scanned: orders.length,
+        staleCandidates,
+        staleSuppressedCandidates,
+        stalePendingReconciliation: stalePendingReconciliation.length,
+        staleReconciled: staleReconciliationResults.filter((item) => item.status === 'complete_from_history').length,
+        staleSuppressed: staleReconciliationResults.filter((item) => item.status === 'stale_missing_not_replayed').length,
+        staleReconciliationResults,
+        maxAgeHours: queuePolicy.maxAgeHours,
         candidates: candidates.length,
         processed: results.length,
         completed: results.filter((result) => result.results?.every((step) => step.sent || ['already_sent', 'history_already_sent'].includes(step.reason))).length,

@@ -994,3 +994,23 @@ fechada para os três áudios `Chegou_*`.
 na tela um estado `sem confirmação` quando a API rejeitar a tentativa. A camada
 não realiza disparo de validação, não muda automação, pedido, Dropi, Meta/CAPI,
 produto, preço, VSL, scheduler, Z-API ou número oficial.
+
+## Microcamada V53 de saúde e recuperação do pós-venda EC
+
+O freeze `docs/POST_SALE_HEALTH_RECOVERY_FREEZE_V53_20260824.md` sucede a V52.
+As etapas textuais de retirada usam chaves semânticas distintas por dia, mas a
+repetição da mesma etapa continua bloqueada por histórico, hash, lock e dedupe.
+`review.manualOnly=true` bloqueia consulta, cálculo da etapa e envio automático.
+O lote controla o máximo de envios confirmados; candidatos bloqueados deixam de
+congelar os clientes posteriores.
+
+A fila imediata Tex Ultra varre uma janela independente do lote e só envia
+automaticamente pedidos com até 72 horas. Registros anteriores são reconciliados
+somente com mensagens já existentes; passos ausentes ficam marcados como
+`stale_missing_not_replayed`, sem replay tardio em massa.
+
+A recompra resolve o produto pelo Shipment. Vit Power mantém seu áudio/provas;
+Nitrix e Tex Ultra usam exclusivamente seus áudios aprovados e não recebem prova
+Vit Power. Produto desconhecido e caso manual permanecem bloqueados. Dropi,
+Meta/CAPI, checkout, preço, VSL, número oficial, credenciais e funil comercial
+não foram alterados.

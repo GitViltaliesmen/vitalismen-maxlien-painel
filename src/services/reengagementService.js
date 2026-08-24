@@ -12,7 +12,11 @@ import { sendVideo } from '../whatsapp/sendVideo.js';
 import { isAutomationRecipientAllowed } from '../whatsapp/automationSafety.js';
 import { getNextItemByPurpose, markPurposeItemSent } from './funnelPurposeMemoryService.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
-import { buildRefillReminderText, repurchaseReminderDelayDaysForUnits } from './shipmentMessageService.js';
+import {
+    buildRefillReminderText,
+    repurchaseProductPolicyForShipment,
+    repurchaseReminderDelayDaysForUnits
+} from './shipmentMessageService.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RECENT_TEMPLATE = 'Hola, estoy un poco aburrida. ¿Podemos conversar un ratito? 😊';
@@ -34,6 +38,10 @@ const POST_SALE_REPURCHASE_MIN_DELAY_DAYS = () => Math.min(
     repurchaseReminderDelayDaysForUnits(1),
     repurchaseReminderDelayDaysForUnits(2),
     repurchaseReminderDelayDaysForUnits(3)
+);
+const POST_SALE_REPURCHASE_DISPATCH_LOCK_MS = Math.max(
+    60_000,
+    Number.parseInt(process.env.POST_SALE_REPURCHASE_DISPATCH_LOCK_MS || '300000', 10) || 300_000
 );
 const PRODUCT_FOLLOWUP_PROOFS = [
     'image:social_01',
@@ -516,7 +524,6 @@ const contactStateQueryForShipment = (shipment = {}) => {
     const tails = uniquePhoneTails(shipment?.client?.phone);
     if (!tails.length) return null;
     return {
-        'metadata.productKey': 'vit_power_ec',
         $or: tails.flatMap((tail) => ([
             { phoneDigits: { $regex: `${tail}$` } },
             { chatId: { $regex: tail } },
@@ -530,6 +537,45 @@ const findContactStateForShipment = async (shipment = {}) => {
     const query = contactStateQueryForShipment(shipment);
     if (!query) return null;
     return ContactState.findOne(query).sort({ updatedAt: -1, lastInboundAt: -1 }).catch(() => null);
+};
+
+const claimRepurchaseShipment = async (shipment = {}) => {
+    const lockNow = new Date();
+    return Shipment.findOneAndUpdate(
+        {
+            _id: shipment._id,
+            'automation.refillReminderAt': null,
+            'review.manualOnly': { $ne: true },
+            $or: [
+                { 'automation.refillReminderDispatchLockedUntil': null },
+                { 'automation.refillReminderDispatchLockedUntil': { $exists: false } },
+                { 'automation.refillReminderDispatchLockedUntil': { $lte: lockNow } }
+            ]
+        },
+        {
+            $set: {
+                'automation.refillReminderDispatchLockedUntil': new Date(lockNow.getTime() + POST_SALE_REPURCHASE_DISPATCH_LOCK_MS),
+                'automation.refillReminderLastAttemptAt': lockNow,
+                'automation.refillReminderLastError': ''
+            }
+        },
+        { new: true }
+    );
+};
+
+const releaseRepurchaseShipment = async (shipmentId, error = '') => {
+    if (!shipmentId) return;
+    await Shipment.updateOne(
+        { _id: shipmentId },
+        {
+            $set: {
+                'automation.refillReminderDispatchLockedUntil': null,
+                'automation.refillReminderLastError': String(error || '').slice(0, 500)
+            }
+        }
+    ).catch((releaseError) => {
+        console.warn(`[RECOMPRA_30D] falha ao liberar lock persistente | shipment=${shipmentId} | error=${releaseError.message}`);
+    });
 };
 
 const deliveredAnchorForShipment = (shipment = {}) => {
@@ -568,6 +614,8 @@ const chatIdForShipmentRepurchase = ({ shipment, state }) => (
 const updateRepurchaseMemory = async ({
     state,
     agentKey,
+    productKey,
+    audioName,
     text,
     proof,
     shipment,
@@ -592,6 +640,8 @@ const updateRepurchaseMemory = async ({
                 postSaleRepurchase30dProof: proof || '',
                 postSaleRepurchase30dProofSent: Boolean(proofSent),
                 postSaleRepurchase30dAudioSent: Boolean(audioSent),
+                postSaleRepurchase30dAudioName: audioName || '',
+                postSaleRepurchase30dProductKey: productKey || '',
                 postSaleRepurchase30dShipmentId: shipment?._id || null,
                 postSaleRepurchase30dOrderId: shipment?.orderId || '',
                 lastOutboundAt: new Date(),
@@ -646,12 +696,19 @@ export const processPostSaleRepurchase30dFollowups = async ({
         let processed = 0;
         let sent = 0;
 
-        for (const shipment of shipments) {
+        for (const candidateShipment of shipments) {
+            let shipment = candidateShipment;
             if (sent >= safeLimit) break;
             processed += 1;
 
             const dueAt = repurchaseDueAtForShipment(shipment);
             if (!dueAt || dueAt.getTime() > now.getTime()) continue;
+
+            const product = repurchaseProductPolicyForShipment(shipment);
+            if (!product.enabled) {
+                console.warn(`[RECOMPRA_30D] pulado por produto desconhecido | order=${shipment.orderId || ''}`);
+                continue;
+            }
 
             const state = await findContactStateForShipment(shipment);
             const chatId = chatIdForShipmentRepurchase({ shipment, state });
@@ -664,6 +721,11 @@ export const processPostSaleRepurchase30dFollowups = async ({
                 continue;
             }
 
+            const lockedShipment = await claimRepurchaseShipment(shipment);
+            if (!lockedShipment) continue;
+            shipment = lockedShipment;
+
+            try {
             const text = buildRefillReminderText(shipment);
             const sessionId = state?.metadata?.lastSessionId || shipment?.automation?.sessionId || null;
             const textSent = await sendText(chatId, text, null, {
@@ -673,7 +735,10 @@ export const processPostSaleRepurchase30dFollowups = async ({
                 outboundContext: 'post_sale_repurchase_30d',
                 dedupeValue: `post_sale_repurchase_30d|${shipment.orderId || digitsOnly(shipment.client?.phone)}`
             });
-            if (!textSent) continue;
+            if (!textSent) {
+                await releaseRepurchaseShipment(shipment._id, 'text_not_sent');
+                continue;
+            }
 
             await registerBotMessage({
                 chatId,
@@ -681,27 +746,27 @@ export const processPostSaleRepurchase30dFollowups = async ({
                 body: text
             });
 
-            const tempoAudioPath = await resolveCountryAudio({ country: 'EC', baseName: 'TEMPO_RESULTADO_VIT_POWER' });
-            const audioSent = tempoAudioPath
-                ? await sendAudio(chatId, tempoAudioPath, true, {
+            const approvedAudioPath = await resolveCountryAudio({ country: 'EC', baseName: product.audioName });
+            const audioSent = approvedAudioPath
+                ? await sendAudio(chatId, approvedAudioPath, true, {
                     sessionId,
                     country: state?.countryCode || shipment?.country || 'EC',
                     allowExistingDropiOrder: true,
                     outboundContext: 'post_sale_repurchase_30d_audio',
-                    dedupeValue: `post_sale_repurchase_30d_audio|TEMPO_RESULTADO_VIT_POWER|${shipment.orderId || digitsOnly(shipment.client?.phone)}`
+                    dedupeValue: `post_sale_repurchase_30d_audio|${product.audioName}|${shipment.orderId || digitsOnly(shipment.client?.phone)}`
                 })
                 : false;
             if (audioSent) {
                 await registerBotMessage({
                     chatId,
                     phoneDigits: digitsOnly(shipment.client?.phone) || state?.phoneDigits,
-                    body: '[AUDIO_RECOMPRA_30D] TEMPO_RESULTADO_VIT_POWER',
+                    body: `[AUDIO_RECOMPRA_30D] ${product.audioName}`,
                     type: 'audio'
                 });
             }
 
-            const agentKey = 'vit_power_ec';
-            const proof = state
+            const agentKey = product.agentKey;
+            const proof = state && product.allowSharedProof
                 ? await getNextItemByPurpose(state.phoneDigits || shipment.client?.phone || chatId, 'prova', {
                     candidates: PRODUCT_FOLLOWUP_PROOFS,
                     state,
@@ -732,6 +797,8 @@ export const processPostSaleRepurchase30dFollowups = async ({
             await updateRepurchaseMemory({
                 state,
                 agentKey,
+                productKey: product.productKey,
+                audioName: product.audioName,
                 text,
                 proof,
                 shipment,
@@ -748,6 +815,8 @@ export const processPostSaleRepurchase30dFollowups = async ({
             }
 
             shipment.automation.refillReminderAt = now;
+            shipment.automation.refillReminderDispatchLockedUntil = null;
+            shipment.automation.refillReminderLastError = '';
             shipment.automation.lastReminderAt = now;
             shipment.automation.lastAudioAt = audioSent ? now : shipment.automation.lastAudioAt;
             shipment.automation.lastReminderKind = 'post_sale_repurchase_30d';
@@ -760,6 +829,8 @@ export const processPostSaleRepurchase30dFollowups = async ({
                     delayDays: repurchaseReminderDelayDaysForUnits(shipment?.treatment?.unitsPurchased || 1),
                     dueAt,
                     audioSent,
+                    audioName: product.audioName,
+                    productKey: product.productKey,
                     proof: proof || '',
                     proofSent: Boolean(proofSent)
                 }
@@ -768,6 +839,10 @@ export const processPostSaleRepurchase30dFollowups = async ({
             await shipment.save();
 
             sent += 1;
+            } catch (error) {
+                await releaseRepurchaseShipment(shipment._id, error?.message || 'repurchase_dispatch_failed');
+                throw error;
+            }
         }
 
         return { processed, sent, candidates: shipments.length };
