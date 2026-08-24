@@ -1,0 +1,63 @@
+{
+  "freezeId": "panel-customer-alias-repair-v57-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-customer-residual-repair-v56-20260824",
+  "parentManifestSha256": "b8d6e36a3fbfe7e98eb07e521fa953c0a89f0e1f45f27b5c16445d6659aff166",
+  "baseProductionSha": "e17aa9d8c3e240beac7f6ddd9b5f116f9df63d00",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T045200Z_production-20260824-e17aa9d",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_repair_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_authorization_for_complete_scan_and_similar_customer_record_fixes"
+  },
+  "policy": {
+    "exactLocalAliasRepairWithBackup": true,
+    "canonicalCustomerStateCopied": true,
+    "canonicalContactStateId": "6a7de6a3f24ae26732b457a8",
+    "affectedContactStateIds": [
+      "6a7de6b3f24ae26732b45816"
+    ],
+    "orderOrMessageMutation": false,
+    "realClientCanaryAuthorized": false,
+    "whatsappSendAuthorized": false,
+    "metaPurchaseResendAllowed": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_ALIAS_REPAIR_V57_20260824.txt",
+    "docs/PANEL_CUSTOMER_ALIAS_REPAIR_FREEZE_V57_20260824.md",
+    "docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_ACTIVATION_RESULT_V56_20260824.md",
+    "scripts/assert-panel-customer-alias-repair-activation-approved-v57.mjs",
+    "scripts/guard-panel-customer-alias-repair-v57.mjs",
+    "scripts/repair-panel-customer-alias-v57.mjs",
+    "src/services/panelCustomerAliasRepairFreezeRuntimeGuardV57.js",
+    "tests/panel-customer-alias-repair-v57.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_ALIAS_REPAIR_V57_20260824.txt": "c26c3970eae970483ecc40c3e18850c03082ac7c0f0402918c7e5433c325c28a",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "37782850c0469934780d74c3a4e54681aa631a6d9f52f54145f5990f9fa1f923",
+    "docs/ARQUIVOS_OFICIAIS.md": "576f50153eee3c098b35f139c7e6e6253e908bad7fdc66b94368799cad7b564f",
+    "docs/PANEL_CUSTOMER_ALIAS_REPAIR_FREEZE_V57_20260824.md": "d992c279cd16a426f1510e4dd81a2881500c2ae4a2c0fb361f7064edd26ce7ea",
+    "docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_ACTIVATION_RESULT_V56_20260824.md": "c208957d808ed8d2ca54d5e69d1e06533a89302d972088934f80d45f104c9426",
+    "package.json": "6cf0e473c2e33c58549f5a72a9e943a52344be72d19a43fefc7d5d88475fef77",
+    "scripts/assert-panel-customer-alias-repair-activation-approved-v57.mjs": "b6afcb2e2b88e1ab8d88998c8464d1e3f6c0b7843f4bab721a405f20bde061d2",
+    "scripts/guard-panel-customer-alias-repair-v57.mjs": "5c70af0393752518de2a9c866b13c7da61c636fcacefe3c4fbfa89a2ac2d7bfa",
+    "scripts/repair-panel-customer-alias-v57.mjs": "b55bd190631628ecc0c019537f7881a131f69ece57007905d48d5890e178766d",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "25958d4785cc9fe858e315c8903dd5fc8a88cb4309059d65bfa91c609426fc40",
+    "src/services/panelCustomerAliasRepairFreezeRuntimeGuardV57.js": "82faee2d53aa0442256cc5a0f7f4bb4909675e42c385a30162cc38acc2a9e6c6",
+    "tests/panel-customer-alias-repair-v57.test.mjs": "f5e2ed21390868c3759db567fab7fa2cb7047ea3cc227ddade6ee322a2601771",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "5108b1632ef7175df03743882ab780c7779896ddb78a9d5f6dfdd74af2fbc6fb"
+  }
+}

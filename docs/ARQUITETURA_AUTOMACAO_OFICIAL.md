@@ -1063,3 +1063,13 @@ perdem vínculos cruzados de pedido, Dropi e lead administrativo; a conversa 520
 fica em revisão com os dados explícitos de Segundo e a 6060 conserva somente o
 nome Charly e telefone até confirmar os campos faltantes. O reparo exige backup
 e não chama WhatsApp, Meta/CAPI ou Dropi.
+
+## Microcamada V57 do alias local da ficha 5541
+
+O freeze `docs/PANEL_CUSTOMER_ALIAS_REPAIR_FREEZE_V57_20260824.md` sucede a V56
+e fecha a ultima divergencia real encontrada ao normalizar os telefones locais
+do Equador. O documento `0983125541@c.us` e reconhecido como alias da conversa
+canonica `593983125541@c.us` e recebe a mesma identidade, resolucao e ficha V55.
+
+Somente o alias e atualizado. Pedido, mensagem, Shipment, lead, Dropi, Meta,
+produto, preco, funil, midia, pos-venda e scheduler permanecem inalterados.

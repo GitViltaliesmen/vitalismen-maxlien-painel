@@ -659,3 +659,19 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado: pedido enviado `EC-MSWR401B-KNHS`, mensagens, Meta/CAPI, Dropi,
   produtos, preços, VSL, checkout, mídia, pós-venda e scheduler.
 - Rollback funcional: release V55 acima e backup específico V56.
+
+### Microcamada V57 — alias local da ficha 5541 — 2026-08-24
+
+- Base oficial inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260824T045200Z_production-20260824-e17aa9d`,
+  commit `e17aa9d8c3e240beac7f6ddd9b5f116f9df63d00`.
+- Resultado de ativacao V56:
+  `docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_ACTIVATION_RESULT_V56_20260824.md`.
+- Reparo: `scripts/repair-panel-customer-alias-v57.mjs`, limitado ao alias
+  `_id` `6a7de6b3f24ae26732b45816` e ao estado canonico V55 usado como fonte.
+- Freeze/guard: `docs/PANEL_CUSTOMER_ALIAS_REPAIR_FREEZE_V57_20260824.md`,
+  `docs/freeze/panel-customer-alias-repair-v57-20260824.json` e
+  `scripts/guard-panel-customer-alias-repair-v57.mjs`.
+- Preservado: pedidos, mensagens, Shipments, lead, Dropi, Meta/CAPI, produto,
+  preco, funil, midia, pos-venda e scheduler.
+- Rollback funcional: release V56 acima e backup especifico V57.
