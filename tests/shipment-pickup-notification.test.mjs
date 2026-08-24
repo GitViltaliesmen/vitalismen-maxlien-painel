@@ -6,6 +6,7 @@ import {
     getDuePickupReminderStep,
     isPickupProofText,
     messageMatchesPickupNoticeKind,
+    pickupBonusAntiSpamKey,
     pickupHowToUseAudioForShipment,
     pickupLogisticsAudioForShipment,
     pickupProofMediaAllowedForShipment,
@@ -171,6 +172,20 @@ test('confirmacao textual acabo de retirar libera comprovante', () => {
         true
     );
     assert.equal(isPickupProofText('Pues enviame el nombre de producto'), false);
+});
+
+test('bonus de retirada possui chave semantica propria e estavel por pedido', () => {
+    const shipment = agencyShipment({ orderId: 'EC-TESTE-BONUS-01' });
+    const retry = agencyShipment({ orderId: 'EC-TESTE-BONUS-01' });
+    const anotherOrder = agencyShipment({ orderId: 'EC-TESTE-BONUS-02' });
+
+    assert.equal(
+        pickupBonusAntiSpamKey(shipment),
+        'shipment_status:pickup_bonus:EC-TESTE-BONUS-01'
+    );
+    assert.equal(pickupBonusAntiSpamKey(retry), pickupBonusAntiSpamKey(shipment));
+    assert.notEqual(pickupBonusAntiSpamKey(anotherOrder), pickupBonusAntiSpamKey(shipment));
+    assert.notEqual(pickupBonusAntiSpamKey(shipment), 'shipment_status');
 });
 
 test('hash antigo sem campo confirmado nao bloqueia lembrete diario', () => {

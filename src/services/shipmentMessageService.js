@@ -807,6 +807,14 @@ export const buildPickupBonusText = (shipment = null) => {
     return withSaveContactReminder(chooseStableVariant(BONUS_TEXT_VARIANTS, shipment?.orderId || shipment?.logistics?.trackingNumber || ''));
 };
 
+export const pickupBonusAntiSpamKey = (shipment = {}) => {
+    const shipmentIdentity = shipment?.orderId
+        || shipment?.logistics?.trackingNumber
+        || String(shipment?._id || '')
+        || 'unknown_shipment';
+    return `shipment_status:pickup_bonus:${shipmentIdentity}`;
+};
+
 export const buildRefillReminderText = (shipment) => {
     const units = Number(shipment?.treatment?.unitsPurchased || 1) || 1;
     const unitsLabel = `${units} frasco${units > 1 ? 's' : ''}`;
@@ -1838,7 +1846,8 @@ export const notifyPickupBonus = async (shipment) => {
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_pickup_bonus_text',
-        dedupeValue: `${text}|${bonusDedupeScope}`
+        dedupeValue: `${text}|${bonusDedupeScope}`,
+        antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
     if (!sent) return false;
     const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);

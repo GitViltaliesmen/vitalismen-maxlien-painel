@@ -713,3 +713,24 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   checkout, Dropi, Meta/CAPI, pixel, midias, pedidos, scheduler e pos-venda.
 - Rollback funcional: release V58 acima, preservando bancos, mensagens,
   pedidos e midias compartilhadas.
+
+### Microcamada V60 — entrega do bônus após retirada — 2026-08-24
+
+- Base oficial inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260824T131742Z_production-20260824-c7061a1`,
+  com os arquivos oficiais locais e remotos idênticos antes da alteração.
+- Serviço oficial alterado: `src/services/shipmentMessageService.js`, somente
+  para aplicar uma chave semântica própria ao texto do bônus por pedido/guia.
+- Gatilho logístico preservado em
+  `src/services/shipmentStatusDispatcherService.js`: `ENTREGADO` continua
+  chamando `delivered_bonus` e `notifyPickupBonus`.
+- Testes: `tests/pickup-bonus-delivery-v60.test.mjs` e
+  `tests/shipment-pickup-notification.test.mjs`.
+- Freeze/guard: `docs/PICKUP_BONUS_DELIVERY_FREEZE_V60_20260824.md`,
+  `docs/freeze/pickup-bonus-delivery-v60-20260824.json` e
+  `scripts/guard-pickup-bonus-delivery-v60.mjs`.
+- Preservado: histórico, hash, lock, dedupe físico, bloqueio de áudio já
+  entregue, produtos, preços, VSL, checkout, Dropi, Meta/CAPI, pixel, Z-API,
+  número oficial e scheduler único.
+- Rollback funcional: release V59 acima, preservando comprovantes, mensagens,
+  pedidos, Shipments e deduplicação persistida.
