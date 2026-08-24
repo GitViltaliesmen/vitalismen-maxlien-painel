@@ -1,0 +1,63 @@
+{
+  "freezeId": "pickup-bonus-delivery-v60-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "baileys-libsignal-security-v59-20260824",
+  "parentManifestSha256": "ce9040f9f817c9554161e5375654743c43293b00c3151bb034ea00da7214ec43",
+  "baseProductionSha": "c7061a14e2d329c88c2925c45b327737158ce593",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T131742Z_production-20260824-c7061a1",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "pickup_bonus_promise_repair_freeze_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_request_to_deliver_promised_bonus_after_bot_confirmed_delivery_and_sent_thank_you"
+  },
+  "policy": {
+    "dedicatedPickupBonusSemanticKey": true,
+    "sameOrderRetryRemainsDeduped": true,
+    "thankYouAudioReplayAllowed": false,
+    "howToUseAudioReplayAllowed": false,
+    "exactPendingBonusCompletionAuthorized": true,
+    "massHistoricalReplayAllowed": false,
+    "automaticDropiAuthorization": false,
+    "metaPurchaseResendAllowed": false,
+    "productOrPriceChanged": false,
+    "commercialFunnelChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "scripts/guard-baileys-libsignal-security-v59.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/shipmentMessageService.js",
+    "tests/shipment-pickup-notification.test.mjs",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PICKUP_BONUS_DELIVERY_V60_20260824.txt",
+    "docs/PICKUP_BONUS_DELIVERY_FREEZE_V60_20260824.md",
+    "scripts/assert-pickup-bonus-delivery-activation-approved-v60.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
+    "src/services/pickupBonusDeliveryFreezeRuntimeGuardV60.js",
+    "tests/pickup-bonus-delivery-v60.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PICKUP_BONUS_DELIVERY_V60_20260824.txt": "c0a8a672373f698ec2674249723de684817cd027731c68734c9bf4f794fb6d82",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "89022fd20578204403f3cb5a45eea79ea8f59ac757fc0a6be751ebc283d1a14f",
+    "docs/ARQUIVOS_OFICIAIS.md": "e71a82c00c0342a85fd213537b463ac06de3823f535cb51dbf8005480c8beb1d",
+    "docs/PICKUP_BONUS_DELIVERY_FREEZE_V60_20260824.md": "e3c730223707c7a7999b02c91133ab8b973f5a2a2480c33ab9a33dc25a22a972",
+    "package.json": "a6049182206c298f784ab7f04a8d0fe10309ae7f0c3e05c92594e7383ac950de",
+    "scripts/assert-pickup-bonus-delivery-activation-approved-v60.mjs": "d9684ea078298683746a164eeeb4ff00eae50ec287150a6957105c0b6b04511f",
+    "scripts/guard-baileys-libsignal-security-v59.mjs": "3642f485fe2c943a96131d61232c8708f7ae85d450cd5cc88e1fd3fae4ec7e98",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "2e26f913edba621e8f90353e91198e604c67efa4f50d00e3eb88b15d9a93d5d0",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "fc7dc49028f8a2b853dddfce84ea7b004405773faaa7db6369a5bbc2d065c09d",
+    "src/services/pickupBonusDeliveryFreezeRuntimeGuardV60.js": "50f1ad7466a8ff2ad30d2d6e8f15c953af8a0895c39280dfe87a2fbd68eb1900",
+    "src/services/shipmentMessageService.js": "fc368264823b9c1358fb498d88fdb1d9957827bfbd1c6c963d20d1eb97a9132c",
+    "tests/pickup-bonus-delivery-v60.test.mjs": "7e348c701e4fefeb41f8fc26ab1d8eaa553508f541e488c3c83597c17a8407ae",
+    "tests/shipment-pickup-notification.test.mjs": "5f0d9c6dbc13ea243d4d4db9a91405ac4c8dc16ee99479d2abae2e203fe234b9",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "694c2d42fb9f138f91af9a982cf4635bc78968cd596ce91782d4529aec5ad87c"
+  }
+}

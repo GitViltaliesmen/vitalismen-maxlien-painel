@@ -1102,3 +1102,23 @@ commit anterior e cuja cadeia usa `protobufjs@7.6.5`.
 O lockfile proibe o commit antigo e `protobufjs@6.8.8`; o guard exige auditoria
 de producao com zero vulnerabilidades. Nenhum socket, sessao, envio, funil,
 pedido, Dropi, Meta/CAPI, produto, preco, numero ou scheduler e alterado.
+
+## Microcamada V60 de entrega garantida do bônus após retirada
+
+O freeze `docs/PICKUP_BONUS_DELIVERY_FREEZE_V60_20260824.md` sucede a V59 e
+corrige a colisão semântica que deixava o bônus prometido pendente depois de o
+próprio pós-venda confirmar `ENTREGADO`, registrar a foto/texto de retirada e
+enviar o agradecimento.
+
+O texto do bônus usa a chave estável
+`shipment_status:pickup_bonus:<pedido-ou-guia>`. Assim ele não disputa mais a
+chave genérica de outra mensagem logística enviada no mesmo dia. O
+`dedupeValue` físico, o histórico, o hash, o lock e `bonusNotifiedAt` continuam
+impedindo repetição do mesmo bônus. Áudio de agradecimento ou modo de uso já
+entregue permanece bloqueado e não é repetido na recuperação.
+
+Os gatilhos oficiais permanecem confirmação textual, comprovante elegível,
+status logístico `ENTREGADO` e confirmação administrativa autenticada. Não há
+scheduler paralelo nem replay histórico em massa. Produto, preço, pedido,
+Dropi, Meta/CAPI, pixel, número, transporte, funil e cadência permanecem
+inalterados.

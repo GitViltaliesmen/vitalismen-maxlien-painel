@@ -106,5 +106,5 @@ test('V49 mantém o health somente leitura e sem envio de canário', () => {
 
 test('V49 permanece encadeada pelo guard atual ou por sucessor declarado', () => {
     const entryGuard = fs.readFileSync(new URL('../src/services/ecEngagementFreezeRuntimeGuardV40.js', import.meta.url), 'utf8');
-    assert.match(entryGuard, /(?:whatsappOutageRecoveryFreezeRuntimeGuardV49|panelManualEditPersistenceFreezeRuntimeGuardV50|panelCustomerSelectionIsolationFreezeRuntimeGuardV51|postSaleHealthRecoveryFreezeRuntimeGuardV53|texUltraDeliveryClosureFreezeRuntimeGuardV54|panelCustomerFormPersistenceFreezeRuntimeGuardV55|panelCustomerResidualRepairFreezeRuntimeGuardV56|panelCustomerAliasRepairFreezeRuntimeGuardV57|panelTexUltraBottleBlockFreezeRuntimeGuardV58|baileysLibsignalSecurityFreezeRuntimeGuardV59)\.js/);
+    assert.match(entryGuard, /(?:whatsappOutageRecoveryFreezeRuntimeGuardV49|panelManualEditPersistenceFreezeRuntimeGuardV50|panelCustomerSelectionIsolationFreezeRuntimeGuardV51|postSaleHealthRecoveryFreezeRuntimeGuardV53|texUltraDeliveryClosureFreezeRuntimeGuardV54|panelCustomerFormPersistenceFreezeRuntimeGuardV55|panelCustomerResidualRepairFreezeRuntimeGuardV56|panelCustomerAliasRepairFreezeRuntimeGuardV57|panelTexUltraBottleBlockFreezeRuntimeGuardV58|baileysLibsignalSecurityFreezeRuntimeGuardV59|pickupBonusDeliveryFreezeRuntimeGuardV60)\.js/);
 });
