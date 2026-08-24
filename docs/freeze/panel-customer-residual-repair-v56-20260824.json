@@ -1,0 +1,70 @@
+{
+  "freezeId": "panel-customer-residual-repair-v56-20260824",
+  "status": "activation_approved",
+  "lockedAt": "2026-08-24",
+  "country": "EC",
+  "parentFreezeId": "panel-customer-form-persistence-v55-20260824",
+  "parentManifestSha256": "499281f1b013437d15ec4638feaea09c99fec2c10fe675c8fc86df36c0bbf7c5",
+  "baseProductionSha": "0642d0d7c8f1a7d1a406093bfdfe02a09df4e333",
+  "baseProductionRelease": "/opt/vitalismen-automacao/releases/20260824T043635Z_production-20260824-0642d0d",
+  "publicationStatus": "authorized_for_transactional_activation",
+  "operatorApproval": {
+    "status": "urgent_implementation_repair_and_activation_approved",
+    "approvedAt": "2026-08-24",
+    "source": "explicit_authorization_to_fix_case_4663_and_similar_cases_completely"
+  },
+  "policy": {
+    "residualAgencyOrdersExactRepairWithBackup": true,
+    "affectedOrderIds": [
+      "EC-MT6FF9N1-AFWE",
+      "EC-MT6FJHIS-YRQQ",
+      "EC-MT6H0NR2-SBM5",
+      "EC-MT6KIOUM-EGZK"
+    ],
+    "crossedConversationStatesIsolated": true,
+    "affectedContactStateIds": [
+      "6a828e50ba6ae6336992a83b",
+      "6a8291c5ba6ae6336992d830"
+    ],
+    "preservedHistoricalOrderId": "EC-MSWR401B-KNHS",
+    "historicalShippedOrderMutation": false,
+    "realClientCanaryAuthorized": false,
+    "whatsappSendAuthorized": false,
+    "metaPurchaseResendAllowed": false,
+    "automaticDropiAuthorization": false,
+    "productOrPriceChanged": false,
+    "deployAuthorized": true
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_RESIDUAL_REPAIR_V56_20260824.txt",
+    "docs/PANEL_CUSTOMER_FORM_PERSISTENCE_ACTIVATION_RESULT_V55_20260824.md",
+    "docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_FREEZE_V56_20260824.md",
+    "scripts/assert-panel-customer-residual-repair-activation-approved-v56.mjs",
+    "scripts/guard-panel-customer-residual-repair-v56.mjs",
+    "scripts/repair-panel-customer-residual-v56.mjs",
+    "src/services/panelCustomerResidualRepairFreezeRuntimeGuardV56.js",
+    "tests/panel-customer-residual-repair-v56.test.mjs"
+  ],
+  "protectedFiles": {
+    "approved_freezes/APPROVED_PANEL_CUSTOMER_RESIDUAL_REPAIR_V56_20260824.txt": "5379dcf8912350ff238fd5d5616032a6db6902b376798e095fd0a815e9c02542",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "5823f45d637b2e7b2a9ece45d5160c7182a8740e3275ced8724fe889b0f87e1a",
+    "docs/ARQUIVOS_OFICIAIS.md": "0f86d00356d1e35b6c25c420798b03aa09e8c20ff6764d83a7473873c254b4e3",
+    "docs/PANEL_CUSTOMER_FORM_PERSISTENCE_ACTIVATION_RESULT_V55_20260824.md": "8bd4f0c72ff0c590d06e586289d300c44a800d2f7d5e1e0f20adb67f53a83280",
+    "docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_FREEZE_V56_20260824.md": "7977386ab6e4b1165e412db59ca4130de7112a8a10793fb915136d7488fc44bc",
+    "package.json": "82e2dbba160f39b060a46942c3f793f7bad1a2004e127c6606d3100fe8c8eedb",
+    "scripts/assert-panel-customer-residual-repair-activation-approved-v56.mjs": "f54a58ef21f6a9e6a4fb5ac21d3ab002634a9414ec4702d7ec7501828b3ccb8e",
+    "scripts/guard-panel-customer-residual-repair-v56.mjs": "dc727d875bb2656ed6d71aff671876709d5e21bbe690b5b1252c3c69128002f0",
+    "scripts/repair-panel-customer-residual-v56.mjs": "85d0ab389604d28de3677a068c167b58626fa951a496708ef20ffe1bfc477879",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "904468fa5cd9c602afca480182a037048562ce733ae762c59941583219c97834",
+    "src/services/panelCustomerResidualRepairFreezeRuntimeGuardV56.js": "368270edc7272152cda6526b8c45aec59ff1c8e45d4f5d9ba48a77db2f88df04",
+    "tests/panel-customer-residual-repair-v56.test.mjs": "b77864b014190ce686a67b14ef471d0888a790f2ab84089409932eca90623b07",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "551d72e63c9f6dc21622f4d2a674c42000f376f459ddeb81299b107da466b67f"
+  }
+}

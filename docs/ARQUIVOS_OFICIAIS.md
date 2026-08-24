@@ -641,3 +641,21 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado: mensagens e pedido entregue histórico; nenhum WhatsApp, Meta/CAPI,
   Dropi, produto, preço, VSL, checkout, mídia, pós-venda ou scheduler alterado.
 - Rollback funcional: release V54 acima e backup específico V55.
+
+### Microcamada V56 — reparo residual exato da ficha EC — 2026-08-24
+
+- Base oficial inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260824T043635Z_production-20260824-0642d0d`,
+  commit `0642d0d7c8f1a7d1a406093bfdfe02a09df4e333`.
+- Resultado de ativação V55:
+  `docs/PANEL_CUSTOMER_FORM_PERSISTENCE_ACTIVATION_RESULT_V55_20260824.md`.
+- Reparo controlado: `scripts/repair-panel-customer-residual-v56.mjs`, limitado
+  a quatro pedidos de agência e aos estados exatos 5201/6060.
+- Teste: `tests/panel-customer-residual-repair-v56.test.mjs`, mais a regressão
+  V55 no guard dedicado.
+- Freeze/guard: `docs/PANEL_CUSTOMER_RESIDUAL_REPAIR_FREEZE_V56_20260824.md`,
+  `docs/freeze/panel-customer-residual-repair-v56-20260824.json` e
+  `scripts/guard-panel-customer-residual-repair-v56.mjs`.
+- Preservado: pedido enviado `EC-MSWR401B-KNHS`, mensagens, Meta/CAPI, Dropi,
+  produtos, preços, VSL, checkout, mídia, pós-venda e scheduler.
+- Rollback funcional: release V55 acima e backup específico V56.
