@@ -637,17 +637,46 @@ test('pedido fora de EC não é consultado nem enriquecido', async () => {
 test('roteamento Dataset é exclusivo e fail-closed para configuração divergente', () => {
     const env = {
         META_PIXEL_ID_EC: 'dataset-ec-anterior',
-        META_ACCESS_TOKEN_EC: 'token-sintetico-nao-real'
+        META_ACCESS_TOKEN_EC: 'token-sintetico-nao-real',
+        META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: 'token-dedicado-sintetico-nao-real'
     };
     assert.equal(isEcuadorTexUltraProtocoloG(orderFor()), true);
-    assert.equal(getMetaConfigForOrder(orderFor(), env).pixelId, META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID);
-    assert.equal(getMetaConfigForOrder(orderFor({ funnel: 'OUTRO_FUNIL' }), env).pixelId, 'dataset-ec-anterior');
-    assert.equal(getMetaConfigForOrder(orderFor({ productKey: 'vit_power_ec', product: 'VIT_POWER' }), env).pixelId, 'dataset-ec-anterior');
-    assert.equal(getMetaConfigForOrder({ country: 'CO', tracking: {} }, env).pixelId, null);
-    assert.equal(getMetaConfigForOrder(orderFor(), {
+    assert.deepEqual(getMetaConfigForOrder(orderFor(), env), {
+        pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+        accessToken: 'token-dedicado-sintetico-nao-real',
+        route: 'ec_tex_ultra_protocolo_g'
+    });
+    assert.deepEqual(getMetaConfigForOrder(orderFor(), {
+        ...env,
+        META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: ''
+    }), {
+        pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+        accessToken: 'token-sintetico-nao-real',
+        route: 'ec_tex_ultra_protocolo_g'
+    });
+    assert.deepEqual(getMetaConfigForOrder(orderFor({ funnel: 'OUTRO_FUNIL' }), env), {
+        pixelId: 'dataset-ec-anterior',
+        accessToken: 'token-sintetico-nao-real',
+        route: 'country_ec_default'
+    });
+    assert.deepEqual(getMetaConfigForOrder(orderFor({ productKey: 'vit_power_ec', product: 'VIT_POWER' }), env), {
+        pixelId: 'dataset-ec-anterior',
+        accessToken: 'token-sintetico-nao-real',
+        route: 'country_ec_default'
+    });
+    assert.deepEqual(getMetaConfigForOrder({ country: 'CO', tracking: {} }, env), {
+        pixelId: null,
+        accessToken: null,
+        route: 'unsupported_country'
+    });
+    assert.deepEqual(getMetaConfigForOrder(orderFor(), {
         ...env,
         META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G: 'dataset-incorreto'
-    }).pixelId, null);
+    }), {
+        pixelId: null,
+        accessToken: null,
+        route: 'ec_tex_ultra_protocolo_g_invalid_dataset_config'
+    });
 });
 
 test('Purchase não inventa fbc/fbp e não usa IP ou User-Agent do operador no Protocolo G', () => {

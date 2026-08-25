@@ -8,6 +8,7 @@ const parentManifestPath = 'docs/freeze/pickup-bonus-delivery-v60-20260824.json'
 const parentManifestSha256 = '7e3166f4539a8ee0b85663c9d6fa82ed8c7f4e1c7c34aa10ce08ff1c98f3895c';
 const declaredAncestorOverrides = [
     '.env.example',
+    'FREEZE_LOCK_EC.json',
     'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
     'docs/ARQUIVOS_OFICIAIS.md',
     'package.json',
@@ -32,6 +33,7 @@ const declaredAncestorOverrides = [
 const newProtectedFiles = [
     'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md',
     'scripts/assert-meta-ec-protocolo-g-attribution-activation-approved-v61.mjs',
+    'scripts/guard-meta-capi-routing-freeze-v61.mjs',
     'scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs',
     'src/models/MetaAttributionCorrelation.js',
     'src/services/metaAttributionFreezeRuntimeGuardV61.js',
@@ -66,6 +68,11 @@ if (
     || manifest.policy?.attributionCapturedAtAuditOnly !== true
     || manifest.policy?.expiredAdFieldsReconstructed !== false
     || manifest.policy?.canonicalPurchaseSourceUrl !== 'https://vilaliemen.shop/protocolo-g'
+    || manifest.policy?.legacyEcServerTokenPreserved !== true
+    || manifest.policy?.protocoloGDatasetFailClosed !== true
+    || manifest.policy?.otherEcUsesDedicatedDataset !== false
+    || manifest.policy?.metaServerTokenFrontendExposureAllowed !== false
+    || manifest.policy?.freezeLockBehavioralGuard !== 'scripts/guard-meta-capi-routing-freeze-v61.mjs'
     || manifest.policy?.colombiaReadOnly !== true
     || manifest.policy?.zapiChanged !== false
     || manifest.policy?.whatsappMessageChanged !== false

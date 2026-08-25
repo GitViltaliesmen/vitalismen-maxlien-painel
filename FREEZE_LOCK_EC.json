@@ -1,7 +1,7 @@
 {
   "country": "EC",
   "purpose": "Trava tecnica para impedir que camadas aprovadas voltem por acidente.",
-  "updatedAt": "2026-08-21T22:15:11Z",
+  "updatedAt": "2026-08-25T00:38:39Z",
   "rules": [
     {
       "id": "panel_add_contact_button_fixed",
@@ -213,8 +213,10 @@
     {
       "id": "meta_pixel_lead_ec_dataset",
       "status": "active",
-      "description": "Marcacao Facebook/Meta da VSL usa dataset EC correto, PageView/Lead deduplicados e CAPI EC sem token de outro pais.",
+      "description": "Marcacao Facebook/Meta da VSL usa dataset EC correto, PageView/Lead deduplicados e roteamento CAPI server-side validado por comportamento: default EC preservado e Protocolo G isolado.",
       "requiresWrittenAuthorizationToChange": true,
+      "behavioralGuard": "scripts/guard-meta-capi-routing-freeze-v61.mjs",
+      "authorizationReference": "correcao_pre_deploy_v61_freeze_lock_capi_routing_20260825",
       "checks": [
         {
           "type": "includes",
@@ -244,7 +246,16 @@
         {
           "type": "includes",
           "file": "src/services/metaConversionsService.js",
-          "value": "accessToken: process.env.META_ACCESS_TOKEN_EC"
+          "value": "accessToken: env.META_ACCESS_TOKEN_EC"
+        },
+        {
+          "type": "includes",
+          "file": "package.json",
+          "value": "node scripts/guard-freeze-lock-ec.mjs && node scripts/guard-meta-capi-routing-freeze-v61.mjs"
+        },
+        {
+          "type": "exists",
+          "file": "scripts/guard-meta-capi-routing-freeze-v61.mjs"
         },
         {
           "type": "includes",

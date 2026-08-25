@@ -22,7 +22,7 @@
         "official:audit": "node scripts/official-state-audit.mjs",
         "guard:public-funnel": "node scripts/guard-public-funnel.mjs",
         "guard:status-panels": "node scripts/guard-status-panels-freeze.mjs",
-        "guard:freeze-lock": "node scripts/guard-freeze-lock-ec.mjs",
+        "guard:freeze-lock": "node scripts/guard-freeze-lock-ec.mjs && node scripts/guard-meta-capi-routing-freeze-v61.mjs",
         "guard:whatsapp-chats-readonly": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node --test tests/whatsapp-chats-readonly.test.mjs tests/whatsapp-chat-read-persistence-v22.test.mjs",
         "guard:logistics-clean-chat-v29": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node --test tests/logistics-clean-chat-v29.test.mjs tests/logistics-clean-chat-v29-integration.test.mjs tests/shipment-pickup-notification.test.mjs",
         "guard:deploy-integration-v29-1": "node src/services/ecEngagementFreezeRuntimeGuardV40.js && node scripts/guard-official-whatsapp-phone-v32.mjs && node --test tests/tex-ultra-how-to-use-audio-v31.test.mjs tests/official-whatsapp-phone-v32.test.mjs tests/panel-image-csp-v33.test.mjs tests/protocolo-g-tex-ultra-origin-v34.test.mjs tests/ec-product-ingredients-v35.test.mjs tests/ec-all-products-ingredients-v36.test.mjs tests/panel-zapi-auth-status-v37.test.mjs tests/media-durability-auth-v30.test.mjs tests/release-source-policy.test.mjs",

@@ -206,3 +206,30 @@ migração destrutiva a desfazer.
 O deploy permanece bloqueado por
 `scripts/assert-meta-ec-protocolo-g-attribution-activation-approved-v61.mjs`
 até autorização escrita posterior.
+
+## Correção pré-deploy do freeze lock — 2026-08-25
+
+O pré-deploy do commit V61 foi interrompido pelo check textual histórico
+`meta_pixel_lead_ec_dataset`, que ainda exigia a expressão direta
+`process.env.META_ACCESS_TOKEN_EC`. A V61 não removeu a credencial EC: o
+resolvedor passou a receber `env`, cujo valor padrão continua sendo
+`process.env`, para permitir prova isolada com credenciais sintéticas.
+
+O freeze lock foi alinhado sem reintroduzir o literal antigo. O comando
+`guard:freeze-lock` executa agora também
+`scripts/guard-meta-capi-routing-freeze-v61.mjs`, que verifica o comportamento
+real com dry-runs sem rede:
+
+- EC padrão usa o Dataset e a credencial EC server-side anteriores;
+- outro produto EC e outro funil EC continuam na rota `country_ec_default`;
+- `EC + TEX_ULTRA + PROTOCOLO_G` usa exclusivamente o Dataset
+  `2048099902484149`;
+- a credencial dedicada tem prioridade e a credencial EC server-side já
+  autorizada é o único fallback permitido quando a dedicada está vazia;
+- configuração divergente do Dataset dedicado falha fechada;
+- país fora de EC permanece sem roteamento neste serviço;
+- resultados dos dry-runs e arquivos públicos não expõem credenciais Meta.
+
+Esta correção altera somente locks, provas e documentação locais. Não houve
+deploy, restart, evento Meta, mensagem WhatsApp, pedido real ou mudança no
+projeto VILALIEMEN.
