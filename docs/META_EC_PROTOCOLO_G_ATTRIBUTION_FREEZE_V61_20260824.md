@@ -6,14 +6,16 @@ Status: implementação local concluída; revisão e autorização de deploy pen
 
 ## Último gate local Vilaliemen
 
-- Projeto Vilaliemen lido somente em modo read-only:
-  `/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL`.
-- Commit congelado: `ad0ad71bda41e52cbfb4462527b2a38c31005718`.
+- Projeto-fonte lido somente em modo read-only:
+  `VILALIEMEN_PROTOCOLO_G_OFICIAL`.
+- Commit-fonte congelado: `ad0ad71bda41e52cbfb4462527b2a38c31005718`.
 - Branch congelada: `codex/meta-ec-protocolo-g-bridge`.
-- Fixture oficial lido diretamente de
-  `/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL/tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`.
-- SHA-256 calculado e exigido no teste:
+- Fixture oficial vendorado no MAXLIEN e usado por testes/guards somente em
+  `tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`.
+- SHA-256 calculado e exigido no teste e no guard locais:
   `ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8`.
+- O caminho-fonte histórico registrado no manifesto é somente metadado de
+  proveniência; CI, testes, guards e deploy não acessam o workspace externo.
 - O fixture real percorreu o handler `POST /api/whatsapp/vsl-entry`, o snapshot
   `VslVisit`, a correlação, o pedido sintético, o Purchase dry-run e a seleção
   do Dataset. Mongo e transporte Meta foram substituídos por mocks; nenhum
@@ -233,3 +235,18 @@ real com dry-runs sem rede:
 Esta correção altera somente locks, provas e documentação locais. Não houve
 deploy, restart, evento Meta, mensagem WhatsApp, pedido real ou mudança no
 projeto VILALIEMEN.
+
+## Correção final de CI hermético — 2026-08-25
+
+O contrato oficial foi incorporado ao repositório MAXLIEN para eliminar a
+dependência de execução no workspace externo. A proveniência congelada é:
+
+- source project: `VILALIEMEN_PROTOCOLO_G_OFICIAL`;
+- source commit: `ad0ad71bda41e52cbfb4462527b2a38c31005718`;
+- fixture SHA-256:
+  `ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8`;
+- fixture local: `tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`.
+
+O teste contratual e o guard V61 leem somente essa cópia local. O guard valida
+o SHA antes de validar o contrato. Nenhum arquivo de comportamento runtime foi
+alterado nesta correção.

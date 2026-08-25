@@ -33,7 +33,7 @@ import { buildFunnelMetricsSnapshot } from '../src/services/funnelMetricsService
 
 const inboundAt = new Date('2026-08-24T18:00:00.000Z');
 const expectedMessage = 'Hola, quiero el tratamiento Tex Ultra.';
-const officialFixturePath = '/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL/tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
+const officialFixturePath = new URL('./fixtures/meta-ec-protocolo-g-maxlien-payload.json', import.meta.url);
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 const officialFixtureBuffer = fs.readFileSync(officialFixturePath);
 const officialFixture = JSON.parse(officialFixtureBuffer.toString('utf8'));

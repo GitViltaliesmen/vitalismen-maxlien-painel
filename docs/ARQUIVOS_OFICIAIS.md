@@ -751,10 +751,13 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `src/services/funnelMetricsService.js` e `public/funnel-metrics.html`.
 - Teste integrado sem efeito externo:
   `tests/meta-ec-protocolo-g-attribution-v61.test.mjs`.
-- Último gate local: fixture oficial do Vilaliemen em
-  `/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL/tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`,
-  commit read-only `ad0ad71bda41e52cbfb4462527b2a38c31005718`, SHA-256
+- Último gate local: fixture oficial vendorado em
+  `tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`, projeto-fonte
+  `VILALIEMEN_PROTOCOLO_G_OFICIAL`, commit read-only
+  `ad0ad71bda41e52cbfb4462527b2a38c31005718` e SHA-256
   `ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8`.
+- CI, testes e guards usam somente o fixture local; o projeto-fonte não é uma
+  dependência de execução.
 - Semântica congelada: `fbp` isolado não constitui atribuição nem renova TTL;
   `attributionCapturedAt` é auditoria opcional; campos publicitários expirados
   omitidos pelo Vilaliemen não são retidos ou reconstruídos; Purchase usa

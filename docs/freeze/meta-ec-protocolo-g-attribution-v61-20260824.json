@@ -39,10 +39,13 @@
   "localContractGate": {
     "status": "passed",
     "fixturePath": "/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL/tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json",
+    "fixtureExecutionPath": "tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json",
     "fixtureSha256": "ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8",
+    "sourceProject": "VILALIEMEN_PROTOCOLO_G_OFICIAL",
     "vilaliemenCommit": "ad0ad71bda41e52cbfb4462527b2a38c31005718",
     "vilaliemenBranch": "codex/meta-ec-protocolo-g-bridge",
     "exactFixtureRequired": true,
+    "externalFixtureAccessRequired": false,
     "realMetaSent": false
   },
   "realEffects": {
@@ -94,14 +97,14 @@
     ".env.example": "473fa31f7baffa54b5d8c166713b80ce7fd34227c06678a6e37955ce61fbe820",
     "FREEZE_LOCK_EC.json": "38fb689fe10e9d8d2794397ace313e0a71cbcf131691e7b87ac8b3aaa2be0603",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "1b08d2948e75c7c23954ea7e238a171883d7a4e568b3b0e65e162c93644882f4",
-    "docs/ARQUIVOS_OFICIAIS.md": "3cbf725a54db5a7f130e988c185f84e6a5daa7ebda3fc4e8fe8360e42b772d89",
-    "docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md": "f024d475be01afaf59908481f8690d38819c0089fda121d5e1dc61f270297448",
+    "docs/ARQUIVOS_OFICIAIS.md": "50a7b1c416e20ead0bebbc828caf1f3689e894a2bcee883652293f09e7f4a10f",
+    "docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md": "fa0642827a503ff5806c30f0d08647be9d38dbb192d85709c26b0b57710ac95c",
     "package.json": "0b62922058901341f85e16957df642f630f249b1a94331a3edbf7472386f33ef",
     "public/funnel-metrics.html": "9672702654ca2e5456fc8ae5265e3d923b08ae5649b478763dbbe43b4e941057",
     "scripts/assert-meta-ec-protocolo-g-attribution-activation-approved-v61.mjs": "13728e3e664be83d451f909f597845866960949329516e88b10e3a0a30e6eec1",
     "scripts/guard-baileys-libsignal-security-v59.mjs": "15d17d830d511bd73903497412ee19e1aeda1ad90c175396f9522ae1002dce44",
     "scripts/guard-meta-capi-routing-freeze-v61.mjs": "4c44542e173c5dda1b89f155a44462bcd877ac5434f0bbd29bc8f27b585a50d9",
-    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "0fe3c9bc02bfafbff6667d40ed9b2e3400608832e6f47f64959ba5994b3919f8",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "96c80602f00c0c3d894e444a071a598d09836369946cabc44aafdebed5048250",
     "scripts/guard-pickup-bonus-delivery-v60.mjs": "f0828612a34c184077448be8c22c1f237e4518a5deb5c8355f7769b099686751",
     "scripts/senior-guard.mjs": "082d3a87cd263fcdd0163ec52d836ea924cee6b4cef8c5b4291f0e725006a989",
     "src/models/MetaAttributionCorrelation.js": "fe6e719b467d332d97a77f02f365e6cda5ffef61cf3c517c953cffd030abf992",
@@ -119,7 +122,7 @@
     "tests/funnel-metrics-route.test.mjs": "81871cac0a64268f4a057d70bf57b4eab88ece2f604a033192ea85138c68db5b",
     "tests/funnel-metrics-service.test.mjs": "ba9119ffc3c9f7cacb3167f8e5abc52c0e3828f4af81bfb2046dc6e1bb1cec81",
     "tests/meta-attribution-bridge.test.mjs": "2db911109c63a8df39cd54181bdcd47c60137b168cc7f963087c9e8d816e45e5",
-    "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "89ee76cfcf867c10c404ab39640194fb53fc45302e7aec06aead0526da8ffdab",
+    "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "f57140c00fccf72a5e5a1b81a5eb6fc23eacc7a92418101b778a1820723cf177",
     "tests/whatsapp-outage-recovery-v49.test.mjs": "6745559b6ac2d88cfae1d91c7a37f5311359da23890e15e595620eb869c96981"
   }
 }

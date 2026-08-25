@@ -22,6 +22,20 @@ const dashboard = read('public/funnel-metrics.html');
 const capiRoutingFreezeGuard = read('scripts/guard-meta-capi-routing-freeze-v61.mjs');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json'));
+const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
+const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
+
+assert.equal(sha256(localFixturePath), officialFixtureSha256, 'fixture local Vilaliemen divergiu do SHA oficial');
+assert.equal(manifest.localContractGate?.fixtureExecutionPath, localFixturePath);
+assert.equal(manifest.localContractGate?.fixtureSha256, officialFixtureSha256);
+assert.equal(manifest.localContractGate?.sourceProject, 'VILALIEMEN_PROTOCOLO_G_OFICIAL');
+assert.equal(manifest.localContractGate?.vilaliemenCommit, 'ad0ad71bda41e52cbfb4462527b2a38c31005718');
+assert.equal(manifest.localContractGate?.externalFixtureAccessRequired, false);
+assert.doesNotMatch(
+    read('tests/meta-ec-protocolo-g-attribution-v61.test.mjs'),
+    /\/home\/codex\/workspaces\//,
+    'teste contratual V61 não pode depender de caminho absoluto de workspace'
+);
 
 assert.match(contract, /META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID = '2048099902484149'/);
 assert.match(contract, /validateVilaliemenProtocoloGContract/);
