@@ -116,30 +116,44 @@ const orderSchema = new mongoose.Schema({
         lockUntil: Date
     },
     tracking: {
+        country: String,
         productKey: String,
         productName: String,
+        product: String,
+        funnel: String,
         contentName: String,
         contentIds: [String],
         fbclid: String,
         fbc: String,
         fbp: String,
         ext_id: String, // External ID (for affiliates/tracking)
+        external_id: String,
         utm_source: String,
         utm_medium: String,
         utm_campaign: String,
         utm_content: String,
         utm_term: String,
+        campaign_id: String,
+        adset_id: String,
+        ad_id: String,
+        placement: String,
+        attributionCapturedAt: Date,
         sourceUrl: String,
         ip: String,
         userAgent: String,
+        clientContextSource: String,
         waSelectedNumber: String,
         metaPurchaseEventId: String,
+        metaPurchaseDatasetId: String,
+        metaPurchaseDatasetRoute: String,
         metaPurchaseSentAt: Date,
         metaPurchaseResponse: mongoose.Schema.Types.Mixed,
         attributionSource: String,
         attributionVisitorKey: String,
         attributionMatchedAt: Date,
-        attributionConfidence: String
+        attributionConfidence: String,
+        attributionCorrelationStatus: String,
+        attributionCorrelationReason: String
     },
     conversationMemory: {
         currentIntent: String,
@@ -191,6 +205,9 @@ orderSchema.index({ 'customer.phone': 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ entryAt: -1 });
 orderSchema.index({ status: 1, draftCreatedAt: 1 }); // For draft queries
+orderSchema.index({ country: 1, 'tracking.campaign_id': 1 });
+orderSchema.index({ country: 1, 'tracking.adset_id': 1 });
+orderSchema.index({ country: 1, 'tracking.ad_id': 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

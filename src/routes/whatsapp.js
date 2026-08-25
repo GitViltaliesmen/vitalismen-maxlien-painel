@@ -33,6 +33,12 @@ import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconc
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import {
+    hasProtocoloGContractSignal,
+    protocoloGStructuredTracking,
+    sanitizeProtocoloGAttribution,
+    validateVilaliemenProtocoloGContract
+} from '../services/metaProtocoloGAttributionService.js';
+import {
     ECUADOR_PRODUCTS,
     detectExplicitEcuadorProductKey,
     ecuadorPackageLabel,
@@ -1412,7 +1418,7 @@ const vslVisitorKey = ({ country = 'EC', body = {}, req }) => {
     const normalizedCountry = normalizePanelCountry(country);
     const ipHash = shortHash(requestIp(req));
     const userAgent = cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent'));
-    const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+    const visitorId = cleanText(body.external_id || body.externalId || body.visitorId || body.visitor_id);
     const sessionId = cleanText(body.sessionId || body.session_id);
     const base = visitorId || sessionId || `${ipHash}:${shortHash(userAgent)}`;
     if (body.testEntry && body.forceNewLead) {
@@ -1420,6 +1426,14 @@ const vslVisitorKey = ({ country = 'EC', body = {}, req }) => {
     }
     return `${normalizedCountry}:${shortHash(base || `${Date.now()}:${Math.random()}`)}`;
 };
+
+const compactTrackingValues = (values = {}) => Object.fromEntries(
+    Object.entries(values).filter(([, value]) => (
+        value !== undefined
+        && value !== null
+        && (typeof value !== 'string' || value.trim() !== '')
+    ))
+);
 
 const vslPageViewEventId = ({ visitorKey, body = {} }) => cleanText(
     body.pageViewEventId
@@ -1628,8 +1642,32 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const vslTestId = cleanText(body.vslTestId || body.vsl_test_id).slice(0, 120);
     const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
     const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
-    const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+    const visitorId = cleanText(body.external_id || body.externalId || body.visitorId || body.visitor_id);
     const sessionId = cleanText(body.sessionId || body.session_id);
+    const sanitizedAttribution = sanitizeProtocoloGAttribution(body);
+    const incomingTracking = hasProtocoloGContractSignal(body)
+        ? protocoloGStructuredTracking(body)
+        : compactTrackingValues({
+            utm_source: sanitizedAttribution.utm_source,
+            utm_medium: sanitizedAttribution.utm_medium,
+            utm_campaign: sanitizedAttribution.utm_campaign,
+            utm_content: sanitizedAttribution.utm_content,
+            utm_term: sanitizedAttribution.utm_term,
+            fbclid: sanitizedAttribution.fbclid,
+            fbc: sanitizedAttribution.fbc,
+            fbp: sanitizedAttribution.fbp,
+            external_id: sanitizedAttribution.external_id || sanitizedAttribution.visitorId,
+            campaign_id: sanitizedAttribution.campaign_id,
+            adset_id: sanitizedAttribution.adset_id,
+            ad_id: sanitizedAttribution.ad_id,
+            placement: sanitizedAttribution.placement,
+            funnel: cleanText(body.funnel),
+            country: effectiveCountry,
+            productKey: product.productKey,
+            productName: product.productName,
+            sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
+            userAgent: cleanText(body.client_user_agent || body.clientUserAgent)
+        });
     const sellerDigits = digitsOnly(assignedSeller);
     const state = await findOrCreateContactStateForPanel({ phone: phoneDigits, country: effectiveCountry });
     const existingDraft = state.metadata?.customerDraft || {};
@@ -1734,6 +1772,7 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
         vslPath: cleanText(body.path),
         vslTestId: vslTestId || state.metadata?.vslTestId || '',
         vslVariant: vslVariant || state.metadata?.vslVariant || '',
+        vslFunnel: cleanText(body.funnel) || state.metadata?.vslFunnel || '',
         vslEntryMessage: vslEntryMessage || entryMessage || state.metadata?.vslEntryMessage || '',
         vslSourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
         vslReferrer: cleanText(body.referrer),
@@ -1792,16 +1831,8 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
             updatedAt: now.toISOString()
         },
         tracking: {
-            ...(state.metadata?.tracking || {}),
-            utm_source: cleanText(body.utm_source),
-            utm_medium: cleanText(body.utm_medium),
-            utm_campaign: cleanText(body.utm_campaign),
-            utm_content: cleanText(body.utm_content),
-            utm_term: cleanText(body.utm_term),
-            fbclid: cleanText(body.fbclid),
-            fbc: cleanText(body.fbc),
-            fbp: cleanText(body.fbp),
-            external_id: cleanText(body.external_id || body.externalId),
+            ...(hasProtocoloGContractSignal(body) ? {} : (state.metadata?.tracking || {})),
+            ...incomingTracking,
             vsl_test_id: vslTestId,
             vsl_variant: vslVariant
         }
@@ -2448,6 +2479,41 @@ const inferProductInfoForDraft = async ({ draft = {}, state = null } = {}) => {
         : directProduct;
 };
 
+const attributionTrackingFromContactState = (state = null) => {
+    const metadata = state?.metadata || {};
+    const tracking = metadata.tracking || {};
+    const externalId = String(tracking.external_id || tracking.ext_id || metadata.vslVisitorId || '').trim();
+    return compactTrackingValues({
+        country: tracking.country || state?.countryCode || '',
+        product: tracking.product || '',
+        productKey: tracking.productKey || metadata.vslProductKey || '',
+        productName: tracking.productName || metadata.vslProductName || '',
+        funnel: tracking.funnel || metadata.vslFunnel || '',
+        fbclid: tracking.fbclid,
+        fbc: tracking.fbc,
+        fbp: tracking.fbp,
+        ext_id: externalId,
+        external_id: externalId,
+        utm_source: tracking.utm_source,
+        utm_medium: tracking.utm_medium,
+        utm_campaign: tracking.utm_campaign,
+        utm_content: tracking.utm_content,
+        utm_term: tracking.utm_term,
+        campaign_id: tracking.campaign_id,
+        adset_id: tracking.adset_id,
+        ad_id: tracking.ad_id,
+        placement: tracking.placement,
+        sourceUrl: tracking.sourceUrl || metadata.vslSourceUrl || '',
+        userAgent: tracking.userAgent,
+        clientContextSource: tracking.clientContextSource,
+        attributionSource: metadata.metaAttributionBridge?.source,
+        attributionMatchedAt: metadata.metaAttributionBridge?.claimedAt,
+        attributionConfidence: metadata.metaAttributionBridge?.confidence,
+        attributionCorrelationStatus: metadata.metaAttributionBridge ? 'CLAIMED' : '',
+        attributionCorrelationReason: metadata.metaAttributionBridge?.source
+    });
+};
+
 const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null, state = null } = {}) => {
     if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
         return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
@@ -2490,6 +2556,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         sourceOrderId,
         sourceIsAdminOrder
     });
+    const capturedAttribution = attributionTrackingFromContactState(state);
+    const existingTracking = order?.tracking?.toObject?.() || order?.tracking || {};
     const baseData = {
         country: 'EC',
         customer: {
@@ -2523,9 +2591,8 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         previousOrderId: orderLineage.previousOrderId,
         entryReason: orderLineage.entryReason,
         tracking: {
-            ...(order?.tracking || {}),
-            ip: order?.tracking?.ip || req?.ip || '',
-            userAgent: order?.tracking?.userAgent || req?.get?.('user-agent') || '',
+            ...capturedAttribution,
+            ...compactTrackingValues(existingTracking),
             productSelectionSource: 'manual_customer_draft',
             ...ecuadorProductMetadata(productInfo)
         }
@@ -3133,12 +3200,29 @@ router.get('/vsl-seller-rotation', (req, res) => {
 router.post('/vsl-entry', async (req, res) => {
     try {
         const body = req.body || {};
+        const protocoloGSignal = hasProtocoloGContractSignal(body);
+        const protocoloGContract = protocoloGSignal
+            ? validateVilaliemenProtocoloGContract(body)
+            : null;
+        if (protocoloGContract && !protocoloGContract.ok) {
+            return res.status(400).json({
+                ok: false,
+                error: 'invalid_protocolo_g_contract',
+                reasons: protocoloGContract.errors
+            });
+        }
         const country = normalizePanelCountry(body.country || 'EC');
         const product = publicEcVslProductFromBody(body);
         const now = new Date();
         const visitorKey = vslVisitorKey({ country, body, req });
         const ipHash = shortHash(requestIp(req));
-        const visitorId = cleanText(body.visitorId || body.visitor_id || body.external_id || body.externalId);
+        const visitorId = cleanText(
+            protocoloGContract?.externalId
+            || body.external_id
+            || body.externalId
+            || body.visitorId
+            || body.visitor_id
+        );
         const vslTestId = cleanText(body.vslTestId || body.vsl_test_id).slice(0, 120);
         const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
         const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
@@ -3152,6 +3236,33 @@ router.post('/vsl-entry', async (req, res) => {
             : (body.clicked === true || ['whatsapp_click', 'whatsapp_open', 'lead_click'].includes(intent) || body.clicked !== false);
         const formVisible = body.formVisible === true || ['form_visible', 'cta_visible', 'checkout_visible'].includes(intent);
         const existing = await VslVisit.findOne({ visitorKey });
+        const sanitizedAttribution = sanitizeProtocoloGAttribution(body);
+        const incomingTracking = protocoloGContract
+            ? protocoloGStructuredTracking(body, protocoloGContract)
+            : compactTrackingValues({
+                utm_source: sanitizedAttribution.utm_source,
+                utm_medium: sanitizedAttribution.utm_medium,
+                utm_campaign: sanitizedAttribution.utm_campaign,
+                utm_content: sanitizedAttribution.utm_content,
+                utm_term: sanitizedAttribution.utm_term,
+                fbclid: sanitizedAttribution.fbclid,
+                fbc: sanitizedAttribution.fbc,
+                fbp: sanitizedAttribution.fbp,
+                external_id: sanitizedAttribution.external_id || sanitizedAttribution.visitorId,
+                campaign_id: sanitizedAttribution.campaign_id,
+                adset_id: sanitizedAttribution.adset_id,
+                ad_id: sanitizedAttribution.ad_id,
+                placement: sanitizedAttribution.placement,
+                country,
+                productKey: product.productKey,
+                productName: product.productName,
+                funnel: cleanText(body.funnel),
+                sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
+                userAgent: cleanText(body.client_user_agent || body.clientUserAgent)
+            });
+        const trackingForPersistence = protocoloGContract
+            ? incomingTracking
+            : { ...(existing?.tracking || {}), ...incomingTracking };
         let assignment = null;
         let assignedSeller = digitsOnly(existing?.assignedSeller || '');
 
@@ -3163,13 +3274,16 @@ router.post('/vsl-entry', async (req, res) => {
         const update = {
             $set: {
                 visitorId,
+                externalId: visitorId || existing?.externalId || '',
                 sessionId: cleanText(body.sessionId || body.session_id),
                 country,
                 page: cleanText(body.page),
                 path: cleanText(body.path),
                 sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
                 referrer: cleanText(body.referrer),
-                userAgent: cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
+                userAgent: protocoloGContract
+                    ? cleanText(body.client_user_agent || body.clientUserAgent)
+                    : cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent')),
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
@@ -3177,19 +3291,27 @@ router.post('/vsl-entry', async (req, res) => {
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,
+                funnel: cleanText(body.funnel) || existing?.funnel || '',
+                campaignId: protocoloGContract
+                    ? incomingTracking.campaign_id || ''
+                    : incomingTracking.campaign_id || existing?.campaignId || '',
+                adsetId: protocoloGContract
+                    ? incomingTracking.adset_id || ''
+                    : incomingTracking.adset_id || existing?.adsetId || '',
+                adId: protocoloGContract
+                    ? incomingTracking.ad_id || ''
+                    : incomingTracking.ad_id || existing?.adId || '',
+                placement: protocoloGContract
+                    ? incomingTracking.placement || ''
+                    : incomingTracking.placement || existing?.placement || '',
+                attributionCapturedAt: protocoloGContract
+                    ? incomingTracking.attributionCapturedAt || null
+                    : incomingTracking.attributionCapturedAt || existing?.attributionCapturedAt || null,
                 vslTestId: vslTestId || existing?.vslTestId || '',
                 vslVariant: vslVariant || existing?.vslVariant || '',
                 vslEntryMessage: vslEntryMessage || existing?.vslEntryMessage || '',
                 tracking: {
-                    utm_source: cleanText(body.utm_source),
-                    utm_medium: cleanText(body.utm_medium),
-                    utm_campaign: cleanText(body.utm_campaign),
-                    utm_content: cleanText(body.utm_content),
-                    utm_term: cleanText(body.utm_term),
-                    fbclid: cleanText(body.fbclid),
-                    fbc: cleanText(body.fbc),
-                    fbp: cleanText(body.fbp),
-                    external_id: cleanText(body.external_id || body.externalId),
+                    ...trackingForPersistence,
                     vsl_test_id: vslTestId,
                     vsl_variant: vslVariant
                 },

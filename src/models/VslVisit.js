@@ -12,6 +12,11 @@ const vslVisitSchema = new mongoose.Schema({
         default: '',
         index: true
     },
+    externalId: {
+        type: String,
+        default: '',
+        index: true
+    },
     sessionId: {
         type: String,
         default: ''
@@ -71,6 +76,31 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    funnel: {
+        type: String,
+        default: '',
+        index: true
+    },
+    campaignId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    adsetId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    adId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    placement: {
+        type: String,
+        default: ''
+    },
+    attributionCapturedAt: Date,
     vslTestId: {
         type: String,
         default: '',
@@ -193,6 +223,7 @@ vslVisitSchema.index({ country: 1, firstSeenAt: -1 });
 vslVisitSchema.index({ country: 1, lastSeenAt: -1 });
 vslVisitSchema.index({ country: 1, assignedSeller: 1, lastClickAt: -1 });
 vslVisitSchema.index({ country: 1, lastClickAt: -1, attributionClaimedAt: -1 });
+vslVisitSchema.index({ country: 1, productKey: 1, funnel: 1, lastClickAt: -1 });
 
 const VslVisit = mongoose.model('VslVisit', vslVisitSchema);
 

@@ -87,13 +87,26 @@ const addToDay = (rowsByDay, value, field, amount = 1) => {
     if (row) row[field] += finiteNumber(amount);
 };
 
-const publicOrder = (order = {}, pixelId = '') => {
+const publicOrder = (order = {}, pixelId = '', datasetIdForOrder = () => '') => {
     const sentAt = asDate(order.tracking?.metaPurchaseSentAt);
     const eventsReceived = metaEventsReceived(order.tracking?.metaPurchaseResponse);
     const eligible = isPurchaseEligible(order);
+    const datasetId = String(
+        order.tracking?.metaPurchaseDatasetId
+        || datasetIdForOrder(order)
+        || pixelId
+        || ''
+    );
+    const externalId = String(order.tracking?.external_id || order.tracking?.ext_id || '');
     return {
         orderId: String(order.orderId || ''),
         customer: { name: String(order.customer?.name || '') },
+        country: String(order.country || order.tracking?.country || ''),
+        product: {
+            key: String(order.tracking?.productKey || ''),
+            name: String(order.tracking?.productName || order.tracking?.product || '')
+        },
+        funnel: String(order.tracking?.funnel || ''),
         status: String(order.status || ''),
         total: finiteNumber(order.total),
         createdAt: orderCreatedAt(order),
@@ -101,11 +114,30 @@ const publicOrder = (order = {}, pixelId = '') => {
             metaPurchaseSentAt: sentAt,
             fbclid: String(order.tracking?.fbclid || ''),
             fbp: String(order.tracking?.fbp || ''),
-            fbc: String(order.tracking?.fbc || '')
+            fbc: String(order.tracking?.fbc || ''),
+            external_id: externalId,
+            campaign_id: String(order.tracking?.campaign_id || ''),
+            adset_id: String(order.tracking?.adset_id || ''),
+            ad_id: String(order.tracking?.ad_id || ''),
+            placement: String(order.tracking?.placement || ''),
+            utm_source: String(order.tracking?.utm_source || ''),
+            utm_medium: String(order.tracking?.utm_medium || ''),
+            utm_campaign: String(order.tracking?.utm_campaign || ''),
+            utm_content: String(order.tracking?.utm_content || ''),
+            utm_term: String(order.tracking?.utm_term || ''),
+            hasFbc: Boolean(order.tracking?.fbc),
+            hasFbp: Boolean(order.tracking?.fbp),
+            hasExternalId: Boolean(externalId),
+            correlationStatus: String(
+                order.tracking?.attributionCorrelationStatus
+                || (order.tracking?.attributionSource ? 'CLAIMED' : '')
+            ),
+            correlationReason: String(order.tracking?.attributionCorrelationReason || '')
         },
         metaDelivery: {
             destination: 'Meta CAPI',
-            pixelId: String(pixelId || ''),
+            pixelId: datasetId,
+            datasetRoute: String(order.tracking?.metaPurchaseDatasetRoute || ''),
             eventsReceived,
             facebookStatus: eventsReceived > 0
                 ? 'Recebido pela Meta'
@@ -120,9 +152,11 @@ const publicOrder = (order = {}, pixelId = '') => {
 export const buildFunnelMetricsSnapshot = ({
     visits = [],
     orders = [],
+    correlations = [],
     days = 7,
     now = new Date(),
-    pixelId = ''
+    pixelId = '',
+    datasetIdForOrder = () => ''
 } = {}) => {
     const range = ecuadorMetricsRange({ days, now });
     const rows = [];
@@ -188,7 +222,18 @@ export const buildFunnelMetricsSnapshot = ({
         purchasesSent: 0,
         purchaseValueSent: 0,
         purchaseCoverage: 0,
-        missingPurchaseEligible: 0
+        missingPurchaseEligible: 0,
+        correlationClaimed: 0,
+        correlationAmbiguous: 0,
+        correlationUnmatched: 0
+    });
+
+    correlations.forEach((correlation) => {
+        if (!isWithin(correlation.evaluatedAt, range.startAt, range.endAt)) return;
+        const status = String(correlation.status || '').trim().toUpperCase();
+        if (status === 'CLAIMED') totals.correlationClaimed += 1;
+        if (status === 'AMBIGUOUS') totals.correlationAmbiguous += 1;
+        if (status === 'UNMATCHED') totals.correlationUnmatched += 1;
     });
 
     const eligibleOrders = orders.filter((order) => (
@@ -214,11 +259,16 @@ export const buildFunnelMetricsSnapshot = ({
         .filter((order) => isWithin(order.tracking?.metaPurchaseSentAt, range.startAt, range.endAt))
         .sort(byPurchaseNewest)
         .slice(0, 50)
-        .map((order) => publicOrder(order, pixelId));
+        .map((order) => publicOrder(order, pixelId, datasetIdForOrder));
     const recentMissingPurchases = missingOrders
         .sort(byCreatedNewest)
         .slice(0, 50)
-        .map((order) => publicOrder(order, pixelId));
+        .map((order) => publicOrder(order, pixelId, datasetIdForOrder));
+    const recentAttributionOrders = orders
+        .filter((order) => isWithin(orderCreatedAt(order), range.startAt, range.endAt))
+        .sort(byCreatedNewest)
+        .slice(0, 50)
+        .map((order) => publicOrder(order, pixelId, datasetIdForOrder));
 
     return {
         generatedAt: (asDate(now) || new Date()).toISOString(),
@@ -228,7 +278,8 @@ export const buildFunnelMetricsSnapshot = ({
         rows,
         totals,
         recentPurchases,
-        recentMissingPurchases
+        recentMissingPurchases,
+        recentAttributionOrders
     };
 };
 
@@ -254,6 +305,10 @@ export const funnelMetricsMongoWindow = ({ days = 7, now = new Date() } = {}) =>
                 { createdAt: between },
                 { 'tracking.metaPurchaseSentAt': between }
             ]
+        },
+        correlationQuery: {
+            country: 'EC',
+            evaluatedAt: between
         }
     };
 };

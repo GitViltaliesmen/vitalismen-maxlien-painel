@@ -336,6 +336,34 @@
 
             <section class="panel">
                 <div class="panel-head">
+                    <h2>Atribuição EC por pedido</h2>
+                    <p class="meta">Protocolo G e demais pedidos EC; sem dados pessoais de contato</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pedido</th>
+                                <th>País</th>
+                                <th>Produto</th>
+                                <th>Funil/VSL</th>
+                                <th>Campaign ID</th>
+                                <th>Ad Set ID</th>
+                                <th>Ad ID</th>
+                                <th>Placement</th>
+                                <th>UTMs</th>
+                                <th>Sinais Meta</th>
+                                <th>Correlação</th>
+                                <th>Dataset / Purchase</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attributionRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
                     <h2>Dia a dia</h2>
                     <p class="meta">Horario do Equador</p>
                 </div>
@@ -482,6 +510,19 @@
             return delivery.facebookStatus || 'Venda ainda nao apareceu no Facebook';
         };
 
+        const yesNo = (value) => value ? 'sim' : 'não';
+
+        const utmsSummary = (tracking = {}) => ([
+            ['source', tracking.utm_source],
+            ['medium', tracking.utm_medium],
+            ['campaign', tracking.utm_campaign],
+            ['content', tracking.utm_content],
+            ['term', tracking.utm_term]
+        ]
+            .filter(([, value]) => value)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(' | ') || '-');
+
         const render = () => {
             const data = state.data;
             if (!data) return;
@@ -495,8 +536,32 @@
                 metricCard('Leads Meta', number.format(totals.leadsSent || 0), 'Eventos Lead enviados'),
                 metricCard('Purchase enviado', number.format(totals.purchasesSent || 0), 'Eventos enviados no periodo', (totals.purchasesSent || 0) ? 'good' : 'warn'),
                 metricCard('Valor marcado', currency.format(totals.purchaseValueSent || 0), `${totals.purchaseCoverage || 0}% de cobertura`, (totals.purchaseValueSent || 0) ? 'good' : 'warn'),
-                metricCard('Sem Purchase', number.format(totals.missingPurchaseEligible || 0), 'Vendas recentes elegiveis', missingTone)
+                metricCard('Sem Purchase', number.format(totals.missingPurchaseEligible || 0), 'Vendas recentes elegiveis', missingTone),
+                metricCard('Correlação CLAIMED', number.format(totals.correlationClaimed || 0), 'Visita única associada', (totals.correlationClaimed || 0) ? 'good' : ''),
+                metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
+                metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
             ].join('');
+
+            el('attributionRows').innerHTML = (data.recentAttributionOrders || []).map((order) => {
+                const tracking = order.tracking || {};
+                const purchase = order.metaDelivery || {};
+                return `
+                    <tr>
+                        <td>${escapeHtml(order.orderId || '-')}</td>
+                        <td>${escapeHtml(order.country || '-')}</td>
+                        <td>${escapeHtml(order.product?.name || order.product?.key || '-')}</td>
+                        <td>${escapeHtml(order.funnel || '-')}</td>
+                        <td>${escapeHtml(tracking.campaign_id || '-')}</td>
+                        <td>${escapeHtml(tracking.adset_id || '-')}</td>
+                        <td>${escapeHtml(tracking.ad_id || '-')}</td>
+                        <td>${escapeHtml(tracking.placement || '-')}</td>
+                        <td>${escapeHtml(utmsSummary(tracking))}</td>
+                        <td>fbc: ${yesNo(tracking.hasFbc)}<br>fbp: ${yesNo(tracking.hasFbp)}<br>external_id: ${yesNo(tracking.hasExternalId)}</td>
+                        <td>${escapeHtml(tracking.correlationStatus || '-')}</td>
+                        <td>${escapeHtml(purchase.pixelId || '-')}<br><span class="meta">${tracking.metaPurchaseSentAt ? 'Purchase enviado' : 'Purchase não enviado'}</span></td>
+                    </tr>
+                `;
+            }).join('') || emptyRow(12, 'Nenhum pedido EC no período.');
 
             el('dailyRows').innerHTML = (data.rows || []).map((row) => `
                 <tr>

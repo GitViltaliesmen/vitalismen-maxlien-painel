@@ -86,6 +86,7 @@ test('handler consulta somente EC, respeita days e devolve no-store', async () =
     const handler = createFunnelMetricsHandler({
         VisitModel: fakeModel([], queries),
         OrderModel: fakeModel([], queries),
+        CorrelationModel: fakeModel([], queries),
         clock: () => new Date('2026-08-15T15:00:00.000Z'),
         pixelId: () => 'pixel-test'
     });
@@ -95,6 +96,6 @@ test('handler consulta somente EC, respeita days e devolve no-store', async () =
     assert.equal(response.headers['Cache-Control'], 'no-store');
     assert.equal(response.body.days, 3);
     assert.equal(response.body.rows.length, 3);
-    assert.equal(queries.length, 2);
+    assert.equal(queries.length, 3);
     assert.equal(queries.every((query) => query.country === 'EC'), true);
 });

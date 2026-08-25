@@ -1122,3 +1122,41 @@ status logístico `ENTREGADO` e confirmação administrativa autenticada. Não h
 scheduler paralelo nem replay histórico em massa. Produto, preço, pedido,
 Dropi, Meta/CAPI, pixel, número, transporte, funil e cadência permanecem
 inalterados.
+
+## Microcamada V61 de atribuição Meta EC do Protocolo G até o Purchase
+
+O freeze candidato
+`docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md` sucede a V60
+somente no código local, sem autorização de deploy. O contrato de entrada
+`POST /api/whatsapp/vsl-entry` valida a identidade conjunta
+`EC + TEX_ULTRA + PROTOCOLO_G`, conserva `external_id` como chave canônica e
+persiste os identificadores de campanha opcionais sem fabricar `fbc` ou `fbp`.
+O campo opcional `attribution_captured_at` é persistido como
+`attributionCapturedAt` somente para auditoria e nunca substitui os horários
+server-side usados pela correlação.
+
+A correlação exige mensagem exata, janela de 120 segundos e exatamente um
+candidato. `UNMATCHED` e `AMBIGUOUS` ficam apenas na observabilidade e nunca
+associam visita ao telefone. Uma visita `CLAIMED` pode enriquecer o pedido EC
+pelos últimos nove dígitos dentro de 30 dias, sem sobrescrever atribuição válida
+existente.
+
+`fbp` isolado é somente matching e não é prova de atribuição publicitária: não
+inicia correlação, não renova TTL e não cria `fbc`, campanha, anúncio ou
+`attributionCapturedAt`. O snapshot Protocolo G é autoritativo; campos
+publicitários omitidos após expiração no Vilaliemen não são mantidos nem
+reconstruídos pelo Maxlien.
+
+Somente `EC + tex_ultra_ec/TEX_ULTRA + PROTOCOLO_G` seleciona o Dataset
+`2048099902484149` no Purchase server-side. Outros produtos/funis EC mantêm a
+rota anterior. O Purchase usa a origem canônica
+`https://vilaliemen.shop/protocolo-g`, sem query string. O painel autenticado mostra os campos de atribuição e os totais
+de correlação sem expor telefone. Colômbia, VTurb, Vilaliemen, Teledone, Z-API,
+WhatsApp, `/n/`, checkout, Dropi, webhooks e automações permanecem inalterados.
+
+O comando de deploy é bloqueado por uma asserção dedicada até nova aprovação
+escrita. O último gate usa diretamente o fixture Vilaliemen congelado no commit
+`ad0ad71bda41e52cbfb4462527b2a38c31005718`, exige SHA-256
+`ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8` e
+atravessa o handler real com memória/mocks. Não envia evento Meta, mensagem
+WhatsApp nem pedido real.

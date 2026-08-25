@@ -111,6 +111,7 @@ test('consulta Mongo cobre cada timestamp usado pelo contrato', () => {
     const window = funnelMetricsMongoWindow({ days: 7, now });
     assert.equal(window.visitQuery.country, 'EC');
     assert.equal(window.orderQuery.country, 'EC');
+    assert.equal(window.correlationQuery.country, 'EC');
     assert.deepEqual(
         window.visitQuery.$or.map((item) => Object.keys(item)[0]),
         ['firstSeenAt', 'metaPageViewSentAt', 'lastClickAt', 'metaLeadSentAt']
