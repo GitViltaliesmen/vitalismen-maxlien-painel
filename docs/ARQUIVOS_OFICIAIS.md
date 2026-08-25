@@ -734,3 +734,38 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   número oficial e scheduler único.
 - Rollback funcional: release V59 acima, preservando comprovantes, mensagens,
   pedidos, Shipments e deduplicação persistida.
+
+### Microcamada V61 — atribuição Meta EC Protocolo G — 2026-08-24
+
+- Base oficial inspecionada em modo somente leitura: release
+  `/opt/vitalismen-automacao/releases/20260824T161720Z_production-20260824-bdffb62`,
+  com os arquivos runtime locais e remotos idênticos antes da alteração.
+- Contrato e roteamento: `src/services/metaProtocoloGAttributionService.js`.
+- Recepção e persistência: `src/routes/whatsapp.js`,
+  `src/models/VslVisit.js` e `src/models/MetaAttributionCorrelation.js`.
+- Correlação e vínculo com pedido: `src/services/metaAttributionBridgeService.js`
+  e `src/services/metaAttributionService.js`.
+- Purchase e Dataset específico: `src/services/metaConversionsService.js` e
+  `src/models/Order.js`.
+- Observabilidade: `src/routes/funnelMetrics.js`,
+  `src/services/funnelMetricsService.js` e `public/funnel-metrics.html`.
+- Teste integrado sem efeito externo:
+  `tests/meta-ec-protocolo-g-attribution-v61.test.mjs`.
+- Último gate local: fixture oficial do Vilaliemen em
+  `/home/codex/workspaces/VILALIEMEN_PROTOCOLO_G_OFICIAL/tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json`,
+  commit read-only `ad0ad71bda41e52cbfb4462527b2a38c31005718`, SHA-256
+  `ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8`.
+- Semântica congelada: `fbp` isolado não constitui atribuição nem renova TTL;
+  `attributionCapturedAt` é auditoria opcional; campos publicitários expirados
+  omitidos pelo Vilaliemen não são retidos ou reconstruídos; Purchase usa
+  `https://vilaliemen.shop/protocolo-g` sem query string.
+- Freeze/guard candidato:
+  `docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md`,
+  `docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json` e
+  `scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs`.
+- Estado: somente implementação e testes locais; deploy, PM2, `.env` de
+  produção, Meta, WhatsApp e banco oficial não foram alterados.
+- Preservado: Colômbia, Vilaliemen/VTurb, Teledone, Z-API, número e mensagens,
+  `/n/`, checkout, pagamentos, Dropi, webhooks e automações.
+- Rollback futuro: commit base
+  `318bc5dce947722eb257776a233c110f52422421` ou release V60 ativa acima.

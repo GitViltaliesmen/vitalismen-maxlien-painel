@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/pickupBonusDeliveryFreezeRuntimeGuardV60.js');
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const packageSource = read('package.json');
@@ -43,7 +43,7 @@ assert.equal(
 );
 assert.doesNotMatch(packageLockSource, /1c30d7d7e76a3b0aa120b04dc6a26f5a12dccf67/);
 assert.doesNotMatch(packageLockSource, /protobufjs-6\.8\.8\.tgz|"protobufjs":\s*"6\.8\.8"/);
-assert.match(entryGuard, /(?:baileysLibsignalSecurityFreezeRuntimeGuardV59|pickupBonusDeliveryFreezeRuntimeGuardV60)\.js/);
+assert.match(entryGuard, /(?:baileysLibsignalSecurityFreezeRuntimeGuardV59|pickupBonusDeliveryFreezeRuntimeGuardV60|metaAttributionFreezeRuntimeGuardV61)\.js/);
 assert.match(packageJson.scripts.test, /guard:baileys-security-v59/);
 assert.match(packageJson.scripts['senior:check'], /baileys-libsignal-security-v59\.test\.mjs/);
 assert.match(packageJson.scripts['guard:baileys-security-v59'], /npm audit --omit=dev --audit-level=moderate/);

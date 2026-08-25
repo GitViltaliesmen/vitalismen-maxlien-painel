@@ -2,6 +2,11 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
+import {
+    isEcuadorTexUltraProtocoloG,
+    META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+    PROTOCOLO_G_EVENT_SOURCE_URL
+} from './metaProtocoloGAttributionService.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -32,15 +37,39 @@ const splitName = (fullName) => {
     return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 };
 
-const getConfigForCountry = (country) => {
+const getConfigForCountry = (country, env = process.env) => {
     if (country === 'EC') {
         return {
-            pixelId: process.env.META_PIXEL_ID_EC,
-            accessToken: process.env.META_ACCESS_TOKEN_EC
+            pixelId: env.META_PIXEL_ID_EC,
+            accessToken: env.META_ACCESS_TOKEN_EC,
+            route: 'country_ec_default'
         };
     }
-    return { pixelId: null, accessToken: null };
+    return { pixelId: null, accessToken: null, route: 'unsupported_country' };
 };
+
+export const getMetaConfigForOrder = (order = {}, env = process.env) => {
+    if (isEcuadorTexUltraProtocoloG(order)) {
+        const configuredDatasetId = String(env.META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G || '').trim();
+        if (configuredDatasetId && configuredDatasetId !== META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID) {
+            return {
+                pixelId: null,
+                accessToken: null,
+                route: 'ec_tex_ultra_protocolo_g_invalid_dataset_config'
+            };
+        }
+        return {
+            pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
+            route: 'ec_tex_ultra_protocolo_g'
+        };
+    }
+    return getConfigForCountry(String(order?.country || '').trim().toUpperCase(), env);
+};
+
+export const getMetaDatasetIdForOrder = (order = {}, env = process.env) => (
+    getMetaConfigForOrder(order, env).pixelId || ''
+);
 
 const getActionSourceForOrder = (order) => (
     (order?.tracking?.sourceUrl || order?.tracking?.fbc || order?.tracking?.fbp || order?.tracking?.fbclid)
@@ -172,7 +201,11 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
         ]
     };
 
-    const testEventCode = String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim();
+    const protocoloGEvent = isEcuadorTexUltraProtocoloG(event);
+    const implicitTestEventCode = process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '';
+    const testEventCode = protocoloGEvent
+        ? ''
+        : String(options.testEventCode || implicitTestEventCode).trim();
     if (testEventCode) payload.test_event_code = testEventCode;
 
     return { ok: true, payload, eventId, eventName, eventTime };
@@ -180,7 +213,9 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
 
 export const sendBrowserServerEvent = async (event = {}, req = null, options = {}) => {
     const country = String(event.country || 'EC').trim().toUpperCase();
-    const { pixelId, accessToken } = getConfigForCountry(country);
+    const { pixelId, accessToken, route } = isEcuadorTexUltraProtocoloG(event)
+        ? getMetaConfigForOrder({ country, tracking: event })
+        : getConfigForCountry(country);
     if (!pixelId || !accessToken) {
         return { ok: false, error: 'META pixel config missing for country' };
     }
@@ -190,7 +225,7 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
 
     const { payload, eventId, eventName, eventTime } = built;
     if (options.dryRun) {
-        return { ok: true, dryRun: true, payload, eventId, eventName, eventTime };
+        return { ok: true, dryRun: true, payload, eventId, eventName, eventTime, datasetId: pixelId, datasetRoute: route };
     }
 
     try {
@@ -201,12 +236,14 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
             timeout: 15000
         });
 
-        return { ok: true, response: response.data, eventId, eventName, eventTime };
+        return { ok: true, response: response.data, eventId, eventName, eventTime, datasetId: pixelId, datasetRoute: route };
     } catch (e) {
         return {
             ok: false,
             eventId,
             eventName,
+            datasetId: pixelId,
+            datasetRoute: route,
             error: 'META CAPI request failed',
             status: e?.response?.status,
             data: e?.response?.data
@@ -255,6 +292,10 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
 
+    const protocoloGOrder = isEcuadorTexUltraProtocoloG(order);
+    const clientContextSource = String(order?.tracking?.clientContextSource || '').trim();
+    const trustedProtocoloGUserAgent = clientContextSource === 'vilaliemen_protocolo_g_server_bridge';
+    const trustedProtocoloGClientIp = clientContextSource === 'client_browser_direct';
     const userData = {
         fn: firstName ? [sha256hex(firstName)] : undefined,
         ln: lastName ? [sha256hex(lastName)] : undefined,
@@ -262,11 +303,17 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         ct: order?.customer?.city ? [sha256hex(order.customer.city)] : undefined,
         st: order?.customer?.province ? [sha256hex(order.customer.province)] : undefined,
         country: country ? [sha256hex(country)] : undefined,
-        client_ip_address: order?.tracking?.ip || undefined,
-        client_user_agent: order?.tracking?.userAgent || undefined,
+        client_ip_address: protocoloGOrder
+            ? (trustedProtocoloGClientIp ? order?.tracking?.ip || undefined : undefined)
+            : order?.tracking?.ip || undefined,
+        client_user_agent: protocoloGOrder
+            ? (trustedProtocoloGUserAgent || trustedProtocoloGClientIp ? order?.tracking?.userAgent || undefined : undefined)
+            : order?.tracking?.userAgent || undefined,
         fbc: order?.tracking?.fbc || undefined,
         fbp: order?.tracking?.fbp || undefined,
-        external_id: order?.tracking?.ext_id ? [sha256hex(order.tracking.ext_id)] : undefined
+        external_id: (order?.tracking?.external_id || order?.tracking?.ext_id)
+            ? [sha256hex(order.tracking.external_id || order.tracking.ext_id)]
+            : undefined
     };
 
     cleanObject(userData);
@@ -283,7 +330,9 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
                 event_id: eventId,
                 action_source: actionSource,
                 messaging_channel: messagingChannel,
-                event_source_url: actionSource === 'website' ? order?.tracking?.sourceUrl || undefined : undefined,
+                event_source_url: actionSource === 'website'
+                    ? (protocoloGOrder ? PROTOCOLO_G_EVENT_SOURCE_URL : order?.tracking?.sourceUrl || undefined)
+                    : undefined,
                 user_data: userData,
                 custom_data: {
                     currency,
@@ -304,29 +353,49 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
         ]
     };
 
-    const testEventCode = String(options.testEventCode || process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '').trim();
+    const implicitTestEventCode = process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '';
+    const testEventCode = protocoloGOrder
+        ? ''
+        : String(options.testEventCode || implicitTestEventCode).trim();
     if (testEventCode) payload.test_event_code = testEventCode;
 
     return { ok: true, payload, eventId, eventTime };
 };
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
-    const country = order?.country;
-    const { pixelId, accessToken } = getConfigForCountry(country);
-    if (!pixelId || !accessToken) {
-        return { ok: false, error: 'META pixel config missing for country' };
-    }
-
-    const attribution = await enrichOrderWithMetaAttribution(order).catch((error) => ({
+    const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
+    const attribution = await attributionEnricher(order, options.attributionOptions || {}).catch((error) => ({
         ok: false,
         error: error.message || 'attribution_enrichment_failed'
     }));
+    const { pixelId, accessToken, route } = getMetaConfigForOrder(order, options.env || process.env);
+    order.tracking = order.tracking || {};
+    if (pixelId) order.tracking.metaPurchaseDatasetId = pixelId;
+    if (route) order.tracking.metaPurchaseDatasetRoute = route;
+    if (!pixelId || !accessToken) {
+        return {
+            ok: false,
+            error: 'META pixel config missing for country',
+            attribution,
+            datasetId: pixelId || '',
+            datasetRoute: route
+        };
+    }
     const built = buildPurchaseEventPayloadForOrder(order, options);
     if (!built.ok) return built;
     const { payload, eventId, eventTime } = built;
 
     if (options.dryRun) {
-        return { ok: true, dryRun: true, payload, eventId, eventTime, attribution };
+        return {
+            ok: true,
+            dryRun: true,
+            payload,
+            eventId,
+            eventTime,
+            attribution,
+            datasetId: pixelId,
+            datasetRoute: route
+        };
     }
 
     try {
@@ -337,13 +406,23 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
             timeout: 15000
         });
 
-        return { ok: true, response: response.data, eventId, eventTime, attribution };
+        return {
+            ok: true,
+            response: response.data,
+            eventId,
+            eventTime,
+            attribution,
+            datasetId: pixelId,
+            datasetRoute: route
+        };
     } catch (e) {
         const status = e?.response?.status;
         const data = e?.response?.data;
         return {
             ok: false,
             eventId,
+            datasetId: pixelId,
+            datasetRoute: route,
             error: 'META CAPI request failed',
             status,
             data

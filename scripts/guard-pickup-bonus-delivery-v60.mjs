@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/pickupBonusDeliveryFreezeRuntimeGuardV60.js');
+await import('../src/services/ecEngagementFreezeRuntimeGuardV40.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const manifest = JSON.parse(read('docs/freeze/pickup-bonus-delivery-v60-20260824.json'));
@@ -21,7 +21,7 @@ assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.productOrPriceChanged, false);
 assert.equal(manifest.policy.commercialFunnelChanged, false);
-assert.match(entryGuard, /pickupBonusDeliveryFreezeRuntimeGuardV60\.js/);
+assert.match(entryGuard, /(?:pickupBonusDeliveryFreezeRuntimeGuardV60|metaAttributionFreezeRuntimeGuardV61)\.js/);
 assert.match(shipment, /shipment_status:pickup_bonus:\$\{shipmentIdentity\}/);
 assert.match(shipment, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
 assert.match(shipment, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);

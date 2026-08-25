@@ -80,6 +80,15 @@ const forbiddenContextPatterns = [
 const ignoredContextFiles = new Set([
     'src/data/agencia_LISTA.json'
 ]);
+// A V61 precisa registrar explicitamente que a conta compartilhada continua
+// read-only fora de EC. A excecao aceita somente a palavra de contexto nestes
+// tres documentos; as demais proibicoes e todos os outros arquivos continuam
+// cobertos pelo guard geral.
+const metaAttributionReadOnlyContextFiles = new Set([
+    'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
+    'docs/ARQUIVOS_OFICIAIS.md',
+    'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md'
+]);
 // A referencia aprovada a consulta da Dra. Maria pertence exclusivamente ao
 // contrato isolado do Nitrix. Ela nao faz parte do texto ou do estado do
 // funil Vit Power, que continua protegido pela regra geral abaixo.
@@ -121,7 +130,11 @@ const productScopedProtocolFiles = new Set([
     // V48 centraliza as origens multiproduto autorizadas, inclusive
     // Protocolo G -> Tex Ultra, sem acessar ou incorporar a VSL externa.
     'src/services/ecuadorProductService.js',
-    'src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js'
+    'src/services/ecMultiproductCoreFreezeRuntimeGuardV48.js',
+    // Autorizacao V61: contrato e freeze da atribuicao Meta exclusiva
+    // EC + TEX_ULTRA + PROTOCOLO_G, sem incorporar o projeto Vilaliemen.
+    'src/services/metaAttributionFreezeRuntimeGuardV61.js',
+    'src/services/metaProtocoloGAttributionService.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
@@ -204,8 +217,11 @@ for (const file of projectFiles) {
     const rel = path.relative(root, file).split(path.sep).join('/');
     if (ignoredContextFiles.has(rel)) continue;
     const body = fs.readFileSync(file, 'utf8');
+    const guardedBody = metaAttributionReadOnlyContextFiles.has(rel)
+        ? body.replace(/\bcol(?:o|ô)mbia\b/gi, 'EC_READ_ONLY')
+        : body;
     for (const pattern of forbiddenContextPatterns) {
-        assert(!pattern.test(body), `${rel} contem contexto antigo proibido: ${pattern}.`);
+        assert(!pattern.test(guardedBody), `${rel} contem contexto antigo proibido: ${pattern}.`);
     }
 }
 

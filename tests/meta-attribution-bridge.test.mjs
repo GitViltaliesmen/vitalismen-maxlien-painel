@@ -61,6 +61,7 @@ test('recusa correlacao ambigua em vez de atribuir venda ao anuncio errado', () 
 test('sourceUrl isolada nao bloqueia o enriquecimento de atribuicao', () => {
     assert.equal(hasMetaAdAttribution({ sourceUrl: 'https://ec.maxlien.shop/tex-ultra/' }), false);
     assert.equal(orderHasMetaAttribution({ tracking: { sourceUrl: 'https://ec.maxlien.shop/tex-ultra/' } }), false);
+    assert.equal(hasMetaAdAttribution({ fbp: 'fb.1.1.browser' }), false);
     assert.equal(hasMetaAdAttribution({ fbc: 'fb.1.1.click' }), true);
     assert.equal(hasMetaAdAttribution({ utm_content: 'creative-a' }), true);
 });
