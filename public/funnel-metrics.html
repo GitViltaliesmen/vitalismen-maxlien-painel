@@ -338,11 +338,40 @@
                 <div class="panel-head">
                     <div>
                         <h2>Protocolo G — Tex Ultra</h2>
-                        <p class="meta">Somente https://vilaliemen.shop/protocolo-g; etapas instrumentadas pela V62</p>
+                        <p class="meta">Somente https://vilaliemen.shop/protocolo-g; etapas instrumentadas pela V63</p>
                     </div>
-                    <p class="meta">Não mistura outras VSLs do Equador</p>
+                    <p id="protocoloGWindow" class="meta">Não mistura outras VSLs do Equador</p>
                 </div>
                 <div class="grid" id="protocoloGMetrics" style="padding:14px"></div>
+                <div class="panel-head">
+                    <h2>Por anúncio — somente pós-correção</h2>
+                    <p class="meta">Campanha, conjunto e anúncio preservados pelos parâmetros da Meta</p>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Anúncio</th>
+                                <th>Campanha</th>
+                                <th>Posicionamento</th>
+                                <th>Entrou</th>
+                                <th>Iniciou</th>
+                                <th>25% / 50%</th>
+                                <th>CTA</th>
+                                <th>Formulário</th>
+                                <th>WhatsApp</th>
+                                <th>Conversa</th>
+                                <th>Venda / Purchase</th>
+                                <th>Leitura</th>
+                            </tr>
+                        </thead>
+                        <tbody id="protocoloGAdRows"></tbody>
+                    </table>
+                </div>
+                <div class="panel-head">
+                    <h2>Dia a dia — somente pós-correção</h2>
+                    <p class="meta">Horário do Equador</p>
+                </div>
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -543,6 +572,19 @@
 
         const yesNo = (value) => value ? 'sim' : 'não';
 
+        const protocoloGAdReading = (ad = {}) => {
+            const landings = Number(ad.landing || 0);
+            if (landings < 20) return `Amostra ${landings}/20`;
+            if (Number(ad.videoStartRate || 0) < 50) return 'Gargalo: início do vídeo';
+            if (Number(ad.watched25Rate || 0) < 20) return 'Gargalo: retenção antes de 25%';
+            if (Number(ad.whatsappRate || 0) < 3) return 'Gargalo: CTA/formulário';
+            if (Number(ad.whatsappClicks || 0) > 0 && Number(ad.conversationRate || 0) < 50) {
+                return 'Gargalo: entrada no WhatsApp';
+            }
+            if (landings >= 100 && Number(ad.salesCreated || 0) === 0) return 'Gargalo: oferta/fechamento';
+            return 'Sem gargalo conclusivo';
+        };
+
         const utmsSummary = (tracking = {}) => ([
             ['source', tracking.utm_source],
             ['medium', tracking.utm_medium],
@@ -562,6 +604,9 @@
             const protocoloGTotals = protocoloG.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
+            el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
+                ? `Válido desde ${formatDate(protocoloG.measurementStartedAt)}; não mistura histórico anterior nem outras VSLs EC`
+                : 'Não mistura outras VSLs do Equador';
             el('metrics').innerHTML = [
                 metricCard('Entradas EC (geral)', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
                 metricCard('PageView CAPI EC', number.format(totals.pageViewsSent || 0), 'Todas as VSLs EC', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
@@ -603,6 +648,23 @@
                     <td>${number.format(row.salesCreated || 0)} / ${number.format(row.purchasesSent || 0)}</td>
                 </tr>
             `).join('') || emptyRow(11, 'Sem etapas instrumentadas do Protocolo G no período.');
+
+            el('protocoloGAdRows').innerHTML = (protocoloG.ads || []).map((ad) => `
+                <tr>
+                    <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || 'sem ad_id')}</span></td>
+                    <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || 'sem campaign_id')}</span></td>
+                    <td>${escapeHtml((ad.placements || []).join(', ') || '-')}</td>
+                    <td>${number.format(ad.landing || 0)}</td>
+                    <td>${number.format(ad.videoStarted || 0)}<br><span class="meta">${ad.videoStartRate || 0}%</span></td>
+                    <td>${number.format(ad.watched25 || 0)} / ${number.format(ad.watched50 || 0)}<br><span class="meta">${ad.watched25Rate || 0}% / ${ad.watched50Rate || 0}%</span></td>
+                    <td>${number.format(ad.earlyCtaVisible || 0)}</td>
+                    <td>${number.format(ad.formOpened || 0)} / ${number.format(ad.formSubmitted || 0)}</td>
+                    <td>${number.format(ad.whatsappClicks || 0)}<br><span class="meta">${ad.whatsappRate || 0}%</span></td>
+                    <td>${number.format(ad.attributedConversations || 0)}<br><span class="meta">${ad.conversationRate || 0}%</span></td>
+                    <td>${number.format(ad.salesCreated || 0)} / ${number.format(ad.purchasesSent || 0)}</td>
+                    <td>${escapeHtml(protocoloGAdReading(ad))}</td>
+                </tr>
+            `).join('') || emptyRow(12, 'Ainda não há entrada pós-correção identificada por anúncio.');
 
             el('attributionRows').innerHTML = (data.recentAttributionOrders || []).map((order) => {
                 const tracking = order.tracking || {};

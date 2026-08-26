@@ -1,0 +1,78 @@
+{
+  "freezeId": "protocolo-g-ad-metrics-v63-20260826",
+  "parentFreezeId": "protocolo-g-conversion-v62-20260826",
+  "parentManifestSha256": "6a042b15ffc6afd83f4a6468d61bfeef008d1ba42ec42c84a2cd7c9202c67ab3",
+  "status": "activation_approved",
+  "publicationStatus": "authorized_for_controlled_activation",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "funnel": "PROTOCOLO_G",
+  "sourceUrl": "https://vilaliemen.shop/protocolo-g",
+  "operatorApproval": {
+    "date": "2026-08-26",
+    "request": "siga e resolva",
+    "artifact": "approved_freezes/APPROVED_PROTOCOLO_G_AD_METRICS_V63_20260826.txt"
+  },
+  "policy": {
+    "measurementStartedAt": "2026-08-26T05:13:18.000Z",
+    "perAdBreakdown": true,
+    "minimumLandingSample": 20,
+    "vslFilesChanged": false,
+    "metaAdsChanged": false,
+    "commercialFlowChanged": false,
+    "historicalDataMutated": false,
+    "productOrPriceChanged": false,
+    "checkoutOrDropiChanged": false,
+    "whatsappChanged": false,
+    "metaCapiChanged": false,
+    "deployAuthorized": true
+  },
+  "diagnosticEvidence": {
+    "windowStart": "2026-08-24T05:00:00.000Z",
+    "windowEnd": "2026-08-26T05:13:18.000Z",
+    "ad120248704142390355UniqueFbclid": 212,
+    "ad120248709923060355UniqueFbclid": 71,
+    "acceptedBridgeRequests": 1,
+    "containsPersonalData": false
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/funnel-metrics.html",
+    "scripts/guard-baileys-libsignal-security-v59.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
+    "scripts/senior-guard.mjs",
+    "src/routes/funnelMetrics.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/funnelMetricsService.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PROTOCOLO_G_AD_METRICS_V63_20260826.txt",
+    "docs/PROTOCOLO_G_AD_METRICS_FREEZE_V63_20260826.md",
+    "scripts/assert-protocolo-g-ad-metrics-activation-approved-v63.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js",
+    "tests/protocolo-g-ad-metrics-v63.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "4329506a5f0ba1e978cb58ef77f0687632f5da8be0d16c6f9a2f4fa4a504bb8e",
+    "docs/ARQUIVOS_OFICIAIS.md": "c622b5995925119e90d1353c9023adbd18335ad0777e26eb8fabe88ef47d616e",
+    "package.json": "b49bba93260665f6212fa1985efc58485ae5f2edc1e01d90abc291ba72cdeb5c",
+    "public/funnel-metrics.html": "841cb396ad02f1312ddc77ae6504ad737fb3fa4de4052ff607696d3c0ff4c086",
+    "scripts/guard-baileys-libsignal-security-v59.mjs": "c0a677e1effc5bbedcc5f5b58d67c039cc2af77bfabb727c472116ab43c3fc28",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "eab9aaf204adba6bc539a51c9d12da63f0d0cc2a0d9baf9ec334ace49ed593be",
+    "scripts/senior-guard.mjs": "446fc3ca7fcb9fb11756f49cdf9fc04c23c51293d5bd5e689c074ef810e9a7dc",
+    "src/routes/funnelMetrics.js": "c249826de65271e5161c1d78d512c8d75f138f9fbbcdab4c8b5479f299cbb6bd",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "d6b1fe943f351172811d461ee9c5c886bb8051f833a3b066ce4535115f7fdfbf",
+    "src/services/funnelMetricsService.js": "f1fec1d57feb6281de1aa885c7eebdba8b96e6276f50bc4777f0ee7f18b0c545",
+    "approved_freezes/APPROVED_PROTOCOLO_G_AD_METRICS_V63_20260826.txt": "a6aa733af121afbf229449a7de0d00663f82e829bdb1b1f1a84159f51f29c07a",
+    "docs/PROTOCOLO_G_AD_METRICS_FREEZE_V63_20260826.md": "4297ee177dc83f11257e35723caaccd7e4f4acf1717ed573b249920aaee1cc6e",
+    "scripts/assert-protocolo-g-ad-metrics-activation-approved-v63.mjs": "ee93387bad4a824031fbbd06a44782f8229b1e7168398d31c3b720f9ab0563c6",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "7be2e2fb75984974cac4c7044a7cbfc309c0b6235ffa8f984e612fb29c85470e",
+    "src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js": "4a31ecc0fcb62256948d31ac3b024cc8783186c847037e945819f1a41a788271",
+    "tests/protocolo-g-ad-metrics-v63.test.mjs": "26e13b7a1545183472b2870622e5987a502afc093c90a320d954e05ea17c8621",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "ffe89b78225b3f18f8d99c9190118d064910652056c803bb4ca65e1e9bd91600"
+  }
+}
