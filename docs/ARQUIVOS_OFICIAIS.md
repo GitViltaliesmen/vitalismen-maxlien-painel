@@ -772,3 +772,26 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `/n/`, checkout, pagamentos, Dropi, webhooks e automações.
 - Rollback futuro: commit base
   `318bc5dce947722eb257776a233c110f52422421` ou release V60 ativa acima.
+
+### Microcamada V62 — conversão e métricas do Protocolo G — 2026-08-26
+
+- Base Vitalismen inspecionada: release
+  `/opt/vitalismen-automacao/releases/20260825T030459Z_production-20260825-75ed74b`.
+- Fonte VSL inspecionada diretamente em `/opt/cloaker`, sem Git local, antes
+  da alteração.
+- Arquivos Vitalismen autorizados: contrato, schema aditivo, endpoint de
+  etapas, projeção/agregação de métricas e `public/funnel-metrics.html`.
+- Arquivos VSL autorizados:
+  `/opt/cloaker/routes/metaEcProtocoloGBridge.js`,
+  `/opt/cloaker/private/vsl/protocolo-g.html` e
+  `/opt/cloaker/public/assets/js/meta-ec-protocolo-g-bridge.js`.
+- A CTA secundária aparece aos 12 minutos; a CTA final do VTurb permanece
+  controlada pelo player e não foi editada.
+- O painel separa Protocolo G de `EC geral` e expõe entrada, vídeo, 25%, 50%,
+  CTA, formulário, WhatsApp, conversa atribuída, venda e Purchase.
+- Etapas são observabilidade: não enviam Meta, não criam lead, não rodam
+  vendedor e não enviam mensagem.
+- Congelamento e rollback:
+  `docs/PROTOCOLO_G_CONVERSION_FREEZE_V62_20260826.md`.
+- Estado atual: implementação local validada; publicação e hashes de backup
+  serão registrados no resultado de ativação depois da troca real.

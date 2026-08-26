@@ -336,6 +336,37 @@
 
             <section class="panel">
                 <div class="panel-head">
+                    <div>
+                        <h2>Protocolo G — Tex Ultra</h2>
+                        <p class="meta">Somente https://vilaliemen.shop/protocolo-g; etapas instrumentadas pela V62</p>
+                    </div>
+                    <p class="meta">Não mistura outras VSLs do Equador</p>
+                </div>
+                <div class="grid" id="protocoloGMetrics" style="padding:14px"></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Dia</th>
+                                <th>Entrou</th>
+                                <th>Iniciou vídeo</th>
+                                <th>25% vídeo</th>
+                                <th>50% vídeo</th>
+                                <th>CTA antecipada</th>
+                                <th>Abriu formulário</th>
+                                <th>Enviou formulário</th>
+                                <th>Clique WhatsApp</th>
+                                <th>Conversa atribuída</th>
+                                <th>Venda / Purchase</th>
+                            </tr>
+                        </thead>
+                        <tbody id="protocoloGRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
                     <h2>Atribuição EC por pedido</h2>
                     <p class="meta">Protocolo G e demais pedidos EC; sem dados pessoais de contato</p>
                 </div>
@@ -364,8 +395,8 @@
 
             <section class="panel">
                 <div class="panel-head">
-                    <h2>Dia a dia</h2>
-                    <p class="meta">Horario do Equador</p>
+                    <h2>Dia a dia — EC geral</h2>
+                    <p class="meta">Todas as VSLs EC; horário do Equador</p>
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -527,12 +558,14 @@
             const data = state.data;
             if (!data) return;
             const totals = data.totals || {};
+            const protocoloG = data.protocoloG || {};
+            const protocoloGTotals = protocoloG.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
             el('metrics').innerHTML = [
-                metricCard('Entradas VSL', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
-                metricCard('PageView CAPI', number.format(totals.pageViewsSent || 0), 'Recebidos pela Meta', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
-                metricCard('Visitantes no WhatsApp', number.format(totals.whatsappVisitors || 0), `${totals.clickRate || 0}% das entradas`, (totals.whatsappVisitors || 0) ? 'good' : 'warn'),
+                metricCard('Entradas EC (geral)', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
+                metricCard('PageView CAPI EC', number.format(totals.pageViewsSent || 0), 'Todas as VSLs EC', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
+                metricCard('WhatsApp EC (geral)', number.format(totals.whatsappVisitors || 0), `${totals.clickRate || 0}% das entradas`, (totals.whatsappVisitors || 0) ? 'good' : 'warn'),
                 metricCard('Leads Meta', number.format(totals.leadsSent || 0), 'Eventos Lead enviados'),
                 metricCard('Purchase enviado', number.format(totals.purchasesSent || 0), 'Eventos enviados no periodo', (totals.purchasesSent || 0) ? 'good' : 'warn'),
                 metricCard('Valor marcado', currency.format(totals.purchaseValueSent || 0), `${totals.purchaseCoverage || 0}% de cobertura`, (totals.purchaseValueSent || 0) ? 'good' : 'warn'),
@@ -541,6 +574,35 @@
                 metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
                 metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
             ].join('');
+
+            el('protocoloGMetrics').innerHTML = [
+                metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),
+                metricCard('Iniciou o vídeo', number.format(protocoloGTotals.videoStarted || 0), `${protocoloGTotals.videoStartRate || 0}% das entradas`, (protocoloGTotals.videoStarted || 0) ? 'good' : 'warn'),
+                metricCard('Chegou a 25%', number.format(protocoloGTotals.watched25 || 0), `${protocoloGTotals.watched25Rate || 0}% dos que iniciaram`),
+                metricCard('Chegou a 50%', number.format(protocoloGTotals.watched50 || 0), `${protocoloGTotals.watched50Rate || 0}% dos que iniciaram`),
+                metricCard('Viu CTA antecipada', number.format(protocoloGTotals.earlyCtaVisible || 0), 'CTA secundária aos 12 minutos'),
+                metricCard('Abriu formulário', number.format(protocoloGTotals.formOpened || 0), `${protocoloGTotals.formOpenRate || 0}% das entradas`),
+                metricCard('Enviou formulário', number.format(protocoloGTotals.formSubmitted || 0), `${protocoloGTotals.formSubmitRate || 0}% dos formulários`),
+                metricCard('Clicou para WhatsApp', number.format(protocoloGTotals.whatsappClicks || 0), `${protocoloGTotals.whatsappRate || 0}% das entradas`, (protocoloGTotals.whatsappClicks || 0) ? 'good' : 'warn'),
+                metricCard('Conversa atribuída', number.format(protocoloGTotals.attributedConversations || 0), `${protocoloGTotals.conversationRate || 0}% dos cliques`),
+                metricCard('Venda / Purchase', `${number.format(protocoloGTotals.salesCreated || 0)} / ${number.format(protocoloGTotals.purchasesSent || 0)}`, `${protocoloGTotals.salesRate || 0}% das entradas`)
+            ].join('');
+
+            el('protocoloGRows').innerHTML = (protocoloG.rows || []).map((row) => `
+                <tr>
+                    <td>${escapeHtml(row.day)}</td>
+                    <td>${number.format(row.landing || 0)}</td>
+                    <td>${number.format(row.videoStarted || 0)}</td>
+                    <td>${number.format(row.watched25 || 0)}</td>
+                    <td>${number.format(row.watched50 || 0)}</td>
+                    <td>${number.format(row.earlyCtaVisible || 0)}</td>
+                    <td>${number.format(row.formOpened || 0)}</td>
+                    <td>${number.format(row.formSubmitted || 0)}</td>
+                    <td>${number.format(row.whatsappClicks || 0)}</td>
+                    <td>${number.format(row.attributedConversations || 0)}</td>
+                    <td>${number.format(row.salesCreated || 0)} / ${number.format(row.purchasesSent || 0)}</td>
+                </tr>
+            `).join('') || emptyRow(11, 'Sem etapas instrumentadas do Protocolo G no período.');
 
             el('attributionRows').innerHTML = (data.recentAttributionOrders || []).map((order) => {
                 const tracking = order.tracking || {};

@@ -15,6 +15,14 @@ const router = express.Router();
 const visitProjection = [
     'firstSeenAt',
     'visits',
+    'country',
+    'productKey',
+    'productName',
+    'funnel',
+    'page',
+    'path',
+    'protocoloGStages',
+    'attributionClaimedAt',
     'metaPageViewSentAt',
     'lastClickAt',
     'metaLeadSentAt'

@@ -1160,3 +1160,24 @@ escrita. O último gate usa diretamente o fixture Vilaliemen congelado no commit
 `ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8` e
 atravessa o handler real com memória/mocks. Não envia evento Meta, mensagem
 WhatsApp nem pedido real.
+
+## Microcamada V62 de conversão mensurável do Protocolo G
+
+O freeze `docs/PROTOCOLO_G_CONVERSION_FREEZE_V62_20260826.md` sucede a V61
+somente para a VSL EC de Tex Ultra. O player VTurb e sua CTA final permanecem
+intactos. Uma CTA secundária é exibida aos 12 minutos de reprodução medida para
+que uma pessoa já convencida possa abrir o mesmo formulário existente sem
+esperar até aproximadamente `00:37:37`.
+
+A ponte dedicada aceita apenas sete etapas não conversivas e exatas:
+`landing`, `video_started`, `watched_25`, `watched_50`,
+`early_cta_visible`, `form_opened` e `form_submitted`. Todas exigem
+`clicked=false`, `intent=vsl_stage`, `skipMeta=true`, `external_id` canônico e
+a identidade `EC + TEX_ULTRA + PROTOCOLO_G`. A rota não chama rotação de
+vendedores, painel de lead, WhatsApp ou Meta/CAPI.
+
+O painel mantém o agregado anterior identificado como `EC geral` e adiciona
+um bloco separado para `https://vilaliemen.shop/protocolo-g`. Assim, outras
+VSLs EC não entram nos marcos de vídeo, formulário e CTA do Protocolo G.
+Produto, preço, checkout, pedido, Dropi, Dataset, Purchase, funil WhatsApp,
+mídia, áudio, scheduler e memória comercial permanecem inalterados.

@@ -147,6 +147,20 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    protocoloGStages: {
+        landingAt: Date,
+        videoStartedAt: Date,
+        watched25At: Date,
+        watched50At: Date,
+        earlyCtaVisibleAt: Date,
+        formOpenedAt: Date,
+        formSubmittedAt: Date
+    },
+    lastProtocoloGStage: {
+        type: String,
+        default: ''
+    },
+    lastProtocoloGStageAt: Date,
     lastEntryMessage: {
         type: String,
         default: ''

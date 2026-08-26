@@ -3,6 +3,16 @@ export const PROTOCOLO_G_EVENT_SOURCE_URL = 'https://vilaliemen.shop/protocolo-g
 
 export const PROTOCOLO_G_TEX_ULTRA_MESSAGE_PREFIX = 'Hola, quiero el tratamiento Tex Ultra.';
 
+export const PROTOCOLO_G_STAGE_FIELDS = Object.freeze({
+    landing: 'landingAt',
+    video_started: 'videoStartedAt',
+    watched_25: 'watched25At',
+    watched_50: 'watched50At',
+    early_cta_visible: 'earlyCtaVisibleAt',
+    form_opened: 'formOpenedAt',
+    form_submitted: 'formSubmittedAt'
+});
+
 const PROTOCOLO_G_HOSTS = new Set(['vilaliemen.shop', 'www.vilaliemen.shop']);
 const PROTOCOLO_G_PATHS = new Set(['/protocolo-g', '/protocolo-g.html']);
 
@@ -94,6 +104,13 @@ const normalizedPath = (value) => {
     return path || '/';
 };
 
+const normalizedStage = (value) => cleanProtocoloGAttributionValue(value, 80)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+export const protocoloGStageField = (value) => PROTOCOLO_G_STAGE_FIELDS[normalizedStage(value)] || '';
+
 export const hasProtocoloGContractSignal = (body = {}) => {
     const sourceUrl = firstValue(body, ['event_source_url', 'eventSourceUrl', 'sourceUrl']);
     return normalizedIdentity(body.funnel) === 'PROTOCOLO_G'
@@ -136,6 +153,69 @@ export const validateVilaliemenProtocoloGContract = (body = {}) => {
         ok: errors.length === 0,
         errors,
         message,
+        sourceUrl: sourceUrl?.toString() || '',
+        externalId: attribution.external_id,
+        attribution: {
+            external_id: attribution.external_id,
+            fbclid: attribution.fbclid,
+            fbc: attribution.fbc,
+            fbp: attribution.fbp,
+            attributionCapturedAt: attribution.attributionCapturedAt,
+            utm_source: attribution.utm_source,
+            utm_medium: attribution.utm_medium,
+            utm_campaign: attribution.utm_campaign,
+            utm_content: attribution.utm_content,
+            utm_term: attribution.utm_term,
+            campaign_id: attribution.campaign_id,
+            adset_id: attribution.adset_id,
+            ad_id: attribution.ad_id,
+            placement: attribution.placement
+        },
+        identity: {
+            country: 'EC',
+            productKey: 'tex_ultra_ec',
+            product: 'TEX_ULTRA',
+            funnel: 'PROTOCOLO_G',
+            page: 'protocolo-g',
+            path: '/protocolo-g'
+        }
+    };
+};
+
+export const validateVilaliemenProtocoloGStageContract = (body = {}) => {
+    const attribution = sanitizeProtocoloGAttribution(body);
+    const sourceUrl = parseVilaliemenProtocoloGUrl(
+        firstValue(body, ['event_source_url', 'eventSourceUrl', 'sourceUrl'])
+    );
+    const stage = normalizedStage(firstValue(body, ['stage', 'vslStage', 'vsl_stage']));
+    const stageField = protocoloGStageField(stage);
+    const errors = [];
+
+    if (normalizedIdentity(body.country) !== 'EC') errors.push('invalid_country');
+    if (normalizedIdentity(firstValue(body, ['productKey', 'product_key'])) !== 'TEX_ULTRA_EC') errors.push('invalid_product_key');
+    if (normalizedIdentity(body.product) !== 'TEX_ULTRA') errors.push('invalid_product');
+    if (normalizedIdentity(body.funnel) !== 'PROTOCOLO_G') errors.push('invalid_funnel');
+    if (normalizedIdentity(body.page) !== 'PROTOCOLO_G') errors.push('invalid_page');
+    if (normalizedPath(body.path) !== '/protocolo-g') errors.push('invalid_path');
+    if (!sourceUrl) errors.push('invalid_event_source_url');
+    if (!stageField) errors.push('invalid_stage');
+    if (!attribution.external_id) errors.push('missing_external_id');
+    if (attribution.visitorId && attribution.visitorId !== attribution.external_id) errors.push('conflicting_visitor_id');
+    if (attribution.rawFbcPresent && !attribution.fbc) errors.push('invalid_fbc');
+    if (attribution.rawFbpPresent && !attribution.fbp) errors.push('invalid_fbp');
+    if (attribution.rawAttributionCapturedAtPresent && !attribution.attributionCapturedAt) {
+        errors.push('invalid_attribution_captured_at');
+    }
+    if (body.clicked !== false) errors.push('invalid_clicked');
+    if (normalizedIdentity(body.intent) !== 'VSL_STAGE') errors.push('invalid_intent');
+    if (body.skipMeta !== true && body.skip_meta !== true) errors.push('invalid_skip_meta');
+    if (normalizedIdentity(firstValue(body, ['vslVariant', 'vsl_variant'])) !== 'PROTOCOLO_G') errors.push('invalid_vsl_variant');
+
+    return {
+        ok: errors.length === 0,
+        errors,
+        stage,
+        stageField,
         sourceUrl: sourceUrl?.toString() || '',
         externalId: attribution.external_id,
         attribution: {
