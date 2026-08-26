@@ -1236,3 +1236,39 @@ publicação desta candidata não está autorizada.
 
 Contrato e rollback completos:
 `docs/POST_SALE_GARGALOS_FREEZE_V65_20260826.md`.
+
+## 2026-08-26 — V66 anti-spam e startup fail-closed
+
+A V66 sucede a V65 sem reescrever sua história. `GUIDE`, `IN_TRANSIT`,
+`READY_FOR_PICKUP` e `RETURNED` passam a ser estágios canônicos. Texto, PDF e
+print da guia compartilham uma única chave idempotente `GUIDE`; qualquer
+evidência humana, automática, suprimida ou no safety ledger bloqueia todas as
+variantes equivalentes. O último ponto antes de imagem/PDF exige
+`SHOULD_SEND`, token do lock persistente e chave recalculada.
+
+Lembretes de retirada 1–6, pedido de prova, bônus pós-retirada e lembrete de
+recompra também passam pela decisão central. Cada passo que pode se repetir de
+forma legítima recebe estágio próprio, enquanto texto/áudio do mesmo passo
+compartilham a chave e o marker legado correspondente.
+
+O startup separa disponibilidade de mutação. A API, o painel e o health podem
+subir em `SAFE_OBSERVATION_ONLY`, mas nenhum scheduler ou reconciliador de
+startup é registrado sem as três autorizações V66 e o documento persistente
+de compatibilidade. O sync Dropi passa a ter somente `REPORT_ONLY`, `DRY_RUN`
+e `APPLY`; ausência/valor inválido usa `REPORT_ONLY`, e produção/PM2/restart
+nunca inferem APPLY.
+
+Dados V66 gravam `dataCompatibilityVersion=66` e `minRuntimeVersion=66` em
+`operational_safety_states/post-sale-safety-v66`. Rollback para runtime menor
+é `ROLLBACK_BLOCKED`; não existe rollback de dados. O bridge é um utilitário
+separado, começa em relatório e não foi executado nesta candidata.
+
+Contrato, incidente, inventário e matriz:
+
+- `docs/POST_SALE_SAFETY_FREEZE_V66_20260826.md`;
+- `docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md`;
+- `docs/POST_SALE_V66_OUTBOUND_INVENTORY.md`;
+- `docs/POST_SALE_V66_COMPATIBILITY_MATRIX.md`.
+
+Estado desta candidata: somente branch local; produção permanece parada; sem
+deploy, push, merge, tag, mensagem, pedido Dropi ou mutação de banco.

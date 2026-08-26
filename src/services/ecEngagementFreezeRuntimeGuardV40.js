@@ -1,3 +1,4 @@
 // Entrada de compatibilidade preservada para todos os guards anteriores.
-// A V65 valida integralmente a linhagem V28–V64 e somente as substituicoes declaradas.
-await import('./postSaleGargalosFreezeRuntimeGuardV65.js');
+// Predecessor reconhecido: postSaleGargalosFreezeRuntimeGuardV65.js.
+// A V66 carrega esse predecessor com overrides declarados e valida a linhagem V28–V65.
+await import('./postSaleSafetyFreezeRuntimeGuardV66.js');

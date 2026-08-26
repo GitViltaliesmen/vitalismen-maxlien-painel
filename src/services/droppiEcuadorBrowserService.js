@@ -20,6 +20,7 @@ import {
     finalizeDropiSyncCycle,
     startDropiSyncCycle
 } from './dropiSyncObservabilityService.js';
+import { DROPI_SYNC_MODES } from './postSaleSafetyV66Service.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
 const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
@@ -2584,10 +2585,20 @@ export const inspectDroppiEcuadorProductTarget = async ({ product = 'Nitrix', li
 
 export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
     maxRows = 1000,
+    mode = DROPI_SYNC_MODES.REPORT_ONLY,
     dryRun = false,
     reportOnly = false
 } = {}) => {
-    const readOnly = Boolean(dryRun || reportOnly);
+    const requestedMode = String(mode || '').trim().toUpperCase();
+    const validMode = Object.values(DROPI_SYNC_MODES).includes(requestedMode)
+        ? requestedMode
+        : DROPI_SYNC_MODES.REPORT_ONLY;
+    const effectiveMode = reportOnly
+        ? DROPI_SYNC_MODES.REPORT_ONLY
+        : dryRun
+            ? DROPI_SYNC_MODES.DRY_RUN
+            : validMode;
+    const readOnly = effectiveMode !== DROPI_SYNC_MODES.APPLY;
     const cycle = await startDropiSyncCycle({ source: 'dropi_orders_api_with_dom_fallback', dryRun: readOnly });
     const cycleEntries = [];
     try {
@@ -2735,6 +2746,7 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
 
         return {
             source,
+            mode: effectiveMode,
             rowCount: apiRows.length || rowTexts.length,
             parsed: parsedRows.length,
             unique: uniqueRows.length,
@@ -2746,6 +2758,7 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
     const finalizedCycle = await finalizeDropiSyncCycle({ cycleId: cycle.cycleId, entries: cycleEntries });
     return {
         ok: true,
+        mode: effectiveMode,
         cycleId: cycle.cycleId,
         cycle: finalizedCycle,
         ...result

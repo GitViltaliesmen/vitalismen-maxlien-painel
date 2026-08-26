@@ -3,7 +3,15 @@ import { getAllStatuses, getStatus } from '../whatsapp/connection.js';
 import { getQueueSize } from '../whatsapp/queue.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
+import OperationalSafetyState from '../models/OperationalSafetyState.js';
 import { getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
+import {
+    POST_SALE_RUNTIME_VERSION,
+    POST_SALE_SAFETY_STATE_ID,
+    assertRuntimeSupportsPostSaleData,
+    resolveDropiSyncMode,
+    resolvePostSaleOperationalMutationGate
+} from '../services/postSaleSafetyV66Service.js';
 
 const router = express.Router();
 
@@ -109,6 +117,16 @@ router.get('/', async (req, res) => {
             .sort({ createdAt: -1, timestamp: -1 })
             .select('createdAt sessionId provider type')
             .lean();
+        const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
+            .select('dataCompatibilityVersion minRuntimeVersion writerRuntimeVersion bridgeComplete bridgeCompletedAt')
+            .lean()
+            .catch(() => null);
+        const runtimeCompatibility = assertRuntimeSupportsPostSaleData({
+            runtimeVersion: POST_SALE_RUNTIME_VERSION,
+            compatibilityState
+        });
+        const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
+        const dropiSyncMode = resolveDropiSyncMode(process.env, { compatibilityState });
         const transportHealth = evaluateOperationalWhatsappHealth({
             zapiConfigured: zapi.configured.enabled,
             zapiConnected: zapi.connected,
@@ -158,6 +176,18 @@ router.get('/', async (req, res) => {
             uptime_seconds: process.uptime(),
             runner: 'node src/index.js',
             degradedReasons,
+            automationSafety: {
+                runtimeVersion: POST_SALE_RUNTIME_VERSION,
+                runtimeCompatible: runtimeCompatibility.ok,
+                operationalMutationsEnabled: mutationGate.allowed,
+                mode: mutationGate.mode,
+                reason: mutationGate.reason,
+                compatibilityBridgeComplete: compatibilityState?.bridgeComplete === true,
+                dataCompatibilityVersion: Number(compatibilityState?.dataCompatibilityVersion || 0),
+                minimumRuntimeVersion: Number(compatibilityState?.minRuntimeVersion || 0),
+                dropiSyncMode: dropiSyncMode.effectiveMode,
+                dropiApplyAllowed: dropiSyncMode.applyAllowed
+            },
             whatsapp: exposedWhatsapp,
             zapi: {
                 configured: zapi.configured,

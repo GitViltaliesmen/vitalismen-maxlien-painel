@@ -26,6 +26,13 @@ import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
 import { pauseOrphanedTexUltraInitialFlowsOnStartup } from './services/texUltraInitialLayerService.js';
+import OperationalSafetyState from './models/OperationalSafetyState.js';
+import {
+    POST_SALE_RUNTIME_VERSION,
+    POST_SALE_SAFETY_STATE_ID,
+    assertRuntimeSupportsPostSaleData,
+    resolvePostSaleOperationalMutationGate
+} from './services/postSaleSafetyV66Service.js';
 
 const isProductionVpsPath = process.cwd().startsWith('/opt/vitalismen-automacao/');
 const isRunningUnderPm2 = Boolean(process.env.pm_id || process.env.PM2_HOME);
@@ -54,11 +61,38 @@ process.on('unhandledRejection', (reason, promise) => {
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-// A recuperacao de cadencia e somente de estado: ela pausa timers orfaos e
-// nunca envia WhatsApp durante o boot/deploy.
+// V66: o servidor e os endpoints de observabilidade podem subir sem automacao
+// mutante. O scheduler so e avaliado depois da conexao e da leitura do contrato
+// persistente de compatibilidade; ausencia/erro/versao futura falha fechado.
 connectDB()
-    .then(() => pauseOrphanedTexUltraInitialFlowsOnStartup())
-    .catch((error) => console.error('[TEX-ULTRA-INITIAL] falha no startup seguro:', error.message));
+    .then(async () => {
+        const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
+            .lean()
+            .catch((error) => {
+                console.error('[POST-SALE-V66] falha ao ler compatibilidade persistente:', error.message);
+                return null;
+            });
+        const compatibility = assertRuntimeSupportsPostSaleData({
+            runtimeVersion: POST_SALE_RUNTIME_VERSION,
+            compatibilityState
+        });
+        if (!compatibility.ok) {
+            console.error(`[POST-SALE-V66] runtime mutante bloqueado: ${compatibility.reason}; runtime=${compatibility.runtimeVersion}; minimo=${compatibility.minRuntimeVersion}.`);
+            return;
+        }
+        const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
+        if (!mutationGate.allowed) {
+            console.warn(`[STARTUP-V66] API/health ativos em modo seguro; nenhuma mutacao automatica iniciada; reason=${mutationGate.reason}.`);
+            return;
+        }
+        if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
+            console.log('[SCHEDULER] Scheduler desativado por DISABLE_SCHEDULER=1');
+            return;
+        }
+        await pauseOrphanedTexUltraInitialFlowsOnStartup();
+        startScheduler({ compatibilityState });
+    })
+    .catch((error) => console.error('[STARTUP-V66] startup seguro sem scheduler mutante:', error.message));
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -279,14 +313,6 @@ if (String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() === 'fa
     startConfiguredWhatsAppSessions().catch(err => {
         console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
     });
-}
-
-// Start Scheduler
-if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
-    console.log('[SCHEDULER] 🛑 Scheduler desativado por DISABLE_SCHEDULER=1');
-} else {
-    console.log('[SCHEDULER] ✅ Scheduler ativado');
-    startScheduler();
 }
 
 // 404 handler

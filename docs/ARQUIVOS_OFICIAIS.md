@@ -856,3 +856,31 @@ Arquivos-fonte da correção:
 
 Nenhum arquivo da VPS foi substituído, nenhum symlink ou PM2 foi alterado e
 nenhuma mensagem/pedido real foi produzido.
+
+## Candidata local V66 — 2026-08-26
+
+Fonte oficial: branch local `codex/post-sale-safety-v66`, baseada na tag
+V65 `production-20260826-1a3b9a5`. Produção contida em estado parado e symlink
+de baseline `20260826T054900Z_production-20260826-cc85952`.
+
+Arquivos oficiais da correção:
+
+- `src/services/postSaleSafetyV66Service.js` — estágios, chave, gate e modos;
+- `src/services/postSaleNotificationDecisionService.js` — decisão/lock/ledger;
+- `src/services/guidePrintDispatcherService.js` — decisão antes da mídia;
+- `src/services/shipmentMessageService.js` — barreira de texto/PDF/imagem;
+- `src/services/schedulerService.js` e `src/index.js` — startup fail-closed;
+- `src/services/droppiEcuadorBrowserService.js` — modos explícitos do sync;
+- `src/models/OperationalSafetyState.js` — contrato persistente de versão;
+- `scripts/reconcile-post-sale-safety-v66.mjs` — bridge REPORT_ONLY por padrão;
+- `scripts/assert-post-sale-data-compatibility-v66.mjs` — bloqueio de target;
+- `tests/post-sale-safety-v66.test.mjs` — 44 cenários permanentes, incluindo todas as bordas logísticas automáticas e a matriz explícita de rerun/restart/reconciliação/rollback;
+- `docs/POST_SALE_SAFETY_FREEZE_V66_20260826.md` — contrato normativo;
+- `docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md` — incidente auditável;
+- `docs/POST_SALE_V66_COMPATIBILITY_MATRIX.md` — writer × runtime;
+- `docs/POST_SALE_V66_OUTBOUND_INVENTORY.md` — caminhos e bypasses;
+- `docs/freeze/post-sale-safety-v66-20260826.json` — hashes V66.
+
+Estado: release candidate local em preparação. Bridge não executado, estado
+persistente V66 não criado, mutações operacionais desabilitadas por padrão e
+nenhuma alteração realizada no VPS.

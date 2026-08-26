@@ -85,10 +85,13 @@ for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
         'src/services/droppiEcuadorBrowserService.js': '0f4337dcb0fa39f622d1404dc261af507758bcfa2a17d65cd38caf6eb1f1790b',
         'src/services/conversationEngine.js': '234a0432b77072021f76133417f2da5a25f871cf8fcba82513296e5b12ac0497'
     };
-    if (v64SuccessorHashes[relativePath] || v65SuccessorHashes[relativePath]) {
+    const v66SuccessorHashes = {
+        'src/services/droppiEcuadorBrowserService.js': '94327ca6380064800d112fcbd666ce4b2779e18b249bb66a05747d9915399d43'
+    };
+    if (v64SuccessorHashes[relativePath] || v65SuccessorHashes[relativePath] || v66SuccessorHashes[relativePath]) {
         assert.ok(
-            [expectedHash, v64SuccessorHashes[relativePath], v65SuccessorHashes[relativePath]].filter(Boolean).includes(actualHash),
-            `${relativePath} protegido foi alterado fora da sucessao V64/V65`
+            [expectedHash, v64SuccessorHashes[relativePath], v65SuccessorHashes[relativePath], v66SuccessorHashes[relativePath]].filter(Boolean).includes(actualHash),
+            `${relativePath} protegido foi alterado fora da sucessao V64/V65/V66`
         );
         continue;
     }
