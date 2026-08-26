@@ -202,6 +202,10 @@ orderSchema.post('save', function (doc) {
 // Index for efficient queries
 orderSchema.index({ country: 1, status: 1 });
 orderSchema.index({ 'customer.phone': 1 });
+orderSchema.index({ country: 1, 'customer.phone': 1, updatedAt: -1 });
+orderSchema.index({ country: 1, 'customer.name': 1 });
+orderSchema.index({ country: 1, dropiOrderId: 1 });
+orderSchema.index({ country: 1, trackingNumber: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ entryAt: -1 });
 orderSchema.index({ status: 1, draftCreatedAt: 1 }); // For draft queries

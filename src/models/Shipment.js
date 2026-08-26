@@ -82,6 +82,7 @@ const shipmentSchema = new mongoose.Schema({
         submitAttemptedAt: { type: Date, default: null },
         submitLockedUntil: { type: Date, default: null },
         dispatchLockedUntil: { type: Date, default: null },
+        notificationLocks: { type: mongoose.Schema.Types.Mixed, default: {} },
         dropiSubmitAuthorizedAt: { type: Date, default: null },
         dropiSubmitAuthorizedBy: { type: String, default: '' },
         dropiSubmitAuthorizationNote: { type: String, default: '' },
@@ -152,7 +153,14 @@ const shipmentSchema = new mongoose.Schema({
     review: {
         manualOnly: { type: Boolean, default: false },
         reviewReason: { type: String, default: '' },
-        reviewStatus: { type: String, default: '' }
+        reviewStatus: { type: String, default: '' },
+        resolutionLockUntil: { type: Date, default: null },
+        resolutionLockToken: { type: String, default: '' },
+        resolvedAt: { type: Date, default: null },
+        resolvedSource: { type: String, default: '' },
+        resolvedEvidence: { type: mongoose.Schema.Types.Mixed, default: {} },
+        resolutionHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        suppressedNotificationKinds: { type: [String], default: [] }
     },
     notes: {
         type: String,
@@ -176,6 +184,11 @@ const shipmentSchema = new mongoose.Schema({
 
 shipmentSchema.index({ country: 1, 'logistics.status': 1 });
 shipmentSchema.index({ 'client.phone': 1, updatedAt: -1 });
+shipmentSchema.index({ country: 1, 'client.name': 1 });
+shipmentSchema.index({ country: 1, 'logistics.trackingNumber': 1 });
+shipmentSchema.index({ country: 1, 'raw.manualDropiOrderId': 1 });
+shipmentSchema.index({ country: 1, 'raw.latestDroppiPayload.dropiOrderId': 1 });
+shipmentSchema.index({ country: 1, 'raw.droppiOrder.id': 1 });
 
 const Shipment = mongoose.model('Shipment', shipmentSchema);
 

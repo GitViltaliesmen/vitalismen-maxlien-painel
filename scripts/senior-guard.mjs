@@ -140,7 +140,11 @@ const productScopedProtocolFiles = new Set([
     // exclusiva do Protocolo G, sem alterar o funil comercial EC.
     'src/services/protocoloGConversionFreezeRuntimeGuardV62.js',
     // Autorizacao V63: corte pos-correcao e metricas por anuncio, somente leitura.
-    'src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js'
+    'src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js',
+    // V64 somente herda o freeze V63 e bloqueia nomes invalidos no Dropi EC.
+    'src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js',
+    // V65 corrige busca, leitura canonica, pos-venda e reconciliacao Dropi EC.
+    'src/services/postSaleGargalosFreezeRuntimeGuardV65.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

@@ -1200,3 +1200,39 @@ minutos, anúncios, orçamento, Meta/CAPI, Dataset, Purchase, WhatsApp, pedido,
 produto, preço, checkout, Dropi, mídia, áudio, memória ou scheduler. Dados
 históricos continuam intactos no banco e apenas deixam de entrar no bloco
 pós-correção do Protocolo G.
+
+## Microcamada candidata V64 — nome completo obrigatório na Dropi EC
+
+O freeze `docs/DROPI_CUSTOMER_FULL_NAME_FREEZE_V64_20260826.md` adiciona um
+gate final e não contornável ao payload de criação de pedido Dropi. A fonte
+canônica continua sendo `Order.customer.name`, mas agora o valor precisa ter
+nome e sobrenome humanos. Identificador técnico, dígitos, e-mail, URL,
+sublinhado, nome único ou nome concatenado em um token são rejeitados.
+
+A validação ocorre no construtor canônico e antes das rotas de autorização,
+fila automática, envio e preparação manual. Pedidos já submetidos conservam o
+comprovante existente e não são reabertos. A captura progressiva de primeiro
+nome no WhatsApp/VSL não muda; somente o envio final para a Dropi exige o nome
+completo.
+
+Esta camada não altera busca do painel, read model da ficha, scheduler,
+pós-venda, Dropi já enviada, Servientrega, produto, preço, checkout, Meta/CAPI,
+Z-API ou mensagens. O estado é local e não existe autorização de deploy.
+
+## 2026-08-26 — sucessão V65 do pós-venda EC
+
+A V65 introduz uma microcamada estrutural sem alterar funil, preços, VSL,
+checkout, Meta/CAPI, Z-API ou texto comercial. O painel conserva o lote rápido
+e usa `/api/whatsapp/chats/search` somente quando a busca válida não existe
+localmente. A rota é read-only e a ficha usa a projeção comum
+`projectPanelCustomerReadModel`, com `Shipment -> Order -> customerDraft`.
+
+O sincronizador Dropi consulta API com fallback DOM, associa somente Shipment
+existente por regra estrita e persiste um `DropiSyncCycle`. `dropi_rejected`
+obsoleto só é resolvido por evidência positiva na combinação exata protegida.
+Toda resolução suprime o estágio histórico e passa pela decisão anti-spam antes
+de qualquer envio futuro. A reconciliação histórica permanece DRY RUN e a
+publicação desta candidata não está autorizada.
+
+Contrato e rollback completos:
+`docs/POST_SALE_GARGALOS_FREEZE_V65_20260826.md`.

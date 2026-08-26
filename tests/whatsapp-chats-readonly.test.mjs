@@ -120,11 +120,11 @@ const fixture = () => {
 };
 
 const responseContractKeys = [
-    'address', 'assignedAgent', 'city', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
-    'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'identityConflict', 'isGroup', 'lastActivityAt',
-    'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'name', 'notes', 'orderId', 'orderStatus',
+    'address', 'agencyId', 'agencyName', 'assignedAgent', 'city', 'contactName', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
+    'deliveryMode', 'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'identityConflict', 'identityDiffers', 'isGroup', 'lastActivityAt',
+    'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'logistics', 'name', 'notes', 'officialOrderName', 'operationalStatus', 'orderCandidateCount', 'orderId', 'orderStatus',
     'packageLabel', 'phone', 'previousDeliveredAt', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
-    'province', 'quantity', 'reference', 'tags', 'total', 'unansweredCount', 'unreadCount', 'updatedAt', 'vslPath',
+    'province', 'quantity', 'reference', 'selectionReason', 'tags', 'total', 'unansweredCount', 'unreadCount', 'updatedAt', 'vslPath',
     'vslProductKey', 'vslProductName', 'zapiCapturedContact'
 ].sort();
 
@@ -217,6 +217,8 @@ test('caminhos fast e enriched preservam resposta e nao alteram modelos nem time
             assert.equal(response.body[0].id, state.chatId);
             assert.equal(response.body[0].phone.replace(/\D/g, ''), state.phoneDigits);
             assert.equal(response.body[0].customerDraft.orderId, order.orderId);
+            assert.equal(response.body[0].officialOrderName, order.customer.name);
+            assert.equal(response.body[0].operationalStatus.source, 'order');
             assert.equal(response.body[0].historicalOrderId, null);
             assert.equal(response.body[0].previousDeliveredAt, null);
             responses.push(response.body[0]);

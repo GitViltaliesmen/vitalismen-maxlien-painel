@@ -56,7 +56,6 @@ import {
 import {
     applyInboundCustomerNameEvidence,
     applyVerifiedCustomerName,
-    resolveCustomerDisplayName,
     resolveIdentityConflict
 } from '../services/customerNameResolutionService.js';
 import { panelAuditTransition } from '../services/panelAuditIdempotencyService.js';
@@ -102,6 +101,8 @@ import {
     operationalOrderLineage,
     panelOrderLifecycle
 } from '../services/ecDeliveredRepurchaseService.js';
+import { projectPanelCustomerReadModel } from '../services/panelCustomerReadModelService.js';
+import { searchPanelCustomersGlobally } from '../services/panelGlobalCustomerSearchService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -4009,6 +4010,26 @@ router.post('/sessions/:sessionId/disconnect', adminOnly, async (req, res) => {
     }
 });
 
+// GET /api/whatsapp/chats/search
+// Consulta historica separada do lote rapido. A rota e estritamente read-only:
+// nao cria ContactState, pedido, Shipment ou qualquer espelho administrativo.
+router.get('/chats/search', async (req, res) => {
+    try {
+        const result = await searchPanelCustomersGlobally({
+            query: req.query.q || '',
+            limit: req.query.limit || 8
+        });
+        res.set('Cache-Control', 'no-store');
+        return res.json(result);
+    } catch (error) {
+        console.error('Global customer search error:', error);
+        return res.status(500).json({
+            error: 'Failed to search historical customers',
+            code: 'PANEL_GLOBAL_SEARCH_FAILED'
+        });
+    }
+});
+
 // GET /api/whatsapp/chats
 router.get('/chats', async (req, res) => {
     try {
@@ -4350,7 +4371,6 @@ router.get('/chats', async (req, res) => {
             const operationalOrders = ecPhoneTails.length
                 ? await Order.find({
                     country: 'EC',
-                    status: { $in: ['confirmed', 'processing', 'shipped', 'delivered'] },
                     $or: ecPhoneTails.map((tail) => ({ 'customer.phone': { $regex: `${tail}$` } }))
                 })
                     .sort({ entryAt: -1, createdAt: -1 })
@@ -4374,7 +4394,7 @@ router.get('/chats', async (req, res) => {
                 const orderId = String(shipment?.orderId || '').trim();
                 if (orderId && !shipmentByOrderId.has(orderId)) shipmentByOrderId.set(orderId, shipment);
             });
-            const shipmentOrderIds = [...new Set(activePanelShipments.map((shipment) => shipment.orderId).filter(Boolean))];
+            const shipmentOrderIds = [...new Set(activeShipments.map((shipment) => shipment.orderId).filter(Boolean))];
             const shipmentOrders = shipmentOrderIds.length
                 ? await Order.find({ country: 'EC', orderId: { $in: shipmentOrderIds } }).lean().catch(() => [])
                 : [];
@@ -4403,16 +4423,62 @@ router.get('/chats', async (req, res) => {
                     || candidates.map((tail) => orderByPhoneTail.get(tail)).find(Boolean)
                     || null;
             };
+            const relatedOrdersByPhoneTail = new Map();
+            [...operationalOrders, ...shipmentOrders].forEach((order) => {
+                phoneTailCandidates(order?.customer?.phone).forEach((tail) => {
+                    const list = relatedOrdersByPhoneTail.get(tail) || [];
+                    if (!list.some((item) => item?.orderId === order?.orderId)) list.push(order);
+                    relatedOrdersByPhoneTail.set(tail, list);
+                });
+            });
+            const relatedShipmentsByPhoneTail = new Map();
+            activeShipments.forEach((shipment) => {
+                phoneTailCandidates(shipment?.client?.phone).forEach((tail) => {
+                    const list = relatedShipmentsByPhoneTail.get(tail) || [];
+                    if (!list.some((item) => item?.orderId === shipment?.orderId)) list.push(shipment);
+                    relatedShipmentsByPhoneTail.set(tail, list);
+                });
+            });
+            const relatedEntitiesForFastPhone = (phone = '') => {
+                const tails = phoneTailCandidates(phone).sort((a, b) => b.length - a.length);
+                const orders = [];
+                const shipments = [];
+                tails.forEach((tail) => {
+                    (relatedOrdersByPhoneTail.get(tail) || []).forEach((order) => {
+                        if (!orders.some((item) => item?.orderId === order?.orderId)) orders.push(order);
+                    });
+                    (relatedShipmentsByPhoneTail.get(tail) || []).forEach((shipment) => {
+                        if (!shipments.some((item) => item?.orderId === shipment?.orderId)) shipments.push(shipment);
+                    });
+                });
+                return { orders, shipments };
+            };
 
             const fastChats = (await Promise.all(allChats.map(async (c) => {
                 const phoneDigits = digitsOnly(c.phoneHint || c.id.user);
                 const contactState = fastContactStateForChat(c);
                 const customerDraft = contactState?.metadata?.customerDraft || {};
                 const lastMessage = lastMessageByKey.get(c.conversationKey) || null;
-                const order = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
+                const relatedEntities = countryPrefixFromDigits(phoneDigits) === 'EC'
+                    ? relatedEntitiesForFastPhone(phoneDigits)
+                    : { orders: [], shipments: [] };
+                const fallbackOrder = countryPrefixFromDigits(phoneDigits) === 'EC' ? orderForFastPhone(phoneDigits) : null;
+                if (fallbackOrder && !relatedEntities.orders.some((item) => item?.orderId === fallbackOrder.orderId)) {
+                    relatedEntities.orders.push(fallbackOrder);
+                }
+                const readModel = projectPanelCustomerReadModel({
+                    contactState,
+                    orders: relatedEntities.orders,
+                    shipments: relatedEntities.shipments,
+                    lastMessage,
+                    fallbackName: c.name || c.id.user,
+                    fallbackPhone: c.phoneHint || c.id.user
+                });
+                const order = readModel.order;
+                const selectedShipment = readModel.shipment;
                 const orderLifecycle = panelOrderLifecycle({
                     order,
-                    shipment: order?.orderId ? shipmentByOrderId.get(order.orderId) || null : null
+                    shipment: selectedShipment
                 });
                 const contactEntryAt = stableContactEntryAt(contactState);
                 const orderEntryAt = stableOrderEntryAt(order);
@@ -4431,21 +4497,22 @@ router.get('/chats', async (req, res) => {
                 const productContext = await panelProductContextForChat({
                     contactState,
                     order,
-                    customerDraft,
+                    customerDraft: readModel.customerDraft || customerDraft,
                     lastMessage,
                     phoneDigits,
                     persistChanges: false
                 });
-                const panelDraft = productContext.customerDraft || customerDraft;
+                const panelDraft = {
+                    ...(readModel.customerDraft || customerDraft),
+                    ...(productContext.customerDraft || {})
+                };
                 return {
                     id: c.id._serialized,
-                    name: resolveCustomerDisplayName({
-                        state: contactState,
-                        orderName: order?.customer?.name || '',
-                        lastMessageName: lastMessage?.notifyName || '',
-                        fallback: c.name || c.id.user
-                    }),
-                    phone: order?.customer?.phone || panelDraft.phone || c.phoneHint || c.id.user,
+                    name: readModel.displayName,
+                    contactName: readModel.conversationName,
+                    officialOrderName: readModel.officialOrderName,
+                    identityDiffers: readModel.identityDiffers,
+                    phone: readModel.phone || panelDraft.phone || c.phoneHint || c.id.user,
                     entryAt,
                     firstInboundAt: contactState?.firstInboundAt || null,
                     lastInboundAt: contactState?.lastInboundAt || null,
@@ -4464,13 +4531,20 @@ router.get('/chats', async (req, res) => {
                     } : null,
                     isGroup: c.isGroup,
                     country: contactState?.countryCode || null,
-                    city: order?.customer?.city || panelDraft.city || null,
-                    province: order?.customer?.province || panelDraft.province || null,
-                    address: order?.customer?.address || panelDraft.address || null,
-                    reference: order?.customer?.reference || panelDraft.reference || null,
+                    city: panelDraft.city || null,
+                    province: panelDraft.province || null,
+                    address: panelDraft.address || null,
+                    reference: panelDraft.reference || null,
+                    deliveryMode: panelDraft.deliveryMode || null,
+                    agencyId: panelDraft.agencyId || null,
+                    agencyName: panelDraft.agencyName || null,
                     flowDataOk: panelDraft.flowDataOk || {},
-                    orderId: order?.orderId || panelDraft.orderId || null,
-                    orderStatus: orderLifecycle.effectiveStatus || panelDraft.status || null,
+                    orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                    orderStatus: readModel.orderStatus,
+                    operationalStatus: readModel.operationalStatus,
+                    logistics: readModel.logistics,
+                    orderCandidateCount: readModel.orderCandidateCount,
+                    selectionReason: readModel.selectionReason,
                     historicalOrderId: orderLifecycle.historicalOrderId || null,
                     previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
                     quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
@@ -4618,12 +4692,46 @@ router.get('/chats', async (req, res) => {
             const customerDraft = contactState?.metadata?.customerDraft || {};
             const panelLastReadAt = panelLastReadMarkerSeconds(contactStates);
 
+            let panelOrderCandidates = order ? [order.toObject?.() || order] : [];
+            if (!fastMode && canMatchEcuadorOrder && keys.length) {
+                const orderConditions = [...keys]
+                    .sort((a, b) => b.length - a.length)
+                    .map((key) => fuzzyDigitsPattern(key))
+                    .filter(Boolean)
+                    .map((pattern) => ({ 'customer.phone': { $regex: `${pattern}\\D*$`, $options: 'i' } }));
+                if (orderConditions.length) {
+                    panelOrderCandidates = await Order.find({
+                        ...baseQuery,
+                        $or: orderConditions
+                    }).sort({ updatedAt: -1, entryAt: -1, createdAt: -1 }).limit(12).lean().catch(() => panelOrderCandidates);
+                }
+            }
+            const missingShipmentOrderIds = shipmentCandidates
+                .map((shipment) => String(shipment?.orderId || '').trim())
+                .filter((orderId) => orderId && !panelOrderCandidates.some((candidate) => candidate?.orderId === orderId));
+            if (missingShipmentOrderIds.length) {
+                const shipmentOrders = await Order.find({
+                    country: 'EC',
+                    orderId: { $in: missingShipmentOrderIds }
+                }).lean().catch(() => []);
+                panelOrderCandidates.push(...shipmentOrders);
+            }
+
             const lastMessage = lastMessageForChat || await Message.findOne(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
                     ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
                 ]
             })).sort({ timestamp: -1 }).lean().catch(() => null);
+            const readModel = projectPanelCustomerReadModel({
+                contactState,
+                orders: panelOrderCandidates,
+                shipments: shipmentCandidates,
+                lastMessage,
+                fallbackName: c.name || c.id.user,
+                fallbackPhone: phone
+            });
+            order = readModel.order || order;
             const unreadCount = await Message.countDocuments(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
@@ -4666,12 +4774,13 @@ router.get('/chats', async (req, res) => {
                 phoneDigits,
                 persistChanges: false
             });
-            const panelDraft = productContext.customerDraft || customerDraft;
+            const panelDraft = {
+                ...(readModel.customerDraft || customerDraft),
+                ...(productContext.customerDraft || {})
+            };
             const orderLifecycle = panelOrderLifecycle({
                 order,
-                shipment: order?.orderId
-                    ? shipmentCandidates.find((shipment) => shipment?.orderId === order.orderId) || null
-                    : null
+                shipment: readModel.shipment
             });
             const contactEntryAt = stableContactEntryAt(contactState);
             const orderEntryAt = stableOrderEntryAt(order);
@@ -4690,13 +4799,11 @@ router.get('/chats', async (req, res) => {
 
             return {
                 id: c.id._serialized,
-                name: resolveCustomerDisplayName({
-                    state: contactState,
-                    orderName: order?.customer?.name || '',
-                    lastMessageName: lastMessageForChat?.notifyName || '',
-                    fallback: c.name || c.id.user
-                }),
-                phone: order?.customer?.phone || panelDraft.phone || phone, // This is now the real phone number (resolved)
+                name: readModel.displayName,
+                contactName: readModel.conversationName,
+                officialOrderName: readModel.officialOrderName,
+                identityDiffers: readModel.identityDiffers,
+                phone: readModel.phone || panelDraft.phone || phone,
                 entryAt,
                 firstInboundAt: contactState?.firstInboundAt || null,
                 lastInboundAt: contactState?.lastInboundAt || null,
@@ -4716,13 +4823,20 @@ router.get('/chats', async (req, res) => {
                 isGroup: c.isGroup,
                 // Enriched Fields
                 country: order ? order.country : contactState?.countryCode || null,
-                city: order?.customer?.city || panelDraft.city || null,
-                province: order?.customer?.province || panelDraft.province || null,
-                address: order?.customer?.address || panelDraft.address || null,
-                reference: order?.customer?.reference || panelDraft.reference || null,
+                city: panelDraft.city || null,
+                province: panelDraft.province || null,
+                address: panelDraft.address || null,
+                reference: panelDraft.reference || null,
+                deliveryMode: panelDraft.deliveryMode || null,
+                agencyId: panelDraft.agencyId || null,
+                agencyName: panelDraft.agencyName || null,
                 flowDataOk: panelDraft.flowDataOk || {},
-                orderId: order ? order.orderId : panelDraft.orderId || null,
-                orderStatus: orderLifecycle.effectiveStatus || panelDraft.status || null,
+                orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                orderStatus: readModel.orderStatus,
+                operationalStatus: readModel.operationalStatus,
+                logistics: readModel.logistics,
+                orderCandidateCount: readModel.orderCandidateCount,
+                selectionReason: readModel.selectionReason,
                 historicalOrderId: orderLifecycle.historicalOrderId || null,
                 previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
                 quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
@@ -5199,23 +5313,24 @@ router.get('/customer-profile/:phone', async (req, res) => {
                 .lean()
                 .catch(() => [])
             : [];
-        const activeShipment = shipmentCandidates.find(isPanelActiveShipment);
-        const shipmentOrder = activeShipment?.orderId
-            ? (orders.find((order) => order.orderId === activeShipment.orderId)
-                || await Order.findOne({ orderId: activeShipment.orderId }).lean().catch(() => null))
-            : null;
-        const activeOrder = shipmentOrder
-            || orders.find((order) => !['delivered', 'cancelled', 'returned'].includes(String(order.status || '').toLowerCase()))
-            || orders[0]
-            || null;
-        const statusShipment = (activeOrder?.orderId
-            ? shipmentCandidates.find((shipment) => shipment.orderId === activeOrder.orderId)
-            : null) || shipmentCandidates[0] || null;
-        const operationalStatus = resolveOperationalChatStatus({
+        const missingOrderIds = shipmentCandidates
+            .map((shipment) => String(shipment?.orderId || '').trim())
+            .filter((orderId) => orderId && !orders.some((order) => order?.orderId === orderId));
+        if (missingOrderIds.length) {
+            const missingOrders = await Order.find({ country: 'EC', orderId: { $in: missingOrderIds } }).lean().catch(() => []);
+            orders.push(...missingOrders);
+        }
+        const readModel = projectPanelCustomerReadModel({
             contactState: latestState,
-            order: activeOrder,
-            shipment: statusShipment
+            orders,
+            shipments: shipmentCandidates,
+            lastMessage: messages[0] || null,
+            fallbackName: latestState?.metadata?.profileName || '',
+            fallbackPhone: primaryPhone
         });
+        const activeOrder = readModel.order;
+        const statusShipment = readModel.shipment;
+        const operationalStatus = readModel.operationalStatus;
         const googleContactSync = primaryPhone
             ? await GoogleContactSync.findOne({ phoneDigits: primaryPhone }).lean().catch(() => null)
             : null;
@@ -5248,7 +5363,10 @@ router.get('/customer-profile/:phone', async (req, res) => {
 
         res.json({
             primaryPhone,
-            displayName: activeOrder?.customer?.name || customerDraft.name || latestState?.metadata?.profileName || primaryPhone || raw,
+            displayName: readModel.displayName || primaryPhone || raw,
+            contactName: readModel.conversationName,
+            officialOrderName: readModel.officialOrderName,
+            identityDiffers: readModel.identityDiffers,
             countryCode: latestState?.countryCode || countryPrefixFromDigits(primaryPhone) || activeOrder?.country || '',
             channels: allChannels,
             stats: {
@@ -5269,7 +5387,7 @@ router.get('/customer-profile/:phone', async (req, res) => {
                 customer: activeOrder.customer || {}
             } : null,
             operationalStatus,
-            shipment: publicLogisticsStateV29(statusShipment),
+            shipment: readModel.logistics,
             googleContactSync: publicGoogleContactSync(googleContactSync),
             continuity: {
                 canContinueAcrossNumbers: true,

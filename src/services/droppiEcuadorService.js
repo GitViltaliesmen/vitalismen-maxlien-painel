@@ -4,6 +4,7 @@ import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
 import { isExplicitDropiPickupReleaseStatus } from './postSalePickupReconciliationPolicy.js';
+import { resolveStaleDropiRejectedReviewAtomic } from './dropiRejectedReviewResolutionService.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
 export const normalizeEcuadorLocalPhone = (value) => {
@@ -139,9 +140,69 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     return raw.replace(/\s+/g, '_');
 };
 
+const ECUADOR_DROPI_NAME_PARTICLES = new Set([
+    'DA', 'DAS', 'DE', 'DEL', 'DELLA', 'DI', 'DO', 'DOS', 'E', 'EL', 'LA', 'LAS', 'LOS', 'Y'
+]);
+const ECUADOR_DROPI_HUMAN_NAME_TOKEN = /^\p{L}+(?:['’\-]\p{L}+)*$/u;
+
+const normalizeEcuadorDropiCustomerName = (value) => String(value || '')
+    .normalize('NFC')
+    .replace(/[_\t\n\r]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const validateEcuadorDropiCustomerName = (value) => {
+    const rawName = String(value || '');
+    const name = normalizeEcuadorDropiCustomerName(rawName);
+    const tokens = name.split(/\s+/).filter(Boolean);
+    const normalizedTokens = tokens.map((token) => token
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase());
+    const substantiveTokens = normalizedTokens.filter((token) => (
+        token.length >= 2 && !ECUADOR_DROPI_NAME_PARTICLES.has(token)
+    ));
+
+    if (!name) {
+        return { ok: false, reason: 'empty_customer_name', name, tokens };
+    }
+    if (name.length < 5 || name.length > 100) {
+        return { ok: false, reason: 'invalid_customer_name_length', name, tokens };
+    }
+    if (/_|@|https?:\/\/|\bwww\.|\.[a-z]{2,}(?:\/|$)/iu.test(rawName)) {
+        return { ok: false, reason: 'technical_customer_name_not_allowed', name, tokens };
+    }
+    if (/\p{N}/u.test(name)) {
+        return { ok: false, reason: 'customer_name_contains_digits', name, tokens };
+    }
+    if (tokens.length < 2) {
+        return { ok: false, reason: 'customer_surname_required', name, tokens };
+    }
+    if (!tokens.every((token) => ECUADOR_DROPI_HUMAN_NAME_TOKEN.test(token))) {
+        return { ok: false, reason: 'invalid_customer_name_characters', name, tokens };
+    }
+    if (substantiveTokens.length < 2) {
+        return { ok: false, reason: 'customer_name_and_surname_required', name, tokens };
+    }
+    return {
+        ok: true,
+        reason: 'valid_customer_full_name',
+        name,
+        tokens
+    };
+};
+
 const splitClientName = (name) => {
-    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length <= 1) return { firstName: parts[0] || '', lastName: '' };
+    const validation = validateEcuadorDropiCustomerName(name);
+    if (!validation.ok) {
+        const error = new Error('Dropi bloqueada: informe o nome e o sobrenome reais do cliente. Nomes tecnicos, usuarios e nomes com numeros nao sao aceitos.');
+        error.code = 'DROPI_CUSTOMER_FULL_NAME_REQUIRED';
+        error.statusCode = 409;
+        error.reason = validation.reason;
+        error.nameValidation = validation;
+        throw error;
+    }
+    const parts = validation.tokens;
     return {
         firstName: parts.slice(0, -1).join(' '),
         lastName: parts.slice(-1).join(' ')
@@ -165,7 +226,7 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     const orderId = String(payload.orderId || '').trim();
     if (!orderId) throw new Error('orderId is required');
 
-    const shipment = await Shipment.findOne({ orderId }) || new Shipment({
+    let shipment = await Shipment.findOne({ orderId }) || new Shipment({
         orderId,
         country: 'EC'
     });
@@ -298,6 +359,22 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     shipment.events = shipment.events.slice(-60);
 
     await shipment.save();
+    const resolutionSource = payload.reconciliationSource || payload.syncSource || '';
+    const authoritativeIdentityPresent = Boolean(submittedDropiOrderId || shipment.logistics?.trackingNumber);
+    if (authoritativeIdentityPresent && resolutionSource) {
+        const resolution = await resolveStaleDropiRejectedReviewAtomic({
+            shipment,
+            evidence: {
+                source: resolutionSource,
+                orderId,
+                dropiOrderId: submittedDropiOrderId,
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                status: normalizedStatus,
+                observedAt: payload.lastStatusAt || payload.observedAt || new Date()
+            }
+        });
+        if (resolution.resolved && resolution.shipment) shipment = resolution.shipment;
+    }
     const orderStatus = normalizedStatus === 'ENTREGADO'
         ? 'delivered'
         : normalizedStatus === 'DEVUELTO'

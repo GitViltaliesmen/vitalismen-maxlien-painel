@@ -1,0 +1,76 @@
+{
+  "freezeId": "dropi-customer-full-name-v64-20260826",
+  "parentFreezeId": "protocolo-g-ad-metrics-v63-20260826",
+  "parentManifestSha256": "49511a622fff8526333f96478559eccd8db4874e6ddcf6cc17204286ddefa16c",
+  "status": "implementation_validated",
+  "publicationStatus": "local_only_no_deploy",
+  "country": "EC",
+  "operatorRequest": {
+    "date": "2026-08-26",
+    "request": "regra rigida para Dropi exigir nome e sobrenome e jamais aceitar identificador tecnico",
+    "deployRequested": false
+  },
+  "policy": {
+    "canonicalNameSource": "Order.customer.name",
+    "fullNameRequired": true,
+    "technicalIdentifierAllowed": false,
+    "allDropiSubmitPathsGuarded": true,
+    "alreadySubmittedOrderReopened": false,
+    "historicalOrdersMutated": false,
+    "whatsappSendAuthorized": false,
+    "dropiSubmitAuthorizedByThisFreeze": false,
+    "metaCapiChanged": false,
+    "productOrPriceChanged": false,
+    "postSaleOrSchedulerChanged": false,
+    "deployAuthorized": false
+  },
+  "diagnosticEvidence": {
+    "technicalAliasPhoneTail": "3940",
+    "technicalAlias": "garciajul96",
+    "historicalCanonicalName": "JULIO GARCIA",
+    "historicalDropiPayloadContainedTechnicalAlias": false,
+    "containsSecrets": false
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "scripts/guard-baileys-libsignal-security-v59.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/senior-guard.mjs",
+    "src/routes/shipments.js",
+    "src/services/droppiEcuadorService.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/AUDITORIA_GARGALOS_POS_VENDA_EC_20260826.md",
+    "docs/DROPI_CUSTOMER_FULL_NAME_FREEZE_V64_20260826.md",
+    "scripts/guard-dropi-customer-full-name-v64.mjs",
+    "src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js",
+    "tests/dropi-customer-full-name-v64.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "44de8bcbc3057305ed4df143f593eb5758cbc89007cf51fee3914ea417b300d6",
+    "docs/ARQUIVOS_OFICIAIS.md": "d0b7bbca85fdc88b9f4145089196933f19ee3b07303b6c5ecca7a13ea3e663af",
+    "package.json": "6ee28fc8563d1bb9cfb8e8fc446e44a19667ce397f34d73b2a6f21a475624fe4",
+    "scripts/guard-baileys-libsignal-security-v59.mjs": "1ba6bfd9d4cf76f13096d2ed147e6a5a4e6c80b47038816e1c1d696bd40113b2",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "6b2153be4e11f9597258c4a661e2cea89c05031e8e77abaa9382e5e867a779f6",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "2f29d8d19e36243e496d66abfca694b61b9b50a7fd96189b01ca738b7cd7e752",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "1ab14db17700d6bda5cb063d549cfde651b56401ffe587008fcb492af66f2ef1",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "e454f2340c730b32fbbdce01859979adf4ea5eb51cc24b7f1df53696dc9e9328",
+    "scripts/senior-guard.mjs": "54a931e8e22593f8b38506f3c7df782fbe8855d426ffef039c943232ee20b58b",
+    "src/routes/shipments.js": "85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4",
+    "src/services/droppiEcuadorService.js": "dd45007880275c71828641009cfd71bcb19dc5bf0e2b95a9200e61ee3d0110d8",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "7495d7d33958049c16d5fd6a6ee78658722637ef51548c9ec24b29b9053adc24",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "61b54c60c3d2257a9e1048ec93afda1ca5d371823ccabad6d3aea7266029e76c",
+    "docs/AUDITORIA_GARGALOS_POS_VENDA_EC_20260826.md": "81ea0ae8a2cbc9a175a32070d92020889fd55916e44495f48159fe2b1eb6ba8e",
+    "docs/DROPI_CUSTOMER_FULL_NAME_FREEZE_V64_20260826.md": "4e8e330fc1f7fc9fa2d203ce0a06d6efdb8be139ce79bf383d6dbf13e3e09cc7",
+    "scripts/guard-dropi-customer-full-name-v64.mjs": "07db804ccdfe6318cb1bd98f7bbee71335db8e1c0ff90ad230ba9de46b529b38",
+    "src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js": "90be9c00e590923cc85f98040c273d68b8ef51a56000486643357d89ff4e6186",
+    "tests/dropi-customer-full-name-v64.test.mjs": "d5e04ad279318c95c3a1081353d921a752353f7faf4013c13e6921fc5bca707e"
+  }
+}

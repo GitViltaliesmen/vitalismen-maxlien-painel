@@ -1,0 +1,65 @@
+{
+  "cases": [
+    {
+      "key": "9599",
+      "phone": "593999999599",
+      "orderId": "EC-FIXTURE-9599",
+      "dropiOrderId": "6659599",
+      "trackingNumber": "189400599",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": true,
+      "reviewReason": "dropi_rejected",
+      "reviewStatus": "manual_send_required",
+      "messages": []
+    },
+    {
+      "key": "7146",
+      "phone": "593990287146",
+      "orderId": "EC-FIXTURE-7146",
+      "dropiOrderId": "6657146",
+      "trackingNumber": "189400714",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": true,
+      "reviewReason": "dropi_rejected",
+      "reviewStatus": "manual_send_required",
+      "messages": [
+        "PEDIDO PARA RETIRO EN AGENCIA SERVIENTREGA. GUIA 189400714",
+        "Ya puede retirar su pedido en la agencia Servientrega con la guia 189400714"
+      ]
+    },
+    {
+      "key": "6457",
+      "phone": "593999996457",
+      "orderId": "EC-FIXTURE-6457",
+      "dropiOrderId": "6652142",
+      "trackingNumber": "189411028",
+      "status": "GUIA_GENERADA",
+      "pickupReadyVerified": false,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "reviewReason": "",
+      "reviewStatus": "",
+      "messages": [
+        "Buenas noticias, su pedido avanza por Servientrega. Guia: 189411028"
+      ]
+    },
+    {
+      "key": "4818",
+      "phone": "593999994818",
+      "orderId": "EC-FIXTURE-4818",
+      "dropiOrderId": "6654818",
+      "trackingNumber": "189405133",
+      "status": "EN_RUTA",
+      "pickupReadyVerified": false,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "reviewReason": "",
+      "reviewStatus": "",
+      "messages": []
+    }
+  ]
+}

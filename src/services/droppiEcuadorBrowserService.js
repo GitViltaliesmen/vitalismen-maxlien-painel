@@ -15,6 +15,11 @@ import {
 } from './ecuadorProductService.js';
 import { markOnlineAdminPedidoEnviado, syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { getOrderDuplicateGuard } from './orderDuplicateGuardService.js';
+import { reconcileDropiRowToShipment } from './dropiShipmentReconciliationService.js';
+import {
+    finalizeDropiSyncCycle,
+    startDropiSyncCycle
+} from './dropiSyncObservabilityService.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
 const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
@@ -2094,7 +2099,7 @@ const buildOrdersApiUrl = ({ search = '', userId = '', start = 0, resultNumber =
     return url.toString();
 };
 
-const fetchOrdersApiRows = async (page, search) => {
+const fetchOrdersApiRows = async (page, search, { maxRows = 300 } = {}) => {
     const auth = await getDropiBrowserAuth(page);
     if (!auth.token || !auth.userId) return [];
     const resultNumber = Number.parseInt(process.env.DROPPI_EC_ORDER_API_RESULT_NUMBER || '100', 10);
@@ -2115,11 +2120,49 @@ const fetchOrdersApiRows = async (page, search) => {
             return { ok: response.ok, status: response.status, body };
         }, { url, token: auth.token });
         if (!result.ok || !result.body?.isSuccess || !Array.isArray(result.body.objects)) break;
-        rows.push(...result.body.objects);
+        rows.push(...result.body.objects.slice(0, Math.max(0, maxRows - rows.length)));
+        if (rows.length >= maxRows) break;
         if (result.body.objects.length < resultNumber) break;
     }
 
     return rows;
+};
+
+const mapOrdersApiRowToActiveRow = (row = {}) => {
+    const phone = String(row?.phone || '').replace(/\D/g, '');
+    const trackingNumber = discardPhoneAsTracking(extractTrackingFromOrderRow(row, ''), phone);
+    const productInfo = resolveEcuadorProductInfo(
+        row?.product,
+        row?.product_name,
+        row?.products,
+        row?.details,
+        row
+    );
+    const dropiOrderId = String(row?.id || '').replace(/\D/g, '');
+    if (!dropiOrderId || phone.length < 8) return null;
+    const address = String(row?.dir || row?.address || '').trim();
+    const carrier = row?.distribution_company?.name
+        || row?.distributionCompany?.name
+        || row?.shipping_company
+        || (/servientrega/i.test(address) ? 'SERVIENTREGA' : '');
+    return {
+        dropiOrderId,
+        internalOrderId: row?.external_order_id || row?.reference || '',
+        productName: productInfo?.dropiName || productInfo?.name || '',
+        productKey: productInfo?.key || '',
+        clientName: apiRowClientName(row),
+        phone,
+        address,
+        city: String(row?.city || '').trim(),
+        province: String(row?.state || row?.province || '').trim(),
+        status: String(row?.status || '').trim(),
+        trackingNumber,
+        distributionCompany: String(carrier || '').trim(),
+        agencyPickup: /servientrega|agencia|retiro|retirar/i.test([address, row?.status].filter(Boolean).join(' ')),
+        agencyName: /servientrega|agencia|retiro|retirar/i.test(address) ? address : '',
+        invoiceUrl: buildDropiGuideInvoiceUrl(row),
+        source: 'dropi_orders_api'
+    };
 };
 
 const rowPhoneMatchesShipment = (rowPhoneValue = '', shipment) => {
@@ -2539,48 +2582,112 @@ export const inspectDroppiEcuadorProductTarget = async ({ product = 'Nitrix', li
     };
 };
 
-export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } = {}) => {
+export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
+    maxRows = 1000,
+    dryRun = false,
+    reportOnly = false
+} = {}) => {
+    const readOnly = Boolean(dryRun || reportOnly);
+    const cycle = await startDropiSyncCycle({ source: 'dropi_orders_api_with_dom_fallback', dryRun: readOnly });
+    const cycleEntries = [];
+    try {
     const result = await withBrowserSession(async ({ context, page }) => {
         await performLogin(page);
         await persistStorageState(context);
         await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' });
         await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
 
-        const select = page.locator('select').first();
-        if (await select.count().catch(() => 0)) {
-            await select.selectOption({ label: '1000' }).catch(() => null);
-            await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
-            await page.waitForTimeout(5000);
+        const safeMaxRows = Math.max(10, Math.min(Number(maxRows) || 1000, 1000));
+        const apiRows = await fetchOrdersApiRows(page, '', { maxRows: safeMaxRows }).catch(() => []);
+        const apiParsedRows = apiRows.map(mapOrdersApiRowToActiveRow).filter(Boolean);
+        let source = 'dropi_orders_api';
+
+        let rowTexts = [];
+        let parsedRows = apiParsedRows;
+        if (!apiParsedRows.length) {
+            source = 'dropi_panel_dom';
+            const select = page.locator('select').first();
+            if (await select.count().catch(() => 0)) {
+                await select.selectOption({ label: '1000' }).catch(() => null);
+                await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => null);
+                await page.waitForTimeout(5000);
+            }
+            rowTexts = await page.locator('table tbody tr, tr')
+                .evaluateAll((nodes, limit) => nodes
+                    .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
+                    .filter(Boolean)
+                    .slice(0, limit), safeMaxRows);
+            parsedRows = rowTexts.map(parseDropiActiveOrderRowText).filter(Boolean).map((row) => ({ ...row, source }));
+            rowTexts.forEach((text) => {
+                cycleEntries.push({ state: 'SEEN', source });
+                if (!parseDropiActiveOrderRowText(text)) cycleEntries.push({ state: 'NOT_PARSED', source, reason: 'dom_row_parser_rejected' });
+            });
+        } else {
+            apiRows.forEach((row) => {
+                cycleEntries.push({ state: 'SEEN', source, dropiOrderId: row?.id || '', phone: row?.phone || '' });
+                if (!mapOrdersApiRowToActiveRow(row)) cycleEntries.push({ state: 'NOT_PARSED', source, reason: 'api_row_missing_identity', dropiOrderId: row?.id || '' });
+            });
         }
-
-        const rowTexts = await page.locator('table tbody tr, tr')
-            .evaluateAll((nodes, limit) => nodes
-                .map((node) => String(node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim())
-                .filter(Boolean)
-                .slice(0, limit), Math.max(10, Math.min(Number(maxRows) || 1000, 1000)));
-
-        const parsedRows = rowTexts
-            .map(parseDropiActiveOrderRowText)
-            .filter(Boolean);
         const uniqueRows = [...new Map(parsedRows.map((row) => [row.trackingNumber || row.dropiOrderId, row])).values()];
         const synced = [];
         const skipped = [];
 
         for (const row of uniqueRows) {
-            const existing = await findExistingShipmentForDropiActiveRow(row);
-            if (existing && !dropiRowProductMatchesShipment(row, existing)) {
-                skipped.push({
-                    orderId: existing.orderId,
+            cycleEntries.push({
+                state: 'PARSED',
+                source,
+                dropiOrderId: row.dropiOrderId,
+                trackingNumber: row.trackingNumber,
+                phone: row.phone,
+                productKey: row.productKey || resolveEcuadorProductInfo(row.productName)?.key || ''
+            });
+            const reconciliation = await reconcileDropiRowToShipment({ row });
+            if (reconciliation.state !== 'MATCHED') {
+                const skippedItem = {
+                    orderId: '',
                     dropiOrderId: row.dropiOrderId,
                     phoneTail: String(row.phone || '').slice(-4),
-                    status: existing.logistics?.status || '',
-                    trackingNumber: existing.logistics?.trackingNumber || '',
-                    reason: 'product_mismatch'
+                    status: row.status || '',
+                    trackingNumber: row.trackingNumber || '',
+                    reason: reconciliation.reason,
+                    reconciliationState: reconciliation.state,
+                    matchType: reconciliation.matchType || ''
+                };
+                skipped.push(skippedItem);
+                cycleEntries.push({
+                    state: reconciliation.state,
+                    source,
+                    reason: reconciliation.reason,
+                    dropiOrderId: row.dropiOrderId,
+                    trackingNumber: row.trackingNumber,
+                    phone: row.phone,
+                    productKey: row.productKey || '',
+                    matchType: reconciliation.matchType || ''
                 });
                 continue;
             }
-            const shipment = await upsertDroppiEcuadorShipment({
-                orderId: existing?.orderId || `EC-DROPI-${row.dropiOrderId}`,
+            const existing = reconciliation.shipment;
+            cycleEntries.push({
+                state: 'MATCHED',
+                source,
+                orderId: existing.orderId,
+                dropiOrderId: row.dropiOrderId,
+                trackingNumber: row.trackingNumber,
+                phone: row.phone,
+                productKey: row.productKey || '',
+                matchType: reconciliation.matchType
+            });
+            const changedFields = [
+                String(existing.logistics?.status || '') !== String(row.status || '') ? 'logistics.status' : '',
+                row.trackingNumber && String(existing.logistics?.trackingNumber || '') !== String(row.trackingNumber) ? 'logistics.trackingNumber' : '',
+                row.dropiOrderId && ![
+                    existing.raw?.manualDropiOrderId,
+                    existing.raw?.latestDroppiPayload?.dropiOrderId,
+                    existing.raw?.droppiOrder?.id
+                ].map(String).includes(String(row.dropiOrderId)) ? 'raw.dropiOrderId' : ''
+            ].filter(Boolean);
+            const shipment = readOnly ? existing : await upsertDroppiEcuadorShipment({
+                orderId: existing.orderId,
                 productName: row.productName,
                 clientName: row.clientName,
                 phone: row.phone,
@@ -2593,8 +2700,10 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } 
                 chosenCarrier: row.distributionCompany,
                 agencyPickup: row.agencyPickup,
                 agencyName: row.agencyName,
+                invoiceUrl: row.invoiceUrl || '',
                 sessionId: existing?.automation?.sessionId || '',
                 dropiOrderId: row.dropiOrderId,
+                reconciliationSource: source,
                 detail: `Sincronizacao automatica do painel Dropi ativo; guia ${row.trackingNumber}; status original: ${row.status}`
             });
 
@@ -2604,25 +2713,54 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({ maxRows = 1000 } 
                 phoneTail: String(row.phone || '').slice(-4),
                 status: shipment.logistics?.status || '',
                 trackingNumber: shipment.logistics?.trackingNumber || '',
-                guideAlreadyNotified: Boolean(shipment.automation?.guiaNotifiedAt)
+                guideAlreadyNotified: Boolean(shipment.automation?.guiaNotifiedAt),
+                dryRun: readOnly,
+                changedFields,
+                matchType: reconciliation.matchType
             };
             if (shipment.logistics?.status === 'ENTREGADO') skipped.push({ ...item, reason: 'delivered' });
             else synced.push(item);
+            cycleEntries.push({
+                state: changedFields.length ? 'UPDATED' : 'UNCHANGED',
+                source,
+                orderId: shipment.orderId,
+                dropiOrderId: row.dropiOrderId,
+                trackingNumber: row.trackingNumber,
+                phone: row.phone,
+                productKey: row.productKey || '',
+                matchType: reconciliation.matchType,
+                changedFields
+            });
         }
 
         return {
-            rowCount: rowTexts.length,
+            source,
+            rowCount: apiRows.length || rowTexts.length,
             parsed: parsedRows.length,
             unique: uniqueRows.length,
+            dryRun: readOnly,
             synced,
             skipped
         };
     });
-
+    const finalizedCycle = await finalizeDropiSyncCycle({ cycleId: cycle.cycleId, entries: cycleEntries });
     return {
         ok: true,
+        cycleId: cycle.cycleId,
+        cycle: finalizedCycle,
         ...result
     };
+    } catch (error) {
+        cycleEntries.push({ state: 'ERROR', source: 'dropi_orders_api_with_dom_fallback', reason: error?.code || error?.message || 'sync_failed' });
+        await finalizeDropiSyncCycle({
+            cycleId: cycle.cycleId,
+            entries: cycleEntries,
+            failed: true,
+            errorCode: error?.code || error?.message || 'sync_failed'
+        }).catch(() => null);
+        error.dropiSyncCycleId = cycle.cycleId;
+        throw error;
+    }
 };
 
 const cleanSubmitToken = (value) => String(value || '').replace(/\s+/g, '').trim();
@@ -3080,7 +3218,8 @@ export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
             agencyName: result.agencyName || shipment.logistics.agencyName,
             invoiceUrl: result.invoiceUrl || shipment.logistics.invoiceUrl,
             sessionId: shipment.automation.sessionId,
-            dropiOrderId: result.dropiOrderId || ''
+            dropiOrderId: result.dropiOrderId || '',
+            reconciliationSource: result.source === 'orders_api_v2' ? 'dropi_orders_api' : 'dropi_panel'
         });
 
         await updateBrowserState(shipment._id, 'sync_completed', {

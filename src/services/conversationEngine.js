@@ -26,6 +26,7 @@ import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js
 import { orderLooksClosedForRepurchase } from './orderDuplicateGuardService.js';
 import { searchDroppiEcuadorOrdersFromPanel, syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
+import { classifyDropiShipmentMatch } from './dropiShipmentReconciliationService.js';
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
@@ -7224,8 +7225,15 @@ const syncShipmentFromDropiPhoneLookup = async (shipment = null) => {
     if (!terms.length) return null;
     const result = await searchDroppiEcuadorOrdersFromPanel({ terms, limit: 5 });
     if (!result?.ok || !Array.isArray(result.rows) || !result.rows.length) return null;
-    const row = result.rows.find((item) => rowMatchesShipmentPhone(item, shipment)) || result.rows[0];
-    if (!row) return null;
+    const matchedRows = result.rows
+        .filter((item) => rowMatchesShipmentPhone(item, shipment))
+        .map((row) => ({ row, match: classifyDropiShipmentMatch({ row, candidates: [shipment] }) }))
+        .filter((item) => item.match.state === 'MATCHED');
+    if (matchedRows.length !== 1) {
+        console.warn(`[DROPI-INBOUND] reconciliacao fechada -> order=${shipment.orderId || ''} matches=${matchedRows.length}`);
+        return null;
+    }
+    const row = matchedRows[0].row;
     const synced = await upsertDroppiEcuadorShipment({
         orderId: shipment.orderId,
         productName: row.productName || shipment.productName || 'Vit Power',
@@ -7242,6 +7250,7 @@ const syncShipmentFromDropiPhoneLookup = async (shipment = null) => {
         agencyName: row.agencyName || shipment.logistics?.agencyName || '',
         sessionId: shipment.automation?.sessionId || '',
         dropiOrderId: row.dropiOrderId || '',
+        reconciliationSource: 'dropi_panel',
         detail: `Sincronizacao sob demanda por telefone no inbound WhatsApp; termo(s): ${terms.join(', ')}`
     });
     return synced?.toObject ? synced.toObject() : synced;

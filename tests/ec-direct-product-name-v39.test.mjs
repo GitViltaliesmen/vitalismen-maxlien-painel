@@ -126,7 +126,8 @@ test('painel usa nome salvo no cabeçalho e preenche a ficha automaticamente', (
     assert.match(panel, /const displayIdentity = displayName && displayName !== displayPhone/);
     assert.match(panel, /activeMeta.*displayIdentity/);
     assert.match(panel, /chat\.name \|\| chat\.customerDraft\?\.name \|\| chat\.profileName/);
-    assert.match(whatsapp, /resolveCustomerDisplayName/);
+    assert.match(whatsapp, /projectPanelCustomerReadModel/);
+    assert.match(whatsapp, /officialOrderName/);
     assert.match(zapi, /applyInboundCustomerNameEvidence/);
     assert.match(zapi, /submittedName: vslProductContext\?\.submittedName/);
 });
