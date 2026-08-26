@@ -179,3 +179,20 @@ test('registro V62 comprova VSL, painel, rollback e ausência de efeito externo'
     assert.match(result, /Nenhum lead de painel,[\s\S]*evento Meta\/CAPI ou Purchase foi criado ou reenviado/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V63 comprova corte por anúncio, HTML público, rollback e zero efeito externo', () => {
+    const result = readFileSync(
+        'docs/PROTOCOLO_G_AD_METRICS_ACTIVATION_RESULT_V63_20260826.md',
+        'utf8'
+    );
+    assert.match(result, /cc85952b6d1cfb80f53bbaae2d5257167a46698d/);
+    assert.match(result, /20260826T054900Z_production-20260826-cc85952/);
+    assert.match(result, /PID do processo `vitalismen-automation`: `2857447` antes e `2861546`/);
+    assert.match(result, /vitalismen-funnel-metrics-v63\/20260826T055500Z\/funnel-metrics\.html/);
+    assert.match(result, /841cb396ad02f1312ddc77ae6504ad737fb3fa4de4052ff607696d3c0ff4c086/);
+    assert.match(result, /`120248704142390355` \| 1 \| 0 \| 0 \| 0 \| 0 \| 0 \| 0/);
+    assert.match(result, /`120248709923060355` \| 0 \| 0 \| 0 \| 0 \| 0 \| 0 \| 0/);
+    assert.match(result, /Nenhum cliente real recebeu mensagem durante a validação/);
+    assert.match(result, /Nenhum lead, pedido,[\s\S]*evento Meta\/CAPI ou Purchase foi criado, reenviado ou modificado/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
