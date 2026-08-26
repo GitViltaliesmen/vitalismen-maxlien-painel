@@ -71,7 +71,7 @@ Arquivos compartilhados preservados:
 - produto, preços, checkout, pedidos e Dropi;
 - Dataset, Pixel, eventos Meta/CAPI e Purchase;
 - funil WhatsApp, vendedor, mídias, áudios, memória e schedulers;
-- demais VSLs do Equador e qualquer fluxo de Colômbia.
+- demais VSLs do Equador.
 
 Nenhum cliente real recebeu mensagem de validação. Nenhum lead de painel,
 pedido, envio Dropi, evento Meta/CAPI ou Purchase foi criado ou reenviado.
