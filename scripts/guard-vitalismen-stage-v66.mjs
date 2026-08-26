@@ -28,6 +28,14 @@ assert.match(source, /POST_SALE_V66_MUTATIONS_AUTHORIZATION=/);
 assert.match(source, /POST_SALE_V66_BRIDGE_APPLY_APPROVED=/);
 assert.match(source, /DISABLE_SCHEDULER=1/);
 assert.match(source, /mutatingSchedulersRegistered": 0/);
+assert.match(source, /docs\/freeze\/runtime-guard-chain-v67-20260826\.json/);
+assert.match(source, /src\/services\/runtimeGuardChainFreezeRuntimeGuardV67\.js/);
+assert.doesNotMatch(source, /src\/services\/(?:dropiCustomerFullName|postSaleGargalos)FreezeRuntimeGuardV(?:64|65)\.js/);
+assert.ok(
+    source.indexOf('src/services/runtimeGuardChainFreezeRuntimeGuardV67.js')
+        < source.indexOf('scripts/guard-post-sale-safety-v66.mjs'),
+    'helper deve validar a cadeia V67 antes do guard estático V66'
+);
 assert.match(source, /v66-plan/);
 assert.match(source, /DRY_RUN_WRITES=0/);
 assert.match(source, /activate legado bloqueado/);

@@ -1272,3 +1272,22 @@ Contrato, incidente, inventário e matriz:
 
 Estado desta candidata: somente branch local; produção permanece parada; sem
 deploy, push, merge, tag, mensagem, pedido Dropi ou mutação de banco.
+
+## 2026-08-26 — V67: cadeia canônica de guards
+
+A V67 formaliza uma única entrada runtime para o tree sucessor:
+`npm run guard:runtime-chain-v67`. O executável reconstrói no início de cada
+processo o contexto de `declaredAncestorOverrides`, aguarda V66 e toda a sua
+linhagem no mesmo processo e não captura falhas ancestrais. O preflight de
+código-fonte usa `npm run guard:predeploy-v67`.
+
+Executáveis runtime crus V64/V65 continuam representando seus freezes
+isolados. Eles não são gates válidos sobre um tree sucessor porque o estado
+`globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES` é local ao processo. A
+integridade V47/V64/V65/V66 no tree atual é comprovada pela cadeia sucessora,
+enquanto os testes funcionais isolados permanecem nos aliases de regressão.
+
+V47, V64, V65 e V66 não foram alterados. A compatibilidade persistente
+continua V66; a V67 não muda startup, scheduler, WhatsApp, Dropi, Mongo,
+produto, preço, funil ou rollback. Contrato completo:
+`docs/GUARD_CHAIN_SEMANTICS_FREEZE_V67_20260826.md`.

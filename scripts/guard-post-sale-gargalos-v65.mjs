@@ -29,7 +29,7 @@ assert.equal(manifest.policy.historicalApplyExecuted, false);
 assert.equal(manifest.policy.whatsappSendAuthorized, false);
 assert.equal(manifest.policy.dropiSubmitAuthorizedByThisFreeze, false);
 assert.equal(manifest.policy.deployAuthorized, false);
-assert.match(entry, /postSaleGargalosFreezeRuntimeGuardV65\.js/);
+assert.match(entry, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(runtime, /dropiCustomerFullNameFreezeRuntimeGuardV64\.js/);
 assert.match(search, /searchPanelCustomersGlobally/);
 assert.match(search, /readOnly:\s*true/);

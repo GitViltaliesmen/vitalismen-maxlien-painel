@@ -24,7 +24,7 @@ assert.equal(manifest.policy.manualOnlyAutomaticOutboundAllowed, false);
 assert.equal(manifest.policy.blockedCandidateCanStarveQueue, false);
 assert.equal(manifest.policy.massBacklogReplayAllowed, false);
 assert.equal(manifest.policy.repurchaseProductIsolation, true);
-assert.match(entryGuard, /postSaleHealthRecoveryFreezeRuntimeGuardV53\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(historyPolicy, /logistics_pickup_reminder:\$\{pickupReminderStage\}/);
 assert.match(shipment, /'review\.manualOnly': \{ \$ne: true \}/);
 assert.match(shipment, /for \(const item of allDueItems\)/);

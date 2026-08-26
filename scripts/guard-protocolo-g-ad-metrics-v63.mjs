@@ -44,7 +44,7 @@ for (const field of [
 assert.match(dashboard, /Por anúncio — somente pós-correção/);
 assert.match(dashboard, /Válido desde/);
 assert.match(dashboard, /Amostra \$\{landings\}\/20/);
-assert.match(entry, /(?:protocoloGAdMetricsFreezeRuntimeGuardV63|dropiCustomerFullNameFreezeRuntimeGuardV64|postSaleGargalosFreezeRuntimeGuardV65)\.js/);
+assert.match(entry, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(packageJson.scripts.test, /guard:protocolo-g-ad-metrics-v63/);
 assert.match(packageJson.scripts['senior:check'], /protocolo-g-ad-metrics-v63\.test\.mjs/);
 assert.match(packageJson.scripts['deploy:v63'], /assert-protocolo-g-ad-metrics-activation-approved-v63\.mjs/);

@@ -19,7 +19,7 @@ assert.equal(manifest.policy.qaPhoneCanaryAuthorized, true);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.otherProductMediaChanged, false);
-assert.match(entryGuard, /panelTexUltraBottleBlockFreezeRuntimeGuardV58\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.equal(fs.existsSync('public/media/sales/ec/tex_ultra.png'), true);
 assert.doesNotMatch(panel, /tex_ultra_bottle\.png/);
 assert.match(panel, /label: 'Frasco Tex Ultra', value: '\/media\/sales\/ec\/tex_ultra\.png'/);

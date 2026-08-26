@@ -20,7 +20,7 @@ assert.equal(manifest.policy.manualMediaUsesClientGeneratedId, true);
 assert.equal(manifest.policy.failedManualMediaDisappearsImmediately, false);
 assert.equal(manifest.policy.realClientSendForValidation, false);
 assert.equal(manifest.policy.automaticOutboundChanged, false);
-assert.match(entryGuard, /panelMediaPersistenceFreezeRuntimeGuardV52\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(whatsapp, /isPickupStageAudioCandidate\(\{/);
 assert.doesNotMatch(whatsapp, /chegou\|pickup\|retir\|agencia\|ready/);
 assert.match(logistics, /PICKUP_STAGE_AUDIO_TOKEN/);

@@ -15,7 +15,7 @@ assert.equal(manifest.policy.healthReadOnly, true);
 assert.equal(manifest.policy.activeFunnelReplyRouted, true);
 assert.equal(manifest.policy.automaticHistoricalReplay, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
-assert.match(entryGuard, /(?:whatsappOutageRecoveryFreezeRuntimeGuardV49|panelManualEditPersistenceFreezeRuntimeGuardV50)\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(parentGuard, /inheritedSuccessorOverrides/);
 assert.match(parentGuard, /successorOverrides\.has\(relativePath\)/);
 assert.match(bucket, /activeEcCommercialFunnelStage/);

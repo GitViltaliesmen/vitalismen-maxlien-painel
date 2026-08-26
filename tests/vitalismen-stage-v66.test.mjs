@@ -92,11 +92,16 @@ function createRelease(fixture, { releaseName, commit, compatibility = 'PASS', c
         });
         fs.mkdirSync(path.join(releaseDir, 'docs', 'freeze'), { recursive: true });
         fs.mkdirSync(path.join(releaseDir, 'scripts'), { recursive: true });
+        fs.mkdirSync(path.join(releaseDir, 'src', 'services'), { recursive: true });
         writeJson(path.join(releaseDir, 'docs', 'freeze', 'post-sale-safety-v66-20260826.json'), {
+            status: 'implementation_validated'
+        });
+        writeJson(path.join(releaseDir, 'docs', 'freeze', 'runtime-guard-chain-v67-20260826.json'), {
             status: 'implementation_validated'
         });
         fs.writeFileSync(path.join(releaseDir, 'scripts', 'assert-post-sale-data-compatibility-v66.mjs'), '// synthetic harness\n');
         fs.writeFileSync(path.join(releaseDir, 'scripts', 'guard-post-sale-safety-v66.mjs'), '// synthetic harness\n');
+        fs.writeFileSync(path.join(releaseDir, 'src', 'services', 'runtimeGuardChainFreezeRuntimeGuardV67.js'), '// synthetic harness\n');
     }
     return releaseDir;
 }

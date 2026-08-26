@@ -206,6 +206,10 @@ validate_v66_release() {
   [[ -f "$candidate_dir/.staging-complete.json" ]] || die "staging-complete ausente"
   [[ -f "$candidate_dir/docs/freeze/post-sale-safety-v66-20260826.json" ]] ||
     die "manifesto V66 ausente"
+  [[ -f "$candidate_dir/docs/freeze/runtime-guard-chain-v67-20260826.json" ]] ||
+    die "manifesto da cadeia canônica V67 ausente"
+  [[ -f "$candidate_dir/src/services/runtimeGuardChainFreezeRuntimeGuardV67.js" ]] ||
+    die "runtime guard canônico V67 ausente"
   [[ -f "$candidate_dir/scripts/assert-post-sale-data-compatibility-v66.mjs" ]] ||
     die "preflight V66 ausente"
   [[ -f "$candidate_dir/scripts/guard-post-sale-safety-v66.mjs" ]] ||
@@ -264,7 +268,7 @@ NODE
   if [[ -n "$guard_runner" ]]; then
     "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
   else
-    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/postSaleSafetyFreezeRuntimeGuardV66.js >/dev/null
+    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/runtimeGuardChainFreezeRuntimeGuardV67.js >/dev/null
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
 }
@@ -1024,6 +1028,10 @@ run_protected post_sale_data_compatibility_v66 \
   /usr/bin/env -C "$release_dir" /usr/bin/node \
   scripts/assert-post-sale-data-compatibility-v66.mjs \
   "--target-metadata=$release_dir/.release-source.json"
+
+run_protected runtime_guard_chain_v67 \
+  /usr/bin/env -C "$release_dir" /usr/bin/node \
+  src/services/runtimeGuardChainFreezeRuntimeGuardV67.js
 
 run_protected post_sale_safety_guard_v66 \
   /usr/bin/env -C "$release_dir" /usr/bin/node \

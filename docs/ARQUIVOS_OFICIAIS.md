@@ -884,3 +884,24 @@ Arquivos oficiais da correção:
 Estado: release candidate local em preparação. Bridge não executado, estado
 persistente V66 não criado, mutações operacionais desabilitadas por padrão e
 nenhuma alteração realizada no VPS.
+
+## Candidata local V67 — cadeia canônica de guards — 2026-08-26
+
+- Parent imutável: manifesto V66 com SHA-256
+  `f00afd694d897bfc5d92da69c173bd834612319250b32909b578765b608d2cb9`.
+- Runtime canônico:
+  `src/services/runtimeGuardChainFreezeRuntimeGuardV67.js`.
+- Contexto formal e escopado:
+  `src/services/successorGuardContextService.js`.
+- Guard estático e testes:
+  `scripts/guard-runtime-chain-v67.mjs` e
+  `tests/runtime-guard-chain-v67.test.mjs`.
+- Freeze/manifest:
+  `docs/GUARD_CHAIN_SEMANTICS_FREEZE_V67_20260826.md` e
+  `docs/freeze/runtime-guard-chain-v67-20260826.json`.
+- Helper-fonte auditado: `ops/vitalismen-stage`; o helper instalado não foi
+  alterado e depende de autorização posterior.
+- Produção de referência preservada:
+  `/opt/vitalismen-automacao/releases/20260826T215201Z_production-20260826-c97c298`,
+  runtime parado. Nenhum staging, deploy, permit, bridge, mensagem, Dropi ou
+  mutação de banco foi executado pela V67.

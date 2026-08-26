@@ -23,7 +23,7 @@ assert.equal(manifest.policy.realClientCanaryAuthorized, false);
 assert.equal(manifest.policy.whatsappSendAuthorized, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
-assert.match(entryGuard, /panelCustomerFormPersistenceFreezeRuntimeGuardV55\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(panel, /customer-form-persistence-guard-v55\.js/);
 assert.match(panel, /protectFormPhone/);
 assert.match(route, /materializePanelAgencyAddress/);
