@@ -164,3 +164,18 @@ test('registro V58 comprova frasco, valores, PM2 e canario somente no QA', () =>
     assert.match(result, /Nenhum cliente real recebeu validacao/);
     assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
 });
+
+test('registro V62 comprova VSL, painel, rollback e ausência de efeito externo', () => {
+    const result = readFileSync(
+        'docs/PROTOCOLO_G_CONVERSION_ACTIVATION_RESULT_V62_20260826.md',
+        'utf8'
+    );
+    assert.match(result, /10dd893c0299fce65c029c9421c4854b753eaad5/);
+    assert.match(result, /20260826T051500Z_production-20260826-10dd893/);
+    assert.match(result, /PID do processo `vitalismen-automation`: `2736475` antes e `2857447`/);
+    assert.match(result, /protocolo-g-v62-20260826-0514Z/);
+    assert.match(result, /CTA antecipada não existe no HTML inicial/);
+    assert.match(result, /Nenhum cliente real recebeu mensagem de validação/);
+    assert.match(result, /Nenhum lead de painel,[\s\S]*evento Meta\/CAPI ou Purchase foi criado ou reenviado/);
+    assert.doesNotMatch(result, /ZAPI_(?:INSTANCE_TOKEN|CLIENT_TOKEN)\s*=/i);
+});
