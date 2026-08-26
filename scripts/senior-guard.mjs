@@ -138,7 +138,9 @@ const productScopedProtocolFiles = new Set([
     'src/services/funnelMetricsService.js',
     // Autorizacao V62: sucessor restrito a CTA secundaria e observabilidade
     // exclusiva do Protocolo G, sem alterar o funil comercial EC.
-    'src/services/protocoloGConversionFreezeRuntimeGuardV62.js'
+    'src/services/protocoloGConversionFreezeRuntimeGuardV62.js',
+    // Autorizacao V63: corte pos-correcao e metricas por anuncio, somente leitura.
+    'src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

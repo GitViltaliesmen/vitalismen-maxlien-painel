@@ -1181,3 +1181,22 @@ um bloco separado para `https://vilaliemen.shop/protocolo-g`. Assim, outras
 VSLs EC não entram nos marcos de vídeo, formulário e CTA do Protocolo G.
 Produto, preço, checkout, pedido, Dropi, Dataset, Purchase, funil WhatsApp,
 mídia, áudio, scheduler e memória comercial permanecem inalterados.
+
+## Microcamada V63 — métricas pós-correção por anúncio do Protocolo G
+
+O freeze `docs/PROTOCOLO_G_AD_METRICS_FREEZE_V63_20260826.md` sucede a V62
+somente na leitura autenticada de métricas. O bloco Protocolo G usa como corte
+imutável `2026-08-26T05:13:18.000Z`, instante da ativação V62, e não soma nele
+cliques, conversas, vendas ou Purchases anteriores ao novo contrato de etapas.
+
+A projeção de visitas inclui somente os identificadores publicitários já
+persistidos (`campaignId`, `adsetId`, `adId`, placement e nomes UTM). O serviço
+agrupa landing, reprodução, retenção, CTA, formulário, WhatsApp, conversa,
+venda e Purchase por anúncio. A interface declara amostra insuficiente abaixo
+de 20 landings por anúncio e mantém o agregado `EC geral` separado.
+
+Esta camada é somente leitura: não altera a VSL, o player, a CTA aos 12
+minutos, anúncios, orçamento, Meta/CAPI, Dataset, Purchase, WhatsApp, pedido,
+produto, preço, checkout, Dropi, mídia, áudio, memória ou scheduler. Dados
+históricos continuam intactos no banco e apenas deixam de entrar no bloco
+pós-correção do Protocolo G.

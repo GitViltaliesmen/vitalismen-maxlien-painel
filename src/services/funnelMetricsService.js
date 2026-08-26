@@ -2,6 +2,7 @@ import { isEcuadorTexUltraProtocoloG } from './metaProtocoloGAttributionService.
 
 const ECUADOR_UTC_OFFSET_MS = -5 * 60 * 60 * 1000;
 const PURCHASE_ELIGIBLE_STATUSES = new Set(['confirmed', 'processing', 'shipped', 'delivered']);
+export const PROTOCOLO_G_MEASUREMENT_STARTED_AT = '2026-08-26T05:13:18.000Z';
 
 const asDate = (value) => {
     if (!value) return null;
@@ -99,6 +100,80 @@ const protocoloGRowTemplate = (day) => ({
     purchasesSent: 0
 });
 
+const protocoloGAdTemplate = ({
+    campaignId = '',
+    adsetId = '',
+    adId = '',
+    campaignName = '',
+    adName = '',
+    placement = ''
+} = {}) => ({
+    campaignId,
+    adsetId,
+    adId,
+    campaignName,
+    adName,
+    placements: placement ? [placement] : [],
+    landing: 0,
+    videoStarted: 0,
+    watched25: 0,
+    watched50: 0,
+    earlyCtaVisible: 0,
+    formOpened: 0,
+    formSubmitted: 0,
+    whatsappClicks: 0,
+    attributedConversations: 0,
+    salesCreated: 0,
+    purchasesSent: 0
+});
+
+const trackingName = (value, id) => {
+    const name = String(value || '').trim();
+    const suffix = id ? `|${id}` : '';
+    return suffix && name.endsWith(suffix) ? name.slice(0, -suffix.length).trim() : name;
+};
+
+const protocoloGAdIdentity = (source = {}, { order = false } = {}) => {
+    const tracking = source.tracking || {};
+    const campaignId = String(order ? tracking.campaign_id || '' : source.campaignId || '').trim();
+    const adsetId = String(order ? tracking.adset_id || '' : source.adsetId || '').trim();
+    const adId = String(order ? tracking.ad_id || '' : source.adId || '').trim();
+    return {
+        key: adId || `sem-ad-id:${campaignId}:${adsetId}`,
+        campaignId,
+        adsetId,
+        adId,
+        campaignName: trackingName(tracking.utm_campaign, campaignId),
+        adName: trackingName(tracking.utm_content, adId),
+        placement: String(order ? tracking.placement || '' : source.placement || '').trim()
+    };
+};
+
+const addProtocoloGAdMetric = (rowsByAd, source, field, { order = false } = {}) => {
+    const identity = protocoloGAdIdentity(source, { order });
+    let row = rowsByAd.get(identity.key);
+    if (!row) {
+        row = protocoloGAdTemplate(identity);
+        rowsByAd.set(identity.key, row);
+    }
+    row[field] += 1;
+    if (identity.placement && !row.placements.includes(identity.placement)) {
+        row.placements.push(identity.placement);
+    }
+};
+
+const finishProtocoloGAdRow = (row) => ({
+    ...row,
+    videoStartRate: percentage(row.videoStarted, row.landing),
+    watched25Rate: percentage(row.watched25, row.videoStarted),
+    watched50Rate: percentage(row.watched50, row.videoStarted),
+    formOpenRate: percentage(row.formOpened, row.landing),
+    formSubmitRate: percentage(row.formSubmitted, row.formOpened),
+    whatsappRate: percentage(row.whatsappClicks, row.landing),
+    conversationRate: percentage(row.attributedConversations, row.whatsappClicks),
+    salesRate: percentage(row.salesCreated, row.landing)
+});
+
 const addToDay = (rowsByDay, value, field, amount = 1) => {
     const row = rowsByDay.get(ecuadorDayKey(value));
     if (row) row[field] += finiteNumber(amount);
@@ -180,6 +255,12 @@ export const buildFunnelMetricsSnapshot = ({
     const rowsByDay = new Map();
     const protocoloGRows = [];
     const protocoloGRowsByDay = new Map();
+    const protocoloGRowsByAd = new Map();
+    const protocoloGMeasurementStartedAt = asDate(PROTOCOLO_G_MEASUREMENT_STARTED_AT);
+    const protocoloGStartAt = new Date(Math.max(
+        range.startAt.getTime(),
+        protocoloGMeasurementStartedAt.getTime()
+    ));
     const firstDay = ecuadorDayKey(range.startAt);
     const [year, month, date] = firstDay.split('-').map(Number);
 
@@ -219,15 +300,18 @@ export const buildFunnelMetricsSnapshot = ({
             ['formOpenedAt', 'formOpened'],
             ['formSubmittedAt', 'formSubmitted']
         ].forEach(([timestamp, field]) => {
-            if (isWithin(stages[timestamp], range.startAt, range.endAt)) {
+            if (isWithin(stages[timestamp], protocoloGStartAt, range.endAt)) {
                 addToDay(protocoloGRowsByDay, stages[timestamp], field);
+                addProtocoloGAdMetric(protocoloGRowsByAd, visit, field);
             }
         });
-        if (isWithin(visit.lastClickAt, range.startAt, range.endAt)) {
+        if (isWithin(visit.lastClickAt, protocoloGStartAt, range.endAt)) {
             addToDay(protocoloGRowsByDay, visit.lastClickAt, 'whatsappClicks');
+            addProtocoloGAdMetric(protocoloGRowsByAd, visit, 'whatsappClicks');
         }
-        if (isWithin(visit.attributionClaimedAt, range.startAt, range.endAt)) {
+        if (isWithin(visit.attributionClaimedAt, protocoloGStartAt, range.endAt)) {
             addToDay(protocoloGRowsByDay, visit.attributionClaimedAt, 'attributedConversations');
+            addProtocoloGAdMetric(protocoloGRowsByAd, visit, 'attributedConversations');
         }
     });
 
@@ -243,11 +327,13 @@ export const buildFunnelMetricsSnapshot = ({
             addToDay(rowsByDay, sentAt, 'purchaseValueSent', order.total);
         }
         if (!isEcuadorTexUltraProtocoloG(order)) return;
-        if (isWithin(createdAt, range.startAt, range.endAt)) {
+        if (isWithin(createdAt, protocoloGStartAt, range.endAt)) {
             addToDay(protocoloGRowsByDay, createdAt, 'salesCreated');
+            addProtocoloGAdMetric(protocoloGRowsByAd, order, 'salesCreated', { order: true });
         }
-        if (isWithin(sentAt, range.startAt, range.endAt)) {
+        if (isWithin(sentAt, protocoloGStartAt, range.endAt)) {
             addToDay(protocoloGRowsByDay, sentAt, 'purchasesSent');
+            addProtocoloGAdMetric(protocoloGRowsByAd, order, 'purchasesSent', { order: true });
         }
     });
 
@@ -315,6 +401,14 @@ export const buildFunnelMetricsSnapshot = ({
     protocoloGTotals.whatsappRate = percentage(protocoloGTotals.whatsappClicks, protocoloGTotals.landing);
     protocoloGTotals.conversationRate = percentage(protocoloGTotals.attributedConversations, protocoloGTotals.whatsappClicks);
     protocoloGTotals.salesRate = percentage(protocoloGTotals.salesCreated, protocoloGTotals.landing);
+    const protocoloGAds = [...protocoloGRowsByAd.values()]
+        .map(finishProtocoloGAdRow)
+        .sort((left, right) => (
+            right.landing - left.landing
+            || right.whatsappClicks - left.whatsappClicks
+            || right.salesCreated - left.salesCreated
+            || left.adId.localeCompare(right.adId)
+        ));
 
     correlations.forEach((correlation) => {
         if (!isWithin(correlation.evaluatedAt, range.startAt, range.endAt)) return;
@@ -366,12 +460,14 @@ export const buildFunnelMetricsSnapshot = ({
         rows,
         totals,
         protocoloG: {
-            version: 'V62',
+            version: 'V63',
             productKey: 'tex_ultra_ec',
             funnel: 'PROTOCOLO_G',
             sourceUrl: 'https://vilaliemen.shop/protocolo-g',
+            measurementStartedAt: PROTOCOLO_G_MEASUREMENT_STARTED_AT,
             rows: protocoloGRows,
-            totals: protocoloGTotals
+            totals: protocoloGTotals,
+            ads: protocoloGAds
         },
         recentPurchases,
         recentMissingPurchases,

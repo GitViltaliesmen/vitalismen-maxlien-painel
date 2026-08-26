@@ -795,3 +795,19 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
   `docs/PROTOCOLO_G_CONVERSION_FREEZE_V62_20260826.md`.
 - Estado atual: implementação local validada; publicação e hashes de backup
   serão registrados no resultado de ativação depois da troca real.
+
+### Microcamada V63 — leitura pós-correção por anúncio — 2026-08-26
+
+- Fonte oficial Vitalismen: release V62 ativa
+  `/opt/vitalismen-automacao/releases/20260826T051500Z_production-20260826-10dd893`.
+- Corte de medição: `2026-08-26T05:13:18.000Z`.
+- Projeção autenticada: `src/routes/funnelMetrics.js`.
+- Agregação pós-corte por anúncio: `src/services/funnelMetricsService.js`.
+- Interface: `public/funnel-metrics.html`.
+- Freeze e guard:
+  `docs/PROTOCOLO_G_AD_METRICS_FREEZE_V63_20260826.md`,
+  `docs/freeze/protocolo-g-ad-metrics-v63-20260826.json` e
+  `scripts/guard-protocolo-g-ad-metrics-v63.mjs`.
+- Preservado integralmente: `/opt/cloaker`, VSL/VTurb, CTA, bridge, anúncios,
+  Meta/CAPI, WhatsApp, pedidos, produto, preço, checkout e Dropi.
+- Rollback: reativar a tag/release V62 `production-20260826-10dd893`.
