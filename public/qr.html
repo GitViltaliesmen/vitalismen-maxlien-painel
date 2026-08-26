@@ -8857,6 +8857,7 @@
     <script src="/panel-intelligence/authenticated-media.js"></script>
     <script src="/panel-intelligence/clean-chat-v29.js"></script>
     <script src="/panel-intelligence/chat-search-v41.js"></script>
+    <script src="/panel-intelligence/remote-chat-search-v65.js?v=20260826"></script>
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
@@ -8898,6 +8899,14 @@
             lastZapiStatusError: '',
             connectionWorkload: { sessions: [] },
             chats: [],
+            remoteChatSearch: {
+                query: '',
+                results: [],
+                loading: false,
+                error: '',
+                sequence: 0,
+                timer: null
+            },
             shipments: [],
             orders: [],
             dropiItems: [],
@@ -11817,14 +11826,22 @@
         const chatMatchesSearch = (chat, search = '') => {
             const query = String(search || '').trim().toLowerCase();
             if (!query) return true;
+            if (window.VitalismenRemoteChatSearchV65?.matches?.(chat, query)) return true;
             return window.VitalismenChatSearchV41?.matchesChat(chat, query) === true;
         };
+
+        const panelChatsIncludingRemoteSearch = () => (
+            window.VitalismenRemoteChatSearchV65?.mergeChats?.(
+                state.chats,
+                state.remoteChatSearch?.results || []
+            ) || state.chats
+        );
 
         const visibleOperationalChats = (options = {}) => {
             const ownZapiPhone = digitsOnlyText(state.zapiDevice?.device?.phone || '');
             const selectedCountry = selectedOperationalCountry();
             const search = String(options.search || '').trim();
-            return dedupeChatsForPanel(state.chats).filter((chat) => {
+            return dedupeChatsForPanel(panelChatsIncludingRemoteSearch()).filter((chat) => {
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                 const matchesSearch = chatMatchesSearch(chat, search);
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;
@@ -12172,6 +12189,14 @@
                 return parsePanelDateMs(chatEntryAtRaw(right)) - parsePanelDateMs(chatEntryAtRaw(left));
             });
 
+            const remoteSearchState = state.remoteChatSearch || {};
+            const searchEmptyState = remoteSearchState.loading
+                ? 'Buscando também no histórico de pedidos, Dropi e guias...'
+                : remoteSearchState.error
+                    ? `Busca histórica indisponível: ${remoteSearchState.error}`
+                    : (remoteSearchState.query === search && searchActive
+                        ? 'Nenhum cliente encontrado no painel ou no histórico.'
+                        : (window.VitalismenChatSearchV41?.emptyStateMessage(search) || 'Nenhum chat encontrado.'));
             el('chatList').innerHTML = filtered.map((chat) => {
                 const isActive = state.selectedChat?.id === chat.id || sameChatIdentity(state.selectedChat, chat);
                 const owner = chat.human?.mode === 'manual'
@@ -12248,12 +12273,66 @@
                         </div>
                     </button>
                 `;
-            }).join('') || `<div class="empty">${escapeHtml(
-                window.VitalismenChatSearchV41?.emptyStateMessage(search) || 'Nenhum chat encontrado.'
-            )}</div>`;
+            }).join('') || `<div class="empty">${escapeHtml(searchEmptyState)}</div>`;
 
             renderOperationalMetrics();
             renderTeamList();
+        };
+
+        const localSearchHasMatch = (query = '') => dedupeChatsForPanel(state.chats)
+            .some((chat) => chatMatchesSearch(chat, query));
+
+        const runRemoteChatSearch = async (query, sequence) => {
+            const descriptor = window.VitalismenRemoteChatSearchV65?.queryDescriptor?.(query) || { valid: false };
+            if (!descriptor.valid || !state.token || localSearchHasMatch(query)) {
+                if (sequence === state.remoteChatSearch.sequence) {
+                    state.remoteChatSearch.loading = false;
+                    state.remoteChatSearch.results = [];
+                    state.remoteChatSearch.error = '';
+                    renderChats();
+                }
+                return;
+            }
+            try {
+                const response = await api(`/api/whatsapp/chats/search?q=${encodeURIComponent(query)}&limit=12`);
+                if (sequence !== state.remoteChatSearch.sequence) return;
+                state.remoteChatSearch.results = Array.isArray(response?.results)
+                    ? response.results.map(mergeSavedCustomerDraftIntoChat)
+                    : [];
+                state.remoteChatSearch.error = '';
+            } catch (error) {
+                if (sequence !== state.remoteChatSearch.sequence) return;
+                state.remoteChatSearch.results = [];
+                state.remoteChatSearch.error = String(error?.message || 'falha de consulta');
+            } finally {
+                if (sequence === state.remoteChatSearch.sequence) {
+                    state.remoteChatSearch.loading = false;
+                    renderChats();
+                }
+            }
+        };
+
+        const scheduleRemoteChatSearch = () => {
+            const query = String(el('chatSearch')?.value || '').trim().toLowerCase();
+            const descriptor = window.VitalismenRemoteChatSearchV65?.queryDescriptor?.(query) || { valid: false };
+            window.clearTimeout(state.remoteChatSearch.timer);
+            state.remoteChatSearch.sequence += 1;
+            const sequence = state.remoteChatSearch.sequence;
+            state.remoteChatSearch.query = query;
+            state.remoteChatSearch.error = '';
+            if (!descriptor.valid || localSearchHasMatch(query)) {
+                state.remoteChatSearch.results = [];
+                state.remoteChatSearch.loading = false;
+                renderChats();
+                return;
+            }
+            state.remoteChatSearch.results = [];
+            state.remoteChatSearch.loading = true;
+            renderChats();
+            state.remoteChatSearch.timer = window.setTimeout(
+                () => runRemoteChatSearch(query, sequence),
+                350
+            );
         };
 
         const markActiveChatInList = (chatId) => {
@@ -15034,7 +15113,7 @@
         }
 
         async function selectChat(chatId, { markRead = false } = {}) {
-            const chat = state.chats.find((item) => item.id === chatId);
+            const chat = panelChatsIncludingRemoteSearch().find((item) => item.id === chatId);
             if (!chat) return;
             clearReplyToMessage();
             clearEditingOutboundMessage({ clearInput: true });
@@ -15201,7 +15280,10 @@
                 review: 'REVISAR'
             }[selectedBucket] || 'ATENDIMENTO';
             el('activeName').textContent = displayName;
-            el('activeMeta').textContent = `${displayIdentity} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · fila ${selectedBucketLabel} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
+            const identityContext = chat.identityDiffers && chat.contactName && chat.officialOrderName
+                ? ` · contato ${chat.contactName} · pedido em nome de ${chat.officialOrderName}`
+                : '';
+            el('activeMeta').textContent = `${displayIdentity}${identityContext} · ${entryInfo.header}${chat.orderId ? ' · pedido ' + chat.orderId : ''} · fila ${selectedBucketLabel} · ${chat.human?.mode === 'manual' ? 'em atendimento por ' + owner : (autoReplyGloballyActive() ? 'em automacao' : 'observado sem auto-resposta')}`;
             el('conversationBucketSelect').value = selectedBucket;
             el('conversationBucketSelect').disabled = false;
             el('detailOwner').textContent = owner;
@@ -15250,7 +15332,7 @@
                 ? 'editando, salve para fixar'
                 : (chat.orderId ? `pedido ${chat.orderId}` : 'sem pedido vinculado');
             if (!keepManualEdit) {
-                setInputValue('customerNameInput', chat.name || chat.customerDraft?.name || chat.profileName || '');
+                setInputValue('customerNameInput', chat.officialOrderName || chat.customerDraft?.name || chat.name || chat.profileName || '');
                 setInputValue('customerCountryInput', String(chat.country || '').toUpperCase() === 'EC' ? 'EC' : selectedPanelCountry());
                 setInputValue('customerProductInput', productKeyFromChat(chat));
                 renderCustomerProductSelection(chat);
@@ -20587,7 +20669,10 @@
             await moveSelectedConversationBucket(bucket);
             event.target.disabled = !state.selectedChat;
         });
-        el('chatSearch').addEventListener('input', renderChats);
+        el('chatSearch').addEventListener('input', () => {
+            renderChats();
+            scheduleRemoteChatSearch();
+        });
         el('newContactBtn')?.addEventListener('click', openNewContactModal);
         el('newContactSearchBtn')?.addEventListener('click', openNewContactModal);
         el('commandCodesBtn')?.addEventListener('click', openCommandCodesModal);

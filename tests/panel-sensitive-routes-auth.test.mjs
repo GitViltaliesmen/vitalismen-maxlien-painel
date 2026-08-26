@@ -39,6 +39,13 @@ test('observador inteiro passa pela autenticacao antes de ler dados de clientes'
     assert.ok(firstRouteIndex > authLayerIndex, 'autenticacao precisa executar antes de qualquer rota do observador');
 });
 
+test('busca historica do WhatsApp passa pela autenticacao antes de consultar clientes', () => {
+    const authLayerIndex = whatsappRoutes.stack.findIndex((item) => item.name === 'authMiddleware');
+    const searchRouteIndex = whatsappRoutes.stack.findIndex((item) => item.route?.path === '/chats/search');
+    assert.ok(authLayerIndex >= 0, 'authMiddleware do WhatsApp nao encontrado');
+    assert.ok(searchRouteIndex > authLayerIndex, 'busca historica precisa executar depois da autenticacao');
+});
+
 test('painel envia Bearer tambem nas leituras de status e continua sem preview na lista esquerda', () => {
     const panel = fs.readFileSync(path.join(projectRoot, 'public', 'qr.html'), 'utf8');
     const helperStart = panel.indexOf('async function fetchPanelJson');

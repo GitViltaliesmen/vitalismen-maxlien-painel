@@ -235,6 +235,11 @@ const contactStateSchema = new mongoose.Schema({
 });
 
 contactStateSchema.index({ assignedAgent: 1, countryCode: 1 });
+contactStateSchema.index({ countryCode: 1, phoneDigits: 1, updatedAt: -1 });
+contactStateSchema.index({ countryCode: 1, 'metadata.customerDraft.phone': 1 });
+contactStateSchema.index({ countryCode: 1, 'metadata.customerDraft.name': 1 });
+contactStateSchema.index({ countryCode: 1, 'metadata.profileName': 1 });
+contactStateSchema.index({ countryCode: 1, 'metadata.customerDraft.orderId': 1 });
 contactStateSchema.index({ 'human.mode': 1, 'human.assignedTo': 1 });
 contactStateSchema.index({ 'conversationBucket.value': 1, 'conversationBucket.classifiedAt': -1 });
 contactStateSchema.index({ 'customerDataResolution.orderDataReady': 1, updatedAt: -1 });

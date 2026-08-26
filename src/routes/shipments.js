@@ -6,6 +6,7 @@ import AutomationRun from '../models/AutomationRun.js';
 import {
     buildDroppiEcuadorOrderPayload,
     upsertDroppiEcuadorShipment,
+    validateEcuadorDropiCustomerName,
     validateEcuadorDropiPhone
 } from '../services/droppiEcuadorService.js';
 import {
@@ -69,6 +70,7 @@ import {
     logisticsCommunicationPolicy,
     publicLogisticsStateV29
 } from '../services/logisticsCommunicationV29.js';
+import { listDropiSyncCycles } from '../services/dropiSyncObservabilityService.js';
 
 const router = express.Router();
 
@@ -768,6 +770,26 @@ const dropiDestinationBlockedResponse = (res, order, shipment) => {
     });
 };
 
+const dropiCustomerNameBlockedResponse = (res, order, shipment) => {
+    const nameValidation = validateEcuadorDropiCustomerName(order?.customer?.name || '');
+    return res.status(409).json({
+        success: false,
+        customerNameRequired: true,
+        error: 'dropi_customer_full_name_required',
+        reason: nameValidation.reason,
+        message: 'Pedido bloqueado: informe o nome e o sobrenome reais do cliente. Usuario, apelido tecnico, nome com numeros ou somente um nome nao pode ser enviado para a Dropi.',
+        nameValidation: {
+            ok: false,
+            reason: nameValidation.reason
+        },
+        shipment
+    });
+};
+
+const hasValidEcuadorDropiCustomerName = (order) => (
+    validateEcuadorDropiCustomerName(order?.customer?.name || '').ok
+);
+
 const isAuthorizedForDropiSubmit = (shipment) => Boolean(shipment?.automation?.dropiSubmitAuthorizedAt);
 
 const duplicateGuardResponse = (res, guard) => res.status(409).json({
@@ -972,6 +994,7 @@ const getPendingDropiEcOrders = async (limit = 3) => {
         if (!order) continue;
         if (alreadySubmittedResponse(order, shipment)) continue;
         if (!looksLikeEcuadorOrder(order, shipment)) continue;
+        if (!hasValidEcuadorDropiCustomerName(order)) continue;
         candidates.push({ order, shipment });
         if (candidates.length >= limit) break;
     }
@@ -1139,6 +1162,17 @@ router.post('/dropi-active-sync/report', adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Dropi active sync report error:', error);
         res.status(500).json({ error: error.message || 'Failed to generate Dropi active sync report' });
+    }
+});
+
+router.get('/droppi/ec/sync-cycles', adminOnly, async (req, res) => {
+    try {
+        const cycles = await listDropiSyncCycles({ limit: positiveInt(req.query.limit, 10, 50) });
+        res.set('Cache-Control', 'no-store');
+        res.json({ success: true, count: cycles.length, cycles });
+    } catch (error) {
+        console.error('Dropi sync cycle history error:', error);
+        res.status(500).json({ error: error.message || 'Failed to load Dropi sync cycles' });
     }
 });
 
@@ -1729,6 +1763,7 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
         if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
         if (!isAuthorizedForDropiSubmit(shipment)) {
@@ -1791,6 +1826,7 @@ router.get('/droppi/ec/orders/:orderId/manual-link', adminOnly, async (req, res)
         if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
         if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
 
@@ -1835,6 +1871,7 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         const shipment = await ensureShipmentForOrder(order, 'EC');
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);
+        if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
         const selectedOffer = findEcuadorOfferByTotal({
             productKey: explicitProductKey,

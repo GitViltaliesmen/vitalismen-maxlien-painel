@@ -811,3 +811,48 @@ Se a tarefa envolver site online, sempre perguntar: "qual URL/caminho oficial?" 
 - Preservado integralmente: `/opt/cloaker`, VSL/VTurb, CTA, bridge, anúncios,
   Meta/CAPI, WhatsApp, pedidos, produto, preço, checkout e Dropi.
 - Rollback: reativar a tag/release V62 `production-20260826-10dd893`.
+
+### Microcamada candidata V64 — nome completo obrigatório na Dropi EC — 2026-08-26
+
+- Base oficial inspecionada em modo somente leitura: release
+  `/opt/vitalismen-automacao/releases/20260826T054900Z_production-20260826-cc85952`.
+- Serviço canônico do payload: `src/services/droppiEcuadorService.js`.
+- Gates autenticados de autorização, envio e preparo manual:
+  `src/routes/shipments.js`.
+- Teste/guard:
+  `tests/dropi-customer-full-name-v64.test.mjs` e
+  `scripts/guard-dropi-customer-full-name-v64.mjs`.
+- Herança e manifesto:
+  `src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js` e
+  `docs/freeze/dropi-customer-full-name-v64-20260826.json`.
+- Freeze e auditoria:
+  `docs/DROPI_CUSTOMER_FULL_NAME_FREEZE_V64_20260826.md` e
+  `docs/AUDITORIA_GARGALOS_POS_VENDA_EC_20260826.md`.
+- Estado: somente código local e testes; sem deploy, Dropi, WhatsApp, Meta/CAPI,
+  banco ou PM2 alterado.
+- Preservado: produto, preço, checkout, VSL, agência, telefone, funil,
+  scheduler, pós-venda, rastreio e pedidos já enviados.
+
+## Candidata local V65 — 2026-08-26
+
+Fonte oficial local: raiz marcada por `.vitalismen-official-root`. Baseline de
+produção somente leitura:
+`/opt/vitalismen-automacao/releases/20260826T054900Z_production-20260826-cc85952`.
+
+Arquivos-fonte da correção:
+
+- `src/services/panelCustomerReadModelService.js` — projeção canônica da ficha;
+- `src/services/panelGlobalCustomerSearchService.js` — busca global read-only;
+- `public/panel-intelligence/remote-chat-search-v65.js` — debounce/mesclagem;
+- `src/services/dropiRejectedReviewResolutionService.js` — transição atômica;
+- `src/services/postSaleNotificationDecisionService.js` — anti-repetição;
+- `src/services/dropiShipmentReconciliationService.js` — matching fail-closed;
+- `src/models/DropiSyncCycle.js` e
+  `src/services/dropiSyncObservabilityService.js` — relatório por ciclo;
+- `scripts/reconcile-post-sale-historical-v65.mjs` — DRY RUN histórico;
+- `tests/post-sale-gargalos-v65.test.mjs` — regressão integral;
+- `docs/POST_SALE_GARGALOS_FREEZE_V65_20260826.md` — contrato operacional;
+- `docs/freeze/post-sale-gargalos-v65-20260826.json` — hashes da candidata.
+
+Nenhum arquivo da VPS foi substituído, nenhum symlink ou PM2 foi alterado e
+nenhuma mensagem/pedido real foi produzido.

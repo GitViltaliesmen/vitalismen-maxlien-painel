@@ -96,6 +96,10 @@ const messageSchema = new mongoose.Schema({
     _id: false // Disable auto _id since we use String id
 });
 
+messageSchema.index({ peerPhone: 1, timestamp: -1 });
+messageSchema.index({ chatId: 1, timestamp: -1 });
+messageSchema.index({ orderId: 1, timestamp: -1 });
+
 messageSchema.pre('validate', async function fillOwnerSessionFromContact(next) {
     try {
         if (this.sessionId && this.ownerPhoneDigits) return next();

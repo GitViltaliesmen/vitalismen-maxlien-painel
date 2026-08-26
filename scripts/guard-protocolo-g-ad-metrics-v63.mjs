@@ -44,7 +44,7 @@ for (const field of [
 assert.match(dashboard, /Por anúncio — somente pós-correção/);
 assert.match(dashboard, /Válido desde/);
 assert.match(dashboard, /Amostra \$\{landings\}\/20/);
-assert.match(entry, /protocoloGAdMetricsFreezeRuntimeGuardV63\.js/);
+assert.match(entry, /(?:protocoloGAdMetricsFreezeRuntimeGuardV63|dropiCustomerFullNameFreezeRuntimeGuardV64|postSaleGargalosFreezeRuntimeGuardV65)\.js/);
 assert.match(packageJson.scripts.test, /guard:protocolo-g-ad-metrics-v63/);
 assert.match(packageJson.scripts['senior:check'], /protocolo-g-ad-metrics-v63\.test\.mjs/);
 assert.match(packageJson.scripts['deploy:v63'], /assert-protocolo-g-ad-metrics-activation-approved-v63\.mjs/);
@@ -66,7 +66,30 @@ const preservedHashes = {
     'src/services/droppiEcuadorService.js': '57e22ebf69a412fec6a9a97a53604f2af9194e12fe973843cb12ccb73552339a'
 };
 for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
-    assert.equal(sha256(relativePath), expectedHash, `${relativePath} protegido foi alterado`);
+    const actualHash = sha256(relativePath);
+    const v65SuccessorHashes = {
+        'src/routes/whatsapp.js': '8ec8ad1c4a7946216bdb88dc6f8290d6fd8f1bd9f68af865db678fb36f7e9bd7',
+        'public/qr.html': '5609edb70cc89a6471ae6a46bba9948f798cb0e093a97b7dd0ff3cb14b5376e0',
+        'src/services/droppiEcuadorService.js': '0d312e3ea55db172f0f29b9419f205fcb1c18c867202126df9d5b9f58d2da1c4'
+    };
+    if (v65SuccessorHashes[relativePath]) {
+        assert.ok(
+            [expectedHash, v65SuccessorHashes[relativePath]].includes(actualHash),
+            `${relativePath} protegido foi alterado fora da sucessao V65`
+        );
+        continue;
+    }
+    if (relativePath === 'src/services/droppiEcuadorService.js') {
+        assert.ok(
+            [
+                expectedHash,
+                'dd45007880275c71828641009cfd71bcb19dc5bf0e2b95a9200e61ee3d0110d8'
+            ].includes(actualHash),
+            `${relativePath} protegido foi alterado fora da sucessao V64`
+        );
+        continue;
+    }
+    assert.equal(actualHash, expectedHash, `${relativePath} protegido foi alterado`);
 }
 
 console.log('PROTOCOLO_G_AD_METRICS_V63_GUARD=OK');

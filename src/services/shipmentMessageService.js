@@ -28,6 +28,10 @@ import {
     findTexUltraHowToUseAudioSentRecord,
     texUltraHowToUseAudioDedupeValue
 } from './texUltraHowToUseAudioService.js';
+import {
+    decidePostSaleNotification,
+    shouldSendPostSaleNotification
+} from './postSaleNotificationDecisionService.js';
 
 const BONUS_URL = process.env.PICKUP_BONUS_URL || 'https://zapgersonecvo.cloud';
 const BONUS_TEXT_VARIANTS = [
@@ -1436,6 +1440,12 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
     if (!chatId || (!force && shipment.automation.guiaNotifiedAt)) {
         return { success: false, textSent: false, invoiceSent: false, reason: 'already_notified_or_invalid_chat' };
     }
+    if (!force) {
+        const decision = await decidePostSaleNotification({ shipment, kind: 'guide' });
+        if (!shouldSendPostSaleNotification(decision)) {
+            return { success: false, textSent: false, invoiceSent: false, reason: decision.decision, decision };
+        }
+    }
     const text = buildShipmentGuideText(shipment);
     const hash = buildMessageHash({
         kind: 'guia',
@@ -1505,6 +1515,10 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
     }
     const chatId = resolveChatId(shipment);
     if (!chatId || (!force && shipment.automation.readyForPickupNotifiedAt)) return false;
+    if (!force) {
+        const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup' });
+        if (!shouldSendPostSaleNotification(decision)) return false;
+    }
     const text = buildReadyForPickupText(shipment);
     const hash = buildMessageHash({
         kind: 'ready_for_pickup',
@@ -1572,6 +1586,8 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
 export const notifyShipmentInTransit = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.inTransitNotifiedAt) return false;
+    const decision = await decidePostSaleNotification({ shipment, kind: 'in_transit' });
+    if (!shouldSendPostSaleNotification(decision)) return false;
     const text = buildInTransitText(shipment);
     const hash = buildMessageHash({
         kind: 'in_transit',
@@ -1727,6 +1743,8 @@ export const notifyShipmentReminder = async (shipment, kind) => {
 export const notifyShipmentReturned = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.returnedNotifiedAt) return false;
+    const decision = await decidePostSaleNotification({ shipment, kind: 'returned' });
+    if (!shouldSendPostSaleNotification(decision)) return false;
     const returnedText = withSaveContactReminder(PREPAID_ONLY_TEXT);
     const hash = buildMessageHash({
         kind: 'returned',

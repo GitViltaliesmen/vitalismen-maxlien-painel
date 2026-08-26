@@ -111,6 +111,7 @@ const isPanelPollingRequest = (req) => {
         || pathname === '/api/shipments/droppi/ec/products'
         || pathname === '/api/whatsapp/status'
         || pathname === '/api/whatsapp/chats'
+        || pathname === '/api/whatsapp/chats/search'
         || pathname === '/api/whatsapp/dashboard-metrics'
         || pathname === '/api/whatsapp/templates'
         || pathname === '/api/whatsapp/chat-labels'
