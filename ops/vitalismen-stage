@@ -1,0 +1,1091 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+stage_test_mode="${VITALISMEN_STAGE_TEST_MODE:-false}"
+
+if [[ "$stage_test_mode" == "true" ]]; then
+  base_dir="${VITALISMEN_STAGE_TEST_BASE_DIR:?base sintética ausente}"
+  state_dir="${VITALISMEN_STAGE_TEST_STATE_DIR:?state sintético ausente}"
+  protected_log_dir="${VITALISMEN_STAGE_TEST_LOG_DIR:?log sintético ausente}"
+  repo_url="${VITALISMEN_STAGE_TEST_REPO_URL:-https://example.invalid/vitalismen.git}"
+  expected_uid="$(id -u)"
+  expected_gid="$(id -g)"
+  strict_root_owner=0
+else
+  [[ "$stage_test_mode" == "false" ]] || {
+    echo "ERRO: modo de execução inválido" >&2
+    exit 1
+  }
+  [[ "${EUID}" -eq 0 ]] || {
+    echo "ERRO: execute como root" >&2
+    exit 1
+  }
+  export HOME=/root
+  export USER=root
+  export LOGNAME=root
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  base_dir="/opt/vitalismen-automacao"
+  state_dir="/var/lib/vitalismen-deploy"
+  protected_log_dir="/var/log/vitalismen-deploy"
+  repo_url="https://github.com/GitViltaliesmen/vitalismen-maxlien-painel.git"
+  expected_uid=0
+  expected_gid=0
+  strict_root_owner=1
+fi
+
+releases_dir="$base_dir/releases"
+permit_file="$state_dir/activate-permit.json"
+process_name="vitalismen-automation"
+if [[ "$stage_test_mode" == "true" ]]; then
+  official_health_url="${VITALISMEN_STAGE_OFFICIAL_HEALTH_URL:?health oficial mock ausente}"
+  official_panel_url="${VITALISMEN_STAGE_OFFICIAL_PANEL_URL:?painel oficial mock ausente}"
+  local_health_url="${VITALISMEN_STAGE_LOCAL_HEALTH_URL:?health local mock ausente}"
+else
+  official_health_url="https://ec.maxlien.shop/api/health/"
+  official_panel_url="https://ec.maxlien.shop/n/"
+  local_health_url="http://127.0.0.1:3001/api/health/"
+fi
+sudoers_file="/etc/sudoers.d/vitalismen-codex-stage"
+allowed_activate_command="/usr/local/sbin/vitalismen-stage v66-activate-safe"
+
+if [[ "$stage_test_mode" == "true" ]]; then
+  node_cmd="${VITALISMEN_STAGE_NODE_CMD:?node mock ausente}"
+  pm2_cmd="${VITALISMEN_STAGE_PM2_CMD:?pm2 mock ausente}"
+  curl_cmd="${VITALISMEN_STAGE_CURL_CMD:?curl mock ausente}"
+  readlink_cmd="${VITALISMEN_STAGE_READLINK_CMD:?readlink mock ausente}"
+  ln_cmd="${VITALISMEN_STAGE_LN_CMD:?ln mock ausente}"
+  mv_cmd="${VITALISMEN_STAGE_MV_CMD:?mv mock ausente}"
+  unlink_cmd="${VITALISMEN_STAGE_UNLINK_CMD:?unlink mock ausente}"
+  env_cmd="${VITALISMEN_STAGE_ENV_CMD:?env mock ausente}"
+  sleep_cmd="${VITALISMEN_STAGE_SLEEP_CMD:?sleep mock ausente}"
+  sha256_cmd="${VITALISMEN_STAGE_SHA256_CMD:?sha256 mock ausente}"
+  compatibility_runner="${VITALISMEN_STAGE_COMPATIBILITY_RUNNER:?compatibility mock ausente}"
+  guard_runner="${VITALISMEN_STAGE_GUARD_RUNNER:?guard mock ausente}"
+  flock_cmd="${VITALISMEN_STAGE_FLOCK_CMD:?flock mock ausente}"
+else
+  node_cmd="/usr/bin/node"
+  pm2_cmd="/usr/bin/pm2"
+  curl_cmd="/usr/bin/curl"
+  readlink_cmd="/usr/bin/readlink"
+  ln_cmd="/usr/bin/ln"
+  mv_cmd="/usr/bin/mv"
+  unlink_cmd="/usr/bin/unlink"
+  env_cmd="/usr/bin/env"
+  sleep_cmd="/usr/bin/sleep"
+  sha256_cmd="/usr/bin/sha256sum"
+  compatibility_runner=""
+  guard_runner=""
+  flock_cmd="/usr/bin/flock"
+fi
+
+v66_runtime_version=66
+safe_profile_name="V66_SAFE_OBSERVATION_ONLY"
+safe_overlay_name=".env.v66-safe-observation"
+
+die() {
+  echo "ERRO: $*" >&2
+  exit 1
+}
+
+ensure_private_dirs() {
+  if [[ "$stage_test_mode" == "true" ]]; then
+    mkdir -p -- "$@"
+  else
+    install -d -o root -g root -m 0700 "$@"
+  fi
+}
+
+secure_mode() {
+  local mode="$1"
+  shift
+  if [[ "$stage_test_mode" != "true" ]]; then
+    chmod "$mode" "$@"
+  fi
+}
+
+safe_label() {
+  printf '%s' "$1" | tr -c 'A-Za-z0-9_-' '_'
+}
+
+new_activation_id() {
+  local prefix="$1"
+  local value="${VITALISMEN_STAGE_ACTIVATION_ID:-${prefix}-$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+  [[ "$value" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || die "activation id inválido"
+  printf '%s' "$value"
+}
+
+release_dir_for_name() {
+  local requested_release="$1"
+  [[ "$requested_release" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+    die "nome da release fora do padrão oficial"
+  printf '%s/%s' "$releases_dir" "$requested_release"
+}
+
+current_target() {
+  "$readlink_cmd" -f "$base_dir/current" 2>/dev/null || true
+}
+
+pm2_snapshot() {
+  "$pm2_cmd" jlist | "$node_cmd" -e '
+let input = "";
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const list = JSON.parse(input || "[]");
+  const processInfo = list.find((entry) => entry.name === process.argv[1]);
+  if (!processInfo) {
+    process.stdout.write("NOT_FOUND\t0\tmissing\t\t");
+    return;
+  }
+  const env = processInfo.pm2_env || {};
+  process.stdout.write([
+    "FOUND",
+    String(processInfo.pid || 0),
+    String(env.status || "unknown"),
+    String(env.pm_cwd || ""),
+    String(env.pm_exec_path || "")
+  ].join("\t"));
+});
+' "$process_name"
+}
+
+detect_source_process_state() {
+  local snapshot
+  local found
+  local pid
+  local status
+  local pm_cwd
+  local pm_exec_path
+
+  snapshot="$(pm2_snapshot)" || die "não foi possível ler o estado PM2"
+  IFS=$'\t' read -r found pid status pm_cwd pm_exec_path <<<"$snapshot"
+  [[ "$found" == "FOUND" ]] || die "processo PM2 $process_name ausente"
+
+  source_pm2_pid="$pid"
+  source_pm2_status="$status"
+  source_pm_cwd="$pm_cwd"
+  source_pm_exec_path="$pm_exec_path"
+
+  if [[ "$status" == "online" && "$pid" =~ ^[1-9][0-9]*$ ]]; then
+    source_process_state="ONLINE"
+  elif [[ "$status" == "stopped" && "$pid" == "0" ]]; then
+    source_process_state="STOPPED_CONTAINMENT"
+  else
+    die "estado PM2 não suportado: status=$status pid=$pid"
+  fi
+
+  source_current="$(current_target)"
+  [[ -n "$source_current" ]] || die "current não possui destino válido"
+  case "$source_current" in
+    "$releases_dir/"*) ;;
+    *) die "current aponta para fora de releases" ;;
+  esac
+  [[ -d "$source_current" && ! -L "$source_current" ]] ||
+    die "release de origem inválida"
+  [[ -f "$source_current/.release-source.json" ]] ||
+    die "metadata da release de origem ausente"
+
+  case "$source_pm_cwd" in
+    "$base_dir/current"|"$source_current") ;;
+    *) die "pm_cwd não corresponde ao current oficial: obtido=$source_pm_cwd esperado=$base_dir/current" ;;
+  esac
+  case "$source_pm_exec_path" in
+    "$base_dir/current/src/index.js"|"$source_current/src/index.js") ;;
+    *) die "pm_exec_path não corresponde ao current oficial: obtido=$source_pm_exec_path esperado=$base_dir/current/src/index.js" ;;
+  esac
+}
+
+validate_v66_release() {
+  local candidate_dir="$1"
+  local candidate_name="$2"
+  local payload
+
+  [[ -d "$candidate_dir" && ! -L "$candidate_dir" ]] || die "release candidata inválida"
+  [[ -f "$candidate_dir/.env" ]] || die ".env protegido ausente na candidata"
+  [[ -f "$candidate_dir/.release-source.json" ]] || die "release-source ausente"
+  [[ -f "$candidate_dir/.staging-complete.json" ]] || die "staging-complete ausente"
+  [[ -f "$candidate_dir/docs/freeze/post-sale-safety-v66-20260826.json" ]] ||
+    die "manifesto V66 ausente"
+  [[ -f "$candidate_dir/scripts/assert-post-sale-data-compatibility-v66.mjs" ]] ||
+    die "preflight V66 ausente"
+  [[ -f "$candidate_dir/scripts/guard-post-sale-safety-v66.mjs" ]] ||
+    die "guard V66 ausente"
+
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$candidate_dir" 2>/dev/null || true)" == "$expected_uid:$expected_gid:700" ]] ||
+      die "owner/mode da release candidata inválido"
+    for protected_file in \
+      "$candidate_dir/.env" \
+      "$candidate_dir/.release-source.json" \
+      "$candidate_dir/.staging-complete.json"; do
+      [[ "$(stat -c '%u:%g:%a' "$protected_file" 2>/dev/null || true)" == "$expected_uid:$expected_gid:600" ]] ||
+        die "owner/mode de arquivo protegido inválido: ${protected_file##*/}"
+    done
+  fi
+
+  payload="$(
+    "$node_cmd" - \
+      "$candidate_dir/.release-source.json" \
+      "$candidate_dir/.staging-complete.json" \
+      "$candidate_name" \
+      "$v66_runtime_version" <<'NODE'
+const fs = require('node:fs');
+const [sourcePath, stagingPath, expectedRelease, expectedRuntimeRaw] = process.argv.slice(2);
+const source = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+const staging = JSON.parse(fs.readFileSync(stagingPath, 'utf8'));
+const expectedRuntime = Number(expectedRuntimeRaw);
+const compatibility = source.postSaleCompatibility;
+const commit = String(source.commit || '').toLowerCase();
+
+if (source.repository !== 'GitViltaliesmen/vitalismen-maxlien-painel') throw new Error('repository inválido');
+if (source.branch !== 'production') throw new Error('branch inválida');
+if (source.releaseName !== expectedRelease) throw new Error('release divergente');
+if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(String(source.tag || ''))) throw new Error('tag inválida');
+if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error('commit inválido');
+if (commit.slice(0, 7) !== source.tag.slice(-7)) throw new Error('tag não corresponde ao commit');
+if (!compatibility || typeof compatibility !== 'object') throw new Error('metadata de compatibilidade ausente');
+if (Number(compatibility.runtimeVersion) !== expectedRuntime) throw new Error('runtimeVersion divergente');
+if (Number(compatibility.readsDataCompatibilityThrough) !== expectedRuntime) throw new Error('readsDataCompatibilityThrough divergente');
+if (Number(compatibility.writesDataCompatibilityVersion) !== expectedRuntime) throw new Error('writesDataCompatibilityVersion divergente');
+if (compatibility.requiresRollbackTargetPreflight !== true) throw new Error('preflight de rollback não obrigatório');
+if (staging.status !== 'complete') throw new Error('staging incompleto');
+if (String(staging.commit || '').toLowerCase() !== commit) throw new Error('commit do staging divergente');
+if (staging.tag !== source.tag) throw new Error('tag do staging divergente');
+if (staging.currentUnchanged !== true || staging.pm2Unchanged !== true) throw new Error('garantias do staging ausentes');
+if (staging.postSaleCompatibilityPreflight !== 'PASS_SAFE_BOOT') throw new Error('preflight de compatibilidade do staging ausente');
+if (staging.v66SafeObservationRequired !== true) throw new Error('perfil safe não obrigatório no staging');
+
+process.stdout.write([commit, source.tag].join('\t'));
+NODE
+  )" || die "metadata V66 inválida"
+
+  IFS=$'\t' read -r candidate_commit candidate_tag <<<"$payload"
+
+  if [[ -n "$guard_runner" ]]; then
+    "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
+  else
+    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/postSaleSafetyFreezeRuntimeGuardV66.js >/dev/null
+    "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
+  fi
+}
+
+run_compatibility_preflight() {
+  local runner_dir="$1"
+  local target_metadata="$2"
+
+  if [[ -n "$compatibility_runner" ]]; then
+    "$compatibility_runner" "$runner_dir" "$target_metadata"
+  else
+    "$env_cmd" -C "$runner_dir" "$node_cmd" \
+      scripts/assert-post-sale-data-compatibility-v66.mjs \
+      "--target-metadata=$target_metadata"
+  fi
+}
+
+safe_profile_content() {
+  cat <<'PROFILE'
+VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false
+VIT_POWER_FUNNEL_ACTIVE=false
+WHATSAPP_AUTO_REPLY_ENABLED=false
+ZAPI_ROUTE_INBOUND_TO_BOT=false
+WHATSAPP_FUNNEL_ENABLED=false
+DISABLE_SCHEDULER=1
+SHIPMENT_STATUS_DISPATCH_ENABLED=false
+SHIPMENT_PICKUP_REMINDERS_ENABLED=false
+WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false
+PENDING_CHECKOUT_FOLLOWUP_ENABLED=false
+ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false
+POST_SALE_REPURCHASE_30D_ENABLED=false
+EC_ENGAGEMENT_AUTO_REPLY_ENABLED=false
+PICKUP_PROOF_SWEEP_ENABLED=false
+DROPPI_EC_ACTIVE_SYNC_ENABLED=false
+DROPPI_EC_ACTIVE_SYNC_MODE=REPORT_ONLY
+POST_SALE_V66_MUTATIONS_ENABLED=false
+POST_SALE_V66_MUTATIONS_AUTHORIZATION=
+POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false
+POST_SALE_V66_BRIDGE_APPLY_APPROVED=
+PROFILE
+}
+
+safe_profile_sha256() {
+  safe_profile_content | "$sha256_cmd" | awk '{print $1}'
+}
+
+prepare_safe_overlay() {
+  local candidate_dir="$1"
+  local overlay="$candidate_dir/$safe_overlay_name"
+  local temporary="$candidate_dir/.${safe_overlay_name}.tmp.$$"
+  local expected_sha
+  local actual_sha
+
+  expected_sha="$(safe_profile_sha256)"
+  [[ ! -e "$temporary" && ! -L "$temporary" ]] || die "overlay temporário já existe"
+  safe_profile_content >"$temporary"
+  secure_mode 0600 "$temporary"
+  "$mv_cmd" -Tf "$temporary" "$overlay"
+  actual_sha="$($sha256_cmd "$overlay" | awk '{print $1}')"
+  [[ "$actual_sha" == "$expected_sha" ]] || die "overlay safe divergente"
+  safe_overlay_sha="$actual_sha"
+}
+
+validate_safe_overlay() {
+  local candidate_dir="$1"
+  local overlay="$candidate_dir/$safe_overlay_name"
+  local expected_sha
+  local actual_sha
+
+  [[ -f "$overlay" && ! -L "$overlay" ]] || die "overlay safe ausente"
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$overlay" 2>/dev/null || true)" == "$expected_uid:$expected_gid:600" ]] ||
+      die "owner/mode do overlay safe inválido"
+  fi
+  expected_sha="$(safe_profile_sha256)"
+  actual_sha="$($sha256_cmd "$overlay" | awk '{print $1}')"
+  [[ "$actual_sha" == "$expected_sha" ]] || die "overlay safe foi alterado"
+  safe_overlay_sha="$actual_sha"
+}
+
+safe_pm2() {
+  local pm2_action="$1"
+  "$env_cmd" \
+    VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false \
+    VIT_POWER_FUNNEL_ACTIVE=false \
+    WHATSAPP_AUTO_REPLY_ENABLED=false \
+    ZAPI_ROUTE_INBOUND_TO_BOT=false \
+    WHATSAPP_FUNNEL_ENABLED=false \
+    DISABLE_SCHEDULER=1 \
+    SHIPMENT_STATUS_DISPATCH_ENABLED=false \
+    SHIPMENT_PICKUP_REMINDERS_ENABLED=false \
+    WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false \
+    PENDING_CHECKOUT_FOLLOWUP_ENABLED=false \
+    ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false \
+    POST_SALE_REPURCHASE_30D_ENABLED=false \
+    EC_ENGAGEMENT_AUTO_REPLY_ENABLED=false \
+    PICKUP_PROOF_SWEEP_ENABLED=false \
+    DROPPI_EC_ACTIVE_SYNC_ENABLED=false \
+    DROPPI_EC_ACTIVE_SYNC_MODE=REPORT_ONLY \
+    POST_SALE_V66_MUTATIONS_ENABLED=false \
+    POST_SALE_V66_MUTATIONS_AUTHORIZATION= \
+    POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false \
+    POST_SALE_V66_BRIDGE_APPLY_APPROVED= \
+    "$pm2_cmd" "$pm2_action" "$process_name" --update-env
+}
+
+verify_candidate_pm2_safe_env() {
+  "$pm2_cmd" jlist | "$node_cmd" -e '
+let input = "";
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const list = JSON.parse(input || "[]");
+  const processInfo = list.find((entry) => entry.name === process.argv[1]);
+  if (!processInfo) throw new Error("processo PM2 ausente");
+  const env = processInfo.pm2_env || {};
+  const expected = {
+    VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED: "false",
+    VIT_POWER_FUNNEL_ACTIVE: "false",
+    WHATSAPP_AUTO_REPLY_ENABLED: "false",
+    ZAPI_ROUTE_INBOUND_TO_BOT: "false",
+    WHATSAPP_FUNNEL_ENABLED: "false",
+    DISABLE_SCHEDULER: "1",
+    SHIPMENT_STATUS_DISPATCH_ENABLED: "false",
+    SHIPMENT_PICKUP_REMINDERS_ENABLED: "false",
+    WHATSAPP_PRODUCT_FOLLOWUP_ENABLED: "false",
+    PENDING_CHECKOUT_FOLLOWUP_ENABLED: "false",
+    ADMIN_BUY_LATER_FOLLOWUP_ENABLED: "false",
+    POST_SALE_REPURCHASE_30D_ENABLED: "false",
+    EC_ENGAGEMENT_AUTO_REPLY_ENABLED: "false",
+    PICKUP_PROOF_SWEEP_ENABLED: "false",
+    DROPPI_EC_ACTIVE_SYNC_ENABLED: "false",
+    DROPPI_EC_ACTIVE_SYNC_MODE: "REPORT_ONLY",
+    POST_SALE_V66_MUTATIONS_ENABLED: "false",
+    POST_SALE_V66_COMPATIBILITY_BRIDGE_READY: "false"
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    if (String(env[key] ?? "") !== value) throw new Error(`PM2 safe env divergente: ${key}`);
+  }
+  if (String(env.POST_SALE_V66_MUTATIONS_AUTHORIZATION || "") !== "") throw new Error("autorização de mutação presente");
+  if (String(env.POST_SALE_V66_BRIDGE_APPLY_APPROVED || "") !== "") throw new Error("autorização de bridge presente");
+  process.stdout.write("PM2_SAFE_ENV=VALID\n");
+});
+' "$process_name"
+}
+
+write_audit_event() {
+  local event="$1"
+  local activation_id="$2"
+  local candidate_release="${3:-}"
+  local candidate_commit_value="${4:-}"
+  local previous_release="${5:-}"
+  local initial_state="${6:-}"
+  local compatibility_result="${7:-}"
+  local symlink_action="${8:-none}"
+  local candidate_startup="${9:-not_started}"
+  local health_result="${10:-not_checked}"
+  local containment_result="${11:-not_required}"
+  local rollback_compatibility="${12:-not_checked}"
+  local old_runtime_started="${13:-no}"
+  local audit_file="$protected_log_dir/vitalismen-stage-v66-audit.jsonl"
+
+  ensure_private_dirs "$protected_log_dir"
+  "$node_cmd" - \
+    "$audit_file" "$event" "$activation_id" "$candidate_release" \
+    "$candidate_commit_value" "$previous_release" "$initial_state" \
+    "$compatibility_result" "$safe_profile_name" "$symlink_action" \
+    "$candidate_startup" "$health_result" "$containment_result" \
+    "$rollback_compatibility" "$old_runtime_started" <<'NODE'
+const fs = require('node:fs');
+const [
+  file, event, activationId, candidateRelease, candidateCommit, previousRelease,
+  initialPm2State, compatibilityResult, safeProfile, symlinkAction,
+  candidateStartupResult, healthResult, containmentResult,
+  rollbackTargetCompatibility, oldRuntimeStarted
+] = process.argv.slice(2);
+const record = {
+  timestamp: new Date().toISOString(),
+  event,
+  activationId,
+  candidateRelease,
+  candidateCommit,
+  previousRelease,
+  initialPm2State,
+  compatibilityResult,
+  safeProfile,
+  symlinkAction,
+  candidateStartupResult,
+  healthResult,
+  containmentResult,
+  rollbackTargetCompatibility,
+  oldRuntimeStarted
+};
+fs.appendFileSync(file, `${JSON.stringify(record)}\n`, {encoding: 'utf8', mode: 0o600});
+NODE
+  secure_mode 0600 "$audit_file"
+}
+
+preflight_marker_path() {
+  local candidate_name="$1"
+  printf '%s/v66-preflight.%s.json' "$state_dir" "$candidate_name"
+}
+
+write_preflight_marker() {
+  local candidate_name="$1"
+  local marker
+  local marker_tmp
+  local env_sha
+  marker="$(preflight_marker_path "$candidate_name")"
+  marker_tmp="$state_dir/.v66-preflight.${candidate_name}.tmp.$$"
+  env_sha="$($sha256_cmd "$candidate_dir/.env" | awk '{print $1}')"
+  ensure_private_dirs "$state_dir"
+  "$node_cmd" - \
+    "$marker_tmp" "$candidate_name" "$candidate_commit" "$candidate_tag" \
+    "$source_current" "$source_process_state" "$safe_overlay_sha" "$env_sha" <<'NODE'
+const fs = require('node:fs');
+const [file, release, commit, tag, currentExpected, sourceProcessState, safeOverlaySha256, baseEnvSha256] = process.argv.slice(2);
+const marker = {
+  version: 1,
+  status: 'PASS_SAFE_BOOT',
+  createdAt: new Date().toISOString(),
+  release,
+  commit,
+  tag,
+  currentExpected,
+  sourceProcessState,
+  compatibility: 'PASS_SAFE_BOOT',
+  safeProfile: 'V66_SAFE_OBSERVATION_ONLY',
+  safeOverlaySha256,
+  baseEnvSha256,
+  mutationsEnabled: false,
+  dropiEffectiveMode: 'REPORT_ONLY',
+  bridgeEnabled: false,
+  oldRuntimeStartPolicy: 'NEVER_IMPLICIT'
+};
+fs.writeFileSync(file, `${JSON.stringify(marker, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+NODE
+  secure_mode 0600 "$marker_tmp"
+  "$mv_cmd" -Tf "$marker_tmp" "$marker"
+}
+
+validate_preflight_marker() {
+  local candidate_name="$1"
+  local marker
+  local current_now
+  local env_sha
+  marker="$(preflight_marker_path "$candidate_name")"
+  current_now="$(current_target)"
+  env_sha="$($sha256_cmd "$candidate_dir/.env" | awk '{print $1}')"
+  [[ -f "$marker" && ! -L "$marker" ]] || die "preflight V66 ausente"
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$marker" 2>/dev/null || true)" == "$expected_uid:$expected_gid:600" ]] ||
+      die "owner/mode do marker de preflight inválido"
+  fi
+  "$node_cmd" - \
+    "$marker" "$candidate_name" "$candidate_commit" "$candidate_tag" \
+    "$current_now" "$source_process_state" "$safe_overlay_sha" "$env_sha" <<'NODE'
+const fs = require('node:fs');
+const [file, release, commit, tag, currentExpected, sourceProcessState, safeOverlaySha256, baseEnvSha256] = process.argv.slice(2);
+const marker = JSON.parse(fs.readFileSync(file, 'utf8'));
+const createdAt = Date.parse(marker.createdAt);
+if (marker.version !== 1 || marker.status !== 'PASS_SAFE_BOOT') throw new Error('marker inválido');
+if (!Number.isFinite(createdAt) || Date.now() - createdAt > 30 * 60 * 1000 || createdAt > Date.now() + 60_000) throw new Error('marker expirado');
+if (marker.release !== release || marker.commit !== commit || marker.tag !== tag) throw new Error('candidata divergiu');
+if (marker.currentExpected !== currentExpected) throw new Error('current mudou após preflight');
+if (marker.sourceProcessState !== sourceProcessState) throw new Error('estado PM2 mudou após preflight');
+if (marker.safeProfile !== 'V66_SAFE_OBSERVATION_ONLY') throw new Error('perfil safe divergente');
+if (marker.safeOverlaySha256 !== safeOverlaySha256) throw new Error('overlay divergente');
+if (marker.baseEnvSha256 !== baseEnvSha256) throw new Error('.env base divergiu');
+if (marker.mutationsEnabled !== false || marker.dropiEffectiveMode !== 'REPORT_ONLY' || marker.bridgeEnabled !== false) throw new Error('perfil mutável');
+if (marker.oldRuntimeStartPolicy !== 'NEVER_IMPLICIT') throw new Error('política de rollback divergente');
+NODE
+}
+
+switch_current_v66() {
+  local target="$1"
+  local next_link="$base_dir/.current.v66.next.$$"
+
+  [[ "$target" == "$releases_dir/"* ]] || die "destino de current fora de releases"
+  [[ -d "$target" && ! -L "$target" ]] || die "destino de current inválido"
+  [[ ! -e "$next_link" && ! -L "$next_link" ]] || die "link temporário já existe"
+
+  "$ln_cmd" -s "$target" "$next_link"
+  if ! "$mv_cmd" -Tf "$next_link" "$base_dir/current"; then
+    "$unlink_cmd" "$next_link" 2>/dev/null || true
+    return 1
+  fi
+}
+
+wait_candidate_health_v66() {
+  local candidate_dir="$1"
+  local activation_id="$2"
+  local attempts=30
+  if [[ "$stage_test_mode" == "true" ]]; then
+    attempts="${VITALISMEN_STAGE_HEALTH_ATTEMPTS:-1}"
+  fi
+  [[ "$attempts" =~ ^[1-9][0-9]*$ && "$attempts" -le 60 ]] ||
+    die "quantidade de tentativas de health inválida"
+  local health_file="$protected_log_dir/${activation_id}.candidate.health.json"
+  local attempt
+  local pid
+  local proc_cwd
+
+  : >"$health_file"
+  secure_mode 0600 "$health_file"
+
+  for attempt in $(seq 1 "$attempts"); do
+    pid="$($pm2_cmd pid "$process_name" 2>/dev/null | tail -n 1 || true)"
+    if [[ "$pid" =~ ^[1-9][0-9]*$ ]] &&
+      "$curl_cmd" -fsS --max-time 8 "$local_health_url" >"$health_file" 2>/dev/null &&
+      "$node_cmd" - "$health_file" <<'NODE'
+const fs = require('node:fs');
+const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const safety = data.automationSafety || {};
+if (data.status !== 'online') throw new Error('health não online');
+if (!Array.isArray(data.degradedReasons) || data.degradedReasons.length !== 0) throw new Error('health degradado');
+if (safety.mode !== 'SAFE_OBSERVATION_ONLY') throw new Error('modo não seguro');
+if (safety.operationalMutationsEnabled !== false) throw new Error('mutações habilitadas');
+if (safety.compatibilityBridgeComplete !== false) throw new Error('bridge habilitado');
+if (safety.dropiSyncMode !== 'REPORT_ONLY') throw new Error('Dropi não está em REPORT_ONLY');
+if (safety.dropiApplyAllowed !== false) throw new Error('Dropi APPLY permitido');
+NODE
+    then
+      proc_cwd="$($readlink_cmd -f "/proc/$pid/cwd" 2>/dev/null || true)"
+      if [[ "$proc_cwd" == "$candidate_dir" ]] &&
+        "$curl_cmd" -fsS --max-time 12 "$official_health_url" >/dev/null 2>&1 &&
+        "$curl_cmd" -fsS --max-time 12 "$official_panel_url" >/dev/null 2>&1; then
+        candidate_pid="$pid"
+        return 0
+      fi
+    fi
+    "$sleep_cmd" 2
+  done
+  return 1
+}
+
+source_health_if_required() {
+  if [[ "$source_process_state" == "STOPPED_CONTAINMENT" ]]; then
+    echo "SOURCE_HEALTH=SKIPPED_EXPECTED_CONTAINMENT"
+    return 0
+  fi
+  "$curl_cmd" -fsS --max-time 8 "$local_health_url" >/dev/null
+  echo "SOURCE_HEALTH=OK"
+}
+
+load_v66_activation_permit() {
+  local payload
+
+  [[ -f "$permit_file" && ! -L "$permit_file" ]] ||
+    die "autorização root ausente, inválida ou expirada"
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$permit_file" 2>/dev/null || true)" == "$expected_uid:$expected_gid:600" ]] ||
+      die "owner/mode do permit inválido"
+  fi
+
+  payload="$(
+    "$node_cmd" - "$permit_file" "$candidate_name" "$candidate_commit" \
+      "$candidate_tag" "${source_current##*/}" <<'NODE'
+const fs = require('node:fs');
+const [file, expectedRelease, expectedCommit, expectedTag, expectedCurrent] = process.argv.slice(2);
+const permit = JSON.parse(fs.readFileSync(file, 'utf8'));
+const expectedKeys = [
+  'commit', 'createdAt', 'currentExpected', 'expiresAt', 'release',
+  'rollback', 'singleUse', 'status', 'tag', 'version'
+];
+if (JSON.stringify(Object.keys(permit).sort()) !== JSON.stringify(expectedKeys)) {
+  throw new Error('campos do permit inválidos');
+}
+if (permit.version !== 1 || permit.status !== 'authorized' || permit.singleUse !== true) {
+  throw new Error('contrato do permit inválido');
+}
+if (permit.release !== expectedRelease || permit.commit !== expectedCommit || permit.tag !== expectedTag) {
+  throw new Error('permit não corresponde à candidata');
+}
+if (permit.currentExpected !== expectedCurrent || permit.rollback !== expectedCurrent) {
+  throw new Error('baseline esperado divergente');
+}
+if (!/^[0-9a-f]{40}$/.test(String(permit.commit || ''))) throw new Error('commit inválido');
+if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(String(permit.tag || ''))) throw new Error('tag inválida');
+if (!/^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(String(permit.release || ''))) throw new Error('release inválida');
+if (permit.commit.slice(0, 7) !== permit.tag.slice(-7)) throw new Error('tag/commit divergentes');
+const createdAt = Date.parse(permit.createdAt);
+const expiresAt = Date.parse(permit.expiresAt);
+const now = Date.now();
+if (!Number.isFinite(createdAt) || !Number.isFinite(expiresAt)) throw new Error('datas inválidas');
+if (createdAt > now + 60_000 || expiresAt <= now || expiresAt <= createdAt || expiresAt - createdAt > 3_600_000) {
+  throw new Error('janela do permit inválida');
+}
+process.stdout.write('VALID');
+NODE
+  )" || die "autorização root ausente, inválida ou expirada"
+  [[ "$payload" == "VALID" ]] || die "autorização root ausente, inválida ou expirada"
+}
+
+consume_v66_activation_permit() {
+  local consumed="$state_dir/.activate-permit.consumed.$$"
+  [[ ! -e "$consumed" && ! -L "$consumed" ]] || die "marcador de consumo já existe"
+  "$mv_cmd" -T "$permit_file" "$consumed"
+  [[ ! -e "$permit_file" && ! -L "$permit_file" ]] || die "permit não foi consumido"
+  rm -f -- "$consumed"
+}
+
+action="${1:-}"
+
+if [[ "$action" == "status" ]]; then
+  bash -n "$0" || {
+    echo "HELPER=SINTAXE_INVALIDA"
+    exit 1
+  }
+
+  current_target="$(current_target)"
+  pm2_pid="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
+
+  activation_allowed="NAO"
+  operational_mode="V66_PREFLIGHT_E_PERMIT_OBRIGATORIOS"
+
+  echo "HELPER=OK"
+  echo "MODO=$operational_mode"
+  echo "CURRENT=${current_target:-AUSENTE}"
+  echo "PM2_PID=${pm2_pid:-AUSENTE}"
+  echo "SAIDA_SENSIVEL=PROTEGIDA"
+  echo "STAGING_PERMITIDO=SIM"
+  echo "ATIVACAO_PERMITIDA=$activation_allowed"
+  exit 0
+fi
+
+if [[ "$action" == "activate" ]]; then
+  die "activate legado bloqueado: use v66-preflight e v66-activate-safe; fallback automático foi removido"
+fi
+
+if [[ "$action" == "v66-plan" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: vitalismen-stage v66-plan RELEASE"
+  candidate_name="$2"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+
+  detect_source_process_state
+  validate_v66_release "$candidate_dir" "$candidate_name"
+  run_compatibility_preflight "$candidate_dir" "$candidate_dir/.release-source.json" >/dev/null ||
+    die "compatibility preflight inconclusivo ou incompatível"
+
+  echo "INITIAL_STATE=$source_process_state"
+  echo "INITIAL_PID=$source_pm2_pid"
+  echo "CURRENT=$source_current"
+  echo "CANDIDATE=$candidate_name"
+  echo "CANDIDATE_COMMIT=$candidate_commit"
+  echo "COMPATIBILITY=PASS_SAFE_BOOT"
+  echo "SAFE_PROFILE=$safe_profile_name"
+  echo "ACTION_SWITCH_CURRENT=PLANNED"
+  echo "ACTION_START_CANDIDATE=PLANNED"
+  echo "ACTION_START_OLD_RUNTIME=NEVER"
+  echo "MUTATIONS=DISABLED"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "BRIDGE=DISABLED"
+  echo "DRY_RUN_WRITES=0"
+  exit 0
+fi
+
+if [[ "$action" == "v66-preflight" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: vitalismen-stage v66-preflight RELEASE"
+  candidate_name="$2"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+  activation_id="$(new_activation_id v66-preflight)"
+
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outro preflight/activate V66 está em execução"
+
+  detect_source_process_state
+  validate_v66_release "$candidate_dir" "$candidate_name"
+  run_compatibility_preflight "$candidate_dir" "$candidate_dir/.release-source.json" >/dev/null ||
+    die "compatibility preflight inconclusivo ou incompatível"
+  prepare_safe_overlay "$candidate_dir"
+  write_preflight_marker "$candidate_name"
+  write_audit_event     "preflight_passed" "$activation_id" "$candidate_name" "$candidate_commit"     "${source_current##*/}" "$source_process_state" "PASS_SAFE_BOOT"     "none" "not_started" "not_checked" "not_required" "not_checked" "no"
+
+  echo "V66_PREFLIGHT=PASS"
+  echo "ACTIVATION_ID=$activation_id"
+  echo "SOURCE_PROCESS_STATE=$source_process_state"
+  echo "SOURCE_PID=$source_pm2_pid"
+  echo "CURRENT_UNCHANGED=$(current_target)"
+  echo "CANDIDATE=$candidate_name"
+  echo "CANDIDATE_COMMIT=$candidate_commit"
+  echo "COMPATIBILITY=PASS_SAFE_BOOT"
+  echo "SAFE_PROFILE=$safe_profile_name"
+  echo "SAFE_OVERLAY_SHA256=$safe_overlay_sha"
+  echo "MUTATIONS=DISABLED"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "BRIDGE=DISABLED"
+  echo "PM2_ACTIONS=0"
+  exit 0
+fi
+
+if [[ "$action" == "v66-activate-safe" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: vitalismen-stage v66-activate-safe RELEASE"
+  candidate_name="$2"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+  activation_id="$(new_activation_id v66-activate)"
+
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outro preflight/activate V66 está em execução"
+
+  detect_source_process_state
+  previous_dir="$source_current"
+  previous_release_name="${previous_dir##*/}"
+  validate_v66_release "$candidate_dir" "$candidate_name"
+  validate_safe_overlay "$candidate_dir"
+  validate_preflight_marker "$candidate_name"
+  load_v66_activation_permit
+  source_health_if_required
+  run_compatibility_preflight "$candidate_dir" "$candidate_dir/.release-source.json" >/dev/null ||
+    die "compatibility preflight falhou antes do symlink"
+
+  write_audit_event     "activation_pre_switch" "$activation_id" "$candidate_name" "$candidate_commit"     "$previous_release_name" "$source_process_state" "PASS_SAFE_BOOT"     "pending" "not_started" "not_checked" "not_required" "not_checked" "no"
+
+  consume_v66_activation_permit
+
+  switched=0
+  activation_error_v66() {
+    local failure_code=$?
+    local rollback_compatibility="BLOCKED_OR_INCONCLUSIVE"
+    local symlink_rollback="not_required"
+
+    trap - ERR
+    set +e
+
+    if [[ "$switched" == "1" ]]; then
+      "$pm2_cmd" stop "$process_name" >/dev/null 2>&1 || true
+      rm -f -- "$candidate_dir/.activation-complete.json"
+      if run_compatibility_preflight "$candidate_dir" "$previous_dir/.release-source.json" >/dev/null 2>&1; then
+        rollback_compatibility="SAFE_BUT_RUNTIME_START_REQUIRES_EXPLICIT_AUTHORIZATION"
+      else
+        rollback_compatibility="UNSAFE_OR_NOT_SUPPORTED"
+      fi
+      if switch_current_v66 "$previous_dir"; then
+        symlink_rollback="restored_without_runtime_start"
+      else
+        symlink_rollback="failed"
+      fi
+    fi
+
+    write_audit_event       "activation_contained" "$activation_id" "$candidate_name" "$candidate_commit"       "$previous_release_name" "$source_process_state" "PASS_SAFE_BOOT"       "$symlink_rollback" "failed" "failed" "stopped"       "$rollback_compatibility" "no" || true
+
+    echo "V66_ACTIVATION=CONTAINED"
+    echo "CANDIDATE_STOPPED=YES"
+    echo "SYMLINK_ROLLBACK_EXECUTED=$symlink_rollback"
+    echo "RUNTIME_ROLLBACK_EXECUTED=NO"
+    echo "RUNTIME_ROLLBACK_BLOCKED_REASON=$rollback_compatibility"
+    echo "OLD_RUNTIME_STARTED=NO"
+    echo "FINAL_PM2_STATE=stopped"
+    exit "$failure_code"
+  }
+  trap activation_error_v66 ERR
+
+  switch_current_v66 "$candidate_dir"
+  switched=1
+
+  if [[ "$source_process_state" == "ONLINE" ]]; then
+    safe_pm2 restart
+  else
+    safe_pm2 start
+  fi
+
+  verify_candidate_pm2_safe_env
+  wait_candidate_health_v66 "$candidate_dir" "$activation_id"
+
+  current_after="$(current_target)"
+  [[ "$current_after" == "$candidate_dir" ]] || false
+
+  cat >"$candidate_dir/.activation-complete.json" <<ACTIVATION
+{
+  "status": "active_safe_observation_only",
+  "commit": "$candidate_commit",
+  "tag": "$candidate_tag",
+  "activatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "previousRelease": "$previous_release_name",
+  "initialProcessState": "$source_process_state",
+  "safeProfile": "$safe_profile_name",
+  "dropiEffectiveMode": "REPORT_ONLY",
+  "mutatingSchedulersRegistered": 0,
+  "bridgeExecuted": false,
+  "runtimeRollbackExecuted": false,
+  "oldRuntimeStarted": false,
+  "healthValidated": true,
+  "stdoutSensitiveData": "redacted"
+}
+ACTIVATION
+  secure_mode 0600 "$candidate_dir/.activation-complete.json"
+
+  write_audit_event     "activation_succeeded" "$activation_id" "$candidate_name" "$candidate_commit"     "$previous_release_name" "$source_process_state" "PASS_SAFE_BOOT"     "candidate" "online" "safe_online" "not_required" "not_checked" "no"
+
+  "$pm2_cmd" save >/dev/null
+  trap - ERR
+  echo "V66_ACTIVATION=SUCCESS_SAFE_OBSERVATION_ONLY"
+  echo "ACTIVATION_ID=$activation_id"
+  echo "CURRENT=$current_after"
+  echo "PM2_PID=$candidate_pid"
+  echo "AUTOMATION_SAFETY_MODE=SAFE_OBSERVATION_ONLY"
+  echo "DROPI_EFFECTIVE_MODE=REPORT_ONLY"
+  echo "MUTATING_SCHEDULERS_REGISTERED=0"
+  echo "BRIDGE_EXECUTED=NO"
+  echo "OLD_RUNTIME_STARTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "v66-contain" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: vitalismen-stage v66-contain"
+  activation_id="$(new_activation_id v66-contain)"
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outro preflight/activate V66 está em execução"
+
+  detect_source_process_state
+  if [[ "$source_process_state" == "ONLINE" ]]; then
+    "$pm2_cmd" stop "$process_name"
+  fi
+  final_pid="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
+  [[ "$final_pid" == "0" ]] || die "containment não confirmou PID 0"
+
+  write_audit_event     "containment_completed" "$activation_id" "" "" "${source_current##*/}"     "$source_process_state" "not_checked" "unchanged" "stopped"     "not_checked" "stopped" "not_checked" "no"
+
+  echo "V66_CONTAINMENT=COMPLETE"
+  echo "CURRENT_UNCHANGED=$(current_target)"
+  echo "FINAL_PM2_STATE=stopped"
+  echo "FINAL_PID=0"
+  echo "OLD_RUNTIME_STARTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "v66-rollback-plan" ]]; then
+  [[ "$#" -eq 3 ]] || die "uso: vitalismen-stage v66-rollback-plan V66_RUNNER_RELEASE TARGET_RELEASE"
+  runner_name="$2"
+  target_name="$3"
+  runner_dir="$(release_dir_for_name "$runner_name")"
+  target_dir="$(release_dir_for_name "$target_name")"
+
+  validate_v66_release "$runner_dir" "$runner_name"
+  [[ -f "$target_dir/.release-source.json" ]] || die "metadata do rollback target ausente"
+
+  if run_compatibility_preflight "$runner_dir" "$target_dir/.release-source.json" >/dev/null; then
+    echo "ROLLBACK_TARGET_COMPATIBILITY=SAFE"
+    echo "RUNTIME_ROLLBACK_EXECUTION=REQUIRES_SEPARATE_EXPLICIT_AUTHORIZATION"
+  else
+    echo "ROLLBACK_TARGET_COMPATIBILITY=UNSAFE_OR_NOT_SUPPORTED"
+    echo "RUNTIME_ROLLBACK_EXECUTION=BLOCKED"
+  fi
+  echo "SYMLINK_ROLLBACK=SEPARATE_ACTION"
+  echo "OLD_RUNTIME_STARTED=NO"
+  echo "PM2_ACTIONS=0"
+  exit 0
+fi
+
+[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage TAG RELEASE | v66-plan RELEASE | v66-preflight RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET"
+[[ "$#" -eq 3 ]] || die "informe exatamente TAG e RELEASE"
+
+deploy_tag="$2"
+release_name="$3"
+
+[[ "$deploy_tag" =~ ^production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+  die "tag fora do padrão oficial"
+
+[[ "$release_name" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+  die "nome da release fora do padrão oficial"
+
+[[ "$release_name" == *"_${deploy_tag}" ]] ||
+  die "a release não corresponde à tag"
+
+tag_date="${deploy_tag:11:8}"
+release_date="${release_name:0:8}"
+[[ "$tag_date" == "$release_date" ]] ||
+  die "a data da release não corresponde à tag"
+
+release_dir="$releases_dir/$release_name"
+[[ "$release_dir" == "$releases_dir/"* ]] || die "caminho da release inválido"
+[[ ! -e "$release_dir" ]] || die "release já existe: $release_dir"
+
+current_before="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+[[ -n "$current_before" ]] || die "current não possui destino válido"
+[[ -f "$current_before/.env" ]] || die ".env protegido ausente na release atual"
+
+pm2_pid_before="$(pm2 pid vitalismen-automation 2>/dev/null | tail -n 1 || true)"
+[[ -n "$pm2_pid_before" ]] || die "PID do PM2 não foi identificado"
+
+install -d -o root -g root -m 0700 "$state_dir" "$protected_log_dir"
+
+exec 9>/run/lock/vitalismen-stage.lock
+flock -n 9 || die "outro staging Vitalismen está em execução"
+
+stage_complete=0
+cleanup() {
+  if [[ "$stage_complete" != "1" && -n "${release_dir:-}" && -d "$release_dir" ]]; then
+    case "$release_dir" in
+      "$releases_dir/"[0-9]*_production-*)
+        rm -rf -- "$release_dir"
+        echo "RELEASE_INCOMPLETA_REMOVIDA=SIM"
+        ;;
+      *)
+        echo "REMOCAO_RECUSADA_CAMINHO_INVALIDO=$release_dir" >&2
+        ;;
+    esac
+  fi
+}
+trap cleanup EXIT
+
+echo "STAGING_INICIADO=SIM"
+echo "TAG=$deploy_tag"
+echo "RELEASE=$release_name"
+echo "CURRENT_ANTES=$current_before"
+echo "PM2_PID_ANTES=$pm2_pid_before"
+
+run_protected clone \
+  git clone --single-branch --branch production "$repo_url" "$release_dir"
+
+run_protected fetch_tag \
+  git -C "$release_dir" fetch --force origin "refs/tags/${deploy_tag}:refs/tags/${deploy_tag}"
+
+production_commit="$(git -C "$release_dir" rev-parse HEAD | tr 'A-F' 'a-f')"
+tag_commit="$(git -C "$release_dir" rev-parse "refs/tags/${deploy_tag}^{}" | tr 'A-F' 'a-f')"
+remote_production_commit="$(git ls-remote --heads "$repo_url" refs/heads/production | awk 'NR==1 {print tolower($1)}')"
+remote_tag_commit="$(git ls-remote --tags "$repo_url" "refs/tags/${deploy_tag}^{}" | awk 'NR==1 {print tolower($1)}')"
+origin_url="$(git -C "$release_dir" remote get-url origin)"
+git_status="$(git -C "$release_dir" status --porcelain=v1 --untracked-files=all)"
+
+[[ -z "$git_status" ]] || die "clone possui alterações inesperadas"
+[[ "$origin_url" == "$repo_url" ]] || die "origin não é o repositório oficial"
+[[ "$production_commit" == "$tag_commit" ]] || die "tag local não aponta para production"
+[[ "$production_commit" == "$remote_production_commit" ]] || die "origin/production mudou durante o staging"
+[[ "$production_commit" == "$remote_tag_commit" ]] || die "tag remota não aponta para production"
+[[ "${production_commit:0:7}" == "${deploy_tag##*-}" ]] || die "SHA curto da tag não corresponde ao commit"
+
+created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+cat > "$release_dir/.release-source.json" <<METADATA
+{
+  "repository": "GitViltaliesmen/vitalismen-maxlien-painel",
+  "branch": "production",
+  "commit": "$production_commit",
+  "tag": "$deploy_tag",
+  "createdAt": "$created_at",
+  "releaseName": "$release_name",
+  "postSaleCompatibility": {
+    "runtimeVersion": 66,
+    "readsDataCompatibilityThrough": 66,
+    "writesDataCompatibilityVersion": 66,
+    "requiresRollbackTargetPreflight": true
+  }
+}
+METADATA
+chmod 600 "$release_dir/.release-source.json"
+
+rm -rf -- "$release_dir/.git"
+
+run_protected npm_ci \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm ci --omit=dev
+
+install -o root -g root -m 0600 "$current_before/.env" "$release_dir/.env"
+
+run_protected post_sale_data_compatibility_v66 \
+  /usr/bin/env -C "$release_dir" /usr/bin/node \
+  scripts/assert-post-sale-data-compatibility-v66.mjs \
+  "--target-metadata=$release_dir/.release-source.json"
+
+run_protected post_sale_safety_guard_v66 \
+  /usr/bin/env -C "$release_dir" /usr/bin/node \
+  scripts/guard-post-sale-safety-v66.mjs
+
+run_protected official_state_audit \
+  /usr/bin/env -C "$release_dir" OFFICIAL_AUDIT_SKIP_VPS=true \
+  /usr/bin/node scripts/official-state-audit.mjs
+
+run_protected freeze_lock_pre \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:freeze-lock
+
+run_protected senior_check \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run senior:check
+
+run_protected product_micro_layer \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:ec-product-micro-layer
+
+run_protected dropi_catalog \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:ec-dropi-catalog
+
+run_protected pickup_notifications \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:pickup-notifications
+
+run_protected whatsapp_status_contacts \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:whatsapp-status-contacts
+
+run_protected operational_labels \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run test:operational-labels
+
+run_protected pickup_notification_tests \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run test:pickup-notifications
+
+run_protected freeze_lock \
+  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:freeze-lock
+
+current_after="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+pm2_pid_after="$(pm2 pid vitalismen-automation 2>/dev/null | tail -n 1 || true)"
+
+[[ "$current_after" == "$current_before" ]] || die "current mudou durante o staging"
+[[ "$pm2_pid_after" == "$pm2_pid_before" ]] || die "PID do PM2 mudou durante o staging"
+
+cat > "$release_dir/.staging-complete.json" <<STAGING
+{
+  "status": "complete",
+  "commit": "$production_commit",
+  "tag": "$deploy_tag",
+  "completedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "currentUnchanged": true,
+  "pm2Unchanged": true,
+  "postSaleCompatibilityPreflight": "PASS_SAFE_BOOT",
+  "v66SafeObservationRequired": true,
+  "stdoutSensitiveData": "redacted"
+}
+STAGING
+chmod 600 "$release_dir/.staging-complete.json"
+
+stage_complete=1
+echo "STAGING_OFICIAL_CONCLUIDO"
+echo "COMMIT=$production_commit"
+echo "RELEASE=$release_dir"
+echo "CURRENT_INALTERADO=$current_after"
+echo "PM2_PID_INALTERADO=$pm2_pid_after"
+echo "SAIDA_SENSIVEL=PROTEGIDA"
+echo "ATIVACAO_EXECUTADA=NAO"
