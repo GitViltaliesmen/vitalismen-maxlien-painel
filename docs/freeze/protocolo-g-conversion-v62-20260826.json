@@ -1,0 +1,94 @@
+{
+  "freezeId": "protocolo-g-conversion-v62-20260826",
+  "parentFreezeId": "meta-ec-protocolo-g-attribution-v61-20260824",
+  "parentManifestSha256": "f1a6753ed874148d2f9e3c5c3dadeea148349b689ae1c8814af9af97e5c13026",
+  "status": "activation_approved",
+  "publicationStatus": "authorized_for_controlled_activation",
+  "country": "EC",
+  "productKey": "tex_ultra_ec",
+  "funnel": "PROTOCOLO_G",
+  "sourceUrl": "https://vilaliemen.shop/protocolo-g",
+  "operatorApproval": {
+    "date": "2026-08-26",
+    "request": "siga a correcao",
+    "artifact": "approved_freezes/APPROVED_PROTOCOLO_G_CONVERSION_V62_20260826.txt"
+  },
+  "policy": {
+    "earlySecondaryCtaSeconds": 720,
+    "videoDurationSeconds": 2590,
+    "vturbFinalCtaPreserved": true,
+    "stageCreatesMetaConversion": false,
+    "stageCreatesPanelLead": false,
+    "stageRotatesSeller": false,
+    "stageSendsWhatsapp": false,
+    "sharedVslTrackingChanged": false,
+    "productOrPriceChanged": false,
+    "checkoutOrDropiChanged": false,
+    "metaPurchaseResendAllowed": false,
+    "deployAuthorized": true
+  },
+  "externalVslFiles": {
+    "before": {
+      "routes/metaEcProtocoloGBridge.js": "93aee690a85d3618dfdc6c7c632966d6a792a2c17878541a684c14a675a33a8c",
+      "private/vsl/protocolo-g.html": "a532355d883f3c337b95776943ec5795af3e58b5c702dbc3d2bc7ade4172da42",
+      "public/assets/js/meta-ec-protocolo-g-bridge.js": "dd21630a42a3780ad73f62be44f58653441e8e2377184902b91717309d3125d4"
+    },
+    "after": {
+      "routes/metaEcProtocoloGBridge.js": "7722081940ceb74b21939e88b54b29f9fb05da9f9e37e87258a4edbd2149f5dd",
+      "private/vsl/protocolo-g.html": "59b1d47e1c9d7613d1fc30884ce7df78080f9544c730e9435079a0aa39bdfe7b",
+      "public/assets/js/meta-ec-protocolo-g-bridge.js": "e0904cae1d97ce20b6493aad28b538650ada24c501b38e6a9e382d145e4dccd9"
+    },
+    "preserved": {
+      "public/assets/js/tracking-protocolo-g-formulario-20260815.js": "da4a9415211991cf6669cea2734c1abecc3f516d00f6330c3feb9761ee7839f9",
+      "public/assets/js/pixel.js": "89449a5822f996725bb8be68058c5363bf62d17a8bb7c7c8ffe0cc306a29937a"
+    }
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "public/funnel-metrics.html",
+    "scripts/guard-baileys-libsignal-security-v59.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
+    "scripts/senior-guard.mjs",
+    "src/models/VslVisit.js",
+    "src/routes/funnelMetrics.js",
+    "src/routes/whatsapp.js",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js",
+    "src/services/funnelMetricsService.js",
+    "src/services/metaProtocoloGAttributionService.js",
+    "tests/funnel-metrics-service.test.mjs",
+    "tests/whatsapp-outage-recovery-v49.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "approved_freezes/APPROVED_PROTOCOLO_G_CONVERSION_V62_20260826.txt",
+    "docs/PROTOCOLO_G_CONVERSION_FREEZE_V62_20260826.md",
+    "scripts/assert-protocolo-g-conversion-activation-approved-v62.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "src/services/protocoloGConversionFreezeRuntimeGuardV62.js",
+    "tests/protocolo-g-conversion-v62.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "fa156e970f2c286d64f95ef89773bb7444bfd52359b8c4cf891cedb6680b13b4",
+    "docs/ARQUIVOS_OFICIAIS.md": "e2d71c796011a25c67fd0d4311ef46ed86e57def73d068231e98ee48ab4ce516",
+    "package.json": "bbf5cad028ff82e0eae09d9d53a1f927d9bf2d751f28189148ab2994e11bd2ff",
+    "public/funnel-metrics.html": "4db58c89259da368f5bad7c64e571bb66285ece84bf423b45fb6338c0f1828b7",
+    "scripts/guard-baileys-libsignal-security-v59.mjs": "749e8f06c4f5e79fa7da14d7b32ed9c5b4e6fd8b2c541e7cdb7866d8dd24eb07",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "17deb2f0a24c292f02a83cd024b65bda6985f829b4337942f7c234f8c5436d68",
+    "scripts/senior-guard.mjs": "0a67f7575ea0f9f5d330af68065e5215ae3b66906528b26f296671cc2d135073",
+    "src/models/VslVisit.js": "3d1018f8d7d1652fdddabecf4656a59a9ae8a96fe422992df102a4c348a46dc6",
+    "src/routes/funnelMetrics.js": "9b4f66f4a5ac340368ff38989f9e6f6bc3113c49d4c03c9719d7f409af425828",
+    "src/routes/whatsapp.js": "6975e0973ee873721128e6174d1b150a8c07d823e5bd519fcd1faafd94de8506",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "cedd246066545c89d610db2cc82fc443fedc11e3f69703eeaec1852016519e8c",
+    "src/services/funnelMetricsService.js": "f66aecc5af4c185364a3718bb9c146dd88d238c5c61395d335bd42793808fb26",
+    "src/services/metaProtocoloGAttributionService.js": "8fc9e5ea520df1c251e3564faf968eb0badb488be5320c7615f7c959fe3fa9fe",
+    "tests/funnel-metrics-service.test.mjs": "9df800610d89272f11bc0d3504f83a093d8c81395066617b022e6b14a63ea4fa",
+    "tests/whatsapp-outage-recovery-v49.test.mjs": "79895de6b9dfa75ba6548402f9db86ed8cbda772ff28cd4b9f2f7852c935eb4d",
+    "approved_freezes/APPROVED_PROTOCOLO_G_CONVERSION_V62_20260826.txt": "d0e07334819d86a643f9e6e96f379d4344258d75de3a94c0dbda4dea1bf196ff",
+    "docs/PROTOCOLO_G_CONVERSION_FREEZE_V62_20260826.md": "9bf5cad6387654fec4573617667ac2e3c020dee44e57a12724c55d01182cd283",
+    "scripts/assert-protocolo-g-conversion-activation-approved-v62.mjs": "299d581cceda3999fcf2dd5020cc91e50d4c40a845bf19af353f64adf1dcec07",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "c3f14b8615b173c0027667291da0888bcecb0b7851698202b4700162d9e02a1a",
+    "src/services/protocoloGConversionFreezeRuntimeGuardV62.js": "34d51e3dbd9d6524a4bb61583a3f8b779911cb793feaa6193bbae7ead21204a6",
+    "tests/protocolo-g-conversion-v62.test.mjs": "642a6a74c3a8c52d4fc16202b26cb450b476aa75504f4ee66761f068a5944db9"
+  }
+}

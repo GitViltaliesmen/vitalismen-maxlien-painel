@@ -1,3 +1,5 @@
+import { isEcuadorTexUltraProtocoloG } from './metaProtocoloGAttributionService.js';
+
 const ECUADOR_UTC_OFFSET_MS = -5 * 60 * 60 * 1000;
 const PURCHASE_ELIGIBLE_STATUSES = new Set(['confirmed', 'processing', 'shipped', 'delivered']);
 
@@ -82,6 +84,21 @@ const rowTemplate = (day) => ({
     purchaseValueSent: 0
 });
 
+const protocoloGRowTemplate = (day) => ({
+    day,
+    landing: 0,
+    videoStarted: 0,
+    watched25: 0,
+    watched50: 0,
+    earlyCtaVisible: 0,
+    formOpened: 0,
+    formSubmitted: 0,
+    whatsappClicks: 0,
+    attributedConversations: 0,
+    salesCreated: 0,
+    purchasesSent: 0
+});
+
 const addToDay = (rowsByDay, value, field, amount = 1) => {
     const row = rowsByDay.get(ecuadorDayKey(value));
     if (row) row[field] += finiteNumber(amount);
@@ -161,6 +178,8 @@ export const buildFunnelMetricsSnapshot = ({
     const range = ecuadorMetricsRange({ days, now });
     const rows = [];
     const rowsByDay = new Map();
+    const protocoloGRows = [];
+    const protocoloGRowsByDay = new Map();
     const firstDay = ecuadorDayKey(range.startAt);
     const [year, month, date] = firstDay.split('-').map(Number);
 
@@ -169,6 +188,9 @@ export const buildFunnelMetricsSnapshot = ({
         const row = rowTemplate(day);
         rows.push(row);
         rowsByDay.set(day, row);
+        const protocoloGRow = protocoloGRowTemplate(day);
+        protocoloGRows.push(protocoloGRow);
+        protocoloGRowsByDay.set(day, protocoloGRow);
     }
 
     visits.forEach((visit) => {
@@ -185,6 +207,28 @@ export const buildFunnelMetricsSnapshot = ({
         if (isWithin(visit.metaLeadSentAt, range.startAt, range.endAt)) {
             addToDay(rowsByDay, visit.metaLeadSentAt, 'leadsSent');
         }
+
+        if (!isEcuadorTexUltraProtocoloG(visit)) return;
+        const stages = visit.protocoloGStages || {};
+        [
+            ['landingAt', 'landing'],
+            ['videoStartedAt', 'videoStarted'],
+            ['watched25At', 'watched25'],
+            ['watched50At', 'watched50'],
+            ['earlyCtaVisibleAt', 'earlyCtaVisible'],
+            ['formOpenedAt', 'formOpened'],
+            ['formSubmittedAt', 'formSubmitted']
+        ].forEach(([timestamp, field]) => {
+            if (isWithin(stages[timestamp], range.startAt, range.endAt)) {
+                addToDay(protocoloGRowsByDay, stages[timestamp], field);
+            }
+        });
+        if (isWithin(visit.lastClickAt, range.startAt, range.endAt)) {
+            addToDay(protocoloGRowsByDay, visit.lastClickAt, 'whatsappClicks');
+        }
+        if (isWithin(visit.attributionClaimedAt, range.startAt, range.endAt)) {
+            addToDay(protocoloGRowsByDay, visit.attributionClaimedAt, 'attributedConversations');
+        }
     });
 
     orders.forEach((order) => {
@@ -197,6 +241,13 @@ export const buildFunnelMetricsSnapshot = ({
         if (isWithin(sentAt, range.startAt, range.endAt)) {
             addToDay(rowsByDay, sentAt, 'purchasesSent');
             addToDay(rowsByDay, sentAt, 'purchaseValueSent', order.total);
+        }
+        if (!isEcuadorTexUltraProtocoloG(order)) return;
+        if (isWithin(createdAt, range.startAt, range.endAt)) {
+            addToDay(protocoloGRowsByDay, createdAt, 'salesCreated');
+        }
+        if (isWithin(sentAt, range.startAt, range.endAt)) {
+            addToDay(protocoloGRowsByDay, sentAt, 'purchasesSent');
         }
     });
 
@@ -227,6 +278,43 @@ export const buildFunnelMetricsSnapshot = ({
         correlationAmbiguous: 0,
         correlationUnmatched: 0
     });
+
+    const protocoloGTotals = protocoloGRows.reduce((result, row) => {
+        [
+            'landing',
+            'videoStarted',
+            'watched25',
+            'watched50',
+            'earlyCtaVisible',
+            'formOpened',
+            'formSubmitted',
+            'whatsappClicks',
+            'attributedConversations',
+            'salesCreated',
+            'purchasesSent'
+        ].forEach((field) => { result[field] += finiteNumber(row[field]); });
+        return result;
+    }, {
+        landing: 0,
+        videoStarted: 0,
+        watched25: 0,
+        watched50: 0,
+        earlyCtaVisible: 0,
+        formOpened: 0,
+        formSubmitted: 0,
+        whatsappClicks: 0,
+        attributedConversations: 0,
+        salesCreated: 0,
+        purchasesSent: 0
+    });
+    protocoloGTotals.videoStartRate = percentage(protocoloGTotals.videoStarted, protocoloGTotals.landing);
+    protocoloGTotals.watched25Rate = percentage(protocoloGTotals.watched25, protocoloGTotals.videoStarted);
+    protocoloGTotals.watched50Rate = percentage(protocoloGTotals.watched50, protocoloGTotals.videoStarted);
+    protocoloGTotals.formOpenRate = percentage(protocoloGTotals.formOpened, protocoloGTotals.landing);
+    protocoloGTotals.formSubmitRate = percentage(protocoloGTotals.formSubmitted, protocoloGTotals.formOpened);
+    protocoloGTotals.whatsappRate = percentage(protocoloGTotals.whatsappClicks, protocoloGTotals.landing);
+    protocoloGTotals.conversationRate = percentage(protocoloGTotals.attributedConversations, protocoloGTotals.whatsappClicks);
+    protocoloGTotals.salesRate = percentage(protocoloGTotals.salesCreated, protocoloGTotals.landing);
 
     correlations.forEach((correlation) => {
         if (!isWithin(correlation.evaluatedAt, range.startAt, range.endAt)) return;
@@ -277,6 +365,14 @@ export const buildFunnelMetricsSnapshot = ({
         days: range.days,
         rows,
         totals,
+        protocoloG: {
+            version: 'V62',
+            productKey: 'tex_ultra_ec',
+            funnel: 'PROTOCOLO_G',
+            sourceUrl: 'https://vilaliemen.shop/protocolo-g',
+            rows: protocoloGRows,
+            totals: protocoloGTotals
+        },
         recentPurchases,
         recentMissingPurchases,
         recentAttributionOrders
@@ -294,7 +390,15 @@ export const funnelMetricsMongoWindow = ({ days = 7, now = new Date() } = {}) =>
                 { firstSeenAt: between },
                 { metaPageViewSentAt: between },
                 { lastClickAt: between },
-                { metaLeadSentAt: between }
+                { metaLeadSentAt: between },
+                { attributionClaimedAt: between },
+                { 'protocoloGStages.landingAt': between },
+                { 'protocoloGStages.videoStartedAt': between },
+                { 'protocoloGStages.watched25At': between },
+                { 'protocoloGStages.watched50At': between },
+                { 'protocoloGStages.earlyCtaVisibleAt': between },
+                { 'protocoloGStages.formOpenedAt': between },
+                { 'protocoloGStages.formSubmittedAt': between }
             ]
         },
         orderQuery: {

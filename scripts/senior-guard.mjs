@@ -134,7 +134,11 @@ const productScopedProtocolFiles = new Set([
     // Autorizacao V61: contrato e freeze da atribuicao Meta exclusiva
     // EC + TEX_ULTRA + PROTOCOLO_G, sem incorporar o projeto Vilaliemen.
     'src/services/metaAttributionFreezeRuntimeGuardV61.js',
-    'src/services/metaProtocoloGAttributionService.js'
+    'src/services/metaProtocoloGAttributionService.js',
+    'src/services/funnelMetricsService.js',
+    // Autorizacao V62: sucessor restrito a CTA secundaria e observabilidade
+    // exclusiva do Protocolo G, sem alterar o funil comercial EC.
+    'src/services/protocoloGConversionFreezeRuntimeGuardV62.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

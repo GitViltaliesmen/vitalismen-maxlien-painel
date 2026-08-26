@@ -114,7 +114,20 @@ test('consulta Mongo cobre cada timestamp usado pelo contrato', () => {
     assert.equal(window.correlationQuery.country, 'EC');
     assert.deepEqual(
         window.visitQuery.$or.map((item) => Object.keys(item)[0]),
-        ['firstSeenAt', 'metaPageViewSentAt', 'lastClickAt', 'metaLeadSentAt']
+        [
+            'firstSeenAt',
+            'metaPageViewSentAt',
+            'lastClickAt',
+            'metaLeadSentAt',
+            'attributionClaimedAt',
+            'protocoloGStages.landingAt',
+            'protocoloGStages.videoStartedAt',
+            'protocoloGStages.watched25At',
+            'protocoloGStages.watched50At',
+            'protocoloGStages.earlyCtaVisibleAt',
+            'protocoloGStages.formOpenedAt',
+            'protocoloGStages.formSubmittedAt'
+        ]
     );
     assert.deepEqual(
         window.orderQuery.$or.map((item) => Object.keys(item)[0]),

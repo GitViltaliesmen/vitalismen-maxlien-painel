@@ -36,7 +36,8 @@ import {
     hasProtocoloGContractSignal,
     protocoloGStructuredTracking,
     sanitizeProtocoloGAttribution,
-    validateVilaliemenProtocoloGContract
+    validateVilaliemenProtocoloGContract,
+    validateVilaliemenProtocoloGStageContract
 } from '../services/metaProtocoloGAttributionService.js';
 import {
     ECUADOR_PRODUCTS,
@@ -3197,6 +3198,80 @@ router.get('/vsl-seller-rotation', (req, res) => {
     return res.json({ ok: true, ...sellerRotationPreview({ country }) });
 });
 
+router.post('/vsl-stage', async (req, res) => {
+    try {
+        const body = req.body || {};
+        const contract = validateVilaliemenProtocoloGStageContract(body);
+        if (!contract.ok) {
+            return res.status(400).json({
+                ok: false,
+                error: 'invalid_protocolo_g_stage_contract',
+                reasons: contract.errors
+            });
+        }
+
+        const now = new Date();
+        const country = 'EC';
+        const visitorKey = vslVisitorKey({ country, body, req });
+        const existing = await VslVisit.findOne({ visitorKey });
+        const incomingTracking = protocoloGStructuredTracking(body, contract);
+        const tracking = { ...(existing?.tracking || {}), ...incomingTracking };
+        const update = {
+            $set: {
+                visitorId: contract.externalId,
+                externalId: contract.externalId,
+                country,
+                page: 'protocolo-g',
+                path: '/protocolo-g',
+                sourceUrl: contract.sourceUrl,
+                referrer: cleanText(body.referrer),
+                userAgent: cleanText(body.client_user_agent || body.clientUserAgent),
+                productKey: 'tex_ultra_ec',
+                productName: 'Tex Ultra Ecuador',
+                productSource: 'vilaliemen_protocolo_g_stage',
+                funnel: 'PROTOCOLO_G',
+                campaignId: incomingTracking.campaign_id || existing?.campaignId || '',
+                adsetId: incomingTracking.adset_id || existing?.adsetId || '',
+                adId: incomingTracking.ad_id || existing?.adId || '',
+                placement: incomingTracking.placement || existing?.placement || '',
+                attributionCapturedAt: incomingTracking.attributionCapturedAt || existing?.attributionCapturedAt || null,
+                vslVariant: 'protocolo_g',
+                tracking: {
+                    ...tracking,
+                    vsl_variant: 'protocolo_g'
+                },
+                lastProtocoloGStage: contract.stage,
+                lastProtocoloGStageAt: now,
+                lastSeenAt: now
+            },
+            $setOnInsert: {
+                visitorKey,
+                firstSeenAt: now,
+                visits: 1
+            },
+            $min: {
+                [`protocoloGStages.${contract.stageField}`]: now
+            }
+        };
+
+        const visit = await VslVisit.findOneAndUpdate(
+            { visitorKey },
+            update,
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        ).lean();
+
+        return res.status(202).json({
+            ok: true,
+            accepted: true,
+            stage: contract.stage,
+            visitId: visit?._id?.toString?.() || ''
+        });
+    } catch (error) {
+        console.error('[VSL_STAGE] falha ao registrar etapa do Protocolo G:', error);
+        return res.status(500).json({ ok: false, error: 'vsl_stage_failed' });
+    }
+});
+
 router.post('/vsl-entry', async (req, res) => {
     try {
         const body = req.body || {};
@@ -3325,7 +3400,7 @@ router.post('/vsl-entry', async (req, res) => {
                 firstSeenAt: now
             },
             $inc: {
-                visits: existing ? 1 : 0,
+                visits: existing && !protocoloGContract ? 1 : 0,
                 clickCount: clicked ? 1 : 0,
                 formVisibleCount: formVisible ? 1 : 0
             }
