@@ -1331,3 +1331,28 @@ compatibilidade persistente continua V66. A V69 não autoriza publicação,
 push/tag/merge, instalação do helper, stage na VPS, `/current`, PM2, bridge,
 scheduler, outbound, Dropi APPLY ou mutação de dados. Contrato completo:
 `docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md`.
+
+## Microcamada V70 — publicação fechada e attestation imutável (2026-08-27)
+
+A V70 sucede a V69 sem alterar o payload comercial ou a compatibilidade de dados
+V66. A cadeia canônica passa a ser V70 → V69 → V68 → V67 → V66.
+
+O stage por source ref exata cria `.release-source.json`, overlay safe e
+`.staging-complete.json` completos e imutáveis no estado `staged_candidate`. O hash
+da metadata nasce antes dos gates; staging ata esse hash, commit, tree, fingerprint
+funcional, overlay, guard 70, dados 66 e a preservação de `origin/production`,
+`current` e PM2.
+
+A publicação usa exclusivamente `v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT
+EXPECTED_TREE EXPECTED_TAG`. Ela exige tag remota real no formato oficial apontando
+ao functional commit, preserva a branch `production` e cria os envelopes separados
+`.release-publication.json` e `.publication-complete.json`. Nenhum código, `.env`,
+PM2, provider, Dropi, bridge ou dado operacional é modificado.
+
+Preflight staged não autoriza ativação. A publicação invalida marker anterior e a
+ativação exige novo preflight publicado, hashes íntegros, tag remota ainda exata,
+permit root single-use e compatibilidade V66. O comando
+`v70-activation-validate` comprova essas pré-condições sem efeitos operacionais.
+
+Contrato detalhado:
+`docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md`.

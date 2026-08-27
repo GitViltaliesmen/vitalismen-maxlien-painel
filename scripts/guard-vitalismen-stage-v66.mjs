@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { assertRunProtectedContractV69 } from './lib/deploy-stage-source-ref-contract-v69.mjs';
+import { assertPublicationAttestationContractV70 } from './lib/deploy-publication-attestation-contract-v70.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const helperPath = path.join(root, 'ops', 'vitalismen-stage');
@@ -12,7 +12,7 @@ const referencePath = path.join(root, 'ops', 'reference', 'vitalismen-stage.inst
 const source = fs.readFileSync(helperPath, 'utf8');
 const reference = fs.readFileSync(referencePath);
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
-const runProtectedContract = assertRunProtectedContractV69(source);
+const runProtectedContract = assertPublicationAttestationContractV70(source);
 
 assert.equal(
     sha256(reference),
@@ -32,8 +32,8 @@ assert.match(source, /DISABLE_SCHEDULER=1/);
 assert.match(source, /mutatingSchedulersRegistered": 0/);
 assert.match(source, /docs\/freeze\/runtime-guard-chain-v67-20260826\.json/);
 assert.match(source, /src\/services\/runtimeGuardChainFreezeRuntimeGuardV67\.js/);
-assert.match(source, /docs\/freeze\/deploy-stage-source-ref-safety-v69-20260827\.json/);
-assert.match(source, /src\/services\/deployStageSourceRefSafetyFreezeRuntimeGuardV69\.js/);
+assert.match(source, /docs\/freeze\/deploy-publication-attestation-safety-v70-20260827\.json/);
+assert.match(source, /src\/services\/deployPublicationAttestationSafetyFreezeRuntimeGuardV70\.js/);
 assert.doesNotMatch(source, /src\/services\/(?:dropiCustomerFullName|postSaleGargalos)FreezeRuntimeGuardV(?:64|65)\.js/);
 assert.ok(
     source.indexOf('run_protected runtime_guard_chain_v69')
@@ -91,6 +91,7 @@ assert.equal(syntax.status, 0, `sintaxe bash inválida:\n${syntax.stderr || synt
 
 process.stdout.write(`VITALISMEN_STAGE_V66_GUARD=OK\n`);
 process.stdout.write(`VITALISMEN_STAGE_V69_SOURCE_REF_GUARD=OK\n`);
+process.stdout.write(`VITALISMEN_STAGE_V70_PUBLICATION_ATTESTATION_GUARD=OK\n`);
 process.stdout.write(`RUN_PROTECTED_DEFINITIONS=${runProtectedContract.definitions}\n`);
 process.stdout.write(`RUN_PROTECTED_CALLS=${runProtectedContract.callCount}\n`);
 process.stdout.write(`FIRST_DEFINITION_LINE=${runProtectedContract.definitionLine}\n`);

@@ -946,3 +946,16 @@ nenhuma alteração realizada no VPS.
 - Estado: candidata exclusivamente local, sem push, tag, merge, instalação,
   release VPS, alteração de `/current`, PM2, bridge, mensagem, Dropi ou mutação
   de produção. Compatibilidade de dados permanece V66.
+
+## Registro V70 — publicação/attestation imutável (2026-08-27)
+
+- Helper versionado: `ops/vitalismen-stage`.
+- Contrato: `scripts/lib/deploy-publication-attestation-contract-v70.mjs`.
+- Guard estático: `scripts/guard-deploy-publication-attestation-safety-v70.mjs`.
+- Runtime canônico: `src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js`.
+- Manifesto: `docs/freeze/deploy-publication-attestation-safety-v70-20260827.json`.
+- Freeze: `docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md`.
+- Teste: `tests/deploy-publication-attestation-safety-v70.test.mjs`.
+- Cadeia: V70 → V69 → V68 → V67 → V66; compatibilidade de dados permanece 66.
+- Estado desta alteração: somente local/versionado; sem push, tag real, instalação do
+  helper, stage real, publicação real, ativação, mudança em `current` ou ação PM2.

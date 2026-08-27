@@ -1,0 +1,71 @@
+{
+  "freezeId": "deploy-publication-attestation-safety-v70-20260827",
+  "parentFreezeId": "deploy-stage-source-ref-safety-v69-20260827",
+  "parentManifestSha256": "92d9f0d973cb7488fa736e054c3159544fe49a95cafe1659a2b85ec9ee74b88b",
+  "status": "implementation_validated",
+  "publicationStatus": "local_candidate_no_push_no_stage_no_deploy",
+  "country": "EC",
+  "createdAt": "2026-08-27T00:00:00.000-03:00",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js",
+    "guardChainVersion": 70,
+    "dataCompatibilityVersion": 66,
+    "publicationStateMachine": "CLOSED_TWO_STATE",
+    "allowedPublicationStatuses": [
+      "staged_candidate",
+      "production_published"
+    ],
+    "sourceMetadataImmutableAfterStaging": true,
+    "publicationMetadataSeparateAndImmutable": true,
+    "remoteProductionTagRequiredForPublication": true,
+    "remoteTagMustResolveToFunctionalCommit": true,
+    "productionBranchMustRemainUnchanged": true,
+    "baseEnvBoundToStagingAndPublication": true,
+    "nodeModulesBoundToStagingAndPublication": true,
+    "stagedPreflightInvalidAfterPublication": true,
+    "freshPublishedPreflightRequiredForActivation": true,
+    "activationPermitRequired": true,
+    "runProtectedDefinitions": 1,
+    "runProtectedCalls": 18,
+    "v69PreservedAsImmutableParent": true,
+    "ancestorFailurePropagation": "FAIL_CLOSED",
+    "pm2ActionsDuringPublication": 0,
+    "providerCallsDuringPublication": 0,
+    "dropiCallsDuringPublication": 0,
+    "helperInstallAuthorized": false,
+    "stagingAuthorized": false,
+    "realPublicationAuthorized": false,
+    "activationAuthorized": false,
+    "productionMutationExecuted": false
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/deploy-vps-ready.mjs",
+    "scripts/guard-vitalismen-stage-v66.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md",
+    "scripts/guard-deploy-publication-attestation-safety-v70.mjs",
+    "scripts/lib/deploy-publication-attestation-contract-v70.mjs",
+    "src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js",
+    "tests/deploy-publication-attestation-safety-v70.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "ea71ce2f2d3b6213044715c1998a91bd20d986ec0b97058e467fb73a20e413fb",
+    "docs/ARQUIVOS_OFICIAIS.md": "30bd00012b879e035ab41270306e45f756804f6403104c22e0a22a925c4cd668",
+    "docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md": "5642f60c8fdb5b31106604ad9c20b351cfce6477c46bffa8858cd344a5953eb1",
+    "ops/vitalismen-stage": "3a08cb339972192b6b04694e2d8e84e57bdafb5bdd5127ce56a4a3cad128ef93",
+    "package.json": "f74a40b616df7f1b505086a9bf935bfc27e90a8b94fe05731bf9a087b786e623",
+    "scripts/deploy-vps-ready.mjs": "707b6395670c4b029af8545a0a549c6ecb27a82cf184af458abdfeb0ad294da6",
+    "scripts/guard-deploy-publication-attestation-safety-v70.mjs": "79d4719c059b3a782c31a2c461240f4948e8bc72834cf230a1e3553103740fb8",
+    "scripts/guard-vitalismen-stage-v66.mjs": "5be751f6878a84385f7a0593e5c473588635382531216159b7f923c681146d57",
+    "scripts/lib/deploy-publication-attestation-contract-v70.mjs": "3ade8cb5c390b43fd7b0736ffee12659b2d111ed89d6234516b1a91e2b6bfd9b",
+    "src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js": "371e7066bf8bf68291ebf7b70d3f30aa9ad367598ef87131131aa4943b000d35",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "51d72088a01b4a8b1399a3a96e135d958f0bbadb39c649748c2558fb571171d9",
+    "tests/deploy-publication-attestation-safety-v70.test.mjs": "6cca8270432b9f3f95f9eb78b5db694d311f6bbb89606ef39e0a7845ad11cb27"
+  }
+}
