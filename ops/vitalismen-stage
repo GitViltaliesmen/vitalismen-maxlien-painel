@@ -60,9 +60,12 @@ if [[ "$stage_test_mode" == "true" ]]; then
   env_cmd="${VITALISMEN_STAGE_ENV_CMD:?env mock ausente}"
   sleep_cmd="${VITALISMEN_STAGE_SLEEP_CMD:?sleep mock ausente}"
   sha256_cmd="${VITALISMEN_STAGE_SHA256_CMD:?sha256 mock ausente}"
+  git_cmd="${VITALISMEN_STAGE_GIT_CMD:-git}"
+  npm_cmd="${VITALISMEN_STAGE_NPM_CMD:-npm}"
   compatibility_runner="${VITALISMEN_STAGE_COMPATIBILITY_RUNNER:?compatibility mock ausente}"
   guard_runner="${VITALISMEN_STAGE_GUARD_RUNNER:?guard mock ausente}"
   flock_cmd="${VITALISMEN_STAGE_FLOCK_CMD:?flock mock ausente}"
+  stage_lock_file="${VITALISMEN_STAGE_TEST_STAGE_LOCK_FILE:-$state_dir/vitalismen-stage-stage.lock}"
 else
   node_cmd="/usr/bin/node"
   pm2_cmd="/usr/bin/pm2"
@@ -74,9 +77,12 @@ else
   env_cmd="/usr/bin/env"
   sleep_cmd="/usr/bin/sleep"
   sha256_cmd="/usr/bin/sha256sum"
+  git_cmd="/usr/bin/git"
+  npm_cmd="/usr/bin/npm"
   compatibility_runner=""
   guard_runner=""
   flock_cmd="/usr/bin/flock"
+  stage_lock_file="/run/lock/vitalismen-stage.lock"
 fi
 
 v66_runtime_version=66
@@ -106,6 +112,63 @@ secure_mode() {
 
 safe_label() {
   printf '%s' "$1" | tr -c 'A-Za-z0-9_-' '_'
+}
+
+run_protected() {
+  [[ "$#" -ge 2 ]] || die "run_protected exige LABEL e COMMAND"
+
+  local raw_label="$1"
+  local label
+  local executable
+  local operation_scope
+  local output_file
+  local audit_file
+  local started_at
+  local finished_at
+  local exit_status
+
+  [[ -n "$raw_label" ]] || die "run_protected recebeu LABEL vazio"
+  label="$(safe_label "$raw_label")"
+  [[ -n "$label" ]] || die "run_protected recebeu LABEL inválido"
+  shift
+
+  executable="$1"
+  [[ -n "$executable" ]] || die "run_protected recebeu COMMAND vazio"
+  if [[ "$executable" == */* ]]; then
+    [[ -f "$executable" && -x "$executable" ]] ||
+      die "run_protected não encontrou binário executável para $label"
+  else
+    command -v "$executable" >/dev/null 2>&1 ||
+      die "run_protected não encontrou comando para $label"
+  fi
+
+  operation_scope="${release_name:-runtime}"
+  output_file="$protected_log_dir/${operation_scope}.${label}.log"
+  audit_file="$protected_log_dir/vitalismen-stage-operations.jsonl"
+  ensure_private_dirs "$protected_log_dir"
+  : >"$output_file"
+  secure_mode 0600 "$output_file"
+  started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  if "$@" >"$output_file" 2>&1; then
+    exit_status=0
+  else
+    exit_status=$?
+  fi
+
+  finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '{"label":"%s","startedAt":"%s","finishedAt":"%s","exitStatus":%s}\n' \
+    "$label" "$started_at" "$finished_at" "$exit_status" >>"$audit_file"
+  secure_mode 0600 "$audit_file"
+
+  if [[ "$exit_status" -eq 0 ]]; then
+    echo "GATE_${label}=OK"
+    return 0
+  fi
+
+  echo "GATE_${label}=FALHOU"
+  echo "DETALHES_PROTEGIDOS=$output_file"
+  return "$exit_status"
 }
 
 new_activation_id() {
@@ -268,9 +331,26 @@ NODE
   if [[ -n "$guard_runner" ]]; then
     "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
   else
-    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/runtimeGuardChainFreezeRuntimeGuardV67.js >/dev/null
+    [[ -f "$candidate_dir/docs/freeze/deploy-helper-runtime-safety-v68-20260827.json" ]] ||
+      die "manifesto da cadeia canônica V68 ausente"
+    [[ -f "$candidate_dir/src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js" ]] ||
+      die "runtime guard canônico V68 ausente"
+    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js >/dev/null
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
+}
+
+install_release_env() {
+  local source_env="$1"
+  local target_env="$2"
+
+  if [[ "$stage_test_mode" == "true" ]]; then
+    cp -- "$source_env" "$target_env"
+    chmod 0600 "$target_env"
+    return 0
+  fi
+
+  install -o root -g root -m 0600 "$source_env" "$target_env"
 }
 
 run_compatibility_preflight() {
@@ -670,6 +750,11 @@ consume_v66_activation_permit() {
   rm -f -- "$consumed"
 }
 
+if [[ "$stage_test_mode" == "true" && "${VITALISMEN_STAGE_TEST_SOURCE_ONLY:-false}" == "true" ]]; then
+  [[ "${BASH_SOURCE[0]}" != "$0" ]] || die "modo source-only exige source do helper"
+  return 0
+fi
+
 action="${1:-}"
 
 if [[ "$action" == "status" ]]; then
@@ -944,17 +1029,17 @@ release_dir="$releases_dir/$release_name"
 [[ "$release_dir" == "$releases_dir/"* ]] || die "caminho da release inválido"
 [[ ! -e "$release_dir" ]] || die "release já existe: $release_dir"
 
-current_before="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+current_before="$(current_target)"
 [[ -n "$current_before" ]] || die "current não possui destino válido"
 [[ -f "$current_before/.env" ]] || die ".env protegido ausente na release atual"
 
-pm2_pid_before="$(pm2 pid vitalismen-automation 2>/dev/null | tail -n 1 || true)"
+pm2_pid_before="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
 [[ -n "$pm2_pid_before" ]] || die "PID do PM2 não foi identificado"
 
-install -d -o root -g root -m 0700 "$state_dir" "$protected_log_dir"
+ensure_private_dirs "$state_dir" "$protected_log_dir"
 
-exec 9>/run/lock/vitalismen-stage.lock
-flock -n 9 || die "outro staging Vitalismen está em execução"
+exec 9>"$stage_lock_file"
+"$flock_cmd" -n 9 || die "outro staging Vitalismen está em execução"
 
 stage_complete=0
 cleanup() {
@@ -979,17 +1064,17 @@ echo "CURRENT_ANTES=$current_before"
 echo "PM2_PID_ANTES=$pm2_pid_before"
 
 run_protected clone \
-  git clone --single-branch --branch production "$repo_url" "$release_dir"
+  "$git_cmd" clone --single-branch --branch production "$repo_url" "$release_dir"
 
 run_protected fetch_tag \
-  git -C "$release_dir" fetch --force origin "refs/tags/${deploy_tag}:refs/tags/${deploy_tag}"
+  "$git_cmd" -C "$release_dir" fetch --force origin "refs/tags/${deploy_tag}:refs/tags/${deploy_tag}"
 
-production_commit="$(git -C "$release_dir" rev-parse HEAD | tr 'A-F' 'a-f')"
-tag_commit="$(git -C "$release_dir" rev-parse "refs/tags/${deploy_tag}^{}" | tr 'A-F' 'a-f')"
-remote_production_commit="$(git ls-remote --heads "$repo_url" refs/heads/production | awk 'NR==1 {print tolower($1)}')"
-remote_tag_commit="$(git ls-remote --tags "$repo_url" "refs/tags/${deploy_tag}^{}" | awk 'NR==1 {print tolower($1)}')"
-origin_url="$(git -C "$release_dir" remote get-url origin)"
-git_status="$(git -C "$release_dir" status --porcelain=v1 --untracked-files=all)"
+production_commit="$("$git_cmd" -C "$release_dir" rev-parse HEAD | tr 'A-F' 'a-f')"
+tag_commit="$("$git_cmd" -C "$release_dir" rev-parse "refs/tags/${deploy_tag}^{}" | tr 'A-F' 'a-f')"
+remote_production_commit="$("$git_cmd" ls-remote --heads "$repo_url" refs/heads/production | awk 'NR==1 {print tolower($1)}')"
+remote_tag_commit="$("$git_cmd" ls-remote --tags "$repo_url" "refs/tags/${deploy_tag}^{}" | awk 'NR==1 {print tolower($1)}')"
+origin_url="$("$git_cmd" -C "$release_dir" remote get-url origin)"
+git_status="$("$git_cmd" -C "$release_dir" status --porcelain=v1 --untracked-files=all)"
 
 [[ -z "$git_status" ]] || die "clone possui alterações inesperadas"
 [[ "$origin_url" == "$repo_url" ]] || die "origin não é o repositório oficial"
@@ -1020,56 +1105,60 @@ chmod 600 "$release_dir/.release-source.json"
 rm -rf -- "$release_dir/.git"
 
 run_protected npm_ci \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm ci --omit=dev
+  "$env_cmd" -C "$release_dir" "$npm_cmd" ci --omit=dev
 
-install -o root -g root -m 0600 "$current_before/.env" "$release_dir/.env"
+install_release_env "$current_before/.env" "$release_dir/.env"
 
 run_protected post_sale_data_compatibility_v66 \
-  /usr/bin/env -C "$release_dir" /usr/bin/node \
+  "$env_cmd" -C "$release_dir" "$node_cmd" \
   scripts/assert-post-sale-data-compatibility-v66.mjs \
   "--target-metadata=$release_dir/.release-source.json"
 
-run_protected runtime_guard_chain_v67 \
-  /usr/bin/env -C "$release_dir" /usr/bin/node \
-  src/services/runtimeGuardChainFreezeRuntimeGuardV67.js
+run_protected runtime_guard_chain_v68 \
+  "$env_cmd" -C "$release_dir" "$node_cmd" \
+  src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js
+
+# V68 encapsula runtimeGuardChainFreezeRuntimeGuardV67.js no contexto sucessor.
+run_protected predeploy_v68 \
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v68
 
 run_protected post_sale_safety_guard_v66 \
-  /usr/bin/env -C "$release_dir" /usr/bin/node \
+  "$env_cmd" -C "$release_dir" "$node_cmd" \
   scripts/guard-post-sale-safety-v66.mjs
 
 run_protected official_state_audit \
-  /usr/bin/env -C "$release_dir" OFFICIAL_AUDIT_SKIP_VPS=true \
-  /usr/bin/node scripts/official-state-audit.mjs
+  "$env_cmd" -C "$release_dir" OFFICIAL_AUDIT_SKIP_VPS=true \
+  "$node_cmd" scripts/official-state-audit.mjs
 
 run_protected freeze_lock_pre \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:freeze-lock
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:freeze-lock
 
 run_protected senior_check \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run senior:check
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run senior:check
 
 run_protected product_micro_layer \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:ec-product-micro-layer
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:ec-product-micro-layer
 
 run_protected dropi_catalog \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:ec-dropi-catalog
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:ec-dropi-catalog
 
 run_protected pickup_notifications \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:pickup-notifications
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:pickup-notifications
 
 run_protected whatsapp_status_contacts \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:whatsapp-status-contacts
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:whatsapp-status-contacts
 
 run_protected operational_labels \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run test:operational-labels
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run test:operational-labels
 
 run_protected pickup_notification_tests \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run test:pickup-notifications
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run test:pickup-notifications
 
 run_protected freeze_lock \
-  /usr/bin/env -C "$release_dir" /usr/bin/npm run guard:freeze-lock
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:freeze-lock
 
-current_after="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
-pm2_pid_after="$(pm2 pid vitalismen-automation 2>/dev/null | tail -n 1 || true)"
+current_after="$(current_target)"
+pm2_pid_after="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
 
 [[ "$current_after" == "$current_before" ]] || die "current mudou durante o staging"
 [[ "$pm2_pid_after" == "$pm2_pid_before" ]] || die "PID do PM2 mudou durante o staging"

@@ -1291,3 +1291,22 @@ V47, V64, V65 e V66 não foram alterados. A compatibilidade persistente
 continua V66; a V67 não muda startup, scheduler, WhatsApp, Dropi, Mongo,
 produto, preço, funil ou rollback. Contrato completo:
 `docs/GUARD_CHAIN_SEMANTICS_FREEZE_V67_20260826.md`.
+
+## 2026-08-27 — V68: segurança de execução do helper de deploy
+
+A V68 é sucessora exclusiva de segurança de deploy. Ela restaura a definição
+local e fail-closed de `run_protected()` antes das 17 chamadas protegidas do
+helper, preserva argumentos por `"$@"` e registra somente label, timestamps e
+exit status na trilha sanitizada. A chamada adicional é o predeploy canônico
+V68 antes dos demais gates do staging.
+
+O caminho `stage` agora possui harness sintético que executa todas as chamadas
+sem internet, VPS, `/opt`, `/usr/local`, PM2, Mongo, Z-API ou Dropi. A cadeia
+runtime é V68 → V67 → V66 → ancestrais. A compatibilidade de dados permanece
+66; `SAFE_OBSERVATION_ONLY`, `REPORT_ONLY`, permit de uso único, containment e
+bloqueio de rollback inseguro permanecem inalterados.
+
+Esta camada não autoriza push, tag, instalação do helper, release, preflight na
+VPS, mudança de `/current`, PM2, bridge, scheduler, outbound ou Dropi APPLY. O
+contrato completo está em
+`docs/DEPLOY_HELPER_RUNTIME_SAFETY_FREEZE_V68_20260827.md`.

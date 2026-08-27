@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { assertRunProtectedContract } from './lib/deploy-helper-contract-v68.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const helperPath = path.join(root, 'ops', 'vitalismen-stage');
@@ -11,6 +12,7 @@ const referencePath = path.join(root, 'ops', 'reference', 'vitalismen-stage.inst
 const source = fs.readFileSync(helperPath, 'utf8');
 const reference = fs.readFileSync(referencePath);
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
+const runProtectedContract = assertRunProtectedContract(source);
 
 assert.equal(
     sha256(reference),
@@ -30,11 +32,13 @@ assert.match(source, /DISABLE_SCHEDULER=1/);
 assert.match(source, /mutatingSchedulersRegistered": 0/);
 assert.match(source, /docs\/freeze\/runtime-guard-chain-v67-20260826\.json/);
 assert.match(source, /src\/services\/runtimeGuardChainFreezeRuntimeGuardV67\.js/);
+assert.match(source, /docs\/freeze\/deploy-helper-runtime-safety-v68-20260827\.json/);
+assert.match(source, /src\/services\/deployHelperRuntimeSafetyFreezeRuntimeGuardV68\.js/);
 assert.doesNotMatch(source, /src\/services\/(?:dropiCustomerFullName|postSaleGargalos)FreezeRuntimeGuardV(?:64|65)\.js/);
 assert.ok(
-    source.indexOf('src/services/runtimeGuardChainFreezeRuntimeGuardV67.js')
-        < source.indexOf('scripts/guard-post-sale-safety-v66.mjs'),
-    'helper deve validar a cadeia V67 antes do guard estático V66'
+    source.indexOf('run_protected runtime_guard_chain_v68')
+        < source.indexOf('run_protected post_sale_safety_guard_v66'),
+    'helper deve validar a cadeia V68 antes do guard estático V66'
 );
 assert.match(source, /v66-plan/);
 assert.match(source, /DRY_RUN_WRITES=0/);
@@ -86,5 +90,10 @@ const syntax = spawnSync(bash, ['-n', helperPath], { encoding: 'utf8' });
 assert.equal(syntax.status, 0, `sintaxe bash inválida:\n${syntax.stderr || syntax.stdout}`);
 
 process.stdout.write(`VITALISMEN_STAGE_V66_GUARD=OK\n`);
+process.stdout.write(`VITALISMEN_STAGE_V68_RUN_PROTECTED_GUARD=OK\n`);
+process.stdout.write(`RUN_PROTECTED_DEFINITIONS=${runProtectedContract.definitions}\n`);
+process.stdout.write(`RUN_PROTECTED_CALLS=${runProtectedContract.callCount}\n`);
+process.stdout.write(`FIRST_DEFINITION_LINE=${runProtectedContract.definitionLine}\n`);
+process.stdout.write(`FIRST_CALL_LINE=${runProtectedContract.firstCallLine}\n`);
 process.stdout.write(`SHA256_INSTALLED_SNAPSHOT=${sha256(reference)}\n`);
 process.stdout.write(`SHA256_SOURCE_CANDIDATE=${sha256(fs.readFileSync(helperPath))}\n`);

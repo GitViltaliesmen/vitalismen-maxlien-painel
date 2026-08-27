@@ -6,7 +6,7 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "npm run guard:predeploy-v67 && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run senior:check",
+        "test": "npm run guard:predeploy-v68 && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run senior:check",
         "dev": "node src/index.js",
         "start": "node src/index.js",
         "local:api": "./scripts/start-api-local.sh",
@@ -107,9 +107,11 @@
         "deploy:v63": "npm run guard:protocolo-g-ad-metrics-v63 && node scripts/assert-protocolo-g-ad-metrics-activation-approved-v63.mjs && node scripts/deploy-vps-ready.mjs",
         "guard:runtime-chain-v67": "node src/services/runtimeGuardChainFreezeRuntimeGuardV67.js",
         "guard:predeploy-v67": "npm run guard:runtime-chain-v67 && node scripts/guard-runtime-chain-v67.mjs && node --test tests/runtime-guard-chain-v67.test.mjs",
-        "guard:dropi-customer-full-name-v64": "npm run guard:runtime-chain-v67 && node scripts/guard-dropi-customer-full-name-v64.mjs && node --test tests/dropi-customer-full-name-v64.test.mjs tests/dropi-automatic-submit-regression.test.mjs",
-        "guard:post-sale-gargalos-v65": "npm run guard:runtime-chain-v67 && node scripts/guard-post-sale-gargalos-v65.mjs && node --test tests/post-sale-gargalos-v65.test.mjs tests/whatsapp-chats-readonly.test.mjs tests/shipment-pickup-notification.test.mjs tests/post-sale-health-v53.test.mjs tests/dropi-customer-full-name-v64.test.mjs tests/dropi-automatic-submit-regression.test.mjs",
-        "guard:post-sale-safety-v66": "npm run guard:runtime-chain-v67 && node scripts/guard-post-sale-safety-v66.mjs && node --test tests/post-sale-safety-v66.test.mjs tests/post-sale-gargalos-v65.test.mjs tests/dropi-customer-full-name-v64.test.mjs",
+        "guard:runtime-chain-v68": "node src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js",
+        "guard:predeploy-v68": "npm run guard:runtime-chain-v68 && node scripts/guard-deploy-helper-runtime-safety-v68.mjs && node scripts/guard-vitalismen-stage-v66.mjs && node --test tests/deploy-helper-runtime-safety-v68.test.mjs tests/vitalismen-stage-v66.test.mjs",
+        "guard:dropi-customer-full-name-v64": "npm run guard:runtime-chain-v68 && node scripts/guard-dropi-customer-full-name-v64.mjs && node --test tests/dropi-customer-full-name-v64.test.mjs tests/dropi-automatic-submit-regression.test.mjs",
+        "guard:post-sale-gargalos-v65": "npm run guard:runtime-chain-v68 && node scripts/guard-post-sale-gargalos-v65.mjs && node --test tests/post-sale-gargalos-v65.test.mjs tests/whatsapp-chats-readonly.test.mjs tests/shipment-pickup-notification.test.mjs tests/post-sale-health-v53.test.mjs tests/dropi-customer-full-name-v64.test.mjs tests/dropi-automatic-submit-regression.test.mjs",
+        "guard:post-sale-safety-v66": "npm run guard:runtime-chain-v68 && node scripts/guard-post-sale-safety-v66.mjs && node --test tests/post-sale-safety-v66.test.mjs tests/post-sale-gargalos-v65.test.mjs tests/dropi-customer-full-name-v64.test.mjs",
         "post-sale:v66:bridge:report": "node scripts/reconcile-post-sale-safety-v66.mjs",
         "post-sale:v66:bridge:apply": "node scripts/reconcile-post-sale-safety-v66.mjs --apply",
         "post-sale:v66:compatibility": "node scripts/assert-post-sale-data-compatibility-v66.mjs"

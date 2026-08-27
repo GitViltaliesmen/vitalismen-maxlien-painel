@@ -905,3 +905,21 @@ nenhuma alteração realizada no VPS.
   `/opt/vitalismen-automacao/releases/20260826T215201Z_production-20260826-c97c298`,
   runtime parado. Nenhum staging, deploy, permit, bridge, mensagem, Dropi ou
   mutação de banco foi executado pela V67.
+
+## Candidata local V68 — segurança do helper de deploy — 2026-08-27
+
+- Parent imutável: `runtime-guard-chain-v67-20260826`.
+- Fonte oficial corrigida: `ops/vitalismen-stage`.
+- Contrato estático compartilhado:
+  `scripts/lib/deploy-helper-contract-v68.mjs`.
+- Guard e runtime canônicos:
+  `scripts/guard-deploy-helper-runtime-safety-v68.mjs` e
+  `src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js`.
+- Harness sem rede/VPS:
+  `tests/deploy-helper-runtime-safety-v68.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_HELPER_RUNTIME_SAFETY_FREEZE_V68_20260827.md` e
+  `docs/freeze/deploy-helper-runtime-safety-v68-20260827.json`.
+- Compatibilidade de dados preservada em V66; nenhuma lógica comercial,
+  mensagem, pedido, scheduler, bridge, Dropi APPLY, PM2, `/current` ou helper
+  instalado é alterado por esta candidata local.
