@@ -1,0 +1,62 @@
+{
+  "freezeId": "deploy-stage-source-ref-safety-v69-20260827",
+  "parentFreezeId": "deploy-helper-runtime-safety-v68-20260827",
+  "parentManifestSha256": "90c1c19433d5f5a2f358be4c0b7aead6f3d8e81615df8005ea62f9348a0dad1e",
+  "status": "implementation_validated",
+  "publicationStatus": "local_candidate_no_push_no_stage_no_deploy",
+  "country": "EC",
+  "createdAt": "2026-08-27T00:00:00.000-03:00",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js",
+    "runProtectedDefinitions": 1,
+    "runProtectedCalls": 18,
+    "authorizedSourceRefPolicy": "EXACT_FULL_REF",
+    "authorizedSourceNamespace": "refs/heads/codex/",
+    "expectedCommitRequired": true,
+    "expectedTreeRequired": true,
+    "detachedCheckoutRequired": true,
+    "productionBranchRequirementForStaging": false,
+    "productionTagRequirementForStaging": false,
+    "productionBranchMustRemainUnchanged": true,
+    "v68PreservedAsImmutableParent": true,
+    "ancestorFailurePropagation": "FAIL_CLOSED",
+    "dataCompatibilityVersion": 66,
+    "minimumRuntimeVersionAfterBridge": 66,
+    "pm2StartAuthorized": false,
+    "helperInstallAuthorized": false,
+    "stagingAuthorized": false,
+    "productionMutationExecuted": false,
+    "whatsappSendAuthorized": false,
+    "dropiApplyAuthorized": false
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/deploy-vps-ready.mjs",
+    "scripts/guard-vitalismen-stage-v66.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md",
+    "scripts/guard-deploy-stage-source-ref-safety-v69.mjs",
+    "scripts/lib/deploy-stage-source-ref-contract-v69.mjs",
+    "src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js",
+    "tests/deploy-stage-source-ref-safety-v69.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "660184a30824586d659aa4ade1b79eece3fc7e32024dd847b40a5e63f6127a93",
+    "docs/ARQUIVOS_OFICIAIS.md": "fed378f969073ad68474ff663043afca03ddc2571c089e6a0e80f585361a5bbc",
+    "docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md": "7ff298a620778ce33808228d69c500de1e8741464f14efcfbb2ee71a647eb3e4",
+    "ops/vitalismen-stage": "38d64f65416708e62a69a6bb375ff8e937b936ca08b9a80c6a3fc10819e20fb0",
+    "package.json": "09ec8ed3bfe7297a90d18bbe3e4bbe0ed1e74a0b84b8e281f733548fa4f17fb8",
+    "scripts/deploy-vps-ready.mjs": "4b356badf99d77abaff9ec7c6ebcef0d6ae4da70b7c1d5929ff3d3cad89e677b",
+    "scripts/guard-deploy-stage-source-ref-safety-v69.mjs": "1f1c84e6963bde807b21859a60521179a3362dce9d04227fe97d28e32c415fb5",
+    "scripts/guard-vitalismen-stage-v66.mjs": "182233af10891296cf5f3894e08b3eaac4e1a19bee56c74beaeebfc7da021871",
+    "scripts/lib/deploy-stage-source-ref-contract-v69.mjs": "e040f10e8a51e1d09cd19ac616be773f5c3dee9e4ae6c420b4a579c7928d7054",
+    "src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js": "65a4ef5b395aa53f0cdf6036ef3d9ed2b4eb8d3c98a8d2e1eee61039f528e605",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "0bdd1d89abcc0884aa097fe5f31e4b22ffee855f6156aedde48654981674ef8f",
+    "tests/deploy-stage-source-ref-safety-v69.test.mjs": "26af1285fc30139fe609791627f496c28b13d123250ecba66ae39d66051cf810"
+  }
+}

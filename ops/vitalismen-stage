@@ -185,6 +185,52 @@ release_dir_for_name() {
   printf '%s/%s' "$releases_dir" "$requested_release"
 }
 
+validate_authorized_source_ref() {
+  local requested_ref="$1"
+  local authorized_ref="${VITALISMEN_STAGE_AUTHORIZED_SOURCE_REF:-}"
+
+  [[ -n "$authorized_ref" ]] || die "ref remota autorizada ausente"
+  [[ "$requested_ref" == "$authorized_ref" ]] || die "source ref não corresponde à ref exata autorizada"
+  [[ "$requested_ref" =~ ^refs/heads/codex/[A-Za-z0-9][A-Za-z0-9._/-]{0,198}[A-Za-z0-9]$ ]] ||
+    die "source ref fora do namespace fechado de candidatas"
+  [[ "$requested_ref" != *".."* && "$requested_ref" != *"//"* && "$requested_ref" != *"@{"* ]] ||
+    die "source ref contém sintaxe Git ambígua"
+  [[ "$requested_ref" != *.lock && "$requested_ref" != */. && "$requested_ref" != */.. ]] ||
+    die "source ref contém componente proibido"
+  "$git_cmd" check-ref-format "$requested_ref" >/dev/null 2>&1 ||
+    die "source ref Git inválida"
+}
+
+remote_production_head() {
+  local listing
+  local commit
+
+  listing="$("$git_cmd" ls-remote --heads "$repo_url" refs/heads/production)" ||
+    die "não foi possível fotografar origin/production"
+  [[ "$(printf '%s\n' "$listing" | sed '/^$/d' | wc -l | tr -d ' ')" == "1" ]] ||
+    die "origin/production ausente ou ambígua"
+  commit="$(printf '%s\n' "$listing" | awk 'NR==1 {print tolower($1)}')"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || die "commit de origin/production inválido"
+  printf '%s' "$commit"
+}
+
+remote_optional_production_tag_commit() {
+  local tag_name="$1"
+  local listing
+  local commit
+
+  listing="$("$git_cmd" ls-remote --tags "$repo_url" \
+    "refs/tags/${tag_name}" "refs/tags/${tag_name}^{}")" ||
+    die "não foi possível observar tag de produção opcional"
+  if [[ -z "$listing" ]]; then
+    printf 'ABSENT'
+    return 0
+  fi
+  commit="$(printf '%s\n' "$listing" | awk '$2 ~ /\^\{\}$/ {print tolower($1); found=1} END {if (!found) print tolower(first)} NR==1 {first=$1}' | tail -n 1)"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || die "tag de produção opcional inválida"
+  printf '%s' "$commit"
+}
+
 current_target() {
   "$readlink_cmd" -f "$base_dir/current" 2>/dev/null || true
 }
@@ -302,14 +348,29 @@ const source = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
 const staging = JSON.parse(fs.readFileSync(stagingPath, 'utf8'));
 const expectedRuntime = Number(expectedRuntimeRaw);
 const compatibility = source.postSaleCompatibility;
-const commit = String(source.commit || '').toLowerCase();
+const commit = String(source.functionalCommit || source.commit || '').toLowerCase();
+const tag = source.tag === undefined ? '' : String(source.tag || '');
+const stagedCandidate = source.publicationStatus === 'staged_candidate';
 
 if (source.repository !== 'GitViltaliesmen/vitalismen-maxlien-painel') throw new Error('repository inválido');
-if (source.branch !== 'production') throw new Error('branch inválida');
 if (source.releaseName !== expectedRelease) throw new Error('release divergente');
-if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(String(source.tag || ''))) throw new Error('tag inválida');
 if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error('commit inválido');
-if (commit.slice(0, 7) !== source.tag.slice(-7)) throw new Error('tag não corresponde ao commit');
+if (stagedCandidate) {
+  if (source.releaseChannel !== 'production') throw new Error('releaseChannel inválido');
+  if (!/^refs\/heads\/codex\/[A-Za-z0-9][A-Za-z0-9._/-]{0,198}[A-Za-z0-9]$/.test(String(source.sourceRef || ''))) throw new Error('sourceRef inválida');
+  if (String(source.sourceRefResolvedCommit || '').toLowerCase() !== commit) throw new Error('commit resolvido divergente');
+  if (String(source.functionalCommit || '').toLowerCase() !== commit) throw new Error('functionalCommit divergente');
+  if (!/^[0-9a-f]{40}$/.test(String(source.functionalTree || '').toLowerCase())) throw new Error('functionalTree inválida');
+  if (source.productionBranchChanged !== false) throw new Error('garantia de production ausente');
+  if (source.productionTagRequiredForStaging !== false) throw new Error('staging exige tag indevidamente');
+  if (!/^(?:ABSENT|[0-9a-f]{40})$/.test(String(source.productionTagObservation || ''))) throw new Error('observação de tag inválida');
+  if (source.productionTagObservation !== 'ABSENT' && String(source.productionTagObservation).toLowerCase() !== commit) throw new Error('tag opcional contraditória');
+  if (Object.hasOwn(source, 'branch') || Object.hasOwn(source, 'tag')) throw new Error('metadata staged não pode declarar branch/tag de produção');
+} else {
+  if (source.branch !== 'production') throw new Error('branch inválida');
+  if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(tag)) throw new Error('tag inválida');
+  if (commit.slice(0, 7) !== tag.slice(-7)) throw new Error('tag não corresponde ao commit');
+}
 if (!compatibility || typeof compatibility !== 'object') throw new Error('metadata de compatibilidade ausente');
 if (Number(compatibility.runtimeVersion) !== expectedRuntime) throw new Error('runtimeVersion divergente');
 if (Number(compatibility.readsDataCompatibilityThrough) !== expectedRuntime) throw new Error('readsDataCompatibilityThrough divergente');
@@ -317,12 +378,17 @@ if (Number(compatibility.writesDataCompatibilityVersion) !== expectedRuntime) th
 if (compatibility.requiresRollbackTargetPreflight !== true) throw new Error('preflight de rollback não obrigatório');
 if (staging.status !== 'complete') throw new Error('staging incompleto');
 if (String(staging.commit || '').toLowerCase() !== commit) throw new Error('commit do staging divergente');
-if (staging.tag !== source.tag) throw new Error('tag do staging divergente');
+if (stagedCandidate) {
+  if (staging.sourceRef !== source.sourceRef) throw new Error('sourceRef do staging divergente');
+  if (String(staging.functionalTree || '').toLowerCase() !== String(source.functionalTree).toLowerCase()) throw new Error('tree do staging divergente');
+  if (staging.productionBranchChanged !== false || staging.productionTagRequiredForStaging !== false) throw new Error('garantias de publicação do staging ausentes');
+  if (Object.hasOwn(staging, 'tag')) throw new Error('staging de candidata não pode declarar tag de produção');
+} else if (staging.tag !== tag) throw new Error('tag do staging divergente');
 if (staging.currentUnchanged !== true || staging.pm2Unchanged !== true) throw new Error('garantias do staging ausentes');
 if (staging.postSaleCompatibilityPreflight !== 'PASS_SAFE_BOOT') throw new Error('preflight de compatibilidade do staging ausente');
 if (staging.v66SafeObservationRequired !== true) throw new Error('perfil safe não obrigatório no staging');
 
-process.stdout.write([commit, source.tag].join('\t'));
+process.stdout.write([commit, tag || 'STAGED_CANDIDATE_NO_PRODUCTION_TAG'].join('\t'));
 NODE
   )" || die "metadata V66 inválida"
 
@@ -331,11 +397,11 @@ NODE
   if [[ -n "$guard_runner" ]]; then
     "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
   else
-    [[ -f "$candidate_dir/docs/freeze/deploy-helper-runtime-safety-v68-20260827.json" ]] ||
-      die "manifesto da cadeia canônica V68 ausente"
-    [[ -f "$candidate_dir/src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js" ]] ||
-      die "runtime guard canônico V68 ausente"
-    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js >/dev/null
+    [[ -f "$candidate_dir/docs/freeze/deploy-stage-source-ref-safety-v69-20260827.json" ]] ||
+      die "manifesto da cadeia canônica V69 ausente"
+    [[ -f "$candidate_dir/src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js" ]] ||
+      die "runtime guard canônico V69 ausente"
+    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js >/dev/null
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
 }
@@ -859,6 +925,8 @@ if [[ "$action" == "v66-activate-safe" ]]; then
   previous_dir="$source_current"
   previous_release_name="${previous_dir##*/}"
   validate_v66_release "$candidate_dir" "$candidate_name"
+  [[ "$candidate_tag" != "STAGED_CANDIDATE_NO_PRODUCTION_TAG" ]] ||
+    die "candidata staged ainda não publicada/tagueada; ativação exige autorização de publicação separada"
   validate_safe_overlay "$candidate_dir"
   validate_preflight_marker "$candidate_name"
   load_v66_activation_permit
@@ -1005,25 +1073,27 @@ if [[ "$action" == "v66-rollback-plan" ]]; then
   exit 0
 fi
 
-[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage TAG RELEASE | v66-plan RELEASE | v66-preflight RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET"
-[[ "$#" -eq 3 ]] || die "informe exatamente TAG e RELEASE"
+[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE RELEASE | v66-plan RELEASE | v66-preflight RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET"
+[[ "$#" -eq 5 ]] || die "informe exatamente SOURCE_REF, EXPECTED_COMMIT, EXPECTED_TREE e RELEASE"
 
-deploy_tag="$2"
-release_name="$3"
+source_ref="$2"
+expected_commit="$3"
+expected_tree="$4"
+release_name="$5"
 
-[[ "$deploy_tag" =~ ^production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
-  die "tag fora do padrão oficial"
+validate_authorized_source_ref "$source_ref"
+[[ "$expected_commit" =~ ^[0-9a-f]{40}$ ]] || die "EXPECTED_COMMIT fora do formato SHA-1 completo"
+[[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]] || die "EXPECTED_TREE fora do formato SHA-1 completo"
 
-[[ "$release_name" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+[[ "$release_name" =~ ^([0-9]{8})T[0-9]{6}Z_production-([0-9]{8})-([0-9a-f]{7})$ ]] ||
   die "nome da release fora do padrão oficial"
-
-[[ "$release_name" == *"_${deploy_tag}" ]] ||
-  die "a release não corresponde à tag"
-
-tag_date="${deploy_tag:11:8}"
-release_date="${release_name:0:8}"
-[[ "$tag_date" == "$release_date" ]] ||
-  die "a data da release não corresponde à tag"
+release_date="${BASH_REMATCH[1]}"
+channel_date="${BASH_REMATCH[2]}"
+release_short_commit="${BASH_REMATCH[3]}"
+[[ "$release_date" == "$channel_date" ]] || die "datas internas da release divergem"
+[[ "$release_short_commit" == "${expected_commit:0:7}" ]] ||
+  die "a release não corresponde ao EXPECTED_COMMIT"
+candidate_production_tag="production-${channel_date}-${release_short_commit}"
 
 release_dir="$releases_dir/$release_name"
 [[ "$release_dir" == "$releases_dir/"* ]] || die "caminho da release inválido"
@@ -1040,6 +1110,8 @@ ensure_private_dirs "$state_dir" "$protected_log_dir"
 
 exec 9>"$stage_lock_file"
 "$flock_cmd" -n 9 || die "outro staging Vitalismen está em execução"
+
+production_branch_before="$(remote_production_head)"
 
 stage_complete=0
 cleanup() {
@@ -1058,38 +1130,54 @@ cleanup() {
 trap cleanup EXIT
 
 echo "STAGING_INICIADO=SIM"
-echo "TAG=$deploy_tag"
+echo "SOURCE_REF=$source_ref"
+echo "EXPECTED_COMMIT=$expected_commit"
+echo "EXPECTED_TREE=$expected_tree"
 echo "RELEASE=$release_name"
 echo "CURRENT_ANTES=$current_before"
 echo "PM2_PID_ANTES=$pm2_pid_before"
+echo "PRODUCTION_ANTES=$production_branch_before"
 
-run_protected clone \
-  "$git_cmd" clone --single-branch --branch production "$repo_url" "$release_dir"
+run_protected init_repository \
+  "$git_cmd" init --quiet "$release_dir"
 
-run_protected fetch_tag \
-  "$git_cmd" -C "$release_dir" fetch --force origin "refs/tags/${deploy_tag}:refs/tags/${deploy_tag}"
+fetched_ref="refs/vitalismen-stage/authorized-source"
+run_protected fetch_authorized_source \
+  "$git_cmd" -C "$release_dir" fetch --no-tags --force "$repo_url" "${source_ref}:${fetched_ref}"
 
-production_commit="$("$git_cmd" -C "$release_dir" rev-parse HEAD | tr 'A-F' 'a-f')"
-tag_commit="$("$git_cmd" -C "$release_dir" rev-parse "refs/tags/${deploy_tag}^{}" | tr 'A-F' 'a-f')"
-remote_production_commit="$("$git_cmd" ls-remote --heads "$repo_url" refs/heads/production | awk 'NR==1 {print tolower($1)}')"
-remote_tag_commit="$("$git_cmd" ls-remote --tags "$repo_url" "refs/tags/${deploy_tag}^{}" | awk 'NR==1 {print tolower($1)}')"
-origin_url="$("$git_cmd" -C "$release_dir" remote get-url origin)"
+resolved_source_commit="$("$git_cmd" -C "$release_dir" rev-parse "${fetched_ref}^{commit}" | tr 'A-F' 'a-f')"
+[[ "$resolved_source_commit" == "$expected_commit" ]] || die "source ref não resolve para o EXPECTED_COMMIT"
+
+run_protected checkout_approved_commit \
+  "$git_cmd" -C "$release_dir" checkout --detach --force "$resolved_source_commit"
+
+checked_out_commit="$("$git_cmd" -C "$release_dir" rev-parse "HEAD^{commit}" | tr 'A-F' 'a-f')"
+functional_tree="$("$git_cmd" -C "$release_dir" rev-parse "HEAD^{tree}" | tr 'A-F' 'a-f')"
 git_status="$("$git_cmd" -C "$release_dir" status --porcelain=v1 --untracked-files=all)"
 
-[[ -z "$git_status" ]] || die "clone possui alterações inesperadas"
-[[ "$origin_url" == "$repo_url" ]] || die "origin não é o repositório oficial"
-[[ "$production_commit" == "$tag_commit" ]] || die "tag local não aponta para production"
-[[ "$production_commit" == "$remote_production_commit" ]] || die "origin/production mudou durante o staging"
-[[ "$production_commit" == "$remote_tag_commit" ]] || die "tag remota não aponta para production"
-[[ "${production_commit:0:7}" == "${deploy_tag##*-}" ]] || die "SHA curto da tag não corresponde ao commit"
+[[ "$checked_out_commit" == "$expected_commit" ]] || die "checkout detached divergiu do EXPECTED_COMMIT"
+[[ "$functional_tree" == "$expected_tree" ]] || die "tree funcional divergiu do EXPECTED_TREE"
+[[ -z "$git_status" ]] || die "checkout detached possui alterações inesperadas"
+
+observed_production_tag_commit="$(remote_optional_production_tag_commit "$candidate_production_tag")"
+[[ "$observed_production_tag_commit" == "ABSENT" || "$observed_production_tag_commit" == "$expected_commit" ]] ||
+  die "tag de produção opcional contradiz COMMIT/TREE aprovados"
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 cat > "$release_dir/.release-source.json" <<METADATA
 {
   "repository": "GitViltaliesmen/vitalismen-maxlien-painel",
-  "branch": "production",
-  "commit": "$production_commit",
-  "tag": "$deploy_tag",
+  "publicationStatus": "staged_candidate",
+  "releaseChannel": "production",
+  "sourceRef": "$source_ref",
+  "sourceRefResolvedCommit": "$resolved_source_commit",
+  "commit": "$expected_commit",
+  "functionalCommit": "$expected_commit",
+  "functionalTree": "$functional_tree",
+  "productionBranchCommitBefore": "$production_branch_before",
+  "productionBranchChanged": false,
+  "productionTagRequiredForStaging": false,
+  "productionTagObservation": "$observed_production_tag_commit",
   "createdAt": "$created_at",
   "releaseName": "$release_name",
   "postSaleCompatibility": {
@@ -1114,13 +1202,13 @@ run_protected post_sale_data_compatibility_v66 \
   scripts/assert-post-sale-data-compatibility-v66.mjs \
   "--target-metadata=$release_dir/.release-source.json"
 
-run_protected runtime_guard_chain_v68 \
+run_protected runtime_guard_chain_v69 \
   "$env_cmd" -C "$release_dir" "$node_cmd" \
-  src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js
+  src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js
 
-# V68 encapsula runtimeGuardChainFreezeRuntimeGuardV67.js no contexto sucessor.
-run_protected predeploy_v68 \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v68
+# V69 encapsula V68 → V67 → V66 no contexto sucessor.
+run_protected predeploy_v69 \
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v69
 
 run_protected post_sale_safety_guard_v66 \
   "$env_cmd" -C "$release_dir" "$node_cmd" \
@@ -1159,15 +1247,24 @@ run_protected freeze_lock \
 
 current_after="$(current_target)"
 pm2_pid_after="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
+production_branch_after="$(remote_production_head)"
 
 [[ "$current_after" == "$current_before" ]] || die "current mudou durante o staging"
 [[ "$pm2_pid_after" == "$pm2_pid_before" ]] || die "PID do PM2 mudou durante o staging"
+[[ "$production_branch_after" == "$production_branch_before" ]] ||
+  die "origin/production mudou durante o staging da candidata"
 
 cat > "$release_dir/.staging-complete.json" <<STAGING
 {
   "status": "complete",
-  "commit": "$production_commit",
-  "tag": "$deploy_tag",
+  "sourceRef": "$source_ref",
+  "sourceRefResolvedCommit": "$resolved_source_commit",
+  "commit": "$expected_commit",
+  "functionalTree": "$functional_tree",
+  "productionBranchCommitBefore": "$production_branch_before",
+  "productionBranchCommitAfter": "$production_branch_after",
+  "productionBranchChanged": false,
+  "productionTagRequiredForStaging": false,
   "completedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "currentUnchanged": true,
   "pm2Unchanged": true,
@@ -1180,7 +1277,11 @@ chmod 600 "$release_dir/.staging-complete.json"
 
 stage_complete=1
 echo "STAGING_OFICIAL_CONCLUIDO"
-echo "COMMIT=$production_commit"
+echo "COMMIT=$expected_commit"
+echo "TREE=$functional_tree"
+echo "SOURCE_REF_RESOLVED_COMMIT=$resolved_source_commit"
+echo "PRODUCTION_INALTERADA=$production_branch_after"
+echo "PRODUCTION_TAG_EXIGIDA=NAO"
 echo "RELEASE=$release_dir"
 echo "CURRENT_INALTERADO=$current_after"
 echo "PM2_PID_INALTERADO=$pm2_pid_after"

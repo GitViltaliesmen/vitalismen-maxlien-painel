@@ -923,3 +923,26 @@ nenhuma alteração realizada no VPS.
 - Compatibilidade de dados preservada em V66; nenhuma lógica comercial,
   mensagem, pedido, scheduler, bridge, Dropi APPLY, PM2, `/current` ou helper
   instalado é alterado por esta candidata local.
+
+## Candidata local V69 — stage por ref remota exata — 2026-08-27
+
+- Parent imutável: `deploy-helper-runtime-safety-v68-20260827`, manifesto
+  SHA-256 `90c1c19433d5f5a2f358be4c0b7aead6f3d8e81615df8005ea62f9348a0dad1e`.
+- Fonte oficial local: `ops/vitalismen-stage`; helper instalado na VPS não foi
+  alterado.
+- Contrato estático:
+  `scripts/lib/deploy-stage-source-ref-contract-v69.mjs`.
+- Guard e runtime canônicos:
+  `scripts/guard-deploy-stage-source-ref-safety-v69.mjs` e
+  `src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js`.
+- Harness do caminho real `stage`:
+  `tests/deploy-stage-source-ref-safety-v69.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md` e
+  `docs/freeze/deploy-stage-source-ref-safety-v69-20260827.json`.
+- Fonte Git: full ref exata autorizada + COMMIT e TREE aprovados; checkout
+  detached; `production` obrigatoriamente inalterada; tag de produção não é
+  requisito para staging.
+- Estado: candidata exclusivamente local, sem push, tag, merge, instalação,
+  release VPS, alteração de `/current`, PM2, bridge, mensagem, Dropi ou mutação
+  de produção. Compatibilidade de dados permanece V66.

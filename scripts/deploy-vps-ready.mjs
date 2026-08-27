@@ -253,7 +253,7 @@ run('ssh', [
     [
         `cd ${releaseDir}`,
         `node scripts/assert-post-sale-data-compatibility-v66.mjs --runtime=${postSaleCompatibility.runtimeVersion}`,
-        'npm run guard:predeploy-v68',
+        'npm run guard:predeploy-v69',
         'npm run senior:check',
         'npm run guard:ec-product-micro-layer',
         'npm run guard:ec-dropi-catalog',

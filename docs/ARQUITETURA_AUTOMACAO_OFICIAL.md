@@ -1310,3 +1310,24 @@ Esta camada não autoriza push, tag, instalação do helper, release, preflight 
 VPS, mudança de `/current`, PM2, bridge, scheduler, outbound ou Dropi APPLY. O
 contrato completo está em
 `docs/DEPLOY_HELPER_RUNTIME_SAFETY_FREEZE_V68_20260827.md`.
+
+## 2026-08-27 — V69: stage por ref remota exata
+
+A V69 desacopla a seleção da fonte Git do estado de publicação. O comando
+`stage` exige `SOURCE_REF`, `EXPECTED_COMMIT`, `EXPECTED_TREE` e `RELEASE`; a
+ref precisa ser full ref no namespace fechado `refs/heads/codex/` e coincidir
+byte a byte com `VITALISMEN_STAGE_AUTHORIZED_SOURCE_REF`. O fetch obtém somente
+essa ref, sem tags, e todas as etapas seguintes usam checkout detached do
+commit já resolvido e tree validado.
+
+`production` é fotografada antes e depois do staging e qualquer mudança bloqueia
+a operação. Uma tag de produção não é requisito de staging; se uma tag opcional
+já existir e contradizer a identidade aprovada, o helper falha. A metadata
+separa `releaseChannel=production` de `sourceRef` e não declara origem
+`branch=production` para candidatas Codex.
+
+A cadeia runtime passa a ser V69 → V68 → V67 → V66 → ancestrais. A
+compatibilidade persistente continua V66. A V69 não autoriza publicação,
+push/tag/merge, instalação do helper, stage na VPS, `/current`, PM2, bridge,
+scheduler, outbound, Dropi APPLY ou mutação de dados. Contrato completo:
+`docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md`.
