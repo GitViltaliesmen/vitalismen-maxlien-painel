@@ -1090,3 +1090,27 @@ nenhuma alteração realizada no VPS.
 - Estado: somente a pasta local oficial; sem alteração de `.env`, VPS,
   `/current`, PM2, banco, provider, schedulers, mensagens, tráfego, push, tag,
   stage ou deploy.
+
+## Registro V76 — semântica do health para bridge persistente V66 (2026-08-28)
+
+- Freeze ID: `deploy-health-bridge-semantics-v76`.
+- Causa corrigida: `bridgeComplete=true` comprova que a migração persistente A4
+  terminou; não representa bridge operacional ligada.
+- Helper versionado: `ops/vitalismen-stage`; o health agora exige também dados
+  66 e runtime mínimo 66 antes de aceitar a candidata.
+- Trava operacional preservada:
+  `POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false`, mutações desligadas,
+  autorizações vazias, zero schedulers e Dropi `REPORT_ONLY`.
+- Contrato/guard/testes:
+  `scripts/lib/deploy-health-bridge-semantics-contract-v76.mjs`,
+  `scripts/guard-deploy-health-bridge-semantics-v76.mjs` e
+  `tests/deploy-health-bridge-semantics-v76.test.mjs`.
+- Runtime/freeze/manifesto:
+  `src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js`,
+  `docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md` e
+  `docs/freeze/deploy-health-bridge-semantics-v76-20260828.json`.
+- `src/routes/health.js`, banco, bridge, providers, integrações e schedulers
+  permanecem sem alteração.
+- Cadeia: V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados 66.
+- Estado: candidata somente local; sem push, tag, stage, deploy, VPS, `/current`,
+  PM2, `.env`, banco, mensagem, canário ou tráfego.

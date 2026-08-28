@@ -1494,3 +1494,32 @@ mantendo `RUNTIME_GUARD_CHAIN_VERSION=71` e
 Estado: candidata exclusivamente local, sem `.env`, push, tag, stage, deploy,
 `/current`, PM2, banco, provider, mensagem, scheduler ou tráfego. Contrato:
 `docs/CANARY_ISOLATION_SAFETY_FREEZE_V75_20260828.md`.
+
+## 2026-08-28 — V76: distinção entre migração persistente e bridge operacional
+
+A V76 corrige somente o consumidor de health do helper versionado. O campo
+`automationSafety.compatibilityBridgeComplete=true` significa que a migração
+persistente A4 terminou e que os dados podem ser lidos pelo runtime V66; ele não
+concede permissão para executar a bridge novamente nem para escrever.
+
+O health seguro exige simultaneamente `bridgeComplete=true`,
+`dataCompatibilityVersion=66`, `minimumRuntimeVersion=66`, política
+`STRICT_READ_ONLY`, lista vazia de writes, rotas mutantes desligadas, zero
+schedulers mutantes, mutações operacionais desligadas e Dropi `REPORT_ONLY` sem
+APPLY. O overlay continua exigindo
+`POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false`,
+`POST_SALE_V66_MUTATIONS_ENABLED=false`, autorizações vazias e
+`DISABLE_SCHEDULER=1`.
+
+`src/routes/health.js` e o documento de compatibilidade no MongoDB permanecem
+inalterados. Provider, Meta, Dropi, WhatsApp, Z-API, schedulers, PM2, `.env` e
+tráfego também não mudam. Testes negativos provam que essas fronteiras continuam
+fail-closed.
+
+A cadeia canônica passa a ser V76 → V75 → V74 → V73 → V72 → V71, mantendo
+`RUNTIME_GUARD_CHAIN_VERSION=71` e `DATA_COMPATIBILITY_VERSION=66`. Freeze:
+`deploy-health-bridge-semantics-v76`; contrato completo em
+`docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md`.
+
+Estado: candidata exclusivamente local, sem push, tag, stage, deploy, VPS,
+`/current`, PM2, ambiente, banco, bridge, provider, mensagem, canário ou tráfego.

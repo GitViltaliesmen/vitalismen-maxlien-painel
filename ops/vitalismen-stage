@@ -1209,7 +1209,9 @@ if (safety.baileysEnabled !== false) throw new Error('Baileys habilitado');
 if (safety.mutatingRoutesEnabled !== false) throw new Error('rotas mutantes habilitadas');
 if (safety.mutatingSchedulers !== 0) throw new Error('scheduler mutante habilitado');
 if (safety.operationalMutationsEnabled !== false) throw new Error('mutações habilitadas');
-if (safety.compatibilityBridgeComplete !== false) throw new Error('bridge habilitado');
+if (safety.compatibilityBridgeComplete !== true) throw new Error('bridge de dados V66 incompleta');
+if (Number(safety.dataCompatibilityVersion) !== 66) throw new Error('compatibilidade de dados V66 divergente');
+if (Number(safety.minimumRuntimeVersion) !== 66) throw new Error('runtime mínimo V66 divergente');
 if (safety.dropiSyncMode !== 'REPORT_ONLY') throw new Error('Dropi não está em REPORT_ONLY');
 if (safety.dropiApplyAllowed !== false) throw new Error('Dropi APPLY permitido');
 NODE
