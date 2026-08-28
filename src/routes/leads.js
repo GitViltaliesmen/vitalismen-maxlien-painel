@@ -147,7 +147,8 @@ const sendInitiateCheckoutForLead = async ({ order, lead, body, req, quantity, t
             content_type: 'product',
             value: total,
             currency: order?.currency || 'USD',
-            quantity
+            quantity,
+            meta_destination: body?.meta_destination ?? body?.metaDestination
         }, req);
     } catch (error) {
         console.warn('[META] InitiateCheckout lead nao enviado:', error.message || error);

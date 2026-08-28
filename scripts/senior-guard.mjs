@@ -136,6 +136,10 @@ const productScopedProtocolFiles = new Set([
     'src/services/metaAttributionFreezeRuntimeGuardV61.js',
     'src/services/metaProtocoloGAttributionService.js',
     'src/services/funnelMetricsService.js',
+    // V73 apenas preserva a rota/Dataset Protocolo G já congelados pela V61;
+    // a exceção fica restrita ao resolvedor Meta e ao guard sucessor.
+    'src/services/metaDestinationRegistryService.js',
+    'src/services/metaPartnerDestinationRegistryFreezeRuntimeGuardV73.js',
     // Autorizacao V62: sucessor restrito a CTA secundaria e observabilidade
     // exclusiva do Protocolo G, sem alterar o funil comercial EC.
     'src/services/protocoloGConversionFreezeRuntimeGuardV62.js',

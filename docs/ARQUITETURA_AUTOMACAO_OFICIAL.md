@@ -1397,3 +1397,46 @@ Não existe `runtime-chain-v72`: o wrapper de freeze/deploy V72 termina
 validando a cadeia runtime V71. Freeze ID:
 `deploy-helper-v71-chain-alignment-safety-v72`; contrato completo em
 `docs/DEPLOY_HELPER_V71_CHAIN_ALIGNMENT_SAFETY_FREEZE_V72_20260827.md`.
+
+## 2026-08-28 — V73: registro único Meta e contas parceiras
+
+A V73 adiciona uma microcamada de configuração Meta sem mudar a semântica do
+helper V72, do runtime V71 ou dos dados V66. Browser Pixel e CAPI passam a
+resolver o mesmo perfil por
+`/opt/vitalismen-automacao/shared/config/meta-destinations.json`; tokens
+continuam exclusivamente server-side por referências de ambiente ou arquivo
+fora do Git. Registry e secrets são exigidos como `root:root 0600` no runtime
+oficial root.
+
+`GET /api/health/meta-destination` expõe somente IDs públicos e o estado
+redigido. A rota reutiliza o proxy oficial já existente para `/api/health/` e
+não exige alteração no Nginx.
+A VSL `/n/` inicializa `fbq` apenas quando o mesmo ID está disponível no
+navegador e no servidor. Configuração existente porém inválida falha fechada e
+não volta silenciosamente ao Pixel anterior. O contrato legado de env permanece
+idêntico quando o registry ainda não existe.
+
+Cada configuração pública inclui binding HMAC opaco de seis horas. Eventos
+server-side da sessão usam esse binding para permanecer no mesmo perfil do
+Browser mesmo durante uma ativação. Binding adulterado/expirado falha fechado;
+perfil anterior permanece disponível durante o dreno e rollback.
+
+Conta de anúncio parceira deve receber o Dataset existente pelo Meta Business
+Settings. Esse fluxo não troca Pixel, CAPI, token, código ou PM2. Troca real de
+Dataset é uma exceção: perfil ativo é imutável, perfil novo precisa estar
+completo e a ativação atômica é feita pelo helper V73, DRY RUN por padrão. O
+plano de parceiro deriva somente o perfil ativo; perfil histórico é recusado.
+A ativação exige declarar o perfil ativo atual e o Dataset novo esperados para
+bloquear operação sobre plano obsoleto. Todas as mutações usam o mesmo lock
+exclusivo e escrita temporária sincronizada antes do rename.
+
+O Dataset Protocolo G `2048099902484149`, `event_id`, Purchase server-side,
+deduplicação, funil, checkout, WhatsApp, Dropi e `STRICT_READ_ONLY` são
+preservados. Contrato e runbook:
+
+- `docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md`;
+- `docs/META_PARTNER_ACCOUNT_RUNBOOK_20260828.md`.
+
+O incidente 502 que antecedeu esta camada foi causado por PM2 parado/porta
+`3001` sem listener e foi recuperado com a release V72 exata; registro em
+`docs/INCIDENTE_502_RECOVERY_V72_20260828.md`.

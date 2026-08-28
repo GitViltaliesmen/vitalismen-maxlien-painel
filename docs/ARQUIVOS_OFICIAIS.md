@@ -1006,3 +1006,39 @@ nenhuma alteração realizada no VPS.
   `RUNTIME_GUARD_CHAIN_VERSION=71`, `DATA_COMPATIBILITY_VERSION=66`.
 - Estado: somente local; sem push, tag, instalação, VPS stage, publicação,
   permit, `/current`, PM2, mensagens, Dropi, bridge ou mutação de dados.
+
+## Registro V73 — destinos Meta e parceria publicitária (2026-08-28)
+
+- Serviço/fonte única:
+  `src/services/metaDestinationRegistryService.js`.
+- Integração CAPI preservada:
+  `src/services/metaConversionsService.js`.
+- Endpoint público redigido:
+  `src/routes/health.js`, `GET /api/health/meta-destination`, pelo proxy Nginx
+  oficial já existente de `/api/health/`.
+- Resolvedor Browser sem Pixel fixo divergente:
+  `public/n/index.html`.
+- Helper operacional DRY RUN por padrão:
+  `scripts/manage-meta-destinations-v73.mjs`.
+- Configuração persistente oficial fora da release:
+  `/opt/vitalismen-automacao/shared/config/meta-destinations.json`,
+  `root:root 0600`.
+- Segredos opcionais oficiais fora da release/Git:
+  `/opt/vitalismen-automacao/shared/secrets/meta-destinations.json`,
+  `root:root 0600`.
+- Testes:
+  `tests/meta-partner-destination-registry-v73.test.mjs`.
+- Freeze, runbook e incidente:
+  `docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md`,
+  `docs/META_PARTNER_ACCOUNT_RUNBOOK_20260828.md` e
+  `docs/INCIDENTE_502_RECOVERY_V72_20260828.md`.
+- Dataset EC principal preservado no bootstrap: `1468946114265008`.
+- Dataset Tex Ultra Protocolo G preservado: `2048099902484149`.
+- Sem token no Git/frontend/API/log. Conta parceira usa compartilhamento do
+  Dataset existente; troca real usa perfil inativo + ativação atômica.
+- `plan-partner` deriva o perfil ativo e recusa perfil histórico; a ativação
+  exige perfil ativo e Dataset novo esperados antes de qualquer `--apply`.
+- Mutações do helper usam lock exclusivo e escrita atômica sincronizada;
+  concorrência ou lock pendente falham fechados.
+- Envelope operacional preservado: helper/freeze V72, runtime V71
+  `STRICT_READ_ONLY`, data compatibility V66.

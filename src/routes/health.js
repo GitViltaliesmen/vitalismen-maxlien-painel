@@ -15,8 +15,25 @@ import {
 import {
     strictReadOnlyHealthContract
 } from '../services/strictReadOnlyObservationService.js';
+import {
+    getPublicMetaDestinationForRoute
+} from '../services/metaConversionsService.js';
+import {
+    META_DESTINATION_ROUTES
+} from '../services/metaDestinationRegistryService.js';
 
 const router = express.Router();
+
+router.get('/meta-destination', (_req, res) => {
+    const destination = getPublicMetaDestinationForRoute(META_DESTINATION_ROUTES.EC_DEFAULT);
+    const available = destination.available === true && destination.browserServerSynchronized === true;
+    res.set('Cache-Control', 'no-store, max-age=0');
+    return res.status(available ? 200 : 503).json({
+        ok: available,
+        version: 1,
+        destination
+    });
+});
 
 export const zapiConnectedFromStatus = (status = {}) => {
     const alreadyConnected = String(status?.error || '').toLowerCase().includes('already connected');

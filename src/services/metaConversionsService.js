@@ -7,6 +7,12 @@ import {
     META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
     PROTOCOLO_G_EVENT_SOURCE_URL
 } from './metaProtocoloGAttributionService.js';
+import {
+    META_DESTINATION_ROUTES,
+    publicMetaDestinationDescriptor,
+    resolveMetaDestination,
+    resolveMetaDestinationProfile
+} from './metaDestinationRegistryService.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -39,11 +45,16 @@ const splitName = (fullName) => {
 
 const getConfigForCountry = (country, env = process.env) => {
     if (country === 'EC') {
-        return {
-            pixelId: env.META_PIXEL_ID_EC,
-            accessToken: env.META_ACCESS_TOKEN_EC,
-            route: 'country_ec_default'
-        };
+        return resolveMetaDestination({
+            route: META_DESTINATION_ROUTES.EC_DEFAULT,
+            env,
+            legacyConfig: {
+                pixelId: env.META_PIXEL_ID_EC,
+                browserPixelId: env.META_PIXEL_ID_EC,
+                accessToken: env.META_ACCESS_TOKEN_EC,
+                tokenSource: 'env:META_ACCESS_TOKEN_EC'
+            }
+        });
     }
     return { pixelId: null, accessToken: null, route: 'unsupported_country' };
 };
@@ -58,11 +69,18 @@ export const getMetaConfigForOrder = (order = {}, env = process.env) => {
                 route: 'ec_tex_ultra_protocolo_g_invalid_dataset_config'
             };
         }
-        return {
-            pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
-            route: 'ec_tex_ultra_protocolo_g'
-        };
+        return resolveMetaDestination({
+            route: META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G,
+            env,
+            legacyConfig: {
+                pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+                browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+                accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
+                tokenSource: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G
+                    ? 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
+                    : 'env:META_ACCESS_TOKEN_EC'
+            }
+        });
     }
     return getConfigForCountry(String(order?.country || '').trim().toUpperCase(), env);
 };
@@ -85,6 +103,116 @@ const normalizeMetaPackageQuantity = (value) => {
 };
 
 export const getMetaConfigForCountry = getConfigForCountry;
+
+const legacyMetaConfigForRoute = (route, env) => {
+    if (route === META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G) {
+        return {
+            pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+            browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
+            tokenSource: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G
+                ? 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
+                : 'env:META_ACCESS_TOKEN_EC'
+        };
+    }
+    return {
+        pixelId: env.META_PIXEL_ID_EC,
+        browserPixelId: env.META_PIXEL_ID_EC,
+        accessToken: env.META_ACCESS_TOKEN_EC,
+        tokenSource: 'env:META_ACCESS_TOKEN_EC'
+    };
+};
+
+const META_DESTINATION_BINDING_VERSION = 1;
+const META_DESTINATION_BINDING_TTL_MS = 6 * 60 * 60 * 1000;
+const bindingPayload = ({ route, profile, datasetId, expiresAt }) => [
+    META_DESTINATION_BINDING_VERSION,
+    String(route || ''),
+    String(profile || ''),
+    String(datasetId || ''),
+    String(expiresAt || '')
+].join('|');
+const bindingSignature = (payload, accessToken) => crypto
+    .createHmac('sha256', crypto.createHash('sha256').update(`meta-destination-v73:${accessToken}`).digest())
+    .update(payload)
+    .digest('base64url');
+
+const activeDestinationForRoute = (route, env) => {
+    if (route === META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G) {
+        return resolveMetaDestination({
+            route,
+            env,
+            legacyConfig: legacyMetaConfigForRoute(route, env)
+        });
+    }
+    return getConfigForCountry('EC', env);
+};
+
+export const getPublicMetaDestinationForRoute = (route, env = process.env, { now = Date.now() } = {}) => {
+    const destination = activeDestinationForRoute(route, env);
+    const descriptor = publicMetaDestinationDescriptor(destination);
+    if (!descriptor.available) return descriptor;
+    const expiresAt = new Date(Number(now) + META_DESTINATION_BINDING_TTL_MS).toISOString();
+    const payload = bindingPayload({
+        route: descriptor.route,
+        profile: descriptor.profile,
+        datasetId: descriptor.datasetId,
+        expiresAt
+    });
+    return Object.freeze({
+        ...descriptor,
+        bindingVersion: META_DESTINATION_BINDING_VERSION,
+        bindingExpiresAt: expiresAt,
+        binding: bindingSignature(payload, destination.accessToken)
+    });
+};
+
+const blockedBindingConfig = (route, errorCode = 'META_DESTINATION_BINDING_INVALID') => ({
+    pixelId: null,
+    accessToken: null,
+    route: `${route}_binding_blocked`,
+    errorCode
+});
+
+const configForBrowserEvent = ({ route, event, req, env, now = Date.now() }) => {
+    const rawBinding = event?.meta_destination || event?.metaDestination || req?.body?.meta_destination || req?.body?.metaDestination;
+    if (rawBinding === undefined || rawBinding === null) {
+        return activeDestinationForRoute(route, env);
+    }
+    if (typeof rawBinding !== 'object' || Array.isArray(rawBinding)) return blockedBindingConfig(route);
+    const profile = String(rawBinding.profile || '').trim();
+    const datasetId = String(rawBinding.datasetId || '').trim();
+    const requestedRoute = String(rawBinding.route || '').trim();
+    const expiresAt = String(rawBinding.bindingExpiresAt || '').trim();
+    const signature = String(rawBinding.binding || '').trim();
+    const expiresAtMs = Date.parse(expiresAt);
+    if (
+        Number(rawBinding.bindingVersion) !== META_DESTINATION_BINDING_VERSION
+        || requestedRoute !== route
+        || !profile
+        || !/^\d{8,25}$/.test(datasetId)
+        || !Number.isFinite(expiresAtMs)
+        || expiresAtMs <= Number(now)
+        || !/^[A-Za-z0-9_-]{40,64}$/.test(signature)
+    ) return blockedBindingConfig(route);
+
+    const destination = resolveMetaDestinationProfile({
+        route,
+        profile,
+        env,
+        legacyConfig: legacyMetaConfigForRoute(route, env)
+    });
+    if (!destination.pixelId || !destination.accessToken || destination.pixelId !== datasetId) {
+        return blockedBindingConfig(route, destination.errorCode || 'META_DESTINATION_BINDING_PROFILE_INVALID');
+    }
+    const expected = bindingSignature(bindingPayload({ route, profile, datasetId, expiresAt }), destination.accessToken);
+    const expectedBuffer = Buffer.from(expected);
+    const actualBuffer = Buffer.from(signature);
+    if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
+        return blockedBindingConfig(route);
+    }
+    return destination;
+};
 
 export const hashMetaUserValue = sha256hex;
 
@@ -213,9 +341,13 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
 
 export const sendBrowserServerEvent = async (event = {}, req = null, options = {}) => {
     const country = String(event.country || 'EC').trim().toUpperCase();
-    const { pixelId, accessToken, route } = isEcuadorTexUltraProtocoloG(event)
-        ? getMetaConfigForOrder({ country, tracking: event })
-        : getConfigForCountry(country);
+    const env = options.env || process.env;
+    const expectedRoute = isEcuadorTexUltraProtocoloG(event)
+        ? META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G
+        : (country === 'EC' ? META_DESTINATION_ROUTES.EC_DEFAULT : 'unsupported_country');
+    const { pixelId, accessToken, route } = expectedRoute === 'unsupported_country'
+        ? getConfigForCountry(country, env)
+        : configForBrowserEvent({ route: expectedRoute, event, req, env, now: options.now });
     if (!pixelId || !accessToken) {
         return { ok: false, error: 'META pixel config missing for country' };
     }

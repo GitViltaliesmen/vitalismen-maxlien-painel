@@ -1892,7 +1892,8 @@ const sendVslPageViewForVisit = async ({ visit, body, req, country, visitorKey }
         client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
         fbc: tracking.fbc || body.fbc,
         fbp: tracking.fbp || body.fbp,
-        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1922,7 +1923,8 @@ const sendVslViewContentForVisit = async ({ visit, body, req, country, visitorKe
         external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
         content_name: body.content_name || body.contentName || 'Vit Power Ecuador',
         content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
-        content_type: body.content_type || body.contentType || 'product'
+        content_type: body.content_type || body.contentType || 'product',
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1955,7 +1957,8 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
         content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
         content_type: body.content_type || body.contentType || 'product',
         value: Number.isFinite(value) && value > 0 ? value : undefined,
-        currency: body.currency || 'USD'
+        currency: body.currency || 'USD',
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1989,7 +1992,8 @@ const sendVslLeadForVisit = async ({ visit, body, req, country, visitorKey }) =>
         content_ids: body.content_ids || body.contentIds || [publicEcVslProductFromBody(body).productKey],
         content_type: body.content_type || body.contentType || 'product',
         funnel_entry_message: visit.lastEntryMessage || body.message || body.funnel_entry_message,
-        customer_name: visit.customerName || body.customerName || body.customer_name
+        customer_name: visit.customerName || body.customerName || body.customer_name,
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
