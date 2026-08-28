@@ -1,3 +1,8 @@
+import {
+    canaryControllerV77EnforcementRequired,
+    resolveCanaryControllerV77Runtime
+} from './canaryControllerV77Service.js';
+
 export const CANARY_V75_QA_PHONE = '5515998038637';
 
 export const CANARY_V75_FLAG = 'VITALISMEN_CANARY_V75_ENABLED';
@@ -71,6 +76,7 @@ export const canaryV75ExplicitlyEnabled = (env = process.env) => isTrue(env[CANA
 
 export const canaryV75EnforcementRequired = (env = process.env) => (
     canaryV75ExplicitlyEnabled(env)
+    || canaryControllerV77EnforcementRequired(env)
     || (
         clean(env.NODE_ENV).toLowerCase() === 'production'
         && isTrue(env.VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED)
@@ -112,12 +118,17 @@ export const resolveCanaryV75Configuration = (env = process.env) => {
     for (const flag of CANARY_RECIPIENT_LIST_FLAGS) {
         if (!exactQaList(env[flag])) failures.push(`${flag}_must_contain_only_QA`);
     }
+    const controller = resolveCanaryControllerV77Runtime(env);
+    if (!controller.ready) {
+        failures.push(...controller.failures.map((failure) => `CANARY_CTRL_V77_${failure}`));
+    }
 
     return {
         enabled: true,
         ready: failures.length === 0,
         qaPhone: CANARY_V75_QA_PHONE,
-        failures
+        failures,
+        controller
     };
 };
 

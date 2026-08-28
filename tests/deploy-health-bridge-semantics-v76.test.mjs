@@ -18,6 +18,7 @@ import {
     CANARY_V75_REQUIRED_TRUE_FLAGS,
     evaluateCanaryV75ExternalEffect
 } from '../src/services/canaryIsolationV75Service.js';
+import { buildCanaryControllerV77Environment } from '../scripts/lib/canary-controller-contract-v77.mjs';
 import {
     assertMutationAllowed,
     strictReadOnlyHealthContract
@@ -35,19 +36,16 @@ const safeHealth = () => ({
 const safeRuntimeEnv = () => ({ ...DEPLOY_HEALTH_V76_EXPECTED_RUNTIME_ENV });
 
 const validCanaryEnv = () => {
-    const env = {
-        NODE_ENV: 'production',
-        DISABLE_SCHEDULER: '0',
-        DROPPI_EC_ACTIVE_SYNC_MODE: 'REPORT_ONLY',
-        POST_SALE_V66_MUTATIONS_AUTHORIZATION: 'I_UNDERSTAND_V66_OPERATIONAL_MUTATIONS',
-        META_TEST_EVENT_CODE_EC: '',
-        META_TEST_EVENT_CODE: '',
-        VITALISMEN_CANARY_V75_ENABLED: 'true'
-    };
-    for (const flag of CANARY_V75_REQUIRED_TRUE_FLAGS) env[flag] = 'true';
-    for (const flag of CANARY_V75_REQUIRED_FALSE_FLAGS) env[flag] = 'false';
-    for (const flag of CANARY_V75_RECIPIENT_LIST_FLAGS) env[flag] = CANARY_V75_QA_PHONE;
-    return env;
+    const startedAt = Date.now();
+    return buildCanaryControllerV77Environment({
+        release: '20260828T210000Z_production-20260828-297324a',
+        commit: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+        tree: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+        tag: 'production-20260828-297324a',
+        permitId: 'v76-contract-test',
+        startedAt,
+        expiresAt: startedAt + 60 * 60 * 1000
+    });
 };
 
 test('bridgeComplete=true é aceito como prova persistente com runtime integralmente contido', () => {

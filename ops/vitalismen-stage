@@ -36,6 +36,7 @@ fi
 
 releases_dir="$base_dir/releases"
 permit_file="$state_dir/activate-permit.json"
+canary_v77_permit_file="$state_dir/canary-v77-permit.json"
 process_name="vitalismen-automation"
 if [[ "$stage_test_mode" == "true" ]]; then
   official_health_url="${VITALISMEN_STAGE_OFFICIAL_HEALTH_URL:?health oficial mock ausente}"
@@ -88,6 +89,15 @@ fi
 v66_runtime_version=66
 safe_profile_name="V66_SAFE_OBSERVATION_ONLY"
 safe_overlay_name=".env.v66-safe-observation"
+canary_v77_overlay_name=".env.v77-canary-qa"
+canary_v77_attestation_name=".canary-v77-profile-attestation.json"
+canary_v77_manifest_name="docs/freeze/canary-controller-safety-v77-20260828.json"
+canary_v77_baseline_release="20260828T210000Z_production-20260828-297324a"
+canary_v77_baseline_commit="297324afa20ae5d59fbcb6080eae2e62c4841c8b"
+canary_v77_baseline_tree="56a2b2cdc5c3062d1b90b7906bb48c705ab7d865"
+canary_v77_baseline_tag="production-20260828-297324a"
+canary_v77_qa_phone="5515998038637"
+canary_v77_authorization_phrase="I_UNDERSTAND_V77_QA_CANARY"
 freeze_version=72
 deploy_helper_contract_version=72
 runtime_guard_chain_version=71
@@ -270,6 +280,8 @@ const root = path.resolve(process.argv[2]);
 const excludedRootFiles = new Set([
   '.env',
   '.env.v66-safe-observation',
+  '.env.v77-canary-qa',
+  '.canary-v77-profile-attestation.json',
   '.release-source.json',
   '.staging-complete.json',
   '.release-publication.json',
@@ -761,6 +773,21 @@ safe_profile_content() {
 VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false
 VITALISMEN_STRICT_READ_ONLY=true
 SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY
+VITALISMEN_CANARY_CTRL_V77_ENABLED=false
+VITALISMEN_CANARY_V75_ENABLED=false
+VITALISMEN_CANARY_V77_RELEASE=
+VITALISMEN_CANARY_V77_COMMIT=
+VITALISMEN_CANARY_V77_TREE=
+VITALISMEN_CANARY_V77_TAG=
+VITALISMEN_CANARY_V77_BASELINE_RELEASE=
+VITALISMEN_CANARY_V77_BASELINE_COMMIT=
+VITALISMEN_CANARY_V77_BASELINE_TREE=
+VITALISMEN_CANARY_V77_BASELINE_TAG=
+VITALISMEN_CANARY_V77_QA_PHONE=
+VITALISMEN_CANARY_V77_PERMIT_ID=
+VITALISMEN_CANARY_V77_STARTED_AT=
+VITALISMEN_CANARY_V77_EXPIRES_AT=
+VITALISMEN_CANARY_V77_PROFILE_SHA256=
 VIT_POWER_FUNNEL_ACTIVE=false
 WHATSAPP_CONNECT_ENABLED=false
 WHATSAPP_AUTO_REPLY_ENABLED=false
@@ -772,12 +799,25 @@ WHATSAPP_FUNNEL_ENABLED=false
 DISABLE_SCHEDULER=1
 SHIPMENT_STATUS_DISPATCH_ENABLED=false
 SHIPMENT_PICKUP_REMINDERS_ENABLED=false
+SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED=false
+SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED=false
 WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false
 PENDING_CHECKOUT_FOLLOWUP_ENABLED=false
 ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false
 POST_SALE_REPURCHASE_30D_ENABLED=false
+TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED=false
 EC_ENGAGEMENT_AUTO_REPLY_ENABLED=false
 PICKUP_PROOF_SWEEP_ENABLED=false
+PICKUP_PROOF_BONUS_ENABLED=false
+WHATSAPP_BACKLOG_RECOVERY_ENABLED=false
+ADMIN_PANEL_IMPORT_ENABLED=false
+ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED=false
+ZAPI_CHAT_WATCHDOG_ENABLED=false
+PASSIVE_FUNNEL_OBSERVER_ENABLED=false
+NITRIX_FAST_STATE_ENABLED=false
+GOOGLE_CONTACTS_SYNC_ENABLED=false
+WHATSAPP_HEALTH_ALERT_ENABLED=false
+META_RETRO_SEND=false
 DROPPI_EC_ACTIVE_SYNC_ENABLED=false
 DROPPI_EC_ACTIVE_SYNC_MODE=REPORT_ONLY
 POST_SALE_V66_MUTATIONS_ENABLED=false
@@ -831,6 +871,21 @@ safe_pm2() {
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false \
     VITALISMEN_STRICT_READ_ONLY=true \
     SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY \
+    VITALISMEN_CANARY_CTRL_V77_ENABLED=false \
+    VITALISMEN_CANARY_V75_ENABLED=false \
+    VITALISMEN_CANARY_V77_RELEASE= \
+    VITALISMEN_CANARY_V77_COMMIT= \
+    VITALISMEN_CANARY_V77_TREE= \
+    VITALISMEN_CANARY_V77_TAG= \
+    VITALISMEN_CANARY_V77_BASELINE_RELEASE= \
+    VITALISMEN_CANARY_V77_BASELINE_COMMIT= \
+    VITALISMEN_CANARY_V77_BASELINE_TREE= \
+    VITALISMEN_CANARY_V77_BASELINE_TAG= \
+    VITALISMEN_CANARY_V77_QA_PHONE= \
+    VITALISMEN_CANARY_V77_PERMIT_ID= \
+    VITALISMEN_CANARY_V77_STARTED_AT= \
+    VITALISMEN_CANARY_V77_EXPIRES_AT= \
+    VITALISMEN_CANARY_V77_PROFILE_SHA256= \
     VIT_POWER_FUNNEL_ACTIVE=false \
     WHATSAPP_CONNECT_ENABLED=false \
     WHATSAPP_AUTO_REPLY_ENABLED=false \
@@ -842,12 +897,25 @@ safe_pm2() {
     DISABLE_SCHEDULER=1 \
     SHIPMENT_STATUS_DISPATCH_ENABLED=false \
     SHIPMENT_PICKUP_REMINDERS_ENABLED=false \
+    SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED=false \
+    SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED=false \
     WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false \
     PENDING_CHECKOUT_FOLLOWUP_ENABLED=false \
     ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false \
     POST_SALE_REPURCHASE_30D_ENABLED=false \
+    TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED=false \
     EC_ENGAGEMENT_AUTO_REPLY_ENABLED=false \
     PICKUP_PROOF_SWEEP_ENABLED=false \
+    PICKUP_PROOF_BONUS_ENABLED=false \
+    WHATSAPP_BACKLOG_RECOVERY_ENABLED=false \
+    ADMIN_PANEL_IMPORT_ENABLED=false \
+    ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED=false \
+    ZAPI_CHAT_WATCHDOG_ENABLED=false \
+    PASSIVE_FUNNEL_OBSERVER_ENABLED=false \
+    NITRIX_FAST_STATE_ENABLED=false \
+    GOOGLE_CONTACTS_SYNC_ENABLED=false \
+    WHATSAPP_HEALTH_ALERT_ENABLED=false \
+    META_RETRO_SEND=false \
     DROPPI_EC_ACTIVE_SYNC_ENABLED=false \
     DROPPI_EC_ACTIVE_SYNC_MODE=REPORT_ONLY \
     POST_SALE_V66_MUTATIONS_ENABLED=false \
@@ -870,6 +938,8 @@ process.stdin.on("end", () => {
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED: "false",
     VITALISMEN_STRICT_READ_ONLY: "true",
     SAFE_OBSERVATION_POLICY: "STRICT_READ_ONLY",
+    VITALISMEN_CANARY_CTRL_V77_ENABLED: "false",
+    VITALISMEN_CANARY_V75_ENABLED: "false",
     VIT_POWER_FUNNEL_ACTIVE: "false",
     WHATSAPP_CONNECT_ENABLED: "false",
     WHATSAPP_AUTO_REPLY_ENABLED: "false",
@@ -881,12 +951,25 @@ process.stdin.on("end", () => {
     DISABLE_SCHEDULER: "1",
     SHIPMENT_STATUS_DISPATCH_ENABLED: "false",
     SHIPMENT_PICKUP_REMINDERS_ENABLED: "false",
+    SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED: "false",
+    SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED: "false",
     WHATSAPP_PRODUCT_FOLLOWUP_ENABLED: "false",
     PENDING_CHECKOUT_FOLLOWUP_ENABLED: "false",
     ADMIN_BUY_LATER_FOLLOWUP_ENABLED: "false",
     POST_SALE_REPURCHASE_30D_ENABLED: "false",
+    TEX_ULTRA_CONFIRMED_POSTSALE_QUEUE_ENABLED: "false",
     EC_ENGAGEMENT_AUTO_REPLY_ENABLED: "false",
     PICKUP_PROOF_SWEEP_ENABLED: "false",
+    PICKUP_PROOF_BONUS_ENABLED: "false",
+    WHATSAPP_BACKLOG_RECOVERY_ENABLED: "false",
+    ADMIN_PANEL_IMPORT_ENABLED: "false",
+    ADMIN_PANEL_ATENDIMENTO_RECONCILE_ENABLED: "false",
+    ZAPI_CHAT_WATCHDOG_ENABLED: "false",
+    PASSIVE_FUNNEL_OBSERVER_ENABLED: "false",
+    NITRIX_FAST_STATE_ENABLED: "false",
+    GOOGLE_CONTACTS_SYNC_ENABLED: "false",
+    WHATSAPP_HEALTH_ALERT_ENABLED: "false",
+    META_RETRO_SEND: "false",
     DROPPI_EC_ACTIVE_SYNC_ENABLED: "false",
     DROPPI_EC_ACTIVE_SYNC_MODE: "REPORT_ONLY",
     POST_SALE_V66_MUTATIONS_ENABLED: "false",
@@ -897,6 +980,17 @@ process.stdin.on("end", () => {
   }
   if (String(env.POST_SALE_V66_MUTATIONS_AUTHORIZATION || "") !== "") throw new Error("autorização de mutação presente");
   if (String(env.POST_SALE_V66_BRIDGE_APPLY_APPROVED || "") !== "") throw new Error("autorização de bridge presente");
+  for (const key of [
+    "VITALISMEN_CANARY_V77_RELEASE", "VITALISMEN_CANARY_V77_COMMIT",
+    "VITALISMEN_CANARY_V77_TREE", "VITALISMEN_CANARY_V77_TAG",
+    "VITALISMEN_CANARY_V77_BASELINE_RELEASE", "VITALISMEN_CANARY_V77_BASELINE_COMMIT",
+    "VITALISMEN_CANARY_V77_BASELINE_TREE", "VITALISMEN_CANARY_V77_BASELINE_TAG",
+    "VITALISMEN_CANARY_V77_QA_PHONE", "VITALISMEN_CANARY_V77_PERMIT_ID",
+    "VITALISMEN_CANARY_V77_STARTED_AT", "VITALISMEN_CANARY_V77_EXPIRES_AT",
+    "VITALISMEN_CANARY_V77_PROFILE_SHA256"
+  ]) {
+    if (String(env[key] || "") !== "") throw new Error(`identidade V77 residual: ${key}`);
+  }
   process.stdout.write("PM2_SAFE_ENV=VALID\n");
 });
 ' "$process_name"
@@ -1309,6 +1403,210 @@ validate_activation_prerequisites_successor() {
     die "compatibility preflight falhou antes da ativação"
 }
 
+validate_v77_release_contract() {
+  local manifest="$candidate_dir/$canary_v77_manifest_name"
+  [[ -f "$manifest" && ! -L "$manifest" ]] || die "manifesto V77 ausente"
+  canary_v77_manifest_sha="$($sha256_cmd "$manifest" | awk '{print $1}')"
+  [[ "$canary_v77_manifest_sha" =~ ^[0-9a-f]{64}$ ]] || die "hash do manifesto V77 inválido"
+  "$node_cmd" - "$manifest" "$canary_v77_baseline_commit" "$canary_v77_baseline_tree" <<'NODE'
+const fs = require('node:fs');
+const [file, baseCommit, baseTree] = process.argv.slice(2);
+const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+if (manifest.freezeId !== 'canary-controller-safety-v77') throw new Error('freezeId V77 inválido');
+if (manifest.parentFreezeId !== 'deploy-health-bridge-semantics-v76') throw new Error('parent V77 inválido');
+if (manifest.parentV76Commit !== baseCommit || manifest.parentV76Tree !== baseTree) throw new Error('base V76 divergente');
+if (manifest.status !== 'implementation_validated') throw new Error('status V77 inválido');
+if (Number(manifest.policy?.contractVersion) !== 77) throw new Error('contrato V77 inválido');
+if (manifest.policy?.qaPhone !== '5515998038637') throw new Error('QA V77 divergente');
+if (Number(manifest.policy?.permitMaxMinutes) !== 10) throw new Error('permit V77 excede 10 minutos');
+if (Number(manifest.policy?.windowMaxMinutes) !== 60) throw new Error('janela V77 excede 60 minutos');
+if (manifest.policy?.expiryFailClosed !== true || manifest.policy?.explicitContainmentRequired !== true) throw new Error('contenção V77 inválida');
+NODE
+}
+
+validate_v77_baseline() {
+  local baseline_dir="$releases_dir/$canary_v77_baseline_release"
+  [[ -d "$baseline_dir" && ! -L "$baseline_dir" ]] || die "baseline V76 ausente"
+  [[ -f "$baseline_dir/.release-source.json" && -f "$baseline_dir/$publication_metadata_name" ]] ||
+    die "metadata do baseline V76 ausente"
+  "$node_cmd" - \
+    "$baseline_dir/.release-source.json" "$baseline_dir/$publication_metadata_name" \
+    "$canary_v77_baseline_release" "$canary_v77_baseline_commit" \
+    "$canary_v77_baseline_tree" "$canary_v77_baseline_tag" <<'NODE'
+const fs = require('node:fs');
+const [sourcePath, publicationPath, release, commit, tree, tag] = process.argv.slice(2);
+const source = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+const publication = JSON.parse(fs.readFileSync(publicationPath, 'utf8'));
+if (source.releaseName !== release) throw new Error('release baseline divergente');
+if (String(source.functionalCommit || '').toLowerCase() !== commit) throw new Error('commit baseline divergente');
+if (String(source.functionalTree || '').toLowerCase() !== tree) throw new Error('tree baseline divergente');
+if (publication.publicationTag !== tag) throw new Error('tag baseline divergente');
+if (String(publication.functionalCommit || '').toLowerCase() !== commit) throw new Error('publicação baseline divergente');
+NODE
+  run_compatibility_preflight "$candidate_dir" "$baseline_dir/.release-source.json" >/dev/null ||
+    die "rollback V76 incompatível ou inconclusivo"
+}
+
+validate_v77_strict_health() {
+  local health_file="$protected_log_dir/v77-strict-health.$$.json"
+  : >"$health_file"
+  secure_mode 0600 "$health_file"
+  "$curl_cmd" -fsS --max-time 8 "$local_health_url" >"$health_file" 2>/dev/null || {
+    rm -f -- "$health_file"
+    die "health strict V76/V77 indisponível"
+  }
+  "$node_cmd" - "$health_file" <<'NODE' || {
+const fs = require('node:fs');
+const health = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const safety = health.automationSafety || {};
+if (health.status !== 'online') throw new Error('health não online');
+if (!Array.isArray(health.degradedReasons) || health.degradedReasons.length !== 0) throw new Error('health degradado');
+if (safety.mode !== 'SAFE_OBSERVATION_ONLY' || safety.policy !== 'STRICT_READ_ONLY') throw new Error('perfil strict ausente');
+if (safety.strictReadOnly !== true || safety.operationalMutationsEnabled !== false) throw new Error('mutações não contidas');
+if (safety.mutatingSchedulers !== 0 || safety.mutatingRoutesEnabled !== false) throw new Error('rotas/schedulers mutantes');
+if (safety.compatibilityBridgeComplete !== true) throw new Error('migração V66 incompleta');
+if (Number(safety.dataCompatibilityVersion) !== 66 || Number(safety.minimumRuntimeVersion) !== 66) throw new Error('compatibilidade V66 divergente');
+if (safety.dropiSyncMode !== 'REPORT_ONLY' || safety.dropiApplyAllowed !== false) throw new Error('Dropi não contido');
+NODE
+    rm -f -- "$health_file"
+    die "health strict V76/V77 divergente"
+  }
+  rm -f -- "$health_file"
+}
+
+v77_artifact_paths() {
+  canary_v77_overlay="$candidate_dir/$canary_v77_overlay_name"
+  canary_v77_attestation="$candidate_dir/$canary_v77_attestation_name"
+}
+
+create_v77_canary_bundle() {
+  local window_minutes="$1"
+  local created_at
+  local permit_expires_at
+  local window_expires_at
+  local permit_id
+  local contract="$candidate_dir/scripts/lib/canary-controller-contract-v77.mjs"
+  [[ "$window_minutes" =~ ^[1-9][0-9]*$ && "$window_minutes" -le 60 ]] ||
+    die "janela do canário deve ter entre 1 e 60 minutos"
+  [[ "${VITALISMEN_CANARY_V77_AUTHORIZE:-}" == "$canary_v77_authorization_phrase" ]] ||
+    die "frase de autorização V77 ausente ou divergente"
+  [[ -f "$contract" && ! -L "$contract" ]] || die "contrato V77 ausente"
+  v77_artifact_paths
+  [[ ! -e "$canary_v77_overlay" && ! -L "$canary_v77_overlay" ]] || die "overlay V77 já existe"
+  [[ ! -e "$canary_v77_attestation" && ! -L "$canary_v77_attestation" ]] || die "attestation V77 já existe"
+  [[ ! -e "$canary_v77_permit_file" && ! -L "$canary_v77_permit_file" ]] || die "permit V77 já existe ou não foi consumido"
+  created_at="$($node_cmd -e 'process.stdout.write(new Date().toISOString())')"
+  permit_expires_at="$($node_cmd -e 'process.stdout.write(new Date(Date.parse(process.argv[1]) + 10 * 60 * 1000).toISOString())' "$created_at")"
+  window_expires_at="$($node_cmd -e 'process.stdout.write(new Date(Date.parse(process.argv[1]) + Number(process.argv[2]) * 60 * 1000).toISOString())' "$created_at" "$window_minutes")"
+  permit_id="$(new_activation_id v77-canary)"
+  "$node_cmd" "$contract" create \
+    "$canary_v77_overlay" "$canary_v77_attestation" "$canary_v77_permit_file" \
+    "$candidate_name" "$candidate_commit" "$candidate_tree" "$candidate_tag" \
+    "$permit_id" "$created_at" "$permit_expires_at" "$window_expires_at" \
+    "$canary_v77_manifest_sha" "$release_metadata_sha" "$staging_complete_sha" \
+    "$publication_metadata_sha" "$publication_complete_sha" \
+    "${VITALISMEN_CANARY_V77_AUTHORIZE:-}" "$canary_v77_authorization_phrase"
+  secure_mode 0400 "$canary_v77_overlay" "$canary_v77_attestation"
+  secure_mode 0600 "$canary_v77_permit_file"
+}
+
+load_and_validate_v77_bundle() {
+  local contract="$candidate_dir/scripts/lib/canary-controller-contract-v77.mjs"
+  local now_iso
+  v77_artifact_paths
+  [[ -f "$canary_v77_overlay" && ! -L "$canary_v77_overlay" ]] || die "overlay V77 ausente"
+  [[ -f "$canary_v77_attestation" && ! -L "$canary_v77_attestation" ]] || die "attestation V77 ausente"
+  [[ -f "$canary_v77_permit_file" && ! -L "$canary_v77_permit_file" ]] || die "permit V77 ausente, consumido ou reutilizado"
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$canary_v77_overlay" 2>/dev/null || true)" == "$expected_uid:$expected_gid:400" ]] || die "owner/mode do overlay V77 inválido"
+    [[ "$(stat -c '%u:%g:%a' "$canary_v77_attestation" 2>/dev/null || true)" == "$expected_uid:$expected_gid:400" ]] || die "owner/mode da attestation V77 inválido"
+    [[ "$(stat -c '%u:%g:%a' "$canary_v77_permit_file" 2>/dev/null || true)" == "$expected_uid:$expected_gid:600" ]] || die "owner/mode do permit V77 inválido"
+  fi
+  canary_v77_permit_id="$($node_cmd -e '
+const fs = require("node:fs");
+const permit = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(String(permit.permitId || ""))) process.exit(1);
+process.stdout.write(permit.permitId);
+' "$canary_v77_permit_file")" || die "permit id V77 inválido"
+  now_iso="$($node_cmd -e 'process.stdout.write(new Date().toISOString())')"
+  "$node_cmd" "$contract" validate \
+    "$canary_v77_overlay" "$canary_v77_attestation" "$canary_v77_permit_file" \
+    "$candidate_name" "$candidate_commit" "$candidate_tree" "$candidate_tag" \
+    "$canary_v77_permit_id" "$now_iso" "$canary_v77_manifest_sha" \
+    "$release_metadata_sha" "$staging_complete_sha" "$publication_metadata_sha" \
+    "$publication_complete_sha" >/dev/null || die "bundle/permit V77 inválido, vencido ou divergente"
+}
+
+consume_v77_canary_permit() {
+  local consumed="$state_dir/canary-v77-permit.consumed.${canary_v77_permit_id}.json"
+  [[ ! -e "$consumed" && ! -L "$consumed" ]] || die "permit V77 já foi consumido"
+  "$mv_cmd" -T "$canary_v77_permit_file" "$consumed"
+  secure_mode 0400 "$consumed"
+  [[ ! -e "$canary_v77_permit_file" && ! -L "$canary_v77_permit_file" ]] || die "permit V77 não foi consumido"
+}
+
+canary_v77_pm2() {
+  local pm2_action="$1"
+  v77_artifact_paths
+  (
+    set -a
+    source "$canary_v77_overlay"
+    set +a
+    "$pm2_cmd" "$pm2_action" "$process_name" --update-env
+  )
+}
+
+verify_candidate_pm2_canary_v77_env() {
+  v77_artifact_paths
+  "$pm2_cmd" jlist | "$node_cmd" - "$process_name" "$canary_v77_overlay" <<'NODE'
+const fs = require('node:fs');
+const [processName, overlayPath] = process.argv.slice(2);
+let input = '';
+process.stdin.on('data', (chunk) => { input += chunk; });
+process.stdin.on('end', () => {
+  const processInfo = JSON.parse(input || '[]').find((entry) => entry.name === processName);
+  if (!processInfo) throw new Error('processo PM2 ausente');
+  const expected = Object.fromEntries(fs.readFileSync(overlayPath, 'utf8').trimEnd().split('\n').map((line) => {
+    const index = line.indexOf('=');
+    return [line.slice(0, index), line.slice(index + 1)];
+  }));
+  const actual = processInfo.pm2_env || {};
+  for (const [key, value] of Object.entries(expected)) {
+    if (String(actual[key] ?? '') !== value) throw new Error(`PM2 V77 env divergente: ${key}`);
+  }
+  process.stdout.write('PM2_V77_ENV=VALID\n');
+});
+NODE
+}
+
+wait_candidate_health_v77() {
+  local activation_id="$1"
+  local attempts=30
+  local health_file="$protected_log_dir/${activation_id}.canary-v77.health.json"
+  local attempt
+  local pid
+  local proc_cwd
+  [[ "$stage_test_mode" != "true" ]] || attempts="${VITALISMEN_STAGE_HEALTH_ATTEMPTS:-1}"
+  : >"$health_file"
+  secure_mode 0600 "$health_file"
+  for attempt in $(seq 1 "$attempts"); do
+    pid="$($pm2_cmd pid "$process_name" 2>/dev/null | tail -n 1 || true)"
+    if [[ "$pid" =~ ^[1-9][0-9]*$ ]] &&
+      "$curl_cmd" -fsS --max-time 8 "$local_health_url" >"$health_file" 2>/dev/null &&
+      "$node_cmd" "$candidate_dir/scripts/lib/canary-controller-contract-v77.mjs" health "$health_file" >/dev/null; then
+      proc_cwd="$($readlink_cmd -f "/proc/$pid/cwd" 2>/dev/null || true)"
+      if [[ "$proc_cwd" == "$candidate_dir" ]]; then
+        candidate_pid="$pid"
+        rm -f -- "$health_file"
+        return 0
+      fi
+    fi
+    "$sleep_cmd" 2
+  done
+  rm -f -- "$health_file"
+  return 1
+}
+
 if [[ "$stage_test_mode" == "true" && "${VITALISMEN_STAGE_TEST_SOURCE_ONLY:-false}" == "true" ]]; then
   [[ "${BASH_SOURCE[0]}" != "$0" ]] || die "modo source-only exige source do helper"
   return 0
@@ -1340,6 +1638,167 @@ fi
 
 if [[ "$action" == "activate" ]]; then
   die "activate legado bloqueado: use v66-preflight e v66-activate-safe; fallback automático foi removido"
+fi
+
+if [[ "$action" == "v77-canary-authorize" ]]; then
+  [[ "$#" -eq 3 ]] || die "uso: vitalismen-stage v77-canary-authorize RELEASE WINDOW_MINUTES"
+  candidate_name="$2"
+  window_minutes="$3"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outra operação de deploy/canário está em execução"
+  detect_source_process_state
+  [[ "$source_process_state" == "ONLINE" ]] || die "canário exige processo de origem online e contido"
+  [[ "$source_current" == "$candidate_dir" ]] || die "canário só pode ser preparado na release current exata"
+  validate_successor_release "$candidate_dir" "$candidate_name"
+  [[ "$candidate_publication_status" == "production_published" && "$candidate_remote_tag_verified" == "YES" ]] ||
+    die "canário exige release publicada e tag remota validada"
+  validate_v77_release_contract
+  validate_safe_overlay "$candidate_dir"
+  validate_v77_strict_health
+  validate_v77_baseline
+  create_v77_canary_bundle "$window_minutes"
+  echo "V77_CANARY_PROFILE=ATTESTED_ROOT_ONLY"
+  echo "CANDIDATE=$candidate_name"
+  echo "FUNCTIONAL_COMMIT=$candidate_commit"
+  echo "FUNCTIONAL_TREE=$candidate_tree"
+  echo "PUBLICATION_TAG=$candidate_tag"
+  echo "BASELINE=$canary_v77_baseline_release"
+  echo "QA_PHONE=$canary_v77_qa_phone"
+  echo "PERMIT_MAX_MINUTES=10"
+  echo "WINDOW_MINUTES=$window_minutes"
+  echo "CURRENT_UNCHANGED=$(current_target)"
+  echo "PM2_ACTIONS=0"
+  echo "MESSAGES=0"
+  echo "DROPI_CALLS=0"
+  echo "META_CALLS=0"
+  exit 0
+fi
+
+if [[ "$action" == "v77-canary-validate" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: vitalismen-stage v77-canary-validate RELEASE"
+  candidate_name="$2"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+  detect_source_process_state
+  [[ "$source_process_state" == "ONLINE" ]] || die "validação exige processo online"
+  [[ "$source_current" == "$candidate_dir" ]] || die "release V77 não é current"
+  validate_successor_release "$candidate_dir" "$candidate_name"
+  [[ "$candidate_publication_status" == "production_published" && "$candidate_remote_tag_verified" == "YES" ]] ||
+    die "identidade publicada V77 inválida"
+  validate_v77_release_contract
+  validate_safe_overlay "$candidate_dir"
+  validate_v77_strict_health
+  validate_v77_baseline
+  load_and_validate_v77_bundle
+  echo "V77_CANARY_VALIDATION=PASS"
+  echo "PERMIT=VALID_UNUSED_MAX_10_MINUTES"
+  echo "WINDOW=VALID_MAX_60_MINUTES"
+  echo "QA_PHONE=$canary_v77_qa_phone"
+  echo "CURRENT_UNCHANGED=$(current_target)"
+  echo "PM2_ACTIONS=0"
+  exit 0
+fi
+
+if [[ "$action" == "v77-canary-activate" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: vitalismen-stage v77-canary-activate RELEASE"
+  candidate_name="$2"
+  candidate_dir="$(release_dir_for_name "$candidate_name")"
+  activation_id="$(new_activation_id v77-canary-activate)"
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outra operação de deploy/canário está em execução"
+  detect_source_process_state
+  [[ "$source_process_state" == "ONLINE" ]] || die "canário exige processo strict online"
+  [[ "$source_current" == "$candidate_dir" ]] || die "canário só pode iniciar na release current exata"
+  validate_successor_release "$candidate_dir" "$candidate_name"
+  [[ "$candidate_publication_status" == "production_published" && "$candidate_remote_tag_verified" == "YES" ]] ||
+    die "identidade publicada V77 inválida"
+  validate_v77_release_contract
+  validate_safe_overlay "$candidate_dir"
+  validate_v77_strict_health
+  validate_v77_baseline
+  load_and_validate_v77_bundle
+  consume_v77_canary_permit
+
+  canary_v77_started=0
+  activation_error_v77() {
+    local failure_code=$?
+    trap - ERR
+    set +e
+    if [[ "$canary_v77_started" == "1" ]]; then
+      if safe_pm2 restart >/dev/null 2>&1 &&
+        verify_candidate_pm2_safe_env >/dev/null 2>&1 &&
+        wait_candidate_health_v66 "$candidate_dir" "$activation_id-contained" >/dev/null 2>&1; then
+        echo "V77_CANARY_FAILURE_CONTAINMENT=STRICT_READ_ONLY_RESTORED"
+      else
+        "$pm2_cmd" stop "$process_name" >/dev/null 2>&1 || true
+        echo "V77_CANARY_FAILURE_CONTAINMENT=STOPPED_FAIL_CLOSED"
+      fi
+    fi
+    echo "V77_CANARY_ACTIVATION=CONTAINED"
+    echo "CURRENT_UNCHANGED=$(current_target)"
+    exit "$failure_code"
+  }
+  trap activation_error_v77 ERR
+  canary_v77_started=1
+  canary_v77_pm2 restart
+  verify_candidate_pm2_canary_v77_env
+  wait_candidate_health_v77 "$activation_id"
+  [[ "$(current_target)" == "$candidate_dir" ]] || false
+  "$pm2_cmd" save >/dev/null
+  trap - ERR
+  echo "V77_CANARY_ACTIVATION=SUCCESS_QA_ONLY"
+  echo "ACTIVATION_ID=$activation_id"
+  echo "CURRENT=$candidate_dir"
+  echo "PM2_PID=$candidate_pid"
+  echo "QA_PHONE=$canary_v77_qa_phone"
+  echo "PERMIT=CONSUMED_SINGLE_USE"
+  echo "EXPIRY=FAIL_CLOSED"
+  echo "CONTAINMENT_COMMAND=v77-canary-contain"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "META=BLOCKED"
+  exit 0
+fi
+
+if [[ "$action" == "v77-canary-contain" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: vitalismen-stage v77-canary-contain"
+  activation_id="$(new_activation_id v77-canary-contain)"
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outra operação de deploy/canário está em execução"
+  detect_source_process_state
+  candidate_dir="$source_current"
+  candidate_name="${candidate_dir##*/}"
+  validate_successor_release "$candidate_dir" "$candidate_name"
+  validate_safe_overlay "$candidate_dir"
+  containment_error_v77() {
+    local failure_code=$?
+    trap - ERR
+    set +e
+    "$pm2_cmd" stop "$process_name" >/dev/null 2>&1 || true
+    echo "V77_CANARY_CONTAINMENT=STOPPED_FAIL_CLOSED"
+    echo "CURRENT_UNCHANGED=$(current_target)"
+    exit "$failure_code"
+  }
+  trap containment_error_v77 ERR
+  if [[ "$source_process_state" == "ONLINE" ]]; then
+    safe_pm2 restart
+  else
+    safe_pm2 start
+  fi
+  verify_candidate_pm2_safe_env
+  wait_candidate_health_v66 "$candidate_dir" "$activation_id"
+  [[ "$(current_target)" == "$candidate_dir" ]] || false
+  "$pm2_cmd" save >/dev/null
+  trap - ERR
+  echo "V77_CANARY_CONTAINMENT=STRICT_READ_ONLY_RESTORED"
+  echo "CURRENT_UNCHANGED=$candidate_dir"
+  echo "PM2_PID=$candidate_pid"
+  echo "SAFE_PROFILE=$safe_profile_name"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "MESSAGES=0"
+  exit 0
 fi
 
 if [[ "$action" == "v70-publish" ]]; then
@@ -1852,7 +2311,7 @@ if [[ "$action" == "v66-rollback-plan" ]]; then
   exit 0
 fi
 
-[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE RELEASE | v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE EXPECTED_TAG | v66-plan RELEASE | v66-preflight RELEASE | v70-activation-validate RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET"
+[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE RELEASE | v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE EXPECTED_TAG | v66-plan RELEASE | v66-preflight RELEASE | v70-activation-validate RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET | v77-canary-authorize RELEASE WINDOW_MINUTES | v77-canary-validate RELEASE | v77-canary-activate RELEASE | v77-canary-contain"
 [[ "$#" -eq 5 ]] || die "informe exatamente SOURCE_REF, EXPECTED_COMMIT, EXPECTED_TREE e RELEASE"
 
 source_ref="$2"

@@ -12,6 +12,7 @@ import {
     evaluateCanaryV75Recipient,
     resolveCanaryV75Configuration
 } from '../src/services/canaryIsolationV75Service.js';
+import { buildCanaryControllerV77Environment } from '../scripts/lib/canary-controller-contract-v77.mjs';
 import { automatedVslEntryAgentForState } from '../src/services/agentRouter.js';
 import { vslNitrixSourceConfirmed } from '../src/services/nitrixFastStateService.js';
 import { publicEcVslProductFromBody } from '../src/routes/whatsapp.js';
@@ -24,19 +25,19 @@ import { syncActiveDroppiEcuadorOrdersFromPanel } from '../src/services/droppiEc
 const read = (file) => fs.readFileSync(file, 'utf8');
 
 const completeCanaryEnv = (overrides = {}) => {
-    const env = {
-        NODE_ENV: 'production',
-        DISABLE_SCHEDULER: '0',
-        DROPPI_EC_ACTIVE_SYNC_MODE: 'REPORT_ONLY',
-        POST_SALE_V66_MUTATIONS_AUTHORIZATION: 'I_UNDERSTAND_V66_OPERATIONAL_MUTATIONS',
-        META_TEST_EVENT_CODE_EC: '',
-        META_TEST_EVENT_CODE: '',
-        VITALISMEN_CANARY_V75_ENABLED: 'true'
+    const startedAt = Date.now();
+    return {
+        ...buildCanaryControllerV77Environment({
+            release: '20260828T210000Z_production-20260828-297324a',
+            commit: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+            tree: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+            tag: 'production-20260828-297324a',
+            permitId: 'v75-contract-test',
+            startedAt,
+            expiresAt: startedAt + 60 * 60 * 1000
+        }),
+        ...overrides
     };
-    for (const flag of CANARY_V75_REQUIRED_TRUE_FLAGS) env[flag] = 'true';
-    for (const flag of CANARY_V75_REQUIRED_FALSE_FLAGS) env[flag] = 'false';
-    for (const flag of CANARY_V75_RECIPIENT_LIST_FLAGS) env[flag] = CANARY_V75_QA_PHONE;
-    return { ...env, ...overrides };
 };
 
 const withProcessEnv = async (values, operation) => {

@@ -8,6 +8,7 @@ import {
     CANARY_V75_REQUIRED_TRUE_FLAGS,
     resolveCanaryV75Configuration
 } from '../src/services/canaryIsolationV75Service.js';
+import { calculateCanaryControllerV77ProfileSha256 } from '../src/services/canaryControllerV77Service.js';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
@@ -45,6 +46,23 @@ const env = {
 for (const flag of CANARY_V75_REQUIRED_TRUE_FLAGS) env[flag] = 'true';
 for (const flag of CANARY_V75_REQUIRED_FALSE_FLAGS) env[flag] = 'false';
 for (const flag of CANARY_V75_RECIPIENT_LIST_FLAGS) env[flag] = CANARY_V75_QA_PHONE;
+const controllerStartedAt = Date.now();
+Object.assign(env, {
+    VITALISMEN_CANARY_CTRL_V77_ENABLED: 'true',
+    VITALISMEN_CANARY_V77_RELEASE: '20260828T210000Z_production-20260828-297324a',
+    VITALISMEN_CANARY_V77_COMMIT: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+    VITALISMEN_CANARY_V77_TREE: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+    VITALISMEN_CANARY_V77_TAG: 'production-20260828-297324a',
+    VITALISMEN_CANARY_V77_BASELINE_RELEASE: '20260828T210000Z_production-20260828-297324a',
+    VITALISMEN_CANARY_V77_BASELINE_COMMIT: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+    VITALISMEN_CANARY_V77_BASELINE_TREE: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+    VITALISMEN_CANARY_V77_BASELINE_TAG: 'production-20260828-297324a',
+    VITALISMEN_CANARY_V77_QA_PHONE: CANARY_V75_QA_PHONE,
+    VITALISMEN_CANARY_V77_PERMIT_ID: 'v75-static-guard',
+    VITALISMEN_CANARY_V77_STARTED_AT: new Date(controllerStartedAt).toISOString(),
+    VITALISMEN_CANARY_V77_EXPIRES_AT: new Date(controllerStartedAt + 60 * 60 * 1000).toISOString()
+});
+env.VITALISMEN_CANARY_V77_PROFILE_SHA256 = calculateCanaryControllerV77ProfileSha256(env);
 
 assert.equal(CANARY_V75_QA_PHONE, '5515998038637');
 assert.equal(resolveCanaryV75Configuration(env).ready, true);
@@ -92,12 +110,12 @@ assert.doesNotMatch(nitrix, /value\.startsWith\('\/n'\).*nitrix/s);
 
 assert.equal(
     packageJson.scripts['guard:runtime-chain-v71'],
-    'node src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js'
+    'node src/services/canaryControllerSafetyFreezeRuntimeGuardV77.js'
 );
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-v75/);
 assert.equal(
     packageJson.scripts['guard:canary-v75'],
-    'node src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js && node scripts/guard-canary-isolation-v75.mjs && node --test tests/canary-isolation-v75.test.mjs'
+    'node src/services/canaryControllerSafetyFreezeRuntimeGuardV77.js && node scripts/guard-canary-isolation-v75.mjs && node --test tests/canary-isolation-v75.test.mjs'
 );
 assert.match(architecture, /V75: isolamento local de canário/);
 assert.match(freeze, /candidata exclusivamente local/);

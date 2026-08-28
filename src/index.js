@@ -42,7 +42,9 @@ import {
     strictReadOnlyMutationRouteGuard
 } from './services/strictReadOnlyObservationService.js';
 import { assertCanaryV75RuntimeConfiguration } from './services/canaryIsolationV75Service.js';
+import { assertCanaryControllerV77Startup } from './services/canaryControllerV77Service.js';
 
+assertCanaryControllerV77Startup(process.env);
 assertCanaryV75RuntimeConfiguration(process.env);
 const strictObservation = resolveStrictReadOnlyObservation(process.env);
 installStrictReadOnlyMongooseGuard(mongoose);

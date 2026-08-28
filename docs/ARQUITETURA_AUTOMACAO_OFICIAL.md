@@ -1523,3 +1523,25 @@ A cadeia canônica passa a ser V76 → V75 → V74 → V73 → V72 → V71, mant
 
 Estado: candidata exclusivamente local, sem push, tag, stage, deploy, VPS,
 `/current`, PM2, ambiente, banco, bridge, provider, mensagem, canário ou tráfego.
+
+## 2026-08-28 — V77: controlador temporizado do canário QA
+
+A V77 sucede a V76 sem abrir tráfego e sem alterar a compatibilidade de dados
+V66. O canário V75 passa a exigir controlador V77, perfil root-only atestado,
+permit de uso único válido por no máximo dez minutos e janela operacional
+predefinida de no máximo sessenta minutos. Release, commit, tree, tag, baseline
+V76, QA, horários e hashes do perfil/overlay são vinculados.
+
+O relógio é validado em cada fronteira central V75. Ao expirar, destinatários e
+provider falham fechados e queries Mongo retornam conjunto impossível. A
+contenção explícita restaura o overlay V76 `STRICT_READ_ONLY` sem trocar
+`/current`; se PM2 e health seguros não forem comprovados, somente o processo
+`vitalismen-automation` fica parado.
+
+As cinco allowlists continuam contendo exclusivamente `5515998038637`.
+Inbound, outbound, status, retirada, prova, decisões, ledgers e locks permanecem
+limitados ao QA. Dropi/Meta, carrier sweep, guia/print, bônus, recompra,
+follow-ups, backlog e segundo destinatário permanecem bloqueados. O estado é
+somente local, sem commit, push, tag, stage, deploy, VPS, PM2, banco, mensagem,
+canário ou tráfego. Contrato completo:
+`docs/CANARY_CONTROLLER_SAFETY_FREEZE_V77_20260828.md`.

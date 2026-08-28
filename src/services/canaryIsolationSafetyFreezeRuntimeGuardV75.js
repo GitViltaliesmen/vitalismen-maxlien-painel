@@ -8,6 +8,7 @@ import {
     CANARY_V75_REQUIRED_TRUE_FLAGS,
     resolveCanaryV75Configuration
 } from './canaryIsolationV75Service.js';
+import { calculateCanaryControllerV77ProfileSha256 } from './canaryControllerV77Service.js';
 import {
     getSuccessorOverrideFiles,
     withSuccessorGuardContext
@@ -111,6 +112,23 @@ const env = {
 for (const flag of CANARY_V75_REQUIRED_TRUE_FLAGS) env[flag] = 'true';
 for (const flag of CANARY_V75_REQUIRED_FALSE_FLAGS) env[flag] = 'false';
 for (const flag of CANARY_V75_RECIPIENT_LIST_FLAGS) env[flag] = CANARY_V75_QA_PHONE;
+const controllerStartedAt = Date.now();
+Object.assign(env, {
+    VITALISMEN_CANARY_CTRL_V77_ENABLED: 'true',
+    VITALISMEN_CANARY_V77_RELEASE: '20260828T210000Z_production-20260828-297324a',
+    VITALISMEN_CANARY_V77_COMMIT: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+    VITALISMEN_CANARY_V77_TREE: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+    VITALISMEN_CANARY_V77_TAG: 'production-20260828-297324a',
+    VITALISMEN_CANARY_V77_BASELINE_RELEASE: '20260828T210000Z_production-20260828-297324a',
+    VITALISMEN_CANARY_V77_BASELINE_COMMIT: '297324afa20ae5d59fbcb6080eae2e62c4841c8b',
+    VITALISMEN_CANARY_V77_BASELINE_TREE: '56a2b2cdc5c3062d1b90b7906bb48c705ab7d865',
+    VITALISMEN_CANARY_V77_BASELINE_TAG: 'production-20260828-297324a',
+    VITALISMEN_CANARY_V77_QA_PHONE: CANARY_V75_QA_PHONE,
+    VITALISMEN_CANARY_V77_PERMIT_ID: 'v75-runtime-guard',
+    VITALISMEN_CANARY_V77_STARTED_AT: new Date(controllerStartedAt).toISOString(),
+    VITALISMEN_CANARY_V77_EXPIRES_AT: new Date(controllerStartedAt + 60 * 60 * 1000).toISOString()
+});
+env.VITALISMEN_CANARY_V77_PROFILE_SHA256 = calculateCanaryControllerV77ProfileSha256(env);
 const contract = resolveCanaryV75Configuration(env);
 if (!contract.enabled || !contract.ready || contract.failures.length > 0) {
     throw new Error('[CANARY-ISOLATION-SAFETY-V75] configuração canônica sintética não satisfaz o contrato.');

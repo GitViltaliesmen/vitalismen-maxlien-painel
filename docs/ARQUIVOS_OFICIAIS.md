@@ -1114,3 +1114,30 @@ nenhuma alteração realizada no VPS.
 - Cadeia: V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados 66.
 - Estado: candidata somente local; sem push, tag, stage, deploy, VPS, `/current`,
   PM2, `.env`, banco, mensagem, canário ou tráfego.
+
+## Registro V77 — controle temporizado do canário QA (2026-08-28)
+
+- Serviço runtime: `src/services/canaryControllerV77Service.js`.
+- Contrato de perfil, attestation, overlay e permit:
+  `scripts/lib/canary-controller-contract-v77.mjs`.
+- Helper versionado e comandos futuros: `ops/vitalismen-stage`,
+  `v77-canary-authorize`, `v77-canary-validate`, `v77-canary-activate` e
+  `v77-canary-contain`.
+- Único QA e cinco allowlists: `5515998038637`.
+- Permit: uso único, máximo dez minutos; janela: máximo sessenta minutos;
+  expiração: fail-closed em cada fronteira V75.
+- Baseline imutável V76: release
+  `20260828T210000Z_production-20260828-297324a`, commit
+  `297324afa20ae5d59fbcb6080eae2e62c4841c8b`, tree
+  `56a2b2cdc5c3062d1b90b7906bb48c705ab7d865` e tag
+  `production-20260828-297324a`.
+- Guard/runtime/testes: `scripts/guard-canary-controller-v77.mjs`,
+  `src/services/canaryControllerSafetyFreezeRuntimeGuardV77.js` e
+  `tests/canary-controller-v77.test.mjs`.
+- Freeze/manifesto: `docs/CANARY_CONTROLLER_SAFETY_FREEZE_V77_20260828.md` e
+  `docs/freeze/canary-controller-safety-v77-20260828.json`.
+- Cadeia: V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados
+  66 preservados.
+- Estado: microlayer somente local; sem commit, push, tag, stage, deploy, VPS,
+  helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
+  scheduler, mensagem, canário ou tráfego.
