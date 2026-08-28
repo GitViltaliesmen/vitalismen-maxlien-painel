@@ -7,13 +7,13 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-    assertPublicationAttestationContractV70,
-    expectedRunProtectedLabelsV70
-} from '../scripts/lib/deploy-publication-attestation-contract-v70.mjs';
+    assertDeployHelperV71ChainAlignmentContractV72,
+    expectedRunProtectedLabelsV72
+} from '../scripts/lib/deploy-helper-v71-chain-alignment-contract-v72.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const helperPath = path.join(projectRoot, 'ops', 'vitalismen-stage');
-const sourceRef = 'refs/heads/codex/candidate-v70';
+const sourceRef = 'refs/heads/codex/candidate-v72';
 const bashPath = process.platform === 'win32'
     ? 'C:\\Program Files\\Git\\bin\\bash.exe'
     : '/bin/bash';
@@ -43,15 +43,15 @@ function createRepository(root) {
     const repository = path.join(root, 'remote');
     fs.mkdirSync(repository, { recursive: true });
     run('git', ['init', repository]);
-    run('git', ['-C', repository, 'config', 'user.name', 'Vitalismen V70 Test']);
-    run('git', ['-C', repository, 'config', 'user.email', 'v70-test@invalid.local']);
+    run('git', ['-C', repository, 'config', 'user.name', 'Vitalismen V72 Test']);
+    run('git', ['-C', repository, 'config', 'user.email', 'v72-test@invalid.local']);
     run('git', ['-C', repository, 'checkout', '-b', 'production']);
     fs.writeFileSync(path.join(repository, 'README.synthetic.md'), 'production A\n');
     run('git', ['-C', repository, 'add', '.']);
     run('git', ['-C', repository, 'commit', '-m', 'test: production A']);
     const productionCommit = run('git', ['-C', repository, 'rev-parse', 'HEAD']).stdout.trim().toLowerCase();
 
-    run('git', ['-C', repository, 'checkout', '-b', 'codex/candidate-v70']);
+    run('git', ['-C', repository, 'checkout', '-b', 'codex/candidate-v72']);
     fs.writeFileSync(path.join(repository, 'README.synthetic.md'), 'candidate B\n');
     for (const relative of [
         'docs/freeze/post-sale-safety-v66-20260826.json',
@@ -62,14 +62,14 @@ function createRepository(root) {
     ]) {
         const file = path.join(repository, relative);
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, '// synthetic V70 contract\n');
+        fs.writeFileSync(file, '// synthetic V72 deploy contract over runtime V71\n');
     }
     run('git', ['-C', repository, 'add', '.']);
     run('git', ['-C', repository, 'commit', '-m', 'test: candidate B']);
     const candidateCommit = run('git', ['-C', repository, 'rev-parse', 'HEAD']).stdout.trim().toLowerCase();
     const candidateTree = run('git', ['-C', repository, 'rev-parse', 'HEAD^{tree}']).stdout.trim().toLowerCase();
 
-    run('git', ['-C', repository, 'checkout', '-b', 'codex/other-v70']);
+    run('git', ['-C', repository, 'checkout', '-b', 'codex/other-v72']);
     fs.writeFileSync(path.join(repository, 'README.synthetic.md'), 'candidate C\n');
     run('git', ['-C', repository, 'add', '.']);
     run('git', ['-C', repository, 'commit', '-m', 'test: candidate C']);
@@ -80,7 +80,7 @@ function createRepository(root) {
 
 function createFixture(t) {
     assert.ok(fs.existsSync(bashPath), `bash de teste ausente: ${bashPath}`);
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vitalismen-v70-'));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vitalismen-v72-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const baseDir = path.join(root, 'opt', 'vitalismen-automacao');
     const releasesDir = path.join(baseDir, 'releases');
@@ -198,7 +198,7 @@ function publish(fixture, extraEnv = {}) {
     });
 }
 function createCorrectTag(fixture) {
-    run('git', ['-C', fixture.source.repository, 'tag', '-a', fixture.tag, fixture.source.candidateCommit, '-m', 'synthetic V70 publication']);
+    run('git', ['-C', fixture.source.repository, 'tag', '-a', fixture.tag, fixture.source.candidateCommit, '-m', 'synthetic V72 publication']);
 }
 function writePermit(fixture) {
     const now = Date.now();
@@ -218,15 +218,15 @@ function writePermit(fixture) {
 }
 const noPm2Actions = (fixture) => !fs.existsSync(fixture.pm2Actions) || fs.readFileSync(fixture.pm2Actions, 'utf8') === '';
 
-test('contrato estático V70 preserva os 18 gates e fecha publish/attestation', () => {
+test('contrato estático V72 alinha helper ao runtime V71 e preserva os 18 gates', () => {
     const source = fs.readFileSync(helperPath, 'utf8');
-    const contract = assertPublicationAttestationContractV70(source);
+    const contract = assertDeployHelperV71ChainAlignmentContractV72(source);
     assert.equal(contract.definitions, 1);
     assert.equal(contract.callCount, 18);
-    assert.deepEqual(contract.calls.map(({ label }) => label), [...expectedRunProtectedLabelsV70]);
+    assert.deepEqual(contract.calls.map(({ label }) => label), [...expectedRunProtectedLabelsV72]);
 });
 
-test('stage V70 nasce completo, imutável e sem tag/publicação/PM2', (t) => {
+test('stage V72 nasce atestando runtime V71, imutável e sem tag/publicação/PM2', (t) => {
     const fixture = createFixture(t);
     const result = stage(fixture);
     assert.equal(result.status, 0, result.combined);
@@ -241,19 +241,38 @@ test('stage V70 nasce completo, imutável e sem tag/publicação/PM2', (t) => {
     const metadata = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
     const stagingMarker = JSON.parse(fs.readFileSync(stagingPath, 'utf8'));
     assert.equal(metadata.publicationStatus, 'staged_candidate');
-    assert.equal(metadata.guardChainVersion, 70);
+    assert.equal(metadata.freezeVersion, 72);
+    assert.equal(metadata.deployHelperContractVersion, 72);
+    assert.equal(metadata.guardChainVersion, 71);
+    assert.equal(metadata.runtimeGuardChainValidated, 71);
+    assert.equal(metadata.predeployValidated, 'v71');
     assert.equal(metadata.dataCompatibilityVersion, 66);
+    assert.equal(metadata.strictReadOnly, true);
+    assert.equal(metadata.safeObservationPolicy, 'STRICT_READ_ONLY');
+    assert.deepEqual(metadata.allowedWriteClasses, []);
     assert.equal(metadata.functionalCommit, fixture.source.candidateCommit);
     assert.equal(metadata.functionalTree, fixture.source.candidateTree);
     assert.equal(Object.hasOwn(metadata, 'tag'), false);
     assert.equal(Object.hasOwn(metadata, 'branch'), false);
     assert.equal(stagingMarker.releaseMetadataSha256, sha256(sourcePath));
+    assert.equal(stagingMarker.freezeVersion, 72);
+    assert.equal(stagingMarker.deployHelperContractVersion, 72);
+    assert.equal(stagingMarker.guardChainVersion, 71);
+    assert.equal(stagingMarker.runtimeGuardChainValidated, 71);
+    assert.equal(stagingMarker.predeployValidated, 'v71');
+    assert.equal(stagingMarker.dataCompatibilityVersion, 66);
+    assert.equal(stagingMarker.strictReadOnly, true);
+    assert.deepEqual(stagingMarker.allowedWriteClasses, []);
     assert.equal(stagingMarker.safeOverlaySha256, sha256(overlayPath));
     assert.equal(stagingMarker.baseEnvSha256, sha256(path.join(fixture.releaseDir, '.env')));
     assert.equal(stagingMarker.nodeModulesSha256, 'ABSENT');
     assert.match(stagingMarker.functionalPayloadSha256, /^[0-9a-f]{64}$/);
     assert.equal(fs.existsSync(path.join(fixture.releaseDir, '.release-publication.json')), false);
     assert.equal(fs.existsSync(path.join(fixture.releaseDir, '.publication-complete.json')), false);
+    const invoked = fs.readFileSync(path.join(fixture.root, 'mock-commands.log'), 'utf8');
+    assert.match(invoked, /npm\|run guard:runtime-chain-v71/);
+    assert.match(invoked, /npm\|run guard:predeploy-v71/);
+    assert.doesNotMatch(invoked, /guard:predeploy-v70/);
 
     const preflight = invoke(fixture, ['v66-preflight', fixture.releaseName]);
     assert.equal(preflight.status, 0, preflight.combined);
@@ -349,7 +368,19 @@ test('publish atesta hashes sem mudar payload, production, current ou PM2', (t) 
     assert.equal(publication.safeOverlaySha256, before.overlay);
     assert.equal(publication.baseEnvSha256, sha256(path.join(fixture.releaseDir, '.env')));
     assert.equal(publication.nodeModulesSha256, 'ABSENT');
+    assert.equal(publication.deployHelperContractVersion, 72);
+    assert.equal(publication.guardChainVersion, 71);
+    assert.equal(publication.runtimeGuardChainValidated, 71);
+    assert.equal(publication.predeployValidated, 'v71');
+    assert.equal(publication.strictReadOnly, true);
+    assert.deepEqual(publication.allowedWriteClasses, []);
     assert.equal(complete.publicationMetadataSha256, sha256(publicationPath));
+    assert.equal(complete.deployHelperContractVersion, 72);
+    assert.equal(complete.guardChainVersion, 71);
+    assert.equal(complete.runtimeGuardChainValidated, 71);
+    assert.equal(complete.predeployValidated, 'v71');
+    assert.equal(complete.strictReadOnly, true);
+    assert.deepEqual(complete.allowedWriteClasses, []);
     assert.equal(complete.pm2Actions, 0);
     assert.equal(complete.outboundActions, 0);
     assert.equal(complete.dropiActions, 0);
@@ -418,11 +449,18 @@ test('fluxo stage → publish → novo preflight → validação de ativação �
     assert.equal(preflight.status, 0, preflight.combined);
     assert.match(preflight.stdout, /PUBLICATION_STATUS=production_published/);
     assert.match(preflight.stdout, /REMOTE_TAG_VERIFIED=YES/);
+    assert.match(preflight.stdout, /DEPLOY_HELPER_CONTRACT_VERSION=72/);
+    assert.match(preflight.stdout, /RUNTIME_GUARD_CHAIN_VERSION=71/);
+    assert.match(preflight.stdout, /PREDEPLOY_VALIDATED=v71/);
     writePermit(fixture);
     const validation = invoke(fixture, ['v70-activation-validate', fixture.releaseName]);
     assert.equal(validation.status, 0, validation.combined);
     assert.match(validation.stdout, /V70_ACTIVATION_VALIDATION=PASS/);
     assert.match(validation.stdout, /PERMIT=VALID_AND_NOT_CONSUMED/);
+    assert.match(validation.stdout, /RUNTIME_GUARD_CHAIN_VERSION=71/);
+    assert.match(validation.stdout, /STAGE_ATTESTATION_VERSION=71/);
+    assert.match(validation.stdout, /PUBLICATION_ATTESTATION_VERSION=71/);
+    assert.match(validation.stdout, /PUBLISHED_PREFLIGHT_VERSION=71/);
     assert.match(validation.stdout, /PM2_ACTIONS=0/);
     assert.equal(fs.existsSync(path.join(fixture.stateDir, 'activate-permit.json')), true);
     assert.equal(noPm2Actions(fixture), true);
@@ -453,4 +491,80 @@ test('preflight publicado fica inválido após mudança de attestation ou tag re
     assert.notEqual(movedTag.status, 0);
     assert.match(movedTag.combined, /tag remota não aponta para o functionalCommit/);
     assert.equal(noPm2Actions(fixture), true);
+});
+
+test('release-source V70 é recusada por publish, preflight e activation validation antes do permit', (t) => {
+    const fixture = createFixture(t);
+    assert.equal(stage(fixture).status, 0);
+    const sourcePath = path.join(fixture.releaseDir, '.release-source.json');
+    const metadata = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+    metadata.guardChainVersion = 70;
+    fs.writeFileSync(sourcePath, `${JSON.stringify(metadata, null, 2)}\n`);
+
+    for (const result of [
+        publish(fixture),
+        invoke(fixture, ['v66-preflight', fixture.releaseName]),
+        invoke(fixture, ['v70-activation-validate', fixture.releaseName])
+    ]) {
+        assert.notEqual(result.status, 0);
+        assert.match(result.combined, /guardChainVersion divergente/);
+    }
+    assert.equal(fs.existsSync(path.join(fixture.stateDir, 'activate-permit.json')), false);
+    assert.equal(noPm2Actions(fixture), true);
+});
+
+test('staging-complete V70 e combinações mistas 71/70 falham fechadas', (t) => {
+    const stagingWrong = createFixture(t);
+    assert.equal(stage(stagingWrong).status, 0);
+    const stagingPath = path.join(stagingWrong.releaseDir, '.staging-complete.json');
+    const staging = JSON.parse(fs.readFileSync(stagingPath, 'utf8'));
+    staging.guardChainVersion = 70;
+    fs.writeFileSync(stagingPath, `${JSON.stringify(staging, null, 2)}\n`);
+    const leftMixed = invoke(stagingWrong, ['v66-plan', stagingWrong.releaseName]);
+    assert.notEqual(leftMixed.status, 0);
+    assert.match(leftMixed.combined, /versão do staging divergente/);
+
+    const sourceWrong = createFixture(t);
+    assert.equal(stage(sourceWrong).status, 0);
+    const sourcePath = path.join(sourceWrong.releaseDir, '.release-source.json');
+    const metadata = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+    metadata.guardChainVersion = 70;
+    fs.writeFileSync(sourcePath, `${JSON.stringify(metadata, null, 2)}\n`);
+    const rightMixed = invoke(sourceWrong, ['v66-plan', sourceWrong.releaseName]);
+    assert.notEqual(rightMixed.status, 0);
+    assert.match(rightMixed.combined, /guardChainVersion divergente/);
+});
+
+test('publication ou preflight com runtime 70 bloqueia activation validation sem consumir permit', (t) => {
+    const publicationWrong = createFixture(t);
+    assert.equal(stage(publicationWrong).status, 0);
+    createCorrectTag(publicationWrong);
+    assert.equal(publish(publicationWrong).status, 0);
+    assert.equal(invoke(publicationWrong, ['v66-preflight', publicationWrong.releaseName]).status, 0);
+    writePermit(publicationWrong);
+    const publicationPath = path.join(publicationWrong.releaseDir, '.release-publication.json');
+    const publication = JSON.parse(fs.readFileSync(publicationPath, 'utf8'));
+    publication.guardChainVersion = 70;
+    fs.writeFileSync(publicationPath, `${JSON.stringify(publication, null, 2)}\n`);
+    const publicationValidation = invoke(publicationWrong, ['v70-activation-validate', publicationWrong.releaseName]);
+    assert.notEqual(publicationValidation.status, 0);
+    assert.match(publicationValidation.combined, /versão da publicação divergente/);
+    assert.equal(fs.existsSync(path.join(publicationWrong.stateDir, 'activate-permit.json')), true);
+
+    const preflightWrong = createFixture(t);
+    assert.equal(stage(preflightWrong).status, 0);
+    createCorrectTag(preflightWrong);
+    assert.equal(publish(preflightWrong).status, 0);
+    assert.equal(invoke(preflightWrong, ['v66-preflight', preflightWrong.releaseName]).status, 0);
+    writePermit(preflightWrong);
+    const markerPath = path.join(preflightWrong.stateDir, `v66-preflight.${preflightWrong.releaseName}.json`);
+    const marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
+    marker.guardChainVersion = 70;
+    fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`);
+    const preflightValidation = invoke(preflightWrong, ['v70-activation-validate', preflightWrong.releaseName]);
+    assert.notEqual(preflightValidation.status, 0);
+    assert.match(preflightValidation.combined, /versão do preflight divergente/);
+    assert.equal(fs.existsSync(path.join(preflightWrong.stateDir, 'activate-permit.json')), true);
+    assert.equal(noPm2Actions(publicationWrong), true);
+    assert.equal(noPm2Actions(preflightWrong), true);
 });

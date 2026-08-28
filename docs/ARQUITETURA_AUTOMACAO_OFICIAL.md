@@ -1379,3 +1379,21 @@ dados continua 66, sem migration ou bridge.
 
 Fonte normativa:
 `docs/STRICT_READ_ONLY_OBSERVATION_SAFETY_FREEZE_V71_20260827.md`.
+
+## 2026-08-27 — V72: alinhamento do helper ao runtime V71
+
+A V72 corrige exclusivamente a materialização/deploy da semântica já
+aprovada na V71. As dimensões ficam explícitas:
+`FREEZE_VERSION=72`, `DEPLOY_HELPER_CONTRACT_VERSION=72`,
+`RUNTIME_GUARD_CHAIN_VERSION=71` e `DATA_COMPATIBILITY_VERSION=66`.
+
+O stage sucessor executa `guard:runtime-chain-v71` e `guard:predeploy-v71` e
+grava runtime/guard 71, predeploy `v71` e a política `STRICT_READ_ONLY` em todos
+os envelopes. Publish, preflight e activation validation recusam qualquer
+versão 70 ou combinação mista antes de permit ou `/current`. A mecânica de
+publicação V70 e a semântica read-only V71 permanecem preservadas.
+
+Não existe `runtime-chain-v72`: o wrapper de freeze/deploy V72 termina
+validando a cadeia runtime V71. Freeze ID:
+`deploy-helper-v71-chain-alignment-safety-v72`; contrato completo em
+`docs/DEPLOY_HELPER_V71_CHAIN_ALIGNMENT_SAFETY_FREEZE_V72_20260827.md`.

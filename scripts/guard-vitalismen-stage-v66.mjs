@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { assertPublicationAttestationContractV70 } from './lib/deploy-publication-attestation-contract-v70.mjs';
+import { assertDeployHelperV71ChainAlignmentContractV72 } from './lib/deploy-helper-v71-chain-alignment-contract-v72.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const helperPath = path.join(root, 'ops', 'vitalismen-stage');
@@ -12,7 +12,7 @@ const referencePath = path.join(root, 'ops', 'reference', 'vitalismen-stage.inst
 const source = fs.readFileSync(helperPath, 'utf8');
 const reference = fs.readFileSync(referencePath);
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
-const runProtectedContract = assertPublicationAttestationContractV70(source);
+const runProtectedContract = assertDeployHelperV71ChainAlignmentContractV72(source);
 
 assert.equal(
     sha256(reference),
@@ -39,14 +39,24 @@ assert.match(source, /DISABLE_SCHEDULER=1/);
 assert.match(source, /mutatingSchedulersRegistered": 0/);
 assert.match(source, /docs\/freeze\/runtime-guard-chain-v67-20260826\.json/);
 assert.match(source, /src\/services\/runtimeGuardChainFreezeRuntimeGuardV67\.js/);
-assert.match(source, /docs\/freeze\/deploy-publication-attestation-safety-v70-20260827\.json/);
-assert.match(source, /src\/services\/deployPublicationAttestationSafetyFreezeRuntimeGuardV70\.js/);
+assert.match(source, /docs\/freeze\/strict-read-only-observation-safety-v71-20260827\.json/);
+assert.match(source, /docs\/freeze\/deploy-helper-v71-chain-alignment-safety-v72-20260827\.json/);
+assert.match(source, /src\/services\/strictReadOnlyObservationSafetyFreezeRuntimeGuardV71\.js/);
+assert.match(source, /src\/services\/deployHelperV71ChainAlignmentSafetyFreezeGuardV72\.js/);
 assert.doesNotMatch(source, /src\/services\/(?:dropiCustomerFullName|postSaleGargalos)FreezeRuntimeGuardV(?:64|65)\.js/);
 assert.ok(
-    source.indexOf('run_protected runtime_guard_chain_v69')
+    source.indexOf('run_protected runtime_guard_chain_v71')
         < source.indexOf('run_protected post_sale_safety_guard_v66'),
-    'helper deve validar a cadeia V69 antes do guard estático V66'
+    'helper deve validar a cadeia runtime V71 antes do guard estático V66'
 );
+assert.match(source, /run_protected predeploy_v71/);
+assert.match(source, /npm_cmd" run guard:predeploy-v71/);
+assert.match(source, /"freezeVersion": \$freeze_version/);
+assert.match(source, /"deployHelperContractVersion": \$deploy_helper_contract_version/);
+assert.match(source, /"guardChainVersion": \$runtime_guard_chain_version/);
+assert.match(source, /"runtimeGuardChainValidated": \$runtime_guard_chain_version/);
+assert.match(source, /"predeployValidated": "\$runtime_predeploy_version"/);
+assert.doesNotMatch(source, /guard:predeploy-v70/);
 assert.match(source, /v66-plan/);
 assert.match(source, /DRY_RUN_WRITES=0/);
 assert.match(source, /activate legado bloqueado/);
@@ -99,6 +109,7 @@ assert.equal(syntax.status, 0, `sintaxe bash inválida:\n${syntax.stderr || synt
 process.stdout.write(`VITALISMEN_STAGE_V66_GUARD=OK\n`);
 process.stdout.write(`VITALISMEN_STAGE_V69_SOURCE_REF_GUARD=OK\n`);
 process.stdout.write(`VITALISMEN_STAGE_V70_PUBLICATION_ATTESTATION_GUARD=OK\n`);
+process.stdout.write(`VITALISMEN_STAGE_V72_HELPER_V71_ALIGNMENT_GUARD=OK\n`);
 process.stdout.write(`RUN_PROTECTED_DEFINITIONS=${runProtectedContract.definitions}\n`);
 process.stdout.write(`RUN_PROTECTED_CALLS=${runProtectedContract.callCount}\n`);
 process.stdout.write(`FIRST_DEFINITION_LINE=${runProtectedContract.definitionLine}\n`);

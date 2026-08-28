@@ -983,3 +983,26 @@ nenhuma alteração realizada no VPS.
   compatibility permanece 66.
 - Estado: candidata somente local. V70 histórica byte-intact; produção,
   helper instalado, `/current`, PM2 e dados de produção não foram alterados.
+
+## Registro V72 — alinhamento do helper à cadeia runtime V71 (2026-08-27)
+
+- Freeze ID: `deploy-helper-v71-chain-alignment-safety-v72`.
+- Parent byte-intact: manifesto V71 SHA-256
+  `9321d038b53eaa5148c37fc6662d184a95e6b7fd8e623488b8f54a011df8de86`.
+- Fonte oficial local do helper: `ops/vitalismen-stage`.
+- Contrato/guard:
+  `scripts/lib/deploy-helper-v71-chain-alignment-contract-v72.mjs` e
+  `scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs`.
+- Wrapper de freeze/deploy:
+  `src/services/deployHelperV71ChainAlignmentSafetyFreezeGuardV72.js`; ele
+  termina validando `npm run guard:runtime-chain-v71`.
+- Testes:
+  `tests/deploy-helper-v71-chain-alignment-v72.test.mjs` e harness sintético
+  herdado de `tests/deploy-publication-attestation-safety-v70.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_HELPER_V71_CHAIN_ALIGNMENT_SAFETY_FREEZE_V72_20260827.md` e
+  `docs/freeze/deploy-helper-v71-chain-alignment-safety-v72-20260827.json`.
+- Versões: `FREEZE_VERSION=72`, `DEPLOY_HELPER_CONTRACT_VERSION=72`,
+  `RUNTIME_GUARD_CHAIN_VERSION=71`, `DATA_COMPATIBILITY_VERSION=66`.
+- Estado: somente local; sem push, tag, instalação, VPS stage, publicação,
+  permit, `/current`, PM2, mensagens, Dropi, bridge ou mutação de dados.

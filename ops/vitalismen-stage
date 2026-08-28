@@ -88,8 +88,11 @@ fi
 v66_runtime_version=66
 safe_profile_name="V66_SAFE_OBSERVATION_ONLY"
 safe_overlay_name=".env.v66-safe-observation"
-v70_guard_chain_version=70
-v70_data_compatibility_version=66
+freeze_version=72
+deploy_helper_contract_version=72
+runtime_guard_chain_version=71
+data_compatibility_version=66
+runtime_predeploy_version="v71"
 publication_metadata_name=".release-publication.json"
 publication_complete_name=".publication-complete.json"
 
@@ -422,7 +425,7 @@ detect_source_process_state() {
   esac
 }
 
-validate_v70_release() {
+validate_successor_release() {
   local candidate_dir="$1"
   local candidate_name="$2"
   local payload
@@ -492,14 +495,16 @@ validate_v70_release() {
       "$publication_complete" \
       "$candidate_name" \
       "$v66_runtime_version" \
-      "$v70_guard_chain_version" \
-      "$v70_data_compatibility_version" \
+      "$freeze_version" "$deploy_helper_contract_version" \
+      "$runtime_guard_chain_version" "$data_compatibility_version" \
+      "$runtime_predeploy_version" \
       "$functional_payload_sha" "$base_env_sha" "$node_modules_sha" <<'NODE'
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const [
   sourcePath, stagingPath, overlayPath, publicationPath, publicationCompletePath,
-  expectedRelease, expectedRuntimeRaw, expectedGuardRaw, expectedDataRaw,
+  expectedRelease, expectedRuntimeRaw, expectedFreezeRaw, expectedDeployHelperRaw,
+  expectedGuardRaw, expectedDataRaw, expectedPredeploy,
   actualFunctionalPayloadSha, actualBaseEnvSha, actualNodeModulesSha
 ] = process.argv.slice(2);
 const sourceBuffer = fs.readFileSync(sourcePath);
@@ -508,6 +513,8 @@ const overlayBuffer = fs.readFileSync(overlayPath);
 const source = JSON.parse(sourceBuffer.toString('utf8'));
 const staging = JSON.parse(stagingBuffer.toString('utf8'));
 const expectedRuntime = Number(expectedRuntimeRaw);
+const expectedFreeze = Number(expectedFreezeRaw);
+const expectedDeployHelper = Number(expectedDeployHelperRaw);
 const expectedGuard = Number(expectedGuardRaw);
 const expectedData = Number(expectedDataRaw);
 const compatibility = source.postSaleCompatibility;
@@ -539,7 +546,10 @@ if (source.publicationStatus !== 'staged_candidate') throw new Error('release-so
 assertExactKeys(source, [
   'repository', 'publicationStatus', 'releaseChannel', 'sourceRef',
   'sourceRefResolvedCommit', 'commit', 'functionalCommit', 'functionalTree',
-  'guardChainVersion', 'dataCompatibilityVersion', 'productionBranchCommitBefore',
+  'freezeVersion', 'deployHelperContractVersion', 'guardChainVersion',
+  'runtimeGuardChainValidated', 'predeployValidated', 'dataCompatibilityVersion',
+  'strictReadOnly', 'safeObservationPolicy', 'allowedWriteClasses',
+  'productionBranchCommitBefore',
   'productionBranchChanged', 'productionTagRequiredForStaging',
   'productionTagObservation', 'createdAt', 'releaseName', 'postSaleCompatibility'
 ], 'release-source');
@@ -552,8 +562,13 @@ if (source.releaseChannel !== 'production') throw new Error('releaseChannel inv�
 if (!/^refs\/heads\/codex\/[A-Za-z0-9][A-Za-z0-9._/-]{0,198}[A-Za-z0-9]$/.test(String(source.sourceRef || ''))) throw new Error('sourceRef inválida');
 if (String(source.sourceRefResolvedCommit || '').toLowerCase() !== commit) throw new Error('commit resolvido divergente');
 if (String(source.functionalCommit || '').toLowerCase() !== commit) throw new Error('functionalCommit divergente');
+if (Number(source.freezeVersion) !== expectedFreeze) throw new Error('freezeVersion divergente');
+if (Number(source.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('deployHelperContractVersion divergente');
 if (Number(source.guardChainVersion) !== expectedGuard) throw new Error('guardChainVersion divergente');
+if (Number(source.runtimeGuardChainValidated) !== expectedGuard) throw new Error('runtimeGuardChainValidated divergente');
+if (source.predeployValidated !== expectedPredeploy) throw new Error('predeployValidated divergente');
 if (Number(source.dataCompatibilityVersion) !== expectedData) throw new Error('dataCompatibilityVersion divergente');
+if (source.strictReadOnly !== true || source.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(source.allowedWriteClasses) !== '[]') throw new Error('política strict read-only divergente');
 if (!/^[0-9a-f]{40}$/.test(String(source.productionBranchCommitBefore || '').toLowerCase())) throw new Error('baseline production inválido');
 if (source.productionBranchChanged !== false) throw new Error('garantia de production ausente');
 if (source.productionTagRequiredForStaging !== false) throw new Error('staging exige tag indevidamente');
@@ -571,7 +586,10 @@ assertExactKeys(staging, [
   'sourceRefResolvedCommit', 'commit', 'functionalCommit', 'functionalTree',
   'functionalPayloadSha256', 'releaseMetadataSha256', 'safeOverlaySha256',
   'baseEnvSha256', 'nodeModulesSha256',
-  'guardChainVersion', 'dataCompatibilityVersion', 'productionBranchCommitBefore',
+  'freezeVersion', 'deployHelperContractVersion', 'guardChainVersion',
+  'runtimeGuardChainValidated', 'predeployValidated', 'dataCompatibilityVersion',
+  'strictReadOnly', 'safeObservationPolicy', 'allowedWriteClasses',
+  'productionBranchCommitBefore',
   'productionBranchCommitAfter', 'productionBranchChanged',
   'productionTagRequiredForStaging', 'completedAt', 'currentUnchanged',
   'pm2Unchanged', 'postSaleCompatibilityPreflight', 'v66SafeObservationRequired',
@@ -590,7 +608,10 @@ if (staging.safeOverlaySha256 !== overlaySha) throw new Error('attestation do ov
 if (staging.functionalPayloadSha256 !== actualFunctionalPayloadSha) throw new Error('fingerprint funcional divergente');
 if (staging.baseEnvSha256 !== actualBaseEnvSha) throw new Error('fingerprint de .env divergente');
 if (staging.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint de node_modules divergente');
-if (Number(staging.guardChainVersion) !== expectedGuard || Number(staging.dataCompatibilityVersion) !== expectedData) throw new Error('versão do staging divergente');
+if (Number(staging.freezeVersion) !== expectedFreeze || Number(staging.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('versão do helper no staging divergente');
+if (Number(staging.guardChainVersion) !== expectedGuard || Number(staging.runtimeGuardChainValidated) !== expectedGuard || Number(staging.dataCompatibilityVersion) !== expectedData) throw new Error('versão do staging divergente');
+if (staging.predeployValidated !== expectedPredeploy) throw new Error('predeploy do staging divergente');
+if (staging.strictReadOnly !== true || staging.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(staging.allowedWriteClasses) !== '[]') throw new Error('política strict do staging divergente');
 if (String(staging.productionBranchCommitBefore || '').toLowerCase() !== String(source.productionBranchCommitBefore).toLowerCase()) throw new Error('baseline production do staging divergente');
 if (staging.productionBranchCommitAfter !== staging.productionBranchCommitBefore) throw new Error('production mudou durante staging');
 if (staging.productionBranchChanged !== false || staging.productionTagRequiredForStaging !== false) throw new Error('garantias de publicação do staging ausentes');
@@ -617,7 +638,9 @@ if (publicationExists) {
     'version', 'status', 'releaseChannel', 'release', 'functionalCommit',
     'functionalTree', 'functionalPayloadSha256', 'sourceRef', 'publicationTag',
     'publicationTagResolvedCommit', 'releaseMetadataSha256',
-    'stagingCompleteSha256', 'safeOverlaySha256', 'guardChainVersion',
+    'stagingCompleteSha256', 'safeOverlaySha256', 'deployHelperContractVersion',
+    'guardChainVersion', 'runtimeGuardChainValidated', 'predeployValidated',
+    'strictReadOnly', 'safeObservationPolicy', 'allowedWriteClasses',
     'baseEnvSha256', 'nodeModulesSha256',
     'dataCompatibilityVersion', 'productionBranchCommitBefore',
     'productionBranchCommitAfter', 'productionBranchChanged', 'publishedAt'
@@ -634,7 +657,10 @@ if (publicationExists) {
   if (commit.slice(0, 7) !== publicationTag.slice(-7)) throw new Error('tag publicada não corresponde ao commit');
   if (String(publication.publicationTagResolvedCommit || '').toLowerCase() !== commit) throw new Error('target registrado da tag divergente');
   if (publication.releaseMetadataSha256 !== sourceSha || publication.stagingCompleteSha256 !== stagingSha || publication.safeOverlaySha256 !== overlaySha) throw new Error('hashes da publicação divergentes');
-  if (Number(publication.guardChainVersion) !== expectedGuard || Number(publication.dataCompatibilityVersion) !== expectedData) throw new Error('versão da publicação divergente');
+  if (Number(publication.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('deployHelperContractVersion da publicação divergente');
+  if (Number(publication.guardChainVersion) !== expectedGuard || Number(publication.runtimeGuardChainValidated) !== expectedGuard || Number(publication.dataCompatibilityVersion) !== expectedData) throw new Error('versão da publicação divergente');
+  if (publication.predeployValidated !== expectedPredeploy) throw new Error('predeploy da publicação divergente');
+  if (publication.strictReadOnly !== true || publication.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(publication.allowedWriteClasses) !== '[]') throw new Error('política strict da publicação divergente');
   if (publication.productionBranchCommitBefore !== source.productionBranchCommitBefore || publication.productionBranchCommitAfter !== publication.productionBranchCommitBefore || publication.productionBranchChanged !== false) throw new Error('production mudou durante publicação');
 
   assertExactKeys(publicationComplete, [
@@ -643,7 +669,9 @@ if (publicationExists) {
     'publicationTagResolvedCommit', 'releaseMetadataSha256',
     'stagingCompleteSha256', 'publicationMetadataSha256', 'safeOverlaySha256',
     'baseEnvSha256', 'nodeModulesSha256',
-    'guardChainVersion', 'dataCompatibilityVersion',
+    'deployHelperContractVersion', 'guardChainVersion', 'runtimeGuardChainValidated',
+    'predeployValidated', 'dataCompatibilityVersion', 'strictReadOnly',
+    'safeObservationPolicy', 'allowedWriteClasses',
     'productionBranchCommitBefore', 'productionBranchCommitAfter',
     'productionBranchChanged', 'pm2Actions', 'outboundActions', 'dropiActions',
     'bridgeExecuted', 'mutationsEnabled', 'completedAt'
@@ -654,7 +682,10 @@ if (publicationExists) {
   if (publicationComplete.baseEnvSha256 !== actualBaseEnvSha || publicationComplete.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da attestation divergente');
   if (publicationComplete.publicationTag !== publicationTag || String(publicationComplete.publicationTagResolvedCommit || '').toLowerCase() !== commit) throw new Error('tag da attestation divergente');
   if (publicationComplete.releaseMetadataSha256 !== sourceSha || publicationComplete.stagingCompleteSha256 !== stagingSha || publicationComplete.publicationMetadataSha256 !== publicationSha || publicationComplete.safeOverlaySha256 !== overlaySha) throw new Error('cadeia de hashes publicada divergente');
-  if (Number(publicationComplete.guardChainVersion) !== expectedGuard || Number(publicationComplete.dataCompatibilityVersion) !== expectedData) throw new Error('versão da attestation divergente');
+  if (Number(publicationComplete.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('deployHelperContractVersion da attestation divergente');
+  if (Number(publicationComplete.guardChainVersion) !== expectedGuard || Number(publicationComplete.runtimeGuardChainValidated) !== expectedGuard || Number(publicationComplete.dataCompatibilityVersion) !== expectedData) throw new Error('versão da attestation divergente');
+  if (publicationComplete.predeployValidated !== expectedPredeploy) throw new Error('predeploy da attestation divergente');
+  if (publicationComplete.strictReadOnly !== true || publicationComplete.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(publicationComplete.allowedWriteClasses) !== '[]') throw new Error('política strict da attestation divergente');
   if (publicationComplete.productionBranchCommitBefore !== publication.productionBranchCommitBefore || publicationComplete.productionBranchCommitAfter !== publication.productionBranchCommitBefore || publicationComplete.productionBranchChanged !== false) throw new Error('production da attestation divergente');
   if (publicationComplete.pm2Actions !== 0 || publicationComplete.outboundActions !== 0 || publicationComplete.dropiActions !== 0 || publicationComplete.bridgeExecuted !== false || publicationComplete.mutationsEnabled !== false) throw new Error('publicação registrou efeito operacional proibido');
   effectiveStatus = 'production_published';
@@ -666,7 +697,7 @@ process.stdout.write([
   actualFunctionalPayloadSha, String(source.productionBranchCommitBefore).toLowerCase()
 ].join('\t'));
 NODE
-  )" || die "contrato de release V70 inválido"
+  )" || die "contrato de release sucessor V72/V71 inválido"
 
   IFS=$'\t' read -r \
     candidate_commit candidate_tree candidate_source_ref candidate_publication_status \
@@ -686,11 +717,15 @@ NODE
   if [[ -n "$guard_runner" ]]; then
     "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
   else
-    [[ -f "$candidate_dir/docs/freeze/deploy-publication-attestation-safety-v70-20260827.json" ]] ||
-      die "manifesto da cadeia canônica V70 ausente"
-    [[ -f "$candidate_dir/src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js" ]] ||
-      die "runtime guard canônico V70 ausente"
-    "$env_cmd" -C "$candidate_dir" "$node_cmd" src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js >/dev/null
+    [[ -f "$candidate_dir/docs/freeze/strict-read-only-observation-safety-v71-20260827.json" ]] ||
+      die "manifesto da cadeia runtime V71 ausente"
+    [[ -f "$candidate_dir/docs/freeze/deploy-helper-v71-chain-alignment-safety-v72-20260827.json" ]] ||
+      die "manifesto do helper V72 ausente"
+    [[ -f "$candidate_dir/src/services/strictReadOnlyObservationSafetyFreezeRuntimeGuardV71.js" ]] ||
+      die "runtime guard canônico V71 ausente"
+    [[ -f "$candidate_dir/src/services/deployHelperV71ChainAlignmentSafetyFreezeGuardV72.js" ]] ||
+      die "guard sucessor V72 ausente"
+    "$env_cmd" -C "$candidate_dir" "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
 }
@@ -996,14 +1031,17 @@ write_preflight_marker() {
     "$release_metadata_sha" "$staging_complete_sha" "$publication_metadata_sha" \
     "$publication_complete_sha" "$functional_payload_sha" "$node_modules_sha" \
     "$source_current" "$source_process_state" "$safe_overlay_sha" "$env_sha" \
-    "$v70_guard_chain_version" "$v70_data_compatibility_version" <<'NODE'
+    "$freeze_version" "$deploy_helper_contract_version" \
+    "$runtime_guard_chain_version" "$data_compatibility_version" \
+    "$runtime_predeploy_version" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, sourceRef, publicationStatus,
   publicationTag, releaseMetadataSha256, stagingCompleteSha256,
   publicationMetadataSha256, publicationCompleteSha256,
   functionalPayloadSha256, nodeModulesSha256, currentExpected, sourceProcessState,
-  safeOverlaySha256, baseEnvSha256, guardChainRaw, dataCompatibilityRaw
+  safeOverlaySha256, baseEnvSha256, freezeRaw, deployHelperRaw,
+  guardChainRaw, dataCompatibilityRaw, predeployValidated
 ] = process.argv.slice(2);
 const marker = {
   version: 1,
@@ -1022,8 +1060,15 @@ const marker = {
   stagingCompleteSha256,
   publicationMetadataSha256,
   publicationCompleteSha256,
+  freezeVersion: Number(freezeRaw),
+  deployHelperContractVersion: Number(deployHelperRaw),
   guardChainVersion: Number(guardChainRaw),
+  runtimeGuardChainValidated: Number(guardChainRaw),
+  predeployValidated,
   dataCompatibilityVersion: Number(dataCompatibilityRaw),
+  strictReadOnly: true,
+  safeObservationPolicy: 'STRICT_READ_ONLY',
+  allowedWriteClasses: [],
   currentExpected,
   sourceProcessState,
   compatibility: 'PASS_SAFE_BOOT',
@@ -1060,21 +1105,27 @@ validate_preflight_marker() {
     "$release_metadata_sha" "$staging_complete_sha" "$publication_metadata_sha" \
     "$publication_complete_sha" "$functional_payload_sha" "$node_modules_sha" \
     "$current_now" "$source_process_state" "$safe_overlay_sha" "$env_sha" \
-    "$v70_guard_chain_version" "$v70_data_compatibility_version" <<'NODE'
+    "$freeze_version" "$deploy_helper_contract_version" \
+    "$runtime_guard_chain_version" "$data_compatibility_version" \
+    "$runtime_predeploy_version" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, sourceRef, publicationStatus,
   publicationTag, releaseMetadataSha256, stagingCompleteSha256,
   publicationMetadataSha256, publicationCompleteSha256,
   functionalPayloadSha256, nodeModulesSha256, currentExpected, sourceProcessState,
-  safeOverlaySha256, baseEnvSha256, guardChainRaw, dataCompatibilityRaw
+  safeOverlaySha256, baseEnvSha256, freezeRaw, deployHelperRaw,
+  guardChainRaw, dataCompatibilityRaw, predeployValidated
 ] = process.argv.slice(2);
 const marker = JSON.parse(fs.readFileSync(file, 'utf8'));
 const createdAt = Date.parse(marker.createdAt);
 const expectedKeys = [
-  'baseEnvSha256', 'bridgeEnabled', 'compatibility', 'createdAt', 'currentExpected',
+  'allowedWriteClasses', 'baseEnvSha256', 'bridgeEnabled', 'compatibility',
+  'createdAt', 'currentExpected',
   'dataCompatibilityVersion', 'dropiEffectiveMode', 'functionalCommit',
-  'functionalPayloadSha256', 'functionalTree', 'guardChainVersion',
+  'deployHelperContractVersion', 'freezeVersion', 'functionalPayloadSha256',
+  'functionalTree', 'guardChainVersion', 'runtimeGuardChainValidated',
+  'predeployValidated', 'safeObservationPolicy', 'strictReadOnly',
   'mutationsEnabled', 'nodeModulesSha256', 'oldRuntimeStartPolicy', 'publicationCompleteSha256',
   'publicationMetadataSha256', 'publicationStatus', 'publicationTag',
   'release', 'releaseMetadataSha256', 'remoteTagVerified', 'safeOverlaySha256',
@@ -1091,7 +1142,10 @@ if (marker.publicationStatus !== publicationStatus || marker.publicationTag !== 
 if (marker.remoteTagVerified !== (publicationStatus === 'production_published')) throw new Error('prova de tag remota divergiu');
 if (marker.releaseMetadataSha256 !== releaseMetadataSha256 || marker.stagingCompleteSha256 !== stagingCompleteSha256) throw new Error('attestation de staging divergiu');
 if (marker.publicationMetadataSha256 !== publicationMetadataSha256 || marker.publicationCompleteSha256 !== publicationCompleteSha256) throw new Error('attestation de publicação divergiu');
-if (marker.guardChainVersion !== Number(guardChainRaw) || marker.dataCompatibilityVersion !== Number(dataCompatibilityRaw)) throw new Error('versão do preflight divergente');
+if (marker.freezeVersion !== Number(freezeRaw) || marker.deployHelperContractVersion !== Number(deployHelperRaw)) throw new Error('versão do helper no preflight divergente');
+if (marker.guardChainVersion !== Number(guardChainRaw) || marker.runtimeGuardChainValidated !== Number(guardChainRaw) || marker.dataCompatibilityVersion !== Number(dataCompatibilityRaw)) throw new Error('versão do preflight divergente');
+if (marker.predeployValidated !== predeployValidated) throw new Error('predeploy publicado divergente');
+if (marker.strictReadOnly !== true || marker.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(marker.allowedWriteClasses) !== '[]') throw new Error('política strict do preflight divergente');
 if (marker.currentExpected !== currentExpected) throw new Error('current mudou após preflight');
 if (marker.sourceProcessState !== sourceProcessState) throw new Error('estado PM2 mudou após preflight');
 if (marker.safeProfile !== 'V66_SAFE_OBSERVATION_ONLY') throw new Error('perfil safe divergente');
@@ -1239,8 +1293,8 @@ consume_v66_activation_permit() {
   rm -f -- "$consumed"
 }
 
-validate_activation_prerequisites_v70() {
-  validate_v70_release "$candidate_dir" "$candidate_name"
+validate_activation_prerequisites_successor() {
+  validate_successor_release "$candidate_dir" "$candidate_name"
   [[ "$candidate_publication_status" == "production_published" ]] ||
     die "ativação exige publicationStatus production_published"
   [[ "$candidate_remote_tag_verified" == "YES" ]] ||
@@ -1270,7 +1324,7 @@ if [[ "$action" == "status" ]]; then
   pm2_pid="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
 
   activation_allowed="NAO"
-  operational_mode="V70_PUBLICACAO_PREFLIGHT_E_PERMIT_OBRIGATORIOS"
+  operational_mode="V72_HELPER_RUNTIME_V71_PUBLICACAO_PREFLIGHT_E_PERMIT_OBRIGATORIOS"
 
   echo "HELPER=OK"
   echo "MODO=$operational_mode"
@@ -1310,14 +1364,14 @@ if [[ "$action" == "v70-publish" ]]; then
 
   ensure_private_dirs "$state_dir" "$protected_log_dir"
   exec 9>"$state_dir/vitalismen-stage.lock"
-  "$flock_cmd" -n 9 || die "outro preflight/publish/activate V70 está em execução"
+  "$flock_cmd" -n 9 || die "outro preflight/publish/activate sucessor está em execução"
   [[ ! -e "$permit_file" && ! -L "$permit_file" ]] ||
     die "permit de ativação não pode existir durante publicação"
 
   detect_source_process_state
   current_before="$source_current"
   pm2_pid_before="$source_pm2_pid"
-  validate_v70_release "$candidate_dir" "$candidate_name"
+  validate_successor_release "$candidate_dir" "$candidate_name"
   [[ "$candidate_publication_status" == "staged_candidate" ]] || die "release já publicada ou estado inválido"
   [[ "$candidate_source_ref" == "$requested_source_ref" ]] || die "SOURCE_REF diverge da identidade staged"
   [[ "$candidate_commit" == "$requested_commit" ]] || die "EXPECTED_COMMIT diverge da identidade staged"
@@ -1366,15 +1420,16 @@ if [[ "$action" == "v70-publish" ]]; then
     "$functional_payload_sha" "$candidate_source_ref" "$requested_tag" "$publication_tag_commit" \
     "$release_metadata_sha" "$staging_complete_sha" "$safe_overlay_sha" \
     "$base_env_sha" "$node_modules_sha" \
-    "$v70_guard_chain_version" "$v70_data_compatibility_version" \
+    "$deploy_helper_contract_version" "$runtime_guard_chain_version" \
+    "$data_compatibility_version" "$runtime_predeploy_version" \
     "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, functionalPayloadSha256,
   sourceRef, publicationTag, publicationTagResolvedCommit,
   releaseMetadataSha256, stagingCompleteSha256, safeOverlaySha256,
-  baseEnvSha256, nodeModulesSha256,
-  guardChainRaw, dataCompatibilityRaw, productionBranchCommitBefore,
+  baseEnvSha256, nodeModulesSha256, deployHelperRaw,
+  guardChainRaw, dataCompatibilityRaw, predeployValidated, productionBranchCommitBefore,
   productionBranchCommitAfter, publishedAt
 ] = process.argv.slice(2);
 const publication = {
@@ -1393,8 +1448,14 @@ const publication = {
   safeOverlaySha256,
   baseEnvSha256,
   nodeModulesSha256,
+  deployHelperContractVersion: Number(deployHelperRaw),
   guardChainVersion: Number(guardChainRaw),
+  runtimeGuardChainValidated: Number(guardChainRaw),
+  predeployValidated,
   dataCompatibilityVersion: Number(dataCompatibilityRaw),
+  strictReadOnly: true,
+  safeObservationPolicy: 'STRICT_READ_ONLY',
+  allowedWriteClasses: [],
   productionBranchCommitBefore,
   productionBranchCommitAfter,
   productionBranchChanged: false,
@@ -1410,15 +1471,16 @@ NODE
     "$functional_payload_sha" "$candidate_source_ref" "$requested_tag" "$publication_tag_commit" \
     "$release_metadata_sha" "$staging_complete_sha" "$publication_metadata_sha" \
     "$safe_overlay_sha" "$base_env_sha" "$node_modules_sha" \
-    "$v70_guard_chain_version" "$v70_data_compatibility_version" \
+    "$deploy_helper_contract_version" "$runtime_guard_chain_version" \
+    "$data_compatibility_version" "$runtime_predeploy_version" \
     "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, functionalPayloadSha256,
   sourceRef, publicationTag, publicationTagResolvedCommit,
   releaseMetadataSha256, stagingCompleteSha256, publicationMetadataSha256,
-  safeOverlaySha256, baseEnvSha256, nodeModulesSha256,
-  guardChainRaw, dataCompatibilityRaw,
+  safeOverlaySha256, baseEnvSha256, nodeModulesSha256, deployHelperRaw,
+  guardChainRaw, dataCompatibilityRaw, predeployValidated,
   productionBranchCommitBefore, productionBranchCommitAfter, completedAt
 ] = process.argv.slice(2);
 const attestation = {
@@ -1438,8 +1500,14 @@ const attestation = {
   safeOverlaySha256,
   baseEnvSha256,
   nodeModulesSha256,
+  deployHelperContractVersion: Number(deployHelperRaw),
   guardChainVersion: Number(guardChainRaw),
+  runtimeGuardChainValidated: Number(guardChainRaw),
+  predeployValidated,
   dataCompatibilityVersion: Number(dataCompatibilityRaw),
+  strictReadOnly: true,
+  safeObservationPolicy: 'STRICT_READ_ONLY',
+  allowedWriteClasses: [],
   productionBranchCommitBefore,
   productionBranchCommitAfter,
   productionBranchChanged: false,
@@ -1463,7 +1531,7 @@ NODE
   "$mv_cmd" -Tf "$publication_complete_tmp" "$publication_complete"
   secure_mode 0400 "$publication_metadata" "$publication_complete"
   publication_complete_sha="$($sha256_cmd "$publication_complete" | awk '{print $1}')"
-  validate_v70_release "$candidate_dir" "$candidate_name"
+  validate_successor_release "$candidate_dir" "$candidate_name"
   [[ "$candidate_publication_status" == "production_published" ]] || die "publicação final não validou"
   [[ "$candidate_tag" == "$requested_tag" ]] || die "tag final publicada divergiu"
 
@@ -1491,6 +1559,10 @@ NODE
   echo "FUNCTIONAL_TREE_BEFORE_PUBLISH=$candidate_tree"
   echo "FUNCTIONAL_TREE_AFTER_PUBLISH=$candidate_tree"
   echo "FUNCTIONAL_PAYLOAD_SHA256=$functional_payload_sha"
+  echo "DEPLOY_HELPER_CONTRACT_VERSION=$deploy_helper_contract_version"
+  echo "RUNTIME_GUARD_CHAIN_VERSION=$runtime_guard_chain_version"
+  echo "PREDEPLOY_VALIDATED=$runtime_predeploy_version"
+  echo "STRICT_READ_ONLY=TRUE"
   echo "PRODUCTION_BEFORE=$production_branch_before_publish"
   echo "PRODUCTION_AFTER=$production_branch_after_publish"
   echo "PRODUCTION_BRANCH_CHANGED=NO"
@@ -1512,7 +1584,7 @@ if [[ "$action" == "v66-plan" ]]; then
   candidate_dir="$(release_dir_for_name "$candidate_name")"
 
   detect_source_process_state
-  validate_v70_release "$candidate_dir" "$candidate_name"
+  validate_successor_release "$candidate_dir" "$candidate_name"
   run_compatibility_preflight "$candidate_dir" "$candidate_dir/.release-source.json" >/dev/null ||
     die "compatibility preflight inconclusivo ou incompatível"
 
@@ -1547,7 +1619,7 @@ if [[ "$action" == "v66-preflight" ]]; then
   "$flock_cmd" -n 9 || die "outro preflight/activate V66 está em execução"
 
   detect_source_process_state
-  validate_v70_release "$candidate_dir" "$candidate_name"
+  validate_successor_release "$candidate_dir" "$candidate_name"
   run_compatibility_preflight "$candidate_dir" "$candidate_dir/.release-source.json" >/dev/null ||
     die "compatibility preflight inconclusivo ou incompatível"
   validate_safe_overlay "$candidate_dir"
@@ -1572,6 +1644,10 @@ if [[ "$action" == "v66-preflight" ]]; then
   echo "COMPATIBILITY=PASS_SAFE_BOOT"
   echo "SAFE_PROFILE=$safe_profile_name"
   echo "SAFE_OVERLAY_SHA256=$safe_overlay_sha"
+  echo "DEPLOY_HELPER_CONTRACT_VERSION=$deploy_helper_contract_version"
+  echo "RUNTIME_GUARD_CHAIN_VERSION=$runtime_guard_chain_version"
+  echo "PREDEPLOY_VALIDATED=$runtime_predeploy_version"
+  echo "STRICT_READ_ONLY=TRUE"
   echo "MUTATIONS=DISABLED"
   echo "DROPI_MODE=REPORT_ONLY"
   echo "BRIDGE=DISABLED"
@@ -1587,10 +1663,10 @@ if [[ "$action" == "v70-activation-validate" ]]; then
 
   ensure_private_dirs "$state_dir" "$protected_log_dir"
   exec 9>"$state_dir/vitalismen-stage.lock"
-  "$flock_cmd" -n 9 || die "outro preflight/publish/activate V70 está em execução"
+  "$flock_cmd" -n 9 || die "outro preflight/publish/activate sucessor está em execução"
 
   detect_source_process_state
-  validate_activation_prerequisites_v70
+  validate_activation_prerequisites_successor
 
   echo "V70_ACTIVATION_VALIDATION=PASS"
   echo "VALIDATION_ID=$validation_id"
@@ -1603,6 +1679,12 @@ if [[ "$action" == "v70-activation-validate" ]]; then
   echo "PREFLIGHT=FRESH_AND_BOUND"
   echo "PERMIT=VALID_AND_NOT_CONSUMED"
   echo "COMPATIBILITY=PASS_SAFE_BOOT"
+  echo "DEPLOY_HELPER_CONTRACT_VERSION=$deploy_helper_contract_version"
+  echo "RUNTIME_GUARD_CHAIN_VERSION=$runtime_guard_chain_version"
+  echo "STAGE_ATTESTATION_VERSION=$runtime_guard_chain_version"
+  echo "PUBLICATION_ATTESTATION_VERSION=$runtime_guard_chain_version"
+  echo "PUBLISHED_PREFLIGHT_VERSION=$runtime_guard_chain_version"
+  echo "STRICT_READ_ONLY=TRUE"
   echo "CURRENT_UNCHANGED=$(current_target)"
   echo "PM2_ACTIONS=0"
   echo "PROVIDER_CALLS=0"
@@ -1625,7 +1707,7 @@ if [[ "$action" == "v66-activate-safe" ]]; then
   detect_source_process_state
   previous_dir="$source_current"
   previous_release_name="${previous_dir##*/}"
-  validate_activation_prerequisites_v70
+  validate_activation_prerequisites_successor
 
   write_audit_event     "activation_pre_switch" "$activation_id" "$candidate_name" "$candidate_commit"     "$previous_release_name" "$source_process_state" "PASS_SAFE_BOOT"     "pending" "not_started" "not_checked" "not_required" "not_checked" "no"
 
@@ -1750,7 +1832,7 @@ if [[ "$action" == "v66-rollback-plan" ]]; then
   runner_dir="$(release_dir_for_name "$runner_name")"
   target_dir="$(release_dir_for_name "$target_name")"
 
-  validate_v70_release "$runner_dir" "$runner_name"
+  validate_successor_release "$runner_dir" "$runner_name"
   [[ "$candidate_publication_status" == "production_published" ]] ||
     die "runner de rollback precisa estar publicado"
   [[ -f "$target_dir/.release-source.json" ]] || die "metadata do rollback target ausente"
@@ -1871,8 +1953,15 @@ cat > "$release_dir/.release-source.json" <<METADATA
   "commit": "$expected_commit",
   "functionalCommit": "$expected_commit",
   "functionalTree": "$functional_tree",
-  "guardChainVersion": 70,
-  "dataCompatibilityVersion": 66,
+  "freezeVersion": $freeze_version,
+  "deployHelperContractVersion": $deploy_helper_contract_version,
+  "guardChainVersion": $runtime_guard_chain_version,
+  "runtimeGuardChainValidated": $runtime_guard_chain_version,
+  "predeployValidated": "$runtime_predeploy_version",
+  "dataCompatibilityVersion": $data_compatibility_version,
+  "strictReadOnly": true,
+  "safeObservationPolicy": "STRICT_READ_ONLY",
+  "allowedWriteClasses": [],
   "productionBranchCommitBefore": "$production_branch_before",
   "productionBranchChanged": false,
   "productionTagRequiredForStaging": false,
@@ -1909,13 +1998,12 @@ run_protected post_sale_data_compatibility_v66 \
   scripts/assert-post-sale-data-compatibility-v66.mjs \
   "--target-metadata=$release_dir/.release-source.json"
 
-run_protected runtime_guard_chain_v69 \
-  "$env_cmd" -C "$release_dir" "$node_cmd" \
-  src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js
+run_protected runtime_guard_chain_v71 \
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:runtime-chain-v71
 
-# V70 encapsula V69 → V68 → V67 → V66 no contexto sucessor.
-run_protected predeploy_v69 \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v70
+# A V72 valida o materializador; a semântica runtime canônica continua V71.
+run_protected predeploy_v71 \
+  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v71
 
 run_protected post_sale_safety_guard_v66 \
   "$env_cmd" -C "$release_dir" "$node_cmd" \
@@ -1993,8 +2081,15 @@ cat > "$release_dir/.staging-complete.json" <<STAGING
   "safeOverlaySha256": "$safe_overlay_sha",
   "baseEnvSha256": "$base_env_sha_after_gates",
   "nodeModulesSha256": "$node_modules_sha_after_gates",
-  "guardChainVersion": 70,
-  "dataCompatibilityVersion": 66,
+  "freezeVersion": $freeze_version,
+  "deployHelperContractVersion": $deploy_helper_contract_version,
+  "guardChainVersion": $runtime_guard_chain_version,
+  "runtimeGuardChainValidated": $runtime_guard_chain_version,
+  "predeployValidated": "$runtime_predeploy_version",
+  "dataCompatibilityVersion": $data_compatibility_version,
+  "strictReadOnly": true,
+  "safeObservationPolicy": "STRICT_READ_ONLY",
+  "allowedWriteClasses": [],
   "productionBranchCommitBefore": "$production_branch_before",
   "productionBranchCommitAfter": "$production_branch_after",
   "productionBranchChanged": false,
@@ -2013,9 +2108,9 @@ secure_mode 0400 \
   "$release_dir/$safe_overlay_name"
 
 staging_complete_sha_at_creation="$($sha256_cmd "$release_dir/.staging-complete.json" | awk '{print $1}')"
-validate_v70_release "$release_dir" "$release_name"
+validate_successor_release "$release_dir" "$release_name"
 [[ "$candidate_publication_status" == "staged_candidate" ]] ||
-  die "staging V70 não terminou como staged_candidate"
+  die "staging sucessor V72/V71 não terminou como staged_candidate"
 
 stage_complete=1
 echo "STAGING_OFICIAL_CONCLUIDO"
@@ -2029,6 +2124,10 @@ echo "SAFE_OVERLAY_SHA256=$safe_overlay_sha"
 echo "BASE_ENV_SHA256=$base_env_sha_after_gates"
 echo "NODE_MODULES_SHA256=$node_modules_sha_after_gates"
 echo "FUNCTIONAL_PAYLOAD_SHA256=$functional_payload_after_gates"
+echo "FREEZE_VERSION=$freeze_version"
+echo "DEPLOY_HELPER_CONTRACT_VERSION=$deploy_helper_contract_version"
+echo "RUNTIME_GUARD_CHAIN_VERSION=$runtime_guard_chain_version"
+echo "PREDEPLOY_VALIDATED=$runtime_predeploy_version"
 echo "PRODUCTION_INALTERADA=$production_branch_after"
 echo "PRODUCTION_TAG_EXIGIDA=NAO"
 echo "RELEASE=$release_dir"
