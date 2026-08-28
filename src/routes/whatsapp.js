@@ -103,6 +103,11 @@ import {
 } from '../services/ecDeliveredRepurchaseService.js';
 import { projectPanelCustomerReadModel } from '../services/panelCustomerReadModelService.js';
 import { searchPanelCustomersGlobally } from '../services/panelGlobalCustomerSearchService.js';
+import {
+    isStrictReadOnlyObservationEnabled,
+    isVslStagePersistenceEnabled,
+    strictReadOnlyAcceptedPayload
+} from '../services/strictReadOnlyObservationService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -2143,7 +2148,7 @@ export const resolveProfilePictureUrl = async ({ sock, contactState, primaryId, 
         }
     }
 
-    if (contactState?._id) {
+    if (persistCache && contactState?._id) {
         await ContactState.updateOne(
             { _id: contactState._id },
             { $set: { 'metadata.profilePictureFetchedAt': new Date() } }
@@ -3201,6 +3206,9 @@ router.get('/vsl-seller-rotation', (req, res) => {
 
 router.post('/vsl-stage', async (req, res) => {
     try {
+        if (!isVslStagePersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_stage' }));
+        }
         const body = req.body || {};
         const contract = validateVilaliemenProtocoloGStageContract(body);
         if (!contract.ok) {
@@ -3275,6 +3283,9 @@ router.post('/vsl-stage', async (req, res) => {
 
 router.post('/vsl-entry', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isVslStagePersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_entry' }));
+        }
         const body = req.body || {};
         const protocoloGSignal = hasProtocoloGContractSignal(body);
         const protocoloGContract = protocoloGSignal

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import path from 'path';
 import ContactState from '../models/ContactState.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
+import { assertMutationAllowed } from './strictReadOnlyObservationService.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -184,6 +185,7 @@ export const reserveOutboundOnce = async ({
     antiSpamKey = '',
     antiSpamWindowMs = semanticDedupeWindowMs()
 }) => {
+    assertMutationAllowed({ capability: 'outbound_dedupe_reserve', source: 'outbound_dedupe' });
     if (!strictDedupeEnabled()) return { allowed: true, skipped: true, reason: 'disabled' };
     if (bypass) return { allowed: true, skipped: true, reason: 'bypassed' };
     const phoneDigits = await resolveOutboundPhoneDigits({ jid, recipientDigits });
@@ -251,6 +253,7 @@ export const reserveOutboundOnce = async ({
 };
 
 export const markOutboundDedupeSent = async ({ key, semanticKey = '' }) => {
+    assertMutationAllowed({ capability: 'outbound_dedupe_sent', source: 'outbound_dedupe' });
     const keys = [key, semanticKey].filter(Boolean);
     if (!keys.length) return;
     await OutboundDedupe.updateMany(
@@ -260,6 +263,7 @@ export const markOutboundDedupeSent = async ({ key, semanticKey = '' }) => {
 };
 
 export const markOutboundDedupeFailed = async ({ key, semanticKey = '', error = '' }) => {
+    assertMutationAllowed({ capability: 'outbound_dedupe_failed', source: 'outbound_dedupe' });
     const keys = [key, semanticKey].filter(Boolean);
     if (!keys.length) return;
     await OutboundDedupe.updateMany(

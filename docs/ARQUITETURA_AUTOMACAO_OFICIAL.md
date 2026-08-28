@@ -1356,3 +1356,26 @@ permit root single-use e compatibilidade V66. O comando
 
 Contrato detalhado:
 `docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md`.
+
+## 2026-08-27 — V71: observação global estritamente read-only
+
+A V71 transforma qualquer runtime oficialmente configurado em
+`SAFE_OBSERVATION_ONLY` na política efetiva `STRICT_READ_ONLY`, com lista vazia
+de classes de escrita. A resolução ocorre antes da conexão/startup mutante; o
+Mongo conecta com `autoIndex=false`, a barreira Mongoose bloqueia toda operação
+de escrita e as rotas mutantes são interrompidas antes do primeiro handler.
+
+O dashboard, health, busca e read models continuam disponíveis. Status Z-API
+usa somente GET. ACK/inbound Z-API e telemetria VSL respondem `202`
+accepted/ignored sem persistência nem roteamento. Login não atualiza
+`lastLoginAt`. Baileys não inicia, providers não enviam, dedupe não reserva,
+Shipment não bloqueia, schedulers mutantes permanecem zero e Dropi APPLY é
+proibido.
+
+O contrato `ZAPI_ROUTE_INBOUND_TO_BOT=false` agora possui consumidor runtime.
+Quando o modo operacional aprovado estiver ativo e a política estrita estiver
+desligada, os fluxos anteriores permanecem disponíveis. A compatibilidade de
+dados continua 66, sem migration ou bridge.
+
+Fonte normativa:
+`docs/STRICT_READ_ONLY_OBSERVATION_SAFETY_FREEZE_V71_20260827.md`.

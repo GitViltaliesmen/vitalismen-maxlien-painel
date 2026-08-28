@@ -724,9 +724,15 @@ run_compatibility_preflight() {
 safe_profile_content() {
   cat <<'PROFILE'
 VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false
+VITALISMEN_STRICT_READ_ONLY=true
+SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY
 VIT_POWER_FUNNEL_ACTIVE=false
+WHATSAPP_CONNECT_ENABLED=false
 WHATSAPP_AUTO_REPLY_ENABLED=false
 ZAPI_ROUTE_INBOUND_TO_BOT=false
+ZAPI_PERSIST_INBOUND_ENABLED=false
+ZAPI_PERSIST_ACK_ENABLED=false
+VSL_STAGE_PERSIST_ENABLED=false
 WHATSAPP_FUNNEL_ENABLED=false
 DISABLE_SCHEDULER=1
 SHIPMENT_STATUS_DISPATCH_ENABLED=false
@@ -788,9 +794,15 @@ safe_pm2() {
   local pm2_action="$1"
   "$env_cmd" \
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false \
+    VITALISMEN_STRICT_READ_ONLY=true \
+    SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY \
     VIT_POWER_FUNNEL_ACTIVE=false \
+    WHATSAPP_CONNECT_ENABLED=false \
     WHATSAPP_AUTO_REPLY_ENABLED=false \
     ZAPI_ROUTE_INBOUND_TO_BOT=false \
+    ZAPI_PERSIST_INBOUND_ENABLED=false \
+    ZAPI_PERSIST_ACK_ENABLED=false \
+    VSL_STAGE_PERSIST_ENABLED=false \
     WHATSAPP_FUNNEL_ENABLED=false \
     DISABLE_SCHEDULER=1 \
     SHIPMENT_STATUS_DISPATCH_ENABLED=false \
@@ -821,9 +833,15 @@ process.stdin.on("end", () => {
   const env = processInfo.pm2_env || {};
   const expected = {
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED: "false",
+    VITALISMEN_STRICT_READ_ONLY: "true",
+    SAFE_OBSERVATION_POLICY: "STRICT_READ_ONLY",
     VIT_POWER_FUNNEL_ACTIVE: "false",
+    WHATSAPP_CONNECT_ENABLED: "false",
     WHATSAPP_AUTO_REPLY_ENABLED: "false",
     ZAPI_ROUTE_INBOUND_TO_BOT: "false",
+    ZAPI_PERSIST_INBOUND_ENABLED: "false",
+    ZAPI_PERSIST_ACK_ENABLED: "false",
+    VSL_STAGE_PERSIST_ENABLED: "false",
     WHATSAPP_FUNNEL_ENABLED: "false",
     DISABLE_SCHEDULER: "1",
     SHIPMENT_STATUS_DISPATCH_ENABLED: "false",
@@ -1127,6 +1145,15 @@ const safety = data.automationSafety || {};
 if (data.status !== 'online') throw new Error('health não online');
 if (!Array.isArray(data.degradedReasons) || data.degradedReasons.length !== 0) throw new Error('health degradado');
 if (safety.mode !== 'SAFE_OBSERVATION_ONLY') throw new Error('modo não seguro');
+if (safety.policy !== 'STRICT_READ_ONLY') throw new Error('política não estrita');
+if (safety.strictReadOnly !== true) throw new Error('strict read-only inativo');
+if (!Array.isArray(safety.allowedWriteClasses) || safety.allowedWriteClasses.length !== 0) throw new Error('classe de write permitida');
+if (safety.zapiReadOnlyStatusAllowed !== true) throw new Error('status Z-API read-only indisponível');
+if (safety.zapiInboundPersistenceAllowed !== false) throw new Error('persistência inbound Z-API habilitada');
+if (safety.zapiAckPersistenceAllowed !== false) throw new Error('persistência ACK Z-API habilitada');
+if (safety.baileysEnabled !== false) throw new Error('Baileys habilitado');
+if (safety.mutatingRoutesEnabled !== false) throw new Error('rotas mutantes habilitadas');
+if (safety.mutatingSchedulers !== 0) throw new Error('scheduler mutante habilitado');
 if (safety.operationalMutationsEnabled !== false) throw new Error('mutações habilitadas');
 if (safety.compatibilityBridgeComplete !== false) throw new Error('bridge habilitado');
 if (safety.dropiSyncMode !== 'REPORT_ONLY') throw new Error('Dropi não está em REPORT_ONLY');

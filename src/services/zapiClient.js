@@ -1,6 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { assertTransportPersistenceAllowed } from './strictReadOnlyObservationService.js';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -83,6 +84,7 @@ const boundedDelaySeconds = (value, fallback = null) => {
 };
 
 export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'zapi', operation: 'send_text' });
     const cleanPhone = digits(phone);
     const cleanMessage = clean(message);
     if (!cleanPhone || !cleanMessage) {
@@ -201,6 +203,7 @@ const sendZapiMedia = async ({
     waveform = false,
     async = false
 } = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'zapi', operation: `send_${payloadKey || 'media'}` });
     const cleanPhone = digits(phone);
     if (!cleanPhone) {
         const error = new Error('zapi_phone_required');

@@ -22,6 +22,7 @@ const dashboard = read('public/funnel-metrics.html');
 const capiRoutingFreezeGuard = read('scripts/guard-meta-capi-routing-freeze-v61.mjs');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json'));
+const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
 const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 
@@ -100,6 +101,10 @@ const protectedHashes = {
 
 for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
     const actualHash = sha256(relativePath);
+    if (
+        v71Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v71Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',
         'src/services/droppiEcuadorService.js': 'dd45007880275c71828641009cfd71bcb19dc5bf0e2b95a9200e61ee3d0110d8'

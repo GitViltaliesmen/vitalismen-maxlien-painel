@@ -44,6 +44,13 @@ import {
 } from '../services/ecConversationBucketService.js';
 import { scheduleEcEngagementReply } from '../services/ecEngagementReplyService.js';
 import crypto from 'crypto';
+import {
+    isStrictReadOnlyObservationEnabled,
+    isZapiAckPersistenceEnabled,
+    isZapiInboundPersistenceEnabled,
+    isZapiInboundRoutingEnabled,
+    strictReadOnlyAcceptedPayload
+} from '../services/strictReadOnlyObservationService.js';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -1474,6 +1481,9 @@ export const classifyZapiGenericWebhookPayload = (payload = {}) => {
 
 router.post('/webhook/delivery', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_delivery' }));
+        }
         const payload = req.body || {};
         const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
@@ -1486,6 +1496,9 @@ router.post('/webhook/delivery', async (req, res) => {
 
 router.post('/webhook', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_webhook' }));
+        }
         const payload = req.body || {};
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
@@ -1516,7 +1529,7 @@ router.post('/webhook', async (req, res) => {
         const engagementReply = await scheduleClassifiedEngagementReply(result, {
             skip: pickupReply.handled || buyLaterReply.handled
         });
-        if (result.routeToBot) {
+        if (result.routeToBot && isZapiInboundRoutingEnabled()) {
             scheduleVslFirstResponseWatchdog(result);
             if (!pickupReply.handled && !buyLaterReply.handled) {
                 await routeIncomingMessage({
@@ -1539,6 +1552,9 @@ router.post('/webhook', async (req, res) => {
 
 router.post('/webhook/received', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_received' }));
+        }
         const payload = req.body || {};
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
@@ -1567,7 +1583,7 @@ router.post('/webhook/received', async (req, res) => {
             const engagementReply = await scheduleClassifiedEngagementReply(result, {
                 skip: pickupReply.handled || buyLaterReply.handled
             });
-            if (result.routeToBot) {
+            if (result.routeToBot && isZapiInboundRoutingEnabled()) {
                 scheduleVslFirstResponseWatchdog(result);
                 if (!pickupReply.handled && !buyLaterReply.handled) {
                     await routeIncomingMessage({

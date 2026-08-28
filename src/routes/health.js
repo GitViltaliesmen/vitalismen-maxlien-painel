@@ -12,6 +12,9 @@ import {
     resolveDropiSyncMode,
     resolvePostSaleOperationalMutationGate
 } from '../services/postSaleSafetyV66Service.js';
+import {
+    strictReadOnlyHealthContract
+} from '../services/strictReadOnlyObservationService.js';
 
 const router = express.Router();
 
@@ -70,6 +73,7 @@ export const zapiSubscriptionBlockedFromMessages = ({ lastFailure = null, lastSu
  */
 router.get('/', async (req, res) => {
     try {
+        const strictContract = strictReadOnlyHealthContract(process.env);
         const { isReady, status } = getStatus();
         const sessions = getAllStatuses();
         const pendingTasks = getQueueSize();
@@ -78,7 +82,7 @@ router.get('/', async (req, res) => {
         const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
-        const whatsappConnectEnabled = String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() !== 'false';
+        const whatsappConnectEnabled = strictContract.baileysEnabled;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
@@ -179,14 +183,23 @@ router.get('/', async (req, res) => {
             automationSafety: {
                 runtimeVersion: POST_SALE_RUNTIME_VERSION,
                 runtimeCompatible: runtimeCompatibility.ok,
-                operationalMutationsEnabled: mutationGate.allowed,
-                mode: mutationGate.mode,
+                operationalMutationsEnabled: strictContract.strictReadOnly ? false : mutationGate.allowed,
+                mode: strictContract.strictReadOnly ? strictContract.mode : mutationGate.mode,
+                policy: strictContract.policy,
+                strictReadOnly: strictContract.strictReadOnly,
+                allowedWriteClasses: strictContract.allowedWriteClasses,
+                zapiReadOnlyStatusAllowed: strictContract.zapiReadOnlyStatusAllowed,
+                zapiInboundPersistenceAllowed: strictContract.zapiInboundPersistenceAllowed,
+                zapiAckPersistenceAllowed: strictContract.zapiAckPersistenceAllowed,
+                baileysEnabled: strictContract.baileysEnabled,
+                mutatingRoutesEnabled: strictContract.mutatingRoutesEnabled,
+                mutatingSchedulers: strictContract.mutatingSchedulers,
                 reason: mutationGate.reason,
                 compatibilityBridgeComplete: compatibilityState?.bridgeComplete === true,
                 dataCompatibilityVersion: Number(compatibilityState?.dataCompatibilityVersion || 0),
                 minimumRuntimeVersion: Number(compatibilityState?.minRuntimeVersion || 0),
                 dropiSyncMode: dropiSyncMode.effectiveMode,
-                dropiApplyAllowed: dropiSyncMode.applyAllowed
+                dropiApplyAllowed: strictContract.strictReadOnly ? false : dropiSyncMode.applyAllowed
             },
             whatsapp: exposedWhatsapp,
             zapi: {
@@ -207,8 +220,9 @@ router.get('/', async (req, res) => {
                     outboundBlocked: zapi.outboundBlocked
                 },
                 baileys: {
-                    required: transportHealth.baileysRequired,
-                    enabled: whatsappConnectEnabled,
+                    required: strictContract.strictReadOnly ? false : transportHealth.baileysRequired,
+                    enabled: strictContract.baileysEnabled,
+                    disabledByStrictReadOnly: strictContract.strictReadOnly,
                     state: status,
                     ready: connectedSessions.length > 0,
                     connectedSessions: connectedSessions.length,

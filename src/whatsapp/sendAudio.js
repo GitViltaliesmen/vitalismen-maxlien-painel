@@ -18,6 +18,7 @@ import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRo
 import ContactState from '../models/ContactState.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -124,6 +125,7 @@ const failoverWasSent = (result) => (result === true || result?.ok === true);
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_audio' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] audio bloqueado por protecao manual anti-reenvio -> ${jid}`);
         return false;

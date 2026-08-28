@@ -7,8 +7,10 @@ import { sendZapiImage } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_image' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] imagem bloqueada por protecao manual anti-reenvio -> ${jid}`);
         return false;

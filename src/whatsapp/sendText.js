@@ -17,6 +17,7 @@ import { shouldUseZapiForOutbound } from './zapiOutboundRouting.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { shipmentHistoryRepeatKey } from '../services/postSalePickupReconciliationPolicy.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 const SEND_TEXT_TIMEOUT_MS = Number.parseInt(process.env.WHATSAPP_SEND_TEXT_TIMEOUT_MS || '45000', 10);
 const HISTORY_DEDUPE_WINDOW_MINUTES = Math.max(5, Number.parseInt(process.env.WHATSAPP_HISTORY_DEDUPE_WINDOW_MINUTES || '1440', 10) || 1440);
@@ -167,6 +168,7 @@ const normalizeOutboundJid = async (jid, recipientDigits = '') => {
  * Provides standardized error handling and formatting for plain text responses
  */
 export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_text' });
     const normalized = await normalizeOutboundJid(jid, options.recipientDigits || '');
     const targetJid = normalized.jid;
     const recipientDigits = options.recipientDigits || normalized.recipientDigits || '';

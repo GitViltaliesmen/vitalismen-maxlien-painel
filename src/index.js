@@ -3,6 +3,7 @@ import path from 'path';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 
 // Routes
@@ -33,6 +34,16 @@ import {
     assertRuntimeSupportsPostSaleData,
     resolvePostSaleOperationalMutationGate
 } from './services/postSaleSafetyV66Service.js';
+import {
+    installStrictReadOnlyMongooseGuard,
+    resolveStrictReadOnlyObservation,
+    startBaileysIfAllowed,
+    shouldStartBaileys,
+    strictReadOnlyMutationRouteGuard
+} from './services/strictReadOnlyObservationService.js';
+
+const strictObservation = resolveStrictReadOnlyObservation(process.env);
+installStrictReadOnlyMongooseGuard(mongoose);
 
 const isProductionVpsPath = process.cwd().startsWith('/opt/vitalismen-automacao/');
 const isRunningUnderPm2 = Boolean(process.env.pm_id || process.env.PM2_HOME);
@@ -66,6 +77,10 @@ app.disable('x-powered-by');
 // persistente de compatibilidade; ausencia/erro/versao futura falha fechado.
 connectDB()
     .then(async () => {
+        if (strictObservation.enabled) {
+            console.warn(`[STARTUP-V71] API/health ativos em ${strictObservation.mode}/${strictObservation.policy}; capacidades mutantes não foram iniciadas; reason=${strictObservation.reason}.`);
+            return;
+        }
         const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
             .lean()
             .catch((error) => {
@@ -281,6 +296,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// V71: toda rota mutante e bloqueada antes do primeiro handler. As exceções
+// listadas pelo serviço são login sem bookkeeping e callbacks/telemetria no-op.
+app.use(strictReadOnlyMutationRouteGuard);
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -307,10 +326,15 @@ app.use('/api/customer-context', customerContextRoutes);
 app.use('/api/health', healthRoutes);
 
 // Start Baileys WhatsApp Engine(s)
-if (String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() === 'false') {
-    console.log('[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false');
+if (!shouldStartBaileys(process.env)) {
+    console.log(strictObservation.enabled
+        ? '[WHATSAPP] Engine desativado por STRICT_READ_ONLY'
+        : '[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false');
 } else {
-    startConfiguredWhatsAppSessions().catch(err => {
+    startBaileysIfAllowed({
+        env: process.env,
+        startConfiguredSessions: startConfiguredWhatsAppSessions
+    }).catch(err => {
         console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
     });
 }

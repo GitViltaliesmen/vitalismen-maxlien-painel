@@ -9,6 +9,7 @@ import { sendZapiDocument } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 const isRemoteUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -27,6 +28,7 @@ const sendDocumentFailure = (options, payload = {}) => (
 );
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_document' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] documento bloqueado por protecao manual anti-reenvio -> ${jid}`);
         return sendDocumentFailure(options, { reason: 'operator_no_auto_resend' });

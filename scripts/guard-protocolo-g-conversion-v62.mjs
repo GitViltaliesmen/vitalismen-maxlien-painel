@@ -15,6 +15,7 @@ const metrics = read('src/services/funnelMetricsService.js');
 const dashboard = read('public/funnel-metrics.html');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/protocolo-g-conversion-v62-20260826.json'));
+const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
 const stageRoute = receiver.split("router.post('/vsl-stage', async")[1]
     ?.split("router.post('/vsl-entry', async")[0] || '';
 
@@ -74,6 +75,10 @@ const preservedHashes = {
 };
 for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     const actualHash = sha256(relativePath);
+    if (
+        v71Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v71Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',
         'src/services/droppiEcuadorService.js': 'dd45007880275c71828641009cfd71bcb19dc5bf0e2b95a9200e61ee3d0110d8'

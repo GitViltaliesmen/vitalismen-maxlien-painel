@@ -21,6 +21,7 @@ import {
     startDropiSyncCycle
 } from './dropiSyncObservabilityService.js';
 import { DROPI_SYNC_MODES } from './postSaleSafetyV66Service.js';
+import { assertMutationAllowed } from './strictReadOnlyObservationService.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
 const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
@@ -398,6 +399,7 @@ const updateBrowserState = async (shipmentId, checkpoint, extra = {}) => {
 };
 
 export const lockShipmentForBrowserWorkEc = async (shipment) => {
+    assertMutationAllowed({ capability: 'shipment_browser_lock', source: 'droppi_ec_browser' });
     const now = new Date();
     return Shipment.findOneAndUpdate(
         {
@@ -419,6 +421,7 @@ export const lockShipmentForBrowserWorkEc = async (shipment) => {
 };
 
 export const releaseShipmentBrowserLockEc = async (shipmentId) => {
+    assertMutationAllowed({ capability: 'shipment_browser_unlock', source: 'droppi_ec_browser' });
     await Shipment.updateOne(
         { _id: shipmentId },
         { $unset: { 'automation.submitLockedUntil': 1 } }

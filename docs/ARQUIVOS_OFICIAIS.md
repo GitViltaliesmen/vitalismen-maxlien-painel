@@ -959,3 +959,27 @@ nenhuma alteração realizada no VPS.
 - Cadeia: V70 → V69 → V68 → V67 → V66; compatibilidade de dados permanece 66.
 - Estado desta alteração: somente local/versionado; sem push, tag real, instalação do
   helper, stage real, publicação real, ativação, mudança em `current` ou ação PM2.
+
+## Registro V71 — strict read-only global (2026-08-27)
+
+- Serviço/gate central: `src/services/strictReadOnlyObservationService.js`.
+- Startup/HTTP: `src/index.js` e `src/config/db.js`.
+- Superfícies Z-API/VSL/painel/health: `src/routes/zapi.js`,
+  `src/routes/whatsapp.js`, `src/routes/auth.js` e `src/routes/health.js`.
+- Defesas de outbound/dedupe/Shipment: `src/services/zapiClient.js`,
+  `src/services/outboundDedupeService.js`,
+  `src/services/droppiEcuadorBrowserService.js` e `src/whatsapp/send*.js`.
+- Baseline oficial read-only:
+  `scripts/audit-document-level-baseline-readonly.mjs` e
+  `tests/document-level-baseline-readonly.test.mjs`.
+- Guard estático/runtime:
+  `scripts/guard-strict-read-only-observation-safety-v71.mjs` e
+  `src/services/strictReadOnlyObservationSafetyFreezeRuntimeGuardV71.js`.
+- Manifesto/freeze:
+  `docs/freeze/strict-read-only-observation-safety-v71-20260827.json` e
+  `docs/STRICT_READ_ONLY_OBSERVATION_SAFETY_FREEZE_V71_20260827.md`.
+- Teste integrado: `tests/strict-read-only-observation-safety-v71.test.mjs`.
+- Cadeia: V71 → V70 → V69 → V68 → V67 → V66 → ancestrais; data
+  compatibility permanece 66.
+- Estado: candidata somente local. V70 histórica byte-intact; produção,
+  helper instalado, `/current`, PM2 e dados de produção não foram alterados.

@@ -24,6 +24,13 @@ assert.match(source, /SOURCE_PROCESS_STATE|source_process_state="STOPPED_CONTAIN
 assert.match(source, /status" == "stopped" && "\$pid" == "0"/);
 assert.match(source, /SOURCE_HEALTH=SKIPPED_EXPECTED_CONTAINMENT/);
 assert.match(source, /V66_SAFE_OBSERVATION_ONLY/);
+assert.match(source, /VITALISMEN_STRICT_READ_ONLY=true/);
+assert.match(source, /SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY/);
+assert.match(source, /WHATSAPP_CONNECT_ENABLED=false/);
+assert.match(source, /ZAPI_ROUTE_INBOUND_TO_BOT=false/);
+assert.match(source, /ZAPI_PERSIST_INBOUND_ENABLED=false/);
+assert.match(source, /ZAPI_PERSIST_ACK_ENABLED=false/);
+assert.match(source, /VSL_STAGE_PERSIST_ENABLED=false/);
 assert.match(source, /DROPPI_EC_ACTIVE_SYNC_MODE=REPORT_ONLY/);
 assert.match(source, /POST_SALE_V66_MUTATIONS_ENABLED=false/);
 assert.match(source, /POST_SALE_V66_MUTATIONS_AUTHORIZATION=/);
