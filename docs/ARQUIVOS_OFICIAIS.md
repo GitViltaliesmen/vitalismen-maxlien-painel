@@ -1068,3 +1068,25 @@ nenhuma alteração realizada no VPS.
   `47acfd910326d36fcdd779edebda42fb7ecd1c8faf83cd5a9faaef1c3110f631`.
 - Sem alteração nos arquivos funcionais Meta V73. Sem push, tag, deploy,
   inicialização de registry, evento Meta ou mutação de produção nesta missão.
+
+## Registro V75 — isolamento local de canário (2026-08-28)
+
+- Fonte única do gate: `src/services/canaryIsolationV75Service.js`.
+- Único destinatário candidato: QA `5515998038637`, por igualdade integral.
+- Fronteiras: inbound Z-API/Baileys/VSL, outbound, provider, decisões pós-venda,
+  consultas/loops de status, retirada, prova, bônus e carrier sweep.
+- Dropi e Meta: bloqueio incondicional enquanto a V75 estiver aplicada.
+- Origem oficial: `/n/` permanece exclusivamente Tex Ultra; metadado Nitrix
+  legado conflitante é recusado, sem confundir `/nitrix` com `/n`.
+- Guard/runtime/teste:
+  `scripts/guard-canary-isolation-v75.mjs`,
+  `src/services/canaryIsolationSafetyFreezeRuntimeGuardV75.js` e
+  `tests/canary-isolation-v75.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_ISOLATION_SAFETY_FREEZE_V75_20260828.md` e
+  `docs/freeze/canary-isolation-safety-v75-20260828.json`.
+- Cadeia: V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados 66
+  preservados.
+- Estado: somente a pasta local oficial; sem alteração de `.env`, VPS,
+  `/current`, PM2, banco, provider, schedulers, mensagens, tráfego, push, tag,
+  stage ou deploy.

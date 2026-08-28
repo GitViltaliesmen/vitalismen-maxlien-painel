@@ -13,6 +13,10 @@ import {
 import { syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { saveCarrierTrackingResult, trackCarrierGuide } from './carrierTrackingService.js';
 import { sendText } from '../whatsapp/sendText.js';
+import {
+    buildCanaryV75RecipientQuery,
+    canaryV75SchedulerShipmentAllowed
+} from './canaryIsolationV75Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -681,6 +685,7 @@ const candidateQuery = (actions = []) => {
     return {
         country: 'EC',
         'client.phone': { $exists: true, $ne: '' },
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'review.manualOnly': { $ne: true },
         $and: [
             { $or: branches.length ? branches : [{ _id: null }] },
@@ -795,6 +800,7 @@ const carrierStatusSweepQuery = ({ force = false, now = new Date() } = {}) => {
     const checkedBefore = new Date(now.getTime() - carrierStatusSweepMinGapMinutes() * 60 * 1000);
     const query = {
         country: 'EC',
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         $and: [
             {
@@ -873,6 +879,16 @@ export const processCarrierStatusSweep = async ({
     let failed = 0;
 
     for (const shipment of candidates) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            skipped += 1;
+            results.push({
+                orderId: shipment.orderId,
+                success: false,
+                reason: canaryDecision.reason
+            });
+            continue;
+        }
         const beforeStatus = shipment.logistics?.status || '';
         const item = {
             orderId: shipment.orderId,
@@ -1113,6 +1129,17 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
     });
 
     for (const shipment of shipments) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            skipped += 1;
+            results.push({
+                orderId: shipment.orderId,
+                action: 'none',
+                success: false,
+                reason: canaryDecision.reason
+            });
+            continue;
+        }
         let action = actionForShipment(shipment);
         const item = {
             orderId: shipment.orderId,

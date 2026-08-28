@@ -51,6 +51,7 @@ import {
     isZapiInboundRoutingEnabled,
     strictReadOnlyAcceptedPayload
 } from '../services/strictReadOnlyObservationService.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -383,6 +384,18 @@ const zapiPhoneFromPayload = (payload = {}) => digits(firstString(
     payload.data?.from,
     payload.data?.to
 ));
+
+const canaryV75InboundDecision = (payload = {}, surface = 'zapi_webhook_inbound') => (
+    evaluateCanaryV75Recipient(zapiPhoneFromPayload(payload), { surface })
+);
+
+const canaryV75AcceptedResponse = (res, decision) => res.status(202).json({
+    ok: true,
+    accepted: true,
+    skipped: true,
+    reason: decision.reason,
+    canary: 'V75'
+});
 
 const zapiFromMeFromPayload = (payload = {}) => (
     payload.fromMe === true
@@ -793,6 +806,17 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const mediaMime = zapiMediaMimeTypeFromPayload(payload);
     const providerMediaId = zapiMediaIdFromPayload(payload);
     if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
+    const canaryDecision = evaluateCanaryV75Recipient(phone, { surface: 'zapi_inbound_persistence' });
+    if (!canaryDecision.allowed) {
+        return {
+            recorded: false,
+            reason: canaryDecision.reason,
+            phone,
+            providerMessageId,
+            providerZaapId,
+            routeToBot: false
+        };
+    }
     if (zapiInboundLooksLikeGroup(payload, phone)) {
         return { recorded: false, reason: 'group_or_community_ignored', phone, providerMessageId, providerZaapId };
     }
@@ -1485,6 +1509,8 @@ router.post('/webhook/delivery', async (req, res) => {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_delivery' }));
         }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_delivery_persistence');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         res.json({ ok: true, result });
@@ -1500,6 +1526,8 @@ router.post('/webhook', async (req, res) => {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_webhook' }));
         }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_generic_webhook');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
             console.log(`[ZAPI-WEBHOOK] chamada | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);
@@ -1556,6 +1584,8 @@ router.post('/webhook/received', async (req, res) => {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_received' }));
         }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_received_webhook');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
             console.log(`[ZAPI-WEBHOOK] chamada recebida | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);

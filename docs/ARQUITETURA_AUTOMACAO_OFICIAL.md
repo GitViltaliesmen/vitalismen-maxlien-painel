@@ -1468,3 +1468,29 @@ nova semântica operacional: `RUNTIME_GUARD_CHAIN_VERSION=71` e
 `DATA_COMPATIBILITY_VERSION=66` continuam inalterados. O helper
 `ops/vitalismen-stage` não foi modificado. Contrato completo:
 `docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md`.
+
+## 2026-08-28 — V75: isolamento local de canário por destinatário único
+
+A V75 sucede a V74 sem mudar a compatibilidade de dados V66 nem instalar um
+novo modo em produção. O contrato central
+`src/services/canaryIsolationV75Service.js` exige igualdade integral com o
+telefone QA `5515998038637` em todas as allowlists, entradas, saídas, consultas
+de scheduler e limite do provider. Em development a camada permanece dormente
+até a flag V75 explícita; em production, operação piloto torna a flag obrigatória
+e sua ausência também falha fechada.
+
+Status, retirada, prova, bônus e carrier sweep possuem filtro na consulta e
+defesa no loop. Entrada Z-API/Baileys/VSL é recusada antes de banco/roteamento;
+saída é recusada novamente no provider. Dropi e Meta permanecem proibidos mesmo
+para o QA. O senior guard passa a acoplar `PICKUP_PROOF_SWEEP_ENABLED` aos dois
+modos oficiais.
+
+A origem `/n/` tem precedência exclusiva de Tex Ultra, inclusive contra chave
+Nitrix legada; `/nitrix` permanece uma origem separada e explicitamente
+identificada. O runtime canônico passa a validar V75 → V74 → V73 → V72 → V71,
+mantendo `RUNTIME_GUARD_CHAIN_VERSION=71` e
+`DATA_COMPATIBILITY_VERSION=66`.
+
+Estado: candidata exclusivamente local, sem `.env`, push, tag, stage, deploy,
+`/current`, PM2, banco, provider, mensagem, scheduler ou tráfego. Contrato:
+`docs/CANARY_ISOLATION_SAFETY_FREEZE_V75_20260828.md`.

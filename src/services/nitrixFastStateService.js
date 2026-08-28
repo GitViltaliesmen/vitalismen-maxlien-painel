@@ -175,27 +175,43 @@ const isExplicitHumanHold = (state = {}) => {
     return human.mode === 'manual' && actor && !['vsl_ec', 'nitrix_route_guard', 'nitrix_fast_state'].includes(actor);
 };
 
-const vslNitrixSourceConfirmed = (state = {}) => {
+export const vslNitrixSourceConfirmed = (state = {}) => {
     const metadata = state.metadata || {};
     const draft = metadata.customerDraft || {};
-    const values = [
+    const productValues = [
+        metadata.vslProductKey,
         metadata.productKey,
-        draft.productKey,
+        draft.productKey
+    ].map((value) => String(value || '').toLowerCase());
+    const sourceValues = [
+        metadata.vslProductSource,
         metadata.productSource,
         metadata.vslPath,
         metadata.vslPage,
         metadata.vslSourceUrl
     ].map((value) => String(value || '').toLowerCase());
-    const isNitrix = values.some((value) => (
+    const texUltraNOrigin = sourceValues.some((value) => {
+        if (!value) return false;
+        try {
+            const urlValue = !/^[a-z][a-z0-9+.-]*:\/\//i.test(value) && /^[^/\s]+\.[^/\s]+\//.test(value)
+                ? `https://${value}`
+                : value;
+            const pathname = new URL(urlValue).pathname.replace(/\/+$/, '') || '/';
+            return pathname === '/n' || pathname.startsWith('/n/');
+        } catch {
+            const pathname = value.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+            return pathname === '/n' || pathname.startsWith('/n/');
+        }
+    });
+    if (texUltraNOrigin) return false;
+    const isNitrix = productValues.some((value) => (
         value === AGENT_KEY
         || value === 'nx_ec'
         || value.includes('nitrix')
-        || value.startsWith('/n')
-        || value.includes('maxlien.shop/n')
     ));
-    const hasVslEvidence = metadata.vslEntryPanelLead === true
-        || values.some((value) => value.startsWith('/n') || value.includes('maxlien.shop/n') || value.includes('vsl'))
-        || (state.tags || []).includes('VSL_EC');
+    const explicitNitrixOrigin = productValues[0] === AGENT_KEY
+        || sourceValues.some((value) => value.includes('nitrix') || value === 'nx_ec' || value.includes('nx_'));
+    const hasVslEvidence = metadata.vslEntryPanelLead === true && explicitNitrixOrigin;
     return isNitrix && hasVslEvidence;
 };
 
@@ -732,9 +748,8 @@ export const processNitrixFastStateJobs = async ({ limit = 50 } = {}) => {
     }
 };
 
-// A VSL /n/ e' um opt-in comercial comprovado. O primeiro acolhimento nao
-// depende de uma mensagem adicional do cliente: o estado e persistido antes
-// de qualquer envio e toda resposta posterior continua vencendo a cadencia.
+// Somente uma origem Nitrix explicitamente identificada e opt-in comprovado.
+// /n/ pertence exclusivamente ao Tex Ultra e nunca inicia este fast state.
 export const startNitrixFastStateFromVslEntry = async ({ contactStateId, sessionId = null } = {}) => {
     if (!enabled() || !contactStateId) return { handled: false, reason: 'disabled_or_missing_contact' };
     const state = await ContactState.findById(contactStateId);

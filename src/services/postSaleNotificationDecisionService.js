@@ -12,6 +12,7 @@ import {
     postSaleLedgerPath,
     terminalPostSaleSafetyEntry
 } from './postSaleSafetyV66Service.js';
+import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
 
 export const POST_SALE_NOTIFICATION_DECISIONS = Object.freeze({
     SHOULD_SEND: 'SHOULD_SEND',
@@ -232,6 +233,14 @@ export const decidePostSaleNotification = async ({
     const validKind = Object.prototype.hasOwnProperty.call(MARKER_BY_KIND, legacyKind);
     if (!shipment || !validKind) {
         return { decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'missing_shipment_or_invalid_kind' };
+    }
+    const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+    if (!canaryDecision.allowed) {
+        return {
+            decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
+            reason: canaryDecision.reason,
+            stage
+        };
     }
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage, variant });
     const structured = structuredShipmentEvidence(shipment, legacyKind);

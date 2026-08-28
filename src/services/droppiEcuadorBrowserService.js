@@ -22,6 +22,10 @@ import {
 } from './dropiSyncObservabilityService.js';
 import { DROPI_SYNC_MODES } from './postSaleSafetyV66Service.js';
 import { assertMutationAllowed } from './strictReadOnlyObservationService.js';
+import {
+    assertCanaryV75ExternalEffectBlocked,
+    canaryV75BlockedResult
+} from './canaryIsolationV75Service.js';
 
 const LOCK_MS = Number.parseInt(process.env.DROPPI_EC_LOCK_MS || '900000', 10);
 const BROWSER_WORK_TIMEOUT_MS = Number.parseInt(process.env.DROPPI_EC_BROWSER_WORK_TIMEOUT_MS || '360000', 10);
@@ -1479,6 +1483,7 @@ const confirmOrderInOrdersPanel = async (page, payload) => {
 };
 
 export const performLogin = async (page) => {
+    assertCanaryV75ExternalEffectBlocked('dropi');
     if (getUsableStorageStatePath()) {
         await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
@@ -1535,6 +1540,7 @@ const persistStorageState = async (context) => {
 };
 
 const withBrowserSession = async (work) => {
+    assertCanaryV75ExternalEffectBlocked('dropi');
     const { chromium } = await getPlaywright();
     ensureDir(DOWNLOAD_DIR);
 
@@ -2592,6 +2598,16 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
     dryRun = false,
     reportOnly = false
 } = {}) => {
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) {
+        return {
+            ...canaryBlock,
+            mode: DROPI_SYNC_MODES.REPORT_ONLY,
+            dryRun: true,
+            synced: [],
+            skipped: []
+        };
+    }
     const requestedMode = String(mode || '').trim().toUpperCase();
     const validMode = Object.values(DROPI_SYNC_MODES).includes(requestedMode)
         ? requestedMode
@@ -2918,6 +2934,8 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
 };
 
 export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) return canaryBlock;
     const safetyBeforeLock = await checkDropiSubmitSafety({ order, shipment });
     if (safetyBeforeLock) return safetyBeforeLock;
 
@@ -3108,6 +3126,8 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
 };
 
 export const prepareDroppiEcuadorOrderForManualSubmit = async ({ order, shipment }) => {
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) return canaryBlock;
     const locked = await lockShipmentForBrowserWorkEc(shipment);
     if (!locked) return { ok: false, reason: 'locked' };
 
@@ -3200,6 +3220,8 @@ export const prepareDroppiEcuadorOrderForManualSubmit = async ({ order, shipment
 };
 
 export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) return canaryBlock;
     try {
         const result = await withBrowserSession(async ({ context, page }) => {
             await performLogin(page);
@@ -3255,6 +3277,8 @@ export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
 
 export const syncDroppiEcuadorInvoiceForShipment = async ({ shipment, download = true } = {}) => {
     if (!shipment?._id) return { ok: false, reason: 'missing_shipment' };
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) return canaryBlock;
 
     try {
         const result = await withBrowserSession(async ({ context, page }) => {
@@ -3324,6 +3348,8 @@ export const syncDroppiEcuadorInvoiceForShipment = async ({ shipment, download =
 };
 
 export const downloadDroppiEcuadorInvoicePdf = async ({ shipment }) => {
+    const canaryBlock = canaryV75BlockedResult('dropi');
+    if (canaryBlock) return canaryBlock;
     const invoiceUrl = shipment?.logistics?.invoiceUrl || '';
     if (!invoiceUrl) {
         return { ok: false, reason: 'missing_invoice_url' };

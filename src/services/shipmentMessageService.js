@@ -39,6 +39,11 @@ import {
     POST_SALE_VARIANTS,
     buildPostSaleIdempotencyKey
 } from './postSaleSafetyV66Service.js';
+import {
+    buildCanaryV75RecipientQuery,
+    canaryV75SchedulerShipmentAllowed,
+    evaluateCanaryV75Recipient
+} from './canaryIsolationV75Service.js';
 
 const BONUS_URL = process.env.PICKUP_BONUS_URL || 'https://zapgersonecvo.cloud';
 const BONUS_TEXT_VARIANTS = [
@@ -2578,6 +2583,10 @@ export const handlePickupProofInbound = async ({
     hasMedia = false
 }) => {
     if (!chatId) return { handled: false, reason: 'missing_chat' };
+    const canaryDecision = evaluateCanaryV75Recipient(chatId, {
+        surface: 'pickup_proof_inbound'
+    });
+    if (!canaryDecision.allowed) return { handled: false, reason: canaryDecision.reason };
     const explicitTextProof = isPickupProofText(proofText);
 
     const shipment = await Shipment.findOne({
@@ -2618,6 +2627,7 @@ export const handlePickupProofInbound = async ({
 export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}) => {
     const shipments = await Shipment.find({
         country: 'EC',
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'logistics.agencyPickup': true,
         'outcomes.pickedUp': { $ne: true },
         'automation.bonusNotifiedAt': null,
@@ -2634,6 +2644,11 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
     let bonusSent = 0;
 
     for (const shipment of shipments) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: canaryDecision.reason });
+            continue;
+        }
         processed += 1;
         const since = shipment.automation?.pickupProofRequestedAt
             || shipment.automation?.readyForPickupNotifiedAt
@@ -2769,7 +2784,9 @@ export const getPendingShipmentReminders = async () => {
     const oldestReadyForPickupAt = new Date(now.getTime() - (SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS * DAY_MS));
     const shipments = await Shipment.find({
         country: 'EC',
-        'client.phone': { $exists: true, $ne: '' },
+        ...(Object.keys(buildCanaryV75RecipientQuery('client.phone')).length
+            ? buildCanaryV75RecipientQuery('client.phone')
+            : { 'client.phone': { $exists: true, $ne: '' } }),
         'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
@@ -2817,7 +2834,8 @@ export const processShipmentPickupReminders = async ({
     const safeLimit = Math.max(1, Math.min(Number.parseInt(String(limit || 3), 10) || 3, 10));
     const pending = await getPendingShipmentReminders();
     const allDueItems = pending
-        .filter((item) => item?.dueAt && item.dueAt.getTime() <= now.getTime());
+        .filter((item) => item?.dueAt && item.dueAt.getTime() <= now.getTime())
+        .filter((item) => canaryV75SchedulerShipmentAllowed(item.shipment).allowed);
     const result = {
         dryRun,
         candidates: allDueItems.length,

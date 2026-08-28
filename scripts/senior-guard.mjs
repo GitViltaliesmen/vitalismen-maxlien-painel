@@ -179,6 +179,7 @@ if (operationalAutomationApproved) {
     assert(hasEnv('DISABLE_SCHEDULER', '0'), '.env com operacao aprovada deve manter DISABLE_SCHEDULER=0.');
     assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=true.');
     assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=true.');
+    assert(hasEnv('PICKUP_PROOF_SWEEP_ENABLED', 'true'), '.env com operacao aprovada deve manter PICKUP_PROOF_SWEEP_ENABLED=true.');
 } else {
     assert(hasEnv('VIT_POWER_FUNNEL_ACTIVE', 'false'), '.env deve manter VIT_POWER_FUNNEL_ACTIVE=false enquanto o funil esta em teste.');
     assert(hasEnv('WHATSAPP_AUTO_REPLY_ENABLED', 'false'), '.env deve manter WHATSAPP_AUTO_REPLY_ENABLED=false enquanto o Observador analisa atendimentos reais.');
@@ -187,6 +188,7 @@ if (operationalAutomationApproved) {
     assert(hasEnv('DISABLE_SCHEDULER', '1'), '.env deve manter DISABLE_SCHEDULER=1 para pausar ciclos operacionais automaticos.');
     assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'false'), '.env deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=false.');
     assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'false'), '.env deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=false.');
+    assert(hasEnv('PICKUP_PROOF_SWEEP_ENABLED', 'false'), '.env deve manter PICKUP_PROOF_SWEEP_ENABLED=false.');
 }
 assert(/WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false.');
 assert(/PENDING_CHECKOUT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter PENDING_CHECKOUT_FOLLOWUP_ENABLED=false.');

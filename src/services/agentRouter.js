@@ -6,6 +6,7 @@ import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { shouldRouteDirectProductInbound } from './ecDirectProductInquiryService.js';
 import { currentProductRouteForState } from './vslProductAssignmentService.js';
+import { evaluateCanaryV75Recipient } from './canaryIsolationV75Service.js';
 
 const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
 const NITRIX_PRODUCT_KEY = 'nitrix_ec';
@@ -19,6 +20,21 @@ const productRouteText = (value) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim();
 
+const isTexUltraNOrigin = (value = '') => {
+    const normalized = productRouteText(value);
+    if (!normalized) return false;
+    try {
+        const urlValue = !/^[a-z][a-z0-9+.-]*:\/\//i.test(normalized) && /^[^/\s]+\.[^/\s]+\//.test(normalized)
+            ? `https://${normalized}`
+            : normalized;
+        const pathname = new URL(urlValue).pathname.replace(/\/+$/, '') || '/';
+        return pathname === '/n' || pathname.startsWith('/n/');
+    } catch {
+        const pathname = normalized.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+        return pathname === '/n' || pathname.startsWith('/n/');
+    }
+};
+
 export const productRouteForState = (state = {}) => {
     return currentProductRouteForState(state);
 };
@@ -26,11 +42,12 @@ export const productRouteForState = (state = {}) => {
 const isNitrixVslInitialInbound = (state = {}) => {
     if (productRouteForState(state).productKey !== NITRIX_PRODUCT_KEY) return false;
     const metadata = state.metadata || {};
-    const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
+    const values = [metadata.vslProductSource, metadata.productSource, metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl]
         .map(productRouteText);
-    return metadata.vslEntryPanelLead === true
-        || values.some((value) => value.startsWith('/n') || value.includes('maxlien.shop/n') || value.includes('vsl'))
-        || (state.tags || []).includes('VSL_EC');
+    if (values.some(isTexUltraNOrigin)) return false;
+    const explicitNitrixOrigin = productRouteText(metadata.vslProductKey) === NITRIX_PRODUCT_KEY
+        || values.some((value) => value.includes('nitrix') || value === 'nx_ec' || value.includes('nx_'));
+    return metadata.vslEntryPanelLead === true && explicitNitrixOrigin;
 };
 
 const isTexUltraVslInitialInbound = (state = {}) => {
@@ -39,7 +56,7 @@ const isTexUltraVslInitialInbound = (state = {}) => {
     const values = [metadata.vslPath, metadata.vslPage, metadata.vslSourceUrl, metadata.productSource]
         .map(productRouteText);
     return metadata.vslEntryPanelLead === true
-        || values.some((value) => value.startsWith('/tex-ultra') || value.includes('maxlien.shop/tex-ultra') || value.includes('vsl'))
+        || values.some((value) => isTexUltraNOrigin(value) || value.startsWith('/tex-ultra') || value.includes('maxlien.shop/tex-ultra') || value.includes('vsl'))
         || (state.tags || []).includes('VSL_EC');
 };
 
@@ -823,6 +840,13 @@ export const routeIncomingMessage = async (payload) => {
     const sessionId = payload.sessionId || null;
     const messageId = payload.id ? String(payload.id) : '';
     const senderPn = payload.senderPn || payload.fullMessage?.key?.senderPn || null;
+    const canaryDecision = evaluateCanaryV75Recipient(senderPn || payload.phoneDigits || chatId, {
+        surface: 'agent_router_inbound'
+    });
+    if (!canaryDecision.allowed) {
+        console.log(`[ROUTER] inbound bloqueado pela microlayer V75 | reason=${canaryDecision.reason}`);
+        return { handled: false, skipped: true, reason: canaryDecision.reason };
+    }
     const senderPhoneDigits = digitsOnly(senderPn);
     let state = await findContinuityContactState({ chatId, senderPn });
     let countryCode = inferCountryCode(senderPn, state?.phoneDigits, state?.metadata?.lastSenderPn, state?.metadata?.customerPhoneDigits, chatId);

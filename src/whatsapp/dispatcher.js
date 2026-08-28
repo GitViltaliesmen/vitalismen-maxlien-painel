@@ -9,6 +9,7 @@ import { handlePickupProofInbound, isPickupProofText } from '../services/shipmen
 import { transcribeInboundAudioBuffer } from '../services/inboundAudioTranscriptionService.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 
 const debugUpsert = String(process.env.WHATSAPP_DEBUG_UPSERT || '') === 'true';
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
@@ -228,6 +229,13 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
         if (!['notify', 'append'].includes(String(type || ''))) return;
         const remoteJid = msg.key.remoteJid;
         const senderPn = msg.key?.senderPn || msg.key?.participant || null;
+        const canaryDecision = evaluateCanaryV75Recipient(senderPn || remoteJid, {
+            surface: 'baileys_dispatcher_inbound'
+        });
+        if (!canaryDecision.allowed) {
+            console.log(`[DISPATCHER] inbound bloqueado pela microlayer V75 | reason=${canaryDecision.reason} | session=${sessionId}`);
+            return;
+        }
         const knownEcPhone = await knownEcuadorPhoneForLid(remoteJid);
         const operationalPanelPhone = isOperationalPanelPhone(remoteJid, senderPn);
         if (ecOnlyInboundEnabled() && !operationalPanelPhone && !isAllowedEcuadorCustomerJid(remoteJid, senderPn) && !knownEcPhone) {

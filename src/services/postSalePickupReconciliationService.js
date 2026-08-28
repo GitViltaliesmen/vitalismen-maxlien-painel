@@ -13,6 +13,11 @@ import {
     isExplicitDropiPickupReleaseStatus,
     normalizeExpandedCustomerPickupConfirmation
 } from './postSalePickupReconciliationPolicy.js';
+import {
+    buildCanaryV75RecipientQuery,
+    canaryV75SchedulerShipmentAllowed,
+    evaluateCanaryV75Recipient
+} from './canaryIsolationV75Service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DISPATCH_LOCK_MS = Math.max(
@@ -53,6 +58,7 @@ const phoneClausesForShipment = (shipment = {}) => {
 
 const explicitDropiQuery = ({ orderIds = [] } = {}) => ({
     country: 'EC',
+    ...buildCanaryV75RecipientQuery('client.phone'),
     ...(orderIds.length ? { orderId: { $in: orderIds } } : {}),
     $and: [
         {
@@ -93,6 +99,7 @@ export const reconcileExplicitDropiPickupReleases = async ({
         .limit(Math.max(1, Math.min(Number(limit) || 500, 1000)));
     const results = [];
     for (const shipment of shipments) {
+        if (!canaryV75SchedulerShipmentAllowed(shipment).allowed) continue;
         if (!shipmentHasExplicitDropiPickupRelease(shipment)) continue;
         const changed = shipment.logistics?.status !== 'READY_FOR_PICKUP'
             || shipment.logistics?.pickupReadyVerified !== true
@@ -241,6 +248,12 @@ export const processExplicitDropiPickupReleaseQueue = async ({
     let recovered = 0;
     let skipped = 0;
     for (const candidate of candidates) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(candidate);
+        if (!canaryDecision.allowed) {
+            skipped += 1;
+            results.push({ orderId: candidate.orderId, success: false, reason: canaryDecision.reason });
+            continue;
+        }
         if (dryRun) {
             results.push({ orderId: candidate.orderId, trackingNumber: candidate.logistics?.trackingNumber || '', dryRun: true });
             continue;
@@ -314,6 +327,10 @@ export const handleExpandedPickupConfirmationInbound = async ({
     proofText = '',
     hasMedia = false
 } = {}) => {
+    const canaryDecision = evaluateCanaryV75Recipient(chatId, {
+        surface: 'expanded_pickup_confirmation_inbound'
+    });
+    if (!canaryDecision.allowed) return { handled: false, reason: canaryDecision.reason };
     const recognized = isPickupProofText(proofText) || isExpandedCustomerPickupConfirmation(proofText);
     if (!recognized) return { handled: false, reason: 'text_without_pickup_confirmation' };
     const phoneDigits = digitsOnly(chatId);
@@ -360,6 +377,7 @@ export const processExpandedPickupConfirmationSweep = async ({
 } = {}) => {
     const shipments = await Shipment.find({
         country: 'EC',
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'logistics.agencyPickup': true,
         'automation.readyForPickupNotifiedAt': { $ne: null },
         'automation.bonusNotifiedAt': null,
@@ -369,6 +387,7 @@ export const processExpandedPickupConfirmationSweep = async ({
     const results = [];
     let confirmed = 0;
     for (const shipment of shipments) {
+        if (!canaryV75SchedulerShipmentAllowed(shipment).allowed) continue;
         const phoneClauses = phoneClausesForShipment(shipment);
         if (!phoneClauses.length) continue;
         const proof = await Message.findOne({

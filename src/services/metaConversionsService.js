@@ -13,6 +13,7 @@ import {
     resolveMetaDestination,
     resolveMetaDestinationProfile
 } from './metaDestinationRegistryService.js';
+import { canaryV75BlockedResult } from './canaryIsolationV75Service.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -340,6 +341,8 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
 };
 
 export const sendBrowserServerEvent = async (event = {}, req = null, options = {}) => {
+    const canaryBlock = canaryV75BlockedResult('meta', options.env || process.env);
+    if (canaryBlock) return canaryBlock;
     const country = String(event.country || 'EC').trim().toUpperCase();
     const env = options.env || process.env;
     const expectedRoute = isEcuadorTexUltraProtocoloG(event)
@@ -495,6 +498,8 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 };
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
+    const canaryBlock = canaryV75BlockedResult('meta', options.env || process.env);
+    if (canaryBlock) return canaryBlock;
     const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
     const attribution = await attributionEnricher(order, options.attributionOptions || {}).catch((error) => ({
         ok: false,

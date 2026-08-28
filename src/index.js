@@ -41,7 +41,9 @@ import {
     shouldStartBaileys,
     strictReadOnlyMutationRouteGuard
 } from './services/strictReadOnlyObservationService.js';
+import { assertCanaryV75RuntimeConfiguration } from './services/canaryIsolationV75Service.js';
 
+assertCanaryV75RuntimeConfiguration(process.env);
 const strictObservation = resolveStrictReadOnlyObservation(process.env);
 installStrictReadOnlyMongooseGuard(mongoose);
 

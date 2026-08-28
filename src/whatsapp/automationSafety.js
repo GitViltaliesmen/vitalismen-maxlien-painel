@@ -1,3 +1,8 @@
+import {
+    buildCanaryV75RecipientQuery,
+    evaluateCanaryV75Recipient
+} from '../services/canaryIsolationV75Service.js';
+
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
 const parseList = (...values) => [
@@ -25,6 +30,11 @@ export const automationAllowedRecipients = () => parseList(
 );
 
 export const isAutomationRecipientAllowed = (phoneOrJid) => {
+    const canaryDecision = evaluateCanaryV75Recipient(phoneOrJid, {
+        surface: 'automation_recipient'
+    });
+    if (canaryDecision.enforced) return canaryDecision;
+
     if (!automationPilotOnly()) {
         return { allowed: true, reason: 'pilot_disabled' };
     }
@@ -42,6 +52,9 @@ export const isAutomationRecipientAllowed = (phoneOrJid) => {
 };
 
 export const buildAutomationRecipientQuery = (path) => {
+    const canaryQuery = buildCanaryV75RecipientQuery(path);
+    if (Object.keys(canaryQuery).length > 0) return canaryQuery;
+
     if (!automationPilotOnly()) return {};
     const allowed = automationAllowedRecipients();
     if (!allowed.length) return { _id: { $exists: false } };

@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { assertTransportPersistenceAllowed } from './strictReadOnlyObservationService.js';
+import { assertCanaryV75Recipient } from './canaryIsolationV75Service.js';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -92,6 +93,7 @@ export const sendZapiText = async ({ phone, message, messageId = '', delayMessag
         error.statusCode = 400;
         throw error;
     }
+    assertCanaryV75Recipient(cleanPhone, { surface: 'zapi_provider_text' });
 
     const payload = {
         phone: cleanPhone,
@@ -210,6 +212,7 @@ const sendZapiMedia = async ({
         error.statusCode = 400;
         throw error;
     }
+    assertCanaryV75Recipient(cleanPhone, { surface: `zapi_provider_${payloadKey || 'media'}` });
     const payload = {
         phone: cleanPhone,
         [payloadKey]: mediaValue({ media, filePath, mime })

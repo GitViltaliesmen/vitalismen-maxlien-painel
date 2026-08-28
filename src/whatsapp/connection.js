@@ -13,6 +13,7 @@ import {
     recordCallAutoReplyMessage,
     reserveCallAutoReply
 } from '../services/callAutoReplySafetyService.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
 const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
@@ -239,6 +240,13 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
                 if (call.status !== 'offer') continue;
 
                 try {
+                    const canaryDecision = evaluateCanaryV75Recipient(call.from, {
+                        surface: 'baileys_call_inbound'
+                    });
+                    if (!canaryDecision.allowed) {
+                        console.log(`[CALL] chamada ignorada pela microlayer V75 | reason=${canaryDecision.reason} | session=${session.sessionId}`);
+                        continue;
+                    }
                     console.log(`[CALL] [socketId=${session.currentSocketId}] llamada entrante de ${call.from} | session=${session.sessionId}`);
                     if (autoRejectCalls) {
                         await session.sock.rejectCall(call.id, call.from);

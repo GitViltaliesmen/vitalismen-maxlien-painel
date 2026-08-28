@@ -108,6 +108,7 @@ import {
     isVslStagePersistenceEnabled,
     strictReadOnlyAcceptedPayload
 } from '../services/strictReadOnlyObservationService.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1497,11 +1498,23 @@ const panelHumanAgentId = (state = {}) => {
 };
 
 const sourceUrlPathname = (value = '') => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return '';
     try {
-        return new URL(String(value || '')).pathname || '';
+        if (normalized.startsWith('/')) return new URL(normalized, 'https://vsl.invalid').pathname || '';
+        if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(normalized) && /^[^/\s]+\.[^/\s]+\//.test(normalized)) {
+            return new URL(`https://${normalized}`).pathname || '';
+        }
+        return new URL(normalized).pathname || '';
     } catch {
         return '';
     }
+};
+
+const isExactVslRoute = (value = '', route = '') => {
+    const pathname = String(value || '').trim().toLowerCase().split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+    const expected = String(route || '').trim().toLowerCase().replace(/\/+$/, '');
+    return Boolean(expected) && (pathname === expected || pathname.startsWith(`${expected}/`));
 };
 
 export const publicEcVslProductFromBody = (body = {}) => {
@@ -1528,12 +1541,13 @@ export const publicEcVslProductFromBody = (body = {}) => {
         };
     }
 
+    const texUltraNRoute = isExactVslRoute(bodyPath, '/n') || isExactVslRoute(sourcePath, '/n');
     const texUltraSignal = rawProductKey === EC_PRODUCT_KEYS.texUltra
         || rawProductKey.includes('texultra')
         || rawProductKey.includes('tex_ultra')
         || page.includes('tex_ultra')
         || page.includes('texultra');
-    if (texUltraSignal || (!rawProductKey && (bodyPath.startsWith('/n') || sourcePath.startsWith('/n')))) {
+    if (texUltraNRoute || texUltraSignal) {
         return {
             productKey: EC_PRODUCT_KEYS.texUltra,
             productName: EC_PRODUCT_NAMES.tex_ultra_ec,
@@ -1596,6 +1610,19 @@ const vslCustomerPhoneFromBody = (body = {}, country = 'EC') => {
     return isAllowedPanelPhoneForCountry(normalized, country) ? normalized : '';
 };
 
+const vslCanaryV75AcceptedPayload = (body = {}, country = 'EC', surface = 'vsl_inbound') => {
+    const decision = evaluateCanaryV75Recipient(vslCustomerPhoneFromBody(body, country), { surface });
+    return decision.allowed
+        ? null
+        : {
+            ok: true,
+            accepted: true,
+            skipped: true,
+            reason: decision.reason,
+            canary: 'V75'
+        };
+};
+
 const upsertVslPanelPreviewMessage = async ({ state, phoneDigits = '', body = '', now = new Date(), visit = null } = {}) => {
     const chatId = state?.chatId || (phoneDigits ? `${phoneDigits}@c.us` : '');
     const messageBody = cleanText(body || 'Entrada pela VSL do Equador').slice(0, 1200);
@@ -1641,6 +1668,10 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const effectiveCountry = normalizePanelCountry(country || 'EC');
     const phoneDigits = vslCustomerPhoneFromBody(body, effectiveCountry);
     if (!phoneDigits) return { ok: false, skipped: true, reason: 'customer_phone_missing_or_invalid' };
+    const canaryDecision = evaluateCanaryV75Recipient(phoneDigits, { surface: 'vsl_panel_registration' });
+    if (!canaryDecision.allowed) {
+        return { ok: false, skipped: true, reason: canaryDecision.reason };
+    }
 
     const now = new Date();
     const product = publicEcVslProductFromBody(body);
@@ -3214,6 +3245,8 @@ router.post('/vsl-stage', async (req, res) => {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_stage' }));
         }
         const body = req.body || {};
+        const canaryPayload = vslCanaryV75AcceptedPayload(body, 'EC', 'vsl_stage');
+        if (canaryPayload) return res.status(202).json(canaryPayload);
         const contract = validateVilaliemenProtocoloGStageContract(body);
         if (!contract.ok) {
             return res.status(400).json({
@@ -3291,6 +3324,9 @@ router.post('/vsl-entry', async (req, res) => {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_entry' }));
         }
         const body = req.body || {};
+        const country = normalizePanelCountry(body.country || 'EC');
+        const canaryPayload = vslCanaryV75AcceptedPayload(body, country, 'vsl_entry');
+        if (canaryPayload) return res.status(202).json(canaryPayload);
         const protocoloGSignal = hasProtocoloGContractSignal(body);
         const protocoloGContract = protocoloGSignal
             ? validateVilaliemenProtocoloGContract(body)
@@ -3302,7 +3338,6 @@ router.post('/vsl-entry', async (req, res) => {
                 reasons: protocoloGContract.errors
             });
         }
-        const country = normalizePanelCountry(body.country || 'EC');
         const product = publicEcVslProductFromBody(body);
         const now = new Date();
         const visitorKey = vslVisitorKey({ country, body, req });
