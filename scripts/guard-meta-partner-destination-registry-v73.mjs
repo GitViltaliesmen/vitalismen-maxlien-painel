@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
-await import('../src/services/metaPartnerDestinationRegistryFreezeRuntimeGuardV73.js');
+await import('../src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
@@ -10,6 +10,7 @@ const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(file
 const manifestPath = 'docs/freeze/meta-partner-destination-registry-v73-20260828.json';
 const parentManifestPath = 'docs/freeze/deploy-helper-v71-chain-alignment-safety-v72-20260827.json';
 const manifest = json(manifestPath);
+const v74Manifest = json('docs/freeze/freeze-lock-ec-meta-dynamic-v74-20260828.json');
 const packageJson = json('package.json');
 const registry = read('src/services/metaDestinationRegistryService.js');
 const manager = read('scripts/manage-meta-destinations-v73.mjs');
@@ -47,7 +48,12 @@ assert.equal(manifest.policy.metaServerTokenFrontendExposureAllowed, false);
 assert.equal(manifest.policy.metaEventValidationAllowed, false);
 
 for (const [file, approvedHash] of Object.entries(manifest.protectedFiles || {})) {
-    assert.equal(sha256(file), approvedHash, `arquivo protegido V73 divergente: ${file}`);
+    const actualHash = sha256(file);
+    if (
+        v74Manifest.declaredAncestorOverrides?.includes(file)
+        && v74Manifest.protectedFiles?.[file] === actualHash
+    ) continue;
+    assert.equal(actualHash, approvedHash, `arquivo protegido V73 divergente: ${file}`);
 }
 
 assert.match(registry, /META_BROWSER_SERVER_DATASET_MISMATCH/);
@@ -100,7 +106,7 @@ assert.match(runbook, /Compartilhar Dataset existente/);
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:meta-partner-v73/);
 assert.equal(
     packageJson.scripts['guard:meta-partner-v73'],
-    'node src/services/metaPartnerDestinationRegistryFreezeRuntimeGuardV73.js && node scripts/guard-meta-partner-destination-registry-v73.mjs && node --test tests/meta-partner-destination-registry-v73.test.mjs'
+    'node src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js && node scripts/guard-meta-partner-destination-registry-v73.mjs && node --test tests/meta-partner-destination-registry-v73.test.mjs'
 );
 
 console.log('META_PARTNER_DESTINATION_REGISTRY_V73_STATIC=OK');

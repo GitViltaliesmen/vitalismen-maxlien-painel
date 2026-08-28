@@ -1440,3 +1440,31 @@ preservados. Contrato e runbook:
 O incidente 502 que antecedeu esta camada foi causado por PM2 parado/porta
 `3001` sem listener e foi recuperado com a release V72 exata; registro em
 `docs/INCIDENTE_502_RECOVERY_V72_20260828.md`.
+
+## 2026-08-28 — V74: sucessão auditável do FREEZE_LOCK_EC para destino Meta dinâmico
+
+A V74 não altera a implementação funcional V73. Ela preserva
+`FREEZE_LOCK_EC.json` byte-intacto e sucede exatamente três expectativas
+sintáticas legadas: duas ocorrências do Pixel EC literal e a atribuição do
+helper Lead síncrono antigo. Os três checks são identificados por regra, índice,
+arquivo, tipo e conteúdo em `FREEZE_LOCK_EC_V74.json`; qualquer divergência na
+identidade ou qualquer quarto override falha fechado.
+
+O entrypoint histórico `npm run guard:freeze-lock` continua obrigatório e
+executa todos os demais checks legados. Em substituição aos três checks
+sucedidos, exige o contrato real V73: endpoint público redigido
+`GET /api/health/meta-destination`, inicialização Browser pelo Dataset resolvido,
+igualdade Browser/CAPI no perfil ativo, binding HMAC de até seis horas, Lead
+once com `eventID`, ausência de Browser Purchase e preservação dos caminhos
+CAPI Purchase existentes.
+
+O Dataset EC atual `1468946114265008` e o Dataset dedicado Protocolo G
+`2048099902484149` permanecem identidades congeladas. O primeiro não volta a
+ser hardcoded no HTML. Registry e segredos continuam fora do Git/release,
+`root:root 0600`, e tokens permanecem server-side.
+
+A cadeia canônica passa a ser V74 → V73 → V72 → V71 → ancestrais, sem criar
+nova semântica operacional: `RUNTIME_GUARD_CHAIN_VERSION=71` e
+`DATA_COMPATIBILITY_VERSION=66` continuam inalterados. O helper
+`ops/vitalismen-stage` não foi modificado. Contrato completo:
+`docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md`.

@@ -94,6 +94,9 @@ const metaAttributionReadOnlyContextFiles = new Set([
 // funil Vit Power, que continua protegido pela regra geral abaixo.
 const productScopedProtocolFiles = new Set([
     'src/services/nitrixProductProfile.js',
+    // A V74 cita os guards V62/V63 somente para declarar e preservar a
+    // ancestralidade Meta já congelada; não importa conteúdo de outro funil.
+    'src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js',
     // Autorização V34: estes dois arquivos reconhecem somente a origem
     // comercial da VSL Protocolo G como Tex Ultra. O projeto externo da VSL
     // continua separado e nenhum asset/código dela é importado para cá.

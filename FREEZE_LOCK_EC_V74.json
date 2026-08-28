@@ -1,0 +1,75 @@
+{
+  "freezeId": "freeze-lock-ec-meta-dynamic-v74",
+  "parentFreezeId": "meta-partner-destination-registry-v73",
+  "parentV73Commit": "6c759973f2d4de3f49bf8157a5a449b8aba4e894",
+  "parentV73Tree": "545089287546a4c51ad58cc93690014297a29a4c",
+  "parentV73ManifestPath": "docs/freeze/meta-partner-destination-registry-v73-20260828.json",
+  "parentV73ManifestSha256": "f3892d723313493b9a3ecd88cba0635e912d8c7a3a7fc954ff3cd8cbc9cdb836",
+  "parentV73FreezePath": "docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md",
+  "parentV73FreezeSha256": "081d9ead48a78296b60ad4b3204facb1d773f411645dc1a35304f9bc44c83153",
+  "legacyFreezePath": "FREEZE_LOCK_EC.json",
+  "legacyFreezeSha256": "38fb689fe10e9d8d2794397ace313e0a71cbcf131691e7b87ac8b3aaa2be0603",
+  "status": "implementation_validated",
+  "country": "EC",
+  "rootCause": "LEGACY_FREEZE_CONTRACT_INCOMPATIBLE_WITH_V73_DYNAMIC_META_DESTINATION",
+  "policy": {
+    "contractVersion": 74,
+    "legacyFreezePreserved": true,
+    "authorizedLegacyOverrideCount": 3,
+    "fixedPixelRequiredInHtml": false,
+    "dynamicDestinationRequired": true,
+    "publicEndpoint": "GET /api/health/meta-destination",
+    "publicEndpointRedacted": true,
+    "browserCapiDatasetEqualityRequired": true,
+    "lockedSecondaryDatasetId": "2048099902484149",
+    "currentEcDatasetId": "1468946114265008",
+    "leadOnceRequired": true,
+    "eventIdDedupRequired": true,
+    "duplicatePurchasePathsAllowed": false,
+    "bindingHmacRequired": true,
+    "bindingMaximumLifetimeHours": 6,
+    "registryOutsideGitAndRelease": true,
+    "registryAndSecretsRoot0600": true,
+    "tokenBrowserExposureAllowed": false,
+    "datasetChangeAuthorized": false,
+    "tokenChangeAuthorized": false,
+    "registryActivationAuthorized": false,
+    "metaEventsAuthorized": false,
+    "productionMutationAuthorized": false
+  },
+  "overriddenLegacyChecks": [
+    {
+      "overrideId": "meta-pixel-fixed-id-to-dynamic-destination",
+      "ruleId": "meta_pixel_lead_ec_dataset",
+      "checkIndex": 0,
+      "expectedCheck": {
+        "type": "includes",
+        "file": "public/n/index.html",
+        "value": "fbq('init', '1468946114265008');"
+      },
+      "replacementContract": "dynamic_browser_dataset_from_redacted_registry_endpoint"
+    },
+    {
+      "overrideId": "meta-lead-helper-to-v73-async-once-semantics",
+      "ruleId": "meta_pixel_lead_ec_dataset",
+      "checkIndex": 1,
+      "expectedCheck": {
+        "type": "includes",
+        "file": "public/n/index.html",
+        "value": "window.__mvpMarkLeadOnce = markLeadOnce;"
+      },
+      "replacementContract": "v73_async_queue_then_session_lead_once_with_stable_event_id"
+    },
+    {
+      "overrideId": "site-entry-fixed-id-to-dynamic-destination",
+      "ruleId": "site_entry_lead_panel_path_before_vsl_ab_ec",
+      "checkIndex": 4,
+      "expectedCheck": {
+        "type": "includes",
+        "file": "public/n/index.html",
+        "value": "fbq('init', '1468946114265008');"
+      },
+      "replacementContract": "public_destination_then_browser_init_then_lead_and_vsl_path"
+    }
+  ]
+}

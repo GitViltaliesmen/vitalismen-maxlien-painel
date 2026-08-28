@@ -16,6 +16,7 @@ const dashboard = read('public/funnel-metrics.html');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/protocolo-g-conversion-v62-20260826.json'));
 const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
+const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
 const stageRoute = receiver.split("router.post('/vsl-stage', async")[1]
     ?.split("router.post('/vsl-entry', async")[0] || '';
 
@@ -78,6 +79,10 @@ for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     if (
         v71Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v71Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v73Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v73Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',

@@ -1042,3 +1042,29 @@ nenhuma alteração realizada no VPS.
   concorrência ou lock pendente falham fechados.
 - Envelope operacional preservado: helper/freeze V72, runtime V71
   `STRICT_READ_ONLY`, data compatibility V66.
+
+## Registro V74 — sucessor do FREEZE_LOCK_EC para destino Meta dinâmico (2026-08-28)
+
+- Freeze histórico preservado sem edição: `FREEZE_LOCK_EC.json`, SHA-256
+  `38fb689fe10e9d8d2794397ace313e0a71cbcf131691e7b87ac8b3aaa2be0603`.
+- Contrato sucessor explícito: `FREEZE_LOCK_EC_V74.json`.
+- Contrato executável:
+  `scripts/lib/freeze-lock-ec-meta-dynamic-v74-contract.mjs`.
+- Entrypoint histórico obrigatório, agora consciente da sucessão:
+  `scripts/guard-freeze-lock-ec.mjs`.
+- Guard estático/runtime:
+  `scripts/guard-freeze-lock-ec-meta-dynamic-v74.mjs` e
+  `src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js`.
+- Testes positivos, negativos, comportamentais e parse inline:
+  `tests/freeze-lock-ec-meta-dynamic-v74.test.mjs`.
+- Freeze/manifesto:
+  `docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md` e
+  `docs/freeze/freeze-lock-ec-meta-dynamic-v74-20260828.json`.
+- Parent V73 imutável: commit
+  `6c759973f2d4de3f49bf8157a5a449b8aba4e894`, tree
+  `545089287546a4c51ad58cc93690014297a29a4c`, manifesto SHA-256
+  `f3892d723313493b9a3ecd88cba0635e912d8c7a3a7fc954ff3cd8cbc9cdb836`.
+- O helper oficial `ops/vitalismen-stage` permanece byte-intacto, SHA-256
+  `47acfd910326d36fcdd779edebda42fb7ecd1c8faf83cd5a9faaef1c3110f631`.
+- Sem alteração nos arquivos funcionais Meta V73. Sem push, tag, deploy,
+  inicialização de registry, evento Meta ou mutação de produção nesta missão.
