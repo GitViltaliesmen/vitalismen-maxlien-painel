@@ -1,0 +1,31 @@
+{
+  "attestationId": "ec-bot-core-canary-classification-v85-20260829",
+  "country": "EC",
+  "parentVersion": "V84",
+  "parentCommit": "2edd1eb8b5013f276244783472098f3a80418ef2",
+  "parentTree": "7ab153a8fa1030dd244f14ae4d2ba5f515e3a5aa",
+  "failure": {
+    "botCorePlan": "PASS",
+    "botCoreAuthorization": "PASS",
+    "botCoreActivation": "FAIL_CLOSED_CANARY_V77_CLASSIFICATION",
+    "containment": "PASS_STOPPED",
+    "safeRecovery": "PASS_V84_STRICT_READ_ONLY",
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "exact_ready_v78_canary_classification",
+    "v78FlagOnlyAccepted": false,
+    "requiresCompleteV78Profile": true,
+    "v77CanarySemanticsChanged": false,
+    "businessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}

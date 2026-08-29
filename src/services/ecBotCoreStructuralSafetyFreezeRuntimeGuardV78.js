@@ -7,7 +7,7 @@ import {
     getSuccessorOverrideFiles
 } from './successorGuardContextService.js';
 
-await import('../../scripts/lib/ec-bot-core-activation-health-v84-successor-context.mjs');
+await import('../../scripts/lib/ec-bot-core-canary-classification-v85-successor-context.mjs');
 
 const root = process.cwd();
 const directEntry = Boolean(process.argv[1])

@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+import { resolveEcBotCoreV78Configuration } from './ecBotCoreOperationalV78Service.js';
+
 export const CANARY_CONTROLLER_V77_VERSION = 77;
 export const CANARY_CONTROLLER_V77_FLAG = 'VITALISMEN_CANARY_CTRL_V77_ENABLED';
 export const CANARY_CONTROLLER_V77_QA_PHONE = '5515998038637';
@@ -53,14 +55,16 @@ export const canaryControllerV77OperationalFlagsEnabled = (env = process.env) =>
     OPERATIONAL_SENTINEL_FLAGS.some((flag) => isTrue(env[flag]))
 );
 
-export const canaryControllerV77EnforcementRequired = (env = process.env) => (
-    isTrue(env.VITALISMEN_CANARY_V75_ENABLED)
-    || isTrue(env[CANARY_CONTROLLER_V77_FLAG])
-    || (
-        clean(env.NODE_ENV).toLowerCase() === 'production'
-        && canaryControllerV77OperationalFlagsEnabled(env)
-    )
-);
+export const canaryControllerV77EnforcementRequired = (env = process.env) => {
+    const botCore = resolveEcBotCoreV78Configuration(env);
+    if (botCore.enabled && botCore.ready) return false;
+    return isTrue(env.VITALISMEN_CANARY_V75_ENABLED)
+        || isTrue(env[CANARY_CONTROLLER_V77_FLAG])
+        || (
+            clean(env.NODE_ENV).toLowerCase() === 'production'
+            && canaryControllerV77OperationalFlagsEnabled(env)
+        );
+};
 
 export const canonicalCanaryControllerV77ProfilePayload = (env = process.env) => {
     const keys = [
