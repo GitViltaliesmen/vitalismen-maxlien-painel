@@ -1169,3 +1169,29 @@ nenhuma alteração realizada no VPS.
 - Estado: candidata somente local; sem commit, push, tag, stage, deploy, VPS,
   helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
   scheduler, mensagem, canário, bot ou tráfego.
+
+## Registro V77H2 — reset da política de health do canário (2026-08-29)
+
+- Base V77H imutável: commit
+  `23c81c762d58108307860d53770805acbd0e0ba8`, tree
+  `2c40ec813cf70bb200f7d12d6ebc31443b664f6d`.
+- Causa: o PM2 preservava `SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY` porque a
+  chave não existia no overlay QA, produzindo falso negativo do health.
+- Correção única: `scripts/lib/canary-controller-contract-v77.mjs` materializa
+  `SAFE_OBSERVATION_POLICY=` para sobrescrever o valor herdado.
+- Helper `ops/vitalismen-stage` preservado integralmente com SHA-256
+  `ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853`.
+- Guard/runtime/teste:
+  `scripts/guard-canary-controller-health-policy-reset-v77h2.mjs`,
+  `src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js`
+  e `tests/canary-controller-health-policy-reset-v77h2.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md` e
+  `docs/freeze/canary-controller-health-policy-reset-v77h2-20260829.json`.
+- Cinco allowlists: somente QA `5515998038637`; Dropi APPLY, Meta, segundo
+  destinatário e schedulers proibidos permanecem fail-closed.
+- Cadeia: V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime
+  guard 71 e dados 66 preservados.
+- Estado: candidata exclusivamente local; sem commit, push, tag, stage, deploy,
+  VPS, helper instalado, `/current`, PM2, ambiente, banco, integração,
+  mensagem, canário, bot ou tráfego.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-await import('../src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js');
+await import('../src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js');
 
 import {
     CANARY_CONTROLLER_V77_BASE_COMMIT,
@@ -67,11 +67,11 @@ assert.doesNotMatch(activation, /switch_current_v66/);
 
 assert.equal(
     packageJson.scripts['guard:runtime-chain-v71'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js'
 );
 assert.equal(
     packageJson.scripts['guard:canary-controller-v77'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js && node scripts/guard-canary-controller-v77.mjs && node --test tests/canary-controller-v77.test.mjs'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js && node scripts/guard-canary-controller-v77.mjs && node --test tests/canary-controller-v77.test.mjs'
 );
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-controller-v77/);
 assert.match(freeze, /permit.*dez minutos/is);

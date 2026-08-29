@@ -68,6 +68,7 @@ export const buildCanaryControllerV77Environment = ({
 
     const env = {
         NODE_ENV: 'production',
+        SAFE_OBSERVATION_POLICY: '',
         DISABLE_SCHEDULER: '0',
         DROPPI_EC_ACTIVE_SYNC_MODE: 'REPORT_ONLY',
         POST_SALE_V66_MUTATIONS_AUTHORIZATION: 'I_UNDERSTAND_V66_OPERATIONAL_MUTATIONS',

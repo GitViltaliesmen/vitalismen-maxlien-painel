@@ -110,12 +110,12 @@ assert.doesNotMatch(nitrix, /value\.startsWith\('\/n'\).*nitrix/s);
 
 assert.equal(
     packageJson.scripts['guard:runtime-chain-v71'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js'
 );
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-v75/);
 assert.equal(
     packageJson.scripts['guard:canary-v75'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js && node scripts/guard-canary-isolation-v75.mjs && node --test tests/canary-isolation-v75.test.mjs'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js && node scripts/guard-canary-isolation-v75.mjs && node --test tests/canary-isolation-v75.test.mjs'
 );
 assert.match(architecture, /V75: isolamento local de canário/);
 assert.match(freeze, /candidata exclusivamente local/);

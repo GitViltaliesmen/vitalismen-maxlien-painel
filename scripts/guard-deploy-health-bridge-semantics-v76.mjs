@@ -6,7 +6,7 @@ import {
     assertDeployHelperBridgeSemanticsSourceV76
 } from './lib/deploy-health-bridge-semantics-contract-v76.mjs';
 
-await import('../src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js');
+await import('../src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
@@ -16,6 +16,7 @@ const parentManifestPath = 'docs/freeze/canary-isolation-safety-v75-20260828.jso
 const manifest = json(manifestPath);
 const v77Manifest = json('docs/freeze/canary-controller-safety-v77-20260828.json');
 const v77hManifest = json('docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json');
+const v77h2Manifest = json('docs/freeze/canary-controller-health-policy-reset-v77h2-20260829.json');
 const packageJson = json('package.json');
 const helper = read('ops/vitalismen-stage');
 const health = read('src/routes/health.js');
@@ -47,6 +48,10 @@ for (const [file, approvedHash] of Object.entries(manifest.protectedFiles || {})
         v77hManifest.declaredAncestorOverrides?.includes(file)
         && v77hManifest.protectedFiles?.[file] === actualHash
     ) continue;
+    if (
+        v77h2Manifest.declaredAncestorOverrides?.includes(file)
+        && v77h2Manifest.protectedFiles?.[file] === actualHash
+    ) continue;
     assert.equal(actualHash, approvedHash, `arquivo protegido V76 divergente: ${file}`);
 }
 
@@ -61,11 +66,11 @@ assert.match(health, /minimumRuntimeVersion: Number\(compatibilityState\?\.minRu
 
 assert.equal(
     packageJson.scripts['guard:runtime-chain-v71'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js'
 );
 assert.equal(
     packageJson.scripts['guard:deploy-health-v76'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js && node scripts/guard-deploy-health-bridge-semantics-v76.mjs && node --test tests/deploy-health-bridge-semantics-v76.test.mjs'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js && node scripts/guard-deploy-health-bridge-semantics-v76.mjs && node --test tests/deploy-health-bridge-semantics-v76.test.mjs'
 );
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:deploy-health-v76/);
 for (const document of [architecture, officialFiles, freeze]) {

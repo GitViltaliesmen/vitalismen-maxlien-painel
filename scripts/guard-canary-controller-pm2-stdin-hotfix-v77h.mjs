@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
-await import('../src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js');
+await import('../src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
@@ -68,14 +68,16 @@ assert.match(activation, /trap activation_error_v77 ERR/);
 assert.match(activation, /safe_pm2 restart/);
 assert.match(activation, /wait_candidate_health_v66/);
 
-const runtimeGuard = 'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js';
+const runtimeGuard = 'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js';
 assert.equal(packageJson.scripts['guard:runtime-chain-v71'], runtimeGuard);
 assert.equal(
     packageJson.scripts['guard:canary-controller-pm2-stdin-v77h'],
     `${runtimeGuard} && node scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs && node --test tests/canary-controller-pm2-stdin-hotfix-v77h.test.mjs`
 );
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-controller-pm2-stdin-v77h/);
+assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-controller-health-policy-v77h2/);
 assert.match(packageJson.scripts['senior:check'], /guard:canary-controller-pm2-stdin-v77h/);
+assert.match(packageJson.scripts['senior:check'], /guard:canary-controller-health-policy-v77h2/);
 
 for (const document of [freeze, architecture, officialFiles]) {
     assert.match(document, /V77H/);

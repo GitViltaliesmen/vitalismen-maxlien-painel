@@ -1569,3 +1569,27 @@ e compatibilidade de dados 66. Contrato completo:
 Estado: candidata somente local, sem commit, push, tag, stage, deploy, VPS,
 helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
 canário, bot ou tráfego.
+
+## 2026-08-29 — V77H2: limpeza explícita da política strict herdada no QA
+
+A V77H2 sucede a V77H sem alterar o helper, o bot ou qualquer fluxo comercial.
+Ela corrige somente a materialização do overlay QA, acrescentando
+`SAFE_OBSERVATION_POLICY=`. O valor vazio substitui
+`SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY` herdado pelo PM2 durante
+`restart --update-env`; as demais flags coordenadas V75/V77 continuam sendo a
+única base para abrir a janela temporizada.
+
+Chave ausente ou retida como strict falha fechada. As cinco allowlists mantêm
+somente `5515998038637`; permit, attestation, expiração, fingerprint PM2 e o
+hotfix de stdin/EPIPE V77H permanecem integrais. Dropi APPLY, Meta, segundo
+destinatário e schedulers proibidos continuam bloqueados. A contenção restaura
+`SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY`, strict explícito verdadeiro,
+mutações falsas e canário desligado.
+
+A cadeia canônica passa a ser V77H2 → V77H → V77 → V76 → V75 → V74 → V73 →
+V72 → V71, preservando runtime guard 71 e dados 66. Contrato completo:
+`docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md`.
+
+Estado: candidata exclusivamente local, sem commit, push, tag, stage, deploy,
+VPS, helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
+canário, bot ou tráfego.

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
-await import('../src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js');
+await import('../src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
@@ -15,6 +15,7 @@ const v75Manifest = json('docs/freeze/canary-isolation-safety-v75-20260828.json'
 const v76Manifest = json('docs/freeze/deploy-health-bridge-semantics-v76-20260828.json');
 const v77Manifest = json('docs/freeze/canary-controller-safety-v77-20260828.json');
 const v77hManifest = json('docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json');
+const v77h2Manifest = json('docs/freeze/canary-controller-health-policy-reset-v77h2-20260829.json');
 const packageJson = json('package.json');
 const registry = read('src/services/metaDestinationRegistryService.js');
 const manager = read('scripts/manage-meta-destinations-v73.mjs');
@@ -73,6 +74,10 @@ for (const [file, approvedHash] of Object.entries(manifest.protectedFiles || {})
         v77hManifest.declaredAncestorOverrides?.includes(file)
         && v77hManifest.protectedFiles?.[file] === actualHash
     ) continue;
+    if (
+        v77h2Manifest.declaredAncestorOverrides?.includes(file)
+        && v77h2Manifest.protectedFiles?.[file] === actualHash
+    ) continue;
     assert.equal(actualHash, approvedHash, `arquivo protegido V73 divergente: ${file}`);
 }
 
@@ -126,7 +131,7 @@ assert.match(runbook, /Compartilhar Dataset existente/);
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:meta-partner-v73/);
 assert.equal(
     packageJson.scripts['guard:meta-partner-v73'],
-    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js && node scripts/guard-meta-partner-destination-registry-v73.mjs && node --test tests/meta-partner-destination-registry-v73.test.mjs'
+    'node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js && node scripts/guard-meta-partner-destination-registry-v73.mjs && node --test tests/meta-partner-destination-registry-v73.test.mjs'
 );
 
 console.log('META_PARTNER_DESTINATION_REGISTRY_V73_STATIC=OK');
