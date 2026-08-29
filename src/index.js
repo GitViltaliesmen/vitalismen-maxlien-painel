@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
+import './services/runtimeSuccessorContextFreezeRuntimeGuardV82.js';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import express from 'express';
 import cors from 'cors';

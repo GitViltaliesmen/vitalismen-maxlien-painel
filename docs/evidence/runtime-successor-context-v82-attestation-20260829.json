@@ -1,0 +1,35 @@
+{
+  "attestationId": "runtime-successor-context-v82-20260829",
+  "country": "EC",
+  "parentVersion": "V81",
+  "parentCommit": "c2f6bedbd2327a2b41bfc0cb2bdb9d789812cfc6",
+  "parentTree": "93bb427cb06a1e8fbac8dac0f1c6086f104929cb",
+  "failure": {
+    "stage": "PASS",
+    "publication": "PASS",
+    "safeActivation": "CONTAINED_FAIL_CLOSED",
+    "exactCause": "runtime guard V73 executed before successor override context was installed",
+    "rejectedPath": "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "currentRestored": true,
+    "oldRuntimeStarted": false,
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "minimal_versioned_runtime_bootstrap",
+    "entrypointImportsAdded": 1,
+    "businessLogicChanged": false,
+    "helperChanged": false,
+    "envEdited": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "ctaChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false,
+    "colombiaOperationalInfrastructureTouched": false
+  },
+  "status": "local_validation_pass"
+}
