@@ -24,6 +24,8 @@ const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json'));
 const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
 const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
+const v75Manifest = JSON.parse(read('docs/freeze/canary-isolation-safety-v75-20260828.json'));
+const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json'));
 const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 
@@ -109,6 +111,14 @@ for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
     if (
         v73Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v73Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v75Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v75Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v78Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v78Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',

@@ -1195,3 +1195,44 @@ nenhuma alteração realizada no VPS.
 - Estado: candidata exclusivamente local; sem commit, push, tag, stage, deploy,
   VPS, helper instalado, `/current`, PM2, ambiente, banco, integração,
   mensagem, canário, bot ou tráfego.
+
+## Registro V78 — núcleo seletivo e isolamento do runtime (2026-08-29)
+
+- Base imutável V77H2: commit
+  `193faa1c919a02c524deba3263bc174b24775700`, tree
+  `124c6a0f46daf9f768014935a78bbba71c8f8d04`.
+- Registro de artefatos mutáveis:
+  `src/services/mutableRuntimeArtifactV78Service.js`; raiz oficial futura
+  `/opt/vitalismen-automacao/shared/runtime`.
+- Perfil e integração runtime:
+  `src/services/ecBotCoreOperationalV78Service.js` e
+  `src/services/ecBotCoreRuntimeIntegrationV78Service.js`.
+- Helper operacional futuro: `ops/ec-bot-core-v78`; operações `plan`,
+  `authorize`, `activate`, `status` e `contain`.
+- Reset QA: `scripts/ec-qa-test-reset-v78.mjs` e
+  `src/services/ecQaTestResetV78Service.js`; telefone literal único
+  `5515998038637`, permit temporário e contenção idempotente.
+- Origem VSL: `src/services/ecOfficialVslEntryV78Service.js`; assinatura exata
+  de Tex Ultra, sem aceitar mensagem genérica nem forçar
+  `publicVslLeadEntry=true`.
+- Evidência sanitizada da origem pública:
+  `docs/evidence/ec-official-vsl-origin-v78-20260829.json`; divergência atual de
+  telefone/mensagem mantém o deploy V78 bloqueado.
+- Guard/runtime/teste:
+  `scripts/guard-ec-bot-core-structural-v78.mjs`,
+  `src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js` e
+  `tests/ec-bot-core-structural-v78.test.mjs`.
+- Compatibilidade dos guards estáticos ancestrais: os verificadores V61–V63,
+  V72, V73 e V76 aceitam um arquivo alterado somente quando o manifesto
+  sucessor aplicável o declara como override e contém exatamente o hash atual;
+  os hashes ancestrais continuam obrigatórios para todos os demais arquivos.
+- Freeze/manifesto:
+  `docs/EC_BOT_CORE_STRUCTURAL_SAFETY_FREEZE_V78_20260829.md` e
+  `docs/freeze/ec-bot-core-structural-safety-v78-20260829.json`.
+- Dataset preservado: `1468946114265008`, com igualdade Browser/CAPI exigida
+  pelo perfil e pelo health.
+- Cadeia: V78 → V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71;
+  runtime guard 71 e compatibilidade de dados 66.
+- Estado: implementação e freeze exclusivamente locais; sem push, tag, stage,
+  deploy, PM2, `.env`, banco, mensagem, evento Meta, Dropi APPLY, scheduler,
+  cliente real ou tráfego. A ativação permanece fail-closed pela evidência VSL.

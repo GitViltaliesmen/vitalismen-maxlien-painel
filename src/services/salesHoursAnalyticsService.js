@@ -3,6 +3,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import Order from '../models/Order.js';
 import VslVisit from '../models/VslVisit.js';
+import { resolveMutableRuntimeArtifactPathV78 } from './mutableRuntimeArtifactV78Service.js';
 
 const EC_ADMIN_DB = '/opt/maxlien-mvp/leads_ec.sqlite3';
 const EC_TZ_OFFSET_MINUTES = -5 * 60;
@@ -11,8 +12,10 @@ const MAX_DAYS = 120;
 const SALES_STATUSES = new Set(['finalizado', 'pedido_enviado', 'entregue']);
 const LOSS_STATUSES = new Set(['cancelado', 'devolvido']);
 
-const reportPath = () => process.env.SALES_HOURS_OBSERVER_REPORT_PATH || 'runtime/sales-hours-observer-latest.json';
-const spreadsheetDir = () => process.env.SALES_HOURS_OBSERVER_SPREADSHEET_DIR || process.env.PERFECT_FUNNEL_OBSERVER_SPREADSHEET_DIR || 'runtime/observer-spreadsheets';
+const reportPath = () => resolveMutableRuntimeArtifactPathV78('salesHoursObserverReport');
+const spreadsheetDir = () => process.env.SALES_HOURS_OBSERVER_SPREADSHEET_DIR
+    ? resolveMutableRuntimeArtifactPathV78('salesHoursObserverSpreadsheets')
+    : resolveMutableRuntimeArtifactPathV78('observerSpreadsheets');
 
 const clampDays = (value) => {
     const parsed = Number.parseInt(String(value || ''), 10);

@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { assertTransportPersistenceAllowed } from './strictReadOnlyObservationService.js';
 import { assertCanaryV75Recipient } from './canaryIsolationV75Service.js';
+import { assertEcBotCoreExternalEffectAllowedV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -85,6 +86,7 @@ const boundedDelaySeconds = (value, fallback = null) => {
 };
 
 export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
+    assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
     assertTransportPersistenceAllowed({ transport: 'zapi', operation: 'send_text' });
     const cleanPhone = digits(phone);
     const cleanMessage = clean(message);
@@ -205,6 +207,7 @@ const sendZapiMedia = async ({
     waveform = false,
     async = false
 } = {}) => {
+    assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
     assertTransportPersistenceAllowed({ transport: 'zapi', operation: `send_${payloadKey || 'media'}` });
     const cleanPhone = digits(phone);
     if (!cleanPhone) {

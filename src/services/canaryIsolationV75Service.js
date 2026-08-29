@@ -2,6 +2,7 @@ import {
     canaryControllerV77EnforcementRequired,
     resolveCanaryControllerV77Runtime
 } from './canaryControllerV77Service.js';
+import { ecBotCoreV78BlockedResult } from './ecBotCoreOperationalV78Service.js';
 
 export const CANARY_V75_QA_PHONE = '5515998038637';
 
@@ -220,6 +221,8 @@ export const assertCanaryV75ExternalEffectBlocked = (effect = '', env = process.
 };
 
 export const canaryV75BlockedResult = (effect = '', env = process.env) => {
+    const botCoreBlock = ecBotCoreV78BlockedResult(effect, env);
+    if (botCoreBlock) return botCoreBlock;
     const decision = evaluateCanaryV75ExternalEffect(effect, env);
     if (decision.allowed) return null;
     return {

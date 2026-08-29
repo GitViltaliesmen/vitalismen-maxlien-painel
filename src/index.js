@@ -43,11 +43,22 @@ import {
 } from './services/strictReadOnlyObservationService.js';
 import { assertCanaryV75RuntimeConfiguration } from './services/canaryIsolationV75Service.js';
 import { assertCanaryControllerV77Startup } from './services/canaryControllerV77Service.js';
+import {
+    assertEcBotCoreV78Configuration,
+    ecBotCoreV78Requested
+} from './services/ecBotCoreOperationalV78Service.js';
+import {
+    ecBotCoreHealthResponseDecoratorV78,
+    ecBotCoreMutationRouteGuardV78,
+    installEcBotCoreMongooseGuardV78
+} from './services/ecBotCoreRuntimeIntegrationV78Service.js';
 
 assertCanaryControllerV77Startup(process.env);
 assertCanaryV75RuntimeConfiguration(process.env);
+if (ecBotCoreV78Requested(process.env)) assertEcBotCoreV78Configuration(process.env);
 const strictObservation = resolveStrictReadOnlyObservation(process.env);
 installStrictReadOnlyMongooseGuard(mongoose);
+installEcBotCoreMongooseGuardV78(mongoose);
 
 const isProductionVpsPath = process.cwd().startsWith('/opt/vitalismen-automacao/');
 const isRunningUnderPm2 = Boolean(process.env.pm_id || process.env.PM2_HOME);
@@ -302,6 +313,8 @@ app.use((req, res, next) => {
 
 // V71: toda rota mutante e bloqueada antes do primeiro handler. As exceções
 // listadas pelo serviço são login sem bookkeeping e callbacks/telemetria no-op.
+app.use(ecBotCoreHealthResponseDecoratorV78);
+app.use(ecBotCoreMutationRouteGuardV78);
 app.use(strictReadOnlyMutationRouteGuard);
 
 // Health check

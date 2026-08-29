@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+test_mode="${EC_BOT_CORE_V78_TEST_MODE:-false}"
+if [[ "$test_mode" == "true" ]]; then
+  base_dir="${EC_BOT_CORE_V78_TEST_BASE_DIR:?base sintética ausente}"
+  state_dir="${EC_BOT_CORE_V78_TEST_STATE_DIR:?state sintético ausente}"
+  log_dir="${EC_BOT_CORE_V78_TEST_LOG_DIR:?log sintético ausente}"
+  stage_helper="${EC_BOT_CORE_V78_TEST_STAGE_HELPER:?helper sintético ausente}"
+  pm2_cmd="${EC_BOT_CORE_V78_TEST_PM2_CMD:?pm2 sintético ausente}"
+  curl_cmd="${EC_BOT_CORE_V78_TEST_CURL_CMD:?curl sintético ausente}"
+  node_cmd="${EC_BOT_CORE_V78_TEST_NODE_CMD:?node sintético ausente}"
+  npm_cmd="${EC_BOT_CORE_V78_TEST_NPM_CMD:?npm sintético ausente}"
+  readlink_cmd="${EC_BOT_CORE_V78_TEST_READLINK_CMD:?readlink sintético ausente}"
+  flock_cmd="${EC_BOT_CORE_V78_TEST_FLOCK_CMD:?flock sintético ausente}"
+else
+  [[ "$test_mode" == "false" ]] || { echo "ERRO: modo inválido" >&2; exit 1; }
+  [[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  base_dir="/opt/vitalismen-automacao"
+  state_dir="/var/lib/vitalismen-deploy"
+  log_dir="/var/log/vitalismen-deploy"
+  stage_helper="/usr/local/sbin/vitalismen-stage"
+  pm2_cmd="/usr/bin/pm2"
+  curl_cmd="/usr/bin/curl"
+  node_cmd="/usr/bin/node"
+  npm_cmd="/usr/bin/npm"
+  readlink_cmd="/usr/bin/readlink"
+  flock_cmd="/usr/bin/flock"
+fi
+
+process_name="vitalismen-automation"
+profile_name="EC_BOT_CORE_OPERATIONAL"
+authorization_phrase="I_UNDERSTAND_EC_BOT_CORE_V78"
+overlay_file="$state_dir/ec-bot-core-v78.env"
+attestation_file="$state_dir/ec-bot-core-v78-attestation.json"
+permit_file="$state_dir/ec-bot-core-v78-permit.json"
+consumed_permit_file="$state_dir/ec-bot-core-v78-permit.consumed.json"
+lock_file="$state_dir/ec-bot-core-v78.lock"
+audit_file="$log_dir/ec-bot-core-v78-audit.jsonl"
+official_health_url="${EC_BOT_CORE_V78_HEALTH_URL:-https://ec.maxlien.shop/api/health/}"
+meta_health_url="${EC_BOT_CORE_V78_META_HEALTH_URL:-https://ec.maxlien.shop/api/health/meta-destination}"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+
+ensure_dirs() {
+  if [[ "$test_mode" == "true" ]]; then
+    mkdir -p -- "$state_dir" "$log_dir"
+  else
+    install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+  fi
+}
+
+release_dir_for_name() {
+  local release="$1"
+  [[ "$release" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release fora do padrão oficial"
+  printf '%s/releases/%s' "$base_dir" "$release"
+}
+
+contract_path_for_release() {
+  printf '%s/scripts/lib/ec-bot-core-operational-contract-v78.mjs' "$1"
+}
+
+append_audit() {
+  local event="$1"
+  local release="${2:-}"
+  local status="${3:-}"
+  ensure_dirs
+  "$node_cmd" - "$audit_file" "$event" "$release" "$status" <<'NODE'
+const fs = require('node:fs');
+const [file, event, release, status] = process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp: new Date().toISOString(), event, release, status})}\n`, {encoding: 'utf8', mode: 0o600});
+NODE
+  [[ "$test_mode" == "true" ]] || chmod 0600 "$audit_file"
+}
+
+current_release_dir() {
+  "$readlink_cmd" -f "$base_dir/current" 2>/dev/null || true
+}
+
+assert_current_and_pm2_identity() {
+  local release_dir="$1"
+  local current
+  current="$(current_release_dir)"
+  [[ "$current" == "$release_dir" ]] || die "current não aponta para a release solicitada"
+  "$pm2_cmd" jlist | "$node_cmd" -e '
+let input = "";
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const expected = process.argv[1];
+  const current = process.argv[2];
+  const processInfo = JSON.parse(input || "[]").find((entry) => entry.name === "vitalismen-automation");
+  const env = processInfo?.pm2_env || {};
+  const cwdAllowed = env.pm_cwd === expected || env.pm_cwd === current;
+  const execAllowed = env.pm_exec_path === `${expected}/src/index.js` || env.pm_exec_path === `${current}/src/index.js`;
+  if (!processInfo || env.status !== "online" || !cwdAllowed || !execAllowed) process.exit(1);
+});
+' "$release_dir" "$base_dir/current" || die "identidade PM2 não corresponde à release ativa"
+}
+
+capture_health() {
+  local health_file="$1"
+  local meta_file="$2"
+  "$curl_cmd" --fail --silent --show-error --max-time 20 "$official_health_url" >"$health_file"
+  "$curl_cmd" --fail --silent --show-error --max-time 20 "$meta_health_url" >"$meta_file"
+}
+
+run_plan() {
+  local release="$1"
+  local release_dir
+  local contract
+  local plan_log
+  local guard_log
+  local health_file
+  local meta_file
+  release_dir="$(release_dir_for_name "$release")"
+  contract="$(contract_path_for_release "$release_dir")"
+  [[ -d "$release_dir" && ! -L "$release_dir" ]] || die "release ausente ou insegura"
+  [[ -f "$contract" && ! -L "$contract" ]] || die "contrato V78 ausente"
+  ensure_dirs
+  plan_log="$log_dir/${release}.ec-bot-core-v78-v66-plan.log"
+  guard_log="$log_dir/${release}.ec-bot-core-v78-guard.log"
+  health_file="$state_dir/.ec-bot-core-v78-pre-health.$$"
+  meta_file="$state_dir/.ec-bot-core-v78-pre-meta.$$"
+  trap 'rm -f -- "$health_file" "$meta_file"' RETURN
+  "$stage_helper" v66-plan "$release" >"$plan_log" 2>&1 || die "gates oficiais V66/V77 falharam; detalhes protegidos em $plan_log"
+  "$node_cmd" "$contract" inspect "$release_dir" "$release" >/dev/null
+  assert_current_and_pm2_identity "$release_dir"
+  (
+    cd "$release_dir"
+    "$node_cmd" scripts/guard-ec-bot-core-structural-v78.mjs
+    NODE_OPTIONS="--import=$release_dir/src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js" \
+      "$node_cmd" --test tests/ec-bot-core-structural-v78.test.mjs
+  ) >"$guard_log" 2>&1 || die "guard estrutural V78 falhou; detalhes protegidos em $guard_log"
+  capture_health "$health_file" "$meta_file" || die "health pré-ativação indisponível"
+  "$node_cmd" "$contract" pre-health "$health_file" "$meta_file" >/dev/null || die "health/Z-API/Dataset pré-ativação inválido"
+  append_audit "plan_passed" "$release" "read_only"
+  echo "EC_BOT_CORE_V78_PLAN=PASS"
+  echo "PROFILE=$profile_name"
+  echo "CURRENT=$release_dir"
+  echo "PM2_IDENTITY=PASS"
+  echo "ZAPI_PRECHECK=PASS"
+  echo "DATASET_BROWSER_CAPI=PASS"
+  echo "MUTATING_SCHEDULERS=BLOCKED"
+  echo "DROPI_APPLY=BLOCKED"
+  echo "META_PURCHASE=BLOCKED"
+  echo "PRODUCTION_MUTATIONS=0"
+}
+
+action="${1:-status}"
+ensure_dirs
+exec 9>"$lock_file"
+"$flock_cmd" -n 9 || die "outra operação V78 está em andamento"
+
+if [[ "$action" == "status" ]]; then
+  current="$(current_release_dir)"
+  echo "PROFILE=$profile_name"
+  echo "CURRENT=$current"
+  if [[ -f "$overlay_file" && -f "$attestation_file" && -f "$consumed_permit_file" ]]; then
+    health_file="$state_dir/.ec-bot-core-v78-status-health.$$"
+    meta_file="$state_dir/.ec-bot-core-v78-status-meta.$$"
+    trap 'rm -f -- "$health_file" "$meta_file"' EXIT
+    capture_health "$health_file" "$meta_file" || die "health indisponível"
+    contract="$(contract_path_for_release "$current")"
+    "$node_cmd" "$contract" health "$health_file" "$meta_file" >/dev/null || die "perfil V78 presente, porém health inválido"
+    echo "EC_BOT_CORE_V78_STATUS=ACTIVE_VALID"
+  else
+    echo "EC_BOT_CORE_V78_STATUS=NOT_ACTIVE"
+  fi
+  exit 0
+fi
+
+if [[ "$action" == "plan" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: ec-bot-core-v78 plan RELEASE"
+  run_plan "$2"
+  exit 0
+fi
+
+if [[ "$action" == "authorize" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: ec-bot-core-v78 authorize RELEASE"
+  [[ "${EC_BOT_CORE_V78_AUTHORIZE:-}" == "$authorization_phrase" ]] || die "autorização explícita V78 ausente"
+  release="$2"
+  run_plan "$release" >/dev/null
+  [[ ! -e "$overlay_file" && ! -e "$attestation_file" && ! -e "$permit_file" && ! -e "$consumed_permit_file" ]] || die "bundle V78 já existe; use status ou contain"
+  release_dir="$(release_dir_for_name "$release")"
+  contract="$(contract_path_for_release "$release_dir")"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  expires_at="$(date -u -d '+10 minutes' +%Y-%m-%dT%H:%M:%SZ)"
+  permit_id="ec-bot-core-v78-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  "$node_cmd" "$contract" create "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$created_at" "$expires_at" "$authorization_phrase" >/dev/null
+  [[ "$test_mode" == "true" ]] || chmod 0400 "$overlay_file" "$attestation_file"
+  [[ "$test_mode" == "true" ]] || chmod 0600 "$permit_file"
+  append_audit "authorization_created" "$release" "$permit_id"
+  echo "EC_BOT_CORE_V78_AUTHORIZATION=READY"
+  echo "RELEASE=$release"
+  echo "PERMIT_ID=$permit_id"
+  echo "PERMIT_MAX_MINUTES=10"
+  echo "ACTIVATION_EXECUTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "activate" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: ec-bot-core-v78 activate RELEASE"
+  release="$2"
+  release_dir="$(release_dir_for_name "$release")"
+  contract="$(contract_path_for_release "$release_dir")"
+  if [[ ! -f "$permit_file" && -f "$consumed_permit_file" && -f "$overlay_file" && -f "$attestation_file" ]]; then
+    health_file="$state_dir/.ec-bot-core-v78-idempotent-health.$$"
+    meta_file="$state_dir/.ec-bot-core-v78-idempotent-meta.$$"
+    trap 'rm -f -- "$health_file" "$meta_file"' EXIT
+    capture_health "$health_file" "$meta_file" || die "ativação anterior sem health válido"
+    "$node_cmd" "$contract" health "$health_file" "$meta_file" >/dev/null || die "ativação anterior divergente"
+    echo "EC_BOT_CORE_V78_ACTIVATION=ALREADY_ACTIVE_IDEMPOTENT"
+    exit 0
+  fi
+  run_plan "$release" >/dev/null
+  [[ -f "$permit_file" && -f "$overlay_file" && -f "$attestation_file" ]] || die "bundle autorizado ausente"
+  permit_id="$($node_cmd -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(String(p.permitId||""));' "$permit_file")"
+  now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  "$node_cmd" "$contract" validate "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$now_iso" >/dev/null
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "overlay V78 inválido"
+    export "$key=$value"
+  done <"$overlay_file"
+  activation_failed=1
+  trap 'if [[ "$activation_failed" == "1" ]]; then "$stage_helper" v66-contain >/dev/null 2>&1 || true; append_audit "activation_failed_contained" "$release" "stopped_fail_closed"; fi' EXIT
+  "$pm2_cmd" restart "$process_name" --update-env >/dev/null
+  health_file="$state_dir/.ec-bot-core-v78-active-health.$$"
+  meta_file="$state_dir/.ec-bot-core-v78-active-meta.$$"
+  capture_health "$health_file" "$meta_file"
+  "$node_cmd" "$contract" health "$health_file" "$meta_file" >/dev/null
+  mv -- "$permit_file" "$consumed_permit_file"
+  activation_failed=0
+  append_audit "activation_completed" "$release" "$permit_id"
+  rm -f -- "$health_file" "$meta_file"
+  trap - EXIT
+  echo "EC_BOT_CORE_V78_ACTIVATION=PASS"
+  echo "PROFILE=$profile_name"
+  echo "BOT_CORE=ALLOWED"
+  echo "MUTATING_SCHEDULERS=BLOCKED"
+  echo "DROPI_APPLY=BLOCKED"
+  echo "META_PURCHASE=BLOCKED"
+  echo "CONTAINMENT_COMMAND=ec-bot-core-v78 contain"
+  exit 0
+fi
+
+if [[ "$action" == "contain" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: ec-bot-core-v78 contain"
+  "$stage_helper" v66-contain >/dev/null
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  for file in "$overlay_file" "$attestation_file" "$permit_file" "$consumed_permit_file"; do
+    [[ -e "$file" ]] && mv -- "$file" "$file.contained.$timestamp"
+  done
+  append_audit "containment_completed" "" "stopped_fail_closed"
+  echo "EC_BOT_CORE_V78_CONTAINMENT=COMPLETE"
+  echo "FINAL_PM2_STATE=stopped"
+  echo "CURRENT_UNCHANGED=$(current_release_dir)"
+  exit 0
+fi
+
+die "uso: ec-bot-core-v78 status | plan RELEASE | authorize RELEASE | activate RELEASE | contain"

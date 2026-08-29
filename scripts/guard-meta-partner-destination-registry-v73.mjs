@@ -16,6 +16,7 @@ const v76Manifest = json('docs/freeze/deploy-health-bridge-semantics-v76-2026082
 const v77Manifest = json('docs/freeze/canary-controller-safety-v77-20260828.json');
 const v77hManifest = json('docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json');
 const v77h2Manifest = json('docs/freeze/canary-controller-health-policy-reset-v77h2-20260829.json');
+const v78Manifest = json('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json');
 const packageJson = json('package.json');
 const registry = read('src/services/metaDestinationRegistryService.js');
 const manager = read('scripts/manage-meta-destinations-v73.mjs');
@@ -77,6 +78,10 @@ for (const [file, approvedHash] of Object.entries(manifest.protectedFiles || {})
     if (
         v77h2Manifest.declaredAncestorOverrides?.includes(file)
         && v77h2Manifest.protectedFiles?.[file] === actualHash
+    ) continue;
+    if (
+        v78Manifest.declaredAncestorOverrides?.includes(file)
+        && v78Manifest.protectedFiles?.[file] === actualHash
     ) continue;
     assert.equal(actualHash, approvedHash, `arquivo protegido V73 divergente: ${file}`);
 }

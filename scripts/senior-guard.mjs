@@ -148,6 +148,12 @@ const productScopedProtocolFiles = new Set([
     'src/services/protocoloGConversionFreezeRuntimeGuardV62.js',
     // Autorizacao V63: corte pos-correcao e metricas por anuncio, somente leitura.
     'src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js',
+    // V78 formaliza a assinatura deterministica da origem oficial sem
+    // aceitar texto generico e sem incorporar ou alterar o projeto externo.
+    'src/services/ecOfficialVslEntryV78Service.js',
+    // O guard sucessor V78 referencia os guards V61-V63 somente para validar
+    // por hash a ancestralidade congelada da origem oficial.
+    'src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js',
     // V64 somente herda o freeze V63 e bloqueia nomes invalidos no Dropi EC.
     'src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js',
     // V65 corrige busca, leitura canonica, pos-venda e reconciliacao Dropi EC.

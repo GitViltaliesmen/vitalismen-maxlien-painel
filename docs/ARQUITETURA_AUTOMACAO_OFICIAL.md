@@ -1593,3 +1593,40 @@ V72 → V71, preservando runtime guard 71 e dados 66. Contrato completo:
 Estado: candidata exclusivamente local, sem commit, push, tag, stage, deploy,
 VPS, helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
 canário, bot ou tráfego.
+
+## 2026-08-29 — V78: núcleo operacional seletivo e runtime mutável externo
+
+A V78 sucede a V77H2 como microcamada estrutural. Relatórios e planilhas
+produzidos por observadores passam por registro explícito e, em release de
+produção, são resolvidos somente sob
+`/opt/vitalismen-automacao/shared/runtime`. O fingerprint funcional continua
+incluindo código, `package.json`, qualquer arquivo disfarçado dentro de
+`runtime/` e todo artefato não declarado; traversal e symlink inesperado falham
+fechados.
+
+O perfil declarativo `EC_BOT_CORE_OPERATIONAL` permite somente inbound/ACK
+Z-API, persistência de conversa necessária, roteamento do bot, resposta Z-API e
+estado do atendimento no painel. Schedulers mutantes permanecem em zero, Dropi
+permanece `REPORT_ONLY` sem APPLY, Meta Purchase permanece bloqueado e Baileys
+fica desligado. O helper separado `ops/ec-bot-core-v78` oferece `plan`,
+`authorize`, `activate`, `status` e `contain`, com identidade de release/PM2,
+attestation, permit de uso único, health Z-API e igualdade Browser/CAPI; ele não
+lê nem duplica a `.env` base e não contém segredos.
+
+O reset QA V78 aceita exclusivamente `5515998038637`, exige contexto de teste
+armado por até dez minutos, altera somente o hold humano temporário e o registro
+de auditoria, preservando histórico, mensagens, pedidos, país, memória e o
+estado de origem VSL. A contenção restaura o hold anterior somente se nenhum
+operador real retomou `human.mode=manual`.
+
+A assinatura oficial de Tex Ultra ficou determinística e texto genérico
+continua recusado. A inspeção pública somente leitura, entretanto, encontrou a
+CTA atual divergente no destino e na mensagem. Por isso o contrato de ativação
+V78 bloqueia qualquer deploy até a origem pública ser corrigida e revalidada;
+nenhuma VSL remota foi alterada nesta missão.
+
+Dataset `1468946114265008`, produto, preços, checkout, número oficial,
+funil comercial e compatibilidade de dados V66 permanecem inalterados. A cadeia
+canônica passa a ser V78 → V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72
+→ V71. Estado: implementação local, sem push, tag, stage, deploy, PM2, banco,
+mensagem, evento Meta, Dropi APPLY, scheduler ou tráfego real.
