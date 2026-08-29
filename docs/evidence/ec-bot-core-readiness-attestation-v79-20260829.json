@@ -1,0 +1,75 @@
+{
+  "attestationId": "ec-bot-core-readiness-v79-20260829",
+  "createdAt": "2026-08-29T18:28:08.781Z",
+  "status": "ATTESTED_READY_FOR_EXPLICITLY_AUTHORIZED_NEXT_STEP",
+  "country": "EC",
+  "parent": {
+    "version": "V78",
+    "commit": "9a17abbe6546819f25885541a86f0cca7be1bc7b",
+    "tree": "a2d39450f790a3516ddfaed3babc1250927bb77b",
+    "manifestSha256": "46a9363f203c9e2f4d574e286d2c361b4bd3bb915ee2f0b2398b04af624e12e1",
+    "freezeSha256": "b4fd1275fc7316cf63df103cade6c00ff322ef2b092f5083f79aed3e349039c3",
+    "byteIntact": true
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-meta-dataset-reconciliation-v79-20260829.json",
+    "sha256": "6bff2507362862bb28363f6d2d4637788f59344242d934ccd34a72a79a9bfb2f",
+    "datasetReconciliation": "PASS",
+    "vslPublicOriginConformance": "PASS",
+    "metaEventsSent": 0
+  },
+  "resolvedBlockers": [
+    "OFFICIAL_VSL_ORIGIN_CONTRACT_DIVERGENT",
+    "VSL_BROWSER_DATASET_DIVERGENT"
+  ],
+  "dataset": {
+    "canonicalSharedDatasetId": "1468946114265008",
+    "browserDatasetId": "1468946114265008",
+    "capiDatasetId": "1468946114265008",
+    "activeDestinationDatasetId": "1468946114265008",
+    "activeDestinationSource": "legacy_env",
+    "browserServerSynchronized": true,
+    "resolvedBrowserPixelCount": 1,
+    "secondParallelPixelIntroduced": false,
+    "browserTokenExposed": false
+  },
+  "cta": {
+    "url": "https://vilaliemen.shop/protocolo",
+    "destinationPhone": "5515991418416",
+    "message": "Hola, vengo de la presentación oficial de Tex Ultra. Ref: EC-TEX-ULTRA-PROTOCOLO",
+    "marker": "EC-TEX-ULTRA-PROTOCOLO",
+    "httpStatus": 200,
+    "xCloaker": "allowed"
+  },
+  "profile": {
+    "name": "EC_BOT_CORE_OPERATIONAL",
+    "state": "READY",
+    "mutatingSchedulersDefault": "BLOCKED",
+    "dropiApplyDefault": "BLOCKED",
+    "metaPurchaseDefault": "BLOCKED",
+    "realCustomerTrafficAuthorized": false
+  },
+  "futureQa": {
+    "phone": "5515998038637",
+    "context": "EC_V78_OFFICIAL_VSL_QA",
+    "url": "https://vilaliemen.shop/protocolo",
+    "permitCreated": false,
+    "resetExecuted": false,
+    "canaryExecuted": false
+  },
+  "deployment": {
+    "ready": true,
+    "blockers": [],
+    "requiresExplicitAuthorization": true,
+    "authorizedNextStep": "CONTROLLED_PUBLICATION_DEPLOYMENT_AND_SINGLE_PHONE_QA_CANARY"
+  },
+  "mutations": {
+    "vslMetaConfigurationChanged": true,
+    "vslProcessReloaded": "cloaker",
+    "hostingerEcChanged": false,
+    "botDeployed": false,
+    "botActivated": false,
+    "qaCanaryExecuted": false,
+    "colombiaOperationalInfrastructureTouched": false
+  }
+}
