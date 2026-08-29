@@ -1,0 +1,33 @@
+{
+  "attestationId": "ec-bot-core-operational-readiness-v83-20260829",
+  "country": "EC",
+  "parentVersion": "V82",
+  "parentCommit": "b8e208d9c1b2fd3ad616865d5604c0cf81d03c2e",
+  "parentTree": "850cfb53d9fa553e1ed1391eafc9d2cac8d32555",
+  "failure": {
+    "stage": "PASS",
+    "publication": "PASS",
+    "safeActivation": "PASS",
+    "botCorePlan": "FAIL_CLOSED",
+    "exactCause": "operational contract required readiness from the V78 structural manifest instead of the V79 readiness successor",
+    "productionModeDuringFailure": "SAFE_OBSERVATION_ONLY",
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "minimal_versioned_readiness_bridge",
+    "ancestorFilesChanged": 2,
+    "businessLogicChanged": false,
+    "helperChanged": false,
+    "envEdited": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false,
+    "colombiaOperationalInfrastructureTouched": false
+  },
+  "status": "local_validation_pass"
+}

@@ -12,6 +12,9 @@ import {
     parseEcBotCoreV78Overlay,
     serializeEcBotCoreV78Overlay
 } from '../../src/services/ecBotCoreOperationalV78Service.js';
+import {
+    assertEcBotCoreOperationalReadinessV83
+} from '../../src/services/ecBotCoreOperationalReadinessV83Service.js';
 import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
@@ -118,9 +121,11 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     if (manifest.version !== 78 || manifest.status !== 'frozen' || manifest.parentVersion !== 'V77H2') {
         throw new Error('v78_manifest_identity_invalid');
     }
-    if (manifest.deployment?.ready !== true || (manifest.deployment?.blockers || []).length !== 0) {
-        throw new Error('v78_deployment_blocked_by_structural_evidence');
+    if (manifest.deployment?.ready !== false
+        || JSON.stringify(manifest.deployment?.blockers || []) !== JSON.stringify(['OFFICIAL_VSL_ORIGIN_CONTRACT_DIVERGENT'])) {
+        throw new Error('v78_structural_evidence_identity_mismatch');
     }
+    assertEcBotCoreOperationalReadinessV83({ expectedRoot: resolved });
     return Object.freeze({ release, releaseDir: resolved, commit, tree, tag, ...hashes });
 };
 
