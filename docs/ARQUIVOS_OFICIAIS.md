@@ -1141,3 +1141,31 @@ nenhuma alteração realizada no VPS.
 - Estado: microlayer somente local; sem commit, push, tag, stage, deploy, VPS,
   helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
   scheduler, mensagem, canário ou tráfego.
+
+## Registro V77H — hotfix de stdin do verificador PM2 (2026-08-29)
+
+- Base V77 imutável: commit
+  `5bedd9154c4ba0b69f0477e059473dcf7012d38a`, tree
+  `681b6fd3249065e6b745eb346cbc5ff093185d1e`.
+- Causa: pipe `pm2 jlist` competia com o heredoc de `node -` pelo mesmo stdin,
+  podendo gerar `EPIPE` no produtor antes da leitura do JSON.
+- Contrato corretivo:
+  `scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs`.
+- Helper local candidato: `ops/vitalismen-stage`; o JavaScript e o JSON PM2
+  ficam em canais separados e o stdin é lido integralmente até EOF.
+- Proteção adicional sem expansão operacional: fingerprint dos processos PM2
+  externos deve permanecer idêntico antes/depois do restart exclusivo do alvo.
+- Guard/runtime/teste:
+  `scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs`,
+  `src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js`
+  e `tests/canary-controller-pm2-stdin-hotfix-v77h.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md` e
+  `docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json`.
+- V77 permanece como ancestral histórico; perfil, overlay, permit,
+  attestation, health, expiração, ativação e contenção não mudam.
+- Cadeia: V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71
+  e dados 66 preservados.
+- Estado: candidata somente local; sem commit, push, tag, stage, deploy, VPS,
+  helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
+  scheduler, mensagem, canário, bot ou tráfego.

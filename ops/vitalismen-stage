@@ -1557,26 +1557,18 @@ canary_v77_pm2() {
 }
 
 verify_candidate_pm2_canary_v77_env() {
+  local expected_external_fingerprint="$1"
+  local verifier="$candidate_dir/scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs"
   v77_artifact_paths
-  "$pm2_cmd" jlist | "$node_cmd" - "$process_name" "$canary_v77_overlay" <<'NODE'
-const fs = require('node:fs');
-const [processName, overlayPath] = process.argv.slice(2);
-let input = '';
-process.stdin.on('data', (chunk) => { input += chunk; });
-process.stdin.on('end', () => {
-  const processInfo = JSON.parse(input || '[]').find((entry) => entry.name === processName);
-  if (!processInfo) throw new Error('processo PM2 ausente');
-  const expected = Object.fromEntries(fs.readFileSync(overlayPath, 'utf8').trimEnd().split('\n').map((line) => {
-    const index = line.indexOf('=');
-    return [line.slice(0, index), line.slice(index + 1)];
-  }));
-  const actual = processInfo.pm2_env || {};
-  for (const [key, value] of Object.entries(expected)) {
-    if (String(actual[key] ?? '') !== value) throw new Error(`PM2 V77 env divergente: ${key}`);
-  }
-  process.stdout.write('PM2_V77_ENV=VALID\n');
-});
-NODE
+  [[ -f "$verifier" && ! -L "$verifier" ]] || die "verificador PM2 V77H ausente ou inválido"
+  "$pm2_cmd" jlist | "$node_cmd" "$verifier" verify \
+    "$process_name" "$canary_v77_overlay" "$candidate_dir" "$expected_external_fingerprint"
+}
+
+fingerprint_external_pm2_canary_v77() {
+  local verifier="$candidate_dir/scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs"
+  [[ -f "$verifier" && ! -L "$verifier" ]] || die "verificador PM2 V77H ausente ou inválido"
+  "$pm2_cmd" jlist | "$node_cmd" "$verifier" fingerprint-others "$process_name"
 }
 
 wait_candidate_health_v77() {
@@ -1719,6 +1711,8 @@ if [[ "$action" == "v77-canary-activate" ]]; then
   validate_v77_strict_health
   validate_v77_baseline
   load_and_validate_v77_bundle
+  external_pm2_fingerprint_before="$(fingerprint_external_pm2_canary_v77)"
+  [[ "$external_pm2_fingerprint_before" =~ ^[0-9a-f]{64}$ ]] || die "fingerprint PM2 externo V77H inválido"
   consume_v77_canary_permit
 
   canary_v77_started=0
@@ -1743,7 +1737,7 @@ if [[ "$action" == "v77-canary-activate" ]]; then
   trap activation_error_v77 ERR
   canary_v77_started=1
   canary_v77_pm2 restart
-  verify_candidate_pm2_canary_v77_env
+  verify_candidate_pm2_canary_v77_env "$external_pm2_fingerprint_before"
   wait_candidate_health_v77 "$activation_id"
   [[ "$(current_target)" == "$candidate_dir" ]] || false
   "$pm2_cmd" save >/dev/null

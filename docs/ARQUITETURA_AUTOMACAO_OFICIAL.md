@@ -1545,3 +1545,27 @@ follow-ups, backlog e segundo destinatário permanecem bloqueados. O estado é
 somente local, sem commit, push, tag, stage, deploy, VPS, PM2, banco, mensagem,
 canário ou tráfego. Contrato completo:
 `docs/CANARY_CONTROLLER_SAFETY_FREEZE_V77_20260828.md`.
+
+## 2026-08-29 — V77H: stdin determinístico no verificador PM2 do canário
+
+A V77H sucede a V77 e corrige exclusivamente o falso negativo `EPIPE` do
+`verify_candidate_pm2_canary_v77_env`. O código do consumidor Node passa a
+residir em arquivo versionado, enquanto o JSON de `pm2 jlist` usa sozinho o
+stdin e é lido integralmente até EOF antes do parse.
+
+O verificador continua exigindo um único `vitalismen-automation` online, PID,
+cwd/exec oficiais, cwd runtime da release, overlay integral e cinco allowlists
+com somente `5515998038637`. Um fingerprint sanitizado dos quatro processos
+PM2 externos é capturado antes do consumo do permit e deve permanecer idêntico
+após o restart exclusivo do alvo.
+
+Perfil, overlay, attestation, permit, expiração, health, ativação e contenção
+V77 permanecem semanticamente inalterados. Dropi/Meta, segundo destinatário e
+schedulers proibidos continuam fail-closed. A cadeia canônica passa a ser
+V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71, preservando runtime guard 71
+e compatibilidade de dados 66. Contrato completo:
+`docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md`.
+
+Estado: candidata somente local, sem commit, push, tag, stage, deploy, VPS,
+helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
+canário, bot ou tráfego.

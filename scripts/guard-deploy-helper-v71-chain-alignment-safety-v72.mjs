@@ -17,6 +17,7 @@ const v74Manifest = json('docs/freeze/freeze-lock-ec-meta-dynamic-v74-20260828.j
 const v75Manifest = json('docs/freeze/canary-isolation-safety-v75-20260828.json');
 const v76Manifest = json('docs/freeze/deploy-health-bridge-semantics-v76-20260828.json');
 const v77Manifest = json('docs/freeze/canary-controller-safety-v77-20260828.json');
+const v77hManifest = json('docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json');
 const helper = read('ops/vitalismen-stage');
 const packageJson = json('package.json');
 const deployReady = read('scripts/deploy-vps-ready.mjs');
@@ -60,6 +61,10 @@ for (const [file, approvedHash] of Object.entries(manifest.protectedFiles || {})
         v77Manifest.declaredAncestorOverrides?.includes(file)
         && v77Manifest.protectedFiles?.[file] === actualHash
     ) continue;
+    if (
+        v77hManifest.declaredAncestorOverrides?.includes(file)
+        && v77hManifest.protectedFiles?.[file] === actualHash
+    ) continue;
     assert.equal(actualHash, approvedHash, `arquivo protegido V72 divergente: ${file}`);
 }
 
@@ -69,7 +74,7 @@ assert.deepEqual(v70References.filter(({ classification }) => classification ===
 
 assert.equal(
     packageJson.scripts['guard:runtime-chain-v71'],
-    'node src/services/canaryControllerSafetyFreezeRuntimeGuardV77.js'
+    'node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js'
 );
 assert.equal(packageJson.scripts['guard:deploy-helper-v72'], 'node scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs');
 assert.match(packageJson.scripts['guard:predeploy-v71'], /^npm run guard:runtime-chain-v71 && npm run guard:deploy-helper-v72 && /);
@@ -78,6 +83,7 @@ assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:freeze-lock-v74/
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-v75/);
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:deploy-health-v76/);
 assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-controller-v77/);
+assert.match(packageJson.scripts['guard:predeploy-v71'], /guard:canary-controller-pm2-stdin-v77h/);
 assert.equal(packageJson.scripts['guard:predeploy-v72'], 'npm run guard:predeploy-v71');
 assert.match(packageJson.scripts.test, /^npm run guard:predeploy-v71 && /);
 assert.match(deployReady, /'npm run guard:predeploy-v72'/);
