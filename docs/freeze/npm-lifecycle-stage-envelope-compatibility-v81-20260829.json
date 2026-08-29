@@ -1,0 +1,80 @@
+{
+  "freezeId": "npm-lifecycle-stage-envelope-compatibility-v81",
+  "version": 81,
+  "parentVersion": "V80",
+  "parentFreezeId": "npm-lifecycle-preload-bootstrap-compatibility-v80",
+  "parentManifestSha256": "80039ccfc19d41cd6235da63316887e22e1a291bf7150a3c4b29d4a3b0ef828c",
+  "parentFreezeSha256": "ae08bc04d41c524c829a322da7c179ff80ea97c7d12ff0da7539b52d400f1eb8",
+  "parentAttestationSha256": "45c218e2edb1dc80f97ad1caaa8df594268b7097daf8b3756e0a1c6aa63ff482",
+  "parentCommit": "e1396b1650b2a5e0cb556f2f47c5af91fe38452e",
+  "parentTree": "bf51cbd2d8b60be11bfc75ca4a4ddaeb495cb8ec",
+  "purpose": "OFFICIAL_STAGE_ENVELOPE_COMPATIBILITY",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/npmLifecycleStageEnvelopeCompatibilityFreezeRuntimeGuardV81.js",
+    "canonicalBootstrap": "scripts/lib/npm-lifecycle-stage-envelope-v81.mjs",
+    "officialHelperSha256": "ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853",
+    "helperFreezeVersion": 72,
+    "helperContractVersion": 72,
+    "runtimeGuardChainVersion": 71,
+    "predeployVersion": "v71",
+    "dataCompatibilityVersion": 66,
+    "strictReadOnly": true,
+    "allowedWriteClasses": [],
+    "dependencyLifecycleScriptsEnabled": true,
+    "ignoreScriptsAllowed": false,
+    "preloadCopyToNodeModulesAllowed": false,
+    "v80ByteIntact": true,
+    "datasetId": "1468946114265008",
+    "datasetChanged": false,
+    "ctaChanged": false,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "productionDeployAuthorized": false,
+    "qaCanaryAuthorized": false,
+    "whatsappMessagesSent": 0,
+    "metaEventsSent": 0,
+    "colombiaOperationalInfrastructureTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "remoteTagCreated": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "pm2Restarted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/npm-lifecycle-stage-envelope-v81-attestation-20260829.json",
+    "sha256": "e80b3415dda914272428d931cffe7d5aac7719b627c0c914936447ea65e7a68e"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "1e2530aea5003079b7c514691336b6044813a3ae304d025de3ed24af9bf413a3"
+  },
+  "declaredAncestorOverrides": [],
+  "newProtectedFiles": [
+    "docs/NPM_LIFECYCLE_STAGE_ENVELOPE_COMPATIBILITY_FREEZE_V81_20260829.md",
+    "docs/evidence/npm-lifecycle-stage-envelope-v81-attestation-20260829.json",
+    "scripts/guard-npm-lifecycle-stage-envelope-v81.mjs",
+    "scripts/lib/npm-lifecycle-stage-envelope-v81.mjs",
+    "src/services/npmLifecycleStageEnvelopeCompatibilityFreezeRuntimeGuardV81.js",
+    "src/services/npmLifecycleStageEnvelopeCompatibilityV81Service.js",
+    "tests/npm-lifecycle-stage-envelope-v81.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/NPM_LIFECYCLE_STAGE_ENVELOPE_COMPATIBILITY_FREEZE_V81_20260829.md": "d5e3c8e81888b958fa149817744aff5ae83173670ff90ca2cb04788fd15a9b30",
+    "docs/evidence/npm-lifecycle-stage-envelope-v81-attestation-20260829.json": "e80b3415dda914272428d931cffe7d5aac7719b627c0c914936447ea65e7a68e",
+    "scripts/guard-npm-lifecycle-stage-envelope-v81.mjs": "7ec06c2a5263376629cf98009d4baf445d306ca174d0cc3894bd799cd8545d13",
+    "scripts/lib/npm-lifecycle-stage-envelope-v81.mjs": "04a9864ff58b0a7166d2960d3ebd3e028f93d1bc6ff469b05d633bb42e7de14d",
+    "src/services/npmLifecycleStageEnvelopeCompatibilityFreezeRuntimeGuardV81.js": "885a61a32bad3fb36bafa0e846266e6d92a2b6bde96a9378631dc18caee69dc5",
+    "src/services/npmLifecycleStageEnvelopeCompatibilityV81Service.js": "2731d1e4622fa14fcae0bd4ccfb0ae63ee4914ce146032a384efe5dc2960dd8c",
+    "tests/npm-lifecycle-stage-envelope-v81.test.mjs": "d5159312bf3418341e1782e59cadeef9e22d0f00dc7cd78cd72a5b28b6479e20"
+  }
+}
