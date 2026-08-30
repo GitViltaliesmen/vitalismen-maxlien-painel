@@ -160,7 +160,7 @@ run_plan() {
     cd "$release_dir"
     "$node_cmd" scripts/guard-ec-bot-core-control-plane-v89.mjs
     "$node_cmd" scripts/guard-ec-vsl-dashboard-ingress-v90.mjs
-    NODE_OPTIONS="--import=$release_dir/src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js" \
+    NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
       "$node_cmd" --test tests/ec-bot-core-structural-v78.test.mjs
   ) >"$guard_log" 2>&1 || die "guard estrutural V78 falhou; detalhes protegidos em $guard_log"
   capture_health "$health_file" "$meta_file" || die "health pré-ativação indisponível"

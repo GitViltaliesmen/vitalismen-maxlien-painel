@@ -5,7 +5,7 @@ export const EC_BOT_CORE_V78_MODE = 'EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_VERSION = 78;
 export const EC_BOT_CORE_V78_DATASET_ID = '1468946114265008';
 export const EC_BOT_CORE_V78_QA_PHONE = '5515998038637';
-export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v96-context.mjs';
+export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
 
 export const EC_BOT_CORE_V78_ALLOWED_WRITE_CLASSES = Object.freeze([
     'zapi_inbound_persistence',

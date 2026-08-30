@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-await import('../scripts/lib/ec-runtime-successor-v96-context.mjs');
+await import('../scripts/lib/ec-runtime-successor-v97-context.mjs');
 
 import {
     assertEcRuntimeSafeResetV95,
     EC_RUNTIME_SAFE_RESET_V95_PARENT_COMMIT,
     EC_RUNTIME_SAFE_RESET_V95_PARENT_TREE
 } from '../src/services/ecRuntimeSafeResetV95Service.js';
-import { EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS } from '../src/services/ecRuntimeTransientResetV96Service.js';
+import { EC_OPERATIONAL_GUARD_CONTEXT_V97_NODE_OPTIONS } from '../src/services/ecOperationalGuardContextV97Service.js';
 
 test('V95 vincula a sucessora ao commit e tree exatos da V94', () => {
     assert.equal(EC_RUNTIME_SAFE_RESET_V95_PARENT_COMMIT, 'a2a8137fb5ce8f30187ba84824e226871db9409b');
@@ -26,7 +26,7 @@ test('V95 limpa a identidade operacional residual no perfil seguro', () => {
     assert.match(helper, /VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false"/);
     assert.match(helper, /VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=/);
     assert.match(helper, /VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=/);
-    assert.ok(helper.includes(`target_node_options="${EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS}"`));
+    assert.ok(helper.includes(`target_node_options="${EC_OPERATIONAL_GUARD_CONTEXT_V97_NODE_OPTIONS}"`));
 });
 
 test('V95 preserva todas as superfícies congeladas', () => {

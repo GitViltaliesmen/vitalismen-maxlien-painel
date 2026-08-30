@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { assertEcRuntimeTransientResetV96, EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS, EC_RUNTIME_TRANSIENT_RESET_V96_PARENT_COMMIT, EC_RUNTIME_TRANSIENT_RESET_V96_PARENT_TREE } from '../src/services/ecRuntimeTransientResetV96Service.js';
+
+await import('../scripts/lib/ec-runtime-successor-v97-context.mjs');
+import { assertEcRuntimeTransientResetV96, EC_RUNTIME_TRANSIENT_RESET_V96_PARENT_COMMIT, EC_RUNTIME_TRANSIENT_RESET_V96_PARENT_TREE } from '../src/services/ecRuntimeTransientResetV96Service.js';
+import { EC_OPERATIONAL_GUARD_CONTEXT_V97_NODE_OPTIONS } from '../src/services/ecOperationalGuardContextV97Service.js';
 
 test('V96 vincula a sucessora ao commit e tree exatos da V95', () => {
     assert.equal(EC_RUNTIME_TRANSIENT_RESET_V96_PARENT_COMMIT, '53f616cb2d885091028d1dbaa0090b5ad5d2d017');
@@ -18,7 +21,7 @@ test('V96 preserva o overlay staged e limpa somente o ambiente PM2 transitório'
     const safePm2 = helper.slice(helper.indexOf('safe_pm2() {'), helper.indexOf('verify_candidate_pm2_safe_env() {'));
     assert.doesNotMatch(safeProfile, /VITALISMEN_EC_BOT_CORE_/);
     assert.match(safePm2, /VITALISMEN_EC_BOT_CORE_OPERATIONAL=false/);
-    assert.ok(helper.includes(`target_node_options="${EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS}"`));
+    assert.ok(helper.includes(`target_node_options="${EC_OPERATIONAL_GUARD_CONTEXT_V97_NODE_OPTIONS}"`));
 });
 
 test('V96 preserva as superfícies congeladas', () => {

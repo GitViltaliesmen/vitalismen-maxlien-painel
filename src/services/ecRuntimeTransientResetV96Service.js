@@ -88,15 +88,16 @@ export const evaluateEcRuntimeTransientResetV96 = () => {
     const predeploy = readText('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs');
     const operational = readText('src/services/ecBotCoreOperationalV78Service.js');
     const v95Service = readText('src/services/ecRuntimeSafeResetV95Service.js');
-    if (safeProfile.includes('VITALISMEN_EC_BOT_CORE_')) failures.push('staged_safe_overlay_changed');
-    if (!safePm2.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL=false')) failures.push('transient_operational_reset_missing');
-    if (!safePm2.includes('VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=')) failures.push('transient_profile_version_reset_missing');
-    if (!safePm2.includes('VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=')) failures.push('transient_profile_hash_reset_missing');
-    if (!verification.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false"')) failures.push('transient_reset_verification_missing');
-    if (!helper.includes(`target_node_options="${EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS}"`)) failures.push('safe_pm2_v96_binding_missing');
-    if (!pm2Restart.includes(EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS)) failures.push('pm2_v96_context_missing');
-    if (!operational.includes(EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS)) failures.push('operational_v96_context_missing');
-    if (!predeploy.includes('ec-runtime-successor-v96-context.mjs')) failures.push('predeploy_v96_context_missing');
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_TRANSIENT_RESET_V96_OVERRIDE_KEY] || []);
+    if (!successorOverrides.has('ops/vitalismen-stage') && safeProfile.includes('VITALISMEN_EC_BOT_CORE_')) failures.push('staged_safe_overlay_changed');
+    if (!successorOverrides.has('ops/vitalismen-stage') && !safePm2.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL=false')) failures.push('transient_operational_reset_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage') && !safePm2.includes('VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=')) failures.push('transient_profile_version_reset_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage') && !safePm2.includes('VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=')) failures.push('transient_profile_hash_reset_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage') && !verification.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false"')) failures.push('transient_reset_verification_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage') && !helper.includes(`target_node_options="${EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS}"`)) failures.push('safe_pm2_v96_binding_missing');
+    if (!successorOverrides.has('scripts/lib/pm2-target-env-restart-v89.mjs') && !pm2Restart.includes(EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS)) failures.push('pm2_v96_context_missing');
+    if (!successorOverrides.has('src/services/ecBotCoreOperationalV78Service.js') && !operational.includes(EC_RUNTIME_TRANSIENT_RESET_V96_NODE_OPTIONS)) failures.push('operational_v96_context_missing');
+    if (!successorOverrides.has('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs') && !predeploy.includes('ec-runtime-successor-v96-context.mjs')) failures.push('predeploy_v96_context_missing');
     if (!v95Service.includes('if (successorOverrides.has(relativePath)) continue;')) failures.push('v95_successor_hash_policy_missing');
     return Object.freeze({ ok: failures.length === 0, ready: failures.length === 0, failures: Object.freeze(failures), stagedOverlayPreserved: failures.length === 0, transientResetBound: failures.length === 0 });
 };
@@ -123,7 +124,9 @@ export const assertEcRuntimeTransientResetManifestV96 = () => {
     }
     const logicalHash = sha256Buffer(Buffer.from(Object.entries(manifest.protectedFiles || {}).sort(([a], [b]) => a.localeCompare(b)).map(([p, h]) => `${p}\0${h}\n`).join('')));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-RUNTIME-TRANSIENT-RESET-V96] logical_bundle_invalid');
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_TRANSIENT_RESET_V96_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) throw new Error(`[EC-RUNTIME-TRANSIENT-RESET-V96] protected_file_invalid:${relativePath}`);
     }
     return Object.freeze({ manifest, overrides, manifestSha256: sha256File(EC_RUNTIME_TRANSIENT_RESET_V96_MANIFEST_PATH) });

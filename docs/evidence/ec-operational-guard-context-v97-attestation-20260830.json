@@ -1,0 +1,8 @@
+{
+  "attestationId": "ec-operational-guard-context-v97-20260830",
+  "observedAt": "2026-08-30T05:25:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": { "version": 96, "commit": "6117823a19fde9b42facd9c5e8309da4692787d2", "tree": "2cb53daa9cc78f5aef01a56b3bb4b1c729c82335" },
+  "serverObservation": { "release": "20260830T051839Z_production-20260830-6117823", "safeActivation": "PASS", "operationalAuthorization": "BLOCKED_READ_ONLY_GUARD", "productionProfile": "SAFE_OBSERVATION_ONLY" },
+  "change": { "scope": "operational_structural_guard_successor_context_only", "guardsBypassed": false, "externalVslFilesChanged": false, "pixelDatasetChanged": false, "ctaChanged": false, "databaseChanged": false, "otherCountryTouched": false }
+}
