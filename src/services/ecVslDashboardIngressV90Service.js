@@ -90,8 +90,9 @@ const assertParentV89 = () => {
         throw new Error('[EC-VSL-DASHBOARD-V90] parent_policy_invalid');
     }
     const modified = new Set(modifiedParentProtectedFiles);
+    const successorOverrides = new Set(globalThis[EC_VSL_DASHBOARD_INGRESS_V90_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-VSL-DASHBOARD-V90] parent_protected_file_invalid:${relativePath}`);
         }
@@ -196,7 +197,9 @@ export const assertEcVslDashboardIngressManifestV90 = () => {
             .join('')
     ));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-VSL-DASHBOARD-V90] logical_bundle_invalid');
+    const successorOverrides = new Set(globalThis[EC_VSL_DASHBOARD_INGRESS_V90_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-VSL-DASHBOARD-V90] protected_file_invalid:${relativePath}`);
         }

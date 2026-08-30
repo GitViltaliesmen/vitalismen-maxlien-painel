@@ -190,9 +190,9 @@ run_protected() {
 
 successor_guard_node_options() {
   local candidate_dir="$1"
-  local preload_path="$candidate_dir/scripts/lib/official-audit-successor-v92-context.mjs"
+  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v93-context.mjs"
 
-  [[ -f "$preload_path" ]] || die "preload sucessor V92 ausente"
+  [[ -f "$preload_path" ]] || die "preload sucessor V93 ausente"
   printf '%s' "--import=file://$preload_path"
 }
 
@@ -878,7 +878,28 @@ validate_safe_overlay() {
 
 safe_pm2() {
   local pm2_action="$1"
+  local target_dir
+  local target_node_options
+  local pm2_realpath
+  local pm2_module_root
+  local -a pm2_controller_env=()
+  local -a pm2_exec=("$pm2_cmd" "$pm2_action" "$process_name" --update-env)
+
+  target_dir="$(current_target)"
+  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v93-context.mjs" ]]; then
+    [[ "$pm2_action" == "start" || "$pm2_action" == "restart" ]] || die "ação PM2 safe inválida"
+    target_node_options="$(successor_guard_node_options "$target_dir")"
+    pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
+    [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
+    pm2_module_root="${pm2_realpath%/bin/pm2}"
+    pm2_controller_env=(NODE_OPTIONS= npm_config_node_options= NPM_CONFIG_NODE_OPTIONS=)
+    pm2_exec=(
+      "$node_cmd" "$target_dir/scripts/lib/pm2-target-env-restart-v89.mjs"
+      "$pm2_module_root" "$process_name" "$target_node_options"
+    )
+  fi
   "$env_cmd" \
+    "${pm2_controller_env[@]}" \
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false \
     VITALISMEN_STRICT_READ_ONLY=true \
     SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY \
@@ -933,7 +954,7 @@ safe_pm2() {
     POST_SALE_V66_MUTATIONS_AUTHORIZATION= \
     POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false \
     POST_SALE_V66_BRIDGE_APPLY_APPROVED= \
-    "$pm2_cmd" "$pm2_action" "$process_name" --update-env
+    "${pm2_exec[@]}"
 }
 
 verify_candidate_pm2_safe_env() {

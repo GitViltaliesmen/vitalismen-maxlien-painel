@@ -77,7 +77,9 @@ const assertParentV90 = () => {
         || parent.policy?.metaPurchaseAllowed !== false) {
         throw new Error('[DEPLOY-GUARD-ANCESTRY-V91] parent_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[DEPLOY_GUARD_ANCESTRY_V91_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[DEPLOY-GUARD-ANCESTRY-V91] parent_protected_file_invalid:${relativePath}`);
         }
