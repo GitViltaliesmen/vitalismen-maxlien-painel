@@ -1,0 +1,89 @@
+{
+  "freezeId": "ec-runtime-current-binding-v94",
+  "version": 94,
+  "parentVersion": "V93",
+  "parentFreezeId": "ec-runtime-successor-v93",
+  "parentManifestSha256": "2d76889c255750b46d6c5931f6e30eb42a1cb728059028e1d51142beafa223d2",
+  "parentFreezeSha256": "a63ca741ca6fef474d4be9a0e780c2a3890965622e9d36eeb7d3cbf3c5c12838",
+  "parentAttestationSha256": "8c41b3727464930d79104d4b138b4e1c103a611afb33199f5287f3c30142d548",
+  "parentCommit": "cec3b934246b9883727d4bbfccf1a9cc1775911d",
+  "parentTree": "88ada004cf07ffe5e44bf279c75af65f35d75ec5",
+  "purpose": "BIND_SAFE_PM2_PRELOAD_TO_OFFICIAL_CURRENT_SYMLINK",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecRuntimeCurrentBindingFreezeRuntimeGuardV94.js",
+    "canonicalGuard": "node scripts/guard-ec-runtime-current-binding-v94.mjs",
+    "canonicalPreloader": "scripts/lib/ec-runtime-successor-v94-context.mjs",
+    "stagePhysicalReleaseOnly": true,
+    "pm2OfficialCurrentOnly": true,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "desktopPageChanged": false,
+    "mobilePageChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-runtime-current-binding-v94-attestation-20260830.json",
+    "sha256": "b5a3f827b7487fcfa22b236bb1014cf3e9fb2522d9594595beb9898f5a113d67"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "52e33c9de088b195427e0040cee36f5e6cdbf1a60fa0f146275f6111b7ac2b59"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage",
+    "scripts/lib/pm2-target-env-restart-v89.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "src/services/ecRuntimeSuccessorV93Service.js",
+    "tests/ec-bot-core-control-plane-v89.test.mjs",
+    "tests/ec-runtime-successor-v93.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage",
+    "scripts/lib/pm2-target-env-restart-v89.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "src/services/ecRuntimeSuccessorV93Service.js",
+    "tests/ec-bot-core-control-plane-v89.test.mjs",
+    "tests/ec-runtime-successor-v93.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_RUNTIME_CURRENT_BINDING_FREEZE_V94_20260830.md",
+    "docs/evidence/ec-runtime-current-binding-v94-attestation-20260830.json",
+    "scripts/guard-ec-runtime-current-binding-v94.mjs",
+    "scripts/lib/ec-runtime-successor-v94-context.mjs",
+    "src/services/ecRuntimeCurrentBindingFreezeRuntimeGuardV94.js",
+    "src/services/ecRuntimeCurrentBindingV94Service.js",
+    "tests/ec-runtime-current-binding-v94.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_RUNTIME_CURRENT_BINDING_FREEZE_V94_20260830.md": "0b0a94da91e6c0ed20be56160f21e947b7096a0f4aba2cc84f520a22540b94d8",
+    "docs/evidence/ec-runtime-current-binding-v94-attestation-20260830.json": "b5a3f827b7487fcfa22b236bb1014cf3e9fb2522d9594595beb9898f5a113d67",
+    "ops/vitalismen-stage": "c565fee3f9ebfe9b202f331a7023ee46cc60ee18284da81b32fceebb7f88af3a",
+    "scripts/guard-ec-runtime-current-binding-v94.mjs": "8c7cf0f8a158aab243bfb2651dbf338066d7c9c5f19c77c0b8aad1b1b5f0960c",
+    "scripts/lib/ec-runtime-successor-v94-context.mjs": "07f566ff1099f34dd92c15abefdabc5f88d3747fc94b207494c8b390b0cd9442",
+    "scripts/lib/pm2-target-env-restart-v89.mjs": "2f1a7c36dd12c30f1f0a7035b0bc7bf807299294a9fd3148516f14cddeac4dee",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs": "3cb50112ed245b8232b3280af71d4f8247da7a779dfb61eda3b179b9ef9774ee",
+    "src/services/ecBotCoreOperationalV78Service.js": "9366e25b03873937b46e9a0aa650ae5f30924774d26f236e5f98a09e6425ff94",
+    "src/services/ecRuntimeCurrentBindingFreezeRuntimeGuardV94.js": "64de31c2635a73327b3478be5ef7527bc61d01a6e39c5bdbb272f057d41effd0",
+    "src/services/ecRuntimeCurrentBindingV94Service.js": "412a92ca5dee394e5b2ee1099e194a5a1c925128cd4c203c33f0ad641daf0dcb",
+    "src/services/ecRuntimeSuccessorV93Service.js": "1854bbddcc194f92eb3e142630262f84d2346c31529b20a9004a38f47e74f681",
+    "tests/ec-bot-core-control-plane-v89.test.mjs": "3e511e366e70498c2da1b93642b7f36e9078e117e7b030afabc6f259fcb3ba49",
+    "tests/ec-runtime-current-binding-v94.test.mjs": "706dd2d96e7f5007943e78050dade1d197cc32597593f550af5996c822e3d43b",
+    "tests/ec-runtime-successor-v93.test.mjs": "cd46d4c15b684948e703d4ace4a400b2b109978b723531e4fa8b88c631f740c9"
+  }
+}

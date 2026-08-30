@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
+await import('../scripts/lib/ec-runtime-successor-v94-context.mjs');
+
 import {
     assertEcRuntimeSuccessorV93,
-    EC_RUNTIME_SUCCESSOR_V93_NODE_OPTIONS,
     EC_RUNTIME_SUCCESSOR_V93_PARENT_COMMIT,
     EC_RUNTIME_SUCCESSOR_V93_PARENT_TREE
 } from '../src/services/ecRuntimeSuccessorV93Service.js';
+import { EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS } from '../src/services/ecRuntimeCurrentBindingV94Service.js';
 
 test('V93 vincula o boot PM2 ao commit e tree exatos da V92', () => {
     assert.equal(EC_RUNTIME_SUCCESSOR_V93_PARENT_COMMIT, '929062a04c7e2488eed89b570c562a424e620f05');
@@ -25,8 +27,8 @@ test('V93 limpa o controlador e injeta somente o preload no processo alvo', () =
     assert.match(helper, /scripts\/lib\/pm2-target-env-restart-v89\.mjs/);
     assert.match(restart, /controller_node_options_must_start_empty/);
     assert.match(restart, /process\.env\.NODE_OPTIONS = targetNodeOptions/);
-    assert.ok(restart.includes(EC_RUNTIME_SUCCESSOR_V93_NODE_OPTIONS));
-    assert.ok(operational.includes(EC_RUNTIME_SUCCESSOR_V93_NODE_OPTIONS));
+    assert.ok(restart.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS));
+    assert.ok(operational.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS));
 });
 
 test('V93 preserva as superfícies congeladas', () => {

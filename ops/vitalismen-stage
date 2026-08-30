@@ -190,9 +190,9 @@ run_protected() {
 
 successor_guard_node_options() {
   local candidate_dir="$1"
-  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v93-context.mjs"
+  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v94-context.mjs"
 
-  [[ -f "$preload_path" ]] || die "preload sucessor V93 ausente"
+  [[ -f "$preload_path" ]] || die "preload sucessor V94 ausente"
   printf '%s' "--import=file://$preload_path"
 }
 
@@ -886,9 +886,9 @@ safe_pm2() {
   local -a pm2_exec=("$pm2_cmd" "$pm2_action" "$process_name" --update-env)
 
   target_dir="$(current_target)"
-  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v93-context.mjs" ]]; then
+  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v94-context.mjs" ]]; then
     [[ "$pm2_action" == "start" || "$pm2_action" == "restart" ]] || die "ação PM2 safe inválida"
-    target_node_options="$(successor_guard_node_options "$target_dir")"
+    target_node_options="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v94-context.mjs"
     pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
     [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
     pm2_module_root="${pm2_realpath%/bin/pm2}"

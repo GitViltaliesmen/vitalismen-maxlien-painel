@@ -1,0 +1,29 @@
+{
+  "attestationId": "ec-runtime-current-binding-v94-20260830",
+  "observedAt": "2026-08-30T04:55:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 93,
+    "commit": "cec3b934246b9883727d4bbfccf1a9cc1775911d",
+    "tree": "88ada004cf07ffe5e44bf279c75af65f35d75ec5"
+  },
+  "serverObservation": {
+    "releaseAttempt": "20260830T044637Z_production-20260830-cec3b93",
+    "stage": "PASS",
+    "publication": "PASS",
+    "preflight": "PASS",
+    "safeBoot": "CONTAINED_BEFORE_HTTP",
+    "runtimeFailure": "PM2_TARGET_PATH_PHYSICAL_RELEASE_INSTEAD_OF_OFFICIAL_CURRENT",
+    "productionProcessChanged": false
+  },
+  "change": {
+    "scope": "pm2_current_symlink_binding_only",
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  }
+}
