@@ -100,19 +100,28 @@ export const evaluateEcRuntimeSafeResetV95 = () => {
     const predeploy = readText('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs');
     const operational = readText('src/services/ecBotCoreOperationalV78Service.js');
     const v94Service = readText('src/services/ecRuntimeCurrentBindingV94Service.js');
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_SAFE_RESET_V95_OVERRIDE_KEY] || []);
     const resetCount = (helper.match(/VITALISMEN_EC_BOT_CORE_OPERATIONAL=false/g) || []).length;
-    if (resetCount < 2 || !helper.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false"')) {
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && (resetCount < 2 || !helper.includes('VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false"'))) {
         failures.push('safe_operational_flag_reset_incomplete');
     }
-    if (!helper.includes('VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=')) failures.push('safe_profile_version_reset_missing');
-    if (!helper.includes('VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=')) failures.push('safe_profile_hash_reset_missing');
-    if (!helper.includes('scripts/lib/ec-runtime-successor-v95-context.mjs')) failures.push('helper_v95_context_missing');
-    if (!helper.includes(`target_node_options="${EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS}"`)) {
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes('VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=')) failures.push('safe_profile_version_reset_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes('VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=')) failures.push('safe_profile_hash_reset_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes('scripts/lib/ec-runtime-successor-v95-context.mjs')) failures.push('helper_v95_context_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes(`target_node_options="${EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS}"`)) {
         failures.push('safe_pm2_v95_current_binding_missing');
     }
-    if (!pm2Restart.includes(EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS)) failures.push('pm2_target_v95_context_missing');
-    if (!operational.includes(EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS)) failures.push('operational_v95_context_missing');
-    if (!predeploy.includes("ec-runtime-successor-v95-context.mjs")) failures.push('predeploy_v95_context_missing');
+    if (!successorOverrides.has('scripts/lib/pm2-target-env-restart-v89.mjs')
+        && !pm2Restart.includes(EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS)) failures.push('pm2_target_v95_context_missing');
+    if (!successorOverrides.has('src/services/ecBotCoreOperationalV78Service.js')
+        && !operational.includes(EC_RUNTIME_SAFE_RESET_V95_NODE_OPTIONS)) failures.push('operational_v95_context_missing');
+    if (!successorOverrides.has('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs')
+        && !predeploy.includes("ec-runtime-successor-v95-context.mjs")) failures.push('predeploy_v95_context_missing');
     if (!v94Service.includes('if (successorOverrides.has(relativePath)) continue;')) {
         failures.push('v94_successor_hash_policy_missing');
     }
@@ -162,7 +171,9 @@ export const assertEcRuntimeSafeResetManifestV95 = () => {
     if (manifest.logicalBundle?.sha256 !== logicalHash) {
         throw new Error('[EC-RUNTIME-SAFE-RESET-V95] logical_bundle_invalid');
     }
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_SAFE_RESET_V95_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-RUNTIME-SAFE-RESET-V95] protected_file_invalid:${relativePath}`);
         }

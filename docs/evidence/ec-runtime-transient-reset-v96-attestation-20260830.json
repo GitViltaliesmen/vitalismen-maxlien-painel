@@ -1,0 +1,28 @@
+{
+  "attestationId": "ec-runtime-transient-reset-v96-20260830",
+  "observedAt": "2026-08-30T05:14:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 95,
+    "commit": "53f616cb2d885091028d1dbaa0090b5ad5d2d017",
+    "tree": "603ffe82198723236878f67e11bcdc0e577deff6"
+  },
+  "serverObservation": {
+    "releaseAttempt": "20260830T051116Z_production-20260830-53f616c",
+    "stage": "PASS",
+    "publication": "NOT_EXECUTED",
+    "activation": "NOT_EXECUTED",
+    "stagedSafeOverlaySha256": "3ddd34a93b28dca839c70418e12f20496a2aac79c6b3cf34c5effb135e4ccc34",
+    "productionProcessChanged": false
+  },
+  "change": {
+    "scope": "transient_pm2_operational_identity_reset_only",
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  }
+}

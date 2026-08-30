@@ -15,12 +15,12 @@ import {
     EC_BOT_CORE_CONTROL_PLANE_V89_PARENT_MANIFEST_SHA256
 } from '../src/services/ecBotCoreControlPlaneV89Service.js';
 
-await import('../scripts/lib/ec-runtime-successor-v95-context.mjs');
+await import('../scripts/lib/ec-runtime-successor-v96-context.mjs');
 
 const text = (file) => fs.readFileSync(file, 'utf8');
 const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const helper = path.resolve('scripts/lib/pm2-target-env-restart-v89.mjs');
-const canonicalNodeOptions = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v95-context.mjs';
+const canonicalNodeOptions = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v96-context.mjs';
 
 const createMockPm2 = () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'v89-pm2-'));
@@ -57,7 +57,7 @@ test('helper PM2 inicia sem NODE_OPTIONS e injeta o guard somente no target', ()
             encoding: 'utf8'
         });
         assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-        assert.match(run.stdout, /MOCK_PM2\|vitalismen-automation\|true\|--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v95-context\.mjs\|\n/);
+        assert.match(run.stdout, /MOCK_PM2\|vitalismen-automation\|true\|--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v96-context\.mjs\|\n/);
         assert.match(run.stdout, /PM2_TARGET_ENV_RESTART_V89=PASS/);
     } finally {
         fs.rmSync(mockRoot, { recursive: true, force: true });
