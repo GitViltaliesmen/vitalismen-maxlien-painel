@@ -53,6 +53,20 @@ const normalizePaths = (value) => {
     });
 };
 const readText = (relativePath) => fs.readFileSync(relativeFile(relativePath), 'utf8');
+const successorOverrides = () => {
+    const configured = Array.isArray(globalThis[EC_BOT_CORE_CONTROL_PLANE_V89_OVERRIDE_KEY])
+        ? globalThis[EC_BOT_CORE_CONTROL_PLANE_V89_OVERRIDE_KEY]
+        : [];
+    const successorManifestPath = 'docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json';
+    if (!fs.existsSync(relativeFile(successorManifestPath))) return new Set(normalizePaths(configured));
+    const successor = readCanonicalJson(successorManifestPath, 'v90_successor_manifest');
+    if (successor.freezeId !== 'ec-vsl-dashboard-ingress-v90'
+        || successor.parentVersion !== 'V89'
+        || successor.parentManifestSha256 !== '1af1407c551392ad4f292bff3a94019996f778c515b30415e146b6998b2180f8') {
+        throw new Error('[EC-BOT-CORE-CONTROL-PLANE-V89] v90_successor_identity_invalid');
+    }
+    return new Set(normalizePaths([...configured, ...(successor.declaredAncestorOverrides || [])]));
+};
 
 const assertParentV88 = () => {
     const identities = new Map([
@@ -78,7 +92,7 @@ const assertParentV88 = () => {
         || parent.policy?.realCustomerTrafficAuthorized !== false) {
         throw new Error('[EC-BOT-CORE-CONTROL-PLANE-V89] parent_policy_invalid');
     }
-    const modified = new Set(modifiedParentProtectedFiles);
+    const modified = new Set([...modifiedParentProtectedFiles, ...successorOverrides()]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (sha256File(relativeFile(relativePath)) !== expectedHash) {
@@ -171,7 +185,9 @@ export const assertEcBotCoreControlPlaneManifestV89 = () => {
             .join('')
     ));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-BOT-CORE-CONTROL-PLANE-V89] logical_bundle_invalid');
+    const inheritedSuccessorOverrides = successorOverrides();
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (inheritedSuccessorOverrides.has(relativePath)) continue;
         if (sha256File(relativeFile(relativePath)) !== expectedHash) {
             throw new Error(`[EC-BOT-CORE-CONTROL-PLANE-V89] protected_file_invalid:${relativePath}`);
         }

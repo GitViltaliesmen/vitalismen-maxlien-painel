@@ -1503,6 +1503,11 @@ export const classifyZapiGenericWebhookPayload = (payload = {}) => {
     };
 };
 
+export const ecQaInboundPersistenceOnly = (req = {}) => (
+    req?.ecQaInboundPolicyV90?.persistenceAllowed === true
+    && req?.ecQaInboundPolicyV90?.automationAllowed === false
+);
+
 router.post('/webhook/delivery', async (req, res) => {
     try {
         if (isStrictReadOnlyObservationEnabled() || !isZapiAckPersistenceEnabled()) {
@@ -1544,8 +1549,11 @@ router.post('/webhook', async (req, res) => {
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
-        const pickupReply = await handleZapiPickupConfirmation(result);
-        const buyLaterReply = result.body && !pickupReply.handled
+        const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
+        const pickupReply = qaPersistenceOnly
+            ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
+            : await handleZapiPickupConfirmation(result);
+        const buyLaterReply = result.body && !pickupReply.handled && !qaPersistenceOnly
             ? await handleBuyLaterConfirmationReply({
                 phone: result.phone,
                 chatId: result.chatId,
@@ -1555,9 +1563,9 @@ router.post('/webhook', async (req, res) => {
             })
             : { handled: false };
         const engagementReply = await scheduleClassifiedEngagementReply(result, {
-            skip: pickupReply.handled || buyLaterReply.handled
+            skip: qaPersistenceOnly || pickupReply.handled || buyLaterReply.handled
         });
-        if (result.routeToBot && isZapiInboundRoutingEnabled()) {
+        if (!qaPersistenceOnly && result.routeToBot && isZapiInboundRoutingEnabled()) {
             scheduleVslFirstResponseWatchdog(result);
             if (!pickupReply.handled && !buyLaterReply.handled) {
                 await routeIncomingMessage({
@@ -1600,8 +1608,11 @@ router.post('/webhook/received', async (req, res) => {
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
             const result = await recordZapiInboundPayload(payload);
-            const pickupReply = await handleZapiPickupConfirmation(result);
-            const buyLaterReply = result.body && !pickupReply.handled
+            const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
+            const pickupReply = qaPersistenceOnly
+                ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
+                : await handleZapiPickupConfirmation(result);
+            const buyLaterReply = result.body && !pickupReply.handled && !qaPersistenceOnly
                 ? await handleBuyLaterConfirmationReply({
                     phone: result.phone,
                     chatId: result.chatId,
@@ -1611,9 +1622,9 @@ router.post('/webhook/received', async (req, res) => {
                 })
                 : { handled: false };
             const engagementReply = await scheduleClassifiedEngagementReply(result, {
-                skip: pickupReply.handled || buyLaterReply.handled
+                skip: qaPersistenceOnly || pickupReply.handled || buyLaterReply.handled
             });
-            if (result.routeToBot && isZapiInboundRoutingEnabled()) {
+            if (!qaPersistenceOnly && result.routeToBot && isZapiInboundRoutingEnabled()) {
                 scheduleVslFirstResponseWatchdog(result);
                 if (!pickupReply.handled && !buyLaterReply.handled) {
                     await routeIncomingMessage({

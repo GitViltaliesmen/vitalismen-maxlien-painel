@@ -128,9 +128,25 @@ export const claimEcQaInboundContextV78 = async ({
         }
     });
     if (Number(result?.modifiedCount || 0) !== 1) {
-        return Object.freeze({ applicable: true, allowed: false, phone, messageId, reason: 'qa_context_not_armed_or_already_claimed' });
+        return Object.freeze({
+            applicable: true,
+            allowed: false,
+            persistenceAllowed: true,
+            automationAllowed: false,
+            phone,
+            messageId,
+            reason: 'qa_dashboard_persistence_only'
+        });
     }
-    return Object.freeze({ applicable: true, allowed: true, phone, messageId, reason: 'qa_context_claimed' });
+    return Object.freeze({
+        applicable: true,
+        allowed: true,
+        persistenceAllowed: true,
+        automationAllowed: true,
+        phone,
+        messageId,
+        reason: 'qa_context_claimed'
+    });
 };
 
 export const finalizeEcQaInboundContextV78 = async ({
@@ -183,15 +199,30 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
                 return httpBlocked(res, `qa_context_preflight_failed:${error.message}`, method, path);
             }
             if (qaClaim.applicable && !qaClaim.allowed) {
-                return res.status(202).json({
-                    ok: true,
-                    accepted: true,
-                    ignored: true,
-                    reason: qaClaim.reason,
-                    code: 'EC_QA_CONTEXT_NOT_AUTHORIZED'
-                });
+                if (qaClaim.persistenceAllowed === true && qaClaim.automationAllowed === false) {
+                    req.ecQaInboundPolicyV90 = Object.freeze({
+                        persistenceAllowed: true,
+                        automationAllowed: false,
+                        reason: qaClaim.reason,
+                        messageId: qaClaim.messageId
+                    });
+                } else {
+                    return res.status(202).json({
+                        ok: true,
+                        accepted: true,
+                        ignored: true,
+                        reason: qaClaim.reason,
+                        code: 'EC_QA_CONTEXT_NOT_AUTHORIZED'
+                    });
+                }
             }
             if (qaClaim.applicable && qaClaim.allowed) {
+                req.ecQaInboundPolicyV90 = Object.freeze({
+                    persistenceAllowed: true,
+                    automationAllowed: true,
+                    reason: qaClaim.reason,
+                    messageId: qaClaim.messageId
+                });
                 res.once('finish', () => {
                     runtimeContext.run({
                         profile: EC_BOT_CORE_V78_MODE,

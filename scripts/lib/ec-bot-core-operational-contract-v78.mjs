@@ -15,6 +15,9 @@ import {
 import {
     assertEcBotCoreControlPlaneV89
 } from '../../src/services/ecBotCoreControlPlaneV89Service.js';
+import {
+    assertEcVslDashboardIngressManifestV90
+} from '../../src/services/ecVslDashboardIngressV90Service.js';
 import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
@@ -126,6 +129,7 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         throw new Error('v78_structural_evidence_identity_mismatch');
     }
     assertEcBotCoreControlPlaneV89({ expectedRoot: resolved });
+    assertEcVslDashboardIngressManifestV90();
     return Object.freeze({ release, releaseDir: resolved, commit, tree, tag, ...hashes });
 };
 

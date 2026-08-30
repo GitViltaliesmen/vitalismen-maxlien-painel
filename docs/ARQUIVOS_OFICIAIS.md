@@ -1236,3 +1236,17 @@ nenhuma alteração realizada no VPS.
 - Estado: implementação e freeze exclusivamente locais; sem push, tag, stage,
   deploy, PM2, `.env`, banco, mensagem, evento Meta, Dropi APPLY, scheduler,
   cliente real ou tráfego. A ativação permanece fail-closed pela evidência VSL.
+## V90 — Protocolo G para dashboard EC
+
+- URL oficial preservada: `https://vilaliemen.shop/protocolo-g`.
+- Destino oficial preservado: `5515991418416`.
+- Contrato de origem: `src/services/ecOfficialVslEntryV78Service.js`.
+- Separação persistência/automação QA:
+  `src/services/ecBotCoreRuntimeIntegrationV78Service.js` e
+  `src/routes/zapi.js`.
+- Guard sucessor: `src/services/ecVslDashboardIngressFreezeRuntimeGuardV90.js`.
+- Freeze: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.
+- Evidência: `docs/evidence/ec-vsl-dashboard-ingress-v90-attestation-20260830.json`.
+- Páginas externas alteradas: não.
+- Estado inicial: implementação local validada; publicação e ativação ainda
+  dependem do fluxo oficial de release/permit.

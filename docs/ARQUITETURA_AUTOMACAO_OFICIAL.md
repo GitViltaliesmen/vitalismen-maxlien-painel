@@ -1630,3 +1630,23 @@ funil comercial e compatibilidade de dados V66 permanecem inalterados. A cadeia
 canônica passa a ser V78 → V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72
 → V71. Estado: implementação local, sem push, tag, stage, deploy, PM2, banco,
 mensagem, evento Meta, Dropi APPLY, scheduler ou tráfego real.
+## V90 — entrada oficial `/protocolo-g` no dashboard
+
+Em 2026-08-30, a origem oficial da apresentação Tex Ultra foi reancorada em
+`https://vilaliemen.shop/protocolo-g`. A microcamada V90 corrige a divergência
+residual do contrato V78, que ainda exigia `/protocolo` e descartava antes da
+persistência a mensagem estruturada do telefone QA quando o contexto de
+automação não estava armado.
+
+O novo contrato separa duas permissões: persistir a entrada no dashboard e
+autorizar resposta automática. Para o único QA `5515998038637`, a mensagem
+estruturada oficial é sempre gravada no núcleo `Message`/`ContactState`; se o
+contexto temporário V78 não estiver armado, confirmação de retirada, compra
+posterior, engajamento, watchdog e roteamento ao bot são suprimidos. A automação
+somente permanece disponível quando o contexto oficial já estava armado.
+
+As variantes externas de `/protocolo-g` não foram alteradas: celular continua
+na VSL e computador continua na página informativa. Dropi, Meta/CAPI, pixel,
+preços, checkout, schedulers, mídias e demais produtos permanecem congelados.
+
+Fonte de verdade: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.

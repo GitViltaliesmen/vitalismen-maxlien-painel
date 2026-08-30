@@ -1,0 +1,40 @@
+{
+  "attestationId": "ec-vsl-dashboard-ingress-v90-20260830",
+  "observedAt": "2026-08-30T02:49:05.609Z",
+  "status": "implementation_validated_local_pending_publication",
+  "productionBeforeChange": {
+    "release": "20260830T013239Z_production-20260830-04a68c3",
+    "commit": "04a68c3f31be290ca1524cef3b0c6ef4e6d712fb",
+    "health": "online",
+    "zapi": "connected",
+    "lastInboundAt": "2026-08-29T14:30:58.865Z"
+  },
+  "diagnosis": {
+    "officialPublicUrl": "https://vilaliemen.shop/protocolo-g",
+    "staleRuntimeUrl": "https://vilaliemen.shop/protocolo",
+    "qaIngressBefore": "discarded_before_dashboard_when_context_not_armed",
+    "qaIngressAfter": "persisted_without_automatic_reply_when_context_not_armed"
+  },
+  "externalPages": {
+    "changed": false,
+    "desktopVariant": "informativa-desktop",
+    "desktopBodySha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+    "mobileVariant": "vsl-mobile",
+    "mobileBodySha256": "59b1d47e1c9d7613d1fc30884ce7df78080f9544c730e9435079a0aa39bdfe7b"
+  },
+  "safety": {
+    "qaPhone": "5515998038637",
+    "officialWhatsapp": "5515991418416",
+    "unarmedAutomation": "blocked",
+    "mutatingSchedulers": "blocked",
+    "dropiApply": "blocked",
+    "metaPurchase": "blocked"
+  },
+  "publication": {
+    "commitCreated": false,
+    "pushExecuted": false,
+    "tagCreated": false,
+    "stageExecuted": false,
+    "activationExecuted": false
+  }
+}

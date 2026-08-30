@@ -1,8 +1,11 @@
-export const EC_OFFICIAL_VSL_V78_URL = 'https://vilaliemen.shop/protocolo';
+export const EC_OFFICIAL_VSL_V78_URL = 'https://vilaliemen.shop/protocolo-g';
 export const EC_OFFICIAL_VSL_V78_WHATSAPP = '5515991418416';
 export const EC_OFFICIAL_VSL_V78_PRODUCT_KEY = 'tex_ultra_ec';
-export const EC_OFFICIAL_VSL_V78_MARKER = 'EC-TEX-ULTRA-PROTOCOLO';
-export const EC_OFFICIAL_VSL_V78_MESSAGE = `Hola, vengo de la presentación oficial de Tex Ultra. Ref: ${EC_OFFICIAL_VSL_V78_MARKER}`;
+export const EC_OFFICIAL_VSL_V78_MARKER = 'EC-TEX-ULTRA-PROTOCOLO-G';
+export const EC_OFFICIAL_VSL_V78_MESSAGE = [
+    'Hola, quiero el tratamiento Tex Ultra.',
+    'Nombre: Cliente Protocolo G'
+].join('\n');
 
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
 const normalize = (value = '') => String(value || '')
@@ -24,6 +27,26 @@ const canonicalUrl = (value = '') => {
     }
 };
 
+const structuredProtocoloGMessage = (text = '') => {
+    const lines = String(text || '')
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    if (lines.length < 2 || lines.length > 4) return false;
+    if (normalize(lines[0]) !== normalize('Hola, quiero el tratamiento Tex Ultra.')) return false;
+
+    const fields = lines.slice(1).map((line) => {
+        const match = line.match(/^\s*([^:]+)\s*:\s*(.*)$/u);
+        return match ? { label: normalize(match[1]), value: String(match[2] || '').trim() } : null;
+    });
+    if (fields.some((field) => !field)) return false;
+    const allowedLabels = new Set(['nombre', 'ciudad', 'provincia']);
+    if (fields.some((field) => !allowedLabels.has(field.label))) return false;
+    if (new Set(fields.map((field) => field.label)).size !== fields.length) return false;
+    return fields.some((field) => field.label === 'nombre' && field.value);
+};
+
 export const officialEcVslDestinationPhoneV78 = (env = process.env) => {
     const configured = [
         env.ZAPI_PHONE,
@@ -42,9 +65,7 @@ export const recognizeOfficialEcVslEntryV78 = ({
     destinationPhone = '',
     sourceUrl = ''
 } = {}) => {
-    const normalizedText = normalize(text);
-    const expectedText = normalize(EC_OFFICIAL_VSL_V78_MESSAGE);
-    if (normalizedText !== expectedText) {
+    if (!structuredProtocoloGMessage(text)) {
         return Object.freeze({ recognized: false, reason: 'official_vsl_signature_mismatch' });
     }
     if (digitsOnly(destinationPhone) !== EC_OFFICIAL_VSL_V78_WHATSAPP) {
@@ -55,7 +76,7 @@ export const recognizeOfficialEcVslEntryV78 = ({
     }
     return Object.freeze({
         recognized: true,
-        reason: 'official_vsl_signature_exact',
+        reason: 'official_vsl_protocolo_g_structured',
         sourceUrl: EC_OFFICIAL_VSL_V78_URL,
         destinationPhone: EC_OFFICIAL_VSL_V78_WHATSAPP,
         productKey: EC_OFFICIAL_VSL_V78_PRODUCT_KEY,
