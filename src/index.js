@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import './services/runtimeSuccessorContextFreezeRuntimeGuardV82.js';
+import '../scripts/lib/ec-bot-core-runtime-boot-v87-successor-context.mjs';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import express from 'express';
 import cors from 'cors';

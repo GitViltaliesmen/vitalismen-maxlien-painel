@@ -1,0 +1,36 @@
+{
+  "attestationId": "ec-bot-core-runtime-boot-v87-20260829",
+  "country": "EC",
+  "parentVersion": "V86",
+  "parentCommit": "59fd9a53fce9536a6460f5581059bb18a8905779",
+  "parentTree": "8cd9665cf95646afc474d798ebf799b58d4cacb6",
+  "failure": {
+    "stage": "PASS",
+    "publication": "PASS",
+    "safeActivation": "FAIL_CLOSED_RUNTIME_SUCCESSOR_CONTEXT_LATE",
+    "rollbackRelease": "20260829T231342Z_production-20260829-2edd1eb",
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "first_import_successor_context",
+    "modifiedRuntimeEntryFiles": [
+      "ops/ec-bot-core-v78",
+      "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+      "src/index.js",
+      "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+    ],
+    "v86OperationalPolicyChanged": false,
+    "botBusinessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}

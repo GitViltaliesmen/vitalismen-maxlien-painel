@@ -1,0 +1,82 @@
+{
+  "freezeId": "ec-bot-core-runtime-boot-v87",
+  "version": 87,
+  "parentVersion": "V86",
+  "parentFreezeId": "ec-bot-core-operational-plan-v86",
+  "parentManifestSha256": "93caedc3d8fc4e0d21fa7e8e72a0c9db5213a6bf0bce3e9a19d6576120b193c5",
+  "parentFreezeSha256": "8110af7a8f5f87cc8e020ff1ec8b3647e4ce6d13861fb8f37538a94e0a63d411",
+  "parentAttestationSha256": "b326b2baad4c56699e242ece0137de2303cff2602990a34ddb577b4016d9cee2",
+  "parentCommit": "59fd9a53fce9536a6460f5581059bb18a8905779",
+  "parentTree": "8cd9665cf95646afc474d798ebf799b58d4cacb6",
+  "purpose": "EC_BOT_CORE_FIRST_IMPORT_SUCCESSOR_CONTEXT",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreRuntimeBootFreezeRuntimeGuardV87.js",
+    "canonicalBootPreloader": "scripts/lib/ec-bot-core-runtime-boot-v87-successor-context.mjs",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "datasetId": "1468946114265008",
+    "startupPreloadBeforeAncestors": true,
+    "v82StrictEntrypointSucceeded": true,
+    "v86OperationalPolicyChanged": false,
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-bot-core-runtime-boot-v87-attestation-20260829.json",
+    "sha256": "5762fb106e854521fc4accf10a0668285995d9f5fe58a76176b294ef3d714412"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "24286a33cfce022276f198c2fa8e5a3c5894a4ada1267a5ce84cec8373958dd6"
+  },
+  "declaredAncestorOverrides": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/index.js",
+    "src/services/canaryControllerV77Service.js",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "modifiedParentProtectedFiles": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_RUNTIME_BOOT_CONTEXT_FREEZE_V87_20260829.md",
+    "docs/evidence/ec-bot-core-runtime-boot-v87-attestation-20260829.json",
+    "scripts/guard-ec-bot-core-runtime-boot-v87.mjs",
+    "scripts/lib/ec-bot-core-runtime-boot-v87-successor-context.mjs",
+    "src/services/ecBotCoreRuntimeBootFreezeRuntimeGuardV87.js",
+    "src/services/ecBotCoreRuntimeBootV87Service.js",
+    "tests/ec-bot-core-runtime-boot-v87.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_RUNTIME_BOOT_CONTEXT_FREEZE_V87_20260829.md": "8c42ddaf3888c86172d20df422e3edebbf77f647dd6562a31d7ce2bfbc44d673",
+    "docs/evidence/ec-bot-core-runtime-boot-v87-attestation-20260829.json": "5762fb106e854521fc4accf10a0668285995d9f5fe58a76176b294ef3d714412",
+    "ops/ec-bot-core-v78": "9c5e9e5731905a92fde9710e4de248abf261f2eec5d3d729a6f68b4e79a77be1",
+    "scripts/guard-ec-bot-core-runtime-boot-v87.mjs": "b20822e6541fd48e180f7cf09419f7e85af3ad9bb246cd4952296511be6c9576",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "9e578134679b9fcc5e2f9d847551b97ace4277439f161db0560518448e3482f3",
+    "scripts/lib/ec-bot-core-runtime-boot-v87-successor-context.mjs": "6341fa1f986210fd450e33a56335db7526095ff2dc629ec84b3d7a8d72ca32fc",
+    "src/index.js": "6436eafaf95cf3dfa3722f11413cd7fbe726658e72a400673e85012087a90b2d",
+    "src/services/canaryControllerV77Service.js": "31ceb0167c67a71500315ee835ad6bc59c1aba3e028fb706d490dcd5a2d5df63",
+    "src/services/ecBotCoreRuntimeBootFreezeRuntimeGuardV87.js": "0ce04f1802978e662f46f51b850b600ee0c28444ce4306300548e4429f7c56b7",
+    "src/services/ecBotCoreRuntimeBootV87Service.js": "e75cd0c5b3b212f126dd1cd2d1cf39323e54ded204a36116ef2625d5b0395c0a",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js": "525645f38d3ab6ec9bd46d8e4864404d0958cca33ec41c76da0f6c3952b90d45",
+    "tests/ec-bot-core-runtime-boot-v87.test.mjs": "ae9e2c4af7f4a9bb05854029f591ae56a5e4866c1aa7a7c73455d21034a5ebc9"
+  }
+}
