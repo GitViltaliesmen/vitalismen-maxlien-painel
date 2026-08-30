@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
+import '../scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs';
+
 import {
     assertEcBotCoreLifecycleBootV88,
     evaluateEcBotCoreLifecycleBootV88,
@@ -17,11 +19,11 @@ import {
 
 const text = (file) => fs.readFileSync(file, 'utf8');
 const sha256 = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const preload = './scripts/lib/ec-bot-core-lifecycle-boot-v88-successor-context.mjs';
+const preload = './scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs';
 const absolutePreload = path.resolve(preload);
 const preloadUrl = pathToFileURL(absolutePreload).href;
 
-test('contexto V88 é o primeiro guard do runtime e mantém 30x2s', () => {
+test('contexto V88 permanece íntegro sob a sucessora V89 e mantém 30x2s', () => {
     const result = assertEcBotCoreLifecycleBootV88();
     assert.equal(result.ready, true);
     assert.equal(result.firstImportInstalled, true);
@@ -48,11 +50,11 @@ test('lifecycle de dependência ignora guards relativos e não falha fora da rai
     assert.equal(run.stdout, 'DEPENDENCY_SKIPPED');
 });
 
-test('lifecycle do projeto instala V88 e remove o próprio NODE_OPTIONS dos filhos', () => {
+test('lifecycle do projeto instala V89 e remove o próprio NODE_OPTIONS dos filhos', () => {
     const run = spawnSync(process.execPath, [
         `--import=${preloadUrl}`,
         '-e',
-        "const s=globalThis.__VITALISMEN_V88_EC_BOT_CORE_LIFECYCLE_BOOT_STATE; process.stdout.write(`${s?.version}|${String(process.env.NODE_OPTIONS || '').includes('lifecycle-boot-v88')}`)"
+        "const s=globalThis.__VITALISMEN_V89_EC_BOT_CORE_CONTROL_PLANE_STATE; process.stdout.write(`${s?.version}|${String(process.env.NODE_OPTIONS || '').includes('control-plane-v89')}`)"
     ], {
         cwd: process.cwd(),
         env: {
@@ -64,7 +66,7 @@ test('lifecycle do projeto instala V88 e remove o próprio NODE_OPTIONS dos filh
         encoding: 'utf8'
     });
     assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-    assert.equal(run.stdout, '88|false');
+    assert.equal(run.stdout, '89|false');
 });
 
 test('preloader V88 permite a cadeia estrutural V78', () => {
@@ -75,11 +77,11 @@ test('preloader V88 permite a cadeia estrutural V78', () => {
     assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
 });
 
-test('plan, contrato e runtime V78 exigem somente o sucessor V88', () => {
-    assert.match(text('ops/ec-bot-core-v78'), /guard-ec-bot-core-lifecycle-boot-v88\.mjs/);
+test('plan, contrato e runtime V78 exigem somente a sucessora V89', () => {
+    assert.match(text('ops/ec-bot-core-v78'), /guard-ec-bot-core-control-plane-v89\.mjs/);
     assert.doesNotMatch(text('ops/ec-bot-core-v78'), /guard-ec-bot-core-runtime-boot-v87\.mjs/);
-    assert.match(text('scripts/lib/ec-bot-core-operational-contract-v78.mjs'), /assertEcBotCoreLifecycleBootV88/);
-    assert.match(text('src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js'), /ec-bot-core-lifecycle-boot-v88-successor-context\.mjs/);
+    assert.match(text('scripts/lib/ec-bot-core-operational-contract-v78.mjs'), /assertEcBotCoreControlPlaneV89/);
+    assert.match(text('src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js'), /ec-bot-core-control-plane-v89-successor-context\.mjs/);
 });
 
 test('remoção da classificação de dependência falha fechada na avaliação', () => {

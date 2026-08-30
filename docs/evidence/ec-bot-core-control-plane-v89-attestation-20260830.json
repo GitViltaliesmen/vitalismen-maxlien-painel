@@ -1,0 +1,35 @@
+{
+  "attestationId": "ec-bot-core-control-plane-v89-20260830",
+  "country": "EC",
+  "parentVersion": "V88",
+  "parentCommit": "750209b2698b7df4796accb99173e7bee7ee72b4",
+  "parentTree": "9cf32dca6e1043b9d98ab7d81be5408a3713ce4c",
+  "failure": {
+    "botCorePlan": "PASS",
+    "botCoreAuthorization": "READY_NOT_CONSUMED",
+    "pm2Restart": "NOT_REACHED_CONTROL_PLANE_PRELOAD_FAILURE",
+    "activeRelease": "20260830T005304Z_production-20260830-750209b",
+    "activePidUnchanged": 3252865,
+    "safeObservationOnlyPreserved": true,
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "programmatic_pm2_target_environment_isolation",
+    "controllerStartsWithoutNodeOptions": true,
+    "targetReceivesCanonicalV78NodeOptions": true,
+    "postRestartControllerNodeOptionsCleared": true,
+    "failedAuthorizationAbortRequiresSafeHealth": true,
+    "botBusinessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}
