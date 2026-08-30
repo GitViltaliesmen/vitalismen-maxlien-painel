@@ -98,16 +98,23 @@ export const evaluateEcRuntimeCurrentBindingV94 = () => {
     const predeploy = readText('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs');
     const operational = readText('src/services/ecBotCoreOperationalV78Service.js');
     const v93Service = readText('src/services/ecRuntimeSuccessorV93Service.js');
-    if (!helper.includes('scripts/lib/ec-runtime-successor-v94-context.mjs')) failures.push('helper_v94_context_missing');
-    if (!helper.includes(`target_node_options="${EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS}"`)) {
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_CURRENT_BINDING_V94_OVERRIDE_KEY] || []);
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes('scripts/lib/ec-runtime-successor-v94-context.mjs')) failures.push('helper_v94_context_missing');
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes(`target_node_options="${EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS}"`)) {
         failures.push('safe_pm2_current_binding_missing');
     }
-    if (!helper.includes('preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v94-context.mjs"')) {
+    if (!successorOverrides.has('ops/vitalismen-stage')
+        && !helper.includes('preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v94-context.mjs"')) {
         failures.push('stage_release_binding_missing');
     }
-    if (!pm2Restart.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS)) failures.push('pm2_target_current_binding_missing');
-    if (!operational.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS)) failures.push('operational_current_binding_missing');
-    if (!predeploy.includes("ec-runtime-successor-v94-context.mjs")) failures.push('predeploy_v94_context_missing');
+    if (!successorOverrides.has('scripts/lib/pm2-target-env-restart-v89.mjs')
+        && !pm2Restart.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS)) failures.push('pm2_target_current_binding_missing');
+    if (!successorOverrides.has('src/services/ecBotCoreOperationalV78Service.js')
+        && !operational.includes(EC_RUNTIME_CURRENT_BINDING_V94_NODE_OPTIONS)) failures.push('operational_current_binding_missing');
+    if (!successorOverrides.has('scripts/run-deploy-guard-ancestry-predeploy-v91.mjs')
+        && !predeploy.includes("ec-runtime-successor-v94-context.mjs")) failures.push('predeploy_v94_context_missing');
     if (!v93Service.includes('if (successorOverrides.has(relativePath)) continue;')) {
         failures.push('v93_successor_hash_policy_missing');
     }
@@ -157,7 +164,9 @@ export const assertEcRuntimeCurrentBindingManifestV94 = () => {
     if (manifest.logicalBundle?.sha256 !== logicalHash) {
         throw new Error('[EC-RUNTIME-CURRENT-BINDING-V94] logical_bundle_invalid');
     }
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_CURRENT_BINDING_V94_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-RUNTIME-CURRENT-BINDING-V94] protected_file_invalid:${relativePath}`);
         }

@@ -1,0 +1,31 @@
+{
+  "attestationId": "ec-runtime-safe-reset-v95-20260830",
+  "observedAt": "2026-08-30T05:07:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 94,
+    "commit": "a2a8137fb5ce8f30187ba84824e226871db9409b",
+    "tree": "f0a506d82fca39a23b3e86ee5a69edb0afbac141"
+  },
+  "serverObservation": {
+    "releaseAttempt": "20260830T050116Z_production-20260830-a2a8137",
+    "stage": "PASS",
+    "publication": "PASS",
+    "preflight": "PASS",
+    "pm2TargetRestart": "PASS",
+    "safeEnvironmentVerification": "PASS",
+    "safeBoot": "CONTAINED_BEFORE_HTTP",
+    "runtimeFailure": "RESIDUAL_OPERATIONAL_V78_IDENTITY_IN_SAFE_PROFILE",
+    "productionProcessChanged": false
+  },
+  "change": {
+    "scope": "safe_pm2_operational_identity_reset_only",
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  }
+}

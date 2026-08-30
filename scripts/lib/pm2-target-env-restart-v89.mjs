@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 const [pm2ModuleRootRaw, processName, targetNodeOptions] = process.argv.slice(2);
 const clean = (value) => String(value || '').trim();
 const pm2ModuleRoot = path.resolve(clean(pm2ModuleRootRaw));
-const expectedNodeOptions = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v94-context.mjs';
+const expectedNodeOptions = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v95-context.mjs';
 
 if (clean(process.env.NODE_OPTIONS)) throw new Error('[EC-BOT-CORE-CONTROL-PLANE-V89] controller_node_options_must_start_empty');
 if (processName !== 'vitalismen-automation') throw new Error('[EC-BOT-CORE-CONTROL-PLANE-V89] process_name_invalid');

@@ -190,9 +190,9 @@ run_protected() {
 
 successor_guard_node_options() {
   local candidate_dir="$1"
-  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v94-context.mjs"
+  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v95-context.mjs"
 
-  [[ -f "$preload_path" ]] || die "preload sucessor V94 ausente"
+  [[ -f "$preload_path" ]] || die "preload sucessor V95 ausente"
   printf '%s' "--import=file://$preload_path"
 }
 
@@ -782,6 +782,9 @@ run_compatibility_preflight() {
 safe_profile_content() {
   cat <<'PROFILE'
 VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false
+VITALISMEN_EC_BOT_CORE_OPERATIONAL=false
+VITALISMEN_EC_BOT_CORE_PROFILE_VERSION=
+VITALISMEN_EC_BOT_CORE_PROFILE_SHA256=
 VITALISMEN_STRICT_READ_ONLY=true
 SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY
 VITALISMEN_CANARY_CTRL_V77_ENABLED=false
@@ -886,9 +889,9 @@ safe_pm2() {
   local -a pm2_exec=("$pm2_cmd" "$pm2_action" "$process_name" --update-env)
 
   target_dir="$(current_target)"
-  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v94-context.mjs" ]]; then
+  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v95-context.mjs" ]]; then
     [[ "$pm2_action" == "start" || "$pm2_action" == "restart" ]] || die "ação PM2 safe inválida"
-    target_node_options="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v94-context.mjs"
+    target_node_options="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v95-context.mjs"
     pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
     [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
     pm2_module_root="${pm2_realpath%/bin/pm2}"
@@ -901,6 +904,9 @@ safe_pm2() {
   "$env_cmd" \
     "${pm2_controller_env[@]}" \
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=false \
+    VITALISMEN_EC_BOT_CORE_OPERATIONAL=false \
+    VITALISMEN_EC_BOT_CORE_PROFILE_VERSION= \
+    VITALISMEN_EC_BOT_CORE_PROFILE_SHA256= \
     VITALISMEN_STRICT_READ_ONLY=true \
     SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY \
     VITALISMEN_CANARY_CTRL_V77_ENABLED=false \
@@ -968,6 +974,7 @@ process.stdin.on("end", () => {
   const env = processInfo.pm2_env || {};
   const expected = {
     VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED: "false",
+    VITALISMEN_EC_BOT_CORE_OPERATIONAL: "false",
     VITALISMEN_STRICT_READ_ONLY: "true",
     SAFE_OBSERVATION_POLICY: "STRICT_READ_ONLY",
     VITALISMEN_CANARY_CTRL_V77_ENABLED: "false",
@@ -1019,7 +1026,8 @@ process.stdin.on("end", () => {
     "VITALISMEN_CANARY_V77_BASELINE_TREE", "VITALISMEN_CANARY_V77_BASELINE_TAG",
     "VITALISMEN_CANARY_V77_QA_PHONE", "VITALISMEN_CANARY_V77_PERMIT_ID",
     "VITALISMEN_CANARY_V77_STARTED_AT", "VITALISMEN_CANARY_V77_EXPIRES_AT",
-    "VITALISMEN_CANARY_V77_PROFILE_SHA256"
+    "VITALISMEN_CANARY_V77_PROFILE_SHA256",
+    "VITALISMEN_EC_BOT_CORE_PROFILE_VERSION", "VITALISMEN_EC_BOT_CORE_PROFILE_SHA256"
   ]) {
     if (String(env[key] || "") !== "") throw new Error(`identidade V77 residual: ${key}`);
   }
