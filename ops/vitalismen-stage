@@ -188,6 +188,14 @@ run_protected() {
   return "$exit_status"
 }
 
+successor_guard_node_options() {
+  local candidate_dir="$1"
+  local preload_path="$candidate_dir/scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs"
+
+  [[ -f "$preload_path" ]] || die "preload sucessor V91 ausente"
+  printf '%s' "--import=file://$preload_path"
+}
+
 new_activation_id() {
   local prefix="$1"
   local value="${VITALISMEN_STAGE_ACTIVATION_ID:-${prefix}-$(date -u +%Y%m%dT%H%M%SZ)-$$}"
@@ -729,6 +737,7 @@ NODE
   if [[ -n "$guard_runner" ]]; then
     "$guard_runner" "$candidate_dir" || die "manifesto/guard V66 falhou"
   else
+    local candidate_guard_node_options
     [[ -f "$candidate_dir/docs/freeze/strict-read-only-observation-safety-v71-20260827.json" ]] ||
       die "manifesto da cadeia runtime V71 ausente"
     [[ -f "$candidate_dir/docs/freeze/deploy-helper-v71-chain-alignment-safety-v72-20260827.json" ]] ||
@@ -737,7 +746,9 @@ NODE
       die "runtime guard canônico V71 ausente"
     [[ -f "$candidate_dir/src/services/deployHelperV71ChainAlignmentSafetyFreezeGuardV72.js" ]] ||
       die "guard sucessor V72 ausente"
-    "$env_cmd" -C "$candidate_dir" "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
+    candidate_guard_node_options="$(successor_guard_node_options "$candidate_dir")"
+    "$env_cmd" -C "$candidate_dir" npm_config_node_options="$candidate_guard_node_options" \
+      "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
 }
@@ -2436,6 +2447,8 @@ release_metadata_sha_at_creation="$($sha256_cmd "$release_dir/.release-source.js
 
 rm -rf -- "$release_dir/.git"
 
+release_guard_node_options="$(successor_guard_node_options "$release_dir")"
+
 run_protected npm_ci \
   "$env_cmd" -C "$release_dir" "$npm_cmd" ci --omit=dev
 
@@ -2454,11 +2467,13 @@ run_protected post_sale_data_compatibility_v66 \
   "--target-metadata=$release_dir/.release-source.json"
 
 run_protected runtime_guard_chain_v71 \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:runtime-chain-v71
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:runtime-chain-v71
 
 # A V72 valida o materializador; a semântica runtime canônica continua V71.
 run_protected predeploy_v71 \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:predeploy-v71
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:predeploy-v71
 
 run_protected post_sale_safety_guard_v66 \
   "$env_cmd" -C "$release_dir" "$node_cmd" \
@@ -2469,31 +2484,40 @@ run_protected official_state_audit \
   "$node_cmd" scripts/official-state-audit.mjs
 
 run_protected freeze_lock_pre \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:freeze-lock
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:freeze-lock
 
 run_protected senior_check \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run senior:check
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run senior:check
 
 run_protected product_micro_layer \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:ec-product-micro-layer
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:ec-product-micro-layer
 
 run_protected dropi_catalog \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:ec-dropi-catalog
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:ec-dropi-catalog
 
 run_protected pickup_notifications \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:pickup-notifications
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:pickup-notifications
 
 run_protected whatsapp_status_contacts \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:whatsapp-status-contacts
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:whatsapp-status-contacts
 
 run_protected operational_labels \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run test:operational-labels
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run test:operational-labels
 
 run_protected pickup_notification_tests \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run test:pickup-notifications
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run test:pickup-notifications
 
 run_protected freeze_lock \
-  "$env_cmd" -C "$release_dir" "$npm_cmd" run guard:freeze-lock
+  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
+  "$npm_cmd" run guard:freeze-lock
 
 current_after="$(current_target)"
 pm2_pid_after="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"

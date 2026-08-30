@@ -1,0 +1,80 @@
+{
+  "freezeId": "deploy-guard-ancestry-successor-v91",
+  "version": 91,
+  "parentVersion": "V90",
+  "parentFreezeId": "ec-vsl-dashboard-ingress-v90",
+  "parentManifestSha256": "321ac50d2bd28d8a0487b325bc6448741b4f7ef8eeb21497d30db0aef19d97f6",
+  "parentFreezeSha256": "5e4cbfcc06c53e429ba8e96da31fdda398a44c90121c6ab3e5c7f48796535ff7",
+  "parentAttestationSha256": "63e01b91ee92f8b0e5a6db0cfb05cca1869c2e0c251a47eedf09a93e4301e273",
+  "parentCommit": "66c7d9db10509643a914c92044dd954617870727",
+  "parentTree": "054517ac70bead118d8874bf94be7862672895cb",
+  "purpose": "SCOPED_SUCCESSOR_CONTEXT_FOR_ANCESTRAL_DEPLOY_GUARDS",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/deployGuardAncestryFreezeRuntimeGuardV91.js",
+    "canonicalGuard": "node scripts/guard-deploy-guard-ancestry-v91.mjs",
+    "canonicalPreloader": "scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs",
+    "guardSubprocessOnly": true,
+    "ancestralHashesRewritten": false,
+    "guardsBypassed": false,
+    "npmCiPreloaded": false,
+    "runtimePm2Preloaded": false,
+    "externalVslFilesChanged": false,
+    "desktopPageChanged": false,
+    "mobilePageChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "colombiaTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/deploy-guard-ancestry-v91-attestation-20260830.json",
+    "sha256": "337e9105f45a24e348df152a3d0cdd21e0f0f06a9f403858a01d5e4e0fb3d37f"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "92a3c9722607c02e104358fcede40356d2b0869eea94483566eec18600ebc3df"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage",
+    "package.json",
+    "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage",
+    "package.json",
+    "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DEPLOY_GUARD_ANCESTRY_SUCCESSOR_FREEZE_V91_20260830.md",
+    "docs/evidence/deploy-guard-ancestry-v91-attestation-20260830.json",
+    "scripts/guard-deploy-guard-ancestry-v91.mjs",
+    "scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "src/services/deployGuardAncestryFreezeRuntimeGuardV91.js",
+    "src/services/deployGuardAncestryV91Service.js",
+    "tests/deploy-guard-ancestry-v91.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/DEPLOY_GUARD_ANCESTRY_SUCCESSOR_FREEZE_V91_20260830.md": "f1cd4f73562fd0e432e1bbe4fcc08bc4ba6164acdad8eee90cafcdd09639605c",
+    "docs/evidence/deploy-guard-ancestry-v91-attestation-20260830.json": "337e9105f45a24e348df152a3d0cdd21e0f0f06a9f403858a01d5e4e0fb3d37f",
+    "ops/vitalismen-stage": "a55b207715073680bab2ca8dc1bffc0a4279993d074fb3d1ba962b3bfa45e5ea",
+    "package.json": "e5e11155bad48b8c83bb02304a29180a0a641a485d60646c5dbd460ebbd3fae5",
+    "scripts/guard-deploy-guard-ancestry-v91.mjs": "149791d34bef2161f61254151e26c74b752a593551f3d376e2bff2c29037ce73",
+    "scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs": "b146a15226791b2df561f86e9ef28857d25d50ea68ac81910c8561beb0009dcf",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs": "cafc8333573639e5567997ced8a902c27315a4a39139080b5afd3da5377dc2c1",
+    "src/services/deployGuardAncestryFreezeRuntimeGuardV91.js": "d2bbcd385c16f7534e51ec4d91e5235fd4299c3c8dbca44f43de604140894f0c",
+    "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js": "1ef445887df13a70de613cda9f15185eaa7e9021b67e7c366583f4161730f2f5",
+    "src/services/deployGuardAncestryV91Service.js": "71c82d959cd8e8da0976b9d4a23c2fe8c3ef3f1526538eea8bd7c8b20b2badba",
+    "tests/deploy-guard-ancestry-v91.test.mjs": "f8a60e404ca7cdc19bb9a41008f6917673b3923fbbf05b59ce6e38b6c4b494cd"
+  }
+}

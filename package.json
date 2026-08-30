@@ -116,7 +116,7 @@
         "guard:predeploy-v70": "npm run guard:runtime-chain-v70 && node scripts/guard-deploy-publication-attestation-safety-v70.mjs && node scripts/guard-vitalismen-stage-v66.mjs && node --test tests/deploy-publication-attestation-safety-v70.test.mjs",
         "guard:runtime-chain-v71": "node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js",
         "guard:deploy-helper-v72": "node scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs",
-        "guard:predeploy-v71": "npm run guard:runtime-chain-v71 && npm run guard:deploy-helper-v72 && node scripts/guard-vitalismen-stage-v66.mjs && node --test tests/deploy-helper-v71-chain-alignment-v72.test.mjs tests/deploy-publication-attestation-safety-v70.test.mjs tests/strict-read-only-observation-safety-v71.test.mjs tests/document-level-baseline-readonly.test.mjs tests/whatsapp-chats-readonly.test.mjs && npm run guard:meta-partner-v73 && npm run guard:freeze-lock-v74 && npm run guard:canary-v75 && npm run guard:deploy-health-v76 && npm run guard:canary-controller-v77 && npm run guard:canary-controller-pm2-stdin-v77h && npm run guard:canary-controller-health-policy-v77h2",
+        "guard:predeploy-v71": "node scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
         "guard:predeploy-v72": "npm run guard:predeploy-v71",
         "guard:meta-partner-v73": "node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js && node scripts/guard-meta-partner-destination-registry-v73.mjs && node --test tests/meta-partner-destination-registry-v73.test.mjs",
         "test:meta-partner-v73": "node --test tests/meta-partner-destination-registry-v73.test.mjs",

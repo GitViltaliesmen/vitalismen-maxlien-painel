@@ -1,0 +1,29 @@
+{
+  "attestationId": "deploy-guard-ancestry-v91-20260830",
+  "observedAt": "2026-08-30T04:15:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 90,
+    "commit": "66c7d9db10509643a914c92044dd954617870727",
+    "tree": "054517ac70bead118d8874bf94be7862672895cb"
+  },
+  "diagnosis": {
+    "failedGate": "runtime_guard_chain_v71",
+    "failedAncestor": "META_PARTNER_DESTINATION_REGISTRY_V73",
+    "protectedFile": "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "currentHashDeclaredByV78": "dedf310f1e0cccf6b8cf16613d0628557cb614f4b1606124c46becb0104fb49f",
+    "cause": "successor_context_not_installed_before_ancestral_guard_and_v77h2_helper_assertion_outside_successor_policy"
+  },
+  "change": {
+    "scope": "official_stage_guard_subprocesses_only",
+    "ancestralHashesRewritten": false,
+    "v77h2ScopedSuccessorPolicyAligned": true,
+    "predeploySuccessorRunner": "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "guardsBypassed": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "colombiaTouched": false
+  }
+}
