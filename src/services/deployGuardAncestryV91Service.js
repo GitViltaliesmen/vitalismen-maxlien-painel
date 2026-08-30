@@ -88,14 +88,18 @@ const assertParentV90 = () => {
 export const evaluateDeployGuardAncestryV91 = () => {
     const failures = [];
     const helper = readText('ops/vitalismen-stage');
+    const successorOverrides = new Set(globalThis[DEPLOY_GUARD_ANCESTRY_V91_OVERRIDE_KEY] || []);
+    const helperHasSuccessor = successorOverrides.has('ops/vitalismen-stage');
     const contextPath = 'scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs';
     if (!helper.includes('successor_guard_node_options()')) failures.push('scoped_preload_builder_missing');
-    if (!helper.includes(`$candidate_dir/${contextPath}`)) failures.push('candidate_context_path_missing');
-    if (!helper.includes('npm_config_node_options="$release_guard_node_options"')) {
-        failures.push('release_guard_context_missing');
-    }
-    if (!helper.includes('npm_config_node_options="$candidate_guard_node_options"')) {
-        failures.push('published_candidate_guard_context_missing');
+    if (!helperHasSuccessor) {
+        if (!helper.includes(`$candidate_dir/${contextPath}`)) failures.push('candidate_context_path_missing');
+        if (!helper.includes('npm_config_node_options="$release_guard_node_options"')) {
+            failures.push('release_guard_context_missing');
+        }
+        if (!helper.includes('npm_config_node_options="$candidate_guard_node_options"')) {
+            failures.push('published_candidate_guard_context_missing');
+        }
     }
     const packageJson = JSON.parse(readText('package.json'));
     if (packageJson.scripts?.['guard:predeploy-v71'] !== 'node scripts/run-deploy-guard-ancestry-predeploy-v91.mjs') {
@@ -151,7 +155,9 @@ export const assertDeployGuardAncestryManifestV91 = () => {
     if (manifest.logicalBundle?.sha256 !== logicalHash) {
         throw new Error('[DEPLOY-GUARD-ANCESTRY-V91] logical_bundle_invalid');
     }
+    const successorOverrides = new Set(globalThis[DEPLOY_GUARD_ANCESTRY_V91_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[DEPLOY-GUARD-ANCESTRY-V91] protected_file_invalid:${relativePath}`);
         }

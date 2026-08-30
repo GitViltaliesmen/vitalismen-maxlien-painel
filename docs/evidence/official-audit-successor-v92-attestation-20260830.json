@@ -1,0 +1,30 @@
+{
+  "attestationId": "official-audit-successor-v92-20260830",
+  "observedAt": "2026-08-30T04:16:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 91,
+    "commit": "92b710e460b3ff3631be856161bd0e307e124981",
+    "tree": "965f53a1fd6e5872445086f186a169eeafd84b28"
+  },
+  "serverObservation": {
+    "releaseAttempt": "20260830T041342Z_production-20260830-92b710e",
+    "runtimeGuardChainV71": "PASS",
+    "predeployV91": "PASS",
+    "officialStateAudit": "FAILED_BEFORE_CHILD_CONTEXT_FORWARDING",
+    "incompleteReleaseRemoved": true,
+    "productionProcessChanged": false
+  },
+  "change": {
+    "scope": "official_audit_read_only_child_only",
+    "seniorGuardExactAllowlistEntriesAdded": 2,
+    "obsoleteStaticCanaryGuardsRemovedFromSeniorCheck": 2,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  }
+}

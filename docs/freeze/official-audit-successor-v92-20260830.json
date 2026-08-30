@@ -1,0 +1,86 @@
+{
+  "freezeId": "official-audit-successor-v92",
+  "version": 92,
+  "parentVersion": "V91",
+  "parentFreezeId": "deploy-guard-ancestry-successor-v91",
+  "parentManifestSha256": "02320abe17c70b64681ad04abe97a67d0db196c8ee211a95b1cb06ed98b76448",
+  "parentFreezeSha256": "f1cd4f73562fd0e432e1bbe4fcc08bc4ba6164acdad8eee90cafcdd09639605c",
+  "parentAttestationSha256": "337e9105f45a24e348df152a3d0cdd21e0f0f06a9f403858a01d5e4e0fb3d37f",
+  "parentCommit": "92b710e460b3ff3631be856161bd0e307e124981",
+  "parentTree": "965f53a1fd6e5872445086f186a169eeafd84b28",
+  "purpose": "FORWARD_SCOPED_SUCCESSOR_CONTEXT_TO_OFFICIAL_AUDIT_CHILD",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/officialAuditSuccessorFreezeRuntimeGuardV92.js",
+    "canonicalGuard": "node scripts/guard-official-audit-successor-v92.mjs",
+    "canonicalPreloader": "scripts/lib/official-audit-successor-v92-context.mjs",
+    "officialAuditReadOnly": true,
+    "childProcessOnly": true,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "desktopPageChanged": false,
+    "mobilePageChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/official-audit-successor-v92-attestation-20260830.json",
+    "sha256": "571b8d697da349ccc495e55e26e7f12d51cabfe64df5c868ef6ac53232262579"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "10dc081efd141f44f976cc5e98fd14ba33cce9621ee1977dc3e42ec083a7798f"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/official-state-audit.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "scripts/senior-guard.mjs",
+    "src/services/deployGuardAncestryV91Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/official-state-audit.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "scripts/senior-guard.mjs",
+    "src/services/deployGuardAncestryV91Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/OFFICIAL_AUDIT_SUCCESSOR_FREEZE_V92_20260830.md",
+    "docs/evidence/official-audit-successor-v92-attestation-20260830.json",
+    "scripts/guard-official-audit-successor-v92.mjs",
+    "scripts/lib/official-audit-successor-v92-context.mjs",
+    "src/services/officialAuditSuccessorFreezeRuntimeGuardV92.js",
+    "src/services/officialAuditSuccessorV92Service.js",
+    "tests/official-audit-successor-v92.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/OFFICIAL_AUDIT_SUCCESSOR_FREEZE_V92_20260830.md": "0da5225d3e146f94d1879fcccb92d20413ef803bd850e13a020a38ef56a910ed",
+    "docs/evidence/official-audit-successor-v92-attestation-20260830.json": "571b8d697da349ccc495e55e26e7f12d51cabfe64df5c868ef6ac53232262579",
+    "ops/vitalismen-stage": "4ee52099c0c72560a13687ba35ecd76e1cb975226f360489793e7123bcc4c701",
+    "package.json": "735d7707aa6a600379136f20e38c7a127b93205e6cc5d4d4c49ba4239df8ea21",
+    "scripts/guard-official-audit-successor-v92.mjs": "18c1f32057870812fb9f65f2e96432d4762159c60b3d85080e60b857f276b97a",
+    "scripts/lib/official-audit-successor-v92-context.mjs": "2212a5889840f0c8e9291f6187621a842262b1771da1026ce63ba1e9d7e5c83f",
+    "scripts/official-state-audit.mjs": "af5fd675cb153b36830790b2d46fa84190687a643afae8347acb0578f078a0f7",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs": "3cbdace340168e88efca0509e371d88592e1b7382edbb7318468e428072d6821",
+    "scripts/senior-guard.mjs": "dd37f396a76632126d42da4510304cd422483fb4ab3a4cb002ca7bcdf061367c",
+    "src/services/deployGuardAncestryV91Service.js": "dd987289b8e842ea2b3f4b1509318bfd8e138d8524aa07b722ac544531928423",
+    "src/services/officialAuditSuccessorFreezeRuntimeGuardV92.js": "282b5b5e449ead51a5f6969a599c5f0128ce30cc87e21cd8529499f96a4cfa60",
+    "src/services/officialAuditSuccessorV92Service.js": "207121a511a565b2dbd74ecff03eac9909b3094d1fa72ba726eeccd748464663",
+    "tests/official-audit-successor-v92.test.mjs": "c99cb949a0b5a54ef3d5c100f25dff7fb74bab93fddbedade6628bb3b57ba0c1"
+  }
+}

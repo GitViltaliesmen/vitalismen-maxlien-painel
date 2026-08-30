@@ -190,9 +190,9 @@ run_protected() {
 
 successor_guard_node_options() {
   local candidate_dir="$1"
-  local preload_path="$candidate_dir/scripts/lib/deploy-guard-ancestry-v91-successor-context.mjs"
+  local preload_path="$candidate_dir/scripts/lib/official-audit-successor-v92-context.mjs"
 
-  [[ -f "$preload_path" ]] || die "preload sucessor V91 ausente"
+  [[ -f "$preload_path" ]] || die "preload sucessor V92 ausente"
   printf '%s' "--import=file://$preload_path"
 }
 
@@ -2481,6 +2481,7 @@ run_protected post_sale_safety_guard_v66 \
 
 run_protected official_state_audit \
   "$env_cmd" -C "$release_dir" OFFICIAL_AUDIT_SKIP_VPS=true \
+  VITALISMEN_OFFICIAL_AUDIT_NODE_OPTIONS="$release_guard_node_options" \
   "$node_cmd" scripts/official-state-audit.mjs
 
 run_protected freeze_lock_pre \

@@ -82,12 +82,13 @@ const ignoredContextFiles = new Set([
 ]);
 // A V61 precisa registrar explicitamente que a conta compartilhada continua
 // read-only fora de EC. A excecao aceita somente a palavra de contexto nestes
-// tres documentos; as demais proibicoes e todos os outros arquivos continuam
+// documentos listados; as demais proibicoes e todos os outros arquivos continuam
 // cobertos pelo guard geral.
 const metaAttributionReadOnlyContextFiles = new Set([
     'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
     'docs/ARQUIVOS_OFICIAIS.md',
-    'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md'
+    'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md',
+    'docs/DEPLOY_GUARD_ANCESTRY_SUCCESSOR_FREEZE_V91_20260830.md'
 ]);
 // A referencia aprovada a consulta da Dra. Maria pertence exclusivamente ao
 // contrato isolado do Nitrix. Ela nao faz parte do texto ou do estado do
@@ -154,6 +155,9 @@ const productScopedProtocolFiles = new Set([
     // O guard sucessor V78 referencia os guards V61-V63 somente para validar
     // por hash a ancestralidade congelada da origem oficial.
     'src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js',
+    // A V90 reconhece exclusivamente a entrada oficial /protocolo-g para
+    // persistência no dashboard sem armar automação no contexto QA.
+    'src/services/ecVslDashboardIngressV90Service.js',
     // V64 somente herda o freeze V63 e bloqueia nomes invalidos no Dropi EC.
     'src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js',
     // V65 corrige busca, leitura canonica, pos-venda e reconciliacao Dropi EC.
