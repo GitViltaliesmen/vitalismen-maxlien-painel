@@ -13,8 +13,8 @@ import {
     serializeEcBotCoreV78Overlay
 } from '../../src/services/ecBotCoreOperationalV78Service.js';
 import {
-    assertEcBotCoreCanaryClassificationV85
-} from '../../src/services/ecBotCoreCanaryClassificationV85Service.js';
+    assertEcBotCoreOperationalPlanV86
+} from '../../src/services/ecBotCoreOperationalPlanV86Service.js';
 import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
@@ -125,7 +125,7 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         || JSON.stringify(manifest.deployment?.blockers || []) !== JSON.stringify(['OFFICIAL_VSL_ORIGIN_CONTRACT_DIVERGENT'])) {
         throw new Error('v78_structural_evidence_identity_mismatch');
     }
-    assertEcBotCoreCanaryClassificationV85({ expectedRoot: resolved });
+    assertEcBotCoreOperationalPlanV86({ expectedRoot: resolved });
     return Object.freeze({ release, releaseDir: resolved, commit, tree, tag, ...hashes });
 };
 

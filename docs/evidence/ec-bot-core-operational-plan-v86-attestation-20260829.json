@@ -1,0 +1,31 @@
+{
+  "attestationId": "ec-bot-core-operational-plan-v86-20260829",
+  "country": "EC",
+  "parentVersion": "V85",
+  "parentCommit": "4084bf8ee2dded6a5ce6388aecfe57b7ce50d192",
+  "parentTree": "616967d32a2d354d2cfed0d8fb5dd4c56655825b",
+  "failure": {
+    "classificationV85": "PASS",
+    "operationalPlan": "FAIL_CLOSED_ANCESTRAL_V78_GUARD",
+    "activationExecuted": false,
+    "safeProductionChanged": false,
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "successor_aware_operational_plan_guard",
+    "ancestralGuardModified": false,
+    "v85ClassificationChanged": false,
+    "botBusinessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}
