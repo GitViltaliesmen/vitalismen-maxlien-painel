@@ -158,7 +158,7 @@ run_plan() {
   assert_current_and_pm2_identity "$release_dir"
   (
     cd "$release_dir"
-    "$node_cmd" scripts/guard-ec-bot-core-runtime-boot-v87.mjs
+    "$node_cmd" scripts/guard-ec-bot-core-lifecycle-boot-v88.mjs
     NODE_OPTIONS="--import=$release_dir/src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js" \
       "$node_cmd" --test tests/ec-bot-core-structural-v78.test.mjs
   ) >"$guard_log" 2>&1 || die "guard estrutural V78 falhou; detalhes protegidos em $guard_log"
