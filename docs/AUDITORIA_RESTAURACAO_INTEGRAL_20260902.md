@@ -173,6 +173,11 @@ não confirmou a operação.
 
 Não foi feito novo POST durante a auditoria. A sequência autorizada e segura é:
 
+Uma verificação adicional abriu `https://app.dropi.ec/dashboard/orders` em
+modo controlado. A sessão interna apresentou a tela de login, e não havia
+sessão Chrome/Edge conectada disponível. Nenhuma credencial foi lida,
+solicitada ou preenchida; a aba temporária foi fechada sem mutação.
+
 1. ativar V98 no release oficial;
 2. pesquisar na Dropi autenticada por telefone e referência do pedido;
 3. se já existir, apenas sincronizar ID/status;
