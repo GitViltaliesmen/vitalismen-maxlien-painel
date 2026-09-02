@@ -1250,3 +1250,21 @@ nenhuma alteração realizada no VPS.
 - Páginas externas alteradas: não.
 - Estado inicial: implementação local validada; publicação e ativação ainda
   dependem do fluxo oficial de release/permit.
+
+## V99 — registro idempotente de recompra EC (2026-09-02)
+
+- Incidente autorizado: lead EC `1503`; pedido entregue preservado
+  `EC-DROPI-5756679`.
+- Fonte de verdade do ciclo entregue/recompra:
+  `src/services/ecDeliveredRepurchaseService.js`.
+- Pontos oficiais corrigidos: `src/routes/shipments.js`, rota administrativa
+  `stage-confirmed`, e `src/routes/whatsapp.js`, salvamento da ficha do contato.
+- Contrato: criar/reusar somente `EC-RECOMPRA-*` ativo do mesmo ciclo, gravar
+  `previousOrderId` e mover `currentNegotiationOrderId` para o pedido novo.
+- Registro não cria Shipment, não autoriza Dropi e não envia à Dropi.
+- Freeze/manifesto/guard:
+  `docs/EC_REPURCHASE_REGISTRATION_FREEZE_V99_20260902.md`,
+  `docs/freeze/ec-repurchase-registration-v99-20260902.json` e
+  `scripts/guard-ec-repurchase-registration-v99.mjs`.
+- Publicação, backup e validação oficial serão registrados em evidência
+  operacional própria após o fluxo seguro de release.

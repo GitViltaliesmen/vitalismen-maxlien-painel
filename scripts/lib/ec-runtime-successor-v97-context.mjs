@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/dropiManualBffRecoveryV98Service.js';
+import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
+const latest = assertEcRepurchaseRegistrationManifestV99();
+const latestPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...latestPrevious, ...latest.overrides])];
 const successor = assertDropiManualBffRecoveryManifestV98();
 const previous = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...previous, ...successor.overrides])];
@@ -9,3 +13,4 @@ globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...inhe
 await import('./ec-runtime-successor-v96-context.mjs');
 await import('../../src/services/ecOperationalGuardContextFreezeRuntimeGuardV97.js');
 await import('../../src/services/dropiManualBffRecoveryFreezeRuntimeGuardV98.js');
+await import('../../src/services/ecRepurchaseRegistrationFreezeRuntimeGuardV99.js');

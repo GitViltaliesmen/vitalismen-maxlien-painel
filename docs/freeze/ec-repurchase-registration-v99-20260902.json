@@ -1,0 +1,89 @@
+{
+  "freezeId": "ec-repurchase-registration-v99",
+  "version": 99,
+  "parentVersion": "V98",
+  "parentFreezeId": "dropi-manual-bff-recovery-v98",
+  "parentManifestSha256": "ca216571cdd589f45bcf9ca35b942bf8ffa079f12f698baa35b1dfd572943a8a",
+  "parentFreezeSha256": "f1599b5e9afbbce6cfb205784010aeb6898a443fb9873b886e10695b7b5e02d7",
+  "parentAttestationSha256": "06ff463b5b3f212623d354f48fe157a255725d1638e6dd6b22b502df9d450ae4",
+  "parentCommit": "76fb8a873aca42c2e424df806fbcd824eded3878",
+  "parentTree": "518940e9d35c7be8cb9845c5b1d48574f8dedfbe",
+  "purpose": "IDEMPOTENT_REPURCHASE_REGISTRATION_WITH_HISTORICAL_PRESERVATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_ec_repurchase_registration",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecRepurchaseRegistrationFreezeRuntimeGuardV99.js",
+    "canonicalGuard": "node scripts/guard-ec-repurchase-registration-v99.mjs",
+    "newRepurchaseOrderRequired": true,
+    "activeCycleIdempotency": true,
+    "historicalOrderMutationAllowed": false,
+    "dropiAuthorizationCreated": false,
+    "dropiSubmissionCreated": false,
+    "whatsappOutboundChanged": false,
+    "funnelChanged": false,
+    "pricesChanged": false,
+    "postSaleSchedulersChanged": false,
+    "databaseSchemaChanged": false,
+    "pixelDatasetChanged": false,
+    "otherCountryTouched": false,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-repurchase-registration-v99-attestation-20260902.json",
+    "sha256": "a2697c65902953afebc90f5040ea7d941f38da16a5fdad6621674fd517f34f79"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "7113132a065eb4ee4a8b413be04b65eeff5319020c239a817854db96cce433a4"
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/shipments.js",
+    "src/routes/whatsapp.js",
+    "src/services/dropiManualBffRecoveryV98Service.js",
+    "src/services/ecDeliveredRepurchaseService.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/shipments.js",
+    "src/routes/whatsapp.js",
+    "src/services/dropiManualBffRecoveryV98Service.js",
+    "src/services/ecDeliveredRepurchaseService.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_REPURCHASE_REGISTRATION_FREEZE_V99_20260902.md",
+    "docs/evidence/ec-repurchase-registration-v99-attestation-20260902.json",
+    "scripts/guard-ec-repurchase-registration-v99.mjs",
+    "src/services/ecRepurchaseRegistrationFreezeRuntimeGuardV99.js",
+    "src/services/ecRepurchaseRegistrationV99Service.js",
+    "tests/ec-repurchase-registration-v99.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUIVOS_OFICIAIS.md": "60a858367fda0c5332224ee4a74cbe97f764023e0d1808d44e7cbd3bdeefdbd3",
+    "docs/EC_REPURCHASE_REGISTRATION_FREEZE_V99_20260902.md": "8d46da5a7b99964da8ad3b1095d0f174cbd727faf347fcae26a94931679cb72e",
+    "docs/evidence/ec-repurchase-registration-v99-attestation-20260902.json": "a2697c65902953afebc90f5040ea7d941f38da16a5fdad6621674fd517f34f79",
+    "scripts/guard-ec-repurchase-registration-v99.mjs": "97c06390768c089718acf8cd61dcf371b3ad106bd8305555b25cb2e159571a9b",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "de15108ab0845411878fb76de945b967d47b2a04f48220424863441d55b301e6",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "95b0597de01a286ff64f933f382544d063c2717d1fffad10868b8cda272985e8",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "707d5500d3971d5dfc62e3c7247d231865b4e0199351ea4cc015fe89d454f163",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "ceeb9b9bfc9d7e427c48eb3f5f2a01be4b2477a227deab00b8b2360faa445b94",
+    "src/routes/shipments.js": "e007d406f1a25480f4bd74926bdb80cd31c2d3783e84eeee9e3671104b70d651",
+    "src/routes/whatsapp.js": "96b9a429fdfba1170af8a401e5ac9297898d694a64da55f39a0aa71f77ed36d9",
+    "src/services/dropiManualBffRecoveryV98Service.js": "ffcdb9a3eb4c825bf77ee37e8ee5ebbc32acf14a6c7215906c61573270ee628b",
+    "src/services/ecDeliveredRepurchaseService.js": "a246a1abd123139945672955fbbd64e5d67dd6993eb55f65e9133a0f36926dda",
+    "src/services/ecRepurchaseRegistrationFreezeRuntimeGuardV99.js": "d1496ae715d5c9078aa685be57f3ed7af492c6cbbc2d988b80097c3d2a1e1b7d",
+    "src/services/ecRepurchaseRegistrationV99Service.js": "daaacc292b44675699aaf2321d317c2d08587840b018cbd19635ae24a7d9a3c2",
+    "tests/ec-repurchase-registration-v99.test.mjs": "ab097805c711f6cab3f9ccf4102a912a389275c18c462051eda0f5c66fb24cd1"
+  }
+}

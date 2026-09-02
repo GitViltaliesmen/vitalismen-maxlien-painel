@@ -146,7 +146,9 @@ export const assertDropiManualBffRecoveryManifestV98 = () => {
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([relativePath, hash]) => `${relativePath}\0${hash}\n`).join('')));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[DROPI-MANUAL-BFF-RECOVERY-V98] logical_bundle_invalid');
+    const successorOverrides = new Set(globalThis[DROPI_MANUAL_BFF_RECOVERY_V98_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[DROPI-MANUAL-BFF-RECOVERY-V98] protected_file_invalid:${relativePath}`);
         }

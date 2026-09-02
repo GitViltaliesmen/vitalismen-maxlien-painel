@@ -98,6 +98,7 @@ import {
 } from '../services/ecConversationBucketService.js';
 import { ecEngagementReplyPolicy } from '../services/ecEngagementReplyService.js';
 import {
+    deliveredRepurchaseRegistrationDecision,
     operationalOrderLineage,
     panelOrderLifecycle
 } from '../services/ecDeliveredRepurchaseService.js';
@@ -2584,6 +2585,44 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
                 'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
             };
     let order = await Order.findOne(query);
+    let repurchaseDecision = null;
+    if (order) {
+        const currentShipment = await Shipment.findOne({
+            country: 'EC',
+            orderId: order.orderId
+        }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 });
+        const lifecycle = panelOrderLifecycle({ order, shipment: currentShipment });
+        if (lifecycle.delivered) {
+            const activeRepurchase = await Order.findOne({
+                country: 'EC',
+                previousOrderId: order.orderId,
+                entryReason: 'repeat_purchase_after_delivered',
+                status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] },
+                'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
+            }).sort({ updatedAt: -1, createdAt: -1 });
+            repurchaseDecision = deliveredRepurchaseRegistrationDecision({
+                authenticated: Boolean(req?.user),
+                currentOrder: order,
+                currentShipment,
+                activeRepurchase,
+                newCustomerPhone: draft.phone
+            });
+            if (!repurchaseDecision.allowed) {
+                const error = new Error(repurchaseDecision.reason || 'delivered_repurchase_not_allowed');
+                error.code = repurchaseDecision.reason || 'delivered_repurchase_not_allowed';
+                error.status = repurchaseDecision.statusCode || 409;
+                throw error;
+            }
+            order = repurchaseDecision.reused
+                ? activeRepurchase
+                : new Order({
+                    orderId: repurchaseDecision.orderId,
+                    previousOrderId: repurchaseDecision.previousOrderId,
+                    previousDeliveredAt: repurchaseDecision.previousDeliveredAt,
+                    entryReason: repurchaseDecision.entryReason
+                });
+        }
+    }
     const existingOrderStatus = String(order?.status || '').trim().toLowerCase();
     const preserveExistingOrderStatus = [
         'processing',
@@ -2626,11 +2665,16 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         source: 'manual',
         status: preserveExistingOrderStatus ? order.status : 'confirmed',
         notes: orderLineage.preserveExistingNotes
-            ? String(order?.notes || '').trim()
+            ? (String(order?.notes || '').trim() || (
+                repurchaseDecision?.repurchase
+                    ? `Nova recompra confirmada na ficha/painel WhatsApp. Produto: ${productInfo.name}. Pedido anterior: ${orderLineage.previousOrderId}.`
+                    : ''
+            ))
             : sourceIsAdminOrder
                 ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
                 : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,
         previousOrderId: orderLineage.previousOrderId,
+        previousDeliveredAt: order?.previousDeliveredAt || repurchaseDecision?.previousDeliveredAt || null,
         entryReason: orderLineage.entryReason,
         tracking: {
             ...capturedAttribution,
@@ -2695,6 +2739,10 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         productName: productInfo.name,
         sourceOrderId,
         createdFromAdminOrder: sourceIsAdminOrder,
+        repurchase: repurchaseDecision?.repurchase === true,
+        repurchaseReused: repurchaseDecision?.reused === true,
+        previousOrderId: order.previousOrderId || '',
+        previousDeliveredAt: order.previousDeliveredAt || null,
         purchase: {
             ok: purchase.ok === true,
             alreadySent: purchase.alreadySent === true,
@@ -5960,10 +6008,13 @@ router.patch('/contact-state/:phone', async (req, res) => {
                             product: operationalOrderSync.productName || cleanDraft.product || '',
                             productKey: operationalOrderSync.productKey || '',
                             sourceOrderId: cleanDraft.sourceOrderId || cleanDraft.orderId || '',
-                            previousOrderId: cleanDraft.previousOrderId || '',
+                            previousOrderId: operationalOrderSync.previousOrderId || cleanDraft.previousOrderId || '',
                             currentNegotiationOrderId: cleanDraft.currentNegotiationOrderId || operationalOrderSync.orderId
                         }
                     };
+                    if (operationalOrderSync.repurchase) {
+                        state.metadata.customerDraft.currentNegotiationOrderId = operationalOrderSync.orderId;
+                    }
                 }
             }
         }

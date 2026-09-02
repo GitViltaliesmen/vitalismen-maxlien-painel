@@ -1,0 +1,10 @@
+await import('./lib/ec-runtime-successor-v97-context.mjs');
+const { assertEcRepurchaseRegistrationV99 } = await import('../src/services/ecRepurchaseRegistrationV99Service.js');
+const result = assertEcRepurchaseRegistrationV99();
+console.log('EC_REPURCHASE_REGISTRATION_V99=PASS');
+console.log(`MANIFEST_SHA256=${result.manifestSha256}`);
+console.log('HISTORICAL_ORDER_MUTATION=NO');
+console.log('ACTIVE_REPURCHASE_REUSE=YES');
+console.log('DROPI_AUTHORIZATION_CREATED=NO');
+console.log('DROPI_SUBMISSION_CREATED=NO');
+console.log('GUARDS_BYPASSED=NO');

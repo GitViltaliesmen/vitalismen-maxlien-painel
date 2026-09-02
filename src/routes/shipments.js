@@ -2,6 +2,7 @@ import express from 'express';
 import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
+import ContactState from '../models/ContactState.js';
 import AutomationRun from '../models/AutomationRun.js';
 import {
     buildDroppiEcuadorOrderPayload,
@@ -20,6 +21,7 @@ import {
     repurchaseReminderDelayDaysForUnits
 } from '../services/shipmentMessageService.js';
 import Order from '../models/Order.js';
+import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import { importDroppiEcuadorText } from '../services/droppiEcuadorImportService.js';
 import {
     prepareDroppiEcuadorSubmission,
@@ -36,6 +38,7 @@ import {
 } from '../services/carrierTrackingService.js';
 import {
     markOnlineAdminPedidoEnviado,
+    recordOnlineAdminPurchaseLock,
     syncOrderToOnlineAdminPanel,
     updateOnlineAdminLeadProductSelection
 } from '../services/adminPanelStatusService.js';
@@ -71,6 +74,11 @@ import {
     publicLogisticsStateV29
 } from '../services/logisticsCommunicationV29.js';
 import { listDropiSyncCycles } from '../services/dropiSyncObservabilityService.js';
+import { assertCustomerOrderDataReady } from '../services/customerDataResolutionService.js';
+import {
+    deliveredRepurchaseRegistrationDecision,
+    panelOrderLifecycle
+} from '../services/ecDeliveredRepurchaseService.js';
 
 const router = express.Router();
 
@@ -312,6 +320,298 @@ const findOrderForDropiRequest = async (requestedOrderId) => {
     if (mappedOrder) return mappedOrder;
     const lead = getAdminLeadSnapshot({ orderId: requestedOrderId });
     return createOperationalOrderFromAdminLead(requestedOrderId, lead);
+};
+
+const activeRepurchaseStatuses = ['draft', 'pending', 'confirmed', 'processing', 'shipped'];
+
+const findContactStateForAdminLead = async (lead = {}) => {
+    const phoneDigits = String(lead.phone || '').replace(/\D/g, '');
+    const tail = phoneDigits.slice(-9);
+    if (!tail) return null;
+    return ContactState.findOne({
+        $or: [
+            { phoneDigits: { $regex: `${tail}$` } },
+            { chatId: { $regex: tail } },
+            { 'metadata.customerDraft.phone': { $regex: `${tail}$` } }
+        ]
+    }).sort({ updatedAt: -1 });
+};
+
+const deliveredOrderForAdminLead = async (lead = {}) => {
+    const phoneDigits = String(lead.phone || '').replace(/\D/g, '');
+    const tail = phoneDigits.slice(-9);
+    if (!tail) return { order: null, shipment: null };
+    const orders = await Order.find({
+        country: 'EC',
+        'customer.phone': { $regex: `${tail}$` }
+    }).sort({ updatedAt: -1, createdAt: -1 }).limit(100);
+    if (!orders.length) return { order: null, shipment: null };
+    const shipments = await Shipment.find({
+        country: 'EC',
+        orderId: { $in: orders.map((order) => order.orderId).filter(Boolean) }
+    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 });
+    const shipmentByOrderId = new Map();
+    for (const shipment of shipments) {
+        if (!shipmentByOrderId.has(shipment.orderId)) shipmentByOrderId.set(shipment.orderId, shipment);
+    }
+    const order = orders.find((candidate) => panelOrderLifecycle({
+        order: candidate,
+        shipment: shipmentByOrderId.get(candidate.orderId) || null
+    }).delivered) || null;
+    return {
+        order,
+        shipment: order ? shipmentByOrderId.get(order.orderId) || null : null
+    };
+};
+
+const stagedOrderDataFromAdminLead = ({ lead = {}, state = null, previousOrder = null } = {}) => {
+    const draft = state?.metadata?.customerDraft?.toObject?.()
+        || state?.metadata?.customerDraft
+        || {};
+    const customerDataResolution = state?.customerDataResolution?.toObject?.()
+        || state?.customerDataResolution
+        || {};
+    assertCustomerOrderDataReady(customerDataResolution);
+    const quantity = normalizePackageQuantity(lead.product_qty || draft.quantity);
+    const total = parseMoney(lead.product_value || draft.total, 0);
+    if (!quantity || total <= 0) {
+        const error = new Error('Quantidade e valor positivos sao obrigatorios para registrar a recompra.');
+        error.status = 422;
+        error.code = 'repurchase_quantity_total_required';
+        throw error;
+    }
+    const productInfo = resolveEcuadorProductInfo(
+        draft,
+        previousOrder,
+        lead.notes,
+        lead.event_source_url,
+        lead.utm_campaign,
+        lead.utm_content
+    );
+    if (!productInfo?.key) {
+        const error = new Error('Produto EC explicito obrigatorio para registrar a recompra.');
+        error.status = 422;
+        error.code = 'repurchase_explicit_product_required';
+        throw error;
+    }
+    const phone = String(draft.phone || lead.phone || '').trim();
+    const phoneDigits = phone.replace(/\D/g, '');
+    const customer = {
+        name: String(draft.name || lead.name || '').trim(),
+        phone: phoneDigits ? `+${phoneDigits}` : phone,
+        address: String(draft.address || lead.address || '').trim(),
+        reference: String(draft.reference || '').trim(),
+        city: String(draft.city || lead.city || '').trim(),
+        province: String(draft.province || lead.province || '').trim()
+    };
+    const delivery = {
+        mode: String(draft.deliveryMode || '').trim(),
+        agencyId: String(draft.agencyId || '').trim(),
+        agencyName: String(draft.agencyName || '').trim()
+    };
+    const missing = [
+        ['nome', customer.name],
+        ['telefone', customer.phone],
+        ['endereco', customer.address],
+        ['cidade', customer.city],
+        ['provincia', customer.province]
+    ].filter(([, value]) => !value).map(([field]) => field);
+    if (missing.length) {
+        const error = new Error(`Complete antes de registrar a recompra: ${missing.join(', ')}`);
+        error.status = 422;
+        error.code = 'repurchase_customer_data_required';
+        throw error;
+    }
+    return {
+        draft,
+        customerDataResolution,
+        quantity,
+        total,
+        productInfo,
+        customer,
+        delivery,
+        tracking: {
+            ...((state?.metadata?.tracking?.toObject?.() || state?.metadata?.tracking) || {}),
+            productSelectionSource: 'manual_customer_draft',
+            ...ecuadorProductMetadata(productInfo)
+        }
+    };
+};
+
+const ensurePurchaseForStagedOrder = async ({ order, req, sourceOrderId }) => {
+    if (order.tracking?.metaPurchaseSentAt) {
+        return {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            eventId: order.tracking?.metaPurchaseEventId || order.orderId,
+            response: order.tracking?.metaPurchaseResponse || null,
+            sentAt: order.tracking?.metaPurchaseSentAt
+        };
+    }
+    const purchase = await sendPurchaseEventForOrder(order);
+    order.tracking = order.tracking || {};
+    order.tracking.metaPurchaseEventId = purchase.eventId || order.orderId;
+    if (purchase.ok) {
+        order.tracking.metaPurchaseSentAt = new Date();
+        order.tracking.metaPurchaseResponse = purchase.response;
+    } else {
+        order.tracking.metaPurchaseResponse = {
+            ok: false,
+            status: purchase.status,
+            data: purchase.data,
+            error: purchase.error
+        };
+    }
+    await order.save();
+    if (order.tracking?.metaPurchaseSentAt) {
+        recordOnlineAdminPurchaseLock({
+            order,
+            purchase,
+            sourceOrderId,
+            country: 'EC'
+        });
+    }
+    return purchase;
+};
+
+const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, note = '', req }) => {
+    const adminOrderId = `EC-ADMIN-${leadId}`;
+    const lead = getAdminLeadSnapshot({ orderId: adminOrderId });
+    if (!lead) {
+        const error = new Error('Lead EC nao encontrado.');
+        error.status = 404;
+        error.code = 'admin_lead_not_found';
+        throw error;
+    }
+    if (String(lead.country || 'EC').trim().toUpperCase() !== 'EC') {
+        const error = new Error('Registro de recompra liberado somente para Equador.');
+        error.status = 400;
+        error.code = 'repurchase_ec_only';
+        throw error;
+    }
+
+    const state = await findContactStateForAdminLead(lead);
+    const historical = await deliveredOrderForAdminLead(lead);
+    const mustCreateRepurchase = Boolean(
+        forceRepurchase
+        || ['entregue', 'recompra'].includes(String(lead.status || '').trim().toLowerCase())
+        || historical.order
+    );
+    if (!mustCreateRepurchase) {
+        let order = await findCurrentOrderForAdminLead(adminOrderId);
+        if (!order) order = await createOperationalOrderFromAdminLead(adminOrderId, { ...lead, status: 'confirmado' });
+        if (!order) {
+            const error = new Error('Lead precisa estar completo antes de entrar em Pedidos Confirmados.');
+            error.status = 422;
+            error.code = 'confirmed_order_data_required';
+            throw error;
+        }
+        return { order, repurchase: false, reused: false, previousOrderId: '' };
+    }
+    if (!historical.order) {
+        const error = new Error('Pedido anterior entregue nao encontrado para registrar a recompra.');
+        error.status = 409;
+        error.code = 'previous_order_not_delivered';
+        throw error;
+    }
+
+    const prepared = stagedOrderDataFromAdminLead({
+        lead,
+        state,
+        previousOrder: historical.order
+    });
+    const phoneTail = prepared.customer.phone.replace(/\D/g, '').slice(-9);
+    const activeRepurchase = await Order.findOne({
+        country: 'EC',
+        previousOrderId: historical.order.orderId,
+        entryReason: 'repeat_purchase_after_delivered',
+        status: { $in: activeRepurchaseStatuses },
+        'customer.phone': { $regex: `${phoneTail}$` }
+    }).sort({ updatedAt: -1, createdAt: -1 });
+    const decision = deliveredRepurchaseRegistrationDecision({
+        authenticated: Boolean(req?.user),
+        currentOrder: historical.order,
+        currentShipment: historical.shipment,
+        activeRepurchase,
+        newCustomerPhone: prepared.customer.phone
+    });
+    if (!decision.allowed) {
+        const error = new Error(decision.reason || 'repurchase_registration_not_allowed');
+        error.status = decision.statusCode || 409;
+        error.code = decision.reason || 'repurchase_registration_not_allowed';
+        throw error;
+    }
+
+    const order = decision.reused
+        ? activeRepurchase
+        : new Order({ orderId: decision.orderId });
+    const canRefresh = !decision.reused || ['draft', 'pending', 'confirmed'].includes(String(order.status || ''));
+    if (canRefresh) {
+        order.country = 'EC';
+        order.customer = prepared.customer;
+        order.delivery = prepared.delivery;
+        order.customerDataResolution = prepared.customerDataResolution;
+        order.package = {
+            id: prepared.quantity,
+            label: ecuadorPackageLabel(prepared.productInfo, prepared.quantity),
+            quantity: prepared.quantity
+        };
+        order.total = prepared.total;
+        order.currency = 'USD';
+        order.status = 'confirmed';
+        order.source = 'manual';
+        order.entryReason = decision.entryReason;
+        order.previousOrderId = decision.previousOrderId;
+        order.previousDeliveredAt = decision.previousDeliveredAt;
+        order.purchaseIntent = {
+            ...(order.purchaseIntent?.toObject?.() || order.purchaseIntent || {}),
+            readiness: 'ready_now',
+            requestedQuantity: prepared.quantity,
+            requestedPackageLabel: ecuadorPackageLabel(prepared.productInfo, prepared.quantity),
+            readyConfirmedAt: order.purchaseIntent?.readyConfirmedAt || new Date()
+        };
+        order.notes = order.notes || appendAuditNote(
+            '',
+            `Recompra registrada a partir do lead EC ${leadId}; pedido anterior ${decision.previousOrderId}.${note ? ` ${note}` : ''}`
+        );
+        order.tracking = {
+            ...(order.tracking?.toObject?.() || order.tracking || {}),
+            ...prepared.tracking
+        };
+        await order.save();
+    }
+    if (state) {
+        state.metadata = {
+            ...(state.metadata || {}),
+            customerDraft: {
+                ...(prepared.draft || {}),
+                orderId: order.orderId,
+                sourceOrderId: prepared.draft.sourceOrderId || historical.order.orderId,
+                previousOrderId: decision.previousOrderId,
+                currentNegotiationOrderId: order.orderId,
+                status: 'confirmado',
+                product: prepared.productInfo.name,
+                productName: prepared.productInfo.name,
+                productKey: prepared.productInfo.key,
+                updatedAt: new Date().toISOString()
+            }
+        };
+        state.markModified('metadata');
+        await state.save();
+    }
+    const purchase = await ensurePurchaseForStagedOrder({
+        order,
+        req,
+        sourceOrderId: adminOrderId
+    });
+    return {
+        order,
+        purchase,
+        repurchase: true,
+        reused: decision.reused,
+        previousOrderId: decision.previousOrderId
+    };
 };
 
 const appendAuditNote = (current = '', note = '') => {
@@ -1580,6 +1880,50 @@ router.get('/droppi/ec/admin-leads/flags', adminOnly, (req, res) => {
     } catch (error) {
         console.error('Admin lead EC flags error:', error);
         res.status(500).json({ error: error.message || 'Failed to read admin lead flags' });
+    }
+});
+
+router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (req, res) => {
+    try {
+        const leadId = Number.parseInt(String(req.params.leadId || ''), 10);
+        if (!leadId) {
+            return res.status(400).json({
+                success: false,
+                error: 'admin_lead_invalid',
+                message: 'Lead EC invalido para registrar o pedido.'
+            });
+        }
+        const staged = await stageConfirmedAdminLeadOrder({
+            leadId,
+            forceRepurchase: req.body?.forceRepurchase === true,
+            note: String(req.body?.note || '').trim(),
+            req
+        });
+        return res.json({
+            success: true,
+            orderId: staged.order.orderId,
+            repurchase: staged.repurchase,
+            reused: staged.reused,
+            previousOrderId: staged.previousOrderId,
+            authorizationRequired: true,
+            dropiAuthorized: false,
+            dropiSubmitted: false,
+            purchase: staged.purchase ? {
+                ok: staged.purchase.ok === true,
+                alreadySent: staged.purchase.alreadySent === true,
+                eventId: staged.purchase.eventId || staged.order.tracking?.metaPurchaseEventId || ''
+            } : null,
+            message: staged.repurchase
+                ? `Recompra registrada no novo pedido ${staged.order.orderId}. Confira e autorize antes de enviar para Dropi.`
+                : `Pedido ${staged.order.orderId} colocado em Pedidos Confirmados.`
+        });
+    } catch (error) {
+        console.error('Stage confirmed admin lead EC error:', error);
+        return res.status(error.status || 500).json({
+            success: false,
+            error: error.code || 'stage_confirmed_admin_lead_failed',
+            message: error.message || 'Falha ao registrar pedido confirmado.'
+        });
     }
 });
 

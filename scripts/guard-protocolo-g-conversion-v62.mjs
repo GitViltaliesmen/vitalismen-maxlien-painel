@@ -19,6 +19,7 @@ const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-sa
 const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
 const v75Manifest = JSON.parse(read('docs/freeze/canary-isolation-safety-v75-20260828.json'));
 const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json'));
+const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
 const stageRoute = receiver.split("router.post('/vsl-stage', async")[1]
     ?.split("router.post('/vsl-entry', async")[0] || '';
 
@@ -93,6 +94,10 @@ for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     if (
         v78Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v78Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v99Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v99Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',

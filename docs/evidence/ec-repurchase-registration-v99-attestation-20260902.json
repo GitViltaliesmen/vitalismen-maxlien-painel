@@ -1,0 +1,28 @@
+{
+  "attestationId": "ec-repurchase-registration-v99-20260902",
+  "observedAt": "2026-09-02T21:45:00.000Z",
+  "status": "local_candidate_validated_hash_sealed",
+  "parent": {
+    "version": 98,
+    "commit": "76fb8a873aca42c2e424df806fbcd824eded3878",
+    "tree": "518940e9d35c7be8cb9845c5b1d48574f8dedfbe"
+  },
+  "scope": {
+    "country": "EC",
+    "repurchaseRegistration": true,
+    "idempotentActiveCycleReuse": true,
+    "historicalOrderMutationAllowed": false,
+    "dropiAuthorizationCreated": false,
+    "dropiSubmissionCreated": false
+  },
+  "preserved": {
+    "productsChanged": false,
+    "pricesChanged": false,
+    "whatsappOutboundChanged": false,
+    "funnelChanged": false,
+    "postSaleSchedulersChanged": false,
+    "databaseSchemaChanged": false,
+    "pixelDatasetChanged": false,
+    "otherCountryTouched": false
+  }
+}

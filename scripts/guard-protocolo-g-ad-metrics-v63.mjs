@@ -17,6 +17,7 @@ const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-sa
 const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
 const v75Manifest = JSON.parse(read('docs/freeze/canary-isolation-safety-v75-20260828.json'));
 const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json'));
+const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
 
 assert.equal(manifest.freezeId, 'protocolo-g-ad-metrics-v63-20260826');
 assert.equal(manifest.parentFreezeId, 'protocolo-g-conversion-v62-20260826');
@@ -86,6 +87,10 @@ for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     if (
         v78Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v78Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v99Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v99Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     const v65SuccessorHashes = {
         'src/routes/whatsapp.js': '8ec8ad1c4a7946216bdb88dc6f8290d6fd8f1bd9f68af865db678fb36f7e9bd7',
