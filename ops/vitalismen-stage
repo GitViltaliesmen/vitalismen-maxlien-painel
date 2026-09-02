@@ -805,14 +805,19 @@ detect_source_process_identity() {
 }
 
 detect_source_process_state() {
+  local source_release_name
   detect_source_process_identity
   if [[ -f "$source_current/.release-source.json" && ! -L "$source_current/.release-source.json" ]]; then
+    source_release_name="${source_current##*/}"
+    validate_successor_release "$source_current" "$source_release_name"
+    [[ "$candidate_publication_status" == "production_published" ]] ||
+      die "release moderna ativa não possui publicação válida"
     source_provenance_type="STAGED_SOURCE"
-    source_provenance_release="${source_current##*/}"
-    source_provenance_sha="$($sha256_cmd "$source_current/.release-source.json" | awk '{print $1}')"
-    source_provenance_commit="$($git_cmd -C "$source_current" rev-parse 'HEAD^{commit}' | tr 'A-F' 'a-f')"
-    source_provenance_tree="$($git_cmd -C "$source_current" rev-parse 'HEAD^{tree}' | tr 'A-F' 'a-f')"
-    source_provenance_fingerprint="NOT_APPLICABLE"
+    source_provenance_release="$source_release_name"
+    source_provenance_sha="$release_metadata_sha"
+    source_provenance_commit="$candidate_commit"
+    source_provenance_tree="$candidate_tree"
+    source_provenance_fingerprint="$functional_payload_sha"
     return 0
   fi
   validate_legacy_baseline_attestation_live
