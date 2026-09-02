@@ -105,6 +105,29 @@ data_compatibility_version=66
 runtime_predeploy_version="v71"
 publication_metadata_name=".release-publication.json"
 publication_complete_name=".publication-complete.json"
+legacy_baseline_contract_version=102
+legacy_baseline_authorization_phrase="I_UNDERSTAND_LEGACY_BASELINE_V102"
+legacy_baseline_attestation_file="$state_dir/legacy-baseline-attestation-v102.json"
+legacy_baseline_attestation_seal_file="$state_dir/legacy-baseline-attestation-v102.sha256"
+legacy_baseline_consumed_file="$state_dir/legacy-baseline-attestation-v102.consumed.json"
+
+if [[ "$stage_test_mode" == "true" ]]; then
+  legacy_baseline_release_name="${VITALISMEN_STAGE_TEST_LEGACY_RELEASE_NAME:-20260902T064628Z_production-v60-dropi-bff-a691b7e}"
+  legacy_baseline_commit="${VITALISMEN_STAGE_TEST_LEGACY_COMMIT:-a691b7e52defd369cab3a7e451425197f1571642}"
+  legacy_baseline_tree="${VITALISMEN_STAGE_TEST_LEGACY_TREE:-177537cc1ad0d12a55f56aa230ab40d301d31ff9}"
+  legacy_baseline_fingerprint_expected="${VITALISMEN_STAGE_TEST_LEGACY_FINGERPRINT:-aea6779fbac4892b472a4a1e7ab90c52321bd5b88d1e3a217de6a10607e85afb}"
+  legacy_baseline_source_ref="${VITALISMEN_STAGE_TEST_LEGACY_SOURCE_REF:-refs/heads/codex/dropi-manual-bff-v60-20260902}"
+  legacy_baseline_hostname_expected="${VITALISMEN_STAGE_TEST_LEGACY_HOSTNAME:-srv1182009}"
+  legacy_baseline_machine_id_sha256_expected="${VITALISMEN_STAGE_TEST_LEGACY_MACHINE_ID_SHA256:-da73070a117b0f818b5e0c93f263e05d94b24d8f1d33bc830acc9cd901f7afa2}"
+else
+  legacy_baseline_release_name="20260902T064628Z_production-v60-dropi-bff-a691b7e"
+  legacy_baseline_commit="a691b7e52defd369cab3a7e451425197f1571642"
+  legacy_baseline_tree="177537cc1ad0d12a55f56aa230ab40d301d31ff9"
+  legacy_baseline_fingerprint_expected="aea6779fbac4892b472a4a1e7ab90c52321bd5b88d1e3a217de6a10607e85afb"
+  legacy_baseline_source_ref="refs/heads/codex/dropi-manual-bff-v60-20260902"
+  legacy_baseline_hostname_expected="srv1182009"
+  legacy_baseline_machine_id_sha256_expected="da73070a117b0f818b5e0c93f263e05d94b24d8f1d33bc830acc9cd901f7afa2"
+fi
 
 die() {
   echo "ERRO: $*" >&2
@@ -372,6 +395,345 @@ process.stdout.write(hash.digest('hex'));
 NODE
 }
 
+legacy_baseline_payload_sha256() {
+  local baseline_root="$1"
+  "$node_cmd" - "$baseline_root" <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(process.argv[2]);
+const scopedRoots = ['package.json', 'package-lock.json', 'ops', 'scripts', 'src'];
+const hash = crypto.createHash('sha256');
+const visit = (target, relative) => {
+  const stats = fs.lstatSync(target);
+  if (stats.isDirectory()) {
+    for (const entry of fs.readdirSync(target, {withFileTypes: true})
+      .sort((left, right) => left.name.localeCompare(right.name, 'en'))) {
+      visit(path.join(target, entry.name), `${relative}/${entry.name}`);
+    }
+    return;
+  }
+  hash.update(relative, 'utf8');
+  hash.update('\0');
+  if (stats.isSymbolicLink()) {
+    hash.update('symlink\0');
+    hash.update(fs.readlinkSync(target), 'utf8');
+    hash.update('\0');
+    return;
+  }
+  if (!stats.isFile()) throw new Error(`tipo legado não suportado: ${relative}`);
+  hash.update(`file:${(stats.mode & 0o111) !== 0 ? 'x' : '-'}\0`);
+  hash.update(fs.readFileSync(target));
+  hash.update('\0');
+};
+for (const relative of scopedRoots) visit(path.join(root, relative), relative);
+process.stdout.write(hash.digest('hex'));
+NODE
+}
+
+collect_legacy_health_state() {
+  local api_health_file
+  if [[ "$stage_test_mode" == "true" ]]; then
+    legacy_health_code="${VITALISMEN_STAGE_TEST_LEGACY_HEALTH_CODE:-200}"
+    legacy_api_health_code="${VITALISMEN_STAGE_TEST_LEGACY_API_HEALTH_CODE:-200}"
+    legacy_public_code="${VITALISMEN_STAGE_TEST_LEGACY_PUBLIC_CODE:-200}"
+    legacy_panel_code="${VITALISMEN_STAGE_TEST_LEGACY_PANEL_CODE:-200}"
+    legacy_zapi_connected="${VITALISMEN_STAGE_TEST_LEGACY_ZAPI_CONNECTED:-true}"
+    legacy_mongo_healthy="${VITALISMEN_STAGE_TEST_LEGACY_MONGO_HEALTHY:-true}"
+    legacy_nginx_healthy="${VITALISMEN_STAGE_TEST_LEGACY_NGINX_HEALTHY:-true}"
+  else
+    api_health_file="$state_dir/.legacy-baseline-api-health.$$"
+    [[ ! -e "$api_health_file" && ! -L "$api_health_file" ]] || die "arquivo temporário de health legado já existe"
+    legacy_health_code="$($curl_cmd -sS -o /dev/null -w '%{http_code}' --max-time 15 http://127.0.0.1:3001/health)" || die "health legado indisponível"
+    legacy_api_health_code="$($curl_cmd -sS -o "$api_health_file" -w '%{http_code}' --max-time 15 http://127.0.0.1:3001/api/health)" || {
+      rm -f -- "$api_health_file"
+      die "api health legado indisponível"
+    }
+    secure_mode 0600 "$api_health_file"
+    legacy_public_code="$($curl_cmd -sS -o /dev/null -w '%{http_code}' --max-time 15 https://ec.maxlien.shop/n/)" || {
+      rm -f -- "$api_health_file"
+      die "página pública legada indisponível"
+    }
+    legacy_panel_code="$($curl_cmd -sS -o /dev/null -w '%{http_code}' --max-time 15 https://ec.maxlien.shop/qr.html)" || {
+      rm -f -- "$api_health_file"
+      die "painel legado indisponível"
+    }
+    if "$node_cmd" - "$api_health_file" <<'NODE'
+const fs = require('node:fs');
+const health = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (health.status !== 'online') throw new Error('api health não online');
+if (health.zapi?.connected !== true || health.transports?.official !== 'zapi'
+    || health.transports?.ready !== true || health.transports?.zapi?.connected !== true
+    || health.transports?.zapi?.outboundBlocked !== false) throw new Error('Z-API não saudável');
+if (health.memory?.backedBy !== 'mongodb') throw new Error('Mongo não é o backend efetivo');
+NODE
+    then
+      legacy_zapi_connected=true
+      legacy_mongo_healthy=true
+    else
+      rm -f -- "$api_health_file"
+      die "health Z-API/Mongo legado inválido"
+    fi
+    rm -f -- "$api_health_file"
+    if /usr/bin/systemctl is-active --quiet nginx; then legacy_nginx_healthy=true; else legacy_nginx_healthy=false; fi
+    if ! /usr/bin/systemctl is-active --quiet mongod && ! /usr/bin/systemctl is-active --quiet mongodb; then
+      legacy_mongo_healthy=false
+    fi
+  fi
+  [[ "$legacy_health_code" == "200" && "$legacy_api_health_code" == "200"
+    && "$legacy_public_code" == "200" && "$legacy_panel_code" == "200" ]] ||
+    die "healths do baseline legado não estão todos em 200"
+  [[ "$legacy_zapi_connected" == "true" ]] || die "Z-API do baseline legado não está conectada"
+  [[ "$legacy_mongo_healthy" == "true" ]] || die "Mongo do baseline legado não está saudável"
+  [[ "$legacy_nginx_healthy" == "true" ]] || die "Nginx do baseline legado não está saudável"
+}
+
+collect_legacy_baseline_facts() {
+  local remote_listing
+  local tracked_status
+  local actual_helper_path="$0"
+
+  [[ "$source_current" == "$releases_dir/$legacy_baseline_release_name" ]] ||
+    die "release legada solicitada não é a current exata"
+  [[ -d "$source_current" && ! -L "$source_current" ]] || die "release legada inválida"
+  for forbidden_metadata in .release-source.json .staging-complete.json .release-publication.json .publication-complete.json .activation-complete.json; do
+    [[ ! -e "$source_current/$forbidden_metadata" && ! -L "$source_current/$forbidden_metadata" ]] ||
+      die "release com metadata moderna não pode ser declarada legacy"
+  done
+  [[ "$source_pm2_status" == "online" && "$source_pm2_pid" =~ ^[1-9][0-9]*$ ]] ||
+    die "baseline legado não está online no PM2"
+
+  legacy_observed_commit="$($git_cmd -C "$source_current" rev-parse 'HEAD^{commit}' | tr 'A-F' 'a-f')" ||
+    die "commit local do baseline legado não pôde ser lido"
+  legacy_observed_tree="$($git_cmd -C "$source_current" rev-parse 'HEAD^{tree}' | tr 'A-F' 'a-f')" ||
+    die "tree local do baseline legado não pôde ser lida"
+  [[ "$legacy_observed_commit" == "$legacy_baseline_commit" ]] || die "commit legado divergente"
+  [[ "$legacy_observed_tree" == "$legacy_baseline_tree" ]] || die "tree legada divergente"
+  tracked_status="$($git_cmd -C "$source_current" status --porcelain=v1 --untracked-files=no)" ||
+    die "working tree legada não pôde ser validada"
+  [[ -z "$tracked_status" ]] || die "arquivos rastreados do baseline legado foram alterados"
+
+  remote_listing="$($git_cmd ls-remote --heads "$repo_url" "$legacy_baseline_source_ref")" ||
+    die "ref oficial do baseline legado não pôde ser consultada"
+  [[ "$(printf '%s\n' "$remote_listing" | awk -v ref="$legacy_baseline_source_ref" '$2 == ref {count++} END {print count+0}')" == "1" ]] ||
+    die "ref oficial do baseline legado ausente ou ambígua"
+  [[ "$(printf '%s\n' "$remote_listing" | awk -v ref="$legacy_baseline_source_ref" '$2 == ref {print tolower($1)}')" == "$legacy_baseline_commit" ]] ||
+    die "ref oficial não aponta para o commit legado"
+
+  legacy_observed_fingerprint="$(legacy_baseline_payload_sha256 "$source_current")" ||
+    die "fingerprint do baseline legado não pôde ser calculado"
+  [[ "$legacy_observed_fingerprint" == "$legacy_baseline_fingerprint_expected" ]] ||
+    die "fingerprint do baseline legado divergente"
+  legacy_package_sha="$($sha256_cmd "$source_current/package.json" | awk '{print $1}')"
+  legacy_package_lock_sha="$($sha256_cmd "$source_current/package-lock.json" | awk '{print $1}')"
+  legacy_index_sha="$($sha256_cmd "$source_current/src/index.js" | awk '{print $1}')"
+  legacy_ops_sha="$(directory_payload_sha256 "$source_current/ops")"
+  legacy_scripts_sha="$(directory_payload_sha256 "$source_current/scripts")"
+  legacy_src_sha="$(directory_payload_sha256 "$source_current/src")"
+
+  if [[ "$stage_test_mode" == "true" ]]; then
+    legacy_observed_hostname="${VITALISMEN_STAGE_TEST_LEGACY_OBSERVED_HOSTNAME:-$legacy_baseline_hostname_expected}"
+    legacy_observed_machine_id_sha256="${VITALISMEN_STAGE_TEST_LEGACY_OBSERVED_MACHINE_ID_SHA256:-$legacy_baseline_machine_id_sha256_expected}"
+  else
+    legacy_observed_hostname="$(/usr/bin/hostname)"
+    legacy_observed_machine_id_sha256="$($sha256_cmd /etc/machine-id | awk '{print $1}')"
+  fi
+  [[ "$legacy_observed_hostname" == "$legacy_baseline_hostname_expected" ]] || die "VPS do baseline legado divergente"
+  [[ "$legacy_observed_machine_id_sha256" == "$legacy_baseline_machine_id_sha256_expected" ]] ||
+    die "identidade da VPS do baseline legado divergente"
+  legacy_helper_sha="$($sha256_cmd "$actual_helper_path" | awk '{print $1}')"
+  [[ "$legacy_helper_sha" =~ ^[0-9a-f]{64}$ ]] || die "hash do helper legado inválido"
+  collect_legacy_health_state
+}
+
+validate_legacy_baseline_attestation_live() {
+  local attestation_sha
+  local seal
+  [[ -f "$legacy_baseline_attestation_file" && ! -L "$legacy_baseline_attestation_file" ]] ||
+    die "attestation LEGACY_BASELINE_VERIFIED ausente"
+  [[ -f "$legacy_baseline_attestation_seal_file" && ! -L "$legacy_baseline_attestation_seal_file" ]] ||
+    die "seal da attestation legada ausente"
+  if [[ "$strict_root_owner" == "1" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$legacy_baseline_attestation_file" 2>/dev/null || true)" == "$expected_uid:$expected_gid:400" ]] ||
+      die "owner/mode da attestation legada inválido"
+    [[ "$(stat -c '%u:%g:%a' "$legacy_baseline_attestation_seal_file" 2>/dev/null || true)" == "$expected_uid:$expected_gid:400" ]] ||
+      die "owner/mode do seal legado inválido"
+  fi
+  attestation_sha="$($sha256_cmd "$legacy_baseline_attestation_file" | awk '{print $1}')"
+  seal="$(tr -d '\r\n' <"$legacy_baseline_attestation_seal_file")"
+  [[ "$seal" == "$attestation_sha" ]] || die "attestation legada alterada"
+  collect_legacy_baseline_facts
+
+  "$node_cmd" - \
+    "$legacy_baseline_attestation_file" "$legacy_baseline_contract_version" \
+    "$legacy_baseline_release_name" "$source_current" "$legacy_baseline_commit" \
+    "$legacy_baseline_tree" "$legacy_baseline_source_ref" "$legacy_baseline_fingerprint_expected" \
+    "$legacy_package_sha" "$legacy_package_lock_sha" "$legacy_index_sha" \
+    "$legacy_ops_sha" "$legacy_scripts_sha" "$legacy_src_sha" \
+    "$legacy_baseline_hostname_expected" "$legacy_baseline_machine_id_sha256_expected" \
+    "$process_name" "$source_pm2_pid" "$source_pm2_status" "$source_pm_cwd" "$source_pm_exec_path" \
+    "$legacy_health_code" "$legacy_api_health_code" "$legacy_public_code" "$legacy_panel_code" \
+    "$legacy_helper_sha" <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const [file, versionRaw, releaseName, releasePath, commit, tree, sourceRef, fingerprint,
+  packageSha, packageLockSha, indexSha, opsSha, scriptsSha, srcSha, hostname, machineIdSha,
+  processName, pidRaw, processStatus, pmCwd, pmExecPath, healthRaw, apiHealthRaw, publicRaw,
+  panelRaw, helperSha] = process.argv.slice(2);
+const buffer = fs.readFileSync(file);
+const value = JSON.parse(buffer.toString('utf8'));
+const canonical = Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf8');
+if (!buffer.equals(canonical)) throw new Error('attestation legada não canônica');
+const exact = ['version','status','proofType','singleUse','reusable','country','serverHostname',
+  'serverMachineIdSha256','releaseName','releasePath','commit','tree','sourceRef',
+  'fingerprintAlgorithm','fingerprintFormat','functionalFingerprint','components','currentPath',
+  'process','health','modernMetadataAbsent','stagedSourceClaimed','helperContractVersion',
+  'helperSha256','verifiedAt'];
+if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(exact.sort())) throw new Error('campos da attestation legada inválidos');
+if (value.version !== 1 || value.status !== 'LEGACY_BASELINE_VERIFIED' || value.proofType !== 'LEGACY_BASELINE_VERIFIED'
+    || value.singleUse !== true || value.reusable !== false || value.country !== 'EC') throw new Error('identidade da attestation legada inválida');
+if (value.serverHostname !== hostname || value.serverMachineIdSha256 !== machineIdSha) throw new Error('VPS da attestation divergente');
+if (value.releaseName !== releaseName || value.releasePath !== releasePath || value.currentPath !== releasePath) throw new Error('current da attestation divergente');
+if (value.commit !== commit || value.tree !== tree || value.sourceRef !== sourceRef || value.functionalFingerprint !== fingerprint) throw new Error('Git/fingerprint da attestation divergente');
+if (value.fingerprintAlgorithm !== 'SHA-256' || value.fingerprintFormat !== 'SCOPED_PATH_NUL_TYPE_CONTENT_NUL') throw new Error('algoritmo de fingerprint inválido');
+const components = value.components || {};
+if (JSON.stringify(Object.keys(components).sort()) !== JSON.stringify(['indexJsSha256','opsSha256','packageJsonSha256','packageLockSha256','scriptsSha256','srcSha256'].sort())) throw new Error('componentes da attestation inválidos');
+if (components.packageJsonSha256 !== packageSha || components.packageLockSha256 !== packageLockSha
+    || components.indexJsSha256 !== indexSha || components.opsSha256 !== opsSha
+    || components.scriptsSha256 !== scriptsSha || components.srcSha256 !== srcSha) throw new Error('componentes da attestation divergentes');
+const proc = value.process || {};
+if (proc.name !== processName || proc.pid !== Number(pidRaw) || proc.status !== processStatus
+    || proc.pmCwd !== pmCwd || proc.pmExecPath !== pmExecPath) throw new Error('PM2 da attestation divergente');
+const health = value.health || {};
+if (health.healthHttp !== Number(healthRaw) || health.apiHealthHttp !== Number(apiHealthRaw)
+    || health.publicHttp !== Number(publicRaw) || health.panelHttp !== Number(panelRaw)
+    || health.zapiConnected !== true || health.mongoHealthy !== true || health.nginxHealthy !== true) throw new Error('health da attestation divergente');
+if (value.modernMetadataAbsent !== true || value.stagedSourceClaimed !== false
+    || value.helperContractVersion !== Number(versionRaw) || value.helperSha256 !== helperSha) throw new Error('contrato/helper da attestation divergente');
+const verifiedAt = Date.parse(value.verifiedAt);
+if (!Number.isFinite(verifiedAt) || verifiedAt > Date.now() + 60_000) throw new Error('timestamp da attestation inválido');
+if (!/^[0-9a-f]{40}$/.test(value.commit) || !/^[0-9a-f]{40}$/.test(value.tree)
+    || !/^[0-9a-f]{64}$/.test(value.functionalFingerprint) || !/^[0-9a-f]{64}$/.test(value.helperSha256)) throw new Error('hash da attestation inválido');
+crypto.createHash('sha256').update(buffer).digest('hex');
+NODE
+  legacy_baseline_attestation_sha="$attestation_sha"
+}
+
+write_legacy_baseline_attestation() {
+  local temporary="$state_dir/.legacy-baseline-attestation-v102.$$"
+  local seal_temporary="$state_dir/.legacy-baseline-attestation-v102.sha256.$$"
+  local verified_at
+  [[ ! -e "$temporary" && ! -L "$temporary" && ! -e "$seal_temporary" && ! -L "$seal_temporary" ]] ||
+    die "arquivo temporário da attestation legada já existe"
+  verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  "$node_cmd" - \
+    "$temporary" "$legacy_baseline_contract_version" "$legacy_baseline_release_name" \
+    "$source_current" "$legacy_baseline_commit" "$legacy_baseline_tree" "$legacy_baseline_source_ref" \
+    "$legacy_baseline_fingerprint_expected" "$legacy_package_sha" "$legacy_package_lock_sha" \
+    "$legacy_index_sha" "$legacy_ops_sha" "$legacy_scripts_sha" "$legacy_src_sha" \
+    "$legacy_baseline_hostname_expected" "$legacy_baseline_machine_id_sha256_expected" \
+    "$process_name" "$source_pm2_pid" "$source_pm2_status" "$source_pm_cwd" "$source_pm_exec_path" \
+    "$legacy_health_code" "$legacy_api_health_code" "$legacy_public_code" "$legacy_panel_code" \
+    "$legacy_helper_sha" "$verified_at" <<'NODE'
+const fs = require('node:fs');
+const [file, versionRaw, releaseName, releasePath, commit, tree, sourceRef, fingerprint,
+  packageSha, packageLockSha, indexSha, opsSha, scriptsSha, srcSha, hostname, machineIdSha,
+  processName, pidRaw, processStatus, pmCwd, pmExecPath, healthRaw, apiHealthRaw, publicRaw,
+  panelRaw, helperSha, verifiedAt] = process.argv.slice(2);
+const value = {
+  version: 1,
+  status: 'LEGACY_BASELINE_VERIFIED',
+  proofType: 'LEGACY_BASELINE_VERIFIED',
+  singleUse: true,
+  reusable: false,
+  country: 'EC',
+  serverHostname: hostname,
+  serverMachineIdSha256: machineIdSha,
+  releaseName,
+  releasePath,
+  commit,
+  tree,
+  sourceRef,
+  fingerprintAlgorithm: 'SHA-256',
+  fingerprintFormat: 'SCOPED_PATH_NUL_TYPE_CONTENT_NUL',
+  functionalFingerprint: fingerprint,
+  components: {
+    packageJsonSha256: packageSha,
+    packageLockSha256: packageLockSha,
+    indexJsSha256: indexSha,
+    opsSha256: opsSha,
+    scriptsSha256: scriptsSha,
+    srcSha256: srcSha
+  },
+  currentPath: releasePath,
+  process: {name: processName, pid: Number(pidRaw), status: processStatus, pmCwd, pmExecPath},
+  health: {
+    healthHttp: Number(healthRaw), apiHealthHttp: Number(apiHealthRaw),
+    publicHttp: Number(publicRaw), panelHttp: Number(panelRaw),
+    zapiConnected: true, mongoHealthy: true, nginxHealthy: true
+  },
+  modernMetadataAbsent: true,
+  stagedSourceClaimed: false,
+  helperContractVersion: Number(versionRaw),
+  helperSha256: helperSha,
+  verifiedAt
+};
+fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+NODE
+  secure_mode 0600 "$temporary"
+  legacy_baseline_attestation_sha="$($sha256_cmd "$temporary" | awk '{print $1}')"
+  printf '%s\n' "$legacy_baseline_attestation_sha" >"$seal_temporary"
+  secure_mode 0600 "$seal_temporary"
+  "$mv_cmd" -Tf "$temporary" "$legacy_baseline_attestation_file"
+  "$mv_cmd" -Tf "$seal_temporary" "$legacy_baseline_attestation_seal_file"
+  secure_mode 0400 "$legacy_baseline_attestation_file" "$legacy_baseline_attestation_seal_file"
+}
+
+require_unconsumed_legacy_baseline_for_publish() {
+  [[ "$source_provenance_type" == "LEGACY_BASELINE_VERIFIED" ]] || return 0
+  [[ ! -e "$legacy_baseline_consumed_file" && ! -L "$legacy_baseline_consumed_file" ]] ||
+    die "attestation legada já consumida por outra publicação"
+  validate_legacy_baseline_attestation_live
+}
+
+write_legacy_baseline_consumption() {
+  local publication_release="$1"
+  local publication_commit="$2"
+  local publication_tag="$3"
+  local publication_metadata_sha="$4"
+  local consumed_at
+  local temporary="$state_dir/.legacy-baseline-attestation-v102.consumed.$$"
+  [[ "$source_provenance_type" == "LEGACY_BASELINE_VERIFIED" ]] || return 0
+  [[ ! -e "$legacy_baseline_consumed_file" && ! -L "$legacy_baseline_consumed_file"
+    && ! -e "$temporary" && ! -L "$temporary" ]] || die "marcador de consumo legado já existe"
+  consumed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  "$node_cmd" - "$temporary" "$source_provenance_sha" "$source_provenance_release" \
+    "$publication_release" "$publication_commit" "$publication_tag" \
+    "$publication_metadata_sha" "$consumed_at" <<'NODE'
+const fs = require('node:fs');
+const [file, attestationSha256, baselineRelease, publicationRelease, publicationCommit,
+  publicationTag, publicationMetadataSha256, consumedAt] = process.argv.slice(2);
+const value = {
+  version: 1,
+  status: 'CONSUMED',
+  proofType: 'LEGACY_BASELINE_VERIFIED',
+  singleUse: true,
+  attestationSha256,
+  baselineRelease,
+  publicationRelease,
+  publicationCommit,
+  publicationTag,
+  publicationMetadataSha256,
+  consumedAt
+};
+fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+NODE
+  secure_mode 0600 "$temporary"
+  "$mv_cmd" -Tf "$temporary" "$legacy_baseline_consumed_file"
+  secure_mode 0400 "$legacy_baseline_consumed_file"
+  legacy_consumption_written=1
+}
+
 current_target() {
   "$readlink_cmd" -f "$base_dir/current" 2>/dev/null || true
 }
@@ -399,7 +761,7 @@ process.stdin.on("end", () => {
 ' "$process_name"
 }
 
-detect_source_process_state() {
+detect_source_process_identity() {
   local snapshot
   local found
   local pid
@@ -432,9 +794,6 @@ detect_source_process_state() {
   esac
   [[ -d "$source_current" && ! -L "$source_current" ]] ||
     die "release de origem inválida"
-  [[ -f "$source_current/.release-source.json" ]] ||
-    die "metadata da release de origem ausente"
-
   case "$source_pm_cwd" in
     "$base_dir/current"|"$source_current") ;;
     *) die "pm_cwd não corresponde ao current oficial: obtido=$source_pm_cwd esperado=$base_dir/current" ;;
@@ -443,6 +802,26 @@ detect_source_process_state() {
     "$base_dir/current/src/index.js"|"$source_current/src/index.js") ;;
     *) die "pm_exec_path não corresponde ao current oficial: obtido=$source_pm_exec_path esperado=$base_dir/current/src/index.js" ;;
   esac
+}
+
+detect_source_process_state() {
+  detect_source_process_identity
+  if [[ -f "$source_current/.release-source.json" && ! -L "$source_current/.release-source.json" ]]; then
+    source_provenance_type="STAGED_SOURCE"
+    source_provenance_release="${source_current##*/}"
+    source_provenance_sha="$($sha256_cmd "$source_current/.release-source.json" | awk '{print $1}')"
+    source_provenance_commit="$($git_cmd -C "$source_current" rev-parse 'HEAD^{commit}' | tr 'A-F' 'a-f')"
+    source_provenance_tree="$($git_cmd -C "$source_current" rev-parse 'HEAD^{tree}' | tr 'A-F' 'a-f')"
+    source_provenance_fingerprint="NOT_APPLICABLE"
+    return 0
+  fi
+  validate_legacy_baseline_attestation_live
+  source_provenance_type="LEGACY_BASELINE_VERIFIED"
+  source_provenance_release="$legacy_baseline_release_name"
+  source_provenance_sha="$legacy_baseline_attestation_sha"
+  source_provenance_commit="$legacy_baseline_commit"
+  source_provenance_tree="$legacy_baseline_tree"
+  source_provenance_fingerprint="$legacy_baseline_fingerprint_expected"
 }
 
 validate_successor_release() {
@@ -518,14 +897,17 @@ validate_successor_release() {
       "$freeze_version" "$deploy_helper_contract_version" \
       "$runtime_guard_chain_version" "$data_compatibility_version" \
       "$runtime_predeploy_version" \
-      "$functional_payload_sha" "$base_env_sha" "$node_modules_sha" <<'NODE'
+      "$functional_payload_sha" "$base_env_sha" "$node_modules_sha" \
+      "$legacy_baseline_attestation_file" "$legacy_baseline_attestation_seal_file" \
+      "$legacy_baseline_consumed_file" <<'NODE'
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const [
   sourcePath, stagingPath, overlayPath, publicationPath, publicationCompletePath,
   expectedRelease, expectedRuntimeRaw, expectedFreezeRaw, expectedDeployHelperRaw,
   expectedGuardRaw, expectedDataRaw, expectedPredeploy,
-  actualFunctionalPayloadSha, actualBaseEnvSha, actualNodeModulesSha
+  actualFunctionalPayloadSha, actualBaseEnvSha, actualNodeModulesSha,
+  legacyAttestationPath, legacySealPath, legacyConsumedPath
 ] = process.argv.slice(2);
 const sourceBuffer = fs.readFileSync(sourcePath);
 const stagingBuffer = fs.readFileSync(stagingPath);
@@ -654,7 +1036,7 @@ if (publicationExists) {
   assertCanonicalJson(publicationCompleteBuffer, publicationComplete, 'publication-complete');
   publicationSha = sha256(publicationBuffer);
   publicationCompleteSha = sha256(publicationCompleteBuffer);
-  assertExactKeys(publication, [
+  const publicationKeys = [
     'version', 'status', 'releaseChannel', 'release', 'functionalCommit',
     'functionalTree', 'functionalPayloadSha256', 'sourceRef', 'publicationTag',
     'publicationTagResolvedCommit', 'releaseMetadataSha256',
@@ -664,8 +1046,14 @@ if (publicationExists) {
     'baseEnvSha256', 'nodeModulesSha256',
     'dataCompatibilityVersion', 'productionBranchCommitBefore',
     'productionBranchCommitAfter', 'productionBranchChanged', 'publishedAt'
-  ], 'release-publication');
-  if (publication.version !== 1 || publication.status !== 'production_published') throw new Error('publicationStatus publicado inválido');
+  ];
+  const legacyProofKeys = [
+    'baselineProofType', 'baselineProofRelease', 'baselineProofCommit',
+    'baselineProofTree', 'baselineProofFingerprint', 'baselineProofSha256'
+  ];
+  if (publication.version === 2) publicationKeys.push(...legacyProofKeys);
+  assertExactKeys(publication, publicationKeys, 'release-publication');
+  if (![1, 2].includes(publication.version) || publication.status !== 'production_published') throw new Error('publicationStatus publicado inválido');
   if (!validPublicationStatuses.has(publication.status)) throw new Error('publicationStatus desconhecido');
   if (publication.releaseChannel !== 'production' || publication.release !== expectedRelease) throw new Error('identidade da publicação inválida');
   if (String(publication.functionalCommit || '').toLowerCase() !== commit || String(publication.functionalTree || '').toLowerCase() !== tree) throw new Error('identidade funcional da publicação divergente');
@@ -683,7 +1071,39 @@ if (publicationExists) {
   if (publication.strictReadOnly !== true || publication.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(publication.allowedWriteClasses) !== '[]') throw new Error('política strict da publicação divergente');
   if (publication.productionBranchCommitBefore !== source.productionBranchCommitBefore || publication.productionBranchCommitAfter !== publication.productionBranchCommitBefore || publication.productionBranchChanged !== false) throw new Error('production mudou durante publicação');
 
-  assertExactKeys(publicationComplete, [
+  if (publication.version === 2) {
+    if (publication.baselineProofType !== 'LEGACY_BASELINE_VERIFIED') throw new Error('prova legada explícita ausente');
+    for (const file of [legacyAttestationPath, legacySealPath, legacyConsumedPath]) {
+      if (!fs.existsSync(file) || fs.lstatSync(file).isSymbolicLink()) throw new Error('bundle de prova legada ausente');
+    }
+    const legacyBuffer = fs.readFileSync(legacyAttestationPath);
+    const legacy = JSON.parse(legacyBuffer.toString('utf8'));
+    assertCanonicalJson(legacyBuffer, legacy, 'legacy-baseline-attestation');
+    const legacySha = sha256(legacyBuffer);
+    if (fs.readFileSync(legacySealPath, 'utf8').replace(/[\r\n]/g, '') !== legacySha) throw new Error('seal da prova legada divergente');
+    if (legacy.version !== 1 || legacy.status !== 'LEGACY_BASELINE_VERIFIED'
+        || legacy.proofType !== 'LEGACY_BASELINE_VERIFIED' || legacy.singleUse !== true
+        || legacy.reusable !== false || legacy.modernMetadataAbsent !== true
+        || legacy.stagedSourceClaimed !== false) throw new Error('contrato da prova legada inválido');
+    if (publication.baselineProofSha256 !== legacySha || publication.baselineProofRelease !== legacy.releaseName
+        || publication.baselineProofCommit !== legacy.commit || publication.baselineProofTree !== legacy.tree
+        || publication.baselineProofFingerprint !== legacy.functionalFingerprint) throw new Error('prova legada da publicação divergente');
+    const consumedBuffer = fs.readFileSync(legacyConsumedPath);
+    const consumed = JSON.parse(consumedBuffer.toString('utf8'));
+    assertCanonicalJson(consumedBuffer, consumed, 'legacy-baseline-consumption');
+    assertExactKeys(consumed, ['version','status','proofType','singleUse','attestationSha256',
+      'baselineRelease','publicationRelease','publicationCommit','publicationTag',
+      'publicationMetadataSha256','consumedAt'], 'legacy-baseline-consumption');
+    if (consumed.version !== 1 || consumed.status !== 'CONSUMED'
+        || consumed.proofType !== 'LEGACY_BASELINE_VERIFIED' || consumed.singleUse !== true
+        || consumed.attestationSha256 !== legacySha || consumed.baselineRelease !== legacy.releaseName
+        || consumed.publicationRelease !== expectedRelease || consumed.publicationCommit !== commit
+        || consumed.publicationTag !== publicationTag || consumed.publicationMetadataSha256 !== publicationSha) {
+      throw new Error('consumo single-use da prova legada divergente');
+    }
+  }
+
+  const publicationCompleteKeys = [
     'version', 'status', 'publicationStatus', 'release', 'functionalCommit',
     'functionalTree', 'functionalPayloadSha256', 'sourceRef', 'publicationTag',
     'publicationTagResolvedCommit', 'releaseMetadataSha256',
@@ -695,8 +1115,11 @@ if (publicationExists) {
     'productionBranchCommitBefore', 'productionBranchCommitAfter',
     'productionBranchChanged', 'pm2Actions', 'outboundActions', 'dropiActions',
     'bridgeExecuted', 'mutationsEnabled', 'completedAt'
-  ], 'publication-complete');
-  if (publicationComplete.version !== 1 || publicationComplete.status !== 'complete' || publicationComplete.publicationStatus !== 'production_published') throw new Error('attestation publicada inválida');
+  ];
+  if (publicationComplete.version === 2) publicationCompleteKeys.push(...legacyProofKeys);
+  assertExactKeys(publicationComplete, publicationCompleteKeys, 'publication-complete');
+  if (![1, 2].includes(publicationComplete.version) || publicationComplete.version !== publication.version
+      || publicationComplete.status !== 'complete' || publicationComplete.publicationStatus !== 'production_published') throw new Error('attestation publicada inválida');
   if (publicationComplete.release !== expectedRelease || String(publicationComplete.functionalCommit || '').toLowerCase() !== commit || String(publicationComplete.functionalTree || '').toLowerCase() !== tree) throw new Error('identidade da attestation publicada divergente');
   if (publicationComplete.functionalPayloadSha256 !== actualFunctionalPayloadSha || publicationComplete.sourceRef !== source.sourceRef) throw new Error('payload/sourceRef da attestation divergente');
   if (publicationComplete.baseEnvSha256 !== actualBaseEnvSha || publicationComplete.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da attestation divergente');
@@ -708,6 +1131,9 @@ if (publicationExists) {
   if (publicationComplete.strictReadOnly !== true || publicationComplete.safeObservationPolicy !== 'STRICT_READ_ONLY' || JSON.stringify(publicationComplete.allowedWriteClasses) !== '[]') throw new Error('política strict da attestation divergente');
   if (publicationComplete.productionBranchCommitBefore !== publication.productionBranchCommitBefore || publicationComplete.productionBranchCommitAfter !== publication.productionBranchCommitBefore || publicationComplete.productionBranchChanged !== false) throw new Error('production da attestation divergente');
   if (publicationComplete.pm2Actions !== 0 || publicationComplete.outboundActions !== 0 || publicationComplete.dropiActions !== 0 || publicationComplete.bridgeExecuted !== false || publicationComplete.mutationsEnabled !== false) throw new Error('publicação registrou efeito operacional proibido');
+  if (publication.version === 2) {
+    for (const key of legacyProofKeys) if (publicationComplete[key] !== publication[key]) throw new Error('prova legada da publication-complete divergente');
+  }
   effectiveStatus = 'production_published';
 }
 
@@ -1665,6 +2091,51 @@ if [[ "$action" == "status" ]]; then
   exit 0
 fi
 
+if [[ "$action" == "legacy-baseline-verify" ]]; then
+  [[ "$#" -eq 5 ]] || die "uso: vitalismen-stage legacy-baseline-verify RELEASE EXPECTED_COMMIT EXPECTED_TREE EXPECTED_FINGERPRINT"
+  [[ "${VITALISMEN_LEGACY_BASELINE_AUTHORIZE:-}" == "$legacy_baseline_authorization_phrase" ]] ||
+    die "autorização explícita LEGACY_BASELINE_V102 ausente"
+  [[ "$2" == "$legacy_baseline_release_name" ]] || die "release legada fora do contrato V102"
+  [[ "$3" == "$legacy_baseline_commit" ]] || die "commit esperado fora do contrato V102"
+  [[ "$4" == "$legacy_baseline_tree" ]] || die "tree esperada fora do contrato V102"
+  [[ "$5" == "$legacy_baseline_fingerprint_expected" ]] || die "fingerprint esperado fora do contrato V102"
+  ensure_private_dirs "$state_dir" "$protected_log_dir"
+  exec 9>"$state_dir/vitalismen-stage.lock"
+  "$flock_cmd" -n 9 || die "outra operação de deploy/migração está em execução"
+  [[ ! -e "$legacy_baseline_consumed_file" && ! -L "$legacy_baseline_consumed_file" ]] ||
+    die "attestation legada já foi consumida e não pode ser reaproveitada"
+  detect_source_process_identity
+  if [[ -e "$legacy_baseline_attestation_file" || -L "$legacy_baseline_attestation_file"
+    || -e "$legacy_baseline_attestation_seal_file" || -L "$legacy_baseline_attestation_seal_file" ]]; then
+    validate_legacy_baseline_attestation_live
+    echo "LEGACY_BASELINE_ATTESTATION_CREATED=NAO_JA_EXISTIA_VALIDA"
+  else
+    collect_legacy_baseline_facts
+    write_legacy_baseline_attestation
+    validate_legacy_baseline_attestation_live
+    echo "LEGACY_BASELINE_ATTESTATION_CREATED=SIM"
+  fi
+  echo "LEGACY_BASELINE_VERIFIED=SIM"
+  echo "PROOF_TYPE=LEGACY_BASELINE_VERIFIED"
+  echo "LEGACY_BASELINE_RELEASE=$legacy_baseline_release_name"
+  echo "LEGACY_BASELINE_COMMIT=$legacy_baseline_commit"
+  echo "LEGACY_BASELINE_TREE=$legacy_baseline_tree"
+  echo "LEGACY_BASELINE_FINGERPRINT=$legacy_baseline_fingerprint_expected"
+  echo "LEGACY_BASELINE_ATTESTATION_SHA256=$legacy_baseline_attestation_sha"
+  echo "PM2_STATUS=$source_pm2_status"
+  echo "PM2_PID=$source_pm2_pid"
+  echo "HEALTH=$legacy_health_code"
+  echo "API_HEALTH=$legacy_api_health_code"
+  echo "HTTP_PUBLICO=$legacy_public_code"
+  echo "ZAPI=connected"
+  echo "MONGO=healthy"
+  echo "NGINX=healthy"
+  echo "STAGED_SOURCE_CLAIMED=NO"
+  echo "PM2_ACTIONS=0"
+  echo "OUTBOUND_ACTIONS=0"
+  exit 0
+fi
+
 if [[ "$action" == "activate" ]]; then
   die "activate legado bloqueado: use v66-preflight e v66-activate-safe; fallback automático foi removido"
 fi
@@ -1863,6 +2334,9 @@ if [[ "$action" == "v70-publish" ]]; then
   detect_source_process_state
   current_before="$source_current"
   pm2_pid_before="$source_pm2_pid"
+  require_unconsumed_legacy_baseline_for_publish
+  publication_envelope_version=1
+  [[ "$source_provenance_type" == "LEGACY_BASELINE_VERIFIED" ]] && publication_envelope_version=2
   validate_successor_release "$candidate_dir" "$candidate_name"
   [[ "$candidate_publication_status" == "staged_candidate" ]] || die "release já publicada ou estado inválido"
   [[ "$candidate_source_ref" == "$requested_source_ref" ]] || die "SOURCE_REF diverge da identidade staged"
@@ -1881,10 +2355,14 @@ if [[ "$action" == "v70-publish" ]]; then
   publication_metadata_tmp="$candidate_dir/.${publication_metadata_name}.tmp.$$"
   publication_complete_tmp="$candidate_dir/.${publication_complete_name}.tmp.$$"
   publication_written=0
+  legacy_consumption_written=0
   publication_cleanup() {
     rm -f -- "$publication_metadata_tmp" "$publication_complete_tmp"
     if [[ "$publication_written" != "1" ]]; then
       rm -f -- "$publication_metadata" "$publication_complete"
+      if [[ "$legacy_consumption_written" == "1" ]]; then
+        rm -f -- "$legacy_baseline_consumed_file"
+      fi
     fi
   }
   trap publication_cleanup EXIT
@@ -1914,7 +2392,10 @@ if [[ "$action" == "v70-publish" ]]; then
     "$base_env_sha" "$node_modules_sha" \
     "$deploy_helper_contract_version" "$runtime_guard_chain_version" \
     "$data_compatibility_version" "$runtime_predeploy_version" \
-    "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" <<'NODE'
+    "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" \
+    "$publication_envelope_version" "$source_provenance_type" "$source_provenance_release" \
+    "$source_provenance_commit" "$source_provenance_tree" "$source_provenance_fingerprint" \
+    "$source_provenance_sha" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, functionalPayloadSha256,
@@ -1922,10 +2403,12 @@ const [
   releaseMetadataSha256, stagingCompleteSha256, safeOverlaySha256,
   baseEnvSha256, nodeModulesSha256, deployHelperRaw,
   guardChainRaw, dataCompatibilityRaw, predeployValidated, productionBranchCommitBefore,
-  productionBranchCommitAfter, publishedAt
+  productionBranchCommitAfter, publishedAt, envelopeVersionRaw, baselineProofType,
+  baselineProofRelease, baselineProofCommit, baselineProofTree,
+  baselineProofFingerprint, baselineProofSha256
 ] = process.argv.slice(2);
 const publication = {
-  version: 1,
+  version: Number(envelopeVersionRaw),
   status: 'production_published',
   releaseChannel: 'production',
   release,
@@ -1953,6 +2436,14 @@ const publication = {
   productionBranchChanged: false,
   publishedAt
 };
+if (publication.version === 2) Object.assign(publication, {
+  baselineProofType,
+  baselineProofRelease,
+  baselineProofCommit,
+  baselineProofTree,
+  baselineProofFingerprint,
+  baselineProofSha256
+});
 fs.writeFileSync(file, `${JSON.stringify(publication, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
 NODE
   secure_mode 0600 "$publication_metadata_tmp"
@@ -1965,7 +2456,10 @@ NODE
     "$safe_overlay_sha" "$base_env_sha" "$node_modules_sha" \
     "$deploy_helper_contract_version" "$runtime_guard_chain_version" \
     "$data_compatibility_version" "$runtime_predeploy_version" \
-    "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" <<'NODE'
+    "$production_branch_before_publish" "$production_branch_after_publish" "$published_at" \
+    "$publication_envelope_version" "$source_provenance_type" "$source_provenance_release" \
+    "$source_provenance_commit" "$source_provenance_tree" "$source_provenance_fingerprint" \
+    "$source_provenance_sha" <<'NODE'
 const fs = require('node:fs');
 const [
   file, release, functionalCommit, functionalTree, functionalPayloadSha256,
@@ -1973,10 +2467,12 @@ const [
   releaseMetadataSha256, stagingCompleteSha256, publicationMetadataSha256,
   safeOverlaySha256, baseEnvSha256, nodeModulesSha256, deployHelperRaw,
   guardChainRaw, dataCompatibilityRaw, predeployValidated,
-  productionBranchCommitBefore, productionBranchCommitAfter, completedAt
+  productionBranchCommitBefore, productionBranchCommitAfter, completedAt,
+  envelopeVersionRaw, baselineProofType, baselineProofRelease, baselineProofCommit,
+  baselineProofTree, baselineProofFingerprint, baselineProofSha256
 ] = process.argv.slice(2);
 const attestation = {
-  version: 1,
+  version: Number(envelopeVersionRaw),
   status: 'complete',
   publicationStatus: 'production_published',
   release,
@@ -2010,6 +2506,14 @@ const attestation = {
   mutationsEnabled: false,
   completedAt
 };
+if (attestation.version === 2) Object.assign(attestation, {
+  baselineProofType,
+  baselineProofRelease,
+  baselineProofCommit,
+  baselineProofTree,
+  baselineProofFingerprint,
+  baselineProofSha256
+});
 fs.writeFileSync(file, `${JSON.stringify(attestation, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
 NODE
   secure_mode 0600 "$publication_complete_tmp"
@@ -2023,6 +2527,7 @@ NODE
   "$mv_cmd" -Tf "$publication_complete_tmp" "$publication_complete"
   secure_mode 0400 "$publication_metadata" "$publication_complete"
   publication_complete_sha="$($sha256_cmd "$publication_complete" | awk '{print $1}')"
+  write_legacy_baseline_consumption "$candidate_name" "$candidate_commit" "$requested_tag" "$publication_metadata_sha"
   validate_successor_release "$candidate_dir" "$candidate_name"
   [[ "$candidate_publication_status" == "production_published" ]] || die "publicação final não validou"
   [[ "$candidate_tag" == "$requested_tag" ]] || die "tag final publicada divergiu"
@@ -2342,7 +2847,7 @@ if [[ "$action" == "v66-rollback-plan" ]]; then
   exit 0
 fi
 
-[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | stage SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE RELEASE | v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE EXPECTED_TAG | v66-plan RELEASE | v66-preflight RELEASE | v70-activation-validate RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET | v77-canary-authorize RELEASE WINDOW_MINUTES | v77-canary-validate RELEASE | v77-canary-activate RELEASE | v77-canary-contain"
+[[ "$action" == "stage" ]] || die "uso: vitalismen-stage status | legacy-baseline-verify RELEASE EXPECTED_COMMIT EXPECTED_TREE EXPECTED_FINGERPRINT | stage SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE RELEASE | v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT EXPECTED_TREE EXPECTED_TAG | v66-plan RELEASE | v66-preflight RELEASE | v70-activation-validate RELEASE | v66-activate-safe RELEASE | v66-contain | v66-rollback-plan RUNNER TARGET | v77-canary-authorize RELEASE WINDOW_MINUTES | v77-canary-validate RELEASE | v77-canary-activate RELEASE | v77-canary-contain"
 [[ "$#" -eq 5 ]] || die "informe exatamente SOURCE_REF, EXPECTED_COMMIT, EXPECTED_TREE e RELEASE"
 
 source_ref="$2"

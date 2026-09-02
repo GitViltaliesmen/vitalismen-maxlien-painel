@@ -1,0 +1,73 @@
+{
+  "freezeId": "legacy-baseline-attestation-v102",
+  "version": 102,
+  "parentVersion": "V101",
+  "parentFreezeId": "protocolo-g-successor-guard-v101",
+  "parentManifestSha256": "d03c1eeec1548f4979a796ef8924a251834a1b36358d7a93ba04ca0b8518c38c",
+  "parentFreezeSha256": "94e2bf3e69d760e536b212f837b953b0ed163fc4243a26dc93399736361b8eb0",
+  "parentAttestationSha256": "1b1de9440dffb8d3d07acaaa65d6904835b46078bd1a2da2f6baa656966d1a5b",
+  "parentCommit": "f66ed8cd2409db64d00a9d4fd44bf4e050f85b95",
+  "parentTree": "25974e8c0d14ca5a28f17a6f1502a3e6dde79322",
+  "purpose": "VERIFY_EXACT_LEGACY_BASELINE_WITHOUT_STAGED_SOURCE_CLAIM",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_legacy_baseline_migration_only",
+  "country": "EC",
+  "policy": {
+    "legacyBaselineProofType": "LEGACY_BASELINE_VERIFIED",
+    "stagedSourceClaimed": false,
+    "modernMetadataFabricationAllowed": false,
+    "implicitFallbackAllowed": false,
+    "singleUse": true,
+    "guardsBypassed": false,
+    "v97ProtectionDisabled": false,
+    "express5Introduced": false,
+    "functionalCandidateChanged": false,
+    "outboundChanged": false,
+    "dropiChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  },
+  "evidence": {
+    "path": "docs/evidence/legacy-baseline-attestation-v102-attestation-20260902.json",
+    "sha256": "7c386ced0a1030ff6834b52a11595e0a8ee808a5612c9268d63a9e0c7e2a27ed"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "0c37f76a75914b15451c94f440186dd8ffb37eb5bbeea62afe53dd2ca71760e5"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage",
+    "src/services/dropiManualBffRecoveryV98Service.js",
+    "src/services/ecRepurchaseRegistrationV99Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage",
+    "src/services/dropiManualBffRecoveryV98Service.js",
+    "src/services/ecRepurchaseRegistrationV99Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/LEGACY_BASELINE_ATTESTATION_FREEZE_V102_20260902.md",
+    "docs/evidence/legacy-baseline-attestation-v102-attestation-20260902.json",
+    "scripts/guard-legacy-baseline-attestation-v102.mjs",
+    "scripts/lib/legacy-baseline-attestation-v102-context.mjs",
+    "src/services/legacyBaselineAttestationFreezeRuntimeGuardV102.js",
+    "src/services/legacyBaselineAttestationV102Service.js",
+    "tests/legacy-baseline-attestation-v102.test.mjs"
+  ],
+  "protectedFiles": {
+    "ops/vitalismen-stage": "17a49f9ab96391af29c3385bfb2a00a53cbf7de90c2982218e12bd47655acc8c",
+    "src/services/dropiManualBffRecoveryV98Service.js": "ac631b367c472000a4e3b31a0cea87c24cd81b592cdd986366c7a2163708bde6",
+    "src/services/ecRepurchaseRegistrationV99Service.js": "39eea538434e9d8c9b1b5f3d424984fb5924ce18fa3129326a0946ae52999e93",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "ac59185613d8be05f9c79b57c7811a6967f436b36e1f8bfe88c6d04543c5e66d",
+    "docs/LEGACY_BASELINE_ATTESTATION_FREEZE_V102_20260902.md": "ba7af122db00a4f4e18b17cfe44d8d973f1a4ffa43edfda0edaa0a0e938b7072",
+    "docs/evidence/legacy-baseline-attestation-v102-attestation-20260902.json": "7c386ced0a1030ff6834b52a11595e0a8ee808a5612c9268d63a9e0c7e2a27ed",
+    "scripts/guard-legacy-baseline-attestation-v102.mjs": "d3187b1f91e0db5b9f807311aa67f8fb1a6677b31abf935d30e85250fa7ba304",
+    "scripts/lib/legacy-baseline-attestation-v102-context.mjs": "735cd280f3dee92c8de35fe5dd0933caf9146018f9d8ceb76b98671a364c2951",
+    "src/services/legacyBaselineAttestationFreezeRuntimeGuardV102.js": "5376833cfbfc13161e321720c5033ea55356e6b4cf59d60163ef9ef439cf36a4",
+    "src/services/legacyBaselineAttestationV102Service.js": "c3c6a07677d818dbf832d6454f88d2c0a02c6ec19c25404c7e26e19e97c000c4",
+    "tests/legacy-baseline-attestation-v102.test.mjs": "30d6ad65804532fa9a5038f47b6031f54d5abe756388d904e2a721aaf392d0f2"
+  }
+}

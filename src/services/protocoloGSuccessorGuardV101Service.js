@@ -81,8 +81,9 @@ const assertParentV100 = () => {
         throw new Error('[EC-SUCCESSOR-GUARD-V101] parent_policy_invalid');
     }
     const overrides = new Set(modifiedAncestorProtectedFiles);
+    const parentSuccessorOverrides = new Set(globalThis[PROTOCOLO_G_SUCCESSOR_GUARD_V101_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (overrides.has(relativePath)) continue;
+        if (overrides.has(relativePath) || parentSuccessorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-SUCCESSOR-GUARD-V101] parent_protected_file_invalid:${relativePath}`);
         }
@@ -158,7 +159,9 @@ export const assertProtocoloGSuccessorGuardManifestV101 = () => {
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([relativePath, hash]) => `${relativePath}\0${hash}\n`).join('')));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-SUCCESSOR-GUARD-V101] logical_bundle_invalid');
+    const successorOverrides = new Set(globalThis[PROTOCOLO_G_SUCCESSOR_GUARD_V101_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-SUCCESSOR-GUARD-V101] protected_file_invalid:${relativePath}`);
         }

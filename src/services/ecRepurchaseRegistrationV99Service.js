@@ -80,8 +80,9 @@ const assertParentV98 = () => {
         throw new Error('[EC-REPURCHASE-REGISTRATION-V99] parent_policy_invalid');
     }
     const overrides = new Set(modifiedAncestorProtectedFiles);
+    const parentSuccessorOverrides = new Set(globalThis[EC_REPURCHASE_REGISTRATION_V99_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (overrides.has(relativePath)) continue;
+        if (overrides.has(relativePath) || parentSuccessorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-REPURCHASE-REGISTRATION-V99] parent_protected_file_invalid:${relativePath}`);
         }

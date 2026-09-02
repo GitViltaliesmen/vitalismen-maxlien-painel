@@ -77,8 +77,9 @@ const assertParentV97 = () => {
         throw new Error('[DROPI-MANUAL-BFF-RECOVERY-V98] parent_policy_invalid');
     }
     const overrides = new Set(modifiedAncestorProtectedFiles);
+    const parentSuccessorOverrides = new Set(globalThis[DROPI_MANUAL_BFF_RECOVERY_V98_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (overrides.has(relativePath)) continue;
+        if (overrides.has(relativePath) || parentSuccessorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[DROPI-MANUAL-BFF-RECOVERY-V98] parent_protected_file_invalid:${relativePath}`);
         }
