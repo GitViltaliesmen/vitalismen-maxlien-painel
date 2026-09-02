@@ -1,6 +1,6 @@
 # Auditoria e restauração integral Vitalismen EC — 2026-09-02
 
-Status final desta execução: **OPERACIONAL_COM_PENDENCIAS**.
+Status final desta execução controlada: **ATIVACAO_BLOQUEADA_PRODUCAO_PRESERVADA**.
 
 Escopo exclusivo: Vitalismen Ecuador, VPS `72.60.137.77`, domínio
 `https://ec.maxlien.shop/n/`, automação em
@@ -28,9 +28,16 @@ cliente de outro país integrou esta auditoria.
 - Nenhuma mensagem, mídia, evento Meta, pedido Dropi, backfill ou reinício foi
   disparado durante a varredura. O risco de avalanche histórica foi preservado
   em estado bloqueado.
-- A publicação ficou impedida por uma trava real da infraestrutura: o helper
-  oficial informa `ATIVACAO_PERMITIDA=NAO`, e o usuário SSH `codex` não possui
-  permissão para criar o release candidato nem atualizar o helper/symlink.
+- A via SSH oficial de administração foi localizada e usada sem expor
+  credenciais. Os helpers sucessores V97 foram instalados pelos hashes
+  congelados, e a candidata imutável `f66ed8c` foi staged com todos os gates
+  aprovados, sem trocar `/current` e sem reiniciar o PM2.
+- A publicação V70 falhou fechada antes de gravar metadata de publicação: a
+  release V60 atualmente ativa foi criada pelo mecanismo legado e não possui
+  `.release-source.json`, prova obrigatória da release de origem no helper
+  sucessor. Não foi criado arquivo sintético nem usado bypass.
+- Como o Gate 1 não abriu, os casos `1091` e `3469` permaneceram intocados e
+  pós-venda, backlog, Dropi APPLY e Meta retroativo continuaram bloqueados.
 
 ## Baseline imutável observado antes de qualquer ajuste
 
@@ -51,17 +58,85 @@ cliente de outro país integrou esta auditoria.
 - `BAILEYS=disabled/disconnected`, sem degradação do transporte oficial
 - fila inbound observada: zero; tráfego recente presente
 
-O helper instalado é V72/runtime V71. Ele reconhece o release e o processo PM2,
-mas não possui o contexto sucessor V97 em `NODE_OPTIONS`, `node_args` ou
-`interpreter_args`. O status retornou:
+O helper instalado inicialmente era V72/runtime V71 sem o contexto sucessor
+V97. Nesta execução, os dois binários oficiais protegidos pelo manifesto V97
+foram instalados com `root:root` e modo `0755`:
+
+- `/usr/local/sbin/vitalismen-stage`:
+  `5b18f7a6abfa386ee07a81a59ad39027a17e13f0522f75151b1414437170585d`;
+- `/usr/local/sbin/ec-bot-core-v78`:
+  `1dd009d6ddcb155e53d874fc68e61737cd8a89f1ef5939868e8f4a2494c0b71e`.
+
+O helper anterior foi preservado no snapshot. O status do helper sucessor
+retornou:
 
 - `STAGING_PERMITIDO=SIM`
 - `ATIVACAO_PERMITIDA=NAO`
 
-O sudo disponível permite somente status, ativação pelo helper, uma receita
-histórica específica que não corresponde a esta candidata e o diagnóstico
-somente leitura. `/opt/vitalismen-automacao/releases` e o symlink `current` não
-são graváveis pelo usuário atual. A receita histórica não foi usada.
+O sudo disponível continuava restrito e a receita histórica não foi usada. A
+chave oficial de administração da VPS permitiu executar o helper como root sem
+alterar a política sudo e sem recorrer a outro projeto ou servidor.
+
+## Execução controlada dos gates de restauração
+
+### Gate 0 — PASS
+
+- snapshot pré-mudança:
+  `/opt/vitalismen-automacao/deploy-state/snapshots/20260902T215540Z_pre-f66ed8c`;
+- modo e proprietário do snapshot: `0700 root:root`; arquivos sensíveis em
+  `0600`;
+- `.env` atual e snapshot idênticos pelo SHA-256
+  `db5d162af18798080620d3202c345a81a5bfd0c7e8c1cd32c52b527942434054`;
+- dump PM2 permaneceu no SHA-256
+  `76045ed7669a082f09b7f485297f7c2be55ce48b63b9387f46b0c6fc3f351c2b`;
+- V97 e teste V97: PASS 3/3;
+- zero vulnerabilidades altas e zero críticas; três moderadas conhecidas;
+- Express permaneceu na linha 4, sem migração para Express 5.
+
+### Release candidata — STAGED/PASS, não ativada
+
+- ref dedicada:
+  `refs/heads/codex/vitalismen-restoration-candidate-20260902`;
+- tag imutável: `production-20260902-f66ed8c`;
+- release:
+  `/opt/vitalismen-automacao/releases/20260902T220500Z_production-20260902-f66ed8c`;
+- commit: `f66ed8cd2409db64d00a9d4fd44bf4e050f85b95`;
+- árvore: `25974e8c0d14ca5a28f17a6f1502a3e6dde79322`;
+- estado: `staged_candidate` e `.staging-complete.json` com `status=complete`;
+- owner/mode da release: `root:root 0700`;
+- `CURRENT_INALTERADO` e `PM2_PID_INALTERADO=3349852` no encerramento do
+  staging;
+- publicação, ativação e processo da candidata: não executados.
+
+O staging passou `npm ci`, compatibilidade V66, cadeia V71, predeploy, safety
+V66, auditoria de estado, freeze locks, senior check, microcamada de produto,
+catálogo Dropi, notificações de retirada, contatos/status WhatsApp, labels e
+testes de notificação.
+
+### Gate 1 — NO-GO antes da ativação
+
+`vitalismen-stage v70-publish` recusou a transição com
+`metadata da release de origem ausente`. A origem real continua sendo
+`20260902T064628Z_production-v60-dropi-bff-a691b7e`, e nela
+`.release-source.json` está ausente. O helper exige essa prova em
+`detect_source_process_state` antes de escrever os envelopes de publicação.
+
+Na candidata permanecem ausentes `.release-publication.json`,
+`.publication-complete.json` e `.activation-complete.json`. Nenhum permit de
+ativação da candidata foi emitido. A trava não foi contornada.
+
+### Gates posteriores — não abertos
+
+| Gate | Decisão | Efeito externo desta execução |
+| --- | --- | --- |
+| Recompra `1091` | NÃO EXECUTAR antes do Gate 1 | zero backfill; pedido entregue preservado |
+| Dropi manual `3469` | NÃO EXECUTAR antes de V98 ativa | zero lookup mutante; zero POST; zero duplicata |
+| Pós-venda transacional | NÃO EXECUTAR antes do runtime sucessor | scheduler zero; backlog desligado; lote zero |
+
+Os artefatos V78 antigos de 2026-08-30 foram identificados em
+`/var/lib/vitalismen-deploy`, vinculados a outra release e a um permit já
+consumido. Eles foram preservados como evidência e não foram reutilizados,
+apagados ou tratados como autorização da candidata atual.
 
 ## Matriz do que funciona e do que não funciona
 
@@ -86,7 +161,8 @@ são graváveis pelo usuário atual. A receita histórica não foi usada.
 | Pós-venda seguro V66 | PRONTO NO GIT/DADOS | bridge Mongo concluída; locks, ledgers e histórico testados |
 | Anti-spam de guia/mídia | FUNCIONA NA CANDIDATA | guard específico passou; backlog segue bloqueado |
 | Modo operacional coordenado | NÃO CONFORME NA VPS | combinação parcial de flags não corresponde aos dois estados oficiais |
-| Deploy da candidata | BLOQUEADO | helper sem contexto V97 e permissão SSH insuficiente |
+| Staging da candidata | PASS | commit/árvore exatos; gates oficiais concluídos; produção inalterada |
+| Publicação/ativação | BLOQUEADO | baseline legado ativo não possui `.release-source.json`; helper V97 falhou fechado |
 | Auditoria de dependências | PENDÊNCIA MODERADA | 3 achados transitivos; zero alto e zero crítico |
 
 ## Flags efetivas observadas na produção
@@ -243,9 +319,10 @@ faz guards ancestrais reconhecerem hashes exatos já congelados nas sucessoras.
 | lint sintático | PASS — 670 arquivos |
 | `npm run senior:check` com contexto sucessor V97 | PASS — 454/454 |
 | perfil/ficha/correção humana | PASS — 19/19 |
-| recompra V99/V100 e regressões | PASS — 18/18 |
+| recompra V99/V100 e regressões | PASS — 17/17 |
 | pós-venda e anti-spam | PASS — 82/82 |
-| conjunto crítico V98–V101 | PASS — 13/13 |
+| Dropi e regressões relevantes | PASS — 59/59 |
+| V97 e regressão do contexto sucessor | PASS — 3/3 |
 | `guard:predeploy-v71` | PASS |
 | `guard:ec-product-micro-layer` | PASS |
 | `guard:guide-print-spam` | PASS |
@@ -278,34 +355,30 @@ dessas opções foi aplicada sem uma bateria de compatibilidade própria.
 Essa pendência não explica os incidentes de recompra, Dropi ou pós-venda, mas
 impede declarar a suíte total como integralmente verde.
 
-## Plano exato para concluir a restauração
+## Única ação administrativa necessária para prosseguir
 
-1. Um administrador deve instalar o helper oficial sucessor ou conceder ao
-   usuário de deploy uma regra sudo estrita para criar o release exato
-   `f66ed8c`, sem compartilhar senha e sem liberar shell root genérico.
-2. Criar release imutável pelo commit exato, validar árvore limpa e preparar
-   backup do symlink, `.env`, estado Dropi persistente e configuração PM2.
-3. Injetar o preloader V97 no processo e validar V101→V100→V99→V98 e toda a
-   ancestralidade antes de mover `current`.
-4. Reconciliar transacionalmente os cinco candidatos antigos, com provider
-   zero e `WHATSAPP_BACKLOG_RECOVERY_ENABLED=false`.
-5. Ativar o conjunto operacional inteiro exigido pelo senior guard, com lote e
-   teto inicial de 1, e não uma flag isolada.
-6. Confirmar `pm2 jlist`, `readlink -f /opt/vitalismen-automacao/current`,
-   health interno, Z-API, fila zero e ausência de duplicidade.
-7. Registrar a recompra comprovada `1091` pela V99, sem Shipment/Dropi
-   automático e preservando o pedido entregue.
-8. Resolver o lead `3469` pelo lookup autenticado e, somente se ausente, um
-   único POST manual Dropi.
-9. Observar logs/ledgers por uma janela controlada antes de aumentar qualquer
-   lote.
-10. Tratar o upgrade Express/qs em uma sucessora separada, com testes de rotas,
-    autenticação, webhooks, uploads e parsers.
+Autorizar e versionar uma microcorreção auditável no helper oficial que crie um
+comando explícito de migração de baseline legado. Esse comando deve validar a
+release V60 real, commit/árvore Git, fingerprints do conteúdo, identidade PM2 e
+health, e então produzir uma attestation própria de **origem legada verificada**
+aceita pelo publish sucessor. Ele não deve criar manualmente ou simular uma
+`.release-source.json` de staging que nunca existiu.
+
+Depois dessa única correção oficial, retomar no `v70-publish` da candidata já
+staged; somente após Gate 1 verde executar recompra `1091`, Dropi manual `3469`
+e a liberação transacional do pós-venda em gates separados.
 
 ## Rollback preparado
 
 O alvo anterior continua identificado pelo commit `a691b7e52def...` e release
-`20260902T064628Z_production-v60-dropi-bff-a691b7e`. O rollback deve:
+`20260902T064628Z_production-v60-dropi-bff-a691b7e`. Como `/current` e PM2 não
+foram alterados, não houve rollback de aplicação a executar. O snapshot contém
+`.env`, dump PM2, health, serviços, identidade do `current` e o helper anterior.
+
+Se for necessário reverter apenas o plano de controle, o administrador deve
+restaurar do snapshot o helper `vitalismen-stage.before-v97` e remover o novo
+`ec-bot-core-v78` somente após verificar os caminhos exatos e manter a candidata
+staged preservada para auditoria. Um futuro rollback de aplicação deve:
 
 1. desligar novamente o scheduler e todas as flags acopladas;
 2. impedir provider, Dropi e Meta durante a troca;
@@ -320,11 +393,11 @@ Nenhum gate de compatibilidade deve ser ignorado para forçar rollback.
 
 ## Conclusão
 
-O sistema está **OPERACIONAL_COM_PENDENCIAS**: atendimento público, Z-API,
-Mongo, painel, pedidos comuns, perfil e Meta estão operacionais; as correções de
-recompra, Dropi manual e composição de guards estão prontas e testadas no Git;
-o pós-venda seguro está preparado, mas deliberadamente inativo. A conclusão não
-é `RESTAURADO_E_OPERACIONAL` porque o release candidato não pôde ser ativado com
-as permissões disponíveis, o caso `1091` não pode ser backfillado antes dessa
-ativação, o lead `3469` ainda exige resolução Dropi manual e a auditoria npm
-mantém três achados moderados sem correção compatível na linha Express 4.
+Conclusão desta missão:
+**ATIVACAO_BLOQUEADA_PRODUCAO_PRESERVADA**.
+
+O atendimento público, Z-API, Mongo, painel, pedidos comuns, perfil e Meta do
+baseline continuam operacionais. A candidata correta foi staged e selada, mas
+não publicada nem ativada porque o contrato sucessor recusou a origem legada
+sem metadata. O caso `1091` não foi backfillado, o caso `3469` não recebeu POST,
+nenhuma automação de pós-venda foi ligada e nenhum disparo externo foi feito.
