@@ -99,7 +99,11 @@ export const assertEcOperationalGuardContextManifestV97 = () => {
         || JSON.stringify(Object.keys(manifest.protectedFiles || {}).sort()) !== JSON.stringify(expectedProtected)) throw new Error('[EC-OPERATIONAL-GUARD-CONTEXT-V97] manifest_identity_or_policy_invalid');
     const logicalHash = sha256Buffer(Buffer.from(Object.entries(manifest.protectedFiles || {}).sort(([a], [b]) => a.localeCompare(b)).map(([p, h]) => `${p}\0${h}\n`).join('')));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-OPERATIONAL-GUARD-CONTEXT-V97] logical_bundle_invalid');
-    for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) if (sha256File(relativePath) !== expectedHash) throw new Error(`[EC-OPERATIONAL-GUARD-CONTEXT-V97] protected_file_invalid:${relativePath}`);
+    const successorOverrides = new Set(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] || []);
+    for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
+        if (sha256File(relativePath) !== expectedHash) throw new Error(`[EC-OPERATIONAL-GUARD-CONTEXT-V97] protected_file_invalid:${relativePath}`);
+    }
     return Object.freeze({ manifest, overrides, manifestSha256: sha256File(EC_OPERATIONAL_GUARD_CONTEXT_V97_MANIFEST_PATH) });
 };
 

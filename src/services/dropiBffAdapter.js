@@ -14,6 +14,23 @@ const safeRequestId = (value = '') => String(value || '')
     .replace(/[^A-Za-z0-9._:-]/g, '')
     .slice(0, 96);
 
+export const sanitizeDropiBffStatusReason = (value = '') => String(value || '')
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, '[REDACTED_JWT]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED_EMAIL]')
+    .replace(/\b(?:\+?593|0)?9\d{8}\b/g, '[REDACTED_PHONE]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 280);
+
+const dropiBffStatusReason = (body = {}) => sanitizeDropiBffStatusReason(
+    body?.status_reason
+    || body?.message
+    || body?.error?.status_reason
+    || body?.error?.message
+    || ''
+);
+
 export const parseDropiJwtClaims = (token = '') => {
     try {
         const encoded = String(token || '').split('.')[1];
@@ -70,22 +87,33 @@ export const normalizeDropiBffCreateResponse = (body = {}) => {
     if (!objects.id && body?.data?.id) objects.id = body.data.id;
     return {
         isSuccess: body?.is_succesfull ?? body?.isSuccess ?? false,
+        statusCode: body?.status_code ?? body?.statusCode ?? null,
+        message: dropiBffStatusReason(body),
         data: body?.data?.orderId ?? body?.data ?? null,
         objects
     };
 };
 
-export const classifyDropiBffFailure = ({ status = 0, timedOut = false } = {}) => {
+export const classifyDropiBffFailure = ({ status = 0, timedOut = false, body = {}, statusReason = '' } = {}) => {
     if (timedOut) return 'TIMEOUT';
     if (status === 401 || status === 403) return 'AUTH_FAILED';
     if (status === 409) return 'DUPLICATE';
     if (status === 422 || (status >= 400 && status < 500 && status !== 429)) return 'VALIDATION_ERROR';
     if (status === 429) return 'RATE_LIMIT';
     if (status >= 500) return 'DROPI_5XX';
+    const reason = sanitizeDropiBffStatusReason(statusReason || dropiBffStatusReason(body));
+    if (/saldo|wallet|cr[eé]dito|credito|balance|credit/i.test(reason)) return 'PAYMENT_REQUIRED';
+    if (/autentic|sesi[oó]n|session|token|credencial|unauthor|forbidden/i.test(reason)) return 'AUTH_FAILED';
+    if (/duplicad|duplicate|ya existe|already exists/i.test(reason)) return 'DUPLICATE';
+    if (/producto|product|sku|stock|inventario|inventory|variaci[oó]n|variation/i.test(reason)) return 'PRODUCT_INVALID';
+    if (/ciudad|city|provincia|province|departamento|state|direcci[oó]n|address|ubicaci[oó]n|location/i.test(reason)) return 'LOCATION_INVALID';
+    if (/transportadora|carrier|servientrega|laar|tarifa|shipping|recaudo/i.test(reason)) return 'CARRIER_INVALID';
+    if (/validaci[oó]n|validation|campo|field|obligatori|required|inv[aá]lid|invalid/i.test(reason)) return 'VALIDATION_ERROR';
     return 'DROPI_ERROR';
 };
 
-export const describeDropiBffFailure = (code) => ({
+export const describeDropiBffFailure = (code, statusReason = '') => {
+    const base = ({
     AUTH_FAILED: 'A sessao oficial Dropi expirou ou foi recusada.',
     PRODUCT_INVALID: 'O produto/SKU nao foi aceito para este pedido.',
     LOCATION_INVALID: 'Provincia, cidade ou endereco nao foi aceito pela Dropi.',
@@ -95,8 +123,12 @@ export const describeDropiBffFailure = (code) => ({
     RATE_LIMIT: 'A Dropi limitou temporariamente as requisicoes; tente novamente manualmente mais tarde.',
     DROPI_5XX: 'A Dropi apresentou erro interno; o pedido foi pesquisado antes de permitir nova tentativa manual.',
     TIMEOUT: 'A Dropi nao confirmou a criacao no tempo limite; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    PAYMENT_REQUIRED: 'A Dropi recusou o envio por saldo ou credito insuficiente.',
     DROPI_ERROR: 'A Dropi nao confirmou a criacao do pedido.'
-}[code] || 'A Dropi nao confirmou a criacao do pedido.');
+    }[code] || 'A Dropi nao confirmou a criacao do pedido.');
+    const safeReason = sanitizeDropiBffStatusReason(statusReason);
+    return safeReason ? `${base} Detalhe Dropi: ${safeReason}` : base;
+};
 
 export const validateDropiBffCreatePayload = (payload = {}) => {
     const product = Array.isArray(payload.products) ? payload.products[0] : null;
@@ -158,6 +190,7 @@ export const requestDropiBff = async ({
             ok: response.ok,
             status: response.status,
             body,
+            statusReason: dropiBffStatusReason(body),
             requestId: safeRequestId(
                 response.headers?.get?.('x-request-id')
                 || response.headers?.get?.('request-id')
@@ -173,6 +206,7 @@ export const requestDropiBff = async ({
             ok: false,
             status: 0,
             body: {},
+            statusReason: '',
             requestId: '',
             timedOut,
             errorCode: classifyDropiBffFailure({ timedOut })

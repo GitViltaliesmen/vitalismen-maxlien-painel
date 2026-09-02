@@ -10,6 +10,7 @@ import {
     normalizeDropiBffCreateResponse,
     normalizeDropiBffListResponse,
     requestDropiBff,
+    sanitizeDropiBffStatusReason,
     validateDropiBffCreatePayload
 } from '../src/services/dropiBffAdapter.js';
 
@@ -82,6 +83,39 @@ test('criacao BFF 2xx usa POST e normaliza orderId', async () => {
     assert.equal(captured.options.headers.Authorization, undefined);
     assert.equal(result.requestId, 'req-test-1');
     assert.equal(normalizeDropiBffCreateResponse(result.body).objects.id, 987654);
+});
+
+test('rejeicao logica HTTP 200 preserva somente detalhe sanitizado', async () => {
+    const result = await requestDropiBff({
+        fetchImpl: async () => response({
+            status: 200,
+            body: {
+                is_succesfull: false,
+                status_code: 422,
+                status_reason: 'El campo ciudad es obligatorio para 593999999999 y operador@ejemplo.com'
+            }
+        }),
+        url: DROPI_BFF_CREATE_ENDPOINT,
+        method: 'POST',
+        token: 'token-de-teste',
+        operation: 'create',
+        payload: validCreatePayload()
+    });
+    const normalized = normalizeDropiBffCreateResponse(result.body);
+    assert.equal(normalized.isSuccess, false);
+    assert.equal(normalized.statusCode, 422);
+    assert.equal(result.statusReason.includes('593999999999'), false);
+    assert.equal(result.statusReason.includes('operador@ejemplo.com'), false);
+    assert.match(result.statusReason, /\[REDACTED_PHONE\]/);
+    assert.match(result.statusReason, /\[REDACTED_EMAIL\]/);
+    assert.equal(classifyDropiBffFailure({ ...result, statusReason: result.statusReason }), 'LOCATION_INVALID');
+});
+
+test('sanitizacao remove bearer e JWT do detalhe Dropi', () => {
+    const jwt = `${'a'.repeat(20)}.${'b'.repeat(20)}.${'c'.repeat(20)}`;
+    const sanitized = sanitizeDropiBffStatusReason(`Authorization Bearer segredo-super-longo ${jwt}`);
+    assert.equal(sanitized.includes('segredo-super-longo'), false);
+    assert.equal(sanitized.includes(jwt), false);
 });
 
 test('pedido duplicado e classificado sem segundo POST', () => {

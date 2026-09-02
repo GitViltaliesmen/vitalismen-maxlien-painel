@@ -36,6 +36,7 @@ import {
     normalizeDropiBffListResponse,
     parseDropiJwtClaims,
     requestDropiBff,
+    sanitizeDropiBffStatusReason,
     sameDropiAccountIdentity,
     validateDropiBffCreatePayload
 } from './dropiBffAdapter.js';
@@ -231,10 +232,21 @@ const classifyDropiManualError = (value = '') => {
         'RATE_LIMIT',
         'DROPI_5XX',
         'TIMEOUT',
+        'PAYMENT_REQUIRED',
         'DROPI_ERROR'
     ];
     return codes.find((code) => message.includes(dropiErrorToken(code)))
         || (isDropiPaymentRequiredError(message) ? 'PAYMENT_REQUIRED' : 'DROPI_ERROR');
+};
+
+const buildDropiBffSubmitError = ({ code, status = 0, statusReason = '', requestId = '' } = {}) => {
+    const errorCode = String(code || 'DROPI_ERROR').trim().toUpperCase();
+    const error = new Error(`${dropiErrorToken(errorCode)} HTTP_${Number(status) || 0}`);
+    error.dropiErrorCode = errorCode;
+    error.dropiHttpStatus = Number(status) || 0;
+    error.dropiStatusReason = sanitizeDropiBffStatusReason(statusReason);
+    error.dropiRequestId = String(requestId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 96);
+    return error;
 };
 
 const isDropiPaymentRequiredError = (value) => (
@@ -1909,14 +1921,22 @@ const submitOrderInPanel = async ({ page, payload }) => {
 
     const apiResult = await submitOrderViaDropiApi(page, { payload, quote, chosenCarrier: preparedForm.chosenCarrier });
     if (!apiResult.ok || !apiResult.body?.isSuccess) {
-        const errorCode = apiResult.errorCode || classifyDropiBffFailure(apiResult);
+        const errorCode = apiResult.errorCode || classifyDropiBffFailure({
+            ...apiResult,
+            statusReason: apiResult.statusReason || apiResult.body?.message || ''
+        });
         if (['DUPLICATE', 'DROPI_5XX', 'TIMEOUT'].includes(errorCode)) {
             const existingAfterAmbiguousPost = await findExistingDropiOrderForManualSubmission(page, payload);
             if (existingAfterAmbiguousPost) {
                 return existingDropiOrderResult(existingAfterAmbiguousPost, payload, preparedForm.chosenCarrier);
             }
         }
-        throw new Error(`${dropiErrorToken(errorCode)} HTTP_${apiResult.status || 0}`);
+        throw buildDropiBffSubmitError({
+            code: errorCode,
+            status: apiResult.status,
+            statusReason: apiResult.statusReason || apiResult.body?.message || '',
+            requestId: apiResult.requestId
+        });
     }
     const apiDropiOrderId = String(apiResult.body?.objects?.id || '').trim();
     const apiTrackingNumber = String(apiResult.body?.objects?.sticker || '').trim();
@@ -1925,7 +1945,12 @@ const submitOrderInPanel = async ({ page, payload }) => {
         if (existingAfterAcceptedPost) {
             return existingDropiOrderResult(existingAfterAcceptedPost, payload, preparedForm.chosenCarrier);
         }
-        throw new Error('DROPI_ERROR ACCEPTED_WITHOUT_ORDER_ID');
+        throw buildDropiBffSubmitError({
+            code: 'DROPI_ERROR',
+            status: apiResult.status,
+            statusReason: apiResult.statusReason || apiResult.body?.message || 'ACCEPTED_WITHOUT_ORDER_ID',
+            requestId: apiResult.requestId
+        });
     }
 
     const creationResult = await waitForOrderCreationResult(page, Math.min(ORDER_CREATION_WAIT_MS, 10000));
@@ -3330,18 +3355,22 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             }
         };
     } catch (error) {
-        const errorCode = classifyDropiManualError(error?.message);
+        const errorCode = error?.dropiErrorCode || classifyDropiManualError(error?.message);
+        const safeStatusReason = sanitizeDropiBffStatusReason(error?.dropiStatusReason || '');
         const reason = errorCode === 'PAYMENT_REQUIRED'
             ? 'dropi_payment_required'
             : errorCode.toLowerCase();
-        const safeMessage = errorCode === 'PAYMENT_REQUIRED'
-            ? 'A Dropi recusou o envio por saldo ou credito insuficiente.'
-            : describeDropiBffFailure(errorCode);
+        const safeMessage = describeDropiBffFailure(errorCode, safeStatusReason);
         await updateBrowserState(shipment._id, reason, {
             lastError: dropiErrorToken(errorCode),
             event: {
                 kind: 'droppi_browser_error',
-                payload: { code: dropiErrorToken(errorCode) }
+                payload: {
+                    code: dropiErrorToken(errorCode),
+                    httpStatus: Number(error?.dropiHttpStatus) || 0,
+                    requestId: String(error?.dropiRequestId || ''),
+                    statusReason: safeStatusReason
+                }
             }
         });
         await tagDropiContactState({
