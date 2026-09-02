@@ -1,0 +1,14 @@
+{
+  "attestationId": "protocolo-g-successor-guard-v101-20260902",
+  "country": "EC",
+  "scope": "exact V90 and V98 successor recognition in direct V61-V63 guards",
+  "implementation": {
+    "v90ManifestRequired": true,
+    "v98ManifestRequired": true,
+    "exactProtectedHashRequired": true,
+    "seniorGuardAllowlistScopedToV101": true,
+    "historicalHashesRewritten": false,
+    "zapiRouteChanged": false,
+    "operationalBehaviorChanged": false
+  }
+}

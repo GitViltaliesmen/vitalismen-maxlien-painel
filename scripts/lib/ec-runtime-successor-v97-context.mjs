@@ -2,6 +2,10 @@ import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEX
 import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/dropiManualBffRecoveryV98Service.js';
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
+import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const guardComposition = assertProtocoloGSuccessorGuardManifestV101();
+const guardCompositionPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...guardCompositionPrevious, ...guardComposition.overrides])];
 const latest = assertEcRepurchasePanelPrecedenceManifestV100();
 const latestPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...latestPrevious, ...latest.overrides])];
@@ -19,3 +23,4 @@ await import('../../src/services/ecOperationalGuardContextFreezeRuntimeGuardV97.
 await import('../../src/services/dropiManualBffRecoveryFreezeRuntimeGuardV98.js');
 await import('../../src/services/ecRepurchaseRegistrationFreezeRuntimeGuardV99.js');
 await import('../../src/services/ecRepurchasePanelPrecedenceFreezeRuntimeGuardV100.js');
+await import('../../src/services/protocoloGSuccessorGuardFreezeRuntimeGuardV101.js');
