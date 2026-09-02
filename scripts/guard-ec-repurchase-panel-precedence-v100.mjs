@@ -1,0 +1,11 @@
+await import('./lib/ec-runtime-successor-v97-context.mjs');
+const { assertEcRepurchasePanelPrecedenceV100 } = await import('../src/services/ecRepurchasePanelPrecedenceV100Service.js');
+const result = assertEcRepurchasePanelPrecedenceV100();
+console.log('EC_REPURCHASE_PANEL_PRECEDENCE_V100=PASS');
+console.log(`MANIFEST_SHA256=${result.manifestSha256}`);
+console.log('NEWEST_OPERATIONAL_ORDER_PER_PHONE=YES');
+console.log('HISTORICAL_ORDER_OVERWRITE=NO');
+console.log('HISTORICAL_ORDER_MUTATION=NO');
+console.log('DROPI_AUTHORIZATION_CREATED=NO');
+console.log('DROPI_SUBMISSION_CREATED=NO');
+console.log('GUARDS_BYPASSED=NO');

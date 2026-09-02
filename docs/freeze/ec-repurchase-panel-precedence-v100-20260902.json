@@ -1,0 +1,68 @@
+{
+  "freezeId": "ec-repurchase-panel-precedence-v100",
+  "version": 100,
+  "parentVersion": "V99",
+  "parentFreezeId": "ec-repurchase-registration-v99",
+  "parentManifestSha256": "0bb88ffbee48c7807800b97539a7911e40f703e5056189363699d5401e6c6f82",
+  "parentFreezeSha256": "8d46da5a7b99964da8ad3b1095d0f174cbd727faf347fcae26a94931679cb72e",
+  "parentAttestationSha256": "a2697c65902953afebc90f5040ea7d941f38da16a5fdad6621674fd517f34f79",
+  "parentCommit": "de6a20072ea1deabbf68747dcb601912ce224cfb",
+  "parentTree": "7ae6df021a55a5661a7c40fd4ac3cd86f170ca74",
+  "purpose": "NEWEST_REPURCHASE_WINS_PANEL_PHONE_MERGE",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_ec_repurchase_panel_precedence",
+  "country": "EC",
+  "policy": {
+    "newestOperationalOrderPerPhone": true,
+    "historicalOrderOverwriteAllowed": false,
+    "historicalOrderMutationAllowed": false,
+    "dropiAuthorizationCreated": false,
+    "dropiSubmissionCreated": false,
+    "whatsappOutboundChanged": false,
+    "funnelChanged": false,
+    "pricesChanged": false,
+    "databaseSchemaChanged": false,
+    "pixelDatasetChanged": false,
+    "otherCountryTouched": false,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-repurchase-panel-precedence-v100-attestation-20260902.json",
+    "sha256": "94843583f59ee518be9d85b310d09f01aab84b309c4fb83a85619e6c3352bc90"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "c83482c8565ab74856d2a8cee6b479a07346efce2a5450d16a719d6aadfb6346"
+  },
+  "declaredAncestorOverrides": [
+    "public/leads-window.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecRepurchaseRegistrationV99Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "public/leads-window.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecRepurchaseRegistrationV99Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_REPURCHASE_PANEL_PRECEDENCE_FREEZE_V100_20260902.md",
+    "docs/evidence/ec-repurchase-panel-precedence-v100-attestation-20260902.json",
+    "scripts/guard-ec-repurchase-panel-precedence-v100.mjs",
+    "src/services/ecRepurchasePanelPrecedenceFreezeRuntimeGuardV100.js",
+    "src/services/ecRepurchasePanelPrecedenceV100Service.js",
+    "tests/ec-repurchase-panel-precedence-v100.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_REPURCHASE_PANEL_PRECEDENCE_FREEZE_V100_20260902.md": "179ecafa9bfd27f60e1931d17e6895960826ed340bc44059aad6534e74f59f6a",
+    "docs/evidence/ec-repurchase-panel-precedence-v100-attestation-20260902.json": "94843583f59ee518be9d85b310d09f01aab84b309c4fb83a85619e6c3352bc90",
+    "public/leads-window.html": "8d668c9d8a162b14ac4278f2ec244021e44b11a22221b339041dd8677415350f",
+    "scripts/guard-ec-repurchase-panel-precedence-v100.mjs": "731cc4268fc4cee1126bb60603c8d1861f071550f079b5791e177b5dd1ff8cb2",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "4aac10dbe801e5f9e8bb81b9c705a84b1119711b8a42fd429c58dd6d3c612afd",
+    "src/services/ecRepurchasePanelPrecedenceFreezeRuntimeGuardV100.js": "2e3a4dac4f33b01cbfe3303a598eeaf1606de30ecd348dcdbcfdd13915a14e00",
+    "src/services/ecRepurchasePanelPrecedenceV100Service.js": "5d6ed3c26f768b21bc0b4a96a52d2e0d59ed6f1c0b4ab7758c6e02d7363e463b",
+    "src/services/ecRepurchaseRegistrationV99Service.js": "435f27d8fb6cab98dc135f049ec3b6162e8b506cd25099d9a4e69f32c23b815b",
+    "tests/ec-repurchase-panel-precedence-v100.test.mjs": "8f4f47d73c137b5c2121c2b4d409fe15fc868c2b418ebd9a6e187493e1c22a35"
+  }
+}

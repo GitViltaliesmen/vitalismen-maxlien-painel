@@ -1453,6 +1453,7 @@
             const merged = [...state.leads];
             const byOrderId = new Map();
             const byPhoneTail = new Map();
+            const mergedPhoneTails = new Set();
 
             merged.forEach((lead, index) => {
                 const orderId = leadOrderId(lead);
@@ -1464,6 +1465,11 @@
             orders.map(operationalOrderToLead).forEach((opsLead) => {
                 if (!opsLead.orderId) return;
                 const tail = phoneTail(opsLead.phone || '');
+                // /api/orders devolve o ciclo mais recente primeiro. Depois que um
+                // telefone foi mesclado, pedidos historicos desse mesmo cliente nao
+                // podem sobrescrever a recompra/negociacao operacional atual.
+                if (tail && mergedPhoneTails.has(tail)) return;
+                if (tail) mergedPhoneTails.add(tail);
                 const existingIndex = byOrderId.has(opsLead.orderId)
                     ? byOrderId.get(opsLead.orderId)
                     : byPhoneTail.get(tail);

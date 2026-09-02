@@ -146,7 +146,9 @@ export const assertEcRepurchaseRegistrationManifestV99 = () => {
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([relativePath, hash]) => `${relativePath}\0${hash}\n`).join('')));
     if (manifest.logicalBundle?.sha256 !== logicalHash) throw new Error('[EC-REPURCHASE-REGISTRATION-V99] logical_bundle_invalid');
+    const successorOverrides = new Set(globalThis[EC_REPURCHASE_REGISTRATION_V99_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-REPURCHASE-REGISTRATION-V99] protected_file_invalid:${relativePath}`);
         }
