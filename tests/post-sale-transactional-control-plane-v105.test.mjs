@@ -11,10 +11,12 @@ import {
 } from '../src/services/postSaleNotificationDecisionService.js';
 import {
     POST_SALE_TRANSACTIONAL_V105_DATASET_ID,
+    POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY,
     assertPostSaleTransactionalV105Manifest,
     buildPostSaleTransactionalV105Overlay,
     resolvePostSaleTransactionalV105Configuration
 } from '../src/services/postSaleTransactionalControlPlaneV105Service.js';
+import { assertPostSalePublicationMetadataV106Manifest } from '../src/services/postSalePublicationMetadataV106Service.js';
 
 const chain = (value) => ({
     sort() { return this; },
@@ -112,6 +114,8 @@ test('helper oferece permits separados, contenção e lote sem retry', () => {
 });
 
 test('manifesto V105 protege o control plane e os guards', () => {
+    const successor = assertPostSalePublicationMetadataV106Manifest();
+    globalThis[POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY] = successor.overrides;
     const result = assertPostSaleTransactionalV105Manifest();
     assert.equal(result.ready, true);
     assert.equal(result.manifest.policy.batchMax, 1);

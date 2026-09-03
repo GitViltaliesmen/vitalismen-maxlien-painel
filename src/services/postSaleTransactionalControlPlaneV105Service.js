@@ -261,12 +261,15 @@ export const assertPostSaleTransactionalV105Manifest = () => {
         || manifest.policy?.chronologyGuardRequired !== true) {
         throw new Error('[POST-SALE-V105] manifest_identity_or_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY] || []);
     for (const relativePath of expectedPaths) {
-        if (fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
+        if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-V105] protected_file_invalid:${relativePath}`);
         }
     }
-    const logical = expectedPaths.map((relativePath) => `${relativePath}\0${fileSha256(relativePath)}\n`).join('');
+    const logical = expectedPaths.map((relativePath) => (
+        `${relativePath}\0${successorOverrides.has(relativePath) ? manifest.protectedFiles[relativePath] : fileSha256(relativePath)}\n`
+    )).join('');
     if (manifest.logicalBundle?.sha256 !== sha256(logical)) throw new Error('[POST-SALE-V105] logical_bundle_invalid');
     return Object.freeze({
         ready: true,

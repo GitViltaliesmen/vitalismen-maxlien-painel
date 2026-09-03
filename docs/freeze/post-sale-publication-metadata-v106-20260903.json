@@ -1,0 +1,67 @@
+{
+  "freezeId": "post-sale-publication-metadata-v106",
+  "version": 106,
+  "parentVersion": "V105",
+  "parentFreezeId": "post-sale-transactional-control-plane-v105",
+  "parentManifestSha256": "fd9ef0f796f72b3ab06fdb60e9e1f2413ca5baa237c0233685cb584ee586547a",
+  "parentFreezeSha256": "3442f98c151fa4bc59b98f93c3d20d0df58b70f434271be482cef2ae96a8de72",
+  "parentAttestationSha256": "0d3e3f57066106ae28cad843b0ec374c7a4a50086bb5f9fce87ed1a039e44260",
+  "parentCommit": "275f1e35296bcace64e0c87b5b7bcc22718007d9",
+  "parentTree": "b34d15f26053a2b61547ac9183abca8b8cab1e06",
+  "purpose": "BIND_POST_SALE_PERMITS_TO_V70_PUBLICATION_ENVELOPE",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_post_sale_batch_one",
+  "country": "EC",
+  "policy": {
+    "releaseSourceRemainsStagedCandidate": true,
+    "publicationEnvelopeRequired": true,
+    "publicationCompleteRequired": true,
+    "postSaleProfileChanged": false,
+    "externalEffectsAllowed": false,
+    "batchMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-publication-metadata-v106-attestation-20260903.json",
+    "sha256": "10ae9a9d867ef53eaf7cc7c085c62f82f080b54c6fbef4239aebabc4c3561bb6"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "a6c794e40cf988644427a72b9d574aacb8292da0296085333a8e50f74e7cdb53"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs",
+    "src/services/postSaleTransactionalControlPlaneV105Service.js",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs",
+    "src/services/postSaleTransactionalControlPlaneV105Service.js",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/POST_SALE_PUBLICATION_METADATA_FREEZE_V106_20260903.md",
+    "docs/evidence/post-sale-publication-metadata-v106-attestation-20260903.json",
+    "scripts/guard-post-sale-publication-metadata-v106.mjs",
+    "src/services/postSalePublicationMetadataFreezeRuntimeGuardV106.js",
+    "src/services/postSalePublicationMetadataV106Service.js",
+    "tests/post-sale-publication-metadata-v106.test.mjs"
+  ],
+  "protectedFiles": {
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "31f54bb52abd3a5a86dbfb92479db6064a873bef0c8ed28edbf427a92b267b9d",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs": "7f10ef8731e56ae1e2cdabb8457a859c2e1257c9084383cd9397496506a40fdf",
+    "src/services/postSaleTransactionalControlPlaneV105Service.js": "7ecf472573c95676f072b14db2f99733b2e13f18e6f62166990f041836e523c9",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs": "e694c15ee82b984d4bb33ed46d9ca2391cfa24c8b7e7787ed524819d90b2a14d",
+    "docs/POST_SALE_PUBLICATION_METADATA_FREEZE_V106_20260903.md": "fbd0c97923cf56ef6ac052fe4b230cfc3ec52c318540e25ba0de1508ba430c5b",
+    "docs/evidence/post-sale-publication-metadata-v106-attestation-20260903.json": "10ae9a9d867ef53eaf7cc7c085c62f82f080b54c6fbef4239aebabc4c3561bb6",
+    "scripts/guard-post-sale-publication-metadata-v106.mjs": "e3c747d42f944d4ba5b742b9c024bc22614548f443f1099e60430158cc6cb39a",
+    "src/services/postSalePublicationMetadataFreezeRuntimeGuardV106.js": "52dfcce1536f30bda33dd66780440e092464f102eedfdba05acf90fb357815ce",
+    "src/services/postSalePublicationMetadataV106Service.js": "3079fd0d61fe4ee452e6eaaeaef8111c5e7e24a10760cffe95095674a9a83904",
+    "tests/post-sale-publication-metadata-v106.test.mjs": "c18a814e33d075363f5d807d03f4a6f15162b89c107e0a88346e87a737c1d220"
+  }
+}

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -21,6 +22,7 @@ const exactSha1 = (value) => /^[0-9a-f]{40}$/.test(String(value || ''));
 const exactTag = (value) => /^production-[0-9]{8}-[0-9a-f]{7}$/.test(String(value || ''));
 const exactPermitId = (value) => /^[A-Za-z0-9][A-Za-z0-9_-]{7,99}$/.test(String(value || ''));
 const canonical = (value) => `${JSON.stringify(value, null, 2)}\n`;
+const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const readCanonical = (file, label) => {
     const content = fs.readFileSync(file, 'utf8');
     const value = JSON.parse(content);
@@ -35,14 +37,31 @@ const assertWindow = ({ createdAt, expiresAt, now = new Date() }) => {
         || created > nowMs + 60_000 || expires <= nowMs || expires <= created
         || expires - created > POST_SALE_V105_MAX_PERMIT_MS) throw new Error('permit_window_invalid');
 };
-const releaseIdentity = (releaseDir, release) => {
+export const resolvePostSaleV105PublishedReleaseIdentity = (releaseDir, release) => {
     if (!exactRelease(release) || path.basename(releaseDir) !== release) throw new Error('release_invalid');
-    const metadata = readCanonical(path.join(releaseDir, '.release-source.json'), 'release_metadata');
-    const commit = String(metadata.functionalCommit || metadata.commit || '').toLowerCase();
-    const tree = String(metadata.functionalTree || '').toLowerCase();
-    const tag = String(metadata.publicationTag || '').trim();
+    const sourcePath = path.join(releaseDir, '.release-source.json');
+    const publicationPath = path.join(releaseDir, '.release-publication.json');
+    const completePath = path.join(releaseDir, '.publication-complete.json');
+    const sourceBuffer = fs.readFileSync(sourcePath);
+    const publicationBuffer = fs.readFileSync(publicationPath);
+    const source = readCanonical(sourcePath, 'release_metadata');
+    const publication = readCanonical(publicationPath, 'release_publication');
+    const complete = readCanonical(completePath, 'publication_complete');
+    const commit = String(source.functionalCommit || source.commit || '').toLowerCase();
+    const tree = String(source.functionalTree || '').toLowerCase();
+    const tag = String(publication.publicationTag || '').trim();
     if (!exactSha1(commit) || !exactSha1(tree) || !exactTag(tag)
-        || metadata.publicationStatus !== 'production_published'
+        || source.publicationStatus !== 'staged_candidate'
+        || publication.status !== 'production_published'
+        || publication.release !== release
+        || String(publication.functionalCommit || '').toLowerCase() !== commit
+        || String(publication.functionalTree || '').toLowerCase() !== tree
+        || publication.releaseMetadataSha256 !== sha256(sourceBuffer)
+        || complete.status !== 'complete' || complete.publicationStatus !== 'production_published'
+        || complete.release !== release || complete.publicationTag !== tag
+        || String(complete.functionalCommit || '').toLowerCase() !== commit
+        || String(complete.functionalTree || '').toLowerCase() !== tree
+        || complete.publicationMetadataSha256 !== sha256(publicationBuffer)
         || release.slice(-7) !== commit.slice(0, 7) || tag.slice(-7) !== commit.slice(0, 7)) {
         throw new Error('published_release_identity_invalid');
     }
@@ -90,7 +109,7 @@ export const createPostSaleV105ActivationBundle = ({
     expiresAt
 }) => {
     const manifest = assertPostSaleTransactionalV105Manifest();
-    const identity = releaseIdentity(releaseDir, release);
+    const identity = resolvePostSaleV105PublishedReleaseIdentity(releaseDir, release);
     const baseEnv = dotenv.parse(fs.readFileSync(path.join(releaseDir, '.env'), 'utf8'));
     const overlay = buildPostSaleTransactionalV105Overlay({ baseEnv });
     assertPostSaleTransactionalV105Configuration({ ...baseEnv, ...overlay });
@@ -136,7 +155,7 @@ export const validatePostSaleV105ActivationBundle = ({
     now = new Date()
 }) => {
     const manifest = assertPostSaleTransactionalV105Manifest();
-    const identity = releaseIdentity(releaseDir, release);
+    const identity = resolvePostSaleV105PublishedReleaseIdentity(releaseDir, release);
     const baseEnv = dotenv.parse(fs.readFileSync(path.join(releaseDir, '.env'), 'utf8'));
     const expectedOverlay = buildPostSaleTransactionalV105Overlay({ baseEnv });
     const actualOverlay = dotenv.parse(fs.readFileSync(overlayFile, 'utf8'));
@@ -172,12 +191,12 @@ if (action === 'inspect') {
 } else if (action === 'bridge-create') {
     const [releaseDir, release, permitFile, permitId, createdAt, expiresAt, phrase] = args;
     if (phrase !== POST_SALE_V105_BRIDGE_PHRASE) throw new Error('bridge_authorization_phrase_invalid');
-    const identity = releaseIdentity(releaseDir, release);
+    const identity = resolvePostSaleV105PublishedReleaseIdentity(releaseDir, release);
     const permit = createPostSaleV105BridgePermit({ identity, permitId, createdAt, expiresAt });
     fs.writeFileSync(permitFile, canonical(permit), { mode: 0o600, flag: 'wx' });
 } else if (action === 'bridge-validate') {
     const [releaseDir, release, permitFile, permitId, nowIso] = args;
-    const identity = releaseIdentity(releaseDir, release);
+    const identity = resolvePostSaleV105PublishedReleaseIdentity(releaseDir, release);
     validatePostSaleV105BridgePermit({ permit: readCanonical(permitFile, 'bridge_permit'), identity, permitId, now: nowIso });
 } else if (action === 'create') {
     const [releaseDir, release, overlayFile, attestationFile, permitFile, permitId, createdAt, expiresAt, phrase] = args;
