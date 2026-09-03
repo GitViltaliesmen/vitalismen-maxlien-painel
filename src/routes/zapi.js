@@ -796,6 +796,11 @@ const scheduleVslFirstResponseWatchdog = (result = {}) => {
     }, delayMs).unref?.();
 };
 
+export const shouldDetectFreshEcVslTextContextV110 = ({
+    persistedVslProductContext = null,
+    vslRoutingAllowed = false
+} = {}) => Boolean(vslRoutingAllowed && !persistedVslProductContext);
+
 const recordZapiInboundPayload = async (payload = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);
     const providerZaapId = zapiZaapIdFromPayload(payload);
@@ -925,8 +930,10 @@ const recordZapiInboundPayload = async (payload = {}) => {
         state
     });
     const persistedVslProductContext = freshPersistedEcVslProductContext(state, now);
-    const hasPersistedVslProduct = Boolean(String(state?.metadata?.vslProductKey || '').trim());
-    const detectedTextProductContext = hasPersistedVslProduct || !vslRoutingAllowed
+    const detectedTextProductContext = !shouldDetectFreshEcVslTextContextV110({
+        persistedVslProductContext,
+        vslRoutingAllowed
+    })
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
     const explicitTextProductContext = directProductInbound

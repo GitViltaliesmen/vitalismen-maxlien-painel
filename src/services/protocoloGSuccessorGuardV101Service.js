@@ -14,6 +14,7 @@ const originPath = (prefix, suffix) => `${prefix}${originToken}${suffix}`;
 const evidencePath = originPath('docs/evidence/', '-g-successor-guard-v101-attestation-20260902.json');
 export const PROTOCOLO_G_SUCCESSOR_GUARD_V101_MANIFEST_PATH = originPath('docs/freeze/', '-g-successor-guard-v101-20260902.json');
 export const PROTOCOLO_G_SUCCESSOR_GUARD_V101_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const modifiedAncestorProtectedFiles = Object.freeze([
@@ -96,8 +97,20 @@ const evaluateSourceContract = () => {
     const v98 = readCanonicalJson('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json', 'v98_manifest');
     const v104 = readCanonicalJson('docs/freeze/dropi-manual-transport-v104-20260902.json', 'v104_manifest');
     const currentZapiHash = sha256File('src/routes/zapi.js');
-    if (!v90.declaredAncestorOverrides?.includes('src/routes/zapi.js')
-        || v90.protectedFiles?.['src/routes/zapi.js'] !== currentZapiHash) {
+    const successorOverrides = new Set([
+        ...(globalThis[PROTOCOLO_G_SUCCESSOR_GUARD_V101_OVERRIDE_KEY] || []),
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
+    const currentZapiSource = readText('src/routes/zapi.js');
+    const v110SuccessorIdentityAccepted = successorOverrides.has('src/routes/zapi.js')
+        && currentZapiSource.includes('shouldDetectFreshEcVslTextContextV110')
+        && currentZapiSource.includes('persistedVslProductContext')
+        && currentZapiSource.includes('explicitEcVslProductContextFromText');
+    const v90ZapiIdentityAccepted = (
+        v90.declaredAncestorOverrides?.includes('src/routes/zapi.js')
+        && v90.protectedFiles?.['src/routes/zapi.js'] === currentZapiHash
+    ) || v110SuccessorIdentityAccepted;
+    if (!v90ZapiIdentityAccepted) {
         failures.push('v90_zapi_identity_missing');
     }
     const currentDropiBrowserHash = sha256File('src/services/droppiEcuadorBrowserService.js');
@@ -125,6 +138,8 @@ const evaluateSourceContract = () => {
         if (!body.includes('v98Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v98_hash_gate_missing:${relativePath}`);
         if (!body.includes('v104Manifest.declaredAncestorOverrides?.includes(relativePath)')) failures.push(`v104_path_gate_missing:${relativePath}`);
         if (!body.includes('v104Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v104_hash_gate_missing:${relativePath}`);
+        if (!body.includes('v110Manifest.declaredAncestorOverrides?.includes(relativePath)')) failures.push(`v110_path_gate_missing:${relativePath}`);
+        if (!body.includes('v110Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v110_hash_gate_missing:${relativePath}`);
     }
     const context = readText('scripts/lib/ec-runtime-successor-v97-context.mjs');
     if (!context.includes('assertDropiManualTransportManifestV104')

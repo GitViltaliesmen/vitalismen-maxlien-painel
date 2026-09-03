@@ -11,6 +11,7 @@ export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_MANIFEST_SHA256 = 'fd9ef
 export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_FREEZE_SHA256 = '3442f98c151fa4bc59b98f93c3d20d0df58b70f434271be482cef2ae96a8de72';
 export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_ATTESTATION_SHA256 = '0d3e3f57066106ae28cad843b0ec374c7a4a50086bb5f9fce87ed1a039e44260';
 export const POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 export const POST_SALE_PUBLICATION_METADATA_V106_ANCESTOR_OVERRIDES = Object.freeze([
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
@@ -106,7 +107,10 @@ export const assertPostSalePublicationMetadataV106Manifest = () => {
         || manifest.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-PUBLICATION-V106] manifest_identity_or_policy_invalid');
     }
-    const successorOverrides = new Set(globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] || []);
+    const successorOverrides = new Set([
+        ...(globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] || []),
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
     for (const relativePath of expectedPaths) {
         if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-PUBLICATION-V106] protected_file_invalid:${relativePath}`);

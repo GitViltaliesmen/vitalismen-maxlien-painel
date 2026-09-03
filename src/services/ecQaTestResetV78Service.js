@@ -176,6 +176,8 @@ export const applyEcQaTestResetToStateV78 = ({
             expiresAt: permit.expiresAt,
             previousHumanMode: plan.previousHumanMode,
             previousPausedUntil: plan.previousPausedUntil,
+            messageCount: 0,
+            processedMessageIds: [],
             auditAction: 'temporary_human_hold_release_for_exact_qa'
         }
     };

@@ -21,6 +21,7 @@ const v90Manifest = JSON.parse(read('docs/freeze/ec-vsl-dashboard-ingress-v90-20
 const v98Manifest = JSON.parse(read('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json'));
 const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
 const v104Manifest = JSON.parse(read('docs/freeze/dropi-manual-transport-v104-20260902.json'));
+const v110Manifest = JSON.parse(read('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json'));
 
 assert.equal(manifest.freezeId, 'protocolo-g-ad-metrics-v63-20260826');
 assert.equal(manifest.parentFreezeId, 'protocolo-g-conversion-v62-20260826');
@@ -102,6 +103,10 @@ for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     if (
         v104Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v104Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v110Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v110Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     if (
         v99Manifest.declaredAncestorOverrides?.includes(relativePath)

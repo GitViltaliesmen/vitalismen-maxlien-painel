@@ -9,10 +9,22 @@ const sha256 = (relativePath) => crypto.createHash('sha256').update(fs.readFileS
 test('V101 aceita as rotas atuais somente pelas identidades exatas congeladas nas sucessoras', () => {
     const v90 = JSON.parse(fs.readFileSync('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json', 'utf8'));
     const v98 = JSON.parse(fs.readFileSync('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json', 'utf8'));
+    const v104 = JSON.parse(fs.readFileSync('docs/freeze/dropi-manual-transport-v104-20260902.json', 'utf8'));
+    const v110 = JSON.parse(fs.readFileSync('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json', 'utf8'));
     assert.ok(v90.declaredAncestorOverrides.includes('src/routes/zapi.js'));
-    assert.equal(v90.protectedFiles['src/routes/zapi.js'], sha256('src/routes/zapi.js'));
+    assert.equal(
+        v90.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js')
+            || (v110.declaredAncestorOverrides.includes('src/routes/zapi.js')
+                && v110.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js')),
+        true
+    );
     assert.ok(v98.declaredAncestorOverrides.includes('src/services/droppiEcuadorBrowserService.js'));
-    assert.equal(v98.protectedFiles['src/services/droppiEcuadorBrowserService.js'], sha256('src/services/droppiEcuadorBrowserService.js'));
+    assert.equal(
+        v98.protectedFiles['src/services/droppiEcuadorBrowserService.js'] === sha256('src/services/droppiEcuadorBrowserService.js')
+            || (v104.declaredAncestorOverrides.includes('src/services/droppiEcuadorBrowserService.js')
+                && v104.protectedFiles['src/services/droppiEcuadorBrowserService.js'] === sha256('src/services/droppiEcuadorBrowserService.js')),
+        true
+    );
 });
 
 test('V101 exige caminho declarado e hash exato nos três guards legados', () => {

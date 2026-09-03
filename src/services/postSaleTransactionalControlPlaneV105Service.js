@@ -10,6 +10,7 @@ export const POST_SALE_TRANSACTIONAL_V105_DATASET_ID = '1468946114265008';
 export const POST_SALE_TRANSACTIONAL_V105_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
 export const POST_SALE_TRANSACTIONAL_V105_MANIFEST_PATH = 'docs/freeze/post-sale-transactional-control-plane-v105-20260903.json';
 export const POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 export const POST_SALE_TRANSACTIONAL_V105_PARENT_COMMIT = '3550ef487750128b0a6e5a6051693f66100e9779';
 export const POST_SALE_TRANSACTIONAL_V105_PARENT_TREE = '67ecf98b63a1a5d2b07131b6fa53a3eb84670d7b';
@@ -229,8 +230,12 @@ const assertParentV104 = () => {
         throw new Error('[POST-SALE-V105] parent_policy_invalid');
     }
     const modified = new Set(POST_SALE_TRANSACTIONAL_V105_ANCESTOR_OVERRIDES);
+    const successorOverrides = new Set([
+        ...(globalThis[POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY] || []),
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) throw new Error(`[POST-SALE-V105] parent_protected_file_invalid:${relativePath}`);
     }
 };

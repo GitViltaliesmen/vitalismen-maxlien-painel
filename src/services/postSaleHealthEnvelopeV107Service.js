@@ -11,6 +11,7 @@ export const POST_SALE_HEALTH_ENVELOPE_V107_PARENT_MANIFEST_SHA256 = 'c8de079522
 export const POST_SALE_HEALTH_ENVELOPE_V107_PARENT_FREEZE_SHA256 = 'fbd0c97923cf56ef6ac052fe4b230cfc3ec52c318540e25ba0de1508ba430c5b';
 export const POST_SALE_HEALTH_ENVELOPE_V107_PARENT_ATTESTATION_SHA256 = '10ae9a9d867ef53eaf7cc7c085c62f82f080b54c6fbef4239aebabc4c3561bb6';
 export const POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 export const POST_SALE_HEALTH_ENVELOPE_V107_ANCESTOR_OVERRIDES = Object.freeze([
     'ops/post-sale-v105',
@@ -75,7 +76,8 @@ const assertParentV106 = () => {
     }
     const modified = new Set([
         ...POST_SALE_HEALTH_ENVELOPE_V107_ANCESTOR_OVERRIDES,
-        ...(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] || [])
+        ...(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] || []),
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
     ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
@@ -108,7 +110,10 @@ export const assertPostSaleHealthEnvelopeV107Manifest = () => {
         || manifest.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-HEALTH-V107] manifest_identity_or_policy_invalid');
     }
-    const successorOverrides = new Set(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] || []);
+    const successorOverrides = new Set([
+        ...(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] || []),
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
     for (const relativePath of expectedPaths) {
         if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-HEALTH-V107] protected_file_invalid:${relativePath}`);

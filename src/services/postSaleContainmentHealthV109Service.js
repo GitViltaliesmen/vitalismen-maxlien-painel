@@ -11,6 +11,7 @@ export const POST_SALE_CONTAINMENT_HEALTH_V109_PARENT_MANIFEST_SHA256 = 'c88f6a5
 export const POST_SALE_CONTAINMENT_HEALTH_V109_PARENT_FREEZE_SHA256 = '8127eae24e5a8e285d0d57fc7949cb0dca374f6e3218da6a36868345642715a6';
 export const POST_SALE_CONTAINMENT_HEALTH_V109_PARENT_ATTESTATION_SHA256 = 'd48c060d82a7f93b5492d3ed3d655aa9b75a9dc74567d92e6227b96d87a40e8a';
 export const POST_SALE_CONTAINMENT_HEALTH_V109_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 export const POST_SALE_CONTAINMENT_HEALTH_V109_ANCESTOR_OVERRIDES = Object.freeze([
     'ops/post-sale-v105',
@@ -65,7 +66,10 @@ const assertParentV108 = () => {
         || parent.policy?.messageSendsMaxPerCycle !== 1 || parent.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-CONTAINMENT-V109] parent_policy_invalid');
     }
-    const modified = new Set(POST_SALE_CONTAINMENT_HEALTH_V109_ANCESTOR_OVERRIDES);
+    const modified = new Set([
+        ...POST_SALE_CONTAINMENT_HEALTH_V109_ANCESTOR_OVERRIDES,
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) throw new Error(`[POST-SALE-CONTAINMENT-V109] parent_protected_file_invalid:${relativePath}`);

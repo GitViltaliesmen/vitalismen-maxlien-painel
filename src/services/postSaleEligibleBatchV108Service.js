@@ -11,6 +11,7 @@ export const POST_SALE_ELIGIBLE_BATCH_V108_PARENT_MANIFEST_SHA256 = '8b8adca0c09
 export const POST_SALE_ELIGIBLE_BATCH_V108_PARENT_FREEZE_SHA256 = '4226514babf3ced5ab2dbdb6f08b5446948bd93d05572503e37489ff8ce7381d';
 export const POST_SALE_ELIGIBLE_BATCH_V108_PARENT_ATTESTATION_SHA256 = 'dd15c2ada6623ba1e764891b67e36556521b69ac5cbdf4f6cc692cc51d5084b1';
 export const POST_SALE_ELIGIBLE_BATCH_V108_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
+const BOT_QA_RECOVERY_V110_OVERRIDE_KEY = '__VITALISMEN_BOT_QA_RECOVERY_V110_OVERRIDE_FILES';
 
 export const POST_SALE_ELIGIBLE_BATCH_V108_ANCESTOR_OVERRIDES = Object.freeze([
     'ops/post-sale-v105',
@@ -71,7 +72,10 @@ const assertParentV107 = () => {
         || parent.policy?.postSaleProfileChanged !== false || parent.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-BATCH-V108] parent_policy_invalid');
     }
-    const modified = new Set(POST_SALE_ELIGIBLE_BATCH_V108_ANCESTOR_OVERRIDES);
+    const modified = new Set([
+        ...POST_SALE_ELIGIBLE_BATCH_V108_ANCESTOR_OVERRIDES,
+        ...(globalThis[BOT_QA_RECOVERY_V110_OVERRIDE_KEY] || [])
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) throw new Error(`[POST-SALE-BATCH-V108] parent_protected_file_invalid:${relativePath}`);
