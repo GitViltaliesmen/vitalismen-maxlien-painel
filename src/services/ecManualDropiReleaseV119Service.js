@@ -14,6 +14,7 @@ export const EC_MANUAL_DROPI_RELEASE_V119_ATTESTATION_SHA256 = 'e49945fa4c953cea
 export const EC_MANUAL_DROPI_RELEASE_V119_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const EC_MANUAL_DROPI_RELEASE_V119_ANCESTOR_OVERRIDES = Object.freeze([
+    '.github/workflows/ec-panel-quality.yml',
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
     'src/routes/shipments.js',
     'src/services/canaryIsolationV75Service.js',

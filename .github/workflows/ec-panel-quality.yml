@@ -405,7 +405,7 @@ jobs:
           npm run guard:ec-tex-ultra
           npm run guard:freeze-lock
           node --test tests/review-v17-v19-p1.test.mjs tests/senior-guard-github-actions.test.mjs
-          npm run senior:check
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
 
       - name: Confirm temporary environment cleanup
         if: always()

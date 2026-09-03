@@ -207,4 +207,10 @@ test('V119 valida manifesto e mantém automações fora do escopo', () => {
     assert.equal(result.manifest.policy.historicalBackfillAllowed, false);
     assert.equal(result.manifest.policy.whatsappChanged, false);
     assert.equal(result.manifest.policy.metaChanged, false);
+
+    const workflow = fs.readFileSync('.github/workflows/ec-panel-quality.yml', 'utf8');
+    assert.match(
+        workflow,
+        /NODE_OPTIONS=--import=\.\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs npm run senior:check/
+    );
 });
