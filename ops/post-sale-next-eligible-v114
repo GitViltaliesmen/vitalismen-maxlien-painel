@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+action="${1:-status}"
+
+[[ "$current" == "$base_dir"/releases/* && -d "$current" && ! -L "$current" ]] || {
+  echo "ERRO: current oficial invalido" >&2
+  exit 1
+}
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$current"
+  echo "MONITOR_MODE=STRICT_READ_ONLY"
+  echo "MONITOR_TIMER=$(systemctl is-active vitalismen-postsale-next-eligible-v114.timer 2>/dev/null || true)"
+  echo "TRANSACTIONAL_SCHEDULER=OFF_PENDING_GATE3"
+  echo "PERMIT=$([[ -f "$state_dir/post-sale-next-eligible-v112-permit.json" ]] && echo PROTECTED_PRESENT || echo NOT_PRESENT)"
+  echo "PROVIDER_CALLS_ALLOWED=0"
+  echo "MONGO_MUTATIONS_ALLOWED=0"
+  echo "PERMIT_CONSUMPTION_ALLOWED=0"
+  exit 0
+fi
+
+if [[ "$action" == "observe" ]]; then
+  [[ "$#" -eq 1 ]] || { echo "ERRO: uso: post-sale-next-eligible-v114 observe" >&2; exit 1; }
+  release="$(basename "$current")"
+  compat="--import=$current/scripts/lib/post-sale-next-eligible-source-compat-v113.mjs"
+  if [[ -n "${NODE_OPTIONS:-}" ]]; then export NODE_OPTIONS="$compat $NODE_OPTIONS"; else export NODE_OPTIONS="$compat"; fi
+  cd "$current"
+  exec "$current/ops/post-sale-next-eligible-v112" check "$release"
+fi
+
+echo "ERRO: acao V114 invalida; somente status e observe sao permitidos" >&2
+exit 1
