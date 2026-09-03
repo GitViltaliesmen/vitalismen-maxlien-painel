@@ -15,7 +15,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=full
-ReadWritePaths=/var/lib/vitalismen-deploy /var/log/vitalismen-deploy /opt/vitalismen-automacao/shared /opt/vitalismen-automacao/current/public/media/generated
+ReadWritePaths=/var/lib/vitalismen-deploy /var/log/vitalismen-deploy /opt/vitalismen-automacao/shared -/opt/vitalismen-automacao/current/public/media/generated
 TimeoutStartSec=5min
 
 [Install]

@@ -132,6 +132,7 @@ test('V116 separa observer e executor, serializa ciclos e preserva a cadência o
     const botController = fs.readFileSync(new URL('../ops/ec-bot-core-v78', import.meta.url), 'utf8');
     const observer = fs.readFileSync(new URL('../ops/post-sale-next-eligible-v114', import.meta.url), 'utf8');
     const executor = fs.readFileSync(new URL('../ops/post-sale-v116', import.meta.url), 'utf8');
+    const service = fs.readFileSync(new URL('../ops/systemd/vitalismen-postsale-transactional-v116.service', import.meta.url), 'utf8');
     const timer = fs.readFileSync(new URL('../ops/systemd/vitalismen-postsale-transactional-v116.timer', import.meta.url), 'utf8');
     assert.match(botController, /run_successor_contract\(\)[\s\S]*?cd "\$release_dir"[\s\S]*?NODE_OPTIONS="--import=\$release_dir\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs"[\s\\]*\n\s*"\$node_cmd" "\$contract" "\$@"/);
     assert.match(botController, /run_successor_contract "\$release_dir" "\$contract" inspect/);
@@ -142,6 +143,7 @@ test('V116 separa observer e executor, serializa ciclos e preserva a cadência o
     assert.doesNotMatch(observer, /post-sale[^\n]*\srun\b|batch-run|permit.*consumido/i);
     assert.match(executor, /flock -n 9/);
     assert.match(executor, /post-sale-transactional-batch-v116\.mjs run/);
+    assert.match(service, /ReadWritePaths=.* -\/opt\/vitalismen-automacao\/current\/public\/media\/generated/);
     assert.match(timer, /OnUnitActiveSec=60min/);
 });
 
