@@ -212,6 +212,45 @@ NODE
   exit 0
 fi
 
+if [[ "$action" == "abort-authorization" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  consumed="$state_dir/post-sale-v105-permit.consumed.json"
+  [[ -f "$overlay_file" && ! -L "$overlay_file" && -f "$attestation_file" && ! -L "$attestation_file"
+    && -f "$permit_file" && ! -L "$permit_file" ]] || die "bundle V105 não consumido ausente"
+  [[ ! -e "$consumed" ]] || die "autorização consumida não pode ser abortada"
+  health_file="$state_dir/.post-sale-v105-abort-health.$$"
+  trap 'rm -f -- "$health_file"' EXIT
+  curl -fsS --max-time 20 "$health_url" >"$health_file" || die "health indisponível para abortar autorização"
+  bundle_release="$(node - "$permit_file" "$health_file" <<'NODE'
+const fs=require('node:fs');
+const [permitFile,healthFile]=process.argv.slice(2);
+const permit=JSON.parse(fs.readFileSync(permitFile,'utf8'));
+const health=JSON.parse(fs.readFileSync(healthFile,'utf8'));
+const safety=health?.automationSafety||{};
+if (!/^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(String(permit.release||''))
+  || permit.status!=='authorized' || permit.singleUse!==true
+  || health.status!=='online' || health.engine!=='Z-API' || health?.zapi?.connected!==true
+  || safety.mode!=='EC_BOT_CORE_OPERATIONAL' || safety.policy!=='EC_BOT_CORE_OPERATIONAL'
+  || safety.operationalMutationsEnabled!==false || Number(safety.mutatingSchedulers)!==0
+  || safety.dropiApplyAllowed!==false) process.exit(1);
+process.stdout.write(permit.release);
+NODE
+)" || die "bundle ou perfil seguro inválido"
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  for file in "$overlay_file" "$attestation_file" "$permit_file"; do
+    mv -T "$file" "$file.aborted.$timestamp"
+  done
+  append_audit "authorization_aborted_after_failed_health" "$bundle_release" "bot_core_verified"
+  rm -f -- "$health_file"
+  trap - EXIT
+  echo "POST_SALE_V105_AUTHORIZATION_ABORTED=PASS"
+  echo "ABORTED_RELEASE=$bundle_release"
+  echo "BOT_CORE=VERIFIED"
+  echo "MESSAGES_SENT=0"
+  echo "DROPI_SUBMISSIONS=0"
+  exit 0
+fi
+
 if [[ "$action" == "authorize" ]]; then
   [[ "${POST_SALE_V105_AUTHORIZE:-}" == "$activation_phrase" ]] || die "autorização explícita V105 ausente"
   assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
@@ -289,4 +328,4 @@ if [[ "$action" == "contain" ]]; then
   exit 0
 fi
 
-die "uso: post-sale-v105 status | plan|bridge-report|bridge-authorize|bridge-apply|authorize|activate|batch-plan|batch-run|contain RELEASE"
+die "uso: post-sale-v105 status | plan|bridge-report|bridge-authorize|bridge-apply|abort-authorization|authorize|activate|batch-plan|batch-run|contain RELEASE"

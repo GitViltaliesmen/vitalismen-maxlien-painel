@@ -6,7 +6,11 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { resolvePostSaleV105PublishedReleaseIdentity } from '../scripts/lib/post-sale-transactional-control-plane-v105.mjs';
-import { assertPostSalePublicationMetadataV106Manifest } from '../src/services/postSalePublicationMetadataV106Service.js';
+import {
+    POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY,
+    assertPostSalePublicationMetadataV106Manifest
+} from '../src/services/postSalePublicationMetadataV106Service.js';
+import { assertPostSaleHealthEnvelopeV107Manifest } from '../src/services/postSaleHealthEnvelopeV107Service.js';
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const writeCanonical = (file, value) => fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
@@ -50,6 +54,8 @@ test('identidade publicada V105 lê o envelope V70 sem adulterar release-source'
 });
 
 test('manifesto V106 protege o binding ao envelope de publicação V70', () => {
+    const successor = assertPostSaleHealthEnvelopeV107Manifest();
+    globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] = successor.overrides;
     const result = assertPostSalePublicationMetadataV106Manifest();
     assert.equal(result.ready, true);
     assert.equal(result.manifest.policy.releaseSourceRemainsStagedCandidate, true);

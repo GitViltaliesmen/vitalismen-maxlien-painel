@@ -29,6 +29,15 @@ const readCanonical = (file, label) => {
     if (content !== canonical(value)) throw new Error(`${label}_not_canonical`);
     return value;
 };
+const readJsonObject = (file, label) => {
+    try {
+        const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+        if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('not_object');
+        return value;
+    } catch {
+        throw new Error(`${label}_invalid_json`);
+    }
+};
 const assertWindow = ({ createdAt, expiresAt, now = new Date() }) => {
     const created = Date.parse(createdAt);
     const expires = Date.parse(expiresAt);
@@ -207,7 +216,7 @@ if (action === 'inspect') {
     validatePostSaleV105ActivationBundle({ releaseDir, release, overlayFile, attestationFile, permitFile, permitId, now: nowIso });
 } else if (action === 'health') {
     const [healthFile] = args;
-    assertPostSaleTransactionalV105Health(readCanonical(healthFile, 'health'));
+    assertPostSaleTransactionalV105Health(readJsonObject(healthFile, 'health'));
 } else if (action) {
     throw new Error('usage: inspect|bridge-create|bridge-validate|create|validate|health');
 }

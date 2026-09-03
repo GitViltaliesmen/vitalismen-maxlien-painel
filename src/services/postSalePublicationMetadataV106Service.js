@@ -10,6 +10,7 @@ export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_TREE = 'b34d15f26053a2b6
 export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_MANIFEST_SHA256 = 'fd9ef0f796f72b3ab06fdb60e9e1f2413ca5baa237c0233685cb584ee586547a';
 export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_FREEZE_SHA256 = '3442f98c151fa4bc59b98f93c3d20d0df58b70f434271be482cef2ae96a8de72';
 export const POST_SALE_PUBLICATION_METADATA_V106_PARENT_ATTESTATION_SHA256 = '0d3e3f57066106ae28cad843b0ec374c7a4a50086bb5f9fce87ed1a039e44260';
+export const POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const POST_SALE_PUBLICATION_METADATA_V106_ANCESTOR_OVERRIDES = Object.freeze([
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
@@ -70,7 +71,10 @@ const assertParentV105 = () => {
         || parent.policy?.dropiApplyAllowed !== false || parent.policy?.metaRetroactiveAllowed !== false) {
         throw new Error('[POST-SALE-PUBLICATION-V106] parent_policy_invalid');
     }
-    const modified = new Set(POST_SALE_PUBLICATION_METADATA_V106_ANCESTOR_OVERRIDES);
+    const modified = new Set([
+        ...POST_SALE_PUBLICATION_METADATA_V106_ANCESTOR_OVERRIDES,
+        ...(globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] || [])
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
@@ -102,12 +106,15 @@ export const assertPostSalePublicationMetadataV106Manifest = () => {
         || manifest.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-PUBLICATION-V106] manifest_identity_or_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] || []);
     for (const relativePath of expectedPaths) {
-        if (fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
+        if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-PUBLICATION-V106] protected_file_invalid:${relativePath}`);
         }
     }
-    const logical = expectedPaths.map((relativePath) => `${relativePath}\0${fileSha256(relativePath)}\n`).join('');
+    const logical = expectedPaths.map((relativePath) => (
+        `${relativePath}\0${successorOverrides.has(relativePath) ? manifest.protectedFiles[relativePath] : fileSha256(relativePath)}\n`
+    )).join('');
     if (manifest.logicalBundle?.sha256 !== sha256(logical)) throw new Error('[POST-SALE-PUBLICATION-V106] logical_bundle_invalid');
     return Object.freeze({
         ready: true,
