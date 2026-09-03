@@ -94,14 +94,21 @@ const evaluateSourceContract = () => {
     const failures = [];
     const v90 = readCanonicalJson('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json', 'v90_manifest');
     const v98 = readCanonicalJson('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json', 'v98_manifest');
+    const v104 = readCanonicalJson('docs/freeze/dropi-manual-transport-v104-20260902.json', 'v104_manifest');
     const currentZapiHash = sha256File('src/routes/zapi.js');
     if (!v90.declaredAncestorOverrides?.includes('src/routes/zapi.js')
         || v90.protectedFiles?.['src/routes/zapi.js'] !== currentZapiHash) {
         failures.push('v90_zapi_identity_missing');
     }
     const currentDropiBrowserHash = sha256File('src/services/droppiEcuadorBrowserService.js');
-    if (!v98.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
-        || v98.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] !== currentDropiBrowserHash) {
+    const browserIdentityAccepted = (
+        v98.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
+        && v98.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
+    ) || (
+        v104.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
+        && v104.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
+    );
+    if (!browserIdentityAccepted) {
         failures.push('v98_dropi_browser_identity_missing');
     }
     for (const relativePath of [
@@ -116,9 +123,14 @@ const evaluateSourceContract = () => {
         if (!body.includes('v90Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v90_hash_gate_missing:${relativePath}`);
         if (!body.includes('v98Manifest.declaredAncestorOverrides?.includes(relativePath)')) failures.push(`v98_path_gate_missing:${relativePath}`);
         if (!body.includes('v98Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v98_hash_gate_missing:${relativePath}`);
+        if (!body.includes('v104Manifest.declaredAncestorOverrides?.includes(relativePath)')) failures.push(`v104_path_gate_missing:${relativePath}`);
+        if (!body.includes('v104Manifest.protectedFiles?.[relativePath] === actualHash')) failures.push(`v104_hash_gate_missing:${relativePath}`);
     }
     const context = readText('scripts/lib/ec-runtime-successor-v97-context.mjs');
-    if (!context.includes('assertProtocoloGSuccessorGuardManifestV101') || !context.includes('protocoloGSuccessorGuardFreezeRuntimeGuardV101.js')) failures.push('runtime_successor_context_missing');
+    if (!context.includes('assertDropiManualTransportManifestV104')
+        || !context.includes('dropiManualTransportFreezeRuntimeGuardV104.js')
+        || !context.includes('assertProtocoloGSuccessorGuardManifestV101')
+        || !context.includes('protocoloGSuccessorGuardFreezeRuntimeGuardV101.js')) failures.push('runtime_successor_context_missing');
     return Object.freeze({ ok: failures.length === 0, failures: Object.freeze(failures) });
 };
 

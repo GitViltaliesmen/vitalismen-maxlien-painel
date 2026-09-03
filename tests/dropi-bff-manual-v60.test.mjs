@@ -6,6 +6,7 @@ import {
     DROPI_BFF_LIST_ENDPOINT,
     buildDropiBffHeaders,
     classifyDropiBffFailure,
+    classifyDropiBffTransportError,
     isUnexpiredDropiToken,
     normalizeDropiBffCreateResponse,
     normalizeDropiBffListResponse,
@@ -82,6 +83,12 @@ test('criacao BFF 2xx usa POST e normaliza orderId', async () => {
     assert.equal(captured.options.headers['x-captcha-token'], '');
     assert.equal(captured.options.headers.Authorization, undefined);
     assert.equal(result.requestId, 'req-test-1');
+    assert.equal(result.lifecycle.requestStarted, true);
+    assert.equal(result.lifecycle.requestDispatched, true);
+    assert.equal(result.lifecycle.responseReceived, true);
+    assert.equal(result.lifecycle.bodyParsed, true);
+    assert.equal(result.lifecycle.host, 'api-v2.dropi.ec');
+    assert.equal(result.lifecycle.path, '/bff/orders');
     assert.equal(normalizeDropiBffCreateResponse(result.body).objects.id, 987654);
 });
 
@@ -127,38 +134,89 @@ test('sessao JWT expirada e recusada', () => {
     assert.equal(isUnexpiredDropiToken(`x.${payload}.y`), false);
 });
 
-test('401 e 403 sao falhas de autenticacao', () => {
-    assert.equal(classifyDropiBffFailure({ status: 401 }), 'AUTH_FAILED');
-    assert.equal(classifyDropiBffFailure({ status: 403 }), 'AUTH_FAILED');
+test('status HTTP 400/401/403/409/422/429/500/502/503 mantem categorias deterministicas', () => {
+    const cases = new Map([
+        [400, 'VALIDATION_ERROR'],
+        [401, 'AUTH_FAILED'],
+        [403, 'AUTH_FAILED'],
+        [409, 'DUPLICATE'],
+        [422, 'VALIDATION_ERROR'],
+        [429, 'RATE_LIMIT'],
+        [500, 'DROPI_5XX'],
+        [502, 'DROPI_5XX'],
+        [503, 'DROPI_5XX']
+    ]);
+    for (const [status, expected] of cases) {
+        assert.equal(classifyDropiBffFailure({ status }), expected, `HTTP ${status}`);
+    }
 });
 
-test('422 e demais 4xx de dados sao validacao', () => {
-    assert.equal(classifyDropiBffFailure({ status: 422 }), 'VALIDATION_ERROR');
-    assert.equal(classifyDropiBffFailure({ status: 400 }), 'VALIDATION_ERROR');
+test('timeout, DNS, TLS, reset, abort, browser fechado, fetch failed e sem resposta sao distintos', () => {
+    const error = (message, code = '', name = 'Error') => ({ name, message, cause: code ? { code } : undefined });
+    assert.equal(classifyDropiBffTransportError(error('aborted', '', 'AbortError'), { timedOut: true }), 'TIMEOUT');
+    assert.equal(classifyDropiBffTransportError(error('getaddrinfo ENOTFOUND', 'ENOTFOUND')), 'DNS_FAILURE');
+    assert.equal(classifyDropiBffTransportError(error('certificate expired', 'CERT_HAS_EXPIRED')), 'TLS_FAILURE');
+    assert.equal(classifyDropiBffTransportError(error('socket hang up', 'ECONNRESET')), 'CONNECTION_RESET');
+    assert.equal(classifyDropiBffTransportError(error('aborted', '', 'AbortError')), 'ABORTED');
+    assert.equal(classifyDropiBffTransportError(error('Target page, context or browser has been closed')), 'BROWSER_CONTEXT_LOST');
+    assert.equal(classifyDropiBffTransportError(error('fetch failed', '', 'TypeError')), 'FETCH_FAILED');
+    assert.equal(classifyDropiBffTransportError(error('upstream vanished')), 'NO_RESPONSE');
 });
 
-test('429 e classificado como rate limit', () => {
-    assert.equal(classifyDropiBffFailure({ status: 429 }), 'RATE_LIMIT');
-});
-
-test('5xx e classificado sem retry automatico', () => {
-    assert.equal(classifyDropiBffFailure({ status: 500 }), 'DROPI_5XX');
-    assert.equal(classifyDropiBffFailure({ status: 503 }), 'DROPI_5XX');
-});
-
-test('timeout e sanitizado e classificado', async () => {
-    const timeoutError = new Error('detalhe que nao deve vazar');
-    timeoutError.name = 'AbortError';
+test('falha assincrona depois de iniciar fetch marca POST despachado sem vazar detalhe', async () => {
+    const transportError = new Error('fetch failed com dado interno que nao deve vazar');
+    transportError.cause = { code: 'ECONNRESET' };
+    const lifecycleStages = [];
     const result = await requestDropiBff({
-        fetchImpl: async () => { throw timeoutError; },
+        fetchImpl: async () => { throw transportError; },
+        url: DROPI_BFF_CREATE_ENDPOINT,
+        method: 'POST',
+        token: 'token-de-teste',
+        operation: 'create',
+        payload: validCreatePayload(),
+        onLifecycle: (lifecycle) => lifecycleStages.push(lifecycle.stage)
+    });
+    assert.equal(result.errorCode, 'CONNECTION_RESET');
+    assert.equal(result.lifecycle.requestStarted, true);
+    assert.equal(result.lifecycle.requestDispatched, true);
+    assert.equal(result.lifecycle.responseReceived, false);
+    assert.deepEqual(lifecycleStages, ['request_started', 'request_dispatched', 'transport_failed']);
+    assert.equal(JSON.stringify(result).includes('dado interno'), false);
+});
+
+test('falha sincrona antes de fetch retornar nao afirma despacho', async () => {
+    const result = await requestDropiBff({
+        fetchImpl: () => { throw Object.assign(new Error('getaddrinfo'), { code: 'ENOTFOUND' }); },
         url: DROPI_BFF_CREATE_ENDPOINT,
         method: 'POST',
         token: 'token-de-teste',
         operation: 'create',
         payload: validCreatePayload()
     });
-    assert.equal(result.errorCode, 'TIMEOUT');
-    assert.equal(JSON.stringify(result).includes('detalhe que nao deve vazar'), false);
+    assert.equal(result.errorCode, 'DNS_FAILURE');
+    assert.equal(result.lifecycle.requestStarted, true);
+    assert.equal(result.lifecycle.requestDispatched, false);
+    assert.equal(result.lifecycle.responseReceived, false);
+});
+
+test('resposta sem JSON e INVALID_RESPONSE com prova de resposta recebida', async () => {
+    const result = await requestDropiBff({
+        fetchImpl: async () => ({
+            ok: true,
+            status: 200,
+            headers: { get: () => '' },
+            json: async () => { throw new SyntaxError('invalid json'); }
+        }),
+        url: DROPI_BFF_CREATE_ENDPOINT,
+        method: 'POST',
+        token: 'token-de-teste',
+        operation: 'create',
+        payload: validCreatePayload()
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.errorCode, 'INVALID_RESPONSE');
+    assert.equal(result.lifecycle.responseReceived, true);
+    assert.equal(result.lifecycle.bodyParsed, false);
 });
 
 test('payload invalido falha antes da rede com categoria especifica', () => {
@@ -177,9 +235,39 @@ test('idempotencia pesquisa BFF imediatamente antes do unico POST', () => {
     const lookup = flow.indexOf('findExistingDropiOrderForManualSubmission(page, payload)');
     const post = flow.indexOf('submitOrderViaDropiApi(page');
     assert.ok(lookup >= 0 && post > lookup);
-    assert.match(flow, /\['DUPLICATE', 'DROPI_5XX', 'TIMEOUT'\]/);
+    assert.match(flow, /apiResult\.lifecycle\?\.requestDispatched/);
+    assert.match(flow, /findExistingDropiOrderForManualSubmission\(page, payload\)/g);
+    assert.doesNotMatch(source, /retrying_transient_browser_error|droppi_browser_transient_retry/);
+    assert.doesNotMatch(source, /for \(let attempt = 1; attempt <= 2/);
     assert.doesNotMatch(source, /submitOrderViaPanelButton/);
     assert.doesNotMatch(source, /api\.dropi\.ec\/api\/orders\/myorders/);
+});
+
+test('Tex Ultra usa catalogo, localizacao e cotacao BFF autoritativos antes do create', () => {
+    const source = fs.readFileSync('src/services/droppiEcuadorBrowserService.js', 'utf8');
+    const start = source.indexOf('const buildTexUltraBffQuote');
+    const end = source.indexOf('const submitOrderViaDropiApi', start);
+    const flow = source.slice(start, end);
+    assert.match(flow, /DROPI_BFF_CATALOG_ENDPOINT/);
+    assert.match(flow, /DROPI_BFF_QUOTE_ENDPOINT/);
+    assert.match(flow, /sessionData\?\.cities/);
+    assert.match(flow, /sessionData\?\.departments/);
+    assert.match(flow, /privated_product: false/);
+    assert.match(flow, /TEX_ULTRA_BFF_WAREHOUSE_ID/);
+    assert.match(flow, /AUTHORITATIVE_CITY_NOT_FOUND/);
+    assert.match(flow, /dropi_bff_authoritative_contract/);
+});
+
+test('payload create acompanha campos do frontend BunnyHop sem campo legado inventado', () => {
+    const source = fs.readFileSync('src/services/droppiEcuadorBrowserService.js', 'utf8');
+    const start = source.indexOf('const submitOrderViaDropiApi');
+    const end = source.indexOf('const waitForOrderCreationResult', start);
+    const flow = source.slice(start, end);
+    assert.match(flow, /overload_was_applied: false/);
+    assert.match(flow, /dropshipper_amount_to_win:/);
+    assert.match(flow, /shipping_amount: shippingAmount/);
+    assert.doesNotMatch(flow, /shalom_data/);
+    assert.match(flow, /onLifecycle: onCreateLifecycle/);
 });
 
 test('sessao oficial e persistida atomicamente fora do Git', () => {

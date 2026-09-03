@@ -1,0 +1,70 @@
+{
+  "attestationId": "dropi-manual-transport-v104-attestation-20260902",
+  "country": "EC",
+  "scope": "MANUAL_DROPI_CREATE_TRANSPORT_AND_OBSERVABILITY",
+  "targetOrderId": "EC-MTJKKKV0-7Z7O",
+  "preImplementationDiagnosis": {
+    "createPostCount": 0,
+    "maskedFailureStage": "product_catalog_before_create",
+    "legacyUiFailure": "private_catalog_product_not_found",
+    "genericSymptom": "HTTP_0",
+    "duplicateFoundBeforeChange": false
+  },
+  "authoritativeContract": {
+    "source": "authenticated_dropi_bff_and_official_frontend_bundle",
+    "createMethod": "POST",
+    "createPath": "/bff/orders",
+    "quotePath": "/bff/orders/quote",
+    "catalogPath": "/bff/catalog/products/v4/index",
+    "productId": 110681,
+    "productName": "TEX-ULTRA 120 CAP / ENERGIA",
+    "warehouseId": 1261,
+    "originCityId": 802,
+    "destinationDepartmentId": 62,
+    "destinationCityId": 1372,
+    "carrierId": 2,
+    "carrierName": "SERVIENTREGA",
+    "quoteHttpStatus": 200,
+    "quoteAccepted": true,
+    "createPostCountDuringContractCapture": 0
+  },
+  "safety": {
+    "manualOnly": true,
+    "singleCreatePostPerOperatorAction": true,
+    "automaticRetry": false,
+    "authoritativeLookupImmediatelyBeforeCreate": true,
+    "authoritativeLookupAfterAmbiguousDispatch": true,
+    "schedulerCreateEnabled": false,
+    "backlogEnabled": false,
+    "whatsappOutboundChanged": false,
+    "databaseSchemaChanged": false,
+    "otherCountryTouched": false,
+    "credentialsStored": false,
+    "dependencyAudit": {
+      "expressVersionPreserved": "4.22.2",
+      "qsOverride": "6.16.0",
+      "moderateOrHigherVulnerabilities": 0
+    }
+  },
+  "transportCoverage": [
+    "HTTP_2XX",
+    "HTTP_400",
+    "HTTP_401",
+    "HTTP_403",
+    "HTTP_409",
+    "HTTP_422",
+    "HTTP_429",
+    "HTTP_500",
+    "HTTP_502",
+    "HTTP_503",
+    "TIMEOUT",
+    "DNS_FAILURE",
+    "TLS_FAILURE",
+    "CONNECTION_RESET",
+    "ABORTED",
+    "BROWSER_CONTEXT_LOST",
+    "FETCH_FAILED",
+    "NO_RESPONSE",
+    "INVALID_RESPONSE"
+  ]
+}

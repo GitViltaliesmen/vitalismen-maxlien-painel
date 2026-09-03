@@ -10,6 +10,12 @@ export const DROPI_BFF_LIST_ENDPOINT = process.env.DROPPI_EC_BFF_LIST_ENDPOINT
 export const DROPI_BFF_CREATE_ENDPOINT = process.env.DROPPI_EC_BFF_CREATE_ENDPOINT
     || `${DROPI_BFF_BASE_URL}/bff/orders`;
 
+export const DROPI_BFF_QUOTE_ENDPOINT = process.env.DROPPI_EC_BFF_QUOTE_ENDPOINT
+    || `${DROPI_BFF_BASE_URL}/bff/orders/quote`;
+
+export const DROPI_BFF_CATALOG_ENDPOINT = process.env.DROPPI_EC_BFF_CATALOG_ENDPOINT
+    || `${DROPI_BFF_BASE_URL}/bff/catalog/products/v4/index`;
+
 const safeRequestId = (value = '') => String(value || '')
     .replace(/[^A-Za-z0-9._:-]/g, '')
     .slice(0, 96);
@@ -112,6 +118,21 @@ export const classifyDropiBffFailure = ({ status = 0, timedOut = false, body = {
     return 'DROPI_ERROR';
 };
 
+export const classifyDropiBffTransportError = (error = {}, { timedOut = false } = {}) => {
+    if (timedOut) return 'TIMEOUT';
+    const name = String(error?.name || '').trim();
+    const code = String(error?.cause?.code || error?.code || '').trim().toUpperCase();
+    const message = String(error?.message || error?.cause?.message || '').trim();
+    const combined = `${name} ${code} ${message}`;
+    if (/Target page|browser.*closed|context.*closed|Execution context was destroyed/i.test(combined)) return 'BROWSER_CONTEXT_LOST';
+    if (/ENOTFOUND|EAI_AGAIN|DNS|ERR_NAME_NOT_RESOLVED/i.test(combined)) return 'DNS_FAILURE';
+    if (/CERT|TLS|SSL|ERR_SSL|ERR_CERT|UNABLE_TO_VERIFY|SELF_SIGNED/i.test(combined)) return 'TLS_FAILURE';
+    if (/ECONNRESET|UND_ERR_SOCKET|ERR_CONNECTION_RESET|socket hang up/i.test(combined)) return 'CONNECTION_RESET';
+    if (name === 'AbortError' || /ABORT_ERR|aborted/i.test(combined)) return 'ABORTED';
+    if (/fetch failed|Failed to fetch|NetworkError/i.test(combined)) return 'FETCH_FAILED';
+    return message || name || code ? 'NO_RESPONSE' : 'NO_RESPONSE';
+};
+
 export const describeDropiBffFailure = (code, statusReason = '') => {
     const base = ({
     AUTH_FAILED: 'A sessao oficial Dropi expirou ou foi recusada.',
@@ -123,6 +144,14 @@ export const describeDropiBffFailure = (code, statusReason = '') => {
     RATE_LIMIT: 'A Dropi limitou temporariamente as requisicoes; tente novamente manualmente mais tarde.',
     DROPI_5XX: 'A Dropi apresentou erro interno; o pedido foi pesquisado antes de permitir nova tentativa manual.',
     TIMEOUT: 'A Dropi nao confirmou a criacao no tempo limite; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    DNS_FAILURE: 'O DNS da Dropi nao respondeu; nenhum reenvio automatico foi feito.',
+    TLS_FAILURE: 'A conexao segura TLS com a Dropi falhou; nenhum reenvio automatico foi feito.',
+    CONNECTION_RESET: 'A conexao com a Dropi foi interrompida; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    ABORTED: 'A requisicao para a Dropi foi interrompida; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    BROWSER_CONTEXT_LOST: 'A sessao de navegador da Dropi foi encerrada; nenhum reenvio automatico foi feito.',
+    FETCH_FAILED: 'O transporte HTTP para a Dropi falhou; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    NO_RESPONSE: 'A Dropi nao devolveu resposta HTTP; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    INVALID_RESPONSE: 'A Dropi devolveu uma resposta que nao pode ser validada; o pedido foi pesquisado antes de permitir nova tentativa manual.',
     PAYMENT_REQUIRED: 'A Dropi recusou o envio por saldo ou credito insuficiente.',
     DROPI_ERROR: 'A Dropi nao confirmou a criacao do pedido.'
     }[code] || 'A Dropi nao confirmou a criacao do pedido.');
@@ -173,21 +202,64 @@ export const requestDropiBff = async ({
     countryCode = 'ec',
     operation = 'list',
     payload,
-    timeoutMs = 30000
+    timeoutMs = 30000,
+    onLifecycle = null
 } = {}) => {
     if (typeof fetchImpl !== 'function') throw new Error('DROPI_FETCH_UNAVAILABLE');
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 30000));
+    const startedAt = Date.now();
+    let timeoutTriggered = false;
+    const timer = setTimeout(() => {
+        timeoutTriggered = true;
+        controller.abort();
+    }, Math.max(1000, Number(timeoutMs) || 30000));
+    const parsedUrl = (() => {
+        try { return new URL(url); } catch { return null; }
+    })();
+    const lifecycle = {
+        operation: String(operation || ''),
+        method: String(method || 'GET').toUpperCase(),
+        host: parsedUrl?.host || '',
+        path: parsedUrl?.pathname || '',
+        stage: 'prepared',
+        requestStarted: false,
+        requestDispatched: false,
+        responseReceived: false,
+        bodyParsed: false,
+        elapsedMs: 0,
+        transportCategory: ''
+    };
+    const notifyLifecycle = async (stage) => {
+        lifecycle.stage = stage;
+        lifecycle.elapsedMs = Date.now() - startedAt;
+        if (typeof onLifecycle === 'function') await onLifecycle({ ...lifecycle });
+    };
     try {
-        const response = await fetchImpl(url, {
+        lifecycle.requestStarted = true;
+        await notifyLifecycle('request_started');
+        const responsePromise = fetchImpl(url, {
             method,
             headers: buildDropiBffHeaders({ token, countryCode, operation }),
             ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
             signal: controller.signal
         });
-        const body = await response.json().catch(() => ({}));
+        lifecycle.requestDispatched = true;
+        await notifyLifecycle('request_dispatched');
+        const response = await responsePromise;
+        lifecycle.responseReceived = true;
+        await notifyLifecycle('response_received');
+        let body = {};
+        try {
+            body = await response.json();
+            lifecycle.bodyParsed = true;
+        } catch {
+            lifecycle.bodyParsed = false;
+        }
+        lifecycle.transportCategory = lifecycle.bodyParsed ? 'http_response' : 'body_parse_failed';
+        await notifyLifecycle(lifecycle.bodyParsed ? 'body_parsed' : 'body_parse_failed');
+        const responseOk = response.ok && lifecycle.bodyParsed;
         return {
-            ok: response.ok,
+            ok: responseOk,
             status: response.status,
             body,
             statusReason: dropiBffStatusReason(body),
@@ -198,10 +270,16 @@ export const requestDropiBff = async ({
                 || ''
             ),
             timedOut: false,
-            errorCode: response.ok ? '' : classifyDropiBffFailure({ status: response.status })
+            errorCode: responseOk
+                ? ''
+                : (lifecycle.bodyParsed ? classifyDropiBffFailure({ status: response.status }) : 'INVALID_RESPONSE'),
+            lifecycle: { ...lifecycle }
         };
     } catch (error) {
-        const timedOut = error?.name === 'AbortError';
+        const timedOut = timeoutTriggered;
+        const errorCode = classifyDropiBffTransportError(error, { timedOut });
+        lifecycle.transportCategory = errorCode.toLowerCase();
+        await notifyLifecycle('transport_failed').catch(() => null);
         return {
             ok: false,
             status: 0,
@@ -209,7 +287,8 @@ export const requestDropiBff = async ({
             statusReason: '',
             requestId: '',
             timedOut,
-            errorCode: classifyDropiBffFailure({ timedOut })
+            errorCode,
+            lifecycle: { ...lifecycle }
         };
     } finally {
         clearTimeout(timer);

@@ -29,6 +29,7 @@ const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v
 const v90Manifest = JSON.parse(read('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json'));
 const v98Manifest = JSON.parse(read('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json'));
 const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
+const v104Manifest = JSON.parse(read('docs/freeze/dropi-manual-transport-v104-20260902.json'));
 const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 
@@ -130,6 +131,10 @@ for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
     if (
         v98Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v98Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v104Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v104Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     if (
         v99Manifest.declaredAncestorOverrides?.includes(relativePath)

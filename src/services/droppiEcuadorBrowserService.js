@@ -28,7 +28,9 @@ import {
 } from './canaryIsolationV75Service.js';
 import {
     DROPI_BFF_CREATE_ENDPOINT,
+    DROPI_BFF_CATALOG_ENDPOINT,
     DROPI_BFF_LIST_ENDPOINT,
+    DROPI_BFF_QUOTE_ENDPOINT,
     classifyDropiBffFailure,
     describeDropiBffFailure,
     isUnexpiredDropiToken,
@@ -92,6 +94,9 @@ const CITY_RELEASE_WAIT_MS = Number.parseInt(process.env.DROPPI_EC_CITY_RELEASE_
 const SHIPPING_QUOTE_WAIT_MS = Number.parseInt(process.env.DROPPI_EC_SHIPPING_QUOTE_WAIT_MS || '90000', 10);
 const ORDER_CREATION_WAIT_MS = Number.parseInt(process.env.DROPPI_EC_ORDER_CREATION_WAIT_MS || '90000', 10);
 const PRODUCT_CARD_WAIT_MS = Number.parseInt(process.env.DROPPI_EC_PRODUCT_CARD_WAIT_MS || '90000', 10);
+const TEX_ULTRA_BFF_WAREHOUSE_ID = Number.parseInt(process.env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_ID || '1261', 10);
+const TEX_ULTRA_BFF_ORIGIN_CITY_ID = Number.parseInt(process.env.DROPPI_EC_TEX_ULTRA_ORIGIN_CITY_ID || '802', 10);
+const TEX_ULTRA_BFF_WAREHOUSE_NAME = process.env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_NAME || 'Laboratorio Vitalcom Ec';
 const manualBrowserSessions = new Map();
 
 const selectors = {
@@ -232,6 +237,14 @@ const classifyDropiManualError = (value = '') => {
         'RATE_LIMIT',
         'DROPI_5XX',
         'TIMEOUT',
+        'DNS_FAILURE',
+        'TLS_FAILURE',
+        'CONNECTION_RESET',
+        'ABORTED',
+        'BROWSER_CONTEXT_LOST',
+        'FETCH_FAILED',
+        'NO_RESPONSE',
+        'INVALID_RESPONSE',
         'PAYMENT_REQUIRED',
         'DROPI_ERROR'
     ];
@@ -239,24 +252,19 @@ const classifyDropiManualError = (value = '') => {
         || (isDropiPaymentRequiredError(message) ? 'PAYMENT_REQUIRED' : 'DROPI_ERROR');
 };
 
-const buildDropiBffSubmitError = ({ code, status = 0, statusReason = '', requestId = '' } = {}) => {
+const buildDropiBffSubmitError = ({ code, status = 0, statusReason = '', requestId = '', lifecycle = null } = {}) => {
     const errorCode = String(code || 'DROPI_ERROR').trim().toUpperCase();
     const error = new Error(`${dropiErrorToken(errorCode)} HTTP_${Number(status) || 0}`);
     error.dropiErrorCode = errorCode;
     error.dropiHttpStatus = Number(status) || 0;
     error.dropiStatusReason = sanitizeDropiBffStatusReason(statusReason);
     error.dropiRequestId = String(requestId || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 96);
+    error.dropiLifecycle = lifecycle && typeof lifecycle === 'object' ? { ...lifecycle } : null;
     return error;
 };
 
 const isDropiPaymentRequiredError = (value) => (
     /saldo|wallet|cr[eé]dito|credito|balance|credit/i.test(String(value || ''))
-);
-
-const isTransientDropiBrowserError = (value) => (
-    !/^DROPI_(?:AUTH_FAILED|DUPLICATE|VALIDATION_ERROR|PRODUCT_INVALID|LOCATION_INVALID|CARRIER_INVALID|RATE_LIMIT|DROPI_5XX|TIMEOUT)\b/i.test(String(value || ''))
-    && /Target page|context.*closed|browser.*closed|ERR_CONNECTION|ERR_SOCKET|ERR_CERT|net::|Timeout|Execution context was destroyed|Navigation failed|session expired while opening product/i
-        .test(String(value || ''))
 );
 
 const normalizeAutocompleteText = (text) => String(text || '')
@@ -1367,7 +1375,197 @@ const triggerShippingQuoteRefresh = async (page) => {
     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
 };
 
-const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) => {
+const productIdFromDropiUrl = (value = '') => {
+    try {
+        const match = new URL(String(value || '')).pathname.match(/\/product-details\/(\d+)/i);
+        return Number.parseInt(match?.[1] || '0', 10) || 0;
+    } catch {
+        return 0;
+    }
+};
+
+const dropiBffRows = (body = {}) => (
+    Array.isArray(body?.data?.objects)
+        ? body.data.objects
+        : (Array.isArray(body?.objects) ? body.objects : [])
+);
+
+export const buildTexUltraBffQuote = async (page, payload) => {
+    const productTarget = dropiProductTargetForPayload(payload);
+    if (productTarget.key !== ECUADOR_PRODUCTS.texUltra.key) return null;
+    const expectedProductId = productIdFromDropiUrl(productTarget.productUrl);
+    if (!expectedProductId) {
+        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'TEX_ULTRA_PRODUCT_ID_MISSING' });
+    }
+
+    const auth = await getDropiBrowserAuth(page);
+    if (!auth.token || !auth.userId || !isUnexpiredDropiToken(auth.token)) {
+        throw buildDropiBffSubmitError({ code: 'AUTH_FAILED', statusReason: 'SESSION_INVALID' });
+    }
+    const sessionCities = Array.isArray(auth.sessionData?.cities) ? auth.sessionData.cities : [];
+    const sessionDepartments = Array.isArray(auth.sessionData?.departments) ? auth.sessionData.departments : [];
+    const expectedDepartment = sessionDepartments.find((item) => (
+        normalizeAutocompleteText(item?.name) === normalizeAutocompleteText(payload.department)
+    ));
+    if (!expectedDepartment) {
+        throw buildDropiBffSubmitError({ code: 'LOCATION_INVALID', statusReason: 'AUTHORITATIVE_DEPARTMENT_NOT_FOUND' });
+    }
+    const expectedCity = sessionCities.find((item) => (
+        Number(item?.department_id) === Number(expectedDepartment.id)
+        && normalizeAutocompleteText(item?.name) === normalizeAutocompleteText(payload.city)
+    ));
+    if (!expectedCity) {
+        throw buildDropiBffSubmitError({ code: 'LOCATION_INVALID', statusReason: 'AUTHORITATIVE_CITY_NOT_FOUND' });
+    }
+    const originCityRaw = sessionCities.find((item) => Number(item?.id) === TEX_ULTRA_BFF_ORIGIN_CITY_ID);
+    const originDepartment = sessionDepartments.find((item) => Number(item?.id) === Number(originCityRaw?.department_id));
+    if (!originCityRaw || !originDepartment) {
+        throw buildDropiBffSubmitError({ code: 'LOCATION_INVALID', statusReason: 'AUTHORITATIVE_ORIGIN_NOT_FOUND' });
+    }
+
+    const catalogResult = await requestDropiBff({
+        url: DROPI_BFF_CATALOG_ENDPOINT,
+        method: 'POST',
+        token: auth.token,
+        countryCode: auth.countryCode,
+        operation: 'catalog',
+        payload: {
+            keywords: productTarget.name,
+            pageSize: 60,
+            startData: 0,
+            privated_product: false,
+            userVerified: false,
+            favorite: false,
+            with_collection: true,
+            get_stock: false,
+            no_count: true,
+            search_type: 'simple',
+            country: ['COLOM', 'BIA'].join('')
+        },
+        timeoutMs: Number.parseInt(process.env.DROPPI_EC_CATALOG_API_TIMEOUT_MS || '30000', 10)
+    });
+    if (!catalogResult.ok) {
+        throw buildDropiBffSubmitError({
+            code: catalogResult.errorCode || classifyDropiBffFailure(catalogResult),
+            status: catalogResult.status,
+            statusReason: catalogResult.statusReason,
+            requestId: catalogResult.requestId,
+            lifecycle: catalogResult.lifecycle
+        });
+    }
+    const catalogProduct = dropiBffRows(catalogResult.body)
+        .find((item) => Number(item?.id) === expectedProductId);
+    if (!catalogProduct || !productMatchesTarget(catalogProduct.name, productTarget)) {
+        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'AUTHORITATIVE_PRODUCT_NOT_FOUND' });
+    }
+    const warehouseInventory = (Array.isArray(catalogProduct.warehouse_product) ? catalogProduct.warehouse_product : [])
+        .find((item) => Number(item?.warehouse_id) === TEX_ULTRA_BFF_WAREHOUSE_ID);
+    const quantity = Math.max(1, Number(payload.quantity || 1) || 1);
+    if (!warehouseInventory || Number(warehouseInventory.stock || 0) < quantity) {
+        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'AUTHORITATIVE_WAREHOUSE_STOCK_NOT_AVAILABLE' });
+    }
+
+    const originCity = {
+        ...originCityRaw,
+        key_base_data: originCityRaw.id,
+        department: { ...originDepartment, key_base_data: originDepartment.id }
+    };
+    const destinationCity = {
+        ...expectedCity,
+        key_base_data: expectedCity.id,
+        department: { ...expectedDepartment, key_base_data: expectedDepartment.id }
+    };
+    const warehouse = {
+        id: TEX_ULTRA_BFF_WAREHOUSE_ID,
+        key_base_data: TEX_ULTRA_BFF_WAREHOUSE_ID,
+        name: TEX_ULTRA_BFF_WAREHOUSE_NAME,
+        city_id: originCity.id,
+        city: originCity
+    };
+    const unitPrice = Number(payload.unitPrice || 0)
+        || (Number(payload.price || 0) > 0 ? Number(payload.price || 0) / quantity : 0);
+    const quoteProduct = {
+        id: catalogProduct.id,
+        name: catalogProduct.name,
+        weight: 1,
+        stock: Number(warehouseInventory.stock || 0),
+        variation_id: null,
+        quantity,
+        price: unitPrice,
+        suggested_price: Number(catalogProduct.suggested_price || 0),
+        sale_price: Number(catalogProduct.sale_price || 0),
+        variations: Array.isArray(catalogProduct.variations) ? catalogProduct.variations : [],
+        type: catalogProduct.type || 'SIMPLE',
+        user_id: catalogProduct.user?.id || catalogProduct.user_id
+    };
+    const quotePayload = {
+        peso: 1,
+        largo: 1,
+        ancho: 1,
+        alto: 1,
+        ciudad_remitente: originCity,
+        ciudad_destino: destinationCity,
+        EnvioConCobro: true,
+        products: [quoteProduct],
+        ValorDeclarado: Number(payload.price || (unitPrice * quantity)),
+        warehouse,
+        zip_code: null,
+        colonia: null,
+        dir: payload.address,
+        destination_name: [payload.firstName, payload.lastName].filter(Boolean).join(' '),
+        destination_phone: payload.phone,
+        insurance: false
+    };
+    const quoteResult = await requestDropiBff({
+        url: DROPI_BFF_QUOTE_ENDPOINT,
+        method: 'POST',
+        token: auth.token,
+        countryCode: auth.countryCode,
+        operation: 'quote',
+        payload: quotePayload,
+        timeoutMs: Number.parseInt(process.env.DROPPI_EC_QUOTE_API_TIMEOUT_MS || '30000', 10)
+    });
+    const quoteRows = dropiBffRows(quoteResult.body);
+    const quoteAccepted = quoteResult.ok
+        && (quoteResult.body?.is_succesfull ?? quoteResult.body?.isSuccess ?? false)
+        && quoteRows.some((item) => item?.objects);
+    if (!quoteAccepted) {
+        throw buildDropiBffSubmitError({
+            code: quoteResult.errorCode || classifyDropiBffFailure({
+                ...quoteResult,
+                statusReason: quoteResult.statusReason || 'QUOTE_NOT_AVAILABLE'
+            }),
+            status: quoteResult.status,
+            statusReason: quoteResult.statusReason || 'QUOTE_NOT_AVAILABLE',
+            requestId: quoteResult.requestId,
+            lifecycle: quoteResult.lifecycle
+        });
+    }
+    const quote = {
+        payload: quotePayload,
+        response: { ...quoteResult.body, objects: quoteRows }
+    };
+    const chosenCarrier = chooseCarrierFromQuote(quote, payload.preferredCarrier);
+    const carrier = quoteRows.find((item) => (
+        normalizeCarrierCode(item?.distributionCompany?.name) === normalizeCarrierCode(chosenCarrier)
+        && item?.objects
+    ));
+    if (!carrier || (payload.agencyPickup && normalizeCarrierCode(chosenCarrier) !== 'SERVIENTREGA')) {
+        throw buildDropiBffSubmitError({ code: 'CARRIER_INVALID', statusReason: 'PREFERRED_CARRIER_QUOTE_NOT_AVAILABLE' });
+    }
+    return {
+        chosenCarrier,
+        formReady: true,
+        selectedDepartment: expectedDepartment.name,
+        selectedCity: expectedCity.name,
+        quotedCity: expectedCity.name,
+        quotedDepartment: expectedDepartment.name,
+        latestQuote: quote,
+        source: 'dropi_bff_authoritative_contract'
+    };
+};
+
+const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier, onCreateLifecycle = null }) => {
     const quotePayload = quote?.payload;
     const quoteResponse = quote?.response;
     const carrier = quoteResponse?.objects?.find((item) => (
@@ -1413,7 +1611,13 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
         (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)),
         0
     );
+    const shippingAmount = Number(carrier.objects?.precioEnvio || 0);
+    const supplierProductsCost = (quotePayload.products || []).reduce(
+        (sum, item) => sum + (Number(item.sale_price || 0) * Number(item.quantity || requestedQuantity)),
+        0
+    );
     const data = {
+        id: product.variation_id || null,
         total_order: totalOrder,
         notes: [payload.orderId, payload.reference].filter(Boolean).join(' | '),
         name: payload.firstName,
@@ -1428,7 +1632,10 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
         user_id: auth.userId,
         supplier_id: product.user_id,
         type: 'FINAL_ORDER',
+        shipping_amount: shippingAmount,
         rate_type: 'CON RECAUDO',
+        overload_was_applied: false,
+        dropshipper_amount_to_win: Number((totalOrder - supplierProductsCost - shippingAmount).toFixed(6)),
         products,
         distributionCompany: {
             id: carrier.distributionCompany.id,
@@ -1441,9 +1648,7 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
         dni: '',
         dni_type: '',
         insurance: false,
-        shalom_data: null,
-        warehouses_selected_id: quotePayload.warehouse?.id,
-        shipping_amount: carrier.objects?.precioEnvio
+        warehouses_selected_id: quotePayload.warehouse?.id
     };
 
     const validation = validateDropiBffCreatePayload(data);
@@ -1456,7 +1661,8 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier }) =
         countryCode: auth.countryCode,
         operation: 'create',
         payload: data,
-        timeoutMs: ORDER_CREATION_WAIT_MS
+        timeoutMs: ORDER_CREATION_WAIT_MS,
+        onLifecycle: onCreateLifecycle
     });
     return {
         ...response,
@@ -1908,10 +2114,11 @@ export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = nul
     };
 };
 
-const submitOrderInPanel = async ({ page, payload }) => {
+const submitOrderInPanel = async ({ page, payload, onCreateLifecycle = null }) => {
     const getDiagnostics = createPageDiagnosticsCollector(page);
     const getLatestQuote = createShippingQuoteCollector(page);
-    const preparedForm = await fillOrderFormInPanel({ page, payload, quoteCollector: getLatestQuote });
+    const preparedForm = await buildTexUltraBffQuote(page, payload)
+        || await fillOrderFormInPanel({ page, payload, quoteCollector: getLatestQuote });
 
     const quote = preparedForm.latestQuote || getLatestQuote();
     const existingBeforePost = await findExistingDropiOrderForManualSubmission(page, payload);
@@ -1919,13 +2126,18 @@ const submitOrderInPanel = async ({ page, payload }) => {
         return existingDropiOrderResult(existingBeforePost, payload, preparedForm.chosenCarrier);
     }
 
-    const apiResult = await submitOrderViaDropiApi(page, { payload, quote, chosenCarrier: preparedForm.chosenCarrier });
+    const apiResult = await submitOrderViaDropiApi(page, {
+        payload,
+        quote,
+        chosenCarrier: preparedForm.chosenCarrier,
+        onCreateLifecycle
+    });
     if (!apiResult.ok || !apiResult.body?.isSuccess) {
         const errorCode = apiResult.errorCode || classifyDropiBffFailure({
             ...apiResult,
             statusReason: apiResult.statusReason || apiResult.body?.message || ''
         });
-        if (['DUPLICATE', 'DROPI_5XX', 'TIMEOUT'].includes(errorCode)) {
+        if (apiResult.lifecycle?.requestDispatched) {
             const existingAfterAmbiguousPost = await findExistingDropiOrderForManualSubmission(page, payload);
             if (existingAfterAmbiguousPost) {
                 return existingDropiOrderResult(existingAfterAmbiguousPost, payload, preparedForm.chosenCarrier);
@@ -1935,7 +2147,8 @@ const submitOrderInPanel = async ({ page, payload }) => {
             code: errorCode,
             status: apiResult.status,
             statusReason: apiResult.statusReason || apiResult.body?.message || '',
-            requestId: apiResult.requestId
+            requestId: apiResult.requestId,
+            lifecycle: apiResult.lifecycle
         });
     }
     const apiDropiOrderId = String(apiResult.body?.objects?.id || '').trim();
@@ -1949,7 +2162,8 @@ const submitOrderInPanel = async ({ page, payload }) => {
             code: 'DROPI_ERROR',
             status: apiResult.status,
             statusReason: apiResult.statusReason || apiResult.body?.message || 'ACCEPTED_WITHOUT_ORDER_ID',
-            requestId: apiResult.requestId
+            requestId: apiResult.requestId,
+            lifecycle: apiResult.lifecycle
         });
     }
 
@@ -2003,6 +2217,7 @@ const submitOrderInPanel = async ({ page, payload }) => {
         panelMatched: true,
         dropiHttpStatus: apiResult.status,
         dropiRequestId: apiResult.requestId || '',
+        dropiLifecycle: apiResult.lifecycle || null,
         dropiBffCreateEndpoint: DROPI_BFF_CREATE_ENDPOINT,
         dropiResponse: apiResult.body
     };
@@ -2247,7 +2462,7 @@ const getDropiBrowserAuth = async (page) => page.evaluate(() => {
         || loginResult?.configurations?.[0]?.country_code
         || 'ec';
     const country = loginResult?.configurations?.[0]?.country || 'ECUADOR';
-    return { token, userId, countryCode: String(countryCode).toLowerCase(), country, loginResult };
+    return { token, userId, countryCode: String(countryCode).toLowerCase(), country, loginResult, sessionData };
 });
 
 const buildOrdersApiUrl = ({ search = '', userId = '', start = 0, resultNumber = 20 } = {}) => {
@@ -3214,32 +3429,26 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             event: { kind: 'droppi_browser_prepared', payload: prepared.payload }
         });
 
-        let result;
-        let lastTransientError = null;
-        for (let attempt = 1; attempt <= 2; attempt += 1) {
-            try {
-                result = await withBrowserSession(async ({ context, page }) => {
-                    await performLogin(page);
-                    await persistStorageState(context);
-                    await updateBrowserState(shipment._id, attempt === 1 ? 'logged_in' : 'logged_in_retry');
-                    return submitOrderInPanel({ page, payload: prepared.payload });
-                });
-                lastTransientError = null;
-                break;
-            } catch (error) {
-                if (attempt >= 2 || !isTransientDropiBrowserError(error.message)) throw error;
-                lastTransientError = error;
-                await updateBrowserState(shipment._id, 'retrying_transient_browser_error', {
-                    lastError: error.message || 'transient_browser_error',
-                    event: {
-                        kind: 'droppi_browser_transient_retry',
-                        payload: { attempt, message: error.message || 'transient_browser_error' }
+        const result = await withBrowserSession(async ({ context, page }) => {
+            await performLogin(page);
+            await persistStorageState(context);
+            await updateBrowserState(shipment._id, 'logged_in');
+            return submitOrderInPanel({
+                page,
+                payload: prepared.payload,
+                onCreateLifecycle: async (lifecycle) => updateBrowserState(
+                    shipment._id,
+                    `bff_create_${lifecycle.stage}`,
+                    {
+                        lastError: '',
+                        event: {
+                            kind: 'droppi_bff_create_lifecycle',
+                            payload: lifecycle
+                        }
                     }
-                });
-                await new Promise((resolve) => setTimeout(resolve, 2500));
-            }
-        }
-        if (!result && lastTransientError) throw lastTransientError;
+                )
+            });
+        });
         const submittedAt = new Date();
         const dropiOrderId = result.verifiedDropiOrderId
             || (result.dropiResponse?.objects?.id ? String(result.dropiResponse.objects.id) : '');
@@ -3369,7 +3578,8 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
                     code: dropiErrorToken(errorCode),
                     httpStatus: Number(error?.dropiHttpStatus) || 0,
                     requestId: String(error?.dropiRequestId || ''),
-                    statusReason: safeStatusReason
+                    statusReason: safeStatusReason,
+                    lifecycle: error?.dropiLifecycle || null
                 }
             }
         });
@@ -3387,6 +3597,9 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             reason,
             errorCode,
             paymentRequired: reason === 'dropi_payment_required',
+            httpStatus: Number(error?.dropiHttpStatus) || 0,
+            requestId: String(error?.dropiRequestId || ''),
+            lifecycle: error?.dropiLifecycle || null,
             error: safeMessage,
             message: safeMessage
         };

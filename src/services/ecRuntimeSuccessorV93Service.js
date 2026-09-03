@@ -83,8 +83,9 @@ const assertParentV92 = () => {
         throw new Error('[EC-RUNTIME-SUCCESSOR-V93] parent_policy_invalid');
     }
     const modified = new Set(modifiedAncestorProtectedFiles);
+    const successorOverrides = new Set(globalThis[EC_RUNTIME_SUCCESSOR_V93_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) {
             throw new Error(`[EC-RUNTIME-SUCCESSOR-V93] parent_protected_file_invalid:${relativePath}`);
         }

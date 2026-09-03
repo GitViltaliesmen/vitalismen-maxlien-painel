@@ -60,8 +60,9 @@ const assertParentV96 = () => {
         || parent.policy?.stagedSafeOverlayUnchanged !== true || parent.policy?.externalVslFilesChanged !== false
         || parent.policy?.pixelDatasetChanged !== false || parent.policy?.databaseChanged !== false) throw new Error('[EC-OPERATIONAL-GUARD-CONTEXT-V97] parent_policy_invalid');
     const modified = new Set(modifiedAncestorProtectedFiles);
+    const successorOverrides = new Set(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (sha256File(relativePath) !== expectedHash) throw new Error(`[EC-OPERATIONAL-GUARD-CONTEXT-V97] parent_protected_file_invalid:${relativePath}`);
     }
 };
