@@ -1,0 +1,29 @@
+{
+  "attestationId": "post-sale-next-eligible-source-compatibility-v113-attestation-20260903",
+  "version": 113,
+  "observedAt": "2026-09-03T14:03:00.000Z",
+  "country": "EC",
+  "parentRelease": "20260903T134940Z_production-20260903-86e4b14",
+  "parentCommit": "86e4b14052b5e41360dab84be25c09df450733c8",
+  "parentTree": "1c6639ced97dfce384c765a0d80432da84822367",
+  "failure": {
+    "action": "post-sale-next-eligible-v112 source_identity",
+    "legacyField": "tree",
+    "modernField": "functionalTree",
+    "externalEffects": 0
+  },
+  "productionRecovery": {
+    "botCoreStatus": "online",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "zapiConnected": true,
+    "publicHttp": 200,
+    "postSaleEnabled": false
+  },
+  "compatibilityPolicy": {
+    "readOnly": true,
+    "metadataWrites": 0,
+    "fallbackOnlyWhenTreeMissing": true,
+    "requiresValidFunctionalTree": true,
+    "delegatesToFrozenV112": true
+  }
+}

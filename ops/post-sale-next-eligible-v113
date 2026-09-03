@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+action="${1:-status}"
+release="${2:-}"
+
+[[ "$current" == "$base_dir"/releases/* && -d "$current" && ! -L "$current" ]] || {
+  echo "ERRO: current oficial inválido" >&2
+  exit 1
+}
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$current"
+  echo "PERMIT=$([[ -f /var/lib/vitalismen-deploy/post-sale-next-eligible-v112-permit.json ]] && echo ARMED || echo NOT_ARMED)"
+  echo "TIMER=$(systemctl is-active vitalismen-postsale-next-eligible-v113.timer 2>/dev/null || true)"
+  echo "POST_SALE=$([[ -f /var/lib/vitalismen-deploy/post-sale-v105-permit.consumed.json ]] && echo ACTIVE_OR_PREVIOUSLY_ACTIVATED || echo OFF)"
+  echo "SOURCE_IDENTITY_COMPAT=FUNCTIONAL_TREE_READ_ONLY"
+  exit 0
+fi
+
+if [[ "$action" == "install-timer" ]]; then
+  [[ "$#" -eq 2 && "$release" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || {
+    echo "ERRO: uso: post-sale-next-eligible-v113 install-timer RELEASE" >&2
+    exit 1
+  }
+  [[ "$current" == "$base_dir/releases/$release" ]] || { echo "ERRO: release não está ativa" >&2; exit 1; }
+  (cd "$current" && node scripts/guard-post-sale-next-eligible-source-compat-v113.mjs >/dev/null)
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-next-eligible-v113.service" \
+    /etc/systemd/system/vitalismen-postsale-next-eligible-v113.service
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-next-eligible-v113.timer" \
+    /etc/systemd/system/vitalismen-postsale-next-eligible-v113.timer
+  systemctl daemon-reload
+  systemctl enable --now vitalismen-postsale-next-eligible-v113.timer
+  echo "POST_SALE_NEXT_ELIGIBLE_V113_TIMER=ACTIVE"
+  echo "INTERVAL_MINUTES=5"
+  echo "DETECTOR_PROVIDER_CALLS=0"
+  echo "DETECTOR_MONGO_MUTATIONS=0"
+  exit 0
+fi
+
+compat="--import=$current/scripts/lib/post-sale-next-eligible-source-compat-v113.mjs"
+if [[ -n "${NODE_OPTIONS:-}" ]]; then export NODE_OPTIONS="$compat $NODE_OPTIONS"; else export NODE_OPTIONS="$compat"; fi
+cd "$current"
+exec "$current/ops/post-sale-next-eligible-v112" "$@"

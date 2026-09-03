@@ -1,0 +1,13 @@
+[Unit]
+Description=Check for the next naturally eligible Vitalismen EC post-sale event through V113 compatibility
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+AccuracySec=15s
+Persistent=true
+Unit=vitalismen-postsale-next-eligible-v113.service
+
+[Install]
+WantedBy=timers.target
