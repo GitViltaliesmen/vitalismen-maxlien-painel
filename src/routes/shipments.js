@@ -316,11 +316,15 @@ const findCurrentOrderForAdminLead = async (requestedOrderId) => {
     return match;
 };
 
-const findOrderForDropiRequest = async (requestedOrderId) => {
+const findExistingOrderForDropiRequest = async (requestedOrderId) => {
     const order = await Order.findOne({ orderId: requestedOrderId });
     if (order) return order;
-    const mappedOrder = await findCurrentOrderForAdminLead(requestedOrderId);
-    if (mappedOrder) return mappedOrder;
+    return findCurrentOrderForAdminLead(requestedOrderId);
+};
+
+const findOrderForDropiRequest = async (requestedOrderId) => {
+    const existingOrder = await findExistingOrderForDropiRequest(requestedOrderId);
+    if (existingOrder) return existingOrder;
     const lead = getAdminLeadSnapshot({ orderId: requestedOrderId });
     return createOperationalOrderFromAdminLead(requestedOrderId, lead);
 };
@@ -2170,9 +2174,24 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
 
 router.get('/droppi/ec/orders/:orderId/submit-status', adminOnly, async (req, res) => {
     try {
-        const order = await findOrderForDropiRequest(req.params.orderId);
+        const order = await findExistingOrderForDropiRequest(req.params.orderId);
         const shipment = await Shipment.findOne({ orderId: order?.orderId || req.params.orderId });
-        if (!order && !shipment) return res.status(404).json({ error: 'Order not found' });
+        if (!order && !shipment) {
+            const lead = getAdminLeadSnapshot({ orderId: req.params.orderId });
+            const readyAdminLead = Boolean(
+                getAdminLeadIdFromOrderId(req.params.orderId)
+                && lead
+                && String(lead.status || '').trim().toLowerCase() === 'confirmado'
+                && String(lead.phone || '').replace(/\D/g, '')
+                && normalizePackageQuantity(lead.product_qty)
+                && parseMoney(lead.product_value, 0) > 0
+            );
+            if (!readyAdminLead) return res.status(404).json({ error: 'Order not found' });
+            return res.json({
+                ...buildDropiSubmitStatus({ order: null, shipment: null, orderId: req.params.orderId }),
+                adminLeadReady: true
+            });
+        }
         res.json(buildDropiSubmitStatus({ order, shipment, orderId: req.params.orderId }));
     } catch (error) {
         console.error('Droppi EC submit status error:', error);

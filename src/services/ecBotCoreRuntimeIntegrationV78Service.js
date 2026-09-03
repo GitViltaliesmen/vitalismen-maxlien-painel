@@ -11,6 +11,11 @@ import {
 } from './ecBotCoreOperationalV78Service.js';
 import { ecPanelRuntimeRecoveryV115RouteDecision } from './ecPanelRuntimeRecoveryV115Service.js';
 import {
+    ecManualDropiReleaseV119ExternalEffectAllowed,
+    ecManualDropiReleaseV119MongoAllowed,
+    ecManualDropiReleaseV119RouteDecision
+} from './ecManualDropiReleaseV119Service.js';
+import {
     EC_OFFICIAL_VSL_V78_MESSAGE,
     EC_OFFICIAL_VSL_V78_WHATSAPP,
     recognizeOfficialEcVslEntryV78
@@ -236,16 +241,29 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const panelDecision = baseDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_panel_v115_not_needed' })
         : ecPanelRuntimeRecoveryV115RouteDecision({ method, path, env });
-    const decision = baseDecision.allowed ? baseDecision : panelDecision;
+    const manualDropiDecision = baseDecision.allowed || panelDecision.allowed
+        ? Object.freeze({ allowed: false, reason: 'ec_manual_dropi_v119_not_needed' })
+        : ecManualDropiReleaseV119RouteDecision({ method, path, env });
+    const decision = baseDecision.allowed
+        ? baseDecision
+        : panelDecision.allowed
+            ? panelDecision
+            : manualDropiDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
     const writeContext = method === 'POST'
-        && ['bot_core_route_allowed', 'ec_panel_v115_route_allowed'].includes(decision.reason);
+        && [
+            'bot_core_route_allowed',
+            'ec_panel_v115_route_allowed',
+            'ec_manual_dropi_v119_route_allowed'
+        ].includes(decision.reason);
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
         method,
         path,
         writeContext,
+        manualDropiV119: decision.reason === 'ec_manual_dropi_v119_route_allowed',
+        manualDropiOperation: decision.operation || '',
         startedAt: new Date().toISOString()
     }, async () => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });
@@ -314,6 +332,14 @@ export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.en
     return true;
 };
 
+export const isEcManualDropiExternalEffectAllowedV119 = (effect, env = process.env) => (
+    ecManualDropiReleaseV119ExternalEffectAllowed({
+        effect,
+        context: currentEcBotCoreRuntimeContextV78(),
+        env
+    })
+);
+
 const MONGO_PATCH = Symbol.for('vitalismen.ecBotCoreMongoGuard.v78');
 const MONGO_MUTATIONS = [
     'insertOne', 'insertMany', 'bulkWrite', 'updateOne', 'updateMany', 'replaceOne',
@@ -335,7 +361,15 @@ const patchMongoPrototype = (prototype) => {
                     const configuration = resolveEcBotCoreV78Configuration(process.env);
                     const context = currentEcBotCoreRuntimeContextV78();
                     const collection = clean(this?.collectionName || this?.namespace?.collection || this?.name).toLowerCase();
-                    if (!configuration.ready || !context?.writeContext || !EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection)) {
+                    const baseCollectionAllowed = EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection);
+                    const manualDropiCollectionAllowed = ecManualDropiReleaseV119MongoAllowed({
+                        method: context?.method,
+                        path: context?.path,
+                        collection,
+                        context,
+                        env: process.env
+                    });
+                    if (!configuration.ready || !context?.writeContext || (!baseCollectionAllowed && !manualDropiCollectionAllowed)) {
                         const error = new Error(`ec_bot_core_mongo_write_blocked:${collection || 'unknown'}.${method}`);
                         error.code = EC_BOT_CORE_V78_OPERATION_BLOCKED;
                         error.statusCode = 423;
