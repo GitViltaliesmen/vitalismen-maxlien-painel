@@ -80,7 +80,8 @@ const assertParentV87 = () => {
         || parent.policy?.realCustomerTrafficAuthorized !== false) {
         throw new Error('[EC-BOT-CORE-LIFECYCLE-BOOT-V88] parent_policy_invalid');
     }
-    const modified = new Set(modifiedParentProtectedFiles);
+    const successorOverrides = globalThis[EC_BOT_CORE_LIFECYCLE_BOOT_V88_OVERRIDE_KEY] || [];
+    const modified = new Set([...modifiedParentProtectedFiles, ...successorOverrides]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (sha256File(relativeFile(relativePath)) !== expectedHash) {

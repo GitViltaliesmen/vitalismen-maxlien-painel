@@ -1,0 +1,79 @@
+{
+  "freezeId": "post-sale-transactional-control-plane-v105",
+  "version": 105,
+  "parentVersion": "V104",
+  "parentFreezeId": "dropi-manual-transport-v104",
+  "parentManifestSha256": "3c2dc695b42e4bb4f197a2be6fc8546676af7631e8a42e11b13a9038d3e4eefa",
+  "parentFreezeSha256": "4f50f53d1e2bdc8766ee00dd8bf34d727a91b7befdc55beb09fddfa43ced7611",
+  "parentAttestationSha256": "84caf0a25cb7617a2543578a37007eaab596096a54820499166619bb67f3e08e",
+  "parentCommit": "3550ef487750128b0a6e5a6051693f66100e9779",
+  "parentTree": "67ecf98b63a1a5d2b07131b6fa53a3eb84670d7b",
+  "purpose": "ACTIVATE_TRANSACTIONAL_POST_SALE_WITH_BATCH_ONE_AND_NO_BACKLOG",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_post_sale_batch_one",
+  "country": "EC",
+  "policy": {
+    "batchMax": 1,
+    "dailyMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaRetroactiveAllowed": false,
+    "humanModeManualBlocked": true,
+    "chronologyGuardRequired": true,
+    "refreshBeforeSendRequired": true,
+    "persistentLedgerRequired": true,
+    "persistentLockRequired": true,
+    "idempotencyRequired": true,
+    "bridgeNoReplayRequired": true,
+    "botCorePreserved": true,
+    "otherCountryTouched": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-transactional-control-plane-v105-attestation-20260903.json",
+    "sha256": "0d3e3f57066106ae28cad843b0ec374c7a4a50086bb5f9fce87ed1a039e44260"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "cbca8c8a00eb1b728dd619a142304e9fbbdfb60ef7f41688616a642b68e510b0"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/canaryControllerV77Service.js",
+    "src/services/ecBotCoreLifecycleBootV88Service.js",
+    "src/services/postSaleNotificationDecisionService.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/canaryControllerV77Service.js",
+    "src/services/ecBotCoreLifecycleBootV88Service.js",
+    "src/services/postSaleNotificationDecisionService.js"
+  ],
+  "newProtectedFiles": [
+    "docs/POST_SALE_TRANSACTIONAL_CONTROL_PLANE_FREEZE_V105_20260903.md",
+    "docs/evidence/post-sale-transactional-control-plane-v105-attestation-20260903.json",
+    "ops/post-sale-v105",
+    "scripts/guard-post-sale-transactional-control-plane-v105.mjs",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs",
+    "scripts/post-sale-transactional-batch-v105.mjs",
+    "src/services/postSaleTransactionalControlPlaneFreezeRuntimeGuardV105.js",
+    "src/services/postSaleTransactionalControlPlaneV105Service.js",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "protectedFiles": {
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "cd00ac91ad445e67deb36f55691ec5253d2ab8c4c6e3ce0cf06da915860d0409",
+    "src/services/canaryControllerV77Service.js": "14713f12aba3e4163dd5c528790a404c56ee9336bdb4491d0d8da7df38ad3f30",
+    "src/services/ecBotCoreLifecycleBootV88Service.js": "6f409f6450c6cd4a9b67b94a5dc49e4acd710b5c38325055822b6c5dfa4da2dc",
+    "src/services/postSaleNotificationDecisionService.js": "ce58559678bb9facebfe28eec3d7c75c8b3a401c33dc931aca2dd0df316d8852",
+    "docs/POST_SALE_TRANSACTIONAL_CONTROL_PLANE_FREEZE_V105_20260903.md": "3442f98c151fa4bc59b98f93c3d20d0df58b70f434271be482cef2ae96a8de72",
+    "docs/evidence/post-sale-transactional-control-plane-v105-attestation-20260903.json": "0d3e3f57066106ae28cad843b0ec374c7a4a50086bb5f9fce87ed1a039e44260",
+    "ops/post-sale-v105": "952cdd84359e69b0c07fdb8dcfc727a9e60198754edb241d4ac94f18f6690108",
+    "scripts/guard-post-sale-transactional-control-plane-v105.mjs": "bd4d6b4b10930f03f2876eb6b454caa1e13125d882f623a57004208f02ef5841",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs": "a771556b4fb9b5907e2f581dd7ac423a5c0d3aac84d292b6ad4ed7104f30d4d1",
+    "scripts/post-sale-transactional-batch-v105.mjs": "cf6bbd07b70693d77ce217761984654c7cc3b6675151eb877f3af068e91168c2",
+    "src/services/postSaleTransactionalControlPlaneFreezeRuntimeGuardV105.js": "23d1a27f9a07335599a21a79f65674673aebc96563bbca0c0086d6f09cc3f30d",
+    "src/services/postSaleTransactionalControlPlaneV105Service.js": "8475a70f853a8579750f4e75c324129b42d8c23c65243b294321a4765046ccd4",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs": "80e9502a4f787d0f618c933391e0a4bfacdb6b759b9fb56f496f6488dce496e0"
+  }
+}

@@ -1,10 +1,14 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import { assertPostSaleTransactionalV105Manifest } from '../../src/services/postSaleTransactionalControlPlaneV105Service.js';
 import { assertDropiManualTransportManifestV104 } from '../../src/services/dropiManualTransportV104Service.js';
 import { assertModernReleaseSourceValidationManifestV103 } from '../../src/services/modernReleaseSourceValidationV103Service.js';
 import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/dropiManualBffRecoveryV98Service.js';
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const postSaleTransactional = assertPostSaleTransactionalV105Manifest();
+const postSalePrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...postSalePrevious, ...postSaleTransactional.overrides])];
 const transport = assertDropiManualTransportManifestV104();
 const transportPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...transportPrevious, ...transport.overrides])];
@@ -41,3 +45,4 @@ await import('../../src/services/protocoloGSuccessorGuardFreezeRuntimeGuardV101.
 await import('../../src/services/legacyBaselineAttestationFreezeRuntimeGuardV102.js');
 await import('../../src/services/modernReleaseSourceValidationFreezeRuntimeGuardV103.js');
 await import('../../src/services/dropiManualTransportFreezeRuntimeGuardV104.js');
+await import('../../src/services/postSaleTransactionalControlPlaneFreezeRuntimeGuardV105.js');

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import Shipment from '../models/Shipment.js';
 import {
@@ -62,6 +63,90 @@ const statusKey = (value = '') => clean(value)
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .replace(/\s+/g, '_');
+
+const phoneIdentityVariants = (value = '') => {
+    const digits = digitsOnly(value);
+    return [...new Set([
+        digits,
+        digits.length >= 10 ? digits.slice(-10) : '',
+        digits.length >= 9 ? digits.slice(-9) : ''
+    ].filter((item) => item.length >= 8))];
+};
+
+const terminalLedgerPresent = (shipment = {}, stages = []) => stages.some((stage) => (
+    Boolean(terminalPostSaleSafetyEntry(shipment, stage))
+));
+
+export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) => {
+    const stage = canonicalPostSaleStage(kind);
+    const status = statusKey(shipment?.logistics?.status);
+    const terminalOutcome = shipment?.outcomes?.delivered === true
+        || shipment?.outcomes?.pickedUp === true
+        || shipment?.outcomes?.returned === true
+        || [
+            'ENTREGADO', 'DELIVERED', 'PICKED_UP', 'PICKEDUP', 'RETIRADO', 'RECOGIDO',
+            'DEVUELTO', 'RETURNED', 'DEVOLUCION', 'NO_RETIRADO',
+            'CANCELADO', 'CANCELADO_SERVIENTREGA'
+        ].includes(status);
+    const readyOrLater = [
+        'READY_FOR_PICKUP', 'LISTO_PARA_RETIRO', 'PARA_RETIRO_EN_AGENCIA', 'DISPONIBLE_PARA_RETIRO'
+    ].includes(status) || terminalOutcome;
+    const inTransitOrLater = [
+        'MERCANCIA_RECOGIDA', 'EN_BODEGA_TRANSPORTADORA', 'EN_DESPACHO',
+        'EN_PROCESAMIENTO', 'EN_RUTA', 'EN_REPARTO', 'EN_DISTRIBUCION_A_CLIENTE'
+    ].includes(status) || readyOrLater;
+    const laterThanGuideLedger = terminalLedgerPresent(shipment, [
+        POST_SALE_STAGES.IN_TRANSIT,
+        POST_SALE_STAGES.READY_FOR_PICKUP,
+        POST_SALE_STAGES.RETURNED,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY1,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY2,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY3,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY4,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
+        POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
+        POST_SALE_STAGES.PICKUP_BONUS
+    ]);
+    const laterThanTransitLedger = terminalLedgerPresent(shipment, [
+        POST_SALE_STAGES.READY_FOR_PICKUP,
+        POST_SALE_STAGES.RETURNED,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY1,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY2,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY3,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY4,
+        POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
+        POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
+        POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
+        POST_SALE_STAGES.PICKUP_BONUS
+    ]);
+
+    if (stage === POST_SALE_STAGES.GUIDE && (inTransitOrLater || laterThanGuideLedger)) {
+        return { allowed: false, reason: 'chronology_blocks_guide_after_later_stage', stage, status };
+    }
+    if (stage === POST_SALE_STAGES.IN_TRANSIT && (readyOrLater || laterThanTransitLedger)) {
+        return { allowed: false, reason: 'chronology_blocks_in_transit_after_later_stage', stage, status };
+    }
+    return { allowed: true, reason: 'chronology_current', stage, status };
+};
+
+export const findManualHumanModeForShipment = async ({
+    shipment = {},
+    contactStateModel = ContactState
+} = {}) => {
+    const variants = phoneIdentityVariants(shipment?.client?.phone);
+    if (!variants.length) return null;
+    if (contactStateModel === ContactState && ContactState?.db?.readyState !== 1) return null;
+    const state = await contactStateModel.findOne({
+        countryCode: 'EC',
+        'human.mode': 'manual',
+        $or: [
+            { phoneDigits: { $in: variants } },
+            ...variants.map((tail) => ({ chatId: { $regex: `${tail}(?:@|$)` } }))
+        ]
+    }).sort({ updatedAt: -1 }).select('_id human.mode').lean().catch(() => null);
+    return state || null;
+};
 
 const eligibilityForKind = (shipment = {}, kind = '') => {
     const status = statusKey(shipment?.logistics?.status);
@@ -225,6 +310,7 @@ export const decidePostSaleNotification = async ({
     acquireLock = true,
     messageModel = Message,
     shipmentModel = Shipment,
+    contactStateModel = ContactState,
     now = new Date(),
     lockMs = 10 * 60 * 1000
 } = {}) => {
@@ -296,10 +382,29 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    const chronology = evaluatePostSaleChronology({ shipment, kind: legacyKind });
+    const chronologyEnforced = clean(process.env.VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL).toLowerCase() === 'true';
+    if (chronologyEnforced && !chronology.allowed) {
+        return {
+            decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
+            reason: chronology.reason,
+            stage,
+            idempotencyKey
+        };
+    }
     if (!eligibilityForKind(shipment, legacyKind)) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
             reason: 'current_logistics_state_not_eligible',
+            stage,
+            idempotencyKey
+        };
+    }
+    const manualHumanState = await findManualHumanModeForShipment({ shipment, contactStateModel });
+    if (manualHumanState) {
+        return {
+            decision: POST_SALE_NOTIFICATION_DECISIONS.MANUAL_REVIEW_REQUIRED,
+            reason: 'human_mode_manual',
             stage,
             idempotencyKey
         };
