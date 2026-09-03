@@ -158,8 +158,11 @@ run_plan() {
   assert_current_and_pm2_identity "$release_dir"
   (
     cd "$release_dir"
-    "$node_cmd" scripts/guard-ec-bot-core-control-plane-v89.mjs
-    "$node_cmd" scripts/guard-ec-vsl-dashboard-ingress-v90.mjs
+    successor_node_options="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs"
+    NODE_OPTIONS="$successor_node_options" \
+      "$node_cmd" scripts/guard-ec-bot-core-control-plane-v89.mjs
+    NODE_OPTIONS="$successor_node_options" \
+      "$node_cmd" scripts/guard-ec-vsl-dashboard-ingress-v90.mjs
     NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
       "$node_cmd" --test tests/ec-bot-core-structural-v78.test.mjs
   ) >"$guard_log" 2>&1 || die "guard estrutural V78 falhou; detalhes protegidos em $guard_log"

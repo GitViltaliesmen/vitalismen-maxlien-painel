@@ -13,6 +13,7 @@ export const POST_SALE_TRANSACTIONAL_SAFETY_V116_ATTESTATION_SHA256 = 'a7f5d6a86
 export const POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const POST_SALE_TRANSACTIONAL_SAFETY_V116_ANCESTOR_OVERRIDES = Object.freeze([
+    'ops/ec-bot-core-v78',
     'scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs',
     'scripts/guard-protocolo-g-ad-metrics-v63.mjs',
     'scripts/guard-protocolo-g-conversion-v62.mjs',

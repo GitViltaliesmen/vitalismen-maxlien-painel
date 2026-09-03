@@ -129,9 +129,12 @@ test('V116 congela no código cota persistente, dedupe sem retry e transporte de
 });
 
 test('V116 separa observer e executor, serializa ciclos e preserva a cadência oficial de 60 minutos', () => {
+    const botController = fs.readFileSync(new URL('../ops/ec-bot-core-v78', import.meta.url), 'utf8');
     const observer = fs.readFileSync(new URL('../ops/post-sale-next-eligible-v114', import.meta.url), 'utf8');
     const executor = fs.readFileSync(new URL('../ops/post-sale-v116', import.meta.url), 'utf8');
     const timer = fs.readFileSync(new URL('../ops/systemd/vitalismen-postsale-transactional-v116.timer', import.meta.url), 'utf8');
+    assert.match(botController, /NODE_OPTIONS="\$successor_node_options"[\s\\]*\n\s*"\$node_cmd" scripts\/guard-ec-bot-core-control-plane-v89\.mjs/);
+    assert.match(botController, /NODE_OPTIONS="\$successor_node_options"[\s\\]*\n\s*"\$node_cmd" scripts\/guard-ec-vsl-dashboard-ingress-v90\.mjs/);
     assert.doesNotMatch(observer, /post-sale[^\n]*\srun\b|batch-run|permit.*consumido/i);
     assert.match(executor, /flock -n 9/);
     assert.match(executor, /post-sale-transactional-batch-v116\.mjs run/);
