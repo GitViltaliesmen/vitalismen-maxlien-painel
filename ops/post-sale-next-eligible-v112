@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+log_dir="/var/log/vitalismen-deploy"
+process_name="vitalismen-automation"
+permit_file="$state_dir/post-sale-next-eligible-v112-permit.json"
+lock_file="$state_dir/post-sale-next-eligible-v112.lock"
+audit_file="$log_dir/post-sale-next-eligible-v112-audit.jsonl"
+health_url="https://ec.maxlien.shop/api/health/"
+arm_phrase="I_UNDERSTAND_POST_SALE_NEXT_ELIGIBLE_V112_SINGLE_USE"
+v105_phrase="I_UNDERSTAND_POST_SALE_V105_BATCH_ONE"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+current_dir() { readlink -f "$base_dir/current" 2>/dev/null || true; }
+release_dir_for_name() {
+  [[ "$1" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release inválida"
+  printf '%s/releases/%s' "$base_dir" "$1"
+}
+append_audit() {
+  local event="$1" release="${2:-}" detail="${3:-}"
+  install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+  node - "$audit_file" "$event" "$release" "$detail" <<'NODE'
+const fs=require('node:fs'); const [file,event,release,detail]=process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
+NODE
+  chmod 0600 "$audit_file"
+}
+source_identity() {
+  local release_dir="$1"
+  node - "$release_dir/.release-source.json" "$release_dir/.release-publication.json" <<'NODE'
+const fs=require('node:fs'); const [sourceFile,publicationFile]=process.argv.slice(2);
+const source=JSON.parse(fs.readFileSync(sourceFile,'utf8')); const publication=JSON.parse(fs.readFileSync(publicationFile,'utf8'));
+if (!/^[0-9a-f]{40}$/.test(String(source.commit||'')) || !/^[0-9a-f]{40}$/.test(String(source.tree||''))
+  || publication.status!=='production_published') process.exit(1);
+process.stdout.write(`${source.commit} ${source.tree}`);
+NODE
+}
+assert_current_pm2() {
+  local release_dir="$1" jlist_file="$state_dir/.post-sale-next-v112-pm2.$$"
+  trap 'rm -f -- "$jlist_file"' RETURN
+  [[ "$(current_dir)" == "$release_dir" ]] || die "current divergente"
+  pm2 jlist >"$jlist_file"
+  node - "$jlist_file" "$release_dir" "$base_dir/current" "$process_name" <<'NODE'
+const fs=require('node:fs'); const [file,expected,current,name]=process.argv.slice(2);
+const item=JSON.parse(fs.readFileSync(file,'utf8')||'[]').find((entry)=>entry.name===name); const env=item?.pm2_env||{};
+if (!item || env.status!=='online' || ![expected,current].includes(env.pm_cwd)
+  || ![`${expected}/src/index.js`,`${current}/src/index.js`].includes(env.pm_exec_path)) process.exit(1);
+NODE
+  rm -f -- "$jlist_file"
+  trap - RETURN
+}
+assert_bot_core_health() {
+  local release_dir="$1" health_file="$state_dir/.post-sale-next-v112-health.$$"
+  trap 'rm -f -- "$health_file"' RETURN
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" "$release_dir/ops/ec-bot-core-v78" status >/dev/null
+  curl -fsS --max-time 20 "$health_url" >"$health_file"
+  node - "$health_file" <<'NODE'
+const fs=require('node:fs'); const h=JSON.parse(fs.readFileSync(process.argv[2],'utf8')); const s=h?.automationSafety||{};
+if (h.status!=='online' || h.engine!=='Z-API' || h?.zapi?.connected!==true || h?.transports?.ready!==true
+  || s.mode!=='EC_BOT_CORE_OPERATIONAL' || s.operationalMutationsEnabled!==false
+  || Number(s.mutatingSchedulers)!==0 || s.dropiApplyAllowed!==false) process.exit(1);
+NODE
+  rm -f -- "$health_file"
+  trap - RETURN
+}
+scan_to_file() {
+  local release_dir="$1" output="$2"
+  (cd "$release_dir" && NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    node scripts/post-sale-next-eligible-monitor-v112.mjs >"$output")
+  chmod 0600 "$output"
+  node - "$output" <<'NODE'
+const fs=require('node:fs'); const r=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+if (r.MODE!=='STRICT_READ_ONLY' || r.PROFILE_READY!==true || Number(r.PROVIDER_CALLS)!==0
+  || Number(r.MONGO_MUTATIONS)!==0 || r.READ_ONLY_POLICY?.strictReadOnly!==true
+  || !Array.isArray(r.ITEMS) || Number(r.POSTSALE_ELIGIBLE)!==r.ITEMS.filter((x)=>x.DECISION==='SHOULD_SEND').length) process.exit(1);
+console.log(`POSTSALE_CANDIDATES=${r.POSTSALE_CANDIDATES}`);
+console.log(`POSTSALE_ELIGIBLE=${r.POSTSALE_ELIGIBLE}`);
+console.log(`FIRST_ELIGIBLE_ORDER=${r.FIRST_ELIGIBLE_ORDER||''}`);
+NODE
+}
+report_value() {
+  node - "$1" "$2" <<'NODE'
+const fs=require('node:fs'); const r=JSON.parse(fs.readFileSync(process.argv[2],'utf8')); const key=process.argv[3];
+process.stdout.write(String(r[key]??''));
+NODE
+}
+contain_v105() {
+  local release="$1" release_dir="$2"
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" contain "$release" >/dev/null 2>&1 || true
+}
+
+action="${1:-status}"
+install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+exec 9>"$lock_file"
+flock -n 9 || die "outra operação V112 está em andamento"
+
+if [[ "$action" == "inspect" ]]; then
+  cd "$(current_dir)"
+  node scripts/lib/post-sale-next-eligible-monitor-v112.mjs inspect
+  exit 0
+fi
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$(current_dir)"
+  echo "PERMIT=$([[ -f "$permit_file" ]] && echo ARMED || echo NOT_ARMED)"
+  echo "TIMER=$(systemctl is-active vitalismen-postsale-next-eligible-v112.timer 2>/dev/null || true)"
+  echo "POST_SALE=$([[ -f "$state_dir/post-sale-v105-permit.consumed.json" ]] && echo ACTIVE_OR_PREVIOUSLY_ACTIVATED || echo OFF)"
+  exit 0
+fi
+
+if [[ "$action" == "run" ]]; then
+  [[ -f "$permit_file" && ! -L "$permit_file" ]] || { echo "POST_SALE_NEXT_ELIGIBLE_V112=NOT_ARMED"; exit 0; }
+  release="$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).release||"")' "$permit_file")"
+  permit_id="$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).permitId||"")' "$permit_file")"
+  release_dir="$(release_dir_for_name "$release")"
+  [[ -d "$release_dir" && ! -L "$release_dir" ]] || die "release ausente"
+  read -r commit tree <<<"$(source_identity "$release_dir")"
+  now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  (cd "$release_dir" && node scripts/lib/post-sale-next-eligible-monitor-v112.mjs validate \
+    "$release_dir" "$release" "$commit" "$tree" "$permit_file" "$permit_id" "$now_iso" >/dev/null)
+  assert_current_pm2 "$release_dir"
+  assert_bot_core_health "$release_dir"
+  report="$log_dir/${release}.post-sale-next-eligible-v112.latest.json"
+  temporary="$report.tmp.$$"
+  trap 'rm -f -- "$temporary"' EXIT
+  scan_to_file "$release_dir" "$temporary" >/dev/null
+  mv -T "$temporary" "$report"
+  chmod 0600 "$report"
+  eligible="$(report_value "$report" POSTSALE_ELIGIBLE)"
+  first_order="$(report_value "$report" FIRST_ELIGIBLE_ORDER)"
+  if [[ "$eligible" == "0" ]]; then
+    echo "POST_SALE_NEXT_ELIGIBLE_V112=WAITING"
+    echo "POSTSALE_ELIGIBLE=0"
+    exit 0
+  fi
+  [[ "$eligible" =~ ^[1-9][0-9]*$ && "$first_order" =~ ^EC-[A-Za-z0-9-]+$ ]] || die "resultado elegível inválido"
+  senior_log="$log_dir/${release}.post-sale-next-eligible-v112-senior.log"
+  (cd "$release_dir" && NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" npm run senior:check >"$senior_log" 2>&1)
+  chmod 0600 "$senior_log"
+  second="$log_dir/${release}.post-sale-next-eligible-v112-preflight.json"
+  scan_to_file "$release_dir" "$second" >/dev/null
+  [[ "$(report_value "$second" POSTSALE_ELIGIBLE)" =~ ^[1-9][0-9]*$ \
+    && "$(report_value "$second" FIRST_ELIGIBLE_ORDER)" == "$first_order" ]] || die "candidato mudou no segundo preflight"
+  triggered="$permit_file.triggered.$(date -u +%Y%m%dT%H%M%SZ)"
+  mv -T "$permit_file" "$triggered"
+  chmod 0400 "$triggered"
+  append_audit "natural_eligible_triggered" "$release" "$first_order"
+  v105_started=0
+  cleanup_failure() {
+    local code=$?
+    if [[ "$code" -ne 0 ]]; then
+      if [[ "$v105_started" == "1" ]]; then contain_v105 "$release" "$release_dir"; fi
+      mv -T "$triggered" "$triggered.failed" 2>/dev/null || true
+      append_audit "gate3_failed_postsale_contained" "$release" "$first_order" || true
+    fi
+    exit "$code"
+  }
+  trap cleanup_failure EXIT
+  [[ ! -e "$state_dir/post-sale-v105-batch-one.invoked" ]] || die "lote V105 já invocado"
+  POST_SALE_V105_AUTHORIZE="$v105_phrase" NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" authorize "$release" >"$log_dir/${release}.v112-v105-authorize.log"
+  v105_started=1
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" activate "$release" >"$log_dir/${release}.v112-v105-activate.log"
+  plan_file="$log_dir/${release}.v112-v105-batch-plan.log"
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" batch-plan "$release" >"$plan_file"
+  grep -q '"decision": "SHOULD_SEND"' "$plan_file" || die "batch-plan sem SHOULD_SEND"
+  grep -q "\"orderId\": \"$first_order\"" "$plan_file" || die "batch-plan mudou candidato"
+  run_file="$log_dir/${release}.v112-v105-batch-run.log"
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" batch-run "$release" >"$run_file"
+  grep -q '"status": "PASS"' "$run_file" || die "Gate 3 não passou"
+  grep -q '"sent": 1' "$run_file" || die "Gate 3 não enviou exatamente uma mensagem"
+  node - "$state_dir/post-sale-v112-awaiting-30m-observation.json" "$release" "$first_order" "$permit_id" <<'NODE'
+const fs=require('node:fs'); const [file,release,orderId,permitId]=process.argv.slice(2); const triggeredAt=new Date();
+const value={version:112,status:'AWAITING_30_MINUTE_OBSERVATION',release,orderId,permitId,triggeredAt:triggeredAt.toISOString(),observeNotBefore:new Date(triggeredAt.getTime()+30*60*1000).toISOString(),batchMax:1,promoteBeyondOne:false};
+fs.writeFileSync(file, `${JSON.stringify(value,null,2)}\n`, {mode:0o600}); fs.chmodSync(file,0o600);
+NODE
+  mv -T "$triggered" "$triggered.consumed"
+  append_audit "gate3_batch_one_passed" "$release" "$first_order"
+  systemctl disable --now vitalismen-postsale-next-eligible-v112.timer >/dev/null 2>&1 || true
+  trap - EXIT
+  echo "POST_SALE_NEXT_ELIGIBLE_V112=GATE3_BATCH_ONE_PASS"
+  echo "FIRST_ELIGIBLE_ORDER=$first_order"
+  echo "MESSAGES_SENT=1"
+  echo "BATCH_MAX=1"
+  echo "PROMOTED_BEYOND_ONE=NO"
+  exit 0
+fi
+
+[[ "$#" -eq 2 ]] || die "uso: post-sale-next-eligible-v112 status|inspect|run|check|arm|install-timer RELEASE"
+release="$2"
+release_dir="$(release_dir_for_name "$release")"
+[[ -d "$release_dir" && ! -L "$release_dir" ]] || die "release ausente"
+assert_current_pm2 "$release_dir"
+read -r commit tree <<<"$(source_identity "$release_dir")"
+
+if [[ "$action" == "check" ]]; then
+  assert_bot_core_health "$release_dir"
+  output="$log_dir/${release}.post-sale-next-eligible-v112.manual.json"
+  scan_to_file "$release_dir" "$output"
+  echo "PROVIDER_CALLS=0"
+  echo "MONGO_MUTATIONS=0"
+  exit 0
+fi
+
+if [[ "$action" == "arm" ]]; then
+  [[ "${POST_SALE_NEXT_ELIGIBLE_V112_ARM:-}" == "$arm_phrase" ]] || die "autorização explícita V112 ausente"
+  assert_bot_core_health "$release_dir"
+  [[ ! -e "$permit_file" ]] || die "permit V112 já existe"
+  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+    "$release_dir/ops/post-sale-v105" status | grep -q 'POST_SALE_V105_STATUS=NOT_ACTIVE' || die "pós-venda V105 não está OFF"
+  permit_id="post-sale-next-v112-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  expires_at="$(date -u -d '+30 days' +%Y-%m-%dT%H:%M:%SZ)"
+  (cd "$release_dir" && node scripts/lib/post-sale-next-eligible-monitor-v112.mjs create \
+    "$release_dir" "$release" "$commit" "$tree" "$permit_file" "$permit_id" "$created_at" "$expires_at" "$arm_phrase")
+  chmod 0600 "$permit_file"
+  append_audit "monitor_armed" "$release" "$permit_id"
+  echo "POST_SALE_NEXT_ELIGIBLE_V112=ARMED"
+  echo "BATCH_MAX=1"
+  echo "DAILY_LIMIT=1"
+  echo "BACKLOG=OFF"
+  exit 0
+fi
+
+if [[ "$action" == "install-timer" ]]; then
+  (cd "$release_dir" && node scripts/guard-post-sale-next-eligible-monitor-v112.mjs >/dev/null)
+  install -o root -g root -m 0644 "$release_dir/ops/systemd/vitalismen-postsale-next-eligible-v112.service" \
+    /etc/systemd/system/vitalismen-postsale-next-eligible-v112.service
+  install -o root -g root -m 0644 "$release_dir/ops/systemd/vitalismen-postsale-next-eligible-v112.timer" \
+    /etc/systemd/system/vitalismen-postsale-next-eligible-v112.timer
+  systemctl daemon-reload
+  systemctl enable --now vitalismen-postsale-next-eligible-v112.timer
+  systemctl is-enabled vitalismen-postsale-next-eligible-v112.timer >/dev/null
+  systemctl is-active vitalismen-postsale-next-eligible-v112.timer >/dev/null
+  append_audit "timer_installed" "$release" "five_minutes"
+  echo "POST_SALE_NEXT_ELIGIBLE_V112_TIMER=ACTIVE"
+  exit 0
+fi
+
+die "ação V112 inválida"
