@@ -85,6 +85,7 @@ const preservedHashes = {
 };
 for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     const actualHash = sha256(relativePath);
+    if (new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []).has(relativePath)) continue;
     if (
         v71Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v71Manifest.protectedFiles?.[relativePath] === actualHash

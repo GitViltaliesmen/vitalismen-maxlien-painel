@@ -8861,6 +8861,7 @@
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
+    <script src="/panel-intelligence/panel-warmup-isolation-v118.js?v=20260903"></script>
     <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
     <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
     <script src="/panel-intelligence/customer-form-persistence-guard-v55.js?v=20260824"></script>
@@ -11905,8 +11906,12 @@
         };
 
         const renderOperationalMetrics = () => {
-            const visibleChats = visibleOperationalChats();
-            renderConversationBucketCounts(visibleChats);
+            const operationalChats = visibleOperationalChats();
+            renderConversationBucketCounts(operationalChats);
+            const visibleChats = window.VitalismenPanelWarmupIsolationV118?.commercialChats?.(
+                operationalChats,
+                chatConversationBucket
+            ) || operationalChats.filter((chat) => chatConversationBucket(chat) !== 'engagement');
             const manualCount = visibleChats.filter((chat) => chat.human?.mode === 'manual').length;
             const mineCount = visibleChats.filter(isMine).length;
             const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus))).length;
@@ -11919,7 +11924,11 @@
             const reviewCount = Number.isFinite(state.dropiOrderStats?.authorization)
                 ? state.dropiOrderStats.authorization
                 : confirmedOrders;
-            const totalClients = Number(state.dashboardMetrics?.totalClients || 0) || visibleChats.length;
+            const totalClients = Number(
+                state.dashboardMetrics?.commercialTotalClients
+                ?? state.dashboardMetrics?.totalClients
+                ?? 0
+            ) || visibleChats.length;
 
             el('metricChats').textContent = String(visibleChats.length);
             el('metricManual').textContent = String(manualCount);
@@ -11964,7 +11973,7 @@
             const month = metrics.month || {};
             el('statEnteredToday').textContent = String(today.totalEntries ?? today.entered ?? 0);
             el('statActiveToday').textContent = String(today.active || 0);
-            el('statManualNow').textContent = String(metrics.manualNow || 0);
+            el('statManualNow').textContent = String(metrics.commercialManualNow ?? metrics.manualNow ?? 0);
             el('statClosedToday').textContent = String(today.closed || 0);
             el('statEnteredWeek').textContent = String(week.totalEntries ?? week.entered ?? 0);
             el('statSalesWeek').textContent = moneyShort(week.revenue || 0);
@@ -12146,7 +12155,12 @@
         };
 
         const renderTeamList = () => {
-            const active = visibleOperationalChats().filter((chat) => chat.human?.mode === 'manual');
+            const operationalChats = visibleOperationalChats();
+            const commercialChats = window.VitalismenPanelWarmupIsolationV118?.commercialChats?.(
+                operationalChats,
+                chatConversationBucket
+            ) || operationalChats.filter((chat) => chatConversationBucket(chat) !== 'engagement');
+            const active = commercialChats.filter((chat) => chat.human?.mode === 'manual');
             const byOwner = active.reduce((acc, chat) => {
                 const owner = chat.human?.assignedName || 'Atendente';
                 acc[owner] = (acc[owner] || 0) + 1;
@@ -12174,7 +12188,14 @@
                 && Boolean(state.conversationBucketFilter)
             );
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                if (applyOperationalBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
+                const warmupIsolationDecision = window.VitalismenPanelWarmupIsolationV118?.isChatVisibleInOperationalView?.({
+                    chat,
+                    conversationBucketFilter: state.conversationBucketFilter,
+                    chatFilter: state.chatFilter,
+                    resolveConversationBucket: chatConversationBucket
+                });
+                if (warmupIsolationDecision === false) return false;
+                if (warmupIsolationDecision === undefined && applyOperationalBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
                 if (!searchActive && state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
                 if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (!searchActive && state.chatFilter === 'groups' && !chat.isGroup) return false;

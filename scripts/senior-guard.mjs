@@ -164,7 +164,10 @@ const productScopedProtocolFiles = new Set([
     'src/services/postSaleGargalosFreezeRuntimeGuardV65.js',
     // V116 cita os três guards Protocolo G somente pelos caminhos protegidos
     // e hashes de ancestralidade; não incorpora conteúdo comercial ao pós-venda.
-    'src/services/postSaleTransactionalSafetyV116ManifestService.js'
+    'src/services/postSaleTransactionalSafetyV116ManifestService.js',
+    // V118 cita esses mesmos caminhos exclusivamente para declarar os
+    // overrides ancestrais auditados da nova camada visual do painel.
+    'src/services/panelWarmupIsolationV118ManifestService.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

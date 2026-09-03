@@ -1,0 +1,26 @@
+{
+  "attestationId": "panel-warmup-isolation-v118-attestation-20260903",
+  "country": "EC",
+  "baseline": "BASELINE_VITALISMEN_EC_VSL_TEX_ULTRA_20260903",
+  "qaPhoneSuffix": "8637",
+  "preChangeReadOnlyAudit": {
+    "matchingContactStates": 1,
+    "bucket": "attendance",
+    "activeEcOrders": 0,
+    "activeEcShipments": 0
+  },
+  "policy": {
+    "engagementVisibleOnlyInOwnBucket": true,
+    "normalSearchCannotCrossIntoEngagement": true,
+    "commercialMetricsExcludeEngagement": true,
+    "buyerLeadListExcludesEngagement": true,
+    "activeOrderProjectionPreserved": true,
+    "qaAutomaticEngagementReplyAllowed": false
+  },
+  "realEffectsDuringLocalValidation": {
+    "whatsappMessages": 0,
+    "dropiOrders": 0,
+    "metaEvents": 0,
+    "productionWrites": 0
+  }
+}

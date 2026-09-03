@@ -154,7 +154,7 @@ con = sqlite3.connect("file:" + db_path + "?mode=ro", uri=True)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
 cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
-wanted = [column for column in ["id", "status", "notes", "product_qty", "product_value"] if column in cols]
+wanted = [column for column in ["id", "phone", "status", "notes", "product_qty", "product_value"] if column in cols]
 flags = {}
 if wanted:
     placeholders = ",".join(["?"] * len(ids))
@@ -171,6 +171,9 @@ if wanted:
         status = str(data.get("status") or "").strip().lower().replace("-", "_")
         notes = str(data.get("notes") or "")
         flag = {"status": status}
+        phone_digits = re.sub(r"\D", "", str(data.get("phone") or ""))
+        if len(phone_digits) >= 9:
+            flag["_phoneTail"] = phone_digits[-9:]
         marker = marker_pattern.search(notes)
         if marker:
             product_key = marker.group(1).strip().lower()
@@ -1869,13 +1872,30 @@ router.get('/droppi/ec/products', adminOnly, (_req, res) => {
     });
 });
 
-router.get('/droppi/ec/admin-leads/flags', adminOnly, (req, res) => {
+router.get('/droppi/ec/admin-leads/flags', adminOnly, async (req, res) => {
     try {
         const ids = String(req.query.ids || '')
             .split(',')
             .map((id) => id.trim())
             .filter(Boolean);
         const flags = getAdminLeadOperationalFlags({ ids });
+        const engagementStates = await ContactState.find({
+            'conversationBucket.value': 'engagement'
+        }, {
+            phoneDigits: 1,
+            chatId: 1
+        }).lean();
+        const engagementPhoneTails = new Set(engagementStates
+            .map((state) => digitsOnly(state.phoneDigits || state.chatId).slice(-9))
+            .filter((tail) => tail.length === 9));
+        Object.values(flags).forEach((flag) => {
+            const phoneTail = String(flag?._phoneTail || '');
+            if (phoneTail && engagementPhoneTails.has(phoneTail)) {
+                flag.conversationBucket = 'engagement';
+                flag.hideFromBuyerPanel = true;
+            }
+            delete flag._phoneTail;
+        });
         res.json({ success: true, flags });
     } catch (error) {
         console.error('Admin lead EC flags error:', error);

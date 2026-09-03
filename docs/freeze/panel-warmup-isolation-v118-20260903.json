@@ -1,0 +1,81 @@
+{
+  "freezeId": "panel-warmup-isolation-v118",
+  "version": 118,
+  "parentVersion": "V116_PRODUCTION_BASELINE",
+  "parentCommit": "33fc61a1ea8e1a4289584c6cc41151bb10ad3ab6",
+  "parentTree": "e244cf5996561b8015592c7f916dd037bcdec8c0",
+  "parentManifestSha256": "fd6e87bd56727ac8e55ca8961c3fb98a1c863c16b400a46c7cdeb9c0abda2b0c",
+  "purpose": "ISOLATE_ENGAGEMENT_FROM_COMMERCIAL_PANEL_AND_MOVE_EXACT_QA",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "operator_authorized_pending_staging",
+  "country": "EC",
+  "policy": {
+    "engagementVisibleOnlyInOwnBucket": true,
+    "normalSearchCannotCrossIntoEngagement": true,
+    "commercialMetricsExcludeEngagement": true,
+    "buyerLeadListExcludesEngagement": true,
+    "activeOrderProjectionPreserved": true,
+    "qaPhone": "5515998038637",
+    "qaAutomaticEngagementReplyAllowed": false,
+    "whatsappOutboundAllowed": false,
+    "dropiMutationAllowed": false,
+    "metaMutationAllowed": false,
+    "historicalBacklogEnabled": false,
+    "massMarketingEnabled": false
+  },
+  "evidence": {
+    "path": "docs/evidence/panel-warmup-isolation-v118-attestation-20260903.json",
+    "sha256": "adadbde22f89c0190edcdf8e0c5a30b5edee91fea1ab183aa7351d92fe9642ac"
+  },
+  "declaredAncestorOverrides": [
+    "public/leads-window.html",
+    "public/qr.html",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/senior-guard.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/shipments.js",
+    "src/routes/whatsapp.js",
+    "src/services/ecConversationBucketService.js",
+    "src/services/postSaleTransactionalSafetyV116ManifestService.js"
+  ],
+  "newProtectedFiles": [
+    "docs/PANEL_WARMUP_ISOLATION_FREEZE_V118_20260903.md",
+    "docs/evidence/panel-warmup-isolation-v118-attestation-20260903.json",
+    "public/panel-intelligence/panel-warmup-isolation-v118.js",
+    "scripts/guard-panel-warmup-isolation-v118.mjs",
+    "scripts/move-qa-to-engagement-v118.mjs",
+    "src/services/panelWarmupIsolationFreezeRuntimeGuardV118.js",
+    "src/services/panelWarmupIsolationV118ManifestService.js",
+    "src/services/panelWarmupIsolationV118Service.js",
+    "tests/panel-warmup-isolation-v118.test.mjs"
+  ],
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "82c7e48b325e371f347bdc65ae22058919a2af0115a0c488fbf3c492079f424a"
+  },
+  "protectedFiles": {
+    "docs/PANEL_WARMUP_ISOLATION_FREEZE_V118_20260903.md": "94dab841c4b33a1d223bca7d0ac6600de03103d116dc8dcdc5f3abff43fb8bdf",
+    "docs/evidence/panel-warmup-isolation-v118-attestation-20260903.json": "adadbde22f89c0190edcdf8e0c5a30b5edee91fea1ab183aa7351d92fe9642ac",
+    "public/leads-window.html": "35269071818cb186e5fb6bc75d038ca678ee06337dfc22e69a67492361519bdb",
+    "public/panel-intelligence/panel-warmup-isolation-v118.js": "92aa946902178e47adf0fb5b84a219ed5db781b6e262b87386f6bfd1e345521a",
+    "public/qr.html": "d7f2704ec67e39e5ff3746645a7b88c3b653c20399511bd84f79250f3fc776e6",
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "b38cff2b53d7e960a53b95ae2c2f92f7d00a492f8a4c83b9c945e0e5ddd26211",
+    "scripts/guard-panel-warmup-isolation-v118.mjs": "acd92b971f3673588b791a915bf36b3858da751633570c1a95e6147b496f64bc",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "d6eafe4fc959d776fbaddae2e385d7af0a32584975237d4a74fbba94c21c8428",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "b25eda6a8e153015706e22887f3ed7c2dcb385d8caedf6a08b85404fc5c03529",
+    "scripts/senior-guard.mjs": "2928aed42616b160ae508107989c30b8f695bf44d9e030987bd9c6a5ad34e038",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "3f590baa271d45c0ff39b2152fc8885aa8229d857cc83753d25a1519fc75b465",
+    "scripts/move-qa-to-engagement-v118.mjs": "c5129b5974c77325ac8748a7706c186656ea468183809c28bbea8ca19e1deaa7",
+    "src/routes/shipments.js": "edb8b9246a75d2b218c8635041df775666ae6ecc0c637e0c89e1ae6463778431",
+    "src/routes/whatsapp.js": "4a8da28029f16765561fd2553b1c197b688eb7d6e62c14d9d5262330422d6d63",
+    "src/services/ecConversationBucketService.js": "3df74785802dbb1fd117d597e1c9d6a3e99e96cbea34b45c1cc1d3e4966b1afb",
+    "src/services/panelWarmupIsolationFreezeRuntimeGuardV118.js": "74b2f36aef26dfe44089b753500785601b62c305f60d7f85971ed1754cb8834a",
+    "src/services/panelWarmupIsolationV118ManifestService.js": "3c93bec29844cd31ca8f785ddb9a942945fb67fec37a266bb2b4f131813b94c6",
+    "src/services/panelWarmupIsolationV118Service.js": "deb4a3dcd44ff5ea6ba9a91b03641109ef07248841e6fe8215ff386d11015792",
+    "src/services/postSaleTransactionalSafetyV116ManifestService.js": "b513f32998121268b725d550b63bbfa31a65b66d8a721bafcda174ab6fe700e8",
+    "tests/panel-warmup-isolation-v118.test.mjs": "2ac8f7c80c43bf5542cfc1182a014cbe1ff393354d987df7223b33241b2dd824"
+  }
+}

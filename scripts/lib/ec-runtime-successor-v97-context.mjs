@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertPanelWarmupIsolationV118Manifest,
+    PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY
+} from '../../src/services/panelWarmupIsolationV118ManifestService.js';
+import {
     assertPostSaleTransactionalSafetyV116Manifest,
     POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY
 } from '../../src/services/postSaleTransactionalSafetyV116ManifestService.js';
@@ -20,6 +24,13 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const panelWarmupIsolationV118 = assertPanelWarmupIsolationV118Manifest();
+const panelWarmupIsolationV118Previous = Array.isArray(globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY])
+    ? globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY]
+    : [];
+globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY] = [
+    ...new Set([...panelWarmupIsolationV118Previous, ...panelWarmupIsolationV118.overrides])
+];
 const postSaleTransactionalSafetyV116 = assertPostSaleTransactionalSafetyV116Manifest();
 const postSaleTransactionalSafetyV116Previous = Array.isArray(globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY])
     ? globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY]
@@ -99,3 +110,4 @@ await import('../../src/services/botQaOutboundRecoveryFreezeRuntimeGuardV110.js'
 await import('../../src/services/botQaMultiturnRecoveryFreezeRuntimeGuardV111.js');
 await import('../../src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js');
 await import('../../src/services/postSaleTransactionalSafetyFreezeRuntimeGuardV116.js');
+await import('../../src/services/panelWarmupIsolationFreezeRuntimeGuardV118.js');

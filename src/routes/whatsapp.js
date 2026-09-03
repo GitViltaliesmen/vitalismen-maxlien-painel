@@ -3896,6 +3896,7 @@ router.get('/dashboard-metrics', async (req, res) => {
                 human: 1,
                 chatId: 1,
                 phoneDigits: 1,
+                conversationBucket: 1,
                 metadata: 1
             }).lean(),
             Order.find({
@@ -3960,12 +3961,17 @@ router.get('/dashboard-metrics', async (req, res) => {
             };
         };
         const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
+        const commercialContacts = realContacts.filter((contact) => (
+            conversationBucketPanelView(contact).value !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        ));
 
         res.json({
             country,
             generatedAt: now.toISOString(),
             totalClients: realContacts.length,
             manualNow: realContacts.filter((contact) => contact.human?.mode === 'manual').length,
+            commercialTotalClients: commercialContacts.length,
+            commercialManualNow: commercialContacts.filter((contact) => contact.human?.mode === 'manual').length,
             today: periodCounts(startOfDay, todayVsl),
             week: periodCounts(startOfWeek, weekVsl),
             month: periodCounts(startOfMonth, monthVsl)

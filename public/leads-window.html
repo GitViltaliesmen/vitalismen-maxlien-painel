@@ -1023,6 +1023,7 @@
         </section>
     </main>
 
+    <script src="/panel-intelligence/panel-warmup-isolation-v118.js?v=20260903"></script>
     <script>
         const STATUSES = ['novo', 'atendendo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'finalizado', 'cancelado', 'devolvido'];
         const REQUIRED_STATUS_OPTIONS = ['finalizado'];
@@ -1608,6 +1609,7 @@
         const visibleLeads = () => {
             const q = normalize(state.q);
             return state.leads.filter((lead) => {
+                if (window.VitalismenPanelWarmupIsolationV118?.shouldHideLeadFromCommercialPanel?.(lead)) return false;
                 const status = statusValue(lead);
                 if (!leadMatchesDateFilter(lead)) return false;
                 if (state.status) {
