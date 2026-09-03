@@ -85,6 +85,25 @@ const zapiMessageIdFromPayloadV78 = (payload = {}) => [
     payload.data?.key?.id
 ].map(clean).find(Boolean) || '';
 
+export const isEcQaInboundMessagePayloadV111 = (payload = {}) => {
+    const text = zapiTextFromPayloadV78(payload);
+    const fromMe = payload.fromMe === true
+        || payload.message?.fromMe === true
+        || payload.data?.fromMe === true
+        || payload.key?.fromMe === true
+        || payload.message?.key?.fromMe === true;
+    if (fromMe) return false;
+    const status = clean(payload.status || payload.messageStatus || payload.deliveryStatus || payload.data?.status).toUpperCase();
+    const callbackType = clean(payload.type || payload.event || payload.data?.type);
+    const receivedInbound = status === 'RECEIVED' && Boolean(text);
+    const deliveryCallback = !receivedInbound && (
+        Boolean(status && status !== 'RECEIVED')
+        || payload.ack !== undefined
+        || /delivery|message-status|status/i.test(callbackType)
+    );
+    return Boolean(text) && !deliveryCallback;
+};
+
 const exactQaQueryV78 = (now, messageId, { followUp = false } = {}) => ({
     phoneDigits: EC_QA_TEST_PHONE_V78,
     chatId: { $in: [`${EC_QA_TEST_PHONE_V78}@c.us`, `${EC_QA_TEST_PHONE_V78}@s.whatsapp.net`] },
@@ -115,6 +134,9 @@ export const claimEcQaInboundContextV78 = async ({
     const phone = zapiPhoneFromPayloadV78(payload);
     if (phone !== EC_QA_TEST_PHONE_V78) {
         return Object.freeze({ applicable: false, allowed: true, phone, reason: 'not_exact_qa_phone' });
+    }
+    if (!isEcQaInboundMessagePayloadV111(payload)) {
+        return Object.freeze({ applicable: false, allowed: true, phone, reason: 'qa_non_inbound_callback' });
     }
     const text = zapiTextFromPayloadV78(payload);
     const messageId = zapiMessageIdFromPayloadV78(payload);

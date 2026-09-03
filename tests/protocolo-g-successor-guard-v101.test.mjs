@@ -11,11 +11,14 @@ test('V101 aceita as rotas atuais somente pelas identidades exatas congeladas na
     const v98 = JSON.parse(fs.readFileSync('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json', 'utf8'));
     const v104 = JSON.parse(fs.readFileSync('docs/freeze/dropi-manual-transport-v104-20260902.json', 'utf8'));
     const v110 = JSON.parse(fs.readFileSync('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json', 'utf8'));
+    const v111 = JSON.parse(fs.readFileSync('docs/freeze/bot-qa-multiturn-recovery-v111-20260903.json', 'utf8'));
     assert.ok(v90.declaredAncestorOverrides.includes('src/routes/zapi.js'));
     assert.equal(
         v90.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js')
             || (v110.declaredAncestorOverrides.includes('src/routes/zapi.js')
-                && v110.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js')),
+                && v110.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js'))
+            || (v111.declaredAncestorOverrides.includes('src/routes/zapi.js')
+                && v111.protectedFiles['src/routes/zapi.js'] === sha256('src/routes/zapi.js')),
         true
     );
     assert.ok(v98.declaredAncestorOverrides.includes('src/services/droppiEcuadorBrowserService.js'));

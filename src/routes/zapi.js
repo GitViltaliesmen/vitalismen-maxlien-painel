@@ -966,6 +966,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const vslProductContext = persistedVslProductContext
         || attributedProductContext
         || explicitTextProductContext;
+    const refreshedVslAttribution = Boolean(attributedProductContext || explicitTextProductContext);
     const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
@@ -1068,7 +1069,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ...(vslProductContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
-            vslEntryPanelLeadAt: targetState.metadata?.vslEntryPanelLeadAt || now.toISOString(),
+            vslEntryPanelLeadAt: refreshedVslAttribution
+                ? now.toISOString()
+                : targetState.metadata?.vslEntryPanelLeadAt || now.toISOString(),
             vslTestId: vslProductContext.vslTestId,
             vslVariant: vslProductContext.vslVariant,
             vslEntryMessage: vslProductContext.vslEntryMessage || normalizedBody,

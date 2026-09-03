@@ -1,0 +1,41 @@
+{
+  "freezeId": "bot-qa-multiturn-recovery-v111",
+  "version": 111,
+  "observedAt": "2026-09-03T05:39:00.000Z",
+  "country": "EC",
+  "qaPhone": "5515998038637",
+  "parentRelease": "20260903T052605Z_production-20260903-370f398",
+  "parentCommit": "370f398ec64a0e27d76d6bca4d47c348661a4596",
+  "gate1": {
+    "inboundProviderMessageId": "V110-QA-REAL-1788413999001",
+    "webhookHttpStatus": 200,
+    "inboundPersisted": true,
+    "publicVslLeadEntry": true,
+    "routeToBot": true,
+    "outboundProviderMessageIdPresent": true,
+    "outboundPersisted": true,
+    "deliveryConfirmed": true,
+    "duplicateOutbound": 0
+  },
+  "gate2Failure": {
+    "followUpProviderMessageId": "V110-QA-FOLLOWUP-1788414100001",
+    "webhookHttpStatus": 200,
+    "inboundPersisted": true,
+    "routeToBot": false,
+    "outboundSinceFollowUp": 0,
+    "containedAfterFailure": true
+  },
+  "rootCause": [
+    "FRESH_OFFICIAL_SIGNATURE_DID_NOT_REFRESH_VSL_ENTRY_TIMESTAMP",
+    "OUTBOUND_DELIVERY_CALLBACK_CONSUMED_QA_INBOUND_LEDGER_SLOT"
+  ],
+  "preserved": {
+    "ordersBefore": 204,
+    "ordersAfter": 204,
+    "shipmentsBefore": 188,
+    "shipmentsAfter": 188,
+    "dropiEffects": 0,
+    "metaEffects": 0,
+    "postSaleEffects": 0
+  }
+}
