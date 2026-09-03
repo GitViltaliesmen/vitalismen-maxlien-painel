@@ -15,6 +15,7 @@ export const EC_MANUAL_DROPI_RELEASE_V119_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR
 
 export const EC_MANUAL_DROPI_RELEASE_V119_ANCESTOR_OVERRIDES = Object.freeze([
     '.github/workflows/ec-panel-quality.yml',
+    'ops/post-sale-next-eligible-v114',
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
     'src/routes/shipments.js',
     'src/services/canaryIsolationV75Service.js',

@@ -30,10 +30,11 @@
   "logicalBundle": {
     "algorithm": "SHA-256",
     "format": "sorted-relative-path-NUL-file-sha256-LF",
-    "sha256": "e231dd714cd08e1233f19bbfc2d02bbf7405bdce49419b54b913da85ff9d42c0"
+    "sha256": "582bbf0a730857934037cf3b0f595b76cb2ff87eb3239f81f2d24971e74ca967"
   },
   "declaredAncestorOverrides": [
     ".github/workflows/ec-panel-quality.yml",
+    "ops/post-sale-next-eligible-v114",
     "scripts/lib/ec-runtime-successor-v97-context.mjs",
     "src/routes/shipments.js",
     "src/services/canaryIsolationV75Service.js",
@@ -41,6 +42,7 @@
   ],
   "modifiedAncestorProtectedFiles": [
     ".github/workflows/ec-panel-quality.yml",
+    "ops/post-sale-next-eligible-v114",
     "scripts/lib/ec-runtime-successor-v97-context.mjs",
     "src/routes/shipments.js",
     "src/services/canaryIsolationV75Service.js",
@@ -60,13 +62,14 @@
     ".github/workflows/ec-panel-quality.yml": "90120cb8f1d42a3de621a5ca5926623d60c8266ef65b701b681aaf479f88cdf5",
     "docs/DROPI_MANUAL_RELEASE_FREEZE_V119_20260903.md": "519fafef9b3d5f289e3d7cc7784b69dfe0e0e5b724d80c067cc53072f10ea369",
     "docs/evidence/ec-manual-dropi-release-v119-attestation-20260903.json": "e49945fa4c953cea2f893e45024846b2a8933464de9a51fb2a35f58a11a4e969",
+    "ops/post-sale-next-eligible-v114": "4dcbc7606136134ff2c02124b383c57ae683b6f07a1d0f3a12ec29ad073accd2",
     "scripts/guard-ec-manual-dropi-release-v119.mjs": "c3761e4c4b3a9bc85ddca9e1424269cdcb673ddb3c111a099c37fea614039394",
     "scripts/lib/ec-runtime-successor-v97-context.mjs": "9ea3f399e68ea9ce320280206b021d3aac5ec5dba2c63bb4dd9600e3c92f87f6",
     "src/routes/shipments.js": "86936454fc7a9bbc02897744401344b6b9c64a8682d8aa2d51084e2b71ea0388",
     "src/services/canaryIsolationV75Service.js": "6a120e69fa1849a182e495020a8cd5ed1afb758923814c453022f2810cb51bdc",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "f0f2025ff43995d22d68e9879103a71b49d27c701f40f89a8c305829995ebedb",
     "src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js": "f160f3943c6a3659de5d29fbf79df9eb10bed06ca957477bebfc17df9352fdfc",
-    "src/services/ecManualDropiReleaseV119Service.js": "1cc72ba20ac542ae437bbd189d43b22547eb43a0712b69f1102feca0f523e0d7",
-    "tests/ec-manual-dropi-release-v119.test.mjs": "a592171ac9fa66f4f4b768a0fcaa0f3a2cb41b9c8fb718690b99119d1c28605b"
+    "src/services/ecManualDropiReleaseV119Service.js": "d476a79b620389ba8805d4858e8b1625d40556e9e055b3ad65fbca69bd3e8702",
+    "tests/ec-manual-dropi-release-v119.test.mjs": "9fee00042070e027fd59054a4e3a436944c7f3719319614623db82995d1b8aa0"
   }
 }

@@ -213,4 +213,10 @@ test('V119 valida manifesto e mantém automações fora do escopo', () => {
         workflow,
         /VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=\.\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs npm run senior:check/
     );
+
+    const v114Compat = fs.readFileSync('ops/post-sale-next-eligible-v114', 'utf8');
+    assert.ok(
+        v114Compat.indexOf('ec-runtime-successor-v97-context.mjs')
+            < v114Compat.indexOf('post-sale-next-eligible-source-compat-v113.mjs')
+    );
 });
