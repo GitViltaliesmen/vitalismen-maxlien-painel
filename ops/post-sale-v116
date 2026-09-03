@@ -87,7 +87,7 @@ if [[ "$action" == "run" ]]; then
   flock -n 9 || die "outro executor V116 esta em andamento"
   assert_pm2_bot_online || die "PM2 bot fora da release current"
   load_overlay
-  export NODE_OPTIONS="--import=file://$current/scripts/lib/ec-runtime-successor-v97-context.mjs"
+  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
   append_audit "cycle_started" "batch_max_1_daily_limit_1"
   output="$log_dir/$(basename "$current").post-sale-v116-$(date -u +%Y%m%dT%H%M%SZ).json"
   if (cd "$current" && node scripts/post-sale-transactional-batch-v116.mjs run >"$output"); then

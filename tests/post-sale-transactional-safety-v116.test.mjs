@@ -143,6 +143,7 @@ test('V116 separa observer e executor, serializa ciclos e preserva a cadência o
     assert.doesNotMatch(observer, /post-sale[^\n]*\srun\b|batch-run|permit.*consumido/i);
     assert.match(executor, /flock -n 9/);
     assert.match(executor, /post-sale-transactional-batch-v116\.mjs run/);
+    assert.match(executor, /NODE_OPTIONS="--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs"/);
     assert.match(service, /ReadWritePaths=.* -\/opt\/vitalismen-automacao\/current\/public\/media\/generated/);
     assert.match(timer, /OnUnitActiveSec=60min/);
 });
