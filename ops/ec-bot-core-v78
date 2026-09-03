@@ -135,6 +135,17 @@ capture_health_after_restart() {
   return 1
 }
 
+run_successor_contract() {
+  local release_dir="$1"
+  local contract="$2"
+  shift 2
+  (
+    cd "$release_dir"
+    NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
+      "$node_cmd" "$contract" "$@"
+  )
+}
+
 run_plan() {
   local release="$1"
   local release_dir
@@ -156,8 +167,7 @@ run_plan() {
   meta_file="$state_dir/.ec-bot-core-v78-pre-meta.$$"
   trap 'rm -f -- "$health_file" "$meta_file"' RETURN
   "$stage_helper" v66-plan "$release" >"$plan_log" 2>&1 || die "gates oficiais V66/V77 falharam; detalhes protegidos em $plan_log"
-  NODE_OPTIONS="$successor_node_options" \
-    "$node_cmd" "$contract" inspect "$release_dir" "$release" >/dev/null
+  run_successor_contract "$release_dir" "$contract" inspect "$release_dir" "$release" >/dev/null
   assert_current_and_pm2_identity "$release_dir"
   (
     cd "$release_dir"
@@ -223,8 +233,7 @@ if [[ "$action" == "authorize" ]]; then
   created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   expires_at="$(date -u -d '+10 minutes' +%Y-%m-%dT%H:%M:%SZ)"
   permit_id="ec-bot-core-v78-$(date -u +%Y%m%dT%H%M%SZ)-$$"
-  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
-    "$node_cmd" "$contract" create "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$created_at" "$expires_at" "$authorization_phrase" >/dev/null
+  run_successor_contract "$release_dir" "$contract" create "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$created_at" "$expires_at" "$authorization_phrase" >/dev/null
   [[ "$test_mode" == "true" ]] || chmod 0400 "$overlay_file" "$attestation_file"
   [[ "$test_mode" == "true" ]] || chmod 0600 "$permit_file"
   append_audit "authorization_created" "$release" "$permit_id"
@@ -254,8 +263,7 @@ if [[ "$action" == "activate" ]]; then
   [[ -f "$permit_file" && -f "$overlay_file" && -f "$attestation_file" ]] || die "bundle autorizado ausente"
   permit_id="$($node_cmd -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(String(p.permitId||""));' "$permit_file")"
   now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
-    "$node_cmd" "$contract" validate "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$now_iso" >/dev/null
+  run_successor_contract "$release_dir" "$contract" validate "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$now_iso" >/dev/null
   while IFS='=' read -r key value; do
     [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "overlay V78 inválido"
     export "$key=$value"
