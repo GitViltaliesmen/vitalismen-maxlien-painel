@@ -22,6 +22,7 @@ export const EC_MANUAL_DROPI_RELEASE_V119_ANCESTOR_OVERRIDES = Object.freeze([
 ]);
 
 export const EC_MANUAL_DROPI_RELEASE_V119_NEW_PROTECTED_FILES = Object.freeze([
+    '.gitattributes',
     'docs/DROPI_MANUAL_RELEASE_FREEZE_V119_20260903.md',
     'docs/evidence/ec-manual-dropi-release-v119-attestation-20260903.json',
     'scripts/guard-ec-manual-dropi-release-v119.mjs',
