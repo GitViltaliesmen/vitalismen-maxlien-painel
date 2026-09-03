@@ -34,7 +34,9 @@ try {
         dryRun: action === 'plan',
         actions
     });
-    const first = result?.results?.[0] || null;
+    const first = result?.results?.find((item) => item?.eligibleAttempt === true || item?.success === true)
+        || result?.results?.[0]
+        || null;
     const shipment = first?.orderId
         ? await Shipment.findOne({ orderId: first.orderId, country: 'EC' }).lean()
         : null;

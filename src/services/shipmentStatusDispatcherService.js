@@ -17,6 +17,10 @@ import {
     buildCanaryV75RecipientQuery,
     canaryV75SchedulerShipmentAllowed
 } from './canaryIsolationV75Service.js';
+import {
+    POST_SALE_NOTIFICATION_DECISIONS,
+    decidePostSaleNotification
+} from './postSaleNotificationDecisionService.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -240,6 +244,10 @@ const dispatchActionPriority = (action) => {
     if (action === 'delivered_bonus') return 4;
     return 9;
 };
+
+const notificationKindForDispatchAction = (action) => (
+    action === 'delivered_bonus' ? 'pickup_bonus' : action
+);
 
 const resolveDispatchSessionForShipment = async ({
     shipment,
@@ -1111,12 +1119,12 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         .sort({ updatedAt: 1, createdAt: 1 })
         .limit(fetchLimit);
     const shipments = candidates
-        .sort((a, b) => dispatchActionPriority(actionForShipment(a)) - dispatchActionPriority(actionForShipment(b)))
-        .slice(0, quota.limit || effectiveLimit);
+        .sort((a, b) => dispatchActionPriority(actionForShipment(a)) - dispatchActionPriority(actionForShipment(b)));
 
     const results = [];
     let sent = 0;
     let skipped = 0;
+    let attemptedEligible = 0;
     const selectedActionSet = new Set(selectedActions);
     let refreshedBeforeSend = 0;
     const refreshLimit = dispatchRefreshBeforeSendLimit();
@@ -1129,6 +1137,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
     });
 
     for (const shipment of shipments) {
+        if (attemptedEligible >= (quota.limit || effectiveLimit)) break;
         const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
         if (!canaryDecision.allowed) {
             skipped += 1;
@@ -1150,6 +1159,20 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         };
 
         if (dryRun) {
+            const preflight = await decidePostSaleNotification({
+                shipment,
+                kind: notificationKindForDispatchAction(action),
+                acquireLock: false
+            });
+            item.preflightDecision = preflight.decision || '';
+            if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                item.reason = preflight.reason || 'preflight_not_eligible';
+                skipped += 1;
+                results.push(item);
+                continue;
+            }
+            attemptedEligible += 1;
+            item.eligibleAttempt = true;
             item.success = true;
             item.dryRun = true;
             results.push(item);
@@ -1219,6 +1242,20 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 });
                 continue;
             }
+            const preflight = await decidePostSaleNotification({
+                shipment: shipmentForSend,
+                kind: notificationKindForDispatchAction(action),
+                acquireLock: false
+            });
+            item.preflightDecision = preflight.decision || '';
+            if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                item.reason = preflight.reason || 'preflight_not_eligible';
+                skipped += 1;
+                results.push(item);
+                continue;
+            }
+            attemptedEligible += 1;
+            item.eligibleAttempt = true;
             const sessionSelection = await resolveDispatchSessionForShipment({
                 shipment: shipmentForSend,
                 hourlySessionCounts,
@@ -1299,7 +1336,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         finishedAt: new Date(),
         dryRun: Boolean(dryRun),
         actions: selectedActions,
-        processed: shipments.length,
+        processed: results.length,
         sent,
         skipped,
         paused: false,

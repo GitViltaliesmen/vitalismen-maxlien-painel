@@ -1,4 +1,5 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import { assertPostSaleEligibleBatchV108Manifest } from '../../src/services/postSaleEligibleBatchV108Service.js';
 import { assertPostSaleHealthEnvelopeV107Manifest } from '../../src/services/postSaleHealthEnvelopeV107Service.js';
 import { assertPostSalePublicationMetadataV106Manifest } from '../../src/services/postSalePublicationMetadataV106Service.js';
 import { assertPostSaleTransactionalV105Manifest } from '../../src/services/postSaleTransactionalControlPlaneV105Service.js';
@@ -8,6 +9,9 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const postSaleBatch = assertPostSaleEligibleBatchV108Manifest();
+const postSaleBatchPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...postSaleBatchPrevious, ...postSaleBatch.overrides])];
 const postSaleHealth = assertPostSaleHealthEnvelopeV107Manifest();
 const postSaleHealthPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...postSaleHealthPrevious, ...postSaleHealth.overrides])];
@@ -56,3 +60,4 @@ await import('../../src/services/dropiManualTransportFreezeRuntimeGuardV104.js')
 await import('../../src/services/postSaleTransactionalControlPlaneFreezeRuntimeGuardV105.js');
 await import('../../src/services/postSalePublicationMetadataFreezeRuntimeGuardV106.js');
 await import('../../src/services/postSaleHealthEnvelopeFreezeRuntimeGuardV107.js');
+await import('../../src/services/postSaleEligibleBatchFreezeRuntimeGuardV108.js');

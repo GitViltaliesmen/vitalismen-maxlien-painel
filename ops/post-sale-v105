@@ -134,6 +134,16 @@ restore_bot_core() {
   restart_with_loaded_profile "$release_dir"
   (cd "$release_dir" && NODE_OPTIONS=--import="$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" ./ops/ec-bot-core-v78 status >/dev/null)
 }
+archive_activation_bundle() {
+  local timestamp source
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  for source in "$overlay_file" "$attestation_file" "$permit_file" "$state_dir/post-sale-v105-permit.consumed.json"; do
+    if [[ -e "$source" ]]; then
+      [[ -f "$source" && ! -L "$source" ]] || return 1
+      mv -T "$source" "$source.contained.$timestamp" || return 1
+    fi
+  done
+}
 
 action="${1:-status}"
 install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
@@ -320,6 +330,7 @@ fi
 if [[ "$action" == "contain" ]]; then
   assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
   restore_bot_core "$release_dir" || die "restauração do bot core falhou"
+  archive_activation_bundle || die "arquivamento do bundle V105 falhou"
   append_audit "contained_bot_core_restored" "$release" "post_sale_disabled"
   echo "POST_SALE_V105_CONTAINMENT=PASS"
   echo "CURRENT_UNCHANGED=$(current_dir)"

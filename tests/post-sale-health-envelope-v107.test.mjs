@@ -5,7 +5,11 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { assertPostSaleHealthEnvelopeV107Manifest } from '../src/services/postSaleHealthEnvelopeV107Service.js';
+import {
+    POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY,
+    assertPostSaleHealthEnvelopeV107Manifest
+} from '../src/services/postSaleHealthEnvelopeV107Service.js';
+import { assertPostSaleEligibleBatchV108Manifest } from '../src/services/postSaleEligibleBatchV108Service.js';
 
 const validHealth = () => ({
     status: 'online',
@@ -48,6 +52,8 @@ test('helper arquiva somente autorização não consumida após bot core seguro'
 });
 
 test('manifesto V107 protege health semântico e abort seguro', () => {
+    const successor = assertPostSaleEligibleBatchV108Manifest();
+    globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] = successor.overrides;
     const result = assertPostSaleHealthEnvelopeV107Manifest();
     assert.equal(result.ready, true);
     assert.equal(result.manifest.policy.healthSemanticValidationPreserved, true);

@@ -1,0 +1,28 @@
+{
+  "attestationId": "post-sale-eligible-batch-v108-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V107",
+  "observation": {
+    "schedulerResult": "0/1",
+    "pendingCandidates": 5,
+    "firstCandidateDecision": "NOT_ELIGIBLE",
+    "firstCandidateReason": "chronology_blocks_in_transit_after_later_stage",
+    "providerCallsObserved": 0,
+    "messagesSent": 0
+  },
+  "correction": {
+    "blockedCandidatesMayBeSkipped": true,
+    "eligibilityPreflightBeforeProvider": true,
+    "providerAttemptsMaxPerCycle": 1,
+    "messageSendsMaxPerCycle": 1,
+    "consumedActivationBundleArchivedAfterContainment": true,
+    "batchOnceMarkerPreserved": true
+  },
+  "preserved": {
+    "batchMax": 1,
+    "dailyMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  }
+}

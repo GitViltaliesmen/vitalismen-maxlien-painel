@@ -73,7 +73,10 @@ const assertParentV106 = () => {
         || parent.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-HEALTH-V107] parent_policy_invalid');
     }
-    const modified = new Set(POST_SALE_HEALTH_ENVELOPE_V107_ANCESTOR_OVERRIDES);
+    const modified = new Set([
+        ...POST_SALE_HEALTH_ENVELOPE_V107_ANCESTOR_OVERRIDES,
+        ...(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] || [])
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
