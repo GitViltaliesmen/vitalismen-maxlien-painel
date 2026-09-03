@@ -1,0 +1,348 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+log_dir="/var/log/vitalismen-deploy"
+process_name="vitalismen-automation"
+profile="EC_POST_SALE_TRANSACTIONAL"
+bridge_phrase="I_UNDERSTAND_POST_SALE_V105_BRIDGE_NO_REPLAY"
+activation_phrase="I_UNDERSTAND_POST_SALE_V105_BATCH_ONE"
+overlay_file="$state_dir/post-sale-v105.env"
+attestation_file="$state_dir/post-sale-v105-attestation.json"
+permit_file="$state_dir/post-sale-v105-permit.json"
+bridge_permit_file="$state_dir/post-sale-v105-bridge-permit.json"
+batch_once_file="$state_dir/post-sale-v105-batch-one.invoked"
+lock_file="$state_dir/post-sale-v105.lock"
+audit_file="$log_dir/post-sale-v105-audit.jsonl"
+health_url="https://ec.maxlien.shop/api/health/"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+release_dir_for_name() {
+  [[ "$1" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release inválida"
+  printf '%s/releases/%s' "$base_dir" "$1"
+}
+current_dir() { readlink -f "$base_dir/current" 2>/dev/null || true; }
+append_audit() {
+  local event="$1" release="${2:-}" detail="${3:-}"
+  install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+  node - "$audit_file" "$event" "$release" "$detail" <<'NODE'
+const fs = require('node:fs');
+const [file, event, release, detail] = process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
+NODE
+  chmod 0600 "$audit_file"
+}
+assert_current_pm2() {
+  local release_dir="$1" jlist_file="$state_dir/.post-sale-v105-pm2.$$"
+  trap 'rm -f -- "$jlist_file"' RETURN
+  [[ "$(current_dir)" == "$release_dir" ]] || die "current divergente"
+  pm2 jlist >"$jlist_file"
+  node - "$jlist_file" "$release_dir" "$base_dir/current" <<'NODE'
+const fs=require('node:fs');
+const [file,expected,current] = process.argv.slice(2);
+const item = JSON.parse(fs.readFileSync(file,'utf8')||'[]').find((entry)=>entry.name==='vitalismen-automation');
+const env=item?.pm2_env||{};
+if (!item || env.status!=='online' || ![expected,current].includes(env.pm_cwd)
+  || ![`${expected}/src/index.js`,`${current}/src/index.js`].includes(env.pm_exec_path)) process.exit(1);
+NODE
+  rm -f -- "$jlist_file"
+  trap - RETURN
+}
+contract_for() { printf '%s/scripts/lib/post-sale-transactional-control-plane-v105.mjs' "$1"; }
+run_report() {
+  local release_dir="$1" output="$2"
+  (cd "$release_dir" && node scripts/reconcile-post-sale-safety-v66.mjs --limit=50000 >"$output")
+  node - "$output" <<'NODE'
+const fs=require('node:fs'); const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+console.log(`BRIDGE_MODE=${x.mode}`);
+console.log(`TOTAL_CANDIDATES=${x.totalCandidates}`);
+console.log(`SCANNED=${x.scanned}`);
+console.log(`AFFECTED_SHIPMENTS=${x.affectedShipments}`);
+console.log(`STAGE_WRITES=${x.stageWrites}`);
+console.log(`REAL_MESSAGES_SENT=${x.realMessagesSent}`);
+console.log(`REAL_DROPI_SUBMISSIONS=${x.realDropiSubmissions}`);
+if (x.completeScan!==true || Number(x.realMessagesSent)!==0 || Number(x.realDropiSubmissions)!==0) process.exit(1);
+NODE
+}
+run_plan() {
+  local release="$1" release_dir report
+  release_dir="$(release_dir_for_name "$release")"
+  [[ -d "$release_dir" && ! -L "$release_dir" ]] || die "release ausente"
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  (cd "$release_dir" && node "$(contract_for "$release_dir")" inspect >/dev/null)
+  curl -fsS --max-time 20 "$health_url" >/dev/null || die "health indisponível"
+  report="$log_dir/${release}.post-sale-v105-bridge-report.json"
+  run_report "$release_dir" "$report"
+  append_audit "plan_passed" "$release" "read_only"
+  echo "POST_SALE_V105_PLAN=PASS"
+  echo "PROFILE=$profile"
+  echo "CURRENT=$release_dir"
+  echo "BATCH_MAX=1"
+  echo "BACKLOG=OFF"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "META_RETROACTIVE=OFF"
+  echo "PRODUCTION_MUTATIONS=0"
+}
+load_profile() {
+  [[ -f "$overlay_file" && ! -L "$overlay_file" ]] || die "overlay V105 ausente"
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "overlay V105 inválido"
+    export "$key=$value"
+  done <"$overlay_file"
+}
+restart_with_loaded_profile() {
+  local release_dir="$1" pm2_realpath pm2_root target_node_options
+  pm2_realpath="$(readlink -f "$(command -v pm2)")"
+  [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "PM2 fora do pacote canônico"
+  pm2_root="${pm2_realpath%/bin/pm2}"
+  target_node_options="$NODE_OPTIONS"
+  NODE_OPTIONS="" npm_config_node_options="" node \
+    "$release_dir/scripts/lib/pm2-target-env-restart-v89.mjs" \
+    "$pm2_root" "$process_name" "$target_node_options" >/dev/null
+  unset NODE_OPTIONS
+  export npm_config_node_options=""
+}
+wait_post_sale_health() {
+  local release_dir="$1" health_file="$state_dir/.post-sale-v105-health.$$"
+  trap 'rm -f -- "$health_file"' RETURN
+  for _attempt in $(seq 1 30); do
+    if curl -fsS --max-time 10 "$health_url" >"$health_file" 2>/dev/null \
+      && (cd "$release_dir" && node "$(contract_for "$release_dir")" health "$health_file" >/dev/null); then
+      rm -f -- "$health_file"
+      trap - RETURN
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+restore_bot_core() {
+  local release_dir="$1" bot_overlay="$state_dir/ec-bot-core-v78.env" attempt
+  [[ -f "$bot_overlay" && ! -L "$bot_overlay" ]] || return 1
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || return 1
+    export "$key=$value"
+  done <"$bot_overlay"
+  export VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL=false
+  export VITALISMEN_EC_POSTSALE_TRANSACTIONAL_PROFILE_VERSION=
+  export VITALISMEN_EC_POSTSALE_TRANSACTIONAL_PROFILE_SHA256=
+  restart_with_loaded_profile "$release_dir"
+  for attempt in $(seq 1 30); do
+    if (cd "$release_dir" && NODE_OPTIONS=--import="$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" ./ops/ec-bot-core-v78 status >/dev/null 2>&1); then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+archive_activation_bundle() {
+  local timestamp source
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  for source in "$overlay_file" "$attestation_file" "$permit_file" "$state_dir/post-sale-v105-permit.consumed.json"; do
+    if [[ -e "$source" ]]; then
+      [[ -f "$source" && ! -L "$source" ]] || return 1
+      mv -T "$source" "$source.contained.$timestamp" || return 1
+    fi
+  done
+}
+
+action="${1:-status}"
+install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+exec 9>"$lock_file"
+flock -n 9 || die "outra operação V105 está em andamento"
+
+if [[ "$action" == "status" ]]; then
+  echo "PROFILE=$profile"
+  echo "CURRENT=$(current_dir)"
+  if [[ -f "$overlay_file" && -f "$attestation_file" && -f "$state_dir/post-sale-v105-permit.consumed.json" ]]; then
+    echo "POST_SALE_V105_STATUS=ACTIVE_OR_PREVIOUSLY_ACTIVATED"
+  else
+    echo "POST_SALE_V105_STATUS=NOT_ACTIVE"
+  fi
+  exit 0
+fi
+
+[[ "$#" -eq 2 ]] || die "uso: post-sale-v105 ACTION RELEASE"
+release="$2"
+release_dir="$(release_dir_for_name "$release")"
+contract="$(contract_for "$release_dir")"
+
+if [[ "$action" == "plan" ]]; then
+  run_plan "$release"
+  exit 0
+fi
+
+if [[ "$action" == "bridge-report" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  run_report "$release_dir" "$log_dir/${release}.post-sale-v105-bridge-report.json"
+  echo "POST_SALE_V105_BRIDGE_REPORT=PASS"
+  exit 0
+fi
+
+if [[ "$action" == "bridge-authorize" ]]; then
+  [[ "${POST_SALE_V105_BRIDGE_AUTHORIZE:-}" == "$bridge_phrase" ]] || die "autorização explícita do bridge ausente"
+  run_plan "$release" >/dev/null
+  [[ ! -e "$bridge_permit_file" ]] || die "permit do bridge já existe"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  expires_at="$(date -u -d '+10 minutes' +%Y-%m-%dT%H:%M:%SZ)"
+  permit_id="post-sale-v105-bridge-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  (cd "$release_dir" && node "$contract" bridge-create "$release_dir" "$release" "$bridge_permit_file" "$permit_id" "$created_at" "$expires_at" "$bridge_phrase")
+  chmod 0600 "$bridge_permit_file"
+  append_audit "bridge_authorized" "$release" "$permit_id"
+  echo "POST_SALE_V105_BRIDGE_AUTHORIZATION=READY"
+  echo "PERMIT_ID=$permit_id"
+  echo "APPLY_EXECUTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "bridge-apply" ]]; then
+  [[ -f "$bridge_permit_file" && ! -L "$bridge_permit_file" ]] || die "permit do bridge ausente"
+  permit_id="$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).permitId||"")' "$bridge_permit_file")"
+  now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  (cd "$release_dir" && node "$contract" bridge-validate "$release_dir" "$release" "$bridge_permit_file" "$permit_id" "$now_iso")
+  output="$log_dir/${release}.post-sale-v105-bridge-apply.json"
+  (cd "$release_dir" && POST_SALE_V66_BRIDGE_APPLY_APPROVED=I_UNDERSTAND_V66_BRIDGE_NO_REPLAY node scripts/reconcile-post-sale-safety-v66.mjs --apply --limit=50000 >"$output")
+  node - "$output" <<'NODE'
+const fs=require('node:fs'); const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+if (x.mode!=='APPLY_COMPATIBILITY_BRIDGE_NO_REPLAY' || x.completeScan!==true
+  || Number(x.realMessagesSent)!==0 || Number(x.realDropiSubmissions)!==0
+  || x.compatibilityStateWritten!==true) process.exit(1);
+console.log(`AFFECTED_SHIPMENTS=${x.affectedShipments}`);
+console.log(`STAGE_WRITES=${x.stageWrites}`);
+console.log(`REAL_MESSAGES_SENT=${x.realMessagesSent}`);
+console.log(`REAL_DROPI_SUBMISSIONS=${x.realDropiSubmissions}`);
+NODE
+  consumed="$state_dir/post-sale-v105-bridge-permit.consumed.json"
+  [[ ! -e "$consumed" ]] || die "permit do bridge já consumido"
+  mv -T "$bridge_permit_file" "$consumed"
+  chmod 0400 "$consumed"
+  append_audit "bridge_applied_no_replay" "$release" "$permit_id"
+  echo "POST_SALE_V105_BRIDGE_APPLY=PASS"
+  echo "MESSAGES_SENT=0"
+  echo "DROPI_SUBMISSIONS=0"
+  exit 0
+fi
+
+if [[ "$action" == "abort-authorization" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  consumed="$state_dir/post-sale-v105-permit.consumed.json"
+  [[ -f "$overlay_file" && ! -L "$overlay_file" && -f "$attestation_file" && ! -L "$attestation_file"
+    && -f "$permit_file" && ! -L "$permit_file" ]] || die "bundle V105 não consumido ausente"
+  [[ ! -e "$consumed" ]] || die "autorização consumida não pode ser abortada"
+  health_file="$state_dir/.post-sale-v105-abort-health.$$"
+  trap 'rm -f -- "$health_file"' EXIT
+  curl -fsS --max-time 20 "$health_url" >"$health_file" || die "health indisponível para abortar autorização"
+  bundle_release="$(node - "$permit_file" "$health_file" <<'NODE'
+const fs=require('node:fs');
+const [permitFile,healthFile]=process.argv.slice(2);
+const permit=JSON.parse(fs.readFileSync(permitFile,'utf8'));
+const health=JSON.parse(fs.readFileSync(healthFile,'utf8'));
+const safety=health?.automationSafety||{};
+if (!/^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(String(permit.release||''))
+  || permit.status!=='authorized' || permit.singleUse!==true
+  || health.status!=='online' || health.engine!=='Z-API' || health?.zapi?.connected!==true
+  || safety.mode!=='EC_BOT_CORE_OPERATIONAL' || safety.policy!=='EC_BOT_CORE_OPERATIONAL'
+  || safety.operationalMutationsEnabled!==false || Number(safety.mutatingSchedulers)!==0
+  || safety.dropiApplyAllowed!==false) process.exit(1);
+process.stdout.write(permit.release);
+NODE
+)" || die "bundle ou perfil seguro inválido"
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  for file in "$overlay_file" "$attestation_file" "$permit_file"; do
+    mv -T "$file" "$file.aborted.$timestamp"
+  done
+  append_audit "authorization_aborted_after_failed_health" "$bundle_release" "bot_core_verified"
+  rm -f -- "$health_file"
+  trap - EXIT
+  echo "POST_SALE_V105_AUTHORIZATION_ABORTED=PASS"
+  echo "ABORTED_RELEASE=$bundle_release"
+  echo "BOT_CORE=VERIFIED"
+  echo "MESSAGES_SENT=0"
+  echo "DROPI_SUBMISSIONS=0"
+  exit 0
+fi
+
+if [[ "$action" == "authorize" ]]; then
+  [[ "${POST_SALE_V105_AUTHORIZE:-}" == "$activation_phrase" ]] || die "autorização explícita V105 ausente"
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  (cd "$release_dir" && node scripts/assert-post-sale-data-compatibility-v66.mjs --runtime=66 >/dev/null)
+  [[ ! -e "$overlay_file" && ! -e "$attestation_file" && ! -e "$permit_file" ]] || die "bundle V105 já existe"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  expires_at="$(date -u -d '+10 minutes' +%Y-%m-%dT%H:%M:%SZ)"
+  permit_id="post-sale-v105-activate-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  (cd "$release_dir" && node "$contract" create "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$created_at" "$expires_at" "$activation_phrase")
+  chmod 0400 "$overlay_file" "$attestation_file"
+  chmod 0600 "$permit_file"
+  append_audit "activation_authorized" "$release" "$permit_id"
+  echo "POST_SALE_V105_AUTHORIZATION=READY"
+  echo "PERMIT_ID=$permit_id"
+  echo "BATCH_MAX=1"
+  echo "ACTIVATION_EXECUTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "activate" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  [[ -f "$permit_file" && -f "$overlay_file" && -f "$attestation_file" ]] || die "bundle V105 autorizado ausente"
+  permit_id="$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).permitId||"")' "$permit_file")"
+  now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  (cd "$release_dir" && node "$contract" validate "$release_dir" "$release" "$overlay_file" "$attestation_file" "$permit_file" "$permit_id" "$now_iso")
+  load_profile
+  activation_failed=1
+  trap 'if [[ "$activation_failed" == "1" ]]; then restore_bot_core "$release_dir" >/dev/null 2>&1 || true; append_audit "activation_failed_bot_core_restored" "$release" "$permit_id" || true; fi' EXIT
+  restart_with_loaded_profile "$release_dir"
+  wait_post_sale_health "$release_dir"
+  consumed="$state_dir/post-sale-v105-permit.consumed.json"
+  [[ ! -e "$consumed" ]] || die "permit V105 já consumido"
+  mv -T "$permit_file" "$consumed"
+  chmod 0400 "$consumed"
+  activation_failed=0
+  trap - EXIT
+  pm2 save >/dev/null
+  append_audit "activation_completed" "$release" "$permit_id"
+  echo "POST_SALE_V105_ACTIVATION=PASS"
+  echo "PROFILE=$profile"
+  echo "BOT_CORE=ALLOWED"
+  echo "TRANSACTIONAL_SCHEDULER=ACTIVE"
+  echo "BATCH_MAX=1"
+  echo "DAILY_MAX=1"
+  echo "BACKLOG=OFF"
+  echo "DROPI_MODE=REPORT_ONLY"
+  echo "DROPI_APPLY=OFF"
+  echo "META_RETROACTIVE=OFF"
+  exit 0
+fi
+
+if [[ "$action" == "batch-plan" || "$action" == "batch-run" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  load_profile
+  mode="plan"
+  if [[ "$action" == "batch-run" ]]; then
+    mode="run"
+    [[ ! -e "$batch_once_file" ]] || die "lote inicial V105 já invocado; retry bloqueado"
+    install -o root -g root -m 0400 /dev/null "$batch_once_file"
+    append_audit "batch-run-started-no-retry" "$release" "batch_max_1"
+  fi
+  (cd "$release_dir" && node scripts/post-sale-transactional-batch-v105.mjs "$mode")
+  append_audit "$action" "$release" "batch_max_1"
+  exit 0
+fi
+
+if [[ "$action" == "contain" ]]; then
+  assert_current_pm2 "$release_dir" || die "identidade PM2 inválida"
+  restore_bot_core "$release_dir" || die "restauração do bot core falhou"
+  archive_activation_bundle || die "arquivamento do bundle V105 falhou"
+  append_audit "contained_bot_core_restored" "$release" "post_sale_disabled"
+  echo "POST_SALE_V105_CONTAINMENT=PASS"
+  echo "CURRENT_UNCHANGED=$(current_dir)"
+  echo "BOT_CORE=RESTORED"
+  echo "POST_SALE=DISABLED"
+  exit 0
+fi
+
+die "uso: post-sale-v105 status | plan|bridge-report|bridge-authorize|bridge-apply|abort-authorization|authorize|activate|batch-plan|batch-run|contain RELEASE"

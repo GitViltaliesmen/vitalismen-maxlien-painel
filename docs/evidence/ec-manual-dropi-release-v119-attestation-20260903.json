@@ -1,0 +1,31 @@
+{
+  "attestationId": "ec-manual-dropi-release-v119-attestation-20260903",
+  "country": "EC",
+  "parentBaseline": "production-vitalismen-ec-panel-aquecimento-v118-20260903-r2",
+  "incident": {
+    "observedError": "ec_bot_core_v78_operation_blocked",
+    "affectedSurface": "authenticated_manual_dropi_two_step_submit"
+  },
+  "preChangeReadOnlyAudit": {
+    "adminLeadId": 3493,
+    "adminLeadStatus": "confirmado",
+    "mongoOrderFound": false,
+    "mongoShipmentFound": false,
+    "localSubmittedReceiptFound": false
+  },
+  "policy": {
+    "allowedPostRouteCount": 2,
+    "persistentAuthorizationRequired": true,
+    "authoritativeLookupBeforeCreate": true,
+    "automaticRetryAfterAmbiguousFailure": false,
+    "automaticDispatchAllowed": false,
+    "historicalBackfillAllowed": false,
+    "submitStatusGetWrites": false
+  },
+  "effectsDuringLocalValidation": {
+    "dropiOrdersCreated": 0,
+    "whatsappMessagesSent": 0,
+    "metaEventsSent": 0,
+    "productionWrites": 0
+  }
+}

@@ -1,3 +1,5 @@
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+
 const DEFAULT_BLOCKED_SESSIONS = ['5515996218208'];
 const DEFAULT_BLOCKED_RECIPIENTS = ['5515996218208'];
 const recentOutbound = new Map();
@@ -54,6 +56,12 @@ const cleanupRecentOutbound = (now) => {
 
 export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = '', kind = 'text', recipientDigits = '', bypassDedupe = false, reserveDedupe = true }) => {
     const targetDigits = digitsOnly(recipientDigits) || digitsOnly(jid);
+    const canaryDecision = evaluateCanaryV75Recipient(targetDigits, {
+        surface: `outbound_guard_${kind}`
+    });
+    if (!canaryDecision.allowed) {
+        return { allowed: false, reason: canaryDecision.reason };
+    }
     const normalizedSessionId = digitsOnly(sessionId);
     const blockedSessions = parseList(process.env.WHATSAPP_BLOCKED_SESSION_IDS, DEFAULT_BLOCKED_SESSIONS);
     const allowedSessions = parseList(process.env.WHATSAPP_ALLOWED_OUTBOUND_SESSION_IDS, defaultAllowedSessions());

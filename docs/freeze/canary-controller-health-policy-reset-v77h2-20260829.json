@@ -1,0 +1,67 @@
+{
+  "freezeId": "canary-controller-health-policy-reset-v77h2",
+  "parentFreezeId": "canary-controller-pm2-stdin-hotfix-v77h",
+  "parentManifestSha256": "9c5becbc3db759d7d01b56333e5dea99df615d3ad31c8bcd5b75533f2bdb54c0",
+  "parentV77HCommit": "23c81c762d58108307860d53770805acbd0e0ba8",
+  "parentV77HTree": "2c40ec813cf70bb200f7d12d6ebc31443b664f6d",
+  "status": "implementation_validated",
+  "publicationStatus": "local_candidate_no_commit_no_push_no_stage_no_deploy",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js",
+    "hotfixVersion": "77H2",
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "qaPhone": "5515998038637",
+    "recipientAllowlistCount": 5,
+    "safeObservationPolicyMaterialized": true,
+    "safeObservationPolicyValue": "",
+    "pm2InheritedStrictOverwritten": true,
+    "pm2StdinV77HPreserved": true,
+    "preservedHelperSha256": "ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853",
+    "helperChanged": false,
+    "productionMutationExecuted": false,
+    "ancestorFailurePropagation": "FAIL_CLOSED"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "fb49656d37715b761001f83a7891c2b7332e5bfdb803a9ee26ad95fd15dbac12"
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "package.json",
+    "scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs",
+    "scripts/guard-canary-controller-v77.mjs",
+    "scripts/guard-canary-isolation-v75.mjs",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs",
+    "scripts/lib/canary-controller-contract-v77.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md",
+    "scripts/guard-canary-controller-health-policy-reset-v77h2.mjs",
+    "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js",
+    "tests/canary-controller-health-policy-reset-v77h2.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "7277b4823c1ef6dfc7413a9eb5a53f4663fd52a43b348d24abec343d65f39474",
+    "docs/ARQUIVOS_OFICIAIS.md": "1f0ee8675b28fe0dc802a85bb1e4a9714b4f803f3a1277b6d1d51f7fa478e3ea",
+    "docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md": "e669dcf1285ddab5fba657df34ecc3aa98f9a88052d004057c3da83be0893178",
+    "package.json": "49a378ca29382109ec09b7eab8daa4f2d6fc6efa2d18f666bb75f3362dbd87b1",
+    "scripts/guard-canary-controller-health-policy-reset-v77h2.mjs": "54bcbbc752465e87d95a7eb77bfcd36d1c73225982636a8b46972ce7804cd943",
+    "scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs": "c035d3cfc7acec913248fae497152d25b44d79e0d8836caf0cbbf88ae44d8359",
+    "scripts/guard-canary-controller-v77.mjs": "71accf51c5ebd52f3d8ca6fd94bf2625aacde5fc6545877fb18c27bef4770284",
+    "scripts/guard-canary-isolation-v75.mjs": "4c1743c6222a2af3a7a82a5beb0035a65cf4b56338ac2ab056eae8d2310913a1",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs": "e999e249692bf3e31672bfa08784b534b9b1c657dbc64685bd56cf778a87a482",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs": "8b28981cc74932ff049c232e21696982536d6c120b81258d037f55c82139eee1",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs": "6a520501f9c369fd147c751e5a8e0fe8c32ab415a16a3c43150b202cd826240b",
+    "scripts/lib/canary-controller-contract-v77.mjs": "ef237ee14726844e276e88155c7a431bd00ec474b1444ca3c8903fa02fcee00c",
+    "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js": "f871c5c100e4eef2c5d65aaa5ff2a7f971acb2a03010632ed9626221bf82c0ef",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "b3601783237409496639bc18b678b0fb536ef17c68864acc6bc89a86b034f33c",
+    "tests/canary-controller-health-policy-reset-v77h2.test.mjs": "229a4fe81692d1f683a78e29b82b46913f4f3abfaf9e8a78f2bbd520701f1c6a"
+  }
+}

@@ -1,0 +1,6 @@
+ops/vitalismen-stage text eol=lf
+ops/**/*.sh text eol=lf
+docs/EC_PANEL_RUNTIME_RECOVERY_FREEZE_V115_20260903.md whitespace=-blank-at-eof
+docs/evidence/ec-panel-runtime-recovery-v115-attestation-20260903.json whitespace=-blank-at-eof
+scripts/guard-ec-panel-runtime-recovery-v115.mjs whitespace=-blank-at-eof
+src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js whitespace=-blank-at-eof

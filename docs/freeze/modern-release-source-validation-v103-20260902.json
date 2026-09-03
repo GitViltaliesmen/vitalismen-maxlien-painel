@@ -1,0 +1,60 @@
+{
+  "freezeId": "modern-release-source-validation-v103",
+  "version": 103,
+  "parentVersion": "V102",
+  "parentFreezeId": "legacy-baseline-attestation-v102",
+  "parentManifestSha256": "b5671d5e9b419321c34c2b4350e6c466e2951e435e287ad4b96041c71c718f73",
+  "parentFreezeSha256": "ba7af122db00a4f4e18b17cfe44d8d973f1a4ffa43edfda0edaa0a0e938b7072",
+  "parentAttestationSha256": "7c386ced0a1030ff6834b52a11595e0a8ee808a5612c9268d63a9e0c7e2a27ed",
+  "parentCommit": "f26085739b75dd786bfd3d290dd2b2929409976e",
+  "parentTree": "2da1d98460cd407f2ce3e88d5fde897d8abc084f",
+  "purpose": "VALIDATE_ACTIVE_MODERN_RELEASE_WITHOUT_EMBEDDED_GIT_DIRECTORY",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_helper_recovery_only",
+  "country": "EC",
+  "policy": {
+    "embeddedGitDirectoryRequired": false,
+    "releaseAttestationsRequired": true,
+    "publishedStatusRequired": true,
+    "legacyV102Preserved": true,
+    "guardsBypassed": false,
+    "operationalBehaviorChanged": false,
+    "outboundChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  },
+  "evidence": {
+    "path": "docs/evidence/modern-release-source-validation-v103-attestation-20260902.json",
+    "sha256": "58398813d52fcc21d2a6bb5f7eba9fff59c756622f79e98c0282d727e41546cb"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "4c37c390e9e91523d4cbfc0f5543ee17655412511600ea2b97fb78e2160183e1"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage"
+  ],
+  "newProtectedFiles": [
+    "docs/MODERN_RELEASE_SOURCE_VALIDATION_FREEZE_V103_20260902.md",
+    "docs/evidence/modern-release-source-validation-v103-attestation-20260902.json",
+    "scripts/guard-modern-release-source-validation-v103.mjs",
+    "scripts/lib/modern-release-source-validation-v103-context.mjs",
+    "src/services/modernReleaseSourceValidationFreezeRuntimeGuardV103.js",
+    "src/services/modernReleaseSourceValidationV103Service.js",
+    "tests/modern-release-source-validation-v103.test.mjs"
+  ],
+  "protectedFiles": {
+    "ops/vitalismen-stage": "803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99",
+    "docs/MODERN_RELEASE_SOURCE_VALIDATION_FREEZE_V103_20260902.md": "77cb28d83968fc73f9c77c4b60c136aeb552612e8143920fd9a979a3e664d891",
+    "docs/evidence/modern-release-source-validation-v103-attestation-20260902.json": "58398813d52fcc21d2a6bb5f7eba9fff59c756622f79e98c0282d727e41546cb",
+    "scripts/guard-modern-release-source-validation-v103.mjs": "f0ef218a921e2aeb20a123f72cb508a963f7903d77b836e643f6dca77c485693",
+    "scripts/lib/modern-release-source-validation-v103-context.mjs": "31aa564c9aad5b0a904f81bf620c8e8ab975409fb4eab63b8a2355121096da68",
+    "src/services/modernReleaseSourceValidationFreezeRuntimeGuardV103.js": "9ce9988a42c5b0f9b4c921c08ea83d04b612346baad504e5e856e6e2bc32b768",
+    "src/services/modernReleaseSourceValidationV103Service.js": "d4697cda89b53a47e02337fa6babbbbbe64450f6b9dd05620daab8cfd0665ce3",
+    "tests/modern-release-source-validation-v103.test.mjs": "b1bf7491668c66e4991c1141a8467912ef97eb7c7312be5ddd89c4c752721b4e"
+  }
+}

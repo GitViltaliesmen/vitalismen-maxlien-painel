@@ -1,0 +1,25 @@
+{
+  "attestationId": "post-sale-health-envelope-v107-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V106",
+  "failure": {
+    "stage": "activation_health_before_permit_consumption",
+    "category": "health_not_canonical",
+    "httpStatus": 200,
+    "permitConsumed": false,
+    "automaticContainment": "EC_BOT_CORE_OPERATIONAL",
+    "messagesObservedInActivationLog": 0,
+    "dropiSubmissions": 0
+  },
+  "correction": {
+    "healthParsing": "VALID_JSON_OBJECT_WITH_SEMANTIC_VALIDATION",
+    "failedAuthorizationAbort": "BOT_CORE_SAFE_GATED"
+  },
+  "preserved": {
+    "postSaleProfileChanged": false,
+    "batchMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  }
+}

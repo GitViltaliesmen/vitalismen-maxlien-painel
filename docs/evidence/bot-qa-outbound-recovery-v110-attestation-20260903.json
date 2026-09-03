@@ -1,0 +1,48 @@
+{
+  "freezeId": "bot-qa-outbound-recovery-v110",
+  "version": 110,
+  "observedAt": "2026-09-03T05:00:00.000Z",
+  "country": "EC",
+  "qaPhone": "5515998038637",
+  "baseline": {
+    "release": "20260903T042100Z_production-20260903-7243cf4",
+    "commit": "7243cf43d7418843195f62757274e27ea4b285d8",
+    "pm2": "online",
+    "healthLocal": 200,
+    "apiHealth": 200,
+    "publicVsl": 200,
+    "zapiConnected": true,
+    "transportsReady": true,
+    "outboundBlocked": false
+  },
+  "prePatchCanary": {
+    "providerMessageId": "V110-QA-BOT-1788411511668",
+    "webhookHttpStatus": 200,
+    "inboundRecorded": true,
+    "newMessage": true,
+    "conversationBucket": "attendance",
+    "publicVslLeadEntry": false,
+    "routeToBot": false,
+    "outboundSinceCanary": 0,
+    "duplicateOutbound": 0,
+    "containedAfterFailure": true
+  },
+  "rootCause": [
+    "STALE_VSL_PRODUCT_KEY_SUPPRESSED_FRESH_OFFICIAL_VSL_CONTEXT",
+    "SINGLE_MESSAGE_QA_PERMIT_COULD_NOT_PROVE_MULTI_TURN"
+  ],
+  "policy": {
+    "firstInboundRequiresOfficialStructuredVslSignature": true,
+    "followUpRequiresSameRootPermit": true,
+    "followUpPhoneExact": true,
+    "maxMessages": 8,
+    "maxWindowMinutes": 10,
+    "uniqueProviderMessageIds": true,
+    "serializedClaims": true,
+    "restorePreviousHumanModeOnContain": true,
+    "productionCustomerBypass": false,
+    "dropiEffects": 0,
+    "metaEffects": 0,
+    "postSaleEffects": 0
+  }
+}

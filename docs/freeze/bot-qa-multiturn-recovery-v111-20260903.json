@@ -1,0 +1,80 @@
+{
+  "freezeId": "bot-qa-multiturn-recovery-v111",
+  "version": 111,
+  "parentVersion": "V110",
+  "parentFreezeId": "bot-qa-outbound-recovery-v110",
+  "parentManifestSha256": "bab6684c4ce75baeaae49841cc532eeb1df646978c3654e276c62fc71affa6a8",
+  "parentFreezeSha256": "9305e1f2de5c9188c1f2047e99734a52c34c3574ada65e460d89228c0f36d123",
+  "parentAttestationSha256": "805101b08fc6ac8800d21a19e2576678c00c2e73abbef183274df3c4f9d4bc6d",
+  "parentCommit": "370f398ec64a0e27d76d6bca4d47c348661a4596",
+  "parentTree": "8bdea6f476a0010fd944306638f50301e754dabe",
+  "purpose": "RESTORE_FRESH_VSL_CONTEXT_AND_EXCLUDE_DELIVERY_CALLBACKS_FROM_QA_LEDGER",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_bot_qa_multiturn_recovery",
+  "country": "EC",
+  "policy": {
+    "qaPhone": "5515998038637",
+    "freshVslAttributionRefreshesTimestamp": true,
+    "deliveryCallbacksConsumeQaLedger": false,
+    "firstInboundRequiresOfficialSignature": true,
+    "maxMessages": 8,
+    "maxWindowMinutes": 10,
+    "uniqueProviderMessageIds": true,
+    "serializedClaims": true,
+    "restoreHumanModeOnContain": true,
+    "productionCustomerBypass": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "externalEffectsAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/bot-qa-multiturn-recovery-v111-attestation-20260903.json",
+    "sha256": "d8cdf157e6f1ec5504faaec45c5417e6dfd3302dd4f6a0f672ab83510802f8d8"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "2220b94210bedbb595cbb484d5cba3381b506c41573ac39895943b9e838d7c27"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "tests/protocolo-g-successor-guard-v101.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "tests/protocolo-g-successor-guard-v101.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/BOT_QA_MULTITURN_RECOVERY_FREEZE_V111_20260903.md",
+    "docs/evidence/bot-qa-multiturn-recovery-v111-attestation-20260903.json",
+    "scripts/guard-bot-qa-multiturn-recovery-v111.mjs",
+    "src/services/botQaMultiturnRecoveryFreezeRuntimeGuardV111.js",
+    "src/services/botQaMultiturnRecoveryV111Service.js",
+    "tests/bot-qa-multiturn-recovery-v111.test.mjs"
+  ],
+  "protectedFiles": {
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "a3f32bea85bd31bc22946cf8389c4fd13f7ee6bc23e2fb051ef82f784dcf1aaa",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "6e230ad1eac256308c125ae4881be4429ff661c7f1bf38b12ecc998f5e869c0f",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "c29f95723ff7723db7063d7abe01084789addd3d180dfe4b533b39c9aeb634e6",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "21b6d5afbf009c9822ecde217c82aac7d6b0260ef9c08bd48dfd86f8ca69c895",
+    "src/routes/zapi.js": "1e12927b0baa9d71d24a639847d50cb01930946a3c787782a0fb4f69541dc311",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "327fd5d0778b3bff579f79ad47b7859b0cf8fc66efe522bb4cb56e374ffeeef4",
+    "tests/protocolo-g-successor-guard-v101.test.mjs": "fb39a397a90841c8947fc6be5c2ca2af9350c8ed0ead8419da17297032d88051",
+    "docs/BOT_QA_MULTITURN_RECOVERY_FREEZE_V111_20260903.md": "bdba0445bdb341f57f5f7b570fce23883fbde934a32a67cdd98986d82c731e86",
+    "docs/evidence/bot-qa-multiturn-recovery-v111-attestation-20260903.json": "d8cdf157e6f1ec5504faaec45c5417e6dfd3302dd4f6a0f672ab83510802f8d8",
+    "scripts/guard-bot-qa-multiturn-recovery-v111.mjs": "022be0e58c2bbf329b945732b4d11552559b915414596d60733c00cbd734a705",
+    "src/services/botQaMultiturnRecoveryFreezeRuntimeGuardV111.js": "712c81c8f075d5a93ae0db394dffb02160115e341ec90f658ced691bc71433ac",
+    "src/services/botQaMultiturnRecoveryV111Service.js": "23847f387905a8c5243b77a0e09012e846783193167f6c30d426edbf8198fffe",
+    "tests/bot-qa-multiturn-recovery-v111.test.mjs": "988c2cad521fa8dc450e627ed0fcdda10f8c669a672bf787a8cfe697be6cf3bf"
+  }
+}

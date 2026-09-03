@@ -8,16 +8,22 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
 import {
+    markOutboundDedupeAmbiguous,
     markOutboundDedupeFailed,
     markOutboundDedupeSent,
     reserveOutboundOnce
 } from '../services/outboundDedupeService.js';
+import {
+    classifyPostSaleProviderFailureV116,
+    postSaleTransactionalOutbound
+} from '../services/postSaleTransactionalSafetyV116Service.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiAudio } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import ContactState from '../models/ContactState.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -124,6 +130,7 @@ const failoverWasSent = (result) => (result === true || result?.ok === true);
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_audio' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] audio bloqueado por protecao manual anti-reenvio -> ${jid}`);
         return false;
@@ -190,7 +197,8 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         kind: 'audio',
         value: options.dedupeValue || sendPath,
         label: path.basename(sendPath),
-        bypass: bypassAudioDedupe
+        bypass: bypassAudioDedupe,
+        allowRetry: !postSaleTransactionalOutbound(options)
     });
     if (!duplicateGuard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] audio repetido bloqueado rigidamente -> ${jid} | reason=${duplicateGuard.reason} | phone=${duplicateGuard.phoneDigits || ''} | audio=${path.basename(sendPath)}`);
@@ -218,7 +226,11 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
                 response,
                 isBot: options.sendMode !== 'manual_panel'
             });
-            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
+            await markOutboundDedupeSent({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                strict: postSaleTransactionalOutbound(options)
+            });
             const details = {
                 ok: true,
                 provider: 'zapi',
@@ -231,6 +243,26 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         } catch (error) {
             const detail = error?.response?.data || error.message || 'zapi_audio_send_failed';
             console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar audio pela Z-API para ${jid}:`, detail);
+            if (postSaleTransactionalOutbound(options)) {
+                const disposition = classifyPostSaleProviderFailureV116(error);
+                await markOutboundDedupeAmbiguous({
+                    key: duplicateGuard.key,
+                    semanticKey: duplicateGuard.semanticKey,
+                    error: disposition.reason
+                });
+                return options.returnDetails === true
+                    ? {
+                        ok: false,
+                        provider: 'zapi',
+                        providerAttempted: true,
+                        ambiguous: disposition.ambiguous,
+                        terminalState: disposition.terminalState,
+                        providerStatus: disposition.providerStatus,
+                        error: disposition.reason,
+                        providerPayload: detail
+                    }
+                    : false;
+            }
             await markOutboundDedupeFailed({
                 key: duplicateGuard.key,
                 semanticKey: duplicateGuard.semanticKey,
@@ -248,7 +280,8 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         }
     }
 
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             console.log(`[OUTBOUND-AUDIO] start -> jid=${jid} | session=${sessionId || 'auto'} | attempt=${attempt} | path=${sendPath}`);
             const sock = getSock(sessionId) || await waitForWhatsAppReady(12000, sessionId);
@@ -273,11 +306,51 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
             console.log(`[OUTBOUND] 🔊 Áudio transmitido -> ${jid} | Arquivo: ${sendPath} | origem=${audioPath} | ptt=${isPtt ? 'sim' : 'nao'} | mimetype=${payload.mimetype} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
             const confirmed = result !== false && result !== null && result !== undefined;
             if (confirmed) recordOutboundSend({ sessionId, jid });
-            if (confirmed) await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
-            return true;
+            if (confirmed) await markOutboundDedupeSent({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                strict: postSaleTransactionalOutbound(options)
+            });
+            if (options.returnDetails === true) {
+                return confirmed
+                    ? {
+                        ok: true,
+                        provider: 'baileys',
+                        providerMessageId: result?.key?.id || result?.message?.key?.id || '',
+                        providerStatus: 'sent'
+                    }
+                    : {
+                        ok: false,
+                        provider: 'baileys',
+                        providerAttempted: true,
+                        ambiguous: true,
+                        providerStatus: 'ambiguous',
+                        error: 'send_audio_unconfirmed'
+                    };
+            }
+            return confirmed;
         } catch (error) {
             console.error(`[OUTBOUND-AUDIO-ERROR] ❌ Falha ao enviar áudio para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) {
+            if (attempt === maxAttempts) {
+                if (postSaleTransactionalOutbound(options)) {
+                    const disposition = classifyPostSaleProviderFailureV116(error);
+                    await markOutboundDedupeAmbiguous({
+                        key: duplicateGuard.key,
+                        semanticKey: duplicateGuard.semanticKey,
+                        error: disposition.reason
+                    });
+                    return options.returnDetails === true
+                        ? {
+                            ok: false,
+                            provider: 'baileys',
+                            providerAttempted: true,
+                            ambiguous: disposition.ambiguous,
+                            terminalState: disposition.terminalState,
+                            providerStatus: disposition.providerStatus,
+                            error: disposition.reason
+                        }
+                        : false;
+                }
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
                 if (shouldTryZapiAudioFailover({ jid, options, reason: error.message })) {
                     console.warn(`[OUTBOUND-ZAPI-FAILOVER] audio falhou por Baileys; tentando Z-API -> ${jid} | reason=${error.message}`);

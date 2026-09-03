@@ -1,0 +1,14 @@
+[Unit]
+Description=Vitalismen EC V112 next eligible post-sale gate monitor
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/vitalismen-automacao/current
+ExecStart=/opt/vitalismen-automacao/current/ops/post-sale-next-eligible-v112 run
+TimeoutStartSec=900
+PrivateTmp=true

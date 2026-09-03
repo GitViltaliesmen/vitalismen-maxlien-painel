@@ -1236,3 +1236,417 @@ publicação desta candidata não está autorizada.
 
 Contrato e rollback completos:
 `docs/POST_SALE_GARGALOS_FREEZE_V65_20260826.md`.
+
+## 2026-08-26 — V66 anti-spam e startup fail-closed
+
+A V66 sucede a V65 sem reescrever sua história. `GUIDE`, `IN_TRANSIT`,
+`READY_FOR_PICKUP` e `RETURNED` passam a ser estágios canônicos. Texto, PDF e
+print da guia compartilham uma única chave idempotente `GUIDE`; qualquer
+evidência humana, automática, suprimida ou no safety ledger bloqueia todas as
+variantes equivalentes. O último ponto antes de imagem/PDF exige
+`SHOULD_SEND`, token do lock persistente e chave recalculada.
+
+Lembretes de retirada 1–6, pedido de prova, bônus pós-retirada e lembrete de
+recompra também passam pela decisão central. Cada passo que pode se repetir de
+forma legítima recebe estágio próprio, enquanto texto/áudio do mesmo passo
+compartilham a chave e o marker legado correspondente.
+
+O startup separa disponibilidade de mutação. A API, o painel e o health podem
+subir em `SAFE_OBSERVATION_ONLY`, mas nenhum scheduler ou reconciliador de
+startup é registrado sem as três autorizações V66 e o documento persistente
+de compatibilidade. O sync Dropi passa a ter somente `REPORT_ONLY`, `DRY_RUN`
+e `APPLY`; ausência/valor inválido usa `REPORT_ONLY`, e produção/PM2/restart
+nunca inferem APPLY.
+
+Dados V66 gravam `dataCompatibilityVersion=66` e `minRuntimeVersion=66` em
+`operational_safety_states/post-sale-safety-v66`. Rollback para runtime menor
+é `ROLLBACK_BLOCKED`; não existe rollback de dados. O bridge é um utilitário
+separado, começa em relatório e não foi executado nesta candidata.
+
+Contrato, incidente, inventário e matriz:
+
+- `docs/POST_SALE_SAFETY_FREEZE_V66_20260826.md`;
+- `docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md`;
+- `docs/POST_SALE_V66_OUTBOUND_INVENTORY.md`;
+- `docs/POST_SALE_V66_COMPATIBILITY_MATRIX.md`.
+
+Estado desta candidata: somente branch local; produção permanece parada; sem
+deploy, push, merge, tag, mensagem, pedido Dropi ou mutação de banco.
+
+## 2026-08-26 — V67: cadeia canônica de guards
+
+A V67 formaliza uma única entrada runtime para o tree sucessor:
+`npm run guard:runtime-chain-v67`. O executável reconstrói no início de cada
+processo o contexto de `declaredAncestorOverrides`, aguarda V66 e toda a sua
+linhagem no mesmo processo e não captura falhas ancestrais. O preflight de
+código-fonte usa `npm run guard:predeploy-v67`.
+
+Executáveis runtime crus V64/V65 continuam representando seus freezes
+isolados. Eles não são gates válidos sobre um tree sucessor porque o estado
+`globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES` é local ao processo. A
+integridade V47/V64/V65/V66 no tree atual é comprovada pela cadeia sucessora,
+enquanto os testes funcionais isolados permanecem nos aliases de regressão.
+
+V47, V64, V65 e V66 não foram alterados. A compatibilidade persistente
+continua V66; a V67 não muda startup, scheduler, WhatsApp, Dropi, Mongo,
+produto, preço, funil ou rollback. Contrato completo:
+`docs/GUARD_CHAIN_SEMANTICS_FREEZE_V67_20260826.md`.
+
+## 2026-08-27 — V68: segurança de execução do helper de deploy
+
+A V68 é sucessora exclusiva de segurança de deploy. Ela restaura a definição
+local e fail-closed de `run_protected()` antes das 17 chamadas protegidas do
+helper, preserva argumentos por `"$@"` e registra somente label, timestamps e
+exit status na trilha sanitizada. A chamada adicional é o predeploy canônico
+V68 antes dos demais gates do staging.
+
+O caminho `stage` agora possui harness sintético que executa todas as chamadas
+sem internet, VPS, `/opt`, `/usr/local`, PM2, Mongo, Z-API ou Dropi. A cadeia
+runtime é V68 → V67 → V66 → ancestrais. A compatibilidade de dados permanece
+66; `SAFE_OBSERVATION_ONLY`, `REPORT_ONLY`, permit de uso único, containment e
+bloqueio de rollback inseguro permanecem inalterados.
+
+Esta camada não autoriza push, tag, instalação do helper, release, preflight na
+VPS, mudança de `/current`, PM2, bridge, scheduler, outbound ou Dropi APPLY. O
+contrato completo está em
+`docs/DEPLOY_HELPER_RUNTIME_SAFETY_FREEZE_V68_20260827.md`.
+
+## 2026-08-27 — V69: stage por ref remota exata
+
+A V69 desacopla a seleção da fonte Git do estado de publicação. O comando
+`stage` exige `SOURCE_REF`, `EXPECTED_COMMIT`, `EXPECTED_TREE` e `RELEASE`; a
+ref precisa ser full ref no namespace fechado `refs/heads/codex/` e coincidir
+byte a byte com `VITALISMEN_STAGE_AUTHORIZED_SOURCE_REF`. O fetch obtém somente
+essa ref, sem tags, e todas as etapas seguintes usam checkout detached do
+commit já resolvido e tree validado.
+
+`production` é fotografada antes e depois do staging e qualquer mudança bloqueia
+a operação. Uma tag de produção não é requisito de staging; se uma tag opcional
+já existir e contradizer a identidade aprovada, o helper falha. A metadata
+separa `releaseChannel=production` de `sourceRef` e não declara origem
+`branch=production` para candidatas Codex.
+
+A cadeia runtime passa a ser V69 → V68 → V67 → V66 → ancestrais. A
+compatibilidade persistente continua V66. A V69 não autoriza publicação,
+push/tag/merge, instalação do helper, stage na VPS, `/current`, PM2, bridge,
+scheduler, outbound, Dropi APPLY ou mutação de dados. Contrato completo:
+`docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md`.
+
+## Microcamada V70 — publicação fechada e attestation imutável (2026-08-27)
+
+A V70 sucede a V69 sem alterar o payload comercial ou a compatibilidade de dados
+V66. A cadeia canônica passa a ser V70 → V69 → V68 → V67 → V66.
+
+O stage por source ref exata cria `.release-source.json`, overlay safe e
+`.staging-complete.json` completos e imutáveis no estado `staged_candidate`. O hash
+da metadata nasce antes dos gates; staging ata esse hash, commit, tree, fingerprint
+funcional, overlay, guard 70, dados 66 e a preservação de `origin/production`,
+`current` e PM2.
+
+A publicação usa exclusivamente `v70-publish RELEASE SOURCE_REF EXPECTED_COMMIT
+EXPECTED_TREE EXPECTED_TAG`. Ela exige tag remota real no formato oficial apontando
+ao functional commit, preserva a branch `production` e cria os envelopes separados
+`.release-publication.json` e `.publication-complete.json`. Nenhum código, `.env`,
+PM2, provider, Dropi, bridge ou dado operacional é modificado.
+
+Preflight staged não autoriza ativação. A publicação invalida marker anterior e a
+ativação exige novo preflight publicado, hashes íntegros, tag remota ainda exata,
+permit root single-use e compatibilidade V66. O comando
+`v70-activation-validate` comprova essas pré-condições sem efeitos operacionais.
+
+Contrato detalhado:
+`docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md`.
+
+## 2026-08-27 — V71: observação global estritamente read-only
+
+A V71 transforma qualquer runtime oficialmente configurado em
+`SAFE_OBSERVATION_ONLY` na política efetiva `STRICT_READ_ONLY`, com lista vazia
+de classes de escrita. A resolução ocorre antes da conexão/startup mutante; o
+Mongo conecta com `autoIndex=false`, a barreira Mongoose bloqueia toda operação
+de escrita e as rotas mutantes são interrompidas antes do primeiro handler.
+
+O dashboard, health, busca e read models continuam disponíveis. Status Z-API
+usa somente GET. ACK/inbound Z-API e telemetria VSL respondem `202`
+accepted/ignored sem persistência nem roteamento. Login não atualiza
+`lastLoginAt`. Baileys não inicia, providers não enviam, dedupe não reserva,
+Shipment não bloqueia, schedulers mutantes permanecem zero e Dropi APPLY é
+proibido.
+
+O contrato `ZAPI_ROUTE_INBOUND_TO_BOT=false` agora possui consumidor runtime.
+Quando o modo operacional aprovado estiver ativo e a política estrita estiver
+desligada, os fluxos anteriores permanecem disponíveis. A compatibilidade de
+dados continua 66, sem migration ou bridge.
+
+Fonte normativa:
+`docs/STRICT_READ_ONLY_OBSERVATION_SAFETY_FREEZE_V71_20260827.md`.
+
+## 2026-08-27 — V72: alinhamento do helper ao runtime V71
+
+A V72 corrige exclusivamente a materialização/deploy da semântica já
+aprovada na V71. As dimensões ficam explícitas:
+`FREEZE_VERSION=72`, `DEPLOY_HELPER_CONTRACT_VERSION=72`,
+`RUNTIME_GUARD_CHAIN_VERSION=71` e `DATA_COMPATIBILITY_VERSION=66`.
+
+O stage sucessor executa `guard:runtime-chain-v71` e `guard:predeploy-v71` e
+grava runtime/guard 71, predeploy `v71` e a política `STRICT_READ_ONLY` em todos
+os envelopes. Publish, preflight e activation validation recusam qualquer
+versão 70 ou combinação mista antes de permit ou `/current`. A mecânica de
+publicação V70 e a semântica read-only V71 permanecem preservadas.
+
+Não existe `runtime-chain-v72`: o wrapper de freeze/deploy V72 termina
+validando a cadeia runtime V71. Freeze ID:
+`deploy-helper-v71-chain-alignment-safety-v72`; contrato completo em
+`docs/DEPLOY_HELPER_V71_CHAIN_ALIGNMENT_SAFETY_FREEZE_V72_20260827.md`.
+
+## 2026-08-28 — V73: registro único Meta e contas parceiras
+
+A V73 adiciona uma microcamada de configuração Meta sem mudar a semântica do
+helper V72, do runtime V71 ou dos dados V66. Browser Pixel e CAPI passam a
+resolver o mesmo perfil por
+`/opt/vitalismen-automacao/shared/config/meta-destinations.json`; tokens
+continuam exclusivamente server-side por referências de ambiente ou arquivo
+fora do Git. Registry e secrets são exigidos como `root:root 0600` no runtime
+oficial root.
+
+`GET /api/health/meta-destination` expõe somente IDs públicos e o estado
+redigido. A rota reutiliza o proxy oficial já existente para `/api/health/` e
+não exige alteração no Nginx.
+A VSL `/n/` inicializa `fbq` apenas quando o mesmo ID está disponível no
+navegador e no servidor. Configuração existente porém inválida falha fechada e
+não volta silenciosamente ao Pixel anterior. O contrato legado de env permanece
+idêntico quando o registry ainda não existe.
+
+Cada configuração pública inclui binding HMAC opaco de seis horas. Eventos
+server-side da sessão usam esse binding para permanecer no mesmo perfil do
+Browser mesmo durante uma ativação. Binding adulterado/expirado falha fechado;
+perfil anterior permanece disponível durante o dreno e rollback.
+
+Conta de anúncio parceira deve receber o Dataset existente pelo Meta Business
+Settings. Esse fluxo não troca Pixel, CAPI, token, código ou PM2. Troca real de
+Dataset é uma exceção: perfil ativo é imutável, perfil novo precisa estar
+completo e a ativação atômica é feita pelo helper V73, DRY RUN por padrão. O
+plano de parceiro deriva somente o perfil ativo; perfil histórico é recusado.
+A ativação exige declarar o perfil ativo atual e o Dataset novo esperados para
+bloquear operação sobre plano obsoleto. Todas as mutações usam o mesmo lock
+exclusivo e escrita temporária sincronizada antes do rename.
+
+O Dataset Protocolo G `2048099902484149`, `event_id`, Purchase server-side,
+deduplicação, funil, checkout, WhatsApp, Dropi e `STRICT_READ_ONLY` são
+preservados. Contrato e runbook:
+
+- `docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md`;
+- `docs/META_PARTNER_ACCOUNT_RUNBOOK_20260828.md`.
+
+O incidente 502 que antecedeu esta camada foi causado por PM2 parado/porta
+`3001` sem listener e foi recuperado com a release V72 exata; registro em
+`docs/INCIDENTE_502_RECOVERY_V72_20260828.md`.
+
+## 2026-08-28 — V74: sucessão auditável do FREEZE_LOCK_EC para destino Meta dinâmico
+
+A V74 não altera a implementação funcional V73. Ela preserva
+`FREEZE_LOCK_EC.json` byte-intacto e sucede exatamente três expectativas
+sintáticas legadas: duas ocorrências do Pixel EC literal e a atribuição do
+helper Lead síncrono antigo. Os três checks são identificados por regra, índice,
+arquivo, tipo e conteúdo em `FREEZE_LOCK_EC_V74.json`; qualquer divergência na
+identidade ou qualquer quarto override falha fechado.
+
+O entrypoint histórico `npm run guard:freeze-lock` continua obrigatório e
+executa todos os demais checks legados. Em substituição aos três checks
+sucedidos, exige o contrato real V73: endpoint público redigido
+`GET /api/health/meta-destination`, inicialização Browser pelo Dataset resolvido,
+igualdade Browser/CAPI no perfil ativo, binding HMAC de até seis horas, Lead
+once com `eventID`, ausência de Browser Purchase e preservação dos caminhos
+CAPI Purchase existentes.
+
+O Dataset EC atual `1468946114265008` e o Dataset dedicado Protocolo G
+`2048099902484149` permanecem identidades congeladas. O primeiro não volta a
+ser hardcoded no HTML. Registry e segredos continuam fora do Git/release,
+`root:root 0600`, e tokens permanecem server-side.
+
+A cadeia canônica passa a ser V74 → V73 → V72 → V71 → ancestrais, sem criar
+nova semântica operacional: `RUNTIME_GUARD_CHAIN_VERSION=71` e
+`DATA_COMPATIBILITY_VERSION=66` continuam inalterados. O helper
+`ops/vitalismen-stage` não foi modificado. Contrato completo:
+`docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md`.
+
+## 2026-08-28 — V75: isolamento local de canário por destinatário único
+
+A V75 sucede a V74 sem mudar a compatibilidade de dados V66 nem instalar um
+novo modo em produção. O contrato central
+`src/services/canaryIsolationV75Service.js` exige igualdade integral com o
+telefone QA `5515998038637` em todas as allowlists, entradas, saídas, consultas
+de scheduler e limite do provider. Em development a camada permanece dormente
+até a flag V75 explícita; em production, operação piloto torna a flag obrigatória
+e sua ausência também falha fechada.
+
+Status, retirada, prova, bônus e carrier sweep possuem filtro na consulta e
+defesa no loop. Entrada Z-API/Baileys/VSL é recusada antes de banco/roteamento;
+saída é recusada novamente no provider. Dropi e Meta permanecem proibidos mesmo
+para o QA. O senior guard passa a acoplar `PICKUP_PROOF_SWEEP_ENABLED` aos dois
+modos oficiais.
+
+A origem `/n/` tem precedência exclusiva de Tex Ultra, inclusive contra chave
+Nitrix legada; `/nitrix` permanece uma origem separada e explicitamente
+identificada. O runtime canônico passa a validar V75 → V74 → V73 → V72 → V71,
+mantendo `RUNTIME_GUARD_CHAIN_VERSION=71` e
+`DATA_COMPATIBILITY_VERSION=66`.
+
+Estado: candidata exclusivamente local, sem `.env`, push, tag, stage, deploy,
+`/current`, PM2, banco, provider, mensagem, scheduler ou tráfego. Contrato:
+`docs/CANARY_ISOLATION_SAFETY_FREEZE_V75_20260828.md`.
+
+## 2026-08-28 — V76: distinção entre migração persistente e bridge operacional
+
+A V76 corrige somente o consumidor de health do helper versionado. O campo
+`automationSafety.compatibilityBridgeComplete=true` significa que a migração
+persistente A4 terminou e que os dados podem ser lidos pelo runtime V66; ele não
+concede permissão para executar a bridge novamente nem para escrever.
+
+O health seguro exige simultaneamente `bridgeComplete=true`,
+`dataCompatibilityVersion=66`, `minimumRuntimeVersion=66`, política
+`STRICT_READ_ONLY`, lista vazia de writes, rotas mutantes desligadas, zero
+schedulers mutantes, mutações operacionais desligadas e Dropi `REPORT_ONLY` sem
+APPLY. O overlay continua exigindo
+`POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false`,
+`POST_SALE_V66_MUTATIONS_ENABLED=false`, autorizações vazias e
+`DISABLE_SCHEDULER=1`.
+
+`src/routes/health.js` e o documento de compatibilidade no MongoDB permanecem
+inalterados. Provider, Meta, Dropi, WhatsApp, Z-API, schedulers, PM2, `.env` e
+tráfego também não mudam. Testes negativos provam que essas fronteiras continuam
+fail-closed.
+
+A cadeia canônica passa a ser V76 → V75 → V74 → V73 → V72 → V71, mantendo
+`RUNTIME_GUARD_CHAIN_VERSION=71` e `DATA_COMPATIBILITY_VERSION=66`. Freeze:
+`deploy-health-bridge-semantics-v76`; contrato completo em
+`docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md`.
+
+Estado: candidata exclusivamente local, sem push, tag, stage, deploy, VPS,
+`/current`, PM2, ambiente, banco, bridge, provider, mensagem, canário ou tráfego.
+
+## 2026-08-28 — V77: controlador temporizado do canário QA
+
+A V77 sucede a V76 sem abrir tráfego e sem alterar a compatibilidade de dados
+V66. O canário V75 passa a exigir controlador V77, perfil root-only atestado,
+permit de uso único válido por no máximo dez minutos e janela operacional
+predefinida de no máximo sessenta minutos. Release, commit, tree, tag, baseline
+V76, QA, horários e hashes do perfil/overlay são vinculados.
+
+O relógio é validado em cada fronteira central V75. Ao expirar, destinatários e
+provider falham fechados e queries Mongo retornam conjunto impossível. A
+contenção explícita restaura o overlay V76 `STRICT_READ_ONLY` sem trocar
+`/current`; se PM2 e health seguros não forem comprovados, somente o processo
+`vitalismen-automation` fica parado.
+
+As cinco allowlists continuam contendo exclusivamente `5515998038637`.
+Inbound, outbound, status, retirada, prova, decisões, ledgers e locks permanecem
+limitados ao QA. Dropi/Meta, carrier sweep, guia/print, bônus, recompra,
+follow-ups, backlog e segundo destinatário permanecem bloqueados. O estado é
+somente local, sem commit, push, tag, stage, deploy, VPS, PM2, banco, mensagem,
+canário ou tráfego. Contrato completo:
+`docs/CANARY_CONTROLLER_SAFETY_FREEZE_V77_20260828.md`.
+
+## 2026-08-29 — V77H: stdin determinístico no verificador PM2 do canário
+
+A V77H sucede a V77 e corrige exclusivamente o falso negativo `EPIPE` do
+`verify_candidate_pm2_canary_v77_env`. O código do consumidor Node passa a
+residir em arquivo versionado, enquanto o JSON de `pm2 jlist` usa sozinho o
+stdin e é lido integralmente até EOF antes do parse.
+
+O verificador continua exigindo um único `vitalismen-automation` online, PID,
+cwd/exec oficiais, cwd runtime da release, overlay integral e cinco allowlists
+com somente `5515998038637`. Um fingerprint sanitizado dos quatro processos
+PM2 externos é capturado antes do consumo do permit e deve permanecer idêntico
+após o restart exclusivo do alvo.
+
+Perfil, overlay, attestation, permit, expiração, health, ativação e contenção
+V77 permanecem semanticamente inalterados. Dropi/Meta, segundo destinatário e
+schedulers proibidos continuam fail-closed. A cadeia canônica passa a ser
+V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71, preservando runtime guard 71
+e compatibilidade de dados 66. Contrato completo:
+`docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md`.
+
+Estado: candidata somente local, sem commit, push, tag, stage, deploy, VPS,
+helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
+canário, bot ou tráfego.
+
+## 2026-08-29 — V77H2: limpeza explícita da política strict herdada no QA
+
+A V77H2 sucede a V77H sem alterar o helper, o bot ou qualquer fluxo comercial.
+Ela corrige somente a materialização do overlay QA, acrescentando
+`SAFE_OBSERVATION_POLICY=`. O valor vazio substitui
+`SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY` herdado pelo PM2 durante
+`restart --update-env`; as demais flags coordenadas V75/V77 continuam sendo a
+única base para abrir a janela temporizada.
+
+Chave ausente ou retida como strict falha fechada. As cinco allowlists mantêm
+somente `5515998038637`; permit, attestation, expiração, fingerprint PM2 e o
+hotfix de stdin/EPIPE V77H permanecem integrais. Dropi APPLY, Meta, segundo
+destinatário e schedulers proibidos continuam bloqueados. A contenção restaura
+`SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY`, strict explícito verdadeiro,
+mutações falsas e canário desligado.
+
+A cadeia canônica passa a ser V77H2 → V77H → V77 → V76 → V75 → V74 → V73 →
+V72 → V71, preservando runtime guard 71 e dados 66. Contrato completo:
+`docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md`.
+
+Estado: candidata exclusivamente local, sem commit, push, tag, stage, deploy,
+VPS, helper instalado, `/current`, PM2, ambiente, banco, integração, mensagem,
+canário, bot ou tráfego.
+
+## 2026-08-29 — V78: núcleo operacional seletivo e runtime mutável externo
+
+A V78 sucede a V77H2 como microcamada estrutural. Relatórios e planilhas
+produzidos por observadores passam por registro explícito e, em release de
+produção, são resolvidos somente sob
+`/opt/vitalismen-automacao/shared/runtime`. O fingerprint funcional continua
+incluindo código, `package.json`, qualquer arquivo disfarçado dentro de
+`runtime/` e todo artefato não declarado; traversal e symlink inesperado falham
+fechados.
+
+O perfil declarativo `EC_BOT_CORE_OPERATIONAL` permite somente inbound/ACK
+Z-API, persistência de conversa necessária, roteamento do bot, resposta Z-API e
+estado do atendimento no painel. Schedulers mutantes permanecem em zero, Dropi
+permanece `REPORT_ONLY` sem APPLY, Meta Purchase permanece bloqueado e Baileys
+fica desligado. O helper separado `ops/ec-bot-core-v78` oferece `plan`,
+`authorize`, `activate`, `status` e `contain`, com identidade de release/PM2,
+attestation, permit de uso único, health Z-API e igualdade Browser/CAPI; ele não
+lê nem duplica a `.env` base e não contém segredos.
+
+O reset QA V78 aceita exclusivamente `5515998038637`, exige contexto de teste
+armado por até dez minutos, altera somente o hold humano temporário e o registro
+de auditoria, preservando histórico, mensagens, pedidos, país, memória e o
+estado de origem VSL. A contenção restaura o hold anterior somente se nenhum
+operador real retomou `human.mode=manual`.
+
+A assinatura oficial de Tex Ultra ficou determinística e texto genérico
+continua recusado. A inspeção pública somente leitura, entretanto, encontrou a
+CTA atual divergente no destino e na mensagem. Por isso o contrato de ativação
+V78 bloqueia qualquer deploy até a origem pública ser corrigida e revalidada;
+nenhuma VSL remota foi alterada nesta missão.
+
+Dataset `1468946114265008`, produto, preços, checkout, número oficial,
+funil comercial e compatibilidade de dados V66 permanecem inalterados. A cadeia
+canônica passa a ser V78 → V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72
+→ V71. Estado: implementação local, sem push, tag, stage, deploy, PM2, banco,
+mensagem, evento Meta, Dropi APPLY, scheduler ou tráfego real.
+## V90 — entrada oficial `/protocolo-g` no dashboard
+
+Em 2026-08-30, a origem oficial da apresentação Tex Ultra foi reancorada em
+`https://vilaliemen.shop/protocolo-g`. A microcamada V90 corrige a divergência
+residual do contrato V78, que ainda exigia `/protocolo` e descartava antes da
+persistência a mensagem estruturada do telefone QA quando o contexto de
+automação não estava armado.
+
+O novo contrato separa duas permissões: persistir a entrada no dashboard e
+autorizar resposta automática. Para o único QA `5515998038637`, a mensagem
+estruturada oficial é sempre gravada no núcleo `Message`/`ContactState`; se o
+contexto temporário V78 não estiver armado, confirmação de retirada, compra
+posterior, engajamento, watchdog e roteamento ao bot são suprimidos. A automação
+somente permanece disponível quando o contexto oficial já estava armado.
+
+As variantes externas de `/protocolo-g` não foram alteradas: celular continua
+na VSL e computador continua na página informativa. Dropi, Meta/CAPI, pixel,
+preços, checkout, schedulers, mídias e demais produtos permanecem congelados.
+
+Fonte de verdade: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.

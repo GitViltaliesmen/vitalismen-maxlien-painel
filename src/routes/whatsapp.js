@@ -98,11 +98,19 @@ import {
 } from '../services/ecConversationBucketService.js';
 import { ecEngagementReplyPolicy } from '../services/ecEngagementReplyService.js';
 import {
+    deliveredRepurchaseRegistrationDecision,
     operationalOrderLineage,
     panelOrderLifecycle
 } from '../services/ecDeliveredRepurchaseService.js';
 import { projectPanelCustomerReadModel } from '../services/panelCustomerReadModelService.js';
 import { searchPanelCustomersGlobally } from '../services/panelGlobalCustomerSearchService.js';
+import {
+    isStrictReadOnlyObservationEnabled,
+    isVslStagePersistenceEnabled,
+    strictReadOnlyAcceptedPayload
+} from '../services/strictReadOnlyObservationService.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1492,11 +1500,23 @@ const panelHumanAgentId = (state = {}) => {
 };
 
 const sourceUrlPathname = (value = '') => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return '';
     try {
-        return new URL(String(value || '')).pathname || '';
+        if (normalized.startsWith('/')) return new URL(normalized, 'https://vsl.invalid').pathname || '';
+        if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(normalized) && /^[^/\s]+\.[^/\s]+\//.test(normalized)) {
+            return new URL(`https://${normalized}`).pathname || '';
+        }
+        return new URL(normalized).pathname || '';
     } catch {
         return '';
     }
+};
+
+const isExactVslRoute = (value = '', route = '') => {
+    const pathname = String(value || '').trim().toLowerCase().split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+    const expected = String(route || '').trim().toLowerCase().replace(/\/+$/, '');
+    return Boolean(expected) && (pathname === expected || pathname.startsWith(`${expected}/`));
 };
 
 export const publicEcVslProductFromBody = (body = {}) => {
@@ -1523,12 +1543,13 @@ export const publicEcVslProductFromBody = (body = {}) => {
         };
     }
 
+    const texUltraNRoute = isExactVslRoute(bodyPath, '/n') || isExactVslRoute(sourcePath, '/n');
     const texUltraSignal = rawProductKey === EC_PRODUCT_KEYS.texUltra
         || rawProductKey.includes('texultra')
         || rawProductKey.includes('tex_ultra')
         || page.includes('tex_ultra')
         || page.includes('texultra');
-    if (texUltraSignal || (!rawProductKey && (bodyPath.startsWith('/n') || sourcePath.startsWith('/n')))) {
+    if (texUltraNRoute || texUltraSignal) {
         return {
             productKey: EC_PRODUCT_KEYS.texUltra,
             productName: EC_PRODUCT_NAMES.tex_ultra_ec,
@@ -1591,6 +1612,19 @@ const vslCustomerPhoneFromBody = (body = {}, country = 'EC') => {
     return isAllowedPanelPhoneForCountry(normalized, country) ? normalized : '';
 };
 
+const vslCanaryV75AcceptedPayload = (body = {}, country = 'EC', surface = 'vsl_inbound') => {
+    const decision = evaluateCanaryV75Recipient(vslCustomerPhoneFromBody(body, country), { surface });
+    return decision.allowed
+        ? null
+        : {
+            ok: true,
+            accepted: true,
+            skipped: true,
+            reason: decision.reason,
+            canary: 'V75'
+        };
+};
+
 const upsertVslPanelPreviewMessage = async ({ state, phoneDigits = '', body = '', now = new Date(), visit = null } = {}) => {
     const chatId = state?.chatId || (phoneDigits ? `${phoneDigits}@c.us` : '');
     const messageBody = cleanText(body || 'Entrada pela VSL do Equador').slice(0, 1200);
@@ -1636,6 +1670,10 @@ const registerVslClickInPanel = async ({ visit, body = {}, country = 'EC', assig
     const effectiveCountry = normalizePanelCountry(country || 'EC');
     const phoneDigits = vslCustomerPhoneFromBody(body, effectiveCountry);
     if (!phoneDigits) return { ok: false, skipped: true, reason: 'customer_phone_missing_or_invalid' };
+    const canaryDecision = evaluateCanaryV75Recipient(phoneDigits, { surface: 'vsl_panel_registration' });
+    if (!canaryDecision.allowed) {
+        return { ok: false, skipped: true, reason: canaryDecision.reason };
+    }
 
     const now = new Date();
     const product = publicEcVslProductFromBody(body);
@@ -1887,7 +1925,8 @@ const sendVslPageViewForVisit = async ({ visit, body, req, country, visitorKey }
         client_user_agent: visit.userAgent || body.client_user_agent || body.clientUserAgent,
         fbc: tracking.fbc || body.fbc,
         fbp: tracking.fbp || body.fbp,
-        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId
+        external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1917,7 +1956,8 @@ const sendVslViewContentForVisit = async ({ visit, body, req, country, visitorKe
         external_id: tracking.external_id || visit.visitorId || body.external_id || body.externalId,
         content_name: body.content_name || body.contentName || 'Vit Power Ecuador',
         content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
-        content_type: body.content_type || body.contentType || 'product'
+        content_type: body.content_type || body.contentType || 'product',
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1950,7 +1990,8 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
         content_ids: body.content_ids || body.contentIds || ['vit_power_ec'],
         content_type: body.content_type || body.contentType || 'product',
         value: Number.isFinite(value) && value > 0 ? value : undefined,
-        currency: body.currency || 'USD'
+        currency: body.currency || 'USD',
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -1984,7 +2025,8 @@ const sendVslLeadForVisit = async ({ visit, body, req, country, visitorKey }) =>
         content_ids: body.content_ids || body.contentIds || [publicEcVslProductFromBody(body).productKey],
         content_type: body.content_type || body.contentType || 'product',
         funnel_entry_message: visit.lastEntryMessage || body.message || body.funnel_entry_message,
-        customer_name: visit.customerName || body.customerName || body.customer_name
+        customer_name: visit.customerName || body.customerName || body.customer_name,
+        meta_destination: body.meta_destination ?? body.metaDestination
     }, req);
 
     const metaUpdate = {
@@ -2143,7 +2185,7 @@ export const resolveProfilePictureUrl = async ({ sock, contactState, primaryId, 
         }
     }
 
-    if (contactState?._id) {
+    if (persistCache && contactState?._id) {
         await ContactState.updateOne(
             { _id: contactState._id },
             { $set: { 'metadata.profilePictureFetchedAt': new Date() } }
@@ -2544,6 +2586,44 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
                 'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
             };
     let order = await Order.findOne(query);
+    let repurchaseDecision = null;
+    if (order) {
+        const currentShipment = await Shipment.findOne({
+            country: 'EC',
+            orderId: order.orderId
+        }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 });
+        const lifecycle = panelOrderLifecycle({ order, shipment: currentShipment });
+        if (lifecycle.delivered) {
+            const activeRepurchase = await Order.findOne({
+                country: 'EC',
+                previousOrderId: order.orderId,
+                entryReason: 'repeat_purchase_after_delivered',
+                status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] },
+                'customer.phone': { $regex: `${phoneDigits.slice(-9)}$` }
+            }).sort({ updatedAt: -1, createdAt: -1 });
+            repurchaseDecision = deliveredRepurchaseRegistrationDecision({
+                authenticated: Boolean(req?.user),
+                currentOrder: order,
+                currentShipment,
+                activeRepurchase,
+                newCustomerPhone: draft.phone
+            });
+            if (!repurchaseDecision.allowed) {
+                const error = new Error(repurchaseDecision.reason || 'delivered_repurchase_not_allowed');
+                error.code = repurchaseDecision.reason || 'delivered_repurchase_not_allowed';
+                error.status = repurchaseDecision.statusCode || 409;
+                throw error;
+            }
+            order = repurchaseDecision.reused
+                ? activeRepurchase
+                : new Order({
+                    orderId: repurchaseDecision.orderId,
+                    previousOrderId: repurchaseDecision.previousOrderId,
+                    previousDeliveredAt: repurchaseDecision.previousDeliveredAt,
+                    entryReason: repurchaseDecision.entryReason
+                });
+        }
+    }
     const existingOrderStatus = String(order?.status || '').trim().toLowerCase();
     const preserveExistingOrderStatus = [
         'processing',
@@ -2586,11 +2666,16 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         source: 'manual',
         status: preserveExistingOrderStatus ? order.status : 'confirmed',
         notes: orderLineage.preserveExistingNotes
-            ? String(order?.notes || '').trim()
+            ? (String(order?.notes || '').trim() || (
+                repurchaseDecision?.repurchase
+                    ? `Nova recompra confirmada na ficha/painel WhatsApp. Produto: ${productInfo.name}. Pedido anterior: ${orderLineage.previousOrderId}.`
+                    : ''
+            ))
             : sourceIsAdminOrder
                 ? `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}. Origem: ${sourceOrderId}`
                 : `Criado a partir da ficha/painel WhatsApp para envio Dropi. Produto: ${productInfo.name}.`,
         previousOrderId: orderLineage.previousOrderId,
+        previousDeliveredAt: order?.previousDeliveredAt || repurchaseDecision?.previousDeliveredAt || null,
         entryReason: orderLineage.entryReason,
         tracking: {
             ...capturedAttribution,
@@ -2655,6 +2740,10 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         productName: productInfo.name,
         sourceOrderId,
         createdFromAdminOrder: sourceIsAdminOrder,
+        repurchase: repurchaseDecision?.repurchase === true,
+        repurchaseReused: repurchaseDecision?.reused === true,
+        previousOrderId: order.previousOrderId || '',
+        previousDeliveredAt: order.previousDeliveredAt || null,
         purchase: {
             ok: purchase.ok === true,
             alreadySent: purchase.alreadySent === true,
@@ -3201,7 +3290,12 @@ router.get('/vsl-seller-rotation', (req, res) => {
 
 router.post('/vsl-stage', async (req, res) => {
     try {
+        if (!isVslStagePersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_stage' }));
+        }
         const body = req.body || {};
+        const canaryPayload = vslCanaryV75AcceptedPayload(body, 'EC', 'vsl_stage');
+        if (canaryPayload) return res.status(202).json(canaryPayload);
         const contract = validateVilaliemenProtocoloGStageContract(body);
         if (!contract.ok) {
             return res.status(400).json({
@@ -3275,7 +3369,13 @@ router.post('/vsl-stage', async (req, res) => {
 
 router.post('/vsl-entry', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isVslStagePersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'vsl_entry' }));
+        }
         const body = req.body || {};
+        const country = normalizePanelCountry(body.country || 'EC');
+        const canaryPayload = vslCanaryV75AcceptedPayload(body, country, 'vsl_entry');
+        if (canaryPayload) return res.status(202).json(canaryPayload);
         const protocoloGSignal = hasProtocoloGContractSignal(body);
         const protocoloGContract = protocoloGSignal
             ? validateVilaliemenProtocoloGContract(body)
@@ -3287,7 +3387,6 @@ router.post('/vsl-entry', async (req, res) => {
                 reasons: protocoloGContract.errors
             });
         }
-        const country = normalizePanelCountry(body.country || 'EC');
         const product = publicEcVslProductFromBody(body);
         const now = new Date();
         const visitorKey = vslVisitorKey({ country, body, req });
@@ -3797,6 +3896,7 @@ router.get('/dashboard-metrics', async (req, res) => {
                 human: 1,
                 chatId: 1,
                 phoneDigits: 1,
+                conversationBucket: 1,
                 metadata: 1
             }).lean(),
             Order.find({
@@ -3861,12 +3961,17 @@ router.get('/dashboard-metrics', async (req, res) => {
             };
         };
         const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
+        const commercialContacts = realContacts.filter((contact) => (
+            conversationBucketPanelView(contact).value !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        ));
 
         res.json({
             country,
             generatedAt: now.toISOString(),
             totalClients: realContacts.length,
             manualNow: realContacts.filter((contact) => contact.human?.mode === 'manual').length,
+            commercialTotalClients: commercialContacts.length,
+            commercialManualNow: commercialContacts.filter((contact) => contact.human?.mode === 'manual').length,
             today: periodCounts(startOfDay, todayVsl),
             week: periodCounts(startOfWeek, weekVsl),
             month: periodCounts(startOfMonth, monthVsl)
@@ -5910,10 +6015,13 @@ router.patch('/contact-state/:phone', async (req, res) => {
                             product: operationalOrderSync.productName || cleanDraft.product || '',
                             productKey: operationalOrderSync.productKey || '',
                             sourceOrderId: cleanDraft.sourceOrderId || cleanDraft.orderId || '',
-                            previousOrderId: cleanDraft.previousOrderId || '',
+                            previousOrderId: operationalOrderSync.previousOrderId || cleanDraft.previousOrderId || '',
                             currentNegotiationOrderId: cleanDraft.currentNegotiationOrderId || operationalOrderSync.orderId
                         }
                     };
+                    if (operationalOrderSync.repurchase) {
+                        state.metadata.customerDraft.currentNegotiationOrderId = operationalOrderSync.orderId;
+                    }
                 }
             }
         }
@@ -6052,6 +6160,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             clientGeneratedId = ''
         } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
+        assertEcPanelManualSendV115({ sendMode });
         let storedMessageRecordId = '';
         const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
@@ -6246,7 +6355,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     sessionId: sendResult?.provider === 'zapi'
                         ? (zapiOperationalPanelPhone() || effectiveSessionId)
                         : effectiveSessionId,
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
                     sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                     provider: sendResult?.provider || '',
                     providerMessageId: sendResult?.providerMessageId || '',
@@ -6262,7 +6371,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
                     messageRecordId: messageRecord?._id || '',
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
                 });
             }
 
@@ -6307,7 +6416,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 sessionId: sendResult?.provider === 'zapi'
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
                 sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
@@ -6322,7 +6431,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 messageRecordId: messageRecord?._id || '',
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
             });
         }
 
@@ -6359,7 +6468,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
                 quotedMessage,
-                deliveryStatus: sendResult?.provider === 'zapi' ? 'pending_confirmation' : 'sent',
+                deliveryStatus: sendResult?.provider === 'zapi' ? 'provider_accepted' : 'sent',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
@@ -6378,7 +6487,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
                 quotedMessage,
-                deliveryStatus: 'failed',
+                deliveryStatus: 'request_failed',
                 sendError: sendResult?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
@@ -6395,11 +6504,11 @@ router.post('/send', authMiddleware, async (req, res) => {
             providerMessageId: sendResult?.providerMessageId || '',
             providerZaapId: sendResult?.providerZaapId || '',
             messageRecordId: storedMessageRecordId,
-            deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'failed'
+            deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
         });
     } catch (error) {
         console.error('Send message error:', error);
-        res.status(500).json({ error: error.message || 'Failed to send message' });
+        res.status(Number(error.statusCode) || 500).json({ error: error.message || 'Failed to send message' });
     }
 });
 

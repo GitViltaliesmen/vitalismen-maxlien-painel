@@ -1,0 +1,78 @@
+{
+  "freezeId": "dropi-manual-bff-recovery-v98",
+  "version": 98,
+  "parentVersion": "V97",
+  "parentFreezeId": "ec-operational-guard-context-v97",
+  "parentManifestSha256": "68d060e1596c03e2058546ae13841db5fb02e7a23869394c4a67a7087874caa1",
+  "parentFreezeSha256": "a27593a80e5ca8ddb156d94add6ccf418e4c14b822d5bd635d339b115ea3d255",
+  "parentAttestationSha256": "f5a9ac6e0acbb56ec23207f9235564e070b037758f52d56cc62ce90672b49349",
+  "parentCommit": "bb5bf3d79d2b9e9fff0fbf5749478bdc8594385e",
+  "parentTree": "e35037816173f2f2e17918e36d689602b8922c4b",
+  "purpose": "MANUAL_DROPI_BFF_CURRENT_BASE_WITH_SANITIZED_FAILURE_REASON",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_manual_dropi_recovery",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/dropiManualBffRecoveryFreezeRuntimeGuardV98.js",
+    "canonicalGuard": "node scripts/guard-dropi-manual-bff-recovery-v98.mjs",
+    "manualDropiOnly": true,
+    "automaticDropiSubmitAllowed": false,
+    "idempotencyLookupBeforePost": true,
+    "sanitizedFailureReasonOnly": true,
+    "postSaleSchedulersChanged": false,
+    "whatsappOutboundChanged": false,
+    "funnelChanged": false,
+    "pricesChanged": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "databaseSchemaChanged": false,
+    "otherCountryTouched": false,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false
+  },
+  "evidence": {
+    "path": "docs/evidence/dropi-manual-bff-recovery-v98-attestation-20260902.json",
+    "sha256": "06ff463b5b3f212623d354f48fe157a255725d1638e6dd6b22b502df9d450ae4"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "e4099598dc81a791d1bd351ba8cc5d033f7ceb4767d71c62c7bd47a8412be3b5"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/ecOperationalGuardContextV97Service.js",
+    "tests/ec-operational-guard-context-v97.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/ecOperationalGuardContextV97Service.js",
+    "tests/ec-operational-guard-context-v97.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/DROPI_MANUAL_BFF_RECOVERY_FREEZE_V98_20260902.md",
+    "docs/evidence/dropi-manual-bff-recovery-v98-attestation-20260902.json",
+    "scripts/guard-dropi-manual-bff-recovery-v98.mjs",
+    "src/services/dropiBffAdapter.js",
+    "src/services/dropiManualBffRecoveryFreezeRuntimeGuardV98.js",
+    "src/services/dropiManualBffRecoveryV98Service.js",
+    "tests/dropi-bff-manual-v60.test.mjs",
+    "tests/dropi-manual-bff-recovery-v98.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/DROPI_MANUAL_BFF_RECOVERY_FREEZE_V98_20260902.md": "f1599b5e9afbbce6cfb205784010aeb6898a443fb9873b886e10695b7b5e02d7",
+    "docs/evidence/dropi-manual-bff-recovery-v98-attestation-20260902.json": "06ff463b5b3f212623d354f48fe157a255725d1638e6dd6b22b502df9d450ae4",
+    "scripts/guard-dropi-manual-bff-recovery-v98.mjs": "d10b43045d4a4d4cc1bc86125175ec6ec16fc08679efc86752f1fa972b4f359c",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "809854755847dd3f42d95b2d9a195babc9c7f22368a5ec3d44aedeac728e1d61",
+    "src/services/dropiBffAdapter.js": "8e67cf863a7f8e289c7e070e24d7aa6d81e9d540952a39bb913153f46bd9d2c5",
+    "src/services/dropiManualBffRecoveryFreezeRuntimeGuardV98.js": "f4369e430a6117a6d66124042b2e3239f86c9cd42753557e84c84785b400ae83",
+    "src/services/dropiManualBffRecoveryV98Service.js": "ad9f1eea786e7a662c19ce7b6610764f0665f2f9159516f5fc1295089590b95b",
+    "src/services/droppiEcuadorBrowserService.js": "d57531605f30248e3f24d7e688a4afd54523bf8a73bb72d1c746cd9818e3c7b5",
+    "src/services/ecOperationalGuardContextV97Service.js": "a5ffce33c5448bac7e9a852395fe6272672dd8c07005b19ec4e9832dc1338fcc",
+    "tests/dropi-bff-manual-v60.test.mjs": "d2441123bb9b88ff99683357e28d73aedc3f8485d871b78dc1ff228cd9ecd9e3",
+    "tests/ec-operational-guard-context-v97.test.mjs": "8197735e6d0da83d15277cde363578584e13e41c371d6510f49c0679759edd64",
+    "tests/dropi-manual-bff-recovery-v98.test.mjs": "c17c88a5db342912e2d358f334de4b299649ef216420cdd9bbf4401a4d575738"
+  }
+}

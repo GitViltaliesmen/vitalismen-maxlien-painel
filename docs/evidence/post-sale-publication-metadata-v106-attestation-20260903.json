@@ -1,0 +1,24 @@
+{
+  "attestationId": "post-sale-publication-metadata-v106-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V105",
+  "failure": {
+    "stage": "bridge_authorize_before_apply",
+    "category": "published_release_identity_invalid",
+    "bridgeApplied": false,
+    "messagesSent": 0,
+    "dropiSubmissions": 0
+  },
+  "v70Contract": {
+    "releaseSourceStatus": "staged_candidate",
+    "publicationEnvelopeStatus": "production_published",
+    "publicationCompleteStatus": "complete"
+  },
+  "preserved": {
+    "postSaleProfileChanged": false,
+    "batchMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  }
+}

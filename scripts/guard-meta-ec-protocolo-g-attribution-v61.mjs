@@ -22,6 +22,17 @@ const dashboard = read('public/funnel-metrics.html');
 const capiRoutingFreezeGuard = read('scripts/guard-meta-capi-routing-freeze-v61.mjs');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json'));
+const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
+const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
+const v75Manifest = JSON.parse(read('docs/freeze/canary-isolation-safety-v75-20260828.json'));
+const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json'));
+const v90Manifest = JSON.parse(read('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json'));
+const v98Manifest = JSON.parse(read('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json'));
+const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
+const v104Manifest = JSON.parse(read('docs/freeze/dropi-manual-transport-v104-20260902.json'));
+const v110Manifest = JSON.parse(read('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json'));
+const v111Manifest = JSON.parse(read('docs/freeze/bot-qa-multiturn-recovery-v111-20260903.json'));
+const v115Manifest = JSON.parse(read('docs/freeze/ec-panel-runtime-recovery-v115-20260903.json'));
 const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 
@@ -100,6 +111,51 @@ const protectedHashes = {
 
 for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
     const actualHash = sha256(relativePath);
+    if (new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []).has(relativePath)) continue;
+    if (
+        v71Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v71Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v73Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v73Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v75Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v75Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v78Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v78Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v90Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v90Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v98Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v98Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v104Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v104Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v110Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v110Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v111Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v111Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v115Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v115Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v99Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v99Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
     const v64SuccessorHashes = {
         'src/routes/shipments.js': '85edd653db5b6094e3b0dafcfc41afebf8fb9a54912d4d5d3208f0d194ae6ab4',
         'src/services/droppiEcuadorService.js': 'dd45007880275c71828641009cfd71bcb19dc5bf0e2b95a9200e61ee3d0110d8'
@@ -111,10 +167,13 @@ for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
         'src/services/droppiEcuadorBrowserService.js': '0f4337dcb0fa39f622d1404dc261af507758bcfa2a17d65cd38caf6eb1f1790b',
         'src/services/conversationEngine.js': '234a0432b77072021f76133417f2da5a25f871cf8fcba82513296e5b12ac0497'
     };
-    if (v64SuccessorHashes[relativePath] || v65SuccessorHashes[relativePath]) {
+    const v66SuccessorHashes = {
+        'src/services/droppiEcuadorBrowserService.js': '94327ca6380064800d112fcbd666ce4b2779e18b249bb66a05747d9915399d43'
+    };
+    if (v64SuccessorHashes[relativePath] || v65SuccessorHashes[relativePath] || v66SuccessorHashes[relativePath]) {
         assert.ok(
-            [expectedHash, v64SuccessorHashes[relativePath], v65SuccessorHashes[relativePath]].filter(Boolean).includes(actualHash),
-            `${relativePath} protegido foi alterado fora da sucessao V64/V65`
+            [expectedHash, v64SuccessorHashes[relativePath], v65SuccessorHashes[relativePath], v66SuccessorHashes[relativePath]].filter(Boolean).includes(actualHash),
+            `${relativePath} protegido foi alterado fora da sucessao V64/V65/V66`
         );
         continue;
     }

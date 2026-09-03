@@ -1,0 +1,73 @@
+{
+  "freezeId": "post-sale-health-envelope-v107",
+  "version": 107,
+  "parentVersion": "V106",
+  "parentFreezeId": "post-sale-publication-metadata-v106",
+  "parentManifestSha256": "c8de0795227662ba1f28072815bc35a72ada6d5ec2bd41264bd4be15897ba0ad",
+  "parentFreezeSha256": "fbd0c97923cf56ef6ac052fe4b230cfc3ec52c318540e25ba0de1508ba430c5b",
+  "parentAttestationSha256": "10ae9a9d867ef53eaf7cc7c085c62f82f080b54c6fbef4239aebabc4c3561bb6",
+  "parentCommit": "f0457d2bee280b44fc6c13a42078f3100a202a75",
+  "parentTree": "ddb0a132c83c6450b308d126037379a02459bf01",
+  "purpose": "ACCEPT_VALID_JSON_HEALTH_AND_ABORT_FAILED_POST_SALE_AUTHORIZATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_post_sale_batch_one",
+  "country": "EC",
+  "policy": {
+    "healthAcceptsValidJsonRegardlessFormatting": true,
+    "healthSemanticValidationPreserved": true,
+    "failedAuthorizationAbortRequiresBotCoreSafe": true,
+    "postSaleProfileChanged": false,
+    "externalEffectsAllowed": false,
+    "batchMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-health-envelope-v107-attestation-20260903.json",
+    "sha256": "dd15c2ada6623ba1e764891b67e36556521b69ac5cbdf4f6cc692cc51d5084b1"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "7a3881df3c318fb2f5bbbc0c633c19bed034eaf3d583ef4427460214df742f40"
+  },
+  "declaredAncestorOverrides": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs",
+    "src/services/postSalePublicationMetadataV106Service.js",
+    "tests/post-sale-publication-metadata-v106.test.mjs",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs",
+    "src/services/postSalePublicationMetadataV106Service.js",
+    "tests/post-sale-publication-metadata-v106.test.mjs",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/POST_SALE_HEALTH_ENVELOPE_FREEZE_V107_20260903.md",
+    "docs/evidence/post-sale-health-envelope-v107-attestation-20260903.json",
+    "scripts/guard-post-sale-health-envelope-v107.mjs",
+    "src/services/postSaleHealthEnvelopeFreezeRuntimeGuardV107.js",
+    "src/services/postSaleHealthEnvelopeV107Service.js",
+    "tests/post-sale-health-envelope-v107.test.mjs"
+  ],
+  "protectedFiles": {
+    "ops/post-sale-v105": "8865ba042d67cf3dbcf70fbbbfa199c992d79f0c516607aeaf92b73441a5d76a",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "ddc6f520dd230e95d7d415fc82cf8ffbded1279fbe8c642ca8f4925c7eebec95",
+    "scripts/lib/post-sale-transactional-control-plane-v105.mjs": "c021512e21b7370948f287f1ea4b7b6681b94fec1268c8c37d369c1e4727ba4c",
+    "src/services/postSalePublicationMetadataV106Service.js": "1c5a39a7a0932810d2a46b5483f74f75f8b093f2080ab46e51a5001484449bfe",
+    "tests/post-sale-publication-metadata-v106.test.mjs": "70d73bd5efecce2e192f18367b643e30bda483bb150a2dc10cba9d59710ae834",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs": "40fee2bcb243188901bbe9f16c7f137a439533df152391cca1510319a4b84b2b",
+    "docs/POST_SALE_HEALTH_ENVELOPE_FREEZE_V107_20260903.md": "4226514babf3ced5ab2dbdb6f08b5446948bd93d05572503e37489ff8ce7381d",
+    "docs/evidence/post-sale-health-envelope-v107-attestation-20260903.json": "dd15c2ada6623ba1e764891b67e36556521b69ac5cbdf4f6cc692cc51d5084b1",
+    "scripts/guard-post-sale-health-envelope-v107.mjs": "85f04b1714994731ac1c7fafb383b63cc8e8d6263c13550417ce4c6f27bc26d4",
+    "src/services/postSaleHealthEnvelopeFreezeRuntimeGuardV107.js": "e2e10bcca992f59c5fb86745cc7c55ab601fa9b2493538b07ac850c546409514",
+    "src/services/postSaleHealthEnvelopeV107Service.js": "899e085ca503ba56a8cd1ab494d8cb5f5b7ba8cea9ef298dad10e67081d4e198",
+    "tests/post-sale-health-envelope-v107.test.mjs": "b6b7e1920ce8807d0d6dd4225aec7f4b13614803e9bfc5ba9fac728871a7f632"
+  }
+}

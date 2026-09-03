@@ -1,0 +1,31 @@
+{
+  "attestationId": "ec-bot-core-activation-health-v84-20260829",
+  "country": "EC",
+  "parentVersion": "V83",
+  "parentCommit": "bb3afb410dbd702425728f8c4eadafecc803b258",
+  "parentTree": "40afa2d22a4bccc015d2d1b0ae5b47d0076d81ed",
+  "failure": {
+    "botCorePlan": "PASS",
+    "botCoreAuthorization": "PASS",
+    "botCoreActivation": "FAIL_CLOSED_TRANSIENT_502",
+    "containment": "PASS_STOPPED",
+    "safeRecovery": "PASS_MANUAL_PM2_RECREATE",
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "bounded_post_restart_health_stabilization",
+    "attempts": 30,
+    "delaySeconds": 2,
+    "maximumWindowSeconds": 60,
+    "businessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}

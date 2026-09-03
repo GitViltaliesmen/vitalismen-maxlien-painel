@@ -7,8 +7,14 @@ import { sendZapiImage } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
+import {
+    classifyPostSaleProviderFailureV116,
+    postSaleTransactionalOutbound
+} from '../services/postSaleTransactionalSafetyV116Service.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_image' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] imagem bloqueada por protecao manual anti-reenvio -> ${jid}`);
         return false;
@@ -66,11 +72,17 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
         } catch (error) {
             const detail = error?.response?.data || error.message || 'zapi_image_send_failed';
             console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar imagem pela Z-API para ${jid}:`, detail);
+            const disposition = postSaleTransactionalOutbound(options)
+                ? classifyPostSaleProviderFailureV116(error)
+                : null;
             return options.returnDetails === true
                 ? {
                     ok: false,
                     provider: 'zapi',
-                    providerStatus: 'failed',
+                    providerAttempted: true,
+                    ambiguous: disposition?.ambiguous ?? false,
+                    terminalState: disposition?.terminalState || '',
+                    providerStatus: disposition?.providerStatus || 'failed',
                     error: typeof detail === 'string' ? detail : JSON.stringify(detail),
                     providerPayload: detail
                 }
@@ -78,7 +90,8 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
         }
     }
 
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const sock = getSock(sessionId);
         const sId = getSocketId(sessionId);
 
@@ -98,7 +111,23 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
             return true;
         } catch (error) {
             console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar imagem para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) return false;
+            if (attempt === maxAttempts) {
+                if (options.returnDetails === true) {
+                    const disposition = postSaleTransactionalOutbound(options)
+                        ? classifyPostSaleProviderFailureV116(error)
+                        : null;
+                    return {
+                        ok: false,
+                        provider: 'baileys',
+                        providerAttempted: true,
+                        ambiguous: disposition?.ambiguous ?? false,
+                        terminalState: disposition?.terminalState || '',
+                        providerStatus: disposition?.providerStatus || 'failed',
+                        error: error.message || 'send_image_failed'
+                    };
+                }
+                return false;
+            }
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
     }

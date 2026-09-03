@@ -1,0 +1,26 @@
+{
+  "evidenceId": "ec-official-vsl-origin-v78-20260829",
+  "capturedAt": "2026-08-29T16:16:02.277Z",
+  "canonicalUrl": "https://vilaliemen.shop/protocolo",
+  "inspectedHostRole": "official_vsl_static_origin_only",
+  "expected": {
+    "destinationPhone": "5515991418416",
+    "message": "Hola, vengo de la presentación oficial de Tex Ultra. Ref: EC-TEX-ULTRA-PROTOCOLO",
+    "marker": "EC-TEX-ULTRA-PROTOCOLO",
+    "productKey": "tex_ultra_ec"
+  },
+  "observed": {
+    "destinationPhone": "553172220518",
+    "message": "Hola, quiero el tratamiento",
+    "classification": "generic_not_eligible_for_vsl_recognition"
+  },
+  "status": "ORIGIN_CONTRACT_DIVERGENT_DEPLOY_BLOCKED",
+  "deploymentBlocker": "OFFICIAL_VSL_ORIGIN_CONTRACT_DIVERGENT",
+  "inspection": {
+    "readOnly": true,
+    "operationalSystemsTouched": [],
+    "foreignOperationalInfrastructureTouched": false,
+    "vslContentChanged": false,
+    "botProductionChanged": false
+  }
+}

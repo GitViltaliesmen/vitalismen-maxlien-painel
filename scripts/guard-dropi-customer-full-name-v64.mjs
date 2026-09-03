@@ -21,7 +21,7 @@ assert.equal(manifest.policy.historicalOrdersMutated, false);
 assert.equal(manifest.policy.whatsappSendAuthorized, false);
 assert.equal(manifest.policy.dropiSubmitAuthorizedByThisFreeze, false);
 assert.equal(manifest.policy.deployAuthorized, false);
-assert.match(entry, /(?:dropiCustomerFullNameFreezeRuntimeGuardV64|postSaleGargalosFreezeRuntimeGuardV65)\.js/);
+assert.match(entry, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(runtimeGuard, /protocoloGAdMetricsFreezeRuntimeGuardV63\.js/);
 
 assert.match(service, /export const validateEcuadorDropiCustomerName/);

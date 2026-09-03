@@ -1,0 +1,94 @@
+{
+  "freezeId": "ec-vsl-dashboard-ingress-v90",
+  "version": 90,
+  "parentVersion": "V89",
+  "parentFreezeId": "ec-bot-core-control-plane-v89",
+  "parentManifestSha256": "1af1407c551392ad4f292bff3a94019996f778c515b30415e146b6998b2180f8",
+  "parentFreezeSha256": "3afc6c7cad6a33649ae58da105026861960cc337d1e4dced105402cef9eb5a1e",
+  "parentAttestationSha256": "abe2421b2a030a1ff54fcc7dad570dc1776dd196f8f0f3489f903493fc876729",
+  "parentCommit": "04a68c3f31be290ca1524cef3b0c6ef4e6d712fb",
+  "parentTree": "44e9fe5670d7093867b7a97ba7444620e476d5a1",
+  "purpose": "EC_PROTOCOLO_G_DASHBOARD_INGRESS_WITHOUT_UNARMED_AUTOMATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecVslDashboardIngressFreezeRuntimeGuardV90.js",
+    "canonicalGuard": "node scripts/guard-ec-vsl-dashboard-ingress-v90.mjs",
+    "officialVslUrl": "https://vilaliemen.shop/protocolo-g",
+    "officialWhatsapp": "5515991418416",
+    "qaPhone": "5515998038637",
+    "dashboardPersistenceWithoutBot": true,
+    "unarmedQaAutomationAllowed": false,
+    "externalVslFilesChanged": false,
+    "desktopVariantFrozen": true,
+    "mobileVariantFrozen": true,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-vsl-dashboard-ingress-v90-attestation-20260830.json",
+    "sha256": "63e01b91ee92f8b0e5a6db0cfb05cca1869c2e0c251a47eedf09a93e4301e273"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "8143fed8655dd664790fd1276e28dafc7039fa01e1066f9cf7c8409f4a0864cc"
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecBotCoreControlPlaneV89Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecOfficialVslEntryV78Service.js"
+  ],
+  "modifiedParentProtectedFiles": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecBotCoreControlPlaneV89Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecOfficialVslEntryV78Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md",
+    "docs/evidence/ec-vsl-dashboard-ingress-v90-attestation-20260830.json",
+    "scripts/guard-ec-vsl-dashboard-ingress-v90.mjs",
+    "src/services/ecVslDashboardIngressFreezeRuntimeGuardV90.js",
+    "src/services/ecVslDashboardIngressV90Service.js",
+    "tests/ec-vsl-dashboard-ingress-v90.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "2e0f930342c6270e30c04478c4682415103e5f5f3bcdfb1825c3122b42bf0120",
+    "docs/ARQUIVOS_OFICIAIS.md": "30ded29d9464ebad47dc5be9ab745efd5d3d7ae106cea926b3bc05837a4bf082",
+    "docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md": "5e4cbfcc06c53e429ba8e96da31fdda398a44c90121c6ab3e5c7f48796535ff7",
+    "docs/evidence/ec-vsl-dashboard-ingress-v90-attestation-20260830.json": "63e01b91ee92f8b0e5a6db0cfb05cca1869c2e0c251a47eedf09a93e4301e273",
+    "ops/ec-bot-core-v78": "569cdf1ef5c2285237506e4d7d2fc4f352f4e156c13de95b60f5a5395c218117",
+    "scripts/guard-ec-vsl-dashboard-ingress-v90.mjs": "306c12c73667d64b25d80cd010df793fa466108b0a01089cdedddcc7030725b3",
+    "scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs": "25d024b8b28f940f3d5ad1d3469e3ede86995eb1dd448efec69de57e02100bb1",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "0baae39b0bf9e35fc27cf29c62469fc5c70b1de5a79974167593551da8430759",
+    "src/routes/zapi.js": "6ca443748f1bc1a5e491191aa02027d0fd1b7da12ebd89c3df96837f1cc6ec20",
+    "src/services/ecBotCoreControlPlaneV89Service.js": "3f63edc57e61bdf19604d553c452b92e87465c2069b1177fa63fc32ad2290084",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "106c569c898bf72653a330523ada714cfea07ec8a61b57e7950ea37129ec80d8",
+    "src/services/ecOfficialVslEntryV78Service.js": "4a145b538d990124b21939934d6e81cdfcadcdae3157fec4f58a6cd94146085b",
+    "src/services/ecVslDashboardIngressFreezeRuntimeGuardV90.js": "031216723a82282d49c24305060bfcb126a2af9479795abd5bf476f60330847d",
+    "src/services/ecVslDashboardIngressV90Service.js": "36755508fa91fcbc24323a72bf358ea68bcc0c0dbe6daece1b91a53bb0d5df41",
+    "tests/ec-vsl-dashboard-ingress-v90.test.mjs": "228029e88644f03f3eed7312cbc9814075d59dc97dc25b0eb0b073a666220fa3"
+  }
+}

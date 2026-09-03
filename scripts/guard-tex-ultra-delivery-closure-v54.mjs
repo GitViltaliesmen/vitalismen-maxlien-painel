@@ -21,7 +21,7 @@ assert.equal(manifest.policy.exactOrderRepairWithBackup, true);
 assert.equal(manifest.policy.realClientCanaryAuthorized, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
-assert.match(entryGuard, /texUltraDeliveryClosureFreezeRuntimeGuardV54\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(funnel, /texUltraAgencyCandidatesText/);
 assert.match(funnel, /awaiting_agency_selection/);
 assert.match(funnel, /texUltraConfirmationCorrections/);

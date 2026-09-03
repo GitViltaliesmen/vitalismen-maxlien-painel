@@ -1,0 +1,42 @@
+{
+  "attestationId": "npm-lifecycle-preload-bootstrap-v80-attestation-20260829",
+  "version": 80,
+  "parentVersion": "V79",
+  "purpose": "NPM_LIFECYCLE_PRELOAD_BOOTSTRAP_COMPATIBILITY",
+  "status": "IMPLEMENTATION_VALIDATED_LOCAL_ONLY",
+  "reproduction": {
+    "status": "PASS",
+    "preload": "./scripts/lib/ec-bot-core-readiness-v79-successor-context.mjs",
+    "dependencyCwd": "node_modules/@whiskeysockets/baileys",
+    "errorCode": "ERR_MODULE_NOT_FOUND"
+  },
+  "resolution": {
+    "bootstrapPath": "scripts/lib/npm-lifecycle-preload-bootstrap-v80.mjs",
+    "rootSource": "ATTESTED_ENTRYPOINT_WITH_VALIDATED_INIT_CWD_GIT_OR_RELEASE_SOURCE",
+    "nodeOptionsTransport": "ABSOLUTE_FILE_URL_VIA_NPM_CONFIG_NODE_OPTIONS",
+    "dependencyLifecycleContext": "ISOLATED",
+    "officialGuardContext": "REQUIRED",
+    "classification": "POSITIVE_EXPLICIT_ALLOWLIST",
+    "failClosed": true
+  },
+  "syntheticStage": {
+    "flow": "CHECKOUT_NPM_CI_LIFECYCLE_GUARDS_FINGERPRINT_ATTESTATION",
+    "includesBaileysLifecycle": true,
+    "postinstallFixtureExecuted": true,
+    "vpsAccessed": false,
+    "pm2Restarted": false,
+    "productionMutationExecuted": false
+  },
+  "preservation": {
+    "v78ByteIntact": true,
+    "v79ByteIntact": true,
+    "datasetChanged": false,
+    "ctaChanged": false,
+    "botBusinessLogicChanged": false,
+    "whatsappMessages": 0,
+    "metaEvents": 0,
+    "dropiApply": false,
+    "mutatingSchedulers": 0,
+    "colombiaOperationalInfrastructureTouched": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "freezeId": "modern-release-source-validation-v103",
+  "version": 103,
+  "country": "EC",
+  "observedAt": "2026-09-02T23:08:00.000Z",
+  "incident": {
+    "release": "20260902T220500Z_production-20260902-f66ed8c",
+    "releaseHasGitDirectory": false,
+    "helperFailure": "git_rev_parse_inside_staged_release",
+    "mutationBeforeFailure": false,
+    "currentPreserved": true,
+    "pm2PreservedOnline": true,
+    "safeObservationPreserved": true
+  },
+  "validation": {
+    "modernSourceUsesSuccessorValidation": true,
+    "directGitReadRemovedFromModernBranch": true,
+    "publishedStatusRequired": true,
+    "legacyV102PathPreserved": true,
+    "syntacticGuard": "PASS"
+  }
+}

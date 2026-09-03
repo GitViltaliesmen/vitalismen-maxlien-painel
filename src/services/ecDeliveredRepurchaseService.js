@@ -131,3 +131,52 @@ export const operationalOrderLineage = ({
         preserveExistingNotes: false
     });
 };
+
+export const deliveredRepurchaseRegistrationDecision = ({
+    authenticated = false,
+    currentOrder = null,
+    currentShipment = null,
+    activeRepurchase = null,
+    newCustomerPhone = '',
+    now = Date.now,
+    random = Math.random
+} = {}) => {
+    const lifecycle = panelOrderLifecycle({ order: currentOrder, shipment: currentShipment });
+    if (!lifecycle.delivered) {
+        return Object.freeze({
+            allowed: true,
+            repurchase: false,
+            reused: false,
+            reason: 'current_order_not_delivered'
+        });
+    }
+
+    const policy = repurchaseOrderCreationPolicy({
+        authenticated,
+        previousOrder: currentOrder,
+        previousShipment: currentShipment,
+        newCustomerPhone
+    });
+    if (!policy.allowed) return policy;
+
+    const reusableOrderId = String(activeRepurchase?.orderId || '').trim();
+    const reusablePreviousOrderId = String(activeRepurchase?.previousOrderId || '').trim();
+    const reusableEntryReason = String(activeRepurchase?.entryReason || '').trim();
+    const sameRepurchaseCycle = Boolean(
+        reusableOrderId
+        && reusablePreviousOrderId === policy.previousOrderId
+        && reusableEntryReason === policy.entryReason
+    );
+
+    return Object.freeze({
+        allowed: true,
+        repurchase: true,
+        reused: sameRepurchaseCycle,
+        orderId: sameRepurchaseCycle
+            ? reusableOrderId
+            : buildDeliveredRepurchaseOrderId(now, random),
+        previousOrderId: policy.previousOrderId,
+        previousDeliveredAt: policy.previousDeliveredAt,
+        entryReason: policy.entryReason
+    });
+};

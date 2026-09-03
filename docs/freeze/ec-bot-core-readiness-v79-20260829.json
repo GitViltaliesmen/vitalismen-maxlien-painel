@@ -1,0 +1,84 @@
+{
+  "freezeId": "ec-bot-core-readiness-v79",
+  "version": 79,
+  "parentVersion": "V78",
+  "parentFreezeId": "ec-bot-core-structural-safety-v78",
+  "parentManifestSha256": "46a9363f203c9e2f4d574e286d2c361b4bd3bb915ee2f0b2398b04af624e12e1",
+  "parentFreezeSha256": "b4fd1275fc7316cf63df103cade6c00ff322ef2b092f5083f79aed3e349039c3",
+  "parentCommit": "9a17abbe6546819f25885541a86f0cca7be1bc7b",
+  "parentTree": "a2d39450f790a3516ddfaed3babc1250927bb77b",
+  "status": "attested_ready",
+  "publicationStatus": "local_commit_only_no_push_no_tag_no_stage_no_deploy",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreReadinessFreezeRuntimeGuardV79.js",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "datasetId": "1468946114265008",
+    "activeDestinationSource": "legacy_env",
+    "browserServerSynchronized": true,
+    "qaPhone": "5515998038637",
+    "qaContext": "EC_V78_OFFICIAL_VSL_QA",
+    "qaUrl": "https://vilaliemen.shop/protocolo",
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false,
+    "vslMetaConfigurationMutationExecuted": true,
+    "hostingerEcMutationExecuted": false,
+    "botProductionDeployed": false,
+    "botActivated": false,
+    "qaCanaryExecuted": false,
+    "metaEventsSent": 0,
+    "colombiaOperationalInfrastructureTouched": false,
+    "ancestorFailurePropagation": "FAIL_CLOSED"
+  },
+  "resolution": {
+    "ctaOriginBlocker": "RESOLVED",
+    "datasetBlocker": "RESOLVED",
+    "datasetReconciliation": "PASS",
+    "browserCapiEquality": "PASS",
+    "vslPublicOriginConformance": "PASS",
+    "mismatchClass": "VSL_BROWSER_STALE",
+    "v78HistoricalManifestChanged": false
+  },
+  "deployment": {
+    "ready": true,
+    "blockers": [],
+    "requiresExplicitAuthorization": true,
+    "authorizedNextStep": "CONTROLLED_PUBLICATION_DEPLOYMENT_AND_SINGLE_PHONE_QA_CANARY"
+  },
+  "evidence": {
+    "datasetReconciliationPath": "docs/evidence/ec-meta-dataset-reconciliation-v79-20260829.json",
+    "datasetReconciliationSha256": "6bff2507362862bb28363f6d2d4637788f59344242d934ccd34a72a79a9bfb2f",
+    "readinessAttestationPath": "docs/evidence/ec-bot-core-readiness-attestation-v79-20260829.json",
+    "readinessAttestationSha256": "a1682f2c975f158bb8e8b39d2fdf0660ae3be294b101fc844261d9da235f8439"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "68385adaa6192b24a25d91c54d417a067522c53235ff966f711858aade6b2055"
+  },
+  "declaredAncestorOverrides": [],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_READINESS_FREEZE_V79_20260829.md",
+    "docs/evidence/ec-bot-core-readiness-attestation-v79-20260829.json",
+    "docs/evidence/ec-meta-dataset-reconciliation-v79-20260829.json",
+    "scripts/guard-ec-bot-core-readiness-v79.mjs",
+    "scripts/lib/ec-bot-core-readiness-v79-successor-context.mjs",
+    "src/services/ecBotCoreReadinessFreezeRuntimeGuardV79.js",
+    "src/services/ecBotCoreReadinessV79Service.js",
+    "tests/ec-bot-core-readiness-v79.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_READINESS_FREEZE_V79_20260829.md": "0f8bbf3303c19586826dc162a23d19215eb2f708c9659b8ee025d45bbd4113b8",
+    "docs/evidence/ec-bot-core-readiness-attestation-v79-20260829.json": "a1682f2c975f158bb8e8b39d2fdf0660ae3be294b101fc844261d9da235f8439",
+    "docs/evidence/ec-meta-dataset-reconciliation-v79-20260829.json": "6bff2507362862bb28363f6d2d4637788f59344242d934ccd34a72a79a9bfb2f",
+    "scripts/guard-ec-bot-core-readiness-v79.mjs": "0c9385b9e2154611efb9061c23ec0c450e6aa382cc99b49988fa49e76072b596",
+    "scripts/lib/ec-bot-core-readiness-v79-successor-context.mjs": "fc8c5ae58c0f578e579baa85ee14adb35a779721dd671a00f125a23ca6f05c16",
+    "src/services/ecBotCoreReadinessFreezeRuntimeGuardV79.js": "1bd99f35cab0e7b836153bc725b9494bfae80184b1abdb7721ced26ef0bb118e",
+    "src/services/ecBotCoreReadinessV79Service.js": "1fd476cde171f250e60118218fb914d70e51c6d5ef58129d63c39dfea09f6743",
+    "tests/ec-bot-core-readiness-v79.test.mjs": "b02b0ddb1f66e0bc738db9ab2969e11966c4ed44e51b78c9d6e9451be7e9a76b"
+  }
+}

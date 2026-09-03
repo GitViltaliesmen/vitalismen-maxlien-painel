@@ -1,0 +1,63 @@
+{
+  "freezeId": "post-sale-next-eligible-source-compatibility-v113",
+  "version": 113,
+  "parentVersion": "V112",
+  "parentFreezeId": "post-sale-next-eligible-monitor-v112",
+  "parentManifestSha256": "f69dee9a7bd4f4849d0dd93c6f8cc5a367582ab8686f4e2260e56d462eab32f3",
+  "parentCommit": "86e4b14052b5e41360dab84be25c09df450733c8",
+  "parentTree": "1c6639ced97dfce384c765a0d80432da84822367",
+  "purpose": "READ_ONLY_ALIAS_FUNCTIONAL_TREE_FOR_FROZEN_V112_SOURCE_IDENTITY",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "metadataWrites": 0,
+    "providerCallsAdded": 0,
+    "mongoMutationsAdded": 0,
+    "treeAliasSource": "functionalTree",
+    "treeAliasOnlyWhenMissing": true,
+    "requiresValidTreeSha": true,
+    "frozenV112Delegation": true,
+    "batchMax": 1,
+    "dailyLimit": 1,
+    "promoteBeyondOne": false,
+    "historicalBacklogEnabled": false,
+    "dropiAutomaticEnabled": false,
+    "metaRetroactiveEnabled": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-next-eligible-source-compatibility-v113-attestation-20260903.json",
+    "sha256": "1e660b0bda3871dca0ff5d7a7e64f68809a8191469280fd185bb2a5815a51521"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "b6e0b9a6093fcedc52bee1845bb7ccb26706ac054b6a3f293305fab2756438b8"
+  },
+  "declaredAncestorOverrides": [],
+  "modifiedAncestorProtectedFiles": [],
+  "newProtectedFiles": [
+    "docs/POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPATIBILITY_FREEZE_V113_20260903.md",
+    "docs/evidence/post-sale-next-eligible-source-compatibility-v113-attestation-20260903.json",
+    "ops/post-sale-next-eligible-v113",
+    "ops/systemd/vitalismen-postsale-next-eligible-v113.service",
+    "ops/systemd/vitalismen-postsale-next-eligible-v113.timer",
+    "scripts/guard-post-sale-next-eligible-source-compat-v113.mjs",
+    "scripts/lib/post-sale-next-eligible-source-compat-v113.mjs",
+    "src/services/postSaleNextEligibleSourceCompatibilityFreezeRuntimeGuardV113.js",
+    "src/services/postSaleNextEligibleSourceCompatibilityV113Service.js",
+    "tests/post-sale-next-eligible-source-compat-v113.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPATIBILITY_FREEZE_V113_20260903.md": "bfba6baa60a2b1309903e4805db1ad4eb2e510e09337388fd2383c7ac7da2bc0",
+    "docs/evidence/post-sale-next-eligible-source-compatibility-v113-attestation-20260903.json": "1e660b0bda3871dca0ff5d7a7e64f68809a8191469280fd185bb2a5815a51521",
+    "ops/post-sale-next-eligible-v113": "ee23a3ef0cba1967d0c062690387f580a96a5be5ae97285cf024d77390af840a",
+    "ops/systemd/vitalismen-postsale-next-eligible-v113.service": "7219a42a2d8c3343b33e0466ee89b01e001c854207235ba8563313fb722b7e47",
+    "ops/systemd/vitalismen-postsale-next-eligible-v113.timer": "7e9a7d5c22e0f3cb0c91d8d499905a072227a70414a855e95a6bcdd569617be9",
+    "scripts/guard-post-sale-next-eligible-source-compat-v113.mjs": "fbbfd7cc7f40c7bafd2629b521c3ae0d8b8e43732009e267c97d9eada62480c5",
+    "scripts/lib/post-sale-next-eligible-source-compat-v113.mjs": "a9ca8d1e784e993df13fd2eb59d112a317afd55f2bb8f68e312777d0de4aa87c",
+    "src/services/postSaleNextEligibleSourceCompatibilityFreezeRuntimeGuardV113.js": "b586f4d0cae5bb3acb7a2d7c00d1f6d20dc19a6167395a772dd6de13dfe8f88e",
+    "src/services/postSaleNextEligibleSourceCompatibilityV113Service.js": "263021ac4e55e65e7450ced868ecd2a69a70f1956129845de4d0181821215113",
+    "tests/post-sale-next-eligible-source-compat-v113.test.mjs": "e52ff1e462240cd034a9342a62c1281ba92fdae09a6b08ca64c5703542e0dac0"
+  }
+}

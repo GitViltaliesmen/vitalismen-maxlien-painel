@@ -1,0 +1,91 @@
+{
+  "freezeId": "ec-runtime-successor-v93",
+  "version": 93,
+  "parentVersion": "V92",
+  "parentFreezeId": "official-audit-successor-v92",
+  "parentManifestSha256": "41a26a0d5c9e878f5f5db76ee1b4c30a64c7e409eed3614e598f666fb267dade",
+  "parentFreezeSha256": "0da5225d3e146f94d1879fcccb92d20413ef803bd850e13a020a38ef56a910ed",
+  "parentAttestationSha256": "571b8d697da349ccc495e55e26e7f12d51cabfe64df5c868ef6ac53232262579",
+  "parentCommit": "929062a04c7e2488eed89b570c562a424e620f05",
+  "parentTree": "fc6389b11bfb4bc7838f682729eb714902c73108",
+  "purpose": "BIND_SUCCESSOR_CONTEXT_TO_SAFE_AND_OPERATIONAL_PM2_BOOT",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecRuntimeSuccessorFreezeRuntimeGuardV93.js",
+    "canonicalGuard": "node scripts/guard-ec-runtime-successor-v93.mjs",
+    "canonicalPreloader": "scripts/lib/ec-runtime-successor-v93-context.mjs",
+    "pm2TargetOnly": true,
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "desktopPageChanged": false,
+    "mobilePageChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-runtime-successor-v93-attestation-20260830.json",
+    "sha256": "8c41b3727464930d79104d4b138b4e1c103a611afb33199f5287f3c30142d548"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "b26d3bbe06c1021f6bd1b063da144241ee05ee9294127659dc3b928169680df8"
+  },
+  "declaredAncestorOverrides": [
+    "ops/vitalismen-stage",
+    "scripts/lib/pm2-target-env-restart-v89.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "src/services/deployGuardAncestryV91Service.js",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "src/services/ecVslDashboardIngressV90Service.js",
+    "src/services/officialAuditSuccessorV92Service.js",
+    "tests/ec-bot-core-control-plane-v89.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/vitalismen-stage",
+    "scripts/lib/pm2-target-env-restart-v89.mjs",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
+    "src/services/deployGuardAncestryV91Service.js",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "src/services/ecVslDashboardIngressV90Service.js",
+    "src/services/officialAuditSuccessorV92Service.js",
+    "tests/ec-bot-core-control-plane-v89.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_RUNTIME_SUCCESSOR_FREEZE_V93_20260830.md",
+    "docs/evidence/ec-runtime-successor-v93-attestation-20260830.json",
+    "scripts/guard-ec-runtime-successor-v93.mjs",
+    "scripts/lib/ec-runtime-successor-v93-context.mjs",
+    "src/services/ecRuntimeSuccessorFreezeRuntimeGuardV93.js",
+    "src/services/ecRuntimeSuccessorV93Service.js",
+    "tests/ec-runtime-successor-v93.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_RUNTIME_SUCCESSOR_FREEZE_V93_20260830.md": "a63ca741ca6fef474d4be9a0e780c2a3890965622e9d36eeb7d3cbf3c5c12838",
+    "docs/evidence/ec-runtime-successor-v93-attestation-20260830.json": "8c41b3727464930d79104d4b138b4e1c103a611afb33199f5287f3c30142d548",
+    "ops/vitalismen-stage": "a62cc22c4e712dff54336b9cee8004152d96cee2985d39c454f9d86d53df3880",
+    "scripts/guard-ec-runtime-successor-v93.mjs": "2af116ce202e52c36456f21fc67fba9fde606c1d070efb78aa58351fa5a9fa6c",
+    "scripts/lib/ec-runtime-successor-v93-context.mjs": "dd5c627c10b80b3e89d0f3908d64e419789ef39146f3681f2830bfe2ddc2d9fe",
+    "scripts/lib/pm2-target-env-restart-v89.mjs": "29c355d65beb771235dfc124e99c2c4f886defe8e4ed2856a1813c41fb54244b",
+    "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs": "fb0a2e7853e71c396011f302ee56dc39f8ec559ce7b4a6524317f745eca7fd17",
+    "src/services/deployGuardAncestryV91Service.js": "8303c50eb3f00c5d4b98686cd802399188454901d3c7f1bea786100d1abf32a5",
+    "src/services/ecBotCoreOperationalV78Service.js": "6a3c99d7140287c73f567b9847e5843c5cbb657b4ac2a9f4468c6b98218a91b4",
+    "src/services/ecRuntimeSuccessorFreezeRuntimeGuardV93.js": "32ea38553aad4832a30809852be1be90733f29b751224b4961c87ee45fc2ccd0",
+    "src/services/ecRuntimeSuccessorV93Service.js": "52c9df249511f71d22d06bdbf5c812959c5c65c9ec019bed0566ccc918bcda85",
+    "src/services/ecVslDashboardIngressV90Service.js": "6f4ac2308743b4caea4e156b6c1ebc4dc2e546356b586bcf9c110550f4dddf87",
+    "src/services/officialAuditSuccessorV92Service.js": "ce2cb8a82f2ab07fa6b6fe3cc126a0265a675d89c467c449407a78401c0c64ea",
+    "tests/ec-bot-core-control-plane-v89.test.mjs": "762800dba2f481b9aec729da4ae1c860a683df1a5232fd478ce7c3e113fb7784",
+    "tests/ec-runtime-successor-v93.test.mjs": "860658ef3bd6455baa77c52396e39ffff5739c111008bf5b8c7c30267bb1e2d8"
+  }
+}

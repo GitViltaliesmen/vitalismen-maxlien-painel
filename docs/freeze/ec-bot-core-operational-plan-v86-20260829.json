@@ -1,0 +1,79 @@
+{
+  "freezeId": "ec-bot-core-operational-plan-v86",
+  "version": 86,
+  "parentVersion": "V85",
+  "parentFreezeId": "ec-bot-core-canary-classification-v85",
+  "parentManifestSha256": "4398170c81b95e789a9274714c917aa3ce29170dac6a744d36eb85f1ad45ee25",
+  "parentFreezeSha256": "9f019822a59d122915c09658fb6b70c2d5951b53026a485a817dc545374bc322",
+  "parentAttestationSha256": "9b80b2908e249517f450690bc2955d4239e979eace765eae2097f232dc968301",
+  "parentCommit": "4084bf8ee2dded6a5ce6388aecfe57b7ce50d192",
+  "parentTree": "616967d32a2d354d2cfed0d8fb5dd4c56655825b",
+  "purpose": "EC_BOT_CORE_SUCCESSOR_AWARE_OPERATIONAL_PLAN",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreOperationalPlanFreezeRuntimeGuardV86.js",
+    "canonicalPlanGuard": "node scripts/guard-ec-bot-core-operational-plan-v86.mjs",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "datasetId": "1468946114265008",
+    "ancestralGuardModified": false,
+    "v85ClassificationChanged": false,
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-bot-core-operational-plan-v86-attestation-20260829.json",
+    "sha256": "b326b2baad4c56699e242ece0137de2303cff2602990a34ddb577b4016d9cee2"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "db253f0815611ea6abf031717a36f540a9991c0ff32725ba7adfb77b8ef985fd"
+  },
+  "declaredAncestorOverrides": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/canaryControllerV77Service.js",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "modifiedParentProtectedFiles": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_OPERATIONAL_PLAN_ALIGNMENT_FREEZE_V86_20260829.md",
+    "docs/evidence/ec-bot-core-operational-plan-v86-attestation-20260829.json",
+    "scripts/guard-ec-bot-core-operational-plan-v86.mjs",
+    "scripts/lib/ec-bot-core-operational-plan-v86-successor-context.mjs",
+    "src/services/ecBotCoreOperationalPlanFreezeRuntimeGuardV86.js",
+    "src/services/ecBotCoreOperationalPlanV86Service.js",
+    "tests/ec-bot-core-operational-plan-v86.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_OPERATIONAL_PLAN_ALIGNMENT_FREEZE_V86_20260829.md": "8110af7a8f5f87cc8e020ff1ec8b3647e4ce6d13861fb8f37538a94e0a63d411",
+    "docs/evidence/ec-bot-core-operational-plan-v86-attestation-20260829.json": "b326b2baad4c56699e242ece0137de2303cff2602990a34ddb577b4016d9cee2",
+    "ops/ec-bot-core-v78": "4dab686bacacbb170a1c1f3c4006a36ef1f13db29a79ea3470b2cd3f60a662d2",
+    "scripts/guard-ec-bot-core-operational-plan-v86.mjs": "e4c0abecc17f9fbf4f571cfaabefeb225408698e0c4cf13d547cfefd3d80d326",
+    "scripts/lib/ec-bot-core-operational-plan-v86-successor-context.mjs": "6d386862ea01d896da6d4295cdb988d41b5cda60ea16d475c0b9a72205eb1483",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "d6874bfdbc5ed8fae4fc52752d1ea05794a1d901281eea3e5aae56be712018cf",
+    "src/services/canaryControllerV77Service.js": "31ceb0167c67a71500315ee835ad6bc59c1aba3e028fb706d490dcd5a2d5df63",
+    "src/services/ecBotCoreOperationalPlanFreezeRuntimeGuardV86.js": "27f41b7448029f3a5321b8764b4ac7a8f1a8834636e8190c3cdf739539fedb6c",
+    "src/services/ecBotCoreOperationalPlanV86Service.js": "c67a92385b8cf623a4d2792bcfab1f4bbc46cb5784d3c30b701e2c513fc882c2",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js": "f18afef96e9037506e750653bfbc552bcbbdbf61726bb6a70514af9453c08871",
+    "tests/ec-bot-core-operational-plan-v86.test.mjs": "a32d6f069957214a157edf99a1aa96fd642fbb1a0f4fb53ef537fd045d28bcf5"
+  }
+}

@@ -18,5 +18,11 @@ assert.match(
     'envio confirmado pela Dropi deve notificar imediatamente o painel integrado'
 );
 assert.match(html, /status: mergedStatus,[\s\S]*_opsStatus: mergedStatus/);
+assert.match(html, /const mergedPhoneTails = new Set\(\)/);
+assert.match(
+    html,
+    /if \(tail && mergedPhoneTails\.has\(tail\)\) return;[\s\S]*mergedPhoneTails\.add\(tail\)/,
+    'pedido historico do mesmo telefone nao deve sobrescrever a recompra mais recente'
+);
 
 console.log('leads-window operational status precedence: ok');

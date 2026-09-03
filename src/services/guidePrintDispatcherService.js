@@ -1,5 +1,11 @@
 import Shipment from '../models/Shipment.js';
 import { ensureGuidePrintImage, notifyGuidePrintImage } from './shipmentMessageService.js';
+import {
+    decidePostSaleNotification,
+    failPostSaleNotificationStage,
+    shouldSendPostSaleNotification
+} from './postSaleNotificationDecisionService.js';
+import { POST_SALE_STAGES, POST_SALE_VARIANTS } from './postSaleSafetyV66Service.js';
 
 export const GUIDE_PRINT_ACTIVE_STATUSES = [
     'READY_FOR_PICKUP'
@@ -159,8 +165,30 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
         }
 
         try {
+            const decision = await decidePostSaleNotification({
+                shipment: locked,
+                kind: 'guide',
+                variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE
+            });
+            if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) {
+                result.skipped += 1;
+                result.items.push({
+                    ...describeCandidate(locked),
+                    sent: false,
+                    reason: decision.decision || decision.reason || 'central_decision_blocked',
+                    notificationStage: decision.stage || 'GUIDE'
+                });
+                continue;
+            }
             const conversion = await ensureGuidePrintImage(locked, { force: false });
             if (!conversion.ok) {
+                await failPostSaleNotificationStage({
+                    shipment: locked,
+                    stage: POST_SALE_STAGES.GUIDE,
+                    variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+                    lockToken: decision.lockToken,
+                    reason: conversion.reason || 'guide_print_generation_failed'
+                });
                 result.failed += 1;
                 result.items.push({
                     ...describeCandidate(locked),
@@ -170,7 +198,7 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
                 });
                 continue;
             }
-            const sendResult = await notifyGuidePrintImage(locked, { force: false });
+            const sendResult = await notifyGuidePrintImage(locked, { force: false, decision });
             if (sendResult.success) {
                 result.sent += 1;
                 result.items.push({

@@ -1,0 +1,70 @@
+{
+  "freezeId": "protocolo-g-successor-guard-v101",
+  "version": 101,
+  "parentVersion": "V100",
+  "parentFreezeId": "ec-repurchase-panel-precedence-v100",
+  "parentManifestSha256": "86db366c94f627aec01024f65ac7f2052653cf1017aecdb187d259e9e7fb4681",
+  "parentFreezeSha256": "179ecafa9bfd27f60e1931d17e6895960826ed340bc44059aad6534e74f59f6a",
+  "parentAttestationSha256": "94843583f59ee518be9d85b310d09f01aab84b309c4fb83a85619e6c3352bc90",
+  "parentCommit": "1c66b017b4e61d7e22540e7a881474f35dbda5bb",
+  "parentTree": "2bbba45903f9c6f71683e4937e8c79effeba2b85",
+  "purpose": "EXACT_V90_V98_SUCCESSOR_RECOGNITION_IN_V61_V62_V63_GUARDS",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_guard_composition_only",
+  "country": "EC",
+  "policy": {
+    "exactV90HashRequired": true,
+    "historicalHashesRewritten": false,
+    "zapiRouteChanged": false,
+    "operationalBehaviorChanged": false,
+    "whatsappOutboundChanged": false,
+    "dropiSubmissionCreated": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false,
+    "guardsBypassed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/protocolo-g-successor-guard-v101-attestation-20260902.json",
+    "sha256": "1b1de9440dffb8d3d07acaaa65d6904835b46078bd1a2da2f6baa656966d1a5b"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "b667e70997c1157e1d9ebb179234117cf149d43be52977e92b6092467a96db66"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecRepurchasePanelPrecedenceV100Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+    "scripts/guard-protocolo-g-conversion-v62.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecRepurchasePanelPrecedenceV100Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/PROTOCOLO_G_SUCCESSOR_GUARD_FREEZE_V101_20260902.md",
+    "docs/evidence/protocolo-g-successor-guard-v101-attestation-20260902.json",
+    "scripts/guard-protocolo-g-successor-v101.mjs",
+    "src/services/protocoloGSuccessorGuardFreezeRuntimeGuardV101.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js",
+    "tests/protocolo-g-successor-guard-v101.test.mjs"
+  ],
+  "protectedFiles": {
+    "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs": "c3fbd5943ed364985c81ad8b132541ef6f9a432b3932c932e8704eb059a6a3dd",
+    "scripts/guard-protocolo-g-ad-metrics-v63.mjs": "2fe9e89bee61d8458a35711af7744cf71e616c858f7c646108c63318ad06cab3",
+    "scripts/guard-protocolo-g-conversion-v62.mjs": "9da9dbfb2c8feaacf930f5c425890ad89c8d56e97740423815cba74fe57542bf",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "3e1f71b2d7f8cf9c203dd65dcfbde6929401b0aabf31a40e7283eb64427fffed",
+    "src/services/ecRepurchasePanelPrecedenceV100Service.js": "4b57ad1dc1b15ef00664acd6ff0ea8072fa3c458cad4891358e67a5139a90c6d",
+    "docs/PROTOCOLO_G_SUCCESSOR_GUARD_FREEZE_V101_20260902.md": "94e2bf3e69d760e536b212f837b953b0ed163fc4243a26dc93399736361b8eb0",
+    "docs/evidence/protocolo-g-successor-guard-v101-attestation-20260902.json": "1b1de9440dffb8d3d07acaaa65d6904835b46078bd1a2da2f6baa656966d1a5b",
+    "scripts/guard-protocolo-g-successor-v101.mjs": "f4bba693c2424ce9c81c12dd5ba2c3bed9e401ebe44bc0be0e7e07799635093e",
+    "src/services/protocoloGSuccessorGuardFreezeRuntimeGuardV101.js": "c69bd3d6e8403fb61672d43bfc2bcc0bc71fcc33b15b95360c59bb72751b630d",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "0f9459ee5cb519c3d6c6b8d854b41c9c6493f2655188d1e94beb298eab67c8a0",
+    "tests/protocolo-g-successor-guard-v101.test.mjs": "6f815422a2d34fa02a9214325cae695a2203c55c325b8dd87cd03964153e5a42"
+  }
+}

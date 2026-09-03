@@ -1,0 +1,41 @@
+{
+  "attestationId": "post-sale-transactional-control-plane-v105-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V104",
+  "dropiGate2": {
+    "targetOrderId": "EC-MTJKKKV0-7Z7O",
+    "lookupBeforeCount": 0,
+    "createPostCount": 1,
+    "createHttpStatus": 200,
+    "dropiOrderId": "6832996",
+    "lookupAfterCount": 1,
+    "duplicatesCreated": 0,
+    "automaticRetryCount": 0
+  },
+  "profile": {
+    "name": "EC_POST_SALE_TRANSACTIONAL",
+    "batchMax": 1,
+    "dailyMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaRetroactiveAllowed": false,
+    "commercialSchedulersAllowed": false
+  },
+  "perMessageGuards": [
+    "human_mode_manual",
+    "terminal_ledger",
+    "equivalent_history",
+    "persistent_lock",
+    "idempotency_key",
+    "chronology",
+    "cooldown",
+    "refresh_before_send"
+  ],
+  "rollback": {
+    "scope": "post_sale_control_plane_only",
+    "restoresProfile": "EC_BOT_CORE_OPERATIONAL",
+    "keepsDropiPatch": true,
+    "changesCurrentSymlink": false
+  }
+}

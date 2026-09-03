@@ -856,3 +856,415 @@ Arquivos-fonte da correção:
 
 Nenhum arquivo da VPS foi substituído, nenhum symlink ou PM2 foi alterado e
 nenhuma mensagem/pedido real foi produzido.
+
+## Candidata local V66 — 2026-08-26
+
+Fonte oficial: branch local `codex/post-sale-safety-v66`, baseada na tag
+V65 `production-20260826-1a3b9a5`. Produção contida em estado parado e symlink
+de baseline `20260826T054900Z_production-20260826-cc85952`.
+
+Arquivos oficiais da correção:
+
+- `src/services/postSaleSafetyV66Service.js` — estágios, chave, gate e modos;
+- `src/services/postSaleNotificationDecisionService.js` — decisão/lock/ledger;
+- `src/services/guidePrintDispatcherService.js` — decisão antes da mídia;
+- `src/services/shipmentMessageService.js` — barreira de texto/PDF/imagem;
+- `src/services/schedulerService.js` e `src/index.js` — startup fail-closed;
+- `src/services/droppiEcuadorBrowserService.js` — modos explícitos do sync;
+- `src/models/OperationalSafetyState.js` — contrato persistente de versão;
+- `scripts/reconcile-post-sale-safety-v66.mjs` — bridge REPORT_ONLY por padrão;
+- `scripts/assert-post-sale-data-compatibility-v66.mjs` — bloqueio de target;
+- `tests/post-sale-safety-v66.test.mjs` — 44 cenários permanentes, incluindo todas as bordas logísticas automáticas e a matriz explícita de rerun/restart/reconciliação/rollback;
+- `docs/POST_SALE_SAFETY_FREEZE_V66_20260826.md` — contrato normativo;
+- `docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md` — incidente auditável;
+- `docs/POST_SALE_V66_COMPATIBILITY_MATRIX.md` — writer × runtime;
+- `docs/POST_SALE_V66_OUTBOUND_INVENTORY.md` — caminhos e bypasses;
+- `docs/freeze/post-sale-safety-v66-20260826.json` — hashes V66.
+
+Estado: release candidate local em preparação. Bridge não executado, estado
+persistente V66 não criado, mutações operacionais desabilitadas por padrão e
+nenhuma alteração realizada no VPS.
+
+## Candidata local V67 — cadeia canônica de guards — 2026-08-26
+
+- Parent imutável: manifesto V66 com SHA-256
+  `f00afd694d897bfc5d92da69c173bd834612319250b32909b578765b608d2cb9`.
+- Runtime canônico:
+  `src/services/runtimeGuardChainFreezeRuntimeGuardV67.js`.
+- Contexto formal e escopado:
+  `src/services/successorGuardContextService.js`.
+- Guard estático e testes:
+  `scripts/guard-runtime-chain-v67.mjs` e
+  `tests/runtime-guard-chain-v67.test.mjs`.
+- Freeze/manifest:
+  `docs/GUARD_CHAIN_SEMANTICS_FREEZE_V67_20260826.md` e
+  `docs/freeze/runtime-guard-chain-v67-20260826.json`.
+- Helper-fonte auditado: `ops/vitalismen-stage`; o helper instalado não foi
+  alterado e depende de autorização posterior.
+- Produção de referência preservada:
+  `/opt/vitalismen-automacao/releases/20260826T215201Z_production-20260826-c97c298`,
+  runtime parado. Nenhum staging, deploy, permit, bridge, mensagem, Dropi ou
+  mutação de banco foi executado pela V67.
+
+## Candidata local V68 — segurança do helper de deploy — 2026-08-27
+
+- Parent imutável: `runtime-guard-chain-v67-20260826`.
+- Fonte oficial corrigida: `ops/vitalismen-stage`.
+- Contrato estático compartilhado:
+  `scripts/lib/deploy-helper-contract-v68.mjs`.
+- Guard e runtime canônicos:
+  `scripts/guard-deploy-helper-runtime-safety-v68.mjs` e
+  `src/services/deployHelperRuntimeSafetyFreezeRuntimeGuardV68.js`.
+- Harness sem rede/VPS:
+  `tests/deploy-helper-runtime-safety-v68.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_HELPER_RUNTIME_SAFETY_FREEZE_V68_20260827.md` e
+  `docs/freeze/deploy-helper-runtime-safety-v68-20260827.json`.
+- Compatibilidade de dados preservada em V66; nenhuma lógica comercial,
+  mensagem, pedido, scheduler, bridge, Dropi APPLY, PM2, `/current` ou helper
+  instalado é alterado por esta candidata local.
+
+## Candidata local V69 — stage por ref remota exata — 2026-08-27
+
+- Parent imutável: `deploy-helper-runtime-safety-v68-20260827`, manifesto
+  SHA-256 `90c1c19433d5f5a2f358be4c0b7aead6f3d8e81615df8005ea62f9348a0dad1e`.
+- Fonte oficial local: `ops/vitalismen-stage`; helper instalado na VPS não foi
+  alterado.
+- Contrato estático:
+  `scripts/lib/deploy-stage-source-ref-contract-v69.mjs`.
+- Guard e runtime canônicos:
+  `scripts/guard-deploy-stage-source-ref-safety-v69.mjs` e
+  `src/services/deployStageSourceRefSafetyFreezeRuntimeGuardV69.js`.
+- Harness do caminho real `stage`:
+  `tests/deploy-stage-source-ref-safety-v69.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_STAGE_SOURCE_REF_SAFETY_FREEZE_V69_20260827.md` e
+  `docs/freeze/deploy-stage-source-ref-safety-v69-20260827.json`.
+- Fonte Git: full ref exata autorizada + COMMIT e TREE aprovados; checkout
+  detached; `production` obrigatoriamente inalterada; tag de produção não é
+  requisito para staging.
+- Estado: candidata exclusivamente local, sem push, tag, merge, instalação,
+  release VPS, alteração de `/current`, PM2, bridge, mensagem, Dropi ou mutação
+  de produção. Compatibilidade de dados permanece V66.
+
+## Registro V70 — publicação/attestation imutável (2026-08-27)
+
+- Helper versionado: `ops/vitalismen-stage`.
+- Contrato: `scripts/lib/deploy-publication-attestation-contract-v70.mjs`.
+- Guard estático: `scripts/guard-deploy-publication-attestation-safety-v70.mjs`.
+- Runtime canônico: `src/services/deployPublicationAttestationSafetyFreezeRuntimeGuardV70.js`.
+- Manifesto: `docs/freeze/deploy-publication-attestation-safety-v70-20260827.json`.
+- Freeze: `docs/DEPLOY_PUBLICATION_ATTESTATION_SAFETY_FREEZE_V70_20260827.md`.
+- Teste: `tests/deploy-publication-attestation-safety-v70.test.mjs`.
+- Cadeia: V70 → V69 → V68 → V67 → V66; compatibilidade de dados permanece 66.
+- Estado desta alteração: somente local/versionado; sem push, tag real, instalação do
+  helper, stage real, publicação real, ativação, mudança em `current` ou ação PM2.
+
+## Registro V71 — strict read-only global (2026-08-27)
+
+- Serviço/gate central: `src/services/strictReadOnlyObservationService.js`.
+- Startup/HTTP: `src/index.js` e `src/config/db.js`.
+- Superfícies Z-API/VSL/painel/health: `src/routes/zapi.js`,
+  `src/routes/whatsapp.js`, `src/routes/auth.js` e `src/routes/health.js`.
+- Defesas de outbound/dedupe/Shipment: `src/services/zapiClient.js`,
+  `src/services/outboundDedupeService.js`,
+  `src/services/droppiEcuadorBrowserService.js` e `src/whatsapp/send*.js`.
+- Baseline oficial read-only:
+  `scripts/audit-document-level-baseline-readonly.mjs` e
+  `tests/document-level-baseline-readonly.test.mjs`.
+- Guard estático/runtime:
+  `scripts/guard-strict-read-only-observation-safety-v71.mjs` e
+  `src/services/strictReadOnlyObservationSafetyFreezeRuntimeGuardV71.js`.
+- Manifesto/freeze:
+  `docs/freeze/strict-read-only-observation-safety-v71-20260827.json` e
+  `docs/STRICT_READ_ONLY_OBSERVATION_SAFETY_FREEZE_V71_20260827.md`.
+- Teste integrado: `tests/strict-read-only-observation-safety-v71.test.mjs`.
+- Cadeia: V71 → V70 → V69 → V68 → V67 → V66 → ancestrais; data
+  compatibility permanece 66.
+- Estado: candidata somente local. V70 histórica byte-intact; produção,
+  helper instalado, `/current`, PM2 e dados de produção não foram alterados.
+
+## Registro V72 — alinhamento do helper à cadeia runtime V71 (2026-08-27)
+
+- Freeze ID: `deploy-helper-v71-chain-alignment-safety-v72`.
+- Parent byte-intact: manifesto V71 SHA-256
+  `9321d038b53eaa5148c37fc6662d184a95e6b7fd8e623488b8f54a011df8de86`.
+- Fonte oficial local do helper: `ops/vitalismen-stage`.
+- Contrato/guard:
+  `scripts/lib/deploy-helper-v71-chain-alignment-contract-v72.mjs` e
+  `scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs`.
+- Wrapper de freeze/deploy:
+  `src/services/deployHelperV71ChainAlignmentSafetyFreezeGuardV72.js`; ele
+  termina validando `npm run guard:runtime-chain-v71`.
+- Testes:
+  `tests/deploy-helper-v71-chain-alignment-v72.test.mjs` e harness sintético
+  herdado de `tests/deploy-publication-attestation-safety-v70.test.mjs`.
+- Freeze/manifest:
+  `docs/DEPLOY_HELPER_V71_CHAIN_ALIGNMENT_SAFETY_FREEZE_V72_20260827.md` e
+  `docs/freeze/deploy-helper-v71-chain-alignment-safety-v72-20260827.json`.
+- Versões: `FREEZE_VERSION=72`, `DEPLOY_HELPER_CONTRACT_VERSION=72`,
+  `RUNTIME_GUARD_CHAIN_VERSION=71`, `DATA_COMPATIBILITY_VERSION=66`.
+- Estado: somente local; sem push, tag, instalação, VPS stage, publicação,
+  permit, `/current`, PM2, mensagens, Dropi, bridge ou mutação de dados.
+
+## Registro V73 — destinos Meta e parceria publicitária (2026-08-28)
+
+- Serviço/fonte única:
+  `src/services/metaDestinationRegistryService.js`.
+- Integração CAPI preservada:
+  `src/services/metaConversionsService.js`.
+- Endpoint público redigido:
+  `src/routes/health.js`, `GET /api/health/meta-destination`, pelo proxy Nginx
+  oficial já existente de `/api/health/`.
+- Resolvedor Browser sem Pixel fixo divergente:
+  `public/n/index.html`.
+- Helper operacional DRY RUN por padrão:
+  `scripts/manage-meta-destinations-v73.mjs`.
+- Configuração persistente oficial fora da release:
+  `/opt/vitalismen-automacao/shared/config/meta-destinations.json`,
+  `root:root 0600`.
+- Segredos opcionais oficiais fora da release/Git:
+  `/opt/vitalismen-automacao/shared/secrets/meta-destinations.json`,
+  `root:root 0600`.
+- Testes:
+  `tests/meta-partner-destination-registry-v73.test.mjs`.
+- Freeze, runbook e incidente:
+  `docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md`,
+  `docs/META_PARTNER_ACCOUNT_RUNBOOK_20260828.md` e
+  `docs/INCIDENTE_502_RECOVERY_V72_20260828.md`.
+- Dataset EC principal preservado no bootstrap: `1468946114265008`.
+- Dataset Tex Ultra Protocolo G preservado: `2048099902484149`.
+- Sem token no Git/frontend/API/log. Conta parceira usa compartilhamento do
+  Dataset existente; troca real usa perfil inativo + ativação atômica.
+- `plan-partner` deriva o perfil ativo e recusa perfil histórico; a ativação
+  exige perfil ativo e Dataset novo esperados antes de qualquer `--apply`.
+- Mutações do helper usam lock exclusivo e escrita atômica sincronizada;
+  concorrência ou lock pendente falham fechados.
+- Envelope operacional preservado: helper/freeze V72, runtime V71
+  `STRICT_READ_ONLY`, data compatibility V66.
+
+## Registro V74 — sucessor do FREEZE_LOCK_EC para destino Meta dinâmico (2026-08-28)
+
+- Freeze histórico preservado sem edição: `FREEZE_LOCK_EC.json`, SHA-256
+  `38fb689fe10e9d8d2794397ace313e0a71cbcf131691e7b87ac8b3aaa2be0603`.
+- Contrato sucessor explícito: `FREEZE_LOCK_EC_V74.json`.
+- Contrato executável:
+  `scripts/lib/freeze-lock-ec-meta-dynamic-v74-contract.mjs`.
+- Entrypoint histórico obrigatório, agora consciente da sucessão:
+  `scripts/guard-freeze-lock-ec.mjs`.
+- Guard estático/runtime:
+  `scripts/guard-freeze-lock-ec-meta-dynamic-v74.mjs` e
+  `src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js`.
+- Testes positivos, negativos, comportamentais e parse inline:
+  `tests/freeze-lock-ec-meta-dynamic-v74.test.mjs`.
+- Freeze/manifesto:
+  `docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md` e
+  `docs/freeze/freeze-lock-ec-meta-dynamic-v74-20260828.json`.
+- Parent V73 imutável: commit
+  `6c759973f2d4de3f49bf8157a5a449b8aba4e894`, tree
+  `545089287546a4c51ad58cc93690014297a29a4c`, manifesto SHA-256
+  `f3892d723313493b9a3ecd88cba0635e912d8c7a3a7fc954ff3cd8cbc9cdb836`.
+- O helper oficial `ops/vitalismen-stage` permanece byte-intacto, SHA-256
+  `47acfd910326d36fcdd779edebda42fb7ecd1c8faf83cd5a9faaef1c3110f631`.
+- Sem alteração nos arquivos funcionais Meta V73. Sem push, tag, deploy,
+  inicialização de registry, evento Meta ou mutação de produção nesta missão.
+
+## Registro V75 — isolamento local de canário (2026-08-28)
+
+- Fonte única do gate: `src/services/canaryIsolationV75Service.js`.
+- Único destinatário candidato: QA `5515998038637`, por igualdade integral.
+- Fronteiras: inbound Z-API/Baileys/VSL, outbound, provider, decisões pós-venda,
+  consultas/loops de status, retirada, prova, bônus e carrier sweep.
+- Dropi e Meta: bloqueio incondicional enquanto a V75 estiver aplicada.
+- Origem oficial: `/n/` permanece exclusivamente Tex Ultra; metadado Nitrix
+  legado conflitante é recusado, sem confundir `/nitrix` com `/n`.
+- Guard/runtime/teste:
+  `scripts/guard-canary-isolation-v75.mjs`,
+  `src/services/canaryIsolationSafetyFreezeRuntimeGuardV75.js` e
+  `tests/canary-isolation-v75.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_ISOLATION_SAFETY_FREEZE_V75_20260828.md` e
+  `docs/freeze/canary-isolation-safety-v75-20260828.json`.
+- Cadeia: V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados 66
+  preservados.
+- Estado: somente a pasta local oficial; sem alteração de `.env`, VPS,
+  `/current`, PM2, banco, provider, schedulers, mensagens, tráfego, push, tag,
+  stage ou deploy.
+
+## Registro V76 — semântica do health para bridge persistente V66 (2026-08-28)
+
+- Freeze ID: `deploy-health-bridge-semantics-v76`.
+- Causa corrigida: `bridgeComplete=true` comprova que a migração persistente A4
+  terminou; não representa bridge operacional ligada.
+- Helper versionado: `ops/vitalismen-stage`; o health agora exige também dados
+  66 e runtime mínimo 66 antes de aceitar a candidata.
+- Trava operacional preservada:
+  `POST_SALE_V66_COMPATIBILITY_BRIDGE_READY=false`, mutações desligadas,
+  autorizações vazias, zero schedulers e Dropi `REPORT_ONLY`.
+- Contrato/guard/testes:
+  `scripts/lib/deploy-health-bridge-semantics-contract-v76.mjs`,
+  `scripts/guard-deploy-health-bridge-semantics-v76.mjs` e
+  `tests/deploy-health-bridge-semantics-v76.test.mjs`.
+- Runtime/freeze/manifesto:
+  `src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js`,
+  `docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md` e
+  `docs/freeze/deploy-health-bridge-semantics-v76-20260828.json`.
+- `src/routes/health.js`, banco, bridge, providers, integrações e schedulers
+  permanecem sem alteração.
+- Cadeia: V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados 66.
+- Estado: candidata somente local; sem push, tag, stage, deploy, VPS, `/current`,
+  PM2, `.env`, banco, mensagem, canário ou tráfego.
+
+## Registro V77 — controle temporizado do canário QA (2026-08-28)
+
+- Serviço runtime: `src/services/canaryControllerV77Service.js`.
+- Contrato de perfil, attestation, overlay e permit:
+  `scripts/lib/canary-controller-contract-v77.mjs`.
+- Helper versionado e comandos futuros: `ops/vitalismen-stage`,
+  `v77-canary-authorize`, `v77-canary-validate`, `v77-canary-activate` e
+  `v77-canary-contain`.
+- Único QA e cinco allowlists: `5515998038637`.
+- Permit: uso único, máximo dez minutos; janela: máximo sessenta minutos;
+  expiração: fail-closed em cada fronteira V75.
+- Baseline imutável V76: release
+  `20260828T210000Z_production-20260828-297324a`, commit
+  `297324afa20ae5d59fbcb6080eae2e62c4841c8b`, tree
+  `56a2b2cdc5c3062d1b90b7906bb48c705ab7d865` e tag
+  `production-20260828-297324a`.
+- Guard/runtime/testes: `scripts/guard-canary-controller-v77.mjs`,
+  `src/services/canaryControllerSafetyFreezeRuntimeGuardV77.js` e
+  `tests/canary-controller-v77.test.mjs`.
+- Freeze/manifesto: `docs/CANARY_CONTROLLER_SAFETY_FREEZE_V77_20260828.md` e
+  `docs/freeze/canary-controller-safety-v77-20260828.json`.
+- Cadeia: V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71 e dados
+  66 preservados.
+- Estado: microlayer somente local; sem commit, push, tag, stage, deploy, VPS,
+  helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
+  scheduler, mensagem, canário ou tráfego.
+
+## Registro V77H — hotfix de stdin do verificador PM2 (2026-08-29)
+
+- Base V77 imutável: commit
+  `5bedd9154c4ba0b69f0477e059473dcf7012d38a`, tree
+  `681b6fd3249065e6b745eb346cbc5ff093185d1e`.
+- Causa: pipe `pm2 jlist` competia com o heredoc de `node -` pelo mesmo stdin,
+  podendo gerar `EPIPE` no produtor antes da leitura do JSON.
+- Contrato corretivo:
+  `scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs`.
+- Helper local candidato: `ops/vitalismen-stage`; o JavaScript e o JSON PM2
+  ficam em canais separados e o stdin é lido integralmente até EOF.
+- Proteção adicional sem expansão operacional: fingerprint dos processos PM2
+  externos deve permanecer idêntico antes/depois do restart exclusivo do alvo.
+- Guard/runtime/teste:
+  `scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs`,
+  `src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js`
+  e `tests/canary-controller-pm2-stdin-hotfix-v77h.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md` e
+  `docs/freeze/canary-controller-pm2-stdin-hotfix-v77h-20260829.json`.
+- V77 permanece como ancestral histórico; perfil, overlay, permit,
+  attestation, health, expiração, ativação e contenção não mudam.
+- Cadeia: V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime guard 71
+  e dados 66 preservados.
+- Estado: candidata somente local; sem commit, push, tag, stage, deploy, VPS,
+  helper instalado, `/current`, PM2, `.env`, banco, provider, integração,
+  scheduler, mensagem, canário, bot ou tráfego.
+
+## Registro V77H2 — reset da política de health do canário (2026-08-29)
+
+- Base V77H imutável: commit
+  `23c81c762d58108307860d53770805acbd0e0ba8`, tree
+  `2c40ec813cf70bb200f7d12d6ebc31443b664f6d`.
+- Causa: o PM2 preservava `SAFE_OBSERVATION_POLICY=STRICT_READ_ONLY` porque a
+  chave não existia no overlay QA, produzindo falso negativo do health.
+- Correção única: `scripts/lib/canary-controller-contract-v77.mjs` materializa
+  `SAFE_OBSERVATION_POLICY=` para sobrescrever o valor herdado.
+- Helper `ops/vitalismen-stage` preservado integralmente com SHA-256
+  `ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853`.
+- Guard/runtime/teste:
+  `scripts/guard-canary-controller-health-policy-reset-v77h2.mjs`,
+  `src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js`
+  e `tests/canary-controller-health-policy-reset-v77h2.test.mjs`.
+- Freeze/manifesto:
+  `docs/CANARY_CONTROLLER_HEALTH_POLICY_RESET_FREEZE_V77H2_20260829.md` e
+  `docs/freeze/canary-controller-health-policy-reset-v77h2-20260829.json`.
+- Cinco allowlists: somente QA `5515998038637`; Dropi APPLY, Meta, segundo
+  destinatário e schedulers proibidos permanecem fail-closed.
+- Cadeia: V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71; runtime
+  guard 71 e dados 66 preservados.
+- Estado: candidata exclusivamente local; sem commit, push, tag, stage, deploy,
+  VPS, helper instalado, `/current`, PM2, ambiente, banco, integração,
+  mensagem, canário, bot ou tráfego.
+
+## Registro V78 — núcleo seletivo e isolamento do runtime (2026-08-29)
+
+- Base imutável V77H2: commit
+  `193faa1c919a02c524deba3263bc174b24775700`, tree
+  `124c6a0f46daf9f768014935a78bbba71c8f8d04`.
+- Registro de artefatos mutáveis:
+  `src/services/mutableRuntimeArtifactV78Service.js`; raiz oficial futura
+  `/opt/vitalismen-automacao/shared/runtime`.
+- Perfil e integração runtime:
+  `src/services/ecBotCoreOperationalV78Service.js` e
+  `src/services/ecBotCoreRuntimeIntegrationV78Service.js`.
+- Helper operacional futuro: `ops/ec-bot-core-v78`; operações `plan`,
+  `authorize`, `activate`, `status` e `contain`.
+- Reset QA: `scripts/ec-qa-test-reset-v78.mjs` e
+  `src/services/ecQaTestResetV78Service.js`; telefone literal único
+  `5515998038637`, permit temporário e contenção idempotente.
+- Origem VSL: `src/services/ecOfficialVslEntryV78Service.js`; assinatura exata
+  de Tex Ultra, sem aceitar mensagem genérica nem forçar
+  `publicVslLeadEntry=true`.
+- Evidência sanitizada da origem pública:
+  `docs/evidence/ec-official-vsl-origin-v78-20260829.json`; divergência atual de
+  telefone/mensagem mantém o deploy V78 bloqueado.
+- Guard/runtime/teste:
+  `scripts/guard-ec-bot-core-structural-v78.mjs`,
+  `src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js` e
+  `tests/ec-bot-core-structural-v78.test.mjs`.
+- Compatibilidade dos guards estáticos ancestrais: os verificadores V61–V63,
+  V72, V73 e V76 aceitam um arquivo alterado somente quando o manifesto
+  sucessor aplicável o declara como override e contém exatamente o hash atual;
+  os hashes ancestrais continuam obrigatórios para todos os demais arquivos.
+- Freeze/manifesto:
+  `docs/EC_BOT_CORE_STRUCTURAL_SAFETY_FREEZE_V78_20260829.md` e
+  `docs/freeze/ec-bot-core-structural-safety-v78-20260829.json`.
+- Dataset preservado: `1468946114265008`, com igualdade Browser/CAPI exigida
+  pelo perfil e pelo health.
+- Cadeia: V78 → V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71;
+  runtime guard 71 e compatibilidade de dados 66.
+- Estado: implementação e freeze exclusivamente locais; sem push, tag, stage,
+  deploy, PM2, `.env`, banco, mensagem, evento Meta, Dropi APPLY, scheduler,
+  cliente real ou tráfego. A ativação permanece fail-closed pela evidência VSL.
+## V90 — Protocolo G para dashboard EC
+
+- URL oficial preservada: `https://vilaliemen.shop/protocolo-g`.
+- Destino oficial preservado: `5515991418416`.
+- Contrato de origem: `src/services/ecOfficialVslEntryV78Service.js`.
+- Separação persistência/automação QA:
+  `src/services/ecBotCoreRuntimeIntegrationV78Service.js` e
+  `src/routes/zapi.js`.
+- Guard sucessor: `src/services/ecVslDashboardIngressFreezeRuntimeGuardV90.js`.
+- Freeze: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.
+- Evidência: `docs/evidence/ec-vsl-dashboard-ingress-v90-attestation-20260830.json`.
+- Páginas externas alteradas: não.
+- Estado inicial: implementação local validada; publicação e ativação ainda
+  dependem do fluxo oficial de release/permit.
+
+## V99 — registro idempotente de recompra EC (2026-09-02)
+
+- Incidente autorizado: lead EC `1503`; pedido entregue preservado
+  `EC-DROPI-5756679`.
+- Fonte de verdade do ciclo entregue/recompra:
+  `src/services/ecDeliveredRepurchaseService.js`.
+- Pontos oficiais corrigidos: `src/routes/shipments.js`, rota administrativa
+  `stage-confirmed`, e `src/routes/whatsapp.js`, salvamento da ficha do contato.
+- Contrato: criar/reusar somente `EC-RECOMPRA-*` ativo do mesmo ciclo, gravar
+  `previousOrderId` e mover `currentNegotiationOrderId` para o pedido novo.
+- Registro não cria Shipment, não autoriza Dropi e não envia à Dropi.
+- Freeze/manifesto/guard:
+  `docs/EC_REPURCHASE_REGISTRATION_FREEZE_V99_20260902.md`,
+  `docs/freeze/ec-repurchase-registration-v99-20260902.json` e
+  `scripts/guard-ec-repurchase-registration-v99.mjs`.
+- Publicação, backup e validação oficial serão registrados em evidência
+  operacional própria após o fluxo seguro de release.

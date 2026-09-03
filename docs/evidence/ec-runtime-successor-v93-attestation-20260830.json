@@ -1,0 +1,29 @@
+{
+  "attestationId": "ec-runtime-successor-v93-20260830",
+  "observedAt": "2026-08-30T04:35:00.000Z",
+  "status": "implementation_pending_hash_seal",
+  "parent": {
+    "version": 92,
+    "commit": "929062a04c7e2488eed89b570c562a424e620f05",
+    "tree": "fc6389b11bfb4bc7838f682729eb714902c73108"
+  },
+  "serverObservation": {
+    "releaseAttempt": "20260830T042502Z_production-20260830-929062a",
+    "stage": "PASS",
+    "publication": "PASS",
+    "preflight": "PASS",
+    "safeBoot": "CONTAINED_BEFORE_HTTP",
+    "runtimeFailure": "ANCESTRAL_V77H_NODE_OPTIONS_RETAINED",
+    "productionProcessChanged": false
+  },
+  "change": {
+    "scope": "pm2_target_successor_context_only",
+    "guardsBypassed": false,
+    "ancestralHashesRewritten": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "ctaChanged": false,
+    "databaseChanged": false,
+    "otherCountryTouched": false
+  }
+}

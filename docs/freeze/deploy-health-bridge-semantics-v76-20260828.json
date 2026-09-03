@@ -1,0 +1,59 @@
+{
+  "freezeId": "deploy-health-bridge-semantics-v76",
+  "parentFreezeId": "canary-isolation-safety-v75",
+  "parentManifestSha256": "56551c343f24591f6b76dd7a01fe89736d2f43b59d0b51e7701887bc8d377ffb",
+  "parentV75Commit": "0950a303c24782cf9a3f47eda93890e69e6d3a85",
+  "parentV75Tree": "68bf52575c6e3f5bc3f972af62b0333fb0fef754",
+  "status": "implementation_validated",
+  "publicationStatus": "local_candidate_no_push_no_stage_no_deploy",
+  "country": "EC",
+  "createdAt": "2026-08-28T00:00:00.000-03:00",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js",
+    "contractVersion": 76,
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "persistentBridgeCompleteRequired": true,
+    "operationalBridgeReady": false,
+    "mutationsEnabled": false,
+    "mutatingSchedulers": 0,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "providerAllowed": false,
+    "metaAllowed": false,
+    "productionMutationExecuted": false,
+    "ancestorFailurePropagation": "FAIL_CLOSED"
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/guard-canary-isolation-v75.mjs",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs",
+    "scripts/lib/deploy-health-bridge-semantics-contract-v76.mjs",
+    "src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js",
+    "tests/deploy-health-bridge-semantics-v76.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "713a19b58678b2666750d76f7001e1c8088d9f5d65c833e04b5ec21f76d3ac70",
+    "docs/ARQUIVOS_OFICIAIS.md": "3984484cf594c1d73b77e9c7da91599e6c290e56a1436b9643a4d2494e1e6a59",
+    "ops/vitalismen-stage": "755986a0c6c30e81ea6317f9a8570d079e13574066627471bbf0e928453790c0",
+    "package.json": "7bfaf58c5ae61f76e843f228e22e4e3de8ce08ee275f9539e420cc9ddfff2a67",
+    "scripts/guard-canary-isolation-v75.mjs": "699e605092430ce83254f2f162145404e1dd71e39be05a3016eec0d187d87469",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs": "f78dc49c5190be3880b3a289af87cdd77776a9296bfb1ee30ac2b856201796e2",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs": "781fe15c831cc01c63496e7e04c9d6c70bba781ea5924e9a9c5128f6f01c78c9",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "f2f1a7a98811ef4a50d10f7fd959985ff72edcde1bef253dc85e1884d908fa45",
+    "docs/DEPLOY_HEALTH_BRIDGE_SEMANTICS_FREEZE_V76_20260828.md": "be502d3f61e5938c2f4a7c7c00b2dc5a6496f4f41a4dd9b5fc05319b8fba5415",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs": "e9dd28da274c887f10922c808b625894662d97940baf1f2377582ba8ba351b25",
+    "scripts/lib/deploy-health-bridge-semantics-contract-v76.mjs": "60714266be8659084476bc607598783818746071b6b94cae17d897d2c89b4645",
+    "src/services/deployHealthBridgeSemanticsSafetyFreezeRuntimeGuardV76.js": "35e4db033397fe22cec3df81076877b2f859cb92dc955549efb54881529a5be8",
+    "tests/deploy-health-bridge-semantics-v76.test.mjs": "0b0f84c1a7b4c85e539a617ea2309c13690cc3ec7b56dcb6bafe37b1d9742f38"
+  }
+}

@@ -21,7 +21,7 @@ assert.equal(manifest.policy.realClientMutationForValidation, false);
 assert.equal(manifest.policy.realClientSendAuthorized, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.productOrPriceChanged, false);
-assert.match(entryGuard, /panelManualEditPersistenceFreezeRuntimeGuardV50\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(previousGuard, /panelManualEditPersistenceFreezeRuntimeGuardV50/);
 assert.match(panel, /customer-edit-guard-v50\.js/);
 assert.match(panel, /if \(!keepManualEdit\) state\.customerCorrectedFields\.clear\(\)/);

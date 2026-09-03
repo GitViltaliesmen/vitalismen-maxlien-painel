@@ -44,6 +44,14 @@ import {
 } from '../services/ecConversationBucketService.js';
 import { scheduleEcEngagementReply } from '../services/ecEngagementReplyService.js';
 import crypto from 'crypto';
+import {
+    isStrictReadOnlyObservationEnabled,
+    isZapiAckPersistenceEnabled,
+    isZapiInboundPersistenceEnabled,
+    isZapiInboundRoutingEnabled,
+    strictReadOnlyAcceptedPayload
+} from '../services/strictReadOnlyObservationService.js';
+import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -376,6 +384,18 @@ const zapiPhoneFromPayload = (payload = {}) => digits(firstString(
     payload.data?.from,
     payload.data?.to
 ));
+
+const canaryV75InboundDecision = (payload = {}, surface = 'zapi_webhook_inbound') => (
+    evaluateCanaryV75Recipient(zapiPhoneFromPayload(payload), { surface })
+);
+
+const canaryV75AcceptedResponse = (res, decision) => res.status(202).json({
+    ok: true,
+    accepted: true,
+    skipped: true,
+    reason: decision.reason,
+    canary: 'V75'
+});
 
 const zapiFromMeFromPayload = (payload = {}) => (
     payload.fromMe === true
@@ -776,6 +796,11 @@ const scheduleVslFirstResponseWatchdog = (result = {}) => {
     }, delayMs).unref?.();
 };
 
+export const shouldDetectFreshEcVslTextContextV110 = ({
+    persistedVslProductContext = null,
+    vslRoutingAllowed = false
+} = {}) => Boolean(vslRoutingAllowed && !persistedVslProductContext);
+
 const recordZapiInboundPayload = async (payload = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);
     const providerZaapId = zapiZaapIdFromPayload(payload);
@@ -786,6 +811,17 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const mediaMime = zapiMediaMimeTypeFromPayload(payload);
     const providerMediaId = zapiMediaIdFromPayload(payload);
     if (!phone) return { recorded: false, reason: 'missing_phone', providerMessageId, providerZaapId };
+    const canaryDecision = evaluateCanaryV75Recipient(phone, { surface: 'zapi_inbound_persistence' });
+    if (!canaryDecision.allowed) {
+        return {
+            recorded: false,
+            reason: canaryDecision.reason,
+            phone,
+            providerMessageId,
+            providerZaapId,
+            routeToBot: false
+        };
+    }
     if (zapiInboundLooksLikeGroup(payload, phone)) {
         return { recorded: false, reason: 'group_or_community_ignored', phone, providerMessageId, providerZaapId };
     }
@@ -894,8 +930,10 @@ const recordZapiInboundPayload = async (payload = {}) => {
         state
     });
     const persistedVslProductContext = freshPersistedEcVslProductContext(state, now);
-    const hasPersistedVslProduct = Boolean(String(state?.metadata?.vslProductKey || '').trim());
-    const detectedTextProductContext = hasPersistedVslProduct || !vslRoutingAllowed
+    const detectedTextProductContext = !shouldDetectFreshEcVslTextContextV110({
+        persistedVslProductContext,
+        vslRoutingAllowed
+    })
         ? null
         : explicitEcVslProductContextFromText(normalizedBody);
     const explicitTextProductContext = directProductInbound
@@ -928,6 +966,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const vslProductContext = persistedVslProductContext
         || attributedProductContext
         || explicitTextProductContext;
+    const refreshedVslAttribution = Boolean(attributedProductContext || explicitTextProductContext);
     const automatedVslProduct = automatedEcVslProductKey(vslProductContext?.productKey);
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
@@ -1030,7 +1069,9 @@ const recordZapiInboundPayload = async (payload = {}) => {
         ...(vslProductContext ? {
             vslEntryPanelLead: true,
             vslPhonePending: false,
-            vslEntryPanelLeadAt: targetState.metadata?.vslEntryPanelLeadAt || now.toISOString(),
+            vslEntryPanelLeadAt: refreshedVslAttribution
+                ? now.toISOString()
+                : targetState.metadata?.vslEntryPanelLeadAt || now.toISOString(),
             vslTestId: vslProductContext.vslTestId,
             vslVariant: vslProductContext.vslVariant,
             vslEntryMessage: vslProductContext.vslEntryMessage || normalizedBody,
@@ -1472,9 +1513,19 @@ export const classifyZapiGenericWebhookPayload = (payload = {}) => {
     };
 };
 
+export const ecQaInboundPersistenceOnly = (req = {}) => (
+    req?.ecQaInboundPolicyV90?.persistenceAllowed === true
+    && req?.ecQaInboundPolicyV90?.automationAllowed === false
+);
+
 router.post('/webhook/delivery', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_delivery' }));
+        }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_delivery_persistence');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const result = await applyZapiDeliveryPayload(payload);
         console.log(`[ZAPI-WEBHOOK] delivery | matched=${result.matched} | method=${result.method || 'none'} | phone=${result.phone || ''} | status=${result.deliveryStatus} | id=${result.providerMessageId || result.providerZaapId || ''}`);
         res.json({ ok: true, result });
@@ -1486,7 +1537,12 @@ router.post('/webhook/delivery', async (req, res) => {
 
 router.post('/webhook', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_webhook' }));
+        }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_generic_webhook');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
             console.log(`[ZAPI-WEBHOOK] chamada | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);
@@ -1503,8 +1559,11 @@ router.post('/webhook', async (req, res) => {
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
         const result = await recordZapiInboundPayload(payload);
-        const pickupReply = await handleZapiPickupConfirmation(result);
-        const buyLaterReply = result.body && !pickupReply.handled
+        const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
+        const pickupReply = qaPersistenceOnly
+            ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
+            : await handleZapiPickupConfirmation(result);
+        const buyLaterReply = result.body && !pickupReply.handled && !qaPersistenceOnly
             ? await handleBuyLaterConfirmationReply({
                 phone: result.phone,
                 chatId: result.chatId,
@@ -1514,9 +1573,9 @@ router.post('/webhook', async (req, res) => {
             })
             : { handled: false };
         const engagementReply = await scheduleClassifiedEngagementReply(result, {
-            skip: pickupReply.handled || buyLaterReply.handled
+            skip: qaPersistenceOnly || pickupReply.handled || buyLaterReply.handled
         });
-        if (result.routeToBot) {
+        if (!qaPersistenceOnly && result.routeToBot && isZapiInboundRoutingEnabled()) {
             scheduleVslFirstResponseWatchdog(result);
             if (!pickupReply.handled && !buyLaterReply.handled) {
                 await routeIncomingMessage({
@@ -1539,7 +1598,12 @@ router.post('/webhook', async (req, res) => {
 
 router.post('/webhook/received', async (req, res) => {
     try {
+        if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
+            return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_received' }));
+        }
         const payload = req.body || {};
+        const canaryDecision = canaryV75InboundDecision(payload, 'zapi_received_webhook');
+        if (!canaryDecision.allowed) return canaryV75AcceptedResponse(res, canaryDecision);
         const callResult = await handleZapiCallWebhook(payload);
         if (callResult) {
             console.log(`[ZAPI-WEBHOOK] chamada recebida | sent=${callResult.sent} | action=${callResult.action || 'none'} | reason=${callResult.reason || 'ok'}`);
@@ -1554,8 +1618,11 @@ router.post('/webhook/received', async (req, res) => {
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
             const result = await recordZapiInboundPayload(payload);
-            const pickupReply = await handleZapiPickupConfirmation(result);
-            const buyLaterReply = result.body && !pickupReply.handled
+            const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
+            const pickupReply = qaPersistenceOnly
+                ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
+                : await handleZapiPickupConfirmation(result);
+            const buyLaterReply = result.body && !pickupReply.handled && !qaPersistenceOnly
                 ? await handleBuyLaterConfirmationReply({
                     phone: result.phone,
                     chatId: result.chatId,
@@ -1565,9 +1632,9 @@ router.post('/webhook/received', async (req, res) => {
                 })
                 : { handled: false };
             const engagementReply = await scheduleClassifiedEngagementReply(result, {
-                skip: pickupReply.handled || buyLaterReply.handled
+                skip: qaPersistenceOnly || pickupReply.handled || buyLaterReply.handled
             });
-            if (result.routeToBot) {
+            if (!qaPersistenceOnly && result.routeToBot && isZapiInboundRoutingEnabled()) {
                 scheduleVslFirstResponseWatchdog(result);
                 if (!pickupReply.handled && !buyLaterReply.handled) {
                     await routeIncomingMessage({

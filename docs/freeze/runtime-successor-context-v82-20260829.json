@@ -1,0 +1,70 @@
+{
+  "freezeId": "runtime-successor-context-v82",
+  "version": 82,
+  "parentVersion": "V81",
+  "parentFreezeId": "npm-lifecycle-stage-envelope-compatibility-v81",
+  "parentManifestSha256": "7951283864f1d429452442488bbf1563b1acb501a2be5b4edee096a249071031",
+  "parentFreezeSha256": "d5e3c8e81888b958fa149817744aff5ae83173670ff90ca2cb04788fd15a9b30",
+  "parentAttestationSha256": "e80b3415dda914272428d931cffe7d5aac7719b627c0c914936447ea65e7a68e",
+  "parentCommit": "c2f6bedbd2327a2b41bfc0cb2bdb9d789812cfc6",
+  "parentTree": "93bb427cb06a1e8fbac8dac0f1c6086f104929cb",
+  "purpose": "RUNTIME_SUCCESSOR_CONTEXT_BOOTSTRAP",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/runtimeSuccessorContextFreezeRuntimeGuardV82.js",
+    "canonicalStagePreload": "scripts/lib/runtime-successor-context-v82.mjs",
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "strictReadOnlySafeActivationRequired": true,
+    "datasetId": "1468946114265008",
+    "ctaChanged": false,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false,
+    "colombiaOperationalInfrastructureTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "remoteTagCreated": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "pm2Restarted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/runtime-successor-context-v82-attestation-20260829.json",
+    "sha256": "00c44baa2cb3f851ce72db7e61b9a0195e04a1bbb116dd9fbe16d71b3cf2cbd0"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "0bfcbc8f5f284b720475604a4c09b1ca5031bbf7db3f0ae1efcbf1bc12b672c5"
+  },
+  "declaredAncestorOverrides": [
+    "src/index.js"
+  ],
+  "newProtectedFiles": [
+    "docs/RUNTIME_SUCCESSOR_CONTEXT_FREEZE_V82_20260829.md",
+    "docs/evidence/runtime-successor-context-v82-attestation-20260829.json",
+    "scripts/guard-runtime-successor-context-v82.mjs",
+    "scripts/lib/runtime-successor-context-v82.mjs",
+    "src/services/runtimeSuccessorContextFreezeRuntimeGuardV82.js",
+    "src/services/runtimeSuccessorContextV82Service.js",
+    "tests/runtime-successor-context-v82.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/RUNTIME_SUCCESSOR_CONTEXT_FREEZE_V82_20260829.md": "e237ba68a65b8c428625804727f3fbb163124114685bf2befc40aa417915bc0a",
+    "docs/evidence/runtime-successor-context-v82-attestation-20260829.json": "00c44baa2cb3f851ce72db7e61b9a0195e04a1bbb116dd9fbe16d71b3cf2cbd0",
+    "scripts/guard-runtime-successor-context-v82.mjs": "ab64430328765f6f5dd779d0b260e5d43ed2dc90cfba2cbc3f0aa0ac40830330",
+    "scripts/lib/runtime-successor-context-v82.mjs": "31c1f4ea2b4e231d7d33bfe65ce55608580d53cf558fa9f8ffffc0f50a01b852",
+    "src/index.js": "6a8ac18963ab4a4aa4d1b70f95cfe96fafc774e02a3fb170cc5418d69977ba58",
+    "src/services/runtimeSuccessorContextFreezeRuntimeGuardV82.js": "042e2579f492d19323d31eea8d0fc52661c94adc40426cbe39592758dc46232f",
+    "src/services/runtimeSuccessorContextV82Service.js": "399f813a3a6e04f812ef6d3fdf316c84c56ccaccc98dc8961cd20324d024f92f",
+    "tests/runtime-successor-context-v82.test.mjs": "3d74be60351ce1e8e4e952212cbae4a498860a12a1e5af775d1ab67efdfff0ae"
+  }
+}

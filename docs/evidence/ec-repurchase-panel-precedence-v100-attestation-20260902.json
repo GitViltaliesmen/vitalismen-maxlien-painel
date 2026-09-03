@@ -1,0 +1,21 @@
+{
+  "attestationId": "ec-repurchase-panel-precedence-v100-20260902",
+  "country": "EC",
+  "scope": "newest operational order precedence in Leads Clientes",
+  "liveRepair": {
+    "completed": true,
+    "newRepurchaseCreated": true,
+    "contactStateRepointed": true,
+    "metaPurchaseAcceptedOnce": true,
+    "newShipmentCreated": false,
+    "dropiAuthorizationCreated": false,
+    "dropiSubmissionCreated": false,
+    "historicalDeliveredOrderPreserved": true
+  },
+  "implementation": {
+    "newestOrderSortRequired": true,
+    "singleOperationalMergePerPhone": true,
+    "historicalOverwriteAllowed": false,
+    "customerSpecificDataHardcoded": false
+  }
+}

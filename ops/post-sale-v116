@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+log_dir="/var/log/vitalismen-deploy"
+overlay_file="$state_dir/post-sale-v116.env"
+lock_file="$state_dir/post-sale-v116.lock"
+audit_file="$log_dir/post-sale-v116-audit.jsonl"
+current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+action="${1:-status}"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+[[ "$current" == "$base_dir"/releases/* && -d "$current" && ! -L "$current" ]] || die "current oficial invalido"
+install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+
+append_audit() {
+  local event="$1" detail="${2:-}"
+  node - "$audit_file" "$event" "$(basename "$current")" "$detail" <<'NODE'
+const fs = require('node:fs');
+const [file,event,release,detail] = process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
+NODE
+  chmod 0600 "$audit_file"
+}
+
+assert_pm2_bot_online() {
+  local jlist="$state_dir/.post-sale-v116-pm2.$$"
+  trap 'rm -f -- "$jlist"' RETURN
+  pm2 jlist >"$jlist"
+  node - "$jlist" "$current" "$base_dir/current" <<'NODE'
+const fs=require('node:fs');
+const [file,release,current]=process.argv.slice(2);
+const item=JSON.parse(fs.readFileSync(file,'utf8')||'[]').find((entry)=>entry.name==='vitalismen-automation');
+const env=item?.pm2_env||{};
+if(!item||env.status!=='online'||![release,current].includes(env.pm_cwd)
+  ||![`${release}/src/index.js`,`${current}/src/index.js`].includes(env.pm_exec_path)) process.exit(1);
+NODE
+  rm -f -- "$jlist"
+  trap - RETURN
+}
+
+load_overlay() {
+  [[ -f "$overlay_file" && ! -L "$overlay_file" ]] || die "overlay V116 ausente"
+  [[ "$(stat -c '%a:%U:%G' "$overlay_file")" == "400:root:root" ]] || die "permissoes do overlay V116 invalidas"
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "chave invalida no overlay V116"
+    export "$key=$value"
+  done <"$overlay_file"
+  [[ "${POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED:-}" == "true" ]] || die "gate at-most-once V116 ausente"
+}
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$current"
+  echo "OBSERVER=$(systemctl is-active vitalismen-postsale-next-eligible-v114.timer 2>/dev/null || true)"
+  echo "TRANSACTIONAL_TIMER=$(systemctl is-active vitalismen-postsale-transactional-v116.timer 2>/dev/null || true)"
+  echo "OVERLAY=$([[ -f "$overlay_file" && ! -L "$overlay_file" ]] && echo PROTECTED_PRESENT || echo ABSENT)"
+  echo "BATCH_MAX=1"
+  echo "DAILY_LIMIT=1"
+  echo "AT_MOST_ONCE=true"
+  exit 0
+fi
+
+if [[ "$action" == "install" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v116 install"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  [[ ! -e "$overlay_file" ]] || die "overlay V116 ja existe"
+  (cd "$current" && node scripts/create-post-sale-v116-overlay.mjs "$overlay_file")
+  chown root:root "$overlay_file"
+  chmod 0400 "$overlay_file"
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-transactional-v116.service" /etc/systemd/system/vitalismen-postsale-transactional-v116.service
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-transactional-v116.timer" /etc/systemd/system/vitalismen-postsale-transactional-v116.timer
+  systemctl daemon-reload
+  append_audit "installed" "timer_not_started"
+  echo "POST_SALE_V116_INSTALL=PASS"
+  echo "TIMER_STARTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "run" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v116 run"
+  exec 9>"$lock_file"
+  flock -n 9 || die "outro executor V116 esta em andamento"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  load_overlay
+  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
+  append_audit "cycle_started" "batch_max_1_daily_limit_1"
+  output="$log_dir/$(basename "$current").post-sale-v116-$(date -u +%Y%m%dT%H%M%SZ).json"
+  if (cd "$current" && node scripts/post-sale-transactional-batch-v116.mjs run >"$output"); then
+    chmod 0600 "$output"
+    append_audit "cycle_completed" "result_persisted"
+    echo "POST_SALE_V116_RUN=PASS"
+    echo "RESULT=$output"
+    exit 0
+  fi
+  chmod 0600 "$output" 2>/dev/null || true
+  append_audit "cycle_failed_no_retry" "manual_reconciliation_required"
+  echo "POST_SALE_V116_RUN=FAILED_NO_RETRY" >&2
+  exit 2
+fi
+
+if [[ "$action" == "contain" ]]; then
+  systemctl disable --now vitalismen-postsale-transactional-v116.timer >/dev/null 2>&1 || true
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  if [[ -f "$overlay_file" && ! -L "$overlay_file" ]]; then
+    mv -T "$overlay_file" "$overlay_file.contained.$timestamp"
+    chmod 0400 "$overlay_file.contained.$timestamp"
+  fi
+  append_audit "contained" "bot_unchanged"
+  echo "POST_SALE_V116_CONTAIN=PASS"
+  exit 0
+fi
+
+die "uso: post-sale-v116 status|install|run|contain"

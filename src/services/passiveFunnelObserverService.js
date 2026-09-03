@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
+import { resolveMutableRuntimeArtifactPathV78 } from './mutableRuntimeArtifactV78Service.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -17,20 +18,11 @@ const parseList = (value = '') => String(value || '')
     .map((item) => digitsOnly(item))
     .filter(Boolean);
 
-const reportPath = () => path.resolve(
-    process.cwd(),
-    process.env.PASSIVE_FUNNEL_OBSERVER_REPORT_PATH || 'runtime/passive-funnel-observer-latest.json'
-);
+const reportPath = () => resolveMutableRuntimeArtifactPathV78('passiveFunnelObserverReport');
 
-const perfectReportPath = () => path.resolve(
-    process.cwd(),
-    process.env.PERFECT_FUNNEL_OBSERVER_REPORT_PATH || 'runtime/perfect-funnel-observer-latest.json'
-);
+const perfectReportPath = () => resolveMutableRuntimeArtifactPathV78('perfectFunnelObserverReport');
 
-const perfectSpreadsheetDir = () => path.resolve(
-    process.cwd(),
-    process.env.PERFECT_FUNNEL_OBSERVER_SPREADSHEET_DIR || 'runtime/observer-spreadsheets'
-);
+const perfectSpreadsheetDir = () => resolveMutableRuntimeArtifactPathV78('observerSpreadsheets');
 
 const matchesCountry = (phoneDigits, country = 'EC') => {
     const digits = digitsOnly(phoneDigits);

@@ -20,6 +20,12 @@ const key = process.env.VITALISMEN_DEPLOY_KEY || path.join(
 );
 const baseDir = process.env.VITALISMEN_DEPLOY_BASE_DIR || '/opt/vitalismen-automacao';
 const deployTag = String(process.env.VITALISMEN_DEPLOY_TAG || '').trim();
+const postSaleCompatibility = Object.freeze({
+    runtimeVersion: 66,
+    readsDataCompatibilityThrough: 66,
+    writesDataCompatibilityVersion: 66,
+    requiresRollbackTargetPreflight: true
+});
 
 if (activate) {
     console.error('[DEPLOY-INTEGRATION-V29.1] ativação direta bloqueada; use o helper root transacional com permit de uso único.');
@@ -163,7 +169,8 @@ run(process.execPath, ['scripts/guard-freeze-lock-ec.mjs'], {
 const releaseMetadata = {
     ...releaseSource,
     createdAt: new Date().toISOString(),
-    releaseName
+    releaseName,
+    postSaleCompatibility
 };
 const metadataJson = `${JSON.stringify(releaseMetadata, null, 2)}\n`;
 const metadataBase64 = Buffer.from(metadataJson, 'utf8').toString('base64');
@@ -245,6 +252,8 @@ run('ssh', [
     host,
     [
         `cd ${releaseDir}`,
+        `node scripts/assert-post-sale-data-compatibility-v66.mjs --runtime=${postSaleCompatibility.runtimeVersion}`,
+        'npm run guard:predeploy-v72',
         'npm run senior:check',
         'npm run guard:ec-product-micro-layer',
         'npm run guard:ec-dropi-catalog',

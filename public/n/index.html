@@ -146,22 +146,46 @@
   </style>
 
   <!-- =========================
-       META PIXEL â€” FIXO
+       META PIXEL — REGISTRY V73
   ========================== -->
   <script>
     (function(){
-      console.log("[PIXEL] build ec-m-prod-clean-2025-12-20");
+      var CONFIG_URL = "/api/health/meta-destination";
+      var CONFIG_TIMEOUT_MS = 4000;
+      var pendingLeadEventIds = [];
 
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
+      function validPixelId(value){
+        return /^\d{8,25}$/.test(String(value || ""));
+      }
 
-      fbq('init', '1468946114265008');
+      function loadDestination(){
+        var request = fetch(CONFIG_URL, { cache: "no-store", credentials: "same-origin" })
+          .then(function(response){
+            return response.json().catch(function(){ return {}; }).then(function(payload){
+              if (!response.ok || !payload.ok) throw new Error("meta_config_http_" + response.status);
+              return payload;
+            });
+          })
+          .then(function(payload){
+            var destination = payload && payload.destination || {};
+            if (!destination.available || !destination.tokenConfigured) throw new Error("meta_server_destination_unavailable");
+            if (!destination.browserServerSynchronized) throw new Error("meta_browser_server_mismatch");
+            if (!validPixelId(destination.browserPixelId)) throw new Error("meta_pixel_invalid");
+            if (Number(destination.bindingVersion) !== 1 || !destination.binding || !destination.bindingExpiresAt) {
+              throw new Error("meta_destination_binding_invalid");
+            }
+            return destination;
+          });
+        var timeout = new Promise(function(_resolve, reject){
+          setTimeout(function(){ reject(new Error("meta_config_timeout")); }, CONFIG_TIMEOUT_MS);
+        });
+        return Promise.race([request, timeout]).catch(function(error){
+          window.__MAXLIEN_META_PIXEL_ERROR = String(error && error.message || "meta_config_unavailable");
+          console.warn("[META] Browser Pixel bloqueado: destino server-side indisponível ou divergente.");
+          return null;
+        });
+      }
+
       function stablePageViewEventId(){
         try{
           var key = "mx_ec_pageview_event_id_v1";
@@ -174,36 +198,54 @@
           return "PageView:mx_ec:" + Date.now() + ":" + Math.random().toString(16).slice(2);
         }
       }
-      function trackPageView(){
+
+      function startPixel(destination){
+        if (!destination) return null;
+        var pixelId = destination.browserPixelId;
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+
+        fbq('init', pixelId);
         var eventId = stablePageViewEventId();
         window.__MAXLIEN_PAGEVIEW_EVENT_ID = eventId;
+        window.__MAXLIEN_META_DESTINATION = destination;
         fbq("track", "PageView", {}, { eventID: eventId });
-      }
-      trackPageView();
 
-      // Lead uma vez por sessÃ£o
-      function markLeadOnce(eventId){
-        try{
-          if (sessionStorage.getItem("lead_sent") === "1") return;
-          sessionStorage.setItem("lead_sent", "1");
-        }catch(e){}
-        try{
-          if (window.fbq) {
-            if (eventId) fbq('track', 'Lead', {}, { eventID: eventId });
+        window.__mvpMarkLeadOnce = function(leadEventId){
+          try{
+            if (sessionStorage.getItem("lead_sent") === "1") return;
+            sessionStorage.setItem("lead_sent", "1");
+          }catch(e){}
+          try{
+            if (leadEventId) fbq('track', 'Lead', {}, { eventID: leadEventId });
             else fbq('track', 'Lead');
-          }
-        }catch(e){}
+          }catch(e){}
+        };
+        return destination;
       }
 
-      // Expor helper de Lead. Purchase deve ser disparado somente apos confirmacao no painel/backend.
-      window.__mvpMarkLeadOnce = markLeadOnce;
+      window.__mvpMarkLeadOnce = function(eventId){
+        pendingLeadEventIds.push(eventId || "");
+      };
+      window.__MAXLIEN_META_PIXEL_READY = loadDestination().then(function(destination){
+        var started = startPixel(destination);
+        if (!started) {
+          pendingLeadEventIds = [];
+          return null;
+        }
+        var queued = pendingLeadEventIds.slice();
+        pendingLeadEventIds = [];
+        queued.forEach(function(eventId){ window.__mvpMarkLeadOnce(eventId); });
+        return started;
+      });
     })();
   </script>
-
-  <noscript>
-    <img height="1" width="1" style="display:none"
-         src="https://www.facebook.com/tr?id=1468946114265008&ev=PageView&noscript=1"/>
-  </noscript>
   <!-- =========================
        /META PIXEL
   ========================== -->
@@ -418,13 +460,22 @@
 
   function vslAbPayload(){
     const variant = vslAbVariant();
+    const destination = window.__MAXLIEN_META_DESTINATION || null;
     return {
       vslTestId: VSL_AB_TEST_ID,
       vsl_test_id: VSL_AB_TEST_ID,
       vslVariant: variant,
       vsl_variant: variant,
       vslEntryMessage: VSL_AB_ENTRY_MESSAGES[variant],
-      vsl_entry_message: VSL_AB_ENTRY_MESSAGES[variant]
+      vsl_entry_message: VSL_AB_ENTRY_MESSAGES[variant],
+      meta_destination: destination ? {
+        route: destination.route,
+        profile: destination.profile,
+        datasetId: destination.datasetId,
+        bindingVersion: destination.bindingVersion,
+        bindingExpiresAt: destination.bindingExpiresAt,
+        binding: destination.binding
+      } : null
     };
   }
 
@@ -442,39 +493,51 @@
   }
 
   function trackVslEntryOnce(){
-    if (!IS_MOBILE_VISITOR) return;
+    if (!IS_MOBILE_VISITOR) return Promise.resolve(null);
     const key = "mx_ec_vsl_entry_recorded_v1";
     try {
-      if (sessionStorage.getItem(key) === "1") return;
+      if (sessionStorage.getItem(key) === "1") return Promise.resolve(null);
     } catch(e) {}
-    try {
-      const origin = window.__MAXLIEN_ORIGIN || {};
-      fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        keepalive: true,
-        body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
-          country: "EC",
-          productKey: "tex_ultra_ec",
-          productName: "Tex Ultra Ecuador",
-          productMedia: "",
-          page: "tex_ultra_ec_mobile",
-          path: location.pathname || "/n/",
-          visitorId: origin.external_id || "",
-          sessionId: vslSessionId(),
-          pageViewEventId: window.__MAXLIEN_PAGEVIEW_EVENT_ID || "",
-          device: "mobile",
-          clicked: false,
-          referrer: document.referrer || "",
-          event_source_url: location.href,
-          client_user_agent: navigator.userAgent || ""
-        }))
-      }).then(function(response){
-        if (response && response.ok) {
-          try { sessionStorage.setItem(key, "1"); } catch(e) {}
-        }
-      }).catch(function(){});
-    } catch(e) {}
+    function sendEntry(){
+      try {
+        if (sessionStorage.getItem(key) === "1") return Promise.resolve(null);
+      } catch(e) {}
+      try {
+        const origin = window.__MAXLIEN_ORIGIN || {};
+        return fetch(ecApiPath("/api/whatsapp/vsl-entry"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify(Object.assign({}, origin, vslAbPayload(), {
+            country: "EC",
+            productKey: "tex_ultra_ec",
+            productName: "Tex Ultra Ecuador",
+            productMedia: "",
+            page: "tex_ultra_ec_mobile",
+            path: location.pathname || "/n/",
+            visitorId: origin.external_id || "",
+            sessionId: vslSessionId(),
+            pageViewEventId: window.__MAXLIEN_PAGEVIEW_EVENT_ID || "",
+            device: "mobile",
+            clicked: false,
+            referrer: document.referrer || "",
+            event_source_url: location.href,
+            client_user_agent: navigator.userAgent || ""
+          }))
+        }).then(function(response){
+          if (response && response.ok) {
+            try { sessionStorage.setItem(key, "1"); } catch(e) {}
+          }
+          return response;
+        }).catch(function(){ return null; });
+      } catch(e) {
+        return Promise.resolve(null);
+      }
+    }
+    const metaReady = window.__MAXLIEN_META_PIXEL_READY;
+    return metaReady && typeof metaReady.then === "function"
+      ? Promise.resolve(metaReady).catch(function(){ return null; }).then(sendEntry)
+      : sendEntry();
   }
 
   function loadVturbForMobile(){

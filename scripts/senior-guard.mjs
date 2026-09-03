@@ -82,18 +82,22 @@ const ignoredContextFiles = new Set([
 ]);
 // A V61 precisa registrar explicitamente que a conta compartilhada continua
 // read-only fora de EC. A excecao aceita somente a palavra de contexto nestes
-// tres documentos; as demais proibicoes e todos os outros arquivos continuam
+// documentos listados; as demais proibicoes e todos os outros arquivos continuam
 // cobertos pelo guard geral.
 const metaAttributionReadOnlyContextFiles = new Set([
     'docs/ARQUITETURA_AUTOMACAO_OFICIAL.md',
     'docs/ARQUIVOS_OFICIAIS.md',
-    'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md'
+    'docs/META_EC_PROTOCOLO_G_ATTRIBUTION_FREEZE_V61_20260824.md',
+    'docs/DEPLOY_GUARD_ANCESTRY_SUCCESSOR_FREEZE_V91_20260830.md'
 ]);
 // A referencia aprovada a consulta da Dra. Maria pertence exclusivamente ao
 // contrato isolado do Nitrix. Ela nao faz parte do texto ou do estado do
 // funil Vit Power, que continua protegido pela regra geral abaixo.
 const productScopedProtocolFiles = new Set([
     'src/services/nitrixProductProfile.js',
+    // A V74 cita os guards V62/V63 somente para declarar e preservar a
+    // ancestralidade Meta já congelada; não importa conteúdo de outro funil.
+    'src/services/freezeLockEcMetaDynamicFreezeRuntimeGuardV74.js',
     // Autorização V34: estes dois arquivos reconhecem somente a origem
     // comercial da VSL Protocolo G como Tex Ultra. O projeto externo da VSL
     // continua separado e nenhum asset/código dela é importado para cá.
@@ -136,15 +140,34 @@ const productScopedProtocolFiles = new Set([
     'src/services/metaAttributionFreezeRuntimeGuardV61.js',
     'src/services/metaProtocoloGAttributionService.js',
     'src/services/funnelMetricsService.js',
+    // V73 apenas preserva a rota/Dataset Protocolo G já congelados pela V61;
+    // a exceção fica restrita ao resolvedor Meta e ao guard sucessor.
+    'src/services/metaDestinationRegistryService.js',
+    'src/services/metaPartnerDestinationRegistryFreezeRuntimeGuardV73.js',
     // Autorizacao V62: sucessor restrito a CTA secundaria e observabilidade
     // exclusiva do Protocolo G, sem alterar o funil comercial EC.
     'src/services/protocoloGConversionFreezeRuntimeGuardV62.js',
     // Autorizacao V63: corte pos-correcao e metricas por anuncio, somente leitura.
     'src/services/protocoloGAdMetricsFreezeRuntimeGuardV63.js',
+    // V78 formaliza a assinatura deterministica da origem oficial sem
+    // aceitar texto generico e sem incorporar ou alterar o projeto externo.
+    'src/services/ecOfficialVslEntryV78Service.js',
+    // O guard sucessor V78 referencia os guards V61-V63 somente para validar
+    // por hash a ancestralidade congelada da origem oficial.
+    'src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js',
+    // A V90 reconhece exclusivamente a entrada oficial /protocolo-g para
+    // persistência no dashboard sem armar automação no contexto QA.
+    'src/services/ecVslDashboardIngressV90Service.js',
     // V64 somente herda o freeze V63 e bloqueia nomes invalidos no Dropi EC.
     'src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js',
     // V65 corrige busca, leitura canonica, pos-venda e reconciliacao Dropi EC.
-    'src/services/postSaleGargalosFreezeRuntimeGuardV65.js'
+    'src/services/postSaleGargalosFreezeRuntimeGuardV65.js',
+    // V116 cita os três guards Protocolo G somente pelos caminhos protegidos
+    // e hashes de ancestralidade; não incorpora conteúdo comercial ao pós-venda.
+    'src/services/postSaleTransactionalSafetyV116ManifestService.js',
+    // V118 cita esses mesmos caminhos exclusivamente para declarar os
+    // overrides ancestrais auditados da nova camada visual do painel.
+    'src/services/panelWarmupIsolationV118ManifestService.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
@@ -172,6 +195,7 @@ if (operationalAutomationApproved) {
     assert(hasEnv('DISABLE_SCHEDULER', '0'), '.env com operacao aprovada deve manter DISABLE_SCHEDULER=0.');
     assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=true.');
     assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'true'), '.env com operacao aprovada deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=true.');
+    assert(hasEnv('PICKUP_PROOF_SWEEP_ENABLED', 'true'), '.env com operacao aprovada deve manter PICKUP_PROOF_SWEEP_ENABLED=true.');
 } else {
     assert(hasEnv('VIT_POWER_FUNNEL_ACTIVE', 'false'), '.env deve manter VIT_POWER_FUNNEL_ACTIVE=false enquanto o funil esta em teste.');
     assert(hasEnv('WHATSAPP_AUTO_REPLY_ENABLED', 'false'), '.env deve manter WHATSAPP_AUTO_REPLY_ENABLED=false enquanto o Observador analisa atendimentos reais.');
@@ -180,6 +204,7 @@ if (operationalAutomationApproved) {
     assert(hasEnv('DISABLE_SCHEDULER', '1'), '.env deve manter DISABLE_SCHEDULER=1 para pausar ciclos operacionais automaticos.');
     assert(hasEnv('SHIPMENT_STATUS_DISPATCH_ENABLED', 'false'), '.env deve manter SHIPMENT_STATUS_DISPATCH_ENABLED=false.');
     assert(hasEnv('SHIPMENT_PICKUP_REMINDERS_ENABLED', 'false'), '.env deve manter SHIPMENT_PICKUP_REMINDERS_ENABLED=false.');
+    assert(hasEnv('PICKUP_PROOF_SWEEP_ENABLED', 'false'), '.env deve manter PICKUP_PROOF_SWEEP_ENABLED=false.');
 }
 assert(/WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter WHATSAPP_PRODUCT_FOLLOWUP_ENABLED=false.');
 assert(/PENDING_CHECKOUT_FOLLOWUP_ENABLED=false/.test(env), '.env deve manter PENDING_CHECKOUT_FOLLOWUP_ENABLED=false.');

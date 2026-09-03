@@ -1,0 +1,81 @@
+{
+  "freezeId": "post-sale-eligible-batch-v108",
+  "version": 108,
+  "parentVersion": "V107",
+  "parentFreezeId": "post-sale-health-envelope-v107",
+  "parentManifestSha256": "8b8adca0c09c40d8defacf2da24fb9a85191c6cff56e08e5a5d735c6f529bc0c",
+  "parentFreezeSha256": "4226514babf3ced5ab2dbdb6f08b5446948bd93d05572503e37489ff8ce7381d",
+  "parentAttestationSha256": "dd15c2ada6623ba1e764891b67e36556521b69ac5cbdf4f6cc692cc51d5084b1",
+  "parentCommit": "eba93a25089789b7d1be8ad9317c201769d473e3",
+  "parentTree": "032e4fd6b2510b48621878dc8cc50eb852ad6ba3",
+  "purpose": "SELECT_FIRST_ELIGIBLE_POST_SALE_EVENT_WITH_SINGLE_PROVIDER_ATTEMPT",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_post_sale_batch_one",
+  "country": "EC",
+  "policy": {
+    "eligibilityPreflightBeforeProvider": true,
+    "providerAttemptsMaxPerCycle": 1,
+    "messageSendsMaxPerCycle": 1,
+    "chronologyGuardRequired": true,
+    "postSaleProfileChanged": false,
+    "externalEffectsAllowed": false,
+    "batchMax": 1,
+    "dailyMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-eligible-batch-v108-attestation-20260903.json",
+    "sha256": "d48c060d82a7f93b5492d3ed3d655aa9b75a9dc74567d92e6227b96d87a40e8a"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "397e53e57cb47666949aa64843f9a5cfacb023e0be3e9887b1f7df37b0775c3b"
+  },
+  "declaredAncestorOverrides": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/post-sale-transactional-batch-v105.mjs",
+    "src/services/postSaleHealthEnvelopeV107Service.js",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/post-sale-health-envelope-v107.test.mjs",
+    "tests/post-sale-publication-metadata-v106.test.mjs",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/post-sale-transactional-batch-v105.mjs",
+    "src/services/postSaleHealthEnvelopeV107Service.js",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/post-sale-health-envelope-v107.test.mjs",
+    "tests/post-sale-publication-metadata-v106.test.mjs",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/POST_SALE_ELIGIBLE_BATCH_FREEZE_V108_20260903.md",
+    "docs/evidence/post-sale-eligible-batch-v108-attestation-20260903.json",
+    "scripts/guard-post-sale-eligible-batch-v108.mjs",
+    "src/services/postSaleEligibleBatchFreezeRuntimeGuardV108.js",
+    "src/services/postSaleEligibleBatchV108Service.js",
+    "tests/post-sale-eligible-batch-v108.test.mjs"
+  ],
+  "protectedFiles": {
+    "ops/post-sale-v105": "795fbbb533c2d189e94cc053aad1b4980f74fa6be2dec0248cdbe806d7404ebd",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "3ddc8d81dbbf76ba3804c8b6e6130cbab69531b5ac8d683602a0c160fd1b9edb",
+    "scripts/post-sale-transactional-batch-v105.mjs": "8f8d4665b3ead51087214d76bd91a274989972717faeb780c58ad1f8e9b07fab",
+    "src/services/postSaleHealthEnvelopeV107Service.js": "16643617dfe82dbb70b19c6ab39b42f7d439fdb6f0b1018ed1b19a20066d3fe7",
+    "src/services/shipmentStatusDispatcherService.js": "88d894943989b023a5295b7fbccc235d39457fe7e4ef68e84264fdb6fa9bf336",
+    "tests/post-sale-health-envelope-v107.test.mjs": "dd3f5b7da5a0a8e0d670539a1ebddcf512910b8298be3bcc48e5a132da4bbdfa",
+    "tests/post-sale-publication-metadata-v106.test.mjs": "1b051f865136a1926c726475dda50e87e78fc3988812226aee1a24819f8484ce",
+    "tests/post-sale-transactional-control-plane-v105.test.mjs": "99f3027981637f00d2b6ca452d3d943308f2eb99247fe0d04d8bd29b1a069bb9",
+    "docs/POST_SALE_ELIGIBLE_BATCH_FREEZE_V108_20260903.md": "8127eae24e5a8e285d0d57fc7949cb0dca374f6e3218da6a36868345642715a6",
+    "docs/evidence/post-sale-eligible-batch-v108-attestation-20260903.json": "d48c060d82a7f93b5492d3ed3d655aa9b75a9dc74567d92e6227b96d87a40e8a",
+    "scripts/guard-post-sale-eligible-batch-v108.mjs": "afd7a1f2873b8922366a566f477c31b9c8a98ad51f2b7b354a23910191d87fda",
+    "src/services/postSaleEligibleBatchFreezeRuntimeGuardV108.js": "806b5634d9f3610f6d8401c983bb802048dac7fa5488b9ffb0721a67cee261b6",
+    "src/services/postSaleEligibleBatchV108Service.js": "ac7cff11176679b70d380cb3b3e3580f6945b77ef371fe6112db5acb1ef83a27",
+    "tests/post-sale-eligible-batch-v108.test.mjs": "cacd5a6d6c085b015ccf9a1205c312bbf078125701dd625b43a032ded18f65b6"
+  }
+}

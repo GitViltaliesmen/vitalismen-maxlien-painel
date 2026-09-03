@@ -1,0 +1,32 @@
+{
+  "attestationId": "ec-bot-core-lifecycle-boot-v88-20260830",
+  "country": "EC",
+  "parentVersion": "V87",
+  "parentCommit": "89a834406ac5ca72d7ecd7b8aae225c44cefdab6",
+  "parentTree": "189bc3dd52f98ba6dbffb6da3c2ea97e97c0be28",
+  "failure": {
+    "runtimeBootV87": "PASS",
+    "stageNpmCi": "FAIL_CLOSED_DEPENDENCY_LIFECYCLE_CWD",
+    "failedReleaseRemoved": true,
+    "rollbackRelease": "20260829T231342Z_production-20260829-2edd1eb",
+    "realTrafficReleased": false
+  },
+  "correction": {
+    "type": "dependency_lifecycle_aware_successor_preload",
+    "dependencyLifecycleGuardBypassOnly": true,
+    "projectLifecycleGuarded": true,
+    "runtimeGuarded": true,
+    "botBusinessLogicChanged": false
+  },
+  "safety": {
+    "datasetId": "1468946114265008",
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "mutatingSchedulersAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "status": "local_validation_pass"
+}

@@ -13,6 +13,18 @@ import {
 import { syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { saveCarrierTrackingResult, trackCarrierGuide } from './carrierTrackingService.js';
 import { sendText } from '../whatsapp/sendText.js';
+import {
+    buildCanaryV75RecipientQuery,
+    canaryV75SchedulerShipmentAllowed
+} from './canaryIsolationV75Service.js';
+import {
+    POST_SALE_NOTIFICATION_DECISIONS,
+    decidePostSaleNotification
+} from './postSaleNotificationDecisionService.js';
+import {
+    postSaleTransactionalSafetyV116Enabled,
+    reservePostSaleDailyQuotaV116
+} from './postSaleTransactionalSafetyV116Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -236,6 +248,10 @@ const dispatchActionPriority = (action) => {
     if (action === 'delivered_bonus') return 4;
     return 9;
 };
+
+const notificationKindForDispatchAction = (action) => (
+    action === 'delivered_bonus' ? 'pickup_bonus' : action
+);
 
 const resolveDispatchSessionForShipment = async ({
     shipment,
@@ -681,6 +697,7 @@ const candidateQuery = (actions = []) => {
     return {
         country: 'EC',
         'client.phone': { $exists: true, $ne: '' },
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'review.manualOnly': { $ne: true },
         $and: [
             { $or: branches.length ? branches : [{ _id: null }] },
@@ -795,6 +812,7 @@ const carrierStatusSweepQuery = ({ force = false, now = new Date() } = {}) => {
     const checkedBefore = new Date(now.getTime() - carrierStatusSweepMinGapMinutes() * 60 * 1000);
     const query = {
         country: 'EC',
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         $and: [
             {
@@ -873,6 +891,16 @@ export const processCarrierStatusSweep = async ({
     let failed = 0;
 
     for (const shipment of candidates) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            skipped += 1;
+            results.push({
+                orderId: shipment.orderId,
+                success: false,
+                reason: canaryDecision.reason
+            });
+            continue;
+        }
         const beforeStatus = shipment.logistics?.status || '';
         const item = {
             orderId: shipment.orderId,
@@ -1095,12 +1123,12 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         .sort({ updatedAt: 1, createdAt: 1 })
         .limit(fetchLimit);
     const shipments = candidates
-        .sort((a, b) => dispatchActionPriority(actionForShipment(a)) - dispatchActionPriority(actionForShipment(b)))
-        .slice(0, quota.limit || effectiveLimit);
+        .sort((a, b) => dispatchActionPriority(actionForShipment(a)) - dispatchActionPriority(actionForShipment(b)));
 
     const results = [];
     let sent = 0;
     let skipped = 0;
+    let attemptedEligible = 0;
     const selectedActionSet = new Set(selectedActions);
     let refreshedBeforeSend = 0;
     const refreshLimit = dispatchRefreshBeforeSendLimit();
@@ -1113,6 +1141,18 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
     });
 
     for (const shipment of shipments) {
+        if (attemptedEligible >= (quota.limit || effectiveLimit)) break;
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            skipped += 1;
+            results.push({
+                orderId: shipment.orderId,
+                action: 'none',
+                success: false,
+                reason: canaryDecision.reason
+            });
+            continue;
+        }
         let action = actionForShipment(shipment);
         const item = {
             orderId: shipment.orderId,
@@ -1123,6 +1163,22 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         };
 
         if (dryRun) {
+            const preflight = await decidePostSaleNotification({
+                shipment,
+                kind: notificationKindForDispatchAction(action),
+                acquireLock: false
+            });
+            item.preflightDecision = preflight.decision || '';
+            if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                item.reason = preflight.reason || 'preflight_not_eligible';
+                skipped += 1;
+                results.push(item);
+                continue;
+            }
+            if (!postSaleTransactionalSafetyV116Enabled()) {
+                attemptedEligible += 1;
+                item.eligibleAttempt = true;
+            }
             item.success = true;
             item.dryRun = true;
             results.push(item);
@@ -1192,6 +1248,20 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 });
                 continue;
             }
+            const preflight = await decidePostSaleNotification({
+                shipment: shipmentForSend,
+                kind: notificationKindForDispatchAction(action),
+                acquireLock: false
+            });
+            item.preflightDecision = preflight.decision || '';
+            if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                item.reason = preflight.reason || 'preflight_not_eligible';
+                skipped += 1;
+                results.push(item);
+                continue;
+            }
+            attemptedEligible += 1;
+            item.eligibleAttempt = true;
             const sessionSelection = await resolveDispatchSessionForShipment({
                 shipment: shipmentForSend,
                 hourlySessionCounts,
@@ -1213,6 +1283,31 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     trackingNumber: shipmentForSend.logistics?.trackingNumber || ''
                 });
                 continue;
+            }
+            if (postSaleTransactionalSafetyV116Enabled() && !force) {
+                const atomicQuota = await reservePostSaleDailyQuotaV116({
+                    dayKey: quota.dayKey || dispatchDayRange(startedAt, dispatchTimeZone()).key,
+                    timeZone: quota.timeZone || dispatchTimeZone(),
+                    dailyLimit: quota.dailyLimit || dispatchDailyLimit(),
+                    correlationId: preflight.idempotencyKey || `${shipmentForSend.orderId}:${action}`,
+                    now: startedAt,
+                    expiresAt: new Date(dispatchDayRange(startedAt, quota.timeZone || dispatchTimeZone()).end.getTime() + DAY_MS)
+                });
+                item.atomicQuota = {
+                    reserved: atomicQuota.reserved,
+                    reason: atomicQuota.reason,
+                    dayKey: atomicQuota.dayKey || quota.dayKey || '',
+                    used: atomicQuota.used || 0,
+                    dailyLimit: atomicQuota.dailyLimit || quota.dailyLimit || 0
+                };
+                if (!atomicQuota.reserved) {
+                    item.reason = atomicQuota.reason || 'daily_quota_not_reserved';
+                    skipped += 1;
+                    results.push(item);
+                    break;
+                }
+                attemptedEligible += 1;
+                item.eligibleAttempt = true;
             }
             shipmentForSend.automation.sessionId = sessionSelection.sessionId;
 
@@ -1272,7 +1367,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         finishedAt: new Date(),
         dryRun: Boolean(dryRun),
         actions: selectedActions,
-        processed: shipments.length,
+        processed: results.length,
         sent,
         skipped,
         paused: false,

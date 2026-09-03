@@ -1,0 +1,66 @@
+{
+  "freezeId": "canary-controller-pm2-stdin-hotfix-v77h",
+  "parentFreezeId": "canary-controller-safety-v77",
+  "parentManifestSha256": "d127adb1220afa00ced0c91e0a295304682ae1142901b97d025823688bde85d1",
+  "parentV77Commit": "5bedd9154c4ba0b69f0477e059473dcf7012d38a",
+  "parentV77Tree": "681b6fd3249065e6b745eb346cbc5ff093185d1e",
+  "status": "implementation_validated",
+  "publicationStatus": "local_candidate_no_commit_no_push_no_stage_no_deploy",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js",
+    "hotfixVersion": "77H",
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "qaPhone": "5515998038637",
+    "recipientAllowlistCount": 5,
+    "pm2StdinExclusiveJson": true,
+    "javascriptFromVersionedFile": true,
+    "readStdinUntilEof": true,
+    "externalPm2FingerprintRequired": true,
+    "canarySemanticsChanged": false,
+    "productionMutationExecuted": false,
+    "ancestorFailurePropagation": "FAIL_CLOSED"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "dbb9abc2c3491d198b138fabae375ec3f8b24f6c3e5bb8f2e5bda87ada54c787"
+  },
+  "declaredAncestorOverrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "ops/vitalismen-stage",
+    "package.json",
+    "scripts/guard-canary-controller-v77.mjs",
+    "scripts/guard-canary-isolation-v75.mjs",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js"
+  ],
+  "newProtectedFiles": [
+    "docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md",
+    "scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs",
+    "scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs",
+    "src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js",
+    "tests/canary-controller-pm2-stdin-hotfix-v77h.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "3292b6b3245ccd641719c2f6e5c6e4437d4a6a92f1cfd223bbc60fe192f4df23",
+    "docs/ARQUIVOS_OFICIAIS.md": "dfb95b464e96c6248e9e8c17ddd5bda3798d2ee558a42f769b285c529f9b451c",
+    "docs/CANARY_CONTROLLER_PM2_STDIN_HOTFIX_FREEZE_V77H_20260829.md": "605103e6374d042c56402472008dd99cf843dba51a68fd73cd4c7f7595f8d79d",
+    "ops/vitalismen-stage": "ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853",
+    "package.json": "4de575073da249ca55677e80ff8ed06f0ec99fce3ebd9a9faf17005c46d7e347",
+    "scripts/guard-canary-controller-pm2-stdin-hotfix-v77h.mjs": "eb28f65b27c970285cea7afca7adef87a4c3c23ce28251c6b58b75591321b605",
+    "scripts/guard-canary-controller-v77.mjs": "0d72f1298ca71ccba719dbb0e6cd0aa9b54b70933a128e7012b18a88fe7a1d6a",
+    "scripts/guard-canary-isolation-v75.mjs": "48f1d654d2b0fa352e45c76423a3dca8295012f8b9e4bb41c44add74f859c9a3",
+    "scripts/guard-deploy-health-bridge-semantics-v76.mjs": "834543165a1b6dd7fbe13211804b2f25bbbe1ecdd65d736a47ca1ba796fdbfff",
+    "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs": "f803f75d9d883bf710aec7afe4308a68918f2a020985cf007079a0a7e50a6766",
+    "scripts/guard-meta-partner-destination-registry-v73.mjs": "2e436e0a21a3c71a9cacace75ea9971b92ae298b8d895273852c4189d41c63f3",
+    "scripts/lib/canary-controller-pm2-stdin-hotfix-v77h-contract.mjs": "02f024f76918814bdab650c37be6d79d8e7f62832b699fbfcfad61e6f37fa5a7",
+    "src/services/canaryControllerPm2StdinHotfixSafetyFreezeRuntimeGuardV77H.js": "62ae4c23c37e53ab6e6e755da23aeb81e0bae2d69ed9a0ff4e5b8e37f07e5bbb",
+    "src/services/ecEngagementFreezeRuntimeGuardV40.js": "117877ac57b5fe2aa9090c99d69bb4b34077ff135a6c2873af10afcbe9983235",
+    "tests/canary-controller-pm2-stdin-hotfix-v77h.test.mjs": "51192eaddfe354faab06215e83103c9b564a80d324a7ef714ae573f0de110b5d"
+  }
+}

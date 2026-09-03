@@ -29,9 +29,25 @@ import {
     texUltraHowToUseAudioDedupeValue
 } from './texUltraHowToUseAudioService.js';
 import {
+    completePostSaleNotificationStage,
     decidePostSaleNotification,
+    failPostSaleNotificationStage,
     shouldSendPostSaleNotification
 } from './postSaleNotificationDecisionService.js';
+import {
+    POST_SALE_STAGES,
+    POST_SALE_VARIANTS,
+    buildPostSaleIdempotencyKey
+} from './postSaleSafetyV66Service.js';
+import {
+    postSaleFailureDispositionV116,
+    postSaleTransactionalSafetyV116Enabled
+} from './postSaleTransactionalSafetyV116Service.js';
+import {
+    buildCanaryV75RecipientQuery,
+    canaryV75SchedulerShipmentAllowed,
+    evaluateCanaryV75Recipient
+} from './canaryIsolationV75Service.js';
 
 const BONUS_URL = process.env.PICKUP_BONUS_URL || 'https://zapgersonecvo.cloud';
 const BONUS_TEXT_VARIANTS = [
@@ -139,6 +155,14 @@ const PICKUP_NOTICE_FIELDS_BY_KIND = {
     day5: 'reminderDay5At',
     soft_day6: 'reminderSoftDay6At'
 };
+const PICKUP_REMINDER_VARIANT_BY_KIND = Object.freeze({
+    day1: POST_SALE_VARIANTS.PICKUP_REMINDER_DAY1,
+    soft_day2: POST_SALE_VARIANTS.PICKUP_REMINDER_SOFT_DAY2,
+    day3: POST_SALE_VARIANTS.PICKUP_REMINDER_DAY3,
+    soft_day4: POST_SALE_VARIANTS.PICKUP_REMINDER_SOFT_DAY4,
+    day5: POST_SALE_VARIANTS.PICKUP_REMINDER_DAY5,
+    soft_day6: POST_SALE_VARIANTS.PICKUP_REMINDER_SOFT_DAY6
+});
 const PICKUP_NOTICE_EVENT_BY_KIND = {
     ready_for_pickup: 'ready_for_pickup_notified',
     day1: 'reminder_day1',
@@ -397,7 +421,13 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         ...options,
         returnDetails: true
     });
-    if (!sendResultOk(sent)) return false;
+    if (!sendResultOk(sent)) return sent || {
+        ok: false,
+        providerAttempted: false,
+        ambiguous: false,
+        providerStatus: 'blocked',
+        reason: 'shipment_text_not_sent'
+    };
     await persistShipmentOutboundMessage({
         shipment,
         chatId,
@@ -407,6 +437,41 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         sentResult: sent
     });
     return sent;
+};
+
+const recordPrimaryPostSaleSendFailure = async ({
+    shipment,
+    decision,
+    stage,
+    variant,
+    sendResult,
+    reason,
+    shipmentModel
+} = {}) => {
+    if (!postSaleTransactionalSafetyV116Enabled()) {
+        return failPostSaleNotificationStage({
+            shipment,
+            stage,
+            variant,
+            lockToken: decision?.lockToken,
+            reason,
+            ...(shipmentModel ? { shipmentModel } : {})
+        });
+    }
+    const disposition = postSaleFailureDispositionV116(sendResult);
+    return failPostSaleNotificationStage({
+        shipment,
+        stage,
+        variant,
+        lockToken: decision?.lockToken,
+        reason: disposition.reason || reason,
+        terminal: disposition.terminal,
+        terminalState: disposition.terminalState,
+        providerMessageId: disposition.providerMessageId,
+        providerStatus: disposition.providerStatus,
+        correlationId: disposition.correlationId || decision?.idempotencyKey,
+        ...(shipmentModel ? { shipmentModel } : {})
+    });
 };
 
 const resolveInvoiceSource = (shipment) => {
@@ -469,17 +534,68 @@ const ensureInvoiceAvailableLocally = async (shipment) => {
     return localPath;
 };
 
-const sendShipmentInvoicePdf = async (shipment, chatId, caption) => {
+const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
+    decision = null,
+    sendDocumentFn = sendDocument
+} = {}) => {
     const policy = logisticsCommunicationPolicy(shipment);
-    if (!policy.allowGuidePdf) return { sent: false, reason: policy.blockReason || 'guide_pdf_blocked' };
+    if (!policy.allowGuidePdf) {
+        if (shouldSendPostSaleNotification(decision) && decision?.lockToken) {
+            await failPostSaleNotificationStage({
+                shipment,
+                stage: POST_SALE_STAGES.GUIDE,
+                variant: POST_SALE_VARIANTS.GUIDE_PDF,
+                lockToken: decision.lockToken,
+                reason: policy.blockReason || 'guide_pdf_blocked'
+            });
+        }
+        return { sent: false, reason: policy.blockReason || 'guide_pdf_blocked' };
+    }
     const invoiceSource = resolveInvoiceSource(shipment);
-    if (!invoiceSource) return { sent: false, reason: 'missing_invoice_source' };
+    if (!invoiceSource) {
+        if (shouldSendPostSaleNotification(decision) && decision?.lockToken) {
+            await failPostSaleNotificationStage({
+                shipment,
+                stage: POST_SALE_STAGES.GUIDE,
+                variant: POST_SALE_VARIANTS.GUIDE_PDF,
+                lockToken: decision.lockToken,
+                reason: 'missing_invoice_source'
+            });
+        }
+        return { sent: false, reason: 'missing_invoice_source' };
+    }
+
+    const expectedIdempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.GUIDE,
+        variant: POST_SALE_VARIANTS.GUIDE_PDF
+    });
+    if (
+        !shouldSendPostSaleNotification(decision)
+        || !decision?.lockToken
+        || decision.stage !== POST_SALE_STAGES.GUIDE
+        || decision.idempotencyKey !== expectedIdempotencyKey
+    ) {
+        return {
+            sent: false,
+            reason: decision?.decision || decision?.reason || 'central_guide_stage_decision_required'
+        };
+    }
 
     const localInvoicePath = await ensureInvoiceAvailableLocally(shipment);
     const documentSource = localInvoicePath && fs.existsSync(localInvoicePath) ? localInvoicePath : '';
-    if (!documentSource) return { sent: false, reason: 'invoice_unavailable_locally' };
+    if (!documentSource) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PDF,
+            lockToken: decision.lockToken,
+            reason: 'invoice_unavailable_locally'
+        });
+        return { sent: false, reason: 'invoice_unavailable_locally' };
+    }
 
-    const sent = await sendDocument(
+    const sent = await sendDocumentFn(
         chatId,
         documentSource,
         path.basename(String(documentSource).split('?')[0]),
@@ -491,6 +607,23 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption) => {
         }
     );
     if (sendResultOk(sent)) {
+        const finalized = await completePostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PDF,
+            lockToken: decision.lockToken,
+            providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
+        });
+        if (!finalized.completed) {
+            return {
+                sent: false,
+                reason: finalized.reason || 'guide_pdf_ledger_finalization_failed',
+                path: documentSource,
+                providerMessageId: sent?.providerMessageId || '',
+                providerZaapId: sent?.providerZaapId || '',
+                providerStatus: sent?.providerStatus || ''
+            };
+        }
         await persistShipmentOutboundMessage({
             shipment,
             chatId,
@@ -499,6 +632,16 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption) => {
             body: caption,
             mediaPath: documentSource,
             sentResult: sent
+        });
+    }
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PDF,
+            sendResult: sent,
+            reason: sent?.error || sent?.reason || 'invoice_send_failed'
         });
     }
     return {
@@ -1093,9 +1236,26 @@ export const ensureGuidePrintImage = async (shipment, { force = false } = {}) =>
     }
 };
 
-export const notifyGuidePrintImage = async (shipment, { force = false } = {}) => {
+export const notifyGuidePrintImage = async (shipment, {
+    force = false,
+    decision: suppliedDecision = null,
+    sendImageFn = sendImage,
+    ensureImageFn = ensureGuidePrintImage,
+    messageModel = Message,
+    shipmentModel = Shipment
+} = {}) => {
     const policy = logisticsCommunicationPolicy(shipment);
     if (!policy.allowGuideImage) {
+        if (shouldSendPostSaleNotification(suppliedDecision) && suppliedDecision?.lockToken) {
+            await failPostSaleNotificationStage({
+                shipment,
+                stage: POST_SALE_STAGES.GUIDE,
+                variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+                lockToken: suppliedDecision.lockToken,
+                reason: policy.blockReason || 'guide_image_blocked',
+                shipmentModel
+            });
+        }
         await appendNotificationLedgerV29(shipment, {
             notificationType: 'guide_print_image',
             blockedReason: policy.blockReason || 'guide_image_blocked'
@@ -1104,17 +1264,46 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
     }
     const chatId = resolveChatId(shipment);
     if (!chatId) return { success: false, imageSent: false, reason: 'invalid_chat' };
-    if (!force && shipment?.automation?.guidePrintNotifiedAt) {
-        return { success: false, imageSent: false, reason: 'already_notified' };
+    const decision = suppliedDecision || await decidePostSaleNotification({
+        shipment,
+        kind: 'guide',
+        variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+        messageModel,
+        shipmentModel
+    });
+    const expectedIdempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.GUIDE,
+        variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE
+    });
+    if (
+        !shouldSendPostSaleNotification(decision)
+        || !decision?.lockToken
+        || decision.stage !== POST_SALE_STAGES.GUIDE
+        || decision.idempotencyKey !== expectedIdempotencyKey
+    ) {
+        return {
+            success: false,
+            imageSent: false,
+            reason: decision?.decision || decision?.reason || 'central_decision_did_not_authorize_send',
+            decision
+        };
     }
 
-    const image = await ensureGuidePrintImage(shipment, { force: false });
+    const image = await ensureImageFn(shipment, { force: false });
     if (!image.ok || !image.path) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+            lockToken: decision.lockToken,
+            reason: image.reason || 'guide_print_unavailable',
+            shipmentModel
+        });
         return { success: false, imageSent: false, reason: image.reason || 'guide_print_unavailable' };
     }
 
-    const existingGuidePrintMessage = !force
-        ? await Message.findOne({
+    const existingGuidePrintMessage = await messageModel.findOne({
             orderId: shipment?.orderId || '',
             isFromMe: true,
             isBot: true,
@@ -1123,11 +1312,19 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
                 { mediaUrl: image.url || '' },
                 { mediaUrl: shipment?.logistics?.guidePrintUrl || '' }
             ].filter((item) => Object.values(item)[0])
-        }).sort({ createdAt: -1 }).lean().catch(() => null)
-        : null;
+        }).sort({ createdAt: -1 }).lean().catch(() => null);
     if (existingGuidePrintMessage) {
         const recoveredAt = existingGuidePrintMessage.createdAt || new Date();
-        await Shipment.updateOne(
+        await completePostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+            lockToken: decision.lockToken,
+            providerMessageId: existingGuidePrintMessage.providerMessageId || existingGuidePrintMessage._id || '',
+            now: recoveredAt,
+            shipmentModel
+        });
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {
@@ -1152,7 +1349,7 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
         };
     }
 
-    const sent = await sendImage(chatId, image.path, '', {
+    const sent = await sendImageFn(chatId, image.path, '', {
         ...shipmentOutboundOptions(shipment),
         outboundContext: 'shipment_guide_print',
         returnDetails: true,
@@ -1160,7 +1357,16 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
     });
     if (!sent?.ok) {
         const reason = sent?.error || sent?.reason || 'image_send_failed';
-        await Shipment.updateOne(
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+            sendResult: sent,
+            reason,
+            shipmentModel
+        });
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {
@@ -1178,9 +1384,27 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
     }
 
     const now = new Date();
-    const providerMessageId = sent.providerMessageId || sent.providerZaapId || `guide_print_${shipment._id}_${now.getTime()}`;
+    const providerMessageId = sent.providerMessageId || sent.providerZaapId || '';
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: POST_SALE_STAGES.GUIDE,
+        variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
+        lockToken: decision.lockToken,
+        providerMessageId,
+        now,
+        shipmentModel
+    });
+    if (!finalized.completed) {
+        return {
+            success: false,
+            imageSent: true,
+            reason: 'provider_accepted_but_safety_ledger_finalize_failed',
+            providerMessageId,
+            decision
+        };
+    }
     const peerPhone = shipmentPhoneDigits(shipment);
-    await Message.updateOne(
+    await messageModel.updateOne(
         { _id: providerMessageId },
         {
             $setOnInsert: {
@@ -1215,7 +1439,7 @@ export const notifyGuidePrintImage = async (shipment, { force = false } = {}) =>
     ).catch((error) => {
         console.warn(`[SHIPMENT] Falha ao registrar bolha do print da guia ${shipment.orderId}:`, error.message);
     });
-    await Shipment.updateOne(
+    await shipmentModel.updateOne(
         { _id: shipment._id },
         {
             $set: {
@@ -1437,14 +1661,16 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         return { success: false, textSent: false, invoiceSent: false, audioSent: false, reason: policy.blockReason || 'guide_number_not_available' };
     }
     const chatId = resolveChatId(shipment);
-    if (!chatId || (!force && shipment.automation.guiaNotifiedAt)) {
+    if (!chatId) {
         return { success: false, textSent: false, invoiceSent: false, reason: 'already_notified_or_invalid_chat' };
     }
-    if (!force) {
-        const decision = await decidePostSaleNotification({ shipment, kind: 'guide' });
-        if (!shouldSendPostSaleNotification(decision)) {
-            return { success: false, textSent: false, invoiceSent: false, reason: decision.decision, decision };
-        }
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: 'guide',
+        variant: POST_SALE_VARIANTS.GUIDE_TEXT
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) {
+        return { success: false, textSent: false, invoiceSent: false, reason: decision.decision, decision };
     }
     const text = buildShipmentGuideText(shipment);
     const hash = buildMessageHash({
@@ -1453,9 +1679,23 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         trackingNumber: shipment.logistics.trackingNumber
     });
     if (!force && hasAlreadySentHash(shipment, hash)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_TEXT,
+            lockToken: decision.lockToken,
+            reason: 'duplicate_hash'
+        });
         return { success: false, textSent: false, invoiceSent: false, reason: 'duplicate_hash' };
     }
     if (!force && !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_TEXT,
+            lockToken: decision.lockToken,
+            reason: 'min_gap_not_elapsed'
+        });
         return { success: false, textSent: false, invoiceSent: false, reason: 'min_gap_not_elapsed' };
     }
 
@@ -1463,8 +1703,29 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         kind: 'shipment_guide_text',
         bypassDedupe: force
     });
-    if (!textSent) {
+    if (!sendResultOk(textSent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.GUIDE,
+            variant: POST_SALE_VARIANTS.GUIDE_TEXT,
+            sendResult: textSent,
+            reason: 'text_send_failed'
+        });
         return { success: false, textSent: false, invoiceSent: false, reason: 'text_send_failed' };
+    }
+
+    const sentAt = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: POST_SALE_STAGES.GUIDE,
+        variant: POST_SALE_VARIANTS.GUIDE_TEXT,
+        lockToken: decision.lockToken,
+        providerMessageId: textSent?.providerMessageId || textSent?.providerZaapId || '',
+        now: sentAt
+    });
+    if (!finalized.completed) {
+        return { success: false, textSent: true, invoiceSent: false, reason: finalized.reason || 'guide_ledger_finalization_failed' };
     }
 
     // V29: envio/guia pode comunicar somente texto + numero. PDF, imagem e
@@ -1473,7 +1734,7 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
     const guideAudioSent = false;
     const partialAttachmentFailures = [];
 
-    const now = new Date();
+    const now = sentAt;
     await persistAutomationUpdate(shipment._id, {
         'automation.guiaNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -1514,42 +1775,116 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         return false;
     }
     const chatId = resolveChatId(shipment);
-    if (!chatId || (!force && shipment.automation.readyForPickupNotifiedAt)) return false;
-    if (!force) {
-        const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup' });
-        if (!shouldSendPostSaleNotification(decision)) return false;
-    }
+    if (!chatId) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: 'ready_for_pickup',
+        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
     const text = buildReadyForPickupText(shipment);
     const hash = buildMessageHash({
         kind: 'ready_for_pickup',
         text,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (!force && hasAlreadySentHash(shipment, hash)) return false;
+    if (!force && hasAlreadySentHash(shipment, hash)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+            lockToken: decision.lockToken,
+            reason: 'duplicate_hash'
+        });
+        return false;
+    }
     if (!force) {
         const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind: 'ready_for_pickup' });
         if (existingNotice) {
-            return recoverExistingGlobalShipmentNotice({
+            const recovered = await recoverExistingGlobalShipmentNotice({
                 shipment,
                 kind: 'ready_for_pickup',
                 hash,
                 existing: existingNotice
             });
+            if (recovered) {
+                await completePostSaleNotificationStage({
+                    shipment,
+                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+                    lockToken: decision.lockToken,
+                    providerMessageId: existingNotice.messageId || '',
+                    now: existingNotice.at || new Date()
+                });
+            } else {
+                await failPostSaleNotificationStage({
+                    shipment,
+                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+                    lockToken: decision.lockToken,
+                    reason: 'existing_notice_recovery_failed'
+                });
+            }
+            return recovered;
         }
     }
-    if (!force && !hasMinGapElapsed(shipment)) return false;
+    if (!force && !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+            lockToken: decision.lockToken,
+            reason: 'min_gap_not_elapsed'
+        });
+        return false;
+    }
 
+    const guidePdfDecision = await decidePostSaleNotification({
+        shipment,
+        kind: 'guide',
+        variant: POST_SALE_VARIANTS.GUIDE_PDF
+    });
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_ready_for_pickup_text',
         bypassDedupe: force,
         allowTextDedupeBypass: force,
         allowHistoryDedupeBypass: force
     });
-    if (!sent) return false;
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+            sendResult: sent,
+            reason: 'text_send_failed'
+        });
+        if (shouldSendPostSaleNotification(guidePdfDecision) && guidePdfDecision.lockToken) {
+            await failPostSaleNotificationStage({
+                shipment,
+                stage: POST_SALE_STAGES.GUIDE,
+                variant: POST_SALE_VARIANTS.GUIDE_PDF,
+                lockToken: guidePdfDecision.lockToken,
+                reason: 'primary_ready_text_send_failed'
+            });
+        }
+        return false;
+    }
+    const sentAt = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: POST_SALE_STAGES.READY_FOR_PICKUP,
+        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now: sentAt
+    });
+    if (!finalized.completed) return false;
     const invoiceResult = await sendShipmentInvoicePdf(
         shipment,
         chatId,
-        `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`
+        `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`,
+        { decision: guidePdfDecision }
     );
     if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceResult.sent) {
         console.warn(`[SHIPMENT] Falha ao reenviar fatura no aviso de retirada ${shipment.orderId}: ${invoiceResult.reason}`);
@@ -1560,7 +1895,7 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         audio: audioSent
     });
 
-    const now = new Date();
+    const now = sentAt;
     await persistAutomationUpdate(shipment._id, {
         'automation.guiaNotifiedAt': shipment.automation?.guiaNotifiedAt || now,
         'automation.readyForPickupNotifiedAt': now,
@@ -1586,23 +1921,54 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
 export const notifyShipmentInTransit = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.inTransitNotifiedAt) return false;
-    const decision = await decidePostSaleNotification({ shipment, kind: 'in_transit' });
-    if (!shouldSendPostSaleNotification(decision)) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: 'in_transit',
+        variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
     const text = buildInTransitText(shipment);
     const hash = buildMessageHash({
         kind: 'in_transit',
         text,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (hasAlreadySentHash(shipment, hash)) return false;
-    if (!hasMinGapElapsed(shipment)) return false;
+    if (hasAlreadySentHash(shipment, hash) || !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.IN_TRANSIT,
+            variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT,
+            lockToken: decision.lockToken,
+            reason: hasAlreadySentHash(shipment, hash) ? 'duplicate_hash' : 'min_gap_not_elapsed'
+        });
+        return false;
+    }
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_in_transit_text'
     });
-    if (!sent) return false;
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.IN_TRANSIT,
+            variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT,
+            sendResult: sent,
+            reason: 'text_send_failed'
+        });
+        return false;
+    }
 
     const now = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: POST_SALE_STAGES.IN_TRANSIT,
+        variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
     await persistAutomationUpdate(shipment._id, {
         'automation.inTransitNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -1633,6 +1999,8 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     }
     const chatId = resolveChatId(shipment);
     if (!chatId) return false;
+    const reminderVariant = PICKUP_REMINDER_VARIANT_BY_KIND[kind];
+    if (!reminderVariant) return false;
     const text = buildReminderText(shipment, kind);
     const audioOnly = AUDIO_ONLY_REMINDER_KINDS.has(kind) && isAgencyPickup(shipment);
     const hash = buildMessageHash({
@@ -1668,7 +2036,15 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     shipment = lockedShipment;
 
     let completed = false;
+    let safetyDecision = null;
+    let safetyFinalized = false;
     try {
+    safetyDecision = await decidePostSaleNotification({
+        shipment,
+        kind: reminderVariant,
+        variant: reminderVariant
+    });
+    if (!shouldSendPostSaleNotification(safetyDecision) || !safetyDecision.lockToken) return false;
     if (hasAlreadySentHash(shipment, hash)) {
         console.warn(
             `[SHIPMENT] hash antigo sem etapa confirmada; revalidando aviso -> order=${shipment.orderId} `
@@ -1683,6 +2059,17 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             hash,
             existing: existingNotice
         });
+        if (recovered) {
+            const safetyResult = await completePostSaleNotificationStage({
+                shipment,
+                stage: safetyDecision.stage,
+                variant: reminderVariant,
+                lockToken: safetyDecision.lockToken,
+                providerMessageId: existingNotice.messageId || existingNotice._id || '',
+                now: existingNotice.at || existingNotice.createdAt || new Date()
+            });
+            safetyFinalized = safetyResult.completed;
+        }
         completed = Boolean(recovered);
         return recovered;
     }
@@ -1693,12 +2080,37 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         sent = await sendShipmentText(shipment, chatId, text, {
             kind: `shipment_reminder_${kind}_text`
         });
-        if (!sent) return false;
+        if (!sendResultOk(sent)) {
+            await recordPrimaryPostSaleSendFailure({
+                shipment,
+                decision: safetyDecision,
+                stage: safetyDecision.stage,
+                variant: reminderVariant,
+                sendResult: sent,
+                reason: 'pickup_reminder_text_send_failed'
+            });
+            safetyFinalized = true;
+            return false;
+        }
     }
     const audioSent = await sendShipmentAudio(shipment, chatId, kind);
     if (audioOnly && !audioSent?.sentAny) return false;
 
     const now = new Date();
+    const providerMessageId = sent?.providerMessageId
+        || sent?.providerZaapId
+        || audioSent?.sentDetails?.[0]?.providerMessageId
+        || audioSent?.sentDetails?.[0]?.providerZaapId
+        || '';
+    const safetyResult = await completePostSaleNotificationStage({
+        shipment,
+        stage: safetyDecision.stage,
+        variant: reminderVariant,
+        lockToken: safetyDecision.lockToken,
+        providerMessageId,
+        now
+    });
+    safetyFinalized = safetyResult.completed;
     const setFields = {
         'automation.lastReminderAt': now,
         'automation.lastReminderKind': kind
@@ -1717,15 +2129,20 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     await appendNotificationLedgerV29(shipment, {
         notificationType: `pickup_reminder_${kind}`,
         sentAt: now,
-        providerMessageId: sent?.providerMessageId
-            || sent?.providerZaapId
-            || audioSent?.sentDetails?.[0]?.providerMessageId
-            || audioSent?.sentDetails?.[0]?.providerZaapId
-            || ''
+        providerMessageId
     });
     completed = true;
     return true;
     } finally {
+        if (shouldSendPostSaleNotification(safetyDecision) && safetyDecision?.lockToken && !safetyFinalized) {
+            await failPostSaleNotificationStage({
+                shipment,
+                stage: safetyDecision.stage,
+                variant: reminderVariant,
+                lockToken: safetyDecision.lockToken,
+                reason: 'pickup_reminder_flow_not_completed'
+            });
+        }
         await Shipment.updateOne(
             { _id: shipment._id },
             {
@@ -1743,23 +2160,54 @@ export const notifyShipmentReminder = async (shipment, kind) => {
 export const notifyShipmentReturned = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.returnedNotifiedAt) return false;
-    const decision = await decidePostSaleNotification({ shipment, kind: 'returned' });
-    if (!shouldSendPostSaleNotification(decision)) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: 'returned',
+        variant: POST_SALE_VARIANTS.RETURNED_TEXT
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
     const returnedText = withSaveContactReminder(PREPAID_ONLY_TEXT);
     const hash = buildMessageHash({
         kind: 'returned',
         text: returnedText,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (hasAlreadySentHash(shipment, hash)) return false;
-    if (!hasMinGapElapsed(shipment)) return false;
+    if (hasAlreadySentHash(shipment, hash) || !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: POST_SALE_STAGES.RETURNED,
+            variant: POST_SALE_VARIANTS.RETURNED_TEXT,
+            lockToken: decision.lockToken,
+            reason: hasAlreadySentHash(shipment, hash) ? 'duplicate_hash' : 'min_gap_not_elapsed'
+        });
+        return false;
+    }
 
     const sent = await sendShipmentText(shipment, chatId, returnedText, {
         kind: 'shipment_returned_text'
     });
-    if (!sent) return false;
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: POST_SALE_STAGES.RETURNED,
+            variant: POST_SALE_VARIANTS.RETURNED_TEXT,
+            sendResult: sent,
+            reason: 'text_send_failed'
+        });
+        return false;
+    }
 
     const now = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: POST_SALE_STAGES.RETURNED,
+        variant: POST_SALE_VARIANTS.RETURNED_TEXT,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
     await Shipment.updateOne(
         { _id: shipment._id },
         {
@@ -1789,6 +2237,12 @@ export const notifyShipmentReturned = async (shipment) => {
 export const notifyPickupProofRequest = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
+        variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
 
     const text = buildPickupProofText();
     const hash = buildMessageHash({
@@ -1796,15 +2250,42 @@ export const notifyPickupProofRequest = async (shipment) => {
         text,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (hasAlreadySentHash(shipment, hash)) return false;
-    if (!hasMinGapElapsed(shipment)) return false;
+    if (hasAlreadySentHash(shipment, hash) || !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
+            lockToken: decision.lockToken,
+            reason: hasAlreadySentHash(shipment, hash) ? 'duplicate_hash' : 'min_gap_not_elapsed'
+        });
+        return false;
+    }
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_pickup_proof_request_text'
     });
-    if (!sent) return false;
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
+            sendResult: sent,
+            reason: 'pickup_proof_request_send_failed'
+        });
+        return false;
+    }
 
     const now = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
     await persistAutomationUpdate(shipment._id, {
         'automation.pickupProofRequestedAt': now,
         'automation.lastReminderAt': now,
@@ -1817,6 +2298,12 @@ export const notifyPickupProofRequest = async (shipment) => {
 export const notifyPickupBonus = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.bonusNotifiedAt) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: POST_SALE_VARIANTS.PICKUP_BONUS,
+        variant: POST_SALE_VARIANTS.PICKUP_BONUS
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
 
     const text = buildPickupBonusText(shipment);
     const bonusDedupeScope = [
@@ -1837,6 +2324,14 @@ export const notifyPickupBonus = async (shipment) => {
     if (existingBonus) {
         const now = new Date();
         const existingAt = existingBonus.createdAt || existingBonus.updatedAt || now;
+        await completePostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PICKUP_BONUS,
+            lockToken: decision.lockToken,
+            providerMessageId: existingBonus.providerMessageId || existingBonus._id || '',
+            now: existingAt
+        });
         await persistAutomationUpdate(shipment._id, {
             'automation.bonusNotifiedAt': existingAt,
             'automation.lastReminderAt': existingAt,
@@ -1851,7 +2346,16 @@ export const notifyPickupBonus = async (shipment) => {
         });
         return true;
     }
-    if (hasAlreadySentHash(shipment, hash)) return false;
+    if (hasAlreadySentHash(shipment, hash)) {
+        await completePostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PICKUP_BONUS,
+            lockToken: decision.lockToken,
+            now: new Date()
+        });
+        return false;
+    }
 
     const thankYouAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' });
     const thankYouAudioSent = thankYouAudioPath
@@ -1867,7 +2371,28 @@ export const notifyPickupBonus = async (shipment) => {
         dedupeValue: `${text}|${bonusDedupeScope}`,
         antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PICKUP_BONUS,
+            sendResult: sent,
+            reason: 'pickup_bonus_primary_text_send_failed'
+        });
+    }
     if (!sent) return false;
+    if (!sendResultOk(sent)) return false;
+    const primarySentAt = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.PICKUP_BONUS,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now: primarySentAt
+    });
+    if (!finalized.completed) return false;
     const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);
     const howToUseAudioPath = howToUseAudioBaseName
         ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: howToUseAudioBaseName })
@@ -1905,7 +2430,7 @@ export const notifyPickupBonus = async (shipment) => {
         });
     }
 
-    const now = new Date();
+    const now = primarySentAt;
     await persistAutomationUpdate(shipment._id, {
         'automation.bonusNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -2141,6 +2666,10 @@ export const handlePickupProofInbound = async ({
     hasMedia = false
 }) => {
     if (!chatId) return { handled: false, reason: 'missing_chat' };
+    const canaryDecision = evaluateCanaryV75Recipient(chatId, {
+        surface: 'pickup_proof_inbound'
+    });
+    if (!canaryDecision.allowed) return { handled: false, reason: canaryDecision.reason };
     const explicitTextProof = isPickupProofText(proofText);
 
     const shipment = await Shipment.findOne({
@@ -2181,6 +2710,7 @@ export const handlePickupProofInbound = async ({
 export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}) => {
     const shipments = await Shipment.find({
         country: 'EC',
+        ...buildCanaryV75RecipientQuery('client.phone'),
         'logistics.agencyPickup': true,
         'outcomes.pickedUp': { $ne: true },
         'automation.bonusNotifiedAt': null,
@@ -2197,6 +2727,11 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
     let bonusSent = 0;
 
     for (const shipment of shipments) {
+        const canaryDecision = canaryV75SchedulerShipmentAllowed(shipment);
+        if (!canaryDecision.allowed) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: canaryDecision.reason });
+            continue;
+        }
         processed += 1;
         const since = shipment.automation?.pickupProofRequestedAt
             || shipment.automation?.readyForPickupNotifiedAt
@@ -2239,9 +2774,22 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
 export const notifyTreatmentRefillReminder = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.refillReminderAt || shipment?.review?.manualOnly === true) return false;
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
+        variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
 
     const product = repurchaseProductPolicyForShipment(shipment);
     if (!product.enabled) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
+            lockToken: decision.lockToken,
+            reason: 'unknown_product_repurchase_blocked'
+        });
         console.warn(`[SHIPMENT] recompra bloqueada por produto desconhecido -> order=${shipment.orderId || ''}`);
         return false;
     }
@@ -2252,13 +2800,41 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
         text,
         trackingNumber: shipment.logistics.trackingNumber
     });
-    if (hasAlreadySentHash(shipment, hash)) return false;
-    if (!hasMinGapElapsed(shipment)) return false;
+    if (hasAlreadySentHash(shipment, hash) || !hasMinGapElapsed(shipment)) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
+            lockToken: decision.lockToken,
+            reason: hasAlreadySentHash(shipment, hash) ? 'duplicate_hash' : 'min_gap_not_elapsed'
+        });
+        return false;
+    }
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_refill_reminder_text'
     });
-    if (!sent) return false;
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
+            sendResult: sent,
+            reason: 'refill_primary_text_send_failed'
+        });
+        return false;
+    }
+    const primarySentAt = new Date();
+    const finalized = await completePostSaleNotificationStage({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now: primarySentAt
+    });
+    if (!finalized.completed) return false;
 
     const approvedAudioPath = await resolveCountryAudio({
         country: shipment.country || 'EC',
@@ -2272,7 +2848,7 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
         })
         : false;
 
-    const now = new Date();
+    const now = primarySentAt;
     const setFields = {
         'automation.refillReminderAt': now,
         'automation.lastReminderAt': now,
@@ -2293,7 +2869,9 @@ export const getPendingShipmentReminders = async () => {
     const oldestReadyForPickupAt = new Date(now.getTime() - (SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS * DAY_MS));
     const shipments = await Shipment.find({
         country: 'EC',
-        'client.phone': { $exists: true, $ne: '' },
+        ...(Object.keys(buildCanaryV75RecipientQuery('client.phone')).length
+            ? buildCanaryV75RecipientQuery('client.phone')
+            : { 'client.phone': { $exists: true, $ne: '' } }),
         'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
@@ -2341,7 +2919,8 @@ export const processShipmentPickupReminders = async ({
     const safeLimit = Math.max(1, Math.min(Number.parseInt(String(limit || 3), 10) || 3, 10));
     const pending = await getPendingShipmentReminders();
     const allDueItems = pending
-        .filter((item) => item?.dueAt && item.dueAt.getTime() <= now.getTime());
+        .filter((item) => item?.dueAt && item.dueAt.getTime() <= now.getTime())
+        .filter((item) => canaryV75SchedulerShipmentAllowed(item.shipment).allowed);
     const result = {
         dryRun,
         candidates: allDueItems.length,

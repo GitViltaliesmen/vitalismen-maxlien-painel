@@ -1,0 +1,46 @@
+{
+  "attestationId": "post-sale-next-eligible-monitor-v112-attestation-20260903",
+  "version": 112,
+  "observedAt": "2026-09-03T13:36:54.315Z",
+  "country": "EC",
+  "parentRelease": "20260903T055213Z_production-20260903-d8313da",
+  "parentCommit": "d8313dae376f09d72e641c271b70d181c72a9891",
+  "parentTree": "c580fa26bcbdcc9a9a48af5a4f766235fe5fd2a1",
+  "saleGate": {
+    "realInbound": true,
+    "realOutbound": true,
+    "funnel": true,
+    "duplicates": 0,
+    "qaHumanModeRestored": true
+  },
+  "regressionGate": {
+    "testsPassed": 80,
+    "testsFailed": 0,
+    "dropiAuth": true,
+    "dropiLookup": true,
+    "dropiQuote": true,
+    "dropiCreateCalls": 0
+  },
+  "readOnlySweep": {
+    "profile": "V105_WITH_V108_V109_SUCCESSORS",
+    "candidates": 8,
+    "eligible": 0,
+    "providerCalls": 0,
+    "mongoMutationMethodsBlocked": 37,
+    "decisionCounts": {
+      "BLOCK_HUMAN": 4,
+      "BLOCK_CHRONOLOGY": 3,
+      "BLOCK_OTHER": 1
+    },
+    "reportSha256": "fa65f50ff9f4318eecedb268898bd556574de34f54213374067a29bba8333ab0"
+  },
+  "preserved": {
+    "protectedOrder3469Resent": false,
+    "protectedRepurchaseChanged": false,
+    "protectedHistoricalOrderChanged": false,
+    "dropiAutomaticEnabled": false,
+    "backlogEnabled": false,
+    "metaRetroactiveEnabled": false,
+    "postSaleMessageSent": false
+  }
+}

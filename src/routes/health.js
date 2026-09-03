@@ -3,9 +3,37 @@ import { getAllStatuses, getStatus } from '../whatsapp/connection.js';
 import { getQueueSize } from '../whatsapp/queue.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
+import OperationalSafetyState from '../models/OperationalSafetyState.js';
 import { getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
+import {
+    POST_SALE_RUNTIME_VERSION,
+    POST_SALE_SAFETY_STATE_ID,
+    assertRuntimeSupportsPostSaleData,
+    resolveDropiSyncMode,
+    resolvePostSaleOperationalMutationGate
+} from '../services/postSaleSafetyV66Service.js';
+import {
+    strictReadOnlyHealthContract
+} from '../services/strictReadOnlyObservationService.js';
+import {
+    getPublicMetaDestinationForRoute
+} from '../services/metaConversionsService.js';
+import {
+    META_DESTINATION_ROUTES
+} from '../services/metaDestinationRegistryService.js';
 
 const router = express.Router();
+
+router.get('/meta-destination', (_req, res) => {
+    const destination = getPublicMetaDestinationForRoute(META_DESTINATION_ROUTES.EC_DEFAULT);
+    const available = destination.available === true && destination.browserServerSynchronized === true;
+    res.set('Cache-Control', 'no-store, max-age=0');
+    return res.status(available ? 200 : 503).json({
+        ok: available,
+        version: 1,
+        destination
+    });
+});
 
 export const zapiConnectedFromStatus = (status = {}) => {
     const alreadyConnected = String(status?.error || '').toLowerCase().includes('already connected');
@@ -62,6 +90,7 @@ export const zapiSubscriptionBlockedFromMessages = ({ lastFailure = null, lastSu
  */
 router.get('/', async (req, res) => {
     try {
+        const strictContract = strictReadOnlyHealthContract(process.env);
         const { isReady, status } = getStatus();
         const sessions = getAllStatuses();
         const pendingTasks = getQueueSize();
@@ -70,7 +99,7 @@ router.get('/', async (req, res) => {
         const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
-        const whatsappConnectEnabled = String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() !== 'false';
+        const whatsappConnectEnabled = strictContract.baileysEnabled;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
@@ -109,6 +138,16 @@ router.get('/', async (req, res) => {
             .sort({ createdAt: -1, timestamp: -1 })
             .select('createdAt sessionId provider type')
             .lean();
+        const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
+            .select('dataCompatibilityVersion minRuntimeVersion writerRuntimeVersion bridgeComplete bridgeCompletedAt')
+            .lean()
+            .catch(() => null);
+        const runtimeCompatibility = assertRuntimeSupportsPostSaleData({
+            runtimeVersion: POST_SALE_RUNTIME_VERSION,
+            compatibilityState
+        });
+        const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
+        const dropiSyncMode = resolveDropiSyncMode(process.env, { compatibilityState });
         const transportHealth = evaluateOperationalWhatsappHealth({
             zapiConfigured: zapi.configured.enabled,
             zapiConnected: zapi.connected,
@@ -158,6 +197,27 @@ router.get('/', async (req, res) => {
             uptime_seconds: process.uptime(),
             runner: 'node src/index.js',
             degradedReasons,
+            automationSafety: {
+                runtimeVersion: POST_SALE_RUNTIME_VERSION,
+                runtimeCompatible: runtimeCompatibility.ok,
+                operationalMutationsEnabled: strictContract.strictReadOnly ? false : mutationGate.allowed,
+                mode: strictContract.strictReadOnly ? strictContract.mode : mutationGate.mode,
+                policy: strictContract.policy,
+                strictReadOnly: strictContract.strictReadOnly,
+                allowedWriteClasses: strictContract.allowedWriteClasses,
+                zapiReadOnlyStatusAllowed: strictContract.zapiReadOnlyStatusAllowed,
+                zapiInboundPersistenceAllowed: strictContract.zapiInboundPersistenceAllowed,
+                zapiAckPersistenceAllowed: strictContract.zapiAckPersistenceAllowed,
+                baileysEnabled: strictContract.baileysEnabled,
+                mutatingRoutesEnabled: strictContract.mutatingRoutesEnabled,
+                mutatingSchedulers: strictContract.mutatingSchedulers,
+                reason: mutationGate.reason,
+                compatibilityBridgeComplete: compatibilityState?.bridgeComplete === true,
+                dataCompatibilityVersion: Number(compatibilityState?.dataCompatibilityVersion || 0),
+                minimumRuntimeVersion: Number(compatibilityState?.minRuntimeVersion || 0),
+                dropiSyncMode: dropiSyncMode.effectiveMode,
+                dropiApplyAllowed: strictContract.strictReadOnly ? false : dropiSyncMode.applyAllowed
+            },
             whatsapp: exposedWhatsapp,
             zapi: {
                 configured: zapi.configured,
@@ -177,8 +237,9 @@ router.get('/', async (req, res) => {
                     outboundBlocked: zapi.outboundBlocked
                 },
                 baileys: {
-                    required: transportHealth.baileysRequired,
-                    enabled: whatsappConnectEnabled,
+                    required: strictContract.strictReadOnly ? false : transportHealth.baileysRequired,
+                    enabled: strictContract.baileysEnabled,
+                    disabledByStrictReadOnly: strictContract.strictReadOnly,
                     state: status,
                     ready: connectedSessions.length > 0,
                     connectedSessions: connectedSessions.length,

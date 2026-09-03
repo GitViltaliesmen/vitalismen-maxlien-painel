@@ -21,7 +21,7 @@ assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.productOrPriceChanged, false);
 assert.equal(manifest.policy.commercialFunnelChanged, false);
-assert.match(entryGuard, /(?:pickupBonusDeliveryFreezeRuntimeGuardV60|metaAttributionFreezeRuntimeGuardV61|protocoloGConversionFreezeRuntimeGuardV62|protocoloGAdMetricsFreezeRuntimeGuardV63|dropiCustomerFullNameFreezeRuntimeGuardV64|postSaleGargalosFreezeRuntimeGuardV65)\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(shipment, /shipment_status:pickup_bonus:\$\{shipmentIdentity\}/);
 assert.match(shipment, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
 assert.match(shipment, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);

@@ -83,6 +83,7 @@ const shipmentSchema = new mongoose.Schema({
         submitLockedUntil: { type: Date, default: null },
         dispatchLockedUntil: { type: Date, default: null },
         notificationLocks: { type: mongoose.Schema.Types.Mixed, default: {} },
+        postSaleSafetyLedger: { type: mongoose.Schema.Types.Mixed, default: {} },
         dropiSubmitAuthorizedAt: { type: Date, default: null },
         dropiSubmitAuthorizedBy: { type: String, default: '' },
         dropiSubmitAuthorizationNote: { type: String, default: '' },

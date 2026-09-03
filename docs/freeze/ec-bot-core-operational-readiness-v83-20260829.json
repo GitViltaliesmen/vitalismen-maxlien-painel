@@ -1,0 +1,73 @@
+{
+  "freezeId": "ec-bot-core-operational-readiness-v83",
+  "version": 83,
+  "parentVersion": "V82",
+  "parentFreezeId": "runtime-successor-context-v82",
+  "parentManifestSha256": "4de1f199fca61a9fa96f65c786df59f23a36db7a55375a3131a7cee7b0871a40",
+  "parentFreezeSha256": "e237ba68a65b8c428625804727f3fbb163124114685bf2befc40aa417915bc0a",
+  "parentAttestationSha256": "00c44baa2cb3f851ce72db7e61b9a0195e04a1bbb116dd9fbe16d71b3cf2cbd0",
+  "parentCommit": "b8e208d9c1b2fd3ad616865d5604c0cf81d03c2e",
+  "parentTree": "850cfb53d9fa553e1ed1391eafc9d2cac8d32555",
+  "purpose": "EC_BOT_CORE_V79_READINESS_BRIDGE",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreOperationalReadinessFreezeRuntimeGuardV83.js",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "runtimeGuardChainVersion": 71,
+    "dataCompatibilityVersion": 66,
+    "datasetId": "1468946114265008",
+    "qaPhone": "5515998038637",
+    "v78ByteIntact": false,
+    "v79ByteIntact": true,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false,
+    "colombiaOperationalInfrastructureTouched": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "remoteTagCreated": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "pm2Restarted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-bot-core-operational-readiness-v83-attestation-20260829.json",
+    "sha256": "c1a1b3767aee1fd24f8539be54557db0feac00bf858998a2ba8c67649a278f09"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "d2f24a288240fd1c479d9e3ff11f74f9770a012e690298085f87ac57a5dd1eda"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_OPERATIONAL_READINESS_BRIDGE_FREEZE_V83_20260829.md",
+    "docs/evidence/ec-bot-core-operational-readiness-v83-attestation-20260829.json",
+    "scripts/guard-ec-bot-core-operational-readiness-v83.mjs",
+    "scripts/lib/ec-bot-core-operational-readiness-v83-successor-context.mjs",
+    "src/services/ecBotCoreOperationalReadinessFreezeRuntimeGuardV83.js",
+    "src/services/ecBotCoreOperationalReadinessV83Service.js",
+    "tests/ec-bot-core-operational-readiness-v83.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_OPERATIONAL_READINESS_BRIDGE_FREEZE_V83_20260829.md": "64e3cbe581f26f00a271730d48db57d7cbaa51ebbaeb606ed785a21c00f09721",
+    "docs/evidence/ec-bot-core-operational-readiness-v83-attestation-20260829.json": "c1a1b3767aee1fd24f8539be54557db0feac00bf858998a2ba8c67649a278f09",
+    "scripts/guard-ec-bot-core-operational-readiness-v83.mjs": "f628984ee93e20db67d57c42d83f497d32adef799c31668b52bd53814c10a7b8",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "06e84b01b9079172d9ec034c40b99c5924daa04e883d712c687c9004f80599cd",
+    "scripts/lib/ec-bot-core-operational-readiness-v83-successor-context.mjs": "736efe0dcd47781b9d78decd6070423dae153aeb3e927ba53eea369965fb7f43",
+    "src/services/ecBotCoreOperationalReadinessFreezeRuntimeGuardV83.js": "d7488bc525f359511922372d9020dd0d02c1e48082d794f2500d354aeebd31b7",
+    "src/services/ecBotCoreOperationalReadinessV83Service.js": "6a439d9d890ee69d263db9f6630f29bd660e6153c5f0a55bc1706de15271da0b",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js": "33b2f8449dc2dd7486f92ec8ab8314605c516d1333dbec7aa943eac606a3c7fb",
+    "tests/ec-bot-core-operational-readiness-v83.test.mjs": "163a60cdcec2c7119c827681b576402244464a7c7d3a558bc39bd342c4797074"
+  }
+}

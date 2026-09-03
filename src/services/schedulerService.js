@@ -35,6 +35,11 @@ import {
     reconcileExplicitDropiPickupReleases
 } from './postSalePickupReconciliationService.js';
 import { sendText } from '../whatsapp/sendText.js';
+import {
+    DROPI_SYNC_MODES,
+    resolveDropiSyncMode,
+    resolvePostSaleOperationalMutationGate
+} from './postSaleSafetyV66Service.js';
 
 let isRunningProductFollowups = false;
 let isRunningPendingCheckoutFollowups = false;
@@ -57,6 +62,7 @@ let isRunningGoogleContactsSync = false;
 let isRunningTexUltraConfirmedPostSale = false;
 let lastHealthAlertAt = 0;
 let lastHealthAlertKey = '';
+let schedulerCompatibilityState = null;
 
 const flagEnabled = (name, fallback = false) => {
     const raw = process.env[name];
@@ -106,8 +112,19 @@ const adaptiveLimit = ({
     return Math.max(1, Math.min(selected, max));
 };
 
-export const startScheduler = () => {
+export const startScheduler = ({ compatibilityState = null } = {}) => {
+    schedulerCompatibilityState = compatibilityState;
+    const operationalGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
+    if (!operationalGate.allowed) {
+        console.warn(`[SCHEDULER-V66] nenhum scheduler mutante foi registrado; mode=${operationalGate.mode}; reason=${operationalGate.reason}.`);
+        return {
+            started: false,
+            operationalMutationsEnabled: false,
+            reason: operationalGate.reason
+        };
+    }
     console.log('Starting WhatsApp Recovery Scheduler...');
+    console.log('[SCHEDULER-V66] gate global persistente validado; schedulers individuais ainda dependem de suas flags legadas.');
 
     console.log('[SCHEDULER] Legacy draft recovery removed from scheduler.');
     console.log('[SCHEDULER] Legacy pending-order funnel removed from scheduler.');
@@ -361,6 +378,11 @@ export const startScheduler = () => {
             setTimeout(() => checkAdminPanelAtendimentoReconcile(), 55000);
         }
     });
+    return {
+        started: true,
+        operationalMutationsEnabled: true,
+        reason: operationalGate.reason
+    };
 };
 
 const checkNitrixFastState = async () => {
@@ -429,10 +451,17 @@ const checkDropiActiveSync = async () => {
     isRunningDropiActiveSync = true;
     try {
         const maxRows = parseNumber('DROPPI_EC_ACTIVE_SYNC_MAX_ROWS', 1000);
-        const result = await syncActiveDroppiEcuadorOrdersFromPanel({ maxRows });
+        const syncMode = resolveDropiSyncMode(process.env, {
+            compatibilityState: schedulerCompatibilityState
+        });
+        const result = await syncActiveDroppiEcuadorOrdersFromPanel({
+            maxRows,
+            mode: syncMode.effectiveMode
+        });
         if (result.synced?.length || result.skipped?.length) {
-            console.log(`[DROPPI_ACTIVE_SYNC] linhas=${result.rowCount || 0}; unicos=${result.unique || 0}; atualizados=${result.synced?.length || 0}; ignorados=${result.skipped?.length || 0}.`);
+            console.log(`[DROPPI_ACTIVE_SYNC] mode=${syncMode.effectiveMode}; linhas=${result.rowCount || 0}; unicos=${result.unique || 0}; atualizados=${result.synced?.length || 0}; ignorados=${result.skipped?.length || 0}.`);
         }
+        if (syncMode.effectiveMode !== DROPI_SYNC_MODES.APPLY) return;
         const syncedOrderIds = (result.synced || [])
             .map((item) => String(item?.orderId || '').trim())
             .filter(Boolean);

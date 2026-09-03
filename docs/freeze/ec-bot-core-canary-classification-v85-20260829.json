@@ -1,0 +1,75 @@
+{
+  "freezeId": "ec-bot-core-canary-classification-v85",
+  "version": 85,
+  "parentVersion": "V84",
+  "parentFreezeId": "ec-bot-core-activation-health-v84",
+  "parentManifestSha256": "04d1f4450058f46bf9af7fc10a15cc7462dc512a330d72f1498762741d868984",
+  "parentFreezeSha256": "d2e143a5520e34d53d9153275ee97d27c13c06dfec48ca54147e72fe915b8aa0",
+  "parentAttestationSha256": "0b8f22530e39c2a0c9f8568a2df299e0d97d22563964c4cc01976db9cf8caf9f",
+  "parentCommit": "2edd1eb8b5013f276244783472098f3a80418ef2",
+  "parentTree": "7ab153a8fa1030dd244f14ae4d2ba5f515e3a5aa",
+  "purpose": "EC_BOT_CORE_EXACT_V78_CANARY_CLASSIFICATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreCanaryClassificationFreezeRuntimeGuardV85.js",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "datasetId": "1468946114265008",
+    "qaPhone": "5515998038637",
+    "requiresCompleteV78Profile": true,
+    "v78FlagOnlyAccepted": false,
+    "v77CanarySemanticsChanged": false,
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-bot-core-canary-classification-v85-attestation-20260829.json",
+    "sha256": "9b80b2908e249517f450690bc2955d4239e979eace765eae2097f232dc968301"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "b0cf7439afc819f13edb140a78a0bcfbb78c79cc0664a0f4755f5024efbb5b14"
+  },
+  "declaredAncestorOverrides": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/canaryControllerV77Service.js",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_CANARY_CLASSIFICATION_FREEZE_V85_20260829.md",
+    "docs/evidence/ec-bot-core-canary-classification-v85-attestation-20260829.json",
+    "scripts/guard-ec-bot-core-canary-classification-v85.mjs",
+    "scripts/lib/ec-bot-core-canary-classification-v85-successor-context.mjs",
+    "src/services/ecBotCoreCanaryClassificationFreezeRuntimeGuardV85.js",
+    "src/services/ecBotCoreCanaryClassificationV85Service.js",
+    "tests/ec-bot-core-canary-classification-v85.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_CANARY_CLASSIFICATION_FREEZE_V85_20260829.md": "9f019822a59d122915c09658fb6b70c2d5951b53026a485a817dc545374bc322",
+    "docs/evidence/ec-bot-core-canary-classification-v85-attestation-20260829.json": "9b80b2908e249517f450690bc2955d4239e979eace765eae2097f232dc968301",
+    "ops/ec-bot-core-v78": "6ccc6ae0d5d13046a5ca238253b89703cdd91e53a6f70da5afc60faf35966da6",
+    "scripts/guard-ec-bot-core-canary-classification-v85.mjs": "dcbebd0818a80d57bbc55bfa51b7a730ecb7091fe3857c0f9d6eb387dcb46839",
+    "scripts/lib/ec-bot-core-canary-classification-v85-successor-context.mjs": "3f4ed9d903b4f3cd6f1278b4fcee97adca6efb8f2a9270b8960fb1453dd802b8",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "dc64384bb18be5d42558e19d2c678d90c85ac106123cac3a851a1ac03fa2c6ae",
+    "src/services/canaryControllerV77Service.js": "31ceb0167c67a71500315ee835ad6bc59c1aba3e028fb706d490dcd5a2d5df63",
+    "src/services/ecBotCoreCanaryClassificationFreezeRuntimeGuardV85.js": "4031b2cc1ca6fcefaf3893f57d25f5c4a0767cc242b9c42d3c3a918e9b847be7",
+    "src/services/ecBotCoreCanaryClassificationV85Service.js": "58de7da795c795cadae8544fdfccf8a81de10bed74bb1e0dc797810ad0b99c77",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js": "72e79f4888c8805b7a4946504715b66b85ef8a8c066435281b6ae1aa57633be3",
+    "tests/ec-bot-core-canary-classification-v85.test.mjs": "311052035187c664aa94a02238c689d7741b9d0a624e165b2d2080d47a152536"
+  }
+}

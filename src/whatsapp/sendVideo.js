@@ -8,8 +8,10 @@ import { sendZapiVideo } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRouting.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
+import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
+    assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_video' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] video bloqueado por protecao manual anti-reenvio -> ${jid}`);
         return false;

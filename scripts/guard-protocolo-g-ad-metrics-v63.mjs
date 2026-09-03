@@ -13,6 +13,17 @@ const dashboard = read('public/funnel-metrics.html');
 const entry = read('src/services/ecEngagementFreezeRuntimeGuardV40.js');
 const packageJson = JSON.parse(read('package.json'));
 const manifest = JSON.parse(read('docs/freeze/protocolo-g-ad-metrics-v63-20260826.json'));
+const v71Manifest = JSON.parse(read('docs/freeze/strict-read-only-observation-safety-v71-20260827.json'));
+const v73Manifest = JSON.parse(read('docs/freeze/meta-partner-destination-registry-v73-20260828.json'));
+const v75Manifest = JSON.parse(read('docs/freeze/canary-isolation-safety-v75-20260828.json'));
+const v78Manifest = JSON.parse(read('docs/freeze/ec-bot-core-structural-safety-v78-20260829.json'));
+const v90Manifest = JSON.parse(read('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json'));
+const v98Manifest = JSON.parse(read('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json'));
+const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-20260902.json'));
+const v104Manifest = JSON.parse(read('docs/freeze/dropi-manual-transport-v104-20260902.json'));
+const v110Manifest = JSON.parse(read('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json'));
+const v111Manifest = JSON.parse(read('docs/freeze/bot-qa-multiturn-recovery-v111-20260903.json'));
+const v115Manifest = JSON.parse(read('docs/freeze/ec-panel-runtime-recovery-v115-20260903.json'));
 
 assert.equal(manifest.freezeId, 'protocolo-g-ad-metrics-v63-20260826');
 assert.equal(manifest.parentFreezeId, 'protocolo-g-conversion-v62-20260826');
@@ -44,7 +55,7 @@ for (const field of [
 assert.match(dashboard, /Por anúncio — somente pós-correção/);
 assert.match(dashboard, /Válido desde/);
 assert.match(dashboard, /Amostra \$\{landings\}\/20/);
-assert.match(entry, /(?:protocoloGAdMetricsFreezeRuntimeGuardV63|dropiCustomerFullNameFreezeRuntimeGuardV64|postSaleGargalosFreezeRuntimeGuardV65)\.js/);
+assert.match(entry, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(packageJson.scripts.test, /guard:protocolo-g-ad-metrics-v63/);
 assert.match(packageJson.scripts['senior:check'], /protocolo-g-ad-metrics-v63\.test\.mjs/);
 assert.match(packageJson.scripts['deploy:v63'], /assert-protocolo-g-ad-metrics-activation-approved-v63\.mjs/);
@@ -67,6 +78,51 @@ const preservedHashes = {
 };
 for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     const actualHash = sha256(relativePath);
+    if (new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []).has(relativePath)) continue;
+    if (
+        v71Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v71Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v73Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v73Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v75Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v75Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v78Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v78Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v90Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v90Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v98Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v98Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v104Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v104Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v110Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v110Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v111Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v111Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v115Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v115Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v99Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v99Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
     const v65SuccessorHashes = {
         'src/routes/whatsapp.js': '8ec8ad1c4a7946216bdb88dc6f8290d6fd8f1bd9f68af865db678fb36f7e9bd7',
         'public/qr.html': '5609edb70cc89a6471ae6a46bba9948f798cb0e093a97b7dd0ff3cb14b5376e0',

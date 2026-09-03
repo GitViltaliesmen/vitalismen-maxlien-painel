@@ -1,0 +1,79 @@
+{
+  "freezeId": "ec-panel-runtime-recovery-v115",
+  "version": 115,
+  "parentVersion": "V113_BASELINE_V111_RUNTIME",
+  "parentFreezeId": "bot-qa-multiturn-recovery-v111",
+  "parentManifestSha256": "cb29139d373e64438c407360cd19b907c8e1bc291e675ccc139194cb9e7e8b2d",
+  "parentFreezeSha256": "bdba0445bdb341f57f5f7b570fce23883fbde934a32a67cdd98986d82c731e86",
+  "parentAttestationSha256": "d8cdf157e6f1ec5504faaec45c5417e6dfd3302dd4f6a0f672ab83510802f8d8",
+  "parentCommit": "026317886960c32f8dc4c8d4cf83e51bd7f77e0f",
+  "parentTree": "fa4863c58eff2c568ca0a2a366031660b4324fd3",
+  "purpose": "RESTORE_AUTHENTICATED_PANEL_MUTATIONS_AND_TRUTHFUL_DELIVERY_STATUS",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_senior_total_mission_pending_staging",
+  "country": "EC",
+  "policy": {
+    "panelAuthRequired": true,
+    "manualSendModeRequired": true,
+    "allowedPostRouteCount": 3,
+    "wildcardWhatsappMutationAllowed": false,
+    "providerIdRequired": true,
+    "callbackRequiredForDeliveryStates": true,
+    "newLeadDefaultMode": "auto",
+    "explicitClaimMode": "manual_until_release",
+    "explicitReleaseMode": "auto",
+    "historicalBulkRelease": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-panel-runtime-recovery-v115-attestation-20260903.json",
+    "sha256": "9e57d2ef00dfd420c65306844efbced3b608c1406f3d84f9ec72ac0da5b61e93"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "7165d89b18c9a92e8351779480088ffbffc6dd6c519a7a9c90193fa863111d8c"
+  },
+  "declaredAncestorOverrides": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/zapiClient.js",
+    "tests/bot-qa-multiturn-recovery-v111.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/zapiClient.js",
+    "tests/bot-qa-multiturn-recovery-v111.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_PANEL_RUNTIME_RECOVERY_FREEZE_V115_20260903.md",
+    "docs/evidence/ec-panel-runtime-recovery-v115-attestation-20260903.json",
+    "public/panel-intelligence/delivery-status-v115.js",
+    "scripts/guard-ec-panel-runtime-recovery-v115.mjs",
+    "src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js",
+    "src/services/ecPanelRuntimeRecoveryV115Service.js",
+    "tests/ec-panel-runtime-recovery-v115.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_RUNTIME_RECOVERY_FREEZE_V115_20260903.md": "384462ee1a53c284341284929973ffa275f6979ac4e82c296be9e1542f2027a8",
+    "docs/evidence/ec-panel-runtime-recovery-v115-attestation-20260903.json": "9e57d2ef00dfd420c65306844efbced3b608c1406f3d84f9ec72ac0da5b61e93",
+    "public/panel-intelligence/delivery-status-v115.js": "bd03dbad0d098f81eeccba04f7050ff4460a22a7ff6cb66212122bb782ace3fd",
+    "public/qr.html": "4bfca6ec137e70bdde300950f58fd9cd9ceabdef08c50b7144b985d9e3067a12",
+    "scripts/guard-ec-panel-runtime-recovery-v115.mjs": "59707db9d164a3019d7c92ff9664285c7296f3d43ae4df9a78077669b0574b9c",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "a6179abe84a5c0ed2820c5d92db476b020d0206c8270741dd778b14c79b897ea",
+    "src/routes/whatsapp.js": "3ae691bcc0874f16c12d5f67dbb00b36d88dcc0b13bfc5f78477f33dfb7cc3af",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "a90f7743be60c1c8c8e7c47fd83bbb926b436d776e2362b489a822ad3180484c",
+    "src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js": "1784fe79df762eec4caac9c1ae7ea9cfbb5719428b1d082af756f9b5571c0733",
+    "src/services/ecPanelRuntimeRecoveryV115Service.js": "503dd032a28b253232217a5a850f252fc8d53c862674960d5154d10e80a3d013",
+    "src/services/zapiClient.js": "e158f1b6cf46489621439a2c2b2b006509d8553ce2374f73ab354c08312f175f",
+    "tests/bot-qa-multiturn-recovery-v111.test.mjs": "fa2700ed402f96793ee9736062489182dabe732b43c3e42a0d284f89d889f064",
+    "tests/ec-panel-runtime-recovery-v115.test.mjs": "e3ad777110f2994a052552fe3ea3803a5c42a1172f1f33ce585a3c85a96c215c"
+  }
+}

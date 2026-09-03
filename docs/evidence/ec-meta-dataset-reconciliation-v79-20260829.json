@@ -1,0 +1,160 @@
+{
+  "evidenceId": "ec-meta-dataset-reconciliation-v79-20260829",
+  "capturedAt": "2026-08-29T18:28:08.781Z",
+  "country": "EC",
+  "mode": "read_only_identity_proof_then_vsl_meta_only_correction",
+  "canonicalDataset": {
+    "datasetId": "1468946114265008",
+    "status": "PROVEN",
+    "proofSources": [
+      "docs/freeze/ec-bot-core-structural-safety-v78-20260829.json",
+      "docs/META_PARTNER_DESTINATION_REGISTRY_FREEZE_V73_20260828.md",
+      "docs/freeze/meta-partner-destination-registry-v73-20260828.json",
+      "docs/FREEZE_LOCK_EC_META_DYNAMIC_V74_20260828.md",
+      "docs/freeze/freeze-lock-ec-meta-dynamic-v74-20260828.json",
+      "FREEZE_EC_META_PURCHASE_AUDIT_20260622.md",
+      "FREEZE_EC_META_ATTRIBUTION_BRIDGE_20260622.md",
+      "FREEZE_EC_META_FUNNEL_EVENTS_20260622.md",
+      "FREEZE_EC_PRETRAFFIC_FLUIDEZ_NITRIX_20260708.md",
+      "docs/funil-fast-state-ec/CONGELADO_VSL_META_E_STATUS_PAINEL_EC_20260709.md",
+      "https://ec.maxlien.shop/api/health/meta-destination",
+      "/opt/vitalismen-automacao/current/.env",
+      "src/services/metaConversionsService.js"
+    ]
+  },
+  "v78": {
+    "commit": "9a17abbe6546819f25885541a86f0cca7be1bc7b",
+    "tree": "a2d39450f790a3516ddfaed3babc1250927bb77b",
+    "manifestSha256": "46a9363f203c9e2f4d574e286d2c361b4bd3bb915ee2f0b2398b04af624e12e1",
+    "freezeSha256": "b4fd1275fc7316cf63df103cade6c00ff322ef2b092f5083f79aed3e349039c3",
+    "expectedDatasetId": "1468946114265008",
+    "byteIntact": true
+  },
+  "before": {
+    "vslBrowserDatasetId": "1449537519948374",
+    "ecCapiDatasetId": "1468946114265008",
+    "ecActiveDestinationDatasetId": "1468946114265008",
+    "publicDescriptorDatasetId": "1468946114265008",
+    "publicDescriptorBrowserPixelId": "1468946114265008",
+    "publicDescriptorSource": "legacy_env",
+    "physicalSharedRegistryPresent": false,
+    "physicalSharedSecretsPresent": false,
+    "legacyFallbackExplicitlyPreservedByV73": true,
+    "vslEnvironmentSha256": "0811b2db6cd40c4ab5a83c778ab371cf91c0819fbe8cafdf0e997cf63ab332c2"
+  },
+  "identityFor1468946114265008": {
+    "v78Manifest": true,
+    "v73LegacyEcDatasetPreserved": true,
+    "v74CurrentEcDatasetLocked": true,
+    "historicalEcMetaFreezes": true,
+    "activeEcEnvironment": true,
+    "activeEcCapiResolution": true,
+    "publicEcDescriptorHttp200": true,
+    "publicEcDescriptorAvailable": true,
+    "publicEcDescriptorTokenConfigured": true,
+    "publicEcDescriptorBrowserServerSynchronized": true
+  },
+  "identityFor1449537519948374": {
+    "vslHostPreexistingConfigurationOnly": true,
+    "vslPublicResolverBeforeCorrectionOnly": true,
+    "ecRepositoryDecisionRecord": false,
+    "activeEcCapi": false,
+    "activeEcDestination": false,
+    "publicEcDescriptor": false
+  },
+  "classification": {
+    "mismatchClass": "VSL_BROWSER_STALE",
+    "rootCause": "official_vsl_protocolo_meta_environment_did_not_match_the_canonical_ec_destination",
+    "registryBindingMismatch": false,
+    "ecCapiStale": false
+  },
+  "correction": {
+    "required": true,
+    "scope": "official_vsl_meta_configuration_only",
+    "hostRole": "official_vsl_origin_only",
+    "configurationPath": "/opt/cloaker/.env",
+    "changedKeys": [
+      "META_PIXEL_ID_PROTOCOLO"
+    ],
+    "changedLineCount": 1,
+    "oldDatasetId": "1449537519948374",
+    "newDatasetId": "1468946114265008",
+    "finalEnvironmentSha256": "9bb6146995aab6877be953f8d77e9d5ed44b780acdbad3282dc8ce06093aef70",
+    "backupPath": "/opt/cloaker/.backups/protocolo-meta-v79-20260829T182450Z",
+    "backupSha256": "0811b2db6cd40c4ab5a83c778ab371cf91c0819fbe8cafdf0e997cf63ab332c2",
+    "backupDirectoryMode": "0700",
+    "backupFileMode": "0600",
+    "finalFileMode": "0600",
+    "finalOwner": "root:root",
+    "processReloaded": "cloaker",
+    "hostingerEcProcessReloaded": false,
+    "botProcessReloaded": false,
+    "secretOrTokenChanged": false,
+    "secretOrTokenPrinted": false
+  },
+  "final": {
+    "browserDatasetId": "1468946114265008",
+    "capiDatasetId": "1468946114265008",
+    "activeDestinationDatasetId": "1468946114265008",
+    "activeDestinationSource": "legacy_env",
+    "publicDescriptorDatasetId": "1468946114265008",
+    "publicDescriptorBrowserPixelId": "1468946114265008",
+    "browserServerSynchronized": true,
+    "vslPublicResolverPixelIds": [
+      "1468946114265008"
+    ],
+    "vslPublicResolverPixelCount": 1,
+    "datasetEquality": "PASS"
+  },
+  "staticMetaPaths": {
+    "browserPixelResolvedIdCount": 1,
+    "browserPixelLogicalInitializationCount": 1,
+    "browserPixelMutuallyExclusiveInitCallSites": 2,
+    "capiPurchaseDefinitionCount": 1,
+    "capiPurchaseGuardedConsumerPathCount": 4,
+    "browserPurchasePathCount": 0,
+    "leadLogicalFlowCount": 1,
+    "leadDeduplicatedByEventId": true,
+    "secondParallelPixelIntroduced": false,
+    "browserTokenExposed": false,
+    "metaEventsSent": 0
+  },
+  "publicCta": {
+    "url": "https://vilaliemen.shop/protocolo",
+    "httpStatus": 200,
+    "xCloaker": "allowed",
+    "destinationPhone": "5515991418416",
+    "message": "Hola, vengo de la presentación oficial de Tex Ultra. Ref: EC-TEX-ULTRA-PROTOCOLO",
+    "marker": "EC-TEX-ULTRA-PROTOCOLO",
+    "htmlSha256": "a8c6ab5b0f38f6f7b25e97cf8e36a1388fbc8519ada5622ae84840bcaa7101a7",
+    "trackingSha256": "4febcc4964571d96fed81340610ffa7e68e61cd1a24e901b8bc9e18f00c9e2c5",
+    "changedDuringV79": false,
+    "clicked": false,
+    "whatsappOpened": false,
+    "messageSent": false,
+    "status": "PASS"
+  },
+  "futureQa": {
+    "phone": "5515998038637",
+    "context": "EC_V78_OFFICIAL_VSL_QA",
+    "url": "https://vilaliemen.shop/protocolo",
+    "permitCreated": false,
+    "resetExecuted": false,
+    "canaryExecuted": false,
+    "expectedNewInbound": 1,
+    "expectedPanelCapture": 1,
+    "expectedAutoResponse": 1,
+    "expectedDuplicateResponse": 0
+  },
+  "isolation": {
+    "colombiaOperationalInfrastructureReferenced": false,
+    "colombiaOperationalInfrastructureTouched": false,
+    "hostingerEcMutationExecuted": false,
+    "botProductionDeployed": false,
+    "botActivated": false,
+    "dropiApplyExecuted": false,
+    "mutatingSchedulerExecuted": false,
+    "metaPurchaseExecuted": false
+  },
+  "status": "DATASET_RECONCILIATION_PASS"
+}

@@ -1,0 +1,73 @@
+{
+  "cases": [
+    {
+      "key": "6457",
+      "phone": "593999996457",
+      "orderId": "EC-V66-6457",
+      "dropiOrderId": "6652142",
+      "trackingNumber": "189411028",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "suppressedNotificationKinds": [],
+      "messages": ["Buenas noticias, su pedido avanza por Servientrega. Guia: 189411028"]
+    },
+    {
+      "key": "4818",
+      "phone": "593999994818",
+      "orderId": "EC-V66-4818",
+      "dropiOrderId": "6654818",
+      "trackingNumber": "189405133",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "suppressedNotificationKinds": [],
+      "messages": ["Su pedido ya esta listo para retirar en la agencia Servientrega con la guia 189405133"]
+    },
+    {
+      "key": "9599",
+      "phone": "593999999599",
+      "orderId": "EC-V66-9599",
+      "dropiOrderId": "6659599",
+      "trackingNumber": "189400599",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "suppressedNotificationKinds": ["guide", "in_transit", "ready_for_pickup"],
+      "messages": []
+    },
+    {
+      "key": "7146",
+      "phone": "593990287146",
+      "orderId": "EC-V66-7146",
+      "dropiOrderId": "6657146",
+      "trackingNumber": "189400714",
+      "status": "READY_FOR_PICKUP",
+      "pickupReadyVerified": true,
+      "agencyPickup": true,
+      "manualOnly": false,
+      "suppressedNotificationKinds": ["guide", "in_transit", "ready_for_pickup"],
+      "messages": [
+        "PEDIDO PARA RETIRO EN AGENCIA SERVIENTREGA. GUIA 189400714",
+        "Ya puede retirar su pedido en la agencia Servientrega con la guia 189400714"
+      ]
+    },
+    {
+      "key": "1264",
+      "phone": "593999991264",
+      "orderId": "EC-V66-1264",
+      "dropiOrderId": "",
+      "trackingNumber": "",
+      "status": "CREATED",
+      "pickupReadyVerified": false,
+      "agencyPickup": true,
+      "manualOnly": true,
+      "reviewReason": "missing_dropi_or_tracking_evidence",
+      "suppressedNotificationKinds": [],
+      "messages": []
+    }
+  ]
+}

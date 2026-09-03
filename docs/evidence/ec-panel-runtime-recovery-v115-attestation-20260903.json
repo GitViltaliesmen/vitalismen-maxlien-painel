@@ -1,0 +1,52 @@
+{
+  "attestationId": "ec-panel-runtime-recovery-v115",
+  "date": "2026-09-03",
+  "project": "MAXLIEN_VITALISMEN_EC",
+  "baselineCommit": "026317886960c32f8dc4c8d4cf83e51bd7f77e0f",
+  "baselineTree": "fa4863c58eff2c568ca0a2a366031660b4324fd3",
+  "incident": {
+    "route": "POST /api/whatsapp/send",
+    "observedHttpStatus": 423,
+    "providerCalled": false,
+    "falsePanelStatus": true
+  },
+  "authorization": {
+    "exactPostRoutes": [
+      "/api/whatsapp/send",
+      "/api/whatsapp/contact-state/:phone/claim",
+      "/api/whatsapp/contact-state/:phone/release"
+    ],
+    "routerAuthenticationRequired": true,
+    "panelAuthDisabledMustEqual": "false",
+    "manualSendModeRequired": "manual_panel",
+    "wildcardWhatsappWrite": false
+  },
+  "deliveryContract": {
+    "states": [
+      "REQUEST_FAILED",
+      "PROVIDER_ACCEPTED",
+      "SENT",
+      "DELIVERED",
+      "READ",
+      "FAILED"
+    ],
+    "providerIdRequiredForAccepted": true,
+    "callbackRequiredForSent": true,
+    "callbackRequiredForDelivered": true,
+    "callbackRequiredForRead": true
+  },
+  "humanControl": {
+    "newLeadDefault": "auto",
+    "explicitClaim": "manual_until_release",
+    "explicitRelease": "auto",
+    "historicalBulkRelease": false
+  },
+  "scope": {
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "commercialRulesChanged": false,
+    "externalEffect": "authenticated_manual_panel_only"
+  }
+}
+

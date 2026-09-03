@@ -1,0 +1,71 @@
+{
+  "freezeId": "ec-bot-core-activation-health-v84",
+  "version": 84,
+  "parentVersion": "V83",
+  "parentFreezeId": "ec-bot-core-operational-readiness-v83",
+  "parentManifestSha256": "d0e12977e3053949db6c8afb4529c66d559b3179d1c485893328924f52696ede",
+  "parentFreezeSha256": "64e3cbe581f26f00a271730d48db57d7cbaa51ebbaeb606ed785a21c00f09721",
+  "parentAttestationSha256": "c1a1b3767aee1fd24f8539be54557db0feac00bf858998a2ba8c67649a278f09",
+  "parentCommit": "bb3afb410dbd702425728f8c4eadafecc803b258",
+  "parentTree": "40afa2d22a4bccc015d2d1b0ae5b47d0076d81ed",
+  "purpose": "EC_BOT_CORE_BOUNDED_HEALTH_STABILIZATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_commit_pending_authorized_publication",
+  "country": "EC",
+  "policy": {
+    "canonicalRuntimeGuard": "node src/services/ecBotCoreActivationHealthFreezeRuntimeGuardV84.js",
+    "profile": "EC_BOT_CORE_OPERATIONAL",
+    "datasetId": "1468946114265008",
+    "qaPhone": "5515998038637",
+    "healthAttempts": 30,
+    "healthDelaySeconds": 2,
+    "maximumHealthWindowSeconds": 60,
+    "botBusinessLogicChanged": false,
+    "mutatingSchedulersAllowed": false,
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "realCustomerTrafficAuthorized": false
+  },
+  "deployment": {
+    "readyForAuthorizedPublicationAndStage": true,
+    "publicationExecuted": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "qaCanaryExecuted": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-bot-core-activation-health-v84-attestation-20260829.json",
+    "sha256": "0b8f22530e39c2a0c9f8568a2df299e0d97d22563964c4cc01976db9cf8caf9f"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "fa109524ddacbed4422079fb0407ecc925affd597fc7cdadc5ceb4a7de985a10"
+  },
+  "declaredAncestorOverrides": [
+    "ops/ec-bot-core-v78",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_BOT_CORE_ACTIVATION_HEALTH_STABILIZATION_FREEZE_V84_20260829.md",
+    "docs/evidence/ec-bot-core-activation-health-v84-attestation-20260829.json",
+    "scripts/guard-ec-bot-core-activation-health-v84.mjs",
+    "scripts/lib/ec-bot-core-activation-health-v84-successor-context.mjs",
+    "src/services/ecBotCoreActivationHealthFreezeRuntimeGuardV84.js",
+    "src/services/ecBotCoreActivationHealthV84Service.js",
+    "tests/ec-bot-core-activation-health-v84.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_BOT_CORE_ACTIVATION_HEALTH_STABILIZATION_FREEZE_V84_20260829.md": "d2e143a5520e34d53d9153275ee97d27c13c06dfec48ca54147e72fe915b8aa0",
+    "docs/evidence/ec-bot-core-activation-health-v84-attestation-20260829.json": "0b8f22530e39c2a0c9f8568a2df299e0d97d22563964c4cc01976db9cf8caf9f",
+    "ops/ec-bot-core-v78": "6ccc6ae0d5d13046a5ca238253b89703cdd91e53a6f70da5afc60faf35966da6",
+    "scripts/guard-ec-bot-core-activation-health-v84.mjs": "559f36c2d77d21639458c4f388870a4a361240c721feb18a220199cb9c241306",
+    "scripts/lib/ec-bot-core-activation-health-v84-successor-context.mjs": "c5b4dc3bd2f71525fae4882b858386f7cba1051dffda1d0d3827e719cac6319a",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "7d4949affb2d955b03925d1318ffa31efdda1c7f92d544046e27e77c16bb0582",
+    "src/services/ecBotCoreActivationHealthFreezeRuntimeGuardV84.js": "c4ab497018c0b2184ebb71beb6202f18d7b4e5303feb7adbc739b2c7cd070b01",
+    "src/services/ecBotCoreActivationHealthV84Service.js": "fe13c677fb424f9cf42016e5ded333000fb131e92e8a17e9c96cd8ce147c77ee",
+    "src/services/ecBotCoreStructuralSafetyFreezeRuntimeGuardV78.js": "d07b9d9ca571a90ce1e8ba2223252a29d4201d813b59e9298d16ad769b77b225",
+    "tests/ec-bot-core-activation-health-v84.test.mjs": "5c8e612737f3ab6857e7d1a6fe0482180fab3fc7e6cbcd44cd25baea338643c0"
+  }
+}

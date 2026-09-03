@@ -1,0 +1,34 @@
+{
+  "attestationId": "npm-lifecycle-stage-envelope-v81-attestation-20260829",
+  "version": 81,
+  "parentVersion": "V80",
+  "purpose": "OFFICIAL_STAGE_ENVELOPE_COMPATIBILITY",
+  "status": "IMPLEMENTATION_VALIDATED_LOCAL_SUCCESSOR",
+  "rootCause": {
+    "status": "CONFIRMED",
+    "v80RequiredFreezeVersion": 80,
+    "officialHelperFreezeVersion": 72,
+    "officialHelperSha256": "ff3d9c5ac129a98902b12ecda443cf97876b32142561ad46c70f3540c87c5853",
+    "observedFailure": "release_source_identity_invalid"
+  },
+  "resolution": {
+    "bootstrapPath": "scripts/lib/npm-lifecycle-stage-envelope-v81.mjs",
+    "helperChanged": false,
+    "v80Changed": false,
+    "positiveClassificationPreserved": true,
+    "dependencyLifecycleContext": "ISOLATED",
+    "officialGuardContext": "REQUIRED",
+    "failClosed": true
+  },
+  "preservation": {
+    "datasetId": "1468946114265008",
+    "datasetChanged": false,
+    "ctaChanged": false,
+    "botBusinessLogicChanged": false,
+    "whatsappMessages": 0,
+    "metaEvents": 0,
+    "dropiApply": false,
+    "mutatingSchedulers": 0,
+    "colombiaOperationalInfrastructureTouched": false
+  }
+}

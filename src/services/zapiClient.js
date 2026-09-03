@@ -1,6 +1,9 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { assertTransportPersistenceAllowed } from './strictReadOnlyObservationService.js';
+import { assertCanaryV75Recipient } from './canaryIsolationV75Service.js';
+import { assertEcBotCoreExternalEffectAllowedV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -82,7 +85,22 @@ const boundedDelaySeconds = (value, fallback = null) => {
     return Math.min(15, Math.max(1, parsed));
 };
 
+export const zapiProviderReceiptId = (response = {}) => clean(
+    response?.messageId || response?.id || response?.zaapId || ''
+);
+
+export const assertZapiProviderAccepted = (response = {}) => {
+    if (!zapiProviderReceiptId(response)) {
+        const error = new Error('zapi_provider_id_missing');
+        error.statusCode = 502;
+        throw error;
+    }
+    return response;
+};
+
 export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
+    assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
+    assertTransportPersistenceAllowed({ transport: 'zapi', operation: 'send_text' });
     const cleanPhone = digits(phone);
     const cleanMessage = clean(message);
     if (!cleanPhone || !cleanMessage) {
@@ -90,6 +108,7 @@ export const sendZapiText = async ({ phone, message, messageId = '', delayMessag
         error.statusCode = 400;
         throw error;
     }
+    assertCanaryV75Recipient(cleanPhone, { surface: 'zapi_provider_text' });
 
     const payload = {
         phone: cleanPhone,
@@ -105,7 +124,7 @@ export const sendZapiText = async ({ phone, message, messageId = '', delayMessag
         headers: headers(),
         timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
     });
-    return response.data;
+    return assertZapiProviderAccepted(response.data);
 };
 
 const mimeFromFilePath = (filePath = '', fallback = 'application/octet-stream') => {
@@ -201,12 +220,15 @@ const sendZapiMedia = async ({
     waveform = false,
     async = false
 } = {}) => {
+    assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
+    assertTransportPersistenceAllowed({ transport: 'zapi', operation: `send_${payloadKey || 'media'}` });
     const cleanPhone = digits(phone);
     if (!cleanPhone) {
         const error = new Error('zapi_phone_required');
         error.statusCode = 400;
         throw error;
     }
+    assertCanaryV75Recipient(cleanPhone, { surface: `zapi_provider_${payloadKey || 'media'}` });
     const payload = {
         phone: cleanPhone,
         [payloadKey]: mediaValue({ media, filePath, mime })
@@ -226,7 +248,7 @@ const sendZapiMedia = async ({
         headers: headers(),
         timeout: Number(process.env.ZAPI_SEND_TIMEOUT_MS || process.env.ZAPI_TIMEOUT_MS || 20000)
     });
-    return response.data;
+    return assertZapiProviderAccepted(response.data);
 };
 
 export const sendZapiAudio = (options = {}) => {

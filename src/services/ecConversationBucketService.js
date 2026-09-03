@@ -2,6 +2,11 @@ import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
+import {
+    panelWarmupManualEngagementBlockersV118,
+    panelWarmupQaReplyAllowedV118,
+    shouldPreservePanelWarmupManualEngagementV118
+} from './panelWarmupIsolationV118Service.js';
 
 export const EC_CONVERSATION_BUCKETS = Object.freeze({
     ATTENDANCE: 'attendance',
@@ -529,13 +534,21 @@ export const classifyAndPersistEcConversation = async ({
     });
     const manualEngagement = state.conversationBucket?.value === EC_CONVERSATION_BUCKETS.ENGAGEMENT
         && state.conversationBucket?.manualSelectedAt
-        && classification.hardExclusions.length === 0;
+        && (
+            classification.hardExclusions.length === 0
+            || shouldPreservePanelWarmupManualEngagementV118({
+                state,
+                hardExclusions: classification.hardExclusions
+            })
+        );
     if (manualEngagement && classification.bucket === EC_CONVERSATION_BUCKETS.REVIEW) {
         classification.bucket = EC_CONVERSATION_BUCKETS.ENGAGEMENT;
         classification.score = Math.max(80, classification.score || 0);
         classification.confidence = 'high';
-        classification.reasons = ['manual_engagement_preserved_without_exclusion'];
-        classification.replyEligibleByHistory = true;
+        classification.reasons = [classification.hardExclusions.length
+            ? 'manual_qa_panel_engagement_preserved_v118'
+            : 'manual_engagement_preserved_without_exclusion'];
+        classification.replyEligibleByHistory = panelWarmupQaReplyAllowedV118(state);
     }
     return persistEcConversationClassification({
         state,
@@ -554,8 +567,12 @@ export const setEcConversationBucketManually = async ({
     if (!state || !VALID_BUCKETS.has(bucket)) throw new Error('invalid_conversation_bucket');
     const evidence = await loadEcConversationEvidence(state);
     const evaluated = classifyEcConversationSnapshot({ state, ...evidence, now: new Date() });
-    if (bucket === EC_CONVERSATION_BUCKETS.ENGAGEMENT && evaluated.hardExclusions.length) {
-        const error = new Error(`engagement_blocked:${evaluated.hardExclusions.join(',')}`);
+    const engagementBlockers = panelWarmupManualEngagementBlockersV118({
+        state,
+        hardExclusions: evaluated.hardExclusions
+    });
+    if (bucket === EC_CONVERSATION_BUCKETS.ENGAGEMENT && engagementBlockers.length) {
+        const error = new Error(`engagement_blocked:${engagementBlockers.join(',')}`);
         error.code = 'ENGAGEMENT_BLOCKED';
         error.classification = evaluated;
         throw error;

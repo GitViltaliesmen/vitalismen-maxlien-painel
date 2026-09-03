@@ -18,7 +18,7 @@ assert.equal(manifest.policy.whatsappSendAuthorized, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.productOrPriceChanged, false);
-assert.match(entryGuard, /panelCustomerResidualRepairFreezeRuntimeGuardV56\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 for (const id of ['EC-MT6FF9N1-AFWE', 'EC-MT6FJHIS-YRQQ', 'EC-MT6H0NR2-SBM5', 'EC-MT6KIOUM-EGZK']) {
     assert.match(repair, new RegExp(id));
 }

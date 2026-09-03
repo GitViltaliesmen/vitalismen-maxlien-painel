@@ -1,0 +1,27 @@
+{
+  "attestationId": "dropi-manual-bff-recovery-v98-20260902",
+  "observedAt": "2026-09-02T20:30:00.000Z",
+  "status": "local_candidate_validated_hash_sealed",
+  "parent": {
+    "version": 97,
+    "commit": "bb5bf3d79d2b9e9fff0fbf5749478bdc8594385e",
+    "tree": "e35037816173f2f2e17918e36d689602b8922c4b"
+  },
+  "scope": {
+    "country": "EC",
+    "manualDropiOnly": true,
+    "automaticDropiSubmitAllowed": false,
+    "idempotencyLookupBeforePost": true,
+    "sanitizedFailureReasonOnly": true
+  },
+  "preserved": {
+    "postSaleSchedulersChanged": false,
+    "whatsappOutboundChanged": false,
+    "funnelChanged": false,
+    "pricesChanged": false,
+    "externalVslFilesChanged": false,
+    "pixelDatasetChanged": false,
+    "databaseSchemaChanged": false,
+    "otherCountryTouched": false
+  }
+}

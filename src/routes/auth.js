@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { authMiddleware, adminOnly, isPanelAuthDisabled, noPasswordPanelUser } from '../middleware/auth.js';
+import { isStrictReadOnlyObservationEnabled } from '../services/strictReadOnlyObservationService.js';
 
 const router = express.Router();
 
@@ -49,8 +50,10 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        user.lastLoginAt = new Date();
-        await user.save();
+        if (!isStrictReadOnlyObservationEnabled()) {
+            user.lastLoginAt = new Date();
+            await user.save();
+        }
 
         res.json({
             token,

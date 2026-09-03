@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import path from 'path';
+import '../scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 
 // Routes
@@ -26,6 +28,38 @@ import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
 import { pauseOrphanedTexUltraInitialFlowsOnStartup } from './services/texUltraInitialLayerService.js';
+import OperationalSafetyState from './models/OperationalSafetyState.js';
+import {
+    POST_SALE_RUNTIME_VERSION,
+    POST_SALE_SAFETY_STATE_ID,
+    assertRuntimeSupportsPostSaleData,
+    resolvePostSaleOperationalMutationGate
+} from './services/postSaleSafetyV66Service.js';
+import {
+    installStrictReadOnlyMongooseGuard,
+    resolveStrictReadOnlyObservation,
+    startBaileysIfAllowed,
+    shouldStartBaileys,
+    strictReadOnlyMutationRouteGuard
+} from './services/strictReadOnlyObservationService.js';
+import { assertCanaryV75RuntimeConfiguration } from './services/canaryIsolationV75Service.js';
+import { assertCanaryControllerV77Startup } from './services/canaryControllerV77Service.js';
+import {
+    assertEcBotCoreV78Configuration,
+    ecBotCoreV78Requested
+} from './services/ecBotCoreOperationalV78Service.js';
+import {
+    ecBotCoreHealthResponseDecoratorV78,
+    ecBotCoreMutationRouteGuardV78,
+    installEcBotCoreMongooseGuardV78
+} from './services/ecBotCoreRuntimeIntegrationV78Service.js';
+
+assertCanaryControllerV77Startup(process.env);
+assertCanaryV75RuntimeConfiguration(process.env);
+if (ecBotCoreV78Requested(process.env)) assertEcBotCoreV78Configuration(process.env);
+const strictObservation = resolveStrictReadOnlyObservation(process.env);
+installStrictReadOnlyMongooseGuard(mongoose);
+installEcBotCoreMongooseGuardV78(mongoose);
 
 const isProductionVpsPath = process.cwd().startsWith('/opt/vitalismen-automacao/');
 const isRunningUnderPm2 = Boolean(process.env.pm_id || process.env.PM2_HOME);
@@ -54,11 +88,42 @@ process.on('unhandledRejection', (reason, promise) => {
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-// A recuperacao de cadencia e somente de estado: ela pausa timers orfaos e
-// nunca envia WhatsApp durante o boot/deploy.
+// V66: o servidor e os endpoints de observabilidade podem subir sem automacao
+// mutante. O scheduler so e avaliado depois da conexao e da leitura do contrato
+// persistente de compatibilidade; ausencia/erro/versao futura falha fechado.
 connectDB()
-    .then(() => pauseOrphanedTexUltraInitialFlowsOnStartup())
-    .catch((error) => console.error('[TEX-ULTRA-INITIAL] falha no startup seguro:', error.message));
+    .then(async () => {
+        if (strictObservation.enabled) {
+            console.warn(`[STARTUP-V71] API/health ativos em ${strictObservation.mode}/${strictObservation.policy}; capacidades mutantes não foram iniciadas; reason=${strictObservation.reason}.`);
+            return;
+        }
+        const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
+            .lean()
+            .catch((error) => {
+                console.error('[POST-SALE-V66] falha ao ler compatibilidade persistente:', error.message);
+                return null;
+            });
+        const compatibility = assertRuntimeSupportsPostSaleData({
+            runtimeVersion: POST_SALE_RUNTIME_VERSION,
+            compatibilityState
+        });
+        if (!compatibility.ok) {
+            console.error(`[POST-SALE-V66] runtime mutante bloqueado: ${compatibility.reason}; runtime=${compatibility.runtimeVersion}; minimo=${compatibility.minRuntimeVersion}.`);
+            return;
+        }
+        const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
+        if (!mutationGate.allowed) {
+            console.warn(`[STARTUP-V66] API/health ativos em modo seguro; nenhuma mutacao automatica iniciada; reason=${mutationGate.reason}.`);
+            return;
+        }
+        if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
+            console.log('[SCHEDULER] Scheduler desativado por DISABLE_SCHEDULER=1');
+            return;
+        }
+        await pauseOrphanedTexUltraInitialFlowsOnStartup();
+        startScheduler({ compatibilityState });
+    })
+    .catch((error) => console.error('[STARTUP-V66] startup seguro sem scheduler mutante:', error.message));
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -247,6 +312,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// V71: toda rota mutante e bloqueada antes do primeiro handler. As exceções
+// listadas pelo serviço são login sem bookkeeping e callbacks/telemetria no-op.
+app.use(ecBotCoreHealthResponseDecoratorV78);
+app.use(ecBotCoreMutationRouteGuardV78);
+app.use(strictReadOnlyMutationRouteGuard);
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -273,20 +344,17 @@ app.use('/api/customer-context', customerContextRoutes);
 app.use('/api/health', healthRoutes);
 
 // Start Baileys WhatsApp Engine(s)
-if (String(process.env.WHATSAPP_CONNECT_ENABLED || 'true').toLowerCase() === 'false') {
-    console.log('[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false');
+if (!shouldStartBaileys(process.env)) {
+    console.log(strictObservation.enabled
+        ? '[WHATSAPP] Engine desativado por STRICT_READ_ONLY'
+        : '[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false');
 } else {
-    startConfiguredWhatsAppSessions().catch(err => {
+    startBaileysIfAllowed({
+        env: process.env,
+        startConfiguredSessions: startConfiguredWhatsAppSessions
+    }).catch(err => {
         console.error('❌ Catastrophic failure booting WhatsApp Engine(s):', err);
     });
-}
-
-// Start Scheduler
-if (String(process.env.DISABLE_SCHEDULER || '') === '1') {
-    console.log('[SCHEDULER] 🛑 Scheduler desativado por DISABLE_SCHEDULER=1');
-} else {
-    console.log('[SCHEDULER] ✅ Scheduler ativado');
-    startScheduler();
 }
 
 // 404 handler

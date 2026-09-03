@@ -17,7 +17,7 @@ assert.equal(manifest.policy.realClientCanaryAuthorized, false);
 assert.equal(manifest.policy.whatsappSendAuthorized, false);
 assert.equal(manifest.policy.metaPurchaseResendAllowed, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
-assert.match(entryGuard, /panelCustomerAliasRepairFreezeRuntimeGuardV57\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(repair, /6a7de6a3f24ae26732b457a8/);
 assert.match(repair, /6a7de6b3f24ae26732b45816/);
 assert.match(repair, /PANEL_CUSTOMER_ALIAS_V57_CONTROLLED_REPAIR/);

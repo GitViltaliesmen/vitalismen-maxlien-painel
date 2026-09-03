@@ -64,10 +64,15 @@ const warn = (message) => warnings.push(`WARN ${message}`);
 const fail = (message) => failures.push(`FAIL ${message}`);
 
 const run = (cmd, args, options = {}) => {
+    const childEnv = { ...process.env };
+    const successorNodeOptions = String(childEnv.VITALISMEN_OFFICIAL_AUDIT_NODE_OPTIONS || '').trim();
+    delete childEnv.VITALISMEN_OFFICIAL_AUDIT_NODE_OPTIONS;
+    if (successorNodeOptions) childEnv.NODE_OPTIONS = successorNodeOptions;
     const result = spawnSync(cmd, args, {
         cwd: root,
         encoding: 'utf8',
-        timeout: options.timeout || 20000
+        timeout: options.timeout || 20000,
+        env: childEnv
     });
     return {
         code: result.status,

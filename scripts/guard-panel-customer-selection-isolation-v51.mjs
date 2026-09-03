@@ -21,7 +21,7 @@ assert.equal(manifest.policy.realClientMutationForValidation, false);
 assert.equal(manifest.policy.realClientSendAuthorized, false);
 assert.equal(manifest.policy.automaticDropiAuthorization, false);
 assert.equal(manifest.policy.productOrPriceChanged, false);
-assert.match(entryGuard, /panelCustomerSelectionIsolationFreezeRuntimeGuardV51\.js/);
+assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(panel, /customer-selection-guard-v51\.js\?v=20260824/);
 assert.match(panel, /selectedChatEpoch/);
 assert.match(panel, /invalidateCustomerSelectionWork/);
