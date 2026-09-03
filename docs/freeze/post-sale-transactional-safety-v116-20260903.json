@@ -66,12 +66,12 @@
   "logicalBundle": {
     "algorithm": "SHA-256",
     "format": "sorted-relative-path-NUL-file-sha256-LF",
-    "sha256": "82064193b997e183a57a68d01d850f9b5d6b8cceaa9eb07db44034fc3ada06f0"
+    "sha256": "0b52a38c29f21e0ebff1ce97404535c94309c10da036b2600a71c532fec60816"
   },
   "protectedFiles": {
     "docs/POST_SALE_TRANSACTIONAL_SAFETY_FREEZE_V116_20260903.md": "c1feaa600133878b4b7f61b2cce3e4378cf24c6db4df5a07b64e1dfa5662224d",
     "docs/evidence/post-sale-transactional-safety-v116-attestation-20260903.json": "a7f5d6a86a891f8cf504f0bcd166444a4d7e586f43e28dc7440cdeea9f80cac5",
-    "ops/ec-bot-core-v78": "4a95d87ef9522de53ae62b0517bd837872e5f23de603ee390b70ddcd9f09eb0d",
+    "ops/ec-bot-core-v78": "5d5539d7fdceee37cd04f111fdb3dd4e2a4375683c87565936edcea0044fe4ba",
     "ops/post-sale-v116": "6717201757301094866433e44044db9f13dffbd7a03fda0a139d51997d58b9c6",
     "ops/systemd/vitalismen-postsale-transactional-v116.service": "a97b60223bb04fb421e2bbc5f2f9a5bae608948a01eb61399f3d7e00db6c2a0c",
     "ops/systemd/vitalismen-postsale-transactional-v116.timer": "464ea2c85ca4cc915ac96ae20bc2b6bec466025693fbc19aff37f1ceaf7f1c63",
@@ -104,6 +104,6 @@
     "tests/post-sale-next-eligible-source-compat-v113.test.mjs": "c2b00936c52cfc0946d98671441584552f4d8c6b9fed364711c45bba141ba41a",
     "tests/post-sale-publication-metadata-v106.test.mjs": "76a5811115120e5e1abfb57fcbbc6fb96fd9a9b30f8463af44b0cbd70d9e2121",
     "tests/post-sale-transactional-control-plane-v105.test.mjs": "d6adee1a549dee6b88140a5407c77b8c983a792da8283731ab1b7858d343d644",
-    "tests/post-sale-transactional-safety-v116.test.mjs": "61b7066f6a637ebc22ad4af45b85081c24c690ce7a593cd769f1eb5c182c7a2d"
+    "tests/post-sale-transactional-safety-v116.test.mjs": "0706488b8936a6810f2e78fd9be3d529a920a3b7a8189e89a6b0b14ba744649e"
   }
 }
