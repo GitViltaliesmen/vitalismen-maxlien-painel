@@ -15,6 +15,7 @@
     "commercialMetricsExcludeEngagement": true,
     "buyerLeadListExcludesEngagement": true,
     "activeOrderProjectionPreserved": true,
+    "postSaleV114ObserverCompatibilityPreserved": true,
     "qaAutomaticEngagementReplyAllowed": false
   },
   "realEffectsDuringLocalValidation": {

@@ -8,8 +8,8 @@ export const PANEL_WARMUP_ISOLATION_V118_MANIFEST_PATH = 'docs/freeze/panel-warm
 export const PANEL_WARMUP_ISOLATION_V118_PARENT_COMMIT = '33fc61a1ea8e1a4289584c6cc41151bb10ad3ab6';
 export const PANEL_WARMUP_ISOLATION_V118_PARENT_TREE = 'e244cf5996561b8015592c7f916dd037bcdec8c0';
 export const PANEL_WARMUP_ISOLATION_V118_PARENT_MANIFEST_SHA256 = 'fd6e87bd56727ac8e55ca8961c3fb98a1c863c16b400a46c7cdeb9c0abda2b0c';
-export const PANEL_WARMUP_ISOLATION_V118_FREEZE_SHA256 = '94dab841c4b33a1d223bca7d0ac6600de03103d116dc8dcdc5f3abff43fb8bdf';
-export const PANEL_WARMUP_ISOLATION_V118_ATTESTATION_SHA256 = 'adadbde22f89c0190edcdf8e0c5a30b5edee91fea1ab183aa7351d92fe9642ac';
+export const PANEL_WARMUP_ISOLATION_V118_FREEZE_SHA256 = 'b5909dc2d2f474eb1e1bb11ab08daf474e2846759482a1473b34061142ed083a';
+export const PANEL_WARMUP_ISOLATION_V118_ATTESTATION_SHA256 = 'bbc6f7b8f446c2d2eaa9c4b2964cc0fcfed27c76005b4b79966b41d2591d0ea5';
 export const PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const PANEL_WARMUP_ISOLATION_V118_ANCESTOR_OVERRIDES = Object.freeze([
@@ -20,6 +20,7 @@ export const PANEL_WARMUP_ISOLATION_V118_ANCESTOR_OVERRIDES = Object.freeze([
     'scripts/guard-protocolo-g-conversion-v62.mjs',
     'scripts/senior-guard.mjs',
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
+    'scripts/lib/post-sale-next-eligible-source-compat-v113.mjs',
     'src/routes/shipments.js',
     'src/routes/whatsapp.js',
     'src/services/ecConversationBucketService.js',
@@ -110,6 +111,7 @@ export const assertPanelWarmupIsolationV118Manifest = () => {
         || manifest.policy?.commercialMetricsExcludeEngagement !== true
         || manifest.policy?.buyerLeadListExcludesEngagement !== true
         || manifest.policy?.activeOrderProjectionPreserved !== true
+        || manifest.policy?.postSaleV114ObserverCompatibilityPreserved !== true
         || manifest.policy?.qaAutomaticEngagementReplyAllowed !== false
         || manifest.policy?.whatsappOutboundAllowed !== false
         || manifest.policy?.dropiMutationAllowed !== false

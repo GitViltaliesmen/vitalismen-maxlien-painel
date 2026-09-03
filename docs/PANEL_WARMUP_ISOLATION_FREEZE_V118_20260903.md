@@ -43,6 +43,10 @@ Não foram alterados motor do bot, funis, textos, áudio, imagem, preço, produt
 checkout, número oficial, Z-API, Dropi, Meta/CAPI, pixel, pós-venda, schedulers,
 recompra ou histórico. Não existe envio frio, replay, backfill ou disparo em massa.
 
+O preloader read-only do observador V114 registra o manifesto V118 antes de
+validar a V116. Isso preserva o monitor de elegibilidade sem liberar provider,
+mutação Mongo, consumo de permit ou execução antecipada do pós-venda.
+
 ## Publicação e rollback
 
 A publicação deve ocorrer em release imutável, com `senior:check`, guard V118,

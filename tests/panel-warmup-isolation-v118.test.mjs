@@ -134,3 +134,12 @@ test('V118 mantém a movimentação QA como comando explícito, único e sem env
     assert.match(move, /activeEcOrders/);
     assert.doesNotMatch(move, /sendText|sendAudio|sendImage|sendVideo|submitDroppi|sendPurchaseEvent/);
 });
+
+test('V118 é registrada antes da V116 no observador read-only de pós-venda', () => {
+    const observerCompat = fs.readFileSync('scripts/lib/post-sale-next-eligible-source-compat-v113.mjs', 'utf8');
+    const v118Index = observerCompat.indexOf('assertPanelWarmupIsolationV118Manifest()');
+    const v116Index = observerCompat.indexOf('assertPostSaleTransactionalSafetyV116Manifest()');
+    assert.ok(v118Index >= 0);
+    assert.ok(v116Index > v118Index);
+    assert.match(observerCompat, /PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY/);
+});

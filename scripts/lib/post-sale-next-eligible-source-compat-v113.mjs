@@ -2,11 +2,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+    assertPanelWarmupIsolationV118Manifest,
+    PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY
+} from '../../src/services/panelWarmupIsolationV118ManifestService.js';
+import {
     assertPostSaleTransactionalSafetyV116Manifest,
     POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY
 } from '../../src/services/postSaleTransactionalSafetyV116ManifestService.js';
 import { assertEcPanelRuntimeRecoveryV115Manifest } from '../../src/services/ecPanelRuntimeRecoveryV115Service.js';
 
+const v118 = assertPanelWarmupIsolationV118Manifest();
+const v118InheritedOverrides = Array.isArray(globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY])
+    ? globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY]
+    : [];
+globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY] = [
+    ...new Set([...v118InheritedOverrides, ...v118.overrides])
+];
 const v116 = assertPostSaleTransactionalSafetyV116Manifest();
 const inheritedOverrides = Array.isArray(globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY])
     ? globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY]
