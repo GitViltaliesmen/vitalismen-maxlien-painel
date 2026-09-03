@@ -4,11 +4,16 @@ import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRoute
 import { applyAfterSendPacing, applyHumanPacing, withHumanizedOutboundQueue } from './humanPacing.js';
 import { humanizeWhatsAppText } from './humanizeText.js';
 import {
+    markOutboundDedupeAmbiguous,
     markOutboundDedupeFailed,
     markOutboundDedupeSent,
     reserveOutboundOnce,
     resolveOutboundPhoneDigits
 } from '../services/outboundDedupeService.js';
+import {
+    classifyPostSaleProviderFailureV116,
+    postSaleTransactionalOutbound
+} from '../services/postSaleTransactionalSafetyV116Service.js';
 import { checkDropiOrderBeforeOutbound } from '../services/dropiOutboundOrderGuardService.js';
 import { sendZapiText } from '../services/zapiClient.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
@@ -251,11 +256,20 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
         value: options.dedupeValue || finalText,
         label: finalText,
         antiSpamKey,
-        bypass: bypassTextDedupe
+        bypass: bypassTextDedupe,
+        allowRetry: !postSaleTransactionalOutbound(options)
     });
     if (!duplicateGuard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] texto repetido bloqueado rigidamente -> ${targetJid} | reason=${duplicateGuard.reason} | phone=${duplicateGuard.phoneDigits || ''}`);
-        return false;
+        return options.returnDetails === true
+            ? {
+                ok: false,
+                providerAttempted: false,
+                ambiguous: false,
+                providerStatus: 'blocked',
+                reason: duplicateGuard.reason || 'outbound_dedupe_blocked'
+            }
+            : false;
     }
 
     if (shouldUseZapiForOutbound({ targetJid, recipientDigits, options })) {
@@ -278,7 +292,11 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
                 response,
                 isBot: options.sendMode !== 'manual_panel'
             });
-            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
+            await markOutboundDedupeSent({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                strict: postSaleTransactionalOutbound(options)
+            });
             const details = {
                 ok: true,
                 provider: 'zapi',
@@ -291,6 +309,27 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
         } catch (error) {
             const detail = error?.response?.data || error.message || 'zapi_send_failed';
             console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar texto pela Z-API para ${targetJid}:`, detail);
+            if (postSaleTransactionalOutbound(options)) {
+                const disposition = classifyPostSaleProviderFailureV116(error);
+                await markOutboundDedupeAmbiguous({
+                    key: duplicateGuard.key,
+                    semanticKey: duplicateGuard.semanticKey,
+                    error: disposition.reason
+                });
+                return options.returnDetails === true
+                    ? {
+                        ok: false,
+                        provider: 'zapi',
+                        providerAttempted: true,
+                        ambiguous: disposition.ambiguous,
+                        terminalState: disposition.terminalState,
+                        providerStatus: disposition.providerStatus,
+                        httpStatus: disposition.httpStatus,
+                        error: disposition.reason,
+                        providerPayload: detail
+                    }
+                    : false;
+            }
             await markOutboundDedupeFailed({
                 key: duplicateGuard.key,
                 semanticKey: duplicateGuard.semanticKey,
@@ -308,7 +347,8 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
         }
     }
 
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const sock = getSock(sessionId);
         const sId = getSocketId(sessionId);
 
@@ -334,7 +374,7 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
                 ? parseMs('WHATSAPP_FIRST_RESPONSE_MAX_MS', 45000)
                 : null;
             const sendMode = options.sendMode || '';
-            const { pacing, afterSendMs } = await withHumanizedOutboundQueue(targetJid, async () => {
+            const { pacing, afterSendMs, providerResponse } = await withHumanizedOutboundQueue(targetJid, async () => {
                 const pacing = await applyHumanPacing({
                     sock: readySock,
                     jid: targetJid,
@@ -344,7 +384,7 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
                     maxMs: pacingMaxMs,
                     sendMode
                 });
-                await withTimeout(
+                const providerResponse = await withTimeout(
                     readySock.sendMessage(targetJid, payload, messageOptions),
                     Number.isFinite(SEND_TEXT_TIMEOUT_MS) && SEND_TEXT_TIMEOUT_MS > 0 ? SEND_TEXT_TIMEOUT_MS : 45000,
                     'send_text'
@@ -352,7 +392,7 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
                 const afterSendMs = options.skipAfterSendPacing === true
                     ? 0
                     : await applyAfterSendPacing({ kind: 'text', text: finalText, sendMode });
-                return { pacing, afterSendMs };
+                return { pacing, afterSendMs, providerResponse };
             }, {
                 bypassGlobalQueue: firstResponseSla,
                 globalGapMinMs: firstResponseSla ? 0 : null,
@@ -361,13 +401,41 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             });
             console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 📤 Texto disparado -> ${targetJid} | Tamanho: ${finalText.length} chars | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
             recordOutboundSend({ sessionId, jid: targetJid });
-            await markOutboundDedupeSent({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey });
+            await markOutboundDedupeSent({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                strict: postSaleTransactionalOutbound(options)
+            });
             return options.returnDetails === true
-                ? { ok: true, provider: 'baileys', providerStatus: 'sent' }
+                ? {
+                    ok: true,
+                    provider: 'baileys',
+                    providerMessageId: providerResponse?.key?.id || providerResponse?.messageId || '',
+                    providerStatus: 'sent'
+                }
                 : true;
         } catch (error) {
             console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar texto para ${targetJid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) {
+            if (attempt === maxAttempts) {
+                if (postSaleTransactionalOutbound(options)) {
+                    const disposition = classifyPostSaleProviderFailureV116(error);
+                    await markOutboundDedupeAmbiguous({
+                        key: duplicateGuard.key,
+                        semanticKey: duplicateGuard.semanticKey,
+                        error: disposition.reason
+                    });
+                    return options.returnDetails === true
+                        ? {
+                            ok: false,
+                            provider: 'baileys',
+                            providerAttempted: true,
+                            ambiguous: disposition.ambiguous,
+                            terminalState: disposition.terminalState,
+                            providerStatus: disposition.providerStatus,
+                            error: disposition.reason
+                        }
+                        : false;
+                }
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
                 if (shouldTryZapiTextFailover({ targetJid, recipientDigits, options, reason: error.message })) {
                     console.warn(`[OUTBOUND-ZAPI-FAILOVER] texto falhou por Baileys; tentando Z-API -> ${targetJid} | reason=${error.message}`);

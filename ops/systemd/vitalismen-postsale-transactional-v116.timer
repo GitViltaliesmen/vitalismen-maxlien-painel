@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Vitalismen EC transactional post-sale executor V116 hourly
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=60min
+RandomizedDelaySec=30s
+AccuracySec=15s
+Persistent=true
+Unit=vitalismen-postsale-transactional-v116.service
+
+[Install]
+WantedBy=timers.target

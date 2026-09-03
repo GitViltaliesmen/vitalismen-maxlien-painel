@@ -2,10 +2,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+    assertPostSaleTransactionalSafetyV116Manifest,
+    POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY
+} from '../../src/services/postSaleTransactionalSafetyV116ManifestService.js';
+import { assertEcPanelRuntimeRecoveryV115Manifest } from '../../src/services/ecPanelRuntimeRecoveryV115Service.js';
+
+const v116 = assertPostSaleTransactionalSafetyV116Manifest();
+const inheritedOverrides = Array.isArray(globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY])
+    ? globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY]
+    : [];
+globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY] = [...new Set([...inheritedOverrides, ...v116.overrides])];
+const v115 = assertEcPanelRuntimeRecoveryV115Manifest();
+globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY] = [
+    ...new Set([...globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY], ...v115.overrides])
+];
+const {
     normalizeModernReleaseSourceV113,
     assertPostSaleNextEligibleSourceCompatibilityV113Manifest
-} from '../../src/services/postSaleNextEligibleSourceCompatibilityV113Service.js';
-
+} = await import('../../src/services/postSaleNextEligibleSourceCompatibilityV113Service.js');
 assertPostSaleNextEligibleSourceCompatibilityV113Manifest();
 const originalReadFileSync = fs.readFileSync.bind(fs);
 

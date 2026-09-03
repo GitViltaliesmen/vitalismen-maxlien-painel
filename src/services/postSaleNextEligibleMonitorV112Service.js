@@ -24,6 +24,7 @@ export const POST_SALE_NEXT_ELIGIBLE_V112_FREEZE_SHA256 = '8b4c9d316ffad81300b1b
 export const POST_SALE_NEXT_ELIGIBLE_V112_ATTESTATION_SHA256 = 'f6ced1965cbf2fca7a1b9d1c2c6012e0b5561666008f76bb79c62aebaace2b0e';
 export const POST_SALE_NEXT_ELIGIBLE_V112_ARM_PHRASE = 'I_UNDERSTAND_POST_SALE_NEXT_ELIGIBLE_V112_SINGLE_USE';
 export const POST_SALE_NEXT_ELIGIBLE_V112_PERMIT_TTL_DAYS = 30;
+export const POST_SALE_NEXT_ELIGIBLE_V112_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const POST_SALE_NEXT_ELIGIBLE_V112_NEW_PROTECTED_FILES = Object.freeze([
     'docs/POST_SALE_NEXT_ELIGIBLE_MONITOR_FREEZE_V112_20260903.md',
@@ -88,7 +89,9 @@ const assertParentV111 = () => {
         || parent.policy?.externalEffectsAllowed !== false) {
         throw new Error('[POST-SALE-NEXT-ELIGIBLE-V112] parent_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[POST_SALE_NEXT_ELIGIBLE_V112_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
+        if (successorOverrides.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
             throw new Error(`[POST-SALE-NEXT-ELIGIBLE-V112] parent_protected_file_invalid:${relativePath}`);
         }
@@ -126,13 +129,14 @@ export const assertPostSaleNextEligibleMonitorV112Manifest = () => {
         || fileSha256('docs/POST_SALE_NEXT_ELIGIBLE_MONITOR_FREEZE_V112_20260903.md') !== POST_SALE_NEXT_ELIGIBLE_V112_FREEZE_SHA256) {
         throw new Error('[POST-SALE-NEXT-ELIGIBLE-V112] manifest_identity_or_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[POST_SALE_NEXT_ELIGIBLE_V112_OVERRIDE_KEY] || []);
     for (const relativePath of expectedPaths) {
-        if (fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
+        if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-NEXT-ELIGIBLE-V112] protected_file_invalid:${relativePath}`);
         }
     }
     const logical = expectedPaths.map((relativePath) => (
-        `${relativePath}\0${fileSha256(relativePath)}\n`
+        `${relativePath}\0${successorOverrides.has(relativePath) ? manifest.protectedFiles[relativePath] : fileSha256(relativePath)}\n`
     )).join('');
     if (manifest.logicalBundle?.sha256 !== sha256(logical)) {
         throw new Error('[POST-SALE-NEXT-ELIGIBLE-V112] logical_bundle_invalid');

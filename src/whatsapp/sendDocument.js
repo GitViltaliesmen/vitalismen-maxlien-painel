@@ -10,6 +10,10 @@ import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRo
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
+import {
+    classifyPostSaleProviderFailureV116,
+    postSaleTransactionalOutbound
+} from '../services/postSaleTransactionalSafetyV116Service.js';
 
 const isRemoteUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -92,8 +96,15 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
         } catch (error) {
             const detail = error?.response?.data || error.message || 'zapi_document_send_failed';
             console.error(`[OUTBOUND-ZAPI-ERROR] Falha ao enviar documento pela Z-API para ${jid}:`, detail);
+            const disposition = postSaleTransactionalOutbound(options)
+                ? classifyPostSaleProviderFailureV116(error)
+                : null;
             return sendDocumentFailure(options, {
                 provider: 'zapi',
+                providerAttempted: true,
+                ambiguous: disposition?.ambiguous ?? false,
+                terminalState: disposition?.terminalState || '',
+                providerStatus: disposition?.providerStatus || 'failed',
                 error: typeof detail === 'string' ? detail : JSON.stringify(detail),
                 providerPayload: detail
             });
@@ -108,7 +119,8 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
 
     if (caption) payload.caption = caption;
 
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             const sock = getSock(sessionId) || await waitForWhatsAppReady(12000, sessionId);
             const pacing = await applyHumanPacing({ sock, jid, kind: 'document', text: caption || fileName || filePath, sendMode });
@@ -126,10 +138,19 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
                 : !!result;
         } catch (error) {
             console.error(`[OUTBOUND-DOC-ERROR] ❌ Falha ao enviar documento para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) return sendDocumentFailure(options, {
-                provider: 'baileys',
-                error: error.message || 'send_document_failed'
-            });
+            if (attempt === maxAttempts) {
+                const disposition = postSaleTransactionalOutbound(options)
+                    ? classifyPostSaleProviderFailureV116(error)
+                    : null;
+                return sendDocumentFailure(options, {
+                    provider: 'baileys',
+                    providerAttempted: true,
+                    ambiguous: disposition?.ambiguous ?? false,
+                    terminalState: disposition?.terminalState || '',
+                    providerStatus: disposition?.providerStatus || 'failed',
+                    error: error.message || 'send_document_failed'
+                });
+            }
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
     }

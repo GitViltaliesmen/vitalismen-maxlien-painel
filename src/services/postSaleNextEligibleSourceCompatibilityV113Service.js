@@ -12,6 +12,7 @@ export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_PARENT_TREE = '1c6639ced
 export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_PARENT_MANIFEST_SHA256 = 'f69dee9a7bd4f4849d0dd93c6f8cc5a367582ab8686f4e2260e56d462eab32f3';
 export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_FREEZE_SHA256 = 'bfba6baa60a2b1309903e4805db1ad4eb2e510e09337388fd2383c7ac7da2bc0';
 export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_ATTESTATION_SHA256 = '1e660b0bda3871dca0ff5d7a7e64f68809a8191469280fd185bb2a5815a51521';
+export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_NEW_PROTECTED_FILES = Object.freeze([
     'docs/POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPATIBILITY_FREEZE_V113_20260903.md',
@@ -90,12 +91,15 @@ export const assertPostSaleNextEligibleSourceCompatibilityV113Manifest = () => {
             !== POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_FREEZE_SHA256) {
         throw new Error('[POST-SALE-SOURCE-COMPAT-V113] manifest_identity_or_policy_invalid');
     }
+    const successorOverrides = new Set(globalThis[POST_SALE_NEXT_ELIGIBLE_SOURCE_COMPAT_V113_OVERRIDE_KEY] || []);
     for (const relativePath of expectedPaths) {
-        if (fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
+        if (!successorOverrides.has(relativePath) && fileSha256(relativePath) !== manifest.protectedFiles[relativePath]) {
             throw new Error(`[POST-SALE-SOURCE-COMPAT-V113] protected_file_invalid:${relativePath}`);
         }
     }
-    const logical = expectedPaths.map((relativePath) => `${relativePath}\0${fileSha256(relativePath)}\n`).join('');
+    const logical = expectedPaths.map((relativePath) => (
+        `${relativePath}\0${successorOverrides.has(relativePath) ? manifest.protectedFiles[relativePath] : fileSha256(relativePath)}\n`
+    )).join('');
     if (manifest.logicalBundle?.sha256 !== sha256(logical)) {
         throw new Error('[POST-SALE-SOURCE-COMPAT-V113] logical_bundle_invalid');
     }

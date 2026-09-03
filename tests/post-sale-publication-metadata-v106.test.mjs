@@ -16,6 +16,8 @@ import {
 } from '../src/services/postSaleHealthEnvelopeV107Service.js';
 import { assertPostSaleEligibleBatchV108Manifest } from '../src/services/postSaleEligibleBatchV108Service.js';
 
+await import('../scripts/lib/ec-runtime-successor-v97-context.mjs');
+
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const writeCanonical = (file, value) => fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
@@ -59,9 +61,19 @@ test('identidade publicada V105 lê o envelope V70 sem adulterar release-source'
 
 test('manifesto V106 protege o binding ao envelope de publicação V70', () => {
     const latest = assertPostSaleEligibleBatchV108Manifest();
-    globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] = latest.overrides;
+    const previousHealthOverrides = Array.isArray(globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY])
+        ? globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY]
+        : [];
+    globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] = [
+        ...new Set([...previousHealthOverrides, ...latest.overrides])
+    ];
     const successor = assertPostSaleHealthEnvelopeV107Manifest();
-    globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] = [...latest.overrides, ...successor.overrides];
+    const previousPublicationOverrides = Array.isArray(globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY])
+        ? globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY]
+        : [];
+    globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] = [
+        ...new Set([...previousPublicationOverrides, ...latest.overrides, ...successor.overrides])
+    ];
     const result = assertPostSalePublicationMetadataV106Manifest();
     assert.equal(result.ready, true);
     assert.equal(result.manifest.policy.releaseSourceRemainsStagedCandidate, true);

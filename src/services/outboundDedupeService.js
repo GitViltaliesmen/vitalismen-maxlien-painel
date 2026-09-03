@@ -103,7 +103,8 @@ const reserveDedupeKey = async ({
     kind,
     fingerprint,
     label,
-    sessionId
+    sessionId,
+    allowRetry = true
 }) => {
     const row = await OutboundDedupe.create({
         key,
@@ -113,6 +114,7 @@ const reserveDedupeKey = async ({
         fingerprint,
         label: String(label || '').slice(0, 220),
         sessionId: sessionId || '',
+        retryAllowed: allowRetry !== false,
         status: 'reserved',
         firstReservedAt: new Date()
     });
@@ -137,8 +139,9 @@ const handleDuplicateReservation = async ({
     const existing = await OutboundDedupe.findOne({ key }).lean().catch(() => null);
     const status = existing?.status || '';
     const reservedAt = existing?.firstReservedAt ? new Date(existing.firstReservedAt).getTime() : 0;
-    const staleReserved = status === 'reserved' && reservedAt && (Date.now() - reservedAt >= staleReservedRetryMs());
-    const retryableFailed = status === 'failed';
+    const retryAllowed = existing?.retryAllowed !== false;
+    const staleReserved = retryAllowed && status === 'reserved' && reservedAt && (Date.now() - reservedAt >= staleReservedRetryMs());
+    const retryableFailed = retryAllowed && status === 'failed';
     if (staleReserved || retryableFailed) {
         await OutboundDedupe.updateOne(
             { key },
@@ -183,7 +186,8 @@ export const reserveOutboundOnce = async ({
     label = '',
     bypass = false,
     antiSpamKey = '',
-    antiSpamWindowMs = semanticDedupeWindowMs()
+    antiSpamWindowMs = semanticDedupeWindowMs(),
+    allowRetry = true
 }) => {
     assertMutationAllowed({ capability: 'outbound_dedupe_reserve', source: 'outbound_dedupe' });
     if (!strictDedupeEnabled()) return { allowed: true, skipped: true, reason: 'disabled' };
@@ -205,7 +209,8 @@ export const reserveOutboundOnce = async ({
                 kind,
                 fingerprint: semanticFingerprint,
                 label: `anti-spam:${normalizeAntiSpamKey(antiSpamKey)}`,
-                sessionId
+                sessionId,
+                allowRetry
             });
         } catch (error) {
             return handleDuplicateReservation({
@@ -231,7 +236,8 @@ export const reserveOutboundOnce = async ({
             kind,
             fingerprint,
             label: label || value || '',
-            sessionId
+            sessionId,
+            allowRetry
         });
         return { ...row, semanticKey: semanticReserved?.key || '' };
     } catch (error) {
@@ -252,14 +258,22 @@ export const reserveOutboundOnce = async ({
     }
 };
 
-export const markOutboundDedupeSent = async ({ key, semanticKey = '' }) => {
+export const markOutboundDedupeSent = async ({ key, semanticKey = '', strict = false }) => {
     assertMutationAllowed({ capability: 'outbound_dedupe_sent', source: 'outbound_dedupe' });
     const keys = [key, semanticKey].filter(Boolean);
     if (!keys.length) return;
-    await OutboundDedupe.updateMany(
+    const update = OutboundDedupe.updateMany(
         { key: { $in: keys } },
         { $set: { status: 'sent', sentAt: new Date() } }
-    ).catch(() => null);
+    );
+    if (!strict) {
+        await update.catch(() => null);
+        return;
+    }
+    const result = await update;
+    if (Number(result?.matchedCount || 0) < keys.length) {
+        throw new Error('outbound_dedupe_sent_persistence_incomplete');
+    }
 };
 
 export const markOutboundDedupeFailed = async ({ key, semanticKey = '', error = '' }) => {
@@ -270,4 +284,21 @@ export const markOutboundDedupeFailed = async ({ key, semanticKey = '', error = 
         { key: { $in: keys } },
         { $set: { status: 'failed', failedAt: new Date(), error: String(error || '').slice(0, 500) } }
     ).catch(() => null);
+};
+
+export const markOutboundDedupeAmbiguous = async ({ key, semanticKey = '', error = '' }) => {
+    assertMutationAllowed({ capability: 'outbound_dedupe_ambiguous', source: 'outbound_dedupe' });
+    const keys = [key, semanticKey].filter(Boolean);
+    if (!keys.length) return;
+    await OutboundDedupe.updateMany(
+        { key: { $in: keys } },
+        {
+            $set: {
+                status: 'ambiguous',
+                retryAllowed: false,
+                ambiguousAt: new Date(),
+                error: String(error || '').slice(0, 500)
+            }
+        }
+    );
 };

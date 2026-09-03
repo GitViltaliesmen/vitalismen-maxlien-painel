@@ -161,7 +161,10 @@ const productScopedProtocolFiles = new Set([
     // V64 somente herda o freeze V63 e bloqueia nomes invalidos no Dropi EC.
     'src/services/dropiCustomerFullNameFreezeRuntimeGuardV64.js',
     // V65 corrige busca, leitura canonica, pos-venda e reconciliacao Dropi EC.
-    'src/services/postSaleGargalosFreezeRuntimeGuardV65.js'
+    'src/services/postSaleGargalosFreezeRuntimeGuardV65.js',
+    // V116 cita os três guards Protocolo G somente pelos caminhos protegidos
+    // e hashes de ancestralidade; não incorpora conteúdo comercial ao pós-venda.
+    'src/services/postSaleTransactionalSafetyV116ManifestService.js'
 ]);
 const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,

@@ -40,6 +40,10 @@ import {
     buildPostSaleIdempotencyKey
 } from './postSaleSafetyV66Service.js';
 import {
+    postSaleFailureDispositionV116,
+    postSaleTransactionalSafetyV116Enabled
+} from './postSaleTransactionalSafetyV116Service.js';
+import {
     buildCanaryV75RecipientQuery,
     canaryV75SchedulerShipmentAllowed,
     evaluateCanaryV75Recipient
@@ -417,7 +421,13 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         ...options,
         returnDetails: true
     });
-    if (!sendResultOk(sent)) return false;
+    if (!sendResultOk(sent)) return sent || {
+        ok: false,
+        providerAttempted: false,
+        ambiguous: false,
+        providerStatus: 'blocked',
+        reason: 'shipment_text_not_sent'
+    };
     await persistShipmentOutboundMessage({
         shipment,
         chatId,
@@ -427,6 +437,41 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         sentResult: sent
     });
     return sent;
+};
+
+const recordPrimaryPostSaleSendFailure = async ({
+    shipment,
+    decision,
+    stage,
+    variant,
+    sendResult,
+    reason,
+    shipmentModel
+} = {}) => {
+    if (!postSaleTransactionalSafetyV116Enabled()) {
+        return failPostSaleNotificationStage({
+            shipment,
+            stage,
+            variant,
+            lockToken: decision?.lockToken,
+            reason,
+            ...(shipmentModel ? { shipmentModel } : {})
+        });
+    }
+    const disposition = postSaleFailureDispositionV116(sendResult);
+    return failPostSaleNotificationStage({
+        shipment,
+        stage,
+        variant,
+        lockToken: decision?.lockToken,
+        reason: disposition.reason || reason,
+        terminal: disposition.terminal,
+        terminalState: disposition.terminalState,
+        providerMessageId: disposition.providerMessageId,
+        providerStatus: disposition.providerStatus,
+        correlationId: disposition.correlationId || decision?.idempotencyKey,
+        ...(shipmentModel ? { shipmentModel } : {})
+    });
 };
 
 const resolveInvoiceSource = (shipment) => {
@@ -562,13 +607,23 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
         }
     );
     if (sendResultOk(sent)) {
-        await completePostSaleNotificationStage({
+        const finalized = await completePostSaleNotificationStage({
             shipment,
             stage: POST_SALE_STAGES.GUIDE,
             variant: POST_SALE_VARIANTS.GUIDE_PDF,
             lockToken: decision.lockToken,
             providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
         });
+        if (!finalized.completed) {
+            return {
+                sent: false,
+                reason: finalized.reason || 'guide_pdf_ledger_finalization_failed',
+                path: documentSource,
+                providerMessageId: sent?.providerMessageId || '',
+                providerZaapId: sent?.providerZaapId || '',
+                providerStatus: sent?.providerStatus || ''
+            };
+        }
         await persistShipmentOutboundMessage({
             shipment,
             chatId,
@@ -580,11 +635,12 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
         });
     }
     if (!sendResultOk(sent)) {
-        await failPostSaleNotificationStage({
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.GUIDE,
             variant: POST_SALE_VARIANTS.GUIDE_PDF,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: sent?.error || sent?.reason || 'invoice_send_failed'
         });
     }
@@ -1301,11 +1357,12 @@ export const notifyGuidePrintImage = async (shipment, {
     });
     if (!sent?.ok) {
         const reason = sent?.error || sent?.reason || 'image_send_failed';
-        await failPostSaleNotificationStage({
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.GUIDE,
             variant: POST_SALE_VARIANTS.GUIDE_PRINT_IMAGE,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason,
             shipmentModel
         });
@@ -1327,7 +1384,7 @@ export const notifyGuidePrintImage = async (shipment, {
     }
 
     const now = new Date();
-    const providerMessageId = sent.providerMessageId || sent.providerZaapId || `guide_print_${shipment._id}_${now.getTime()}`;
+    const providerMessageId = sent.providerMessageId || sent.providerZaapId || '';
     const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: POST_SALE_STAGES.GUIDE,
@@ -1646,19 +1703,20 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         kind: 'shipment_guide_text',
         bypassDedupe: force
     });
-    if (!textSent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(textSent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.GUIDE,
             variant: POST_SALE_VARIANTS.GUIDE_TEXT,
-            lockToken: decision.lockToken,
+            sendResult: textSent,
             reason: 'text_send_failed'
         });
         return { success: false, textSent: false, invoiceSent: false, reason: 'text_send_failed' };
     }
 
     const sentAt = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: POST_SALE_STAGES.GUIDE,
         variant: POST_SALE_VARIANTS.GUIDE_TEXT,
@@ -1666,6 +1724,9 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         providerMessageId: textSent?.providerMessageId || textSent?.providerZaapId || '',
         now: sentAt
     });
+    if (!finalized.completed) {
+        return { success: false, textSent: true, invoiceSent: false, reason: finalized.reason || 'guide_ledger_finalization_failed' };
+    }
 
     // V29: envio/guia pode comunicar somente texto + numero. PDF, imagem e
     // audio de retirada pertencem exclusivamente a READY_FOR_PICKUP verificado.
@@ -1789,12 +1850,13 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         allowTextDedupeBypass: force,
         allowHistoryDedupeBypass: force
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.READY_FOR_PICKUP,
             variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'text_send_failed'
         });
         if (shouldSendPostSaleNotification(guidePdfDecision) && guidePdfDecision.lockToken) {
@@ -1809,7 +1871,7 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         return false;
     }
     const sentAt = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: POST_SALE_STAGES.READY_FOR_PICKUP,
         variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
@@ -1817,6 +1879,7 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now: sentAt
     });
+    if (!finalized.completed) return false;
     const invoiceResult = await sendShipmentInvoicePdf(
         shipment,
         chatId,
@@ -1884,19 +1947,20 @@ export const notifyShipmentInTransit = async (shipment) => {
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_in_transit_text'
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.IN_TRANSIT,
             variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'text_send_failed'
         });
         return false;
     }
 
     const now = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: POST_SALE_STAGES.IN_TRANSIT,
         variant: POST_SALE_VARIANTS.IN_TRANSIT_TEXT,
@@ -1904,6 +1968,7 @@ export const notifyShipmentInTransit = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
+    if (!finalized.completed) return false;
     await persistAutomationUpdate(shipment._id, {
         'automation.inTransitNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -2015,7 +2080,18 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         sent = await sendShipmentText(shipment, chatId, text, {
             kind: `shipment_reminder_${kind}_text`
         });
-        if (!sent) return false;
+        if (!sendResultOk(sent)) {
+            await recordPrimaryPostSaleSendFailure({
+                shipment,
+                decision: safetyDecision,
+                stage: safetyDecision.stage,
+                variant: reminderVariant,
+                sendResult: sent,
+                reason: 'pickup_reminder_text_send_failed'
+            });
+            safetyFinalized = true;
+            return false;
+        }
     }
     const audioSent = await sendShipmentAudio(shipment, chatId, kind);
     if (audioOnly && !audioSent?.sentAny) return false;
@@ -2110,19 +2186,20 @@ export const notifyShipmentReturned = async (shipment) => {
     const sent = await sendShipmentText(shipment, chatId, returnedText, {
         kind: 'shipment_returned_text'
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: POST_SALE_STAGES.RETURNED,
             variant: POST_SALE_VARIANTS.RETURNED_TEXT,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'text_send_failed'
         });
         return false;
     }
 
     const now = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: POST_SALE_STAGES.RETURNED,
         variant: POST_SALE_VARIANTS.RETURNED_TEXT,
@@ -2130,6 +2207,7 @@ export const notifyShipmentReturned = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
+    if (!finalized.completed) return false;
     await Shipment.updateOne(
         { _id: shipment._id },
         {
@@ -2186,19 +2264,20 @@ export const notifyPickupProofRequest = async (shipment) => {
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_pickup_proof_request_text'
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'pickup_proof_request_send_failed'
         });
         return false;
     }
 
     const now = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: decision.stage,
         variant: POST_SALE_VARIANTS.PICKUP_PROOF_REQUEST,
@@ -2206,6 +2285,7 @@ export const notifyPickupProofRequest = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
+    if (!finalized.completed) return false;
     await persistAutomationUpdate(shipment._id, {
         'automation.pickupProofRequestedAt': now,
         'automation.lastReminderAt': now,
@@ -2291,18 +2371,20 @@ export const notifyPickupBonus = async (shipment) => {
         dedupeValue: `${text}|${bonusDedupeScope}`,
         antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_BONUS,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'pickup_bonus_primary_text_send_failed'
         });
     }
     if (!sent) return false;
+    if (!sendResultOk(sent)) return false;
     const primarySentAt = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: decision.stage,
         variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2310,6 +2392,7 @@ export const notifyPickupBonus = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now: primarySentAt
     });
+    if (!finalized.completed) return false;
     const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);
     const howToUseAudioPath = howToUseAudioBaseName
         ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: howToUseAudioBaseName })
@@ -2731,18 +2814,19 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_refill_reminder_text'
     });
-    if (!sent) {
-        await failPostSaleNotificationStage({
+    if (!sendResultOk(sent)) {
+        await recordPrimaryPostSaleSendFailure({
             shipment,
+            decision,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
-            lockToken: decision.lockToken,
+            sendResult: sent,
             reason: 'refill_primary_text_send_failed'
         });
         return false;
     }
     const primarySentAt = new Date();
-    await completePostSaleNotificationStage({
+    const finalized = await completePostSaleNotificationStage({
         shipment,
         stage: decision.stage,
         variant: POST_SALE_VARIANTS.TREATMENT_REFILL_REMINDER,
@@ -2750,6 +2834,7 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now: primarySentAt
     });
+    if (!finalized.completed) return false;
 
     const approvedAudioPath = await resolveCountryAudio({
         country: shipment.country || 'EC',

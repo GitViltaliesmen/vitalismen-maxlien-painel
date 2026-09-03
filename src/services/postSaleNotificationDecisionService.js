@@ -498,6 +498,36 @@ export const completePostSaleNotificationStage = async ({
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });
+    const cleanProviderMessageId = clean(providerMessageId);
+    if (!cleanProviderMessageId) {
+        const ambiguous = await shipmentModel.updateOne(
+            { _id: shipment._id, [`${lockPath}.token`]: lockToken },
+            {
+                $set: {
+                    [lockPath]: null,
+                    [ledgerPath]: {
+                        stage: canonicalStage,
+                        variant: clean(variant) || legacyKindForPostSaleStage(canonicalStage),
+                        state: 'AMBIGUOUS',
+                        decision: POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND,
+                        reason: 'provider_accepted_without_persistable_id',
+                        idempotencyKey,
+                        decidedAt: now,
+                        finalizedAt: now,
+                        providerMessageId: '',
+                        dataCompatibilityVersion: 116
+                    }
+                }
+            }
+        );
+        return {
+            completed: false,
+            terminal: ambiguous?.modifiedCount === 1,
+            reason: 'provider_message_id_missing_ambiguous_no_retry',
+            stage: canonicalStage,
+            idempotencyKey
+        };
+    }
     const result = await shipmentModel.updateOne(
         {
             _id: shipment._id,
@@ -516,8 +546,8 @@ export const completePostSaleNotificationStage = async ({
                     idempotencyKey,
                     decidedAt: now,
                     finalizedAt: now,
-                    providerMessageId: clean(providerMessageId),
-                    dataCompatibilityVersion: 66
+                    providerMessageId: cleanProviderMessageId,
+                    dataCompatibilityVersion: 116
                 }
             }
         }
@@ -536,6 +566,11 @@ export const failPostSaleNotificationStage = async ({
     variant = '',
     lockToken,
     reason = 'provider_send_failed',
+    terminal = false,
+    terminalState = 'AMBIGUOUS',
+    providerMessageId = '',
+    providerStatus = '',
+    correlationId = '',
     shipmentModel = Shipment,
     now = new Date()
 } = {}) => {
@@ -546,6 +581,9 @@ export const failPostSaleNotificationStage = async ({
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });
+    const finalState = terminal
+        ? (clean(terminalState).toUpperCase() === 'FAILED_FINAL' ? 'FAILED_FINAL' : 'AMBIGUOUS')
+        : 'FAILED_RETRYABLE';
     const result = await shipmentModel.updateOne(
         { _id: shipment._id, [`${lockPath}.token`]: lockToken },
         {
@@ -554,20 +592,26 @@ export const failPostSaleNotificationStage = async ({
                 [ledgerPath]: {
                     stage: canonicalStage,
                     variant: clean(variant) || legacyKindForPostSaleStage(canonicalStage),
-                    state: 'FAILED_RETRYABLE',
+                    state: finalState,
                     decision: POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND,
                     reason: clean(reason),
                     idempotencyKey,
                     decidedAt: now,
                     finalizedAt: now,
-                    dataCompatibilityVersion: 66
+                    providerMessageId: clean(providerMessageId),
+                    providerStatus: clean(providerStatus),
+                    correlationId: clean(correlationId) || idempotencyKey,
+                    dataCompatibilityVersion: terminal ? 116 : 66
                 }
             }
         }
     );
     return {
         released: result?.modifiedCount === 1,
-        reason: result?.modifiedCount === 1 ? 'retryable_failure_recorded_and_lock_released' : 'lock_token_mismatch',
+        terminal: Boolean(terminal),
+        reason: result?.modifiedCount === 1
+            ? (terminal ? 'terminal_failure_recorded_no_retry' : 'retryable_failure_recorded_and_lock_released')
+            : 'lock_token_mismatch',
         stage: canonicalStage,
         idempotencyKey
     };

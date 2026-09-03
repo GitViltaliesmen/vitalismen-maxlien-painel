@@ -14,6 +14,8 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tree = '1c6639ced97dfce384c765a0d80432da84822367';
 
+await import('../scripts/lib/ec-runtime-successor-v97-context.mjs');
+
 test('V113 aliases functionalTree only when legacy tree is absent', () => {
     const modern = { commit: '86e4b14052b5e41360dab84be25c09df450733c8', functionalTree: tree };
     const adapted = normalizeModernReleaseSourceV113(modern);

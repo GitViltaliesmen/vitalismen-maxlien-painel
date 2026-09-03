@@ -38,13 +38,15 @@ const outboundDedupeSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['reserved', 'sent', 'failed'],
+        enum: ['reserved', 'sent', 'failed', 'ambiguous'],
         default: 'reserved',
         index: true
     },
+    retryAllowed: { type: Boolean, default: true },
     firstReservedAt: Date,
     sentAt: Date,
     failedAt: Date,
+    ambiguousAt: Date,
     error: String
 }, {
     timestamps: true

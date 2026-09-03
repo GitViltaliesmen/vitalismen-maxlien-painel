@@ -104,6 +104,8 @@ export const LEGACY_MARKERS_BY_STAGE = Object.freeze({
 
 export const POST_SALE_TERMINAL_LEDGER_STATES = Object.freeze([
     'SENT',
+    'AMBIGUOUS',
+    'FAILED_FINAL',
     'RECOVERED_STRUCTURED',
     'RECOVERED_MANUAL',
     'SUPPRESSED_HISTORICAL'

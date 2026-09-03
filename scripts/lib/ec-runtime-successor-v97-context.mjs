@@ -1,4 +1,8 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import {
+    assertPostSaleTransactionalSafetyV116Manifest,
+    POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY
+} from '../../src/services/postSaleTransactionalSafetyV116ManifestService.js';
 import { assertEcPanelRuntimeRecoveryV115Manifest } from '../../src/services/ecPanelRuntimeRecoveryV115Service.js';
 import { assertBotQaMultiturnRecoveryV111Manifest } from '../../src/services/botQaMultiturnRecoveryV111Service.js';
 import {
@@ -16,6 +20,13 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const postSaleTransactionalSafetyV116 = assertPostSaleTransactionalSafetyV116Manifest();
+const postSaleTransactionalSafetyV116Previous = Array.isArray(globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY])
+    ? globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY]
+    : [];
+globalThis[POST_SALE_TRANSACTIONAL_SAFETY_V116_OVERRIDE_KEY] = [
+    ...new Set([...postSaleTransactionalSafetyV116Previous, ...postSaleTransactionalSafetyV116.overrides])
+];
 const panelRuntimeRecovery = assertEcPanelRuntimeRecoveryV115Manifest();
 const panelRuntimeRecoveryPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...panelRuntimeRecoveryPrevious, ...panelRuntimeRecovery.overrides])];
@@ -23,7 +34,9 @@ const botQaMultiturn = assertBotQaMultiturnRecoveryV111Manifest();
 const botQaMultiturnPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...botQaMultiturnPrevious, ...botQaMultiturn.overrides])];
 const botQaRecovery = assertBotQaOutboundRecoveryV110Manifest();
-globalThis[BOT_QA_OUTBOUND_RECOVERY_V110_SCOPED_OVERRIDE_KEY] = [...botQaRecovery.overrides];
+globalThis[BOT_QA_OUTBOUND_RECOVERY_V110_SCOPED_OVERRIDE_KEY] = [
+    ...new Set([...postSaleTransactionalSafetyV116.overrides, ...botQaRecovery.overrides])
+];
 const botQaRecoveryPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...botQaRecoveryPrevious, ...botQaRecovery.overrides])];
 const postSaleContainment = assertPostSaleContainmentHealthV109Manifest();
@@ -85,3 +98,4 @@ await import('../../src/services/postSaleContainmentHealthFreezeRuntimeGuardV109
 await import('../../src/services/botQaOutboundRecoveryFreezeRuntimeGuardV110.js');
 await import('../../src/services/botQaMultiturnRecoveryFreezeRuntimeGuardV111.js');
 await import('../../src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js');
+await import('../../src/services/postSaleTransactionalSafetyFreezeRuntimeGuardV116.js');

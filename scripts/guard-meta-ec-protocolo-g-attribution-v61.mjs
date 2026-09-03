@@ -32,6 +32,7 @@ const v99Manifest = JSON.parse(read('docs/freeze/ec-repurchase-registration-v99-
 const v104Manifest = JSON.parse(read('docs/freeze/dropi-manual-transport-v104-20260902.json'));
 const v110Manifest = JSON.parse(read('docs/freeze/bot-qa-outbound-recovery-v110-20260903.json'));
 const v111Manifest = JSON.parse(read('docs/freeze/bot-qa-multiturn-recovery-v111-20260903.json'));
+const v115Manifest = JSON.parse(read('docs/freeze/ec-panel-runtime-recovery-v115-20260903.json'));
 const localFixturePath = 'tests/fixtures/meta-ec-protocolo-g-maxlien-payload.json';
 const officialFixtureSha256 = 'ce253997d309e5ab921f94506a119302d3bf12d5560aa1fdac8b5c9ee4b5afe8';
 
@@ -145,6 +146,10 @@ for (const [relativePath, expectedHash] of Object.entries(protectedHashes)) {
     if (
         v111Manifest.declaredAncestorOverrides?.includes(relativePath)
         && v111Manifest.protectedFiles?.[relativePath] === actualHash
+    ) continue;
+    if (
+        v115Manifest.declaredAncestorOverrides?.includes(relativePath)
+        && v115Manifest.protectedFiles?.[relativePath] === actualHash
     ) continue;
     if (
         v99Manifest.declaredAncestorOverrides?.includes(relativePath)

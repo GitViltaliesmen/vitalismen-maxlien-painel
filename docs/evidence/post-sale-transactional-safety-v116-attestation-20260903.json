@@ -1,0 +1,40 @@
+{
+  "attestationId": "post-sale-transactional-safety-v116-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V115_WITH_V114_OBSERVER",
+  "tests": {
+    "atomicDailyQuota": "PASS",
+    "twoWorkerCompetition": "PASS_ONE_WINNER",
+    "providerTimeout": "PASS_AMBIGUOUS_NO_RETRY",
+    "provider4xx": "PASS_FAILED_FINAL",
+    "provider5xx": "PASS_AMBIGUOUS_NO_RETRY",
+    "missingProviderId": "PASS_NOT_SENT",
+    "restartSafety": "PASS_PERSISTENT_TERMINAL_LEDGER",
+    "humanMode": "PASS_BLOCKED_BY_EXISTING_DECISION_GATE",
+    "existingPostSaleRegression": "PASS_63_OF_63"
+  },
+  "operation": {
+    "observer": "V114_STRICT_READ_ONLY",
+    "executor": "V116_ONESHOT_SYSTEMD",
+    "batchMax": 1,
+    "dailyLimit": 1,
+    "intervalMinutes": 60,
+    "automaticRetry": false,
+    "promoteBeyondOne": false
+  },
+  "preserved": {
+    "historicalBacklog": false,
+    "marketingBlast": false,
+    "metaRetroactive": false,
+    "dropiAutomaticApply": false,
+    "pricesChanged": false,
+    "checkoutChanged": false,
+    "productRoutingChanged": false
+  },
+  "realEffectsDuringLocalValidation": {
+    "whatsappMessages": 0,
+    "dropiOrders": 0,
+    "metaEvents": 0,
+    "productionWrites": 0
+  }
+}

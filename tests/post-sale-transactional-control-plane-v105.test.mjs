@@ -16,6 +16,8 @@ import {
     buildPostSaleTransactionalV105Overlay,
     resolvePostSaleTransactionalV105Configuration
 } from '../src/services/postSaleTransactionalControlPlaneV105Service.js';
+
+await import('../scripts/lib/ec-runtime-successor-v97-context.mjs');
 import {
     POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY,
     assertPostSalePublicationMetadataV106Manifest
@@ -122,12 +124,14 @@ test('helper oferece permits separados, contenção e lote sem retry', () => {
 });
 
 test('manifesto V105 protege o control plane e os guards', () => {
+    const inheritedSuccessorOverrides = globalThis[POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY] || [];
     const latest = assertPostSaleEligibleBatchV108Manifest();
-    globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] = latest.overrides;
+    globalThis[POST_SALE_HEALTH_ENVELOPE_V107_OVERRIDE_KEY] = [...inheritedSuccessorOverrides, ...latest.overrides];
     const healthSuccessor = assertPostSaleHealthEnvelopeV107Manifest();
-    globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] = [...latest.overrides, ...healthSuccessor.overrides];
+    globalThis[POST_SALE_PUBLICATION_METADATA_V106_OVERRIDE_KEY] = [...inheritedSuccessorOverrides, ...latest.overrides, ...healthSuccessor.overrides];
     const publicationSuccessor = assertPostSalePublicationMetadataV106Manifest();
     globalThis[POST_SALE_TRANSACTIONAL_V105_OVERRIDE_KEY] = [
+        ...inheritedSuccessorOverrides,
         ...latest.overrides,
         ...healthSuccessor.overrides,
         ...publicationSuccessor.overrides
