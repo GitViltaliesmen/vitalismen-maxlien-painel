@@ -1,0 +1,24 @@
+{
+  "attestationId": "post-sale-containment-health-v109-attestation-20260903",
+  "country": "EC",
+  "parentVersion": "V108",
+  "observation": {
+    "restartCompleted": true,
+    "initialOfficialHealthHttp": 502,
+    "subsequentOfficialHealthHttp": 200,
+    "postSaleOperationalAfterFailure": false,
+    "mutatingSchedulersAfterFailure": 0,
+    "dropiApplyAllowedAfterFailure": false
+  },
+  "correction": {
+    "healthRetries": 30,
+    "retryDelaySeconds": 2,
+    "requiresV78StatusBeforeArchival": true,
+    "failsClosedOnPersistentHealthFailure": true
+  },
+  "externalEffects": {
+    "messagesSent": 0,
+    "dropiSubmissions": 0,
+    "metaEvents": 0
+  }
+}

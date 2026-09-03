@@ -1,0 +1,63 @@
+{
+  "freezeId": "post-sale-containment-health-v109",
+  "version": 109,
+  "parentVersion": "V108",
+  "parentFreezeId": "post-sale-eligible-batch-v108",
+  "parentManifestSha256": "c88f6a5dd253028fa2c80c69d02b666a90aaadcfe77e61a915606c4d70e6815a",
+  "parentFreezeSha256": "8127eae24e5a8e285d0d57fc7949cb0dca374f6e3218da6a36868345642715a6",
+  "parentAttestationSha256": "d48c060d82a7f93b5492d3ed3d655aa9b75a9dc74567d92e6227b96d87a40e8a",
+  "parentCommit": "e08a1c5de522fd471a2131a8de4ebf648f487bc5",
+  "parentTree": "d308dbab260f77461cd19d357217f728000cd717",
+  "purpose": "WAIT_FOR_VERIFIED_BOT_CORE_BEFORE_ARCHIVING_POST_SALE_AUTHORIZATION",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_for_controlled_post_sale_batch_one",
+  "country": "EC",
+  "policy": {
+    "healthRetries": 30,
+    "retryDelaySeconds": 2,
+    "archiveOnlyAfterV78Status": true,
+    "batchOnceMarkerPreserved": true,
+    "postSaleProfileChanged": false,
+    "externalEffectsAllowed": false,
+    "batchMax": 1,
+    "dailyMax": 1,
+    "historicalBacklogEnabled": false,
+    "dropiMode": "REPORT_ONLY",
+    "metaRetroactiveAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/post-sale-containment-health-v109-attestation-20260903.json",
+    "sha256": "7299c7d72fdcfb82ecc75f2e099bb1d1b64abc823b95464520b6feaf11684205"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "113d3e72e23943d0b991daa3b0ec8cc9b668f669b84c49d6f5a737002c7fee59"
+  },
+  "declaredAncestorOverrides": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "ops/post-sale-v105",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/POST_SALE_CONTAINMENT_HEALTH_FREEZE_V109_20260903.md",
+    "docs/evidence/post-sale-containment-health-v109-attestation-20260903.json",
+    "scripts/guard-post-sale-containment-health-v109.mjs",
+    "src/services/postSaleContainmentHealthFreezeRuntimeGuardV109.js",
+    "src/services/postSaleContainmentHealthV109Service.js",
+    "tests/post-sale-containment-health-v109.test.mjs"
+  ],
+  "protectedFiles": {
+    "ops/post-sale-v105": "288b97ff30bd1e5f08857bb428cd8b44dee22933b3fdc33b61c8b50f03c7e351",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "2ad3323e93922dc175d566d3448e0306593296ed8b3f4b20af54a5408cbef431",
+    "docs/POST_SALE_CONTAINMENT_HEALTH_FREEZE_V109_20260903.md": "23ea66690a67b3311a5bd1305dc040a04b47736eb09df373c0444ea3f23e6754",
+    "docs/evidence/post-sale-containment-health-v109-attestation-20260903.json": "7299c7d72fdcfb82ecc75f2e099bb1d1b64abc823b95464520b6feaf11684205",
+    "scripts/guard-post-sale-containment-health-v109.mjs": "e14398e6b5ba179eaf79a63b18367c4ca850dff12c05cd968fd0261f17798b3e",
+    "src/services/postSaleContainmentHealthFreezeRuntimeGuardV109.js": "6c80b4a70b90d53008332c7d8bdbb4e3ebf6387099f0bfcd2cd0e8d4da571225",
+    "src/services/postSaleContainmentHealthV109Service.js": "20144dca386babb9a0d5cb90518c11041b646c94187d926199e6d1e8b1b33275",
+    "tests/post-sale-containment-health-v109.test.mjs": "cde47ae80bb6e890e2db8d6088033bc74425cf8e20e4f838f050626f20084a55"
+  }
+}
