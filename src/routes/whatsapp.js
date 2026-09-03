@@ -110,6 +110,7 @@ import {
     strictReadOnlyAcceptedPayload
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -6153,6 +6154,7 @@ router.post('/send', authMiddleware, async (req, res) => {
             clientGeneratedId = ''
         } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
+        assertEcPanelManualSendV115({ sendMode });
         let storedMessageRecordId = '';
         const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
@@ -6347,7 +6349,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     sessionId: sendResult?.provider === 'zapi'
                         ? (zapiOperationalPanelPhone() || effectiveSessionId)
                         : effectiveSessionId,
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
                     sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                     provider: sendResult?.provider || '',
                     providerMessageId: sendResult?.providerMessageId || '',
@@ -6363,7 +6365,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
                     messageRecordId: messageRecord?._id || '',
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
+                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
                 });
             }
 
@@ -6408,7 +6410,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 sessionId: sendResult?.provider === 'zapi'
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed',
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
                 sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
@@ -6423,7 +6425,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 messageRecordId: messageRecord?._id || '',
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'unconfirmed'
+                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
             });
         }
 
@@ -6460,7 +6462,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
                 quotedMessage,
-                deliveryStatus: sendResult?.provider === 'zapi' ? 'pending_confirmation' : 'sent',
+                deliveryStatus: sendResult?.provider === 'zapi' ? 'provider_accepted' : 'sent',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
@@ -6479,7 +6481,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
                 quotedMessage,
-                deliveryStatus: 'failed',
+                deliveryStatus: 'request_failed',
                 sendError: sendResult?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
@@ -6496,11 +6498,11 @@ router.post('/send', authMiddleware, async (req, res) => {
             providerMessageId: sendResult?.providerMessageId || '',
             providerZaapId: sendResult?.providerZaapId || '',
             messageRecordId: storedMessageRecordId,
-            deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'pending_confirmation' : sent ? 'sent' : 'failed'
+            deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
         });
     } catch (error) {
         console.error('Send message error:', error);
-        res.status(500).json({ error: error.message || 'Failed to send message' });
+        res.status(Number(error.statusCode) || 500).json({ error: error.message || 'Failed to send message' });
     }
 });
 

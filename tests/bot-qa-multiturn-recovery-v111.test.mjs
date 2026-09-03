@@ -7,6 +7,14 @@ import {
     isEcQaInboundMessagePayloadV111
 } from '../src/services/ecBotCoreRuntimeIntegrationV78Service.js';
 import { assertBotQaMultiturnRecoveryV111Manifest } from '../src/services/botQaMultiturnRecoveryV111Service.js';
+import { EC_PANEL_RUNTIME_RECOVERY_V115_ANCESTOR_OVERRIDES } from '../src/services/ecPanelRuntimeRecoveryV115Service.js';
+
+globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
+    ...new Set([
+        ...(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []),
+        ...EC_PANEL_RUNTIME_RECOVERY_V115_ANCESTOR_OVERRIDES
+    ])
+];
 
 const phone = '5515998038637';
 

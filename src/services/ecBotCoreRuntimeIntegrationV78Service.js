@@ -9,6 +9,7 @@ import {
     ecBotCoreV78RouteDecision,
     resolveEcBotCoreV78Configuration
 } from './ecBotCoreOperationalV78Service.js';
+import { ecPanelRuntimeRecoveryV115RouteDecision } from './ecPanelRuntimeRecoveryV115Service.js';
 import {
     EC_OFFICIAL_VSL_V78_MESSAGE,
     EC_OFFICIAL_VSL_V78_WHATSAPP,
@@ -231,10 +232,15 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const method = String(req.method || '').trim().toUpperCase();
     const configuration = resolveEcBotCoreV78Configuration(env);
     if (!configuration.ready) return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
-    const decision = ecBotCoreV78RouteDecision({ method, path, env });
+    const baseDecision = ecBotCoreV78RouteDecision({ method, path, env });
+    const panelDecision = baseDecision.allowed
+        ? Object.freeze({ allowed: false, reason: 'ec_panel_v115_not_needed' })
+        : ecPanelRuntimeRecoveryV115RouteDecision({ method, path, env });
+    const decision = baseDecision.allowed ? baseDecision : panelDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
-    const writeContext = method === 'POST' && decision.reason === 'bot_core_route_allowed';
+    const writeContext = method === 'POST'
+        && ['bot_core_route_allowed', 'ec_panel_v115_route_allowed'].includes(decision.reason);
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
         method,

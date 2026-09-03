@@ -1,4 +1,5 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import { assertEcPanelRuntimeRecoveryV115Manifest } from '../../src/services/ecPanelRuntimeRecoveryV115Service.js';
 import { assertBotQaMultiturnRecoveryV111Manifest } from '../../src/services/botQaMultiturnRecoveryV111Service.js';
 import {
     assertBotQaOutboundRecoveryV110Manifest,
@@ -15,6 +16,9 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const panelRuntimeRecovery = assertEcPanelRuntimeRecoveryV115Manifest();
+const panelRuntimeRecoveryPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...panelRuntimeRecoveryPrevious, ...panelRuntimeRecovery.overrides])];
 const botQaMultiturn = assertBotQaMultiturnRecoveryV111Manifest();
 const botQaMultiturnPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] : [];
 globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [...new Set([...botQaMultiturnPrevious, ...botQaMultiturn.overrides])];
@@ -80,3 +84,4 @@ await import('../../src/services/postSaleEligibleBatchFreezeRuntimeGuardV108.js'
 await import('../../src/services/postSaleContainmentHealthFreezeRuntimeGuardV109.js');
 await import('../../src/services/botQaOutboundRecoveryFreezeRuntimeGuardV110.js');
 await import('../../src/services/botQaMultiturnRecoveryFreezeRuntimeGuardV111.js');
+await import('../../src/services/ecPanelRuntimeRecoveryFreezeRuntimeGuardV115.js');

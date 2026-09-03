@@ -8864,6 +8864,7 @@
     <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
     <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
     <script src="/panel-intelligence/customer-form-persistence-guard-v55.js?v=20260824"></script>
+    <script src="/panel-intelligence/delivery-status-v115.js?v=20260903"></script>
     <script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
@@ -12769,14 +12770,24 @@
         const confirmPendingLocalMessage = (messageId, result = {}) => {
             const id = String(messageId || '');
             if (!id) return;
+            const providerMessageId = String(result.providerMessageId || '').trim();
+            const providerZaapId = String(result.providerZaapId || '').trim();
+            const requestedStatus = String(result.deliveryStatus || '').trim().toLowerCase();
+            const providerAccepted = ['provider_accepted', 'pending_confirmation'].includes(requestedStatus);
+            const deliveryStatus = providerAccepted && !(providerMessageId || providerZaapId)
+                ? 'request_failed'
+                : (requestedStatus || 'request_failed');
             state.pendingLocalMessages = (state.pendingLocalMessages || []).map((message) => (
                 String(message._id || '') === id
                     ? {
                         ...message,
                         _id: result.messageRecordId || message._id,
-                        providerMessageId: result.providerMessageId || message.providerMessageId || '',
-                        providerZaapId: result.providerZaapId || message.providerZaapId || '',
-                        deliveryStatus: result.deliveryStatus || 'sent'
+                        providerMessageId: providerMessageId || message.providerMessageId || '',
+                        providerZaapId: providerZaapId || message.providerZaapId || '',
+                        deliveryStatus,
+                        sendError: deliveryStatus === 'request_failed'
+                            ? (result.error || 'A Z-API não retornou um ID válido; envio não confirmado.')
+                            : ''
                     }
                     : message
             ));
@@ -14702,32 +14713,30 @@
         const messageDeliveryStatusHtml = ({
             deliveryStatus = '',
             providerStatus = '',
+            providerMessageId = '',
+            providerZaapId = '',
             ack = 0,
-            pendingConfirmation = false,
             localOnly = false,
             sendError = ''
         } = {}) => {
-            const status = String(deliveryStatus || '').toLowerCase();
-            const provider = String(providerStatus || '').toLowerCase();
-            const numericAck = Number(ack);
-            const errorText = String(sendError || '').trim();
-            if (errorText) return ` · <span class="message-status-failed">${escapeHtml(errorText)}</span>`;
-            if (localOnly) return ' · <span class="message-status-local">so painel, sem ZAPI</span>';
-            if (['failed', 'error', 'final_failed'].includes(status) || numericAck < 0) {
-                return ' · <span class="message-status-failed">sem confirmacao</span>';
-            }
-            if (numericAck >= 3 || ['read', 'played'].includes(status)) {
-                const title = provider.includes('inferred_read')
-                    ? 'Lido inferido: cliente respondeu depois desta mensagem'
-                    : 'Lido pelo cliente';
-                return ` · <span class="message-status-read" title="${escapeHtml(title)}">&#10003;&#10003; lido</span>`;
-            }
-            if (numericAck >= 2 || ['delivered'].includes(status)) {
-                return ' · <span class="message-status-delivered" title="Entregue ao cliente">&#10003;&#10003; entregue</span>';
-            }
-            if (numericAck >= 1 || pendingConfirmation || ['sent', 'pending_confirmation'].includes(status)) {
-                return ' · <span class="message-status-provider" title="Enviado ao WhatsApp">&#10003; enviado</span>';
-            }
+            const stateInfo = window.VitalismenDeliveryStatusV115?.classify?.({
+                deliveryStatus,
+                providerStatus,
+                providerMessageId,
+                providerZaapId,
+                ack,
+                localOnly,
+                sendError
+            }) || { code: 'UNKNOWN', detail: '' };
+            const detail = escapeHtml(stateInfo.detail || '');
+            if (stateInfo.code === 'REQUEST_FAILED') return ` · <span class="message-status-failed" title="${detail}">não enviado</span>`;
+            if (stateInfo.code === 'FAILED') return ` · <span class="message-status-failed" title="${detail}">falhou no WhatsApp</span>`;
+            if (stateInfo.code === 'LOCAL_ONLY') return ` · <span class="message-status-local">${detail}</span>`;
+            if (stateInfo.code === 'READ') return ` · <span class="message-status-read" title="${detail}">&#10003;&#10003; lido</span>`;
+            if (stateInfo.code === 'DELIVERED') return ` · <span class="message-status-delivered" title="${detail}">&#10003;&#10003; entregue</span>`;
+            if (stateInfo.code === 'SENT') return ` · <span class="message-status-provider" title="${detail}">&#10003; enviado</span>`;
+            if (stateInfo.code === 'PROVIDER_ACCEPTED') return ` · <span class="message-status-provider" title="${detail}">aceito pela Z-API</span>`;
+            if (stateInfo.code === 'SENDING') return ' · <span class="message-status-local">enviando…</span>';
             return '';
         };
 
@@ -14767,10 +14776,17 @@
                 const ack = Number(message.ack);
                 const readByClient = Boolean(message.isFromMe && (ack >= 3 || ['read', 'played'].includes(deliveryStatus)));
                 const localOnly = deliveryStatus === 'local_only' || message.metadata?.localOnlyManualMirror === true;
-                const pendingConfirmation = ['unconfirmed', 'pending_confirmation'].includes(deliveryStatus);
                 const sendError = String(message.sendError || message.deliveryError || '').trim();
                 const deliveryInfo = message.isFromMe
-                    ? messageDeliveryStatusHtml({ deliveryStatus, providerStatus, ack, pendingConfirmation, localOnly, sendError })
+                    ? messageDeliveryStatusHtml({
+                        deliveryStatus,
+                        providerStatus,
+                        providerMessageId: message.providerMessageId,
+                        providerZaapId: message.providerZaapId,
+                        ack,
+                        localOnly,
+                        sendError
+                    })
                     : '';
                 const deleteButton = canDeletePanelMessage(message) && messageId
                     ? `<button class="message-action danger" data-message-delete="${escapeHtml(messageId)}" type="button" title="Apagar mensagem">×</button>`
@@ -15390,7 +15406,7 @@
             renderCustomerProductSelection(chat);
             if (chat.human?.mode === 'manual') {
                 if (isMine(chat)) {
-                    el('claimBtn').textContent = autoReplyGloballyActive() ? 'Renovar 10 min' : 'Manual assistido';
+                    el('claimBtn').textContent = autoReplyGloballyActive() ? 'Renovar manual' : 'Manual assistido';
                     el('claimBtn').disabled = false;
                 } else {
                     el('claimBtn').textContent = `Assumir de ${owner}`;
@@ -19398,7 +19414,10 @@
                                 message: item.text,
                                 sessionId,
                                 delayTypingSeconds: Number.isFinite(Number(item.delayTypingSeconds)) ? Number(item.delayTypingSeconds) : 0,
-                                quotedMessageId: item.replyToId || ''
+                                quotedMessageId: item.replyToId || '',
+                                clientGeneratedId: item.pendingId || '',
+                                sendMode: 'manual_panel',
+                                country: state.country || 'EC'
                             })
                         });
                         if (!result?.success) {
@@ -19407,12 +19426,13 @@
                         if (result?.handled) {
                             showToast(result.message || 'Comando aplicado');
                         }
+                        if (item.pendingId && !result?.handled) confirmPendingLocalMessage(item.pendingId, result);
                         state.manualMessageQueue.shift();
                         loadSelectedMessages({ force: true }).catch(() => null);
                         window.setTimeout(() => loadActionableSamples().catch(() => null), 600);
                         loadChats().catch(() => null);
                     } catch (error) {
-                        markPendingLocalMessageStatus(item.pendingId, 'unconfirmed');
+                        markPendingLocalMessageStatus(item.pendingId, 'request_failed', error.message);
                         state.manualMessageQueue.shift();
                         if (!String(el('messageInput')?.value || '').trim()) {
                             el('messageInput').value = item.text;
@@ -19493,7 +19513,7 @@
                 loadChats().catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 600);
             } catch (error) {
-                markPendingLocalMessageStatus(pending?._id, 'unconfirmed');
+                markPendingLocalMessageStatus(pending?._id, 'request_failed', error.message);
                 if (!String(input.value || '').trim()) {
                     input.value = text;
                 }
