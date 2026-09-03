@@ -30,7 +30,7 @@
   "logicalBundle": {
     "algorithm": "SHA-256",
     "format": "sorted-relative-path-NUL-file-sha256-LF",
-    "sha256": "1fea61f753c3f068fb76f63dad0d356c4d18cdffcdd5a3bf9cbfacc29ea83710"
+    "sha256": "93f94f2910c257f2617a674d61ac9f87e02269efe9b2ad1dcc4d7f3214baa55f"
   },
   "declaredAncestorOverrides": [
     ".github/workflows/ec-panel-quality.yml",
@@ -55,7 +55,7 @@
     "tests/ec-manual-dropi-release-v119.test.mjs"
   ],
   "protectedFiles": {
-    ".github/workflows/ec-panel-quality.yml": "92ffe232b5479d5c3b1f117d0ddd0a0cf7eb8fd09b78b65a1da6cfc75ee46591",
+    ".github/workflows/ec-panel-quality.yml": "90120cb8f1d42a3de621a5ca5926623d60c8266ef65b701b681aaf479f88cdf5",
     "docs/DROPI_MANUAL_RELEASE_FREEZE_V119_20260903.md": "519fafef9b3d5f289e3d7cc7784b69dfe0e0e5b724d80c067cc53072f10ea369",
     "docs/evidence/ec-manual-dropi-release-v119-attestation-20260903.json": "e49945fa4c953cea2f893e45024846b2a8933464de9a51fb2a35f58a11a4e969",
     "scripts/guard-ec-manual-dropi-release-v119.mjs": "c3761e4c4b3a9bc85ddca9e1424269cdcb673ddb3c111a099c37fea614039394",
@@ -65,6 +65,6 @@
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "f0f2025ff43995d22d68e9879103a71b49d27c701f40f89a8c305829995ebedb",
     "src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js": "f160f3943c6a3659de5d29fbf79df9eb10bed06ca957477bebfc17df9352fdfc",
     "src/services/ecManualDropiReleaseV119Service.js": "85bc493eb9f1e61ea59d355f0dd00057822c1f4e8f7bd7b2f4de01fc41c428c5",
-    "tests/ec-manual-dropi-release-v119.test.mjs": "f82aea2ee8cd472d711cb995c6590b1b6b9e6ac6abae11c318b7b51285530c81"
+    "tests/ec-manual-dropi-release-v119.test.mjs": "a592171ac9fa66f4f4b768a0fcaa0f3a2cb41b9c8fb718690b99119d1c28605b"
   }
 }

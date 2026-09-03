@@ -211,6 +211,6 @@ test('V119 valida manifesto e mantém automações fora do escopo', () => {
     const workflow = fs.readFileSync('.github/workflows/ec-panel-quality.yml', 'utf8');
     assert.match(
         workflow,
-        /NODE_OPTIONS=--import=\.\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs npm run senior:check/
+        /VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=\.\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs npm run senior:check/
     );
 });
