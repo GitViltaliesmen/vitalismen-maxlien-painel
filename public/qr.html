@@ -18617,7 +18617,7 @@
             }
         }
 
-        async function persistSelectedCustomerDataNow({ silent = false, allowPartialConfirmedSave = false } = {}) {
+        async function persistSelectedCustomerDataNow({ silent = false, allowPartialConfirmedSave = false, synchronizeOrder = false } = {}) {
             if (!state.selectedChat) return;
             const chat = state.selectedChat;
             const selectionScope = captureCustomerSelectionScope();
@@ -18745,7 +18745,7 @@
                 throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
             const customerDataAllowsOrderWrite = apiOrderStatus !== 'confirmed' || resolvedCustomerData?.orderDataReady === true;
-            if (chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder && customerDataAllowsOrderWrite) {
+            if (synchronizeOrder && chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder && customerDataAllowsOrderWrite) {
                 const payload = {
                     customer: {
                         name: customerDraft.name,
@@ -18779,7 +18779,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if ((!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if (synchronizeOrder && (!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -20185,7 +20185,7 @@
             el('sendSelectedDropiBtn').disabled = true;
             try {
                 el('sendSelectedDropiBtn').textContent = 'Salvando...';
-                await persistSelectedCustomerData({ silent: true });
+                await persistSelectedCustomerData({ silent: true, synchronizeOrder: true });
                 await Promise.all([loadShipments(), loadChats()]);
                 const orderId = state.selectedChat.orderId || el('customerOrderInput').value.trim();
                 const country = state.selectedChat.country || el('customerCountryInput').value || selectedPanelCountry() || 'EC';
@@ -20316,7 +20316,7 @@
             button.disabled = true;
             try {
                 button.textContent = 'Salvando...';
-                await persistSelectedCustomerData({ silent: true });
+                await persistSelectedCustomerData({ silent: true, synchronizeOrder: true });
                 await Promise.all([loadShipments(), loadChats()]).catch(() => null);
                 const country = state.selectedChat?.country || el('customerCountryInput').value || selectedPanelCountry() || 'EC';
                 notifyLeadsClientsRefresh(country);

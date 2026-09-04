@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertEcPanelCustomerStateOnlyV124Manifest,
+    EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY
+} from '../../src/services/ecPanelCustomerStateOnlyV124Service.js';
+import {
     assertEcPanelCustomerStatusPersistenceV123Manifest,
     EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY
 } from '../../src/services/ecPanelCustomerStatusPersistenceV123Service.js';
@@ -44,6 +48,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecPanelCustomerStateOnlyV124 = assertEcPanelCustomerStateOnlyV124Manifest();
+const ecPanelCustomerStateOnlyV124Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY])
+    ? globalThis[EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY]
+    : [];
+globalThis[EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerStateOnlyV124Previous, ...ecPanelCustomerStateOnlyV124.overrides])
+];
+const ecPanelCustomerStateOnlyV124OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerStateOnlyV124OperationalPrevious, ...ecPanelCustomerStateOnlyV124.overrides])
+];
 const ecPanelCustomerStatusPersistenceV123 = assertEcPanelCustomerStatusPersistenceV123Manifest();
 const ecPanelCustomerStatusPersistenceV123Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY])
     ? globalThis[EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY]
@@ -189,3 +206,4 @@ await import('../../src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV1
 await import('../../src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js');
 await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js');
 await import('../../src/services/ecPanelCustomerStatusPersistenceFreezeRuntimeGuardV123.js');
+await import('../../src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js');
