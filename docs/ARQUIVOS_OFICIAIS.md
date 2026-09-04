@@ -1268,28 +1268,3 @@ nenhuma alteração realizada no VPS.
   `scripts/guard-ec-repurchase-registration-v99.mjs`.
 - Publicação, backup e validação oficial serão registrados em evidência
   operacional própria após o fluxo seguro de release.
-
-## Registro V120 — cadastro autenticado e envio manual multiproduto (2026-09-04)
-
-- Release oficial ativada:
-  `/opt/vitalismen-automacao/releases/20260904T012902Z_production-20260904-c7f44ed`.
-- Commit funcional: `c7f44ed76c7d386dd9a1508c386cf8b7b2e8e404`; tree funcional:
-  `f897776da6e45ce40e11f51e4246f830b510b0f9`; tag oficial:
-  `production-20260904-c7f44ed`.
-- Rollback preservado:
-  `/opt/vitalismen-automacao/releases/20260904T001809Z_production-20260904-12a29c7`.
-- Rota adicional exata: `POST /api/whatsapp/contacts`, depois da autenticação
-  administrativa, com atualização idempotente da ficha e sem duplicar o contato.
-- Transporte manual Dropi autoritativo liberado para os três produtos cadastrados:
-  Tex Ultra Ecuador, Nitrix Oxide Ecuador e Vit Power Ecuador.
-- Permanece obrigatória a autorização persistente por pedido; lote, backfill,
-  retry automático ambíguo e envio automático continuam bloqueados.
-- Validação controlada: uma única tentativa do pedido autorizado recebeu o ID
-  Dropi real `6849309`, com checkpoint `submitted_verified` e espelho SQLite
-  atualizado para `pedido_enviado`.
-- Saúde pós-ativação: PM2 online na release, health local/público e painel HTTP
-  200, Z-API conectada, timers V114/V116 ativos e último resultado `success`.
-- Freeze/manifesto/guard:
-  `docs/DROPI_MULTIPRODUCT_MANUAL_RELEASE_FREEZE_V120_20260904.md`,
-  `docs/freeze/ec-multiproduct-manual-release-v120-20260904.json` e
-  `scripts/guard-ec-multiproduct-manual-release-v120.mjs`.
