@@ -1,0 +1,68 @@
+{
+  "freezeId": "ec-panel-customer-persistence-v122",
+  "version": 122,
+  "parentVersion": "V121_PRODUCTION_BASELINE",
+  "parentFreezeId": "dropi-total-resolution-v121",
+  "parentManifestSha256": "d251dd93d470c6854066637484d13a0baddd7ad09dc082050568922ac1571edb",
+  "parentCommit": "434efbe0eff321ed2ad324da2b8ccc04b9b912e1",
+  "parentTree": "614bb080f1b6696c625f0b92c137f89ab5b7e181",
+  "purpose": "RESTORE_AUTHENTICATED_CUSTOMER_FORM_AND_STATUS_PERSISTENCE",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_operator_pending_staging",
+  "country": "EC",
+  "policy": {
+    "panelAuthRequired": true,
+    "allowedRouteCount": 2,
+    "allowedOperations": [
+      "authenticated-customer-data-preview",
+      "authenticated-customer-state-persist"
+    ],
+    "customerPreviewWriteAllowed": false,
+    "customerStateCollectionOnly": true,
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-panel-customer-persistence-v122-attestation-20260904.json",
+    "sha256": "19b6b6b06985ac647ba0711f59511a04b7bc9271281050bd2e457df7e2892dfa"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/dropiTotalResolutionV121Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/dropiTotalResolutionV121Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_PANEL_CUSTOMER_PERSISTENCE_FREEZE_V122_20260904.md",
+    "docs/evidence/ec-panel-customer-persistence-v122-attestation-20260904.json",
+    "scripts/guard-ec-panel-customer-persistence-v122.mjs",
+    "src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js",
+    "src/services/ecPanelCustomerPersistenceV122Service.js",
+    "tests/ec-panel-customer-persistence-v122.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_CUSTOMER_PERSISTENCE_FREEZE_V122_20260904.md": "e03ef7e71c5e097c15348e226950aeb133ac00a75d48a1f759556efe2351ae45",
+    "docs/evidence/ec-panel-customer-persistence-v122-attestation-20260904.json": "19b6b6b06985ac647ba0711f59511a04b7bc9271281050bd2e457df7e2892dfa",
+    "scripts/guard-ec-panel-customer-persistence-v122.mjs": "ac7e82f2afd9090e747343348504b6bf3535fb1c32778944a80ad54df2808c01",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "85c9fec5c7ba8260e03b15f9d55544fc511fc4fc22b48b779dee8dc3bbb55033",
+    "src/services/dropiTotalResolutionV121Service.js": "7d37a1655cee06541cb0f00d96fa9d25d469159a6e40277cfb2af09100a89101",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "91dcd95b0b060144bdc0e98e6679ce224e0b59d8fca80518b8b2e0b06752a7bd",
+    "src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js": "481deac449b4de1b36521cc69f951f171b51131d04a71fabb382976315b3bcd3",
+    "src/services/ecPanelCustomerPersistenceV122Service.js": "30dde429be2bb7491888bfc7f7aabd9039b66850f1b4836321d9cc2d5561883f",
+    "tests/ec-panel-customer-persistence-v122.test.mjs": "4e2532cdcfb5c541dd0eb5bb39f455f3795128f32b59c7d85002747023d82787"
+  },
+  "logicalBundle": {
+    "algorithm": "sha256(path\\0sha256\\n)",
+    "sha256": "811588f0b97b18bef2f65e417fc1cc5a1ce481d071e453475db1c9da66883c16"
+  },
+  "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T023421Z_production-20260904-434efbe"
+}
