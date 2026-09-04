@@ -1,0 +1,82 @@
+name: Deployment authorization quality gate
+
+on:
+  pull_request:
+    paths:
+      - scripts/root-install-vitalismen-activation-permit-v5.sh
+      - scripts/root-install-vitalismen-authorize-v1.sh
+      - tests/root-install-vitalismen-authorize-v1.test.mjs
+      - .github/workflows/deployment-authorization-quality.yml
+  push:
+    branches:
+      - codex/**
+    paths:
+      - scripts/root-install-vitalismen-activation-permit-v5.sh
+      - scripts/root-install-vitalismen-authorize-v1.sh
+      - tests/root-install-vitalismen-authorize-v1.test.mjs
+      - .github/workflows/deployment-authorization-quality.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-authorization-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deployment-authorization:
+    name: Deployment authorization (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - name: Checkout audited commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Match the production Node.js path
+        shell: bash
+        run: |
+          selected_node="$(command -v node)"
+          if [[ ! -e /usr/bin/node ]]; then
+            sudo ln -s "$selected_node" /usr/bin/node
+          fi
+          test -x /usr/bin/node
+          test "$(readlink -f /usr/bin/node)" = "$(readlink -f "$selected_node")"
+          test "$(/usr/bin/node --version)" = "$(node --version)"
+
+      - name: Verify tracked authorization inputs
+        shell: bash
+        run: |
+          git ls-files --error-unmatch \
+            scripts/root-install-vitalismen-activation-permit-v5.sh \
+            scripts/root-install-vitalismen-authorize-v1.sh \
+            tests/root-install-vitalismen-authorize-v1.test.mjs
+
+      - name: Validate shell syntax and synthetic fixtures
+        shell: bash
+        run: |
+          bash -n scripts/root-install-vitalismen-activation-permit-v5.sh
+          bash -n scripts/root-install-vitalismen-authorize-v1.sh
+          node --test tests/root-install-vitalismen-authorize-v1.test.mjs
+
+      - name: Reject whitespace errors
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$PR_BASE_SHA" ]]; then
+            git diff --check "$PR_BASE_SHA"...HEAD
+          else
+            git show --check --oneline HEAD
+          fi
