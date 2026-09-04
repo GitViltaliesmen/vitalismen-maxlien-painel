@@ -1,7 +1,7 @@
 # Freeze V122 — persistência da ficha/status do cliente EC
 
-Data: 2026-09-04  
-País e operação: Vitalismen Ecuador  
+Data: 2026-09-04
+País e operação: Vitalismen Ecuador
 Baseline pai: V121, commit `434efbe0eff321ed2ad324da2b8ccc04b9b912e1`, tree `614bb080f1b6696c625f0b92c137f89ab5b7e181`
 
 ## Incidente confirmado
