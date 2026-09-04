@@ -18948,11 +18948,7 @@
             state.busy = true;
             setSaveCustomerButtonDisabled(true);
             try {
-                const savedStatus = normalizePanelStatus(state.selectedChat?.orderStatus || '');
-                const draftStatus = normalizePanelStatus(el('customerStatusInput').value || '');
-                await persistSelectedCustomerData({
-                    allowPartialConfirmedSave: savedStatus === 'confirmado' && draftStatus === 'confirmado'
-                });
+                await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
                 const tasks = [loadChats(), loadDashboardMetrics()];
                 if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                 await Promise.all(tasks);
@@ -19059,14 +19055,14 @@
                     return;
                 }
                 try {
-                    const result = await persistSelectedCustomerData({ silent: true });
+                    const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     const tasks = [loadChats(), loadDashboardMetrics()];
                     if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                     await Promise.all(tasks);
                     if (isCustomerSelectionScopeCurrent(selectionScope)) {
                         renderSelectedDetails();
                         input.dataset.prevStatus = nextStatus;
-                        showToast(result?.orderNotice || 'Status salvo no painel unificado');
+                        showToast(result?.orderNotice || result?.message || 'Status salvo no painel unificado');
                     }
                 } catch (error) {
                     if (!isCustomerSelectionScopeCurrent(selectionScope)) return;

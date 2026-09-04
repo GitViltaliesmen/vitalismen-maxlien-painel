@@ -112,6 +112,7 @@ import {
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
 import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
+import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -6006,6 +6007,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     mode: state.human?.mode || 'manual'
                 });
                 operationalOrderSync = { ok: false, skipped: true, reason: 'test_contact_no_dropi_or_meta' };
+            } else if (customerDataBlockedResponse) {
+                operationalOrderSync = { ok: false, skipped: true, reason: 'customer_data_not_ready' };
             } else if (!customerDataBlockedResponse && shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
                 deferredOperationalOrderDraft = cleanDraft;
                 operationalOrderSync = {
@@ -6056,9 +6059,6 @@ router.patch('/contact-state/:phone', async (req, res) => {
             before: { productKey: productBeforeSave || '' },
             after: { productKey: productAfterSave || '' }
         });
-        if (customerDataBlockedResponse) {
-            return res.status(422).json({ success: false, state, ...customerDataBlockedResponse });
-        }
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
@@ -6079,7 +6079,12 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 console.warn('[META] falha ao gravar lock Purchase apos sync do painel:', operationalOrderSync.adminPurchaseLock);
             }
         }
-        res.json({ success: true, state, unifiedSync, operationalOrderSync });
+        res.json(customerStateResponseV125({
+            state,
+            unifiedSync,
+            operationalOrderSync,
+            customerDataBlockedResponse
+        }));
     } catch (error) {
         console.error('Update contact state error:', error);
         res.status(error.status || 500).json({
