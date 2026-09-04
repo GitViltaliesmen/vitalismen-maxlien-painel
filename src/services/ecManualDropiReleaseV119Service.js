@@ -81,6 +81,18 @@ export const ecManualDropiReleaseV119RouteDecision = ({
     });
 };
 
+// The successor adds product configuration while preserving the V119 API.
+// External effects below still require the separate "submit" operation.
+export const ecManualDropiReleaseV129RouteDecision = (args = {}) => {
+    const previous = ecManualDropiReleaseV119RouteDecision(args);
+    if (previous.reason !== 'ec_manual_dropi_v119_route_blocked') return previous;
+    const allowed = clean(args.method).toUpperCase() === 'POST'
+        && /^\/api\/shipments\/droppi\/ec\/admin-leads\/[1-9]\d*\/configure-order$/.test(normalizedPath(args.path));
+    return allowed ? Object.freeze({
+        enforced: true, allowed: true, operation: 'configure-order', reason: 'ec_manual_dropi_v119_route_allowed'
+    }) : previous;
+};
+
 export const ecManualDropiReleaseV119MongoAllowed = ({
     method = '',
     path = '',
@@ -89,7 +101,7 @@ export const ecManualDropiReleaseV119MongoAllowed = ({
     env = process.env
 } = {}) => {
     if (context?.manualDropiV119 !== true || context?.writeContext !== true) return false;
-    const decision = ecManualDropiReleaseV119RouteDecision({ method, path, env });
+    const decision = ecManualDropiReleaseV129RouteDecision({ method, path, env });
     return decision.allowed
         && decision.operation === context.manualDropiOperation
         && EC_MANUAL_DROPI_RELEASE_V119_COLLECTIONS.has(clean(collection).toLowerCase());

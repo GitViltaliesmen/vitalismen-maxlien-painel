@@ -17,7 +17,7 @@ import {
 import {
     ecManualDropiReleaseV119ExternalEffectAllowed,
     ecManualDropiReleaseV119MongoAllowed,
-    ecManualDropiReleaseV119RouteDecision
+    ecManualDropiReleaseV129RouteDecision
 } from './ecManualDropiReleaseV119Service.js';
 import { ecMultiproductManualReleaseV120RouteDecision } from './ecMultiproductManualReleaseV120Service.js';
 import {
@@ -265,7 +265,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         : ecPanelRuntimeRecoveryV115RouteDecision({ method, path, env });
     const manualDropiDecision = baseDecision.allowed || panelDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_manual_dropi_v119_not_needed' })
-        : ecManualDropiReleaseV119RouteDecision({ method, path, env });
+        : ecManualDropiReleaseV129RouteDecision({ method, path, env });
     const multiproductDecision = baseDecision.allowed || panelDecision.allowed || manualDropiDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_multiproduct_v120_not_needed' })
         : ecMultiproductManualReleaseV120RouteDecision({ method, path, env });

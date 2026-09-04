@@ -2118,7 +2118,7 @@
                                     <div class="dropi-price-options">
                                         ${Object.entries(DROPI_EC_PRICE_CATALOGS[catalogKey]).map(([quantity, total]) => `
                                             <button class="dropi-price-option" data-dropi-price-catalog="${catalogKey}" data-dropi-quantity="${quantity}" type="button">
-                                                <span>${quantity} ${Number(quantity) === 1 ? 'mes' : 'meses'}</span>
+                                                <span>${quantity} ${Number(quantity) === 1 ? 'frasco' : 'frascos'}</span>
                                                 <strong>USD ${Number(total).toFixed(2)}</strong>
                                             </button>
                                         `).join('')}
@@ -2130,7 +2130,7 @@
                     </div>
                     <div class="dropi-product-actions">
                         <button data-dropi-product-close="1" type="button">Cancelar</button>
-                        <button class="success-action" data-dropi-product-save="${escapeHtml(adminLeadId)}" type="button" disabled>Salvar e autorizar</button>
+                        <button class="success-action" data-dropi-product-save="${escapeHtml(adminLeadId)}" type="button" disabled>Salvar produto/preco</button>
                     </div>
                 </div>
             `;
@@ -2216,12 +2216,11 @@
                     });
                     closeDropiProductModal();
                     render();
-                    await submitLeadToDropi(lead, result.orderId);
                     await fetchLeads();
                 } catch (error) {
                     state.dropiMessages.set(id, { text: error.message || 'erro ao configurar produto/preco', error: true });
                     saveButton.disabled = false;
-                    saveButton.textContent = 'Salvar e autorizar';
+                    saveButton.textContent = 'Salvar produto/preco';
                     render();
                 }
             });

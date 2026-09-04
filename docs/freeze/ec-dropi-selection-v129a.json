@@ -1,0 +1,21 @@
+{
+  "id": "ec-dropi-selection-v129a",
+  "layer": "DROPI_MULTI_PRODUCT_ELIGIBILITY",
+  "parentCommit": "40f9ddba7d00eec59fa1c322f684092d1a8c0560",
+  "parentManifestSha256": "59dac9ff72c81985e4bc5c3126ebb5ac85110e0a4cffb3b9da102ecf5cd8d45c",
+  "status": "candidate_not_approved_for_production",
+  "overrides": [
+    "public/leads-window.html",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecManualDropiReleaseV119Service.js"
+  ],
+  "protectedFiles": {
+    "public/leads-window.html": "2f0497cd43b5232a553367e6b7439e020d2c7f29c6c888a923bcf946bdf03a28",
+    "scripts/guard-ec-dropi-selection-v129a.mjs": "d2c2ec8f15ff17d761b87cd00dd30ae21470717165a50258cd95e64731508b74",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "0222d27fe04bded627cddbf972ab7556a9ec1f5f4ced8e621301be7b698a6e6e",
+    "src/services/ecManualDropiReleaseV119Service.js": "950213c391562d92a47687b65c8b9557e46b922b33c9f98875a9fa7e5ada44f5",
+    "tests/ec-dropi-selection-v129a.test.mjs": "e78432252ca73bb27eef9ecdc9ea8ff2dc8796112da3449149ea7ffb21e3a6dd",
+    "tests/ec-dropi-transport-regression-v129a.test.mjs": "2adee89bf6ca693b26ac84e8bbdc4eeeb913ccdcca02d3b239ed3f1f2588f3bf"
+  },
+  "bundleSha256": "3ac8cc30aa5bd6b772bb85347dc1561d46be41c8bdd3fa4ad31041993e146cef"
+}
