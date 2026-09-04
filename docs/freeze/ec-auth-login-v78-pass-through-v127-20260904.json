@@ -46,7 +46,7 @@
     "tests/ec-auth-login-v78-pass-through.test.mjs"
   ],
   "protectedFiles": {
-    ".github/workflows/ec-panel-quality.yml": "fa409549a89565c82bf98ea483ffb8976a58bcd64b479cbc057f67f240171412",
+    ".github/workflows/ec-panel-quality.yml": "af55f53cb189bfe5217b572147b2e0db8a63932862d4111ce1ad2ae601059d21",
     "docs/EC_AUTH_LOGIN_V78_PASS_THROUGH_FREEZE_V127_20260904.md": "8f88681afda1c73b93c246361ec5ece3a83a523658d1838f36fe41a321d59b3b",
     "docs/evidence/ec-auth-login-v78-pass-through-v127-attestation-20260904.json": "9071388479348e1fc0f45f2286a8aef777a7c12ae80589b3d491c521038f9d0e",
     "scripts/guard-ec-auth-login-v78-pass-through-v127.mjs": "d427d1d41d33096912a09693e46f3c227f262a95d6652d2f0d6f5fc208aa0805",
@@ -58,7 +58,7 @@
   },
   "logicalBundle": {
     "algorithm": "sha256(path\\0sha256\\n)",
-    "sha256": "575891f3e0d5ab3480c13dc1bb885a58a309997b58ff44c650340409320eb759"
+    "sha256": "4d25a3fc0799ee388d740f13338ffd8bacf5252eb409b71e5e2d8e83c2f97835"
   },
   "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T051254Z_production-20260904-475ab88"
 }

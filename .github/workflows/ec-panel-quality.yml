@@ -440,8 +440,8 @@ jobs:
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-ec-panel-customer-state-only-v124.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-customer-state-only-v124.test.mjs
-          node scripts/guard-ec-panel-status-state-layer-v125.mjs
-          node --test tests/ec-panel-status-state-layer-v125.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-ec-panel-status-state-layer-v125.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-status-state-layer-v125.test.mjs
           node scripts/guard-ec-auth-login-v78-pass-through-v127.mjs
           node --test tests/ec-auth-login-v78-pass-through.test.mjs
           VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
