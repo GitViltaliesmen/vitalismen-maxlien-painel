@@ -112,7 +112,13 @@ const assertParentV119 = () => {
         || parent.policy?.automaticRetryAfterAmbiguousFailure !== false) {
         throw new Error('[EC-MULTIPRODUCT-V120] parent_policy_invalid');
     }
-    const modified = new Set(EC_MULTIPRODUCT_MANUAL_RELEASE_V120_ANCESTOR_OVERRIDES);
+    const successorOverrides = Array.isArray(globalThis[EC_MULTIPRODUCT_MANUAL_RELEASE_V120_OVERRIDE_KEY])
+        ? globalThis[EC_MULTIPRODUCT_MANUAL_RELEASE_V120_OVERRIDE_KEY]
+        : [];
+    const modified = new Set([
+        ...EC_MULTIPRODUCT_MANUAL_RELEASE_V120_ANCESTOR_OVERRIDES,
+        ...successorOverrides
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {

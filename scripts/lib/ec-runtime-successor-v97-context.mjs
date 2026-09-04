@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertDropiTotalResolutionV121Manifest,
+    DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY
+} from '../../src/services/dropiTotalResolutionV121Service.js';
+import {
     assertEcMultiproductManualReleaseV120Manifest,
     EC_MULTIPRODUCT_MANUAL_RELEASE_V120_OVERRIDE_KEY
 } from '../../src/services/ecMultiproductManualReleaseV120Service.js';
@@ -32,6 +36,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const dropiTotalResolutionV121 = assertDropiTotalResolutionV121Manifest();
+const dropiTotalResolutionV121Previous = Array.isArray(globalThis[DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY])
+    ? globalThis[DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY]
+    : [];
+globalThis[DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY] = [
+    ...new Set([...dropiTotalResolutionV121Previous, ...dropiTotalResolutionV121.overrides])
+];
+const dropiTotalResolutionV121OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...dropiTotalResolutionV121OperationalPrevious, ...dropiTotalResolutionV121.overrides])
+];
 const ecMultiproductManualReleaseV120 = assertEcMultiproductManualReleaseV120Manifest();
 const ecMultiproductManualReleaseV120Previous = Array.isArray(globalThis[EC_MULTIPRODUCT_MANUAL_RELEASE_V120_OVERRIDE_KEY])
     ? globalThis[EC_MULTIPRODUCT_MANUAL_RELEASE_V120_OVERRIDE_KEY]
@@ -135,3 +152,4 @@ await import('../../src/services/postSaleTransactionalSafetyFreezeRuntimeGuardV1
 await import('../../src/services/panelWarmupIsolationFreezeRuntimeGuardV118.js');
 await import('../../src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js');
 await import('../../src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV120.js');
+await import('../../src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js');

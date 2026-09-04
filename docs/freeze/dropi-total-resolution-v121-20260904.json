@@ -1,0 +1,88 @@
+{
+  "freezeId": "dropi-total-resolution-v121",
+  "version": 121,
+  "parentVersion": "V120_PRODUCTION_BASELINE",
+  "parentFreezeId": "ec-multiproduct-manual-release-v120",
+  "parentManifestSha256": "3d888e5aeeb113351e1799b1cfa942925b1bd8e8b102e0a24718ee42ad3b101a",
+  "parentCommit": "c7f44ed76c7d386dd9a1508c386cf8b7b2e8e404",
+  "parentTree": "f897776da6e45ce40e11f51e4246f830b510b0f9",
+  "purpose": "COMPLETE_EXISTING_DROPI_STATUS_TRACKING_AND_OPERATOR_VISIBILITY",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_operator_pending_staging",
+  "country": "EC",
+  "policy": {
+    "allowedProducts": [
+      "tex_ultra_ec",
+      "nitrix_ec",
+      "vit_power_ec"
+    ],
+    "manualAuthorizationPerOrderRequired": true,
+    "authoritativeLookupBeforeCreate": true,
+    "oneCreatePostPerOperatorAction": true,
+    "automaticRetryAfterAmbiguousFailure": false,
+    "externalTerminalStatusProjection": true,
+    "trackingAndCarrierProjection": true,
+    "existingPanelOnly": true,
+    "historicalBackfillAllowed": false,
+    "massDispatchAllowed": false,
+    "whatsappOutboundChanged": false,
+    "postSaleArchitectureChanged": false,
+    "metaChanged": false
+  },
+  "evidence": {
+    "path": "docs/evidence/dropi-total-resolution-v121-attestation-20260904.json",
+    "sha256": "5b622c8d402375f1ed4b12f11f86520654588557a4752c7778d81550b8f6ce05"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "572d8c60b568155104abef0c48193bc2bac76bd6d66bad5f71df65fd5fd9642d"
+  },
+  "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/leads-window.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/orders.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/droppiEcuadorService.js",
+    "src/services/ecManualDropiReleaseV119Service.js",
+    "src/services/ecMultiproductManualReleaseV120Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/leads-window.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/orders.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/droppiEcuadorService.js",
+    "src/services/ecManualDropiReleaseV119Service.js",
+    "src/services/ecMultiproductManualReleaseV120Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DROPI_TOTAL_RESOLUTION_FREEZE_V121_20260904.md",
+    "docs/evidence/dropi-total-resolution-v121-attestation-20260904.json",
+    "scripts/guard-dropi-total-resolution-v121.mjs",
+    "src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js",
+    "src/services/dropiTotalResolutionV121Service.js",
+    "tests/dropi-total-resolution-v121.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "3c81bbd20b80316ae1179e80e0f95258db31768a0d94f90d6133869b8393b533",
+    "docs/DROPI_TOTAL_RESOLUTION_FREEZE_V121_20260904.md": "daf0dc76956e97cbf9cd317afd69ef61c19f63e318b55b17095dcde5930b5fb2",
+    "docs/evidence/dropi-total-resolution-v121-attestation-20260904.json": "5b622c8d402375f1ed4b12f11f86520654588557a4752c7778d81550b8f6ce05",
+    "public/leads-window.html": "db598f26214a7736166de409f8db98bcb417d5a8a38b1bb4b940cc61e14041d0",
+    "scripts/guard-dropi-total-resolution-v121.mjs": "91c5d5d38fad3850ad05a3d15a6bb7dd31c757ffc67bdd4335928aca42b0cb41",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "b25a0d46bf1c8212acd78a7838ee04e6625a210c21a4e0f12bbf0b92b4c6f46c",
+    "src/routes/orders.js": "c0026bb9c66b0570b91641850ac22299f20149d037c71910e3be996b5e461fec",
+    "src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js": "4538cfd11ea98afad351f7826daf07b559301fcd0e6e9f34c2cd24b45fafd465",
+    "src/services/dropiTotalResolutionV121Service.js": "6755b88de8a1bfb5d9461bc9fe12702a82545b9b653aba45fe3bfa9daf7ad822",
+    "src/services/droppiEcuadorBrowserService.js": "cdcafd8b01ddcc6c868ebd4fbd3efd0fb5168d072dc43f355b8bc3751d5ce424",
+    "src/services/droppiEcuadorService.js": "87f8b0e4d4913981974657e2d18be894f1cb3de26e3f10ec474661dc478e79ae",
+    "src/services/ecManualDropiReleaseV119Service.js": "3f01f89b6aeec6839e07444c1efe94f26deac74e3e1a1ffd2c7cef8787347d1c",
+    "src/services/ecMultiproductManualReleaseV120Service.js": "346620b45bf0c390b3b5b6395ab4a8116505901ef33065463951647eb0a5140e",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "45bc851a1b5a40052a10600afef123ce7d0afce248ed25f9046635ebe61a4be1",
+    "tests/dropi-total-resolution-v121.test.mjs": "503dab8412fbf343ffab90c6493e19a14f666bcb69a40f847640d5bae5844f58"
+  }
+}

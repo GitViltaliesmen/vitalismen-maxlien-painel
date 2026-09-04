@@ -1877,15 +1877,50 @@
             return `<input class="row-dropi-check" data-dropi-select="${escapeHtml(id)}" data-order="${escapeHtml(orderId)}" type="checkbox" aria-label="Selecionar pedido ${escapeHtml(orderId)} para Dropi" ${checked ? 'checked' : ''} ${ready ? '' : 'disabled'} title="${title}">`;
         };
 
+        const dropiShipmentDetailsHtml = (lead) => {
+            const shipment = lead?._ops?.shipment;
+            if (!shipment) return '';
+            const dropiId = shipment?.raw?.manualDropiOrderId
+                || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+                || shipment?.raw?.droppiOrder?.id
+                || shipment?.raw?.droppiOrder?.objects?.id
+                || '';
+            const externalStatus = shipment?.logistics?.status || '';
+            const tracking = shipment?.logistics?.trackingNumber || '';
+            const carrier = shipment?.logistics?.distributionCompany || shipment?.logistics?.chosenCarrier || '';
+            const reviewStatus = shipment?.review?.reviewStatus || '';
+            const reviewFailure = shipment?.review?.manualOnly
+                || /error|fail|reject|invalid|review|required|novedad/i.test(reviewStatus);
+            const failure = shipment?.automation?.browserLastError
+                || (reviewFailure ? shipment?.review?.reviewReason || reviewStatus : '')
+                || '';
+            const facts = [
+                dropiId ? `Dropi ${dropiId}` : '',
+                externalStatus,
+                carrier,
+                tracking ? `guia ${tracking}` : ''
+            ].filter(Boolean);
+            if (!facts.length && !failure) return '';
+            return `
+                <div class="status-extra">
+                    ${facts.length ? `<span class="action-info">${escapeHtml(facts.join(' · '))}</span>` : ''}
+                    ${failure ? `<span class="status-missing">${escapeHtml(failure)}</span>` : ''}
+                </div>
+            `;
+        };
+
         const leadStatusExtraHtml = (lead) => {
             const status = statusValue(lead);
-            if (status === 'entregue') return '';
             const editHref = `${apiBase}/admin/edit/${encodeURIComponent(lead.id)}?country=${encodeURIComponent(lead.country || state.country)}`;
             const confirmBusy = state.dropiBusy.has(`confirm-${lead.id}`);
             const missing = missingDropiFields(lead);
+            const dropiDetails = dropiShipmentDetailsHtml(lead);
 
             if (status === 'pedido_enviado') {
-                return '<div class="status-extra"><span class="action-info">Dropi enviado</span></div>';
+                return dropiDetails || '<div class="status-extra"><span class="action-info">Dropi enviado</span></div>';
+            }
+            if (['entregue', 'cancelado', 'devolvido'].includes(status)) {
+                return dropiDetails;
             }
             if (missing.length) {
                 return `

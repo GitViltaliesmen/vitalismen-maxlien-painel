@@ -5,7 +5,11 @@ import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
-import { buildDroppiEcuadorOrderPayload, upsertDroppiEcuadorShipment } from './droppiEcuadorService.js';
+import {
+    buildDroppiEcuadorOrderPayload,
+    normalizeDroppiEcuadorStatus,
+    upsertDroppiEcuadorShipment
+} from './droppiEcuadorService.js';
 import {
     ECUADOR_PRODUCTS,
     ECUADOR_UNKNOWN_PRODUCT,
@@ -2929,10 +2933,15 @@ export const extractStatusFromPanelText = (panelText = '', fallback = '') => {
     if (!raw) return fallback;
     if (/ENTREGAD[OA]|MERCANCIA ENTREGADA|PEDIDO ENTREGADO|REPORTADO ENTREGADO/.test(raw)) return 'ENTREGADO';
     if (/DEVUELT[OA]|DEVOLUCION|NO RETIRAD[OA]/.test(raw)) return 'DEVUELTO';
+    if (/CANCELAD[OA]|CANCELLED|CANCELED/.test(raw)) return 'CANCELADO';
+    if (/RECHAZAD[OA]|REJECTED|FAILED|FAILURE|FALLID[OA]/.test(raw)) return 'RECHAZADO';
     if (/NOVEDAD/.test(raw)) return 'NOVEDAD';
+    if (/PENDIENTE|PENDING/.test(raw)) return 'PENDIENTE';
+    if (/EN PROCESAMIENTO|PROCESSING/.test(raw)) return 'EN_PROCESAMIENTO';
     if (/LIST[OA] PARA RETIRO|PARA RETIRO EN AGENCIA|DISPONIBLE.*RETIRO/.test(raw)) return 'READY_FOR_PICKUP';
     if (/GUIA GENERADA|GUIA_GENERADA|PREPARADO PARA TRANSPORTADORA/.test(raw)) return 'GUIA_GENERADA';
-    if (/EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA|EN DISTRIBUCION|INGRESANDO OPERATIVO A|INGRESANDO EN AGENCIA|PUNTO DE RETIRO|EN AGENCIA|EN RUTA A CENTRO LOGISTICO/.test(raw)) return 'EN_RUTA';
+    if (/INGRESANDO DE RECOLECCION A/.test(raw)) return 'MERCANCIA_RECOGIDA';
+    if (/SHIPPED|DESPACHADO|ENVIADO|EN RUTA|EN REPARTO|EN DESPACHO|EN BODEGA|TRANSPORTADORA|EN DISTRIBUCION|INGRESANDO OPERATIVO A|INGRESANDO EN AGENCIA|PUNTO DE RETIRO|EN AGENCIA|EN RUTA A CENTRO LOGISTICO/.test(raw)) return 'EN_RUTA';
     return fallback;
 };
 
@@ -3227,7 +3236,7 @@ export const syncActiveDroppiEcuadorOrdersFromPanel = async ({
                 matchType: reconciliation.matchType
             });
             const changedFields = [
-                String(existing.logistics?.status || '') !== String(row.status || '') ? 'logistics.status' : '',
+                String(existing.logistics?.status || '') !== normalizeDroppiEcuadorStatus(row.status || '') ? 'logistics.status' : '',
                 row.trackingNumber && String(existing.logistics?.trackingNumber || '') !== String(row.trackingNumber) ? 'logistics.trackingNumber' : '',
                 row.dropiOrderId && ![
                     existing.raw?.manualDropiOrderId,

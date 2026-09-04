@@ -115,9 +115,12 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     if (/NOVEDAD|INCIDENCIA|REPROGRAMAD[OA]/.test(raw)) return 'NOVEDAD';
     if (/DEVUELT[OA]|DEVOLUCION|NO[\s_]?RETIRAD[OA]|RETORNAD[OA]|RETURNED/.test(raw)) return 'DEVUELTO';
     if (/ENTREGAD[OA]|DELIVERED|REPORTADO ENTREGADO|MERCANCIA ENTREGADA|PEDIDO ENTREGADO/.test(raw)) return 'ENTREGADO';
+    if (/CANCELAD[OA]|CANCELLED|CANCELED/.test(raw)) return 'CANCELADO';
+    if (/RECHAZAD[OA]|REJECTED|FAILED|FAILURE|FALLID[OA]/.test(raw)) return 'RECHAZADO';
     if (/^PARA RETIRO EN AGENCIA\b/.test(raw)) return 'READY_FOR_PICKUP';
     if (/^LIST[OA] PARA RETIRO\b/.test(raw)) return 'READY_FOR_PICKUP';
     if (/^DISPONIBLE.*RETIRO\b/.test(raw)) return 'READY_FOR_PICKUP';
+    if (/^INGRESANDO DE RECOLECCION A\b/.test(raw)) return 'MERCANCIA_RECOGIDA';
     if (/^INGRESANDO EN AGENCIA\b/.test(raw)) return 'EN_RUTA';
     if (/^PUNTO DE RETIRO\b/.test(raw)) return 'EN_RUTA';
     if (/^EN RUTA A CONCESION\b/.test(raw)) return 'EN_RUTA';
@@ -126,18 +129,39 @@ export const normalizeDroppiEcuadorStatus = (value) => {
     if (/^INGRESANDO OPERATIVO A\b/.test(raw)) return 'EN_RUTA';
     if (raw === 'GUIA_GENERADA') return 'GUIA_GENERADA';
     if (raw === 'PREPARADO PARA TRANSPORTADORA') return 'GUIA_GENERADA';
-    if (raw === 'PENDIENTE') return 'PENDIENTE';
+    if (raw === 'PENDIENTE' || raw === 'PENDING') return 'PENDIENTE';
     if (raw === 'MERCANCIA RECOGIDA') return 'MERCANCIA_RECOGIDA';
     if (raw === 'EN BODEGA TRANSPORTADORA') return 'EN_BODEGA_TRANSPORTADORA';
     if (raw === 'EN DESPACHO') return 'EN_DESPACHO';
     if (raw === 'EN RUTA') return 'EN_RUTA';
     if (raw === 'EN REPARTO') return 'EN_REPARTO';
-    if (raw === 'EN PROCESAMIENTO') return 'EN_PROCESAMIENTO';
+    if (raw === 'EN PROCESAMIENTO' || raw === 'PROCESSING') return 'EN_PROCESAMIENTO';
+    if (raw === 'SHIPPED' || raw === 'ENVIADO' || raw === 'DESPACHADO') return 'EN_RUTA';
     if (raw === 'EN AGENCIA') return 'EN_RUTA';
     if (raw === 'LISTO PARA RETIRO' || raw === 'READY_FOR_PICKUP') {
         return 'READY_FOR_PICKUP';
     }
     return raw.replace(/\s+/g, '_');
+};
+
+export const droppiEcuadorOrderStatusForLogisticsStatus = (value) => {
+    const status = normalizeDroppiEcuadorStatus(value);
+    if (status === 'ENTREGADO') return 'delivered';
+    if (status === 'DEVUELTO') return 'returned';
+    if (status === 'CANCELADO' || status === 'RECHAZADO') return 'cancelled';
+    if (status === 'PENDIENTE' || status === 'EN_PROCESAMIENTO') return 'processing';
+    if ([
+        'GUIA_GENERADA',
+        'READY_FOR_PICKUP',
+        'MERCANCIA_RECOGIDA',
+        'EN_BODEGA_TRANSPORTADORA',
+        'EN_DESPACHO',
+        'EN_RUTA',
+        'EN_REPARTO',
+        'EN_DISTRIBUCION_A_CLIENTE',
+        'NOVEDAD'
+    ].includes(status)) return 'shipped';
+    return '';
 };
 
 const ECUADOR_DROPI_NAME_PARTICLES = new Set([
@@ -239,6 +263,7 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         : shipment.logistics?.pickupReadyVerifiedAt;
     const isDelivered = normalizedStatus === 'ENTREGADO';
     const isReturned = normalizedStatus === 'DEVUELTO';
+    const isProviderFailure = normalizedStatus === 'RECHAZADO';
     const normalizedShippingType = normalizeShippingType(payload.shippingType || shipment.logistics.shippingType);
     const normalizedAddress = normalizeRouteText(payload.address || '');
     const inferredAgencyPickup = /servientrega/i.test(normalizedAddress)
@@ -305,12 +330,19 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         ...shipment.review,
         manualOnly: Boolean(
             payload.manualOnly
-            ?? (normalizedStatus === 'NOVEDAD' ? true : undefined)
+            ?? (['NOVEDAD', 'RECHAZADO'].includes(normalizedStatus) ? true : undefined)
             ?? shipment.review?.manualOnly
             ?? false
         ),
-        reviewReason: payload.reviewReason || (normalizedStatus === 'NOVEDAD' ? 'novedad_logistica' : shipment.review?.reviewReason || ''),
-        reviewStatus: payload.reviewStatus || shipment.review?.reviewStatus || ''
+        reviewReason: payload.reviewReason
+            || (normalizedStatus === 'NOVEDAD' ? 'novedad_logistica' : '')
+            || (isProviderFailure ? 'dropi_provider_rejected' : '')
+            || shipment.review?.reviewReason
+            || '',
+        reviewStatus: payload.reviewStatus
+            || (isProviderFailure ? 'dropi_provider_rejected' : '')
+            || shipment.review?.reviewStatus
+            || ''
     };
     shipment.outcomes = {
         ...shipment.outcomes,
@@ -375,13 +407,7 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         });
         if (resolution.resolved && resolution.shipment) shipment = resolution.shipment;
     }
-    const orderStatus = normalizedStatus === 'ENTREGADO'
-        ? 'delivered'
-        : normalizedStatus === 'DEVUELTO'
-            ? 'returned'
-            : ['GUIA_GENERADA', 'READY_FOR_PICKUP', 'EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE', 'NOVEDAD'].includes(normalizedStatus)
-                ? 'shipped'
-                : '';
+    const orderStatus = droppiEcuadorOrderStatusForLogisticsStatus(normalizedStatus);
     if (orderStatus) {
         const order = await Order.findOne({ orderId }).catch(() => null);
         if (order) {
