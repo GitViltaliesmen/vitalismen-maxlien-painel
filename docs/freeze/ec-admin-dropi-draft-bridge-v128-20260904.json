@@ -1,0 +1,35 @@
+{
+  "freezeId": "ec-admin-dropi-draft-bridge-v128",
+  "version": 128,
+  "parentCommit": "e8a4eb2034efa8fc1ffc7017917b011fb79aec1a",
+  "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/shipments.js"
+  ],
+  "policy": {
+    "country": "EC",
+    "savedExplicitProductRequired": true,
+    "samePhoneAndDestinationRequired": true,
+    "validatedCustomerDataRequired": true,
+    "existingOrdersChanged": false,
+    "transportChanged": false,
+    "authorizationPerOrderRequired": true,
+    "automaticSubmitAllowed": false,
+    "priceChangesAllowed": false,
+    "vslAttributionChanged": false,
+    "whatsappOrMetaEffectsAllowed": false
+  },
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "9a12a662251cfd9dbc8653c5fd275c6e8e977e89712bfc70676f71ba00201da1",
+    "docs/EC_ADMIN_DROPI_DRAFT_BRIDGE_V128_20260904.md": "4a20142c494ae494eab3e7fb954814db0daf3bb9cebdc4a6af93d93fbdf68649",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "e4f5e61196b0588dcff32e00d847ffe84a17cc1b269ff7d9aa19afa53fb83f51",
+    "src/routes/shipments.js": "1aaf4a127352005ebea0d91121a5c1115717bd06a106ae99b0c659d87e43e9ce",
+    "src/services/ecAdminDropiDraftBridgeFreezeRuntimeGuardV128.js": "cac3f8475745fa3d07a2fc719fc79ab175b4b68e9490978cde18bf25c732d7f9",
+    "src/services/ecAdminDropiDraftBridgeV128Service.js": "cdd8ac8d0a1fdc64fb4025afbe3cfb23b1b81fa045b146e597da3e576213c418",
+    "tests/ec-admin-dropi-draft-bridge-v128.test.mjs": "6231c03ac56bb0847978f75cd113a0ffb30553ce6a0d1dbcbb03079fe21be5b0"
+  },
+  "logicalBundle": {
+    "sha256": "d86fdb96b2bc91932c7cfb8382d221cdd2bb81df2538684b5c37bf9ba7005688"
+  }
+}
