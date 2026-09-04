@@ -43,6 +43,7 @@ import {
     EC_CONVERSATION_BUCKETS
 } from '../services/ecConversationBucketService.js';
 import { scheduleEcEngagementReply } from '../services/ecEngagementReplyService.js';
+import { ecQaPermanentBotInboundAllowedV126 } from '../services/ecQaPermanentTestV126Service.js';
 import crypto from 'crypto';
 import {
     isStrictReadOnlyObservationEnabled,
@@ -1166,6 +1167,12 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const conversationBucket = conversationClassification?.bucket
         || targetState.conversationBucket?.value
         || EC_CONVERSATION_BUCKETS.ATTENDANCE;
+    const qaPermanentBotTest = ecQaPermanentBotInboundAllowedV126({
+        state: targetState,
+        publicVslLeadEntry,
+        directProductInbound,
+        persistedVslProductContext
+    });
 
     return {
         recorded: true,
@@ -1182,6 +1189,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
         readInference,
         publicVslLeadEntry,
         directProductInbound,
+        qaPermanentBotTest,
         contactStateId: String(targetState._id),
         conversationBucket,
         engagementReplyEligible: conversationClassification?.replyEligibleByHistory === true,
@@ -1198,10 +1206,14 @@ const recordZapiInboundPayload = async (payload = {}) => {
         } : null,
         routeToBot: newMessage
             && Boolean(normalizedBody)
-            && conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+            && (conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT || qaPermanentBotTest)
             && conversationBucket !== EC_CONVERSATION_BUCKETS.REVIEW
-            && (targetState.human?.mode !== 'manual' || directProductInbound)
-            && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry))
+            && (targetState.human?.mode !== 'manual' || directProductInbound || qaPermanentBotTest)
+            && (
+                inferredCountry === 'EC'
+                || (authorizedTestRecipient && publicVslLeadEntry)
+                || (authorizedTestRecipient && directProductInbound)
+            )
     };
 };
 

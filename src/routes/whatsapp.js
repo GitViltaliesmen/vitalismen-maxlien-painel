@@ -66,7 +66,11 @@ import {
 } from '../services/operationalChatStatusService.js';
 import { publicGoogleContactSync } from '../services/googleContactsService.js';
 import { readEcuadorCustomerImage } from '../services/customerImageDataReaderService.js';
-import { panelLastReadMarkerSeconds, panelReadIdentityQuery } from '../services/panelReadStateService.js';
+import {
+    panelHandledThroughSeconds,
+    panelLastReadMarkerSeconds,
+    panelReadIdentityQuery
+} from '../services/panelReadStateService.js';
 import {
     nextBuyLaterReminderState,
     normalizeBuyLaterDesiredDate
@@ -4467,7 +4471,12 @@ router.get('/chats', async (req, res) => {
             const unansweredCountByKey = new Map();
             inboundMessageTimesByKey.forEach((inboundTimes, conversationKey) => {
                 const lastOutboundAt = lastOutboundAtByKey.get(conversationKey) || 0;
-                const unansweredCount = inboundTimes.filter((timestamp) => timestamp > lastOutboundAt).length;
+                const chat = allChats.find((item) => item.conversationKey === conversationKey);
+                const handledThrough = panelHandledThroughSeconds({
+                    states: chat ? [fastContactStateForChat(chat)] : [],
+                    lastOutboundAt
+                });
+                const unansweredCount = inboundTimes.filter((timestamp) => timestamp > handledThrough).length;
                 if (unansweredCount > 0) unansweredCountByKey.set(conversationKey, unansweredCount);
             });
 
@@ -4855,13 +4864,17 @@ router.get('/chats', async (req, res) => {
                 isFromMe: true
             })).sort({ timestamp: -1, createdAt: -1 }).lean().catch(() => null);
             const lastOutboundAt = Number(lastOutboundMessage?.timestamp || 0);
+            const handledThrough = panelHandledThroughSeconds({
+                states: contactStates,
+                lastOutboundAt
+            });
             const unansweredCount = await Message.countDocuments(withVisiblePanelMessages({
                 $or: [
                     ...linkedConditions,
                     ...(phoneDigits ? [{ peerPhone: phoneDigits }] : [])
                 ],
                 isFromMe: false,
-                timestamp: { $gt: lastOutboundAt }
+                timestamp: { $gt: handledThrough }
             })).catch(() => 0);
             const profilePictureUrl = fastMode
                 ? String(contactState?.metadata?.profilePictureUrl || '')

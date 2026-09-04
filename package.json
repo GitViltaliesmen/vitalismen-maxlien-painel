@@ -6,7 +6,9 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "npm run guard:predeploy-v71 && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run senior:check",
+        "test": "npm run guard:predeploy-v71 && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run guard:vitalismen-ec-v126 && npm run senior:check",
+        "test:vitalismen-ec-v126": "node --test tests/ec-qa-permanent-test-v126.test.mjs tests/panel-handled-state-v126.test.mjs tests/post-sale-lifecycle-recovery-v126.test.mjs tests/vitalismen-ec-qa-read-postsale-recovery-v126.test.mjs",
+        "guard:vitalismen-ec-v126": "node scripts/guard-vitalismen-ec-qa-read-postsale-recovery-v126.mjs && npm run test:vitalismen-ec-v126",
         "dev": "node src/index.js",
         "start": "node src/index.js",
         "local:api": "./scripts/start-api-local.sh",

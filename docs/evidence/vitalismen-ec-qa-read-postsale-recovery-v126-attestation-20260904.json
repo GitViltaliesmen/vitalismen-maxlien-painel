@@ -1,0 +1,59 @@
+{
+  "attestationId": "vitalismen-ec-qa-read-postsale-recovery-v126-attestation-20260904",
+  "version": 126,
+  "date": "2026-09-04",
+  "baselineCommit": "475ab887656bbb8865f3c16e42bec0d63e9421a6",
+  "baselineTree": "9cc5f631db2d2cf1925d82703478cdda18921386",
+  "referenceCommit": "75ed74b905910f1fbcde25fb54442788c9cf8b3a",
+  "preMissionSnapshot": {
+    "path": "docs/evidence/vitalismen-ec-v126-pre-mission-snapshot-20260904.json",
+    "readOnly": true
+  },
+  "scope": {
+    "objectives": 4,
+    "qaPermanentBotTest": true,
+    "qaCommercialEffectsBlocked": true,
+    "qaHistoryPreserved": true,
+    "panelHandledStatePersistent": true,
+    "newInboundReopens": true,
+    "pickupReminderLifecycleRecovered": true,
+    "treatmentRefillLifecycleRecovered": true,
+    "v114Changed": false,
+    "v116SameExecutor": true,
+    "newSchedulerCreated": false,
+    "pickupProofSweepEnabled": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false,
+    "marketingBlastEnabled": false,
+    "metaRetroactiveAllowed": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "productionChanged": false
+  },
+  "candidateAfterState": {
+    "qaVslPath": "eligible_with_exact_canonical_test_state",
+    "qaDirectPath": "eligible_with_explicit_product_without_vsl_template",
+    "qaRandomMessageProductInference": "blocked_without_evidence",
+    "qaOrders": "blocked",
+    "qaShipments": "blocked",
+    "qaDropi": "blocked",
+    "qaMetaPurchase": "blocked",
+    "readAfterOpen": "persisted_with_existing_panelLastReadAt",
+    "readAfterRefresh": "handled",
+    "readAfterBackgroundSync": "handled",
+    "readAfterLaterInbound": "pending",
+    "postSaleLifecycle": "disabled_until_root_only_activation_cursor",
+    "postSaleHistoricalBacklog": "structurally_excluded_before_cursor"
+  },
+  "validation": {
+    "focusedTests": "required",
+    "legacyRegressionTests": "required_with_successor_preload",
+    "productMicroLayerGuard": "required",
+    "seniorCheck": "required_with_successor_preload",
+    "npmTest": "required_with_successor_preload",
+    "officialStaging": "required",
+    "productionQaVsl": "required_after_approval_and_publish",
+    "productionQaDirect": "required_after_approval_and_publish",
+    "productionReadLifecycle": "required_after_approval_and_publish"
+  }
+}

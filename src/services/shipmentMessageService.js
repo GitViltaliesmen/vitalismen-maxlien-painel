@@ -2864,9 +2864,17 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     return true;
 };
 
-export const getPendingShipmentReminders = async () => {
-    const now = new Date();
+export const getPendingShipmentReminders = async ({
+    now = new Date(),
+    notBefore = null
+} = {}) => {
+    const activationFloor = notBefore instanceof Date && !Number.isNaN(notBefore.getTime())
+        ? notBefore
+        : null;
     const oldestReadyForPickupAt = new Date(now.getTime() - (SHIPMENT_PICKUP_REMINDER_MAX_AGE_DAYS * DAY_MS));
+    const readyForPickupFloor = activationFloor && activationFloor.getTime() > oldestReadyForPickupAt.getTime()
+        ? activationFloor
+        : oldestReadyForPickupAt;
     const shipments = await Shipment.find({
         country: 'EC',
         ...(Object.keys(buildCanaryV75RecipientQuery('client.phone')).length
@@ -2877,7 +2885,7 @@ export const getPendingShipmentReminders = async () => {
         'logistics.pickupReadyVerified': true,
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },
-        'automation.readyForPickupNotifiedAt': { $ne: null, $gte: oldestReadyForPickupAt },
+        'automation.readyForPickupNotifiedAt': { $ne: null, $gte: readyForPickupFloor },
         'outcomes.delivered': false,
         'outcomes.pickedUp': false,
         'outcomes.returned': false,
@@ -2886,18 +2894,21 @@ export const getPendingShipmentReminders = async () => {
 
     return shipments
         .map((shipment) => {
-            const due = getDuePickupReminderStep(shipment, now);
+            const due = getDuePickupReminderStep(shipment, now, { notBefore: activationFloor });
             return due ? { shipment, ...due } : null;
         })
         .filter(Boolean);
 };
 
-export const getDuePickupReminderStep = (shipment, now = new Date()) => {
+export const getDuePickupReminderStep = (shipment, now = new Date(), { notBefore = null } = {}) => {
     if (shipment?.review?.manualOnly === true) return null;
     if (!logisticsCommunicationPolicy(shipment).allowReminders) return null;
     const anchor = shipment?.automation?.readyForPickupNotifiedAt;
     const anchorTime = anchor?.getTime?.();
     if (!anchorTime) return null;
+    if (notBefore instanceof Date && !Number.isNaN(notBefore.getTime()) && anchorTime < notBefore.getTime()) {
+        return null;
+    }
 
     for (const step of PICKUP_REMINDER_SCHEDULE) {
         if (shipment.automation?.[step.field]) continue;

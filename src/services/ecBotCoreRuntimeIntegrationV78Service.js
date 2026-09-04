@@ -29,6 +29,10 @@ import {
     EC_QA_TEST_PHONE_V78,
     EC_QA_TEST_REQUIRED_TAGS_V78
 } from './ecQaTestResetV78Service.js';
+import {
+    ecQaPermanentClaimQueryV126,
+    EC_QA_PERMANENT_TEST_V126_PHONE
+} from './ecQaPermanentTestV126Service.js';
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
 export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
@@ -140,7 +144,8 @@ export const claimEcQaInboundContextV78 = async ({
     payload = {},
     model = ContactState,
     now = new Date(),
-    allowQaFollowUp = false
+    allowQaFollowUp = false,
+    allowQaPermanent = false
 } = {}) => {
     const phone = zapiPhoneFromPayloadV78(payload);
     if (phone !== EC_QA_TEST_PHONE_V78) {
@@ -156,6 +161,38 @@ export const claimEcQaInboundContextV78 = async ({
         text,
         destinationPhone: EC_OFFICIAL_VSL_V78_WHATSAPP
     });
+    const permanentResult = allowQaPermanent === true
+        ? await model.updateOne(ecQaPermanentClaimQueryV126({ messageId, now }), {
+            $set: {
+                'metadata.qaTestContextV78.version': 78,
+                'metadata.qaTestContextV78.context': 'EC_V78_OFFICIAL_VSL_QA',
+                'metadata.qaTestContextV78.phone': EC_QA_PERMANENT_TEST_V126_PHONE,
+                'metadata.qaTestContextV78.status': 'routing',
+                'metadata.qaTestContextV78.routingAt': now.toISOString(),
+                'metadata.qaTestContextV78.routingMessageId': messageId,
+                'metadata.qaTestContextV78.routingSignature': recognition.recognized
+                    ? EC_OFFICIAL_VSL_V78_MESSAGE
+                    : 'EC_V126_PERMANENT_QA_DIRECT_INBOUND',
+                'metadata.qaTestContextV78.routingPhase': recognition.recognized
+                    ? 'permanent_vsl'
+                    : 'permanent_direct'
+            }
+        })
+        : { modifiedCount: 0 };
+    if (Number(permanentResult?.modifiedCount || 0) === 1) {
+        return Object.freeze({
+            applicable: true,
+            allowed: true,
+            persistenceAllowed: true,
+            automationAllowed: true,
+            phone,
+            messageId,
+            reason: recognition.recognized
+                ? 'qa_permanent_vsl_context_claimed'
+                : 'qa_permanent_direct_context_claimed',
+            phase: recognition.recognized ? 'permanent_vsl' : 'permanent_direct'
+        });
+    }
     const initialResult = recognition.recognized
         ? await model.updateOne(exactQaQueryV78(now, messageId), {
             $set: {
@@ -298,7 +335,8 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
             try {
                 qaClaim = await claimEcQaInboundContextV78({
                     payload: req.body || {},
-                    allowQaFollowUp: true
+                    allowQaFollowUp: true,
+                    allowQaPermanent: true
                 });
             } catch (error) {
                 return httpBlocked(res, `qa_context_preflight_failed:${error.message}`, method, path);

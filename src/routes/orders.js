@@ -656,6 +656,10 @@ router.post('/draft', async (req, res) => {
             return res.status(400).json({ error: 'Country, phone and name are required' });
         }
 
+        if (isBrazilTestOnly({ phone, country })) {
+            return sendBrazilTestOnlyError(res);
+        }
+
         const resolvedCustomerData = resolveOrderCustomerData({
             country,
             customer: { phone, name },

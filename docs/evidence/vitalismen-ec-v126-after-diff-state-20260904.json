@@ -1,0 +1,63 @@
+{
+  "stateId": "vitalismen-ec-v126-after-diff-state-20260904",
+  "baselineCommit": "475ab887656bbb8865f3c16e42bec0d63e9421a6",
+  "candidateBranch": "codex/qa-read-postsale-recovery-v126-20260904",
+  "productionChanged": false,
+  "afterState": {
+    "VSL_PROTOCOLO_G": "PASS_PRESERVED",
+    "VSL_TO_WHATSAPP": "PASS_PRESERVED",
+    "WHATSAPP_INBOUND": "PASS_EC_AND_EXACT_QA",
+    "ZAPI": "PASS_PRESERVED",
+    "WEBHOOK": "PASS_PRESERVED",
+    "BOT_INBOUND": "PASS_EC_AND_EXACT_QA",
+    "BOT_AUTO_REPLY": "PASS_EC_AND_EXACT_QA_WITH_PRODUCT_EVIDENCE",
+    "BOT_MANUAL_SEND": "PASS_PRESERVED",
+    "CLAIM": "PASS_PERMANENT_EXACT_QA_PROVIDER_ID_DEDUPED",
+    "RELEASE_AUTO": "PASS_PRESERVED",
+    "FUNNEL": "PASS_PRESERVED_WITH_EXACT_QA_TEST_PATH",
+    "TEX_ULTRA": "PASS_PRESERVED",
+    "VIT_POWER": "PASS_PRESERVED",
+    "NITRIX": "PASS_PRESERVED",
+    "CUSTOMER_PROFILE": "PASS_SINGLE_CANONICAL_QA_PRESERVED",
+    "CUSTOMER_SAVE": "PASS_PRESERVED",
+    "CUSTOMER_STATUS_V125": "PASS_PRESERVED",
+    "DROPI": "PASS_REPORT_ONLY_PRESERVED",
+    "DROPI_TEX_ULTRA": "PASS_PRESERVED",
+    "DROPI_NITRIX": "PASS_PRESERVED",
+    "DROPI_VIT_POWER": "PASS_PRESERVED",
+    "DROPI_DUPLICATION_GUARD": "PASS_PRESERVED",
+    "DROPI_STATUS_SYNC": "PASS_REPORT_ONLY_PRESERVED",
+    "POSTSALE_V114": "PASS_UNCHANGED_READ_ONLY",
+    "POSTSALE_V116": "PASS_SAME_EXECUTOR_WITH_CURSOR_GATED_LIFECYCLES",
+    "PM2": "PASS_BASELINE_UNCHANGED",
+    "MONGO": "PASS_NO_SCHEMA_MIGRATION",
+    "NGINX": "PASS_BASELINE_UNCHANGED",
+    "HEALTH": "PASS_BASELINE_UNCHANGED",
+    "V118_AQUECIMENTO": "PASS_PRESERVED_WITH_EXACT_QA_RUNTIME_EXCEPTION",
+    "QA_TEST_MODE": "PASS_EXACT_ONLY",
+    "READ_STATE": "PASS_EXISTING_PERSISTENT_MARKER",
+    "READ_REFRESH": "PASS_PROJECTION_TEST",
+    "READ_BACKGROUND_SYNC": "PASS_SHARED_FAST_SLOW_PROJECTION",
+    "NEW_INBOUND_REOPENS": "PASS_TIMESTAMP_AFTER_MARKER"
+  },
+  "diffState": {
+    "qa": {
+      "before": "persistent contact but temporary V78 claim, manual hold and AQUECIMENTO blocked bot routing",
+      "after": "exact canonical QA may route VSL or explicit-product direct inbound regardless of AQUECIMENTO/manual hold",
+      "preserved": "BR test identity, AQUECIMENTO bucket, message history, provider IDs, zero Orders and Shipments, Dropi and Meta blocks"
+    },
+    "readState": {
+      "before": "unreadCount honored panelLastReadAt while unansweredCount ignored it",
+      "after": "both counters honor max(panelLastReadAt,lastOutboundAt); later inbound reopens",
+      "preserved": "existing Mongo fields, aliases, messages and list projection"
+    },
+    "postSale": {
+      "before": "V116 selected five status actions but not V53 pickup reminders or treatment refill",
+      "after": "same V116 evaluates reminder/refill only after status and only for anchors after root-only activation cursor",
+      "preserved": "V114 read-only, V66 ledger, daily quota 1, batch 1, manual hold, provider ID, ambiguous terminal state, no retry, no PM2 scheduler, no proof sweep"
+    }
+  },
+  "regressionsFound": 0,
+  "releaseBlocked": false,
+  "operatorApprovalRequired": true
+}

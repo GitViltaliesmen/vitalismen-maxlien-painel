@@ -8,7 +8,8 @@ import {
     notifyShipmentInTransit,
     notifyReadyForPickup,
     notifyShipmentGuideGenerated,
-    notifyShipmentReturned
+    notifyShipmentReturned,
+    repurchaseReminderDelayDaysForUnits
 } from './shipmentMessageService.js';
 import { syncDroppiEcuadorFromPanel } from './droppiEcuadorBrowserService.js';
 import { saveCarrierTrackingResult, trackCarrierGuide } from './carrierTrackingService.js';
@@ -1049,6 +1050,13 @@ const syncShipmentOrderToAdminPanel = async ({ shipment, action }) => {
 
 const markDeliveredAndNotifyBonus = async (shipment) => {
     const now = new Date();
+    const deliveredConfirmedAt = shipment.automation?.deliveredConfirmedAt || now;
+    const units = Math.max(1, Number.parseInt(String(shipment.treatment?.unitsPurchased || 1), 10) || 1);
+    const daysPerUnit = Math.max(1, Number.parseInt(String(shipment.treatment?.daysPerUnit || 30), 10) || 30);
+    const treatmentEndsAt = shipment.treatment?.treatmentEndsAt
+        || new Date(deliveredConfirmedAt.getTime() + (units * daysPerUnit * DAY_MS));
+    const refillReminderDueAt = shipment.treatment?.refillReminderDueAt
+        || new Date(deliveredConfirmedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * DAY_MS));
     await Shipment.updateOne(
         { _id: shipment._id },
         {
@@ -1057,8 +1065,10 @@ const markDeliveredAndNotifyBonus = async (shipment) => {
                 'outcomes.delivered': true,
                 'outcomes.returned': false,
                 'outcomes.prepaidOnly': false,
-                'automation.deliveredConfirmedAt': shipment.automation?.deliveredConfirmedAt || now,
+                'automation.deliveredConfirmedAt': deliveredConfirmedAt,
                 'automation.prepaidOnlyNotifiedAt': null,
+                'treatment.treatmentEndsAt': treatmentEndsAt,
+                'treatment.refillReminderDueAt': refillReminderDueAt,
                 'review.manualOnly': false,
                 'review.reviewReason': '',
                 'review.reviewStatus': 'delivered_confirmed_by_dropi_status'

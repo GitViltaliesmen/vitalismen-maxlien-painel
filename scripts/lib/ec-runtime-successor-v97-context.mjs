@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertVitalismenEcQaReadPostSaleRecoveryV126Manifest,
+    VITALISMEN_EC_QA_READ_POSTSALE_RECOVERY_V126_OVERRIDE_KEY
+} from '../../src/services/vitalismenEcQaReadPostSaleRecoveryV126Service.js';
+import {
     assertEcPanelStatusStateLayerV125Manifest,
     EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY
 } from '../../src/services/ecPanelStatusStateLayerV125Service.js';
@@ -52,6 +56,13 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const vitalismenEcV126 = assertVitalismenEcQaReadPostSaleRecoveryV126Manifest();
+const vitalismenEcV126Previous = Array.isArray(globalThis[VITALISMEN_EC_QA_READ_POSTSALE_RECOVERY_V126_OVERRIDE_KEY])
+    ? globalThis[VITALISMEN_EC_QA_READ_POSTSALE_RECOVERY_V126_OVERRIDE_KEY]
+    : [];
+globalThis[VITALISMEN_EC_QA_READ_POSTSALE_RECOVERY_V126_OVERRIDE_KEY] = [
+    ...new Set([...vitalismenEcV126Previous, ...vitalismenEcV126.overrides])
+];
 const ecPanelStatusStateLayerV125 = assertEcPanelStatusStateLayerV125Manifest();
 const ecPanelStatusStateLayerV125Previous = Array.isArray(globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY])
     ? globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY]
@@ -225,3 +236,4 @@ await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV12
 await import('../../src/services/ecPanelCustomerStatusPersistenceFreezeRuntimeGuardV123.js');
 await import('../../src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js');
 await import('../../src/services/ecPanelStatusStateLayerFreezeRuntimeGuardV125.js');
+await import('../../src/services/vitalismenEcQaReadPostSaleRecoveryFreezeRuntimeGuardV126.js');

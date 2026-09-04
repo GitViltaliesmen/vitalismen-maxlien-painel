@@ -17,6 +17,11 @@ export const panelLastReadMarkerSeconds = (states = []) => Math.max(0, ...(Array
         return [Number.isFinite(dateSeconds) ? dateSeconds : 0, Number.isFinite(messageTimestamp) ? messageTimestamp : 0];
     }));
 
+export const panelHandledThroughSeconds = ({ states = [], lastOutboundAt = 0 } = {}) => Math.max(
+    panelLastReadMarkerSeconds(states),
+    Math.max(0, Number(lastOutboundAt || 0))
+);
+
 export const panelReadIdentityQuery = ({ chatId = '', phone = '' } = {}) => {
     const rawChatId = String(chatId || '').trim();
     const digits = digitsOnly(phone || chatId);

@@ -9,6 +9,7 @@ base_dir="/opt/vitalismen-automacao"
 state_dir="/var/lib/vitalismen-deploy"
 log_dir="/var/log/vitalismen-deploy"
 overlay_file="$state_dir/post-sale-v116.env"
+lifecycle_activation_file="$state_dir/post-sale-lifecycle-v126-not-before"
 lock_file="$state_dir/post-sale-v116.lock"
 audit_file="$log_dir/post-sale-v116-audit.jsonl"
 current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
@@ -54,6 +55,22 @@ load_overlay() {
   [[ "${POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED:-}" == "true" ]] || die "gate at-most-once V116 ausente"
 }
 
+load_lifecycle_activation_v126() {
+  if [[ ! -e "$lifecycle_activation_file" ]]; then
+    export POST_SALE_LIFECYCLE_RECOVERY_V126_ENABLED=false
+    export POST_SALE_LIFECYCLE_RECOVERY_V126_NOT_BEFORE=
+    return
+  fi
+  [[ -f "$lifecycle_activation_file" && ! -L "$lifecycle_activation_file" ]] || die "cursor V126 invalido"
+  [[ "$(stat -c '%a:%U:%G' "$lifecycle_activation_file")" == "400:root:root" ]] || die "permissoes do cursor V126 invalidas"
+  local activated_at
+  activated_at="$(tr -d '\r\n' <"$lifecycle_activation_file")"
+  node -e 'const d=new Date(process.argv[1]); if(!process.argv[1]||Number.isNaN(d.getTime())||d>Date.now()) process.exit(1)' "$activated_at" \
+    || die "timestamp do cursor V126 invalido"
+  export POST_SALE_LIFECYCLE_RECOVERY_V126_ENABLED=true
+  export POST_SALE_LIFECYCLE_RECOVERY_V126_NOT_BEFORE="$activated_at"
+}
+
 if [[ "$action" == "status" ]]; then
   echo "CURRENT=$current"
   echo "OBSERVER=$(systemctl is-active vitalismen-postsale-next-eligible-v114.timer 2>/dev/null || true)"
@@ -62,6 +79,30 @@ if [[ "$action" == "status" ]]; then
   echo "BATCH_MAX=1"
   echo "DAILY_LIMIT=1"
   echo "AT_MOST_ONCE=true"
+  if [[ -f "$lifecycle_activation_file" && ! -L "$lifecycle_activation_file" ]]; then
+    echo "LIFECYCLE_V126=ARMED_NEW_EVENTS_ONLY"
+    echo "LIFECYCLE_V126_NOT_BEFORE=$(tr -d '\r\n' <"$lifecycle_activation_file")"
+  else
+    echo "LIFECYCLE_V126=DISABLED"
+    echo "LIFECYCLE_V126_NOT_BEFORE="
+  fi
+  exit 0
+fi
+
+if [[ "$action" == "activate-lifecycle-v126" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: post-sale-v116 activate-lifecycle-v126 I_UNDERSTAND_NEW_EVENTS_ONLY_NO_BACKFILL"
+  [[ "$2" == "I_UNDERSTAND_NEW_EVENTS_ONLY_NO_BACKFILL" ]] || die "autorizacao exata V126 ausente"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  load_overlay
+  [[ ! -e "$lifecycle_activation_file" ]] || die "cursor V126 ja existe; operacao idempotente recusada"
+  date -u +%Y-%m-%dT%H:%M:%S.000Z >"$lifecycle_activation_file"
+  chown root:root "$lifecycle_activation_file"
+  chmod 0400 "$lifecycle_activation_file"
+  load_lifecycle_activation_v126
+  append_audit "lifecycle_v126_activated" "new_events_only_not_before=$POST_SALE_LIFECYCLE_RECOVERY_V126_NOT_BEFORE"
+  echo "POST_SALE_LIFECYCLE_V126_ACTIVATE=PASS"
+  echo "NOT_BEFORE=$POST_SALE_LIFECYCLE_RECOVERY_V126_NOT_BEFORE"
+  echo "BACKFILL=NO"
   exit 0
 fi
 
@@ -87,6 +128,7 @@ if [[ "$action" == "run" ]]; then
   flock -n 9 || die "outro executor V116 esta em andamento"
   assert_pm2_bot_online || die "PM2 bot fora da release current"
   load_overlay
+  load_lifecycle_activation_v126
   export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
   append_audit "cycle_started" "batch_max_1_daily_limit_1"
   output="$log_dir/$(basename "$current").post-sale-v116-$(date -u +%Y%m%dT%H%M%SZ).json"
@@ -110,9 +152,13 @@ if [[ "$action" == "contain" ]]; then
     mv -T "$overlay_file" "$overlay_file.contained.$timestamp"
     chmod 0400 "$overlay_file.contained.$timestamp"
   fi
+  if [[ -f "$lifecycle_activation_file" && ! -L "$lifecycle_activation_file" ]]; then
+    mv -T "$lifecycle_activation_file" "$lifecycle_activation_file.contained.$timestamp"
+    chmod 0400 "$lifecycle_activation_file.contained.$timestamp"
+  fi
   append_audit "contained" "bot_unchanged"
   echo "POST_SALE_V116_CONTAIN=PASS"
   exit 0
 fi
 
-die "uso: post-sale-v116 status|install|run|contain"
+die "uso: post-sale-v116 status|install|activate-lifecycle-v126|run|contain"

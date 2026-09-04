@@ -9,6 +9,10 @@ import {
     POST_SALE_TERMINAL_LEDGER_STATES
 } from '../src/services/postSaleSafetyV66Service.js';
 import { processShipmentStatusDispatch } from '../src/services/shipmentStatusDispatcherService.js';
+import {
+    processPostSaleLifecycleRecoveryV126,
+    resolvePostSaleLifecycleRecoveryV126Configuration
+} from '../src/services/postSaleLifecycleRecoveryV126Service.js';
 import { assertPostSaleTransactionalV105Configuration } from '../src/services/postSaleTransactionalControlPlaneV105Service.js';
 import { postSaleTransactionalSafetyV116Enabled } from '../src/services/postSaleTransactionalSafetyV116Service.js';
 
@@ -31,11 +35,44 @@ try {
         throw new Error('post_sale_v66_compatibility_state_not_ready');
     }
 
-    const result = await processShipmentStatusDispatch({
+    const statusResult = await processShipmentStatusDispatch({
         limit: 1,
         dryRun: action === 'plan',
         actions
     });
+    const statusAttempted = statusResult?.results?.some((item) => item?.eligibleAttempt === true) === true;
+    const statusPlanCandidate = action === 'plan' && statusResult?.results?.some((item) => (
+        item?.success === true && item?.preflightDecision === 'SHOULD_SEND'
+    ));
+    const statusQuotaTerminal = statusResult?.quota?.allowed === false
+        || statusResult?.results?.some((item) => item?.atomicQuota?.reason === 'daily_quota_exhausted') === true;
+    const lifecycleConfiguration = resolvePostSaleLifecycleRecoveryV126Configuration(process.env);
+    const lifecycleResult = !statusResult?.paused
+        && !statusAttempted
+        && !statusPlanCandidate
+        && !statusQuotaTerminal
+        ? await processPostSaleLifecycleRecoveryV126({
+            dryRun: action === 'plan',
+            configuration: lifecycleConfiguration
+        })
+        : {
+            processed: 0,
+            sent: 0,
+            skipped: 0,
+            lifecycleEnabled: lifecycleConfiguration.enabled,
+            lifecycleReason: statusAttempted || statusPlanCandidate
+                ? 'current_status_candidate_has_priority'
+                : statusQuotaTerminal ? 'shared_quota_or_window_unavailable' : lifecycleConfiguration.reason,
+            results: []
+        };
+    const result = {
+        ...statusResult,
+        processed: Number(statusResult?.processed || 0) + Number(lifecycleResult?.processed || 0),
+        sent: Number(statusResult?.sent || 0) + Number(lifecycleResult?.sent || 0),
+        skipped: Number(statusResult?.skipped || 0) + Number(lifecycleResult?.skipped || 0),
+        results: [...(statusResult?.results || []), ...(lifecycleResult?.results || [])],
+        lifecycle: lifecycleResult
+    };
     const first = result?.results?.find((item) => item?.eligibleAttempt === true || item?.success === true)
         || result?.results?.find((item) => item?.atomicQuota)
         || result?.results?.[0]
@@ -104,6 +141,10 @@ try {
             providerAmbiguityTerminal: true,
             automaticRetry: false,
             historicalBacklog: false,
+            lifecycleActivationCursor: lifecycleConfiguration.notBefore?.toISOString?.() || '',
+            lifecycleNewEventsOnly: lifecycleConfiguration.enabled === true,
+            lifecycleReason: lifecycleResult.lifecycleReason || lifecycleConfiguration.reason,
+            pickupProofSweep: false,
             dropiMode: 'REPORT_ONLY',
             dropiApply: false,
             metaRetroactive: false

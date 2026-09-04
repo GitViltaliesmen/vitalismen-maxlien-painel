@@ -156,7 +156,7 @@ const isPriorityBotTestPhone = (...identifiers) => {
     return identifiers
         .map((item) => digitsOnly(item))
         .filter(Boolean)
-        .some((candidate) => allowed.some((item) => isSamePhone(candidate, item)));
+        .some((candidate) => allowed.includes(candidate));
 };
 
 const normalizeText = (text) => String(text || '').trim().toLowerCase();
@@ -958,13 +958,13 @@ export const routeIncomingMessage = async (payload) => {
         if (!state.metadata?.fullFunnelTestEnabled) {
             resetPriorityBotTestConversationMemory(state);
         }
-        state.countryCode = OFFICIAL_COUNTRY;
+        state.countryCode = 'BR';
         state.human = {
             ...(state.human || {}),
             mode: 'auto',
             pausedUntil: null,
             assignedName: 'Teste 8637',
-            note: 'TESTE 8637: prioridade fixa no painel com bot liberado.'
+            note: 'TESTE 8637: prioridade fixa no painel com bot liberado; nunca cliente comercial.'
         };
         state.tags = [...new Set([
             ...(state.tags || []),
@@ -980,6 +980,7 @@ export const routeIncomingMessage = async (payload) => {
             priorityFrozenReason: 'NUMERO_8637_TESTE_PERMANENTE_NAO_MEXER',
             botTestEnabled: true,
             fullFunnelTestEnabled: true,
+            noDropiEver: true,
             lastHumanHoldReason: ''
         };
     }
