@@ -32,11 +32,13 @@
     "sha256": "19b6b6b06985ac647ba0711f59511a04b7bc9271281050bd2e457df7e2892dfa"
   },
   "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
     "scripts/lib/ec-runtime-successor-v97-context.mjs",
     "src/services/dropiTotalResolutionV121Service.js",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
   ],
   "modifiedAncestorProtectedFiles": [
+    ".github/workflows/ec-panel-quality.yml",
     "scripts/lib/ec-runtime-successor-v97-context.mjs",
     "src/services/dropiTotalResolutionV121Service.js",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
@@ -50,6 +52,7 @@
     "tests/ec-panel-customer-persistence-v122.test.mjs"
   ],
   "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "f746d6b4f58a0bbca9c084f9958c21769888ed4227da50d1b2741a4f1a28cde2",
     "docs/EC_PANEL_CUSTOMER_PERSISTENCE_FREEZE_V122_20260904.md": "e03ef7e71c5e097c15348e226950aeb133ac00a75d48a1f759556efe2351ae45",
     "docs/evidence/ec-panel-customer-persistence-v122-attestation-20260904.json": "19b6b6b06985ac647ba0711f59511a04b7bc9271281050bd2e457df7e2892dfa",
     "scripts/guard-ec-panel-customer-persistence-v122.mjs": "ac7e82f2afd9090e747343348504b6bf3535fb1c32778944a80ad54df2808c01",
@@ -57,12 +60,12 @@
     "src/services/dropiTotalResolutionV121Service.js": "7d37a1655cee06541cb0f00d96fa9d25d469159a6e40277cfb2af09100a89101",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "91dcd95b0b060144bdc0e98e6679ce224e0b59d8fca80518b8b2e0b06752a7bd",
     "src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js": "481deac449b4de1b36521cc69f951f171b51131d04a71fabb382976315b3bcd3",
-    "src/services/ecPanelCustomerPersistenceV122Service.js": "30dde429be2bb7491888bfc7f7aabd9039b66850f1b4836321d9cc2d5561883f",
+    "src/services/ecPanelCustomerPersistenceV122Service.js": "1ec8c7c53b09901f165fb1b50d2fa4a3801391bfaa50029fdf55ee7c26b732cb",
     "tests/ec-panel-customer-persistence-v122.test.mjs": "4e2532cdcfb5c541dd0eb5bb39f455f3795128f32b59c7d85002747023d82787"
   },
   "logicalBundle": {
     "algorithm": "sha256(path\\0sha256\\n)",
-    "sha256": "811588f0b97b18bef2f65e417fc1cc5a1ce481d071e453475db1c9da66883c16"
+    "sha256": "d69986917a3a64c1d38504b8283038f8138f88786b04a36d1a24c9c3263ab033"
   },
   "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T023421Z_production-20260904-434efbe"
 }

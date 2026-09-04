@@ -14,6 +14,7 @@ export const EC_PANEL_CUSTOMER_PERSISTENCE_V122_ATTESTATION_SHA256 = '19b6b6b069
 export const EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY = '__VITALISMEN_SUCCESSOR_OVERRIDE_FILES';
 
 export const EC_PANEL_CUSTOMER_PERSISTENCE_V122_ANCESTOR_OVERRIDES = Object.freeze([
+    '.github/workflows/ec-panel-quality.yml',
     'scripts/lib/ec-runtime-successor-v97-context.mjs',
     'src/services/dropiTotalResolutionV121Service.js',
     'src/services/ecBotCoreRuntimeIntegrationV78Service.js'
