@@ -1,4 +1,5 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import { assertEcAdminDropiDraftBridgeV128Manifest } from '../../src/services/ecAdminDropiDraftBridgeFreezeRuntimeGuardV128.js';
 import {
     assertEcAuthLoginV78PassThroughV127Manifest,
     EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY
@@ -56,6 +57,10 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecAdminDropiV128 = assertEcAdminDropiDraftBridgeV128Manifest();
+for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
+    globalThis[key] = [...new Set([...(globalThis[key] || []), ...ecAdminDropiV128.overrides])];
+}
 const ecAuthLoginV127 = assertEcAuthLoginV78PassThroughV127Manifest();
 const ecAuthLoginV127Previous = Array.isArray(globalThis[EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY])
     ? globalThis[EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY]

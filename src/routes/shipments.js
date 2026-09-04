@@ -3,6 +3,7 @@ import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
 import ContactState from '../models/ContactState.js';
+import { resolveEcAdminDropiDraftBridgeV128, enrichEcAdminDropiDraftFlagsV128 } from '../services/ecAdminDropiDraftBridgeV128Service.js';
 import AutomationRun from '../models/AutomationRun.js';
 import {
     buildDroppiEcuadorOrderPayload,
@@ -154,7 +155,7 @@ con = sqlite3.connect("file:" + db_path + "?mode=ro", uri=True)
 con.row_factory = sqlite3.Row
 cur = con.cursor()
 cols = {row[1] for row in cur.execute("PRAGMA table_info(leads)").fetchall()}
-wanted = [column for column in ["id", "phone", "status", "notes", "product_qty", "product_value"] if column in cols]
+wanted = [column for column in ["id", "phone", "status", "notes", "product_qty", "product_value", "name", "city", "province", "address", "country"] if column in cols]
 flags = {}
 if wanted:
     placeholders = ",".join(["?"] * len(ids))
@@ -191,6 +192,8 @@ if wanted:
                 }
                 flag.update(product_selection)
                 flag["productSelection"] = product_selection
+        if status == "confirmado" and not flag.get("productSelection"):
+            flag["_draftBridgeLead"] = data
         flags[lead_id] = flag
 
 lock_table_exists = cur.execute(
@@ -253,8 +256,15 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
     const total = parseMoney(lead.product_value, 0);
     if (!quantity || total <= 0) return null;
     const createdAt = lead.created_at ? new Date(lead.created_at) : null;
-    const productInfo = resolveEcuadorProductInfo(lead.notes, lead.event_source_url, lead.utm_campaign, lead.utm_content);
+    const draftBridge = resolveEcAdminDropiDraftBridgeV128({
+        lead,
+        state: await findContactStateForAdminLead(lead),
+        orderId: requestedOrderId
+    });
+    const productInfo = draftBridge?.product
+        || resolveEcuadorProductInfo(lead.notes, lead.event_source_url, lead.utm_campaign, lead.utm_content);
     const order = new Order({
+        ...(draftBridge?.orderFields || {}),
         orderId: requestedOrderId,
         country: 'EC',
         customer: {
@@ -278,6 +288,7 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
         notes: [
             'Criado automaticamente do painel admin para envio Dropi.',
             `Produto: ${productInfo.name}`,
+            ...(draftBridge ? [draftBridge.marker] : []),
             `Lead admin EC #${leadId}`,
             `Status original: ${lead.status || ''}`
         ].join(' | ')
@@ -1882,7 +1893,15 @@ router.get('/droppi/ec/admin-leads/flags', adminOnly, async (req, res) => {
             .split(',')
             .map((id) => id.trim())
             .filter(Boolean);
-        const flags = getAdminLeadOperationalFlags({ ids });
+        const rawFlags = getAdminLeadOperationalFlags({ ids });
+        const draftPhones = [...new Set(Object.values(rawFlags)
+            .map((flag) => digitsOnly(flag._draftBridgeLead?.phone)).filter(Boolean))];
+        const draftStates = draftPhones.length ? await ContactState.find({ $or: [
+            { phoneDigits: { $in: draftPhones } },
+            { chatId: { $in: draftPhones.map((phone) => `${phone}@c.us`) } }
+        ] }, { phoneDigits: 1, chatId: 1, metadata: 1, customerDataResolution: 1 })
+            .sort({ updatedAt: -1 }).lean() : [];
+        const flags = enrichEcAdminDropiDraftFlagsV128(rawFlags, draftStates);
         const engagementStates = await ContactState.find({
             'conversationBucket.value': 'engagement'
         }, {
@@ -2354,7 +2373,7 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         });
     } catch (error) {
         console.error('Authorize Dropi EC submit error:', error);
-        res.status(500).json({ error: error.message || 'Failed to authorize Dropi EC submit' });
+        res.status(error.status || 500).json({ error: error.message || 'Failed to authorize Dropi EC submit', code: error.code || '' });
     }
 });
 
