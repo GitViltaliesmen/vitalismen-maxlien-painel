@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertEcPanelCustomerStatusPersistenceV123Manifest,
+    EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY
+} from '../../src/services/ecPanelCustomerStatusPersistenceV123Service.js';
+import {
     assertEcPanelCustomerPersistenceV122Manifest,
     EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY
 } from '../../src/services/ecPanelCustomerPersistenceV122Service.js';
@@ -40,6 +44,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecPanelCustomerStatusPersistenceV123 = assertEcPanelCustomerStatusPersistenceV123Manifest();
+const ecPanelCustomerStatusPersistenceV123Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY])
+    ? globalThis[EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY]
+    : [];
+globalThis[EC_PANEL_CUSTOMER_STATUS_PERSISTENCE_V123_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerStatusPersistenceV123Previous, ...ecPanelCustomerStatusPersistenceV123.overrides])
+];
+const ecPanelCustomerStatusPersistenceV123OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerStatusPersistenceV123OperationalPrevious, ...ecPanelCustomerStatusPersistenceV123.overrides])
+];
 const ecPanelCustomerPersistenceV122 = assertEcPanelCustomerPersistenceV122Manifest();
 const ecPanelCustomerPersistenceV122Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY])
     ? globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY]
@@ -171,3 +188,4 @@ await import('../../src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js')
 await import('../../src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV120.js');
 await import('../../src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js');
 await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js');
+await import('../../src/services/ecPanelCustomerStatusPersistenceFreezeRuntimeGuardV123.js');
