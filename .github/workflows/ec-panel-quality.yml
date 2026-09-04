@@ -5,6 +5,7 @@ on:
     paths:
       - .env.example
       - AGENTS.md
+      - ops/post-sale-next-eligible-v114
       - public/qr.html
       - public/leads-window.html
       - public/funnel-metrics.html
@@ -23,6 +24,7 @@ on:
       - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/ecManualDropiReleaseV119Service.js
       - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
       - src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js
       - src/services/panelReadStateService.js
@@ -81,6 +83,7 @@ on:
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
+      - tests/ec-manual-dropi-release-v119.test.mjs
       - tests/review-v17-v19-p1.test.mjs
       - tests/order-public-product-integrity-v20.test.mjs
       - tests/panel-call-dropi-safety.test.mjs
@@ -126,6 +129,7 @@ on:
     paths:
       - .env.example
       - AGENTS.md
+      - ops/post-sale-next-eligible-v114
       - public/qr.html
       - public/leads-window.html
       - public/funnel-metrics.html
@@ -144,6 +148,7 @@ on:
       - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/ecManualDropiReleaseV119Service.js
       - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
       - src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js
       - src/services/panelReadStateService.js
@@ -202,6 +207,7 @@ on:
       - tests/customer-form-intelligence.test.cjs
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
+      - tests/ec-manual-dropi-release-v119.test.mjs
       - tests/review-v17-v19-p1.test.mjs
       - tests/order-public-product-integrity-v20.test.mjs
       - tests/panel-call-dropi-safety.test.mjs

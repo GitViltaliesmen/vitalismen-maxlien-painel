@@ -30,8 +30,9 @@ fi
 if [[ "$action" == "observe" ]]; then
   [[ "$#" -eq 1 ]] || { echo "ERRO: uso: post-sale-next-eligible-v114 observe" >&2; exit 1; }
   release="$(basename "$current")"
+  successor="--import=$current/scripts/lib/ec-runtime-successor-v97-context.mjs"
   compat="--import=$current/scripts/lib/post-sale-next-eligible-source-compat-v113.mjs"
-  if [[ -n "${NODE_OPTIONS:-}" ]]; then export NODE_OPTIONS="$compat $NODE_OPTIONS"; else export NODE_OPTIONS="$compat"; fi
+  if [[ -n "${NODE_OPTIONS:-}" ]]; then export NODE_OPTIONS="$successor $compat $NODE_OPTIONS"; else export NODE_OPTIONS="$successor $compat"; fi
   cd "$current"
   exec "$current/ops/post-sale-next-eligible-v112" check "$release"
 fi
