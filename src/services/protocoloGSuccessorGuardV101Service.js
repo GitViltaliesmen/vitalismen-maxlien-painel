@@ -96,6 +96,7 @@ const evaluateSourceContract = () => {
     const v90 = readCanonicalJson('docs/freeze/ec-vsl-dashboard-ingress-v90-20260830.json', 'v90_manifest');
     const v98 = readCanonicalJson('docs/freeze/dropi-manual-bff-recovery-v98-20260902.json', 'v98_manifest');
     const v104 = readCanonicalJson('docs/freeze/dropi-manual-transport-v104-20260902.json', 'v104_manifest');
+    const v120 = readCanonicalJson('docs/freeze/ec-multiproduct-manual-release-v120-20260904.json', 'v120_manifest');
     const currentZapiHash = sha256File('src/routes/zapi.js');
     const successorOverrides = new Set([
         ...(globalThis[PROTOCOLO_G_SUCCESSOR_GUARD_V101_OVERRIDE_KEY] || []),
@@ -120,6 +121,9 @@ const evaluateSourceContract = () => {
     ) || (
         v104.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
         && v104.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
+    ) || (
+        v120.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
+        && v120.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
     );
     if (!browserIdentityAccepted) {
         failures.push('v98_dropi_browser_identity_missing');

@@ -1,0 +1,67 @@
+{
+  "attestationId": "ec-multiproduct-manual-release-v120-attestation-20260904",
+  "country": "EC",
+  "parentBaseline": "production-vitalismen-ec-dropi-manual-v119-20260904-r4",
+  "operatorAuthorization": {
+    "authenticatedContactUpsert": true,
+    "manualDropiProducts": [
+      "tex_ultra_ec",
+      "nitrix_ec",
+      "vit_power_ec"
+    ],
+    "targetRetryOrderId": "EC-RECOMPRA-MTKEFGCW-RZA8",
+    "singleRetryAfterFix": true
+  },
+  "preChangeReadOnlyAudit": {
+    "contactAlreadyExists": true,
+    "contactPostBlockedByV78": true,
+    "targetOrderAuthorized": true,
+    "targetOrderCreateRequestDispatched": false,
+    "targetOrderDropiIdFound": false,
+    "otherDropiOrdersSucceededInSameWindow": true
+  },
+  "authoritativeCatalog": [
+    {
+      "productKey": "tex_ultra_ec",
+      "productId": 110681,
+      "warehouseId": 1261,
+      "originCityId": 802
+    },
+    {
+      "productKey": "nitrix_ec",
+      "productId": 105825,
+      "warehouseId": 1544,
+      "originCityId": 802,
+      "quoteHttpStatus": 200,
+      "servientregaAvailable": true
+    },
+    {
+      "productKey": "vit_power_ec",
+      "productId": 103743,
+      "warehouseId": 1261,
+      "originCityId": 802,
+      "quoteHttpStatus": 200,
+      "servientregaAvailable": true
+    }
+  ],
+  "safety": {
+    "manualPerOrderAuthorizationRequired": true,
+    "singleCreatePostPerOperatorAction": true,
+    "automaticRetry": false,
+    "authoritativeLookupBeforeCreate": true,
+    "verifiedDropiOrderIdRequired": true,
+    "automaticDispatch": false,
+    "historicalBackfill": false,
+    "whatsappOutboundChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseSchemaChanged": false,
+    "otherCountryTouched": false
+  },
+  "effectsDuringPreChangeAudit": {
+    "dropiOrdersCreated": 0,
+    "whatsappMessagesSent": 0,
+    "metaEventsSent": 0,
+    "productionWrites": 0
+  }
+}
