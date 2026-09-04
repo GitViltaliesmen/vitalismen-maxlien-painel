@@ -159,8 +159,9 @@ const assertParentV121 = () => {
         throw new Error('[EC-PANEL-CUSTOMER-V122] parent_policy_invalid');
     }
     const modified = new Set(EC_PANEL_CUSTOMER_PERSISTENCE_V122_ANCESTOR_OVERRIDES);
+    const successorOverrides = new Set(globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
             throw new Error(`[EC-PANEL-CUSTOMER-V122] parent_protected_file_invalid:${relativePath}`);
         }

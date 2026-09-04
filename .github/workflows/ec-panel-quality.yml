@@ -434,8 +434,10 @@ jobs:
           node --test tests/review-v17-v19-p1.test.mjs tests/senior-guard-github-actions.test.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-dropi-total-resolution-v121.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/dropi-total-resolution-v121.test.mjs
-          node scripts/guard-ec-panel-customer-persistence-v122.mjs
-          node --test tests/ec-panel-customer-persistence-v122.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-ec-panel-customer-persistence-v122.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-customer-persistence-v122.test.mjs
+          node scripts/guard-ec-panel-customer-status-persistence-v123.mjs
+          node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
           VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
 
       - name: Confirm temporary environment cleanup

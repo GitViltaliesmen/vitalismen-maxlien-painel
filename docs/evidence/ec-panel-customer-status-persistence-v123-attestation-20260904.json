@@ -1,0 +1,38 @@
+{
+  "attestationId": "ec-panel-customer-status-persistence-v123-attestation-20260904",
+  "version": 123,
+  "date": "2026-09-04",
+  "incident": {
+    "symptom": "authenticated customer form still returned to novo after selecting a new status",
+    "observedRoute": "PATCH /api/whatsapp/contact-state/<chat>",
+    "observedHttpStatus": 500,
+    "observedOccurrences": 2,
+    "rootCause": "the handler attempted orders.insertOne before persisting ContactState; the V78 collection guard correctly blocked orders and aborted the primary save",
+    "productionEvidence": "ec_bot_core_mongo_write_blocked:orders.insertOne"
+  },
+  "correction": {
+    "primaryWrite": "ContactState.save",
+    "primaryWriteOrder": "before_optional_order_sync",
+    "optionalFailureCanFailPrimaryResponse": false,
+    "diagnosticSanitized": true
+  },
+  "scope": {
+    "allowedMongoCollections": [
+      "contactstates"
+    ],
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "validation": {
+    "saveBeforeOrderSyncTest": "required",
+    "secondaryFailureIsolationTest": "required",
+    "v122Regression": "required",
+    "seniorCheck": "required",
+    "productionQaPhoneSmoke": "required_after_deploy"
+  }
+}

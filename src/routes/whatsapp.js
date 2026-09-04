@@ -111,6 +111,7 @@ import {
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
+import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -5768,6 +5769,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
         const productBeforeSave = currentProductRouteForState(state).productKey;
         let productAfterSave = productBeforeSave;
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
+        let deferredOperationalOrderDraft = null;
         let customerDataBlockedResponse = null;
         state.human = {
             ...(state.human || {}),
@@ -6005,7 +6007,23 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 });
                 operationalOrderSync = { ok: false, skipped: true, reason: 'test_contact_no_dropi_or_meta' };
             } else if (!customerDataBlockedResponse && shouldCreateOperationalOrderFromDraft(cleanDraft, internalOrTest)) {
-                operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({ draft: cleanDraft, req, state });
+                deferredOperationalOrderDraft = cleanDraft;
+                operationalOrderSync = {
+                    ok: false,
+                    skipped: true,
+                    reason: 'deferred_until_customer_state_saved'
+                };
+            }
+        }
+        await state.save();
+        if (deferredOperationalOrderDraft) {
+            try {
+                const cleanDraft = deferredOperationalOrderDraft;
+                operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({
+                    draft: cleanDraft,
+                    req,
+                    state
+                });
                 if (operationalOrderSync?.orderId) {
                     state.metadata = {
                         ...(state.metadata || {}),
@@ -6022,10 +6040,13 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     if (operationalOrderSync.repurchase) {
                         state.metadata.customerDraft.currentNegotiationOrderId = operationalOrderSync.orderId;
                     }
+                    await state.save();
                 }
+            } catch (error) {
+                operationalOrderSync = customerStateSavedOrderSyncFailureV123(error);
+                console.warn(`[EC-PANEL-STATUS-V123] ficha/status salvos; sincronizacao opcional do pedido nao concluida: ${operationalOrderSync.reason}`);
             }
         }
-        await state.save();
         await registerPanelAction({
             state,
             action: 'produto_negociacao_alterado',
