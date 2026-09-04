@@ -15042,10 +15042,14 @@
                     throw new Error('A conversa nao foi localizada para marcar como lida.');
                 }
                 state.chats.forEach((item) => {
-                    if (sameChatIdentity(chat, item)) item.unreadCount = 0;
+                    if (sameChatIdentity(chat, item)) {
+                        item.unreadCount = 0;
+                        item.unansweredCount = 0;
+                    }
                 });
                 if (state.selectedChat && sameChatIdentity(chat, state.selectedChat)) {
                     state.selectedChat.unreadCount = 0;
+                    state.selectedChat.unansweredCount = 0;
                 }
                 renderChats();
                 renderOperationalMetrics();

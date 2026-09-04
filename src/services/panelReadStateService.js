@@ -14,8 +14,24 @@ export const panelLastReadMarkerSeconds = (states = []) => Math.max(0, ...(Array
             ? Math.floor(new Date(state.metadata.panelLastReadAt).getTime() / 1000)
             : 0;
         const messageTimestamp = Number(state?.metadata?.panelLastReadMessageTimestamp || 0);
-        return [Number.isFinite(dateSeconds) ? dateSeconds : 0, Number.isFinite(messageTimestamp) ? messageTimestamp : 0];
+        // Automatic handoffs also write lastManualAt. Accept it only when the
+        // actor matches the persisted operator assignment, never a bot handoff.
+        const human = state?.human || {};
+        const operatorAttendance = human.assignedTo && human.assignedName
+            && human.lastManualBy === human.assignedName;
+        const manualSeconds = operatorAttendance && human.lastManualAt
+            ? Math.floor(new Date(human.lastManualAt).getTime() / 1000)
+            : 0;
+        return [dateSeconds, messageTimestamp, manualSeconds].map((value) => Number.isFinite(value) ? value : 0);
     }));
+
+export const panelHandledThroughSeconds = ({ states = [], lastOutboundAt = 0, readThrough = 0 } = {}) => {
+    const contacts = Array.isArray(states) ? states : [states];
+    const outboundSeconds = contacts.map((state) => state?.lastOutboundAt
+        ? Math.floor(new Date(state.lastOutboundAt).getTime() / 1000) : 0);
+    return Math.max(panelLastReadMarkerSeconds(contacts), ...[readThrough, lastOutboundAt, ...outboundSeconds]
+        .map((value) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0));
+};
 
 export const panelReadIdentityQuery = ({ chatId = '', phone = '' } = {}) => {
     const rawChatId = String(chatId || '').trim();

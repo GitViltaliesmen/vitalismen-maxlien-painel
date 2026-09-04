@@ -1,0 +1,24 @@
+{
+  "id": "ec-conversation-handled-v129b",
+  "layer": "CONVERSATION_HANDLED_STATE",
+  "parentCommit": "40f9ddba7d00eec59fa1c322f684092d1a8c0560",
+  "parentManifestSha256": "59dac9ff72c81985e4bc5c3126ebb5ac85110e0a4cffb3b9da102ecf5cd8d45c",
+  "status": "candidate_not_approved_for_production",
+  "overrides": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecPanelCustomerPersistenceV122Service.js",
+    "src/services/panelReadStateService.js"
+  ],
+  "protectedFiles": {
+    "public/qr.html": "2564625b310d902e72011d792480ebfa0781f6b61f40fbf20cb6a1277cac6a10",
+    "scripts/guard-ec-conversation-handled-v129b.mjs": "80ff5094391104f5c98e922f5ca20fa1ae6b3a313327358a4afff7f4a2bddc82",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "a20fcf2acf3100870388895ed0ad98a3c2043e0fdfcee0696393a55ef7d7f12f",
+    "src/routes/whatsapp.js": "9495d97b64271069bb9363bdc8cca9f94a59ad28a7d0156b01e91c61dc479a5b",
+    "src/services/ecPanelCustomerPersistenceV122Service.js": "937b869b542a2a3347fc5de17d4bfbc941bfe4ddda87ca85bdc5beb62ccddd6a",
+    "src/services/panelReadStateService.js": "4e52b6e482ee4376e63f4bb270c5a901096811fbbc14a0a254dd80e4ab57f914",
+    "tests/ec-conversation-handled-v129b.test.mjs": "725adac8bc3ff13ceb93faba60459b1ef57153f5e85f650bb3c2f89c3cc01a2d"
+  },
+  "bundleSha256": "0493063589ebca5de16da9a90c16b1f8e757b9b44363201ea0389f7452cb9c3d"
+}

@@ -54,6 +54,9 @@ export const resolveEcPanelCustomerPersistenceV122Configuration = (env = process
 export const ecPanelCustomerPersistenceV122Operation = ({ method = '', path: route = '' } = {}) => {
     const normalizedMethod = clean(method).toUpperCase();
     const routePath = normalizedPath(route);
+    if (normalizedMethod === 'POST' && routePath === '/api/whatsapp/chats/read') {
+        return 'authenticated-customer-state-persist';
+    }
     if (
         normalizedMethod === 'POST'
         && /^\/api\/whatsapp\/contact-state\/[^/]+\/resolve-customer-data$/.test(routePath)
