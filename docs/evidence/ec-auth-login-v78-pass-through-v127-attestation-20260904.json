@@ -1,0 +1,36 @@
+{
+  "attestationId": "ec-auth-login-v78-pass-through-v127-attestation-20260904",
+  "version": 127,
+  "date": "2026-09-04",
+  "finding": {
+    "blockedRequest": "POST /api/auth/login",
+    "blockingLayer": "ecBotCoreMutationRouteGuardV78 before existing auth router",
+    "observedResponse": "423 ec_bot_core_v78_operation_blocked",
+    "correction": "allow only the exact existing login request and its existing users.updateOne bookkeeping"
+  },
+  "scope": {
+    "exactMethod": "POST",
+    "exactPath": "/api/auth/login",
+    "genericAuthRoutesAllowed": false,
+    "allowedMongoCollection": "users",
+    "allowedMongoMethod": "updateOne",
+    "writeContextEnabled": false,
+    "authenticationImplementationChanged": false,
+    "externalEffectsAllowed": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false,
+    "productionMutationAuthorized": false
+  },
+  "validation": {
+    "validCredentials": "required",
+    "invalidCredentials": "required",
+    "missingCredentials": "required",
+    "rateLimiter": "required",
+    "validJwt": "required",
+    "invalidJwt": "required",
+    "unauthorizedMutations": "required",
+    "adjacentAuthRoutes": "required",
+    "seniorCheck": "required",
+    "staging": "required_before_operator_approval"
+  }
+}

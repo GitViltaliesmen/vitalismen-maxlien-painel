@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertEcAuthLoginV78PassThroughV127Manifest,
+    EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY
+} from '../../src/services/ecAuthLoginV78PassThroughV127Service.js';
+import {
     assertEcPanelStatusStateLayerV125Manifest,
     EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY
 } from '../../src/services/ecPanelStatusStateLayerV125Service.js';
@@ -52,6 +56,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecAuthLoginV127 = assertEcAuthLoginV78PassThroughV127Manifest();
+const ecAuthLoginV127Previous = Array.isArray(globalThis[EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY])
+    ? globalThis[EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY]
+    : [];
+globalThis[EC_AUTH_LOGIN_V78_PASS_THROUGH_V127_OVERRIDE_KEY] = [
+    ...new Set([...ecAuthLoginV127Previous, ...ecAuthLoginV127.overrides])
+];
+const ecAuthLoginV127OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...ecAuthLoginV127OperationalPrevious, ...ecAuthLoginV127.overrides])
+];
 const ecPanelStatusStateLayerV125 = assertEcPanelStatusStateLayerV125Manifest();
 const ecPanelStatusStateLayerV125Previous = Array.isArray(globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY])
     ? globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY]
@@ -225,3 +242,4 @@ await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV12
 await import('../../src/services/ecPanelCustomerStatusPersistenceFreezeRuntimeGuardV123.js');
 await import('../../src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js');
 await import('../../src/services/ecPanelStatusStateLayerFreezeRuntimeGuardV125.js');
+await import('../../src/services/ecAuthLoginV78PassThroughFreezeRuntimeGuardV127.js');

@@ -1,0 +1,64 @@
+{
+  "freezeId": "ec-auth-login-v78-pass-through-v127",
+  "version": 127,
+  "parentVersion": "V125_PRODUCTION_BASELINE",
+  "parentFreezeId": "ec-panel-status-state-layer-v125",
+  "parentManifestSha256": "b62f84f9940f0e4fa9e911f79254bdfe40f8a9f3a346002d46add2910a33f2d7",
+  "parentCommit": "475ab887656bbb8865f3c16e42bec0d63e9421a6",
+  "parentTree": "9cc5f631db2d2cf1925d82703478cdda18921386",
+  "purpose": "ALLOW_EXACT_EXISTING_PANEL_LOGIN_THROUGH_V78",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "local_candidate_pending_staging_and_auth_approval",
+  "country": "EC",
+  "policy": {
+    "exactMethod": "POST",
+    "exactPath": "/api/auth/login",
+    "genericAuthRoutesAllowed": false,
+    "allowedMongoCollection": "users",
+    "allowedMongoMethod": "updateOne",
+    "writeContextEnabled": false,
+    "authenticationImplementationChanged": false,
+    "externalEffectsAllowed": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false,
+    "productionMutationAuthorized": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-auth-login-v78-pass-through-v127-attestation-20260904.json",
+    "sha256": "9071388479348e1fc0f45f2286a8aef777a7c12ae80589b3d491c521038f9d0e"
+  },
+  "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    ".github/workflows/ec-panel-quality.yml",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_AUTH_LOGIN_V78_PASS_THROUGH_FREEZE_V127_20260904.md",
+    "docs/evidence/ec-auth-login-v78-pass-through-v127-attestation-20260904.json",
+    "scripts/guard-ec-auth-login-v78-pass-through-v127.mjs",
+    "src/services/ecAuthLoginV78PassThroughFreezeRuntimeGuardV127.js",
+    "src/services/ecAuthLoginV78PassThroughV127Service.js",
+    "tests/ec-auth-login-v78-pass-through.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "fa409549a89565c82bf98ea483ffb8976a58bcd64b479cbc057f67f240171412",
+    "docs/EC_AUTH_LOGIN_V78_PASS_THROUGH_FREEZE_V127_20260904.md": "8f88681afda1c73b93c246361ec5ece3a83a523658d1838f36fe41a321d59b3b",
+    "docs/evidence/ec-auth-login-v78-pass-through-v127-attestation-20260904.json": "9071388479348e1fc0f45f2286a8aef777a7c12ae80589b3d491c521038f9d0e",
+    "scripts/guard-ec-auth-login-v78-pass-through-v127.mjs": "d427d1d41d33096912a09693e46f3c227f262a95d6652d2f0d6f5fc208aa0805",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "c9e82303c31c23d818856bb33f9f5fd200a867a00546213a535b326f46b186ec",
+    "src/services/ecAuthLoginV78PassThroughFreezeRuntimeGuardV127.js": "9a804cd77f3b7552a189f3bbf38ff63b74f4500c378d6bdc6188a594de71d417",
+    "src/services/ecAuthLoginV78PassThroughV127Service.js": "e81a627965e767b9d487890cdcebc8e6291b34dd059d4da660507edbbde5a305",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "7b7ff298be8f7ea0d26c62519db6cef073968b31a4382c323725eac6d35ac2e9",
+    "tests/ec-auth-login-v78-pass-through.test.mjs": "7403b4d2db3c8efaee00b10afb233ae3859e5a71e75f19da73b30ab8704fb4de"
+  },
+  "logicalBundle": {
+    "algorithm": "sha256(path\\0sha256\\n)",
+    "sha256": "575891f3e0d5ab3480c13dc1bb885a58a309997b58ff44c650340409320eb759"
+  },
+  "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T051254Z_production-20260904-475ab88"
+}
