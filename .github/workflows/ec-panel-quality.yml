@@ -25,6 +25,8 @@ on:
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
       - src/services/ecManualDropiReleaseV119Service.js
+      - src/services/dropiTotalResolutionV121Service.js
+      - src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js
       - src/services/orderPublicProductIntegrityFreezeRuntimeGuardV20.js
       - src/services/panelCallDropiSafetyFreezeRuntimeGuardV21.js
       - src/services/panelReadStateService.js
@@ -84,6 +86,7 @@ on:
       - tests/funnel-metrics-*.test.mjs
       - tests/manual-quick-funnel.test.cjs
       - tests/ec-manual-dropi-release-v119.test.mjs
+      - tests/dropi-total-resolution-v121.test.mjs
       - tests/review-v17-v19-p1.test.mjs
       - tests/order-public-product-integrity-v20.test.mjs
       - tests/panel-call-dropi-safety.test.mjs
@@ -99,6 +102,10 @@ on:
       - tests/whatsapp-chat-read-persistence-v22.test.mjs
       - tests/senior-guard-github-actions.test.mjs
       - docs/ARQUITETURA_AUTOMACAO_OFICIAL.md
+      - docs/DROPI_TOTAL_RESOLUTION_FREEZE_V121_20260904.md
+      - docs/freeze/dropi-total-resolution-v121-20260904.json
+      - docs/evidence/dropi-total-resolution-v121-attestation-20260904.json
+      - scripts/guard-dropi-total-resolution-v121.mjs
       - docs/ARQUIVOS_OFICIAIS.md
       - docs/PANEL_CALL_DROPI_SAFETY_FREEZE_V21_20260817.md
       - docs/TEX_ULTRA_ENTRY_UNREAD_FREEZE_V22_20260818.md
@@ -411,6 +418,8 @@ jobs:
           npm run guard:ec-tex-ultra
           npm run guard:freeze-lock
           node --test tests/review-v17-v19-p1.test.mjs tests/senior-guard-github-actions.test.mjs
+          node scripts/guard-dropi-total-resolution-v121.mjs
+          node --test tests/dropi-total-resolution-v121.test.mjs
           VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
 
       - name: Confirm temporary environment cleanup

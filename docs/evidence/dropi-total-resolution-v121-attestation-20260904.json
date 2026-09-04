@@ -1,0 +1,70 @@
+{
+  "attestationId": "dropi-total-resolution-v121-attestation-20260904",
+  "country": "EC",
+  "parentBaseline": "production-vitalismen-ec-dropi-multiproduct-v120-20260904-r1",
+  "readOnlyProductionAudit": {
+    "currentRelease": "/opt/vitalismen-automacao/releases/20260904T012902Z_production-20260904-c7f44ed",
+    "pm2OnlineAndBoundToCurrent": true,
+    "localHealthHttpStatus": 200,
+    "publicHealthHttpStatus": 200,
+    "zapiConnected": true,
+    "v114TimerActiveAndLastResultSuccess": true,
+    "v116TimerActiveAndLastResultSuccess": true,
+    "submittedShipmentsWithDropiId": 165,
+    "submittedShipmentsMissingDropiId": 0,
+    "confirmedStatusProjectionGap": true
+  },
+  "authoritativeCatalog": [
+    {
+      "productKey": "tex_ultra_ec",
+      "productId": 110681,
+      "warehouseId": 1261,
+      "originCityId": 802,
+      "availableStockObserved": 773
+    },
+    {
+      "productKey": "nitrix_ec",
+      "productId": 105825,
+      "warehouseId": 1544,
+      "originCityId": 802,
+      "availableStockObserved": 214
+    },
+    {
+      "productKey": "vit_power_ec",
+      "productId": 103743,
+      "warehouseId": 1261,
+      "originCityId": 802,
+      "availableStockObserved": 1999
+    }
+  ],
+  "externalStatusesObserved": [
+    "PENDIENTE",
+    "INGRESANDO OPERATIVO A",
+    "INGRESANDO DE RECOLECCION A",
+    "PARA RETIRO EN AGENCIA SERVIENTREGA",
+    "ENTREGADO",
+    "DEVOLUCION",
+    "CANCELADO",
+    "RECHAZADO"
+  ],
+  "safety": {
+    "manualPerOrderAuthorizationRequired": true,
+    "authoritativeLookupBeforeCreate": true,
+    "oneCreatePostPerOperatorAction": true,
+    "automaticRetry": false,
+    "historicalBackfill": false,
+    "massDispatch": false,
+    "whatsappOutboundChanged": false,
+    "postSaleArchitectureChanged": false,
+    "metaChanged": false,
+    "databaseSchemaChanged": false,
+    "otherCountryTouched": false
+  },
+  "effectsDuringAuditAndValidation": {
+    "dropiOrdersCreated": 0,
+    "historicalOrdersUpdated": 0,
+    "whatsappMessagesSent": 0,
+    "metaEventsSent": 0,
+    "productionWrites": 0
+  }
+}

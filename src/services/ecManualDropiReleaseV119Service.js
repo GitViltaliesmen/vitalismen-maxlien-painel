@@ -152,7 +152,13 @@ const assertParentV118 = () => {
         || parent.policy?.metaMutationAllowed !== false) {
         throw new Error('[EC-MANUAL-DROPI-V119] parent_policy_invalid');
     }
-    const modified = new Set(EC_MANUAL_DROPI_RELEASE_V119_ANCESTOR_OVERRIDES);
+    const successorOverrides = Array.isArray(globalThis[EC_MANUAL_DROPI_RELEASE_V119_OVERRIDE_KEY])
+        ? globalThis[EC_MANUAL_DROPI_RELEASE_V119_OVERRIDE_KEY]
+        : [];
+    const modified = new Set([
+        ...EC_MANUAL_DROPI_RELEASE_V119_ANCESTOR_OVERRIDES,
+        ...successorOverrides
+    ]);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
         if (modified.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {

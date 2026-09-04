@@ -357,7 +357,7 @@ router.get('/', authMiddleware, async (req, res) => {
             query['reviewQueue.status'] = review;
         }
         if (status === 'dropi_pipeline') {
-            query.status = { $in: ['confirmed', 'processing', 'shipped', 'delivered'] };
+            query.status = { $in: ['confirmed', 'processing', 'shipped', 'delivered', 'returned', 'cancelled'] };
             if (!review) {
                 andConditions.push({
                     $or: [
