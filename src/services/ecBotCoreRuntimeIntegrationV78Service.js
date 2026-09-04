@@ -11,6 +11,10 @@ import {
 } from './ecBotCoreOperationalV78Service.js';
 import { ecPanelRuntimeRecoveryV115RouteDecision } from './ecPanelRuntimeRecoveryV115Service.js';
 import {
+    ecPanelCustomerPersistenceV122MongoAllowed,
+    ecPanelCustomerPersistenceV122RouteDecision
+} from './ecPanelCustomerPersistenceV122Service.js';
+import {
     ecManualDropiReleaseV119ExternalEffectAllowed,
     ecManualDropiReleaseV119MongoAllowed,
     ecManualDropiReleaseV119RouteDecision
@@ -248,22 +252,33 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const multiproductDecision = baseDecision.allowed || panelDecision.allowed || manualDropiDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_multiproduct_v120_not_needed' })
         : ecMultiproductManualReleaseV120RouteDecision({ method, path, env });
+    const customerPersistenceDecision = baseDecision.allowed || panelDecision.allowed
+        || manualDropiDecision.allowed || multiproductDecision.allowed
+        ? Object.freeze({ allowed: false, reason: 'ec_panel_customer_v122_not_needed', operation: '' })
+        : ecPanelCustomerPersistenceV122RouteDecision({ method, path, env });
     const decision = baseDecision.allowed
         ? baseDecision
         : panelDecision.allowed
             ? panelDecision
             : manualDropiDecision.allowed
                 ? manualDropiDecision
-                : multiproductDecision;
+                : multiproductDecision.allowed
+                    ? multiproductDecision
+                    : customerPersistenceDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
-    const writeContext = method === 'POST'
+    const writeContext = (
+        method === 'POST'
         && [
             'bot_core_route_allowed',
             'ec_panel_v115_route_allowed',
             'ec_manual_dropi_v119_route_allowed',
             'ec_multiproduct_v120_route_allowed'
-        ].includes(decision.reason);
+        ].includes(decision.reason)
+    ) || (
+        decision.reason === 'ec_panel_customer_v122_route_allowed'
+        && ['POST', 'PATCH'].includes(method)
+    );
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
         method,
@@ -272,6 +287,10 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         manualDropiV119: decision.reason === 'ec_manual_dropi_v119_route_allowed',
         manualDropiOperation: decision.operation || '',
         panelContactV120: decision.reason === 'ec_multiproduct_v120_route_allowed',
+        panelCustomerPersistenceV122: decision.reason === 'ec_panel_customer_v122_route_allowed',
+        panelCustomerPersistenceOperation: decision.reason === 'ec_panel_customer_v122_route_allowed'
+            ? decision.operation || ''
+            : '',
         startedAt: new Date().toISOString()
     }, async () => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });
@@ -377,7 +396,18 @@ const patchMongoPrototype = (prototype) => {
                         context,
                         env: process.env
                     });
-                    if (!configuration.ready || !context?.writeContext || (!baseCollectionAllowed && !manualDropiCollectionAllowed)) {
+                    const panelCustomerCollectionAllowed = ecPanelCustomerPersistenceV122MongoAllowed({
+                        method: context?.method,
+                        path: context?.path,
+                        collection,
+                        context,
+                        env: process.env
+                    });
+                    const collectionAllowed = context?.panelCustomerPersistenceV122 === true
+                        ? panelCustomerCollectionAllowed
+                        : (baseCollectionAllowed || manualDropiCollectionAllowed);
+                    if (!configuration.ready || !context?.writeContext
+                        || !collectionAllowed) {
                         const error = new Error(`ec_bot_core_mongo_write_blocked:${collection || 'unknown'}.${method}`);
                         error.code = EC_BOT_CORE_V78_OPERATION_BLOCKED;
                         error.statusCode = 423;

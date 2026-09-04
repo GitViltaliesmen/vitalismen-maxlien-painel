@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertEcPanelCustomerPersistenceV122Manifest,
+    EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY
+} from '../../src/services/ecPanelCustomerPersistenceV122Service.js';
+import {
     assertDropiTotalResolutionV121Manifest,
     DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY
 } from '../../src/services/dropiTotalResolutionV121Service.js';
@@ -36,6 +40,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecPanelCustomerPersistenceV122 = assertEcPanelCustomerPersistenceV122Manifest();
+const ecPanelCustomerPersistenceV122Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY])
+    ? globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY]
+    : [];
+globalThis[EC_PANEL_CUSTOMER_PERSISTENCE_V122_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerPersistenceV122Previous, ...ecPanelCustomerPersistenceV122.overrides])
+];
+const ecPanelCustomerPersistenceV122OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelCustomerPersistenceV122OperationalPrevious, ...ecPanelCustomerPersistenceV122.overrides])
+];
 const dropiTotalResolutionV121 = assertDropiTotalResolutionV121Manifest();
 const dropiTotalResolutionV121Previous = Array.isArray(globalThis[DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY])
     ? globalThis[DROPI_TOTAL_RESOLUTION_V121_OVERRIDE_KEY]
@@ -153,3 +170,4 @@ await import('../../src/services/panelWarmupIsolationFreezeRuntimeGuardV118.js')
 await import('../../src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js');
 await import('../../src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV120.js');
 await import('../../src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js');
+await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js');

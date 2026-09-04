@@ -1,0 +1,35 @@
+{
+  "attestationId": "ec-panel-customer-persistence-v122-attestation-20260904",
+  "version": 122,
+  "date": "2026-09-04",
+  "incident": {
+    "symptom": "authenticated customer form returned to novo and did not persist the operator edit",
+    "observedRoute": "POST /api/whatsapp/contact-state/<chat>/resolve-customer-data",
+    "observedHttpStatus": 423,
+    "observedOccurrences": 6,
+    "rootCause": "V78 mutation guard denied the customer-data preview before the existing PATCH persistence route ran",
+    "databaseFinding": "existing customer name, phone, city, province and product remained intact; attempted status edit was not written"
+  },
+  "scope": {
+    "allowedOperations": [
+      "authenticated-customer-data-preview",
+      "authenticated-customer-state-persist"
+    ],
+    "allowedMongoCollections": [
+      "contactstates"
+    ],
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false
+  },
+  "validation": {
+    "routeDecisionTests": "required",
+    "authenticationOrderingTest": "required",
+    "mongoScopeTest": "required",
+    "seniorCheck": "required",
+    "productionQaPhoneSmoke": "required_after_deploy"
+  }
+}
