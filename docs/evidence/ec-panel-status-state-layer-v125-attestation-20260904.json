@@ -1,0 +1,28 @@
+{
+  "attestationId": "ec-panel-status-state-layer-v125-attestation-20260904",
+  "version": 125,
+  "date": "2026-09-04",
+  "finding": {
+    "remainingPath": "confirmed status with incomplete logistics was rejected in the browser before customer-state persistence",
+    "risk": "the selected status returned visually to the previous value even though status and order readiness are separate concerns",
+    "correction": "persist operator-selected customer status and report incomplete order readiness as a nonfatal blocked layer"
+  },
+  "scope": {
+    "operatorStatusAlwaysPersists": true,
+    "incompleteOrderRemainsBlocked": true,
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "validation": {
+    "partialConfirmedStateRegression": "required",
+    "blockedOrderRegression": "required",
+    "v124Regression": "required",
+    "seniorCheck": "required",
+    "productionQaPhoneSmoke": "required_after_deploy"
+  }
+}

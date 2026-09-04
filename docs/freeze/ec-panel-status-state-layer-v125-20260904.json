@@ -1,0 +1,71 @@
+{
+  "freezeId": "ec-panel-status-state-layer-v125",
+  "version": 125,
+  "parentVersion": "V124_PRODUCTION_BASELINE",
+  "parentFreezeId": "ec-panel-customer-state-only-v124",
+  "parentManifestSha256": "54ddabf105a37641457c0f8e74e3ba6f716220d2c7787d25f5ea03cbf0bb756a",
+  "parentCommit": "264e9715a33c89e81e40f998dc69647bbaee072e",
+  "parentTree": "568588fc92c19227c3962578d9059eebdb259521",
+  "purpose": "PERSIST_OPERATOR_STATUS_WHILE_BLOCKING_INCOMPLETE_ORDER",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_operator_pending_staging",
+  "country": "EC",
+  "policy": {
+    "operatorStatusAlwaysPersists": true,
+    "incompleteOrderRemainsBlocked": true,
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-panel-status-state-layer-v125-attestation-20260904.json",
+    "sha256": "9c6b99d324ac212d615639df3a8fb368aab9299743920df321fe779aaf4b3da8"
+  },
+  "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecPanelCustomerStateOnlyV124Service.js",
+    "tests/ec-panel-customer-status-persistence-v123.test.mjs"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecPanelCustomerStateOnlyV124Service.js",
+    "tests/ec-panel-customer-status-persistence-v123.test.mjs"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_PANEL_STATUS_STATE_LAYER_FREEZE_V125_20260904.md",
+    "docs/evidence/ec-panel-status-state-layer-v125-attestation-20260904.json",
+    "scripts/guard-ec-panel-status-state-layer-v125.mjs",
+    "src/services/ecPanelStatusStateLayerFreezeRuntimeGuardV125.js",
+    "src/services/ecPanelStatusStateLayerV125Service.js",
+    "tests/ec-panel-status-state-layer-v125.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "cceddf94e688d1ead48f460e9e5122ab1cecedd15cb932bbfef5888d85a54d4b",
+    "docs/EC_PANEL_STATUS_STATE_LAYER_FREEZE_V125_20260904.md": "7499d2e166933d127cfd820c537b2ab5921b92a7b0e09668000a97225bb34267",
+    "docs/evidence/ec-panel-status-state-layer-v125-attestation-20260904.json": "9c6b99d324ac212d615639df3a8fb368aab9299743920df321fe779aaf4b3da8",
+    "public/qr.html": "cf96628dffbd8c75746f9d318df0c499afb60ceec715cf60b28e904544585bd6",
+    "scripts/guard-ec-panel-status-state-layer-v125.mjs": "40744e1bcf81993c3c1eec9ff5ca2f7c1f43765738a6c63ed47180358905a4af",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "308a9c1adfdb82c1a08655e1127b3b9ef2081a305e6894506468aee9d0f49c3c",
+    "src/routes/whatsapp.js": "d322dafd3fa933645edc99f01b893a1b6b0fb1318203d78a1fb3210238d8ea37",
+    "src/services/ecPanelCustomerStateOnlyV124Service.js": "72e5e1893548042073f80b4d60ec95fda909753320928e712e257b6dc30ea079",
+    "src/services/ecPanelStatusStateLayerFreezeRuntimeGuardV125.js": "ee4299832ecfaf26b4f2fa2879867a25b9ca3f95eb1ce5a978f60ba67859d417",
+    "src/services/ecPanelStatusStateLayerV125Service.js": "6253aa6a89d7d029ea029964543fa45bb6ab9a9ff9bdfca1b30e801d027f6085",
+    "tests/ec-panel-customer-status-persistence-v123.test.mjs": "1b860a0bc1a16d527f304dd7341be6a679563107ab53e6e8ee096033841dfa3f",
+    "tests/ec-panel-status-state-layer-v125.test.mjs": "a6212d969dcad2be8a413b740c808bb55ecddd0dd20d9953672551cca557f3cc"
+  },
+  "logicalBundle": {
+    "algorithm": "sha256(path\\0sha256\\n)",
+    "sha256": "8841bfe99bcd959af47a7576c69eacd03c08b5efb2e32d6d2b75a0efff65d09f"
+  },
+  "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T045139Z_production-20260904-264e971"
+}

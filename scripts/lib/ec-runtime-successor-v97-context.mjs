@@ -1,5 +1,9 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import {
+    assertEcPanelStatusStateLayerV125Manifest,
+    EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY
+} from '../../src/services/ecPanelStatusStateLayerV125Service.js';
+import {
     assertEcPanelCustomerStateOnlyV124Manifest,
     EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY
 } from '../../src/services/ecPanelCustomerStateOnlyV124Service.js';
@@ -48,6 +52,19 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const ecPanelStatusStateLayerV125 = assertEcPanelStatusStateLayerV125Manifest();
+const ecPanelStatusStateLayerV125Previous = Array.isArray(globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY])
+    ? globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY]
+    : [];
+globalThis[EC_PANEL_STATUS_STATE_LAYER_V125_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelStatusStateLayerV125Previous, ...ecPanelStatusStateLayerV125.overrides])
+];
+const ecPanelStatusStateLayerV125OperationalPrevious = Array.isArray(globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY])
+    ? globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]
+    : [];
+globalThis[EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY] = [
+    ...new Set([...ecPanelStatusStateLayerV125OperationalPrevious, ...ecPanelStatusStateLayerV125.overrides])
+];
 const ecPanelCustomerStateOnlyV124 = assertEcPanelCustomerStateOnlyV124Manifest();
 const ecPanelCustomerStateOnlyV124Previous = Array.isArray(globalThis[EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY])
     ? globalThis[EC_PANEL_CUSTOMER_STATE_ONLY_V124_OVERRIDE_KEY]
@@ -207,3 +224,4 @@ await import('../../src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js')
 await import('../../src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js');
 await import('../../src/services/ecPanelCustomerStatusPersistenceFreezeRuntimeGuardV123.js');
 await import('../../src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js');
+await import('../../src/services/ecPanelStatusStateLayerFreezeRuntimeGuardV125.js');

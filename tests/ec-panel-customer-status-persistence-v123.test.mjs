@@ -43,7 +43,9 @@ test('PATCH persiste ContactState antes de tentar sincronizar pedido confirmado'
     const defer = handler.indexOf('deferredOperationalOrderDraft = cleanDraft');
     const primarySave = handler.indexOf('await state.save();');
     const optionalOrderSync = handler.indexOf('operationalOrderSync = await ensureOperationalOrderForConfirmedDraft');
-    const response = handler.indexOf('res.json({ success: true, state, unifiedSync, operationalOrderSync })');
+    const directResponse = handler.indexOf('res.json({ success: true, state, unifiedSync, operationalOrderSync })');
+    const successorResponse = handler.indexOf('res.json(customerStateResponseV125');
+    const response = Math.max(directResponse, successorResponse);
     assert.ok(defer >= 0 && primarySave > defer);
     assert.ok(optionalOrderSync > primarySave);
     assert.ok(response > optionalOrderSync);
