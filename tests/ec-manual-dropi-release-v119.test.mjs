@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import test from 'node:test';
 
@@ -220,4 +221,19 @@ test('V119 valida manifesto e mantém automações fora do escopo', () => {
         v114Compat.indexOf('ec-runtime-successor-v97-context.mjs')
             < v114Compat.indexOf('post-sale-next-eligible-source-compat-v113.mjs')
     );
+});
+
+test('preload sucessor V119 preserva stdout JSON para o observador V114', () => {
+    const result = spawnSync(process.execPath, [
+        '--import=./scripts/lib/ec-runtime-successor-v97-context.mjs',
+        '-e',
+        'process.stdout.write(JSON.stringify({ ok: true }))'
+    ], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        env: { ...process.env, NODE_OPTIONS: '' }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '{"ok":true}');
+    assert.match(result.stderr, /EC-MANUAL-DROPI-V119/);
 });
