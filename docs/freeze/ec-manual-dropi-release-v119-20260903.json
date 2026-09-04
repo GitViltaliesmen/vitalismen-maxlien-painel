@@ -30,7 +30,7 @@
   "logicalBundle": {
     "algorithm": "SHA-256",
     "format": "sorted-relative-path-NUL-file-sha256-LF",
-    "sha256": "f8a9d679169f7a78c53354157551b79f3612a6be602b43f67abd9425b0bb420b"
+    "sha256": "dcbe1290445d901421d7e8eab196546bb6fff2ce34d8aed2d13a1f6923858b50"
   },
   "declaredAncestorOverrides": [
     ".github/workflows/ec-panel-quality.yml",
@@ -68,8 +68,8 @@
     "src/routes/shipments.js": "86936454fc7a9bbc02897744401344b6b9c64a8682d8aa2d51084e2b71ea0388",
     "src/services/canaryIsolationV75Service.js": "6a120e69fa1849a182e495020a8cd5ed1afb758923814c453022f2810cb51bdc",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "f0f2025ff43995d22d68e9879103a71b49d27c701f40f89a8c305829995ebedb",
-    "src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js": "f160f3943c6a3659de5d29fbf79df9eb10bed06ca957477bebfc17df9352fdfc",
+    "src/services/ecManualDropiReleaseFreezeRuntimeGuardV119.js": "0ff5d9afc746abbd491b861b6fd067e7134b84c17f4293fe982019ce31f06ddd",
     "src/services/ecManualDropiReleaseV119Service.js": "d476a79b620389ba8805d4858e8b1625d40556e9e055b3ad65fbca69bd3e8702",
-    "tests/ec-manual-dropi-release-v119.test.mjs": "c4c3fa53b7e8e8dab708985139b6685a6e323f27695acbbd018a0621474b78d8"
+    "tests/ec-manual-dropi-release-v119.test.mjs": "045c2803c67eba368e98a547fa1fc0e4e4a30418e64862334afa29cc254d9027"
   }
 }

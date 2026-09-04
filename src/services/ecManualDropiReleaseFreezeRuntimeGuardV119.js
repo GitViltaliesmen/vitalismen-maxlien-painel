@@ -2,4 +2,4 @@ import { assertEcManualDropiReleaseV119Manifest } from './ecManualDropiReleaseV1
 
 assertEcManualDropiReleaseV119Manifest();
 
-console.log('[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente íntegros.');
+console.error('[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente íntegros.');
