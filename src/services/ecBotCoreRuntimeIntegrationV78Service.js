@@ -32,6 +32,7 @@ import {
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
 export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
+export const EC_AUTH_LOGIN_V78_PATH = '/api/auth/login';
 export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
     'contactstates',
     'messages',
@@ -43,6 +44,11 @@ export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
 const runtimeContext = new AsyncLocalStorage();
 const clean = (value = '') => String(value ?? '').trim();
 const digits = (value = '') => clean(value).replace(/\D/g, '');
+
+export const isExactEcAuthLoginV78Request = ({ method = '', path = '' } = {}) => (
+    clean(method).toUpperCase() === 'POST'
+    && String(path ?? '').split('?')[0] === EC_AUTH_LOGIN_V78_PATH
+);
 
 const httpBlocked = (res, reason, method, path) => res.status(423).json({
     ok: false,
@@ -238,10 +244,21 @@ export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore()
 export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const env = process.env;
     if (!ecBotCoreV78Requested(env)) return next();
-    const path = String(req.originalUrl || req.path || req.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const requestPath = String(req.originalUrl || req.path || req.url || '').split('?')[0] || '/';
+    const path = requestPath.replace(/\/+$/, '') || '/';
     const method = String(req.method || '').trim().toUpperCase();
     const configuration = resolveEcBotCoreV78Configuration(env);
     if (!configuration.ready) return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
+    if (isExactEcAuthLoginV78Request({ method, path: requestPath })) {
+        return runtimeContext.run({
+            profile: EC_BOT_CORE_V78_MODE,
+            method,
+            path: requestPath,
+            writeContext: false,
+            authLoginV78: true,
+            startedAt: new Date().toISOString()
+        }, () => next());
+    }
     const baseDecision = ecBotCoreV78RouteDecision({ method, path, env });
     const panelDecision = baseDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_panel_v115_not_needed' })
@@ -406,8 +423,13 @@ const patchMongoPrototype = (prototype) => {
                     const collectionAllowed = context?.panelCustomerPersistenceV122 === true
                         ? panelCustomerCollectionAllowed
                         : (baseCollectionAllowed || manualDropiCollectionAllowed);
-                    if (!configuration.ready || !context?.writeContext
-                        || !collectionAllowed) {
+                    const authLoginBookkeepingAllowed = context?.authLoginV78 === true
+                        && isExactEcAuthLoginV78Request(context)
+                        && collection === 'users'
+                        && method === 'updateOne';
+                    if (!configuration.ready || (!authLoginBookkeepingAllowed && (
+                        !context?.writeContext || !collectionAllowed
+                    ))) {
                         const error = new Error(`ec_bot_core_mongo_write_blocked:${collection || 'unknown'}.${method}`);
                         error.code = EC_BOT_CORE_V78_OPERATION_BLOCKED;
                         error.statusCode = 423;
