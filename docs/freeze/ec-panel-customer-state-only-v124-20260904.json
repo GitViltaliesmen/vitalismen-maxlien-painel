@@ -1,0 +1,65 @@
+{
+  "freezeId": "ec-panel-customer-state-only-v124",
+  "version": 124,
+  "parentVersion": "V123_PRODUCTION_BASELINE",
+  "parentFreezeId": "ec-panel-customer-status-persistence-v123",
+  "parentManifestSha256": "4794ae09a6c4b6ad4f65170e858a06f6243bb17c8d59d6f7b9144aa409d59563",
+  "parentCommit": "bc0164b9628a62d05e7a066ac2b1c5974e0181ef",
+  "parentTree": "4c87550546aef88d2b33a09d739f0ce9094b1873",
+  "purpose": "SEPARATE_CUSTOMER_SAVE_FROM_EXPLICIT_ORDER_ACTIONS",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_operator_pending_staging",
+  "country": "EC",
+  "policy": {
+    "ordinaryCustomerSaveStateOnly": true,
+    "explicitOrderActionRequired": true,
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-panel-customer-state-only-v124-attestation-20260904.json",
+    "sha256": "4ad3e9c3241a3aa6aef6aefcdeeb8a7850b310fa24eb424723559bfac7eeb5c5"
+  },
+  "declaredAncestorOverrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecPanelCustomerStatusPersistenceV123Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    ".github/workflows/ec-panel-quality.yml",
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/ecPanelCustomerStatusPersistenceV123Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_PANEL_CUSTOMER_STATE_ONLY_FREEZE_V124_20260904.md",
+    "docs/evidence/ec-panel-customer-state-only-v124-attestation-20260904.json",
+    "scripts/guard-ec-panel-customer-state-only-v124.mjs",
+    "src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js",
+    "src/services/ecPanelCustomerStateOnlyV124Service.js",
+    "tests/ec-panel-customer-state-only-v124.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "e6764ac41dd3a19976891c95ae5544f5b6ba8f064a3061af4668b8f44c0b6a1b",
+    "docs/EC_PANEL_CUSTOMER_STATE_ONLY_FREEZE_V124_20260904.md": "e9aa5564f1838c269b850aae307e0a34fb8e6f80acac13d35d7077dc9230683a",
+    "docs/evidence/ec-panel-customer-state-only-v124-attestation-20260904.json": "4ad3e9c3241a3aa6aef6aefcdeeb8a7850b310fa24eb424723559bfac7eeb5c5",
+    "public/qr.html": "a800e1191eaf623d39238d214dd6a1f68045d6d1438134899eb75d453eb07911",
+    "scripts/guard-ec-panel-customer-state-only-v124.mjs": "f892396352c7a934e1e26dd4880d0d386ae39dabb3ce32b4ca94d025d55a9750",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "66c6bcaac3145214efc33a188bc86186dde9463b281deb3ac2bf8f83545a701d",
+    "src/services/ecPanelCustomerStateOnlyFreezeRuntimeGuardV124.js": "7caa818cfe571101223fc419e574462bc924e1416f2f58ced5df61fd2d2ffd64",
+    "src/services/ecPanelCustomerStateOnlyV124Service.js": "b64bcc1c3aa9b7a35d783bde5855efc9cf1a52f34e42c29a8e53423a5f8742cd",
+    "src/services/ecPanelCustomerStatusPersistenceV123Service.js": "4816594376c5ab0c08f5e6a6e82aeeef46c5668da45b5d5e8e847787f1033feb",
+    "tests/ec-panel-customer-state-only-v124.test.mjs": "ad12adbada6e9469862d33dc43e588e3a3cb14d471068b20e001068bca7fe7da"
+  },
+  "logicalBundle": {
+    "algorithm": "sha256(path\\0sha256\\n)",
+    "sha256": "0b1fd05152f3ee74b3140422d5e22dc3d9b41f0f249b4b93743979f6fc790d18"
+  },
+  "rollbackRelease": "/opt/vitalismen-automacao/releases/20260904T042521Z_production-20260904-bc0164b"
+}

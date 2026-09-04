@@ -436,8 +436,10 @@ jobs:
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/dropi-total-resolution-v121.test.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-ec-panel-customer-persistence-v122.mjs
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-customer-persistence-v122.test.mjs
-          node scripts/guard-ec-panel-customer-status-persistence-v123.mjs
-          node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node scripts/guard-ec-panel-customer-status-persistence-v123.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
+          node scripts/guard-ec-panel-customer-state-only-v124.mjs
+          node --test tests/ec-panel-customer-state-only-v124.test.mjs
           VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
 
       - name: Confirm temporary environment cleanup

@@ -1,0 +1,28 @@
+{
+  "attestationId": "ec-panel-customer-state-only-v124-attestation-20260904",
+  "version": 124,
+  "date": "2026-09-04",
+  "finding": {
+    "remainingPath": "ordinary browser save could call a generic order endpoint before ContactState when chat.orderId existed",
+    "risk": "V78 correctly blocks generic order endpoints, so the browser could stop before the customer-state PATCH",
+    "correction": "ordinary customer saves default to state-only; order synchronization requires an explicit order action"
+  },
+  "scope": {
+    "ordinaryCustomerSaveStateOnly": true,
+    "explicitOrderActionRequired": true,
+    "genericOrderRoutesAllowed": false,
+    "whatsappOutboundChanged": false,
+    "dropiChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false,
+    "databaseMigration": false,
+    "historicalBackfillAllowed": false
+  },
+  "validation": {
+    "frontendOrderingRegression": "required",
+    "explicitOrderActionRegression": "required",
+    "v123Regression": "required",
+    "seniorCheck": "required",
+    "productionQaPhoneSmoke": "required_after_deploy"
+  }
+}
