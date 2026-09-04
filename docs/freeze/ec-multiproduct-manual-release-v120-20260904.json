@@ -1,0 +1,75 @@
+{
+  "freezeId": "ec-multiproduct-manual-release-v120",
+  "version": 120,
+  "parentVersion": "V119_PRODUCTION_BASELINE",
+  "parentFreezeId": "ec-manual-dropi-release-v119",
+  "parentManifestSha256": "5ce91e0b95d02fdea8f76ae6cf38afc95985c9c5af956bbcc062172f156758de",
+  "parentCommit": "12a29c7cb26b1473e1104049aded40daa2386315",
+  "parentTree": "35cd2311592bc1ae846d25ceea8a6c31ba28dbda",
+  "purpose": "RESTORE_AUTHENTICATED_CONTACT_UPSERT_AND_AUTHORITATIVE_MULTIPRODUCT_DROPI",
+  "status": "implementation_validated_local_successor",
+  "publicationStatus": "authorized_by_operator_pending_staging",
+  "country": "EC",
+  "policy": {
+    "panelAuthRequired": true,
+    "allowedAdditionalPostRouteCount": 1,
+    "allowedProducts": [
+      "tex_ultra_ec",
+      "nitrix_ec",
+      "vit_power_ec"
+    ],
+    "manualAuthorizationPerOrderRequired": true,
+    "automaticDispatchAllowed": false,
+    "automaticRetryAfterAmbiguousFailure": false,
+    "authoritativeCatalogAndQuoteRequired": true,
+    "verifiedDropiOrderIdRequired": true,
+    "historicalBackfillAllowed": false,
+    "whatsappOutboundChanged": false,
+    "postSaleChanged": false,
+    "metaChanged": false
+  },
+  "evidence": {
+    "path": "docs/evidence/ec-multiproduct-manual-release-v120-attestation-20260904.json",
+    "sha256": "1155b5dc190dea70dd846990cd7825f8b130082a657af27eb607867d785ac94b"
+  },
+  "logicalBundle": {
+    "algorithm": "SHA-256",
+    "format": "sorted-relative-path-NUL-file-sha256-LF",
+    "sha256": "f5fcee5f3f2760136c322403c352fb61d16451ad48a2296aaa4b0d31934a07b7"
+  },
+  "declaredAncestorOverrides": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/botQaMultiturnRecoveryV111Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "modifiedAncestorProtectedFiles": [
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/botQaMultiturnRecoveryV111Service.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js"
+  ],
+  "newProtectedFiles": [
+    "docs/DROPI_MULTIPRODUCT_MANUAL_RELEASE_FREEZE_V120_20260904.md",
+    "docs/evidence/ec-multiproduct-manual-release-v120-attestation-20260904.json",
+    "scripts/guard-ec-multiproduct-manual-release-v120.mjs",
+    "src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV120.js",
+    "src/services/ecMultiproductManualReleaseV120Service.js",
+    "tests/ec-multiproduct-manual-release-v120.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/DROPI_MULTIPRODUCT_MANUAL_RELEASE_FREEZE_V120_20260904.md": "4bb204949afe0b1cf6ab006c123aa7e4b18dfd0be3abee9f115ffca70c774fb1",
+    "docs/evidence/ec-multiproduct-manual-release-v120-attestation-20260904.json": "1155b5dc190dea70dd846990cd7825f8b130082a657af27eb607867d785ac94b",
+    "scripts/guard-ec-multiproduct-manual-release-v120.mjs": "a2e09990f197a5aee8ee387fd48d3b81bc98970240e95e721ec18cd58d391388",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "e4cb4e9c3728b5655b441049839390240835c1b972fb8fa3300d2111364e6996",
+    "src/services/botQaMultiturnRecoveryV111Service.js": "43269b2518efc37af26a525ad73c773de04522fbd49eca228f80b1a3dedb972a",
+    "src/services/droppiEcuadorBrowserService.js": "4ad94a85da63cc46f19c770bb3be0279a35780491df9f2c92a4523dd242012e4",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "74cdad4aa178c8a6c49f504e38cb70156aa7c8de179893729359e12527216d28",
+    "src/services/ecMultiproductManualReleaseFreezeRuntimeGuardV120.js": "54a8e3f63dd8cf96168e177b12e3778049f2bcc6f5416a390a1cb090eefe3d90",
+    "src/services/ecMultiproductManualReleaseV120Service.js": "7c4c49e03f9a234c844321f41c4596ed951dac4a5c97118e84c9733d9dd50ed3",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "29bd901e3b036947304958c9b37ca29e9a97ee76120763ba6a55b99633ab153a",
+    "tests/ec-multiproduct-manual-release-v120.test.mjs": "8bcca1316d0c5cfee1d645be799813ff2587077ca19420645ccee9d945b54417"
+  }
+}

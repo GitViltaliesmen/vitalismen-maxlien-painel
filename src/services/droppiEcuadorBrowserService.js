@@ -97,6 +97,11 @@ const PRODUCT_CARD_WAIT_MS = Number.parseInt(process.env.DROPPI_EC_PRODUCT_CARD_
 const TEX_ULTRA_BFF_WAREHOUSE_ID = Number.parseInt(process.env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_ID || '1261', 10);
 const TEX_ULTRA_BFF_ORIGIN_CITY_ID = Number.parseInt(process.env.DROPPI_EC_TEX_ULTRA_ORIGIN_CITY_ID || '802', 10);
 const TEX_ULTRA_BFF_WAREHOUSE_NAME = process.env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_NAME || 'Laboratorio Vitalcom Ec';
+const EC_BFF_SUPPORTED_PRODUCT_KEYS = Object.freeze(new Set([
+    ECUADOR_PRODUCTS.texUltra.key,
+    ECUADOR_PRODUCTS.nitrix.key,
+    ECUADOR_PRODUCTS.vitPower.key
+]));
 const manualBrowserSessions = new Map();
 
 const selectors = {
@@ -1390,12 +1395,44 @@ const dropiBffRows = (body = {}) => (
         : (Array.isArray(body?.objects) ? body.objects : [])
 );
 
-export const buildTexUltraBffQuote = async (page, payload) => {
+export const resolveEcuadorBffWarehouseProfile = (productKey = '', env = process.env) => {
+    const key = String(productKey || '').trim();
+    const profiles = {
+        [ECUADOR_PRODUCTS.texUltra.key]: {
+            warehouseId: Number.parseInt(env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_ID || String(TEX_ULTRA_BFF_WAREHOUSE_ID), 10),
+            originCityId: Number.parseInt(env.DROPPI_EC_TEX_ULTRA_ORIGIN_CITY_ID || String(TEX_ULTRA_BFF_ORIGIN_CITY_ID), 10),
+            warehouseName: env.DROPPI_EC_TEX_ULTRA_WAREHOUSE_NAME || TEX_ULTRA_BFF_WAREHOUSE_NAME
+        },
+        [ECUADOR_PRODUCTS.nitrix.key]: {
+            warehouseId: Number.parseInt(env.DROPPI_EC_NITRIX_WAREHOUSE_ID || '1544', 10),
+            originCityId: Number.parseInt(env.DROPPI_EC_NITRIX_ORIGIN_CITY_ID || '802', 10),
+            warehouseName: env.DROPPI_EC_NITRIX_WAREHOUSE_NAME || 'ECOMARKET QUITO'
+        },
+        [ECUADOR_PRODUCTS.vitPower.key]: {
+            warehouseId: Number.parseInt(env.DROPPI_EC_VIT_POWER_WAREHOUSE_ID || '1261', 10),
+            originCityId: Number.parseInt(env.DROPPI_EC_VIT_POWER_ORIGIN_CITY_ID || '802', 10),
+            warehouseName: env.DROPPI_EC_VIT_POWER_WAREHOUSE_NAME || 'Laboratorio Vitalcom Ec'
+        }
+    };
+    const profile = profiles[key];
+    if (!profile || !Number.isInteger(profile.warehouseId) || profile.warehouseId <= 0
+        || !Number.isInteger(profile.originCityId) || profile.originCityId <= 0
+        || !String(profile.warehouseName || '').trim()) {
+        return null;
+    }
+    return Object.freeze({ productKey: key, ...profile });
+};
+
+export const buildEcuadorProductBffQuote = async (page, payload) => {
     const productTarget = dropiProductTargetForPayload(payload);
-    if (productTarget.key !== ECUADOR_PRODUCTS.texUltra.key) return null;
+    if (!EC_BFF_SUPPORTED_PRODUCT_KEYS.has(productTarget.key)) return null;
     const expectedProductId = productIdFromDropiUrl(productTarget.productUrl);
     if (!expectedProductId) {
-        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'TEX_ULTRA_PRODUCT_ID_MISSING' });
+        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'EC_PRODUCT_ID_MISSING' });
+    }
+    const warehouseProfile = resolveEcuadorBffWarehouseProfile(productTarget.key);
+    if (!warehouseProfile) {
+        throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'EC_PRODUCT_WAREHOUSE_PROFILE_MISSING' });
     }
 
     const auth = await getDropiBrowserAuth(page);
@@ -1417,7 +1454,7 @@ export const buildTexUltraBffQuote = async (page, payload) => {
     if (!expectedCity) {
         throw buildDropiBffSubmitError({ code: 'LOCATION_INVALID', statusReason: 'AUTHORITATIVE_CITY_NOT_FOUND' });
     }
-    const originCityRaw = sessionCities.find((item) => Number(item?.id) === TEX_ULTRA_BFF_ORIGIN_CITY_ID);
+    const originCityRaw = sessionCities.find((item) => Number(item?.id) === warehouseProfile.originCityId);
     const originDepartment = sessionDepartments.find((item) => Number(item?.id) === Number(originCityRaw?.department_id));
     if (!originCityRaw || !originDepartment) {
         throw buildDropiBffSubmitError({ code: 'LOCATION_INVALID', statusReason: 'AUTHORITATIVE_ORIGIN_NOT_FOUND' });
@@ -1459,7 +1496,7 @@ export const buildTexUltraBffQuote = async (page, payload) => {
         throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'AUTHORITATIVE_PRODUCT_NOT_FOUND' });
     }
     const warehouseInventory = (Array.isArray(catalogProduct.warehouse_product) ? catalogProduct.warehouse_product : [])
-        .find((item) => Number(item?.warehouse_id) === TEX_ULTRA_BFF_WAREHOUSE_ID);
+        .find((item) => Number(item?.warehouse_id) === warehouseProfile.warehouseId);
     const quantity = Math.max(1, Number(payload.quantity || 1) || 1);
     if (!warehouseInventory || Number(warehouseInventory.stock || 0) < quantity) {
         throw buildDropiBffSubmitError({ code: 'PRODUCT_INVALID', statusReason: 'AUTHORITATIVE_WAREHOUSE_STOCK_NOT_AVAILABLE' });
@@ -1476,9 +1513,9 @@ export const buildTexUltraBffQuote = async (page, payload) => {
         department: { ...expectedDepartment, key_base_data: expectedDepartment.id }
     };
     const warehouse = {
-        id: TEX_ULTRA_BFF_WAREHOUSE_ID,
-        key_base_data: TEX_ULTRA_BFF_WAREHOUSE_ID,
-        name: TEX_ULTRA_BFF_WAREHOUSE_NAME,
+        id: warehouseProfile.warehouseId,
+        key_base_data: warehouseProfile.warehouseId,
+        name: warehouseProfile.warehouseName,
         city_id: originCity.id,
         city: originCity
     };
@@ -1561,8 +1598,18 @@ export const buildTexUltraBffQuote = async (page, payload) => {
         quotedCity: expectedCity.name,
         quotedDepartment: expectedDepartment.name,
         latestQuote: quote,
-        source: 'dropi_bff_authoritative_contract'
+        source: 'dropi_bff_authoritative_contract',
+        contractScope: 'ec_multiproduct_manual',
+        productKey: productTarget.key,
+        productId: expectedProductId,
+        warehouseId: warehouseProfile.warehouseId
     };
+};
+
+export const buildTexUltraBffQuote = async (page, payload) => {
+    const productTarget = dropiProductTargetForPayload(payload);
+    if (productTarget.key !== ECUADOR_PRODUCTS.texUltra.key) return null;
+    return buildEcuadorProductBffQuote(page, payload);
 };
 
 const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier, onCreateLifecycle = null }) => {
@@ -2117,7 +2164,7 @@ export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = nul
 const submitOrderInPanel = async ({ page, payload, onCreateLifecycle = null }) => {
     const getDiagnostics = createPageDiagnosticsCollector(page);
     const getLatestQuote = createShippingQuoteCollector(page);
-    const preparedForm = await buildTexUltraBffQuote(page, payload)
+    const preparedForm = await buildEcuadorProductBffQuote(page, payload)
         || await fillOrderFormInPanel({ page, payload, quoteCollector: getLatestQuote });
 
     const quote = preparedForm.latestQuote || getLatestQuote();

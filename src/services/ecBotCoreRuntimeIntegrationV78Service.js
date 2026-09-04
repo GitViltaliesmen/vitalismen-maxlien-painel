@@ -15,6 +15,7 @@ import {
     ecManualDropiReleaseV119MongoAllowed,
     ecManualDropiReleaseV119RouteDecision
 } from './ecManualDropiReleaseV119Service.js';
+import { ecMultiproductManualReleaseV120RouteDecision } from './ecMultiproductManualReleaseV120Service.js';
 import {
     EC_OFFICIAL_VSL_V78_MESSAGE,
     EC_OFFICIAL_VSL_V78_WHATSAPP,
@@ -244,18 +245,24 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const manualDropiDecision = baseDecision.allowed || panelDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_manual_dropi_v119_not_needed' })
         : ecManualDropiReleaseV119RouteDecision({ method, path, env });
+    const multiproductDecision = baseDecision.allowed || panelDecision.allowed || manualDropiDecision.allowed
+        ? Object.freeze({ allowed: false, reason: 'ec_multiproduct_v120_not_needed' })
+        : ecMultiproductManualReleaseV120RouteDecision({ method, path, env });
     const decision = baseDecision.allowed
         ? baseDecision
         : panelDecision.allowed
             ? panelDecision
-            : manualDropiDecision;
+            : manualDropiDecision.allowed
+                ? manualDropiDecision
+                : multiproductDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
     const writeContext = method === 'POST'
         && [
             'bot_core_route_allowed',
             'ec_panel_v115_route_allowed',
-            'ec_manual_dropi_v119_route_allowed'
+            'ec_manual_dropi_v119_route_allowed',
+            'ec_multiproduct_v120_route_allowed'
         ].includes(decision.reason);
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
@@ -264,6 +271,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         writeContext,
         manualDropiV119: decision.reason === 'ec_manual_dropi_v119_route_allowed',
         manualDropiOperation: decision.operation || '',
+        panelContactV120: decision.reason === 'ec_multiproduct_v120_route_allowed',
         startedAt: new Date().toISOString()
     }, async () => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });

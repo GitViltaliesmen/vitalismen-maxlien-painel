@@ -86,8 +86,9 @@ const assertParentV110 = () => {
         throw new Error('[BOT-QA-MULTITURN-V111] parent_policy_invalid');
     }
     const modified = new Set(BOT_QA_MULTITURN_RECOVERY_V111_ANCESTOR_OVERRIDES);
+    const successorOverrides = new Set(globalThis[BOT_QA_MULTITURN_RECOVERY_V111_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
             throw new Error(`[BOT-QA-MULTITURN-V111] parent_protected_file_invalid:${relativePath}`);
         }
