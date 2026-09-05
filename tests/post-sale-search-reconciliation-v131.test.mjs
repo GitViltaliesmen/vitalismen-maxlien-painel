@@ -5,7 +5,11 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { searchPanelCustomersGlobally } from '../src/services/panelGlobalCustomerSearchService.js';
-import { shipmentStatusDispatchCandidateQuery } from '../src/services/shipmentStatusDispatcherService.js';
+import {
+    shipmentStatusDispatchActionForShipment,
+    shipmentStatusDispatchCandidateQuery
+} from '../src/services/shipmentStatusDispatcherService.js';
+import { postSaleTransactionalAllowsManualHumanMode } from '../src/services/postSaleNotificationDecisionService.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -87,3 +91,24 @@ test('pedido Dropi recente e ainda pendente entra na reconciliação antes do av
     assert.equal(reconciliationBranch.createdAt.$gte.toISOString(), '2026-08-29T12:00:00.000Z');
 });
 
+test('pedido já em rota prioriza o aviso atual de trânsito sobre guia atrasada', () => {
+    assert.equal(shipmentStatusDispatchActionForShipment({
+        logistics: { status: 'EN_RUTA', trackingNumber: '189600831' },
+        automation: { guiaNotifiedAt: null, inTransitNotifiedAt: null }
+    }), 'in_transit');
+});
+
+test('modo humano só é liberado para o executor transacional V116 protegido', () => {
+    assert.equal(postSaleTransactionalAllowsManualHumanMode({
+        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
+        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+    }), true);
+    assert.equal(postSaleTransactionalAllowsManualHumanMode({
+        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
+        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'false'
+    }), false);
+    assert.equal(postSaleTransactionalAllowsManualHumanMode({
+        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'false',
+        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+    }), false);
+});

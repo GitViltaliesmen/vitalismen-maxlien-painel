@@ -58,6 +58,10 @@ const EVENT_BY_KIND = Object.freeze({
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
+export const postSaleTransactionalAllowsManualHumanMode = (env = process.env) => (
+    clean(env.VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL).toLowerCase() === 'true'
+    && clean(env.POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED).toLowerCase() === 'true'
+);
 const statusKey = (value = '') => clean(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -401,7 +405,7 @@ export const decidePostSaleNotification = async ({
         };
     }
     const manualHumanState = await findManualHumanModeForShipment({ shipment, contactStateModel });
-    if (manualHumanState) {
+    if (manualHumanState && !postSaleTransactionalAllowsManualHumanMode()) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.MANUAL_REVIEW_REQUIRED,
             reason: 'human_mode_manual',

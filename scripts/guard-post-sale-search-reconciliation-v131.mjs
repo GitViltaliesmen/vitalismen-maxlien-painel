@@ -14,6 +14,9 @@ export const assertPostSaleSearchReconciliationV131 = () => {
     assert.equal(manifest.policy.globalSearchCrossesOperationalBuckets, true);
     assert.equal(manifest.policy.searchPreservesCountryAndIdentityGuards, true);
     assert.equal(manifest.policy.notificationMarkersVisible, true);
+    assert.equal(manifest.policy.inTransitMarkerVisible, true);
+    assert.equal(manifest.policy.manualHumanModeAllowedOnlyInsideTransactionalV116, true);
+    assert.equal(manifest.policy.inTransitStatusTakesPrecedenceOverLateGuide, true);
     assert.equal(manifest.policy.reconcileRecentSubmittedOrdersBeforeGuide, true);
     assert.equal(manifest.policy.reconciliationWindowDays, 7);
     assert.equal(manifest.policy.batchMax, 1);

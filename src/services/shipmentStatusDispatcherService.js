@@ -1025,18 +1025,20 @@ const refreshShipmentBeforeDispatch = async (shipment) => {
     };
 };
 
-const actionForShipment = (shipment) => {
+export const shipmentStatusDispatchActionForShipment = (shipment) => {
     const status = shipment?.logistics?.status || '';
     if (status === 'DEVUELTO') return 'returned';
     if (status === 'ENTREGADO') return 'delivered_bonus';
     if (status === 'READY_FOR_PICKUP') return 'ready_for_pickup';
-    if (shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
-    if (status === 'GUIA_GENERADA') return 'guide';
     if (['EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE'].includes(status)) {
         return 'in_transit';
     }
+    if (shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
+    if (status === 'GUIA_GENERADA') return 'guide';
     return 'none';
 };
+
+const actionForShipment = shipmentStatusDispatchActionForShipment;
 
 const orderStatusForShipmentAction = (action) => {
     if (action === 'delivered_bonus') return 'delivered';

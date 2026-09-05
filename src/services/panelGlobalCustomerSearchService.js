@@ -346,6 +346,14 @@ export const searchPanelCustomersGlobally = async ({
                 trackingNumber: shipment.logistics?.trackingNumber || '',
                 sentAt: shipment.automation.guiaNotifiedAt
             } : null,
+            shipment?.automation?.inTransitNotifiedAt ? {
+                code: 'in_transit_notified',
+                label: 'Em rota avisado',
+                orderId: shipment.orderId || '',
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                sentAt: shipment.automation.inTransitNotifiedAt
+            } : null,
             shipment?.automation?.readyForPickupNotifiedAt ? {
                 code: 'ready_for_pickup_notified',
                 label: 'Agencia avisada',
@@ -391,6 +399,7 @@ export const searchPanelCustomersGlobally = async ({
             shipment: readModel.logistics ? {
                 ...readModel.logistics,
                 guiaNotifiedAt: shipment?.automation?.guiaNotifiedAt || null,
+                inTransitNotifiedAt: shipment?.automation?.inTransitNotifiedAt || null,
                 readyForPickupNotifiedAt: shipment?.automation?.readyForPickupNotifiedAt || null,
                 returnedNotifiedAt: shipment?.automation?.returnedNotifiedAt || null,
                 bonusNotifiedAt: shipment?.automation?.bonusNotifiedAt || null
