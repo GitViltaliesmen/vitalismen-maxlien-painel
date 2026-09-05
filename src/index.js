@@ -3,6 +3,7 @@ import path from 'path';
 import '../scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import express from 'express';
+import { manualUploadsDirV129, remoteMediaCacheDirV129 } from './services/manualMediaStorageV129Service.js';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import connectDB from './config/db.js';
@@ -254,6 +255,12 @@ app.get('/funnel-metrics.html', (_req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'funnel-metrics.html'));
 });
 
+app.use('/media/uploads', express.static(manualUploadsDirV129(), {
+    setHeaders: (res) => res.set(noStoreHeaders)
+}));
+app.use('/media/remote-cache', express.static(remoteMediaCacheDirV129(), {
+    setHeaders: (res) => res.set(noStoreHeaders)
+}));
 app.use('/media', express.static('public/media', {
     setHeaders: (res) => res.set(noStoreHeaders)
 }));

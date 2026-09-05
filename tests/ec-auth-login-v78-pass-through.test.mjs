@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { assertConversationHandledV129B } from '../scripts/guard-ec-conversation-handled-v129b.mjs';
+import { assertManualMediaStorageV129 } from '../scripts/guard-manual-media-storage-v129.mjs';
 
 import User from '../src/models/User.js';
 import authRoutes from '../src/routes/auth.js';
@@ -371,7 +372,7 @@ test('auth existente preserva credenciais, JWT e sessão protegida depois do gua
 test('auth e rate limiter preservam V125; painel corresponde ao sucessor V129 validado', () => {
     assert.equal(sha256('src/routes/auth.js'), '91d732e58dd17bc2232a38c778e249f9298b40da8987f74560936bf84a186bce');
     assert.equal(sha256('src/middleware/auth.js'), 'b40ab3aa2f0f265f04922ee5ad6115379c1dca26fd5ad8856554df1a1ab095ba');
-    assert.equal(sha256('src/index.js'), '48f7e5ee9d97e6fc8fe6e0d928a2f6645801a355d74c62bf9baf04b208f3f27b');
+    assert.equal(sha256('src/index.js'), assertManualMediaStorageV129().protectedFiles['src/index.js']);
     const readStateSuccessor = assertConversationHandledV129B();
     assert.equal(sha256('public/qr.html'), readStateSuccessor.protectedFiles['public/qr.html']);
     assert.equal(sha256('src/services/ecBotCoreOperationalV78Service.js'), '7f738af46a93dcf178c25b0d0b51f4947cb6bb59d10893c1529190b878dfb562');

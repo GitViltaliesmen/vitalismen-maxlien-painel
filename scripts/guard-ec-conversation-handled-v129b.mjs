@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { assertManualMediaStorageV129 } from './guard-manual-media-storage-v129.mjs';
 const read = file => fs.readFileSync(new URL('../' + file, import.meta.url));
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 export const assertConversationHandledV129B = () => {
@@ -10,7 +11,8 @@ export const assertConversationHandledV129B = () => {
     assert.equal(manifest.layer, 'CONVERSATION_HANDLED_STATE');
     assert.deepEqual(manifest.overrides, ['public/qr.html', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'src/routes/whatsapp.js', 'src/services/ecPanelCustomerPersistenceV122Service.js', 'src/services/panelReadStateService.js', 'tests/ec-auth-login-v78-pass-through.test.mjs']);
     assert.equal(hash(read('docs/freeze/ec-admin-dropi-draft-bridge-v128-20260904.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const storage = assertManualMediaStorageV129();
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), storage.overrides.includes(file) ? storage.protectedFiles[file] : expected, file);
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     const routes = read('src/routes/whatsapp.js').toString();
     assert.equal((routes.match(/panelHandledThroughSeconds\(/g) || []).length, 2);

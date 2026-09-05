@@ -1,6 +1,7 @@
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 import { assertDropiSelectionV129A } from '../guard-ec-dropi-selection-v129a.mjs';
 import { assertConversationHandledV129B } from '../guard-ec-conversation-handled-v129b.mjs';
+import { assertManualMediaStorageV129 } from '../guard-manual-media-storage-v129.mjs';
 import { assertEcAdminDropiDraftBridgeV128Manifest } from '../../src/services/ecAdminDropiDraftBridgeFreezeRuntimeGuardV128.js';
 import {
     assertEcAuthLoginV78PassThroughV127Manifest,
@@ -59,7 +60,7 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
-const missionV129Overrides = [...assertDropiSelectionV129A().overrides, ...assertConversationHandledV129B().overrides];
+const missionV129Overrides = [...assertDropiSelectionV129A().overrides, ...assertConversationHandledV129B().overrides, ...assertManualMediaStorageV129().overrides];
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...missionV129Overrides])];
 }

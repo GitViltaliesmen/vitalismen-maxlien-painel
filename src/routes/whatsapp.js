@@ -113,6 +113,7 @@ import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Servic
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
 import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
 import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
+import { manualUploadsDirV129, remoteMediaCacheDirV129, relocatedRemoteCacheFileV129, manualUploadPathFromUrlV129, manualUploadUrlFromPathV129 } from '../services/manualMediaStorageV129Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -139,7 +140,7 @@ const isAllowedRemoteMediaUrl = (value = '') => {
     }
 };
 
-const remoteMediaCacheDir = () => path.join(process.cwd(), 'public', 'media', 'remote-cache');
+const remoteMediaCacheDir = remoteMediaCacheDirV129;
 
 const contentTypeFromMediaPath = (filePath = '') => {
     const ext = path.extname(String(filePath || '')).slice(1).toLowerCase();
@@ -252,6 +253,8 @@ const publicMediaBaseUrl = () => String(
 ).trim().replace(/\/+$/, '');
 
 const publicMediaUrlForLocalPath = (filePath = '') => {
+    const uploadUrl = manualUploadUrlFromPathV129(filePath);
+    if (uploadUrl) return `${publicMediaBaseUrl()}${uploadUrl}`;
     const mediaRoot = path.resolve(process.cwd(), 'public', 'media');
     const resolved = path.resolve(String(filePath || ''));
     if (!resolved.startsWith(`${mediaRoot}${path.sep}`)) return '';
@@ -276,6 +279,8 @@ const customerImageContentType = (value = '', fallbackPath = '') => {
 
 const localCustomerImagePath = (mediaUrl = '') => {
     const value = String(mediaUrl || '').split(/[?#]/)[0].trim();
+    const uploadPath = manualUploadPathFromUrlV129(value);
+    if (uploadPath && fs.existsSync(uploadPath)) return uploadPath;
     const mediaRoot = path.resolve(process.cwd(), 'public', 'media');
     let candidate = '';
     if (path.isAbsolute(value)) {
@@ -5004,8 +5009,9 @@ router.get('/media-proxy', async (req, res) => {
         if (fs.existsSync(cachedMetaPaths.metaPath)) {
             try {
                 const meta = JSON.parse(fs.readFileSync(cachedMetaPaths.metaPath, 'utf8'));
-                if (meta?.filePath && fs.existsSync(meta.filePath)) {
-                    return serveLocalMediaFile(req, res, meta.filePath, meta.contentType);
+                const cachedFile = relocatedRemoteCacheFileV129(meta);
+                if (cachedFile) {
+                    return serveLocalMediaFile(req, res, cachedFile, meta.contentType);
                 }
             } catch {}
         }
@@ -6336,7 +6342,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     return res.status(400).json({ error: 'Empty media payload' });
                 }
 
-                const uploadsDir = path.join(process.cwd(), 'public', 'media', 'uploads');
+                const uploadsDir = manualUploadsDirV129();
                 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
                 const extFromMime = (m, fallbackName = '') => {
@@ -6415,8 +6421,9 @@ router.post('/send', authMiddleware, async (req, res) => {
 
             const baseDir = path.join(process.cwd(), 'public', 'media');
             const relative = normalizedMediaMessage.replace(/^\/media\//, '');
-            const resolved = path.normalize(path.join(baseDir, relative));
-            if (!resolved.startsWith(baseDir)) {
+            const uploadPath = manualUploadPathFromUrlV129(normalizedMediaMessage);
+            const resolved = uploadPath && fs.existsSync(uploadPath) ? uploadPath : path.normalize(path.join(baseDir, relative));
+            if (resolved !== uploadPath && !resolved.startsWith(baseDir)) {
                 return res.status(400).json({ error: 'Invalid media path' });
             }
             const ext = path.extname(resolved).slice(1).toLowerCase();
