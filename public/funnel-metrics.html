@@ -337,6 +337,36 @@
             <section class="panel">
                 <div class="panel-head">
                     <div>
+                        <h2>Meta Ads — tráfego pago EC</h2>
+                        <p id="metaAdsWindow" class="meta">Dados oficiais da Marketing API, separados das entradas medidas pela VSL</p>
+                    </div>
+                    <p id="metaAdsStatus" class="meta">Carregando...</p>
+                </div>
+                <div class="grid" id="metaAdsMetrics" style="padding:14px"></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Anúncio</th>
+                                <th>Conjunto</th>
+                                <th>Campanha</th>
+                                <th>Alcance</th>
+                                <th>Impressões</th>
+                                <th>Cliques no link</th>
+                                <th>Landing Page Views</th>
+                                <th>Conversas</th>
+                                <th>Compras Meta</th>
+                                <th>Gasto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metaAdsRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
                         <h2>Protocolo G — Tex Ultra</h2>
                         <p class="meta">Somente https://vilaliemen.shop/protocolo-g; etapas instrumentadas pela V63</p>
                     </div>
@@ -602,6 +632,8 @@
             const totals = data.totals || {};
             const protocoloG = data.protocoloG || {};
             const protocoloGTotals = protocoloG.totals || {};
+            const metaAds = data.metaAds || {};
+            const metaAdsTotals = metaAds.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
             el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
@@ -619,6 +651,38 @@
                 metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
                 metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
             ].join('');
+
+            const measuredEntries = Number(totals.entries || 0);
+            const metaLandings = Number(metaAdsTotals.landingPageViews || 0);
+            const trackingGap = Math.max(0, metaLandings - measuredEntries);
+            el('metaAdsStatus').textContent = metaAds.status === 'available'
+                ? `${metaAds.source === 'live' ? 'Ao vivo' : 'Cache'}${metaAds.stale ? ' desatualizado' : ''} · ${formatDate(metaAds.fetchedAt)}`
+                : (metaAds.message || 'Meta Ads indisponível');
+            el('metaAdsWindow').textContent = metaAds.status === 'available'
+                ? `${metaAds.startDay} a ${metaAds.endDay}${metaAds.campaignFilter ? ` · filtro: ${metaAds.campaignFilter}` : ''}`
+                : `Código: ${metaAds.errorCode || 'META_ADS_UNAVAILABLE'}`;
+            el('metaAdsMetrics').innerHTML = metaAds.status === 'available' ? [
+                metricCard('Landing Page Views Meta', number.format(metaLandings), 'Entradas registradas pelo anúncio', metaLandings ? 'good' : 'warn'),
+                metricCard('Entradas medidas na VSL', number.format(measuredEntries), 'Banco Vitalismen'),
+                metricCard('Diferença de rastreamento', number.format(trackingGap), 'LPV Meta menos entradas VSL', trackingGap ? 'warn' : 'good'),
+                metricCard('Cliques no link', number.format(metaAdsTotals.linkClicks || 0), `${metaAdsTotals.landingRate || 0}% chegaram à página`),
+                metricCard('Alcance', number.format(metaAdsTotals.reach || 0), `${number.format(metaAdsTotals.impressions || 0)} impressões`),
+                metricCard('Gasto Meta', currency.format(metaAdsTotals.spend || 0), `${number.format(metaAdsTotals.purchases || 0)} compras atribuídas`)
+            ].join('') : metricCard('Meta Ads não conectado', '-', metaAds.message || 'Permissão ads_read necessária', 'warn');
+            el('metaAdsRows').innerHTML = (metaAds.ads || []).map((ad) => `
+                <tr>
+                    <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
+                    <td>${escapeHtml(ad.adsetName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adsetId || '-')}</span></td>
+                    <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || '-')}</span></td>
+                    <td>${number.format(ad.reach || 0)}</td>
+                    <td>${number.format(ad.impressions || 0)}</td>
+                    <td>${number.format(ad.linkClicks || 0)}</td>
+                    <td>${number.format(ad.landingPageViews || 0)}<br><span class="meta">${ad.landingRate || 0}%</span></td>
+                    <td>${number.format(ad.conversations || 0)}</td>
+                    <td>${number.format(ad.purchases || 0)}</td>
+                    <td>${currency.format(ad.spend || 0)}</td>
+                </tr>
+            `).join('') || emptyRow(10, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
 
             el('protocoloGMetrics').innerHTML = [
                 metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),

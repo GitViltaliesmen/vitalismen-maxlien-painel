@@ -12,7 +12,11 @@ export const assertConversationHandledV129B = () => {
     assert.deepEqual(manifest.overrides, ['public/qr.html', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'src/routes/whatsapp.js', 'src/services/ecPanelCustomerPersistenceV122Service.js', 'src/services/panelReadStateService.js', 'tests/ec-auth-login-v78-pass-through.test.mjs']);
     assert.equal(hash(read('docs/freeze/ec-admin-dropi-draft-bridge-v128-20260904.json')), manifest.parentManifestSha256);
     const storage = assertManualMediaStorageV129();
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), storage.overrides.includes(file) ? storage.protectedFiles[file] : expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (successorOverrides.has(file)) continue;
+        assert.equal(hash(read(file)), storage.overrides.includes(file) ? storage.protectedFiles[file] : expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     const routes = read('src/routes/whatsapp.js').toString();
     assert.equal((routes.match(/panelHandledThroughSeconds\(/g) || []).length, 2);

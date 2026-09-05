@@ -10,7 +10,11 @@ export const assertManualMediaStorageV129 = () => {
     assert.equal(manifest.layer, 'MANUAL_MEDIA_AND_CACHE_STORAGE');
     assert.deepEqual(manifest.overrides, ['scripts/guard-ec-conversation-handled-v129b.mjs', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'src/index.js', 'src/routes/whatsapp.js', 'tests/ec-auth-login-v78-pass-through.test.mjs']);
     assert.equal(hash(read('docs/freeze/ec-conversation-handled-v129b.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (successorOverrides.has(file)) continue;
+        assert.equal(hash(read(file)), expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     return manifest;
 };

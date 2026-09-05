@@ -1,0 +1,45 @@
+{
+  "id": "meta-ads-insights-v130",
+  "layer": "META_ADS_READ_ONLY_INSIGHTS",
+  "parentCommit": "360e0be94bf06e6cfac70018b422a92fb8c5d3a0",
+  "parentManifestSha256": "f3916470ca969297e146784e718d27c00649282a2ed56e81361d712182d5b320",
+  "status": "implementation_validated_configuration_pending",
+  "country": "EC",
+  "overrides": [
+    "public/funnel-metrics.html",
+    "scripts/guard-ec-conversation-handled-v129b.mjs",
+    "scripts/guard-manual-media-storage-v129.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/funnelMetrics.js",
+    "tests/funnel-metrics-route.test.mjs"
+  ],
+  "policy": {
+    "marketingApiReadOnly": true,
+    "requiredPermission": "ads_read",
+    "campaignMutationAllowed": false,
+    "budgetMutationAllowed": false,
+    "capiRoutingChanged": false,
+    "databaseSchemaChanged": false,
+    "cacheOutsideRelease": true,
+    "cachePath": "/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/ec.json",
+    "existingVslMetricsPreserved": true,
+    "livePublicationRequiresAdsRead": true
+  },
+  "protectedFiles": {
+    "public/funnel-metrics.html": "1a01a05f127edadac0cf9c6ab83417274e30f5aa1b0b62a171ed42f1250f4194",
+    "public/qr.html": "2564625b310d902e72011d792480ebfa0781f6b61f40fbf20cb6a1277cac6a10",
+    "scripts/guard-ec-conversation-handled-v129b.mjs": "ee5cecfb10326f2a5b369dfb99e69cb1b0a2d0c445fafa7bf6e6848aab461689",
+    "scripts/guard-manual-media-storage-v129.mjs": "0d1d219389a05a71c5b59e88ac612acc94588f103552e1caa74742bd38a92aa3",
+    "scripts/guard-meta-ads-insights-v130.mjs": "d79bfa8c287053fc102dd6a48e1a9764f5d8bccd3a735c9d854babbeadb97820",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "9470af3f7b9705e87eee753001d0b1d33a3080649196d2f91a39eaf93045e23b",
+    "src/routes/funnelMetrics.js": "30bc1674863f82212d4218e606328c12175ab39efdb4c11fbd2fa2ae080f6ec0",
+    "src/routes/zapi.js": "1e12927b0baa9d71d24a639847d50cb01930946a3c787782a0fb4f69541dc311",
+    "src/services/funnelMetricsService.js": "f1fec1d57feb6281de1aa885c7eebdba8b96e6276f50bc4777f0ee7f18b0c545",
+    "src/services/metaAdsInsightsService.js": "7f6ecbe54ac2299165b218aa1191855dcdeb9ac1806171d27da2393f86422750",
+    "src/services/metaConversionsService.js": "f33b22e9363f7a458dfb8c9699569d887b5942c955e28943f88f13485f94d3d4",
+    "tests/funnel-metrics-route.test.mjs": "7b919b2ae365ea35e616a560cbcf766c712a227bd470aa86a37e529e63aeb86b",
+    "tests/meta-ads-insights-guard-v130.test.mjs": "6410ba510140acc1b8b5914cdc5d5cfb83d800ad29f20ea26b197b54516a857a",
+    "tests/meta-ads-insights-v130.test.mjs": "b75346aad153a22692d8bea7e05a6d66a86ddc2e0b40f1d011495d16bf6fe36e"
+  },
+  "bundleSha256": "55ca482247de9c10373482f4ca1440d6e4f214ade3cc61bfb20e53a50df17761"
+}

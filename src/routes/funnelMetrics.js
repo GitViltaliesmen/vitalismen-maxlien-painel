@@ -4,6 +4,7 @@ import VslVisit from '../models/VslVisit.js';
 import MetaAttributionCorrelation from '../models/MetaAttributionCorrelation.js';
 import { adminOnly, authMiddleware } from '../middleware/auth.js';
 import { getMetaDatasetIdForOrder } from '../services/metaConversionsService.js';
+import { loadMetaAdsInsights } from '../services/metaAdsInsightsService.js';
 import {
     buildFunnelMetricsSnapshot,
     clampFunnelMetricsDays,
@@ -88,16 +89,18 @@ export const createFunnelMetricsHandler = ({
     CorrelationModel = MetaAttributionCorrelation,
     clock = () => new Date(),
     pixelId = () => process.env.META_PIXEL_ID_EC || '',
-    datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order)
+    datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order),
+    adsInsights = (options) => loadMetaAdsInsights(options)
 } = {}) => async (req, res) => {
     try {
         const days = clampFunnelMetricsDays(req.query?.days);
         const now = clock();
         const { visitQuery, orderQuery, correlationQuery } = funnelMetricsMongoWindow({ days, now });
-        const [visits, orders, correlations] = await Promise.all([
+        const [visits, orders, correlations, metaAds] = await Promise.all([
             VisitModel.find(visitQuery).select(visitProjection).lean(),
             OrderModel.find(orderQuery).select(orderProjection).lean(),
-            CorrelationModel.find(correlationQuery).select(correlationProjection).lean()
+            CorrelationModel.find(correlationQuery).select(correlationProjection).lean(),
+            adsInsights({ days, now })
         ]);
         const snapshot = buildFunnelMetricsSnapshot({
             visits,
@@ -109,7 +112,7 @@ export const createFunnelMetricsHandler = ({
             datasetIdForOrder
         });
         res.set('Cache-Control', 'no-store');
-        return res.json(snapshot);
+        return res.json({ ...snapshot, metaAds });
     } catch (error) {
         console.error('[FUNNEL-METRICS] Falha ao montar metricas EC:', error.message);
         return res.status(500).json({ error: 'Nao foi possivel carregar as metricas do funil.' });
