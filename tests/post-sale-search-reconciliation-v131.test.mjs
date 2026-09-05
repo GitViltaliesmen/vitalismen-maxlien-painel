@@ -100,15 +100,24 @@ test('pedido já em rota prioriza o aviso atual de trânsito sobre guia atrasada
 
 test('modo humano só é liberado para o executor transacional V116 protegido', () => {
     assert.equal(postSaleTransactionalAllowsManualHumanMode({
-        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
-        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+        shipment: { raw: { postSaleTransactionalApprovedAt: new Date() } },
+        env: {
+            VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
+            POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+        }
     }), true);
     assert.equal(postSaleTransactionalAllowsManualHumanMode({
-        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
-        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'false'
+        shipment: {},
+        env: {
+            VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
+            POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+        }
     }), false);
     assert.equal(postSaleTransactionalAllowsManualHumanMode({
-        VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'false',
-        POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+        shipment: { raw: { postSaleTransactionalApprovedAt: new Date() } },
+        env: {
+            VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'false',
+            POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true'
+        }
     }), false);
 });

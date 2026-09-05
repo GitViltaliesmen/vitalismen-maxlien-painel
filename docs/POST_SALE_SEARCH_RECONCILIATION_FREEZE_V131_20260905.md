@@ -6,7 +6,7 @@ Estado aprovado para produção em 2026-09-05.
 - Clientes encontrados no histórico de pedidos e remessas exibem os avisos persistidos de guia, retirada e devolução.
 - Pedidos EC enviados ao Dropi nos últimos sete dias, ainda pendentes localmente e com identificador persistido, entram na reconciliação antes da decisão de aviso.
 - O executor pós-venda continua isolado, com lote máximo um, cota diária um, lock persistente, histórico obrigatório, idempotência e sem repetição automática.
-- O modo humano não bloqueia avisos logísticos somente dentro do executor V116 transacional protegido.
+- O modo humano não bloqueia avisos logísticos somente dentro do executor V116 transacional protegido e apenas em remessas aprovadas pelo operador.
 - Pedidos já em rota recebem o aviso atual de trânsito; uma guia atrasada não retrocede a cronologia.
 - O modo global automático de aplicação Dropi permanece desligado.
 - Meta/CAPI, pixel, produto, preço, checkout, funil e transporte WhatsApp permanecem inalterados.

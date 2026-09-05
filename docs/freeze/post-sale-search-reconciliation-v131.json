@@ -20,7 +20,7 @@
     "searchPreservesCountryAndIdentityGuards": true,
     "notificationMarkersVisible": true,
     "inTransitMarkerVisible": true,
-    "manualHumanModeAllowedOnlyInsideTransactionalV116": true,
+    "manualHumanModeAllowedOnlyInsideTransactionalV116WithShipmentApproval": true,
     "inTransitStatusTakesPrecedenceOverLateGuide": true,
     "reconcileRecentSubmittedOrdersBeforeGuide": true,
     "reconciliationWindowDays": 7,
@@ -31,18 +31,18 @@
     "dropiGlobalApplyEnabled": false
   },
   "protectedFiles": {
-    "docs/POST_SALE_SEARCH_RECONCILIATION_FREEZE_V131_20260905.md": "66bd1a437e47b2219af215e7e4aec2c86665202d99f13470d27477278a345332",
+    "docs/POST_SALE_SEARCH_RECONCILIATION_FREEZE_V131_20260905.md": "2739450b697bfef1dd95610203e51e2e01afae5955c8e0a55d4e0bd56df24ab9",
     "docs/ARQUIVOS_OFICIAIS.md": "12f2f12d4eec4a97dec5d87dd6cb49438729694cb4f5c694d3ecdd3cbbf33464",
     "public/qr.html": "bde1858a3664ad15a5df7fcf3210a1b2f896627f717446f93ecffeb854f33343",
     "scripts/guard-meta-ads-insights-v130.mjs": "13334a14f0e37e8f8c2fa0c9aa0f1deb3df6cc8975437b32ed28f3ca4cc101ab",
-    "scripts/guard-post-sale-search-reconciliation-v131.mjs": "cf6317def0a8f944c2e33f449b70a740e071b9a211f5bd12682cfe6bcf42ed77",
+    "scripts/guard-post-sale-search-reconciliation-v131.mjs": "c736822c466843bc85c6f0824070d47563e37083b168e95dfc3ce5f47fd00769",
     "scripts/lib/ec-runtime-successor-v97-context.mjs": "a398a4349701cd1a3a8f642dd1de5d3dee4fbaae6c6d7f0b4984426f5f108ad4",
     "src/services/panelGlobalCustomerSearchService.js": "df5eda5110e902c6d5e2ea9ed414d9072eae466ee2f4452ddd97738a9203d484",
     "src/services/panelWarmupIsolationV118ManifestService.js": "1ae5451b4a9dfdaf3213c37c46324f190a771e4cc1643ca78fd849e1182d09f4",
     "src/services/shipmentStatusDispatcherService.js": "b7bec5f1db3badcd2d159905c3bc01fd9c36d3321b7d70983fad0e51a492b7c4",
-    "tests/post-sale-search-reconciliation-v131.test.mjs": "be4ee606de0ca652e11e1b3860b5483941f2c837751a7a89e683f9108bab073a",
-    "src/services/postSaleNotificationDecisionService.js": "46be986d58397caf13e54e54e70af593d82ea065728f91f2042d42b1af67855c"
+    "tests/post-sale-search-reconciliation-v131.test.mjs": "30d0650d078a704da76acf771a71724e22daf4fdbb0f41e580b7cf32e1545617",
+    "src/services/postSaleNotificationDecisionService.js": "214923f5cdb2e96d1ed17095ef336274271078a3d1eed683cb79954cd71fce47"
   },
-  "bundleSha256": "6880cfa9def9179640303cd3024ac2aba52d79a760695eda179018b1c730956b",
+  "bundleSha256": "73734f7511a17a71b99aeefb03150307fd04b90b0d8260edf8c8e678df4b3c64",
   "country": "EC"
 }
