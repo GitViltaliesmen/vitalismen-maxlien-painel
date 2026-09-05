@@ -335,7 +335,34 @@ export const searchPanelCustomersGlobally = async ({
             preferredOrderId: group.preferredOrderId
         });
         const order = readModel.order;
+        const shipment = readModel.shipment;
         const draft = readModel.customerDraft;
+        const shipmentNoticeStages = [
+            shipment?.automation?.guiaNotifiedAt ? {
+                code: 'guide_notified',
+                label: 'Guia avisada',
+                orderId: shipment.orderId || '',
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                sentAt: shipment.automation.guiaNotifiedAt
+            } : null,
+            shipment?.automation?.readyForPickupNotifiedAt ? {
+                code: 'ready_for_pickup_notified',
+                label: 'Agencia avisada',
+                orderId: shipment.orderId || '',
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                sentAt: shipment.automation.readyForPickupNotifiedAt
+            } : null,
+            shipment?.automation?.returnedNotifiedAt ? {
+                code: 'returned_notified',
+                label: 'Devolucao avisada',
+                orderId: shipment.orderId || '',
+                status: shipment.logistics?.status || '',
+                trackingNumber: shipment.logistics?.trackingNumber || '',
+                sentAt: shipment.automation.returnedNotifiedAt
+            } : null
+        ].filter(Boolean);
         return {
             id: preferredChatId({ state: contactState, message: lastMessage, phone: readModel.phoneDigits || phone }),
             phone: readModel.phone || phone,
@@ -361,6 +388,15 @@ export const searchPanelCustomersGlobally = async ({
             productName: order?.tracking?.productName || draft.productName || draft.product || null,
             customerDraft: draft,
             logistics: readModel.logistics,
+            shipment: readModel.logistics ? {
+                ...readModel.logistics,
+                guiaNotifiedAt: shipment?.automation?.guiaNotifiedAt || null,
+                readyForPickupNotifiedAt: shipment?.automation?.readyForPickupNotifiedAt || null,
+                returnedNotifiedAt: shipment?.automation?.returnedNotifiedAt || null,
+                bonusNotifiedAt: shipment?.automation?.bonusNotifiedAt || null
+            } : null,
+            shipmentNoticeStage: shipmentNoticeStages.at(-1) || null,
+            shipmentNoticeStages,
             operationalStatus: readModel.operationalStatus,
             orderCandidateCount: readModel.orderCandidateCount,
             selectionReason: readModel.selectionReason,

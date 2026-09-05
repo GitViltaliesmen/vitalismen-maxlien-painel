@@ -1,0 +1,43 @@
+{
+  "id": "post-sale-search-reconciliation-v131",
+  "layer": "EC_POSTSALE_SEARCH_AND_RECONCILIATION",
+  "parentCommit": "ef3b0b2ca24b2c176057ea8ff58576c16d944240",
+  "parentManifestSha256": "5786374a7401983952e5a381abd43a46c32921afbffc7572ccfa6d9216a7efbc",
+  "status": "audited_frozen_for_production",
+  "overrides": [
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "public/qr.html",
+    "scripts/guard-meta-ads-insights-v130.mjs",
+    "scripts/guard-post-sale-search-reconciliation-v131.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/panelGlobalCustomerSearchService.js",
+    "src/services/panelWarmupIsolationV118ManifestService.js",
+    "src/services/shipmentStatusDispatcherService.js"
+  ],
+  "policy": {
+    "globalSearchCrossesOperationalBuckets": true,
+    "searchPreservesCountryAndIdentityGuards": true,
+    "notificationMarkersVisible": true,
+    "reconcileRecentSubmittedOrdersBeforeGuide": true,
+    "reconciliationWindowDays": 7,
+    "batchMax": 1,
+    "dailyLimit": 1,
+    "atMostOncePreserved": true,
+    "automaticRetryAllowed": false,
+    "dropiGlobalApplyEnabled": false
+  },
+  "protectedFiles": {
+    "docs/POST_SALE_SEARCH_RECONCILIATION_FREEZE_V131_20260905.md": "529dd7bf3074ba3f760748e7956a1394aeeee9e4d35ed8484b3047168815e1ce",
+    "docs/ARQUIVOS_OFICIAIS.md": "12f2f12d4eec4a97dec5d87dd6cb49438729694cb4f5c694d3ecdd3cbbf33464",
+    "public/qr.html": "bde1858a3664ad15a5df7fcf3210a1b2f896627f717446f93ecffeb854f33343",
+    "scripts/guard-meta-ads-insights-v130.mjs": "13334a14f0e37e8f8c2fa0c9aa0f1deb3df6cc8975437b32ed28f3ca4cc101ab",
+    "scripts/guard-post-sale-search-reconciliation-v131.mjs": "f03d1c9aa0ce43c6288af6adea52e54fceab66f28ec51f01743c660edc4617eb",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "a398a4349701cd1a3a8f642dd1de5d3dee4fbaae6c6d7f0b4984426f5f108ad4",
+    "src/services/panelGlobalCustomerSearchService.js": "def20520d11b43ae33a860f92764057dada9d802ad7a0d40b46b1f7bc88e47ab",
+    "src/services/panelWarmupIsolationV118ManifestService.js": "1ae5451b4a9dfdaf3213c37c46324f190a771e4cc1643ca78fd849e1182d09f4",
+    "src/services/shipmentStatusDispatcherService.js": "1e30587aab7086fb95d342aa39327b3cb7ab14d46dc6e38decce55f5dfafb7e8",
+    "tests/post-sale-search-reconciliation-v131.test.mjs": "01860b26ead621dce45ed118392bf106ffcfc6fd873bc4304764a781a48a993b"
+  },
+  "bundleSha256": "fb11fa72a981c03199c4c0921090d6002a2ea552fd4f34196ee34cb8fa345cc3",
+  "country": "EC"
+}

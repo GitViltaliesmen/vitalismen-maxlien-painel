@@ -12188,13 +12188,15 @@
                 && Boolean(state.conversationBucketFilter)
             );
             const filtered = visibleOperationalChats({ search }).filter((chat) => {
-                const warmupIsolationDecision = window.VitalismenPanelWarmupIsolationV118?.isChatVisibleInOperationalView?.({
-                    chat,
-                    conversationBucketFilter: state.conversationBucketFilter,
-                    chatFilter: state.chatFilter,
-                    resolveConversationBucket: chatConversationBucket
-                });
-                if (warmupIsolationDecision === false) return false;
+                const warmupIsolationDecision = searchActive
+                    ? undefined
+                    : window.VitalismenPanelWarmupIsolationV118?.isChatVisibleInOperationalView?.({
+                        chat,
+                        conversationBucketFilter: state.conversationBucketFilter,
+                        chatFilter: state.chatFilter,
+                        resolveConversationBucket: chatConversationBucket
+                    });
+                if (!searchActive && warmupIsolationDecision === false) return false;
                 if (warmupIsolationDecision === undefined && applyOperationalBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
                 if (!searchActive && state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
                 if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;

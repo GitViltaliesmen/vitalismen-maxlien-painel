@@ -82,8 +82,9 @@ const assertParentV116 = () => {
         throw new Error('[PANEL-WARMUP-ISOLATION-V118] parent_policy_invalid');
     }
     const modified = new Set(PANEL_WARMUP_ISOLATION_V118_ANCESTOR_OVERRIDES);
+    const successorOverrides = new Set(globalThis[PANEL_WARMUP_ISOLATION_V118_OVERRIDE_KEY] || []);
     for (const [relativePath, expectedHash] of Object.entries(parent.protectedFiles || {})) {
-        if (modified.has(relativePath)) continue;
+        if (modified.has(relativePath) || successorOverrides.has(relativePath)) continue;
         if (fileSha256(relativePath) !== expectedHash) {
             throw new Error(`[PANEL-WARMUP-ISOLATION-V118] parent_protected_file_invalid:${relativePath}`);
         }

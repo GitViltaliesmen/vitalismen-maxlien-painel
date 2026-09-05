@@ -647,7 +647,7 @@ export const setShipmentDispatchPaused = (value, reason = '') => {
     return getShipmentDispatchState();
 };
 
-const candidateQuery = (actions = []) => {
+export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Date()) => {
     const actionSet = new Set(actions.length ? actions : ['guide', 'ready_for_pickup', 'delivered_bonus', 'returned']);
     const branches = [];
     if (actionSet.has('guide')) {
@@ -655,6 +655,17 @@ const candidateQuery = (actions = []) => {
             'logistics.status': { $nin: ['READY_FOR_PICKUP', 'ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA', 'CANCELADO SERVIENTREGA'] },
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'automation.guiaNotifiedAt': null
+        });
+        branches.push({
+            createdAt: { $gte: new Date(now.getTime() - (7 * DAY_MS)) },
+            'logistics.status': { $in: ['CREATED', 'created', 'PENDIENTE', 'EN_PROCESAMIENTO'] },
+            'automation.submittedToDroppiAt': { $exists: true, $ne: null },
+            'automation.guiaNotifiedAt': null,
+            $or: [
+                { 'raw.manualDropiOrderId': { $exists: true, $ne: '' } },
+                { 'raw.latestDroppiPayload.dropiOrderId': { $exists: true, $ne: '' } },
+                { 'raw.droppiOrder.id': { $exists: true, $ne: '' } }
+            ]
         });
     }
     if (actionSet.has('in_transit')) {
@@ -711,6 +722,8 @@ const candidateQuery = (actions = []) => {
         ]
     };
 };
+
+const candidateQuery = (actions = []) => shipmentStatusDispatchCandidateQuery(actions);
 
 const shouldRefreshShipmentBeforeDispatch = (shipment) => {
     if (!shipment) return false;
