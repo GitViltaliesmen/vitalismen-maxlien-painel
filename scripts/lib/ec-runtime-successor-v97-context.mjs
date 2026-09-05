@@ -1,3 +1,4 @@
+import { assertVslEntryV78TelemetryV132 } from '../guard-vsl-entry-v78-telemetry-v132.mjs';
 import { assertPostSaleSearchReconciliationV131 } from '../guard-post-sale-search-reconciliation-v131.mjs';
 import { assertMetaAdsInsightsV130 } from '../guard-meta-ads-insights-v130.mjs';
 import { assertEcOperationalGuardContextManifestV97, EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
@@ -62,6 +63,10 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const vslEntryV132 = assertVslEntryV78TelemetryV132();
+globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
+    ...new Set([...(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []), ...vslEntryV132.overrides])
+];
 const postSaleSearchV131 = assertPostSaleSearchReconciliationV131();
 globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
     ...new Set([...(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []), ...postSaleSearchV131.overrides])

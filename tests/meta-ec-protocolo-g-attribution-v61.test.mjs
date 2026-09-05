@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
+import SellerRotationCounter from '../src/models/SellerRotationCounter.js';
 import VslVisit from '../src/models/VslVisit.js';
 import whatsappRoutes from '../src/routes/whatsapp.js';
 import {
@@ -45,18 +46,26 @@ const vslEntryHandler = () => {
     return layer.route.stack.at(-1).handle;
 };
 
-const invokeVslEntryWithoutExternalEffects = async ({ payload, existingTracking = {} }) => {
+const invokeVslEntryWithoutExternalEffects = async ({
+    payload,
+    existingTracking = {},
+    existingAssignedSeller = '5515991418416',
+    existingLastClickAt = null
+}) => {
     const originalFindOne = VslVisit.findOne;
     const originalFindOneAndUpdate = VslVisit.findOneAndUpdate;
+    const originalRotationFindOneAndUpdate = SellerRotationCounter.findOneAndUpdate;
     const previousSequence = process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE_EC;
     const seller = '5515991418416';
+    let rotationWrites = 0;
     let persistedQuery = null;
     let persistedUpdate = null;
     let persistedVisit = null;
     const existing = {
         _id: '66cc00112233445566770001',
-        assignedSeller: seller,
-        assignedSellerAt: new Date('2026-08-24T17:55:00.000Z'),
+        assignedSeller: existingAssignedSeller,
+        assignedSellerAt: existingAssignedSeller ? new Date('2026-08-24T17:55:00.000Z') : null,
+        lastClickAt: existingLastClickAt,
         tracking: existingTracking,
         campaignId: existingTracking.campaign_id || '',
         adsetId: existingTracking.adset_id || '',
@@ -74,6 +83,13 @@ const invokeVslEntryWithoutExternalEffects = async ({ payload, existingTracking 
             ...update.$set
         };
         return { lean: async () => persistedVisit };
+    };
+    SellerRotationCounter.findOneAndUpdate = () => {
+        rotationWrites += 1;
+        throw Object.assign(new Error('ec_bot_core_mongo_write_blocked:sellerrotationcounters.findOneAndUpdate'), {
+            code: 'EC_BOT_CORE_V78_OPERATION_BLOCKED',
+            statusCode: 423
+        });
     };
     process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE_EC = seller;
 
@@ -102,10 +118,11 @@ const invokeVslEntryWithoutExternalEffects = async ({ payload, existingTracking 
     } finally {
         VslVisit.findOne = originalFindOne;
         VslVisit.findOneAndUpdate = originalFindOneAndUpdate;
+        SellerRotationCounter.findOneAndUpdate = originalRotationFindOneAndUpdate;
         if (previousSequence === undefined) delete process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE_EC;
         else process.env.WHATSAPP_SELLER_ROTATION_SEQUENCE_EC = previousSequence;
     }
-    return { statusCode, responseBody, persistedQuery, persistedUpdate, persistedVisit };
+    return { statusCode, responseBody, persistedQuery, persistedUpdate, persistedVisit, rotationWrites };
 };
 
 const fullPayload = (overrides = {}) => ({
@@ -299,6 +316,50 @@ test('fixture oficial percorre endpoint → VslVisit → correlation → Order �
     assert.equal(purchase.payload.data[0].user_data.client_user_agent, officialFixture.client_user_agent);
     assert.equal('client_ip_address' in purchase.payload.data[0].user_data, false);
     assert.equal('test_event_code' in purchase.payload, false);
+});
+
+test('vsl-entry Protocolo G sem telefone persiste a telemetria sem escrever na rotação bloqueada pelo V78', async () => {
+    const endpoint = await invokeVslEntryWithoutExternalEffects({
+        payload: fullPayload(),
+        existingAssignedSeller: ''
+    });
+
+    assert.equal(endpoint.statusCode, 200);
+    assert.equal(endpoint.responseBody.ok, true);
+    assert.equal(endpoint.rotationWrites, 0);
+    assert.equal(endpoint.persistedUpdate.$inc.clickCount, 1);
+    assert.equal(endpoint.persistedVisit.externalId, 'visitor-ec-pg-001');
+    assert.equal(endpoint.persistedVisit.productKey, 'tex_ultra_ec');
+    assert.equal(endpoint.persistedVisit.funnel, 'PROTOCOLO_G');
+    assert.equal(endpoint.responseBody.meta.initiateCheckout, null);
+    assert.equal(endpoint.responseBody.meta.lead, null);
+});
+
+test('vsl-entry Protocolo G duplicado mantém o primeiro clique e não duplica contador', async () => {
+    const firstClickAt = new Date('2026-08-24T17:59:20.000Z');
+    const endpoint = await invokeVslEntryWithoutExternalEffects({
+        payload: fullPayload(),
+        existingAssignedSeller: '',
+        existingLastClickAt: firstClickAt
+    });
+
+    assert.equal(endpoint.statusCode, 200);
+    assert.equal(endpoint.responseBody.ok, true);
+    assert.equal(endpoint.rotationWrites, 0);
+    assert.equal(endpoint.persistedUpdate.$inc.clickCount, 0);
+    assert.equal(Object.hasOwn(endpoint.persistedUpdate.$set, 'lastClickAt'), false);
+});
+
+test('vsl-entry Protocolo G inválido retorna 4xx controlado sem persistência ou rotação', async () => {
+    const endpoint = await invokeVslEntryWithoutExternalEffects({
+        payload: fullPayload({ country: 'CO' }),
+        existingAssignedSeller: ''
+    });
+
+    assert.equal(endpoint.statusCode, 400);
+    assert.equal(endpoint.responseBody.error, 'invalid_protocolo_g_contract');
+    assert.equal(endpoint.persistedUpdate, null);
+    assert.equal(endpoint.rotationWrites, 0);
 });
 
 test('contrato Protocolo G falha fechado para país, produto, funil, origem, mensagem ou alias conflitante', () => {

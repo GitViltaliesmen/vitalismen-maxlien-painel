@@ -3447,11 +3447,17 @@ router.post('/vsl-entry', async (req, res) => {
             : { ...(existing?.tracking || {}), ...incomingTracking };
         let assignment = null;
         let assignedSeller = digitsOnly(existing?.assignedSeller || '');
+        const protocoloGTelemetryOnly = Boolean(
+            protocoloGContract
+            && !vslCustomerPhoneFromBody(body, country)
+        );
 
-        if (!assignedSeller || !sellerIsActive({ seller: assignedSeller, country }) || (body.testEntry && body.forceNewLead)) {
+        if (!protocoloGTelemetryOnly && (!assignedSeller || !sellerIsActive({ seller: assignedSeller, country }) || (body.testEntry && body.forceNewLead))) {
             assignment = await nextSellerForNewLead({ country, source: 'public_lead' });
             assignedSeller = digitsOnly(assignment.seller || '');
         }
+
+        const shouldRecordClick = clicked && (!protocoloGContract || !existing?.lastClickAt);
 
         const update = {
             $set: {
@@ -3508,11 +3514,11 @@ router.post('/vsl-entry', async (req, res) => {
             },
             $inc: {
                 visits: existing && !protocoloGContract ? 1 : 0,
-                clickCount: clicked ? 1 : 0,
+                clickCount: shouldRecordClick ? 1 : 0,
                 formVisibleCount: formVisible ? 1 : 0
             }
         };
-        if (clicked) {
+        if (shouldRecordClick) {
             update.$set.lastClickAt = now;
             update.$set.lastEntryMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 500);
             update.$set.lastWhatsappMessage = cleanText(body.message || body.entryMessage || body.funnel_entry_message).slice(0, 1200);

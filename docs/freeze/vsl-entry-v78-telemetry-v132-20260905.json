@@ -1,0 +1,31 @@
+{
+  "id": "vsl-entry-v78-telemetry-v132-20260905",
+  "layer": "EC_PROTOCOLO_G_VSL_ENTRY_V78_TELEMETRY",
+  "parentCommit": "77f8fedc1e8835fbe732ec359989c3b8b653d7b1",
+  "parentManifestSha256": "b0e53a00db6ab5a29973c448b88026967fca77d581bb6e2a7f500cbda3a7aa6f",
+  "status": "staging_validated_publication_pending",
+  "overrides": [
+    "scripts/guard-post-sale-search-reconciliation-v131.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "tests/meta-ec-protocolo-g-attribution-v61.test.mjs"
+  ],
+  "policy": {
+    "protocoloGWithoutCustomerPhoneSkipsSellerRotation": true,
+    "vslVisitPersistencePreserved": true,
+    "duplicateClickIsIdempotent": true,
+    "v62V63ContractPreserved": true,
+    "botChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false
+  },
+  "protectedFiles": {
+    "scripts/guard-post-sale-search-reconciliation-v131.mjs": "55b657b69c296df4136094aba5033ad16e7278e591f7679c8df22481ac650ac8",
+    "scripts/guard-vsl-entry-v78-telemetry-v132.mjs": "f68f01a2d0afa822d8b5fae3fa566de69538b5bf30633e4d55ad7abd95cd67fd",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "f09ec52d0a9b0002a9b07668f3d4949c7d51cb96d14c09cc388221fd08724fe2",
+    "src/routes/whatsapp.js": "4dadbd90c491acc7db5bb3370ff425469668128c46f9bdb92a1ea1861c3d7f37",
+    "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "72d9c55f51d60b6b8827c56413c44f33758f12490706d6dd542c627da82c7ac1"
+  },
+  "bundleSha256": "50a202fb1534ab0288b4a3e17537a181f66b98fcf85293aa9059575e85561133",
+  "country": "EC"
+}
