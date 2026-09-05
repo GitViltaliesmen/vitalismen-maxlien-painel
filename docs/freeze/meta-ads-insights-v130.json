@@ -27,37 +27,32 @@
     "authorizationHeader": true,
     "countryAggregationAllowed": false,
     "cachePaths": [
-      "/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/ec.json",
-      "/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/co.json"
+      "/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/ec.json"
     ]
   },
   "protectedFiles": {
-    "public/funnel-metrics.html": "df3f3f19b26d1d48b049bb550953a12f09919a614c491d38b7cdb03145291cd9",
+    "public/funnel-metrics.html": "1a01a05f127edadac0cf9c6ab83417274e30f5aa1b0b62a171ed42f1250f4194",
     "public/qr.html": "2564625b310d902e72011d792480ebfa0781f6b61f40fbf20cb6a1277cac6a10",
     "scripts/guard-ec-conversation-handled-v129b.mjs": "ee5cecfb10326f2a5b369dfb99e69cb1b0a2d0c445fafa7bf6e6848aab461689",
     "scripts/guard-manual-media-storage-v129.mjs": "0d1d219389a05a71c5b59e88ac612acc94588f103552e1caa74742bd38a92aa3",
-    "scripts/guard-meta-ads-insights-v130.mjs": "e4a4d32026e8325f22670e049f18c7fd4514bdb2450522e37c9108d77b295f4e",
+    "scripts/guard-meta-ads-insights-v130.mjs": "0e3dd755e9980173c6d66810b5c102b2d6a2ee86a0f3694ac467ed1132e27123",
     "scripts/lib/ec-runtime-successor-v97-context.mjs": "9470af3f7b9705e87eee753001d0b1d33a3080649196d2f91a39eaf93045e23b",
-    "src/routes/funnelMetrics.js": "e8b868e20b2b7bf647b08054eaa319f533c3638ec7e1d3c8642c6e0d7e9900df",
+    "src/routes/funnelMetrics.js": "30bc1674863f82212d4218e606328c12175ab39efdb4c11fbd2fa2ae080f6ec0",
     "src/routes/zapi.js": "1e12927b0baa9d71d24a639847d50cb01930946a3c787782a0fb4f69541dc311",
     "src/services/funnelMetricsService.js": "f1fec1d57feb6281de1aa885c7eebdba8b96e6276f50bc4777f0ee7f18b0c545",
     "src/services/metaAdsInsightsService.js": "680407404daea257baca63321788ce49b371434f03144420dfa27297f6072819",
     "src/services/metaConversionsService.js": "f33b22e9363f7a458dfb8c9699569d887b5942c955e28943f88f13485f94d3d4",
-    "tests/funnel-metrics-route.test.mjs": "d69284c5167944f75ea50f7e0143f7c2404ba2748b64e76e4338d61d9a268139",
+    "tests/funnel-metrics-route.test.mjs": "7b919b2ae365ea35e616a560cbcf766c712a227bd470aa86a37e529e63aeb86b",
     "tests/meta-ads-insights-guard-v130.test.mjs": "9e53cf0bb2b5f0445a9db2d1d22a46d6906df34d2133dab793206878144aa6dd",
     "tests/meta-ads-insights-v130.test.mjs": "7d9512c1eebc4d68454634d4922a4363c0007cd71a2e94c73980018649562a03"
   },
-  "bundleSha256": "dcf55f38912f17bf1fe7925933184c446a8c60d8ef430123886c6c6a1607a1bb",
-  "primaryCountry": "EC",
-  "additionalCountry": "CO",
-  "requestedAccounts": [
-    "CA PY",
-    "C02_COLOMBIA"
-  ],
+  "bundleSha256": "30735340b986b32f4b34fae058faff7b412683ac1cd7156db7ec11953276dfb4",
   "tokenValidation": {
     "permission": "ads_read",
     "status": "granted",
     "validatedAt": "2026-09-05",
     "secretStoredOutsideRepository": true
-  }
+  },
+  "country": "EC",
+  "validatedAccount": "CA PY"
 }

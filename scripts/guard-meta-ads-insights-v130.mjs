@@ -10,8 +10,7 @@ export const assertMetaAdsInsightsV130 = () => {
     const manifest = JSON.parse(read('docs/freeze/meta-ads-insights-v130.json'));
     assert.equal(manifest.parentCommit, '360e0be94bf06e6cfac70018b422a92fb8c5d3a0');
     assert.equal(manifest.layer, 'META_ADS_READ_ONLY_INSIGHTS');
-    assert.equal(manifest.primaryCountry, 'EC');
-    assert.equal(manifest.additionalCountry, 'CO');
+    assert.equal(manifest.country, 'EC');
     assert.equal(manifest.policy.marketingApiReadOnly, true);
     assert.equal(manifest.policy.requiredPermission, 'ads_read');
     assert.equal(manifest.policy.apiVersion, 'v26.0');

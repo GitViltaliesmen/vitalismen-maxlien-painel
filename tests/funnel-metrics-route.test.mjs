@@ -89,8 +89,7 @@ test('handler consulta somente EC, respeita days e devolve no-store', async () =
         CorrelationModel: fakeModel([], queries),
         clock: () => new Date('2026-08-15T15:00:00.000Z'),
         pixelId: () => 'pixel-test',
-        adsInsights: async () => ({ status: 'available', totals: { landingPageViews: 1000 } }),
-        adsInsightsColombia: async () => ({ status: 'available', totals: { landingPageViews: 200 } })
+        adsInsights: async () => ({ status: 'available', totals: { landingPageViews: 1000 } })
     });
     const response = fakeResponse();
     await handler({ query: { days: '3' } }, response);
@@ -99,7 +98,6 @@ test('handler consulta somente EC, respeita days e devolve no-store', async () =
     assert.equal(response.body.days, 3);
     assert.equal(response.body.rows.length, 3);
     assert.equal(response.body.metaAds.totals.landingPageViews, 1000);
-    assert.equal(response.body.metaAdsColombia.totals.landingPageViews, 200);
     assert.equal(queries.length, 3);
     assert.equal(queries.every((query) => query.country === 'EC'), true);
 });

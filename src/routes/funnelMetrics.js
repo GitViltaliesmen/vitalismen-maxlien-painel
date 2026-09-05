@@ -90,39 +90,17 @@ export const createFunnelMetricsHandler = ({
     clock = () => new Date(),
     pixelId = () => process.env.META_PIXEL_ID_EC || '',
     datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order),
-    adsInsights = (options) => loadMetaAdsInsights(options),
-    adsInsightsColombia = (options) => {
-        const accountId = String(process.env.META_AD_ACCOUNT_ID_CO || '').trim();
-        if (!accountId) return Promise.resolve({
-            status: 'unavailable',
-            source: 'none',
-            stale: false,
-            configured: false,
-            country: 'CO',
-            errorCode: 'META_AD_ACCOUNT_ID_CO_MISSING',
-            message: 'Conta Meta Colombia nao configurada.'
-        });
-        return loadMetaAdsInsights({
-            ...options,
-            accountId,
-            accountName: process.env.META_AD_ACCOUNT_NAME_CO || 'C02_COLOMBIA',
-            country: 'CO',
-            campaignFilter: process.env.META_ADS_CAMPAIGN_NAME_FILTER_CO || '',
-            cacheFile: process.env.META_ADS_INSIGHTS_CACHE_FILE_CO
-                || '/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/co.json'
-        });
-    }
+    adsInsights = (options) => loadMetaAdsInsights(options)
 } = {}) => async (req, res) => {
     try {
         const days = clampFunnelMetricsDays(req.query?.days);
         const now = clock();
         const { visitQuery, orderQuery, correlationQuery } = funnelMetricsMongoWindow({ days, now });
-        const [visits, orders, correlations, metaAds, metaAdsColombia] = await Promise.all([
+        const [visits, orders, correlations, metaAds] = await Promise.all([
             VisitModel.find(visitQuery).select(visitProjection).lean(),
             OrderModel.find(orderQuery).select(orderProjection).lean(),
             CorrelationModel.find(correlationQuery).select(correlationProjection).lean(),
-            adsInsights({ days, now }),
-            adsInsightsColombia({ days, now })
+            adsInsights({ days, now })
         ]);
         const snapshot = buildFunnelMetricsSnapshot({
             visits,
@@ -134,7 +112,7 @@ export const createFunnelMetricsHandler = ({
             datasetIdForOrder
         });
         res.set('Cache-Control', 'no-store');
-        return res.json({ ...snapshot, metaAds, metaAdsColombia });
+        return res.json({ ...snapshot, metaAds });
     } catch (error) {
         console.error('[FUNNEL-METRICS] Falha ao montar metricas EC:', error.message);
         return res.status(500).json({ error: 'Nao foi possivel carregar as metricas do funil.' });
