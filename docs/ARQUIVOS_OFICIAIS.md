@@ -1268,3 +1268,24 @@ nenhuma alteração realizada no VPS.
   `scripts/guard-ec-repurchase-registration-v99.mjs`.
 - Publicação, backup e validação oficial serão registrados em evidência
   operacional própria após o fluxo seguro de release.
+
+## V130 — métricas Meta Ads somente leitura EC (2026-09-05)
+
+- Serviço oficial: `src/services/metaAdsInsightsService.js`.
+- Integração do dashboard: `src/routes/funnelMetrics.js` e
+  `public/funnel-metrics.html`.
+- Manifesto e guard: `docs/freeze/meta-ads-insights-v130.json` e
+  `scripts/guard-meta-ads-insights-v130.mjs`.
+- Release ativo:
+  `/opt/vitalismen-automacao/releases/20260905T040931Z_production-20260905-ed4f832`.
+- Conta oficial carregada no painel EC: `CA PY`, ID
+  `26714145304913323`; `C02_COLOMBIA` permanece fora do runtime EC.
+- Cache persistente:
+  `/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/ec.json`.
+- HTML oficial do Nginx: `/var/www/ec.maxlien.shop/funnel-metrics.html`.
+- Backup do HTML anterior:
+  `/var/backups/vitalismen-funnel-metrics-v130/20260905T042748Z/funnel-metrics.html.before`.
+- Tags: `production-20260905-ed4f832` e
+  `freeze-v130-meta-ads-readonly-20260905`.
+- Evidência operacional completa:
+  `docs/META_ADS_INSIGHTS_V130_ACTIVATION_RESULT_20260905.md`.
