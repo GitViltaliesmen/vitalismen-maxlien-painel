@@ -5,12 +5,16 @@ import { assertMetaAdsInsightsV130 } from '../scripts/guard-meta-ads-insights-v1
 
 test('V130 protege a integracao Meta Ads sem autorizar mutacao de anuncios ou CAPI', () => {
     const manifest = assertMetaAdsInsightsV130();
-    assert.equal(manifest.status, 'implementation_validated_configuration_pending');
+    assert.equal(manifest.status, 'implementation_and_token_validated_publication_pending');
+    assert.equal(manifest.policy.countryAggregationAllowed, false);
     assert.ok(manifest.overrides.includes('public/funnel-metrics.html'));
     assert.ok(manifest.overrides.includes('src/routes/funnelMetrics.js'));
     assert.ok(manifest.protectedFiles['src/services/metaAdsInsightsService.js']);
     const source = fs.readFileSync('src/services/metaAdsInsightsService.js', 'utf8');
     assert.match(source, /\/insights\?/);
+    assert.match(source, /META_ACCESS_TOKEN/);
+    assert.match(source, /v26\.0/);
+    assert.match(source, /Authorization: `Bearer \$\{token\}`/);
     assert.doesNotMatch(source, /method:\s*['"]POST['"]/);
     assert.doesNotMatch(source, /campaigns.*POST|adsets.*POST|ads.*POST/);
 });

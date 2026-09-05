@@ -102,15 +102,25 @@ export const summarizeMetaAdsInsights = (rows = []) => {
 
 const metaError = (body, status) => {
     const error = new Error(body?.error?.message || `Meta HTTP ${status}`);
-    error.code = number(body?.error?.code) === 200 ? 'META_ADS_READ_PERMISSION_MISSING' : 'META_ADS_API_FAILED';
+    const code = number(body?.error?.code);
+    const subcode = number(body?.error?.error_subcode);
+    if (code === 190 && [463, 467].includes(subcode)) error.code = 'META_ACCESS_TOKEN_EXPIRED';
+    else if (code === 190) error.code = 'META_ACCESS_TOKEN_INVALID';
+    else if ([10, 200].includes(code)) error.code = 'META_ADS_READ_PERMISSION_MISSING';
+    else if (code === 2635) error.code = 'META_ADS_API_VERSION_DEPRECATED';
+    else error.code = 'META_ADS_API_FAILED';
     error.httpStatus = status;
+    error.metaCode = code;
+    error.metaSubcode = subcode;
     return error;
 };
 
 const graphGet = async ({ url, token, fetchImpl }) => {
     const target = new URL(url);
-    target.searchParams.set('access_token', token);
-    const response = await fetchImpl(target);
+    const response = await fetchImpl(target, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` }
+    });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw metaError(body, response.status);
     return body;
@@ -126,8 +136,8 @@ const resolveAccountId = async ({ accountId, version, token, fetchImpl }) => {
     });
     const active = (body.data || []).filter((item) => number(item.account_status) === 1);
     if (active.length !== 1) {
-        const error = new Error('Defina META_AD_ACCOUNT_ID_EC quando o token acessar zero ou varias contas.');
-        error.code = 'META_AD_ACCOUNT_ID_EC_REQUIRED';
+        const error = new Error('Defina o ID da conta quando o token acessar zero ou varias contas.');
+        error.code = 'META_AD_ACCOUNT_ID_REQUIRED';
         throw error;
     }
     return String(active[0].id || '').replace(/^act_/, '');
@@ -149,12 +159,30 @@ export const loadMetaAdsInsights = async ({
     now = new Date(),
     env = process.env,
     fetchImpl = fetch,
+    accountId = env.META_AD_ACCOUNT_ID_EC,
+    accountName = env.META_AD_ACCOUNT_NAME_EC || '',
+    country = 'EC',
+    token: suppliedToken,
+    version: suppliedVersion,
+    campaignFilter: suppliedCampaignFilter,
     cacheFile = env.META_ADS_INSIGHTS_CACHE_FILE_EC || DEFAULT_CACHE_FILE,
     cacheTtlMs = number(env.META_ADS_INSIGHTS_CACHE_SECONDS_EC || 300) * 1000
 } = {}) => {
-    const token = String(env.META_ADS_ACCESS_TOKEN_EC || env.META_ACCESS_TOKEN_EC || '').trim();
-    const version = String(env.META_ADS_API_VERSION || env.META_CAPI_API_VERSION || 'v20.0').trim();
-    const campaignFilter = String(env.META_ADS_CAMPAIGN_NAME_FILTER_EC || '').trim().toLowerCase();
+    const token = String(
+        suppliedToken
+        || env.META_ACCESS_TOKEN
+        || env.META_ADS_ACCESS_TOKEN_EC
+        || env.META_ACCESS_TOKEN_EC
+        || ''
+    ).trim();
+    const version = String(
+        suppliedVersion || env.META_ADS_API_VERSION || env.META_CAPI_API_VERSION || 'v26.0'
+    ).trim();
+    const campaignFilter = String(
+        suppliedCampaignFilter === undefined
+            ? env.META_ADS_CAMPAIGN_NAME_FILTER_EC || ''
+            : suppliedCampaignFilter
+    ).trim().toLowerCase();
     const cached = readCache(cacheFile);
     const cacheAgeMs = cached?.fetchedAt ? now.getTime() - new Date(cached.fetchedAt).getTime() : Infinity;
     if (cached && cacheAgeMs >= 0 && cacheAgeMs <= cacheTtlMs && number(cached.days) === number(days)) {
@@ -166,8 +194,8 @@ export const loadMetaAdsInsights = async ({
         message: 'Configure META_ADS_ACCESS_TOKEN_EC com permissao ads_read.'
     };
     try {
-        const accountId = await resolveAccountId({
-            accountId: env.META_AD_ACCOUNT_ID_EC,
+        const resolvedAccountId = await resolveAccountId({
+            accountId,
             version,
             token,
             fetchImpl
@@ -182,7 +210,7 @@ export const loadMetaAdsInsights = async ({
             time_increment: '1',
             limit: '500'
         });
-        let next = `https://graph.facebook.com/${version}/act_${accountId}/insights?${params}`;
+        let next = `https://graph.facebook.com/${version}/act_${resolvedAccountId}/insights?${params}`;
         const rows = [];
         for (let page = 0; next && page < 20; page += 1) {
             const body = await graphGet({ url: next, token, fetchImpl });
@@ -191,14 +219,18 @@ export const loadMetaAdsInsights = async ({
             next = candidate && new URL(candidate).hostname === 'graph.facebook.com' ? candidate : '';
         }
         const filtered = campaignFilter
-            ? rows.filter((row) => String(row.campaign_name || '').toLowerCase().includes(campaignFilter))
+            ? rows.filter((row) => [row.campaign_name, row.adset_name, row.ad_name]
+                .some((value) => String(value || '').toLowerCase().includes(campaignFilter)))
             : rows;
         const snapshot = {
             status: 'available',
             source: 'live',
             stale: false,
             configured: true,
-            accountId,
+            accountId: resolvedAccountId,
+            accountName: String(accountName || ''),
+            country: String(country || ''),
+            apiVersion: version,
             campaignFilter,
             days: number(days),
             startDay,
@@ -221,6 +253,12 @@ export const loadMetaAdsInsights = async ({
             errorCode: error.code || 'META_ADS_API_FAILED',
             message: error.code === 'META_ADS_READ_PERMISSION_MISSING'
                 ? 'O token Meta nao possui ads_read.'
+                : error.code === 'META_ACCESS_TOKEN_EXPIRED'
+                    ? 'O token Meta expirou e precisa ser renovado.'
+                    : error.code === 'META_ACCESS_TOKEN_INVALID'
+                        ? 'O token Meta e invalido.'
+                        : error.code === 'META_ADS_API_VERSION_DEPRECATED'
+                            ? 'A versao da Ads API foi descontinuada.'
                 : 'Nao foi possivel consultar os anuncios da Meta.'
         };
     }

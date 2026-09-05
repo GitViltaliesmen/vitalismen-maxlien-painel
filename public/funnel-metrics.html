@@ -367,6 +367,36 @@
             <section class="panel">
                 <div class="panel-head">
                     <div>
+                        <h2>Meta Ads — C02_COLOMBIA</h2>
+                        <p id="metaAdsCoWindow" class="meta">Conta adicional solicitada; métricas isoladas do Equador</p>
+                    </div>
+                    <p id="metaAdsCoStatus" class="meta">Carregando...</p>
+                </div>
+                <div class="grid" id="metaAdsCoMetrics" style="padding:14px"></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Anúncio</th>
+                                <th>Conjunto</th>
+                                <th>Campanha</th>
+                                <th>Alcance</th>
+                                <th>Impressões</th>
+                                <th>Cliques no link</th>
+                                <th>Landing Page Views</th>
+                                <th>Conversas</th>
+                                <th>Compras Meta</th>
+                                <th>Gasto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metaAdsCoRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
                         <h2>Protocolo G — Tex Ultra</h2>
                         <p class="meta">Somente https://vilaliemen.shop/protocolo-g; etapas instrumentadas pela V63</p>
                     </div>
@@ -634,6 +664,8 @@
             const protocoloGTotals = protocoloG.totals || {};
             const metaAds = data.metaAds || {};
             const metaAdsTotals = metaAds.totals || {};
+            const metaAdsCo = data.metaAdsColombia || {};
+            const metaAdsCoTotals = metaAdsCo.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
             el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
@@ -683,6 +715,35 @@
                     <td>${currency.format(ad.spend || 0)}</td>
                 </tr>
             `).join('') || emptyRow(10, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
+
+            el('metaAdsCoStatus').textContent = metaAdsCo.status === 'available'
+                ? `${metaAdsCo.source === 'live' ? 'Ao vivo' : 'Cache'}${metaAdsCo.stale ? ' desatualizado' : ''} · ${formatDate(metaAdsCo.fetchedAt)}`
+                : (metaAdsCo.message || 'Meta Ads Colombia indisponível');
+            el('metaAdsCoWindow').textContent = metaAdsCo.status === 'available'
+                ? `${metaAdsCo.accountName || 'C02_COLOMBIA'} · ${metaAdsCo.startDay} a ${metaAdsCo.endDay}`
+                : `Código: ${metaAdsCo.errorCode || 'META_ADS_CO_UNAVAILABLE'}`;
+            el('metaAdsCoMetrics').innerHTML = metaAdsCo.status === 'available' ? [
+                metricCard('Landing Page Views', number.format(metaAdsCoTotals.landingPageViews || 0), 'Somente esta conta'),
+                metricCard('Cliques no link', number.format(metaAdsCoTotals.linkClicks || 0), `${metaAdsCoTotals.landingRate || 0}% chegaram à página`),
+                metricCard('Alcance', number.format(metaAdsCoTotals.reach || 0), `${number.format(metaAdsCoTotals.impressions || 0)} impressões`),
+                metricCard('Leads atribuídos', number.format(metaAdsCoTotals.leads || 0), 'Resultado informado pela Meta'),
+                metricCard('Compras Meta', number.format(metaAdsCoTotals.purchases || 0), 'Atribuição da conta'),
+                metricCard('Gasto Meta', currency.format(metaAdsCoTotals.spend || 0), 'Sem somar com Equador')
+            ].join('') : metricCard('Conta não conectada', '-', metaAdsCo.message || 'Configuração necessária', 'warn');
+            el('metaAdsCoRows').innerHTML = (metaAdsCo.ads || []).map((ad) => `
+                <tr>
+                    <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
+                    <td>${escapeHtml(ad.adsetName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adsetId || '-')}</span></td>
+                    <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || '-')}</span></td>
+                    <td>${number.format(ad.reach || 0)}</td>
+                    <td>${number.format(ad.impressions || 0)}</td>
+                    <td>${number.format(ad.linkClicks || 0)}</td>
+                    <td>${number.format(ad.landingPageViews || 0)}<br><span class="meta">${ad.landingRate || 0}%</span></td>
+                    <td>${number.format(ad.conversations || 0)}</td>
+                    <td>${number.format(ad.purchases || 0)}</td>
+                    <td>${currency.format(ad.spend || 0)}</td>
+                </tr>
+            `).join('') || emptyRow(10, metaAdsCo.status === 'available' ? 'Nenhum anúncio no período.' : 'Conta adicional não conectada.');
 
             el('protocoloGMetrics').innerHTML = [
                 metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),
