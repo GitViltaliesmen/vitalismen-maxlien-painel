@@ -1,0 +1,38 @@
+{
+  "id": "investment-radar-v134-20260905",
+  "layer": "EC_INVESTMENT_RADAR_READ_ONLY",
+  "parentCommit": "6378d7d1c276a39a397b0639052142d171ef0b82",
+  "parentManifestSha256": "74e3093bc81fc75043e1905754da9eb005b1bc690b5482e569e4033d8eaf0010",
+  "status": "implementation_validated_local_successor",
+  "overrides": [
+    "public/funnel-metrics.html",
+    "scripts/guard-vsl-entry-v78-telemetry-v132.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/funnelMetricsService.js",
+    "tests/funnel-metrics-service.test.mjs"
+  ],
+  "policy": {
+    "readOnlyRecommendationOnly": true,
+    "automaticBudgetMutationAllowed": false,
+    "metaCampaignMutationAllowed": false,
+    "hourlyUsesFirstPartyTelemetry": true,
+    "qaMeasurementsExcluded": true,
+    "bestWindowHours": 3,
+    "budgetSuggestionUsesCurrentSpendOnly": true,
+    "botChanged": false,
+    "dropiChanged": false,
+    "metaRoutingChanged": false,
+    "databaseSchemaChanged": false
+  },
+  "protectedFiles": {
+    "public/funnel-metrics.html": "0d5e053f258904e6d55d7022d31bdc61c19065fef9c3da560a01560a31a1c1ce",
+    "scripts/guard-investment-radar-v134.mjs": "5db8c29c259088d5a81f1b0c11859f0db4408cf9e8703118cfa5afa23f8273a3",
+    "scripts/guard-vsl-entry-v78-telemetry-v132.mjs": "9f4299c00030c26e6cd75e8119bd5d9ebea2d46ce791d4dece5fb8f4b7e290e3",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "4b4eb9748b5d980ece589ccbffa27dd4b62353e9a4f0650442741af8a4c58522",
+    "src/services/funnelMetricsService.js": "3b1e7d8ef510db17d1cba0712c503ddd687671f54e173e4ee67ada87398cb63e",
+    "tests/funnel-metrics-service.test.mjs": "ee093f1b88589845663fbd96ed97842e1dd68927e6093f672696e4ad1a085f07",
+    "tests/investment-radar-v134.test.mjs": "394c5a9c06b8496d9e0afc7f22a472b4f4f3c8112a501ff5722d8ef07d910248"
+  },
+  "bundleSha256": "57edfc78ff25b19e7e2417149a7fb47e7103931f7a8d1bc298b0ddb3bc12aa61",
+  "country": "EC"
+}

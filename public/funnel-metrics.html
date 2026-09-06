@@ -214,6 +214,193 @@
             overflow: hidden;
         }
 
+        .radar-panel {
+            background: linear-gradient(145deg, #0d1420 0%, #111b2a 100%);
+            color: #f7fbff;
+            border: 1px solid #263a55;
+            border-radius: 12px;
+            box-shadow: 0 18px 40px rgba(9, 18, 32, 0.18);
+            overflow: hidden;
+        }
+
+        .radar-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .radar-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .radar-mark {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: rgba(34, 197, 94, 0.14);
+            color: #4ade80;
+            font-size: 18px;
+        }
+
+        .radar-panel .meta {
+            color: #93a4b8;
+        }
+
+        .radar-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1.7fr 1fr;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .radar-card {
+            min-height: 116px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(20, 31, 47, 0.92);
+            display: grid;
+            align-content: space-between;
+            gap: 8px;
+        }
+
+        .radar-card strong {
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .radar-window strong {
+            color: #4ade80;
+            font-size: 31px;
+        }
+
+        .radar-hours {
+            grid-column: span 2;
+        }
+
+        .radar-hour-bars {
+            height: 58px;
+            display: grid;
+            grid-template-columns: repeat(24, minmax(3px, 1fr));
+            align-items: end;
+            gap: 3px;
+        }
+
+        .radar-hour-bar {
+            min-height: 5px;
+            border-radius: 3px 3px 1px 1px;
+            background: #31425a;
+        }
+
+        .radar-hour-bar.hot {
+            background: linear-gradient(180deg, #6ee7a0, #22c55e);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+        }
+
+        .radar-hour-axis {
+            display: flex;
+            justify-content: space-between;
+            color: #73849a;
+            font-size: 10px;
+        }
+
+        .radar-badge {
+            display: inline-flex;
+            width: fit-content;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.14);
+            color: #8ec5ff;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .radar-score {
+            color: #4ade80;
+            font-weight: 800;
+        }
+
+        .radar-budget strong {
+            color: #f8fafc;
+            font-size: 30px;
+        }
+
+        .radar-percent-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: conic-gradient(#3b82f6 var(--radar-percent, 0%), #27364a 0);
+            position: relative;
+        }
+
+        .radar-percent-ring::after {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: #142033;
+        }
+
+        .radar-percent-ring strong {
+            position: relative;
+            z-index: 1;
+            font-size: 17px;
+        }
+
+        .radar-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 0 12px 12px;
+        }
+
+        .radar-action {
+            min-height: 48px;
+            border-radius: 9px;
+            border: 1px solid #33465f;
+            background: #142033;
+            color: #93a4b8;
+            display: grid;
+            place-items: center;
+            font-weight: 750;
+        }
+
+        .radar-action.active-invest {
+            background: rgba(22, 101, 52, 0.32);
+            border-color: #22c55e;
+            color: #86efac;
+        }
+
+        .radar-action.active-hold {
+            border-color: #60a5fa;
+            color: #bfdbfe;
+        }
+
+        .radar-action.active-wait {
+            background: rgba(120, 53, 15, 0.26);
+            border-color: #f59e0b;
+            color: #fcd34d;
+        }
+
+        .radar-summary {
+            margin: 0 12px 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            border-radius: 9px;
+            background: rgba(88, 28, 135, 0.18);
+            color: #ddd6fe;
+            font-size: 12px;
+        }
+
         .panel-head {
             min-height: 52px;
             padding: 0 14px;
@@ -270,6 +457,14 @@
             .grid {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
             }
+
+            .radar-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .radar-hours {
+                grid-column: span 1;
+            }
         }
 
         @media (max-width: 720px) {
@@ -286,6 +481,16 @@
 
             .grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .radar-grid,
+            .radar-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .radar-head {
+                align-items: flex-start;
+                flex-direction: column;
             }
 
             main {
@@ -333,6 +538,58 @@
 
         <main>
             <section class="grid" id="metrics"></section>
+
+            <section class="radar-panel" id="investmentRadarPanel">
+                <div class="radar-head">
+                    <div class="radar-title">
+                        <div class="radar-mark">◎</div>
+                        <div>
+                            <h2>Radar de Investimento</h2>
+                            <p class="meta">Leitura assistida; nenhuma alteração automática no Meta Ads</p>
+                        </div>
+                    </div>
+                    <span id="radarConfidence" class="radar-badge">Aguardando dados</span>
+                </div>
+                <div class="radar-grid">
+                    <article class="radar-card radar-window">
+                        <span class="meta">Melhor janela para investir</span>
+                        <strong id="radarBestWindow">--</strong>
+                        <span id="radarWindowNote" class="meta">Sem amostra suficiente</span>
+                    </article>
+                    <article class="radar-card radar-hours">
+                        <div>
+                            <strong style="font-size:14px">Horas quentes</strong>
+                            <span class="meta" style="margin-left:6px">horário do Equador</span>
+                        </div>
+                        <div id="radarHourBars" class="radar-hour-bars"></div>
+                        <div class="radar-hour-axis"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+                    </article>
+                    <article class="radar-card">
+                        <span class="meta">Criativo promissor</span>
+                        <strong id="radarCreative" style="font-size:16px">Aguardando dados</strong>
+                        <div><span id="radarCreativeScore" class="radar-score">Score --</span></div>
+                        <span id="radarCreativeNote" class="meta">Sem sinal suficiente</span>
+                    </article>
+                    <article class="radar-card radar-budget">
+                        <span class="meta">Sugestão de investimento</span>
+                        <strong id="radarBudget">US$ 0,00</strong>
+                        <span id="radarBudgetNote" class="meta">Parcela da verba diária atual</span>
+                    </article>
+                    <article class="radar-card">
+                        <span class="meta">% ideal do orçamento</span>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div id="radarPercentRing" class="radar-percent-ring" style="--radar-percent:0%"><strong id="radarPercent">0%</strong></div>
+                            <span id="radarPercentNote" class="meta">Sem recomendação ainda</span>
+                        </div>
+                    </article>
+                </div>
+                <div id="radarActions" class="radar-actions">
+                    <div class="radar-action" data-radar-action="invest">Investir agora</div>
+                    <div class="radar-action" data-radar-action="hold">Manter</div>
+                    <div class="radar-action active-wait" data-radar-action="wait">Aguardar</div>
+                </div>
+                <div id="radarSummary" class="radar-summary">Recomendação IA: aguardando amostra suficiente para indicar horário, criativo e verba.</div>
+            </section>
 
             <section class="panel">
                 <div class="panel-head">
@@ -602,6 +859,119 @@
 
         const yesNo = (value) => value ? 'sim' : 'não';
 
+        const radarScale = (value, target) => Math.min(100, target > 0 ? (Number(value || 0) / target) * 100 : 0);
+
+        const radarCreativeCandidate = (data = {}) => {
+            const metaAds = data.metaAds || {};
+            const protocoloG = data.protocoloG || {};
+            const metaAdsById = new Map((metaAds.ads || []).map((ad) => [String(ad.adId || ''), ad]));
+            const protocoloById = new Map((protocoloG.ads || []).map((ad) => [String(ad.adId || ''), ad]));
+            const keys = [...new Set([...metaAdsById.keys(), ...protocoloById.keys()])].filter(Boolean);
+            const candidates = keys.map((key) => {
+                const meta = metaAdsById.get(key) || {};
+                const vsl = protocoloById.get(key) || {};
+                const landing = Math.max(Number(meta.landingPageViews || 0), Number(vsl.landing || 0));
+                const purchaseRate = landing > 0 ? (Number(meta.purchases || 0) / landing) * 100 : 0;
+                const base = (
+                    radarScale(purchaseRate, 2) * 0.35
+                    + radarScale(Number(vsl.salesRate || 0), 3) * 0.25
+                    + radarScale(Number(vsl.conversationRate || 0), 60) * 0.20
+                    + radarScale(Number(vsl.whatsappRate || 0), 8) * 0.10
+                    + radarScale(Number(meta.landingRate || 0), 80) * 0.10
+                );
+                const confidence = Math.min(100, Math.round((landing / 40) * 100));
+                const score = Math.round(base * (0.55 + (confidence / 100) * 0.45));
+                return {
+                    adId: key,
+                    adName: String(meta.adName || vsl.adName || 'Criativo sem nome'),
+                    score: Math.max(0, Math.min(100, score)),
+                    confidence,
+                    landing,
+                    purchases: Number(meta.purchases || 0),
+                    sales: Number(vsl.salesCreated || 0),
+                    conversations: Number(vsl.attributedConversations || 0)
+                };
+            });
+            return candidates.sort((left, right) => (
+                right.score - left.score
+                || right.purchases - left.purchases
+                || right.sales - left.sales
+                || right.conversations - left.conversations
+                || right.landing - left.landing
+            ))[0] || null;
+        };
+
+        const radarConfidenceLabel = (radar = {}, creative = null) => {
+            const value = Math.min(Number(radar.bestWindow?.confidence || 0), Number(creative?.confidence || 0));
+            if (radar.state === 'no_data' || !creative) return 'Sem dados';
+            if (value >= 70) return 'Confiança alta';
+            if (value >= 40) return 'Confiança média';
+            return 'Amostra baixa';
+        };
+
+        const renderInvestmentRadar = (data = {}) => {
+            const radar = data.investmentRadar || {};
+            const bestWindow = radar.bestWindow || null;
+            const creative = radarCreativeCandidate(data);
+            const metaAds = data.metaAds || {};
+            const totalSpend = Number(metaAds.totals?.spend || 0);
+            const days = Math.max(1, Number(data.days || 1));
+            const dailySpend = totalSpend / days;
+            const ready = radar.state === 'ready';
+            const creativeScore = Number(creative?.score || 0);
+            const creativeConfidence = Number(creative?.confidence || 0);
+            let allocationPct = 0;
+            if (creative) {
+                if (ready && creativeScore >= 75 && creativeConfidence >= 60) allocationPct = 30;
+                else if (creativeScore >= 60) allocationPct = 22;
+                else if (creativeScore >= 45) allocationPct = 15;
+                else allocationPct = 10;
+            }
+            const suggestedBudget = dailySpend > 0 ? Math.round((dailySpend * allocationPct / 100) * 100) / 100 : 0;
+            const action = ready && creativeScore >= 70 && creativeConfidence >= 50
+                ? 'invest'
+                : (bestWindow && creativeScore >= 45 ? 'hold' : 'wait');
+
+            el('radarBestWindow').textContent = bestWindow?.label || '--';
+            el('radarWindowNote').textContent = bestWindow
+                ? `${number.format(bestWindow.entries || 0)} entradas · score ${bestWindow.score || 0}/100`
+                : 'Sem amostra suficiente';
+            el('radarConfidence').textContent = radarConfidenceLabel(radar, creative);
+
+            const hours = Array.isArray(radar.hours) ? radar.hours : [];
+            const maxScore = Math.max(1, ...hours.map((row) => Number(row.score || 0)));
+            el('radarHourBars').innerHTML = Array.from({ length: 24 }, (_, hour) => {
+                const row = hours.find((item) => Number(item.hour) === hour) || {};
+                const height = Math.max(8, Math.round((Number(row.score || 0) / maxScore) * 100));
+                const hot = bestWindow && hour >= Number(bestWindow.startHour) && hour < Number(bestWindow.endHour);
+                return `<span class="radar-hour-bar${hot ? ' hot' : ''}" style="height:${height}%" title="${String(hour).padStart(2, '0')}h · score ${Number(row.score || 0)}/100 · ${Number(row.entries || 0)} entradas"></span>`;
+            }).join('');
+
+            el('radarCreative').textContent = creative?.adName || 'Aguardando dados';
+            el('radarCreativeScore').textContent = creative ? `Score ${creativeScore}/100` : 'Score --';
+            el('radarCreativeNote').textContent = creative
+                ? `${number.format(creative.landing || 0)} LPV/entradas · ${number.format(creative.purchases || 0)} compra(s)`
+                : 'Sem sinal suficiente';
+            el('radarBudget').textContent = currency.format(suggestedBudget);
+            el('radarBudgetNote').textContent = dailySpend > 0
+                ? `de ${currency.format(dailySpend)} de verba média/dia`
+                : 'Sem gasto Meta disponível no período';
+            el('radarPercent').textContent = `${allocationPct}%`;
+            el('radarPercentRing').style.setProperty('--radar-percent', `${allocationPct}%`);
+            el('radarPercentNote').textContent = allocationPct
+                ? `Destinar ${allocationPct}% da verba diária ao criativo líder`
+                : 'Sem recomendação ainda';
+
+            document.querySelectorAll('[data-radar-action]').forEach((node) => {
+                node.classList.remove('active-invest', 'active-hold', 'active-wait');
+                if (node.dataset.radarAction === action) node.classList.add(`active-${action}`);
+            });
+            const actionText = action === 'invest' ? 'Investir agora' : action === 'hold' ? 'Manter' : 'Aguardar';
+            const windowText = bestWindow?.label ? ` entre ${bestWindow.label}` : '';
+            const creativeText = creative?.adName ? ` no criativo “${creative.adName}”` : '';
+            el('radarSummary').textContent = `Recomendação IA: ${actionText.toLowerCase()}${creativeText}${windowText}. ${allocationPct ? `Alocação sugerida: ${allocationPct}% da verba diária (${currency.format(suggestedBudget)}).` : 'Amostra ainda insuficiente para alocação.'}`;
+        };
+
         const protocoloGAdReading = (ad = {}) => {
             const landings = Number(ad.landing || 0);
             if (landings < 20) return `Amostra ${landings}/20`;
@@ -651,6 +1021,8 @@
                 metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
                 metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
             ].join('');
+
+            renderInvestmentRadar(data);
 
             const measuredEntries = Number(totals.entries || 0);
             const metaLandings = Number(metaAdsTotals.landingPageViews || 0);

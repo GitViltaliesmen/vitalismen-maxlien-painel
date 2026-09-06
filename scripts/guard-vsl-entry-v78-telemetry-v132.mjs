@@ -20,7 +20,9 @@ export const assertVslEntryV78TelemetryV132 = () => {
     assert.equal(manifest.policy.dropiChanged, false);
     assert.equal(manifest.policy.metaChanged, false);
     assert.equal(hash(read('docs/freeze/post-sale-search-reconciliation-v131.json')), manifest.parentManifestSha256);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
     for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (successorOverrides.has(file)) continue;
         assert.equal(hash(read(file)), expected, file);
     }
     assert.equal(

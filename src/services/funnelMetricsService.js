@@ -44,6 +44,12 @@ export const ecuadorDayKey = (value) => {
     return new Date(date.getTime() + ECUADOR_UTC_OFFSET_MS).toISOString().slice(0, 10);
 };
 
+export const ecuadorHourKey = (value) => {
+    const date = asDate(value);
+    if (!date) return -1;
+    return new Date(date.getTime() + ECUADOR_UTC_OFFSET_MS).getUTCHours();
+};
+
 const isWithin = (value, startAt, endAt) => {
     const date = asDate(value);
     return Boolean(date && date >= startAt && date <= endAt);
@@ -179,6 +185,89 @@ const addToDay = (rowsByDay, value, field, amount = 1) => {
     if (row) row[field] += finiteNumber(amount);
 };
 
+const investmentRadarHourTemplate = (hour) => ({
+    hour,
+    entries: 0,
+    videoStarted: 0,
+    watched25: 0,
+    whatsappClicks: 0,
+    attributedConversations: 0
+});
+
+const isInvestmentRadarQaVisit = (visit = {}) => String(
+    visit.placement || visit.tracking?.placement || ''
+).trim().toLowerCase().startsWith('qa_');
+
+const normalizedTargetScore = (value, target) => Math.min(100, percentage(value, target));
+
+const finishInvestmentRadarHour = (row = {}) => {
+    const videoStartRate = percentage(row.videoStarted, row.entries);
+    const watched25Rate = percentage(row.watched25, row.videoStarted);
+    const whatsappRate = percentage(row.whatsappClicks, row.entries);
+    const conversationRate = percentage(row.attributedConversations, row.whatsappClicks);
+    const confidence = Math.min(100, Math.round((finiteNumber(row.entries) / 20) * 100));
+    const quality = (
+        normalizedTargetScore(videoStartRate, 55) * 0.20
+        + normalizedTargetScore(watched25Rate, 35) * 0.15
+        + normalizedTargetScore(whatsappRate, 8) * 0.35
+        + normalizedTargetScore(conversationRate, 60) * 0.30
+    );
+    const score = Math.round(quality * (0.45 + (confidence / 100) * 0.55));
+    return {
+        ...row,
+        videoStartRate,
+        watched25Rate,
+        whatsappRate,
+        conversationRate,
+        confidence,
+        score: Math.max(0, Math.min(100, score))
+    };
+};
+
+const investmentWindowSummary = (rows = [], startHour = 0) => {
+    const aggregate = rows.reduce((result, row) => {
+        ['entries', 'videoStarted', 'watched25', 'whatsappClicks', 'attributedConversations']
+            .forEach((field) => { result[field] += finiteNumber(row[field]); });
+        return result;
+    }, investmentRadarHourTemplate(startHour));
+    const finished = finishInvestmentRadarHour(aggregate);
+    return {
+        startHour,
+        endHour: startHour + rows.length,
+        label: `${String(startHour).padStart(2, '0')}h–${String(startHour + rows.length).padStart(2, '0')}h`,
+        entries: finished.entries,
+        whatsappClicks: finished.whatsappClicks,
+        attributedConversations: finished.attributedConversations,
+        score: finished.score,
+        confidence: finished.confidence
+    };
+};
+
+const buildInvestmentRadar = (hourRows = []) => {
+    const hours = hourRows.map(finishInvestmentRadarHour);
+    const totalEntries = hours.reduce((sum, row) => sum + finiteNumber(row.entries), 0);
+    const windows = [];
+    for (let startHour = 0; startHour <= 21; startHour += 1) {
+        windows.push(investmentWindowSummary(hours.slice(startHour, startHour + 3), startHour));
+    }
+    const bestWindow = windows
+        .filter((row) => row.entries > 0)
+        .sort((left, right) => (
+            right.score - left.score
+            || right.entries - left.entries
+            || left.startHour - right.startHour
+        ))[0] || null;
+    return {
+        version: 'V134',
+        mode: 'READ_ONLY_RECOMMENDATION',
+        timezone: 'America/Guayaquil',
+        state: totalEntries === 0 ? 'no_data' : totalEntries < 20 ? 'learning' : 'ready',
+        sampleEntries: totalEntries,
+        bestWindow,
+        hours
+    };
+};
+
 const publicOrder = (order = {}, pixelId = '', datasetIdForOrder = () => '') => {
     const sentAt = asDate(order.tracking?.metaPurchaseSentAt);
     const eventsReceived = metaEventsReceived(order.tracking?.metaPurchaseResponse);
@@ -256,6 +345,7 @@ export const buildFunnelMetricsSnapshot = ({
     const protocoloGRows = [];
     const protocoloGRowsByDay = new Map();
     const protocoloGRowsByAd = new Map();
+    const investmentRadarHours = Array.from({ length: 24 }, (_, hour) => investmentRadarHourTemplate(hour));
     const protocoloGMeasurementStartedAt = asDate(PROTOCOLO_G_MEASUREMENT_STARTED_AT);
     const protocoloGStartAt = new Date(Math.max(
         range.startAt.getTime(),
@@ -291,6 +381,18 @@ export const buildFunnelMetricsSnapshot = ({
 
         if (!isEcuadorTexUltraProtocoloG(visit)) return;
         const stages = visit.protocoloGStages || {};
+        const radarEntryAt = stages.landingAt || visit.firstSeenAt;
+        if (!isInvestmentRadarQaVisit(visit) && isWithin(radarEntryAt, protocoloGStartAt, range.endAt)) {
+            const radarHour = ecuadorHourKey(radarEntryAt);
+            const radarRow = investmentRadarHours[radarHour];
+            if (radarRow) {
+                radarRow.entries += 1;
+                if (isWithin(stages.videoStartedAt, radarEntryAt, range.endAt)) radarRow.videoStarted += 1;
+                if (isWithin(stages.watched25At, radarEntryAt, range.endAt)) radarRow.watched25 += 1;
+                if (isWithin(visit.lastClickAt, radarEntryAt, range.endAt)) radarRow.whatsappClicks += 1;
+                if (isWithin(visit.attributionClaimedAt, radarEntryAt, range.endAt)) radarRow.attributedConversations += 1;
+            }
+        }
         [
             ['landingAt', 'landing'],
             ['videoStartedAt', 'videoStarted'],
@@ -409,6 +511,7 @@ export const buildFunnelMetricsSnapshot = ({
             || right.salesCreated - left.salesCreated
             || left.adId.localeCompare(right.adId)
         ));
+    const investmentRadar = buildInvestmentRadar(investmentRadarHours);
 
     correlations.forEach((correlation) => {
         if (!isWithin(correlation.evaluatedAt, range.startAt, range.endAt)) return;
@@ -469,6 +572,7 @@ export const buildFunnelMetricsSnapshot = ({
             totals: protocoloGTotals,
             ads: protocoloGAds
         },
+        investmentRadar,
         recentPurchases,
         recentMissingPurchases,
         recentAttributionOrders

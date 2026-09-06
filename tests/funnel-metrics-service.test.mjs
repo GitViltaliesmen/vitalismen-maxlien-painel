@@ -5,6 +5,7 @@ import {
     buildFunnelMetricsSnapshot,
     clampFunnelMetricsDays,
     ecuadorDayKey,
+    ecuadorHourKey,
     ecuadorMetricsRange,
     funnelMetricsMongoWindow
 } from '../src/services/funnelMetricsService.js';
@@ -20,6 +21,52 @@ test('calcula a janela pelo dia civil do Equador e limita o periodo', () => {
     assert.equal(clampFunnelMetricsDays('0'), 1);
     assert.equal(clampFunnelMetricsDays('999'), 90);
     assert.equal(clampFunnelMetricsDays('invalido'), 7);
+});
+
+test('radar V134 agrega entrada por hora do Equador, exclui QA e escolhe janela de 3 horas', () => {
+    const radarNow = new Date('2026-09-06T03:30:00.000Z');
+    const visits = [];
+    for (const [hourUtc, count] of [[0, 10], [1, 10], [2, 10]]) {
+        for (let index = 0; index < count; index += 1) {
+            const entry = new Date(Date.UTC(2026, 8, 6, hourUtc, index, 0));
+            visits.push({
+                country: 'EC',
+                productKey: 'tex_ultra_ec',
+                funnel: 'PROTOCOLO_G',
+                placement: 'facebook_feed',
+                firstSeenAt: entry,
+                protocoloGStages: {
+                    landingAt: entry,
+                    videoStartedAt: new Date(entry.getTime() + 10_000),
+                    watched25At: new Date(entry.getTime() + 20_000)
+                },
+                lastClickAt: index < 6 ? new Date(entry.getTime() + 30_000) : null,
+                attributionClaimedAt: index < 3 ? new Date(entry.getTime() + 40_000) : null
+            });
+        }
+    }
+    visits.push({
+        country: 'EC',
+        productKey: 'tex_ultra_ec',
+        funnel: 'PROTOCOLO_G',
+        placement: 'qa_mobile',
+        firstSeenAt: '2026-09-06T01:15:00.000Z',
+        protocoloGStages: { landingAt: '2026-09-06T01:15:00.000Z' },
+        lastClickAt: '2026-09-06T01:16:00.000Z'
+    });
+
+    const snapshot = buildFunnelMetricsSnapshot({ visits, orders: [], days: 1, now: radarNow });
+    assert.equal(ecuadorHourKey('2026-09-06T00:00:00.000Z'), 19);
+    assert.equal(snapshot.investmentRadar.version, 'V134');
+    assert.equal(snapshot.investmentRadar.mode, 'READ_ONLY_RECOMMENDATION');
+    assert.equal(snapshot.investmentRadar.state, 'ready');
+    assert.equal(snapshot.investmentRadar.sampleEntries, 30);
+    assert.equal(snapshot.investmentRadar.hours[19].entries, 10);
+    assert.equal(snapshot.investmentRadar.hours[20].entries, 10);
+    assert.equal(snapshot.investmentRadar.hours[21].entries, 10);
+    assert.equal(snapshot.investmentRadar.bestWindow.startHour, 19);
+    assert.equal(snapshot.investmentRadar.bestWindow.endHour, 22);
+    assert.equal(snapshot.investmentRadar.bestWindow.label, '19h–22h');
 });
 
 test('soma VSL, vendas e Purchase sem misturar pedidos inelegiveis', () => {
