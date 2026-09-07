@@ -23,6 +23,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const service = read('src/services/ecPhoneServientregaReconciliationV140Service.js');
     const browser = read('src/services/droppiEcuadorBrowserService.js');
     const scheduler = read('src/services/schedulerService.js');
+    const v139RuntimeBridge = read('scripts/lib/ec-runtime-successor-v139-context.mjs');
     assert.match(service, /canonicalEcPhoneE164V140/);
     assert.match(service, /\^5939\\d\{8\}\$/);
     assert.match(service, /multiple_phone_orders_remain_ambiguous/);
@@ -39,6 +40,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const schedulerFunction = scheduler.split('const checkPhoneServientregaReconciliationV140')[1] || '';
     assert.ok(schedulerFunction.indexOf('dryRun: true') < schedulerFunction.indexOf('dryRun: false'));
     assert.match(schedulerFunction, /messages=0/);
+    assert.match(v139RuntimeBridge, /ec-runtime-successor-v140-context\.mjs/);
     assert.equal(manifest.policy.automaticDropiSend, false);
     assert.equal(manifest.policy.automaticShipmentCreation, false);
     assert.equal(manifest.policy.humanDropiAuthorizationRequired, true);

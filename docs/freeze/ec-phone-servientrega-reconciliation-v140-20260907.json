@@ -10,6 +10,7 @@
     "package.json",
     "scripts/guard-ec-dropi-human-authorization-v138.mjs",
     "scripts/guard-ec-dropi-status-postsale-v139.mjs",
+    "scripts/lib/ec-runtime-successor-v139-context.mjs",
     "src/services/droppiEcuadorBrowserService.js",
     "src/services/protocoloGSuccessorGuardV101Service.js",
     "src/services/schedulerService.js"
