@@ -11,12 +11,26 @@
     "scripts/guard-ec-dropi-human-authorization-v138.mjs",
     "scripts/guard-ec-dropi-status-postsale-v139.mjs",
     "scripts/lib/ec-runtime-successor-v139-context.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
     "src/services/droppiEcuadorBrowserService.js",
     "src/services/protocoloGSuccessorGuardV101Service.js",
     "src/services/schedulerService.js"
   ],
   "protectedFiles": {
-    "src/services/droppiEcuadorBrowserService.js": "4d0c146038a81ddd567cf981e2e1f9d8b8c59055d5711fee93e423ecd5db01e2"
+    "package.json": "97f49cc5c7b0eb7eb8cb1cfb5cac1818aff6fe23b6a902b468fccf59570e7708",
+    "scripts/guard-ec-dropi-human-authorization-v138.mjs": "181ab94ac05c1682793d574aebd2a69fecf22c72a05970de684b4b5fe267a021",
+    "scripts/guard-ec-dropi-status-postsale-v139.mjs": "26e33cb513a32311c01cdb22880a24bc9df5d7b573dcf63c2913b8d8bfe841b8",
+    "scripts/lib/ec-runtime-successor-v139-context.mjs": "de867714f193e51e9be98c532dd20dfb78499eae732a39499d5cb72ce74fc66d",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "4543881159f7b61fb28b9f972902bc71ec3abbd1b2f2402da5a5eb9156715b45",
+    "scripts/lib/ec-runtime-successor-v140-bootstrap-context.mjs": "a2224564b85f6e32487bf3038ae712d5116e71aa36470521f457c9921e1b63a2",
+    "scripts/lib/ec-runtime-successor-v140-context.mjs": "6d98cb3f2ce8d1736dda3fab90b7392ce5259b0482355dbe6b5760e864be66bd",
+    "scripts/run-with-v140-context.mjs": "fdd16f4f93a4de1c4b8173847edfb8f25eea461a0ac58530f9361934f6de3eb1",
+    "src/services/droppiEcuadorBrowserService.js": "4d0c146038a81ddd567cf981e2e1f9d8b8c59055d5711fee93e423ecd5db01e2",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "3e4591b307ebfc554699bfb49a382b3e02dbc94668383520941df94feb3efd7a",
+    "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",
+    "src/services/ecPhoneServientregaReconciliationV140Service.js": "e8bca5f5044c332da5184fd2b7b524fcf35b661855f1f14bbf35751aed566956",
+    "tests/ec-phone-servientrega-reconciliation-v140.test.mjs": "afe677d0afc5dd166a30a70b7e807a67458e595437c990cd929868e314fd44c0",
+    "docs/EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_20260907.md": "434d203e0ab3e0accd6362713b1a77f698d6013b9022623095c46637839bf01a"
   },
   "policy": {
     "phoneRequiredPrimaryMatch": true,

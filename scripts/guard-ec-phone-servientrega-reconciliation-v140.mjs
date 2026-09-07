@@ -19,11 +19,15 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
         if (manifest.overrides.includes(file)) continue;
         assert.equal(sha256(fs.readFileSync(path.join(root, file))), expected, `V139 alterada fora do override V140: ${file}`);
     }
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        assert.equal(sha256(fs.readFileSync(path.join(root, file))), expected, `V140 protegida divergente: ${file}`);
+    }
 
     const service = read('src/services/ecPhoneServientregaReconciliationV140Service.js');
     const browser = read('src/services/droppiEcuadorBrowserService.js');
     const scheduler = read('src/services/schedulerService.js');
     const v139RuntimeBridge = read('scripts/lib/ec-runtime-successor-v139-context.mjs');
+    const v97RuntimeContext = read('scripts/lib/ec-runtime-successor-v97-context.mjs');
     assert.match(service, /canonicalEcPhoneE164V140/);
     assert.match(service, /\^5939\\d\{8\}\$/);
     assert.match(service, /multiple_phone_orders_remain_ambiguous/);
@@ -41,6 +45,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     assert.ok(schedulerFunction.indexOf('dryRun: true') < schedulerFunction.indexOf('dryRun: false'));
     assert.match(schedulerFunction, /messages=0/);
     assert.match(v139RuntimeBridge, /ec-runtime-successor-v140-context\.mjs/);
+    assert.match(v97RuntimeContext, /^import '\.\/ec-runtime-successor-v140-bootstrap-context\.mjs';/);
     assert.equal(manifest.policy.automaticDropiSend, false);
     assert.equal(manifest.policy.automaticShipmentCreation, false);
     assert.equal(manifest.policy.humanDropiAuthorizationRequired, true);

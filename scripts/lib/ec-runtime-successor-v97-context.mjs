@@ -1,3 +1,4 @@
+import './ec-runtime-successor-v140-bootstrap-context.mjs';
 import { assertEcDropiHumanAuthorizationV138 } from '../guard-ec-dropi-human-authorization-v138.mjs';
 import { assertEcQueueGuardCompatibilityV137 } from '../guard-ec-queue-guard-compatibility-v137.mjs';
 import { assertProtocoloGCommercialMetricsV136 } from '../guard-protocolo-g-commercial-metrics-v136.mjs';
