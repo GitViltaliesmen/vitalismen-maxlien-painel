@@ -1,0 +1,29 @@
+{
+  "version": 135,
+  "layer": "EC_COMMERCIAL_QUEUE_ISOLATION",
+  "country": "EC",
+  "status": "candidate_not_published",
+  "parentCommit": "c542ef91bbf8865c9263b97b12389e07da1949ce",
+  "parentManifestSha256": "67c296cdc06b63c7ac278262d6d9a4ebf859a7a063663e50cfde25cfd710a93e",
+  "overrides": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js"
+  ],
+  "policy": {
+    "engagementExcludedFromCommercialSearch": true,
+    "unreadFilterPreservedDuringSearch": true,
+    "commercialPeriodCountsExcludeEngagement": true,
+    "messagePreviewInContactList": false,
+    "persistentClassificationReused": true,
+    "productionChanged": false
+  },
+  "protectedFiles": {
+    "public/qr.html": "aad41523fe8ca0e0be615c202ce4e7ddc06b604cdf978ac15c3ce9a841cc9634",
+    "scripts/guard-ec-commercial-isolation-v135.mjs": "045ba276fc6df684768032b686b9a5410b2efe8f7bbfb997709ec35db1e49f0f",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "bb5ed33c0f43e51001ab54b41bf7e4c9be817f91b40cfce7118d9092e43ef0fd",
+    "src/routes/whatsapp.js": "5a2314de5d4e77a591afce34f11be49d498df192e066becf59f8267d4b00eed8",
+    "tests/ec-commercial-isolation-v135.test.mjs": "3385c5cbe88c271137ae3ed44875bf59ef37a49ccd63de5bee8da106350efd50"
+  },
+  "bundleSha256": "8e8e6fa94dc8367ad3a7554927383c3c951803ad2dd61fe8b94be6b645bf4c9a"
+}

@@ -12197,8 +12197,13 @@
                         resolveConversationBucket: chatConversationBucket
                     });
                 if (!searchActive && warmupIsolationDecision === false) return false;
+                // Search can cross commercial queues, but never the engagement boundary.
+                if (searchActive && chatConversationBucket(chat) === 'engagement'
+                    && (state.conversationBucketFilter !== 'engagement' || state.chatFilter === 'unread')) return false;
+                if (searchActive && state.conversationBucketFilter === 'engagement' && state.chatFilter !== 'unread'
+                    && chatConversationBucket(chat) !== 'engagement') return false;
                 if (warmupIsolationDecision === undefined && applyOperationalBucketFilter && chatConversationBucket(chat) !== state.conversationBucketFilter) return false;
-                if (!searchActive && state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
+                if (state.chatFilter === 'unread' && !isNewMessagesChatForPanel(chat)) return false;
                 if (!searchActive && state.chatFilter === 'favorites' && !isFavoriteChat(chat)) return false;
                 if (!searchActive && state.chatFilter === 'groups' && !chat.isGroup) return false;
                 if (!searchActive && state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
@@ -12277,7 +12282,6 @@
                                     <span class="source-badge ${escapeHtml(sourceInfo.className)}" title="${escapeHtml(sourceInfo.title)}">${escapeHtml(sourceInfo.badge)}</span>
                                     <span class="truncate">${escapeHtml(entryInfo.label)}</span>
                                 </div>
-                                ${vslEntryPhraseForPanel(chat)}
                                 <div class="chat-preview">
                                     <span class="chat-badges">
                                         <span class="badge ${escapeHtml(bucketInfo.className)}">${escapeHtml(bucketInfo.label)}</span>

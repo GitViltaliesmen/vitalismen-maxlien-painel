@@ -3927,9 +3927,13 @@ router.get('/dashboard-metrics', async (req, res) => {
             return new Date(contact.lastInboundAt || contact.lastOutboundAt || contact.updatedAt || contact.createdAt || 0);
         };
         const inPeriod = (date, start) => date instanceof Date && !Number.isNaN(date.getTime()) && date >= start;
+        const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
+        const commercialContacts = realContacts.filter((contact) => (
+            conversationBucketPanelView(contact).value !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        ));
         const contactCounts = (start) => ({
-            entered: contacts.filter((contact) => realPhoneFromState(contact) && inPeriod(contactDate(contact, 'entered'), start)).length,
-            active: contacts.filter((contact) => realPhoneFromState(contact) && inPeriod(contactDate(contact, 'active'), start)).length
+            entered: commercialContacts.filter((contact) => inPeriod(contactDate(contact, 'entered'), start)).length,
+            active: commercialContacts.filter((contact) => inPeriod(contactDate(contact, 'active'), start)).length
         });
         const orderCounts = (start) => {
             const periodOrders = orders.filter((order) => (
@@ -3973,11 +3977,6 @@ router.get('/dashboard-metrics', async (req, res) => {
                 totalEntries: Math.max(contactsInPeriod.entered, vsl.vslClicks || 0, vsl.vslLeads || 0)
             };
         };
-        const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
-        const commercialContacts = realContacts.filter((contact) => (
-            conversationBucketPanelView(contact).value !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
-        ));
-
         res.json({
             country,
             generatedAt: now.toISOString(),
