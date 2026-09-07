@@ -16,14 +16,19 @@
     "postSaleRequiresHumanAuthorization": true,
     "pickupRequiresExplicitProviderStatus": true,
     "historicalBackfill": false,
-    "massPostSale": false
+    "massPostSale": false,
+    "historicalServientregaDirectReused": true,
+    "canonicalLifecycleFunction": "applyShipmentLifecycleStatus",
+    "sameStatusEffectiveUpdates": 1
   },
   "overrides": [
     "package.json",
     "scripts/guard-vsl-entry-v78-telemetry-v132.mjs",
     "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs",
     "src/routes/orders.js",
+    "src/services/carrierTrackingService.js",
     "src/services/droppiEcuadorService.js",
+    "src/services/shipmentLifecycleStatusService.js",
     "src/services/shipmentStatusDispatcherService.js"
   ],
   "protectedFiles": {
@@ -31,13 +36,15 @@
     "scripts/guard-vsl-entry-v78-telemetry-v132.mjs": "b97b38e46f9f793f57b62b420c4dfeb06105eda3c66578c0b39fc9908c906c04",
     "scripts/run-deploy-guard-ancestry-predeploy-v91.mjs": "3803c93e304ed0a973d1b008adf828b4758e34a113173e6d5af6792c33b1ac4f",
     "src/routes/orders.js": "ee5ffd47df53646b9796144dbdb97fb0875c4322e6a6185e31cfdaf34a71ff82",
+    "src/services/carrierTrackingService.js": "a6916f2ff5b8adcd0418add822cde169812ec0b6c4ddae743807128aad3f01de",
     "src/services/droppiEcuadorService.js": "75d2c5ef619160674cf42a93e56cf86d0a3ae1ceb663601c097b814fff0f95c9",
+    "src/services/shipmentLifecycleStatusService.js": "4320ae4262bb5f896c8e50363e06db64192294286ad708ad1141dc55840240fb",
     "src/services/shipmentStatusDispatcherService.js": "8fe7a86d078190e721119a6c4d7cfc15d90dd851b971c4d007a3dda92a99a928",
-    "src/services/ecDropiStatusPostSaleV139Service.js": "fc45c0cc1f1abde9882baadda2a6789b19ef8d02f03b81ca12312743ed77d9e2",
-    "tests/ec-dropi-status-postsale-v139.test.mjs": "de6d6c2319499f844eb1d9b483714523a00a80c0a1fd5880c13e18ca9933c66f",
-    "scripts/guard-ec-dropi-status-postsale-v139.mjs": "a01c923d14bef15f54efa8579d05731566c69ebdf00893132fb199dfd3cefa0a",
+    "src/services/ecDropiStatusPostSaleV139Service.js": "e84730791adc169a7002cf4cb458ef1b31bfe230a0a07fcbce437e44d726b220",
+    "tests/ec-dropi-status-postsale-v139.test.mjs": "d5d088598f0834cd3e7dc29d5fe92613e5ec17208c46f96587cb255ac1699577",
+    "scripts/guard-ec-dropi-status-postsale-v139.mjs": "c936d9f6e9614882b9ae3f8db89f52a3db7091d39227d0a911553227de045fcb",
     "scripts/lib/ec-runtime-successor-v139-context.mjs": "d18534a3765f6f51a27d021a24ad8a77d714370ac8cc1a46a7dd9b21dd88982c",
     "scripts/run-with-v139-context.mjs": "50da9b574521c06205560806c7578611b1040ff8de90edb750d781327aa4ca34",
-    "docs/EC_DROPI_STATUS_POSTSALE_DELTA_V139_20260907.md": "970dd8b056a050128825b5d957c21e4a013a08fbe63e173b58ef12d68107bb95"
+    "docs/EC_DROPI_STATUS_POSTSALE_DELTA_V139_20260907.md": "f3e40965198e26eca3af6a8eee3ec20bdc86ee440cc89507b844db9adb79a343"
   }
 }

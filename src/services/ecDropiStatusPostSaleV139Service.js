@@ -1,21 +1,15 @@
 import ContactState from '../models/ContactState.js';
 import Order from '../models/Order.js';
 import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
+import {
+    applyShipmentLifecycleStatus,
+    nonRegressingCanonicalOrderStatus,
+    orderStatusForLogisticsStatus
+} from './shipmentLifecycleStatusService.js';
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
 const statusKey = (value = '') => clean(value).toUpperCase().replace(/[\s-]+/g, '_');
-
-const ORDER_STATUS_RANK = Object.freeze({
-    draft: 0,
-    pending: 1,
-    confirmed: 2,
-    processing: 3,
-    shipped: 4,
-    delivered: 5,
-    cancelled: 5,
-    returned: 5
-});
 
 const PANEL_TO_ORDER_STATUS = Object.freeze({
     draft: 'draft',
@@ -47,8 +41,6 @@ const ORDER_TO_PANEL_STATUS = Object.freeze({
     cancelled: 'cancelado',
     returned: 'devolvido'
 });
-
-const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'cancelled', 'returned']);
 
 export const dropiOrderIdForShipmentV139 = (shipment = {}) => digitsOnly(
     shipment?.raw?.manualDropiOrderId
@@ -84,35 +76,8 @@ export const dropiPostSaleEvidenceV139 = (shipment = {}) => {
     });
 };
 
-export const orderStatusForDropiLogisticsV139 = (value = '') => {
-    const status = statusKey(value);
-    if (status === 'ENTREGADO') return 'delivered';
-    if (status === 'DEVUELTO') return 'returned';
-    if (['CANCELADO', 'RECHAZADO'].includes(status)) return 'cancelled';
-    if (['PENDIENTE', 'EN_PROCESAMIENTO'].includes(status)) return 'processing';
-    if ([
-        'GUIA_GENERADA',
-        'READY_FOR_PICKUP',
-        'MERCANCIA_RECOGIDA',
-        'EN_BODEGA_TRANSPORTADORA',
-        'EN_DESPACHO',
-        'EN_RUTA',
-        'EN_REPARTO',
-        'EN_DISTRIBUCION_A_CLIENTE',
-        'NOVEDAD'
-    ].includes(status)) return 'shipped';
-    return '';
-};
-
-export const nonRegressingOrderStatusV139 = (currentStatus = '', proposedStatus = '') => {
-    const current = clean(currentStatus).toLowerCase();
-    const proposed = clean(proposedStatus).toLowerCase();
-    if (!proposed || !(proposed in ORDER_STATUS_RANK)) return current;
-    if (!current || !(current in ORDER_STATUS_RANK)) return proposed;
-    if (TERMINAL_ORDER_STATUSES.has(current)) return current;
-    if (TERMINAL_ORDER_STATUSES.has(proposed)) return proposed;
-    return ORDER_STATUS_RANK[proposed] >= ORDER_STATUS_RANK[current] ? proposed : current;
-};
+export const orderStatusForDropiLogisticsV139 = orderStatusForLogisticsStatus;
+export const nonRegressingOrderStatusV139 = nonRegressingCanonicalOrderStatus;
 
 const findContactState = async ({ phone = '', contactStateModel = ContactState } = {}) => {
     const tail = digitsOnly(phone).slice(-9);
@@ -152,6 +117,7 @@ const persistContactDraftStatus = async ({ state, order, panelStatus, logisticsS
 
 export const persistDropiStatusProjectionV139 = async ({
     shipment,
+    shipmentModel,
     orderModel = Order,
     contactStateModel = ContactState,
     syncPanel = syncOrderToOnlineAdminPanel
@@ -160,40 +126,29 @@ export const persistDropiStatusProjectionV139 = async ({
     const evidence = dropiPostSaleEvidenceV139(shipment);
     const proposedStatus = orderStatusForDropiLogisticsV139(shipment?.logistics?.status);
     if (!proposedStatus) return { ok: false, reason: 'dropi_status_not_projectable', evidence };
-    const order = await orderModel.findOne({ orderId: shipment.orderId });
-    if (!order) return { ok: false, reason: 'existing_order_not_found', evidence };
-
-    const nextStatus = nonRegressingOrderStatusV139(order.status, proposedStatus);
-    order.status = nextStatus;
-    order.shippingStatus = shipment.logistics?.status || order.shippingStatus || '';
-    if (evidence.dropiOrderId) order.dropiOrderId = evidence.dropiOrderId;
-    if (evidence.trackingNumber) order.trackingNumber = evidence.trackingNumber;
-    await order.save();
-
-    const panelStatus = ORDER_TO_PANEL_STATUS[nextStatus] || 'pedido_enviado';
-    const state = await findContactState({ phone: order.customer?.phone || shipment.client?.phone, contactStateModel });
-    await persistContactDraftStatus({
-        state,
-        order,
-        panelStatus,
-        logisticsStatus: shipment.logistics?.status || '',
-        dropiOrderId: evidence.dropiOrderId,
-        trackingNumber: evidence.trackingNumber
+    const lifecycle = await applyShipmentLifecycleStatus({
+        shipmentId: shipment._id,
+        shipmentDocument: shipment,
+        status: shipment.logistics?.status,
+        source: 'dropi_status_sync',
+        carrierResult: {
+            carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || '',
+            trackingNumber: shipment.logistics?.trackingNumber || ''
+        },
+        ...(shipmentModel ? { shipmentModel } : {}),
+        orderModel,
+        contactStateModel,
+        syncPanel
     });
-    const panel = await Promise.resolve(syncPanel(order, {
-        status: nextStatus,
-        action: 'dropi_status_projection_v139'
-    }));
     return {
-        ok: true,
-        reason: 'dropi_status_projected',
-        order,
-        contactState: state,
-        panel,
+        ...lifecycle,
+        ok: lifecycle.ok === true,
+        reason: lifecycle.ok ? 'dropi_status_projected' : (lifecycle.reason || 'dropi_status_projection_failed'),
         evidence,
         proposedStatus,
-        persistedStatus: nextStatus,
-        panelStatus
+        persistedStatus: lifecycle.orderStatus,
+        panelStatus: ORDER_TO_PANEL_STATUS[lifecycle.orderStatus] || 'pedido_enviado',
+        panel: lifecycle.adminSync
     };
 };
 

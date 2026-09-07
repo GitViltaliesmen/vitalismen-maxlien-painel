@@ -33,11 +33,21 @@ export const assertEcDropiStatusPostSaleV139 = () => {
     const orderRoutes = read('src/routes/orders.js');
     const panel = read('public/leads-window.html');
     const logistics = read('src/services/logisticsCommunicationV29.js');
+    const carrierTracking = read('src/services/carrierTrackingService.js');
+    const lifecycle = read('src/services/shipmentLifecycleStatusService.js');
 
     requireMatch(service, /nonRegressingOrderStatusV139/, 'missing_non_regression_guard');
     requireMatch(service, /missing_real_dropi_order_id/, 'missing_real_dropi_id_guard');
     requireMatch(service, /missing_human_dropi_authorization/, 'missing_human_authorization_guard');
     requireMatch(service, /metadata\.customerDraft/, 'missing_contact_state_projection');
+    requireMatch(service, /applyShipmentLifecycleStatus/, 'v139_does_not_delegate_to_historical_lifecycle');
+    requireMatch(carrierTracking, /www\.servientrega\.com\.ec\/Tracking\/\?guia=/, 'historical_servientrega_query_missing');
+    requireMatch(carrierTracking, /trackServientregaGuide/, 'historical_servientrega_service_missing');
+    requireMatch(carrierTracking, /applyShipmentLifecycleStatus/, 'carrier_does_not_apply_historical_lifecycle');
+    requireMatch(carrierTracking, /GENERADO CLIENTE CORPORATIVO\|PENDIENTE/, 'real_servientrega_pending_status_not_normalized');
+    requireMatch(lifecycle, /nonRegressingLogisticsStatus/, 'canonical_logistics_non_regression_missing');
+    requireMatch(lifecycle, /persistCanonicalContactState/, 'canonical_contact_state_projection_missing');
+    requireMatch(lifecycle, /shipment_lifecycle_status_applied/, 'canonical_timeline_event_missing');
     requireMatch(dropi, /persistDropiStatusProjectionV139\(\{ shipment \}\)/, 'dropi_sync_does_not_project_status');
     requireMatch(dispatcher, /dropiPostSaleEvidenceV139/, 'dispatcher_missing_dropi_evidence_gate');
     requireMatch(orderRoutes, /persistManualPanelStatusV139/, 'missing_manual_status_persistence_route');
@@ -62,6 +72,9 @@ export const assertEcDropiStatusPostSaleV139 = () => {
     const v138Route = routes.split("router.post('/droppi/ec/admin-leads/:leadId/authorize-submit'")[1] || routes;
     requireMatch(v138Route, /dropiSubmitAuthorizedAt/, 'v138_manual_authorization_marker_missing');
     requireMatch(routes, /router\.use\(ecManualDropiHumanActionV138\)/, 'v138_manual_action_middleware_missing');
+    assert.equal(manifest.policy.historicalServientregaDirectReused, true);
+    assert.equal(manifest.policy.canonicalLifecycleFunction, 'applyShipmentLifecycleStatus');
+    assert.equal(manifest.policy.sameStatusEffectiveUpdates, 1);
 
     if (failures.length) throw new Error(`EC_DROPI_STATUS_POSTSALE_V139_GUARD=FAIL ${failures.join(',')}`);
     return manifest;

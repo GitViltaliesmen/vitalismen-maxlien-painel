@@ -25,7 +25,7 @@ export const normalizeCarrierTrackingStatus = (status = '') => {
     if (/NOVEDAD|INCIDENCIA|REPROGRAMAD[OA]/.test(raw)) return 'NOVEDAD';
     if (/LIST[OA] PARA RETIRO|DISPONIBLE.*RETIRO|PARA RETIRO EN AGENCIA/.test(raw)) return 'READY_FOR_PICKUP';
     if (/INGRESANDO EN AGENCIA|PUNTO DE RETIRO|EN AGENCIA/.test(raw)) return 'EN_RUTA';
-    if (/GUIA GENERADA|PREPARAD[OA] PARA TRANSPORTADORA|CREAD[OA]|ADMITID[OA]/.test(raw)) return 'GUIA_GENERADA';
+    if (/GUIA GENERADA|GENERADO CLIENTE CORPORATIVO|PENDIENTE|PREPARAD[OA] PARA TRANSPORTADORA|CREAD[OA]|ADMITID[OA]/.test(raw)) return 'GUIA_GENERADA';
     if (/EN RUTA|REPARTO|DESPACHO|BODEGA|TRANSPORTADORA|DISTRIBUCION|TRANSITO|TRANSITO|RECIBID[OA] EN|OPERATIVO/.test(raw)) return 'EN_RUTA';
     return raw;
 };
@@ -245,11 +245,6 @@ export const saveCarrierTrackingResult = async ({ shipmentId, result, updateStat
         'raw.carrierTracking.lastResult': result,
         'automation.browserCheckpoint': result.ok ? 'carrier_tracking_checked' : 'carrier_tracking_failed'
     };
-    if (updateStatus && result.ok && result.normalizedStatus) {
-        setFields['logistics.status'] = result.normalizedStatus;
-        if (result.trackingNumber) setFields['logistics.trackingNumber'] = result.trackingNumber;
-        if (result.carrier) setFields['logistics.distributionCompany'] = result.carrier.toUpperCase();
-    }
     await Shipment.updateOne(
         { _id: shipmentId },
         {

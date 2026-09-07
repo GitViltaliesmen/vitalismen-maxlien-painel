@@ -9,6 +9,8 @@ import {
     persistManualPanelStatusV139
 } from '../src/services/ecDropiStatusPostSaleV139Service.js';
 import { normalizeDroppiEcuadorStatus } from '../src/services/droppiEcuadorService.js';
+import { normalizeCarrierTrackingStatus } from '../src/services/carrierTrackingService.js';
+import { applyShipmentLifecycleStatus } from '../src/services/shipmentLifecycleStatusService.js';
 import {
     buildShippedCommunicationV29,
     logisticsCommunicationPolicy
@@ -68,7 +70,18 @@ const authorizedShipment = (status = 'GUIA_GENERADA') => ({
     raw: {
         manualDropiOrderId: '6866139',
         latestDroppiPayload: { dropiOrderId: '6866139' }
-    }
+    },
+    events: [],
+    saved: 0,
+    async save() { this.saved += 1; return this; },
+    toObject() { return this; }
+});
+
+test('V139 reutiliza o normalizador histórico para a resposta real da Servientrega', () => {
+    assert.equal(
+        normalizeCarrierTrackingStatus('Pendiente Generado Cliente Corporativo'),
+        'GUIA_GENERADA'
+    );
 });
 
 test('V139 status escolhido no painel persiste no Order e ContactState após nova leitura', async () => {
@@ -122,12 +135,44 @@ test('V139 sync Dropi projeta ID, guia e status sem depender do envio ao cliente
     assert.equal(state.metadata.customerDraft.status, 'pedido_enviado');
     assert.equal(state.metadata.logistics.status, 'GUIA_GENERADA');
     assert.equal(panelCalls, 1);
+    assert.equal(result.panel?.lead_id, 9139);
 });
 
 test('V139 status logístico antigo não rebaixa pedido já enviado ou terminal', () => {
     assert.equal(nonRegressingOrderStatusV139('shipped', 'processing'), 'shipped');
     assert.equal(nonRegressingOrderStatusV139('delivered', 'shipped'), 'delivered');
     assert.equal(nonRegressingOrderStatusV139('confirmed', 'shipped'), 'shipped');
+});
+
+test('V139 aplica dez consultas iguais como uma única transição canônica', async () => {
+    const shipment = authorizedShipment('CREATED');
+    const order = orderDocument('confirmed');
+    const state = stateDocument();
+    let panelCalls = 0;
+    const options = {
+        shipmentId: shipment._id,
+        shipmentDocument: shipment,
+        status: 'GUIA_GENERADA',
+        source: 'carrier_tracking',
+        carrierResult: {
+            carrier: 'servientrega',
+            trackingNumber: '189600139'
+        },
+        orderModel: { async findOne() { return order; } },
+        contactStateModel: contactStateModelFor(state),
+        syncPanel: () => { panelCalls += 1; return { ok: true }; }
+    };
+    for (let index = 0; index < 10; index += 1) {
+        const result = await applyShipmentLifecycleStatus(options);
+        assert.equal(result.effectiveStatus, 'GUIA_GENERADA');
+    }
+    assert.equal(shipment.events.filter((event) => event.kind === 'shipment_lifecycle_status_applied').length, 1);
+    assert.equal(shipment.saved, 1);
+    assert.equal(order.saved, 1);
+    assert.equal(state.saved, 1);
+    assert.equal(panelCalls, 1);
+    assert.equal(order.status, 'shipped');
+    assert.equal(state.metadata.customerDraft.status, 'pedido_enviado');
 });
 
 test('V139 pós-venda exige ID Dropi real e autorização humana persistida', () => {
