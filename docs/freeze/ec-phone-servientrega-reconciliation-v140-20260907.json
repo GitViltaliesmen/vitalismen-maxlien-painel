@@ -12,6 +12,7 @@
     "scripts/guard-ec-dropi-status-postsale-v139.mjs",
     "scripts/lib/ec-runtime-successor-v139-context.mjs",
     "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/services/adminPanelStatusService.js",
     "src/services/droppiEcuadorBrowserService.js",
     "src/services/protocoloGSuccessorGuardV101Service.js",
     "src/services/schedulerService.js"
@@ -25,6 +26,7 @@
     "scripts/lib/ec-runtime-successor-v140-bootstrap-context.mjs": "a2224564b85f6e32487bf3038ae712d5116e71aa36470521f457c9921e1b63a2",
     "scripts/lib/ec-runtime-successor-v140-context.mjs": "6d98cb3f2ce8d1736dda3fab90b7392ce5259b0482355dbe6b5760e864be66bd",
     "scripts/run-with-v140-context.mjs": "fdd16f4f93a4de1c4b8173847edfb8f25eea461a0ac58530f9361934f6de3eb1",
+    "src/services/adminPanelStatusService.js": "61b66e2ce4a32cd29a3c8da8a44bc27e7af453818c13d1fd28bfe330199dda01",
     "src/services/droppiEcuadorBrowserService.js": "4d0c146038a81ddd567cf981e2e1f9d8b8c59055d5711fee93e423ecd5db01e2",
     "src/services/protocoloGSuccessorGuardV101Service.js": "3e4591b307ebfc554699bfb49a382b3e02dbc94668383520941df94feb3efd7a",
     "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",

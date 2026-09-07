@@ -26,6 +26,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const service = read('src/services/ecPhoneServientregaReconciliationV140Service.js');
     const browser = read('src/services/droppiEcuadorBrowserService.js');
     const scheduler = read('src/services/schedulerService.js');
+    const adminPanelStatus = read('src/services/adminPanelStatusService.js');
     const v139RuntimeBridge = read('scripts/lib/ec-runtime-successor-v139-context.mjs');
     const v97RuntimeContext = read('scripts/lib/ec-runtime-successor-v97-context.mjs');
     assert.match(service, /canonicalEcPhoneE164V140/);
@@ -44,6 +45,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const schedulerFunction = scheduler.split('const checkPhoneServientregaReconciliationV140')[1] || '';
     assert.ok(schedulerFunction.indexOf('dryRun: true') < schedulerFunction.indexOf('dryRun: false'));
     assert.match(schedulerFunction, /messages=0/);
+    assert.match(adminPanelStatus, /maxBuffer: 16 \* 1024 \* 1024/);
     assert.match(v139RuntimeBridge, /ec-runtime-successor-v140-context\.mjs/);
     assert.match(v97RuntimeContext, /^import '\.\/ec-runtime-successor-v140-bootstrap-context\.mjs';/);
     assert.equal(manifest.policy.automaticDropiSend, false);

@@ -95,7 +95,7 @@ const runAdminPanelPython = ({ country, python }) => {
         const result = spawnSync('python3', ['-'], {
             input: python,
             encoding: 'utf8',
-            maxBuffer: 1024 * 1024
+            maxBuffer: 16 * 1024 * 1024
         });
         if (result.status !== 0) {
             return {
@@ -127,7 +127,7 @@ const runAdminPanelPython = ({ country, python }) => {
             'python3',
             '-'
         ],
-        { input: python, encoding: 'utf8', maxBuffer: 1024 * 1024 }
+        { input: python, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }
     );
 
     if (result.status !== 0) {
