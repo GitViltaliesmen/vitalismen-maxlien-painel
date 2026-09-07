@@ -55,24 +55,53 @@ export const dropiHumanAuthorizationEvidenceV139 = (shipment = {}) => Boolean(
     && clean(shipment?.automation?.dropiSubmitAuthorizedBy)
 );
 
+export const historicalExternalPostSaleEvidenceV140 = (shipment = {}) => {
+    const evidence = shipment?.raw?.historicalExternalReconciliation || {};
+    const phone = digitsOnly(evidence.phone);
+    const shipmentPhone = digitsOnly(shipment?.client?.phone);
+    const dropiOrderId = digitsOnly(evidence.dropiOrderId);
+    const shipmentDropiOrderId = dropiOrderIdForShipmentV139(shipment);
+    const trackingNumber = digitsOnly(evidence.trackingNumber);
+    const shipmentTrackingNumber = digitsOnly(shipment?.logistics?.trackingNumber);
+    return Boolean(
+        evidence.source === 'HISTORICAL_EXTERNAL_RECONCILIATION'
+        && evidence.sourceDropi === true
+        && evidence.sourceServientrega === true
+        && /^5939\d{8}$/.test(phone)
+        && phone === shipmentPhone
+        && /^\d{6,}$/.test(dropiOrderId)
+        && dropiOrderId === shipmentDropiOrderId
+        && /^\d{8,15}$/.test(trackingNumber)
+        && trackingNumber === shipmentTrackingNumber
+        && Boolean(clean(evidence.customerId))
+        && Boolean(clean(evidence.leadId))
+    );
+};
+
 export const dropiPostSaleEvidenceV139 = (shipment = {}) => {
     const dropiOrderId = dropiOrderIdForShipmentV139(shipment);
     const trackingNumber = digitsOnly(shipment?.logistics?.trackingNumber);
     const authorized = dropiHumanAuthorizationEvidenceV139(shipment);
+    const historicalExternal = historicalExternalPostSaleEvidenceV140(shipment);
+    const postSaleIdentityVerified = authorized || historicalExternal;
     const status = statusKey(shipment?.logistics?.status);
     const providerStatus = status && !['', 'CREATED'].includes(status);
     return Object.freeze({
-        eligible: Boolean(dropiOrderId && authorized && providerStatus),
+        eligible: Boolean(dropiOrderId && postSaleIdentityVerified && providerStatus),
         dropiOrderId,
         trackingNumber,
         authorized,
+        historicalExternal,
+        postSaleIdentityVerified,
         providerStatus,
         status,
         reason: !dropiOrderId
             ? 'missing_real_dropi_order_id'
-            : (!authorized
+            : (!postSaleIdentityVerified
                 ? 'missing_human_dropi_authorization'
-                : (!providerStatus ? 'missing_dropi_provider_status' : 'dropi_event_verified'))
+                : (!providerStatus
+                    ? 'missing_dropi_provider_status'
+                    : (historicalExternal ? 'historical_external_event_verified' : 'dropi_event_verified')))
     });
 };
 

@@ -7,6 +7,10 @@ import {
 } from './adminPanelStatusService.js';
 import { trackServientregaGuide } from './carrierTrackingService.js';
 import { fetchDroppiEcuadorOrdersApiReadOnly } from './droppiEcuadorBrowserService.js';
+import {
+    HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE,
+    restoreHistoricalExternalDroppiBinding
+} from './droppiEcuadorImportService.js';
 import { resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { dropiHumanAuthorizationEvidenceV139 } from './ecDropiStatusPostSaleV139Service.js';
 import {
@@ -60,6 +64,35 @@ const dropiIdsOf = (bundle = {}) => [...new Set([
     bundle?.shipment?.raw?.droppiOrder?.id,
     bundle?.shipment?.raw?.droppiOrder?.objects?.id
 ].map(digitsOnly).filter(Boolean))];
+
+const historicalExternalEvidenceOf = (bundle = {}) => {
+    const shipment = bundle?.shipment || {};
+    const evidence = bundle?.shipment?.raw?.historicalExternalReconciliation || {};
+    const evidencePhone = canonicalEcPhoneE164V140(evidence.phone);
+    const shipmentPhone = canonicalEcPhoneE164V140(shipment?.client?.phone);
+    const evidenceDropi = digitsOnly(evidence.dropiOrderId);
+    const shipmentDropi = digitsOnly(
+        shipment?.raw?.manualDropiOrderId
+        || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+        || shipment?.raw?.droppiOrder?.id
+        || shipment?.raw?.droppiOrder?.order_id
+    );
+    const evidenceGuide = digitsOnly(evidence.trackingNumber);
+    const shipmentGuide = digitsOnly(shipment?.logistics?.trackingNumber);
+    return evidence.source === HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE
+        && evidence.sourceDropi === true
+        && evidence.sourceServientrega === true
+        && Boolean(String(evidence.customerId || '').trim())
+        && Boolean(String(evidence.leadId || '').trim())
+        && evidencePhone
+        && evidencePhone === shipmentPhone
+        && evidenceDropi
+        && evidenceDropi === shipmentDropi
+        && evidenceGuide
+        && evidenceGuide === shipmentGuide
+        ? evidence
+        : null;
+};
 
 const phoneOfBundle = (bundle = {}) => canonicalEcPhoneE164V140(
     bundle?.order?.customer?.phone
@@ -126,6 +159,15 @@ export const disambiguatePhoneOrderV140 = ({ row = {}, bundles = [] } = {}) => {
         ].filter(Boolean);
         return { matched: true, matchType: `phone_disambiguated:${exact.join('+') || 'compatible_identity'}`, bundle, phone };
     }
+    if (compatible.every((bundle) => bundle.externalAnchor === true)) {
+        return {
+            matched: false,
+            classification: V140_RECONCILIATION_CLASSES.AMBIGUOUS,
+            reason: 'multiple_customer_or_lead_anchors_remain_ambiguous',
+            candidateCount: compatible.length,
+            phone
+        };
+    }
 
     const scored = compatible.map((bundle) => {
         const exact = [];
@@ -175,8 +217,8 @@ const panelStatusFor = (logisticsStatus = '') => {
 const dropiIdPresent = (bundle, value) => dropiIdsOf(bundle).includes(digitsOnly(value));
 const projectionSnapshot = (bundle = {}) => ({
     shipmentStatus: statusKey(bundle?.shipment?.logistics?.status),
-    orderStatus: clean(bundle?.order?.status).toLowerCase(),
-    orderShippingStatus: statusKey(bundle?.order?.shippingStatus),
+    orderStatus: clean(bundle?.order?.status || bundle?.state?.metadata?.logistics?.orderStatus).toLowerCase(),
+    orderShippingStatus: statusKey(bundle?.order?.shippingStatus || bundle?.state?.metadata?.logistics?.status),
     contactStatus: clean(bundle?.state?.metadata?.customerDraft?.status).toLowerCase(),
     contactLogisticsStatus: statusKey(bundle?.state?.metadata?.logistics?.status),
     panelStatus: clean(bundle?.lead?.status).toLowerCase(),
@@ -245,7 +287,14 @@ const markHistoricalEvidence = (shipment, { phone, row, servientrega }) => {
         reconciliationSource: 'v140_phone_servientrega'
     };
     shipment.review = shipment.review || {};
-    const suppressions = historicalSuppressionKindsV140({ status: servientrega.normalizedStatus, shipment });
+    shipment.events = Array.isArray(shipment.events) ? shipment.events : [];
+    const historicalBootstrapAlreadyApplied = shipment.events.some((event) => [
+        'v140_phone_reconciliation_identity_applied',
+        'historical_external_reconciliation_restored'
+    ].includes(event?.kind));
+    const suppressions = historicalBootstrapAlreadyApplied
+        ? []
+        : historicalSuppressionKindsV140({ status: servientrega.normalizedStatus, shipment });
     shipment.review.suppressedNotificationKinds = [...new Set([
         ...(shipment.review.suppressedNotificationKinds || []),
         ...suppressions
@@ -253,7 +302,6 @@ const markHistoricalEvidence = (shipment, { phone, row, servientrega }) => {
     if (statusKey(servientrega.normalizedStatus) === 'GUIA_GENERADA' && suppressions.includes('guide')) {
         shipment.review.reviewStatus = 'historical_sent_notice_review_required';
     }
-    shipment.events = Array.isArray(shipment.events) ? shipment.events : [];
     shipment.events.push({
         kind: 'v140_phone_reconciliation_identity_applied',
         at: new Date(),
@@ -291,19 +339,47 @@ export const loadV140CanonicalBundles = async ({
     const admin = listAdminLeads({ country: 'EC', limit: 5000 });
     const leads = admin?.ok ? admin.leads : [];
     const orderById = new Map(orders.map((order) => [clean(order.orderId), order]));
-    return shipments.map((shipment) => {
+    const shipmentBundles = shipments.map((shipment) => {
         const order = orderById.get(clean(shipment.orderId));
+        const externalEvidence = historicalExternalEvidenceOf({ shipment });
         const phone = canonicalEcPhoneE164V140(order?.customer?.phone || shipment?.client?.phone);
-        const state = states.find((item) => (
+        const state = (externalEvidence?.customerId
+            ? states.find((item) => idString(item?._id) === idString(externalEvidence.customerId))
+            : null) || states.find((item) => (
             canonicalEcPhoneE164V140(item?.phoneDigits || item?.metadata?.customerDraft?.phone) === phone
             && (!item?.metadata?.customerDraft?.orderId || item.metadata.customerDraft.orderId === shipment.orderId)
         )) || states.find((item) => canonicalEcPhoneE164V140(item?.phoneDigits || item?.metadata?.customerDraft?.phone) === phone);
-        const lead = leads.find((item) => (
+        const lead = (externalEvidence?.leadId
+            ? leads.find((item) => clean(item?.id) === clean(externalEvidence.leadId))
+            : null) || leads.find((item) => (
             canonicalEcPhoneE164V140(item.phone) === phone
             && (!item.notes || item.notes.includes(shipment.orderId))
         )) || leads.find((item) => canonicalEcPhoneE164V140(item.phone) === phone);
         return { shipment, order, state, lead };
-    }).filter((bundle) => bundle.order && bundle.shipment && bundle.state && bundle.lead && phoneOfBundle(bundle));
+    }).filter((bundle) => (
+        bundle.shipment
+        && bundle.state
+        && bundle.lead
+        && phoneOfBundle(bundle)
+        && (bundle.order || historicalExternalEvidenceOf(bundle))
+    ));
+    const boundPhones = new Set(shipmentBundles.map(phoneOfBundle));
+    const externalAnchors = [];
+    for (const state of states) {
+        const phone = canonicalEcPhoneE164V140(state?.phoneDigits || state?.metadata?.customerDraft?.phone);
+        if (!phone || boundPhones.has(phone)) continue;
+        const phoneLeads = leads.filter((lead) => canonicalEcPhoneE164V140(lead.phone || lead.phone_e164) === phone);
+        for (const lead of phoneLeads) {
+            externalAnchors.push({
+                shipment: null,
+                order: null,
+                state,
+                lead,
+                externalAnchor: true
+            });
+        }
+    }
+    return [...shipmentBundles, ...externalAnchors];
 };
 
 const needsHistoricalBootstrap = (row, match) => {
@@ -335,12 +411,34 @@ export const reconcileV140Rows = async ({
     onlyPhone = '',
     trackGuide = trackServientregaGuide,
     applyLifecycle = applyShipmentLifecycleStatus,
-    syncPanel = syncOrderToOnlineAdminPanel
+    syncPanel = syncOrderToOnlineAdminPanel,
+    restoreExternalBinding = restoreHistoricalExternalDroppiBinding
 } = {}) => {
     const phoneFilter = canonicalEcPhoneE164V140(onlyPhone);
+    const rowPhoneCounts = rows.reduce((counts, row) => {
+        const phone = canonicalEcPhoneE164V140(row.phone);
+        if (phone) counts.set(phone, (counts.get(phone) || 0) + 1);
+        return counts;
+    }, new Map());
     const selectedRows = rows
         .filter((row) => !phoneFilter || canonicalEcPhoneE164V140(row.phone) === phoneFilter)
-        .map((row) => ({ row, match: disambiguatePhoneOrderV140({ row, bundles }) }))
+        .map((row) => {
+            const match = disambiguatePhoneOrderV140({ row, bundles });
+            const phone = canonicalEcPhoneE164V140(row.phone);
+            if (match?.matched && match.bundle?.externalAnchor === true && rowPhoneCounts.get(phone) > 1) {
+                return {
+                    row,
+                    match: {
+                        matched: false,
+                        classification: V140_RECONCILIATION_CLASSES.AMBIGUOUS,
+                        reason: 'multiple_dropi_orders_for_external_phone',
+                        candidateCount: rowPhoneCounts.get(phone),
+                        phone
+                    }
+                };
+            }
+            return { row, match };
+        })
         .filter(({ row, match }) => phoneFilter || needsHistoricalBootstrap(row, match))
         .slice(0, Math.max(1, Number(limit) || 6));
     const report = {
@@ -351,7 +449,10 @@ export const reconcileV140Rows = async ({
         messagesSent: 0,
         candidatesFound: selectedRows.length,
         phoneMatched: 0,
+        reconcilable: 0,
         reconciled: 0,
+        restoredExternalLinks: 0,
+        missingLinkRemaining: 0,
         alreadyCorrect: 0,
         ambiguousSkipped: 0,
         missingGuide: 0,
@@ -379,15 +480,8 @@ export const reconcileV140Rows = async ({
         const bundle = match.bundle;
         item.customerId = idString(bundle.state?._id);
         item.leadId = clean(bundle.lead?.id);
-        item.orderId = clean(bundle.order?.orderId);
+        item.orderId = clean(bundle.order?.orderId || bundle.shipment?.orderId);
         item.shipmentId = idString(bundle.shipment?._id);
-        if (!dropiHumanAuthorizationEvidenceV139(bundle.shipment)) {
-            item.classification = V140_RECONCILIATION_CLASSES.ERROR;
-            item.reason = 'missing_human_dropi_authorization';
-            report.errors += 1;
-            report.results.push(item);
-            continue;
-        }
         if (!item.guide) {
             item.classification = V140_RECONCILIATION_CLASSES.MISSING_GUIDE;
             item.reason = 'missing_or_invalid_servientrega_guide';
@@ -397,6 +491,85 @@ export const reconcileV140Rows = async ({
         }
         const carrier = await trackGuide(item.guide).catch((error) => ({ ok: false, reason: error.message || 'servientrega_query_failed' }));
         item.servientregaStatus = statusKey(carrier.normalizedStatus);
+
+        if (bundle.externalAnchor === true && !bundle.order && !bundle.shipment) {
+            report.reconcilable += 1;
+            const restored = await restoreExternalBinding({
+                row,
+                state: bundle.state,
+                lead: bundle.lead,
+                carrier,
+                dryRun
+            });
+            item.matchType = 'phone+dropiOrderId+guide+customerId+leadId';
+            item.classification = restored.ok
+                ? V140_RECONCILIATION_CLASSES.DIVERGENT
+                : V140_RECONCILIATION_CLASSES.ERROR;
+            item.reason = restored.ok
+                ? 'historical_external_binding_required'
+                : restored.reason;
+            item.before = {
+                localOrder: false,
+                localShipment: false,
+                contactStatus: clean(bundle.state?.metadata?.customerDraft?.status).toLowerCase(),
+                contactLogisticsStatus: statusKey(bundle.state?.metadata?.logistics?.status),
+                panelStatus: clean(bundle.lead?.status).toLowerCase()
+            };
+            item.expected = restored.expected || null;
+            if (!restored.ok) {
+                report.errors += 1;
+                report.missingLinkRemaining += 1;
+                report.results.push(item);
+                continue;
+            }
+            if (dryRun) {
+                report.missingLinkRemaining += 1;
+                report.results.push(item);
+                continue;
+            }
+            const lifecycle = await applyLifecycle({
+                shipmentId: restored.shipment?._id,
+                shipmentDocument: restored.shipment,
+                status: carrier.normalizedStatus,
+                source: 'carrier_tracking',
+                carrierResult: carrier
+            });
+            if (!lifecycle?.ok || lifecycle.externalBindingConflict) {
+                item.classification = V140_RECONCILIATION_CLASSES.ERROR;
+                item.reason = lifecycle?.externalBindingConflict || lifecycle?.reason || 'canonical_lifecycle_failed';
+                report.errors += 1;
+                report.missingLinkRemaining += 1;
+            } else {
+                report.restoredExternalLinks += restored.restored ? 1 : 0;
+                report.reconciled += 1;
+                report.writes += Number(restored.writes || 0) + Number(lifecycle.shipmentChanged || lifecycle.contactStateChanged || lifecycle.adminSync?.changed ? 1 : 0);
+                item.shipmentId = idString(restored.shipment?._id);
+                item.orderId = clean(restored.shipment?.orderId);
+                item.after = {
+                    externalBinding: 'RESTORED',
+                    shipmentStatus: lifecycle.effectiveStatus,
+                    contactStatus: panelStatusFor(lifecycle.effectiveStatus),
+                    contactLogisticsStatus: lifecycle.effectiveStatus,
+                    panelStatus: panelStatusFor(lifecycle.effectiveStatus),
+                    trackingNumber: item.guide,
+                    dropiOrderId: item.dropiOrderId,
+                    pickupReadyVerified: lifecycle.effectiveStatus === 'READY_FOR_PICKUP'
+                };
+                item.postSaleAction = 'ACTIVE_FROM_NEXT_REAL_CHANGE';
+            }
+            report.results.push(item);
+            continue;
+        }
+
+        const historicalExternal = historicalExternalEvidenceOf(bundle);
+        if (!dropiHumanAuthorizationEvidenceV139(bundle.shipment) && !historicalExternal) {
+            item.classification = V140_RECONCILIATION_CLASSES.ERROR;
+            item.reason = 'missing_human_dropi_authorization';
+            report.errors += 1;
+            report.results.push(item);
+            continue;
+        }
+        report.reconcilable += 1;
         const projection = classifyCanonicalProjectionV140({ bundle, row, servientrega: carrier });
         item.classification = projection.classification;
         item.reason = projection.reason || '';

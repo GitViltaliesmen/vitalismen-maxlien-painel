@@ -248,6 +248,8 @@ const ecuadorUnitPriceForQuantity = (quantity, total = 0) => {
 export const upsertDroppiEcuadorShipment = async (payload) => {
     const orderId = String(payload.orderId || '').trim();
     if (!orderId) throw new Error('orderId is required');
+    const historicalIdentityOnly = payload.historicalIdentityOnly === true
+        && payload.reconciliationSource === 'HISTORICAL_EXTERNAL_RECONCILIATION';
 
     let shipment = await Shipment.findOne({ orderId }) || new Shipment({
         orderId,
@@ -278,9 +280,11 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     );
 
     shipment.provider = 'droppi';
-    shipment.productName = preserveManualReview
-        ? (shipment.productName || payload.productName || 'Vit Power')
-        : (payload.productName || shipment.productName || 'Vit Power');
+    shipment.productName = historicalIdentityOnly
+        ? (payload.productName || shipment.productName || undefined)
+        : (preserveManualReview
+            ? (shipment.productName || payload.productName || 'Vit Power')
+            : (payload.productName || shipment.productName || 'Vit Power'));
     shipment.client = {
         ...shipment.client,
         name: payload.clientName || shipment.client.name,
@@ -319,12 +323,16 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
             : shipment.automation.deliveredConfirmedAt,
         prepaidOnlyNotifiedAt: isDelivered ? null : shipment.automation.prepaidOnlyNotifiedAt
     };
-    shipment.treatment = {
-        ...shipment.treatment,
-        unitsPurchased: Number(payload.quantity || payload.unitsPurchased || shipment.treatment?.unitsPurchased || 1) || 1,
-        daysPerUnit: Number(payload.daysPerUnit || shipment.treatment?.daysPerUnit || 30) || 30,
-        targetUnits: Number(payload.targetUnits || shipment.treatment?.targetUnits || 6) || 6
-    };
+    if (historicalIdentityOnly) {
+        shipment.treatment = undefined;
+    } else {
+        shipment.treatment = {
+            ...shipment.treatment,
+            unitsPurchased: Number(payload.quantity || payload.unitsPurchased || shipment.treatment?.unitsPurchased || 1) || 1,
+            daysPerUnit: Number(payload.daysPerUnit || shipment.treatment?.daysPerUnit || 30) || 30,
+            targetUnits: Number(payload.targetUnits || shipment.treatment?.targetUnits || 6) || 6
+        };
+    }
     shipment.review = {
         ...shipment.review,
         manualOnly: Boolean(
@@ -341,7 +349,13 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         reviewStatus: payload.reviewStatus
             || (isProviderFailure ? 'dropi_provider_rejected' : '')
             || shipment.review?.reviewStatus
-            || ''
+            || '',
+        suppressedNotificationKinds: historicalIdentityOnly
+            ? [...new Set([
+                ...(shipment.review?.suppressedNotificationKinds || []),
+                ...(payload.suppressedNotificationKinds || [])
+            ])]
+            : (shipment.review?.suppressedNotificationKinds || [])
     };
     shipment.outcomes = {
         ...shipment.outcomes,
@@ -373,13 +387,28 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     shipment.raw = {
         ...(shipment.raw || {}),
         latestDroppiPayload,
+        ...(historicalIdentityOnly ? {
+            historicalExternalReconciliation: {
+                source: 'HISTORICAL_EXTERNAL_RECONCILIATION',
+                phone: String(payload.phone || '').trim(),
+                customerId: String(payload.customerId || '').trim(),
+                leadId: String(payload.leadId || '').trim(),
+                dropiOrderId: submittedDropiOrderId,
+                trackingNumber: String(payload.trackingNumber || '').trim(),
+                sourceDropi: payload.sourceDropi === true,
+                sourceServientrega: payload.sourceServientrega === true,
+                restoredAt: payload.restoredAt || new Date()
+            }
+        } : {}),
         ...(payload.manualDropiOrderId || payload.dropiOrderId
             ? { manualDropiOrderId: payload.manualDropiOrderId || payload.dropiOrderId }
             : {})
     };
     shipment.notes = payload.detail || payload.notes || shipment.notes;
     shipment.events.push({
-        kind: 'droppi_sync',
+        kind: historicalIdentityOnly
+            ? 'historical_external_reconciliation_restored'
+            : 'droppi_sync',
         at: new Date(),
         payload: {
             ...payload,

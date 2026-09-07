@@ -1,7 +1,10 @@
 import ContactState from '../models/ContactState.js';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
-import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
+import {
+    syncContactDraftToOnlineAdminPanel,
+    syncOrderToOnlineAdminPanel
+} from './adminPanelStatusService.js';
 
 const normalizeStatus = (status = '') => String(status || '').trim().toUpperCase();
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
@@ -88,6 +91,28 @@ const dropiOrderIdForShipment = (shipment = {}) => digitsOnly(
     || ''
 );
 
+const historicalExternalReconciliation = (shipment = {}) => {
+    const evidence = shipment?.raw?.historicalExternalReconciliation || {};
+    if (evidence.source !== 'HISTORICAL_EXTERNAL_RECONCILIATION') return null;
+    const phone = digitsOnly(evidence.phone);
+    const shipmentPhone = digitsOnly(shipment?.client?.phone);
+    const dropiOrderId = digitsOnly(evidence.dropiOrderId);
+    const shipmentDropiOrderId = dropiOrderIdForShipment(shipment);
+    const trackingNumber = digitsOnly(evidence.trackingNumber);
+    const shipmentTrackingNumber = digitsOnly(shipment?.logistics?.trackingNumber);
+    if (!/^5939\d{8}$/.test(phone)
+        || phone !== shipmentPhone
+        || !/^\d{6,}$/.test(dropiOrderId)
+        || dropiOrderId !== shipmentDropiOrderId
+        || !/^\d{8,15}$/.test(trackingNumber)
+        || trackingNumber !== shipmentTrackingNumber
+        || !String(evidence.customerId || '').trim()
+        || !String(evidence.leadId || '').trim()
+        || evidence.sourceDropi !== true
+        || evidence.sourceServientrega !== true) return null;
+    return { ...evidence, phone: `+${phone}`, dropiOrderId, trackingNumber };
+};
+
 const findContactState = async ({ phone = '', contactStateModel = ContactState } = {}) => {
     const tail = digitsOnly(phone).slice(-9);
     if (!tail) return null;
@@ -111,6 +136,7 @@ const persistCanonicalContactState = async ({ state, order, shipment, orderStatu
     const dropiOrderId = dropiOrderIdForShipment(shipment);
     const trackingNumber = digitsOnly(shipment?.logistics?.trackingNumber);
     const logisticsStatus = normalizeStatus(shipment?.logistics?.status);
+    const externalEvidence = historicalExternalReconciliation(shipment);
     const nextCustomerDraft = {
         ...customerDraft,
         status: panelStatus,
@@ -123,7 +149,17 @@ const persistCanonicalContactState = async ({ state, order, shipment, orderStatu
         ...(trackingNumber ? { trackingNumber } : {}),
         ...(shipment?.logistics?.distributionCompany
             ? { carrier: shipment.logistics.distributionCompany }
-            : {})
+            : {}),
+        ...(externalEvidence ? {
+            externalOrderId: externalEvidence.dropiOrderId,
+            orderStatus,
+            source: externalEvidence.source,
+            sourceDropi: true,
+            sourceServientrega: true,
+            customerId: String(externalEvidence.customerId || ''),
+            leadId: String(externalEvidence.leadId || ''),
+            restoredAt: externalEvidence.restoredAt
+        } : {})
     };
     const changed = JSON.stringify(customerDraft) !== JSON.stringify(nextCustomerDraft)
         || JSON.stringify(logistics) !== JSON.stringify(nextLogistics);
@@ -232,7 +268,8 @@ export const applyShipmentLifecycleStatus = async ({
     shipmentModel = Shipment,
     orderModel = Order,
     contactStateModel = ContactState,
-    syncPanel = syncOrderToOnlineAdminPanel
+    syncPanel = syncOrderToOnlineAdminPanel,
+    syncContactPanel = syncContactDraftToOnlineAdminPanel
 } = {}) => {
     const normalizedStatus = normalizeStatus(status);
     if (!shipmentId || !normalizedStatus) return { ok: false, reason: 'missing_shipment_or_status' };
@@ -304,6 +341,7 @@ export const applyShipmentLifecycleStatus = async ({
     let contactState = null;
     let contactStateChanged = false;
     let orderChanged = false;
+    let externalBindingConflict = '';
     if (proposedOrderStatus && shipment.orderId) {
         const order = await orderModel.findOne({ country: 'EC', orderId: shipment.orderId }).catch(() => null);
         if (order) {
@@ -361,6 +399,41 @@ export const applyShipmentLifecycleStatus = async ({
                     action: `carrier_status_${effectiveStatus.toLowerCase()}`
                 });
             }
+        } else {
+            const externalEvidence = historicalExternalReconciliation(shipment);
+            if (externalEvidence) {
+                orderStatus = proposedOrderStatus;
+                const state = await findContactState({
+                    phone: externalEvidence.phone,
+                    contactStateModel
+                });
+                const expectedCustomerId = String(externalEvidence.customerId || '');
+                const actualCustomerId = String(state?._id || '');
+                if (!state || (expectedCustomerId && actualCustomerId !== expectedCustomerId)) {
+                    externalBindingConflict = 'historical_external_customer_conflict';
+                } else {
+                    const contactProjection = await persistCanonicalContactState({
+                        state,
+                        order: null,
+                        shipment,
+                        orderStatus
+                    });
+                    contactState = contactProjection.state;
+                    contactStateChanged = contactProjection.changed;
+                    if (contactStateChanged || statusChanged) {
+                        adminSync = syncContactPanel({
+                            phone: externalEvidence.phone,
+                            status: orderStatus
+                        }, {
+                            country: 'EC',
+                            adminStatus: PANEL_STATUS_BY_ORDER_STATUS[orderStatus] || '',
+                            action: `historical_external_carrier_${effectiveStatus.toLowerCase()}`
+                        });
+                    }
+                }
+            } else if (shipment?.raw?.historicalExternalReconciliation?.source === 'HISTORICAL_EXTERNAL_RECONCILIATION') {
+                externalBindingConflict = 'historical_external_evidence_conflict';
+            }
         }
     }
 
@@ -376,6 +449,7 @@ export const applyShipmentLifecycleStatus = async ({
         orderChanged,
         adminSync,
         contactState,
-        contactStateChanged
+        contactStateChanged,
+        externalBindingConflict
     };
 };

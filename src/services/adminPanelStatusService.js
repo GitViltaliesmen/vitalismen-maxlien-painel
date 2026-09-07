@@ -523,6 +523,8 @@ if existing:
     for blank_safe_key in ["name", "address", "city", "province"]:
         if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
             fields.pop(blank_safe_key, None)
+    if "product_qty" in fields and not int(fields.get("product_qty") or 0):
+        fields.pop("product_qty", None)
     if "product_value" in fields and not float(fields.get("product_value") or 0):
         fields.pop("product_value", None)
     if "status" in fields and should_keep_existing_status(old_status, fields.get("status")):
@@ -706,6 +708,8 @@ if existing:
     for blank_safe_key in ["name", "address", "city", "province"]:
         if blank_safe_key in fields and not str(fields.get(blank_safe_key) or "").strip():
             fields.pop(blank_safe_key, None)
+    if "product_qty" in fields and not int(fields.get("product_qty") or 0):
+        fields.pop("product_qty", None)
     if "product_value" in fields and not float(fields.get("product_value") or 0):
         fields.pop("product_value", None)
     if "status" in fields and should_keep_existing_status(old_status, fields.get("status")):

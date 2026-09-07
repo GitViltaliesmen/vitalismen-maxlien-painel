@@ -27,17 +27,37 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const browser = read('src/services/droppiEcuadorBrowserService.js');
     const scheduler = read('src/services/schedulerService.js');
     const adminPanelStatus = read('src/services/adminPanelStatusService.js');
+    const historicalImporter = read('src/services/droppiEcuadorImportService.js');
+    const droppiService = read('src/services/droppiEcuadorService.js');
+    const lifecycle = read('src/services/shipmentLifecycleStatusService.js');
+    const postSale = read('src/services/ecDropiStatusPostSaleV139Service.js');
     const v139RuntimeBridge = read('scripts/lib/ec-runtime-successor-v139-context.mjs');
     const v97RuntimeContext = read('scripts/lib/ec-runtime-successor-v97-context.mjs');
     assert.match(service, /canonicalEcPhoneE164V140/);
     assert.match(service, /\^5939\\d\{8\}\$/);
     assert.match(service, /multiple_phone_orders_remain_ambiguous/);
+    assert.match(service, /multiple_dropi_orders_for_external_phone/);
     assert.match(service, /missing_human_dropi_authorization/);
     assert.match(service, /trackServientregaGuide/);
     assert.match(service, /applyShipmentLifecycleStatus/);
+    assert.match(service, /restoreHistoricalExternalDroppiBinding/);
     assert.match(service, /historical_sent_notice_review_required/);
     assert.match(service, /suppressedNotificationKinds/);
-    assert.doesNotMatch(service, /submitDroppiEcuadorOrder|upsertDroppiEcuadorShipment|Shipment\.create|Order\.create/);
+    assert.doesNotMatch(service, /submitDroppiEcuadorOrder|new Shipment|Shipment\.create|new Order|Order\.create/);
+    const restoreFunction = historicalImporter.split('export const restoreHistoricalExternalDroppiBinding')[1]
+        ?.split('const phoneTailCandidates')[0] || '';
+    assert.match(restoreFunction, /HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE/);
+    assert.match(historicalImporter, /phone_identity_conflict/);
+    assert.match(restoreFunction, /sourceDropi: true/);
+    assert.match(restoreFunction, /sourceServientrega: true/);
+    assert.match(restoreFunction, /messagesSent: 0/);
+    assert.doesNotMatch(restoreFunction, /notifyReadyForPickup|notifyShipmentGuideGenerated|submitDroppiEcuadorOrder|Order\.create/);
+    assert.match(droppiService, /historicalIdentityOnly/);
+    assert.match(droppiService, /historical_external_reconciliation_restored/);
+    assert.match(lifecycle, /historical_external_customer_conflict/);
+    assert.match(lifecycle, /syncContactDraftToOnlineAdminPanel/);
+    assert.match(postSale, /historicalExternalPostSaleEvidenceV140/);
+    assert.match(postSale, /historical_external_event_verified/);
     const sourceFunction = browser.split('export const fetchDroppiEcuadorOrdersApiReadOnly')[1]
         ?.split('export const inspectDroppiEcuadorProductTarget')[0] || '';
     assert.match(sourceFunction, /fetchOrdersApiRows/);
@@ -51,6 +71,20 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     assert.equal(manifest.policy.automaticDropiSend, false);
     assert.equal(manifest.policy.automaticShipmentCreation, false);
     assert.equal(manifest.policy.humanDropiAuthorizationRequired, true);
+    assert.equal(manifest.policy.historicalExternalShipmentMirrorRestoration, true);
+    assert.equal(manifest.policy.historicalExternalOrderCreation, false);
+    assert.deepEqual(manifest.policy.historicalExternalIdentityRequires, [
+        'phone',
+        'dropiOrderId',
+        'guide',
+        'customerId',
+        'leadId',
+        'servientregaDirect'
+    ]);
+    assert.equal(manifest.policy.unknownProductQuantityValueInferred, false);
+    assert.equal(manifest.policy.historicalRestorationMessages, 0);
+    assert.equal(manifest.policy.postSaleActiveFromNextRealEvent, true);
+    assert.equal(manifest.policy.restoredCases.length, 4);
     assert.equal(manifest.policy.dryRunWrites, 0);
     assert.equal(manifest.policy.dryRunMessages, 0);
     return manifest;
