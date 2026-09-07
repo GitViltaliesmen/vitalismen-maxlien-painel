@@ -10,7 +10,10 @@ export const assertProtocoloGCommercialMetricsV136 = () => {
     assert.equal(manifest.layer, 'EC_PROTOCOLO_G_COMMERCIAL_METRICS_READ_ONLY');
     assert.deepEqual(manifest.overrides, ['public/funnel-metrics.html', 'scripts/guard-ec-commercial-isolation-v135.mjs', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'src/routes/funnelMetrics.js', 'tests/funnel-metrics-route.test.mjs']);
     assert.equal(hash(read('docs/freeze/ec-commercial-isolation-v135-20260907.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (!successorOverrides.has(file)) assert.equal(hash(read(file)), expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     return manifest;
 };

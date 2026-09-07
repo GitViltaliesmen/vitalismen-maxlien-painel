@@ -1,0 +1,26 @@
+{
+  "version": 137,
+  "layer": "EC_QUEUE_GUARD_COMPATIBILITY",
+  "country": "EC",
+  "status": "candidate_not_published",
+  "parentCommit": "2629a80bc67dfec8bb596662228d54339cd1c950",
+  "parentManifestSha256": "62f9cfa61737fadcf56dae21f44be757beda777d28725fd48b27eb89a5b53f7e",
+  "overrides": [
+    "scripts/guard-panel-client-search-v41.mjs",
+    "scripts/guard-protocolo-g-commercial-metrics-v136.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "tests/panel-client-search-v41.test.mjs"
+  ],
+  "policy": {
+    "purpose": "V41 search contract follows the authorized V135 engagement and unread isolation; production behavior unchanged since V136",
+    "productionChanged": false
+  },
+  "protectedFiles": {
+    "scripts/guard-ec-queue-guard-compatibility-v137.mjs": "1563730f2ccad57bb9c6a69cf7bf57eae122bf2205840a0dd39ad007dfe4263b",
+    "scripts/guard-panel-client-search-v41.mjs": "7ff9beea1330d9108694c64fb7f9aa73f783675ee16d999af33e09719c9d02db",
+    "scripts/guard-protocolo-g-commercial-metrics-v136.mjs": "0032d77285bbb4b328967835c26ed3b85422a1f6ff9b8fb8635ed1f4cb9abfa5",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "2e1cb3229272a9afce40baa033bf91880e4fc411ef7a06251772b9e705373245",
+    "tests/panel-client-search-v41.test.mjs": "aef38c4d970749f600128d7621385a16c2ac05e9f801e9e03462c825d9f157c8"
+  },
+  "bundleSha256": "d8c2692812ea99384c514fe21b55f99f9d6bfed13dcbdec3131725b1434d1292"
+}

@@ -64,7 +64,7 @@ test('V41 evita lista ampla com apenas um ou dois dígitos', () => {
     assert.match(search.emptyStateMessage('27'), /pelo menos 3 dígitos/);
 });
 
-test('V41 considera busca ativa para o painel ignorar filtros de fila e não lidas', () => {
+test('V41 reconhece busca ativa; V135 preserva isolamento e filtro de não lidas', () => {
     assert.equal(search.isSearchActive('3272'), true);
     assert.equal(search.isSearchActive('José'), true);
     assert.equal(search.isSearchActive('   '), false);
@@ -76,7 +76,8 @@ test('V41 painel usa somente busca de identidade e preserva lista sem mensagem',
     assert.match(panel, /VitalismenChatSearchV41\?\.matchesChat/);
     assert.match(panel, /shouldApplyOperationalBucketFilter/);
     assert.match(panel, /applyOperationalBucketFilter && chatConversationBucket\(chat\)/);
-    assert.match(panel, /!searchActive && state\.chatFilter === 'unread'/);
+    assert.match(panel, /if \(state\.chatFilter === 'unread' && !isNewMessagesChatForPanel\(chat\)\) return false/);
+    assert.doesNotMatch(panel, /!searchActive && state\.chatFilter === 'unread'/);
     assert.doesNotMatch(panel, /const haystack = \[[\s\S]{0,300}chat\.lastMessage\?\.body/);
     assert.doesNotMatch(panel, /chat\.lastMessage\.body[\s\S]{0,120}class="chat-preview/);
 });

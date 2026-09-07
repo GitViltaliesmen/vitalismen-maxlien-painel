@@ -16,7 +16,9 @@ assert.match(panel, /chat-search-v41\.js/);
 assert.match(panel, /VitalismenChatSearchV41\?\.matchesChat/);
 assert.match(panel, /shouldApplyOperationalBucketFilter/);
 assert.match(panel, /applyOperationalBucketFilter && chatConversationBucket\(chat\)/);
-assert.match(panel, /!searchActive && state\.chatFilter === 'unread'/);
+// V135: identity search keeps engagement isolated and respects the selected Novas queue.
+assert.match(panel, /if \(state\.chatFilter === 'unread' && !isNewMessagesChatForPanel\(chat\)\) return false/);
+assert.doesNotMatch(panel, /!searchActive && state\.chatFilter === 'unread'/);
 assert.doesNotMatch(panel, /const haystack = \[[\s\S]{0,300}chat\.lastMessage\?\.body/);
 assert.match(search, /MIN_PHONE_QUERY_DIGITS = 3/);
 assert.match(search, /candidateValue\.endsWith\(queryValue\)/);

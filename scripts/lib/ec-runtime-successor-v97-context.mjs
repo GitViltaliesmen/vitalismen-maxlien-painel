@@ -1,3 +1,4 @@
+import { assertEcQueueGuardCompatibilityV137 } from '../guard-ec-queue-guard-compatibility-v137.mjs';
 import { assertProtocoloGCommercialMetricsV136 } from '../guard-protocolo-g-commercial-metrics-v136.mjs';
 import { assertEcCommercialIsolationV135 } from '../guard-ec-commercial-isolation-v135.mjs';
 import { assertInvestmentRadarV134 } from '../guard-investment-radar-v134.mjs';
@@ -66,6 +67,10 @@ import { assertDropiManualBffRecoveryManifestV98 } from '../../src/services/drop
 import { assertEcRepurchaseRegistrationManifestV99 } from '../../src/services/ecRepurchaseRegistrationV99Service.js';
 import { assertEcRepurchasePanelPrecedenceManifestV100 } from '../../src/services/ecRepurchasePanelPrecedenceV100Service.js';
 import { assertProtocoloGSuccessorGuardManifestV101 } from '../../src/services/protocoloGSuccessorGuardV101Service.js';
+const queueCompatibilityV137 = assertEcQueueGuardCompatibilityV137();
+for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
+    globalThis[key] = [...new Set([...(globalThis[key] || []), ...queueCompatibilityV137.overrides])];
+}
 const commercialMetricsV136 = assertProtocoloGCommercialMetricsV136();
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...commercialMetricsV136.overrides])];
