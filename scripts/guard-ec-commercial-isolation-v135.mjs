@@ -11,7 +11,10 @@ export const assertEcCommercialIsolationV135 = () => {
     assert.equal(manifest.layer, 'EC_COMMERCIAL_QUEUE_ISOLATION');
     assert.deepEqual(manifest.overrides, ['public/qr.html', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'src/routes/whatsapp.js']);
     assert.equal(hash(read('docs/freeze/investment-radar-v134-20260905.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (!successorOverrides.has(file)) assert.equal(hash(read(file)), expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     return manifest;
 };

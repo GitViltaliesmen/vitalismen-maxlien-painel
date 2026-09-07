@@ -632,7 +632,8 @@
                 <div class="grid" id="protocoloGMetrics" style="padding:14px"></div>
                 <div class="panel-head">
                     <h2>Por anúncio — somente pós-correção</h2>
-                    <p class="meta">Campanha, conjunto e anúncio preservados pelos parâmetros da Meta</p>
+                    <p class="meta">Campanha, conjunto e anúncio preservados pelos parâmetros da Meta. Pedidos criados no período, com status atual. Sem vínculo confiável: SEM_ATRIBUICAO.</p>
+                    <p class="meta" id="commercialCoverage"></p>
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -648,6 +649,12 @@
                                 <th>Formulário</th>
                                 <th>WhatsApp</th>
                                 <th>Conversa</th>
+                                <th>Leads / inbound</th>
+                                <th>Pedidos / confirmados</th>
+                                <th>Enviados / entregues</th>
+                                <th>Cancelados / devolvidos</th>
+                                <th>Valor dos pedidos</th>
+                                <th>Conversões comerciais</th>
                                 <th>Venda / Purchase</th>
                                 <th>Leitura</th>
                             </tr>
@@ -1085,9 +1092,13 @@
                 </tr>
             `).join('') || emptyRow(11, 'Sem etapas instrumentadas do Protocolo G no período.');
 
-            el('protocoloGAdRows').innerHTML = (protocoloG.ads || []).map((ad) => `
+            const commercial = protocoloG.commercial;
+            el('commercialCoverage').textContent = commercial
+                ? `Sem origem Protocolo-G comprovada: ${number.format(commercial.coverage.unknownOriginContacts)} contatos e ${number.format(commercial.coverage.unknownOriginOrders)} pedidos fora deste recorte. Inbound conta contatos únicos. Identificação por ad_id; creative_id não está disponível na captura atual.`
+                : 'Cobertura comercial aguardando atualização da API.';
+            el('protocoloGAdRows').innerHTML = (commercial?.ads || protocoloG.ads || []).map((ad) => `
                 <tr>
-                    <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || 'sem ad_id')}</span></td>
+                    <td>${escapeHtml(ad.adName || (ad.adId ? 'Sem nome' : 'SEM_ATRIBUICAO'))}<br><span class="meta">${escapeHtml(ad.adId || 'SEM_ATRIBUICAO')}</span></td>
                     <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || 'sem campaign_id')}</span></td>
                     <td>${escapeHtml((ad.placements || []).join(', ') || '-')}</td>
                     <td>${number.format(ad.landing || 0)}</td>
@@ -1097,10 +1108,16 @@
                     <td>${number.format(ad.formOpened || 0)} / ${number.format(ad.formSubmitted || 0)}</td>
                     <td>${number.format(ad.whatsappClicks || 0)}<br><span class="meta">${ad.whatsappRate || 0}%</span></td>
                     <td>${number.format(ad.attributedConversations || 0)}<br><span class="meta">${ad.conversationRate || 0}%</span></td>
+                    <td>${number.format(ad.commercialLeads || 0)} / ${number.format(ad.inbounds || 0)}</td>
+                    <td>${number.format(ad.orders || 0)} / ${number.format(ad.confirmed || 0)}</td>
+                    <td>${number.format(ad.shipped || 0)} / ${number.format(ad.delivered || 0)}</td>
+                    <td>${number.format(ad.cancelled || 0)} / ${number.format(ad.returned || 0)}</td>
+                    <td>USD ${number.format(ad.orderValue || 0)}</td>
+                    <td class="meta">WA → lead: ${ad.whatsappToLeadRate || 0}%<br>Lead → pedido: ${ad.leadToOrderRate || 0}%<br>Pedido → confirmado: ${ad.orderToConfirmedRate || 0}%<br>Confirmado → entregue: ${ad.confirmedToDeliveredRate || 0}%</td>
                     <td>${number.format(ad.salesCreated || 0)} / ${number.format(ad.purchasesSent || 0)}</td>
                     <td>${escapeHtml(protocoloGAdReading(ad))}</td>
                 </tr>
-            `).join('') || emptyRow(12, 'Ainda não há entrada pós-correção identificada por anúncio.');
+            `).join('') || emptyRow(18, 'Ainda não há entrada pós-correção identificada por anúncio.');
 
             el('attributionRows').innerHTML = (data.recentAttributionOrders || []).map((order) => {
                 const tracking = order.tracking || {};

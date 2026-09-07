@@ -1,0 +1,37 @@
+{
+  "version": 136,
+  "layer": "EC_PROTOCOLO_G_COMMERCIAL_METRICS_READ_ONLY",
+  "country": "EC",
+  "status": "candidate_not_published",
+  "parentCommit": "316f1a4cc7b1aa796848d201b6c95dd8ff8b18a9",
+  "parentManifestSha256": "9900c216a0e31420b9ce9bf91aab633058e506e4d1d9172df2b5b3c856a4379e",
+  "overrides": [
+    "public/funnel-metrics.html",
+    "scripts/guard-ec-commercial-isolation-v135.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/funnelMetrics.js",
+    "tests/funnel-metrics-route.test.mjs"
+  ],
+  "policy": {
+    "persistentIdsOnly": true,
+    "phoneAttributionAllowed": false,
+    "engagementExcluded": true,
+    "unknownAttributionExplicit": true,
+    "statusesFromCanonicalOrders": true,
+    "productionChanged": false,
+    "externalMessagesAllowed": false,
+    "metaMutationAllowed": false,
+    "databaseSchemaChanged": false
+  },
+  "protectedFiles": {
+    "public/funnel-metrics.html": "f9a7360c19bda020e758381780354e1f1cddfa52946ba9733ed3b43e842d1257",
+    "scripts/guard-ec-commercial-isolation-v135.mjs": "72c4e85cf39f04f906f93a99943e5a47a75c17e1b27ffb48534ba067c2ca206a",
+    "scripts/guard-protocolo-g-commercial-metrics-v136.mjs": "a0b8f8a86745db7c70092436307634646740751c0a6b3382f8507f5e9b0660a9",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "ddcc59f5819d91260c5c6f7885df5ccfbd042b262d342ac11c228c3c730704d4",
+    "src/routes/funnelMetrics.js": "c9cb63caf0fa5269e0fb9db13a3e76aaf0239911c70c3ab6b005b7c68939e4d3",
+    "src/services/protocoloGCommercialMetricsService.js": "e7d6941f46615ba4132776bfcabb7695b9a8f7872684ae46bd979f9dc43a50ea",
+    "tests/funnel-metrics-route.test.mjs": "5010f5317a2995913aec8c0c123403927b0d21bab678ef32cc4db0d1598a7e80",
+    "tests/protocolo-g-commercial-metrics-v136.test.mjs": "fd656ac040b180d7c5a2c6b1aae77fd66a5803e506f32f67f7862c3bf677414b"
+  },
+  "bundleSha256": "8663eea1796c2438276f8a1a7e5d1a996d7e7e8c8334800bf2d2ead6fad1158a"
+}

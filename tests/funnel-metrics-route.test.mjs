@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import funnelMetricsRoutes, { createFunnelMetricsHandler } from '../src/routes/funnelMetrics.js';
+import funnelMetricsRoutes, { createFunnelMetricsHandler as createHandler } from '../src/routes/funnelMetrics.js';
 import { adminOnly, authMiddleware } from '../src/middleware/auth.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +25,10 @@ const fakeResponse = () => ({
     status(code) { this.statusCode = code; return this; },
     set(name, value) { this.headers[name] = value; return this; },
     json(body) { this.body = body; return this; }
+});
+
+const createFunnelMetricsHandler = options => createHandler({
+    ContactModel: fakeModel([], []), ShipmentModel: fakeModel([], []), ...options
 });
 
 test('rota declara autenticao e autorizacao administrativa antes do handler', () => {

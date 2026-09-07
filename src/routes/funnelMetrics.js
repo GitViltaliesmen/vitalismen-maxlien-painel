@@ -2,6 +2,9 @@ import express from 'express';
 import Order from '../models/Order.js';
 import VslVisit from '../models/VslVisit.js';
 import MetaAttributionCorrelation from '../models/MetaAttributionCorrelation.js';
+import ContactState from '../models/ContactState.js';
+import Shipment from '../models/Shipment.js';
+import { buildProtocoloGCommercialMetrics } from '../services/protocoloGCommercialMetricsService.js';
 import { adminOnly, authMiddleware } from '../middleware/auth.js';
 import { getMetaDatasetIdForOrder } from '../services/metaConversionsService.js';
 import { loadMetaAdsInsights } from '../services/metaAdsInsightsService.js';
@@ -14,6 +17,8 @@ import {
 const router = express.Router();
 
 const visitProjection = [
+    'visitorKey',
+    'sourceUrl',
     'firstSeenAt',
     'visits',
     'country',
@@ -41,6 +46,7 @@ const visitProjection = [
 ].join(' ');
 
 const orderProjection = [
+    'confirmedAt',
     'orderId',
     'customer.name',
     'country',
@@ -71,6 +77,9 @@ const orderProjection = [
     'tracking.ad_id',
     'tracking.placement',
     'tracking.attributionCorrelationStatus',
+    'tracking.attributionVisitorKey',
+    'tracking.attributionMatchedAt',
+    'tracking.sourceUrl',
     'tracking.attributionCorrelationReason',
     'tracking.metaPurchaseDatasetId',
     'tracking.metaPurchaseDatasetRoute'
@@ -87,6 +96,8 @@ export const createFunnelMetricsHandler = ({
     VisitModel = VslVisit,
     OrderModel = Order,
     CorrelationModel = MetaAttributionCorrelation,
+    ContactModel = ContactState,
+    ShipmentModel = Shipment,
     clock = () => new Date(),
     pixelId = () => process.env.META_PIXEL_ID_EC || '',
     datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order),
@@ -110,6 +121,24 @@ export const createFunnelMetricsHandler = ({
             now,
             pixelId: pixelId(),
             datasetIdForOrder
+        });
+        const between = { $gte: new Date(snapshot.startAt), $lte: new Date(snapshot.endAt) };
+        const orderIds = orders.map(order => order.orderId).filter(Boolean);
+        const visitorKeys = [...new Set(orders.map(order => order.tracking?.attributionVisitorKey).filter(Boolean))];
+        const [contacts, shipments, linkedVisits] = await Promise.all([
+            ContactModel.find({ countryCode: 'EC', $or: [
+                { 'metadata.vslVisitId': { $in: visits.map(visit => String(visit._id)) } },
+                { 'metadata.customerDraft.orderId': { $in: orderIds } },
+                { 'metadata.customerDraft.currentNegotiationOrderId': { $in: orderIds } },
+                { firstInboundAt: between }, { 'metadata.vslEntryPanelLeadAt': between }
+            ] }).select('_id countryCode phoneDigits firstInboundAt lastInboundAt createdAt conversationBucket.value metadata.vslVisitId metadata.vslSourceUrl metadata.vslVariant metadata.metaAttributionBridge metadata.tracking metadata.testOnly metadata.customerDraft.orderId metadata.customerDraft.currentNegotiationOrderId').lean(),
+            orderIds.length ? ShipmentModel.find({ country: 'EC', orderId: { $in: orderIds } })
+                .select('orderId logistics.status automation.submittedToDroppiAt').lean() : [],
+            visitorKeys.length ? VisitModel.find({ country: 'EC', visitorKey: { $in: visitorKeys } }).select(visitProjection).lean() : []
+        ]);
+        snapshot.protocoloG.commercial = buildProtocoloGCommercialMetrics({
+            visits: [...visits, ...linkedVisits], orders, contacts, shipments,
+            ads: snapshot.protocoloG.ads, startAt: snapshot.startAt, endAt: snapshot.endAt
         });
         res.set('Cache-Control', 'no-store');
         return res.json({ ...snapshot, metaAds });
