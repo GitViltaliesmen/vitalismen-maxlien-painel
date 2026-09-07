@@ -14,6 +14,7 @@ import {
     processCarrierStatusSweep,
     processShipmentStatusDispatch
 } from './shipmentStatusDispatcherService.js';
+import { processEcPhoneServientregaReconciliationV140 } from './ecPhoneServientregaReconciliationV140Service.js';
 import { processGuidePrintDispatch } from './guidePrintDispatcherService.js';
 import { importConfirmedAdminPanelOrders } from './adminPanelImportService.js';
 import { syncActiveDroppiEcuadorOrdersFromPanel } from './droppiEcuadorBrowserService.js';
@@ -48,6 +49,7 @@ let isRunningPickupReminders = false;
 let isRunningPickupProofSweep = false;
 let isRunningShipmentStatusDispatch = false;
 let isRunningCarrierStatusSweep = false;
+let isRunningPhoneServientregaReconciliationV140 = false;
 let isRunningGuidePrintDispatch = false;
 let isRunningDropiActiveSync = false;
 let isRunningDropiPickupReleaseReconciliation = false;
@@ -188,6 +190,15 @@ export const startScheduler = ({ compatibilityState = null } = {}) => {
         console.log(`[SCHEDULER] Carrier status sweep enabled every ${Math.round(intervalMs / 60000)} minutes.`);
     } else {
         console.log('[SCHEDULER] Carrier status sweep disabled. Set SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED=true to enable.');
+    }
+    if (flagEnabled('V140_PHONE_SERVIENTREGA_RECONCILIATION_ENABLED', true)) {
+        const intervalMinutes = parseNumber('V140_PHONE_SERVIENTREGA_RECONCILIATION_INTERVAL_MINUTES', 60);
+        const intervalMs = Math.max(20, intervalMinutes) * 60 * 1000;
+        setInterval(checkPhoneServientregaReconciliationV140, intervalMs);
+        setTimeout(() => checkPhoneServientregaReconciliationV140(), 45000);
+        console.log(`[SCHEDULER] V140 phone reconciliation enabled every ${Math.round(intervalMs / 60000)} minutes.`);
+    } else {
+        console.log('[SCHEDULER] V140 phone reconciliation disabled.');
     }
     if (flagEnabled('SHIPMENT_GUIDE_PRINT_DISPATCH_ENABLED', false)) {
         const intervalSeconds = parseNumber('SHIPMENT_GUIDE_PRINT_DISPATCH_INTERVAL_SECONDS', 120);
@@ -808,6 +819,26 @@ const checkCarrierStatusSweep = async () => {
         console.error('Carrier Status Sweep Scheduler Error:', error);
     } finally {
         isRunningCarrierStatusSweep = false;
+    }
+};
+
+const checkPhoneServientregaReconciliationV140 = async () => {
+    if (isRunningPhoneServientregaReconciliationV140) return;
+    isRunningPhoneServientregaReconciliationV140 = true;
+    try {
+        const limit = parseNumber('V140_PHONE_SERVIENTREGA_RECONCILIATION_BATCH_LIMIT', 6);
+        const dryRun = await processEcPhoneServientregaReconciliationV140({ dryRun: true, limit });
+        if (!dryRun.ok) {
+            console.warn(`[V140_PHONE_RECONCILIATION] dry-run bloqueou aplicacao; errors=${dryRun.errors || 0}; reason=${dryRun.reason || 'validation_failed'}.`);
+            return;
+        }
+        if (!dryRun.candidatesFound || dryRun.alreadyCorrect === dryRun.candidatesFound) return;
+        const applied = await processEcPhoneServientregaReconciliationV140({ dryRun: false, limit });
+        console.log(`[V140_PHONE_RECONCILIATION] candidatos=${applied.candidatesFound}; phone=${applied.phoneMatched}; reconciliados=${applied.reconciled}; ambiguos=${applied.ambiguousSkipped}; errors=${applied.errors}; messages=0.`);
+    } catch (error) {
+        console.error('[V140_PHONE_RECONCILIATION] Scheduler Error:', error?.message || error);
+    } finally {
+        isRunningPhoneServientregaReconciliationV140 = false;
     }
 };
 

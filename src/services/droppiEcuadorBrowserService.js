@@ -2606,6 +2606,8 @@ const mapOrdersApiRowToActiveRow = (row = {}) => {
         agencyPickup: /servientrega|agencia|retiro|retirar/i.test([address, row?.status].filter(Boolean).join(' ')),
         agencyName: /servientrega|agencia|retiro|retirar/i.test(address) ? address : '',
         invoiceUrl: buildDropiGuideInvoiceUrl(row),
+        createdAt: row?.created_at || row?.date_order || row?.createdAt || row?.fecha || '',
+        shipmentId: row?.shipment_id || row?.shipmentId || '',
         source: 'dropi_orders_api'
     };
 };
@@ -3059,6 +3061,24 @@ export const searchDroppiEcuadorOrdersFromPanel = async ({ terms = [], limit = 2
         terms: searchTerms,
         count: result.rows.length,
         ...result
+    };
+};
+
+// Read-only source used by V140. It reuses the authenticated Orders API reader
+// already used by the active Dropi sync and deliberately does not persist a
+// browser session or start a reconciliation cycle.
+export const fetchDroppiEcuadorOrdersApiReadOnly = async ({ search = '', maxRows = 1000 } = {}) => {
+    const safeMaxRows = Math.max(1, Math.min(Number(maxRows) || 1000, 1000));
+    const result = await withBrowserSession(async ({ page }) => {
+        await performLogin(page);
+        const rawRows = await fetchOrdersApiRows(page, String(search || '').trim(), { maxRows: safeMaxRows });
+        return rawRows.map(mapOrdersApiRowToActiveRow).filter(Boolean);
+    });
+    return {
+        ok: true,
+        source: 'dropi_orders_api',
+        readOnly: true,
+        rows: result
     };
 };
 

@@ -1,0 +1,37 @@
+{
+  "freezeId": "ec-phone-servientrega-reconciliation-v140-20260907",
+  "layer": "EC_PHONE_SERVIENTREGA_RECONCILIATION_V140",
+  "country": "EC",
+  "parentCommit": "b0e5f51cfc71995c9c0c26c6fbbf1ac0b74c9e69",
+  "parentTree": "f2afcb2daa9c3f288c2a0ab07160c3a9874b239d",
+  "parentFreezeTag": "freeze-v139-servientrega-postsale-20260907",
+  "parentManifestSha256": "ae84499c8292e63324f945c7126af27c15c706269ff31b168c4e87c2f6785b2f",
+  "overrides": [
+    "package.json",
+    "scripts/guard-ec-dropi-human-authorization-v138.mjs",
+    "scripts/guard-ec-dropi-status-postsale-v139.mjs",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js",
+    "src/services/schedulerService.js"
+  ],
+  "protectedFiles": {
+    "src/services/droppiEcuadorBrowserService.js": "4d0c146038a81ddd567cf981e2e1f9d8b8c59055d5711fee93e423ecd5db01e2"
+  },
+  "policy": {
+    "phoneRequiredPrimaryMatch": true,
+    "canonicalPhoneFormat": "+5939XXXXXXXX",
+    "ambiguousMatch": "SKIP",
+    "directServientregaV139Reused": true,
+    "canonicalLifecycleFunction": "applyShipmentLifecycleStatus",
+    "dryRunBeforeEveryAutomaticApply": true,
+    "dryRunWrites": 0,
+    "dryRunMessages": 0,
+    "automaticDropiSend": false,
+    "automaticShipmentCreation": false,
+    "humanDropiAuthorizationRequired": true,
+    "historicalBacklogMessages": false,
+    "pickupRequiresRealReadyStatus": true,
+    "sameStatusEffectiveUpdates": 1,
+    "sameStatusPostSaleMaximum": 1
+  }
+}
