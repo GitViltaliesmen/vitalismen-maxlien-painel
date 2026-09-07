@@ -10,7 +10,10 @@ export const assertDropiSelectionV129A = () => {
     assert.equal(manifest.layer, 'DROPI_MULTI_PRODUCT_ELIGIBILITY');
     assert.deepEqual(manifest.overrides, ['public/leads-window.html', 'src/services/ecBotCoreRuntimeIntegrationV78Service.js', 'src/services/ecManualDropiReleaseV119Service.js']);
     assert.equal(hash(read('docs/freeze/ec-admin-dropi-draft-bridge-v128-20260904.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (!successorOverrides.has(file)) assert.equal(hash(read(file)), expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     const panel = read('public/leads-window.html').toString();
     const saveFlow = panel.slice(panel.indexOf("modal.addEventListener('click', async (event) => {"), panel.indexOf('document.body.appendChild(modal);', panel.indexOf("modal.addEventListener('click', async (event) => {")));

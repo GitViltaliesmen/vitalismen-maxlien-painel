@@ -245,15 +245,21 @@ test('idempotencia pesquisa BFF imediatamente antes do unico POST', () => {
 
 test('Tex Ultra usa catalogo, localizacao e cotacao BFF autoritativos antes do create', () => {
     const source = fs.readFileSync('src/services/droppiEcuadorBrowserService.js', 'utf8');
-    const start = source.indexOf('const buildTexUltraBffQuote');
-    const end = source.indexOf('const submitOrderViaDropiApi', start);
+    const start = source.indexOf('const buildEcuadorProductBffQuote');
+    const end = source.indexOf('const buildTexUltraBffQuote', start);
     const flow = source.slice(start, end);
+    const texUltraWrapper = source.slice(end, source.indexOf('const submitOrderViaDropiApi', end));
+    assert.match(texUltraWrapper, /productTarget\.key !== ECUADOR_PRODUCTS\.texUltra\.key/);
+    assert.match(texUltraWrapper, /return buildEcuadorProductBffQuote\(page, payload\)/);
     assert.match(flow, /DROPI_BFF_CATALOG_ENDPOINT/);
     assert.match(flow, /DROPI_BFF_QUOTE_ENDPOINT/);
     assert.match(flow, /sessionData\?\.cities/);
     assert.match(flow, /sessionData\?\.departments/);
     assert.match(flow, /privated_product: false/);
-    assert.match(flow, /TEX_ULTRA_BFF_WAREHOUSE_ID/);
+    assert.match(flow, /resolveEcuadorBffWarehouseProfile\(productTarget\.key\)/);
+    assert.match(flow, /warehouseProfile\.warehouseId/);
+    const profiles = source.slice(source.indexOf('const resolveEcuadorBffWarehouseProfile'), start);
+    assert.match(profiles, /\[ECUADOR_PRODUCTS\.texUltra\.key\]:[\s\S]*TEX_ULTRA_BFF_WAREHOUSE_ID/);
     assert.match(flow, /AUTHORITATIVE_CITY_NOT_FOUND/);
     assert.match(flow, /dropi_bff_authoritative_contract/);
 });

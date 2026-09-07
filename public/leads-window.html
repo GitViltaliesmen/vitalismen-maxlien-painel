@@ -1412,6 +1412,10 @@
                 productKey: order.tracking?.productKey || order.productKey || '',
                 productName: order.tracking?.productName || order.productName || '',
                 priceCatalog: order.tracking?.priceCatalog || order.tracking?.productSelection?.priceCatalog || '',
+                deliveryMode: order.delivery?.mode || '',
+                agencyId: order.delivery?.agencyId || '',
+                agencyName: order.delivery?.agencyName || '',
+                customerDataReady: order.customerDataResolution?.orderDataReady === true,
                 status,
                 _opsStatus: status,
                 created_at: order.entryAt || order.createdAt || order.confirmedAt || '',
@@ -1718,6 +1722,7 @@
         };
 
         const leadReadyForDropi = (lead) => {
+            if (lead?._ops?.dropiReadiness?.ready === false) return false;
             const status = statusValue(lead);
             const country = leadCountryCode(lead);
             const hasCurrentOperationalOrder = Boolean(lead?._ops?.currentOrderId || lead?._ops?.stagedOrderId);
@@ -1726,6 +1731,10 @@
                 && (!usesEcuadorOperationalRules || !isConfirmedBeforeJune2026(lead) || hasCurrentOperationalOrder)
                 && (!usesEcuadorOperationalRules || !isRepurchaseLead(lead) || hasCurrentOperationalOrder)
                 && (!usesEcuadorOperationalRules || leadHasExplicitDropiSelection(lead))
+                && (lead?._ops?.dropiReadiness?.ready === true || (
+                    lead.customerDataReady === true && ['home', 'agency'].includes(lead.deliveryMode)
+                    && (lead.deliveryMode !== 'agency' || (lead.agencyId && lead.agencyName))
+                ))
                 && country === 'EC'
                 && String(lead.name || '').trim()
                 && String(lead.phone || '').replace(/\D/g, '').length >= 9
@@ -1742,6 +1751,7 @@
             return DROPI_READY_STATUSES.has(status)
                 && country === 'EC'
                 && leadReadyForCustomerConfirmation(lead)
+                && leadReadyForDropi(lead)
                 && (country !== 'EC' || leadHasExplicitDropiSelection(lead));
         };
 
@@ -1775,6 +1785,8 @@
             if (!String(lead.province || '').trim()) missing.push('provincia');
             if (!(Number(lead.quantity || 0) > 0)) missing.push('quantidade');
             if (!(Number(lead.value || 0) > 0)) missing.push('valor');
+            if (lead?._ops?.dropiReadiness?.ready === false) missing.push(...(lead._ops.dropiReadiness.reasons || []));
+            else if (!lead?._ops?.dropiReadiness && !['home', 'agency'].includes(lead.deliveryMode)) missing.push('modalidade de entrega');
             return missing;
         };
 
@@ -1873,7 +1885,7 @@
             const ready = leadSelectableForDropi(lead) && hasAuthToken() && !busy;
             const title = ready
                 ? 'Marcar este pedido para envio Dropi'
-                : 'Complete/confirme este pedido antes de marcar para Dropi';
+                : escapeHtml(missingDropiFields(lead).join(', ') || 'Complete/confirme este pedido antes de marcar para Dropi');
             return `<input class="row-dropi-check" data-dropi-select="${escapeHtml(id)}" data-order="${escapeHtml(orderId)}" type="checkbox" aria-label="Selecionar pedido ${escapeHtml(orderId)} para Dropi" ${checked ? 'checked' : ''} ${ready ? '' : 'disabled'} title="${title}">`;
         };
 
@@ -1966,8 +1978,8 @@
             el('bulkDropiCount').textContent = `${selected.length} marcado${selected.length === 1 ? '' : 's'}`;
             el('bulkDropiSelectAllBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
             el('bulkDropiSelectAllBtn').textContent = allVisibleSelected ? 'Desmarcar todos' : 'Marcar todos';
-            el('bulkDropiSendBtn').disabled = !hasAuth || !visibleReadyIds.length || state.dropiBusy.size > 0;
-            el('bulkDropiSendBtn').textContent = selected.length ? 'Enviar marcados para Dropi' : 'Enviar visiveis para Dropi';
+            el('bulkDropiSendBtn').disabled = !hasAuth || !selected.length || state.dropiBusy.size > 0;
+            el('bulkDropiSendBtn').textContent = 'Enviar marcados para Dropi';
         };
 
         const toggleVisibleDropiSelection = () => {
@@ -2783,15 +2795,13 @@
             const selectedLeads = [...state.selectedDropi]
                 .map((id) => state.leads.find((lead) => String(lead.id) === String(id)))
                 .filter((lead) => lead && leadSelectableForDropi(lead));
-            const leadsToSend = selectedLeads.length
-                ? selectedLeads
-                : visibleLeads().filter((lead) => leadSelectableForDropi(lead) && !state.dropiBusy.has(String(lead.id)));
+            const leadsToSend = selectedLeads.filter((lead) => !state.dropiBusy.has(String(lead.id)));
             if (!leadsToSend.length) {
-                window.alert('Nenhum pedido confirmado e completo visivel para enviar.');
+                window.alert('Selecione os pedidos completos que deseja enviar.');
                 return;
             }
             const orderIds = leadsToSend.map(leadOrderId);
-            const scopeLabel = selectedLeads.length ? 'marcado(s)' : 'visivel(is)';
+            const scopeLabel = 'marcado(s)';
             if (!window.confirm(`Enviar ${orderIds.length} pedido(s) ${scopeLabel} ja autorizado(s) para Dropi?\n\nPedido sem autorizacao previa sera apenas autorizado e vai exigir outro clique para envio real.\n\n${orderIds.join('\n')}`)) return;
             el('bulkDropiSendBtn').disabled = true;
             el('bulkDropiSendBtn').textContent = 'Processando...';

@@ -3,6 +3,8 @@ import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
 import ContactState from '../models/ContactState.js';
+import { ecManualDropiHumanActionV138 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import { assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138, enrichEcDropiReadinessFlagsV138 } from '../services/ecDropiHumanAuthorizationV138Service.js';
 import { resolveEcAdminDropiDraftBridgeV128, enrichEcAdminDropiDraftFlagsV128 } from '../services/ecAdminDropiDraftBridgeV128Service.js';
 import AutomationRun from '../models/AutomationRun.js';
 import {
@@ -84,6 +86,7 @@ import {
 const router = express.Router();
 
 router.use(authMiddleware);
+router.use(ecManualDropiHumanActionV138);
 
 const activeDropiSubmitJobs = new Set();
 let dropiSubmitQueue = Promise.resolve();
@@ -192,7 +195,7 @@ if wanted:
                 }
                 flag.update(product_selection)
                 flag["productSelection"] = product_selection
-        if status == "confirmado" and not flag.get("productSelection"):
+        if status == "confirmado":
             flag["_draftBridgeLead"] = data
         flags[lead_id] = flag
 
@@ -293,6 +296,8 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
             `Status original: ${lead.status || ''}`
         ].join(' | ')
     });
+    if (!draftBridge) Object.assign(order, ecDropiCurrentDraftDeliveryV138(order, await findContactStateForAdminLead(lead)));
+    assertEcDropiOrderReadyV138(order);
     await order.save();
     return order;
 };
@@ -1901,7 +1906,9 @@ router.get('/droppi/ec/admin-leads/flags', adminOnly, async (req, res) => {
             { chatId: { $in: draftPhones.map((phone) => `${phone}@c.us`) } }
         ] }, { phoneDigits: 1, chatId: 1, metadata: 1, customerDataResolution: 1 })
             .sort({ updatedAt: -1 }).lean() : [];
-        const flags = enrichEcAdminDropiDraftFlagsV128(rawFlags, draftStates);
+        const flags = enrichEcDropiReadinessFlagsV138({
+            rawFlags, flags: enrichEcAdminDropiDraftFlagsV128(rawFlags, draftStates), states: draftStates
+        });
         const engagementStates = await ContactState.find({
             'conversationBucket.value': 'engagement'
         }, {
@@ -2080,6 +2087,8 @@ router.post('/droppi/ec/admin-leads/:leadId/configure-order', adminOnly, async (
             ...(order.tracking?.toObject?.() || order.tracking || {}),
             ...ecuadorProductMetadata(product)
         };
+        Object.assign(order, ecDropiCurrentDraftDeliveryV138(order, await findContactStateForAdminLead(lead)));
+        assertEcDropiOrderReadyV138(order);
         await order.save();
 
         let shipment = await Shipment.findOne({ orderId: order.orderId });
@@ -2136,7 +2145,7 @@ router.post('/droppi/ec/admin-leads/:leadId/configure-order', adminOnly, async (
         });
     } catch (error) {
         console.error('Configure Dropi EC product/price error:', error);
-        res.status(500).json({ error: error.message || 'Failed to configure Dropi EC product/price' });
+        res.status(error.status || 500).json({ error: error.message || 'Failed to configure Dropi EC product/price', code: error.code || '' });
     }
 });
 
@@ -2145,6 +2154,10 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
         const order = await findOrderForDropiRequest(req.params.orderId);
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
+        const existingShipment = await Shipment.findOne({ orderId: order.orderId });
+        const previouslySubmitted = alreadySubmittedResponse(order, existingShipment);
+        if (previouslySubmitted) return res.json(previouslySubmitted);
+        assertEcDropiOrderReadyV138(order);
         const shipment = await ensureShipmentForOrder(order, 'EC');
         if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
@@ -2167,6 +2180,9 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
         res.json(queued);
     } catch (error) {
         console.error('Droppi EC submit error:', error);
+        if (error.code === 'dropi_order_not_ready') return res.status(error.status).json({
+            success: false, code: error.code, error: error.message, reasons: error.reasons
+        });
         try {
             const shipment = await Shipment.findOne({ orderId: req.params.orderId });
             if (shipment) {
@@ -2270,6 +2286,10 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         if (!order) return res.status(404).json({ error: 'Order not found' });
         if (order.country !== 'EC') return res.status(400).json({ error: 'Only EC orders can be authorized here' });
 
+        const existingShipment = await Shipment.findOne({ orderId: order.orderId });
+        const previouslySubmitted = alreadySubmittedResponse(order, existingShipment);
+        if (previouslySubmitted) return res.json(previouslySubmitted);
+        assertEcDropiOrderReadyV138(order);
         const shipment = await ensureShipmentForOrder(order, 'EC');
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
         if (alreadySubmitted) return res.json(alreadySubmitted);

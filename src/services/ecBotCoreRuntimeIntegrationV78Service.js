@@ -241,6 +241,25 @@ export const finalizeEcQaInboundContextV78 = async ({
 
 export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore() || null;
 
+// Runs after the existing panel authentication. Only these explicit per-order
+// actions can carry human authority into the existing asynchronous submit queue.
+export const ecManualDropiHumanActionV138 = (req, res, next) => {
+    const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
+    const match = path.match(/^\/api\/shipments\/droppi\/ec\/orders\/([^/]+)\/(authorize-submit|submit)$/);
+    if (req.method !== 'POST' || !match) return next();
+    const context = currentEcBotCoreRuntimeContextV78();
+    const actorId = clean(req.user?._id || req.user?.id);
+    if (!actorId || actorId === 'local-no-password' || req.user?.role !== 'admin'
+        || req.user?.isActive === false || context?.manualDropiV119 !== true
+        || context.manualDropiOperation !== match[2]) {
+        return res.status(403).json({ success: false, authorizationRequired: true,
+            code: 'dropi_authenticated_human_required', error: 'Entre no painel como operador para autorizar ou enviar este pedido.' });
+    }
+    return runtimeContext.run({ ...context, humanDropiActionV138: true,
+        humanDropiActorId: actorId, humanDropiRequestedOrderId: decodeURIComponent(match[1])
+    }, next);
+};
+
 export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const env = process.env;
     if (!ecBotCoreV78Requested(env)) return next();

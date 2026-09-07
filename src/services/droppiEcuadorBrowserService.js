@@ -5,6 +5,7 @@ import Shipment from '../models/Shipment.js';
 import Order from '../models/Order.js';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
+import { ecDropiOrderReadinessV138, ecHumanDropiSubmitBlockV138 } from './ecDropiHumanAuthorizationV138Service.js';
 import {
     buildDroppiEcuadorOrderPayload,
     normalizeDroppiEcuadorStatus,
@@ -3362,6 +3363,9 @@ const alreadySubmittedDropiResult = ({ order, shipment }) => {
 const checkDropiSubmitSafety = async ({ order, shipment }) => {
     const alreadySubmitted = alreadySubmittedDropiResult({ order, shipment });
     if (alreadySubmitted) return alreadySubmitted;
+    const readiness = ecDropiOrderReadinessV138(order);
+    if (!readiness.ready) return { ok: false, success: false, reason: 'dropi_order_not_ready',
+        error: 'Complete antes de enviar: ' + readiness.reasons.join(', '), reasons: readiness.reasons };
 
     const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
     const selectedOffer = findEcuadorOfferByTotal({
@@ -3462,6 +3466,8 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
 };
 
 export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
+    const humanBlock = ecHumanDropiSubmitBlockV138({ order, shipment });
+    if (humanBlock) return humanBlock;
     const canaryBlock = canaryV75BlockedResult('dropi');
     if (canaryBlock) return canaryBlock;
     const safetyBeforeLock = await checkDropiSubmitSafety({ order, shipment });
@@ -3471,15 +3477,20 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
     if (!locked) return { ok: false, reason: 'locked' };
 
     try {
-        const latestOrder = await Order.findOne({ orderId: order.orderId }).lean().catch(() => null) || order;
-        const latestShipment = await Shipment.findById(shipment._id).lean().catch(() => null) || shipment;
+        const latestOrder = await Order.findOne({ orderId: order.orderId }).lean();
+        const latestShipment = await Shipment.findById(shipment._id).lean();
+        if (!latestOrder || !latestShipment) return { ok: false, blocked: true, reason: 'dropi_current_order_or_shipment_missing' };
+        const latestHumanBlock = ecHumanDropiSubmitBlockV138({
+            order: { ...latestOrder, _mappedFromAdminLead: order._mappedFromAdminLead }, shipment: latestShipment
+        });
+        if (latestHumanBlock) return latestHumanBlock;
         const safetyAfterLock = await checkDropiSubmitSafety({
             order: latestOrder,
             shipment: latestShipment
         });
         if (safetyAfterLock) return safetyAfterLock;
 
-        const prepared = await prepareDroppiEcuadorSubmission(order);
+        const prepared = await prepareDroppiEcuadorSubmission(latestOrder);
         await updateBrowserState(shipment._id, 'prepared_submission', {
             lastError: '',
             event: { kind: 'droppi_browser_prepared', payload: prepared.payload }

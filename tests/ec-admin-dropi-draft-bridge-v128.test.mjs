@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { resolveEcAdminDropiDraftBridgeV128, enrichEcAdminDropiDraftFlagsV128 } from '../src/services/ecAdminDropiDraftBridgeV128Service.js';
 import { resolveEcuadorProductInfo, ecuadorPackageLabel } from '../src/services/ecuadorProductService.js';
+import { assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138 } from '../src/services/ecDropiHumanAuthorizationV138Service.js';
 
 const sample = (productKey = 'vit_power_ec', quantity = 3, total = 95.99) => ({
     orderId: 'EC-ADMIN-1',
@@ -104,7 +105,7 @@ test('ponte real de Leads Clientes grava produto, validacao e entrega na autoriz
     class Order { constructor(fields) { Object.assign(this, fields); } async save() { saved++; } }
     const input = sample();
     const context = vm.createContext({
-        Order, resolveEcAdminDropiDraftBridgeV128, resolveEcuadorProductInfo,
+        Order, resolveEcAdminDropiDraftBridgeV128, resolveEcuadorProductInfo, assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138,
         findContactStateForAdminLead: async () => input.state,
         getAdminLeadIdFromOrderId: () => 1,
         normalizePackageQuantity: Number, parseMoney: Number,

@@ -6,6 +6,7 @@ import { ecManualDropiReleaseV119RouteDecision, ecManualDropiReleaseV129RouteDec
 import { ecBotCoreMutationRouteGuardV78, currentEcBotCoreRuntimeContextV78 } from '../src/services/ecBotCoreRuntimeIntegrationV78Service.js';
 import { buildEcBotCoreV78OverlayEnvironment, EC_BOT_CORE_V78_DATASET_ID } from '../src/services/ecBotCoreOperationalV78Service.js';
 import * as products from '../src/services/ecuadorProductService.js';
+import { assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138 } from '../src/services/ecDropiHumanAuthorizationV138Service.js';
 
 const env = { VITALISMEN_EC_BOT_CORE_OPERATIONAL: 'true', PANEL_AUTH_DISABLED: 'false' };
 const path = '/api/shipments/droppi/ec/admin-leads/10/configure-order';
@@ -51,7 +52,8 @@ for (const productKey of ['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']) {
             async save() { store.set(this.orderId, this); }
         }
         const context = vm.createContext({
-            ...products, console, Date, Order, adminOnly: () => {},
+            ...products, console, Date, Order, adminOnly: () => {}, assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138,
+            findContactStateForAdminLead: async () => ({ phoneDigits: lead.phone, customerDataResolution: { orderDataReady: true }, metadata: { customerDraft: { ...lead, country: 'EC', deliveryMode: 'home' } } }),
             router: { post(_path, _auth, callback) { handler = callback; } },
             getAdminLeadSnapshot: () => ({ ...lead }),
             Shipment: { findOne: async () => null },
@@ -63,7 +65,7 @@ for (const productKey of ['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']) {
                 lead.product_qty = offer.quantity; lead.product_value = offer.total;
                 return { ok: true, notes: lead.notes };
             },
-            createOperationalOrderFromAdminLead: async (orderId, snapshot) => new Order({ orderId, status: 'confirmed', customer: { phone: snapshot.phone }, tracking: { vslProductKey: 'tex_ultra_ec' }, notes: snapshot.notes }),
+            createOperationalOrderFromAdminLead: async (orderId, snapshot) => new Order({ orderId, country: 'EC', status: 'confirmed', customer: { name: snapshot.name, phone: snapshot.phone, address: snapshot.address, city: snapshot.city, province: snapshot.province }, tracking: { vslProductKey: 'tex_ultra_ec' }, notes: snapshot.notes }),
             dropiProductEnabled: () => true,
             buildDroppiEcuadorOrderPayload: ({ order }) => ({ productKey: order.tracking.productKey })
         });
@@ -112,7 +114,7 @@ test('elegibilidade visual exige produto explicito e independe do vinculo Meta',
     const end = panel.indexOf('const leadSelectableForDropi', start);
     const context = vm.createContext({ DROPI_READY_STATUSES: new Set(['confirmado']), statusValue: x => x.status, leadCountryCode: () => 'EC', isConfirmedBeforeJune2026: () => false, isRepurchaseLead: () => false, leadHasExplicitDropiSelection: x => Boolean(x.productKey) });
     vm.runInContext(panel.slice(start, end) + '\nglobalThis.ready = leadReadyForDropi;', context);
-    const lead = { status: 'confirmado', name: 'Fixture EC', phone: '593999999999', address: 'Destino', city: 'Quito', province: 'Pichincha', quantity: 1, value: 35.99 };
+    const lead = { status: 'confirmado', name: 'Fixture EC', phone: '593999999999', address: 'Destino', city: 'Quito', province: 'Pichincha', quantity: 1, value: 35.99, deliveryMode: 'home', customerDataReady: true };
     assert.equal(Boolean(context.ready(lead)), false);
     for (const productKey of ['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']) assert.equal(Boolean(context.ready({ ...lead, productKey })), true);
 });

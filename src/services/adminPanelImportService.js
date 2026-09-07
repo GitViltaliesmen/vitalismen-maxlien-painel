@@ -314,10 +314,9 @@ const getLocalImportProtection = async ({ existing, orderData, country }) => {
 };
 
 const ensureShipmentMirror = async ({ orderData, lead }) => {
-    const shipment = await Shipment.findOne({ orderId: orderData.orderId }) || new Shipment({
-        orderId: orderData.orderId,
-        country: orderData.country
-    });
+    const shipment = await Shipment.findOne({ orderId: orderData.orderId });
+    // A complete commercial order waits for the operator; import is not authorization.
+    if (!shipment) return null;
 
     shipment.provider = 'droppi';
     shipment.productName = 'Vit Power';

@@ -1,0 +1,47 @@
+{
+  "version": 138,
+  "layer": "EC_DROPI_EXPLICIT_HUMAN_AUTHORIZATION",
+  "country": "EC",
+  "status": "candidate_not_published",
+  "parentCommit": "0efea9b594cebacb9d2d8bd0d078f33f89151afb",
+  "parentManifestSha256": "95c7656ca592dcfca247778b87f851ae4c0b0694b9524f114e2f0346176693aa",
+  "overrides": [
+    "public/leads-window.html",
+    "scripts/guard-ec-dropi-selection-v129a.mjs",
+    "scripts/guard-ec-queue-guard-compatibility-v137.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/shipments.js",
+    "src/services/adminPanelImportService.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/protocoloGSuccessorGuardV101Service.js",
+    "tests/dropi-bff-manual-v60.test.mjs",
+    "tests/ec-admin-dropi-draft-bridge-v128.test.mjs",
+    "tests/ec-dropi-selection-v129a.test.mjs"
+  ],
+  "policy": {
+    "automaticDropiSend": false,
+    "automaticShipmentCreation": false,
+    "explicitHumanActionRequired": true,
+    "existingProviderStatusSyncPreserved": true,
+    "productionChanged": false
+  },
+  "protectedFiles": {
+    "public/leads-window.html": "5c57dcaddf888d7f96d46dc6d087b110208219f4307448e99a03bf7b3eb3cafa",
+    "scripts/guard-ec-dropi-human-authorization-v138.mjs": "5b4b0efad3649fd2de39555d58a88ba2a0edea29fc4062a96994b35f3f4e3889",
+    "scripts/guard-ec-dropi-selection-v129a.mjs": "7bedafcf6984d1beb29653a59bc7ce09cecc2b11b6395b609d0a5863ecc75134",
+    "scripts/guard-ec-queue-guard-compatibility-v137.mjs": "a27e5e5ae070826ad800c4ce7d07edfa8b8a99845e15bffccd5c08dac6a1ed32",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "e3f6f30ea107f19c913dbb24831d50fde26d2606c32511a4108e75bd8dc7abb9",
+    "src/routes/shipments.js": "e158b4d63a05131927ef907ca56fbea8ff2fed840ba4280016da8395aa984b3b",
+    "src/services/adminPanelImportService.js": "61d6dc147ec07f6abe8185e075f79776669913cb7f7c9f4ee4ba9f9a65661c7a",
+    "src/services/droppiEcuadorBrowserService.js": "c91e6e9924fcd4c47b812dc7a03d0ce399ca0bdefa0eac8b0e5ab3937d7c35a1",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "7d5098af10d0089e744ad35b6a13f9e4447836bfdbe96327e1560ef1f26b5eb0",
+    "src/services/ecDropiHumanAuthorizationV138Service.js": "d3a5132d9a76865e19d746d0753da517b3fc99e3d1463629191d5763931cb967",
+    "src/services/protocoloGSuccessorGuardV101Service.js": "12a72e472c4b0bb3ec9488caf69a3366651d17d5a386e0893a069610d11fc86c",
+    "tests/dropi-bff-manual-v60.test.mjs": "19adb2c98e3e582faed3e2f85ae77287a947173486bbb9df9c48448df33e1933",
+    "tests/ec-admin-dropi-draft-bridge-v128.test.mjs": "750131702abe211b9041ff0f2ab53b56d897d8ae75a5eb90850e1ea343251169",
+    "tests/ec-dropi-human-authorization-v138.test.mjs": "35c9fd2d9e72085ab663e2f3803d7852bbdf15cde867d2dc04aa21171c94348b",
+    "tests/ec-dropi-selection-v129a.test.mjs": "484e68f0c3de43c0723f27c768462378ed658fd803478e0d7fc352cbf17ac4b2"
+  },
+  "bundleSha256": "770f8534e4f7419b6815045d11b1028e35d924a5c8f5faa124102e107748ae17"
+}

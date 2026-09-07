@@ -10,7 +10,10 @@ export const assertEcQueueGuardCompatibilityV137 = () => {
     assert.equal(manifest.layer, 'EC_QUEUE_GUARD_COMPATIBILITY');
     assert.deepEqual(manifest.overrides, ['scripts/guard-panel-client-search-v41.mjs', 'scripts/guard-protocolo-g-commercial-metrics-v136.mjs', 'scripts/lib/ec-runtime-successor-v97-context.mjs', 'tests/panel-client-search-v41.test.mjs']);
     assert.equal(hash(read('docs/freeze/protocolo-g-commercial-metrics-v136-20260907.json')), manifest.parentManifestSha256);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(read(file)), expected, file);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (!successorOverrides.has(file)) assert.equal(hash(read(file)), expected, file);
+    }
     assert.equal(manifest.bundleSha256, hash(Object.entries(manifest.protectedFiles).map(([file, sha]) => `${file}\0${sha}\n`).join('')));
     return manifest;
 };
