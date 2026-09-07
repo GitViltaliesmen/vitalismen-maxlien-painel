@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { assertEcDropiStatusPostSaleV139 } from './guard-ec-dropi-status-postsale-v139.mjs';
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url));
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
+const dropiStatusPostSaleV139 = assertEcDropiStatusPostSaleV139();
+globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
+    ...new Set([
+        ...(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []),
+        ...dropiStatusPostSaleV139.overrides
+    ])
+];
 
 export const assertVslEntryV78TelemetryV132 = () => {
     const manifest = JSON.parse(read('docs/freeze/vsl-entry-v78-telemetry-v132-20260905.json'));

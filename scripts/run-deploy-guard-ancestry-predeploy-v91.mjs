@@ -1,4 +1,5 @@
-await import('./lib/ec-runtime-successor-v97-context.mjs');
+// A V139 carrega e preserva toda a cadeia de ec-runtime-successor-v97-context.mjs.
+await import('./lib/ec-runtime-successor-v139-context.mjs');
 await import('../src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js');
 
 const {

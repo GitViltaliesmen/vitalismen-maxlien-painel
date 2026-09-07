@@ -27,6 +27,7 @@ import {
     buildDeliveredRepurchaseOrderId,
     repurchaseOrderCreationPolicy
 } from '../services/ecDeliveredRepurchaseService.js';
+import { persistManualPanelStatusV139 } from '../services/ecDropiStatusPostSaleV139Service.js';
 
 const router = express.Router();
 
@@ -1367,11 +1368,19 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             }
         }
 
-        await order.save();
+        const statusPersistence = nextStatus && isEcuadorCountry(order.country)
+            ? await persistManualPanelStatusV139({ order, panelStatus: nextStatus })
+            : null;
+        if (!statusPersistence) await order.save();
 
         res.json({
             success: true,
             order,
+            statusPersistence: statusPersistence ? {
+                persistedInContactState: Boolean(statusPersistence.contactState),
+                dropiCalled: false,
+                postSaleTriggered: false
+            } : null,
             message: 'Order updated'
         });
     } catch (error) {

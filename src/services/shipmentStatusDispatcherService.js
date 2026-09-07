@@ -1,6 +1,4 @@
 import Shipment from '../models/Shipment.js';
-import Order from '../models/Order.js';
-import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { getSenderPoolStatus, resolveOutboundSessionForJid } from '../whatsapp/sessionRouter.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import {
@@ -25,6 +23,10 @@ import {
     postSaleTransactionalSafetyV116Enabled,
     reservePostSaleDailyQuotaV116
 } from './postSaleTransactionalSafetyV116Service.js';
+import {
+    dropiPostSaleEvidenceV139,
+    persistDropiStatusProjectionV139
+} from './ecDropiStatusPostSaleV139Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -1040,28 +1042,6 @@ export const shipmentStatusDispatchActionForShipment = (shipment) => {
 
 const actionForShipment = shipmentStatusDispatchActionForShipment;
 
-const orderStatusForShipmentAction = (action) => {
-    if (action === 'delivered_bonus') return 'delivered';
-    if (action === 'returned') return 'returned';
-    if (action === 'guide' || action === 'in_transit' || action === 'ready_for_pickup') return 'shipped';
-    return '';
-};
-
-const syncShipmentOrderToAdminPanel = async ({ shipment, action }) => {
-    const nextStatus = orderStatusForShipmentAction(action);
-    if (!nextStatus || !shipment?.orderId) return null;
-    const order = await Order.findOne({ orderId: shipment.orderId });
-    if (!order) return null;
-    order.status = nextStatus;
-    order.shippingStatus = shipment.logistics?.status || order.shippingStatus || '';
-    if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-    await order.save();
-    return syncOrderToOnlineAdminPanel(order, {
-        status: nextStatus,
-        action: `shipment_${action}`
-    });
-};
-
 const markDeliveredAndNotifyBonus = async (shipment) => {
     const now = new Date();
     await Shipment.updateOne(
@@ -1178,6 +1158,14 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
         };
 
         if (dryRun) {
+            const evidence = dropiPostSaleEvidenceV139(shipment);
+            item.dropiEvidence = evidence.reason;
+            if (!evidence.eligible) {
+                item.reason = evidence.reason;
+                skipped += 1;
+                results.push(item);
+                continue;
+            }
             const preflight = await decidePostSaleNotification({
                 shipment,
                 kind: notificationKindForDispatchAction(action),
@@ -1234,6 +1222,25 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     item.action = action;
                     item.status = shipmentForSend.logistics?.status || '';
                 }
+            }
+            const statusProjection = await persistDropiStatusProjectionV139({ shipment: shipmentForSend })
+                .catch((error) => ({ ok: false, reason: error.message || 'dropi_status_projection_failed' }));
+            item.statusProjection = statusProjection?.reason || '';
+            if (statusProjection?.panel?.lead_id) item.adminLeadId = statusProjection.panel.lead_id;
+            const evidence = dropiPostSaleEvidenceV139(shipmentForSend);
+            item.dropiEvidence = evidence.reason;
+            if (!evidence.eligible) {
+                item.reason = evidence.reason;
+                skipped += 1;
+                results.push(item);
+                await appendDispatchEvent(shipmentForSend._id, 'shipment_dispatch_attempt', {
+                    action,
+                    success: false,
+                    reason: item.reason,
+                    status: shipmentForSend.logistics?.status || '',
+                    trackingNumber: shipmentForSend.logistics?.trackingNumber || ''
+                });
+                continue;
             }
             if (!action || action === 'none') {
                 item.reason = 'no_action_after_status_sync';
@@ -1344,8 +1351,6 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             if (item.success) {
                 hourlySessionCounts.set(sessionSelection.sessionId, (hourlySessionCounts.get(sessionSelection.sessionId) || 0) + 1);
                 dailySessionCounts.set(sessionSelection.sessionId, (dailySessionCounts.get(sessionSelection.sessionId) || 0) + 1);
-                const syncResult = await syncShipmentOrderToAdminPanel({ shipment: shipmentForSend, action });
-                if (syncResult?.ok) item.adminLeadId = syncResult.lead_id;
             }
             await appendDispatchEvent(shipmentForSend._id, 'shipment_dispatch_attempt', {
                 action,

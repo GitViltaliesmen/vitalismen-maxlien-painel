@@ -1,10 +1,9 @@
 import Shipment from '../models/Shipment.js';
-import Order from '../models/Order.js';
-import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
 import { isExplicitDropiPickupReleaseStatus } from './postSalePickupReconciliationPolicy.js';
 import { resolveStaleDropiRejectedReviewAtomic } from './dropiRejectedReviewResolutionService.js';
+import { persistDropiStatusProjectionV139 } from './ecDropiStatusPostSaleV139Service.js';
 
 const normalizePhone = (value) => String(value || '').replace(/\D/g, '');
 export const normalizeEcuadorLocalPhone = (value) => {
@@ -407,16 +406,8 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         });
         if (resolution.resolved && resolution.shipment) shipment = resolution.shipment;
     }
-    const orderStatus = droppiEcuadorOrderStatusForLogisticsStatus(normalizedStatus);
-    if (orderStatus) {
-        const order = await Order.findOne({ orderId }).catch(() => null);
-        if (order) {
-            order.status = orderStatus;
-            order.shippingStatus = normalizedStatus || order.shippingStatus || '';
-            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            await order.save();
-            syncOrderToOnlineAdminPanel(order, { status: orderStatus, action: 'dropi_status_sync' });
-        }
+    if (droppiEcuadorOrderStatusForLogisticsStatus(normalizedStatus)) {
+        await persistDropiStatusProjectionV139({ shipment });
     }
     return shipment;
 };
