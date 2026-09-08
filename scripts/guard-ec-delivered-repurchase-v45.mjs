@@ -16,7 +16,7 @@ assert.match(service, /EC-RECOMPRA-/);
 assert.match(orders, /authenticated: Boolean\(req\.user\)/);
 assert.match(orders, /previousOrderId: repurchaseContext\?\.previousOrderId \|\| ''/);
 assert.match(orders, /previousDeliveredAt: repurchaseContext\?\.previousDeliveredAt \|\| null/);
-assert.match(whatsapp, /historicalOrderId: orderLifecycle\.historicalOrderId/);
+assert.match(whatsapp, /historicalOrderId: readModel\.historicalOrderId \|\| orderLifecycle\.historicalOrderId/);
 assert.match(whatsapp, /hasOperationalOrder: orderLifecycle\.hasOperationalOrder/);
 assert.match(panel, /projectedHistoricalOrderId/);
 assert.match(admin, /repurchase_cycle/);

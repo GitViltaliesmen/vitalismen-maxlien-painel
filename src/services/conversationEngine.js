@@ -32,6 +32,8 @@ import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
 import { maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
 import { maybeHandleEcuadorDirectProductInquiry } from './ecDirectProductInquiryService.js';
+import { repeatPurchasePendingOrderV146 } from './ecCommercialCycleV146Service.js';
+import { sendInitiateCheckoutForPendingOrderV146 } from './metaInitiateCheckoutV146Service.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -1205,6 +1207,14 @@ const savePendingCheckoutOrderMemory = async ({ contactStateId, agentProfile, pa
             }
         }
     );
+    await sendInitiateCheckoutForPendingOrderV146({
+        contactStateId,
+        agentKey: agentProfile?.key || '',
+        parsedOrder,
+        orderId
+    }).catch((error) => {
+        console.warn(`[META-V146] InitiateCheckout pendente nao enviado: ${error.message}`);
+    });
 };
 
 const parseCheckoutCorrectionMessage = (text = '') => {
@@ -7357,40 +7367,7 @@ const buildReleasedShipmentRepurchaseText = () => (
 );
 
 const buildRepeatPurchaseCheckoutOrder = ({ shipment = null, peerPhone = '' } = {}) => {
-    const client = shipment?.client || {};
-    const logistics = shipment?.logistics || {};
-    const agencyPickup = Boolean(
-        logistics.agencyPickup
-        || /agencia|servientrega|retiro|retirar/i.test([
-            logistics.shippingType,
-            logistics.agencyName,
-            client.address,
-            client.reference
-        ].filter(Boolean).join(' '))
-    );
-
-    return {
-        name: client.name || '',
-        phone: client.phone || peerPhone || '',
-        province: client.province || '',
-        city: client.city || '',
-        address: agencyPickup
-            ? (logistics.agencyName || logistics.warehouse || client.address || '')
-            : (client.address || ''),
-        reference: agencyPickup
-            ? (logistics.agencyName || logistics.chosenCarrier || client.reference || '')
-            : (client.reference || ''),
-        deliveryMode: agencyPickup ? 'agency' : 'home',
-        agencyName: agencyPickup ? (logistics.agencyName || '') : '',
-        agencyAddress: agencyPickup ? (client.address || logistics.warehouse || '') : '',
-        agencyValidated: Boolean(agencyPickup && logistics.agencyName),
-        previousOrderId: shipment?.orderId || '',
-        previousTrackingNumber: logistics.trackingNumber || '',
-        source: 'repeat_purchase_after_delivered',
-        stage: 'awaiting_quantity_data',
-        funnelStage: 'awaiting_quantity_data',
-        conversationSummary: 'Cliente voltou apos entrega/retirada confirmada. Historico preservado; solicitar quantidade e confirmar dados existentes.'
-    };
+    return repeatPurchasePendingOrderV146({ shipment, peerPhone });
 };
 
 const repeatPurchaseQuantityPromptText = () => {
@@ -7433,11 +7410,14 @@ const startRepeatPurchaseAfterReleasedShipment = async ({
                     address: pendingOrder.address || '',
                     reference: pendingOrder.reference || '',
                     country: customerContext.countryCode || 'EC',
-                    status: 'novo',
+                    status: 'recompra',
                     quantity: '',
                     total: '',
                     orderId: '',
                     previousOrderId: pendingOrder.previousOrderId || '',
+                    historicalOrderId: pendingOrder.previousOrderId || '',
+                    newCommercialCycle: true,
+                    orderScopedFieldsResetAt: new Date().toISOString(),
                     entryReason: 'repeat_purchase_after_delivered',
                     updatedAt: new Date().toISOString()
                 },

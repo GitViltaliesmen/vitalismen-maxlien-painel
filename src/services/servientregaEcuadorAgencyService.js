@@ -442,12 +442,11 @@ export const findServientregaEcuadorAgencies = ({
     const normalizedCity = normalizeAgencyText(knownLocation.city || city);
     const normalizedProvince = normalizeAgencyText(knownLocation.province || province);
     const normalizedQuery = normalizeAgencyText(query);
-    const queryIsSpecific = normalizedQuery.length >= 4;
     const queryTokens = tokensFor(query);
-    const hasScopedLocation = Boolean(normalizedCity || normalizedProvince);
+    const meaningfulQueryTokens = queryTokens.filter((token) => token.length >= 3 && !GENERIC_AGENCY_LOCATION_TOKENS.has(token));
+    const hasExplicitScopedLocation = Boolean(normalizeAgencyText(city) || normalizeAgencyText(province));
 
-    let scored = agencies.map((agency) => {
-        let score = 0;
+    const scored = agencies.map((agency) => {
         const cityExactMatched = Boolean(normalizedCity && agency.normalizedCity === normalizedCity);
         const cityMatched = Boolean(cityExactMatched || (normalizedCity && (
             agency.normalizedCity.includes(normalizedCity)
@@ -458,51 +457,108 @@ export const findServientregaEcuadorAgencies = ({
             agency.normalizedProvince.includes(normalizedProvince)
             || normalizedProvince.includes(agency.normalizedProvince)
         )));
-        const queryNameMatched = Boolean(queryIsSpecific && (
-            agency.normalizedName.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedName)
+        const queryNameMatched = Boolean(normalizedQuery.length >= 3 && (
+            agency.normalizedName
+            && (agency.normalizedName.includes(normalizedQuery)
+                || normalizedQuery.includes(agency.normalizedName))
         ));
-        const queryAddressMatched = Boolean(queryIsSpecific && (
-            agency.normalizedAddress.includes(normalizedQuery)
-            || normalizedQuery.includes(agency.normalizedAddress)
+        const queryAddressMatched = Boolean(normalizedQuery.length >= 3 && (
+            agency.normalizedAddress
+            && (agency.normalizedAddress.includes(normalizedQuery)
+                || normalizedQuery.includes(agency.normalizedAddress))
         ));
         const queryCityExactMatched = Boolean(normalizedQuery && agency.normalizedCity === normalizedQuery);
-        const queryCityMatched = Boolean(queryCityExactMatched || (queryIsSpecific && agency.normalizedCity && (
+        const queryCityMatched = Boolean(queryCityExactMatched || (normalizedQuery.length >= 3 && agency.normalizedCity && (
             agency.normalizedCity.includes(normalizedQuery)
             || normalizedQuery.includes(agency.normalizedCity)
         )));
         const queryProvinceExactMatched = Boolean(normalizedQuery && agency.normalizedProvince === normalizedQuery);
-        const queryProvinceMatched = Boolean(queryProvinceExactMatched || (queryIsSpecific && agency.normalizedProvince && (
+        const queryProvinceMatched = Boolean(queryProvinceExactMatched || (normalizedQuery.length >= 3 && agency.normalizedProvince && (
             agency.normalizedProvince.includes(normalizedQuery)
             || normalizedQuery.includes(agency.normalizedProvince)
         )));
-        const querySectorMatched = Boolean(queryIsSpecific && agency.normalizedSector && (
+        const querySectorMatched = Boolean(normalizedQuery.length >= 3 && agency.normalizedSector && (
             agency.normalizedSector.includes(normalizedQuery)
             || normalizedQuery.includes(agency.normalizedSector)
         ));
         const queryNameTokenMatched = Boolean(queryTokens.length && hasStrongTokenMatch(queryTokens, agency.normalizedName));
         const queryAddressTokenMatched = Boolean(queryTokens.length && hasStrongTokenMatch(queryTokens, agency.normalizedAddress));
 
-        if (cityExactMatched) score += 950;
-        else if (cityMatched) score += 700;
-        if (provinceExactMatched) score += 50;
-        else if (provinceMatched) score += 30;
-        if (normalizedQuery) {
-            if (queryNameMatched) score += 45;
-            if (queryAddressMatched) score += 35;
-            if (queryCityExactMatched) score += 900;
-            else if (queryCityMatched) score += 650;
-            if (queryProvinceExactMatched) score += 35;
-            else if (queryProvinceMatched) score += 22;
-            if (querySectorMatched) score += 12;
-            if (queryNameTokenMatched) score += 35;
-            if (queryAddressTokenMatched) score += 45;
-            score += overlapScore(queryTokens, `${agency.normalizedName} ${agency.normalizedAddress} ${agency.normalizedSector} ${agency.normalizedCity} ${agency.normalizedProvince}`, 9);
-        }
+        const searchable = `${agency.normalizedName} ${agency.normalizedAddress} ${agency.normalizedSector} ${agency.normalizedCity} ${agency.normalizedProvince}`.trim();
+        const exactField = normalizedQuery && [
+            agency.normalizedName,
+            agency.normalizedAddress,
+            agency.normalizedSector,
+            agency.normalizedCity,
+            agency.normalizedProvince
+        ].includes(normalizedQuery);
+        const prefixField = normalizedQuery && [
+            agency.normalizedName,
+            agency.normalizedAddress,
+            agency.normalizedSector,
+            agency.normalizedCity,
+            agency.normalizedProvince
+        ].some((value) => value && value.startsWith(normalizedQuery));
+        const multiTokenHitCount = meaningfulQueryTokens.filter((token) => searchable.includes(token)).length;
+        const multiToken = meaningfulQueryTokens.length >= 2 && multiTokenHitCount >= 2;
+        const addressOrLocality = Boolean(
+            queryAddressMatched
+            || querySectorMatched
+            || queryCityMatched
+            || queryProvinceMatched
+            || queryNameMatched
+            || queryNameTokenMatched
+            || queryAddressTokenMatched
+        );
+        const fuzzyDistance = normalizedQuery.length >= 4
+            ? Math.min(...[
+                agency.normalizedName,
+                agency.normalizedSector,
+                ...tokensFor(agency.name),
+                ...tokensFor(agency.address)
+            ].filter(Boolean).map((value) => levenshteinDistance(normalizedQuery, value)))
+            : Number.POSITIVE_INFINITY;
+        const fuzzyMatched = Number.isFinite(fuzzyDistance)
+            && fuzzyDistance <= Math.min(2, Math.max(1, Math.floor(normalizedQuery.length / 5)));
+        const matchKind = exactField
+            ? 'exact'
+            : (prefixField
+                ? 'prefix'
+                : (multiToken
+                    ? 'multi_token'
+                    : (addressOrLocality ? 'address_locality' : (fuzzyMatched ? 'bounded_fuzzy' : 'none'))));
+        const tierScore = {
+            exact: 6000,
+            prefix: 5000,
+            multi_token: 4000,
+            address_locality: 3000,
+            bounded_fuzzy: 2000,
+            none: normalizedQuery ? 0 : 1000
+        }[matchKind];
+        const locationTieBreaker = (cityExactMatched ? 300 : (cityMatched ? 120 : 0))
+            + (provinceExactMatched ? 80 : (provinceMatched ? 30 : 0));
+        const overlapTieBreaker = overlapScore(queryTokens, searchable, 9);
+        const specificityTieBreaker = Math.min(99, normalizedQuery.length);
+        const score = tierScore + locationTieBreaker + overlapTieBreaker + specificityTieBreaker
+            - (fuzzyMatched ? fuzzyDistance : 0);
+        const matchField = exactField || prefixField
+            ? ([
+                ['name', agency.normalizedName],
+                ['address', agency.normalizedAddress],
+                ['sector', agency.normalizedSector],
+                ['city', agency.normalizedCity],
+                ['province', agency.normalizedProvince]
+            ].find(([, value]) => value && (value === normalizedQuery || value.startsWith(normalizedQuery)))?.[0] || 'catalog')
+            : (queryNameMatched || queryNameTokenMatched ? 'name'
+                : (queryAddressMatched || queryAddressTokenMatched ? 'address'
+                    : (querySectorMatched ? 'sector'
+                        : (queryCityMatched ? 'city' : (queryProvinceMatched ? 'province' : 'catalog')))));
 
         return {
             agency,
             score,
+            matchKind,
+            matchField,
             cityExactMatched,
             provinceExactMatched,
             cityMatched,
@@ -516,22 +572,20 @@ export const findServientregaEcuadorAgencies = ({
             querySectorMatched
         };
     })
-        .filter((item) => item.score > 0)
+        .filter((item) => item.score > 0 && (
+            !normalizedQuery
+            || item.matchKind !== 'none'
+            || (hasExplicitScopedLocation && item.cityMatched && item.provinceMatched)
+        ))
         .sort((a, b) => b.score - a.score || a.agency.name.localeCompare(b.agency.name));
 
-    if (!hasScopedLocation && normalizedQuery) {
-        scored = scored.filter((item) => item.score >= 80 && (item.queryNameMatched || item.queryAddressMatched));
-    }
-
-    const exactScoped = scored.filter((item) => (
-        (!normalizedCity || item.cityExactMatched)
-        && (!normalizedProvince || item.provinceExactMatched)
-    ));
-    const finalScored = exactScoped.length ? exactScoped : scored;
-
-    return finalScored.slice(0, limit).map((item) => ({
+    return scored.slice(0, limit).map((item, index) => ({
         ...formatServientregaAgency(item.agency),
         score: item.score,
+        matchKind: item.matchKind,
+        matchField: item.matchField,
+        topMatch: index === 0,
+        confident: ['exact', 'prefix', 'multi_token'].includes(item.matchKind),
         cityMatched: item.cityMatched,
         provinceMatched: item.provinceMatched,
         queryNameMatched: item.queryNameMatched,
@@ -552,8 +606,14 @@ export const resolveServientregaEcuadorAgency = ({
     text = '',
     limit = 3
 } = {}) => {
+    const seenQueryParts = new Set();
     const query = [agencyName, address, text]
-        .filter(Boolean)
+        .filter((value) => {
+            const normalized = normalizeAgencyText(value);
+            if (!normalized || seenQueryParts.has(normalized)) return false;
+            seenQueryParts.add(normalized);
+            return true;
+        })
         .join(' ');
     const suggestions = findServientregaEcuadorAgencies({
         city,
@@ -563,21 +623,8 @@ export const resolveServientregaEcuadorAgency = ({
     });
     const best = suggestions[0] || null;
     const second = suggestions[1] || null;
-    const hasScopedLocation = Boolean(normalizeAgencyText(city) || normalizeAgencyText(province));
-    const hasMultipleUnscopedMatches = Boolean(!hasScopedLocation && suggestions.length > 1);
     const hasUniqueBestScore = Boolean(best && (!second || Number(best.score || 0) > Number(second.score || 0)));
-    const hasSpecificMatch = Boolean(best && (
-        best.queryNameTokenMatched
-        || best.queryAddressTokenMatched
-        || (
-            (best.queryNameMatched || best.queryAddressMatched)
-            && !GENERIC_AGENCY_LOCATION_TOKENS.has(normalizeAgencyText(query))
-        )
-    ));
-    const confident = Boolean(best && hasUniqueBestScore && !hasMultipleUnscopedMatches && (
-        (hasSpecificMatch && best.score >= 75)
-        || (suggestions.length === 1 && best.score >= 60 && (best.cityMatched || best.queryCityMatched || best.provinceMatched || best.queryProvinceMatched))
-    ));
+    const confident = Boolean(best && hasUniqueBestScore && best.confident === true);
 
     return {
         best,

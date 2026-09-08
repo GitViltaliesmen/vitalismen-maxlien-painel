@@ -26,7 +26,11 @@ export const assertIntegrationHealthV145 = () => {
         'src/routes/funnelMetrics.js',
         'tests/ec-dropi-human-authorization-v138.test.mjs'
     ]);
-    for (const [file, expected] of Object.entries(manifest.protectedFiles)) assert.equal(hash(file), expected, `V145 divergente: ${file}`);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (successorOverrides.has(file)) continue;
+        assert.equal(hash(file), expected, `V145 divergente: ${file}`);
+    }
     const context = globalThis.__VITALISMEN_V145_R2_CONTEXT;
     assert.equal(context?.loaded, true);
     assert.equal(context?.freezeId, manifest.freezeId);
@@ -37,6 +41,11 @@ export const assertIntegrationHealthV145 = () => {
     const stage = read('ops/vitalismen-stage');
     const controller = read('ops/ec-bot-core-v78');
     assert.match(v97, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
+    assert.match(
+        bootstrap,
+        /import '\.\/ec-runtime-successor-v146-context\.mjs';\nimport '\.\/ec-runtime-successor-v145-context\.mjs';/,
+        'o bootstrap oficial deve registrar V146 antes de carregar V145 e os guards ancestrais'
+    );
     assert.match(bootstrap, /import '\.\/ec-runtime-successor-v145-context\.mjs';/);
     assert.match(stage, /ec-runtime-successor-v97-context\.mjs/);
     assert.match(controller, /ec-runtime-successor-v97-context\.mjs/);

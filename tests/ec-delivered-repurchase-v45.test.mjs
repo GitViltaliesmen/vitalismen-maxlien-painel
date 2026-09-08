@@ -90,7 +90,7 @@ test('V45 integra projeção, painel, criação e sincronização sem autorizar 
     const admin = fs.readFileSync('src/services/adminPanelStatusService.js', 'utf8');
 
     assert.match(whatsapp, /panelOrderLifecycle\(\{/);
-    assert.match(whatsapp, /historicalOrderId: orderLifecycle\.historicalOrderId/);
+    assert.match(whatsapp, /historicalOrderId: readModel\.historicalOrderId \|\| orderLifecycle\.historicalOrderId/);
     assert.match(whatsapp, /hasOperationalOrder: orderLifecycle\.hasOperationalOrder/);
     assert.match(panel, /projectedHistoricalOrderId/);
     assert.match(panel, /orderPayload\.previousOrderId = historicalOrderId/);

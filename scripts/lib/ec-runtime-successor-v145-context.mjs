@@ -27,7 +27,9 @@ assert.equal(
     'manifesto pai V144 divergente'
 );
 assert.deepEqual(manifest.overrides, expectedOverrides);
+const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 for (const file of manifest.overrides) {
+    if (successorOverrides.has(file)) continue;
     const source = fs.readFileSync(new URL(`../../${file}`, import.meta.url));
     assert.equal(crypto.createHash('sha256').update(source).digest('hex'), manifest.protectedFiles[file], `V145-R2 divergente: ${file}`);
 }
