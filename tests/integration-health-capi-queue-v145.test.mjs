@@ -177,8 +177,8 @@ test('frontend displays global health, window emptiness, real queue, historical 
     assert.doesNotMatch(source, /`Até \$\{formatDate\(value.dataThrough\)\}/);
 });
 
-test('V145 preload validates its delta before frozen V143 and V144 CLI guards execute', () => {
-    const preload = new URL('../scripts/lib/ec-runtime-successor-v145-context.mjs', import.meta.url).href;
+test('official V97 preload registers V145-R2 before frozen V143 and V144 CLI guards execute', () => {
+    const preload = new URL('../scripts/lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
     for (const guard of ['guard-v141-v142-convergence-v143.mjs', 'guard-meta-purchase-after-manual-dropi-v144.mjs']) {
         const result = spawnSync(process.execPath, [`--import=${preload}`, `scripts/${guard}`], {
             env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 30000
@@ -186,4 +186,27 @@ test('V145 preload validates its delta before frozen V143 and V144 CLI guards ex
         assert.equal(result.status, 0, `${guard}: ${result.stderr}`);
         assert.match(result.stdout, /=PASS/);
     }
+});
+
+test('official V97 preload exposes the authenticated V145-R2 context', () => {
+    const preload = new URL('../scripts/lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
+    const probe = "const c=globalThis.__VITALISMEN_V145_R2_CONTEXT;if(!c?.loaded||c.freezeId!=='EC_INTEGRATION_HEALTH_CAPI_QUEUE_V145_R2_20260908'||c.overrides.length!==6)process.exit(2);console.log('V145_CONTEXT_LOADED=YES');console.log('V145_OVERRIDES_REGISTERED=YES')";
+    const result = spawnSync(process.execPath, [`--import=${preload}`, '-e', probe], {
+        env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 30000
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /V145_CONTEXT_LOADED=YES/);
+    assert.match(result.stdout, /V145_OVERRIDES_REGISTERED=YES/);
+});
+
+test('V138 suite passes under the exact official V97 preload', () => {
+    const preload = new URL('../scripts/lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
+    const childEnv = { ...process.env, NODE_OPTIONS: '' };
+    delete childEnv.NODE_TEST_CONTEXT;
+    const result = spawnSync(process.execPath, [`--import=${preload}`, '--test', 'tests/ec-dropi-human-authorization-v138.test.mjs'], {
+        env: childEnv, encoding: 'utf8', timeout: 60000
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /# pass /);
+    assert.match(result.stdout, /# fail 0/);
 });

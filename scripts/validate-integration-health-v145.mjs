@@ -5,7 +5,7 @@ import fs from 'node:fs';
 if (!fs.existsSync('.git') || fs.existsSync('.release-source.json')) {
     throw new Error('Execute o validador na worktree Git isolada, nunca em uma release.');
 }
-const preload = new URL('./lib/ec-runtime-successor-v145-context.mjs', import.meta.url).href;
+const preload = new URL('./lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
 const env = { ...process.env, NODE_ENV: 'test', NODE_OPTIONS: `--import=${preload}` };
 // dotenv.config() also runs in a legacy audio import. Empty existing keys preserve library
 // context for mocked routes, while senior-guard still reads the safe .env fixture from disk.

@@ -1,8 +1,15 @@
-# V145 — saúde operacional e histórico CAPI
+# V145-R2 — saúde operacional, histórico CAPI e preload oficial
 
 Base: V144 `c68163e1013782e013456baeba65538770a7c220`, tree `495d32f9547a9ebd223fcdf035ae62881049fdc6`.
 Produção oficial: `/opt/vitalismen-automacao/current`, VPS Equador `72.60.137.77`.
 Estado: candidata; ativação e publicação não autorizadas.
+
+A candidata V145 original ficou congelada no commit
+`85015726a64c21c3181efe93d9e8243452bb195a`, tree
+`7f0f9beaa71ac4d07550108e4b7af03bc2acc96b`, mas não era implantável: os
+controladores oficiais usam exclusivamente o preload V97 e o delta dependia do
+preload V145 explícito. A tag `production-20260908-8501572` permanece preservada
+como evidência histórica órfã, sem release atestada e sem runtime ativado.
 
 ## Provas e causa
 
@@ -43,7 +50,7 @@ Meta account e insights GET responderam HTTP 200. Cache atualizado às
 `2026-09-08T14:49:36.766Z`, sem stale; timer ativo, último serviço com exit 0.
 A auditoria não executou refresh com escrita: leu o cache e fez GETs diretamente.
 
-## Microcamada
+## Microcamada funcional preservada
 
 Somente `src/routes/funnelMetrics.js` e `public/funnel-metrics.html` são alterados
 entre os arquivos operacionais preexistentes. A fixture V138 recebe a dependência
@@ -74,23 +81,33 @@ diagnóstica; `retryAuthorized=false` em todos os itens. Não há consumidor, re
 scheduler, envio ou alteração de política. V78, payload inválido, rede e falta de
 aceite Meta mantêm causas distintas e degradam saúde quando exigem atenção.
 
-## Contratos preservados e validação
+## Correção mínima da cadeia oficial
 
-Todos os arquivos protegidos pelo manifesto V144 continuam byte a byte iguais,
-inclusive sender, Shipment, guard, bootstrap, package e testes V144. Nenhum
-arquivo VSL, checkout, produto, preço, bot, routing, Z-API, webhook ou banco muda.
+`scripts/lib/ec-runtime-successor-v97-context.mjs` continua byte a byte igual e
+permanece a entrada única de `vitalismen-stage` e `ec-bot-core-v78`. O bootstrap
+V144 detecta o manifesto V145-R2, importa o inicializador sucessor antes dos
+guards e, depois da validação V144, executa o guard V145-R2. Não há novo
+entrypoint nem bootstrap paralelo.
+
+O inicializador sucessor valida o manifesto canônico, a identidade da baseline,
+o hash do manifesto pai e os hashes exatos dos seis overrides. Ele registra um
+contexto imutável com a identidade do manifesto. O guard V144 revalida esse
+contexto e os mesmos hashes antes de aceitar as duas exceções ancestrais:
+`scripts/guard-meta-purchase-after-manual-dropi-v144.mjs` e
+`scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs`. Todo arquivo V144
+restante continua sujeito ao hash original e todos os guards V143/V144 são
+executados integralmente. A exceção não pode ser criada apenas por uma variável
+global sem manifesto e conteúdo correspondentes.
+
+Nenhum arquivo VSL, checkout, produto, preço, bot, routing, Z-API, webhook ou banco muda.
 O hash público VSL informado foi confirmado com leitura explicitamente autorizada
 de `https://vilaliemen.shop/protocolo-g`; `/n/` é outro artefato e não foi alterado.
 
-O guard V145 valida seus próprios hashes e concede somente os dois overrides
-operacionais e o arquivo de fixture acima à cadeia ancestral; depois executa integralmente o guard V144. Para testes
-e qualquer futura revisão de ativação é obrigatório o preload explícito
-`--import ./scripts/lib/ec-runtime-successor-v145-context.mjs`. A candidata não
-altera o bootstrap congelado V144. Não iniciar `src/index.js` sem esse preload.
-O preload valida os hashes do delta antes de importar os guards ancestrais,
-inclusive quando V143 ou V144 são o ponto de entrada CLI. Um teste em subprocesso
-cobre essa ordem: a primeira execução completa encontrou a importação precoce
-do guard V143, e a correção fica exclusivamente no novo preload V145.
+O guard V145-R2 valida todos os arquivos protegidos e executa integralmente o
+guard V144. Testes e qualquer futura revisão de ativação usam o preload real
+`--import ./scripts/lib/ec-runtime-successor-v97-context.mjs`, igual ao dos dois
+controladores oficiais. Testes em subprocesso comprovam o marcador autenticado,
+os seis overrides registrados antes dos guards e a suíte V138 completa sob V97.
 
 Testes novos cobrem provider sem eventos, provider desconectado, webhook sem
 evidência, fila e erro operacional, história sem retry, nova pendência, timestamps
@@ -108,6 +125,6 @@ com argumento `focused`, `test` ou `senior`.
 
 ## Rollback
 
-Como a V145 não será ativada, produção permanece na V144. Descartar a candidata
+Como a V145-R2 não será ativada, produção permanece na V144. Descartar a candidata
 não exige ação em PM2, banco, Nginx ou providers. Uma futura publicação depende
 de aprovação humana e de validar novamente a identidade congelada da produção.

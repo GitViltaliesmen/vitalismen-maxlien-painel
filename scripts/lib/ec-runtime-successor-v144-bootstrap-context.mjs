@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import './ec-runtime-successor-v145-context.mjs';
+
+const v145ManifestUrl = new URL('../../docs/freeze/ec-integration-health-capi-queue-v145-20260908.json', import.meta.url);
+const v145Present = fs.existsSync(v145ManifestUrl);
 
 const manifestFiles = [
     '../../docs/freeze/ec-dropi-status-postsale-v139-20260907.json',
@@ -25,3 +29,8 @@ for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD
 
 const { assertMetaPurchaseAfterManualDropiV144 } = await import('../guard-meta-purchase-after-manual-dropi-v144.mjs');
 assertMetaPurchaseAfterManualDropiV144();
+
+if (v145Present) {
+    const { assertIntegrationHealthV145 } = await import('../guard-integration-health-v145.mjs');
+    assertIntegrationHealthV145();
+}

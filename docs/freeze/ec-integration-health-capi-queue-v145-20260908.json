@@ -1,24 +1,61 @@
 {
-  "layer": "V145",
+  "freezeId": "EC_INTEGRATION_HEALTH_CAPI_QUEUE_V145_R2_20260908",
+  "layer": "V145-R2",
+  "country": "EC",
   "parentCommit": "c68163e1013782e013456baeba65538770a7c220",
   "parentTree": "495d32f9547a9ebd223fcdf035ae62881049fdc6",
+  "parentTag": "production-20260908-c68163e",
+  "parentFreezeTag": "freeze-production-v144-meta-purchase-after-manual-dropi-20260908",
+  "parentManifest": "docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json",
+  "parentManifestSha256": "3f936322f1b0ef043052923f17ff5cba256e4bab146b0441651196485d754766",
+  "failedCandidate": {
+    "commit": "85015726a64c21c3181efe93d9e8243452bb195a",
+    "tree": "7f0f9beaa71ac4d07550108e4b7af03bc2acc96b",
+    "candidateTag": "candidate-v145-integration-health-capi-queue-20260908",
+    "freezeTag": "freeze-candidate-v145-integration-health-capi-queue-20260908",
+    "orphanUnattestedProductionTag": "production-20260908-8501572",
+    "publicationAttested": false,
+    "runtimeActivated": false,
+    "releaseCreated": false
+  },
   "overrides": [
     "public/funnel-metrics.html",
+    "scripts/guard-meta-purchase-after-manual-dropi-v144.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/run-with-v144-context.mjs",
     "src/routes/funnelMetrics.js",
     "tests/ec-dropi-human-authorization-v138.test.mjs"
   ],
   "protectedFiles": {
     "public/funnel-metrics.html": "2bf7faefac75d0d0a47305bf7f108db62074d70de1523ac430862ede5bafec14",
+    "scripts/guard-meta-purchase-after-manual-dropi-v144.mjs": "2f822ba74f4f7cf48ecfb9a2001dd5f5c5af167f7cf876dae039724ff5e372c9",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "f8f9d748d8cd421bd55b5f509a64a1707398b94f520e7c2cc417447e72e7a755",
+    "scripts/run-with-v144-context.mjs": "7131166c8fbe6f5c4fac8bbf071971a03678363c2bd11c0554be36ad8c6555b2",
     "src/routes/funnelMetrics.js": "d7a5f6ca411ee28ffb095237f785e945204d2d65a814db791cb6aecbc28a7c41",
     "src/services/funnelIntegrationHealthV145Service.js": "7f40e1e96a5796dd15de0d317da920a1dda00459c3a65392997e3aaefd1d8c8b",
     "src/services/funnelIntegrationHealthV145ReadService.js": "d41d483895aec507f4b4752db100c76e915dab5e22664a0d9a29ca9b0d7a7808",
-    "tests/integration-health-capi-queue-v145.test.mjs": "4980c6277fd675487d3f31710fc91394ffd4345101b89d5cff8957b47261751c",
-    "scripts/guard-integration-health-v145.mjs": "16b3c0f0b03e3278d7e7d1a76ef676f315c3a42c77078c569e609acb37510fc3",
-    "scripts/lib/ec-runtime-successor-v145-context.mjs": "c1e5f1f5e871c17bef098fb8b82e1ddebe29954e65ee652c8c65fe97a537eee1",
-    "docs/EC_INTEGRATION_HEALTH_CAPI_QUEUE_V145_20260908.md": "b74f8dbf86f717f5901c811cb566dc959e5128bf52b503b06ea88beca85c6d21",
+    "tests/integration-health-capi-queue-v145.test.mjs": "cf4e39d54727f12a243a5cc109926418cfea7bd4727ace9d84f183a8a32fac3a",
+    "scripts/guard-integration-health-v145.mjs": "20e74c72a831cc52efaa2efecff0a2012d0dc5504d4947bc5e74ecd9546828d3",
+    "scripts/lib/ec-runtime-successor-v145-context.mjs": "4c3fadb7d7b843c5297d9bcd8f52cceca396e0230bb70620c751b2a1b7a39a34",
+    "docs/EC_INTEGRATION_HEALTH_CAPI_QUEUE_V145_20260908.md": "d2a53638e2bc0ab1e08b2e1f7a9a22fcdbeb12bce9a377ab8c2825b99a52f8d8",
     "tests/ec-dropi-human-authorization-v138.test.mjs": "619178da01eec369de99bf34d7f2c66ac3efe63bc31a8ed8fca9d9fc290cd822",
-    "scripts/validate-integration-health-v145.mjs": "33da3a3cb92f412d6bf48d53b2ea18e808e8d3e492a207a365f9830a26c31bce"
+    "scripts/validate-integration-health-v145.mjs": "67583440d5a7dadef9b668509b99176579c5c6ff03c261a52b934acadf2bb936"
   },
-  "productionChanged": false,
-  "candidateActivationAllowed": false
+  "policy": {
+    "productionChanged": false,
+    "candidateActivationAllowed": false,
+    "officialPreload": "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "officialControllers": [
+      "ops/vitalismen-stage",
+      "ops/ec-bot-core-v78"
+    ],
+    "predecessorGuardsWeakened": false,
+    "realPurchaseTestSend": 0,
+    "retroactivePurchaseAllowed": false,
+    "metaAdsMutationAllowed": false,
+    "zapiMutationAllowed": false,
+    "dropiMutationAllowed": false,
+    "vslChanged": false,
+    "orphanTagPreserved": true
+  }
 }

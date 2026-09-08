@@ -6,7 +6,7 @@ if (!scripts.length || scripts.some((script) => !/^[a-z0-9:_-]+$/i.test(script))
     throw new Error('V144 npm script ausente ou invalido.');
 }
 
-const preload = new URL('./lib/ec-runtime-successor-v144-context.mjs', import.meta.url).href;
+const preload = new URL('./lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
 const existing = String(process.env.NODE_OPTIONS || '').trim();
 const nodeOptions = [existing, `--import=${preload}`].filter(Boolean).join(' ');
 const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
