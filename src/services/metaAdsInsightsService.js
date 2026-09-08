@@ -185,7 +185,7 @@ const loadCreativeMapping = async ({ adIds = [], version, token, fetchImpl }) =>
     for (const adId of [...new Set(adIds.filter(Boolean))].slice(0, 100)) {
         try {
             const body = await graphGet({
-                url: `https://graph.facebook.com/${version}/${encodeURIComponent(adId)}?fields=id,name,effective_status,url_tags,creative{id,name,thumbnail_url,image_hash,video_id,object_story_spec}`,
+                url: `https://graph.facebook.com/${version}/${encodeURIComponent(adId)}?fields=id,name,effective_status,creative{id,name,url_tags,thumbnail_url,image_hash,video_id,object_story_spec}`,
                 token,
                 fetchImpl
             });
@@ -194,7 +194,7 @@ const loadCreativeMapping = async ({ adIds = [], version, token, fetchImpl }) =>
                 adId,
                 adName: String(body.name || ''),
                 effectiveStatus: String(body.effective_status || ''),
-                urlTags: String(body.url_tags || ''),
+                urlTags: String(creative.url_tags || ''),
                 creativeId: String(creative.id || ''),
                 creativeName: String(creative.name || ''),
                 videoId: String(creative.video_id || ''),

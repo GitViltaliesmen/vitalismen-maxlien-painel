@@ -159,8 +159,8 @@ test('consulta Meta live GET atualiza cache e mapeia o criativo sem mutar anunci
                 actions: [{ action_type: 'landing_page_view', value: '10' }, { action_type: 'purchase', value: '1' }],
                 action_values: [{ action_type: 'purchase', value: '80.99' }]
             }] }), { status: 200 });
-            return new Response(JSON.stringify({ id: 'a1', name: 'Anuncio', effective_status: 'ACTIVE', url_tags: 'utm_source=meta',
-                creative: { id: 'cr1', name: 'Criativo 1', video_id: 'v1', thumbnail_url: 'https://example.invalid/t.jpg', object_story_spec: { video_data: { call_to_action: { value: { link: 'https://vilaliemen.shop/protocolo-g' } } } } } }), { status: 200 });
+            return new Response(JSON.stringify({ id: 'a1', name: 'Anuncio', effective_status: 'ACTIVE',
+                creative: { id: 'cr1', name: 'Criativo 1', url_tags: 'utm_source=meta', video_id: 'v1', thumbnail_url: 'https://example.invalid/t.jpg', object_story_spec: { video_data: { call_to_action: { value: { link: 'https://vilaliemen.shop/protocolo-g' } } } } } }), { status: 200 });
         }
     });
     assert.equal(result.source, 'live');
@@ -169,6 +169,7 @@ test('consulta Meta live GET atualiza cache e mapeia o criativo sem mutar anunci
     assert.equal(result.totals.outboundClicks, 11);
     assert.equal(result.totals.purchaseValue, 80.99);
     assert.equal(result.creativeMapping[0].creativeId, 'cr1');
+    assert.equal(result.creativeMapping[0].urlTags, 'utm_source=meta');
     assert.equal(methods.every((method) => method === 'GET'), true);
 });
 

@@ -46,10 +46,11 @@
     "src/routes/shipments.js": "c1ae05863d6ec3831c8f09cf9a1499ddf664c962796ccaa248392cf5d54f287d",
     "src/services/funnelMetricsService.js": "af93c4f3480d389e4fa84da6d0b42e3ea76d193d597f44333ef9440c2f2cb4e5",
     "src/services/funnelOperationalMetricsV141Service.js": "e2c82eea4d199f69fa43943e5affc505b1da63b5ea372495d93da7392efd5dc2",
-    "src/services/metaAdsInsightsService.js": "411ae23b1758be67cf8c6c2e8cb1910ac19fbddec87adbf32e80f677c71795e1",
+    "src/services/metaAdsInsightsService.js": "bd4d86ca346f7eb7558935cfc2b656da15b9f817d2f49b9a459a4306e12a9ffa",
     "tests/funnel-metrics-route.test.mjs": "b8eed4b201a893693cc0d646f7658ac045f500cef89a4217117fd44b0ff548fa",
-    "tests/meta-funnel-reconciliation-v141.test.mjs": "784945d1567f475520e2201d70e32a67a45eaf934f63050de16b8226614b8997",
-    "tests/protocolo-g-commercial-metrics-v136.test.mjs": "6239db9e2f8dcdfbcf02b37f0137590ca6c9d9ea42b6ded307cf74a354bff928"
+    "tests/meta-funnel-reconciliation-v141.test.mjs": "5415f3685249149c02dbd07dbdc5abe3f62d7e2eb6225c913092a72a032f3cfa",
+    "tests/protocolo-g-commercial-metrics-v136.test.mjs": "6239db9e2f8dcdfbcf02b37f0137590ca6c9d9ea42b6ded307cf74a354bff928",
+    "tests/meta-creative-read-v141.test.mjs": "11577a05427d60e32ab36b72cfca5ada680dd1db2393482378069d6d6e73c107"
   },
   "policy": {
     "vslChanged": false,
