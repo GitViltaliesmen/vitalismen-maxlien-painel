@@ -1078,7 +1078,15 @@
             el('integrationHealth').innerHTML = Object.entries(operational.health || {}).map(([key, value]) => metricCard(
                 healthLabels[key] || key,
                 value.status || 'UNKNOWN',
-                `Até ${formatDate(value.dataThrough)} · fila ${number.format(value.queueBacklog || 0)}`,
+                escapeHtml([
+                    `Último sucesso: ${formatDate(value.lastSuccessAt || value.lastSuccess)}`,
+                    value.dataStatus === 'NO_DATA_IN_WINDOW' ? 'Sem eventos no período'
+                        : `Dados do período até: ${formatDate(value.dataThroughInWindow)}`,
+                    `Fila ativa: ${value.queueDepth == null ? 'indisponível' : number.format(value.queueDepth)}`,
+                    key === 'capi' ? `Histórico bloqueado: ${number.format(value.historicalBlockedCount || 0)}` : '',
+                    key === 'capi' && value.awaitingHumanDropiCount ? `Aguardando envio manual Dropi: ${number.format(value.awaitingHumanDropiCount)}` : '',
+                    `Último erro: ${value.lastError ? (typeof value.lastError === 'string' ? value.lastError : JSON.stringify(value.lastError)) : 'nenhum registrado'}${value.lastErrorAt ? ` (${formatDate(value.lastErrorAt)})` : ''}`
+                ].filter(Boolean).join(' · ')),
                 value.status === 'OK' ? 'good' : value.status === 'FAILED' ? 'bad' : 'warn'
             )).join('') || metricCard('Diagnóstico', 'Indisponível', 'Atualize a candidata V141', 'warn');
             el('integrationFreshness').textContent = `Meta ${formatDate(operational.freshness?.metaFetchedAt)} · Z-API ${formatDate(operational.freshness?.zapiDataThrough)} · Bot ${formatDate(operational.freshness?.botDataThrough)} · Pedidos ${formatDate(operational.freshness?.orderDataThrough)} · CAPI ${formatDate(operational.freshness?.capiDataThrough)} · America/Guayaquil`;

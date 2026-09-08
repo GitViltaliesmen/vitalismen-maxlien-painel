@@ -1,0 +1,24 @@
+{
+  "layer": "V145",
+  "parentCommit": "c68163e1013782e013456baeba65538770a7c220",
+  "parentTree": "495d32f9547a9ebd223fcdf035ae62881049fdc6",
+  "overrides": [
+    "public/funnel-metrics.html",
+    "src/routes/funnelMetrics.js",
+    "tests/ec-dropi-human-authorization-v138.test.mjs"
+  ],
+  "protectedFiles": {
+    "public/funnel-metrics.html": "2bf7faefac75d0d0a47305bf7f108db62074d70de1523ac430862ede5bafec14",
+    "src/routes/funnelMetrics.js": "d7a5f6ca411ee28ffb095237f785e945204d2d65a814db791cb6aecbc28a7c41",
+    "src/services/funnelIntegrationHealthV145Service.js": "7f40e1e96a5796dd15de0d317da920a1dda00459c3a65392997e3aaefd1d8c8b",
+    "src/services/funnelIntegrationHealthV145ReadService.js": "d41d483895aec507f4b4752db100c76e915dab5e22664a0d9a29ca9b0d7a7808",
+    "tests/integration-health-capi-queue-v145.test.mjs": "34a7d3b0043bd84de179f8f9350a389ee8b42b887a72e8d9a1e1ff5aa64c3be3",
+    "scripts/guard-integration-health-v145.mjs": "16b3c0f0b03e3278d7e7d1a76ef676f315c3a42c77078c569e609acb37510fc3",
+    "scripts/lib/ec-runtime-successor-v145-context.mjs": "f8aa8d78948c31c46917e816d6c1c2d3b03775f7911543d1c2a8831d330ca2d2",
+    "docs/EC_INTEGRATION_HEALTH_CAPI_QUEUE_V145_20260908.md": "72bd037b1b5f0d86d77b40e879ff2a846780297d6d109038af98b9688a55332c",
+    "tests/ec-dropi-human-authorization-v138.test.mjs": "619178da01eec369de99bf34d7f2c66ac3efe63bc31a8ed8fca9d9fc290cd822",
+    "scripts/validate-integration-health-v145.mjs": "33da3a3cb92f412d6bf48d53b2ea18e808e8d3e492a207a365f9830a26c31bce"
+  },
+  "productionChanged": false,
+  "candidateActivationAllowed": false
+}
