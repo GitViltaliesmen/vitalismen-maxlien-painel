@@ -7,6 +7,8 @@ import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import { buildProtocoloGCommercialMetrics } from '../services/protocoloGCommercialMetricsService.js';
 import { buildFunnelOperationalMetricsV141 } from '../services/funnelOperationalMetricsV141Service.js';
+import { applyIntegrationHealthV145 } from '../services/funnelIntegrationHealthV145Service.js';
+import { readIntegrationHealthV145 } from '../services/funnelIntegrationHealthV145ReadService.js';
 import { adminOnly, authMiddleware } from '../middleware/auth.js';
 import { getMetaDatasetIdForOrder } from '../services/metaConversionsService.js';
 import { loadMetaAdsInsights } from '../services/metaAdsInsightsService.js';
@@ -62,6 +64,10 @@ const orderProjection = [
     'draftCreatedAt',
     'createdAt',
     'tracking.metaPurchaseSentAt',
+    'tracking.metaPurchaseEventId',
+    'tracking.metaPurchaseAttributedAt',
+    'tracking.metaPurchaseInsightsVisibleAt',
+    'tracking.metaPurchaseAttributionStatus',
     'tracking.metaPurchaseResponse',
     'tracking.fbclid',
     'tracking.fbp',
@@ -108,7 +114,8 @@ export const createFunnelMetricsHandler = ({
     clock = () => new Date(),
     pixelId = () => process.env.META_PIXEL_ID_EC || '',
     datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order),
-    adsInsights = (options) => loadMetaAdsInsights(options)
+    adsInsights = (options) => loadMetaAdsInsights(options),
+    integrationHealth = (options) => readIntegrationHealthV145(options)
 } = {}) => async (req, res) => {
     try {
         const days = clampFunnelMetricsDays(req.query?.days);
@@ -162,7 +169,7 @@ export const createFunnelMetricsHandler = ({
             visits: [...visits, ...linkedVisits], orders, contacts, shipments,
             ads: snapshot.protocoloG.ads, startAt: snapshot.startAt, endAt: snapshot.endAt
         });
-        snapshot.operational = buildFunnelOperationalMetricsV141({
+        const operational = buildFunnelOperationalMetricsV141({
             contacts,
             messages,
             orders,
@@ -172,6 +179,8 @@ export const createFunnelMetricsHandler = ({
             endAt: snapshot.endAt,
             computedAt: now
         });
+        const evidence = await integrationHealth({ OrderModel, ShipmentModel, MessageModel, now });
+        snapshot.operational = applyIntegrationHealthV145(operational, evidence, metaAds);
         snapshot.investmentRadar = applyInvestmentRadarSafetyV141(snapshot.investmentRadar, {
             metaAds,
             startDay,
