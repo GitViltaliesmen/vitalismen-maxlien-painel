@@ -6,7 +6,7 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "node scripts/run-with-v143-context.mjs test:v143-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139",
+        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139",
         "test:v140-all": "npm run guard:predeploy-v71 && npm run test:v140-remainder && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run guard:ec-dropi-status-postsale-v139",
         "test:v139-remainder": "npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run guard:ec-dropi-status-postsale-v139 && npm run senior:check:v139-core",
         "dev": "node src/index.js",
@@ -146,7 +146,9 @@
         "guard:panel-new-dropi-v142": "node scripts/guard-panel-new-dropi-persistence-v142.mjs && node --test tests/panel-new-dropi-persistence-v142.test.mjs",
         "test:v142-all": "npm run test:v140-all && npm run guard:panel-new-dropi-v142",
         "guard:v143-convergence": "node scripts/guard-v141-v142-convergence-v143.mjs && node --test tests/v141-v142-convergence-v143.test.mjs",
-        "test:v143-all": "npm run test:v140-all && node --test tests/meta-creative-read-v141.test.mjs tests/meta-funnel-reconciliation-v141.test.mjs tests/panel-new-dropi-persistence-v142.test.mjs tests/whatsapp-chats-readonly.test.mjs && npm run guard:v143-convergence"
+        "test:v143-all": "npm run test:v140-all && node --test tests/meta-creative-read-v141.test.mjs tests/meta-funnel-reconciliation-v141.test.mjs tests/panel-new-dropi-persistence-v142.test.mjs tests/whatsapp-chats-readonly.test.mjs && npm run guard:v143-convergence",
+        "guard:meta-purchase-v144": "node scripts/guard-meta-purchase-after-manual-dropi-v144.mjs && node --test tests/meta-purchase-after-manual-dropi-v144.test.mjs",
+        "test:v144-all": "npm run test:v143-all && npm run guard:meta-purchase-v144"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",

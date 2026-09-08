@@ -40,19 +40,20 @@ export const assertV141V142ConvergenceV143 = () => {
     const v141Overrides = new Set(v141.overrides || []);
     const v142Overrides = new Set(v142.overrides || []);
     const v143Overrides = new Set(v143.overrides || []);
-    const combinedOverrides = new Set([...v141Overrides, ...v142Overrides, ...v143Overrides]);
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
+    const combinedOverrides = new Set([...v141Overrides, ...v142Overrides, ...v143Overrides, ...successorOverrides]);
     verifyProtectedFiles({ protectedFiles: v140.protectedFiles, skipped: combinedOverrides, label: 'V140' });
     verifyProtectedFiles({
         protectedFiles: v141.protectedFiles,
-        skipped: new Set([...v143Overrides, ...Object.keys(v141.protectedFiles || {}).filter((file) => v142Overrides.has(file))]),
+        skipped: new Set([...v143Overrides, ...successorOverrides, ...Object.keys(v141.protectedFiles || {}).filter((file) => v142Overrides.has(file))]),
         label: 'V141'
     });
     verifyProtectedFiles({
         protectedFiles: v142.protectedFiles,
-        skipped: new Set([...v143Overrides, ...Object.keys(v142.protectedFiles || {}).filter((file) => v141Overrides.has(file))]),
+        skipped: new Set([...v143Overrides, ...successorOverrides, ...Object.keys(v142.protectedFiles || {}).filter((file) => v141Overrides.has(file))]),
         label: 'V142'
     });
-    verifyProtectedFiles({ protectedFiles: v143.protectedFiles, label: 'V143' });
+    verifyProtectedFiles({ protectedFiles: v143.protectedFiles, skipped: successorOverrides, label: 'V143' });
 
     const packageJson = read('package.json');
     const v97Context = read('scripts/lib/ec-runtime-successor-v97-context.mjs');
@@ -64,9 +65,18 @@ export const assertV141V142ConvergenceV143 = () => {
     const panelPolicy = read('public/panel-intelligence/panel-new-dropi-persistence-v142.js');
     const whatsapp = read('src/routes/whatsapp.js');
 
-    assert.match(packageJson, /run-with-v143-context\.mjs/);
-    assert.match(packageJson, /test:v143-all/);
-    assert.match(v97Context, /^import '\.\/ec-runtime-successor-v143-bootstrap-context\.mjs';/);
+    if (successorOverrides.has('package.json')) {
+        assert.match(packageJson, /run-with-v144-context\.mjs/);
+        assert.match(packageJson, /test:v144-all/);
+    } else {
+        assert.match(packageJson, /run-with-v143-context\.mjs/);
+        assert.match(packageJson, /test:v143-all/);
+    }
+    if (successorOverrides.has('scripts/lib/ec-runtime-successor-v97-context.mjs')) {
+        assert.match(v97Context, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
+    } else {
+        assert.match(v97Context, /^import '\.\/ec-runtime-successor-v143-bootstrap-context\.mjs';/);
+    }
     assert.match(v140Guard, /assertV141V142ConvergenceV143/);
     assert.match(v140Guard, /PASS_SUCCESSOR_V143/);
 

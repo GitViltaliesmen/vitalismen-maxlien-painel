@@ -182,6 +182,7 @@ test('Purchase futuro nasce somente depois de Dropi bem sucedido com autorizacao
         order,
         shipment: { automation: { dropiSubmitAuthorizedAt: new Date() } },
         dropiResult: { ok: true, dropiOrderId: '123' },
+        freshDropiSubmission: true,
         purchaseSender: async () => { sends += 1; return { ok: true, eventId: order.orderId, response: { events_received: 1 } }; },
         purchaseLock: () => { locks += 1; },
         persistOrder: async () => { saves += 1; }
@@ -201,7 +202,7 @@ test('sem sucesso Dropi ou sem autorizacao humana o emissor CAPI fica em zero', 
     const purchaseSender = async () => { sends += 1; return { ok: true }; };
     const order = { orderId: 'EC-ADMIN-FIXTURE', tracking: {} };
     const failed = await ensurePurchaseAfterHumanDropiSuccessV141({ order, shipment: { automation: { dropiSubmitAuthorizedAt: new Date() } }, dropiResult: { ok: false }, purchaseSender });
-    const unauthorized = await ensurePurchaseAfterHumanDropiSuccessV141({ order, shipment: { automation: {} }, dropiResult: { ok: true }, purchaseSender });
+    const unauthorized = await ensurePurchaseAfterHumanDropiSuccessV141({ order, shipment: { automation: {} }, dropiResult: { ok: true }, freshDropiSubmission: true, purchaseSender });
     assert.equal(failed.reason, 'dropi_not_successful');
     assert.equal(unauthorized.reason, 'human_dropi_authorization_missing');
     assert.equal(sends, 0);

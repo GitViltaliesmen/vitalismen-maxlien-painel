@@ -1650,3 +1650,16 @@ na VSL e computador continua na página informativa. Dropi, Meta/CAPI, pixel,
 preços, checkout, schedulers, mídias e demais produtos permanecem congelados.
 
 Fonte de verdade: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.
+## 2026-09-08 — V144: Purchase Meta após envio Dropi manual
+
+A V144 cria uma exceção estreita ao bloqueio Meta do perfil V78. Somente o efeito
+`meta_purchase`, executado dentro do `POST /api/shipments/droppi/ec/orders/:orderId/submit`
+autenticado e depois de um sucesso Dropi novo, pode atravessar o guard. O contexto
+precisa conter a ação humana V138, o operador autenticado e a identidade do pedido.
+
+Pedidos já enviados não entram nesse caminho: a reabertura do submit retorna
+`historical_or_existing_dropi_submission` e faz zero chamadas CAPI. O Order só grava
+`metaPurchaseSentAt` e o lock do painel quando a Meta confirma `events_received > 0`.
+Salvar, configurar ou somente autorizar o pedido continua sem Dropi, Shipment novo ou
+Purchase. Browser events, anúncios, Dataset, VSL, Servientrega, pós-venda e schedulers
+permanecem com os contratos anteriores.

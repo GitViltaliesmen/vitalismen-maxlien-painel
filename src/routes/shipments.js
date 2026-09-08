@@ -502,6 +502,7 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
     order,
     shipment,
     dropiResult,
+    freshDropiSubmission = false,
     sourceOrderId = '',
     purchaseSender = sendPurchaseEventForOrder,
     purchaseLock = recordOnlineAdminPurchaseLock,
@@ -509,6 +510,9 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
 } = {}) => {
     const dropiSucceeded = dropiResult?.ok === true || dropiResult?.success === true;
     if (!dropiSucceeded) return { ok: false, skipped: true, reason: 'dropi_not_successful' };
+    if (freshDropiSubmission !== true) {
+        return { ok: false, skipped: true, reason: 'historical_or_existing_dropi_submission' };
+    }
     if (!shipment?.automation?.dropiSubmitAuthorizedAt) {
         return { ok: false, skipped: true, reason: 'human_dropi_authorization_missing' };
     }
@@ -525,7 +529,9 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
         const purchase = await purchaseSender(order);
         order.tracking = order.tracking || {};
         order.tracking.metaPurchaseEventId = purchase.eventId || order.orderId;
-        if (purchase.ok) {
+        const metaAccepted = purchase.ok === true
+            && Number(purchase.response?.events_received || 0) > 0;
+        if (metaAccepted) {
             order.tracking.metaPurchaseSentAt = new Date();
             order.tracking.metaPurchaseResponse = purchase.response;
         } else {
@@ -533,7 +539,8 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
                 ok: false,
                 status: purchase.status,
                 data: purchase.data,
-                error: purchase.error
+                response: purchase.response,
+                error: purchase.error || 'meta_purchase_not_accepted'
             };
         }
         await persistOrder(order);
@@ -546,11 +553,11 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
             });
         }
         return {
-            ok: purchase.ok === true,
+            ok: metaAccepted,
             skipped: false,
             eventId: order.tracking.metaPurchaseEventId,
-            metaAccepted: Number(purchase.response?.events_received || 0) > 0,
-            error: purchase.ok ? '' : String(purchase.error || 'meta_purchase_failed')
+            metaAccepted,
+            error: metaAccepted ? '' : String(purchase.error || 'meta_purchase_not_accepted')
         };
     } catch (error) {
         return { ok: false, skipped: false, reason: 'meta_purchase_pipeline_failed', error: error.message };
@@ -1288,6 +1295,7 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
         order,
         shipment,
         dropiResult: result,
+        freshDropiSubmission: true,
         sourceOrderId: order.orderId
     });
     return { ...result, purchase };
@@ -2587,6 +2595,7 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                 order,
                 shipment,
                 dropiResult: result,
+                freshDropiSubmission: true,
                 sourceOrderId: order.orderId
             });
             results.push({

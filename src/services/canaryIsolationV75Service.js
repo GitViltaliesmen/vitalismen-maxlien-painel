@@ -3,7 +3,11 @@ import {
     resolveCanaryControllerV77Runtime
 } from './canaryControllerV77Service.js';
 import { ecBotCoreV78BlockedResult } from './ecBotCoreOperationalV78Service.js';
-import { isEcManualDropiExternalEffectAllowedV119 } from './ecBotCoreRuntimeIntegrationV78Service.js';
+import {
+    currentEcBotCoreRuntimeContextV78,
+    isEcManualDropiExternalEffectAllowedV119
+} from './ecBotCoreRuntimeIntegrationV78Service.js';
+import { ecManualDropiMetaPurchaseAllowedV144 } from './ecManualDropiMetaPurchaseV144Service.js';
 
 export const CANARY_V75_QA_PHONE = '5515998038637';
 
@@ -221,10 +225,19 @@ export const assertCanaryV75ExternalEffectBlocked = (effect = '', env = process.
     throw error;
 };
 
-export const canaryV75BlockedResult = (effect = '', env = process.env) => {
+export const canaryV75BlockedResultForContextV144 = (
+    effect = '',
+    env = process.env,
+    context = currentEcBotCoreRuntimeContextV78()
+) => {
     if (clean(effect).toLowerCase() === 'dropi' && isEcManualDropiExternalEffectAllowedV119(effect, env)) {
         return null;
     }
+    if (ecManualDropiMetaPurchaseAllowedV144({
+        effect,
+        context,
+        env
+    })) return null;
     const botCoreBlock = ecBotCoreV78BlockedResult(effect, env);
     if (botCoreBlock) return botCoreBlock;
     const decision = evaluateCanaryV75ExternalEffect(effect, env);
@@ -236,6 +249,10 @@ export const canaryV75BlockedResult = (effect = '', env = process.env) => {
         canary: 'V75'
     };
 };
+
+export const canaryV75BlockedResult = (effect = '', env = process.env) => (
+    canaryV75BlockedResultForContextV144(effect, env)
+);
 
 export const CANARY_V75_RECIPIENT_LIST_FLAGS = CANARY_RECIPIENT_LIST_FLAGS;
 export const CANARY_V75_REQUIRED_TRUE_FLAGS = REQUIRED_TRUE_FLAGS;

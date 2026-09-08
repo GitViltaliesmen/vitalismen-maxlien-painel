@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 
-import { assertV141V142ConvergenceV143 } from '../scripts/guard-v141-v142-convergence-v143.mjs';
+import { assertMetaPurchaseAfterManualDropiV144 } from '../scripts/guard-meta-purchase-after-manual-dropi-v144.mjs';
 import { ensurePurchaseAfterHumanDropiSuccessV141 } from '../src/routes/shipments.js';
 import { loadMetaAdsInsights } from '../src/services/metaAdsInsightsService.js';
 
@@ -16,8 +16,8 @@ vm.runInNewContext(policySource, sandbox);
 const panelPolicy = sandbox.VitalismenPanelNewDropiPersistenceV142;
 
 test('V143 protege simultaneamente os deltas congelados V141 e V142', () => {
-    const manifest = assertV141V142ConvergenceV143();
-    assert.equal(manifest.mergeBase, '13e752adc08cd089181eeebe2ff527dbe97f5fa9');
+    const manifest = assertMetaPurchaseAfterManualDropiV144();
+    assert.equal(manifest.parentCommit, '8cbc5b0ca427af9ab27aeaad085c2bd70d5ca668');
     assert.equal(manifest.policy.productionChanged, false);
     assert.equal(manifest.policy.crossLayerIsolation, true);
 });
@@ -63,6 +63,7 @@ test('preparação Dropi não envia CAPI sem autorização e sucesso legítimos'
         order: { orderId: 'EC-ADMIN-FIXTURE', tracking: {} },
         shipment: { automation: {} },
         dropiResult: { ok: true },
+        freshDropiSubmission: true,
         purchaseSender: async () => { purchaseCalls += 1; return { ok: true }; }
     });
     assert.equal(result.reason, 'human_dropi_authorization_missing');

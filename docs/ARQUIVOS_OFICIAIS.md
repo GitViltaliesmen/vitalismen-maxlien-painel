@@ -1289,3 +1289,19 @@ nenhuma alteração realizada no VPS.
   `freeze-v130-meta-ads-readonly-20260905`.
 - Evidência operacional completa:
   `docs/META_ADS_INSIGHTS_V130_ACTIVATION_RESULT_20260905.md`.
+## Registro V144 — Purchase Meta após Dropi manual (2026-09-08)
+
+- Base congelada: V143 `8cbc5b0ca427af9ab27aeaad085c2bd70d5ca668`.
+- Emissão CAPI: `src/services/metaConversionsService.js`.
+- Permissão operacional estreita: `src/services/ecManualDropiMetaPurchaseV144Service.js`
+  e `src/services/canaryIsolationV75Service.js`.
+- Gatilho canônico: `src/routes/shipments.js`, somente depois de sucesso Dropi novo
+  dentro do submit autenticado.
+- Persistência exibida no painel: `tracking.metaPurchaseEventId`,
+  `tracking.metaPurchaseSentAt`, `tracking.metaPurchaseResponse` e
+  `purchase_capi_lock` após `events_received > 0`.
+- Pedidos históricos 3501, 3503 e 3504 foram auditados sem mutação e permanecem sem
+  Purchase retroativo.
+- Documento e freeze: `docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md` e
+  `docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json`.
+- Estado desta camada: candidata local; produção continua na V143 até aprovação.

@@ -498,7 +498,7 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 };
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
-    const canaryBlock = canaryV75BlockedResult('meta', options.env || process.env);
+    const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
     const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
     const attribution = await attributionEnricher(order, options.attributionOptions || {}).catch((error) => ({
