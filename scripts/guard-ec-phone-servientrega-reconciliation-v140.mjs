@@ -13,6 +13,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     const manifest = JSON.parse(read('docs/freeze/ec-phone-servientrega-reconciliation-v140-20260907.json'));
     const parentPath = 'docs/freeze/ec-dropi-status-postsale-v139-20260907.json';
     const parent = JSON.parse(read(parentPath));
+    const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
     assert.equal(manifest.parentCommit, 'b0e5f51cfc71995c9c0c26c6fbbf1ac0b74c9e69');
     assert.equal(manifest.parentTree, 'f2afcb2daa9c3f288c2a0ab07160c3a9874b239d');
     assert.equal(manifest.parentManifestSha256, sha256(fs.readFileSync(path.join(root, parentPath))));
@@ -21,6 +22,7 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
         assert.equal(sha256(fs.readFileSync(path.join(root, file))), expected, `V139 alterada fora do override V140: ${file}`);
     }
     for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
+        if (successorOverrides.has(file)) continue;
         assert.equal(sha256(fs.readFileSync(path.join(root, file))), expected, `V140 protegida divergente: ${file}`);
     }
 
@@ -68,7 +70,11 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
     assert.match(schedulerFunction, /messages=0/);
     assert.match(adminPanelStatus, /maxBuffer: 16 \* 1024 \* 1024/);
     assert.match(v139RuntimeBridge, /ec-runtime-successor-v140-context\.mjs/);
-    assert.match(v97RuntimeContext, /^import '\.\/ec-runtime-successor-v140-bootstrap-context\.mjs';/);
+    if (successorOverrides.has('scripts/lib/ec-runtime-successor-v97-context.mjs')) {
+        assert.match(v97RuntimeContext, /^import '\.\/ec-runtime-successor-v142-bootstrap-context\.mjs';/);
+    } else {
+        assert.match(v97RuntimeContext, /^import '\.\/ec-runtime-successor-v140-bootstrap-context\.mjs';/);
+    }
     assert.equal(manifest.policy.automaticDropiSend, false);
     assert.equal(manifest.policy.automaticShipmentCreation, false);
     assert.equal(manifest.policy.humanDropiAuthorizationRequired, true);

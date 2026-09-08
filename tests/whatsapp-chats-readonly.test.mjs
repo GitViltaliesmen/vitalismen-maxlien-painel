@@ -65,6 +65,8 @@ const fixture = () => {
         createdAt: '2026-08-14T10:00:00.000Z',
         updatedAt,
         metadata: {
+            manuallyCreatedAt: '2026-08-14T10:00:00.000Z',
+            panelLastReadAt: '2026-08-14T11:00:00.000Z',
             vslProductKey: 'vit_power_ec',
             vslProductName: 'Vit Power Ecuador',
             vslPath: '/m/',
@@ -122,8 +124,8 @@ const fixture = () => {
 const responseContractKeys = [
     'address', 'agencyId', 'agencyName', 'assignedAgent', 'city', 'contactName', 'conversationBucket', 'country', 'createdAt', 'currency', 'customerDraft',
     'deliveryMode', 'entryAt', 'firstInboundAt', 'flowDataOk', 'historicalOrderId', 'human', 'id', 'identityConflict', 'identityDiffers', 'isGroup', 'lastActivityAt',
-    'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'logistics', 'name', 'notes', 'officialOrderName', 'operationalStatus', 'orderCandidateCount', 'orderId', 'orderStatus',
-    'packageLabel', 'phone', 'previousDeliveredAt', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
+    'lastInboundAt', 'lastMessage', 'lastOutboundAt', 'logistics', 'manuallyCreatedAt', 'name', 'notes', 'officialOrderName', 'operationalStatus', 'orderCandidateCount', 'orderId', 'orderStatus',
+    'packageLabel', 'panelLastReadAt', 'phone', 'previousDeliveredAt', 'productKey', 'productMedia', 'productName', 'profilePictureUrl',
     'province', 'quantity', 'reference', 'selectionReason', 'tags', 'total', 'unansweredCount', 'unreadCount', 'updatedAt', 'vslPath',
     'vslProductKey', 'vslProductName', 'zapiCapturedContact'
 ].sort();
@@ -221,6 +223,8 @@ test('caminhos fast e enriched preservam resposta e nao alteram modelos nem time
             assert.equal(response.body[0].operationalStatus.source, 'order');
             assert.equal(response.body[0].historicalOrderId, null);
             assert.equal(response.body[0].previousDeliveredAt, null);
+            assert.equal(response.body[0].manuallyCreatedAt, state.metadata.manuallyCreatedAt);
+            assert.equal(response.body[0].panelLastReadAt, state.metadata.panelLastReadAt);
             responses.push(response.body[0]);
         }
 

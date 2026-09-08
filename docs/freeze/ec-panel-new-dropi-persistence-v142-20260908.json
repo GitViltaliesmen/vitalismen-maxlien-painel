@@ -1,0 +1,50 @@
+{
+  "freezeId": "ec-panel-new-dropi-persistence-v142-20260908",
+  "layer": "EC_PANEL_NEW_DROPI_PERSISTENCE_V142",
+  "country": "EC",
+  "parentCommit": "13e752adc08cd089181eeebe2ff527dbe97f5fa9",
+  "parentTree": "2b9c9608d110979eb56d7025d08d3506b475c4fb",
+  "parentFreezeTag": "freeze-v140-phone-external-link-reconciliation-20260907",
+  "parentManifestSha256": "6f48708daf7fa4c1726b9ac332985c886be692cecc4495d3dbfdd3465dc5fec1",
+  "preChangeSnapshot": "/opt/vitalismen-automacao/backups/pre-v142-panel-dropi-persistence-20260908T023314Z",
+  "preChangeTag": "snapshot-pre-v142-panel-dropi-persistence-20260908T023314Z",
+  "overrides": [
+    "package.json",
+    "public/qr.html",
+    "scripts/guard-ec-phone-servientrega-reconciliation-v140.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "src/routes/whatsapp.js",
+    "tests/whatsapp-chats-readonly.test.mjs"
+  ],
+  "protectedFiles": {
+    "package.json": "1ac3060ac1a8db15a921a09e7a5619449403603e5bc80d79a6bc7d9daa64d030",
+    "public/qr.html": "728d6e30509e197fea20a004151f1d8cd5d02dedc15893bfa10e7858d046fbe7",
+    "public/panel-intelligence/panel-new-dropi-persistence-v142.js": "327316ea45ff5dddb0dfc44cded2d589811b033448048596477e1b9fdac260c3",
+    "src/routes/whatsapp.js": "035432d7803d96c773166bc4baeb81f22dfdb5700dfa01068ce453c46db83c55",
+    "scripts/guard-ec-phone-servientrega-reconciliation-v140.mjs": "05a24519a84a65dda48c2254322381e8866c826cf7fe98c842126b4940303fae",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "2e785cd3e10eb032b4a751bb6e4c0e3fd5cae136760a1cdf8f9b62b7d2c1a586",
+    "scripts/lib/ec-runtime-successor-v142-bootstrap-context.mjs": "16521cf90a617dc6a5ea58fbad39c18cc00d3c81cc8f27d43c24e874e4c4700e",
+    "scripts/lib/ec-runtime-successor-v142-context.mjs": "7965c73cdbaabd18be87cb75b84f64ec0074c6b65fa4f0e02a3386e80c07c8b7",
+    "scripts/run-with-v142-context.mjs": "06cff7a93e9be2a39f7c05ef53ce36e3bb497173167cf634e78e6c4e62bd5b6f",
+    "scripts/guard-panel-new-dropi-persistence-v142.mjs": "7d4641d1159222003cbdf875b39d7c585a8b0dd8486fc7f242e1b64f2b05b49f",
+    "tests/panel-new-dropi-persistence-v142.test.mjs": "5a649bfb98c9902fb20f626b88251021d1c47471eb3b9e1bdf5bf973aae8ade3",
+    "tests/whatsapp-chats-readonly.test.mjs": "e2962c4fd8972b5ff2baa07a533b3716065fb7f86a6dee9a650046f63698b177",
+    "docs/EC_PANEL_NEW_DROPI_PERSISTENCE_V142_20260908.md": "a40aa3ecb7bea011bf97427616430120b7cc229fbcc8ae392888f91e03ab151c"
+  },
+  "policy": {
+    "manualContactRemainsNewUntilExplicitRead": true,
+    "manualCreatedAtPreservedOnDuplicateSave": true,
+    "completeConfirmedAdminLeadPreparedOnExplicitSave": true,
+    "preparationRoute": "configure-order",
+    "automaticDropiSend": false,
+    "automaticShipmentCreation": false,
+    "humanDropiAuthorizationRequired": true,
+    "dropiCallsOnSave": 0,
+    "incompleteOrderPrepared": false,
+    "unknownProductOrPricePrepared": false,
+    "existingIdenticalOrderReconfigured": false,
+    "statusChangesToSentOnlyAfterDropiEvidence": true,
+    "productionChanged": false,
+    "messagesSentDuringValidation": 0
+  }
+}

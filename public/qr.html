@@ -8391,7 +8391,7 @@
                             Confirmo que o status real da Servientrega está disponível para retirada.
                         </label>
                         <div class="customer-form-actions">
-                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Abrir no Leads</button>
+                            <button id="sendSelectedDropiBtn" class="success" type="button" disabled hidden data-guard-label="Enviar pedido Dropi">Salvar e abrir no Leads</button>
                             <button id="buyLaterBtn" type="button" disabled hidden>Comprar depois</button>
                         </div>
                     </form>
@@ -8861,6 +8861,7 @@
     <script src="/panel-intelligence/ec-engagement-panel-v42.js"></script>
     <script src="/panel-intelligence/ec-engagement-priority-v43.js"></script>
     <script src="/panel-intelligence/panel-global-new-messages-v44.js"></script>
+    <script src="/panel-intelligence/panel-new-dropi-persistence-v142.js?v=20260908"></script>
     <script src="/panel-intelligence/panel-warmup-isolation-v118.js?v=20260903"></script>
     <script src="/panel-intelligence/customer-edit-guard-v50.js"></script>
     <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
@@ -9518,6 +9519,65 @@
                 throw new Error(data.error || data.message || `Erro ${response.status} ao atualizar Leads Clientes`);
             }
             return data;
+        };
+
+        const prepareConfirmedAdminLeadForDropi = async ({ contactSave = null } = {}) => {
+            const chat = state.selectedChat;
+            const policy = window.VitalismenPanelNewDropiPersistenceV142;
+            if (!chat || !policy?.buildConfirmedAdminLeadPreparation) {
+                return { prepared: false, skipped: true, reason: 'v142_policy_unavailable' };
+            }
+            const draft = customerDraftFromForm();
+            const syncedLeadId = String(
+                contactSave?.unifiedSync?.lead_id
+                || contactSave?.unifiedSync?.leadId
+                || contactSave?.unifiedSync?.id
+                || ''
+            ).replace(/\D/g, '');
+            const syncedAdminOrderId = syncedLeadId ? `EC-ADMIN-${syncedLeadId}` : '';
+            draft.orderId = draft.orderId || chat.orderId || syncedAdminOrderId;
+            const customerDataResolution = contactSave?.state?.customerDataResolution
+                || state.customerDataResolution
+                || chat.customerDataResolution
+                || chat.customerDraft?.dataResolution
+                || null;
+            const decision = policy.buildConfirmedAdminLeadPreparation({
+                chat,
+                draft,
+                customerDataResolution,
+                existingOrder: selectedOrderForChat(chat)
+            });
+            if (!decision.ready) {
+                return { prepared: false, skipped: true, reason: decision.reason, orderId: decision.orderId || '' };
+            }
+            const result = await api(decision.endpoint, {
+                method: 'POST',
+                body: JSON.stringify(decision.body)
+            });
+            const operationalOrderId = String(result.orderId || decision.orderId || '').trim();
+            if (operationalOrderId) {
+                chat.orderId = operationalOrderId;
+                chat.customerDraft = {
+                    ...(chat.customerDraft || {}),
+                    orderId: operationalOrderId,
+                    priceCatalog: decision.body.priceCatalog
+                };
+                if (sameChatIdentity(state.selectedChat, chat)) {
+                    state.selectedChat.orderId = operationalOrderId;
+                    state.selectedChat.customerDraft = chat.customerDraft;
+                    setInputValue('customerOrderInput', operationalOrderId);
+                }
+            }
+            return {
+                prepared: true,
+                skipped: false,
+                orderId: operationalOrderId,
+                authorizationRequired: result.authorizationRequired === true,
+                dropiAuthorized: false,
+                dropiSubmitted: false,
+                product: result.product || null,
+                offer: result.offer || null
+            };
         };
 
         const applyLeadStatusUpdateLocally = async (message = {}) => {
@@ -11870,15 +11930,17 @@
             return 'attendance';
         };
 
-        const isNewMessagesChatForPanel = (chat = {}) => (
-            window.VitalismenEngagementPriorityV43?.isNewMessagesChat?.(chat, {
+        const isNewMessagesChatForPanel = (chat = {}) => {
+            const commercialNew = window.VitalismenEngagementPriorityV43?.isNewMessagesChat?.(chat, {
                 resolveConversationBucket: chatConversationBucket,
                 isVslAwaitingHuman
             }) ?? (
                 chatConversationBucket(chat) !== 'engagement'
                 && (Number(chat.unreadCount || 0) > 0 || isVslAwaitingHuman(chat))
-            )
-        );
+            );
+            const manualNewPending = window.VitalismenPanelNewDropiPersistenceV142?.isManualNewContactPending?.(chat) === true;
+            return chatConversationBucket(chat) !== 'engagement' && (commercialNew || manualNewPending);
+        };
 
         const renderConversationBucketCounts = (chats = []) => {
             const counts = { attendance: 0, engagement: 0, orders: 0, review: 0 };
@@ -15415,7 +15477,7 @@
                 ? 'Ver no Leads'
                 : brazilTestOnly
                 ? 'BR teste bloqueado'
-                : 'Abrir no Leads';
+                : 'Salvar e abrir no Leads';
             el('sendSelectedDropiBtn').disabled = brazilTestOnly || !state.selectedChat || state.busy;
             el('buyLaterBtn').disabled = brazilTestOnly || !state.selectedChat;
             el('clearRepeatedBotBtn').disabled = false;
@@ -18958,11 +19020,15 @@
             state.busy = true;
             setSaveCustomerButtonDisabled(true);
             try {
-                await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
+                const contactSave = await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
+                const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });
                 const tasks = [loadChats(), loadDashboardMetrics()];
                 if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                 await Promise.all(tasks);
                 renderSelectedDetails();
+                if (preparation.prepared) {
+                    showToast(`Dados salvos. Pedido ${preparation.orderId} preparado para seleção manual no Dropi.`);
+                }
             } catch (error) {
                 showToast(error.message);
             } finally {
@@ -19016,12 +19082,15 @@
             button.textContent = 'Confirmando...';
             try {
                 setInputValue('customerStatusInput', 'confirmado');
-                await persistSelectedCustomerData({ silent: true });
+                const contactSave = await persistSelectedCustomerData({ silent: true });
+                const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });
                 const tasks = [loadChats(), loadDashboardMetrics()];
                 if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                 await Promise.all(tasks);
                 renderSelectedDetails();
-                showToast('Dados do cliente confirmados.');
+                showToast(preparation.prepared
+                    ? `Dados confirmados. Pedido ${preparation.orderId} preparado para seleção manual no Dropi.`
+                    : 'Dados do cliente confirmados.');
             } catch (error) {
                 showToast(error.message);
             } finally {
@@ -20322,12 +20391,15 @@
             button.disabled = true;
             try {
                 button.textContent = 'Salvando...';
-                await persistSelectedCustomerData({ silent: true, synchronizeOrder: true });
+                const contactSave = await persistSelectedCustomerData({ silent: true, synchronizeOrder: true });
+                const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });
                 await Promise.all([loadShipments(), loadChats()]).catch(() => null);
                 const country = state.selectedChat?.country || el('customerCountryInput').value || selectedPanelCountry() || 'EC';
                 notifyLeadsClientsRefresh(country);
                 openLeadsWindow();
-                showToast('Envio Dropi fica em Leads Clientes. Pedido salvo e sincronizado.');
+                showToast(preparation.prepared
+                    ? `Pedido ${preparation.orderId} preparado. Selecione e autorize o envio em Leads Clientes.`
+                    : 'Envio Dropi fica em Leads Clientes. Pedido salvo e sincronizado.');
             } catch (error) {
                 showToast(error.message);
             } finally {

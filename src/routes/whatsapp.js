@@ -4643,6 +4643,8 @@ router.get('/chats', async (req, res) => {
                     lastActivityAt,
                     createdAt: contactState?.createdAt || null,
                     updatedAt: contactState?.updatedAt || null,
+                    manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
+                    panelLastReadAt: contactState?.metadata?.panelLastReadAt || null,
                     profilePictureUrl: String(contactState?.metadata?.profilePictureUrl || ''),
                     unreadCount: unreadCountByKey.get(c.conversationKey) || 0,
                     unansweredCount: unansweredCountByKey.get(c.conversationKey) || 0,
@@ -4935,6 +4937,8 @@ router.get('/chats', async (req, res) => {
                 lastActivityAt,
                 createdAt: contactState?.createdAt || null,
                 updatedAt: contactState?.updatedAt || null,
+                manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
+                panelLastReadAt: contactState?.metadata?.panelLastReadAt || null,
                 profilePictureUrl,
                 unreadCount,
                 unansweredCount,
@@ -5623,7 +5627,7 @@ router.post('/contacts', async (req, res) => {
         };
         state.metadata = {
             ...(state.metadata || {}),
-            manuallyCreatedAt: new Date().toISOString(),
+            manuallyCreatedAt: state.metadata?.manuallyCreatedAt || new Date().toISOString(),
             manuallyCreatedBy: req.user?.name || req.user?.email || 'painel',
             customerDraft: {
                 ...(state.metadata?.customerDraft || {}),
