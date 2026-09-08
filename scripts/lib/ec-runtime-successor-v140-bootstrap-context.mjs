@@ -4,8 +4,11 @@ import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/service
 
 const manifestUrl = new URL('../../docs/freeze/ec-phone-servientrega-reconciliation-v140-20260907.json', import.meta.url);
 const v141ManifestUrl = new URL('../../docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json', import.meta.url);
+const v143ManifestUrl = new URL('../../docs/freeze/ec-v141-v142-convergence-v143-20260908.json', import.meta.url);
 
-if (fs.existsSync(v141ManifestUrl)) {
+if (fs.existsSync(v143ManifestUrl)) {
+    await import('./ec-runtime-successor-v143-bootstrap-context.mjs');
+} else if (fs.existsSync(v141ManifestUrl)) {
     const manifest = JSON.parse(fs.readFileSync(v141ManifestUrl, 'utf8'));
     const parentManifest = JSON.parse(fs.readFileSync(manifestUrl, 'utf8'));
     const grandParentManifest = JSON.parse(fs.readFileSync(

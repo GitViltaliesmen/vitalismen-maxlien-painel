@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertEcMetaFunnelReconciliationV141 } from './guard-ec-meta-funnel-reconciliation-v141.mjs';
+import { assertV141V142ConvergenceV143 } from './guard-v141-v142-convergence-v143.mjs';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -98,8 +99,12 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const convergencePath = path.join(root, 'docs/freeze/ec-v141-v142-convergence-v143-20260908.json');
     const successorPath = path.join(root, 'docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json');
-    if (fs.existsSync(successorPath)) {
+    if (fs.existsSync(convergencePath)) {
+        assertV141V142ConvergenceV143();
+        console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS_SUCCESSOR_V143');
+    } else if (fs.existsSync(successorPath)) {
         assertEcMetaFunnelReconciliationV141();
         console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS_SUCCESSOR_V141');
     } else {
