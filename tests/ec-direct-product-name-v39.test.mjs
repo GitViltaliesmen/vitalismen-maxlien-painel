@@ -113,7 +113,8 @@ test('integração preserva origem VSL, lock do operador e anti-repetição pers
     assert.match(directLayer, /promotionUnlockReason.*explicit_price_objection/s);
     assert.doesNotMatch(directLayer, /['"]metadata\.vslProductKey['"]\s*:/);
     assert.match(zapi, /targetState\.human\?\.mode !== 'manual' \|\| directProductInbound/);
-    assert.match(router, /directProductInquiryHumanModePreserved: true/);
+    assert.doesNotMatch(router, /directProductInquiryHumanModePreserved: true/);
+    assert.match(router, /human\.mode === 'manual'.*botRepurchaseEligibilityV146: 'blocked_by_human_takeover'/s);
     assert.match(engine, /maybeHandleEcuadorDirectProductInquiry/);
     assert.match(directLayer, /handled: true, skipped: 'send_failed'/);
 });

@@ -3194,6 +3194,24 @@
             background: #f0fdf9;
         }
 
+        .agency-suggestion.top-match {
+            border-color: rgba(242, 162, 30, .88);
+            box-shadow: 0 0 0 2px rgba(242, 162, 30, .16);
+            background: rgba(242, 162, 30, .07);
+        }
+
+        .agency-top-match-label {
+            display: inline-flex;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 2px 7px;
+            background: #f2a21e;
+            color: #15100a !important;
+            font-size: 10px !important;
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+
         .agency-suggestion-main {
             border: 0;
             background: transparent;
@@ -9170,7 +9188,13 @@
             || ''
         );
         const chatTimestampValue = (chat = {}) => {
-            return parsePanelDateMs(chat.lastActivityAt || chat.lastMessage?.timestamp || chat.lastMessageAt || chat.updatedAt || chat.entryAt || chat.createdAt || 0);
+            return parsePanelDateMs(
+                chat.lastRelevantConversationActivityAt
+                || chat.lastActivityAt
+                || chat.lastMessage?.timestamp
+                || chat.lastMessageAt
+                || 0
+            );
         };
         const chatCompletenessScore = (chat = {}) => [
             chat.name,
@@ -9233,7 +9257,22 @@
                 firstInboundAt: earliestPanelDateValue(current.firstInboundAt, incoming.firstInboundAt) || primary.firstInboundAt || secondary.firstInboundAt || '',
                 lastInboundAt: latestPanelDateValue(current.lastInboundAt, incoming.lastInboundAt) || primary.lastInboundAt || secondary.lastInboundAt || '',
                 lastOutboundAt: latestPanelDateValue(current.lastOutboundAt, incoming.lastOutboundAt) || primary.lastOutboundAt || secondary.lastOutboundAt || '',
-                lastActivityAt: latestPanelDateValue(current.lastActivityAt, incoming.lastActivityAt, current.updatedAt, incoming.updatedAt, current.lastMessage?.timestamp, incoming.lastMessage?.timestamp),
+                lastRelevantConversationActivityAt: latestPanelDateValue(
+                    current.lastRelevantConversationActivityAt,
+                    incoming.lastRelevantConversationActivityAt,
+                    current.lastActivityAt,
+                    incoming.lastActivityAt,
+                    current.lastMessage?.timestamp,
+                    incoming.lastMessage?.timestamp
+                ),
+                lastActivityAt: latestPanelDateValue(
+                    current.lastRelevantConversationActivityAt,
+                    incoming.lastRelevantConversationActivityAt,
+                    current.lastActivityAt,
+                    incoming.lastActivityAt,
+                    current.lastMessage?.timestamp,
+                    incoming.lastMessage?.timestamp
+                ),
                 createdAt: earliestPanelDateValue(current.createdAt, incoming.createdAt) || primary.createdAt || secondary.createdAt || '',
                 updatedAt: latestPanelDateValue(current.updatedAt, incoming.updatedAt) || primary.updatedAt || secondary.updatedAt || '',
                 lastMessage: latestMessage,
@@ -11427,8 +11466,9 @@
             if (el('prevAgencyBatchBtn')) el('prevAgencyBatchBtn').disabled = offset <= 0;
             if (el('nextAgencyBatchBtn')) el('nextAgencyBatchBtn').disabled = offset + visibleAgencies.length >= total;
             list.innerHTML = visibleAgencies.map((agency, index) => `
-                <div class="agency-suggestion">
+                <div class="agency-suggestion ${agency.topMatch ? 'top-match' : ''}">
                     <button class="agency-suggestion-main" data-agency-apply-index="${index}" type="button">
+                        ${agency.topMatch ? '<span class="agency-top-match-label">Melhor resultado</span>' : ''}
                         <strong>${escapeHtml(agency.name || 'Servientrega')}</strong>
                         <span>${escapeHtml(agency.address || '')}</span>
                         <span>${escapeHtml([agency.city, agency.province].filter(Boolean).join(' / '))}</span>
@@ -11533,16 +11573,8 @@
                                 : 'Cidade e provincia validadas pelo catalogo oficial Servientrega.';
                         }
                     }
-                    if (automaticQuery && intelligence?.selectAutomaticAgency) {
-                        const automaticMatch = intelligence.selectAutomaticAgency(agencies, { query: automaticQuery });
-                        if (automaticMatch.matched && automaticMatch.agency) {
-                            applyAgencySuggestion(automaticMatch.agency, {
-                                automatic: true,
-                                selectionScope
-                            });
-                        } else if (automaticMatch.ambiguous) {
-                            el('customerSyncHint').textContent = 'Referencia corresponde a mais de uma agencia; escolha uma sugestao para evitar erro.';
-                        }
+                    if (automaticQuery && agencies.length > 0) {
+                        el('customerSyncHint').textContent = 'Melhor correspondência destacada. Clique na agência correta para selecioná-la.';
                     }
                 } catch (error) {
                     if (!isCustomerSelectionScopeCurrent(selectionScope) || state.agencyLookupSeq !== lookupSeq) return;
@@ -12271,12 +12303,12 @@
                 if (!searchActive && state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
                 return chatMatchesSearch(chat, search);
             }).sort((left, right) => {
+                const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
+                if (activityDifference) return activityDifference;
                 const unansweredDifference = Number(Number(right.unansweredCount || 0) > 0) - Number(Number(left.unansweredCount || 0) > 0);
                 if (unansweredDifference) return unansweredDifference;
                 const unreadDifference = Number(Number(right.unreadCount || 0) > 0) - Number(Number(left.unreadCount || 0) > 0);
                 if (unreadDifference) return unreadDifference;
-                const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
-                if (activityDifference) return activityDifference;
                 return parsePanelDateMs(chatEntryAtRaw(right)) - parsePanelDateMs(chatEntryAtRaw(left));
             });
 
@@ -18851,7 +18883,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if (synchronizeOrder && (!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if (synchronizeOrder && !historicalOrderId && !isAdminLeadOrder && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -18923,12 +18955,19 @@
                 state.customerDataResolution = savedCustomerDataResolution;
                 renderCustomerDataQuality(state.customerDataResolution);
             }
-            if (syncedDraft.orderId && syncedDraft.orderId !== customerDraft.orderId) {
-                customerDraft.orderId = syncedDraft.orderId;
-                if (saveSnapshotIsCurrent()) setInputValue('customerOrderInput', syncedDraft.orderId);
-            }
-            if (syncedDraft.flowDataOk) {
-                customerDraft.flowDataOk = syncedDraft.flowDataOk;
+            if (Object.keys(syncedDraft).length) {
+                Object.assign(customerDraft, syncedDraft);
+                if (saveSnapshotIsCurrent()) {
+                    setInputValue('customerOrderInput', syncedDraft.orderId || '');
+                    setInputValue('customerStatusInput', normalizePanelStatus(syncedDraft.status));
+                    setInputValue('customerAddressInput', syncedDraft.address || '');
+                    setInputValue('customerReferenceInput', syncedDraft.reference || '');
+                    setInputValue('customerDeliveryModeInput', syncedDraft.deliveryMode || '');
+                    setInputValue('customerAgencyNameInput', syncedDraft.agencyName || '');
+                    el('customerAgencyNameInput').dataset.agencyId = syncedDraft.agencyId || '';
+                    setInputValue('customerQuantityInput', syncedDraft.quantity || '');
+                    setInputValue('customerTotalInput', syncedDraft.total || '');
+                }
             }
 
             const savedChat = {

@@ -31,7 +31,7 @@ import { recordOnlineAdminPurchaseLock, syncContactDraftToOnlineAdminPanel } fro
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
-import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 import {
     hasProtocoloGContractSignal,
     protocoloGStructuredTracking,
@@ -114,6 +114,18 @@ import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV
 import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
 import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
 import { manualUploadsDirV129, remoteMediaCacheDirV129, relocatedRemoteCacheFileV129, manualUploadPathFromUrlV129, manualUploadUrlFromPathV129 } from '../services/manualMediaStorageV129Service.js';
+import {
+    freshCommercialCycleDraftV146,
+    freshCycleOrderIdV146,
+    isRepurchaseOrderV146,
+    isTerminalOrderV146,
+    sameCustomerPhoneV146
+} from '../services/ecCommercialCycleV146Service.js';
+import {
+    compareConversationRecencyV146,
+    lastRelevantConversationActivityAtV146
+} from '../services/panelConversationRecencyV146Service.js';
+import { initiateCheckoutBusinessActionV146 } from '../services/metaInitiateCheckoutV146Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1983,6 +1995,36 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
 
     const tracking = visit.tracking || {};
     const eventId = vslInitiateCheckoutEventId({ visitorKey, body });
+    const now = new Date();
+    const claimed = await VslVisit.findOneAndUpdate(
+        {
+            visitorKey,
+            $and: [
+                { $or: [
+                    { metaInitiateCheckoutSentAt: { $exists: false } },
+                    { metaInitiateCheckoutSentAt: null }
+                ] },
+                { $or: [
+                    { metaInitiateCheckoutLockUntil: { $exists: false } },
+                    { metaInitiateCheckoutLockUntil: { $lte: now } }
+                ] }
+            ]
+        },
+        { $set: {
+            metaInitiateCheckoutOccurredAt: visit.metaInitiateCheckoutOccurredAt || now,
+            metaInitiateCheckoutEventId: eventId,
+            metaInitiateCheckoutLockUntil: new Date(now.getTime() + 60_000)
+        } },
+        { new: true }
+    ).lean();
+    if (!claimed) {
+        const current = await VslVisit.findOne({ visitorKey }).lean().catch(() => null);
+        return {
+            alreadySent: Boolean(current?.metaInitiateCheckoutSentAt),
+            locked: !current?.metaInitiateCheckoutSentAt,
+            eventId: current?.metaInitiateCheckoutEventId || eventId
+        };
+    }
     const value = Number(body.value || body.product_value || body.total || 0);
     const result = await sendBrowserMetaEvent({
         country,
@@ -2005,8 +2047,14 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
         metaInitiateCheckoutEventId: result.eventId || eventId,
         metaInitiateCheckoutResponse: result.response || metaEventResponseSnapshot(result, eventId)
     };
-    if (result.ok) metaUpdate.metaInitiateCheckoutSentAt = new Date();
-    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    if (result.ok) metaUpdate.metaInitiateCheckoutSentAt = now;
+    if (result.ok && Number(result?.response?.events_received || 0) > 0) {
+        metaUpdate.metaInitiateCheckoutAcceptedAt = now;
+    }
+    await VslVisit.updateOne(
+        { visitorKey, metaInitiateCheckoutEventId: eventId },
+        { $set: metaUpdate, $unset: { metaInitiateCheckoutLockUntil: '' } }
+    );
     return { ...result, eventId: result.eventId || eventId };
 };
 
@@ -2416,21 +2464,24 @@ export const panelProductContextForChat = async ({
     const productMedia = ecuadorProductMediaForInfo(productInfo);
     const currentOrderId = String(customerDraft.orderId || '').trim();
     const activeOrderId = String(order?.orderId || '').trim();
+    const freshCommercialCycle = customerDraft.newCommercialCycle === true
+        || normalizePanelStatus(customerDraft.status) === 'recompra'
+        || isRepurchaseOrderV146(order, customerDraft.previousOrderId);
     const sourceOrderId = activeOrderId && currentOrderId && currentOrderId !== activeOrderId
         ? currentOrderId
         : String(customerDraft.sourceOrderId || '').trim();
     const panelDraft = {
         ...customerDraft,
-        ...(order?.customer?.name ? { name: order.customer.name } : {}),
-        phone: order?.customer?.phone || customerDraft.phone || (phoneDigits ? `+${phoneDigits}` : ''),
+        ...(!freshCommercialCycle && order?.customer?.name ? { name: order.customer.name } : {}),
+        phone: (freshCommercialCycle ? customerDraft.phone : order?.customer?.phone) || customerDraft.phone || (phoneDigits ? `+${phoneDigits}` : ''),
         country: 'EC',
-        ...(order?.customer?.city ? { city: order.customer.city } : {}),
-        ...(order?.customer?.province ? { province: order.customer.province } : {}),
-        ...(order?.customer?.address ? { address: order.customer.address } : {}),
-        ...(order?.customer?.reference ? { reference: order.customer.reference } : {}),
-        ...(order?.status ? { status: normalizePanelStatus(order.status) } : {}),
-        quantity: order?.package?.quantity ?? customerDraft.quantity ?? '',
-        total: order?.total ?? customerDraft.total ?? '',
+        ...(!freshCommercialCycle && order?.customer?.city ? { city: order.customer.city } : {}),
+        ...(!freshCommercialCycle && order?.customer?.province ? { province: order.customer.province } : {}),
+        ...(!freshCommercialCycle && order?.customer?.address ? { address: order.customer.address } : {}),
+        ...(!freshCommercialCycle && order?.customer?.reference ? { reference: order.customer.reference } : {}),
+        ...(!freshCommercialCycle && order?.status ? { status: normalizePanelStatus(order.status) } : {}),
+        quantity: freshCommercialCycle ? (customerDraft.quantity ?? '') : (order?.package?.quantity ?? customerDraft.quantity ?? ''),
+        total: freshCommercialCycle ? (customerDraft.total ?? '') : (order?.total ?? customerDraft.total ?? ''),
         ...(activeOrderId ? { orderId: activeOrderId } : {}),
         ...(sourceOrderId ? { sourceOrderId } : {}),
         product: productInfo.name,
@@ -2457,7 +2508,7 @@ export const panelProductContextForChat = async ({
             String(currentDraft.orderId || '') !== activeOrderId
             || (sourceOrderId && String(currentDraft.sourceOrderId || '') !== sourceOrderId)
         );
-        const statusMismatch = Boolean(order?.status)
+        const statusMismatch = !freshCommercialCycle && Boolean(order?.status)
             && normalizePanelStatus(currentDraft.status) !== normalizePanelStatus(panelDraft.status);
         if (productMismatch || orderMismatch || statusMismatch) {
             const updatedDraft = {
@@ -2565,13 +2616,152 @@ const attributionTrackingFromContactState = (state = null) => {
     });
 };
 
+const ensurePanelFreshCommercialCycleV146 = async ({ draft = {}, state = null, req = null } = {}) => {
+    const requestedStatus = normalizePanelStatus(draft.status);
+    const stateDraft = state?.metadata?.customerDraft || {};
+    const stateCurrentOrderId = String(stateDraft.currentNegotiationOrderId || '').trim();
+    const submittedOrderId = String(draft.orderId || '').trim();
+    const currentCandidateIds = [...new Set([stateCurrentOrderId, submittedOrderId].filter(Boolean))];
+    const currentCandidates = currentCandidateIds.length
+        ? await Order.find({ country: 'EC', orderId: { $in: currentCandidateIds } })
+        : [];
+    const activeRepurchase = currentCandidates.find((order) => (
+        !isTerminalOrderV146(order)
+        && (isRepurchaseOrderV146(order) || String(order?.entryReason || '') === 'new_purchase_after_terminal')
+        && sameCustomerPhoneV146(order.customer?.phone, draft.phone || state?.phoneDigits)
+    ));
+    if (activeRepurchase) {
+        return {
+            draft: {
+                ...draft,
+                orderId: activeRepurchase.orderId,
+                currentNegotiationOrderId: activeRepurchase.orderId,
+                previousOrderId: activeRepurchase.previousOrderId,
+                sourceOrderId: activeRepurchase.previousOrderId,
+                historicalOrderId: activeRepurchase.previousOrderId,
+                newCommercialCycle: true,
+                entryReason: activeRepurchase.entryReason
+            },
+            created: false,
+            reused: true,
+            previousOrder: null,
+            order: activeRepurchase
+        };
+    }
+
+    if (!['recompra', 'confirmado', 'confirmed'].includes(requestedStatus)) {
+        return { draft, created: false, reused: false, previousOrder: null, order: null };
+    }
+
+    const historicalIds = [...new Set([
+        draft.previousOrderId,
+        draft.historicalOrderId,
+        draft.sourceOrderId,
+        submittedOrderId,
+        stateDraft.previousOrderId,
+        stateDraft.historicalOrderId,
+        stateDraft.sourceOrderId,
+        stateDraft.orderId
+    ].map((value) => String(value || '').trim()).filter(Boolean))];
+    if (!historicalIds.length) return { draft, created: false, reused: false, previousOrder: null, order: null };
+
+    const previousOrders = await Order.find({ country: 'EC', orderId: { $in: historicalIds } });
+    let previousOrder = null;
+    let previousShipment = null;
+    for (const candidate of previousOrders) {
+        const shipment = await Shipment.findOne({ country: 'EC', orderId: candidate.orderId })
+            .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 });
+        if (panelOrderLifecycle({ order: candidate, shipment }).historical) {
+            previousOrder = candidate;
+            previousShipment = shipment;
+            break;
+        }
+    }
+    if (!previousOrder) return { draft, created: false, reused: false, previousOrder: null, order: null };
+    if (!sameCustomerPhoneV146(previousOrder.customer?.phone, draft.phone || state?.phoneDigits)) {
+        const error = new Error('repurchase_customer_mismatch');
+        error.code = 'repurchase_customer_mismatch';
+        error.status = 409;
+        throw error;
+    }
+
+    let order = await Order.findOne({
+        country: 'EC',
+        previousOrderId: previousOrder.orderId,
+        entryReason: { $in: ['repeat_purchase_after_delivered', 'new_purchase_after_terminal'] },
+        status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] },
+        'customer.phone': { $regex: `${digitsOnly(draft.phone || state?.phoneDigits).slice(-9)}$` }
+    }).sort({ updatedAt: -1, createdAt: -1 });
+    const reused = Boolean(order);
+    const lifecycle = panelOrderLifecycle({ order: previousOrder, shipment: previousShipment });
+    if (!order) {
+        order = new Order({
+            orderId: lifecycle.delivered
+                ? deliveredRepurchaseRegistrationDecision({
+                    authenticated: Boolean(req?.user),
+                    currentOrder: previousOrder,
+                    currentShipment: previousShipment,
+                    activeRepurchase: null,
+                    newCustomerPhone: draft.phone
+                }).orderId
+                : freshCycleOrderIdV146({ previousOrderId: previousOrder.orderId }),
+            country: 'EC',
+            customer: {
+                name: String(draft.name || previousOrder.customer?.name || '').trim(),
+                phone: String(draft.phone || previousOrder.customer?.phone || '').trim(),
+                city: String(draft.city || previousOrder.customer?.city || '').trim(),
+                province: String(draft.province || previousOrder.customer?.province || '').trim(),
+                address: '',
+                reference: ''
+            },
+            delivery: { mode: '', agencyId: '', agencyName: '' },
+            package: { id: 0, label: '', quantity: 0 },
+            total: 0,
+            currency: 'USD',
+            source: 'manual',
+            status: 'draft',
+            previousOrderId: previousOrder.orderId,
+            previousDeliveredAt: lifecycle.previousDeliveredAt,
+            entryReason: lifecycle.delivered ? 'repeat_purchase_after_delivered' : 'new_purchase_after_terminal',
+            notes: `Novo ciclo comercial V146. Historico preservado: ${previousOrder.orderId}.`,
+            tracking: {
+                ...attributionTrackingFromContactState(state),
+                ...(draft.productKey ? {
+                    productKey: draft.productKey,
+                    productName: draft.productName || draft.product || '',
+                    product: draft.productName || draft.product || '',
+                    productSelectionSource: 'panel_new_commercial_cycle'
+                } : {})
+            },
+            draftCreatedAt: new Date()
+        });
+        await order.save();
+    }
+
+    const normalizedDraft = freshCommercialCycleDraftV146({
+        draft,
+        previousOrder,
+        newOrderId: order.orderId,
+        status: 'recompra',
+        entryReason: order.entryReason
+    });
+    return {
+        draft: normalizedDraft,
+        created: !reused,
+        reused,
+        previousOrder,
+        order,
+        redirectedFromTerminalConfirmation: ['confirmado', 'confirmed'].includes(requestedStatus)
+    };
+};
+
 const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null, state = null } = {}) => {
     if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
         return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
     }
     const customerDataResolution = state?.customerDataResolution?.toObject?.() || state?.customerDataResolution || {};
     assertCustomerOrderDataReady(customerDataResolution);
-    const sourceOrderId = String(draft.orderId || '').trim();
+    const sourceOrderId = String(draft.orderId || draft.currentNegotiationOrderId || draft.previousOrderId || '').trim();
     const sourceIsAdminOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(sourceOrderId);
     const phoneDigits = digitsOnly(draft.phone);
     const quantity = normalizePanelPackageQuantity(draft.quantity);
@@ -2699,47 +2889,28 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     if (!order.confirmedAt) order.confirmedAt = new Date();
     await order.save();
 
-    let purchase = order.tracking?.metaPurchaseSentAt
+    const purchase = order.tracking?.metaPurchaseSentAt
         ? {
             ok: true,
             skipped: true,
             alreadySent: true,
-            reason: 'already_sent',
+            reason: 'already_sent_by_authorized_dropi_flow',
             eventId: order.tracking?.metaPurchaseEventId || order.orderId,
             response: order.tracking?.metaPurchaseResponse || null,
             sentAt: order.tracking?.metaPurchaseSentAt
         }
-        : { ok: false, skipped: true, reason: 'not_sent' };
-    if (!order.tracking?.metaPurchaseSentAt) {
-        const result = await sendPurchaseEventForOrder(order);
-        order.tracking = order.tracking || {};
-        order.tracking.metaPurchaseEventId = result.eventId || order.orderId;
-        if (result.ok) {
-            order.tracking.metaPurchaseSentAt = new Date();
-            order.tracking.metaPurchaseResponse = result.response;
-        } else {
-            order.tracking.metaPurchaseResponse = {
-                ok: false,
-                status: result.status,
-                data: result.data,
-                error: result.error
-            };
-        }
-        await order.save();
-        purchase = result;
-    }
-    let adminPurchaseLock = { ok: false, skipped: true, reason: 'purchase_not_sent' };
-    if (order.tracking?.metaPurchaseSentAt) {
-        adminPurchaseLock = recordOnlineAdminPurchaseLock({
-            order,
-            purchase,
-            sourceOrderId,
-            country: 'EC'
-        });
-        if (!adminPurchaseLock?.ok && !adminPurchaseLock?.skipped) {
-            console.warn('[META] falha ao gravar lock Purchase no painel:', adminPurchaseLock);
-        }
-    }
+        : {
+            ok: false,
+            skipped: true,
+            reason: 'awaiting_fresh_human_dropi_success_v144'
+        };
+    const adminPurchaseLock = {
+        ok: false,
+        skipped: true,
+        reason: order.tracking?.metaPurchaseSentAt
+            ? 'already_recorded_by_authorized_dropi_flow'
+            : 'purchase_not_eligible_before_human_dropi_success'
+    };
     return {
         ok: true,
         orderId: order.orderId,
@@ -3409,6 +3580,7 @@ router.post('/vsl-entry', async (req, res) => {
         const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
         const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
         const intent = cleanText(body.intent || body.action).toLowerCase();
+        const initiateCheckoutAction = initiateCheckoutBusinessActionV146(body);
         const skipMeta = body.skipMeta === true
             || body.skip_meta === true
             || body.testLead === true
@@ -3540,7 +3712,7 @@ router.post('/vsl-entry', async (req, res) => {
         const viewContent = skipMeta || clicked
             ? null
             : await sendVslViewContentForVisit({ visit, body, req, country, visitorKey });
-        const initiateCheckout = !skipMeta && clicked
+        const initiateCheckout = !skipMeta && initiateCheckoutAction.occurred
             ? await sendVslInitiateCheckoutForVisit({ visit, body, req, country, visitorKey })
             : null;
         const lead = !skipMeta && clicked
@@ -4610,13 +4782,10 @@ router.get('/chats', async (req, res) => {
                     || orderEntryAt
                     || contactEntryAt
                     || fallbackActivityAt;
-                const lastActivityAt = latestDateValue(
-                    fallbackActivityAt,
-                    contactState?.lastInboundAt,
-                    contactState?.lastOutboundAt,
-                    contactState?.updatedAt,
-                    contactState?.createdAt
-                );
+                const lastRelevantConversationActivityAt = lastRelevantConversationActivityAtV146({
+                    lastMessage,
+                    contactState
+                });
                 const productContext = await panelProductContextForChat({
                     contactState,
                     order,
@@ -4640,7 +4809,7 @@ router.get('/chats', async (req, res) => {
                     firstInboundAt: contactState?.firstInboundAt || null,
                     lastInboundAt: contactState?.lastInboundAt || null,
                     lastOutboundAt: contactState?.lastOutboundAt || null,
-                    lastActivityAt,
+                    lastActivityAt: lastRelevantConversationActivityAt,
                     createdAt: contactState?.createdAt || null,
                     updatedAt: contactState?.updatedAt || null,
                     manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
@@ -4664,17 +4833,17 @@ router.get('/chats', async (req, res) => {
                     agencyId: panelDraft.agencyId || null,
                     agencyName: panelDraft.agencyName || null,
                     flowDataOk: panelDraft.flowDataOk || {},
-                    orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                    orderId: panelDraft.orderId || readModel.selectedOrderId || null,
                     orderStatus: readModel.orderStatus,
                     operationalStatus: readModel.operationalStatus,
                     logistics: readModel.logistics,
                     orderCandidateCount: readModel.orderCandidateCount,
                     selectionReason: readModel.selectionReason,
-                    historicalOrderId: orderLifecycle.historicalOrderId || null,
+                    historicalOrderId: readModel.historicalOrderId || orderLifecycle.historicalOrderId || null,
                     previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
-                    quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
+                    quantity: readModel.freshCommercialCycle ? (panelDraft.quantity ?? null) : (order?.package?.quantity ?? panelDraft.quantity ?? null),
                     packageLabel: order?.package?.label || null,
-                    total: order?.total ?? panelDraft.total ?? null,
+                    total: readModel.freshCommercialCycle ? (panelDraft.total ?? null) : (order?.total ?? panelDraft.total ?? null),
                     currency: order?.currency || null,
                     notes: contactState?.human?.note || '',
                     assignedAgent: panelHumanAgentId(contactState),
@@ -4700,7 +4869,7 @@ router.get('/chats', async (req, res) => {
                 .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
                 .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
                 .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
-                .sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
+                .sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
             res.json(onlyLinked ? [] : dedupePanelChats(fastChats));
             return;
@@ -4915,13 +5084,10 @@ router.get('/chats', async (req, res) => {
                 || orderEntryAt
                 || contactEntryAt
                 || fallbackActivityAt;
-            const lastActivityAt = latestDateValue(
-                fallbackActivityAt,
-                contactState?.lastInboundAt,
-                contactState?.lastOutboundAt,
-                contactState?.updatedAt,
-                contactState?.createdAt
-            );
+            const lastRelevantConversationActivityAt = lastRelevantConversationActivityAtV146({
+                lastMessage,
+                contactState
+            });
 
             return {
                 id: c.id._serialized,
@@ -4934,7 +5100,7 @@ router.get('/chats', async (req, res) => {
                 firstInboundAt: contactState?.firstInboundAt || null,
                 lastInboundAt: contactState?.lastInboundAt || null,
                 lastOutboundAt: contactState?.lastOutboundAt || null,
-                lastActivityAt,
+                lastActivityAt: lastRelevantConversationActivityAt,
                 createdAt: contactState?.createdAt || null,
                 updatedAt: contactState?.updatedAt || null,
                 manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
@@ -4959,17 +5125,17 @@ router.get('/chats', async (req, res) => {
                 agencyId: panelDraft.agencyId || null,
                 agencyName: panelDraft.agencyName || null,
                 flowDataOk: panelDraft.flowDataOk || {},
-                orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                orderId: panelDraft.orderId || readModel.selectedOrderId || null,
                 orderStatus: readModel.orderStatus,
                 operationalStatus: readModel.operationalStatus,
                 logistics: readModel.logistics,
                 orderCandidateCount: readModel.orderCandidateCount,
                 selectionReason: readModel.selectionReason,
-                historicalOrderId: orderLifecycle.historicalOrderId || null,
+                historicalOrderId: readModel.historicalOrderId || orderLifecycle.historicalOrderId || null,
                 previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
-                quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
+                quantity: readModel.freshCommercialCycle ? (panelDraft.quantity ?? null) : (order?.package?.quantity ?? panelDraft.quantity ?? null),
                 packageLabel: order?.package?.label || null,
-                total: order?.total ?? panelDraft.total ?? null,
+                total: readModel.freshCommercialCycle ? (panelDraft.total ?? null) : (order?.total ?? panelDraft.total ?? null),
                 currency: order?.currency || null,
                 notes: order?.notes || contactState?.human?.note || '',
                 assignedAgent: panelHumanAgentId(contactState),
@@ -4998,7 +5164,7 @@ router.get('/chats', async (req, res) => {
             .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
             .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter));
 
-        filtered.sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
+        filtered.sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
         res.json(dedupePanelChats(filtered));
     } catch (error) {
@@ -5794,6 +5960,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
         let deferredOperationalOrderDraft = null;
         let customerDataBlockedResponse = null;
+        let freshCycleTransition = null;
         state.human = {
             ...(state.human || {}),
             ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
@@ -5869,6 +6036,25 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 return res.status(400).json({ error: 'Informe a data desejada do pedido para usar Comprar depois.' });
             }
             if (!internalOrTest && cleanDraft.country === 'EC') {
+                freshCycleTransition = await ensurePanelFreshCommercialCycleV146({
+                    draft: cleanDraft,
+                    state,
+                    req
+                });
+                cleanDraft = freshCycleTransition.draft;
+                if (freshCycleTransition.order?.orderId) {
+                    operationalOrderSync = {
+                        ok: true,
+                        skipped: true,
+                        reason: freshCycleTransition.created
+                            ? 'fresh_commercial_cycle_created_no_dropi_no_shipment_no_purchase'
+                            : 'fresh_commercial_cycle_reused',
+                        orderId: freshCycleTransition.order.orderId,
+                        previousOrderId: freshCycleTransition.order.previousOrderId || '',
+                        repurchase: true,
+                        created: freshCycleTransition.created
+                    };
+                }
                 const result = resolvePanelCustomerData({
                     state,
                     draft: cleanDraft,
@@ -5876,6 +6062,27 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     sourceMessageId: `panel-save:${req.user?._id || req.user?.email || 'operator'}`
                 });
                 cleanDraft = result.draft;
+                if (freshCycleTransition.created) {
+                    cleanDraft = {
+                        ...cleanDraft,
+                        address: '',
+                        reference: '',
+                        deliveryMode: '',
+                        agencyId: '',
+                        agencyName: '',
+                        quantity: '',
+                        total: '',
+                        orderId: freshCycleTransition.order.orderId,
+                        currentNegotiationOrderId: freshCycleTransition.order.orderId,
+                        previousOrderId: freshCycleTransition.previousOrder.orderId,
+                        historicalOrderId: freshCycleTransition.previousOrder.orderId,
+                        sourceOrderId: freshCycleTransition.previousOrder.orderId,
+                        status: 'recompra',
+                        newCommercialCycle: true,
+                        entryReason: freshCycleTransition.order.entryReason,
+                        orderScopedFieldsResetAt: new Date().toISOString()
+                    };
+                }
                 state.customerDataResolution = result.resolution;
                 state.markModified('customerDataResolution');
                 if (normalizePanelStatus(cleanDraft.status) === 'confirmado' && result.resolution.orderDataReady !== true) {
@@ -5974,7 +6181,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 const agencyAddress = cleanDraft.address || pendingOrder.agencyAddress || pendingOrder.address || '';
                 const looksLikeAgency = /servientrega|agencia|oficina|retiro/i.test(agencyAddress);
                 const mergedPendingOrder = {
-                    ...pendingOrder,
+                    ...(freshCycleTransition?.created ? {} : pendingOrder),
                     ...(cleanDraft.name ? { name: cleanDraft.name } : {}),
                     ...(correctedCity ? { city: correctedCity } : {}),
                     ...(correctedProvince ? { province: correctedProvince } : {}),
@@ -5983,6 +6190,23 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantity: normalizePanelPackageQuantity(cleanDraft.quantity) } : {}),
                     ...(cleanDraft.total ? { total: Number(cleanDraft.total) || cleanDraft.total } : {}),
                     ...(cleanDraft.product ? { product: cleanDraft.product } : {}),
+                    ...(freshCycleTransition?.created ? {
+                        address: '',
+                        reference: '',
+                        deliveryMode: '',
+                        agencyAddress: '',
+                        agencyId: '',
+                        agencyName: '',
+                        agency: '',
+                        quantity: '',
+                        total: '',
+                        agencyOptions: [],
+                        agencyOptionsPage: 0,
+                        agencyValidated: false,
+                        previousOrderId: cleanDraft.previousOrderId || '',
+                        source: 'repeat_purchase_after_delivered',
+                        stage: 'awaiting_quantity_data'
+                    } : {}),
                     ...(looksLikeAgency ? {
                         deliveryMode: 'agency',
                         deliveryType: 'SERVIENTREGA',

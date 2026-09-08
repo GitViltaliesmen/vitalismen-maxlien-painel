@@ -215,7 +215,10 @@ const vslVisitSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    metaInitiateCheckoutOccurredAt: Date,
+    metaInitiateCheckoutLockUntil: Date,
     metaInitiateCheckoutSentAt: Date,
+    metaInitiateCheckoutAcceptedAt: Date,
     metaInitiateCheckoutResponse: {
         type: mongoose.Schema.Types.Mixed,
         default: null
