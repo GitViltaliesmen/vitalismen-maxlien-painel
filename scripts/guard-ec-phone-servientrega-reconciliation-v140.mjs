@@ -91,6 +91,13 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    assertEcPhoneServientregaReconciliationV140();
-    console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS');
+    const successorPath = path.join(root, 'docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json');
+    if (fs.existsSync(successorPath)) {
+        const { assertEcMetaFunnelReconciliationV141 } = await import('./guard-ec-meta-funnel-reconciliation-v141.mjs');
+        assertEcMetaFunnelReconciliationV141();
+        console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS_SUCCESSOR_V141');
+    } else {
+        assertEcPhoneServientregaReconciliationV140();
+        console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS');
+    }
 }

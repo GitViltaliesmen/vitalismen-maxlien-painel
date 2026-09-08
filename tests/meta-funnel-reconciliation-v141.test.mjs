@@ -217,3 +217,10 @@ test('refresh Meta V141 independe da abertura do dashboard e permanece somente G
     assert.match(service, /refresh-meta-ads-insights-v141\.mjs/);
     assert.match(timer, /OnUnitActiveSec=5min/);
 });
+
+test('guard V140 delega a validacao direta ao freeze sucessor V141', () => {
+    const guard = fs.readFileSync(new URL('../scripts/guard-ec-phone-servientrega-reconciliation-v140.mjs', import.meta.url), 'utf8');
+    assert.match(guard, /ec-meta-funnel-reconciliation-v141-20260908\.json/);
+    assert.match(guard, /assertEcMetaFunnelReconciliationV141/);
+    assert.match(guard, /PASS_SUCCESSOR_V141/);
+});
