@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertEcMetaFunnelReconciliationV141 } from './guard-ec-meta-funnel-reconciliation-v141.mjs';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -93,7 +94,6 @@ export const assertEcPhoneServientregaReconciliationV140 = () => {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const successorPath = path.join(root, 'docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json');
     if (fs.existsSync(successorPath)) {
-        const { assertEcMetaFunnelReconciliationV141 } = await import('./guard-ec-meta-funnel-reconciliation-v141.mjs');
         assertEcMetaFunnelReconciliationV141();
         console.log('EC_PHONE_SERVIENTREGA_RECONCILIATION_V140_GUARD=PASS_SUCCESSOR_V141');
     } else {
