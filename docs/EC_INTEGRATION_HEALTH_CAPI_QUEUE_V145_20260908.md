@@ -87,6 +87,10 @@ operacionais e o arquivo de fixture acima à cadeia ancestral; depois executa in
 e qualquer futura revisão de ativação é obrigatório o preload explícito
 `--import ./scripts/lib/ec-runtime-successor-v145-context.mjs`. A candidata não
 altera o bootstrap congelado V144. Não iniciar `src/index.js` sem esse preload.
+O preload valida os hashes do delta antes de importar os guards ancestrais,
+inclusive quando V143 ou V144 são o ponto de entrada CLI. Um teste em subprocesso
+cobre essa ordem: a primeira execução completa encontrou a importação precoce
+do guard V143, e a correção fica exclusivamente no novo preload V145.
 
 Testes novos cobrem provider sem eventos, provider desconectado, webhook sem
 evidência, fila e erro operacional, história sem retry, nova pendência, timestamps

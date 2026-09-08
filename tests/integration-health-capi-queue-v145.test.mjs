@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { applyIntegrationHealthV145, buildIntegrationHealthV145, classifyCapiOrderV145,
     summarizeCapiQueueV145, V144_ACTIVATED_AT } from '../src/services/funnelIntegrationHealthV145Service.js';
@@ -174,4 +175,15 @@ test('frontend displays global health, window emptiness, real queue, historical 
     assert.match(source, /Histórico bloqueado:/);
     assert.match(source, /Último erro:/);
     assert.doesNotMatch(source, /`Até \$\{formatDate\(value.dataThrough\)\}/);
+});
+
+test('V145 preload validates its delta before frozen V143 and V144 CLI guards execute', () => {
+    const preload = new URL('../scripts/lib/ec-runtime-successor-v145-context.mjs', import.meta.url).href;
+    for (const guard of ['guard-v141-v142-convergence-v143.mjs', 'guard-meta-purchase-after-manual-dropi-v144.mjs']) {
+        const result = spawnSync(process.execPath, [`--import=${preload}`, `scripts/${guard}`], {
+            env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 30000
+        });
+        assert.equal(result.status, 0, `${guard}: ${result.stderr}`);
+        assert.match(result.stdout, /=PASS/);
+    }
 });
