@@ -38,6 +38,34 @@ export const ecuadorMetricsRange = ({ days = 7, now = new Date() } = {}) => {
     return { days: safeDays, startAt, endAt };
 };
 
+const ecuadorDayAsUtc = (value) => {
+    const match = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const [, year, month, day] = match.map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day, 5));
+    return date.getUTCFullYear() === year
+        && date.getUTCMonth() === month - 1
+        && date.getUTCDate() === day ? date : null;
+};
+
+export const resolveFunnelMetricsRange = ({ fromDay, toDay, days = 7, now = new Date() } = {}) => {
+    if (!fromDay && !toDay) return ecuadorMetricsRange({ days, now });
+    const startAt = ecuadorDayAsUtc(fromDay);
+    const endAt = ecuadorDayAsUtc(toDay);
+    if (!startAt || !endAt || startAt >= endAt) {
+        const error = new Error('Use from/to no formato YYYY-MM-DD, com to exclusivo e posterior a from.');
+        error.code = 'INVALID_ECUADOR_METRICS_WINDOW';
+        throw error;
+    }
+    const windowDays = Math.round((endAt.getTime() - startAt.getTime()) / 86400000);
+    if (windowDays < 1 || windowDays > 90) {
+        const error = new Error('A janela explicita deve ter entre 1 e 90 dias.');
+        error.code = 'INVALID_ECUADOR_METRICS_WINDOW';
+        throw error;
+    }
+    return { days: windowDays, startAt, endAt, explicit: true, fromDay, toDay };
+};
+
 export const ecuadorDayKey = (value) => {
     const date = asDate(value);
     if (!date) return '';
@@ -52,7 +80,7 @@ export const ecuadorHourKey = (value) => {
 
 const isWithin = (value, startAt, endAt) => {
     const date = asDate(value);
-    return Boolean(date && date >= startAt && date <= endAt);
+    return Boolean(date && date >= startAt && date < endAt);
 };
 
 const orderCreatedAt = (order = {}) => (
@@ -268,6 +296,31 @@ const buildInvestmentRadar = (hourRows = []) => {
     };
 };
 
+export const applyInvestmentRadarSafetyV141 = (radar = {}, {
+    metaAds = {},
+    startDay = '',
+    endDay = '',
+    minimumSample = 20
+} = {}) => {
+    const reasons = [];
+    if (metaAds.status !== 'available' || metaAds.fetchStatus === 'failed') reasons.push('META_FETCH_NOT_OK');
+    if (metaAds.stale === true) reasons.push('META_CACHE_STALE');
+    if (startDay && metaAds.startDay !== startDay) reasons.push('DATA_WINDOW_MISMATCH');
+    if (endDay && metaAds.endDay !== endDay) reasons.push('DATA_WINDOW_MISMATCH');
+    if (Number(radar.sampleEntries || 0) < minimumSample) reasons.push('SAMPLE_INSUFFICIENT');
+    const uniqueReasons = [...new Set(reasons)];
+    if (!uniqueReasons.length) return { ...radar, enabled: true, blockedReasons: [] };
+    return {
+        ...radar,
+        enabled: false,
+        state: 'blocked',
+        bestWindow: null,
+        creativeWinner: null,
+        budgetSuggestion: null,
+        blockedReasons: uniqueReasons
+    };
+};
+
 const publicOrder = (order = {}, pixelId = '', datasetIdForOrder = () => '') => {
     const sentAt = asDate(order.tracking?.metaPurchaseSentAt);
     const eventsReceived = metaEventsReceived(order.tracking?.metaPurchaseResponse);
@@ -337,9 +390,10 @@ export const buildFunnelMetricsSnapshot = ({
     days = 7,
     now = new Date(),
     pixelId = '',
-    datasetIdForOrder = () => ''
+    datasetIdForOrder = () => '',
+    range: suppliedRange = null
 } = {}) => {
-    const range = ecuadorMetricsRange({ days, now });
+    const range = suppliedRange || ecuadorMetricsRange({ days, now });
     const rows = [];
     const rowsByDay = new Map();
     const protocoloGRows = [];
@@ -579,9 +633,9 @@ export const buildFunnelMetricsSnapshot = ({
     };
 };
 
-export const funnelMetricsMongoWindow = ({ days = 7, now = new Date() } = {}) => {
-    const range = ecuadorMetricsRange({ days, now });
-    const between = { $gte: range.startAt, $lte: range.endAt };
+export const funnelMetricsMongoWindow = ({ days = 7, now = new Date(), range: suppliedRange = null } = {}) => {
+    const range = suppliedRange || ecuadorMetricsRange({ days, now });
+    const between = { $gte: range.startAt, $lt: range.endAt };
     return {
         ...range,
         visitQuery: {

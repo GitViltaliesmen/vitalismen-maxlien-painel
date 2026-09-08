@@ -37,28 +37,48 @@ const conversations = (row) => actionValue(row.actions, [
 const emptyTotals = () => ({
     impressions: 0,
     reach: 0,
+    clicks: 0,
     linkClicks: 0,
+    outboundClicks: 0,
     landingPageViews: 0,
     leads: 0,
     conversations: 0,
     purchases: 0,
+    purchaseValue: 0,
     spend: 0
 });
 
 const addMetrics = (target, row) => {
     target.impressions += number(row.impressions);
     target.reach += number(row.reach);
+    target.clicks += number(row.clicks);
     target.linkClicks += number(row.inline_link_clicks) || actionValue(row.actions, ['link_click']);
+    target.outboundClicks += actionValue(row.outbound_clicks, ['outbound_click']);
     target.landingPageViews += landingPageViews(row);
     target.leads += leads(row);
     target.conversations += conversations(row);
     target.purchases += purchases(row);
+    target.purchaseValue += actionValue(row.action_values, [
+        'purchase',
+        'omni_purchase',
+        'offsite_conversion.fb_pixel_purchase'
+    ]);
     target.spend += number(row.spend);
 };
 
 const finishMetrics = (metrics) => ({
     ...metrics,
     spend: Math.round(metrics.spend * 100) / 100,
+    purchaseValue: Math.round(metrics.purchaseValue * 100) / 100,
+    frequency: metrics.reach > 0
+        ? Math.round((metrics.impressions / metrics.reach) * 100) / 100
+        : 0,
+    costPerPurchase: metrics.purchases > 0
+        ? Math.round((metrics.spend / metrics.purchases) * 100) / 100
+        : 0,
+    purchaseRoas: metrics.spend > 0
+        ? Math.round((metrics.purchaseValue / metrics.spend) * 100) / 100
+        : 0,
     landingRate: metrics.linkClicks > 0
         ? Math.round((metrics.landingPageViews / metrics.linkClicks) * 1000) / 10
         : 0,
@@ -154,6 +174,41 @@ const writeCache = (file, value) => {
     fs.renameSync(temporary, file);
 };
 
+const creativeDestination = (creative = {}) => (
+    creative.object_story_spec?.link_data?.link
+    || creative.object_story_spec?.video_data?.call_to_action?.value?.link
+    || ''
+);
+
+const loadCreativeMapping = async ({ adIds = [], version, token, fetchImpl }) => {
+    const rows = [];
+    for (const adId of [...new Set(adIds.filter(Boolean))].slice(0, 100)) {
+        try {
+            const body = await graphGet({
+                url: `https://graph.facebook.com/${version}/${encodeURIComponent(adId)}?fields=id,name,effective_status,url_tags,creative{id,name,thumbnail_url,image_hash,video_id,object_story_spec}`,
+                token,
+                fetchImpl
+            });
+            const creative = body.creative || {};
+            rows.push({
+                adId,
+                adName: String(body.name || ''),
+                effectiveStatus: String(body.effective_status || ''),
+                urlTags: String(body.url_tags || ''),
+                creativeId: String(creative.id || ''),
+                creativeName: String(creative.name || ''),
+                videoId: String(creative.video_id || ''),
+                imageHash: String(creative.image_hash || ''),
+                thumbnailAvailable: Boolean(creative.thumbnail_url),
+                destinationUrl: String(creativeDestination(creative))
+            });
+        } catch (error) {
+            rows.push({ adId, errorCode: error.code || 'META_AD_CREATIVE_LOOKUP_FAILED' });
+        }
+    }
+    return rows;
+};
+
 export const loadMetaAdsInsights = async ({
     days = 7,
     now = new Date(),
@@ -166,7 +221,9 @@ export const loadMetaAdsInsights = async ({
     version: suppliedVersion,
     campaignFilter: suppliedCampaignFilter,
     cacheFile = env.META_ADS_INSIGHTS_CACHE_FILE_EC || DEFAULT_CACHE_FILE,
-    cacheTtlMs = number(env.META_ADS_INSIGHTS_CACHE_SECONDS_EC || 300) * 1000
+    cacheTtlMs = number(env.META_ADS_INSIGHTS_CACHE_SECONDS_EC || 300) * 1000,
+    startDay: suppliedStartDay,
+    endDay: suppliedEndDay
 } = {}) => {
     const token = String(
         suppliedToken
@@ -183,13 +240,30 @@ export const loadMetaAdsInsights = async ({
             ? env.META_ADS_CAMPAIGN_NAME_FILTER_EC || ''
             : suppliedCampaignFilter
     ).trim().toLowerCase();
+    const endDay = String(suppliedEndDay || dayInEcuador(now));
+    const end = new Date(`${endDay}T05:00:00.000Z`);
+    const startDay = String(suppliedStartDay || dayInEcuador(
+        new Date(end.getTime() - (Math.max(1, number(days)) - 1) * 86400000)
+    ));
     const cached = readCache(cacheFile);
     const cacheAgeMs = cached?.fetchedAt ? now.getTime() - new Date(cached.fetchedAt).getTime() : Infinity;
-    if (cached && cacheAgeMs >= 0 && cacheAgeMs <= cacheTtlMs && number(cached.days) === number(days)) {
-        return { ...cached, source: 'cache', stale: false };
+    const cacheWindowMatches = cached?.startDay === startDay && cached?.endDay === endDay;
+    if (cached && cacheAgeMs >= 0 && cacheAgeMs <= cacheTtlMs && cacheWindowMatches) {
+        return {
+            ...cached,
+            source: 'cache',
+            stale: false,
+            fetchStatus: 'ok',
+            cacheAgeMs,
+            dataThrough: cached.dataThrough || cached.endDay,
+            lastSuccessAt: cached.lastSuccessAt || cached.fetchedAt,
+            lastError: null
+        };
     }
     if (!token) return {
         status: 'unavailable', source: 'none', stale: false, configured: false,
+        fetchStatus: 'failed', dataThrough: '', lastSuccessAt: null,
+        lastError: { code: 'META_ADS_ACCESS_TOKEN_EC_MISSING', at: now.toISOString() },
         errorCode: 'META_ADS_ACCESS_TOKEN_EC_MISSING',
         message: 'Configure META_ADS_ACCESS_TOKEN_EC com permissao ads_read.'
     };
@@ -200,12 +274,9 @@ export const loadMetaAdsInsights = async ({
             token,
             fetchImpl
         });
-        const endDay = dayInEcuador(now);
-        const end = new Date(`${endDay}T05:00:00.000Z`);
-        const startDay = dayInEcuador(new Date(end.getTime() - (Math.max(1, number(days)) - 1) * 86400000));
         const params = new URLSearchParams({
             level: 'ad',
-            fields: 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,impressions,reach,inline_link_clicks,spend,actions,date_start,date_stop',
+            fields: 'campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,impressions,reach,frequency,clicks,inline_link_clicks,outbound_clicks,spend,actions,action_values,cost_per_action_type,purchase_roas,website_purchase_roas,date_start,date_stop',
             time_range: JSON.stringify({ since: startDay, until: endDay }),
             time_increment: '1',
             limit: '500'
@@ -222,10 +293,17 @@ export const loadMetaAdsInsights = async ({
             ? rows.filter((row) => [row.campaign_name, row.adset_name, row.ad_name]
                 .some((value) => String(value || '').toLowerCase().includes(campaignFilter)))
             : rows;
+        const creativeMapping = await loadCreativeMapping({
+            adIds: filtered.map((row) => String(row.ad_id || '')).filter(Boolean),
+            version,
+            token,
+            fetchImpl
+        });
         const snapshot = {
             status: 'available',
             source: 'live',
             stale: false,
+            fetchStatus: 'ok',
             configured: true,
             accountId: resolvedAccountId,
             accountName: String(accountName || ''),
@@ -236,6 +314,10 @@ export const loadMetaAdsInsights = async ({
             startDay,
             endDay,
             fetchedAt: now.toISOString(),
+            dataThrough: endDay,
+            lastSuccessAt: now.toISOString(),
+            lastError: null,
+            creativeMapping,
             ...summarizeMetaAdsInsights(filtered)
         };
         writeCache(cacheFile, snapshot);
@@ -245,11 +327,21 @@ export const loadMetaAdsInsights = async ({
             ...cached,
             source: 'cache',
             stale: true,
+            fetchStatus: 'failed',
+            cacheAgeMs,
+            dataThrough: cached.dataThrough || cached.endDay || '',
+            lastSuccessAt: cached.lastSuccessAt || cached.fetchedAt || null,
+            lastError: { code: error.code || 'META_ADS_API_FAILED', at: now.toISOString() },
             errorCode: error.code || 'META_ADS_API_FAILED',
             message: 'Meta indisponivel; exibindo ultimo cache valido.'
         };
         return {
-            status: 'unavailable', source: 'none', stale: false, configured: true,
+            status: 'unavailable', source: 'none', stale: true, configured: true,
+            fetchStatus: 'failed',
+            cacheAgeMs: null,
+            dataThrough: '',
+            lastSuccessAt: null,
+            lastError: { code: error.code || 'META_ADS_API_FAILED', at: now.toISOString() },
             errorCode: error.code || 'META_ADS_API_FAILED',
             message: error.code === 'META_ADS_READ_PERMISSION_MISSING'
                 ? 'O token Meta nao possui ads_read.'

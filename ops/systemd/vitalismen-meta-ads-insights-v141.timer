@@ -1,0 +1,14 @@
+[Unit]
+Description=Refresh Vitalismen EC Meta Ads Insights independently from dashboard traffic
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20s
+AccuracySec=10s
+Persistent=true
+Unit=vitalismen-meta-ads-insights-v141.service
+
+[Install]
+WantedBy=timers.target
+

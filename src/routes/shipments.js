@@ -498,6 +498,65 @@ const ensurePurchaseForStagedOrder = async ({ order, req, sourceOrderId }) => {
     return purchase;
 };
 
+export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
+    order,
+    shipment,
+    dropiResult,
+    sourceOrderId = '',
+    purchaseSender = sendPurchaseEventForOrder,
+    purchaseLock = recordOnlineAdminPurchaseLock,
+    persistOrder = async (target) => target.save()
+} = {}) => {
+    const dropiSucceeded = dropiResult?.ok === true || dropiResult?.success === true;
+    if (!dropiSucceeded) return { ok: false, skipped: true, reason: 'dropi_not_successful' };
+    if (!shipment?.automation?.dropiSubmitAuthorizedAt) {
+        return { ok: false, skipped: true, reason: 'human_dropi_authorization_missing' };
+    }
+    if (!order) return { ok: false, skipped: true, reason: 'order_missing' };
+    if (order.tracking?.metaPurchaseSentAt) {
+        return {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            eventId: order.tracking?.metaPurchaseEventId || order.orderId
+        };
+    }
+    try {
+        const purchase = await purchaseSender(order);
+        order.tracking = order.tracking || {};
+        order.tracking.metaPurchaseEventId = purchase.eventId || order.orderId;
+        if (purchase.ok) {
+            order.tracking.metaPurchaseSentAt = new Date();
+            order.tracking.metaPurchaseResponse = purchase.response;
+        } else {
+            order.tracking.metaPurchaseResponse = {
+                ok: false,
+                status: purchase.status,
+                data: purchase.data,
+                error: purchase.error
+            };
+        }
+        await persistOrder(order);
+        if (order.tracking.metaPurchaseSentAt) {
+            purchaseLock({
+                order,
+                purchase,
+                sourceOrderId: sourceOrderId || order.orderId,
+                country: 'EC'
+            });
+        }
+        return {
+            ok: purchase.ok === true,
+            skipped: false,
+            eventId: order.tracking.metaPurchaseEventId,
+            metaAccepted: Number(purchase.response?.events_received || 0) > 0,
+            error: purchase.ok ? '' : String(purchase.error || 'meta_purchase_failed')
+        };
+    } catch (error) {
+        return { ok: false, skipped: false, reason: 'meta_purchase_pipeline_failed', error: error.message };
+    }
+};
+
 const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, note = '', req }) => {
     const adminOrderId = `EC-ADMIN-${leadId}`;
     const lead = getAdminLeadSnapshot({ orderId: adminOrderId });
@@ -1225,7 +1284,13 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
             message: describeDropiSubmitFailure(result.error || result.reason)
         };
     }
-    return result;
+    const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+        order,
+        shipment,
+        dropiResult: result,
+        sourceOrderId: order.orderId
+    });
+    return { ...result, purchase };
 };
 
 const enqueueDropiSubmitJob = async ({ order, shipment, user = null }) => {
@@ -2156,13 +2221,29 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
 
         const existingShipment = await Shipment.findOne({ orderId: order.orderId });
         const previouslySubmitted = alreadySubmittedResponse(order, existingShipment);
-        if (previouslySubmitted) return res.json(previouslySubmitted);
+        if (previouslySubmitted) {
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment: existingShipment,
+                dropiResult: previouslySubmitted,
+                sourceOrderId: order.orderId
+            });
+            return res.json({ ...previouslySubmitted, purchase });
+        }
         assertEcDropiOrderReadyV138(order);
         const shipment = await ensureShipmentForOrder(order, 'EC');
         if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
-        if (alreadySubmitted) return res.json(alreadySubmitted);
+        if (alreadySubmitted) {
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment,
+                dropiResult: alreadySubmitted,
+                sourceOrderId: order.orderId
+            });
+            return res.json({ ...alreadySubmitted, purchase });
+        }
         if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
         if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
@@ -2502,6 +2583,12 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                 });
                 continue;
             }
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment,
+                dropiResult: result,
+                sourceOrderId: order.orderId
+            });
             results.push({
                 orderId: order.orderId,
                 ok: true,
@@ -2515,6 +2602,7 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                     || result?.result?.verifiedTrackingNumber
                     || '',
                 carrier: result?.result?.chosenCarrier || '',
+                purchase,
                 message: 'submitted'
             });
         }

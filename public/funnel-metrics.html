@@ -531,6 +531,8 @@
                     <option value="14">14 dias</option>
                     <option value="30">30 dias</option>
                 </select>
+                <input id="fromDay" type="date" aria-label="Data inicial no Equador">
+                <input id="toDay" type="date" aria-label="Data final exclusiva no Equador">
                 <button id="refreshBtn" type="button">Atualizar</button>
                 <button id="logoutBtn" type="button">Sair</button>
             </div>
@@ -538,6 +540,22 @@
 
         <main>
             <section class="grid" id="metrics"></section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Saúde das integrações</h2>
+                        <p id="integrationFreshness" class="meta">Meta, Z-API, bot, pedidos, CAPI e cálculo das métricas</p>
+                    </div>
+                    <p id="integrationAlerts" class="meta">Carregando...</p>
+                </div>
+                <div class="grid" id="integrationHealth" style="padding:14px"></div>
+                <div class="panel-head">
+                    <h2>Causas sem atribuição</h2>
+                    <p class="meta">Classificação baseada somente em evidência persistida</p>
+                </div>
+                <div class="grid" id="unmatchedCauses" style="padding:14px"></div>
+            </section>
 
             <section class="radar-panel" id="investmentRadarPanel">
                 <div class="radar-head">
@@ -605,6 +623,7 @@
                         <thead>
                             <tr>
                                 <th>Anúncio</th>
+                                <th>Criativo</th>
                                 <th>Conjunto</th>
                                 <th>Campanha</th>
                                 <th>Alcance</th>
@@ -918,6 +937,27 @@
 
         const renderInvestmentRadar = (data = {}) => {
             const radar = data.investmentRadar || {};
+            if (radar.enabled === false) {
+                const reason = (radar.blockedReasons || []).join(', ') || 'DADOS_INSUFICIENTES_OU_DESATUALIZADOS';
+                el('radarBestWindow').textContent = '--';
+                el('radarWindowNote').textContent = 'Dados insuficientes ou desatualizados';
+                el('radarConfidence').textContent = 'Bloqueado';
+                el('radarHourBars').innerHTML = '';
+                el('radarCreative').textContent = 'Nenhum';
+                el('radarCreativeScore').textContent = 'Score --';
+                el('radarCreativeNote').textContent = reason;
+                el('radarBudget').textContent = currency.format(0);
+                el('radarBudgetNote').textContent = 'Nenhuma sugestão';
+                el('radarPercentRing').style.setProperty('--radar-percent', '0%');
+                el('radarPercent').textContent = '0%';
+                el('radarPercentNote').textContent = 'Nenhuma recomendação';
+                document.querySelectorAll('[data-radar-action]').forEach((node) => {
+                    node.classList.remove('active-invest', 'active-hold', 'active-wait');
+                    if (node.dataset.radarAction === 'wait') node.classList.add('active-wait');
+                });
+                el('radarSummary').textContent = `Dados insuficientes ou desatualizados. Radar desativado: ${reason}.`;
+                return;
+            }
             const bestWindow = radar.bestWindow || null;
             const creative = radarCreativeCandidate(data);
             const metaAds = data.metaAds || {};
@@ -1007,27 +1047,46 @@
             const data = state.data;
             if (!data) return;
             const totals = data.totals || {};
+            const operational = data.operational || {};
+            const operationalTotals = operational.totals || {};
+            const operationalRates = operational.rates || {};
             const protocoloG = data.protocoloG || {};
             const protocoloGTotals = protocoloG.totals || {};
             const metaAds = data.metaAds || {};
             const metaAdsTotals = metaAds.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
-            el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
+            el('updatedAt').textContent = `Calculado em ${formatDate(operational.freshness?.metricsComputedAt || data.generatedAt)} · America/Guayaquil`;
             el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
                 ? `Válido desde ${formatDate(protocoloG.measurementStartedAt)}; não mistura histórico anterior nem outras VSLs EC`
                 : 'Não mistura outras VSLs do Equador';
             el('metrics').innerHTML = [
-                metricCard('Entradas EC (geral)', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
-                metricCard('PageView CAPI EC', number.format(totals.pageViewsSent || 0), 'Todas as VSLs EC', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
-                metricCard('WhatsApp EC (geral)', number.format(totals.whatsappVisitors || 0), `${totals.clickRate || 0}% das entradas`, (totals.whatsappVisitors || 0) ? 'good' : 'warn'),
-                metricCard('Leads Meta', number.format(totals.leadsSent || 0), 'Eventos Lead enviados'),
-                metricCard('Purchase enviado', number.format(totals.purchasesSent || 0), 'Eventos enviados no periodo', (totals.purchasesSent || 0) ? 'good' : 'warn'),
-                metricCard('Valor marcado', currency.format(totals.purchaseValueSent || 0), `${totals.purchaseCoverage || 0}% de cobertura`, (totals.purchaseValueSent || 0) ? 'good' : 'warn'),
-                metricCard('Sem Purchase', number.format(totals.missingPurchaseEligible || 0), 'Vendas recentes elegiveis', missingTone),
-                metricCard('Correlação CLAIMED', number.format(totals.correlationClaimed || 0), 'Visita única associada', (totals.correlationClaimed || 0) ? 'good' : ''),
-                metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
-                metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
+                metricCard('Meta LPV', number.format(metaAdsTotals.landingPageViews || 0), `${operationalRates.lpvToInbound || 0}% viraram inbound`),
+                metricCard('Z-API inbound', number.format(operationalTotals.zapiInbound || 0), `${number.format(operationalTotals.zapiInboundMessages || 0)} mensagens persistidas`, operationalTotals.zapiInbound ? 'good' : 'warn'),
+                metricCard('Bot acionado', number.format(operationalTotals.botTriggered || 0), `${operationalRates.inboundToBot || 0}% dos inbounds`),
+                metricCard('Bot entregue', number.format(operationalTotals.botDelivered || 0), `${number.format(operationalTotals.botSent || 0)} mensagens enviadas`),
+                metricCard('Pedidos criados', number.format(operationalTotals.ordersCreated || 0), `${operationalRates.inboundToOrder || 0}% dos inbounds`),
+                metricCard('Pedidos confirmados', number.format(operationalTotals.ordersConfirmed || 0), `${number.format(operationalTotals.salesFinalized || 0)} vendas finalizadas`),
+                metricCard('Purchase elegível', number.format(operationalTotals.purchaseEligible || 0), `${number.format(operationalTotals.purchaseEventCreated || 0)} eventos criados`),
+                metricCard('Purchase enviado', number.format(operationalTotals.purchaseSent || 0), `${operationalRates.orderToPurchase || 0}% dos elegíveis`, operationalTotals.purchaseSent ? 'good' : 'warn'),
+                metricCard('Meta aceitou', number.format(operationalTotals.metaAccepted || 0), `${operationalRates.purchaseToMetaAccepted || 0}% dos enviados`),
+                metricCard('Meta atribuiu', number.format(operationalTotals.metaAttributed || 0), `${operationalRates.metaAttributionRate || 0}% dos aceitos`),
+                metricCard('Sem atribuição', number.format(operationalTotals.unattributed || 0), 'Sem inferência por horário'),
+                metricCard('Receita', currency.format(operationalTotals.revenue || 0), `Integridade ${operational.integrity?.status || 'UNKNOWN'}`, operational.integrity?.status === 'PASS' ? 'good' : 'warn')
             ].join('');
+
+            const healthLabels = { meta: 'Meta', zapi: 'Z-API', bot: 'Bot', orders: 'Pedidos', capi: 'CAPI', metrics: 'Métricas' };
+            el('integrationHealth').innerHTML = Object.entries(operational.health || {}).map(([key, value]) => metricCard(
+                healthLabels[key] || key,
+                value.status || 'UNKNOWN',
+                `Até ${formatDate(value.dataThrough)} · fila ${number.format(value.queueBacklog || 0)}`,
+                value.status === 'OK' ? 'good' : value.status === 'FAILED' ? 'bad' : 'warn'
+            )).join('') || metricCard('Diagnóstico', 'Indisponível', 'Atualize a candidata V141', 'warn');
+            el('integrationFreshness').textContent = `Meta ${formatDate(operational.freshness?.metaFetchedAt)} · Z-API ${formatDate(operational.freshness?.zapiDataThrough)} · Bot ${formatDate(operational.freshness?.botDataThrough)} · Pedidos ${formatDate(operational.freshness?.orderDataThrough)} · CAPI ${formatDate(operational.freshness?.capiDataThrough)} · America/Guayaquil`;
+            el('integrationAlerts').textContent = (operational.alerts || []).length
+                ? `Alertas: ${(operational.alerts || []).join(', ')}`
+                : 'Sem alertas ativos';
+            el('unmatchedCauses').innerHTML = Object.entries(operational.unmatchedRootCauses || {}).map(([cause, count]) => metricCard(cause, number.format(count), 'Registros no período', count ? 'warn' : 'good')).join('')
+                || metricCard('Sem pendências', '0', 'Nenhuma correlação sem causa', 'good');
 
             renderInvestmentRadar(data);
 
@@ -1048,9 +1107,11 @@
                 metricCard('Alcance', number.format(metaAdsTotals.reach || 0), `${number.format(metaAdsTotals.impressions || 0)} impressões`),
                 metricCard('Gasto Meta', currency.format(metaAdsTotals.spend || 0), `${number.format(metaAdsTotals.purchases || 0)} compras atribuídas`)
             ].join('') : metricCard('Meta Ads não conectado', '-', metaAds.message || 'Permissão ads_read necessária', 'warn');
+            const creativeByAd = new Map((metaAds.creativeMapping || []).map((item) => [String(item.adId || ''), item]));
             el('metaAdsRows').innerHTML = (metaAds.ads || []).map((ad) => `
                 <tr>
                     <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
+                    <td>${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeName || 'Não disponível')}<br><span class="meta">${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeId || '-')}</span></td>
                     <td>${escapeHtml(ad.adsetName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adsetId || '-')}</span></td>
                     <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || '-')}</span></td>
                     <td>${number.format(ad.reach || 0)}</td>
@@ -1061,7 +1122,7 @@
                     <td>${number.format(ad.purchases || 0)}</td>
                     <td>${currency.format(ad.spend || 0)}</td>
                 </tr>
-            `).join('') || emptyRow(10, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
+            `).join('') || emptyRow(11, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
 
             el('protocoloGMetrics').innerHTML = [
                 metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),
@@ -1190,7 +1251,12 @@
             setStatus('Carregando...');
             try {
                 const days = el('days').value || '7';
-                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}`);
+                const fromDay = el('fromDay').value;
+                const toDay = el('toDay').value;
+                const explicit = fromDay && toDay
+                    ? `&from=${encodeURIComponent(fromDay)}&to=${encodeURIComponent(toDay)}`
+                    : '';
+                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}${explicit}`);
                 render();
                 setStatus('');
             } catch (error) {
@@ -1235,6 +1301,8 @@
 
         el('refreshBtn').addEventListener('click', loadMetrics);
         el('days').addEventListener('change', loadMetrics);
+        el('fromDay').addEventListener('change', () => { if (el('toDay').value) loadMetrics(); });
+        el('toDay').addEventListener('change', () => { if (el('fromDay').value) loadMetrics(); });
 
         setVisible();
         loadMetrics();
