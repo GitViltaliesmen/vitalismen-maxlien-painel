@@ -48,11 +48,14 @@ const messageAt = (message = {}) => {
 
 const orderEntryAt = (order = {}) => order.entryAt || order.draftCreatedAt || order.createdAt;
 const hasTag = (contact, tag) => (contact.tags || []).includes(tag);
-const isBot = (message = {}) => Boolean(message.isFromMe) && (
-    message.isBot === true
-    || String(message.senderRole || '').toLowerCase() === 'bot'
-    || String(message.from || '').toLowerCase() === 'bot'
-);
+const isBot = (message = {}) => {
+    if (!message.isFromMe) return false;
+    if (message.isBot === true) return true;
+    if (message.isBot === false) return false;
+    if (String(message.senderRole || '').toLowerCase() === 'human' || message.attendantId) return false;
+    return String(message.senderRole || '').toLowerCase() === 'bot'
+        || String(message.from || '').toLowerCase() === 'bot';
+};
 const isHuman = (message = {}) => Boolean(message.isFromMe) && !isBot(message) && (
     String(message.senderRole || '').toLowerCase() === 'human'
     || Boolean(message.attendantId)

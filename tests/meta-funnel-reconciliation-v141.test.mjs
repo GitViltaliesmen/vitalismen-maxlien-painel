@@ -54,6 +54,12 @@ test('funil V141 conta fatos persistidos mesmo depois da conversa mudar de fila'
         message({ phone: item.phoneDigits, at: item.firstInboundAt }),
         message({ phone: item.phoneDigits, at: new Date(new Date(item.firstInboundAt).getTime() + 1000), bot: true })
     ]);
+    messages.push({
+        ...message({ phone: contacts[2].phoneDigits, at: '2026-09-07T06:00:00.000Z', bot: true }),
+        isBot: false,
+        senderRole: 'human',
+        from: 'bot'
+    });
     const orders = [{
         country: 'EC', orderId: 'EC-ADMIN-FIXTURE', entryAt: '2026-09-07T05:51:00.000Z',
         customer: { phone: '+593333333333' }, status: 'processing', total: 80.99,
@@ -66,6 +72,7 @@ test('funil V141 conta fatos persistidos mesmo depois da conversa mudar de fila'
     assert.equal(result.totals.botTriggered, 3);
     assert.equal(result.totals.botSent, 3);
     assert.equal(result.totals.botDelivered, 3);
+    assert.equal(result.totals.humanTakeovers, 1);
     assert.equal(result.totals.ordersCreated, 1);
     assert.equal(result.totals.ordersConfirmed, 1);
     assert.equal(result.totals.purchaseEligible, 1);
