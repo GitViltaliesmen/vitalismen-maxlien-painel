@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-await import('./lib/ec-runtime-successor-v147-r6-context.mjs');
+await import('./lib/ec-runtime-successor-v147-r6r2-context.mjs');
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const manifest = JSON.parse(read('docs/freeze/ec-transactional-postsale-v147-r5-20260910.json'));
 assert.deepEqual(manifest.functionalFiles, [

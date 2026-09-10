@@ -1,4 +1,5 @@
-import { unifiedPostSaleStageV147R6, resolvePostSaleEventV147R6, reconcilePostSaleEventV147R6, reservePostSaleEventV147R6, finalizePostSaleEventV147R6 } from './postSaleUnifiedEventV147R6Service.js';
+import { unifiedPostSaleStageV147R6, resolvePostSaleEventV147R6, reconcilePostSaleEventV147R6, reservePostSaleEventV147R6, finalizePostSaleEventV147R6,
+    pickupPostSaleStageV147R6R2, pickupEventEligibleV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
 import crypto from 'crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -452,7 +453,8 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
-    if (!eligibilityForKind(shipment, legacyKind)) {
+    if (!eligibilityForKind(shipment, legacyKind)
+        || pickupPostSaleStageV147R6R2(stage) && !pickupEventEligibleV147R6R2(shipment, stage, now)) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
             reason: 'current_logistics_state_not_eligible',

@@ -3,7 +3,8 @@ import Message from '../models/Message.js';
 import { formatWhatsAppNumber } from '../utils/phone.js';
 import { servientregaPostSaleCompletionEligibleV147 } from './canonicalLogisticsStatusV147Service.js';
 import { decidePostSaleNotification, completePostSaleNotificationStage, failPostSaleNotificationStage } from './postSaleNotificationDecisionService.js';
-import { classifyPostSaleContentV147R6, resolvePostSaleEventV147R6, reconcileDeliveredPostSaleSequenceV147R6 } from './postSaleUnifiedEventV147R6Service.js';
+import { classifyPostSaleContentV147R6, resolvePostSaleEventV147R6, reconcileDeliveredPostSaleSequenceV147R6,
+    pickupPostSaleStageV147R6R2, reconcilePickupPostSaleSequenceV147R6R2, guardReservedPickupEventV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
 
 // This adapter shares the decision/lock/finalizer with V116. It owns no transport or parallel ledger.
 export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator = '', sendFn, recordFn,
@@ -23,10 +24,12 @@ export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator 
         return { handled: true, success: false, error: 'canonical_shipment_missing_or_ambiguous' };
     }
     let shipment = matches[0];
-    if (!servientregaPostSaleCompletionEligibleV147(shipment)) {
+    const pickup = pickupPostSaleStageV147R6R2(content.stage);
+    if (!pickup && !servientregaPostSaleCompletionEligibleV147(shipment)) {
         return { handled: true, success: false, error: 'canonical_postsale_requires_delivered' };
     }
-    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment, { shipmentModel, messageModel });
+    shipment = pickup ? await reconcilePickupPostSaleSequenceV147R6R2(shipment, { shipmentModel, messageModel })
+        : await reconcileDeliveredPostSaleSequenceV147R6(shipment, { shipmentModel, messageModel });
     const event = await resolvePostSaleEventV147R6({ shipment, stage: content.stage });
     if (!event || event.templateId !== content.templateId || event.product !== content.product) {
         return { handled: true, success: false, error: 'canonical_postsale_product_conflict_or_unknown' };
@@ -34,13 +37,17 @@ export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator 
     const decision = await decideFn({ shipment, kind: event.stage, manualPanel: true, operator, shipmentModel, messageModel });
     if (decision.decision !== 'SHOULD_SEND' || !decision.lockToken) {
         const satisfied = decision.satisfied === true || ['ALREADY_NOTIFIED_MANUALLY', 'ALREADY_NOTIFIED_STRUCTURED'].includes(decision.decision)
-            && Boolean(shipment.automation?.[{ P5: 'deliveredThankYouNotifiedAt', P6: 'bonusNotifiedAt', P7: 'usageNotifiedAt' }[event.canonicalEvent]]);
+            && Boolean(shipment.automation?.[{ A07: 'readyForPickupNotifiedAt', A10: 'reminderDay3At', A19: 'reminderDay5At',
+                P5: 'deliveredThankYouNotifiedAt', P6: 'bonusNotifiedAt', P7: 'usageNotifiedAt' }[event.canonicalEvent]]);
         return { handled: true, success: satisfied, sent: false, alreadySatisfied: satisfied,
             status: satisfied ? 'ALREADY_SATISFIED' : 'EVENT_RESERVED_OR_BLOCKED',
             error: satisfied ? undefined : decision.reason, providerMessageId: decision.providerMessageId || '', canonicalEvent: event };
     }
     // No retries: an intended event survives process death and ambiguous provider outcomes.
     try {
+        if (pickup && !await guardReservedPickupEventV147R6R2({ shipment, event, lockToken: decision.lockToken, shipmentModel })) {
+            return { handled: true, success: false, sent: false, error: 'stale_pickup_event_cancelled_before_provider' };
+        }
         const result = await sendFn({ event, shipment });
         const accepted = result?.ok === true && Boolean(result.providerMessageId);
         if (!accepted) {

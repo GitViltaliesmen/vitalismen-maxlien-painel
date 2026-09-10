@@ -1,4 +1,5 @@
-import { reconcileDeliveredPostSaleSequenceV147R6 } from './postSaleUnifiedEventV147R6Service.js';
+import { reconcileDeliveredPostSaleSequenceV147R6, reconcilePickupPostSaleSequenceV147R6R2,
+    guardReservedPickupEventV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -725,8 +726,10 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
     baseName = '',
     dedupeValue = '',
     force = false,
-    postSaleEvent = null
+    postSaleEvent = null,
+    beforeSend = null
 } = {}) => {
+    if (beforeSend && !await beforeSend()) return false;
     const sent = await sendAudio(chatId, audioPath, true, {
         ...shipmentOutboundOptions(shipment),
         ...(dedupeValue ? { dedupeValue } : {}),
@@ -747,7 +750,7 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
     return sent;
 };
 
-const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {}) => {
+const sendShipmentAudio = async (shipment, chatId, kind, { force = false, canonicalDecision = null } = {}) => {
     const baseNames = pickupLogisticsAudioForShipment(shipment, kind);
     if (!baseNames.length) {
         return {
@@ -797,7 +800,11 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {})
         const sent = await sendShipmentAudioFile(shipment, chatId, audioPath, {
             kind: `shipment_audio_${kind}`,
             baseName,
-            force
+            force: canonicalDecision ? false : force,
+            ...(canonicalDecision ? { postSaleEvent: canonicalDecision.canonicalEvent,
+                dedupeValue: canonicalDecision.idempotencyKey,
+                beforeSend: () => guardReservedPickupEventV147R6R2({ shipment,
+                    event: canonicalDecision.canonicalEvent, lockToken: canonicalDecision.lockToken }) } : {})
         });
         sentAny = sendResultOk(sent) || sentAny;
         if (sendResultOk(sent)) {
@@ -2049,6 +2056,7 @@ export const notifyShipmentInTransit = async (shipment) => {
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {
+    if (kind === 'day3' || kind === 'day5') shipment = await reconcilePickupPostSaleSequenceV147R6R2(shipment);
     if (shipment?.review?.manualOnly === true) {
         await appendNotificationLedgerV29(shipment, {
             notificationType: `pickup_reminder_${kind}`,
@@ -2126,7 +2134,7 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             + `tracking=${shipment.logistics?.trackingNumber || ''} kind=${kind}`
         );
     }
-    const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
+    const existingNotice = safetyDecision.canonicalEvent ? null : await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
     if (existingNotice) {
         const recovered = await recoverExistingGlobalShipmentNotice({
             shipment,
@@ -2168,7 +2176,7 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             return false;
         }
     }
-    const audioSent = await sendShipmentAudio(shipment, chatId, kind);
+    const audioSent = await sendShipmentAudio(shipment, chatId, kind, { canonicalDecision: safetyDecision.canonicalEvent ? safetyDecision : null });
     if (audioOnly && !audioSent?.sentAny) return false;
 
     const now = new Date();

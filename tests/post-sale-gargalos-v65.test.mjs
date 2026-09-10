@@ -289,7 +289,7 @@ const decisionShipmentFromFixture = (item) => ({
     outcomes: { returned: item.status === 'DEVUELTO' }
 });
 
-test('anti-spam reconhece marker estruturado e mensagem humana equivalente', async () => {
+test('anti-spam reconhece marker estruturado e audio humano com aceite comprovado', async () => {
     const marker = decisionShipmentFromFixture(fixtureCase('6457'));
     marker.automation.guiaNotifiedAt = new Date();
     const structured = await decidePostSaleNotification({ shipment: marker, kind: 'guide', acquireLock: false });
@@ -305,8 +305,11 @@ test('anti-spam reconhece marker estruturado e mensagem humana equivalente', asy
         peerPhone: item.phone,
         createdAt: new Date('2026-08-26T12:00:00Z')
     }));
+    humanMessages.push({ _id: 'synthetic-accepted-a07', isFromMe: true, isBot: false, peerPhone: item.phone,
+        body: '[Audio]', mediaUrl: '/media/templates/EC/Chegou_01.ogg', providerMessageId: 'synthetic-provider-a07',
+        ack: 2, createdAt: new Date('2026-08-26T12:00:00Z') });
     const manual = await decidePostSaleNotification({
-        shipment: { ...decisionShipmentFromFixture(item), review: { manualOnly: false, suppressedNotificationKinds: [] } },
+        shipment: { ...decisionShipmentFromFixture(item), createdAt: new Date('2026-08-25T00:00:00Z'), review: { manualOnly: false, suppressedNotificationKinds: [] } },
         kind: 'ready_for_pickup',
         acquireLock: false,
         messageModel: messageModel(humanMessages)

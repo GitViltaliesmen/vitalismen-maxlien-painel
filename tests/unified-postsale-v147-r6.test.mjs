@@ -12,7 +12,7 @@ test('real panel audio shape and exact P6 template resolve without fuzzy body ma
     assert.equal(classifyPostSaleContentV147R6({ body: '[Audio]', mediaUrl: '/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg' }).product, 'tex_ultra_ec');
     assert.equal(classifyPostSaleContentV147R6({ body: 'Gracias! Tu bono ya está listo, mira otro enlace.' }), null);
     assert.equal(classifyPostSaleContentV147R6({ mediaUrl: '/media/uploads/OBRIGADO_PAGOU.ogg' }), null);
-    assert.equal(classifyPostSaleContentV147R6({ mediaUrl: '/media/templates/EC/Chegou_01.ogg' }), null);
+    assert.equal(classifyPostSaleContentV147R6({ mediaUrl: '/media/templates/EC/Chegou_01.ogg' }).canonicalEvent, 'A07');
 });
 test('identity is shared across sender types and scoped to order, shipment, template and P7 product', async () => {
     const shipment = { _id: 'ship', orderId: 'order', raw: { customerId: 'customer' }, client: { phone: '593999000147' } };
@@ -43,19 +43,20 @@ test('authenticated panel and existing dispatcher invoke canonical adapter befor
     assert.match(dispatcher, /action === 'delivered_bonus' && !dryRun/);
 });
 
-test('A07/A10/A19 audit: legacy manual audio has no shared canonical reservation (outside R6 scope)', async () => {
+test('R6R2 successor recognizes the manual audio evidence from the R6 gap audit', async () => {
     const { decidePostSaleNotification } = await import('../src/services/postSaleNotificationDecisionService.js');
     const shipment = { _id: 'audit-only', orderId: 'audit-order', country: 'EC', client: { phone: '593999000147' },
         logistics: { status: 'READY_FOR_PICKUP', canonicalStatus: 'READY_FOR_PICKUP', trackingNumber: '189147600',
             agencyPickup: true, pickupReadyVerified: true, pickupReadyVerifiedSource: 'carrier_tracking',
             canonicalEvidence: { source: 'carrier_tracking', provider: 'servientrega', observedAt: new Date() } } };
     for (const [kind, label] of [['ready_for_pickup', 'Chegou_01'], ['pickup_reminder_day3', 'Chegou_02'], ['pickup_reminder_day5', 'Chegou_03']]) {
-        const row = { isFromMe: true, isBot: false, body: '[Audio]', mediaUrl: '/media/templates/EC/' + label + '.ogg', providerMessageId: 'accepted-audit-' + label, ack: 2 };
-        assert.equal(classifyPostSaleContentV147R6(row), null);
+        const row = { isFromMe: true, isBot: false, body: '[Audio]', mediaUrl: '/media/templates/EC/' + label + '.ogg', providerMessageId: 'accepted-audit-' + label, ack: 2, peerPhone: shipment.client.phone, createdAt: new Date() };
+        shipment.createdAt = new Date(Date.now() - 60000);
+        assert.ok(classifyPostSaleContentV147R6(row));
         const messageModel = { find() { return { sort() { return this; }, limit() { return this; }, async lean() { return [row]; } }; } };
         const contactStateModel = { findOne() { return { sort() { return this; }, select() { return this; }, async lean() { return null; } }; } };
         const decision = await decidePostSaleNotification({ shipment, kind, messageModel, contactStateModel, acquireLock: false });
-        assert.equal(decision.decision, 'SHOULD_SEND');
+        assert.equal(decision.decision, 'ALREADY_NOTIFIED_MANUALLY');
     }
 });
 

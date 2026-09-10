@@ -13,10 +13,10 @@ assert.equal(manifest.policy.historicalBackfillAllowed, false);
 assert.deepEqual(Object.keys(manifest.protectedFiles).sort(), [...manifest.overrides].sort());
 for (const [file, expected] of Object.entries({ ...manifest.preservedFiles, ...manifest.protectedFiles })) {
     assert.ok(!file.includes('..') && !file.startsWith('/') && !file.includes('\\'));
-    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(new URL('../../' + file, import.meta.url))).digest('hex'), expected, '[V147-R6] ' + file);
+    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(new URL('../../' + file, import.meta.url))).digest('hex'), globalThis.__VITALISMEN_V147_R6R2_CONTEXT?.protectedFiles?.[file] || expected, '[V147-R6] ' + file);
 }
 globalThis.__VITALISMEN_V147_R6_CONTEXT = Object.freeze({ loaded: true, freezeId: manifest.freezeId,
-    manifestSha256: crypto.createHash('sha256').update(text).digest('hex'), protectedFiles: Object.freeze({ ...manifest.protectedFiles }) });
+    manifestSha256: crypto.createHash('sha256').update(text).digest('hex'), protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...globalThis.__VITALISMEN_V147_R6R2_CONTEXT?.protectedFiles }) });
 const parent = JSON.parse(fs.readFileSync(new URL('../../docs/freeze/ec-transactional-postsale-v147-r5-20260910.json', import.meta.url), 'utf8'));
 const ancestorNames = ['ec-dropi-status-postsale-v139-20260907.json', 'ec-phone-servientrega-reconciliation-v140-20260907.json', 'ec-meta-funnel-reconciliation-v141-20260908.json', 'ec-panel-new-dropi-persistence-v142-20260908.json', 'ec-v141-v142-convergence-v143-20260908.json', 'ec-meta-purchase-after-manual-dropi-v144-20260908.json', 'ec-integration-health-capi-queue-v145-20260908.json', 'ec-definitive-normalization-v146-20260908.json', 'ec-postsale-canonical-restoration-v147-20260909.json', 'ec-postsale-complete-v147-r2-20260910.json', 'ec-delivered-single-gate-v147-r3-20260910.json', 'ec-v116-canonical-polling-v147-r4-20260910.json'];
 const inherited = ancestorNames.flatMap((name) => JSON.parse(fs.readFileSync(new URL('../../docs/freeze/' + name, import.meta.url), 'utf8')).overrides || []);
