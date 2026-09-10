@@ -57,7 +57,8 @@ export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator 
         if (pickup && !await (component ? guardA07ComponentV147R6R2 : guardReservedPickupEventV147R6R2)({ shipment, event, lockToken: decision.lockToken, shipmentModel })) {
             return { handled: true, success: false, sent: false, error: 'stale_pickup_event_cancelled_before_provider' };
         }
-        const result = await sendFn({ event, shipment });
+        const result = await sendFn({ event, shipment, beforeSend: component
+            ? () => guardA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, shipmentModel }) : null });
         const accepted = result?.ok === true && Boolean(result.providerMessageId);
         if (!accepted) {
             if (component) {

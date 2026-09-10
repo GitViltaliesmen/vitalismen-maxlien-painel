@@ -95,7 +95,8 @@ if (childMode || process.argv.includes('--restart')) {
         }
         if (childMode === 'manual') await manual(id, stage); else await auto(id, stage);
     } else {
-        const before = calls().length; await auto(id, stage); await manual(id, stage);
+        const before = calls().length; await auto(id, stage);
+        if (!process.argv.includes('--auto-only')) await manual(id, stage);
         assert.equal(calls().length, before);
     }
     await mongoose.disconnect(); process.exit(0);

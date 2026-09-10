@@ -6546,7 +6546,7 @@ router.post('/send', authMiddleware, async (req, res) => {
 
         const canonicalPostSale = await sendCanonicalPanelPostSaleV147R6({
             request: req.body, operator: req.user?._id?.toString?.() || 'ana_lopez',
-            sendFn: async ({ event, shipment }) => {
+            sendFn: async ({ event, shipment, beforeSend }) => {
                 let payload = message;
                 if (isMedia) {
                     if (event.component === 'GUIDE_PDF') {
@@ -6562,6 +6562,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                         .replace(/^https:\/\/ec\.maxlien\.shop(?=\/media\/)/, '')
                         .replace(/^\/opt\/vitalismen-automacao\/releases\/[^/]+\/public(?=\/media\/)/, ''));
                 }
+                if (beforeSend && !await beforeSend()) return { ok: false, providerAttempted: false, reason: 'stale_a07_component' };
                 return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
                     sendMode, country, allowExistingDropiOrder: true, returnDetails: true,
                     canonicalPostSale: true, outboundContext: 'shipment_status',

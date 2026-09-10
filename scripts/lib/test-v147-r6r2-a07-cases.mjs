@@ -27,6 +27,7 @@ export const runA07Cases = async ({ Shipment, Message, make, auto, manual, manua
         const reservation = ledger.reservationId;
         await worker(['--restart', 'A07', String(s._id)]);
         assert.equal((await Shipment.findById(s._id)).automation.postSaleSafetyLedger.READY_FOR_PICKUP.reservationId, reservation);
+        assert.equal((await Shipment.findById(s._id)).automation.notificationLocks.READY_FOR_PICKUP, null);
         return ledger;
     };
     const baseline = await fresh();
@@ -109,6 +110,7 @@ export const runA07Cases = async ({ Shipment, Message, make, auto, manual, manua
         const before = perShipment(s).length;
         // Only re-evaluate the ambiguous PDF, not an operator-requested unrelated component.
         await auto(s._id, 'A07'); await manualComponent(s._id, 'GUIDE_PDF');
+        await worker(['--restart', '--auto-only', 'A07', String(s._id)]);
         assert.equal(perShipment(s).length, before);
         const snapshot = (await Shipment.findById(s._id)).automation.postSaleSafetyLedger.READY_FOR_PICKUP;
         assert.equal(snapshot.components.TEXT.state, 'SENT'); assert.equal(snapshot.components.GUIDE_PDF.state, 'AMBIGUOUS');
@@ -120,6 +122,22 @@ export const runA07Cases = async ({ Shipment, Message, make, auto, manual, manua
         await auto(s._id, 'A07'); await verify(s);
         assert.equal(perShipment(s).length, baselineCalls.length);
         result[source + 'AmbiguousNoBlindRetryAndProofRecovery'] = 'PASS';
+    }
+    for (const source of ['manual', 'auto']) {
+        const s = await fresh(); const original = Shipment.findOneAndUpdate;
+        Shipment.findOneAndUpdate = async function(query, update, options) {
+            const updated = await original.call(this, query, update, options);
+            if (update?.$set?.['automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT']?.state === 'INTENDED') {
+                await Shipment.updateOne({ _id: s._id }, { $set: { 'logistics.status': 'ENTREGADO',
+                    'logistics.canonicalStatus': 'DELIVERED', 'outcomes.delivered': true } });
+            }
+            return updated;
+        };
+        try { if (source === 'manual') await manualComponent(s._id, 'TEXT'); else await auto(s._id, 'A07'); }
+        finally { Shipment.findOneAndUpdate = original; }
+        assert.equal(perShipment(s).length, 0);
+        assert.equal((await Shipment.findById(s._id)).automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT.state, 'CANCELLED');
+        result[source + 'DeliveredBeforeProvider'] = 'PASS';
     }
     Object.assign(result, { oneEventReservation: true, sharedLock: true, canonicalLedger: true,
         textDuplicates: 0, pdfDuplicates: 0, audioDuplicates: 0, componentDedupe: 'PASS' });

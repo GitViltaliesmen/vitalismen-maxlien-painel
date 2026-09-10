@@ -1877,7 +1877,8 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
             let result;
             if (event.component === 'TEXT') {
                 result = await sendShipmentText(shipment, chatId, plan.text, { kind: 'shipment_ready_for_pickup_text',
-                    dedupeValue: event.dedupeKey, postSaleEvent: event, allowHistoryDedupeBypass: true });
+                    dedupeValue: event.dedupeKey, postSaleEvent: event,
+                    allowHistoryDedupeBypass: Boolean(decision.lockToken && event.component === 'TEXT') });
             } else if (event.component === 'GUIDE_PDF') {
                 const invoice = await sendShipmentInvoicePdf(shipment, chatId,
                     `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`, { decision });

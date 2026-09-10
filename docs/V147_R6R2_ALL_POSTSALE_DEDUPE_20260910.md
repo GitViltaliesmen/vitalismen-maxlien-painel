@@ -1,26 +1,24 @@
-# V147-R6R2 — registro compartilhado de retirada
+# V147-R6R2 — dedupe compartilhado de pós-venda
 
-Base exata: `83b70ab78821b5df12832ee125803d0abe9682c8`, tree `8d572312718383fd24e886bd7ef7e75a46f5dce4`.
-Hash funcional da R6 e recibo da candidata revalidados na VPS oficial. A produção permanece no release R4 `20260910T153848Z_production-20260910-b821dc0`.
+Base preservada: `83b70ab78821b5df12832ee125803d0abe9682c8`, tree `8d572312718383fd24e886bd7ef7e75a46f5dce4`.
+Produção esperada: R4 `20260910T153848Z_production-20260910-b821dc0`.
 
-## Estado de trabalho
+## Contrato aprovado
 
-Implementação em andamento, sem autorização de publicação ou ativação. Ainda não é uma candidata congelada.
+A07 conserva o texto oficial V29, o PDF/guia disponível e Chegou_01. Uma execução pode chamar o provedor mais de uma vez. A corrida painel/V116 deve igualar a baseline normal, com zero duplicatas de cada componente.
 
-A07/A10/A19 passam pelo classificador exato de mídia da R6, pela identidade customer/order/shipment/event/template e pelo mesmo `Shipment.automation.postSaleSafetyLedger` e `notificationLocks`. Histórico anterior ao ledger exige ID do provedor, prova de aceite, mídia exata, destinatário e janela do pedido; nenhuma mensagem histórica é alterada. A reconciliação preserva a data real do aceite e entradas anteriores.
+O mesmo `Shipment.automation.postSaleSafetyLedger.READY_FOR_PICKUP` contém a reserva lógica pai e os componentes TEXT, GUIDE_PDF e AUDIO. A reserva pai mantém UUID e contagem 1. Cada componente tem identidade customer/order/shipment/A07/component, incluindo guia ou template quando aplicável. O mesmo `notificationLocks.READY_FOR_PICKUP` serializa o envio dos componentes; não existe ledger, scheduler ou poller paralelo.
 
-O adaptador manual reconhece as três etapas. A10/A19 usam a reserva canônica no notificador existente, metadados e dedupeKey no áudio e rechecagem do estado persistido antes do transporte. Reserva obsoleta é encerrada sem aceite fabricado ou chamada ao provedor. O prazo usa A07 acceptedAt +72h/+120h. INTENDED expirado e resultado ambíguo continuam bloqueando retry automático.
+Histórico só satisfaz o componente exato mediante destinatário, janela do pedido, providerMessageId e aceite comprovado. Texto usa o template exato; PDF usa fonte/arquivo/hash exatos; áudio usa a mídia oficial. Ausência de PDF não cria documento. Componentes aceitos não são reenviados. INTENDED expirado e resultado ambíguo exigem reconciliação com prova antes de qualquer retry. Falha comprovadamente anterior ao provedor permite retomar o componente pendente. Entradas antigas e mensagens são preservadas.
 
-P5/P6/P7 conservam sua sequência e regras. Nenhuma alteração no polling, scheduler, transporte Z-API, Chromium, ProtectHome, produto, human.mode, Meta, VSL, Dropi ou recompra.
+A âncora acceptedAt do pai conserva a data anterior ou o aceite do texto A07. A10/A19 mantêm +72h/+120h e o bloqueio após DELIVERED. P5/P6/P7 e suas regras de produto/human.mode permanecem preservados. O adaptador do painel e o notificador existente compartilham reserva, histórico e revalidação do estado antes do provedor, inclusive depois da preparação do PDF.
 
-## Decisão pendente sobre A07
+## Verificação e publicação
 
-O A07 automático atual envia texto, PDF quando disponível e Chegou_01. O pedido R6R2 exige uma chamada total ao provedor e simultaneamente restringe a mudança ao dedupe. É necessário esclarecer se uma chamada se refere ao áudio A07 mantendo os outros componentes ou se o evento passa a enviar somente Chegou_01. A integração final do transporte A07 e a matriz completa dependem dessa decisão; não declarar o contrato completo aprovado antes disso.
+O SINK mede baseline, duas ordens de corrida em processos separados, histórico completo/parcial, PDF ausente, falha parcial, timeout ambíguo, reconciliação, restart e DELIVERED antes do envio. A10/A19 e P5/P6/P7 mantêm a matriz R6R2. O replay R6 de 6886247 deve permanecer com zero chamadas futuras e histórico original intacto.
 
-## Verificação parcial
+Preload V97 e manifests sucessores validam os arquivos alterados e os congelamentos anteriores. O guard de retirada passa a exigir a reserva canônica do componente TEXT em vez do antigo bypass por force. Os 74 testes focados e o lint local de 889 arquivos passaram. O primeiro staging passou senior, mas parou nessa expectativa antiga do guard; foi corrigida e revalidada. A suíte local completa parou na dependência libsignal ausente no Windows; a validação final será a execução Linux instalada pelo vitalismen-stage.
 
-Onze testes R6/R6R2 passaram sob preload oficial V97. Sessenta e dois testes V65/V66 passaram após adequação das fixtures A07 ao contrato de evidência exata aceita, em lugar de frase aproximada sem ID do provedor.
+A candidata só pode ser congelada após staging oficial, suíte completa, senior, lint e todos os recibos SINK passarem. Recibos e logs ficam fora dos releases imutáveis em `/var/lib/vitalismen-deploy/evidence/v147-r6r2-all-postsale-20260910`. Nenhuma publicação ou ativação está autorizada nesta camada.
 
-O senior local inicialmente apresentou essas quatro expectativas antigas e uma falha de carregamento de dependência Baileys no Windows. As expectativas A07 foram corrigidas e revalidadas; a execução Linux oficial de staging ainda é necessária. O script SINK testa A10/A19 e as corridas P5/P6/P7; A07 está explicitamente pendente e seu recibo parcial não autoriza freeze.
-
-REAL_MESSAGES_SENT=0. Nenhuma reconciliação foi aplicada ao banco de produção. O caso 6886247 continua reservado à regressão SINK da R6.
+CURRENT_UNCHANGED=YES. PRODUCTION_CHANGED=NO. REAL_MESSAGES_SENT=0.
