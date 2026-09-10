@@ -40,13 +40,13 @@ export const assertIntegrationHealthV145 = () => {
     const bootstrap = read('scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs');
     const stage = read('ops/vitalismen-stage');
     const controller = read('ops/ec-bot-core-v78');
+    const v146ContextIndex = bootstrap.indexOf("await import('./ec-runtime-successor-v146-context.mjs');");
+    const v145ContextIndex = bootstrap.indexOf("await import('./ec-runtime-successor-v145-context.mjs');");
     assert.match(v97, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
-    assert.match(
-        bootstrap,
-        /import '\.\/ec-runtime-successor-v146-context\.mjs';\nimport '\.\/ec-runtime-successor-v145-context\.mjs';/,
+    assert.ok(
+        v146ContextIndex >= 0 && v145ContextIndex > v146ContextIndex,
         'o bootstrap oficial deve registrar V146 antes de carregar V145 e os guards ancestrais'
     );
-    assert.match(bootstrap, /import '\.\/ec-runtime-successor-v145-context\.mjs';/);
     assert.match(stage, /ec-runtime-successor-v97-context\.mjs/);
     assert.match(controller, /ec-runtime-successor-v97-context\.mjs/);
     assertMetaPurchaseAfterManualDropiV144(); // Every protected V144 byte, including its sender and guards, remains mandatory.

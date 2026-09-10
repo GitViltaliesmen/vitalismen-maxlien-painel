@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
-import './ec-runtime-successor-v147-r2-context.mjs';
-import './ec-runtime-successor-v146-context.mjs';
-import './ec-runtime-successor-v145-context.mjs';
+import './ec-runtime-successor-v147-r3-context.mjs';
+
+await import('./ec-runtime-successor-v146-context.mjs');
+await import('./ec-runtime-successor-v145-context.mjs');
 
 const v145ManifestUrl = new URL('../../docs/freeze/ec-integration-health-capi-queue-v145-20260908.json', import.meta.url);
 const v145Present = fs.existsSync(v145ManifestUrl);

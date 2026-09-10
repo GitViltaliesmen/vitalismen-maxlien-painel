@@ -958,12 +958,150 @@ export const pickupBonusAntiSpamKey = (shipment = {}) => {
     return `shipment_status:pickup_bonus:${shipmentIdentity}`;
 };
 
-export const shipmentPaymentConfirmed = (shipment = {}) => Boolean(
-    shipment?.raw?.paymentConfirmedAt
-    || shipment?.raw?.payment?.confirmedAt
-    || shipment?.raw?.payment?.status === 'paid'
-    || shipment?.raw?.latestDroppiPayload?.paymentStatus === 'paid'
+const normalizedPaymentValue = (value = '') => String(value ?? '').trim().toLowerCase();
+const canonicalPaymentTimestamp = (...values) => values.find((value) => {
+    if (!value) return false;
+    const parsed = new Date(value);
+    return !Number.isNaN(parsed.getTime());
+}) || null;
+
+const paymentProviderClassification = (provider = '') => {
+    const normalized = normalizedPaymentValue(provider);
+    if (/servientrega/.test(normalized)) return 'SERVIENTREGA_CONFIRMED';
+    if (/dropi|droppi/.test(normalized)) return 'DROPI_CONFIRMED';
+    return normalized ? 'OTHER_CANONICAL_CONFIRMED' : 'UNKNOWN';
+};
+
+export const shipmentCanonicalPaymentEvidence = (shipment = {}) => {
+    const raw = shipment?.raw || {};
+    const dropi = raw.latestDroppiPayload || {};
+    const payment = raw.payment || {};
+    const dropiTimestamp = canonicalPaymentTimestamp(
+        dropi.paymentConfirmedAt,
+        dropi.paymentUpdatedAt,
+        dropi.statusUpdatedAt,
+        dropi.updatedAt,
+        dropi.syncedAt
+    );
+    if (normalizedPaymentValue(dropi.paymentStatus) === 'paid' && dropiTimestamp) {
+        return Object.freeze({
+            confirmed: true,
+            source: 'raw.latestDroppiPayload.paymentStatus',
+            provider: 'DROPI',
+            field: 'raw.latestDroppiPayload.paymentStatus',
+            value: 'paid',
+            timestamp: new Date(dropiTimestamp).toISOString(),
+            classification: 'DROPI_CONFIRMED',
+            confidence: 'CANONICAL'
+        });
+    }
+
+    const paymentTimestamp = canonicalPaymentTimestamp(payment.confirmedAt);
+    const paymentProvider = payment.provider || payment.source || raw.paymentProvider || raw.paymentSource || '';
+    if (paymentTimestamp && (
+        normalizedPaymentValue(payment.status) === 'paid'
+        || Boolean(payment.confirmedAt)
+    )) {
+        return Object.freeze({
+            confirmed: true,
+            source: payment.confirmedAt ? 'raw.payment.confirmedAt' : 'raw.payment.status',
+            provider: String(paymentProvider || 'SYSTEM_PERSISTED_PAYMENT_CONFIRMATION'),
+            field: payment.confirmedAt ? 'raw.payment.confirmedAt' : 'raw.payment.status',
+            value: payment.confirmedAt ? String(payment.confirmedAt) : 'paid',
+            timestamp: new Date(paymentTimestamp).toISOString(),
+            classification: paymentProviderClassification(paymentProvider) === 'UNKNOWN'
+                ? 'OTHER_CANONICAL_CONFIRMED'
+                : paymentProviderClassification(paymentProvider),
+            confidence: 'CANONICAL'
+        });
+    }
+
+    const directTimestamp = canonicalPaymentTimestamp(raw.paymentConfirmedAt);
+    if (directTimestamp) {
+        const directProvider = raw.paymentConfirmedProvider || raw.paymentProvider || raw.paymentSource || '';
+        return Object.freeze({
+            confirmed: true,
+            source: 'raw.paymentConfirmedAt',
+            provider: String(directProvider || 'SYSTEM_PERSISTED_PAYMENT_CONFIRMATION'),
+            field: 'raw.paymentConfirmedAt',
+            value: String(raw.paymentConfirmedAt),
+            timestamp: new Date(directTimestamp).toISOString(),
+            classification: paymentProviderClassification(directProvider) === 'UNKNOWN'
+                ? 'OTHER_CANONICAL_CONFIRMED'
+                : paymentProviderClassification(directProvider),
+            confidence: 'CANONICAL'
+        });
+    }
+
+    const ambiguousSource = normalizedPaymentValue(dropi.paymentStatus) === 'paid'
+        ? 'raw.latestDroppiPayload.paymentStatus'
+        : normalizedPaymentValue(payment.status) === 'paid'
+            ? 'raw.payment.status'
+            : '';
+    return Object.freeze({
+        confirmed: false,
+        source: ambiguousSource,
+        provider: ambiguousSource.startsWith('raw.latestDroppiPayload') ? 'DROPI' : String(paymentProvider || ''),
+        field: ambiguousSource,
+        value: ambiguousSource ? 'paid' : '',
+        timestamp: null,
+        classification: 'UNKNOWN',
+        confidence: ambiguousSource ? 'AMBIGUOUS_MISSING_TIMESTAMP' : 'MISSING'
+    });
+};
+
+export const shipmentPaymentConfirmed = (shipment = {}) => (
+    shipmentCanonicalPaymentEvidence(shipment).confirmed === true
 );
+
+export const deliveryOrPickupConfirmed = (shipment = {}) => Boolean(
+    shipment?.outcomes?.pickedUp === true
+    || shipment?.outcomes?.delivered === true
+    || shipment?.automation?.deliveredConfirmedAt
+    || String(shipment?.logistics?.canonicalStatus || '').toUpperCase() === 'DELIVERED'
+);
+
+export const pickupBonusLinkValid = (value = BONUS_URL) => {
+    try {
+        const parsed = new URL(String(value || ''));
+        return parsed.protocol === 'https:' && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
+
+export const pickupBonusEligibility = (shipment = {}, { bonusUrl = BONUS_URL } = {}) => {
+    const payment = shipmentCanonicalPaymentEvidence(shipment);
+    const deliveryConfirmed = deliveryOrPickupConfirmed(shipment);
+    const bonusEligible = String(shipment?.country || 'EC').toUpperCase() === 'EC'
+        && shipment?.outcomes?.returned !== true
+        && shipment?.outcomes?.prepaidOnly !== true
+        && shipment?.review?.manualOnly !== true;
+    const linkValid = pickupBonusLinkValid(bonusUrl);
+    const p5AcceptedOrConfirmed = Boolean(
+        shipment?.automation?.deliveredThankYouNotifiedAt
+        || ['SENT', 'RECOVERED_STRUCTURED', 'RECOVERED_MANUAL'].includes(String(
+            shipment?.automation?.postSaleSafetyLedger?.[POST_SALE_STAGES.DELIVERED_THANK_YOU]?.state || ''
+        ).toUpperCase())
+    );
+    return Object.freeze({
+        allowed: deliveryConfirmed && p5AcceptedOrConfirmed && payment.confirmed && bonusEligible && linkValid
+            && !shipment?.automation?.bonusNotifiedAt,
+        deliveryConfirmed,
+        paymentConfirmedCanonical: payment.confirmed,
+        payment,
+        p5AcceptedOrConfirmed,
+        bonusEligible,
+        linkValid,
+        alreadySent: Boolean(shipment?.automation?.bonusNotifiedAt)
+    });
+};
+
+const pickupBonusAcceptedOrConfirmed = (shipment = {}) => {
+    if (shipment?.automation?.bonusNotifiedAt) return true;
+    const entry = shipment?.automation?.postSaleSafetyLedger?.[POST_SALE_STAGES.PICKUP_BONUS];
+    return Boolean(entry && ['SENT', 'RECOVERED_STRUCTURED', 'RECOVERED_MANUAL'].includes(String(entry.state || '').toUpperCase()));
+};
 
 export const deliveredThankYouDedupeValueV147 = (shipment = {}) => {
     const idempotencyKey = buildPostSaleIdempotencyKey({
@@ -2374,10 +2512,21 @@ export const notifyDeliveredThankYou = async (shipment, {
     return true;
 };
 
-export const notifyPickupBonus = async (shipment) => {
+export const notifyPickupBonus = async (shipment, {
+    decideFn = decidePostSaleNotification,
+    sendTextFn = sendShipmentText,
+    completeFn = completePostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    findExistingMessageFn = findExistingPickupBonusMessage,
+    findExistingDedupeFn = findExistingPickupBonusDedupe,
+    persistFn = persistAutomationUpdate,
+    appendEventFn = appendEvent,
+    waitFn = wait
+} = {}) => {
     const chatId = resolveChatId(shipment);
-    if (!chatId || shipment.automation.bonusNotifiedAt) return false;
-    const decision = await decidePostSaleNotification({
+    const eligibility = pickupBonusEligibility(shipment);
+    if (!chatId || !eligibility.allowed) return false;
+    const decision = await decideFn({
         shipment,
         kind: POST_SALE_VARIANTS.PICKUP_BONUS,
         variant: POST_SALE_VARIANTS.PICKUP_BONUS
@@ -2397,13 +2546,13 @@ export const notifyPickupBonus = async (shipment) => {
     });
     const deliveredAt = deliveredReferenceDate(shipment);
     const existingBonus = deliveredAt
-        ? (await findExistingPickupBonusMessage(chatId, { since: deliveredAt })
-            || await findExistingPickupBonusDedupe(chatId, { since: deliveredAt }))
+        ? (await findExistingMessageFn(chatId, { since: deliveredAt })
+            || await findExistingDedupeFn(chatId, { since: deliveredAt }))
         : null;
     if (existingBonus) {
         const now = new Date();
         const existingAt = existingBonus.createdAt || existingBonus.updatedAt || now;
-        await completePostSaleNotificationStage({
+        await completeFn({
             shipment,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2411,12 +2560,12 @@ export const notifyPickupBonus = async (shipment) => {
             providerMessageId: existingBonus.providerMessageId || existingBonus._id || '',
             now: existingAt
         });
-        await persistAutomationUpdate(shipment._id, {
+        await persistFn(shipment._id, {
             'automation.bonusNotifiedAt': existingAt,
             'automation.lastReminderAt': existingAt,
             'automation.lastReminderKind': 'pickup_bonus'
         }, hash);
-        await appendEvent(shipment._id, 'pickup_bonus_notified', {
+        await appendEventFn(shipment._id, 'pickup_bonus_notified', {
             bonusUrl: BONUS_URL,
             recoveredFromExistingMessage: true,
             messageId: existingBonus._id || '',
@@ -2426,7 +2575,7 @@ export const notifyPickupBonus = async (shipment) => {
         return true;
     }
     if (hasAlreadySentHash(shipment, hash)) {
-        await completePostSaleNotificationStage({
+        await completeFn({
             shipment,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2436,13 +2585,14 @@ export const notifyPickupBonus = async (shipment) => {
         return false;
     }
 
-    const sent = await sendShipmentText(shipment, chatId, text, {
+    await waitFn(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
+    const sent = await sendTextFn(shipment, chatId, text, {
         kind: 'shipment_pickup_bonus_text',
         dedupeValue: `${text}|${bonusDedupeScope}`,
         antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
     if (!sendResultOk(sent)) {
-        await recordPrimaryPostSaleSendFailure({
+        await failFn({
             shipment,
             decision,
             stage: decision.stage,
@@ -2454,7 +2604,7 @@ export const notifyPickupBonus = async (shipment) => {
     if (!sent) return false;
     if (!sendResultOk(sent)) return false;
     const primarySentAt = new Date();
-    const finalized = await completePostSaleNotificationStage({
+    const finalized = await completeFn({
         shipment,
         stage: decision.stage,
         variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2463,57 +2613,165 @@ export const notifyPickupBonus = async (shipment) => {
         now: primarySentAt
     });
     if (!finalized.completed) return false;
-    const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);
-    const howToUseAudioPath = howToUseAudioBaseName
-        ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: howToUseAudioBaseName })
-        : '';
-    const howToUseAudioSent = howToUseAudioPath
-        ? await sendShipmentAudioFile(shipment, chatId, howToUseAudioPath, {
-            kind: 'shipment_pickup_bonus_how_to_use_audio',
-            baseName: howToUseAudioBaseName,
-            dedupeValue: shipmentProductFamily(shipment) === 'tex_ultra'
-                ? texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
-                : `${howToUseAudioPath}|${bonusDedupeScope}`
-        })
-        : false;
-    const texUltraHowToUseRecord = howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra'
-        ? await findTexUltraHowToUseAudioSentRecord({
-            jid: chatId,
-            recipientDigits: shipmentPhoneDigits(shipment),
-            dedupeValue: texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
-        })
-        : null;
-    if (howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra') {
-        await registerAudioAttempt(shipment, {
-            kind: 'pickup_bonus_how_to_use',
-            baseName: howToUseAudioBaseName,
-            at: new Date(),
-            sent: sendResultOk(howToUseAudioSent),
-            reason: sendResultOk(howToUseAudioSent)
-                ? 'sent'
-                : texUltraHowToUseRecord
-                    ? 'already_sent'
-                    : howToUseAudioPath ? 'send_failed' : 'audio_not_found',
-            sessionId: shipment.automation?.sessionId || null,
-            providerMessageId: howToUseAudioSent?.providerMessageId || '',
-            providerZaapId: howToUseAudioSent?.providerZaapId || ''
-        });
-    }
-
-    const now = primarySentAt;
-    await persistAutomationUpdate(shipment._id, {
-        'automation.bonusNotifiedAt': now,
-        'automation.lastReminderAt': now,
+    await persistFn(shipment._id, {
+        'automation.bonusNotifiedAt': primarySentAt,
+        'automation.lastReminderAt': primarySentAt,
         'automation.lastReminderKind': 'pickup_bonus'
     }, hash);
-    await appendEvent(shipment._id, 'pickup_bonus_notified', {
+    await appendEventFn(shipment._id, 'pickup_bonus_notified', {
         bonusUrl: BONUS_URL,
-        howToUseAudioSent,
-        howToUseAudioAlreadySent: Boolean(texUltraHowToUseRecord && !sendResultOk(howToUseAudioSent))
+        paymentSource: eligibility.payment.source,
+        paymentProvider: eligibility.payment.provider,
+        paymentClassification: eligibility.payment.classification,
+        paymentTimestamp: eligibility.payment.timestamp
     });
     return true;
 };
 
+export const notifyProductUsage = async (shipment, {
+    decideFn = decidePostSaleNotification,
+    resolveAudioFn = resolveCountryAudio,
+    sendAudioFileFn = sendShipmentAudioFile,
+    completeFn = completePostSaleNotificationStage,
+    releaseFn = failPostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    appendEventFn = appendEvent,
+    registerAudioAttemptFn = registerAudioAttempt,
+    findExistingTexUltraAudioFn = findTexUltraHowToUseAudioSentRecord,
+    waitFn = wait
+} = {}) => {
+    const chatId = resolveChatId(shipment);
+    const payment = shipmentCanonicalPaymentEvidence(shipment);
+    const baseName = pickupHowToUseAudioForShipment(shipment);
+    if (!chatId
+        || shipment?.automation?.usageNotifiedAt
+        || !deliveryOrPickupConfirmed(shipment)
+        || !payment.confirmed
+        || !pickupBonusAcceptedOrConfirmed(shipment)
+        || !baseName) return false;
+
+    const decision = await decideFn({
+        shipment,
+        kind: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
+
+    const texUltraDedupeValue = shipmentProductFamily(shipment) === 'tex_ultra'
+        ? texUltraHowToUseAudioDedupeValue(baseName)
+        : '';
+    if (texUltraDedupeValue) {
+        const existingTexUltraAudio = await findExistingTexUltraAudioFn({
+            jid: chatId,
+            recipientDigits: shipmentPhoneDigits(shipment),
+            dedupeValue: texUltraDedupeValue
+        });
+        if (existingTexUltraAudio) {
+            const recoveredAt = existingTexUltraAudio.sentAt
+                || existingTexUltraAudio.updatedAt
+                || existingTexUltraAudio.createdAt
+                || new Date();
+            const finalized = await completeFn({
+                shipment,
+                stage: decision.stage,
+                variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+                lockToken: decision.lockToken,
+                providerMessageId: existingTexUltraAudio.providerMessageId
+                    || existingTexUltraAudio.providerZaapId
+                    || existingTexUltraAudio._id
+                    || '',
+                now: recoveredAt
+            });
+            if (!finalized.completed) return false;
+            await registerAudioAttemptFn(shipment, {
+                kind: 'product_usage',
+                baseName,
+                at: recoveredAt,
+                sent: false,
+                reason: 'already_sent_via_tex_ultra_canonical_dedupe',
+                sessionId: shipment.automation?.sessionId || null,
+                providerMessageId: existingTexUltraAudio.providerMessageId || '',
+                providerZaapId: existingTexUltraAudio.providerZaapId || ''
+            });
+            await appendEventFn(shipment._id, 'product_usage_notified', {
+                baseName,
+                paymentSource: payment.source,
+                paymentProvider: payment.provider,
+                paymentClassification: payment.classification,
+                providerMessageId: existingTexUltraAudio.providerMessageId
+                    || existingTexUltraAudio.providerZaapId
+                    || existingTexUltraAudio._id
+                    || '',
+                recoveredFromExistingAudio: true
+            });
+            return true;
+        }
+    }
+
+    const audioPath = await resolveAudioFn({ country: shipment.country || 'EC', baseName });
+    if (!audioPath) {
+        await releaseFn({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+            lockToken: decision.lockToken,
+            reason: 'product_usage_audio_not_found'
+        });
+        return false;
+    }
+
+    await waitFn(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
+    const idempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.PRODUCT_USAGE,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO
+    });
+    const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
+        kind: 'shipment_product_usage_audio',
+        baseName,
+        dedupeValue: texUltraDedupeValue || `P7|${idempotencyKey}|${baseName}`
+    });
+    if (!sendResultOk(sent)) {
+        await failFn({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+            sendResult: sent,
+            reason: 'product_usage_audio_send_failed'
+        });
+        return false;
+    }
+
+    const now = new Date();
+    const finalized = await completeFn({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
+    await registerAudioAttemptFn(shipment, {
+        kind: 'product_usage',
+        baseName,
+        at: now,
+        sent: true,
+        reason: 'sent_after_p6_provider_acceptance',
+        sessionId: shipment.automation?.sessionId || null,
+        providerMessageId: sent?.providerMessageId || '',
+        providerZaapId: sent?.providerZaapId || ''
+    });
+    await appendEventFn(shipment._id, 'product_usage_notified', {
+        baseName,
+        paymentSource: payment.source,
+        paymentProvider: payment.provider,
+        paymentClassification: payment.classification,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
+    });
+    return true;
+};
 const calculateTreatmentDates = (shipment, pickedAt) => {
     const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
     const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
@@ -2615,7 +2873,7 @@ const confirmPickupFromProof = async ({
     dryRun = false
 }) => {
     if (!shipment) return { handled: false, reason: 'missing_shipment' };
-    if (shipment.outcomes?.pickedUp && shipment.automation?.bonusNotifiedAt) {
+    if (shipment.outcomes?.pickedUp && shipment.automation?.bonusNotifiedAt && shipment.automation?.usageNotifiedAt) {
         return { handled: false, reason: 'already_processed' };
     }
 
@@ -2695,13 +2953,17 @@ const confirmPickupFromProof = async ({
             if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
             order.notes = [
                 order.notes || '',
-                `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus-retirada liberado.`
+                `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus condicionado a pagamento canonico.`
             ].filter(Boolean).join('\n');
             await order.save();
             syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_proof_auto_confirmed' });
         }
 
-        const bonusSent = await notifyPickupBonus(shipment);
+        const thankYouSent = await notifyDeliveredThankYou(shipment);
+        const afterThankYou = await Shipment.findById(shipment._id);
+        const bonusSent = afterThankYou ? await notifyPickupBonus(afterThankYou) : false;
+        const afterBonus = await Shipment.findById(shipment._id);
+        const usageSent = afterBonus ? await notifyProductUsage(afterBonus) : false;
         await markSenderWalletDelivered({ jid: chatId, phone: shipment.client?.phone });
         await Shipment.updateOne(
             { _id: shipment._id },
@@ -2712,7 +2974,7 @@ const confirmPickupFromProof = async ({
                 }
             }
         );
-        return { handled: true, orderId: shipment.orderId, bonusSent, orderSynced: Boolean(order) };
+        return { handled: true, orderId: shipment.orderId, thankYouSent, bonusSent, usageSent, orderSynced: Boolean(order) };
     } catch (error) {
         await Shipment.updateOne(
             { _id: shipment._id },

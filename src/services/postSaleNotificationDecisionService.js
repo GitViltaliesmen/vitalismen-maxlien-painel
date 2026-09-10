@@ -39,6 +39,7 @@ const MARKER_BY_KIND = Object.freeze({
     pickup_proof_request: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_PROOF_REQUEST],
     delivered_thank_you: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.DELIVERED_THANK_YOU],
     pickup_bonus: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_BONUS],
+    product_usage: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PRODUCT_USAGE],
     treatment_refill_reminder: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]
 });
 
@@ -56,6 +57,7 @@ const EVENT_BY_KIND = Object.freeze({
     pickup_proof_request: ['pickup_proof_requested'],
     delivered_thank_you: ['delivered_thank_you_notified'],
     pickup_bonus: ['pickup_bonus_notified'],
+    product_usage: ['product_usage_notified'],
     treatment_refill_reminder: ['refill_reminder_notified']
 });
 
@@ -118,7 +120,8 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
         POST_SALE_STAGES.DELIVERED_THANK_YOU,
-        POST_SALE_STAGES.PICKUP_BONUS
+        POST_SALE_STAGES.PICKUP_BONUS,
+        POST_SALE_STAGES.PRODUCT_USAGE
     ]);
     const laterThanTransitLedger = terminalLedgerPresent(shipment, [
         POST_SALE_STAGES.READY_FOR_PICKUP,
@@ -131,7 +134,8 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
         POST_SALE_STAGES.DELIVERED_THANK_YOU,
-        POST_SALE_STAGES.PICKUP_BONUS
+        POST_SALE_STAGES.PICKUP_BONUS,
+        POST_SALE_STAGES.PRODUCT_USAGE
     ]);
 
     if (stage === POST_SALE_STAGES.GUIDE && (inTransitOrLater || laterThanGuideLedger)) {
@@ -196,7 +200,7 @@ const eligibilityForKind = (shipment = {}, kind = '') => {
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
-    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'treatment_refill_reminder') {
+    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'product_usage' || kind === 'treatment_refill_reminder') {
         return shipment?.outcomes?.pickedUp === true
             || shipment?.outcomes?.delivered === true
             || canonical.canonicalStatus === 'DELIVERED';
@@ -218,6 +222,9 @@ const historyMatchesKind = (message = {}, shipment = {}, kind = '') => {
     }
     if (kind === 'returned') return /devuelt|devoluci[oó]n|no fue retir|pago anticipado/.test(body);
     if (kind === 'delivered_thank_you') return /^\[audio\]\s*obrigado_pagou$/i.test(clean(message?.body));
+    if (kind === 'product_usage') {
+        return /^\[audio\]\s*(?:modo_de_uso_tex_ultra|como_se_toma_vit_power|nitrix_uso_oxide_ec)$/i.test(clean(message?.body));
+    }
     return false;
 };
 

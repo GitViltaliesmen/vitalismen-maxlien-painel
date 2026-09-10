@@ -179,8 +179,21 @@ export const postSaleNextEligibleCandidateQueryV112 = () => ({
             'outcomes.prepaidOnly': { $ne: true }
         },
         {
-            'logistics.status': 'ENTREGADO',
-            'automation.bonusNotifiedAt': null,
+            $and: [
+                {
+                    $or: [
+                        { 'logistics.status': 'ENTREGADO' },
+                        { 'outcomes.delivered': true },
+                        { 'outcomes.pickedUp': true }
+                    ]
+                },
+                {
+                    $or: [
+                        { 'automation.bonusNotifiedAt': null },
+                        { 'automation.usageNotifiedAt': null }
+                    ]
+                }
+            ],
             'outcomes.returned': { $ne: true }
         },
         {
@@ -198,8 +211,12 @@ const normalizeStatus = (value = '') => clean(value)
 
 export const postSaleActionForShipmentV112 = (shipment = {}) => {
     const status = normalizeStatus(shipment?.logistics?.status);
+    const canonicalStatus = normalizeStatus(shipment?.logistics?.canonicalStatus);
     if (status === 'DEVUELTO') return 'returned';
-    if (status === 'ENTREGADO') return 'delivered_bonus';
+    if (status === 'ENTREGADO'
+        || canonicalStatus === 'DELIVERED'
+        || shipment?.outcomes?.delivered === true
+        || shipment?.outcomes?.pickedUp === true) return 'delivered_bonus';
     if (status === 'READY_FOR_PICKUP') return 'ready_for_pickup';
     if (shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
     if (status === 'GUIA_GENERADA') return 'guide';
@@ -223,8 +240,9 @@ const POST_SALE_STAGE_RANK = Object.freeze({
     PICKUP_REMINDER_SOFT_DAY6: 9,
     PICKUP_PROOF_REQUEST: 10,
     PICKUP_BONUS: 11,
-    DELIVERED: 11,
-    RETURNED: 12
+    PRODUCT_USAGE: 12,
+    DELIVERED: 12,
+    RETURNED: 13
 });
 
 const latestTerminalLedgerStage = (shipment = {}) => Object.values(

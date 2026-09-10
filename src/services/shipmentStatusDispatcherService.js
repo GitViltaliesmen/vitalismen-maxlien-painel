@@ -4,6 +4,7 @@ import { toWhatsAppChatId } from '../utils/phone.js';
 import {
     notifyDeliveredThankYou,
     notifyPickupBonus,
+    notifyProductUsage,
     notifyShipmentInTransit,
     notifyReadyForPickup,
     notifyShipmentGuideGenerated,
@@ -700,8 +701,21 @@ export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Dat
     }
     if (actionSet.has('delivered_bonus')) {
         branches.push({
-            'logistics.status': 'ENTREGADO',
-            'automation.bonusNotifiedAt': null,
+            $and: [
+                {
+                    $or: [
+                        { 'logistics.status': 'ENTREGADO' },
+                        { 'outcomes.delivered': true },
+                        { 'outcomes.pickedUp': true }
+                    ]
+                },
+                {
+                    $or: [
+                        { 'automation.bonusNotifiedAt': null },
+                        { 'automation.usageNotifiedAt': null }
+                    ]
+                }
+            ],
             'outcomes.returned': { $ne: true }
         });
     }
@@ -1077,10 +1091,12 @@ const markDeliveredAndNotifyBonus = async (shipment) => {
     });
     const refreshed = await Shipment.findById(shipment._id);
     if (!refreshed) return false;
-    await notifyDeliveredThankYou(refreshed);
+    const thankYouSent = await notifyDeliveredThankYou(refreshed);
     const afterThankYou = await Shipment.findById(shipment._id);
     const bonusSent = afterThankYou ? await notifyPickupBonus(afterThankYou) : false;
-    return Boolean(bonusSent);
+    const afterBonus = await Shipment.findById(shipment._id);
+    const usageSent = afterBonus ? await notifyProductUsage(afterBonus) : false;
+    return Boolean(thankYouSent || bonusSent || usageSent);
 };
 
 export const countShipmentDispatchCandidates = async ({ actions = [] } = {}) => {

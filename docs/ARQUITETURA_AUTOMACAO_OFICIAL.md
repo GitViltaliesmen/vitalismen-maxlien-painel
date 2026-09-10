@@ -1123,6 +1123,15 @@ scheduler paralelo nem replay histórico em massa. Produto, preço, pedido,
 Dropi, Meta/CAPI, pixel, número, transporte, funil e cadência permanecem
 inalterados.
 
+A V147-R3 restringe a liberação comercial posterior sem alterar o P5. Entrega
+ou retirada canônica libera somente o agradecimento P5. O bônus P6 exige também
+prova persistida de pagamento com timestamp e classificação de provedor; estado
+logístico `ENTREGADO` isolado nunca prova pagamento. O modo de uso P7 possui
+estágio, ledger, lock e marcador próprios e só se torna elegível depois de P6
+aceito pelo provider, mantendo o áudio canônico de Tex Ultra, Vit Power ou
+Nitrix. P6 e P7 aplicam pacing antes da borda do provider, inclusive na Z-API.
+Pagamento tardio reabre apenas P6/P7; P5 não é repetido.
+
 ## Microcamada V61 de atribuição Meta EC do Protocolo G até o Purchase
 
 O freeze candidato

@@ -19,6 +19,7 @@ export const POST_SALE_STAGES = Object.freeze({
     PICKUP_PROOF_REQUEST: 'PICKUP_PROOF_REQUEST',
     DELIVERED_THANK_YOU: 'DELIVERED_THANK_YOU',
     PICKUP_BONUS: 'PICKUP_BONUS',
+    PRODUCT_USAGE: 'PRODUCT_USAGE',
     TREATMENT_REFILL_REMINDER: 'TREATMENT_REFILL_REMINDER'
 });
 
@@ -40,6 +41,7 @@ export const POST_SALE_VARIANTS = Object.freeze({
     PICKUP_PROOF_REQUEST: 'pickup_proof_request',
     DELIVERED_THANK_YOU_AUDIO: 'delivered_thank_you_audio',
     PICKUP_BONUS: 'pickup_bonus',
+    PRODUCT_USAGE_AUDIO: 'product_usage_audio',
     TREATMENT_REFILL_REMINDER: 'treatment_refill_reminder'
 });
 
@@ -88,6 +90,11 @@ const STAGE_BY_KIND_OR_VARIANT = Object.freeze({
     pickup_bonus: POST_SALE_STAGES.PICKUP_BONUS,
     PICKUP_BONUS: POST_SALE_STAGES.PICKUP_BONUS,
     shipment_pickup_bonus_text: POST_SALE_STAGES.PICKUP_BONUS,
+    product_usage: POST_SALE_STAGES.PRODUCT_USAGE,
+    PRODUCT_USAGE: POST_SALE_STAGES.PRODUCT_USAGE,
+    product_usage_audio: POST_SALE_STAGES.PRODUCT_USAGE,
+    shipment_product_usage_audio: POST_SALE_STAGES.PRODUCT_USAGE,
+    shipment_pickup_bonus_how_to_use_audio: POST_SALE_STAGES.PRODUCT_USAGE,
     treatment_refill_reminder: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER,
     TREATMENT_REFILL_REMINDER: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER,
     shipment_refill_reminder_text: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER
@@ -107,6 +114,7 @@ export const LEGACY_MARKERS_BY_STAGE = Object.freeze({
     [POST_SALE_STAGES.PICKUP_PROOF_REQUEST]: Object.freeze(['pickupProofRequestedAt']),
     [POST_SALE_STAGES.DELIVERED_THANK_YOU]: Object.freeze(['deliveredThankYouNotifiedAt']),
     [POST_SALE_STAGES.PICKUP_BONUS]: Object.freeze(['bonusNotifiedAt']),
+    [POST_SALE_STAGES.PRODUCT_USAGE]: Object.freeze(['usageNotifiedAt']),
     [POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]: Object.freeze(['refillReminderAt'])
 });
 
@@ -147,6 +155,7 @@ export const legacyKindForPostSaleStage = (stage = '') => ({
     [POST_SALE_STAGES.PICKUP_PROOF_REQUEST]: 'pickup_proof_request',
     [POST_SALE_STAGES.DELIVERED_THANK_YOU]: 'delivered_thank_you',
     [POST_SALE_STAGES.PICKUP_BONUS]: 'pickup_bonus',
+    [POST_SALE_STAGES.PRODUCT_USAGE]: 'product_usage',
     [POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]: 'treatment_refill_reminder'
 }[canonicalPostSaleStage(stage)] || '');
 

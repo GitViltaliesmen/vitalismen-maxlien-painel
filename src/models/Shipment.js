@@ -124,6 +124,7 @@ const shipmentSchema = new mongoose.Schema({
         pickupProofLastAttemptAt: { type: Date, default: null },
         pickupProofLastError: { type: String, default: '' },
         bonusNotifiedAt: { type: Date, default: null },
+        usageNotifiedAt: { type: Date, default: null },
         refillReminderAt: { type: Date, default: null },
         refillReminderDispatchLockedUntil: { type: Date, default: null },
         refillReminderLastAttemptAt: { type: Date, default: null },

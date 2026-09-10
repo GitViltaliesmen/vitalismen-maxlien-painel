@@ -32,7 +32,7 @@ test('V60 aplica a chave dedicada somente ao texto prometido e mantém dedupe f�
     assert.doesNotMatch(bonusBlock, /OBRIGADO_PAGOU|delivered_thank_you/);
     assert.doesNotMatch(bonusBlock, /bypassDedupe:\s*true|force:\s*true/);
     assert.match(bonusBlock, /if \(!sent\) return false/);
-    assert.match(bonusBlock, /'automation\.bonusNotifiedAt': now/);
+    assert.match(bonusBlock, /'automation\.bonusNotifiedAt': (?:existingAt|primarySentAt)/);
 });
 
 test('V60 preserva agradecimento após retirada como etapa separada do bônus', () => {

@@ -73,7 +73,7 @@ test('pergunta envia o audio com Z-API habilitada para pos-venda e dedupe persis
     assert.equal(calls[0][3].dedupeValue, texUltraHowToUseAudioDedupeValue(AUDIO_NAME));
 });
 
-test('audio ja enviado por qualquer um dos dois gatilhos nao e reenviado automaticamente', async () => {
+test('audio ja enviado pelo gatilho manual ou pelo P7 nao e reenviado automaticamente', async () => {
     let sendCalls = 0;
     const result = await sendTexUltraHowToUseAudio({
         state: { chatId: '593991112233@c.us', phoneDigits: '593991112233' },
@@ -97,10 +97,10 @@ test('audio ja enviado por qualquer um dos dois gatilhos nao e reenviado automat
     assert.equal(sendCalls, 0);
 
     const shipmentSource = fs.readFileSync('src/services/shipmentMessageService.js', 'utf8');
-    assert.match(shipmentSource, /shipmentProductFamily\(shipment\) === 'tex_ultra'/);
-    assert.match(shipmentSource, /texUltraHowToUseAudioDedupeValue\(howToUseAudioBaseName\)/);
-    assert.match(shipmentSource, /pickup_bonus_how_to_use/);
-    assert.match(shipmentSource, /reason: sendResultOk\(howToUseAudioSent\)/);
+    assert.match(shipmentSource, /const baseName = pickupHowToUseAudioForShipment\(shipment\);/);
+    assert.match(shipmentSource, /POST_SALE_VARIANTS\.PRODUCT_USAGE_AUDIO/);
+    assert.match(shipmentSource, /kind: 'shipment_product_usage_audio'/);
+    assert.match(shipmentSource, /reason: 'product_usage_audio_send_failed'/);
 });
 
 test('asset ausente falha fechado sem misturar audio de outro produto', async () => {

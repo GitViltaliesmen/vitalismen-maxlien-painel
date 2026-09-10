@@ -15,7 +15,9 @@ import {
 } from '../services/droppiEcuadorService.js';
 import {
     notifyReadyForPickup,
+    notifyDeliveredThankYou,
     notifyPickupBonus,
+    notifyProductUsage,
     notifyPickupProofRequest,
     notifyShipmentGuideGenerated,
     notifyTreatmentRefillReminder,
@@ -3054,6 +3056,7 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
         shipment.outcomes.delivered = true;
         shipment.outcomes.returned = false;
         shipment.outcomes.prepaidOnly = false;
+        shipment.logistics.status = 'ENTREGADO';
         shipment.automation.deliveredConfirmedAt = pickedAt;
         shipment.automation.prepaidOnlyNotifiedAt = null;
         shipment.proof.productPhotoUrl = productPhotoUrl;
@@ -3084,12 +3087,18 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
             await order.save();
             syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_confirmed' });
         }
-        const bonusSent = sendBonus === false ? false : await notifyPickupBonus(shipment);
+        const thankYouSent = await notifyDeliveredThankYou(shipment);
+        const afterThankYou = await Shipment.findById(shipment._id);
+        const bonusSent = sendBonus === false || !afterThankYou ? false : await notifyPickupBonus(afterThankYou);
+        const afterBonus = await Shipment.findById(shipment._id);
+        const usageSent = sendBonus === false || !afterBonus ? false : await notifyProductUsage(afterBonus);
         await markSenderWalletDelivered({ phone: shipment.client?.phone });
 
         res.json({
             success: true,
+            thankYouSent,
             bonusSent,
+            usageSent,
             shipment
         });
     } catch (error) {
@@ -3102,8 +3111,10 @@ router.post('/:orderId/notify-bonus', adminOnly, async (req, res) => {
     try {
         const shipment = await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
-        const success = await notifyPickupBonus(shipment);
-        res.json({ success });
+        const bonusSent = await notifyPickupBonus(shipment);
+        const refreshed = await Shipment.findById(shipment._id);
+        const usageSent = refreshed ? await notifyProductUsage(refreshed) : false;
+        res.json({ success: Boolean(bonusSent || usageSent), bonusSent, usageSent });
     } catch (error) {
         console.error('Notify bonus error:', error);
         res.status(500).json({ error: 'Failed to notify bonus' });
