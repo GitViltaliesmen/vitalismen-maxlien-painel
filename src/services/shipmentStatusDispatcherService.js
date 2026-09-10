@@ -1225,7 +1225,7 @@ export const countShipmentDispatchCandidates = async ({ actions = [] } = {}) => 
     return Shipment.countDocuments(candidateQuery(selectedActions));
 };
 
-export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMIT, dryRun = false, force = false, actions = [] } = {}) => {
+export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMIT, dryRun = false, force = false, actions = [], canonicalPollCompleted = false } = {}) => {
     const startedAt = new Date();
     const effectiveLimit = normalizeLimit(limit);
     const selectedActions = normalizeActions(actions);
@@ -1349,6 +1349,20 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             }
 
             let shipmentForSend = lockedShipment;
+            if (canonicalPollCompleted && postSaleTransactionalSafetyV116Enabled()) {
+                const priorDecision = await decidePostSaleNotification({
+                    shipment: shipmentForSend,
+                    kind: notificationKindForDispatchAction(action),
+                    acquireLock: false
+                });
+                if (priorDecision.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                    item.reason = priorDecision.reason || 'preflight_not_eligible';
+                    item.preflightDecision = priorDecision.decision;
+                    skipped += 1;
+                    results.push(item);
+                    continue;
+                }
+            }
             if (dispatchRefreshBeforeSendEnabled() && refreshedBeforeSend < refreshLimit) {
                 refreshedBeforeSend += 1;
                 const refresh = await refreshShipmentBeforeDispatch(shipmentForSend).catch((error) => ({

@@ -29,9 +29,9 @@
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "36974f03de331f6d5d7083bf16f9fd09ae7147491d80f4be1f4c5525c2a3fac5",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
-    "scripts/post-sale-transactional-batch-v116.mjs": "61fed9be348abee3e3e578defab2d69ae249bb5a967060c7ea9e91794c3a4b67",
+    "scripts/post-sale-transactional-batch-v116.mjs": "888e4fd7ad3bc8b3573099b977315f03fa86b44308acc3487e8968a9a2118f31",
     "scripts/test-v147-r4-staging-sink.mjs": "a7ddf675779244d94513a0bc2200882f80a221dc3db5ef0e8bfd875e9aa8e006",
-    "src/services/shipmentStatusDispatcherService.js": "1c4f7c23f9350f998dcafc123e4b90aa3df06959abfaa076c350b33836a0ed94",
+    "src/services/shipmentStatusDispatcherService.js": "dedbd1b89843e455f9721e8fd7f39c464f846fa0d6a59e6b025db8a80902c706",
     "tests/helpers/v147-r4-sink-loader.mjs": "18e95b0026056b2dfb57438458d0a8952fbf50644fe0e88308a6e56e9f90a56a",
     "tests/helpers/v147-r4-sink-register.mjs": "4ed4ebda61eb7cddf2f8f0e41f0ef39cb9a44c046cca4fe4fd309213211cfd96",
     "tests/v116-canonical-polling-v147-r4.test.mjs": "8039ec39a827eb805021da9527821c00eaf86e76381cfecd71a5d107f33b8281"

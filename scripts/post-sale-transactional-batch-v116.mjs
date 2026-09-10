@@ -42,6 +42,7 @@ try {
     });
     const result = await processShipmentStatusDispatch({
         limit: 1,
+        canonicalPollCompleted: true,
         dryRun: action === 'plan',
         actions
     });
