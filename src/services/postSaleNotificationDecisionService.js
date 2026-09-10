@@ -698,3 +698,15 @@ export const shouldSendPostSaleNotification = (result = {}) => (
 );
 
 export default decidePostSaleNotification;
+
+// Dispatcher preflight must evaluate the next unsatisfied stage, not stop at an already sent P6.
+export const decidePostSaleSequenceV147R6 = async ({ shipment, ...options } = {}) => {
+    for (const [kind, marker] of [['delivered_thank_you', 'deliveredThankYouNotifiedAt'],
+        ['pickup_bonus', 'bonusNotifiedAt'], ['product_usage', 'usageNotifiedAt']]) {
+        const decision = await decidePostSaleNotification({ ...options, shipment, kind, acquireLock: false });
+        const accepted = decision.satisfied === true || Boolean(shipment?.automation?.[marker]);
+        if (!accepted) return decision;
+    }
+    return { decision: POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED,
+        reason: 'canonical_postsale_sequence_satisfied', satisfied: true };
+};

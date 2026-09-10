@@ -20,7 +20,8 @@ import {
 } from './canaryIsolationV75Service.js';
 import {
     POST_SALE_NOTIFICATION_DECISIONS,
-    decidePostSaleNotification
+    decidePostSaleNotification,
+    decidePostSaleSequenceV147R6
 } from './postSaleNotificationDecisionService.js';
 import {
     postSaleTransactionalSafetyV116Enabled,
@@ -265,6 +266,10 @@ const dispatchActionPriority = (action) => {
 const notificationKindForDispatchAction = (action) => (
     action === 'delivered_bonus' ? 'pickup_bonus' : action
 );
+
+const decideDispatchNotificationV147R6 = ({ shipment, action }) => action === 'delivered_bonus'
+    ? decidePostSaleSequenceV147R6({ shipment })
+    : decidePostSaleNotification({ shipment, kind: notificationKindForDispatchAction(action), acquireLock: false });
 
 const resolveDispatchSessionForShipment = async ({
     shipment,
@@ -1327,11 +1332,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 results.push(item);
                 continue;
             }
-            const preflight = await decidePostSaleNotification({
-                shipment,
-                kind: notificationKindForDispatchAction(action),
-                acquireLock: false
-            });
+            const preflight = await decideDispatchNotificationV147R6({ shipment, action });
             item.preflightDecision = preflight.decision || '';
             if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
                 item.reason = preflight.reason || 'preflight_not_eligible';
@@ -1360,12 +1361,11 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             }
 
             let shipmentForSend = lockedShipment;
+            if (action === 'delivered_bonus' && !dryRun) {
+                shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
+            }
             if (canonicalPollCompleted && postSaleTransactionalSafetyV116Enabled()) {
-                const priorDecision = await decidePostSaleNotification({
-                    shipment: shipmentForSend,
-                    kind: notificationKindForDispatchAction(action),
-                    acquireLock: false
-                });
+                const priorDecision = await decideDispatchNotificationV147R6({ shipment: shipmentForSend, action });
                 if (priorDecision.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
                     item.reason = priorDecision.reason || 'preflight_not_eligible';
                     item.preflightDecision = priorDecision.decision;
@@ -1462,14 +1462,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 });
                 continue;
             }
-            if (action === 'delivered_bonus' && !dryRun) {
-                shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
-            }
-            const preflight = await decidePostSaleNotification({
-                shipment: shipmentForSend,
-                kind: notificationKindForDispatchAction(action),
-                acquireLock: false
-            });
+            const preflight = await decideDispatchNotificationV147R6({ shipment: shipmentForSend, action });
             item.preflightDecision = preflight.decision || '';
             if (preflight.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
                 item.reason = preflight.reason || 'preflight_not_eligible';

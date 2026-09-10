@@ -58,3 +58,22 @@ test('A07/A10/A19 audit: legacy manual audio has no shared canonical reservation
         assert.equal(decision.decision, 'SHOULD_SEND');
     }
 });
+
+test('dispatcher continues the missing stage when P6 was manual and stops on ambiguous P5', async () => {
+    const { decidePostSaleSequenceV147R6 } = await import('../src/services/postSaleNotificationDecisionService.js');
+    const shipment = { _id: 'sequence-fixture', orderId: 'sequence-order', country: 'EC', productName: 'Tex Ultra',
+        client: { phone: '593999000147', customerId: 'fixture-customer' },
+        logistics: { canonicalStatus: 'DELIVERED', trackingNumber: '189147611', canonicalEvidence: {
+            provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'Entregado', observedAt: new Date() } },
+        automation: { bonusNotifiedAt: new Date() } };
+    const messageModel = { find() { return { sort() { return this; }, limit() { return this; }, async lean() { return []; } }; } };
+    const contactStateModel = { findOne() { return { sort() { return this; }, select() { return this; }, async lean() { return null; } }; } };
+    const decide = () => decidePostSaleSequenceV147R6({ shipment, messageModel, contactStateModel });
+    assert.equal((await decide()).stage, 'DELIVERED_THANK_YOU');
+    shipment.automation.postSaleSafetyLedger = { DELIVERED_THANK_YOU: { state: 'INTENDED' } };
+    assert.equal((await decide()).reason, 'intended_event_requires_reconciliation');
+    shipment.automation.deliveredThankYouNotifiedAt = new Date();
+    assert.equal((await decide()).stage, 'PRODUCT_USAGE');
+    shipment.automation.usageNotifiedAt = new Date();
+    assert.equal((await decide()).reason, 'canonical_postsale_sequence_satisfied');
+});

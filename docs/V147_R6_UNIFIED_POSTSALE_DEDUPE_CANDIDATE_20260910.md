@@ -16,7 +16,7 @@ O mesmo `Shipment.automation.postSaleSafetyLedger` e `notificationLocks` recebe 
 
 Reinício não libera `INTENDED`. Timeout ambíguo fica terminal e exige reconciliação com prova. Histórico legado usa identificador/template exato, destinatário, janela da entrega e limite da compra seguinte; registros com chave canônica usam a própria identidade. Nenhum timestamp ou provider ID de Message é reescrito. Reconciliação preserva entradas anteriores em `priorEntries`, inclusive P6 `FAILED_FINAL`, e registra o incidente de P5 duplicado.
 
-A reconciliação ocorre no dispatcher existente e nos três notificadores. Não há scheduler, poller, alteração de transporte, regra DELIVERED, Chromium, ProtectHome, Meta, VSL, Dropi ou backfill. A sequência e o pacing existentes permanecem. Preservam-se human.mode manual para o comercial e a exceção transacional R5.
+A reconciliação ocorre antes do preflight do dispatcher existente e nos três notificadores. O preflight percorre P5/P6/P7 e avalia a primeira etapa ainda não satisfeita, permitindo continuar quando P6 já foi manual. Não há scheduler, poller, alteração de transporte, regra DELIVERED, Chromium, ProtectHome, Meta, VSL, Dropi ou backfill. A sequência e o pacing existentes permanecem. Preservam-se human.mode manual para o comercial e a exceção transacional R5.
 
 ## Auditoria A07/A10/A19
 

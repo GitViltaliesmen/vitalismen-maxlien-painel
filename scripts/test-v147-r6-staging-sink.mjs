@@ -38,6 +38,7 @@ const { notifyDeliveredThankYou, notifyPickupBonus, notifyProductUsage } = await
 const { sendCanonicalPanelPostSaleV147R6 } = await import('../src/services/postSaleManualPanelV147R6Service.js');
 const { reconcileDeliveredPostSaleSequenceV147R6, resolvePostSaleEventV147R6, reservePostSaleEventV147R6, LEGACY_PANEL_P6_TEXT_V147R6 } = await import('../src/services/postSaleUnifiedEventV147R6Service.js');
 const { routeIncomingMessage } = await import('../src/services/agentRouter.js');
+const { processShipmentStatusDispatch } = await import('../src/services/shipmentStatusDispatcherService.js');
 await mongoose.connect(uri, { autoIndex: true });
 const calls = () => fs.existsSync(trace) ? fs.readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line)) : [];
 const auto = async (id, stage = '') => {
@@ -83,7 +84,7 @@ const make = async (product = 'tex_ultra_ec', extra = {}) => {
     const shipment = await Shipment.create({ orderId: 'EC-SINK-R6-' + index, country: 'EC', client: { phone },
         logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189146' + index,
             distributionCompany: 'SERVIENTREGA', canonicalEvidence: { source: 'carrier_tracking', provider: 'servientrega', rawStatus: 'Entregado', observedAt: new Date(Date.now() - 60000) } },
-        raw: { customerId: String(state._id) }, ...extra });
+        raw: { customerId: String(state._id), manualDropiOrderId: '9146' + String(index).padStart(3, '0') }, ...extra });
     if (product) await Order.create({ orderId: shipment.orderId, country: 'EC', currency: 'USD', customer: { phone }, tracking: { productKey: product } });
     return { shipment, state };
 };
@@ -154,7 +155,8 @@ try {
     await Message.insertMany(replacePhone(fixture.messages));
     const messageSnapshot = JSON.stringify(await Message.find({ peerPhone: fakePhone }).sort({ _id: 1 }).lean());
     before = calls().length;
-    await reconcileDeliveredPostSaleSequenceV147R6(await Shipment.findById(replay._id));
+    const replayDispatch = await processShipmentStatusDispatch({ limit: 1, actions: ['delivered_bonus'], canonicalPollCompleted: true, activationWatermark: new Date().toISOString() });
+    assert.ok(replayDispatch.results.some((row) => row.orderId === '6886247'), JSON.stringify(replayDispatch));
     await auto(replay._id);
     for (const stage of ['P5', 'P6', 'P7']) assert.equal((await manual(replay._id, stage)).alreadySatisfied, true);
     const final = await Shipment.findById(replay._id).lean();
@@ -167,6 +169,20 @@ try {
     assert.equal(JSON.stringify(fixture.messages), originalMessages);
     await worker(['--restart', String(replay._id)]); assert.equal(calls().length, before);
     receipt.cases.replay6886247 = { providerCalls: 0, P5: 'SATISFIED', P6: final.automation.postSaleSafetyLedger.PICKUP_BONUS.state, P7: 'SATISFIED', duplicateIncidentCount: 1, messagesPreserved: true, failedFinalPreservedInHistory: true };
+    // Isolate the dispatcher continuation cases from earlier intentionally incomplete SINK fixtures.
+    await Shipment.updateMany({}, { $set: { 'review.manualOnly': true } });
+    globalThis.__R4_TRACK = async ({ trackingNumber }) => ({ ok: true, carrier: 'servientrega', trackingNumber,
+        statusAtual: 'Entregado', canonicalStatus: 'DELIVERED', normalizedStatus: 'ENTREGADO' });
+    for (const stage of ['P5', 'P6', 'P7']) {
+        const { shipment } = await make('tex_ultra_ec', { automation: { dropiSubmitAuthorizedAt: new Date(), dropiSubmitAuthorizedBy: 'SINK_OPERATOR' } });
+        await manual(shipment._id, stage); before = calls().length;
+        const dispatched = await processShipmentStatusDispatch({ limit: 1, actions: ['delivered_bonus'], canonicalPollCompleted: true, activationWatermark: new Date().toISOString() });
+        const sent = calls().slice(before).filter((row) => row.phone.startsWith(shipment.client.phone));
+        assert.equal(sent.length, 2, JSON.stringify(dispatched));
+        const stored = await Shipment.findById(shipment._id);
+        assert.ok(stored.automation.deliveredThankYouNotifiedAt && stored.automation.bonusNotifiedAt && stored.automation.usageNotifiedAt);
+        receipt.cases['official_dispatch_manual_' + stage + '_continues_remaining'] = 'PASS';
+    }
     Object.assign(receipt, { status: 'PASS', manualV116RaceProviderCalls: 1, duplicateMessages: 0, noBlindRetry: 'PASS', restartIdempotency: 'PASS', messages: calls() });
     fs.writeFileSync(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
     console.log('V147_R6_STAGING_SINK=PASS');
