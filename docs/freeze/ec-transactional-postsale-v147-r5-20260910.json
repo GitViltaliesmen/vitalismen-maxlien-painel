@@ -31,11 +31,11 @@
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "93e9a247138b9b64653c5440c3ded3404261cf02f46cf3030f33319efb130605",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "1aa823b4b4cbb115af80f5ce550e9b363e6604940d5c42088b4a8c585d300181",
     "scripts/lib/ec-runtime-successor-v147-r5-context.mjs": "240414e06fa5cf3bb448e34337fbd63ee9dccc8a731655cf142bfec5d61df44f",
-    "scripts/test-v147-r5-staging-sink.mjs": "42a482d99ce76be7513840324ec14f4f22bb4d7e21953b088f4fb1236c15e37e",
+    "scripts/test-v147-r5-staging-sink.mjs": "514401cc00f2d3b7ea1700c1acc57d5022187d493db2432cf870d011a4235081",
     "src/services/postSaleNotificationDecisionService.js": "b571edd47a7e86381a209d0f63a1cae9726159c4634ab55eb79a8866b7c9defd",
-    "src/services/postSaleProductResolutionV147R5Service.js": "56093a33671793777ee435096dedacf4e8458ad1f76b6e623121abba34955f29",
+    "src/services/postSaleProductResolutionV147R5Service.js": "a3aab5f6dbcde7e7ca495dd951cc14192cbd4b008e70a1180250b0a93b251b2f",
     "src/services/shipmentMessageService.js": "40823a6431326a90c9b81bb7889f823de0ecd134f24363b6f5244b9b7d854bd1",
-    "tests/transactional-postsale-v147-r5.test.mjs": "5c57da9611c1e008a6dd59bbcdafff3cc0a5c384cba3871a97f92e1c340b57ed"
+    "tests/transactional-postsale-v147-r5.test.mjs": "38a2238b949fb4a9dde45f82cb49a34830f50135b1396d8d2aa59cc1f53a58d2"
   },
   "preservedFiles": {
     "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",

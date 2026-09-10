@@ -57,7 +57,7 @@ if (process.argv.includes('--restart')) {
 assert.equal((await mongoose.connection.db.listCollections().toArray()).length, 0);
 fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
 const sqlite = spawnSync('python3', ['-', path.join(directory, 'leads_ec.sqlite3')], { encoding: 'utf8', input:
-    "import sqlite3,sys\nc=sqlite3.connect(sys.argv[1]);c.executescript('CREATE TABLE leads(id INTEGER PRIMARY KEY, name TEXT, phone TEXT, phone_e164 TEXT, status TEXT, notes TEXT, product_qty INTEGER, product_value REAL, updated_at TEXT, event_id TEXT); CREATE TABLE lead_history(id INTEGER PRIMARY KEY, lead_id INTEGER, action TEXT, details TEXT, created_at TEXT); CREATE TABLE lead_status_history(id INTEGER PRIMARY KEY, lead_id INTEGER, old_status TEXT, new_status TEXT, created_at TEXT);');c.commit()" });
+    "import sqlite3,sys\nc=sqlite3.connect(sys.argv[1]);c.executescript('CREATE TABLE leads(id INTEGER PRIMARY KEY, name TEXT, phone TEXT, phone_e164 TEXT, country TEXT, status TEXT, notes TEXT, product_qty INTEGER, product_value REAL, updated_at TEXT, event_id TEXT); CREATE TABLE lead_history(id INTEGER PRIMARY KEY, lead_id INTEGER, action TEXT, details TEXT, created_at TEXT); CREATE TABLE lead_status_history(id INTEGER PRIMARY KEY, lead_id INTEGER, old_status TEXT, new_status TEXT, created_at TEXT);');c.commit()" });
 assert.equal(sqlite.status, 0);
 let index = 0;
 const create = async ({ product = '', status = 'DELIVERED', orderId = '', customerId = '', shipmentId = '', dropiId = '', canonicalOrderId = '' } = {}) => {
@@ -72,7 +72,8 @@ const create = async ({ product = '', status = 'DELIVERED', orderId = '', custom
         raw: { customerId: String(state._id), ...(dropiId ? {
             manualDropiOrderId: dropiId,
             latestDroppiPayload: { orderId, dropiOrderId: dropiId },
-            historicalExternalReconciliation: { source: 'HISTORICAL_EXTERNAL_RECONCILIATION', customerId: String(state._id),
+            historicalExternalReconciliation: { source: 'HISTORICAL_EXTERNAL_RECONCILIATION', customerId: String(state._id), phone,
+                sourceDropi: true, sourceServientrega: true,
                 dropiOrderId: dropiId, trackingNumber: '189613439', leadId: '3496' }
         } : {}) },
         review: { suppressedNotificationKinds: ['guide'] }
@@ -127,11 +128,11 @@ try {
     const replayBefore = sink.length;
     // A ativação sucessora é posterior ao evento. O dispatcher R4 deve preservar a elegibilidade já persistida.
     const replayDispatch = await processShipmentStatusDispatch({ limit: 1, actions: ['delivered_bonus'], canonicalPollCompleted: true, activationWatermark: new Date().toISOString() });
-    assert.ok(sink.slice(replayBefore).some((entry) => entry.chatId === `${replay.client.phone}@s.whatsapp.net`), JSON.stringify(replayDispatch));
+    assert.ok(sink.slice(replayBefore).some((entry) => String(entry.chatId).startsWith(`${replay.client.phone}@`)), JSON.stringify(replayDispatch));
     let replayStored = await Shipment.findById(replay._id);
     assert.equal(replayStored.review.suppressedNotificationKinds.includes('delivered_thank_you'), false);
     assert.ok(replayStored.automation.usageNotifiedAt);
-    const replaySent = sink.filter((entry) => entry.chatId === `${replay.client.phone}@s.whatsapp.net`);
+    const replaySent = sink.filter((entry) => String(entry.chatId).startsWith(`${replay.client.phone}@`));
     assert.equal(replaySent.length, 3);
     const restarted = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url), '--restart', String(replay._id)],
         { cwd: root, env: process.env, encoding: 'utf8', timeout: 120000 });

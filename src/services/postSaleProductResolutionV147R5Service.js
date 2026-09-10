@@ -1,8 +1,8 @@
 import Order from '../models/Order.js';
+import { formatWhatsAppNumber } from '../utils/phone.js';
 import { ECUADOR_PRODUCTS, validateExplicitEcuadorProductSelection } from './ecuadorProductService.js';
 
 const clean = (value) => String(value ?? '').trim();
-const digits = (value) => clean(value).replace(/\D/g, '');
 const normalized = (value) => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const products = Object.values(ECUADOR_PRODUCTS);
 const dropiIds = (shipment) => [...new Set([
@@ -34,8 +34,8 @@ export const samePostSaleOrderV147R5 = (shipment, order) => {
     const sameOrder = clean(order.orderId) && clean(order.orderId) === clean(shipment.orderId);
     const sameDropi = clean(order.dropiOrderId) && dropiIds(shipment).includes(clean(order.dropiOrderId));
     if (!sameOrder && !sameDropi) return false;
-    const phone = digits(shipment?.client?.phone);
-    const orderPhone = digits(order?.customer?.phone);
+    const phone = formatWhatsAppNumber({ phone: shipment?.client?.phone, country: 'EC' });
+    const orderPhone = formatWhatsAppNumber({ phone: order?.customer?.phone, country: 'EC' });
     if (phone && orderPhone && phone !== orderPhone) return false;
     const guide = clean(shipment?.logistics?.trackingNumber);
     if (guide && clean(order.trackingNumber) && guide !== clean(order.trackingNumber)) return false;

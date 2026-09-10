@@ -55,6 +55,7 @@ test('fontes do mesmo pedido, aliases oficiais e conflitos sem fallback', async 
     const shipment = fixture(); shipment.raw.manualDropiOrderId = '6886247';
     const order = { country: 'EC', orderId: 'EC-ADMIN-3496', dropiOrderId: '6886247', tracking: { productKey: 'tex_ultra_ec' } };
     assert.equal(resolvePostSaleProductV147R5({ shipment, orders: [order] }).productKey, 'tex_ultra_ec');
+    assert.equal(resolvePostSaleProductV147R5({ shipment, orders: [{ ...order, customer: { phone: '0999000147' } }] }).productKey, 'tex_ultra_ec');
     assert.equal(resolvePostSaleProductV147R5({ shipment }).classification, 'NO_PRODUCT_EVIDENCE');
     shipment.raw.droppiOrder = { id: '6886247', orderdetails: [{ product: { name: 'VIT POWERSS 1000 ML X1 / COMUNIDAD', id: 103743 } }] };
     assert.equal(resolvePostSaleProductV147R5({ shipment }).productKey, 'vit_power_ec');
