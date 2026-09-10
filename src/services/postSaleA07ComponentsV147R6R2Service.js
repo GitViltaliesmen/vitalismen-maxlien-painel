@@ -16,6 +16,17 @@ const accepted = (entry) => Boolean(entry?.providerMessageId && entry.acceptedAt
 const blocked = (entry) => ['INTENDED', 'AMBIGUOUS', 'FAILED_FINAL', 'CANCELLED'].includes(entry?.state);
 const date = (row) => row.createdAt || (row.timestamp ? new Date(row.timestamp * 1000) : null);
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const guideSourceIdentity = (value) => {
+    const source = clean(value).replace(/\\/g, '/');
+    if (/^https?:\/\//i.test(source)) {
+        const url = new URL(source);
+        return url.origin === 'https://ec.maxlien.shop' && url.pathname.startsWith('/media/') ? url.pathname : source;
+    }
+    const publicMedia = source.indexOf('/public/media/');
+    if (publicMedia >= 0 && (source.startsWith('/opt/vitalismen-automacao/')
+        || source.startsWith(process.cwd().replace(/\\/g, '/') + '/'))) return source.slice(publicMedia + 7).split('?')[0];
+    return source.startsWith('/media/') ? source.split('?')[0] : source;
+};
 
 export const a07PlanV147R6R2 = async (shipment) => {
     const parent = await resolvePostSaleEventV147R6({ shipment, stage: 'READY_FOR_PICKUP' });
@@ -24,7 +35,7 @@ export const a07PlanV147R6R2 = async (shipment) => {
         ? shipment.logistics.invoicePath : shipment.logistics?.invoiceUrl || '';
     const text = buildReadyForPickupCommunicationV29(shipment);
     const components = ['TEXT', ...(guide ? ['GUIDE_PDF'] : []), 'AUDIO'].map((component) => {
-        const guideIdentity = component === 'GUIDE_PDF' ? clean(shipment.logistics?.trackingNumber) : '';
+        const guideIdentity = component === 'GUIDE_PDF' ? clean(shipment.logistics?.trackingNumber) || sha(guideSourceIdentity(guide)) : '';
         const event = { ...parent, parentDedupeKey: parent.dedupeKey, component, guideIdentity,
             ...(component === 'GUIDE_PDF' ? { mediaSource: guide } : {}) };
         event.dedupeKey = buildPostSaleDedupeKeyV147({ ...parent,
@@ -38,8 +49,8 @@ export const classifyA07ComponentV147R6R2 = (record, shipment, plan) => {
     const media = clean(record.mediaUrl || record.mediaPath || (record.isMedia ? record.message : ''));
     if (media) {
         if (classifyPostSaleContentV147R6(record)?.canonicalEvent === 'A07') return 'AUDIO';
-        const sources = [shipment.logistics?.invoicePath, shipment.logistics?.invoiceUrl].filter(Boolean).map(clean);
-        if (plan.guide && sources.includes(media)) return 'GUIDE_PDF';
+        const sources = [shipment.logistics?.invoicePath, shipment.logistics?.invoiceUrl].filter(Boolean).map(guideSourceIdentity);
+        if (plan.guide && sources.includes(guideSourceIdentity(media))) return 'GUIDE_PDF';
         if (plan.guide && fs.existsSync(plan.guide)) {
             let digest = clean(record.mediaSha256);
             if (media.startsWith('data:application/pdf;') && media.includes(';base64,')) digest = sha(Buffer.from(media.split(';base64,')[1], 'base64'));

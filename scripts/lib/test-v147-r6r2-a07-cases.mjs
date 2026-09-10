@@ -27,7 +27,7 @@ export const runA07Cases = async ({ Shipment, Message, make, auto, manual, manua
         const reservation = ledger.reservationId;
         await worker(['--restart', 'A07', String(s._id)]);
         assert.equal((await Shipment.findById(s._id)).automation.postSaleSafetyLedger.READY_FOR_PICKUP.reservationId, reservation);
-        assert.equal((await Shipment.findById(s._id)).automation.notificationLocks.READY_FOR_PICKUP, null);
+        assert.equal((await Shipment.findById(s._id)).automation.notificationLocks.READY_FOR_PICKUP ?? null, null);
         return ledger;
     };
     const baseline = await fresh();
@@ -59,13 +59,17 @@ export const runA07Cases = async ({ Shipment, Message, make, auto, manual, manua
         result[first + 'StartsRaceProviderCalls'] = rows.length;
     }
     const historical = async (components) => {
-        const s = await fresh(); const plan = await a07PlanV147R6R2(s);
+        const s = await fresh();
+        const publicGuide = '/media/invoices/' + s._id + '.pdf';
+        s.logistics.invoiceUrl = 'https://ec.maxlien.shop' + publicGuide;
+        await s.save();
+        const plan = await a07PlanV147R6R2(s);
         const sentAt = new Date(Date.now() - 60000);
         for (const c of components) {
             await Message.create({ _id: 'preledger-' + s._id + '-' + c, from: 'SINK', peerPhone: s.client.phone,
                 to: s.client.phone + '@c.us', isFromMe: true, isBot: false, senderRole: 'human',
                 body: c === 'TEXT' ? plan.text : '[Media]', type: c === 'TEXT' ? 'chat' : c === 'AUDIO' ? 'audio' : 'document',
-                mediaUrl: c === 'TEXT' ? '' : c === 'AUDIO' ? '/media/templates/EC/Chegou_01.ogg' : plan.guide,
+                mediaUrl: c === 'TEXT' ? '' : c === 'AUDIO' ? '/media/templates/EC/Chegou_01.ogg' : publicGuide,
                 providerMessageId: 'accepted-' + s._id + '-' + c, ack: 2, createdAt: sentAt, timestamp: Math.floor(sentAt.getTime() / 1000) });
         }
         const before = JSON.stringify(await Message.find({ peerPhone: s.client.phone }).lean());

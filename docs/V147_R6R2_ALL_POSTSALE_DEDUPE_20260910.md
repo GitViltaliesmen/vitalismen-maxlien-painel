@@ -17,8 +17,16 @@ A âncora acceptedAt do pai conserva a data anterior ou o aceite do texto A07. A
 
 O SINK mede baseline, duas ordens de corrida em processos separados, histórico completo/parcial, PDF ausente, falha parcial, timeout ambíguo, reconciliação, restart e DELIVERED antes do envio. A10/A19 e P5/P6/P7 mantêm a matriz R6R2. O replay R6 de 6886247 deve permanecer com zero chamadas futuras e histórico original intacto.
 
-Preload V97 e manifests sucessores validam os arquivos alterados e os congelamentos anteriores. O guard de retirada passa a exigir a reserva canônica do componente TEXT em vez do antigo bypass por force. Os 74 testes focados e o lint local de 889 arquivos passaram. O primeiro staging passou senior, mas parou nessa expectativa antiga do guard; foi corrigida e revalidada. A suíte local completa parou na dependência libsignal ausente no Windows; a validação final será a execução Linux instalada pelo vitalismen-stage.
+Preload V97 e manifests sucessores validam os arquivos alterados e os congelamentos anteriores. O guard de retirada exige a reserva canônica do componente TEXT em vez do antigo bypass por force. A normalização de PDF reconhece o mesmo caminho público, URL oficial e caminho do release; outro host ou outra guia não satisfazem o componente.
 
-A candidata só pode ser congelada após staging oficial, suíte completa, senior, lint e todos os recibos SINK passarem. Recibos e logs ficam fora dos releases imutáveis em `/var/lib/vitalismen-deploy/evidence/v147-r6r2-all-postsale-20260910`. Nenhuma publicação ou ativação está autorizada nesta camada.
+Antes do commit final, o staging `0e2f7ad` passou todos os gates oficiais, inclusive senior e preload V97, npm test com 1.492 testes e zero falhas, lint de 889 arquivos e regressões SINK R4/R5/R6. A suíte local completa parou na dependência libsignal ausente no Windows; a suíte Linux instalada pelo mecanismo oficial passou. Os testes focados locais da revisão final somam 75 aprovações, incluindo equivalência exata dos caminhos de PDF.
+
+A matriz SINK R6R2 do mesmo runtime passou integralmente com a correção de uma assertion de teste (lock ausente no histórico completo é equivalente a lock null). Baseline A07=3; corrida iniciada pelo painel=3; corrida iniciada pelo V116=3; duplicatas TEXT/PDF/AUDIO=0; histórico completo=0; sem PDF=2. Histórico parcial, falha parcial, timeout ambíguo sem retry cego, recuperação por prova, restart e DELIVERED antes do provedor passaram. A10/A19 e P5/P6/P7 passaram. O replay 6886247 teve zero chamadas futuras, preservando mensagens e o incidente anterior.
+
+## Identidade final e recibo
+
+O commit final incorpora as correções de teste e o reconhecimento do PDF oficial. Antes de criar as tags, repetir staging, npm test, senior, lint, preload e matrizes SINK sobre esse commit exato. As tags imutáveis são `candidate-v147-r6r2-all-postsale-dedupe-20260910` e `freeze-candidate-v147-r6r2-all-postsale-dedupe-20260910`. O recibo final registra commit/tree/hash, resultados, hashes das evidências e preservação da produção em `/var/lib/vitalismen-deploy/receipts/v147-r6r2-all-postsale-dedupe-candidate-freeze-20260910.json`.
+
+Logs e recibos ficam fora dos releases imutáveis em `/var/lib/vitalismen-deploy/evidence/v147-r6r2-all-postsale-20260910`. O recibo final só pode declarar freeze após todos os gates passarem sobre a identidade final. Nenhuma publicação ou ativação está autorizada nesta camada; a candidata congelada aguarda aprovação humana final.
 
 CURRENT_UNCHANGED=YES. PRODUCTION_CHANGED=NO. REAL_MESSAGES_SENT=0.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { a07PlanV147R6R2, inspectA07V147R6R2 } from '../src/services/postSaleA07ComponentsV147R6R2Service.js';
+import { a07PlanV147R6R2, inspectA07V147R6R2, classifyA07ComponentV147R6R2 } from '../src/services/postSaleA07ComponentsV147R6R2Service.js';
 import { classifyPostSaleContentV147R6, resolvePostSaleEventV147R6, findPostSaleEvidenceV147R6,
     pickupEventEligibleV147R6R2, guardReservedPickupEventV147R6R2 } from '../src/services/postSaleUnifiedEventV147R6Service.js';
 
@@ -11,6 +11,18 @@ const shipment = () => ({ _id: 'ship', orderId: 'order', country: 'EC', createdA
         pickupReadyVerified: true, pickupReadyVerifiedSource: 'carrier_tracking', pickupReadyVerifiedAt: at },
     automation: { readyForPickupNotifiedAt: at, postSaleSafetyLedger: { READY_FOR_PICKUP: { acceptedAt: at } } } });
 const stages = [['A07', 'READY_FOR_PICKUP', 'Chegou_01'], ['A10', 'PICKUP_REMINDER_DAY3', 'Chegou_02'], ['A19', 'PICKUP_REMINDER_DAY5', 'Chegou_03']];
+test('A07 guide evidence matches official public and release paths but never another guide or host', async () => {
+    const s = shipment(); s.logistics.invoiceUrl = 'https://ec.maxlien.shop/media/invoices/189147.pdf';
+    const plan = await a07PlanV147R6R2(s);
+    for (const mediaUrl of ['/media/invoices/189147.pdf', s.logistics.invoiceUrl,
+        '/opt/vitalismen-automacao/releases/old/public/media/invoices/189147.pdf']) {
+        assert.equal(classifyA07ComponentV147R6R2({ mediaUrl }, s, plan), 'GUIDE_PDF');
+    }
+    for (const mediaUrl of ['/media/invoices/other.pdf', 'https://other.invalid/media/invoices/189147.pdf']) {
+        assert.equal(classifyA07ComponentV147R6R2({ mediaUrl }, s, plan), '');
+    }
+    assert.ok(plan.components.find((e) => e.component === 'GUIDE_PDF').guideIdentity);
+});
 test('A07 audio evidence satisfies only AUDIO; exact text completes the available event', async () => {
     const s = shipment(); s.logistics.trackingNumber = '189147000'; s.automation = {};
     const plan = await a07PlanV147R6R2(s);

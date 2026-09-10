@@ -14,7 +14,7 @@ export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator 
     if (request.sendMode !== 'manual_panel') return { handled: false };
     let content = classifyPostSaleContentV147R6({ isMedia: request.isMedia, message: request.message });
     const possibleA07 = String(request.message || '').includes('¡Su pedido ya está disponible para retiro en Servientrega!')
-        || request.isMedia && /\.pdf(?:[?#]|$)|^data:application\/pdf;/.test(String(request.message || ''));
+        || request.isMedia && /\.pdf(?:[?#]|$)|^data:application\/pdf;/i.test(String(request.message || ''));
     if (!content && !possibleA07) return { handled: false };
     const recipient = formatWhatsAppNumber({ phone: request.phone, country: 'EC' });
     if (!recipient) return { handled: true, success: false, error: 'canonical_customer_missing' };
