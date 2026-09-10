@@ -47,6 +47,7 @@ const { default: Order } = await import('../src/models/Order.js');
 const { default: ContactState } = await import('../src/models/ContactState.js');
 const { default: OperationalSafetyState } = await import('../src/models/OperationalSafetyState.js');
 const { restoreHistoricalExternalDroppiBinding } = await import('../src/services/droppiEcuadorImportService.js');
+const { processCarrierStatusSweep } = await import('../src/services/shipmentStatusDispatcherService.js');
 const { notifyReadyForPickup, notifyShipmentReminder } = await import('../src/services/shipmentMessageService.js');
 const { reminderDueV147 } = await import('../src/services/canonicalLogisticsStatusV147Service.js');
 await mongoose.connect(mongoUri, { autoIndex: true });
@@ -151,10 +152,49 @@ try {
     const p7 = sink.findIndex((x) => x.media === 'MODO_DE_USO_TEX_ULTRA.ogg');
     assert.ok(p5 >= 0 && p7 > p5);
     assert.ok(shipment.automation.bonusNotifiedAt);
+
+    // Snapshot READY enfileirado; provider muda para DELIVERED antes do envio.
+    await Shipment.updateOne({ _id: shipment._id }, { $set: {
+        'logistics.status': 'READY_FOR_PICKUP', 'logistics.canonicalStatus': 'READY_FOR_PICKUP',
+        'logistics.pickupReadyVerified': true, 'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+        'logistics.canonicalEvidence': { provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'READY_FOR_PICKUP', observedAt: new Date() },
+        'automation.readyForPickupNotifiedAt': null, 'automation.sentMessageHashes': [],
+        'automation.postSaleSafetyLedger': {}, 'automation.notificationLocks': {},
+        'automation.deliveredThankYouNotifiedAt': null, 'automation.bonusNotifiedAt': null,
+        'automation.usageNotifiedAt': null, 'automation.deliveredConfirmedAt': null,
+        'automation.reminderDay3At': null, 'automation.reminderDay5At': null,
+        'review.suppressedNotificationKinds': ['guide', 'in_transit', 'delivered_thank_you', 'pickup_bonus', 'product_usage'],
+        events: [], notificationLedger: [],
+        'outcomes.delivered': false, 'outcomes.pickedUp': false,
+        'raw.carrierTracking.lastCheckedAt': new Date(),
+        'raw.carrierTracking.lastResult': { ok: true, statusAtual: 'READY_FOR_PICKUP' }
+    } });
+    const beforeStale = sink.length;
+    const stale = await batch();
+    assert.equal(stale.polling.processed, 0);
+    assert.equal(sink.length, beforeStale);
+    assert.equal((await Shipment.findById(shipment._id)).logistics.canonicalStatus, 'DELIVERED');
+
+    // Concorrência com lock Mongo real e histórico terminal fora da seleção.
+    const concurrent = await Shipment.create({ orderId: 'EC-SINK-CONCURRENT', country: 'EC',
+        client: { phone: '593999000111' }, logistics: { status: 'EN_RUTA', canonicalStatus: 'IN_TRANSIT', trackingNumber: '1890001474', distributionCompany: 'SERVIENTREGA' },
+        review: { suppressedNotificationKinds: ['guide', 'in_transit'] } });
+    providerStatus = 'ENTERING_AGENCY';
+    const beforeConcurrent = providerCalls;
+    const cycles = await Promise.all([1, 2].map(() => processCarrierStatusSweep({ transactionalV116: true, activationWatermark })));
+    assert.equal(providerCalls - beforeConcurrent, 1);
+    assert.equal(cycles.reduce((n, r) => n + r.refreshed, 0), 1);
+    assert.equal((await Shipment.findById(concurrent._id)).automation.dispatchLockedUntil, null);
+    await Shipment.insertMany(Array.from({ length: 123 }, (_, i) => ({ orderId: `EC-SINK-HIST-${i}`, country: 'EC',
+        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: `1890002${String(i).padStart(3, '0')}`, distributionCompany: 'SERVIENTREGA' } })));
+    const historyPoll = await processCarrierStatusSweep({ transactionalV116: true, activationWatermark });
+    assert.equal(historyPoll.processed, 0);
+    assert.equal(sink.length, beforeStale);
     const receipt = { status: 'PASS', transport: 'SINK', realMessagesSent: 0, targetShipmentCount: 1, duplicateShipments: 0,
         providerCalls, batchCount: batches.length, pollPhase: 'PASS', dispatchPhase: 'PASS', exit: 0,
         panelStatusPropagation: 'PASS', readyPanel, deliveredPanel: panel(), historicalBackfillMessages: 0,
-        duplicateMessages: 0, noSpamBurst: 'PASS', messages: sink, batches };
+        duplicateMessages: 0, noSpamBurst: 'PASS', staleQueuedReady: 'PASS', concurrentProviderCalls: 1,
+        historicalTerminalExcluded: 123, readyCanonicalStatus: 'READY_FOR_PICKUP', messages: sink, batches };
     fs.writeFileSync(path.join(directory, 'receipt.json'), `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
     console.log('V147_R4_STAGING_SINK=PASS');
 } finally {

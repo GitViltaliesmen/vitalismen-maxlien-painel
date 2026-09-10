@@ -821,10 +821,20 @@ export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStat
                 providerSubstatus: previous?.lastResult?.providerSubstatus
             });
             const providerDate = String(result.dataMovimento || '');
+            const evidence = shipment.logistics?.canonicalEvidence || {};
+            const evidenceAt = new Date(evidence.observedAt || 0).getTime();
+            const lastValid = canonicalLogisticsProjectionV147({
+                providerCode: evidence.rawCode,
+                providerStatus: evidence.rawStatus,
+                providerSubstatus: evidence.rawSubstatus
+            });
             // Sem timezone explícito, a data do provider não prova cronologia.
             const providerAt = /(?:Z|[+-]\d{2}:\d{2})$/.test(providerDate) ? Date.parse(providerDate) : NaN;
             const forward = (previous?.lastResult?.ok === true && observedAt >= watermark
                 && observedAt < canonicalPoll.now.getTime() && !prior.terminal && prior.canonicalStatus !== 'UNKNOWN')
+                || (evidence.source === 'carrier_tracking' && /^servientrega$/i.test(String(evidence.provider || ''))
+                    && evidenceAt >= watermark && evidenceAt < canonicalPoll.now.getTime()
+                    && !lastValid.terminal && lastValid.canonicalStatus !== 'UNKNOWN')
                 || (Number.isFinite(providerAt) && providerAt >= watermark && providerAt <= canonicalPoll.now.getTime());
             if (!forward) {
                 // Persistir o bloqueio antes do lifecycle impede descoberta histórica virar dispatch.
@@ -1077,7 +1087,7 @@ export const processCarrierStatusSweep = async ({
                 failed += 1;
             }
         } catch (error) {
-            if (transactionalV116) throw error; // provider falha por item; persistência/infraestrutura falha o ciclo.
+            if (transactionalV116 && !['ValidationError', 'CastError'].includes(error.name)) throw error;
             item.error = error.message || 'carrier_sweep_failed';
             failed += 1;
         } finally {

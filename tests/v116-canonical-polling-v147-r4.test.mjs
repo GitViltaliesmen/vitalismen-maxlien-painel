@@ -195,6 +195,25 @@ test('falha estrutural propaga FAIL e libera lock; watermark e force falham fech
     assert.equal(row.automation.dispatchLockedUntil, null);
 });
 
+test('falha de validação do documento isola item; próxima entrega usa última evidência válida', async () => {
+    const bad = fixture('bad1'); const good = fixture('good2'); rows.push(bad, good);
+    const updateOne = Shipment.updateOne;
+    Shipment.updateOne = async (filter, op) => {
+        if (filter._id === bad._id && op.$set?.['raw.carrierTracking.lastCheckedAt']) {
+            const error = new Error('invalid shipment'); error.name = 'ValidationError'; throw error;
+        }
+        return updateOne(filter, op);
+    };
+    const report = await poll(async ({ trackingNumber }) => carrier(rows.find((r) => r.logistics.trackingNumber === trackingNumber), 'READY_FOR_PICKUP'));
+    assert.equal(report.failed, 1); assert.equal(report.refreshed, 1);
+    rows = [good];
+    good.raw.carrierTracking = { lastCheckedAt: new Date(Date.now() - 61 * 60000), lastResult: { ok: false, reason: 'timeout' } };
+    good.logistics.canonicalEvidence = { provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'READY_FOR_PICKUP', observedAt: new Date(Date.now() - 62 * 60000) };
+    await poll(async () => carrier(good, 'DELIVERED'));
+    assert.equal(good.logistics.canonicalStatus, 'DELIVERED');
+    assert.equal(good.review.suppressedNotificationKinds?.includes('delivered_thank_you') || false, false);
+});
+
 test('plan não consulta provider nem grava; batch chama poll antes do dispatcher existente', async () => {
     rows.push(fixture());
     const before = JSON.stringify(rows);

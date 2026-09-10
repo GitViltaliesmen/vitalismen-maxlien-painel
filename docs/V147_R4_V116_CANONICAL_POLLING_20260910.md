@@ -23,6 +23,16 @@ provider ficam por item, e falhas de persistência/infraestrutura encerram o cic
 Não há chamadas de envio no polling nem alteração no motor de mensagens, templates,
 regras de conclusão, scheduler global, systemd, Meta, VSL, Dropi ou transporte.
 
+Na passagem para dispatch, a decisão existente é consultada antes da atualização de
+provider para evitar consultas repetidas de eventos já suprimidos. Eventos elegíveis
+continuam sendo revalidados ao vivo. Uma falha dessa consulta bloqueia A07; o limite de
+refresh nunca autoriza enviar uma fila READY sem revalidação. A projeção Servientrega
+obtida nessa fase não é sobrescrita pela projeção Dropi do dispatcher. Esses ajustes
+existem somente na chamada do V116 após o polling e não mudam a operação manual Dropi.
+Após uma falha transitória, a evidência canônica válida persistida também pode provar
+a cronologia forward. Erros de validação do documento ficam por item; falhas globais
+de persistência continuam propagadas.
+
 Identidades sem Shipment continuam usando a reconciliação canônica V140 já existente,
 com vínculo exato por telefone/cliente/pedido/Dropi/guia. A reconciliação do alvo em
 produção depende da publicação aprovada; staging usa dados e transporte isolados.
@@ -36,3 +46,9 @@ Publicação, troca de current e ativação exigem aprovação da identidade con
 Nenhum resultado de teste ou staging deve ser considerado aprovado antes dos logs
 e recibos externos correspondentes. Rollback funcional: voltar à identidade R3
 preservando os registros persistidos de dedupe e supressão histórica.
+
+O ensaio SINK usa Mongo e SQLite exclusivos e intercepta somente I/O do provider,
+transporte e caminho do painel. Executa o script V116 real, as funções canônicas de
+reconciliação/lifecycle e os envios/ledgers existentes. O watermark de teste é uma
+fixture; atrasos de mídia são acelerados somente no ensaio. Inclui retomada sem
+duplicação, fila READY obsoleta, lock Mongo concorrente e 123 terminais excluídos.

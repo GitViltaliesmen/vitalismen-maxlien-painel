@@ -22,19 +22,19 @@
     "tests/v116-canonical-polling-v147-r4.test.mjs"
   ],
   "protectedFiles": {
-    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "afe2067cfae9bd2aebac53116fbc903f195e74dd59f36bf43c3a373a4385c999",
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "e22187f1278638e565b57287da98500cd1e90c41e314411489a85478c93c8cb4",
     "package.json": "6c0483b7453ef92b0a3e9ed007b1e8a901289a9792e7f77efc36b24733f4646f",
     "scripts/guard-delivered-single-gate-v147-r3.mjs": "c689d5c88ea8f1b6871e17d1e79b91e29ab67482bd653f721a4417808a933bf0",
-    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "32471a4ea66414d9b8e1f0e51e2af5c707e005bdabde58ccab5a2c71aa9343ad",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "ec9d704669eb5c795aa81242d6bbd68695bf0b447a7c3a77463ccabcd1fd89f2",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "36974f03de331f6d5d7083bf16f9fd09ae7147491d80f4be1f4c5525c2a3fac5",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
     "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",
-    "scripts/test-v147-r4-staging-sink.mjs": "a7ddf675779244d94513a0bc2200882f80a221dc3db5ef0e8bfd875e9aa8e006",
-    "src/services/shipmentStatusDispatcherService.js": "9d398bce497300c3713092cec87d2485834952aad07f3d391c7ca25220e85ce8",
+    "scripts/test-v147-r4-staging-sink.mjs": "113ff71088d9164624d726030e0c00d0dcec2c073d836b44340f25d10432814f",
+    "src/services/shipmentStatusDispatcherService.js": "9b1d03748c15f66bfb047356f9ae75fbe034b48188e284eca5c6764c58da7e56",
     "tests/helpers/v147-r4-sink-loader.mjs": "18e95b0026056b2dfb57438458d0a8952fbf50644fe0e88308a6e56e9f90a56a",
     "tests/helpers/v147-r4-sink-register.mjs": "4ed4ebda61eb7cddf2f8f0e41f0ef39cb9a44c046cca4fe4fd309213211cfd96",
-    "tests/v116-canonical-polling-v147-r4.test.mjs": "8039ec39a827eb805021da9527821c00eaf86e76381cfecd71a5d107f33b8281"
+    "tests/v116-canonical-polling-v147-r4.test.mjs": "44c4afe14b2c8a9dcf9f38334a385830a5548751e9a7f5142e5fbe2d87ba1955"
   },
   "preservedFiles": {
     "ops/post-sale-v116": "8cfb85be756109647971c71a54d6cd01ca8acceb97e7faeac61828f23e3539c4",

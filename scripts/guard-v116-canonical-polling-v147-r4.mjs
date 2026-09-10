@@ -14,7 +14,7 @@ assert.match(poll, /raw\.carrierTracking\.lastCheckedAt/);
 assert.match(poll, /automation\.dispatchLockedUntil/);
 assert.match(poll, /review\.suppressedNotificationKinds/);
 assert.match(poll, /assertPostSaleTransactionalV105Configuration\(process\.env\)/);
-assert.match(poll, /transactionalV116\) throw error/);
+assert.match(poll, /transactionalV116 && !\['ValidationError', 'CastError'\]\.includes\(error\.name\)\) throw error/);
 assert.match(batch, /\.activation-complete\.json/);
 assert.ok(batch.indexOf('await processCarrierStatusSweep(') < batch.indexOf('await processShipmentStatusDispatch('));
 assert.doesNotMatch(batch, /setInterval|setTimeout|startScheduler|schedulerService/);
