@@ -83,6 +83,15 @@ test('rejects environment mutation after the fingerprint was collected', (t) => 
 test('rejects duplicate keys without disclosing values', () => {
     assert.throws(() => changedKeys(Buffer.from('A=private_sentinel\nA=x\n'), Buffer.from('A=y\n')), (e) => !e.message.includes('private_sentinel') && /duplicate/.test(e.message));
 });
+test('preserves unchanged duplicate keys byte for byte while validating a separate rotation', () => {
+    assert.deepEqual(changedKeys(Buffer.from('A=old\nD=one\nD=two\n'),
+        Buffer.from('A=new\nD=one\nD=two\n')), ['A']);
+});
+test('rejects changing or reordering any occurrence of a duplicate key', () => {
+    const before = Buffer.from('A=old\nD=one\nD=two\n');
+    assert.throws(() => changedKeys(before, Buffer.from('A=new\nD=one\nD=three\n')), /duplicate/);
+    assert.throws(() => changedKeys(before, Buffer.from('A=new\nD=two\nD=one\n')), /duplicate/);
+});
 test('non-key mutation errors never disclose environment values', () => {
     assert.throws(() => changedKeys(Buffer.from('A=private_sentinel\n# old\n'), Buffer.from('A=private_sentinel\n# new\n')), (e) => !e.message.includes('private_sentinel') && /non-key/.test(e.message));
 });

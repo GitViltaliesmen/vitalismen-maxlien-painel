@@ -16,7 +16,7 @@ Rollback do tooling: restaurar somente o helper arquivado pelo caminho oficial `
 
 ## Validação do tooling
 
-`bash -n`, `node --check` e 48 testes passaram: 27 cenários novos de sucessão de configuração, mais as suítes existentes de alinhamento V72 e attestation legacy V102. Os testes novos incluem cadeia com duas rotações, rollback indevido, adulteração de evidência, código, metadata, permissões e ausência de autorização.
+`bash -n`, `node --check` e os cenários novos de sucessão de configuração, mais as suítes existentes de alinhamento V72 e attestation legacy V102, compõem a validação. Os testes novos incluem cadeia com duas rotações, rollback indevido, adulteração de evidência, código, metadata, permissões e ausência de autorização. O resultado final será vinculado ao recibo próprio do tooling.
 
 A execução ampliada de quatro suítes históricas resultou em 22 PASS e 21 FAIL, tanto com o helper original instalado quanto com o corrigido, com a mesma lista de falhas. Os fixtures V70 e V66 falham antes da nova validação por não materializarem o preload V97 e/ou envelopes de staging atuais. Esses testes não foram alterados nem considerados aprovados. Logs integrais dos dois resultados estão preservados no diretório do tooling na VPS. O comando real `v66-plan` da candidata congelada será o teste de integração do contrato atual.
 
@@ -29,3 +29,5 @@ O staging V146-R2 foi concluído em `2026-09-08T23:43:12Z` com SHA-256 de config
 3. Instalação Ads em `2026-09-09T23:22:57.432383Z`: somente `META_ACCESS_TOKEN`; comprovada pelo backup protegido, autorização original e saída existente da instalação root, extraída com seus identificadores de tarefa/turno/comando. Hash resultante `4e17c7f06df31e29c6c746fbaef29e70174076a2fb69c44a999d97400a3b0b4d`.
 
 Cada par de backups e o arquivo atual foi comparado em memória: nenhuma chave inesperada e nenhum outro byte alterado. A extração em `docs/evidence` identifica explicitamente sua data atual e natureza de cópia de registros preexistentes. Não há recibo retroativo criado.
+
+A checagem pré-instalação detectou `DISABLE_SCHEDULER` duplicada desde o backup original. O parser preserva todas as ocorrências em ordem e exige que cada uma permaneça idêntica. Qualquer chave alterada deve aparecer exatamente uma vez antes e depois. Mudança, remoção ou reordenação de chave duplicada falha; a configuração não foi editada para satisfazer o validador.

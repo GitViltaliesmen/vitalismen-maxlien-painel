@@ -30,14 +30,19 @@ function changedKeys(before, after) {
     const parse = (buffer) => {
         const entries = new Map();
         for (const match of buffer.toString('latin1').matchAll(expression)) {
-            assert.ok(!entries.has(match[1]), 'duplicate environment key');
-            entries.set(match[1], match[2]);
+            const values = entries.get(match[1]) || [];
+            values.push(match[2]);
+            entries.set(match[1], values);
         }
         return entries;
     };
     const old = parse(before), next = parse(after);
     const changed = [...new Set([...old.keys(), ...next.keys()])]
-        .filter((key) => old.get(key) !== next.get(key)).sort();
+        .filter((key) => JSON.stringify(old.get(key)) !== JSON.stringify(next.get(key))).sort();
+    for (const key of changed) {
+        assert.ok(old.get(key)?.length === 1 && next.get(key)?.length === 1,
+            'missing or duplicate changed environment key');
+    }
     const mask = (buffer) => buffer.toString('latin1').replace(expression,
         (line, key) => changed.includes(key) ? `${key}=[REDACTED]` : line);
     assert.ok(mask(before) === mask(after), 'unexpected non-key environment mutation');
