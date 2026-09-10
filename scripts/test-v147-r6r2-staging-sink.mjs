@@ -129,7 +129,7 @@ try {
         if (!stage.startsWith('A')) continue;
         const historical = await make(stage);
         const sentAt = new Date(Date.now() - 60000);
-        await Message.create({ _id: 'legacy-' + stage, isFromMe: true, isBot: false, senderRole: 'human', peerPhone: historical.client.phone,
+        await Message.create({ _id: 'legacy-' + stage, from: 'SINK', isFromMe: true, isBot: false, senderRole: 'human', peerPhone: historical.client.phone,
             to: historical.client.phone + '@c.us', body: '[Audio]', mediaUrl: '/media/templates/EC/' + specs[stage][1] + '.ogg',
             providerMessageId: 'accepted-before-ledger-' + stage, ack: 2, createdAt: sentAt, timestamp: Math.floor(sentAt.getTime() / 1000) });
         let before = calls().length;

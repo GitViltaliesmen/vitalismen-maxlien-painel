@@ -31,6 +31,7 @@ for (const [kind, status] of [
     ['pickup_bonus', 'DELIVERED'], ['product_usage', 'DELIVERED']
 ]) test(`manual permite ${kind} canônico sem aprovação por remessa`, async () => {
     const shipment = { ...fixture(status), ...(kind === 'product_usage' ? { productName: 'Tex Ultra' } : {}) };
+    if (kind.startsWith('pickup_reminder_')) shipment.automation.readyForPickupNotifiedAt = new Date(Date.now() - 121 * 3600000);
     const result = await decidePostSaleNotification({ shipment, kind, acquireLock: false,
         contactStateModel: contactModel(), messageModel });
     assert.equal(result.decision, 'SHOULD_SEND');

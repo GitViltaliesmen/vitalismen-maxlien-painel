@@ -15,6 +15,8 @@
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
     "scripts/lib/ec-runtime-successor-v147-r6-context.mjs",
     "scripts/lib/ec-runtime-successor-v147-r6r2-context.mjs",
+    "scripts/test-v147-r4-staging-sink.mjs",
+    "scripts/test-v147-r5-staging-sink.mjs",
     "scripts/test-v147-r6r2-staging-sink.mjs",
     "src/services/postSaleManualPanelV147R6Service.js",
     "src/services/postSaleNotificationDecisionService.js",
@@ -23,6 +25,7 @@
     "tests/all-postsale-dedupe-v147-r6r2.test.mjs",
     "tests/post-sale-gargalos-v65.test.mjs",
     "tests/post-sale-safety-v66.test.mjs",
+    "tests/transactional-postsale-v147-r5.test.mjs",
     "tests/unified-postsale-v147-r6.test.mjs"
   ],
   "protectedFiles": {
@@ -32,14 +35,17 @@
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "27dd71c730c11cdf09c2b69b040c5753e051d6d48fdfe8df23250e169b2929f7",
     "scripts/lib/ec-runtime-successor-v147-r6-context.mjs": "939e0fcaa209cefe3c4cc865c08d6cf011f05ef54d98deac406df558cfd2f313",
     "scripts/lib/ec-runtime-successor-v147-r6r2-context.mjs": "a19600715d75f340f8c322c6d53f01e204112561b1de396405c80bf1d2537636",
-    "scripts/test-v147-r6r2-staging-sink.mjs": "428e0485c3e758027e0380c06bfd74a508777e9ea548129e445c35d686c73cdc",
+    "scripts/test-v147-r4-staging-sink.mjs": "347da1bbc35be74fa5ed7b9b7e2e029295e4f28797ca3b0cadd5b78a14e3a6eb",
+    "scripts/test-v147-r5-staging-sink.mjs": "68d48309f452f3168ca012fccd12693dbfe1591b14bd9a828fef5fe60d28216e",
+    "scripts/test-v147-r6r2-staging-sink.mjs": "8b418526568fce398cbdb1f7961ef1f5a260e5a99de7ec9768d4b51781e6933a",
     "src/services/postSaleManualPanelV147R6Service.js": "dc5e1b6b481b82f09e6aa5cdc99dc8298c598f0849d285310b2c28430e634639",
     "src/services/postSaleNotificationDecisionService.js": "e704fb042f9299f97ae774f43022967078e28333798c6ee9d8d46478f088a8d9",
     "src/services/postSaleUnifiedEventV147R6Service.js": "4c24c115f3e07d78de32e3ab8edbd737f6850d9a51220019e398a453a5cef30c",
-    "src/services/shipmentMessageService.js": "dbf4b61bb25dfc92fb4d1c117cb6e1a59f1c5099242efdf43a18931c5fac53c7",
+    "src/services/shipmentMessageService.js": "75d6cdff27c7420cb6981fff582c2849692605afae9e1db6e0478ed7869f7285",
     "tests/all-postsale-dedupe-v147-r6r2.test.mjs": "aca09a71747106abf5024814c5340666342c24ce672ae5e87b95a840626df744",
     "tests/post-sale-gargalos-v65.test.mjs": "d311ca08f5a0cd40c139c99c86652c27d62c37bf3409b025d4c38627a7d52176",
     "tests/post-sale-safety-v66.test.mjs": "28e17ad424733ecb516e099ddd34fd25b25835c96c4242cc3c00771802ed47c4",
+    "tests/transactional-postsale-v147-r5.test.mjs": "f7c50a7abf08611ea454e297e29c00442adb9b21958ab26397655a3e7e783dc3",
     "tests/unified-postsale-v147-r6.test.mjs": "6dec48cc633f9eae05265888720e463547af478f74376c23707e40ae5dd786ee"
   },
   "preservedFiles": {
@@ -66,7 +72,6 @@
     "src/services/shipmentStatusDispatcherService.js": "5cbd558bbfa2709cdbc828a33b48e7fce839e38ec6ae2adf9d372afcad0f5832",
     "tests/pickup-bonus-delivery-v60.test.mjs": "d1c75f284c7c82d7d19b530368670f74f2b2c4ac18c2bf13b6d1293d919a633e",
     "tests/post-sale-canonical-restoration-v147.test.mjs": "c6e3449a4e1957d4d79f66555f13d401ce8005cd6b943bc2086a7977885537ab",
-    "tests/transactional-postsale-v147-r5.test.mjs": "272e879af3a89a3cbf60efc244ded1040148e17349a77123c693396678d13684",
     "docs/freeze/ec-unified-postsale-v147-r6-20260910.json": "7898a29a35c4d2bbabf7d992db455f92a66c0ec874bbe43db1b5c68b0b74cda7"
   },
   "policy": {

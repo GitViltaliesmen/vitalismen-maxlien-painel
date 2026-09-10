@@ -2216,6 +2216,13 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     });
     completed = true;
     return true;
+    } catch (error) {
+        if (safetyDecision?.canonicalEvent && safetyDecision.lockToken && !safetyFinalized) {
+            await failPostSaleNotificationStage({ shipment, stage: safetyDecision.stage, lockToken: safetyDecision.lockToken,
+                terminal: true, terminalState: 'AMBIGUOUS', reason: 'pickup_send_or_persistence_ambiguous' });
+            safetyFinalized = true;
+        }
+        throw error;
     } finally {
         if (shouldSendPostSaleNotification(safetyDecision) && safetyDecision?.lockToken && !safetyFinalized) {
             await failPostSaleNotificationStage({

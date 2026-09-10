@@ -122,7 +122,7 @@ try {
 
     // O relógio canônico e o dispatcher de lembretes existentes são exercitados sem alterar regras.
     const t0 = new Date(Date.now() - 121 * 3600000);
-    await Shipment.updateOne({ _id: shipment._id }, { $set: { 'automation.readyForPickupNotifiedAt': t0, 'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0 } });
+    await Shipment.updateOne({ _id: shipment._id }, { $set: { 'automation.readyForPickupNotifiedAt': t0, 'automation.postSaleSafetyLedger.READY_FOR_PICKUP.acceptedAt': t0, 'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0 } });
     shipment = await Shipment.findById(shipment._id);
     assert.equal(reminderDueV147({ acceptedAt: t0, canonicalStatus: shipment.logistics.canonicalStatus, now: new Date() }).templateId, 'A10');
     assert.equal(await notifyShipmentReminder(shipment, 'day3'), true);

@@ -109,7 +109,7 @@ try {
     assert.equal(await notifyReadyForPickup(ready), true);
     assert.equal(sink.slice(beforeReady).filter((entry) => entry.media === 'Chegou_01.ogg').length, 1);
     const t0 = new Date(Date.now() - 121 * 3600000);
-    await Shipment.updateOne({ _id: ready._id }, { $set: { 'automation.readyForPickupNotifiedAt': t0, 'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0 } });
+    await Shipment.updateOne({ _id: ready._id }, { $set: { 'automation.readyForPickupNotifiedAt': t0, 'automation.postSaleSafetyLedger.READY_FOR_PICKUP.acceptedAt': t0, 'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0 } });
     assert.equal(reminderDueV147({ acceptedAt: t0, canonicalStatus: 'READY_FOR_PICKUP', now: new Date() }).templateId, 'A10');
     assert.equal(await notifyShipmentReminder(await Shipment.findById(ready._id), 'day3'), true);
     await Shipment.updateOne({ _id: ready._id }, { $set: { 'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0 } });
