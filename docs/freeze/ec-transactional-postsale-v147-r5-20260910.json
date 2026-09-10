@@ -8,8 +8,10 @@
     "src/services/shipmentMessageService.js"
   ],
   "overrides": [
+    "docs/V147_R5_TRANSACTIONAL_POSTSALE_20260910.md",
     "package.json",
     "scripts/guard-delivered-single-gate-v147-r3.mjs",
+    "scripts/guard-transactional-postsale-v147-r5.mjs",
     "scripts/guard-v116-canonical-polling-v147-r4.mjs",
     "scripts/guard-v146-definitive-normalization.mjs",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
@@ -23,15 +25,17 @@
     "tests/transactional-postsale-v147-r5.test.mjs"
   ],
   "protectedFiles": {
-    "package.json": "37c3aa8207ecb7a2e5cc0b22d2aa10ff6eeab18b35d61a78107699a48f93051a",
+    "docs/V147_R5_TRANSACTIONAL_POSTSALE_20260910.md": "83c4adc8523160102aaa2e3a010ed3f2555f1fa664a5ecf068b3ba830f91e95c",
+    "package.json": "6fc11dcbed1300540bbc4cb55b57ff8a8e179a5a981a99056defe431e1ddcf9f",
     "scripts/guard-delivered-single-gate-v147-r3.mjs": "bf5a4c06b5a81bf2bbb810c94758d8d156d6f942b56e5e33fbbc3b834216afcd",
+    "scripts/guard-transactional-postsale-v147-r5.mjs": "e876d3151623d05fcd70f86bbd08376a7c152ea5bc943a245fc3d09ab7b5fa67",
     "scripts/guard-v116-canonical-polling-v147-r4.mjs": "629bc3f781172fb36196c2cd3d0e90d29cc25d191759d48330cf58acdd99e59c",
     "scripts/guard-v146-definitive-normalization.mjs": "5c6a368300c5b9d7a7ff347823899cf015d95cf700eef7db3875ff29ceabd1d9",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "89cce65785f8b7165c298edc7fbbd21c62b3b9f258cbafc13bbf715be18a5834",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "93e9a247138b9b64653c5440c3ded3404261cf02f46cf3030f33319efb130605",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "1aa823b4b4cbb115af80f5ce550e9b363e6604940d5c42088b4a8c585d300181",
     "scripts/lib/ec-runtime-successor-v147-r5-context.mjs": "240414e06fa5cf3bb448e34337fbd63ee9dccc8a731655cf142bfec5d61df44f",
-    "scripts/test-v147-r5-staging-sink.mjs": "514401cc00f2d3b7ea1700c1acc57d5022187d493db2432cf870d011a4235081",
+    "scripts/test-v147-r5-staging-sink.mjs": "5818f1c11d98683010294464ed776b918fcaea00f6cfa2de9395017be2675341",
     "src/services/postSaleNotificationDecisionService.js": "b571edd47a7e86381a209d0f63a1cae9726159c4634ab55eb79a8866b7c9defd",
     "src/services/postSaleProductResolutionV147R5Service.js": "a3aab5f6dbcde7e7ca495dd951cc14192cbd4b008e70a1180250b0a93b251b2f",
     "src/services/shipmentMessageService.js": "40823a6431326a90c9b81bb7889f823de0ecd134f24363b6f5244b9b7d854bd1",

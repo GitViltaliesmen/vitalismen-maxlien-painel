@@ -134,8 +134,9 @@ try {
     assert.ok(replayStored.automation.usageNotifiedAt);
     const replaySent = sink.filter((entry) => String(entry.chatId).startsWith(`${replay.client.phone}@`));
     assert.equal(replaySent.length, 3);
-    const restarted = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url), '--restart', String(replay._id)],
-        { cwd: root, env: process.env, encoding: 'utf8', timeout: 120000 });
+    const restarted = spawnSync(process.execPath, ['--import', './tests/helpers/v147-r4-sink-register.mjs',
+        '--import', './scripts/lib/ec-runtime-successor-v97-context.mjs', fileURLToPath(import.meta.url), '--restart', String(replay._id)],
+        { cwd: root, env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 120000 });
     fs.writeFileSync(path.join(directory, 'restart.log'), restarted.stdout + restarted.stderr, { mode: 0o600 });
     assert.equal(restarted.status, 0); assert.match(restarted.stdout, /RESTART_IDEMPOTENCY=PASS/);
     const { shipment: concurrent } = await create({ product: 'tex_ultra_ec' });

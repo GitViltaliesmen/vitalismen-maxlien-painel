@@ -154,7 +154,7 @@
         "guard:meta-purchase-v144": "node scripts/guard-meta-purchase-after-manual-dropi-v144.mjs && node --test tests/meta-purchase-after-manual-dropi-v144.test.mjs",
         "test:v144-all": "npm run test:v143-all && npm run guard:meta-purchase-v144",
         "guard:v147-r4-canonical-polling": "node scripts/guard-v116-canonical-polling-v147-r4.mjs && node --test tests/v116-canonical-polling-v147-r4.test.mjs",
-        "guard:v147-r5-transactional-postsale": "node --test tests/transactional-postsale-v147-r5.test.mjs"
+        "guard:v147-r5-transactional-postsale": "node scripts/guard-transactional-postsale-v147-r5.mjs && node --test tests/transactional-postsale-v147-r5.test.mjs"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",
