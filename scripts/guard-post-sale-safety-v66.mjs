@@ -74,7 +74,8 @@ for (const [name, nextName] of [
     ['notifyShipmentInTransit', 'notifyShipmentReminder'],
     ['notifyShipmentReminder', 'notifyShipmentReturned'],
     ['notifyShipmentReturned', 'notifyPickupProofRequest'],
-    ['notifyPickupProofRequest', 'notifyPickupBonus'],
+    ['notifyPickupProofRequest', 'notifyDeliveredThankYou'],
+    ['notifyDeliveredThankYou', 'notifyPickupBonus'],
     ['notifyPickupBonus', 'processPickupProofSweep'],
     ['notifyTreatmentRefillReminder', 'getPendingShipmentReminders']
 ]) {

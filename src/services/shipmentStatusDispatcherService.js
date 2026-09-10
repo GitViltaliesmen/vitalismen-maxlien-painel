@@ -2,6 +2,7 @@ import Shipment from '../models/Shipment.js';
 import { getSenderPoolStatus, resolveOutboundSessionForJid } from '../whatsapp/sessionRouter.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import {
+    notifyDeliveredThankYou,
     notifyPickupBonus,
     notifyShipmentInTransit,
     notifyReadyForPickup,
@@ -1075,7 +1076,10 @@ const markDeliveredAndNotifyBonus = async (shipment) => {
         customerEligibility: 'released_for_new_order'
     });
     const refreshed = await Shipment.findById(shipment._id);
-    const bonusSent = refreshed ? await notifyPickupBonus(refreshed) : false;
+    if (!refreshed) return false;
+    await notifyDeliveredThankYou(refreshed);
+    const afterThankYou = await Shipment.findById(shipment._id);
+    const bonusSent = afterThankYou ? await notifyPickupBonus(afterThankYou) : false;
     return Boolean(bonusSent);
 };
 

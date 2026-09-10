@@ -16,10 +16,20 @@ import {
 import { loadV140CanonicalBundles } from '../src/services/ecPhoneServientregaReconciliationV140Service.js';
 import { restoreHistoricalExternalDroppiBinding } from '../src/services/droppiEcuadorImportService.js';
 import {
+    POST_SALE_NOTIFICATION_DECISIONS,
+    decidePostSaleNotification
+} from '../src/services/postSaleNotificationDecisionService.js';
+import {
+    POST_SALE_STAGES,
+    POST_SALE_VARIANTS
+} from '../src/services/postSaleSafetyV66Service.js';
+import {
     POST_SALE_TEMPLATE_CATALOG_V147,
     missingPostSaleTemplatesV147
 } from '../src/services/postSaleTemplateCatalogV147Service.js';
 import {
+    deliveredThankYouDedupeValueV147,
+    notifyDeliveredThankYou,
     pickupHowToUseAudioForShipment,
     shipmentPaymentConfirmed
 } from '../src/services/shipmentMessageService.js';
@@ -182,6 +192,7 @@ test('V147 V140 inclui Order real sem Shipment e preserva identidade do produto 
 test('V147 catálogo mantém A07/A10/A19 e uso por produto sem cruzamento', () => {
     for (const [field, file] of [
         ['A07', 'Chegou_01.ogg'], ['A10', 'Chegou_02.ogg'], ['A19', 'Chegou_03.ogg'],
+        ['DELIVERED_THANKYOU_TEMPLATE', 'OBRIGADO_PAGOU.ogg'],
         ['USAGE_TEX_ULTRA', 'MODO_DE_USO_TEX_ULTRA.ogg'],
         ['USAGE_VIT_POWER', 'COMO_SE_TOMA_VIT_POWER.ogg'],
         ['USAGE_NITRIX', 'NITRIX_USO_OXIDE_EC.ogg']
@@ -189,15 +200,170 @@ test('V147 catálogo mantém A07/A10/A19 e uso por produto sem cruzamento', () =
         assert.equal(POST_SALE_TEMPLATE_CATALOG_V147[field].enabled, true);
         assert.ok(fs.statSync(path.join(root, 'public/media/templates/EC', file)).size > 1000, file);
     }
-    assert.deepEqual(missingPostSaleTemplatesV147(), ['P5_DELIVERED_THANKYOU_NEUTRAL']);
+    assert.deepEqual(missingPostSaleTemplatesV147(), []);
+    assert.deepEqual(POST_SALE_TEMPLATE_CATALOG_V147.DELIVERED_THANKYOU_TEMPLATE.labels, ['OBRIGADO_PAGOU']);
+    assert.equal(POST_SALE_TEMPLATE_CATALOG_V147.DELIVERED_THANKYOU_TEMPLATE.trigger, 'carrier_delivered');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'Tex Ultra Ecuador' }), 'MODO_DE_USO_TEX_ULTRA');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'Vit Power Ecuador' }), 'COMO_SE_TOMA_VIT_POWER');
     assert.equal(pickupHowToUseAudioForShipment({ productName: 'Nitrix Oxide Ecuador' }), 'NITRIX_USO_OXIDE_EC');
 });
 
-test('V147 não usa OBRIGADO_PAGOU sem prova explícita de pagamento', () => {
+test('V147 conserva utilitário de pagamento sem usá-lo como gatilho de P5', () => {
     assert.equal(shipmentPaymentConfirmed({ outcomes: { delivered: true } }), false);
     assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid' } } }), true);
+    const source = read('src/services/shipmentMessageService.js');
+    const p5 = source.split('export const notifyDeliveredThankYou')[1].split('export const notifyPickupBonus')[0];
+    assert.doesNotMatch(p5, /shipmentPaymentConfirmed/);
+});
+
+test('V147 P5 exige entrega canônica e possui lock concorrente at-most-once', async () => {
+    const delivered = {
+        _id: 'shipment-p5',
+        orderId: 'order-p5',
+        country: 'EC',
+        client: { phone: '5515998038637' },
+        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000147' },
+        automation: { notificationLocks: {}, postSaleSafetyLedger: {} },
+        outcomes: { delivered: true, pickedUp: true },
+        review: {},
+        events: [],
+        notificationLedger: []
+    };
+    const noHistory = { find: () => ({ sort() { return this; }, limit() { return this; }, lean: async () => [] }) };
+    for (const [status, canonicalStatus] of [
+        ['DEVUELTO', 'RETURNED'],
+        ['READY_FOR_PICKUP', 'READY_FOR_PICKUP'],
+        ['EN_RUTA', 'IN_TRANSIT'],
+        ['ESTADO_DESCONOCIDO', 'UNKNOWN']
+    ]) {
+        const notDelivered = {
+            ...delivered,
+            logistics: { ...delivered.logistics, status, canonicalStatus },
+            outcomes: {}
+        };
+        assert.equal((await decidePostSaleNotification({
+            shipment: notDelivered,
+            kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+            acquireLock: false,
+            messageModel: noHistory
+        })).decision, POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, canonicalStatus);
+    }
+
+    let available = true;
+    const shipmentModel = {
+        async findOneAndUpdate() {
+            await new Promise((resolve) => setImmediate(resolve));
+            if (!available) return null;
+            available = false;
+            return delivered;
+        }
+    };
+    const [first, second] = await Promise.all([
+        decidePostSaleNotification({ shipment: delivered, kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO, messageModel: noHistory, shipmentModel }),
+        decidePostSaleNotification({ shipment: delivered, kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO, messageModel: noHistory, shipmentModel })
+    ]);
+    assert.equal([first, second].filter((item) => item.decision === POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND).length, 1);
+    assert.equal([first, second].filter((item) => item.reason === 'persistent_notification_lock_or_marker').length, 1);
+});
+
+test('V147 P5 envia OBRIGADO_PAGOU uma vez ao sink com chave própria', async () => {
+    const shipment = {
+        _id: 'shipment-p5-sink',
+        orderId: 'order-p5-sink',
+        country: 'EC',
+        client: { phone: '5515998038637' },
+        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000148' },
+        automation: {},
+        outcomes: { delivered: true, pickedUp: true }
+    };
+    const sink = [];
+    const events = [];
+    let claimed = false;
+    const dependencies = {
+        decideFn: async () => {
+            await new Promise((resolve) => setImmediate(resolve));
+            if (claimed) return { decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'persistent_notification_lock_or_marker' };
+            claimed = true;
+            return {
+                decision: POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND,
+                stage: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+                idempotencyKey: deliveredThankYouDedupeValueV147(shipment),
+                lockToken: 'p5-sink-lock'
+            };
+        },
+        resolveAudioFn: async () => path.join(root, 'public/media/templates/EC/OBRIGADO_PAGOU.ogg'),
+        sendAudioFileFn: async (_shipment, _chatId, mediaPath, options) => {
+            sink.push({ mediaPath, options });
+            return { ok: true, providerMessageId: 'sink-p5-accepted' };
+        },
+        completeFn: async ({ stage, variant, lockToken, providerMessageId }) => {
+            assert.equal(stage, POST_SALE_STAGES.DELIVERED_THANK_YOU);
+            assert.equal(variant, POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO);
+            assert.equal(lockToken, 'p5-sink-lock');
+            assert.equal(providerMessageId, 'sink-p5-accepted');
+            return { completed: true };
+        },
+        appendEventFn: async (_id, kind, payload) => events.push({ kind, payload })
+    };
+    const workerResults = await Promise.all([
+        notifyDeliveredThankYou(shipment, dependencies),
+        notifyDeliveredThankYou(shipment, dependencies)
+    ]);
+    assert.equal(workerResults.filter(Boolean).length, 1);
+    assert.equal(sink.length, 1);
+    assert.match(sink[0].mediaPath, /OBRIGADO_PAGOU\.ogg$/);
+    assert.equal(sink[0].options.kind, 'shipment_delivered_thank_you_audio');
+    assert.equal(sink[0].options.baseName, 'OBRIGADO_PAGOU');
+    assert.equal(sink[0].options.dedupeValue, deliveredThankYouDedupeValueV147(shipment));
+    assert.match(sink[0].options.dedupeValue, /^OBRIGADO_PAGOU\|post-sale-v147:/);
+    assert.equal(events[0].kind, 'delivered_thank_you_notified');
+    assert.equal(await notifyDeliveredThankYou(shipment, dependencies), false);
+    assert.equal(sink.length, 1);
+});
+
+test('V147 P5 permanece bloqueado após restart por ledger ou marcador persistido', async () => {
+    const shipment = {
+        _id: 'shipment-p5-restart',
+        orderId: 'order-p5-restart',
+        country: 'EC',
+        client: { phone: '5515998038637' },
+        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000149' },
+        automation: {
+            notificationLocks: {},
+            postSaleSafetyLedger: { DELIVERED_THANK_YOU: { state: 'SENT' } }
+        },
+        outcomes: { delivered: true, pickedUp: true },
+        review: {},
+        events: [],
+        notificationLedger: []
+    };
+    const snapshot = JSON.parse(JSON.stringify(shipment));
+    const fromLedger = await decidePostSaleNotification({
+        shipment: snapshot,
+        kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        acquireLock: false
+    });
+    assert.equal(fromLedger.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED);
+    assert.match(fromLedger.reason, /postSaleSafetyLedger\.DELIVERED_THANK_YOU/);
+
+    snapshot.automation.postSaleSafetyLedger = {};
+    snapshot.automation.deliveredThankYouNotifiedAt = '2026-09-10T00:00:00.000Z';
+    const fromMarker = await decidePostSaleNotification({
+        shipment: snapshot,
+        kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        acquireLock: false
+    });
+    assert.equal(fromMarker.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED);
+    assert.equal(fromMarker.reason, 'automation.deliveredThankYouNotifiedAt');
+});
+
+test('V147 P5 não duplica P6 nem P7', () => {
+    const source = read('src/services/shipmentMessageService.js');
+    const p5 = source.split('export const notifyDeliveredThankYou')[1].split('export const notifyPickupBonus')[0];
+    const p6p7 = source.split('export const notifyPickupBonus')[1].split('const calculateTreatmentDates')[0];
+    assert.match(p5, /OBRIGADO_PAGOU/);
+    assert.doesNotMatch(p5, /shipment_pickup_bonus_text|pickup_bonus_how_to_use/);
+    assert.doesNotMatch(p6p7, /OBRIGADO_PAGOU|shipment_delivered_thank_you_audio/);
 });
 
 test('V147 preserva scheduler e corrige health V116 sem acesso ao PM2 home', () => {
@@ -224,11 +390,11 @@ test('V147 transporte de teste permanece sink e envia zero mensagens reais', () 
         return 1;
     };
     const identity = { customerId: 'C', orderId: 'O', shipmentId: 'S' };
-    for (const [canonicalEvent, templateId] of [['P0', 'P0_POST_PURCHASE'], ['P1', 'P1_GUIDE_CREATED'], ['P2', 'A07'], ['P3', 'A10'], ['P4', 'A19'], ['P6', 'P6_BONUS_ACCESS'], ['P7', 'P7_USAGE_TEX_ULTRA']]) {
+    for (const [canonicalEvent, templateId] of [['P0', 'P0_POST_PURCHASE'], ['P1', 'P1_GUIDE_CREATED'], ['P2', 'A07'], ['P3', 'A10'], ['P4', 'A19'], ['P5', 'P5_DELIVERED_THANKYOU_NEUTRAL'], ['P6', 'P6_BONUS_ACCESS'], ['P7', 'P7_USAGE_TEX_ULTRA']]) {
         const key = buildPostSaleDedupeKeyV147({ ...identity, canonicalEvent, templateId });
         assert.equal(emitOnce(key), 1);
         assert.equal(emitOnce(key), 0);
     }
-    assert.equal(sink.length, 7);
+    assert.equal(sink.length, 8);
     assert.equal(sink.every((entry) => entry.provider === 'sink'), true);
 });

@@ -6,9 +6,10 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-postsale",
+        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r2-postsale",
         "guard:v147-postsale": "node scripts/guard-post-sale-canonical-restoration-v147.mjs && node --test tests/post-sale-canonical-restoration-v147.test.mjs",
-        "test:v147-all": "npm test && node scripts/run-with-v144-context.mjs senior:check guard:v147-postsale && npm run lint",
+        "guard:v147-r2-postsale": "node scripts/guard-post-sale-complete-v147-r2.mjs && node --import ./scripts/lib/ec-runtime-successor-v147-r2-context.mjs --test tests/post-sale-canonical-restoration-v147.test.mjs tests/pickup-bonus-delivery-v60.test.mjs",
+        "test:v147-all": "npm test && node scripts/run-with-v144-context.mjs senior:check guard:v147-r2-postsale && npm run lint",
         "test:v140-all": "npm run guard:predeploy-v71 && npm run test:v140-remainder && npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run guard:ec-dropi-status-postsale-v139",
         "test:v139-remainder": "npm run guard:post-sale-safety-v66 && npm run guard:post-sale-gargalos-v65 && npm run guard:dropi-customer-full-name-v64 && npm run guard:protocolo-g-ad-metrics-v63 && npm run guard:protocolo-g-conversion-v62 && npm run guard:meta-ec-protocolo-g-v61 && npm run guard:baileys-security-v59 && npm run guard:pickup-bonus-v60 && npm run guard:ec-dropi-status-postsale-v139 && npm run senior:check:v139-core",
         "dev": "node src/index.js",

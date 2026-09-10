@@ -1,0 +1,95 @@
+{
+  "freezeId": "EC_POSTSALE_COMPLETE_V147_R2_20260910",
+  "layer": "V147-R2",
+  "country": "EC",
+  "parentCommit": "dfff5d9e465d48538fce5f325cb756885b038101",
+  "parentTree": "a8d36e27ac7b4be1ead6fb8f66dbece77dbbc6de",
+  "parentTag": "candidate-v147-postsale-canonical-restoration-20260909",
+  "parentFreezeTag": "freeze-candidate-v147-postsale-canonical-restoration-20260909",
+  "parentManifest": "docs/freeze/ec-postsale-canonical-restoration-v147-20260909.json",
+  "parentManifestSha256": "675c9d2b4ba375c66f7490a4bf0c639f4b7ce5f303ab26a81645a0f6a127b448",
+  "purpose": "SEPARATE_APPROVED_POST_PICKUP_THANK_YOU_FROM_SALE_CLOSE_AND_BONUS",
+  "p5": {
+    "templateId": "P5_DELIVERED_THANKYOU_NEUTRAL",
+    "label": "OBRIGADO_PAGOU",
+    "source": "public/media/templates/EC/OBRIGADO_PAGOU.ogg",
+    "textHash": null,
+    "mediaSha256": "bd6ce39a51cb67be469aa6aeb6c0ca94c2f53e4ab27dba46dabd2efc93a5adfd",
+    "mediaBytes": 44849,
+    "trigger": "carrier_delivered",
+    "productScope": "all_ec_products",
+    "contentApprovalRequired": false,
+    "historicalProof": [
+      "docs/PICKUP_BONUS_DELIVERY_FREEZE_V60_20260824.md",
+      "docs/PICKUP_BONUS_DELIVERY_ACTIVATION_RESULT_V60_20260824.md",
+      "approved_freezes/APPROVED_PICKUP_BONUS_DELIVERY_V60_20260824.txt",
+      "operator_decision_2026-09-10"
+    ]
+  },
+  "separation": {
+    "saleCloseThankYou": "AGRADECIMENTO_AGENCIA_DE_ENTREGA",
+    "postPickupThankYou": "OBRIGADO_PAGOU",
+    "bonusAccess": "P6_BONUS_ACCESS",
+    "usageByProduct": [
+      "P7_USAGE_TEX_ULTRA",
+      "P7_USAGE_VIT_POWER",
+      "P7_USAGE_NITRIX"
+    ]
+  },
+  "catchup": {
+    "allowed": false,
+    "expectedCandidatesCount": 0,
+    "expectedListHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "overrides": [
+    "docs/V147_R2_POSTSALE_COMPLETE_20260910.md",
+    "package.json",
+    "public/media/templates/EC/OBRIGADO_PAGOU.ogg",
+    "scripts/guard-post-sale-complete-v147-r2.mjs",
+    "scripts/guard-post-sale-safety-v66.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r2-context.mjs",
+    "src/models/Shipment.js",
+    "src/services/postSaleNotificationDecisionService.js",
+    "src/services/postSaleSafetyV66Service.js",
+    "src/services/postSaleTemplateCatalogV147Service.js",
+    "src/services/shipmentMessageService.js",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/pickup-bonus-delivery-v60.test.mjs",
+    "tests/post-sale-canonical-restoration-v147.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/V147_R2_POSTSALE_COMPLETE_20260910.md": "a05f08bd2188c70a193b4c93c9bdcefbbcd8be0480ae1e08d62733f7b0371d4b",
+    "package.json": "7ae1d021949dc4d33794f11fd0457b933453491936c66cf718471b32b8896370",
+    "public/media/templates/EC/OBRIGADO_PAGOU.ogg": "bd6ce39a51cb67be469aa6aeb6c0ca94c2f53e4ab27dba46dabd2efc93a5adfd",
+    "scripts/guard-post-sale-complete-v147-r2.mjs": "4f75e24a0ff9b7b4071df712ee7619c4d7d5b886fbd52e233f8d986fe484be3a",
+    "scripts/guard-post-sale-safety-v66.mjs": "fcee48831af42575eeca08edbf289a1ed113ea8c035bd0ec6fbab90c07930384",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "3628f8e4501969fac0757dd746ca86af7f5364d72742843499ad3f5129f7ed6c",
+    "scripts/lib/ec-runtime-successor-v147-context.mjs": "a15600930928c5377ac04ef354f0745cfbc63c5d20d0d31fb0bf016d14b2035a",
+    "scripts/lib/ec-runtime-successor-v147-r2-context.mjs": "d52bb218cb7146cfd01dcab891df2b5dbddd3ae74718da130e1b9752e2b7e196",
+    "src/models/Shipment.js": "89a51748538fb25c6c0e54afe8f92fcc57c34b370ee65d10e9082ec5fd6c8fd1",
+    "src/services/postSaleNotificationDecisionService.js": "e91551f2a26ce1e7e3a4ba469ab813cb4e4de5848f336afb9d8c3993fc62abe5",
+    "src/services/postSaleSafetyV66Service.js": "a832f681a505fdba89cd48777f6ecd39ea13a6c901d96e5d50019b5bd87d1690",
+    "src/services/postSaleTemplateCatalogV147Service.js": "69eacf71f2aa0992436cfd3ea847a8234b80b800f12302068fff77f615a645f5",
+    "src/services/shipmentMessageService.js": "5836ccc3dbc8d57964fefbb032ee2778b2e15bb9531d556fbc62e7b52f2a2f64",
+    "src/services/shipmentStatusDispatcherService.js": "ecd98dd90220262ee5f4e8af00952b013fdd9015e16088ad9010a849203bb785",
+    "tests/pickup-bonus-delivery-v60.test.mjs": "643bd3c8e20c64cb7c0f5467700da214baa09d828689f9f3add92adcbd362aff",
+    "tests/post-sale-canonical-restoration-v147.test.mjs": "4aed469048c80c3a376c89258c70665df6525fcf3e93ecd68ff714069aab6ac4"
+  },
+  "policy": {
+    "productionChanged": false,
+    "activationAllowed": false,
+    "publicationAllowed": false,
+    "currentSwitchAllowed": false,
+    "pm2RestartAllowed": false,
+    "realMessagesSent": 0,
+    "transport": "SINK",
+    "servientregaLiveAuthoritative": true,
+    "dropiStatusAuthoritativeForPickup": false,
+    "historicalBackfillAllowed": false,
+    "automaticReplayAllowed": false,
+    "bonusAndUsagePreserved": true,
+    "operatorApprovalRequired": true
+  }
+}

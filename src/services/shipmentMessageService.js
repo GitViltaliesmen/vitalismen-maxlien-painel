@@ -965,6 +965,15 @@ export const shipmentPaymentConfirmed = (shipment = {}) => Boolean(
     || shipment?.raw?.latestDroppiPayload?.paymentStatus === 'paid'
 );
 
+export const deliveredThankYouDedupeValueV147 = (shipment = {}) => {
+    const idempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO
+    });
+    return idempotencyKey ? `OBRIGADO_PAGOU|${idempotencyKey}` : '';
+};
+
 export const buildRefillReminderText = (shipment) => {
     const units = Number(shipment?.treatment?.unitsPurchased || 1) || 1;
     const unitsLabel = `${units} frasco${units > 1 ? 's' : ''}`;
@@ -2298,6 +2307,73 @@ export const notifyPickupProofRequest = async (shipment) => {
     return true;
 };
 
+export const notifyDeliveredThankYou = async (shipment, {
+    decideFn = decidePostSaleNotification,
+    resolveAudioFn = resolveCountryAudio,
+    sendAudioFileFn = sendShipmentAudioFile,
+    completeFn = completePostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    appendEventFn = appendEvent
+} = {}) => {
+    const chatId = resolveChatId(shipment);
+    if (!chatId || shipment?.automation?.deliveredThankYouNotifiedAt) return false;
+    const decision = await decideFn({
+        shipment,
+        kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
+
+    const audioPath = await resolveAudioFn({
+        country: shipment.country || 'EC',
+        baseName: 'OBRIGADO_PAGOU'
+    });
+    if (!audioPath) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+            lockToken: decision.lockToken,
+            reason: 'delivered_thank_you_audio_not_found'
+        });
+        return false;
+    }
+
+    const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
+        kind: 'shipment_delivered_thank_you_audio',
+        baseName: 'OBRIGADO_PAGOU',
+        dedupeValue: deliveredThankYouDedupeValueV147(shipment)
+    });
+    if (!sendResultOk(sent)) {
+        await failFn({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+            sendResult: sent,
+            reason: 'delivered_thank_you_audio_send_failed'
+        });
+        return false;
+    }
+
+    const now = new Date();
+    const finalized = await completeFn({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
+    await appendEventFn(shipment._id, 'delivered_thank_you_notified', {
+        templateId: 'P5_DELIVERED_THANKYOU_NEUTRAL',
+        label: 'OBRIGADO_PAGOU',
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
+    });
+    return true;
+};
+
 export const notifyPickupBonus = async (shipment) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.bonusNotifiedAt) return false;
@@ -2359,18 +2435,6 @@ export const notifyPickupBonus = async (shipment) => {
         });
         return false;
     }
-
-    const paymentConfirmed = shipmentPaymentConfirmed(shipment);
-    const thankYouAudioPath = paymentConfirmed
-        ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' })
-        : '';
-    const thankYouAudioSent = thankYouAudioPath
-        ? await sendShipmentAudioFile(shipment, chatId, thankYouAudioPath, {
-            kind: 'shipment_pickup_bonus_thank_you_audio',
-            baseName: 'OBRIGADO_PAGOU',
-            dedupeValue: `${thankYouAudioPath}|${bonusDedupeScope}`
-        })
-        : false;
 
     const sent = await sendShipmentText(shipment, chatId, text, {
         kind: 'shipment_pickup_bonus_text',
@@ -2444,8 +2508,6 @@ export const notifyPickupBonus = async (shipment) => {
     }, hash);
     await appendEvent(shipment._id, 'pickup_bonus_notified', {
         bonusUrl: BONUS_URL,
-        paymentConfirmed,
-        thankYouAudioSent,
         howToUseAudioSent,
         howToUseAudioAlreadySent: Boolean(texUltraHowToUseRecord && !sendResultOk(howToUseAudioSent))
     });

@@ -117,6 +117,7 @@ const shipmentSchema = new mongoose.Schema({
         pickupReminderLastError: { type: String, default: '' },
         returnedNotifiedAt: { type: Date, default: null },
         deliveredConfirmedAt: { type: Date, default: null },
+        deliveredThankYouNotifiedAt: { type: Date, default: null },
         prepaidOnlyNotifiedAt: { type: Date, default: null },
         pickupProofRequestedAt: { type: Date, default: null },
         pickupProofDispatchLockedUntil: { type: Date, default: null },

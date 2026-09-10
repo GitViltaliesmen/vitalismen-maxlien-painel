@@ -37,6 +37,7 @@ const MARKER_BY_KIND = Object.freeze({
     pickup_reminder_day5: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_REMINDER_DAY5],
     pickup_reminder_soft_day6: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6],
     pickup_proof_request: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_PROOF_REQUEST],
+    delivered_thank_you: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.DELIVERED_THANK_YOU],
     pickup_bonus: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_BONUS],
     treatment_refill_reminder: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]
 });
@@ -53,6 +54,7 @@ const EVENT_BY_KIND = Object.freeze({
     pickup_reminder_day5: ['reminder_day5'],
     pickup_reminder_soft_day6: ['reminder_soft_day6'],
     pickup_proof_request: ['pickup_proof_requested'],
+    delivered_thank_you: ['delivered_thank_you_notified'],
     pickup_bonus: ['pickup_bonus_notified'],
     treatment_refill_reminder: ['refill_reminder_notified']
 });
@@ -115,6 +117,7 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
+        POST_SALE_STAGES.DELIVERED_THANK_YOU,
         POST_SALE_STAGES.PICKUP_BONUS
     ]);
     const laterThanTransitLedger = terminalLedgerPresent(shipment, [
@@ -127,6 +130,7 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
+        POST_SALE_STAGES.DELIVERED_THANK_YOU,
         POST_SALE_STAGES.PICKUP_BONUS
     ]);
 
@@ -192,7 +196,7 @@ const eligibilityForKind = (shipment = {}, kind = '') => {
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
-    if (kind === 'pickup_bonus' || kind === 'treatment_refill_reminder') {
+    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'treatment_refill_reminder') {
         return shipment?.outcomes?.pickedUp === true
             || shipment?.outcomes?.delivered === true
             || canonical.canonicalStatus === 'DELIVERED';
@@ -213,6 +217,7 @@ const historyMatchesKind = (message = {}, shipment = {}, kind = '') => {
             && (trackingMentioned || /servientrega/.test(body));
     }
     if (kind === 'returned') return /devuelt|devoluci[oó]n|no fue retir|pago anticipado/.test(body);
+    if (kind === 'delivered_thank_you') return /^\[audio\]\s*obrigado_pagou$/i.test(clean(message?.body));
     return false;
 };
 
