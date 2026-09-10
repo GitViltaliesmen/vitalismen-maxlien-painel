@@ -13,7 +13,10 @@
     "src/services/shipmentStatusDispatcherService.js"
   ],
   "overrides": [
+    "docs/V147_R6_UNIFIED_POSTSALE_DEDUPE_CANDIDATE_20260910.md",
     "package.json",
+    "scripts/audit-unified-postsale-v147-r6.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
     "scripts/guard-transactional-postsale-v147-r5.mjs",
     "scripts/guard-unified-postsale-v147-r6.mjs",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
@@ -33,15 +36,18 @@
     "tests/unified-postsale-v147-r6.test.mjs"
   ],
   "protectedFiles": {
+    "docs/V147_R6_UNIFIED_POSTSALE_DEDUPE_CANDIDATE_20260910.md": "ce90ba0a8ac5408a90112c55f432e4d681b5b48bb6d6c32653a2c1c2fb06390d",
     "package.json": "484969812f6a8795a87f795858ad8311b442188ebb044c2e0d9a6a272c4db304",
+    "scripts/audit-unified-postsale-v147-r6.mjs": "57673a9809b63ea21d28bbfeeb585167febaaa805cb587ce29d5371db68d8269",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "8ac1f2fc9e5b76764cf498193f24b7d98b53347aef58ceb6dc9e94e266e9af57",
     "scripts/guard-transactional-postsale-v147-r5.mjs": "f8eaf3f2cdfff70065fd47a5d72e8f756e70aadc7e0320a4f6cd9bfaa71709ed",
     "scripts/guard-unified-postsale-v147-r6.mjs": "dc408c4db3a3233161cd82d7e659bb58e15a5bf23969de2bb692fb70485066a3",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "f0c0072d2ef27686931f0f3ea1833000d9d6c001ee5119ca2cc2c8a0c6e4fce8",
     "scripts/lib/ec-runtime-successor-v147-r5-context.mjs": "f54278ee10182d0bc9499ca6f2822c64427ab5557c5bc7f7ad12b3cd92e3c7ba",
     "scripts/lib/ec-runtime-successor-v147-r6-context.mjs": "c37994b16f290423d0b1b12f6a2194d3e98cf5925b42c71858e3f9d3d61fb9e5",
-    "scripts/test-v147-r6-staging-sink.mjs": "33b0124a2f136ae7ba076f3213da2883b75f887b56395d0f8ca13a4b2cfa408c",
+    "scripts/test-v147-r6-staging-sink.mjs": "01d1aed5f4109ed872d93f6b989b01814922a2baaf7f2ee132849f7a71464bef",
     "src/models/Message.js": "38ce10617f24a4644cbef8f13162bed4fd3e17c76d32c47ba95df0e676595960",
-    "src/routes/whatsapp.js": "c4a0d2399062d381fd73551aa9ddf97112ed008302e020fe1c4971d18545fdef",
+    "src/routes/whatsapp.js": "c950d8ee9dbf48ca2992f363983f90ea86d303fa7ffde238dbe38633de08113b",
     "src/services/postSaleManualPanelV147R6Service.js": "f488659580ec736e652a47782d337854f1ac1396286b4f3f1c94bac217d057da",
     "src/services/postSaleNotificationDecisionService.js": "5b728846db272c21714260aeab47f6c6595c2efb02605bf743f47f53e485c065",
     "src/services/postSaleSafetyV66Service.js": "22043d38e65d253be70ef7f8f7aa530e603a7c73fa3bf5a749cfcab2182e9275",
@@ -50,7 +56,7 @@
     "src/services/shipmentStatusDispatcherService.js": "6980ae417f862ea0cd7ded35f2216b509dad10ca6f0b45d2967760a0d0e6456a",
     "tests/pickup-bonus-delivery-v60.test.mjs": "d1c75f284c7c82d7d19b530368670f74f2b2c4ac18c2bf13b6d1293d919a633e",
     "tests/transactional-postsale-v147-r5.test.mjs": "272e879af3a89a3cbf60efc244ded1040148e17349a77123c693396678d13684",
-    "tests/unified-postsale-v147-r6.test.mjs": "017b09bce4c4f95171ee595b1ce1137095b847544060166cd8651b87b77c32c6"
+    "tests/unified-postsale-v147-r6.test.mjs": "0fc3a6c72ae6aa14bded0e79a2600523de2961612578ca7a3d6e8fcc5541bbbe"
   },
   "preservedFiles": {
     "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",

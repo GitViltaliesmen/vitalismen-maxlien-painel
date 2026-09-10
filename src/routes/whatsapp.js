@@ -6552,9 +6552,12 @@ router.post('/send', authMiddleware, async (req, res) => {
                     if (String(message).startsWith('data:audio/')) {
                         const directory = manualUploadsDirV129();
                         fs.mkdirSync(directory, { recursive: true });
-                        payload = path.join(directory, Date.now() + '_' + crypto.randomBytes(6).toString('hex') + '.ogg');
+                        const extension = String(message).startsWith('data:audio/mpeg;') ? '.mp3' : '.ogg';
+                        payload = path.join(directory, Date.now() + '_' + crypto.randomBytes(6).toString('hex') + extension);
                         fs.writeFileSync(payload, Buffer.from(String(message).split(';base64,')[1], 'base64'));
-                    } else payload = path.join(process.cwd(), 'public', normalizeLegacyMediaPath(message));
+                    } else payload = path.join(process.cwd(), 'public', normalizeLegacyMediaPath(message)
+                        .replace(/^https:\/\/ec\.maxlien\.shop(?=\/media\/)/, '')
+                        .replace(/^\/opt\/vitalismen-automacao\/releases\/[^/]+\/public(?=\/media\/)/, ''));
                 }
                 return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
                     sendMode, country, allowExistingDropiOrder: true, returnDetails: true,

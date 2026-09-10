@@ -24,7 +24,7 @@ assert.equal(manifest.policy.commercialFunnelChanged, false);
 assert.match(entryGuard, /runtimeGuardChainFreezeRuntimeGuardV67\.js/);
 assert.match(shipment, /shipment_status:pickup_bonus:\$\{shipmentIdentity\}/);
 assert.match(shipment, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
-assert.match(shipment, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);
+assert.match(shipment, /dedupeValue:\s*decision\.canonicalEvent \? decision\.idempotencyKey : `\$\{text\}\|\$\{bonusDedupeScope\}`/);
 assert.doesNotMatch(
     shipment.slice(shipment.indexOf('export const notifyPickupBonus'), shipment.indexOf('export const notifyProductUsage')),
     /bypassDedupe:\s*true|force:\s*true/

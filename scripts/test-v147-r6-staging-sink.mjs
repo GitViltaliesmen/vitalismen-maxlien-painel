@@ -36,7 +36,7 @@ const { default: Order } = await import('../src/models/Order.js');
 const { default: ContactState } = await import('../src/models/ContactState.js');
 const { notifyDeliveredThankYou, notifyPickupBonus, notifyProductUsage } = await import('../src/services/shipmentMessageService.js');
 const { sendCanonicalPanelPostSaleV147R6 } = await import('../src/services/postSaleManualPanelV147R6Service.js');
-const { reconcileDeliveredPostSaleSequenceV147R6, LEGACY_PANEL_P6_TEXT_V147R6 } = await import('../src/services/postSaleUnifiedEventV147R6Service.js');
+const { reconcileDeliveredPostSaleSequenceV147R6, resolvePostSaleEventV147R6, reservePostSaleEventV147R6, LEGACY_PANEL_P6_TEXT_V147R6 } = await import('../src/services/postSaleUnifiedEventV147R6Service.js');
 const { routeIncomingMessage } = await import('../src/services/agentRouter.js');
 await mongoose.connect(uri, { autoIndex: true });
 const calls = () => fs.existsSync(trace) ? fs.readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line)) : [];
@@ -82,7 +82,7 @@ const make = async (product = 'tex_ultra_ec', extra = {}) => {
     const state = await ContactState.create({ chatId: phone + '@s.whatsapp.net', phoneDigits: phone, countryCode: 'EC', human: { mode: 'manual', pausedUntil: new Date('2036-01-01') } });
     const shipment = await Shipment.create({ orderId: 'EC-SINK-R6-' + index, country: 'EC', client: { phone },
         logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189146' + index,
-            distributionCompany: 'SERVIENTREGA', canonicalEvidence: { source: 'carrier_tracking', provider: 'servientrega', observedAt: new Date(Date.now() - 60000) } },
+            distributionCompany: 'SERVIENTREGA', canonicalEvidence: { source: 'carrier_tracking', provider: 'servientrega', rawStatus: 'Entregado', observedAt: new Date(Date.now() - 60000) } },
         raw: { customerId: String(state._id) }, ...extra });
     if (product) await Order.create({ orderId: shipment.orderId, country: 'EC', currency: 'USD', customer: { phone }, tracking: { productKey: product } });
     return { shipment, state };
@@ -126,6 +126,19 @@ try {
     await assert.rejects(manual(ambiguous._id, 'P5', async () => { await transport('sendAudio', [ambiguous.client.phone, media.P5]); throw new Error('provider timeout'); }));
     before = calls().length; await auto(ambiguous._id); await manual(ambiguous._id, 'P5');
     assert.equal(calls().length, before); receipt.cases.ambiguous_no_blind_retry = 'PASS';
+    await worker(['--restart', String(ambiguous._id)]); assert.equal(calls().length, before);
+    const { shipment: autoTimeout } = await make();
+    globalThis.__R4_SINK_SEND = async (...args) => { await transport(...args); throw new Error('automatic provider timeout'); };
+    await assert.rejects(auto(autoTimeout._id, 'P5'));
+    globalThis.__R4_SINK_SEND = transport;
+    before = calls().length; await worker(['--restart', String(autoTimeout._id)]); assert.equal(calls().length, before);
+    receipt.cases.automatic_timeout_restart_no_retry = 'PASS';
+    const { shipment: intended } = await make();
+    const intendedEvent = await resolvePostSaleEventV147R6({ shipment: intended, stage: 'DELIVERED_THANK_YOU' });
+    assert.equal((await reservePostSaleEventV147R6({ shipment: intended, event: intendedEvent,
+        now: new Date(Date.now() - 86400000), lockMs: 1 })).decision, 'SHOULD_SEND');
+    before = calls().length; await worker(['--restart', String(intended._id)]); assert.equal(calls().length, before);
+    receipt.cases.expired_lock_intended_process_restart = 'PASS';
     const { shipment: unknown, state: held } = await make(''); before = calls().length;
     await auto(unknown._id); assert.equal(calls().length - before, 2);
     await routeIncomingMessage({ from: held.chatId, senderPn: held.phoneDigits, body: 'Quiero comprar otro frasco', id: 'r6-sink-commercial' });
