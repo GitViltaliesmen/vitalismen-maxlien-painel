@@ -14,7 +14,10 @@ import {
     terminalPostSaleSafetyEntry
 } from './postSaleSafetyV66Service.js';
 import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
-import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
+import {
+    canonicalLogisticsProjectionForShipmentV147,
+    servientregaPostSaleCompletionEligibleV147
+} from './canonicalLogisticsStatusV147Service.js';
 
 export const POST_SALE_NOTIFICATION_DECISIONS = Object.freeze({
     SHOULD_SEND: 'SHOULD_SEND',
@@ -200,7 +203,10 @@ const eligibilityForKind = (shipment = {}, kind = '') => {
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
-    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'product_usage' || kind === 'treatment_refill_reminder') {
+    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'product_usage') {
+        return servientregaPostSaleCompletionEligibleV147(shipment);
+    }
+    if (kind === 'treatment_refill_reminder') {
         return shipment?.outcomes?.pickedUp === true
             || shipment?.outcomes?.delivered === true
             || canonical.canonicalStatus === 'DELIVERED';

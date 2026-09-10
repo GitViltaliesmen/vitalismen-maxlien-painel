@@ -29,7 +29,10 @@ import {
     dropiPostSaleEvidenceV139,
     persistDropiStatusProjectionV139
 } from './ecDropiStatusPostSaleV139Service.js';
-import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
+import {
+    canonicalLogisticsProjectionForShipmentV147,
+    servientregaPostSaleCompletionEligibleV147
+} from './canonicalLogisticsStatusV147Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -704,18 +707,29 @@ export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Dat
             $and: [
                 {
                     $or: [
-                        { 'logistics.status': 'ENTREGADO' },
-                        { 'outcomes.delivered': true },
-                        { 'outcomes.pickedUp': true }
+                        { 'logistics.canonicalEvidence.rawCode': { $exists: true, $ne: '' } },
+                        { 'logistics.canonicalEvidence.rawStatus': { $exists: true, $ne: '' } },
+                        { 'logistics.canonicalEvidence.rawSubstatus': { $exists: true, $ne: '' } }
                     ]
                 },
                 {
                     $or: [
+                        { 'automation.deliveredThankYouNotifiedAt': null },
                         { 'automation.bonusNotifiedAt': null },
                         { 'automation.usageNotifiedAt': null }
                     ]
+                },
+                {
+                    $or: [
+                        { 'raw.historicalExternalReconciliation.customerId': { $exists: true, $ne: '' } },
+                        { 'raw.customerId': { $exists: true, $ne: '' } },
+                        { 'client.customerId': { $exists: true, $ne: '' } }
+                    ]
                 }
             ],
+            'logistics.canonicalStatus': 'DELIVERED',
+            'logistics.canonicalEvidence.provider': { $in: ['servientrega', 'SERVIENTREGA'] },
+            'logistics.canonicalEvidence.source': 'carrier_tracking',
             'outcomes.returned': { $ne: true }
         });
     }
@@ -1050,12 +1064,11 @@ export const shipmentStatusDispatchActionForShipment = (shipment) => {
     const status = shipment?.logistics?.status || '';
     if (!shipment?.logistics?.canonicalStatus) {
         if (status === 'DEVUELTO') return 'returned';
-        if (status === 'ENTREGADO') return 'delivered_bonus';
         if (status === 'READY_FOR_PICKUP' && shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking') return 'ready_for_pickup';
     }
     const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     if (canonical.canonicalStatus === 'RETURNED') return 'returned';
-    if (canonical.canonicalStatus === 'DELIVERED') return 'delivered_bonus';
+    if (servientregaPostSaleCompletionEligibleV147(shipment)) return 'delivered_bonus';
     if (canonical.canonicalStatus === 'READY_FOR_PICKUP' && canonical.canPickup) return 'ready_for_pickup';
     if (['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus)) {
         return 'in_transit';
@@ -1067,6 +1080,7 @@ export const shipmentStatusDispatchActionForShipment = (shipment) => {
 const actionForShipment = shipmentStatusDispatchActionForShipment;
 
 const markDeliveredAndNotifyBonus = async (shipment) => {
+    if (!servientregaPostSaleCompletionEligibleV147(shipment)) return false;
     const now = new Date();
     await Shipment.updateOne(
         { _id: shipment._id },
@@ -1078,16 +1092,21 @@ const markDeliveredAndNotifyBonus = async (shipment) => {
                 'outcomes.prepaidOnly': false,
                 'automation.deliveredConfirmedAt': shipment.automation?.deliveredConfirmedAt || now,
                 'automation.prepaidOnlyNotifiedAt': null,
+                'automation.pickupReminderDispatchLockedUntil': null,
+                'automation.notificationLocks.PICKUP_REMINDER_DAY3': null,
+                'automation.notificationLocks.PICKUP_REMINDER_DAY5': null,
                 'review.manualOnly': false,
                 'review.reviewReason': '',
-                'review.reviewStatus': 'delivered_confirmed_by_dropi_status'
+                'review.reviewStatus': 'delivered_confirmed_by_servientrega_canonical_status'
             }
         }
     );
-    await appendDispatchEvent(shipment._id, 'delivered_confirmed_by_dropi_status', {
+    await appendDispatchEvent(shipment._id, 'delivered_confirmed_by_servientrega_canonical_status', {
         status: shipment.logistics?.status || '',
+        canonicalStatus: shipment.logistics?.canonicalStatus || '',
         trackingNumber: shipment.logistics?.trackingNumber || '',
-        customerEligibility: 'released_for_new_order'
+        customerEligibility: 'released_for_new_order',
+        pendingA10A19Cancelled: true
     });
     const refreshed = await Shipment.findById(shipment._id);
     if (!refreshed) return false;

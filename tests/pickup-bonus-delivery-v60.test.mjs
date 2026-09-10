@@ -47,8 +47,9 @@ test('V60 preserva agradecimento após retirada como etapa separada do bônus', 
 });
 
 test('V60 conserva entrega logística oficial como gatilho do bônus', () => {
-    assert.match(dispatcher, /if \(status === 'ENTREGADO'\) return 'delivered_bonus'/);
+    assert.match(dispatcher, /if \(servientregaPostSaleCompletionEligibleV147\(shipment\)\) return 'delivered_bonus'/);
     assert.match(dispatcher, /await notifyDeliveredThankYou\(refreshed\)/);
     assert.match(dispatcher, /const bonusSent = afterThankYou \? await notifyPickupBonus\(afterThankYou\) : false/);
-    assert.match(dispatcher, /'automation\.bonusNotifiedAt': null/);
+    assert.match(dispatcher, /'automation\.deliveredThankYouNotifiedAt': null/);
+    assert.match(dispatcher, /'logistics\.canonicalStatus': 'DELIVERED'/);
 });

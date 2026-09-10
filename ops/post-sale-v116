@@ -62,6 +62,36 @@ if [[ "$action" == "status" ]]; then
   exit 0
 fi
 
+if [[ "$action" == "staging-check" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: post-sale-v116 staging-check RELEASE"
+  candidate="$(realpath -e "$base_dir/releases/$2" 2>/dev/null || true)"
+  [[ "$candidate" == "$base_dir"/releases/* && -d "$candidate" && ! -L "$candidate" ]] || die "release staging invalida"
+  assert_pm2_bot_online || die "PM2 bot oficial fora da release current"
+  load_overlay
+  preload="$candidate/scripts/lib/ec-runtime-successor-v147-r3-context.mjs"
+  [[ -f "$preload" && ! -L "$preload" ]] || die "preload V147-R3 ausente na release staging"
+  export NODE_OPTIONS="--import=file://$preload"
+  output="$log_dir/$(basename "$candidate").post-sale-v116-staging-$(date -u +%Y%m%dT%H%M%SZ).json"
+  if ! (cd "$candidate" && node scripts/post-sale-transactional-batch-v116.mjs plan >"$output"); then
+    chmod 0600 "$output" 2>/dev/null || true
+    die "executor V116 staging falhou"
+  fi
+  chmod 0600 "$output"
+  node - "$output" <<'NODE'
+const fs = require('node:fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (report.status !== 'PASS_PLAN') throw new Error(`unexpected_status:${report.status || ''}`);
+if (Number(report.sent || 0) !== 0) throw new Error(`unexpected_sent:${report.sent}`);
+NODE
+  echo "V116_EXECUTOR_STAGING=PASS"
+  echo "NO_EACCES=YES"
+  echo "NO_EROFS=YES"
+  echo "EXPECTED_RUNTIME_PATHS=PASS"
+  echo "REAL_MESSAGES_SENT=0"
+  echo "RESULT=$output"
+  exit 0
+fi
+
 if [[ "$action" == "install" ]]; then
   [[ "$#" -eq 1 ]] || die "uso: post-sale-v116 install"
   assert_pm2_bot_online || die "PM2 bot fora da release current"
@@ -112,4 +142,4 @@ if [[ "$action" == "contain" ]]; then
   exit 0
 fi
 
-die "uso: post-sale-v116 status|install|run|contain"
+die "uso: post-sale-v116 status|staging-check RELEASE|install|run|contain"

@@ -8,14 +8,11 @@ import { sendDocument } from '../whatsapp/sendDocument.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import Shipment from '../models/Shipment.js';
-import Order from '../models/Order.js';
 import Message from '../models/Message.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
 import { downloadDroppiEcuadorInvoicePdf } from './droppiEcuadorBrowserService.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { VIT_POWER_PICKUP_BONUS_TEXT } from './vitPowerEvolvedWorkflow.js';
-import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
-import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import {
     buildNotificationLedgerEntryV29,
     buildPickupReminderV29,
@@ -39,6 +36,9 @@ import {
     POST_SALE_VARIANTS,
     buildPostSaleIdempotencyKey
 } from './postSaleSafetyV66Service.js';
+import {
+    servientregaPostSaleCompletionEligibleV147
+} from './canonicalLogisticsStatusV147Service.js';
 import {
     postSaleFailureDispositionV116,
     postSaleTransactionalSafetyV116Enabled
@@ -958,19 +958,11 @@ export const pickupBonusAntiSpamKey = (shipment = {}) => {
     return `shipment_status:pickup_bonus:${shipmentIdentity}`;
 };
 
-export const shipmentCanonicalPaymentEvidence = (_shipment = {}) => Object.freeze({
-        confirmed: false,
-        source: '',
-        provider: '',
-        field: '',
-        value: '',
-        timestamp: null,
-        classification: 'UNKNOWN',
-        confidence: 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE'
-    });
-
-export const shipmentPaymentConfirmed = (shipment = {}) => (
-    shipmentCanonicalPaymentEvidence(shipment).confirmed === true
+export const shipmentPaymentConfirmed = (shipment = {}) => Boolean(
+    shipment?.raw?.paymentConfirmedAt
+    || shipment?.raw?.payment?.confirmedAt
+    || shipment?.raw?.payment?.status === 'paid'
+    || shipment?.raw?.latestDroppiPayload?.paymentStatus === 'paid'
 );
 
 export const deliveryOrPickupConfirmed = (shipment = {}) => Boolean(
@@ -990,11 +982,9 @@ export const pickupBonusLinkValid = (value = BONUS_URL) => {
 };
 
 export const pickupBonusEligibility = (shipment = {}, {
-    bonusUrl = BONUS_URL,
-    paymentEvidenceFn = shipmentCanonicalPaymentEvidence
+    bonusUrl = BONUS_URL
 } = {}) => {
-    const payment = paymentEvidenceFn(shipment);
-    const deliveryConfirmed = deliveryOrPickupConfirmed(shipment);
+    const deliveryConfirmed = servientregaPostSaleCompletionEligibleV147(shipment);
     const bonusEligible = String(shipment?.country || 'EC').toUpperCase() === 'EC'
         && shipment?.outcomes?.returned !== true
         && shipment?.outcomes?.prepaidOnly !== true
@@ -1007,11 +997,9 @@ export const pickupBonusEligibility = (shipment = {}, {
         ).toUpperCase())
     );
     return Object.freeze({
-        allowed: deliveryConfirmed && p5AcceptedOrConfirmed && payment.confirmed && bonusEligible && linkValid
+        allowed: deliveryConfirmed && p5AcceptedOrConfirmed && bonusEligible && linkValid
             && !shipment?.automation?.bonusNotifiedAt,
         deliveryConfirmed,
-        paymentConfirmedCanonical: payment.confirmed,
-        payment,
         p5AcceptedOrConfirmed,
         bonusEligible,
         linkValid,
@@ -2088,6 +2076,14 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         {
             _id: shipment._id,
             'review.manualOnly': { $ne: true },
+            'logistics.status': 'READY_FOR_PICKUP',
+            'logistics.canonicalStatus': 'READY_FOR_PICKUP',
+            'logistics.pickupReadyVerified': true,
+            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+            'outcomes.delivered': { $ne: true },
+            'outcomes.pickedUp': { $ne: true },
+            'outcomes.returned': { $ne: true },
+            'outcomes.prepaidOnly': { $ne: true },
             ...(noticeField ? { [`automation.${noticeField}`]: null } : {}),
             $or: [
                 { 'automation.pickupReminderDispatchLockedUntil': null },
@@ -2376,7 +2372,9 @@ export const notifyDeliveredThankYou = async (shipment, {
     appendEventFn = appendEvent
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    if (!chatId || shipment?.automation?.deliveredThankYouNotifiedAt) return false;
+    if (!chatId
+        || shipment?.automation?.deliveredThankYouNotifiedAt
+        || !servientregaPostSaleCompletionEligibleV147(shipment)) return false;
     const decision = await decideFn({
         shipment,
         kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
@@ -2443,11 +2441,10 @@ export const notifyPickupBonus = async (shipment, {
     findExistingDedupeFn = findExistingPickupBonusDedupe,
     persistFn = persistAutomationUpdate,
     appendEventFn = appendEvent,
-    paymentEvidenceFn = shipmentCanonicalPaymentEvidence,
     waitFn = wait
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    const eligibility = pickupBonusEligibility(shipment, { paymentEvidenceFn });
+    const eligibility = pickupBonusEligibility(shipment);
     if (!chatId || !eligibility.allowed) return false;
     const decision = await decideFn({
         shipment,
@@ -2543,10 +2540,7 @@ export const notifyPickupBonus = async (shipment, {
     }, hash);
     await appendEventFn(shipment._id, 'pickup_bonus_notified', {
         bonusUrl: BONUS_URL,
-        paymentSource: eligibility.payment.source,
-        paymentProvider: eligibility.payment.provider,
-        paymentClassification: eligibility.payment.classification,
-        paymentTimestamp: eligibility.payment.timestamp
+        completionSource: 'servientrega_canonical_delivered'
     });
     return true;
 };
@@ -2561,16 +2555,13 @@ export const notifyProductUsage = async (shipment, {
     appendEventFn = appendEvent,
     registerAudioAttemptFn = registerAudioAttempt,
     findExistingTexUltraAudioFn = findTexUltraHowToUseAudioSentRecord,
-    paymentEvidenceFn = shipmentCanonicalPaymentEvidence,
     waitFn = wait
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    const payment = paymentEvidenceFn(shipment);
     const baseName = pickupHowToUseAudioForShipment(shipment);
     if (!chatId
         || shipment?.automation?.usageNotifiedAt
-        || !deliveryOrPickupConfirmed(shipment)
-        || !payment.confirmed
+        || !servientregaPostSaleCompletionEligibleV147(shipment)
         || !pickupBonusAcceptedOrConfirmed(shipment)
         || !baseName) return false;
 
@@ -2619,9 +2610,7 @@ export const notifyProductUsage = async (shipment, {
             });
             await appendEventFn(shipment._id, 'product_usage_notified', {
                 baseName,
-                paymentSource: payment.source,
-                paymentProvider: payment.provider,
-                paymentClassification: payment.classification,
+                completionSource: 'servientrega_canonical_delivered',
                 providerMessageId: existingTexUltraAudio.providerMessageId
                     || existingTexUltraAudio.providerZaapId
                     || existingTexUltraAudio._id
@@ -2687,21 +2676,7 @@ export const notifyProductUsage = async (shipment, {
         providerMessageId: sent?.providerMessageId || '',
         providerZaapId: sent?.providerZaapId || ''
     });
-    await appendEventFn(shipment._id, 'product_usage_notified', {
-        baseName,
-        paymentSource: payment.source,
-        paymentProvider: payment.provider,
-        paymentClassification: payment.classification,
-        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
-    });
     return true;
-};
-const calculateTreatmentDates = (shipment, pickedAt) => {
-    const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
-    const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
-    const treatmentEndsAt = new Date(pickedAt.getTime() + (units * daysPerUnit * 24 * 60 * 60 * 1000));
-    const refillReminderDueAt = new Date(pickedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * DAY_MS));
-    return { treatmentEndsAt, refillReminderDueAt };
 };
 
 const phoneQueryForChatId = (chatId) => {
@@ -2715,24 +2690,6 @@ const phoneQueryForChatId = (chatId) => {
     return [...new Set(tails)].map((tail) => ({
         'client.phone': { $regex: `${tail}$` }
     }));
-};
-
-const digitsOnlyForShipment = (value = '') => String(value || '').replace(/\D/g, '');
-
-const findOrderForPickupShipment = async (shipment = {}) => {
-    const direct = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
-    if (direct) return direct;
-
-    const trackingNumber = String(shipment.logistics?.trackingNumber || '').trim();
-    const phoneDigits = digitsOnlyForShipment(shipment.client?.phone);
-    if (!trackingNumber || phoneDigits.length < 8) return null;
-
-    const phoneTail = phoneDigits.slice(-9);
-    return Order.findOne({
-        country: shipment.country || 'EC',
-        trackingNumber,
-        'customer.phone': { $regex: `${phoneTail}$` }
-    }).sort({ updatedAt: -1 }).catch(() => null);
 };
 
 const messagePhoneQueryForShipment = (shipment = {}) => {
@@ -2788,16 +2745,17 @@ const findPickupProofMessageForShipment = async (shipment, { since = null } = {}
     }) || null;
 };
 
-const confirmPickupFromProof = async ({
+export const confirmPickupFromProof = async ({
     shipment,
     chatId,
     messageId = '',
     proofKind = 'pickup_proof_received_from_whatsapp',
     sessionId = '',
-    dryRun = false
+    dryRun = false,
+    shipmentModel = Shipment
 }) => {
     if (!shipment) return { handled: false, reason: 'missing_shipment' };
-    if (shipment.outcomes?.pickedUp && shipment.automation?.bonusNotifiedAt && shipment.automation?.usageNotifiedAt) {
+    if (shipment?.proof?.pickupProofReceivedAt) {
         return { handled: false, reason: 'already_processed' };
     }
 
@@ -2808,15 +2766,16 @@ const confirmPickupFromProof = async ({
             orderId: shipment.orderId,
             chatId,
             messageId,
-            proofKind
+            proofKind,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
         };
     }
 
     const lockNow = new Date();
-    const lockedShipment = await Shipment.findOneAndUpdate(
+    const lockedShipment = await shipmentModel.findOneAndUpdate(
         {
             _id: shipment._id,
-            'automation.bonusNotifiedAt': null,
             $or: [
                 { 'automation.pickupProofDispatchLockedUntil': { $exists: false } },
                 { 'automation.pickupProofDispatchLockedUntil': null },
@@ -2837,59 +2796,24 @@ const confirmPickupFromProof = async ({
     }
     shipment = lockedShipment;
 
-    const pickedAt = new Date();
-    const { treatmentEndsAt, refillReminderDueAt } = calculateTreatmentDates(shipment, pickedAt);
-
-    shipment.logistics.status = 'ENTREGADO';
-    shipment.logistics.lastStatusAt = pickedAt;
-    shipment.outcomes.pickedUp = true;
-    shipment.outcomes.delivered = true;
-    shipment.outcomes.returned = false;
-    shipment.outcomes.prepaidOnly = false;
-    shipment.automation.deliveredConfirmedAt = pickedAt;
-    shipment.automation.prepaidOnlyNotifiedAt = null;
     if (sessionId && !shipment.automation.sessionId) shipment.automation.sessionId = sessionId;
     shipment.proof.agencyReceiptPhotoUrl = messageId ? `whatsapp:${messageId}` : shipment.proof.agencyReceiptPhotoUrl;
     shipment.proof.pickupProofReceivedAt = new Date();
-    shipment.treatment.treatmentEndsAt = treatmentEndsAt;
-    shipment.treatment.refillReminderDueAt = refillReminderDueAt;
-    shipment.review.manualOnly = false;
-    shipment.review.reviewReason = '';
-    shipment.review.reviewStatus = 'pickup_confirmed';
     shipment.events.push({
         kind: proofKind,
         at: new Date(),
         payload: {
             chatId,
             messageId,
-            pickedAt,
-            customerEligibility: 'released_for_new_order'
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
         }
     });
     shipment.events = shipment.events.slice(-60);
     try {
         await shipment.save();
 
-        const order = await findOrderForPickupShipment(shipment);
-        if (order) {
-            order.status = 'delivered';
-            order.shippingStatus = 'ENTREGADO';
-            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            order.notes = [
-                order.notes || '',
-                `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus condicionado a pagamento canonico.`
-            ].filter(Boolean).join('\n');
-            await order.save();
-            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_proof_auto_confirmed' });
-        }
-
-        const thankYouSent = await notifyDeliveredThankYou(shipment);
-        const afterThankYou = await Shipment.findById(shipment._id);
-        const bonusSent = afterThankYou ? await notifyPickupBonus(afterThankYou) : false;
-        const afterBonus = await Shipment.findById(shipment._id);
-        const usageSent = afterBonus ? await notifyProductUsage(afterBonus) : false;
-        await markSenderWalletDelivered({ jid: chatId, phone: shipment.client?.phone });
-        await Shipment.updateOne(
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {
@@ -2898,9 +2822,18 @@ const confirmPickupFromProof = async ({
                 }
             }
         );
-        return { handled: true, orderId: shipment.orderId, thankYouSent, bonusSent, usageSent, orderSynced: Boolean(order) };
+        return {
+            handled: true,
+            orderId: shipment.orderId,
+            thankYouSent: false,
+            bonusSent: false,
+            usageSent: false,
+            orderSynced: false,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
+        };
     } catch (error) {
-        await Shipment.updateOne(
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {

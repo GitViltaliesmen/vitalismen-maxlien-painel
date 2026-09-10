@@ -1,0 +1,171 @@
+{
+  "freezeId": "EC_DELIVERED_SINGLE_GATE_V147_R3_20260910",
+  "layer": "V147-R3",
+  "country": "EC",
+  "parentCommit": "5e3f4019bbdffebf06f2e66a74e58db52e1206da",
+  "parentTree": "803c184510a80d924b5c223b7c401fbe60ad3802",
+  "parentTag": "candidate-v147-r3-payment-bonus-guard-corrected-20260910",
+  "parentFreezeTag": "freeze-candidate-v147-r3-payment-bonus-guard-corrected-20260910",
+  "derivedFromFrozenCandidate": true,
+  "purpose": "SERVIENTREGA_DELIVERED_AS_SINGLE_POSTSALE_COMPLETION_GATE",
+  "completion": {
+    "sourceOfTruth": "SERVIENTREGA_CANONICAL_DELIVERED",
+    "eligibleStatuses": [
+      "DELIVERED"
+    ],
+    "pickupProofShortcutAllowed": false,
+    "requiresCanonicalCustomerOrderShipment": true,
+    "requiresProvider": "servientrega",
+    "requiresEvidenceSource": "carrier_tracking",
+    "requiresRawProviderEvidence": true
+  },
+  "payment": {
+    "separateGateRemoved": true,
+    "shipmentPaymentConfirmedPreserved": true,
+    "p5GuardRequired": false,
+    "p6GuardRequired": false,
+    "p7GuardRequired": false
+  },
+  "p5": {
+    "templateId": "P5_DELIVERED_THANKYOU_NEUTRAL",
+    "source": "public/media/templates/EC/OBRIGADO_PAGOU.ogg",
+    "mediaSha256": "bd6ce39a51cb67be469aa6aeb6c0ca94c2f53e4ab27dba46dabd2efc93a5adfd",
+    "mediaBytes": 44849,
+    "semanticGate": "PASS",
+    "mentionsPayment": false,
+    "assertsPaymentReceived": false,
+    "onlyThanksCustomer": true,
+    "mentionsBonus": false,
+    "mentionsProductUsage": false
+  },
+  "sequence": {
+    "order": [
+      "SERVIENTREGA_CANONICAL_DELIVERED",
+      "PANEL_DELIVERED_AND_CANCEL_PENDING_A10_A19",
+      "P5_DELIVERED_THANK_YOU_ACCEPTED_OR_RECOVERED",
+      "P6_BONUS_ACCESS_ACCEPTED_OR_RECOVERED",
+      "P7_PRODUCT_USAGE"
+    ],
+    "p5RequiresDelivered": true,
+    "p6RequiresDeliveredAndP5": true,
+    "p7RequiresDeliveredAndP6": true,
+    "p7HasIndependentLedgerAndMarker": true,
+    "providerPacingRequired": true,
+    "burstAllowed": false
+  },
+  "reminders": {
+    "a07Status": "READY_FOR_PICKUP",
+    "a10AfterAcceptedHours": 72,
+    "a19AfterAcceptedHours": 120,
+    "cancelPendingOnDelivered": true,
+    "staleQueueAtomicRevalidation": true
+  },
+  "target": {
+    "phone": "+593980548369",
+    "orderId": "EC-ADMIN-3484",
+    "dropiId": "6924784",
+    "guide": "189629714",
+    "reconciliationMode": "V140_READ_ONLY_EXACTLY_ONE_EXPECTED_SHIPMENT"
+  },
+  "audit": {
+    "readOnly": true,
+    "readyAndDeliveredCatchupsSeparated": true,
+    "listHashesRequired": true,
+    "divergenceClasses": [
+      "EXPECTED_HISTORICAL",
+      "PROVIDER_NEWER_THAN_LOCAL",
+      "MISSING_SHIPMENT",
+      "STALE_PROJECTION",
+      "AMBIGUOUS",
+      "REAL_OPERATIONAL_DEFECT",
+      "OTHER"
+    ]
+  },
+  "fileClassification": {
+    "baseline": "4d848d749255bfd0a7bdc47ac52390b74311966b",
+    "matrix": "docs/V147_R3_FILE_CLASSIFICATION_20260910.md",
+    "filesKeptFromPaymentR3": 18,
+    "filesRevertedFromPaymentR3": 5,
+    "paymentOnlyComponentsRemoved": [
+      "shipmentCanonicalPaymentEvidence",
+      "P6_PAYMENT_GUARD",
+      "P7_PAYMENT_GUARD",
+      "PAYMENT_YES_NO_UNKNOWN_MATRIX",
+      "PAYMENT_READONLY_AUDIT"
+    ]
+  },
+  "overrides": [
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/V147_R3_DELIVERED_SINGLE_GATE_20260910.md",
+    "docs/V147_R3_FILE_CLASSIFICATION_20260910.md",
+    "ops/post-sale-v116",
+    "package.json",
+    "public/media/templates/EC/OBRIGADO_PAGOU.ogg",
+    "scripts/audit-post-sale-v147-readonly.mjs",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs",
+    "scripts/guard-integration-health-v145.mjs",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs",
+    "scripts/guard-post-sale-safety-v66.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r2-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs",
+    "src/models/Shipment.js",
+    "src/routes/shipments.js",
+    "src/services/canonicalLogisticsStatusV147Service.js",
+    "src/services/postSaleCatchupV147Service.js",
+    "src/services/postSaleNextEligibleMonitorV112Service.js",
+    "src/services/postSaleNotificationDecisionService.js",
+    "src/services/postSaleSafetyV66Service.js",
+    "src/services/postSaleTemplateCatalogV147Service.js",
+    "src/services/shipmentLifecycleStatusService.js",
+    "src/services/shipmentMessageService.js",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/pickup-bonus-delivery-v60.test.mjs",
+    "tests/post-sale-canonical-restoration-v147.test.mjs",
+    "tests/post-sale-delivered-single-gate-v147-r3.test.mjs",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "2bee740acb594b90ff912dedcacf60bceb909a5267bb5092992853d682c2787e",
+    "docs/V147_R3_DELIVERED_SINGLE_GATE_20260910.md": "25f9ccefad387480aa5e5e5ff75066e18ac9438c96b250ee481ef75198ca76d9",
+    "docs/V147_R3_FILE_CLASSIFICATION_20260910.md": "481dca5b035d3c3bbbda20aafc729b4d10464939deed3728a8f8cf0b60345ff5",
+    "ops/post-sale-v116": "a436b7b0943031dbcca01613f70daec0274d678fb3c97bf6b4a202a81c6c35ac",
+    "package.json": "0a57ff72255299a81e3d079aa481de5cc46df9541d6be2d9b653634d07835d34",
+    "public/media/templates/EC/OBRIGADO_PAGOU.ogg": "bd6ce39a51cb67be469aa6aeb6c0ca94c2f53e4ab27dba46dabd2efc93a5adfd",
+    "scripts/audit-post-sale-v147-readonly.mjs": "b2c46e26f2439f960f45cfde9bbafc49ee666e505892c4afe89edd592c9f3bc6",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs": "c69559078260dd6e10254a297b93c9d593942450348259df35aa0a6c463b3301",
+    "scripts/guard-integration-health-v145.mjs": "f8ac8067cfe4d56a00ebdccc36e7c6cdaa0b2b1859e45f97d2277680bdd87dd5",
+    "scripts/guard-pickup-bonus-delivery-v60.mjs": "44d32c1c496ee26825f3b8e052a025575792fe2487d12c2c6965d844175673d2",
+    "scripts/guard-post-sale-safety-v66.mjs": "06b4041c9ccb3aebed7a552a693456d9fc0e8fcd370ddaf246cc6f282d268cd8",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "0d66beab47e1c1a3bfe372ed2cbd7b133b141410dae5927d71fb12ac895284c1",
+    "scripts/lib/ec-runtime-successor-v147-r2-context.mjs": "2e1339b5229ffcff28071b3852ca32daff3806d63b19447a54bff85e589106bb",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "0bb159cc377c335da1308b7298f9c8614f95943870e3df97cf466d9efb98acb3",
+    "src/models/Shipment.js": "26fefc1569111404448c795cc9af2c8faafd2744a83af654068bff076532e819",
+    "src/routes/shipments.js": "087605be97b48e0f70bb8eace2213feeac7605878b7c746b1bc1b1dc888a0378",
+    "src/services/canonicalLogisticsStatusV147Service.js": "b10a6da82d1265e675ff3299b2966462a818a2d12e4ae66e9c9109e4b57fe43c",
+    "src/services/postSaleCatchupV147Service.js": "fcc9ee10f91d18713a1700d9c0b6a8a7e56498f2bbf2fd00236bf2a4a96623d1",
+    "src/services/postSaleNextEligibleMonitorV112Service.js": "6fcb7b1c03650faa3fa6ea29d19b3c6cf3a2944032bccebf93f0063aa9b9d8a9",
+    "src/services/postSaleNotificationDecisionService.js": "06e2595e445eea89ad127bfe7119bc68a005b001058d7732482d5558fc2556cf",
+    "src/services/postSaleSafetyV66Service.js": "8c1a7adc59816e1636c8adf82fd3e5de6d93e70cde7958cf5c26a6044d81b9eb",
+    "src/services/postSaleTemplateCatalogV147Service.js": "af8675ef85f6a17a7675335fc39465048fc714d1b326c6294be27f73b7838ade",
+    "src/services/shipmentLifecycleStatusService.js": "07db7f7930171998738f60c7e1da05661d2099975051dbd4e76e70dcea6b2ba4",
+    "src/services/shipmentMessageService.js": "688cd02243ba9a49e6ede3d2685a13c3ee46217a980a4e1e1ba3c31fad252aa2",
+    "src/services/shipmentStatusDispatcherService.js": "7b5456f4363206de7e16addbc106b587a41ccfe9aa2a7a14f0974fc9b02591be",
+    "tests/pickup-bonus-delivery-v60.test.mjs": "f9d46a787eb5527d5e7ab33cc47a1af766f8d592cf6c5157a6a93328c64c1375",
+    "tests/post-sale-canonical-restoration-v147.test.mjs": "294ed9087fcc1edca20a654d4202a8111b7449f0b55c60cb4c37f855fdd9ddaa",
+    "tests/post-sale-delivered-single-gate-v147-r3.test.mjs": "1fa5d90b19f784ae876de4154085c6f42d4cd5730f6f3c584bec0a7b5446f7d9",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs": "c8ac6efb89342f1c00fccd92c8666f19cdd704d323a18b54679e4a2aac88994a"
+  },
+  "policy": {
+    "productionChanged": false,
+    "activationAllowed": false,
+    "publicationAllowed": false,
+    "currentSwitchAllowed": false,
+    "pm2RestartAllowed": false,
+    "realMessagesSent": 0,
+    "transport": "SINK",
+    "historicalBackfillAllowed": false,
+    "automaticReplayAllowed": false,
+    "operatorApprovalRequired": true
+  }
+}

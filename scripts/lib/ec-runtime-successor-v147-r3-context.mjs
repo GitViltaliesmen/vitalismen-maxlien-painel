@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 
-const manifestUrl = new URL('../../docs/freeze/ec-payment-bonus-guard-v147-r3-20260910.json', import.meta.url);
+const manifestUrl = new URL('../../docs/freeze/ec-delivered-single-gate-v147-r3-20260910.json', import.meta.url);
 const manifestText = fs.readFileSync(manifestUrl, 'utf8');
 const manifest = JSON.parse(manifestText);
 const overrides = Array.isArray(manifest.overrides) ? manifest.overrides : [];

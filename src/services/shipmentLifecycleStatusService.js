@@ -224,6 +224,10 @@ const applyShipmentOutcome = (shipment, status, now) => {
         shipment.outcomes.prepaidOnly = false;
         shipment.automation.deliveredConfirmedAt = shipment.automation.deliveredConfirmedAt || now;
         shipment.automation.prepaidOnlyNotifiedAt = null;
+        shipment.automation.pickupReminderDispatchLockedUntil = null;
+        shipment.automation.notificationLocks = shipment.automation.notificationLocks || {};
+        shipment.automation.notificationLocks.PICKUP_REMINDER_DAY3 = null;
+        shipment.automation.notificationLocks.PICKUP_REMINDER_DAY5 = null;
         shipment.review.manualOnly = false;
         shipment.review.reviewReason = '';
         shipment.review.reviewStatus = 'delivered_confirmed_by_carrier';

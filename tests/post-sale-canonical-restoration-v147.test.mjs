@@ -210,8 +210,8 @@ test('V147 catálogo mantém A07/A10/A19 e uso por produto sem cruzamento', () =
 
 test('V147 conserva utilitário de pagamento sem usá-lo como gatilho de P5', () => {
     assert.equal(shipmentPaymentConfirmed({ outcomes: { delivered: true } }), false);
-    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid' } } }), false);
-    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid', confirmedAt: '2026-09-10T03:00:00.000Z' } } }), false);
+    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid' } } }), true);
+    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid', confirmedAt: '2026-09-10T03:00:00.000Z' } } }), true);
     assert.equal(shipmentPaymentConfirmed({
         events: [{
             kind: 'dropi_payment_claim_skipped_paid',
@@ -233,8 +233,11 @@ test('V147 P5 exige entrega canônica e possui lock concorrente at-most-once', a
         _id: 'shipment-p5',
         orderId: 'order-p5',
         country: 'EC',
-        client: { phone: '5515998038637' },
-        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000147' },
+        client: { phone: '5515998038637', customerId: 'customer-p5' },
+        logistics: {
+            status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000147',
+            canonicalEvidence: { provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'Entregado' }
+        },
         automation: { notificationLocks: {}, postSaleSafetyLedger: {} },
         outcomes: { delivered: true, pickedUp: true },
         review: {},
@@ -283,8 +286,11 @@ test('V147 P5 envia OBRIGADO_PAGOU uma vez ao sink com chave própria', async ()
         _id: 'shipment-p5-sink',
         orderId: 'order-p5-sink',
         country: 'EC',
-        client: { phone: '5515998038637' },
-        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000148' },
+        client: { phone: '5515998038637', customerId: 'customer-p5-sink' },
+        logistics: {
+            status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000148',
+            canonicalEvidence: { provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'Entregado' }
+        },
         automation: {},
         outcomes: { delivered: true, pickedUp: true }
     };
@@ -338,8 +344,11 @@ test('V147 P5 permanece bloqueado após restart por ledger ou marcador persistid
         _id: 'shipment-p5-restart',
         orderId: 'order-p5-restart',
         country: 'EC',
-        client: { phone: '5515998038637' },
-        logistics: { status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000149' },
+        client: { phone: '5515998038637', customerId: 'customer-p5-restart' },
+        logistics: {
+            status: 'ENTREGADO', canonicalStatus: 'DELIVERED', trackingNumber: '189000149',
+            canonicalEvidence: { provider: 'servientrega', source: 'carrier_tracking', rawStatus: 'Entregado' }
+        },
         automation: {
             notificationLocks: {},
             postSaleSafetyLedger: { DELIVERED_THANK_YOU: { state: 'SENT' } }

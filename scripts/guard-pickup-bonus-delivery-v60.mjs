@@ -26,10 +26,12 @@ assert.match(shipment, /shipment_status:pickup_bonus:\$\{shipmentIdentity\}/);
 assert.match(shipment, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
 assert.match(shipment, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);
 assert.doesNotMatch(
-    shipment.slice(shipment.indexOf('export const notifyPickupBonus'), shipment.indexOf('const calculateTreatmentDates')),
+    shipment.slice(shipment.indexOf('export const notifyPickupBonus'), shipment.indexOf('export const notifyProductUsage')),
     /bypassDedupe:\s*true|force:\s*true/
 );
-assert.match(dispatcher, /if \(status === 'ENTREGADO'\) return 'delivered_bonus'/);
+assert.match(dispatcher, /if \(servientregaPostSaleCompletionEligibleV147\(shipment\)\) return 'delivered_bonus'/);
+assert.match(dispatcher, /'logistics\.canonicalEvidence\.provider': \{ \$in: \['servientrega', 'SERVIENTREGA'\] \}/);
+assert.match(dispatcher, /'logistics\.canonicalEvidence\.source': 'carrier_tracking'/);
 assert.match(packageJson.scripts.test, /guard:pickup-bonus-v60/);
 assert.match(packageJson.scripts['senior:check'], /pickup-bonus-delivery-v60\.test\.mjs/);
 assert.match(packageJson.scripts['deploy:v60'], /assert-pickup-bonus-delivery-activation-approved-v60\.mjs/);

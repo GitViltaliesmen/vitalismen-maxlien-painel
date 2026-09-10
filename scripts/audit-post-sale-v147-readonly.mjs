@@ -6,29 +6,32 @@ import Order from '../src/models/Order.js';
 import Shipment from '../src/models/Shipment.js';
 import { listOnlineAdminLeadsByWindow } from '../src/services/adminPanelStatusService.js';
 import { trackServientregaGuide } from '../src/services/carrierTrackingService.js';
-import { canonicalLogisticsProjectionForShipmentV147 } from '../src/services/canonicalLogisticsStatusV147Service.js';
+import {
+    canonicalLogisticsProjectionForShipmentV147,
+    canonicalLogisticsProjectionV147
+} from '../src/services/canonicalLogisticsStatusV147Service.js';
+import { processEcPhoneServientregaReconciliationV140 } from '../src/services/ecPhoneServientregaReconciliationV140Service.js';
+import {
+    V147_STATUS_DIVERGENCE_CLASSES,
+    buildDeliveredCatchupCandidateV147,
+    buildReadyCatchupCandidateV147,
+    classifyStatusDivergenceV147,
+    listHashV147
+} from '../src/services/postSaleCatchupV147Service.js';
 
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGODB_URL || '';
 if (!mongoUri) throw new Error('MONGODB_URI/MONGO_URI ausente; auditoria V147 interrompida.');
 
+const TARGET = Object.freeze({
+    phone: '+593980548369',
+    orderId: 'EC-ADMIN-3484',
+    dropiId: '6924784',
+    guide: '189629714'
+});
 const digits = (value = '') => String(value || '').replace(/\D/g, '');
 const clean = (value = '') => String(value ?? '').trim();
 const objectId = (value = '') => clean(value?._id || value);
-const terminalLocal = (shipment = {}) => (
-    shipment?.outcomes?.delivered === true
-    || shipment?.outcomes?.returned === true
-    || ['ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA', 'DELIVERED', 'RETURNED']
-        .includes(clean(shipment?.logistics?.canonicalStatus || shipment?.logistics?.status).toUpperCase())
-);
-const apparentPickup = (shipment = {}) => /READY_FOR_PICKUP|AGENCIA|RETIRO|RETIRADA|INGRESANDO/i.test([
-    shipment?.logistics?.canonicalStatus,
-    shipment?.logistics?.status,
-    shipment?.raw?.latestDroppiPayload?.status,
-    shipment?.raw?.latestDroppiPayload?.dropiStatus,
-    shipment?.raw?.carrierTracking?.lastResult?.statusAtual,
-    shipment?.raw?.carrierTracking?.lastResult?.ultimoMovimiento
-].filter(Boolean).join(' '));
-const canonicalJson = (value) => JSON.stringify(value, Object.keys(value).sort());
+const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const mapLimit = async (items, limit, worker) => {
     const output = new Array(items.length);
     let next = 0;
@@ -41,129 +44,244 @@ const mapLimit = async (items, limit, worker) => {
     await Promise.all(runners);
     return output;
 };
+const liveProjection = (live = {}) => canonicalLogisticsProjectionV147({
+    provider: live.carrier || 'servientrega',
+    providerCode: live.providerStatusCode,
+    providerStatus: live.statusAtual,
+    providerSubstatus: live.providerSubstatus || live.ultimoMovimiento
+});
+const productFor = (shipment = {}, order = {}) => clean(
+    order?.tracking?.productName
+    || order?.tracking?.product
+    || shipment?.productName
+    || shipment?.raw?.productName
+    || shipment?.raw?.latestDroppiPayload?.productName
+);
+const dropiFor = (shipment = {}, order = {}) => digits(
+    order?.dropiOrderId
+    || shipment?.raw?.manualDropiOrderId
+    || shipment?.raw?.latestDroppiPayload?.dropiOrderId
+    || shipment?.raw?.droppiOrder?.id
+);
 
-await mongoose.connect(mongoUri, { autoIndex: false, serverSelectionTimeoutMS: 10_000 });
+await mongoose.connect(mongoUri, { autoIndex: false, serverSelectionTimeoutMS: 12_000 });
 try {
-    const allWithGuide = await Shipment.find({
-        country: 'EC',
-        'logistics.trackingNumber': { $exists: true, $ne: '' }
-    }).sort({ updatedAt: -1 }).lean();
-    const selected = allWithGuide.filter((shipment) => !terminalLocal(shipment) || apparentPickup(shipment));
-    const orderIds = [...new Set(selected.map((shipment) => clean(shipment.orderId)).filter(Boolean))];
-    const phoneTails = [...new Set(selected.map((shipment) => digits(shipment?.client?.phone).slice(-9)).filter(Boolean))];
-    const [orders, states] = await Promise.all([
-        Order.find({ country: 'EC', orderId: { $in: orderIds } }).lean(),
-        ContactState.find({ countryCode: 'EC', $or: phoneTails.flatMap((tail) => ([
-            { phoneDigits: { $regex: `${tail}$` } },
-            { chatId: { $regex: tail } }
-        ])) }).lean()
+    const generatedAt = new Date();
+    const [shipments, states, admin] = await Promise.all([
+        Shipment.find({ country: 'EC', 'logistics.trackingNumber': { $exists: true, $ne: '' } }).sort({ updatedAt: -1 }).lean(),
+        ContactState.find({ countryCode: 'EC' }).sort({ updatedAt: -1 }).lean(),
+        Promise.resolve(listOnlineAdminLeadsByWindow({ country: 'EC', limit: 5000 }))
     ]);
+    const orderIds = [...new Set(shipments.map((shipment) => clean(shipment.orderId)).filter(Boolean))];
+    const orders = await Order.find({ country: 'EC', orderId: { $in: orderIds } }).lean();
     const orderById = new Map(orders.map((order) => [clean(order.orderId), order]));
-    const admin = listOnlineAdminLeadsByWindow({ country: 'EC', limit: 5000 });
     const leads = admin?.ok ? admin.leads : [];
 
-    const records = await mapLimit(selected, 3, async (shipment) => {
+    const records = await mapLimit(shipments, 3, async (shipment) => {
         const guide = digits(shipment?.logistics?.trackingNumber);
-        const live = await trackServientregaGuide(guide).catch((error) => ({ ok: false, reason: error.message }));
-        const projection = canonicalLogisticsProjectionForShipmentV147({
-            ...shipment,
-            logistics: {
-                ...shipment.logistics,
-                canonicalStatus: live.ok ? live.canonicalStatus : 'UNKNOWN',
-                canonicalEvidence: live.ok ? {
-                    provider: live.carrier,
-                    rawCode: live.providerStatusCode,
-                    rawStatus: live.statusAtual,
-                    rawSubstatus: live.providerSubstatus || live.ultimoMovimiento
-                } : {}
-            }
-        });
-        const order = orderById.get(clean(shipment.orderId));
+        const live = await trackServientregaGuide(guide).catch((error) => ({ ok: false, reason: error.message || String(error) }));
+        const projection = live.ok ? liveProjection(live) : canonicalLogisticsProjectionForShipmentV147(shipment);
+        const stored = canonicalLogisticsProjectionForShipmentV147(shipment);
+        const order = orderById.get(clean(shipment.orderId)) || {};
         const phone = digits(order?.customer?.phone || shipment?.client?.phone);
         const tail = phone.slice(-9);
-        const state = states.find((item) => digits(item?.phoneDigits || item?.metadata?.customerDraft?.phone).endsWith(tail));
-        const lead = leads.find((item) => digits(item?.phone || item?.phone_e164).endsWith(tail));
-        const safety = shipment?.automation?.postSaleSafetyLedger || {};
-        const sentStages = Object.entries(safety).filter(([, entry]) => ['SENT', 'RECOVERED_MANUAL', 'RECOVERED_STRUCTURED'].includes(clean(entry?.state).toUpperCase()));
-        const latestLedger = [...(shipment.notificationLedger || [])].filter((entry) => entry.sent_at).sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at))[0];
-        const lastStage = sentStages.sort((a, b) => new Date(b[1]?.acceptedAt || b[1]?.sentAt || 0) - new Date(a[1]?.acceptedAt || a[1]?.sentAt || 0))[0];
-        const a07AlreadySent = Boolean(
-            shipment?.automation?.readyForPickupNotifiedAt
-            || safety?.READY_FOR_PICKUP?.state === 'SENT'
-            || (shipment.events || []).some((event) => ['ready_for_pickup_notified', 'ready_for_pickup_recovered_existing_message'].includes(event?.kind))
-            || (shipment.notificationLedger || []).some((entry) => entry?.notification_type === 'ready_for_pickup' && (entry.sent_at || entry.provider_message_id))
-        );
-        const canonicalCustomerId = objectId(shipment?.raw?.historicalExternalReconciliation?.customerId || state?._id);
-        const dropiId = digits(order?.dropiOrderId || shipment?.raw?.manualDropiOrderId || shipment?.raw?.latestDroppiPayload?.dropiOrderId || shipment?.raw?.droppiOrder?.id);
-        const humanManual = state?.human?.mode === 'manual';
-        const identityComplete = Boolean(canonicalCustomerId && order?.orderId && shipment?._id && guide);
-        const eligible = live.ok && projection.canPickup && !projection.terminal && !a07AlreadySent && !humanManual && identityComplete;
-        const exclusionReason = eligible ? '' : [
-            !live.ok ? 'servientrega_live_failed' : '',
-            live.ok && !projection.canPickup ? `can_pickup_no:${projection.canonicalStatus}` : '',
-            projection.terminal ? `terminal:${projection.canonicalStatus}` : '',
-            a07AlreadySent ? 'a07_already_sent_or_recovered' : '',
-            humanManual ? 'human_takeover_manual' : '',
-            !identityComplete ? 'canonical_identity_incomplete' : ''
-        ].filter(Boolean).join(',');
-        const storedCanonical = canonicalLogisticsProjectionForShipmentV147(shipment).canonicalStatus;
-        const panelCanPickup = projection.canPickup;
+        const state = tail.length >= 8
+            ? states.find((item) => digits(item?.phoneDigits || item?.metadata?.customerDraft?.phone).endsWith(tail))
+            : null;
+        const lead = tail.length >= 8
+            ? leads.find((item) => digits(item?.phone || item?.phone_e164).endsWith(tail))
+            : null;
+        const customerId = objectId(shipment?.raw?.historicalExternalReconciliation?.customerId || shipment?.raw?.customerId || shipment?.client?.customerId);
+        const projectionPanelStatus = projection.canonicalStatus === 'DELIVERED'
+            ? 'entregue'
+            : '';
+        const panelStatus = clean(lead?.status || state?.metadata?.customerDraft?.status).toLowerCase();
+        const panelDivergent = Boolean(projectionPanelStatus && panelStatus !== projectionPanelStatus);
+        const historical = new Date(shipment.updatedAt || 0).getTime() < generatedAt.getTime() - (120 * 24 * 60 * 60 * 1000);
+        const statusDivergent = live.ok === true && stored.canonicalStatus !== projection.canonicalStatus;
+        const divergenceClass = statusDivergent || panelDivergent
+            ? classifyStatusDivergenceV147({
+                shipmentExists: true,
+                liveOk: live.ok === true,
+                liveStatus: projection.canonicalStatus,
+                storedStatus: stored.canonicalStatus,
+                panelDivergent,
+                historical
+            })
+            : '';
+        const liveShipment = {
+            ...shipment,
+            productName: productFor(shipment, order),
+            client: { ...(shipment.client || {}), customerId },
+            raw: {
+                ...(shipment.raw || {}),
+                customerId,
+                manualDropiOrderId: dropiFor(shipment, order) || shipment?.raw?.manualDropiOrderId
+            },
+            logistics: {
+                ...(shipment.logistics || {}),
+                canonicalStatus: projection.canonicalStatus,
+                canonicalEvidence: live.ok ? {
+                    provider: live.carrier || 'servientrega',
+                    source: 'carrier_tracking',
+                    rawCode: live.providerStatusCode || '',
+                    rawStatus: live.statusAtual || '',
+                    rawSubstatus: live.providerSubstatus || live.ultimoMovimiento || '',
+                    observedAt: generatedAt
+                } : shipment?.logistics?.canonicalEvidence
+            }
+        };
+        const readyCandidate = buildReadyCatchupCandidateV147({
+            shipment: liveShipment,
+            live: { ok: live.ok === true, ...projection },
+            customerId,
+            humanManual: state?.human?.mode === 'manual'
+        });
+        const deliveredCandidate = buildDeliveredCatchupCandidateV147({
+            shipment: liveShipment,
+            product: productFor(shipment, order)
+        });
         return {
-            orderId: clean(order?.orderId || shipment.orderId),
-            dropiId,
+            orderId: clean(shipment.orderId),
             shipmentId: objectId(shipment._id),
+            dropiId: dropiFor(shipment, order),
             guide,
-            customerId: canonicalCustomerId,
-            servientregaHttp: live.ok ? 200 : 0,
+            customerId,
+            servientregaOk: live.ok === true,
             servientregaRaw: clean(live.statusAtual),
-            servientregaCode: clean(live.providerStatusCode),
             servientregaSubstatus: clean(live.providerSubstatus || live.ultimoMovimiento),
-            canonicalStatus: projection.canonicalStatus,
+            storedCanonicalStatus: stored.canonicalStatus,
+            liveCanonicalStatus: projection.canonicalStatus,
             canPickup: projection.canPickup,
             terminal: projection.terminal,
-            panelStatus: clean(lead?.status || state?.metadata?.customerDraft?.status),
-            panelLabel: projection.panelLabel,
-            panelCanPickup,
-            lastPostSaleEvent: clean(lastStage?.[0] || latestLedger?.notification_type),
-            lastTemplate: clean(lastStage?.[1]?.variant || latestLedger?.template_version),
-            lastProviderMessageId: clean(lastStage?.[1]?.providerMessageId || latestLedger?.provider_message_id),
-            a07AlreadySent,
-            catchupEligible: eligible,
-            exclusionReason,
-            statusDivergent: live.ok && storedCanonical !== projection.canonicalStatus,
-            panelDivergent: projection.canPickup !== Boolean(shipment?.logistics?.pickupReadyVerified === true && shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'),
-            nextAction: eligible ? 'CATCHUP_A07_AFTER_APPROVAL_AND_LIVE_REVALIDATION' : (projection.reviewRequired ? 'MANUAL_REVIEW' : 'WAIT_NEXT_LIVE_CHANGE')
+            panelStatus,
+            panelExpected: projectionPanelStatus,
+            statusDivergent,
+            panelDivergent,
+            divergenceClass,
+            readyCandidate,
+            deliveredCandidate
         };
     });
-    const catchup = records.filter((record) => record.catchupEligible).map((record) => ({
-        orderId: record.orderId,
-        dropiId: record.dropiId,
-        shipmentId: record.shipmentId,
-        guide: record.guide,
-        customerId: record.customerId,
-        liveStatus: record.canonicalStatus,
-        liveCode: record.servientregaCode,
-        canPickup: record.canPickup,
-        lastTemplate: record.lastTemplate,
-        a07AlreadySent: record.a07AlreadySent,
-        catchupEligible: true,
-        exclusionReason: ''
-    })).sort((a, b) => a.orderId.localeCompare(b.orderId));
-    const catchupListHash = crypto.createHash('sha256').update(JSON.stringify(catchup)).digest('hex');
+
+    const targetShipments = shipments.filter((shipment) => (
+        clean(shipment.orderId) === TARGET.orderId
+        || digits(shipment?.logistics?.trackingNumber) === TARGET.guide
+        || dropiFor(shipment) === TARGET.dropiId
+    ));
+    const targetLive = await trackServientregaGuide(TARGET.guide).catch((error) => ({ ok: false, reason: error.message || String(error) }));
+    const targetProjection = targetLive.ok ? liveProjection(targetLive) : canonicalLogisticsProjectionV147({});
+    const targetReconciliation = await processEcPhoneServientregaReconciliationV140({
+        dryRun: true,
+        limit: 20,
+        onlyPhone: TARGET.phone
+    }).catch((error) => ({ ok: false, readOnly: true, writes: 0, messagesSent: 0, reason: error.message || String(error), results: [] }));
+    const targetPlan = (targetReconciliation.results || []).find((item) => (
+        clean(item.orderId || item.expected?.orderId) === TARGET.orderId
+        && digits(item.dropiOrderId || item.expected?.dropiOrderId) === TARGET.dropiId
+        && digits(item.guide || item.expected?.guide) === TARGET.guide
+    ));
+    const targetRecord = records.find((record) => (
+        record.orderId === TARGET.orderId
+        || record.guide === TARGET.guide
+        || record.dropiId === TARGET.dropiId
+    ));
+    const expectedShipmentCount = targetShipments.length || (targetPlan?.expected ? 1 : 0);
+    const duplicateShipments = Math.max(0, targetShipments.length - 1);
+    const targetReconciliationPass = Boolean(
+        targetReconciliation.ok
+        && targetReconciliation.readOnly === true
+        && Number(targetReconciliation.writes || 0) === 0
+        && Number(targetReconciliation.messagesSent || 0) === 0
+        && targetPlan
+        && !['AMBIGUOUS', 'ERROR'].includes(clean(targetPlan.classification).toUpperCase())
+        && clean(targetPlan.orderId) === TARGET.orderId
+        && digits(targetPlan.dropiOrderId) === TARGET.dropiId
+        && digits(targetPlan.guide) === TARGET.guide
+        && clean(targetPlan.customerId)
+        && clean(targetPlan.leadId)
+        && expectedShipmentCount === 1
+        && duplicateShipments === 0
+    );
+
+    const missingTargetDivergence = targetShipments.length === 0 ? [{
+        orderId: TARGET.orderId,
+        guide: TARGET.guide,
+        class: classifyStatusDivergenceV147({ shipmentExists: false }),
+        reason: 'canonical_shipment_missing_reconcilable_by_v140_readonly_plan'
+    }] : [];
+    const divergenceRecords = [
+        ...records.filter((record) => record.statusDivergent || record.panelDivergent).map((record) => ({
+            orderId: record.orderId,
+            shipmentId: record.shipmentId,
+            guide: record.guide,
+            storedCanonicalStatus: record.storedCanonicalStatus,
+            liveCanonicalStatus: record.liveCanonicalStatus,
+            panelDivergent: record.panelDivergent,
+            class: record.divergenceClass
+        })),
+        ...missingTargetDivergence
+    ];
+    const divergenceCounts = Object.fromEntries(V147_STATUS_DIVERGENCE_CLASSES.map((name) => [name, 0]));
+    for (const item of divergenceRecords) {
+        if (Object.hasOwn(divergenceCounts, item.class)) divergenceCounts[item.class] += 1;
+    }
+    const unclassified = divergenceRecords.filter((item) => !V147_STATUS_DIVERGENCE_CLASSES.includes(item.class));
+    const readyCatchup = records.map((record) => record.readyCandidate)
+        .filter((item) => item.catchupEligible)
+        .sort((a, b) => a.orderId.localeCompare(b.orderId));
+    const deliveredCatchup = records
+        .filter((record) => record.liveCanonicalStatus === 'DELIVERED')
+        .map((record) => record.deliveredCandidate)
+        .filter((item) => item.p5Sent === false || item.p6Sent === false || item.p7Sent === false)
+        .sort((a, b) => a.orderId.localeCompare(b.orderId));
+
     const report = {
-        generatedAt: new Date().toISOString(),
+        audit: 'V147_R3_DELIVERED_SINGLE_GATE_READONLY',
+        generatedAt: generatedAt.toISOString(),
         readOnly: true,
+        transport: 'SINK',
+        writes: 0,
         messagesSent: 0,
         shipmentsScanned: records.length,
-        nonTerminalShipments: records.filter((record) => !record.terminal).length,
-        readyForPickupCount: records.filter((record) => record.canPickup && !record.terminal).length,
-        statusDivergences: records.filter((record) => record.statusDivergent).length,
-        panelDivergences: records.filter((record) => record.panelDivergent).length,
-        catchupCandidatesCount: catchup.length,
-        catchupListHash,
-        catchup,
-        records
+        statusDivergencesTotal: divergenceRecords.length,
+        divergenceCounts,
+        unclassifiedCurrentOperationalDivergences: unclassified.length,
+        unfixedCurrentOperationalDefects: divergenceCounts.REAL_OPERATIONAL_DEFECT,
+        readyCatchupCandidatesCount: readyCatchup.length,
+        readyCatchupCandidates: readyCatchup,
+        readyCatchupListHash: listHashV147(readyCatchup),
+        deliveredCatchupCandidatesCount: deliveredCatchup.length,
+        deliveredCatchupCandidates: deliveredCatchup,
+        deliveredCatchupListHash: listHashV147(deliveredCatchup),
+        target: {
+            ...TARGET,
+            liveOk: targetLive.ok === true,
+            liveStatus: [clean(targetLive.statusAtual), clean(targetLive.providerSubstatus || targetLive.ultimoMovimiento)].filter(Boolean).join('|'),
+            canonicalStatus: targetProjection.canonicalStatus,
+            canPickup: targetProjection.canPickup,
+            a07SendNow: targetRecord?.readyCandidate?.catchupEligible === true,
+            p5SendNow: targetRecord?.deliveredCandidate?.catchupEligible === true
+                && targetRecord.deliveredCandidate.p5Sent === false,
+            p6SendNow: targetRecord?.deliveredCandidate?.catchupEligible === true
+                && targetRecord.deliveredCandidate.p5Sent === true
+                && targetRecord.deliveredCandidate.p6Sent === false,
+            p7SendNow: targetRecord?.deliveredCandidate?.catchupEligible === true
+                && targetRecord.deliveredCandidate.p6Sent === true
+                && targetRecord.deliveredCandidate.p7Sent === false,
+            canonicalShipmentReconciliation: targetReconciliationPass ? 'PASS' : 'FAIL',
+            shipmentCountCurrent: targetShipments.length,
+            shipmentCountExpectedAfterReconciliation: expectedShipmentCount,
+            duplicateShipments,
+            reconciliationDryRun: targetReconciliation.readOnly === true,
+            reconciliationWrites: Number(targetReconciliation.writes || 0),
+            reconciliationMessagesSent: Number(targetReconciliation.messagesSent || 0),
+            reconciliationPlan: targetPlan || null
+        },
+        records,
+        reportSha256: ''
     };
+    report.reportSha256 = sha256(JSON.stringify(report));
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 } finally {
     await mongoose.disconnect();

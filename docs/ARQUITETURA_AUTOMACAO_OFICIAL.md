@@ -1117,22 +1117,24 @@ chave genérica de outra mensagem logística enviada no mesmo dia. O
 impedindo repetição do mesmo bônus. Áudio de agradecimento ou modo de uso já
 entregue permanece bloqueado e não é repetido na recuperação.
 
-Os gatilhos oficiais permanecem confirmação textual, comprovante elegível,
-status logístico `ENTREGADO` e confirmação administrativa autenticada. Não há
-scheduler paralelo nem replay histórico em massa. Produto, preço, pedido,
-Dropi, Meta/CAPI, pixel, número, transporte, funil e cadência permanecem
-inalterados.
+Os gatilhos históricos da V60 foram sucedidos pela regra final V147-R3 para P5,
+P6 e P7. Confirmação textual, comprovante de retirada, `outcomes.pickedUp`,
+status legado `ENTREGADO` e confirmação administrativa agora persistem
+evidência, mas não concluem essas etapas. Não há scheduler paralelo nem replay
+histórico em massa.
 
-A V147-R3 restringe a liberação comercial posterior sem alterar o P5. Entrega
-ou retirada canônica libera somente o agradecimento P5. O bônus P6 exige também
-prova financeira canônica do provedor. A auditoria V147-R3 não encontrou essa
-prova: `dropi_payment_claim_skipped_paid` deriva de `ENTREGADO`, os campos
-`raw.payment*` não possuem produtor e as rotas de Wallet não estão disponíveis
-para a conta. O mapper permanece `UNKNOWN` e P6/P7 falham fechados. O modo de uso P7 possui
-estágio, ledger, lock e marcador próprios e só se torna elegível depois de P6
-aceito pelo provider, mantendo o áudio canônico de Tex Ultra, Vit Power ou
-Nitrix. P6 e P7 aplicam pacing antes da borda do provider, inclusive na Z-API.
-Pagamento tardio reabre apenas P6/P7; P5 não é repetido.
+A V147-R3 usa uma única fonte de conclusão: evidência do tracking Servientrega
+persistida com `canonicalStatus=DELIVERED`. O gate também exige customerId,
+orderId e shipmentId canônicos. Todos os demais estados bloqueiam P5/P6/P7,
+mesmo se um campo financeiro separado contiver `paid`.
+
+P5 preserva byte a byte o áudio `OBRIGADO_PAGOU.ogg`, já aprovado como
+agradecimento sem afirmação de pagamento. P6 exige o mesmo DELIVERED, P5 aceito,
+elegibilidade e link válido. P7 exige o mesmo DELIVERED, P6 aceito e produto
+canônico. P7 conserva estágio, ledger, lock e marcador próprios e mantém o
+dedupe compartilhado do áudio manual de Tex Ultra. P6 e P7 aplicam pacing antes
+da borda do provider. Ao aplicar DELIVERED, o lifecycle atualiza Shipment,
+Order, ContactState e painel e limpa os locks pendentes de A10/A19.
 
 ## Microcamada V61 de atribuição Meta EC do Protocolo G até o Purchase
 

@@ -135,6 +135,53 @@ export const canonicalLogisticsProjectionForShipmentV147 = (shipment = {}) => {
     });
 };
 
+const canonicalIdentityValue = (value = '') => clean(value?._id || value);
+
+export const canonicalPostSaleIdentityV147 = (shipment = {}) => {
+    const customerId = canonicalIdentityValue(
+        shipment?.raw?.historicalExternalReconciliation?.customerId
+        || shipment?.raw?.customerId
+        || shipment?.client?.customerId
+    );
+    const orderId = clean(shipment?.orderId);
+    const shipmentId = canonicalIdentityValue(shipment?._id);
+    return Object.freeze({
+        customerId,
+        orderId,
+        shipmentId,
+        valid: Boolean(customerId && orderId && shipmentId)
+    });
+};
+
+export const servientregaCanonicalDeliveredV147 = (shipment = {}) => {
+    const evidence = shipment?.logistics?.canonicalEvidence || {};
+    const provider = token(evidence.provider || evidence.carrier || shipment?.logistics?.distributionCompany);
+    const source = token(evidence.source);
+    const hasProviderEvidence = Boolean(clean(
+        evidence.rawCode
+        || evidence.providerStatusCode
+        || evidence.rawStatus
+        || evidence.statusAtual
+        || evidence.rawSubstatus
+        || evidence.ultimoMovimiento
+    ));
+    if (provider !== 'SERVIENTREGA' || source !== 'CARRIER_TRACKING' || !hasProviderEvidence) return false;
+    const evidenceProjection = canonicalLogisticsProjectionV147({
+        provider: evidence.provider || evidence.carrier,
+        providerCode: evidence.rawCode || evidence.providerStatusCode,
+        providerStatus: evidence.rawStatus || evidence.statusAtual,
+        providerSubstatus: evidence.rawSubstatus || evidence.ultimoMovimiento
+    });
+    return token(shipment?.logistics?.canonicalStatus) === 'DELIVERED'
+        && evidenceProjection.canonicalStatus === 'DELIVERED';
+};
+
+export const servientregaPostSaleCompletionEligibleV147 = (shipment = {}) => (
+    servientregaCanonicalDeliveredV147(shipment)
+    && canonicalPostSaleIdentityV147(shipment).valid
+    && shipment?.outcomes?.returned !== true
+);
+
 export const legacyLogisticsStatusForV147 = (canonicalStatus = '') => ({
     GUIDE_CREATED: 'GUIA_GENERADA',
     PICKED_UP_BY_CARRIER: 'EN_RUTA',

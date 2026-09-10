@@ -15,7 +15,6 @@ import {
 } from '../services/droppiEcuadorService.js';
 import {
     notifyReadyForPickup,
-    notifyDeliveredThankYou,
     notifyPickupBonus,
     notifyProductUsage,
     notifyPickupProofRequest,
@@ -23,7 +22,6 @@ import {
     notifyTreatmentRefillReminder,
     processPickupProofSweep,
     notifyShipmentReturned,
-    repurchaseReminderDelayDaysForUnits
 } from '../services/shipmentMessageService.js';
 import Order from '../models/Order.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
@@ -60,7 +58,6 @@ import {
     processGuidePrintDispatch
 } from '../services/guidePrintDispatcherService.js';
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
-import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
 import {
     ECUADOR_PRODUCTS,
@@ -3042,63 +3039,34 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
         const {
             productPhotoUrl = '',
             agencyReceiptPhotoUrl = '',
-            pickedUpAt = new Date().toISOString(),
-            sendBonus = true
+            pickedUpAt = new Date().toISOString()
         } = req.body || {};
 
         const pickedAt = new Date(pickedUpAt);
-        const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
-        const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
-        const treatmentEndsAt = new Date(pickedAt.getTime() + (units * daysPerUnit * 24 * 60 * 60 * 1000));
-        const refillReminderDueAt = new Date(pickedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * 24 * 60 * 60 * 1000));
-
-        shipment.outcomes.pickedUp = true;
-        shipment.outcomes.delivered = true;
-        shipment.outcomes.returned = false;
-        shipment.outcomes.prepaidOnly = false;
-        shipment.logistics.status = 'ENTREGADO';
-        shipment.automation.deliveredConfirmedAt = pickedAt;
-        shipment.automation.prepaidOnlyNotifiedAt = null;
         shipment.proof.productPhotoUrl = productPhotoUrl;
         shipment.proof.agencyReceiptPhotoUrl = agencyReceiptPhotoUrl;
         shipment.proof.pickupProofReceivedAt = new Date();
-        shipment.treatment.treatmentEndsAt = treatmentEndsAt;
-        shipment.treatment.refillReminderDueAt = refillReminderDueAt;
-        shipment.review.manualOnly = false;
-        shipment.review.reviewReason = '';
-        shipment.review.reviewStatus = 'pickup_confirmed';
         shipment.events.push({
-            kind: 'pickup_confirmed',
+            kind: 'pickup_proof_recorded_awaiting_servientrega_delivered',
             at: new Date(),
             payload: {
                 productPhotoUrl,
                 agencyReceiptPhotoUrl,
                 pickedUpAt: pickedAt,
-                customerEligibility: 'released_for_new_order'
+                completionDeferred: true,
+                completionGate: 'servientrega_canonical_delivered'
             }
         });
         shipment.events = shipment.events.slice(-60);
         await shipment.save();
-        const order = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
-        if (order) {
-            order.status = 'delivered';
-            order.shippingStatus = shipment.logistics?.status || 'ENTREGADO';
-            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            await order.save();
-            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_confirmed' });
-        }
-        const thankYouSent = await notifyDeliveredThankYou(shipment);
-        const afterThankYou = await Shipment.findById(shipment._id);
-        const bonusSent = sendBonus === false || !afterThankYou ? false : await notifyPickupBonus(afterThankYou);
-        const afterBonus = await Shipment.findById(shipment._id);
-        const usageSent = sendBonus === false || !afterBonus ? false : await notifyProductUsage(afterBonus);
-        await markSenderWalletDelivered({ phone: shipment.client?.phone });
 
         res.json({
             success: true,
-            thankYouSent,
-            bonusSent,
-            usageSent,
+            thankYouSent: false,
+            bonusSent: false,
+            usageSent: false,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered',
             shipment
         });
     } catch (error) {

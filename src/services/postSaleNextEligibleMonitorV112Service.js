@@ -12,6 +12,7 @@ import {
     POST_SALE_NOTIFICATION_DECISIONS,
     evaluatePostSaleChronology
 } from './postSaleNotificationDecisionService.js';
+import { servientregaPostSaleCompletionEligibleV147 } from './canonicalLogisticsStatusV147Service.js';
 
 export const POST_SALE_NEXT_ELIGIBLE_V112_VERSION = 112;
 export const POST_SALE_NEXT_ELIGIBLE_V112_MANIFEST_PATH = 'docs/freeze/post-sale-next-eligible-monitor-v112-20260903.json';
@@ -182,18 +183,29 @@ export const postSaleNextEligibleCandidateQueryV112 = () => ({
             $and: [
                 {
                     $or: [
-                        { 'logistics.status': 'ENTREGADO' },
-                        { 'outcomes.delivered': true },
-                        { 'outcomes.pickedUp': true }
+                        { 'logistics.canonicalEvidence.rawCode': { $exists: true, $ne: '' } },
+                        { 'logistics.canonicalEvidence.rawStatus': { $exists: true, $ne: '' } },
+                        { 'logistics.canonicalEvidence.rawSubstatus': { $exists: true, $ne: '' } }
                     ]
                 },
                 {
                     $or: [
+                        { 'automation.deliveredThankYouNotifiedAt': null },
                         { 'automation.bonusNotifiedAt': null },
                         { 'automation.usageNotifiedAt': null }
                     ]
+                },
+                {
+                    $or: [
+                        { 'raw.historicalExternalReconciliation.customerId': { $exists: true, $ne: '' } },
+                        { 'raw.customerId': { $exists: true, $ne: '' } },
+                        { 'client.customerId': { $exists: true, $ne: '' } }
+                    ]
                 }
             ],
+            'logistics.canonicalStatus': 'DELIVERED',
+            'logistics.canonicalEvidence.provider': { $in: ['servientrega', 'SERVIENTREGA'] },
+            'logistics.canonicalEvidence.source': 'carrier_tracking',
             'outcomes.returned': { $ne: true }
         },
         {
@@ -211,12 +223,8 @@ const normalizeStatus = (value = '') => clean(value)
 
 export const postSaleActionForShipmentV112 = (shipment = {}) => {
     const status = normalizeStatus(shipment?.logistics?.status);
-    const canonicalStatus = normalizeStatus(shipment?.logistics?.canonicalStatus);
     if (status === 'DEVUELTO') return 'returned';
-    if (status === 'ENTREGADO'
-        || canonicalStatus === 'DELIVERED'
-        || shipment?.outcomes?.delivered === true
-        || shipment?.outcomes?.pickedUp === true) return 'delivered_bonus';
+    if (servientregaPostSaleCompletionEligibleV147(shipment)) return 'delivered_bonus';
     if (status === 'READY_FOR_PICKUP') return 'ready_for_pickup';
     if (shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
     if (status === 'GUIA_GENERADA') return 'guide';
@@ -255,8 +263,7 @@ const latestTerminalLedgerStage = (shipment = {}) => Object.values(
 export const latestRealPostSaleStageV112 = (shipment = {}) => {
     const status = normalizeStatus(shipment?.logistics?.status);
     if (shipment?.outcomes?.returned === true || ['DEVUELTO', 'RETURNED', 'DEVOLUCION', 'NO_RETIRADO'].includes(status)) return 'RETURNED';
-    if (shipment?.outcomes?.delivered === true || shipment?.outcomes?.pickedUp === true
-        || ['ENTREGADO', 'DELIVERED', 'RETIRADO', 'RECOGIDO', 'PICKED_UP'].includes(status)) return 'DELIVERED';
+    if (servientregaPostSaleCompletionEligibleV147(shipment)) return 'DELIVERED';
     const ledgerStage = latestTerminalLedgerStage(shipment);
     if ((POST_SALE_STAGE_RANK[ledgerStage] || 0) > (POST_SALE_STAGE_RANK.IN_TRANSIT || 0)) return ledgerStage;
     if (['READY_FOR_PICKUP', 'LISTO_PARA_RETIRO', 'PARA_RETIRO_EN_AGENCIA', 'DISPONIBLE_PARA_RETIRO'].includes(status)) return 'READY_FOR_PICKUP';
