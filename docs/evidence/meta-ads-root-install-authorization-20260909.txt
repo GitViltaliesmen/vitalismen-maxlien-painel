@@ -1,0 +1,332 @@
+# =====================================================================
+# APROVADO — INSTALAÇÃO TRANSACIONAL META_ACCESS_TOKEN
+# NOVO SYSTEM USER ADS READ DEDICADO
+# =====================================================================
+
+APROVADO PARA EXECUTAR O ROOT_INSTALL_COMMAND
+JÁ VALIDADO NO PREINSTALL.
+
+PREINSTALL_VALIDATION=PASS
+
+NEW_ADS_SYSTEM_USER_ID=
+61594458112545
+
+NEW_ADS_SYSTEM_USER_NAME=
+Vitalismen Metrics
+
+APP_ID=
+1735131237791341
+
+AD_ACCOUNT_ID=
+26714145304913323
+
+TARGET_SECRET=
+META_ACCESS_TOKEN
+
+
+# =====================================================================
+# 1. ESCOPO EXATO
+# =====================================================================
+
+AUTORIZADO ALTERAR SOMENTE:
+
+META_ACCESS_TOKEN
+
+PROIBIDO ALTERAR:
+
+META_ACCESS_TOKEN_EC
+META_PIXEL_ID_EC
+Dataset
+CAPI
+Purchase
+InitiateCheckout
+VSL
+Contabo
+/current
+release
+código
+
+
+# =====================================================================
+# 2. EXECUTAR INSTALAÇÃO TRANSACIONAL
+# =====================================================================
+
+EXECUTAR EXATAMENTE O ROOT_INSTALL_COMMAND
+JÁ VINCULADO AO TOKEN PRÉ-VALIDADO.
+
+NÃO MODIFICAR O SCRIPT ANTES DA EXECUÇÃO.
+
+OBRIGATÓRIO:
+
+ROOT_INSTALL=PASS
+SECRET_BACKUP_READY=YES
+ROLLBACK_READY=YES
+
+ONLY_META_ACCESS_TOKEN_CHANGED=YES
+
+META_ACCESS_TOKEN_EC_CHANGED=NO
+META_PIXEL_ID_EC_CHANGED=NO
+
+CURRENT_BASELINE_MATCH=YES
+
+
+# =====================================================================
+# 3. CONTABILIDADE CORRETA
+# =====================================================================
+
+APÓS INSTALAÇÃO BEM-SUCEDIDA:
+
+PRODUCTION_CODE_CHANGED=NO
+
+PRODUCTION_SECRET_CHANGED=YES
+
+PRODUCTION_CONFIG_CHANGED=YES
+
+CURRENT_RELEASE_CHANGED=NO
+
+NÃO RETORNAR PRODUCTION_CHANGED=NO
+COMO SE NADA TIVESSE SIDO ALTERADO.
+
+
+# =====================================================================
+# 4. NÃO REVOGAR TOKEN ANTIGO
+# =====================================================================
+
+NÃO REVOGAR O SYSTEM USER ANTIGO AINDA.
+
+A INSTALAÇÃO SOZINHA NÃO É PROVA
+DE QUE TODO RUNTIME ESTÁ USANDO
+O NOVO TOKEN ADS.
+
+
+# =====================================================================
+# 5. RELOAD OFICIAL
+# =====================================================================
+
+DEPOIS DE ROOT_INSTALL=PASS:
+
+DETERMINAR SE O PROCESSO DA API
+PRECISA RELOAD PARA CONSUMIR
+O NOVO META_ACCESS_TOKEN.
+
+O RELATÓRIO JÁ INDICOU:
+
+V141 lê .env por execução;
+API carrega ambiente no startup.
+
+PORTANTO:
+
+SE NECESSÁRIO,
+EXECUTAR RELOAD CONTROLADO
+SOMENTE DO vitalismen-automation
+PELO MECANISMO OFICIAL.
+
+NÃO TROCAR RELEASE.
+NÃO ALTERAR /current.
+
+RETORNAR:
+
+PROCESS_RELOAD_REQUIRED=
+PROCESS_RELOAD_EXECUTED=
+
+PM2_OLD_PID=
+PM2_NEW_PID=
+
+
+# =====================================================================
+# 6. VALIDAR NOVO TOKEN ADS EM PRODUÇÃO
+# =====================================================================
+
+OBRIGATÓRIO:
+
+CURRENT_ADS_TOKEN_SYSTEM_USER_ID=
+61594458112545
+
+CURRENT_ADS_TOKEN_IS_NEW_DEDICATED_SYSTEM_USER=YES
+
+CURRENT_ADS_TOKEN_IS_OLD_SYSTEM_USER=NO
+
+ADS_ACCOUNT_DISCOVERY=PASS
+ACCOUNT_MATCH=PASS
+
+ADS_READ=PASS
+INSIGHTS_READ=PASS
+CREATIVE_READ=PASS
+LIVE_FETCH=PASS
+
+
+# =====================================================================
+# 7. V141 REAL
+# =====================================================================
+
+AGUARDAR OU EXECUTAR
+UM CICLO OFICIAL V141.
+
+OBRIGATÓRIO:
+
+V141_TIMER=PASS
+
+META_CACHE_REFRESH=PASS
+META_CACHE_SOURCE=live
+META_CACHE_STALE=NO
+
+FETCH_STATUS=ok
+
+ADS_COUNT=
+CREATIVE_MAPPING_COUNT=
+CREATIVE_ERRORS=0
+
+fetchedAt deve ser posterior à troca.
+
+
+# =====================================================================
+# 8. FUNNEL METRICS
+# =====================================================================
+
+VALIDAR:
+
+GET /api/funnel-metrics
+
+FUNNEL_METRICS=PASS
+
+META_LIVE_FETCH=PASS
+ACCOUNT_MATCH=PASS
+
+DADOS NÃO PODEM SER APENAS
+CACHE ANTIGO ANTERIOR À TROCA.
+
+
+# =====================================================================
+# 9. CAPI INTACTO
+# =====================================================================
+
+OBRIGATÓRIO:
+
+CAPI_TOKEN_UNCHANGED=YES
+
+CAPI_SYSTEM_USER_ID=
+61594443832903
+
+DATASET_ID=
+1468946114265008
+
+DATASET_MATCH=PASS
+
+META_TEST_INITIATECHECKOUT=PASS
+META_TEST_PURCHASE=PASS
+
+
+# =====================================================================
+# 10. PROVAR ZERO DEPENDÊNCIA DO USUÁRIO ANTIGO
+# =====================================================================
+
+VALIDAR:
+
+ADS_READ_DEPENDS_ON_OLD_SYSTEM_USER=NO
+INSIGHTS_DEPENDS_ON_OLD_SYSTEM_USER=NO
+CREATIVE_READ_DEPENDS_ON_OLD_SYSTEM_USER=NO
+META_LIVE_FETCH_DEPENDS_ON_OLD_SYSTEM_USER=NO
+CAPI_EC_DEPENDS_ON_OLD_SYSTEM_USER=NO
+
+OLD_SYSTEM_USER_ACTIVE_PRODUCTION_DEPENDENCIES=NONE
+
+
+# =====================================================================
+# 11. LIMPEZA
+# =====================================================================
+
+SOMENTE DEPOIS DE TODOS OS PASS:
+
+TEMP_TOKEN_FILE_DELETED=YES
+TOKEN_FILE_RESIDUAL_COPIES=0
+
+TOKEN_IN_GIT=NO
+TOKEN_IN_LOGS=NO
+TOKEN_IN_SHELL_HISTORY=NO
+TOKEN_IN_RECEIPTS=NO
+
+
+# =====================================================================
+# 12. GATE FINAL
+# =====================================================================
+
+SE TUDO PASSAR:
+
+OLD_SYSTEM_USER_REVOKE_ALL_READY=YES
+
+NÃO REVOGAR AUTOMATICAMENTE.
+
+PARE PARA O OPERADOR.
+
+
+# =====================================================================
+# 13. RETORNO SOMENTE
+# =====================================================================
+
+ROOT_INSTALL=
+SECRET_BACKUP_READY=
+ROLLBACK_READY=
+
+ONLY_META_ACCESS_TOKEN_CHANGED=
+META_ACCESS_TOKEN_EC_CHANGED=
+META_PIXEL_ID_EC_CHANGED=
+
+PRODUCTION_CODE_CHANGED=
+PRODUCTION_SECRET_CHANGED=
+PRODUCTION_CONFIG_CHANGED=
+CURRENT_RELEASE_CHANGED=
+
+PROCESS_RELOAD_REQUIRED=
+PROCESS_RELOAD_EXECUTED=
+
+CURRENT_ADS_TOKEN_SYSTEM_USER_ID=
+CURRENT_ADS_TOKEN_IS_NEW_DEDICATED_SYSTEM_USER=
+CURRENT_ADS_TOKEN_IS_OLD_SYSTEM_USER=
+
+ADS_ACCOUNT_DISCOVERY=
+ACCOUNT_MATCH=
+ADS_READ=
+INSIGHTS_READ=
+CREATIVE_READ=
+LIVE_FETCH=
+
+V141_TIMER=
+META_CACHE_REFRESH=
+META_CACHE_SOURCE=
+META_CACHE_STALE=
+ADS_COUNT=
+CREATIVE_MAPPING_COUNT=
+CREATIVE_ERRORS=
+
+FUNNEL_METRICS=
+
+CAPI_TOKEN_UNCHANGED=
+CAPI_SYSTEM_USER_ID=
+DATASET_MATCH=
+META_TEST_INITIATECHECKOUT=
+META_TEST_PURCHASE=
+
+ADS_READ_DEPENDS_ON_OLD_SYSTEM_USER=
+INSIGHTS_DEPENDS_ON_OLD_SYSTEM_USER=
+CREATIVE_READ_DEPENDS_ON_OLD_SYSTEM_USER=
+META_LIVE_FETCH_DEPENDS_ON_OLD_SYSTEM_USER=
+CAPI_EC_DEPENDS_ON_OLD_SYSTEM_USER=
+
+OLD_SYSTEM_USER_ACTIVE_PRODUCTION_DEPENDENCIES=
+
+PM2=
+MONGO=
+NGINX=
+ZAPI=
+HEALTH=
+
+TEMP_TOKEN_FILE_DELETED=
+
+OLD_SYSTEM_USER_REVOKE_ALL_READY=
+
+FINAL_STATUS=
+
+SÓ ACEITAR:
+
+FINAL_STATUS=
+META_ADS_DEDICATED_SYSTEM_USER_OPERATIONAL_AWAITING_OLD_SYSTEM_USER_REVOCATION

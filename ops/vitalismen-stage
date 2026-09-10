@@ -1013,7 +1013,25 @@ if (String(staging.sourceRefResolvedCommit || '').toLowerCase() !== commit) thro
 if (staging.releaseMetadataSha256 !== sourceSha) throw new Error('attestation da release metadata divergente');
 if (staging.safeOverlaySha256 !== overlaySha) throw new Error('attestation do overlay divergente');
 if (staging.functionalPayloadSha256 !== actualFunctionalPayloadSha) throw new Error('fingerprint funcional divergente');
-if (staging.baseEnvSha256 !== actualBaseEnvSha) throw new Error('fingerprint de .env divergente');
+// Original envelopes remain immutable; a root-sealed successor must prove every
+// authorized runtime change while binding the unchanged code and metadata.
+const runtimeAttestationPath = `/var/lib/vitalismen-deploy/runtime-config-successors/${expectedRelease}.json`;
+let authorizedRuntimeEnvSha = staging.baseEnvSha256;
+if (staging.baseEnvSha256 !== actualBaseEnvSha || fs.existsSync(runtimeAttestationPath)) {
+  const { validateRuntimeConfigSuccessor } = require('/usr/local/lib/vitalismen-deploy/runtime-config-successor-v1.cjs');
+  const result = validateRuntimeConfigSuccessor({
+    releaseDirectory: require('node:path').dirname(sourcePath), releaseName: expectedRelease,
+    commit, tree, functionalPayloadSha256: actualFunctionalPayloadSha,
+    originalEnvSha256: staging.baseEnvSha256, actualEnvSha256: actualBaseEnvSha,
+    metadataHashes: {
+      source: sourceSha, staging: stagingSha,
+      publication: publicationExists ? sha256(fs.readFileSync(publicationPath)) : 'NOT_PUBLISHED',
+      publicationComplete: publicationCompleteExists ? sha256(fs.readFileSync(publicationCompletePath)) : 'NOT_PUBLISHED'
+    }
+  });
+  authorizedRuntimeEnvSha = result.authorizedEnvSha256;
+}
+if (authorizedRuntimeEnvSha !== actualBaseEnvSha) throw new Error('fingerprint de .env divergente');
 if (staging.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint de node_modules divergente');
 if (Number(staging.freezeVersion) !== expectedFreeze || Number(staging.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('versão do helper no staging divergente');
 if (Number(staging.guardChainVersion) !== expectedGuard || Number(staging.runtimeGuardChainValidated) !== expectedGuard || Number(staging.dataCompatibilityVersion) !== expectedData) throw new Error('versão do staging divergente');
@@ -1063,7 +1081,7 @@ if (publicationExists) {
   if (publication.releaseChannel !== 'production' || publication.release !== expectedRelease) throw new Error('identidade da publicação inválida');
   if (String(publication.functionalCommit || '').toLowerCase() !== commit || String(publication.functionalTree || '').toLowerCase() !== tree) throw new Error('identidade funcional da publicação divergente');
   if (publication.functionalPayloadSha256 !== actualFunctionalPayloadSha) throw new Error('fingerprint funcional da publicação divergente');
-  if (publication.baseEnvSha256 !== actualBaseEnvSha || publication.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da publicação divergente');
+  if (publication.baseEnvSha256 !== staging.baseEnvSha256 || publication.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da publicação divergente');
   if (publication.sourceRef !== source.sourceRef) throw new Error('sourceRef da publicação divergente');
   publicationTag = String(publication.publicationTag || '');
   if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(publicationTag)) throw new Error('tag publicada inválida');
@@ -1127,7 +1145,7 @@ if (publicationExists) {
       || publicationComplete.status !== 'complete' || publicationComplete.publicationStatus !== 'production_published') throw new Error('attestation publicada inválida');
   if (publicationComplete.release !== expectedRelease || String(publicationComplete.functionalCommit || '').toLowerCase() !== commit || String(publicationComplete.functionalTree || '').toLowerCase() !== tree) throw new Error('identidade da attestation publicada divergente');
   if (publicationComplete.functionalPayloadSha256 !== actualFunctionalPayloadSha || publicationComplete.sourceRef !== source.sourceRef) throw new Error('payload/sourceRef da attestation divergente');
-  if (publicationComplete.baseEnvSha256 !== actualBaseEnvSha || publicationComplete.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da attestation divergente');
+  if (publicationComplete.baseEnvSha256 !== staging.baseEnvSha256 || publicationComplete.nodeModulesSha256 !== actualNodeModulesSha) throw new Error('fingerprint operacional da attestation divergente');
   if (publicationComplete.publicationTag !== publicationTag || String(publicationComplete.publicationTagResolvedCommit || '').toLowerCase() !== commit) throw new Error('tag da attestation divergente');
   if (publicationComplete.releaseMetadataSha256 !== sourceSha || publicationComplete.stagingCompleteSha256 !== stagingSha || publicationComplete.publicationMetadataSha256 !== publicationSha || publicationComplete.safeOverlaySha256 !== overlaySha) throw new Error('cadeia de hashes publicada divergente');
   if (Number(publicationComplete.deployHelperContractVersion) !== expectedDeployHelper) throw new Error('deployHelperContractVersion da attestation divergente');

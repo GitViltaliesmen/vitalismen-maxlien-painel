@@ -1,0 +1,725 @@
+# =====================================================================
+# V147-R3 — RESOLUÇÃO DO ÚNICO BLOQUEIO DE PUBLICAÇÃO
+# BASELINE .ENV INTEGRITY / RUNTIME CONFIG LINEAGE
+#
+# NÃO REABRIR V147.
+# NÃO CRIAR R4.
+# NÃO ALTERAR CANDIDATA.
+# NÃO RESTAURAR .ENV ANTIGO.
+# =====================================================================
+
+
+# =====================================================================
+# 0. ESTADO CONGELADO
+# =====================================================================
+
+CURRENT_PRODUCTION_RELEASE=
+/opt/vitalismen-automacao/releases/20260908T234113Z_production-20260908-4d848d7
+
+CURRENT_PRODUCTION_COMMIT=
+4d848d749255bfd0a7bdc47ac52390b74311966b
+
+APPROVED_V147_COMMIT=
+b73cabb745508c4be1b56703a03dc74620d1b678
+
+APPROVED_V147_TREE=
+51c596f96c0c72096d311ee4da5a00b63d897ad2
+
+APPROVED_V147_FUNCTIONAL_HASH=
+85bed0629e4a5392276a0825966e6c637c2242e8dc0c92e636ce1a27fe184bfb
+
+APPROVED_V147_FREEZE_RECEIPT_SHA256=
+1351694ab3a4a42b7b89c4af51114800ec0c40c734b5c9227fe5d371c8e92656
+
+
+BLOCKING_GATE=
+OFFICIAL_RELEASE_INTEGRITY
+
+BLOCKING_COMMAND=
+vitalismen-stage v66-plan 20260910T124218Z_production-20260910-b73cabb
+
+BASELINE_ENV_EXPECTED_SHA256=
+9be40dbdf31d9b1e7a97b93c2eae2865bfe7ab133be4eba2ed01ad8181d2d541
+
+BASELINE_ENV_ACTUAL_SHA256=
+4e17c7f06df31e29c6c746fbaef29e70174076a2fb69c44a999d97400a3b0b4d
+
+CANDIDATE_ENV_EXPECTED_SHA256=
+4e17c7f06df31e29c6c746fbaef29e70174076a2fb69c44a999d97400a3b0b4d
+
+CANDIDATE_ENV_ACTUAL_SHA256=
+4e17c7f06df31e29c6c746fbaef29e70174076a2fb69c44a999d97400a3b0b4d
+
+
+# =====================================================================
+# 1. REGRA ABSOLUTA
+# =====================================================================
+
+NÃO:
+
+editar .env da baseline;
+
+restaurar .env antigo;
+
+copiar .env da candidata sobre baseline;
+
+editar release publicada;
+
+editar /current;
+
+alterar token;
+
+rotacionar token;
+
+mostrar token;
+
+usar cat/Get-Content/type
+em arquivo de segredo;
+
+alterar hash esperado
+somente para obter PASS;
+
+editar freeze antigo;
+
+fabricar receipt;
+
+fabricar provenance;
+
+desabilitar integrity gate;
+
+adicionar exceção do tipo
+"ignore env mismatch";
+
+publicar V147 enquanto
+a causa não estiver provada.
+
+
+# =====================================================================
+# 2. HIPÓTESE A PROVAR — NÃO ASSUMIR
+# =====================================================================
+
+HIPÓTESE:
+
+O SHA256 antigo 9be40dbd...
+corresponde ao runtime/configuração
+existente no momento do freeze V146-R2.
+
+DEPOIS DO FREEZE,
+houve alteração operacional autorizada
+de segredo/configuração em produção.
+
+O arquivo atualmente válido passou a:
+
+4e17c7f0...
+
+A RELEASE DE CÓDIGO PERMANECEU V146-R2.
+
+ESSA HIPÓTESE DEVE SER PROVADA
+POR ARTEFATOS/RECEIPTS/TIMESTAMPS.
+
+NÃO ASSUMIR QUE É VERDADE.
+
+
+# =====================================================================
+# 3. AUDITORIA READ-ONLY DO .ENV
+# =====================================================================
+
+SEM MOSTRAR CONTEÚDO DO .env:
+
+capturar:
+
+ENV_PATH=
+ENV_REALPATH=
+ENV_IS_SYMLINK=
+ENV_INODE=
+ENV_OWNER=
+ENV_MODE=
+ENV_SIZE=
+ENV_MTIME=
+ENV_CTIME=
+ENV_SHA256=
+
+PARA:
+
+CURRENT_PRODUCTION_RELEASE/.env
+
+E, SE EXISTIR,
+PARA O SOURCE REAL DE SEGREDOS/RUNTIME.
+
+
+NUNCA IMPRIMIR VALORES.
+
+
+# =====================================================================
+# 4. DETERMINAR ARQUITETURA DO .ENV
+# =====================================================================
+
+RESPONDER:
+
+BASELINE_ENV_STORAGE_MODEL=
+
+UMA DAS:
+
+IMMUTABLE_RELEASE_FILE
+SYMLINK_TO_RUNTIME_SECRET
+GENERATED_RUNTIME_COPY
+BIND_MOUNT
+OTHER:<exact>
+
+
+DETERMINAR:
+
+POR QUE UM ARQUIVO DENTRO
+DA RELEASE V146 APRESENTA
+SHA DIFERENTE DO FREEZE ORIGINAL.
+
+
+# =====================================================================
+# 5. PROVENIÊNCIA
+# =====================================================================
+
+LOCALIZAR SOMENTE ARTEFATOS EXISTENTES:
+
+freeze receipts;
+deploy receipts;
+secret rotation receipts;
+root install receipts;
+backup metadata;
+runtime config receipts;
+PM2 reload receipts;
+system logs;
+auditoria Meta já existente.
+
+NÃO INVENTAR DOCUMENTO RETROATIVO.
+
+
+CONSTRUIR TIMELINE:
+
+T0=
+V146_R2_FREEZE
+
+ENV_HASH_AT_T0=
+9be40dbd...
+
+
+T1=
+FIRST_AUTHORIZED_ENV_CHANGE_AFTER_FREEZE
+
+ENV_HASH_AFTER_T1=
+
+
+T2=
+LAST_AUTHORIZED_ENV_CHANGE
+
+CURRENT_ENV_HASH=
+4e17c7f0...
+
+
+PARA CADA MUDANÇA:
+
+TIMESTAMP=
+ACTION_TYPE=
+AUTHORIZED_RECEIPT=
+CHANGED_KEY_NAMES=
+EXPECTED_CHANGE=YES/NO
+
+
+# =====================================================================
+# 6. NÃO MOSTRAR SEGREDOS
+# =====================================================================
+
+PERMITIDO RETORNAR:
+
+nomes das chaves alteradas.
+
+PROIBIDO RETORNAR:
+
+valores;
+prefixos;
+sufixos;
+comprimentos que facilitem exposição;
+tokens;
+backup plaintext.
+
+EXEMPLO DE SAÍDA PERMITIDA:
+
+CHANGED_KEY_NAMES=[
+  META_ACCESS_TOKEN,
+  META_ACCESS_TOKEN_EC
+]
+
+SOMENTE SE PROVADO.
+
+
+# =====================================================================
+# 7. CLASSIFICAR A DIVERGÊNCIA
+# =====================================================================
+
+CLASSIFICAR EXATAMENTE COMO UMA:
+
+A)
+AUTHORIZED_POST_FREEZE_RUNTIME_CONFIG_CHANGE
+
+B)
+EXPECTED_SECRET_ROTATION_WITH_RECEIPT
+
+C)
+UNAUTHORIZED_RELEASE_MUTATION
+
+D)
+UNKNOWN_PROVENANCE
+
+E)
+OTHER:<exact>
+
+
+SE C, D OU E NÃO EXPLICADO:
+
+PUBLICATION_BLOCKED=YES
+
+PARE.
+
+
+# =====================================================================
+# 8. VERIFICAR ESTADO ATUAL SEM EXPOR CREDENCIAIS
+# =====================================================================
+
+VALIDAR POR IDENTIDADE/API SEGURA,
+SEM IMPRIMIR TOKENS:
+
+ADS_SYSTEM_USER_ID=
+61594458112545
+
+CAPI_SYSTEM_USER_ID=
+61594443832903
+
+OLD_SYSTEM_USER_ID=
+61589391999840
+
+
+OBRIGATÓRIO:
+
+ADS_CURRENT_TOKEN_PRINCIPAL=
+61594458112545
+
+CAPI_CURRENT_TOKEN_PRINCIPAL=
+61594443832903
+
+OLD_SYSTEM_USER_TOKEN_USABLE=NO
+
+ADS_READ=PASS
+
+INSIGHTS=PASS
+
+CREATIVE_READ=PASS
+
+META_LIVE_FETCH=PASS
+
+CAPI_TOKEN_VALID=PASS
+
+CAPI_DATASET_ID=
+1468946114265008
+
+CAPI_DATASET_MATCH=PASS
+
+
+NÃO ENVIAR META EVENT REAL.
+
+
+# =====================================================================
+# 9. VERIFICAR SE 4e17... É O RUNTIME AUTORIZADO
+# =====================================================================
+
+SÓ ACEITAR:
+
+CURRENT_ENV_AUTHORIZED=YES
+
+SE TODOS:
+
+provenance encontrada;
+
+mudanças autorizadas;
+
+nenhuma chave inesperada;
+
+principals atuais corretos;
+
+old system user revogado;
+
+runtime operacional;
+
+nenhuma evidência de mutação não autorizada.
+
+
+RETORNAR:
+
+AUTHORIZED_CHANGED_KEYS=
+UNEXPECTED_CHANGED_KEYS=
+
+OBRIGATÓRIO PARA CONTINUAR:
+
+UNEXPECTED_CHANGED_KEYS=[]
+
+
+# =====================================================================
+# 10. NÃO REESCREVER O PASSADO
+# =====================================================================
+
+O FREEZE V146 ORIGINAL DEVE CONTINUAR DIZENDO:
+
+ENV_AT_V146_FREEZE_SHA256=
+9be40dbd...
+
+
+NÃO MODIFICAR.
+
+O HISTÓRICO DEVE CONTINUAR VERDADEIRO.
+
+
+# =====================================================================
+# 11. CRIAR ATTESTATION SUCESSORA DE RUNTIME
+# =====================================================================
+
+SOMENTE SE:
+
+CURRENT_ENV_AUTHORIZED=YES
+
+
+USAR PRIMEIRO QUALQUER
+MECANISMO OFICIAL JÁ EXISTENTE
+PARA:
+
+runtime config attestation;
+secret rotation receipt;
+config successor;
+production config freeze;
+ou equivalente.
+
+NÃO INVENTAR UM SEGUNDO SISTEMA
+SE JÁ EXISTE MECANISMO OFICIAL.
+
+
+A ATTESTATION DEVE VINCULAR:
+
+BASE_RELEASE=
+20260908T234113Z_production-20260908-4d848d7
+
+BASE_COMMIT=
+4d848d749255bfd0a7bdc47ac52390b74311966b
+
+ORIGINAL_ENV_SHA256=
+9be40dbd...
+
+AUTHORIZED_SUCCESSOR_ENV_SHA256=
+4e17c7f0...
+
+REASON=
+AUTHORIZED_POST_FREEZE_SECRET_OR_CONFIG_ROTATION
+
+PROVENANCE_RECEIPTS=
+
+CREATED_AT=
+
+OWNER=root:root
+
+MODE=0400 ou mecanismo oficial mais restritivo
+
+NO_SECRET_VALUES=YES
+
+
+# =====================================================================
+# 12. O QUE O GATE OFICIAL DEVE VALIDAR
+# =====================================================================
+
+O GATE NÃO DEVE ACEITAR:
+
+"qualquer hash atual".
+
+O GATE DEVE ACEITAR SOMENTE:
+
+ORIGINAL FREEZE
+
++
+CADEIA SUCESSORA DE CONFIG
+CRIPTOGRAFICAMENTE/OPERACIONALMENTE
+ATESTADA.
+
+
+MODELO:
+
+release code integrity
+deve continuar comprovando:
+
+COMMIT/TREE/FILES IMUTÁVEIS.
+
+
+runtime secret integrity
+deve comprovar:
+
+CURRENT ENV HASH
+=
+LATEST AUTHORIZED RUNTIME ATTESTATION.
+
+
+# =====================================================================
+# 13. NÃO RELAXAR V66
+# =====================================================================
+
+NÃO:
+
+remover comparação SHA;
+hardcode 4e17... como bypass;
+aceitar mismatch silenciosamente;
+usar --force;
+usar skip-integrity;
+alterar exit code;
+converter FAIL em WARN.
+
+SE O V66 NÃO SUPORTA
+CONFIG SUCCESSOR ATTESTATION:
+
+LOCALIZAR O MECANISMO OFICIAL
+MAIS PRÓXIMO JÁ EXISTENTE.
+
+
+SE REALMENTE FOR NECESSÁRIO
+ALTERAR DEPLOY TOOLING:
+
+CRIAR MICROCORREÇÃO
+SOMENTE NO TOOLING DE DEPLOY.
+
+NÃO ALTERAR APP V147.
+
+NÃO ALTERAR:
+
+b73cabb...
+51c596f...
+
+CONGELAR O TOOLING CORRIGIDO
+COM HASH/RECEIPT PRÓPRIO.
+
+
+# =====================================================================
+# 14. SE TOOLING FOR ALTERADO
+# =====================================================================
+
+RETORNAR:
+
+DEPLOY_TOOLING_CHANGE_REQUIRED=YES
+
+TOOLING_FILES_CHANGED=
+TOOLING_DIFF_PURPOSE=
+
+TOOLING_TESTS=PASS
+
+TOOLING_FUNCTIONAL_HASH=
+
+TOOLING_FREEZE_RECEIPT_SHA256=
+
+
+E:
+
+V147_CANDIDATE_COMMIT_UNCHANGED=YES
+V147_CANDIDATE_TREE_UNCHANGED=YES
+
+
+NÃO CRIAR R4.
+
+
+# =====================================================================
+# 15. REEXECUTAR O GATE BLOQUEADOR
+# =====================================================================
+
+DEPOIS DA ATTESTATION
+E/OU CORREÇÃO OFICIAL DO TOOLING:
+
+REEXECUTAR EXATAMENTE:
+
+vitalismen-stage v66-plan 20260910T124218Z_production-20260910-b73cabb
+
+
+OBRIGATÓRIO:
+
+OFFICIAL_RELEASE_INTEGRITY=PASS
+
+BASELINE_CODE_INTEGRITY=PASS
+
+RUNTIME_CONFIG_INTEGRITY=PASS
+
+AUTHORIZED_RUNTIME_SUCCESSOR=PASS
+
+CANDIDATE_ENV_INTEGRITY=PASS
+
+CANDIDATE_TAG_INTEGRITY=PASS
+
+CANDIDATE_FREEZE_INTEGRITY=PASS
+
+
+# =====================================================================
+# 16. REVALIDAR CANDIDATA APÓS O GATE
+# =====================================================================
+
+CONFIRMAR NOVAMENTE:
+
+CANDIDATE_COMMIT=
+b73cabb745508c4be1b56703a03dc74620d1b678
+
+CANDIDATE_TREE=
+51c596f96c0c72096d311ee4da5a00b63d897ad2
+
+FUNCTIONAL_HASH=
+85bed0629e4a5392276a0825966e6c637c2242e8dc0c92e636ce1a27fe184bfb
+
+FREEZE_RECEIPT_SHA256=
+1351694ab3a4a42b7b89c4af51114800ec0c40c734b5c9227fe5d371c8e92656
+
+
+OBRIGATÓRIO:
+
+CANDIDATE_COMMIT_UNCHANGED=YES
+
+CANDIDATE_TREE_UNCHANGED=YES
+
+FUNCTIONAL_HASH_UNCHANGED=YES
+
+
+# =====================================================================
+# 17. NÃO PUBLICAR AINDA
+# =====================================================================
+
+A APROVAÇÃO ANTERIOR FOI MARCADA:
+
+APPROVAL_INVALIDATED=YES
+
+
+PORTANTO,
+MESMO QUE O GATE PASSE:
+
+NÃO PUBLICAR NESTA EXECUÇÃO.
+
+PARAR UMA ÚNICA VEZ
+PARA NOVA APROVAÇÃO HUMANA
+DO PACOTE INTEGRAL.
+
+
+# =====================================================================
+# 18. PACOTE PARA NOVA APROVAÇÃO
+# =====================================================================
+
+ENTREGAR:
+
+V147 COMMIT
+V147 TREE
+V147 FUNCTIONAL HASH
+V147 FREEZE RECEIPT
+
+ORIGINAL V146 ENV HASH
+
+CURRENT AUTHORIZED ENV HASH
+
+PROVENANCE CLASSIFICATION
+
+RUNTIME ATTESTATION HASH
+
+DEPLOY TOOLING HASH
+SE HOUVER ALTERAÇÃO
+
+v66-plan RESULT
+
+
+# =====================================================================
+# 19. PRODUÇÃO CONTINUA INTACTA
+# =====================================================================
+
+ATÉ A NOVA APROVAÇÃO:
+
+CURRENT=
+/opt/vitalismen-automacao/releases/20260908T234113Z_production-20260908-4d848d7
+
+PRODUCTION_CHANGED=NO
+
+PUBLICATION_EXECUTED=NO
+
+ACTIVATION_EXECUTED=NO
+
+ENV_MODIFIED=NO
+
+TOKENS_MODIFIED=NO
+
+IMMUTABLE_RELEASE_MODIFIED=NO
+
+REAL_MESSAGES_SENT=0
+
+
+# =====================================================================
+# 20. RETORNO
+# =====================================================================
+
+RESPONDER SOMENTE:
+
+BASELINE_ENV_EXPECTED_SHA256=
+BASELINE_ENV_ACTUAL_SHA256=
+
+BASELINE_ENV_STORAGE_MODEL=
+
+ENV_MTIME=
+ENV_CTIME=
+
+ENV_PROVENANCE_CLASSIFICATION=
+
+ENV_CHANGE_TIMELINE=
+
+AUTHORIZED_CHANGED_KEYS=
+UNEXPECTED_CHANGED_KEYS=
+
+CURRENT_ENV_AUTHORIZED=
+
+ADS_CURRENT_TOKEN_PRINCIPAL=
+CAPI_CURRENT_TOKEN_PRINCIPAL=
+OLD_SYSTEM_USER_TOKEN_USABLE=
+
+META_ADS_HEALTH=
+META_CAPI_HEALTH=
+
+RUNTIME_ATTESTATION_MECHANISM=
+RUNTIME_ATTESTATION_PATH=
+RUNTIME_ATTESTATION_SHA256=
+
+ORIGINAL_FREEZE_PRESERVED=
+
+DEPLOY_TOOLING_CHANGE_REQUIRED=
+
+TOOLING_FILES_CHANGED=
+TOOLING_TESTS=
+TOOLING_FUNCTIONAL_HASH=
+TOOLING_FREEZE_RECEIPT_SHA256=
+
+OFFICIAL_RELEASE_INTEGRITY=
+BASELINE_CODE_INTEGRITY=
+RUNTIME_CONFIG_INTEGRITY=
+AUTHORIZED_RUNTIME_SUCCESSOR=
+CANDIDATE_ENV_INTEGRITY=
+
+V66_PLAN=
+
+CANDIDATE_COMMIT_UNCHANGED=
+CANDIDATE_TREE_UNCHANGED=
+FUNCTIONAL_HASH_UNCHANGED=
+CANDIDATE_FREEZE_RECEIPT_UNCHANGED=
+
+CURRENT_UNCHANGED=
+ENV_MODIFIED=
+TOKENS_MODIFIED=
+PRODUCTION_CHANGED=
+PUBLICATION_EXECUTED=
+ACTIVATION_EXECUTED=
+
+APPROVAL_INVALIDATED=YES
+NEW_OPERATOR_APPROVAL_REQUIRED=YES
+
+FINAL_STATUS=
+
+SÓ ACEITAR PARA VOLTAR AO GATE HUMANO:
+
+FINAL_STATUS=
+V147_R3_PUBLICATION_GATE_REPAIRED_AWAITING_REAPPROVAL
