@@ -125,6 +125,8 @@ export const reconcilePostSaleEventV147R6 = async ({ shipment, event, messageMod
     const manual = chosen.isBot !== true && chosen.senderRole !== 'bot';
     const ledgerPath = 'automation.postSaleSafetyLedger.' + event.stage;
     const prior = shipment.automation?.postSaleSafetyLedger?.[event.stage];
+    const primary = prior?.state === 'SENT' && prior.providerMessageId
+        ? evidence.find((row) => row.providerMessageId === prior.providerMessageId) || chosen : chosen;
     const state = prior?.state === 'SENT' ? 'SENT' : manual
         ? (event.stage === 'PICKUP_BONUS' ? 'SATISFIED_BY_EXISTING_MANUAL_SEND' : 'SATISFIED_BY_MANUAL_SEND')
         : 'RECOVERED_STRUCTURED';
@@ -133,9 +135,9 @@ export const reconcilePostSaleEventV147R6 = async ({ shipment, event, messageMod
         if (prior && !prior.canonicalEvent) { const copy = { ...prior }; delete copy.priorEntries; priorEntries.push(copy); }
         const entry = { ...prior, ...event, state, idempotencyKey: event.dedupeKey,
             resolution: manual ? 'SATISFIED_BY_MANUAL_SEND' : 'SATISFIED_BY_EXISTING_AUTOMATION_SEND',
-            source: prior?.source || (manual ? 'manual_panel' : 'v116'),
+            source: primary.isBot === true || primary.senderRole === 'bot' ? 'v116' : 'manual_panel',
             providerMessageId: prior?.state === 'SENT' ? prior.providerMessageId : chosen.providerMessageId,
-            acceptedAt: prior?.acceptedAt || acceptedAt(chosen), reconciledAt: now,
+            acceptedAt: prior?.acceptedAt || acceptedAt(primary), reconciledAt: now,
             evidence: evidence.map((row) => ({ messageId: row._id, providerMessageId: row.providerMessageId,
                 acceptedAt: acceptedAt(row), source: row.isBot === true ? 'v116' : 'manual_panel' })),
             duplicateIncidentCount: Math.max(Number(prior?.duplicateIncidentCount || 0), evidence.length - 1), priorEntries };

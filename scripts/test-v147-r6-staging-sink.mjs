@@ -162,6 +162,9 @@ try {
     const final = await Shipment.findById(replay._id).lean();
     assert.ok(final.automation.deliveredThankYouNotifiedAt && final.automation.bonusNotifiedAt && final.automation.usageNotifiedAt);
     assert.equal(final.automation.postSaleSafetyLedger.DELIVERED_THANK_YOU.duplicateIncidentCount, 1);
+    assert.equal(final.automation.postSaleSafetyLedger.DELIVERED_THANK_YOU.providerMessageId, '3EB092E63EAE7F5439FAC1');
+    assert.equal(final.automation.postSaleSafetyLedger.DELIVERED_THANK_YOU.source, 'v116');
+    assert.equal(new Date(final.automation.postSaleSafetyLedger.DELIVERED_THANK_YOU.acceptedAt).toISOString(), '2026-09-10T19:48:43.499Z');
     assert.equal(final.automation.postSaleSafetyLedger.PICKUP_BONUS.state, 'SATISFIED_BY_EXISTING_MANUAL_SEND');
     assert.ok(final.automation.postSaleSafetyLedger.PICKUP_BONUS.priorEntries.some((entry) => entry.state === 'FAILED_FINAL'));
     assert.equal(calls().length, before);
