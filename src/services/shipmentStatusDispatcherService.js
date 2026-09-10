@@ -1117,7 +1117,7 @@ export const processCarrierStatusSweep = async ({
     return lastCarrierSweep;
 };
 
-const refreshShipmentBeforeDispatch = async (shipment) => {
+const refreshShipmentBeforeDispatch = async (shipment, { canonicalPoll = null } = {}) => {
     if (!shouldRefreshShipmentBeforeDispatch(shipment)) {
         return { ok: false, skipped: true, reason: 'no_dropi_reference_or_final_status' };
     }
@@ -1134,7 +1134,7 @@ const refreshShipmentBeforeDispatch = async (shipment) => {
     let refreshed = await Shipment.findById(shipment._id);
     const previousDropiStatus = refreshed?.logistics?.status || shipment.logistics?.status || '';
     const carrierRefresh = refreshed
-        ? await refreshCarrierBeforeDispatch(refreshed, { previousDropiStatus }).catch((error) => ({
+        ? await refreshCarrierBeforeDispatch(refreshed, { previousDropiStatus, canonicalPoll }).catch((error) => ({
             ok: false,
             reason: 'carrier_tracking_failed_before_dispatch',
             error: error.message || 'carrier_tracking_failed_before_dispatch',
@@ -1225,7 +1225,7 @@ export const countShipmentDispatchCandidates = async ({ actions = [] } = {}) => 
     return Shipment.countDocuments(candidateQuery(selectedActions));
 };
 
-export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMIT, dryRun = false, force = false, actions = [], canonicalPollCompleted = false } = {}) => {
+export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMIT, dryRun = false, force = false, actions = [], canonicalPollCompleted = false, activationWatermark = null } = {}) => {
     const startedAt = new Date();
     const effectiveLimit = normalizeLimit(limit);
     const selectedActions = normalizeActions(actions);
@@ -1365,7 +1365,9 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             }
             if (dispatchRefreshBeforeSendEnabled() && refreshedBeforeSend < refreshLimit) {
                 refreshedBeforeSend += 1;
-                const refresh = await refreshShipmentBeforeDispatch(shipmentForSend).catch((error) => ({
+                const refresh = await refreshShipmentBeforeDispatch(shipmentForSend, {
+                    canonicalPoll: canonicalPollCompleted ? { activationWatermark, now: new Date() } : null
+                }).catch((error) => ({
                     ok: false,
                     reason: 'sync_failed_before_dispatch',
                     error: error.message || 'sync_failed_before_dispatch'
@@ -1380,6 +1382,12 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     carrierRefresh: refresh?.carrierRefresh || null
                 };
                 if (refresh?.shipment) shipmentForSend = refresh.shipment;
+                if (canonicalPollCompleted && refresh?.carrierRefresh?.ok !== true) {
+                    item.reason = 'canonical_live_revalidation_failed';
+                    skipped += 1;
+                    results.push(item);
+                    continue;
+                }
                 const refreshedAction = actionForShipment(shipmentForSend);
                 if (refreshedAction !== action) {
                     action = refreshedAction;
@@ -1387,8 +1395,10 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     item.status = shipmentForSend.logistics?.status || '';
                 }
             }
-            const statusProjection = await persistDropiStatusProjectionV139({ shipment: shipmentForSend })
-                .catch((error) => ({ ok: false, reason: error.message || 'dropi_status_projection_failed' }));
+            const statusProjection = canonicalPollCompleted && shipmentForSend.logistics?.canonicalEvidence?.source === 'carrier_tracking'
+                ? { ok: true, reason: 'servientrega_canonical_poll_authoritative' }
+                : await persistDropiStatusProjectionV139({ shipment: shipmentForSend })
+                    .catch((error) => ({ ok: false, reason: error.message || 'dropi_status_projection_failed' }));
             item.statusProjection = statusProjection?.reason || '';
             if (statusProjection?.panel?.lead_id) item.adminLeadId = statusProjection.panel.lead_id;
             const evidence = dropiPostSaleEvidenceV139(shipmentForSend);
