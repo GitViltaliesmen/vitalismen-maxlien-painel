@@ -33,6 +33,7 @@ for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD
 await import('./ec-runtime-successor-v147-r2-context.mjs');
 
 for (const [relativePath, expectedSha256] of Object.entries(manifest.protectedFiles || {})) {
+    if (globalThis.__VITALISMEN_V147_R4_CONTEXT?.protectedFiles?.[relativePath]) continue;
     const source = fs.readFileSync(new URL(`../../${relativePath}`, import.meta.url));
     const actual = crypto.createHash('sha256').update(source).digest('hex');
     if (actual !== expectedSha256) throw new Error(`[V147-R3] arquivo protegido divergente: ${relativePath}`);

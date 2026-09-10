@@ -42,7 +42,8 @@ assert.equal(globalThis.__VITALISMEN_V147_R2_CONTEXT?.loaded, true, 'ancestral V
 assert.equal(globalThis.__VITALISMEN_V147_CONTEXT?.loaded, true, 'ancestral V147 ausente');
 
 for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles || {})) {
-    assert.equal(sha256(read(relativePath)), expectedHash, `V147-R3 divergente: ${relativePath}`);
+    const successorHash = globalThis.__VITALISMEN_V147_R4_CONTEXT?.protectedFiles?.[relativePath];
+    assert.equal(sha256(read(relativePath)), successorHash || expectedHash, `V147-R3 divergente: ${relativePath}`);
 }
 
 const media = read(manifest.p5.source);

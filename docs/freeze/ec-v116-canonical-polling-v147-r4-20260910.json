@@ -1,0 +1,55 @@
+{
+  "freezeId": "EC_V116_CANONICAL_POLLING_V147_R4_20260910",
+  "parentCommit": "b73cabb745508c4be1b56703a03dc74620d1b678",
+  "parentTree": "51c596f96c0c72096d311ee4da5a00b63d897ad2",
+  "functionalFiles": [
+    "scripts/post-sale-transactional-batch-v116.mjs",
+    "src/services/shipmentStatusDispatcherService.js"
+  ],
+  "overrides": [
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md",
+    "package.json",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r4-context.mjs",
+    "scripts/post-sale-transactional-batch-v116.mjs",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/v116-canonical-polling-v147-r4.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "afe2067cfae9bd2aebac53116fbc903f195e74dd59f36bf43c3a373a4385c999",
+    "package.json": "6c0483b7453ef92b0a3e9ed007b1e8a901289a9792e7f77efc36b24733f4646f",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs": "c689d5c88ea8f1b6871e17d1e79b91e29ab67482bd653f721a4417808a933bf0",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "32471a4ea66414d9b8e1f0e51e2af5c707e005bdabde58ccab5a2c71aa9343ad",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "36974f03de331f6d5d7083bf16f9fd09ae7147491d80f4be1f4c5525c2a3fac5",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
+    "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
+    "scripts/post-sale-transactional-batch-v116.mjs": "61fed9be348abee3e3e578defab2d69ae249bb5a967060c7ea9e91794c3a4b67",
+    "src/services/shipmentStatusDispatcherService.js": "1c4f7c23f9350f998dcafc123e4b90aa3df06959abfaa076c350b33836a0ed94",
+    "tests/v116-canonical-polling-v147-r4.test.mjs": "8039ec39a827eb805021da9527821c00eaf86e76381cfecd71a5d107f33b8281"
+  },
+  "preservedFiles": {
+    "ops/post-sale-v116": "8cfb85be756109647971c71a54d6cd01ca8acceb97e7faeac61828f23e3539c4",
+    "ops/vitalismen-stage": "803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99",
+    "ops/ec-bot-core-v78": "a000e912c4dcbdff6de07e5824c817e41501b18ad42114d3a5f20ffc7893a480",
+    "src/services/carrierTrackingService.js": "bc8cd22b0a5f587312c8943322488c8f64b879943d22e7153e80d7aaceadb3db",
+    "src/services/shipmentLifecycleStatusService.js": "07db7f7930171998738f60c7e1da05661d2099975051dbd4e76e70dcea6b2ba4",
+    "src/services/shipmentMessageService.js": "688cd02243ba9a49e6ede3d2685a13c3ee46217a980a4e1e1ba3c31fad252aa2",
+    "src/services/canonicalLogisticsStatusV147Service.js": "b10a6da82d1265e675ff3299b2966462a818a2d12e4ae66e9c9109e4b57fe43c",
+    "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",
+    "src/services/droppiEcuadorImportService.js": "76cce568dc218e636fb79efdbc48e27e88e1a346cf8239d348111b33e9c12900",
+    "src/services/ecPhoneServientregaReconciliationV140Service.js": "30fc21d2a3c4d929817ef46479b59475b2f928b58e6b1b969df7c0ddffef6897",
+    "docs/freeze/ec-delivered-single-gate-v147-r3-20260910.json": "44c851dd075ccfcfbd6954aafd4b11688f9611e58a5fe58f8470cac03584d76b"
+  },
+  "policy": {
+    "publicationAllowed": false,
+    "historicalBackfillAllowed": false,
+    "realMessagesSent": 0,
+    "transport": "SINK",
+    "newScheduler": false,
+    "newPoller": false,
+    "operatorApprovalRequired": true
+  }
+}

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import fs from 'node:fs';
 
 import OperationalSafetyState from '../src/models/OperationalSafetyState.js';
 import Shipment from '../src/models/Shipment.js';
@@ -8,7 +9,7 @@ import {
     POST_SALE_SAFETY_STATE_ID,
     POST_SALE_TERMINAL_LEDGER_STATES
 } from '../src/services/postSaleSafetyV66Service.js';
-import { processShipmentStatusDispatch } from '../src/services/shipmentStatusDispatcherService.js';
+import { processCarrierStatusSweep, processShipmentStatusDispatch } from '../src/services/shipmentStatusDispatcherService.js';
 import { assertPostSaleTransactionalV105Configuration } from '../src/services/postSaleTransactionalControlPlaneV105Service.js';
 import { postSaleTransactionalSafetyV116Enabled } from '../src/services/postSaleTransactionalSafetyV116Service.js';
 
@@ -31,6 +32,14 @@ try {
         throw new Error('post_sale_v66_compatibility_state_not_ready');
     }
 
+    const activationWatermark = action === 'run'
+        ? JSON.parse(fs.readFileSync(new URL('../.activation-complete.json', import.meta.url), 'utf8')).activatedAt
+        : null;
+    const polling = await processCarrierStatusSweep({
+        dryRun: action === 'plan',
+        transactionalV116: true,
+        activationWatermark
+    });
     const result = await processShipmentStatusDispatch({
         limit: 1,
         dryRun: action === 'plan',
@@ -69,6 +78,7 @@ try {
     const output = {
         status,
         mode: action === 'run' ? 'V116_TRANSACTIONAL_BATCH_ONE' : 'V116_TRANSACTIONAL_PLAN',
+        polling,
         batchMax: 1,
         dailyLimit: 1,
         processed: Number(result?.processed || 0),

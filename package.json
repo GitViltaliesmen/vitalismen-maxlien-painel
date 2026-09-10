@@ -6,7 +6,7 @@
     "main": "src/index.js",
     "scripts": {
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r3-delivered-single-gate",
+        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r3-delivered-single-gate guard:v147-r4-canonical-polling",
         "guard:v147-postsale": "node scripts/guard-post-sale-canonical-restoration-v147.mjs && node --test tests/post-sale-canonical-restoration-v147.test.mjs",
         "guard:v147-r2-postsale": "node scripts/guard-post-sale-complete-v147-r2.mjs && node --import ./scripts/lib/ec-runtime-successor-v147-r2-context.mjs --test tests/post-sale-canonical-restoration-v147.test.mjs tests/pickup-bonus-delivery-v60.test.mjs",
         "guard:v147-r3-delivered-single-gate": "node scripts/guard-delivered-single-gate-v147-r3.mjs && node --import ./scripts/lib/ec-runtime-successor-v147-r3-context.mjs --test tests/post-sale-delivered-single-gate-v147-r3.test.mjs tests/post-sale-canonical-restoration-v147.test.mjs tests/pickup-bonus-delivery-v60.test.mjs",
@@ -152,7 +152,8 @@
         "guard:v143-convergence": "node scripts/guard-v141-v142-convergence-v143.mjs && node --test tests/v141-v142-convergence-v143.test.mjs",
         "test:v143-all": "npm run test:v140-all && node --test tests/meta-creative-read-v141.test.mjs tests/meta-funnel-reconciliation-v141.test.mjs tests/panel-new-dropi-persistence-v142.test.mjs tests/whatsapp-chats-readonly.test.mjs && npm run guard:v143-convergence",
         "guard:meta-purchase-v144": "node scripts/guard-meta-purchase-after-manual-dropi-v144.mjs && node --test tests/meta-purchase-after-manual-dropi-v144.test.mjs",
-        "test:v144-all": "npm run test:v143-all && npm run guard:meta-purchase-v144"
+        "test:v144-all": "npm run test:v143-all && npm run guard:meta-purchase-v144",
+        "guard:v147-r4-canonical-polling": "node scripts/guard-v116-canonical-polling-v147-r4.mjs && node --test tests/v116-canonical-polling-v147-r4.test.mjs"
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",

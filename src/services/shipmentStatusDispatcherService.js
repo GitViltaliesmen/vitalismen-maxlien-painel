@@ -30,9 +30,12 @@ import {
     persistDropiStatusProjectionV139
 } from './ecDropiStatusPostSaleV139Service.js';
 import {
+    canonicalLogisticsProjectionV147,
+    legacyLogisticsStatusForV147,
     canonicalLogisticsProjectionForShipmentV147,
     servientregaPostSaleCompletionEligibleV147
 } from './canonicalLogisticsStatusV147Service.js';
+import { assertPostSaleTransactionalV105Configuration } from './postSaleTransactionalControlPlaneV105Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -66,6 +69,7 @@ const carrierRefreshBeforeSendEnabled = () => flagEnabled('SHIPMENT_STATUS_DISPA
 const carrierStatusSweepEnabled = () => flagEnabled('SHIPMENT_CARRIER_STATUS_SWEEP_ENABLED', true);
 const carrierStatusSweepLimit = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT', DEFAULT_CARRIER_SWEEP_LIMIT);
 const carrierStatusSweepMinGapMinutes = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_MIN_GAP_MINUTES', 50);
+export const carrierStatusSweepIntervalMinutes = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_INTERVAL_MINUTES', 60);
 const carrierStatusSweepMaxAgeDays = () => parsePositiveNumber('SHIPMENT_CARRIER_STATUS_SWEEP_MAX_AGE_DAYS', 45);
 const dropiClaimNotifyEnabled = () => flagEnabled('DROPPI_PAYMENT_CLAIM_NOTIFY_ENABLED', true);
 const dropiClaimLiveCheckEnabled = () => flagEnabled('DROPPI_PAYMENT_CLAIM_LIVE_CHECK_ENABLED', true);
@@ -780,14 +784,62 @@ const shouldTrackCarrierBeforeDispatch = (shipment) => {
     return !carrier || /servientrega|servi\s*entrega|laar/.test(carrier);
 };
 
-export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStatus = '' } = {}) => {
+export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStatus = '', canonicalPoll = null } = {}) => {
     if (!shouldTrackCarrierBeforeDispatch(shipment)) {
         return { ok: false, skipped: true, reason: 'carrier_tracking_not_applicable', shipment };
     }
-    const result = await trackCarrierGuide({
+    let result;
+    try {
+        result = await (canonicalPoll?.trackGuide || trackCarrierGuide)({
         trackingNumber: shipment.logistics?.trackingNumber,
         carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || 'servientrega'
-    });
+        });
+    } catch (error) {
+        if (!canonicalPoll) throw error;
+        result = { ok: false, reason: 'carrier_provider_failed', error: String(error.message || '').slice(0, 160) };
+    }
+    if (canonicalPoll) {
+        const projection = canonicalLogisticsProjectionV147({
+            provider: result?.carrier,
+            providerCode: result?.providerStatusCode,
+            providerStatus: result?.statusAtual,
+            providerSubstatus: result?.providerSubstatus
+        });
+        const valid = result?.ok === true
+            && /^servientrega$/i.test(String(result.carrier || ''))
+            && String(result.trackingNumber || '') === String(shipment.logistics.trackingNumber)
+            && projection.canonicalStatus !== 'UNKNOWN';
+        if (!valid) result = { ...result, ok: false, reason: result?.reason || 'invalid_canonical_carrier_result' };
+        else result = { ...result, canonicalStatus: projection.canonicalStatus, normalizedStatus: legacyLogisticsStatusForV147(projection.canonicalStatus) };
+        if (valid && projection.canonicalStatus === 'DELIVERED') {
+            const previous = shipment.raw?.carrierTracking;
+            const observedAt = new Date(previous?.lastCheckedAt || 0).getTime();
+            const watermark = new Date(canonicalPoll.activationWatermark).getTime();
+            const prior = canonicalLogisticsProjectionV147({
+                providerCode: previous?.lastResult?.providerStatusCode,
+                providerStatus: previous?.lastResult?.statusAtual,
+                providerSubstatus: previous?.lastResult?.providerSubstatus
+            });
+            const providerDate = String(result.dataMovimento || '');
+            // Sem timezone explícito, a data do provider não prova cronologia.
+            const providerAt = /(?:Z|[+-]\d{2}:\d{2})$/.test(providerDate) ? Date.parse(providerDate) : NaN;
+            const forward = (previous?.lastResult?.ok === true && observedAt >= watermark
+                && observedAt < canonicalPoll.now.getTime() && !prior.terminal && prior.canonicalStatus !== 'UNKNOWN')
+                || (Number.isFinite(providerAt) && providerAt >= watermark && providerAt <= canonicalPoll.now.getTime());
+            if (!forward) {
+                // Persistir o bloqueio antes do lifecycle impede descoberta histórica virar dispatch.
+                await Shipment.updateOne({ _id: shipment._id }, { $addToSet: {
+                    'review.suppressedNotificationKinds': { $each: ['delivered_thank_you', 'pickup_bonus', 'product_usage'] }
+                } });
+            }
+        }
+        const refreshed = await saveCarrierTrackingResult({ shipmentId: shipment._id, result, updateStatus: valid });
+        return {
+            ok: valid, skipped: false, reason: result.reason || '', carrierResult: result,
+            shipment: refreshed || shipment, status: refreshed?.logistics?.status || shipment.logistics?.status || '',
+            trackingNumber: shipment.logistics.trackingNumber
+        };
+    }
     const shouldUpdateStatus = Boolean(result?.ok && result.normalizedStatus);
     const carrierStatus = String(result?.normalizedStatus || '').toUpperCase();
     const dropiVerification = result?.ok && carrierStatus === 'ENTREGADO'
@@ -855,9 +907,10 @@ export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStat
     };
 };
 
-const carrierStatusSweepQuery = ({ force = false, now = new Date() } = {}) => {
+export const carrierStatusSweepQuery = ({ force = false, now = new Date(), transactionalV116 = false } = {}) => {
     const oldest = new Date(now.getTime() - carrierStatusSweepMaxAgeDays() * DAY_MS);
-    const checkedBefore = new Date(now.getTime() - carrierStatusSweepMinGapMinutes() * 60 * 1000);
+    const gap = transactionalV116 ? Math.max(carrierStatusSweepIntervalMinutes(), carrierStatusSweepMinGapMinutes()) : carrierStatusSweepMinGapMinutes();
+    const checkedBefore = new Date(now.getTime() - gap * 60 * 1000);
     const query = {
         country: 'EC',
         ...buildCanaryV75RecipientQuery('client.phone'),
@@ -888,6 +941,19 @@ const carrierStatusSweepQuery = ({ force = false, now = new Date() } = {}) => {
             }
         ]
     };
+    if (transactionalV116) {
+        query.$and[0] = {
+            'logistics.status': { $nin: CARRIER_SWEEP_FINAL_STATUSES },
+            'logistics.canonicalStatus': { $nin: ['DELIVERED', 'RETURNED'] },
+            'outcomes.delivered': { $ne: true },
+            'outcomes.returned': { $ne: true }
+        };
+        query.$and.push({ $or: [
+            { 'logistics.distributionCompany': /^servi\s*entrega$/i },
+            { 'logistics.chosenCarrier': /^servi\s*entrega$/i },
+            { 'logistics.canonicalEvidence.provider': /^servientrega$/i }
+        ] });
+    }
     if (!force) {
         query.$and.push({
             $or: [
@@ -907,11 +973,20 @@ export const countCarrierStatusSweepCandidates = async ({ force = false } = {}) 
 export const processCarrierStatusSweep = async ({
     limit = carrierStatusSweepLimit(),
     dryRun = false,
-    force = false
+    force = false,
+    transactionalV116 = false,
+    activationWatermark = null,
+    trackGuide = trackCarrierGuide
 } = {}) => {
     const startedAt = new Date();
+    if (transactionalV116) {
+        assertPostSaleTransactionalV105Configuration(process.env);
+        if (!postSaleTransactionalSafetyV116Enabled() || force) throw new Error('v116_canonical_poll_contract_invalid');
+        if (!dryRun && (!activationWatermark || !Number.isFinite(Date.parse(activationWatermark))
+            || Date.parse(activationWatermark) > startedAt.getTime())) throw new Error('v116_activation_watermark_missing');
+    }
     const effectiveLimit = normalizeLimit(limit || carrierStatusSweepLimit());
-    if (!carrierStatusSweepEnabled() && !force) {
+    if (!carrierStatusSweepEnabled() && !force && !transactionalV116) {
         lastCarrierSweep = {
             startedAt,
             finishedAt: new Date(),
@@ -928,7 +1003,7 @@ export const processCarrierStatusSweep = async ({
         return lastCarrierSweep;
     }
 
-    const candidates = await Shipment.find(carrierStatusSweepQuery({ force, now: startedAt }))
+    const candidates = await Shipment.find(carrierStatusSweepQuery({ force, now: startedAt, transactionalV116 }))
         .sort({ 'raw.carrierTracking.lastCheckedAt': 1, updatedAt: 1, createdAt: 1 })
         .limit(effectiveLimit);
 
@@ -965,9 +1040,27 @@ export const processCarrierStatusSweep = async ({
             continue;
         }
 
+        let locked = null;
+        if (transactionalV116) {
+            // O flock do V116 serializa ciclos; o lock persistido protege contra outros escritores.
+            locked = await Shipment.findOneAndUpdate({
+                _id: shipment._id,
+                $and: [carrierStatusSweepQuery({ now: startedAt, transactionalV116: true }), { $or: [
+                    { 'automation.dispatchLockedUntil': { $exists: false } },
+                    { 'automation.dispatchLockedUntil': null },
+                    { 'automation.dispatchLockedUntil': { $lte: startedAt } }
+                ] }]
+            }, { $set: { 'automation.dispatchLockedUntil': new Date(startedAt.getTime() + DISPATCH_LOCK_MS) } }, { new: true });
+            if (!locked) {
+                skipped += 1;
+                results.push({ ...item, reason: 'locked_or_poll_not_due' });
+                continue;
+            }
+        }
         try {
-            const result = await refreshCarrierBeforeDispatch(shipment, {
-                previousDropiStatus: beforeStatus
+            const result = await refreshCarrierBeforeDispatch(locked || shipment, {
+                previousDropiStatus: beforeStatus,
+                canonicalPoll: transactionalV116 ? { activationWatermark, now: startedAt, trackGuide } : null
             });
             const afterStatus = result?.shipment?.logistics?.status || result?.status || beforeStatus;
             item.success = Boolean(result?.ok);
@@ -984,8 +1077,14 @@ export const processCarrierStatusSweep = async ({
                 failed += 1;
             }
         } catch (error) {
+            if (transactionalV116) throw error; // provider falha por item; persistência/infraestrutura falha o ciclo.
             item.error = error.message || 'carrier_sweep_failed';
             failed += 1;
+        } finally {
+            if (locked) await Shipment.updateOne({
+                _id: shipment._id,
+                'automation.dispatchLockedUntil': locked.automation.dispatchLockedUntil
+            }, { $set: { 'automation.dispatchLockedUntil': null } });
         }
 
         await appendDispatchEvent(shipment._id, 'carrier_status_sweep_attempt', {
@@ -1010,6 +1109,9 @@ export const processCarrierStatusSweep = async ({
         statusChanged,
         skipped,
         failed,
+        transactionalV116,
+        intervalMinutes: transactionalV116 ? carrierStatusSweepIntervalMinutes() : undefined,
+        reason: candidates.length ? 'poll_due' : 'poll_not_due_or_no_active_shipments',
         results
     };
     return lastCarrierSweep;
