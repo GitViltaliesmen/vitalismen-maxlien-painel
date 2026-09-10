@@ -1382,7 +1382,8 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     carrierRefresh: refresh?.carrierRefresh || null
                 };
                 if (refresh?.shipment) shipmentForSend = refresh.shipment;
-                if (canonicalPollCompleted && refresh?.carrierRefresh?.ok !== true) {
+                if (canonicalPollCompleted && (action === 'ready_for_pickup' || refresh?.skipped !== true)
+                    && refresh?.carrierRefresh?.ok !== true) {
                     item.reason = 'canonical_live_revalidation_failed';
                     skipped += 1;
                     results.push(item);
@@ -1394,6 +1395,12 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     item.action = action;
                     item.status = shipmentForSend.logistics?.status || '';
                 }
+            }
+            if (canonicalPollCompleted && action === 'ready_for_pickup' && item.preDispatchSync?.carrierRefresh?.ok !== true) {
+                item.reason = 'canonical_live_revalidation_required';
+                skipped += 1;
+                results.push(item);
+                continue;
             }
             const statusProjection = canonicalPollCompleted && shipmentForSend.logistics?.canonicalEvidence?.source === 'carrier_tracking'
                 ? { ok: true, reason: 'servientrega_canonical_poll_authoritative' }

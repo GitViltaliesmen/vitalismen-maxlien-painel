@@ -31,7 +31,7 @@
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
     "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",
     "scripts/test-v147-r4-staging-sink.mjs": "a7ddf675779244d94513a0bc2200882f80a221dc3db5ef0e8bfd875e9aa8e006",
-    "src/services/shipmentStatusDispatcherService.js": "6b34bccc9934b9693bc3d7183619faa7f1065033c19d5d42f5e91c226e1bb47c",
+    "src/services/shipmentStatusDispatcherService.js": "9d398bce497300c3713092cec87d2485834952aad07f3d391c7ca25220e85ce8",
     "tests/helpers/v147-r4-sink-loader.mjs": "18e95b0026056b2dfb57438458d0a8952fbf50644fe0e88308a6e56e9f90a56a",
     "tests/helpers/v147-r4-sink-register.mjs": "4ed4ebda61eb7cddf2f8f0e41f0ef39cb9a44c046cca4fe4fd309213211cfd96",
     "tests/v116-canonical-polling-v147-r4.test.mjs": "8039ec39a827eb805021da9527821c00eaf86e76381cfecd71a5d107f33b8281"
