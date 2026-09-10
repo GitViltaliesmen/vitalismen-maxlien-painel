@@ -72,7 +72,7 @@ if [[ "$action" == "staging-check" ]]; then
   [[ -f "$candidate_preload" && ! -L "$candidate_preload" ]] || die "preload oficial V97 ausente na release staging"
   export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
   output="$log_dir/$(basename "$candidate").post-sale-v116-staging-$(date -u +%Y%m%dT%H%M%SZ).json"
-  if ! (cd "$candidate" && node scripts/post-sale-transactional-batch-v116.mjs plan >"$output"); then
+  if ! (cd "$current" && node "$candidate/scripts/post-sale-transactional-batch-v116.mjs" plan >"$output"); then
     chmod 0600 "$output" 2>/dev/null || true
     die "executor V116 staging falhou"
   fi

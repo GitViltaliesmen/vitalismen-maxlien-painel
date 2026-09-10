@@ -111,7 +111,8 @@ assert.doesNotMatch(catalog, /canonical_payment|payment_guard|payment_confirmed/
 
 const v116 = text('ops/post-sale-v116');
 assert.match(v116, /staging-check/);
-assert.match(v116, /post-sale-transactional-batch-v116\.mjs plan/);
+assert.match(v116, /post-sale-transactional-batch-v116\.mjs"? plan/);
+assert.match(v116, /cd "\$current" && node "\$candidate\/scripts\/post-sale-transactional-batch-v116\.mjs" plan/);
 assert.match(v116, /candidate\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs/);
 assert.match(v116, /--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs/);
 assert.match(v116, /NO_EROFS=YES/);
