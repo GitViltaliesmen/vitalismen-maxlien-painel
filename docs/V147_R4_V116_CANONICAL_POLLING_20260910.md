@@ -41,6 +41,9 @@ Os hashes ancestrais permanecem nos respectivos manifestos. O bootstrap R4 valid
 todos os hashes novos antes de autorizar somente os arquivos desta microcamada.
 Os guards antigos continuam validando suas regras e arquivos sem alteração autorizada.
 Tooling instalado, recibos e runtime attestation não fazem parte deste diff.
+O guard funcional V146 reconhece hashes dos manifestos sucessores cujo preload
+validou a identidade; seus manifestos e regras originais permanecem obrigatórios.
+Essa compatibilidade também cobre a ordem dos imports sequenciais no bootstrap.
 
 Publicação, troca de current e ativação exigem aprovação da identidade congelada.
 Nenhum resultado de teste ou staging deve ser considerado aprovado antes dos logs

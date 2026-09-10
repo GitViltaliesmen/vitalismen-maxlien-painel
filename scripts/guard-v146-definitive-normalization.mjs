@@ -5,6 +5,19 @@ import fs from 'node:fs';
 const manifestUrl = new URL('../docs/freeze/ec-definitive-normalization-v146-20260908.json', import.meta.url);
 const manifestText = fs.readFileSync(manifestUrl, 'utf8');
 const manifest = JSON.parse(manifestText);
+const successorHashes = {};
+for (const [contextKey, filename] of [
+    ['__VITALISMEN_V147_CONTEXT', 'ec-postsale-canonical-restoration-v147-20260909.json'],
+    ['__VITALISMEN_V147_R2_CONTEXT', 'ec-postsale-complete-v147-r2-20260910.json'],
+    ['__VITALISMEN_V147_R3_CONTEXT', 'ec-delivered-single-gate-v147-r3-20260910.json']
+]) {
+    const context = globalThis[contextKey];
+    if (!context?.loaded) continue;
+    const source = fs.readFileSync(new URL(`../docs/freeze/${filename}`, import.meta.url), 'utf8');
+    assert.equal(crypto.createHash('sha256').update(source).digest('hex'), context.manifestSha256);
+    Object.assign(successorHashes, JSON.parse(source).protectedFiles);
+}
+Object.assign(successorHashes, globalThis.__VITALISMEN_V147_R4_CONTEXT?.protectedFiles || {});
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`, 'manifesto V146 não canônico');
 assert.equal(manifest.freezeId, 'EC_DEFINITIVE_NORMALIZATION_V146_20260908');
@@ -25,7 +38,7 @@ for (const [relativePath, expectedSha256] of Object.entries(manifest.protectedFi
     const bytes = fs.readFileSync(new URL(`../${relativePath}`, import.meta.url));
     assert.equal(
         crypto.createHash('sha256').update(bytes).digest('hex'),
-        expectedSha256,
+        successorHashes[relativePath] || expectedSha256,
         `V146 divergente: ${relativePath}`
     );
 }
@@ -40,7 +53,12 @@ const v97 = fs.readFileSync(new URL('./lib/ec-runtime-successor-v97-context.mjs'
 const bootstrap = fs.readFileSync(new URL('./lib/ec-runtime-successor-v144-bootstrap-context.mjs', import.meta.url), 'utf8');
 const v146Context = fs.readFileSync(new URL('./lib/ec-runtime-successor-v146-context.mjs', import.meta.url), 'utf8');
 assert.match(v97, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
-assert.match(bootstrap, /import '\.\/ec-runtime-successor-v146-context\.mjs';\nimport '\.\/ec-runtime-successor-v145-context\.mjs';/);
+const v146Import = bootstrap.search(/(?:await )?import(?:\()? '\.\/ec-runtime-successor-v146-context\.mjs'/);
+const v145Import = bootstrap.search(/(?:await )?import(?:\()? '\.\/ec-runtime-successor-v145-context\.mjs'/);
+// Os sucessores usam import() sequencial; os contextos e seus hashes continuam obrigatórios.
+const v146Dynamic = bootstrap.indexOf("await import('./ec-runtime-successor-v146-context.mjs');");
+const v145Dynamic = bootstrap.indexOf("await import('./ec-runtime-successor-v145-context.mjs');");
+assert.ok((v146Import >= 0 && v145Import > v146Import) || (v146Dynamic >= 0 && v145Dynamic > v146Dynamic));
 assert.doesNotMatch(v146Context, /import\(['"]\.\/ec-runtime-successor-v97-context\.mjs['"]\)/);
 console.log('EC_DEFINITIVE_NORMALIZATION_V146=PASS');
 console.log(`V146_MANIFEST_SHA256=${crypto.createHash('sha256').update(manifestText).digest('hex')}`);

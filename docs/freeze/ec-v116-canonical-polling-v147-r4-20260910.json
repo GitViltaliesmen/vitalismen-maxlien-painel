@@ -11,6 +11,7 @@
     "package.json",
     "scripts/guard-delivered-single-gate-v147-r3.mjs",
     "scripts/guard-v116-canonical-polling-v147-r4.mjs",
+    "scripts/guard-v146-definitive-normalization.mjs",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs",
@@ -22,10 +23,11 @@
     "tests/v116-canonical-polling-v147-r4.test.mjs"
   ],
   "protectedFiles": {
-    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "e22187f1278638e565b57287da98500cd1e90c41e314411489a85478c93c8cb4",
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "c631ed037c0611d2b1ece6f0d544ebb9d2d2baac97b2262c85241678f2233420",
     "package.json": "6c0483b7453ef92b0a3e9ed007b1e8a901289a9792e7f77efc36b24733f4646f",
     "scripts/guard-delivered-single-gate-v147-r3.mjs": "c689d5c88ea8f1b6871e17d1e79b91e29ab67482bd653f721a4417808a933bf0",
-    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "ec9d704669eb5c795aa81242d6bbd68695bf0b447a7c3a77463ccabcd1fd89f2",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "b83b5c329cc9dd77cad5341fd6f734524c5c1bdfb53f1726e636f35adbd57cee",
+    "scripts/guard-v146-definitive-normalization.mjs": "105e0ceb6ddc706f4c3a9594cdcf245f2ea21d1d69e15ac6d40af57a43d2250c",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "36974f03de331f6d5d7083bf16f9fd09ae7147491d80f4be1f4c5525c2a3fac5",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",

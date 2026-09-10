@@ -22,4 +22,5 @@ assert.equal(manifest.policy.realMessagesSent, 0);
 assert.equal(manifest.policy.transport, 'SINK');
 assert.equal(manifest.policy.newScheduler, false);
 assert.equal(manifest.policy.newPoller, false);
+await import('./guard-v146-definitive-normalization.mjs');
 console.log('V147_R4_V116_CANONICAL_POLLING_GUARD=PASS');
