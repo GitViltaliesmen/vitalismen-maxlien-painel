@@ -97,7 +97,8 @@ test('audio ja enviado pelo gatilho manual ou pelo P7 nao e reenviado automatica
     assert.equal(sendCalls, 0);
 
     const shipmentSource = fs.readFileSync('src/services/shipmentMessageService.js', 'utf8');
-    assert.match(shipmentSource, /const baseName = pickupHowToUseAudioForShipment\(shipment\);/);
+    assert.match(shipmentSource, /const product = await resolveProductFn\(\{ shipment \}\);/);
+    assert.match(shipmentSource, /const baseName = pickupHowToUseAudioForShipment\(\{ productName: product\.productName \}\);/);
     assert.match(shipmentSource, /POST_SALE_VARIANTS\.PRODUCT_USAGE_AUDIO/);
     assert.match(shipmentSource, /kind: 'shipment_product_usage_audio'/);
     assert.match(shipmentSource, /reason: 'product_usage_audio_send_failed'/);

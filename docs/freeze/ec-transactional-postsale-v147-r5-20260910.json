@@ -22,6 +22,7 @@
     "src/services/postSaleNotificationDecisionService.js",
     "src/services/postSaleProductResolutionV147R5Service.js",
     "src/services/shipmentMessageService.js",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs",
     "tests/transactional-postsale-v147-r5.test.mjs"
   ],
   "protectedFiles": {
@@ -39,6 +40,7 @@
     "src/services/postSaleNotificationDecisionService.js": "b571edd47a7e86381a209d0f63a1cae9726159c4634ab55eb79a8866b7c9defd",
     "src/services/postSaleProductResolutionV147R5Service.js": "a3aab5f6dbcde7e7ca495dd951cc14192cbd4b008e70a1180250b0a93b251b2f",
     "src/services/shipmentMessageService.js": "40823a6431326a90c9b81bb7889f823de0ecd134f24363b6f5244b9b7d854bd1",
+    "tests/tex-ultra-how-to-use-audio-v31.test.mjs": "1656ef4ea18eff5af697c5471eba7088f9604ef1b420a7a4114d18356ef9a65d",
     "tests/transactional-postsale-v147-r5.test.mjs": "38a2238b949fb4a9dde45f82cb49a34830f50135b1396d8d2aa59cc1f53a58d2"
   },
   "preservedFiles": {
