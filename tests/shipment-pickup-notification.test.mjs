@@ -62,19 +62,16 @@ test('cada aviso reconhece somente sua propria evidencia', () => {
 
 test('cadencia retorna uma unica proxima etapa vencida por execucao', () => {
     const shipment = agencyShipment();
+    assert.equal(getDuePickupReminderStep(shipment, new Date('2026-07-04T11:59:59.000Z')), null);
     assert.equal(
-        getDuePickupReminderStep(shipment, new Date('2026-07-02T12:01:00.000Z')).kind,
-        'day1'
-    );
-    shipment.automation.reminderDay1At = new Date('2026-07-02T12:01:00.000Z');
-    assert.equal(
-        getDuePickupReminderStep(shipment, new Date('2026-07-03T12:01:00.000Z')).kind,
-        'soft_day2'
-    );
-    shipment.automation.reminderSoftDay2At = new Date('2026-07-03T12:01:00.000Z');
-    assert.equal(
-        getDuePickupReminderStep(shipment, new Date('2026-07-04T12:01:00.000Z')).kind,
+        getDuePickupReminderStep(shipment, new Date('2026-07-04T12:00:00.000Z')).kind,
         'day3'
+    );
+    shipment.automation.reminderDay3At = new Date('2026-07-04T12:00:00.000Z');
+    assert.equal(getDuePickupReminderStep(shipment, new Date('2026-07-06T11:59:59.000Z')), null);
+    assert.equal(
+        getDuePickupReminderStep(shipment, new Date('2026-07-06T12:00:00.000Z')).kind,
+        'day5'
     );
 });
 

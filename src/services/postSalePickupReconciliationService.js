@@ -101,50 +101,17 @@ export const reconcileExplicitDropiPickupReleases = async ({
     for (const shipment of shipments) {
         if (!canaryV75SchedulerShipmentAllowed(shipment).allowed) continue;
         if (!shipmentHasExplicitDropiPickupRelease(shipment)) continue;
-        const changed = shipment.logistics?.status !== 'READY_FOR_PICKUP'
-            || shipment.logistics?.pickupReadyVerified !== true
-            || shipment.logistics?.pickupReadyVerifiedSource !== 'dropi_explicit_pickup_release';
+        // V147 conserva o status Dropi somente como evidência auxiliar. A
+        // liberação para retirada exige uma leitura live da transportadora.
+        const changed = false;
         const item = {
             orderId: shipment.orderId,
             trackingNumber: shipment.logistics?.trackingNumber || '',
             beforeStatus: shipment.logistics?.status || '',
             changed,
-            dryRun: Boolean(dryRun)
+            dryRun: Boolean(dryRun),
+            reason: 'servientrega_live_required_for_pickup_release'
         };
-        if (!dryRun && changed) {
-            const now = new Date();
-            shipment.logistics.status = 'READY_FOR_PICKUP';
-            shipment.logistics.pickupReadyVerified = true;
-            shipment.logistics.pickupReadyVerifiedAt = shipment.logistics.pickupReadyVerifiedAt || now;
-            shipment.logistics.pickupReadyVerifiedSource = 'dropi_explicit_pickup_release';
-            shipment.logistics.lastStatusAt = now;
-            shipment.events.push({
-                kind: 'dropi_explicit_pickup_release_reconciled',
-                at: now,
-                payload: {
-                    previousStatus: item.beforeStatus,
-                    status: 'READY_FOR_PICKUP',
-                    dropiStatus: latestDropiStatus(shipment),
-                    trackingNumber: item.trackingNumber,
-                    pickupReadyVerified: true,
-                    pickupReadyVerifiedSource: 'dropi_explicit_pickup_release'
-                }
-            });
-            shipment.events = shipment.events.slice(-80);
-            await shipment.save();
-
-            const order = await Order.findOne({ country: 'EC', orderId: shipment.orderId }).catch(() => null);
-            if (order && !['delivered', 'returned', 'cancelled'].includes(String(order.status || '').toLowerCase())) {
-                order.status = 'shipped';
-                order.shippingStatus = 'READY_FOR_PICKUP';
-                if (item.trackingNumber) order.trackingNumber = item.trackingNumber;
-                await order.save();
-                await Promise.resolve(syncOrderToOnlineAdminPanel(order, {
-                    status: 'shipped',
-                    action: 'dropi_explicit_pickup_release_reconciled'
-                })).catch(() => null);
-            }
-        }
         results.push(item);
     }
     return {
@@ -233,7 +200,9 @@ export const processExplicitDropiPickupReleaseQueue = async ({
         ...explicitDropiQuery({ orderIds: uniqueOrderIds }),
         ...(!dryRun ? {
             'logistics.status': 'READY_FOR_PICKUP',
-            'logistics.pickupReadyVerified': true
+            'logistics.canonicalStatus': 'READY_FOR_PICKUP',
+            'logistics.pickupReadyVerified': true,
+            'logistics.pickupReadyVerifiedSource': 'carrier_tracking'
         } : {}),
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },

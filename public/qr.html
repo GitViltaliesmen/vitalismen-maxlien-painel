@@ -11872,10 +11872,10 @@
                 return;
             }
             logisticsBanner.hidden = false;
-            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified ? 'ready' : ''}`;
-            if (shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified) {
+            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified ? 'ready' : ''}`;
+            if (shipment.status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified) {
                 logisticsBanner.innerHTML = '<span>✅ PRONTO PARA RETIRADA</span><span>✅ CLIENTE JÁ PODE IR</span>';
-            } else if (['SHIPPED', 'IN_TRANSIT', 'READY_FOR_PICKUP'].includes(shipment.status)) {
+            } else if (['GUIDE_CREATED', 'PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY', 'READY_FOR_PICKUP'].includes(shipment.status)) {
                 logisticsBanner.innerHTML = shipment.status === 'READY_FOR_PICKUP'
                     ? '<span>⚠️ READY NÃO VERIFICADO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>'
                     : '<span>📦 ENVIADO</span><span>🚚 EM TRÂNSITO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>';
@@ -12097,13 +12097,13 @@
         const shipmentStatusFromChat = (chat) => {
             const shipment = chat?.shipment || {};
             const status = String(shipment.status || '').toUpperCase();
-            if (/DEVUELT|DEVOLUC|RETURN/.test(status)) return 'devolvido';
-            if (/ENTREGAD|DELIVER/.test(status) || shipment.bonusNotifiedAt) return 'entregue';
+            if (['RETURNED', 'DEVUELTO'].includes(status)) return 'devolvido';
+            if (['DELIVERED', 'ENTREGADO'].includes(status) || shipment.bonusNotifiedAt) return 'entregue';
             if (
                 shipment.trackingNumber
                 || shipment.guiaNotifiedAt
                 || shipment.readyForPickupNotifiedAt
-                || /READY_FOR_PICKUP|RETIRO|RETIRADA|GUIA|RUTA|REPARTO|DESPACHO|BODEGA|AGENCIA|PENDIENTE|INGRESANDO|TRANSPORTADORA/.test(status)
+                || ['GUIDE_CREATED', 'PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY', 'READY_FOR_PICKUP', 'NOT_PICKED_UP', 'RETURNING', 'EXCEPTION'].includes(status)
             ) return 'pedido_enviado';
             return '';
         };
@@ -12128,13 +12128,18 @@
             const shipment = chat?.shipment || {};
             const status = String(shipment.status || '').toUpperCase();
             const trackingNumber = String(shipment.trackingNumber || '').trim();
-            if (status.includes('NOVEDAD')) return { label: 'Novedad Servientrega', className: 'notice warn' };
-            if (/ENTREGADO|DELIVERED/.test(status)) return { label: 'Entregue', className: 'notice ok' };
-            if (/READY_FOR_PICKUP|AGENCIA|RETIRO|RETIRADA/.test(status)) return { label: 'Retiro agencia', className: 'notice ok' };
-            if (/RUTA|REPARTO|DESPACHO|TRANSITO|EN_CAMINO/.test(status)) return { label: 'Em rota', className: 'notice ok' };
-            if (trackingNumber || /GUIA_GENERADA|PREPARADO|PENDIENTE|BODEGA|MERCANCIA/.test(status)) {
-                return { label: trackingNumber ? 'Guia gerada' : 'Pedido enviado', className: 'notice ok' };
+            if (status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified === true) {
+                return { label: shipment.panelLabel || 'Disponível para retirada', className: 'notice ok' };
             }
+            if (status === 'DELIVERED') return { label: shipment.panelLabel || 'Entregue', className: 'notice ok' };
+            if (status === 'RETURNED') return { label: shipment.panelLabel || 'Devolvido', className: 'notice warn' };
+            if (['NOT_PICKED_UP', 'RETURNING', 'EXCEPTION', 'UNKNOWN'].includes(status)) {
+                return { label: shipment.panelLabel || 'Revisão logística', className: 'notice warn' };
+            }
+            if (['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(status)) {
+                return { label: shipment.panelLabel || 'Em trânsito · ainda não retirar', className: 'notice ok' };
+            }
+            if (status === 'GUIDE_CREATED' || trackingNumber) return { label: shipment.panelLabel || 'Guia gerada · ainda não retirar', className: 'notice ok' };
             return null;
         };
         const visibleShipmentNoticeLabel = (chat) => {

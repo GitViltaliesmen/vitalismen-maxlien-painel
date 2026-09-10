@@ -5,6 +5,10 @@ import {
     syncContactDraftToOnlineAdminPanel,
     syncOrderToOnlineAdminPanel
 } from './adminPanelStatusService.js';
+import {
+    canonicalLogisticsProjectionForShipmentV147,
+    canonicalLogisticsProjectionV147
+} from './canonicalLogisticsStatusV147Service.js';
 
 const normalizeStatus = (status = '') => String(status || '').trim().toUpperCase();
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
@@ -20,7 +24,15 @@ const SHIPPED_STATUSES = new Set([
     'EN_REPARTO',
     'EN_DISTRIBUCION_A_CLIENTE',
     'READY_FOR_PICKUP',
-    'NOVEDAD'
+    'NOVEDAD',
+    'GUIDE_CREATED',
+    'PICKED_UP_BY_CARRIER',
+    'IN_TRANSIT',
+    'LOGISTICS_CENTER',
+    'ENTERING_AGENCY',
+    'NOT_PICKED_UP',
+    'RETURNING',
+    'EXCEPTION'
 ]);
 
 const LOGISTICS_STATUS_RANK = Object.freeze({
@@ -136,6 +148,7 @@ const persistCanonicalContactState = async ({ state, order, shipment, orderStatu
     const dropiOrderId = dropiOrderIdForShipment(shipment);
     const trackingNumber = digitsOnly(shipment?.logistics?.trackingNumber);
     const logisticsStatus = normalizeStatus(shipment?.logistics?.status);
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     const externalEvidence = historicalExternalReconciliation(shipment);
     const nextCustomerDraft = {
         ...customerDraft,
@@ -145,6 +158,12 @@ const persistCanonicalContactState = async ({ state, order, shipment, orderStatu
     const nextLogistics = {
         ...logistics,
         ...(logisticsStatus ? { status: logisticsStatus } : {}),
+        canonicalStatus: canonical.canonicalStatus,
+        canPickup: canonical.canPickup,
+        terminal: canonical.terminal,
+        reminderEligible: canonical.reminderEligible,
+        reviewRequired: canonical.reviewRequired,
+        panelLabel: canonical.panelLabel,
         ...(dropiOrderId ? { dropiOrderId } : {}),
         ...(trackingNumber ? { trackingNumber } : {}),
         ...(shipment?.logistics?.distributionCompany
@@ -182,8 +201,8 @@ const appendNoteOnce = (notes = '', line = '') => {
 
 export const orderStatusForLogisticsStatus = (status = '') => {
     const normalized = normalizeStatus(status);
-    if (normalized === 'ENTREGADO') return 'delivered';
-    if (normalized === 'DEVUELTO') return 'returned';
+    if (['ENTREGADO', 'DELIVERED'].includes(normalized)) return 'delivered';
+    if (['DEVUELTO', 'RETURNED'].includes(normalized)) return 'returned';
     if (['CANCELADO', 'RECHAZADO'].includes(normalized)) return 'cancelled';
     if (SHIPPED_STATUSES.has(normalized)) return 'shipped';
     return '';
@@ -198,7 +217,7 @@ const applyShipmentOutcome = (shipment, status, now) => {
     shipment.automation = shipment.automation || {};
     shipment.review = shipment.review || {};
 
-    if (status === 'ENTREGADO') {
+    if (['ENTREGADO', 'DELIVERED'].includes(status)) {
         shipment.outcomes.delivered = true;
         shipment.outcomes.pickedUp = true;
         shipment.outcomes.returned = false;
@@ -211,7 +230,7 @@ const applyShipmentOutcome = (shipment, status, now) => {
         return;
     }
 
-    if (status === 'DEVUELTO') {
+    if (['DEVUELTO', 'RETURNED'].includes(status)) {
         shipment.outcomes.delivered = false;
         shipment.outcomes.pickedUp = false;
         shipment.outcomes.returned = true;
@@ -223,10 +242,14 @@ const applyShipmentOutcome = (shipment, status, now) => {
         return;
     }
 
-    if (status === 'NOVEDAD') {
+    if (['NOVEDAD', 'EXCEPTION', 'NOT_PICKED_UP', 'RETURNING'].includes(status)) {
         shipment.review.manualOnly = true;
-        shipment.review.reviewReason = 'novedad_servientrega';
-        shipment.review.reviewStatus = 'carrier_novedad';
+        shipment.review.reviewReason = status === 'NOVEDAD' || status === 'EXCEPTION'
+            ? 'novedad_servientrega'
+            : `carrier_${status.toLowerCase()}`;
+        shipment.review.reviewStatus = status === 'NOVEDAD' || status === 'EXCEPTION'
+            ? 'carrier_novedad'
+            : `carrier_${status.toLowerCase()}`;
         return;
     }
 
@@ -239,9 +262,11 @@ const applyShipmentOutcome = (shipment, status, now) => {
 
 const applyOrderReviewState = (order, status, shipment, now) => {
     order.reviewQueue = order.reviewQueue || {};
-    if (status === 'NOVEDAD') {
+    if (['NOVEDAD', 'EXCEPTION', 'NOT_PICKED_UP', 'RETURNING'].includes(status)) {
         order.reviewQueue.status = 'conferir_pedidos';
-        order.reviewQueue.reason = 'novedad_servientrega';
+        order.reviewQueue.reason = status === 'NOVEDAD' || status === 'EXCEPTION'
+            ? 'novedad_servientrega'
+            : `carrier_${status.toLowerCase()}`;
         order.reviewQueue.evidence = [
             shipment.logistics?.distributionCompany || 'SERVIENTREGA',
             shipment.logistics?.trackingNumber || '',
@@ -286,17 +311,53 @@ export const applyShipmentLifecycleStatus = async ({
         events: shipment.events || []
     });
     const previousStatus = normalizeStatus(shipment.logistics?.status || '');
+    const previousCanonicalStatus = canonicalLogisticsProjectionForShipmentV147(shipment).canonicalStatus;
     const effectiveStatus = nonRegressingLogisticsStatus(previousStatus, normalizedStatus);
     const statusChanged = effectiveStatus !== previousStatus;
     shipment.logistics = shipment.logistics || {};
     shipment.logistics.status = effectiveStatus;
+    const canonical = carrierResult?.canonicalStatus
+        ? canonicalLogisticsProjectionV147({
+            provider: carrierResult.carrier || source,
+            providerCode: carrierResult.providerStatusCode || carrierResult.statusCode || '',
+            providerStatus: carrierResult.statusAtual || carrierResult.providerStatus || '',
+            providerSubstatus: carrierResult.providerSubstatus || carrierResult.ultimoMovimiento || '',
+            legacyStatus: carrierResult.canonicalStatus
+        })
+        : canonicalLogisticsProjectionV147({
+            provider: carrierResult?.carrier || source,
+            providerCode: carrierResult?.providerStatusCode || carrierResult?.statusCode || '',
+            providerStatus: carrierResult?.statusAtual || carrierResult?.providerStatus || '',
+            providerSubstatus: carrierResult?.providerSubstatus || carrierResult?.ultimoMovimiento || '',
+            legacyStatus: normalizedStatus
+        });
+    const canonicalChanged = canonical.canonicalStatus !== previousCanonicalStatus;
+    shipment.logistics.canonicalStatus = canonical.canonicalStatus;
+    const previousCanonicalEvidence = shipment.logistics.canonicalEvidence || {};
+    const nextCanonicalEvidence = {
+        provider: canonical.provider,
+        rawCode: canonical.rawCode,
+        rawStatus: canonical.rawStatus,
+        rawSubstatus: canonical.rawSubstatus,
+        source
+    };
+    const canonicalEvidenceChanged = ['provider', 'rawCode', 'rawStatus', 'rawSubstatus', 'source']
+        .some((field) => String(previousCanonicalEvidence?.[field] || '') !== String(nextCanonicalEvidence[field] || ''));
+    if (canonicalChanged || canonicalEvidenceChanged || !previousCanonicalEvidence.observedAt) {
+        shipment.logistics.canonicalEvidence = { ...nextCanonicalEvidence, observedAt: now };
+    }
+    shipment.logistics.terminal = canonical.terminal;
+    shipment.logistics.canPickup = canonical.canPickup;
+    shipment.logistics.reminderEligible = canonical.reminderEligible;
+    shipment.logistics.reviewRequired = canonical.reviewRequired;
+    shipment.logistics.panelLabel = canonical.panelLabel;
     if (statusChanged) shipment.logistics.lastStatusAt = now;
-    if (effectiveStatus === 'READY_FOR_PICKUP' && source === 'carrier_tracking'
-        && (statusChanged || shipment.logistics.pickupReadyVerified !== true)) {
+    if (canonical.canPickup && source === 'carrier_tracking'
+        && (canonicalChanged || shipment.logistics.pickupReadyVerified !== true)) {
         shipment.logistics.pickupReadyVerified = true;
         shipment.logistics.pickupReadyVerifiedAt = now;
         shipment.logistics.pickupReadyVerifiedSource = 'carrier_tracking';
-    } else if (effectiveStatus !== 'READY_FOR_PICKUP') {
+    } else if (!canonical.canPickup || source !== 'carrier_tracking') {
         shipment.logistics.pickupReadyVerified = false;
         shipment.logistics.pickupReadyVerifiedAt = null;
         shipment.logistics.pickupReadyVerifiedSource = '';
@@ -304,10 +365,10 @@ export const applyShipmentLifecycleStatus = async ({
     if (carrierResult?.trackingNumber) shipment.logistics.trackingNumber = carrierResult.trackingNumber;
     if (carrierResult?.carrier) shipment.logistics.distributionCompany = String(carrierResult.carrier || '').toUpperCase();
 
-    applyShipmentOutcome(shipment, effectiveStatus, now);
+    applyShipmentOutcome(shipment, canonical.canonicalStatus, now);
 
     shipment.events = Array.isArray(shipment.events) ? shipment.events : [];
-    if (statusChanged) shipment.events.push({
+    if (statusChanged || canonicalChanged) shipment.events.push({
         kind: 'shipment_lifecycle_status_applied',
         at: now,
         payload: {
@@ -315,13 +376,21 @@ export const applyShipmentLifecycleStatus = async ({
             previousStatus,
             status: effectiveStatus,
             observedStatus: normalizedStatus,
+            previousCanonicalStatus,
+            canonicalStatus: canonical.canonicalStatus,
+            rawCode: canonical.rawCode,
+            rawStatus: canonical.rawStatus,
+            rawSubstatus: canonical.rawSubstatus,
+            terminal: canonical.terminal,
+            canPickup: canonical.canPickup,
+            reminderEligible: canonical.reminderEligible,
             orderStatus: orderStatusForLogisticsStatus(effectiveStatus),
             trackingNumber: shipment.logistics?.trackingNumber || '',
             carrier: shipment.logistics?.distributionCompany || '',
             pickupReadyVerified: shipment.logistics?.pickupReadyVerified === true,
-            customerEligibility: effectiveStatus === 'ENTREGADO'
+            customerEligibility: canonical.canonicalStatus === 'DELIVERED'
                 ? 'released_for_new_order'
-                : (effectiveStatus === 'DEVUELTO' ? 'prepaid_only_required' : 'unchanged')
+                : (canonical.canonicalStatus === 'RETURNED' ? 'prepaid_only_required' : 'unchanged')
         }
     });
     shipment.events = shipment.events.slice(-80);
@@ -335,7 +404,7 @@ export const applyShipmentLifecycleStatus = async ({
     const shipmentChanged = shipmentProjectionAfter !== shipmentProjectionBefore;
     if (shipmentChanged) await shipment.save();
 
-    const proposedOrderStatus = orderStatusForLogisticsStatus(effectiveStatus);
+    const proposedOrderStatus = orderStatusForLogisticsStatus(canonical.canonicalStatus);
     let orderStatus = proposedOrderStatus;
     let adminSync = null;
     let contactState = null;
@@ -348,6 +417,7 @@ export const applyShipmentLifecycleStatus = async ({
             const orderProjectionBefore = JSON.stringify({
                 status: order.status || '',
                 shippingStatus: order.shippingStatus || '',
+                shippingCanonicalStatus: order.shippingCanonicalStatus || '',
                 dropiOrderId: order.dropiOrderId || '',
                 trackingNumber: order.trackingNumber || '',
                 reviewQueue: order.reviewQueue || {},
@@ -357,19 +427,22 @@ export const applyShipmentLifecycleStatus = async ({
             orderStatus = nonRegressingCanonicalOrderStatus(previousOrderStatus, proposedOrderStatus);
             order.status = orderStatus;
             order.shippingStatus = effectiveStatus;
+            order.shippingCanonicalStatus = canonical.canonicalStatus;
+            order.shippingCanonicalEvidence = shipment.logistics.canonicalEvidence;
             const dropiOrderId = dropiOrderIdForShipment(shipment);
             if (dropiOrderId) order.dropiOrderId = dropiOrderId;
             if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            applyOrderReviewState(order, effectiveStatus, shipment, now);
-            if (previousOrderStatus !== orderStatus || ['NOVEDAD', 'ENTREGADO', 'DEVUELTO'].includes(effectiveStatus)) {
+            applyOrderReviewState(order, canonical.canonicalStatus, shipment, now);
+            if (previousOrderStatus !== orderStatus || ['EXCEPTION', 'DELIVERED', 'RETURNED', 'NOT_PICKED_UP', 'RETURNING'].includes(canonical.canonicalStatus)) {
                 order.notes = appendNoteOnce(
                     order.notes,
-                    `Servientrega status ${effectiveStatus}${shipment.logistics?.trackingNumber ? ` guia ${shipment.logistics.trackingNumber}` : ''}`
+                    `Servientrega status ${canonical.canonicalStatus}${shipment.logistics?.trackingNumber ? ` guia ${shipment.logistics.trackingNumber}` : ''}`
                 );
             }
             const orderProjectionAfter = JSON.stringify({
                 status: order.status || '',
                 shippingStatus: order.shippingStatus || '',
+                shippingCanonicalStatus: order.shippingCanonicalStatus || '',
                 dropiOrderId: order.dropiOrderId || '',
                 trackingNumber: order.trackingNumber || '',
                 reviewQueue: order.reviewQueue || {},
@@ -443,6 +516,9 @@ export const applyShipmentLifecycleStatus = async ({
         previousStatus,
         observedStatus: normalizedStatus,
         effectiveStatus,
+        canonicalStatus: canonical.canonicalStatus,
+        canonical,
+        canonicalChanged,
         statusChanged,
         shipmentChanged,
         orderStatus,

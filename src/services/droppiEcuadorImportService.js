@@ -175,6 +175,12 @@ export const restoreHistoricalExternalDroppiBinding = async ({
     }
 
     const canonicalOrderId = clean(existingOrder?.orderId) || identity.orderId;
+    const canonicalProductName = clean(
+        existingOrder?.tracking?.productName
+        || existingOrder?.tracking?.product
+        || existingOrder?.package?.label
+    );
+    const canonicalProductKey = clean(existingOrder?.tracking?.productKey);
     const restoredAt = now();
     const suppressions = historicalSuppressedNotifications(identity.status);
     const expected = {
@@ -187,9 +193,10 @@ export const restoreHistoricalExternalDroppiBinding = async ({
         carrier: 'SERVIENTREGA',
         status: identity.status,
         source: HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE,
-        productName: '',
-        quantity: null,
-        total: null,
+        productName: canonicalProductName,
+        productKey: canonicalProductKey,
+        quantity: existingOrder?.package?.quantity ?? null,
+        total: existingOrder?.total ?? null,
         messagesSent: 0
     };
     if (dryRun) return { ok: true, dryRun: true, restored: false, writes: 0, messagesSent: 0, identity, expected };
@@ -204,6 +211,8 @@ export const restoreHistoricalExternalDroppiBinding = async ({
         distributionCompany: 'SERVIENTREGA',
         preferredCarrier: 'SERVIENTREGA',
         historicalIdentityOnly: true,
+        ...(canonicalProductName ? { productName: canonicalProductName } : {}),
+        ...(canonicalProductKey ? { productKey: canonicalProductKey } : {}),
         reconciliationSource: HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE,
         customerId: identity.customerId,
         leadId: identity.leadId,

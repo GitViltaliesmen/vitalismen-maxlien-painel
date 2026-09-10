@@ -53,10 +53,14 @@ const scanFiles = (dir, predicate = () => true) => {
 const localEnv = read('.env');
 const envExample = read('.env.example');
 const codexWorkspaceActive = normalizePath(root) === normalizePath(codexOfficialWorkspace);
+const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
+    env: process.env,
+    cwd: root
+});
 // O workspace Codex nao recebe segredos nem a configuracao operacional do
 // VPS. Nesse caminho exato, o contrato seguro versionado e a fonte de flags.
 // A V48 preserva este gate também durante o saneamento restrito a status X -> X.
-const env = codexWorkspaceActive && !localEnv ? envExample : localEnv;
+const env = (codexWorkspaceActive || officialGithubActionsWorkspace) && !localEnv ? envExample : localEnv;
 const marker = read('.vitalismen-official-root');
 const hasEnv = (key, value) => new RegExp(`^${key}=${value}$`, 'm').test(env);
 const operationalAutomationApproved = hasEnv('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED', 'true');
@@ -169,11 +173,6 @@ const productScopedProtocolFiles = new Set([
     // overrides ancestrais auditados da nova camada visual do painel.
     'src/services/panelWarmupIsolationV118ManifestService.js'
 ]);
-const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
-    env: process.env,
-    cwd: root
-});
-
 assert(
     officialGithubActionsWorkspace
     || [localOfficialPath, windowsOfficialPath, codexOfficialWorkspace, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(

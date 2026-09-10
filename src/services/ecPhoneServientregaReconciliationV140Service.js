@@ -333,8 +333,7 @@ export const loadV140CanonicalBundles = async ({
     listAdminLeads = listOnlineAdminLeadsByWindow
 } = {}) => {
     const shipments = await executeFind(shipmentModel.find({ country: 'EC', provider: 'droppi' }), { sort: { updatedAt: -1 } });
-    const orderIds = [...new Set(shipments.map((shipment) => clean(shipment.orderId)).filter(Boolean))];
-    const orders = await executeFind(orderModel.find({ country: 'EC', orderId: { $in: orderIds } }), { sort: { updatedAt: -1 } });
+    const orders = await executeFind(orderModel.find({ country: 'EC' }), { sort: { updatedAt: -1 } });
     const states = await executeFind(contactStateModel.find({ countryCode: 'EC' }), { sort: { updatedAt: -1 } });
     const admin = listAdminLeads({ country: 'EC', limit: 5000 });
     const leads = admin?.ok ? admin.leads : [];
@@ -363,7 +362,23 @@ export const loadV140CanonicalBundles = async ({
         && phoneOfBundle(bundle)
         && (bundle.order || historicalExternalEvidenceOf(bundle))
     ));
-    const boundPhones = new Set(shipmentBundles.map(phoneOfBundle));
+    const shipmentOrderIds = new Set(shipments.map((shipment) => clean(shipment.orderId)).filter(Boolean));
+    const orderBundles = orders
+        .filter((order) => !shipmentOrderIds.has(clean(order.orderId)))
+        .map((order) => {
+            const phone = canonicalEcPhoneE164V140(order?.customer?.phone);
+            const state = states.find((item) => (
+                canonicalEcPhoneE164V140(item?.phoneDigits || item?.metadata?.customerDraft?.phone) === phone
+                && (!item?.metadata?.customerDraft?.orderId || item.metadata.customerDraft.orderId === order.orderId)
+            )) || states.find((item) => canonicalEcPhoneE164V140(item?.phoneDigits || item?.metadata?.customerDraft?.phone) === phone);
+            const lead = leads.find((item) => (
+                canonicalEcPhoneE164V140(item.phone || item.phone_e164) === phone
+                && (!item.notes || item.notes.includes(order.orderId))
+            )) || leads.find((item) => canonicalEcPhoneE164V140(item.phone || item.phone_e164) === phone);
+            return { shipment: null, order, state, lead, orderAnchor: true };
+        })
+        .filter((bundle) => bundle.order && bundle.state && bundle.lead && phoneOfBundle(bundle));
+    const boundPhones = new Set([...shipmentBundles, ...orderBundles].map(phoneOfBundle));
     const externalAnchors = [];
     for (const state of states) {
         const phone = canonicalEcPhoneE164V140(state?.phoneDigits || state?.metadata?.customerDraft?.phone);
@@ -379,7 +394,7 @@ export const loadV140CanonicalBundles = async ({
             });
         }
     }
-    return [...shipmentBundles, ...externalAnchors];
+    return [...shipmentBundles, ...orderBundles, ...externalAnchors];
 };
 
 const needsHistoricalBootstrap = (row, match) => {
@@ -492,7 +507,7 @@ export const reconcileV140Rows = async ({
         const carrier = await trackGuide(item.guide).catch((error) => ({ ok: false, reason: error.message || 'servientrega_query_failed' }));
         item.servientregaStatus = statusKey(carrier.normalizedStatus);
 
-        if (bundle.externalAnchor === true && !bundle.order && !bundle.shipment) {
+        if (!bundle.shipment && (bundle.externalAnchor === true || bundle.orderAnchor === true)) {
             report.reconcilable += 1;
             const restored = await restoreExternalBinding({
                 row,
@@ -501,7 +516,9 @@ export const reconcileV140Rows = async ({
                 carrier,
                 dryRun
             });
-            item.matchType = 'phone+dropiOrderId+guide+customerId+leadId';
+            item.matchType = bundle.order
+                ? 'phone+orderId+dropiOrderId+guide+customerId+leadId'
+                : 'phone+dropiOrderId+guide+customerId+leadId';
             item.classification = restored.ok
                 ? V140_RECONCILIATION_CLASSES.DIVERGENT
                 : V140_RECONCILIATION_CLASSES.ERROR;
@@ -509,7 +526,7 @@ export const reconcileV140Rows = async ({
                 ? 'historical_external_binding_required'
                 : restored.reason;
             item.before = {
-                localOrder: false,
+                localOrder: Boolean(bundle.order),
                 localShipment: false,
                 contactStatus: clean(bundle.state?.metadata?.customerDraft?.status).toLowerCase(),
                 contactLogisticsStatus: statusKey(bundle.state?.metadata?.logistics?.status),

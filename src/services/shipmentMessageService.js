@@ -139,12 +139,8 @@ export const isPickupProofText = (text = '') => {
     return PICKUP_PROOF_TEXT_REGEX.test(body) && !PICKUP_PROOF_FUTURE_TEXT_REGEX.test(body);
 };
 const PICKUP_REMINDER_SCHEDULE = [
-    { kind: 'day1', field: 'reminderDay1At', days: 1 },
-    { kind: 'soft_day2', field: 'reminderSoftDay2At', days: 2 },
     { kind: 'day3', field: 'reminderDay3At', days: 3 },
-    { kind: 'soft_day4', field: 'reminderSoftDay4At', days: 4 },
-    { kind: 'day5', field: 'reminderDay5At', days: 5 },
-    { kind: 'soft_day6', field: 'reminderSoftDay6At', days: 6 }
+    { kind: 'day5', field: 'reminderDay5At', days: 5 }
 ];
 const PICKUP_NOTICE_FIELDS_BY_KIND = {
     ready_for_pickup: 'readyForPickupNotifiedAt',
@@ -961,6 +957,13 @@ export const pickupBonusAntiSpamKey = (shipment = {}) => {
         || 'unknown_shipment';
     return `shipment_status:pickup_bonus:${shipmentIdentity}`;
 };
+
+export const shipmentPaymentConfirmed = (shipment = {}) => Boolean(
+    shipment?.raw?.paymentConfirmedAt
+    || shipment?.raw?.payment?.confirmedAt
+    || shipment?.raw?.payment?.status === 'paid'
+    || shipment?.raw?.latestDroppiPayload?.paymentStatus === 'paid'
+);
 
 export const buildRefillReminderText = (shipment) => {
     const units = Number(shipment?.treatment?.unitsPurchased || 1) || 1;
@@ -2357,7 +2360,10 @@ export const notifyPickupBonus = async (shipment) => {
         return false;
     }
 
-    const thankYouAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' });
+    const paymentConfirmed = shipmentPaymentConfirmed(shipment);
+    const thankYouAudioPath = paymentConfirmed
+        ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' })
+        : '';
     const thankYouAudioSent = thankYouAudioPath
         ? await sendShipmentAudioFile(shipment, chatId, thankYouAudioPath, {
             kind: 'shipment_pickup_bonus_thank_you_audio',
@@ -2438,6 +2444,7 @@ export const notifyPickupBonus = async (shipment) => {
     }, hash);
     await appendEvent(shipment._id, 'pickup_bonus_notified', {
         bonusUrl: BONUS_URL,
+        paymentConfirmed,
         thankYouAudioSent,
         howToUseAudioSent,
         howToUseAudioAlreadySent: Boolean(texUltraHowToUseRecord && !sendResultOk(howToUseAudioSent))
@@ -2875,6 +2882,8 @@ export const getPendingShipmentReminders = async () => {
         'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
+        'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+        'logistics.canonicalStatus': 'READY_FOR_PICKUP',
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         'automation.readyForPickupNotifiedAt': { $ne: null, $gte: oldestReadyForPickupAt },

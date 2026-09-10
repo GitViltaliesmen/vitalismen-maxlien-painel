@@ -169,6 +169,7 @@ export const postSaleNextEligibleCandidateQueryV112 = () => ({
         {
             'logistics.status': 'READY_FOR_PICKUP',
             'logistics.pickupReadyVerified': true,
+            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
             'automation.readyForPickupNotifiedAt': null,

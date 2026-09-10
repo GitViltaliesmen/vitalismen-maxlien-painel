@@ -14,6 +14,7 @@ import {
     terminalPostSaleSafetyEntry
 } from './postSaleSafetyV66Service.js';
 import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
+import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
 
 export const POST_SALE_NOTIFICATION_DECISIONS = Object.freeze({
     SHOULD_SEND: 'SHOULD_SEND',
@@ -85,7 +86,10 @@ const terminalLedgerPresent = (shipment = {}, stages = []) => stages.some((stage
 export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) => {
     const stage = canonicalPostSaleStage(kind);
     const status = statusKey(shipment?.logistics?.status);
-    const terminalOutcome = shipment?.outcomes?.delivered === true
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
+    const terminalOutcome = canonical.terminal
+        || ['NOT_PICKED_UP', 'RETURNING'].includes(canonical.canonicalStatus)
+        || shipment?.outcomes?.delivered === true
         || shipment?.outcomes?.pickedUp === true
         || shipment?.outcomes?.returned === true
         || [
@@ -93,10 +97,10 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
             'DEVUELTO', 'RETURNED', 'DEVOLUCION', 'NO_RETIRADO',
             'CANCELADO', 'CANCELADO_SERVIENTREGA'
         ].includes(status);
-    const readyOrLater = [
+    const readyOrLater = canonical.canonicalStatus === 'READY_FOR_PICKUP' || [
         'READY_FOR_PICKUP', 'LISTO_PARA_RETIRO', 'PARA_RETIRO_EN_AGENCIA', 'DISPONIBLE_PARA_RETIRO'
     ].includes(status) || terminalOutcome;
-    const inTransitOrLater = [
+    const inTransitOrLater = ['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus) || [
         'MERCANCIA_RECOGIDA', 'EN_BODEGA_TRANSPORTADORA', 'EN_DESPACHO',
         'EN_PROCESAMIENTO', 'EN_RUTA', 'EN_REPARTO', 'EN_DISTRIBUCION_A_CLIENTE'
     ].includes(status) || readyOrLater;
@@ -155,35 +159,43 @@ export const findManualHumanModeForShipment = async ({
 
 const eligibilityForKind = (shipment = {}, kind = '') => {
     const status = statusKey(shipment?.logistics?.status);
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     const tracking = digitsOnly(shipment?.logistics?.trackingNumber);
     if (kind === 'guide') {
-        return tracking.length >= 6 && !['ENTREGADO', 'DEVUELTO', 'CANCELADO'].includes(status);
+        return tracking.length >= 6 && !canonical.terminal && !['NOT_PICKED_UP', 'RETURNING'].includes(canonical.canonicalStatus);
     }
     if (kind === 'in_transit') {
-        return tracking.length >= 6 && [
-            'MERCANCIA_RECOGIDA', 'EN_BODEGA_TRANSPORTADORA', 'EN_DESPACHO',
-            'EN_PROCESAMIENTO', 'EN_RUTA', 'EN_REPARTO', 'EN_DISTRIBUCION_A_CLIENTE'
-        ].includes(status);
+        return tracking.length >= 6 && ['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus);
     }
     if (kind === 'ready_for_pickup') {
-        return status === 'READY_FOR_PICKUP'
+        return canonical.canonicalStatus === 'READY_FOR_PICKUP'
+            && canonical.canPickup === true
             && shipment?.logistics?.pickupReadyVerified === true
+            && (
+                shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+                || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
+            )
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
     if (kind === 'returned') {
-        return status === 'DEVUELTO' || shipment?.outcomes?.returned === true;
+        return canonical.canonicalStatus === 'RETURNED' || shipment?.outcomes?.returned === true;
     }
     if (kind.startsWith('pickup_reminder_') || kind === 'pickup_proof_request') {
-        return status === 'READY_FOR_PICKUP'
+        return canonical.canonicalStatus === 'READY_FOR_PICKUP'
+            && canonical.reminderEligible === true
             && shipment?.logistics?.pickupReadyVerified === true
+            && (
+                shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+                || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
+            )
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
     if (kind === 'pickup_bonus' || kind === 'treatment_refill_reminder') {
         return shipment?.outcomes?.pickedUp === true
             || shipment?.outcomes?.delivered === true
-            || status === 'ENTREGADO';
+            || canonical.canonicalStatus === 'DELIVERED';
     }
     return false;
 };
@@ -256,6 +268,9 @@ const persistTerminalSafetyDecision = async ({
 } = {}) => {
     const safetyState = safetyStateForDecision(decision);
     if (!shipment?._id || !safetyState) return { persisted: false };
+    if (shipmentModel === Shipment && !/^[a-f0-9]{24}$/i.test(String(shipment._id))) {
+        return { persisted: false, reason: 'non_persistent_fixture_identity' };
+    }
     const ledgerPath = postSaleLedgerPath(stage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage, variant });
     const result = await shipmentModel.updateOne(

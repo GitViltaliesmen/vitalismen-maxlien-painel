@@ -75,6 +75,8 @@ const orderSchema = new mongoose.Schema({
     trackingNumber: String,
     dropiOrderId: String,
     shippingStatus: String,
+    shippingCanonicalStatus: { type: String, default: 'UNKNOWN', index: true },
+    shippingCanonicalEvidence: { type: mongoose.Schema.Types.Mixed, default: {} },
     reviewQueue: {
         status: {
             type: String,

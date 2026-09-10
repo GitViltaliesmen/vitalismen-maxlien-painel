@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { buildPostSaleDedupeKeyV147 } from './canonicalLogisticsStatusV147Service.js';
 
 export const POST_SALE_RUNTIME_VERSION = 66;
 export const POST_SALE_DATA_COMPATIBILITY_VERSION = 66;
@@ -144,6 +145,20 @@ export const legacyKindForPostSaleStage = (stage = '') => ({
 export const buildPostSaleIdempotencyKey = ({ shipment = {}, stage = '', variant = '' } = {}) => {
     const canonicalStage = canonicalPostSaleStage(stage || variant);
     if (!canonicalStage) return '';
+    const customerId = clean(
+        shipment?.raw?.historicalExternalReconciliation?.customerId
+        || shipment?.raw?.customerId
+        || shipment?.client?.customerId
+        || `phone:${String(shipment?.client?.phone || '').replace(/\D/g, '')}`
+    );
+    const v147Key = buildPostSaleDedupeKeyV147({
+        customerId,
+        orderId: clean(shipment?.orderId),
+        shipmentId: clean(shipment?._id),
+        canonicalEvent: canonicalStage,
+        templateId: canonicalStage
+    });
+    if (v147Key) return v147Key;
     const identity = [
         'post-sale-v66',
         clean(shipment?.country || 'EC').toUpperCase(),

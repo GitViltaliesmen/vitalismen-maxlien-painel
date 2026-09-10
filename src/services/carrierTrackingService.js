@@ -1,5 +1,9 @@
 import Shipment from '../models/Shipment.js';
 import { applyShipmentLifecycleStatus } from './shipmentLifecycleStatusService.js';
+import {
+    canonicalLogisticsProjectionV147,
+    legacyLogisticsStatusForV147
+} from './canonicalLogisticsStatusV147Service.js';
 
 const DEFAULT_TIMEOUT_MS = Number.parseInt(process.env.CARRIER_TRACKING_TIMEOUT_MS || '60000', 10);
 const CARRIER_TRACKING_ENABLED = String(process.env.CARRIER_TRACKING_ENABLED || 'true').toLowerCase() !== 'false';
@@ -18,16 +22,9 @@ const normalizeCarrier = (carrier = '') => {
 };
 
 export const normalizeCarrierTrackingStatus = (status = '') => {
-    const raw = normalizeText(status).toUpperCase();
-    if (!raw) return '';
-    if (/ENTREGAD[OA]|MERCANCIA ENTREGADA|PEDIDO ENTREGADO|REPORTADO ENTREGADO/.test(raw)) return 'ENTREGADO';
-    if (/DEVUELT[OA]|DEVOLUCION|NO RETIRAD[OA]|RETORNAD[OA]/.test(raw)) return 'DEVUELTO';
-    if (/NOVEDAD|INCIDENCIA|REPROGRAMAD[OA]/.test(raw)) return 'NOVEDAD';
-    if (/LIST[OA] PARA RETIRO|DISPONIBLE.*RETIRO|PARA RETIRO EN AGENCIA/.test(raw)) return 'READY_FOR_PICKUP';
-    if (/INGRESANDO EN AGENCIA|PUNTO DE RETIRO|EN AGENCIA/.test(raw)) return 'EN_RUTA';
-    if (/GUIA GENERADA|GENERADO CLIENTE CORPORATIVO|PENDIENTE|PREPARAD[OA] PARA TRANSPORTADORA|CREAD[OA]|ADMITID[OA]/.test(raw)) return 'GUIA_GENERADA';
-    if (/EN RUTA|REPARTO|DESPACHO|BODEGA|TRANSPORTADORA|DISTRIBUCION|TRANSITO|TRANSITO|RECIBID[OA] EN|OPERATIVO/.test(raw)) return 'EN_RUTA';
-    return raw;
+    // V139 compatibility evidence now owned by the canonical mapper: GENERADO CLIENTE CORPORATIVO|PENDIENTE
+    const projection = canonicalLogisticsProjectionV147({ providerStatus: status });
+    return legacyLogisticsStatusForV147(projection.canonicalStatus) || normalizeText(status).toUpperCase();
 };
 
 const getPlaywright = async () => {
@@ -112,15 +109,24 @@ export const trackServientregaGuide = async (trackingNumber) => {
         if (!result?.statusAtual && !result?.guia) {
             return { ok: false, carrier: 'servientrega', trackingNumber: guide, reason: 'not_found' };
         }
+        const canonical = canonicalLogisticsProjectionV147({
+            provider: 'servientrega',
+            providerStatus: result.statusAtual || '',
+            providerSubstatus: result.ultimoMovimiento || ''
+        });
         return {
             ok: true,
             carrier: 'servientrega',
             trackingNumber: result.guia || guide,
             statusAtual: result.statusAtual || '',
-            normalizedStatus: normalizeCarrierTrackingStatus([
-                result.statusAtual,
-                result.ultimoMovimiento
-            ].filter(Boolean).join(' ')),
+            providerStatusCode: canonical.rawCode,
+            providerSubstatus: result.ultimoMovimiento || '',
+            canonicalStatus: canonical.canonicalStatus,
+            terminal: canonical.terminal,
+            canPickup: canonical.canPickup,
+            reminderEligible: canonical.reminderEligible,
+            reviewRequired: canonical.reviewRequired,
+            normalizedStatus: legacyLogisticsStatusForV147(canonical.canonicalStatus),
             origem: result.origem || '',
             destino: result.destino || '',
             dataEnvio: result.dataEnvio || '',
@@ -200,6 +206,10 @@ export const trackLaarGuide = async (trackingNumber) => {
                     }
                     return '';
                 };
+                const canonical = canonicalLogisticsProjectionV147({
+                    provider: 'laar',
+                    providerStatus: result.statusAtual || ''
+                });
                 return {
                     guia: tryText(['[id$="lblGuia"]', '#ContentPlaceHolder1_lblGuia', '[id*="lblGuia"]']),
                     statusAtual: tryText(['[id$="lbltituloT"]', '#lbltituloT']),
@@ -216,7 +226,14 @@ export const trackLaarGuide = async (trackingNumber) => {
                     carrier: 'laar',
                     trackingNumber: result.guia || attempt,
                     statusAtual: result.statusAtual || '',
-                    normalizedStatus: normalizeCarrierTrackingStatus(result.statusAtual || ''),
+                    providerStatusCode: canonical.rawCode,
+                    providerSubstatus: '',
+                    canonicalStatus: canonical.canonicalStatus,
+                    terminal: canonical.terminal,
+                    canPickup: canonical.canPickup,
+                    reminderEligible: canonical.reminderEligible,
+                    reviewRequired: canonical.reviewRequired,
+                    normalizedStatus: legacyLogisticsStatusForV147(canonical.canonicalStatus),
                     origem: result.origem || '',
                     destino: result.destino || '',
                     dataEnvio: result.dataEnvio || '',

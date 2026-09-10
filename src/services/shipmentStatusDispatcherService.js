@@ -27,6 +27,7 @@ import {
     dropiPostSaleEvidenceV139,
     persistDropiStatusProjectionV139
 } from './ecDropiStatusPostSaleV139Service.js';
+import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
 const DEFAULT_CARRIER_SWEEP_LIMIT = Number.parseInt(process.env.SHIPMENT_CARRIER_STATUS_SWEEP_BATCH_LIMIT || '6', 10);
@@ -261,8 +262,9 @@ const resolveDispatchSessionForShipment = async ({
     dailySessionCounts,
     now = new Date()
 } = {}) => {
-    const perSessionLimit = dispatchHourlyLimitPerSession();
-    const perSessionDailyLimit = dispatchDailyLimitPerSession();
+    const scopedQuotaActive = postSaleTransactionalSafetyV116Enabled();
+    const perSessionLimit = scopedQuotaActive ? 0 : dispatchHourlyLimitPerSession();
+    const perSessionDailyLimit = scopedQuotaActive ? 0 : dispatchDailyLimitPerSession();
     const jid = toWhatsAppChatId(shipment?.client?.phone || '', shipment?.country || 'EC');
     if (!jid) return { ok: false, reason: 'invalid_chat' };
 
@@ -348,12 +350,12 @@ const resolveDispatchQuota = async ({ requestedLimit, now = new Date() } = {}) =
     const timeZone = dispatchTimeZone();
     const day = dispatchDayRange(now, timeZone);
 
-    if (!dailyLimit) {
+    if (!dailyLimit || postSaleTransactionalSafetyV116Enabled()) {
         return {
             allowed: true,
-            limit: requestedLimit,
-            reason: 'unlimited',
-            dailyLimit: 0,
+            limit: Math.max(1, Math.min(requestedLimit, dailyLimit || requestedLimit)),
+            reason: dailyLimit ? 'scoped_event_quota_v147' : 'unlimited',
+            dailyLimit,
             sentToday: 0,
             timeZone,
             dayKey: day.key,
@@ -683,7 +685,9 @@ export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Dat
     if (actionSet.has('ready_for_pickup')) {
         branches.push({
             'logistics.status': 'READY_FOR_PICKUP',
+            'logistics.canonicalStatus': 'READY_FOR_PICKUP',
             'logistics.pickupReadyVerified': true,
+            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
             'automation.readyForPickupNotifiedAt': null,
@@ -1029,14 +1033,19 @@ const refreshShipmentBeforeDispatch = async (shipment) => {
 
 export const shipmentStatusDispatchActionForShipment = (shipment) => {
     const status = shipment?.logistics?.status || '';
-    if (status === 'DEVUELTO') return 'returned';
-    if (status === 'ENTREGADO') return 'delivered_bonus';
-    if (status === 'READY_FOR_PICKUP') return 'ready_for_pickup';
-    if (['EN_RUTA', 'EN_REPARTO', 'EN_DESPACHO', 'EN_BODEGA_TRANSPORTADORA', 'MERCANCIA_RECOGIDA', 'EN_DISTRIBUCION_A_CLIENTE'].includes(status)) {
+    if (!shipment?.logistics?.canonicalStatus) {
+        if (status === 'DEVUELTO') return 'returned';
+        if (status === 'ENTREGADO') return 'delivered_bonus';
+        if (status === 'READY_FOR_PICKUP' && shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking') return 'ready_for_pickup';
+    }
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
+    if (canonical.canonicalStatus === 'RETURNED') return 'returned';
+    if (canonical.canonicalStatus === 'DELIVERED') return 'delivered_bonus';
+    if (canonical.canonicalStatus === 'READY_FOR_PICKUP' && canonical.canPickup) return 'ready_for_pickup';
+    if (['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus)) {
         return 'in_transit';
     }
-    if (shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
-    if (status === 'GUIA_GENERADA') return 'guide';
+    if (canonical.canonicalStatus === 'GUIDE_CREATED' && shipment?.logistics?.trackingNumber && !shipment?.automation?.guiaNotifiedAt) return 'guide';
     return 'none';
 };
 
@@ -1307,11 +1316,21 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 continue;
             }
             if (postSaleTransactionalSafetyV116Enabled() && !force) {
+                const customerId = String(
+                    shipmentForSend?.raw?.historicalExternalReconciliation?.customerId
+                    || shipmentForSend?.raw?.customerId
+                    || `phone:${String(shipmentForSend?.client?.phone || '').replace(/\D/g, '')}`
+                );
                 const atomicQuota = await reservePostSaleDailyQuotaV116({
                     dayKey: quota.dayKey || dispatchDayRange(startedAt, dispatchTimeZone()).key,
                     timeZone: quota.timeZone || dispatchTimeZone(),
                     dailyLimit: quota.dailyLimit || dispatchDailyLimit(),
                     correlationId: preflight.idempotencyKey || `${shipmentForSend.orderId}:${action}`,
+                    customerId,
+                    orderId: shipmentForSend.orderId || '',
+                    shipmentId: String(shipmentForSend._id || ''),
+                    canonicalEvent: preflight.stage || notificationKindForDispatchAction(action),
+                    templateId: preflight.variant || notificationKindForDispatchAction(action),
                     now: startedAt,
                     expiresAt: new Date(dispatchDayRange(startedAt, quota.timeZone || dispatchTimeZone()).end.getTime() + DAY_MS)
                 });
@@ -1326,7 +1345,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     item.reason = atomicQuota.reason || 'daily_quota_not_reserved';
                     skipped += 1;
                     results.push(item);
-                    break;
+                    continue;
                 }
                 attemptedEligible += 1;
                 item.eligibleAttempt = true;

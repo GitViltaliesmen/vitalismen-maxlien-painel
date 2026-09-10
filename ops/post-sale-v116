@@ -29,19 +29,16 @@ NODE
 }
 
 assert_pm2_bot_online() {
-  local jlist="$state_dir/.post-sale-v116-pm2.$$"
-  trap 'rm -f -- "$jlist"' RETURN
-  pm2 jlist >"$jlist"
-  node - "$jlist" "$current" "$base_dir/current" <<'NODE'
-const fs=require('node:fs');
-const [file,release,current]=process.argv.slice(2);
-const item=JSON.parse(fs.readFileSync(file,'utf8')||'[]').find((entry)=>entry.name==='vitalismen-automation');
-const env=item?.pm2_env||{};
-if(!item||env.status!=='online'||![release,current].includes(env.pm_cwd)
-  ||![`${release}/src/index.js`,`${current}/src/index.js`].includes(env.pm_exec_path)) process.exit(1);
-NODE
-  rm -f -- "$jlist"
-  trap - RETURN
+  local pid proc_cwd proc_cmdline
+  while IFS= read -r pid; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+    proc_cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [[ "$proc_cwd" == "$current" || "$proc_cwd" == "$base_dir/current" ]]; then
+      [[ "$proc_cmdline" == *"/src/index.js"* || "$proc_cmdline" == *"src/index.js"* ]] && return 0
+    fi
+  done < <(pgrep -f '(^|[ /])src/index\.js([ ]|$)' || true)
+  return 1
 }
 
 load_overlay() {

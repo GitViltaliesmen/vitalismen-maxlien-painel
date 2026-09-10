@@ -59,6 +59,13 @@ const shipmentSchema = new mongoose.Schema({
             default: 'created',
             index: true
         },
+        canonicalStatus: { type: String, default: 'UNKNOWN', index: true },
+        canonicalEvidence: { type: mongoose.Schema.Types.Mixed, default: {} },
+        terminal: { type: Boolean, default: false, index: true },
+        canPickup: { type: Boolean, default: false, index: true },
+        reminderEligible: { type: Boolean, default: false },
+        reviewRequired: { type: Boolean, default: false },
+        panelLabel: { type: String, default: '' },
         trackingNumber: { type: String, default: '', index: true },
         distributionCompany: { type: String, default: '' },
         warehouse: { type: String, default: '' },

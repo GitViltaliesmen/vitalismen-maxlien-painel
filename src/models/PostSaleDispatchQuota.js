@@ -4,6 +4,8 @@ const postSaleDispatchQuotaSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     dayKey: { type: String, required: true, index: true },
     timeZone: { type: String, required: true },
+    scopeKey: { type: String, required: true, index: true },
+    scope: { type: mongoose.Schema.Types.Mixed, default: {} },
     limit: { type: Number, required: true, min: 1 },
     reserved: { type: Number, required: true, default: 0, min: 0 },
     lastReservationAt: { type: Date, default: null },

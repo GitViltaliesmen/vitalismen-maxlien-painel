@@ -26,6 +26,7 @@ const activeGuidePrintQuery = ({ requireSource = false } = {}) => ({
     country: 'EC',
     'logistics.status': { $in: GUIDE_PRINT_ACTIVE_STATUSES },
     'logistics.pickupReadyVerified': true,
+    'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
     'logistics.trackingNumber': { $exists: true, $nin: ['', null] },
     'client.phone': { $exists: true, $nin: ['', null] },
     'automation.guidePrintNotifiedAt': null,
@@ -141,6 +142,7 @@ export const processGuidePrintDispatch = async ({ dryRun = true, limit = 1 } = {
                 _id: candidate._id,
                 'logistics.status': 'READY_FOR_PICKUP',
                 'logistics.pickupReadyVerified': true,
+                'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
                 'automation.guidePrintNotifiedAt': null,
                 'review.manualOnly': { $ne: true },
                 $or: [

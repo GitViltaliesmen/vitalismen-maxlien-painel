@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
 
 export const LOGISTICS_STATE_V29 = Object.freeze({
     ORDER_CONFIRMED: 'ORDER_CONFIRMED',
@@ -70,6 +71,12 @@ export const canonicalLogisticsState = (shipmentOrStatus = {}) => {
     const shipment = typeof shipmentOrStatus === 'object' && shipmentOrStatus !== null
         ? shipmentOrStatus
         : { logistics: { status: shipmentOrStatus } };
+    const v147 = canonicalLogisticsProjectionForShipmentV147(shipment);
+    if (v147.canonicalStatus === 'RETURNED') return LOGISTICS_STATE_V29.RETURNED;
+    if (v147.canonicalStatus === 'DELIVERED') return LOGISTICS_STATE_V29.DELIVERED;
+    if (v147.canonicalStatus === 'READY_FOR_PICKUP') return LOGISTICS_STATE_V29.READY_FOR_PICKUP;
+    if (['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY', 'NOT_PICKED_UP', 'RETURNING', 'EXCEPTION'].includes(v147.canonicalStatus)) return LOGISTICS_STATE_V29.IN_TRANSIT;
+    if (v147.canonicalStatus === 'GUIDE_CREATED' && shipment.logistics?.trackingNumber) return LOGISTICS_STATE_V29.SHIPPED;
     if (shipment.outcomes?.returned === true) return LOGISTICS_STATE_V29.RETURNED;
     if (shipment.outcomes?.delivered === true) return LOGISTICS_STATE_V29.DELIVERED;
     if (shipment.outcomes?.pickedUp === true) return LOGISTICS_STATE_V29.PICKED_UP;
@@ -88,6 +95,11 @@ export const canonicalLogisticsState = (shipmentOrStatus = {}) => {
 export const pickupReadyIsVerified = (shipment = {}) => (
     canonicalLogisticsState(shipment) === LOGISTICS_STATE_V29.READY_FOR_PICKUP
     && shipment.logistics?.pickupReadyVerified === true
+    && (
+        shipment.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+        || (!shipment.logistics?.pickupReadyVerifiedSource && !shipment.logistics?.canonicalStatus)
+    )
+    && canonicalLogisticsProjectionForShipmentV147(shipment).canPickup === true
 );
 
 export const logisticsCommunicationPolicy = (shipment = {}) => {
@@ -201,11 +213,21 @@ export const buildPickupReminderV29 = (shipment = {}, reminder = 1) => {
 export const publicLogisticsStateV29 = (shipment = null) => {
     if (!shipment) return null;
     const policy = logisticsCommunicationPolicy(shipment);
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     return {
         version: 29,
         orderId: shipment.orderId || '',
-        status: policy.state,
+        status: canonical.canonicalStatus,
+        compatibilityStatus: policy.state,
         rawStatus: shipment.logistics?.status || '',
+        rawCode: canonical.rawCode,
+        rawProviderStatus: canonical.rawStatus,
+        rawSubstatus: canonical.rawSubstatus,
+        terminal: canonical.terminal,
+        canPickup: canonical.canPickup && policy.pickupReadyVerified,
+        panelLabel: canonical.panelLabel,
+        reminderEligible: canonical.reminderEligible,
+        reviewRequired: canonical.reviewRequired,
         trackingNumber: shipment.logistics?.trackingNumber || '',
         agencyPickup: Boolean(shipment.logistics?.agencyPickup),
         agencyName: shipment.logistics?.agencyName || '',

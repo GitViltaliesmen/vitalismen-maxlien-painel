@@ -57,8 +57,17 @@ export const postSaleFailureDispositionV116 = (sendResult = {}) => {
     });
 };
 
-export const buildPostSaleQuotaIdV116 = ({ dayKey = '', timeZone = '' } = {}) => {
-    const identity = `${clean(dayKey)}|${clean(timeZone)}`;
+export const buildPostSaleQuotaScopeV147 = ({
+    customerId = '', orderId = '', shipmentId = '', canonicalEvent = '', templateId = '', scopeKey = '', correlationId = ''
+} = {}) => {
+    const explicit = [customerId, orderId, shipmentId, canonicalEvent, templateId].map(clean);
+    if (explicit.every(Boolean)) return explicit.join('|');
+    return clean(scopeKey || correlationId);
+};
+
+export const buildPostSaleQuotaIdV116 = ({ dayKey = '', timeZone = '', ...scope } = {}) => {
+    const scopedIdentity = buildPostSaleQuotaScopeV147(scope);
+    const identity = `${clean(dayKey)}|${clean(timeZone)}|${scopedIdentity}`;
     return `post-sale-v116:${crypto.createHash('sha256').update(identity).digest('hex')}`;
 };
 
@@ -67,15 +76,31 @@ export const reservePostSaleDailyQuotaV116 = async ({
     timeZone,
     dailyLimit,
     correlationId,
+    customerId,
+    orderId,
+    shipmentId,
+    canonicalEvent,
+    templateId,
+    scopeKey,
     now = new Date(),
     expiresAt,
     quotaModel = PostSaleDispatchQuota
 } = {}) => {
     const limit = Number.parseInt(String(dailyLimit || ''), 10);
-    if (!clean(dayKey) || !clean(timeZone) || !Number.isFinite(limit) || limit <= 0) {
+    const quotaScopeKey = buildPostSaleQuotaScopeV147({
+        customerId, orderId, shipmentId, canonicalEvent, templateId, scopeKey, correlationId
+    });
+    if (!clean(dayKey) || !clean(timeZone) || !quotaScopeKey || !Number.isFinite(limit) || limit <= 0) {
         return Object.freeze({ reserved: false, reason: 'invalid_quota_identity_or_limit' });
     }
-    const quotaId = buildPostSaleQuotaIdV116({ dayKey, timeZone });
+    const scope = {
+        customerId: clean(customerId),
+        orderId: clean(orderId),
+        shipmentId: clean(shipmentId),
+        canonicalEvent: clean(canonicalEvent),
+        templateId: clean(templateId)
+    };
+    const quotaId = buildPostSaleQuotaIdV116({ dayKey, timeZone, scopeKey: quotaScopeKey });
     const expiry = expiresAt instanceof Date && !Number.isNaN(expiresAt.getTime())
         ? expiresAt
         : new Date(now.getTime() + (48 * 60 * 60 * 1000));
@@ -86,6 +111,8 @@ export const reservePostSaleDailyQuotaV116 = async ({
                 $setOnInsert: {
                     dayKey: clean(dayKey),
                     timeZone: clean(timeZone),
+                    scopeKey: quotaScopeKey,
+                    scope,
                     expiresAt: expiry
                 },
                 $set: {
@@ -104,6 +131,8 @@ export const reservePostSaleDailyQuotaV116 = async ({
             quotaId,
             dayKey: clean(dayKey),
             dailyLimit: limit,
+            scopeKey: quotaScopeKey,
+            scope,
             used
         });
     } catch (error) {
