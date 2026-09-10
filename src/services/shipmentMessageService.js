@@ -1,3 +1,4 @@
+import { reconcileDeliveredPostSaleSequenceV147R6 } from './postSaleUnifiedEventV147R6Service.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -359,7 +360,8 @@ const persistShipmentOutboundMessage = async ({
     type = 'chat',
     body = '',
     mediaPath = '',
-    sentResult = null
+    sentResult = null,
+    postSaleEvent = null
 } = {}) => {
     if (!shipment?._id || !chatId || !sendResultOk(sentResult)) return null;
     const now = new Date();
@@ -391,7 +393,8 @@ const persistShipmentOutboundMessage = async ({
                 ownerPhoneDigits: zapiOwnerPhoneDigits(),
                 isFromMe: true,
                 isBot: true,
-                orderId: shipment?.orderId || ''
+                orderId: shipment?.orderId || '',
+                ...(postSaleEvent ? { postSaleEvent } : {})
             },
             $set: {
                 ack: 1,
@@ -431,7 +434,8 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         kind: options.kind || 'shipment_text',
         type: 'chat',
         body: text,
-        sentResult: sent
+        sentResult: sent,
+        postSaleEvent: options.postSaleEvent || null
     });
     return sent;
 };
@@ -720,7 +724,8 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
     kind = 'shipment_audio',
     baseName = '',
     dedupeValue = '',
-    force = false
+    force = false,
+    postSaleEvent = null
 } = {}) => {
     const sent = await sendAudio(chatId, audioPath, true, {
         ...shipmentOutboundOptions(shipment),
@@ -736,7 +741,8 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
         type: 'audio',
         body: baseName ? `[AUDIO] ${baseName}` : '',
         mediaPath: audioPath,
-        sentResult: sent
+        sentResult: sent,
+        postSaleEvent
     });
     return sent;
 };
@@ -2372,6 +2378,7 @@ export const notifyDeliveredThankYou = async (shipment, {
     failFn = recordPrimaryPostSaleSendFailure,
     appendEventFn = appendEvent
 } = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
     const chatId = resolveChatId(shipment);
     if (!chatId
         || shipment?.automation?.deliveredThankYouNotifiedAt
@@ -2401,7 +2408,8 @@ export const notifyDeliveredThankYou = async (shipment, {
     const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
         kind: 'shipment_delivered_thank_you_audio',
         baseName: 'OBRIGADO_PAGOU',
-        dedupeValue: deliveredThankYouDedupeValueV147(shipment)
+        postSaleEvent: decision.canonicalEvent || null,
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : deliveredThankYouDedupeValueV147(shipment)
     });
     if (!sendResultOk(sent)) {
         await failFn({
@@ -2444,6 +2452,7 @@ export const notifyPickupBonus = async (shipment, {
     appendEventFn = appendEvent,
     waitFn = wait
 } = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
     const chatId = resolveChatId(shipment);
     const eligibility = pickupBonusEligibility(shipment);
     if (!chatId || !eligibility.allowed) return false;
@@ -2470,7 +2479,7 @@ export const notifyPickupBonus = async (shipment, {
         ? (await findExistingMessageFn(chatId, { since: deliveredAt })
             || await findExistingDedupeFn(chatId, { since: deliveredAt }))
         : null;
-    if (existingBonus) {
+    if (existingBonus && !decision.canonicalEvent) {
         const now = new Date();
         const existingAt = existingBonus.createdAt || existingBonus.updatedAt || now;
         await completeFn({
@@ -2509,7 +2518,9 @@ export const notifyPickupBonus = async (shipment, {
     await waitFn(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
     const sent = await sendTextFn(shipment, chatId, text, {
         kind: 'shipment_pickup_bonus_text',
-        dedupeValue: `${text}|${bonusDedupeScope}`,
+        postSaleEvent: decision.canonicalEvent || null,
+        ...(decision.canonicalEvent ? { allowHistoryDedupeBypass: true } : {}),
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : `${text}|${bonusDedupeScope}`,
         antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
     if (!sendResultOk(sent)) {
@@ -2559,6 +2570,7 @@ export const notifyProductUsage = async (shipment, {
     findExistingTexUltraAudioFn = findTexUltraHowToUseAudioSentRecord,
     waitFn = wait
 } = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
     const chatId = resolveChatId(shipment);
     if (!chatId
         || shipment?.automation?.usageNotifiedAt
@@ -2585,7 +2597,7 @@ export const notifyProductUsage = async (shipment, {
     const texUltraDedupeValue = product.productKey === 'tex_ultra_ec'
         ? texUltraHowToUseAudioDedupeValue(baseName)
         : '';
-    if (texUltraDedupeValue) {
+    if (texUltraDedupeValue && !decision.canonicalEvent) {
         const existingTexUltraAudio = await findExistingTexUltraAudioFn({
             jid: chatId,
             recipientDigits: shipmentPhoneDigits(shipment),
@@ -2652,7 +2664,8 @@ export const notifyProductUsage = async (shipment, {
     const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
         kind: 'shipment_product_usage_audio',
         baseName,
-        dedupeValue: texUltraDedupeValue || `P7|${idempotencyKey}|${baseName}`
+        postSaleEvent: decision.canonicalEvent || null,
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : texUltraDedupeValue || `P7|${idempotencyKey}|${baseName}`
     });
     if (!sendResultOk(sent)) {
         await failFn({

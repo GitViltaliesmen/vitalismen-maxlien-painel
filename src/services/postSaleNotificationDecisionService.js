@@ -1,3 +1,4 @@
+import { unifiedPostSaleStageV147R6, resolvePostSaleEventV147R6, reconcilePostSaleEventV147R6, reservePostSaleEventV147R6, finalizePostSaleEventV147R6 } from './postSaleUnifiedEventV147R6Service.js';
 import crypto from 'crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -357,7 +358,9 @@ export const decidePostSaleNotification = async ({
     shipmentModel = Shipment,
     contactStateModel = ContactState,
     now = new Date(),
-    lockMs = 10 * 60 * 1000
+    lockMs = 10 * 60 * 1000,
+    manualPanel = false,
+    operator = ''
 } = {}) => {
     const stage = canonicalPostSaleStage(kind || variant);
     const legacyKind = legacyKindForPostSaleStage(stage);
@@ -373,7 +376,19 @@ export const decidePostSaleNotification = async ({
             stage
         };
     }
-    const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage, variant });
+    const canonicalEvent = await resolvePostSaleEventV147R6({ shipment, stage });
+    if (unifiedPostSaleStageV147R6(stage) && !canonicalEvent) return {
+        decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'canonical_product_or_identity_missing', stage
+    };
+    const idempotencyKey = canonicalEvent?.dedupeKey || buildPostSaleIdempotencyKey({ shipment, stage, variant });
+    if (canonicalEvent) {
+        const recovered = await reconcilePostSaleEventV147R6({ shipment, event: canonicalEvent,
+            messageModel, shipmentModel, persist: acquireLock, now });
+        if (recovered) return recovered;
+        if (shipment.automation?.postSaleSafetyLedger?.[stage]?.state === 'INTENDED') return {
+            decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'intended_event_requires_reconciliation', stage, idempotencyKey
+        };
+    }
     const structured = structuredShipmentEvidence(shipment, legacyKind);
     if (structured.found) {
         return {
@@ -383,7 +398,7 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
-    const history = await outboundHistoryDecision({ shipment, kind: legacyKind, messageModel });
+    const history = canonicalEvent ? null : await outboundHistoryDecision({ shipment, kind: legacyKind, messageModel });
     if (history) {
         if (acquireLock) {
             await persistTerminalSafetyDecision({
@@ -458,7 +473,7 @@ export const decidePostSaleNotification = async ({
             reason: 'explicit_contact_opt_out', stage, idempotencyKey };
     }
     const manualHumanState = await findManualHumanModeForShipment({ shipment, contactStateModel });
-    if (manualHumanState && !postSaleTransactionalAllowsManualHumanMode({ shipment, kind: legacyKind })) {
+    if (manualHumanState && !manualPanel && !postSaleTransactionalAllowsManualHumanMode({ shipment, kind: legacyKind })) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.MANUAL_REVIEW_REQUIRED,
             reason: 'human_mode_manual',
@@ -474,6 +489,8 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    if (canonicalEvent) return reservePostSaleEventV147R6({ shipment, event: canonicalEvent,
+        source: manualPanel ? 'manual_panel' : 'v116', operator, shipmentModel, now, lockMs });
     const lockPath = `automation.notificationLocks.${stage}`;
     const ledgerPath = postSaleLedgerPath(stage);
     const lockToken = crypto.randomUUID();
@@ -552,6 +569,7 @@ export const completePostSaleNotificationStage = async ({
     if (!shipment?._id || !canonicalStage || !clean(lockToken)) {
         return { completed: false, reason: 'missing_shipment_stage_or_lock_token' };
     }
+    if (unifiedPostSaleStageV147R6(canonicalStage) && shipmentModel === Shipment && Shipment.db.readyState === 1) return finalizePostSaleEventV147R6({ shipment, stage: canonicalStage, lockToken, providerMessageId, shipmentModel, now });
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });
@@ -635,6 +653,7 @@ export const failPostSaleNotificationStage = async ({
     if (!shipment?._id || !canonicalStage || !clean(lockToken)) {
         return { released: false, reason: 'missing_shipment_stage_or_lock_token' };
     }
+    if (unifiedPostSaleStageV147R6(canonicalStage) && shipmentModel === Shipment && Shipment.db.readyState === 1) return finalizePostSaleEventV147R6({ shipment, stage: canonicalStage, lockToken, providerMessageId, shipmentModel, now, failure: { reason, terminalState: terminal ? terminalState : 'FAILED_FINAL' } });
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });

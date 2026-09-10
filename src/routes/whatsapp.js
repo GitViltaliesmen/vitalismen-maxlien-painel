@@ -1,3 +1,4 @@
+import { sendCanonicalPanelPostSaleV147R6 } from '../services/postSaleManualPanelV147R6Service.js';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -6540,6 +6541,37 @@ router.post('/send', authMiddleware, async (req, res) => {
                 });
             }
         }
+
+        const canonicalPostSale = await sendCanonicalPanelPostSaleV147R6({
+            request: req.body, operator: req.user?._id?.toString?.() || 'ana_lopez',
+            sendFn: async ({ event }) => {
+                let payload = message;
+                if (isMedia) {
+                    if (String(message).startsWith('data:audio/')) {
+                        const directory = manualUploadsDirV129();
+                        fs.mkdirSync(directory, { recursive: true });
+                        payload = path.join(directory, Date.now() + '_' + crypto.randomBytes(6).toString('hex') + '.ogg');
+                        fs.writeFileSync(payload, Buffer.from(String(message).split(';base64,')[1], 'base64'));
+                    } else payload = path.join(process.cwd(), 'public', normalizeLegacyMediaPath(message));
+                }
+                return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
+                    sendMode, country, allowExistingDropiOrder: true, returnDetails: true,
+                    dedupeValue: event.dedupeKey, allowAudioDedupeBypass: true,
+                    bypassDedupe: !isMedia, allowTextDedupeBypass: !isMedia, allowHistoryDedupeBypass: !isMedia });
+            },
+            recordFn: async ({ result }) => {
+                const state = await findOrCreateContactState(phone);
+                applyManualSendHold(state, { phone, user: req.user });
+                await state.save();
+                return recordManualOutboundMessage({ phone, body: isMedia ? '' : message,
+                    type: isMedia ? 'audio' : 'chat', mediaUrl: isMedia && !String(message).startsWith('data:') ? message : '',
+                    user: req.user, sessionId: result.provider === 'zapi' ? (zapiOperationalPanelPhone() || effectiveSessionId) : effectiveSessionId,
+                    deliveryStatus: 'provider_accepted', provider: result.provider || '', providerMessageId: result.providerMessageId,
+                    providerZaapId: result.providerZaapId || '', providerStatus: result.providerStatus || '',
+                    providerPayload: result.providerPayload || null, clientGeneratedId });
+            }
+        });
+        if (canonicalPostSale.handled) return res.status(canonicalPostSale.success ? 200 : 409).json(canonicalPostSale);
 
         if (isMedia) {
             if (typeof message !== 'string') {

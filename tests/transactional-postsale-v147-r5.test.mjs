@@ -30,10 +30,11 @@ for (const [kind, status] of [
     ['pickup_reminder_day5', 'READY_FOR_PICKUP'], ['delivered_thank_you', 'DELIVERED'],
     ['pickup_bonus', 'DELIVERED'], ['product_usage', 'DELIVERED']
 ]) test(`manual permite ${kind} canônico sem aprovação por remessa`, async () => {
-    const result = await decidePostSaleNotification({ shipment: fixture(status), kind, acquireLock: false,
+    const shipment = { ...fixture(status), ...(kind === 'product_usage' ? { productName: 'Tex Ultra' } : {}) };
+    const result = await decidePostSaleNotification({ shipment, kind, acquireLock: false,
         contactStateModel: contactModel(), messageModel });
     assert.equal(result.decision, 'SHOULD_SEND');
-    const optOut = await decidePostSaleNotification({ shipment: fixture(status), kind, acquireLock: false,
+    const optOut = await decidePostSaleNotification({ shipment, kind, acquireLock: false,
         contactStateModel: contactModel(true), messageModel });
     assert.equal(optOut.reason, 'explicit_contact_opt_out');
 });

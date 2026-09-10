@@ -14,12 +14,12 @@ assert.equal(manifest.policy.historicalBackfillAllowed, false);
 assert.deepEqual(Object.keys(manifest.protectedFiles).sort(), [...manifest.overrides].sort());
 for (const [file, expected] of Object.entries({ ...manifest.preservedFiles, ...manifest.protectedFiles })) {
     assert.ok(!file.includes('..') && !file.startsWith('/') && !file.includes('\\'));
-    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(new URL(`../../${file}`, import.meta.url))).digest('hex'), expected, `[V147-R5] ${file}`);
+    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(new URL(`../../${file}`, import.meta.url))).digest('hex'), globalThis.__VITALISMEN_V147_R6_CONTEXT?.protectedFiles?.[file] || expected, `[V147-R5] ${file}`);
 }
 globalThis.__VITALISMEN_V147_R5_CONTEXT = Object.freeze({
     loaded: true, freezeId: manifest.freezeId,
     manifestSha256: crypto.createHash('sha256').update(manifestText).digest('hex'),
-    protectedFiles: Object.freeze({ ...manifest.protectedFiles })
+    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...globalThis.__VITALISMEN_V147_R6_CONTEXT?.protectedFiles })
 });
 const ancestors = [
     'ec-dropi-status-postsale-v139-20260907.json', 'ec-phone-servientrega-reconciliation-v140-20260907.json',

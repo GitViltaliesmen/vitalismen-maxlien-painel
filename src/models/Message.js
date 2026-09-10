@@ -70,6 +70,7 @@ const messageSchema = new mongoose.Schema({
     senderRole: { type: String, enum: ['client', 'human', 'bot', 'system', ''], default: '' },
     providerStatus: String,
     providerPayload: mongoose.Schema.Types.Mixed,
+    postSaleEvent: mongoose.Schema.Types.Mixed, // Same shipment ledger identity for panel and V116.
     providerMediaId: { type: String, index: true },
     originalMime: String,
     storedMime: String,

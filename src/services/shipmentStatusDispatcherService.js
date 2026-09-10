@@ -1,3 +1,4 @@
+import { reconcileDeliveredPostSaleSequenceV147R6 } from './postSaleUnifiedEventV147R6Service.js';
 import Shipment from '../models/Shipment.js';
 import { getSenderPoolStatus, resolveOutboundSessionForJid } from '../whatsapp/sessionRouter.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
@@ -1460,6 +1461,9 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                     preDispatchSync: item.preDispatchSync || null
                 });
                 continue;
+            }
+            if (action === 'delivered_bonus' && !dryRun) {
+                shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
             }
             const preflight = await decidePostSaleNotification({
                 shipment: shipmentForSend,
