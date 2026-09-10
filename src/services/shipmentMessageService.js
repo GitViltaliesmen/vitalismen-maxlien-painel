@@ -958,97 +958,16 @@ export const pickupBonusAntiSpamKey = (shipment = {}) => {
     return `shipment_status:pickup_bonus:${shipmentIdentity}`;
 };
 
-const normalizedPaymentValue = (value = '') => String(value ?? '').trim().toLowerCase();
-const canonicalPaymentTimestamp = (...values) => values.find((value) => {
-    if (!value) return false;
-    const parsed = new Date(value);
-    return !Number.isNaN(parsed.getTime());
-}) || null;
-
-const paymentProviderClassification = (provider = '') => {
-    const normalized = normalizedPaymentValue(provider);
-    if (/servientrega/.test(normalized)) return 'SERVIENTREGA_CONFIRMED';
-    if (/dropi|droppi/.test(normalized)) return 'DROPI_CONFIRMED';
-    return normalized ? 'OTHER_CANONICAL_CONFIRMED' : 'UNKNOWN';
-};
-
-export const shipmentCanonicalPaymentEvidence = (shipment = {}) => {
-    const raw = shipment?.raw || {};
-    const dropi = raw.latestDroppiPayload || {};
-    const payment = raw.payment || {};
-    const dropiTimestamp = canonicalPaymentTimestamp(
-        dropi.paymentConfirmedAt,
-        dropi.paymentUpdatedAt,
-        dropi.statusUpdatedAt,
-        dropi.updatedAt,
-        dropi.syncedAt
-    );
-    if (normalizedPaymentValue(dropi.paymentStatus) === 'paid' && dropiTimestamp) {
-        return Object.freeze({
-            confirmed: true,
-            source: 'raw.latestDroppiPayload.paymentStatus',
-            provider: 'DROPI',
-            field: 'raw.latestDroppiPayload.paymentStatus',
-            value: 'paid',
-            timestamp: new Date(dropiTimestamp).toISOString(),
-            classification: 'DROPI_CONFIRMED',
-            confidence: 'CANONICAL'
-        });
-    }
-
-    const paymentTimestamp = canonicalPaymentTimestamp(payment.confirmedAt);
-    const paymentProvider = payment.provider || payment.source || raw.paymentProvider || raw.paymentSource || '';
-    if (paymentTimestamp && (
-        normalizedPaymentValue(payment.status) === 'paid'
-        || Boolean(payment.confirmedAt)
-    )) {
-        return Object.freeze({
-            confirmed: true,
-            source: payment.confirmedAt ? 'raw.payment.confirmedAt' : 'raw.payment.status',
-            provider: String(paymentProvider || 'SYSTEM_PERSISTED_PAYMENT_CONFIRMATION'),
-            field: payment.confirmedAt ? 'raw.payment.confirmedAt' : 'raw.payment.status',
-            value: payment.confirmedAt ? String(payment.confirmedAt) : 'paid',
-            timestamp: new Date(paymentTimestamp).toISOString(),
-            classification: paymentProviderClassification(paymentProvider) === 'UNKNOWN'
-                ? 'OTHER_CANONICAL_CONFIRMED'
-                : paymentProviderClassification(paymentProvider),
-            confidence: 'CANONICAL'
-        });
-    }
-
-    const directTimestamp = canonicalPaymentTimestamp(raw.paymentConfirmedAt);
-    if (directTimestamp) {
-        const directProvider = raw.paymentConfirmedProvider || raw.paymentProvider || raw.paymentSource || '';
-        return Object.freeze({
-            confirmed: true,
-            source: 'raw.paymentConfirmedAt',
-            provider: String(directProvider || 'SYSTEM_PERSISTED_PAYMENT_CONFIRMATION'),
-            field: 'raw.paymentConfirmedAt',
-            value: String(raw.paymentConfirmedAt),
-            timestamp: new Date(directTimestamp).toISOString(),
-            classification: paymentProviderClassification(directProvider) === 'UNKNOWN'
-                ? 'OTHER_CANONICAL_CONFIRMED'
-                : paymentProviderClassification(directProvider),
-            confidence: 'CANONICAL'
-        });
-    }
-
-    const ambiguousSource = normalizedPaymentValue(dropi.paymentStatus) === 'paid'
-        ? 'raw.latestDroppiPayload.paymentStatus'
-        : normalizedPaymentValue(payment.status) === 'paid'
-            ? 'raw.payment.status'
-            : '';
-    return Object.freeze({
+export const shipmentCanonicalPaymentEvidence = (_shipment = {}) => Object.freeze({
         confirmed: false,
-        source: ambiguousSource,
-        provider: ambiguousSource.startsWith('raw.latestDroppiPayload') ? 'DROPI' : String(paymentProvider || ''),
-        field: ambiguousSource,
-        value: ambiguousSource ? 'paid' : '',
+        source: '',
+        provider: '',
+        field: '',
+        value: '',
         timestamp: null,
         classification: 'UNKNOWN',
-        confidence: ambiguousSource ? 'AMBIGUOUS_MISSING_TIMESTAMP' : 'MISSING'
+        confidence: 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE'
     });
-};
 
 export const shipmentPaymentConfirmed = (shipment = {}) => (
     shipmentCanonicalPaymentEvidence(shipment).confirmed === true
@@ -1070,8 +989,11 @@ export const pickupBonusLinkValid = (value = BONUS_URL) => {
     }
 };
 
-export const pickupBonusEligibility = (shipment = {}, { bonusUrl = BONUS_URL } = {}) => {
-    const payment = shipmentCanonicalPaymentEvidence(shipment);
+export const pickupBonusEligibility = (shipment = {}, {
+    bonusUrl = BONUS_URL,
+    paymentEvidenceFn = shipmentCanonicalPaymentEvidence
+} = {}) => {
+    const payment = paymentEvidenceFn(shipment);
     const deliveryConfirmed = deliveryOrPickupConfirmed(shipment);
     const bonusEligible = String(shipment?.country || 'EC').toUpperCase() === 'EC'
         && shipment?.outcomes?.returned !== true
@@ -2521,10 +2443,11 @@ export const notifyPickupBonus = async (shipment, {
     findExistingDedupeFn = findExistingPickupBonusDedupe,
     persistFn = persistAutomationUpdate,
     appendEventFn = appendEvent,
+    paymentEvidenceFn = shipmentCanonicalPaymentEvidence,
     waitFn = wait
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    const eligibility = pickupBonusEligibility(shipment);
+    const eligibility = pickupBonusEligibility(shipment, { paymentEvidenceFn });
     if (!chatId || !eligibility.allowed) return false;
     const decision = await decideFn({
         shipment,
@@ -2638,10 +2561,11 @@ export const notifyProductUsage = async (shipment, {
     appendEventFn = appendEvent,
     registerAudioAttemptFn = registerAudioAttempt,
     findExistingTexUltraAudioFn = findTexUltraHowToUseAudioSentRecord,
+    paymentEvidenceFn = shipmentCanonicalPaymentEvidence,
     waitFn = wait
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    const payment = shipmentCanonicalPaymentEvidence(shipment);
+    const payment = paymentEvidenceFn(shipment);
     const baseName = pickupHowToUseAudioForShipment(shipment);
     if (!chatId
         || shipment?.automation?.usageNotifiedAt

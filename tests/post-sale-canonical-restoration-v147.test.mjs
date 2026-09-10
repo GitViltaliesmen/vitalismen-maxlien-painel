@@ -211,7 +211,18 @@ test('V147 catálogo mantém A07/A10/A19 e uso por produto sem cruzamento', () =
 test('V147 conserva utilitário de pagamento sem usá-lo como gatilho de P5', () => {
     assert.equal(shipmentPaymentConfirmed({ outcomes: { delivered: true } }), false);
     assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid' } } }), false);
-    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid', confirmedAt: '2026-09-10T03:00:00.000Z' } } }), true);
+    assert.equal(shipmentPaymentConfirmed({ raw: { payment: { status: 'paid', confirmedAt: '2026-09-10T03:00:00.000Z' } } }), false);
+    assert.equal(shipmentPaymentConfirmed({
+        events: [{
+            kind: 'dropi_payment_claim_skipped_paid',
+            at: new Date('2026-09-10T03:00:00.000Z'),
+            payload: {
+                reason: 'dropi_already_delivered_green',
+                dropiStatus: 'ENTREGADO',
+                dropiVerification: { ok: true, skipped: false, status: 'ENTREGADO' }
+            }
+        }]
+    }), false);
     const source = read('src/services/shipmentMessageService.js');
     const p5 = source.split('export const notifyDeliveredThankYou')[1].split('export const notifyPickupBonus')[0];
     assert.doesNotMatch(p5, /shipmentPaymentConfirmed/);

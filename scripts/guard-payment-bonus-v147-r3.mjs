@@ -22,6 +22,14 @@ assert.equal(manifest.p5.unchanged, true);
 assert.equal(manifest.p5.mediaSha256, 'bd6ce39a51cb67be469aa6aeb6c0ca94c2f53e4ab27dba46dabd2efc93a5adfd');
 assert.equal(manifest.payment.deliveryNeverImpliesPayment, true);
 assert.equal(manifest.payment.missingAmbiguousOrUnknownFailsClosed, true);
+assert.equal(manifest.payment.proofExists, false);
+assert.equal(manifest.payment.source, 'NONE');
+assert.equal(manifest.payment.provider, 'NONE');
+assert.equal(manifest.payment.classification, 'UNKNOWN');
+assert.equal(manifest.payment.confidence, 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE');
+assert.equal(manifest.payment.liveInventory.derivedEventOccurrencesRejected, 6);
+assert.equal(manifest.payment.liveInventory.validCanonicalShipments, 0);
+assert.equal(manifest.payment.liveInventory.rejectedSourceOccurrences, 0);
 assert.equal(manifest.sequence.p6RequiresPayment, true);
 assert.equal(manifest.sequence.p7RequiresPayment, true);
 assert.equal(manifest.sequence.p7RequiresP6AcceptedOrRecovered, true);
@@ -59,10 +67,10 @@ const p6Block = shipmentMessages.split('export const notifyPickupBonus')[1].spli
 const p7Block = shipmentMessages.split('export const notifyProductUsage')[1].split('const calculateTreatmentDates')[0];
 assert.equal(sha256(`export const notifyDeliveredThankYou${p5Block}`), manifest.p5.implementationSha256, 'P5 foi alterado');
 assert.doesNotMatch(p5Block, /shipmentPaymentConfirmed|shipmentCanonicalPaymentEvidence|pickupBonusEligibility/);
-assert.match(p6Block, /pickupBonusEligibility\(shipment\)/);
+assert.match(p6Block, /pickupBonusEligibility\(shipment, \{ paymentEvidenceFn \}\)/);
 assert.match(p6Block, /paymentSource:\s*eligibility\.payment\.source/);
 assert.doesNotMatch(p6Block, /sendAudioFileFn|shipment_product_usage_audio/);
-assert.match(p7Block, /shipmentCanonicalPaymentEvidence\(shipment\)/);
+assert.match(p7Block, /paymentEvidenceFn\(shipment\)/);
 assert.match(p7Block, /pickupBonusAcceptedOrConfirmed\(shipment\)/);
 assert.match(p7Block, /automation\?\.usageNotifiedAt/);
 assert.match(p7Block, /POST_SALE_VARIANTS\.PRODUCT_USAGE_AUDIO/);
@@ -74,16 +82,17 @@ assert.ok(p6Block.indexOf('await waitFn(') < p6Block.indexOf('await sendTextFn('
 assert.ok(p7Block.indexOf('await waitFn(') < p7Block.indexOf('await sendAudioFileFn('), 'P7 sem pacing antes do provider');
 
 for (const token of [
+    'UNKNOWN',
+    'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE',
+    'paymentEvidenceFn'
+]) assert.match(shipmentMessages, new RegExp(token.replaceAll('.', '\\.')));
+for (const rejectedSource of [
     'raw.paymentConfirmedAt',
     'raw.payment.confirmedAt',
     'raw.payment.status',
-    'raw.latestDroppiPayload.paymentStatus',
-    'SERVIENTREGA_CONFIRMED',
-    'DROPI_CONFIRMED',
-    'OTHER_CANONICAL_CONFIRMED',
-    'UNKNOWN',
-    'AMBIGUOUS_MISSING_TIMESTAMP'
-]) assert.match(shipmentMessages, new RegExp(token.replaceAll('.', '\\.')));
+    'raw.latestDroppiPayload.paymentStatus'
+]) assert.doesNotMatch(shipmentMessages, new RegExp(rejectedSource.replaceAll('.', '\\.')));
+assert.doesNotMatch(shipmentMessages, /dropi_payment_claim_skipped_paid|dropi_already_delivered_green/);
 
 const safety = readText('src/services/postSaleSafetyV66Service.js');
 const decision = readText('src/services/postSaleNotificationDecisionService.js');

@@ -21,13 +21,46 @@ import { postSaleActionForShipmentV112 } from '../src/services/postSaleNextEligi
 
 const paidAt = '2026-09-10T03:00:00.000Z';
 
+const canonicalDropiPaymentEvent = () => ({
+    kind: 'dropi_payment_claim_skipped_paid',
+    at: new Date(paidAt),
+    payload: {
+        reason: 'dropi_already_delivered_green',
+        dropiStatus: 'ENTREGADO',
+        dropiVerification: {
+            ok: true,
+            skipped: false,
+            status: 'ENTREGADO'
+        }
+    }
+});
+const canonicalPaymentEvidenceForTest = (shipment) => shipment.__testPaymentState === 'confirmed'
+    ? Object.freeze({
+        confirmed: true,
+        source: 'test_sink.canonical_provider_receipt',
+        provider: 'TEST_SINK',
+        field: 'test_sink.receipt',
+        value: 'confirmed',
+        timestamp: paidAt,
+        classification: 'OTHER_CANONICAL_CONFIRMED',
+        confidence: 'CANONICAL_PROVIDER_VERIFIED'
+    })
+    : Object.freeze({
+        confirmed: false,
+        source: '',
+        provider: '',
+        field: '',
+        value: '',
+        timestamp: null,
+        classification: 'UNKNOWN',
+        confidence: 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE'
+    });
+
 const shipmentFixture = ({ delivered = true, payment = 'confirmed', productName = 'Tex Ultra Ecuador' } = {}) => {
-    const raw = payment === 'confirmed'
-        ? { paymentConfirmedAt: paidAt }
-        : payment === 'ambiguous'
-            ? { payment: { status: 'paid' } }
-            : {};
-    return {
+    const raw = payment === 'ambiguous'
+        ? { payment: { provider: 'Dropi', status: 'paid', confirmedAt: paidAt } }
+        : {};
+    const shipment = {
         _id: 'shipment-r3',
         orderId: 'EC-R3-ORDER',
         country: 'EC',
@@ -52,11 +85,47 @@ const shipmentFixture = ({ delivered = true, payment = 'confirmed', productName 
             postSaleSafetyLedger: {}
         },
         review: { manualOnly: false },
-        raw
+        raw,
+        events: payment === 'confirmed'
+            ? [canonicalDropiPaymentEvent()]
+            : payment === 'ambiguous'
+                ? [{
+                    ...canonicalDropiPaymentEvent(),
+                    payload: {
+                        ...canonicalDropiPaymentEvent().payload,
+                        dropiVerification: { ok: false, skipped: true, status: 'ENTREGADO' }
+                    }
+                }]
+                : []
     };
+    Object.defineProperty(shipment, '__testPaymentState', {
+        value: payment,
+        writable: true,
+        enumerable: false
+    });
+    return shipment;
 };
 
 const dependencies = (shipment, trace) => ({
+    p5: {
+        decideFn: async () => ({
+            decision: POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND,
+            stage: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+            lockToken: 'p5-lock'
+        }),
+        resolveAudioFn: async () => 'C:/sink/OBRIGADO_PAGOU.ogg',
+        sendAudioFileFn: async () => {
+            trace.push('P5_PROVIDER');
+            return { ok: true, providerMessageId: 'p5-provider-id', providerStatus: 'queued' };
+        },
+        completeFn: async ({ now }) => {
+            shipment.automation.deliveredThankYouNotifiedAt = now;
+            shipment.automation.postSaleSafetyLedger.DELIVERED_THANK_YOU = { state: 'SENT' };
+            return { completed: true };
+        },
+        failFn: async () => ({ released: true }),
+        appendEventFn: async () => true
+    },
     p6: {
         decideFn: async () => ({
             decision: POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND,
@@ -77,6 +146,7 @@ const dependencies = (shipment, trace) => ({
         findExistingDedupeFn: async () => null,
         persistFn: async () => true,
         appendEventFn: async () => true,
+        paymentEvidenceFn: canonicalPaymentEvidenceForTest,
         waitFn: async () => trace.push('P6_PACING')
     },
     p7: {
@@ -101,38 +171,32 @@ const dependencies = (shipment, trace) => ({
         appendEventFn: async () => true,
         registerAudioAttemptFn: async () => true,
         findExistingTexUltraAudioFn: async () => null,
+        paymentEvidenceFn: canonicalPaymentEvidenceForTest,
         waitFn: async () => trace.push('P7_PACING')
     }
 });
 
-test('V147-R3 classifica somente prova de pagamento com timestamp canônico', () => {
-    const dropi = shipmentCanonicalPaymentEvidence({
-        raw: { latestDroppiPayload: { paymentStatus: 'paid', paymentUpdatedAt: paidAt } }
-    });
-    assert.equal(dropi.confirmed, true);
-    assert.equal(dropi.classification, 'DROPI_CONFIRMED');
-    assert.equal(dropi.provider, 'DROPI');
-
-    const servientrega = shipmentCanonicalPaymentEvidence({
-        raw: { payment: { provider: 'Servientrega', status: 'paid', confirmedAt: paidAt } }
-    });
-    assert.equal(servientrega.confirmed, true);
-    assert.equal(servientrega.classification, 'SERVIENTREGA_CONFIRMED');
-
-    const persisted = shipmentCanonicalPaymentEvidence({ raw: { paymentConfirmedAt: paidAt } });
-    assert.equal(persisted.confirmed, true);
-    assert.equal(persisted.classification, 'OTHER_CANONICAL_CONFIRMED');
-
-    const ambiguous = shipmentCanonicalPaymentEvidence({ raw: { payment: { status: 'paid' } } });
-    assert.equal(ambiguous.confirmed, false);
-    assert.equal(ambiguous.classification, 'UNKNOWN');
-    assert.equal(ambiguous.confidence, 'AMBIGUOUS_MISSING_TIMESTAMP');
+test('V147-R3 rejeita campos sem produtor e evento derivado de ENTREGADO', () => {
+    for (const unverified of [
+        { raw: { latestDroppiPayload: { paymentStatus: 'paid', paymentUpdatedAt: paidAt } } },
+        { raw: { payment: { provider: 'Servientrega', status: 'paid', confirmedAt: paidAt } } },
+        { raw: { paymentConfirmedAt: paidAt } },
+        { events: [{ ...canonicalDropiPaymentEvent(), at: null }] },
+        { events: [{ ...canonicalDropiPaymentEvent(), payload: { ...canonicalDropiPaymentEvent().payload, reason: 'carrier_delivered' } }] },
+        { events: [{ ...canonicalDropiPaymentEvent(), payload: { ...canonicalDropiPaymentEvent().payload, dropiStatus: 'PENDIENTE' } }] },
+        { events: [{ ...canonicalDropiPaymentEvent(), payload: { ...canonicalDropiPaymentEvent().payload, dropiVerification: { ok: false, skipped: true, status: 'ENTREGADO' } } }] }
+    ]) {
+        const evidence = shipmentCanonicalPaymentEvidence(unverified);
+        assert.equal(evidence.confirmed, false);
+        assert.equal(evidence.classification, 'UNKNOWN');
+        assert.equal(evidence.confidence, 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE');
+    }
     assert.equal(shipmentPaymentConfirmed({ outcomes: { delivered: true } }), false);
 });
 
 test('V147-R3 valida link, entrega, P5, pagamento e marcador antes do P6', () => {
     const eligible = shipmentFixture();
-    const result = pickupBonusEligibility(eligible);
+    const result = pickupBonusEligibility(eligible, { paymentEvidenceFn: canonicalPaymentEvidenceForTest });
     assert.equal(result.allowed, true);
     assert.equal(result.deliveryConfirmed, true);
     assert.equal(result.p5AcceptedOrConfirmed, true);
@@ -143,7 +207,24 @@ test('V147-R3 valida link, entrega, P5, pagamento e marcador antes do P6', () =>
     assert.equal(pickupBonusLinkValid('javascript:alert(1)'), false);
 
     eligible.automation.deliveredThankYouNotifiedAt = null;
-    assert.equal(pickupBonusEligibility(eligible).allowed, false);
+    assert.equal(pickupBonusEligibility(eligible, { paymentEvidenceFn: canonicalPaymentEvidenceForTest }).allowed, false);
+});
+
+test('V147-R3 produção falha fechada enquanto a fonte financeira canônica está indisponível', async () => {
+    const shipment = shipmentFixture();
+    const eligibility = pickupBonusEligibility(shipment);
+    assert.equal(eligibility.allowed, false);
+    assert.equal(eligibility.paymentConfirmedCanonical, false);
+    assert.equal(eligibility.payment.classification, 'UNKNOWN');
+    assert.equal(eligibility.payment.confidence, 'CANONICAL_PROVIDER_SOURCE_UNAVAILABLE');
+
+    const trace = [];
+    const deps = dependencies(shipment, trace);
+    delete deps.p6.paymentEvidenceFn;
+    delete deps.p7.paymentEvidenceFn;
+    assert.equal(await notifyPickupBonus(shipment, deps.p6), false);
+    assert.equal(await notifyProductUsage(shipment, deps.p7), false);
+    assert.deepEqual(trace, []);
 });
 
 test('V147-R3 monitor reavalia pagamento tardio após entrega canônica', () => {
@@ -155,11 +236,14 @@ test('V147-R3 monitor reavalia pagamento tardio após entrega canônica', () => 
 
 test('V147-R3 matriz A: entrega e pagamento liberam P6 e P7 em ordem e com pacing', async () => {
     const shipment = shipmentFixture();
+    shipment.automation.deliveredThankYouNotifiedAt = null;
     const trace = [];
     const deps = dependencies(shipment, trace);
+    assert.equal(await notifyDeliveredThankYou(shipment, deps.p5), true);
     assert.equal(await notifyPickupBonus(shipment, deps.p6), true);
     assert.equal(await notifyProductUsage(shipment, deps.p7), true);
     assert.deepEqual(trace, [
+        'P5_PROVIDER',
         'P6_PACING',
         'P6_PROVIDER',
         'P7_PACING',
@@ -171,11 +255,13 @@ test('V147-R3 matriz A: entrega e pagamento liberam P6 e P7 em ordem e com pacin
 test('V147-R3 matrizes B e C: entregue sem pagamento ou com pagamento ambíguo envia zero P6/P7', async () => {
     for (const payment of ['missing', 'ambiguous']) {
         const shipment = shipmentFixture({ payment });
+        shipment.automation.deliveredThankYouNotifiedAt = null;
         const trace = [];
         const deps = dependencies(shipment, trace);
+        assert.equal(await notifyDeliveredThankYou(shipment, deps.p5), true);
         assert.equal(await notifyPickupBonus(shipment, deps.p6), false);
         assert.equal(await notifyProductUsage(shipment, deps.p7), false);
-        assert.deepEqual(trace, []);
+        assert.deepEqual(trace, ['P5_PROVIDER']);
     }
 });
 
@@ -193,14 +279,16 @@ test('V147-R3 matriz D: pagamento antes da entrega envia zero P5/P6/P7', async (
 
 test('V147-R3 matriz E: pagamento tardio não repete P5 e libera P6/P7 uma vez', async () => {
     const shipment = shipmentFixture({ payment: 'missing' });
+    shipment.automation.deliveredThankYouNotifiedAt = null;
     const trace = [];
     const deps = dependencies(shipment, trace);
-    assert.equal(await notifyDeliveredThankYou(shipment), false);
+    assert.equal(await notifyDeliveredThankYou(shipment, deps.p5), true);
     assert.equal(await notifyPickupBonus(shipment, deps.p6), false);
-    shipment.raw.paymentConfirmedAt = paidAt;
+    shipment.__testPaymentState = 'confirmed';
     assert.equal(await notifyPickupBonus(shipment, deps.p6), true);
     assert.equal(await notifyProductUsage(shipment, deps.p7), true);
     assert.equal(await notifyDeliveredThankYou(shipment), false);
+    assert.equal(trace.filter((item) => item === 'P5_PROVIDER').length, 1);
     assert.equal(trace.filter((item) => item === 'P6_PROVIDER').length, 1);
     assert.equal(trace.filter((item) => item.startsWith('P7_PROVIDER')).length, 1);
 });
