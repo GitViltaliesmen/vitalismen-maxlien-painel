@@ -114,6 +114,8 @@ assert.match(v116, /staging-check/);
 assert.match(v116, /post-sale-transactional-batch-v116\.mjs"? plan/);
 assert.match(v116, /cd "\$current" && node "\$candidate\/scripts\/post-sale-transactional-batch-v116\.mjs" plan/);
 assert.match(v116, /NODE_OPTIONS= node - "\$output"/);
+assert.match(v116, /raw\.lastIndexOf\(marker\)/);
+assert.match(v116, /result_json_missing/);
 assert.match(v116, /candidate\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs/);
 assert.match(v116, /--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs/);
 assert.match(v116, /NO_EROFS=YES/);

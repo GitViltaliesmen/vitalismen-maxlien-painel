@@ -79,7 +79,12 @@ if [[ "$action" == "staging-check" ]]; then
   chmod 0600 "$output"
   NODE_OPTIONS= node - "$output" <<'NODE'
 const fs = require('node:fs');
-const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const raw = fs.readFileSync(process.argv[2], 'utf8');
+const marker = '\n{\n  "status":';
+const offset = raw.lastIndexOf(marker);
+const start = offset >= 0 ? offset + 1 : (raw.startsWith('{\n  "status":') ? 0 : -1);
+if (start < 0) throw new Error('result_json_missing');
+const report = JSON.parse(raw.slice(start));
 if (report.status !== 'PASS_PLAN') throw new Error(`unexpected_status:${report.status || ''}`);
 if (Number(report.sent || 0) !== 0) throw new Error(`unexpected_sent:${report.sent}`);
 NODE
