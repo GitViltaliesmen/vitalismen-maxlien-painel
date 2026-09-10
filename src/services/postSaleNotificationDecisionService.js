@@ -66,10 +66,17 @@ const EVENT_BY_KIND = Object.freeze({
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
-export const postSaleTransactionalAllowsManualHumanMode = ({ shipment = {}, env = process.env } = {}) => (
+export const postSaleTransactionalAllowsManualHumanMode = ({ shipment = {}, kind = '', env = process.env } = {}) => (
     clean(env.VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL).toLowerCase() === 'true'
     && clean(env.POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED).toLowerCase() === 'true'
-    && Boolean(shipment?.raw?.postSaleTransactionalApprovedAt)
+    && (Boolean(shipment?.raw?.postSaleTransactionalApprovedAt) || (
+        ['ready_for_pickup', 'pickup_reminder_day3', 'pickup_reminder_day5',
+            'delivered_thank_you', 'pickup_bonus', 'product_usage'].includes(kind)
+        && Boolean(shipment._id && shipment.orderId && digitsOnly(shipment?.client?.phone))
+        && shipment?.logistics?.canonicalEvidence?.source === 'carrier_tracking'
+        && /^servientrega$/i.test(clean(shipment?.logistics?.canonicalEvidence?.provider))
+        && eligibilityForKind(shipment, kind)
+    ))
 );
 const statusKey = (value = '') => clean(value)
     .normalize('NFD')
@@ -438,8 +445,20 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    // Flag existente de opt-out explícito, persistida pelo classificador V40.
+    // A exceção logística não libera um contato que pediu para não receber mensagens.
+    const variants = phoneIdentityVariants(shipment?.client?.phone);
+    const blockedContact = variants.length && (contactStateModel !== ContactState || ContactState.db.readyState === 1)
+        ? await contactStateModel.findOne({ countryCode: 'EC', 'engagementAutomation.blockedReason': 'opt_out',
+            $or: [{ phoneDigits: { $in: variants } }, ...variants.map((tail) => ({ chatId: { $regex: `${tail}(?:@|$)` } }))]
+        }).sort({ updatedAt: -1 }).select('_id engagementAutomation.blockedReason').lean()
+        : null;
+    if (blockedContact?.engagementAutomation?.blockedReason === 'opt_out') {
+        return { decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
+            reason: 'explicit_contact_opt_out', stage, idempotencyKey };
+    }
     const manualHumanState = await findManualHumanModeForShipment({ shipment, contactStateModel });
-    if (manualHumanState && !postSaleTransactionalAllowsManualHumanMode({ shipment })) {
+    if (manualHumanState && !postSaleTransactionalAllowsManualHumanMode({ shipment, kind: legacyKind })) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.MANUAL_REVIEW_REQUIRED,
             reason: 'human_mode_manual',

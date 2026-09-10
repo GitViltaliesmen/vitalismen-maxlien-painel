@@ -36,7 +36,8 @@ for (const [relativePath, expectedSha256] of Object.entries(manifest.protectedFi
     if (globalThis.__VITALISMEN_V147_R4_CONTEXT?.protectedFiles?.[relativePath]) continue;
     const source = fs.readFileSync(new URL(`../../${relativePath}`, import.meta.url));
     const actual = crypto.createHash('sha256').update(source).digest('hex');
-    if (actual !== expectedSha256) throw new Error(`[V147-R3] arquivo protegido divergente: ${relativePath}`);
+    const successor = globalThis.__VITALISMEN_V147_R5_CONTEXT?.protectedFiles?.[relativePath];
+    if (actual !== (successor || expectedSha256)) throw new Error(`[V147-R3] arquivo protegido divergente: ${relativePath}`);
 }
 
 globalThis.__VITALISMEN_V147_R3_CONTEXT = Object.freeze({

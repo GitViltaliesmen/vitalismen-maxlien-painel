@@ -16,7 +16,8 @@ assert.deepEqual(Object.keys(manifest.protectedFiles).sort(), [...manifest.overr
 for (const [relativePath, expected] of Object.entries(manifest.protectedFiles)) {
     assert.ok(!relativePath.includes('..') && !relativePath.startsWith('/') && !relativePath.includes('\\'));
     const source = fs.readFileSync(new URL(`../../${relativePath}`, import.meta.url));
-    assert.equal(crypto.createHash('sha256').update(source).digest('hex'), expected, `[V147-R4] ${relativePath}`);
+    const successor = globalThis.__VITALISMEN_V147_R5_CONTEXT?.protectedFiles?.[relativePath];
+    assert.equal(crypto.createHash('sha256').update(source).digest('hex'), successor || expected, `[V147-R4] ${relativePath}`);
 }
 globalThis.__VITALISMEN_V147_R4_CONTEXT = Object.freeze({
     loaded: true, freezeId: manifest.freezeId,

@@ -5,7 +5,10 @@ await import('./lib/ec-runtime-successor-v147-r4-context.mjs');
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url));
 const manifest = JSON.parse(read('docs/freeze/ec-v116-canonical-polling-v147-r4-20260910.json'));
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
-for (const [file, expected] of Object.entries(manifest.preservedFiles)) assert.equal(sha(read(file)), expected, `preservado ${file}`);
+for (const [file, expected] of Object.entries(manifest.preservedFiles)) {
+    const successor = globalThis.__VITALISMEN_V147_R5_CONTEXT?.protectedFiles?.[file];
+    assert.equal(sha(read(file)), successor || expected, `preservado ${file}`);
+}
 assert.deepEqual(manifest.functionalFiles, ['scripts/post-sale-transactional-batch-v116.mjs', 'src/services/shipmentStatusDispatcherService.js']);
 const poll = read('src/services/shipmentStatusDispatcherService.js').toString();
 const batch = read('scripts/post-sale-transactional-batch-v116.mjs').toString();

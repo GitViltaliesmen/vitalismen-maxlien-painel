@@ -10,6 +10,7 @@ import { toWhatsAppChatId } from '../utils/phone.js';
 import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
+import { loadPostSaleProductV147R5 } from './postSaleProductResolutionV147R5Service.js';
 import { downloadDroppiEcuadorInvoicePdf } from './droppiEcuadorBrowserService.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { VIT_POWER_PICKUP_BONUS_TEXT } from './vitPowerEvolvedWorkflow.js';
@@ -2546,6 +2547,7 @@ export const notifyPickupBonus = async (shipment, {
 };
 
 export const notifyProductUsage = async (shipment, {
+    resolveProductFn = loadPostSaleProductV147R5,
     decideFn = decidePostSaleNotification,
     resolveAudioFn = resolveCountryAudio,
     sendAudioFileFn = sendShipmentAudioFile,
@@ -2558,12 +2560,20 @@ export const notifyProductUsage = async (shipment, {
     waitFn = wait
 } = {}) => {
     const chatId = resolveChatId(shipment);
-    const baseName = pickupHowToUseAudioForShipment(shipment);
     if (!chatId
         || shipment?.automation?.usageNotifiedAt
         || !servientregaPostSaleCompletionEligibleV147(shipment)
-        || !pickupBonusAcceptedOrConfirmed(shipment)
-        || !baseName) return false;
+        || !pickupBonusAcceptedOrConfirmed(shipment)) return false;
+    const product = await resolveProductFn({ shipment });
+    if (!product.productKey) {
+        if (Shipment.db.readyState === 1) await Shipment.updateOne({ _id: shipment._id }, { $set: {
+            'review.reviewStatus': 'product_usage_review_required',
+            'review.reviewReason': product.classification
+        } });
+        return false;
+    }
+    const baseName = pickupHowToUseAudioForShipment({ productName: product.productName });
+    if (!baseName) return false;
 
     const decision = await decideFn({
         shipment,
@@ -2572,7 +2582,7 @@ export const notifyProductUsage = async (shipment, {
     });
     if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
 
-    const texUltraDedupeValue = shipmentProductFamily(shipment) === 'tex_ultra'
+    const texUltraDedupeValue = product.productKey === 'tex_ultra_ec'
         ? texUltraHowToUseAudioDedupeValue(baseName)
         : '';
     if (texUltraDedupeValue) {
