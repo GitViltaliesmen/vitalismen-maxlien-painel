@@ -278,7 +278,7 @@ test('V147 P5 exige entrega canônica e possui lock concorrente at-most-once', a
         decidePostSaleNotification({ shipment: delivered, kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO, messageModel: noHistory, shipmentModel })
     ]);
     assert.equal([first, second].filter((item) => item.decision === POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND).length, 1);
-    assert.equal([first, second].filter((item) => item.reason === 'persistent_notification_lock_or_marker').length, 1);
+    assert.equal([first, second].filter((item) => item.reason === 'canonical_event_reserved_or_terminal').length, 1);
 });
 
 test('V147 P5 envia OBRIGADO_PAGOU uma vez ao sink com chave própria', async () => {
@@ -362,7 +362,8 @@ test('V147 P5 permanece bloqueado após restart por ledger ou marcador persistid
     const fromLedger = await decidePostSaleNotification({
         shipment: snapshot,
         kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
-        acquireLock: false
+        acquireLock: false,
+        messageModel: { find: () => ({ sort() { return this; }, lean: async () => [] }) }
     });
     assert.equal(fromLedger.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED);
     assert.match(fromLedger.reason, /postSaleSafetyLedger\.DELIVERED_THANK_YOU/);
@@ -372,7 +373,8 @@ test('V147 P5 permanece bloqueado após restart por ledger ou marcador persistid
     const fromMarker = await decidePostSaleNotification({
         shipment: snapshot,
         kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
-        acquireLock: false
+        acquireLock: false,
+        messageModel: { find: () => ({ sort() { return this; }, lean: async () => [] }) }
     });
     assert.equal(fromMarker.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED);
     assert.equal(fromMarker.reason, 'automation.deliveredThankYouNotifiedAt');

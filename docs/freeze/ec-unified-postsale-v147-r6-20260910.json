@@ -32,6 +32,7 @@
     "src/services/shipmentMessageService.js",
     "src/services/shipmentStatusDispatcherService.js",
     "tests/pickup-bonus-delivery-v60.test.mjs",
+    "tests/post-sale-canonical-restoration-v147.test.mjs",
     "tests/transactional-postsale-v147-r5.test.mjs",
     "tests/unified-postsale-v147-r6.test.mjs"
   ],
@@ -55,6 +56,7 @@
     "src/services/shipmentMessageService.js": "669a784f0fb35c802a64c31e83d8ca168d35dd6c2928d463e3485fb254b2345a",
     "src/services/shipmentStatusDispatcherService.js": "5cbd558bbfa2709cdbc828a33b48e7fce839e38ec6ae2adf9d372afcad0f5832",
     "tests/pickup-bonus-delivery-v60.test.mjs": "d1c75f284c7c82d7d19b530368670f74f2b2c4ac18c2bf13b6d1293d919a633e",
+    "tests/post-sale-canonical-restoration-v147.test.mjs": "c6e3449a4e1957d4d79f66555f13d401ce8005cd6b943bc2086a7977885537ab",
     "tests/transactional-postsale-v147-r5.test.mjs": "272e879af3a89a3cbf60efc244ded1040148e17349a77123c693396678d13684",
     "tests/unified-postsale-v147-r6.test.mjs": "5323fd4ff15b655cd9bc8e6208044044702d7fe3a02c14e7fe1c1f49a7e08d78"
   },
