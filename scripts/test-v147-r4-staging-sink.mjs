@@ -163,6 +163,7 @@ try {
         'automation.deliveredThankYouNotifiedAt': null, 'automation.bonusNotifiedAt': null,
         'automation.usageNotifiedAt': null, 'automation.deliveredConfirmedAt': null,
         'automation.reminderDay3At': null, 'automation.reminderDay5At': null,
+        'automation.lastReminderAt': t0, 'automation.lastMessageAt': t0,
         'review.suppressedNotificationKinds': ['guide', 'in_transit', 'delivered_thank_you', 'pickup_bonus', 'product_usage'],
         events: [], notificationLedger: [],
         'outcomes.delivered': false, 'outcomes.pickedUp': false,

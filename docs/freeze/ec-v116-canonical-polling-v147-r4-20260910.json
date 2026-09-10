@@ -30,7 +30,7 @@
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
     "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
     "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",
-    "scripts/test-v147-r4-staging-sink.mjs": "113ff71088d9164624d726030e0c00d0dcec2c073d836b44340f25d10432814f",
+    "scripts/test-v147-r4-staging-sink.mjs": "f99d8edabd39e449d84bb7cdce51637e14b361a191cdf9c48d0f793066e277ce",
     "src/services/shipmentStatusDispatcherService.js": "9b1d03748c15f66bfb047356f9ae75fbe034b48188e284eca5c6764c58da7e56",
     "tests/helpers/v147-r4-sink-loader.mjs": "18e95b0026056b2dfb57438458d0a8952fbf50644fe0e88308a6e56e9f90a56a",
     "tests/helpers/v147-r4-sink-register.mjs": "4ed4ebda61eb7cddf2f8f0e41f0ef39cb9a44c046cca4fe4fd309213211cfd96",
