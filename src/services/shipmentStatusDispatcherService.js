@@ -1,3 +1,4 @@
+import { reconcileA07ShipmentV147R6R2 } from './postSaleA07ComponentsV147R6R2Service.js';
 import { reconcileDeliveredPostSaleSequenceV147R6 } from './postSaleUnifiedEventV147R6Service.js';
 import Shipment from '../models/Shipment.js';
 import { getSenderPoolStatus, resolveOutboundSessionForJid } from '../whatsapp/sessionRouter.js';
@@ -705,7 +706,8 @@ export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Dat
             'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
-            'automation.readyForPickupNotifiedAt': null,
+            $or: [{ 'automation.readyForPickupNotifiedAt': null },
+                { 'automation.postSaleSafetyLedger.READY_FOR_PICKUP.state': 'PARTIAL' }],
             'outcomes.delivered': { $ne: true },
             'outcomes.pickedUp': { $ne: true },
             'outcomes.returned': { $ne: true },
@@ -1361,6 +1363,7 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             }
 
             let shipmentForSend = lockedShipment;
+            if (action === 'ready_for_pickup' && !dryRun) shipmentForSend = await reconcileA07ShipmentV147R6R2(shipmentForSend);
             if (action === 'delivered_bonus' && !dryRun) {
                 shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
             }

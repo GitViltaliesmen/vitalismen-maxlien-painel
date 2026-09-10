@@ -312,7 +312,7 @@ test('anti-spam reconhece marker estruturado e audio humano com aceite comprovad
         shipment: { ...decisionShipmentFromFixture(item), createdAt: new Date('2026-08-25T00:00:00Z'), review: { manualOnly: false, suppressedNotificationKinds: [] } },
         kind: 'ready_for_pickup',
         acquireLock: false,
-        messageModel: messageModel(humanMessages)
+        a07Component: 'AUDIO', messageModel: messageModel(humanMessages)
     });
     assert.equal(manual.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_MANUALLY);
 });

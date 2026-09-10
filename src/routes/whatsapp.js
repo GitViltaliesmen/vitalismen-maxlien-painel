@@ -6546,10 +6546,13 @@ router.post('/send', authMiddleware, async (req, res) => {
 
         const canonicalPostSale = await sendCanonicalPanelPostSaleV147R6({
             request: req.body, operator: req.user?._id?.toString?.() || 'ana_lopez',
-            sendFn: async ({ event }) => {
+            sendFn: async ({ event, shipment }) => {
                 let payload = message;
                 if (isMedia) {
-                    if (String(message).startsWith('data:audio/')) {
+                    if (event.component === 'GUIDE_PDF') {
+                        const { prepareA07InvoiceV147R6R2 } = await import('../services/shipmentMessageService.js');
+                        payload = await prepareA07InvoiceV147R6R2(shipment);
+                    } else if (String(message).startsWith('data:audio/')) {
                         const directory = manualUploadsDirV129();
                         fs.mkdirSync(directory, { recursive: true });
                         const extension = String(message).startsWith('data:audio/mpeg;') ? '.mp3' : '.ogg';
@@ -6565,12 +6568,12 @@ router.post('/send', authMiddleware, async (req, res) => {
                     dedupeValue: event.dedupeKey, allowAudioDedupeBypass: true,
                     bypassDedupe: !isMedia, allowTextDedupeBypass: !isMedia, allowHistoryDedupeBypass: !isMedia });
             },
-            recordFn: async ({ result }) => {
+            recordFn: async ({ result, event }) => {
                 const state = await findOrCreateContactState(phone);
                 applyManualSendHold(state, { phone, user: req.user });
                 await state.save();
                 return recordManualOutboundMessage({ phone, body: isMedia ? '' : message,
-                    type: isMedia ? 'audio' : 'chat', mediaUrl: isMedia && !String(message).startsWith('data:') ? message : '',
+                    type: event.component === 'GUIDE_PDF' ? 'document' : isMedia ? 'audio' : 'chat', mediaUrl: isMedia && !String(message).startsWith('data:') ? message : '',
                     user: req.user, sessionId: result.provider === 'zapi' ? (zapiOperationalPanelPhone() || effectiveSessionId) : effectiveSessionId,
                     deliveryStatus: 'provider_accepted', provider: result.provider || '', providerMessageId: result.providerMessageId,
                     providerZaapId: result.providerZaapId || '', providerStatus: result.providerStatus || '',

@@ -55,7 +55,7 @@ test('R6R2 successor recognizes the manual audio evidence from the R6 gap audit'
         assert.ok(classifyPostSaleContentV147R6(row));
         const messageModel = { find() { return { sort() { return this; }, limit() { return this; }, async lean() { return [row]; } }; } };
         const contactStateModel = { findOne() { return { sort() { return this; }, select() { return this; }, async lean() { return null; } }; } };
-        const decision = await decidePostSaleNotification({ shipment, kind, messageModel, contactStateModel, acquireLock: false });
+        const decision = await decidePostSaleNotification({ shipment, kind, a07Component: kind === 'ready_for_pickup' ? 'AUDIO' : '', messageModel, contactStateModel, acquireLock: false });
         assert.equal(decision.decision, 'ALREADY_NOTIFIED_MANUALLY');
     }
 });

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { a07PlanV147R6R2, inspectA07V147R6R2 } from '../src/services/postSaleA07ComponentsV147R6R2Service.js';
 import { classifyPostSaleContentV147R6, resolvePostSaleEventV147R6, findPostSaleEvidenceV147R6,
     pickupEventEligibleV147R6R2, guardReservedPickupEventV147R6R2 } from '../src/services/postSaleUnifiedEventV147R6Service.js';
 
@@ -10,6 +11,24 @@ const shipment = () => ({ _id: 'ship', orderId: 'order', country: 'EC', createdA
         pickupReadyVerified: true, pickupReadyVerifiedSource: 'carrier_tracking', pickupReadyVerifiedAt: at },
     automation: { readyForPickupNotifiedAt: at, postSaleSafetyLedger: { READY_FOR_PICKUP: { acceptedAt: at } } } });
 const stages = [['A07', 'READY_FOR_PICKUP', 'Chegou_01'], ['A10', 'PICKUP_REMINDER_DAY3', 'Chegou_02'], ['A19', 'PICKUP_REMINDER_DAY5', 'Chegou_03']];
+test('A07 audio evidence satisfies only AUDIO; exact text completes the available event', async () => {
+    const s = shipment(); s.logistics.trackingNumber = '189147000'; s.automation = {};
+    const plan = await a07PlanV147R6R2(s);
+    assert.deepEqual(plan.components.map((e) => e.component), ['TEXT', 'AUDIO']);
+    assert.equal(new Set(plan.components.map((e) => e.dedupeKey)).size, 2);
+    let rows = [{ isFromMe: true, isBot: false, peerPhone: s.client.phone, ack: 2,
+        providerMessageId: 'audio-proof', createdAt: new Date(at.getTime() + 1000), mediaUrl: '/media/templates/EC/Chegou_01.ogg' }];
+    const model = { find() { return { sort() { return this; }, async lean() { return rows; } }; } };
+    let view = await inspectA07V147R6R2({ shipment: s, messageModel: model });
+    assert.equal(view.satisfied, false); assert.equal(view.selected.component, 'TEXT');
+    assert.equal((await inspectA07V147R6R2({ shipment: s, messageModel: model, component: 'AUDIO' })).satisfied, true);
+    assert.equal((await inspectA07V147R6R2({ shipment: s, messageModel: model, component: 'GUIDE_PDF' })).decision, 'NOT_ELIGIBLE');
+    rows.push({ ...rows[0], mediaUrl: '', body: plan.text, providerMessageId: 'text-proof' });
+    view = await inspectA07V147R6R2({ shipment: s, messageModel: model });
+    assert.equal(view.satisfied, true); assert.equal(view.parent.reservationCount, 1);
+    assert.equal(new Date(view.parent.acceptedAt).getTime(), at.getTime() + 1000);
+    rows[1].body = 'Pedido disponível, texto aproximado'; assert.equal((await inspectA07V147R6R2({ shipment: s, messageModel: model })).satisfied, false);
+});
 for (const [name, stage, label] of stages) {
     test(name + ' exact manual media resolves the same order-scoped event', async () => {
         const s = shipment(); const event = await resolvePostSaleEventV147R6({ shipment: s, stage });

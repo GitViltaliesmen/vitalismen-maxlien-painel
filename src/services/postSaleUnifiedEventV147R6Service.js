@@ -83,7 +83,7 @@ export const acceptedPostSaleEvidenceV147R6 = (record = {}) => Boolean(
 const acceptedAt = (record) => record.createdAt || (record.timestamp ? new Date(record.timestamp * 1000) : null);
 const deliveredAt = (shipment) => shipment?.automation?.deliveredConfirmedAt || shipment?.logistics?.canonicalEvidence?.observedAt;
 
-export const findPostSaleEvidenceV147R6 = async ({ shipment, event, messageModel = Message, shipmentModel = Shipment } = {}) => {
+export const findPostSaleEvidenceV147R6 = async ({ shipment, event, messageModel = Message, shipmentModel = Shipment, matchesRecord = null } = {}) => {
     if (!event || (!pickupPostSaleStageV147R6R2(event.stage) && !servientregaPostSaleCompletionEligibleV147(shipment))) return [];
     const recipient = phone(shipment.client?.phone);
     if (!recipient) return [];
@@ -113,8 +113,11 @@ export const findPostSaleEvidenceV147R6 = async ({ shipment, event, messageModel
             if (!Number.isFinite(lower) || !Number.isFinite(at) || at < lower
                 || (nextOrderAt && at >= new Date(nextOrderAt).getTime())) continue;
             if (row.orderId && !aliases.has(clean(row.orderId))) continue;
-            const content = classifyPostSaleContentV147R6(row);
-            if (!content || content.templateId !== event.templateId || content.product !== event.product) continue;
+            if (matchesRecord) { if (!matchesRecord(row)) continue; }
+            else {
+                const content = classifyPostSaleContentV147R6(row);
+                if (!content || content.templateId !== event.templateId || content.product !== event.product) continue;
+            }
         }
         const previous = found.get(row.providerMessageId);
         if (!previous || Number(row.ack || 0) > Number(previous.ack || 0)) found.set(row.providerMessageId, row);
@@ -208,6 +211,10 @@ export const reconcilePickupPostSaleSequenceV147R6R2 = async (shipment, { persis
     if (!shipment?._id || (shipmentModel === Shipment && Shipment.db.readyState !== 1)) return shipment;
     let current = await shipmentModel.findById(shipment._id).lean();
     for (const stage of Object.keys(pickupStageEvents)) {
+        if (stage === 'READY_FOR_PICKUP') {
+            if (persist) current = await (await import('./postSaleA07ComponentsV147R6R2Service.js')).reconcileA07ShipmentV147R6R2(current, { shipmentModel, messageModel });
+            continue;
+        }
         const event = await resolvePostSaleEventV147R6({ shipment: current, stage });
         if (event) await reconcilePostSaleEventV147R6({ shipment: current, event, shipmentModel, messageModel, persist });
         if (persist) current = await shipmentModel.findById(shipment._id).lean();

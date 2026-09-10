@@ -25,7 +25,7 @@ const transport = async (method, args) => {
     const providerMessageId = 'r6r2-sink-' + crypto.randomUUID();
     const row = { providerMessageId, at: new Date().toISOString(), method, phone: String(args[0]), media: method === 'sendAudio' ? path.basename(String(args[1])) : '', pid: process.pid };
     fs.appendFileSync(trace, JSON.stringify(row) + '\n', { mode: 0o600 });
-    await delay(3);
+    await delay(process.argv.some((arg) => arg.startsWith('--worker=')) ? 150 : 3);
     return { ok: true, provider: 'sink', providerMessageId, providerZaapId: providerMessageId, providerStatus: 'accepted' };
 };
 globalThis.__R4_SINK_SEND = transport;
@@ -37,6 +37,7 @@ const { default: ContactState } = await import('../src/models/ContactState.js');
 const { notifyDeliveredThankYou, notifyPickupBonus, notifyProductUsage, notifyReadyForPickup, notifyShipmentReminder } = await import('../src/services/shipmentMessageService.js');
 const { sendCanonicalPanelPostSaleV147R6 } = await import('../src/services/postSaleManualPanelV147R6Service.js');
 const { resolvePostSaleEventV147R6, reservePostSaleEventV147R6, LEGACY_PANEL_P6_TEXT_V147R6 } = await import('../src/services/postSaleUnifiedEventV147R6Service.js');
+const { a07PlanV147R6R2, inspectA07V147R6R2 } = await import('../src/services/postSaleA07ComponentsV147R6R2Service.js');
 await mongoose.connect(uri, { autoIndex: true });
 const calls = () => fs.existsSync(trace) ? fs.readFileSync(trace, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line)) : [];
 const specs = {
@@ -49,6 +50,11 @@ const specs = {
 };
 const auto = async (id, stage) => specs[stage][2](await Shipment.findById(id));
 const manual = async (id, stage, sendFn = null) => {
+    if (stage === 'A07') {
+        const s = await Shipment.findById(id);
+        for (const event of (await a07PlanV147R6R2(s)).components) await manualComponent(id, event.component, sendFn);
+        return;
+    }
     const shipment = await Shipment.findById(id).lean();
     const request = { phone: shipment.client.phone, sendMode: 'manual_panel', postSaleShipmentId: String(id),
         message: stage === 'P6' ? LEGACY_PANEL_P6_TEXT_V147R6 : '/media/templates/EC/' + specs[stage][1] + '.ogg', isMedia: stage !== 'P6' };
@@ -60,6 +66,20 @@ const manual = async (id, stage, sendFn = null) => {
             type: request.isMedia ? 'audio' : 'chat', mediaUrl: request.isMedia ? request.message : '',
             providerMessageId: result.providerMessageId, ack: 2, deliveryStatus: 'delivered', timestamp: Math.floor(Date.now() / 1000) }) });
 };
+const manualComponent = async (id, component, sendFn = null) => {
+    const s = await Shipment.findById(id);
+    const plan = await a07PlanV147R6R2(s);
+    const request = { phone: s.client.phone, sendMode: 'manual_panel', postSaleShipmentId: String(id),
+        message: component === 'TEXT' ? plan.text : component === 'GUIDE_PDF' ? plan.guide : '/media/templates/EC/Chegou_01.ogg',
+        isMedia: component !== 'TEXT' };
+    const type = component === 'TEXT' ? 'chat' : component === 'GUIDE_PDF' ? 'document' : 'audio';
+    return sendCanonicalPanelPostSaleV147R6({ request, operator: 'SINK_OPERATOR',
+        sendFn: sendFn || (async () => transport(component === 'TEXT' ? 'sendText' : component === 'GUIDE_PDF' ? 'sendDocument' : 'sendAudio', [s.client.phone, request.message])),
+        recordFn: async ({ result }) => Message.create({ _id: 'manual_' + result.providerMessageId, from: 'SINK',
+            isFromMe: true, isBot: false, senderRole: 'human', peerPhone: s.client.phone, to: s.client.phone + '@c.us',
+            body: request.isMedia ? '[' + type + ']' : request.message, type, mediaUrl: request.isMedia ? request.message : '',
+            providerMessageId: result.providerMessageId, ack: 2, deliveryStatus: 'delivered', timestamp: Math.floor(Date.now() / 1000) }) });
+};
 const childMode = process.argv.find((arg) => arg.startsWith('--worker='))?.split('=')[1];
 if (childMode || process.argv.includes('--restart')) {
     const [stage, id] = process.argv.slice(-2);
@@ -68,6 +88,11 @@ if (childMode || process.argv.includes('--restart')) {
         const end = Date.now() + 30000;
         while (!fs.existsSync(path.join(directory, id + '-go')) && Date.now() < end) await delay(10);
         assert.ok(fs.existsSync(path.join(directory, id + '-go')));
+        if (process.argv.includes('--second')) {
+            const s = await Shipment.findById(id); const end = Date.now() + 30000;
+            while (!calls().some((row) => row.phone.replace(/\D/g, '') === s.client.phone) && Date.now() < end) await delay(2);
+            assert.ok(calls().some((row) => row.phone.replace(/\D/g, '') === s.client.phone));
+        }
         if (childMode === 'manual') await manual(id, stage); else await auto(id, stage);
     } else {
         const before = calls().length; await auto(id, stage); await manual(id, stage);
@@ -108,7 +133,9 @@ const worker = (args) => {
 const receipt = { transport: 'SINK', realMessagesSent: 0, cases: {} };
 try {
     await Promise.all([Shipment.init(), Message.init(), Order.init(), ContactState.init()]);
-    // A07 transport integration is pending the operator's text/PDF versus single-call clarification.
+    receipt.cases.A07 = await (await import('./lib/test-v147-r6r2-a07-cases.mjs')).runA07Cases({
+        Shipment, Message, make, auto, manual, manualComponent, worker, calls, transport, directory, delay,
+        a07PlanV147R6R2, inspectA07V147R6R2 });
     for (const stage of ['A10', 'A19', 'P5', 'P6', 'P7']) {
         const cases = receipt.cases[stage] = {};
         for (const first of ['manual', 'auto']) {
@@ -170,7 +197,7 @@ try {
             cases[source + '_delivered_before_send'] = 'PASS';
         }
     }
-    Object.assign(receipt, { status: 'PARTIAL_PASS_A07_PENDING_CLARIFICATION', duplicateMessages: 0, messages: calls() });
+    Object.assign(receipt, { status: 'PASS', duplicateMessages: 0, messages: calls() });
     fs.writeFileSync(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
     console.log('V147_R6R2_INDEPENDENT_SINK=PASS');
 } finally { await mongoose.disconnect(); }

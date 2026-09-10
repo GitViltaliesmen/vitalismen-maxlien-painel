@@ -1,5 +1,6 @@
 import { unifiedPostSaleStageV147R6, resolvePostSaleEventV147R6, reconcilePostSaleEventV147R6, reservePostSaleEventV147R6, finalizePostSaleEventV147R6,
     pickupPostSaleStageV147R6R2, pickupEventEligibleV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
+import { inspectA07V147R6R2, reserveA07ComponentV147R6R2 } from './postSaleA07ComponentsV147R6R2Service.js';
 import crypto from 'crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -361,7 +362,8 @@ export const decidePostSaleNotification = async ({
     now = new Date(),
     lockMs = 10 * 60 * 1000,
     manualPanel = false,
-    operator = ''
+    operator = '',
+    a07Component = ''
 } = {}) => {
     const stage = canonicalPostSaleStage(kind || variant);
     const legacyKind = legacyKindForPostSaleStage(stage);
@@ -382,7 +384,10 @@ export const decidePostSaleNotification = async ({
         decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'canonical_product_or_identity_missing', stage
     };
     const idempotencyKey = canonicalEvent?.dedupeKey || buildPostSaleIdempotencyKey({ shipment, stage, variant });
-    if (canonicalEvent) {
+    const a07View = stage === 'READY_FOR_PICKUP'
+        ? await inspectA07V147R6R2({ shipment, component: a07Component, shipmentModel, messageModel, persist: acquireLock }) : null;
+    if (a07View && a07View.decision !== 'SHOULD_SEND') return a07View;
+    if (canonicalEvent && !a07View) {
         const recovered = await reconcilePostSaleEventV147R6({ shipment, event: canonicalEvent,
             messageModel, shipmentModel, persist: acquireLock, now });
         if (recovered) return recovered;
@@ -390,7 +395,7 @@ export const decidePostSaleNotification = async ({
             decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'intended_event_requires_reconciliation', stage, idempotencyKey
         };
     }
-    const structured = structuredShipmentEvidence(shipment, legacyKind);
+    const structured = a07View ? { found: false } : structuredShipmentEvidence(shipment, legacyKind);
     if (structured.found) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED,
@@ -491,6 +496,8 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    if (a07View) return reserveA07ComponentV147R6R2({ shipment, component: a07Component || a07View.selected?.component,
+        source: manualPanel ? 'manual_panel' : 'v116', operator, shipmentModel, messageModel });
     if (canonicalEvent) return reservePostSaleEventV147R6({ shipment, event: canonicalEvent,
         source: manualPanel ? 'manual_panel' : 'v116', operator, shipmentModel, now, lockMs });
     const lockPath = `automation.notificationLocks.${stage}`;

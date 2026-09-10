@@ -1,3 +1,4 @@
+import { a07PlanV147R6R2, reconcileA07ShipmentV147R6R2, guardA07ComponentV147R6R2, finalizeA07ComponentV147R6R2 } from './postSaleA07ComponentsV147R6R2Service.js';
 import { reconcileDeliveredPostSaleSequenceV147R6, reconcilePickupPostSaleSequenceV147R6R2,
     guardReservedPickupEventV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
 import path from 'path';
@@ -540,6 +541,18 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
     decision = null,
     sendDocumentFn = sendDocument
 } = {}) => {
+    if (decision?.canonicalEvent?.component === 'GUIDE_PDF') {
+        if (!logisticsCommunicationPolicy(shipment).allowGuidePdf) return { sent: false, providerAttempted: false, reason: 'guide_pdf_blocked' };
+        const source = await ensureInvoiceAvailableLocally(shipment);
+        if (!source || !fs.existsSync(source)) return { sent: false, providerAttempted: false, reason: 'missing_invoice_source' };
+        if (!await guardA07ComponentV147R6R2({ shipment, event: decision.canonicalEvent, lockToken: decision.lockToken })) return { sent: false, reason: 'stale_a07_component' };
+        const sent = await sendDocumentFn(chatId, source, path.basename(String(source).split('?')[0]), caption,
+            { ...shipmentOutboundOptions(shipment), outboundContext: 'shipment_invoice_pdf',
+                dedupeValue: decision.idempotencyKey, returnDetails: true });
+        if (sendResultOk(sent)) await persistShipmentOutboundMessage({ shipment, chatId, kind: 'shipment_invoice_pdf',
+            type: 'document', body: caption, mediaPath: source, sentResult: sent, postSaleEvent: decision.canonicalEvent });
+        return { ...sent, sent: sendResultOk(sent), reason: sendResultOk(sent) ? 'ok' : 'invoice_send_failed' };
+    }
     const policy = logisticsCommunicationPolicy(shipment);
     if (!policy.allowGuidePdf) {
         if (shouldSendPostSaleNotification(decision) && decision?.lockToken) {
@@ -803,7 +816,7 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false, canoni
             force: canonicalDecision ? false : force,
             ...(canonicalDecision ? { postSaleEvent: canonicalDecision.canonicalEvent,
                 dedupeValue: canonicalDecision.idempotencyKey,
-                beforeSend: () => guardReservedPickupEventV147R6R2({ shipment,
+                beforeSend: () => (canonicalDecision.canonicalEvent?.component ? guardA07ComponentV147R6R2 : guardReservedPickupEventV147R6R2)({ shipment,
                     event: canonicalDecision.canonicalEvent, lockToken: canonicalDecision.lockToken }) } : {})
         });
         sentAny = sendResultOk(sent) || sentAny;
@@ -1839,157 +1852,63 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
     };
 };
 
+export const prepareA07InvoiceV147R6R2 = async (shipment) => ensureInvoiceAvailableLocally(await Shipment.findById(shipment._id));
+
 export const notifyReadyForPickup = async (shipment, { force = false } = {}) => {
-    const policy = logisticsCommunicationPolicy(shipment);
-    if (!policy.allowPickupLanguage) {
-        await appendNotificationLedgerV29(shipment, {
-            notificationType: 'ready_for_pickup',
-            blockedReason: policy.blockReason || 'pickup_ready_not_verified'
-        });
+    if (!logisticsCommunicationPolicy(shipment).allowPickupLanguage) {
+        await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', blockedReason: 'pickup_ready_not_verified' });
         return false;
     }
+    shipment = await reconcileA07ShipmentV147R6R2(shipment);
     const chatId = resolveChatId(shipment);
-    if (!chatId) return false;
-    const decision = await decidePostSaleNotification({
-        shipment,
-        kind: 'ready_for_pickup',
-        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT
-    });
-    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
-    const text = buildReadyForPickupText(shipment);
-    const hash = buildMessageHash({
-        kind: 'ready_for_pickup',
-        text,
-        trackingNumber: shipment.logistics.trackingNumber
-    });
-    if (!force && hasAlreadySentHash(shipment, hash)) {
-        await failPostSaleNotificationStage({
-            shipment,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            lockToken: decision.lockToken,
-            reason: 'duplicate_hash'
-        });
-        return false;
-    }
-    if (!force) {
-        const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind: 'ready_for_pickup' });
-        if (existingNotice) {
-            const recovered = await recoverExistingGlobalShipmentNotice({
-                shipment,
-                kind: 'ready_for_pickup',
-                hash,
-                existing: existingNotice
-            });
-            if (recovered) {
-                await completePostSaleNotificationStage({
-                    shipment,
-                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-                    lockToken: decision.lockToken,
-                    providerMessageId: existingNotice.messageId || '',
-                    now: existingNotice.at || new Date()
-                });
+    if (!chatId || !force && !hasMinGapElapsed(shipment)) return false;
+    const plan = await a07PlanV147R6R2(shipment);
+    if (!plan) return false;
+    let sentAny = false;
+    const details = {};
+    for (const event of plan.components) {
+        shipment = await Shipment.findById(shipment._id);
+        const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup',
+            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT, a07Component: event.component });
+        if (decision.satisfied) continue;
+        if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return sentAny;
+        try {
+            if (!await guardA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken })) return sentAny;
+            let result;
+            if (event.component === 'TEXT') {
+                result = await sendShipmentText(shipment, chatId, plan.text, { kind: 'shipment_ready_for_pickup_text',
+                    dedupeValue: event.dedupeKey, postSaleEvent: event, allowHistoryDedupeBypass: true });
+            } else if (event.component === 'GUIDE_PDF') {
+                const invoice = await sendShipmentInvoicePdf(shipment, chatId,
+                    `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`, { decision });
+                result = { ...invoice, ok: invoice.sent };
             } else {
-                await failPostSaleNotificationStage({
-                    shipment,
-                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-                    lockToken: decision.lockToken,
-                    reason: 'existing_notice_recovery_failed'
-                });
+                const audio = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { canonicalDecision: decision });
+                result = { ok: audio.sentAny, providerMessageId: audio.sentDetails?.[0]?.providerMessageId || '',
+                    providerAttempted: !audio.failed.every((row) => ['audio_not_found', 'audio_not_approved'].includes(row.reason)) };
             }
-            return recovered;
+            details[event.component] = result;
+            const finalized = await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, result,
+                failure: result?.ok && result.providerMessageId ? '' : result?.providerAttempted === false ? 'PENDING' : 'AMBIGUOUS' });
+            if (!finalized.completed) return sentAny;
+            sentAny = true;
+        } catch (error) {
+            await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, failure: 'AMBIGUOUS' });
+            throw error;
         }
     }
-    if (!force && !hasMinGapElapsed(shipment)) {
-        await failPostSaleNotificationStage({
-            shipment,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            lockToken: decision.lockToken,
-            reason: 'min_gap_not_elapsed'
-        });
-        return false;
+    shipment = await reconcileA07ShipmentV147R6R2(shipment);
+    const now = shipment.automation?.postSaleSafetyLedger?.READY_FOR_PICKUP?.acceptedAt;
+    if (sentAny && now && shipment.automation?.readyForPickupNotifiedAt) {
+        const hash = buildMessageHash({ kind: 'ready_for_pickup', text: plan.text, trackingNumber: shipment.logistics.trackingNumber });
+        await persistAutomationUpdate(shipment._id, { 'automation.guiaNotifiedAt': shipment.automation?.guiaNotifiedAt || now,
+            'automation.lastReminderAt': now, 'automation.lastReminderKind': 'ready_for_pickup' }, hash);
+        await appendEvent(shipment._id, 'ready_for_pickup_notified', { components: details, shortNotice: true,
+            invoiceSent: Boolean(details.GUIDE_PDF?.ok), primaryTextSent: true });
+        await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', sentAt: now,
+            providerMessageId: shipment.automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT?.providerMessageId || '' });
     }
-
-    const guidePdfDecision = await decidePostSaleNotification({
-        shipment,
-        kind: 'guide',
-        variant: POST_SALE_VARIANTS.GUIDE_PDF
-    });
-    const sent = await sendShipmentText(shipment, chatId, text, {
-        kind: 'shipment_ready_for_pickup_text',
-        bypassDedupe: force,
-        allowTextDedupeBypass: force,
-        allowHistoryDedupeBypass: force
-    });
-    if (!sendResultOk(sent)) {
-        await recordPrimaryPostSaleSendFailure({
-            shipment,
-            decision,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            sendResult: sent,
-            reason: 'text_send_failed'
-        });
-        if (shouldSendPostSaleNotification(guidePdfDecision) && guidePdfDecision.lockToken) {
-            await failPostSaleNotificationStage({
-                shipment,
-                stage: POST_SALE_STAGES.GUIDE,
-                variant: POST_SALE_VARIANTS.GUIDE_PDF,
-                lockToken: guidePdfDecision.lockToken,
-                reason: 'primary_ready_text_send_failed'
-            });
-        }
-        return false;
-    }
-    const sentAt = new Date();
-    const finalized = await completePostSaleNotificationStage({
-        shipment,
-        stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-        lockToken: decision.lockToken,
-        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
-        now: sentAt
-    });
-    if (!finalized.completed) return false;
-    const invoiceResult = await sendShipmentInvoicePdf(
-        shipment,
-        chatId,
-        `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`,
-        { decision: guidePdfDecision }
-    );
-    if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceResult.sent) {
-        console.warn(`[SHIPMENT] Falha ao reenviar fatura no aviso de retirada ${shipment.orderId}: ${invoiceResult.reason}`);
-    }
-    const audioSent = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { force });
-    const partialAttachmentFailures = await appendPartialAttachmentEvents(shipment._id, 'ready_for_pickup', {
-        invoice: invoiceResult,
-        audio: audioSent
-    });
-
-    const now = sentAt;
-    await persistAutomationUpdate(shipment._id, {
-        'automation.guiaNotifiedAt': shipment.automation?.guiaNotifiedAt || now,
-        'automation.readyForPickupNotifiedAt': now,
-        'automation.lastReminderAt': now,
-        'automation.lastReminderKind': 'ready_for_pickup'
-    }, hash);
-    await appendEvent(shipment._id, 'ready_for_pickup_notified', {
-        audio: audioSent,
-        shortNotice: true,
-        invoiceSent: invoiceResult.sent,
-        invoiceReason: invoiceResult.reason,
-        primaryTextSent: true,
-        partialAttachmentFailures
-    });
-    await appendNotificationLedgerV29(shipment, {
-        notificationType: 'ready_for_pickup',
-        sentAt: now,
-        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
-    });
-    return true;
+    return sentAny;
 };
 
 export const notifyShipmentInTransit = async (shipment) => {
