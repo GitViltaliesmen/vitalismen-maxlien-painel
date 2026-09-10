@@ -77,7 +77,7 @@ if [[ "$action" == "staging-check" ]]; then
     die "executor V116 staging falhou"
   fi
   chmod 0600 "$output"
-  node - "$output" <<'NODE'
+  NODE_OPTIONS= node - "$output" <<'NODE'
 const fs = require('node:fs');
 const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 if (report.status !== 'PASS_PLAN') throw new Error(`unexpected_status:${report.status || ''}`);
