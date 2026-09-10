@@ -28,7 +28,7 @@ test('V60 aplica a chave dedicada somente ao texto prometido e mant√©m dedupe f√
         shipmentMessages.indexOf('const calculateTreatmentDates')
     );
     assert.match(bonusBlock, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
-    assert.match(bonusBlock, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);
+    assert.match(bonusBlock, /dedupeValue:\s*decision\.canonicalEvent \? decision\.idempotencyKey : `\$\{text\}\|\$\{bonusDedupeScope\}`/);
     assert.doesNotMatch(bonusBlock, /OBRIGADO_PAGOU|delivered_thank_you/);
     assert.doesNotMatch(bonusBlock, /bypassDedupe:\s*true|force:\s*true/);
     assert.match(bonusBlock, /if \(!sent\) return false/);

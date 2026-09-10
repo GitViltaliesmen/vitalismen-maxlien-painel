@@ -7,6 +7,7 @@ import { sendCanonicalPanelPostSaleV147R6 } from '../src/services/postSaleManual
 
 test('real panel audio shape and exact P6 template resolve without fuzzy body matching', () => {
     assert.equal(classifyPostSaleContentV147R6({ body: '[Audio]', mediaUrl: '/media/templates/EC/OBRIGADO_PAGOU.ogg' }).canonicalEvent, 'P5');
+    assert.equal(classifyPostSaleContentV147R6({ mediaUrl: '/opt/vitalismen-automacao/releases/20260910T185730Z_production-20260910-dbb3d14/public/media/templates/EC/OBRIGADO_PAGOU.ogg' }).canonicalEvent, 'P5');
     assert.equal(classifyPostSaleContentV147R6({ body: LEGACY_PANEL_P6_TEXT_V147R6 }).templateId, 'P6_BONUS_ACCESS');
     assert.equal(classifyPostSaleContentV147R6({ body: '[Audio]', mediaUrl: '/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg' }).product, 'tex_ultra_ec');
     assert.equal(classifyPostSaleContentV147R6({ body: 'Gracias! Tu bono ya está listo, mira otro enlace.' }), null);
@@ -34,6 +35,9 @@ test('provider proof is mandatory; free human messages remain outside transactio
 test('authenticated panel and existing dispatcher invoke canonical adapter before providers/preflight', () => {
     const route = fs.readFileSync(new URL('../src/routes/whatsapp.js', import.meta.url), 'utf8').split("router.post('/send', authMiddleware")[1].split('// DEBUG:')[0];
     assert.ok(route.indexOf('sendCanonicalPanelPostSaleV147R6') < route.indexOf('const sendResult = await sendWhatsAppMessage'));
+    assert.match(route, /canonicalPostSale: true, outboundContext: 'shipment_status'/);
+    const helper = fs.readFileSync(new URL('../src/routes/whatsapp.js', import.meta.url), 'utf8').split('const sendWhatsAppMessage = async')[1].split('const buildLeadRecoveryTemplates')[0];
+    assert.match(helper, /dedupeValue: options.dedupeValue, outboundContext: 'shipment_status'/);
     const dispatcher = fs.readFileSync(new URL('../src/services/shipmentStatusDispatcherService.js', import.meta.url), 'utf8');
     assert.equal((dispatcher.match(/shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6/g) || []).length, 1);
     assert.match(dispatcher, /action === 'delivered_bonus' && !dryRun/);

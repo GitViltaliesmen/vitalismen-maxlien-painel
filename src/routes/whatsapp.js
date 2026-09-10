@@ -2985,6 +2985,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
                 sessionId: options.sessionId,
                 sendMode,
                 allowAudioDedupeBypass,
+                ...(options.canonicalPostSale ? { dedupeValue: options.dedupeValue, outboundContext: 'shipment_status', allowExistingDropiOrder: true } : {}),
                 country: options.country,
                 recipientDigits: digitsOnly(phone),
                 returnDetails: options.returnDetails === true
@@ -3078,6 +3079,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         allowHistoryDedupeBypass: options.allowHistoryDedupeBypass === true,
         allowExistingDropiOrder: options.allowExistingDropiOrder === true,
         antiSpamKey: options.antiSpamKey,
+        ...(options.canonicalPostSale ? { dedupeValue: options.dedupeValue } : {}),
         outboundContext: options.outboundContext,
         returnDetails: options.returnDetails === true
     });
@@ -6556,6 +6558,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 }
                 return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
                     sendMode, country, allowExistingDropiOrder: true, returnDetails: true,
+                    canonicalPostSale: true, outboundContext: 'shipment_status',
                     dedupeValue: event.dedupeKey, allowAudioDedupeBypass: true,
                     bypassDedupe: !isMedia, allowTextDedupeBypass: !isMedia, allowHistoryDedupeBypass: !isMedia });
             },

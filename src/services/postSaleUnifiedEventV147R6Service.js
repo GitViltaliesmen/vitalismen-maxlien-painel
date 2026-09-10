@@ -34,7 +34,8 @@ export const classifyPostSaleContentV147R6 = (record = {}) => {
     let match = null;
     if (media) {
         // Only the official EC path or the bytes/hash of an official audio identify a template.
-        const normalized = media.replace(/^https:\/\/ec\.maxlien\.shop(?=\/media\/)/, '');
+        const normalized = media.replace(/^https:\/\/ec\.maxlien\.shop(?=\/media\/)/, '')
+            .replace(/^\/opt\/vitalismen-automacao\/releases\/[^/]+\/public(?=\/media\/)/, '');
         match = templates.find((t) => t.mediaPresent && t.labels.some((label) =>
             ['ogg', 'mp3', 'opus'].some((ext) => normalized === '/media/templates/EC/' + label + '.' + ext)));
         let digest = clean(record.mediaSha256);
