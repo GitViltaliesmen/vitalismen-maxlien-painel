@@ -154,6 +154,8 @@ try {
     assert.ok(shipment.automation.bonusNotifiedAt);
 
     // Snapshot READY enfileirado; provider muda para DELIVERED antes do envio.
+    // Limpeza exclusivamente do banco SINK recém-criado para representar uma fila ainda não enviada.
+    await mongoose.connection.db.collection('messages').deleteMany({});
     await Shipment.updateOne({ _id: shipment._id }, { $set: {
         'logistics.status': 'READY_FOR_PICKUP', 'logistics.canonicalStatus': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true, 'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
