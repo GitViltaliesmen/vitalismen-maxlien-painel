@@ -44,7 +44,7 @@
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "175b3470c135339da584a2cd3c294f76a408d0c7f4b3c01db0bcd3521e4342d6",
     "src/services/metaAttributionBridgeService.js": "d82aa45d414a1dc4f357963c3774a4bd662684ce912aa0cf74b5210480ab3146",
     "src/services/metaAttributionService.js": "fa6ad28baf1ecbc702c63c3ff5c4dc8ac64eb7f33419281d845e6032a22e0ae7",
-    "src/services/metaCheckoutV148Service.js": "f659cc5c00d031f018a6e551b2f81e6e75258bf246197723cf53cc16c03a9608",
+    "src/services/metaCheckoutV148Service.js": "172ceed326a9f4b10a22e552d4600b234bc5932c759a3e2a6a7a78b1f912ea79",
     "src/services/metaConversionsService.js": "b19d2bb42374c68fcc8d1f90f2b9318efe16d477d606ec54e434b8db80b4b249",
     "src/services/metaFunnelV148ContractService.js": "b7fbd1159d2c3c17253fb5240097c07e94e23d5d5e9f217850a57661f0e7429f",
     "src/services/metaProtocoloGAttributionService.js": "453bdea8dc62c29bac71551a164b7aedbfbe03bc8fca1723c9e1f0beac026f95",

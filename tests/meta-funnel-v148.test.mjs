@@ -39,6 +39,7 @@ function harness({ suffix = 'A', organic = false, result = { ok: true, status: 2
             return { modifiedCount: 1 };
         } },
         Message: { findOne: () => query(message) },
+        Order: { findOne: () => query({ orderId: 'NEW', createdAt: clicked }) },
         VslVisit: { findById: () => query(visit), updateOne: async (filter, update) => { updates.push(update); Object.assign(visit,update.$set); } },
         MetaBusinessEvent: { create: async item => { if(events.has(item._id)) throw Object.assign(new Error('duplicate'),{code:11000}); events.set(item._id,structuredClone(item)); },
             updateOne: async (filter, update) => Object.assign(events.get(filter._id),update.$set),
@@ -164,8 +165,14 @@ test('V148 real Mongo guard allows only scoped ledger writes under inbound and r
 test('V148 organic repurchase uses its new business cycle and never copies the previous order attribution', async () => {
  const h=harness();h.state.metadata.customerDraft.previousOrderId='OLD';h.state.metadata.customerDraft.currentNegotiationOrderId='NEW';
  h.visit.metaInitiateCheckoutEventId='InitiateCheckout:OLD';
- assert.equal((await h.run()).accepted,true);
+ assert.equal((await h.run({previousQuantity:3})).accepted,true);
  for(const key of seven)assert.equal(h.calls[0][key],undefined);
  assert.equal(h.calls[0].action_source,'chat');assert.equal(h.calls[0].event_source_url,undefined);
  assert.equal(h.state.metadata.tracking.ad_id,undefined);
+});
+
+test('V148 preactivation repurchase cannot be relabeled as a forward checkout',async()=>{
+ const h=harness();h.state.metadata.customerDraft.previousOrderId='OLD';h.state.metadata.customerDraft.currentNegotiationOrderId='NEW';
+ h.models.Order.findOne=()=>query({orderId:'NEW',createdAt:new Date(+activated-1)});
+ assert.equal((await h.run()).reason,'repurchase_cycle_not_forward');assert.equal(h.calls.length,0);
 });

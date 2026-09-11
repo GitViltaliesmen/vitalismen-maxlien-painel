@@ -2,6 +2,7 @@ import { PROTOCOLO_G_EVENT_SOURCE_URL } from './metaProtocoloGAttributionService
 import crypto from 'node:crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
+import Order from '../models/Order.js';
 import VslVisit from '../models/VslVisit.js';
 import MetaBusinessEvent from '../models/MetaBusinessEvent.js';
 import { sendBrowserMetaEvent } from './metaConversionsService.js';
@@ -26,15 +27,15 @@ export const checkoutEventIdV148 = (contactStateId, cycleIdentity) => (
 export const recordTexUltraCheckoutV148 = async ({
     contactStateId, sourceMessageId, quantity, previousQuantity = 0,
     activationAt = metaV148ActivationAt(), now = new Date(),
-    models = { ContactState, Message, VslVisit, MetaBusinessEvent }, sendEvent = sendBrowserMetaEvent
+    models = { ContactState, Message, Order, VslVisit, MetaBusinessEvent }, sendEvent = sendBrowserMetaEvent
 } = {}) => {
     const skip = reason => ({ ok: false, skipped: true, reason });
     if (!activationAt || !sourceMessageId || ![1, 2, 3, 6].includes(Number(quantity))) return skip('no_forward_checkout_business_action');
-    if (Number(previousQuantity) > 0) return skip('checkout_quantity_already_selected');
     const state = await models.ContactState.findById(contactStateId).lean();
     const phone = digits(state?.phoneDigits || state?.chatId);
     if (!state || state.countryCode !== 'EC' || !/^593\d{9}$/.test(phone)) return skip('invalid_ec_customer');
     const draft = state.metadata?.customerDraft || {};
+    if (Number(previousQuantity) > 0 && !draft.previousOrderId) return skip('checkout_quantity_already_selected');
     if (draft.productKey !== 'tex_ultra_ec' || Number(draft.quantity) !== Number(quantity)) return skip('business_state_not_persisted');
     const message = await models.Message.findOne({ isFromMe: false, $or: [{ _id: sourceMessageId }, { providerMessageId: sourceMessageId }] }).lean();
     const messagePhone = digits(message?.peerPhone || message?.from || message?.chatId);
@@ -45,6 +46,10 @@ export const recordTexUltraCheckoutV148 = async ({
         || !Number.isFinite(occurredAt.getTime())) return skip('inbound_business_evidence_not_forward_or_not_owned');
     const cycleIdentity = checkoutCycleV148(state);
     if (!cycleIdentity) return skip('repurchase_requires_current_canonical_cycle');
+    if (draft.previousOrderId) {
+        const currentOrder = await models.Order.findOne({ orderId: cycleIdentity, country: 'EC' }).lean();
+        if (!currentOrder || new Date(currentOrder.createdAt || 0) < new Date(activationAt)) return skip('repurchase_cycle_not_forward');
+    }
     const eventId = checkoutEventIdV148(String(contactStateId), cycleIdentity);
     let visit = null;
     if (state.metadata?.vslVisitId) visit = await models.VslVisit.findById(state.metadata.vslVisitId).lean();
