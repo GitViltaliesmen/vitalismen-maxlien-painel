@@ -1289,6 +1289,20 @@ nenhuma alteração realizada no VPS.
   `freeze-v130-meta-ads-readonly-20260905`.
 - Evidência operacional completa:
   `docs/META_ADS_INSIGHTS_V130_ACTIVATION_RESULT_20260905.md`.
+
+## Registro V149 — recorte rápido do painel de métricas EC (2026-09-11)
+
+- Interface oficial publicada: `/var/www/ec.maxlien.shop/funnel-metrics.html`.
+- Fonte versionada: `public/funnel-metrics.html`, commit `f4e8cd4`.
+- Alteração pontual: `Hoje` passou a ser o recorte inicial, foi adicionada a
+  opção `Ontem e hoje`, e seleções sucessivas cancelam a consulta anterior.
+- As opções de 3, 7, 14 e 30 dias e o intervalo manual foram preservados.
+- Backup anterior:
+  `/var/backups/vitalismen-funnel-metrics-v149/20260911T155224Z/funnel-metrics.html.before`.
+- SHA-256 público validado:
+  `9a10683f260257bef4adb2890b7bb039c34bafc46ae2fc6c95c7be13cbb1f2dc`.
+- Release runtime e PM2 não foram alterados; funil, WhatsApp, Dropi, Meta/CAPI,
+  banco e schedulers permaneceram intactos.
 ## Registro V144 — Purchase Meta após Dropi manual (2026-09-08)
 
 - Base congelada: V143 `8cbc5b0ca427af9ab27aeaad085c2bd70d5ca668`.
