@@ -50,7 +50,7 @@ export const metaCheckoutV148Allowed = (event = {}, env = process.env) => {
         && resolveEcBotCoreV78Configuration(env).ready);
 };
 
-export const withMetaLedgerV148 = (context, callback) => ledgerContext.run(Object.freeze({ ...context }), callback);
+export const withMetaLedgerV148 = (context, callback) => ledgerContext.run(Object.freeze({ ...context }), async () => await callback());
 export const metaLedgerWriteV148Allowed = ({ collection, method, args = [], context, env = process.env } = {}) => {
     const ledger = ledgerContext.getStore();
     if (collection !== 'metabusinessevents' || !context?.writeContext || !resolveEcBotCoreV78Configuration(env).ready

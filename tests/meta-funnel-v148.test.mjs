@@ -155,6 +155,7 @@ test('V148 real Mongo guard allows only scoped ledger writes under inbound and r
         const run=callback=>ecBotCoreMutationRouteGuardV78(req,res,()=>withMetaLedgerV148(context,callback));
         assert.equal(await run(()=>collection.insertOne({_id:'IC_A'})),'inserted');
         assert.equal(await run(()=>collection.updateOne({_id:'IC_A'})),'updated');
+        assert.equal(await run(()=>({ then(resolve,reject){ queueMicrotask(()=>{try{resolve(collection.updateOne({_id:'IC_A'}));}catch(e){reject(e);}}); } })), 'updated');
         await assert.rejects(()=>run(()=>collection.insertOne({_id:'IC_B'})),/mongo_write_blocked/);
         await assert.rejects(()=>run(()=>collection.deleteMany({_id:'IC_A'})),/mongo_write_blocked/);
         await assert.rejects(()=>run(()=>new FakeCollection('orders').insertOne({_id:'IC_A'})),/mongo_write_blocked/);
