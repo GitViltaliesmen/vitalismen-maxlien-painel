@@ -1,3 +1,4 @@
+import { salesAttributionV148 } from './metaFunnelV148ContractService.js';
 import crypto from 'crypto';
 import VslVisit from '../models/VslVisit.js';
 import MetaAttributionCorrelation from '../models/MetaAttributionCorrelation.js';
@@ -44,7 +45,7 @@ export const selectUniqueVslAttributionCandidate = ({
         const clickTime = visitClickTime(visit);
         if (!Number.isFinite(clickTime)) return false;
         if (clickTime < inboundTime - windowMs || clickTime > inboundTime + futureToleranceMs) return false;
-        if (!hasMetaAdAttribution(visit.tracking || {})) return false;
+        if (!hasMetaAdAttribution(visit.tracking || {}) && !salesAttributionV148(visit)) return false;
         return visitMessageValues(visit).includes(normalizedMessage);
     });
 

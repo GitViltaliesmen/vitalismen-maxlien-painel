@@ -118,6 +118,11 @@ const orderSchema = new mongoose.Schema({
         lockUntil: Date
     },
     tracking: {
+        measurementVersion: Number,
+        renderedBranch: String,
+        branchIdentity: String,
+        browserPixelId: String,
+        checkoutEventId: String,
         country: String,
         productKey: String,
         productName: String,

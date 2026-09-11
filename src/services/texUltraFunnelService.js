@@ -1,3 +1,4 @@
+import { recordTexUltraCheckoutV148 } from './metaCheckoutV148Service.js';
 import path from 'path';
 import ContactState from '../models/ContactState.js';
 import Order from '../models/Order.js';
@@ -482,7 +483,9 @@ const createOrConfirmOrder = async (state, draft) => {
             productName: TEX_ULTRA_EC_PRODUCT_PROFILE.displayName,
             contentName: 'Tex Ultra Ecuador WhatsApp',
             contentIds: ['tex_ultra_ec'],
-            sourceUrl: state.metadata?.vslSourceUrl || state.metadata?.tracking?.sourceUrl || 'https://ec.maxlien.shop/tex-ultra/'
+            sourceUrl: Number(state.metadata?.tracking?.measurementVersion) === 148
+                ? (state.metadata.tracking.sourceUrl || '')
+                : state.metadata?.vslSourceUrl || state.metadata?.tracking?.sourceUrl || 'https://ec.maxlien.shop/tex-ultra/'
         },
         conversationMemory: {
             currentIntent: 'purchase_confirmed',
@@ -610,6 +613,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     if (interruptedInboundRoute === 'quantity' && quantity && !dataCollectionStages.has(memory.stage)) {
         const selected = texUltraPriceForQuantity(quantity);
         if (!selected) return true;
+        const previousQuantity = draft.quantity || memory.selectedQuantity;
         draft = { ...draft, quantity, total: selected.amount, status: 'atendendo' };
         const nextStep = texUltraNextDataCollectionStep(draft);
         await sendFunnelText({
@@ -620,6 +624,8 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             context: nextStep.stage === 'awaiting_confirmation' ? nextStep.context : `tex_ultra_quantity_${quantity}_${nextStep.stage}`
         });
         await saveState(state, { memory: { ...memory, selectedQuantity: quantity }, draft, stage: nextStep.stage });
+        await recordTexUltraCheckoutV148({ contactStateId, sourceMessageId, quantity, previousQuantity })
+            .catch(() => console.warn('[META-V148] checkout measurement failed; business flow preserved'));
         return true;
     }
 

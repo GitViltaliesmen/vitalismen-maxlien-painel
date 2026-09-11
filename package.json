@@ -5,8 +5,9 @@
     "type": "module",
     "main": "src/index.js",
     "scripts": {
+        "guard:v148-meta-funnel": "node --import ./scripts/lib/ec-runtime-successor-v97-context.mjs --test tests/meta-funnel-v148.test.mjs",
         "lint": "node scripts/lint-js-syntax.mjs",
-        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r3-delivered-single-gate guard:v147-r4-canonical-polling guard:v147-r5-transactional-postsale guard:v147-r6-unified-postsale guard:v147-r6r2-all-postsale",
+        "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r3-delivered-single-gate guard:v147-r4-canonical-polling guard:v147-r5-transactional-postsale guard:v147-r6-unified-postsale guard:v147-r6r2-all-postsale guard:v148-meta-funnel",
         "guard:v147-postsale": "node scripts/guard-post-sale-canonical-restoration-v147.mjs && node --test tests/post-sale-canonical-restoration-v147.test.mjs",
         "guard:v147-r2-postsale": "node scripts/guard-post-sale-complete-v147-r2.mjs && node --import ./scripts/lib/ec-runtime-successor-v147-r2-context.mjs --test tests/post-sale-canonical-restoration-v147.test.mjs tests/pickup-bonus-delivery-v60.test.mjs",
         "guard:v147-r3-delivered-single-gate": "node scripts/guard-delivered-single-gate-v147-r3.mjs && node --import ./scripts/lib/ec-runtime-successor-v147-r3-context.mjs --test tests/post-sale-delivered-single-gate-v147-r3.test.mjs tests/post-sale-canonical-restoration-v147.test.mjs tests/pickup-bonus-delivery-v60.test.mjs",

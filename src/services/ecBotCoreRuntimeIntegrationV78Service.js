@@ -1,3 +1,4 @@
+import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import ContactState from '../models/ContactState.js';
@@ -424,7 +425,8 @@ const patchMongoPrototype = (prototype) => {
                     const configuration = resolveEcBotCoreV78Configuration(process.env);
                     const context = currentEcBotCoreRuntimeContextV78();
                     const collection = clean(this?.collectionName || this?.namespace?.collection || this?.name).toLowerCase();
-                    const baseCollectionAllowed = EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection);
+                    const baseCollectionAllowed = EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection)
+                        || metaLedgerWriteV148Allowed({ collection, method, args, context, env: process.env });
                     const manualDropiCollectionAllowed = ecManualDropiReleaseV119MongoAllowed({
                         method: context?.method,
                         path: context?.path,

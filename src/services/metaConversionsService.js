@@ -1,3 +1,5 @@
+import { bindPurchaseAttributionV148 } from './metaPurchaseV148BindingService.js';
+import { metaCheckoutV148Allowed, salesAttributionV148, META_V148_EXISTING_DATASET } from './metaFunnelV148ContractService.js';
 import axios from 'axios';
 import crypto from 'crypto';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
@@ -61,6 +63,10 @@ const getConfigForCountry = (country, env = process.env) => {
 };
 
 export const getMetaConfigForOrder = (order = {}, env = process.env) => {
+    if (String(order.country).toUpperCase() === 'EC' && salesAttributionV148(order)) {
+        const config = getConfigForCountry('EC', env);
+        return config.pixelId === META_V148_EXISTING_DATASET ? config : { pixelId: null, accessToken: null, route: 'v148_dataset_mismatch' };
+    }
     if (isEcuadorTexUltraProtocoloG(order)) {
         const configuredDatasetId = String(env.META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G || '').trim();
         if (configuredDatasetId && configuredDatasetId !== META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID) {
@@ -306,13 +312,14 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
         return { ok: false, eventId, error: 'META event missing user_data' };
     }
 
+    const v148 = Number(event.measurementVersion) === 148;
     const value = Number(event.value || 0);
     const currency = String(event.currency || 'USD').trim() || 'USD';
     const customData = cleanObject({
         currency: Number.isFinite(value) && value > 0 ? currency : undefined,
         value: Number.isFinite(value) && value > 0 ? value : undefined,
-        content_name: String(event.contentName || event.content_name || 'Vit Power Ecuador').trim(),
-        content_ids: event.contentIds || event.content_ids || ['vit_power_ec'],
+        content_name: String(event.contentName || event.content_name || (v148 ? '' : 'Vit Power Ecuador')).trim(),
+        content_ids: event.contentIds || event.content_ids || (v148 ? [] : ['vit_power_ec']),
         content_type: String(event.contentType || event.content_type || 'product').trim()
     });
 
@@ -322,7 +329,7 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
                 event_name: eventName,
                 event_time: eventTime,
                 event_id: eventId,
-                action_source: 'website',
+                action_source: v148 ? 'chat' : 'website',
                 event_source_url: sourceUrl || undefined,
                 user_data: userData,
                 custom_data: Object.keys(customData).length ? customData : undefined
@@ -342,10 +349,12 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
 
 export const sendBrowserServerEvent = async (event = {}, req = null, options = {}) => {
     const canaryBlock = canaryV75BlockedResult('meta', options.env || process.env);
-    if (canaryBlock) return canaryBlock;
+    const v148Allowed = metaCheckoutV148Allowed(event, options.env || process.env);
+    if (canaryBlock && !v148Allowed) return canaryBlock;
+    if (Number(event.measurementVersion) === 148 && !v148Allowed) return { ok: false, blocked: true, reason: 'v148_business_scope_required' };
     const country = String(event.country || 'EC').trim().toUpperCase();
     const env = options.env || process.env;
-    const expectedRoute = isEcuadorTexUltraProtocoloG(event)
+    const expectedRoute = !v148Allowed && isEcuadorTexUltraProtocoloG(event)
         ? META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G
         : (country === 'EC' ? META_DESTINATION_ROUTES.EC_DEFAULT : 'unsupported_country');
     const { pixelId, accessToken, route } = expectedRoute === 'unsupported_country'
@@ -355,6 +364,7 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
         return { ok: false, error: 'META pixel config missing for country' };
     }
 
+    if (v148Allowed && pixelId !== META_V148_EXISTING_DATASET) return { ok: false, blocked: true, reason: 'v148_dataset_mismatch' };
     const built = buildBrowserServerEventPayload(event, req, options);
     if (!built.ok) return built;
 
@@ -371,7 +381,7 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
             timeout: 15000
         });
 
-        return { ok: true, response: response.data, eventId, eventName, eventTime, datasetId: pixelId, datasetRoute: route };
+        return { ok: response.status >= 200 && response.status < 300 && Number(response.data?.events_received) > 0, status: response.status, response: response.data, eventId, eventName, eventTime, datasetId: pixelId, datasetRoute: route };
     } catch (e) {
         return {
             ok: false,
@@ -500,6 +510,8 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
     const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
+    const v148Binding = await bindPurchaseAttributionV148(order, options.v148BindingOptions);
+    if (!v148Binding.ok) return { ok: false, blocked: true, error: v148Binding.reason };
     const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
     const attribution = await attributionEnricher(order, options.attributionOptions || {}).catch((error) => ({
         ok: false,

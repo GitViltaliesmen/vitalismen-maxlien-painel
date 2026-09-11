@@ -1450,7 +1450,8 @@ const vslVisitorKey = ({ country = 'EC', body = {}, req }) => {
     const userAgent = cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent'));
     const visitorId = cleanText(body.external_id || body.externalId || body.visitorId || body.visitor_id);
     const sessionId = cleanText(body.sessionId || body.session_id);
-    const base = visitorId || sessionId || `${ipHash}:${shortHash(userAgent)}`;
+    const v148SalesContext = Number(body.measurement_version) === 148 && body.rendered_branch === 'SALES' && visitorId && sessionId;
+    const base = (v148SalesContext ? `${visitorId}:${sessionId}` : '') || visitorId || sessionId || `${ipHash}:${shortHash(userAgent)}`;
     if (body.testEntry && body.forceNewLead) {
         return `${normalizedCountry}:test:${Date.now()}:${shortHash(base || Math.random())}`;
     }
@@ -3617,7 +3618,8 @@ router.post('/vsl-entry', async (req, res) => {
                 sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent)
             });
-        const trackingForPersistence = protocoloGContract
+        const v148Claimed = Number(incomingTracking.measurementVersion) === 148 && existing?.attributionClaimedAt;
+        const trackingForPersistence = v148Claimed ? existing.tracking : protocoloGContract
             ? incomingTracking
             : { ...(existing?.tracking || {}), ...incomingTracking };
         let assignment = null;
@@ -3650,7 +3652,9 @@ router.post('/vsl-entry', async (req, res) => {
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
-                customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15),
+                ...(Number(incomingTracking.measurementVersion) === 148 ? {} : {
+                    customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15)
+                }),
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,

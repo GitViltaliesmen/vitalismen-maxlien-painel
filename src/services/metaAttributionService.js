@@ -1,9 +1,11 @@
+import { salesAttributionV148 } from './metaFunnelV148ContractService.js';
 import VslVisit from '../models/VslVisit.js';
 
 const clean = (value) => String(value || '').trim();
 const digitsOnly = (value) => clean(value).replace(/\D/g, '');
 
 const attributionKeys = [
+    'measurementVersion', 'renderedBranch', 'branchIdentity', 'browserPixelId', 'checkoutEventId',
     'fbclid',
     'fbc',
     'fbp',
@@ -84,7 +86,7 @@ export const applyVisitAttributionToOrder = (order, visit, { matchedAt = new Dat
     if (!order || !visit) return { ok: false, skipped: true, reason: 'missing_order_or_visit' };
     order.tracking = order.tracking || {};
     const attribution = metaAttributionTrackingFromVisit(visit);
-    if (!hasMetaAdAttribution(attribution)) {
+    if (!hasMetaAdAttribution(attribution) && !salesAttributionV148(attribution)) {
         return { ok: false, skipped: true, reason: 'visit_without_attribution', visitorKey: visit.visitorKey || '' };
     }
 
@@ -123,6 +125,9 @@ export const enrichOrderWithMetaAttribution = async (order, {
         return { ok: false, skipped: true, reason: 'unsupported_order' };
     }
     order.tracking = order.tracking || {};
+    if (Number(order.tracking.measurementVersion) === 148) {
+        return { ok: true, skipped: true, reason: 'v148_canonical_cycle_context_preserved' };
+    }
     if (hasMetaAdAttribution(order.tracking)) {
         return { ok: true, skipped: true, reason: 'order_already_has_attribution' };
     }
