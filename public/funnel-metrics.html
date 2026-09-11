@@ -525,9 +525,10 @@
             </div>
             <div class="actions">
                 <select id="days">
-                    <option value="1">Hoje</option>
+                    <option value="1" selected>Hoje</option>
+                    <option value="2">Ontem e hoje</option>
                     <option value="3">3 dias</option>
-                    <option value="7" selected>7 dias</option>
+                    <option value="7">7 dias</option>
                     <option value="14">14 dias</option>
                     <option value="30">30 dias</option>
                 </select>
@@ -814,7 +815,8 @@
         const tokenKey = 'vitalismen_admin_token';
         const state = {
             token: localStorage.getItem(tokenKey) || '',
-            data: null
+            data: null,
+            loadController: null
         };
 
         const el = (id) => document.getElementById(id);
@@ -1256,18 +1258,24 @@
                 setVisible();
                 return;
             }
+            state.loadController?.abort();
+            const controller = new AbortController();
+            state.loadController = controller;
             setStatus('Carregando...');
             try {
-                const days = el('days').value || '7';
+                const days = el('days').value || '1';
                 const fromDay = el('fromDay').value;
                 const toDay = el('toDay').value;
                 const explicit = fromDay && toDay
                     ? `&from=${encodeURIComponent(fromDay)}&to=${encodeURIComponent(toDay)}`
                     : '';
-                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}${explicit}`);
+                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}${explicit}`, {
+                    signal: controller.signal
+                });
                 render();
                 setStatus('');
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 if (error.status === 401) {
                     localStorage.removeItem(tokenKey);
                     state.token = '';
@@ -1277,6 +1285,8 @@
                 }
                 el('updatedAt').textContent = 'Falha ao carregar';
                 setStatus(error.message || 'Erro ao carregar metricas.');
+            } finally {
+                if (state.loadController === controller) state.loadController = null;
             }
         };
 
@@ -1308,7 +1318,11 @@
         });
 
         el('refreshBtn').addEventListener('click', loadMetrics);
-        el('days').addEventListener('change', loadMetrics);
+        el('days').addEventListener('change', () => {
+            el('fromDay').value = '';
+            el('toDay').value = '';
+            loadMetrics();
+        });
         el('fromDay').addEventListener('change', () => { if (el('toDay').value) loadMetrics(); });
         el('toDay').addEventListener('change', () => { if (el('fromDay').value) loadMetrics(); });
 
