@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 export const V152_E_PHASE = 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL';
+export const V152_E_PAIRING_PATCH = 'V152-E-R2_NATIVE_PAIRING_CODE';
 export const V152_E_CHANNEL_ID = 'V152_TEST_WEB_01';
 export const V152_E_SESSION_NAMESPACE = 'V152_TEST_WEB_01';
 export const V152_E_TEST_CHANNEL_PHONE = '5531983002800';
@@ -17,6 +18,21 @@ export const V152_E_FORBIDDEN_PAIRED_PHONES = Object.freeze([
 const SAFE_NAMESPACE = /^[a-z0-9][a-z0-9_-]{1,79}$/i;
 const digits = (value) => String(value || '').replace(/\D/g, '');
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
+
+export const assertNativePairingCode = (value) => {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (!/^[0-9A-HJKMNP-TV-Z]{8}$/.test(normalized)) {
+        throw new Error('v152_e_r2_pairing_code_invalid');
+    }
+    return normalized;
+};
+
+export const removePairingCodeSecret = (creds) => {
+    if (!creds || typeof creds !== 'object') throw new Error('v152_e_r2_pairing_creds_required');
+    const removed = Object.hasOwn(creds, 'pairingCode');
+    delete creds.pairingCode;
+    return Object.freeze({ removed, persistable: !Object.hasOwn(creds, 'pairingCode') });
+};
 
 export const phoneFingerprint = (value) => sha256(digits(value));
 export const maskPhone = (value) => {
@@ -79,6 +95,7 @@ export const resolveV152EConfig = (env = process.env, { releaseRoot = process.cw
 
     return Object.freeze({
         phase: V152_E_PHASE,
+        pairingPatch: V152_E_PAIRING_PATCH,
         channelId,
         sessionNamespace,
         allowedPeerPhone,
@@ -175,6 +192,7 @@ export const safePairedIdentity = (phone, config, now = new Date()) => {
     const normalized = assertPairedPhoneAllowed(phone, config);
     return Object.freeze({
         phase: config.phase,
+        pairingPatch: config.pairingPatch,
         channelId: config.channelId,
         sessionNamespace: config.sessionNamespace,
         provider: 'WHATSAPP_WEB',
@@ -347,6 +365,7 @@ export class ControlledCanaryLedger {
 
 export const v152EPolicyStatus = () => Object.freeze({
     phase: V152_E_PHASE,
+    pairingPatch: V152_E_PAIRING_PATCH,
     realPairing: 'CONTROLLED_SINGLE_CHANNEL',
     realInbound: 'CONTROLLED_QA_ONLY',
     realOutbound: 'CONTROLLED_QA_SINGLE_MESSAGE',
@@ -358,5 +377,6 @@ export const v152EPolicyStatus = () => Object.freeze({
     zapiShutdown: false,
     cutover: false,
     qrLogging: false,
+    pairingCodePersistence: false,
     sessionInsideRelease: false
 });

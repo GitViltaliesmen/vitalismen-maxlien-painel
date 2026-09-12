@@ -10,6 +10,7 @@ import { ChannelRegistry } from '../src/whatsapp/core/ChannelRegistry.js';
 import {
     ControlledCanaryLedger,
     V152_E_FIXED_OUTBOUND_TEXT,
+    assertNativePairingCode,
     assertPairedPhoneAllowed,
     candidatePhoneFromMessage,
     ensureSecureDirectory,
@@ -17,6 +18,7 @@ import {
     maskPhone,
     phoneFingerprint,
     readJsonIfPresent,
+    removePairingCodeSecret,
     removeEphemeralQr,
     resolveV152EConfig,
     safePairedIdentity,
@@ -39,6 +41,10 @@ const restartEvidenceFile = path.join(config.evidenceRoot, 'restart-persistence-
 const safeLogger = pino({ level: 'silent' });
 const sessionManager = new SessionManager({ storageRoot: config.sessionStorageRoot });
 let socket = null;
+let authState = null;
+let saveCredentials = null;
+let credentialWrites = Promise.resolve();
+let activePairingMethod = 'QR';
 
 const emit = (record) => process.stdout.write(`${JSON.stringify(record)}\n`);
 const emitEvent = (event, extra = {}) => emit({ phase: config.phase, event, ...extra });
@@ -52,7 +58,7 @@ const closeSocket = async () => {
 
 const ownPhone = () => String(socket?.user?.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
 
-const createSocket = async ({ allowQr }) => {
+const createSocket = async ({ allowQr, pairingMethod = 'QR' }) => {
     await ensureSecureDirectory(config.sessionStorageRoot);
     const managedSessionDirectory = await sessionManager.ensureNamespace(config.sessionNamespace);
     if (path.resolve(managedSessionDirectory) !== path.resolve(config.sessionDirectory)) {
@@ -61,6 +67,10 @@ const createSocket = async ({ allowQr }) => {
     await ensureSecureDirectory(managedSessionDirectory);
     await ensureSecureDirectory(config.evidenceRoot);
     const { state, saveCreds } = await useMultiFileAuthState(config.sessionDirectory);
+    authState = state;
+    saveCredentials = saveCreds;
+    activePairingMethod = pairingMethod;
+    credentialWrites = Promise.resolve();
     const { version } = await fetchLatestBaileysVersion();
     socket = makeWASocket({
         version,
@@ -75,9 +85,15 @@ const createSocket = async ({ allowQr }) => {
         getMessage: async () => undefined
     });
     socket.ev.on('creds.update', () => {
-        void saveCreds()
-            .then(() => hardenSessionTree(config.sessionDirectory))
-            .catch(() => emitEvent('CREDENTIAL_PERSISTENCE_FAILED'));
+        credentialWrites = credentialWrites.then(async () => {
+            if (activePairingMethod === 'PAIRING_CODE' && state.creds.pairingCode && !state.creds.registered) {
+                return;
+            }
+            if (activePairingMethod === 'PAIRING_CODE') removePairingCodeSecret(state.creds);
+            await saveCreds();
+            await hardenSessionTree(config.sessionDirectory);
+        });
+        void credentialWrites.catch(() => emitEvent('CREDENTIAL_PERSISTENCE_FAILED'));
     });
     if (!allowQr) {
         socket.ev.on('connection.update', (update) => {
@@ -87,7 +103,7 @@ const createSocket = async ({ allowQr }) => {
     return socket;
 };
 
-const waitForOpen = async ({ allowQr }) => new Promise((resolve, reject) => {
+const waitForOpen = async ({ allowQr, ignoreQr = false }) => new Promise((resolve, reject) => {
     let settled = false;
     let qrWrites = Promise.resolve();
     let timer;
@@ -103,6 +119,7 @@ const waitForOpen = async ({ allowQr }) => new Promise((resolve, reject) => {
 
     const onUpdate = (update = {}) => {
         if (update.qr) {
+            if (!allowQr && ignoreQr) return;
             if (!allowQr) return finish(new Error('v152_e_existing_session_required'));
             qrWrites = qrWrites.then(async () => {
                 await writeEphemeralQr(update.qr, config, {
@@ -113,6 +130,16 @@ const waitForOpen = async ({ allowQr }) => new Promise((resolve, reject) => {
         }
         if (update.connection === 'open') {
             void qrWrites.then(async () => {
+                await credentialWrites;
+                if (activePairingMethod === 'PAIRING_CODE') {
+                    if (!authState?.creds?.registered) throw new Error('v152_e_r2_pairing_not_registered');
+                    removePairingCodeSecret(authState.creds);
+                    await saveCredentials();
+                    const persistedCreds = await fs.readFile(path.join(config.sessionDirectory, 'creds.json'), 'utf8');
+                    if (/pairingCode/i.test(persistedCreds)) {
+                        throw new Error('v152_e_r2_pairing_code_persistence_detected');
+                    }
+                }
                 await hardenSessionTree(config.sessionDirectory);
                 let phone;
                 try {
@@ -132,7 +159,14 @@ const waitForOpen = async ({ allowQr }) => new Promise((resolve, reject) => {
                 finish(null, identity);
             }).catch(finish);
         }
-        if (update.connection === 'close') finish(new Error('v152_e_connection_closed_before_ready'));
+        if (update.connection === 'close') {
+            const disconnectCode = Number(
+                update?.lastDisconnect?.error?.output?.statusCode
+                || update?.lastDisconnect?.error?.statusCode
+                || 0
+            );
+            finish(new Error(`v152_e_connection_closed_before_ready_${disconnectCode || 'unknown'}`));
+        }
     };
 
     timer = setTimeout(() => finish(new Error('v152_e_connection_timeout')), config.connectTimeoutMs);
@@ -200,6 +234,53 @@ const runPair = async () => {
     });
     await closeSocket();
     emitEvent('PAIRING_COMPLETE', { sessionOutsideRelease: true, qrPersisted: false });
+};
+
+const runPairCode = async () => {
+    await removeEphemeralQr(config);
+    await createSocket({ allowQr: false, pairingMethod: 'PAIRING_CODE' });
+    if (authState?.creds?.registered || authState?.creds?.me || authState?.creds?.pairingCode) {
+        throw new Error('v152_e_r2_clean_session_required');
+    }
+    let pairingCode;
+    try {
+        pairingCode = assertNativePairingCode(await socket.requestPairingCode(config.testChannelPhone));
+    } catch {
+        throw new Error('v152_e_r2_pairing_code_request_failed');
+    }
+    emitEvent('PAIRING_CODE_READY', {
+        pairingPatch: config.pairingPatch,
+        pairingMethod: 'PAIRING_CODE',
+        testChannelPhone: config.testChannelPhone,
+        pairingCode,
+        pairingCodePersisted: false,
+        qrAvailable: false,
+        qrLogged: false
+    });
+    const identity = await waitForOpen({ allowQr: false, ignoreQr: true });
+    await writeJsonAtomic(pairingEvidenceFile, {
+        phase: config.phase,
+        pairingPatch: config.pairingPatch,
+        channelId: config.channelId,
+        provider: 'WHATSAPP_WEB',
+        pairedPhoneSha256: identity.pairedPhoneSha256,
+        pairingMethod: 'PAIRING_CODE',
+        pairing: 'PASS',
+        sessionCreated: true,
+        sessionConnected: true,
+        channelPhoneMatch: true,
+        pairingCodePersisted: false,
+        qrPersisted: false,
+        observedAt: new Date().toISOString()
+    });
+    await closeSocket();
+    emitEvent('PAIRING_COMPLETE', {
+        pairingPatch: config.pairingPatch,
+        pairingMethod: 'PAIRING_CODE',
+        sessionOutsideRelease: true,
+        pairingCodePersisted: false,
+        qrPersisted: false
+    });
 };
 
 const runStatus = async () => {
@@ -326,6 +407,7 @@ const runRollback = async () => {
 try {
     if (command === 'audit') emit({ ...v152EPolicyStatus(), configValidated: true });
     else if (command === 'pair') await runPair();
+    else if (command === 'pair-code') await runPairCode();
     else if (command === 'status') await runStatus();
     else if (command === 'canary-inbound') await runInbound();
     else if (command === 'canary-outbound') await runOutbound();
@@ -335,6 +417,9 @@ try {
 } catch (error) {
     await closeSocket();
     await removeEphemeralQr(config).catch(() => {});
+    if (command === 'pair-code' && authState?.creds?.registered !== true) {
+        await fs.rm(config.sessionDirectory, { recursive: true, force: true }).catch(() => {});
+    }
     emitEvent('FAILED', { code: String(error?.message || 'v152_e_unknown_error') });
     process.exitCode = 1;
 }
