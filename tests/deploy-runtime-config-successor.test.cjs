@@ -5,7 +5,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { validateRuntimeConfigSuccessor, changedKeys } = require('../ops/lib/runtime-config-successor-v1.cjs');
+const { validateRuntimeConfigSuccessor, changedKeys, keyPresenceDelta,
+    _validateExplicitAdditionForTests: validateExplicitAddition,
+    _validateExplicitReceiptPermissionsForTests: validateExplicitReceiptPermissions
+} = require('../ops/lib/runtime-config-successor-v1.cjs');
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 
 function fixture(t) {
@@ -36,8 +39,50 @@ function fixture(t) {
     const file = path.join(directory, `${facts.releaseName}.json`);
     const seal = () => { const bytes = `${JSON.stringify(record, null, 2)}\n`; put(file, bytes); put(`${file}.sha256`, `${sha(bytes)}\n`); };
     seal();
-    const options = { uid: process.getuid(), attestationDirectory: directory, evidenceRoots: [evidence], toolingPaths: tools.map((x) => x.path) };
+    const options = { uid: fs.statSync(root).uid, attestationDirectory: directory, evidenceRoots: [evidence], toolingPaths: tools.map((x) => x.path) };
     return { root, facts, record, options, file, seal, put, validate: () => validateRuntimeConfigSuccessor(facts, options) };
+}
+
+function additionFixture(t) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'runtime-config-addition-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const evidenceRoot = path.join(root, 'evidence');
+    fs.mkdirSync(evidenceRoot, { mode: 0o700 });
+    const uid = fs.statSync(root).uid;
+    const put = (file, bytes, mode = 0o600) => {
+        fs.writeFileSync(file, bytes, { mode }); fs.chmodSync(file, mode); return file;
+    };
+    const before = Buffer.from('EXISTING=before\nKEEP=unchanged\n');
+    const after = Buffer.from('EXISTING=after\nKEEP=unchanged\nWHATSAPP_BLOCKED_SESSION_IDS=synthetic\n');
+    const backup = put(path.join(evidenceRoot, 'predecessor.env'), before);
+    const evidencePath = path.join(evidenceRoot, 'hostinger-channel-freeze.json');
+    const evidence = {
+        schemaVersion: 1, operation: 'V151-R2', newPhone: '5531971862958', defaultPhone: '5531971862958',
+        defaultPhoneEc: '5531971862958', oldPhone: '5515991418416', statusOld: 'BLOCKED_INACTIVE_PRESERVED',
+        oldBlocked: true, oldPaused: true, oldActiveReferences: [], transportOfficial: 'zapi', transportReady: true,
+        providerHealth: 'online', activeConfigUsesNew: true, productionFileChanged: '.env', envBackup: backup
+    };
+    const evidenceBytes = Buffer.from(`${JSON.stringify(evidence, null, 2)}\n`);
+    put(evidencePath, evidenceBytes);
+    const policy = {
+        attestationVersion: 'V70_RUNTIME_CONFIG_SUCCESSOR_V151_R2_R1',
+        predecessorRelease: '20260911T015641Z_production-20260911-59d12bf',
+        predecessorBackupPath: backup, predecessorConfigSha256: sha(before), successorConfigSha256: sha(after),
+        addedKeys: ['WHATSAPP_BLOCKED_SESSION_IDS'], removedKeys: [], evidencePath, evidenceSha256: sha(evidenceBytes)
+    };
+    const record = { ...policy, addedKeys: [...policy.addedKeys], removedKeys: [], createdAt: new Date().toISOString() };
+    const facts = { releaseName: policy.predecessorRelease, originalEnvSha256: policy.predecessorConfigSha256,
+        actualEnvSha256: policy.successorConfigSha256 };
+    const context = { uid, evidenceRoots: [evidenceRoot], current: after,
+        buffer: Buffer.from(`${JSON.stringify(record, null, 2)}\n`) };
+    const resealContext = () => { context.buffer = Buffer.from(`${JSON.stringify(record, null, 2)}\n`); };
+    const setAfter = (bytes) => {
+        context.current = bytes; policy.successorConfigSha256 = sha(bytes);
+        record.successorConfigSha256 = policy.successorConfigSha256;
+        facts.actualEnvSha256 = policy.successorConfigSha256; resealContext();
+    };
+    return { root, uid, evidenceRoot, backup, evidencePath, evidence, policy, record, facts, context,
+        resealContext, setAfter, validate: () => validateExplicitAddition(record, facts, context, policy) };
 }
 
 test('accepts a sealed authorized successor with unchanged code and original envelopes', (t) => {
@@ -67,7 +112,7 @@ test('rejects changed original metadata', (t) => { const x = fixture(t); x.facts
 test('rejects missing seal', (t) => { const x = fixture(t); fs.unlinkSync(`${x.file}.sha256`); assert.throws(x.validate); });
 test('rejects tampered attestation before parsing', (t) => { const x = fixture(t); fs.appendFileSync(x.file, ' '); assert.throws(x.validate, /seal/); });
 test('rejects unknown attestation fields', (t) => { const x = fixture(t); x.record.ignoreMismatch = true; x.seal(); assert.throws(x.validate); });
-test('rejects writable attestation', (t) => { const x = fixture(t); fs.chmodSync(x.file, 0o600); assert.throws(x.validate, /permissions/); });
+test('rejects writable legacy attestation', (t) => { const x = fixture(t); fs.chmodSync(x.file, 0o600); assert.throws(x.validate, /permissions|legacy attestation mode/); });
 test('rejects writable attestation directory', (t) => { const x = fixture(t); fs.chmodSync(x.options.attestationDirectory, 0o777); assert.throws(x.validate, /mode/); });
 test('rejects wrong owner', (t) => { const x = fixture(t); x.options.uid++; assert.throws(x.validate, /owner/); });
 test('rejects attestation symlink', (t) => { const x = fixture(t); fs.renameSync(x.file, `${x.file}.real`); fs.symlinkSync(`${x.file}.real`, x.file); assert.throws(x.validate, /symlink/); });
@@ -94,4 +139,61 @@ test('rejects changing or reordering any occurrence of a duplicate key', () => {
 });
 test('non-key mutation errors never disclose environment values', () => {
     assert.throws(() => changedKeys(Buffer.from('A=private_sentinel\n# old\n'), Buffer.from('A=private_sentinel\n# new\n')), (e) => !e.message.includes('private_sentinel') && /non-key/.test(e.message));
+});
+
+test('detects one explicit key addition without treating existing-key rotation as another addition', () => {
+    assert.deepEqual(keyPresenceDelta(Buffer.from('A=old\n'), Buffer.from('A=new\nB=value\n')),
+        { addedKeys: ['B'], removedKeys: [] });
+});
+test('accepts the exact WHATSAPP_BLOCKED_SESSION_IDS transition with valid V151-R2 evidence', (t) => {
+    const x = additionFixture(t);
+    assert.equal(x.validate().status, 'AUTHORIZED_RUNTIME_SUCCESSOR_EXPLICIT_KEY_ADDITION');
+});
+test('rejects an unexpected second added key', (t) => {
+    const x = additionFixture(t);
+    x.setAfter(Buffer.from('EXISTING=after\nKEEP=unchanged\nWHATSAPP_BLOCKED_SESSION_IDS=synthetic\nUNEXPECTED=value\n'));
+    assert.throws(x.validate, /unexpected added/);
+});
+test('rejects every removed key', (t) => {
+    const x = additionFixture(t);
+    fs.writeFileSync(x.backup, 'EXISTING=before\nKEEP=unchanged\nREMOVE_ME=value\n');
+    const before = fs.readFileSync(x.backup);
+    x.policy.predecessorConfigSha256 = sha(before); x.record.predecessorConfigSha256 = sha(before);
+    x.facts.originalEnvSha256 = sha(before); x.resealContext();
+    assert.throws(x.validate, /unexpected removed/);
+});
+test('rejects a wrong successor hash', (t) => {
+    const x = additionFixture(t); x.facts.actualEnvSha256 = 'b'.repeat(64);
+    assert.throws(x.validate, /successor facts/);
+});
+test('rejects a missing predecessor backup', (t) => {
+    const x = additionFixture(t); fs.unlinkSync(x.backup);
+    assert.throws(x.validate);
+});
+test('rejects missing V151-R2 evidence', (t) => {
+    const x = additionFixture(t); fs.unlinkSync(x.evidencePath);
+    assert.throws(x.validate);
+});
+test('rejects altered or unrelated V151-R2 evidence', (t) => {
+    const x = additionFixture(t); fs.appendFileSync(x.evidencePath, ' ');
+    assert.throws(x.validate, /evidence hash/);
+});
+test('rejects wildcard additions even when a supplied policy repeats the wildcard', (t) => {
+    const x = additionFixture(t); x.policy.addedKeys = ['*']; x.record.addedKeys = ['*']; x.resealContext();
+    assert.throws(x.validate, /allowlist|wildcard/);
+});
+test('rejects a secret-bearing extra receipt field', (t) => {
+    const x = additionFixture(t); x.record.secretValue = 'synthetic_secret_should_be_rejected'; x.resealContext();
+    assert.throws(x.validate, /attestation keys/);
+});
+test('requires explicit-addition receipt and seal mode 0600 with the expected owner', (t) => {
+    const x = additionFixture(t);
+    const receipt = path.join(x.root, 'receipt.json'); const seal = path.join(x.root, 'receipt.json.sha256');
+    fs.writeFileSync(receipt, '{}\n', { mode: 0o600 }); fs.writeFileSync(seal, `${sha('{}\n')}\n`, { mode: 0o600 });
+    fs.chmodSync(receipt, 0o600); fs.chmodSync(seal, 0o600);
+    assert.doesNotThrow(() => validateExplicitReceiptPermissions(receipt, seal, x.uid));
+    fs.chmodSync(receipt, 0o640);
+    assert.throws(() => validateExplicitReceiptPermissions(receipt, seal, x.uid), /permissions/);
+    fs.chmodSync(receipt, 0o600);
+    assert.throws(() => validateExplicitReceiptPermissions(receipt, seal, x.uid + 1), /owner/);
 });
