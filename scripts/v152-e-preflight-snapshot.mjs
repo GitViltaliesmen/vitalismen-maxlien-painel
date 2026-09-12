@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ensureSecureDirectory, writeJsonAtomic } from '../src/whatsapp/core/ControlledRealPairingV152E.js';
@@ -40,8 +41,10 @@ const sanitizedPm2 = (releaseRoot) => {
     const pmCwd = String(entry.pm2_env?.pm_cwd || '');
     const pmExecPath = String(entry.pm2_env?.pm_exec_path || '');
     if (entry.pm2_env?.status !== 'online') throw new Error('v152_e_official_pm2_not_online');
-    if (path.resolve(pmCwd) !== path.resolve(releaseRoot)) throw new Error('v152_e_pm2_cwd_not_active_release');
-    if (!path.resolve(pmExecPath).startsWith(`${path.resolve(releaseRoot)}${path.sep}`)) {
+    const canonicalPmCwd = fsSync.realpathSync(pmCwd);
+    const canonicalPmExecPath = fsSync.realpathSync(pmExecPath);
+    if (path.resolve(canonicalPmCwd) !== path.resolve(releaseRoot)) throw new Error('v152_e_pm2_cwd_not_active_release');
+    if (!path.resolve(canonicalPmExecPath).startsWith(`${path.resolve(releaseRoot)}${path.sep}`)) {
         throw new Error('v152_e_pm2_exec_not_active_release');
     }
     return {

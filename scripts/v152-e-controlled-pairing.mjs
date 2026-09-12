@@ -266,6 +266,7 @@ try {
     else throw new Error('v152_e_command_invalid');
 } catch (error) {
     await closeSocket();
+    await removeEphemeralQr(config).catch(() => {});
     emitEvent('FAILED', { code: String(error?.message || 'v152_e_unknown_error') });
     process.exitCode = 1;
 }

@@ -178,4 +178,5 @@ test('helper não usa terminal QR, conexão legada ou texto arbitrário', async 
     assert.doesNotMatch(source, /process\.argv\[[34]\].*text/i);
     assert.doesNotMatch(source, /qr(File|Bytes|Sha256):/);
     assert.match(source, /same_phone_dual_provider_forbidden[\s\S]*logout/);
+    assert.match(source, /catch \(error\) \{[\s\S]*removeEphemeralQr\(config\)\.catch\(\(\) => \{\}\)/);
 });

@@ -1676,3 +1676,22 @@ Pedidos já enviados não entram nesse caminho: a reabertura do submit retorna
 Salvar, configurar ou somente autorizar o pedido continua sem Dropi, Shipment novo ou
 Purchase. Browser events, anúncios, Dataset, VSL, Servientrega, pós-venda e schedulers
 permanecem com os contratos anteriores.
+
+## 2026-09-12 — V152-E: pareamento Web real estritamente controlado
+
+A V152-E sucede o control plane shadow V152-C0-R1 e abre somente uma exceção
+one-shot para `WHATSAPP_WEB_CONTROLLED_TEST_01`. A sessão fica fora da release,
+o QR é um PNG root-only efêmero e nenhum conteúdo do QR entra em log, Git ou
+evidência. O transporte Z-API continua conectado e soberano para todo cliente.
+
+Inbound e outbound aceitam somente o telefone QA `5515998038637`. O inbound é
+registrado apenas por hashes, sem corpo, bot ou resposta. O outbound possui texto
+fixo e ledger persistente que bloqueia repetição inclusive após estado ambíguo.
+Os números oficial atual e anterior são proibidos no pareamento Web e provocam
+logout imediato.
+
+Migração, roteamento de clientes, handoff, failover, desligamento da Z-API e
+cutover permanecem falsos. VSL, Pixel/CAPI, Funnel Metrics, lógica comercial,
+core do painel e pós-venda continuam congelados. O contrato e o rollback estão
+em `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`; qualquer
+cutover depende de nova aprovação expressa.

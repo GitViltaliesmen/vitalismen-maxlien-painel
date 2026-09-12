@@ -1319,3 +1319,25 @@ nenhuma alteração realizada no VPS.
 - Documento e freeze: `docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md` e
   `docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json`.
 - Estado desta camada: candidata local; produção continua na V143 até aprovação.
+
+## Registro V152-E — pareamento Web real controlado (2026-09-12)
+
+- Helper one-shot: `scripts/v152-e-controlled-pairing.mjs`.
+- Política, paths seguros, identidade sanitizada e dedupe:
+  `src/whatsapp/core/ControlledRealPairingV152E.js`.
+- Snapshot prévio sem ambiente PM2:
+  `scripts/v152-e-preflight-snapshot.mjs`.
+- Verificação posterior contra o snapshot:
+  `scripts/v152-e-postflight-verify.mjs`.
+- Sessão oficial isolada:
+  `/var/lib/vitalismen-whatsapp-web-sessions/v152-e-controlled-test-01`.
+- QR efêmero root-only:
+  `/run/vitalismen-v152-e-qr/WHATSAPP_WEB_CONTROLLED_TEST_01.png`.
+- Evidência sanitizada:
+  `/var/lib/vitalismen-v152-e-evidence`.
+- Guard/teste/freeze:
+  `scripts/guard-v152-e-controlled-real-pairing.mjs`,
+  `tests/v152-e-controlled-real-pairing.test.mjs` e
+  `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`.
+- Z-API permanece oficial; nenhum cliente, handoff, failover ou cutover é
+  autorizado. Nova aprovação é obrigatória antes de qualquer cutover.

@@ -7,7 +7,8 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 const implementationFiles = [
     'src/whatsapp/core/ControlledRealPairingV152E.js',
     'scripts/v152-e-controlled-pairing.mjs',
-    'scripts/v152-e-preflight-snapshot.mjs'
+    'scripts/v152-e-preflight-snapshot.mjs',
+    'scripts/v152-e-postflight-verify.mjs'
 ];
 const evidenceFiles = [
     ...implementationFiles,
@@ -26,7 +27,8 @@ for (const marker of [
     'same_phone_dual_provider_forbidden',
     'OUTBOUND_CANARY_DUPLICATE_BLOCKED',
     'CONFIRM_V152_E_ROLLBACK',
-    'PRE_PAIRING_SNAPSHOT_PASS'
+    'PRE_PAIRING_SNAPSHOT_PASS',
+    'POST_PAIRING_VERIFICATION_PASS'
 ]) assert.match(evidenceSource, new RegExp(marker));
 
 assert.match(implementationSource, /printQRInTerminal:\s*false/);

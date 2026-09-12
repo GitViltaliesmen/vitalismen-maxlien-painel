@@ -26,6 +26,7 @@
         "test:v152-e": "npm run test:v152-c0 && node --test tests/v152-e-controlled-real-pairing.test.mjs",
         "audit:v152-e": "node scripts/v152-e-controlled-pairing.mjs audit",
         "snapshot:v152-e": "node scripts/v152-e-preflight-snapshot.mjs",
+        "postflight:v152-e": "node scripts/v152-e-postflight-verify.mjs",
         "pair:v152-e": "node scripts/v152-e-controlled-pairing.mjs pair",
         "status:v152-e": "node scripts/v152-e-controlled-pairing.mjs status",
         "canary:inbound:v152-e": "node scripts/v152-e-controlled-pairing.mjs canary-inbound",

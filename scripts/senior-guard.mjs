@@ -59,7 +59,10 @@ const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
 });
 const v152ShadowTestContext = process.env.V152_B_SHADOW_TEST_CONTEXT === 'true'
     && globalThis.__VITALISMEN_V152_B_CONTEXT?.loaded === true;
-const gitWorktreeLink = read('.git').match(/^gitdir:\s*(.+)$/m)?.[1]?.trim() || '';
+const gitMarkerPath = path.join(root, '.git');
+const gitWorktreeLink = fs.existsSync(gitMarkerPath) && fs.statSync(gitMarkerPath).isFile()
+    ? read('.git').match(/^gitdir:\s*(.+)$/m)?.[1]?.trim() || ''
+    : '';
 const portable = (value) => path.resolve(value).replace(/\\/g, '/').toLowerCase();
 const v152RegisteredValidationWorktree = v152ShadowTestContext
     && portable(gitWorktreeLink).startsWith(`${portable(path.join(windowsOfficialPath, '.git', 'worktrees'))}/`);
