@@ -1,0 +1,48 @@
+{
+  "freezeId": "EC_MULTI_CHANNEL_CONTROL_PLANE_V152_C0_R1_20260912",
+  "parentCommit": "c205a587328a973d99ca4c4008b08144b28681d9",
+  "parentTree": "ade9b0c1095417d4f4f193ef890f6af185d7ad9d",
+  "identifier": {
+    "from": "WHATSAPP_WEB_TEST_TEMPLATE",
+    "to": "WHATSAPP_WEB_TEMPLATE"
+  },
+  "functionalFiles": [
+    "public/qr.html",
+    "src/whatsapp/core/ChannelRegistry.js"
+  ],
+  "overrides": [
+    "public/qr.html",
+    "scripts/guard-v152-c0-control-plane.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v152-c0-r1-context.mjs",
+    "src/whatsapp/core/ChannelRegistry.js",
+    "tests/v152-c0-control-plane.test.mjs"
+  ],
+  "protectedFiles": {
+    "public/qr.html": "6727007d0286f3641111c7b73a6e617dde7fd18159dce3f4d9617446db4a3430",
+    "scripts/guard-v152-c0-control-plane.mjs": "9ed1176779dcae0c15ad1604b8e7f3c5b3e8ace8efd23386c6c3e41ec3f5fbf6",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "b6eabf5f749f353748e66dbcdc5e939d0153dbb1c198a5bbe2c3df2d0e6cf72f",
+    "scripts/lib/ec-runtime-successor-v152-c0-r1-context.mjs": "040ebcdfff2acabfd493333d1912f6a761f3b3d9833964d566517189caed9e20",
+    "src/whatsapp/core/ChannelRegistry.js": "f93c8978047b3e3680826e898b1c4d97cb8b06d010d609a45597269a17ee2fcf",
+    "tests/v152-c0-control-plane.test.mjs": "42b3411ed1f400736b76d8fc71860b48c5d21a08ed1937310e190a32b7d8d5fa"
+  },
+  "policy": {
+    "publicationAllowed": false,
+    "productionChanged": false,
+    "zapiBehaviorChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN",
+    "testChannelPhone": null,
+    "pairingState": "PAIRING_PENDING_REAL_TEST_CHANNEL",
+    "functionalBehaviorChanged": false,
+    "providerBehaviorChanged": false,
+    "routingBehaviorChanged": false,
+    "shadowBehaviorChanged": false,
+    "realPairing": 0,
+    "realOutbound": 0,
+    "realCustomerRouting": 0,
+    "realHandoff": 0,
+    "realFailover": 0,
+    "metaCloudNetworkCalls": 0,
+    "operatorApprovalRequired": true
+  }
+}

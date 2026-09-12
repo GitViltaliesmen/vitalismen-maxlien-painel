@@ -10438,7 +10438,7 @@
                 const sessionKey = digitsOnlyText(session.ownPhoneDigits || session.sessionId);
                 return !zapiAvailableForCountry || !zapiKey || sessionKey !== zapiKey;
             }).length;
-            const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_TEST_TEMPLATE</strong><span class="badge">SHADOW</span><div class="meta">provider=WHATSAPP_WEB · phone=NULL · status=DRAFT · health=UNKNOWN</div><div class="meta">priority=0 · weight=0 · capacity=0 · draining=true · session status=PAIRING_PENDING_REAL_TEST_CHANNEL</div>${actionButtons}</article>`;
+            const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_TEMPLATE</strong><span class="badge">SHADOW</span><div class="meta">provider=WHATSAPP_WEB · phone=NULL · status=DRAFT · health=UNKNOWN</div><div class="meta">priority=0 · weight=0 · capacity=0 · draining=true · session status=PAIRING_PENDING_REAL_TEST_CHANNEL</div>${actionButtons}</article>`;
             const preservedCard = `<article class="connection-card connection-card-muted"><strong>OLD_BLOCKED_PHONE</strong><div class="meta">provider=ZAPI · phone=preserved-hidden · status=BLOCKED · health=preserved</div><div class="meta">priority=999 · weight=0 · capacity=0 · draining=true · session status=preserved</div>${actionButtons}</article>`;
             el('connectionList').innerHTML = `${zapiCard}${draftCard}${preservedCard}`;
             setConnectionOpsPanel(sessions, workloadBySession);

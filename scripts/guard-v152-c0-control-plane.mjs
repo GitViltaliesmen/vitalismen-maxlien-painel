@@ -14,7 +14,7 @@ const sourceFiles = [
 ];
 const source = sourceFiles.map(read).join('\n');
 
-assert.match(panel, /WHATSAPP_WEB_TEST_TEMPLATE/);
+assert.match(panel, /WHATSAPP_WEB_TEMPLATE/);
 assert.match(panel, /PAIRING_PENDING_REAL_TEST_CHANNEL/);
 assert.match(panel, /data-v152-c0-pair-state="DISABLED_NO_TEST_PHONE"[^>]*disabled/);
 assert.match(panel, /weight=0/);

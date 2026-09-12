@@ -39,8 +39,8 @@ export const LEGACY_ZAPI_OLD_PRESERVED = Object.freeze({
     preserved: true
 });
 
-export const WHATSAPP_WEB_TEST_TEMPLATE = Object.freeze({
-    channelId: 'WHATSAPP_WEB_TEST_TEMPLATE',
+export const WHATSAPP_WEB_TEMPLATE = Object.freeze({
+    channelId: 'WHATSAPP_WEB_TEMPLATE',
     provider: 'WHATSAPP_WEB',
     phoneNumber: '',
     providerAddress: '',
@@ -82,6 +82,6 @@ export class ChannelRegistry {
     }
 
     static projection() {
-        return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, WHATSAPP_WEB_TEST_TEMPLATE];
+        return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, WHATSAPP_WEB_TEMPLATE];
     }
 }

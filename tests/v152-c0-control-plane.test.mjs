@@ -30,7 +30,7 @@ test('registry C0 representa produção, número antigo e template Web sem telef
             shadow: template.shadow
         },
         {
-            channelId: 'WHATSAPP_WEB_TEST_TEMPLATE',
+            channelId: 'WHATSAPP_WEB_TEMPLATE',
             provider: 'WHATSAPP_WEB',
             phone: '',
             status: 'DRAFT',
@@ -47,7 +47,7 @@ test('registry C0 representa produção, número antigo e template Web sem telef
 
 test('Connections C0 exibe todos os campos e mantém ações reais desabilitadas', () => {
     for (const marker of [
-        'WHATSAPP_WEB_TEST_TEMPLATE', 'OLD_BLOCKED_PHONE', 'PAIRING_PENDING_REAL_TEST_CHANNEL',
+        'WHATSAPP_WEB_TEMPLATE', 'OLD_BLOCKED_PHONE', 'PAIRING_PENDING_REAL_TEST_CHANNEL',
         'provider=WHATSAPP_WEB', 'phone=NULL', 'status=DRAFT', 'health=UNKNOWN',
         'priority=0', 'weight=0', 'capacity=0', 'draining=true', 'SHADOW',
         'Adicionar canal', 'Detalhes', 'Health', 'Pausar', 'Ativar', 'Drenar', 'Transferir', 'Parear',
