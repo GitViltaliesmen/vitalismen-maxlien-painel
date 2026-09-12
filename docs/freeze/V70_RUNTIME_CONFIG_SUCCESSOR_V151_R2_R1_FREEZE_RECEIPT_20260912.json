@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "phase": "V70_RUNTIME_CONFIG_SUCCESSOR_V151_R2_ATTESTATION",
+  "status": "FROZEN",
+  "createdAt": "2026-09-12T14:16:24.317Z",
+  "predecessorDeployContractCommit": "c6990b1fd3590834c6cd629132a4c920e60893fc",
+  "implementationIdentity": {
+    "commit": "62ddefd0bfd6b25acdf504e1f0f14f49de799187",
+    "tree": "7363dc48b2c78cc0b5d1ba0104b5df0c91242318",
+    "functionalHash": "3c2bb2d141fcc819224e679be872a15ab5849930fef7e8b06b6a64257ac14dc2",
+    "functionalHashAlgorithm": "sha256(sorted path + TAB + git-blob-content-sha256 + LF)",
+    "files": {
+      "ops/create-v151-r2-runtime-config-successor-r1.cjs": "f7bfd793164be5890fc16d00a4f93609f70484ecbc3621e5f31cd6c33d930b01",
+      "ops/lib/runtime-config-successor-v1.cjs": "fbf6fa3ad4d9b6537c03c35aaa8e43f99a0d2ce431c36d9a26a01d2a87d4aaf4",
+      "tests/deploy-runtime-config-successor.test.cjs": "c64654c33dca33994258739407b826c0aed2327c72b8efee312d93f33120d72c"
+    }
+  },
+  "exactPolicy": {
+    "attestationVersion": "V70_RUNTIME_CONFIG_SUCCESSOR_V151_R2_R1",
+    "predecessorRelease": "20260911T015641Z_production-20260911-59d12bf",
+    "predecessorBackupPath": "/opt/vitalismen-automacao/backups/v151-r2-whatsapp-20260911T220814Z/.env.pre-v151-r2",
+    "predecessorConfigSha256": "4e17c7f06df31e29c6c746fbaef29e70174076a2fb69c44a999d97400a3b0b4d",
+    "successorConfigSha256": "edae8ca26679b54e517ad6a050aefd0b27a1e1fe20edf922b3fb72afcb66664f",
+    "addedKeys": [
+      "WHATSAPP_BLOCKED_SESSION_IDS"
+    ],
+    "removedKeys": [],
+    "evidencePath": "/var/lib/vitalismen-deploy/evidence/v151-r2-whatsapp-20260911/hostinger-channel-freeze.json",
+    "evidenceSha256": "c78302143a57070aae1e4d8d13a0dd6cd519a0f1bae782936c9fb4464b5433dd"
+  },
+  "compatibility": {
+    "existingKeyRotation": "PASS",
+    "legacyReceiptMode": "0400",
+    "explicitAdditionReceiptMode": "0600",
+    "genericKeyAdditionAllowed": false,
+    "wildcardAllowlist": false
+  },
+  "validation": {
+    "linuxSuite": "PASS",
+    "tests": 40,
+    "failures": 0,
+    "actualArtifactDryRun": "PASS",
+    "nodeSyntax": "PASS",
+    "npmAuditCritical": 0,
+    "npmAuditHigh": 0,
+    "npmAuditModerate": 0,
+    "secretExposure": 0
+  },
+  "scope": {
+    "applicationFilesChanged": 0,
+    "productionEnvChanged": false,
+    "v152CandidateChanged": false,
+    "vitalismenStageSha256Before": "0060854cad8bc7fd055c678de42e9623ed6911c0899ec1fe3411d8f96df12f31"
+  },
+  "v152CandidateIdentity": {
+    "commit": "ccbb64e035345bae0d3e4d464485f694a66629e2",
+    "tree": "588f5f91842396b310600ba68c8fee50d7daebf6",
+    "functionalHash": "7987698cb527b8b1da2e9e584f27c9027f90583e2b468e4416a14f4d695e3dba",
+    "freezeReceiptSha256": "87e88f8a2ee47628aa87692d26e57bd5df6f9a31cf0237676a4d553fc0f920fb"
+  }
+}
