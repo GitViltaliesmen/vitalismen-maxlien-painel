@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
-import './ec-runtime-successor-v148-context.mjs';
+import './ec-runtime-successor-v152-b-context.mjs';
 import './ec-runtime-successor-v147-r6r2-context.mjs';
 
 await import('./ec-runtime-successor-v146-context.mjs');

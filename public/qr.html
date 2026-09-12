@@ -8153,10 +8153,10 @@
                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
                         <button data-connection-country="EC" class="active" type="button">Equador</button>
                     </div>
-                    <div id="connectionSourceNote" class="connection-source-note">Conexao puxada da Z-API. O pareamento do celular e feito fora deste painel.</div>
+                    <div id="connectionSourceNote" class="connection-source-note">Control plane V152-B em modo shadow. Z-API principal permanece ativa e sem mudanca.</div>
                     <form id="connectionForm" class="connection-form">
-                        <input id="connectionSessionInput" autocomplete="off" placeholder="ID do celular. Ex: atendimento-02">
-                        <button class="primary" type="submit">Adicionar QR</button>
+                        <input id="connectionSessionInput" autocomplete="off" placeholder="channelId do rascunho" aria-label="channelId do novo canal">
+                        <button class="primary" type="submit">Adicionar rascunho</button>
                     </form>
                     <div id="connectionList" class="connection-grid">
                         <div class="empty">Carregando conexoes...</div>
@@ -10407,19 +10407,25 @@
             const zapiKey = digitsOnlyText(zapiPhone);
             const zapiItem = workloadBySession.get(zapiKey) || {};
             const countryLabel = 'Equador';
-            const sourceText = 'Z-API da operacao Ecuador. O pareamento do celular e feito fora deste painel.';
+            const sourceText = 'V152-B shadow: leitura e simulacao apenas. Pareamento, ativacao, roteamento e troca de provedor estao bloqueados.';
             if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
+            const actionButtons = `
+                <div class="connection-actions" aria-label="Acoes de canal indisponiveis na fase shadow">
+                    ${['Health', 'Pause', 'Activate', 'Drain', 'Details', 'Pair'].map((label) => `<button type="button" data-v152-channel-action="${label.toLowerCase()}" disabled title="Bloqueado na V152-B shadow">${label}</button>`).join('')}
+                </div>`;
             const zapiCard = `
                     <article class="connection-card">
                         <div class="connection-card-head">
-                            <strong>WhatsApp principal - ${escapeHtml(countryLabel)}</strong>
+                            <strong>LEGACY_ZAPI_PRIMARY</strong>
                             <span class="badge ${badgeClass(zapiStatus)}">${zapiAvailableForCountry ? 'CONECTADO' : 'OFFLINE'}</span>
                         </div>
-                        <button class="connection-status-button ${zapiAvailableForCountry ? 'connected' : 'disconnected'}" type="button" disabled>Z-API - STATUS ${zapiAvailableForCountry ? 'CONECTADO' : 'DESCONECTADO'}</button>
-                        <div class="meta">${escapeHtml(zapiPhone ? `numero conectado: ${zapiPhone}` : 'sem telefone conectado para esta operacao')}</div>
+                        <button class="connection-status-button ${zapiAvailableForCountry ? 'connected' : 'disconnected'}" type="button" disabled>provider=ZAPI · status=${zapiAvailableForCountry ? 'ACTIVE' : 'DEGRADED'}</button>
+                        <div class="meta">channelId=LEGACY_ZAPI_PRIMARY · phone=${escapeHtml(zapiPhone || 'not-reported')}</div>
+                        <div class="meta">health=${zapiAvailableForCountry ? 'healthy' : 'unavailable'} · priority=1 · weight=1 · draining=false · session=compatibility-mirror</div>
                         ${renderConnectionStatusBlock(zapiItem)}
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? (zapi.device?.name || 'Instancia Z-API') : `Operacao ${countryLabel}`)}</div>
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para atendimento humano no Ecuador.' : (zapi.error || 'Z-API ainda nao respondeu.'))}</div>
+                        ${actionButtons}
                     </article>
                 `;
             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -10428,10 +10434,9 @@
                 const sessionKey = digitsOnlyText(session.ownPhoneDigits || session.sessionId);
                 return !zapiAvailableForCountry || !zapiKey || sessionKey !== zapiKey;
             }).length;
-            const reservedCard = reservedSlotCount > 0
-                ? `<article class="connection-card connection-card-muted"><strong>Estrutura multi-numero preservada</strong><div class="meta">${reservedSlotCount} slot(s) reservado(s). Use Z-API quando precisar ativar outro celular.</div></article>`
-                : '';
-            el('connectionList').innerHTML = `${zapiCard}${reservedCard}`;
+            const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_DRAFT</strong><div class="meta">provider=WHATSAPP_WEB · status=DRAFT · health=not-paired</div><div class="meta">priority=100 · weight=1 · draining=true · session=external-storage-required</div>${actionButtons}</article>`;
+            const preservedCard = `<article class="connection-card connection-card-muted"><strong>LEGACY_ZAPI_OLD_PRESERVED</strong><div class="meta">provider=ZAPI · phone=preserved-hidden · status=BLOCKED · health=preserved</div><div class="meta">priority=999 · weight=0 · draining=true · session=preserved</div>${actionButtons}</article>`;
+            el('connectionList').innerHTML = `${zapiCard}${draftCard}${preservedCard}`;
             setConnectionOpsPanel(sessions, workloadBySession);
         };
 
@@ -10454,34 +10459,13 @@
 
         async function startConnectionSession(sessionIdValue) {
             const raw = String(sessionIdValue || '').trim();
-            if (!raw) throw new Error('Informe o ID do celular');
-            const sessionIdValueSafe = raw.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-            const result = await api(`/api/whatsapp/sessions/${encodeURIComponent(sessionIdValueSafe)}/start`, { method: 'POST' });
-            const nextSession = result.session || {};
-            state.whatsappSessions = [
-                nextSession,
-                ...state.whatsappSessions.filter((item) => item.sessionId !== nextSession.sessionId)
-            ];
-            renderConnections();
-            showToast(`Conexao ${nextSession.sessionId || sessionIdValueSafe} iniciada`);
-            await loadConnections();
+            if (!raw) throw new Error('Informe o channelId do rascunho');
+            throw new Error('V152-B shadow: rascunho nao persistido e pareamento bloqueado');
         }
 
         async function disconnectConnectionSession(sessionIdValue) {
-            const raw = String(sessionIdValue || '').trim();
-            if (!raw) throw new Error('ID do celular invalido');
-            const result = await api(`/api/whatsapp/sessions/${encodeURIComponent(raw)}/disconnect`, {
-                method: 'POST',
-                body: JSON.stringify({ logout: true })
-            });
-            const nextSession = result.session || {};
-            state.whatsappSessions = [
-                nextSession,
-                ...state.whatsappSessions.filter((item) => item.sessionId !== nextSession.sessionId)
-            ];
-            renderConnections();
-            showToast(`Celular ${nextSession.sessionId || raw} desconectado`);
-            await loadConnections();
+            void sessionIdValue;
+            throw new Error('V152-B shadow: mudanca de canal bloqueada');
         }
 
         const currentChatPhone = () => {

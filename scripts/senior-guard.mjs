@@ -57,10 +57,20 @@ const officialGithubActionsWorkspace = isOfficialGithubActionsWorkspace({
     env: process.env,
     cwd: root
 });
+const v152ShadowTestContext = process.env.V152_B_SHADOW_TEST_CONTEXT === 'true'
+    && globalThis.__VITALISMEN_V152_B_CONTEXT?.loaded === true;
+const gitWorktreeLink = read('.git').match(/^gitdir:\s*(.+)$/m)?.[1]?.trim() || '';
+const portable = (value) => path.resolve(value).replace(/\\/g, '/').toLowerCase();
+const v152RegisteredValidationWorktree = v152ShadowTestContext
+    && portable(gitWorktreeLink).startsWith(`${portable(path.join(windowsOfficialPath, '.git', 'worktrees'))}/`);
 // O workspace Codex nao recebe segredos nem a configuracao operacional do
 // VPS. Nesse caminho exato, o contrato seguro versionado e a fonte de flags.
 // A V48 preserva este gate também durante o saneamento restrito a status X -> X.
-const env = (codexWorkspaceActive || officialGithubActionsWorkspace) && !localEnv ? envExample : localEnv;
+// A V152-B permite a mesma fonte versionada somente no worktree shadow quando
+// seu contexto autenticado esta carregado e o operador ativa o gate de teste.
+const env = (codexWorkspaceActive || officialGithubActionsWorkspace || v152RegisteredValidationWorktree) && !localEnv
+    ? envExample
+    : localEnv;
 const marker = read('.vitalismen-official-root');
 const hasEnv = (key, value) => new RegExp(`^${key}=${value}$`, 'm').test(env);
 const operationalAutomationApproved = hasEnv('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED', 'true');
@@ -175,6 +185,7 @@ const productScopedProtocolFiles = new Set([
 ]);
 assert(
     officialGithubActionsWorkspace
+    || v152RegisteredValidationWorktree
     || [localOfficialPath, windowsOfficialPath, codexOfficialWorkspace, vpsOfficialPath, '/opt/vitalismen-automacao/releases'].some(
         (allowed) => normalizePath(root).startsWith(normalizePath(allowed))
     ),

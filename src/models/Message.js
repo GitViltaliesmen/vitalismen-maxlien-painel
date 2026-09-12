@@ -63,6 +63,9 @@ const messageSchema = new mongoose.Schema({
     readInferredAt: Date,
     provider: { type: String, index: true },
     providerMessageId: { type: String, index: true },
+    logicalMessageId: { type: String, index: true },
+    channelId: { type: String, index: true },
+    dedupeKey: { type: String, index: true },
     providerZaapId: { type: String, index: true },
     externalId: { type: String, index: true },
     clientGeneratedId: { type: String, index: true },
@@ -91,7 +94,18 @@ const messageSchema = new mongoose.Schema({
     mediaFetchLockToken: { type: String, select: false },
     mediaFetchLockExpiresAt: { type: Date, select: false },
     orderId: { type: String, ref: 'Order' }, // Optional link to an order if we can correlate
-    isBot: { type: Boolean, default: false } // True if sent by the automation system
+    isBot: { type: Boolean, default: false }, // True if sent by the automation system
+    queueStatus: {
+        type: String,
+        enum: ['PENDING', 'CLAIMED', 'COMPLETED', 'FAILED', ''],
+        default: '',
+        index: true
+    },
+    queueWorkerId: { type: String, default: '' },
+    queueAttemptCount: { type: Number, min: 0, default: 0 },
+    queueClaimedAt: Date,
+    queueLeaseUntil: { type: Date, index: true },
+    queueCompletedAt: Date
 }, {
     timestamps: true,
     _id: false // Disable auto _id since we use String id
@@ -100,6 +114,8 @@ const messageSchema = new mongoose.Schema({
 messageSchema.index({ peerPhone: 1, timestamp: -1 });
 messageSchema.index({ chatId: 1, timestamp: -1 });
 messageSchema.index({ orderId: 1, timestamp: -1 });
+messageSchema.index({ channelId: 1, providerMessageId: 1 }, { sparse: true });
+messageSchema.index({ queueStatus: 1, queueLeaseUntil: 1, createdAt: 1 });
 
 messageSchema.pre('validate', async function fillOwnerSessionFromContact(next) {
     try {

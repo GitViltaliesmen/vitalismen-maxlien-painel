@@ -19,7 +19,7 @@ const outboundDedupeSchema = new mongoose.Schema({
     },
     kind: {
         type: String,
-        enum: ['text', 'audio'],
+        enum: ['text', 'audio', 'image', 'video', 'document'],
         required: true,
         index: true
     },
@@ -42,6 +42,10 @@ const outboundDedupeSchema = new mongoose.Schema({
         default: 'reserved',
         index: true
     },
+    logicalMessageId: { type: String, default: '', index: true },
+    channelId: { type: String, default: '', index: true },
+    provider: { type: String, default: '', index: true },
+    providerMessageId: { type: String, default: '', index: true },
     retryAllowed: { type: Boolean, default: true },
     firstReservedAt: Date,
     sentAt: Date,
