@@ -8,7 +8,8 @@ export const WHATSAPP_TRANSPORT_METHODS = Object.freeze([
     'sendAudio',
     'sendDocument',
     'markRead',
-    'normalizeInbound'
+    'normalizeInbound',
+    'normalizeOutbound'
 ]);
 
 export class WhatsAppTransport {
@@ -28,6 +29,9 @@ export class WhatsAppTransport {
     async sendDocument() { throw new Error('transport_method_not_implemented:sendDocument'); }
     async markRead() { throw new Error('transport_method_not_implemented:markRead'); }
     normalizeInbound() { throw new Error('transport_method_not_implemented:normalizeInbound'); }
+    normalizeOutbound(payload = {}) {
+        return normalizedOutbound({ ...payload, provider: this.provider, channelId: this.channelId });
+    }
 }
 
 export const assertWhatsAppTransport = (transport) => {
@@ -63,4 +67,22 @@ export const normalizedInbound = ({
     media,
     timestamp: Number(timestamp || Date.now()),
     raw
+});
+
+export const normalizedOutbound = ({
+    provider,
+    channelId,
+    logicalMessageId,
+    to,
+    type = 'text',
+    payloadReference = '',
+    contentFingerprint = ''
+}) => Object.freeze({
+    provider: String(provider || '').toUpperCase(),
+    channelId: String(channelId || ''),
+    logicalMessageId: String(logicalMessageId || ''),
+    to: String(to || '').replace(/\D/g, ''),
+    type: String(type || '').toLowerCase(),
+    payloadReference: String(payloadReference || ''),
+    contentFingerprint: String(contentFingerprint || '')
 });

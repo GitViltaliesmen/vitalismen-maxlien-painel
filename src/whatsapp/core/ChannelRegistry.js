@@ -22,7 +22,7 @@ export const LEGACY_ZAPI_PRIMARY = Object.freeze({
 });
 
 export const LEGACY_ZAPI_OLD_PRESERVED = Object.freeze({
-    channelId: 'LEGACY_ZAPI_OLD_PRESERVED',
+    channelId: 'OLD_BLOCKED_PHONE',
     provider: 'ZAPI',
     phoneNumber: '5515991418416',
     displayName: 'Z-API anterior preservado',
@@ -37,6 +37,26 @@ export const LEGACY_ZAPI_OLD_PRESERVED = Object.freeze({
     version: 1,
     compatibilityMirror: true,
     preserved: true
+});
+
+export const WHATSAPP_WEB_TEST_TEMPLATE = Object.freeze({
+    channelId: 'WHATSAPP_WEB_TEST_TEMPLATE',
+    provider: 'WHATSAPP_WEB',
+    phoneNumber: '',
+    providerAddress: '',
+    displayName: 'WhatsApp Web test template',
+    status: 'DRAFT',
+    health: { healthy: false, detail: 'PAIRING_PENDING_REAL_TEST_CHANNEL' },
+    priority: 0,
+    weight: 0,
+    capacity: 0,
+    currentLoad: 0,
+    draining: true,
+    sessionNamespace: 'v152-test-web-01',
+    version: 1,
+    compatibilityMirror: false,
+    preserved: false,
+    shadow: true
 });
 
 export class ChannelRegistry {
@@ -62,6 +82,6 @@ export class ChannelRegistry {
     }
 
     static projection() {
-        return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED];
+        return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, WHATSAPP_WEB_TEST_TEMPLATE];
     }
 }

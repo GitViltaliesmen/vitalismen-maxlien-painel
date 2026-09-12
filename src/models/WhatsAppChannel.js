@@ -24,7 +24,8 @@ const whatsAppChannelSchema = new mongoose.Schema({
     sessionNamespace: { type: String, default: '' },
     version: { type: Number, min: 1, default: 1 },
     compatibilityMirror: { type: Boolean, default: false },
-    preserved: { type: Boolean, default: false }
+    preserved: { type: Boolean, default: false },
+    shadow: { type: Boolean, default: false, index: true }
 }, { timestamps: true });
 
 whatsAppChannelSchema.index({ status: 1, 'health.healthy': 1, draining: 1, priority: 1 });
