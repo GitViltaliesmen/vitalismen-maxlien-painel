@@ -1706,3 +1706,14 @@ deduplicado. O canal permanece shadow, draining, weight 0 e capacity 0.
 
 Z-API `5531971862958`, tráfego de produção e todos os módulos congelados permanecem
 inalterados. A R1 não autoriza clientes, handoff, failover ou cutover.
+
+## 2026-09-12 — V152-E-R2: pairing code nativo
+
+A R2 mantém o canal, telefone, namespace e isolamento da R1 e acrescenta somente
+o comando `pair-code`. O código de oito caracteres é solicitado ao Baileys para
+`5531983002800`, exibido uma vez ao operador e nunca gravado. A persistência de
+credenciais é adiada enquanto o segredo existir e ocorre somente depois de sua
+remoção e da confirmação real de registro.
+
+O caminho QR anterior não é usado pelo comando R2. Z-API, release ativa, PM2,
+roteamento de clientes, handoff, failover e cutover permanecem inalterados.

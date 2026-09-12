@@ -1349,3 +1349,14 @@ nenhuma alteração realizada no VPS.
 - QR efêmero: `/run/vitalismen-v152-e-qr/V152_TEST_WEB_01.png`.
 - Snapshot/postflight R1 e receipt ficam em `/var/lib/vitalismen-v152-e-evidence`.
 - A produção Z-API e `/opt/vitalismen-automacao/current` não são alteradas.
+
+## Registro V152-E-R2 — pairing code nativo (2026-09-12)
+
+- Comando isolado: `npm run pair-code:v152-e-r2`.
+- Guard de segredo e escopo: `scripts/guard-v152-e-r2-native-pairing-code.mjs`.
+- Receipt operacional: `scripts/v152-e-r2-operational-receipt.mjs`.
+- Contrato: `docs/WHATSAPP_NATIVE_PAIRING_CODE_FREEZE_V152_E_R2_20260912.md`.
+- Manifest: `docs/freeze/ec-whatsapp-native-pairing-code-v152-e-r2-20260912.json`.
+- O código de pareamento não pode existir em arquivo, banco, receipt ou Git.
+- A sessão continua em `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- A produção Z-API e `/opt/vitalismen-automacao/current` permanecem intocadas.
