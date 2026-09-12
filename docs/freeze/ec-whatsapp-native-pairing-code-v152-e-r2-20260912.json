@@ -2,8 +2,8 @@
   "freezeId": "EC_WHATSAPP_NATIVE_PAIRING_CODE_V152_E_R2_20260912",
   "parentCommit": "b785937ed8e31d8c2b767e4ef1645e080e2f4f93",
   "parentTree": "7f58cc64535437665db7aeacf24a950a135324c1",
-  "functionalCommit": "7f9fc8344bc0a48636844ade2de8410c589f9ce7",
-  "functionalTree": "3d53ac754df17021c5f6f574ba7a8e62f081bfa4",
+  "functionalCommit": "ef8a5a24d4905c999379ff26aa36e4bd4c9fa6eb",
+  "functionalTree": "be899896799f60e2cfbd4e516c389ee09d8f97f5",
   "policy": {
     "basePhase": "V152-E-R1_REAL_PAIRING_TEST_CHANNEL",
     "pairingPatch": "V152-E-R2_NATIVE_PAIRING_CODE",
@@ -46,19 +46,19 @@
     "tests/v152-e-controlled-real-pairing.test.mjs"
   ],
   "protectedFiles": {
-    "approved_freezes/APPROVED_V152_E_R2_NATIVE_PAIRING_CODE_20260912.txt": "36f4eb3559a51df9e674b5a06fccab4e80a0f6b7b2b81d06925674851491ad0c",
+    "approved_freezes/APPROVED_V152_E_R2_NATIVE_PAIRING_CODE_20260912.txt": "895f4d720e075e55c13467acfd94458b1da8db573ac549f483814bd063159885",
     "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "c84247969903a1e510480128c935fc544d0c4aa530ef91ebd7055275e38a040a",
     "docs/ARQUIVOS_OFICIAIS.md": "9f1a14952b03f8771d863c34441aa2ad631f94a1d5e1e678455dc7a368c83091",
     "docs/WHATSAPP_NATIVE_PAIRING_CODE_FREEZE_V152_E_R2_20260912.md": "3e2812949a018c6a58d0d453f28e61dca20e42ec1e6cdfdec909a3ad7b145c23",
     "package.json": "804f41e4c61ec3945519d34a82ee310a8f61cdff05787797edbf29dcddb8737e",
-    "scripts/guard-v152-e-r2-native-pairing-code.mjs": "22f092fabaf1d3ec62813688a047aee6416964c4a48567a93037713320523aa9",
+    "scripts/guard-v152-e-r2-native-pairing-code.mjs": "d489fd6e6afda6883c9409de09ca06c6d664e699c41173b4394043a75510e4f9",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "93d6515a9ed1eca8f5651659231d35ba8dae5094c2eeec8833e118041436c81b",
     "scripts/lib/ec-runtime-successor-v152-e-r1-context.mjs": "5eb1a4d3ca82d4e9d50f818993f04373e9a121d864cc97dff11271fcab73950a",
     "scripts/lib/ec-runtime-successor-v152-e-r2-context.mjs": "177fbc476d5f91741960374e8cb59b801d68902ab1ee310da6bcf6f780e99dd4",
-    "scripts/refresh-v152-e-r2-manifest.mjs": "4706bec12b43adf6c91e5e4482ee9ccc0f8a4603db294a5c96b618324a8025e8",
-    "scripts/v152-e-controlled-pairing.mjs": "76e1245fab211ff27cec7510442981bae9002abb04f83b5f4534526ef14ed008",
+    "scripts/refresh-v152-e-r2-manifest.mjs": "fffc03177c1739c73e894499f01485f171bbaa99aee10d972b4e146b8313b57e",
+    "scripts/v152-e-controlled-pairing.mjs": "fdd7cf5d31d08580c7d625620a2aecc70c414586901501209dc5fe2206e3ea70",
     "scripts/v152-e-r2-operational-receipt.mjs": "227a90f40088039e2a69932f6ce89e34d4007075fc2bd792262468b8d351b1fc",
     "src/whatsapp/core/ControlledRealPairingV152E.js": "3ee72f6c8105e57c6241d07d58a98bea3acff6958fbc419832c4890e2961229b",
-    "tests/v152-e-controlled-real-pairing.test.mjs": "ac2dda3eeb3f1486f22b3826aa21ac022ae0de1a1e98c8e1862bcbe867fffaa1"
+    "tests/v152-e-controlled-real-pairing.test.mjs": "9277cc36fb33bd8b85fb22c1d6e7eed5c5d749e35e5c6fa7cad6b4a76c988be8"
   }
 }
