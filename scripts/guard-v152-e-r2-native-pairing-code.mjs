@@ -24,6 +24,12 @@ assert.equal(
     'node scripts/v152-e-controlled-pairing.mjs pair-code'
 );
 assert.match(helper, /requestPairingCode\(config\.testChannelPhone\)/);
+assert.match(helper, /await socket\.waitForSocketOpen\(\)/);
+assert.ok(
+    helper.indexOf('await socket.waitForSocketOpen();')
+        < helper.indexOf('socket.requestPairingCode(config.testChannelPhone)'),
+    'solicitação do código ocorreu antes da abertura do WebSocket'
+);
 assert.match(helper, /printQRInTerminal:\s*false/);
 assert.match(helper, /activePairingMethod === 'PAIRING_CODE'[\s\S]*state\.creds\.pairingCode[\s\S]*!state\.creds\.registered[\s\S]*return/);
 assert.match(helper, /removePairingCodeSecret\(authState\.creds\)[\s\S]*saveCredentials\(\)/);

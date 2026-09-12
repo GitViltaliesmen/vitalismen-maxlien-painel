@@ -244,6 +244,12 @@ test('helper não usa terminal QR, conexão legada ou texto arbitrário', async 
     assert.match(source, /logout[\s\S]*fs\.rm\(config\.sessionDirectory/);
     assert.match(source, /catch \(error\) \{[\s\S]*removeEphemeralQr\(config\)\.catch\(\(\) => \{\}\)/);
     assert.match(source, /requestPairingCode\(config\.testChannelPhone\)/);
+    assert.match(source, /await socket\.waitForSocketOpen\(\)/);
+    assert.ok(
+        source.indexOf('await socket.waitForSocketOpen();')
+            < source.indexOf('socket.requestPairingCode(config.testChannelPhone)'),
+        'o WebSocket deve abrir antes da solicitação do código nativo'
+    );
     assert.match(source, /command === 'pair-code'/);
     assert.match(source, /pairingCodePersisted:\s*false/);
     assert.match(source, /state\.creds\.pairingCode\s*&&\s*!state\.creds\.registered[\s\S]*return/);

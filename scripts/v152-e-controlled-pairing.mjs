@@ -244,6 +244,7 @@ const runPairCode = async () => {
     }
     let pairingCode;
     try {
+        await socket.waitForSocketOpen();
         pairingCode = assertNativePairingCode(await socket.requestPairingCode(config.testChannelPhone));
     } catch {
         throw new Error('v152_e_r2_pairing_code_request_failed');
