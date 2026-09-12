@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 const manifestRelative = 'docs/freeze/ec-whatsapp-native-pairing-code-v152-e-r2-20260912.json';
 const parentCommit = 'b785937ed8e31d8c2b767e4ef1645e080e2f4f93';
-const functionalCommit = '9dcdf4e44dc17af7cb5f4c49f0dd168ed0490ac2';
+const functionalCommit = '7f9fc8344bc0a48636844ade2de8410c589f9ce7';
 execFileSync('git', ['merge-base', '--is-ancestor', parentCommit, 'HEAD'], { cwd: root });
 const committed = execFileSync('git', ['diff', '--name-only', parentCommit, 'HEAD'], { cwd: root, encoding: 'utf8' });
 const working = execFileSync('git', ['ls-files', '--modified', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' });
