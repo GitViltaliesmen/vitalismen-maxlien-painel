@@ -25,6 +25,8 @@ assert.equal(
 );
 assert.match(helper, /requestPairingCode\(config\.testChannelPhone\)/);
 assert.match(helper, /await socket\.waitForSocketOpen\(\)/);
+assert.match(helper, /browser: Browsers\.windows\('Chrome'\)/);
+assert.doesNotMatch(helper, /\['Vitalismen V152-E Controlled Pairing', 'Chrome', '1\.0\.0'\]/);
 assert.ok(
     helper.indexOf('await socket.waitForSocketOpen();')
         < helper.indexOf('socket.requestPairingCode(config.testChannelPhone)'),
