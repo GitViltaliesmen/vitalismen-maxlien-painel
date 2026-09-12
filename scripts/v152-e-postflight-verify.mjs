@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ensureSecureDirectory, writeJsonAtomic } from '../src/whatsapp/core/ControlledRealPairingV152E.js';
 
-const PHASE = 'V152_E_CONTROLLED_REAL_PAIRING';
+const PHASE = 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL';
 const OFFICIAL_CURRENT = '/opt/vitalismen-automacao/current';
 const DEFAULT_EVIDENCE_ROOT = '/var/lib/vitalismen-v152-e-evidence';
 const DEFAULT_HEALTH_URL = 'http://127.0.0.1:3001/api/health/';
@@ -79,7 +79,7 @@ if (evidenceRoot === '/' || evidenceRoot.startsWith(`${OFFICIAL_CURRENT}/`)) {
     throw new Error('v152_e_evidence_root_invalid');
 }
 
-const baselinePath = path.join(evidenceRoot, 'pre-pairing-snapshot.json');
+const baselinePath = path.join(evidenceRoot, 'pre-pairing-snapshot-v152-e-r1.json');
 const baseline = JSON.parse(await fs.readFile(baselinePath, 'utf8'));
 if (baseline.phase !== PHASE || baseline.snapshotType !== 'PRE_PAIRING_BASELINE') {
     throw new Error('v152_e_preflight_snapshot_invalid');
@@ -126,7 +126,7 @@ const verification = {
 };
 
 await ensureSecureDirectory(evidenceRoot);
-const target = path.join(evidenceRoot, 'post-pairing-verification.json');
+const target = path.join(evidenceRoot, 'post-pairing-verification-v152-e-r1.json');
 await writeJsonAtomic(target, verification);
 process.stdout.write(`${JSON.stringify({
     phase: PHASE,

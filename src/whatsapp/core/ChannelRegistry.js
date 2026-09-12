@@ -59,6 +59,26 @@ export const WHATSAPP_WEB_TEMPLATE = Object.freeze({
     shadow: true
 });
 
+export const V152_TEST_WEB_01 = Object.freeze({
+    channelId: 'V152_TEST_WEB_01',
+    provider: 'WHATSAPP_WEB',
+    phoneNumber: '5531983002800',
+    providerAddress: '',
+    displayName: 'WhatsApp Web V152-E-R1 test channel',
+    status: 'PAIRING',
+    health: { healthy: false, detail: 'PAIRING' },
+    priority: 0,
+    weight: 0,
+    capacity: 0,
+    currentLoad: 0,
+    draining: true,
+    sessionNamespace: 'V152_TEST_WEB_01',
+    version: 1,
+    compatibilityMirror: false,
+    preserved: false,
+    shadow: true
+});
+
 export class ChannelRegistry {
     constructor({ repository = WhatsAppChannel } = {}) {
         this.repository = repository;
@@ -83,5 +103,14 @@ export class ChannelRegistry {
 
     static projection() {
         return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, WHATSAPP_WEB_TEMPLATE];
+    }
+
+    static v152ER1Projection({ connected = false } = {}) {
+        const testChannel = {
+            ...V152_TEST_WEB_01,
+            status: connected ? 'CONNECTED' : 'PAIRING',
+            health: { healthy: connected, detail: connected ? 'PASS' : 'PAIRING' }
+        };
+        return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, Object.freeze(testChannel)];
     }
 }

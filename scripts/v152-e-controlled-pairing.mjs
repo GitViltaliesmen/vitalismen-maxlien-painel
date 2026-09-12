@@ -5,6 +5,8 @@ import path from 'node:path';
 import pino from 'pino';
 import QRCode from 'qrcode';
 import { fetchLatestBaileysVersion, makeWASocket, useMultiFileAuthState } from '@whiskeysockets/baileys';
+import { SessionManager } from '../src/whatsapp/core/SessionManager.js';
+import { ChannelRegistry } from '../src/whatsapp/core/ChannelRegistry.js';
 import {
     ControlledCanaryLedger,
     V152_E_FIXED_OUTBOUND_TEXT,
@@ -29,9 +31,13 @@ process.umask(0o077);
 const command = String(process.argv[2] || 'audit').toLowerCase();
 const confirmation = String(process.argv[3] || '');
 const config = resolveV152EConfig(process.env);
-const identityFile = path.join(config.evidenceRoot, 'paired-channel.json');
-const inboundEvidenceFile = path.join(config.evidenceRoot, 'controlled-inbound.json');
+const identityFile = path.join(config.evidenceRoot, 'paired-channel-v152-e-r1.json');
+const inboundEvidenceFile = path.join(config.evidenceRoot, 'controlled-inbound-v152-e-r1.json');
+const connectionsEvidenceFile = path.join(config.evidenceRoot, 'connections-panel-v152-e-r1.json');
+const pairingEvidenceFile = path.join(config.evidenceRoot, 'pairing-proof-v152-e-r1.json');
+const restartEvidenceFile = path.join(config.evidenceRoot, 'restart-persistence-v152-e-r1.json');
 const safeLogger = pino({ level: 'silent' });
+const sessionManager = new SessionManager({ storageRoot: config.sessionStorageRoot });
 let socket = null;
 
 const emit = (record) => process.stdout.write(`${JSON.stringify(record)}\n`);
@@ -48,7 +54,11 @@ const ownPhone = () => String(socket?.user?.id || '').split('@')[0].split(':')[0
 
 const createSocket = async ({ allowQr }) => {
     await ensureSecureDirectory(config.sessionStorageRoot);
-    await ensureSecureDirectory(config.sessionDirectory);
+    const managedSessionDirectory = await sessionManager.ensureNamespace(config.sessionNamespace);
+    if (path.resolve(managedSessionDirectory) !== path.resolve(config.sessionDirectory)) {
+        throw new Error('v152_e_session_manager_directory_mismatch');
+    }
+    await ensureSecureDirectory(managedSessionDirectory);
     await ensureSecureDirectory(config.evidenceRoot);
     const { state, saveCreds } = await useMultiFileAuthState(config.sessionDirectory);
     const { version } = await fetchLatestBaileysVersion();
@@ -108,10 +118,8 @@ const waitForOpen = async ({ allowQr }) => new Promise((resolve, reject) => {
                 try {
                     phone = assertPairedPhoneAllowed(ownPhone(), config);
                 } catch (error) {
-                    if (String(error?.message || '') === 'v152_e_same_phone_dual_provider_forbidden') {
-                        await socket?.logout?.().catch(() => {});
-                        await hardenSessionTree(config.sessionDirectory).catch(() => {});
-                    }
+                    await socket?.logout?.().catch(() => {});
+                    await fs.rm(config.sessionDirectory, { recursive: true, force: true }).catch(() => {});
                     throw error;
                 }
                 const identity = safePairedIdentity(phone, config);
@@ -141,17 +149,71 @@ const connectControlled = async ({ allowQr = false } = {}) => {
         zapiPreserved: true,
         customerRouting: false
     });
+    const channel = ChannelRegistry.v152ER1Projection({ connected: true })
+        .find((entry) => entry.channelId === config.channelId);
+    if (!channel || channel.phoneNumber !== config.testChannelPhone || channel.weight !== 0
+        || channel.capacity !== 0 || channel.draining !== true || channel.shadow !== true) {
+        throw new Error('v152_e_connections_projection_invalid');
+    }
+    await writeJsonAtomic(connectionsEvidenceFile, {
+        phase: config.phase,
+        channelId: channel.channelId,
+        phoneNumber: channel.phoneNumber,
+        provider: channel.provider,
+        session: 'CONNECTED',
+        health: 'PASS',
+        shadow: true,
+        draining: true,
+        weight: 0,
+        capacity: 0,
+        customerRouting: 0,
+        handoff: 0,
+        failover: 0,
+        observedAt: new Date().toISOString()
+    });
+    emitEvent('CONNECTIONS_PANEL_PROJECTION_PASS', {
+        channelId: channel.channelId,
+        phone: maskPhone(channel.phoneNumber),
+        provider: channel.provider,
+        health: 'PASS',
+        shadow: true,
+        draining: true,
+        weight: 0,
+        capacity: 0
+    });
     return identity;
 };
 
 const runPair = async () => {
-    await connectControlled({ allowQr: true });
+    const identity = await connectControlled({ allowQr: true });
+    await writeJsonAtomic(pairingEvidenceFile, {
+        phase: config.phase,
+        channelId: config.channelId,
+        provider: 'WHATSAPP_WEB',
+        pairedPhoneSha256: identity.pairedPhoneSha256,
+        pairing: 'PASS',
+        sessionCreated: true,
+        sessionConnected: true,
+        channelPhoneMatch: true,
+        qrPersisted: false,
+        observedAt: new Date().toISOString()
+    });
     await closeSocket();
     emitEvent('PAIRING_COMPLETE', { sessionOutsideRelease: true, qrPersisted: false });
 };
 
 const runStatus = async () => {
-    await connectControlled({ allowQr: false });
+    const identity = await connectControlled({ allowQr: false });
+    await writeJsonAtomic(restartEvidenceFile, {
+        phase: config.phase,
+        channelId: config.channelId,
+        provider: 'WHATSAPP_WEB',
+        pairedPhoneSha256: identity.pairedPhoneSha256,
+        sessionRestored: true,
+        newQrRequired: false,
+        health: 'PASS',
+        observedAt: new Date().toISOString()
+    });
     await closeSocket();
     emitEvent('RESTART_PERSISTENCE_PASS', { credentialsReused: true, qrRequired: false });
 };
@@ -193,8 +255,14 @@ const runInbound = async () => {
         await waitForOpen({ allowQr: false });
         emitEvent('INBOUND_CANARY_WAITING', { allowedPeer: maskPhone(config.allowedPeerPhone) });
         const evidence = await inbound;
+        const ledger = new ControlledCanaryLedger({ config });
+        const recorded = await ledger.recordInbound(evidence);
+        if (!recorded.accepted) {
+            emitEvent('INBOUND_CANARY_DUPLICATE_BLOCKED', recorded);
+            return;
+        }
         await writeJsonAtomic(inboundEvidenceFile, evidence);
-        emitEvent('INBOUND_CANARY_PASS', evidence);
+        emitEvent('INBOUND_CANARY_PASS', { ...evidence, ledgerRecord: 'PASS', duplicateInbound: 0 });
     } finally {
         cleanupInbound();
         await closeSocket();

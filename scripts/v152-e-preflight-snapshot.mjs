@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ensureSecureDirectory, writeJsonAtomic } from '../src/whatsapp/core/ControlledRealPairingV152E.js';
 
-const PHASE = 'V152_E_CONTROLLED_REAL_PAIRING';
+const PHASE = 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL';
 const OFFICIAL_CURRENT = '/opt/vitalismen-automacao/current';
 const DEFAULT_EVIDENCE_ROOT = '/var/lib/vitalismen-v152-e-evidence';
 const DEFAULT_HEALTH_URL = 'http://127.0.0.1:3001/api/health/';
@@ -121,7 +121,7 @@ const snapshot = {
 };
 
 await ensureSecureDirectory(evidenceRoot);
-const target = path.join(evidenceRoot, 'pre-pairing-snapshot.json');
+const target = path.join(evidenceRoot, 'pre-pairing-snapshot-v152-e-r1.json');
 await writeJsonAtomic(target, snapshot);
 process.stdout.write(`${JSON.stringify({
     phase: PHASE,

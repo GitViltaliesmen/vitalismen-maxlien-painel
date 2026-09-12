@@ -2,14 +2,16 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-export const V152_E_PHASE = 'V152_E_CONTROLLED_REAL_PAIRING';
-export const V152_E_CHANNEL_ID = 'WHATSAPP_WEB_CONTROLLED_TEST_01';
-export const V152_E_SESSION_NAMESPACE = 'v152-e-controlled-test-01';
+export const V152_E_PHASE = 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL';
+export const V152_E_CHANNEL_ID = 'V152_TEST_WEB_01';
+export const V152_E_SESSION_NAMESPACE = 'V152_TEST_WEB_01';
+export const V152_E_TEST_CHANNEL_PHONE = '5531983002800';
 export const V152_E_ALLOWED_PEER_PHONE = '5515998038637';
-export const V152_E_FIXED_OUTBOUND_TEXT = 'Prueba técnica controlada V152-E. No requiere respuesta comercial.';
+export const V152_E_FIXED_OUTBOUND_TEXT = 'Prueba técnica controlada V152-E-R1. No requiere respuesta comercial.';
 export const V152_E_FORBIDDEN_PAIRED_PHONES = Object.freeze([
     '5531971862958',
-    '5515991418416'
+    '5515991418416',
+    '5515998038637'
 ]);
 
 const SAFE_NAMESPACE = /^[a-z0-9][a-z0-9_-]{1,79}$/i;
@@ -39,6 +41,7 @@ export const resolveV152EConfig = (env = process.env, { releaseRoot = process.cw
     }
     const channelId = String(env.V152_E_CHANNEL_ID || '');
     const sessionNamespace = String(env.V152_E_SESSION_NAMESPACE || '');
+    const testChannelPhone = digits(env.V152_E_TEST_CHANNEL_PHONE);
     const allowedPeerPhone = digits(env.V152_E_ALLOWED_PEER_PHONE);
     const rawPaths = {
         session_storage: String(env.WHATSAPP_SESSION_STORAGE_ROOT || ''),
@@ -59,6 +62,7 @@ export const resolveV152EConfig = (env = process.env, { releaseRoot = process.cw
         throw new Error('v152_e_session_namespace_mismatch');
     }
     if (allowedPeerPhone !== V152_E_ALLOWED_PEER_PHONE) throw new Error('v152_e_peer_phone_mismatch');
+    if (testChannelPhone !== V152_E_TEST_CHANNEL_PHONE) throw new Error('v152_e_test_channel_phone_mismatch');
     for (const [label, configuredPath] of [
         ['session_storage', sessionStorageRoot],
         ['qr_runtime', qrRuntimeRoot],
@@ -78,6 +82,7 @@ export const resolveV152EConfig = (env = process.env, { releaseRoot = process.cw
         channelId,
         sessionNamespace,
         allowedPeerPhone,
+        testChannelPhone,
         sessionStorageRoot,
         sessionDirectory: path.join(sessionStorageRoot, sessionNamespace),
         qrRuntimeRoot,
@@ -160,6 +165,9 @@ export const assertPairedPhoneAllowed = (phone, config) => {
     if (config.forbiddenPairedPhones.some((blocked) => normalized === blocked || normalized.endsWith(blocked))) {
         throw new Error('v152_e_same_phone_dual_provider_forbidden');
     }
+    if (normalized !== config.testChannelPhone) {
+        throw new Error('v152_e_paired_phone_mismatch');
+    }
     return normalized;
 };
 
@@ -232,7 +240,7 @@ export class ControlledCanaryLedger {
         this.config = config;
         this.fs = fsApi;
         this.clock = clock;
-        this.target = path.join(config.evidenceRoot, 'controlled-canary-ledger.json');
+        this.target = path.join(config.evidenceRoot, 'controlled-canary-ledger-v152-e-r1.json');
         this.lock = `${this.target}.lock`;
     }
 
@@ -257,20 +265,51 @@ export class ControlledCanaryLedger {
         return this.#withLock(async () => {
             const current = await readJsonIfPresent(this.target, this.fs) || { version: 1 };
             if (['INTENDED', 'SENT', 'AMBIGUOUS'].includes(current.outbound?.status)) {
-                return Object.freeze({ accepted: false, duplicate: true, status: current.outbound.status });
+                current.outbound.dedupedAttempts = Number(current.outbound.dedupedAttempts || 0) + 1;
+                current.outbound.lastDedupedAt = this.clock().toISOString();
+                await writeJsonAtomic(this.target, current, this.fs);
+                return Object.freeze({
+                    accepted: false,
+                    duplicate: true,
+                    status: current.outbound.status,
+                    providerSendCount: 0,
+                    dedupedAttempts: current.outbound.dedupedAttempts
+                });
             }
             const reservationToken = crypto.randomUUID();
             current.outbound = {
                 status: 'INTENDED',
                 reservationToken,
-                logicalMessageId: 'v152-e-controlled-outbound-canary-v1',
+                logicalMessageId: 'v152-e-r1-controlled-outbound-canary-v1',
                 peerPhoneSha256: phoneFingerprint(this.config.allowedPeerPhone),
                 contentSha256: sha256(V152_E_FIXED_OUTBOUND_TEXT),
                 intendedAt: this.clock().toISOString(),
-                retryAllowed: false
+                retryAllowed: false,
+                providerSendCount: 0,
+                dedupedAttempts: 0
             };
             await writeJsonAtomic(this.target, current, this.fs);
             return Object.freeze({ accepted: true, duplicate: false, reservationToken });
+        });
+    }
+
+    async recordInbound(evidence) {
+        return this.#withLock(async () => {
+            const current = await readJsonIfPresent(this.target, this.fs) || { version: 1 };
+            if (current.inbound?.providerMessageIdSha256) {
+                return Object.freeze({ accepted: false, duplicate: true, status: 'OBSERVED' });
+            }
+            current.inbound = {
+                status: 'OBSERVED',
+                logicalMessageId: 'v152-e-r1-controlled-inbound-canary-v1',
+                peerPhoneSha256: evidence.peerPhoneSha256,
+                providerMessageIdSha256: evidence.providerMessageIdSha256,
+                contentSha256: evidence.contentSha256,
+                observedAt: evidence.observedAt,
+                duplicateInbound: 0
+            };
+            await writeJsonAtomic(this.target, current, this.fs);
+            return Object.freeze({ accepted: true, duplicate: false, status: 'OBSERVED' });
         });
     }
 
@@ -282,6 +321,7 @@ export class ControlledCanaryLedger {
             }
             current.outbound.status = 'SENT';
             current.outbound.sentAt = this.clock().toISOString();
+            current.outbound.providerSendCount = 1;
             current.outbound.providerMessageIdSha256 = sha256(String(providerMessageId || ''));
             delete current.outbound.reservationToken;
             await writeJsonAtomic(this.target, current, this.fs);
@@ -310,6 +350,7 @@ export const v152EPolicyStatus = () => Object.freeze({
     realPairing: 'CONTROLLED_SINGLE_CHANNEL',
     realInbound: 'CONTROLLED_QA_ONLY',
     realOutbound: 'CONTROLLED_QA_SINGLE_MESSAGE',
+    testChannelPhone: V152_E_TEST_CHANNEL_PHONE,
     customerMigration: false,
     customerRouting: false,
     handoff: false,

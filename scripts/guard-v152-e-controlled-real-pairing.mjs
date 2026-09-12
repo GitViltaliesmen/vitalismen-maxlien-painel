@@ -20,9 +20,9 @@ const legacyConnection = read('src/whatsapp/connection.js');
 const panel = read('public/qr.html');
 
 for (const marker of [
-    'V152_E_CONTROLLED_REAL_PAIRING',
-    'WHATSAPP_WEB_CONTROLLED_TEST_01',
-    'v152-e-controlled-test-01',
+    'V152-E-R1_REAL_PAIRING_TEST_CHANNEL',
+    'V152_TEST_WEB_01',
+    '5531983002800',
     '5515998038637',
     'same_phone_dual_provider_forbidden',
     'OUTBOUND_CANARY_DUPLICATE_BLOCKED',
@@ -32,6 +32,10 @@ for (const marker of [
 ]) assert.match(evidenceSource, new RegExp(marker));
 
 assert.match(implementationSource, /printQRInTerminal:\s*false/);
+assert.match(implementationSource, /new SessionManager/);
+assert.match(implementationSource, /v152_e_paired_phone_mismatch/);
+assert.match(implementationSource, /INBOUND_CANARY_DUPLICATE_BLOCKED/);
+assert.match(implementationSource, /CONNECTIONS_PANEL_PROJECTION_PASS/);
 assert.doesNotMatch(implementationSource, /qrcode-terminal|qrcodeTerminal|startWhatsApp|from ['"].*connection\.js['"]/);
 assert.doesNotMatch(implementationSource, /console\.(log|info|debug)\s*\(/);
 assert.doesNotMatch(implementationSource, /sendMessage\([^,]+,\s*\{\s*text:\s*process\./);

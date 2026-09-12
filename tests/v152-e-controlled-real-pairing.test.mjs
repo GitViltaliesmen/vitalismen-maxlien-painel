@@ -3,12 +3,15 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { ChannelRegistry } from '../src/whatsapp/core/ChannelRegistry.js';
+import { isEligibleChannel } from '../src/whatsapp/core/ChannelRouter.js';
 import {
     ControlledCanaryLedger,
     V152_E_ALLOWED_PEER_PHONE,
     V152_E_CHANNEL_ID,
     V152_E_FIXED_OUTBOUND_TEXT,
     V152_E_SESSION_NAMESPACE,
+    V152_E_TEST_CHANNEL_PHONE,
     assertPairedPhoneAllowed,
     resolveV152EConfig,
     safePairedIdentity,
@@ -38,6 +41,7 @@ const makeConfig = async (overrides = {}) => {
         V152_E_CHANNEL_ID,
         V152_E_SESSION_NAMESPACE,
         V152_E_ALLOWED_PEER_PHONE,
+        V152_E_TEST_CHANNEL_PHONE,
         WHATSAPP_SESSION_STORAGE_ROOT: roots.sessionRoot,
         V152_E_QR_RUNTIME_ROOT: roots.qrRoot,
         V152_E_EVIDENCE_ROOT: roots.evidenceRoot,
@@ -52,6 +56,7 @@ test('V152-E exige autorização explícita e identidades exatas', async () => {
     await assert.rejects(async () => makeConfig({ V152_E_CHANNEL_ID: 'ANY' }), /channel_id_mismatch/);
     await assert.rejects(async () => makeConfig({ V152_E_SESSION_NAMESPACE: 'other' }), /session_namespace_mismatch/);
     await assert.rejects(async () => makeConfig({ V152_E_ALLOWED_PEER_PHONE: '5511000000000' }), /peer_phone_mismatch/);
+    await assert.rejects(async () => makeConfig({ V152_E_TEST_CHANNEL_PHONE: '5531000000000' }), /test_channel_phone_mismatch/);
 });
 
 test('sessão, QR e evidência ficam fora da release e separados', async () => {
@@ -61,6 +66,7 @@ test('sessão, QR e evidência ficam fora da release e separados', async () => {
         V152_E_CHANNEL_ID,
         V152_E_SESSION_NAMESPACE,
         V152_E_ALLOWED_PEER_PHONE,
+        V152_E_TEST_CHANNEL_PHONE,
         V152_E_QR_RUNTIME_ROOT: roots.qrRoot,
         V152_E_EVIDENCE_ROOT: roots.evidenceRoot
     };
@@ -81,19 +87,21 @@ test('diretório seguro rejeita caminho que atravessa symlink', async (context) 
     await assert.rejects(() => ensureSecureDirectory(linked), /symlink_path_forbidden/);
 });
 
-test('telefone Z-API atual e número antigo são proibidos no pairing Web', async () => {
+test('somente a linha de teste exata pode ser pareada no Web', async () => {
     const { config } = await makeConfig();
     assert.throws(() => assertPairedPhoneAllowed('5531971862958', config), /same_phone_dual_provider_forbidden/);
     assert.throws(() => assertPairedPhoneAllowed('5515991418416', config), /same_phone_dual_provider_forbidden/);
-    assert.equal(assertPairedPhoneAllowed('5511999999999', config), '5511999999999');
+    assert.throws(() => assertPairedPhoneAllowed('5515998038637', config), /same_phone_dual_provider_forbidden/);
+    assert.throws(() => assertPairedPhoneAllowed('5511999999999', config), /paired_phone_mismatch/);
+    assert.equal(assertPairedPhoneAllowed(V152_E_TEST_CHANNEL_PHONE, config), V152_E_TEST_CHANNEL_PHONE);
 });
 
 test('identidade persistida é redigida e mantém Z-API', async () => {
     const { config } = await makeConfig();
-    const identity = safePairedIdentity('5511999999999', config, new Date('2026-09-12T15:00:00Z'));
-    assert.equal(identity.pairedPhoneMasked, '***9999');
+    const identity = safePairedIdentity(V152_E_TEST_CHANNEL_PHONE, config, new Date('2026-09-12T15:00:00Z'));
+    assert.equal(identity.pairedPhoneMasked, '***2800');
     assert.equal(identity.pairedPhoneSha256.length, 64);
-    assert.equal(JSON.stringify(identity).includes('5511999999999'), false);
+    assert.equal(JSON.stringify(identity).includes(V152_E_TEST_CHANNEL_PHONE), false);
     assert.equal(identity.zapiPreserved, true);
     assert.equal(identity.customerRouting, false);
 });
@@ -138,8 +146,8 @@ test('dedupe persistente aceita uma saída e bloqueia repetição', async () => 
     assert.equal(first.accepted, true);
     await ledger.completeOutbound(first.reservationToken, 'provider-accepted-id');
     const second = await ledger.reserveOutbound();
-    assert.deepEqual(second, { accepted: false, duplicate: true, status: 'SENT' });
-    const raw = await fs.readFile(path.join(config.evidenceRoot, 'controlled-canary-ledger.json'), 'utf8');
+    assert.deepEqual(second, { accepted: false, duplicate: true, status: 'SENT', providerSendCount: 0, dedupedAttempts: 1 });
+    const raw = await fs.readFile(path.join(config.evidenceRoot, 'controlled-canary-ledger-v152-e-r1.json'), 'utf8');
     assert.equal(raw.includes(V152_E_FIXED_OUTBOUND_TEXT), false);
     assert.equal(raw.includes('provider-accepted-id'), false);
 });
@@ -150,15 +158,27 @@ test('resultado ambíguo bloqueia retry automático', async () => {
     const first = await ledger.reserveOutbound();
     const ambiguous = await ledger.markAmbiguous(first.reservationToken);
     assert.deepEqual(ambiguous, { status: 'AMBIGUOUS', retryAllowed: false });
-    assert.deepEqual(await ledger.reserveOutbound(), { accepted: false, duplicate: true, status: 'AMBIGUOUS' });
+    assert.deepEqual(await ledger.reserveOutbound(), { accepted: false, duplicate: true, status: 'AMBIGUOUS', providerSendCount: 0, dedupedAttempts: 1 });
+});
+
+test('ledger inbound aceita uma única mensagem e bloqueia repetição', async () => {
+    const { config } = await makeConfig();
+    const ledger = new ControlledCanaryLedger({ config });
+    const evidence = sanitizeInboundEvidence({
+        key: { id: 'provider-id-one', remoteJid: `${V152_E_ALLOWED_PEER_PHONE}@s.whatsapp.net`, fromMe: false },
+        message: { conversation: 'controlled inbound' }
+    }, config, new Date('2026-09-12T15:30:00Z'));
+    assert.deepEqual(await ledger.recordInbound(evidence), { accepted: true, duplicate: false, status: 'OBSERVED' });
+    assert.deepEqual(await ledger.recordInbound(evidence), { accepted: false, duplicate: true, status: 'OBSERVED' });
 });
 
 test('política V152-E mantém migração, handoff, failover e cutover bloqueados', () => {
     assert.deepEqual(v152EPolicyStatus(), {
-        phase: 'V152_E_CONTROLLED_REAL_PAIRING',
+        phase: 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL',
         realPairing: 'CONTROLLED_SINGLE_CHANNEL',
         realInbound: 'CONTROLLED_QA_ONLY',
         realOutbound: 'CONTROLLED_QA_SINGLE_MESSAGE',
+        testChannelPhone: '5531983002800',
         customerMigration: false,
         customerRouting: false,
         handoff: false,
@@ -170,13 +190,41 @@ test('política V152-E mantém migração, handoff, failover e cutover bloqueado
     });
 });
 
+test('projeção Connections R1 mantém canal de teste shadow e inelegível', () => {
+    const channels = ChannelRegistry.v152ER1Projection({ connected: true });
+    const testChannel = channels.find((channel) => channel.channelId === 'V152_TEST_WEB_01');
+    assert.deepEqual({
+        phoneNumber: testChannel.phoneNumber,
+        provider: testChannel.provider,
+        status: testChannel.status,
+        health: testChannel.health,
+        shadow: testChannel.shadow,
+        draining: testChannel.draining,
+        weight: testChannel.weight,
+        capacity: testChannel.capacity
+    }, {
+        phoneNumber: '5531983002800',
+        provider: 'WHATSAPP_WEB',
+        status: 'CONNECTED',
+        health: { healthy: true, detail: 'PASS' },
+        shadow: true,
+        draining: true,
+        weight: 0,
+        capacity: 0
+    });
+    assert.equal(isEligibleChannel(testChannel), false);
+});
+
 test('helper não usa terminal QR, conexão legada ou texto arbitrário', async () => {
     const source = await fs.readFile(new URL('../scripts/v152-e-controlled-pairing.mjs', import.meta.url), 'utf8');
     assert.doesNotMatch(source, /qrcode-terminal|qrcodeTerminal|startWhatsApp|connection\.js/);
     assert.match(source, /printQRInTerminal:\s*false/);
+    assert.match(source, /new SessionManager/);
+    assert.match(source, /v152_e_session_manager_directory_mismatch/);
     assert.doesNotMatch(source, /console\.(log|info|debug)/);
     assert.doesNotMatch(source, /process\.argv\[[34]\].*text/i);
     assert.doesNotMatch(source, /qr(File|Bytes|Sha256):/);
-    assert.match(source, /same_phone_dual_provider_forbidden[\s\S]*logout/);
+    assert.match(source, /assertPairedPhoneAllowed\(ownPhone\(\), config\)[\s\S]*logout/);
+    assert.match(source, /logout[\s\S]*fs\.rm\(config\.sessionDirectory/);
     assert.match(source, /catch \(error\) \{[\s\S]*removeEphemeralQr\(config\)\.catch\(\(\) => \{\}\)/);
 });
