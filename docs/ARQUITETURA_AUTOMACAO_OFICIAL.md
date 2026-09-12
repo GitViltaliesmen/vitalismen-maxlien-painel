@@ -1695,3 +1695,14 @@ cutover permanecem falsos. VSL, Pixel/CAPI, Funnel Metrics, lógica comercial,
 core do painel e pós-venda continuam congelados. O contrato e o rollback estão
 em `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`; qualquer
 cutover depende de nova aprovação expressa.
+
+## 2026-09-12 — V152-E-R1: linha Web de teste exata
+
+A R1 restringe o pareamento a `5531983002800`, com `channelId` e namespace
+`V152_TEST_WEB_01`. O `SessionManager` V152 cria a sessão fora da release. Linha
+divergente sofre logout e remoção da sessão de teste. Inbound/outbound usam somente
+o QA `5515998038637`, com ledger persistente e prova explícita do segundo outbound
+deduplicado. O canal permanece shadow, draining, weight 0 e capacity 0.
+
+Z-API `5531971862958`, tráfego de produção e todos os módulos congelados permanecem
+inalterados. A R1 não autoriza clientes, handoff, failover ou cutover.

@@ -1341,3 +1341,11 @@ nenhuma alteração realizada no VPS.
   `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`.
 - Z-API permanece oficial; nenhum cliente, handoff, failover ou cutover é
   autorizado. Nova aprovação é obrigatória antes de qualquer cutover.
+
+## Registro V152-E-R1 — linha Web de teste `5531983002800` (2026-09-12)
+
+- Contrato: `docs/WHATSAPP_REAL_PAIRING_TEST_CHANNEL_FREEZE_V152_E_R1_20260912.md`.
+- Sessão externa: `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- QR efêmero: `/run/vitalismen-v152-e-qr/V152_TEST_WEB_01.png`.
+- Snapshot/postflight R1 e receipt ficam em `/var/lib/vitalismen-v152-e-evidence`.
+- A produção Z-API e `/opt/vitalismen-automacao/current` não são alteradas.

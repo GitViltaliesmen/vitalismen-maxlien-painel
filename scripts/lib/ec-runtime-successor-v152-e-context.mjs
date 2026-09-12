@@ -30,28 +30,33 @@ const c0 = canonicalText(new URL('../../docs/freeze/ec-multi-channel-control-pla
 const v152 = canonicalText(new URL('../../docs/freeze/ec-provider-independent-core-v152-b-20260911.json', import.meta.url));
 const v148 = canonicalText(new URL('../../docs/freeze/ec-meta-funnel-v148-20260910.json', import.meta.url));
 const currentOverrides = new Set(Object.keys(current.value.protectedFiles));
+const successorManifestUrl = new URL('../../docs/freeze/ec-whatsapp-real-pairing-test-channel-v152-e-r1-20260912.json', import.meta.url);
+const successorOverrides = fs.existsSync(successorManifestUrl)
+    ? new Set(JSON.parse(fs.readFileSync(successorManifestUrl, 'utf8')).overrides || [])
+    : new Set();
 const r1Overrides = new Set(Object.keys(r1.value.protectedFiles));
 const c0Overrides = new Set(Object.keys(c0.value.protectedFiles));
 const v152Overrides = new Set(Object.keys(v152.value.protectedFiles));
 
 assert.deepEqual([...currentOverrides].sort(), [...current.value.overrides].sort());
 for (const [file, expected] of Object.entries({ ...v148.value.preservedFiles, ...v148.value.protectedFiles })) {
-    if (v152Overrides.has(file) || c0Overrides.has(file) || r1Overrides.has(file) || currentOverrides.has(file)) continue;
+    if (v152Overrides.has(file) || c0Overrides.has(file) || r1Overrides.has(file) || currentOverrides.has(file) || successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V148 preserved by V152-E] ${file}`);
 }
 for (const [file, expected] of Object.entries(v152.value.protectedFiles)) {
-    if (c0Overrides.has(file) || r1Overrides.has(file) || currentOverrides.has(file)) continue;
+    if (c0Overrides.has(file) || r1Overrides.has(file) || currentOverrides.has(file) || successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-B preserved by V152-E] ${file}`);
 }
 for (const [file, expected] of Object.entries(c0.value.protectedFiles)) {
-    if (r1Overrides.has(file) || currentOverrides.has(file)) continue;
+    if (r1Overrides.has(file) || currentOverrides.has(file) || successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-C0 preserved by V152-E] ${file}`);
 }
 for (const [file, expected] of Object.entries(r1.value.protectedFiles)) {
-    if (currentOverrides.has(file)) continue;
+    if (currentOverrides.has(file) || successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-C0-R1 preserved by V152-E] ${file}`);
 }
 for (const [file, expected] of Object.entries(current.value.protectedFiles)) {
+    if (successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-E] ${file}`);
 }
 
