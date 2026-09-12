@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import pino from 'pino';
 import QRCode from 'qrcode';
-import { Browsers, fetchLatestBaileysVersion, makeWASocket, useMultiFileAuthState } from '@whiskeysockets/baileys';
+import { Browsers, fetchLatestWaWebVersion, makeWASocket, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import { SessionManager } from '../src/whatsapp/core/SessionManager.js';
 import { ChannelRegistry } from '../src/whatsapp/core/ChannelRegistry.js';
 import {
@@ -71,7 +71,7 @@ const createSocket = async ({ allowQr, pairingMethod = 'QR' }) => {
     saveCredentials = saveCreds;
     activePairingMethod = pairingMethod;
     credentialWrites = Promise.resolve();
-    const { version } = await fetchLatestBaileysVersion();
+    const { version } = await fetchLatestWaWebVersion();
     socket = makeWASocket({
         version,
         auth: state,

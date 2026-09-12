@@ -246,6 +246,8 @@ test('helper não usa terminal QR, conexão legada ou texto arbitrário', async 
     assert.match(source, /requestPairingCode\(config\.testChannelPhone\)/);
     assert.match(source, /await socket\.waitForSocketOpen\(\)/);
     assert.match(source, /browser: Browsers\.windows\('Chrome'\)/);
+    assert.match(source, /fetchLatestWaWebVersion\(\)/);
+    assert.doesNotMatch(source, /fetchLatestBaileysVersion\(\)/);
     assert.doesNotMatch(source, /\['Vitalismen V152-E Controlled Pairing', 'Chrome', '1\.0\.0'\]/);
     assert.ok(
         source.indexOf('await socket.waitForSocketOpen();')
