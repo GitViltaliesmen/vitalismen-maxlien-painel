@@ -52,6 +52,7 @@ import {
     strictReadOnlyAcceptedPayload
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { rememberUnmatchedZapiDeliveryV155 } from '../services/zapiDeliveryCallbackReconciliationV155Service.js';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -1328,7 +1329,21 @@ const applyZapiDeliveryPayload = async (payload = {}) => {
         }
     }
 
-    return { matched: false, phone, providerMessageId, providerZaapId, ...normalized };
+    const pending = rememberUnmatchedZapiDeliveryV155({
+        phone,
+        providerMessageId,
+        providerZaapId,
+        ...normalized,
+        observedAt: now
+    });
+    return {
+        matched: false,
+        pendingReconciliation: pending.remembered === true,
+        phone,
+        providerMessageId,
+        providerZaapId,
+        ...normalized
+    };
 };
 
 router.get('/config', authMiddleware, (_req, res) => {

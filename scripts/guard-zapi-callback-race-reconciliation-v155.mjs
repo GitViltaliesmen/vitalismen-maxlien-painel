@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const read = (relative) => fs.readFileSync(path.resolve(relative), 'utf8');
+const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(path.resolve(relative))).digest('hex');
+const manifestPath = 'docs/freeze/ec-zapi-callback-race-reconciliation-v155-20260913.json';
+const text = read(manifestPath);
+const manifest = JSON.parse(text);
+assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
+assert.equal(manifest.freezeId, 'EC_ZAPI_CALLBACK_RACE_RECONCILIATION_V155_20260913');
+assert.equal(manifest.version, 155);
+assert.equal(manifest.parentCommit, '3379df2303dde775c5957d706d4685c8f9bdda36');
+assert.equal(manifest.parentTree, '58f2062c0ecbe795666727b8c0b375c0b15cdc4c');
+assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
+for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    assert.equal(hash(relative), expected, `V155 protected file diverged: ${relative}`);
+}
+const service = read('src/services/zapiDeliveryCallbackReconciliationV155Service.js');
+const zapi = read('src/routes/zapi.js');
+const whatsapp = read('src/routes/whatsapp.js');
+const mirror = read('src/services/zapiOutboundMirrorService.js');
+const repair = read('scripts/reconcile-zapi-delivery-callback-v155.mjs');
+assert.match(service, /DEFAULT_TTL_MS = 5 \* 60 \* 1000/);
+assert.match(service, /MAX_PENDING_CALLBACKS = 1000/);
+assert.match(service, /callbackKeys\(message\)/);
+assert.match(service, /receipt\.phone !== messagePhone/);
+assert.match(zapi, /rememberUnmatchedZapiDeliveryV155/);
+assert.match(whatsapp, /reconcilePendingZapiDeliveryV155/);
+assert.match(mirror, /reconcilePendingZapiDeliveryV155\(mirroredMessage\)/);
+assert.match(repair, /I_UNDERSTAND_V155_SINGLE_MESSAGE/);
+assert.match(repair, /rows\.length !== 1/);
+assert.equal(manifest.policy.providerCallsAdded, 0);
+assert.equal(manifest.policy.messagesSentByRepair, 0);
+assert.equal(manifest.policy.phoneOnlyReconciliationAllowed, false);
+assert.equal(manifest.policy.historicalBurstAllowed, false);
+assert.equal(manifest.policy.postSaleLimitsChanged, false);
+assert.equal(manifest.policy.productionWhatsAppNumberChanged, false);
+assert.equal(manifest.policy.dropiChanged, false);
+assert.equal(manifest.policy.metaCapiChanged, false);
+console.log('EC_ZAPI_CALLBACK_RACE_RECONCILIATION_V155=PASS');

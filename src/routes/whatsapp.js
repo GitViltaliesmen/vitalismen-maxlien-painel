@@ -131,6 +131,7 @@ import {
     lastRelevantConversationActivityAtV146
 } from '../services/panelConversationRecencyV146Service.js';
 import { initiateCheckoutBusinessActionV146 } from '../services/metaInitiateCheckoutV146Service.js';
+import { reconcilePendingZapiDeliveryV155 } from '../services/zapiDeliveryCallbackReconciliationV155Service.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -3189,6 +3190,11 @@ const recordManualOutboundMessage = async ({
         providerMessageId ? { providerMessageId } : null,
         providerZaapId ? { providerZaapId } : null
     ].filter(Boolean);
+    const reconcilePendingDelivery = async (messageRecord) => {
+        if (!messageRecord) return messageRecord;
+        const result = await reconcilePendingZapiDeliveryV155(messageRecord);
+        return result.message || messageRecord;
+    };
     if (providerIdentity.length) {
         const existing = await Message.findOne({
             $and: [
@@ -3231,11 +3237,13 @@ const recordManualOutboundMessage = async ({
                 providerStatus: providerStatus || existing.providerStatus || '',
                 providerPayload: providerPayload || existing.providerPayload || null
             });
-            return existing.save().catch(() => existing);
+            const saved = await existing.save().catch(() => existing);
+            return reconcilePendingDelivery(saved);
         }
     }
 
-    return Message.create(manualRecord).catch(() => null);
+    const created = await Message.create(manualRecord).catch(() => null);
+    return reconcilePendingDelivery(created);
 };
 
 const findActiveShipmentForOutboundPhone = async (phone = '') => {

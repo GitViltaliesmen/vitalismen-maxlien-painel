@@ -1,0 +1,53 @@
+{
+  "freezeId": "EC_ZAPI_CALLBACK_RACE_RECONCILIATION_V155_20260913",
+  "version": 155,
+  "parentCommit": "3379df2303dde775c5957d706d4685c8f9bdda36",
+  "parentTree": "58f2062c0ecbe795666727b8c0b375c0b15cdc4c",
+  "parentManifestSha256": "d3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8",
+  "overrides": [
+    "docs/EC_ZAPI_CALLBACK_RACE_RECONCILIATION_FREEZE_V155_20260913.md",
+    "scripts/guard-zapi-callback-race-reconciliation-v155.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v154-context.mjs",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs",
+    "scripts/reconcile-zapi-delivery-callback-v155.mjs",
+    "src/routes/whatsapp.js",
+    "src/routes/zapi.js",
+    "src/services/zapiDeliveryCallbackReconciliationV155Service.js",
+    "src/services/zapiOutboundMirrorService.js",
+    "tests/zapi-callback-reconciliation-v155.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_ZAPI_CALLBACK_RACE_RECONCILIATION_FREEZE_V155_20260913.md": "57aad33d23bfce1168966a1e57193be2bed9561f3c946663ad9ccad60b5fbfd8",
+    "scripts/guard-zapi-callback-race-reconciliation-v155.mjs": "c4a617651ab3fb4a57965ff3713cc40b8f9137dca749e0d4a0fe616a2aa50b8b",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "e08b4c0039e3414a8ac447948296d94c46e34c570dae283d18cd24cd88496e2c",
+    "scripts/lib/ec-runtime-successor-v154-context.mjs": "d188cfec1e1c19a6039c2d8ac3f4208052ce9436e92b1ea76693de5f91fe89ac",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs": "0bebbe4a9e5b865c1a3b4753b9e20f985bc8a7c7d981c027a73d0b366bbc3ce1",
+    "scripts/reconcile-zapi-delivery-callback-v155.mjs": "a6fb3f5a99e1174db48178f0fd1b24d2fb5f4f560482207187448818a6d3f8bc",
+    "src/routes/whatsapp.js": "e463b00a0761fe3a79188d1c1dfdf4b55fa1d97cf90307cf5bd783e79f4d17bd",
+    "src/routes/zapi.js": "3aa8c96783fd16d06fa4cf05773e627a93739b9abe3f29a7aa9c274a88f0caaa",
+    "src/services/zapiDeliveryCallbackReconciliationV155Service.js": "b54c944fe348bd1a24ea10e5d3f081968cd4983c4ea2ca8f8b9a5308ac091d02",
+    "src/services/zapiOutboundMirrorService.js": "6a278fa1e5e7fcc76ff0709f68f19840d419223f90937cc6b7133d476950162e",
+    "tests/zapi-callback-reconciliation-v155.test.mjs": "e2d30aa05d85bcbb270da914f323e8de83862caefcee452d536d1fc68f80095b"
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "callbackBeforeMessageRaceFixed": true,
+    "providerIdentityRequired": true,
+    "phoneOnlyReconciliationAllowed": false,
+    "callbackCacheTtlSeconds": 300,
+    "callbackCacheMaximum": 1000,
+    "providerCallsAdded": 0,
+    "messagesSentByRepair": 0,
+    "historicalBurstAllowed": false,
+    "postSaleLimitsChanged": false,
+    "productionWhatsAppNumberChanged": false,
+    "dropiChanged": false,
+    "metaCapiChanged": false,
+    "vslChanged": false,
+    "pixelChanged": false,
+    "routingChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN"
+  }
+}
