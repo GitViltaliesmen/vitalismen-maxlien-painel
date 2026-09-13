@@ -12,10 +12,34 @@ const canonicalJson = (relative) => {
     return { text, value };
 };
 
+const successorManifestUrl = new URL('../../docs/freeze/ec-panel-agency-compact-options-v156-20260913.json', import.meta.url);
+let successorOverrides = new Set();
+if (fs.existsSync(successorManifestUrl)) {
+    const successor = canonicalJson('docs/freeze/ec-panel-agency-compact-options-v156-20260913.json');
+    assert.equal(successor.value.freezeId, 'EC_PANEL_AGENCY_COMPACT_OPTIONS_V156_20260913');
+    assert.equal(successor.value.version, 156);
+    assert.equal(successor.value.parentCommit, '5508829f634b566e826e70e428eae1f9416a0e07');
+    assert.equal(successor.value.parentTree, '23828e7151b54fb339e25808054f84b04c256db2');
+    assert.equal(successor.value.parentManifestSha256, '0caaa7c79ddd3582b6736179c733513d2ec91c5e729997476ddd4cc6539bc844');
+    assert.deepEqual([...successor.value.overrides].sort(), Object.keys(successor.value.protectedFiles || {}).sort());
+    successorOverrides = new Set(successor.value.overrides || []);
+    for (const [file, expected] of Object.entries(successor.value.protectedFiles || {})) {
+        assert.equal(hashFile(file), expected, `[V156] ${file}`);
+    }
+    globalThis.__VITALISMEN_V156_CONTEXT = Object.freeze({
+        loaded: true,
+        freezeId: successor.value.freezeId,
+        manifestSha256: hashBuffer(successor.text),
+        protectedFiles: Object.freeze({ ...(successor.value.protectedFiles || {}) })
+    });
+    for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
+        globalThis[key] = [...new Set([...(globalThis[key] || []), ...(successor.value.overrides || [])])];
+    }
+}
+
 const current = canonicalJson('docs/freeze/ec-zapi-callback-race-reconciliation-v155-20260913.json');
 const manifest = current.value;
 const overrides = new Set(manifest.overrides || []);
-const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 const parent = canonicalJson('docs/freeze/ec-panel-manual-usage-guide-catchup-v154-20260913.json');
 assert.equal(parent.value.freezeId, 'EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_V154_20260913');
 assert.equal(hashBuffer(parent.text), 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8');
