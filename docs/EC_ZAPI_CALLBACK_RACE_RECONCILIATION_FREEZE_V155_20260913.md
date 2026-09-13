@@ -8,6 +8,8 @@ A V155 adiciona somente uma janela efêmera e limitada de reconciliação por id
 
 O reparo histórico unitário exige callback `matched=false` real no log do PM2, igualdade exata de `providerMessageId`, telefone idêntico, um único `Message` e autorização explícita. O modo padrão é `plan`, sem escrita. O comando não chama Z-API e não envia mensagem.
 
+Validação operacional complementar: a primeira execução retrospectiva falhou fechada antes de escrever porque o TTL era calculado a partir do horário histórico do callback. O contrato foi corrigido para iniciar o TTL no instante local de ingestão, preservando separadamente o horário real do evento em `deliveredAt`. Um teste regressivo cobre explicitamente callback histórico antigo; a falha original não alterou Mongo e não chamou o provedor.
+
 Preservado:
 
 - V154, V153, V152, V148, V147, V140, V116 e seus contratos;

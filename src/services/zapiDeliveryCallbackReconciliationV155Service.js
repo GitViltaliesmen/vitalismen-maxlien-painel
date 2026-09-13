@@ -32,7 +32,7 @@ const prune = (nowMs = Date.now()) => {
     }
     while (new Set(pendingCallbacks.values()).size >= MAX_PENDING_CALLBACKS) {
         const oldest = [...new Set(pendingCallbacks.values())]
-            .sort((left, right) => left.observedAtMs - right.observedAtMs)[0];
+            .sort((left, right) => (left.receivedAtMs || left.observedAtMs) - (right.receivedAtMs || right.observedAtMs))[0];
         if (!oldest) break;
         removeReceipt(oldest);
     }
@@ -47,13 +47,16 @@ export const rememberUnmatchedZapiDeliveryV155 = ({
     ack = 0,
     sendError = '',
     observedAt = new Date(),
+    receivedAt = new Date(),
     ttlMs = DEFAULT_TTL_MS
 } = {}) => {
     const keys = callbackKeys({ providerMessageId, providerZaapId });
     if (!keys.length) return { remembered: false, reason: 'provider_identity_missing' };
     const observedAtMs = new Date(observedAt).getTime();
-    const safeObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
-    prune(safeObservedAtMs);
+    const receivedAtMs = new Date(receivedAt).getTime();
+    const safeReceivedAtMs = Number.isFinite(receivedAtMs) ? receivedAtMs : Date.now();
+    const safeObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : safeReceivedAtMs;
+    prune(safeReceivedAtMs);
     const previous = keys.map((key) => pendingCallbacks.get(key)).find(Boolean);
     const incoming = {
         providerMessageId: clean(providerMessageId),
@@ -64,7 +67,8 @@ export const rememberUnmatchedZapiDeliveryV155 = ({
         ack: Number(ack || 0),
         sendError: clean(sendError).slice(0, 240),
         observedAtMs: safeObservedAtMs,
-        expiresAtMs: safeObservedAtMs + Math.max(1000, Number(ttlMs) || DEFAULT_TTL_MS)
+        receivedAtMs: safeReceivedAtMs,
+        expiresAtMs: safeReceivedAtMs + Math.max(1000, Number(ttlMs) || DEFAULT_TTL_MS)
     };
     const receipt = previous && rank(previous.deliveryStatus, previous.ack) > rank(incoming.deliveryStatus, incoming.ack)
         ? previous

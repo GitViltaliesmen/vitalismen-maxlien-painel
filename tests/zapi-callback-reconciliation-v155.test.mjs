@@ -53,6 +53,27 @@ test('V155 reconcilia callback entregue que chega antes da persistência manual'
     assert.equal(record.saved, true);
 });
 
+test('V155 retém callback histórico pela hora de ingestão e preserva a hora real da entrega', async () => {
+    rememberUnmatchedZapiDeliveryV155({
+        providerMessageId: 'provider-race-1',
+        phone: '5515998038637',
+        deliveryStatus: 'delivered',
+        providerStatus: 'reconciled_from_real_callback_v155:delivered',
+        ack: 2,
+        observedAt: '2026-09-13T13:40:47.865Z',
+        receivedAt: '2026-09-13T15:35:00.000Z'
+    });
+
+    const record = message();
+    const result = await reconcilePendingZapiDeliveryV155(record, {
+        now: new Date('2026-09-13T15:35:01.000Z')
+    });
+    assert.equal(result.reconciled, true);
+    assert.equal(record.deliveryStatus, 'delivered');
+    assert.equal(record.ack, 2);
+    assert.equal(record.deliveredAt.toISOString(), '2026-09-13T13:40:47.865Z');
+});
+
 test('V155 exige provider id exato e não reconcilia apenas por telefone', async () => {
     rememberUnmatchedZapiDeliveryV155({
         providerZaapId: 'different-provider-id',
