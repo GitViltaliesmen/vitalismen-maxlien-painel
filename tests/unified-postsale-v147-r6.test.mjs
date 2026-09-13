@@ -78,3 +78,43 @@ test('dispatcher continues the missing stage when P6 was manual and stops on amb
     shipment.automation.usageNotifiedAt = new Date();
     assert.equal((await decide()).reason, 'canonical_postsale_sequence_satisfied');
 });
+
+
+test('V154 manual library P7 audio bypasses shipment lookup but pickup audio stays fail-closed', async () => {
+    let lookups = 0;
+    const shipmentModel = {
+        find() {
+            lookups += 1;
+            return { sort() { return this; }, limit() { return this; }, async lean() { return []; } };
+        }
+    };
+    const usage = await sendCanonicalPanelPostSaleV147R6({
+        request: {
+            sendMode: 'manual_panel',
+            phone: '593999000147',
+            isMedia: true,
+            recordedAudio: true,
+            message: '/media/templates/EC/MODO_DE_USO_TEX_ULTRA.ogg'
+        },
+        shipmentModel,
+        sendFn() { throw new Error('manual library P7 must stay on original manual route'); }
+    });
+    assert.deepEqual(usage, { handled: false });
+    assert.equal(lookups, 0);
+
+    const pickup = await sendCanonicalPanelPostSaleV147R6({
+        request: {
+            sendMode: 'manual_panel',
+            phone: '593999000147',
+            isMedia: true,
+            recordedAudio: true,
+            message: '/media/templates/EC/Chegou_01.ogg'
+        },
+        shipmentModel,
+        sendFn() { throw new Error('pickup must not reach provider without a canonical shipment'); }
+    });
+    assert.equal(pickup.handled, true);
+    assert.equal(pickup.success, false);
+    assert.equal(pickup.error, 'canonical_shipment_missing_or_ambiguous');
+    assert.equal(lookups, 1);
+});

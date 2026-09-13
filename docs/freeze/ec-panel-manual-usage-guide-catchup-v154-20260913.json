@@ -1,0 +1,52 @@
+{
+  "freezeId": "EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_V154_20260913",
+  "version": 154,
+  "parentCommit": "3321216fbc75e51636883766860524c050a88d39",
+  "parentTree": "85063ae8d370ce8328dc0ef3df33c473e69c3df7",
+  "parentOriginalManifestSha256": "ed3ff28bdc975fe66fd621af8be0d5678bbfdc550e28ced859e35127993e84af",
+  "parentManifestSha256": "2a18a61ab95b4302a1a1302273a4e32184a4b1dcfdd7f1d166dff9ddb33a87b6",
+  "overrides": [
+    "docs/EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_FREEZE_V154_20260913.md",
+    "docs/freeze/ec-audio-postsale-recovery-v153-20260913.json",
+    "scripts/guard-panel-manual-usage-guide-catchup-v154.mjs",
+    "scripts/guide-catchup-v154.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v153-context.mjs",
+    "scripts/lib/ec-runtime-successor-v154-context.mjs",
+    "src/services/postSaleManualPanelV147R6Service.js",
+    "tests/unified-postsale-v147-r6.test.mjs",
+    "tests/panel-manual-usage-guide-catchup-v154.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_FREEZE_V154_20260913.md": "9ec2145316a5a8a883571cc20ae6e1a4d0d000491c1f2eb900e68e4070c9369a",
+    "docs/freeze/ec-audio-postsale-recovery-v153-20260913.json": "2a18a61ab95b4302a1a1302273a4e32184a4b1dcfdd7f1d166dff9ddb33a87b6",
+    "scripts/guard-panel-manual-usage-guide-catchup-v154.mjs": "11115671aaa4ad9a3c0866cae1439d776fe46661d67061f04e8f6ee08a54bea1",
+    "scripts/guide-catchup-v154.mjs": "295d357642a99d275744255bee6b45caede343dbf08841b65150d901b6e5863d",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "0c11a35713d21a9cf3779fbe71f53ff9dbc38f70d5f8707d3d182ce5f8d723bc",
+    "scripts/lib/ec-runtime-successor-v153-context.mjs": "5395d392aa99ad408fe74ba805481650c5784aeef39e112c6735582ec717d6cc",
+    "scripts/lib/ec-runtime-successor-v154-context.mjs": "1034bc42fb5d04928e04fc3adadc046811559a4789241ecfba84dedb2f6a7927",
+    "src/services/postSaleManualPanelV147R6Service.js": "3b958b6e18f4b9ffb094f15f7e994e3475f49fc9b7c094df52dee71d2c28153e",
+    "tests/unified-postsale-v147-r6.test.mjs": "1bc3320584cf113cdf46bbab7228f77fa67427ac61f7fecfb5ce0d896d90b948",
+    "tests/panel-manual-usage-guide-catchup-v154.test.mjs": "e6e0316d1d45b5f53e62cbf0ea0e09999262ee96100aab97f5740e95e0783b42"
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "parentFreezeCompatibilityShimOnly": true,
+    "manualLibraryP7RequiresAuthenticatedPanel": true,
+    "manualLibraryP7CreatesFakeShipment": false,
+    "pickupBypassAllowed": false,
+    "historicalBurstAllowed": false,
+    "guideCatchupSingleOrderOnly": true,
+    "guideCatchupRequiresLiveCarrierGuideCreated": true,
+    "guideCatchupRequiresExplicitAuthorization": true,
+    "automaticBatchOrDailyLimitChanged": false,
+    "productionWhatsAppNumberChanged": false,
+    "dropiOrderCreationChanged": false,
+    "metaCapiChanged": false,
+    "vslChanged": false,
+    "pixelChanged": false,
+    "routingChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN"
+  }
+}

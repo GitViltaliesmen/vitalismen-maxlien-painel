@@ -31,28 +31,30 @@ assert.equal(v153.value.policy.historicalBurstAllowed, false);
 assert.equal(v153.value.policy.genericMongoWriteAllowed, false);
 
 const v153Overrides = new Set(v153.value.overrides || []);
+const v154SuccessorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 assert.deepEqual([...v153Overrides].sort(), Object.keys(v153.value.protectedFiles || {}).sort());
 const r1Overrides = new Set(Object.keys(r1.value.protectedFiles));
 const c0Overrides = new Set(Object.keys(c0.value.protectedFiles));
 const v152Overrides = new Set(Object.keys(v152.value.protectedFiles));
 
 for (const [file, expected] of Object.entries({ ...v148.value.preservedFiles, ...v148.value.protectedFiles })) {
-    if (v152Overrides.has(file) || c0Overrides.has(file) || r1Overrides.has(file) || v153Overrides.has(file)) continue;
+    if (v152Overrides.has(file) || c0Overrides.has(file) || r1Overrides.has(file) || v153Overrides.has(file) || v154SuccessorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V148 preserved by V153] ${file}`);
 }
 for (const [file, expected] of Object.entries(v152.value.protectedFiles)) {
-    if (c0Overrides.has(file) || r1Overrides.has(file) || v153Overrides.has(file)) continue;
+    if (c0Overrides.has(file) || r1Overrides.has(file) || v153Overrides.has(file) || v154SuccessorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-B preserved by V153] ${file}`);
 }
 for (const [file, expected] of Object.entries(c0.value.protectedFiles)) {
-    if (r1Overrides.has(file) || v153Overrides.has(file)) continue;
+    if (r1Overrides.has(file) || v153Overrides.has(file) || v154SuccessorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-C0 preserved by V153] ${file}`);
 }
 for (const [file, expected] of Object.entries(r1.value.protectedFiles)) {
-    if (v153Overrides.has(file)) continue;
+    if (v153Overrides.has(file) || v154SuccessorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-C0-R1 preserved by V153] ${file}`);
 }
 for (const [file, expected] of Object.entries(v153.value.protectedFiles)) {
+    if (v154SuccessorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V153] ${file}`);
 }
 

@@ -13,6 +13,11 @@ export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator 
     shipmentModel = Shipment, messageModel = Message, decideFn = decidePostSaleNotification } = {}) => {
     if (request.sendMode !== 'manual_panel') return { handled: false };
     let content = classifyPostSaleContentV147R6({ isMedia: request.isMedia, message: request.message });
+    const manualLibraryUsageV154 = request.isMedia === true && request.recordedAudio === true
+        && !request.postSaleShipmentId && content?.canonicalEvent === 'P7'
+        && /^\/media\/templates\/EC\/(?:MODO_DE_USO_TEX_ULTRA|COMO_SE_TOMA_VIT_POWER|NITRIX_USO_OXIDE_EC)\.(?:ogg|opus|mp3)(?:[?#].*)?$/i.test(String(request.message || ''));
+    // Explicit human library sends are ordinary manual messages. Automated P7 remains canonical and shipment-gated.
+    if (manualLibraryUsageV154) return { handled: false };
     const possibleA07 = String(request.message || '').includes('¡Su pedido ya está disponible para retiro en Servientrega!')
         || request.isMedia && /\.pdf(?:[?#]|$)|^data:application\/pdf;/i.test(String(request.message || ''));
     if (!content && !possibleA07) return { handled: false };

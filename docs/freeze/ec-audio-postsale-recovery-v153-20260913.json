@@ -17,8 +17,8 @@
   "protectedFiles": {
     "docs/EC_AUDIO_POSTSALE_RECOVERY_FREEZE_V153_20260913.md": "7fe7979a2696a55630f0b855f8d349d6ab025acec63258d43e7a54155c509dd8",
     "scripts/guard-audio-postsale-recovery-v153.mjs": "5b49f94793ec906751b5ab67f9702f0b4f6b6609d77671a64dfdd9b349345c9f",
-    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "64e51dfd41f5be8ddeffc0a36b10bb9315b1da68816f82c6684b21a063c5c5d4",
-    "scripts/lib/ec-runtime-successor-v153-context.mjs": "bc52a9eab7d456f7dc25320f4d46180f4da7cab2d0a30fe88c421762c437fdba",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "0c11a35713d21a9cf3779fbe71f53ff9dbc38f70d5f8707d3d182ce5f8d723bc",
+    "scripts/lib/ec-runtime-successor-v153-context.mjs": "5395d392aa99ad408fe74ba805481650c5784aeef39e112c6735582ec717d6cc",
     "src/routes/whatsapp.js": "6b2aa0bb85fa93b85b4877f67b1df21401840953c9ce4411bd97e8114aa0e51a",
     "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "cd58b28668415273043e48287bef4576cb87dce475ec3c3db64ed1fbf81eca05",
     "src/services/ecPanelRuntimeRecoveryV115Service.js": "ff4ebc4229d9ef940e92109388858196c1fdd29fe933b15a1a8c9bce6a0aa514",
