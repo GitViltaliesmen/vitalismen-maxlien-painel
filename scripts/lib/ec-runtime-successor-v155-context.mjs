@@ -15,11 +15,12 @@ const canonicalJson = (relative) => {
 const current = canonicalJson('docs/freeze/ec-zapi-callback-race-reconciliation-v155-20260913.json');
 const manifest = current.value;
 const overrides = new Set(manifest.overrides || []);
+const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 const parent = canonicalJson('docs/freeze/ec-panel-manual-usage-guide-catchup-v154-20260913.json');
 assert.equal(parent.value.freezeId, 'EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_V154_20260913');
 assert.equal(hashBuffer(parent.text), 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8');
 for (const [file, expected] of Object.entries(parent.value.protectedFiles || {})) {
-    if (overrides.has(file)) continue;
+    if (overrides.has(file) || successorOverrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V155 parent V154] ${file}`);
 }
 assert.equal(manifest.freezeId, 'EC_ZAPI_CALLBACK_RACE_RECONCILIATION_V155_20260913');
@@ -29,14 +30,19 @@ assert.equal(manifest.parentTree, '58f2062c0ecbe795666727b8c0b375c0b15cdc4c');
 assert.equal(manifest.parentManifestSha256, 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles || {}).sort());
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
+    if (successorOverrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V155] ${file}`);
 }
+
+const effectiveProtectedFiles = Object.freeze(Object.fromEntries(
+    Object.entries(manifest.protectedFiles || {}).filter(([file]) => !successorOverrides.has(file))
+));
 
 globalThis.__VITALISMEN_V155_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: Object.freeze({ ...(manifest.protectedFiles || {}) })
+    protectedFiles: effectiveProtectedFiles
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...(manifest.overrides || [])])];

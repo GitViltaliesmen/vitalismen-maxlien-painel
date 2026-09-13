@@ -1,0 +1,49 @@
+{
+  "freezeId": "EC_PANEL_AGENCY_COMPACT_OPTIONS_V156_20260913",
+  "version": 156,
+  "parentCommit": "5508829f634b566e826e70e428eae1f9416a0e07",
+  "parentTree": "23828e7151b54fb339e25808054f84b04c256db2",
+  "parentManifestSha256": "0caaa7c79ddd3582b6736179c733513d2ec91c5e729997476ddd4cc6539bc844",
+  "overrides": [
+    "docs/EC_PANEL_AGENCY_COMPACT_OPTIONS_FREEZE_V156_20260913.md",
+    "public/panel-intelligence/agency-catalog.js",
+    "public/qr.html",
+    "scripts/guard-panel-agency-compact-options-v156.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs",
+    "scripts/lib/ec-runtime-successor-v156-context.mjs",
+    "tests/panel-agency-compact-options-v156.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_AGENCY_COMPACT_OPTIONS_FREEZE_V156_20260913.md": "e37d4d8e2020d445019c440aecf60c5c1fff6b59af46af4bfb369264b4b6e7b4",
+    "public/panel-intelligence/agency-catalog.js": "e901ff12b332061ac96efcc5e11546a37d4623b3ebdceeb727ff3927056f55d5",
+    "public/qr.html": "aff22b13030238d9463e77160d89c4d8108657a679e498f5310959dd21f8b562",
+    "scripts/guard-panel-agency-compact-options-v156.mjs": "66a3bca0e919400c020c33ce9e6ad9dc38d92630f83c54307468ea5024489cd7",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "fc807ce1cdb10dd8cbc5c733956e023722ee7afa59bcb615fb0e1d9043471c6d",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs": "3ab41069a2c375e2902ffc1fff254f16da2dda105e61b4b525be1925b8878a7e",
+    "scripts/lib/ec-runtime-successor-v156-context.mjs": "a2bd3348f9445bc9d7f9cf224c6bdf6b6fc18cb8542034fe1ee3e2af517fb0f0",
+    "tests/panel-agency-compact-options-v156.test.mjs": "58d37feb0c7023ca3511aa61b3559c78c1b1d9d741ce2958f0ef7e94d73335c8"
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "compactSingleLineAgencyOptions": true,
+    "sectorIncludedWhenAvailable": true,
+    "absoluteNumberingAcrossBatches": true,
+    "maximumAgenciesPerClick": 4,
+    "individualSendUsesAbsoluteNumber": true,
+    "messagesSentByValidation": 0,
+    "funnelEngineChanged": false,
+    "agencyCatalogDataChanged": false,
+    "postSaleChanged": false,
+    "postSaleLimitsChanged": false,
+    "productionWhatsAppNumberChanged": false,
+    "dropiChanged": false,
+    "metaCapiChanged": false,
+    "vslChanged": false,
+    "pixelChanged": false,
+    "routingChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN",
+    "historicalBurstAllowed": false
+  }
+}

@@ -259,6 +259,33 @@
         };
     };
 
+    const cleanMessageField = (value, fallback = '') => {
+        const text = String(value || '').trim();
+        return text && !/^(?:undefined|null)$/i.test(text) ? text : fallback;
+    };
+
+    const formatAgencyOptionMessage = (agency = {}, index = 1) => {
+        const formatted = formatAgency(agency);
+        const parsedIndex = Number.parseInt(String(index), 10);
+        const optionNumber = Number.isSafeInteger(parsedIndex) && parsedIndex > 0 ? parsedIndex : 1;
+        const agencyName = cleanMessageField(formatted.name);
+        const fullName = agencyName
+            ? (/^servientrega\b/i.test(agencyName) ? agencyName : `Servientrega ${agencyName}`)
+            : 'Servientrega';
+        const address = cleanMessageField(formatted.address, 'Dirección de la agencia');
+        const sector = cleanMessageField(formatted.sector);
+        const location = cleanMessageField(
+            [formatted.city, formatted.province].filter(Boolean).join(', '),
+            'Ciudad, Provincia'
+        );
+        return [
+            `Opción ${optionNumber}: ${fullName}`,
+            address,
+            sector ? `Sector ${sector}` : '',
+            location
+        ].filter(Boolean).join(' - ');
+    };
+
     const load = async (url) => {
         if (!catalogPromise) {
             catalogPromise = fetch(url, { cache: 'no-store' }).then(async (response) => {
@@ -286,6 +313,7 @@
     return Object.freeze({
         normalize,
         formatAgency,
+        formatAgencyOptionMessage,
         resolveLocation,
         search,
         load,

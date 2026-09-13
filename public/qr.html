@@ -11305,21 +11305,28 @@
             return `${name ? `${name}, ` : 'Senor, '}${intro}`;
         };
         const agencyOptionLine = (agency, index = null) => {
+            const catalogFormatter = window.VitalismenAgencyCatalog?.formatAgencyOptionMessage;
+            if (typeof catalogFormatter === 'function') {
+                return catalogFormatter(agency, index);
+            }
             const cleanField = (value, fallback) => {
                 const text = String(value || '').trim();
                 return text && text.toLowerCase() !== 'undefined' && text.toLowerCase() !== 'null' ? text : fallback;
             };
             const number = index || 1;
             const agencyName = cleanField(agency.name, '');
-            const name = agencyName ? `Servientrega ${agencyName}` : 'Servientrega';
-            const address = cleanField(agency.address, 'Endereco da agencia');
-            const location = cleanField([agency.city, agency.province].filter(Boolean).join(', '), 'Cidade, Provincia');
+            const name = agencyName
+                ? (/^servientrega\b/i.test(agencyName) ? agencyName : `Servientrega ${agencyName}`)
+                : 'Servientrega';
+            const address = cleanField(agency.address, 'Dirección de la agencia');
+            const sector = cleanField(agency.sector, '');
+            const location = cleanField([agency.city, agency.province].filter(Boolean).join(', '), 'Ciudad, Provincia');
             return [
-                `Opcion ${number}`,
-                `Agencia: ${name}`,
-                `Direccion / Referencia: ${address}`,
-                `Ciudad / Provincia: ${location}`
-            ].join('\n');
+                `Opción ${number}: ${name}`,
+                address,
+                sector ? `Sector ${sector}` : '',
+                location
+            ].filter(Boolean).join(' - ');
         };
         const applyAgencySuggestion = (agency, { automatic = false, selectionScope = null } = {}) => {
             if (!agency) return;
@@ -11361,9 +11368,13 @@
                 showToast('Nenhuma agencia para enviar.');
                 return;
             }
+            const requestedStartNumber = Number.parseInt(String(options.startNumber || ''), 10);
+            const startNumber = Number.isSafeInteger(requestedStartNumber) && requestedStartNumber > 0
+                ? requestedStartNumber
+                : 1;
             const messages = [
                 agencyIntroLine(),
-                ...selectedAgencies.map((agency, index) => agencyOptionLine(agency, index + 1))
+                ...selectedAgencies.map((agency, index) => agencyOptionLine(agency, startNumber + index))
             ].filter((message) => message && !message.includes('undefined'));
             const originalLabel = button?.textContent || '';
             state.sendingMessage = true;
@@ -11474,7 +11485,9 @@
                 button.addEventListener('click', () => {
                     const index = Number(button.dataset.agencySendIndex);
                     applyAgencySuggestion(visibleAgencies[index]);
-                    sendAgencyMessagesToCustomer([visibleAgencies[index]], button).catch((error) => showToast(error.message));
+                    sendAgencyMessagesToCustomer([visibleAgencies[index]], button, {
+                        startNumber: state.agencySuggestionOffset + index + 1
+                    }).catch((error) => showToast(error.message));
                 });
             });
         };
@@ -20684,7 +20697,10 @@
         el('sendAgencyListBtn')?.addEventListener('click', () => sendAgencyMessagesToCustomer(
             state.agencySuggestions,
             el('sendAgencyListBtn'),
-            { advanceBatch: true }
+            {
+                advanceBatch: true,
+                startNumber: state.agencySuggestionOffset + 1
+            }
         ).catch((error) => showToast(error.message)));
         document.querySelectorAll('[data-price-preset]').forEach((button) => {
             button.addEventListener('click', async () => {
