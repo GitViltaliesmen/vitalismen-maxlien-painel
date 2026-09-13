@@ -411,6 +411,39 @@ const MONGO_MUTATIONS = [
     'createIndex', 'createIndexes', 'dropIndex', 'dropIndexes', 'drop', 'rename'
 ];
 
+// V153 restores only the Mongo writes that are intrinsic to an already
+// authorized operational surface.  This intentionally does not add a new HTTP
+// route or a generic collection allowlist: each tuple is exact and remains
+// dependent on the V78 profile and AsyncLocalStorage write context.
+export const ecBotCoreMongoMutationRecoveryV153Allowed = ({
+    context = null,
+    collection = '',
+    method = ''
+} = {}) => {
+    if (context?.profile !== EC_BOT_CORE_V78_MODE || context?.writeContext !== true) return false;
+    const route = clean(context.path).split('?')[0].replace(/\/+$/, '') || '/';
+    const normalizedCollection = clean(collection).toLowerCase();
+    const normalizedMethod = clean(method);
+    if (
+        context.method === 'POST'
+        && ['/api/zapi/webhook', '/api/zapi/webhook/received'].includes(route)
+        && normalizedCollection === 'orders'
+        && ['insertOne', 'updateOne'].includes(normalizedMethod)
+    ) return true;
+    if (
+        context.method === 'POST'
+        && ['/api/whatsapp/vsl-stage', '/api/whatsapp/vsl-entry'].includes(route)
+        && normalizedCollection === 'sellerrotationcounters'
+        && normalizedMethod === 'findOneAndUpdate'
+    ) return true;
+    return Boolean(
+        context.panelCustomerPersistenceV122 === true
+        && context.panelCustomerPersistenceOperation === 'authenticated-customer-state-persist'
+        && normalizedCollection === 'messages'
+        && normalizedMethod === 'insertOne'
+    );
+};
+
 const patchMongoPrototype = (prototype) => {
     if (!prototype || prototype[MONGO_PATCH]) return 0;
     let patched = 0;
@@ -448,7 +481,12 @@ const patchMongoPrototype = (prototype) => {
                         && isExactEcAuthLoginV78Request(context)
                         && collection === 'users'
                         && method === 'updateOne';
-                    if (!configuration.ready || (!authLoginBookkeepingAllowed && (
+                    const v153RecoveryAllowed = ecBotCoreMongoMutationRecoveryV153Allowed({
+                        context,
+                        collection,
+                        method
+                    });
+                    if (!configuration.ready || (!authLoginBookkeepingAllowed && !v153RecoveryAllowed && (
                         !context?.writeContext || !collectionAllowed
                     ))) {
                         const error = new Error(`ec_bot_core_mongo_write_blocked:${collection || 'unknown'}.${method}`);

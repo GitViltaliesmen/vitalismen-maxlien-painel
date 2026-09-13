@@ -116,6 +116,10 @@ import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCusto
 import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
 import { manualUploadsDirV129, remoteMediaCacheDirV129, relocatedRemoteCacheFileV129, manualUploadPathFromUrlV129, manualUploadUrlFromPathV129 } from '../services/manualMediaStorageV129Service.js';
 import {
+    PANEL_FUNNEL_MEDIA_UPLOAD_V153_MAX_BYTES,
+    persistPanelFunnelMediaUploadV153
+} from '../services/panelFunnelMediaUploadV153Service.js';
+import {
     freshCommercialCycleDraftV146,
     freshCycleOrderIdV146,
     isRepurchaseOrderV146,
@@ -3928,6 +3932,28 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
+
+router.post(
+    '/funnel-media-upload-binary',
+    adminOnly,
+    express.raw({ type: 'application/octet-stream', limit: PANEL_FUNNEL_MEDIA_UPLOAD_V153_MAX_BYTES }),
+    (req, res) => {
+        try {
+            const result = persistPanelFunnelMediaUploadV153({
+                bytes: req.body,
+                fileName: req.get('X-File-Name') || '',
+                label: req.get('X-File-Label') || '',
+                mime: req.get('X-File-Mime') || ''
+            });
+            return res.status(201).json(result);
+        } catch (error) {
+            return res.status(Number(error?.statusCode || 500)).json({
+                ok: false,
+                error: error?.message || 'funnel_media_upload_failed'
+            });
+        }
+    }
+);
 
 const latestByPhoneTail = (records = [], phoneSelector = () => '') => {
     const map = new Map();

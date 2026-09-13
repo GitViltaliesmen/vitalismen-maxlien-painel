@@ -277,7 +277,35 @@ export const historicalSuppressionKindsV140 = ({ status = '', shipment = {} } = 
     return [];
 };
 
-const markHistoricalEvidence = (shipment, { phone, row, servientrega }) => {
+export const completeCanonicalPostSaleIdentityV153 = (shipment, { phone, row, servientrega, state, lead } = {}) => {
+    const canonicalPhone = canonicalEcPhoneE164V140(phone || row?.phone);
+    const statePhone = canonicalEcPhoneE164V140(state?.phoneDigits || state?.metadata?.customerDraft?.phone);
+    const leadPhone = canonicalEcPhoneE164V140(lead?.phone || lead?.phone_e164);
+    const customerId = idString(state?._id);
+    const leadId = clean(lead?.id);
+    const dropiOrderId = digitsOnly(row?.dropiOrderId);
+    const trackingNumber = validServientregaGuideV140(servientrega?.trackingNumber || row?.trackingNumber, canonicalPhone);
+    if (!shipment || !canonicalPhone || canonicalPhone !== statePhone || canonicalPhone !== leadPhone
+        || !customerId || !leadId || !dropiOrderId || !trackingNumber || servientrega?.ok !== true) {
+        return false;
+    }
+    shipment.raw = shipment.raw || {};
+    shipment.raw.historicalExternalReconciliation = {
+        ...(shipment.raw.historicalExternalReconciliation || {}),
+        source: HISTORICAL_EXTERNAL_RECONCILIATION_SOURCE,
+        phone: canonicalPhone,
+        customerId,
+        leadId,
+        dropiOrderId,
+        trackingNumber,
+        sourceDropi: true,
+        sourceServientrega: true,
+        restoredAt: shipment.raw.historicalExternalReconciliation?.restoredAt || new Date()
+    };
+    return true;
+};
+
+const markHistoricalEvidence = (shipment, { phone, row, servientrega, state, lead }) => {
     shipment.raw = shipment.raw || {};
     shipment.raw.latestDroppiPayload = {
         ...(shipment.raw.latestDroppiPayload || {}),
@@ -286,6 +314,7 @@ const markHistoricalEvidence = (shipment, { phone, row, servientrega }) => {
         trackingNumber: validServientregaGuideV140(servientrega.trackingNumber || row.trackingNumber, phone),
         reconciliationSource: 'v140_phone_servientrega'
     };
+    completeCanonicalPostSaleIdentityV153(shipment, { phone, row, servientrega, state, lead });
     shipment.review = shipment.review || {};
     shipment.events = Array.isArray(shipment.events) ? shipment.events : [];
     const historicalBootstrapAlreadyApplied = shipment.events.some((event) => [
@@ -404,6 +433,11 @@ const needsHistoricalBootstrap = (row, match) => {
     const localStatus = statusKey(shipment?.logistics?.status);
     const expectedOrder = orderStatusForLogisticsStatus(localStatus);
     const expectedPanel = panelStatusFor(localStatus);
+    const canonicalCustomerId = idString(
+        shipment?.raw?.historicalExternalReconciliation?.customerId
+        || shipment?.raw?.customerId
+        || shipment?.client?.customerId
+    );
     const localProjectionDivergent = Boolean(
         (localStatus && statusKey(match.bundle?.order?.shippingStatus) !== localStatus)
         || (expectedOrder && clean(match.bundle?.order?.status).toLowerCase() !== expectedOrder)
@@ -414,6 +448,7 @@ const needsHistoricalBootstrap = (row, match) => {
     return !guide
         || !digitsOnly(shipment?.logistics?.trackingNumber)
         || !dropiIdPresent(match.bundle, row.dropiOrderId)
+        || !canonicalCustomerId
         || ['CREATED', 'PENDIENTE', ''].includes(localStatus)
         || localProjectionDivergent;
 };
@@ -588,15 +623,50 @@ export const reconcileV140Rows = async ({
         }
         report.reconcilable += 1;
         const projection = classifyCanonicalProjectionV140({ bundle, row, servientrega: carrier });
+        const canonicalCustomerId = idString(
+            bundle.shipment?.raw?.historicalExternalReconciliation?.customerId
+            || bundle.shipment?.raw?.customerId
+            || bundle.shipment?.client?.customerId
+        );
         item.classification = projection.classification;
         item.reason = projection.reason || '';
         item.before = projection.before || null;
         item.expected = projection.expected || null;
         if (projection.classification === V140_RECONCILIATION_CLASSES.ERROR) report.errors += 1;
         else if (projection.classification === V140_RECONCILIATION_CLASSES.MISSING_GUIDE) report.missingGuide += 1;
-        else if (projection.classification === V140_RECONCILIATION_CLASSES.ALREADY_CORRECT) report.alreadyCorrect += 1;
-        else if (!dryRun) {
-            markHistoricalEvidence(bundle.shipment, { phone: item.phone, row, servientrega: carrier });
+        else if (projection.classification === V140_RECONCILIATION_CLASSES.ALREADY_CORRECT) {
+            if (canonicalCustomerId) {
+                report.alreadyCorrect += 1;
+            } else {
+                item.classification = V140_RECONCILIATION_CLASSES.DIVERGENT;
+                item.reason = 'canonical_postsale_customer_identity_missing';
+                if (!dryRun) {
+                    markHistoricalEvidence(bundle.shipment, {
+                        phone: item.phone,
+                        row,
+                        servientrega: carrier,
+                        state: bundle.state,
+                        lead: bundle.lead
+                    });
+                    await bundle.shipment.save();
+                    report.reconciled += 1;
+                    report.writes += 1;
+                }
+                item.after = statusKey(carrier.normalizedStatus);
+                item.postSaleAction = statusKey(carrier.normalizedStatus) === 'READY_FOR_PICKUP'
+                    ? 'READY_FOR_PICKUP_ELIGIBLE_ONCE'
+                    : (statusKey(carrier.normalizedStatus) === 'ENTREGADO'
+                        ? 'CURRENT_POST_DELIVERY_ONLY'
+                        : 'ACTIVE_FROM_NEXT_REAL_CHANGE');
+            }
+        } else if (!dryRun) {
+            markHistoricalEvidence(bundle.shipment, {
+                phone: item.phone,
+                row,
+                servientrega: carrier,
+                state: bundle.state,
+                lead: bundle.lead
+            });
             await bundle.shipment.save();
             const lifecycle = await applyLifecycle({
                 shipmentId: bundle.shipment._id,

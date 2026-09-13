@@ -1,0 +1,44 @@
+{
+  "freezeId": "EC_AUDIO_POSTSALE_RECOVERY_V153_20260913",
+  "parentCommit": "ccbb64e035345bae0d3e4d464485f694a66629e2",
+  "parentTree": "588f5f91842396b310600ba68c8fee50d7daebf6",
+  "overrides": [
+    "docs/EC_AUDIO_POSTSALE_RECOVERY_FREEZE_V153_20260913.md",
+    "scripts/guard-audio-postsale-recovery-v153.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v153-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecPanelRuntimeRecoveryV115Service.js",
+    "src/services/ecPhoneServientregaReconciliationV140Service.js",
+    "src/services/panelFunnelMediaUploadV153Service.js",
+    "tests/audio-postsale-recovery-v153.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_AUDIO_POSTSALE_RECOVERY_FREEZE_V153_20260913.md": "7fe7979a2696a55630f0b855f8d349d6ab025acec63258d43e7a54155c509dd8",
+    "scripts/guard-audio-postsale-recovery-v153.mjs": "5b49f94793ec906751b5ab67f9702f0b4f6b6609d77671a64dfdd9b349345c9f",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "64e51dfd41f5be8ddeffc0a36b10bb9315b1da68816f82c6684b21a063c5c5d4",
+    "scripts/lib/ec-runtime-successor-v153-context.mjs": "bc52a9eab7d456f7dc25320f4d46180f4da7cab2d0a30fe88c421762c437fdba",
+    "src/routes/whatsapp.js": "6b2aa0bb85fa93b85b4877f67b1df21401840953c9ce4411bd97e8114aa0e51a",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "cd58b28668415273043e48287bef4576cb87dce475ec3c3db64ed1fbf81eca05",
+    "src/services/ecPanelRuntimeRecoveryV115Service.js": "ff4ebc4229d9ef940e92109388858196c1fdd29fe933b15a1a8c9bce6a0aa514",
+    "src/services/ecPhoneServientregaReconciliationV140Service.js": "8a72fac495b537dbd67428719f672ed9e8b2a994a839593d7b9064f743d4eed8",
+    "src/services/panelFunnelMediaUploadV153Service.js": "ae3c8446bdc4a91a7499e24ee7763913e2bf443a3c89064ab93d9d822d987d2b",
+    "tests/audio-postsale-recovery-v153.test.mjs": "8a98a6c679f0e897e043f4b72bb4cf53615268ea1e1ce50d0e97c219290cdcfc"
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "panelAuthenticationRequired": true,
+    "audioUploadProviderCalls": 0,
+    "historicalBurstAllowed": false,
+    "genericMongoWriteAllowed": false,
+    "productionWhatsAppNumberChanged": false,
+    "dropiOrderCreationChanged": false,
+    "metaCapiChanged": false,
+    "vslChanged": false,
+    "pixelChanged": false,
+    "routingChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN"
+  }
+}

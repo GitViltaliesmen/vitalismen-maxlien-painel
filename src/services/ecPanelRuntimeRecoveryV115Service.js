@@ -35,7 +35,8 @@ export const EC_PANEL_RUNTIME_RECOVERY_V115_NEW_PROTECTED_FILES = Object.freeze(
 ]);
 
 export const EC_PANEL_RUNTIME_RECOVERY_V115_STATIC_ROUTES = Object.freeze(new Set([
-    '/api/whatsapp/send'
+    '/api/whatsapp/send',
+    '/api/whatsapp/funnel-media-upload-binary'
 ]));
 
 const clean = (value = '') => String(value ?? '').trim();
