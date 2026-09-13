@@ -16,9 +16,11 @@ const sha256File = (relative) => crypto.createHash('sha256')
 
 const current = canonicalText(new URL('../../docs/freeze/ec-whatsapp-native-pairing-code-v152-e-r2-20260912.json', import.meta.url));
 const successorUrl = new URL('../../docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json', import.meta.url);
-const successorOverrides = fs.existsSync(successorUrl)
-    ? new Set(canonicalText(successorUrl).value.overrides || [])
-    : new Set();
+const r4Url = new URL('../../docs/freeze/ec-whatsapp-persistent-shadow-worker-v152-e-r4-20260912.json', import.meta.url);
+const successorOverrides = new Set([
+    ...(fs.existsSync(successorUrl) ? canonicalText(successorUrl).value.overrides || [] : []),
+    ...(fs.existsSync(r4Url) ? canonicalText(r4Url).value.overrides || [] : [])
+]);
 assert.equal(current.value.freezeId, 'EC_WHATSAPP_NATIVE_PAIRING_CODE_V152_E_R2_20260912');
 assert.equal(current.value.policy.basePhase, 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL');
 assert.equal(current.value.policy.pairingPatch, 'V152-E-R2_NATIVE_PAIRING_CODE');

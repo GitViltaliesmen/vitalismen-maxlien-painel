@@ -1740,3 +1740,23 @@ segredos.
 Z-API, produção, VSL, Pixel/CAPI, Funnel Metrics, bot, painel core, pós-venda,
 clientes, handoff, failover e cutover permanecem inalterados. Novo QR depende de
 aprovação explícita posterior.
+
+## 2026-09-12/13 — V152-E-R4: worker Web persistente em shadow
+
+A R4 sucede a candidata R3 e usa somente a sessão já pareada
+`/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`. O worker possui um
+único socket, heartbeat sanitizado fora da release, shutdown gracioso e reconexão
+limitada por backoff, jitter, janela, máximo de tentativas e cooldown. Estados
+terminais (`loggedOut`, `badSession`, `connectionReplaced`, revogação, divergência
+multidevice, telefone divergente ou QR inesperado) falham fechado e exigem ação
+manual; nenhum novo QR ou pairing code é solicitado.
+
+O processo não consome fila outbound, não envia mensagens e não encaminha inbound
+ao bot ou a regras comerciais. `V152_TEST_WEB_01` permanece `shadow=true`,
+`draining=true`, `weight=0` e `capacity=0`. A região Conexões pode projetar seu
+estado real sanitizado ao lado da Z-API, do template Web e do telefone antigo.
+
+A configuração PM2 é apenas artefato da candidata e não é ativada nesta fase.
+Z-API `5531971862958`, tráfego real, VSL, Pixel/CAPI, Funnel Metrics, bot, painel
+fora da região Conexões, pós-venda, handoff, failover e cutover permanecem
+inalterados. Contrato: `docs/WHATSAPP_PERSISTENT_SHADOW_WORKER_FREEZE_V152_E_R4_20260912.md`.

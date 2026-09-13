@@ -1378,3 +1378,24 @@ nenhuma alteração realizada no VPS.
   `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
 - Z-API e `/opt/vitalismen-automacao/current` não são alterados; novo QR requer
   aprovação explícita separada.
+
+## Registro V152-E-R4 — persistent WhatsApp Web shadow worker (2026-09-12/13)
+
+- Base imutável: R3 `33e4e69aace895dc2fe4f16f5856d1c824c96900`.
+- Worker e política de reconnect:
+  `src/whatsapp/core/PersistentShadowWorkerV152ER4.js`.
+- Entrypoint persistente: `scripts/v152-e-r4-persistent-shadow-worker.mjs`.
+- Configuração supervisionada candidata: `ops/ecosystem.v152-e-r4.config.cjs`.
+- Health sanitizado externo:
+  `/var/lib/vitalismen-whatsapp-web-shadow-state/V152_TEST_WEB_01/health.json`.
+- Sessão externa reutilizada:
+  `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- Guard, testes e simulação de restart:
+  `scripts/guard-v152-e-r4-persistent-shadow-worker.mjs`,
+  `tests/v152-e-r4-persistent-shadow-worker.test.mjs`,
+  `tests/v152-e-r4-connections-panel.test.mjs` e
+  `scripts/test-v152-e-r4-supervisor-restart.mjs`.
+- Contrato:
+  `docs/WHATSAPP_PERSISTENT_SHADOW_WORKER_FREEZE_V152_E_R4_20260912.md`.
+- A configuração PM2 não é ativada nesta candidata. Z-API e
+  `/opt/vitalismen-automacao/current` permanecem intocados.

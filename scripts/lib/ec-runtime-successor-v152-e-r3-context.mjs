@@ -15,6 +15,10 @@ const sha256File = (relative) => crypto.createHash('sha256')
     .digest('hex');
 
 const current = canonicalText(new URL('../../docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json', import.meta.url));
+const successorUrl = new URL('../../docs/freeze/ec-whatsapp-persistent-shadow-worker-v152-e-r4-20260912.json', import.meta.url);
+const successorOverrides = fs.existsSync(successorUrl)
+    ? new Set(canonicalText(successorUrl).value.overrides || [])
+    : new Set();
 assert.equal(current.value.freezeId, 'EC_WHATSAPP_BR_JID_AUTH_FLUSH_V152_E_R3_20260912');
 assert.equal(current.value.parentCommit, '0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d');
 assert.equal(current.value.functionalCommit, '1783b4494ff0e94e5143739cadc64383a3e70ffe');
@@ -41,6 +45,7 @@ assert.equal(current.value.policy.newApprovalRequiredBeforeQr, true);
 const currentOverrides = new Set(Object.keys(current.value.protectedFiles));
 assert.deepEqual([...currentOverrides].sort(), [...current.value.overrides].sort());
 for (const [file, expected] of Object.entries(current.value.protectedFiles)) {
+    if (successorOverrides.has(file)) continue;
     assert.equal(sha256File(file), expected, `[V152-E-R3] ${file}`);
 }
 

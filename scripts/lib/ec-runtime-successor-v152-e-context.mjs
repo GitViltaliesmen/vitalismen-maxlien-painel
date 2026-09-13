@@ -31,9 +31,11 @@ const v152 = canonicalText(new URL('../../docs/freeze/ec-provider-independent-co
 const v148 = canonicalText(new URL('../../docs/freeze/ec-meta-funnel-v148-20260910.json', import.meta.url));
 const currentOverrides = new Set(Object.keys(current.value.protectedFiles));
 const successorManifestUrl = new URL('../../docs/freeze/ec-whatsapp-real-pairing-test-channel-v152-e-r1-20260912.json', import.meta.url);
-const successorOverrides = fs.existsSync(successorManifestUrl)
-    ? new Set(JSON.parse(fs.readFileSync(successorManifestUrl, 'utf8')).overrides || [])
-    : new Set();
+const r4ManifestUrl = new URL('../../docs/freeze/ec-whatsapp-persistent-shadow-worker-v152-e-r4-20260912.json', import.meta.url);
+const successorOverrides = new Set([
+    ...(fs.existsSync(successorManifestUrl) ? JSON.parse(fs.readFileSync(successorManifestUrl, 'utf8')).overrides || [] : []),
+    ...(fs.existsSync(r4ManifestUrl) ? JSON.parse(fs.readFileSync(r4ManifestUrl, 'utf8')).overrides || [] : [])
+]);
 const r1Overrides = new Set(Object.keys(r1.value.protectedFiles));
 const c0Overrides = new Set(Object.keys(c0.value.protectedFiles));
 const v152Overrides = new Set(Object.keys(v152.value.protectedFiles));

@@ -113,4 +113,24 @@ export class ChannelRegistry {
         };
         return [LEGACY_ZAPI_PRIMARY, LEGACY_ZAPI_OLD_PRESERVED, Object.freeze(testChannel)];
     }
+
+    static v152ER4Projection({ workerState = null } = {}) {
+        const connected = workerState?.connectionState === 'CONNECTED'
+            && workerState?.health === 'PASS'
+            && workerState?.status === 'ACTIVE';
+        const reported = Boolean(workerState);
+        const testChannel = Object.freeze({
+            ...V152_TEST_WEB_01,
+            status: connected ? 'ACTIVE' : (reported ? 'DEGRADED' : 'INACTIVE'),
+            health: {
+                healthy: connected,
+                detail: connected ? 'PASS' : String(workerState?.lastErrorClass || 'WORKER_NOT_REPORTED')
+            },
+            shadow: true,
+            draining: true,
+            weight: 0,
+            capacity: 0
+        });
+        return [LEGACY_ZAPI_PRIMARY, testChannel, WHATSAPP_WEB_TEMPLATE, LEGACY_ZAPI_OLD_PRESERVED];
+    }
 }

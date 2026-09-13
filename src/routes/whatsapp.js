@@ -127,6 +127,11 @@ import {
     lastRelevantConversationActivityAtV146
 } from '../services/panelConversationRecencyV146Service.js';
 import { initiateCheckoutBusinessActionV146 } from '../services/metaInitiateCheckoutV146Service.js';
+import {
+    mergeV152ER4PanelSessions,
+    projectV152ER4PanelSession,
+    readV152ER4PanelSession
+} from '../whatsapp/core/PersistentShadowWorkerV152ER4.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -4042,10 +4047,16 @@ router.patch('/chat-labels/:phone', async (req, res) => {
     }
 });
 
-router.get('/sessions', adminOnly, (req, res) => {
+router.get('/sessions', adminOnly, async (req, res) => {
+    let shadowSession;
+    try {
+        shadowSession = await readV152ER4PanelSession();
+    } catch {
+        shadowSession = projectV152ER4PanelSession(null);
+    }
     res.json({
         defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
-        sessions: getAllStatuses()
+        sessions: mergeV152ER4PanelSessions(getAllStatuses(), shadowSession)
     });
 });
 
