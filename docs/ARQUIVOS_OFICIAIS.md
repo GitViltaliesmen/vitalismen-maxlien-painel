@@ -1360,3 +1360,21 @@ nenhuma alteração realizada no VPS.
 - O código de pareamento não pode existir em arquivo, banco, receipt ou Git.
 - A sessão continua em `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
 - A produção Z-API e `/opt/vitalismen-automacao/current` permanecem intocadas.
+
+## Registro V152-E-R3 — normalização BR/JID e auth-flush gate (2026-09-12)
+
+- Base imutável: R2 `0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d`.
+- Comparação canônica e gate 515:
+  `src/whatsapp/core/ControlledPairingRecoveryV152ER3.js`.
+- Integração one-shot: `scripts/v152-e-controlled-pairing.mjs`.
+- Limpeza exata da sessão parcial:
+  `scripts/v152-e-r3-partial-session-cleanup.mjs`.
+- Guard e testes:
+  `scripts/guard-v152-e-r3-br-jid-auth-flush.mjs` e
+  `tests/v152-e-r3-recovery.test.mjs`.
+- Contrato:
+  `docs/WHATSAPP_BR_JID_AUTH_FLUSH_FREEZE_V152_E_R3_20260912.md`.
+- Sessão externa única:
+  `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- Z-API e `/opt/vitalismen-automacao/current` não são alterados; novo QR requer
+  aprovação explícita separada.

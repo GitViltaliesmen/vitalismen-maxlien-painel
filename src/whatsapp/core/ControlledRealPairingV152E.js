@@ -1,9 +1,14 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {
+    V152_E_R3_PAIRING_PATCH,
+    compareCanonicalPhoneIdentity
+} from './ControlledPairingRecoveryV152ER3.js';
 
 export const V152_E_PHASE = 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL';
-export const V152_E_PAIRING_PATCH = 'V152-E-R2_NATIVE_PAIRING_CODE';
+export const V152_E_PREVIOUS_PAIRING_PATCH = 'V152-E-R2_NATIVE_PAIRING_CODE';
+export const V152_E_PAIRING_PATCH = V152_E_R3_PAIRING_PATCH;
 export const V152_E_CHANNEL_ID = 'V152_TEST_WEB_01';
 export const V152_E_SESSION_NAMESPACE = 'V152_TEST_WEB_01';
 export const V152_E_TEST_CHANNEL_PHONE = '5531983002800';
@@ -176,16 +181,24 @@ export const removeEphemeralQr = async (config, fsApi = fs) => {
     }
 };
 
-export const assertPairedPhoneAllowed = (phone, config) => {
-    const normalized = digits(phone);
-    if (!normalized) throw new Error('v152_e_paired_phone_unavailable');
-    if (config.forbiddenPairedPhones.some((blocked) => normalized === blocked || normalized.endsWith(blocked))) {
+export const assertPairedPhoneAllowed = (providerAddress, config, { evidence = {} } = {}) => {
+    const testIdentity = compareCanonicalPhoneIdentity({
+        inputPhone: config.testChannelPhone,
+        providerAddress,
+        evidence
+    });
+    if (!testIdentity.providerBoundPhone) throw new Error('v152_e_paired_phone_unavailable');
+    if (config.forbiddenPairedPhones.some((blocked) => compareCanonicalPhoneIdentity({
+        inputPhone: blocked,
+        providerAddress,
+        evidence
+    }).equivalent)) {
         throw new Error('v152_e_same_phone_dual_provider_forbidden');
     }
-    if (normalized !== config.testChannelPhone) {
+    if (!testIdentity.equivalent) {
         throw new Error('v152_e_paired_phone_mismatch');
     }
-    return normalized;
+    return testIdentity.canonicalPhone;
 };
 
 export const safePairedIdentity = (phone, config, now = new Date()) => {
@@ -378,5 +391,7 @@ export const v152EPolicyStatus = () => Object.freeze({
     cutover: false,
     qrLogging: false,
     pairingCodePersistence: false,
+    brJidNormalization: 'AUTHENTICATED_PROVIDER_EVIDENCE_ONLY',
+    restartRequired515Gate: 'AUTH_FLUSH_EVENT_GATE',
     sessionInsideRelease: false
 });

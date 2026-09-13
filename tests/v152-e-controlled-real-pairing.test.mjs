@@ -126,7 +126,7 @@ test('evento de conexão expõe somente presença do QR', () => {
 });
 
 test('V152-E-R2 valida o código nativo e o remove antes de persistir credenciais', () => {
-    assert.equal(V152_E_PAIRING_PATCH, 'V152-E-R2_NATIVE_PAIRING_CODE');
+    assert.equal(V152_E_PAIRING_PATCH, 'V152-E-R3_BR_JID_NORMALIZATION_AND_AUTH_FLUSH_GATE');
     assert.equal(assertNativePairingCode('AB23CD45'), 'AB23CD45');
     assert.throws(() => assertNativePairingCode('ABCD'), /pairing_code_invalid/);
     assert.throws(() => assertNativePairingCode('ABCD-I23'), /pairing_code_invalid/);
@@ -189,7 +189,7 @@ test('ledger inbound aceita uma única mensagem e bloqueia repetição', async (
 test('política V152-E mantém migração, handoff, failover e cutover bloqueados', () => {
     assert.deepEqual(v152EPolicyStatus(), {
         phase: 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL',
-        pairingPatch: 'V152-E-R2_NATIVE_PAIRING_CODE',
+        pairingPatch: 'V152-E-R3_BR_JID_NORMALIZATION_AND_AUTH_FLUSH_GATE',
         realPairing: 'CONTROLLED_SINGLE_CHANNEL',
         realInbound: 'CONTROLLED_QA_ONLY',
         realOutbound: 'CONTROLLED_QA_SINGLE_MESSAGE',
@@ -202,6 +202,8 @@ test('política V152-E mantém migração, handoff, failover e cutover bloqueado
         cutover: false,
         qrLogging: false,
         pairingCodePersistence: false,
+        brJidNormalization: 'AUTHENTICATED_PROVIDER_EVIDENCE_ONLY',
+        restartRequired515Gate: 'AUTH_FLUSH_EVENT_GATE',
         sessionInsideRelease: false
     });
 });
@@ -240,7 +242,7 @@ test('helper não usa terminal QR, conexão legada ou texto arbitrário', async 
     assert.doesNotMatch(source, /console\.(log|info|debug)/);
     assert.doesNotMatch(source, /process\.argv\[[34]\].*text/i);
     assert.doesNotMatch(source, /qr(File|Bytes|Sha256):/);
-    assert.match(source, /assertPairedPhoneAllowed\(ownPhone\(\), config\)[\s\S]*logout/);
+    assert.match(source, /assertPairedPhoneAllowed\(ownProviderAddress\(\), config[\s\S]*logout/);
     assert.match(source, /logout[\s\S]*fs\.rm\(config\.sessionDirectory/);
     assert.match(source, /catch \(error\) \{[\s\S]*removeEphemeralQr\(config\)\.catch\(\(\) => \{\}\)/);
     assert.match(source, /requestPairingCode\(config\.testChannelPhone\)/);
@@ -259,4 +261,7 @@ test('helper não usa terminal QR, conexão legada ou texto arbitrário', async 
     assert.match(source, /state\.creds\.pairingCode\s*&&\s*!state\.creds\.registered[\s\S]*return/);
     assert.match(source, /removePairingCodeSecret\(authState\.creds\)[\s\S]*saveCredentials\(\)/);
     assert.doesNotMatch(source, /writeJsonAtomic\([^\n]+pairingCode/);
+    assert.match(source, /V152EAuthFlushEventGate/);
+    assert.match(source, /AUTH_FLUSH_EVENT_GATE_PASS/);
+    assert.doesNotMatch(source, /setTimeout\([^)]*515|sleep\s*\(/i);
 });

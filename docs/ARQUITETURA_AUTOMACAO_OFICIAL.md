@@ -1717,3 +1717,26 @@ remoção e da confirmação real de registro.
 
 O caminho QR anterior não é usado pelo comando R2. Z-API, release ativa, PM2,
 roteamento de clientes, handoff, failover e cutover permanecem inalterados.
+
+## 2026-09-12 — V152-E-R3: normalização BR/JID e gate de flush do auth state
+
+A R3 sucede a candidata R2 sem publicação. A identidade do canal Web passa por
+uma única comparação canônica que usa `jidNormalizedUser` e `jidDecode` do
+Baileys. A representação brasileira sem o nono dígito somente é equivalente
+quando veio de JID autenticado do próprio socket/creds e está vinculada ao mesmo
+`channelId`; uma transformação sem evidência continua proibida.
+
+O `restartRequired` 515 deixa de encerrar o fluxo antes da barreira de
+persistência. O helper aguarda `creds.update`, conclusão serial de `saveCreds`,
+árvore endurecida, zero writes pendentes, path idêntico e estrutura mínima do
+auth state 6.7.24. Só então cria um único socket de restart, com QR proibido.
+
+O key store multi-file não é requisito no 515 nem antes desse primeiro restart;
+`account`, `me`, `signalIdentities` e os campos criptográficos de `creds.json`
+são obrigatórios. A sessão parcial que recebeu 401 é não reutilizável e possui
+limpeza separada, limitada ao namespace exato e precedida de receipt sem
+segredos.
+
+Z-API, produção, VSL, Pixel/CAPI, Funnel Metrics, bot, painel core, pós-venda,
+clientes, handoff, failover e cutover permanecem inalterados. Novo QR depende de
+aprovação explícita posterior.

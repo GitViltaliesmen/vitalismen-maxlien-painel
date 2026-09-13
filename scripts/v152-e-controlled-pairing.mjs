@@ -8,6 +8,10 @@ import { Browsers, fetchLatestWaWebVersion, makeWASocket, useMultiFileAuthState 
 import { SessionManager } from '../src/whatsapp/core/SessionManager.js';
 import { ChannelRegistry } from '../src/whatsapp/core/ChannelRegistry.js';
 import {
+    V152EAuthFlushEventGate,
+    V152_E_R3_RESTART_REQUIRED
+} from '../src/whatsapp/core/ControlledPairingRecoveryV152ER3.js';
+import {
     ControlledCanaryLedger,
     V152_E_FIXED_OUTBOUND_TEXT,
     assertNativePairingCode,
@@ -45,6 +49,7 @@ let authState = null;
 let saveCredentials = null;
 let credentialWrites = Promise.resolve();
 let activePairingMethod = 'QR';
+let authFlushGate = null;
 
 const emit = (record) => process.stdout.write(`${JSON.stringify(record)}\n`);
 const emitEvent = (event, extra = {}) => emit({ phase: config.phase, event, ...extra });
@@ -56,7 +61,14 @@ const closeSocket = async () => {
     socket = null;
 };
 
-const ownPhone = () => String(socket?.user?.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+const ownProviderAddress = () => String(socket?.user?.id || '');
+const ownProviderEvidence = () => Object.freeze({
+    source: 'BAILEYS_SOCKET_USER',
+    providerAddressObserved: true,
+    authenticatedProviderAddress: true,
+    authorizedChannelId: config.channelId,
+    observedChannelId: config.channelId
+});
 
 const createSocket = async ({ allowQr, pairingMethod = 'QR' }) => {
     await ensureSecureDirectory(config.sessionStorageRoot);
@@ -71,6 +83,13 @@ const createSocket = async ({ allowQr, pairingMethod = 'QR' }) => {
     saveCredentials = saveCreds;
     activePairingMethod = pairingMethod;
     credentialWrites = Promise.resolve();
+    authFlushGate = new V152EAuthFlushEventGate({
+        sessionDirectory: config.sessionDirectory,
+        expectedSessionDirectory: managedSessionDirectory,
+        saveCreds,
+        hardenSession: hardenSessionTree,
+        readPersistedCreds: async (directory) => readJsonIfPresent(path.join(directory, 'creds.json'))
+    });
     const { version } = await fetchLatestWaWebVersion();
     socket = makeWASocket({
         version,
@@ -84,15 +103,13 @@ const createSocket = async ({ allowQr, pairingMethod = 'QR' }) => {
         generateHighQualityLinkPreview: false,
         getMessage: async () => undefined
     });
-    socket.ev.on('creds.update', () => {
-        credentialWrites = credentialWrites.then(async () => {
-            if (activePairingMethod === 'PAIRING_CODE' && state.creds.pairingCode && !state.creds.registered) {
-                return;
-            }
-            if (activePairingMethod === 'PAIRING_CODE') removePairingCodeSecret(state.creds);
-            await saveCreds();
-            await hardenSessionTree(config.sessionDirectory);
-        });
+    socket.ev.on('creds.update', (update = {}) => {
+        if (activePairingMethod === 'PAIRING_CODE' && state.creds.pairingCode && !state.creds.registered) {
+            credentialWrites = authFlushGate.observeCredsUpdate(update, state.creds, { persist: false });
+            return;
+        }
+        if (activePairingMethod === 'PAIRING_CODE') removePairingCodeSecret(state.creds);
+        credentialWrites = authFlushGate.observeCredsUpdate(update, state.creds);
         void credentialWrites.catch(() => emitEvent('CREDENTIAL_PERSISTENCE_FAILED'));
     });
     if (!allowQr) {
@@ -115,6 +132,22 @@ const waitForOpen = async ({ allowQr, ignoreQr = false }) => new Promise((resolv
         socket?.ev?.off?.('connection.update', onUpdate);
         if (error) reject(error);
         else resolve(value);
+    };
+
+    const finishAfterRestartGate = (disconnectCode) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        socket?.ev?.off?.('connection.update', onUpdate);
+        void authFlushGate.assertRestartReady({
+            statusCode: disconnectCode,
+            currentSessionDirectory: config.sessionDirectory
+        }).then((gate) => {
+            const signal = new Error('v152_e_r3_restart_required_after_auth_flush');
+            signal.code = 'V152_E_R3_RESTART_REQUIRED_AFTER_AUTH_FLUSH';
+            signal.gate = gate;
+            reject(signal);
+        }).catch(reject);
     };
 
     const onUpdate = (update = {}) => {
@@ -143,7 +176,9 @@ const waitForOpen = async ({ allowQr, ignoreQr = false }) => new Promise((resolv
                 await hardenSessionTree(config.sessionDirectory);
                 let phone;
                 try {
-                    phone = assertPairedPhoneAllowed(ownPhone(), config);
+                    phone = assertPairedPhoneAllowed(ownProviderAddress(), config, {
+                        evidence: ownProviderEvidence()
+                    });
                 } catch (error) {
                     await socket?.logout?.().catch(() => {});
                     await fs.rm(config.sessionDirectory, { recursive: true, force: true }).catch(() => {});
@@ -165,6 +200,10 @@ const waitForOpen = async ({ allowQr, ignoreQr = false }) => new Promise((resolv
                 || update?.lastDisconnect?.error?.statusCode
                 || 0
             );
+            if (disconnectCode === V152_E_R3_RESTART_REQUIRED) {
+                finishAfterRestartGate(disconnectCode);
+                return;
+            }
             finish(new Error(`v152_e_connection_closed_before_ready_${disconnectCode || 'unknown'}`));
         }
     };
@@ -173,9 +212,21 @@ const waitForOpen = async ({ allowQr, ignoreQr = false }) => new Promise((resolv
     socket.ev.on('connection.update', onUpdate);
 });
 
+const waitForOpenWithSingleRestart = async ({ allowQr, ignoreQr = false, pairingMethod = 'QR' }) => {
+    try {
+        return await waitForOpen({ allowQr, ignoreQr });
+    } catch (error) {
+        if (error?.code !== 'V152_E_R3_RESTART_REQUIRED_AFTER_AUTH_FLUSH') throw error;
+        emitEvent('AUTH_FLUSH_EVENT_GATE_PASS', error.gate);
+        await closeSocket();
+        await createSocket({ allowQr: false, pairingMethod });
+        return waitForOpen({ allowQr: false, ignoreQr });
+    }
+};
+
 const connectControlled = async ({ allowQr = false } = {}) => {
     await createSocket({ allowQr });
-    const identity = await waitForOpen({ allowQr });
+    const identity = await waitForOpenWithSingleRestart({ allowQr });
     emitEvent('SESSION_READY', {
         channelId: config.channelId,
         phone: identity.pairedPhoneMasked,
@@ -258,7 +309,11 @@ const runPairCode = async () => {
         qrAvailable: false,
         qrLogged: false
     });
-    const identity = await waitForOpen({ allowQr: false, ignoreQr: true });
+    const identity = await waitForOpenWithSingleRestart({
+        allowQr: false,
+        ignoreQr: true,
+        pairingMethod: 'PAIRING_CODE'
+    });
     await writeJsonAtomic(pairingEvidenceFile, {
         phase: config.phase,
         pairingPatch: config.pairingPatch,
