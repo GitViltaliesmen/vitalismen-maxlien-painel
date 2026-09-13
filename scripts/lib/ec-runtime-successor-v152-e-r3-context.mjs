@@ -17,9 +17,9 @@ const sha256File = (relative) => crypto.createHash('sha256')
 const current = canonicalText(new URL('../../docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json', import.meta.url));
 assert.equal(current.value.freezeId, 'EC_WHATSAPP_BR_JID_AUTH_FLUSH_V152_E_R3_20260912');
 assert.equal(current.value.parentCommit, '0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d');
-assert.equal(current.value.functionalCommit, '2a52688083c079f398d4cf5c7060d99e6cf0d922');
-assert.equal(current.value.functionalTree, '35809f3ec2abb655da4c3e24ac8ee8fff39a34f4');
-assert.equal(current.value.functionalHash, 'e5ee27bb45bd8790714d6731e5b100e0c8d6fa710620515d730480522d5a0545');
+assert.equal(current.value.functionalCommit, '1783b4494ff0e94e5143739cadc64383a3e70ffe');
+assert.equal(current.value.functionalTree, '42ee09f4213c85074dfc11f4e80acaebde8fe7ee');
+assert.equal(current.value.functionalHash, '22169cd373e402b24efeef86396dd38aac584935577b942c47b97dadecb97332');
 assert.equal(current.value.policy.phase, 'V152-E-R3_BR_JID_NORMALIZATION_AND_AUTH_FLUSH_GATE');
 assert.equal(current.value.policy.baileysVersion, '6.7.24');
 assert.equal(current.value.policy.phoneNormalization, 'AUTHENTICATED_PROVIDER_EVIDENCE_ONLY');

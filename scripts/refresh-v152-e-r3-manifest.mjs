@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 const manifestRelative = 'docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json';
 const parentCommit = '0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d';
-const functionalCommit = '2a52688083c079f398d4cf5c7060d99e6cf0d922';
+const functionalCommit = '1783b4494ff0e94e5143739cadc64383a3e70ffe';
 const functionalFiles = Object.freeze([
     'package.json',
     'scripts/guard-v152-e-r3-br-jid-auth-flush.mjs',
