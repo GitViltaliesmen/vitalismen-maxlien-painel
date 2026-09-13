@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
-import './ec-runtime-successor-v152-e-r1-context.mjs';
+import './ec-runtime-successor-v152-e-r2-context.mjs';
 
 const canonicalText = (url) => {
     const text = fs.readFileSync(url, 'utf8');
@@ -14,38 +14,34 @@ const sha256File = (relative) => crypto.createHash('sha256')
     .update(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)))
     .digest('hex');
 
-const current = canonicalText(new URL('../../docs/freeze/ec-whatsapp-native-pairing-code-v152-e-r2-20260912.json', import.meta.url));
-const successorUrl = new URL('../../docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json', import.meta.url);
-const successorOverrides = fs.existsSync(successorUrl)
-    ? new Set(canonicalText(successorUrl).value.overrides || [])
-    : new Set();
-assert.equal(current.value.freezeId, 'EC_WHATSAPP_NATIVE_PAIRING_CODE_V152_E_R2_20260912');
-assert.equal(current.value.policy.basePhase, 'V152-E-R1_REAL_PAIRING_TEST_CHANNEL');
-assert.equal(current.value.policy.pairingPatch, 'V152-E-R2_NATIVE_PAIRING_CODE');
-assert.equal(current.value.policy.pairingMethod, 'PAIRING_CODE');
-assert.equal(current.value.policy.testChannelPhone, '5531983002800');
-assert.equal(current.value.policy.channelId, 'V152_TEST_WEB_01');
-assert.equal(current.value.policy.sessionNamespace, 'V152_TEST_WEB_01');
-assert.equal(current.value.policy.productionPhone, '5531971862958');
-assert.equal(current.value.policy.productionProvider, 'ZAPI');
-assert.equal(current.value.policy.pairingCodePersistence, false);
-assert.equal(current.value.policy.qrGeneratedForPairingCode, false);
-assert.equal(current.value.policy.shadow, true);
-assert.equal(current.value.policy.draining, true);
-assert.equal(current.value.policy.weight, 0);
-assert.equal(current.value.policy.capacity, 0);
+const current = canonicalText(new URL('../../docs/freeze/ec-whatsapp-br-jid-auth-flush-v152-e-r3-20260912.json', import.meta.url));
+assert.equal(current.value.freezeId, 'EC_WHATSAPP_BR_JID_AUTH_FLUSH_V152_E_R3_20260912');
+assert.equal(current.value.parentCommit, '0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d');
+assert.equal(current.value.functionalCommit, '2a52688083c079f398d4cf5c7060d99e6cf0d922');
+assert.equal(current.value.functionalTree, '35809f3ec2abb655da4c3e24ac8ee8fff39a34f4');
+assert.equal(current.value.functionalHash, 'e5ee27bb45bd8790714d6731e5b100e0c8d6fa710620515d730480522d5a0545');
+assert.equal(current.value.policy.phase, 'V152-E-R3_BR_JID_NORMALIZATION_AND_AUTH_FLUSH_GATE');
+assert.equal(current.value.policy.baileysVersion, '6.7.24');
+assert.equal(current.value.policy.phoneNormalization, 'AUTHENTICATED_PROVIDER_EVIDENCE_ONLY');
+assert.equal(current.value.policy.restartRequired515Gate, 'AUTH_FLUSH_EVENT_GATE');
+assert.equal(current.value.policy.saveCredsEventGate, true);
+assert.equal(current.value.policy.pendingAuthWritesGate, true);
+assert.equal(current.value.policy.keyStoreRequiredAt515, false);
+assert.equal(current.value.policy.keyStoreRequiredBeforeRestart, false);
 assert.equal(current.value.policy.customerRouting, false);
 assert.equal(current.value.policy.handoff, false);
 assert.equal(current.value.policy.failover, false);
 assert.equal(current.value.policy.zapiShutdown, false);
 assert.equal(current.value.policy.cutover, false);
-assert.equal(current.value.policy.newApprovalRequiredBeforeCutover, true);
+assert.equal(current.value.policy.qrGenerated, false);
+assert.equal(current.value.policy.pairingRequests, 0);
+assert.equal(current.value.policy.whatsappWebProviderCalls, 0);
+assert.equal(current.value.policy.newApprovalRequiredBeforeQr, true);
 
 const currentOverrides = new Set(Object.keys(current.value.protectedFiles));
 assert.deepEqual([...currentOverrides].sort(), [...current.value.overrides].sort());
 for (const [file, expected] of Object.entries(current.value.protectedFiles)) {
-    if (successorOverrides.has(file)) continue;
-    assert.equal(sha256File(file), expected, `[V152-E-R2] ${file}`);
+    assert.equal(sha256File(file), expected, `[V152-E-R3] ${file}`);
 }
 
 for (const contextKey of [
@@ -54,7 +50,8 @@ for (const contextKey of [
     '__VITALISMEN_V152_C0_CONTEXT',
     '__VITALISMEN_V152_C0_R1_CONTEXT',
     '__VITALISMEN_V152_E_CONTEXT',
-    '__VITALISMEN_V152_E_R1_CONTEXT'
+    '__VITALISMEN_V152_E_R1_CONTEXT',
+    '__VITALISMEN_V152_E_R2_CONTEXT'
 ]) {
     const inherited = globalThis[contextKey];
     if (!inherited?.loaded) continue;
@@ -64,10 +61,11 @@ for (const contextKey of [
     });
 }
 
-globalThis.__VITALISMEN_V152_E_R2_CONTEXT = Object.freeze({
+globalThis.__VITALISMEN_V152_E_R3_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: current.value.freezeId,
     manifestSha256: crypto.createHash('sha256').update(current.text).digest('hex'),
+    functionalHash: current.value.functionalHash,
     protectedFiles: Object.freeze({ ...current.value.protectedFiles })
 });
 
