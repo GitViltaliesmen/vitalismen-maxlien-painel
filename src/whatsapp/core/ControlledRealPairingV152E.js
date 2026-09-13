@@ -119,7 +119,8 @@ export const resolveV152EConfig = (env = process.env, { releaseRoot = process.cw
 export const ensureSecureDirectory = async (directory, fsApi = fs) => {
     await fsApi.mkdir(directory, { recursive: true, mode: 0o700 });
     const stat = await fsApi.lstat(directory);
-    if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('v152_e_secure_directory_invalid');
+    if (stat.isSymbolicLink()) throw new Error('v152_e_secure_directory_symlink_path_forbidden');
+    if (!stat.isDirectory()) throw new Error('v152_e_secure_directory_invalid');
     const canonical = await fsApi.realpath(directory);
     if (path.resolve(canonical) !== path.resolve(directory)) throw new Error('v152_e_secure_directory_symlink_path_forbidden');
     await fsApi.chmod(directory, 0o700);
