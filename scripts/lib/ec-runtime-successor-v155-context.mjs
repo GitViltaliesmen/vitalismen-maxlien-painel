@@ -14,6 +14,7 @@ const canonicalJson = (relative) => {
 
 const v157ManifestUrl = new URL('../../docs/freeze/ec-dropi-preflight-repair-v157-20260913.json', import.meta.url);
 let v157Overrides = new Set();
+let v157ProtectedFiles = Object.freeze({});
 if (fs.existsSync(v157ManifestUrl)) {
     const v157 = canonicalJson('docs/freeze/ec-dropi-preflight-repair-v157-20260913.json');
     assert.equal(v157.value.freezeId, 'EC_DROPI_PREFLIGHT_REPAIR_V157_20260913');
@@ -26,15 +27,42 @@ if (fs.existsSync(v157ManifestUrl)) {
     for (const [file, expected] of Object.entries(v157.value.protectedFiles || {})) {
         assert.equal(hashFile(file), expected, `[V157] ${file}`);
     }
+    v157ProtectedFiles = Object.freeze({ ...(v157.value.protectedFiles || {}) });
     globalThis.__VITALISMEN_V157_CONTEXT = Object.freeze({
         loaded: true,
         freezeId: v157.value.freezeId,
         manifestSha256: hashBuffer(v157.text),
-        protectedFiles: Object.freeze({ ...(v157.value.protectedFiles || {}) })
+        protectedFiles: v157ProtectedFiles
     });
     for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
         globalThis[key] = [...new Set([...(globalThis[key] || []), ...(v157.value.overrides || [])])];
     }
+}
+
+const installV157ProtectedFilesBridge = (key) => {
+    let context = Object.freeze({ protectedFiles: v157ProtectedFiles });
+    Object.defineProperty(globalThis, key, {
+        configurable: true,
+        enumerable: true,
+        get: () => context,
+        set: (value) => {
+            context = Object.freeze({
+                ...(value && typeof value === 'object' ? value : {}),
+                protectedFiles: Object.freeze({
+                    ...(value?.protectedFiles || {}),
+                    ...v157ProtectedFiles
+                })
+            });
+        }
+    });
+};
+if (v157Overrides.size) {
+    for (const key of [
+        '__VITALISMEN_V147_R5_CONTEXT',
+        '__VITALISMEN_V147_R6_CONTEXT',
+        '__VITALISMEN_V147_R6R2_CONTEXT',
+        '__VITALISMEN_V148_CONTEXT'
+    ]) installV157ProtectedFilesBridge(key);
 }
 
 const successorManifestUrl = new URL('../../docs/freeze/ec-panel-agency-compact-options-v156-20260913.json', import.meta.url);
@@ -97,7 +125,7 @@ globalThis.__VITALISMEN_V155_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: effectiveProtectedFiles
+    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles })
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...(manifest.overrides || [])])];
