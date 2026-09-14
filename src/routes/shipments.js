@@ -60,6 +60,10 @@ import {
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
 import {
+    dropiManualReviewMessageV157,
+    dropiManualReviewReasonForResultV157
+} from '../services/dropiSubmitFailurePolicyV157Service.js';
+import {
     ECUADOR_PRODUCTS,
     detectExplicitEcuadorProductKey,
     ecuadorPackageLabel,
@@ -890,6 +894,9 @@ const retroactiveSyncQuery = ({ days = 10 } = {}) => {
 
 const describeDropiSubmitFailure = (value, fallback = 'Dropi rejeitou o envio. Pedido marcado para envio manual.') => {
     const text = String(value || '');
+    if (/DROPI_DUPLICATE_CHECK_FAILED|anti-duplicidade|ORDER_LOOKUP_NOT_CONFIRMED/i.test(text)) {
+        return 'A consulta anti-duplicidade da Dropi nao foi confirmada. Nenhum pedido foi criado; tente novamente depois da pesquisa segura.';
+    }
     if (/two-factor|2fa|autenticaci[oó]n de dos factores|dois fatores/i.test(text)) {
         return 'Dropi pediu autenticacao de dois fatores. Atualize a sessao Dropi antes de tentar enviar novamente.';
     }
@@ -1279,8 +1286,8 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
             };
         }
         const manualShipment = await markManualSendRequired(updatedShipment, {
-            reason: 'dropi_rejected',
-            error: result.error || result.reason || 'submit_failed',
+            reason: dropiManualReviewReasonForResultV157(result),
+            error: dropiManualReviewMessageV157(result),
             user
         });
         return {
@@ -2577,8 +2584,8 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                     continue;
                 }
                 const manualShipment = await markManualSendRequired(updatedShipment, {
-                    reason: 'dropi_rejected',
-                    error: result.error || result.reason || 'submit_failed',
+                    reason: dropiManualReviewReasonForResultV157(result),
+                    error: dropiManualReviewMessageV157(result),
                     user: req.user
                 });
                 results.push({

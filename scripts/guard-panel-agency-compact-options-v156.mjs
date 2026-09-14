@@ -15,7 +15,13 @@ assert.equal(manifest.parentCommit, '5508829f634b566e826e70e428eae1f9416a0e07');
 assert.equal(manifest.parentTree, '23828e7151b54fb339e25808054f84b04c256db2');
 assert.equal(manifest.parentManifestSha256, '0caaa7c79ddd3582b6736179c733513d2ec91c5e729997476ddd4cc6539bc844');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
+const successorPath = 'docs/freeze/ec-dropi-preflight-repair-v157-20260913.json';
+const successor = JSON.parse(read(successorPath));
+assert.equal(successor.freezeId, 'EC_DROPI_PREFLIGHT_REPAIR_V157_20260913');
+assert.equal(successor.parentCommit, '398ea6cc233eea0b7dd1b641e0a99f303a9c79ec');
+const successorOverrides = new Set(successor.overrides || []);
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (successorOverrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V156 protected file diverged: ${relative}`);
 }
 

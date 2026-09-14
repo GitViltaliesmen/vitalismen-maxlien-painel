@@ -14,7 +14,17 @@ assert.equal(manifest.version, 155);
 assert.equal(manifest.parentCommit, '3379df2303dde775c5957d706d4685c8f9bdda36');
 assert.equal(manifest.parentTree, '58f2062c0ecbe795666727b8c0b375c0b15cdc4c');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
+const successorOverrides = new Set();
+for (const [successorPath, freezeId] of [
+    ['docs/freeze/ec-panel-agency-compact-options-v156-20260913.json', 'EC_PANEL_AGENCY_COMPACT_OPTIONS_V156_20260913'],
+    ['docs/freeze/ec-dropi-preflight-repair-v157-20260913.json', 'EC_DROPI_PREFLIGHT_REPAIR_V157_20260913']
+]) {
+    const successor = JSON.parse(read(successorPath));
+    assert.equal(successor.freezeId, freezeId);
+    for (const relative of successor.overrides || []) successorOverrides.add(relative);
+}
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (successorOverrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V155 protected file diverged: ${relative}`);
 }
 const service = read('src/services/zapiDeliveryCallbackReconciliationV155Service.js');

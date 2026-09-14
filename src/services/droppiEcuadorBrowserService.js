@@ -255,6 +255,7 @@ const classifyDropiManualError = (value = '') => {
         'FETCH_FAILED',
         'NO_RESPONSE',
         'INVALID_RESPONSE',
+        'DUPLICATE_CHECK_FAILED',
         'PAYMENT_REQUIRED',
         'DROPI_ERROR'
     ];
@@ -2561,10 +2562,24 @@ const fetchOrdersApiRows = async (page, search, { maxRows = 300 } = {}) => {
             timeoutMs: Number.parseInt(process.env.DROPPI_EC_ORDER_API_TIMEOUT_MS || '30000', 10)
         });
         if (!result.ok) {
-            throw new Error(`${dropiErrorToken(result.errorCode || classifyDropiBffFailure(result))} HTTP_${result.status || 0}`);
+            throw buildDropiBffSubmitError({
+                code: result.errorCode || classifyDropiBffFailure(result),
+                status: result.status,
+                statusReason: result.statusReason,
+                requestId: result.requestId,
+                lifecycle: result.lifecycle
+            });
         }
         const normalized = normalizeDropiBffListResponse(result.body);
-        if (!normalized.isSuccess) throw new Error('DROPI_ERROR LIST_RESPONSE_REJECTED');
+        if (!normalized.isSuccess) {
+            throw buildDropiBffSubmitError({
+                code: 'INVALID_RESPONSE',
+                status: result.status,
+                statusReason: result.statusReason || 'LIST_RESPONSE_REJECTED',
+                requestId: result.requestId,
+                lifecycle: result.lifecycle
+            });
+        }
         rows.push(...normalized.objects.slice(0, Math.max(0, maxRows - rows.length)));
         if (rows.length >= maxRows) break;
         if (normalized.objects.length < resultNumber) break;
@@ -2645,10 +2660,20 @@ const findExistingDropiOrderForManualSubmission = async (page, payload) => {
         ...phoneLookupVariants(payload.phone || '').filter((term) => term.length >= 8)
     ].map((value) => String(value || '').trim()).filter(Boolean);
 
-    for (const term of [...new Set(searchTerms)]) {
-        const rows = await fetchOrdersApiRows(page, term);
-        const match = rows.find((row) => rowMatchesManualSubmission(row, payload));
-        if (match) return match;
+    try {
+        for (const term of [...new Set(searchTerms)]) {
+            const rows = await fetchOrdersApiRows(page, term);
+            const match = rows.find((row) => rowMatchesManualSubmission(row, payload));
+            if (match) return match;
+        }
+    } catch (error) {
+        throw buildDropiBffSubmitError({
+            code: 'DUPLICATE_CHECK_FAILED',
+            status: error?.dropiHttpStatus || 0,
+            statusReason: error?.dropiStatusReason || error?.dropiErrorCode || 'ORDER_LOOKUP_NOT_CONFIRMED',
+            requestId: error?.dropiRequestId || '',
+            lifecycle: error?.dropiLifecycle || null
+        });
     }
     return null;
 };

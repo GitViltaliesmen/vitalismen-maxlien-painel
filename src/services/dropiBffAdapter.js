@@ -152,6 +152,7 @@ export const describeDropiBffFailure = (code, statusReason = '') => {
     FETCH_FAILED: 'O transporte HTTP para a Dropi falhou; o pedido foi pesquisado antes de permitir nova tentativa manual.',
     NO_RESPONSE: 'A Dropi nao devolveu resposta HTTP; o pedido foi pesquisado antes de permitir nova tentativa manual.',
     INVALID_RESPONSE: 'A Dropi devolveu uma resposta que nao pode ser validada; o pedido foi pesquisado antes de permitir nova tentativa manual.',
+    DUPLICATE_CHECK_FAILED: 'A consulta anti-duplicidade da Dropi nao pode ser confirmada; nenhum pedido foi criado.',
     PAYMENT_REQUIRED: 'A Dropi recusou o envio por saldo ou credito insuficiente.',
     DROPI_ERROR: 'A Dropi nao confirmou a criacao do pedido.'
     }[code] || 'A Dropi nao confirmou a criacao do pedido.');
