@@ -80,7 +80,7 @@ test('dispatcher continues the missing stage when P6 was manual and stops on amb
 });
 
 
-test('V154 manual library P7 audio bypasses shipment lookup but pickup audio stays fail-closed', async () => {
+test('V160 authenticated attendant audio bypasses shipment lookup while the untrusted adapter stays fail-closed', async () => {
     let lookups = 0;
     const shipmentModel = {
         find() {
@@ -111,10 +111,22 @@ test('V154 manual library P7 audio bypasses shipment lookup but pickup audio sta
             message: '/media/templates/EC/Chegou_01.ogg'
         },
         shipmentModel,
-        sendFn() { throw new Error('pickup must not reach provider without a canonical shipment'); }
+        authenticatedManualAttendant: true,
+        sendFn() { throw new Error('authenticated manual pickup must stay on original panel route'); }
     });
-    assert.equal(pickup.handled, true);
-    assert.equal(pickup.success, false);
-    assert.equal(pickup.error, 'canonical_shipment_missing_or_ambiguous');
+    assert.deepEqual(pickup, { handled: false });
+    assert.equal(lookups, 0);
+
+    const untrusted = await sendCanonicalPanelPostSaleV147R6({
+        request: {
+            sendMode: 'manual_panel', phone: '593999000147', isMedia: true, recordedAudio: true,
+            message: '/media/templates/EC/Chegou_01.ogg'
+        },
+        shipmentModel,
+        sendFn() { throw new Error('untrusted pickup must not reach provider without a canonical shipment'); }
+    });
+    assert.equal(untrusted.handled, true);
+    assert.equal(untrusted.success, false);
+    assert.equal(untrusted.error, 'canonical_shipment_missing_or_ambiguous');
     assert.equal(lookups, 1);
 });

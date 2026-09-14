@@ -1676,3 +1676,17 @@ Pedidos já enviados não entram nesse caminho: a reabertura do submit retorna
 Salvar, configurar ou somente autorizar o pedido continua sem Dropi, Shipment novo ou
 Purchase. Browser events, anúncios, Dataset, VSL, Servientrega, pós-venda e schedulers
 permanecem com os contratos anteriores.
+
+## V160 — envio manual da atendente nunca é descartado
+
+O `POST /api/whatsapp/send` autenticado separa a decisão humana do painel da
+decisão logística automática. Texto, áudio ou mídia escolhidos explicitamente
+pela atendente usam o transporte e a persistência manual comuns, sem consultar
+ou alterar o status da remessa e sem serem recusados pelo gate de retirada.
+
+As automações A07/A10/A19 continuam fail-closed: `Chegou_01`, `Chegou_02` e
+`Chegou_03` automáticos exigem `READY_FOR_PICKUP` real e verificado. A mensagem
+manual aceita pelo provedor permanece como `Message` de origem humana, com
+`providerMessageId`, e pode satisfazer a reconciliação histórica exata para
+evitar reenvio automático. Nenhum Shipment fictício, scheduler novo, backlog,
+Dropi, Meta/CAPI, produto, preço, VSL ou transporte foi alterado.

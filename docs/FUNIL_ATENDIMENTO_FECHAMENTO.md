@@ -113,6 +113,12 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
    - `Chegou_02`: primeiro lembrete de retirada.
    - `Chegou_03`: reforço final.
    - Depois da retirada, pedir comprovante e enviar bônus.
+   - Exceção humana V160: quando uma atendente autenticada escolhe enviar
+     manualmente um áudio, texto ou outra mídia no painel, o envio não é
+     bloqueado pelo estado logístico. Isso não altera nem inventa o status da
+     remessa. O caminho automático de `Chegou_01`, `Chegou_02` e `Chegou_03`
+     continua exigindo `READY_FOR_PICKUP` verificado e reconhece a mensagem
+     manual persistida para não repetir o mesmo aviso.
 
 ## Status atual dos áudios
 

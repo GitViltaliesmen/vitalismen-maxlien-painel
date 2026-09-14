@@ -7,6 +7,7 @@
     "scripts": {
         "guard:panel-confirmed-v158": "node scripts/guard-panel-confirmed-persistence-v158.mjs && node --test tests/panel-confirmed-persistence-v158.test.mjs",
         "guard:panel-confirmed-v159": "node scripts/guard-panel-confirmed-python-serialization-v159.mjs && npm run guard:panel-confirmed-v158",
+        "guard:panel-manual-attendant-v160": "node scripts/guard-panel-manual-attendant-v160.mjs && node --test tests/panel-manual-attendant-never-ignored-v160.test.mjs tests/panel-manual-usage-guide-catchup-v154.test.mjs tests/unified-postsale-v147-r6.test.mjs",
         "guard:v148-meta-funnel": "node --import ./scripts/lib/ec-runtime-successor-v97-context.mjs --test tests/meta-funnel-v148.test.mjs",
         "lint": "node scripts/lint-js-syntax.mjs",
         "test": "node scripts/run-with-v144-context.mjs test:v144-all guard:post-sale-safety-v66 guard:post-sale-gargalos-v65 guard:dropi-customer-full-name-v64 guard:protocolo-g-ad-metrics-v63 guard:protocolo-g-conversion-v62 guard:meta-ec-protocolo-g-v61 guard:baileys-security-v59 guard:pickup-bonus-v60 guard:ec-dropi-status-postsale-v139 guard:v147-r3-delivered-single-gate guard:v147-r4-canonical-polling guard:v147-r5-transactional-postsale guard:v147-r6-unified-postsale guard:v147-r6r2-all-postsale guard:v148-meta-funnel",

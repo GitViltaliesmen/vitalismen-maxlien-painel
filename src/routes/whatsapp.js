@@ -86,11 +86,6 @@ import {
     protectPanelCustomerPhone
 } from '../services/panelCustomerFormPersistenceService.js';
 import {
-    evaluateLogisticsOutbound,
-    isPickupStageAudioCandidate,
-    publicLogisticsStateV29
-} from '../services/logisticsCommunicationV29.js';
-import {
     inboundMediaStorageRoot,
     loadStoredInboundMedia
 } from '../services/inboundMediaStorageService.js';
@@ -3248,19 +3243,6 @@ const recordManualOutboundMessage = async ({
 
     const created = await Message.create(manualRecord).catch(() => null);
     return reconcilePendingDelivery(created);
-};
-
-const findActiveShipmentForOutboundPhone = async (phone = '') => {
-    const digits = digitsOnly(phone);
-    if (digits.length < 8) return null;
-    const tails = [...new Set([digits, digits.slice(-10), digits.slice(-9), digits.slice(-8)].filter((tail) => tail.length >= 8))];
-    return Shipment.findOne({
-        country: 'EC',
-        $or: tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } })),
-        'outcomes.delivered': { $ne: true },
-        'outcomes.pickedUp': { $ne: true },
-        'outcomes.returned': { $ne: true }
-    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1 }).lean();
 };
 
 const applyManualSendHold = (state, { phone = '', user = null } = {}) => {
@@ -6654,7 +6636,8 @@ router.post('/send', authMiddleware, async (req, res) => {
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
         assertEcPanelManualSendV115({ sendMode });
         let storedMessageRecordId = '';
-        const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
+        const allowAudioDedupeBypass = sendMode === 'manual_panel'
+            || req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
         if (!phone || !message) {
@@ -6731,38 +6714,9 @@ router.post('/send', authMiddleware, async (req, res) => {
             });
         }
 
-        if (sendMode === 'manual_panel') {
-            const activeShipment = await findActiveShipmentForOutboundPhone(phone);
-            const mediaKind = isMedia
-                ? (/\.pdf(?:$|[?#])/i.test(String(fileName || message || '')) ? 'document'
-                    : /\.(?:jpe?g|png|webp|gif|heic|heif)(?:$|[?#])/i.test(String(fileName || message || ''))
-                        || String(message || '').startsWith('data:image/') ? 'image' : 'media')
-                : '';
-            const pickupAudio = Boolean(isMedia && isPickupStageAudioCandidate({
-                fileName,
-                mediaUrl: message
-            }));
-            const outboundPolicy = evaluateLogisticsOutbound(activeShipment || {}, {
-                text: isMedia ? '' : message,
-                mediaKind,
-                fileName,
-                mediaUrl: isMedia ? message : '',
-                outboundContext: 'manual_panel',
-                pickupAudio
-            });
-            if (!outboundPolicy.allowed) {
-                return res.status(409).json({
-                    success: false,
-                    error: 'pickup_communication_blocked',
-                    reason: outboundPolicy.reason,
-                    message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA',
-                    shipment: publicLogisticsStateV29(activeShipment)
-                });
-            }
-        }
-
         const canonicalPostSale = await sendCanonicalPanelPostSaleV147R6({
             request: req.body, operator: req.user?._id?.toString?.() || 'ana_lopez',
+            authenticatedManualAttendant: sendMode === 'manual_panel',
             sendFn: async ({ event, shipment, beforeSend }) => {
                 let payload = message;
                 if (isMedia) {

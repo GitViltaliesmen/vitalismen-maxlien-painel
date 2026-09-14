@@ -8,6 +8,11 @@ const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(pa
 const manifestPath = 'docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json';
 const text = read(manifestPath);
 const manifest = JSON.parse(text);
+const v160ManifestPath = 'docs/freeze/ec-panel-manual-attendant-v160-20260914.json';
+const v160 = fs.existsSync(path.resolve(v160ManifestPath))
+    ? JSON.parse(read(v160ManifestPath))
+    : { overrides: [] };
+const v160Overrides = new Set(v160.overrides || []);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_V159_20260914');
@@ -17,6 +22,7 @@ assert.equal(manifest.parentTree, 'ede79efebe5e57f065bf13c3b4b85a301b8681a2');
 assert.equal(manifest.parentManifestSha256, 'f37431da16e1c332f7daf931f757451bd35cb6b0d27e51ecf80193f2a4edbfcc');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (v160Overrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V159 protected file diverged: ${relative}`);
 }
 

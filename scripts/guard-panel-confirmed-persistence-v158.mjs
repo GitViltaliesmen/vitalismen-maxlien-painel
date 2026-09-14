@@ -13,6 +13,11 @@ const v159 = fs.existsSync(path.resolve(v159ManifestPath))
     ? JSON.parse(read(v159ManifestPath))
     : { overrides: [] };
 const v159Overrides = new Set(v159.overrides || []);
+const v160ManifestPath = 'docs/freeze/ec-panel-manual-attendant-v160-20260914.json';
+const v160 = fs.existsSync(path.resolve(v160ManifestPath))
+    ? JSON.parse(read(v160ManifestPath))
+    : { overrides: [] };
+const v160Overrides = new Set(v160.overrides || []);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_PANEL_CONFIRMED_PERSISTENCE_V158_20260914');
@@ -22,7 +27,7 @@ assert.equal(manifest.parentTree, '5a471e60c301c57d7de62dde5bcdd3c6c0de1a82');
 assert.equal(manifest.parentManifestSha256, '5aecf61299ea77e9f1dabc67788a141c7c9c8ce88f0adf4895d3210d5a3cc960');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
-    if (v159Overrides.has(relative)) continue;
+    if (v159Overrides.has(relative) || v160Overrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V158 protected file diverged: ${relative}`);
 }
 

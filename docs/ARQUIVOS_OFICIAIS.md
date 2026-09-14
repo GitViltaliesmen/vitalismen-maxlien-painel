@@ -1350,3 +1350,20 @@ nenhuma alteração realizada no VPS.
   `scripts/guard-panel-confirmed-python-serialization-v159.mjs`.
 - A tentativa V158 criou o `Order` e falhou fechada antes do SQLite; o reparo
   V159 reutiliza esse pedido sem duplicação e sem efeitos externos.
+
+## Registro V160 — envio manual da atendente nunca ignorado (2026-09-14)
+
+- Base oficial: V159 `ea98fbee0fd77bf81f30c30add796b008adf1d2f`.
+- Fontes oficiais corrigidas: `src/routes/whatsapp.js` e
+  `src/services/postSaleManualPanelV147R6Service.js`.
+- Contrato: texto, áudio ou mídia escolhidos pela atendente autenticada seguem
+  o envio/persistência manual, sem bloqueio por status logístico.
+- O caminho automático de `Chegou_01/02/03` preserva a exigência de
+  `READY_FOR_PICKUP` verificado e usa o histórico humano aceito para dedupe.
+- Freeze, manifesto, guard e testes:
+  `docs/PANEL_MANUAL_ATTENDANT_NEVER_IGNORED_FREEZE_V160_20260914.md`,
+  `docs/freeze/ec-panel-manual-attendant-v160-20260914.json`,
+  `scripts/guard-panel-manual-attendant-v160.mjs` e
+  `tests/panel-manual-attendant-never-ignored-v160.test.mjs`.
+- Backup, release e validação operacional serão registrados no fechamento da
+  publicação oficial, sem envio real de mensagem durante a validação.

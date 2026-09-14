@@ -8,6 +8,17 @@ const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(pa
 const manifestPath = 'docs/freeze/ec-panel-manual-usage-guide-catchup-v154-20260913.json';
 const text = read(manifestPath);
 const manifest = JSON.parse(text);
+const successorManifestPaths = [
+    'docs/freeze/ec-zapi-callback-race-reconciliation-v155-20260913.json',
+    'docs/freeze/ec-panel-agency-compact-options-v156-20260913.json',
+    'docs/freeze/ec-dropi-preflight-repair-v157-20260913.json',
+    'docs/freeze/ec-panel-confirmed-persistence-v158-20260914.json',
+    'docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json',
+    'docs/freeze/ec-panel-manual-attendant-v160-20260914.json'
+];
+const successorOverrides = new Set(successorManifestPaths.flatMap((relative) => (
+    fs.existsSync(path.resolve(relative)) ? JSON.parse(read(relative)).overrides || [] : []
+)));
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_V154_20260913');
 assert.equal(manifest.version, 154);
@@ -15,6 +26,7 @@ assert.equal(manifest.parentCommit, '3321216fbc75e51636883766860524c050a88d39');
 assert.equal(manifest.parentTree, '85063ae8d370ce8328dc0ef3df33c473e69c3df7');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (successorOverrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V154 protected file diverged: ${relative}`);
 }
 const adapter = read('src/services/postSaleManualPanelV147R6Service.js');

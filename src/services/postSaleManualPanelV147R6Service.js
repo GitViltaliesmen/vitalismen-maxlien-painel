@@ -10,8 +10,13 @@ import { classifyPostSaleContentV147R6, resolvePostSaleEventV147R6, reconcileDel
 
 // This adapter shares the decision/lock/finalizer with V116. It owns no transport or parallel ledger.
 export const sendCanonicalPanelPostSaleV147R6 = async ({ request = {}, operator = '', sendFn, recordFn,
-    shipmentModel = Shipment, messageModel = Message, decideFn = decidePostSaleNotification } = {}) => {
+    shipmentModel = Shipment, messageModel = Message, decideFn = decidePostSaleNotification,
+    authenticatedManualAttendant = false } = {}) => {
     if (request.sendMode !== 'manual_panel') return { handled: false };
+    // V160: an authenticated attendant owns the manual send. It must use the
+    // ordinary panel transport and persistence path, regardless of shipment
+    // status. Automatic pickup notifications remain canonical and gated.
+    if (authenticatedManualAttendant === true) return { handled: false };
     let content = classifyPostSaleContentV147R6({ isMedia: request.isMedia, message: request.message });
     const manualLibraryUsageV154 = request.isMedia === true && request.recordedAudio === true
         && !request.postSaleShipmentId && content?.canonicalEvent === 'P7'

@@ -12,6 +12,33 @@ const canonicalJson = (relative) => {
     return { text, value };
 };
 
+const v160ManifestUrl = new URL('../../docs/freeze/ec-panel-manual-attendant-v160-20260914.json', import.meta.url);
+let v160Overrides = new Set();
+let v160ProtectedFiles = Object.freeze({});
+if (fs.existsSync(v160ManifestUrl)) {
+    const v160 = canonicalJson('docs/freeze/ec-panel-manual-attendant-v160-20260914.json');
+    assert.equal(v160.value.freezeId, 'EC_PANEL_MANUAL_ATTENDANT_V160_20260914');
+    assert.equal(v160.value.version, 160);
+    assert.equal(v160.value.parentCommit, 'ea98fbee0fd77bf81f30c30add796b008adf1d2f');
+    assert.equal(v160.value.parentTree, '4591c35be71e39fb6185ef26fdca6fcfe42179ea');
+    assert.equal(v160.value.parentManifestSha256, '5cad677f29fd8a90021e69fd480ea22b7f4891bf5ed0d1aa031c842a7a3692fc');
+    assert.deepEqual([...v160.value.overrides].sort(), Object.keys(v160.value.protectedFiles || {}).sort());
+    v160Overrides = new Set(v160.value.overrides || []);
+    for (const [file, expected] of Object.entries(v160.value.protectedFiles || {})) {
+        assert.equal(hashFile(file), expected, `[V160] ${file}`);
+    }
+    v160ProtectedFiles = Object.freeze({ ...(v160.value.protectedFiles || {}) });
+    globalThis.__VITALISMEN_V160_CONTEXT = Object.freeze({
+        loaded: true,
+        freezeId: v160.value.freezeId,
+        manifestSha256: hashBuffer(v160.text),
+        protectedFiles: v160ProtectedFiles
+    });
+    for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
+        globalThis[key] = [...new Set([...(globalThis[key] || []), ...(v160.value.overrides || [])])];
+    }
+}
+
 const v159ManifestUrl = new URL('../../docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json', import.meta.url);
 let v159Overrides = new Set();
 let v159ProtectedFiles = Object.freeze({});
@@ -25,9 +52,12 @@ if (fs.existsSync(v159ManifestUrl)) {
     assert.deepEqual([...v159.value.overrides].sort(), Object.keys(v159.value.protectedFiles || {}).sort());
     v159Overrides = new Set(v159.value.overrides || []);
     for (const [file, expected] of Object.entries(v159.value.protectedFiles || {})) {
+        if (v160Overrides.has(file)) continue;
         assert.equal(hashFile(file), expected, `[V159] ${file}`);
     }
-    v159ProtectedFiles = Object.freeze({ ...(v159.value.protectedFiles || {}) });
+    v159ProtectedFiles = Object.freeze(Object.fromEntries(
+        Object.entries(v159.value.protectedFiles || {}).filter(([file]) => !v160Overrides.has(file))
+    ));
     globalThis.__VITALISMEN_V159_CONTEXT = Object.freeze({
         loaded: true,
         freezeId: v159.value.freezeId,
@@ -52,11 +82,11 @@ if (fs.existsSync(v158ManifestUrl)) {
     assert.deepEqual([...v158.value.overrides].sort(), Object.keys(v158.value.protectedFiles || {}).sort());
     v158Overrides = new Set(v158.value.overrides || []);
     for (const [file, expected] of Object.entries(v158.value.protectedFiles || {})) {
-        if (v159Overrides.has(file)) continue;
+        if (v159Overrides.has(file) || v160Overrides.has(file)) continue;
         assert.equal(hashFile(file), expected, `[V158] ${file}`);
     }
     v158ProtectedFiles = Object.freeze(Object.fromEntries(
-        Object.entries(v158.value.protectedFiles || {}).filter(([file]) => !v159Overrides.has(file))
+        Object.entries(v158.value.protectedFiles || {}).filter(([file]) => !v159Overrides.has(file) && !v160Overrides.has(file))
     ));
     globalThis.__VITALISMEN_V158_CONTEXT = Object.freeze({
         loaded: true,
@@ -82,11 +112,11 @@ if (fs.existsSync(v157ManifestUrl)) {
     assert.deepEqual([...v157.value.overrides].sort(), Object.keys(v157.value.protectedFiles || {}).sort());
     v157Overrides = new Set(v157.value.overrides || []);
     for (const [file, expected] of Object.entries(v157.value.protectedFiles || {})) {
-        if (v158Overrides.has(file) || v159Overrides.has(file)) continue;
+        if (v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
         assert.equal(hashFile(file), expected, `[V157] ${file}`);
     }
     v157ProtectedFiles = Object.freeze(Object.fromEntries(
-        Object.entries(v157.value.protectedFiles || {}).filter(([file]) => !v158Overrides.has(file) && !v159Overrides.has(file))
+        Object.entries(v157.value.protectedFiles || {}).filter(([file]) => !v158Overrides.has(file) && !v159Overrides.has(file) && !v160Overrides.has(file))
     ));
     globalThis.__VITALISMEN_V157_CONTEXT = Object.freeze({
         loaded: true,
@@ -137,11 +167,11 @@ if (fs.existsSync(successorManifestUrl)) {
     assert.deepEqual([...successor.value.overrides].sort(), Object.keys(successor.value.protectedFiles || {}).sort());
     successorOverrides = new Set(successor.value.overrides || []);
     for (const [file, expected] of Object.entries(successor.value.protectedFiles || {})) {
-        if (v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file)) continue;
+        if (v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
         assert.equal(hashFile(file), expected, `[V156] ${file}`);
     }
     const effectiveV156ProtectedFiles = Object.freeze(Object.fromEntries(
-        Object.entries(successor.value.protectedFiles || {}).filter(([file]) => !v157Overrides.has(file) && !v158Overrides.has(file) && !v159Overrides.has(file))
+        Object.entries(successor.value.protectedFiles || {}).filter(([file]) => !v157Overrides.has(file) && !v158Overrides.has(file) && !v159Overrides.has(file) && !v160Overrides.has(file))
     ));
     globalThis.__VITALISMEN_V156_CONTEXT = Object.freeze({
         loaded: true,
@@ -161,7 +191,7 @@ const parent = canonicalJson('docs/freeze/ec-panel-manual-usage-guide-catchup-v1
 assert.equal(parent.value.freezeId, 'EC_PANEL_MANUAL_USAGE_GUIDE_CATCHUP_V154_20260913');
 assert.equal(hashBuffer(parent.text), 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8');
 for (const [file, expected] of Object.entries(parent.value.protectedFiles || {})) {
-    if (overrides.has(file) || successorOverrides.has(file) || v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file)) continue;
+    if (overrides.has(file) || successorOverrides.has(file) || v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V155 parent V154] ${file}`);
 }
 assert.equal(manifest.freezeId, 'EC_ZAPI_CALLBACK_RACE_RECONCILIATION_V155_20260913');
@@ -171,13 +201,13 @@ assert.equal(manifest.parentTree, '58f2062c0ecbe795666727b8c0b375c0b15cdc4c');
 assert.equal(manifest.parentManifestSha256, 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd29ee46d99f11cd9733614172c57b8');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles || {}).sort());
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
-    if (successorOverrides.has(file) || v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file)) continue;
+    if (successorOverrides.has(file) || v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V155] ${file}`);
 }
 
 const effectiveProtectedFiles = Object.freeze(Object.fromEntries(
     Object.entries(manifest.protectedFiles || {}).filter(([file]) => (
-        !successorOverrides.has(file) && !v157Overrides.has(file) && !v158Overrides.has(file) && !v159Overrides.has(file)
+        !successorOverrides.has(file) && !v157Overrides.has(file) && !v158Overrides.has(file) && !v159Overrides.has(file) && !v160Overrides.has(file)
     ))
 ));
 
@@ -185,7 +215,7 @@ globalThis.__VITALISMEN_V155_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles, ...v158ProtectedFiles, ...v159ProtectedFiles })
+    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles, ...v158ProtectedFiles, ...v159ProtectedFiles, ...v160ProtectedFiles })
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...(manifest.overrides || [])])];

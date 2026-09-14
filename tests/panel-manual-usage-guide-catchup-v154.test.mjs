@@ -15,15 +15,15 @@ test('V154 manual official P7 library audio stays on the manual route without sh
     assert.equal(lookups, 0);
 });
 
-test('V154 never opens a manual-library bypass for Chegou pickup audio', async () => {
-    const shipmentModel = { find() { return { sort() { return this; }, limit() { return this; }, async lean() { return []; } }; } };
+test('V160 authenticated attendant Chegou pickup audio stays on the ordinary manual path', async () => {
+    let lookups = 0;
+    const shipmentModel = { find() { lookups += 1; throw new Error('authenticated manual send must not query shipment'); } };
     const result = await sendCanonicalPanelPostSaleV147R6({
         request: { sendMode: 'manual_panel', phone: '593999000147', isMedia: true, recordedAudio: true,
-            message: '/media/templates/EC/Chegou_01.ogg' }, shipmentModel
+            message: '/media/templates/EC/Chegou_01.ogg' }, shipmentModel, authenticatedManualAttendant: true
     });
-    assert.equal(result.handled, true);
-    assert.equal(result.success, false);
-    assert.equal(result.error, 'canonical_shipment_missing_or_ambiguous');
+    assert.deepEqual(result, { handled: false });
+    assert.equal(lookups, 0);
 });
 
 test('V154 bootstrap is installed before V153 while V97 keeps its frozen first import', () => {
