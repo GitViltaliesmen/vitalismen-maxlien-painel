@@ -27,10 +27,12 @@ const operationalEnv = Object.freeze({
 
 const authorizePath = '/api/shipments/droppi/ec/orders/EC-ADMIN-3493/authorize-submit';
 const submitPath = '/api/shipments/droppi/ec/orders/EC-ADMIN-3493/submit';
+const requeuePath = '/api/shipments/EC-ADMIN-3493/requeue-dropi-submit';
 
-test('V119 libera somente autorização e envio manual autenticado de um pedido EC', () => {
+test('V119 libera somente reentrada, autorização e envio manual autenticado de um pedido EC', () => {
     assert.equal(ecManualDropiReleaseV119RouteDecision({ method: 'POST', path: authorizePath, env: operationalEnv }).operation, 'authorize-submit');
     assert.equal(ecManualDropiReleaseV119RouteDecision({ method: 'POST', path: submitPath, env: operationalEnv }).operation, 'submit');
+    assert.equal(ecManualDropiReleaseV119RouteDecision({ method: 'POST', path: requeuePath, env: operationalEnv }).operation, 'requeue-dropi-submit');
     for (const [method, path] of [
         ['GET', submitPath],
         ['POST', '/api/shipments/droppi/ec/dispatch/run'],
@@ -152,6 +154,17 @@ test('middleware V78 propaga contexto V119 e mantém rotas Dropi amplas bloquead
         assert.equal(submitResult.orderWrite, 'updated:orders');
         assert.equal(submitResult.shipmentWrite, 'updated:shipments');
         assert.equal(submitResult.externalEffect, null);
+
+        const requeueResult = await ecBotCoreMutationRouteGuardV78({
+            method: 'POST', originalUrl: requeuePath, body: {}
+        }, {}, () => ({
+            orderWrite: new FakeCollection('orders').updateOne(),
+            shipmentWrite: new FakeCollection('shipments').updateOne(),
+            externalEffect: canaryV75BlockedResult('dropi')
+        }));
+        assert.equal(requeueResult.orderWrite, 'updated:orders');
+        assert.equal(requeueResult.shipmentWrite, 'updated:shipments');
+        assert.equal(requeueResult.externalEffect.reason, 'bot_core_dropi_blocked');
         assert.throws(() => new FakeCollection('orders').updateOne(), /ec_bot_core_mongo_write_blocked/);
 
         const blocked = {};

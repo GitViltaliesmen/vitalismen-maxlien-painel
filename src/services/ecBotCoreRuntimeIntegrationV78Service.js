@@ -246,7 +246,8 @@ export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore()
 // actions can carry human authority into the existing asynchronous submit queue.
 export const ecManualDropiHumanActionV138 = (req, res, next) => {
     const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
-    const match = path.match(/^\/api\/shipments\/droppi\/ec\/orders\/([^/]+)\/(authorize-submit|submit)$/);
+    const match = path.match(/^\/api\/shipments\/droppi\/ec\/orders\/([^/]+)\/(authorize-submit|submit)$/)
+        || path.match(/^\/api\/shipments\/([^/]+)\/(requeue-dropi-submit)$/);
     if (req.method !== 'POST' || !match) return next();
     const context = currentEcBotCoreRuntimeContextV78();
     const actorId = clean(req.user?._id || req.user?.id);

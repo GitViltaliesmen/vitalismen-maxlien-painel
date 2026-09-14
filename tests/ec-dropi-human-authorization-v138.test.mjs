@@ -39,6 +39,30 @@ const withHuman = async (orderId, action, callback, user = { _id: 'fixture-opera
     }
 };
 
+test('reentrada Dropi exige operador autenticado e preserva envio externo bloqueado', async () => {
+    const before = { ...process.env };
+    Object.assign(process.env, buildEcBotCoreV78OverlayEnvironment({ baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID } }),
+        { PANEL_AUTH_DISABLED: 'false', META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID });
+    try {
+        for (const user of [null, { _id: 'local-no-password', role: 'admin' }, { _id: 'agent', role: 'agent' }]) {
+            const req = { method: 'POST', originalUrl: '/api/shipments/EC-ADMIN-3536/requeue-dropi-submit', user };
+            const res = response();
+            await ecBotCoreMutationRouteGuardV78(req, res, () => ecManualDropiHumanActionV138(req, res, () => assert.fail('reentrada sem operador')));
+            assert.equal(res.statusCode, 403);
+        }
+        const req = { method: 'POST', originalUrl: '/api/shipments/EC-ADMIN-3536/requeue-dropi-submit',
+            user: { _id: 'fixture-operator', role: 'admin', isActive: true } };
+        const res = response();
+        const result = await ecBotCoreMutationRouteGuardV78(req, res, () => ecManualDropiHumanActionV138(req, res, () => ({
+            externalEffect: null
+        })));
+        assert.deepEqual(result, { externalEffect: null });
+    } finally {
+        for (const key of Object.keys(process.env)) if (!(key in before)) delete process.env[key];
+        Object.assign(process.env, before);
+    }
+});
+
 for (const productKey of ['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']) {
     test(productKey + ': A/B/F completo e confirmado sem operador faz zero chamadas e zero remessas', async () => {
         const order = orderFixture(productKey);

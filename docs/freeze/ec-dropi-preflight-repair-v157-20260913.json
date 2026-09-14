@@ -15,12 +15,16 @@
     "src/services/dropiBffAdapter.js",
     "src/services/dropiSubmitFailurePolicyV157Service.js",
     "src/services/droppiEcuadorBrowserService.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecManualDropiReleaseV119Service.js",
     "src/services/protocoloGSuccessorGuardV101Service.js",
-    "tests/dropi-preflight-repair-v157.test.mjs"
+    "tests/dropi-preflight-repair-v157.test.mjs",
+    "tests/ec-dropi-human-authorization-v138.test.mjs",
+    "tests/ec-manual-dropi-release-v119.test.mjs"
   ],
   "protectedFiles": {
     "docs/EC_DROPI_PREFLIGHT_REPAIR_FREEZE_V157_20260913.md": "55f6c5c4a7c8e34e736468e6f6e8e835616df1b2ffe651d310b96b1e2c7f8b0d",
-    "scripts/guard-dropi-preflight-repair-v157.mjs": "3b1b01b1c325836c6a03497e08538c1017453d52ffc44e998105a56234753812",
+    "scripts/guard-dropi-preflight-repair-v157.mjs": "75829cff0a245ccc1d4ccac8d68cd64ca4c5da62387e7fe2f86790b9e15091f1",
     "scripts/guard-panel-agency-compact-options-v156.mjs": "048617a1a7422ae3b674c0d76697bffd24a1b3a6c0331a2d47d350da8e6c60d4",
     "scripts/guard-zapi-callback-race-reconciliation-v155.mjs": "37622b12949cc086fe0499659aa1f44794f4d4b23b6125d58af2e2c8f2d08131",
     "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "fe50bbbbe742f1a6ee69813e75c02c4a21cd7da23e01aa8ce7775370e695b3cc",
@@ -29,8 +33,12 @@
     "src/services/dropiBffAdapter.js": "ef7998428be0595879d31625ad5433328dc3a140c43c45b70264ccc2e7763c37",
     "src/services/dropiSubmitFailurePolicyV157Service.js": "9226a8eeb2ecf6f01ddd910e626ca18b67dfb26147c226e6f8b98ec0c515dcd4",
     "src/services/droppiEcuadorBrowserService.js": "0e94708b1849c00dd5518d020f383ee2ad64a192bf46a82833899ea42b059594",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "edda25a7f6502fb59b6b4b93d5147995e19c1a96f81cb971eecd4caa88c44026",
+    "src/services/ecManualDropiReleaseV119Service.js": "0798cf56a869380a8b0a518fb85dcbf5ac45090fa9c5a9e21a088db244e44804",
     "src/services/protocoloGSuccessorGuardV101Service.js": "6d9f1111d0f6e4d42633f462850f8eb014f968ca329b5abe514a0721d35f451f",
-    "tests/dropi-preflight-repair-v157.test.mjs": "320ba502f2707181dda77f3afd479c4dd6519424ffeababf3e0283e7ccb97574"
+    "tests/dropi-preflight-repair-v157.test.mjs": "320ba502f2707181dda77f3afd479c4dd6519424ffeababf3e0283e7ccb97574",
+    "tests/ec-dropi-human-authorization-v138.test.mjs": "b924cfcfa0a020de17d7498ce3151b4480fdde5069c0dd756c6834ed8bfa5359",
+    "tests/ec-manual-dropi-release-v119.test.mjs": "ffc9aabbed3c5721e05916aaea6bb17ada20215676238a5bf846189647f505fd"
   },
   "policy": {
     "productionChanged": true,

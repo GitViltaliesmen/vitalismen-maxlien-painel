@@ -26,6 +26,8 @@ const policy = read('src/services/dropiSubmitFailurePolicyV157Service.js');
 const routes = read('src/routes/shipments.js');
 const parentContext = read('scripts/lib/ec-runtime-successor-v155-context.mjs');
 const v101SuccessorGuard = read('src/services/protocoloGSuccessorGuardV101Service.js');
+const manualDropiRelease = read('src/services/ecManualDropiReleaseV119Service.js');
+const botCoreRuntime = read('src/services/ecBotCoreRuntimeIntegrationV78Service.js');
 
 assert.match(adapter, /DUPLICATE_CHECK_FAILED/);
 assert.match(browser, /code: 'DUPLICATE_CHECK_FAILED'/);
@@ -38,6 +40,8 @@ assert.match(parentContext, /ec-dropi-preflight-repair-v157-20260913\.json/);
 assert.match(parentContext, /__VITALISMEN_V157_CONTEXT/);
 assert.match(v101SuccessorGuard, /ec-dropi-preflight-repair-v157-20260913\.json/);
 assert.match(v101SuccessorGuard, /v157BrowserIdentityAccepted/);
+assert.match(manualDropiRelease, /requeue-dropi-submit/);
+assert.match(botCoreRuntime, /requeue-dropi-submit/);
 assert.equal(manifest.policy.createPostsByValidation, 0);
 assert.equal(manifest.policy.remoteDuplicateLookupRequired, true);
 assert.equal(manifest.policy.failClosedBeforeCreate, true);
