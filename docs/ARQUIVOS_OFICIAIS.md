@@ -1339,3 +1339,14 @@ nenhuma alteração realizada no VPS.
   `/opt/vitalismen-automacao/backups/v158-confirmed-incident-prechange-20260914T031115Z`.
 - Release, tag, ativação, reparo e validação pública são registrados no fechamento
   operacional após conclusão da cadeia oficial.
+
+## Registro V159 — serialização Python da persistência confirmada (2026-09-14)
+
+- Base publicada, não ativada: V158 `174c85c525bd2f803d81812118ca81fc4d988ce5`.
+- Correção pontual: flags booleanos do payload Python passaram a inteiros `0/1`.
+- Documento, manifesto e guard:
+  `docs/EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_FREEZE_V159_20260914.md`,
+  `docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json` e
+  `scripts/guard-panel-confirmed-python-serialization-v159.mjs`.
+- A tentativa V158 criou o `Order` e falhou fechada antes do SQLite; o reparo
+  V159 reutiliza esse pedido sem duplicação e sem efeitos externos.

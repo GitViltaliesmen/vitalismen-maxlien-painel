@@ -51,6 +51,8 @@ test('persistencia SQLite exige lead existente e executa leitura apos gravacao',
     assert.match(source, /require_existing_lead/);
     assert.match(source, /required_lead_id/);
     assert.match(source, /SELECT id, status, notes FROM leads WHERE id=/);
+    assert.match(source, /require_existing_lead: Number\(requireExistingLead === true\)/);
+    assert.match(source, /force_human_confirmed_cycle: Number\(forceHumanConfirmedCycle === true\)/);
     assert.match(source, /force_human_confirmed_cycle/);
     assert.match(source, /SELECT status, event_id FROM leads WHERE id=/);
     assert.match(source, /visibleInConfirmedQuery/);
