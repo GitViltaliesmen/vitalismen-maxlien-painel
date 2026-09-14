@@ -9741,6 +9741,25 @@
             return data;
         };
 
+        const assertConfirmedPersistenceV158 = (contactSave = {}, requestedDraft = {}) => {
+            if (normalizePanelStatus(requestedDraft.status) !== 'confirmado' || contactSave.orderBlocked === true) {
+                return contactSave;
+            }
+            const proof = contactSave.confirmedPersistence || {};
+            const verified = contactSave.success === true
+                && proof.persistenceVerified === true
+                && proof.readAfterWriteVerified === true
+                && proof.visibleInConfirmedQuery === true
+                && Number(proof.matchedCount || 0) === 1
+                && normalizePanelStatus(proof.finalPersistedState) === 'confirmado';
+            if (!verified) {
+                const error = new Error('A confirmacao nao foi comprovada no painel. Atualize e tente novamente; nenhum sucesso foi declarado.');
+                error.response = contactSave;
+                throw error;
+            }
+            return contactSave;
+        };
+
         const signedOutZapiText = 'Faça login para consultar a conexão';
 
         const setSignedOutZapiState = () => {
@@ -18947,6 +18966,7 @@
                     }
                 })
             });
+            assertConfirmedPersistenceV158(contactSave, customerDraft);
             const adminLeadSync = historicalOrderId
                 ? { skipped: true, reason: 'historical_order_preserved', previousOrderId: historicalOrderId }
                 : await syncAdminLeadStatus({

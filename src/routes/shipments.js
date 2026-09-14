@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
@@ -41,6 +42,7 @@ import {
 } from '../services/carrierTrackingService.js';
 import {
     markOnlineAdminPedidoEnviado,
+    persistConfirmedOrderToOnlineAdminPanelV158,
     recordOnlineAdminPurchaseLock,
     syncOrderToOnlineAdminPanel,
     updateOnlineAdminLeadProductSelection
@@ -569,6 +571,8 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
 
 const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, note = '', req }) => {
     const adminOrderId = `EC-ADMIN-${leadId}`;
+    const correlationId = `panel-confirm-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    const requestedBy = req?.user?.email || req?.user?.name || 'panel';
     const lead = getAdminLeadSnapshot({ orderId: adminOrderId });
     if (!lead) {
         const error = new Error('Lead EC nao encontrado.');
@@ -599,7 +603,68 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
             error.code = 'confirmed_order_data_required';
             throw error;
         }
-        return { order, repurchase: false, reused: false, previousOrderId: '' };
+        if (!['draft', 'pending', 'confirmed'].includes(String(order.status || '').trim().toLowerCase())) {
+            const error = new Error(`O pedido operacional ${order.orderId} ja avancou para ${order.status} e nao pode ser rebaixado para confirmado.`);
+            error.status = 409;
+            error.code = 'confirmed_order_already_advanced';
+            throw error;
+        }
+        order.status = 'confirmed';
+        if (!order.confirmedAt) order.confirmedAt = new Date();
+        await order.save();
+        const confirmedPersistence = persistConfirmedOrderToOnlineAdminPanelV158(order, {
+            action: 'admin_lead_stage_confirmed_v158',
+            leadId,
+            requestedBy,
+            correlationId
+        });
+        if (!confirmedPersistence.ok) {
+            const error = new Error('O pedido foi preservado, mas a lista Confirmados nao comprovou a persistencia. Nenhum sucesso foi declarado.');
+            error.status = confirmedPersistence.reason === 'lead_not_found' ? 404 : 409;
+            error.code = confirmedPersistence.reason || 'confirmed_panel_persistence_failed';
+            error.confirmedPersistence = confirmedPersistence;
+            throw error;
+        }
+        let contactStateVerified = !state;
+        if (state) {
+            const currentDraft = state.metadata?.customerDraft?.toObject?.()
+                || state.metadata?.customerDraft
+                || {};
+            state.metadata = {
+                ...(state.metadata || {}),
+                customerDraft: {
+                    ...currentDraft,
+                    orderId: order.orderId,
+                    sourceOrderId: adminOrderId,
+                    previousOrderId: order.previousOrderId || '',
+                    currentNegotiationOrderId: order.orderId,
+                    status: 'confirmado',
+                    updatedAt: new Date().toISOString()
+                }
+            };
+            state.markModified('metadata');
+            await state.save();
+            const finalState = await ContactState.findById(state._id).select('metadata.customerDraft').lean();
+            contactStateVerified = Boolean(
+                finalState?.metadata?.customerDraft?.orderId === order.orderId
+                && finalState?.metadata?.customerDraft?.status === 'confirmado'
+            );
+            if (!contactStateVerified) {
+                const error = new Error('A leitura final da ficha nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.');
+                error.status = 409;
+                error.code = 'confirmed_contact_state_read_after_write_failed';
+                error.confirmedPersistence = confirmedPersistence;
+                throw error;
+            }
+        }
+        return {
+            order,
+            repurchase: false,
+            reused: Boolean(order._mappedFromAdminLead),
+            previousOrderId: '',
+            confirmedPersistence,
+            contactStateVerified
+        };
     }
     if (!historical.order) {
         const error = new Error('Pedido anterior entregue nao encontrado para registrar a recompra.');
@@ -692,6 +757,34 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
         state.markModified('metadata');
         await state.save();
     }
+    const confirmedPersistence = persistConfirmedOrderToOnlineAdminPanelV158(order, {
+        action: 'admin_lead_stage_repurchase_confirmed_v158',
+        leadId,
+        requestedBy,
+        correlationId
+    });
+    if (!confirmedPersistence.ok) {
+        const error = new Error('A recompra foi preservada no Mongo, mas a lista Confirmados nao comprovou a persistencia. Nenhum sucesso foi declarado.');
+        error.status = confirmedPersistence.reason === 'lead_not_found' ? 404 : 409;
+        error.code = confirmedPersistence.reason || 'confirmed_panel_persistence_failed';
+        error.confirmedPersistence = confirmedPersistence;
+        throw error;
+    }
+    let contactStateVerified = !state;
+    if (state) {
+        const finalState = await ContactState.findById(state._id).select('metadata.customerDraft').lean();
+        contactStateVerified = Boolean(
+            finalState?.metadata?.customerDraft?.orderId === order.orderId
+            && finalState?.metadata?.customerDraft?.status === 'confirmado'
+        );
+        if (!contactStateVerified) {
+            const error = new Error('A leitura final da ficha da recompra nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.');
+            error.status = 409;
+            error.code = 'confirmed_contact_state_read_after_write_failed';
+            error.confirmedPersistence = confirmedPersistence;
+            throw error;
+        }
+    }
     const purchase = await ensurePurchaseForStagedOrder({
         order,
         req,
@@ -702,7 +795,9 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
         purchase,
         repurchase: true,
         reused: decision.reused,
-        previousOrderId: decision.previousOrderId
+        previousOrderId: decision.previousOrderId,
+        confirmedPersistence,
+        contactStateVerified
     };
 };
 
@@ -2034,6 +2129,16 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (
             repurchase: staged.repurchase,
             reused: staged.reused,
             previousOrderId: staged.previousOrderId,
+            persistenceVerified: staged.confirmedPersistence?.persistenceVerified === true,
+            readAfterWriteVerified: staged.confirmedPersistence?.readAfterWriteVerified === true,
+            visibleInConfirmedQuery: staged.confirmedPersistence?.visibleInConfirmedQuery === true,
+            contactStateVerified: staged.contactStateVerified === true,
+            matchedCount: Number(staged.confirmedPersistence?.matchedCount || 0),
+            modifiedCount: Number(staged.confirmedPersistence?.modifiedCount || 0),
+            previousState: staged.confirmedPersistence?.previousStatus || '',
+            requestedState: staged.confirmedPersistence?.requestedStatus || 'confirmado',
+            finalPersistedState: staged.confirmedPersistence?.finalStatus || '',
+            correlationId: staged.confirmedPersistence?.correlationId || '',
             authorizationRequired: true,
             dropiAuthorized: false,
             dropiSubmitted: false,
@@ -2051,7 +2156,16 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (
         return res.status(error.status || 500).json({
             success: false,
             error: error.code || 'stage_confirmed_admin_lead_failed',
-            message: error.message || 'Falha ao registrar pedido confirmado.'
+            message: error.message || 'Falha ao registrar pedido confirmado.',
+            persistenceVerified: false,
+            readAfterWriteVerified: false,
+            falseSuccessPrevented: true,
+            ...(error.confirmedPersistence ? {
+                matchedCount: Number(error.confirmedPersistence.matchedCount || 0),
+                modifiedCount: Number(error.confirmedPersistence.modifiedCount || 0),
+                finalPersistedState: error.confirmedPersistence.finalStatus || '',
+                correlationId: error.confirmedPersistence.correlationId || ''
+            } : {})
         });
     }
 });

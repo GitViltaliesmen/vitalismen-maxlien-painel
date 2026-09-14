@@ -8,6 +8,11 @@ const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(pa
 const manifestPath = 'docs/freeze/ec-dropi-preflight-repair-v157-20260913.json';
 const text = read(manifestPath);
 const manifest = JSON.parse(text);
+const v158ManifestPath = 'docs/freeze/ec-panel-confirmed-persistence-v158-20260914.json';
+const v158 = fs.existsSync(path.resolve(v158ManifestPath))
+    ? JSON.parse(read(v158ManifestPath))
+    : { overrides: [] };
+const v158Overrides = new Set(v158.overrides || []);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_DROPI_PREFLIGHT_REPAIR_V157_20260913');
@@ -17,6 +22,7 @@ assert.equal(manifest.parentTree, 'f7e7f1fa2b445bb05fe3a77a07889c5252617b83');
 assert.equal(manifest.parentManifestSha256, '2d1baf5011c0d5aebcd8498af6b6895a643e43a7e22947e70e27cce812bd55e2');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (v158Overrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V157 protected file diverged: ${relative}`);
 }
 

@@ -1319,3 +1319,23 @@ nenhuma alteração realizada no VPS.
 - Documento e freeze: `docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md` e
   `docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json`.
 - Estado desta camada: candidata local; produção continua na V143 até aprovação.
+
+## Registro V158 — persistência confirmada do painel EC (2026-09-14)
+
+- Base oficial preservada: V157 `d5f898d5fb59be87307aaa36bfb02f03c688704b`.
+- Incidente: o aceite humano podia salvar `ContactState` e ainda retornar sucesso
+  sem criar o `Order` e sem deixar a linha SQLite visível em `Confirmados`.
+- Fontes oficiais corrigidas: `src/routes/whatsapp.js`,
+  `src/routes/shipments.js`, `src/services/adminPanelStatusService.js`,
+  `src/services/ecPanelStatusStateLayerV125Service.js`, `public/qr.html` e
+  `public/leads-window.html`.
+- Reparo unitário: `scripts/repair-ec-confirmed-order-v158.mjs`, sempre com
+  snapshot root-only anterior à mutação e sem WhatsApp, Dropi ou Meta/CAPI.
+- Freeze, manifesto e guard:
+  `docs/EC_PANEL_CONFIRMED_PERSISTENCE_FREEZE_V158_20260914.md`,
+  `docs/freeze/ec-panel-confirmed-persistence-v158-20260914.json` e
+  `scripts/guard-panel-confirmed-persistence-v158.mjs`.
+- Backup de produção anterior ao código:
+  `/opt/vitalismen-automacao/backups/v158-confirmed-incident-prechange-20260914T031115Z`.
+- Release, tag, ativação, reparo e validação pública são registrados no fechamento
+  operacional após conclusão da cadeia oficial.

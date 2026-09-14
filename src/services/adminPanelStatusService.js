@@ -82,9 +82,15 @@ const isArchivedDuplicateOrder = (order) => {
         && /duplicad|duplicate/.test(text);
 };
 
+const CURRENT_CYCLE_ENTRY_REASONS = new Set([
+    'repeat_purchase_after_delivered',
+    'new_purchase_after_terminal',
+    'admin_panel_confirmed_whatsapp_mirror'
+]);
+
 export const adminRepurchaseCycleFlag = (order = {}) => Number(Boolean(
     String(order.previousOrderId || '').trim()
-    && String(order.entryReason || '').trim() === 'repeat_purchase_after_delivered'
+    && CURRENT_CYCLE_ENTRY_REASONS.has(String(order.entryReason || '').trim())
 ));
 
 const runAdminPanelPython = ({ country, python }) => {
@@ -360,7 +366,15 @@ con.close()
     return runAdminPanelPython({ country: normalizedCountry, python });
 };
 
-export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_sync' } = {}) => {
+export const syncOrderToOnlineAdminPanel = (order, {
+    status,
+    action = 'order_sync',
+    requireExistingLead = false,
+    forceHumanConfirmedCycle = false,
+    requiredLeadId = '',
+    requestedBy = '',
+    correlationId = ''
+} = {}) => {
     if (!order || process.env.ONLINE_ADMIN_PANEL_SYNC_ENABLED === 'false') {
         return { ok: false, skipped: true, reason: 'disabled_or_missing_order' };
     }
@@ -373,9 +387,11 @@ export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_syn
     if (!dbPath) return { ok: false, skipped: true, reason: 'unsupported_country' };
 
     const quantity = normalizeAdminPackageQuantity(order.package?.quantity ?? order.package?.id);
+    const exactRequiredLeadId = Number.parseInt(String(requiredLeadId || '').replace(/\D/g, ''), 10) || 0;
     const payload = {
         order_id: String(order.orderId || '').trim(),
-        admin_lead_id: resolveAdminLeadId(order.orderId),
+        admin_lead_id: exactRequiredLeadId || resolveAdminLeadId(order.orderId),
+        required_lead_id: exactRequiredLeadId,
         country,
         name: String(order.customer?.name || '').trim(),
         phone: String(order.customer?.phone || '').trim(),
@@ -393,6 +409,10 @@ export const syncOrderToOnlineAdminPanel = (order, { status, action = 'order_syn
         }),
         notes: String(order.notes || '').trim(),
         action,
+        require_existing_lead: requireExistingLead === true,
+        force_human_confirmed_cycle: forceHumanConfirmedCycle === true,
+        requested_by: String(requestedBy || '').trim(),
+        correlation_id: String(correlationId || '').trim(),
         db_path: dbPath,
         tracking: {
             fbp: order.tracking?.fbp || '',
@@ -427,6 +447,8 @@ def canonical_event_id(country, lead_id):
     return (str(country or "EC").strip().upper() or "EC") + "-ADMIN-" + str(int(lead_id))
 
 def pick_existing():
+    if payload.get("required_lead_id"):
+        return cur.execute("SELECT id, status, notes FROM leads WHERE id=?", (int(payload["required_lead_id"]),)).fetchone()
     if payload.get("admin_lead_id"):
         row = cur.execute("SELECT id, status, notes FROM leads WHERE id=?", (int(payload["admin_lead_id"]),)).fetchone()
         if row: return row
@@ -464,6 +486,20 @@ def build_notes(existing_notes=""):
     return (base + "\\n" + detail).strip() if base else detail
 
 existing = pick_existing()
+if not existing and payload.get("require_existing_lead"):
+    con.close()
+    print(json.dumps({
+        "ok": False,
+        "reason": "lead_not_found",
+        "matchedCount": 0,
+        "modifiedCount": 0,
+        "requestedStatus": payload.get("status", ""),
+        "finalStatus": "",
+        "statusVerified": False,
+        "visibleInConfirmedQuery": False,
+        "correlationId": payload.get("correlation_id", "")
+    }))
+    raise SystemExit(0)
 fields = {
     "name": payload.get("name", ""),
     "phone": payload.get("phone", ""),
@@ -507,6 +543,8 @@ def should_keep_existing_status(old_status, incoming_status):
     new = str(incoming_status or "").strip().lower()
     if not old or not new or old == new:
         return False
+    if payload.get("force_human_confirmed_cycle") and new == "confirmado":
+        return False
     if payload.get("repurchase_cycle") and old in {"entregue", "recompra"} and new in {"confirmado", "pedido_enviado", "enviado"}:
         return False
     if old in archived_statuses:
@@ -532,6 +570,7 @@ if existing:
     assignments = ", ".join([f"{k}=?" for k in fields])
     cur.execute(f"UPDATE leads SET {assignments} WHERE id=?", list(fields.values()) + [lead_id])
     mode = "updated"
+    matched_count = 1
 else:
     if "created_at" in cols:
         fields["created_at"] = now
@@ -543,6 +582,7 @@ else:
     lead_id = cur.lastrowid
     old_status = ""
     mode = "created"
+    matched_count = 1
 
 if "event_id" in cols:
     canonical_id = canonical_event_id(payload.get("country") or "EC", lead_id)
@@ -565,11 +605,66 @@ if {"lead_id", "old_status", "new_status", "created_at"}.issubset(status_hist_co
         )
 con.commit()
 changed = con.total_changes
+final_row = cur.execute("SELECT status, event_id FROM leads WHERE id=?", (lead_id,)).fetchone()
+final_status = str(final_row[0] or "").strip().lower() if final_row else ""
+final_event_id = str(final_row[1] or "").strip() if final_row and len(final_row) > 1 else ""
+requested_status = str(payload.get("status") or "").strip().lower()
+status_verified = final_status == requested_status
+modified_count = 1 if str(old_status or "").strip().lower() != final_status else 0
 con.close()
-print(json.dumps({"ok": True, "mode": mode, "lead_id": lead_id, "status": fields.get("status", payload.get("status")), "changed": changed}))
+print(json.dumps({
+    "ok": True,
+    "mode": mode,
+    "lead_id": lead_id,
+    "eventId": final_event_id,
+    "previousStatus": str(old_status or "").strip().lower(),
+    "requestedStatus": requested_status,
+    "status": final_status,
+    "finalStatus": final_status,
+    "matchedCount": matched_count,
+    "modifiedCount": modified_count,
+    "changed": changed,
+    "statusVerified": status_verified,
+    "visibleInConfirmedQuery": final_status == "confirmado",
+    "requestedBy": payload.get("requested_by", ""),
+    "correlationId": payload.get("correlation_id", "")
+}))
 `;
 
     return runAdminPanelPython({ country, python });
+};
+
+export const isConfirmedPersistenceVerifiedV158 = (result = {}) => Boolean(
+    result?.ok === true
+    && Number(result.matchedCount) === 1
+    && result.finalStatus === 'confirmado'
+    && result.statusVerified === true
+    && result.visibleInConfirmedQuery === true
+);
+
+export const persistConfirmedOrderToOnlineAdminPanelV158 = (order, {
+    action = 'panel_confirmed_v158',
+    leadId = '',
+    requestedBy = '',
+    correlationId = ''
+} = {}) => {
+    const result = syncOrderToOnlineAdminPanel(order, {
+        status: 'confirmed',
+        action,
+        requireExistingLead: true,
+        forceHumanConfirmedCycle: true,
+        requiredLeadId: leadId,
+        requestedBy,
+        correlationId
+    });
+    const verified = isConfirmedPersistenceVerifiedV158(result);
+    return {
+        ...result,
+        ok: verified,
+        persistenceVerified: verified,
+        readAfterWriteVerified: verified,
+        falseSuccessPrevented: !verified
+    };
 };
 
 export const syncContactDraftToOnlineAdminPanel = (draft = {}, { country = 'EC', note = '', action = 'contact_draft_sync', adminStatus = '' } = {}) => {

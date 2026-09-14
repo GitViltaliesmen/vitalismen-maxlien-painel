@@ -28,7 +28,11 @@ import {
     listReengagementCandidates,
     sendReengagementToChat
 } from '../services/reengagementService.js';
-import { recordOnlineAdminPurchaseLock, syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import {
+    persistConfirmedOrderToOnlineAdminPanelV158,
+    recordOnlineAdminPurchaseLock,
+    syncContactDraftToOnlineAdminPanel
+} from '../services/adminPanelStatusService.js';
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
@@ -6349,6 +6353,180 @@ router.patch('/contact-state/:phone', async (req, res) => {
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
+        let confirmedPersistence = null;
+        if (deferredOperationalOrderDraft) {
+            const correlationId = `panel-confirm-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+            const operator = req.user?.email || req.user?.name || 'panel';
+            const leadId = String(unifiedSync?.lead_id || unifiedSync?.leadId || unifiedSync?.id || '').replace(/\D/g, '');
+            const adminOrderId = leadId ? `EC-ADMIN-${leadId}` : '';
+            const failConfirmedPersistence = (status, code, message, detail = {}) => {
+                console.error('[PANEL_CONFIRM_V158]', JSON.stringify({
+                    event: 'panel_confirm_failure',
+                    correlationId,
+                    leadId,
+                    orderId: operationalOrderSync?.orderId || '',
+                    operator,
+                    requestedState: 'confirmado',
+                    code,
+                    ...detail,
+                    timestamp: new Date().toISOString()
+                }));
+                return res.status(status).json({
+                    success: false,
+                    error: code,
+                    message,
+                    correlationId,
+                    confirmedPersistence: {
+                        persistenceVerified: false,
+                        readAfterWriteVerified: false,
+                        falseSuccessPrevented: true,
+                        ...detail
+                    }
+                });
+            };
+
+            if (!unifiedSync?.ok || !leadId) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_lead_persistence_failed',
+                    'A ficha foi preservada, mas o pedido nao foi confirmado. Atualize o painel e tente novamente.',
+                    {
+                        matchedCount: Number(unifiedSync?.matchedCount || 0),
+                        modifiedCount: Number(unifiedSync?.modifiedCount || 0),
+                        finalPersistedState: unifiedSync?.finalStatus || unifiedSync?.status || ''
+                    }
+                );
+            }
+
+            if (!operationalOrderSync?.ok) {
+                const persistedDraft = state.metadata?.customerDraft || deferredOperationalOrderDraft;
+                const hasOrderIdentity = [
+                    persistedDraft.orderId,
+                    persistedDraft.currentNegotiationOrderId,
+                    persistedDraft.previousOrderId,
+                    persistedDraft.sourceOrderId
+                ].some((value) => String(value || '').trim());
+                const retryDraft = {
+                    ...persistedDraft,
+                    ...(!hasOrderIdentity ? {
+                        orderId: adminOrderId,
+                        sourceOrderId: adminOrderId,
+                        previousOrderId: adminOrderId
+                    } : {})
+                };
+                try {
+                    operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({
+                        draft: retryDraft,
+                        req,
+                        state
+                    });
+                } catch (error) {
+                    operationalOrderSync = customerStateSavedOrderSyncFailureV123(error);
+                }
+            }
+
+            if (!operationalOrderSync?.ok || !operationalOrderSync?.orderId) {
+                return failConfirmedPersistence(
+                    409,
+                    operationalOrderSync?.errorCode || 'panel_confirm_order_persistence_failed',
+                    'A ficha foi preservada, mas o pedido operacional nao foi confirmado. Nenhum envio externo foi feito.',
+                    {
+                        matchedCount: 0,
+                        modifiedCount: 0,
+                        finalPersistedState: operationalOrderSync?.reason || 'order_missing'
+                    }
+                );
+            }
+
+            const persistedOrder = await Order.findOne({
+                country: 'EC',
+                orderId: operationalOrderSync.orderId
+            });
+            if (!persistedOrder || persistedOrder.status !== 'confirmed' || !persistedOrder.confirmedAt) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_order_read_after_write_failed',
+                    'O pedido nao permaneceu no estado confirmado. Nenhum sucesso foi declarado.',
+                    {
+                        matchedCount: persistedOrder ? 1 : 0,
+                        modifiedCount: 0,
+                        finalPersistedState: persistedOrder?.status || 'missing'
+                    }
+                );
+            }
+
+            const panelPersistence = persistConfirmedOrderToOnlineAdminPanelV158(persistedOrder, {
+                action: 'panel_confirmed_human_v158',
+                leadId,
+                requestedBy: operator,
+                correlationId
+            });
+            if (!panelPersistence.ok) {
+                return failConfirmedPersistence(
+                    panelPersistence.reason === 'lead_not_found' ? 404 : 409,
+                    panelPersistence.reason || 'panel_confirm_sqlite_read_after_write_failed',
+                    'O pedido foi preservado, mas a lista Confirmados nao confirmou a persistencia. Atualize e tente novamente.',
+                    {
+                        matchedCount: Number(panelPersistence.matchedCount || 0),
+                        modifiedCount: Number(panelPersistence.modifiedCount || 0),
+                        finalPersistedState: panelPersistence.finalStatus || ''
+                    }
+                );
+            }
+
+            state.metadata = {
+                ...(state.metadata || {}),
+                customerDraft: {
+                    ...((state.metadata || {}).customerDraft || {}),
+                    orderId: persistedOrder.orderId,
+                    sourceOrderId: adminOrderId,
+                    previousOrderId: persistedOrder.previousOrderId || adminOrderId,
+                    currentNegotiationOrderId: persistedOrder.orderId,
+                    status: 'confirmado',
+                    updatedAt: new Date().toISOString()
+                }
+            };
+            state.markModified('metadata');
+            await state.save();
+            const reloadedOrder = await Order.findOne({
+                country: 'EC',
+                orderId: persistedOrder.orderId,
+                status: 'confirmed',
+                confirmedAt: { $ne: null }
+            }).lean();
+            if (!reloadedOrder) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_final_read_after_write_failed',
+                    'A leitura final nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.',
+                    {
+                        matchedCount: 0,
+                        modifiedCount: Number(panelPersistence.modifiedCount || 0),
+                        finalPersistedState: 'missing'
+                    }
+                );
+            }
+            confirmedPersistence = {
+                persistenceVerified: true,
+                readAfterWriteVerified: true,
+                visibleInConfirmedQuery: true,
+                falseSuccessPrevented: true,
+                correlationId,
+                leadId,
+                orderId: persistedOrder.orderId,
+                previousState: panelPersistence.previousStatus || '',
+                requestedState: 'confirmado',
+                finalPersistedState: panelPersistence.finalStatus,
+                matchedCount: Number(panelPersistence.matchedCount || 0),
+                modifiedCount: Number(panelPersistence.modifiedCount || 0)
+            };
+            console.info('[PANEL_CONFIRM_V158]', JSON.stringify({
+                event: 'panel_confirm_success',
+                ...confirmedPersistence,
+                operator,
+                timestamp: new Date().toISOString()
+            }));
+        }
         if (
             operationalOrderSync?.orderId
             && operationalOrderSync?.purchase?.eventId
@@ -6370,7 +6548,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
             state,
             unifiedSync,
             operationalOrderSync,
-            customerDataBlockedResponse
+            customerDataBlockedResponse,
+            confirmedPersistence
         }));
     } catch (error) {
         console.error('Update contact state error:', error);

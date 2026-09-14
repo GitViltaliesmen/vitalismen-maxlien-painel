@@ -34,12 +34,14 @@ export const customerStateResponseV125 = ({
     state,
     unifiedSync,
     operationalOrderSync,
-    customerDataBlockedResponse = null
+    customerDataBlockedResponse = null,
+    confirmedPersistence = null
 } = {}) => ({
     success: true,
     state,
     unifiedSync,
     operationalOrderSync,
+    ...(confirmedPersistence ? { confirmedPersistence } : {}),
     ...(customerDataBlockedResponse ? {
         customerStateSaved: true,
         orderBlocked: true,

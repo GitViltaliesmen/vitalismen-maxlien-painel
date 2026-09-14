@@ -1300,6 +1300,29 @@
             return data;
         };
 
+        const assertConfirmedPersistenceV158 = (result = {}) => {
+            const verified = result.success === true
+                && result.persistenceVerified === true
+                && result.readAfterWriteVerified === true
+                && result.visibleInConfirmedQuery === true
+                && Number(result.matchedCount || 0) === 1
+                && normalizePanelStatus(result.finalPersistedState) === 'confirmado';
+            if (!verified) {
+                const error = new Error('A confirmacao nao foi comprovada no painel. Atualize e tente novamente; nenhum sucesso foi declarado.');
+                error.data = result;
+                throw error;
+            }
+            return result;
+        };
+
+        const assertConfirmedLeadVisibleV158 = (leadId) => {
+            const persistedLead = state.leads.find((item) => String(item.id) === String(leadId));
+            if (!persistedLead || normalizePanelStatus(persistedLead.status) !== 'confirmado') {
+                throw new Error('A leitura final nao encontrou o cliente em Confirmados. O painel nao declarou sucesso.');
+            }
+            return persistedLead;
+        };
+
         const parseDropiProductMarker = (value = '') => {
             const match = String(value || '').match(
                 /\[DROPI_PRODUCT\]\s*key=([^;\r\n]+);\s*name=([^;\r\n]+);\s*priceCatalog=([^;\r\n]+);\s*quantity=(\d+);\s*total=([0-9.,]+)/i
@@ -2357,6 +2380,7 @@
                                 || isRepurchaseLead(lead)
                         })
                     });
+                    assertConfirmedPersistenceV158(result);
                     select.dataset.prev = 'confirmado';
                     lead.status = 'confirmado';
                     lead._opsStatus = 'confirmado';
@@ -2370,6 +2394,7 @@
                     notifyIntegratedPanelStatus(lead, 'confirmado');
                     if (msg) msg.textContent = 'salvo';
                     await fetchLeads();
+                    assertConfirmedLeadVisibleV158(id);
                     return;
                 }
 
@@ -2435,6 +2460,7 @@
                             forceRepurchase: repurchaseCandidate
                         })
                     });
+                    assertConfirmedPersistenceV158(result);
                     lead.status = 'confirmado';
                     lead._opsStatus = 'confirmado';
                     lead._ops = {
@@ -2445,6 +2471,7 @@
                     state.dropiMessages.set(id, { text: result.message || 'em confirmados', error: false, success: true });
                     notifyIntegratedPanelStatus(lead, 'confirmado');
                     await fetchLeads();
+                    assertConfirmedLeadVisibleV158(id);
                     return;
                 }
 
