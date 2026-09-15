@@ -12,6 +12,7 @@ const ECUADOR_UTC_OFFSET_HOURS = 5;
 const REMINDER_LOCK_MINUTES = 10;
 const REMINDER_WINDOW_START_DAYS = 4;
 const REMINDER_WINDOW_END_DAYS = 3;
+const MAX_AUTOMATIC_ATTEMPTS = 1;
 const PRODUCT_CUSTOMER_NAMES = new Map([
     [ECUADOR_PRODUCTS.texUltra.key, 'Tex Ultra'],
     [ECUADOR_PRODUCTS.nitrix.key, 'Nitrix Oxide'],
@@ -27,6 +28,108 @@ const subdocumentValue = (value) => value?.toObject?.() || value || {};
 const firstCustomerName = (...values) => {
     const fullName = texUltraCustomerName(...values);
     return fullName ? fullName.split(/\s+/)[0] : '';
+};
+
+export const isValidEcuadorBuyLaterPhone = (value = '') => /^593\d{8,13}$/.test(digitsOnly(value));
+
+const reminderValue = (state = {}) => subdocumentValue(state.buyLaterReminder);
+
+export const isBuyLaterOperationalCandidate = (state = {}, now = new Date()) => {
+    const reminder = reminderValue(state);
+    const draft = state.metadata?.customerDraft || {};
+    const currentTime = dateValue(now);
+    const desiredOrderDate = normalizeBuyLaterDesiredDate(reminder.desiredOrderDate);
+    const product = getEcuadorProductInfoByKey(reminder.productKey);
+    const phone = digitsOnly(state.phoneDigits || draft.phone || state.chatId);
+    const start = dateValue(reminder.windowStartAt);
+    const end = dateValue(reminder.windowEndAt);
+    return Boolean(
+        currentTime
+        && state.countryCode === 'EC'
+        && String(draft.status || '').trim() === 'comprar_depois'
+        && reminder.active === true
+        && reminder.sentAt == null
+        && reminder.failedAt == null
+        && Number(reminder.attemptCount || 0) < MAX_AUTOMATIC_ATTEMPTS
+        && desiredOrderDate
+        && product
+        && isValidEcuadorBuyLaterPhone(phone)
+        && start
+        && end
+        && start <= currentTime
+        && end >= currentTime
+        && (!reminder.lockUntil || (
+            dateValue(reminder.lockUntil)
+            && dateValue(reminder.lockUntil) <= currentTime
+        ))
+    );
+};
+
+export const buyLaterOperationalCandidateQuery = (now = new Date()) => {
+    const currentTime = dateValue(now) || new Date();
+    return {
+        countryCode: 'EC',
+        'metadata.customerDraft.status': 'comprar_depois',
+        'buyLaterReminder.active': true,
+        'buyLaterReminder.sentAt': null,
+        'buyLaterReminder.failedAt': null,
+        'buyLaterReminder.desiredOrderDate': /^\d{4}-\d{2}-\d{2}$/,
+        'buyLaterReminder.productKey': { $in: [...PRODUCT_CUSTOMER_NAMES.keys()] },
+        'buyLaterReminder.windowStartAt': { $lte: currentTime },
+        'buyLaterReminder.windowEndAt': { $gte: currentTime },
+        $and: [
+            {
+                $or: [
+                    { phoneDigits: /^593\d{8,13}$/ },
+                    { 'metadata.customerDraft.phone': /^\+?593\d{8,13}$/ },
+                    { chatId: /^593\d{8,13}@(c\.us|s\.whatsapp\.net)$/ }
+                ]
+            },
+            {
+                $or: [
+                    { 'buyLaterReminder.attemptCount': { $exists: false } },
+                    { 'buyLaterReminder.attemptCount': { $lt: MAX_AUTOMATIC_ATTEMPTS } }
+                ]
+            },
+            {
+                $or: [
+                    { 'buyLaterReminder.lockUntil': null },
+                    { 'buyLaterReminder.lockUntil': { $exists: false } },
+                    { 'buyLaterReminder.lockUntil': { $lte: currentTime } }
+                ]
+            }
+        ]
+    };
+};
+
+const findOperationalCandidates = async ({ now, limit = 0, contactStateModel = ContactState } = {}) => {
+    const currentTime = dateValue(now) || new Date();
+    let query = contactStateModel.find(buyLaterOperationalCandidateQuery(currentTime))
+        .sort({ 'buyLaterReminder.windowStartAt': 1, _id: 1 })
+        .select('_id chatId phoneDigits countryCode assignedAgent metadata.customerDraft buyLaterReminder');
+    if (Number(limit) > 0) query = query.limit(Math.max(Number(limit) * 10, 20));
+    const candidates = await query.lean();
+    const valid = candidates.filter((candidate) => isBuyLaterOperationalCandidate(candidate, currentTime));
+    return Number(limit) > 0 ? valid.slice(0, Number(limit)) : valid;
+};
+
+export const observeAdminBuyLaterFollowups = async ({ now = new Date(), contactStateModel = ContactState } = {}) => {
+    const currentTime = dateValue(now) || new Date();
+    const candidates = await findOperationalCandidates({ now: currentTime, contactStateModel });
+    return {
+        ok: true,
+        mode: 'observe',
+        observedAt: currentTime.toISOString(),
+        candidates: candidates.length,
+        items: candidates.map((state) => ({
+            id: String(state._id),
+            phoneTail: digitsOnly(state.phoneDigits || state.metadata?.customerDraft?.phone || state.chatId).slice(-4),
+            desiredOrderDate: state.buyLaterReminder.desiredOrderDate,
+            productKey: state.buyLaterReminder.productKey,
+            windowStartAt: dateValue(state.buyLaterReminder.windowStartAt)?.toISOString() || '',
+            windowEndAt: dateValue(state.buyLaterReminder.windowEndAt)?.toISOString() || ''
+        }))
+    };
 };
 
 export const normalizeBuyLaterDesiredDate = (value = '') => {
@@ -171,7 +274,7 @@ const messageHistoryQuery = ({ phone = '', chatId = '', body = '' } = {}) => {
     };
 };
 
-const releaseReminderLock = ({ stateId, lockedAt, now, error }) => ContactState.updateOne(
+const releaseReminderLock = ({ stateId, lockedAt, now, error, contactStateModel = ContactState }) => contactStateModel.updateOne(
     { _id: stateId, 'buyLaterReminder.lockedAt': lockedAt },
     {
         $set: {
@@ -185,7 +288,7 @@ const releaseReminderLock = ({ stateId, lockedAt, now, error }) => ContactState.
     }
 );
 
-const markReminderAsSent = ({ state, lockedAt, sentAt, providerMessageId = '', body = '' }) => ContactState.updateOne(
+const markReminderAsSent = ({ state, lockedAt, sentAt, providerMessageId = '', body = '', contactStateModel = ContactState }) => contactStateModel.updateOne(
     { _id: state._id, 'buyLaterReminder.lockedAt': lockedAt },
     {
         $set: {
@@ -210,54 +313,68 @@ const markReminderAsSent = ({ state, lockedAt, sentAt, providerMessageId = '', b
     }
 );
 
-const claimReminder = ({ stateId, now }) => {
+const claimReminder = ({ candidate, now, contactStateModel = ContactState }) => {
     const lockedAt = new Date(now);
     const lockUntil = new Date(lockedAt.getTime() + REMINDER_LOCK_MINUTES * 60 * 1000);
-    return ContactState.findOneAndUpdate(
-        {
-            _id: stateId,
+    const query = {
+            _id: candidate._id,
+            countryCode: 'EC',
+            'metadata.customerDraft.status': 'comprar_depois',
             'buyLaterReminder.active': true,
             'buyLaterReminder.sentAt': null,
             'buyLaterReminder.failedAt': null,
+            'buyLaterReminder.desiredOrderDate': candidate.buyLaterReminder.desiredOrderDate,
+            'buyLaterReminder.productKey': candidate.buyLaterReminder.productKey,
             'buyLaterReminder.windowStartAt': { $lte: lockedAt },
             'buyLaterReminder.windowEndAt': { $gte: lockedAt },
-            $or: [
-                { 'buyLaterReminder.lockUntil': null },
-                { 'buyLaterReminder.lockUntil': { $exists: false } },
-                { 'buyLaterReminder.lockUntil': { $lte: lockedAt } }
+            $and: [
+                {
+                    $or: [
+                        { 'buyLaterReminder.attemptCount': { $exists: false } },
+                        { 'buyLaterReminder.attemptCount': { $lt: MAX_AUTOMATIC_ATTEMPTS } }
+                    ]
+                },
+                {
+                    $or: [
+                        { 'buyLaterReminder.lockUntil': null },
+                        { 'buyLaterReminder.lockUntil': { $exists: false } },
+                        { 'buyLaterReminder.lockUntil': { $lte: lockedAt } }
+                    ]
+                }
             ]
-        },
-        {
+        };
+    const update = {
             $set: {
                 'buyLaterReminder.lockedAt': lockedAt,
                 'buyLaterReminder.lockUntil': lockUntil
             }
-        },
-        { new: true }
-    );
+        };
+    return contactStateModel === ContactState
+        ? ContactState.findOneAndUpdate(query, update, { new: true })
+        : contactStateModel.findOneAndUpdate(query, update, { new: true });
 };
 
-export const processAdminBuyLaterFollowups = async ({ limit = 5, now = new Date() } = {}) => {
+export const processAdminBuyLaterFollowups = async ({
+    limit = 5,
+    now = new Date(),
+    contactStateModel = ContactState,
+    messageModel = Message,
+    sendTextFn = sendText,
+    recipientGuard = isAutomationRecipientAllowed
+} = {}) => {
     const currentTime = dateValue(now) || new Date();
     const safeLimit = Math.max(1, Math.min(Number.parseInt(String(limit || 5), 10) || 5, 20));
-    const candidates = await ContactState.find({
-        countryCode: 'EC',
-        'buyLaterReminder.active': true,
-        'buyLaterReminder.sentAt': null,
-        'buyLaterReminder.failedAt': null,
-        'buyLaterReminder.windowStartAt': { $lte: currentTime },
-        'buyLaterReminder.windowEndAt': { $gte: currentTime }
-    })
-        .sort({ 'buyLaterReminder.windowStartAt': 1, _id: 1 })
-        .limit(safeLimit)
-        .select('_id chatId phoneDigits countryCode assignedAgent metadata.customerDraft buyLaterReminder')
-        .lean();
+    const candidates = await findOperationalCandidates({
+        now: currentTime,
+        limit: safeLimit,
+        contactStateModel
+    });
 
     let processed = 0;
     let sent = 0;
     const items = [];
     for (const candidate of candidates) {
-        const state = await claimReminder({ stateId: candidate._id, now: currentTime });
+        const state = await claimReminder({ candidate, now: currentTime, contactStateModel });
         if (!state) continue;
         processed += 1;
         const lockedAt = state.buyLaterReminder.lockedAt;
@@ -271,26 +388,33 @@ export const processAdminBuyLaterFollowups = async ({ limit = 5, now = new Date(
             desiredOrderDate: state.buyLaterReminder.desiredOrderDate,
             now: currentTime
         });
-        const safety = isAutomationRecipientAllowed(phone);
+        const safety = recipientGuard(phone);
         if (!jid || !body || !safety.allowed) {
             const reason = !jid ? 'invalid_phone' : (!body ? 'invalid_reminder_contract' : safety.reason);
-            await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: reason });
+            await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: reason, contactStateModel });
             items.push({ id: String(state._id), sent: false, reason });
             continue;
         }
 
-        const previousMessage = await Message.findOne(messageHistoryQuery({
+        const historyQuery = messageHistoryQuery({
             phone,
             chatId: state.chatId,
             body
-        })).sort({ createdAt: -1 }).select('_id createdAt providerMessageId').lean();
+        });
+        const historyLookup = messageModel === Message
+            ? Message.findOne(historyQuery)
+            : messageModel.findOne(historyQuery);
+        const previousMessage = await historyLookup.sort({ createdAt: -1 })
+            .select('_id createdAt providerMessageId')
+            .lean();
         if (previousMessage) {
             await markReminderAsSent({
                 state,
                 lockedAt,
                 sentAt: previousMessage.createdAt || currentTime,
                 providerMessageId: previousMessage.providerMessageId || String(previousMessage._id || ''),
-                body
+                body,
+                contactStateModel
             });
             items.push({ id: String(state._id), sent: false, reason: 'recovered_from_history' });
             continue;
@@ -298,9 +422,10 @@ export const processAdminBuyLaterFollowups = async ({ limit = 5, now = new Date(
 
         const antiSpamKey = `buy_later_date:${state._id}:${state.buyLaterReminder.desiredOrderDate}:${state.buyLaterReminder.productKey}`;
         try {
-            const result = await sendText(jid, body, null, {
+            const result = await sendTextFn(jid, body, null, {
                 recipientDigits: phone,
-                sessionId: state.metadata?.lastSessionId || null,
+                sessionId: 'zapi',
+                provider: 'zapi',
                 country: 'EC',
                 force: false,
                 humanize: false,
@@ -311,7 +436,7 @@ export const processAdminBuyLaterFollowups = async ({ limit = 5, now = new Date(
             });
             if (!result?.ok) {
                 const reason = result?.error || result?.providerStatus || 'send_failed';
-                await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: reason });
+                await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: reason, contactStateModel });
                 items.push({ id: String(state._id), sent: false, reason });
                 continue;
             }
@@ -320,12 +445,13 @@ export const processAdminBuyLaterFollowups = async ({ limit = 5, now = new Date(
                 lockedAt,
                 sentAt: currentTime,
                 providerMessageId: result.providerMessageId || '',
-                body
+                body,
+                contactStateModel
             });
             sent += 1;
             items.push({ id: String(state._id), sent: true, reason: 'sent' });
         } catch (error) {
-            await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: error.message });
+            await releaseReminderLock({ stateId: state._id, lockedAt, now: currentTime, error: error.message, contactStateModel });
             items.push({ id: String(state._id), sent: false, reason: error.message });
         }
     }
@@ -337,7 +463,7 @@ export const BUY_LATER_REMINDER_POLICY = Object.freeze({
     windowStartDaysBefore: REMINDER_WINDOW_START_DAYS,
     windowEndDaysBefore: REMINDER_WINDOW_END_DAYS,
     lockMinutes: REMINDER_LOCK_MINUTES,
-    maxAutomaticAttempts: 1,
+    maxAutomaticAttempts: MAX_AUTOMATIC_ATTEMPTS,
     sendsMedia: false,
     createsOrder: false,
     sendsDropi: false,

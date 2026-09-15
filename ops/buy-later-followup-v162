@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+log_dir="/var/log/vitalismen-deploy"
+lock_file="$state_dir/buy-later-followup-v162.lock"
+audit_file="$log_dir/buy-later-followup-v162-audit.jsonl"
+service_unit="vitalismen-buy-later-followup-v162.service"
+timer_unit="vitalismen-buy-later-followup-v162.timer"
+current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+action="${1:-status}"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+[[ "$current" == "$base_dir"/releases/* && -d "$current" && ! -L "$current" ]] || die "current oficial invalido"
+install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+
+append_audit() {
+  local event="$1" detail="${2:-}"
+  node - "$audit_file" "$event" "$(basename "$current")" "$detail" <<'NODE'
+const fs = require('node:fs');
+const [file,event,release,detail] = process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
+NODE
+  chmod 0600 "$audit_file"
+}
+
+assert_pm2_bot_online() {
+  local pid proc_cwd proc_cmdline
+  while IFS= read -r pid; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+    proc_cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [[ "$proc_cwd" == "$current" || "$proc_cwd" == "$base_dir/current" ]]; then
+      [[ "$proc_cmdline" == *"/src/index.js"* || "$proc_cmdline" == *"src/index.js"* ]] && return 0
+    fi
+  done < <(pgrep -f '(^|[ /])src/index\.js([ ]|$)' || true)
+  return 1
+}
+
+run_cli() {
+  local mode="$1" output="$2"
+  local gate="false"
+  [[ "$mode" == "run" ]] && gate="true"
+  (
+    cd "$current"
+    exec env -i \
+      PATH="$PATH" HOME=/root LANG=C.UTF-8 TZ=UTC \
+      BUY_LATER_V162_OPERATIONAL_ENABLED="$gate" \
+      node scripts/run-buy-later-followup-v162.mjs "$mode"
+  ) >"$output"
+  chmod 0600 "$output"
+}
+
+report_value() {
+  node -e 'const x=require(process.argv[1]); const v=x[process.argv[2]]; process.stdout.write(String(v ?? ""));' "$1" "$2"
+}
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$current"
+  echo "BUY_LATER_TIMER_ENABLED=$(systemctl is-enabled "$timer_unit" 2>/dev/null || true)"
+  echo "BUY_LATER_TIMER_ACTIVE=$(systemctl is-active "$timer_unit" 2>/dev/null || true)"
+  echo "BUY_LATER_BATCH_LIMIT=1"
+  echo "BUY_LATER_INTERVAL_MINUTES=15"
+  echo "GLOBAL_SCHEDULER_ENABLED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "install" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: buy-later-followup-v162 install"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  backup_dir="$state_dir/unit-backups/v162-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup_dir"
+  backed_up=0
+  for unit in "$service_unit" "$timer_unit"; do
+    if [[ -f "/etc/systemd/system/$unit" && ! -L "/etc/systemd/system/$unit" ]]; then
+      install -o root -g root -m 0600 "/etc/systemd/system/$unit" "$backup_dir/$unit"
+      backed_up=$((backed_up + 1))
+    fi
+    install -o root -g root -m 0644 "$current/ops/systemd/$unit" "/etc/systemd/system/$unit"
+  done
+  systemctl daemon-reload
+  append_audit "installed" "timer_not_started;units_backed_up=$backed_up"
+  echo "BUY_LATER_V162_INSTALL=PASS"
+  echo "UNITS_BACKED_UP=$backed_up"
+  echo "TIMER_STARTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "observe" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: buy-later-followup-v162 observe"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  output="$log_dir/$(basename "$current").buy-later-v162-observe-$(date -u +%Y%m%dT%H%M%SZ).json"
+  run_cli observe "$output" || die "observe V162 falhou"
+  [[ "$(report_value "$output" status)" == "PASS_OBSERVE" ]] || die "resultado observe invalido"
+  [[ "$(report_value "$output" readOnly)" == "true" ]] || die "observe nao confirmou read-only"
+  append_audit "observe_completed" "candidates=$(report_value "$output" candidates)"
+  echo "BUY_LATER_V162_OBSERVE=PASS"
+  echo "CANDIDATES=$(report_value "$output" candidates)"
+  echo "RESULT=$output"
+  exit 0
+fi
+
+if [[ "$action" == "activate" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: buy-later-followup-v162 activate"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  output="$log_dir/$(basename "$current").buy-later-v162-preactivation-$(date -u +%Y%m%dT%H%M%SZ).json"
+  run_cli observe "$output" || die "observe pre-ativacao falhou"
+  [[ "$(report_value "$output" status)" == "PASS_OBSERVE" ]] || die "resultado pre-ativacao invalido"
+  candidates="$(report_value "$output" candidates)"
+  if [[ "$candidates" != "0" ]]; then
+    append_audit "activation_blocked" "unexpected_candidates=$candidates"
+    die "ACTIVATION=BLOCKED: candidato elegivel inesperado"
+  fi
+  systemctl enable --now "$timer_unit"
+  [[ "$(systemctl is-enabled "$timer_unit")" == "enabled" ]] || die "timer nao persistiu enable"
+  [[ "$(systemctl is-active "$timer_unit")" == "active" ]] || die "timer nao ficou ativo"
+  append_audit "activated" "eligible_now=0;messages_sent=0"
+  echo "BUY_LATER_V162_ACTIVATION=PASS"
+  echo "ELIGIBLE_NOW=0"
+  echo "REAL_MESSAGES_SENT_DURING_ACTIVATION=0"
+  echo "BUY_LATER_TIMER_ENABLED=YES"
+  echo "BUY_LATER_TIMER_ACTIVE=YES"
+  echo "RESULT=$output"
+  exit 0
+fi
+
+if [[ "$action" == "run" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: buy-later-followup-v162 run"
+  exec 9>"$lock_file"
+  flock -n 9 || die "outro executor V162 esta em andamento"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  output="$log_dir/$(basename "$current").buy-later-v162-run-$(date -u +%Y%m%dT%H%M%SZ).json"
+  append_audit "cycle_started" "batch_limit=1"
+  if run_cli run "$output"; then
+    [[ "$(report_value "$output" status)" == "PASS_RUN" ]] || die "resultado run invalido"
+    [[ "$(report_value "$output" batchLimit)" == "1" ]] || die "batch V162 divergente"
+    [[ "$(report_value "$output" sent)" =~ ^[01]$ ]] || die "envio V162 excedeu limite"
+    append_audit "cycle_completed" "sent=$(report_value "$output" sent)"
+    echo "BUY_LATER_V162_RUN=PASS"
+    echo "RESULT=$output"
+    exit 0
+  fi
+  chmod 0600 "$output" 2>/dev/null || true
+  append_audit "cycle_failed_no_retry" "manual_review_required"
+  echo "BUY_LATER_V162_RUN=FAILED_NO_RETRY" >&2
+  exit 2
+fi
+
+if [[ "$action" == "contain" ]]; then
+  systemctl disable --now "$timer_unit" >/dev/null 2>&1 || true
+  append_audit "contained" "main_bot_unchanged"
+  echo "BUY_LATER_V162_CONTAIN=PASS"
+  exit 0
+fi
+
+die "uso: buy-later-followup-v162 status|install|observe|activate|run|contain"

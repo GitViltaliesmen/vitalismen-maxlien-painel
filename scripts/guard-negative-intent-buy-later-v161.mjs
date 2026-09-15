@@ -14,6 +14,9 @@ const hash = relative => crypto.createHash('sha256').update(fs.readFileSync(path
 const manifestPath = 'docs/freeze/ec-negative-intent-buy-later-v161-20260914.json';
 const text = read(manifestPath);
 const manifest = JSON.parse(text);
+const v162Overrides = new Set(globalThis.__VITALISMEN_V162_CONTEXT?.protectedFiles
+    ? Object.keys(globalThis.__VITALISMEN_V162_CONTEXT.protectedFiles)
+    : []);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_NEGATIVE_INTENT_BUY_LATER_V161_20260914');
@@ -24,6 +27,7 @@ assert.equal(manifest.parentManifest, 'docs/freeze/ec-panel-manual-attendant-v16
 assert.equal(manifest.parentManifestSha256, 'f0a0b247c813ff46c8bfb6be8250800f7f720b1614f3d5eb7e2eab95d2bb39eb');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (v162Overrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V161 protected file diverged: ${relative}`);
 }
 for (const [relative, expected] of Object.entries(manifest.preservedFiles)) {

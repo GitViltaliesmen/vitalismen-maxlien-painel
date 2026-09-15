@@ -1388,3 +1388,27 @@ nenhuma alteração realizada no VPS.
 - `ADMIN_BUY_LATER_FOLLOWUP_ENABLED` continua desligado por padrão. Nenhum
   WhatsApp real, Dropi, Meta/CAPI, Shipment, Order ou reparo do caso `0268` faz
   parte da validação V161.
+
+## Registro V162 — ativação isolada de Comprar depois (2026-09-15)
+
+- Base oficial: V161 `7618001e34dff3c8e556d75849e5fa842d5b1fd6`.
+- Fonte funcional ajustada: `src/services/adminBuyLaterFollowupService.js`, com
+  seleção canônica estrita, telefone EC, tentativa única, lock livre e modo de
+  observação sanitizado.
+- Executor oficial: `scripts/run-buy-later-followup-v162.mjs`, invocado somente
+  por `ops/buy-later-followup-v162`, com batch 1 e ambiente mínimo Mongo/Z-API.
+- Unidades oficiais exclusivas:
+  `ops/systemd/vitalismen-buy-later-followup-v162.service` e
+  `ops/systemd/vitalismen-buy-later-followup-v162.timer`.
+- O timer verifica a cada 15 minutos; a agenda individual continua limitada a
+  um envio pela combinação de `sentAt`, `failedAt`, lock, tentativa, dedupe e
+  histórico.
+- `ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false` permanece no PM2 e no scheduler
+  principal. V78, V114, V116, V141, Dropi, Meta/CAPI, Order, Shipment e mídia
+  não são liberados por esta camada.
+- Legados `status=buy_later` permanecem intocados, sem backfill ou envio.
+- Documento, manifesto, guard e teste:
+  `docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`,
+  `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
+  `scripts/guard-buy-later-operational-v162.mjs` e
+  `tests/buy-later-operational-v162.test.mjs`.

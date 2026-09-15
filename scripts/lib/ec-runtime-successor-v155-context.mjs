@@ -12,6 +12,33 @@ const canonicalJson = (relative) => {
     return { text, value };
 };
 
+const v162ManifestUrl = new URL('../../docs/freeze/ec-buy-later-operational-v162-20260915.json', import.meta.url);
+let v162Overrides = new Set();
+let v162ProtectedFiles = Object.freeze({});
+if (fs.existsSync(v162ManifestUrl)) {
+    const v162 = canonicalJson('docs/freeze/ec-buy-later-operational-v162-20260915.json');
+    assert.equal(v162.value.freezeId, 'EC_BUY_LATER_OPERATIONAL_V162_20260915');
+    assert.equal(v162.value.version, 162);
+    assert.equal(v162.value.parentCommit, '7618001e34dff3c8e556d75849e5fa842d5b1fd6');
+    assert.equal(v162.value.parentTree, '9f63a2b964e77e82b7e4b90044643c7c93f6378a');
+    assert.equal(v162.value.parentManifestSha256, '2fcb1583446b3f53f2a36a675c8f9851cea34acacecc06fda43aff19ff36e481');
+    assert.deepEqual([...v162.value.overrides].sort(), Object.keys(v162.value.protectedFiles || {}).sort());
+    v162Overrides = new Set(v162.value.overrides || []);
+    for (const [file, expected] of Object.entries(v162.value.protectedFiles || {})) {
+        assert.equal(hashFile(file), expected, `[V162] ${file}`);
+    }
+    v162ProtectedFiles = Object.freeze({ ...(v162.value.protectedFiles || {}) });
+    globalThis.__VITALISMEN_V162_CONTEXT = Object.freeze({
+        loaded: true,
+        freezeId: v162.value.freezeId,
+        manifestSha256: hashBuffer(v162.text),
+        protectedFiles: v162ProtectedFiles
+    });
+    for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
+        globalThis[key] = [...new Set([...(globalThis[key] || []), ...(v162.value.overrides || [])])];
+    }
+}
+
 const v161ManifestUrl = new URL('../../docs/freeze/ec-negative-intent-buy-later-v161-20260914.json', import.meta.url);
 let v161Overrides = new Set();
 let v161ProtectedFiles = Object.freeze({});
@@ -23,11 +50,14 @@ if (fs.existsSync(v161ManifestUrl)) {
     assert.equal(v161.value.parentTree, '462aaa34a289ca596bec28158985f42c0ad6322c');
     assert.equal(v161.value.parentManifestSha256, 'f0a0b247c813ff46c8bfb6be8250800f7f720b1614f3d5eb7e2eab95d2bb39eb');
     assert.deepEqual([...v161.value.overrides].sort(), Object.keys(v161.value.protectedFiles || {}).sort());
-    v161Overrides = new Set(v161.value.overrides || []);
+    v161Overrides = new Set([...(v161.value.overrides || []), ...v162Overrides]);
     for (const [file, expected] of Object.entries(v161.value.protectedFiles || {})) {
+        if (v162Overrides.has(file)) continue;
         assert.equal(hashFile(file), expected, `[V161] ${file}`);
     }
-    v161ProtectedFiles = Object.freeze({ ...(v161.value.protectedFiles || {}) });
+    v161ProtectedFiles = Object.freeze(Object.fromEntries(
+        Object.entries(v161.value.protectedFiles || {}).filter(([file]) => !v162Overrides.has(file))
+    ));
     globalThis.__VITALISMEN_V161_CONTEXT = Object.freeze({
         loaded: true,
         freezeId: v161.value.freezeId,
@@ -35,7 +65,7 @@ if (fs.existsSync(v161ManifestUrl)) {
         protectedFiles: v161ProtectedFiles
     });
     for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
-        globalThis[key] = [...new Set([...(globalThis[key] || []), ...(v161.value.overrides || [])])];
+        globalThis[key] = [...new Set([...(globalThis[key] || []), ...v161Overrides])];
     }
 }
 
@@ -245,7 +275,7 @@ globalThis.__VITALISMEN_V155_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles, ...v158ProtectedFiles, ...v159ProtectedFiles, ...v160ProtectedFiles, ...v161ProtectedFiles })
+    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles, ...v158ProtectedFiles, ...v159ProtectedFiles, ...v160ProtectedFiles, ...v161ProtectedFiles, ...v162ProtectedFiles })
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...(manifest.overrides || [])])];

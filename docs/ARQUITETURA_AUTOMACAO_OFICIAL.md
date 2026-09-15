@@ -1706,3 +1706,33 @@ Dropi, Meta/CAPI, V114, V116, V141, V70, V78, aquecimento interno, preços,
 produtos, VSL e transporte permanecem inalterados. Os gates manuais de Tex
 Ultra e Nitrix não recebem mutação nem resposta automática V161. Contrato completo:
 `docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`.
+
+## V162 — executor operacional isolado de Comprar depois
+
+A autorização V162 não altera o perfil do processo principal nem liga
+`ADMIN_BUY_LATER_FOLLOWUP_ENABLED`. O PM2 continua com os schedulers mutantes
+globais em zero. A única execução automática nova é um `systemd timer` dedicado,
+com intervalo de 15 minutos, que chama diretamente
+`processAdminBuyLaterFollowups({ limit: 1 })` por um CLI isolado.
+
+O candidato precisa manter simultaneamente status canônico
+`comprar_depois`, agenda ativa, data civil e produto EC estruturados, telefone
+EC válido, `sentAt=null`, `failedAt=null`, tentativa inferior a um, lock livre e
+estar dentro da janela V24 D-4 09:00 até D-3 18:59:59 em
+`America/Guayaquil`. O status legado `buy_later` não é migrado nem selecionado.
+
+O processo lê da `.env` somente Mongo, Z-API e parâmetros de proteção do
+transporte. Ele fixa Z-API como provider, mantém
+`isAutomationRecipientAllowed`, `force=false`, dedupe persistente, lock atômico
+e recuperação por histórico. A autorização de destinatários reais é confinada
+ao processo oneshot; V75/V78, o ambiente PM2 e seus contratos permanecem
+inalterados. Não são carregadas credenciais Dropi ou Meta, e o executor não
+importa scheduler global, mídia, criação de pedido/remessa, repurchase, backlog
+ou pós-venda.
+
+O modo `observe` instala a trava Mongoose somente leitura e precisa retornar
+zero candidatos antes de habilitar o timer. Qualquer candidato inesperado
+bloqueia a ativação. Falha de transporte grava `failedAt`, conserva
+`sentAt=null`, incrementa a tentativa e exige revisão humana, sem retry
+automático. Contrato completo:
+`docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`.
