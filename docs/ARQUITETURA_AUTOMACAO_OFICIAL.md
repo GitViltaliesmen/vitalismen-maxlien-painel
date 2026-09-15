@@ -1690,3 +1690,19 @@ manual aceita pelo provedor permanece como `Message` de origem humana, com
 `providerMessageId`, e pode satisfazer a reconciliação histórica exata para
 evitar reenvio automático. Nenhum Shipment fictício, scheduler novo, backlog,
 Dropi, Meta/CAPI, produto, preço, VSL ou transporte foi alterado.
+
+## V161 — desistência e Comprar depois antes do checkout
+
+A decisão determinística de desistência, opt-out e compra futura agora ocorre
+antes de intenção positiva, quantidade, entrega, coleta de dados e fallback
+rígido do funil Vit Power EC. Uma mensagem mista com futuro explícito usa o
+contrato canônico `comprar_depois`/`buy_later` e interrompe o checkout atual.
+
+Qualquer `Order` ou `Shipment` persistido faz a camada falhar fechada para
+atendimento humano, sem alterar a operação nem emitir resposta automática. Sem
+operação real, desistência usa o status existente `cancelado`; compra futura só
+agenda a data quando ela é inferível. O scheduler continua desligado por padrão.
+Dropi, Meta/CAPI, V114, V116, V141, V70, V78, aquecimento interno, preços,
+produtos, VSL e transporte permanecem inalterados. Os gates manuais de Tex
+Ultra e Nitrix não recebem mutação nem resposta automática V161. Contrato completo:
+`docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`.

@@ -1367,3 +1367,24 @@ nenhuma alteração realizada no VPS.
   `tests/panel-manual-attendant-never-ignored-v160.test.mjs`.
 - Backup, release e validação operacional serão registrados no fechamento da
   publicação oficial, sem envio real de mensagem durante a validação.
+
+## Registro V161 — desistência e Comprar depois no funil EC (2026-09-14)
+
+- Base oficial: V160 `0902194ecd5454d0f720466c4bd2bc081cfd97a0`.
+- Fonte funcional nova:
+  `src/services/ecNegativeIntentBuyLaterV161Service.js`.
+- Ponto de integração oficial: `src/services/conversationEngine.js`, antes de
+  intenção positiva, quantidade, entrega, coleta e fallback rígido.
+- Mutação limitada ao agente `vit_power_ec`; gates manuais de Tex Ultra e
+  Nitrix preservados.
+- Contrato: sem operação real, usar somente `cancelado` ou
+  `comprar_depois`/`buy_later`; com qualquer `Order`/`Shipment`, falhar fechado
+  para humano e preservar integralmente a operação.
+- Freeze, manifesto, guard e teste:
+  `docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`,
+  `docs/freeze/ec-negative-intent-buy-later-v161-20260914.json`,
+  `scripts/guard-negative-intent-buy-later-v161.mjs` e
+  `tests/negative-intent-buy-later-v161.test.mjs`.
+- `ADMIN_BUY_LATER_FOLLOWUP_ENABLED` continua desligado por padrão. Nenhum
+  WhatsApp real, Dropi, Meta/CAPI, Shipment, Order ou reparo do caso `0268` faz
+  parte da validação V161.

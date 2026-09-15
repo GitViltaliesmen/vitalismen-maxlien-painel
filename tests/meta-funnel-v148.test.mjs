@@ -142,7 +142,7 @@ test('V148 activation identity mismatch, historical baseline and future timestam
 });
 import { withMetaLedgerV148 } from '../src/services/metaFunnelV148ContractService.js';
 import { ecBotCoreMutationRouteGuardV78, installEcBotCoreMongooseGuardV78 } from '../src/services/ecBotCoreRuntimeIntegrationV78Service.js';
-test('V148 real Mongo guard allows only scoped ledger writes under inbound and retains blanket blocks elsewhere', async () => {
+test('V148 ledger writes coexist with V153 exact Order recovery while blanket blocks remain', async () => {
     class FakeCollection { constructor(name){this.collectionName=name;} insertOne(){return 'inserted';} updateOne(){return 'updated';} deleteMany(){return 'deleted';} }
     installEcBotCoreMongooseGuardV78({Collection:FakeCollection,mongo:{Collection:FakeCollection}});
     const env={...buildEcBotCoreV78OverlayEnvironment({baseEnv:{META_PIXEL_ID_EC:EC_BOT_CORE_V78_DATASET_ID}}),META_PIXEL_ID_EC:EC_BOT_CORE_V78_DATASET_ID};
@@ -159,7 +159,9 @@ test('V148 real Mongo guard allows only scoped ledger writes under inbound and r
         assert.equal(await run(()=>({ then(resolve,reject){ queueMicrotask(()=>{try{resolve(collection.updateOne({_id:'IC_A'}));}catch(e){reject(e);}}); } })), 'updated');
         await assert.rejects(()=>run(()=>collection.insertOne({_id:'IC_B'})),/mongo_write_blocked/);
         await assert.rejects(()=>run(()=>collection.deleteMany({_id:'IC_A'})),/mongo_write_blocked/);
-        await assert.rejects(()=>run(()=>new FakeCollection('orders').insertOne({_id:'IC_A'})),/mongo_write_blocked/);
+        assert.equal(await run(()=>new FakeCollection('orders').insertOne({_id:'IC_A'})),'inserted');
+        await assert.rejects(()=>run(()=>new FakeCollection('orders').deleteMany({_id:'IC_A'})),/mongo_write_blocked/);
+        await assert.rejects(()=>run(()=>new FakeCollection('shipments').insertOne({_id:'IC_A'})),/mongo_write_blocked/);
     } finally {for(const [k,v] of previous)if(v===undefined)delete process.env[k];else process.env[k]=v;}
 });
 test('V148 organic repurchase uses its new business cycle and never copies the previous order attribution', async () => {

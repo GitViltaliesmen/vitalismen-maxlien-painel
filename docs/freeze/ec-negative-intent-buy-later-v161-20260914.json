@@ -1,0 +1,100 @@
+{
+  "freezeId": "EC_NEGATIVE_INTENT_BUY_LATER_V161_20260914",
+  "version": 161,
+  "parentCommit": "0902194ecd5454d0f720466c4bd2bc081cfd97a0",
+  "parentTree": "462aaa34a289ca596bec28158985f42c0ad6322c",
+  "parentTag": "production-20260914-0902194",
+  "parentManifest": "docs/freeze/ec-panel-manual-attendant-v160-20260914.json",
+  "parentManifestSha256": "f0a0b247c813ff46c8bfb6be8250800f7f720b1614f3d5eb7e2eab95d2bb39eb",
+  "overrides": [
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md",
+    "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md",
+    "scripts/guard-negative-intent-buy-later-v161.mjs",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs",
+    "src/services/conversationEngine.js",
+    "src/services/ecNegativeIntentBuyLaterV161Service.js",
+    "tests/meta-funnel-v148.test.mjs",
+    "tests/negative-intent-buy-later-v161.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUIVOS_OFICIAIS.md": "4c0536a1fbd34526936e4d01f204b0330497a78feb5ea7127c1a83b1b4722d60",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "b14fc01584fdbe40351081b8f3b78cb89daa8c1d6dc13f08c90198b5206bc8f4",
+    "docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md": "736c954a899e9f8e896a9ff8b8861f530bf718a424bc40b77615791285812a0f",
+    "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md": "315d22d7a988687f8d78785acfa3c13eb260b6a297dfed500f232c59361920a4",
+    "scripts/guard-negative-intent-buy-later-v161.mjs": "5546369d22780b27c9b84c912b9e34bf3d50b1caf99d25715e58189e5c8a87bc",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs": "7e23b92a3f2784c9967af464414b9e659e0e1c0df9192f9c587cb632a28b7a4e",
+    "src/services/conversationEngine.js": "0fe93987f5bb7e9735355fcf896b2c86abf97b0efa03af8828eb9dcb249bbfd3",
+    "src/services/ecNegativeIntentBuyLaterV161Service.js": "c8d5f53e37e6ea30b2cb518dd7dc195ce1fdd767272e4ab5f6b7bf2578d55634",
+    "tests/meta-funnel-v148.test.mjs": "623cfe2c4050bbff2170c8df4e1ab9bd372b48a5c148805049b1b2de0f8021bc",
+    "tests/negative-intent-buy-later-v161.test.mjs": "2e5df2f07264f1a99c7ac72e333c6e7b5725218be05612b18fc4b2fff9765469"
+  },
+  "preservedFiles": {
+    "docs/freeze/ec-dropi-preflight-repair-v157-20260913.json": "5aecf61299ea77e9f1dabc67788a141c7c9c8ce88f0adf4895d3210d5a3cc960",
+    "docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json": "5cad677f29fd8a90021e69fd480ea22b7f4891bf5ed0d1aa031c842a7a3692fc",
+    "docs/freeze/ec-panel-manual-attendant-v160-20260914.json": "f0a0b247c813ff46c8bfb6be8250800f7f720b1614f3d5eb7e2eab95d2bb39eb",
+    "ops/ec-bot-core-v78": "a000e912c4dcbdff6de07e5824c817e41501b18ad42114d3a5f20ffc7893a480",
+    "ops/post-sale-next-eligible-v114": "4dcbc7606136134ff2c02124b383c57ae683b6f07a1d0f3a12ec29ad073accd2",
+    "ops/post-sale-v116": "8cfb85be756109647971c71a54d6cd01ca8acceb97e7faeac61828f23e3539c4",
+    "ops/systemd/vitalismen-meta-ads-insights-v141.timer": "69c485ff85a8f05c397cb09310afbadc027b6aef0764cc3c6e79bc5274b11aa5",
+    "ops/systemd/vitalismen-postsale-next-eligible-v114.timer": "9ee7128602161f36c599233516a0557d28bf7b175eb8899d975431e30edf5789",
+    "ops/systemd/vitalismen-postsale-transactional-v116.timer": "464ea2c85ca4cc915ac96ae20bc2b6bec466025693fbc19aff37f1ceaf7f1c63",
+    "ops/vitalismen-stage": "803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99",
+    "public/qr.html": "334f4ed44caee654a9c4349292c222273ec32c0457b124927fbe698b749d8789",
+    "src/routes/whatsapp.js": "e34c8d4ffc22e48977e6e987e237579bf4f533b1261399260324cfb4cdb5d5f0",
+    "src/routes/zapi.js": "3aa8c96783fd16d06fa4cf05773e627a93739b9abe3f29a7aa9c274a88f0caaa",
+    "src/services/ecConversationBucketService.js": "3df74785802dbb1fd117d597e1c9d6a3e99e96cbea34b45c1cc1d3e4966b1afb",
+    "src/services/ecEngagementReplyService.js": "1757e2d41230f314cb0da3436bc0715ee53041c5767245eade937bc7ed0c3ea7",
+    "src/services/postSaleManualPanelV147R6Service.js": "488df03894b998c32676208faa8ede5bd4b67f57da0e0ad550119dfb4dcf2139",
+    "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285"
+  },
+  "fixtures": {
+    "cancel": [
+      "No deseo el pedido",
+      "No quiero el pedido",
+      "Ya no quiero",
+      "Cancelar por favor",
+      "Gasté el dinero en medicamentos, no deseo el pedido"
+    ],
+    "buyLater": [
+      "No por ahora",
+      "Tal vez para el próximo mes",
+      "No puedo ahora, quizá el próximo mes",
+      "Cuando cobre le escribo",
+      "Más tarde compro"
+    ],
+    "positive": [
+      "Deseo 3 frascos",
+      "Quiero comprar 3",
+      "Sí, envíelo",
+      "Prefiero agencia Servientrega"
+    ],
+    "mixed": "No deseo el pedido porque gasté en medicamentos. Tal vez para el próximo mes."
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "negativePrecedenceImplemented": true,
+    "buyLaterPrecedenceImplemented": true,
+    "strictFunnelFixed": true,
+    "existingOrderAutoCancelBlocked": true,
+    "anyPersistedOrderFailsClosed": true,
+    "noOrderCancelUsesCanonicalStatus": "cancelado",
+    "buyLaterUsesCanonicalStatus": "comprar_depois",
+    "mixedFutureTimingWins": true,
+    "adminBuyLaterSchedulerEnabledByChange": false,
+    "realWhatsappMessagesByValidation": 0,
+    "dropiCallsByValidation": 0,
+    "metaCallsByValidation": 0,
+    "orderCreatedByTest": 0,
+    "shipmentCreatedByTest": 0,
+    "knownResidual0268RepairDeferred": true,
+    "pricesChanged": false,
+    "productsChanged": false,
+    "vslChanged": false,
+    "transportChanged": false,
+    "otherCountryTouched": false,
+    "filesOutsideScope": 0
+  }
+}

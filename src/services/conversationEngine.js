@@ -34,6 +34,12 @@ import { maybeHandleEcuadorProductIngredients } from './ecProductIngredientsServ
 import { maybeHandleEcuadorDirectProductInquiry } from './ecDirectProductInquiryService.js';
 import { repeatPurchasePendingOrderV146 } from './ecCommercialCycleV146Service.js';
 import { sendInitiateCheckoutForPendingOrderV146 } from './metaInitiateCheckoutV146Service.js';
+import {
+    classifyEcuadorCommercialDecisionV161,
+    EC_NEGATIVE_INTENT_V161_DECISIONS,
+    handleEcuadorNegativeOrBuyLaterV161,
+    isNegativeOrBuyLaterDecisionV161
+} from './ecNegativeIntentBuyLaterV161Service.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const NITRIX_AGENT_KEY = 'nitrix_ec';
@@ -4009,7 +4015,9 @@ const principalSdrOrderClosedFinalText = ({ finalOrder = {}, deliveryType, agenc
     ].join('\n');
 };
 
-const principalSdrLooksLikeBuyLater = (text = '') => /\b(despues|después|luego|manana|mañana|otro dia|otro día|proxima semana|próxima semana|mas tarde|más tarde|quincena|fin de mes)\b/i.test(normalizeForDecision(text));
+const principalSdrLooksLikeBuyLater = (text = '') => (
+    classifyEcuadorCommercialDecisionV161(text).decision === EC_NEGATIVE_INTENT_V161_DECISIONS.BUY_LATER
+);
 const principalSdrNeedsHuman = (text = '') => /\b(reclamo|denuncia|abogado|demanda|policia|policía|cancelar pedido ya enviado|devolucion|devolución|estafa|bloquea|bloquear|no molestar)\b/i.test(normalizeForDecision(text));
 const principalSdrLooksLikeLocationCorrection = (text = '') => {
     const body = normalizeForDecision(text);
@@ -4283,6 +4291,10 @@ const principalSdrHandle = async ({ text, chatId, peerPhone, sessionId, contactS
             note: 'Pedido ja fechado no funil principal SDR. Automacao mantida pausada para nao reiniciar venda.'
         });
         console.log(`[FUNIL] Mensagem recebida apos pedido fechado; funil principal mantido pausado -> ${chatId}`);
+        return true;
+    }
+    const canonicalDecision = classifyEcuadorCommercialDecisionV161(text).decision;
+    if ([EC_NEGATIVE_INTENT_V161_DECISIONS.OPT_OUT, EC_NEGATIVE_INTENT_V161_DECISIONS.CANCEL].includes(canonicalDecision)) {
         return true;
     }
     let order = principalSdrMergeIncoming(pendingCheckoutOrder || {}, text);
@@ -5341,6 +5353,9 @@ const buildCustomerMemory = async ({ chatId, customerContext, phoneDigits = '' }
 const inferIntent = (text) => {
     const body = normalizeForDecision(text);
     if (!body.trim()) return 'unknown';
+    const canonicalDecision = classifyEcuadorCommercialDecisionV161(text).decision;
+    if (canonicalDecision === EC_NEGATIVE_INTENT_V161_DECISIONS.BUY_LATER) return 'buy_later';
+    if ([EC_NEGATIVE_INTENT_V161_DECISIONS.OPT_OUT, EC_NEGATIVE_INTENT_V161_DECISIONS.CANCEL].includes(canonicalDecision)) return 'purchase_cancelled';
     if (isSimpleGreeting(text)) return 'greeting';
     if (/(guia|rastreo|rastreamento|codigo|c[oó]digo|numero de guia)/i.test(body)) return 'guide_request';
     if (/(retirar|retiro|agencia|servientrega|ya llego|llego mi pedido|listo para retirar)/i.test(body)) return 'pickup_request';
@@ -5364,7 +5379,7 @@ const funnelBucketForIntent = (intent, text = '') => {
     if (intent === 'greeting') return '01_ENTRADA';
     if (['price_check', 'composition_question', 'symptom_question', 'contraindication_question', 'shipping_info'].includes(intent)) return '02_QUALIFICACAO';
     if (['proof_request'].includes(intent)) return '03_PROVA';
-    if (['price_resistance', 'buy_later'].includes(intent)) return '04_OBJECAO';
+    if (['price_resistance', 'buy_later', 'purchase_cancelled'].includes(intent)) return '04_OBJECAO';
     if (['purchase_intent'].includes(intent)) return '05_OFERTA';
     if (['quantity_selection', 'customer_data', 'closing'].includes(intent) || looksLikeOrderDataMessage(text)) return '06_FECHAMENTO';
     if (['guide_request', 'pickup_request'].includes(intent)) return '07_LOGISTICA';
@@ -5378,7 +5393,7 @@ const buyerScoreForIntent = (intent, text = '') => {
     if (['price_check', 'proof_request', 'shipping_info'].includes(intent)) score += 15;
     if (['purchase_intent', 'quantity_selection'].includes(intent)) score += 35;
     if (['customer_data', 'closing'].includes(intent) || looksLikeOrderDataMessage(text)) score += 50;
-    if (['price_resistance', 'buy_later'].includes(intent)) score -= 10;
+    if (['price_resistance', 'buy_later', 'purchase_cancelled'].includes(intent)) score -= 10;
     if (['guide_request', 'pickup_request', 'post_sale'].includes(intent)) score = 100;
     return Math.max(0, Math.min(100, score));
 };
@@ -5444,6 +5459,9 @@ const unsupportedPackageQuantityReplyText = (quantity) => {
 };
 
 const detectPurchaseReadiness = (text) => {
+    const decision = classifyEcuadorCommercialDecisionV161(text).decision;
+    if (decision === EC_NEGATIVE_INTENT_V161_DECISIONS.BUY_LATER) return 'buy_later';
+    if ([EC_NEGATIVE_INTENT_V161_DECISIONS.OPT_OUT, EC_NEGATIVE_INTENT_V161_DECISIONS.CANCEL].includes(decision)) return 'unknown';
     const body = String(text || '').toLowerCase();
     if (/(despu[eé]s|luego|mas tarde|m[aá]s tarde|fin de mes|final de mes|quincena|cuando cobre|cuando me paguen|pr[oó]ximo mes|otra fecha|todav[ií]a no|aun no|a[uú]n no|solo estoy viendo|solo quiero saber)/i.test(body)) {
         return 'buy_later';
@@ -5652,6 +5670,7 @@ const sendUnsupportedQuantityRedirect = async ({
 const inferFunnelStage = (text, customerContext, agentProfile) => {
     const body = String(text || '').toLowerCase();
     const intent = inferIntent(text);
+    if (intent === 'purchase_cancelled') return 'purchase_cancelled';
     if (['guide_request', 'pickup_request'].includes(intent)) return 'logistics';
     if (intent === 'post_sale') return 'post_sale';
     if (intent === 'proof_request') return 'proof_requested';
@@ -5883,6 +5902,7 @@ const isCommercialOrderAgent = (agentProfile) => agentProfile?.key === 'vit_powe
 const isExplicitNewPurchaseAfterClosedOrder = (text) => {
     const body = normalizeForDecision(text);
     if (!body) return false;
+    if (isNegativeOrBuyLaterDecisionV161(text)) return false;
     if (isPostOrderCourtesyText(text) || isLogisticsAfterOrderText(text)) return false;
     if (!isInitialProductInquiry(text)) return false;
     return /\b(quiero|deseo|comprar|compra|nuevo pedido|otro pedido|otro producto|vit power|producto|frasco|frascos|precio|valor|promocion|promo)\b/i.test(body);
@@ -5905,6 +5925,7 @@ export const __principalSdrContextAudit = {
     sanitizeGenericPriceReply,
     sanitizeGenericPriceOutboundPlan,
     inferIntent,
+    detectPurchaseReadiness,
     principalSdrIsValueOfferAcceptance,
     principalSdrIsConfirmationOnlyText,
     isAgencyDeliveryConsent,
@@ -7031,7 +7052,8 @@ const pendingCheckoutFallbackText = (stage, pendingCheckoutOrder = {}) => {
 
 const strictVitalismenFunnelEnabled = (agentProfile) => agentProfile?.key === 'vit_power_ec';
 
-const strictVitalismenFallbackText = ({ pendingCheckoutStage = '', pendingCheckoutOrder = {}, agentMemorySnapshot = {} } = {}) => {
+const strictVitalismenFallbackText = ({ text = '', pendingCheckoutStage = '', pendingCheckoutOrder = {}, agentMemorySnapshot = {} } = {}) => {
+    if (isNegativeOrBuyLaterDecisionV161(text)) return '';
     if (pendingCheckoutStage) {
         const stageFallback = pendingCheckoutFallbackText(pendingCheckoutStage, pendingCheckoutOrder || {});
         if (stageFallback) return stageFallback;
@@ -7071,6 +7093,7 @@ const maybeHandlePendingCheckoutFallback = async ({
 }) => {
     if (!pendingCheckoutOrder || checkoutOrderData) return false;
     if (!pendingCheckoutStage) return false;
+    if (isNegativeOrBuyLaterDecisionV161(text)) return true;
 
     const replyText = pendingCheckoutFallbackText(pendingCheckoutStage, pendingCheckoutOrder);
     if (!replyText) return false;
@@ -7112,6 +7135,12 @@ const maybeHandlePendingCheckoutFallback = async ({
     });
     console.log(`[FUNIL] Entrada fora do esperado mantida no checkout -> ${chatId} | etapa=${pendingCheckoutStage}`);
     return true;
+};
+
+export const __process8NegativeIntentAudit = {
+    strictVitalismenFallbackText,
+    pendingCheckoutFallbackText,
+    maybeHandlePendingCheckoutFallback
 };
 
 const isPostOrderCourtesyText = (text) => {
@@ -8053,6 +8082,20 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             } catch (dbErr) {
                 if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
             }
+        }
+
+        const negativeOrBuyLater = await handleEcuadorNegativeOrBuyLaterV161({
+            text,
+            chatId,
+            peerPhone,
+            sessionId: msg.sessionId || null,
+            contactStateId: msg.contactStateId,
+            contactState,
+            agentProfile
+        });
+        if (negativeOrBuyLater.handled) {
+            console.log(`[PROCESSO-8] decisão canônica tratada antes do funil -> ${chatId} | decision=${negativeOrBuyLater.decision}`);
+            return;
         }
 
         const directProductInquiry = await maybeHandleEcuadorDirectProductInquiry({
@@ -9226,6 +9269,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
 
         if (strictVitalismenFunnelEnabled(agentProfile)) {
             replyText = strictVitalismenFallbackText({
+                text,
                 pendingCheckoutStage,
                 pendingCheckoutOrder,
                 agentMemorySnapshot
