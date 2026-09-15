@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_dir="/opt/vitalismen-automacao"
+releases_dir="$base_dir/releases"
+process_main="vitalismen-automation"
+process_web="vitalismen-whatsapp-web-shadow-v164"
+state_file="/var/lib/vitalismen-whatsapp-web-shadow-state/V152_TEST_WEB_01/health.json"
+control_socket="/run/vitalismen-whatsapp-web-v167b.sock"
+rollback_root="/var/lib/vitalismen-whatsapp-web-v167b"
+rollback_file="$rollback_root/previous-release.txt"
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+current_target() { readlink -f "$base_dir/current" 2>/dev/null || true; }
+
+release_dir() {
+  local name="$1"
+  [[ "$name" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release inválida"
+  local target="$releases_dir/$name"
+  [[ -d "$target" && ! -L "$target" ]] || die "release candidata ausente"
+  [[ "$(readlink -f "$target")" == "$target" ]] || die "release candidata fora do path oficial"
+  printf '%s\n' "$target"
+}
+
+pm2_snapshot() {
+  pm2 jlist | node "$script_root/scripts/v164-pm2-snapshot.mjs" "$1"
+}
+
+assert_candidate() {
+  local target="$1" expected_commit="$2" expected_tree="$3"
+  node - "$target" "$expected_commit" "$expected_tree" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const [target, expectedCommit, expectedTree] = process.argv.slice(2);
+const source = JSON.parse(fs.readFileSync(path.join(target, '.release-source.json'), 'utf8'));
+const staging = JSON.parse(fs.readFileSync(path.join(target, '.staging-complete.json'), 'utf8'));
+if (source.publicationStatus !== 'staged_candidate' || staging.publicationStatus !== 'staged_candidate') throw new Error('candidate_not_staged');
+if (source.commit !== expectedCommit || source.functionalTree !== expectedTree) throw new Error('candidate_identity_mismatch');
+if (staging.commit !== expectedCommit || staging.functionalTree !== expectedTree) throw new Error('staging_identity_mismatch');
+if (source.strictReadOnly !== true || staging.strictReadOnly !== true) throw new Error('candidate_not_strict');
+NODE
+}
+
+assert_main_unchanged() {
+  local before="$1" current_before="$2"
+  [[ "$(current_target)" == "$current_before" ]] || die "current mudou"
+  [[ "$(pm2_snapshot "$process_main")" == "$before" ]] || die "PM2 principal mudou"
+}
+
+assert_candidate_worker() {
+  local target="$1"
+  local snapshot pid status cwd exec_path restarts
+  snapshot="$(pm2_snapshot "$process_web")" || die "processo Web ausente"
+  IFS='|' read -r pid status cwd exec_path restarts <<<"$snapshot"
+  [[ "$pid" =~ ^[1-9][0-9]*$ && "$status" == "online" ]] || die "worker Web não está online"
+  [[ "$(readlink -f "$cwd")" == "$target" ]] || die "cwd do worker Web divergiu"
+  [[ "$(readlink -f "$exec_path")" == "$target/scripts/v167b-authorized-web-worker.mjs" ]] || die "exec path V167B divergiu"
+  node "$target/scripts/v164-web-shadow-runtime-check.mjs" health "$state_file" "$pid" >/dev/null
+  [[ -S "$control_socket" && ! -L "$control_socket" ]] || die "socket de controle V167B ausente"
+  [[ "$(stat -c '%U:%G:%a' "$control_socket")" == "root:root:600" ]] || die "socket de controle V167B inseguro"
+  printf '%s|%s\n' "$pid" "$restarts"
+}
+
+action="${1:-}"
+release="${2:-}"
+expected_commit="${3:-}"
+expected_tree="${4:-}"
+
+if [[ "$action" == "plan" || "$action" == "activate" || "$action" == "check" ]]; then
+  [[ "$#" -eq 4 ]] || die "uso: web-canary-v167b plan|activate|check RELEASE COMMIT TREE"
+  target="$(release_dir "$release")"
+  assert_candidate "$target" "$expected_commit" "$expected_tree"
+  current_before="$(current_target)"
+  [[ "$current_before" != "$target" ]] || die "V167B não pode trocar current"
+  main_before="$(pm2_snapshot "$process_main")" || die "PM2 principal ausente"
+  [[ "$main_before" == *'|online|'* ]] || die "PM2 principal não está online"
+
+  if [[ "$action" == "plan" ]]; then
+    echo "WEB_WORKER_SWITCH=PLANNED"
+    echo "CURRENT_CHANGE=NO"
+    echo "PM2_MAIN_CHANGE=NO"
+    echo "ZAPI_CHANGE=NO"
+    echo "MAX_CONCURRENT_WEB_SOCKETS=1"
+    exit 0
+  fi
+
+  if [[ "$action" == "check" ]]; then
+    identity="$(assert_candidate_worker "$target")"
+    assert_main_unchanged "$main_before" "$current_before"
+    echo "WEB_WORKER_ACTIVE=YES"
+    echo "WEB_WORKER_PID=${identity%%|*}"
+    echo "WEB_WORKER_HEALTH=PASS"
+    echo "CONTROL_SOCKET=SECURE"
+    echo "CURRENT_CHANGED=NO"
+    echo "PM2_MAIN_CHANGED=NO"
+    exit 0
+  fi
+
+  [[ "${V167B_WEB_WORKER_SWITCH_APPROVED:-}" == "YES" ]] || die "autorização V167B ausente"
+  previous_snapshot="$(pm2_snapshot "$process_web")" || die "worker Web anterior ausente"
+  IFS='|' read -r previous_pid previous_status previous_cwd previous_exec previous_restarts <<<"$previous_snapshot"
+  previous_target="$(readlink -f "$previous_cwd")"
+  [[ "$previous_status" == "online" && -d "$previous_target" && ! -L "$previous_target" ]] || die "worker Web anterior inválido"
+  [[ "$(readlink -f "$previous_exec")" == "$previous_target/scripts/v152-e-r4-persistent-shadow-worker.mjs" ]] || die "origem Web anterior inesperada"
+  mkdir -p "$rollback_root"
+  chmod 700 "$rollback_root"
+  printf '%s\n' "$previous_target" >"$rollback_file"
+  chmod 600 "$rollback_file"
+
+  rollback_on_error() {
+    pm2 delete "$process_web" >/dev/null 2>&1 || true
+    rm -f -- "$control_socket"
+    if [[ -f "$previous_target/ops/ecosystem.v164-web-shadow.config.cjs" ]]; then
+      pm2 start "$previous_target/ops/ecosystem.v164-web-shadow.config.cjs" --only "$process_web" --update-env >/dev/null 2>&1 || true
+      pm2 save >/dev/null 2>&1 || true
+    fi
+  }
+  trap rollback_on_error ERR
+  pm2 delete "$process_web" >/dev/null
+  rm -f -- "$control_socket"
+  pm2 start "$target/ops/ecosystem.v167b-authorized-web.config.cjs" --only "$process_web" --update-env >/dev/null
+  identity=""
+  for _ in $(seq 1 45); do
+    identity="$(assert_candidate_worker "$target" 2>/dev/null || true)"
+    [[ -n "$identity" ]] && break
+    sleep 2
+  done
+  [[ -n "$identity" ]] || die "worker V167B não ficou saudável"
+  assert_main_unchanged "$main_before" "$current_before"
+  pm2 save >/dev/null
+  assert_main_unchanged "$main_before" "$current_before"
+  trap - ERR
+  echo "WEB_WORKER_SWITCH=PASS"
+  echo "WEB_WORKER_PID=${identity%%|*}"
+  echo "WEB_WORKER_HEALTH=PASS"
+  echo "MAX_CONCURRENT_WEB_SOCKETS=1"
+  echo "CONTROL_SOCKET=SECURE"
+  echo "CURRENT_CHANGED=NO"
+  echo "PM2_MAIN_CHANGED=NO"
+  echo "ROLLBACK_READY=YES"
+  exit 0
+fi
+
+if [[ "$action" == "rollback" ]]; then
+  [[ "$#" -eq 2 && "$release" == "CONFIRM_ROLLBACK_WEB_WORKER_ONLY_V167B" ]] || die "confirmação de rollback inválida"
+  [[ -f "$rollback_file" && ! -L "$rollback_file" ]] || die "registro de rollback ausente"
+  previous_target="$(cat "$rollback_file")"
+  [[ "$previous_target" == "$releases_dir/"* && -d "$previous_target" && ! -L "$previous_target" ]] || die "target de rollback inválido"
+  [[ "$(readlink -f "$previous_target")" == "$previous_target" ]] || die "target de rollback fora do path oficial"
+  current_before="$(current_target)"
+  main_before="$(pm2_snapshot "$process_main")" || die "PM2 principal ausente"
+  pm2 delete "$process_web" >/dev/null 2>&1 || true
+  rm -f -- "$control_socket"
+  pm2 start "$previous_target/ops/ecosystem.v164-web-shadow.config.cjs" --only "$process_web" --update-env >/dev/null
+  pm2 save >/dev/null
+  assert_main_unchanged "$main_before" "$current_before"
+  echo "WEB_WORKER_ROLLBACK=PASS"
+  echo "ZAPI_CHANGE=NO"
+  echo "CURRENT_CHANGED=NO"
+  echo "PM2_MAIN_CHANGED=NO"
+  exit 0
+fi
+
+die "uso: web-canary-v167b plan|activate|check RELEASE COMMIT TREE | rollback CONFIRM_ROLLBACK_WEB_WORKER_ONLY_V167B"
