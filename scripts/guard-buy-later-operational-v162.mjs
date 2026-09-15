@@ -68,6 +68,8 @@ assert.match(service, /reason: 'recovered_from_history'/);
 assert.doesNotMatch(service, /from ['"][^'"]*(?:droppi|dropi|metaConversions|sendAudio|sendImage|sendVideo|sendDocument)[^'"]*['"]/i);
 
 assert.match(runner, /processAdminBuyLaterFollowups/);
+assert.match(runner, /runWithReservedBuyLaterV162Stdout/);
+assert.match(runner, /process\.stdout\.write = \(\) => true/);
 assert.match(runner, /installStrictReadOnlyMongooseGuard/);
 assert.match(runner, /autoIndex: false/);
 assert.match(runner, /ADMIN_BUY_LATER_FOLLOWUP_ENABLED: 'false'/);

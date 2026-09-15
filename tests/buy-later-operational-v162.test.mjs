@@ -13,11 +13,25 @@ import { buyLaterReplyDecision } from '../src/services/buyLaterConfirmationServi
 import {
     BUY_LATER_V162_BATCH_LIMIT,
     BUY_LATER_V162_ENV_ALLOWLIST,
-    BUY_LATER_V162_INTERVAL_MINUTES
+    BUY_LATER_V162_INTERVAL_MINUTES,
+    runWithReservedBuyLaterV162Stdout
 } from '../scripts/run-buy-later-followup-v162.mjs';
 
 const read = (relative) => fs.readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8');
 const fixedNow = new Date('2026-10-01T14:00:00.000Z');
+
+test('executor reserva stdout para um unico JSON e restaura os canais', async () => {
+    const originalWrite = process.stdout.write;
+    const originalLog = console.log;
+    const result = await runWithReservedBuyLaterV162Stdout(async () => {
+        assert.equal(process.stdout.write('nao_publicar'), true);
+        console.log('nao_publicar');
+        return 162;
+    });
+    assert.equal(result, 162);
+    assert.equal(process.stdout.write, originalWrite);
+    assert.equal(console.log, originalLog);
+});
 
 const fixture = (overrides = {}) => ({
     _id: 'fixture-0268',

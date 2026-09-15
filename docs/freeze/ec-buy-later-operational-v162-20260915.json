@@ -29,12 +29,12 @@
     "ops/systemd/vitalismen-buy-later-followup-v162.service": "21e931c6a2907bb155202284cc3e4004227599625be29ae582617b9797e22d92",
     "ops/systemd/vitalismen-buy-later-followup-v162.timer": "b957a34a1efe87268b79ccd40f2cf8b46de8fc3f548ef9239c5aaecc6974c5f9",
     "package.json": "f8b6f73ed98bc1b26cfed7fe5055b87ff2d1d1437a9b34418f50720c405400c7",
-    "scripts/guard-buy-later-operational-v162.mjs": "687567324b909c9863488b6b4c48f10f2a857e38545529f3107e552b24019bc8",
+    "scripts/guard-buy-later-operational-v162.mjs": "23061ab23ce371e79825a792face05f2e7c8090816688f285ba553de793a19da",
     "scripts/guard-negative-intent-buy-later-v161.mjs": "de07e067b21affe7465b3ae8ee38aa515a80856f9b975a2a0008278276a4dc60",
     "scripts/lib/ec-runtime-successor-v155-context.mjs": "f087d42acbf89d8b181acd3d73dddeb723e687a3ff14390978651a1c60f2583a",
-    "scripts/run-buy-later-followup-v162.mjs": "4a3ed3c45c400ff5b65dd368705b449bf91b28b192d5380fc9fed077a4fcb801",
+    "scripts/run-buy-later-followup-v162.mjs": "b21fe6bc20c688ddaf59568de14bd8e3f9cd7272ea3e9eba6e449850a0073094",
     "src/services/adminBuyLaterFollowupService.js": "f803bbe9f6c0f53e07a1a675614e3cf858eaf11127a6cf57efaab25e1c118b68",
-    "tests/buy-later-operational-v162.test.mjs": "77536e38922bf680140304b64fc814b5c8fd80c49aa2030e3cefdb65542361ff"
+    "tests/buy-later-operational-v162.test.mjs": "8be2353e23b33e98b53763011917e1509113392e3344440091a2b2f5655ae08b"
   },
   "preservedFiles": {
     "docs/freeze/ec-negative-intent-buy-later-v161-20260914.json": "2fcb1583446b3f53f2a36a675c8f9851cea34acacecc06fda43aff19ff36e481",

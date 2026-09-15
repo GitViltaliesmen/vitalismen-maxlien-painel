@@ -36,6 +36,23 @@ const SYSTEM_ENV_KEYS = new Set([
 
 const clean = (value = '') => String(value ?? '').trim();
 const isTrue = (value = '') => clean(value).toLowerCase() === 'true';
+const SILENCED_CONSOLE_METHODS = Object.freeze(['log', 'info', 'debug', 'warn', 'error']);
+
+export const runWithReservedBuyLaterV162Stdout = async (work) => {
+    if (typeof work !== 'function') throw new TypeError('buy_later_v162_work_required');
+    const originalStdoutWrite = process.stdout.write;
+    const originalConsole = Object.fromEntries(
+        SILENCED_CONSOLE_METHODS.map((method) => [method, console[method]])
+    );
+    process.stdout.write = () => true;
+    for (const method of SILENCED_CONSOLE_METHODS) console[method] = () => {};
+    try {
+        return await work();
+    } finally {
+        process.stdout.write = originalStdoutWrite;
+        for (const method of SILENCED_CONSOLE_METHODS) console[method] = originalConsole[method];
+    }
+};
 
 export const loadBuyLaterV162IsolatedEnvironment = ({ action, root = process.cwd() } = {}) => {
     const envFile = path.join(root, '.env');
@@ -100,40 +117,42 @@ export const runBuyLaterV162Cli = async ({ action = process.argv[2], root = proc
         throw new Error('buy_later_v162_official_release_required');
     }
     const { mongoUri } = loadBuyLaterV162IsolatedEnvironment({ action, root });
-    const strict = await import('../src/services/strictReadOnlyObservationService.js');
-    if (action === 'observe') strict.installStrictReadOnlyMongooseGuard(mongoose);
-    await mongoose.connect(mongoUri, {
-        autoIndex: false,
-        serverSelectionTimeoutMS: 10000
-    });
-    try {
-        const service = await import('../src/services/adminBuyLaterFollowupService.js');
-        if (action === 'observe') {
-            const result = await service.observeAdminBuyLaterFollowups({ now: new Date() });
+    return runWithReservedBuyLaterV162Stdout(async () => {
+        const strict = await import('../src/services/strictReadOnlyObservationService.js');
+        if (action === 'observe') strict.installStrictReadOnlyMongooseGuard(mongoose);
+        await mongoose.connect(mongoUri, {
+            autoIndex: false,
+            serverSelectionTimeoutMS: 10000
+        });
+        try {
+            const service = await import('../src/services/adminBuyLaterFollowupService.js');
+            if (action === 'observe') {
+                const result = await service.observeAdminBuyLaterFollowups({ now: new Date() });
+                return {
+                    status: 'PASS_OBSERVE',
+                    version: 162,
+                    readOnly: true,
+                    batchLimit: BUY_LATER_V162_BATCH_LIMIT,
+                    intervalMinutes: BUY_LATER_V162_INTERVAL_MINUTES,
+                    ...result
+                };
+            }
+            const result = await service.processAdminBuyLaterFollowups({
+                limit: BUY_LATER_V162_BATCH_LIMIT,
+                now: new Date()
+            });
             return {
-                status: 'PASS_OBSERVE',
+                status: 'PASS_RUN',
                 version: 162,
-                readOnly: true,
+                readOnly: false,
                 batchLimit: BUY_LATER_V162_BATCH_LIMIT,
                 intervalMinutes: BUY_LATER_V162_INTERVAL_MINUTES,
                 ...result
             };
+        } finally {
+            await mongoose.disconnect();
         }
-        const result = await service.processAdminBuyLaterFollowups({
-            limit: BUY_LATER_V162_BATCH_LIMIT,
-            now: new Date()
-        });
-        return {
-            status: 'PASS_RUN',
-            version: 162,
-            readOnly: false,
-            batchLimit: BUY_LATER_V162_BATCH_LIMIT,
-            intervalMinutes: BUY_LATER_V162_INTERVAL_MINUTES,
-            ...result
-        };
-    } finally {
-        await mongoose.disconnect();
-    }
+    });
 };
 
 const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(new URL(import.meta.url));
