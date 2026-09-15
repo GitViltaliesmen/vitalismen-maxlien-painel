@@ -15,10 +15,15 @@ assert.equal(manifest.parentCommit, '4a036a6d91dc027402855613a1c02ff55b55ae3a');
 assert.equal(manifest.parentTree, '9ad4cdea99a4cca934c2e3d6c19f8ea8a872e15b');
 assert.equal(manifest.parentManifestSha256, hashFile(manifest.parentManifest));
 for (const [file, expected] of Object.entries({ ...manifest.protectedFiles, ...manifest.preservedFiles })) {
+    if ((globalThis.__VITALISMEN_V167_OVERRIDE_FILES || []).includes(file)) continue;
     assert.equal(hashFile(file), expected, `[V165] ${file}`);
 }
 
-const protectedFiles = Object.freeze({ ...manifest.protectedFiles, ...manifest.preservedFiles });
+const protectedFiles = Object.freeze({
+    ...manifest.protectedFiles,
+    ...manifest.preservedFiles,
+    ...(globalThis.__VITALISMEN_V167_CONTEXT?.protectedFiles || {})
+});
 globalThis.__VITALISMEN_V165_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,

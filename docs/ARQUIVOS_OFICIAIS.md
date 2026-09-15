@@ -1532,3 +1532,16 @@ nenhuma alteração realizada no VPS.
 - Manifesto: `docs/freeze/ec-web-controlled-canary-v165-20260915.json`.
 - A única mensagem autorizada é literal, para `5515998038637`, via Web e sem
   retry. Z-API permanece oficial e não pode ser removida nesta etapa.
+
+## Registro V167 — roteamento controlado de provider (2026-09-15)
+
+- Base de código preservada: V165 `563641700da2983d7872a3eb2ae754b97a72d1d0`.
+- Estado operacional pai: V166 `V166_POST_CANARY_WEB_STABILITY_PASS`.
+- Router/ledger/coordenador isolado:
+  `src/whatsapp/core/ControlledProviderRoutingV167.js`.
+- Contrato: `docs/CONTROLLED_PROVIDER_ROUTING_V167_20260915.md`.
+- Manifesto: `docs/freeze/ec-controlled-provider-routing-v167-20260915.json`.
+- Guard/testes: `scripts/guard-v167-controlled-provider-routing.mjs` e
+  `tests/v167-controlled-provider-routing.test.mjs`.
+- Não há import no runtime principal, envio real, segundo socket, cutover ou
+  mudança da Z-API nesta candidata.

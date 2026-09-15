@@ -11,9 +11,12 @@ const v164Path = 'docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json
 const v164 = fs.existsSync(path.resolve(v164Path)) ? JSON.parse(read(v164Path)) : null;
 const v165Path = 'docs/freeze/ec-web-controlled-canary-v165-20260915.json';
 const v165 = fs.existsSync(path.resolve(v165Path)) ? JSON.parse(read(v165Path)) : null;
+const v167Path = 'docs/freeze/ec-controlled-provider-routing-v167-20260915.json';
+const v167 = fs.existsSync(path.resolve(v167Path)) ? JSON.parse(read(v167Path)) : null;
 const v164Overrides = new Set([
     ...(v164?.overrides || []), ...(v164?.compatibilityOverrides || []),
-    ...(v165?.overrides || []), ...(v165?.compatibilityOverrides || [])
+    ...(v165?.overrides || []), ...(v165?.compatibilityOverrides || []),
+    ...(v167?.overrides || []), ...(v167?.compatibilityOverrides || [])
 ]);
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`);

@@ -1856,3 +1856,14 @@ Durante a transação, somente o worker V164 é parado e restaurado; `current`, 
 bot principal e a Z-API oficial não mudam. Nenhum fluxo comercial, fila,
 scheduler, banco, Dropi ou Meta participa. Contrato:
 `docs/WEB_CONTROLLED_CANARY_V165_20260915.md`.
+
+## 2026-09-15 — V167: roteamento controlado de provider
+
+A V167 centraliza uma decisão futura entre Z-API e WhatsApp Web sem conectá-la
+ao runtime principal. Somente o telefone QA integral pode ser elegível ao Web,
+com ação explícita e worker persistente saudável; clientes gerais permanecem
+Z-API. Reserva, claim e provider são exclusivos por evento.
+
+Erro ou resultado ambíguo Web termina sem fallback Z-API. A candidata não cria
+socket, não envia, não altera fila, `current`, PM2, sessão ou provider oficial.
+Contrato: `docs/CONTROLLED_PROVIDER_ROUTING_V167_20260915.md`.
