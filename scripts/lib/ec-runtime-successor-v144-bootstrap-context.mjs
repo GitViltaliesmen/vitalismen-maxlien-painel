@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import './ec-runtime-successor-v165-web-canary-overrides-context.mjs';
 import './ec-runtime-successor-v164-web-shadow-overrides-context.mjs';
 import './ec-runtime-successor-v163-multinumber-overrides-context.mjs';
 import './ec-runtime-successor-v155-context.mjs';
@@ -8,6 +9,7 @@ import './ec-runtime-successor-v154-context.mjs';
 import './ec-runtime-successor-v153-context.mjs';
 import './ec-runtime-successor-v163-multinumber-context.mjs';
 import './ec-runtime-successor-v164-web-shadow-context.mjs';
+import './ec-runtime-successor-v165-web-canary-context.mjs';
 import './ec-runtime-successor-v147-r6r2-context.mjs';
 
 await import('./ec-runtime-successor-v146-context.mjs');

@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_dir="/opt/vitalismen-automacao"
+releases_dir="$base_dir/releases"
+current_expected="$releases_dir/20260915T043444Z_production-20260915-ecf9ab5"
+v164_release="$releases_dir/20260915T140903Z_production-20260915-4a036a6"
+process_main="vitalismen-automation"
+process_web="vitalismen-whatsapp-web-shadow-v164"
+session_root="/var/lib/vitalismen-whatsapp-web-sessions"
+session_dir="$session_root/V152_TEST_WEB_01"
+state_file="/var/lib/vitalismen-whatsapp-web-shadow-state/V152_TEST_WEB_01/health.json"
+ledger_root="/var/lib/vitalismen-whatsapp-web-canary-v165"
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+current_target() { readlink -f "$base_dir/current" 2>/dev/null || true; }
+
+release_dir() {
+  local name="$1"
+  [[ "$name" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release inválida"
+  local target="$releases_dir/$name"
+  [[ -d "$target" && ! -L "$target" ]] || die "release candidata ausente"
+  [[ "$(readlink -f "$target")" == "$target" ]] || die "release candidata fora do path oficial"
+  printf '%s\n' "$target"
+}
+
+pm2_snapshot() {
+  pm2 jlist | node "$script_root/scripts/v164-pm2-snapshot.mjs" "$1"
+}
+
+assert_release() {
+  local target="$1" expected_commit="$2" expected_tree="$3"
+  node - "$target" "$expected_commit" "$expected_tree" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const [target, expectedCommit, expectedTree] = process.argv.slice(2);
+const source = JSON.parse(fs.readFileSync(path.join(target, '.release-source.json'), 'utf8'));
+const staging = JSON.parse(fs.readFileSync(path.join(target, '.staging-complete.json'), 'utf8'));
+if (source.publicationStatus !== 'staged_candidate' || staging.publicationStatus !== 'staged_candidate') throw new Error('candidate_not_staged');
+if (source.commit !== expectedCommit || source.functionalTree !== expectedTree) throw new Error('candidate_identity_mismatch');
+if (staging.commit !== expectedCommit || staging.functionalTree !== expectedTree) throw new Error('staging_identity_mismatch');
+if (source.strictReadOnly !== true || staging.strictReadOnly !== true) throw new Error('candidate_not_strict');
+NODE
+}
+
+check_production_health() {
+  curl -fsS http://127.0.0.1:3001/api/health | node "$script_root/scripts/v165-operational-health-check.mjs"
+}
+
+assert_main_unchanged() {
+  local before="$1"
+  [[ "$(current_target)" == "$current_expected" ]] || die "current mudou"
+  [[ "$(pm2_snapshot "$process_main")" == "$before" ]] || die "PM2 principal mudou"
+}
+
+assert_web_online() {
+  local snapshot pid status cwd exec_path restarts
+  snapshot="$(pm2_snapshot "$process_web")" || die "worker Web ausente"
+  IFS='|' read -r pid status cwd exec_path restarts <<<"$snapshot"
+  [[ "$pid" =~ ^[1-9][0-9]*$ && "$status" == "online" ]] || die "worker Web não está online"
+  [[ "$(readlink -f "$cwd")" == "$v164_release" ]] || die "cwd do worker Web divergiu"
+  [[ "$(readlink -f "$exec_path")" == "$v164_release/scripts/v152-e-r4-persistent-shadow-worker.mjs" ]] || die "exec path do worker Web divergiu"
+  node "$v164_release/scripts/v164-web-shadow-runtime-check.mjs" health "$state_file" "$pid" >/dev/null
+}
+
+restore_web_worker() {
+  local restored="0" snapshot status pid
+  snapshot="$(pm2_snapshot "$process_web" 2>/dev/null || true)"
+  IFS='|' read -r pid status _ <<<"$snapshot"
+  if [[ "$status" != "online" ]]; then pm2 restart "$process_web" >/dev/null; fi
+  for _ in $(seq 1 45); do
+    if assert_web_online 2>/dev/null; then restored="1"; break; fi
+    sleep 2
+  done
+  [[ "$restored" == "1" ]] || return 1
+}
+
+action="${1:-}"
+release="${2:-}"
+expected_commit="${3:-}"
+expected_tree="${4:-}"
+[[ "$action" == "plan" || "$action" == "execute" || "$action" == "check" ]] || die "uso: web-canary-v165 plan|execute|check RELEASE COMMIT TREE"
+[[ "$#" -eq 4 ]] || die "uso: web-canary-v165 $action RELEASE COMMIT TREE"
+
+target="$(release_dir "$release")"
+assert_release "$target" "$expected_commit" "$expected_tree"
+[[ "$(current_target)" == "$current_expected" ]] || die "baseline current divergiu"
+main_before="$(pm2_snapshot "$process_main")" || die "PM2 principal ausente"
+[[ "$main_before" == *'|online|'* ]] || die "PM2 principal não está online"
+assert_web_online
+node "$target/scripts/v164-web-shadow-runtime-check.mjs" session "$session_dir"
+check_production_health
+
+canary_env=(
+  "V165_ALLOWED_RECIPIENT=5515998038637"
+  "V165_PAIRED_WEB_IDENTITY=5531983002800"
+  "V165_SESSION_NAMESPACE=V152_TEST_WEB_01"
+  "WHATSAPP_SESSION_STORAGE_ROOT=$session_root"
+  "V165_LEDGER_ROOT=$ledger_root"
+)
+
+if [[ "$action" == "plan" ]]; then
+  env "${canary_env[@]}" node "$target/scripts/v165-web-controlled-canary.mjs" inspect
+  echo "CANARY_PROVIDER=WHATSAPP_WEB"
+  echo "AUTHORIZED_CONTROLLED_TEST_PHONE=5515998038637"
+  echo "WEB_CANARY_MAX_MESSAGES=1"
+  echo "MAX_CONCURRENT_WEB_SOCKETS=1"
+  echo "ZAPI_CHANGE=NO"
+  echo "CURRENT_CHANGE=NO"
+  exit 0
+fi
+
+if [[ "$action" == "check" ]]; then
+  env "${canary_env[@]}" node "$target/scripts/v165-web-controlled-canary.mjs" inspect
+  assert_main_unchanged "$main_before"
+  check_production_health
+  echo "WEB_WORKER_ACTIVE=YES"
+  echo "WEB_WORKER_SHADOW=true"
+  echo "SESSION_RESTORABLE=YES"
+  exit 0
+fi
+
+[[ "${V165_WEB_CANARY_TRANSACTION_APPROVED:-}" == "YES" ]] || die "autorização transacional V165 ausente"
+ledger_before="$(env "${canary_env[@]}" node "$target/scripts/v165-web-controlled-canary.mjs" inspect)"
+[[ "$ledger_before" == *'LEDGER_STATE=ABSENT'* ]] || die "ledger V165 já reservado; envio bloqueado antes do socket"
+
+restore_required="0"
+cleanup() {
+  if [[ "$restore_required" == "1" ]]; then restore_web_worker >/dev/null 2>&1 || true; fi
+}
+trap cleanup EXIT
+
+pm2 stop "$process_web" >/dev/null
+restore_required="1"
+web_stopped="$(pm2_snapshot "$process_web")" || die "worker Web desapareceu do PM2"
+[[ "$web_stopped" == 0\|stopped\|* ]] || die "worker Web não parou completamente"
+assert_main_unchanged "$main_before"
+check_production_health
+
+set +e
+canary_output="$(env "${canary_env[@]}" V165_WEB_CANARY_APPROVED=YES node "$target/scripts/v165-web-controlled-canary.mjs" execute CONFIRM_ONE_WEB_MESSAGE_TO_5515998038637)"
+canary_status="$?"
+set -e
+printf '%s\n' "$canary_output"
+
+restore_web_worker || die "worker Web não restaurou após o canário"
+restore_required="0"
+assert_main_unchanged "$main_before"
+check_production_health
+pm2 save >/dev/null
+assert_main_unchanged "$main_before"
+
+ledger_after="$(env "${canary_env[@]}" node "$target/scripts/v165-web-controlled-canary.mjs" inspect)"
+printf '%s\n' "$ledger_after"
+[[ "$ledger_after" == *'DUPLICATE_REEXECUTION_BLOCKED=YES'* ]] || die "dedupe persistente não foi comprovado"
+
+echo "WEB_WORKER_RESTORED_AFTER_CANARY=YES"
+echo "WEB_WORKER_ACTIVE=YES"
+echo "WEB_WORKER_SHADOW=true"
+echo "MAX_CONCURRENT_WEB_SOCKETS=1"
+echo "SECOND_SOCKET_OBSERVED=NO"
+echo "ZAPI_STATUS=ONLINE_CONNECTED"
+echo "ZAPI_PRODUCTION_PROVIDER=YES"
+echo "CURRENT_CHANGED=NO"
+echo "PM2_MAIN_PID_CHANGED=NO"
+echo "ROLLBACK_READY=YES"
+
+[[ "$canary_status" == "0" ]] || exit "$canary_status"

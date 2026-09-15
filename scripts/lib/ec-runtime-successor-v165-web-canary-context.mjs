@@ -4,23 +4,22 @@ import fs from 'node:fs';
 
 const hashBuffer = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const hashFile = (relative) => hashBuffer(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)));
-const url = new URL('../../docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json', import.meta.url);
+const url = new URL('../../docs/freeze/ec-web-controlled-canary-v165-20260915.json', import.meta.url);
 const text = fs.readFileSync(url, 'utf8');
 const manifest = JSON.parse(text);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
-assert.equal(manifest.freezeId, 'EC_WEB_WORKER_SHADOW_ACTIVATION_V164_20260915');
-assert.equal(manifest.version, 164);
-assert.equal(manifest.parentCommit, 'da4547aafb407da7259c312fdd1db46d5519cb91');
-assert.equal(manifest.parentTree, 'd398db49ff2023d3d730fc9bd686ffe774265d93');
+assert.equal(manifest.freezeId, 'EC_WEB_CONTROLLED_CANARY_V165_20260915');
+assert.equal(manifest.version, 165);
+assert.equal(manifest.parentCommit, '4a036a6d91dc027402855613a1c02ff55b55ae3a');
+assert.equal(manifest.parentTree, '9ad4cdea99a4cca934c2e3d6c19f8ea8a872e15b');
 assert.equal(manifest.parentManifestSha256, hashFile(manifest.parentManifest));
 for (const [file, expected] of Object.entries({ ...manifest.protectedFiles, ...manifest.preservedFiles })) {
-    if ((globalThis.__VITALISMEN_V165_OVERRIDE_FILES || []).includes(file)) continue;
-    assert.equal(hashFile(file), expected, `[V164] ${file}`);
+    assert.equal(hashFile(file), expected, `[V165] ${file}`);
 }
 
 const protectedFiles = Object.freeze({ ...manifest.protectedFiles, ...manifest.preservedFiles });
-globalThis.__VITALISMEN_V164_CONTEXT = Object.freeze({
+globalThis.__VITALISMEN_V165_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(text),
@@ -41,10 +40,11 @@ for (const key of [
     '__VITALISMEN_V154_CONTEXT',
     '__VITALISMEN_V155_CONTEXT',
     '__VITALISMEN_V162_CONTEXT',
-    '__VITALISMEN_V163_CONTEXT'
+    '__VITALISMEN_V163_CONTEXT',
+    '__VITALISMEN_V164_CONTEXT'
 ]) {
     const inherited = globalThis[key];
-    if (!inherited?.loaded) continue;
+    if (!inherited || typeof inherited !== 'object') continue;
     globalThis[key] = Object.freeze({
         ...inherited,
         protectedFiles: Object.freeze({ ...inherited.protectedFiles, ...protectedFiles })

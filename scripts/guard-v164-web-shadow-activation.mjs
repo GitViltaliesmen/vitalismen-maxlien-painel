@@ -7,6 +7,9 @@ const read = (relative) => fs.readFileSync(path.resolve(relative), 'utf8');
 const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(path.resolve(relative))).digest('hex');
 const text = read('docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json');
 const manifest = JSON.parse(text);
+const v165Path = 'docs/freeze/ec-web-controlled-canary-v165-20260915.json';
+const v165 = fs.existsSync(path.resolve(v165Path)) ? JSON.parse(read(v165Path)) : null;
+const v165Overrides = new Set([...(v165?.overrides || []), ...(v165?.compatibilityOverrides || [])]);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_WEB_WORKER_SHADOW_ACTIVATION_V164_20260915');
@@ -17,6 +20,7 @@ assert.equal(hash(manifest.parentManifest), manifest.parentManifestSha256);
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 assert.deepEqual([...manifest.compatibilityOverrides].sort(), Object.keys(manifest.preservedFiles).sort());
 for (const [file, expected] of Object.entries({ ...manifest.protectedFiles, ...manifest.preservedFiles })) {
+    if (v165Overrides.has(file)) continue;
     assert.equal(hash(file), expected, `V164 protected file diverged: ${file}`);
 }
 

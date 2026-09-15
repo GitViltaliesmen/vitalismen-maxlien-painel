@@ -23,7 +23,10 @@ assert.equal(manifest.parentManifestSha256, hashFile(manifest.parentManifest));
 assert.equal(manifest.sourceManifestSha256, hashFile(manifest.sourceManifest));
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles || {}).sort());
 
-const v164Overrides = new Set(globalThis.__VITALISMEN_V164_OVERRIDE_FILES || []);
+const v164Overrides = new Set([
+    ...(globalThis.__VITALISMEN_V164_OVERRIDE_FILES || []),
+    ...(globalThis.__VITALISMEN_V165_OVERRIDE_FILES || [])
+]);
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
     if (v164Overrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V163] ${file}`);

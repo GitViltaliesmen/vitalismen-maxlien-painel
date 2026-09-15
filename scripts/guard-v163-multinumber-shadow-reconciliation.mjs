@@ -9,7 +9,12 @@ const manifestText = read('docs/freeze/ec-multinumber-shadow-reconciliation-v163
 const manifest = JSON.parse(manifestText);
 const v164Path = 'docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json';
 const v164 = fs.existsSync(path.resolve(v164Path)) ? JSON.parse(read(v164Path)) : null;
-const v164Overrides = new Set([...(v164?.overrides || []), ...(v164?.compatibilityOverrides || [])]);
+const v165Path = 'docs/freeze/ec-web-controlled-canary-v165-20260915.json';
+const v165 = fs.existsSync(path.resolve(v165Path)) ? JSON.parse(read(v165Path)) : null;
+const v164Overrides = new Set([
+    ...(v164?.overrides || []), ...(v164?.compatibilityOverrides || []),
+    ...(v165?.overrides || []), ...(v165?.compatibilityOverrides || [])
+]);
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915');

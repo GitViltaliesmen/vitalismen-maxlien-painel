@@ -1845,3 +1845,14 @@ O rollback remove apenas o worker Web e preserva sessão, bot e Z-API. Nenhum
 canário é enviado nesta fase; o único telefone elegível para a missão posterior
 é `5515998038637`. Contrato:
 `docs/WEB_WORKER_SHADOW_ACTIVATION_V164_20260915.md`.
+
+## 2026-09-15 — V165: canário outbound Web controlado
+
+A V165 autoriza somente uma mensagem técnica literal via WhatsApp Web para o
+telefone de QA `5515998038637`. Um ledger externo root-only é reservado antes da
+rede e qualquer estado existente bloqueia reexecução. Não há retry automático.
+
+Durante a transação, somente o worker V164 é parado e restaurado; `current`, o
+bot principal e a Z-API oficial não mudam. Nenhum fluxo comercial, fila,
+scheduler, banco, Dropi ou Meta participa. Contrato:
+`docs/WEB_CONTROLLED_CANARY_V165_20260915.md`.

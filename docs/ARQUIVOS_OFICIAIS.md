@@ -1519,3 +1519,16 @@ nenhuma alteração realizada no VPS.
   `tests/v164-web-shadow-activation.test.mjs`.
 - `current`, PM2 principal e Z-API não são modificados; o canário real continua
   separado e restrito ao telefone `5515998038637`.
+
+## Registro V165 — canário outbound Web controlado (2026-09-15)
+
+- Parent imutável: V164 `4a036a6d91dc027402855613a1c02ff55b55ae3a`.
+- Executor restrito: `scripts/v165-web-controlled-canary.mjs`.
+- Ledger e contrato fail-closed:
+  `src/whatsapp/core/ControlledOutboundCanaryV165.js`.
+- Operação transacional: `ops/web-canary-v165`.
+- Ledger externo: `/var/lib/vitalismen-whatsapp-web-canary-v165/canary.json`.
+- Contrato: `docs/WEB_CONTROLLED_CANARY_V165_20260915.md`.
+- Manifesto: `docs/freeze/ec-web-controlled-canary-v165-20260915.json`.
+- A única mensagem autorizada é literal, para `5515998038637`, via Web e sem
+  retry. Z-API permanece oficial e não pode ser removida nesta etapa.
