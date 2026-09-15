@@ -120,13 +120,20 @@ if [[ "$action" == "plan" || "$action" == "activate" || "$action" == "check" ]];
   pm2 delete "$process_web" >/dev/null
   rm -f -- "$control_socket"
   pm2 start "$target/ops/ecosystem.v167b-authorized-web.config.cjs" --only "$process_web" --update-env >/dev/null
+  # A primeira sondagem normalmente ocorre antes do socket conectar. Evite que
+  # esse estado transitório acione o ERR trap; falha final ainda faz rollback.
+  trap - ERR
   identity=""
   for _ in $(seq 1 45); do
     identity="$(assert_candidate_worker "$target" 2>/dev/null || true)"
     [[ -n "$identity" ]] && break
     sleep 2
   done
-  [[ -n "$identity" ]] || die "worker V167B não ficou saudável"
+  if [[ -z "$identity" ]]; then
+    rollback_on_error
+    die "worker V167B não ficou saudável"
+  fi
+  trap rollback_on_error ERR
   assert_main_unchanged "$main_before" "$current_before"
   pm2 save >/dev/null
   assert_main_unchanged "$main_before" "$current_before"

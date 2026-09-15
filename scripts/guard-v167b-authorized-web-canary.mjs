@@ -57,6 +57,8 @@ assert.match(wrapper, /assert_main_unchanged/);
 assert.match(wrapper, /pm2 delete "\$process_web"/);
 assert.match(wrapper, /ecosystem\.v167b-authorized-web\.config\.cjs/);
 assert.match(wrapper, /ecosystem\.v164-web-shadow\.config\.cjs/);
+assert.match(wrapper, /trap - ERR[\s\S]*for _ in \$\(seq 1 45\)/);
+assert.match(wrapper, /if \[\[ -z "\$identity" \]\]; then[\s\S]*rollback_on_error/);
 assert.doesNotMatch(wrapper, /pm2 restart "\$process_main"|systemctl restart|ln -sfn/);
 
 assert.match(docs, /Z-API continua online/);
