@@ -10426,7 +10426,7 @@
             const zapiKey = digitsOnlyText(zapiPhone);
             const zapiItem = workloadBySession.get(zapiKey) || {};
             const countryLabel = 'Equador';
-            const sourceText = 'V152-B shadow sucessor V152-C0: PAIRING_PENDING_REAL_TEST_CHANNEL. Pareamento, outbound, roteamento e troca de provedor reais estao bloqueados.';
+            const sourceText = 'V152-E-R4: estado do canal Web de teste vem do worker shadow. Outbound, roteamento, handoff, failover e troca de provedor permanecem bloqueados.';
             if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
             const actionLabels = ['Detalhes', 'Health', 'Pausar', 'Ativar', 'Drenar', 'Transferir', 'Parear'];
             const v152CompatibilityActions = ['Details', 'Health', 'Pause', 'Activate', 'Drain', 'Transfer', 'Pair'];
@@ -10451,6 +10451,30 @@
                         ${actionButtons}
                     </article>
                 `;
+            const realTestSession = sessions.find((session) => String(session.channelId || session.sessionId || '') === 'V152_TEST_WEB_01');
+            const realTestConnected = Boolean(realTestSession?.isReady)
+                && String(realTestSession?.connectionState || '').toUpperCase() === 'CONNECTED'
+                && realTestSession?.health?.healthy === true;
+            const realTestStatus = realTestConnected
+                ? 'ACTIVE'
+                : String(realTestSession?.status || 'INACTIVE').toUpperCase();
+            const realTestHealth = realTestConnected
+                ? 'PASS'
+                : String(realTestSession?.health?.detail || 'WORKER_NOT_REPORTED').toUpperCase();
+            const realTestPhone = digitsOnlyText(realTestSession?.phoneNumber || realTestSession?.ownPhoneDigits) || '5531983002800';
+            const realTestCard = `
+                    <article class="connection-card ${realTestConnected ? '' : 'connection-card-muted'}" data-v152-e-r4-channel="V152_TEST_WEB_01">
+                        <div class="connection-card-head">
+                            <strong>V152_TEST_WEB_01</strong>
+                            <span class="badge ${badgeClass(realTestConnected ? 'connected' : 'disconnected')}">${escapeHtml(realTestStatus)}</span>
+                        </div>
+                        <button class="connection-status-button ${realTestConnected ? 'connected' : 'disconnected'}" type="button" disabled>provider=WHATSAPP_WEB · status=${escapeHtml(realTestStatus)}</button>
+                        <div class="meta">channelId=V152_TEST_WEB_01 · phone=${escapeHtml(realTestPhone)}</div>
+                        <div class="meta">health=${escapeHtml(realTestHealth)} · shadow=YES · draining=YES · weight=0 · capacity=0</div>
+                        <div class="meta">session=${escapeHtml(String(realTestSession?.sessionState || 'UNKNOWN'))} · connection=${escapeHtml(String(realTestSession?.connectionState || 'DISCONNECTED'))}</div>
+                        ${actionButtons}
+                    </article>
+                `;
             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
             const reservedSlotCount = sessions.filter((session) => {
                 if (isVisibleConnectionSession(session)) return false;
@@ -10459,7 +10483,7 @@
             }).length;
             const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_TEMPLATE</strong><span class="badge">SHADOW</span><div class="meta">provider=WHATSAPP_WEB · phone=NULL · status=DRAFT · health=UNKNOWN</div><div class="meta">priority=0 · weight=0 · capacity=0 · draining=true · session status=PAIRING_PENDING_REAL_TEST_CHANNEL</div>${actionButtons}</article>`;
             const preservedCard = `<article class="connection-card connection-card-muted"><strong>OLD_BLOCKED_PHONE</strong><div class="meta">provider=ZAPI · phone=preserved-hidden · status=BLOCKED · health=preserved</div><div class="meta">priority=999 · weight=0 · capacity=0 · draining=true · session status=preserved</div>${actionButtons}</article>`;
-            el('connectionList').innerHTML = `${zapiCard}${draftCard}${preservedCard}`;
+            el('connectionList').innerHTML = `${zapiCard}${realTestCard}${draftCard}${preservedCard}`;
             setConnectionOpsPanel(sessions, workloadBySession);
         };
 

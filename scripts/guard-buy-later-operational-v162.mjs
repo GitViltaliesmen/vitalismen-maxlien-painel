@@ -18,6 +18,14 @@ const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(pa
 const manifestPath = 'docs/freeze/ec-buy-later-operational-v162-20260915.json';
 const manifestText = read(manifestPath);
 const manifest = JSON.parse(manifestText);
+const successorManifestPath = 'docs/freeze/ec-multinumber-shadow-reconciliation-v163-20260915.json';
+const successorManifest = fs.existsSync(path.resolve(successorManifestPath))
+    ? JSON.parse(read(successorManifestPath))
+    : null;
+const successorOverrides = new Set(successorManifest?.overrides || []);
+if (successorManifest) {
+    assert.equal(successorManifest.freezeId, 'EC_MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915');
+}
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_BUY_LATER_OPERATIONAL_V162_20260915');
@@ -29,6 +37,7 @@ assert.equal(manifest.parentManifest, 'docs/freeze/ec-negative-intent-buy-later-
 assert.equal(manifest.parentManifestSha256, '2fcb1583446b3f53f2a36a675c8f9851cea34acacecc06fda43aff19ff36e481');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (successorOverrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V162 protected file diverged: ${relative}`);
 }
 for (const [relative, expected] of Object.entries(manifest.preservedFiles)) {

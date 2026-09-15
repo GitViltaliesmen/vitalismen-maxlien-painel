@@ -1,0 +1,22 @@
+APPROVED_V152_E_CONTROLLED_REAL_PAIRING_20260912
+
+Autorizacao operacional recebida do operador em 2026-09-12:
+
+- preparar e executar o primeiro pareamento real controlado do WhatsApp Web;
+- manter a Z-API conectada e operacional;
+- usar somente o telefone QA 5515998038637 para as provas inbound e outbound;
+- manter a sessao fora da release e o QR fora de logs e evidencias persistentes;
+- exigir snapshot, rollback, restart, persistencia, dedupe, full suite, security,
+  senior review e freeze.
+
+Esta autorizacao NAO inclui:
+
+- migracao de clientes;
+- roteamento de clientes para WhatsApp Web;
+- handoff real;
+- failover real;
+- desligamento da Z-API;
+- cutover.
+
+VSL, Pixel/CAPI, Funnel Metrics, logica comercial do bot, core do painel e
+pos-venda permanecem congelados. Qualquer cutover exige nova aprovacao expressa.

@@ -1412,3 +1412,96 @@ nenhuma alteração realizada no VPS.
   `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
   `scripts/guard-buy-later-operational-v162.mjs` e
   `tests/buy-later-operational-v162.test.mjs`.
+## Registro V152-E — pareamento Web real controlado (2026-09-12)
+
+- Helper one-shot: `scripts/v152-e-controlled-pairing.mjs`.
+- Política, paths seguros, identidade sanitizada e dedupe:
+  `src/whatsapp/core/ControlledRealPairingV152E.js`.
+- Snapshot prévio sem ambiente PM2:
+  `scripts/v152-e-preflight-snapshot.mjs`.
+- Verificação posterior contra o snapshot:
+  `scripts/v152-e-postflight-verify.mjs`.
+- Sessão oficial isolada:
+  `/var/lib/vitalismen-whatsapp-web-sessions/v152-e-controlled-test-01`.
+- QR efêmero root-only:
+  `/run/vitalismen-v152-e-qr/WHATSAPP_WEB_CONTROLLED_TEST_01.png`.
+- Evidência sanitizada:
+  `/var/lib/vitalismen-v152-e-evidence`.
+- Guard/teste/freeze:
+  `scripts/guard-v152-e-controlled-real-pairing.mjs`,
+  `tests/v152-e-controlled-real-pairing.test.mjs` e
+  `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`.
+- Z-API permanece oficial; nenhum cliente, handoff, failover ou cutover é
+  autorizado. Nova aprovação é obrigatória antes de qualquer cutover.
+
+## Registro V152-E-R1 — linha Web de teste `5531983002800` (2026-09-12)
+
+- Contrato: `docs/WHATSAPP_REAL_PAIRING_TEST_CHANNEL_FREEZE_V152_E_R1_20260912.md`.
+- Sessão externa: `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- QR efêmero: `/run/vitalismen-v152-e-qr/V152_TEST_WEB_01.png`.
+- Snapshot/postflight R1 e receipt ficam em `/var/lib/vitalismen-v152-e-evidence`.
+- A produção Z-API e `/opt/vitalismen-automacao/current` não são alteradas.
+
+## Registro V152-E-R2 — pairing code nativo (2026-09-12)
+
+- Comando isolado: `npm run pair-code:v152-e-r2`.
+- Guard de segredo e escopo: `scripts/guard-v152-e-r2-native-pairing-code.mjs`.
+- Receipt operacional: `scripts/v152-e-r2-operational-receipt.mjs`.
+- Contrato: `docs/WHATSAPP_NATIVE_PAIRING_CODE_FREEZE_V152_E_R2_20260912.md`.
+- Manifest: `docs/freeze/ec-whatsapp-native-pairing-code-v152-e-r2-20260912.json`.
+- O código de pareamento não pode existir em arquivo, banco, receipt ou Git.
+- A sessão continua em `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- A produção Z-API e `/opt/vitalismen-automacao/current` permanecem intocadas.
+
+## Registro V152-E-R3 — normalização BR/JID e auth-flush gate (2026-09-12)
+
+- Base imutável: R2 `0aea21f5bf3760b09a694e4e3e6c70670cc4fc0d`.
+- Comparação canônica e gate 515:
+  `src/whatsapp/core/ControlledPairingRecoveryV152ER3.js`.
+- Integração one-shot: `scripts/v152-e-controlled-pairing.mjs`.
+- Limpeza exata da sessão parcial:
+  `scripts/v152-e-r3-partial-session-cleanup.mjs`.
+- Guard e testes:
+  `scripts/guard-v152-e-r3-br-jid-auth-flush.mjs` e
+  `tests/v152-e-r3-recovery.test.mjs`.
+- Contrato:
+  `docs/WHATSAPP_BR_JID_AUTH_FLUSH_FREEZE_V152_E_R3_20260912.md`.
+- Sessão externa única:
+  `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- Z-API e `/opt/vitalismen-automacao/current` não são alterados; novo QR requer
+  aprovação explícita separada.
+
+## Registro V152-E-R4 — persistent WhatsApp Web shadow worker (2026-09-12/13)
+
+- Base imutável: R3 `33e4e69aace895dc2fe4f16f5856d1c824c96900`.
+- Worker e política de reconnect:
+  `src/whatsapp/core/PersistentShadowWorkerV152ER4.js`.
+- Entrypoint persistente: `scripts/v152-e-r4-persistent-shadow-worker.mjs`.
+- Configuração supervisionada candidata: `ops/ecosystem.v152-e-r4.config.cjs`.
+- Health sanitizado externo:
+  `/var/lib/vitalismen-whatsapp-web-shadow-state/V152_TEST_WEB_01/health.json`.
+- Sessão externa reutilizada:
+  `/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`.
+- Guard, testes e simulação de restart:
+  `scripts/guard-v152-e-r4-persistent-shadow-worker.mjs`,
+  `tests/v152-e-r4-persistent-shadow-worker.test.mjs`,
+  `tests/v152-e-r4-connections-panel.test.mjs` e
+  `scripts/test-v152-e-r4-supervisor-restart.mjs`.
+- Contrato:
+  `docs/WHATSAPP_PERSISTENT_SHADOW_WORKER_FREEZE_V152_E_R4_20260912.md`.
+- A configuração PM2 não é ativada nesta candidata. Z-API e
+  `/opt/vitalismen-automacao/current` permanecem intocados.
+
+## Registro V163 — reconciliação multinúmero shadow (2026-09-15)
+
+- Base operacional preservada: V162 `ecf9ab51c7f65dba00f27a8b9d4d9ffb901639f3`.
+- Fonte multinúmero reconciliada: R4 `f5b84c4003279d07ca6c481ea54fb61f899bdeb6`.
+- Contrato: `docs/MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915.md`.
+- Manifesto: `docs/freeze/ec-multinumber-shadow-reconciliation-v163-20260915.json`.
+- Guard/teste: `scripts/guard-v163-multinumber-shadow-reconciliation.mjs` e
+  `tests/v163-multinumber-shadow-reconciliation.test.mjs`.
+- Contextos sucessores:
+  `scripts/lib/ec-runtime-successor-v163-multinumber-overrides-context.mjs` e
+  `scripts/lib/ec-runtime-successor-v163-multinumber-context.mjs`.
+- Nesta camada não há deploy, restart, QR, ativação Web, roteamento ou retirada
+  da Z-API.

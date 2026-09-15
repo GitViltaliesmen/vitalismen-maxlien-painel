@@ -1,0 +1,10 @@
+APPROVED_V152_E_R1_REAL_PAIRING_TEST_CHANNEL_20260912
+
+Autorização operacional recebida em 2026-09-12 para concluir o pareamento real
+controlado exclusivamente com a linha de teste 5531983002800, channelId e namespace
+V152_TEST_WEB_01, usando o telefone QA 5515998038637 nas provas inbound/outbound.
+
+Produção permanece na Z-API 5531971862958. Continuam proibidos customer routing,
+handoff, failover, cutover, drain/off da Z-API, clientes reais e alterações em VSL,
+Pixel/CAPI, Funnel Metrics, lógica comercial, painel core, Dropi, Servientrega e
+pós-venda. Qualquer fase V152-F ou cutover exige nova aprovação humana.

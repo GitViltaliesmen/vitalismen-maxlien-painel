@@ -55,7 +55,8 @@ const mergeV148 = (value) => {
         protectedFiles: Object.freeze({
             ...inherited,
             ...effectiveProtectedFiles,
-            ...(globalThis.__VITALISMEN_V155_CONTEXT?.protectedFiles || {})
+            ...(globalThis.__VITALISMEN_V155_CONTEXT?.protectedFiles || {}),
+            ...(globalThis.__VITALISMEN_V163_CONTEXT?.protectedFiles || {})
         })
     });
 };

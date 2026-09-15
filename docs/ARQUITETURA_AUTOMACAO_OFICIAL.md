@@ -1736,3 +1736,99 @@ bloqueia a ativação. Falha de transporte grava `failedAt`, conserva
 `sentAt=null`, incrementa a tentativa e exige revisão humana, sem retry
 automático. Contrato completo:
 `docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`.
+## 2026-09-12 — V152-E: pareamento Web real estritamente controlado
+
+A V152-E sucede o control plane shadow V152-C0-R1 e abre somente uma exceção
+one-shot para `WHATSAPP_WEB_CONTROLLED_TEST_01`. A sessão fica fora da release,
+o QR é um PNG root-only efêmero e nenhum conteúdo do QR entra em log, Git ou
+evidência. O transporte Z-API continua conectado e soberano para todo cliente.
+
+Inbound e outbound aceitam somente o telefone QA `5515998038637`. O inbound é
+registrado apenas por hashes, sem corpo, bot ou resposta. O outbound possui texto
+fixo e ledger persistente que bloqueia repetição inclusive após estado ambíguo.
+Os números oficial atual e anterior são proibidos no pareamento Web e provocam
+logout imediato.
+
+Migração, roteamento de clientes, handoff, failover, desligamento da Z-API e
+cutover permanecem falsos. VSL, Pixel/CAPI, Funnel Metrics, lógica comercial,
+core do painel e pós-venda continuam congelados. O contrato e o rollback estão
+em `docs/WHATSAPP_CONTROLLED_REAL_PAIRING_FREEZE_V152_E_20260912.md`; qualquer
+cutover depende de nova aprovação expressa.
+
+## 2026-09-12 — V152-E-R1: linha Web de teste exata
+
+A R1 restringe o pareamento a `5531983002800`, com `channelId` e namespace
+`V152_TEST_WEB_01`. O `SessionManager` V152 cria a sessão fora da release. Linha
+divergente sofre logout e remoção da sessão de teste. Inbound/outbound usam somente
+o QA `5515998038637`, com ledger persistente e prova explícita do segundo outbound
+deduplicado. O canal permanece shadow, draining, weight 0 e capacity 0.
+
+Z-API `5531971862958`, tráfego de produção e todos os módulos congelados permanecem
+inalterados. A R1 não autoriza clientes, handoff, failover ou cutover.
+
+## 2026-09-12 — V152-E-R2: pairing code nativo
+
+A R2 mantém o canal, telefone, namespace e isolamento da R1 e acrescenta somente
+o comando `pair-code`. O código de oito caracteres é solicitado ao Baileys para
+`5531983002800`, exibido uma vez ao operador e nunca gravado. A persistência de
+credenciais é adiada enquanto o segredo existir e ocorre somente depois de sua
+remoção e da confirmação real de registro.
+
+O caminho QR anterior não é usado pelo comando R2. Z-API, release ativa, PM2,
+roteamento de clientes, handoff, failover e cutover permanecem inalterados.
+
+## 2026-09-12 — V152-E-R3: normalização BR/JID e gate de flush do auth state
+
+A R3 sucede a candidata R2 sem publicação. A identidade do canal Web passa por
+uma única comparação canônica que usa `jidNormalizedUser` e `jidDecode` do
+Baileys. A representação brasileira sem o nono dígito somente é equivalente
+quando veio de JID autenticado do próprio socket/creds e está vinculada ao mesmo
+`channelId`; uma transformação sem evidência continua proibida.
+
+O `restartRequired` 515 deixa de encerrar o fluxo antes da barreira de
+persistência. O helper aguarda `creds.update`, conclusão serial de `saveCreds`,
+árvore endurecida, zero writes pendentes, path idêntico e estrutura mínima do
+auth state 6.7.24. Só então cria um único socket de restart, com QR proibido.
+
+O key store multi-file não é requisito no 515 nem antes desse primeiro restart;
+`account`, `me`, `signalIdentities` e os campos criptográficos de `creds.json`
+são obrigatórios. A sessão parcial que recebeu 401 é não reutilizável e possui
+limpeza separada, limitada ao namespace exato e precedida de receipt sem
+segredos.
+
+Z-API, produção, VSL, Pixel/CAPI, Funnel Metrics, bot, painel core, pós-venda,
+clientes, handoff, failover e cutover permanecem inalterados. Novo QR depende de
+aprovação explícita posterior.
+
+## 2026-09-12/13 — V152-E-R4: worker Web persistente em shadow
+
+A R4 sucede a candidata R3 e usa somente a sessão já pareada
+`/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01`. O worker possui um
+único socket, heartbeat sanitizado fora da release, shutdown gracioso e reconexão
+limitada por backoff, jitter, janela, máximo de tentativas e cooldown. Estados
+terminais (`loggedOut`, `badSession`, `connectionReplaced`, revogação, divergência
+multidevice, telefone divergente ou QR inesperado) falham fechado e exigem ação
+manual; nenhum novo QR ou pairing code é solicitado.
+
+O processo não consome fila outbound, não envia mensagens e não encaminha inbound
+ao bot ou a regras comerciais. `V152_TEST_WEB_01` permanece `shadow=true`,
+`draining=true`, `weight=0` e `capacity=0`. A região Conexões pode projetar seu
+estado real sanitizado ao lado da Z-API, do template Web e do telefone antigo.
+
+A configuração PM2 é apenas artefato da candidata e não é ativada nesta fase.
+Z-API `5531971862958`, tráfego real, VSL, Pixel/CAPI, Funnel Metrics, bot, painel
+fora da região Conexões, pós-venda, handoff, failover e cutover permanecem
+inalterados. Contrato: `docs/WHATSAPP_PERSISTENT_SHADOW_WORKER_FREEZE_V152_E_R4_20260912.md`.
+
+## 2026-09-15 — V163: reconciliação multinúmero em shadow sobre V162
+
+A V163 incorpora a implementação R4 na árvore V162 sem ativá-la. A cadeia de
+guards reconhece os arquivos sucessores sem reescrever os hashes históricos de
+V152-E-R4 ou V162. O painel recebe somente o health sanitizado da sessão externa;
+credenciais, QR, auth state e pairing code continuam fora da aplicação.
+
+O worker permanece parado, shadow, draining, sem peso/capacidade, sem consumo de
+fila e sem inbound comercial. A sessão existente não recebe autorização de
+outbound nesta camada. A Z-API segue como transporte oficial até shadow estável,
+canário autorizado e missão separada de cutover. Contrato:
+`docs/MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915.md`.

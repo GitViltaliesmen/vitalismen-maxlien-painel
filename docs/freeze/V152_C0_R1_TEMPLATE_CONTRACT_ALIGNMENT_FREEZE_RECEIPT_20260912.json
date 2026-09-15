@@ -1,0 +1,155 @@
+{
+  "freezeId": "V152_C0_R1_TEMPLATE_CONTRACT_ALIGNMENT_FREEZE_20260912",
+  "phase": "V152-C0-R1_TEMPLATE_CONTRACT_ALIGNMENT",
+  "candidate": {
+    "commit": "ccbb64e035345bae0d3e4d464485f694a66629e2",
+    "tree": "588f5f91842396b310600ba68c8fee50d7daebf6",
+    "functionalHash": "7987698cb527b8b1da2e9e584f27c9027f90583e2b468e4416a14f4d695e3dba",
+    "candidateTag": "candidate-v152-c0-r1-template-contract-alignment-20260912",
+    "freezeTag": "freeze-candidate-v152-c0-r1-template-contract-alignment-20260912"
+  },
+  "approvedParent": {
+    "commit": "c205a587328a973d99ca4c4008b08144b28681d9",
+    "tree": "ade9b0c1095417d4f4f193ef890f6af185d7ad9d",
+    "functionalHash": "f428945790abf25934dccf68402629f4977fc0de8ebb34473b99f1cee929fbcf",
+    "freezeReceiptSha256": "4f8be08f531a5d4d950e76e1e778e386390931d5434806d7f77441a0522ad804"
+  },
+  "identifierAlignment": {
+    "from": "WHATSAPP_WEB_TEST_TEMPLATE",
+    "to": "WHATSAPP_WEB_TEMPLATE",
+    "initialExactReferenceCount": 7,
+    "activeReferencesChanged": 7,
+    "oldActiveIdentifierAfterChange": 0,
+    "historicalReferencesRewritten": 0
+  },
+  "policy": {
+    "publicationAllowed": false,
+    "productionChanged": false,
+    "functionalBehaviorChanged": false,
+    "providerBehaviorChanged": false,
+    "routingBehaviorChanged": false,
+    "shadowBehaviorChanged": false,
+    "panelCoreChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN",
+    "testChannelPhone": null,
+    "pairingEnabled": false,
+    "realSessionCreated": false,
+    "realPairing": 0,
+    "realOutbound": 0,
+    "realInboundRouting": 0,
+    "realCustomerRouting": 0,
+    "realHandoff": 0,
+    "realFailover": 0,
+    "operatorApprovalRequired": true
+  },
+  "templateState": {
+    "channelId": "WHATSAPP_WEB_TEMPLATE",
+    "provider": "WHATSAPP_WEB",
+    "phoneNumber": null,
+    "status": "DRAFT",
+    "shadow": true,
+    "weight": 0,
+    "capacity": 0,
+    "draining": true
+  },
+  "productionReadOnlyEvidence": {
+    "phone": "5531971862958",
+    "provider": "ZAPI",
+    "zapiConnected": true,
+    "zapiBehaviorChanged": false,
+    "zapiRoutingChanged": false,
+    "zapiTokenChanged": false,
+    "zapiWebhookChanged": false,
+    "hostingerRelease": "/opt/vitalismen-automacao/releases/20260911T015641Z_production-20260911-59d12bf",
+    "servicePid": 474555,
+    "serviceStatus": "online",
+    "serviceHealthHttp": 200,
+    "connectedSessions": 1,
+    "connectedSessionId": "zapi::zapi",
+    "vslHttp": 200,
+    "funnelMetricsHttp": 200,
+    "pixelId": "920532663934291",
+    "vslSha256": "918d9a29113fe2ce807cf453c5a1e3b191c8d870103a93670842a7d4f0b80a13",
+    "pixelBridgeSha256": "c1209b9e6aaf99c711bb260bf720ca7a1e08e9189747ba5f94b284c6a5d0c849",
+    "pixelRouteSha256": "2660eb8ec07437559e1a5e0054eb330993e7450c8583bac57cc3271063e933d5",
+    "contaboProductionChanged": false,
+    "hostingerProductionChanged": false,
+    "zapiProductionChanged": false
+  },
+  "validation": {
+    "contractAlignmentTest": "PASS",
+    "v152BTests": {
+      "passed": 20,
+      "failed": 0
+    },
+    "v152C0Tests": {
+      "passed": 6,
+      "failed": 0
+    },
+    "providerSwapTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "restartSuite": "PASS",
+    "fullSuite": "PASS",
+    "seniorCheckTests": {
+      "passed": 481,
+      "failed": 0
+    },
+    "lintSyntaxFiles": 931,
+    "gitDiffCheck": "PASS",
+    "officialRoot": "PASS",
+    "ecProductMicroLayerGuard": "PASS",
+    "guidePrintSpamGuard": "PASS",
+    "npmAuditVulnerabilities": 0,
+    "security": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "newAllowlistEntries": 0,
+      "sessionSecretExposure": 0,
+      "qrLogging": 0,
+      "rawQrPersistence": 0
+    },
+    "failures": 0,
+    "regressions": "NONE",
+    "seniorReview": "PASS"
+  },
+  "changeManifest": [
+    {
+      "file": "public/qr.html",
+      "purpose": "alinhar somente a identidade exibida do template Web no módulo Connections",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "src/whatsapp/core/ChannelRegistry.js",
+      "purpose": "renomear a constante e o channelId canônico sem alterar o estado dormente",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "tests/v152-c0-control-plane.test.mjs",
+      "purpose": "validar o novo identificador no contrato do registry e da interface",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "scripts/guard-v152-c0-control-plane.mjs",
+      "purpose": "alinhar o marcador esperado pelo guard C0",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "docs/freeze/ec-multi-channel-control-plane-v152-c0-r1-20260912.json",
+      "purpose": "congelar a política e os hashes da sucessora sem reescrever o freeze histórico",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "scripts/lib/ec-runtime-successor-v152-c0-r1-context.mjs",
+      "purpose": "autenticar os overrides R1 e preservar integralmente os freezes anteriores",
+      "requiredForIdentifierAlignment": true
+    },
+    {
+      "file": "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+      "purpose": "encadear o contexto sucessor R1 mantendo a validação fail-closed",
+      "requiredForIdentifierAlignment": true
+    }
+  ]
+}
