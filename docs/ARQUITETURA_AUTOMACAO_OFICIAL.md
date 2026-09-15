@@ -1832,3 +1832,16 @@ fila e sem inbound comercial. A sessão existente não recebe autorização de
 outbound nesta camada. A Z-API segue como transporte oficial até shadow estável,
 canário autorizado e missão separada de cutover. Contrato:
 `docs/MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915.md`.
+
+## 2026-09-15 — V164: ativação operacional somente do worker Web shadow
+
+A V164 autoriza publicar uma candidata fora de `current` e iniciar exclusivamente
+`vitalismen-whatsapp-web-shadow-v164`, reutilizando a sessão externa R4. O
+processo principal, sua release, a Z-API e todos os schedulers continuam
+inalterados. O worker não possui caminho de outbound ou fila e projeta somente
+health/eventos sanitizados.
+
+O rollback remove apenas o worker Web e preserva sessão, bot e Z-API. Nenhum
+canário é enviado nesta fase; o único telefone elegível para a missão posterior
+é `5515998038637`. Contrato:
+`docs/WEB_WORKER_SHADOW_ACTIVATION_V164_20260915.md`.

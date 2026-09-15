@@ -56,7 +56,8 @@ const mergeV148 = (value) => {
             ...inherited,
             ...effectiveProtectedFiles,
             ...(globalThis.__VITALISMEN_V155_CONTEXT?.protectedFiles || {}),
-            ...(globalThis.__VITALISMEN_V163_CONTEXT?.protectedFiles || {})
+            ...(globalThis.__VITALISMEN_V163_CONTEXT?.protectedFiles || {}),
+            ...(globalThis.__VITALISMEN_V164_CONTEXT?.protectedFiles || {})
         })
     });
 };

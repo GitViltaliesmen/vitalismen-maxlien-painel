@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_dir="/opt/vitalismen-automacao"
+releases_dir="$base_dir/releases"
+process_main="vitalismen-automation"
+process_web="vitalismen-whatsapp-web-shadow-v164"
+session_dir="/var/lib/vitalismen-whatsapp-web-sessions/V152_TEST_WEB_01"
+state_file="/var/lib/vitalismen-whatsapp-web-shadow-state/V152_TEST_WEB_01/health.json"
+script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+current_target() { readlink -f "$base_dir/current" 2>/dev/null || true; }
+
+release_dir() {
+  local name="$1"
+  [[ "$name" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] || die "release inválida"
+  local target="$releases_dir/$name"
+  [[ -d "$target" && ! -L "$target" ]] || die "release candidata ausente"
+  [[ "$(readlink -f "$target")" == "$target" ]] || die "release candidata fora do path oficial"
+  printf '%s\n' "$target"
+}
+
+pm2_snapshot() {
+  pm2 jlist | node "$script_root/scripts/v164-pm2-snapshot.mjs" "$1"
+}
+
+assert_release() {
+  local target="$1" expected_commit="$2" expected_tree="$3"
+  node - "$target" "$expected_commit" "$expected_tree" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const [target, expectedCommit, expectedTree] = process.argv.slice(2);
+const source = JSON.parse(fs.readFileSync(path.join(target, '.release-source.json'), 'utf8'));
+const staging = JSON.parse(fs.readFileSync(path.join(target, '.staging-complete.json'), 'utf8'));
+if (source.publicationStatus !== 'staged_candidate' || staging.publicationStatus !== 'staged_candidate') throw new Error('candidate_not_staged');
+if (source.commit !== expectedCommit || source.functionalTree !== expectedTree) throw new Error('candidate_identity_mismatch');
+if (staging.commit !== expectedCommit || staging.functionalTree !== expectedTree) throw new Error('staging_identity_mismatch');
+if (source.strictReadOnly !== true || staging.strictReadOnly !== true) throw new Error('candidate_not_strict');
+NODE
+}
+
+assert_web_identity() {
+  local target="$1"
+  local snapshot pid status cwd exec_path restarts
+  snapshot="$(pm2_snapshot "$process_web")" || die "processo Web ausente"
+  IFS='|' read -r pid status cwd exec_path restarts <<<"$snapshot"
+  [[ "$pid" =~ ^[1-9][0-9]*$ && "$status" == "online" ]] || die "worker Web não está online"
+  [[ "$(readlink -f "$cwd")" == "$target" ]] || die "cwd do worker Web divergiu"
+  [[ "$(readlink -f "$exec_path")" == "$target/scripts/v152-e-r4-persistent-shadow-worker.mjs" ]] || die "exec path do worker Web divergiu"
+  printf '%s|%s\n' "$pid" "$restarts"
+}
+
+assert_main_unchanged() {
+  local before="$1" current_before="$2"
+  [[ "$(current_target)" == "$current_before" ]] || die "current mudou"
+  [[ "$(pm2_snapshot "$process_main")" == "$before" ]] || die "PM2 principal mudou"
+}
+
+check_health() {
+  local target="$1" pid="$2"
+  node "$target/scripts/v164-web-shadow-runtime-check.mjs" health "$state_file" "$pid"
+}
+
+action="${1:-}"
+release="${2:-}"
+expected_commit="${3:-}"
+expected_tree="${4:-}"
+
+if [[ "$action" == "plan" || "$action" == "activate" || "$action" == "check" || "$action" == "restart-check" ]]; then
+  [[ "$#" -eq 4 ]] || die "uso: web-shadow-v164 $action RELEASE COMMIT TREE"
+  target="$(release_dir "$release")"
+  assert_release "$target" "$expected_commit" "$expected_tree"
+  current_before="$(current_target)"
+  [[ "$current_before" != "$target" ]] || die "worker shadow não pode exigir troca de current"
+  main_before="$(pm2_snapshot "$process_main")" || die "PM2 principal ausente"
+  [[ "$main_before" == *'|online|'* ]] || die "PM2 principal não está online"
+  node "$target/scripts/v164-web-shadow-runtime-check.mjs" session "$session_dir"
+
+  if [[ "$action" == "plan" ]]; then
+    echo "WEB_WORKER_START=PLANNED"
+    echo "CURRENT_CHANGE=NO"
+    echo "PM2_MAIN_CHANGE=NO"
+    echo "ZAPI_CHANGE=NO"
+    echo "ROLLBACK=STOP_WEB_WORKER_ONLY"
+    exit 0
+  fi
+
+  if [[ "$action" == "check" ]]; then
+    identity="$(assert_web_identity "$target")"
+    pid="${identity%%|*}"
+    check_health "$target" "$pid"
+    assert_main_unchanged "$main_before" "$current_before"
+    echo "WEB_WORKER_ACTIVE=YES"
+    echo "MAX_CONCURRENT_SOCKETS=1"
+    echo "CURRENT_UNCHANGED=$current_before"
+    echo "MAIN_BOT_UNAFFECTED=YES"
+    exit 0
+  fi
+
+  if [[ "$action" == "restart-check" ]]; then
+    [[ "${V164_WEB_SHADOW_RESTART_CHECK_APPROVED:-}" == "YES" ]] || die "autorização do restart-check V164 ausente"
+    before_identity="$(assert_web_identity "$target")"
+    before_pid="${before_identity%%|*}"
+    before_restarts="${before_identity##*|}"
+    pm2 restart "$process_web" --update-env >/dev/null
+    after_identity=""
+    for _ in $(seq 1 30); do
+      after_identity="$(assert_web_identity "$target" 2>/dev/null || true)"
+      if [[ -n "$after_identity" ]]; then
+        pid="${after_identity%%|*}"
+        restarts="${after_identity##*|}"
+        if [[ "$pid" != "$before_pid" && "$restarts" -gt "$before_restarts" ]] && check_health "$target" "$pid" >/dev/null 2>&1; then
+          break
+        fi
+      fi
+      sleep 2
+    done
+    [[ -n "$after_identity" ]] || die "worker Web não retornou após restart-check"
+    pid="${after_identity%%|*}"
+    restarts="${after_identity##*|}"
+    [[ "$pid" != "$before_pid" && "$restarts" -gt "$before_restarts" ]] || die "restart-check do worker Web não foi comprovado"
+    check_health "$target" "$pid"
+    assert_main_unchanged "$main_before" "$current_before"
+    pm2 save >/dev/null
+    assert_main_unchanged "$main_before" "$current_before"
+    echo "WEB_WORKER_RESTART_CHECK=PASS"
+    echo "SESSION_RESTORABLE_AFTER_RESTART=PASS"
+    echo "MAIN_BOT_UNAFFECTED=YES"
+    exit 0
+  fi
+
+  [[ "${V164_WEB_SHADOW_ACTIVATION_APPROVED:-}" == "YES" ]] || die "autorização V164 ausente"
+  if pm2 describe "$process_web" >/dev/null 2>&1; then die "worker Web já existe; use check"; fi
+  other_web_count="$(pm2 jlist | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s);console.log(a.filter(x=>String(x.name||'').startsWith('vitalismen-whatsapp-web-shadow')).length)})")"
+  [[ "$other_web_count" == "0" ]] || die "outro worker Web shadow já está registrado"
+
+  started=0
+  rollback_on_error() {
+    if [[ "$started" == "1" ]]; then
+      pm2 delete "$process_web" >/dev/null 2>&1 || true
+      pm2 save >/dev/null 2>&1 || true
+    fi
+  }
+  trap rollback_on_error ERR
+  pm2 start "$target/ops/ecosystem.v164-web-shadow.config.cjs" --only "$process_web" --update-env >/dev/null
+  started=1
+  identity=""
+  for _ in $(seq 1 30); do
+    identity="$(assert_web_identity "$target" 2>/dev/null || true)"
+    if [[ -n "$identity" ]]; then
+      pid="${identity%%|*}"
+      if check_health "$target" "$pid" >/dev/null 2>&1; then break; fi
+    fi
+    sleep 2
+  done
+  [[ -n "$identity" ]] || die "worker Web não iniciou"
+  pid="${identity%%|*}"
+  check_health "$target" "$pid"
+  assert_main_unchanged "$main_before" "$current_before"
+  pm2 save >/dev/null
+  assert_main_unchanged "$main_before" "$current_before"
+  trap - ERR
+  echo "WEB_WORKER_START=PASS"
+  echo "WEB_WORKER_ACTIVE=YES"
+  echo "WEB_WORKER_SHADOW=true"
+  echo "MAX_CONCURRENT_SOCKETS=1"
+  echo "WEB_QUEUE_CONSUMPTION=0"
+  echo "WEB_CUSTOMER_ROUTING=0"
+  echo "WEB_OUTBOUND_MESSAGES=0"
+  echo "CURRENT_UNCHANGED=$current_before"
+  echo "PM2_MAIN_UNCHANGED=YES"
+  echo "ROLLBACK_READY=YES"
+  exit 0
+fi
+
+if [[ "$action" == "rollback" ]]; then
+  [[ "$#" -eq 3 ]] || die "uso: web-shadow-v164 rollback RELEASE CONFIRM_STOP_WEB_WORKER_ONLY_V164"
+  [[ "$3" == "CONFIRM_STOP_WEB_WORKER_ONLY_V164" ]] || die "confirmação de rollback inválida"
+  target="$(release_dir "$release")"
+  current_before="$(current_target)"
+  main_before="$(pm2_snapshot "$process_main")" || die "PM2 principal ausente"
+  pm2 delete "$process_web" >/dev/null 2>&1 || true
+  pm2 save >/dev/null
+  assert_main_unchanged "$main_before" "$current_before"
+  node "$target/scripts/v164-web-shadow-runtime-check.mjs" session "$session_dir" >/dev/null
+  echo "STOP_WEB_WORKER_ONLY=PASS"
+  echo "ZAPI_REMAINS_OPERATIONAL=YES"
+  echo "MAIN_BOT_UNAFFECTED=YES"
+  echo "SESSION_FILES_PRESERVED=YES"
+  exit 0
+fi
+
+die "uso: web-shadow-v164 plan|activate|check|restart-check RELEASE COMMIT TREE | rollback RELEASE CONFIRM_STOP_WEB_WORKER_ONLY_V164"

@@ -23,9 +23,14 @@ assert.equal(manifest.parentManifestSha256, hashFile(manifest.parentManifest));
 assert.equal(manifest.sourceManifestSha256, hashFile(manifest.sourceManifest));
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles || {}).sort());
 
+const v164Overrides = new Set(globalThis.__VITALISMEN_V164_OVERRIDE_FILES || []);
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
+    if (v164Overrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V163] ${file}`);
 }
+const effectiveProtectedFiles = Object.freeze(Object.fromEntries(
+    Object.entries(manifest.protectedFiles || {}).filter(([file]) => !v164Overrides.has(file))
+));
 
 const v152ELineage = [
     ['__VITALISMEN_V152_E_CONTEXT', 'docs/freeze/ec-whatsapp-controlled-real-pairing-v152-e-20260912.json'],
@@ -40,7 +45,7 @@ for (const [contextKey, relative] of v152ELineage) {
         loaded: true,
         freezeId: frozen.value.freezeId,
         manifestSha256: hashBuffer(frozen.text),
-        protectedFiles: Object.freeze({ ...(manifest.protectedFiles || {}) })
+        protectedFiles: effectiveProtectedFiles
     });
 }
 
@@ -48,7 +53,7 @@ globalThis.__VITALISMEN_V163_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: Object.freeze({ ...(manifest.protectedFiles || {}) })
+    protectedFiles: effectiveProtectedFiles
 });
 
 for (const contextKey of [
@@ -65,6 +70,6 @@ for (const contextKey of [
     if (!inherited?.loaded) continue;
     globalThis[contextKey] = Object.freeze({
         ...inherited,
-        protectedFiles: Object.freeze({ ...inherited.protectedFiles, ...manifest.protectedFiles })
+        protectedFiles: Object.freeze({ ...inherited.protectedFiles, ...effectiveProtectedFiles })
     });
 }

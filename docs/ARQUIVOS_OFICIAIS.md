@@ -1505,3 +1505,17 @@ nenhuma alteração realizada no VPS.
   `scripts/lib/ec-runtime-successor-v163-multinumber-context.mjs`.
 - Nesta camada não há deploy, restart, QR, ativação Web, roteamento ou retirada
   da Z-API.
+
+## Registro V164 — worker Web shadow ativo e canário preparado (2026-09-15)
+
+- Parent imutável: V163 `da4547aafb407da7259c312fdd1db46d5519cb91`.
+- Processo Web separado: `vitalismen-whatsapp-web-shadow-v164`.
+- Configuração PM2: `ops/ecosystem.v164-web-shadow.config.cjs`.
+- Operação/rollback: `ops/web-shadow-v164`.
+- Validação sanitizada: `scripts/v164-web-shadow-runtime-check.mjs`.
+- Contrato: `docs/WEB_WORKER_SHADOW_ACTIVATION_V164_20260915.md`.
+- Manifesto: `docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json`.
+- Guard/testes: `scripts/guard-v164-web-shadow-activation.mjs` e
+  `tests/v164-web-shadow-activation.test.mjs`.
+- `current`, PM2 principal e Z-API não são modificados; o canário real continua
+  separado e restrito ao telefone `5515998038637`.

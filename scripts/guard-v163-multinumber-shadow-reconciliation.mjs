@@ -7,6 +7,9 @@ const read = (relative) => fs.readFileSync(path.resolve(relative), 'utf8');
 const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(path.resolve(relative))).digest('hex');
 const manifestText = read('docs/freeze/ec-multinumber-shadow-reconciliation-v163-20260915.json');
 const manifest = JSON.parse(manifestText);
+const v164Path = 'docs/freeze/ec-web-worker-shadow-activation-v164-20260915.json';
+const v164 = fs.existsSync(path.resolve(v164Path)) ? JSON.parse(read(v164Path)) : null;
+const v164Overrides = new Set([...(v164?.overrides || []), ...(v164?.compatibilityOverrides || [])]);
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_MULTINUMBER_SHADOW_RECONCILIATION_V163_20260915');
@@ -19,6 +22,7 @@ assert.equal(hash(manifest.parentManifest), manifest.parentManifestSha256);
 assert.equal(hash(manifest.sourceManifest), manifest.sourceManifestSha256);
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (v164Overrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V163 protected file diverged: ${relative}`);
 }
 

@@ -15,11 +15,15 @@ assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedF
 
 const hashBuffer = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const hashFile = (relative) => hashBuffer(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)));
+const v164Overrides = new Set(globalThis.__VITALISMEN_V164_OVERRIDE_FILES || []);
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
+    if (v164Overrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V163 pre-context] ${file}`);
 }
 
-const v163ProtectedFiles = Object.freeze({ ...(manifest.protectedFiles || {}) });
+const v163ProtectedFiles = Object.freeze(Object.fromEntries(
+    Object.entries(manifest.protectedFiles || {}).filter(([file]) => !v164Overrides.has(file))
+));
 let v148Context = Object.freeze({ protectedFiles: v163ProtectedFiles });
 Object.defineProperty(globalThis, '__VITALISMEN_V148_CONTEXT', {
     configurable: true,

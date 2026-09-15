@@ -38,6 +38,8 @@
         "worker:v152-e-r4": "node scripts/v152-e-r4-persistent-shadow-worker.mjs",
         "test:v163-multinumber": "node --test tests/v163-multinumber-shadow-reconciliation.test.mjs tests/v152-e-r4-persistent-shadow-worker.test.mjs tests/v152-e-r4-connections-panel.test.mjs",
         "guard:v163-multinumber": "node --import ./scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs scripts/guard-v163-multinumber-shadow-reconciliation.mjs && npm run test:v163-multinumber",
+        "test:v164-web-shadow": "node --test tests/v164-web-shadow-activation.test.mjs tests/v163-multinumber-shadow-reconciliation.test.mjs tests/v152-e-r4-persistent-shadow-worker.test.mjs tests/v152-b-ledger-session-orchestrator.test.mjs",
+        "guard:v164-web-shadow": "node --import ./scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs scripts/guard-v164-web-shadow-activation.mjs && npm run test:v164-web-shadow",
         "test:v152-e": "npm run test:v152-c0 && node --test tests/v152-e-controlled-real-pairing.test.mjs",
         "audit:v152-e": "node scripts/v152-e-controlled-pairing.mjs audit",
         "snapshot:v152-e": "node scripts/v152-e-preflight-snapshot.mjs",

@@ -195,7 +195,12 @@ if (fs.existsSync(v157ManifestUrl)) {
 
 const installV157ProtectedFilesBridge = (key) => {
     const v163ProtectedFiles = Object.freeze({ ...(globalThis.__VITALISMEN_V163_CONTEXT?.protectedFiles || {}) });
-    let context = Object.freeze({ protectedFiles: Object.freeze({ ...v157ProtectedFiles, ...v163ProtectedFiles }) });
+    const v164ProtectedFiles = Object.freeze({ ...(globalThis.__VITALISMEN_V164_CONTEXT?.protectedFiles || {}) });
+    let context = Object.freeze({ protectedFiles: Object.freeze({
+        ...v157ProtectedFiles,
+        ...v163ProtectedFiles,
+        ...v164ProtectedFiles
+    }) });
     Object.defineProperty(globalThis, key, {
         configurable: true,
         enumerable: true,
@@ -206,7 +211,8 @@ const installV157ProtectedFilesBridge = (key) => {
                 protectedFiles: Object.freeze({
                     ...(value?.protectedFiles || {}),
                     ...v157ProtectedFiles,
-                    ...v163ProtectedFiles
+                    ...v163ProtectedFiles,
+                    ...v164ProtectedFiles
                 })
             });
         }
