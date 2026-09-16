@@ -8,6 +8,11 @@ import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntryGreetingService.js';
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPublicOfferText } from './texUltraProductProfile.js';
+import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
+import {
+    QA_CANARY_GREETING_STEP_V168A_R2,
+    resolveQaCanaryDedupeGenerationV168AR2
+} from './qaCanaryDedupeV168AR2Service.js';
 
 export const TEX_ULTRA_INITIAL_LAYER_ID = 'tex_ultra_initial_cancellable_v1';
 export const texUltraInitialLayerEnabled = (env = process.env) => (
@@ -172,6 +177,19 @@ const resolveGreetingName = async (state = {}) => {
 
 const sendGreeting = async (state) => {
     const name = await resolveGreetingName(state);
+    const normalIdentity = `${TEX_ULTRA_INITIAL_LAYER_ID}:greeting:${state._id}`;
+    const runtime = currentEcBotCoreRuntimeContextV78();
+    const qaGeneration = resolveQaCanaryDedupeGenerationV168AR2({
+        state,
+        phone: runtime?.qaCanaryV168AR2?.phone || '',
+        inboundMessageId: runtime?.qaCanaryV168AR2?.inboundMessageId || '',
+        stepKey: QA_CANARY_GREETING_STEP_V168A_R2
+    });
+    if (qaGeneration.applicable && !qaGeneration.allowed) {
+        console.warn(`[TEX-ULTRA-INITIAL] saudacao QA bloqueada: ${qaGeneration.reason}`);
+        return false;
+    }
+    const greetingIdentity = qaGeneration.allowed ? qaGeneration.identity : normalIdentity;
     return Boolean(await sendText(
         stateChatId(state),
         buildTexUltraEntryGreeting({ name }),
@@ -181,8 +199,8 @@ const sendGreeting = async (state) => {
             country: 'EC',
             outboundContext: 'tex_ultra_initial_personalized_greeting',
             humanize: false,
-            antiSpamKey: `${TEX_ULTRA_INITIAL_LAYER_ID}:greeting:${state._id}`,
-            dedupeValue: `${TEX_ULTRA_INITIAL_LAYER_ID}:greeting:${state._id}`
+            antiSpamKey: greetingIdentity,
+            dedupeValue: greetingIdentity
         }
     ));
 };

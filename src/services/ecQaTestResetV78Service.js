@@ -159,6 +159,13 @@ export const applyEcQaTestResetToStateV78 = ({
 
     const currentHuman = state.human || {};
     const currentMetadata = state.metadata || {};
+    const previousContext = currentMetadata.qaTestContextV78 || {};
+    const priorProcessedMessageIds = [...new Set([
+        ...(Array.isArray(previousContext.priorProcessedMessageIds) ? previousContext.priorProcessedMessageIds : []),
+        ...(Array.isArray(previousContext.processedMessageIds) ? previousContext.processedMessageIds : []),
+        previousContext.routingMessageId,
+        previousContext.consumedMessageId
+    ].map(clean).filter(Boolean))].slice(-64);
     state.human = {
         ...currentHuman,
         mode: 'auto',
@@ -178,6 +185,7 @@ export const applyEcQaTestResetToStateV78 = ({
             previousPausedUntil: plan.previousPausedUntil,
             messageCount: 0,
             processedMessageIds: [],
+            priorProcessedMessageIds,
             auditAction: 'temporary_human_hold_release_for_exact_qa'
         }
     };

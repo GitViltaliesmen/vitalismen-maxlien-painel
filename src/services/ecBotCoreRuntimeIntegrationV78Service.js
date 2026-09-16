@@ -32,7 +32,7 @@ import {
 } from './ecQaTestResetV78Service.js';
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
-export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
+export const EC_QA_TEST_MAX_MESSAGES_V110 = 1;
 export const EC_AUTH_LOGIN_V78_PATH = '/api/auth/login';
 export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
     'contactstates',
@@ -122,7 +122,7 @@ export const isEcQaInboundMessagePayloadV111 = (payload = {}) => {
     return Boolean(text) && !deliveryCallback;
 };
 
-const exactQaQueryV78 = (now, messageId, { followUp = false } = {}) => ({
+const exactQaQueryV78 = (now, messageId) => ({
     phoneDigits: EC_QA_TEST_PHONE_V78,
     chatId: { $in: [`${EC_QA_TEST_PHONE_V78}@c.us`, `${EC_QA_TEST_PHONE_V78}@s.whatsapp.net`] },
     'human.mode': 'auto',
@@ -136,11 +136,8 @@ const exactQaQueryV78 = (now, messageId, { followUp = false } = {}) => ({
     'metadata.qaTestContextV78.status': 'armed',
     'metadata.qaTestContextV78.expiresAt': { $gt: now.toISOString() },
     'metadata.qaTestContextV78.routingMessageId': { $ne: messageId },
-    ...(followUp ? {
-        'metadata.qaTestContextV78.status': 'consumed',
-        'metadata.qaTestContextV78.processedMessageIds': { $ne: messageId },
-        'metadata.qaTestContextV78.messageCount': { $lt: EC_QA_TEST_MAX_MESSAGES_V110 }
-    } : {})
+    'metadata.qaTestContextV78.processedMessageIds': { $ne: messageId },
+    'metadata.qaTestContextV78.priorProcessedMessageIds': { $ne: messageId }
 });
 
 export const claimEcQaInboundContextV78 = async ({
@@ -175,19 +172,11 @@ export const claimEcQaInboundContextV78 = async ({
         })
         : { modifiedCount: 0 };
     const initialClaimed = Number(initialResult?.modifiedCount || 0) === 1;
-    const followUpResult = initialClaimed || allowQaFollowUp !== true
-        ? { modifiedCount: 0 }
-        : await model.updateOne(exactQaQueryV78(now, messageId, { followUp: true }), {
-        $set: {
-            'metadata.qaTestContextV78.status': 'routing',
-            'metadata.qaTestContextV78.routingAt': now.toISOString(),
-            'metadata.qaTestContextV78.routingMessageId': messageId,
-            'metadata.qaTestContextV78.routingSignature': 'EC_V110_AUTHORIZED_QA_FOLLOWUP',
-            'metadata.qaTestContextV78.routingPhase': 'followup'
-        }
-    });
-    const followUpClaimed = Number(followUpResult?.modifiedCount || 0) === 1;
-    if (!initialClaimed && !followUpClaimed) {
+    // V168A-R2 supersedes the former multi-message QA window. A consumed
+    // permit can only continue the exact same message idempotently downstream;
+    // it can never claim a different inbound as a new canary.
+    void allowQaFollowUp;
+    if (!initialClaimed) {
         return Object.freeze({
             applicable: true,
             allowed: false,
@@ -205,8 +194,8 @@ export const claimEcQaInboundContextV78 = async ({
         automationAllowed: true,
         phone,
         messageId,
-        reason: initialClaimed ? 'qa_context_claimed' : 'qa_context_followup_claimed',
-        phase: initialClaimed ? 'initial' : 'followup'
+        reason: 'qa_context_claimed',
+        phase: 'initial'
     });
 };
 
@@ -379,6 +368,16 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
                     }).catch((error) => console.error('[EC-BOT-CORE-V78] falha ao finalizar contexto QA:', error.message)));
                 });
             }
+        }
+        if (qaClaim.applicable && qaClaim.allowed) {
+            return runtimeContext.run({
+                ...(currentEcBotCoreRuntimeContextV78() || {}),
+                qaCanaryV168AR2: Object.freeze({
+                    phone: qaClaim.phone,
+                    inboundMessageId: qaClaim.messageId,
+                    phase: qaClaim.phase
+                })
+            }, () => next());
         }
         return next();
     });

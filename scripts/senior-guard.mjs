@@ -281,6 +281,26 @@ assert(conversationEngine.includes('strongQuantityShortcutFromText'), 'conversat
 assert(conversationEngine.includes('quantity_selection_before_audio_complement'), 'Quantidade deve ser tratada antes dos complementos de audio.');
 assert(!conversationEngine.includes('TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6'), 'Nao reintroduza o audio antigo TRATAMENTO_Y_PRECIOS_PROMOCAO_1_3_6.');
 
+const qaCanaryV168AR2 = read('src/services/qaCanaryDedupeV168AR2Service.js');
+const qaResetV78 = read('src/services/ecQaTestResetV78Service.js');
+const qaRuntimeV78 = read('src/services/ecBotCoreRuntimeIntegrationV78Service.js');
+const texUltraInitial = read('src/services/texUltraInitialLayerService.js');
+const zapiWatchdogV168AR2 = read('src/services/zapiFirstResponseWatchdogV168AR2Service.js');
+const zapiRoute = read('src/routes/zapi.js');
+assert(qaCanaryV168AR2.includes("phone !== EC_QA_TEST_PHONE_V78"), 'V168A-R2 deve exigir telefone QA literal.');
+assert(/contactStateId:[\s\S]*permitId:[\s\S]*inboundMessageId:[\s\S]*stepKey:/.test(qaCanaryV168AR2), 'V168A-R2 deve vincular dedupe a estado, permit, inbound e etapa.');
+assert(qaCanaryV168AR2.includes('qa_old_inbound_message_reuse'), 'V168A-R2 deve bloquear reutilizacao de inbound antigo.');
+assert(qaResetV78.includes('priorProcessedMessageIds'), 'Reset QA deve preservar IDs processados anteriormente.');
+assert(qaRuntimeV78.includes('qaCanaryV168AR2'), 'Runtime QA deve propagar a autorizacao exata ao timer.');
+assert(texUltraInitial.includes('qaGeneration.allowed ? qaGeneration.identity : normalIdentity'), 'Saudacao deve manter identidade normal fora do QA.');
+assert(zapiWatchdogV168AR2.includes('ZAPI_CHAT_WATCHDOG_ENABLED'), 'Watchdog deve respeitar a flag Z-API.');
+assert((zapiWatchdogV168AR2.match(/zapiFirstResponseWatchdogEnabledV168AR2\(env\)/g) || []).length >= 2, 'Watchdog deve verificar a flag ao agendar e executar.');
+assert(zapiWatchdogV168AR2.includes('provider_message_already_processed'), 'Watchdog deve bloquear provider ID processado.');
+assert(!/_watchdog_\$\{Date\.now\(\)\}/.test(zapiRoute), 'Watchdog nao pode criar ID espelho temporal.');
+const v168aR2Scope = [qaCanaryV168AR2, qaResetV78, qaRuntimeV78, texUltraInitial, zapiWatchdogV168AR2, zapiRoute].join('\n');
+assert(!/force\s*:\s*true|skipOutboundDedupe|allowTextDedupeBypass/.test(v168aR2Scope), 'V168A-R2 nao pode adicionar bypass global de dedupe.');
+assert(!/OutboundDedupe\.(?:deleteOne|deleteMany|updateOne|updateMany)/.test(v168aR2Scope), 'V168A-R2 nao pode mutar historico de dedupe.');
+
 if (failures.length) {
     console.error('\n[SENIOR-GUARD] Bloqueado. Corrija antes de continuar:\n');
     for (const failure of failures) console.error(`- ${failure}`);

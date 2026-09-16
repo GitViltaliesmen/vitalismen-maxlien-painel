@@ -5,7 +5,6 @@ import test from 'node:test';
 import { shouldDetectFreshEcVslTextContextV110 } from '../src/routes/zapi.js';
 import {
     claimEcQaInboundContextV78,
-    EC_QA_TEST_MAX_MESSAGES_V110,
     finalizeEcQaInboundContextV78
 } from '../src/services/ecBotCoreRuntimeIntegrationV78Service.js';
 import {
@@ -89,12 +88,12 @@ test('V110 mantém a primeira entrada presa à assinatura oficial', async () => 
     assert.equal(calls[0].query['metadata.qaTestContextV78.status'], 'armed');
 });
 
-test('V110 aceita follow-up somente na sessão consumida, exata, vigente e limitada', async () => {
+test('V168A-R2 sucede a janela V110 e exige novo permit para qualquer inbound diferente', async () => {
     const calls = [];
     const model = {
         async updateOne(query, update) {
             calls.push({ query, update });
-            return { modifiedCount: 1 };
+            return { modifiedCount: 0 };
         }
     };
     const result = await claimEcQaInboundContextV78({
@@ -107,18 +106,8 @@ test('V110 aceita follow-up somente na sessão consumida, exata, vigente e limit
         allowQaFollowUp: true,
         now: new Date('2026-09-03T05:02:00.000Z')
     });
-    assert.equal(result.allowed, true);
-    assert.equal(result.phase, 'followup');
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].query.phoneDigits, EC_QA_TEST_PHONE_V78);
-    assert.equal(calls[0].query['metadata.qaTestContextV78.status'], 'consumed');
-    assert.deepEqual(calls[0].query['metadata.qaTestContextV78.messageCount'], {
-        $lt: EC_QA_TEST_MAX_MESSAGES_V110
-    });
-    assert.deepEqual(calls[0].query['metadata.qaTestContextV78.processedMessageIds'], {
-        $ne: 'provider-v110-followup'
-    });
-    assert.equal(calls[0].update.$set['metadata.qaTestContextV78.routingPhase'], 'followup');
+    assert.equal(result.allowed, false);
+    assert.equal(calls.length, 0);
 });
 
 test('V110 não abre follow-up sem autorização explícita do middleware', async () => {
@@ -166,7 +155,7 @@ test('V110 permanece restrita ao QA e não toca pedido, Dropi, Meta ou pós-vend
     const zapi = fs.readFileSync('src/routes/zapi.js', 'utf8');
     const successorGuard = fs.readFileSync('src/services/protocoloGSuccessorGuardV101Service.js', 'utf8');
     const postSaleControl = fs.readFileSync('src/services/postSaleTransactionalControlPlaneV105Service.js', 'utf8');
-    assert.match(integration, /EC_QA_TEST_MAX_MESSAGES_V110 = 8/);
+    assert.match(integration, /EC_QA_TEST_MAX_MESSAGES_V110 = 1/);
     assert.match(integration, /allowQaFollowUp: true/);
     assert.match(integration, /phoneDigits: EC_QA_TEST_PHONE_V78/);
     assert.match(reset, /messageCount: 0/);

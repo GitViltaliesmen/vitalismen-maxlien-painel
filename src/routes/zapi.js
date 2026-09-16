@@ -10,6 +10,10 @@ import {
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
+import {
+    scheduleZapiFirstResponseWatchdogV168AR2,
+    watchdogProviderMessageAlreadyProcessedV168AR2
+} from '../services/zapiFirstResponseWatchdogV168AR2Service.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
 import { handleExpandedPickupConfirmationInbound } from '../services/postSalePickupReconciliationService.js';
 import { claimMetaAttributionForInboundWhatsapp } from '../services/metaAttributionBridgeService.js';
@@ -570,10 +574,6 @@ const zapiMessageTypeFromPayload = (payload = {}) => {
     return 'chat';
 };
 
-const vslFirstResponseWatchdogEnabled = () => (
-    String(process.env.VSL_FIRST_RESPONSE_WATCHDOG_ENABLED || 'true').toLowerCase() !== 'false'
-);
-
 const vslFirstResponseWatchdogDelayMs = () => {
     const parsed = Number.parseInt(String(process.env.VSL_FIRST_RESPONSE_WATCHDOG_DELAY_MS || '75000'), 10);
     return Number.isFinite(parsed) && parsed >= 15000 ? parsed : 75000;
@@ -738,63 +738,26 @@ const markVslWatchdogStatus = async ({ chatId = '', phone = '', status = '', rea
 };
 
 const scheduleVslFirstResponseWatchdog = (result = {}) => {
-    if (!vslFirstResponseWatchdogEnabled() || !result.publicVslLeadEntry || !result.routeToBot) return;
-    const startedAt = new Date();
-    const delayMs = vslFirstResponseWatchdogDelayMs();
-    setTimeout(async () => {
-        try {
-            const alreadyAnswered = await hasRecentOutboundForZapiLead({
-                chatId: result.chatId,
-                phone: result.phone,
-                since: startedAt
-            });
-            if (alreadyAnswered) {
-                await markVslWatchdogStatus({
-                    chatId: result.chatId,
-                    phone: result.phone,
-                    status: 'answered',
-                    reason: 'outbound_found'
-                });
-                return;
-            }
-
-            console.warn(`[ZAPI-WATCHDOG] lead VSL sem resposta; reprocessando por Z-API -> ${result.chatId} | delayMs=${delayMs}`);
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: 'reprocessing',
-                reason: 'no_outbound_after_delay'
-            });
-            await routeIncomingMessage({
-                id: `${result.messageId || 'zapi_vsl'}_watchdog_${Date.now()}`,
-                from: result.chatId,
-                body: result.body,
-                sessionId: 'zapi',
-                senderPn: result.phone,
-                recovered: true,
-                fullMessage: { key: { senderPn: result.phone } }
-            });
-            const answeredAfterRecovery = await hasRecentOutboundForZapiLead({
-                chatId: result.chatId,
-                phone: result.phone,
-                since: startedAt
-            });
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: answeredAfterRecovery ? 'reprocessed' : 'failed',
-                reason: answeredAfterRecovery ? 'outbound_after_reprocess' : 'no_outbound_after_reprocess'
-            });
-        } catch (error) {
-            console.error('[ZAPI-WATCHDOG] erro ao recuperar primeira resposta VSL:', error?.response?.data || error.message || error);
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: 'failed',
-                reason: error.message || 'watchdog_error'
-            });
-        }
-    }, delayMs).unref?.();
+    return scheduleZapiFirstResponseWatchdogV168AR2({
+        result: {
+            ...result,
+            providerMessageId: result.providerMessageId || result.providerZaapId || ''
+        },
+        env: process.env,
+        delayMs: vslFirstResponseWatchdogDelayMs(),
+        hasRecentOutbound: hasRecentOutboundForZapiLead,
+        providerAlreadyProcessed: (providerMessageId) => watchdogProviderMessageAlreadyProcessedV168AR2({
+            providerMessageId,
+            model: Message
+        }),
+        routeInbound: routeIncomingMessage,
+        markStatus: markVslWatchdogStatus,
+        onWarning: (message) => console.warn(message),
+        onError: (error) => console.error(
+            '[ZAPI-WATCHDOG] erro ao recuperar primeira resposta VSL:',
+            error?.response?.data || error.message || error
+        )
+    });
 };
 
 export const shouldDetectFreshEcVslTextContextV110 = ({
