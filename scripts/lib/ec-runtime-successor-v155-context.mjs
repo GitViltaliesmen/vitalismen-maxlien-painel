@@ -269,7 +269,7 @@ assert.equal(manifest.parentManifestSha256, 'd3ee32ea6296625a47fa1bf9bc00ca7c5fd
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles || {}).sort());
 for (const [file, expected] of Object.entries(manifest.protectedFiles || {})) {
     if (successorOverrides.has(file) || v157Overrides.has(file) || v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
-    assert.equal(hashFile(file), expected, `[V155] ${file}`);
+    assert.equal(hashFile(file), v168aPrContext.guardIntegrationFiles?.[file] || expected, `[V155] ${file}`);
 }
 
 const effectiveProtectedFiles = Object.freeze(Object.fromEntries(

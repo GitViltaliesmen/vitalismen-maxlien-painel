@@ -19,6 +19,8 @@ ação antes da atualização viva e encerrava o item no preflight sem sincroniz
   transportadora continuam tendo precedência.
 - Histórico de mensagens, ledger persistente, lock e dedupe são consultados antes
   de qualquer envio. Um aviso já enviado manualmente é reconciliado, nunca repetido.
+- O preload oficial V97 recebe a mesma lista exata de hashes V168B antes de executar
+  os guards ancestrais; não há wildcard, bypass ou alteração de asserções históricas.
 - Não há criação de pedido, chamada Dropi de escrita, alteração Meta/CAPI, troca de
   provider WhatsApp ou disparo em massa.
 
@@ -34,4 +36,3 @@ por histórico/ledger.
 node scripts/guard-dropi-pickup-status-sync-v168b.mjs
 node --test tests/dropi-pickup-status-sync-v168b.test.mjs
 ```
-

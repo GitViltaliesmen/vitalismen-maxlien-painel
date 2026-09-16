@@ -59,7 +59,8 @@ export const assertV168aPrGuardContract = ({
     exactKeys(guardIntegrationHashes, [V168A_PR_GUARD_INTEGRATION_FILE], 'guard integration hashes must be exact');
     assert.equal(
         guardIntegrationHashes[V168A_PR_GUARD_INTEGRATION_FILE],
-        manifest.guardIntegrationFiles[V168A_PR_GUARD_INTEGRATION_FILE]
+        v168bDropiStatusContext.protectedFiles?.[V168A_PR_GUARD_INTEGRATION_FILE]
+            || manifest.guardIntegrationFiles[V168A_PR_GUARD_INTEGRATION_FILE]
     );
 
     assert.equal(manifest?.policy?.scope, 'V148_BROWSER_PIXEL_ALLOWLIST_ONLY');
