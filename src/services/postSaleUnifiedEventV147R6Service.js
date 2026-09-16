@@ -9,6 +9,7 @@ import { VIT_POWER_PICKUP_BONUS_TEXT } from './vitPowerEvolvedWorkflow.js';
 import { loadPostSaleProductV147R5 } from './postSaleProductResolutionV147R5Service.js';
 import { buildPostSaleDedupeKeyV147, servientregaPostSaleCompletionEligibleV147, canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
 import { legacyMarkerSetForStage, POST_SALE_TERMINAL_LEDGER_STATES } from './postSaleSafetyV66Service.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 
 const clean = (value) => String(value ?? '').trim();
 const sha = (value) => crypto.createHash('sha256').update(value).digest('hex');
@@ -226,7 +227,8 @@ export const pickupEventEligibleV147R6R2 = (shipment, stage, now = new Date()) =
     if (!pickupPostSaleStageV147R6R2(stage)) return true;
     const projection = canonicalLogisticsProjectionForShipmentV147(shipment);
     if (projection.canonicalStatus !== 'READY_FOR_PICKUP' || !projection.canPickup
-        || !shipment?.logistics?.pickupReadyVerified || shipment.logistics.pickupReadyVerifiedSource !== 'carrier_tracking'
+        || !shipment?.logistics?.pickupReadyVerified
+        || !pickupReadyVerifiedSourceAllowedV168B(shipment.logistics.pickupReadyVerifiedSource)
         || !shipment.logistics.agencyPickup || shipment.outcomes?.delivered || shipment.outcomes?.pickedUp
         || shipment.outcomes?.returned || shipment.outcomes?.prepaidOnly) return false;
     if (stage === 'READY_FOR_PICKUP') return true;

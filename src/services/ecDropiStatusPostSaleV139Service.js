@@ -6,6 +6,10 @@ import {
     nonRegressingCanonicalOrderStatus,
     orderStatusForLogisticsStatus
 } from './shipmentLifecycleStatusService.js';
+import {
+    DROPI_PICKUP_RELEASE_SOURCE_V168B,
+    shipmentHasAuthoritativeDropiPickupReleaseV168B
+} from './dropiPickupReleaseV168BService.js';
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
@@ -155,14 +159,26 @@ export const persistDropiStatusProjectionV139 = async ({
     const evidence = dropiPostSaleEvidenceV139(shipment);
     const proposedStatus = orderStatusForDropiLogisticsV139(shipment?.logistics?.status);
     if (!proposedStatus) return { ok: false, reason: 'dropi_status_not_projectable', evidence };
+    const authoritativePickupRelease = shipmentHasAuthoritativeDropiPickupReleaseV168B(shipment);
+    const projectionSource = authoritativePickupRelease
+        ? DROPI_PICKUP_RELEASE_SOURCE_V168B
+        : 'dropi_status_sync';
     const lifecycle = await applyShipmentLifecycleStatus({
         shipmentId: shipment._id,
         shipmentDocument: shipment,
         status: shipment.logistics?.status,
-        source: 'dropi_status_sync',
+        source: projectionSource,
         carrierResult: {
-            carrier: shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || '',
-            trackingNumber: shipment.logistics?.trackingNumber || ''
+            carrier: authoritativePickupRelease
+                ? 'dropi'
+                : (shipment.logistics?.distributionCompany || shipment.logistics?.chosenCarrier || ''),
+            trackingNumber: shipment.logistics?.trackingNumber || '',
+            ...(authoritativePickupRelease ? {
+                statusAtual: shipment.raw?.latestDroppiPayload?.dropiStatus
+                    || shipment.raw?.latestDroppiPayload?.status
+                    || 'PARA RETIRO EN AGENCIA',
+                canonicalStatus: 'READY_FOR_PICKUP'
+            } : {})
         },
         ...(shipmentModel ? { shipmentModel } : {}),
         orderModel,

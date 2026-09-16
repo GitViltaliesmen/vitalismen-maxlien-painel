@@ -21,6 +21,7 @@ import {
     canonicalLogisticsProjectionForShipmentV147,
     servientregaPostSaleCompletionEligibleV147
 } from './canonicalLogisticsStatusV147Service.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 
 export const POST_SALE_NOTIFICATION_DECISIONS = Object.freeze({
     SHOULD_SEND: 'SHOULD_SEND',
@@ -76,8 +77,8 @@ export const postSaleTransactionalAllowsManualHumanMode = ({ shipment = {}, kind
         ['ready_for_pickup', 'pickup_reminder_day3', 'pickup_reminder_day5',
             'delivered_thank_you', 'pickup_bonus', 'product_usage'].includes(kind)
         && Boolean(shipment._id && shipment.orderId && digitsOnly(shipment?.client?.phone))
-        && shipment?.logistics?.canonicalEvidence?.source === 'carrier_tracking'
-        && /^servientrega$/i.test(clean(shipment?.logistics?.canonicalEvidence?.provider))
+        && pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.canonicalEvidence?.source)
+        && /^(?:servientrega|dropi)$/i.test(clean(shipment?.logistics?.canonicalEvidence?.provider))
         && eligibilityForKind(shipment, kind)
     ))
 );
@@ -193,7 +194,7 @@ const eligibilityForKind = (shipment = {}, kind = '') => {
             && canonical.canPickup === true
             && shipment?.logistics?.pickupReadyVerified === true
             && (
-                shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+                pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)
                 || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
             )
             && shipment?.logistics?.agencyPickup === true
@@ -207,7 +208,7 @@ const eligibilityForKind = (shipment = {}, kind = '') => {
             && canonical.reminderEligible === true
             && shipment?.logistics?.pickupReadyVerified === true
             && (
-                shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+                pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)
                 || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
             )
             && shipment?.logistics?.agencyPickup === true

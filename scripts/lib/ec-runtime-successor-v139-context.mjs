@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import './ec-runtime-successor-v168b-bootstrap-context.mjs';
 
 const v140ManifestUrl = new URL('../../docs/freeze/ec-phone-servientrega-reconciliation-v140-20260907.json', import.meta.url);
 

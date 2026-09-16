@@ -3,6 +3,10 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import './ec-runtime-successor-v168b-dropi-status-context.mjs';
+
+const v168bDropiStatusContext = globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT;
+assert.equal(v168bDropiStatusContext?.loaded, true);
 
 export const V168A_PR_PROTECTED_FILE = 'src/services/metaFunnelV148ContractService.js';
 export const V168A_PR_GUARD_INTEGRATION_FILE = 'scripts/lib/ec-runtime-successor-v155-context.mjs';
@@ -109,7 +113,10 @@ globalThis.__VITALISMEN_V168A_PR_CONTEXT = Object.freeze({
     freezeId: current.value.freezeId,
     manifestSha256: hashBuffer(current.text),
     protectedFiles: identity.protectedFiles,
-    guardIntegrationFiles: identity.guardIntegrationFiles
+    guardIntegrationFiles: Object.freeze({
+        ...identity.guardIntegrationFiles,
+        ...v168bDropiStatusContext.protectedFiles
+    })
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...current.value.authorizedOverrideFiles])];

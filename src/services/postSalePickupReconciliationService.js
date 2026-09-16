@@ -202,7 +202,7 @@ export const processExplicitDropiPickupReleaseQueue = async ({
             'logistics.status': 'READY_FOR_PICKUP',
             'logistics.canonicalStatus': 'READY_FOR_PICKUP',
             'logistics.pickupReadyVerified': true,
-            'logistics.pickupReadyVerifiedSource': 'carrier_tracking'
+            'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] }
         } : {}),
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },

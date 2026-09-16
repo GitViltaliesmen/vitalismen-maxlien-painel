@@ -9,6 +9,7 @@ import {
     canonicalLogisticsProjectionForShipmentV147,
     canonicalLogisticsProjectionV147
 } from './canonicalLogisticsStatusV147Service.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 
 const normalizeStatus = (status = '') => String(status || '').trim().toUpperCase();
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
@@ -356,12 +357,12 @@ export const applyShipmentLifecycleStatus = async ({
     shipment.logistics.reviewRequired = canonical.reviewRequired;
     shipment.logistics.panelLabel = canonical.panelLabel;
     if (statusChanged) shipment.logistics.lastStatusAt = now;
-    if (canonical.canPickup && source === 'carrier_tracking'
+    if (canonical.canPickup && pickupReadyVerifiedSourceAllowedV168B(source)
         && (canonicalChanged || shipment.logistics.pickupReadyVerified !== true)) {
         shipment.logistics.pickupReadyVerified = true;
         shipment.logistics.pickupReadyVerifiedAt = now;
-        shipment.logistics.pickupReadyVerifiedSource = 'carrier_tracking';
-    } else if (!canonical.canPickup || source !== 'carrier_tracking') {
+        shipment.logistics.pickupReadyVerifiedSource = source;
+    } else if (!canonical.canPickup || !pickupReadyVerifiedSourceAllowedV168B(source)) {
         shipment.logistics.pickupReadyVerified = false;
         shipment.logistics.pickupReadyVerifiedAt = null;
         shipment.logistics.pickupReadyVerifiedSource = '';

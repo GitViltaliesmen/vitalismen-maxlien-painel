@@ -38,6 +38,10 @@ import {
     canonicalLogisticsProjectionForShipmentV147,
     servientregaPostSaleCompletionEligibleV147
 } from './canonicalLogisticsStatusV147Service.js';
+import {
+    pickupReadyVerifiedSourceAllowedV168B,
+    preserveDropiPickupReleaseAgainstCarrierV168B
+} from './dropiPickupReleaseV168BService.js';
 import { assertPostSaleTransactionalV105Configuration } from './postSaleTransactionalControlPlaneV105Service.js';
 
 const DEFAULT_BATCH_LIMIT = Number.parseInt(process.env.SHIPMENT_STATUS_DISPATCH_BATCH_LIMIT || '5', 10);
@@ -703,7 +707,7 @@ export const shipmentStatusDispatchCandidateQuery = (actions = [], now = new Dat
             'logistics.status': 'READY_FOR_PICKUP',
             'logistics.canonicalStatus': 'READY_FOR_PICKUP',
             'logistics.pickupReadyVerified': true,
-            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+            'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] },
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
             $or: [{ 'automation.readyForPickupNotifiedAt': null },
@@ -851,9 +855,18 @@ export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStat
                 } });
             }
         }
-        const refreshed = await saveCarrierTrackingResult({ shipmentId: shipment._id, result, updateStatus: valid });
+        const preserveDropiPickupRelease = valid && preserveDropiPickupReleaseAgainstCarrierV168B({
+            shipment,
+            carrierCanonicalStatus: projection.canonicalStatus
+        });
+        const refreshed = await saveCarrierTrackingResult({
+            shipmentId: shipment._id,
+            result,
+            updateStatus: valid && !preserveDropiPickupRelease
+        });
         return {
             ok: valid, skipped: false, reason: result.reason || '', carrierResult: result,
+            preserveDropiPickupRelease,
             shipment: refreshed || shipment, status: refreshed?.logistics?.status || shipment.logistics?.status || '',
             trackingNumber: shipment.logistics.trackingNumber
         };
@@ -1184,7 +1197,8 @@ export const shipmentStatusDispatchActionForShipment = (shipment) => {
     const status = shipment?.logistics?.status || '';
     if (!shipment?.logistics?.canonicalStatus) {
         if (status === 'DEVUELTO') return 'returned';
-        if (status === 'READY_FOR_PICKUP' && shipment?.logistics?.pickupReadyVerifiedSource === 'carrier_tracking') return 'ready_for_pickup';
+        if (status === 'READY_FOR_PICKUP'
+            && pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)) return 'ready_for_pickup';
     }
     const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     if (canonical.canonicalStatus === 'RETURNED') return 'returned';
@@ -1363,20 +1377,6 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
             }
 
             let shipmentForSend = lockedShipment;
-            if (action === 'ready_for_pickup' && !dryRun) shipmentForSend = await reconcileA07ShipmentV147R6R2(shipmentForSend);
-            if (action === 'delivered_bonus' && !dryRun) {
-                shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
-            }
-            if (canonicalPollCompleted && postSaleTransactionalSafetyV116Enabled()) {
-                const priorDecision = await decideDispatchNotificationV147R6({ shipment: shipmentForSend, action });
-                if (priorDecision.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
-                    item.reason = priorDecision.reason || 'preflight_not_eligible';
-                    item.preflightDecision = priorDecision.decision;
-                    skipped += 1;
-                    results.push(item);
-                    continue;
-                }
-            }
             if (dispatchRefreshBeforeSendEnabled() && refreshedBeforeSend < refreshLimit) {
                 refreshedBeforeSend += 1;
                 const refresh = await refreshShipmentBeforeDispatch(shipmentForSend, {
@@ -1415,6 +1415,20 @@ export const processShipmentStatusDispatch = async ({ limit = DEFAULT_BATCH_LIMI
                 skipped += 1;
                 results.push(item);
                 continue;
+            }
+            if (action === 'ready_for_pickup' && !dryRun) shipmentForSend = await reconcileA07ShipmentV147R6R2(shipmentForSend);
+            if (action === 'delivered_bonus' && !dryRun) {
+                shipmentForSend = await reconcileDeliveredPostSaleSequenceV147R6(shipmentForSend);
+            }
+            if (canonicalPollCompleted && postSaleTransactionalSafetyV116Enabled()) {
+                const priorDecision = await decideDispatchNotificationV147R6({ shipment: shipmentForSend, action });
+                if (priorDecision.decision !== POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND) {
+                    item.reason = priorDecision.reason || 'preflight_not_eligible';
+                    item.preflightDecision = priorDecision.decision;
+                    skipped += 1;
+                    results.push(item);
+                    continue;
+                }
             }
             const statusProjection = canonicalPollCompleted && shipmentForSend.logistics?.canonicalEvidence?.source === 'carrier_tracking'
                 ? { ok: true, reason: 'servientrega_canonical_poll_authoritative' }

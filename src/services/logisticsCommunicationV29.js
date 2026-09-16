@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { canonicalLogisticsProjectionForShipmentV147 } from './canonicalLogisticsStatusV147Service.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 
 export const LOGISTICS_STATE_V29 = Object.freeze({
     ORDER_CONFIRMED: 'ORDER_CONFIRMED',
@@ -96,7 +97,7 @@ export const pickupReadyIsVerified = (shipment = {}) => (
     canonicalLogisticsState(shipment) === LOGISTICS_STATE_V29.READY_FOR_PICKUP
     && shipment.logistics?.pickupReadyVerified === true
     && (
-        shipment.logistics?.pickupReadyVerifiedSource === 'carrier_tracking'
+        pickupReadyVerifiedSourceAllowedV168B(shipment.logistics?.pickupReadyVerifiedSource)
         || (!shipment.logistics?.pickupReadyVerifiedSource && !shipment.logistics?.canonicalStatus)
     )
     && canonicalLogisticsProjectionForShipmentV147(shipment).canPickup === true
