@@ -4,6 +4,11 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { resolveEcBotCoreV78Configuration } from './ecBotCoreOperationalV78Service.js';
 
 export const META_V148_EXISTING_DATASET = '1468946114265008';
+export const META_V150_APPROVED_VSL_BROWSER_PIXEL = '920532663934291';
+export const META_V148_APPROVED_BROWSER_PIXELS = Object.freeze([
+    META_V148_EXISTING_DATASET,
+    META_V150_APPROVED_VSL_BROWSER_PIXEL
+]);
 export const META_V148_SALES_IDENTITY = 'vturb-smartplayer:ab-6a6023ffd403aabb02392eb9';
 const checkoutContext = new AsyncLocalStorage();
 const ledgerContext = new AsyncLocalStorage();
@@ -37,7 +42,9 @@ export const salesAttributionV148 = (value = {}) => {
     return Number(tracking.measurementVersion || tracking.measurement_version) === 148
         && (tracking.renderedBranch || tracking.rendered_branch) === 'SALES'
         && (tracking.branchIdentity || tracking.branch_identity) === META_V148_SALES_IDENTITY
-        && String(tracking.browserPixelId || tracking.browser_pixel_id || '') === META_V148_EXISTING_DATASET;
+        && META_V148_APPROVED_BROWSER_PIXELS.includes(
+            String(tracking.browserPixelId || tracking.browser_pixel_id || '')
+        );
 };
 
 export const withMetaCheckoutV148 = (context, callback) => checkoutContext.run(Object.freeze({ ...context }), callback);
