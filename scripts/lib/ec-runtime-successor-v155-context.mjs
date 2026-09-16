@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import './ec-runtime-successor-v168a-pr-context.mjs';
 
 const hashBuffer = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const hashFile = (relative) => hashBuffer(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)));
@@ -11,6 +12,8 @@ const canonicalJson = (relative) => {
     assert.equal(text, `${JSON.stringify(value, null, 2)}\n`);
     return { text, value };
 };
+const v168aPrContext = globalThis.__VITALISMEN_V168A_PR_CONTEXT;
+assert.equal(v168aPrContext?.loaded, true);
 
 const v162ManifestUrl = new URL('../../docs/freeze/ec-buy-later-operational-v162-20260915.json', import.meta.url);
 let v162Overrides = new Set();
@@ -25,7 +28,11 @@ if (fs.existsSync(v162ManifestUrl)) {
     assert.deepEqual([...v162.value.overrides].sort(), Object.keys(v162.value.protectedFiles || {}).sort());
     v162Overrides = new Set(v162.value.overrides || []);
     for (const [file, expected] of Object.entries(v162.value.protectedFiles || {})) {
-        assert.equal(hashFile(file), expected, `[V162] ${file}`);
+        assert.equal(
+            hashFile(file),
+            v168aPrContext.guardIntegrationFiles?.[file] || expected,
+            `[V162] ${file}`
+        );
     }
     v162ProtectedFiles = Object.freeze({ ...(v162.value.protectedFiles || {}) });
     globalThis.__VITALISMEN_V162_CONTEXT = Object.freeze({
@@ -275,7 +282,16 @@ globalThis.__VITALISMEN_V155_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: manifest.freezeId,
     manifestSha256: hashBuffer(current.text),
-    protectedFiles: Object.freeze({ ...effectiveProtectedFiles, ...v157ProtectedFiles, ...v158ProtectedFiles, ...v159ProtectedFiles, ...v160ProtectedFiles, ...v161ProtectedFiles, ...v162ProtectedFiles })
+    protectedFiles: Object.freeze({
+        ...effectiveProtectedFiles,
+        ...v157ProtectedFiles,
+        ...v158ProtectedFiles,
+        ...v159ProtectedFiles,
+        ...v160ProtectedFiles,
+        ...v161ProtectedFiles,
+        ...v162ProtectedFiles,
+        ...v168aPrContext.protectedFiles
+    })
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...(manifest.overrides || [])])];

@@ -1,0 +1,52 @@
+{
+  "freezeId": "EC_V148_BROWSER_PIXEL_GUARD_SUCCESSOR_V168A_P_R_20260916",
+  "version": "V168A-P-R",
+  "parentGuard": "V153",
+  "trustedProductionParentCommit": "ecf9ab51c7f65dba00f27a8b9d4d9ffb901639f3",
+  "v168aPCommit": "590b423da6dc7447214b9d45b435c3ddf8fe51af",
+  "parentV148Manifest": "docs/freeze/ec-meta-funnel-v148-20260910.json",
+  "historicalV153Manifest": "docs/freeze/ec-audio-postsale-recovery-v153-20260913.json",
+  "historicalV153ManifestSha256": "2a18a61ab95b4302a1a1302273a4e32184a4b1dcfdd7f1d166dff9ddb33a87b6",
+  "parentProtectedFile": "src/services/metaFunnelV148ContractService.js",
+  "expectedParentSha256": "b7fbd1159d2c3c17253fb5240097c07e94e23d5d5e9f217850a57661f0e7429f",
+  "authorizedSuccessorSha256": "adc2b946c5fac827ba8bb4f63521fb625ebeaeaad8a5f23843f75d208fb4b88e",
+  "authorizedOverrideFilesCount": 1,
+  "authorizedOverrideFiles": [
+    "src/services/metaFunnelV148ContractService.js"
+  ],
+  "overrides": [
+    "src/services/metaFunnelV148ContractService.js"
+  ],
+  "protectedFiles": {
+    "src/services/metaFunnelV148ContractService.js": "adc2b946c5fac827ba8bb4f63521fb625ebeaeaad8a5f23843f75d208fb4b88e"
+  },
+  "guardIntegrationFiles": {
+    "scripts/lib/ec-runtime-successor-v155-context.mjs": "7db51e8e118584cb0674238d88cce901eda2db5943249924719f3a96546a1f8a"
+  },
+  "policy": {
+    "scope": "V148_BROWSER_PIXEL_ALLOWLIST_ONLY",
+    "approvedBrowserPixel": "920532663934291",
+    "canonicalCapiDataset": "1468946114265008",
+    "globalDatasetReplacement": false,
+    "capiDestinationChanged": false,
+    "purchaseRoutingChanged": false,
+    "initiateCheckoutDestinationChanged": false,
+    "leadDestinationChanged": false,
+    "globalPixelChanged": false,
+    "whatsappProviderChanged": false,
+    "baileysChanged": false,
+    "zapiChanged": false,
+    "conversationEngineChanged": false,
+    "queueChanged": false,
+    "dropiChanged": false,
+    "ordersChanged": false,
+    "postSaleChanged": false,
+    "shipmentChanged": false,
+    "mediaChanged": false,
+    "audioChanged": false,
+    "dashboardChanged": false,
+    "webWorkerChanged": false,
+    "wildcardOverridesAllowed": false,
+    "historicalV153Preserved": true
+  }
+}
