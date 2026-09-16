@@ -19,6 +19,8 @@ ação antes da atualização viva e encerrava o item no preflight sem sincroniz
   transportadora continuam tendo precedência.
 - Histórico de mensagens, ledger persistente, lock e dedupe são consultados antes
   de qualquer envio. Um aviso já enviado manualmente é reconciliado, nunca repetido.
+- A busca semântica no histórico humano também permanece obrigatória quando o evento
+  já possui identidade canônica; a identidade canônica não pode pular o anti-spam.
 - O preload oficial V97 recebe a mesma lista exata de hashes V168B antes de executar
   os guards ancestrais; não há wildcard, bypass ou alteração de asserções históricas.
 - O adaptador da API preserva `rawStatus` separadamente do status canônico; somente

@@ -405,7 +405,7 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
-    const history = canonicalEvent ? null : await outboundHistoryDecision({ shipment, kind: legacyKind, messageModel });
+    const history = await outboundHistoryDecision({ shipment, kind: legacyKind, messageModel });
     if (history) {
         if (acquireLock) {
             await persistTerminalSafetyDecision({

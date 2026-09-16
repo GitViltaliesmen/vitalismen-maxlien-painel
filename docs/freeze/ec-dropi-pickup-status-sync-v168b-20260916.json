@@ -32,9 +32,9 @@
     "tests/dropi-pickup-status-sync-v168b.test.mjs"
   ],
   "protectedFiles": {
-    "docs/DROPI_PICKUP_STATUS_SYNC_V168B_20260916.md": "d6ff38dce193fd24b4481b823c0841ba7689906fee519d91c21b5f1b07a78fa4",
+    "docs/DROPI_PICKUP_STATUS_SYNC_V168B_20260916.md": "bf8007589c8f3aabbc0400183b459fe7bc88217d62e1c180dba38f4fc4cf6ebb",
     "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json": "ae23ce682d3c7b2f3de42e6e8074e2c43a6365458b2ba861657a940d4041272c",
-    "scripts/guard-dropi-pickup-status-sync-v168b.mjs": "34ce01e4a6487434924234b3fe46e097394752b5910975b314a68cf1812211ff",
+    "scripts/guard-dropi-pickup-status-sync-v168b.mjs": "de1950bed1fdbe47580c86e60db5dff4dc68782bf862b327313b6da7136d8358",
     "scripts/lib/ec-runtime-successor-v139-context.mjs": "9805985f4d131a4876513a01c36c6c6743f611b1fa7f2120ebf5ca0d68c95411",
     "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "02f08944d21899cdd9f18b02a0600ef7ab65ce36fb0e01e7aada3ae9312fa16b",
     "scripts/lib/ec-runtime-successor-v147-r6r2-context.mjs": "6f69e87036b2e36e1f746dfca2631e166a0e26b564634fa0cb1d1bc6d9005f73",
@@ -48,13 +48,13 @@
     "src/services/droppiEcuadorService.js": "e89d83f7dcce8d87b354b4a2a9c93c71e7b99a06b1100b46b7657c2b35a755d3",
     "src/services/ecDropiStatusPostSaleV139Service.js": "d8da3542a40ee5092728dcb75715d0e177db0cd01299a0372c24af062cf85753",
     "src/services/logisticsCommunicationV29.js": "de17c76bb0bb74e4d9d24d163131bb3ce602922a802714acce8256331783bd08",
-    "src/services/postSaleNotificationDecisionService.js": "99ca2a123128aa30c1361fd556a5a4bc6cfa581dea0008a111e24e94d6ccac3c",
+    "src/services/postSaleNotificationDecisionService.js": "e2bdb618fb5bf097b7175cfa64044d07261c77de5ddbcdb9f90f75da498c5c9d",
     "src/services/postSalePickupReconciliationService.js": "e67eb0387a2bb4e00386e5de764fb0e0478ce6f973e2a0f272fb1f34754df015",
     "src/services/postSaleUnifiedEventV147R6Service.js": "7433f7d94d8fedbb787881b1d38d01ca102c00022e0f42e3ff57db91cdd33a10",
     "src/services/protocoloGSuccessorGuardV101Service.js": "62637a976cdb410bcac783ea316b592e2c49bc9c9a8370195e4a1473937cca74",
     "src/services/shipmentLifecycleStatusService.js": "fd2928321c78e16888defb4447613cc534bc7df247782f0763ea9de1e56551d6",
     "src/services/shipmentStatusDispatcherService.js": "930e56a3d8b769c31e1f2553d4e1b68582bbf30860b3d4f8e72898728f1d2d8c",
-    "tests/dropi-pickup-status-sync-v168b.test.mjs": "18353aa6ef3f67d8535853e79abd053aabcae49ca6e3767ab2d3bb9b2f389b85"
+    "tests/dropi-pickup-status-sync-v168b.test.mjs": "49ab70a878874e5900162d4d0ac66ec825cf91925ff05c882c7da2bf777ba838"
   },
   "policy": {
     "source": "DROPI_ORDERS_API_AUTHENTICATED",

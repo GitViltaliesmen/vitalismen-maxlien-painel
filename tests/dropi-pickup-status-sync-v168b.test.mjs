@@ -14,6 +14,10 @@ import { mapOrdersApiRowToSyncResult } from '../src/services/droppiEcuadorBrowse
 import { persistDropiStatusProjectionV139 } from '../src/services/ecDropiStatusPostSaleV139Service.js';
 import { pickupEventEligibleV147R6R2 } from '../src/services/postSaleUnifiedEventV147R6Service.js';
 import {
+    POST_SALE_NOTIFICATION_DECISIONS,
+    decidePostSaleNotification
+} from '../src/services/postSaleNotificationDecisionService.js';
+import {
     shipmentStatusDispatchActionForShipment,
     shipmentStatusDispatchCandidateQuery
 } from '../src/services/shipmentStatusDispatcherService.js';
@@ -115,6 +119,40 @@ test('V168B preserva o status bruto autenticado ao normalizar a linha da API Dro
         agencyPickup: mapped.agencyPickup,
         distributionCompany: mapped.distributionCompany
     }), true);
+});
+
+test('V168B bloqueia aviso canônico quando o histórico humano já comunicou a retirada', async () => {
+    const shipment = liveDropiPickupShipment();
+    const manualNotice = {
+        _id: 'manual-pickup-notice',
+        isFromMe: true,
+        isBot: false,
+        senderRole: 'human',
+        peerPhone: shipment.client.phone,
+        body: `*PEDIDO* PARA RETIRO EN AGENCIA SERVIENTREGA GUIA ${shipment.logistics.trackingNumber}`,
+        providerMessageId: 'manual-provider-id',
+        ack: 2,
+        createdAt: new Date()
+    };
+    const messageModel = {
+        find() {
+            return {
+                sort() { return this; },
+                limit() { return this; },
+                async lean() { return [manualNotice]; }
+            };
+        }
+    };
+
+    const decision = await decidePostSaleNotification({
+        shipment,
+        kind: 'ready_for_pickup',
+        acquireLock: false,
+        messageModel
+    });
+
+    assert.equal(decision.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_MANUALLY);
+    assert.equal(decision.reason, 'matching_human_message_history');
 });
 
 test('V168B preserva release Dropi contra atraso de trânsito, mas nunca contra estado terminal', () => {

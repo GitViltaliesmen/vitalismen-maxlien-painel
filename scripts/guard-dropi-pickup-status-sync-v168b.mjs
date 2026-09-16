@@ -58,5 +58,7 @@ assert.match(lifecycle, /pickupReadyVerifiedSourceAllowedV168B/);
 assert.match(communication, /pickupReadyVerifiedSourceAllowedV168B/);
 assert.match(decision, /matching_human_message_history/);
 assert.match(decision, /persistTerminalSafetyDecision/);
+assert.doesNotMatch(decision, /const history = canonicalEvent \? null/);
+assert.match(decision, /const history = await outboundHistoryDecision/);
 
 console.log('DROPI_PICKUP_STATUS_SYNC_V168B_GUARD=PASS');
