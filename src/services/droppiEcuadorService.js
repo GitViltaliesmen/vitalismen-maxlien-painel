@@ -260,9 +260,10 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
     });
 
     const normalizedStatus = normalizeDroppiEcuadorStatus(payload.status || shipment.logistics.status);
+    const dropiStatusEvidence = payload.dropiRawStatus || payload.status || normalizedStatus;
     const explicitPickupRelease = normalizedStatus === 'READY_FOR_PICKUP'
         && authoritativeDropiPickupReleaseV168B({
-            status: payload.status || normalizedStatus,
+            status: dropiStatusEvidence,
             source: payload.reconciliationSource || payload.syncSource || '',
             dropiOrderId: payload.dropiOrderId || payload.manualDropiOrderId || shipment.raw?.droppiOrder?.id || '',
             trackingNumber: payload.trackingNumber || shipment.logistics?.trackingNumber || '',
@@ -393,7 +394,9 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
         ? {
             ...payload,
             status: 'submitted',
-            dropiStatus: payload.status || normalizedStatus || '',
+            dropiStatus: payload.status && !payload.dropiRawStatus
+                ? payload.status
+                : dropiStatusEvidence || '',
             dropiOrderId: submittedDropiOrderId,
             submittedAt: shipment.automation.submittedToDroppiAt
         }

@@ -129,6 +129,11 @@ const evaluateSourceContract = () => {
         && v157.overrides?.includes('src/services/droppiEcuadorBrowserService.js')
         && v157.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
     );
+    const v168bBrowserIdentityAccepted = (
+        successorOverrides.has('src/services/droppiEcuadorBrowserService.js')
+        && globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT
+            ?.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
+    );
     const browserIdentityAccepted = (
         v98.declaredAncestorOverrides?.includes('src/services/droppiEcuadorBrowserService.js')
         && v98.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
@@ -144,7 +149,7 @@ const evaluateSourceContract = () => {
     ) || (
         v138.overrides?.includes('src/services/droppiEcuadorBrowserService.js')
         && v138.protectedFiles?.['src/services/droppiEcuadorBrowserService.js'] === currentDropiBrowserHash
-    ) || v140BrowserIdentityAccepted || v157BrowserIdentityAccepted;
+    ) || v140BrowserIdentityAccepted || v157BrowserIdentityAccepted || v168bBrowserIdentityAccepted;
     if (!browserIdentityAccepted) {
         failures.push('v98_dropi_browser_identity_missing');
     }

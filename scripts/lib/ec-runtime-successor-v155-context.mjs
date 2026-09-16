@@ -180,7 +180,11 @@ if (fs.existsSync(v157ManifestUrl)) {
     v157Overrides = new Set(v157.value.overrides || []);
     for (const [file, expected] of Object.entries(v157.value.protectedFiles || {})) {
         if (v158Overrides.has(file) || v159Overrides.has(file) || v160Overrides.has(file)) continue;
-        assert.equal(hashFile(file), expected, `[V157] ${file}`);
+        assert.equal(
+            hashFile(file),
+            v168aPrContext.guardIntegrationFiles?.[file] || expected,
+            `[V157] ${file}`
+        );
     }
     v157ProtectedFiles = Object.freeze(Object.fromEntries(
         Object.entries(v157.value.protectedFiles || {}).filter(([file]) => !v158Overrides.has(file) && !v159Overrides.has(file) && !v160Overrides.has(file))

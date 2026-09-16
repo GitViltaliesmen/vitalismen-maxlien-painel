@@ -2812,7 +2812,7 @@ const buildDropiGuideInvoiceUrl = (row = {}) => {
     return `${IMAGE_SERVER_URL.replace(/\/+$/, '')}/guias/${carrier}/${encodeURIComponent(sticker)}`;
 };
 
-const mapOrdersApiRowToSyncResult = (row, shipment) => {
+export const mapOrdersApiRowToSyncResult = (row, shipment) => {
     const dir = String(row?.dir || shipment.client?.address || '');
     const carrier = row?.distribution_company?.name
         || row?.distributionCompany?.name
@@ -2837,6 +2837,7 @@ const mapOrdersApiRowToSyncResult = (row, shipment) => {
         clientName: apiRowClientName(row),
         phone: row?.phone || '',
         trackingNumber,
+        rawStatus: String(row?.status || '').trim(),
         status: extractStatusFromPanelText(row?.status || JSON.stringify(row), shipment.logistics?.status || ''),
         distributionCompany: carrier,
         address: dir,
@@ -3842,6 +3843,7 @@ export const syncDroppiEcuadorFromPanel = async ({ shipment }) => {
             city: result.city || shipment.client.city,
             province: result.province || shipment.client.province,
             status: result.status,
+            dropiRawStatus: result.source === 'orders_api_v2' ? result.rawStatus : '',
             trackingNumber: result.trackingNumber,
             distributionCompany: result.distributionCompany || shipment.logistics.distributionCompany || shipment.logistics.chosenCarrier,
             warehouse: shipment.logistics.warehouse,

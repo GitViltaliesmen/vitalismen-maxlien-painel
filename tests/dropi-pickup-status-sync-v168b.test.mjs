@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
+import { assertV168bBaselineBootstrapContract } from '../scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
 import {
     authoritativeDropiPickupReleaseV168B,
     pickupReadyVerifiedSourceAllowedV168B,
@@ -9,13 +10,13 @@ import {
     shipmentHasAuthoritativeDropiPickupReleaseV168B
 } from '../src/services/dropiPickupReleaseV168BService.js';
 import { logisticsCommunicationPolicy } from '../src/services/logisticsCommunicationV29.js';
+import { mapOrdersApiRowToSyncResult } from '../src/services/droppiEcuadorBrowserService.js';
 import { persistDropiStatusProjectionV139 } from '../src/services/ecDropiStatusPostSaleV139Service.js';
 import { pickupEventEligibleV147R6R2 } from '../src/services/postSaleUnifiedEventV147R6Service.js';
 import {
     shipmentStatusDispatchActionForShipment,
     shipmentStatusDispatchCandidateQuery
 } from '../src/services/shipmentStatusDispatcherService.js';
-import { assertV168bBaselineBootstrapContract } from '../scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
 
 const liveDropiPickupShipment = () => ({
     _id: 'shipment-v168b',
@@ -83,6 +84,37 @@ test('V168B aceita somente a liberação explícita autenticada da API Dropi', (
         };
         assert.equal(authoritativeDropiPickupReleaseV168B(input), false, JSON.stringify(mutation));
     }
+});
+
+test('V168B preserva o status bruto autenticado ao normalizar a linha da API Dropi', () => {
+    const mapped = mapOrdersApiRowToSyncResult({
+        id: 7123456,
+        name: 'Cliente',
+        surname: 'Teste',
+        phone: '593999999999',
+        dir: 'SERVIENTREGA AGENCIA CENTRAL',
+        city: 'QUITO',
+        state: 'PICHINCHA',
+        status: 'PARA RETIRO EN AGENCIA SERVIENTREGA',
+        sticker: '189999999',
+        distribution_company: { name: 'SERVIENTREGA' }
+    }, {
+        client: {},
+        logistics: {},
+        raw: {}
+    });
+
+    assert.equal(mapped.source, 'orders_api_v2');
+    assert.equal(mapped.status, 'READY_FOR_PICKUP');
+    assert.equal(mapped.rawStatus, 'PARA RETIRO EN AGENCIA SERVIENTREGA');
+    assert.equal(authoritativeDropiPickupReleaseV168B({
+        status: mapped.rawStatus,
+        source: 'dropi_orders_api',
+        dropiOrderId: mapped.dropiOrderId,
+        trackingNumber: mapped.trackingNumber,
+        agencyPickup: mapped.agencyPickup,
+        distributionCompany: mapped.distributionCompany
+    }), true);
 });
 
 test('V168B preserva release Dropi contra atraso de trânsito, mas nunca contra estado terminal', () => {

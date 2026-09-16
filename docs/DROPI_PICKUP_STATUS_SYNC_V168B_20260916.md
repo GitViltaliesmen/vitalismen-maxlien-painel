@@ -21,6 +21,9 @@ ação antes da atualização viva e encerrava o item no preflight sem sincroniz
   de qualquer envio. Um aviso já enviado manualmente é reconciliado, nunca repetido.
 - O preload oficial V97 recebe a mesma lista exata de hashes V168B antes de executar
   os guards ancestrais; não há wildcard, bypass ou alteração de asserções históricas.
+- O adaptador da API preserva `rawStatus` separadamente do status canônico; somente
+  o valor bruto vindo de `orders_api_v2` pode ser usado como `dropiRawStatus` para
+  provar a liberação de retirada.
 - Não há criação de pedido, chamada Dropi de escrita, alteração Meta/CAPI, troca de
   provider WhatsApp ou disparo em massa.
 

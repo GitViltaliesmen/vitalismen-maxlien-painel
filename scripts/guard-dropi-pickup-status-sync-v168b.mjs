@@ -31,6 +31,17 @@ assert.equal(authoritativeDropiPickupReleaseV168B({
 }), false);
 
 const dispatcher = read('src/services/shipmentStatusDispatcherService.js');
+const dropiBrowser = read('src/services/droppiEcuadorBrowserService.js');
+const dropiService = read('src/services/droppiEcuadorService.js');
+const v155Context = read('scripts/lib/ec-runtime-successor-v155-context.mjs');
+const v101Guard = read('src/services/protocoloGSuccessorGuardV101Service.js');
+assert.match(dropiBrowser, /rawStatus: String\(row\?\.status \|\| ''\)\.trim\(\)/);
+assert.match(dropiBrowser, /dropiRawStatus: result\.source === 'orders_api_v2' \? result\.rawStatus : ''/);
+assert.match(dropiService, /const dropiStatusEvidence = payload\.dropiRawStatus \|\| payload\.status \|\| normalizedStatus/);
+assert.match(dropiService, /dropiStatus: payload\.status && !payload\.dropiRawStatus[\s\S]*?dropiStatusEvidence \|\| ''/);
+assert.match(v155Context, /v168aPrContext\.guardIntegrationFiles\?\.\[file\] \|\| expected/);
+assert.match(v101Guard, /v168bBrowserIdentityAccepted/);
+assert.match(v101Guard, /__VITALISMEN_V168B_DROPI_STATUS_CONTEXT/);
 const mutablePath = dispatcher.slice(dispatcher.indexOf('let shipmentForSend = lockedShipment'));
 assert.ok(mutablePath.indexOf('await refreshShipmentBeforeDispatch(') >= 0);
 assert.ok(
