@@ -12,6 +12,7 @@ import {
 import { evaluateTrafficReadinessV171 } from '../src/services/trafficReadinessV171Service.js';
 import { selectUniqueVslAttributionCandidate } from '../src/services/metaAttributionBridgeService.js';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 await import('../public/panel-intelligence/ec-engagement-priority-v43.js');
 const engagementPriority = globalThis.VitalismenEngagementPriorityV43;
@@ -39,7 +40,7 @@ test('outro contato legítimo de aquecimento continua engagement', () => {
     assert.equal(conversationBucketPanelView(state).value, 'engagement');
 });
 
-test('prelead Tex Ultra não inventa telefone e aparece em atendimento aguardando WhatsApp', () => {
+test('prelead Tex Ultra não inventa telefone e permanece disponível para correlação', () => {
     const visit = { _id: 'visit-1', visitorKey: 'vk-1', country: 'EC', productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', clickCount: 1, lastClickAt: new Date(), customerPhone: '', path: '/protocolo-g' };
     assert.equal(isPendingVslPrelead(visit), true);
     const chat = projectVslPreleadPanelChat(visit);
@@ -47,6 +48,42 @@ test('prelead Tex Ultra não inventa telefone e aparece em atendimento aguardand
     assert.equal(chat.vslPrelead, true);
     assert.equal(chat.conversationBucket.value, 'attendance');
     assert.match(chat.name, /VSL · TEX ULTRA/);
+});
+
+test('V176 oculta somente prelead anônimo da fila operacional sem apagar telemetria', () => {
+    const panel = fs.readFileSync('public/qr.html', 'utf8');
+    const start = panel.indexOf('        const isUncontactableVslPrelead =');
+    const end = panel.indexOf('        const chatConversationBucket =', start);
+    assert.ok(start > 0 && end > start);
+    const sandbox = {
+        module: { exports: {} },
+        chats: [
+            { id: 'vsl-prelead:12345678901', vslPrelead: true, phone: '', customerDraft: { phone: '' }, country: 'EC' },
+            { id: 'vsl-prelead:linked', vslPrelead: true, phone: '', customerDraft: { phone: '+593990001111' }, country: 'EC' },
+            { id: '593990002222@c.us', vslPrelead: false, phone: '+593990002222', country: 'EC' }
+        ]
+    };
+    vm.runInNewContext(`
+        const state = { chats, remoteChatSearch: { results: [] }, zapiDevice: {} };
+        const window = {};
+        const digitsOnlyText = value => String(value || '').replace(/\\D/g, '');
+        const selectedOperationalCountry = () => 'EC';
+        const dedupeChatsForPanel = value => value;
+        const panelChatsIncludingRemoteSearch = () => state.chats;
+        const chatMatchesSearch = () => true;
+        const isBrazilBlockedRecord = () => false;
+        const isBrazilAllowedTestRecord = () => false;
+        const isBrazilTestRecord = () => false;
+        ${panel.slice(start, end)}
+        module.exports = { isUncontactableVslPrelead, visibleOperationalChats };
+    `, sandbox);
+    assert.equal(sandbox.module.exports.isUncontactableVslPrelead(sandbox.chats[0]), true);
+    assert.equal(sandbox.module.exports.isUncontactableVslPrelead(sandbox.chats[1]), false);
+    assert.deepEqual(
+        sandbox.module.exports.visibleOperationalChats().map((chat) => chat.id),
+        ['vsl-prelead:linked', '593990002222@c.us']
+    );
+    assert.equal(sandbox.chats.length, 3);
 });
 
 test('correlação exata única aceita tracking canônico sem exigir Z-API e falha fechada em ambiguidade', () => {

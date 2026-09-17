@@ -1,0 +1,31 @@
+{
+  "freezeId": "EC_PANEL_CONTACTABLE_PRELEAD_V176_20260917",
+  "version": "V176",
+  "parentCommit": "2aa544722e2a18ce2cbe58d79662d180150ff9c5",
+  "parentTree": "ed48c42ab5df0547aff9d6cef148ca030581718d",
+  "parentTag": "production-20260917-2aa5447",
+  "overrides": [
+    "docs/EC_PANEL_CONTACTABLE_PRELEAD_FREEZE_V176_20260917.md",
+    "public/qr.html",
+    "scripts/guard-ec-traffic-restoration-v171.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "tests/ec-traffic-restoration-v171.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_CONTACTABLE_PRELEAD_FREEZE_V176_20260917.md": "a74b3f0ac9813544593e170004bf3b27d96c5297111b2f6fe9922106c0637fc1",
+    "public/qr.html": "2aafca62233957ab9d9647e3b52dbc41dc5f5c4908411b9f75737c2a61206141",
+    "scripts/guard-ec-traffic-restoration-v171.mjs": "5ccca162560d0b726c500a62964a32cf3aa9e2c783c4009c929fec540df87855",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "caacdf104c9d7064b1a09f79ef19b2ecf77e0f23aebd11ee49d1e895acc30e99",
+    "tests/ec-traffic-restoration-v171.test.mjs": "596f090fc4ceb849821f199d0e78f9738aa08cba1cd17b066c98773c233369da"
+  },
+  "policy": {
+    "scope": "EC_PANEL_CONTACTABLE_VSL_PRELEAD_ONLY",
+    "hideAnonymousVslPreleadsFromOperationalPanel": true,
+    "preserveVslTelemetry": true,
+    "preserveFirstWhatsappCorrelation": true,
+    "deleteRecords": false,
+    "fakePhoneAllowed": false,
+    "operationalPanelChangeCount": 1,
+    "futureChangesRequireExplicitAuthorization": true
+  }
+}

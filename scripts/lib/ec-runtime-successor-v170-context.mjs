@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const MANIFEST = 'docs/freeze/ec-pretraffic-final-restoration-v170-20260916.json';
 const SUCCESSOR_MANIFEST = 'docs/freeze/ec-traffic-restoration-v171-20260917.json';
+const LATEST_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-contactable-prelead-v176-20260917.json';
 const hashFile = (relative) => crypto.createHash('sha256')
     .update(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)))
     .digest('hex');
@@ -11,6 +12,8 @@ const text = fs.readFileSync(new URL(`../../${MANIFEST}`, import.meta.url), 'utf
 const manifest = JSON.parse(text);
 const successorText = fs.readFileSync(new URL(`../../${SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
 const successor = JSON.parse(successorText);
+const latestSuccessorText = fs.readFileSync(new URL(`../../${LATEST_SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
+const latestSuccessor = JSON.parse(latestSuccessorText);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`, '[V170] manifest_not_canonical');
 assert.equal(manifest.freezeId, 'EC_PRETRAFFIC_FINAL_RESTORATION_V170_20260916');
@@ -37,16 +40,30 @@ assert.equal(successor.policy.dropiHumanAuthorizationRequired, true);
 assert.equal(successor.policy.fakePhoneAllowed, false);
 assert.deepEqual([...successor.overrides].sort(), Object.keys(successor.protectedFiles).sort());
 assert.equal(successor.overrides.some((file) => /[*?\[\]]/.test(file)), false);
+assert.equal(latestSuccessorText, `${JSON.stringify(latestSuccessor, null, 2)}\n`, '[V176] manifest_not_canonical');
+assert.equal(latestSuccessor.freezeId, 'EC_PANEL_CONTACTABLE_PRELEAD_V176_20260917');
+assert.equal(latestSuccessor.version, 'V176');
+assert.equal(latestSuccessor.parentCommit, '2aa544722e2a18ce2cbe58d79662d180150ff9c5');
+assert.equal(latestSuccessor.parentTree, 'ed48c42ab5df0547aff9d6cef148ca030581718d');
+assert.equal(latestSuccessor.policy.hideAnonymousVslPreleadsFromOperationalPanel, true);
+assert.equal(latestSuccessor.policy.preserveVslTelemetry, true);
+assert.equal(latestSuccessor.policy.deleteRecords, false);
+assert.equal(latestSuccessor.policy.fakePhoneAllowed, false);
+assert.deepEqual([...latestSuccessor.overrides].sort(), Object.keys(latestSuccessor.protectedFiles).sort());
+assert.equal(latestSuccessor.overrides.some((file) => /[*?\[\]]/.test(file)), false);
 
 for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
-    assert.equal(hashFile(file), successor.protectedFiles[file] || expected, `[V170/V171] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), latestSuccessor.protectedFiles[file] || successor.protectedFiles[file] || expected, `[V170/V171/V176] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(successor.protectedFiles)) {
-    assert.equal(hashFile(file), expected, `[V171] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), latestSuccessor.protectedFiles[file] || expected, `[V171/V176] protected_file_invalid:${file}`);
+}
+for (const [file, expected] of Object.entries(latestSuccessor.protectedFiles)) {
+    assert.equal(hashFile(file), expected, `[V176] protected_file_invalid:${file}`);
 }
 
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES']) {
-    globalThis[key] = [...new Set([...(globalThis[key] || []), ...manifest.overrides, ...successor.overrides])];
+    globalThis[key] = [...new Set([...(globalThis[key] || []), ...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides])];
 }
 
 globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
@@ -54,10 +71,10 @@ globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
     freezeId: manifest.freezeId,
     parentCommit: manifest.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(text).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides])]),
-    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles }),
-    successorFreezeId: successor.freezeId,
-    successorManifestSha256: crypto.createHash('sha256').update(successorText).digest('hex')
+    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles }),
+    successorFreezeId: latestSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(latestSuccessorText).digest('hex')
 });
 
 globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT = Object.freeze({
@@ -65,6 +82,17 @@ globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT = Object.freeze({
     freezeId: successor.freezeId,
     parentCommit: successor.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(successorText).digest('hex'),
-    authorizedFiles: Object.freeze([...successor.overrides]),
-    protectedFiles: Object.freeze({ ...successor.protectedFiles })
+    authorizedFiles: Object.freeze([...new Set([...successor.overrides, ...latestSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...successor.protectedFiles, ...latestSuccessor.protectedFiles }),
+    successorFreezeId: latestSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(latestSuccessorText).digest('hex')
+});
+
+globalThis.__VITALISMEN_V176_PANEL_CONTACTABLE_PRELEAD_CONTEXT = Object.freeze({
+    loaded: true,
+    freezeId: latestSuccessor.freezeId,
+    parentCommit: latestSuccessor.parentCommit,
+    manifestSha256: crypto.createHash('sha256').update(latestSuccessorText).digest('hex'),
+    authorizedFiles: Object.freeze([...latestSuccessor.overrides]),
+    protectedFiles: Object.freeze({ ...latestSuccessor.protectedFiles })
 });

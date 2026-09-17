@@ -11967,11 +11967,17 @@
             ) || state.chats
         );
 
+        const isUncontactableVslPrelead = (chat = {}) => (
+            chat.vslPrelead === true
+            && !digitsOnlyText(chat.phone || chat.customerDraft?.phone || '')
+        );
+
         const visibleOperationalChats = (options = {}) => {
             const ownZapiPhone = digitsOnlyText(state.zapiDevice?.device?.phone || '');
             const selectedCountry = selectedOperationalCountry();
             const search = String(options.search || '').trim();
             return dedupeChatsForPanel(panelChatsIncludingRemoteSearch()).filter((chat) => {
+                if (isUncontactableVslPrelead(chat)) return false;
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                 const matchesSearch = chatMatchesSearch(chat, search);
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;

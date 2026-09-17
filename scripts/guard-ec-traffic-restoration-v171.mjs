@@ -8,9 +8,12 @@ const ROOT = new URL('../', import.meta.url);
 const read = (relative) => fs.readFileSync(new URL(relative, ROOT), 'utf8');
 const hash = (relative) => crypto.createHash('sha256').update(fs.readFileSync(new URL(relative, ROOT))).digest('hex');
 const context = globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT;
+const v176Context = globalThis.__VITALISMEN_V176_PANEL_CONTACTABLE_PRELEAD_CONTEXT;
 
 assert.equal(context?.loaded, true, '[V171] successor_context_not_loaded');
 assert.equal(context.freezeId, 'EC_TRAFFIC_RESTORATION_V171_20260917');
+assert.equal(v176Context?.loaded, true, '[V176] successor_context_not_loaded');
+assert.equal(v176Context.freezeId, 'EC_PANEL_CONTACTABLE_PRELEAD_V176_20260917');
 for (const [file, expected] of Object.entries(context.protectedFiles)) {
     assert.equal(hash(file), expected, `[V171] protected_file_invalid:${file}`);
 }
@@ -22,6 +25,14 @@ assert.match(panel, /chat\.vslPrelead === true[\s\S]{0,1200}flowCorrectionBtn'\)
 assert.match(panel, /data-footer-draft-template.*data-footer-media-url.*data-price-preset.*data-draft-template/);
 assert.doesNotMatch(panel, /vslPrelead[\s\S]{0,500}phone:\s*['"]\d/);
 assert.equal((panel.match(/chat\.lastMessage\.body/g) || []).length, 0, '[V171] left_list_message_preview_reintroduced');
+const v176Filter = panel.slice(
+    panel.indexOf('const isUncontactableVslPrelead ='),
+    panel.indexOf('const visibleOperationalChats =')
+);
+assert.match(v176Filter, /chat\.vslPrelead === true/);
+assert.match(v176Filter, /chat\.phone \|\| chat\.customerDraft\?\.phone/);
+assert.doesNotMatch(v176Filter, /chat\.id/);
+assert.match(panel, /if \(isUncontactableVslPrelead\(chat\)\) return false;/);
 
 const route = read('src/routes/whatsapp.js');
 assert.match(route, /listPendingVslPreleadPanelChats/);
@@ -50,3 +61,4 @@ assert.match(v78, /run_plan "\$current_release"/);
 assert.match(v78, /bundle_superseded/);
 
 console.log(`EC_TRAFFIC_RESTORATION_V171=PASS manifest_sha256=${context.manifestSha256}`);
+console.log(`EC_PANEL_CONTACTABLE_PRELEAD_V176=PASS manifest_sha256=${v176Context.manifestSha256}`);
