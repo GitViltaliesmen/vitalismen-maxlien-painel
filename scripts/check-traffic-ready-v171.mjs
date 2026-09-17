@@ -19,4 +19,3 @@ const result = evaluateTrafficReadinessV171({
 console.log(`TRAFFIC_READY=${result.status}`);
 console.log(`TRAFFIC_READY_REASONS=${result.reasons.join(',') || 'none'}`);
 if (!result.ready) process.exitCode = 1;
-

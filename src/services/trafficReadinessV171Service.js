@@ -20,4 +20,3 @@ export const evaluateTrafficReadinessV171 = ({
         reasons: Object.freeze(reasons)
     });
 };
-

@@ -162,4 +162,3 @@ export const mergeClaimedVslPreleadIntoContactState = ({ state, claim, at = new 
     state.markModified?.('metadata');
     return true;
 };
-
