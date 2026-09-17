@@ -1,9 +1,22 @@
 import { publicLogisticsStateV29 } from './logisticsCommunicationV29.js';
 import { resolveOperationalChatStatus } from './operationalChatStatusService.js';
 import { isRepurchaseOrderV146, isTerminalOrderV146 } from './ecCommercialCycleV146Service.js';
+import { resolveCustomerDataDraft } from './customerDataResolutionService.js';
 
 const ORDER_TERMINAL_STATUSES = new Set(['delivered', 'cancelled', 'returned']);
 const LOGISTICS_TERMINAL_STATUSES = new Set(['DELIVERED', 'PICKED_UP', 'RETURNED']);
+const PANEL_NEGOTIATION_STATUSES = new Set([
+    'novo',
+    'atendendo',
+    'comprar_depois',
+    'confirmado',
+    'pedido_enviado',
+    'entregue',
+    'recompra',
+    'cancelado',
+    'devolvido'
+]);
+const SHIPMENT_STATUS_ADVANCES = new Set(['pedido_enviado', 'entregue', 'devolvido']);
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
@@ -130,6 +143,69 @@ export const panelStatusFromOperationalStatus = (operational = {}, draftStatus =
     return clean(draftStatus).toLowerCase() || 'novo';
 };
 
+const normalizeNegotiationStatus = (value = '') => {
+    const normalized = clean(value).toLowerCase().replace(/[\s-]+/g, '_');
+    const aliases = {
+        buy_later: 'comprar_depois',
+        confirmed: 'confirmado',
+        processing: 'pedido_enviado',
+        shipped: 'pedido_enviado',
+        enviado: 'pedido_enviado',
+        delivered: 'entregue',
+        cancelled: 'cancelado',
+        canceled: 'cancelado',
+        returned: 'devolvido'
+    };
+    const canonical = aliases[normalized] || normalized;
+    return PANEL_NEGOTIATION_STATUSES.has(canonical) ? canonical : '';
+};
+
+export const authoritativePanelNegotiationStatus = ({
+    draftStatus = '',
+    operationalStatus = null,
+    freshCommercialCycle = false
+} = {}) => {
+    const manualStatus = normalizeNegotiationStatus(draftStatus);
+    if (freshCommercialCycle && manualStatus) return manualStatus;
+
+    const projectedOperational = panelStatusFromOperationalStatus(operationalStatus || {}, '');
+    if (
+        operationalStatus?.source === 'shipment'
+        && SHIPMENT_STATUS_ADVANCES.has(projectedOperational)
+    ) return projectedOperational;
+
+    if (manualStatus) return manualStatus;
+    return normalizeNegotiationStatus(projectedOperational) || 'novo';
+};
+
+const currentDraftCorrectionFields = (draft = {}) => [
+    ['name', 'name'],
+    ['city', 'city'],
+    ['province', 'province'],
+    ['address', 'address'],
+    ['reference', 'reference'],
+    ['deliveryMode', 'deliveryMode'],
+    ['agencyName', 'agency']
+]
+    .filter(([key]) => clean(draft[key]))
+    .map(([, correctionField]) => correctionField);
+
+const currentCustomerDataResolution = ({ contactState = null, draft = {}, phone = '' } = {}) => {
+    const country = clean(draft.country || contactState?.countryCode).toUpperCase();
+    const previousResolution = contactState?.customerDataResolution?.toObject?.()
+        || contactState?.customerDataResolution
+        || null;
+    if (country !== 'EC') return previousResolution;
+    return resolveCustomerDataDraft({
+        draft: { ...draft, country: 'EC' },
+        previousResolution,
+        conversationPhone: phone || contactState?.phoneDigits || contactState?.chatId || draft.phone || '',
+        source: 'structured_form',
+        sourceMessageId: 'panel-read-model-current-draft',
+        correctedByHumanFields: currentDraftCorrectionFields(draft)
+    }).resolution;
+};
+
 export const projectPanelCustomerReadModel = ({
     contactState = null,
     orders = [],
@@ -163,9 +239,11 @@ export const projectPanelCustomerReadModel = ({
     );
     const draftIsNewer = dateMs(draft.updatedAt) > entityActivityMs({ order, shipment });
     const draftWinsEditableFields = freshCommercialCycle || draftIsNewer;
-    const projectedStatus = freshCommercialCycle && draftStatus
-        ? draftStatus
-        : panelStatusFromOperationalStatus(operationalStatus, draft.status);
+    const projectedStatus = authoritativePanelNegotiationStatus({
+        draftStatus,
+        operationalStatus,
+        freshCommercialCycle
+    });
     const phone = clean(
         (draftWinsEditableFields ? draft.phone : '')
         || order?.customer?.phone
@@ -201,6 +279,11 @@ export const projectPanelCustomerReadModel = ({
         historicalOrderId,
         status: projectedStatus
     };
+    const customerDataResolution = currentCustomerDataResolution({
+        contactState,
+        draft: projectedDraft,
+        phone
+    });
 
     return Object.freeze({
         version: 146,
@@ -224,7 +307,8 @@ export const projectPanelCustomerReadModel = ({
         historicalOrderId,
         freshCommercialCycle,
         logistics,
-        customerDraft: projectedDraft
+        customerDraft: projectedDraft,
+        customerDataResolution
     });
 };
 

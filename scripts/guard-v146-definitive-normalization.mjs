@@ -20,6 +20,9 @@ for (const [contextKey, filename] of [
 Object.assign(successorHashes, globalThis.__VITALISMEN_V147_R4_CONTEXT?.protectedFiles || {});
 Object.assign(successorHashes, globalThis.__VITALISMEN_V147_R5_CONTEXT?.protectedFiles || {});
 Object.assign(successorHashes, globalThis.__VITALISMEN_V148_CONTEXT?.protectedFiles || {});
+Object.assign(successorHashes, globalThis.__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT?.protectedFiles || {});
+Object.assign(successorHashes, globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT?.protectedFiles || {});
+Object.assign(successorHashes, globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.protectedFiles || {});
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`, 'manifesto V146 não canônico');
 assert.equal(manifest.freezeId, 'EC_DEFINITIVE_NORMALIZATION_V146_20260908');

@@ -1,3 +1,5 @@
+import './lib/ec-runtime-successor-v144-bootstrap-context.mjs';
+
 import {
     assertFreezeLockEcMetaDynamicV74,
     loadFreezeLockEcMetaDynamicV74Workspace

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
+import './ec-runtime-successor-v170-context.mjs';
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
 
 const SELF = 'scripts/lib/ec-runtime-successor-v168b-preload-context.mjs';
@@ -25,10 +26,15 @@ assert.equal(v168b.freezeId, 'EC_DROPI_PICKUP_STATUS_SYNC_V168B_20260916');
 assert.equal(v168b.parentCommit, baseline.trustedProductionCommit);
 assert.deepEqual([...v168b.overrides].sort(), Object.keys(v168b.protectedFiles).sort());
 
-const authorizedFiles = [...new Set([...baseline.authorizedOverrideFiles, ...v168b.overrides])];
+const laterSuccessorOverrides = new Set(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []);
+const authorizedFiles = [...new Set([
+    ...baseline.authorizedOverrideFiles,
+    ...v168b.overrides,
+    ...laterSuccessorOverrides
+])];
 assert.equal(authorizedFiles.some((file) => /[*?\[\]]/.test(file)), false);
 for (const [file, expected] of Object.entries({ ...baseline.protectedFiles, ...v168b.protectedFiles })) {
-    if (file === SELF) continue;
+    if (file === SELF || laterSuccessorOverrides.has(file)) continue;
     assert.equal(hashFile(file), expected, `[V168B preload] ${file}`);
 }
 

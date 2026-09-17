@@ -9113,7 +9113,7 @@
                 chat,
                 draft
             }) || chat.phone || draft.phone || '';
-            return {
+            const merged = {
                 ...chat,
                 name: valueOrCurrent('name', chat.name),
                 phone: stableConversationPhone,
@@ -9289,6 +9289,12 @@
                 shipmentNoticeStage: primary.shipmentNoticeStage || secondary.shipmentNoticeStage,
                 shipmentNoticeStages: primary.shipmentNoticeStages || secondary.shipmentNoticeStages
             };
+            merged.orderStatus = authoritativePanelStatusForChat(merged);
+            merged.customerDraft = {
+                ...(merged.customerDraft || {}),
+                status: merged.orderStatus
+            };
+            return merged;
         };
         const dedupeChatsForPanel = (chats = []) => {
             const byKey = new Map();
@@ -10646,6 +10652,16 @@
                 returned: 'devolvido'
             };
             return aliases[value] || (PANEL_STATUSES.includes(value) ? value : 'novo');
+        };
+        const authoritativePanelStatusForChat = (chat = {}) => {
+            const operational = chat.operationalStatus || {};
+            if (String(operational.source || '').toLowerCase() === 'shipment') {
+                const shipmentStatus = normalizePanelStatus(operational.key || '');
+                if (['pedido_enviado', 'entregue', 'devolvido'].includes(shipmentStatus)) return shipmentStatus;
+            }
+            const draftStatus = String(chat.customerDraft?.status || '').trim();
+            if (draftStatus) return normalizePanelStatus(draftStatus);
+            return normalizePanelStatus(chat.orderStatus || 'novo');
         };
         const orderStatusForApi = (status) => ({
             confirmado: 'confirmed',
@@ -12028,12 +12044,12 @@
             ) || operationalChats.filter((chat) => chatConversationBucket(chat) !== 'engagement');
             const manualCount = visibleChats.filter((chat) => chat.human?.mode === 'manual').length;
             const mineCount = visibleChats.filter(isMine).length;
-            const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus))).length;
+            const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const confirmedOrders = state.orders.filter((order) => String(order.status || '').toLowerCase() === 'confirmed').length;
             const closedCount = Math.max(closedInChats, confirmedOrders);
-            const salesInChats = visibleChats.filter((chat) => salesOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))).length;
+            const salesInChats = visibleChats.filter((chat) => salesOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const salesCount = Math.max(salesInChats, confirmedOrders);
-            const lostCount = visibleChats.filter((chat) => lostOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))).length;
+            const lostCount = visibleChats.filter((chat) => lostOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const conversionRate = visibleChats.length ? Math.round((salesCount / visibleChats.length) * 100) : 0;
             const reviewCount = Number.isFinite(state.dropiOrderStats?.authorization)
                 ? state.dropiOrderStats.authorization
@@ -12137,9 +12153,7 @@
             return '';
         };
         const chatDisplayStatus = (chat) => orderStatusInfo(
-            shipmentStatusFromChat(chat)
-            || chat.orderStatus
-            || chat.customerDraft?.status
+            authoritativePanelStatusForChat(chat)
             || statusFromChatTags(chat)
             || (chat.human?.mode === 'manual' ? 'atendendo' : 'novo')
         );
@@ -15431,7 +15445,8 @@
                 : (autoReplyGloballyActive() ? 'Automacao ativa' : 'Observador ativo');
             el('scanCustomerDataBtn').disabled = false;
             el('customerSmartDataStatus').textContent = 'Analisando apenas as mensagens recebidas deste cliente...';
-            const status = orderStatusInfo(chat.orderStatus);
+            const authoritativeStatus = authoritativePanelStatusForChat(chat);
+            const status = orderStatusInfo(authoritativeStatus);
             const entryInfo = chatEntryInfo(chat);
             const displayName = chatDisplayName(chat);
             const displayPhone = compact(chat.phone || chat.id);
@@ -15503,7 +15518,7 @@
                 setInputValue('customerProductInput', productKeyFromChat(chat));
                 renderCustomerProductSelection(chat);
                 setInputValue('customerPhoneInput', chat.phone || '');
-                setInputValue('customerStatusInput', chat.orderStatus || '');
+                setInputValue('customerStatusInput', authoritativeStatus);
                 setInputValue('customerBuyLaterDateInput', chat.customerDraft?.buyLaterFollowupAt || chat.buyLaterFollowupAt || '');
                 setInputValue('customerCityInput', chat.city || '');
                 setInputValue('customerProvinceInput', chat.province || '');
@@ -18908,7 +18923,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if (synchronizeOrder && !historicalOrderId && !isAdminLeadOrder && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if (synchronizeOrder && (!isAdminLeadOrder && !historicalOrderId && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0)) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {

@@ -21,9 +21,12 @@ const normalizePath = (value) => {
         return path.resolve(value);
     }
 };
-const read = (file) => fs.existsSync(path.join(root, file))
-    ? fs.readFileSync(path.join(root, file), 'utf8')
-    : '';
+const read = (file) => {
+    const target = path.join(root, file);
+    return fs.existsSync(target) && fs.statSync(target).isFile()
+        ? fs.readFileSync(target, 'utf8')
+        : '';
+};
 
 const failures = [];
 

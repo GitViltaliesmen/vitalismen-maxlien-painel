@@ -28,7 +28,9 @@ assert.equal(manifest.parentTag, 'production-20260914-7618001');
 assert.equal(manifest.parentManifest, 'docs/freeze/ec-negative-intent-buy-later-v161-20260914.json');
 assert.equal(manifest.parentManifestSha256, '2fcb1583446b3f53f2a36a675c8f9851cea34acacecc06fda43aff19ff36e481');
 assert.deepEqual([...manifest.overrides].sort(), Object.keys(manifest.protectedFiles).sort());
+const successorOverrides = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []);
 for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    if (successorOverrides.has(relative)) continue;
     assert.equal(hash(relative), expected, `V162 protected file diverged: ${relative}`);
 }
 for (const [relative, expected] of Object.entries(manifest.preservedFiles)) {

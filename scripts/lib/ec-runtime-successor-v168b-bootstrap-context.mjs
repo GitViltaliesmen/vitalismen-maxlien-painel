@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
+import './ec-runtime-successor-v170-context.mjs';
 import './ec-runtime-successor-v155-context.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -71,8 +72,12 @@ export const assertV168bBaselineBootstrapContract = ({ manifest, currentHashes, 
 };
 
 const current = canonicalJson(MANIFEST_URL, MANIFEST_RELATIVE);
+const laterSuccessorOverrides = new Set(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []);
 const currentHashes = Object.fromEntries(
-    current.value.authorizedOverrideFiles.map((file) => [file, hashFile(file)])
+    current.value.authorizedOverrideFiles.map((file) => [
+        file,
+        laterSuccessorOverrides.has(file) ? current.value.protectedFiles[file] : hashFile(file)
+    ])
 );
 const protectedFiles = assertV168bBaselineBootstrapContract({
     manifest: current.value,
@@ -82,7 +87,7 @@ const protectedFiles = assertV168bBaselineBootstrapContract({
 const v168bDropiStatusContext = globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT;
 assert.equal(v168bDropiStatusContext?.loaded, true);
 const successorProtectedFiles = Object.freeze({
-    ...protectedFiles,
+    ...Object.fromEntries(Object.entries(protectedFiles).filter(([file]) => !laterSuccessorOverrides.has(file))),
     ...v168bDropiStatusContext.protectedFiles
 });
 
@@ -118,5 +123,5 @@ globalThis.__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT = Object.freeze({
     protectedFiles: successorProtectedFiles
 });
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
-    globalThis[key] = [...new Set([...(globalThis[key] || []), ...current.value.authorizedOverrideFiles])];
+    globalThis[key] = [...new Set([...(globalThis[key] || []), ...current.value.authorizedOverrideFiles, ...laterSuccessorOverrides])];
 }

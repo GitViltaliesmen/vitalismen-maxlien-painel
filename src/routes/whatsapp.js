@@ -4883,7 +4883,7 @@ router.get('/chats', async (req, res) => {
                     identityConflict: contactState?.metadata?.identityConflict || null,
                     customerDraft: {
                         ...panelDraft,
-                        dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                        dataResolution: readModel.customerDataResolution || null
                     },
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
@@ -5175,7 +5175,7 @@ router.get('/chats', async (req, res) => {
                 identityConflict: contactState?.metadata?.identityConflict || null,
                 customerDraft: {
                     ...panelDraft,
-                    dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                    dataResolution: readModel.customerDataResolution || null
                 },
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },

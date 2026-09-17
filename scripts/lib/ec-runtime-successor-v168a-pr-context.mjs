@@ -99,13 +99,16 @@ export const assertV168aPrGuardContract = ({
 const current = canonicalJson('docs/freeze/ec-v148-browser-pixel-guard-successor-v168a-pr-20260916.json');
 const parentV148 = canonicalJson('docs/freeze/ec-meta-funnel-v148-20260910.json');
 const parentV153 = canonicalJson('docs/freeze/ec-audio-postsale-recovery-v153-20260913.json');
+const laterSuccessorOverrides = new Set(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []);
 const identity = assertV168aPrGuardContract({
     manifest: current.value,
     parentV148: parentV148.value,
     parentV153: parentV153.value,
     currentFileSha256: hashFile(V168A_PR_PROTECTED_FILE),
     guardIntegrationHashes: {
-        [V168A_PR_GUARD_INTEGRATION_FILE]: hashFile(V168A_PR_GUARD_INTEGRATION_FILE)
+        [V168A_PR_GUARD_INTEGRATION_FILE]: laterSuccessorOverrides.has(V168A_PR_GUARD_INTEGRATION_FILE)
+            ? current.value.guardIntegrationFiles[V168A_PR_GUARD_INTEGRATION_FILE]
+            : hashFile(V168A_PR_GUARD_INTEGRATION_FILE)
     }
 });
 
