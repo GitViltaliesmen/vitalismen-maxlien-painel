@@ -4,9 +4,9 @@
     "country": "EC",
     "panelUrl": "https://ec.maxlien.shop/qr.html?v=20260610194152",
     "vslUrl": "https://vilaliemen.shop/protocolo-g",
-    "baselineCommit": "c99aea3af2e723ec80a142e51f724f5dd8d850e0",
-    "baselineRelease": "20260917T140612Z_production-20260917-c99aea3",
-    "baselineTag": "production-20260917-c99aea3"
+    "baselineCommit": "ebaccf0f86c7c87495a97353df46d61183bc59d8",
+    "baselineRelease": "20260917T143346Z_production-20260917-ebaccf0",
+    "baselineTag": "production-20260917-ebaccf0"
   },
   "currentState": {
     "productionProvider": "ZAPI",

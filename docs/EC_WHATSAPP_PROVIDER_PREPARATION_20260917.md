@@ -4,11 +4,11 @@ Escopo exclusivo: painel `https://ec.maxlien.shop/qr.html?v=20260610194152`, VSL
 
 ## Baseline imutável
 
-- Commit: `c99aea3af2e723ec80a142e51f724f5dd8d850e0`
-- Tree: `357603117c1046b3650daa12f4ea7b0ddd313c61`
-- Release: `20260917T140612Z_production-20260917-c99aea3`
-- Tag: `production-20260917-c99aea3`
-- Rollback: `20260916T122026Z_production-20260916-533b78f`
+- Commit: `ebaccf0f86c7c87495a97353df46d61183bc59d8`
+- Tree: `5478409a935c00285dea86aca8af22f768975ffd`
+- Release: `20260917T143346Z_production-20260917-ebaccf0`
+- Tag: `production-20260917-ebaccf0`
+- Rollback: `20260917T141956Z_production-20260917-ea01ea9`
 - Produção confirmada: health HTTP 200, processo principal online e Z-API conectada.
 - `guard:freeze-lock`: PASS local e na release ativa.
 

@@ -5,9 +5,9 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const BASELINE_COMMIT = 'c99aea3af2e723ec80a142e51f724f5dd8d850e0';
-export const BASELINE_RELEASE = '20260917T140612Z_production-20260917-c99aea3';
-export const BASELINE_TAG = 'production-20260917-c99aea3';
+export const BASELINE_COMMIT = 'ebaccf0f86c7c87495a97353df46d61183bc59d8';
+export const BASELINE_RELEASE = '20260917T143346Z_production-20260917-ebaccf0';
+export const BASELINE_TAG = 'production-20260917-ebaccf0';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const V170_MANIFEST = 'docs/freeze/ec-pretraffic-final-restoration-v170-20260916.json';
