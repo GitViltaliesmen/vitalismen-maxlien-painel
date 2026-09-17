@@ -1,0 +1,87 @@
+{
+  "manifestId": "EC_WHATSAPP_PROVIDER_CUTOVER_PREPARATION_20260917",
+  "scope": {
+    "country": "EC",
+    "panelUrl": "https://ec.maxlien.shop/qr.html?v=20260610194152",
+    "vslUrl": "https://vilaliemen.shop/protocolo-g",
+    "baselineCommit": "273ba40dc2be285ee916b94ea9685b544b79ed63",
+    "baselineRelease": "20260917T023905Z_production-20260917-273ba40",
+    "baselineTag": "production-20260917-273ba40"
+  },
+  "currentState": {
+    "productionProvider": "ZAPI",
+    "whatsappWebMode": "SHADOW",
+    "cutoverAuthorized": false,
+    "shutdownAuthorized": false,
+    "realOutboundAuthorized": false,
+    "realCustomerInboundAuthorized": false,
+    "configuredWebSessions": 1,
+    "restorableConfiguredWebSessions": 0,
+    "additionalConfiguredWebSessions": 0
+  },
+  "preCutoverChecklist": [
+    "commercial baseline hashes pass",
+    "configured session has external persistent credentials",
+    "session restores without emitting a new QR",
+    "single socket per session is proven",
+    "canonical inbound parity passes with real provider metadata",
+    "text audio and image return persistent provider message ids",
+    "delivery and read receipts update the same logical message",
+    "ambiguous timeout reconciliation proves no duplicate send",
+    "sender affinity survives process restart",
+    "panel session status is read-only and accurate",
+    "authorized QA canary passes without consuming customer queues",
+    "rollback rehearsal passes while Z-API remains available"
+  ],
+  "cutoverSequence": [
+    "obtain a separate explicit cutover authorization",
+    "freeze customer routing and drain provider-only queues",
+    "verify all pre-cutover checks against the exact candidate release",
+    "activate one authorized Web session with zero general weight",
+    "run the allowlisted QA canary and reconcile all receipts",
+    "enable narrowly scoped routing only after the canary is complete",
+    "increase capacity in controlled steps while monitoring duplicates",
+    "keep Z-API configured and available throughout stabilization"
+  ],
+  "rollbackSequence": [
+    "set Web routing weight and capacity to zero",
+    "stop new Web queue claims without logging out the session",
+    "allow in-flight provider ids to reconcile without retry",
+    "restore Z-API as the only routing target",
+    "verify health panel inbound outbound and deduplication",
+    "retain evidence and require review before another attempt"
+  ],
+  "zapiDisableSequence": [
+    "require the operator's exact separate shutdown authorization",
+    "confirm the stabilization window and zero rollback dependence",
+    "disable routing to the adapter without deleting it",
+    "verify inbound outbound media receipts health and panel",
+    "cancel or disconnect the external instance only after verification"
+  ],
+  "zapiSecretRemovalSequence": [
+    "execute only after final cutover acceptance and rollback-window closure",
+    "remove runtime references through the official secret-management path",
+    "verify no secret value is present in release files logs or artifacts",
+    "retain no plaintext backup"
+  ],
+  "webhookRemovalSequence": [
+    "execute only after final cutover acceptance",
+    "prove all inbound and receipt events arrive through the Web socket",
+    "disable the old callback at the provider control plane",
+    "remove the public route only in a separately authorized release"
+  ],
+  "postCutoverTests": [
+    "health and process binding",
+    "inbound and outbound text",
+    "inbound and outbound audio",
+    "inbound and outbound image",
+    "message id persistence",
+    "delivery and read receipt persistence",
+    "deduplication after ambiguous timeout",
+    "restart recovery and sender affinity",
+    "multi-session isolation",
+    "panel session status",
+    "commercial regression suite",
+    "public panel and Protocolo-G integrity hashes"
+  ]
+}
