@@ -11,6 +11,7 @@ import {
 } from '../src/services/vslPreleadPanelService.js';
 import { evaluateTrafficReadinessV171 } from '../src/services/trafficReadinessV171Service.js';
 import { selectUniqueVslAttributionCandidate } from '../src/services/metaAttributionBridgeService.js';
+import fs from 'node:fs';
 
 await import('../public/panel-intelligence/ec-engagement-priority-v43.js');
 const engagementPriority = globalThis.VitalismenEngagementPriorityV43;
@@ -64,6 +65,14 @@ test('claim canônico consolida origem e produto sem criar telefone falso', () =
     assert.equal(state.metadata.vslVisitId, 'visit-1');
     assert.equal(state.metadata.vslProductKey, 'tex_ultra_ec');
     assert.equal(state.metadata.customerDraft.phone, undefined);
+});
+
+test('QA 8637 correlaciona o prelead EC mesmo com telefone brasileiro, sem ampliar a exceção', () => {
+    const zapiRoute = fs.readFileSync('src/routes/zapi.js', 'utf8');
+    const router = fs.readFileSync('src/services/agentRouter.js', 'utf8');
+    assert.match(zapiRoute, /country:\s*authorizedTestRecipient\s*\?\s*'EC'\s*:\s*inferredCountry/);
+    assert.match(router, /countryCode === OFFICIAL_COUNTRY \|\| priorityBotTestPhone/);
+    assert.doesNotMatch(zapiRoute, /country:\s*'EC',\s*\n\s*phone,\s*\n\s*message:\s*normalizedBody/);
 });
 
 test('TRAFFIC_READY falha em strict read-only e passa apenas com runtime, VSL, painel e auth', () => {

@@ -886,7 +886,7 @@ export const routeIncomingMessage = async (payload) => {
         });
     }
     if (
-        countryCode === OFFICIAL_COUNTRY
+        (countryCode === OFFICIAL_COUNTRY || priorityBotTestPhone)
         && !state.metadata?.vslVisitId
         && body.trim()
     ) {

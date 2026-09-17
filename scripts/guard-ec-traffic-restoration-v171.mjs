@@ -35,6 +35,10 @@ assert.match(correlation, /ambiguous_exact_visit/);
 const router = read('src/services/agentRouter.js');
 assert.match(router, /claimMetaAttributionForInboundWhatsapp/);
 assert.match(router, /mergeClaimedVslPreleadIntoContactState/);
+assert.match(router, /countryCode === OFFICIAL_COUNTRY \|\| priorityBotTestPhone/);
+
+const zapi = read('src/routes/zapi.js');
+assert.match(zapi, /country:\s*authorizedTestRecipient\s*\?\s*'EC'\s*:\s*inferredCountry/);
 
 const bucket = read('src/services/ecConversationBucketService.js');
 assert.match(bucket, /qa_8637_attendance_only/);

@@ -943,7 +943,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
         : detectedTextProductContext;
     const vslAttribution = vslRoutingAllowed
         ? await claimMetaAttributionForInboundWhatsapp({
-            country: inferredCountry,
+            // O QA oficial 8637 possui telefone BR, mas sua entrada controlada
+            // continua pertencendo ao contrato VSL EC. A excecao fica restrita
+            // ao destinatario de teste ja autorizado; clientes comuns preservam
+            // o pais inferido normalmente.
+            country: authorizedTestRecipient ? 'EC' : inferredCountry,
             phone,
             message: normalizedBody,
             inboundAt: now

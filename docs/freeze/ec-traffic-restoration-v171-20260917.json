@@ -14,6 +14,7 @@
     "scripts/guard-ec-traffic-restoration-v171.mjs",
     "scripts/lib/ec-runtime-successor-v170-context.mjs",
     "scripts/repair-qa-8637-attendance-v171.mjs",
+    "src/routes/zapi.js",
     "src/routes/whatsapp.js",
     "src/services/agentRouter.js",
     "src/services/ecConversationBucketService.js",
@@ -28,16 +29,17 @@
   ],
   "protectedFiles": {
     ".github/workflows/ec-panel-quality.yml": "abe7214a834a61d1cd6626f0b18ebb9d2944397c5d7e7861a5fcbf2572764ab2",
-    "docs/EC_TRAFFIC_RESTORATION_V171_20260917.md": "6623db10b4fca0ce639acd61543ef0dead6614d17285728811c7c7bda20a173e",
+    "docs/EC_TRAFFIC_RESTORATION_V171_20260917.md": "36ee3b839dd3062e0821937a0855d59d4faad7dd9534439d222c79abdcee6e07",
     "ops/ec-bot-core-v78": "b85bf93d8edf0cbb4908685745ea5467d98f5d03be07f129077d11faf69b7411",
     "package.json": "9e94cc4f407a8fb59549344ca6b4763366a22c264090ce615b2a1bf4aad1dbac",
     "public/qr.html": "11b0b3cf80fa5b24d2bf1ddded7b3455af1f505d8c456be1da82ade706294110",
     "scripts/check-traffic-ready-v171.mjs": "e42c1cad48d28865f05f510ceec3e653c3a82dab5df02bdd2eaf0c458c4c01cb",
-    "scripts/guard-ec-traffic-restoration-v171.mjs": "d444534c2e50a99a0308282852b2b670d9610d3d30f7ae268ff876d94ac2cdcc",
+    "scripts/guard-ec-traffic-restoration-v171.mjs": "f961a37f775c2c5ff102e07ef80abb53b66de5a026f14133ea984d5fbc3d3635",
     "scripts/lib/ec-runtime-successor-v170-context.mjs": "af34f9479378d46d2fbc6ed0396a813c35546d363abc33d80d39078ff086d79c",
     "scripts/repair-qa-8637-attendance-v171.mjs": "0c47c004d7e231fcfb16e0d2b2660d73d6943ec01a57daad1d6421ebbee66c94",
+    "src/routes/zapi.js": "173f73bf3aae4c86f46b25fba9e6c2d567d25061e87bd772c35491c979f16ec6",
     "src/routes/whatsapp.js": "1dd6beba575f38c34e72e438a5f23b0a9dea9b677dd134e59374e1f55f0ed0e5",
-    "src/services/agentRouter.js": "094e880c334d1b50f2cb8c6d6d062bf713dc755f4927036afd3001728a8ccf7f",
+    "src/services/agentRouter.js": "4b5572d44bf360aa3e503caf226d286b1117e9f6f3a9c6bb24d7aacb65d76709",
     "src/services/ecConversationBucketService.js": "d3d970cce0de4aa37862a35395f25aba1f5eff839eb9253bcc90a19e5e4c3e36",
     "src/services/metaAttributionBridgeService.js": "2aa01a116700bb0feda1febde90e52b14f64d457cfbedd96419109f82116f8f6",
     "src/services/panelWarmupIsolationV118Service.js": "f5edbb8f812fb8afcf2fd080df499a257272afab146b01ef2d7f43ddf252d2c6",
@@ -46,7 +48,7 @@
     "tests/ec-engagement-buckets-v40.test.mjs": "b35170d854fa5150b3f3571a92bc1e8feb4b5f9f967a3b7ecca60c462303b41f",
     "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "b4e3cb8446cf722f71a0521a1aa8ea3307097d1775fc481151e8ee2eda4354a7",
     "tests/panel-warmup-isolation-v118.test.mjs": "67358e595f9cb5d06a37320ad79cc41e511ad0bfb111cce6e2f7b4088b50f390",
-    "tests/ec-traffic-restoration-v171.test.mjs": "63837c90e79e72a79ae1aa4a4ed67cd06e1113ee165a9a6162903e498b7468dd"
+    "tests/ec-traffic-restoration-v171.test.mjs": "8d03aa9aa7b7aecd2ac5c3f781823ffeb68082b6309f1080d5cb58c74216c22b"
   },
   "policy": {
     "scope": "EC_TRAFFIC_REAL_VSL_PANEL_QA_ONLY",

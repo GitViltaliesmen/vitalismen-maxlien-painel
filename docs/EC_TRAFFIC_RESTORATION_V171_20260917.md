@@ -4,6 +4,11 @@
 
 Microcamada exclusiva do Vitalismen / Maxlien Equador para restaurar o ingresso real da VSL Protocolo-G no painel e no primeiro inbound WhatsApp, corrigir o telefone QA `5515998038637` para Atendimento e permitir a ativação controlada do perfil `EC_BOT_CORE_OPERATIONAL` sem desligar a Z-API.
 
+O canário vivo confirmou ainda que o telefone brasileiro do QA oficial precisa
+ser correlacionado como contrato VSL EC somente quando passar pela allowlist
+exata `5515998038637`. Essa exceção não altera a inferência de país de nenhum
+cliente real e permanece protegida pelos mesmos permits temporários V78.
+
 ## Contrato preservado
 
 - Z-API continua sendo o transporte público oficial.
