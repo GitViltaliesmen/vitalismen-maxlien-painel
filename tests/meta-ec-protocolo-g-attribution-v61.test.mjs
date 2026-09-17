@@ -461,8 +461,9 @@ test('snapshot após TTL preserva external_id/fbp, remove atribuição expirada 
         message: officialFixture.message,
         inboundAt: new Date(endpoint.persistedVisit.lastClickAt.getTime() + 40_000)
     });
-    assert.equal(selection.ok, false);
-    assert.equal(selection.reason, 'no_unique_exact_visit');
+    assert.equal(selection.ok, true);
+    assert.equal(selection.candidate.visitorKey, endpoint.persistedVisit.visitorKey);
+    assert.equal(hasMetaAdAttribution(selection.candidate.tracking), false);
 
     const order = orderFor({
         external_id: tracking.external_id,

@@ -5,6 +5,7 @@ on:
     paths:
       - .env.example
       - AGENTS.md
+      - ops/ec-bot-core-v78
       - ops/post-sale-next-eligible-v114
       - public/qr.html
       - public/leads-window.html
@@ -24,6 +25,12 @@ on:
       - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/agentRouter.js
+      - src/services/ecConversationBucketService.js
+      - src/services/metaAttributionBridgeService.js
+      - src/services/panelWarmupIsolationV118Service.js
+      - src/services/trafficReadinessV171Service.js
+      - src/services/vslPreleadPanelService.js
       - src/services/ecManualDropiReleaseV119Service.js
       - src/services/dropiTotalResolutionV121Service.js
       - src/services/dropiTotalResolutionFreezeRuntimeGuardV121.js
@@ -62,6 +69,13 @@ on:
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - src/whatsapp/connection.js
       - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/check-traffic-ready-v171.mjs
+      - scripts/guard-ec-traffic-restoration-v171.mjs
+      - scripts/repair-qa-8637-attendance-v171.mjs
+      - scripts/lib/ec-runtime-successor-v170-context.mjs
+      - tests/ec-traffic-restoration-v171.test.mjs
+      - docs/EC_TRAFFIC_RESTORATION_V171_20260917.md
+      - docs/freeze/ec-traffic-restoration-v171-20260917.json
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
       - scripts/guard-order-public-product-integrity-v20.mjs
@@ -143,6 +157,7 @@ on:
     paths:
       - .env.example
       - AGENTS.md
+      - ops/ec-bot-core-v78
       - ops/post-sale-next-eligible-v114
       - public/qr.html
       - public/leads-window.html
@@ -162,6 +177,12 @@ on:
       - src/services/droppiEcuadorService.js
       - src/services/ecuadorProductService.js
       - src/services/funnelMetricsService.js
+      - src/services/agentRouter.js
+      - src/services/ecConversationBucketService.js
+      - src/services/metaAttributionBridgeService.js
+      - src/services/panelWarmupIsolationV118Service.js
+      - src/services/trafficReadinessV171Service.js
+      - src/services/vslPreleadPanelService.js
       - src/services/ecManualDropiReleaseV119Service.js
       - src/services/ecPanelCustomerPersistenceV122Service.js
       - src/services/ecPanelCustomerPersistenceFreezeRuntimeGuardV122.js
@@ -198,6 +219,13 @@ on:
       - src/services/texUltraApprovedFreezeRuntimeGuardV5.js
       - src/whatsapp/connection.js
       - scripts/audit-ec-panel-smart-customer.mjs
+      - scripts/check-traffic-ready-v171.mjs
+      - scripts/guard-ec-traffic-restoration-v171.mjs
+      - scripts/repair-qa-8637-attendance-v171.mjs
+      - scripts/lib/ec-runtime-successor-v170-context.mjs
+      - tests/ec-traffic-restoration-v171.test.mjs
+      - docs/EC_TRAFFIC_RESTORATION_V171_20260917.md
+      - docs/freeze/ec-traffic-restoration-v171-20260917.json
       - scripts/audit-ec-product-micro-layer.mjs
       - scripts/guard-tex-ultra-approved-v5.mjs
       - scripts/guard-order-public-product-integrity-v20.mjs
@@ -416,6 +444,9 @@ jobs:
 
       - name: Validate authenticated funnel metrics
         run: npm run test:funnel-metrics
+
+      - name: Validate EC traffic restoration V171
+        run: npm run guard:traffic-restoration-v171
 
       - name: Preserve product, country and approved freeze layers
         shell: bash

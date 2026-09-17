@@ -35,6 +35,7 @@ fi
 process_name="vitalismen-automation"
 profile_name="EC_BOT_CORE_OPERATIONAL"
 authorization_phrase="I_UNDERSTAND_EC_BOT_CORE_V78"
+supersede_authorization_phrase="I_UNDERSTAND_V78_BUNDLE_SUPERSEDE"
 overlay_file="$state_dir/ec-bot-core-v78.env"
 attestation_file="$state_dir/ec-bot-core-v78-attestation.json"
 permit_file="$state_dir/ec-bot-core-v78-permit.json"
@@ -222,6 +223,84 @@ if [[ "$action" == "plan" ]]; then
   exit 0
 fi
 
+if [[ "$action" == "supersede" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: ec-bot-core-v78 supersede RELEASE_ANTERIOR"
+  [[ "${EC_BOT_CORE_V78_SUPERSEDE:-}" == "$supersede_authorization_phrase" ]] ||
+    die "autorização explícita para supersede ausente"
+  previous_release="$2"
+  [[ "$previous_release" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+    die "release anterior fora do padrão oficial"
+  current_dir="$(current_release_dir)"
+  current_release="${current_dir##*/}"
+  [[ "$current_release" =~ ^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$ ]] ||
+    die "release atual fora do padrão oficial"
+  [[ "$previous_release" != "$current_release" ]] || die "bundle já pertence à release atual"
+
+  run_plan "$current_release" >/dev/null
+  [[ ! -e "$permit_file" && ! -L "$permit_file" ]] || die "permit V78 não consumido impede supersede"
+  for active_file in "$overlay_file" "$attestation_file" "$consumed_permit_file"; do
+    [[ -f "$active_file" && ! -L "$active_file" ]] || die "bundle V78 consumido incompleto"
+  done
+  if [[ "$test_mode" != "true" ]]; then
+    [[ "$(stat -c '%u:%g:%a' "$overlay_file")" == "0:0:400" ]] || die "owner/mode do overlay V78 inválido"
+    [[ "$(stat -c '%u:%g:%a' "$attestation_file")" == "0:0:400" ]] || die "owner/mode da attestation V78 inválido"
+    [[ "$(stat -c '%u:%g:%a' "$consumed_permit_file")" == "0:0:600" ]] || die "owner/mode do permit consumido V78 inválido"
+  fi
+
+  previous_dir="$(release_dir_for_name "$previous_release")"
+  "$node_cmd" - \
+    "$overlay_file" "$attestation_file" "$consumed_permit_file" \
+    "$previous_dir" "$previous_release" "$current_release" <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const [overlayPath, attestationPath, permitPath, previousDir, expectedPrevious, currentRelease] = process.argv.slice(2);
+const sha = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const read = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
+const attestation = read(attestationPath);
+const permit = read(permitPath);
+if (attestation.version !== 78 || attestation.status !== 'attested' || attestation.profile !== 'EC_BOT_CORE_OPERATIONAL') throw new Error('attestation V78 inválida');
+if (permit.version !== 78 || permit.status !== 'authorized' || permit.singleUse !== true) throw new Error('permit consumido V78 inválido');
+if (attestation.release !== expectedPrevious || permit.release !== expectedPrevious || expectedPrevious === currentRelease) throw new Error('identidade de release do bundle divergente');
+for (const key of ['commit', 'tree', 'tag', 'permitId', 'profilePayloadSha256', 'overlaySha256']) {
+  if (attestation[key] !== permit[key]) throw new Error(`identidade ${key} do bundle divergente`);
+}
+if (!/^[0-9a-f]{40}$/.test(attestation.commit) || !/^[0-9a-f]{40}$/.test(attestation.tree)) throw new Error('commit/tree do bundle inválido');
+if (!/^production-[0-9]{8}-[0-9a-f]{7}$/.test(attestation.tag) || attestation.commit.slice(0, 7) !== attestation.tag.slice(-7)) throw new Error('tag do bundle inválida');
+if (permit.attestationSha256 !== sha(attestationPath) || permit.overlaySha256 !== sha(overlayPath)) throw new Error('hash do bundle consumido divergente');
+if (attestation.mutatingSchedulersAllowed !== false || attestation.dropiApplyAllowed !== false || attestation.metaPurchaseAllowed !== false || attestation.rootOnly !== true || attestation.failClosed !== true) throw new Error('travas V78 do bundle ausentes');
+const sourcePath = path.join(previousDir, '.release-source.json');
+const stagingPath = path.join(previousDir, '.staging-complete.json');
+const publicationPath = path.join(previousDir, '.release-publication.json');
+const publicationCompletePath = path.join(previousDir, '.publication-complete.json');
+for (const file of [sourcePath, stagingPath, publicationPath, publicationCompletePath]) {
+  const stat = fs.lstatSync(file);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== 0 || stat.gid !== 0 || (stat.mode & 0o777) !== 0o400) throw new Error('envelope anterior inseguro');
+}
+const source = read(sourcePath);
+const publication = read(publicationPath);
+if (source.releaseName !== expectedPrevious || String(source.functionalCommit || '').toLowerCase() !== attestation.commit || String(source.functionalTree || '').toLowerCase() !== attestation.tree) throw new Error('origem da release anterior divergente');
+if (publication.release !== expectedPrevious || publication.publicationTag !== attestation.tag || String(publication.functionalCommit || '').toLowerCase() !== attestation.commit || String(publication.functionalTree || '').toLowerCase() !== attestation.tree) throw new Error('publicação da release anterior divergente');
+if (attestation.releaseMetadataSha256 !== sha(sourcePath) || attestation.stagingCompleteSha256 !== sha(stagingPath) || attestation.publicationMetadataSha256 !== sha(publicationPath) || attestation.publicationCompleteSha256 !== sha(publicationCompletePath)) throw new Error('hashes da release anterior divergentes');
+NODE
+
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  suffix="superseded.${current_release}.${timestamp}"
+  mv -- "$overlay_file" "$overlay_file.$suffix"
+  mv -- "$attestation_file" "$attestation_file.$suffix"
+  mv -- "$consumed_permit_file" "$consumed_permit_file.$suffix"
+  [[ ! -e "$overlay_file" && ! -e "$attestation_file" && ! -e "$consumed_permit_file" ]] ||
+    die "bundle V78 anterior permaneceu ativo após supersede"
+  append_audit "bundle_superseded" "$previous_release" "$current_release"
+  echo "EC_BOT_CORE_V78_SUPERSEDE=PASS"
+  echo "PREVIOUS_RELEASE=$previous_release"
+  echo "CURRENT_RELEASE=$current_release"
+  echo "BUNDLE_SUFFIX=$suffix"
+  echo "PM2_ACTIONS=0"
+  echo "CURRENT_UNCHANGED=$(current_release_dir)"
+  exit 0
+fi
+
 if [[ "$action" == "authorize" ]]; then
   [[ "$#" -eq 2 ]] || die "uso: ec-bot-core-v78 authorize RELEASE"
   [[ "${EC_BOT_CORE_V78_AUTHORIZE:-}" == "$authorization_phrase" ]] || die "autorização explícita V78 ausente"
@@ -359,4 +438,4 @@ if [[ "$action" == "contain" ]]; then
   exit 0
 fi
 
-die "uso: ec-bot-core-v78 status | plan RELEASE | authorize RELEASE | activate RELEASE | abort-authorization RELEASE | contain"
+die "uso: ec-bot-core-v78 status | plan RELEASE | supersede RELEASE_ANTERIOR | authorize RELEASE | activate RELEASE | abort-authorization RELEASE | contain"

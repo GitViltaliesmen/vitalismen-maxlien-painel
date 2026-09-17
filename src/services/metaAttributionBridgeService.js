@@ -45,7 +45,15 @@ export const selectUniqueVslAttributionCandidate = ({
         const clickTime = visitClickTime(visit);
         if (!Number.isFinite(clickTime)) return false;
         if (clickTime < inboundTime - windowMs || clickTime > inboundTime + futureToleranceMs) return false;
-        if (!hasMetaAdAttribution(visit.tracking || {}) && !salesAttributionV148(visit)) return false;
+        const hasCanonicalIdentity = Boolean(
+            visit.visitorKey
+            || visit.externalId
+            || visit.visitorId
+            || visit.sessionId
+            || hasMetaAdAttribution(visit.tracking || {})
+            || salesAttributionV148(visit)
+        );
+        if (!hasCanonicalIdentity) return false;
         return visitMessageValues(visit).includes(normalizedMessage);
     });
 
@@ -59,7 +67,13 @@ const attributionClaimSnapshot = (visit = {}) => ({
     visitorKey: String(visit.visitorKey || ''),
     visitorId: String(visit.visitorId || ''),
     sourceUrl: String(visit.sourceUrl || ''),
+    path: String(visit.path || ''),
+    sessionId: String(visit.sessionId || ''),
+    customerName: String(visit.customerName || ''),
+    customerCity: String(visit.tracking?.city || visit.tracking?.customer_city || ''),
+    customerProvince: String(visit.tracking?.province || visit.tracking?.customer_province || ''),
     productKey: String(visit.productKey || ''),
+    productName: String(visit.productName || ''),
     vslTestId: String(visit.vslTestId || ''),
     vslVariant: String(visit.vslVariant || ''),
     tracking: metaAttributionTrackingFromVisit(visit)
@@ -101,7 +115,7 @@ export const recordMetaAttributionCorrelation = async ({
         visitId: candidate?._id || result.visitId || null,
         productKey: String(candidate?.productKey || result.productKey || ''),
         funnel: String(candidate?.funnel || candidate?.tracking?.funnel || result.funnel || ''),
-        source: 'zapi_exact_message_unique_120s',
+        source: 'canonical_provider_exact_message_unique_120s',
         windowMs,
         inboundAt: new Date(inboundAt),
         evaluatedAt: new Date()
@@ -197,7 +211,7 @@ export const claimMetaAttributionForInboundWhatsapp = async ({
             $set: {
                 customerPhone: phoneDigits,
                 attributionClaimedAt: claimedAt,
-                attributionClaimSource: 'zapi_exact_message_unique_120s',
+                attributionClaimSource: 'canonical_provider_exact_message_unique_120s',
                 attributionClaimPhoneHash: phoneHash,
                 attributionClaimMessageHash: messageHash,
                 attributionClaimInboundAt: inboundDate

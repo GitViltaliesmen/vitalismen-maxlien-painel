@@ -6,6 +6,8 @@ import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
 import { currentProductRouteForState } from './vslProductAssignmentService.js';
 import { evaluateCanaryV75Recipient } from './canaryIsolationV75Service.js';
+import { claimMetaAttributionForInboundWhatsapp } from './metaAttributionBridgeService.js';
+import { mergeClaimedVslPreleadIntoContactState } from './vslPreleadPanelService.js';
 
 const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
 const NITRIX_PRODUCT_KEY = 'nitrix_ec';
@@ -882,6 +884,28 @@ export const routeIncomingMessage = async (payload) => {
             phoneDigits: senderPhoneDigits || String(chatId || '').replace(/\D/g, ''),
             countryCode
         });
+    }
+    if (
+        countryCode === OFFICIAL_COUNTRY
+        && !state.metadata?.vslVisitId
+        && body.trim()
+    ) {
+        const preleadClaim = await claimMetaAttributionForInboundWhatsapp({
+            country: OFFICIAL_COUNTRY,
+            phone: senderPhoneDigits || state.phoneDigits || chatId,
+            message: body,
+            inboundAt: new Date()
+        }).catch((error) => ({
+            ok: false,
+            skipped: true,
+            reason: 'canonical_prelead_claim_error',
+            error: error.message || String(error)
+        }));
+        if (preleadClaim.ok && preleadClaim.claimed) {
+            mergeClaimedVslPreleadIntoContactState({ state, claim: preleadClaim });
+        } else if (preleadClaim.reason === 'ambiguous_exact_visit') {
+            console.warn(`[ROUTER] prelead VSL ambiguo; correlacao bloqueada | chat=${chatId}`);
+        }
     }
     rememberContactChannel({ state, chatId, senderPn, sessionId });
     const adminContactSync = operationalPanelPhone

@@ -3,6 +3,7 @@ import Message from '../models/Message.js';
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
 import {
+    isPanelWarmupIsolationQaV118,
     panelWarmupManualEngagementBlockersV118,
     panelWarmupQaReplyAllowedV118,
     shouldPreservePanelWarmupManualEngagementV118
@@ -302,9 +303,9 @@ export const classifyEcConversationSnapshot = ({
     let score = 55;
     const reasons = [];
     if (protectedTestContact) {
-        bucket = EC_CONVERSATION_BUCKETS.REVIEW;
+        bucket = EC_CONVERSATION_BUCKETS.ATTENDANCE;
         score = 100;
-        reasons.push('protected_test_contact');
+        reasons.push('qa_8637_attendance_only');
     } else if (risk || optOut) {
         bucket = EC_CONVERSATION_BUCKETS.REVIEW;
         score = 100;
@@ -658,7 +659,8 @@ export const setEcConversationBucketManually = async ({
 export const conversationBucketPanelView = (state = {}, { hasOperationalOrder = false } = {}) => {
     const stored = String(state.conversationBucket?.value || '').trim();
     let value = VALID_BUCKETS.has(stored) ? stored : '';
-    if (hasOperationalOrder) value = EC_CONVERSATION_BUCKETS.ORDERS;
+    if (isPanelWarmupIsolationQaV118(state)) value = EC_CONVERSATION_BUCKETS.ATTENDANCE;
+    else if (hasOperationalOrder) value = EC_CONVERSATION_BUCKETS.ORDERS;
     if (!value && (state.tags || []).includes('warmup:risk')) value = EC_CONVERSATION_BUCKETS.REVIEW;
     if (!value && ((state.tags || []).includes('warmup:allowed') || state.metadata?.warmup?.allowed === true)) {
         value = EC_CONVERSATION_BUCKETS.ENGAGEMENT;

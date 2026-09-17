@@ -131,6 +131,10 @@ import {
 } from '../services/panelConversationRecencyV146Service.js';
 import { initiateCheckoutBusinessActionV146 } from '../services/metaInitiateCheckoutV146Service.js';
 import { reconcilePendingZapiDeliveryV155 } from '../services/zapiDeliveryCallbackReconciliationV155Service.js';
+import {
+    listPendingVslPreleadPanelChats,
+    projectVslPreleadPanelChat
+} from '../services/vslPreleadPanelService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -3723,12 +3727,22 @@ router.post('/vsl-entry', async (req, res) => {
         const lead = !skipMeta && clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
+        const customerPhone = vslCustomerPhoneFromBody(body, country);
         const panelLead = clicked
-            ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+            ? customerPhone
+                ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+                : {
+                    ok: true,
+                    prelead: true,
+                    reason: 'awaiting_whatsapp_phone',
+                    chat: projectVslPreleadPanelChat(visit)
+                }
             : null;
 
         return res.json({
             ok: true,
+            accepted: true,
+            ignored: false,
             assignedSeller,
             seller: assignedSeller,
             productKey: product.productKey,
@@ -4353,6 +4367,9 @@ router.get('/chats', async (req, res) => {
         const fastMode = String(req.query.fast || '').toLowerCase() === 'true' || String(req.query.fast || '') === '1';
         const countryFilter = normalizePanelCountry(req.query.country);
         const pictureSock = fastMode ? null : getSock(req.query.sessionId);
+        const pendingVslPreleads = countryFilter === 'EC' && !onlyLinked
+            ? await listPendingVslPreleadPanelChats({ country: 'EC', limit: fastMode ? 80 : 120 }).catch(() => [])
+            : [];
 
         const buildPhoneKeys = ({ digits, country }) => {
             const d = String(digits || '').replace(/\D/g, '');
@@ -4898,7 +4915,7 @@ router.get('/chats', async (req, res) => {
                 .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
                 .sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
-            res.json(onlyLinked ? [] : dedupePanelChats(fastChats));
+            res.json(onlyLinked ? [] : dedupePanelChats([...pendingVslPreleads, ...fastChats]));
             return;
         }
 
@@ -5193,7 +5210,7 @@ router.get('/chats', async (req, res) => {
 
         filtered.sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
-        res.json(dedupePanelChats(filtered));
+        res.json(dedupePanelChats([...pendingVslPreleads, ...filtered]));
     } catch (error) {
         console.error('Get chats error:', error);
         res.status(500).json({ error: 'Failed to fetch chats' });

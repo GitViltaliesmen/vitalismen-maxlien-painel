@@ -175,8 +175,8 @@ test('13. aprovacao manual segura permite AQUECIMENTO sem massa', () => {
 test('14. contato protegido de QA nunca entra em AQUECIMENTO', () => {
     const qa = state({ phoneDigits: '5515998038637', chatId: '5515998038637@c.us' });
     const result = classifyEcConversationSnapshot({ state: qa, messages: safeDialogue(), now });
-    assert.equal(result.bucket, EC_CONVERSATION_BUCKETS.REVIEW);
-    assert.ok(result.hardExclusions.includes('protected_test_contact'));
+    assert.equal(result.bucket, EC_CONVERSATION_BUCKETS.ATTENDANCE);
+    assert.deepEqual(result.reasons, ['qa_8637_attendance_only']);
 });
 
 test('15. emoji isolado e classificado sem resposta', () => {

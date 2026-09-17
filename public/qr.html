@@ -12385,7 +12385,9 @@
                 const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
                 const vslWaiting = isVslAwaitingHuman(chat);
                 const needsAttention = vslWaiting || unansweredCount > 0;
-                const attentionTitle = unansweredCount > 0
+                const attentionTitle = chat.vslPrelead === true
+                    ? 'Entrada VSL registrada; aguardando o primeiro WhatsApp com telefone real'
+                    : unansweredCount > 0
                     ? `${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} do cliente sem resposta`
                     : 'Cliente da VSL sem atendimento';
                 const attentionLabel = unansweredCount > 0 ? unansweredLabel : '!';
@@ -12407,7 +12409,7 @@
                                     </span>
                                 </div>
                                 <div class="chat-phone-line">
-                                    <span class="chat-phone-value">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</span>
+                                    <span class="chat-phone-value">${escapeHtml(chat.vslPrelead === true ? 'AGUARDANDO WHATSAPP' : (chat.phone || chat.id || 'sem telefone'))}</span>
                                     ${needsAttention ? `<span class="chat-phone-attention ${unansweredCount > 0 ? 'customer-message' : ''}" title="${escapeHtml(attentionTitle)}" aria-label="${escapeHtml(attentionTitle)}">${escapeHtml(attentionLabel)}</span>` : ''}
                                 </div>
                                 <div class="chat-entry-line ${escapeHtml(entryInfo.className)}" title="${escapeHtml(entryInfo.title)}">
@@ -12419,7 +12421,9 @@
                                     <span class="chat-badges">
                                         <span class="badge ${escapeHtml(bucketInfo.className)}">${escapeHtml(bucketInfo.label)}</span>
                                         ${orderBadge}
-                                        ${vslWaiting ? '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>' : ''}
+                                        ${vslWaiting ? (chat.vslPrelead === true
+                                            ? '<span class="badge orange" title="Prelead VSL canônico sem telefone inventado; será consolidado quando o WhatsApp chegar">AGUARDANDO WHATSAPP</span>'
+                                            : '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>') : ''}
                                         ${unansweredCount ? `<span class="badge orange" title="${escapeHtml(`${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} sem resposta`)}">${escapeHtml(unansweredLabel)} pendente${unansweredCount === 1 ? '' : 's'}</span>` : ''}
                                         <span class="badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}">${escapeHtml(owner)}</span>
                                     </span>
@@ -12427,7 +12431,7 @@
                                 </div>
                                 ${renderChatLabels(chat)}
                                 <div class="chat-foot">
-                                    <div class="meta truncate">${escapeHtml(chat.phone || chat.id)} ${chat.country ? ' · ' + escapeHtml(chat.country) : ''}</div>
+                                    <div class="meta truncate">${escapeHtml(chat.vslPrelead === true ? 'Telefone ainda não informado' : (chat.phone || chat.id))} ${chat.country ? ' · ' + escapeHtml(chat.country) : ''}</div>
                                     ${chat.orderId ? `<div class="meta">${escapeHtml(chat.orderId)}</div>` : ''}
                                 </div>
                             </div>
@@ -15334,6 +15338,28 @@
             el('sendBtn').disabled = false;
             renderSelectedDetails();
             renderCustomerProfile();
+            if (chat.vslPrelead === true) {
+                el('sendBtn').disabled = true;
+                el('attachMediaBtn').disabled = true;
+                el('emojiBtn').disabled = true;
+                el('claimBtn').disabled = true;
+                el('releaseBtn').disabled = true;
+                el('chatActionSelect').disabled = true;
+                el('conversationBucketSelect').disabled = true;
+                el('saveCustomerBtn').disabled = true;
+                el('sendSelectedDropiBtn').disabled = true;
+                el('buyLaterBtn').disabled = true;
+                el('clearRepeatedBotBtn').disabled = true;
+                el('scanCustomerDataBtn').disabled = true;
+                el('confirmCustomerDataBtn').disabled = true;
+                el('flowCorrectionBtn').disabled = true;
+                closeFlowCorrectionMenu();
+                document.querySelectorAll('[data-footer-draft-template], [data-footer-media-url], [data-price-preset], [data-draft-template]').forEach((button) => {
+                    button.disabled = true;
+                });
+                el('conversation').innerHTML = '<div class="empty"><strong>VSL registrada.</strong><br>Aguardando a primeira mensagem no WhatsApp para consolidar o telefone real e abrir uma única conversa.</div>';
+                return;
+            }
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
             if (markRead) markSelectedChatRead().catch(() => null);
             loadSelectedMessages({ force: true, limit: 60, bypassLoading: true }).catch((error) => showToast(error.message));
