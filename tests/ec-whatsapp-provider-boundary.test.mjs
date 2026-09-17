@@ -10,9 +10,9 @@ import {
     validateProviderOnlyDiff
 } from '../scripts/audit-ec-whatsapp-provider-boundary.mjs';
 
-test('baseline comercial permanece protegida pelos hashes V170', () => {
+test('baseline comercial permanece protegida pela sucessão V170/V171', () => {
     const result = validateBaselineLock();
-    assert.equal(result.protectedFiles, 18);
+    assert.equal(result.protectedFiles, 36);
 });
 
 test('núcleo canônico não importa cliente nem roteador físico Z-API', () => {

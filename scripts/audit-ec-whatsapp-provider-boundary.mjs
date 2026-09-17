@@ -5,12 +5,13 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const BASELINE_COMMIT = '273ba40dc2be285ee916b94ea9685b544b79ed63';
-export const BASELINE_RELEASE = '20260917T023905Z_production-20260917-273ba40';
-export const BASELINE_TAG = 'production-20260917-273ba40';
+export const BASELINE_COMMIT = 'c99aea3af2e723ec80a142e51f724f5dd8d850e0';
+export const BASELINE_RELEASE = '20260917T140612Z_production-20260917-c99aea3';
+export const BASELINE_TAG = 'production-20260917-c99aea3';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const V170_MANIFEST = 'docs/freeze/ec-pretraffic-final-restoration-v170-20260916.json';
+const V171_MANIFEST = 'docs/freeze/ec-traffic-restoration-v171-20260917.json';
 
 export const PROVIDER_ONLY_FILES = Object.freeze([
     'docs/EC_WHATSAPP_PROVIDER_PREPARATION_20260917.md',
@@ -71,18 +72,25 @@ export const directZapiImportsInCanonicalCore = () => listJavaScriptFiles('src/w
     .filter((relative) => /(?:zapiClient|zapiOutboundRouting|routes\/zapi|sendZapi)/i.test(read(relative).toString('utf8')));
 
 export const validateBaselineLock = () => {
-    const manifestText = read(V170_MANIFEST).toString('utf8');
-    const manifest = JSON.parse(manifestText);
-    assert.equal(manifest.freezeId, 'EC_PRETRAFFIC_FINAL_RESTORATION_V170_20260916');
-    assert.equal(manifest.policy.futureChangesRequireExplicitAuthorization, true);
-    for (const [relative, expected] of Object.entries(manifest.protectedFiles)) {
+    const v170 = JSON.parse(read(V170_MANIFEST).toString('utf8'));
+    const v171 = JSON.parse(read(V171_MANIFEST).toString('utf8'));
+    assert.equal(v170.freezeId, 'EC_PRETRAFFIC_FINAL_RESTORATION_V170_20260916');
+    assert.equal(v171.freezeId, 'EC_TRAFFIC_RESTORATION_V171_20260917');
+    assert.equal(v170.policy.futureChangesRequireExplicitAuthorization, true);
+    assert.equal(v171.policy.futureChangesRequireExplicitAuthorization, true);
+    const protectedFiles = new Set([
+        ...Object.keys(v170.protectedFiles),
+        ...Object.keys(v171.protectedFiles)
+    ]);
+    for (const relative of protectedFiles) {
+        const expected = v171.protectedFiles[relative] || v170.protectedFiles[relative];
         assert.equal(sha256(relative), expected, `commercial_baseline_hash_changed:${relative}`);
     }
     execFileSync('git', ['merge-base', '--is-ancestor', BASELINE_COMMIT, 'HEAD'], {
         cwd: ROOT,
         stdio: 'ignore'
     });
-    return { protectedFiles: Object.keys(manifest.protectedFiles).length };
+    return { protectedFiles: protectedFiles.size };
 };
 
 export const changedTrackedFilesSinceBaseline = () => {

@@ -4,15 +4,15 @@ Escopo exclusivo: painel `https://ec.maxlien.shop/qr.html?v=20260610194152`, VSL
 
 ## Baseline imutável
 
-- Commit: `273ba40dc2be285ee916b94ea9685b544b79ed63`
-- Tree: `45cd3fe22e6ea4b36acee617b2c21e62a082b46c`
-- Release: `20260917T023905Z_production-20260917-273ba40`
-- Tag: `production-20260917-273ba40`
+- Commit: `c99aea3af2e723ec80a142e51f724f5dd8d850e0`
+- Tree: `357603117c1046b3650daa12f4ea7b0ddd313c61`
+- Release: `20260917T140612Z_production-20260917-c99aea3`
+- Tag: `production-20260917-c99aea3`
 - Rollback: `20260916T122026Z_production-20260916-533b78f`
 - Produção confirmada: health HTTP 200, processo principal online e Z-API conectada.
 - `guard:freeze-lock`: PASS local e na release ativa.
 
-Os 18 arquivos comerciais protegidos pelo manifesto V170 conservam seus hashes. Qualquer arquivo rastreado fora dos quatro artefatos provider-only desta preparação é recusado pelo audit. Alteração fora desse limite exige `AUTHORIZATION_ID` explícito e, mesmo com identificador, continua proibida nesta missão de infraestrutura.
+Os 36 arquivos comerciais protegidos pela sucessão V170/V171 conservam seus hashes. Qualquer arquivo rastreado fora dos quatro artefatos provider-only desta preparação é recusado pelo audit. Alteração fora desse limite exige `AUTHORIZATION_ID` explícito e, mesmo com identificador, continua proibida nesta missão de infraestrutura.
 
 ## Integridade pública inicial
 
@@ -49,7 +49,7 @@ O diretório `src/whatsapp/core` tem zero import direto do cliente Z-API. O acop
 - Não existe credencial persistida dessa identidade no caminho consumido pelo runtime.
 - Existe um diretório de autenticação para uma identidade pausada; ele não deve ser movido, copiado, ativado ou usado para inferir pareamento.
 - Não existem segunda e terceira identidades Web configuradas.
-- O runtime ativo está em `STRICT_READ_ONLY`; Baileys não inicia e não captura clientes.
+- O runtime comercial principal está em `EC_BOT_CORE_OPERATIONAL`; Baileys continua desabilitado e isolado em `SHADOW`, sem capturar clientes.
 - Gerar novo QR, trocar identidade ou ativar socket real permanece sem autorização.
 - Delivery ACK, read ACK e webhook/socket ingress ainda não existem no adapter Web ao vivo.
 
@@ -70,4 +70,4 @@ O manifesto em `docs/provider/ec-whatsapp-provider-cutover-manifest-20260917.jso
 
 ## Estado seguro
 
-Produção permanece na release V170, Z-API permanece como provider oficial, WhatsApp Web permanece shadow, nenhuma mensagem foi enviada, nenhum QR foi gerado e nenhum segredo ou webhook foi alterado.
+Produção permanece na baseline comercial V171, Z-API permanece como provider oficial, WhatsApp Web permanece shadow, nenhum QR foi gerado e nenhum segredo ou webhook foi alterado.
