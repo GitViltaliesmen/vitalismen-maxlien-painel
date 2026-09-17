@@ -69,6 +69,6 @@ test('claim canônico consolida origem e produto sem criar telefone falso', () =
 test('TRAFFIC_READY falha em strict read-only e passa apenas com runtime, VSL, painel e auth', () => {
     const strict = evaluateTrafficReadinessV171({ health: { status: 'online', automationSafety: { mode: 'SAFE_OBSERVATION_ONLY', policy: 'STRICT_READ_ONLY', strictReadOnly: true, operationalMutationsEnabled: false, mutatingSchedulers: 0, dropiApplyAllowed: false, dropiSyncMode: 'REPORT_ONLY' } }, vslEntry: { accepted: true, ignored: true, reason: 'strict_read_only' }, panelPass: true, authPass: true });
     assert.equal(strict.ready, false);
-    const ready = evaluateTrafficReadinessV171({ health: { status: 'online', automationSafety: { mode: 'EC_BOT_CORE_OPERATIONAL', policy: 'EC_BOT_CORE_OPERATIONAL', strictReadOnly: false, operationalMutationsEnabled: true, mutatingSchedulers: 0, dropiApplyAllowed: false, dropiSyncMode: 'REPORT_ONLY' } }, vslEntry: { accepted: true, ignored: false }, panelPass: true, authPass: true });
+    const ready = evaluateTrafficReadinessV171({ health: { status: 'online', automationSafety: { mode: 'EC_BOT_CORE_OPERATIONAL', policy: 'EC_BOT_CORE_OPERATIONAL', strictReadOnly: false, botCoreOperational: true, coreMutationRoutesEnabled: true, operationalMutationsEnabled: false, mutatingRoutesEnabled: false, mutatingSchedulers: 0, dropiApplyAllowed: false, dropiSyncMode: 'REPORT_ONLY' } }, vslEntry: { accepted: true, ignored: false }, panelPass: true, authPass: true });
     assert.equal(ready.ready, true);
 });

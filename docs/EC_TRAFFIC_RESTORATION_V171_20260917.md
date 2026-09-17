@@ -19,7 +19,7 @@ Microcamada exclusiva do Vitalismen / Maxlien Equador para restaurar o ingresso 
 1. Uma entrada válida da VSL sem telefone é persistida e projetada no painel como `VSL · TEX ULTRA — AGUARDANDO WHATSAPP`.
 2. O primeiro inbound com mensagem exata e candidato único consolida a visita, tracking e produto no `ContactState`; ambiguidades falham fechadas.
 3. O telefone QA termina sempre em `attendance`, inclusive se houver valor legado `engagement`, e pode aparecer em Novas quando houver não lida.
-4. O gate `TRAFFIC_READY` somente passa com runtime operacional, strict read-only desligado, VSL persistida, painel e autenticação válidos, schedulers zero e Dropi bloqueado para aplicação automática.
+4. O gate `TRAFFIC_READY` somente passa com o núcleo V78 e suas rotas mínimas habilitados, strict read-only desligado, superfície global de mutação ainda fechada, VSL persistida, painel e autenticação válidos, schedulers zero e Dropi bloqueado para aplicação automática.
 5. O helper V78 pode arquivar, com autorização literal e auditoria, um bundle consumido pertencente a uma release anterior; não para nem recria o PM2 durante o supersede.
 
 ## Validação obrigatória

@@ -28,7 +28,7 @@
   ],
   "protectedFiles": {
     ".github/workflows/ec-panel-quality.yml": "abe7214a834a61d1cd6626f0b18ebb9d2944397c5d7e7861a5fcbf2572764ab2",
-    "docs/EC_TRAFFIC_RESTORATION_V171_20260917.md": "a7eddda0a3baea7a5dd49d86c8348ee8f7e146c9fe5315720949b9ba17093d6e",
+    "docs/EC_TRAFFIC_RESTORATION_V171_20260917.md": "6623db10b4fca0ce639acd61543ef0dead6614d17285728811c7c7bda20a173e",
     "ops/ec-bot-core-v78": "b85bf93d8edf0cbb4908685745ea5467d98f5d03be07f129077d11faf69b7411",
     "package.json": "9e94cc4f407a8fb59549344ca6b4763366a22c264090ce615b2a1bf4aad1dbac",
     "public/qr.html": "11b0b3cf80fa5b24d2bf1ddded7b3455af1f505d8c456be1da82ade706294110",
@@ -41,12 +41,12 @@
     "src/services/ecConversationBucketService.js": "d3d970cce0de4aa37862a35395f25aba1f5eff839eb9253bcc90a19e5e4c3e36",
     "src/services/metaAttributionBridgeService.js": "2aa01a116700bb0feda1febde90e52b14f64d457cfbedd96419109f82116f8f6",
     "src/services/panelWarmupIsolationV118Service.js": "f5edbb8f812fb8afcf2fd080df499a257272afab146b01ef2d7f43ddf252d2c6",
-    "src/services/trafficReadinessV171Service.js": "95b53326e57fa71da5948121b6cf05fd207d56460ba0d49cdee9890e56a647f8",
+    "src/services/trafficReadinessV171Service.js": "1d69810ce0393b70227bd1a6bd917b4d87fa2a80e2039f16ac3838419b1f7ff2",
     "src/services/vslPreleadPanelService.js": "a0242ade069ca12ce84a9358c74f93606332f73de858775b80c9ea10efbf1619",
     "tests/ec-engagement-buckets-v40.test.mjs": "b35170d854fa5150b3f3571a92bc1e8feb4b5f9f967a3b7ecca60c462303b41f",
     "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "b4e3cb8446cf722f71a0521a1aa8ea3307097d1775fc481151e8ee2eda4354a7",
     "tests/panel-warmup-isolation-v118.test.mjs": "67358e595f9cb5d06a37320ad79cc41e511ad0bfb111cce6e2f7b4088b50f390",
-    "tests/ec-traffic-restoration-v171.test.mjs": "f86f8e6fa7bc2117ef3a8c73fa6979e5164a91e57159924c6929f239eb0ef19e"
+    "tests/ec-traffic-restoration-v171.test.mjs": "63837c90e79e72a79ae1aa4a4ed67cd06e1113ee165a9a6162903e498b7468dd"
   },
   "policy": {
     "scope": "EC_TRAFFIC_REAL_VSL_PANEL_QA_ONLY",
