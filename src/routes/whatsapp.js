@@ -3621,6 +3621,10 @@ router.post('/vsl-entry', async (req, res) => {
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent)
             });
         const v148Claimed = Number(incomingTracking.measurementVersion) === 148 && existing?.attributionClaimedAt;
+        const incomingCustomerPhone = vslCustomerPhoneFromBody(body, country);
+        const customerPhoneForPersistence = Number(incomingTracking.measurementVersion) === 148
+            ? ''
+            : incomingCustomerPhone;
         const trackingForPersistence = v148Claimed ? existing.tracking : protocoloGContract
             ? incomingTracking
             : { ...(existing?.tracking || {}), ...incomingTracking };
@@ -3654,9 +3658,7 @@ router.post('/vsl-entry', async (req, res) => {
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
-                ...(Number(incomingTracking.measurementVersion) === 148 ? {} : {
-                    customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15)
-                }),
+                ...(customerPhoneForPersistence ? { customerPhone: customerPhoneForPersistence } : {}),
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,
@@ -3691,7 +3693,8 @@ router.post('/vsl-entry', async (req, res) => {
             },
             $setOnInsert: {
                 visitorKey,
-                firstSeenAt: now
+                firstSeenAt: now,
+                ...(!customerPhoneForPersistence ? { customerPhone: '' } : {})
             },
             $inc: {
                 visits: existing && !protocoloGContract ? 1 : 0,
@@ -3727,10 +3730,17 @@ router.post('/vsl-entry', async (req, res) => {
         const lead = !skipMeta && clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
-        const customerPhone = vslCustomerPhoneFromBody(body, country);
+        const persistedCustomerPhone = digitsOnly(visit?.customerPhone);
         const panelLead = clicked
-            ? customerPhone
+            ? incomingCustomerPhone
                 ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+                : persistedCustomerPhone
+                    ? {
+                        ok: true,
+                        prelead: false,
+                        alreadyClaimed: true,
+                        reason: 'already_claimed'
+                    }
                 : {
                     ok: true,
                     prelead: true,

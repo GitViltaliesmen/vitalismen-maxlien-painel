@@ -26,6 +26,7 @@ cliente real e permanece protegida pelos mesmos permits temporários V78.
 3. O telefone QA termina sempre em `attendance`, inclusive se houver valor legado `engagement`, e pode aparecer em Novas quando houver não lida.
 4. O gate `TRAFFIC_READY` somente passa com o núcleo V78 e suas rotas mínimas habilitados, strict read-only desligado, superfície global de mutação ainda fechada, VSL persistida, painel e autenticação válidos, schedulers zero e Dropi bloqueado para aplicação automática.
 5. O helper V78 pode arquivar, com autorização literal e auditoria, um bundle consumido pertencente a uma release anterior; não para nem recria o PM2 durante o supersede.
+6. Repetir uma entrada VSL sem telefone depois da correlação não limpa `customerPhone`, não recria o prelead e responde `already_claimed`; ausência de telefone no replay nunca sobrescreve a associação canônica existente.
 
 ## Validação obrigatória
 
