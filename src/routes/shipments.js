@@ -1885,12 +1885,13 @@ router.post('/dispatch/retroactive', adminOnly, async (req, res) => {
 
 router.get('/servientrega/ec/agencies', adminOnly, async (req, res) => {
     try {
-        const { city = '', province = '', q = '', limit = 5 } = req.query || {};
+        const { city = '', province = '', q = '', limit = 5, strictCity = '' } = req.query || {};
         const agencies = findServientregaEcuadorAgencies({
             city,
             province,
             query: q,
-            limit: Math.min(Number.parseInt(limit, 10) || 5, 10)
+            limit: Math.min(Number.parseInt(limit, 10) || 5, 10),
+            strictCityScope: String(strictCity || '') === '1'
         });
         res.json({
             success: true,

@@ -11569,16 +11569,10 @@
                 el('agencySuggestions').classList.remove('hidden');
                 el('agencySuggestionsState').textContent = 'buscando...';
                 try {
-                    let automaticQuery = q;
-                    let cityUsedAsAgencyQuery = false;
-                    let payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100`);
-                    let agencies = payload.agencies || [];
-                    if (!agencies.length && !q && city.length >= 3 && !province) {
-                        payload = await api(`/api/shipments/servientrega/ec/agencies?city=&province=&q=${encodeURIComponent(city)}&limit=100`);
-                        agencies = payload.agencies || [];
-                        automaticQuery = city;
-                        cityUsedAsAgencyQuery = agencies.length > 0;
-                    }
+                    const automaticQuery = q;
+                    const cityUsedAsAgencyQuery = false;
+                    const payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100&strictCity=1`);
+                    const agencies = payload.agencies || [];
                     if (
                         !isCustomerSelectionScopeCurrent(selectionScope)
                         || state.agencyLookupSeq !== lookupSeq

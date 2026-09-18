@@ -435,18 +435,31 @@ export const findServientregaEcuadorAgencies = ({
     city = '',
     province = '',
     query = '',
-    limit = 3
+    limit = 3,
+    strictCityScope = false
 } = {}) => {
     const agencies = loadServientregaEcuadorAgencies();
     const knownLocation = findKnownServientregaEcuadorLocation({ city, province, text: query });
+    const strictCityScopeEnabled = strictCityScope === true;
+    const hasCityInput = Boolean(normalizeAgencyText(city));
+    const hasProvinceInput = Boolean(normalizeAgencyText(province));
+    if (strictCityScopeEnabled && hasCityInput && !knownLocation.cityMatched) return [];
+    if (strictCityScopeEnabled && hasCityInput && hasProvinceInput && !knownLocation.provinceMatched) return [];
+
     const normalizedCity = normalizeAgencyText(knownLocation.city || city);
     const normalizedProvince = normalizeAgencyText(knownLocation.province || province);
     const normalizedQuery = normalizeAgencyText(query);
     const queryTokens = tokensFor(query);
     const meaningfulQueryTokens = queryTokens.filter((token) => token.length >= 3 && !GENERIC_AGENCY_LOCATION_TOKENS.has(token));
     const hasExplicitScopedLocation = Boolean(normalizeAgencyText(city) || normalizeAgencyText(province));
+    const candidateAgencies = strictCityScopeEnabled && hasCityInput
+        ? agencies.filter((agency) => (
+            agency.normalizedCity === normalizedCity
+            && (!hasProvinceInput || agency.normalizedProvince === normalizedProvince)
+        ))
+        : agencies;
 
-    const scored = agencies.map((agency) => {
+    const scored = candidateAgencies.map((agency) => {
         const cityExactMatched = Boolean(normalizedCity && agency.normalizedCity === normalizedCity);
         const cityMatched = Boolean(cityExactMatched || (normalizedCity && (
             agency.normalizedCity.includes(normalizedCity)
@@ -575,7 +588,7 @@ export const findServientregaEcuadorAgencies = ({
         .filter((item) => item.score > 0 && (
             !normalizedQuery
             || item.matchKind !== 'none'
-            || (hasExplicitScopedLocation && item.cityMatched && item.provinceMatched)
+            || (!strictCityScopeEnabled && hasExplicitScopedLocation && item.cityMatched && item.provinceMatched)
         ))
         .sort((a, b) => b.score - a.score || a.agency.name.localeCompare(b.agency.name));
 
