@@ -1,0 +1,37 @@
+{
+  "freezeId": "EC_V51_BROWSER_SUCCESSOR_ALIGNMENT_V181_20260918",
+  "version": "V181",
+  "parentCommit": "1c0e1457e0feedf8cd08e76a1593c9018a7ac3a1",
+  "parentTree": "f2f46aec3e0b05e6da95df57fcf3696bfff5a2a0",
+  "v180Candidate": "2bb439145d1eb80a2b44e99788d4129c2a35c0ef",
+  "overrides": [
+    "docs/V181_V51_SUCCESSOR_ALIGNMENT_FREEZE_20260918.md",
+    "scripts/guard-v51-browser-successor-v181.mjs",
+    "scripts/lib/ec-runtime-successor-v181-context.mjs",
+    "scripts/run-with-v181-context.mjs",
+    "scripts/test-panel-customer-selection-browser-v51.mjs"
+  ],
+  "protectedFiles": {
+    "docs/V181_V51_SUCCESSOR_ALIGNMENT_FREEZE_20260918.md": "b2f3ef522b2affae088ffeac482bfb3449b724cc06339a99f7944947b5fc0e88",
+    "scripts/guard-v51-browser-successor-v181.mjs": "8b3ff1563df19c4aca698d24754e9483a49c5ba906b6dca2af04e8507102e823",
+    "scripts/lib/ec-runtime-successor-v181-context.mjs": "bb00dda5802fcde6e07654b9ce206cd63bbceacaed970fcd6ca4141006d5a446",
+    "scripts/run-with-v181-context.mjs": "64dc6000983099efcdaac0ab7e793fcfcf54d6678d84646f4336ae592d6463c1",
+    "scripts/test-panel-customer-selection-browser-v51.mjs": "f3656acb12d1ed2bafb017bfc2962bac501a22dc5e7da24e65265210ae5eb8ce"
+  },
+  "policy": {
+    "scope": "V51_BROWSER_TEST_SUCCESSOR_ALIGNMENT_ONLY",
+    "testOnly": true,
+    "manualAgencyClickRequired": true,
+    "automaticAgencyApplyAllowed": false,
+    "staleResponseIsolationPreserved": true,
+    "wrongCustomerPatchAllowed": false,
+    "singleAgencyAutosaveAfterClick": true,
+    "sameAgencyReapplyAutosave": 0,
+    "functionalCodeChanged": 0,
+    "v180Integrated": false,
+    "productionChanged": false,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "futureIntegrationRequiresSeparateCandidate": true
+  }
+}
