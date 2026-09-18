@@ -1,4 +1,5 @@
 import './ec-runtime-successor-v184-context.mjs';
+import './ec-runtime-successor-v186-context.mjs';
 import fs from 'node:fs';
 
 import { EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY } from '../../src/services/ecOperationalGuardContextV97Service.js';
@@ -41,4 +42,11 @@ assertMetaPurchaseAfterManualDropiV144();
 if (v145Present) {
     const { assertIntegrationHealthV145 } = await import('../guard-integration-health-v145.mjs');
     assertIntegrationHealthV145();
+}
+
+if (process.env.V186_CANONICAL_SUCCESSOR_AUDIT === '1') {
+    const recognized = globalThis.__VITALISMEN_V168B_PRELOAD_CONTEXT?.authorizedFiles
+        ?.includes('public/funnel-metrics.html');
+    if (!recognized) throw new Error('[V186] V168B_PUBLIC_FUNNEL_METRICS_OVERRIDE_RECOGNIZED=NO');
+    console.log('[V186] V168B_PUBLIC_FUNNEL_METRICS_OVERRIDE_RECOGNIZED=YES');
 }
