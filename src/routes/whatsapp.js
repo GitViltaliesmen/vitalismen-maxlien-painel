@@ -4815,7 +4815,8 @@ router.get('/chats', async (req, res) => {
                     shipments: relatedEntities.shipments,
                     lastMessage,
                     fallbackName: c.name || c.id.user,
-                    fallbackPhone: c.phoneHint || c.id.user
+                    fallbackPhone: c.phoneHint || c.id.user,
+                    includeCustomerDataResolution: false
                 });
                 const order = readModel.order;
                 const selectedShipment = readModel.shipment;

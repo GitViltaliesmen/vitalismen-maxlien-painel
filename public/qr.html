@@ -21718,7 +21718,7 @@
         setInterval(refreshSelectedConversationFast, 1200);
         setInterval(refreshLivePanel, 5000);
         setInterval(() => {
-            if (state.token && !document.hidden) loadChats().catch(() => null);
+            if (state.token && !document.hidden && !state.chatsLoading) loadChats().catch(() => null);
         }, 3500);
         setInterval(() => {
             if (state.token && !document.hidden && (state.activeModule === 'sales' || state.activeModule === 'review')) loadShipments().catch(() => null);

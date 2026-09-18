@@ -1,0 +1,50 @@
+{
+  "freezeId": "EC_PANEL_FAST_LOAD_V179_20260918",
+  "version": "V179",
+  "parentCommit": "6590b17b2abf10b7f371400f893cfb58920f383d",
+  "parentTree": "e0c4c0d15b37ec6b8cd50efd39db6f59544b7dd0",
+  "parentTag": "production-20260918-6590b17",
+  "activeReleaseAtAudit": "20260918T023837Z_production-20260918-6590b17",
+  "overrides": [
+    "docs/EC_PANEL_FAST_LOAD_FREEZE_V179_20260918.md",
+    "package.json",
+    "public/qr.html",
+    "scripts/benchmark-panel-fast-load-v179.mjs",
+    "scripts/guard-panel-fast-load-v179.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/run-with-v179-context.mjs",
+    "src/routes/whatsapp.js",
+    "src/services/panelCustomerReadModelService.js",
+    "tests/panel-fast-load-v179.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_FAST_LOAD_FREEZE_V179_20260918.md": "8c8bebee2d70b167945c8b688af72eaf7f9f1fe6d60236cf2108fd429880f081",
+    "package.json": "2ddc7db1607fe90d631b84a4f4238cb32537fde782f3c7c119f19713629c08f3",
+    "public/qr.html": "ccf29ca1123e2d1840d94ba30d9dc7e0e1787d8ab10a034b0bd3c9d7c70d5053",
+    "scripts/benchmark-panel-fast-load-v179.mjs": "23b99bb2932818b726a07047bea16b4fa0537ef5485dcf9cae3dab970359cc63",
+    "scripts/guard-panel-fast-load-v179.mjs": "70cc79d2ecf1e3d52679fd5b50f97c646d28de1c39a2fef390107920b349a3f7",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "e2cebbafcddc7c482473cc6fd22f497d5036becb484c40945626bc4dd120882a",
+    "scripts/run-with-v179-context.mjs": "d8cd82c9b6e20d76bbcc436a1a95b9ad21d64e338cbef33b65cb9a7b0c2f5dd1",
+    "src/routes/whatsapp.js": "48900c53f38cf244a20d7917b397ba6ffdf1b70e66ba36fe7822905564ff6e6b",
+    "src/services/panelCustomerReadModelService.js": "45013232933b830ed5a2d5d9e9fb98746df8d5e96b6ba890d6995d22638c61e4",
+    "tests/panel-fast-load-v179.test.mjs": "735621a58dc9d172f38f3fd9d22bd62b8d5ac614e26e7d95ad707084ffc28e23"
+  },
+  "policy": {
+    "scope": "EC_PANEL_FAST_LOAD_ONLY",
+    "fastListSkipsDetailedResolution": true,
+    "selectedCustomerProfilePreserved": true,
+    "overlappingPeriodicRefreshBlocked": true,
+    "pollIntervalMs": 3500,
+    "v178StatusSavePreserved": true,
+    "vslChanged": false,
+    "botChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "zapiChanged": false,
+    "externalEffectsChanged": false,
+    "productionDbWriteCount": 0,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "futureChangesRequireExplicitAuthorization": true
+  }
+}

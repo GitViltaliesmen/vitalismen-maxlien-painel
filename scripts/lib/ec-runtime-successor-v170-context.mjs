@@ -7,6 +7,7 @@ const SUCCESSOR_MANIFEST = 'docs/freeze/ec-traffic-restoration-v171-20260917.jso
 const LATEST_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-contactable-prelead-v176-20260917.json';
 const PANEL_STATUS_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-status-operations-v177-20260917.json';
 const CUSTOMER_STATUS_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-customer-status-busy-v178-20260917.json';
+const PANEL_FAST_LOAD_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-fast-load-v179-20260918.json';
 const hashFile = (relative) => crypto.createHash('sha256')
     .update(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)))
     .digest('hex');
@@ -20,6 +21,8 @@ const panelStatusSuccessorText = fs.readFileSync(new URL(`../../${PANEL_STATUS_S
 const panelStatusSuccessor = JSON.parse(panelStatusSuccessorText);
 const customerStatusSuccessorText = fs.readFileSync(new URL(`../../${CUSTOMER_STATUS_SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
 const customerStatusSuccessor = JSON.parse(customerStatusSuccessorText);
+const panelFastLoadSuccessorText = fs.readFileSync(new URL(`../../${PANEL_FAST_LOAD_SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
+const panelFastLoadSuccessor = JSON.parse(panelFastLoadSuccessorText);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`, '[V170] manifest_not_canonical');
 assert.equal(manifest.freezeId, 'EC_PRETRAFFIC_FINAL_RESTORATION_V170_20260916');
@@ -86,25 +89,42 @@ assert.equal(customerStatusSuccessor.policy.productionDbWriteCount, 0);
 assert.equal(customerStatusSuccessor.policy.deployExecuted, false);
 assert.deepEqual([...customerStatusSuccessor.overrides].sort(), Object.keys(customerStatusSuccessor.protectedFiles).sort());
 assert.equal(customerStatusSuccessor.overrides.some((file) => /[*?\[\]]/.test(file)), false);
+assert.equal(panelFastLoadSuccessorText, `${JSON.stringify(panelFastLoadSuccessor, null, 2)}\n`, '[V179] manifest_not_canonical');
+assert.equal(panelFastLoadSuccessor.freezeId, 'EC_PANEL_FAST_LOAD_V179_20260918');
+assert.equal(panelFastLoadSuccessor.version, 'V179');
+assert.equal(panelFastLoadSuccessor.parentCommit, '6590b17b2abf10b7f371400f893cfb58920f383d');
+assert.equal(panelFastLoadSuccessor.parentTree, 'e0c4c0d15b37ec6b8cd50efd39db6f59544b7dd0');
+assert.equal(panelFastLoadSuccessor.policy.fastListSkipsDetailedResolution, true);
+assert.equal(panelFastLoadSuccessor.policy.selectedCustomerProfilePreserved, true);
+assert.equal(panelFastLoadSuccessor.policy.overlappingPeriodicRefreshBlocked, true);
+assert.equal(panelFastLoadSuccessor.policy.v178StatusSavePreserved, true);
+assert.equal(panelFastLoadSuccessor.policy.externalEffectsChanged, false);
+assert.equal(panelFastLoadSuccessor.policy.productionDbWriteCount, 0);
+assert.equal(panelFastLoadSuccessor.policy.deployExecuted, false);
+assert.deepEqual([...panelFastLoadSuccessor.overrides].sort(), Object.keys(panelFastLoadSuccessor.protectedFiles).sort());
+assert.equal(panelFastLoadSuccessor.overrides.some((file) => /[*?\[\]]/.test(file)), false);
 
 for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
-    assert.equal(hashFile(file), customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || successor.protectedFiles[file] || expected, `[V170/V171/V176/V177/V178] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || successor.protectedFiles[file] || expected, `[V170/V171/V176/V177/V178/V179] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(successor.protectedFiles)) {
-    assert.equal(hashFile(file), customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || expected, `[V171/V176/V177/V178] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || expected, `[V171/V176/V177/V178/V179] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(latestSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || expected, `[V176/V177/V178] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || expected, `[V176/V177/V178/V179] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(panelStatusSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), customerStatusSuccessor.protectedFiles[file] || expected, `[V177/V178] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || expected, `[V177/V178/V179] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(customerStatusSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), expected, `[V178] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), panelFastLoadSuccessor.protectedFiles[file] || expected, `[V178/V179] protected_file_invalid:${file}`);
+}
+for (const [file, expected] of Object.entries(panelFastLoadSuccessor.protectedFiles)) {
+    assert.equal(hashFile(file), expected, `[V179] protected_file_invalid:${file}`);
 }
 
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES']) {
-    globalThis[key] = [...new Set([...(globalThis[key] || []), ...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides])];
+    globalThis[key] = [...new Set([...(globalThis[key] || []), ...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])];
 }
 
 globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
@@ -112,10 +132,10 @@ globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
     freezeId: manifest.freezeId,
     parentCommit: manifest.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(text).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides])]),
-    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles }),
-    successorFreezeId: customerStatusSuccessor.freezeId,
-    successorManifestSha256: crypto.createHash('sha256').update(customerStatusSuccessorText).digest('hex')
+    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles }),
+    successorFreezeId: panelFastLoadSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex')
 });
 
 globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT = Object.freeze({
@@ -123,10 +143,10 @@ globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT = Object.freeze({
     freezeId: successor.freezeId,
     parentCommit: successor.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(successorText).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides])]),
-    protectedFiles: Object.freeze({ ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles }),
-    successorFreezeId: customerStatusSuccessor.freezeId,
-    successorManifestSha256: crypto.createHash('sha256').update(customerStatusSuccessorText).digest('hex')
+    authorizedFiles: Object.freeze([...new Set([...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles }),
+    successorFreezeId: panelFastLoadSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex')
 });
 
 globalThis.__VITALISMEN_V176_PANEL_CONTACTABLE_PRELEAD_CONTEXT = Object.freeze({
@@ -134,10 +154,10 @@ globalThis.__VITALISMEN_V176_PANEL_CONTACTABLE_PRELEAD_CONTEXT = Object.freeze({
     freezeId: latestSuccessor.freezeId,
     parentCommit: latestSuccessor.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(latestSuccessorText).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides])]),
-    protectedFiles: Object.freeze({ ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles }),
-    successorFreezeId: customerStatusSuccessor.freezeId,
-    successorManifestSha256: crypto.createHash('sha256').update(customerStatusSuccessorText).digest('hex')
+    authorizedFiles: Object.freeze([...new Set([...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles }),
+    successorFreezeId: panelFastLoadSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex')
 });
 
 globalThis.__VITALISMEN_V177_PANEL_STATUS_CONTEXT = Object.freeze({
@@ -145,10 +165,10 @@ globalThis.__VITALISMEN_V177_PANEL_STATUS_CONTEXT = Object.freeze({
     freezeId: panelStatusSuccessor.freezeId,
     parentCommit: panelStatusSuccessor.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(panelStatusSuccessorText).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides])]),
-    protectedFiles: Object.freeze({ ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles }),
-    successorFreezeId: customerStatusSuccessor.freezeId,
-    successorManifestSha256: crypto.createHash('sha256').update(customerStatusSuccessorText).digest('hex'),
+    authorizedFiles: Object.freeze([...new Set([...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles }),
+    successorFreezeId: panelFastLoadSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex'),
     policy: Object.freeze({ ...panelStatusSuccessor.policy })
 });
 
@@ -157,7 +177,19 @@ globalThis.__VITALISMEN_V178_PANEL_CUSTOMER_STATUS_CONTEXT = Object.freeze({
     freezeId: customerStatusSuccessor.freezeId,
     parentCommit: customerStatusSuccessor.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(customerStatusSuccessorText).digest('hex'),
-    authorizedFiles: Object.freeze([...customerStatusSuccessor.overrides]),
-    protectedFiles: Object.freeze({ ...customerStatusSuccessor.protectedFiles }),
+    authorizedFiles: Object.freeze([...new Set([...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides])]),
+    protectedFiles: Object.freeze({ ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles }),
+    successorFreezeId: panelFastLoadSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex'),
     policy: Object.freeze({ ...customerStatusSuccessor.policy })
+});
+
+globalThis.__VITALISMEN_V179_PANEL_FAST_LOAD_CONTEXT = Object.freeze({
+    loaded: true,
+    freezeId: panelFastLoadSuccessor.freezeId,
+    parentCommit: panelFastLoadSuccessor.parentCommit,
+    manifestSha256: crypto.createHash('sha256').update(panelFastLoadSuccessorText).digest('hex'),
+    authorizedFiles: Object.freeze([...panelFastLoadSuccessor.overrides]),
+    protectedFiles: Object.freeze({ ...panelFastLoadSuccessor.protectedFiles }),
+    policy: Object.freeze({ ...panelFastLoadSuccessor.policy })
 });

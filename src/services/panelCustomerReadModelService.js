@@ -213,7 +213,8 @@ export const projectPanelCustomerReadModel = ({
     lastMessage = null,
     fallbackName = '',
     fallbackPhone = '',
-    preferredOrderId = ''
+    preferredOrderId = '',
+    includeCustomerDataResolution = true
 } = {}) => {
     const selection = selectAuthoritativePanelOrder({ orders, shipments, preferredOrderId });
     const order = selection.order;
@@ -279,11 +280,13 @@ export const projectPanelCustomerReadModel = ({
         historicalOrderId,
         status: projectedStatus
     };
-    const customerDataResolution = currentCustomerDataResolution({
-        contactState,
-        draft: projectedDraft,
-        phone
-    });
+    const customerDataResolution = includeCustomerDataResolution
+        ? currentCustomerDataResolution({
+            contactState,
+            draft: projectedDraft,
+            phone
+        })
+        : null;
 
     return Object.freeze({
         version: 146,
