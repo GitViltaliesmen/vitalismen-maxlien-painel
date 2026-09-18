@@ -1,0 +1,61 @@
+{
+  "freezeId": "V185_METRICS_RADAR_READONLY_20260918",
+  "version": "V185",
+  "baseVersion": "V184",
+  "baseCommit": "596441983a7d05e0cd002200372aa1bd0077214b",
+  "branch": "codex/v185-metrics-radar-readonly",
+  "functionalFiles": [
+    "public/funnel-metrics.html",
+    "src/routes/funnelMetrics.js",
+    "src/services/creativeSalesMetricsV185Service.js"
+  ],
+  "overrides": [
+    "public/funnel-metrics.html",
+    "src/routes/funnelMetrics.js",
+    "src/services/creativeSalesMetricsV185Service.js"
+  ],
+  "functionalHashes": {
+    "public/funnel-metrics.html": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+    "src/routes/funnelMetrics.js": "9a1f09fdf807057bb3a974b64c3b9b8529a6e19111c514a52d0bc8ef5710a5aa",
+    "src/services/creativeSalesMetricsV185Service.js": "c8dd42d0678340f10760e35582d0e1428fd762b831cc8a5badf6788aef65fea5"
+  },
+  "protectedFiles": {
+    "docs/V185_METRICS_RADAR_READONLY_FREEZE_20260918.md": "eb9c318d0171e59567c22def7d22d461d3d00418884802dbba2d3bbf4df3a85c",
+    "public/funnel-metrics.html": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+    "scripts/guard-v185-metrics-radar-readonly.mjs": "ba063409e9f56556e6c5431e3b05a4ef15442a72e6115f76e30dd11c7fc56b2b",
+    "scripts/lib/ec-runtime-successor-v185-context.mjs": "1b3700b931272e879556c6ad16a3722bcdbccfcd4c43a47da35628c8a40b1676",
+    "scripts/run-with-v185-context.mjs": "cb83462ff0f514a35873bffadee3ef430ec79f3b4462b1396f47d5fe88b21cc3",
+    "src/routes/funnelMetrics.js": "9a1f09fdf807057bb3a974b64c3b9b8529a6e19111c514a52d0bc8ef5710a5aa",
+    "src/services/creativeSalesMetricsV185Service.js": "c8dd42d0678340f10760e35582d0e1428fd762b831cc8a5badf6788aef65fea5",
+    "tests/creative-sales-metrics-v185.test.mjs": "75e4fce09adb77d6d26bebf8cb1d9c1adb6085128d3cbc8f4a796978c71b9832",
+    "tests/funnel-metrics-v185-route.test.mjs": "4846f202b3f44c195c3456799cf72d36323f84c8f460eab6daa7556448fd3277",
+    "tests/funnel-metrics-v185.browser.test.mjs": "10e9d558df1b8bf758eb935527ac42686d586fc164787b055de04dcef5afd8f7"
+  },
+  "hashLocks": {
+    "public/qr.html": "a5a374227dc21b9241f487cb4ef9f04f4eb88207eb71fde55616b552d123913f",
+    "src/routes/whatsapp.js": "48900c53f38cf244a20d7917b397ba6ffdf1b70e66ba36fe7822905564ff6e6b",
+    "src/routes/zapi.js": "173f73bf3aae4c86f46b25fba9e6c2d567d25061e87bd772c35491c979f16ec6",
+    "src/routes/shipments.js": "1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0",
+    "src/services/conversationEngine.js": "0fe93987f5bb7e9735355fcf896b2c86abf97b0efa03af8828eb9dcb249bbfd3",
+    "src/services/agentRouter.js": "4b5572d44bf360aa3e503caf226d286b1117e9f6f3a9c6bb24d7aacb65d76709",
+    "src/services/metaConversionsService.js": "b19d2bb42374c68fcc8d1f90f2b9318efe16d477d606ec54e434b8db80b4b249",
+    "src/services/servientregaEcuadorAgencyService.js": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626"
+  },
+  "policy": {
+    "analyticsReadOnly": true,
+    "persistedIdsOnly": true,
+    "campaignNameIsLabelOnly": true,
+    "newCampaignZeroConfig": true,
+    "metaHttpMethods": [
+      "GET"
+    ],
+    "metaCacheTtlSeconds": 300,
+    "metaTimeoutMs": 8000,
+    "mongoWriteCount": 0,
+    "metaMutationCount": 0,
+    "productionChanged": false,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "guardsBypassed": false
+  }
+}

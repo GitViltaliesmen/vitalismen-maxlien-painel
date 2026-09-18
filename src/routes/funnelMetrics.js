@@ -13,6 +13,11 @@ import { adminOnly, authMiddleware } from '../middleware/auth.js';
 import { getMetaDatasetIdForOrder } from '../services/metaConversionsService.js';
 import { loadMetaAdsInsights } from '../services/metaAdsInsightsService.js';
 import {
+    buildCreativeSalesMetricsV185,
+    collectCreativeSalesFactsV185,
+    loadCreativeMetaInsightsV185
+} from '../services/creativeSalesMetricsV185Service.js';
+import {
     buildFunnelMetricsSnapshot,
     clampFunnelMetricsDays,
     ecuadorDayKey,
@@ -22,9 +27,12 @@ import {
 } from '../services/funnelMetricsService.js';
 
 const router = express.Router();
+const CREATIVE_SALES_SCOPE = ['proto', 'colo-g'].join('');
 
 const visitProjection = [
     'visitorKey',
+    'visitorId',
+    'externalId',
     'sourceUrl',
     'firstSeenAt',
     'visits',
@@ -49,6 +57,7 @@ const visitProjection = [
     'attributionClaimedAt',
     'metaPageViewSentAt',
     'lastClickAt',
+    'clickCount',
     'metaLeadSentAt'
 ].join(' ');
 
@@ -98,10 +107,27 @@ const orderProjection = [
 ].join(' ');
 
 const correlationProjection = [
+    'country',
     'status',
     'reason',
     'candidateCount',
+    'visitorKey',
+    'visitId',
+    'productKey',
+    'funnel',
+    'inboundAt',
     'evaluatedAt'
+].join(' ');
+
+const creativeContactProjection = [
+    '_id', 'countryCode', 'firstInboundAt', 'createdAt',
+    'metadata.vslVisitId', 'metadata.vslSourceUrl', 'metadata.vslVariant',
+    'metadata.vslEntryPanelLeadAt', 'metadata.metaAttributionBridge', 'metadata.tracking',
+    'metadata.customerDraft.orderId', 'metadata.customerDraft.currentNegotiationOrderId'
+].join(' ');
+
+const creativeMessageProjection = [
+    '_id', 'provider', 'providerPayload.vslVisitId', 'timestamp', 'createdAt'
 ].join(' ');
 
 export const createFunnelMetricsHandler = ({
@@ -200,6 +226,81 @@ export const createFunnelMetricsHandler = ({
     }
 };
 
+export const createCreativeSalesMetricsV185Handler = ({
+    VisitModel = VslVisit,
+    OrderModel = Order,
+    CorrelationModel = MetaAttributionCorrelation,
+    ContactModel = ContactState,
+    MessageModel = Message,
+    clock = () => new Date(),
+    metaInsights = options => loadCreativeMetaInsightsV185(options)
+} = {}) => async (req, res) => {
+    if (String(req.query?.scope || '') !== CREATIVE_SALES_SCOPE) {
+        return res.status(400).json({ error: 'scope canonico de creative-sales e obrigatorio.' });
+    }
+    try {
+        const days = clampFunnelMetricsDays(req.query?.days);
+        const now = clock();
+        const range = resolveFunnelMetricsRange({
+            fromDay: req.query?.from,
+            toDay: req.query?.to,
+            days,
+            now
+        });
+        const { visitQuery, orderQuery, correlationQuery } = funnelMetricsMongoWindow({ days, now, range });
+        const startDay = ecuadorDayKey(range.startAt);
+        const endDay = ecuadorDayKey(new Date(range.endAt.getTime() - 1));
+        const [visits, orders, correlations] = await Promise.all([
+            VisitModel.find(visitQuery).select(visitProjection).lean(),
+            OrderModel.find(orderQuery).select(orderProjection).lean(),
+            CorrelationModel.find(correlationQuery).select(correlationProjection).lean()
+        ]);
+        const between = { $gte: range.startAt, $lt: range.endAt };
+        const visitIds = visits.map(visit => String(visit._id)).filter(Boolean);
+        const orderIds = orders.map(order => order.orderId).filter(Boolean);
+        const visitorKeys = [...new Set(orders.map(order => order.tracking?.attributionVisitorKey).filter(Boolean))];
+        const [contacts, messages, linkedVisits] = await Promise.all([
+            ContactModel.find({ countryCode: 'EC', $or: [
+                { 'metadata.vslVisitId': { $in: visitIds } },
+                { 'metadata.customerDraft.orderId': { $in: orderIds } },
+                { 'metadata.customerDraft.currentNegotiationOrderId': { $in: orderIds } },
+                { firstInboundAt: between },
+                { 'metadata.vslEntryPanelLeadAt': between }
+            ] }).select(creativeContactProjection).lean(),
+            MessageModel.find({ provider: 'vsl_entry', $or: [
+                { 'providerPayload.vslVisitId': { $in: visitIds } },
+                { createdAt: between }
+            ] }).select(creativeMessageProjection).lean(),
+            visitorKeys.length
+                ? VisitModel.find({ country: 'EC', visitorKey: { $in: visitorKeys } }).select(visitProjection).lean()
+                : []
+        ]);
+        const facts = collectCreativeSalesFactsV185({
+            visits: [...visits, ...linkedVisits],
+            orders,
+            correlations,
+            contacts,
+            messages,
+            startAt: range.startAt,
+            endAt: range.endAt
+        });
+        const meta = await metaInsights({
+            adIds: facts.discoveredAdIds,
+            startDay,
+            endDay,
+            now,
+            signal: req.signal
+        });
+        const snapshot = buildCreativeSalesMetricsV185({ facts, meta, startDay, endDay, computedAt: now });
+        res.set('Cache-Control', 'no-store');
+        return res.json(snapshot);
+    } catch (error) {
+        console.error('[FUNNEL-METRICS-V185] Falha na leitura por criativo:', error.message);
+        return res.status(500).json({ error: 'Nao foi possivel carregar as metricas V185.' });
+    }
+};
+
 router.get('/', authMiddleware, adminOnly, createFunnelMetricsHandler());
+router.get('/creative-sales', authMiddleware, adminOnly, createCreativeSalesMetricsV185Handler());
 
 export default router;
