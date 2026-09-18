@@ -9034,6 +9034,7 @@
             customerFieldAutoSaveTimer: null,
             customerFieldAutoSaveSeq: 0,
             customerFieldAutoSaveInFlight: false,
+            customerFormSaveInFlight: false,
             customerFormEditRevision: 0,
             customerDataSaveQueue: Promise.resolve(),
             customerCorrectedFields: new Set(),
@@ -9139,6 +9140,7 @@
                     phone: stableConversationPhone
                 }
             };
+            return merged;
         };
         const mergeSavedCustomerDraftIntoChat = (chat = {}) => {
             const saved = savedCustomerDraftForChat(chat);
@@ -11034,6 +11036,9 @@
             if (!autoReplyGloballyActive()) return 'bot desligado - observador ativo';
             return chat?.human?.mode === 'manual' ? `atendente no comando: ${owner}` : 'automacao ativa';
         };
+        const customerFormSaveBusy = () => Boolean(
+            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight
+        );
         const setAttendancePulse = (chat) => {
             const globalOff = !autoReplyGloballyActive();
             const manual = chat?.human?.mode === 'manual';
@@ -11194,7 +11199,7 @@
             }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
                 button.textContent = 'Salvar dados';
-                button.disabled = state.busy;
+                button.disabled = customerFormSaveBusy();
                 stateBadge.textContent = status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
                 stateBadge.className = `badge ${status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
                 hint.textContent = status === 'confirmado' && (missing.length || qualityBlocked)
@@ -11204,7 +11209,7 @@
                     : 'Pedido ja esta em fluxo. Use Salvar dados apenas para corrigir a ficha.';
                 return;
             }
-            button.disabled = state.busy;
+            button.disabled = customerFormSaveBusy();
             if (missing.length) {
                 button.textContent = 'Salvar dados';
                 stateBadge.textContent = `${missing.length} faltando`;
@@ -15572,7 +15577,7 @@
             }
             renderIdentityConflict(chat);
             setSaveCustomerButtonDisabled(false);
-            el('confirmCustomerDataBtn').disabled = brazilTestOnly || !state.selectedChat || state.busy;
+            el('confirmCustomerDataBtn').disabled = brazilTestOnly || !state.selectedChat || customerFormSaveBusy();
             updateCustomerPrimaryAction();
             el('manualStatus').textContent = manualBadgeText(chat, owner);
             el('manualStatus').className = `badge ${chat.human?.mode === 'manual' ? 'green' : autoReplyGloballyActive() ? 'red' : 'orange'}`;
@@ -19127,9 +19132,9 @@
 
         async function saveCustomerForm(event) {
             event.preventDefault();
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat || customerFormSaveBusy()) return;
             if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;
-            state.busy = true;
+            state.customerFormSaveInFlight = true;
             setSaveCustomerButtonDisabled(true);
             try {
                 const contactSave = await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
@@ -19144,7 +19149,7 @@
             } catch (error) {
                 showToast(error.message);
             } finally {
-                state.busy = false;
+                state.customerFormSaveInFlight = false;
                 setSaveCustomerButtonDisabled(!state.selectedChat);
                 el('confirmCustomerDataBtn').disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);
                 updateCustomerPrimaryAction();
@@ -19172,7 +19177,7 @@
         }
 
         async function confirmCustomerDataFromForm() {
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat || customerFormSaveBusy()) return;
             if (isBrazilBlockedRecord(state.selectedChat)) {
                 showToast('Numero interno/teste nao pode confirmar dados de cliente real.');
                 return;
@@ -19187,7 +19192,7 @@
                 return;
             }
             if (!window.confirm('Confirmar os dados deste cliente e salvar em todos os paineis?')) return;
-            state.busy = true;
+            state.customerFormSaveInFlight = true;
             const button = el('confirmCustomerDataBtn');
             const label = button.textContent;
             button.disabled = true;
@@ -19206,7 +19211,7 @@
             } catch (error) {
                 showToast(error.message);
             } finally {
-                state.busy = false;
+                state.customerFormSaveInFlight = false;
                 button.textContent = label;
                 button.disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);
                 updateCustomerPrimaryAction();
@@ -19239,12 +19244,14 @@
             el('customerSyncHint').textContent = 'Salvando status no painel unificado...';
             el('customerSyncBadge').textContent = 'salvando';
             el('customerSyncBadge').className = 'badge orange';
-            state.statusAutoSaveTimer = window.setTimeout(async () => {
+            const persistConfirmedStatusChange = async () => {
                 if (!isCustomerSelectionScopeCurrent(selectionScope) || state.statusAutoSaveSeq !== seq) return;
-                if (state.busy) {
-                    autoSaveCustomerStatusChange();
+                if (customerFormSaveBusy()) {
+                    el('customerSyncHint').textContent = 'Aguardando a gravação atual da ficha para salvar o status...';
+                    state.statusAutoSaveTimer = window.setTimeout(persistConfirmedStatusChange, 350);
                     return;
                 }
+                state.customerFormSaveInFlight = true;
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     const tasks = [loadChats(), loadDashboardMetrics()];
@@ -19263,8 +19270,12 @@
                     el('customerSyncBadge').textContent = 'erro';
                     el('customerSyncBadge').className = 'badge red';
                     showToast(error.message);
+                } finally {
+                    state.customerFormSaveInFlight = false;
+                    updateCustomerPrimaryAction();
                 }
-            }, 300);
+            };
+            state.statusAutoSaveTimer = window.setTimeout(persistConfirmedStatusChange, 300);
         };
 
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
@@ -19281,7 +19292,7 @@
             el('customerSyncBadge').className = 'badge orange';
             state.customerFieldAutoSaveTimer = window.setTimeout(async () => {
                 if (!isCustomerSelectionScopeCurrent(selectionScope) || state.customerFieldAutoSaveSeq !== seq) return;
-                if (state.busy || state.customerFieldAutoSaveInFlight) {
+                if (customerFormSaveBusy()) {
                     scheduleCustomerFieldAutoSave({ delay: 700, source });
                     return;
                 }

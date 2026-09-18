@@ -1,0 +1,45 @@
+{
+  "freezeId": "EC_PANEL_CUSTOMER_STATUS_BUSY_V178_20260917",
+  "version": "V178",
+  "parentCommit": "cfc314de10a795c0995d30ae57c9765a3173e25c",
+  "parentTree": "ca9d29381fd40c25520b70456258fdc45e54bb5b",
+  "parentTag": "production-20260918-cfc314d",
+  "activeReleaseAtAuthorization": "20260918T012556Z_production-20260918-cfc314d",
+  "overrides": [
+    "docs/EC_PANEL_CUSTOMER_STATUS_BUSY_FIX_FREEZE_V178_20260917.md",
+    "package.json",
+    "public/qr.html",
+    "scripts/guard-panel-customer-status-busy-v178.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/run-with-v178-context.mjs",
+    "tests/panel-customer-status-busy-v178.browser.test.mjs",
+    "tests/panel-customer-status-busy-v178.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_CUSTOMER_STATUS_BUSY_FIX_FREEZE_V178_20260917.md": "e1a2fc304be3e71116ca628dec7072da3e6f9f3b6ef661f7f3f40475ab52b34e",
+    "package.json": "1c2a9bd6973f93fc876a16e937fa7ff5a75c89ac38829d49509b14c142791ab0",
+    "public/qr.html": "8ac0ae6c929f99c9380860266d77393c8a1d81c4e55d3efbf0e4a008610736dd",
+    "scripts/guard-panel-customer-status-busy-v178.mjs": "63a57a84a7537a04e98e31590956c886272d99a50e19687031c166f19a5689a4",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "828549dc134b6070d13ffbbf2ce374a2896257429d87437f9e97f1ffd21b890b",
+    "scripts/run-with-v178-context.mjs": "7382d2ed4fba047cf5da2ec240add4de42ce0d9a1e0c9f93729418a727a7b383",
+    "tests/panel-customer-status-busy-v178.browser.test.mjs": "a1e92c53d5a8ff7ad5ed7987385440f61e3a89655d2fd256109ab7c19f9db0b1",
+    "tests/panel-customer-status-busy-v178.test.mjs": "29220f9c257830ff52c709ba90ddf2df7a62f214fcd9e6a55ef5515dfd2bf605"
+  },
+  "policy": {
+    "scope": "EC_PANEL_CUSTOMER_STATUS_BUSY_ISOLATION_ONLY",
+    "statusCount": 9,
+    "customerFormOwnLock": true,
+    "customerSaveQueuePreserved": true,
+    "singleOperatorConfirmationPerChange": true,
+    "vslChanged": false,
+    "backendChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "zapiChanged": false,
+    "externalEffectsChanged": false,
+    "productionDbWriteCount": 0,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "futureChangesRequireExplicitAuthorization": true
+  }
+}
