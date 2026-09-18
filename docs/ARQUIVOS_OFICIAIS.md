@@ -1412,3 +1412,26 @@ nenhuma alteração realizada no VPS.
   `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
   `scripts/guard-buy-later-operational-v162.mjs` e
   `tests/buy-later-operational-v162.test.mjs`.
+
+## Registro V179 — carregamento rápido do painel operacional (2026-09-18)
+
+- Base e rollback: release V178
+  `20260918T023837Z_production-20260918-6590b17`, commit
+  `6590b17b2abf10b7f371400f893cfb58920f383d`.
+- Release ativa: `20260918T164248Z_production-20260918-1c0e145`, commit
+  `1c0e1457e0feedf8cd08e76a1593c9018a7ac3a1` e tag
+  `production-20260918-1c0e145`.
+- Fontes funcionais: `public/qr.html`, `src/routes/whatsapp.js` e
+  `src/services/panelCustomerReadModelService.js`.
+- Contrato: a lista `fast=1` não recalcula resolução detalhada de todas as
+  fichas e o polling não enfileira recarga enquanto `state.chatsLoading`; o
+  perfil individual permanece detalhado e a V178 permanece intacta.
+- Desempenho real para 219 conversas: `13,006249 s` e `1.922.627 bytes` antes;
+  `1,173357 s` e `974.515 bytes` depois.
+- Backup pré-switch:
+  `/opt/vitalismen-automacao/backups/v179-preactivation-20260918T164700Z`.
+- Health, PM2, Z-API, painel, V175, VSL, TRAFFIC_READY e guards V171/V178/V179
+  aprovados; pendências e erros críticos recentes iguais a zero.
+- Freeze e fechamento:
+  `docs/EC_PANEL_FAST_LOAD_FREEZE_V179_20260918.md` e
+  `docs/EC_PANEL_FAST_LOAD_ACTIVATION_RESULT_V179_20260918.md`.
