@@ -30,6 +30,14 @@ import {
     EC_QA_TEST_PHONE_V78,
     EC_QA_TEST_REQUIRED_TAGS_V78
 } from './ecQaTestResetV78Service.js';
+import {
+    ecPanelStatusV177Actor,
+    ecPanelStatusV177MongoAllowed,
+    ecPanelStatusV177Operation,
+    ecPanelStatusV177RouteDecision,
+    ecPanelStatusV177Target,
+    isEcPanelStatusV177StrictLocalRequest
+} from './ecPanelStatusOperationsV177Service.js';
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
 export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
@@ -262,6 +270,41 @@ export const ecManualDropiHumanActionV138 = (req, res, next) => {
     }, next);
 };
 
+// V177 upgrades a route candidate only after the existing panel authentication
+// has produced an active, identifiable human actor.  The nested context is the
+// sole authority consumed by the Mongo guard below.
+export const ecPanelStatusAuthenticatedActionV177 = (req, res, next) => {
+    const context = currentEcBotCoreRuntimeContextV78();
+    const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const operation = ecPanelStatusV177Operation({ method: req.method, path, body: req.body || {} });
+    if (!operation) return next();
+    const actor = ecPanelStatusV177Actor(req.user);
+    const target = ecPanelStatusV177Target({ path, body: req.body || {}, params: req.params || {} });
+    if (
+        context?.panelStatusRouteV177 !== true
+        || context.panelStatusCandidateOperationV177 !== operation
+        || !actor.active
+        || !target
+    ) {
+        return res.status(403).json({
+            success: false,
+            authorizationRequired: true,
+            code: 'panel_status_v177_authenticated_human_required',
+            error: 'Entre no painel como operador ativo para concluir esta operacao.'
+        });
+    }
+    return runtimeContext.run({
+        ...context,
+        panelStatusV177: true,
+        panelStatusOperationV177: operation,
+        panelStatusActorIdV177: actor.actorId,
+        panelStatusTargetV177: target,
+        panelStatusBodyV177: req.body || {},
+        panelStatusHumanAuthenticatedV177: true,
+        panelStatusInternalLocalV177: false
+    }, next);
+};
+
 export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const env = process.env;
     if (!ecBotCoreV78Requested(env)) return next();
@@ -294,6 +337,14 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         || manualDropiDecision.allowed || multiproductDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_panel_customer_v122_not_needed', operation: '' })
         : ecPanelCustomerPersistenceV122RouteDecision({ method, path, env });
+    const panelStatusInternalLocal = isEcPanelStatusV177StrictLocalRequest(req);
+    const panelStatusDecision = ecPanelStatusV177RouteDecision({
+        method,
+        path,
+        body: req.body || {},
+        internalLocal: panelStatusInternalLocal,
+        env
+    });
     const decision = baseDecision.allowed
         ? baseDecision
         : panelDecision.allowed
@@ -302,7 +353,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
                 ? manualDropiDecision
                 : multiproductDecision.allowed
                     ? multiproductDecision
-                    : customerPersistenceDecision;
+                    : customerPersistenceDecision.allowed
+                        ? customerPersistenceDecision
+                        : panelStatusDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
     const writeContext = (
@@ -316,6 +369,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     ) || (
         decision.reason === 'ec_panel_customer_v122_route_allowed'
         && ['POST', 'PATCH'].includes(method)
+    ) || (
+        decision.reason === 'ec_panel_status_v177_route_allowed'
+        && method === 'POST'
     );
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
@@ -329,6 +385,22 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         panelCustomerPersistenceOperation: decision.reason === 'ec_panel_customer_v122_route_allowed'
             ? decision.operation || ''
             : '',
+        panelStatusRouteV177: panelStatusDecision.allowed,
+        panelStatusCandidateOperationV177: panelStatusDecision.operation || '',
+        panelStatusV177: panelStatusDecision.operation === 'internal-admin-status-sync',
+        panelStatusOperationV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? panelStatusDecision.operation
+            : '',
+        panelStatusActorIdV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? 'internal-local-admin-panel'
+            : '',
+        panelStatusTargetV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? ecPanelStatusV177Target({ path, body: req.body || {}, params: req.params || {} })
+            : '',
+        panelStatusBodyV177: panelStatusDecision.allowed ? req.body || {} : {},
+        panelStatusHumanAuthenticatedV177: false,
+        panelStatusInternalLocalV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            && panelStatusInternalLocal,
         startedAt: new Date().toISOString()
     }, async () => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });
@@ -475,18 +547,28 @@ const patchMongoPrototype = (prototype) => {
                         context,
                         env: process.env
                     });
-                    const collectionAllowed = context?.panelCustomerPersistenceV122 === true
-                        ? panelCustomerCollectionAllowed
-                        : (baseCollectionAllowed || manualDropiCollectionAllowed);
+                    const panelStatusCollectionAllowed = ecPanelStatusV177MongoAllowed({
+                        context,
+                        collection,
+                        method,
+                        env: process.env
+                    });
+                    const collectionAllowed = context?.panelStatusRouteV177 === true
+                        ? panelStatusCollectionAllowed
+                        : context?.panelCustomerPersistenceV122 === true
+                            ? panelCustomerCollectionAllowed
+                            : (baseCollectionAllowed || manualDropiCollectionAllowed);
                     const authLoginBookkeepingAllowed = context?.authLoginV78 === true
                         && isExactEcAuthLoginV78Request(context)
                         && collection === 'users'
                         && method === 'updateOne';
-                    const v153RecoveryAllowed = ecBotCoreMongoMutationRecoveryV153Allowed({
-                        context,
-                        collection,
-                        method
-                    });
+                    const v153RecoveryAllowed = context?.panelStatusRouteV177 === true
+                        ? false
+                        : ecBotCoreMongoMutationRecoveryV153Allowed({
+                            context,
+                            collection,
+                            method
+                        });
                     if (!configuration.ready || (!authLoginBookkeepingAllowed && !v153RecoveryAllowed && (
                         !context?.writeContext || !collectionAllowed
                     ))) {

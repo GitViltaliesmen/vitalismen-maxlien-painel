@@ -111,6 +111,11 @@ import {
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
+import { ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import {
+    ecPanelStatusV177StatusPlan,
+    isEcPanelStatusV177StrictLocalRequest
+} from '../services/ecPanelStatusOperationsV177Service.js';
 import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
 import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
 import { manualUploadsDirV129, remoteMediaCacheDirV129, relocatedRemoteCacheFileV129, manualUploadPathFromUrlV129, manualUploadUrlFromPathV129 } from '../services/manualMediaStorageV129Service.js';
@@ -3830,13 +3835,16 @@ router.post('/internal/reconcile-atendimento', async (req, res) => {
 });
 
 router.post('/internal/admin-status-sync', async (req, res) => {
-    if (!isLocalRequest(req)) {
+    if (!isEcPanelStatusV177StrictLocalRequest(req)) {
         return res.status(403).json({ error: 'local_only' });
     }
 
     try {
         const body = req.body || {};
         const status = normalizePanelStatus(body.status);
+        if (!ecPanelStatusV177StatusPlan(status).allowed) {
+            return res.status(400).json({ ok: false, error: 'invalid_status' });
+        }
         const oldStatus = normalizePanelStatus(body.old_status);
         const country = normalizePanelCountry(body.country || 'EC');
         const phone = cleanText(body.phone_e164 || body.phone);
@@ -3919,26 +3927,12 @@ router.post('/internal/admin-status-sync', async (req, res) => {
             });
         }
 
-        let orderUpdated = false;
-        const orderStatus = orderStatusFromPanelStatus(status);
-        if (orderStatus) {
-            const tails = phoneTailCandidates(phoneDigits);
-            const order = await Order.findOne({
-                country,
-                $or: tails.map((tail) => ({ 'customer.phone': { $regex: `${tail}\\D*$`, $options: 'i' } }))
-            }).sort({ entryAt: -1, createdAt: -1 });
-            if (order && String(order.status || '').toLowerCase() !== orderStatus) {
-                order.status = orderStatus;
-                await order.save();
-                orderUpdated = true;
-            }
-        }
-
         return res.json({
             ok: true,
             status,
             contactStateId: state._id?.toString?.() || '',
-            orderUpdated,
+            orderUpdated: false,
+            orderSyncSkipped: 'v177_authenticated_human_required',
             stateChanged: statusTransition.changed,
             auditRecorded: statusTransition.changed
         });
@@ -4217,7 +4211,7 @@ router.get('/dashboard-metrics', async (req, res) => {
     }
 });
 
-router.post('/chats/action', async (req, res) => {
+router.post('/chats/action', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const action = normalizeManualAction(req.body?.action);
         if (!MANUAL_ACTION_TAGS[action]) {
@@ -4247,7 +4241,7 @@ router.post('/chats/action', async (req, res) => {
     }
 });
 
-router.post('/chats/bucket', async (req, res) => {
+router.post('/chats/bucket', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const bucket = String(req.body?.bucket || '').trim().toLowerCase();
         if (!Object.values(EC_CONVERSATION_BUCKETS).includes(bucket)) {
@@ -6005,7 +5999,7 @@ router.post('/contact-state/:phone/resolve-customer-data', async (req, res) => {
     }
 });
 
-router.patch('/contact-state/:phone', async (req, res) => {
+router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const { note, mode, assignedName, country, customerDraft, customerDataConfirmation } = req.body || {};
@@ -6570,7 +6564,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
     }
 });
 
-router.post('/contact-state/:phone/identity-conflict', async (req, res) => {
+router.post('/contact-state/:phone/identity-conflict', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const resolution = String(req.body?.resolution || '').trim().toUpperCase();

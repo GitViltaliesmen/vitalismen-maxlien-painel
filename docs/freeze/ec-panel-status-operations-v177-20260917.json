@@ -1,0 +1,62 @@
+{
+  "freezeId": "EC_PANEL_STATUS_OPERATIONS_V177_20260917",
+  "version": "V177",
+  "parentCommit": "6f0fe637a226490e7fb3803370f10bdb86116765",
+  "parentTree": "cbb067c516d88653307fcf4e3cfcb02f015a980e",
+  "parentTag": "production-20260918-6f0fe63",
+  "activeReleaseAtAuthorization": "20260918T000329Z_production-20260918-6f0fe63",
+  "overrides": [
+    "docs/EC_PANEL_STATUS_OPERATIONS_FREEZE_V177_20260917.md",
+    "docs/evidence/EC_PANEL_STATUS_OPERATIONS_REPORT_V177_20260917.md",
+    "package.json",
+    "scripts/guard-ec-panel-status-operations-v177.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/run-with-v177-context.mjs",
+    "src/index.js",
+    "src/routes/whatsapp.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecPanelStatusOperationsFreezeRuntimeGuardV177.js",
+    "src/services/ecPanelStatusOperationsV177Service.js",
+    "tests/ec-panel-status-operations-v177.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_PANEL_STATUS_OPERATIONS_FREEZE_V177_20260917.md": "a7710436964412cf55474a6e1dfd23c9844912346cb170caad8a7e920ccb7c04",
+    "docs/evidence/EC_PANEL_STATUS_OPERATIONS_REPORT_V177_20260917.md": "c6cb2f02f6e4967bde8b0af932a52f115d720658d0ae2b0cd3eaca45e80d1058",
+    "package.json": "71969838a6eb1f94ce7f78defb4437f58edae0e9dc6ff9f3cac092ee630952ed",
+    "scripts/guard-ec-panel-status-operations-v177.mjs": "97b3e26586a4cd886eeb18ef3a5d90dc79dc77240b2f8adf6c902b32a45551de",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "8085d2fe59342b35e335e25c8a09835af8220173780aa9e4c6c8cb3584c9f29f",
+    "scripts/run-with-v177-context.mjs": "99fc90d61a72de86b1f9db7ed240b003b2c0de1c8550f0ae7b20aa67bc80ae22",
+    "src/index.js": "e63cfa73692b122d949ecbeb597cfb43761b2c555b6923afb8e7eb61eadc7b8f",
+    "src/routes/whatsapp.js": "9fe49cc85ca064b51630f9d8e076a52724a8a417ca6057fce0ec5d5db419e53a",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "08826c013878df41fe54996502112e50fbcd62ebce63da064628e9355d4849c8",
+    "src/services/ecPanelStatusOperationsFreezeRuntimeGuardV177.js": "a1d425f1a947905542a244b9727a67fbd50dd9e3c9486e61c05e26172cf1f832",
+    "src/services/ecPanelStatusOperationsV177Service.js": "7202acb8964ac86fc0a8fc46f955ce8c0fdfabe7fbbe1d14c568c2aff8816a8e",
+    "tests/ec-panel-status-operations-v177.test.mjs": "e57d93292369715c5b53d917ee30613420c0a60ee343ca7968dcd6fd45fd0210"
+  },
+  "policy": {
+    "scope": "EC_PANEL_COMPOUND_STATUS_OPERATIONS_ONLY",
+    "exactRouteCount": 4,
+    "authenticatedActiveOperatorRequired": true,
+    "localAdminSyncOnly": true,
+    "orderWriteOperations": [
+      "confirm-order",
+      "repurchase-new-cycle"
+    ],
+    "orderMongoMethods": [
+      "insertOne",
+      "updateOne"
+    ],
+    "genericOrderWriteAllowed": false,
+    "deleteAllowed": false,
+    "dropiMode": "REPORT_ONLY",
+    "dropiApplyAllowed": false,
+    "metaPurchaseAllowed": false,
+    "whatsappOutboundAllowed": false,
+    "externalEffectsChanged": false,
+    "qaPhone": "5515998038637",
+    "productionDbWriteCount": 0,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "futureChangesRequireExplicitAuthorization": true
+  }
+}
