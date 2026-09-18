@@ -1,0 +1,78 @@
+{
+  "freezeId": "EC_V181_V183_CANONICAL_SUCCESSOR_V184_20260918",
+  "version": "V184",
+  "parentCommit": "9ba5d16da477c3087b93693488a0b3925361e1e9",
+  "v179Commit": "1c0e1457e0feedf8cd08e76a1593c9018a7ac3a1",
+  "v181Commit": "2e4d1bd95e5fbd3ebf0109eaacb0eeefbd243ea3",
+  "rootCause": "V181_V183_SUCCESSOR_CONTEXT_NOT_REGISTERED_BEFORE_V51_RUNTIME_GUARD",
+  "canonicalPreloadEntry": "scripts/lib/ec-runtime-successor-v97-context.mjs",
+  "successorIntegrationPoint": "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+  "v179ToV183AncestorIntersection": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/test-panel-customer-selection-browser-v51.mjs",
+    "src/routes/shipments.js",
+    "src/services/servientregaEcuadorAgencyService.js"
+  ],
+  "declaredAncestorOverrides": [
+    "public/qr.html",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/test-panel-customer-selection-browser-v51.mjs",
+    "src/routes/shipments.js",
+    "src/services/servientregaEcuadorAgencyService.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_V181_V183_CANONICAL_SUCCESSOR_FREEZE_V184_20260918.md",
+    "scripts/guard-v181-v183-canonical-successor-v184.mjs",
+    "scripts/lib/ec-runtime-successor-v184-context.mjs",
+    "tests/v181-v183-canonical-successor-v184.test.mjs"
+  ],
+  "overrides": [
+    "docs/EC_V181_V183_CANONICAL_SUCCESSOR_FREEZE_V184_20260918.md",
+    "public/qr.html",
+    "scripts/guard-v181-v183-canonical-successor-v184.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/lib/ec-runtime-successor-v184-context.mjs",
+    "scripts/test-panel-customer-selection-browser-v51.mjs",
+    "src/routes/shipments.js",
+    "src/services/servientregaEcuadorAgencyService.js",
+    "tests/v181-v183-canonical-successor-v184.test.mjs"
+  ],
+  "v183FunctionalFileHashes": {
+    "public/qr.html": "a5a374227dc21b9241f487cb4ef9f04f4eb88207eb71fde55616b552d123913f",
+    "src/routes/shipments.js": "1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0",
+    "src/services/servientregaEcuadorAgencyService.js": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626"
+  },
+  "protectedFiles": {
+    "docs/EC_V181_V183_CANONICAL_SUCCESSOR_FREEZE_V184_20260918.md": "ccdcf8f59a5dfd16ee97781a31742381fd44940b7e0cc9ce57a248e3aa28e50c",
+    "public/qr.html": "a5a374227dc21b9241f487cb4ef9f04f4eb88207eb71fde55616b552d123913f",
+    "scripts/guard-v181-v183-canonical-successor-v184.mjs": "0b5feafd0f80e874113cce6fcc1711f2dd0c32431beb1184c2bb5962f8bde26b",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "5daea7e4d85b7b0684575b377469a7c8d7220ec9ed4704332d75f555679d0d20",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "5f3a7f80d233905058764f2c4d8fecfa2c9773cb68db16d0e8533ede491c9ae1",
+    "scripts/lib/ec-runtime-successor-v184-context.mjs": "c8f00dc0b7f63e8b3c2893c87131db1bcab58220bc79fe6d0508e2474a8ee415",
+    "scripts/test-panel-customer-selection-browser-v51.mjs": "f3656acb12d1ed2bafb017bfc2962bac501a22dc5e7da24e65265210ae5eb8ce",
+    "src/routes/shipments.js": "1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0",
+    "src/services/servientregaEcuadorAgencyService.js": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626",
+    "tests/v181-v183-canonical-successor-v184.test.mjs": "5738dc7f3e0bd1d59aa3428efc2aba382bc32b4595eeebc5185073b8ac789ccb"
+  },
+  "policy": {
+    "scope": "GUARD_LINEAGE_SUCCESSOR_CONTEXT_FREEZE_ONLY",
+    "guardLineageOnly": true,
+    "functionalCodeChanged": false,
+    "v181TestOnlyPreserved": true,
+    "v183FunctionalBehaviorPreserved": true,
+    "botChanged": false,
+    "vslChanged": false,
+    "protocoloGChanged": false,
+    "pixelChanged": false,
+    "capiChanged": false,
+    "bridgeChanged": false,
+    "databaseChanged": false,
+    "guardsBypassed": false,
+    "v170AuthorizedFilesBridge": true,
+    "productionActivationAuthorized": false,
+    "restartAuthorized": false
+  }
+}
