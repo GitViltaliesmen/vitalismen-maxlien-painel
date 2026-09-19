@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+[[ "${EUID}" -eq 0 ]] || { echo "ERRO: execute como root" >&2; exit 1; }
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+base_dir="/opt/vitalismen-automacao"
+state_dir="/var/lib/vitalismen-deploy"
+log_dir="/var/log/vitalismen-deploy"
+overlay_file="$state_dir/post-sale-v188.env"
+lock_file="$state_dir/post-sale-v188.lock"
+audit_file="$log_dir/post-sale-v188-audit.jsonl"
+current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
+action="${1:-status}"
+
+die() { echo "ERRO: $*" >&2; exit 1; }
+[[ "$current" == "$base_dir"/releases/* && -d "$current" && ! -L "$current" ]] || die "current oficial invalido"
+install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
+
+append_audit() {
+  local event="$1" detail="${2:-}"
+  node - "$audit_file" "$event" "$(basename "$current")" "$detail" <<'NODE'
+const fs = require('node:fs');
+const [file,event,release,detail] = process.argv.slice(2);
+fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
+NODE
+  chmod 0600 "$audit_file"
+}
+
+assert_pm2_bot_online() {
+  local pid proc_cwd proc_cmdline
+  while IFS= read -r pid; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+    proc_cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [[ "$proc_cwd" == "$current" || "$proc_cwd" == "$base_dir/current" ]]; then
+      [[ "$proc_cmdline" == *"/src/index.js"* || "$proc_cmdline" == *"src/index.js"* ]] && return 0
+    fi
+  done < <(pgrep -f '(^|[ /])src/index\.js([ ]|$)' || true)
+  return 1
+}
+
+load_overlay() {
+  local source_file="${1:-$overlay_file}"
+  [[ -f "$source_file" && ! -L "$source_file" ]] || die "overlay V188 ausente"
+  [[ "$(stat -c '%a:%U:%G' "$source_file")" == "400:root:root" ]] || die "permissoes do overlay V188 invalidas"
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "chave invalida no overlay V188"
+    export "$key=$value"
+  done <"$source_file"
+  [[ "${VITALISMEN_EC_POSTSALE_FULL_OPERATIONAL_V188:-}" == "true" ]] || die "gate V188 ausente"
+  [[ "${VITALISMEN_EC_BOT_CORE_OPERATIONAL:-}" == "true" ]] || die "bot core V188 deve permanecer ligado"
+  [[ "${DROPPI_EC_ACTIVE_SYNC_MODE:-}" == "REPORT_ONLY" ]] || die "Dropi fora de REPORT_ONLY"
+  [[ "${VITALISMEN_META_PURCHASE_ENABLED:-}" == "false" ]] || die "Meta Purchase deve permanecer desligado"
+  [[ "${WHATSAPP_CONNECT_ENABLED:-}" == "false" ]] || die "Baileys deve permanecer desligado"
+}
+
+run_executor() {
+  local mode="$1" output
+  load_overlay
+  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v188-context.mjs"
+  output="$log_dir/$(basename "$current").post-sale-v188-$mode-$(date -u +%Y%m%dT%H%M%SZ).json"
+  if ! (cd "$current" && node scripts/post-sale-full-v188.mjs "$mode" >"$output"); then
+    chmod 0600 "$output" 2>/dev/null || true
+    die "executor V188 $mode falhou"
+  fi
+  chmod 0600 "$output"
+  echo "RESULT=$output"
+}
+
+if [[ "$action" == "status" ]]; then
+  echo "CURRENT=$current"
+  echo "TIMER=$(systemctl is-active vitalismen-postsale-full-v188.timer 2>/dev/null || true)"
+  echo "OVERLAY=$([[ -f "$overlay_file" && ! -L "$overlay_file" ]] && echo PROTECTED_PRESENT || echo ABSENT)"
+  echo "BATCH_MAX=1"
+  echo "TIME_ZONE=America/Guayaquil"
+  echo "WINDOW=08:00-19:00"
+  echo "AT_MOST_ONCE=true"
+  exit 0
+fi
+
+if [[ "$action" == "staging-check" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: post-sale-v188 staging-check RELEASE"
+  candidate="$(realpath -e "$base_dir/releases/$2" 2>/dev/null || true)"
+  [[ "$candidate" == "$base_dir"/releases/* && -d "$candidate" && ! -L "$candidate" ]] || die "release staging invalida"
+  assert_pm2_bot_online || die "PM2 bot oficial fora da release current"
+  staging_overlay="$(mktemp "$state_dir/post-sale-v188-staging.XXXXXX.env")"
+  trap 'rm -f "$staging_overlay"' EXIT
+  rm -f "$staging_overlay"
+  (cd "$candidate" && node scripts/create-post-sale-v188-overlay.mjs "$staging_overlay")
+  chown root:root "$staging_overlay"
+  chmod 0400 "$staging_overlay"
+  load_overlay "$staging_overlay"
+  output="$log_dir/$(basename "$candidate").post-sale-v188-staging-$(date -u +%Y%m%dT%H%M%SZ).json"
+  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v188-context.mjs"
+  test_output="$log_dir/$(basename "$candidate").post-sale-v188-tests-$(date -u +%Y%m%dT%H%M%SZ).log"
+  if ! (cd "$candidate" && node --test tests/post-sale-full-operational-v188.test.mjs >"$test_output" 2>&1); then
+    chmod 0600 "$test_output" 2>/dev/null || true
+    die "testes V188 no staging falharam"
+  fi
+  chmod 0600 "$test_output"
+  if ! (cd "$candidate" && node scripts/post-sale-full-v188.mjs dry-run >"$output"); then
+    chmod 0600 "$output" 2>/dev/null || true
+    die "executor V188 staging falhou"
+  fi
+  chmod 0600 "$output"
+  NODE_OPTIONS= node - "$output" <<'NODE'
+const fs = require('node:fs');
+const raw = fs.readFileSync(process.argv[2], 'utf8');
+const start = raw.lastIndexOf('\n{\n  "status":');
+const report = JSON.parse(raw.slice(start >= 0 ? start + 1 : raw.indexOf('{')));
+if (report.status !== 'PASS_DRY_RUN') throw new Error(`unexpected_status:${report.status || ''}`);
+if (Number(report.sendCount || 0) !== 0) throw new Error(`unexpected_send_count:${report.sendCount}`);
+NODE
+  echo "V188_EXECUTOR_STAGING=PASS"
+  echo "V188_TESTS_STAGING=PASS"
+  echo "REAL_MESSAGES_SENT=0"
+  echo "RESULT=$output"
+  exit 0
+fi
+
+if [[ "$action" == "install" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v188 install"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  [[ ! -e "$overlay_file" ]] || die "overlay V188 ja existe"
+  (cd "$current" && node scripts/create-post-sale-v188-overlay.mjs "$overlay_file")
+  chown root:root "$overlay_file"
+  chmod 0400 "$overlay_file"
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-full-v188.service" /etc/systemd/system/vitalismen-postsale-full-v188.service
+  install -o root -g root -m 0644 "$current/ops/systemd/vitalismen-postsale-full-v188.timer" /etc/systemd/system/vitalismen-postsale-full-v188.timer
+  systemctl daemon-reload
+  append_audit "installed" "timer_not_started"
+  echo "POST_SALE_V188_INSTALL=PASS"
+  echo "TIMER_STARTED=NO"
+  exit 0
+fi
+
+if [[ "$action" == "snapshot" || "$action" == "dry-run" ]]; then
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  run_executor "$action"
+  exit 0
+fi
+
+if [[ "$action" == "run" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v188 run"
+  exec 9>"$lock_file"
+  flock -n 9 || die "outro executor V188 esta em andamento"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  append_audit "cycle_started" "batch_max_1"
+  run_executor run
+  append_audit "cycle_completed" "result_persisted"
+  exit 0
+fi
+
+if [[ "$action" == "activate" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v188 activate"
+  assert_pm2_bot_online || die "PM2 bot fora da release current"
+  load_overlay
+  systemctl enable --now vitalismen-postsale-full-v188.timer
+  append_audit "activated" "batch_max_1_window_guayaquil"
+  echo "POST_SALE_V188_ACTIVATE=PASS"
+  exit 0
+fi
+
+if [[ "$action" == "contain" ]]; then
+  systemctl disable --now vitalismen-postsale-full-v188.timer >/dev/null 2>&1 || true
+  timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  if [[ -f "$overlay_file" && ! -L "$overlay_file" ]]; then
+    mv -T "$overlay_file" "$overlay_file.contained.$timestamp"
+    chmod 0400 "$overlay_file.contained.$timestamp"
+  fi
+  append_audit "contained" "bot_unchanged_ledgers_preserved"
+  echo "POST_SALE_V188_CONTAIN=PASS"
+  exit 0
+fi
+
+die "uso: post-sale-v188 status|staging-check RELEASE|install|snapshot|dry-run|run|activate|contain"
