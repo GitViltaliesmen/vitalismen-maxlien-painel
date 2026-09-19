@@ -18,6 +18,8 @@ const readCanonicalManifest = (relative) => {
 
 const baseline = readCanonicalManifest('docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json');
 const v168b = readCanonicalManifest('docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json');
+const v193 = readCanonicalManifest('docs/freeze/vsl-first-response-watchdog-v193-20260919.json');
+const v193RuntimeGuardSuccessor = v193.runtimeGuardSuccessor;
 
 assert.equal(baseline.freezeId, 'EC_RUNTIME_GUARD_BASELINE_BOOTSTRAP_V168B_20260916');
 assert.equal(baseline.trustedProductionCommit, '4a259499ccafe286d6650aa95115023f183f58fe');
@@ -26,7 +28,17 @@ assert.equal(v168b.freezeId, 'EC_DROPI_PICKUP_STATUS_SYNC_V168B_20260916');
 assert.equal(v168b.parentCommit, baseline.trustedProductionCommit);
 assert.deepEqual([...v168b.overrides].sort(), Object.keys(v168b.protectedFiles).sort());
 
-const laterSuccessorOverrides = new Set(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []);
+assert.equal(v193.version, 'V193');
+assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
+for (const [file, expected] of Object.entries({
+    ...v193RuntimeGuardSuccessor.inheritedProtectedFiles,
+    ...v193RuntimeGuardSuccessor.protectedFiles
+})) assert.equal(hashFile(file), expected, `[V193 preload] ${file}`);
+const laterSuccessorOverrides = new Set([
+    ...(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []),
+    ...v193RuntimeGuardSuccessor.overrides,
+    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles)
+]);
 const authorizedFiles = [...new Set([
     ...baseline.authorizedOverrideFiles,
     ...v168b.overrides,

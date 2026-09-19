@@ -23,6 +23,7 @@ Restringir o recovery de primeira resposta à primeira entrada VSL EC real e rec
 - Após adquirir o lock, há uma segunda consulta de estado e outbound antes de chamar o roteador, cobrindo a borda da janela de 75 segundos.
 - O ID interno de recovery é determinístico e não altera o provider ID original.
 - Evidência de outbound posterior prevalece sobre status legado `failed` ou `reprocessing`.
+- Os contextos V168B/V170/V184 reconhecem a V193 como sucessora fail-closed por uma allowlist exata de quatro arquivos alterados: a rota Z-API funcional e três descritores mínimos de linhagem. Dezessete arquivos sucessores já vigentes são herdados, sem alteração, por seus hashes exatos para fechar a cadeia V168B→V186. Wildcard e bypass continuam proibidos.
 
 ## Persistência adicionada
 

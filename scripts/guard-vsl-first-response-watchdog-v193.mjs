@@ -14,6 +14,9 @@ const EXPECTED_FILES = Object.freeze([
     FREEZE_PATH,
     'scripts/audit-v193-historical-watchdog-readonly.mjs',
     'scripts/guard-vsl-first-response-watchdog-v193.mjs',
+    'scripts/lib/ec-runtime-successor-v168b-preload-context.mjs',
+    'scripts/lib/ec-runtime-successor-v170-context.mjs',
+    'scripts/lib/ec-runtime-successor-v184-context.mjs',
     'src/routes/zapi.js',
     'src/services/vslFirstResponseWatchdogV193Service.js',
     'tests/vsl-first-response-watchdog-v193.test.mjs'
@@ -91,7 +94,7 @@ const entries = changedEntries();
 const allowed = new Set(EXPECTED_FILES);
 for (const entry of entries) {
     assert.ok(allowed.has(entry.file), `[V193] unauthorized_change:${entry.status}:${entry.file}`);
-    if (entry.file === 'src/routes/zapi.js') {
+    if (['scripts/lib/ec-runtime-successor-v168b-preload-context.mjs', 'scripts/lib/ec-runtime-successor-v170-context.mjs', 'scripts/lib/ec-runtime-successor-v184-context.mjs', 'src/routes/zapi.js'].includes(entry.file)) {
         assert.ok(['M', ' M', 'M ', 'MM'].includes(entry.status), `[V193] existing_file_status:${entry.status}:${entry.file}`);
     } else {
         assert.ok(['A', '??', 'A ', 'AM'].includes(entry.status), `[V193] added_file_status:${entry.status}:${entry.file}`);
@@ -108,6 +111,7 @@ assert.deepEqual([...freeze.allowedFiles].sort(), [...EXPECTED_FILES].sort());
 const routeSource = fs.readFileSync(path.join(ROOT, 'src/routes/zapi.js'), 'utf8');
 const serviceSource = fs.readFileSync(path.join(ROOT, 'src/services/vslFirstResponseWatchdogV193Service.js'), 'utf8');
 const reportSource = fs.readFileSync(path.join(ROOT, 'scripts/audit-v193-historical-watchdog-readonly.mjs'), 'utf8');
+const v170Source = fs.readFileSync(path.join(ROOT, 'scripts/lib/ec-runtime-successor-v170-context.mjs'), 'utf8');
 assert.match(routeSource, /const publicVslLeadEntry = vslRoutingAllowed\s*&& Boolean\(vslProductContext\)\s*&& \(looksLikePublicVslLeadText\(normalizedBody\) \|\| Boolean\(vslProductContext\)\);/);
 assert.match(routeSource, /!result\.eligibleForFirstResponseWatchdog \|\| !result\.routeToBot/);
 assert.doesNotMatch(routeSource, /!result\.publicVslLeadEntry \|\| !result\.routeToBot/);
@@ -129,6 +133,23 @@ for (const required of [
 assert.doesNotMatch(serviceSource, /_watchdog_\$\{Date\.now\(\)\}/, '[V193] time_based_recovery_id');
 assert.doesNotMatch(reportSource, /\.(?:save|create|insertOne|insertMany|updateOne|updateMany|findOneAndUpdate|replaceOne|bulkWrite|deleteOne|deleteMany)\s*\(/);
 assert.doesNotMatch(reportSource, /(?:sendZapi|routeIncomingMessage|sendMessage|sendAudio|submitDropi|sendPurchase)\s*\(/);
+assert.ok(v170Source.includes('V193_WATCHDOG_SUCCESSOR_MANIFEST'), '[V193] v170_successor_manifest_missing');
+assert.deepEqual([...freeze.runtimeGuardSuccessor.overrides].sort(), [
+    'scripts/lib/ec-runtime-successor-v168b-preload-context.mjs',
+    'scripts/lib/ec-runtime-successor-v170-context.mjs',
+    'scripts/lib/ec-runtime-successor-v184-context.mjs',
+    'src/routes/zapi.js'
+].sort());
+assert.equal(freeze.runtimeGuardSuccessor.policy.exactOverrideCount, 4);
+assert.equal(freeze.runtimeGuardSuccessor.policy.inheritedOverrideCount, 17);
+assert.equal(freeze.runtimeGuardSuccessor.policy.wildcardsAllowed, false);
+assert.equal(freeze.runtimeGuardSuccessor.policy.guardBypassAllowed, false);
+for (const [file, expected] of Object.entries(freeze.runtimeGuardSuccessor.protectedFiles)) {
+    assert.equal(crypto.createHash('sha256').update(read(file)).digest('hex'), expected, `[V193] runtime_successor_hash_changed:${file}`);
+}
+for (const [file, expected] of Object.entries(freeze.runtimeGuardSuccessor.inheritedProtectedFiles)) {
+    assert.equal(crypto.createHash('sha256').update(read(file)).digest('hex'), expected, `[V193] inherited_runtime_hash_changed:${file}`);
+}
 
 const categoryResults = {};
 for (const [label, matcher] of Object.entries(CATEGORY_MATCHERS)) {
