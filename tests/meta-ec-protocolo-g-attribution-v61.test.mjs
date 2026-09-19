@@ -8,6 +8,7 @@ import whatsappRoutes from '../src/routes/whatsapp.js';
 import {
     hasProtocoloGContractSignal,
     isEcuadorTexUltraProtocoloG,
+    isEcuadorTexUltraProtocoloGMetaDestination,
     META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
     protocoloGStructuredTracking,
     sanitizeProtocoloGAttribution,
@@ -206,6 +207,7 @@ const orderFor = (tracking = {}) => ({
         productName: 'Tex Ultra Ecuador',
         product: 'TEX_ULTRA',
         funnel: 'PROTOCOLO_G',
+        sourceUrl: 'https://vilaliemen.shop/protocolo-g',
         ...tracking
     }
 });
@@ -294,7 +296,8 @@ test('fixture oficial percorre endpoint → VslVisit → correlation → Order �
         dryRun: true,
         env: {
             META_PIXEL_ID_EC: 'dataset-ec-anterior',
-            META_ACCESS_TOKEN_EC: 'credencial-sintetica-nao-real'
+            META_ACCESS_TOKEN_EC: 'credencial-sintetica-nao-real',
+            META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: 'credencial-dedicada-sintetica-nao-real'
         },
         attributionEnricher: async (targetOrder) => applyVisitAttributionToOrder(
             targetOrder,
@@ -638,6 +641,7 @@ test('cenário integrado visita → contato → telefone → pedido → Purchase
         env: {
             META_PIXEL_ID_EC: 'dataset-ec-anterior',
             META_ACCESS_TOKEN_EC: 'token-sintetico-nao-real',
+            META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: 'token-dedicado-sintetico-nao-real',
             META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID
         },
         attributionEnricher: async (targetOrder) => applyVisitAttributionToOrder(
@@ -727,14 +731,26 @@ test('roteamento Dataset é exclusivo e fail-closed para configuração divergen
         accessToken: 'token-dedicado-sintetico-nao-real',
         route: 'ec_tex_ultra_protocolo_g'
     });
+    assert.deepEqual(getMetaConfigForOrder(orderFor({
+        measurementVersion: 148,
+        renderedBranch: 'SALES',
+        branchIdentity: 'SALES',
+        browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID
+    }), env), {
+        pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+        accessToken: 'token-dedicado-sintetico-nao-real',
+        route: 'ec_tex_ultra_protocolo_g'
+    });
     assert.deepEqual(getMetaConfigForOrder(orderFor(), {
         ...env,
         META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: ''
     }), {
         pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-        accessToken: 'token-sintetico-nao-real',
+        accessToken: null,
         route: 'ec_tex_ultra_protocolo_g'
     });
+    assert.equal(isEcuadorTexUltraProtocoloG(orderFor({ sourceUrl: '' })), true);
+    assert.equal(isEcuadorTexUltraProtocoloGMetaDestination(orderFor({ sourceUrl: '' })), false);
     assert.deepEqual(getMetaConfigForOrder(orderFor({ funnel: 'OUTRO_FUNIL' }), env), {
         pixelId: 'dataset-ec-anterior',
         accessToken: 'token-sintetico-nao-real',

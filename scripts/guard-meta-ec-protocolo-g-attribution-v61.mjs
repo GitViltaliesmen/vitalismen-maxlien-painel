@@ -48,7 +48,8 @@ assert.doesNotMatch(
     'teste contratual V61 não pode depender de caminho absoluto de workspace'
 );
 
-assert.match(contract, /META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID = '2048099902484149'/);
+assert.match(contract, /datasetId: '920532663934291'/);
+assert.match(contract, /tokenSource: 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'/);
 assert.match(contract, /validateVilaliemenProtocoloGContract/);
 assert.match(contract, /external_id/);
 assert.match(contract, /attributionCapturedAt: parseAttributionCapturedAt/);
@@ -73,7 +74,8 @@ assert.match(visitModel, /campaignId:/);
 assert.match(visitModel, /attributionCapturedAt: Date/);
 assert.match(correlationModel, /'CLAIMED', 'AMBIGUOUS', 'UNMATCHED'/);
 assert.match(meta, /ec_tex_ultra_protocolo_g/);
-assert.match(meta, /META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G \|\| env\.META_ACCESS_TOKEN_EC/);
+assert.match(meta, /env\[PROTOCOLO_G_META_TOKEN_ENV\]/);
+assert.doesNotMatch(meta, /META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G\s*\|\|\s*env\.META_ACCESS_TOKEN_EC/);
 assert.match(meta, /trustedProtocoloGUserAgent/);
 assert.match(meta, /PROTOCOLO_G_EVENT_SOURCE_URL/);
 assert.equal(manifest.policy.legacyEcServerTokenPreserved, true);

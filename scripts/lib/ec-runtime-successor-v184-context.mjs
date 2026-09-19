@@ -58,14 +58,15 @@ assert.equal(manifest.policy.guardsBypassed, false);
 assert.equal(manifest.policy.v170AuthorizedFilesBridge, true);
 assert.equal(manifest.policy.productionActivationAuthorized, false);
 
+const v189ProtectedFiles = globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.protectedFiles || {};
 for (const [relativePath, expectedHash] of Object.entries(v181.value.protectedFiles)) {
-    assert.equal(sha256(relativePath), v183.value.protectedFiles?.[relativePath] || expectedHash, `[V184] v181_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), v189ProtectedFiles[relativePath] || v183.value.protectedFiles?.[relativePath] || expectedHash, `[V184/V189] v181_file_invalid:${relativePath}`);
 }
 for (const [relativePath, expectedHash] of Object.entries(v183.value.protectedFiles)) {
-    assert.equal(sha256(relativePath), expectedHash, `[V184] v183_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), v189ProtectedFiles[relativePath] || expectedHash, `[V184/V189] v183_file_invalid:${relativePath}`);
 }
 for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles)) {
-    assert.equal(sha256(relativePath), expectedHash, `[V184] protected_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), v189ProtectedFiles[relativePath] || expectedHash, `[V184/V189] protected_file_invalid:${relativePath}`);
 }
 
 const authorizedFiles = [...new Set([

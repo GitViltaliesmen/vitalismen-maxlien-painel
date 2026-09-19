@@ -44,6 +44,7 @@ const orderFor = ({
         productKey,
         product,
         funnel,
+        sourceUrl: 'https://vilaliemen.shop/protocolo-g',
         external_id: 'freeze-ec-capi-routing-v61'
     }
 });
@@ -83,9 +84,9 @@ assertRoute(getMetaConfigForOrder(protocoloGOrder, {
     META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G: ''
 }), {
     pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-    accessToken: legacyToken,
+    accessToken: null,
     route: 'ec_tex_ultra_protocolo_g'
-}, 'fallback autorizado da credencial EC server-side');
+}, 'ausência do token dedicado falha fechada sem fallback geral');
 
 assertRoute(getMetaConfigForOrder(otherProductOrder, dedicatedEnv), {
     pixelId: legacyDataset,
@@ -147,6 +148,7 @@ try {
         productKey: 'tex_ultra_ec',
         product: 'TEX_ULTRA',
         funnel: 'PROTOCOLO_G',
+        sourceUrl: 'https://vilaliemen.shop/protocolo-g',
         eventName: 'Lead',
         event_id: 'FREEZE_EC_BROWSER_PROTOCOLO_G_V61',
         external_id: 'freeze-ec-browser-protocolo-g-v61'

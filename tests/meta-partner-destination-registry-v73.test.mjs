@@ -55,7 +55,7 @@ const registryDocument = ({ activePrimary = 'ec-primary', profiles = {} } = {}) 
             route: META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G,
             datasetId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
             browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
-            accessTokenRefs: ['env:META_ACCESS_TOKEN_EC'],
+            accessTokenRefs: ['env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'],
             browserDeploymentVerifiedAt: VERIFIED_AT,
             enabled: true
         },
@@ -274,7 +274,12 @@ test('Dataset dedicado Protocolo G continua congelado e falha fechado se for sub
     writeJson(workspace.registryPath, invalid);
     const order = {
         country: 'EC',
-        tracking: { productKey: 'tex_ultra_ec', product: 'TEX_ULTRA', funnel: 'PROTOCOLO_G' }
+        tracking: {
+            productKey: 'tex_ultra_ec',
+            product: 'TEX_ULTRA',
+            funnel: 'PROTOCOLO_G',
+            sourceUrl: 'https://vilaliemen.shop/protocolo-g'
+        }
     };
     const destination = getMetaConfigForOrder(order, {
         META_DESTINATION_REGISTRY_PATH: workspace.registryPath,

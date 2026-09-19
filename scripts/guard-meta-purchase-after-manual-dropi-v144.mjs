@@ -85,7 +85,12 @@ export const assertMetaPurchaseAfterManualDropiV144 = () => {
     assert.match(panel, /Meta erro/);
     assert.match(packageJson, /run-with-v144-context\.mjs/);
     assert.match(packageJson, /test:v144-all/);
-    assert.match(v97, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
+    assert.match(
+        v97,
+        globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.loaded === true
+            ? /^import '\.\/ec-runtime-successor-v189-preload-context\.mjs';\s*import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/
+            : /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/
+    );
 
     assert.equal(manifest.policy.productionChanged, false);
     assert.equal(manifest.policy.metaAdsMutationAllowed, false);

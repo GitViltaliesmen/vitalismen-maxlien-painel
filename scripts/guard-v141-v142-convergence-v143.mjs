@@ -73,7 +73,14 @@ export const assertV141V142ConvergenceV143 = () => {
         assert.match(packageJson, /test:v143-all/);
     }
     if (successorOverrides.has('scripts/lib/ec-runtime-successor-v97-context.mjs')) {
-        assert.match(v97Context, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
+        if (globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.loaded === true) {
+            assert.match(
+                v97Context,
+                /^import '\.\/ec-runtime-successor-v189-preload-context\.mjs';\s*import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/
+            );
+        } else {
+            assert.match(v97Context, /^import '\.\/ec-runtime-successor-v144-bootstrap-context\.mjs';/);
+        }
     } else {
         assert.match(v97Context, /^import '\.\/ec-runtime-successor-v143-bootstrap-context\.mjs';/);
     }

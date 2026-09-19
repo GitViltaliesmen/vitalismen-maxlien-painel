@@ -10,6 +10,7 @@ export const V74_PARENT_MANIFEST_SHA256 = 'f3892d723313493b9a3ecd88cba0635e912d8
 export const V74_PARENT_FREEZE_SHA256 = '081d9ead48a78296b60ad4b3204facb1d773f411645dc1a35304f9bc44c83153';
 export const V74_CURRENT_EC_DATASET_ID = '1468946114265008';
 export const V74_LOCKED_SECONDARY_DATASET_ID = '2048099902484149';
+export const V189_PROTOCOLO_G_DATASET_ID = '920532663934291';
 
 const dynamicSourceFiles = Object.freeze([
     'public/n/index.html',
@@ -20,6 +21,7 @@ const dynamicSourceFiles = Object.freeze([
     'src/services/conversationEngine.js',
     'src/services/metaConversionsService.js',
     'src/services/metaDestinationRegistryService.js',
+    'src/services/metaProtocoloGAttributionService.js',
     'src/services/texUltraFunnelService.js'
 ]);
 
@@ -235,8 +237,11 @@ const assertDynamicContract = ({ failures, source }) => {
         'endpoint Meta público expõe chave de segredo/token'
     );
 
+    const v189Active = globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.loaded === true;
     for (const [value, label] of [
-        [`export const META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID = '${V74_LOCKED_SECONDARY_DATASET_ID}';`, 'Dataset congelado'],
+        [v189Active
+            ? 'export const META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID = META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID;'
+            : `export const META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID = '${V74_LOCKED_SECONDARY_DATASET_ID}';`, 'Dataset congelado'],
         ["export const DEFAULT_META_DESTINATION_REGISTRY_PATH = '/opt/vitalismen-automacao/shared/config/meta-destinations.json';", 'registry fora do release'],
         ["export const DEFAULT_META_DESTINATION_SECRETS_PATH = '/opt/vitalismen-automacao/shared/secrets/meta-destinations.json';", 'segredos fora do release'],
         ['if (browserPixelId !== datasetId)', 'registry Browser/CAPI equality'],
@@ -250,6 +255,16 @@ const assertDynamicContract = ({ failures, source }) => {
         ['browserServerSynchronized: synchronized', 'descritor igualdade Browser/CAPI'],
         ['tokenConfigured: Boolean(destination.accessToken)', 'descritor booleano sem token']
     ]) include(failures, registry, value, label);
+    if (v189Active) {
+        const protocoloContract = source('src/services/metaProtocoloGAttributionService.js');
+        include(failures, protocoloContract, `datasetId: '${V189_PROTOCOLO_G_DATASET_ID}'`, 'Dataset V189 Protocolo-G');
+        include(
+            failures,
+            protocoloContract,
+            "tokenSource: 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'",
+            'Token dedicado V189 Protocolo-G'
+        );
+    }
     const publicDescriptor = registry.slice(registry.indexOf('export const publicMetaDestinationDescriptor'));
     push(
         failures,

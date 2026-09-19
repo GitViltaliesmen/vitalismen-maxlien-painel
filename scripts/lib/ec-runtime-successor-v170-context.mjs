@@ -119,26 +119,27 @@ assert.equal(panelOnlyAgencyScopeSuccessor.policy.deployExecuted, false);
 assert.deepEqual([...panelOnlyAgencyScopeSuccessor.overrides].sort(), Object.keys(panelOnlyAgencyScopeSuccessor.protectedFiles).sort());
 assert.equal(panelOnlyAgencyScopeSuccessor.overrides.some((file) => /[*?\[\]]/.test(file)), false);
 
+const v189ProtectedFiles = globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.protectedFiles || {};
 for (const [file, expected] of Object.entries(manifest.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || successor.protectedFiles[file] || expected, `[V170/V171/V176/V177/V178/V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || successor.protectedFiles[file] || expected, `[V170/V171/V176/V177/V178/V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(successor.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || expected, `[V171/V176/V177/V178/V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || latestSuccessor.protectedFiles[file] || expected, `[V171/V176/V177/V178/V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(latestSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || expected, `[V176/V177/V178/V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || panelStatusSuccessor.protectedFiles[file] || expected, `[V176/V177/V178/V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(panelStatusSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || expected, `[V177/V178/V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || customerStatusSuccessor.protectedFiles[file] || expected, `[V177/V178/V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(customerStatusSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || expected, `[V178/V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || panelFastLoadSuccessor.protectedFiles[file] || expected, `[V178/V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(panelFastLoadSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), panelOnlyAgencyScopeSuccessor.protectedFiles[file] || expected, `[V179/V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || panelOnlyAgencyScopeSuccessor.protectedFiles[file] || expected, `[V179/V183/V189] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(panelOnlyAgencyScopeSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), expected, `[V183] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), v189ProtectedFiles[file] || expected, `[V183/V189] protected_file_invalid:${file}`);
 }
 
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES']) {
@@ -150,8 +151,8 @@ globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
     freezeId: manifest.freezeId,
     parentCommit: manifest.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(text).digest('hex'),
-    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides, ...panelOnlyAgencyScopeSuccessor.overrides])]),
-    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles, ...panelOnlyAgencyScopeSuccessor.protectedFiles }),
+    authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides, ...panelOnlyAgencyScopeSuccessor.overrides, ...Object.keys(v189ProtectedFiles)])]),
+    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles, ...panelOnlyAgencyScopeSuccessor.protectedFiles, ...v189ProtectedFiles }),
     successorFreezeId: panelOnlyAgencyScopeSuccessor.freezeId,
     successorManifestSha256: crypto.createHash('sha256').update(panelOnlyAgencyScopeSuccessorText).digest('hex')
 });

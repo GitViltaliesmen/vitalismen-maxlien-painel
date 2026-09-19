@@ -179,10 +179,8 @@ const legacyForRoute = (route, env = process.env) => {
         return {
             pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
             browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
-            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
-            tokenSource: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G
-                ? 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
-                : 'env:META_ACCESS_TOKEN_EC'
+            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G,
+            tokenSource: 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
         };
     }
     return {
@@ -250,10 +248,7 @@ export const buildBootstrapRegistry = ({ env = process.env, browserVerifiedAt } 
                 route: META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G,
                 datasetId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
                 browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID,
-                accessTokenRefs: [
-                    'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G',
-                    'env:META_ACCESS_TOKEN_EC'
-                ],
+                accessTokenRefs: ['env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'],
                 browserDeploymentVerifiedAt: verifiedAt,
                 enabled: true
             }

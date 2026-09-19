@@ -45,11 +45,12 @@ assert.equal(manifest.policy.v184DescriptorPreserved, true);
 assert.equal(manifest.policy.guardsBypassed, false);
 assert.equal(manifest.policy.productionActivationAuthorized, false);
 
+const v189ProtectedFiles = globalThis.__VITALISMEN_V189_META_CAPI_ALIGNMENT_CONTEXT?.protectedFiles || {};
 for (const [relativePath, expectedHash] of Object.entries(v185.value.protectedFiles)) {
-    assert.equal(sha256(relativePath), expectedHash, `[V186] v185_frozen_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), v189ProtectedFiles[relativePath] || expectedHash, `[V186/V189] v185_frozen_file_invalid:${relativePath}`);
 }
 for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFiles)) {
-    assert.equal(sha256(relativePath), expectedHash, `[V186] protected_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), v189ProtectedFiles[relativePath] || expectedHash, `[V186/V189] protected_file_invalid:${relativePath}`);
 }
 
 const predecessorDescriptor = Object.getOwnPropertyDescriptor(globalThis, V170_CONTEXT_KEY);

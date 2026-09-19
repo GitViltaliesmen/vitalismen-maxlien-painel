@@ -1,12 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+    META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
+    PROTOCOLO_G_META_DESTINATION_ROUTE,
+    PROTOCOLO_G_META_TOKEN_SOURCE
+} from './metaProtocoloGAttributionService.js';
 
 export const META_DESTINATION_REGISTRY_VERSION = 1;
 export const META_DESTINATION_ROUTES = Object.freeze({
     EC_DEFAULT: 'country_ec_default',
-    EC_TEX_ULTRA_PROTOCOLO_G: 'ec_tex_ultra_protocolo_g'
+    EC_TEX_ULTRA_PROTOCOLO_G: PROTOCOLO_G_META_DESTINATION_ROUTE
 });
-export const META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID = '2048099902484149';
+export const META_EC_TEX_ULTRA_PROTOCOLO_G_LOCKED_DATASET_ID = META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID;
 export const DEFAULT_META_DESTINATION_REGISTRY_PATH = '/opt/vitalismen-automacao/shared/config/meta-destinations.json';
 export const DEFAULT_META_DESTINATION_SECRETS_PATH = '/opt/vitalismen-automacao/shared/secrets/meta-destinations.json';
 
@@ -117,6 +122,16 @@ const normalizeProfile = (profileKey, rawProfile) => {
     ) {
         fail('Dataset dedicado do Protocolo G não pode ser substituído por configuração.', 'META_PROTOCOLO_G_DATASET_LOCKED');
     }
+    const accessTokenRefs = normalizeTokenRefs(profile.accessTokenRefs, profileKey);
+    if (
+        route === META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G
+        && (accessTokenRefs.length !== 1 || accessTokenRefs[0] !== PROTOCOLO_G_META_TOKEN_SOURCE)
+    ) {
+        fail(
+            'Rota Protocolo G exige exclusivamente o token dedicado.',
+            'META_PROTOCOLO_G_SPECIFIC_TOKEN_REQUIRED'
+        );
+    }
     if (profile.enabled !== true) fail(`Perfil ${profileKey} precisa estar explicitamente enabled=true.`);
     const browserDeploymentVerifiedAt = clean(profile.browserDeploymentVerifiedAt);
     if (!browserDeploymentVerifiedAt || !Number.isFinite(Date.parse(browserDeploymentVerifiedAt))) {
@@ -127,7 +142,7 @@ const normalizeProfile = (profileKey, rawProfile) => {
         route,
         datasetId,
         browserPixelId,
-        accessTokenRefs: normalizeTokenRefs(profile.accessTokenRefs, profileKey),
+        accessTokenRefs,
         browserDeploymentVerifiedAt: new Date(browserDeploymentVerifiedAt).toISOString(),
         label: clean(profile.label).slice(0, 120) || profileKey
     });

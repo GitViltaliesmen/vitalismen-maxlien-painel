@@ -1,6 +1,18 @@
 import { salesAttributionV148 } from './metaFunnelV148ContractService.js';
-export const META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID = '2048099902484149';
-export const PROTOCOLO_G_EVENT_SOURCE_URL = 'https://vilaliemen.shop/protocolo-g';
+
+export const PROTOCOLO_G_META_DESTINATION = Object.freeze({
+    route: 'ec_tex_ultra_protocolo_g',
+    datasetId: '920532663934291',
+    browserPixelId: '920532663934291',
+    tokenEnv: 'META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G',
+    tokenSource: 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G',
+    eventSourceUrl: 'https://vilaliemen.shop/protocolo-g'
+});
+export const META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID = PROTOCOLO_G_META_DESTINATION.datasetId;
+export const PROTOCOLO_G_EVENT_SOURCE_URL = PROTOCOLO_G_META_DESTINATION.eventSourceUrl;
+export const PROTOCOLO_G_META_DESTINATION_ROUTE = PROTOCOLO_G_META_DESTINATION.route;
+export const PROTOCOLO_G_META_TOKEN_ENV = PROTOCOLO_G_META_DESTINATION.tokenEnv;
+export const PROTOCOLO_G_META_TOKEN_SOURCE = PROTOCOLO_G_META_DESTINATION.tokenSource;
 
 export const PROTOCOLO_G_TEX_ULTRA_MESSAGE_PREFIX = 'Hola, quiero el tratamiento Tex Ultra.';
 
@@ -259,6 +271,13 @@ export const isEcuadorTexUltraProtocoloG = (value = {}) => {
     return country === 'EC'
         && productMatches
         && funnel === 'PROTOCOLO_G';
+};
+
+export const isEcuadorTexUltraProtocoloGMetaDestination = (value = {}) => {
+    const tracking = value.tracking || value;
+    const sourceUrl = firstValue(tracking, ['sourceUrl', 'eventSourceUrl', 'event_source_url']);
+    return isEcuadorTexUltraProtocoloG(value)
+        && Boolean(parseVilaliemenProtocoloGUrl(sourceUrl));
 };
 
 export const protocoloGStructuredTracking = (body = {}, contract = null) => {

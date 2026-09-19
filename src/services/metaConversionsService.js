@@ -5,9 +5,11 @@ import crypto from 'crypto';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import {
-    isEcuadorTexUltraProtocoloG,
+    isEcuadorTexUltraProtocoloGMetaDestination,
     META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-    PROTOCOLO_G_EVENT_SOURCE_URL
+    PROTOCOLO_G_EVENT_SOURCE_URL,
+    PROTOCOLO_G_META_TOKEN_ENV,
+    PROTOCOLO_G_META_TOKEN_SOURCE
 } from './metaProtocoloGAttributionService.js';
 import {
     META_DESTINATION_ROUTES,
@@ -63,11 +65,7 @@ const getConfigForCountry = (country, env = process.env) => {
 };
 
 export const getMetaConfigForOrder = (order = {}, env = process.env) => {
-    if (String(order.country).toUpperCase() === 'EC' && salesAttributionV148(order)) {
-        const config = getConfigForCountry('EC', env);
-        return config.pixelId === META_V148_EXISTING_DATASET ? config : { pixelId: null, accessToken: null, route: 'v148_dataset_mismatch' };
-    }
-    if (isEcuadorTexUltraProtocoloG(order)) {
+    if (isEcuadorTexUltraProtocoloGMetaDestination(order)) {
         const configuredDatasetId = String(env.META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G || '').trim();
         if (configuredDatasetId && configuredDatasetId !== META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID) {
             return {
@@ -82,12 +80,14 @@ export const getMetaConfigForOrder = (order = {}, env = process.env) => {
             legacyConfig: {
                 pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
                 browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-                accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
-                tokenSource: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G
-                    ? 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
-                    : 'env:META_ACCESS_TOKEN_EC'
+                accessToken: env[PROTOCOLO_G_META_TOKEN_ENV],
+                tokenSource: PROTOCOLO_G_META_TOKEN_SOURCE
             }
         });
+    }
+    if (String(order.country).toUpperCase() === 'EC' && salesAttributionV148(order)) {
+        const config = getConfigForCountry('EC', env);
+        return config.pixelId === META_V148_EXISTING_DATASET ? config : { pixelId: null, accessToken: null, route: 'v148_dataset_mismatch' };
     }
     return getConfigForCountry(String(order?.country || '').trim().toUpperCase(), env);
 };
@@ -116,10 +116,8 @@ const legacyMetaConfigForRoute = (route, env) => {
         return {
             pixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
             browserPixelId: META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID,
-            accessToken: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G || env.META_ACCESS_TOKEN_EC,
-            tokenSource: env.META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G
-                ? 'env:META_ACCESS_TOKEN_EC_TEX_ULTRA_PROTOCOLO_G'
-                : 'env:META_ACCESS_TOKEN_EC'
+            accessToken: env[PROTOCOLO_G_META_TOKEN_ENV],
+            tokenSource: PROTOCOLO_G_META_TOKEN_SOURCE
         };
     }
     return {
@@ -337,7 +335,7 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
         ]
     };
 
-    const protocoloGEvent = isEcuadorTexUltraProtocoloG(event);
+    const protocoloGEvent = isEcuadorTexUltraProtocoloGMetaDestination(event);
     const implicitTestEventCode = process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '';
     const testEventCode = protocoloGEvent
         ? ''
@@ -354,7 +352,8 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
     if (Number(event.measurementVersion) === 148 && !v148Allowed) return { ok: false, blocked: true, reason: 'v148_business_scope_required' };
     const country = String(event.country || 'EC').trim().toUpperCase();
     const env = options.env || process.env;
-    const expectedRoute = !v148Allowed && isEcuadorTexUltraProtocoloG(event)
+    const protocoloGEvent = isEcuadorTexUltraProtocoloGMetaDestination(event);
+    const expectedRoute = protocoloGEvent
         ? META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G
         : (country === 'EC' ? META_DESTINATION_ROUTES.EC_DEFAULT : 'unsupported_country');
     const { pixelId, accessToken, route } = expectedRoute === 'unsupported_country'
@@ -364,7 +363,9 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
         return { ok: false, error: 'META pixel config missing for country' };
     }
 
-    if (v148Allowed && pixelId !== META_V148_EXISTING_DATASET) return { ok: false, blocked: true, reason: 'v148_dataset_mismatch' };
+    if (v148Allowed && !protocoloGEvent && pixelId !== META_V148_EXISTING_DATASET) {
+        return { ok: false, blocked: true, reason: 'v148_dataset_mismatch' };
+    }
     const built = buildBrowserServerEventPayload(event, req, options);
     if (!built.ok) return built;
 
@@ -437,7 +438,7 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
 
-    const protocoloGOrder = isEcuadorTexUltraProtocoloG(order);
+    const protocoloGOrder = isEcuadorTexUltraProtocoloGMetaDestination(order);
     const clientContextSource = String(order?.tracking?.clientContextSource || '').trim();
     const trustedProtocoloGUserAgent = clientContextSource === 'vilaliemen_protocolo_g_server_bridge';
     const trustedProtocoloGClientIp = clientContextSource === 'client_browser_direct';
