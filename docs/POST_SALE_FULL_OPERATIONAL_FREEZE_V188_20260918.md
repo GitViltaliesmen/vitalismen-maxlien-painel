@@ -34,6 +34,11 @@ TREATMENT_REFILL_REMINDER.
 - Dropi permanece `REPORT_ONLY`, Meta Purchase e retro-send permanecem
   desligados, Baileys permanece desligado e recuperação global de backlog
   permanece desligada.
+- antes da ativação, o canário de uso único aceita somente o QA oficial
+  `5515998038637`, persiste bolha e ledger próprios e prova o dedupe em uma
+  segunda execução sem criar cliente, Order, Shipment, Dropi ou Meta;
+- a exceção de horário é exclusiva desse canário QA explicitamente autorizado;
+  clientes reais continuam presos à janela de `America/Guayaquil`.
 
 ## Classes de escrita autorizadas no executor
 

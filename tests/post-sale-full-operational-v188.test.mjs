@@ -180,3 +180,15 @@ test('executor aplica lote um, janela e transporte Z-API sem iniciar Baileys', (
     assert.match(ops, /flock -n/);
     assert.match(ops, /assert_pm2_bot_online/);
 });
+
+test('canário usa somente QA oficial sem criar pedido ou Shipment e prova dedupe', () => {
+    const source = fs.readFileSync('scripts/post-sale-v188-qa-canary.mjs', 'utf8');
+    const operations = fs.readFileSync('ops/post-sale-v188', 'utf8');
+    assert.match(source, /EC_QA_TEST_PHONE_V78 !== '5515998038637'/);
+    assert.match(source, /provider: 'zapi'/);
+    assert.match(source, /orderCreated: false/);
+    assert.match(source, /shipmentCreated: false/);
+    assert.match(source, /PASS_QA_CANARY_DEDUPED/);
+    assert.match(operations, /VITALISMEN_POSTSALE_V188_QA_CANARY/);
+    assert.match(operations, /DUPLICATE_SEND_COUNT=0/);
+});

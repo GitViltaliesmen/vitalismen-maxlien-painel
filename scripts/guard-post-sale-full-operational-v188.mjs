@@ -21,6 +21,7 @@ const allowed = new Set([
     'src/services/postSaleFullExecutorV188Service.js',
     'src/services/postSaleRefillV188Service.js',
     'scripts/create-post-sale-v188-overlay.mjs',
+    'scripts/post-sale-v188-qa-canary.mjs',
     'scripts/post-sale-full-v188.mjs',
     'scripts/guard-post-sale-full-operational-v188.mjs',
     'scripts/lib/ec-runtime-successor-v188-context.mjs',
@@ -82,7 +83,17 @@ const operations = fs.readFileSync('ops/post-sale-v188', 'utf8');
 assert.match(operations, /staging_overlay="\$\(mktemp/);
 assert.match(operations, /NODE_OPTIONS="--import=\$candidate\/scripts\/lib\/ec-runtime-successor-v188-context\.mjs"/);
 assert.match(operations, /node --test tests\/post-sale-full-operational-v188\.test\.mjs/);
+assert.match(operations, /I_UNDERSTAND_V188_QA_CANARY/);
+assert.match(operations, /scripts\/post-sale-v188-qa-canary\.mjs/);
 assert.doesNotMatch(operations, /staging-check[\s\S]*current\/scripts\/lib\/ec-runtime-successor-v188-context\.mjs/);
+
+const canary = fs.readFileSync('scripts/post-sale-v188-qa-canary.mjs', 'utf8');
+assert.match(canary, /EC_QA_TEST_PHONE_V78 !== '5515998038637'/);
+assert.match(canary, /orderCreated: false/);
+assert.match(canary, /shipmentCreated: false/);
+assert.match(canary, /state: 'INTENDED'/);
+assert.match(canary, /state: 'SENT'/);
+assert.match(canary, /PASS_QA_CANARY_DEDUPED/);
 
 const protectedGroups = {
     VSL_HASH_DIFF: ['public/protocolo-g', 'public/n', 'src/routes/vsl.js', 'src/services/vslPreleadPanelService.js'],

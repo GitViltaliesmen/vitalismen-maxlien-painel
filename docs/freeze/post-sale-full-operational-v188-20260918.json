@@ -13,6 +13,7 @@
     "scripts/create-post-sale-v188-overlay.mjs",
     "scripts/guard-post-sale-full-operational-v188.mjs",
     "scripts/lib/ec-runtime-successor-v188-context.mjs",
+    "scripts/post-sale-v188-qa-canary.mjs",
     "scripts/post-sale-full-v188.mjs",
     "src/services/postSaleFullExecutorV188Service.js",
     "src/services/postSaleFullOperationalV188Service.js",
@@ -27,6 +28,7 @@
     "scripts/create-post-sale-v188-overlay.mjs",
     "scripts/guard-post-sale-full-operational-v188.mjs",
     "scripts/lib/ec-runtime-successor-v188-context.mjs",
+    "scripts/post-sale-v188-qa-canary.mjs",
     "scripts/post-sale-full-v188.mjs",
     "src/services/postSaleFullExecutorV188Service.js",
     "src/services/postSaleFullOperationalV188Service.js",
@@ -34,18 +36,19 @@
     "tests/post-sale-full-operational-v188.test.mjs"
   ],
   "protectedFiles": {
-    "docs/POST_SALE_FULL_OPERATIONAL_FREEZE_V188_20260918.md": "920fa853a79b9c95d420de10018930c1187f006fd1ec3443d2485f52781be03c",
-    "ops/post-sale-v188": "93e4e8b6ad688d0f6bfa841e88d62d5db42094f97384c9359818d5df4f96491a",
+    "docs/POST_SALE_FULL_OPERATIONAL_FREEZE_V188_20260918.md": "063f35d7e6a2ea78a3714de924e91864ac2ca1beb26f733499a203b076161521",
+    "ops/post-sale-v188": "a197b65629634f508d1bbaab316e6358b0b1e2d90c1d424a1fdf828a70cb49d9",
     "ops/systemd/vitalismen-postsale-full-v188.service": "64afce0b29992efa86f4a4dfdd766b973ab8ed983373e653e6f2cc488dc1316d",
     "ops/systemd/vitalismen-postsale-full-v188.timer": "34c83b0635b795cfe044f9eacf962647b8fddd3d052af671cf3cc5f22490b088",
     "scripts/create-post-sale-v188-overlay.mjs": "210704ee5e01852df4d0b8bc1cd48596fc83a05e24aa53d788d826eeb5c99d7f",
-    "scripts/guard-post-sale-full-operational-v188.mjs": "1c2c5a9f98c4c3cab682dda923326c438bea6729390fe406fbde993cccec7283",
+    "scripts/guard-post-sale-full-operational-v188.mjs": "6e71dc27db02503cd6f573cdc6aacf7d6ab394d788402ed101a68ae8670bc466",
     "scripts/lib/ec-runtime-successor-v188-context.mjs": "96fd03da8f5b47d75c3c8433364cbfab67db4e53bcec4601aebea08a4e17db95",
+    "scripts/post-sale-v188-qa-canary.mjs": "ee72131dd09a795dd1f2d8923e6e92fcb95b0acc4314574e7b24340696e0cc59",
     "scripts/post-sale-full-v188.mjs": "89a05e25cc36382535a7626fe82811a96611b613782eab2e32f660b50e990442",
     "src/services/postSaleFullExecutorV188Service.js": "2b1d7bb2dc87d7dab220962454c62ed7d553329d5d8db321882432b9b44531cc",
     "src/services/postSaleFullOperationalV188Service.js": "8fb3511ee3ede555ebafb351d5b4f5dba3d26d7d172281651d1bb3b34aab0294",
     "src/services/postSaleRefillV188Service.js": "d01483611f9531010f5ed213192bf67ced33bae21174ab9f2f1fff5bbaaf4d9f",
-    "tests/post-sale-full-operational-v188.test.mjs": "8a5a8bad13f470d64f48f6bae73d7d0eaf6db5d06421443bae9c3fd7554f3a48"
+    "tests/post-sale-full-operational-v188.test.mjs": "8fabdb2f3aa7a90aabe8f31b4cef325c7ce5beed63e0437c73745feddd54963f"
   },
   "policy": {
     "postSaleOnly": true,

@@ -11,6 +11,8 @@ log_dir="/var/log/vitalismen-deploy"
 overlay_file="$state_dir/post-sale-v188.env"
 lock_file="$state_dir/post-sale-v188.lock"
 audit_file="$log_dir/post-sale-v188-audit.jsonl"
+canary_ledger="$state_dir/post-sale-v188-qa-canary.json"
+canary_lock="$state_dir/post-sale-v188-qa-canary.lock"
 current="$(readlink -f "$base_dir/current" 2>/dev/null || true)"
 action="${1:-status}"
 
@@ -120,6 +122,51 @@ NODE
   exit 0
 fi
 
+if [[ "$action" == "qa-canary" ]]; then
+  [[ "$#" -eq 1 ]] || die "uso: post-sale-v188 qa-canary"
+  [[ "${VITALISMEN_POSTSALE_V188_QA_CANARY:-}" == "I_UNDERSTAND_V188_QA_CANARY" ]] || die "autorizacao QA V188 ausente"
+  assert_pm2_bot_online || die "PM2 bot oficial fora da release current"
+  candidate="$(realpath -e "$(dirname "$0")/.." 2>/dev/null || true)"
+  [[ "$candidate" == "$base_dir"/releases/* && -d "$candidate" && ! -L "$candidate" ]] || die "release candidata QA invalida"
+  exec 8>"$canary_lock"
+  flock -n 8 || die "canario QA V188 ja em andamento"
+  staging_overlay="$(mktemp "$state_dir/post-sale-v188-canary.XXXXXX.env")"
+  trap 'rm -f "$staging_overlay"' EXIT
+  rm -f "$staging_overlay"
+  (cd "$candidate" && node scripts/create-post-sale-v188-overlay.mjs "$staging_overlay")
+  chown root:root "$staging_overlay"
+  chmod 0400 "$staging_overlay"
+  load_overlay "$staging_overlay"
+  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v188-context.mjs"
+  output="$log_dir/$(basename "$candidate").post-sale-v188-qa-canary-$(date -u +%Y%m%dT%H%M%SZ).jsonl"
+  (cd "$candidate" && node scripts/post-sale-v188-qa-canary.mjs "$canary_ledger") >>"$output"
+  (cd "$candidate" && node scripts/post-sale-v188-qa-canary.mjs "$canary_ledger") >>"$output"
+  chmod 0600 "$output" "$canary_ledger"
+  NODE_OPTIONS= node - "$output" <<'NODE'
+const fs = require('node:fs');
+const text = fs.readFileSync(process.argv[2], 'utf8');
+if (!text.includes('"status": "PASS_QA_CANARY_SENT"') && !text.includes('"status": "PASS_QA_CANARY_DEDUPED"')) throw new Error('qa_canary_first_pass_missing');
+const deduped = text.match(/"status": "PASS_QA_CANARY_DEDUPED"/g) || [];
+if (deduped.length < 1) throw new Error('qa_canary_dedupe_replay_missing');
+if (!text.includes('"bubblePersisted": true') || !text.includes('"ledgerState": "SENT"')) throw new Error('qa_canary_persistence_missing');
+if (!text.includes('"duplicateSendCount": 0') || !text.includes('"sendExecuted": false')) throw new Error('qa_canary_duplicate_guard_missing');
+NODE
+  append_audit "qa_canary_passed" "recipient=official_qa_only_no_order_no_shipment"
+  echo "V188_QA_CANARY=PASS"
+  echo "QA_PHONE=5515998038637"
+  echo "PROVIDER_ACCEPTED=YES"
+  echo "BUBBLE_PERSISTED=YES"
+  echo "LEDGER=SENT"
+  echo "DEDUPE_ACTIVE=YES"
+  echo "DUPLICATE_SEND_COUNT=0"
+  echo "ORDER_CREATED=NO"
+  echo "SHIPMENT_CREATED=NO"
+  echo "DROPI_APPLY=NO"
+  echo "META_PURCHASE=NO"
+  echo "RESULT=$output"
+  exit 0
+fi
+
 if [[ "$action" == "install" ]]; then
   [[ "$#" -eq 1 ]] || die "uso: post-sale-v188 install"
   assert_pm2_bot_online || die "PM2 bot fora da release current"
@@ -175,4 +222,4 @@ if [[ "$action" == "contain" ]]; then
   exit 0
 fi
 
-die "uso: post-sale-v188 status|staging-check RELEASE|install|snapshot|dry-run|run|activate|contain"
+die "uso: post-sale-v188 status|staging-check RELEASE|qa-canary|install|snapshot|dry-run|run|activate|contain"
