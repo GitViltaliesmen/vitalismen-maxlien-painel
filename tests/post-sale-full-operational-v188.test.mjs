@@ -26,11 +26,11 @@ import {
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 
-test('perfil V188 mantém bot core e libera somente classes explícitas de pós-venda', () => {
+test('perfil V188 isola o executor e libera somente classes explícitas de pós-venda', () => {
     const overlay = buildPostSaleFullOperationalV188Overlay();
     const resolved = resolvePostSaleFullOperationalV188Configuration(overlay);
     assert.equal(resolved.ready, true);
-    assert.equal(overlay.VITALISMEN_EC_BOT_CORE_OPERATIONAL, 'true');
+    assert.equal(overlay.VITALISMEN_EC_BOT_CORE_OPERATIONAL, 'false');
     assert.equal(overlay.VITALISMEN_STRICT_READ_ONLY, 'false');
     assert.equal(overlay.DISABLE_SCHEDULER, '1');
     assert.equal(overlay.SHIPMENT_STATUS_DISPATCH_DAILY_LIMIT, '1');

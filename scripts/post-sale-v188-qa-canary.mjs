@@ -11,7 +11,7 @@ import { sendText } from '../src/whatsapp/sendText.js';
 
 const AUTHORIZATION = 'I_UNDERSTAND_V188_QA_CANARY';
 const CANARY_STAGE = 'GUIDE_QA_CANARY';
-const CANARY_DEDUPE_KEY = 'shipment_v188_qa_canary:guide:20260918';
+const CANARY_DEDUPE_KEY = 'shipment_v188_qa_canary:guide:20260918:r2';
 const CANARY_TEXT = 'Prueba técnica QA V188 de posventa: aviso de guía validado. No corresponde a un pedido real.';
 const ledgerPath = path.resolve(String(process.argv[2] || ''));
 

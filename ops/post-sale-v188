@@ -52,7 +52,7 @@ load_overlay() {
     export "$key=$value"
   done <"$source_file"
   [[ "${VITALISMEN_EC_POSTSALE_FULL_OPERATIONAL_V188:-}" == "true" ]] || die "gate V188 ausente"
-  [[ "${VITALISMEN_EC_BOT_CORE_OPERATIONAL:-}" == "true" ]] || die "bot core V188 deve permanecer ligado"
+  [[ "${VITALISMEN_EC_BOT_CORE_OPERATIONAL:-}" == "false" ]] || die "executor V188 nao pode assumir identidade do bot core PM2"
   [[ "${DROPPI_EC_ACTIVE_SYNC_MODE:-}" == "REPORT_ONLY" ]] || die "Dropi fora de REPORT_ONLY"
   [[ "${VITALISMEN_META_PURCHASE_ENABLED:-}" == "false" ]] || die "Meta Purchase deve permanecer desligado"
   [[ "${WHATSAPP_CONNECT_ENABLED:-}" == "false" ]] || die "Baileys deve permanecer desligado"

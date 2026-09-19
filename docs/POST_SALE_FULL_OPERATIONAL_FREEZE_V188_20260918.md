@@ -9,6 +9,10 @@ Branch: `codex/v188-postsale-full-operational`
 A V188 habilita exclusivamente o pós-venda EC em executor `systemd` isolado. O
 processo principal do PM2 continua no perfil `EC_BOT_CORE_OPERATIONAL`; a V188
 não troca nem reinicia o motor comercial para executar os agendamentos.
+O executor separado usa identidade própria e declara
+`VITALISMEN_EC_BOT_CORE_OPERATIONAL=false`; assim ele não falsifica o write
+context HTTP da V78, enquanto a identidade real do Bot Core permanece somente
+no PM2.
 Todos os arquivos históricos congelados permanecem byte a byte iguais à base;
 a cadência ampliada vive somente nos novos arquivos da microcamada V188.
 

@@ -37,7 +37,7 @@ assert.deepEqual(changed.filter((file) => !allowed.has(file)), [], 'V188 alterou
 const profile = buildPostSaleFullOperationalV188Overlay();
 const resolved = resolvePostSaleFullOperationalV188Configuration(profile);
 assert.equal(resolved.ready, true);
-assert.equal(profile.VITALISMEN_EC_BOT_CORE_OPERATIONAL, 'true');
+assert.equal(profile.VITALISMEN_EC_BOT_CORE_OPERATIONAL, 'false');
 assert.equal(profile.VITALISMEN_STRICT_READ_ONLY, 'false');
 assert.equal(profile.DISABLE_SCHEDULER, '1');
 assert.equal(profile.SHIPMENT_STATUS_DISPATCH_DAILY_LIMIT, '1');

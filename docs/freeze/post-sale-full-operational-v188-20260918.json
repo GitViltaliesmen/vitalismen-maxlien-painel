@@ -36,19 +36,19 @@
     "tests/post-sale-full-operational-v188.test.mjs"
   ],
   "protectedFiles": {
-    "docs/POST_SALE_FULL_OPERATIONAL_FREEZE_V188_20260918.md": "063f35d7e6a2ea78a3714de924e91864ac2ca1beb26f733499a203b076161521",
-    "ops/post-sale-v188": "a197b65629634f508d1bbaab316e6358b0b1e2d90c1d424a1fdf828a70cb49d9",
+    "docs/POST_SALE_FULL_OPERATIONAL_FREEZE_V188_20260918.md": "1455956191fb89dde7d43953dcc6926aae669461e71132c9042a08308a962a72",
+    "ops/post-sale-v188": "08518a533055a9c2c4d0bd3a6172585f2badd78f12acef6a50fd4f30311248ac",
     "ops/systemd/vitalismen-postsale-full-v188.service": "64afce0b29992efa86f4a4dfdd766b973ab8ed983373e653e6f2cc488dc1316d",
     "ops/systemd/vitalismen-postsale-full-v188.timer": "34c83b0635b795cfe044f9eacf962647b8fddd3d052af671cf3cc5f22490b088",
     "scripts/create-post-sale-v188-overlay.mjs": "210704ee5e01852df4d0b8bc1cd48596fc83a05e24aa53d788d826eeb5c99d7f",
-    "scripts/guard-post-sale-full-operational-v188.mjs": "6e71dc27db02503cd6f573cdc6aacf7d6ab394d788402ed101a68ae8670bc466",
+    "scripts/guard-post-sale-full-operational-v188.mjs": "b89a0d17de4844e721ed66f8e8b3d59806b76648175907a010b947979a7404e1",
     "scripts/lib/ec-runtime-successor-v188-context.mjs": "96fd03da8f5b47d75c3c8433364cbfab67db4e53bcec4601aebea08a4e17db95",
-    "scripts/post-sale-v188-qa-canary.mjs": "ee72131dd09a795dd1f2d8923e6e92fcb95b0acc4314574e7b24340696e0cc59",
+    "scripts/post-sale-v188-qa-canary.mjs": "6f0402deddef3d6e6be5b501f6136b0a4907132eccb921bc8b2ab07603d0fca0",
     "scripts/post-sale-full-v188.mjs": "89a05e25cc36382535a7626fe82811a96611b613782eab2e32f660b50e990442",
     "src/services/postSaleFullExecutorV188Service.js": "2b1d7bb2dc87d7dab220962454c62ed7d553329d5d8db321882432b9b44531cc",
-    "src/services/postSaleFullOperationalV188Service.js": "8fb3511ee3ede555ebafb351d5b4f5dba3d26d7d172281651d1bb3b34aab0294",
+    "src/services/postSaleFullOperationalV188Service.js": "8f8afcf1238b5fda613fa155cd398e2a18c3abcdd35252a85eae87859af9cc83",
     "src/services/postSaleRefillV188Service.js": "d01483611f9531010f5ed213192bf67ced33bae21174ab9f2f1fff5bbaaf4d9f",
-    "tests/post-sale-full-operational-v188.test.mjs": "8fabdb2f3aa7a90aabe8f31b4cef325c7ce5beed63e0437c73745feddd54963f"
+    "tests/post-sale-full-operational-v188.test.mjs": "74a03e9d91e99fcf853bbc228217bef6c4404cce65ab318cfacf08071f88dd55"
   },
   "policy": {
     "postSaleOnly": true,
