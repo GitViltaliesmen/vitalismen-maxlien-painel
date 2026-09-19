@@ -1,0 +1,64 @@
+{
+  "version": "V191",
+  "date": "2026-09-19",
+  "mode": "READ_ONLY_SHADOW_NOT_ACTIVATED",
+  "baseCommit": "da1868cb7fda596a9ec9342bf0031e1542113b12",
+  "productionRelease": "20260919T011423Z_production-20260919-c0cca11",
+  "branch": "codex/v191-vsl-ingress-ledger-shadow",
+  "allowedFiles": [
+    "docs/VSL_INGRESS_LEDGER_SHADOW_V191_20260919.md",
+    "docs/freeze/vsl-ingress-ledger-shadow-v191-20260919.json",
+    "scripts/audit-vsl-ingress-ledger-v191.mjs",
+    "scripts/guard-vsl-ingress-ledger-v191.mjs",
+    "src/services/vslIngressLedgerV191Service.js",
+    "tests/vsl-ingress-ledger-v191.test.mjs"
+  ],
+  "invariants": {
+    "existingFunctionalFilesChanged": 0,
+    "databaseMutationCapabilities": 0,
+    "whatsappOutboundCapabilities": 0,
+    "orderMutationCapabilities": 0,
+    "metaEventCapabilities": 0,
+    "dropiMutationCapabilities": 0,
+    "productionDeployed": false,
+    "stageDeployed": false,
+    "shadowActivated": false,
+    "qaPhoneExcludedByDefault": true,
+    "fullPhoneInPublicOutput": false,
+    "fullMessageBodyInPublicOutput": false
+  },
+  "hashLocks": {
+    "VSL": {
+      "files": 72,
+      "sha256": "f6d85e3ebf0a0777d57c0afe019c2497eaab6071705b009a92703fec498bcedf"
+    },
+    "BOT_SALES_CORE": {
+      "files": 36,
+      "sha256": "5067d92bb118f4c3f314b102d6d12d3d3b850952ecb7ce5cd24bb103147fb7c9"
+    },
+    "QR_PANEL": {
+      "files": 1,
+      "sha256": "1d1faa581133eaaf19b25a0c62c2e2b146854803990637c04fe5326644c8c5f1"
+    },
+    "FUNNEL_METRICS": {
+      "files": 7,
+      "sha256": "e3189dd56d1819d8eefa220c31438fcea36e89bfb36345e11031873395a8f626"
+    },
+    "POSTSALE_V188": {
+      "files": 172,
+      "sha256": "35b5b2425b09a1b732f26a8d49bcb76241de1b44957855ac65f3709ea26eda58"
+    },
+    "META_CAPI": {
+      "files": 70,
+      "sha256": "0f6e9155bb21e484917535bca93edea80669b9d65dc227f70d8c9e52f4f78a72"
+    },
+    "ZAPI": {
+      "files": 33,
+      "sha256": "67d03d3e2223d710db5407e242b753245f20edc00b12aede6d0c2cfa79d580fd"
+    },
+    "DROPI": {
+      "files": 130,
+      "sha256": "6d43096647846178b43afe4e3b0d263170e07680d8d65b8884feb69d0190ad92"
+    }
+  }
+}
