@@ -1,0 +1,35 @@
+{
+  "version": "V193",
+  "date": "2026-09-19",
+  "baseCommit": "818db6cf281ee22d3ab4efc04f76cc7cf7898ae1",
+  "productionReleaseBeforeV193": "20260919T011423Z_production-20260919-c0cca11",
+  "branch": "codex/v193-vsl-first-response-watchdog-fix",
+  "allowedFiles": [
+    "docs/VSL_FIRST_RESPONSE_WATCHDOG_V193_20260919.md",
+    "docs/freeze/vsl-first-response-watchdog-v193-20260919.json",
+    "scripts/audit-v193-historical-watchdog-readonly.mjs",
+    "scripts/guard-vsl-first-response-watchdog-v193.mjs",
+    "src/routes/zapi.js",
+    "src/services/vslFirstResponseWatchdogV193Service.js",
+    "tests/vsl-first-response-watchdog-v193.test.mjs"
+  ],
+  "invariants": {
+    "publicVslLeadEntryRedefined": false,
+    "normalInlineRoutingChanged": false,
+    "historicalRecoveryEnabled": false,
+    "realCustomerTestSendAllowed": false,
+    "watchdogRecoveryAttemptMax": 1,
+    "qaWatchdogEnabled": false
+  },
+  "hashLocks": {
+    "VSL": { "files": 76, "sha256": "458f5d733e197dca2a7cb05179381308d86337beeb862f53f636c7080612cd62" },
+    "BOT_PROMPT": { "files": 4, "sha256": "989b0b03426e05c6f8b03782b517209e06e330e709ee13c889a0ee33e398f2b0" },
+    "AGENT_ROUTER": { "files": 1, "sha256": "eedc139aea66c7466a173ca2cbf8b0586fde3eb3e737d734918861abad85ef4a" },
+    "CONVERSATION_ENGINE": { "files": 1, "sha256": "3b6c56588bdcc999bcc06f0b3573a1f992a0176933717855f00a54e0dc4b71dc" },
+    "QR_PANEL": { "files": 1, "sha256": "6a3e02b47be483c4bd7ae751aa78307dab196f9a7891b6824203da41b50dc89d" },
+    "FUNNEL_METRICS": { "files": 6, "sha256": "3bf8e96e8ba00382bb754a86fc7c24d98290208578d771a455846d661ec9e541" },
+    "POSTSALE_V188": { "files": 172, "sha256": "57a3d342ec8f8545b72eb0780747e5e28cbae92f878f360cf7b106f9c68b7f5e" },
+    "META_CAPI_FUNCTIONAL": { "files": 21, "sha256": "0e6db80d6414c566cb084ceb902f20b7385bf7f552fbe764929336d1c7e5d431" },
+    "DROPI": { "files": 130, "sha256": "2f3e27230b16b542f655962bd708451f9ac587d37bee125b689fa9b0a2dc011d" }
+  }
+}
