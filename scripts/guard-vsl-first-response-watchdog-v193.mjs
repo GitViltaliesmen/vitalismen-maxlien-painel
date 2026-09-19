@@ -146,10 +146,10 @@ assert.equal(freeze.runtimeGuardSuccessor.policy.inheritedOverrideCount, 17);
 assert.equal(freeze.runtimeGuardSuccessor.policy.wildcardsAllowed, false);
 assert.equal(freeze.runtimeGuardSuccessor.policy.guardBypassAllowed, false);
 for (const [file, expected] of Object.entries(freeze.runtimeGuardSuccessor.protectedFiles)) {
-    assert.equal(crypto.createHash('sha256').update(read(file)).digest('hex'), expected, `[V193] runtime_successor_hash_changed:${file}`);
+    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, file))).digest('hex'), expected, `[V193] runtime_successor_hash_changed:${file}`);
 }
 for (const [file, expected] of Object.entries(freeze.runtimeGuardSuccessor.inheritedProtectedFiles)) {
-    assert.equal(crypto.createHash('sha256').update(read(file)).digest('hex'), expected, `[V193] inherited_runtime_hash_changed:${file}`);
+    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, file))).digest('hex'), expected, `[V193] inherited_runtime_hash_changed:${file}`);
 }
 
 const categoryResults = {};
