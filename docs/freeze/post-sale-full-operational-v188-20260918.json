@@ -37,7 +37,7 @@
   ],
   "protectedFiles": {
     "docs/POST_SALE_FULL_OPERATIONAL_FREEZE_V188_20260918.md": "1455956191fb89dde7d43953dcc6926aae669461e71132c9042a08308a962a72",
-    "ops/post-sale-v188": "08518a533055a9c2c4d0bd3a6172585f2badd78f12acef6a50fd4f30311248ac",
+    "ops/post-sale-v188": "56953db3065bbffd1be5bbb36539b7f15ca2a21bee9d71f69ad2b8f34bc6e5b2",
     "ops/systemd/vitalismen-postsale-full-v188.service": "64afce0b29992efa86f4a4dfdd766b973ab8ed983373e653e6f2cc488dc1316d",
     "ops/systemd/vitalismen-postsale-full-v188.timer": "34c83b0635b795cfe044f9eacf962647b8fddd3d052af671cf3cc5f22490b088",
     "scripts/create-post-sale-v188-overlay.mjs": "210704ee5e01852df4d0b8bc1cd48596fc83a05e24aa53d788d826eeb5c99d7f",
@@ -48,7 +48,7 @@
     "src/services/postSaleFullExecutorV188Service.js": "2b1d7bb2dc87d7dab220962454c62ed7d553329d5d8db321882432b9b44531cc",
     "src/services/postSaleFullOperationalV188Service.js": "8f8afcf1238b5fda613fa155cd398e2a18c3abcdd35252a85eae87859af9cc83",
     "src/services/postSaleRefillV188Service.js": "d01483611f9531010f5ed213192bf67ced33bae21174ab9f2f1fff5bbaaf4d9f",
-    "tests/post-sale-full-operational-v188.test.mjs": "74a03e9d91e99fcf853bbc228217bef6c4404cce65ab318cfacf08071f88dd55"
+    "tests/post-sale-full-operational-v188.test.mjs": "e34ca364a30e4f87fe0436ba205717cf796f8963663af9c01dff72b11bd55499"
   },
   "policy": {
     "postSaleOnly": true,

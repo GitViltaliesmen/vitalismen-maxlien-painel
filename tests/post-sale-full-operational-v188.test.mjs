@@ -191,4 +191,5 @@ test('canário usa somente QA oficial sem criar pedido ou Shipment e prova dedup
     assert.match(source, /PASS_QA_CANARY_DEDUPED/);
     assert.match(operations, /VITALISMEN_POSTSALE_V188_QA_CANARY/);
     assert.match(operations, /DUPLICATE_SEND_COUNT=0/);
+    assert.match(operations, /NODE_OPTIONS= node - "\$audit_file"/);
 });

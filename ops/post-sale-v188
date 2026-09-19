@@ -22,7 +22,7 @@ install -d -o root -g root -m 0700 "$state_dir" "$log_dir"
 
 append_audit() {
   local event="$1" detail="${2:-}"
-  node - "$audit_file" "$event" "$(basename "$current")" "$detail" <<'NODE'
+  NODE_OPTIONS= node - "$audit_file" "$event" "$(basename "$current")" "$detail" <<'NODE'
 const fs = require('node:fs');
 const [file,event,release,detail] = process.argv.slice(2);
 fs.appendFileSync(file, `${JSON.stringify({timestamp:new Date().toISOString(),event,release,detail})}\n`, {mode:0o600});
