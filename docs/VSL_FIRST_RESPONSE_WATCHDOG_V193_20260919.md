@@ -48,4 +48,10 @@ Não existe migração, limpeza retroativa ou fila de recovery histórico. `scri
 
 Os cenários V193 cobrem primeira entrada, follow-ups, mídia, duplicação, outbound existente, estado legado `failed`, humano, três buckets bloqueados, concorrência entre workers, at-most-once, borda de janela, regressão de produto/funil, fixture Kleber e QA.
 
+Os gates herdados que abrem subprocessos Node devem carregar o contexto sucessor validado:
+
+```sh
+NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v193-context.mjs npm run senior:check
+```
+
 Rollback operacional deve usar o pipeline oficial para retornar ao release anterior. Nunca editar `/opt/vitalismen-automacao/current` diretamente.

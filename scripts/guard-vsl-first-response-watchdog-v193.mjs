@@ -17,6 +17,7 @@ const EXPECTED_FILES = Object.freeze([
     'scripts/lib/ec-runtime-successor-v168b-preload-context.mjs',
     'scripts/lib/ec-runtime-successor-v170-context.mjs',
     'scripts/lib/ec-runtime-successor-v184-context.mjs',
+    'scripts/lib/ec-runtime-successor-v193-context.mjs',
     'src/routes/zapi.js',
     'src/services/vslFirstResponseWatchdogV193Service.js',
     'tests/vsl-first-response-watchdog-v193.test.mjs'
