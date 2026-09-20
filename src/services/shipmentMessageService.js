@@ -1854,7 +1854,7 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
 
 export const prepareA07InvoiceV147R6R2 = async (shipment) => ensureInvoiceAvailableLocally(await Shipment.findById(shipment._id));
 
-export const notifyReadyForPickup = async (shipment, { force = false } = {}) => {
+export const notifyReadyForPickup = async (shipment, { force = false, maxComponents = Infinity } = {}) => {
     if (!logisticsCommunicationPolicy(shipment).allowPickupLanguage) {
         await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', blockedReason: 'pickup_ready_not_verified' });
         return false;
@@ -1865,8 +1865,10 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
     const plan = await a07PlanV147R6R2(shipment);
     if (!plan) return false;
     let sentAny = false;
+    let sentComponents = 0;
     const details = {};
     for (const event of plan.components) {
+        if (sentComponents >= Math.max(1, Number(maxComponents) || 1)) break;
         shipment = await Shipment.findById(shipment._id);
         const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup',
             variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT, a07Component: event.component });
@@ -1893,6 +1895,7 @@ export const notifyReadyForPickup = async (shipment, { force = false } = {}) => 
                 failure: result?.ok && result.providerMessageId ? '' : result?.providerAttempted === false ? 'PENDING' : 'AMBIGUOUS' });
             if (!finalized.completed) return sentAny;
             sentAny = true;
+            sentComponents += 1;
         } catch (error) {
             await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, failure: 'AMBIGUOUS' });
             throw error;
@@ -2853,7 +2856,12 @@ export const handlePickupProofInbound = async ({
     });
 };
 
-export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}) => {
+export const processPickupProofSweep = async ({
+    limit = 50,
+    dryRun = true,
+    eligibilityFn = null,
+    maxPhysicalSends = Infinity
+} = {}) => {
     const shipments = await Shipment.find({
         country: 'EC',
         ...buildCanaryV75RecipientQuery('client.phone'),
@@ -2887,6 +2895,14 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
             results.push({ orderId: shipment.orderId, matched: false, reason: 'no_proof_message' });
             continue;
         }
+        if (eligibilityFn && !await eligibilityFn({ shipment, proof })) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: 'forward_only_not_eligible' });
+            continue;
+        }
+        if (bonusSent >= Math.max(0, Number(maxPhysicalSends) || 0)) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: 'physical_send_limit_reached' });
+            break;
+        }
 
         const result = await confirmPickupFromProof({
             shipment,
@@ -2917,7 +2933,7 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
     };
 };
 
-export const notifyTreatmentRefillReminder = async (shipment) => {
+export const notifyTreatmentRefillReminder = async (shipment, { maxPhysicalSends = Infinity } = {}) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.refillReminderAt || shipment?.review?.manualOnly === true) return false;
     const decision = await decidePostSaleNotification({
@@ -2982,10 +2998,13 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     });
     if (!finalized.completed) return false;
 
-    const approvedAudioPath = await resolveCountryAudio({
-        country: shipment.country || 'EC',
-        baseName: product.audioName
-    });
+    const physicalBudgetRemaining = Math.max(1, Number(maxPhysicalSends) || 1) - 1;
+    const approvedAudioPath = physicalBudgetRemaining > 0
+        ? await resolveCountryAudio({
+            country: shipment.country || 'EC',
+            baseName: product.audioName
+        })
+        : null;
     const audioSent = approvedAudioPath
         ? await sendShipmentAudioFile(shipment, chatId, approvedAudioPath, {
             kind: 'shipment_refill_reminder_audio',
@@ -3005,7 +3024,8 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     await appendEvent(shipment._id, 'refill_reminder_notified', {
         audioSent,
         audioName: product.audioName,
-        productKey: product.productKey
+        productKey: product.productKey,
+        audioDeferredByPhysicalBatchLimit: physicalBudgetRemaining <= 0
     });
     return true;
 };

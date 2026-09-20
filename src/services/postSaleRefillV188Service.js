@@ -9,6 +9,8 @@ import {
     repurchaseReminderDelayDaysForUnits
 } from './shipmentMessageService.js';
 import { servientregaPostSaleCompletionEligibleV147 } from './canonicalLogisticsStatusV147Service.js';
+import { isPostSaleV194ForwardOnlyEligible } from './postSaleForwardOnlyV194Service.js';
+import { POST_SALE_STAGES } from './postSaleSafetyV66Service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
@@ -58,6 +60,7 @@ const baseCandidateReasonV188 = (shipment = {}, now = new Date()) => {
 export const listTreatmentRefillCandidatesV188 = async ({
     now = new Date(),
     limit = 200,
+    forwardOnlySince = null,
     shipmentModel = Shipment
 } = {}) => {
     const safeLimit = Math.max(1, Math.min(Number(limit) || 200, 1000));
@@ -72,7 +75,12 @@ export const listTreatmentRefillCandidatesV188 = async ({
 
     const results = [];
     for (const shipment of shipments) {
-        const baseReason = baseCandidateReasonV188(shipment, now);
+        const forwardOnlyBlocked = forwardOnlySince && !isPostSaleV194ForwardOnlyEligible({
+            shipment,
+            stage: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER,
+            forwardOnlySince
+        });
+        const baseReason = forwardOnlyBlocked ? 'historical_replay_blocked' : baseCandidateReasonV188(shipment, now);
         const dueAt = treatmentRefillDueAtV188(shipment);
         let decision = null;
         if (!baseReason) {
@@ -98,11 +106,12 @@ export const processTreatmentRefillV188 = async ({
     now = new Date(),
     limit = 1,
     dryRun = true,
+    forwardOnlySince = null,
     shipmentModel = Shipment,
     notifyFn = notifyTreatmentRefillReminder
 } = {}) => {
     const safeLimit = Math.max(1, Math.min(Number(limit) || 1, 1));
-    const candidates = await listTreatmentRefillCandidatesV188({ now, shipmentModel });
+    const candidates = await listTreatmentRefillCandidatesV188({ now, forwardOnlySince, shipmentModel });
     const ready = candidates.filter((item) => item.eligible).slice(0, safeLimit);
     const report = {
         dryRun: Boolean(dryRun),
@@ -125,7 +134,7 @@ export const processTreatmentRefillV188 = async ({
     for (const item of ready) {
         const fresh = await shipmentModel.findById(item.shipment._id);
         if (!fresh || baseCandidateReasonV188(fresh, new Date())) continue;
-        if (await notifyFn(fresh)) report.sent += 1;
+        if (await notifyFn(fresh, { maxPhysicalSends: 1 })) report.sent += 1;
     }
     return report;
 };

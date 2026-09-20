@@ -14,7 +14,8 @@ export const POST_SALE_V188_ALLOWED_WRITE_CLASSES = Object.freeze([
     'post_sale_notification_lock',
     'post_sale_outbound',
     'post_sale_schedule_state',
-    'post_sale_logistics_state'
+    'post_sale_logistics_state',
+    'post_sale_dropi_tracking_state'
 ]);
 
 export const POST_SALE_V188_STAGES = Object.freeze([
@@ -89,7 +90,11 @@ const EXPECTED_PROFILE = Object.freeze({
     VITALISMEN_META_PURCHASE_ENABLED: 'false',
     META_RETRO_SEND: 'false',
     WHATSAPP_CONNECT_ENABLED: 'false',
-    POST_SALE_V188_CYCLE_OUTBOUND_LIMIT: '1'
+    POST_SALE_V188_CYCLE_OUTBOUND_LIMIT: '1',
+    POST_SALE_V194_FORWARD_ONLY_ENABLED: 'true',
+    POST_SALE_DROPI_TRACKING_RECONCILER_V194_ENABLED: 'true',
+    POST_SALE_DROPI_TRACKING_BATCH_LIMIT: '8',
+    POST_SALE_DROPI_TRACKING_DAILY_LIMIT: '12'
 });
 
 const clean = (value = '') => String(value ?? '').trim();
@@ -105,8 +110,11 @@ export const calculatePostSaleV188ProfileSha256 = (env = {}) => sha256(
     `${JSON.stringify(profilePayload(env))}\n`
 );
 
-export const buildPostSaleFullOperationalV188Overlay = () => {
+export const buildPostSaleFullOperationalV188Overlay = ({ forwardOnlySince = new Date().toISOString() } = {}) => {
     const overlay = { ...EXPECTED_PROFILE };
+    const cutoff = new Date(forwardOnlySince);
+    if (!Number.isFinite(cutoff.getTime())) throw new Error('post_sale_v194_forward_only_since_invalid');
+    overlay.POST_SALE_V194_FORWARD_ONLY_SINCE = cutoff.toISOString();
     overlay.POST_SALE_V188_ALLOWED_WRITE_CLASSES = POST_SALE_V188_ALLOWED_WRITE_CLASSES.join(',');
     overlay.POST_SALE_V188_PROFILE_SHA256 = calculatePostSaleV188ProfileSha256(overlay);
     return Object.freeze(overlay);
@@ -125,7 +133,9 @@ export const serializePostSaleFullOperationalV188Overlay = (env = {}) => {
 export const resolvePostSaleFullOperationalV188Configuration = (env = process.env) => {
     const enabled = clean(env[POST_SALE_FULL_OPERATIONAL_V188_FLAG]).toLowerCase() === 'true';
     if (!enabled) return Object.freeze({ enabled: false, ready: false, failures: ['v188_not_enabled'] });
-    const expected = buildPostSaleFullOperationalV188Overlay();
+    const expected = buildPostSaleFullOperationalV188Overlay({
+        forwardOnlySince: clean(env.POST_SALE_V194_FORWARD_ONLY_SINCE)
+    });
     const failures = [];
     for (const [key, value] of Object.entries(expected)) {
         if (clean(env[key]) !== value) failures.push(`${key}_invalid`);

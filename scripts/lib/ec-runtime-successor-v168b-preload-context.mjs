@@ -20,6 +20,7 @@ const baseline = readCanonicalManifest('docs/freeze/ec-runtime-guard-baseline-bo
 const v168b = readCanonicalManifest('docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json');
 const v193 = readCanonicalManifest('docs/freeze/vsl-first-response-watchdog-v193-20260919.json');
 const v193RuntimeGuardSuccessor = v193.runtimeGuardSuccessor;
+const v194 = readCanonicalManifest('docs/freeze/post-sale-dropi-reconciler-v194-20260920.json');
 
 assert.equal(baseline.freezeId, 'EC_RUNTIME_GUARD_BASELINE_BOOTSTRAP_V168B_20260916');
 assert.equal(baseline.trustedProductionCommit, '4a259499ccafe286d6650aa95115023f183f58fe');
@@ -30,14 +31,17 @@ assert.deepEqual([...v168b.overrides].sort(), Object.keys(v168b.protectedFiles).
 
 assert.equal(v193.version, 'V193');
 assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
+assert.equal(v194.version, 'V194');
+assert.equal(v194.policy.guardsBypassed, false);
 for (const [file, expected] of Object.entries({
     ...v193RuntimeGuardSuccessor.inheritedProtectedFiles,
     ...v193RuntimeGuardSuccessor.protectedFiles
-})) assert.equal(hashFile(file), expected, `[V193 preload] ${file}`);
+})) assert.equal(hashFile(file), v194.protectedFiles[file] || expected, `[V193/V194 preload] ${file}`);
 const laterSuccessorOverrides = new Set([
     ...(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []),
     ...v193RuntimeGuardSuccessor.overrides,
-    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles)
+    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles),
+    ...v194.overrides
 ]);
 const authorizedFiles = [...new Set([
     ...baseline.authorizedOverrideFiles,
@@ -68,5 +72,5 @@ globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT = Object.freeze({
 globalThis.__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: baseline.freezeId,
-    protectedFiles: Object.freeze({ ...baseline.protectedFiles, ...v168b.protectedFiles })
+    protectedFiles: Object.freeze({ ...baseline.protectedFiles, ...v168b.protectedFiles, ...v194.protectedFiles })
 });

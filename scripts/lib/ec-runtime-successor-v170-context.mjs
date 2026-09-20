@@ -10,6 +10,7 @@ const CUSTOMER_STATUS_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-customer-status
 const PANEL_FAST_LOAD_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-fast-load-v179-20260918.json';
 const PANEL_ONLY_AGENCY_SCOPE_SUCCESSOR_MANIFEST = 'docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json';
 const V193_WATCHDOG_SUCCESSOR_MANIFEST = 'docs/freeze/vsl-first-response-watchdog-v193-20260919.json';
+const V194_POSTSALE_SUCCESSOR_MANIFEST = 'docs/freeze/post-sale-dropi-reconciler-v194-20260920.json';
 const hashFile = (relative) => crypto.createHash('sha256')
     .update(fs.readFileSync(new URL(`../../${relative}`, import.meta.url)))
     .digest('hex');
@@ -30,6 +31,8 @@ const panelOnlyAgencyScopeSuccessor = JSON.parse(panelOnlyAgencyScopeSuccessorTe
 const v193WatchdogSuccessorText = fs.readFileSync(new URL(`../../${V193_WATCHDOG_SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
 const v193WatchdogSuccessor = JSON.parse(v193WatchdogSuccessorText);
 const v193RuntimeGuardSuccessor = v193WatchdogSuccessor.runtimeGuardSuccessor;
+const v194PostSaleSuccessorText = fs.readFileSync(new URL(`../../${V194_POSTSALE_SUCCESSOR_MANIFEST}`, import.meta.url), 'utf8');
+const v194PostSaleSuccessor = JSON.parse(v194PostSaleSuccessorText);
 
 assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`, '[V170] manifest_not_canonical');
 assert.equal(manifest.freezeId, 'EC_PRETRAFFIC_FINAL_RESTORATION_V170_20260916');
@@ -133,9 +136,15 @@ assert.equal(Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles).leng
 assert.equal(v193RuntimeGuardSuccessor.policy.inheritedOverrideCount, 17);
 assert.equal(v193RuntimeGuardSuccessor.policy.wildcardsAllowed, false);
 assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
+assert.equal(v194PostSaleSuccessorText, `${JSON.stringify(v194PostSaleSuccessor, null, 2)}\n`, '[V194] manifest_not_canonical');
+assert.equal(v194PostSaleSuccessor.version, 'V194');
+assert.equal(v194PostSaleSuccessor.baseCommit, '33876d4901ffbe25224d0ee9dd753ccf6f487ed6');
+assert.deepEqual([...v194PostSaleSuccessor.overrides].sort(), Object.keys(v194PostSaleSuccessor.protectedFiles).sort());
+assert.equal(v194PostSaleSuccessor.policy.guardsBypassed, false);
 
 const protectedHash = (file, expected) => (
-    v193RuntimeGuardSuccessor.protectedFiles[file]
+    v194PostSaleSuccessor.protectedFiles[file]
+    || v193RuntimeGuardSuccessor.protectedFiles[file]
     || panelOnlyAgencyScopeSuccessor.protectedFiles[file]
     || panelFastLoadSuccessor.protectedFiles[file]
     || customerStatusSuccessor.protectedFiles[file]
@@ -167,15 +176,16 @@ for (const [file, expected] of Object.entries(panelOnlyAgencyScopeSuccessor.prot
     assert.equal(hashFile(file), protectedHash(file, expected), `[V183/V193] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(v193RuntimeGuardSuccessor.protectedFiles)) {
-    assert.equal(hashFile(file), expected, `[V193] protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), protectedHash(file, expected), `[V193/V194] protected_file_invalid:${file}`);
 }
 for (const [file, expected] of Object.entries(v193RuntimeGuardSuccessor.inheritedProtectedFiles)) {
-    assert.equal(hashFile(file), expected, `[V193] inherited_protected_file_invalid:${file}`);
+    assert.equal(hashFile(file), protectedHash(file, expected), `[V193/V194] inherited_protected_file_invalid:${file}`);
 }
 
 const v193AuthorizedFiles = [
     ...v193RuntimeGuardSuccessor.overrides,
-    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles)
+    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles),
+    ...v194PostSaleSuccessor.overrides
 ];
 
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES']) {
@@ -188,9 +198,9 @@ globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT = Object.freeze({
     parentCommit: manifest.parentCommit,
     manifestSha256: crypto.createHash('sha256').update(text).digest('hex'),
     authorizedFiles: Object.freeze([...new Set([...manifest.overrides, ...successor.overrides, ...latestSuccessor.overrides, ...panelStatusSuccessor.overrides, ...customerStatusSuccessor.overrides, ...panelFastLoadSuccessor.overrides, ...panelOnlyAgencyScopeSuccessor.overrides, ...v193AuthorizedFiles])]),
-    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles, ...panelOnlyAgencyScopeSuccessor.protectedFiles, ...v193RuntimeGuardSuccessor.inheritedProtectedFiles, ...v193RuntimeGuardSuccessor.protectedFiles }),
-    successorFreezeId: v193WatchdogSuccessor.version,
-    successorManifestSha256: crypto.createHash('sha256').update(v193WatchdogSuccessorText).digest('hex')
+    protectedFiles: Object.freeze({ ...manifest.protectedFiles, ...successor.protectedFiles, ...latestSuccessor.protectedFiles, ...panelStatusSuccessor.protectedFiles, ...customerStatusSuccessor.protectedFiles, ...panelFastLoadSuccessor.protectedFiles, ...panelOnlyAgencyScopeSuccessor.protectedFiles, ...v193RuntimeGuardSuccessor.inheritedProtectedFiles, ...v193RuntimeGuardSuccessor.protectedFiles, ...v194PostSaleSuccessor.protectedFiles }),
+    successorFreezeId: v194PostSaleSuccessor.freezeId,
+    successorManifestSha256: crypto.createHash('sha256').update(v194PostSaleSuccessorText).digest('hex')
 });
 
 globalThis.__VITALISMEN_V171_TRAFFIC_RESTORATION_CONTEXT = Object.freeze({

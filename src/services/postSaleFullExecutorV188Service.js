@@ -27,6 +27,7 @@ import {
 import {
     POST_SALE_V188_STAGES
 } from './postSaleFullOperationalV188Service.js';
+import { isPostSaleV194ForwardOnlyEligible } from './postSaleForwardOnlyV194Service.js';
 
 const digitsOnly = (value = '') => String(value || '').replace(/\D/g, '');
 const clean = (value = '') => String(value ?? '').trim();
@@ -176,6 +177,7 @@ export const processShipmentPickupRemindersV188 = async ({
     limit = 1,
     dryRun = true,
     now = new Date(),
+    forwardOnlySince = null,
     shipmentModel = Shipment,
     notifyFn = notifyShipmentReminder
 } = {}) => {
@@ -198,7 +200,13 @@ export const processShipmentPickupRemindersV188 = async ({
     }).sort({ 'automation.readyForPickupNotifiedAt': 1 }).limit(200);
     const due = shipments
         .map((shipment) => ({ shipment, step: getDuePickupReminderStepV188(shipment, now) }))
-        .filter((item) => item.step && canaryV75SchedulerShipmentAllowed(item.shipment).allowed);
+        .filter((item) => item.step
+            && (!forwardOnlySince || isPostSaleV194ForwardOnlyEligible({
+                shipment: item.shipment,
+                stage: REMINDER_STAGE[item.step.kind],
+                forwardOnlySince
+            }))
+            && canaryV75SchedulerShipmentAllowed(item.shipment).allowed);
     const safeLimit = Math.max(1, Math.min(Number(limit) || 1, 1));
     const report = { dryRun: Boolean(dryRun), candidates: due.length, selected: 0, processed: 0, sent: 0, items: [] };
     for (const item of due) {
@@ -257,7 +265,7 @@ const classificationForDecision = (decision = {}) => {
     return 'NOT_ELIGIBLE';
 };
 
-const dueStagesForShipment = (shipment = {}, now = new Date()) => {
+const dueStagesForShipment = (shipment = {}, now = new Date(), forwardOnlySince = null) => {
     const output = [];
     const action = shipmentStatusDispatchActionForShipment(shipment);
     if (ACTION_STAGE[action] && !stageMarkerPresent(shipment, ACTION_STAGE[action])) {
@@ -288,12 +296,19 @@ const dueStagesForShipment = (shipment = {}, now = new Date()) => {
             output.push({ stage: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER, scheduledAt: refillDueAt });
         }
     }
-    return output;
+    return forwardOnlySince
+        ? output.filter((item) => isPostSaleV194ForwardOnlyEligible({
+            shipment,
+            stage: item.stage,
+            forwardOnlySince
+        }))
+        : output;
 };
 
 export const buildPostSaleBacklogSnapshotV188 = async ({
     now = new Date(),
     limit = 1000,
+    forwardOnlySince = null,
     shipmentModel = Shipment
 } = {}) => {
     const shipments = await shipmentModel.find({
@@ -303,7 +318,7 @@ export const buildPostSaleBacklogSnapshotV188 = async ({
 
     const backlog = [];
     for (const shipment of shipments) {
-        for (const due of dueStagesForShipment(shipment, now)) {
+        for (const due of dueStagesForShipment(shipment, now, forwardOnlySince)) {
             const ledger = terminalLedger(shipment, due.stage);
             if (clean(ledger?.state).toUpperCase() === 'AMBIGUOUS') {
                 backlog.push({ shipment, due, decision: {
@@ -423,6 +438,7 @@ export const buildDeterministicBacklogHashV188 = (items = []) => {
 export const planDeliveredSequenceV188 = async ({
     now = new Date(),
     limit = 200,
+    forwardOnlySince = null,
     shipmentModel = Shipment
 } = {}) => {
     const shipments = await shipmentModel.find({
@@ -437,6 +453,7 @@ export const planDeliveredSequenceV188 = async ({
     for (const shipment of shipments) {
         const stage = deliveredNextStage(shipment);
         if (!stage) continue;
+        if (forwardOnlySince && !isPostSaleV194ForwardOnlyEligible({ shipment, stage, forwardOnlySince })) continue;
         const decision = await decidePostSaleNotification({
             shipment,
             kind: legacyKindForPostSaleStage(stage),
@@ -452,9 +469,10 @@ export const processDeliveredSequenceV188 = async ({
     now = new Date(),
     limit = 1,
     dryRun = true,
+    forwardOnlySince = null,
     shipmentModel = Shipment
 } = {}) => {
-    const plan = await planDeliveredSequenceV188({ now, shipmentModel });
+    const plan = await planDeliveredSequenceV188({ now, forwardOnlySince, shipmentModel });
     const ready = plan.filter((item) => item.eligible).slice(0, Math.max(1, Math.min(Number(limit) || 1, 1)));
     const report = {
         dryRun: Boolean(dryRun),

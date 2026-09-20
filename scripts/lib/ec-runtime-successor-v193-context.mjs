@@ -9,19 +9,25 @@ const read = (relativePath) => fs.readFileSync(new URL(`../../${relativePath}`, 
 const hash = (relativePath) => crypto.createHash('sha256').update(read(relativePath)).digest('hex');
 const source = read('docs/freeze/vsl-first-response-watchdog-v193-20260919.json').toString('utf8');
 const freeze = JSON.parse(source);
+const v194Source = read('docs/freeze/post-sale-dropi-reconciler-v194-20260920.json').toString('utf8');
+const v194 = JSON.parse(v194Source);
 assert.equal(source, `${JSON.stringify(freeze, null, 2)}\n`, '[V193] manifest_not_canonical');
 assert.equal(freeze.version, 'V193');
 assert.equal(freeze.baseCommit, '818db6cf281ee22d3ab4efc04f76cc7cf7898ae1');
 assert.equal(freeze.runtimeGuardSuccessor.policy.guardBypassAllowed, false);
+assert.equal(v194Source, `${JSON.stringify(v194, null, 2)}\n`, '[V194] manifest_not_canonical');
+assert.equal(v194.version, 'V194');
+assert.equal(v194.policy.guardsBypassed, false);
 
 const inherited = freeze.runtimeGuardSuccessor.inheritedProtectedFiles;
 const changed = freeze.runtimeGuardSuccessor.protectedFiles;
 for (const [file, expected] of Object.entries({ ...inherited, ...changed })) {
-    assert.equal(hash(file), expected, `[V193] successor_hash_mismatch:${file}`);
+    assert.equal(hash(file), v194.protectedFiles[file] || expected, `[V193/V194] successor_hash_mismatch:${file}`);
 }
 const authorizedFiles = [
     ...freeze.runtimeGuardSuccessor.overrides,
-    ...Object.keys(inherited)
+    ...Object.keys(inherited),
+    ...v194.overrides
 ];
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...authorizedFiles])];

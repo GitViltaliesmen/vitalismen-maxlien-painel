@@ -6,6 +6,7 @@ const V181_MANIFEST = 'docs/freeze/ec-v51-browser-successor-v181-20260918.json';
 const V183_MANIFEST = 'docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json';
 const V184_MANIFEST = 'docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json';
 const V193_MANIFEST = 'docs/freeze/vsl-first-response-watchdog-v193-20260919.json';
+const V194_MANIFEST = 'docs/freeze/post-sale-dropi-reconciler-v194-20260920.json';
 const readText = (relativePath) => fs.readFileSync(new URL(`../../${relativePath}`, import.meta.url), 'utf8');
 const readCanonicalManifest = (relativePath, label) => {
     const text = readText(relativePath);
@@ -19,6 +20,7 @@ const v181 = readCanonicalManifest(V181_MANIFEST, 'v181');
 const v183 = readCanonicalManifest(V183_MANIFEST, 'v183');
 const v184 = readCanonicalManifest(V184_MANIFEST, 'v184');
 const v193 = readCanonicalManifest(V193_MANIFEST, 'v193');
+const v194 = readCanonicalManifest(V194_MANIFEST, 'v194');
 const manifest = v184.value;
 const v193RuntimeGuardSuccessor = v193.value.runtimeGuardSuccessor;
 
@@ -63,9 +65,12 @@ assert.equal(manifest.policy.productionActivationAuthorized, false);
 assert.equal(v193.value.version, 'V193');
 assert.deepEqual([...v193RuntimeGuardSuccessor.overrides].sort(), Object.keys(v193RuntimeGuardSuccessor.protectedFiles).sort());
 assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
+assert.equal(v194.value.version, 'V194');
+assert.equal(v194.value.policy.guardsBypassed, false);
 
 const successorHash = (relativePath, inherited) => (
-    v193RuntimeGuardSuccessor.protectedFiles[relativePath]
+    v194.value.protectedFiles[relativePath]
+    || v193RuntimeGuardSuccessor.protectedFiles[relativePath]
     || v193RuntimeGuardSuccessor.inheritedProtectedFiles[relativePath]
     || inherited
 );
@@ -81,7 +86,7 @@ for (const [relativePath, expectedHash] of Object.entries(manifest.protectedFile
 }
 
 for (const [relativePath, hash] of Object.entries(v193RuntimeGuardSuccessor.protectedFiles)) {
-    assert.equal(sha256(relativePath), hash, `[V193] protected_file_invalid:${relativePath}`);
+    assert.equal(sha256(relativePath), successorHash(relativePath, hash), `[V193/V194] protected_file_invalid:${relativePath}`);
 }
 
 const authorizedFiles = [...new Set([
@@ -89,7 +94,8 @@ const authorizedFiles = [...new Set([
     ...v183.value.overrides,
     ...manifest.overrides,
     ...v193RuntimeGuardSuccessor.overrides,
-    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles)
+    ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles),
+    ...v194.value.overrides
 ])];
 globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
     ...new Set([...(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || []), ...authorizedFiles])
@@ -110,7 +116,8 @@ Object.defineProperty(globalThis, '__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT', 
                 ...v183.value.protectedFiles,
                 ...manifest.protectedFiles,
                 ...v193RuntimeGuardSuccessor.inheritedProtectedFiles,
-                ...v193RuntimeGuardSuccessor.protectedFiles
+                ...v193RuntimeGuardSuccessor.protectedFiles,
+                ...v194.value.protectedFiles
             }),
             successorFreezeId: manifest.freezeId,
             successorManifestSha256: crypto.createHash('sha256').update(v184.text).digest('hex')
