@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {
     META_CANONICAL_DATASET_EC_V195,
@@ -157,4 +158,10 @@ test('V195 preserva o modo operacional V78 usando o preload canônico congelado'
     assert.equal(state.ready, true);
     assert.deepEqual(state.failures, []);
     assert.equal(state.metaPurchaseAllowed, false);
+});
+
+test('V195 preserva o executor V188 e troca somente seu contexto de validação', () => {
+    const operations = fs.readFileSync('ops/post-sale-v188', 'utf8');
+    assert.match(operations, /ec-runtime-successor-v195-context\.mjs/);
+    assert.doesNotMatch(operations, /export NODE_OPTIONS="--import=[^\n]*ec-runtime-successor-v194-context\.mjs"/);
 });

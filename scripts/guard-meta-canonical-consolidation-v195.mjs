@@ -54,6 +54,9 @@ const botCore = fs.readFileSync('src/services/ecBotCoreOperationalV78Service.js'
 assert.match(botCore, /EC_BOT_CORE_V195_NODE_OPTIONS/);
 assert.match(botCore, /metaCanonicalV195\.enabled/);
 assert.match(botCore, /resolveMetaCanonicalConsolidationV195/);
+const postSaleRunner = fs.readFileSync('ops/post-sale-v188', 'utf8');
+assert.match(postSaleRunner, /ec-runtime-successor-v195-context\.mjs/);
+assert.doesNotMatch(postSaleRunner, /export NODE_OPTIONS="--import=[^\n]*ec-runtime-successor-v194-context\.mjs"/);
 
 console.log('META_CANONICAL_CONSOLIDATION_V195_GUARD=PASS');
 console.log('CANONICAL_DATASET=920532663934291');

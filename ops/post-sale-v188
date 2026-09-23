@@ -64,7 +64,7 @@ load_overlay() {
 run_executor() {
   local mode="$1" output
   load_overlay
-  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v194-context.mjs"
+  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v195-context.mjs"
   output="$log_dir/$(basename "$current").post-sale-v188-$mode-$(date -u +%Y%m%dT%H%M%SZ).json"
   if ! (cd "$current" && node scripts/post-sale-full-v188.mjs "$mode" >"$output"); then
     chmod 0600 "$output" 2>/dev/null || true
@@ -107,7 +107,7 @@ if [[ "$action" == "staging-check" ]]; then
   chmod 0400 "$staging_overlay"
   load_overlay "$staging_overlay"
   output="$log_dir/$(basename "$candidate").post-sale-v188-staging-$(date -u +%Y%m%dT%H%M%SZ).json"
-  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v194-context.mjs"
+  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v195-context.mjs"
   test_output="$log_dir/$(basename "$candidate").post-sale-v188-tests-$(date -u +%Y%m%dT%H%M%SZ).log"
   if ! (cd "$candidate" && node --test tests/post-sale-full-operational-v188.test.mjs tests/post-sale-dropi-tracking-v194.test.mjs >"$test_output" 2>&1); then
     chmod 0600 "$test_output" 2>/dev/null || true
@@ -149,7 +149,7 @@ if [[ "$action" == "qa-canary" ]]; then
   chown root:root "$staging_overlay"
   chmod 0400 "$staging_overlay"
   load_overlay "$staging_overlay"
-  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v194-context.mjs"
+  export NODE_OPTIONS="--import=$candidate/scripts/lib/ec-runtime-successor-v195-context.mjs"
   output="$log_dir/$(basename "$candidate").post-sale-v188-qa-canary-$(date -u +%Y%m%dT%H%M%SZ).jsonl"
   (cd "$candidate" && node scripts/post-sale-v188-qa-canary.mjs "$canary_ledger") >>"$output"
   (cd "$candidate" && node scripts/post-sale-v188-qa-canary.mjs "$canary_ledger") >>"$output"

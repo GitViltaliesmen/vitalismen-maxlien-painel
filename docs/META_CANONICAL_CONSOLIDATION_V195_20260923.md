@@ -76,6 +76,11 @@ hash do perfil. Quando — e somente quando — a V195 está integralmente ativa
 ele aceita o preload congelado V195 e recalcula a assinatura do perfil; sem a
 ativação completa, o preload oficial V97 permanece obrigatório.
 
+O executor congelado de pós-venda V188 também carrega o contexto sucessor V195
+na release V195. Essa compatibilidade apenas permite que seus guards reconheçam
+os hashes canônicos novos; não altera timers, janela de envio, estágios,
+destinatários, mensagens ou gates operacionais do pós-venda.
+
 ## Observação separada
 
 O Pixel móvel está funcional, mas a carga normal da VSL atual apenas inicializa `fbq`; não foi observado `PageView` automático. Corrigir esse comportamento exigiria autorização separada para microajuste na VSL e não faz parte da V195.
