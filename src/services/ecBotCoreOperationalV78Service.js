@@ -5,6 +5,8 @@ export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_MODE = 'EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_VERSION = 78;
 export const EC_BOT_CORE_V78_DATASET_ID = '1468946114265008';
+export const EC_BOT_CORE_V195_CANONICAL_META_PROFILE = 'meta_canonical_920_v195';
+export const EC_BOT_CORE_V195_CANONICAL_DATASET_ID = '920532663934291';
 export const EC_BOT_CORE_V78_QA_PHONE = '5515998038637';
 export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
 export const EC_BOT_CORE_V195_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v195-context.mjs';
@@ -280,8 +282,15 @@ export const ecBotCoreV78BlockedResult = (effect = '', env = process.env) => {
     return { ok: false, blocked: true, reason: decision.reason, profile: EC_BOT_CORE_V78_MODE };
 };
 
+export const expectedEcBotCoreV78HealthDataset = (metaDestination = {}) => (
+    clean(metaDestination?.profile) === EC_BOT_CORE_V195_CANONICAL_META_PROFILE
+        ? EC_BOT_CORE_V195_CANONICAL_DATASET_ID
+        : EC_BOT_CORE_V78_DATASET_ID
+);
+
 export const assertEcBotCoreV78Health = (health = {}, metaDestination = {}) => {
     const failures = [];
+    const expectedDatasetId = expectedEcBotCoreV78HealthDataset(metaDestination);
     if (health.status !== 'online') failures.push('health_not_online');
     if (health.engine !== 'Z-API') failures.push('official_transport_not_zapi');
     if (health?.zapi?.connected !== true) failures.push('zapi_not_connected');
@@ -291,8 +300,8 @@ export const assertEcBotCoreV78Health = (health = {}, metaDestination = {}) => {
     if (health?.automationSafety?.mutatingSchedulers !== 0) failures.push('mutating_schedulers_not_zero');
     if (health?.automationSafety?.dropiApplyAllowed !== false) failures.push('dropi_apply_not_blocked');
     if (health?.automationSafety?.metaPurchaseAllowed !== false) failures.push('meta_purchase_not_blocked');
-    if (clean(metaDestination?.datasetId) !== EC_BOT_CORE_V78_DATASET_ID) failures.push('meta_dataset_invalid');
-    if (clean(metaDestination?.browserPixelId) !== EC_BOT_CORE_V78_DATASET_ID) failures.push('browser_pixel_invalid');
+    if (clean(metaDestination?.datasetId) !== expectedDatasetId) failures.push('meta_dataset_invalid');
+    if (clean(metaDestination?.browserPixelId) !== expectedDatasetId) failures.push('browser_pixel_invalid');
     if (metaDestination?.browserServerSynchronized !== true) failures.push('browser_server_not_synchronized');
     if (failures.length) throw new Error(`ec_bot_core_health_invalid:${failures.join(',')}`);
     return { ok: true, failures: [] };

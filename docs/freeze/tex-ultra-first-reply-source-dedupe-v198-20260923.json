@@ -1,0 +1,49 @@
+{
+  "freezeId": "TEX_ULTRA_FIRST_REPLY_SOURCE_DEDUPE_V198_20260923",
+  "version": "V198",
+  "date": "2026-09-23",
+  "baseCommit": "e1b7896527f70b414d80eaeb30385364dbbbe321",
+  "baseFreezeId": "EC_PANEL_QUALITY_SUCCESSOR_V200_20260923",
+  "purpose": "SCOPE_TEX_ULTRA_FIRST_REPLY_DEDUPE_TO_ONE_RESPONSE_PER_SOURCE_MESSAGE_WITHOUT_WEAKENING_GLOBAL_ANTI_SPAM",
+  "operatorAuthorization": "AUTORIZO_MICROAJUSTE_CIRURGICO=SIM",
+  "canonicalPreload": "scripts/lib/ec-runtime-successor-v198-context.mjs",
+  "allowedCommands": [
+    [
+      "npm",
+      "run",
+      "senior:check"
+    ]
+  ],
+  "overrides": [
+    "scripts/lib/ec-runtime-successor-v198-context.mjs",
+    "scripts/run-with-v198-senior-check-context.mjs",
+    "src/services/outboundDedupeService.js",
+    "src/services/texUltraFunnelService.js",
+    "tests/tex-ultra-first-reply-source-dedupe-v198.test.mjs"
+  ],
+  "protectedFiles": {
+    "scripts/lib/ec-runtime-successor-v198-context.mjs": "13d3e9b46a6309277872c0a94eda983d8c90737870f237392447500410437a68",
+    "scripts/run-with-v198-senior-check-context.mjs": "4cd819a8d3c96f98780b9dab14bd47c24afe1595b839184f1840f27252001688",
+    "src/services/outboundDedupeService.js": "8101f81d92743ae407d305f179b427daaf55cd8348c9507c39a415a9606a3752",
+    "src/services/texUltraFunnelService.js": "4923e689dee1bca509cc2745b7efa4907d118edc23ca57ac423bc029f451d5b3",
+    "tests/tex-ultra-first-reply-source-dedupe-v198.test.mjs": "8069af827ad3e2b7698a1e81c06720d8ad387eb7ec73eec6d9c1a59a63a2cb27"
+  },
+  "policy": {
+    "sameSourceDuplicateBlocked": true,
+    "newSourceSameTextAllowedOnce": true,
+    "historicalLedgerMutationAllowed": false,
+    "globalDedupeDisabled": false,
+    "globalAntiSpamRelaxed": false,
+    "texUltraContextOnly": "tex_ultra_purchase_intent_after_interrupt",
+    "oldMessageReprocessed": false,
+    "oldMessageResent": false,
+    "vslChanged": false,
+    "zapiChanged": false,
+    "metaChanged": false,
+    "dropiChanged": false,
+    "productsChanged": false,
+    "pricesChanged": false,
+    "productionChanged": false,
+    "guardsBypassed": false
+  }
+}

@@ -83,6 +83,20 @@ export const fingerprintOutbound = ({ kind, value }) => {
     return sha1(`text:${normalizeText(value)}`);
 };
 
+export const buildSourceScopedOutboundDedupeValue = ({
+    namespace = '',
+    sourceMessageId = '',
+    kind = 'text',
+    value = ''
+} = {}) => {
+    const normalizedNamespace = normalizeAntiSpamKey(namespace);
+    const normalizedSourceMessageId = String(sourceMessageId || '').trim();
+    if (!normalizedNamespace || !normalizedSourceMessageId) return '';
+    const contentFingerprint = fingerprintOutbound({ kind, value });
+    if (!contentFingerprint) return '';
+    return `source_scoped:${normalizedNamespace}:${sha1(normalizedSourceMessageId)}:${contentFingerprint}`;
+};
+
 const normalizeAntiSpamKey = (value = '') => normalizeText(value)
     .replace(/[^a-z0-9:_-]+/g, '_')
     .replace(/_+/g, '_')

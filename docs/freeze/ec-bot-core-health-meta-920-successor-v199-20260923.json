@@ -1,0 +1,50 @@
+{
+  "freezeId": "EC_BOT_CORE_HEALTH_META_920_SUCCESSOR_V199_20260923",
+  "version": "V199",
+  "date": "2026-09-23",
+  "baseCommit": "8eacfd4e89ad898803a63753ec2ea026b8e36efb",
+  "parentFreezeId": "TEX_ULTRA_FIRST_REPLY_SOURCE_DEDUPE_V198_20260923",
+  "purpose": "ALLOW_CANONICAL_META_920_HEALTH_ONLY_FOR_THE_EXACT_V195_CANONICAL_PROFILE_WHILE_PRESERVING_THE_LEGACY_V78_CONTRACT",
+  "operatorAuthorization": "AUTORIZO_MICROAJUSTE_CIRURGICO=SIM",
+  "canonicalPreload": "scripts/lib/ec-runtime-successor-v199-context.mjs",
+  "allowedCommands": [
+    [
+      "npm",
+      "run",
+      "senior:check"
+    ]
+  ],
+  "overrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "scripts/guard-ec-bot-core-health-meta-920-v199.mjs",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "scripts/lib/ec-runtime-successor-v199-context.mjs",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "tests/ec-auth-login-v78-pass-through.test.mjs",
+    "tests/ec-bot-core-health-meta-920-successor-v199.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "ce8eba69bdda6bac782190e31b746052317255fd18f50b6131a9dd116416aa46",
+    "scripts/guard-ec-bot-core-health-meta-920-v199.mjs": "8abd4840cbf4d72de028de9941f7a36591c949c6ab65717fe940eaf2de3be7e0",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "68eec11ea9d3306866f8994582f02718e1f470656f4963adacd6b23b1ffab64a",
+    "scripts/lib/ec-runtime-successor-v199-context.mjs": "643ab55fd10255eeeccacf48665dcf4ea292e3e47b005e4b3d4809d9baa74e9e",
+    "src/services/ecBotCoreOperationalV78Service.js": "ce0b8e961d976fb7acaf61998338f6504b6d829339379f5c2f5295d85a780dc2",
+    "tests/ec-auth-login-v78-pass-through.test.mjs": "dcdac67a9189dec353737b5805875a1a16c1a26c785a7c84260e67a1cb49b483",
+    "tests/ec-bot-core-health-meta-920-successor-v199.test.mjs": "469704df139fb9a9946db084ffa5649dd2526c9a329e31e0b10ca902a3170099"
+  },
+  "policy": {
+    "legacyDataset": "1468946114265008",
+    "canonicalProfile": "meta_canonical_920_v195",
+    "canonicalDataset": "920532663934291",
+    "legacyContractPreserved": true,
+    "canonicalProfileExactMatchRequired": true,
+    "browserServerSynchronizationRequired": true,
+    "failClosed": true,
+    "genericRelaxation": false,
+    "environmentChanged": false,
+    "productionChanged": false,
+    "gitProductionChanged": false,
+    "v198Changed": false,
+    "guardsBypassed": false
+  }
+}
