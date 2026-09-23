@@ -26,7 +26,8 @@ assert.ok(formScript < inlineScript, 'inteligencia deve carregar antes do painel
 assert.match(panel, /customerReferenceInput'\)\.addEventListener\('input',[\s\S]{0,180}lookupAgencySuggestions/, 'referencia deve acionar a busca de agencias');
 assert.doesNotMatch(panel, /customerReferenceInput'\)\.value\s*=\s*''/, 'selecionar agencia nao pode apagar a referencia do cliente');
 assert.match(panel, /resolveAgencyLocation/, 'cidade deve validar e inferir provincia pelo catalogo');
-assert.match(panel, /selectAutomaticAgency/, 'agencia so deve ser aplicada por correspondencia deterministica');
+assert.doesNotMatch(panel, /const automaticMatch = intelligence\.selectAutomaticAgency/, 'agencia nao pode ser aplicada automaticamente');
+assert.match(panel, /Melhor correspondência destacada\. Clique na agência correta para selecioná-la\./, 'agencia deve exigir selecao humana no painel');
 assert.match(panel, /syncDetectedCustomerDataFromMessages/, 'conversa deve preencher a ficha por extrator validado');
 assert.match(panel, /data-message-read-customer-image/, 'imagem recebida deve oferecer leitura assistida pelo operador');
 assert.match(panel, /customer-image-reader/, 'leitura de imagem deve usar autosave identificado e auditavel');
