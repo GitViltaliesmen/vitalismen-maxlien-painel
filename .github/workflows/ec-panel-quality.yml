@@ -455,6 +455,7 @@ jobs:
         env:
           CI: 'true'
           GITHUB_ACTIONS: 'true'
+          NODE_OPTIONS: --import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs
         run: |
           test "$GITHUB_REPOSITORY" = "GitViltaliesmen/vitalismen-maxlien-painel"
           test "$(realpath "$PWD")" = "$(realpath "$GITHUB_WORKSPACE")"
@@ -479,7 +480,7 @@ jobs:
           NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs node --test tests/ec-auth-login-v78-pass-through.test.mjs
           node src/services/ecAdminDropiDraftBridgeFreezeRuntimeGuardV128.js
           node --test tests/ec-admin-dropi-draft-bridge-v128.test.mjs
-          VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v97-context.mjs npm run senior:check
+          VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true npm run senior:check
 
       - name: Confirm temporary environment cleanup
         if: always()

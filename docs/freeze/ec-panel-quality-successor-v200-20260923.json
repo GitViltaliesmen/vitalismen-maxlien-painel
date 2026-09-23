@@ -8,7 +8,7 @@
     ".github/workflows/ec-panel-quality.yml"
   ],
   "protectedFiles": {
-    ".github/workflows/ec-panel-quality.yml": "b2cfdb266c140b7869d900911ceda6e6477642a33339cb4b97a9f3bb4033e0ba"
+    ".github/workflows/ec-panel-quality.yml": "674d531b8f026d27dad23bf4713a5f5e1d3d03a2638e7c924860df9d8d2eccd4"
   },
   "policy": {
     "canonicalPreload": "scripts/lib/ec-runtime-successor-v195-context.mjs",
