@@ -1,0 +1,21 @@
+{
+  "freezeId": "EC_PANEL_QUALITY_SUCCESSOR_V200_20260923",
+  "version": "V200",
+  "date": "2026-09-23",
+  "baseCommit": "05b659118ec66644cc36a2083f02af4be4828a42",
+  "scope": "CI_ONLY_V195_PRELOAD_FOR_V171_GUARD",
+  "overrides": [
+    ".github/workflows/ec-panel-quality.yml"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "b2cfdb266c140b7869d900911ceda6e6477642a33339cb4b97a9f3bb4033e0ba"
+  },
+  "policy": {
+    "canonicalPreload": "scripts/lib/ec-runtime-successor-v195-context.mjs",
+    "canonicalDataset": "920532663934291",
+    "v171ContextExtended": true,
+    "historicalHashesChanged": false,
+    "guardBypassAllowed": false,
+    "productionChanged": false
+  }
+}

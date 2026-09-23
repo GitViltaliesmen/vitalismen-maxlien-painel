@@ -446,7 +446,9 @@ jobs:
         run: npm run test:funnel-metrics
 
       - name: Validate EC traffic restoration V171
-        run: npm run guard:traffic-restoration-v171
+        run: |
+          node --test tests/ec-panel-quality-successor-v200.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs npm run guard:traffic-restoration-v171
 
       - name: Preserve product, country and approved freeze layers
         shell: bash
