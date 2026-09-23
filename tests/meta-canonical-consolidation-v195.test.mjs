@@ -17,7 +17,10 @@ import { META_DESTINATION_ROUTES } from '../src/services/metaDestinationRegistry
 import { withMetaCheckoutV148 } from '../src/services/metaFunnelV148ContractService.js';
 import {
     buildEcBotCoreV78OverlayEnvironment,
-    EC_BOT_CORE_V78_DATASET_ID
+    calculateEcBotCoreV78ProfileSha256,
+    EC_BOT_CORE_V195_NODE_OPTIONS,
+    EC_BOT_CORE_V78_DATASET_ID,
+    resolveEcBotCoreV78Configuration
 } from '../src/services/ecBotCoreOperationalV78Service.js';
 
 const canonicalEnv = (extra = {}) => ({
@@ -110,7 +113,12 @@ test('V195 mantém o gate V148 e projeta InitiateCheckout somente para 920', asy
     const base = buildEcBotCoreV78OverlayEnvironment({
         baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID }
     });
-    const env = canonicalEnv({ ...base, META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID });
+    const env = canonicalEnv({
+        ...base,
+        META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID,
+        NODE_OPTIONS: EC_BOT_CORE_V195_NODE_OPTIONS
+    });
+    env.VITALISMEN_EC_BOT_CORE_PROFILE_SHA256 = calculateEcBotCoreV78ProfileSha256(env);
     const event = {
         eventName: 'InitiateCheckout',
         event_id: 'InitiateCheckout:v195-fixture',
@@ -132,4 +140,21 @@ test('V195 mantém o gate V148 e projeta InitiateCheckout somente para 920', asy
     assert.equal(result.datasetId, META_CANONICAL_DATASET_EC_V195);
     assert.equal(result.payload.data[0].event_name, 'InitiateCheckout');
     assert.equal(result.payload.test_event_code, undefined);
+});
+
+test('V195 preserva o modo operacional V78 usando o preload canônico congelado', () => {
+    const env = canonicalEnv({
+        ...buildEcBotCoreV78OverlayEnvironment({
+            baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID }
+        }),
+        META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID,
+        NODE_OPTIONS: EC_BOT_CORE_V195_NODE_OPTIONS
+    });
+    env.VITALISMEN_EC_BOT_CORE_PROFILE_SHA256 = calculateEcBotCoreV78ProfileSha256(env);
+
+    const state = resolveEcBotCoreV78Configuration(env);
+    assert.equal(state.enabled, true);
+    assert.equal(state.ready, true);
+    assert.deepEqual(state.failures, []);
+    assert.equal(state.metaPurchaseAllowed, false);
 });

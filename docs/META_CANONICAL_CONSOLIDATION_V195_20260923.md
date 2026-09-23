@@ -71,6 +71,10 @@ qualquer hash continua encerrando o processo em fail-closed.
 
 Os bridges de contexto modificados têm finalidade exclusiva de reconhecer a
 linhagem V195; não habilitam evento, scheduler, mensagem, Dropi ou Purchase.
+O perfil operacional V78 continua exigindo seu conjunto completo de flags e o
+hash do perfil. Quando — e somente quando — a V195 está integralmente ativa,
+ele aceita o preload congelado V195 e recalcula a assinatura do perfil; sem a
+ativação completa, o preload oficial V97 permanece obrigatório.
 
 ## Observação separada
 

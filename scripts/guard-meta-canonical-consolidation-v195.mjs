@@ -50,6 +50,10 @@ assert.match(source, /resolveMetaCanonicalConsolidationV195/);
 assert.match(source, /expectedMetaEcDatasetV195/);
 assert.match(source, /explicitTestEventCode/);
 assert.doesNotMatch(source, /axios\.post\([^\n]+1468946114265008/);
+const botCore = fs.readFileSync('src/services/ecBotCoreOperationalV78Service.js', 'utf8');
+assert.match(botCore, /EC_BOT_CORE_V195_NODE_OPTIONS/);
+assert.match(botCore, /metaCanonicalV195\.enabled/);
+assert.match(botCore, /resolveMetaCanonicalConsolidationV195/);
 
 console.log('META_CANONICAL_CONSOLIDATION_V195_GUARD=PASS');
 console.log('CANONICAL_DATASET=920532663934291');
