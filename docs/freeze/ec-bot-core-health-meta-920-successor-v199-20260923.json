@@ -20,6 +20,7 @@
     "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
     "scripts/lib/ec-runtime-successor-v199-context.mjs",
     "src/services/ecBotCoreOperationalV78Service.js",
+    "tests/ec-auth-login-v78-pass-through.test.mjs",
     "tests/ec-bot-core-health-meta-920-successor-v199.test.mjs"
   ],
   "protectedFiles": {
@@ -28,6 +29,7 @@
     "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "68eec11ea9d3306866f8994582f02718e1f470656f4963adacd6b23b1ffab64a",
     "scripts/lib/ec-runtime-successor-v199-context.mjs": "643ab55fd10255eeeccacf48665dcf4ea292e3e47b005e4b3d4809d9baa74e9e",
     "src/services/ecBotCoreOperationalV78Service.js": "ce0b8e961d976fb7acaf61998338f6504b6d829339379f5c2f5295d85a780dc2",
+    "tests/ec-auth-login-v78-pass-through.test.mjs": "dcdac67a9189dec353737b5805875a1a16c1a26c785a7c84260e67a1cb49b483",
     "tests/ec-bot-core-health-meta-920-successor-v199.test.mjs": "469704df139fb9a9946db084ffa5649dd2526c9a329e31e0b10ca902a3170099"
   },
   "policy": {
