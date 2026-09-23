@@ -14,6 +14,7 @@ import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPriceForQuantity, texUltraPublicO
 import { interruptTexUltraInitialLayerOnInbound, startTexUltraInitialLayer } from './texUltraInitialLayerService.js';
 import { sendTexUltraConfirmedPostSaleAudios } from './texUltraConfirmedPostSaleLayerService.js';
 import { sendTexUltraHowToUseAudio } from './texUltraHowToUseAudioService.js';
+import { buildSourceScopedOutboundDedupeValue } from './outboundDedupeService.js';
 import {
     assertCustomerOrderDataReady,
     authorizedAgencyOrderAddress,
@@ -296,13 +297,19 @@ const saveState = async (state, { memory = memoryOf(state), draft = draftOf(stat
     return nextMemory;
 };
 
-const sendFunnelText = async ({ state, text, context }) => Boolean(await sendText(stateChatId(state), text, null, {
-    sessionId: state?.metadata?.lastSessionId || null,
-    country: 'EC',
-    outboundContext: context,
-    humanize: false,
-    antiSpamKey: `${AGENT_KEY}:${context}:${state._id}`
-}));
+const sendFunnelText = async ({ state, text, context, sourceMessageId = '' }) => {
+    const sourceScopedDedupeValue = context === 'tex_ultra_purchase_intent_after_interrupt'
+        ? buildSourceScopedOutboundDedupeValue({ namespace: context, sourceMessageId, kind: 'text', value: text })
+        : '';
+    return Boolean(await sendText(stateChatId(state), text, null, {
+        sessionId: state?.metadata?.lastSessionId || null,
+        country: 'EC',
+        outboundContext: context,
+        humanize: false,
+        antiSpamKey: sourceScopedDedupeValue || `${AGENT_KEY}:${context}:${state._id}`,
+        ...(sourceScopedDedupeValue ? { dedupeValue: sourceScopedDedupeValue } : {})
+    }));
+};
 
 export const texUltraInterruptedInboundRoute = (text = '') => {
     if (texUltraSelectedQuantity(text)) return 'quantity';
@@ -636,7 +643,12 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             return true;
         }
         if (interruptedInboundRoute === 'purchase') {
-            await sendFunnelText({ state, text: purchaseIntentPrompt(), context: 'tex_ultra_purchase_intent_after_interrupt' });
+            await sendFunnelText({
+                state,
+                text: purchaseIntentPrompt(),
+                context: 'tex_ultra_purchase_intent_after_interrupt',
+                sourceMessageId
+            });
             await saveState(state, { memory: memoryOf(state), draft, stage: 'awaiting_quantity' });
             return true;
         }
