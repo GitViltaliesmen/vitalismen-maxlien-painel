@@ -16,6 +16,7 @@
     "canonicalPreload": "scripts/lib/ec-runtime-successor-v195-context.mjs",
     "canonicalDataset": "920532663934291",
     "v171ContextExtended": true,
+    "v138EarlySuccessorValidated": true,
     "historicalHashesChanged": false,
     "guardBypassAllowed": false,
     "productionChanged": false
