@@ -1,3 +1,4 @@
+import { salesAttributionV148 } from './metaFunnelV148ContractService.js';
 export const META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID = '2048099902484149';
 export const PROTOCOLO_G_EVENT_SOURCE_URL = 'https://vilaliemen.shop/protocolo-g';
 
@@ -128,6 +129,7 @@ export const validateVilaliemenProtocoloGContract = (body = {}) => {
     const vslEntryMessage = cleanMessage(firstValue(body, ['vslEntryMessage', 'vsl_entry_message']));
     const errors = [];
 
+    if (Number(body.measurement_version) === 148 && (!salesAttributionV148(body) || !cleanProtocoloGAttributionValue(body.sessionId, 220))) errors.push('invalid_v148_sales_branch_or_pixel');
     if (normalizedIdentity(body.country) !== 'EC') errors.push('invalid_country');
     if (normalizedIdentity(firstValue(body, ['productKey', 'product_key'])) !== 'TEX_ULTRA_EC') errors.push('invalid_product_key');
     if (normalizedIdentity(body.product) !== 'TEX_ULTRA') errors.push('invalid_product');
@@ -263,6 +265,10 @@ export const protocoloGStructuredTracking = (body = {}, contract = null) => {
     const validated = contract || validateVilaliemenProtocoloGContract(body);
     const attribution = validated.attribution || sanitizeProtocoloGAttribution(body);
     return Object.fromEntries(Object.entries({
+        ...(Number(body.measurement_version) === 148 && validated.ok && salesAttributionV148(body) ? {
+            measurementVersion: 148, renderedBranch: 'SALES', branchIdentity: body.branch_identity,
+            browserPixelId: String(body.browser_pixel_id)
+        } : {}),
         country: 'EC',
         product: 'TEX_ULTRA',
         funnel: 'PROTOCOLO_G',

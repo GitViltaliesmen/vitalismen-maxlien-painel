@@ -1,3 +1,4 @@
+import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import ContactState from '../models/ContactState.js';
@@ -29,6 +30,14 @@ import {
     EC_QA_TEST_PHONE_V78,
     EC_QA_TEST_REQUIRED_TAGS_V78
 } from './ecQaTestResetV78Service.js';
+import {
+    ecPanelStatusV177Actor,
+    ecPanelStatusV177MongoAllowed,
+    ecPanelStatusV177Operation,
+    ecPanelStatusV177RouteDecision,
+    ecPanelStatusV177Target,
+    isEcPanelStatusV177StrictLocalRequest
+} from './ecPanelStatusOperationsV177Service.js';
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
 export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
@@ -245,7 +254,8 @@ export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore()
 // actions can carry human authority into the existing asynchronous submit queue.
 export const ecManualDropiHumanActionV138 = (req, res, next) => {
     const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
-    const match = path.match(/^\/api\/shipments\/droppi\/ec\/orders\/([^/]+)\/(authorize-submit|submit)$/);
+    const match = path.match(/^\/api\/shipments\/droppi\/ec\/orders\/([^/]+)\/(authorize-submit|submit)$/)
+        || path.match(/^\/api\/shipments\/([^/]+)\/(requeue-dropi-submit)$/);
     if (req.method !== 'POST' || !match) return next();
     const context = currentEcBotCoreRuntimeContextV78();
     const actorId = clean(req.user?._id || req.user?.id);
@@ -257,6 +267,41 @@ export const ecManualDropiHumanActionV138 = (req, res, next) => {
     }
     return runtimeContext.run({ ...context, humanDropiActionV138: true,
         humanDropiActorId: actorId, humanDropiRequestedOrderId: decodeURIComponent(match[1])
+    }, next);
+};
+
+// V177 upgrades a route candidate only after the existing panel authentication
+// has produced an active, identifiable human actor.  The nested context is the
+// sole authority consumed by the Mongo guard below.
+export const ecPanelStatusAuthenticatedActionV177 = (req, res, next) => {
+    const context = currentEcBotCoreRuntimeContextV78();
+    const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const operation = ecPanelStatusV177Operation({ method: req.method, path, body: req.body || {} });
+    if (!operation) return next();
+    const actor = ecPanelStatusV177Actor(req.user);
+    const target = ecPanelStatusV177Target({ path, body: req.body || {}, params: req.params || {} });
+    if (
+        context?.panelStatusRouteV177 !== true
+        || context.panelStatusCandidateOperationV177 !== operation
+        || !actor.active
+        || !target
+    ) {
+        return res.status(403).json({
+            success: false,
+            authorizationRequired: true,
+            code: 'panel_status_v177_authenticated_human_required',
+            error: 'Entre no painel como operador ativo para concluir esta operacao.'
+        });
+    }
+    return runtimeContext.run({
+        ...context,
+        panelStatusV177: true,
+        panelStatusOperationV177: operation,
+        panelStatusActorIdV177: actor.actorId,
+        panelStatusTargetV177: target,
+        panelStatusBodyV177: req.body || {},
+        panelStatusHumanAuthenticatedV177: true,
+        panelStatusInternalLocalV177: false
     }, next);
 };
 
@@ -292,6 +337,14 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         || manualDropiDecision.allowed || multiproductDecision.allowed
         ? Object.freeze({ allowed: false, reason: 'ec_panel_customer_v122_not_needed', operation: '' })
         : ecPanelCustomerPersistenceV122RouteDecision({ method, path, env });
+    const panelStatusInternalLocal = isEcPanelStatusV177StrictLocalRequest(req);
+    const panelStatusDecision = ecPanelStatusV177RouteDecision({
+        method,
+        path,
+        body: req.body || {},
+        internalLocal: panelStatusInternalLocal,
+        env
+    });
     const decision = baseDecision.allowed
         ? baseDecision
         : panelDecision.allowed
@@ -300,7 +353,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
                 ? manualDropiDecision
                 : multiproductDecision.allowed
                     ? multiproductDecision
-                    : customerPersistenceDecision;
+                    : customerPersistenceDecision.allowed
+                        ? customerPersistenceDecision
+                        : panelStatusDecision;
     if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
 
     const writeContext = (
@@ -314,6 +369,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     ) || (
         decision.reason === 'ec_panel_customer_v122_route_allowed'
         && ['POST', 'PATCH'].includes(method)
+    ) || (
+        decision.reason === 'ec_panel_status_v177_route_allowed'
+        && method === 'POST'
     );
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
@@ -327,6 +385,22 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         panelCustomerPersistenceOperation: decision.reason === 'ec_panel_customer_v122_route_allowed'
             ? decision.operation || ''
             : '',
+        panelStatusRouteV177: panelStatusDecision.allowed,
+        panelStatusCandidateOperationV177: panelStatusDecision.operation || '',
+        panelStatusV177: panelStatusDecision.operation === 'internal-admin-status-sync',
+        panelStatusOperationV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? panelStatusDecision.operation
+            : '',
+        panelStatusActorIdV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? 'internal-local-admin-panel'
+            : '',
+        panelStatusTargetV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            ? ecPanelStatusV177Target({ path, body: req.body || {}, params: req.params || {} })
+            : '',
+        panelStatusBodyV177: panelStatusDecision.allowed ? req.body || {} : {},
+        panelStatusHumanAuthenticatedV177: false,
+        panelStatusInternalLocalV177: panelStatusDecision.operation === 'internal-admin-status-sync'
+            && panelStatusInternalLocal,
         startedAt: new Date().toISOString()
     }, async () => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });
@@ -410,6 +484,39 @@ const MONGO_MUTATIONS = [
     'createIndex', 'createIndexes', 'dropIndex', 'dropIndexes', 'drop', 'rename'
 ];
 
+// V153 restores only the Mongo writes that are intrinsic to an already
+// authorized operational surface.  This intentionally does not add a new HTTP
+// route or a generic collection allowlist: each tuple is exact and remains
+// dependent on the V78 profile and AsyncLocalStorage write context.
+export const ecBotCoreMongoMutationRecoveryV153Allowed = ({
+    context = null,
+    collection = '',
+    method = ''
+} = {}) => {
+    if (context?.profile !== EC_BOT_CORE_V78_MODE || context?.writeContext !== true) return false;
+    const route = clean(context.path).split('?')[0].replace(/\/+$/, '') || '/';
+    const normalizedCollection = clean(collection).toLowerCase();
+    const normalizedMethod = clean(method);
+    if (
+        context.method === 'POST'
+        && ['/api/zapi/webhook', '/api/zapi/webhook/received'].includes(route)
+        && normalizedCollection === 'orders'
+        && ['insertOne', 'updateOne'].includes(normalizedMethod)
+    ) return true;
+    if (
+        context.method === 'POST'
+        && ['/api/whatsapp/vsl-stage', '/api/whatsapp/vsl-entry'].includes(route)
+        && normalizedCollection === 'sellerrotationcounters'
+        && normalizedMethod === 'findOneAndUpdate'
+    ) return true;
+    return Boolean(
+        context.panelCustomerPersistenceV122 === true
+        && context.panelCustomerPersistenceOperation === 'authenticated-customer-state-persist'
+        && normalizedCollection === 'messages'
+        && normalizedMethod === 'insertOne'
+    );
+};
+
 const patchMongoPrototype = (prototype) => {
     if (!prototype || prototype[MONGO_PATCH]) return 0;
     let patched = 0;
@@ -424,7 +531,8 @@ const patchMongoPrototype = (prototype) => {
                     const configuration = resolveEcBotCoreV78Configuration(process.env);
                     const context = currentEcBotCoreRuntimeContextV78();
                     const collection = clean(this?.collectionName || this?.namespace?.collection || this?.name).toLowerCase();
-                    const baseCollectionAllowed = EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection);
+                    const baseCollectionAllowed = EC_BOT_CORE_V78_MONGO_COLLECTIONS.has(collection)
+                        || metaLedgerWriteV148Allowed({ collection, method, args, context, env: process.env });
                     const manualDropiCollectionAllowed = ecManualDropiReleaseV119MongoAllowed({
                         method: context?.method,
                         path: context?.path,
@@ -439,14 +547,29 @@ const patchMongoPrototype = (prototype) => {
                         context,
                         env: process.env
                     });
-                    const collectionAllowed = context?.panelCustomerPersistenceV122 === true
-                        ? panelCustomerCollectionAllowed
-                        : (baseCollectionAllowed || manualDropiCollectionAllowed);
+                    const panelStatusCollectionAllowed = ecPanelStatusV177MongoAllowed({
+                        context,
+                        collection,
+                        method,
+                        env: process.env
+                    });
+                    const collectionAllowed = context?.panelStatusRouteV177 === true
+                        ? panelStatusCollectionAllowed
+                        : context?.panelCustomerPersistenceV122 === true
+                            ? panelCustomerCollectionAllowed
+                            : (baseCollectionAllowed || manualDropiCollectionAllowed);
                     const authLoginBookkeepingAllowed = context?.authLoginV78 === true
                         && isExactEcAuthLoginV78Request(context)
                         && collection === 'users'
                         && method === 'updateOne';
-                    if (!configuration.ready || (!authLoginBookkeepingAllowed && (
+                    const v153RecoveryAllowed = context?.panelStatusRouteV177 === true
+                        ? false
+                        : ecBotCoreMongoMutationRecoveryV153Allowed({
+                            context,
+                            collection,
+                            method
+                        });
+                    if (!configuration.ready || (!authLoginBookkeepingAllowed && !v153RecoveryAllowed && (
                         !context?.writeContext || !collectionAllowed
                     ))) {
                         const error = new Error(`ec_bot_core_mongo_write_blocked:${collection || 'unknown'}.${method}`);

@@ -1,0 +1,41 @@
+# Relatório V186 — alinhamento canônico da V185
+
+Data: 2026-09-18
+Base V185: `dde9475953806696ae752359f47073ac950f05ee`
+Branch: `codex/v186-v185-canonical-successor`
+
+## Resultado da candidata
+
+```text
+RESULT=PASS_LOCAL_GATES;OFFICIAL_STAGE_PENDING
+ROOT_CAUSE=V185_SUCCESSOR_CONTEXT_NOT_VISIBLE_TO_V168B_PRELOAD_BEFORE_HASH_VALIDATION
+V186_CONTEXT_FILE=scripts/lib/ec-runtime-successor-v186-context.mjs
+CANONICAL_INTEGRATION_POINT=scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs
+ANCESTOR_OVERRIDE_FILES=public/funnel-metrics.html,src/routes/funnelMetrics.js
+V186_CONTEXT_LOADED_BEFORE_V168B=YES
+V168B_PUBLIC_FUNNEL_METRICS_OVERRIDE_RECOGNIZED=YES
+RUNTIME_GUARD_CHAIN_V71=PASS
+V185_FUNCTIONAL_FILES_CHANGED_BY_V186=0
+V185_TESTS=9/9_PASS;BROWSER_PASS
+V171=PASS
+V176=PASS
+V177=PASS
+V178=PASS
+V179=PASS
+V184=PASS
+V185=PASS
+SENIOR_CHECK=482/482_PASS
+V140=22/22_PASS
+LINT=PASS_1017_FILES
+FREEZE_LOCK=PASS
+PREDEPLOY_V91=PASS
+VSL_HASH_DIFF=0
+BOT_HASH_DIFF=0
+QR_PANEL_HASH_DIFF=0
+PRODUCTION_CHANGED=NO
+ACTIVATION_EXECUTED=NO
+RESTART_EXECUTED=NO
+GUARDS_BYPASSED=NO
+```
+
+Este relatório acompanha a candidata congelada. O resultado do staging oficial, executado somente após commit e push, deve ser registrado no relatório operacional final da missão sem reescrever o commit testado.

@@ -52,6 +52,12 @@ import {
     strictReadOnlyAcceptedPayload
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { rememberUnmatchedZapiDeliveryV155 } from '../services/zapiDeliveryCallbackReconciliationV155Service.js';
+import {
+    buildV193WatchdogCandidate,
+    claimV193FirstEntryMarker,
+    runV193FirstResponseRecovery
+} from '../services/vslFirstResponseWatchdogV193Service.js';
 
 const router = express.Router();
 const digits = (value) => String(value || '').replace(/\D/g, '');
@@ -711,87 +717,21 @@ const markPreviousOutboundReadFromCustomerReply = async ({ chatId = '', phone = 
     };
 };
 
-const markVslWatchdogStatus = async ({ chatId = '', phone = '', status = '', reason = '' } = {}) => {
-    const now = new Date();
-    const tail = phone && phone.length >= 9 ? phone.slice(-9) : '';
-    const or = [
-        chatId ? { chatId } : null,
-        phone ? { phoneDigits: phone } : null,
-        phone ? { phoneDigits: { $regex: `${phone}$` } } : null,
-        tail ? { phoneDigits: { $regex: `${tail}$` } } : null
-    ].filter(Boolean);
-    if (!or.length) return;
-    await ContactState.updateOne(
-        { $or: or },
-        {
-            $set: {
-                'metadata.vslFirstResponseWatchdogAt': now,
-                'metadata.vslFirstResponseWatchdogStatus': status,
-                'metadata.vslFirstResponseWatchdogReason': reason
-            },
-            ...(status === 'reprocessed'
-                ? { $inc: { 'metadata.vslFirstResponseWatchdogReprocessCount': 1 } }
-                : {})
-        }
-    ).catch((error) => console.warn(`[ZAPI-WATCHDOG] falha ao registrar status ${chatId}: ${error.message}`));
-};
-
 const scheduleVslFirstResponseWatchdog = (result = {}) => {
-    if (!vslFirstResponseWatchdogEnabled() || !result.publicVslLeadEntry || !result.routeToBot) return;
-    const startedAt = new Date();
+    if (!vslFirstResponseWatchdogEnabled() || !result.eligibleForFirstResponseWatchdog || !result.routeToBot) return;
     const delayMs = vslFirstResponseWatchdogDelayMs();
     setTimeout(async () => {
         try {
-            const alreadyAnswered = await hasRecentOutboundForZapiLead({
-                chatId: result.chatId,
-                phone: result.phone,
-                since: startedAt
+            const recovery = await runV193FirstResponseRecovery({
+                result,
+                hasOutbound: hasRecentOutboundForZapiLead,
+                routeMessage: routeIncomingMessage
             });
-            if (alreadyAnswered) {
-                await markVslWatchdogStatus({
-                    chatId: result.chatId,
-                    phone: result.phone,
-                    status: 'answered',
-                    reason: 'outbound_found'
-                });
-                return;
+            if (recovery.recoveryExecuted) {
+                console.warn(`[ZAPI-WATCHDOG-V193] recovery first-entry executado -> ${result.chatId} | delayMs=${delayMs} | status=${recovery.status || recovery.reason}`);
             }
-
-            console.warn(`[ZAPI-WATCHDOG] lead VSL sem resposta; reprocessando por Z-API -> ${result.chatId} | delayMs=${delayMs}`);
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: 'reprocessing',
-                reason: 'no_outbound_after_delay'
-            });
-            await routeIncomingMessage({
-                id: `${result.messageId || 'zapi_vsl'}_watchdog_${Date.now()}`,
-                from: result.chatId,
-                body: result.body,
-                sessionId: 'zapi',
-                senderPn: result.phone,
-                recovered: true,
-                fullMessage: { key: { senderPn: result.phone } }
-            });
-            const answeredAfterRecovery = await hasRecentOutboundForZapiLead({
-                chatId: result.chatId,
-                phone: result.phone,
-                since: startedAt
-            });
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: answeredAfterRecovery ? 'reprocessed' : 'failed',
-                reason: answeredAfterRecovery ? 'outbound_after_reprocess' : 'no_outbound_after_reprocess'
-            });
         } catch (error) {
-            console.error('[ZAPI-WATCHDOG] erro ao recuperar primeira resposta VSL:', error?.response?.data || error.message || error);
-            await markVslWatchdogStatus({
-                chatId: result.chatId,
-                phone: result.phone,
-                status: 'failed',
-                reason: error.message || 'watchdog_error'
-            });
+            console.error('[ZAPI-WATCHDOG-V193] erro ao recuperar primeira resposta VSL:', error?.response?.data || error.message || error);
         }
     }, delayMs).unref?.();
 };
@@ -942,7 +882,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
         : detectedTextProductContext;
     const vslAttribution = vslRoutingAllowed
         ? await claimMetaAttributionForInboundWhatsapp({
-            country: inferredCountry,
+            // O QA oficial 8637 possui telefone BR, mas sua entrada controlada
+            // continua pertencendo ao contrato VSL EC. A excecao fica restrita
+            // ao destinatario de teste ja autorizado; clientes comuns preservam
+            // o pais inferido normalmente.
+            country: authorizedTestRecipient ? 'EC' : inferredCountry,
             phone,
             message: normalizedBody,
             inboundAt: now
@@ -1166,6 +1110,36 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const conversationBucket = conversationClassification?.bucket
         || targetState.conversationBucket?.value
         || EC_CONVERSATION_BUCKETS.ATTENDANCE;
+    const routeToBot = newMessage
+        && Boolean(normalizedBody)
+        && conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
+        && conversationBucket !== EC_CONVERSATION_BUCKETS.REVIEW
+        && (targetState.human?.mode !== 'manual' || directProductInbound)
+        && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry));
+    const watchdogCandidate = buildV193WatchdogCandidate({
+        newMessage,
+        vslRoutingAllowed,
+        publicVslLeadEntry,
+        refreshedVslAttribution,
+        vslProductKey: vslProductContext?.productKey || '',
+        type: effectiveType,
+        body: normalizedBody,
+        providerMessageId,
+        providerZaapId,
+        messageId,
+        authorizedTestRecipient
+    });
+    const firstEntryClaim = await claimV193FirstEntryMarker({
+        contactStateId: String(targetState._id),
+        candidate: watchdogCandidate,
+        providerMessageId,
+        providerZaapId,
+        persistedMessageId: messageId,
+        inboundAt: now
+    }).catch((error) => {
+        console.error('[ZAPI-WATCHDOG-V193] falha fechada ao reivindicar marcador; fluxo inline preservado:', error.message || error);
+        return { claimed: false, reason: 'marker_claim_failed' };
+    });
 
     return {
         recorded: true,
@@ -1181,6 +1155,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
         mediaHealth,
         readInference,
         publicVslLeadEntry,
+        eligibleForFirstResponseWatchdog: firstEntryClaim.claimed === true,
+        vslFirstEntryMessageId: firstEntryClaim.claimed === true ? watchdogCandidate.originalIdentity : '',
+        vslFirstEntryAt: firstEntryClaim.claimed === true ? now.toISOString() : '',
+        vslFirstResponseWatchdogKey: firstEntryClaim.claimed === true ? watchdogCandidate.watchdogKey : '',
+        vslFirstResponseWatchdogEligibilityReason: firstEntryClaim.reason,
         directProductInbound,
         contactStateId: String(targetState._id),
         conversationBucket,
@@ -1196,12 +1175,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
             replyEligibleByHistory: conversationClassification.replyEligibleByHistory === true,
             metrics: conversationClassification.metrics
         } : null,
-        routeToBot: newMessage
-            && Boolean(normalizedBody)
-            && conversationBucket !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
-            && conversationBucket !== EC_CONVERSATION_BUCKETS.REVIEW
-            && (targetState.human?.mode !== 'manual' || directProductInbound)
-            && (inferredCountry === 'EC' || (authorizedTestRecipient && publicVslLeadEntry))
+        routeToBot
     };
 };
 
@@ -1328,7 +1302,21 @@ const applyZapiDeliveryPayload = async (payload = {}) => {
         }
     }
 
-    return { matched: false, phone, providerMessageId, providerZaapId, ...normalized };
+    const pending = rememberUnmatchedZapiDeliveryV155({
+        phone,
+        providerMessageId,
+        providerZaapId,
+        ...normalized,
+        observedAt: now
+    });
+    return {
+        matched: false,
+        pendingReconciliation: pending.remembered === true,
+        phone,
+        providerMessageId,
+        providerZaapId,
+        ...normalized
+    };
 };
 
 router.get('/config', authMiddleware, (_req, res) => {

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
+import { reconcilePendingZapiDeliveryV155 } from './zapiDeliveryCallbackReconciliationV155Service.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -59,6 +60,8 @@ export const recordZapiOutboundMirror = async ({
             },
             { upsert: true }
         );
+        const mirroredMessage = await Message.findById(id);
+        await reconcilePendingZapiDeliveryV155(mirroredMessage);
 
         await ContactState.updateOne(
             {

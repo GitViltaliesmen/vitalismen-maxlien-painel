@@ -50,7 +50,8 @@ const invokeVslEntryWithoutExternalEffects = async ({
     payload,
     existingTracking = {},
     existingAssignedSeller = '5515991418416',
-    existingLastClickAt = null
+    existingLastClickAt = null,
+    existingCustomerPhone = ''
 }) => {
     const originalFindOne = VslVisit.findOne;
     const originalFindOneAndUpdate = VslVisit.findOneAndUpdate;
@@ -66,6 +67,7 @@ const invokeVslEntryWithoutExternalEffects = async ({
         assignedSeller: existingAssignedSeller,
         assignedSellerAt: existingAssignedSeller ? new Date('2026-08-24T17:55:00.000Z') : null,
         lastClickAt: existingLastClickAt,
+        customerPhone: existingCustomerPhone,
         tracking: existingTracking,
         campaignId: existingTracking.campaign_id || '',
         adsetId: existingTracking.adset_id || '',
@@ -78,8 +80,8 @@ const invokeVslEntryWithoutExternalEffects = async ({
         persistedQuery = query;
         persistedUpdate = update;
         persistedVisit = {
+            ...existing,
             _id: { toString: () => '66cc00112233445566770002' },
-            ...update.$setOnInsert,
             ...update.$set
         };
         return { lean: async () => persistedVisit };
@@ -350,6 +352,23 @@ test('vsl-entry Protocolo G duplicado mantém o primeiro clique e não duplica c
     assert.equal(Object.hasOwn(endpoint.persistedUpdate.$set, 'lastClickAt'), false);
 });
 
+test('vsl-entry duplicado sem telefone preserva claim existente e não reabre prelead', async () => {
+    const endpoint = await invokeVslEntryWithoutExternalEffects({
+        payload: fullPayload(),
+        existingAssignedSeller: '',
+        existingLastClickAt: new Date('2026-08-24T17:59:20.000Z'),
+        existingCustomerPhone: '5515998038637'
+    });
+
+    assert.equal(endpoint.statusCode, 200);
+    assert.equal(endpoint.persistedVisit.customerPhone, '5515998038637');
+    assert.equal(Object.hasOwn(endpoint.persistedUpdate.$set, 'customerPhone'), false);
+    assert.equal(Object.hasOwn(endpoint.persistedUpdate.$setOnInsert, 'customerPhone'), true);
+    assert.equal(endpoint.responseBody.panelLead.prelead, false);
+    assert.equal(endpoint.responseBody.panelLead.alreadyClaimed, true);
+    assert.equal(endpoint.responseBody.panelLead.reason, 'already_claimed');
+});
+
 test('vsl-entry Protocolo G inválido retorna 4xx controlado sem persistência ou rotação', async () => {
     const endpoint = await invokeVslEntryWithoutExternalEffects({
         payload: fullPayload({ country: 'CO' }),
@@ -461,8 +480,9 @@ test('snapshot após TTL preserva external_id/fbp, remove atribuição expirada 
         message: officialFixture.message,
         inboundAt: new Date(endpoint.persistedVisit.lastClickAt.getTime() + 40_000)
     });
-    assert.equal(selection.ok, false);
-    assert.equal(selection.reason, 'no_unique_exact_visit');
+    assert.equal(selection.ok, true);
+    assert.equal(selection.candidate.visitorKey, endpoint.persistedVisit.visitorKey);
+    assert.equal(hasMetaAdAttribution(selection.candidate.tracking), false);
 
     const order = orderFor({
         external_id: tracking.external_id,

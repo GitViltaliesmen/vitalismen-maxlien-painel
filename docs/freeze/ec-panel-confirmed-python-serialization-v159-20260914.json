@@ -1,0 +1,45 @@
+{
+  "freezeId": "EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_V159_20260914",
+  "version": 159,
+  "parentCommit": "174c85c525bd2f803d81812118ca81fc4d988ce5",
+  "parentTree": "ede79efebe5e57f065bf13c3b4b85a301b8681a2",
+  "parentManifestSha256": "f37431da16e1c332f7daf931f757451bd35cb6b0d27e51ecf80193f2a4edbfcc",
+  "overrides": [
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "docs/EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_FREEZE_V159_20260914.md",
+    "package.json",
+    "scripts/guard-panel-confirmed-persistence-v158.mjs",
+    "scripts/guard-panel-confirmed-python-serialization-v159.mjs",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs",
+    "src/services/adminPanelStatusService.js",
+    "tests/panel-confirmed-persistence-v158.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/ARQUIVOS_OFICIAIS.md": "304ceab10cc0a8c7c7c9af8183c403fee6676f520e0783c91dc146681d9391e9",
+    "docs/EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_FREEZE_V159_20260914.md": "93e49828736fa4a411def0d0f488504bc0c37bc6ee06a4e8f4bbaabfcafd3edb",
+    "package.json": "ffc62db22208d8c8c549731e5eed5e46fd57c292a5a52d2d30bd73d67dcf74bb",
+    "scripts/guard-panel-confirmed-persistence-v158.mjs": "9c36f364e565611e4987004842111fa2c2c6458c0428d29a0eaae568b84d693e",
+    "scripts/guard-panel-confirmed-python-serialization-v159.mjs": "2b666384eb9e73153e74c52dac0213bc5e65e9b690c4be19eab8d86433c1cdfc",
+    "scripts/lib/ec-runtime-successor-v155-context.mjs": "c6374b8b1ed321742f3407aa0a9bf6c757706bd9f9aa1642ec8503f6b677c10f",
+    "src/services/adminPanelStatusService.js": "08eb3f221f996607faa45f290393446d433b1d0f929a173bd233821db40cf4b1",
+    "tests/panel-confirmed-persistence-v158.test.mjs": "97c8b6b804f8c384f31d7261bad31ba6e2fb86aae9b362ef3b32f1ab527ba0c4"
+  },
+  "policy": {
+    "productionChanged": true,
+    "functionalBehaviorChanged": true,
+    "v158PublishedReleaseRewritten": false,
+    "javascriptBooleansInterpolatedIntoPython": false,
+    "pythonFlagsSerializedAsIntegers": true,
+    "failedRepairClosedBeforeSqlite": true,
+    "idempotentRetryRequired": true,
+    "externalCallsByRepair": 0,
+    "messagesSentByRepair": 0,
+    "v157DropiProtectionsPreserved": true,
+    "v158PersistenceContractPreserved": true,
+    "productPriceChanged": false,
+    "agencyCatalogChanged": false,
+    "funnelChanged": false,
+    "postSaleChanged": false,
+    "otherCountryTouched": false
+  }
+}

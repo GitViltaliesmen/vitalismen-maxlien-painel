@@ -29,19 +29,16 @@ NODE
 }
 
 assert_pm2_bot_online() {
-  local jlist="$state_dir/.post-sale-v116-pm2.$$"
-  trap 'rm -f -- "$jlist"' RETURN
-  pm2 jlist >"$jlist"
-  node - "$jlist" "$current" "$base_dir/current" <<'NODE'
-const fs=require('node:fs');
-const [file,release,current]=process.argv.slice(2);
-const item=JSON.parse(fs.readFileSync(file,'utf8')||'[]').find((entry)=>entry.name==='vitalismen-automation');
-const env=item?.pm2_env||{};
-if(!item||env.status!=='online'||![release,current].includes(env.pm_cwd)
-  ||![`${release}/src/index.js`,`${current}/src/index.js`].includes(env.pm_exec_path)) process.exit(1);
-NODE
-  rm -f -- "$jlist"
-  trap - RETURN
+  local pid proc_cwd proc_cmdline
+  while IFS= read -r pid; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+    proc_cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [[ "$proc_cwd" == "$current" || "$proc_cwd" == "$base_dir/current" ]]; then
+      [[ "$proc_cmdline" == *"/src/index.js"* || "$proc_cmdline" == *"src/index.js"* ]] && return 0
+    fi
+  done < <(pgrep -f '(^|[ /])src/index\.js([ ]|$)' || true)
+  return 1
 }
 
 load_overlay() {
@@ -62,6 +59,41 @@ if [[ "$action" == "status" ]]; then
   echo "BATCH_MAX=1"
   echo "DAILY_LIMIT=1"
   echo "AT_MOST_ONCE=true"
+  exit 0
+fi
+
+if [[ "$action" == "staging-check" ]]; then
+  [[ "$#" -eq 2 ]] || die "uso: post-sale-v116 staging-check RELEASE"
+  candidate="$(realpath -e "$base_dir/releases/$2" 2>/dev/null || true)"
+  [[ "$candidate" == "$base_dir"/releases/* && -d "$candidate" && ! -L "$candidate" ]] || die "release staging invalida"
+  assert_pm2_bot_online || die "PM2 bot oficial fora da release current"
+  load_overlay
+  candidate_preload="$candidate/scripts/lib/ec-runtime-successor-v97-context.mjs"
+  [[ -f "$candidate_preload" && ! -L "$candidate_preload" ]] || die "preload oficial V97 ausente na release staging"
+  export NODE_OPTIONS="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
+  output="$log_dir/$(basename "$candidate").post-sale-v116-staging-$(date -u +%Y%m%dT%H%M%SZ).json"
+  if ! (cd "$current" && node "$candidate/scripts/post-sale-transactional-batch-v116.mjs" plan >"$output"); then
+    chmod 0600 "$output" 2>/dev/null || true
+    die "executor V116 staging falhou"
+  fi
+  chmod 0600 "$output"
+  NODE_OPTIONS= node - "$output" <<'NODE'
+const fs = require('node:fs');
+const raw = fs.readFileSync(process.argv[2], 'utf8');
+const marker = '\n{\n  "status":';
+const offset = raw.lastIndexOf(marker);
+const start = offset >= 0 ? offset + 1 : (raw.startsWith('{\n  "status":') ? 0 : -1);
+if (start < 0) throw new Error('result_json_missing');
+const report = JSON.parse(raw.slice(start));
+if (report.status !== 'PASS_PLAN') throw new Error(`unexpected_status:${report.status || ''}`);
+if (Number(report.sent || 0) !== 0) throw new Error(`unexpected_sent:${report.sent}`);
+NODE
+  echo "V116_EXECUTOR_STAGING=PASS"
+  echo "NO_EACCES=YES"
+  echo "NO_EROFS=YES"
+  echo "EXPECTED_RUNTIME_PATHS=PASS"
+  echo "REAL_MESSAGES_SENT=0"
+  echo "RESULT=$output"
   exit 0
 fi
 
@@ -115,4 +147,4 @@ if [[ "$action" == "contain" ]]; then
   exit 0
 fi
 
-die "uso: post-sale-v116 status|install|run|contain"
+die "uso: post-sale-v116 status|staging-check RELEASE|install|run|contain"

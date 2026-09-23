@@ -1,0 +1,107 @@
+{
+  "version": "V193",
+  "date": "2026-09-19",
+  "baseCommit": "818db6cf281ee22d3ab4efc04f76cc7cf7898ae1",
+  "productionReleaseBeforeV193": "20260919T011423Z_production-20260919-c0cca11",
+  "branch": "codex/v193-vsl-first-response-watchdog-fix",
+  "allowedFiles": [
+    "docs/VSL_FIRST_RESPONSE_WATCHDOG_V193_20260919.md",
+    "docs/freeze/vsl-first-response-watchdog-v193-20260919.json",
+    "scripts/audit-v193-historical-watchdog-readonly.mjs",
+    "scripts/guard-vsl-first-response-watchdog-v193.mjs",
+    "scripts/lib/ec-runtime-successor-v168b-preload-context.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/lib/ec-runtime-successor-v184-context.mjs",
+    "scripts/lib/ec-runtime-successor-v193-context.mjs",
+    "src/routes/zapi.js",
+    "src/services/vslFirstResponseWatchdogV193Service.js",
+    "tests/vsl-first-response-watchdog-v193.test.mjs"
+  ],
+  "invariants": {
+    "publicVslLeadEntryRedefined": false,
+    "normalInlineRoutingChanged": false,
+    "historicalRecoveryEnabled": false,
+    "realCustomerTestSendAllowed": false,
+    "watchdogRecoveryAttemptMax": 1,
+    "qaWatchdogEnabled": false
+  },
+  "runtimeGuardSuccessor": {
+    "overrides": [
+      "scripts/lib/ec-runtime-successor-v170-context.mjs",
+      "scripts/lib/ec-runtime-successor-v184-context.mjs",
+      "scripts/lib/ec-runtime-successor-v168b-preload-context.mjs",
+      "src/routes/zapi.js"
+    ],
+    "protectedFiles": {
+      "scripts/lib/ec-runtime-successor-v168b-preload-context.mjs": "43f3975b291b9b8e2036d2b6c3d0fe63a3cd75cfb8e810e2df40336646073349",
+      "scripts/lib/ec-runtime-successor-v170-context.mjs": "49f8e9538dd4c2a679880aab74530db510ea5b2e6c31e51f22ce161a7a6e91a9",
+      "scripts/lib/ec-runtime-successor-v184-context.mjs": "0eb2af3d5f1f330730dc59789358470e9e08faf3771dd4ffdc818b7b1d8d97b0",
+      "src/routes/zapi.js": "8dc6888f21514fbe1cc8dfa52aa97c552fe8883926ceb550509ef4a069580608"
+    },
+    "inheritedProtectedFiles": {
+      ".github/workflows/ec-panel-quality.yml": "abe7214a834a61d1cd6626f0b18ebb9d2944397c5d7e7861a5fcbf2572764ab2",
+      "public/funnel-metrics.html": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+      "scripts/lib/ec-runtime-successor-v147-r6r2-context.mjs": "8508a9a53c47838daff06652e36affe26068b2234e275e490ae149cb7fedbe56",
+      "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "2c5759ce74bbd3be16ef07e675a18a6a52ce43bdd1a373b25c3d6cc2e78ed678",
+      "scripts/lib/ec-runtime-successor-v155-context.mjs": "aedafc79aa60abbac00ac08b488318a436fa3675320e71bb0ca2647d60d4fbf4",
+      "scripts/lib/ec-runtime-successor-v168a-pr-context.mjs": "f086ce00f185369b78207204c70f2482a7a3e300abc3f06b05204fe45b780f80",
+      "scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs": "ddc96c6a4bd3d26d0fd5435645a2a139473cf5c6490f9a2f5bf64db7db87d3f4",
+      "scripts/lib/ec-runtime-successor-v168b-dropi-status-context.mjs": "d50ede4e6cddf94355e5a82c79cc5880c6c6ccefc9d3de5d6c546786475b6f36",
+      "scripts/senior-guard.mjs": "51525ac0bcf9e4c17bcd73dbf498deb8b17f0290858bc570e232cdb4376298d5",
+      "src/index.js": "e63cfa73692b122d949ecbeb597cfb43761b2c555b6923afb8e7eb61eadc7b8f",
+      "src/routes/funnelMetrics.js": "9a1f09fdf807057bb3a974b64c3b9b8529a6e19111c514a52d0bc8ef5710a5aa",
+      "src/services/agentRouter.js": "4b5572d44bf360aa3e503caf226d286b1117e9f6f3a9c6bb24d7aacb65d76709",
+      "src/services/ecConversationBucketService.js": "d3d970cce0de4aa37862a35395f25aba1f5eff839eb9253bcc90a19e5e4c3e36",
+      "src/services/metaAttributionBridgeService.js": "2aa01a116700bb0feda1febde90e52b14f64d457cfbedd96419109f82116f8f6",
+      "src/services/panelCustomerReadModelService.js": "45013232933b830ed5a2d5d9e9fb98746df8d5e96b6ba890d6995d22638c61e4",
+      "src/services/servientregaEcuadorAgencyService.js": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626",
+      "tests/meta-ec-protocolo-g-attribution-v61.test.mjs": "5d3bcb5ba190827d9b53519b2458bd7a6ad32db6069a9a06d1e9063fca7d8eb1"
+    },
+    "policy": {
+      "exactOverrideCount": 4,
+      "inheritedOverrideCount": 17,
+      "wildcardsAllowed": false,
+      "guardBypassAllowed": false,
+      "functionalRuntimeOverride": "src/routes/zapi.js",
+      "guardLineageOverride": "scripts/lib/ec-runtime-successor-v170-context.mjs"
+    }
+  },
+  "hashLocks": {
+    "VSL": {
+      "files": 76,
+      "sha256": "458f5d733e197dca2a7cb05179381308d86337beeb862f53f636c7080612cd62"
+    },
+    "BOT_PROMPT": {
+      "files": 4,
+      "sha256": "989b0b03426e05c6f8b03782b517209e06e330e709ee13c889a0ee33e398f2b0"
+    },
+    "AGENT_ROUTER": {
+      "files": 1,
+      "sha256": "eedc139aea66c7466a173ca2cbf8b0586fde3eb3e737d734918861abad85ef4a"
+    },
+    "CONVERSATION_ENGINE": {
+      "files": 1,
+      "sha256": "3b6c56588bdcc999bcc06f0b3573a1f992a0176933717855f00a54e0dc4b71dc"
+    },
+    "QR_PANEL": {
+      "files": 1,
+      "sha256": "6a3e02b47be483c4bd7ae751aa78307dab196f9a7891b6824203da41b50dc89d"
+    },
+    "FUNNEL_METRICS": {
+      "files": 6,
+      "sha256": "3bf8e96e8ba00382bb754a86fc7c24d98290208578d771a455846d661ec9e541"
+    },
+    "POSTSALE_V188": {
+      "files": 172,
+      "sha256": "57a3d342ec8f8545b72eb0780747e5e28cbae92f878f360cf7b106f9c68b7f5e"
+    },
+    "META_CAPI_FUNCTIONAL": {
+      "files": 21,
+      "sha256": "0e6db80d6414c566cb084ceb902f20b7385bf7f552fbe764929336d1c7e5d431"
+    },
+    "DROPI": {
+      "files": 130,
+      "sha256": "2f3e27230b16b542f655962bd708451f9ac587d37bee125b689fa9b0a2dc011d"
+    }
+  }
+}

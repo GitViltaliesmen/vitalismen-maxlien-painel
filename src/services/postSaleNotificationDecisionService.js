@@ -1,3 +1,6 @@
+import { unifiedPostSaleStageV147R6, resolvePostSaleEventV147R6, reconcilePostSaleEventV147R6, reservePostSaleEventV147R6, finalizePostSaleEventV147R6,
+    pickupPostSaleStageV147R6R2, pickupEventEligibleV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
+import { inspectA07V147R6R2, reserveA07ComponentV147R6R2 } from './postSaleA07ComponentsV147R6R2Service.js';
 import crypto from 'crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -14,6 +17,11 @@ import {
     terminalPostSaleSafetyEntry
 } from './postSaleSafetyV66Service.js';
 import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
+import {
+    canonicalLogisticsProjectionForShipmentV147,
+    servientregaPostSaleCompletionEligibleV147
+} from './canonicalLogisticsStatusV147Service.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 
 export const POST_SALE_NOTIFICATION_DECISIONS = Object.freeze({
     SHOULD_SEND: 'SHOULD_SEND',
@@ -36,7 +44,9 @@ const MARKER_BY_KIND = Object.freeze({
     pickup_reminder_day5: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_REMINDER_DAY5],
     pickup_reminder_soft_day6: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6],
     pickup_proof_request: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_PROOF_REQUEST],
+    delivered_thank_you: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.DELIVERED_THANK_YOU],
     pickup_bonus: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PICKUP_BONUS],
+    product_usage: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.PRODUCT_USAGE],
     treatment_refill_reminder: LEGACY_MARKERS_BY_STAGE[POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]
 });
 
@@ -52,16 +62,25 @@ const EVENT_BY_KIND = Object.freeze({
     pickup_reminder_day5: ['reminder_day5'],
     pickup_reminder_soft_day6: ['reminder_soft_day6'],
     pickup_proof_request: ['pickup_proof_requested'],
+    delivered_thank_you: ['delivered_thank_you_notified'],
     pickup_bonus: ['pickup_bonus_notified'],
+    product_usage: ['product_usage_notified'],
     treatment_refill_reminder: ['refill_reminder_notified']
 });
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
-export const postSaleTransactionalAllowsManualHumanMode = ({ shipment = {}, env = process.env } = {}) => (
+export const postSaleTransactionalAllowsManualHumanMode = ({ shipment = {}, kind = '', env = process.env } = {}) => (
     clean(env.VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL).toLowerCase() === 'true'
     && clean(env.POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED).toLowerCase() === 'true'
-    && Boolean(shipment?.raw?.postSaleTransactionalApprovedAt)
+    && (Boolean(shipment?.raw?.postSaleTransactionalApprovedAt) || (
+        ['ready_for_pickup', 'pickup_reminder_day3', 'pickup_reminder_day5',
+            'delivered_thank_you', 'pickup_bonus', 'product_usage'].includes(kind)
+        && Boolean(shipment._id && shipment.orderId && digitsOnly(shipment?.client?.phone))
+        && pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.canonicalEvidence?.source)
+        && /^(?:servientrega|dropi)$/i.test(clean(shipment?.logistics?.canonicalEvidence?.provider))
+        && eligibilityForKind(shipment, kind)
+    ))
 );
 const statusKey = (value = '') => clean(value)
     .normalize('NFD')
@@ -85,7 +104,10 @@ const terminalLedgerPresent = (shipment = {}, stages = []) => stages.some((stage
 export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) => {
     const stage = canonicalPostSaleStage(kind);
     const status = statusKey(shipment?.logistics?.status);
-    const terminalOutcome = shipment?.outcomes?.delivered === true
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
+    const terminalOutcome = canonical.terminal
+        || ['NOT_PICKED_UP', 'RETURNING'].includes(canonical.canonicalStatus)
+        || shipment?.outcomes?.delivered === true
         || shipment?.outcomes?.pickedUp === true
         || shipment?.outcomes?.returned === true
         || [
@@ -93,10 +115,10 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
             'DEVUELTO', 'RETURNED', 'DEVOLUCION', 'NO_RETIRADO',
             'CANCELADO', 'CANCELADO_SERVIENTREGA'
         ].includes(status);
-    const readyOrLater = [
+    const readyOrLater = canonical.canonicalStatus === 'READY_FOR_PICKUP' || [
         'READY_FOR_PICKUP', 'LISTO_PARA_RETIRO', 'PARA_RETIRO_EN_AGENCIA', 'DISPONIBLE_PARA_RETIRO'
     ].includes(status) || terminalOutcome;
-    const inTransitOrLater = [
+    const inTransitOrLater = ['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus) || [
         'MERCANCIA_RECOGIDA', 'EN_BODEGA_TRANSPORTADORA', 'EN_DESPACHO',
         'EN_PROCESAMIENTO', 'EN_RUTA', 'EN_REPARTO', 'EN_DISTRIBUCION_A_CLIENTE'
     ].includes(status) || readyOrLater;
@@ -111,7 +133,9 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
-        POST_SALE_STAGES.PICKUP_BONUS
+        POST_SALE_STAGES.DELIVERED_THANK_YOU,
+        POST_SALE_STAGES.PICKUP_BONUS,
+        POST_SALE_STAGES.PRODUCT_USAGE
     ]);
     const laterThanTransitLedger = terminalLedgerPresent(shipment, [
         POST_SALE_STAGES.READY_FOR_PICKUP,
@@ -123,7 +147,9 @@ export const evaluatePostSaleChronology = ({ shipment = {}, kind = '' } = {}) =>
         POST_SALE_STAGES.PICKUP_REMINDER_DAY5,
         POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6,
         POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
-        POST_SALE_STAGES.PICKUP_BONUS
+        POST_SALE_STAGES.DELIVERED_THANK_YOU,
+        POST_SALE_STAGES.PICKUP_BONUS,
+        POST_SALE_STAGES.PRODUCT_USAGE
     ]);
 
     if (stage === POST_SALE_STAGES.GUIDE && (inTransitOrLater || laterThanGuideLedger)) {
@@ -155,35 +181,46 @@ export const findManualHumanModeForShipment = async ({
 
 const eligibilityForKind = (shipment = {}, kind = '') => {
     const status = statusKey(shipment?.logistics?.status);
+    const canonical = canonicalLogisticsProjectionForShipmentV147(shipment);
     const tracking = digitsOnly(shipment?.logistics?.trackingNumber);
     if (kind === 'guide') {
-        return tracking.length >= 6 && !['ENTREGADO', 'DEVUELTO', 'CANCELADO'].includes(status);
+        return tracking.length >= 6 && !canonical.terminal && !['NOT_PICKED_UP', 'RETURNING'].includes(canonical.canonicalStatus);
     }
     if (kind === 'in_transit') {
-        return tracking.length >= 6 && [
-            'MERCANCIA_RECOGIDA', 'EN_BODEGA_TRANSPORTADORA', 'EN_DESPACHO',
-            'EN_PROCESAMIENTO', 'EN_RUTA', 'EN_REPARTO', 'EN_DISTRIBUCION_A_CLIENTE'
-        ].includes(status);
+        return tracking.length >= 6 && ['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(canonical.canonicalStatus);
     }
     if (kind === 'ready_for_pickup') {
-        return status === 'READY_FOR_PICKUP'
+        return canonical.canonicalStatus === 'READY_FOR_PICKUP'
+            && canonical.canPickup === true
             && shipment?.logistics?.pickupReadyVerified === true
+            && (
+                pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)
+                || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
+            )
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
     if (kind === 'returned') {
-        return status === 'DEVUELTO' || shipment?.outcomes?.returned === true;
+        return canonical.canonicalStatus === 'RETURNED' || shipment?.outcomes?.returned === true;
     }
     if (kind.startsWith('pickup_reminder_') || kind === 'pickup_proof_request') {
-        return status === 'READY_FOR_PICKUP'
+        return canonical.canonicalStatus === 'READY_FOR_PICKUP'
+            && canonical.reminderEligible === true
             && shipment?.logistics?.pickupReadyVerified === true
+            && (
+                pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)
+                || (!shipment?.logistics?.pickupReadyVerifiedSource && !shipment?.logistics?.canonicalStatus)
+            )
             && shipment?.logistics?.agencyPickup === true
             && tracking.length >= 6;
     }
-    if (kind === 'pickup_bonus' || kind === 'treatment_refill_reminder') {
+    if (kind === 'delivered_thank_you' || kind === 'pickup_bonus' || kind === 'product_usage') {
+        return servientregaPostSaleCompletionEligibleV147(shipment);
+    }
+    if (kind === 'treatment_refill_reminder') {
         return shipment?.outcomes?.pickedUp === true
             || shipment?.outcomes?.delivered === true
-            || status === 'ENTREGADO';
+            || canonical.canonicalStatus === 'DELIVERED';
     }
     return false;
 };
@@ -201,6 +238,10 @@ const historyMatchesKind = (message = {}, shipment = {}, kind = '') => {
             && (trackingMentioned || /servientrega/.test(body));
     }
     if (kind === 'returned') return /devuelt|devoluci[oó]n|no fue retir|pago anticipado/.test(body);
+    if (kind === 'delivered_thank_you') return /^\[audio\]\s*obrigado_pagou$/i.test(clean(message?.body));
+    if (kind === 'product_usage') {
+        return /^\[audio\]\s*(?:modo_de_uso_tex_ultra|como_se_toma_vit_power|nitrix_uso_oxide_ec)$/i.test(clean(message?.body));
+    }
     return false;
 };
 
@@ -256,6 +297,9 @@ const persistTerminalSafetyDecision = async ({
 } = {}) => {
     const safetyState = safetyStateForDecision(decision);
     if (!shipment?._id || !safetyState) return { persisted: false };
+    if (shipmentModel === Shipment && !/^[a-f0-9]{24}$/i.test(String(shipment._id))) {
+        return { persisted: false, reason: 'non_persistent_fixture_identity' };
+    }
     const ledgerPath = postSaleLedgerPath(stage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage, variant });
     const result = await shipmentModel.updateOne(
@@ -317,7 +361,10 @@ export const decidePostSaleNotification = async ({
     shipmentModel = Shipment,
     contactStateModel = ContactState,
     now = new Date(),
-    lockMs = 10 * 60 * 1000
+    lockMs = 10 * 60 * 1000,
+    manualPanel = false,
+    operator = '',
+    a07Component = ''
 } = {}) => {
     const stage = canonicalPostSaleStage(kind || variant);
     const legacyKind = legacyKindForPostSaleStage(stage);
@@ -333,8 +380,23 @@ export const decidePostSaleNotification = async ({
             stage
         };
     }
-    const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage, variant });
-    const structured = structuredShipmentEvidence(shipment, legacyKind);
+    const canonicalEvent = await resolvePostSaleEventV147R6({ shipment, stage });
+    if (unifiedPostSaleStageV147R6(stage) && !canonicalEvent) return {
+        decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'canonical_product_or_identity_missing', stage
+    };
+    const idempotencyKey = canonicalEvent?.dedupeKey || buildPostSaleIdempotencyKey({ shipment, stage, variant });
+    const a07View = stage === 'READY_FOR_PICKUP'
+        ? await inspectA07V147R6R2({ shipment, component: a07Component, shipmentModel, messageModel, persist: acquireLock }) : null;
+    if (a07View && a07View.decision !== 'SHOULD_SEND') return a07View;
+    if (canonicalEvent && !a07View) {
+        const recovered = await reconcilePostSaleEventV147R6({ shipment, event: canonicalEvent,
+            messageModel, shipmentModel, persist: acquireLock, now });
+        if (recovered) return recovered;
+        if (shipment.automation?.postSaleSafetyLedger?.[stage]?.state === 'INTENDED') return {
+            decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE, reason: 'intended_event_requires_reconciliation', stage, idempotencyKey
+        };
+    }
+    const structured = a07View ? { found: false } : structuredShipmentEvidence(shipment, legacyKind);
     if (structured.found) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED,
@@ -397,7 +459,8 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
-    if (!eligibilityForKind(shipment, legacyKind)) {
+    if (!eligibilityForKind(shipment, legacyKind)
+        || pickupPostSaleStageV147R6R2(stage) && !pickupEventEligibleV147R6R2(shipment, stage, now)) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
             reason: 'current_logistics_state_not_eligible',
@@ -405,8 +468,20 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    // Flag existente de opt-out explícito, persistida pelo classificador V40.
+    // A exceção logística não libera um contato que pediu para não receber mensagens.
+    const variants = phoneIdentityVariants(shipment?.client?.phone);
+    const blockedContact = variants.length && (contactStateModel !== ContactState || ContactState.db.readyState === 1)
+        ? await contactStateModel.findOne({ countryCode: 'EC', 'engagementAutomation.blockedReason': 'opt_out',
+            $or: [{ phoneDigits: { $in: variants } }, ...variants.map((tail) => ({ chatId: { $regex: `${tail}(?:@|$)` } }))]
+        }).sort({ updatedAt: -1 }).select('_id engagementAutomation.blockedReason').lean()
+        : null;
+    if (blockedContact?.engagementAutomation?.blockedReason === 'opt_out') {
+        return { decision: POST_SALE_NOTIFICATION_DECISIONS.NOT_ELIGIBLE,
+            reason: 'explicit_contact_opt_out', stage, idempotencyKey };
+    }
     const manualHumanState = await findManualHumanModeForShipment({ shipment, contactStateModel });
-    if (manualHumanState && !postSaleTransactionalAllowsManualHumanMode({ shipment })) {
+    if (manualHumanState && !manualPanel && !postSaleTransactionalAllowsManualHumanMode({ shipment, kind: legacyKind })) {
         return {
             decision: POST_SALE_NOTIFICATION_DECISIONS.MANUAL_REVIEW_REQUIRED,
             reason: 'human_mode_manual',
@@ -422,6 +497,10 @@ export const decidePostSaleNotification = async ({
             idempotencyKey
         };
     }
+    if (a07View) return reserveA07ComponentV147R6R2({ shipment, component: a07Component || a07View.selected?.component,
+        source: manualPanel ? 'manual_panel' : 'v116', operator, shipmentModel, messageModel });
+    if (canonicalEvent) return reservePostSaleEventV147R6({ shipment, event: canonicalEvent,
+        source: manualPanel ? 'manual_panel' : 'v116', operator, shipmentModel, now, lockMs });
     const lockPath = `automation.notificationLocks.${stage}`;
     const ledgerPath = postSaleLedgerPath(stage);
     const lockToken = crypto.randomUUID();
@@ -500,6 +579,7 @@ export const completePostSaleNotificationStage = async ({
     if (!shipment?._id || !canonicalStage || !clean(lockToken)) {
         return { completed: false, reason: 'missing_shipment_stage_or_lock_token' };
     }
+    if (unifiedPostSaleStageV147R6(canonicalStage) && shipmentModel === Shipment && Shipment.db.readyState === 1) return finalizePostSaleEventV147R6({ shipment, stage: canonicalStage, lockToken, providerMessageId, shipmentModel, now });
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });
@@ -583,6 +663,7 @@ export const failPostSaleNotificationStage = async ({
     if (!shipment?._id || !canonicalStage || !clean(lockToken)) {
         return { released: false, reason: 'missing_shipment_stage_or_lock_token' };
     }
+    if (unifiedPostSaleStageV147R6(canonicalStage) && shipmentModel === Shipment && Shipment.db.readyState === 1) return finalizePostSaleEventV147R6({ shipment, stage: canonicalStage, lockToken, providerMessageId, shipmentModel, now, failure: { reason, terminalState: terminal ? terminalState : 'FAILED_FINAL' } });
     const lockPath = `automation.notificationLocks.${canonicalStage}`;
     const ledgerPath = postSaleLedgerPath(canonicalStage);
     const idempotencyKey = buildPostSaleIdempotencyKey({ shipment, stage: canonicalStage, variant });
@@ -627,3 +708,15 @@ export const shouldSendPostSaleNotification = (result = {}) => (
 );
 
 export default decidePostSaleNotification;
+
+// Dispatcher preflight must evaluate the next unsatisfied stage, not stop at an already sent P6.
+export const decidePostSaleSequenceV147R6 = async ({ shipment, ...options } = {}) => {
+    for (const [kind, marker] of [['delivered_thank_you', 'deliveredThankYouNotifiedAt'],
+        ['pickup_bonus', 'bonusNotifiedAt'], ['product_usage', 'usageNotifiedAt']]) {
+        const decision = await decidePostSaleNotification({ ...options, shipment, kind, acquireLock: false });
+        const accepted = decision.satisfied === true || Boolean(shipment?.automation?.[marker]);
+        if (!accepted) return decision;
+    }
+    return { decision: POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_STRUCTURED,
+        reason: 'canonical_postsale_sequence_satisfied', satisfied: true };
+};

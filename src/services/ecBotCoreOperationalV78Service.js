@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { resolveMetaCanonicalConsolidationV195 } from './metaCanonicalConsolidationV195Service.js';
 
 export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_MODE = 'EC_BOT_CORE_OPERATIONAL';
@@ -6,6 +7,7 @@ export const EC_BOT_CORE_V78_VERSION = 78;
 export const EC_BOT_CORE_V78_DATASET_ID = '1468946114265008';
 export const EC_BOT_CORE_V78_QA_PHONE = '5515998038637';
 export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
+export const EC_BOT_CORE_V195_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v195-context.mjs';
 
 export const EC_BOT_CORE_V78_ALLOWED_WRITE_CLASSES = Object.freeze([
     'zapi_inbound_persistence',
@@ -183,8 +185,12 @@ export const resolveEcBotCoreV78Configuration = (env = process.env, {
     }
 
     const failures = [];
+    const metaCanonicalV195 = resolveMetaCanonicalConsolidationV195(env);
+    const expectedNodeOptions = metaCanonicalV195.enabled
+        ? EC_BOT_CORE_V195_NODE_OPTIONS
+        : EC_BOT_CORE_V78_NODE_OPTIONS;
     if (clean(env.NODE_ENV).toLowerCase() !== 'production') failures.push('NODE_ENV_must_be_production');
-    if (clean(env.NODE_OPTIONS) !== EC_BOT_CORE_V78_NODE_OPTIONS) failures.push('NODE_OPTIONS_invalid');
+    if (clean(env.NODE_OPTIONS) !== expectedNodeOptions) failures.push('NODE_OPTIONS_invalid');
     if (clean(env.SAFE_OBSERVATION_POLICY).toUpperCase() !== EC_BOT_CORE_V78_MODE) {
         failures.push('SAFE_OBSERVATION_POLICY_invalid');
     }

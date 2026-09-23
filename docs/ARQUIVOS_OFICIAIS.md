@@ -1289,3 +1289,126 @@ nenhuma alteração realizada no VPS.
   `freeze-v130-meta-ads-readonly-20260905`.
 - Evidência operacional completa:
   `docs/META_ADS_INSIGHTS_V130_ACTIVATION_RESULT_20260905.md`.
+
+## Registro V149 — recorte rápido do painel de métricas EC (2026-09-11)
+
+- Interface oficial publicada: `/var/www/ec.maxlien.shop/funnel-metrics.html`.
+- Fonte versionada: `public/funnel-metrics.html`, commit `f4e8cd4`.
+- Alteração pontual: `Hoje` passou a ser o recorte inicial, foi adicionada a
+  opção `Ontem e hoje`, e seleções sucessivas cancelam a consulta anterior.
+- As opções de 3, 7, 14 e 30 dias e o intervalo manual foram preservados.
+- Backup anterior:
+  `/var/backups/vitalismen-funnel-metrics-v149/20260911T155224Z/funnel-metrics.html.before`.
+- SHA-256 público validado:
+  `9a10683f260257bef4adb2890b7bb039c34bafc46ae2fc6c95c7be13cbb1f2dc`.
+- Release runtime e PM2 não foram alterados; funil, WhatsApp, Dropi, Meta/CAPI,
+  banco e schedulers permaneceram intactos.
+## Registro V144 — Purchase Meta após Dropi manual (2026-09-08)
+
+- Base congelada: V143 `8cbc5b0ca427af9ab27aeaad085c2bd70d5ca668`.
+- Emissão CAPI: `src/services/metaConversionsService.js`.
+- Permissão operacional estreita: `src/services/ecManualDropiMetaPurchaseV144Service.js`
+  e `src/services/canaryIsolationV75Service.js`.
+- Gatilho canônico: `src/routes/shipments.js`, somente depois de sucesso Dropi novo
+  dentro do submit autenticado.
+- Persistência exibida no painel: `tracking.metaPurchaseEventId`,
+  `tracking.metaPurchaseSentAt`, `tracking.metaPurchaseResponse` e
+  `purchase_capi_lock` após `events_received > 0`.
+- Pedidos históricos 3501, 3503 e 3504 foram auditados sem mutação e permanecem sem
+  Purchase retroativo.
+- Documento e freeze: `docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md` e
+  `docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json`.
+- Estado desta camada: candidata local; produção continua na V143 até aprovação.
+
+## Registro V158 — persistência confirmada do painel EC (2026-09-14)
+
+- Base oficial preservada: V157 `d5f898d5fb59be87307aaa36bfb02f03c688704b`.
+- Incidente: o aceite humano podia salvar `ContactState` e ainda retornar sucesso
+  sem criar o `Order` e sem deixar a linha SQLite visível em `Confirmados`.
+- Fontes oficiais corrigidas: `src/routes/whatsapp.js`,
+  `src/routes/shipments.js`, `src/services/adminPanelStatusService.js`,
+  `src/services/ecPanelStatusStateLayerV125Service.js`, `public/qr.html` e
+  `public/leads-window.html`.
+- Reparo unitário: `scripts/repair-ec-confirmed-order-v158.mjs`, sempre com
+  snapshot root-only anterior à mutação e sem WhatsApp, Dropi ou Meta/CAPI.
+- Freeze, manifesto e guard:
+  `docs/EC_PANEL_CONFIRMED_PERSISTENCE_FREEZE_V158_20260914.md`,
+  `docs/freeze/ec-panel-confirmed-persistence-v158-20260914.json` e
+  `scripts/guard-panel-confirmed-persistence-v158.mjs`.
+- Backup de produção anterior ao código:
+  `/opt/vitalismen-automacao/backups/v158-confirmed-incident-prechange-20260914T031115Z`.
+- Release, tag, ativação, reparo e validação pública são registrados no fechamento
+  operacional após conclusão da cadeia oficial.
+
+## Registro V159 — serialização Python da persistência confirmada (2026-09-14)
+
+- Base publicada, não ativada: V158 `174c85c525bd2f803d81812118ca81fc4d988ce5`.
+- Correção pontual: flags booleanos do payload Python passaram a inteiros `0/1`.
+- Documento, manifesto e guard:
+  `docs/EC_PANEL_CONFIRMED_PYTHON_SERIALIZATION_FREEZE_V159_20260914.md`,
+  `docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json` e
+  `scripts/guard-panel-confirmed-python-serialization-v159.mjs`.
+- A tentativa V158 criou o `Order` e falhou fechada antes do SQLite; o reparo
+  V159 reutiliza esse pedido sem duplicação e sem efeitos externos.
+
+## Registro V160 — envio manual da atendente nunca ignorado (2026-09-14)
+
+- Base oficial: V159 `ea98fbee0fd77bf81f30c30add796b008adf1d2f`.
+- Fontes oficiais corrigidas: `src/routes/whatsapp.js` e
+  `src/services/postSaleManualPanelV147R6Service.js`.
+- Contrato: texto, áudio ou mídia escolhidos pela atendente autenticada seguem
+  o envio/persistência manual, sem bloqueio por status logístico.
+- O caminho automático de `Chegou_01/02/03` preserva a exigência de
+  `READY_FOR_PICKUP` verificado e usa o histórico humano aceito para dedupe.
+- Freeze, manifesto, guard e testes:
+  `docs/PANEL_MANUAL_ATTENDANT_NEVER_IGNORED_FREEZE_V160_20260914.md`,
+  `docs/freeze/ec-panel-manual-attendant-v160-20260914.json`,
+  `scripts/guard-panel-manual-attendant-v160.mjs` e
+  `tests/panel-manual-attendant-never-ignored-v160.test.mjs`.
+- Backup, release e validação operacional serão registrados no fechamento da
+  publicação oficial, sem envio real de mensagem durante a validação.
+
+## Registro V161 — desistência e Comprar depois no funil EC (2026-09-14)
+
+- Base oficial: V160 `0902194ecd5454d0f720466c4bd2bc081cfd97a0`.
+- Fonte funcional nova:
+  `src/services/ecNegativeIntentBuyLaterV161Service.js`.
+- Ponto de integração oficial: `src/services/conversationEngine.js`, antes de
+  intenção positiva, quantidade, entrega, coleta e fallback rígido.
+- Mutação limitada ao agente `vit_power_ec`; gates manuais de Tex Ultra e
+  Nitrix preservados.
+- Contrato: sem operação real, usar somente `cancelado` ou
+  `comprar_depois`/`buy_later`; com qualquer `Order`/`Shipment`, falhar fechado
+  para humano e preservar integralmente a operação.
+- Freeze, manifesto, guard e teste:
+  `docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`,
+  `docs/freeze/ec-negative-intent-buy-later-v161-20260914.json`,
+  `scripts/guard-negative-intent-buy-later-v161.mjs` e
+  `tests/negative-intent-buy-later-v161.test.mjs`.
+- `ADMIN_BUY_LATER_FOLLOWUP_ENABLED` continua desligado por padrão. Nenhum
+  WhatsApp real, Dropi, Meta/CAPI, Shipment, Order ou reparo do caso `0268` faz
+  parte da validação V161.
+
+## Registro V162 — ativação isolada de Comprar depois (2026-09-15)
+
+- Base oficial: V161 `7618001e34dff3c8e556d75849e5fa842d5b1fd6`.
+- Fonte funcional ajustada: `src/services/adminBuyLaterFollowupService.js`, com
+  seleção canônica estrita, telefone EC, tentativa única, lock livre e modo de
+  observação sanitizado.
+- Executor oficial: `scripts/run-buy-later-followup-v162.mjs`, invocado somente
+  por `ops/buy-later-followup-v162`, com batch 1 e ambiente mínimo Mongo/Z-API.
+- Unidades oficiais exclusivas:
+  `ops/systemd/vitalismen-buy-later-followup-v162.service` e
+  `ops/systemd/vitalismen-buy-later-followup-v162.timer`.
+- O timer verifica a cada 15 minutos; a agenda individual continua limitada a
+  um envio pela combinação de `sentAt`, `failedAt`, lock, tentativa, dedupe e
+  histórico.
+- `ADMIN_BUY_LATER_FOLLOWUP_ENABLED=false` permanece no PM2 e no scheduler
+  principal. V78, V114, V116, V141, Dropi, Meta/CAPI, Order, Shipment e mídia
+  não são liberados por esta camada.
+- Legados `status=buy_later` permanecem intocados, sem backfill ou envio.
+- Documento, manifesto, guard e teste:
+  `docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`,
+  `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
+  `scripts/guard-buy-later-operational-v162.mjs` e
+  `tests/buy-later-operational-v162.test.mjs`.

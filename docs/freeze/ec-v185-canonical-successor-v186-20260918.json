@@ -1,0 +1,116 @@
+{
+  "freezeId": "EC_V185_CANONICAL_SUCCESSOR_V186_20260918",
+  "version": "V186",
+  "parentCommit": "dde9475953806696ae752359f47073ac950f05ee",
+  "v184Commit": "596441983a7d05e0cd002200372aa1bd0077214b",
+  "rootCause": "V185_SUCCESSOR_CONTEXT_NOT_VISIBLE_TO_V168B_PRELOAD_BEFORE_HASH_VALIDATION",
+  "canonicalPreloadEntry": "scripts/lib/ec-runtime-successor-v97-context.mjs",
+  "successorIntegrationPoint": "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+  "v184ToV185ChangedFiles": [
+    "docs/V185_METRICS_RADAR_READONLY_FREEZE_20260918.md",
+    "docs/V185_METRICS_RADAR_READONLY_REPORT_20260918.md",
+    "docs/freeze/v185-metrics-radar-readonly-20260918.json",
+    "public/funnel-metrics.html",
+    "scripts/guard-v185-metrics-radar-readonly.mjs",
+    "scripts/lib/ec-runtime-successor-v185-context.mjs",
+    "scripts/run-with-v185-context.mjs",
+    "src/routes/funnelMetrics.js",
+    "src/services/creativeSalesMetricsV185Service.js",
+    "tests/creative-sales-metrics-v185.test.mjs",
+    "tests/funnel-metrics-v185-route.test.mjs",
+    "tests/funnel-metrics-v185.browser.test.mjs"
+  ],
+  "ancestorManifestScan": {
+    "commit": "596441983a7d05e0cd002200372aa1bd0077214b",
+    "totalJsonFiles": 248,
+    "withProtectedFiles": 181,
+    "intersectionOccurrences": 19
+  },
+  "ancestorProtectedIntersection": [
+    "public/funnel-metrics.html",
+    "src/routes/funnelMetrics.js"
+  ],
+  "ancestorIntersectionEvidence": {
+    "public/funnel-metrics.html": [
+      "docs/freeze/ec-integration-health-capi-queue-v145-20260908.json",
+      "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json",
+      "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json",
+      "docs/freeze/investment-radar-v134-20260905.json",
+      "docs/freeze/meta-ads-insights-v130.json",
+      "docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json",
+      "docs/freeze/protocolo-g-ad-metrics-v63-20260826.json",
+      "docs/freeze/protocolo-g-commercial-metrics-v136-20260907.json",
+      "docs/freeze/protocolo-g-conversion-v62-20260826.json",
+      "docs/freeze/tex-ultra-panel-metrics-v5-20260815.json"
+    ],
+    "src/routes/funnelMetrics.js": [
+      "docs/freeze/ec-integration-health-capi-queue-v145-20260908.json",
+      "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json",
+      "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json",
+      "docs/freeze/meta-ads-insights-v130.json",
+      "docs/freeze/meta-ec-protocolo-g-attribution-v61-20260824.json",
+      "docs/freeze/protocolo-g-ad-metrics-v63-20260826.json",
+      "docs/freeze/protocolo-g-commercial-metrics-v136-20260907.json",
+      "docs/freeze/protocolo-g-conversion-v62-20260826.json",
+      "docs/freeze/tex-ultra-panel-metrics-v5-20260815.json"
+    ]
+  },
+  "v185FunctionalFiles": [
+    "public/funnel-metrics.html",
+    "src/routes/funnelMetrics.js",
+    "src/services/creativeSalesMetricsV185Service.js"
+  ],
+  "declaredAncestorOverrides": [
+    "docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json",
+    "public/funnel-metrics.html",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "src/routes/funnelMetrics.js"
+  ],
+  "newProtectedFiles": [
+    "docs/EC_V185_CANONICAL_SUCCESSOR_FREEZE_V186_20260918.md",
+    "scripts/guard-v185-canonical-successor-v186.mjs",
+    "scripts/lib/ec-runtime-successor-v186-context.mjs",
+    "tests/v185-canonical-successor-v186.test.mjs"
+  ],
+  "overrides": [
+    "docs/EC_V185_CANONICAL_SUCCESSOR_FREEZE_V186_20260918.md",
+    "docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json",
+    "public/funnel-metrics.html",
+    "scripts/guard-v185-canonical-successor-v186.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v186-context.mjs",
+    "src/routes/funnelMetrics.js",
+    "src/services/creativeSalesMetricsV185Service.js",
+    "tests/v185-canonical-successor-v186.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/EC_V185_CANONICAL_SUCCESSOR_FREEZE_V186_20260918.md": "1d1d955fbf897b8bff38d35501e01c8320c81674510cf580bd7e49c4693192bc",
+    "docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json": "b4b8965bd1f4c7f698a85b46e0be095dbdf8d34eb7caf98fe6e892eaf0275c30",
+    "public/funnel-metrics.html": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+    "scripts/guard-v185-canonical-successor-v186.mjs": "18d9766082d031ff24742fbe3688845e71e7d706129e4339f74c734180d8725b",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "2c5759ce74bbd3be16ef07e675a18a6a52ce43bdd1a373b25c3d6cc2e78ed678",
+    "scripts/lib/ec-runtime-successor-v186-context.mjs": "1adafb99cf69bc2d0ae41c9b001e099d5222a20b2a9b481b6535bb27b6dca285",
+    "src/routes/funnelMetrics.js": "9a1f09fdf807057bb3a974b64c3b9b8529a6e19111c514a52d0bc8ef5710a5aa",
+    "src/services/creativeSalesMetricsV185Service.js": "c8dd42d0678340f10760e35582d0e1428fd762b831cc8a5badf6788aef65fea5",
+    "tests/v185-canonical-successor-v186.test.mjs": "7c9af42e05a789d4f7125940a3e3fb45cfcaae25cd052d981b1b3ed0c30ce3ad"
+  },
+  "policy": {
+    "scope": "GUARD_LINEAGE_SUCCESSOR_CONTEXT_FREEZE_ONLY",
+    "guardLineageOnly": true,
+    "functionalCodeChanged": false,
+    "v185FunctionalFilesChanged": 0,
+    "v184DescriptorPreserved": true,
+    "v168bChanged": false,
+    "v71Changed": false,
+    "botChanged": false,
+    "vslChanged": false,
+    "qrPanelChanged": false,
+    "pixelChanged": false,
+    "capiRoutingChanged": false,
+    "dropiChanged": false,
+    "zapiChanged": false,
+    "guardsBypassed": false,
+    "productionActivationAuthorized": false,
+    "restartAuthorized": false
+  }
+}

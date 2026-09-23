@@ -28,15 +28,28 @@ test('V60 aplica a chave dedicada somente ao texto prometido e mantém dedupe f�
         shipmentMessages.indexOf('const calculateTreatmentDates')
     );
     assert.match(bonusBlock, /antiSpamKey:\s*pickupBonusAntiSpamKey\(shipment\)/);
-    assert.match(bonusBlock, /dedupeValue:\s*`\$\{text\}\|\$\{bonusDedupeScope\}`/);
-    assert.match(bonusBlock, /dedupeValue:\s*`\$\{thankYouAudioPath\}\|\$\{bonusDedupeScope\}`/);
+    assert.match(bonusBlock, /dedupeValue:\s*decision\.canonicalEvent \? decision\.idempotencyKey : `\$\{text\}\|\$\{bonusDedupeScope\}`/);
+    assert.doesNotMatch(bonusBlock, /OBRIGADO_PAGOU|delivered_thank_you/);
     assert.doesNotMatch(bonusBlock, /bypassDedupe:\s*true|force:\s*true/);
     assert.match(bonusBlock, /if \(!sent\) return false/);
-    assert.match(bonusBlock, /'automation\.bonusNotifiedAt': now/);
+    assert.match(bonusBlock, /'automation\.bonusNotifiedAt': (?:existingAt|primarySentAt)/);
+});
+
+test('V60 preserva agradecimento após retirada como etapa separada do bônus', () => {
+    const thankYouBlock = shipmentMessages.slice(
+        shipmentMessages.indexOf('export const notifyDeliveredThankYou'),
+        shipmentMessages.indexOf('export const notifyPickupBonus')
+    );
+    assert.match(thankYouBlock, /OBRIGADO_PAGOU/);
+    assert.match(thankYouBlock, /POST_SALE_VARIANTS\.DELIVERED_THANK_YOU_AUDIO/);
+    assert.match(thankYouBlock, /deliveredThankYouDedupeValueV147\(shipment\)/);
+    assert.doesNotMatch(thankYouBlock, /pickup_bonus_how_to_use|VIT_POWER_PICKUP_BONUS_TEXT/);
 });
 
 test('V60 conserva entrega logística oficial como gatilho do bônus', () => {
-    assert.match(dispatcher, /if \(status === 'ENTREGADO'\) return 'delivered_bonus'/);
-    assert.match(dispatcher, /const bonusSent = refreshed \? await notifyPickupBonus\(refreshed\) : false/);
-    assert.match(dispatcher, /'automation\.bonusNotifiedAt': null/);
+    assert.match(dispatcher, /if \(servientregaPostSaleCompletionEligibleV147\(shipment\)\) return 'delivered_bonus'/);
+    assert.match(dispatcher, /await notifyDeliveredThankYou\(refreshed\)/);
+    assert.match(dispatcher, /const bonusSent = afterThankYou \? await notifyPickupBonus\(afterThankYou\) : false/);
+    assert.match(dispatcher, /'automation\.deliveredThankYouNotifiedAt': null/);
+    assert.match(dispatcher, /'logistics\.canonicalStatus': 'DELIVERED'/);
 });

@@ -55,6 +55,7 @@ const messageModel = (messages = []) => ({
 });
 const shipmentFromFixture = (item, overrides = {}) => ({
     _id: `shipment-${item.key}`,
+    createdAt: new Date('2026-08-25T00:00:00Z'),
     orderId: item.orderId,
     country: 'EC',
     provider: 'droppi',
@@ -87,6 +88,10 @@ const outboundMessages = (item) => item.messages.map((body, index) => ({
     peerPhone: item.phone,
     createdAt: new Date('2026-08-26T12:00:00Z')
 }));
+const acceptedPickupAudio = (item) => ({ _id: 'synthetic-accepted-a07-' + item.key,
+    isFromMe: true, isBot: false, peerPhone: item.phone, body: '[Audio]',
+    mediaUrl: '/media/templates/EC/Chegou_01.ogg', providerMessageId: 'synthetic-provider-a07-' + item.key,
+    ack: 2, createdAt: new Date('2026-08-26T12:00:00Z') });
 const providerProbe = () => {
     let calls = 0;
     return {
@@ -257,6 +262,8 @@ test('16 reconciliação repetida não apaga memória de comunicação', () => {
 
 test('17 READY_FOR_PICKUP recém-confirmado sem evidência anterior permanece elegível', async () => {
     const shipment = shipmentFromFixture(fixtureCase('4818'));
+    shipment.logistics.canonicalStatus = 'READY_FOR_PICKUP';
+    shipment.logistics.pickupReadyVerifiedSource = 'carrier_tracking';
     const result = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup', acquireLock: false, messageModel: messageModel([]) });
     assert.equal(result.decision, POST_SALE_NOTIFICATION_DECISIONS.SHOULD_SEND);
 });
@@ -353,12 +360,12 @@ test('33 caso 6457 mantém três variantes GUIDE bloqueadas e provider zero', as
     assert.equal(provider.count(), 0);
 });
 
-test('34 caso 4818 bloqueia GUIDE e READY semanticamente equivalentes, provider zero', async () => {
+test('34 caso 4818 bloqueia GUIDE e A07 com evidencia exata, provider zero', async () => {
     const item = fixtureCase('4818');
     const shipment = shipmentFromFixture(item);
-    const messages = messageModel(outboundMessages(item));
+    const messages = messageModel([...outboundMessages(item), acceptedPickupAudio(item)]);
     const guide = await decidePostSaleNotification({ shipment, kind: 'guide_print_image', acquireLock: false, messageModel: messages });
-    const ready = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup', acquireLock: false, messageModel: messages });
+    const ready = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup', a07Component: 'AUDIO', acquireLock: false, messageModel: messages });
     assert.equal(guide.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_MANUALLY);
     assert.equal(ready.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_MANUALLY);
     assert.equal(providerProbe().count(), 0);
@@ -374,13 +381,13 @@ test('35 caso 9599 permanece suprimido em runtime novo e restart', async () => {
     }
 });
 
-test('36 caso 7146 reconhece duas comunicações humanas sem novo provider', async () => {
+test('36 caso 7146 reconhece A07 humano aceito sem novo provider', async () => {
     const item = fixtureCase('7146');
     const result = await decidePostSaleNotification({
         shipment: shipmentFromFixture(item),
         kind: 'ready_for_pickup',
         acquireLock: false,
-        messageModel: messageModel(outboundMessages(item))
+        a07Component: 'AUDIO', messageModel: messageModel([...outboundMessages(item), acceptedPickupAudio(item)])
     });
     assert.equal(result.decision, POST_SALE_NOTIFICATION_DECISIONS.ALREADY_NOTIFIED_MANUALLY);
     assert.equal(providerProbe().count(), 0);
@@ -424,12 +431,18 @@ test('40 V64 e V65 permanecem ancestrais declarados da V66', () => {
     assert.equal(v65.freezeId, 'post-sale-gargalos-v65-20260826');
 });
 
-test('41 recuperação READY usa a evidência encontrada ao finalizar o ledger', () => {
-    const source = fs.readFileSync(path.join(projectRoot, 'src/services/shipmentMessageService.js'), 'utf8');
-    assert.match(source, /providerMessageId:\s*existingNotice\.messageId/);
-    assert.match(source, /now:\s*existingNotice\.at\s*\|\|\s*new Date\(\)/);
-    assert.doesNotMatch(source, /providerMessageId:\s*existing\.messageId/);
-    assert.doesNotMatch(source, /now:\s*existing\.at\s*\|\|\s*new Date\(\)/);
+test('41 recuperação READY mantém a data aceita de cada componente e a âncora A07', async () => {
+    const { inspectA07V147R6R2, a07PlanV147R6R2 } = await import('../src/services/postSaleA07ComponentsV147R6R2Service.js');
+    const item = fixtureCase('7146');
+    const shipment = shipmentFromFixture(item);
+    const audio = acceptedPickupAudio(item);
+    const plan = await a07PlanV147R6R2(shipment);
+    const text = { ...audio, _id: 'accepted-text', body: plan.text, mediaUrl: '', providerMessageId: 'text-proof' };
+    const view = await inspectA07V147R6R2({ shipment, messageModel: messageModel([audio, text]) });
+    assert.equal(view.parent.components.AUDIO.providerMessageId, audio.providerMessageId);
+    assert.equal(view.parent.components.TEXT.providerMessageId, text.providerMessageId);
+    assert.equal(new Date(view.parent.components.AUDIO.acceptedAt).getTime(), new Date(audio.createdAt).getTime());
+    assert.equal(new Date(view.parent.acceptedAt).getTime(), new Date(text.createdAt).getTime());
 });
 
 test('42 lembretes, prova, bônus e recompra possuem estágios idempotentes próprios', () => {

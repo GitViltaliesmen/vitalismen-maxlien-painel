@@ -76,18 +76,18 @@ test('V118 oculta lead de aquecimento e preserva obrigação operacional ativa',
     }), false);
 });
 
-test('V118 permite somente ao QA exato a seleção visual manual sem remover bloqueios críticos', () => {
+test('V171 retira do QA exato a seleção de aquecimento e preserva bloqueios críticos', () => {
     const qa = { phoneDigits: '5515998038637' };
     const other = { phoneDigits: '593999111222' };
     assert.equal(isPanelWarmupIsolationQaV118(qa), true);
     assert.deepEqual(panelWarmupManualEngagementBlockersV118({
         state: qa,
         hardExclusions: ['protected_test_contact', 'commercial_intent', 'support_intent']
-    }), []);
+    }), ['qa_8637_attendance_only']);
     assert.deepEqual(panelWarmupManualEngagementBlockersV118({
         state: qa,
         hardExclusions: ['protected_test_contact', 'safety_risk', 'active_order_obligation']
-    }), ['safety_risk', 'active_order_obligation']);
+    }), ['safety_risk', 'active_order_obligation', 'qa_8637_attendance_only']);
     assert.deepEqual(panelWarmupManualEngagementBlockersV118({
         state: other,
         hardExclusions: ['commercial_intent']
@@ -95,7 +95,7 @@ test('V118 permite somente ao QA exato a seleção visual manual sem remover blo
     assert.equal(panelWarmupQaReplyAllowedV118(qa), false);
 });
 
-test('V118 preserva o bucket manual do QA, mas não sua resposta automática', () => {
+test('V171 não preserva o bucket manual legado do QA nem permite resposta automática', () => {
     const state = {
         phoneDigits: '5515998038637',
         conversationBucket: {
@@ -106,7 +106,7 @@ test('V118 preserva o bucket manual do QA, mas não sua resposta automática', (
     assert.equal(shouldPreservePanelWarmupManualEngagementV118({
         state,
         hardExclusions: ['protected_test_contact']
-    }), true);
+    }), false);
     assert.equal(shouldPreservePanelWarmupManualEngagementV118({
         state,
         hardExclusions: ['protected_test_contact', 'opt_out']

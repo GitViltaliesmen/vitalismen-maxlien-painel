@@ -1,0 +1,63 @@
+{
+  "freezeId": "EC_V116_CANONICAL_POLLING_V147_R4_20260910",
+  "parentCommit": "b73cabb745508c4be1b56703a03dc74620d1b678",
+  "parentTree": "51c596f96c0c72096d311ee4da5a00b63d897ad2",
+  "functionalFiles": [
+    "scripts/post-sale-transactional-batch-v116.mjs",
+    "src/services/shipmentStatusDispatcherService.js"
+  ],
+  "overrides": [
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md",
+    "package.json",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs",
+    "scripts/guard-v146-definitive-normalization.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs",
+    "scripts/lib/ec-runtime-successor-v147-r4-context.mjs",
+    "scripts/post-sale-transactional-batch-v116.mjs",
+    "scripts/test-v147-r4-staging-sink.mjs",
+    "src/services/shipmentStatusDispatcherService.js",
+    "tests/helpers/v147-r4-sink-loader.mjs",
+    "tests/helpers/v147-r4-sink-register.mjs",
+    "tests/v116-canonical-polling-v147-r4.test.mjs"
+  ],
+  "protectedFiles": {
+    "docs/V147_R4_V116_CANONICAL_POLLING_20260910.md": "c631ed037c0611d2b1ece6f0d544ebb9d2d2baac97b2262c85241678f2233420",
+    "package.json": "6c0483b7453ef92b0a3e9ed007b1e8a901289a9792e7f77efc36b24733f4646f",
+    "scripts/guard-delivered-single-gate-v147-r3.mjs": "c689d5c88ea8f1b6871e17d1e79b91e29ab67482bd653f721a4417808a933bf0",
+    "scripts/guard-v116-canonical-polling-v147-r4.mjs": "b83b5c329cc9dd77cad5341fd6f734524c5c1bdfb53f1726e636f35adbd57cee",
+    "scripts/guard-v146-definitive-normalization.mjs": "105e0ceb6ddc706f4c3a9594cdcf245f2ea21d1d69e15ac6d40af57a43d2250c",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "36974f03de331f6d5d7083bf16f9fd09ae7147491d80f4be1f4c5525c2a3fac5",
+    "scripts/lib/ec-runtime-successor-v147-r3-context.mjs": "06306b83d55e297ed17947ad6ff777fcdd5130a0732447c67069a8ab0c8d73d8",
+    "scripts/lib/ec-runtime-successor-v147-r4-context.mjs": "c0ab505a0fe185f56802c6bb8f62d4328e34105837229edfbbb05c2122b9b6c2",
+    "scripts/post-sale-transactional-batch-v116.mjs": "683a118794aa366ac5f449c647161ab3606705861f1ca4017c9ad618ab43550c",
+    "scripts/test-v147-r4-staging-sink.mjs": "5d9db0a7d1566dc5d166816f6c2de899c3254a8da85dc4aff6982cbbfdb76da6",
+    "src/services/shipmentStatusDispatcherService.js": "9b1d03748c15f66bfb047356f9ae75fbe034b48188e284eca5c6764c58da7e56",
+    "tests/helpers/v147-r4-sink-loader.mjs": "18e95b0026056b2dfb57438458d0a8952fbf50644fe0e88308a6e56e9f90a56a",
+    "tests/helpers/v147-r4-sink-register.mjs": "4ed4ebda61eb7cddf2f8f0e41f0ef39cb9a44c046cca4fe4fd309213211cfd96",
+    "tests/v116-canonical-polling-v147-r4.test.mjs": "44c4afe14b2c8a9dcf9f38334a385830a5548751e9a7f5142e5fbe2d87ba1955"
+  },
+  "preservedFiles": {
+    "ops/post-sale-v116": "8cfb85be756109647971c71a54d6cd01ca8acceb97e7faeac61828f23e3539c4",
+    "ops/vitalismen-stage": "803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99",
+    "ops/ec-bot-core-v78": "a000e912c4dcbdff6de07e5824c817e41501b18ad42114d3a5f20ffc7893a480",
+    "src/services/carrierTrackingService.js": "bc8cd22b0a5f587312c8943322488c8f64b879943d22e7153e80d7aaceadb3db",
+    "src/services/shipmentLifecycleStatusService.js": "07db7f7930171998738f60c7e1da05661d2099975051dbd4e76e70dcea6b2ba4",
+    "src/services/shipmentMessageService.js": "688cd02243ba9a49e6ede3d2685a13c3ee46217a980a4e1e1ba3c31fad252aa2",
+    "src/services/canonicalLogisticsStatusV147Service.js": "b10a6da82d1265e675ff3299b2966462a818a2d12e4ae66e9c9109e4b57fe43c",
+    "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",
+    "src/services/droppiEcuadorImportService.js": "76cce568dc218e636fb79efdbc48e27e88e1a346cf8239d348111b33e9c12900",
+    "src/services/ecPhoneServientregaReconciliationV140Service.js": "30fc21d2a3c4d929817ef46479b59475b2f928b58e6b1b969df7c0ddffef6897",
+    "docs/freeze/ec-delivered-single-gate-v147-r3-20260910.json": "44c851dd075ccfcfbd6954aafd4b11688f9611e58a5fe58f8470cac03584d76b"
+  },
+  "policy": {
+    "publicationAllowed": false,
+    "historicalBackfillAllowed": false,
+    "realMessagesSent": 0,
+    "transport": "SINK",
+    "newScheduler": false,
+    "newPoller": false,
+    "operatorApprovalRequired": true
+  }
+}

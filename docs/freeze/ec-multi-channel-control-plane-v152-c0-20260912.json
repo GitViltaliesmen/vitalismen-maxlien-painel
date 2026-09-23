@@ -1,0 +1,31 @@
+{
+  "freezeId": "EC_MULTI_CHANNEL_CONTROL_PLANE_V152_C0_20260912",
+  "parentCommit": "0b1055eb683ee1deb43d4f5c431abfd5e3274e12",
+  "parentTree": "fe47ec5f93cc34f94699d128a2acc8573249206f",
+  "policy": {
+    "publicationAllowed": false,
+    "productionChanged": false,
+    "zapiBehaviorChanged": false,
+    "samePhoneDualProvider": "FORBIDDEN",
+    "testChannelPhone": null,
+    "pairingState": "PAIRING_PENDING_REAL_TEST_CHANNEL",
+    "realPairing": 0,
+    "realOutbound": 0,
+    "realCustomerRouting": 0,
+    "realHandoff": 0,
+    "metaCloudNetworkCalls": 0
+  },
+  "protectedFiles": {
+    "package.json": "205c608d74ebb0d60056a1ace726361b042180c4bdebabd7130aa67c18243e7a",
+    "public/qr.html": "29ed7805a7814168445659310159bc1dcc4b2ba78f342ef0cbe8fc06386c2848",
+    "scripts/guard-v152-c0-control-plane.mjs": "c43005a90f138843f9167e3dfe344622ceee80b7d6b747a53a4483538443ad2e",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "6c822c238c22286f2ce8cca774e7a0338bf256f0518339a02f29aae3999a8cd9",
+    "scripts/lib/ec-runtime-successor-v152-c0-context.mjs": "4a7d8c94447b14de1166eedca96cb255ad9e936eedea443a0c542f39c740320f",
+    "scripts/refresh-v152-c0-manifest.mjs": "ee8240f6a4976bd437c750d1d7b3c86ae98a63a30834352ceb3285a500cc3dac",
+    "src/models/WhatsAppChannel.js": "25fcb92c079b23e7ed3fda4be3a5def343d806560890b71083d7fdbbf4fc678b",
+    "src/whatsapp/core/ChannelRegistry.js": "f3cfd3384a5dd546500fc8997c5a0701371a71402253f009d3c2ebcd2870b962",
+    "src/whatsapp/core/WhatsAppTransport.js": "cd14665de7a5d2cdf9abdb60c82397345aee319d97931837a938191541286d3c",
+    "tests/v152-c0-control-plane.test.mjs": "2af1f6bf15993aaeff88c4222e339c98379f7cac9ba00becc251ce1642014fa6",
+    "tests/v152-c0-provider-swap.test.mjs": "b1336213aa5d22d95057993373c94c6d2f33b34f38d0335500d365f16b13c077"
+  }
+}

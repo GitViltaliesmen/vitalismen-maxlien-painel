@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
@@ -16,12 +17,12 @@ import {
 import {
     notifyReadyForPickup,
     notifyPickupBonus,
+    notifyProductUsage,
     notifyPickupProofRequest,
     notifyShipmentGuideGenerated,
     notifyTreatmentRefillReminder,
     processPickupProofSweep,
     notifyShipmentReturned,
-    repurchaseReminderDelayDaysForUnits
 } from '../services/shipmentMessageService.js';
 import Order from '../models/Order.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
@@ -41,6 +42,7 @@ import {
 } from '../services/carrierTrackingService.js';
 import {
     markOnlineAdminPedidoEnviado,
+    persistConfirmedOrderToOnlineAdminPanelV158,
     recordOnlineAdminPurchaseLock,
     syncOrderToOnlineAdminPanel,
     updateOnlineAdminLeadProductSelection
@@ -58,8 +60,11 @@ import {
     processGuidePrintDispatch
 } from '../services/guidePrintDispatcherService.js';
 import { findServientregaEcuadorAgencies } from '../services/servientregaEcuadorAgencyService.js';
-import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
 import { getOrderDuplicateGuard } from '../services/orderDuplicateGuardService.js';
+import {
+    dropiManualReviewMessageV157,
+    dropiManualReviewReasonForResultV157
+} from '../services/dropiSubmitFailurePolicyV157Service.js';
 import {
     ECUADOR_PRODUCTS,
     detectExplicitEcuadorProductKey,
@@ -498,8 +503,76 @@ const ensurePurchaseForStagedOrder = async ({ order, req, sourceOrderId }) => {
     return purchase;
 };
 
+export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
+    order,
+    shipment,
+    dropiResult,
+    freshDropiSubmission = false,
+    sourceOrderId = '',
+    purchaseSender = sendPurchaseEventForOrder,
+    purchaseLock = recordOnlineAdminPurchaseLock,
+    persistOrder = async (target) => target.save()
+} = {}) => {
+    const dropiSucceeded = dropiResult?.ok === true || dropiResult?.success === true;
+    if (!dropiSucceeded) return { ok: false, skipped: true, reason: 'dropi_not_successful' };
+    if (freshDropiSubmission !== true) {
+        return { ok: false, skipped: true, reason: 'historical_or_existing_dropi_submission' };
+    }
+    if (!shipment?.automation?.dropiSubmitAuthorizedAt) {
+        return { ok: false, skipped: true, reason: 'human_dropi_authorization_missing' };
+    }
+    if (!order) return { ok: false, skipped: true, reason: 'order_missing' };
+    if (order.tracking?.metaPurchaseSentAt) {
+        return {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            eventId: order.tracking?.metaPurchaseEventId || order.orderId
+        };
+    }
+    try {
+        const purchase = await purchaseSender(order);
+        order.tracking = order.tracking || {};
+        order.tracking.metaPurchaseEventId = purchase.eventId || order.orderId;
+        const metaAccepted = purchase.ok === true
+            && Number(purchase.response?.events_received || 0) > 0;
+        if (metaAccepted) {
+            order.tracking.metaPurchaseSentAt = new Date();
+            order.tracking.metaPurchaseResponse = purchase.response;
+        } else {
+            order.tracking.metaPurchaseResponse = {
+                ok: false,
+                status: purchase.status,
+                data: purchase.data,
+                response: purchase.response,
+                error: purchase.error || 'meta_purchase_not_accepted'
+            };
+        }
+        await persistOrder(order);
+        if (order.tracking.metaPurchaseSentAt) {
+            purchaseLock({
+                order,
+                purchase,
+                sourceOrderId: sourceOrderId || order.orderId,
+                country: 'EC'
+            });
+        }
+        return {
+            ok: metaAccepted,
+            skipped: false,
+            eventId: order.tracking.metaPurchaseEventId,
+            metaAccepted,
+            error: metaAccepted ? '' : String(purchase.error || 'meta_purchase_not_accepted')
+        };
+    } catch (error) {
+        return { ok: false, skipped: false, reason: 'meta_purchase_pipeline_failed', error: error.message };
+    }
+};
+
 const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, note = '', req }) => {
     const adminOrderId = `EC-ADMIN-${leadId}`;
+    const correlationId = `panel-confirm-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    const requestedBy = req?.user?.email || req?.user?.name || 'panel';
     const lead = getAdminLeadSnapshot({ orderId: adminOrderId });
     if (!lead) {
         const error = new Error('Lead EC nao encontrado.');
@@ -530,7 +603,68 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
             error.code = 'confirmed_order_data_required';
             throw error;
         }
-        return { order, repurchase: false, reused: false, previousOrderId: '' };
+        if (!['draft', 'pending', 'confirmed'].includes(String(order.status || '').trim().toLowerCase())) {
+            const error = new Error(`O pedido operacional ${order.orderId} ja avancou para ${order.status} e nao pode ser rebaixado para confirmado.`);
+            error.status = 409;
+            error.code = 'confirmed_order_already_advanced';
+            throw error;
+        }
+        order.status = 'confirmed';
+        if (!order.confirmedAt) order.confirmedAt = new Date();
+        await order.save();
+        const confirmedPersistence = persistConfirmedOrderToOnlineAdminPanelV158(order, {
+            action: 'admin_lead_stage_confirmed_v158',
+            leadId,
+            requestedBy,
+            correlationId
+        });
+        if (!confirmedPersistence.ok) {
+            const error = new Error('O pedido foi preservado, mas a lista Confirmados nao comprovou a persistencia. Nenhum sucesso foi declarado.');
+            error.status = confirmedPersistence.reason === 'lead_not_found' ? 404 : 409;
+            error.code = confirmedPersistence.reason || 'confirmed_panel_persistence_failed';
+            error.confirmedPersistence = confirmedPersistence;
+            throw error;
+        }
+        let contactStateVerified = !state;
+        if (state) {
+            const currentDraft = state.metadata?.customerDraft?.toObject?.()
+                || state.metadata?.customerDraft
+                || {};
+            state.metadata = {
+                ...(state.metadata || {}),
+                customerDraft: {
+                    ...currentDraft,
+                    orderId: order.orderId,
+                    sourceOrderId: adminOrderId,
+                    previousOrderId: order.previousOrderId || '',
+                    currentNegotiationOrderId: order.orderId,
+                    status: 'confirmado',
+                    updatedAt: new Date().toISOString()
+                }
+            };
+            state.markModified('metadata');
+            await state.save();
+            const finalState = await ContactState.findById(state._id).select('metadata.customerDraft').lean();
+            contactStateVerified = Boolean(
+                finalState?.metadata?.customerDraft?.orderId === order.orderId
+                && finalState?.metadata?.customerDraft?.status === 'confirmado'
+            );
+            if (!contactStateVerified) {
+                const error = new Error('A leitura final da ficha nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.');
+                error.status = 409;
+                error.code = 'confirmed_contact_state_read_after_write_failed';
+                error.confirmedPersistence = confirmedPersistence;
+                throw error;
+            }
+        }
+        return {
+            order,
+            repurchase: false,
+            reused: Boolean(order._mappedFromAdminLead),
+            previousOrderId: '',
+            confirmedPersistence,
+            contactStateVerified
+        };
     }
     if (!historical.order) {
         const error = new Error('Pedido anterior entregue nao encontrado para registrar a recompra.');
@@ -623,6 +757,34 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
         state.markModified('metadata');
         await state.save();
     }
+    const confirmedPersistence = persistConfirmedOrderToOnlineAdminPanelV158(order, {
+        action: 'admin_lead_stage_repurchase_confirmed_v158',
+        leadId,
+        requestedBy,
+        correlationId
+    });
+    if (!confirmedPersistence.ok) {
+        const error = new Error('A recompra foi preservada no Mongo, mas a lista Confirmados nao comprovou a persistencia. Nenhum sucesso foi declarado.');
+        error.status = confirmedPersistence.reason === 'lead_not_found' ? 404 : 409;
+        error.code = confirmedPersistence.reason || 'confirmed_panel_persistence_failed';
+        error.confirmedPersistence = confirmedPersistence;
+        throw error;
+    }
+    let contactStateVerified = !state;
+    if (state) {
+        const finalState = await ContactState.findById(state._id).select('metadata.customerDraft').lean();
+        contactStateVerified = Boolean(
+            finalState?.metadata?.customerDraft?.orderId === order.orderId
+            && finalState?.metadata?.customerDraft?.status === 'confirmado'
+        );
+        if (!contactStateVerified) {
+            const error = new Error('A leitura final da ficha da recompra nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.');
+            error.status = 409;
+            error.code = 'confirmed_contact_state_read_after_write_failed';
+            error.confirmedPersistence = confirmedPersistence;
+            throw error;
+        }
+    }
     const purchase = await ensurePurchaseForStagedOrder({
         order,
         req,
@@ -633,7 +795,9 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
         purchase,
         repurchase: true,
         reused: decision.reused,
-        previousOrderId: decision.previousOrderId
+        previousOrderId: decision.previousOrderId,
+        confirmedPersistence,
+        contactStateVerified
     };
 };
 
@@ -825,6 +989,9 @@ const retroactiveSyncQuery = ({ days = 10 } = {}) => {
 
 const describeDropiSubmitFailure = (value, fallback = 'Dropi rejeitou o envio. Pedido marcado para envio manual.') => {
     const text = String(value || '');
+    if (/DROPI_DUPLICATE_CHECK_FAILED|anti-duplicidade|ORDER_LOOKUP_NOT_CONFIRMED/i.test(text)) {
+        return 'A consulta anti-duplicidade da Dropi nao foi confirmada. Nenhum pedido foi criado; tente novamente depois da pesquisa segura.';
+    }
     if (/two-factor|2fa|autenticaci[oó]n de dos factores|dois fatores/i.test(text)) {
         return 'Dropi pediu autenticacao de dois fatores. Atualize a sessao Dropi antes de tentar enviar novamente.';
     }
@@ -1214,8 +1381,8 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
             };
         }
         const manualShipment = await markManualSendRequired(updatedShipment, {
-            reason: 'dropi_rejected',
-            error: result.error || result.reason || 'submit_failed',
+            reason: dropiManualReviewReasonForResultV157(result),
+            error: dropiManualReviewMessageV157(result),
             user
         });
         return {
@@ -1225,7 +1392,14 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
             message: describeDropiSubmitFailure(result.error || result.reason)
         };
     }
-    return result;
+    const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+        order,
+        shipment,
+        dropiResult: result,
+        freshDropiSubmission: true,
+        sourceOrderId: order.orderId
+    });
+    return { ...result, purchase };
 };
 
 const enqueueDropiSubmitJob = async ({ order, shipment, user = null }) => {
@@ -1711,12 +1885,13 @@ router.post('/dispatch/retroactive', adminOnly, async (req, res) => {
 
 router.get('/servientrega/ec/agencies', adminOnly, async (req, res) => {
     try {
-        const { city = '', province = '', q = '', limit = 5 } = req.query || {};
+        const { city = '', province = '', q = '', limit = 5, strictCity = '' } = req.query || {};
         const agencies = findServientregaEcuadorAgencies({
             city,
             province,
             query: q,
-            limit: Math.min(Number.parseInt(limit, 10) || 5, 10)
+            limit: Math.min(Number.parseInt(limit, 10) || 5, 10),
+            strictCityScope: String(strictCity || '') === '1'
         });
         res.json({
             success: true,
@@ -1955,6 +2130,16 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (
             repurchase: staged.repurchase,
             reused: staged.reused,
             previousOrderId: staged.previousOrderId,
+            persistenceVerified: staged.confirmedPersistence?.persistenceVerified === true,
+            readAfterWriteVerified: staged.confirmedPersistence?.readAfterWriteVerified === true,
+            visibleInConfirmedQuery: staged.confirmedPersistence?.visibleInConfirmedQuery === true,
+            contactStateVerified: staged.contactStateVerified === true,
+            matchedCount: Number(staged.confirmedPersistence?.matchedCount || 0),
+            modifiedCount: Number(staged.confirmedPersistence?.modifiedCount || 0),
+            previousState: staged.confirmedPersistence?.previousStatus || '',
+            requestedState: staged.confirmedPersistence?.requestedStatus || 'confirmado',
+            finalPersistedState: staged.confirmedPersistence?.finalStatus || '',
+            correlationId: staged.confirmedPersistence?.correlationId || '',
             authorizationRequired: true,
             dropiAuthorized: false,
             dropiSubmitted: false,
@@ -1972,7 +2157,16 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (
         return res.status(error.status || 500).json({
             success: false,
             error: error.code || 'stage_confirmed_admin_lead_failed',
-            message: error.message || 'Falha ao registrar pedido confirmado.'
+            message: error.message || 'Falha ao registrar pedido confirmado.',
+            persistenceVerified: false,
+            readAfterWriteVerified: false,
+            falseSuccessPrevented: true,
+            ...(error.confirmedPersistence ? {
+                matchedCount: Number(error.confirmedPersistence.matchedCount || 0),
+                modifiedCount: Number(error.confirmedPersistence.modifiedCount || 0),
+                finalPersistedState: error.confirmedPersistence.finalStatus || '',
+                correlationId: error.confirmedPersistence.correlationId || ''
+            } : {})
         });
     }
 });
@@ -2156,13 +2350,29 @@ router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => 
 
         const existingShipment = await Shipment.findOne({ orderId: order.orderId });
         const previouslySubmitted = alreadySubmittedResponse(order, existingShipment);
-        if (previouslySubmitted) return res.json(previouslySubmitted);
+        if (previouslySubmitted) {
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment: existingShipment,
+                dropiResult: previouslySubmitted,
+                sourceOrderId: order.orderId
+            });
+            return res.json({ ...previouslySubmitted, purchase });
+        }
         assertEcDropiOrderReadyV138(order);
         const shipment = await ensureShipmentForOrder(order, 'EC');
         if (!looksLikeEcuadorOrder(order, shipment)) return dropiDestinationBlockedResponse(res, order, shipment);
 
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);
-        if (alreadySubmitted) return res.json(alreadySubmitted);
+        if (alreadySubmitted) {
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment,
+                dropiResult: alreadySubmitted,
+                sourceOrderId: order.orderId
+            });
+            return res.json({ ...alreadySubmitted, purchase });
+        }
         if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const duplicateGuard = await getDropiDuplicateGuardForOrder(order, shipment);
         if (!duplicateGuard.allowed) return duplicateGuardResponse(res, duplicateGuard);
@@ -2489,8 +2699,8 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                     continue;
                 }
                 const manualShipment = await markManualSendRequired(updatedShipment, {
-                    reason: 'dropi_rejected',
-                    error: result.error || result.reason || 'submit_failed',
+                    reason: dropiManualReviewReasonForResultV157(result),
+                    error: dropiManualReviewMessageV157(result),
                     user: req.user
                 });
                 results.push({
@@ -2502,6 +2712,13 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                 });
                 continue;
             }
+            const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
+                order,
+                shipment,
+                dropiResult: result,
+                freshDropiSubmission: true,
+                sourceOrderId: order.orderId
+            });
             results.push({
                 orderId: order.orderId,
                 ok: true,
@@ -2515,6 +2732,7 @@ router.post('/droppi/ec/dispatch/run', adminOnly, async (req, res) => {
                     || result?.result?.verifiedTrackingNumber
                     || '',
                 carrier: result?.result?.chosenCarrier || '',
+                purchase,
                 message: 'submitted'
             });
         }
@@ -2943,56 +3161,34 @@ router.post('/:orderId/confirm-pickup', adminOnly, async (req, res) => {
         const {
             productPhotoUrl = '',
             agencyReceiptPhotoUrl = '',
-            pickedUpAt = new Date().toISOString(),
-            sendBonus = true
+            pickedUpAt = new Date().toISOString()
         } = req.body || {};
 
         const pickedAt = new Date(pickedUpAt);
-        const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
-        const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
-        const treatmentEndsAt = new Date(pickedAt.getTime() + (units * daysPerUnit * 24 * 60 * 60 * 1000));
-        const refillReminderDueAt = new Date(pickedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * 24 * 60 * 60 * 1000));
-
-        shipment.outcomes.pickedUp = true;
-        shipment.outcomes.delivered = true;
-        shipment.outcomes.returned = false;
-        shipment.outcomes.prepaidOnly = false;
-        shipment.automation.deliveredConfirmedAt = pickedAt;
-        shipment.automation.prepaidOnlyNotifiedAt = null;
         shipment.proof.productPhotoUrl = productPhotoUrl;
         shipment.proof.agencyReceiptPhotoUrl = agencyReceiptPhotoUrl;
         shipment.proof.pickupProofReceivedAt = new Date();
-        shipment.treatment.treatmentEndsAt = treatmentEndsAt;
-        shipment.treatment.refillReminderDueAt = refillReminderDueAt;
-        shipment.review.manualOnly = false;
-        shipment.review.reviewReason = '';
-        shipment.review.reviewStatus = 'pickup_confirmed';
         shipment.events.push({
-            kind: 'pickup_confirmed',
+            kind: 'pickup_proof_recorded_awaiting_servientrega_delivered',
             at: new Date(),
             payload: {
                 productPhotoUrl,
                 agencyReceiptPhotoUrl,
                 pickedUpAt: pickedAt,
-                customerEligibility: 'released_for_new_order'
+                completionDeferred: true,
+                completionGate: 'servientrega_canonical_delivered'
             }
         });
         shipment.events = shipment.events.slice(-60);
         await shipment.save();
-        const order = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
-        if (order) {
-            order.status = 'delivered';
-            order.shippingStatus = shipment.logistics?.status || 'ENTREGADO';
-            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            await order.save();
-            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_confirmed' });
-        }
-        const bonusSent = sendBonus === false ? false : await notifyPickupBonus(shipment);
-        await markSenderWalletDelivered({ phone: shipment.client?.phone });
 
         res.json({
             success: true,
-            bonusSent,
+            thankYouSent: false,
+            bonusSent: false,
+            usageSent: false,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered',
             shipment
         });
     } catch (error) {
@@ -3005,8 +3201,10 @@ router.post('/:orderId/notify-bonus', adminOnly, async (req, res) => {
     try {
         const shipment = await Shipment.findOne({ orderId: req.params.orderId });
         if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
-        const success = await notifyPickupBonus(shipment);
-        res.json({ success });
+        const bonusSent = await notifyPickupBonus(shipment);
+        const refreshed = await Shipment.findById(shipment._id);
+        const usageSent = refreshed ? await notifyProductUsage(refreshed) : false;
+        res.json({ success: Boolean(bonusSent || usageSent), bonusSent, usageSent });
     } catch (error) {
         console.error('Notify bonus error:', error);
         res.status(500).json({ error: 'Failed to notify bonus' });

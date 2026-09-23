@@ -69,6 +69,7 @@ test('rota oficial carrega vinculos e remessa por IDs, entrega ciclo comercial s
     const order = { ...origin, orderId: 'o', createdAt: now, status: 'shipped', total: 35.99, tracking: { ...origin.tracking, ad_id: 'A' } };
     const handler = createFunnelMetricsHandler({ VisitModel: model('visits', []), OrderModel: model('orders', [order]),
         ContactModel: model('contacts', []), ShipmentModel: model('shipments', [{ orderId: 'o', automation: { submittedToDroppiAt: now } }]),
+        MessageModel: model('messages', []),
         CorrelationModel: model('correlations', []), clock: () => new Date(now), pixelId: () => '', datasetIdForOrder: () => '', adsInsights: async () => ({ status: 'unavailable' }) });
     const res = { set() {}, json(body) { this.body = body; }, status(code) { this.statusCode = code; return this; } };
     await handler({ query: { days: '7' } }, res);

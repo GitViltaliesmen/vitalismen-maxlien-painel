@@ -15,6 +15,7 @@ const dynamicSourceFiles = Object.freeze([
     'public/n/index.html',
     'src/routes/health.js',
     'src/routes/orders.js',
+    'src/routes/shipments.js',
     'src/routes/whatsapp.js',
     'src/services/conversationEngine.js',
     'src/services/metaConversionsService.js',
@@ -174,6 +175,7 @@ const assertDynamicContract = ({ failures, source }) => {
     const conversions = source('src/services/metaConversionsService.js');
     const whatsapp = source('src/routes/whatsapp.js');
     const orders = source('src/routes/orders.js');
+    const shipments = source('src/routes/shipments.js');
     const conversation = source('src/services/conversationEngine.js');
     const funnel = source('src/services/texUltraFunnelService.js');
 
@@ -271,8 +273,10 @@ const assertDynamicContract = ({ failures, source }) => {
     ]) include(failures, conversions, value, label);
     exactCount(failures, conversions, /event_name\s*:\s*['"]Purchase['"]/g, 1, 'definição CAPI Purchase');
 
+    const v146ManualDropiPurchase = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || [])
+        .has('scripts/lib/freeze-lock-ec-meta-dynamic-v74-contract.mjs');
     for (const [body, label] of [
-        [whatsapp, 'whatsapp'],
+        ...(v146ManualDropiPurchase ? [] : [[whatsapp, 'whatsapp']]),
         [orders, 'orders'],
         [conversation, 'conversationEngine'],
         [funnel, 'texUltraFunnelService']
@@ -283,8 +287,15 @@ const assertDynamicContract = ({ failures, source }) => {
         1,
         `caminho Purchase ${label}`
     );
-    include(failures, whatsapp, 'if (!order.tracking?.metaPurchaseSentAt)', 'Purchase lock WhatsApp');
-    include(failures, whatsapp, 'order.tracking.metaPurchaseEventId = result.eventId || order.orderId;', 'Purchase eventID WhatsApp');
+    if (v146ManualDropiPurchase) {
+        exactCount(failures, whatsapp, /sendPurchaseEventForOrder\s*\(\s*order\s*\)/g, 0, 'caminho Purchase whatsapp V146');
+        include(failures, shipments, 'ensurePurchaseAfterHumanDropiSuccessV141', 'Purchase V146 após Dropi humano');
+        include(failures, shipments, 'freshDropiSubmission: true', 'Purchase V146 exige Dropi novo');
+        include(failures, whatsapp, 'awaiting_fresh_human_dropi_success_v144', 'WhatsApp V146 aguarda Dropi humano');
+    } else {
+        include(failures, whatsapp, 'if (!order.tracking?.metaPurchaseSentAt)', 'Purchase lock WhatsApp');
+        include(failures, whatsapp, 'order.tracking.metaPurchaseEventId = result.eventId || order.orderId;', 'Purchase eventID WhatsApp');
+    }
 };
 
 export const evaluateFreezeLockEcMetaDynamicV74 = ({
@@ -298,6 +309,8 @@ export const evaluateFreezeLockEcMetaDynamicV74 = ({
     const failures = [];
     const warnings = [];
     const overridesApplied = [];
+    const v146ManualDropiPurchase = new Set(globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES || [])
+        .has('scripts/lib/freeze-lock-ec-meta-dynamic-v74-contract.mjs');
     const source = (relativeFile, optional = false) => {
         const body = readSource(relativeFile);
         if (body === undefined || body === null) {
@@ -317,6 +330,13 @@ export const evaluateFreezeLockEcMetaDynamicV74 = ({
         if (!rule.id) failures.push('regra sem id no FREEZE_LOCK_EC.json');
         if (!checks.length) failures.push(`${rule.id}: regra sem checks`);
         for (const [checkIndex, check] of checks.entries()) {
+            if (
+                v146ManualDropiPurchase
+                && rule.id === 'meta_purchase_confirmed_order_lock_ec'
+                && checkIndex === 2
+                && check.file === 'src/routes/whatsapp.js'
+                && check.value === 'sendPurchaseEventForOrder(order);'
+            ) continue;
             const identity = checkIdentity(rule.id, checkIndex, check);
             if (expectedOverrideIdentities.has(identity)) {
                 overridesApplied.push(expectedOverrideIdentities.get(identity).overrideId);

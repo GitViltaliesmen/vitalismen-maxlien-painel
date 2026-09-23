@@ -1,0 +1,63 @@
+{
+  "freezeId": "EC_V141_V142_CONVERGENCE_V143_20260908",
+  "layer": "V143",
+  "country": "EC",
+  "mergeBase": "13e752adc08cd089181eeebe2ff527dbe97f5fa9",
+  "v141Commit": "60001a0d689c1778b10025e9e4bdd4d1adf5a6c0",
+  "v141Tree": "7a052ba928aa5101b57f1ddd87806f9440825bf1",
+  "v141Tag": "production-20260908-60001a0",
+  "v141FreezeTag": "freeze-v141-meta-funnel-reconciliation-20260908",
+  "v141Manifest": "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json",
+  "v141ManifestSha256": "7bf09f0406d15885279fad2a553ae83356077cf64f15f298e47d85f448a7d275",
+  "v142Commit": "7eed0f386eb88bcd7fd5b55c3316775ca3a362e1",
+  "v142Tree": "77d2124342d40a2b340e0c3bea5bc7d269babb8a",
+  "v142Tag": "production-20260908-7eed0f3",
+  "v142FreezeTag": "freeze-production-v142-panel-new-dropi-persistence-20260908",
+  "v142Manifest": "docs/freeze/ec-panel-new-dropi-persistence-v142-20260908.json",
+  "v142ManifestSha256": "7c3eaf2e58f88e453394177101e5d6366e9ea1e66722b378f6fa370a4b835cdf",
+  "overrides": [
+    "package.json",
+    "scripts/guard-ec-phone-servientrega-reconciliation-v140.mjs",
+    "scripts/lib/ec-runtime-successor-v140-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v140-context.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/guard-v141-v142-convergence-v143.mjs",
+    "scripts/lib/ec-runtime-successor-v143-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v143-context.mjs",
+    "scripts/run-with-v143-context.mjs",
+    "tests/v141-v142-convergence-v143.test.mjs",
+    "docs/EC_V141_V142_CONVERGENCE_V143_20260908.md"
+  ],
+  "protectedFiles": {
+    "package.json": "f4bdae943b08c157e64356d918731d06f4eef2e8fd157e98b7a637c9759086cb",
+    "scripts/guard-ec-phone-servientrega-reconciliation-v140.mjs": "a9f40ffd1a3e870658b44faaf2e5f8f66f47f1259604b8f5a61be8e7962a4b54",
+    "scripts/lib/ec-runtime-successor-v140-bootstrap-context.mjs": "df47266e7eebeaab3c474e348f896450d96df52e02808f0a4dbbd2ae844b4c56",
+    "scripts/lib/ec-runtime-successor-v140-context.mjs": "96326fddddc6fe512309aedfbbd9bff650461dd139904397753a8451c729c513",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "a9d05b0bf75d4ec51bfa3d749d6bd7eae071b1277b0e2fa15383c57a73952b45",
+    "scripts/guard-v141-v142-convergence-v143.mjs": "1b39b9365d0b6b887ef38c2838e3c92d6a0ea4bc9ff8a93d948a285a322f0620",
+    "scripts/lib/ec-runtime-successor-v143-bootstrap-context.mjs": "85b3b1209ed2080c404be106652f58536b80c77388bee2d1a61c6d56d75a5738",
+    "scripts/lib/ec-runtime-successor-v143-context.mjs": "d00392de710675fe996f3d3f0ce78df10fd59776caa1d703ff9f61c4a6c0f270",
+    "scripts/run-with-v143-context.mjs": "64c1dd86af56d13561e29e126b6c3ae8d4efc557b6fcd879c6f3500c5dc535f9",
+    "tests/v141-v142-convergence-v143.test.mjs": "67cb47345dd89dabda0a3bb3db61cb6c3995802d6cf5cae781010a3020a371a3",
+    "docs/EC_V141_V142_CONVERGENCE_V143_20260908.md": "e67c3cc21c293d6bcccb2d75fa1c50ac16895b27c7a3b9719c7a18284905c919"
+  },
+  "vslHashes": {
+    "publicSha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+    "privateSha256": "5db8590e5187cb3704f8bf2af11599c0a521d1858a799a7cca9c0afb95dbf6f7",
+    "bridgeJsSha256": "e0904cae1d97ce20b6493aad28b538650ada24c501b38e6a9e382d145e4dccd9",
+    "bridgeRouteSha256": "7722081940ceb74b21939e88b54b29f9fb05da9f9e37e87258a4edbd2149f5dd"
+  },
+  "policy": {
+    "productionChanged": false,
+    "vslProductionLock": true,
+    "metaReadOnly": true,
+    "metaCacheIntervalMinutes": 5,
+    "realPurchaseTestSend": 0,
+    "realRetroPurchaseAllowed": false,
+    "automaticDropiSend": false,
+    "automaticShipmentCreation": false,
+    "humanDropiAuthorizationRequired": true,
+    "crossLayerIsolation": true,
+    "candidateActivationAllowed": false
+  }
+}

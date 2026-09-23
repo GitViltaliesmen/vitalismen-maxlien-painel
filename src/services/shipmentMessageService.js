@@ -1,3 +1,6 @@
+import { a07PlanV147R6R2, reconcileA07ShipmentV147R6R2, guardA07ComponentV147R6R2, finalizeA07ComponentV147R6R2 } from './postSaleA07ComponentsV147R6R2Service.js';
+import { reconcileDeliveredPostSaleSequenceV147R6, reconcilePickupPostSaleSequenceV147R6R2,
+    guardReservedPickupEventV147R6R2 } from './postSaleUnifiedEventV147R6Service.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -8,14 +11,12 @@ import { sendDocument } from '../whatsapp/sendDocument.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import Shipment from '../models/Shipment.js';
-import Order from '../models/Order.js';
 import Message from '../models/Message.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
+import { loadPostSaleProductV147R5 } from './postSaleProductResolutionV147R5Service.js';
 import { downloadDroppiEcuadorInvoicePdf } from './droppiEcuadorBrowserService.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { VIT_POWER_PICKUP_BONUS_TEXT } from './vitPowerEvolvedWorkflow.js';
-import { markSenderWalletDelivered } from '../whatsapp/sessionRouter.js';
-import { syncOrderToOnlineAdminPanel } from './adminPanelStatusService.js';
 import {
     buildNotificationLedgerEntryV29,
     buildPickupReminderV29,
@@ -39,6 +40,9 @@ import {
     POST_SALE_VARIANTS,
     buildPostSaleIdempotencyKey
 } from './postSaleSafetyV66Service.js';
+import {
+    servientregaPostSaleCompletionEligibleV147
+} from './canonicalLogisticsStatusV147Service.js';
 import {
     postSaleFailureDispositionV116,
     postSaleTransactionalSafetyV116Enabled
@@ -139,12 +143,8 @@ export const isPickupProofText = (text = '') => {
     return PICKUP_PROOF_TEXT_REGEX.test(body) && !PICKUP_PROOF_FUTURE_TEXT_REGEX.test(body);
 };
 const PICKUP_REMINDER_SCHEDULE = [
-    { kind: 'day1', field: 'reminderDay1At', days: 1 },
-    { kind: 'soft_day2', field: 'reminderSoftDay2At', days: 2 },
     { kind: 'day3', field: 'reminderDay3At', days: 3 },
-    { kind: 'soft_day4', field: 'reminderSoftDay4At', days: 4 },
-    { kind: 'day5', field: 'reminderDay5At', days: 5 },
-    { kind: 'soft_day6', field: 'reminderSoftDay6At', days: 6 }
+    { kind: 'day5', field: 'reminderDay5At', days: 5 }
 ];
 const PICKUP_NOTICE_FIELDS_BY_KIND = {
     ready_for_pickup: 'readyForPickupNotifiedAt',
@@ -362,7 +362,8 @@ const persistShipmentOutboundMessage = async ({
     type = 'chat',
     body = '',
     mediaPath = '',
-    sentResult = null
+    sentResult = null,
+    postSaleEvent = null
 } = {}) => {
     if (!shipment?._id || !chatId || !sendResultOk(sentResult)) return null;
     const now = new Date();
@@ -394,7 +395,8 @@ const persistShipmentOutboundMessage = async ({
                 ownerPhoneDigits: zapiOwnerPhoneDigits(),
                 isFromMe: true,
                 isBot: true,
-                orderId: shipment?.orderId || ''
+                orderId: shipment?.orderId || '',
+                ...(postSaleEvent ? { postSaleEvent } : {})
             },
             $set: {
                 ack: 1,
@@ -434,7 +436,8 @@ const sendShipmentText = async (shipment, chatId, text, options = {}) => {
         kind: options.kind || 'shipment_text',
         type: 'chat',
         body: text,
-        sentResult: sent
+        sentResult: sent,
+        postSaleEvent: options.postSaleEvent || null
     });
     return sent;
 };
@@ -538,6 +541,18 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
     decision = null,
     sendDocumentFn = sendDocument
 } = {}) => {
+    if (decision?.canonicalEvent?.component === 'GUIDE_PDF') {
+        if (!logisticsCommunicationPolicy(shipment).allowGuidePdf) return { sent: false, providerAttempted: false, reason: 'guide_pdf_blocked' };
+        const source = await ensureInvoiceAvailableLocally(shipment);
+        if (!source || !fs.existsSync(source)) return { sent: false, providerAttempted: false, reason: 'missing_invoice_source' };
+        if (!await guardA07ComponentV147R6R2({ shipment, event: decision.canonicalEvent, lockToken: decision.lockToken })) return { sent: false, reason: 'stale_a07_component' };
+        const sent = await sendDocumentFn(chatId, source, path.basename(String(source).split('?')[0]), caption,
+            { ...shipmentOutboundOptions(shipment), outboundContext: 'shipment_invoice_pdf',
+                dedupeValue: decision.idempotencyKey, returnDetails: true });
+        if (sendResultOk(sent)) await persistShipmentOutboundMessage({ shipment, chatId, kind: 'shipment_invoice_pdf',
+            type: 'document', body: caption, mediaPath: source, sentResult: sent, postSaleEvent: decision.canonicalEvent });
+        return { ...sent, sent: sendResultOk(sent), reason: sendResultOk(sent) ? 'ok' : 'invoice_send_failed' };
+    }
     const policy = logisticsCommunicationPolicy(shipment);
     if (!policy.allowGuidePdf) {
         if (shouldSendPostSaleNotification(decision) && decision?.lockToken) {
@@ -723,8 +738,11 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
     kind = 'shipment_audio',
     baseName = '',
     dedupeValue = '',
-    force = false
+    force = false,
+    postSaleEvent = null,
+    beforeSend = null
 } = {}) => {
+    if (beforeSend && !await beforeSend()) return false;
     const sent = await sendAudio(chatId, audioPath, true, {
         ...shipmentOutboundOptions(shipment),
         ...(dedupeValue ? { dedupeValue } : {}),
@@ -739,12 +757,13 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
         type: 'audio',
         body: baseName ? `[AUDIO] ${baseName}` : '',
         mediaPath: audioPath,
-        sentResult: sent
+        sentResult: sent,
+        postSaleEvent
     });
     return sent;
 };
 
-const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {}) => {
+const sendShipmentAudio = async (shipment, chatId, kind, { force = false, canonicalDecision = null } = {}) => {
     const baseNames = pickupLogisticsAudioForShipment(shipment, kind);
     if (!baseNames.length) {
         return {
@@ -794,7 +813,11 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false } = {})
         const sent = await sendShipmentAudioFile(shipment, chatId, audioPath, {
             kind: `shipment_audio_${kind}`,
             baseName,
-            force
+            force: canonicalDecision ? false : force,
+            ...(canonicalDecision ? { postSaleEvent: canonicalDecision.canonicalEvent,
+                dedupeValue: canonicalDecision.idempotencyKey,
+                beforeSend: () => (canonicalDecision.canonicalEvent?.component ? guardA07ComponentV147R6R2 : guardReservedPickupEventV147R6R2)({ shipment,
+                    event: canonicalDecision.canonicalEvent, lockToken: canonicalDecision.lockToken }) } : {})
         });
         sentAny = sendResultOk(sent) || sentAny;
         if (sendResultOk(sent)) {
@@ -960,6 +983,70 @@ export const pickupBonusAntiSpamKey = (shipment = {}) => {
         || String(shipment?._id || '')
         || 'unknown_shipment';
     return `shipment_status:pickup_bonus:${shipmentIdentity}`;
+};
+
+export const shipmentPaymentConfirmed = (shipment = {}) => Boolean(
+    shipment?.raw?.paymentConfirmedAt
+    || shipment?.raw?.payment?.confirmedAt
+    || shipment?.raw?.payment?.status === 'paid'
+    || shipment?.raw?.latestDroppiPayload?.paymentStatus === 'paid'
+);
+
+export const deliveryOrPickupConfirmed = (shipment = {}) => Boolean(
+    shipment?.outcomes?.pickedUp === true
+    || shipment?.outcomes?.delivered === true
+    || shipment?.automation?.deliveredConfirmedAt
+    || String(shipment?.logistics?.canonicalStatus || '').toUpperCase() === 'DELIVERED'
+);
+
+export const pickupBonusLinkValid = (value = BONUS_URL) => {
+    try {
+        const parsed = new URL(String(value || ''));
+        return parsed.protocol === 'https:' && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
+
+export const pickupBonusEligibility = (shipment = {}, {
+    bonusUrl = BONUS_URL
+} = {}) => {
+    const deliveryConfirmed = servientregaPostSaleCompletionEligibleV147(shipment);
+    const bonusEligible = String(shipment?.country || 'EC').toUpperCase() === 'EC'
+        && shipment?.outcomes?.returned !== true
+        && shipment?.outcomes?.prepaidOnly !== true
+        && shipment?.review?.manualOnly !== true;
+    const linkValid = pickupBonusLinkValid(bonusUrl);
+    const p5AcceptedOrConfirmed = Boolean(
+        shipment?.automation?.deliveredThankYouNotifiedAt
+        || ['SENT', 'RECOVERED_STRUCTURED', 'RECOVERED_MANUAL'].includes(String(
+            shipment?.automation?.postSaleSafetyLedger?.[POST_SALE_STAGES.DELIVERED_THANK_YOU]?.state || ''
+        ).toUpperCase())
+    );
+    return Object.freeze({
+        allowed: deliveryConfirmed && p5AcceptedOrConfirmed && bonusEligible && linkValid
+            && !shipment?.automation?.bonusNotifiedAt,
+        deliveryConfirmed,
+        p5AcceptedOrConfirmed,
+        bonusEligible,
+        linkValid,
+        alreadySent: Boolean(shipment?.automation?.bonusNotifiedAt)
+    });
+};
+
+const pickupBonusAcceptedOrConfirmed = (shipment = {}) => {
+    if (shipment?.automation?.bonusNotifiedAt) return true;
+    const entry = shipment?.automation?.postSaleSafetyLedger?.[POST_SALE_STAGES.PICKUP_BONUS];
+    return Boolean(entry && ['SENT', 'RECOVERED_STRUCTURED', 'RECOVERED_MANUAL'].includes(String(entry.state || '').toUpperCase()));
+};
+
+export const deliveredThankYouDedupeValueV147 = (shipment = {}) => {
+    const idempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO
+    });
+    return idempotencyKey ? `OBRIGADO_PAGOU|${idempotencyKey}` : '';
 };
 
 export const buildRefillReminderText = (shipment) => {
@@ -1765,157 +1852,67 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
     };
 };
 
-export const notifyReadyForPickup = async (shipment, { force = false } = {}) => {
-    const policy = logisticsCommunicationPolicy(shipment);
-    if (!policy.allowPickupLanguage) {
-        await appendNotificationLedgerV29(shipment, {
-            notificationType: 'ready_for_pickup',
-            blockedReason: policy.blockReason || 'pickup_ready_not_verified'
-        });
+export const prepareA07InvoiceV147R6R2 = async (shipment) => ensureInvoiceAvailableLocally(await Shipment.findById(shipment._id));
+
+export const notifyReadyForPickup = async (shipment, { force = false, maxComponents = Infinity } = {}) => {
+    if (!logisticsCommunicationPolicy(shipment).allowPickupLanguage) {
+        await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', blockedReason: 'pickup_ready_not_verified' });
         return false;
     }
+    shipment = await reconcileA07ShipmentV147R6R2(shipment);
     const chatId = resolveChatId(shipment);
-    if (!chatId) return false;
-    const decision = await decidePostSaleNotification({
-        shipment,
-        kind: 'ready_for_pickup',
-        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT
-    });
-    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
-    const text = buildReadyForPickupText(shipment);
-    const hash = buildMessageHash({
-        kind: 'ready_for_pickup',
-        text,
-        trackingNumber: shipment.logistics.trackingNumber
-    });
-    if (!force && hasAlreadySentHash(shipment, hash)) {
-        await failPostSaleNotificationStage({
-            shipment,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            lockToken: decision.lockToken,
-            reason: 'duplicate_hash'
-        });
-        return false;
-    }
-    if (!force) {
-        const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind: 'ready_for_pickup' });
-        if (existingNotice) {
-            const recovered = await recoverExistingGlobalShipmentNotice({
-                shipment,
-                kind: 'ready_for_pickup',
-                hash,
-                existing: existingNotice
-            });
-            if (recovered) {
-                await completePostSaleNotificationStage({
-                    shipment,
-                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-                    lockToken: decision.lockToken,
-                    providerMessageId: existingNotice.messageId || '',
-                    now: existingNotice.at || new Date()
-                });
+    if (!chatId || !force && !hasMinGapElapsed(shipment)) return false;
+    const plan = await a07PlanV147R6R2(shipment);
+    if (!plan) return false;
+    let sentAny = false;
+    let sentComponents = 0;
+    const details = {};
+    for (const event of plan.components) {
+        if (sentComponents >= Math.max(1, Number(maxComponents) || 1)) break;
+        shipment = await Shipment.findById(shipment._id);
+        const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup',
+            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT, a07Component: event.component });
+        if (decision.satisfied) continue;
+        if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return sentAny;
+        try {
+            if (!await guardA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken })) return sentAny;
+            let result;
+            if (event.component === 'TEXT') {
+                result = await sendShipmentText(shipment, chatId, plan.text, { kind: 'shipment_ready_for_pickup_text',
+                    dedupeValue: event.dedupeKey, postSaleEvent: event,
+                    allowHistoryDedupeBypass: Boolean(decision.lockToken && event.component === 'TEXT') });
+            } else if (event.component === 'GUIDE_PDF') {
+                const invoice = await sendShipmentInvoicePdf(shipment, chatId,
+                    `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`, { decision });
+                result = { ...invoice, ok: invoice.sent };
             } else {
-                await failPostSaleNotificationStage({
-                    shipment,
-                    stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-                    variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-                    lockToken: decision.lockToken,
-                    reason: 'existing_notice_recovery_failed'
-                });
+                const audio = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { canonicalDecision: decision });
+                result = { ok: audio.sentAny, providerMessageId: audio.sentDetails?.[0]?.providerMessageId || '',
+                    providerAttempted: !audio.failed.every((row) => ['audio_not_found', 'audio_not_approved'].includes(row.reason)) };
             }
-            return recovered;
+            details[event.component] = result;
+            const finalized = await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, result,
+                failure: result?.ok && result.providerMessageId ? '' : result?.providerAttempted === false ? 'PENDING' : 'AMBIGUOUS' });
+            if (!finalized.completed) return sentAny;
+            sentAny = true;
+            sentComponents += 1;
+        } catch (error) {
+            await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, failure: 'AMBIGUOUS' });
+            throw error;
         }
     }
-    if (!force && !hasMinGapElapsed(shipment)) {
-        await failPostSaleNotificationStage({
-            shipment,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            lockToken: decision.lockToken,
-            reason: 'min_gap_not_elapsed'
-        });
-        return false;
+    shipment = await reconcileA07ShipmentV147R6R2(shipment);
+    const now = shipment.automation?.postSaleSafetyLedger?.READY_FOR_PICKUP?.acceptedAt;
+    if (sentAny && now && shipment.automation?.readyForPickupNotifiedAt) {
+        const hash = buildMessageHash({ kind: 'ready_for_pickup', text: plan.text, trackingNumber: shipment.logistics.trackingNumber });
+        await persistAutomationUpdate(shipment._id, { 'automation.guiaNotifiedAt': shipment.automation?.guiaNotifiedAt || now,
+            'automation.lastReminderAt': now, 'automation.lastReminderKind': 'ready_for_pickup' }, hash);
+        await appendEvent(shipment._id, 'ready_for_pickup_notified', { components: details, shortNotice: true,
+            invoiceSent: Boolean(details.GUIDE_PDF?.ok), primaryTextSent: true });
+        await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', sentAt: now,
+            providerMessageId: shipment.automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT?.providerMessageId || '' });
     }
-
-    const guidePdfDecision = await decidePostSaleNotification({
-        shipment,
-        kind: 'guide',
-        variant: POST_SALE_VARIANTS.GUIDE_PDF
-    });
-    const sent = await sendShipmentText(shipment, chatId, text, {
-        kind: 'shipment_ready_for_pickup_text',
-        bypassDedupe: force,
-        allowTextDedupeBypass: force,
-        allowHistoryDedupeBypass: force
-    });
-    if (!sendResultOk(sent)) {
-        await recordPrimaryPostSaleSendFailure({
-            shipment,
-            decision,
-            stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-            variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-            sendResult: sent,
-            reason: 'text_send_failed'
-        });
-        if (shouldSendPostSaleNotification(guidePdfDecision) && guidePdfDecision.lockToken) {
-            await failPostSaleNotificationStage({
-                shipment,
-                stage: POST_SALE_STAGES.GUIDE,
-                variant: POST_SALE_VARIANTS.GUIDE_PDF,
-                lockToken: guidePdfDecision.lockToken,
-                reason: 'primary_ready_text_send_failed'
-            });
-        }
-        return false;
-    }
-    const sentAt = new Date();
-    const finalized = await completePostSaleNotificationStage({
-        shipment,
-        stage: POST_SALE_STAGES.READY_FOR_PICKUP,
-        variant: POST_SALE_VARIANTS.READY_FOR_PICKUP_TEXT,
-        lockToken: decision.lockToken,
-        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
-        now: sentAt
-    });
-    if (!finalized.completed) return false;
-    const invoiceResult = await sendShipmentInvoicePdf(
-        shipment,
-        chatId,
-        `Guia/factura PDF para retirar su pedido${shipment.logistics?.trackingNumber ? ` ${shipment.logistics.trackingNumber}` : ''} en Servientrega.`,
-        { decision: guidePdfDecision }
-    );
-    if (invoiceResult.reason !== 'missing_invoice_source' && !invoiceResult.sent) {
-        console.warn(`[SHIPMENT] Falha ao reenviar fatura no aviso de retirada ${shipment.orderId}: ${invoiceResult.reason}`);
-    }
-    const audioSent = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { force });
-    const partialAttachmentFailures = await appendPartialAttachmentEvents(shipment._id, 'ready_for_pickup', {
-        invoice: invoiceResult,
-        audio: audioSent
-    });
-
-    const now = sentAt;
-    await persistAutomationUpdate(shipment._id, {
-        'automation.guiaNotifiedAt': shipment.automation?.guiaNotifiedAt || now,
-        'automation.readyForPickupNotifiedAt': now,
-        'automation.lastReminderAt': now,
-        'automation.lastReminderKind': 'ready_for_pickup'
-    }, hash);
-    await appendEvent(shipment._id, 'ready_for_pickup_notified', {
-        audio: audioSent,
-        shortNotice: true,
-        invoiceSent: invoiceResult.sent,
-        invoiceReason: invoiceResult.reason,
-        primaryTextSent: true,
-        partialAttachmentFailures
-    });
-    await appendNotificationLedgerV29(shipment, {
-        notificationType: 'ready_for_pickup',
-        sentAt: now,
-        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
-    });
-    return true;
+    return sentAny;
 };
 
 export const notifyShipmentInTransit = async (shipment) => {
@@ -1982,6 +1979,7 @@ export const notifyShipmentInTransit = async (shipment) => {
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {
+    if (kind === 'day3' || kind === 'day5') shipment = await reconcilePickupPostSaleSequenceV147R6R2(shipment);
     if (shipment?.review?.manualOnly === true) {
         await appendNotificationLedgerV29(shipment, {
             notificationType: `pickup_reminder_${kind}`,
@@ -2016,6 +2014,14 @@ export const notifyShipmentReminder = async (shipment, kind) => {
         {
             _id: shipment._id,
             'review.manualOnly': { $ne: true },
+            'logistics.status': 'READY_FOR_PICKUP',
+            'logistics.canonicalStatus': 'READY_FOR_PICKUP',
+            'logistics.pickupReadyVerified': true,
+            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+            'outcomes.delivered': { $ne: true },
+            'outcomes.pickedUp': { $ne: true },
+            'outcomes.returned': { $ne: true },
+            'outcomes.prepaidOnly': { $ne: true },
             ...(noticeField ? { [`automation.${noticeField}`]: null } : {}),
             $or: [
                 { 'automation.pickupReminderDispatchLockedUntil': null },
@@ -2051,7 +2057,7 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             + `tracking=${shipment.logistics?.trackingNumber || ''} kind=${kind}`
         );
     }
-    const existingNotice = await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
+    const existingNotice = safetyDecision.canonicalEvent ? null : await findExistingGlobalShipmentNotice({ shipment, chatId, kind });
     if (existingNotice) {
         const recovered = await recoverExistingGlobalShipmentNotice({
             shipment,
@@ -2093,7 +2099,7 @@ export const notifyShipmentReminder = async (shipment, kind) => {
             return false;
         }
     }
-    const audioSent = await sendShipmentAudio(shipment, chatId, kind);
+    const audioSent = await sendShipmentAudio(shipment, chatId, kind, { canonicalDecision: safetyDecision.canonicalEvent ? safetyDecision : null });
     if (audioOnly && !audioSent?.sentAny) return false;
 
     const now = new Date();
@@ -2133,6 +2139,13 @@ export const notifyShipmentReminder = async (shipment, kind) => {
     });
     completed = true;
     return true;
+    } catch (error) {
+        if (safetyDecision?.canonicalEvent && safetyDecision.lockToken && !safetyFinalized) {
+            await failPostSaleNotificationStage({ shipment, stage: safetyDecision.stage, lockToken: safetyDecision.lockToken,
+                terminal: true, terminalState: 'AMBIGUOUS', reason: 'pickup_send_or_persistence_ambiguous' });
+            safetyFinalized = true;
+        }
+        throw error;
     } finally {
         if (shouldSendPostSaleNotification(safetyDecision) && safetyDecision?.lockToken && !safetyFinalized) {
             await failPostSaleNotificationStage({
@@ -2295,10 +2308,93 @@ export const notifyPickupProofRequest = async (shipment) => {
     return true;
 };
 
-export const notifyPickupBonus = async (shipment) => {
+export const notifyDeliveredThankYou = async (shipment, {
+    decideFn = decidePostSaleNotification,
+    resolveAudioFn = resolveCountryAudio,
+    sendAudioFileFn = sendShipmentAudioFile,
+    completeFn = completePostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    appendEventFn = appendEvent
+} = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
     const chatId = resolveChatId(shipment);
-    if (!chatId || shipment.automation.bonusNotifiedAt) return false;
-    const decision = await decidePostSaleNotification({
+    if (!chatId
+        || shipment?.automation?.deliveredThankYouNotifiedAt
+        || !servientregaPostSaleCompletionEligibleV147(shipment)) return false;
+    const decision = await decideFn({
+        shipment,
+        kind: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
+
+    const audioPath = await resolveAudioFn({
+        country: shipment.country || 'EC',
+        baseName: 'OBRIGADO_PAGOU'
+    });
+    if (!audioPath) {
+        await failPostSaleNotificationStage({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+            lockToken: decision.lockToken,
+            reason: 'delivered_thank_you_audio_not_found'
+        });
+        return false;
+    }
+
+    const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
+        kind: 'shipment_delivered_thank_you_audio',
+        baseName: 'OBRIGADO_PAGOU',
+        postSaleEvent: decision.canonicalEvent || null,
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : deliveredThankYouDedupeValueV147(shipment)
+    });
+    if (!sendResultOk(sent)) {
+        await failFn({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+            sendResult: sent,
+            reason: 'delivered_thank_you_audio_send_failed'
+        });
+        return false;
+    }
+
+    const now = new Date();
+    const finalized = await completeFn({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.DELIVERED_THANK_YOU_AUDIO,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
+    await appendEventFn(shipment._id, 'delivered_thank_you_notified', {
+        templateId: 'P5_DELIVERED_THANKYOU_NEUTRAL',
+        label: 'OBRIGADO_PAGOU',
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
+    });
+    return true;
+};
+
+export const notifyPickupBonus = async (shipment, {
+    decideFn = decidePostSaleNotification,
+    sendTextFn = sendShipmentText,
+    completeFn = completePostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    findExistingMessageFn = findExistingPickupBonusMessage,
+    findExistingDedupeFn = findExistingPickupBonusDedupe,
+    persistFn = persistAutomationUpdate,
+    appendEventFn = appendEvent,
+    waitFn = wait
+} = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
+    const chatId = resolveChatId(shipment);
+    const eligibility = pickupBonusEligibility(shipment);
+    if (!chatId || !eligibility.allowed) return false;
+    const decision = await decideFn({
         shipment,
         kind: POST_SALE_VARIANTS.PICKUP_BONUS,
         variant: POST_SALE_VARIANTS.PICKUP_BONUS
@@ -2318,13 +2414,13 @@ export const notifyPickupBonus = async (shipment) => {
     });
     const deliveredAt = deliveredReferenceDate(shipment);
     const existingBonus = deliveredAt
-        ? (await findExistingPickupBonusMessage(chatId, { since: deliveredAt })
-            || await findExistingPickupBonusDedupe(chatId, { since: deliveredAt }))
+        ? (await findExistingMessageFn(chatId, { since: deliveredAt })
+            || await findExistingDedupeFn(chatId, { since: deliveredAt }))
         : null;
-    if (existingBonus) {
+    if (existingBonus && !decision.canonicalEvent) {
         const now = new Date();
         const existingAt = existingBonus.createdAt || existingBonus.updatedAt || now;
-        await completePostSaleNotificationStage({
+        await completeFn({
             shipment,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2332,12 +2428,12 @@ export const notifyPickupBonus = async (shipment) => {
             providerMessageId: existingBonus.providerMessageId || existingBonus._id || '',
             now: existingAt
         });
-        await persistAutomationUpdate(shipment._id, {
+        await persistFn(shipment._id, {
             'automation.bonusNotifiedAt': existingAt,
             'automation.lastReminderAt': existingAt,
             'automation.lastReminderKind': 'pickup_bonus'
         }, hash);
-        await appendEvent(shipment._id, 'pickup_bonus_notified', {
+        await appendEventFn(shipment._id, 'pickup_bonus_notified', {
             bonusUrl: BONUS_URL,
             recoveredFromExistingMessage: true,
             messageId: existingBonus._id || '',
@@ -2347,7 +2443,7 @@ export const notifyPickupBonus = async (shipment) => {
         return true;
     }
     if (hasAlreadySentHash(shipment, hash)) {
-        await completePostSaleNotificationStage({
+        await completeFn({
             shipment,
             stage: decision.stage,
             variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2357,22 +2453,16 @@ export const notifyPickupBonus = async (shipment) => {
         return false;
     }
 
-    const thankYouAudioPath = await resolveCountryAudio({ country: shipment.country || 'EC', baseName: 'OBRIGADO_PAGOU' });
-    const thankYouAudioSent = thankYouAudioPath
-        ? await sendShipmentAudioFile(shipment, chatId, thankYouAudioPath, {
-            kind: 'shipment_pickup_bonus_thank_you_audio',
-            baseName: 'OBRIGADO_PAGOU',
-            dedupeValue: `${thankYouAudioPath}|${bonusDedupeScope}`
-        })
-        : false;
-
-    const sent = await sendShipmentText(shipment, chatId, text, {
+    await waitFn(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
+    const sent = await sendTextFn(shipment, chatId, text, {
         kind: 'shipment_pickup_bonus_text',
-        dedupeValue: `${text}|${bonusDedupeScope}`,
+        postSaleEvent: decision.canonicalEvent || null,
+        ...(decision.canonicalEvent ? { allowHistoryDedupeBypass: true } : {}),
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : `${text}|${bonusDedupeScope}`,
         antiSpamKey: pickupBonusAntiSpamKey(shipment)
     });
     if (!sendResultOk(sent)) {
-        await recordPrimaryPostSaleSendFailure({
+        await failFn({
             shipment,
             decision,
             stage: decision.stage,
@@ -2384,7 +2474,7 @@ export const notifyPickupBonus = async (shipment) => {
     if (!sent) return false;
     if (!sendResultOk(sent)) return false;
     const primarySentAt = new Date();
-    const finalized = await completePostSaleNotificationStage({
+    const finalized = await completeFn({
         shipment,
         stage: decision.stage,
         variant: POST_SALE_VARIANTS.PICKUP_BONUS,
@@ -2393,64 +2483,161 @@ export const notifyPickupBonus = async (shipment) => {
         now: primarySentAt
     });
     if (!finalized.completed) return false;
-    const howToUseAudioBaseName = pickupHowToUseAudioForShipment(shipment);
-    const howToUseAudioPath = howToUseAudioBaseName
-        ? await resolveCountryAudio({ country: shipment.country || 'EC', baseName: howToUseAudioBaseName })
-        : '';
-    const howToUseAudioSent = howToUseAudioPath
-        ? await sendShipmentAudioFile(shipment, chatId, howToUseAudioPath, {
-            kind: 'shipment_pickup_bonus_how_to_use_audio',
-            baseName: howToUseAudioBaseName,
-            dedupeValue: shipmentProductFamily(shipment) === 'tex_ultra'
-                ? texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
-                : `${howToUseAudioPath}|${bonusDedupeScope}`
-        })
-        : false;
-    const texUltraHowToUseRecord = howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra'
-        ? await findTexUltraHowToUseAudioSentRecord({
-            jid: chatId,
-            recipientDigits: shipmentPhoneDigits(shipment),
-            dedupeValue: texUltraHowToUseAudioDedupeValue(howToUseAudioBaseName)
-        })
-        : null;
-    if (howToUseAudioBaseName && shipmentProductFamily(shipment) === 'tex_ultra') {
-        await registerAudioAttempt(shipment, {
-            kind: 'pickup_bonus_how_to_use',
-            baseName: howToUseAudioBaseName,
-            at: new Date(),
-            sent: sendResultOk(howToUseAudioSent),
-            reason: sendResultOk(howToUseAudioSent)
-                ? 'sent'
-                : texUltraHowToUseRecord
-                    ? 'already_sent'
-                    : howToUseAudioPath ? 'send_failed' : 'audio_not_found',
-            sessionId: shipment.automation?.sessionId || null,
-            providerMessageId: howToUseAudioSent?.providerMessageId || '',
-            providerZaapId: howToUseAudioSent?.providerZaapId || ''
-        });
-    }
-
-    const now = primarySentAt;
-    await persistAutomationUpdate(shipment._id, {
-        'automation.bonusNotifiedAt': now,
-        'automation.lastReminderAt': now,
+    await persistFn(shipment._id, {
+        'automation.bonusNotifiedAt': primarySentAt,
+        'automation.lastReminderAt': primarySentAt,
         'automation.lastReminderKind': 'pickup_bonus'
     }, hash);
-    await appendEvent(shipment._id, 'pickup_bonus_notified', {
+    await appendEventFn(shipment._id, 'pickup_bonus_notified', {
         bonusUrl: BONUS_URL,
-        thankYouAudioSent,
-        howToUseAudioSent,
-        howToUseAudioAlreadySent: Boolean(texUltraHowToUseRecord && !sendResultOk(howToUseAudioSent))
+        completionSource: 'servientrega_canonical_delivered'
     });
     return true;
 };
 
-const calculateTreatmentDates = (shipment, pickedAt) => {
-    const units = Number(shipment.treatment?.unitsPurchased || 1) || 1;
-    const daysPerUnit = Number(shipment.treatment?.daysPerUnit || 30) || 30;
-    const treatmentEndsAt = new Date(pickedAt.getTime() + (units * daysPerUnit * 24 * 60 * 60 * 1000));
-    const refillReminderDueAt = new Date(pickedAt.getTime() + (repurchaseReminderDelayDaysForUnits(units) * DAY_MS));
-    return { treatmentEndsAt, refillReminderDueAt };
+export const notifyProductUsage = async (shipment, {
+    resolveProductFn = loadPostSaleProductV147R5,
+    decideFn = decidePostSaleNotification,
+    resolveAudioFn = resolveCountryAudio,
+    sendAudioFileFn = sendShipmentAudioFile,
+    completeFn = completePostSaleNotificationStage,
+    releaseFn = failPostSaleNotificationStage,
+    failFn = recordPrimaryPostSaleSendFailure,
+    appendEventFn = appendEvent,
+    registerAudioAttemptFn = registerAudioAttempt,
+    findExistingTexUltraAudioFn = findTexUltraHowToUseAudioSentRecord,
+    waitFn = wait
+} = {}) => {
+    shipment = await reconcileDeliveredPostSaleSequenceV147R6(shipment);
+    const chatId = resolveChatId(shipment);
+    if (!chatId
+        || shipment?.automation?.usageNotifiedAt
+        || !servientregaPostSaleCompletionEligibleV147(shipment)
+        || !pickupBonusAcceptedOrConfirmed(shipment)) return false;
+    const product = await resolveProductFn({ shipment });
+    if (!product.productKey) {
+        if (Shipment.db.readyState === 1) await Shipment.updateOne({ _id: shipment._id }, { $set: {
+            'review.reviewStatus': 'product_usage_review_required',
+            'review.reviewReason': product.classification
+        } });
+        return false;
+    }
+    const baseName = pickupHowToUseAudioForShipment({ productName: product.productName });
+    if (!baseName) return false;
+
+    const decision = await decideFn({
+        shipment,
+        kind: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO
+    });
+    if (!shouldSendPostSaleNotification(decision) || !decision.lockToken) return false;
+
+    const texUltraDedupeValue = product.productKey === 'tex_ultra_ec'
+        ? texUltraHowToUseAudioDedupeValue(baseName)
+        : '';
+    if (texUltraDedupeValue && !decision.canonicalEvent) {
+        const existingTexUltraAudio = await findExistingTexUltraAudioFn({
+            jid: chatId,
+            recipientDigits: shipmentPhoneDigits(shipment),
+            dedupeValue: texUltraDedupeValue
+        });
+        if (existingTexUltraAudio) {
+            const recoveredAt = existingTexUltraAudio.sentAt
+                || existingTexUltraAudio.updatedAt
+                || existingTexUltraAudio.createdAt
+                || new Date();
+            const finalized = await completeFn({
+                shipment,
+                stage: decision.stage,
+                variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+                lockToken: decision.lockToken,
+                providerMessageId: existingTexUltraAudio.providerMessageId
+                    || existingTexUltraAudio.providerZaapId
+                    || existingTexUltraAudio._id
+                    || '',
+                now: recoveredAt
+            });
+            if (!finalized.completed) return false;
+            await registerAudioAttemptFn(shipment, {
+                kind: 'product_usage',
+                baseName,
+                at: recoveredAt,
+                sent: false,
+                reason: 'already_sent_via_tex_ultra_canonical_dedupe',
+                sessionId: shipment.automation?.sessionId || null,
+                providerMessageId: existingTexUltraAudio.providerMessageId || '',
+                providerZaapId: existingTexUltraAudio.providerZaapId || ''
+            });
+            await appendEventFn(shipment._id, 'product_usage_notified', {
+                baseName,
+                completionSource: 'servientrega_canonical_delivered',
+                providerMessageId: existingTexUltraAudio.providerMessageId
+                    || existingTexUltraAudio.providerZaapId
+                    || existingTexUltraAudio._id
+                    || '',
+                recoveredFromExistingAudio: true
+            });
+            return true;
+        }
+    }
+
+    const audioPath = await resolveAudioFn({ country: shipment.country || 'EC', baseName });
+    if (!audioPath) {
+        await releaseFn({
+            shipment,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+            lockToken: decision.lockToken,
+            reason: 'product_usage_audio_not_found'
+        });
+        return false;
+    }
+
+    await waitFn(randomDelayMs(SHIPMENT_AUDIO_DELAY_MIN_MS, SHIPMENT_AUDIO_DELAY_MAX_MS));
+    const idempotencyKey = buildPostSaleIdempotencyKey({
+        shipment,
+        stage: POST_SALE_STAGES.PRODUCT_USAGE,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO
+    });
+    const sent = await sendAudioFileFn(shipment, chatId, audioPath, {
+        kind: 'shipment_product_usage_audio',
+        baseName,
+        postSaleEvent: decision.canonicalEvent || null,
+        dedupeValue: decision.canonicalEvent ? decision.idempotencyKey : texUltraDedupeValue || `P7|${idempotencyKey}|${baseName}`
+    });
+    if (!sendResultOk(sent)) {
+        await failFn({
+            shipment,
+            decision,
+            stage: decision.stage,
+            variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+            sendResult: sent,
+            reason: 'product_usage_audio_send_failed'
+        });
+        return false;
+    }
+
+    const now = new Date();
+    const finalized = await completeFn({
+        shipment,
+        stage: decision.stage,
+        variant: POST_SALE_VARIANTS.PRODUCT_USAGE_AUDIO,
+        lockToken: decision.lockToken,
+        providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
+        now
+    });
+    if (!finalized.completed) return false;
+    await registerAudioAttemptFn(shipment, {
+        kind: 'product_usage',
+        baseName,
+        at: now,
+        sent: true,
+        reason: 'sent_after_p6_provider_acceptance',
+        sessionId: shipment.automation?.sessionId || null,
+        providerMessageId: sent?.providerMessageId || '',
+        providerZaapId: sent?.providerZaapId || ''
+    });
+    return true;
 };
 
 const phoneQueryForChatId = (chatId) => {
@@ -2464,24 +2651,6 @@ const phoneQueryForChatId = (chatId) => {
     return [...new Set(tails)].map((tail) => ({
         'client.phone': { $regex: `${tail}$` }
     }));
-};
-
-const digitsOnlyForShipment = (value = '') => String(value || '').replace(/\D/g, '');
-
-const findOrderForPickupShipment = async (shipment = {}) => {
-    const direct = await Order.findOne({ orderId: shipment.orderId }).catch(() => null);
-    if (direct) return direct;
-
-    const trackingNumber = String(shipment.logistics?.trackingNumber || '').trim();
-    const phoneDigits = digitsOnlyForShipment(shipment.client?.phone);
-    if (!trackingNumber || phoneDigits.length < 8) return null;
-
-    const phoneTail = phoneDigits.slice(-9);
-    return Order.findOne({
-        country: shipment.country || 'EC',
-        trackingNumber,
-        'customer.phone': { $regex: `${phoneTail}$` }
-    }).sort({ updatedAt: -1 }).catch(() => null);
 };
 
 const messagePhoneQueryForShipment = (shipment = {}) => {
@@ -2537,16 +2706,17 @@ const findPickupProofMessageForShipment = async (shipment, { since = null } = {}
     }) || null;
 };
 
-const confirmPickupFromProof = async ({
+export const confirmPickupFromProof = async ({
     shipment,
     chatId,
     messageId = '',
     proofKind = 'pickup_proof_received_from_whatsapp',
     sessionId = '',
-    dryRun = false
+    dryRun = false,
+    shipmentModel = Shipment
 }) => {
     if (!shipment) return { handled: false, reason: 'missing_shipment' };
-    if (shipment.outcomes?.pickedUp && shipment.automation?.bonusNotifiedAt) {
+    if (shipment?.proof?.pickupProofReceivedAt) {
         return { handled: false, reason: 'already_processed' };
     }
 
@@ -2557,15 +2727,16 @@ const confirmPickupFromProof = async ({
             orderId: shipment.orderId,
             chatId,
             messageId,
-            proofKind
+            proofKind,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
         };
     }
 
     const lockNow = new Date();
-    const lockedShipment = await Shipment.findOneAndUpdate(
+    const lockedShipment = await shipmentModel.findOneAndUpdate(
         {
             _id: shipment._id,
-            'automation.bonusNotifiedAt': null,
             $or: [
                 { 'automation.pickupProofDispatchLockedUntil': { $exists: false } },
                 { 'automation.pickupProofDispatchLockedUntil': null },
@@ -2586,55 +2757,24 @@ const confirmPickupFromProof = async ({
     }
     shipment = lockedShipment;
 
-    const pickedAt = new Date();
-    const { treatmentEndsAt, refillReminderDueAt } = calculateTreatmentDates(shipment, pickedAt);
-
-    shipment.logistics.status = 'ENTREGADO';
-    shipment.logistics.lastStatusAt = pickedAt;
-    shipment.outcomes.pickedUp = true;
-    shipment.outcomes.delivered = true;
-    shipment.outcomes.returned = false;
-    shipment.outcomes.prepaidOnly = false;
-    shipment.automation.deliveredConfirmedAt = pickedAt;
-    shipment.automation.prepaidOnlyNotifiedAt = null;
     if (sessionId && !shipment.automation.sessionId) shipment.automation.sessionId = sessionId;
     shipment.proof.agencyReceiptPhotoUrl = messageId ? `whatsapp:${messageId}` : shipment.proof.agencyReceiptPhotoUrl;
     shipment.proof.pickupProofReceivedAt = new Date();
-    shipment.treatment.treatmentEndsAt = treatmentEndsAt;
-    shipment.treatment.refillReminderDueAt = refillReminderDueAt;
-    shipment.review.manualOnly = false;
-    shipment.review.reviewReason = '';
-    shipment.review.reviewStatus = 'pickup_confirmed';
     shipment.events.push({
         kind: proofKind,
         at: new Date(),
         payload: {
             chatId,
             messageId,
-            pickedAt,
-            customerEligibility: 'released_for_new_order'
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
         }
     });
     shipment.events = shipment.events.slice(-60);
     try {
         await shipment.save();
 
-        const order = await findOrderForPickupShipment(shipment);
-        if (order) {
-            order.status = 'delivered';
-            order.shippingStatus = 'ENTREGADO';
-            if (shipment.logistics?.trackingNumber) order.trackingNumber = shipment.logistics.trackingNumber;
-            order.notes = [
-                order.notes || '',
-                `[${pickedAt.toISOString()}] Retirada confirmada automaticamente por comprovante WhatsApp. Bonus-retirada liberado.`
-            ].filter(Boolean).join('\n');
-            await order.save();
-            syncOrderToOnlineAdminPanel(order, { status: 'delivered', action: 'pickup_proof_auto_confirmed' });
-        }
-
-        const bonusSent = await notifyPickupBonus(shipment);
-        await markSenderWalletDelivered({ jid: chatId, phone: shipment.client?.phone });
-        await Shipment.updateOne(
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {
@@ -2643,9 +2783,18 @@ const confirmPickupFromProof = async ({
                 }
             }
         );
-        return { handled: true, orderId: shipment.orderId, bonusSent, orderSynced: Boolean(order) };
+        return {
+            handled: true,
+            orderId: shipment.orderId,
+            thankYouSent: false,
+            bonusSent: false,
+            usageSent: false,
+            orderSynced: false,
+            completionDeferred: true,
+            completionGate: 'servientrega_canonical_delivered'
+        };
     } catch (error) {
-        await Shipment.updateOne(
+        await shipmentModel.updateOne(
             { _id: shipment._id },
             {
                 $set: {
@@ -2707,7 +2856,12 @@ export const handlePickupProofInbound = async ({
     });
 };
 
-export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}) => {
+export const processPickupProofSweep = async ({
+    limit = 50,
+    dryRun = true,
+    eligibilityFn = null,
+    maxPhysicalSends = Infinity
+} = {}) => {
     const shipments = await Shipment.find({
         country: 'EC',
         ...buildCanaryV75RecipientQuery('client.phone'),
@@ -2741,6 +2895,14 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
             results.push({ orderId: shipment.orderId, matched: false, reason: 'no_proof_message' });
             continue;
         }
+        if (eligibilityFn && !await eligibilityFn({ shipment, proof })) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: 'forward_only_not_eligible' });
+            continue;
+        }
+        if (bonusSent >= Math.max(0, Number(maxPhysicalSends) || 0)) {
+            results.push({ orderId: shipment.orderId, matched: false, reason: 'physical_send_limit_reached' });
+            break;
+        }
 
         const result = await confirmPickupFromProof({
             shipment,
@@ -2771,7 +2933,7 @@ export const processPickupProofSweep = async ({ limit = 50, dryRun = true } = {}
     };
 };
 
-export const notifyTreatmentRefillReminder = async (shipment) => {
+export const notifyTreatmentRefillReminder = async (shipment, { maxPhysicalSends = Infinity } = {}) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.refillReminderAt || shipment?.review?.manualOnly === true) return false;
     const decision = await decidePostSaleNotification({
@@ -2836,10 +2998,13 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     });
     if (!finalized.completed) return false;
 
-    const approvedAudioPath = await resolveCountryAudio({
-        country: shipment.country || 'EC',
-        baseName: product.audioName
-    });
+    const physicalBudgetRemaining = Math.max(1, Number(maxPhysicalSends) || 1) - 1;
+    const approvedAudioPath = physicalBudgetRemaining > 0
+        ? await resolveCountryAudio({
+            country: shipment.country || 'EC',
+            baseName: product.audioName
+        })
+        : null;
     const audioSent = approvedAudioPath
         ? await sendShipmentAudioFile(shipment, chatId, approvedAudioPath, {
             kind: 'shipment_refill_reminder_audio',
@@ -2859,7 +3024,8 @@ export const notifyTreatmentRefillReminder = async (shipment) => {
     await appendEvent(shipment._id, 'refill_reminder_notified', {
         audioSent,
         audioName: product.audioName,
-        productKey: product.productKey
+        productKey: product.productKey,
+        audioDeferredByPhysicalBatchLimit: physicalBudgetRemaining <= 0
     });
     return true;
 };
@@ -2875,6 +3041,8 @@ export const getPendingShipmentReminders = async () => {
         'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
+        'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+        'logistics.canonicalStatus': 'READY_FOR_PICKUP',
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         'automation.readyForPickupNotifiedAt': { $ne: null, $gte: oldestReadyForPickupAt },

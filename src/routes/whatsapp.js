@@ -1,3 +1,4 @@
+import { sendCanonicalPanelPostSaleV147R6 } from '../services/postSaleManualPanelV147R6Service.js';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -27,11 +28,15 @@ import {
     listReengagementCandidates,
     sendReengagementToChat
 } from '../services/reengagementService.js';
-import { recordOnlineAdminPurchaseLock, syncContactDraftToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
+import {
+    persistConfirmedOrderToOnlineAdminPanelV158,
+    recordOnlineAdminPurchaseLock,
+    syncContactDraftToOnlineAdminPanel
+} from '../services/adminPanelStatusService.js';
 import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
-import { sendBrowserMetaEvent, sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 import {
     hasProtocoloGContractSignal,
     protocoloGStructuredTracking,
@@ -81,11 +86,6 @@ import {
     protectPanelCustomerPhone
 } from '../services/panelCustomerFormPersistenceService.js';
 import {
-    evaluateLogisticsOutbound,
-    isPickupStageAudioCandidate,
-    publicLogisticsStateV29
-} from '../services/logisticsCommunicationV29.js';
-import {
     inboundMediaStorageRoot,
     loadStoredInboundMedia
 } from '../services/inboundMediaStorageService.js';
@@ -111,9 +111,35 @@ import {
 } from '../services/strictReadOnlyObservationService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
+import { ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import {
+    ecPanelStatusV177StatusPlan,
+    isEcPanelStatusV177StrictLocalRequest
+} from '../services/ecPanelStatusOperationsV177Service.js';
 import { customerStateSavedOrderSyncFailureV123 } from '../services/ecPanelCustomerStatusPersistenceV123Service.js';
 import { customerStateResponseV125 } from '../services/ecPanelStatusStateLayerV125Service.js';
 import { manualUploadsDirV129, remoteMediaCacheDirV129, relocatedRemoteCacheFileV129, manualUploadPathFromUrlV129, manualUploadUrlFromPathV129 } from '../services/manualMediaStorageV129Service.js';
+import {
+    PANEL_FUNNEL_MEDIA_UPLOAD_V153_MAX_BYTES,
+    persistPanelFunnelMediaUploadV153
+} from '../services/panelFunnelMediaUploadV153Service.js';
+import {
+    freshCommercialCycleDraftV146,
+    freshCycleOrderIdV146,
+    isRepurchaseOrderV146,
+    isTerminalOrderV146,
+    sameCustomerPhoneV146
+} from '../services/ecCommercialCycleV146Service.js';
+import {
+    compareConversationRecencyV146,
+    lastRelevantConversationActivityAtV146
+} from '../services/panelConversationRecencyV146Service.js';
+import { initiateCheckoutBusinessActionV146 } from '../services/metaInitiateCheckoutV146Service.js';
+import { reconcilePendingZapiDeliveryV155 } from '../services/zapiDeliveryCallbackReconciliationV155Service.js';
+import {
+    listPendingVslPreleadPanelChats,
+    projectVslPreleadPanelChat
+} from '../services/vslPreleadPanelService.js';
 
 const router = express.Router();
 const debugRoutesEnabled = String(process.env.ENABLE_WHATSAPP_DEBUG_ROUTES || '') === '1';
@@ -1437,7 +1463,8 @@ const vslVisitorKey = ({ country = 'EC', body = {}, req }) => {
     const userAgent = cleanText(body.client_user_agent || body.clientUserAgent || req.get?.('user-agent'));
     const visitorId = cleanText(body.external_id || body.externalId || body.visitorId || body.visitor_id);
     const sessionId = cleanText(body.sessionId || body.session_id);
-    const base = visitorId || sessionId || `${ipHash}:${shortHash(userAgent)}`;
+    const v148SalesContext = Number(body.measurement_version) === 148 && body.rendered_branch === 'SALES' && visitorId && sessionId;
+    const base = (v148SalesContext ? `${visitorId}:${sessionId}` : '') || visitorId || sessionId || `${ipHash}:${shortHash(userAgent)}`;
     if (body.testEntry && body.forceNewLead) {
         return `${normalizedCountry}:test:${Date.now()}:${shortHash(base || Math.random())}`;
     }
@@ -1983,6 +2010,36 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
 
     const tracking = visit.tracking || {};
     const eventId = vslInitiateCheckoutEventId({ visitorKey, body });
+    const now = new Date();
+    const claimed = await VslVisit.findOneAndUpdate(
+        {
+            visitorKey,
+            $and: [
+                { $or: [
+                    { metaInitiateCheckoutSentAt: { $exists: false } },
+                    { metaInitiateCheckoutSentAt: null }
+                ] },
+                { $or: [
+                    { metaInitiateCheckoutLockUntil: { $exists: false } },
+                    { metaInitiateCheckoutLockUntil: { $lte: now } }
+                ] }
+            ]
+        },
+        { $set: {
+            metaInitiateCheckoutOccurredAt: visit.metaInitiateCheckoutOccurredAt || now,
+            metaInitiateCheckoutEventId: eventId,
+            metaInitiateCheckoutLockUntil: new Date(now.getTime() + 60_000)
+        } },
+        { new: true }
+    ).lean();
+    if (!claimed) {
+        const current = await VslVisit.findOne({ visitorKey }).lean().catch(() => null);
+        return {
+            alreadySent: Boolean(current?.metaInitiateCheckoutSentAt),
+            locked: !current?.metaInitiateCheckoutSentAt,
+            eventId: current?.metaInitiateCheckoutEventId || eventId
+        };
+    }
     const value = Number(body.value || body.product_value || body.total || 0);
     const result = await sendBrowserMetaEvent({
         country,
@@ -2005,8 +2062,14 @@ const sendVslInitiateCheckoutForVisit = async ({ visit, body, req, country, visi
         metaInitiateCheckoutEventId: result.eventId || eventId,
         metaInitiateCheckoutResponse: result.response || metaEventResponseSnapshot(result, eventId)
     };
-    if (result.ok) metaUpdate.metaInitiateCheckoutSentAt = new Date();
-    await VslVisit.updateOne({ visitorKey }, { $set: metaUpdate });
+    if (result.ok) metaUpdate.metaInitiateCheckoutSentAt = now;
+    if (result.ok && Number(result?.response?.events_received || 0) > 0) {
+        metaUpdate.metaInitiateCheckoutAcceptedAt = now;
+    }
+    await VslVisit.updateOne(
+        { visitorKey, metaInitiateCheckoutEventId: eventId },
+        { $set: metaUpdate, $unset: { metaInitiateCheckoutLockUntil: '' } }
+    );
     return { ...result, eventId: result.eventId || eventId };
 };
 
@@ -2416,21 +2479,24 @@ export const panelProductContextForChat = async ({
     const productMedia = ecuadorProductMediaForInfo(productInfo);
     const currentOrderId = String(customerDraft.orderId || '').trim();
     const activeOrderId = String(order?.orderId || '').trim();
+    const freshCommercialCycle = customerDraft.newCommercialCycle === true
+        || normalizePanelStatus(customerDraft.status) === 'recompra'
+        || isRepurchaseOrderV146(order, customerDraft.previousOrderId);
     const sourceOrderId = activeOrderId && currentOrderId && currentOrderId !== activeOrderId
         ? currentOrderId
         : String(customerDraft.sourceOrderId || '').trim();
     const panelDraft = {
         ...customerDraft,
-        ...(order?.customer?.name ? { name: order.customer.name } : {}),
-        phone: order?.customer?.phone || customerDraft.phone || (phoneDigits ? `+${phoneDigits}` : ''),
+        ...(!freshCommercialCycle && order?.customer?.name ? { name: order.customer.name } : {}),
+        phone: (freshCommercialCycle ? customerDraft.phone : order?.customer?.phone) || customerDraft.phone || (phoneDigits ? `+${phoneDigits}` : ''),
         country: 'EC',
-        ...(order?.customer?.city ? { city: order.customer.city } : {}),
-        ...(order?.customer?.province ? { province: order.customer.province } : {}),
-        ...(order?.customer?.address ? { address: order.customer.address } : {}),
-        ...(order?.customer?.reference ? { reference: order.customer.reference } : {}),
-        ...(order?.status ? { status: normalizePanelStatus(order.status) } : {}),
-        quantity: order?.package?.quantity ?? customerDraft.quantity ?? '',
-        total: order?.total ?? customerDraft.total ?? '',
+        ...(!freshCommercialCycle && order?.customer?.city ? { city: order.customer.city } : {}),
+        ...(!freshCommercialCycle && order?.customer?.province ? { province: order.customer.province } : {}),
+        ...(!freshCommercialCycle && order?.customer?.address ? { address: order.customer.address } : {}),
+        ...(!freshCommercialCycle && order?.customer?.reference ? { reference: order.customer.reference } : {}),
+        ...(!freshCommercialCycle && order?.status ? { status: normalizePanelStatus(order.status) } : {}),
+        quantity: freshCommercialCycle ? (customerDraft.quantity ?? '') : (order?.package?.quantity ?? customerDraft.quantity ?? ''),
+        total: freshCommercialCycle ? (customerDraft.total ?? '') : (order?.total ?? customerDraft.total ?? ''),
         ...(activeOrderId ? { orderId: activeOrderId } : {}),
         ...(sourceOrderId ? { sourceOrderId } : {}),
         product: productInfo.name,
@@ -2457,7 +2523,7 @@ export const panelProductContextForChat = async ({
             String(currentDraft.orderId || '') !== activeOrderId
             || (sourceOrderId && String(currentDraft.sourceOrderId || '') !== sourceOrderId)
         );
-        const statusMismatch = Boolean(order?.status)
+        const statusMismatch = !freshCommercialCycle && Boolean(order?.status)
             && normalizePanelStatus(currentDraft.status) !== normalizePanelStatus(panelDraft.status);
         if (productMismatch || orderMismatch || statusMismatch) {
             const updatedDraft = {
@@ -2565,13 +2631,152 @@ const attributionTrackingFromContactState = (state = null) => {
     });
 };
 
+const ensurePanelFreshCommercialCycleV146 = async ({ draft = {}, state = null, req = null } = {}) => {
+    const requestedStatus = normalizePanelStatus(draft.status);
+    const stateDraft = state?.metadata?.customerDraft || {};
+    const stateCurrentOrderId = String(stateDraft.currentNegotiationOrderId || '').trim();
+    const submittedOrderId = String(draft.orderId || '').trim();
+    const currentCandidateIds = [...new Set([stateCurrentOrderId, submittedOrderId].filter(Boolean))];
+    const currentCandidates = currentCandidateIds.length
+        ? await Order.find({ country: 'EC', orderId: { $in: currentCandidateIds } })
+        : [];
+    const activeRepurchase = currentCandidates.find((order) => (
+        !isTerminalOrderV146(order)
+        && (isRepurchaseOrderV146(order) || String(order?.entryReason || '') === 'new_purchase_after_terminal')
+        && sameCustomerPhoneV146(order.customer?.phone, draft.phone || state?.phoneDigits)
+    ));
+    if (activeRepurchase) {
+        return {
+            draft: {
+                ...draft,
+                orderId: activeRepurchase.orderId,
+                currentNegotiationOrderId: activeRepurchase.orderId,
+                previousOrderId: activeRepurchase.previousOrderId,
+                sourceOrderId: activeRepurchase.previousOrderId,
+                historicalOrderId: activeRepurchase.previousOrderId,
+                newCommercialCycle: true,
+                entryReason: activeRepurchase.entryReason
+            },
+            created: false,
+            reused: true,
+            previousOrder: null,
+            order: activeRepurchase
+        };
+    }
+
+    if (!['recompra', 'confirmado', 'confirmed'].includes(requestedStatus)) {
+        return { draft, created: false, reused: false, previousOrder: null, order: null };
+    }
+
+    const historicalIds = [...new Set([
+        draft.previousOrderId,
+        draft.historicalOrderId,
+        draft.sourceOrderId,
+        submittedOrderId,
+        stateDraft.previousOrderId,
+        stateDraft.historicalOrderId,
+        stateDraft.sourceOrderId,
+        stateDraft.orderId
+    ].map((value) => String(value || '').trim()).filter(Boolean))];
+    if (!historicalIds.length) return { draft, created: false, reused: false, previousOrder: null, order: null };
+
+    const previousOrders = await Order.find({ country: 'EC', orderId: { $in: historicalIds } });
+    let previousOrder = null;
+    let previousShipment = null;
+    for (const candidate of previousOrders) {
+        const shipment = await Shipment.findOne({ country: 'EC', orderId: candidate.orderId })
+            .sort({ 'logistics.lastStatusAt': -1, updatedAt: -1, createdAt: -1 });
+        if (panelOrderLifecycle({ order: candidate, shipment }).historical) {
+            previousOrder = candidate;
+            previousShipment = shipment;
+            break;
+        }
+    }
+    if (!previousOrder) return { draft, created: false, reused: false, previousOrder: null, order: null };
+    if (!sameCustomerPhoneV146(previousOrder.customer?.phone, draft.phone || state?.phoneDigits)) {
+        const error = new Error('repurchase_customer_mismatch');
+        error.code = 'repurchase_customer_mismatch';
+        error.status = 409;
+        throw error;
+    }
+
+    let order = await Order.findOne({
+        country: 'EC',
+        previousOrderId: previousOrder.orderId,
+        entryReason: { $in: ['repeat_purchase_after_delivered', 'new_purchase_after_terminal'] },
+        status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] },
+        'customer.phone': { $regex: `${digitsOnly(draft.phone || state?.phoneDigits).slice(-9)}$` }
+    }).sort({ updatedAt: -1, createdAt: -1 });
+    const reused = Boolean(order);
+    const lifecycle = panelOrderLifecycle({ order: previousOrder, shipment: previousShipment });
+    if (!order) {
+        order = new Order({
+            orderId: lifecycle.delivered
+                ? deliveredRepurchaseRegistrationDecision({
+                    authenticated: Boolean(req?.user),
+                    currentOrder: previousOrder,
+                    currentShipment: previousShipment,
+                    activeRepurchase: null,
+                    newCustomerPhone: draft.phone
+                }).orderId
+                : freshCycleOrderIdV146({ previousOrderId: previousOrder.orderId }),
+            country: 'EC',
+            customer: {
+                name: String(draft.name || previousOrder.customer?.name || '').trim(),
+                phone: String(draft.phone || previousOrder.customer?.phone || '').trim(),
+                city: String(draft.city || previousOrder.customer?.city || '').trim(),
+                province: String(draft.province || previousOrder.customer?.province || '').trim(),
+                address: '',
+                reference: ''
+            },
+            delivery: { mode: '', agencyId: '', agencyName: '' },
+            package: { id: 0, label: '', quantity: 0 },
+            total: 0,
+            currency: 'USD',
+            source: 'manual',
+            status: 'draft',
+            previousOrderId: previousOrder.orderId,
+            previousDeliveredAt: lifecycle.previousDeliveredAt,
+            entryReason: lifecycle.delivered ? 'repeat_purchase_after_delivered' : 'new_purchase_after_terminal',
+            notes: `Novo ciclo comercial V146. Historico preservado: ${previousOrder.orderId}.`,
+            tracking: {
+                ...attributionTrackingFromContactState(state),
+                ...(draft.productKey ? {
+                    productKey: draft.productKey,
+                    productName: draft.productName || draft.product || '',
+                    product: draft.productName || draft.product || '',
+                    productSelectionSource: 'panel_new_commercial_cycle'
+                } : {})
+            },
+            draftCreatedAt: new Date()
+        });
+        await order.save();
+    }
+
+    const normalizedDraft = freshCommercialCycleDraftV146({
+        draft,
+        previousOrder,
+        newOrderId: order.orderId,
+        status: 'recompra',
+        entryReason: order.entryReason
+    });
+    return {
+        draft: normalizedDraft,
+        created: !reused,
+        reused,
+        previousOrder,
+        order,
+        redirectedFromTerminalConfirmation: ['confirmado', 'confirmed'].includes(requestedStatus)
+    };
+};
+
 const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null, state = null } = {}) => {
     if (!shouldCreateOperationalOrderFromDraft(draft, false)) {
         return { ok: false, skipped: true, reason: 'not_confirmed_ec_draft' };
     }
     const customerDataResolution = state?.customerDataResolution?.toObject?.() || state?.customerDataResolution || {};
     assertCustomerOrderDataReady(customerDataResolution);
-    const sourceOrderId = String(draft.orderId || '').trim();
+    const sourceOrderId = String(draft.orderId || draft.currentNegotiationOrderId || draft.previousOrderId || '').trim();
     const sourceIsAdminOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(sourceOrderId);
     const phoneDigits = digitsOnly(draft.phone);
     const quantity = normalizePanelPackageQuantity(draft.quantity);
@@ -2699,47 +2904,28 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
     if (!order.confirmedAt) order.confirmedAt = new Date();
     await order.save();
 
-    let purchase = order.tracking?.metaPurchaseSentAt
+    const purchase = order.tracking?.metaPurchaseSentAt
         ? {
             ok: true,
             skipped: true,
             alreadySent: true,
-            reason: 'already_sent',
+            reason: 'already_sent_by_authorized_dropi_flow',
             eventId: order.tracking?.metaPurchaseEventId || order.orderId,
             response: order.tracking?.metaPurchaseResponse || null,
             sentAt: order.tracking?.metaPurchaseSentAt
         }
-        : { ok: false, skipped: true, reason: 'not_sent' };
-    if (!order.tracking?.metaPurchaseSentAt) {
-        const result = await sendPurchaseEventForOrder(order);
-        order.tracking = order.tracking || {};
-        order.tracking.metaPurchaseEventId = result.eventId || order.orderId;
-        if (result.ok) {
-            order.tracking.metaPurchaseSentAt = new Date();
-            order.tracking.metaPurchaseResponse = result.response;
-        } else {
-            order.tracking.metaPurchaseResponse = {
-                ok: false,
-                status: result.status,
-                data: result.data,
-                error: result.error
-            };
-        }
-        await order.save();
-        purchase = result;
-    }
-    let adminPurchaseLock = { ok: false, skipped: true, reason: 'purchase_not_sent' };
-    if (order.tracking?.metaPurchaseSentAt) {
-        adminPurchaseLock = recordOnlineAdminPurchaseLock({
-            order,
-            purchase,
-            sourceOrderId,
-            country: 'EC'
-        });
-        if (!adminPurchaseLock?.ok && !adminPurchaseLock?.skipped) {
-            console.warn('[META] falha ao gravar lock Purchase no painel:', adminPurchaseLock);
-        }
-    }
+        : {
+            ok: false,
+            skipped: true,
+            reason: 'awaiting_fresh_human_dropi_success_v144'
+        };
+    const adminPurchaseLock = {
+        ok: false,
+        skipped: true,
+        reason: order.tracking?.metaPurchaseSentAt
+            ? 'already_recorded_by_authorized_dropi_flow'
+            : 'purchase_not_eligible_before_human_dropi_success'
+    };
     return {
         ok: true,
         orderId: order.orderId,
@@ -2813,6 +2999,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
                 sessionId: options.sessionId,
                 sendMode,
                 allowAudioDedupeBypass,
+                ...(options.canonicalPostSale ? { dedupeValue: options.dedupeValue, outboundContext: 'shipment_status', allowExistingDropiOrder: true } : {}),
                 country: options.country,
                 recipientDigits: digitsOnly(phone),
                 returnDetails: options.returnDetails === true
@@ -2906,6 +3093,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
         allowHistoryDedupeBypass: options.allowHistoryDedupeBypass === true,
         allowExistingDropiOrder: options.allowExistingDropiOrder === true,
         antiSpamKey: options.antiSpamKey,
+        ...(options.canonicalPostSale ? { dedupeValue: options.dedupeValue } : {}),
         outboundContext: options.outboundContext,
         returnDetails: options.returnDetails === true
     });
@@ -3010,6 +3198,11 @@ const recordManualOutboundMessage = async ({
         providerMessageId ? { providerMessageId } : null,
         providerZaapId ? { providerZaapId } : null
     ].filter(Boolean);
+    const reconcilePendingDelivery = async (messageRecord) => {
+        if (!messageRecord) return messageRecord;
+        const result = await reconcilePendingZapiDeliveryV155(messageRecord);
+        return result.message || messageRecord;
+    };
     if (providerIdentity.length) {
         const existing = await Message.findOne({
             $and: [
@@ -3052,24 +3245,13 @@ const recordManualOutboundMessage = async ({
                 providerStatus: providerStatus || existing.providerStatus || '',
                 providerPayload: providerPayload || existing.providerPayload || null
             });
-            return existing.save().catch(() => existing);
+            const saved = await existing.save().catch(() => existing);
+            return reconcilePendingDelivery(saved);
         }
     }
 
-    return Message.create(manualRecord).catch(() => null);
-};
-
-const findActiveShipmentForOutboundPhone = async (phone = '') => {
-    const digits = digitsOnly(phone);
-    if (digits.length < 8) return null;
-    const tails = [...new Set([digits, digits.slice(-10), digits.slice(-9), digits.slice(-8)].filter((tail) => tail.length >= 8))];
-    return Shipment.findOne({
-        country: 'EC',
-        $or: tails.map((tail) => ({ 'client.phone': { $regex: `${tail}$` } })),
-        'outcomes.delivered': { $ne: true },
-        'outcomes.pickedUp': { $ne: true },
-        'outcomes.returned': { $ne: true }
-    }).sort({ 'logistics.lastStatusAt': -1, updatedAt: -1 }).lean();
+    const created = await Message.create(manualRecord).catch(() => null);
+    return reconcilePendingDelivery(created);
 };
 
 const applyManualSendHold = (state, { phone = '', user = null } = {}) => {
@@ -3409,6 +3591,7 @@ router.post('/vsl-entry', async (req, res) => {
         const vslVariant = cleanText(body.vslVariant || body.vsl_variant).toLowerCase().slice(0, 40);
         const vslEntryMessage = cleanText(body.vslEntryMessage || body.vsl_entry_message).slice(0, 700);
         const intent = cleanText(body.intent || body.action).toLowerCase();
+        const initiateCheckoutAction = initiateCheckoutBusinessActionV146(body);
         const skipMeta = body.skipMeta === true
             || body.skip_meta === true
             || body.testLead === true
@@ -3442,7 +3625,12 @@ router.post('/vsl-entry', async (req, res) => {
                 sourceUrl: cleanText(body.event_source_url || body.eventSourceUrl || body.sourceUrl),
                 userAgent: cleanText(body.client_user_agent || body.clientUserAgent)
             });
-        const trackingForPersistence = protocoloGContract
+        const v148Claimed = Number(incomingTracking.measurementVersion) === 148 && existing?.attributionClaimedAt;
+        const incomingCustomerPhone = vslCustomerPhoneFromBody(body, country);
+        const customerPhoneForPersistence = Number(incomingTracking.measurementVersion) === 148
+            ? ''
+            : incomingCustomerPhone;
+        const trackingForPersistence = v148Claimed ? existing.tracking : protocoloGContract
             ? incomingTracking
             : { ...(existing?.tracking || {}), ...incomingTracking };
         let assignment = null;
@@ -3475,7 +3663,7 @@ router.post('/vsl-entry', async (req, res) => {
                 ipHash,
                 device: cleanText(body.device),
                 customerName: cleanText(body.customerName || body.customer_name || body.name).slice(0, 180),
-                customerPhone: digitsOnly(body.customerPhone || body.customer_phone || body.phone).slice(-15),
+                ...(customerPhoneForPersistence ? { customerPhone: customerPhoneForPersistence } : {}),
                 productKey: product.productKey,
                 productName: product.productName,
                 productSource: product.source,
@@ -3510,7 +3698,8 @@ router.post('/vsl-entry', async (req, res) => {
             },
             $setOnInsert: {
                 visitorKey,
-                firstSeenAt: now
+                firstSeenAt: now,
+                ...(!customerPhoneForPersistence ? { customerPhone: '' } : {})
             },
             $inc: {
                 visits: existing && !protocoloGContract ? 1 : 0,
@@ -3540,18 +3729,35 @@ router.post('/vsl-entry', async (req, res) => {
         const viewContent = skipMeta || clicked
             ? null
             : await sendVslViewContentForVisit({ visit, body, req, country, visitorKey });
-        const initiateCheckout = !skipMeta && clicked
+        const initiateCheckout = !skipMeta && initiateCheckoutAction.occurred
             ? await sendVslInitiateCheckoutForVisit({ visit, body, req, country, visitorKey })
             : null;
         const lead = !skipMeta && clicked
             ? await sendVslLeadForVisit({ visit, body, req, country, visitorKey })
             : null;
+        const persistedCustomerPhone = digitsOnly(visit?.customerPhone);
         const panelLead = clicked
-            ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+            ? incomingCustomerPhone
+                ? await registerVslClickInPanel({ visit, body, country, assignedSeller, clicked })
+                : persistedCustomerPhone
+                    ? {
+                        ok: true,
+                        prelead: false,
+                        alreadyClaimed: true,
+                        reason: 'already_claimed'
+                    }
+                : {
+                    ok: true,
+                    prelead: true,
+                    reason: 'awaiting_whatsapp_phone',
+                    chat: projectVslPreleadPanelChat(visit)
+                }
             : null;
 
         return res.json({
             ok: true,
+            accepted: true,
+            ignored: false,
             assignedSeller,
             seller: assignedSeller,
             productKey: product.productKey,
@@ -3629,13 +3835,16 @@ router.post('/internal/reconcile-atendimento', async (req, res) => {
 });
 
 router.post('/internal/admin-status-sync', async (req, res) => {
-    if (!isLocalRequest(req)) {
+    if (!isEcPanelStatusV177StrictLocalRequest(req)) {
         return res.status(403).json({ error: 'local_only' });
     }
 
     try {
         const body = req.body || {};
         const status = normalizePanelStatus(body.status);
+        if (!ecPanelStatusV177StatusPlan(status).allowed) {
+            return res.status(400).json({ ok: false, error: 'invalid_status' });
+        }
         const oldStatus = normalizePanelStatus(body.old_status);
         const country = normalizePanelCountry(body.country || 'EC');
         const phone = cleanText(body.phone_e164 || body.phone);
@@ -3718,26 +3927,12 @@ router.post('/internal/admin-status-sync', async (req, res) => {
             });
         }
 
-        let orderUpdated = false;
-        const orderStatus = orderStatusFromPanelStatus(status);
-        if (orderStatus) {
-            const tails = phoneTailCandidates(phoneDigits);
-            const order = await Order.findOne({
-                country,
-                $or: tails.map((tail) => ({ 'customer.phone': { $regex: `${tail}\\D*$`, $options: 'i' } }))
-            }).sort({ entryAt: -1, createdAt: -1 });
-            if (order && String(order.status || '').toLowerCase() !== orderStatus) {
-                order.status = orderStatus;
-                await order.save();
-                orderUpdated = true;
-            }
-        }
-
         return res.json({
             ok: true,
             status,
             contactStateId: state._id?.toString?.() || '',
-            orderUpdated,
+            orderUpdated: false,
+            orderSyncSkipped: 'v177_authenticated_human_required',
             stateChanged: statusTransition.changed,
             auditRecorded: statusTransition.changed
         });
@@ -3749,6 +3944,28 @@ router.post('/internal/admin-status-sync', async (req, res) => {
 
 // Protect all WhatsApp routes (except status)
 router.use(authMiddleware);
+
+router.post(
+    '/funnel-media-upload-binary',
+    adminOnly,
+    express.raw({ type: 'application/octet-stream', limit: PANEL_FUNNEL_MEDIA_UPLOAD_V153_MAX_BYTES }),
+    (req, res) => {
+        try {
+            const result = persistPanelFunnelMediaUploadV153({
+                bytes: req.body,
+                fileName: req.get('X-File-Name') || '',
+                label: req.get('X-File-Label') || '',
+                mime: req.get('X-File-Mime') || ''
+            });
+            return res.status(201).json(result);
+        } catch (error) {
+            return res.status(Number(error?.statusCode || 500)).json({
+                ok: false,
+                error: error?.message || 'funnel_media_upload_failed'
+            });
+        }
+    }
+);
 
 const latestByPhoneTail = (records = [], phoneSelector = () => '') => {
     const map = new Map();
@@ -3994,7 +4211,7 @@ router.get('/dashboard-metrics', async (req, res) => {
     }
 });
 
-router.post('/chats/action', async (req, res) => {
+router.post('/chats/action', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const action = normalizeManualAction(req.body?.action);
         if (!MANUAL_ACTION_TAGS[action]) {
@@ -4024,7 +4241,7 @@ router.post('/chats/action', async (req, res) => {
     }
 });
 
-router.post('/chats/bucket', async (req, res) => {
+router.post('/chats/bucket', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const bucket = String(req.body?.bucket || '').trim().toLowerCase();
         if (!Object.values(EC_CONVERSATION_BUCKETS).includes(bucket)) {
@@ -4154,6 +4371,9 @@ router.get('/chats', async (req, res) => {
         const fastMode = String(req.query.fast || '').toLowerCase() === 'true' || String(req.query.fast || '') === '1';
         const countryFilter = normalizePanelCountry(req.query.country);
         const pictureSock = fastMode ? null : getSock(req.query.sessionId);
+        const pendingVslPreleads = countryFilter === 'EC' && !onlyLinked
+            ? await listPendingVslPreleadPanelChats({ country: 'EC', limit: fastMode ? 80 : 120 }).catch(() => [])
+            : [];
 
         const buildPhoneKeys = ({ digits, country }) => {
             const d = String(digits || '').replace(/\D/g, '');
@@ -4595,7 +4815,8 @@ router.get('/chats', async (req, res) => {
                     shipments: relatedEntities.shipments,
                     lastMessage,
                     fallbackName: c.name || c.id.user,
-                    fallbackPhone: c.phoneHint || c.id.user
+                    fallbackPhone: c.phoneHint || c.id.user,
+                    includeCustomerDataResolution: false
                 });
                 const order = readModel.order;
                 const selectedShipment = readModel.shipment;
@@ -4610,13 +4831,10 @@ router.get('/chats', async (req, res) => {
                     || orderEntryAt
                     || contactEntryAt
                     || fallbackActivityAt;
-                const lastActivityAt = latestDateValue(
-                    fallbackActivityAt,
-                    contactState?.lastInboundAt,
-                    contactState?.lastOutboundAt,
-                    contactState?.updatedAt,
-                    contactState?.createdAt
-                );
+                const lastRelevantConversationActivityAt = lastRelevantConversationActivityAtV146({
+                    lastMessage,
+                    contactState
+                });
                 const productContext = await panelProductContextForChat({
                     contactState,
                     order,
@@ -4640,7 +4858,7 @@ router.get('/chats', async (req, res) => {
                     firstInboundAt: contactState?.firstInboundAt || null,
                     lastInboundAt: contactState?.lastInboundAt || null,
                     lastOutboundAt: contactState?.lastOutboundAt || null,
-                    lastActivityAt,
+                    lastActivityAt: lastRelevantConversationActivityAt,
                     createdAt: contactState?.createdAt || null,
                     updatedAt: contactState?.updatedAt || null,
                     manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
@@ -4664,17 +4882,17 @@ router.get('/chats', async (req, res) => {
                     agencyId: panelDraft.agencyId || null,
                     agencyName: panelDraft.agencyName || null,
                     flowDataOk: panelDraft.flowDataOk || {},
-                    orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                    orderId: panelDraft.orderId || readModel.selectedOrderId || null,
                     orderStatus: readModel.orderStatus,
                     operationalStatus: readModel.operationalStatus,
                     logistics: readModel.logistics,
                     orderCandidateCount: readModel.orderCandidateCount,
                     selectionReason: readModel.selectionReason,
-                    historicalOrderId: orderLifecycle.historicalOrderId || null,
+                    historicalOrderId: readModel.historicalOrderId || orderLifecycle.historicalOrderId || null,
                     previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
-                    quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
+                    quantity: readModel.freshCommercialCycle ? (panelDraft.quantity ?? null) : (order?.package?.quantity ?? panelDraft.quantity ?? null),
                     packageLabel: order?.package?.label || null,
-                    total: order?.total ?? panelDraft.total ?? null,
+                    total: readModel.freshCommercialCycle ? (panelDraft.total ?? null) : (order?.total ?? panelDraft.total ?? null),
                     currency: order?.currency || null,
                     notes: contactState?.human?.note || '',
                     assignedAgent: panelHumanAgentId(contactState),
@@ -4687,7 +4905,7 @@ router.get('/chats', async (req, res) => {
                     identityConflict: contactState?.metadata?.identityConflict || null,
                     customerDraft: {
                         ...panelDraft,
-                        dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                        dataResolution: readModel.customerDataResolution || null
                     },
                     tags: contactState?.tags || [],
                     human: contactState?.human || { mode: 'auto' },
@@ -4700,9 +4918,9 @@ router.get('/chats', async (req, res) => {
                 .filter((c) => !c.isGroup && digitsOnly(c.phone).length >= 9)
                 .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
                 .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter))
-                .sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
+                .sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
-            res.json(onlyLinked ? [] : dedupePanelChats(fastChats));
+            res.json(onlyLinked ? [] : dedupePanelChats([...pendingVslPreleads, ...fastChats]));
             return;
         }
 
@@ -4915,13 +5133,10 @@ router.get('/chats', async (req, res) => {
                 || orderEntryAt
                 || contactEntryAt
                 || fallbackActivityAt;
-            const lastActivityAt = latestDateValue(
-                fallbackActivityAt,
-                contactState?.lastInboundAt,
-                contactState?.lastOutboundAt,
-                contactState?.updatedAt,
-                contactState?.createdAt
-            );
+            const lastRelevantConversationActivityAt = lastRelevantConversationActivityAtV146({
+                lastMessage,
+                contactState
+            });
 
             return {
                 id: c.id._serialized,
@@ -4934,7 +5149,7 @@ router.get('/chats', async (req, res) => {
                 firstInboundAt: contactState?.firstInboundAt || null,
                 lastInboundAt: contactState?.lastInboundAt || null,
                 lastOutboundAt: contactState?.lastOutboundAt || null,
-                lastActivityAt,
+                lastActivityAt: lastRelevantConversationActivityAt,
                 createdAt: contactState?.createdAt || null,
                 updatedAt: contactState?.updatedAt || null,
                 manuallyCreatedAt: contactState?.metadata?.manuallyCreatedAt || null,
@@ -4959,17 +5174,17 @@ router.get('/chats', async (req, res) => {
                 agencyId: panelDraft.agencyId || null,
                 agencyName: panelDraft.agencyName || null,
                 flowDataOk: panelDraft.flowDataOk || {},
-                orderId: readModel.selectedOrderId || panelDraft.orderId || null,
+                orderId: panelDraft.orderId || readModel.selectedOrderId || null,
                 orderStatus: readModel.orderStatus,
                 operationalStatus: readModel.operationalStatus,
                 logistics: readModel.logistics,
                 orderCandidateCount: readModel.orderCandidateCount,
                 selectionReason: readModel.selectionReason,
-                historicalOrderId: orderLifecycle.historicalOrderId || null,
+                historicalOrderId: readModel.historicalOrderId || orderLifecycle.historicalOrderId || null,
                 previousDeliveredAt: orderLifecycle.previousDeliveredAt || null,
-                quantity: order?.package?.quantity ?? panelDraft.quantity ?? null,
+                quantity: readModel.freshCommercialCycle ? (panelDraft.quantity ?? null) : (order?.package?.quantity ?? panelDraft.quantity ?? null),
                 packageLabel: order?.package?.label || null,
-                total: order?.total ?? panelDraft.total ?? null,
+                total: readModel.freshCommercialCycle ? (panelDraft.total ?? null) : (order?.total ?? panelDraft.total ?? null),
                 currency: order?.currency || null,
                 notes: order?.notes || contactState?.human?.note || '',
                 assignedAgent: panelHumanAgentId(contactState),
@@ -4982,7 +5197,7 @@ router.get('/chats', async (req, res) => {
                 identityConflict: contactState?.metadata?.identityConflict || null,
                 customerDraft: {
                     ...panelDraft,
-                    dataResolution: contactState?.customerDataResolution || order?.customerDataResolution || null
+                    dataResolution: readModel.customerDataResolution || null
                 },
                 tags: contactState?.tags || [],
                 human: contactState?.human || { mode: 'auto' },
@@ -4998,9 +5213,9 @@ router.get('/chats', async (req, res) => {
             .filter((c) => !isLikelyWhatsAppGroupIdentifier(c.id) && !isLikelyWhatsAppGroupIdentifier(c.phone))
             .filter((c) => !countryFilter || isAllowedPanelPhoneForCountry(c.phone, countryFilter));
 
-        filtered.sort((a, b) => stableChatEntryMs(b) - stableChatEntryMs(a));
+        filtered.sort((a, b) => compareConversationRecencyV146(a, b) || stableChatEntryMs(b) - stableChatEntryMs(a));
 
-        res.json(dedupePanelChats(filtered));
+        res.json(dedupePanelChats([...pendingVslPreleads, ...filtered]));
     } catch (error) {
         console.error('Get chats error:', error);
         res.status(500).json({ error: 'Failed to fetch chats' });
@@ -5785,7 +6000,7 @@ router.post('/contact-state/:phone/resolve-customer-data', async (req, res) => {
     }
 });
 
-router.patch('/contact-state/:phone', async (req, res) => {
+router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const { note, mode, assignedName, country, customerDraft, customerDataConfirmation } = req.body || {};
@@ -5794,6 +6009,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
         let deferredOperationalOrderDraft = null;
         let customerDataBlockedResponse = null;
+        let freshCycleTransition = null;
         state.human = {
             ...(state.human || {}),
             ...(mode === 'auto' || mode === 'manual' ? { mode } : {}),
@@ -5869,6 +6085,25 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 return res.status(400).json({ error: 'Informe a data desejada do pedido para usar Comprar depois.' });
             }
             if (!internalOrTest && cleanDraft.country === 'EC') {
+                freshCycleTransition = await ensurePanelFreshCommercialCycleV146({
+                    draft: cleanDraft,
+                    state,
+                    req
+                });
+                cleanDraft = freshCycleTransition.draft;
+                if (freshCycleTransition.order?.orderId) {
+                    operationalOrderSync = {
+                        ok: true,
+                        skipped: true,
+                        reason: freshCycleTransition.created
+                            ? 'fresh_commercial_cycle_created_no_dropi_no_shipment_no_purchase'
+                            : 'fresh_commercial_cycle_reused',
+                        orderId: freshCycleTransition.order.orderId,
+                        previousOrderId: freshCycleTransition.order.previousOrderId || '',
+                        repurchase: true,
+                        created: freshCycleTransition.created
+                    };
+                }
                 const result = resolvePanelCustomerData({
                     state,
                     draft: cleanDraft,
@@ -5876,6 +6111,27 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     sourceMessageId: `panel-save:${req.user?._id || req.user?.email || 'operator'}`
                 });
                 cleanDraft = result.draft;
+                if (freshCycleTransition.created) {
+                    cleanDraft = {
+                        ...cleanDraft,
+                        address: '',
+                        reference: '',
+                        deliveryMode: '',
+                        agencyId: '',
+                        agencyName: '',
+                        quantity: '',
+                        total: '',
+                        orderId: freshCycleTransition.order.orderId,
+                        currentNegotiationOrderId: freshCycleTransition.order.orderId,
+                        previousOrderId: freshCycleTransition.previousOrder.orderId,
+                        historicalOrderId: freshCycleTransition.previousOrder.orderId,
+                        sourceOrderId: freshCycleTransition.previousOrder.orderId,
+                        status: 'recompra',
+                        newCommercialCycle: true,
+                        entryReason: freshCycleTransition.order.entryReason,
+                        orderScopedFieldsResetAt: new Date().toISOString()
+                    };
+                }
                 state.customerDataResolution = result.resolution;
                 state.markModified('customerDataResolution');
                 if (normalizePanelStatus(cleanDraft.status) === 'confirmado' && result.resolution.orderDataReady !== true) {
@@ -5974,7 +6230,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
                 const agencyAddress = cleanDraft.address || pendingOrder.agencyAddress || pendingOrder.address || '';
                 const looksLikeAgency = /servientrega|agencia|oficina|retiro/i.test(agencyAddress);
                 const mergedPendingOrder = {
-                    ...pendingOrder,
+                    ...(freshCycleTransition?.created ? {} : pendingOrder),
                     ...(cleanDraft.name ? { name: cleanDraft.name } : {}),
                     ...(correctedCity ? { city: correctedCity } : {}),
                     ...(correctedProvince ? { province: correctedProvince } : {}),
@@ -5983,6 +6239,23 @@ router.patch('/contact-state/:phone', async (req, res) => {
                     ...(isValidPanelPackageQuantity(cleanDraft.quantity) ? { quantity: normalizePanelPackageQuantity(cleanDraft.quantity) } : {}),
                     ...(cleanDraft.total ? { total: Number(cleanDraft.total) || cleanDraft.total } : {}),
                     ...(cleanDraft.product ? { product: cleanDraft.product } : {}),
+                    ...(freshCycleTransition?.created ? {
+                        address: '',
+                        reference: '',
+                        deliveryMode: '',
+                        agencyAddress: '',
+                        agencyId: '',
+                        agencyName: '',
+                        agency: '',
+                        quantity: '',
+                        total: '',
+                        agencyOptions: [],
+                        agencyOptionsPage: 0,
+                        agencyValidated: false,
+                        previousOrderId: cleanDraft.previousOrderId || '',
+                        source: 'repeat_purchase_after_delivered',
+                        stage: 'awaiting_quantity_data'
+                    } : {}),
                     ...(looksLikeAgency ? {
                         deliveryMode: 'agency',
                         deliveryType: 'SERVIENTREGA',
@@ -6084,6 +6357,180 @@ router.patch('/contact-state/:phone', async (req, res) => {
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
+        let confirmedPersistence = null;
+        if (deferredOperationalOrderDraft) {
+            const correlationId = `panel-confirm-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+            const operator = req.user?.email || req.user?.name || 'panel';
+            const leadId = String(unifiedSync?.lead_id || unifiedSync?.leadId || unifiedSync?.id || '').replace(/\D/g, '');
+            const adminOrderId = leadId ? `EC-ADMIN-${leadId}` : '';
+            const failConfirmedPersistence = (status, code, message, detail = {}) => {
+                console.error('[PANEL_CONFIRM_V158]', JSON.stringify({
+                    event: 'panel_confirm_failure',
+                    correlationId,
+                    leadId,
+                    orderId: operationalOrderSync?.orderId || '',
+                    operator,
+                    requestedState: 'confirmado',
+                    code,
+                    ...detail,
+                    timestamp: new Date().toISOString()
+                }));
+                return res.status(status).json({
+                    success: false,
+                    error: code,
+                    message,
+                    correlationId,
+                    confirmedPersistence: {
+                        persistenceVerified: false,
+                        readAfterWriteVerified: false,
+                        falseSuccessPrevented: true,
+                        ...detail
+                    }
+                });
+            };
+
+            if (!unifiedSync?.ok || !leadId) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_lead_persistence_failed',
+                    'A ficha foi preservada, mas o pedido nao foi confirmado. Atualize o painel e tente novamente.',
+                    {
+                        matchedCount: Number(unifiedSync?.matchedCount || 0),
+                        modifiedCount: Number(unifiedSync?.modifiedCount || 0),
+                        finalPersistedState: unifiedSync?.finalStatus || unifiedSync?.status || ''
+                    }
+                );
+            }
+
+            if (!operationalOrderSync?.ok) {
+                const persistedDraft = state.metadata?.customerDraft || deferredOperationalOrderDraft;
+                const hasOrderIdentity = [
+                    persistedDraft.orderId,
+                    persistedDraft.currentNegotiationOrderId,
+                    persistedDraft.previousOrderId,
+                    persistedDraft.sourceOrderId
+                ].some((value) => String(value || '').trim());
+                const retryDraft = {
+                    ...persistedDraft,
+                    ...(!hasOrderIdentity ? {
+                        orderId: adminOrderId,
+                        sourceOrderId: adminOrderId,
+                        previousOrderId: adminOrderId
+                    } : {})
+                };
+                try {
+                    operationalOrderSync = await ensureOperationalOrderForConfirmedDraft({
+                        draft: retryDraft,
+                        req,
+                        state
+                    });
+                } catch (error) {
+                    operationalOrderSync = customerStateSavedOrderSyncFailureV123(error);
+                }
+            }
+
+            if (!operationalOrderSync?.ok || !operationalOrderSync?.orderId) {
+                return failConfirmedPersistence(
+                    409,
+                    operationalOrderSync?.errorCode || 'panel_confirm_order_persistence_failed',
+                    'A ficha foi preservada, mas o pedido operacional nao foi confirmado. Nenhum envio externo foi feito.',
+                    {
+                        matchedCount: 0,
+                        modifiedCount: 0,
+                        finalPersistedState: operationalOrderSync?.reason || 'order_missing'
+                    }
+                );
+            }
+
+            const persistedOrder = await Order.findOne({
+                country: 'EC',
+                orderId: operationalOrderSync.orderId
+            });
+            if (!persistedOrder || persistedOrder.status !== 'confirmed' || !persistedOrder.confirmedAt) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_order_read_after_write_failed',
+                    'O pedido nao permaneceu no estado confirmado. Nenhum sucesso foi declarado.',
+                    {
+                        matchedCount: persistedOrder ? 1 : 0,
+                        modifiedCount: 0,
+                        finalPersistedState: persistedOrder?.status || 'missing'
+                    }
+                );
+            }
+
+            const panelPersistence = persistConfirmedOrderToOnlineAdminPanelV158(persistedOrder, {
+                action: 'panel_confirmed_human_v158',
+                leadId,
+                requestedBy: operator,
+                correlationId
+            });
+            if (!panelPersistence.ok) {
+                return failConfirmedPersistence(
+                    panelPersistence.reason === 'lead_not_found' ? 404 : 409,
+                    panelPersistence.reason || 'panel_confirm_sqlite_read_after_write_failed',
+                    'O pedido foi preservado, mas a lista Confirmados nao confirmou a persistencia. Atualize e tente novamente.',
+                    {
+                        matchedCount: Number(panelPersistence.matchedCount || 0),
+                        modifiedCount: Number(panelPersistence.modifiedCount || 0),
+                        finalPersistedState: panelPersistence.finalStatus || ''
+                    }
+                );
+            }
+
+            state.metadata = {
+                ...(state.metadata || {}),
+                customerDraft: {
+                    ...((state.metadata || {}).customerDraft || {}),
+                    orderId: persistedOrder.orderId,
+                    sourceOrderId: adminOrderId,
+                    previousOrderId: persistedOrder.previousOrderId || adminOrderId,
+                    currentNegotiationOrderId: persistedOrder.orderId,
+                    status: 'confirmado',
+                    updatedAt: new Date().toISOString()
+                }
+            };
+            state.markModified('metadata');
+            await state.save();
+            const reloadedOrder = await Order.findOne({
+                country: 'EC',
+                orderId: persistedOrder.orderId,
+                status: 'confirmed',
+                confirmedAt: { $ne: null }
+            }).lean();
+            if (!reloadedOrder) {
+                return failConfirmedPersistence(
+                    409,
+                    'panel_confirm_final_read_after_write_failed',
+                    'A leitura final nao comprovou o pedido confirmado. Nenhum sucesso foi declarado.',
+                    {
+                        matchedCount: 0,
+                        modifiedCount: Number(panelPersistence.modifiedCount || 0),
+                        finalPersistedState: 'missing'
+                    }
+                );
+            }
+            confirmedPersistence = {
+                persistenceVerified: true,
+                readAfterWriteVerified: true,
+                visibleInConfirmedQuery: true,
+                falseSuccessPrevented: true,
+                correlationId,
+                leadId,
+                orderId: persistedOrder.orderId,
+                previousState: panelPersistence.previousStatus || '',
+                requestedState: 'confirmado',
+                finalPersistedState: panelPersistence.finalStatus,
+                matchedCount: Number(panelPersistence.matchedCount || 0),
+                modifiedCount: Number(panelPersistence.modifiedCount || 0)
+            };
+            console.info('[PANEL_CONFIRM_V158]', JSON.stringify({
+                event: 'panel_confirm_success',
+                ...confirmedPersistence,
+                operator,
+                timestamp: new Date().toISOString()
+            }));
+        }
         if (
             operationalOrderSync?.orderId
             && operationalOrderSync?.purchase?.eventId
@@ -6105,7 +6552,8 @@ router.patch('/contact-state/:phone', async (req, res) => {
             state,
             unifiedSync,
             operationalOrderSync,
-            customerDataBlockedResponse
+            customerDataBlockedResponse,
+            confirmedPersistence
         }));
     } catch (error) {
         console.error('Update contact state error:', error);
@@ -6117,7 +6565,7 @@ router.patch('/contact-state/:phone', async (req, res) => {
     }
 });
 
-router.post('/contact-state/:phone/identity-conflict', async (req, res) => {
+router.post('/contact-state/:phone/identity-conflict', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
         const resolution = String(req.body?.resolution || '').trim().toUpperCase();
@@ -6210,7 +6658,8 @@ router.post('/send', authMiddleware, async (req, res) => {
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
         assertEcPanelManualSendV115({ sendMode });
         let storedMessageRecordId = '';
-        const allowAudioDedupeBypass = req.body?.allowAudioDedupeBypass === true;
+        const allowAudioDedupeBypass = sendMode === 'manual_panel'
+            || req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
         if (!phone || !message) {
@@ -6287,35 +6736,45 @@ router.post('/send', authMiddleware, async (req, res) => {
             });
         }
 
-        if (sendMode === 'manual_panel') {
-            const activeShipment = await findActiveShipmentForOutboundPhone(phone);
-            const mediaKind = isMedia
-                ? (/\.pdf(?:$|[?#])/i.test(String(fileName || message || '')) ? 'document'
-                    : /\.(?:jpe?g|png|webp|gif|heic|heif)(?:$|[?#])/i.test(String(fileName || message || ''))
-                        || String(message || '').startsWith('data:image/') ? 'image' : 'media')
-                : '';
-            const pickupAudio = Boolean(isMedia && isPickupStageAudioCandidate({
-                fileName,
-                mediaUrl: message
-            }));
-            const outboundPolicy = evaluateLogisticsOutbound(activeShipment || {}, {
-                text: isMedia ? '' : message,
-                mediaKind,
-                fileName,
-                mediaUrl: isMedia ? message : '',
-                outboundContext: 'manual_panel',
-                pickupAudio
-            });
-            if (!outboundPolicy.allowed) {
-                return res.status(409).json({
-                    success: false,
-                    error: 'pickup_communication_blocked',
-                    reason: outboundPolicy.reason,
-                    message: 'PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA',
-                    shipment: publicLogisticsStateV29(activeShipment)
-                });
+        const canonicalPostSale = await sendCanonicalPanelPostSaleV147R6({
+            request: req.body, operator: req.user?._id?.toString?.() || 'ana_lopez',
+            authenticatedManualAttendant: sendMode === 'manual_panel',
+            sendFn: async ({ event, shipment, beforeSend }) => {
+                let payload = message;
+                if (isMedia) {
+                    if (event.component === 'GUIDE_PDF') {
+                        const { prepareA07InvoiceV147R6R2 } = await import('../services/shipmentMessageService.js');
+                        payload = await prepareA07InvoiceV147R6R2(shipment);
+                    } else if (String(message).startsWith('data:audio/')) {
+                        const directory = manualUploadsDirV129();
+                        fs.mkdirSync(directory, { recursive: true });
+                        const extension = String(message).startsWith('data:audio/mpeg;') ? '.mp3' : '.ogg';
+                        payload = path.join(directory, Date.now() + '_' + crypto.randomBytes(6).toString('hex') + extension);
+                        fs.writeFileSync(payload, Buffer.from(String(message).split(';base64,')[1], 'base64'));
+                    } else payload = path.join(process.cwd(), 'public', normalizeLegacyMediaPath(message)
+                        .replace(/^https:\/\/ec\.maxlien\.shop(?=\/media\/)/, '')
+                        .replace(/^\/opt\/vitalismen-automacao\/releases\/[^/]+\/public(?=\/media\/)/, ''));
+                }
+                if (beforeSend && !await beforeSend()) return { ok: false, providerAttempted: false, reason: 'stale_a07_component' };
+                return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
+                    sendMode, country, allowExistingDropiOrder: true, returnDetails: true,
+                    canonicalPostSale: true, outboundContext: 'shipment_status',
+                    dedupeValue: event.dedupeKey, allowAudioDedupeBypass: true,
+                    bypassDedupe: !isMedia, allowTextDedupeBypass: !isMedia, allowHistoryDedupeBypass: !isMedia });
+            },
+            recordFn: async ({ result, event }) => {
+                const state = await findOrCreateContactState(phone);
+                applyManualSendHold(state, { phone, user: req.user });
+                await state.save();
+                return recordManualOutboundMessage({ phone, body: isMedia ? '' : message,
+                    type: event.component === 'GUIDE_PDF' ? 'document' : isMedia ? 'audio' : 'chat', mediaUrl: isMedia && !String(message).startsWith('data:') ? message : '',
+                    user: req.user, sessionId: result.provider === 'zapi' ? (zapiOperationalPanelPhone() || effectiveSessionId) : effectiveSessionId,
+                    deliveryStatus: 'provider_accepted', provider: result.provider || '', providerMessageId: result.providerMessageId,
+                    providerZaapId: result.providerZaapId || '', providerStatus: result.providerStatus || '',
+                    providerPayload: result.providerPayload || null, clientGeneratedId });
             }
-        }
+        });
+        if (canonicalPostSale.handled) return res.status(canonicalPostSale.success ? 200 : 409).json(canonicalPostSale);
 
         if (isMedia) {
             if (typeof message !== 'string') {

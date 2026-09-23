@@ -1,8 +1,22 @@
 import { publicLogisticsStateV29 } from './logisticsCommunicationV29.js';
 import { resolveOperationalChatStatus } from './operationalChatStatusService.js';
+import { isRepurchaseOrderV146, isTerminalOrderV146 } from './ecCommercialCycleV146Service.js';
+import { resolveCustomerDataDraft } from './customerDataResolutionService.js';
 
 const ORDER_TERMINAL_STATUSES = new Set(['delivered', 'cancelled', 'returned']);
 const LOGISTICS_TERMINAL_STATUSES = new Set(['DELIVERED', 'PICKED_UP', 'RETURNED']);
+const PANEL_NEGOTIATION_STATUSES = new Set([
+    'novo',
+    'atendendo',
+    'comprar_depois',
+    'confirmado',
+    'pedido_enviado',
+    'entregue',
+    'recompra',
+    'cancelado',
+    'devolvido'
+]);
+const SHIPMENT_STATUS_ADVANCES = new Set(['pedido_enviado', 'entregue', 'devolvido']);
 
 const clean = (value = '') => String(value || '').trim();
 const digitsOnly = (value = '') => clean(value).replace(/\D/g, '');
@@ -129,6 +143,69 @@ export const panelStatusFromOperationalStatus = (operational = {}, draftStatus =
     return clean(draftStatus).toLowerCase() || 'novo';
 };
 
+const normalizeNegotiationStatus = (value = '') => {
+    const normalized = clean(value).toLowerCase().replace(/[\s-]+/g, '_');
+    const aliases = {
+        buy_later: 'comprar_depois',
+        confirmed: 'confirmado',
+        processing: 'pedido_enviado',
+        shipped: 'pedido_enviado',
+        enviado: 'pedido_enviado',
+        delivered: 'entregue',
+        cancelled: 'cancelado',
+        canceled: 'cancelado',
+        returned: 'devolvido'
+    };
+    const canonical = aliases[normalized] || normalized;
+    return PANEL_NEGOTIATION_STATUSES.has(canonical) ? canonical : '';
+};
+
+export const authoritativePanelNegotiationStatus = ({
+    draftStatus = '',
+    operationalStatus = null,
+    freshCommercialCycle = false
+} = {}) => {
+    const manualStatus = normalizeNegotiationStatus(draftStatus);
+    if (freshCommercialCycle && manualStatus) return manualStatus;
+
+    const projectedOperational = panelStatusFromOperationalStatus(operationalStatus || {}, '');
+    if (
+        operationalStatus?.source === 'shipment'
+        && SHIPMENT_STATUS_ADVANCES.has(projectedOperational)
+    ) return projectedOperational;
+
+    if (manualStatus) return manualStatus;
+    return normalizeNegotiationStatus(projectedOperational) || 'novo';
+};
+
+const currentDraftCorrectionFields = (draft = {}) => [
+    ['name', 'name'],
+    ['city', 'city'],
+    ['province', 'province'],
+    ['address', 'address'],
+    ['reference', 'reference'],
+    ['deliveryMode', 'deliveryMode'],
+    ['agencyName', 'agency']
+]
+    .filter(([key]) => clean(draft[key]))
+    .map(([, correctionField]) => correctionField);
+
+const currentCustomerDataResolution = ({ contactState = null, draft = {}, phone = '' } = {}) => {
+    const country = clean(draft.country || contactState?.countryCode).toUpperCase();
+    const previousResolution = contactState?.customerDataResolution?.toObject?.()
+        || contactState?.customerDataResolution
+        || null;
+    if (country !== 'EC') return previousResolution;
+    return resolveCustomerDataDraft({
+        draft: { ...draft, country: 'EC' },
+        previousResolution,
+        conversationPhone: phone || contactState?.phoneDigits || contactState?.chatId || draft.phone || '',
+        source: 'structured_form',
+        sourceMessageId: 'panel-read-model-current-draft',
+        correctedByHumanFields: currentDraftCorrectionFields(draft)
+    }).resolution;
+};
+
 export const projectPanelCustomerReadModel = ({
     contactState = null,
     orders = [],
@@ -136,7 +213,8 @@ export const projectPanelCustomerReadModel = ({
     lastMessage = null,
     fallbackName = '',
     fallbackPhone = '',
-    preferredOrderId = ''
+    preferredOrderId = '',
+    includeCustomerDataResolution = true
 } = {}) => {
     const selection = selectAuthoritativePanelOrder({ orders, shipments, preferredOrderId });
     const order = selection.order;
@@ -146,28 +224,72 @@ export const projectPanelCustomerReadModel = ({
     const conversationName = contactConversationName(contactState || {}, lastMessage, fallbackName || fallbackPhone);
     const displayName = officialOrderName || conversationName || clean(fallbackPhone);
     const operationalStatus = resolveOperationalChatStatus({ contactState, order, shipment });
-    const projectedStatus = panelStatusFromOperationalStatus(operationalStatus, draft.status);
-    const phone = clean(order?.customer?.phone || shipment?.client?.phone || draft.phone || fallbackPhone);
+    const draftStatus = clean(draft.status).toLowerCase();
+    const draftOrderId = clean(draft.currentNegotiationOrderId || draft.orderId);
+    const historicalOrderId = clean(
+        draft.historicalOrderId
+        || draft.previousOrderId
+        || (isTerminalOrderV146(order) ? order?.orderId : '')
+        || (shipment && LOGISTICS_TERMINAL_STATUSES.has(shipmentCanonicalStatus(shipment)) ? shipment?.orderId : '')
+    );
+    const freshCommercialCycle = Boolean(
+        draft.newCommercialCycle === true
+        || draftStatus === 'recompra'
+        || (historicalOrderId && draftOrderId && draftOrderId !== historicalOrderId)
+        || isRepurchaseOrderV146(order, historicalOrderId)
+    );
+    const draftIsNewer = dateMs(draft.updatedAt) > entityActivityMs({ order, shipment });
+    const draftWinsEditableFields = freshCommercialCycle || draftIsNewer;
+    const projectedStatus = authoritativePanelNegotiationStatus({
+        draftStatus,
+        operationalStatus,
+        freshCommercialCycle
+    });
+    const phone = clean(
+        (draftWinsEditableFields ? draft.phone : '')
+        || order?.customer?.phone
+        || shipment?.client?.phone
+        || draft.phone
+        || fallbackPhone
+    );
     const logistics = publicLogisticsStateV29(shipment);
+    const editable = (draftValue, orderValue, shipmentValue = '') => (
+        draftWinsEditableFields
+            ? clean(draftValue)
+            : clean(orderValue || shipmentValue || draftValue)
+    );
     const projectedDraft = {
         ...draft,
-        ...(officialOrderName ? { name: officialOrderName } : {}),
+        ...((draftWinsEditableFields && validDisplayName(draft.name))
+            ? { name: validDisplayName(draft.name) }
+            : (officialOrderName ? { name: officialOrderName } : {})),
         ...(phone ? { phone } : {}),
-        city: clean(order?.customer?.city || shipment?.client?.city || draft.city),
-        province: clean(order?.customer?.province || shipment?.client?.province || draft.province),
-        address: clean(order?.customer?.address || shipment?.client?.address || draft.address),
-        reference: clean(order?.customer?.reference || shipment?.client?.reference || draft.reference),
-        deliveryMode: clean(order?.delivery?.mode || draft.deliveryMode),
-        agencyId: clean(order?.delivery?.agencyId || draft.agencyId),
-        agencyName: clean(order?.delivery?.agencyName || shipment?.logistics?.agencyName || draft.agencyName),
-        quantity: order?.package?.quantity ?? draft.quantity ?? '',
-        total: order?.total ?? draft.total ?? '',
-        orderId: clean(order?.orderId || shipment?.orderId || draft.orderId),
+        city: editable(draft.city, order?.customer?.city, shipment?.client?.city),
+        province: editable(draft.province, order?.customer?.province, shipment?.client?.province),
+        address: editable(draft.address, order?.customer?.address, shipment?.client?.address),
+        reference: editable(draft.reference, order?.customer?.reference, shipment?.client?.reference),
+        deliveryMode: editable(draft.deliveryMode, order?.delivery?.mode),
+        agencyId: editable(draft.agencyId, order?.delivery?.agencyId),
+        agencyName: editable(draft.agencyName, order?.delivery?.agencyName, shipment?.logistics?.agencyName),
+        quantity: draftWinsEditableFields ? (draft.quantity ?? '') : (order?.package?.quantity ?? draft.quantity ?? ''),
+        total: draftWinsEditableFields ? (draft.total ?? '') : (order?.total ?? draft.total ?? ''),
+        orderId: freshCommercialCycle
+            ? draftOrderId
+            : clean(order?.orderId || shipment?.orderId || draft.orderId),
+        currentNegotiationOrderId: freshCommercialCycle ? draftOrderId : clean(draft.currentNegotiationOrderId),
+        historicalOrderId,
         status: projectedStatus
     };
+    const customerDataResolution = includeCustomerDataResolution
+        ? currentCustomerDataResolution({
+            contactState,
+            draft: projectedDraft,
+            phone
+        })
+        : null;
 
     return Object.freeze({
-        version: 65,
+        version: 146,
         phone,
         phoneDigits: digitsOnly(phone),
         displayName,
@@ -185,8 +307,11 @@ export const projectPanelCustomerReadModel = ({
         selectionReason: selection.selectionReason,
         operationalStatus,
         orderStatus: projectedStatus,
+        historicalOrderId,
+        freshCommercialCycle,
         logistics,
-        customerDraft: projectedDraft
+        customerDraft: projectedDraft,
+        customerDataResolution
     });
 };
 

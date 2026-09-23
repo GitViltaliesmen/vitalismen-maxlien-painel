@@ -4,9 +4,10 @@ import Order from '../models/Order.js';
 import { vitPowerAgent } from './agents/vitPowerAgent.js';
 import { looksLikeOrderDataMessage } from './initialFunnelTriggers.js';
 import { syncContactDraftToOnlineAdminPanel } from './adminPanelStatusService.js';
-import { shouldRouteDirectProductInbound } from './ecDirectProductInquiryService.js';
 import { currentProductRouteForState } from './vslProductAssignmentService.js';
 import { evaluateCanaryV75Recipient } from './canaryIsolationV75Service.js';
+import { claimMetaAttributionForInboundWhatsapp } from './metaAttributionBridgeService.js';
+import { mergeClaimedVslPreleadIntoContactState } from './vslPreleadPanelService.js';
 
 const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
 const NITRIX_PRODUCT_KEY = 'nitrix_ec';
@@ -884,6 +885,28 @@ export const routeIncomingMessage = async (payload) => {
             countryCode
         });
     }
+    if (
+        (countryCode === OFFICIAL_COUNTRY || priorityBotTestPhone)
+        && !state.metadata?.vslVisitId
+        && body.trim()
+    ) {
+        const preleadClaim = await claimMetaAttributionForInboundWhatsapp({
+            country: OFFICIAL_COUNTRY,
+            phone: senderPhoneDigits || state.phoneDigits || chatId,
+            message: body,
+            inboundAt: new Date()
+        }).catch((error) => ({
+            ok: false,
+            skipped: true,
+            reason: 'canonical_prelead_claim_error',
+            error: error.message || String(error)
+        }));
+        if (preleadClaim.ok && preleadClaim.claimed) {
+            mergeClaimedVslPreleadIntoContactState({ state, claim: preleadClaim });
+        } else if (preleadClaim.reason === 'ambiguous_exact_visit') {
+            console.warn(`[ROUTER] prelead VSL ambiguo; correlacao bloqueada | chat=${chatId}`);
+        }
+    }
     rememberContactChannel({ state, chatId, senderPn, sessionId });
     const adminContactSync = operationalPanelPhone
         ? { ok: false, skipped: true, reason: 'operational_panel_phone' }
@@ -985,7 +1008,6 @@ export const routeIncomingMessage = async (payload) => {
     }
 
     const human = state.human || {};
-    const directProductInbound = shouldRouteDirectProductInbound({ text: body, state });
     const pausedUntil = human.pausedUntil ? new Date(human.pausedUntil).getTime() : 0;
     const lastManualAt = human.lastManualAt ? new Date(human.lastManualAt).getTime() : 0;
     const manualExpired = human.mode === 'manual' && (
@@ -1029,40 +1051,16 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] entrada VSL ${vslEntryAgent} liberada para o gate do bot | chat=${chatId}`);
-    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && directProductInbound) {
-        state.metadata = {
-            ...(state.metadata || {}),
-            directProductInquiryAllowedAt: new Date(),
-            directProductInquiryAllowedReason: 'client_explicit_product_request',
-            directProductInquiryHumanModePreserved: true
-        };
-        await state.save();
-        console.log(`[ROUTER] consulta direta de produto liberada sem retirar o atendimento humano -> ${chatId}`);
     } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
-        const manualReason = String(
-            state.metadata?.automationPausedReason
-            || state.metadata?.automationHandoffSuggestedReason
-            || state.metadata?.lastHumanHoldReason
-            || ''
-        );
-        if (manualReason === 'order_closed_human_handoff') {
-            state.metadata = {
-                ...(state.metadata || {}),
-                postOrderAutomationAllowedAt: new Date(),
-                postOrderAutomationAllowedReason: 'answer_doubts_without_reopening_funnel'
-            };
-            await state.save();
-            console.log(`[ROUTER] pos-fechamento liberado para duvidas sem reabrir funil | chat=${chatId}`);
-        } else {
         state.metadata = {
             ...(state.metadata || {}),
             lastHumanHoldAt: new Date(),
-            lastHumanHoldReason: 'manual_attendance_active'
+            lastHumanHoldReason: 'manual_attendance_active',
+            botRepurchaseEligibilityV146: 'blocked_by_human_takeover'
         };
         await state.save();
         console.log(`[ROUTER] automacao pausada por atendimento humano | chat=${chatId} | operador=${human.assignedName || human.assignedTo || 'sem_nome'}`);
         return;
-        }
     }
 
     const [latestOrder, recentCommercialPrompt] = await Promise.all([

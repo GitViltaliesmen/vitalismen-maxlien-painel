@@ -74,8 +74,10 @@ for (const [name, nextName] of [
     ['notifyShipmentInTransit', 'notifyShipmentReminder'],
     ['notifyShipmentReminder', 'notifyShipmentReturned'],
     ['notifyShipmentReturned', 'notifyPickupProofRequest'],
-    ['notifyPickupProofRequest', 'notifyPickupBonus'],
-    ['notifyPickupBonus', 'processPickupProofSweep'],
+    ['notifyPickupProofRequest', 'notifyDeliveredThankYou'],
+    ['notifyDeliveredThankYou', 'notifyPickupBonus'],
+    ['notifyPickupBonus', 'notifyProductUsage'],
+    ['notifyProductUsage', 'processPickupProofSweep'],
     ['notifyTreatmentRefillReminder', 'getPendingShipmentReminders']
 ]) {
     const body = automaticOutboundFunctionBody(name, nextName);

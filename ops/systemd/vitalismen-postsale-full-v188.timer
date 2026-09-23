@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Vitalismen EC full post-sale executor V188 conservatively
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=15min
+RandomizedDelaySec=45s
+AccuracySec=15s
+Persistent=true
+Unit=vitalismen-postsale-full-v188.service
+
+[Install]
+WantedBy=timers.target

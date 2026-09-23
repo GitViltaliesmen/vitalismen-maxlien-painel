@@ -1,0 +1,116 @@
+{
+  "recordedAt": "2026-09-08T03:10:07Z",
+  "scope": "V141 candidate Meta creative read correction; no activation",
+  "candidate": "/opt/vitalismen-automacao/releases/20260908T004500Z_production-20260908-c1d4868",
+  "baseCommit": "c1d4868f3693ab48179f1fe7df574cd7728b4b25",
+  "codeBackup": "/opt/vitalismen-automacao/backups/v141-creative-before-20260908T030655877449Z",
+  "result": {
+    "tokenConfigured": true,
+    "tokenValid": true,
+    "adsRead": true,
+    "accountRead": true,
+    "insightsRead": true,
+    "http": {
+      "permissions": 200,
+      "account": 200,
+      "insights": 200,
+      "liveInsights_1": 200,
+      "creative_1": 200,
+      "creative_2": 200,
+      "creative_3": 200,
+      "creative_4": 200,
+      "creative_5": 200,
+      "creative_6": 200,
+      "creative_7": 200,
+      "creative_8": 200,
+      "creative_9": 200,
+      "creative_10": 200,
+      "creative_11": 200,
+      "creative_12": 200,
+      "creative_13": 200,
+      "creative_14": 200,
+      "creative_15": 200,
+      "creative_16": 200,
+      "creative_17": 200,
+      "creative_18": 200,
+      "creative_19": 200,
+      "creative_20": 200,
+      "creative_21": 200,
+      "creative_22": 200,
+      "creative_23": 200,
+      "creative_24": 200,
+      "creative_25": 200,
+      "creative_26": 200,
+      "creative_27": 200,
+      "creative_28": 200,
+      "creative_29": 200
+    },
+    "error": null
+  },
+  "metrics": {
+    "sourceSha256": "bd4d86ca346f7eb7558935cfc2b656da15b9f817d2f49b9a459a4306e12a9ffa",
+    "getOnly": true,
+    "cacheDiskWrites": 0,
+    "insightAdCount": 29,
+    "creativeMappings": 29,
+    "mappingComplete": true
+  },
+  "gates": {
+    "META_TOKEN_VALID": "PASS",
+    "META_ADS_READ": "PASS",
+    "META_ACCOUNT_MATCH": "PASS",
+    "META_INSIGHTS": "PASS",
+    "META_CREATIVE_READ": "PASS",
+    "AD_ID_TO_CREATIVE": "PASS",
+    "META_LIVE_FETCH": "PASS"
+  },
+  "integrity": {
+    "changedFiles": [
+      ".staging-complete.json",
+      "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json",
+      "src/services/metaAdsInsightsService.js",
+      "tests/meta-funnel-reconciliation-v141.test.mjs"
+    ],
+    "newFiles": [
+      "tests/meta-creative-read-v141.test.mjs"
+    ],
+    "otherCandidateFilesUnchanged": true,
+    "envUnchanged": true,
+    "envOwner": "root:root",
+    "envMode": "0600",
+    "currentUnchanged": true,
+    "pm2Unchanged": true,
+    "pm2Status": "online",
+    "stagingStatus": "requires_restaging"
+  },
+  "validation": {
+    "regressionBeforeFix": {
+      "tests": 2,
+      "failed": 2
+    },
+    "focusedLocal": {
+      "tests": 18,
+      "passed": 18
+    },
+    "focusedVps": {
+      "tests": 18,
+      "passed": 18
+    },
+    "v141FreezeGuard": "PASS",
+    "v141ContextSeniorBefore": "PASS",
+    "v141ContextSeniorAfter": "PASS",
+    "legacySenior": "PASS",
+    "directSeniorBefore": "FAIL: V47 ancestry without official successor context",
+    "sharedCacheLastModified": "2026-09-05T04:45:23.107473309Z",
+    "syntax": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "operationalEffects": {
+    "deploy": false,
+    "published": false,
+    "serviceRestart": false,
+    "liveCacheWrites": 0,
+    "metaMutationRequests": 0,
+    "secretIncluded": false
+  }
+}

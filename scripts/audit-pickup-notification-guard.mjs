@@ -63,8 +63,8 @@ requireText(
 );
 requireText(
     'src/services/shipmentMessageService.js',
-    'allowHistoryDedupeBypass: force',
-    'Somente recuperacao explicita deve atravessar historico falso'
+    "allowHistoryDedupeBypass: Boolean(decision.lockToken && event.component === 'TEXT')",
+    'A07 deve resolver historico por componente e exigir reserva canonica antes do transporte'
 );
 requireText(
     'tests/shipment-pickup-notification.test.mjs',

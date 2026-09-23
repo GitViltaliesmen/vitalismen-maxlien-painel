@@ -9,6 +9,7 @@ import { buildEcBotCoreV78OverlayEnvironment, EC_BOT_CORE_V78_DATASET_ID } from 
 import { enrichEcAdminDropiDraftFlagsV128 } from '../src/services/ecAdminDropiDraftBridgeV128Service.js';
 import { submitDroppiEcuadorOrder } from '../src/services/droppiEcuadorBrowserService.js';
 import * as products from '../src/services/ecuadorProductService.js';
+import { ensurePurchaseAfterHumanDropiSuccessV141 } from '../src/routes/shipments.js';
 
 const panel = fs.readFileSync('public/leads-window.html', 'utf8');
 const routes = fs.readFileSync('src/routes/shipments.js', 'utf8');
@@ -37,6 +38,30 @@ const withHuman = async (orderId, action, callback, user = { _id: 'fixture-opera
         Object.assign(process.env, before);
     }
 };
+
+test('reentrada Dropi exige operador autenticado e preserva envio externo bloqueado', async () => {
+    const before = { ...process.env };
+    Object.assign(process.env, buildEcBotCoreV78OverlayEnvironment({ baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID } }),
+        { PANEL_AUTH_DISABLED: 'false', META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID });
+    try {
+        for (const user of [null, { _id: 'local-no-password', role: 'admin' }, { _id: 'agent', role: 'agent' }]) {
+            const req = { method: 'POST', originalUrl: '/api/shipments/EC-ADMIN-3536/requeue-dropi-submit', user };
+            const res = response();
+            await ecBotCoreMutationRouteGuardV78(req, res, () => ecManualDropiHumanActionV138(req, res, () => assert.fail('reentrada sem operador')));
+            assert.equal(res.statusCode, 403);
+        }
+        const req = { method: 'POST', originalUrl: '/api/shipments/EC-ADMIN-3536/requeue-dropi-submit',
+            user: { _id: 'fixture-operator', role: 'admin', isActive: true } };
+        const res = response();
+        const result = await ecBotCoreMutationRouteGuardV78(req, res, () => ecManualDropiHumanActionV138(req, res, () => ({
+            externalEffect: null
+        })));
+        assert.deepEqual(result, { externalEffect: null });
+    } finally {
+        for (const key of Object.keys(process.env)) if (!(key in before)) delete process.env[key];
+        Object.assign(process.env, before);
+    }
+});
 
 for (const productKey of ['tex_ultra_ec', 'nitrix_ec', 'vit_power_ec']) {
     test(productKey + ': A/B/F completo e confirmado sem operador faz zero chamadas e zero remessas', async () => {
@@ -96,6 +121,10 @@ const humanTransportFixture = ({ changedAfterLock = false, missingAfterLock = fa
     };
     const context = vm.createContext({
         console, ...products, process: { env: { DROPPI_EC_TEX_ULTRA_PRODUCT_ENABLED: 'true' } },
+        ensurePurchaseAfterHumanDropiSuccessV141: options => ensurePurchaseAfterHumanDropiSuccessV141({
+            ...options, purchaseSender: async () => ({ ok: true, eventId: 'fixture-purchase', response: { events_received: 1 } }),
+            persistOrder: async () => {}, purchaseLock: () => {}
+        }),
         ecDropiOrderReadinessV138, ecHumanDropiSubmitBlockV138, assertEcDropiOrderReadyV138,
         canaryV75BlockedResult: () => null,
         Message: { findOne: () => ({ sort: () => ({ lean: async () => null }) }) },
@@ -192,7 +221,12 @@ test('D: releitura depois do lock impede envio com dados removidos, registro aus
 });
 const submitHandler = sandbox => {
     let handler;
-    const context = vm.createContext({ ...sandbox, router: { post(_path, _auth, callback) { handler = callback; } }, adminOnly() {} });
+    const context = vm.createContext({ ...sandbox,
+        ensurePurchaseAfterHumanDropiSuccessV141: options => ensurePurchaseAfterHumanDropiSuccessV141({
+            ...options, purchaseSender: async () => assert.fail('historical fixture must not send Purchase'),
+            persistOrder: async () => assert.fail('historical fixture must not write Order'), purchaseLock: () => assert.fail('historical fixture must not lock')
+        }),
+        router: { post(_path, _auth, callback) { handler = callback; } }, adminOnly() {} });
     vm.runInContext(routes.slice(routes.indexOf("router.post('/droppi/ec/orders/:orderId/submit'"),
         routes.indexOf("router.get('/droppi/ec/orders/:orderId/submit-status'")), context);
     return handler;

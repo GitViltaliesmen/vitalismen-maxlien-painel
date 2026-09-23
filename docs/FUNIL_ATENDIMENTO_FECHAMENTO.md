@@ -113,6 +113,12 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
    - `Chegou_02`: primeiro lembrete de retirada.
    - `Chegou_03`: reforço final.
    - Depois da retirada, pedir comprovante e enviar bônus.
+   - Exceção humana V160: quando uma atendente autenticada escolhe enviar
+     manualmente um áudio, texto ou outra mídia no painel, o envio não é
+     bloqueado pelo estado logístico. Isso não altera nem inventa o status da
+     remessa. O caminho automático de `Chegou_01`, `Chegou_02` e `Chegou_03`
+     continua exigindo `READY_FOR_PICKUP` verificado e reconhece a mensagem
+     manual persistida para não repetir o mesmo aviso.
 
 ## Status atual dos áudios
 
@@ -168,3 +174,23 @@ Este é o fluxo operacional único para atendimento, venda e fechamento usando o
 - Risco/opt-out vai para `REVISAR`; pedido ativo vai para `PEDIDOS`.
 - Não altera a ordem A/B, produto, preço, mídia, Dropi, Meta/CAPI ou pós-venda.
 - Contrato completo: `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md`.
+
+## Complemento V161 — desistência e Comprar depois
+
+- A mutação canônica desta microcamada pertence somente ao funil Vit Power EC;
+  Tex Ultra e Nitrix preservam seus gates de atendimento manual.
+- Antes de continuar quantidade, entrega, nome, endereço ou fallback rígido, o
+  funil classifica opt-out, desistência e deferimento temporal.
+- `No quiero`, `No deseo`, `Ya no quiero`, `Cancelar`, `Déjelo` e
+  `No me interesa` interrompem o checkout quando ainda não existe
+  `Order`/`Shipment`, usando o status canônico `cancelado`.
+- `Próximo mes`, `Más tarde`, `Después`, `Cuando cobre`, `Cuando me paguen`,
+  `Quincena`, `Fin de mes` e `No por ahora` usam exclusivamente
+  `comprar_depois`/`buy_later`.
+- Em mensagem mista, futuro explícito prevalece sobre cancelamento definitivo;
+  o checkout atual não continua.
+- Com qualquer `Order` ou `Shipment` persistido, nenhuma mutação ou cancelamento
+  externo é automático: o caso segue fail-closed para atendimento humano.
+- Timing vago pergunta somente quando o contato deve ser retomado. O scheduler
+  `ADMIN_BUY_LATER_FOLLOWUP_ENABLED` não é ativado por esta camada.
+- Contrato: `docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`.

@@ -75,6 +75,8 @@ const orderSchema = new mongoose.Schema({
     trackingNumber: String,
     dropiOrderId: String,
     shippingStatus: String,
+    shippingCanonicalStatus: { type: String, default: 'UNKNOWN', index: true },
+    shippingCanonicalEvidence: { type: mongoose.Schema.Types.Mixed, default: {} },
     reviewQueue: {
         status: {
             type: String,
@@ -116,6 +118,11 @@ const orderSchema = new mongoose.Schema({
         lockUntil: Date
     },
     tracking: {
+        measurementVersion: Number,
+        renderedBranch: String,
+        branchIdentity: String,
+        browserPixelId: String,
+        checkoutEventId: String,
         country: String,
         productKey: String,
         productName: String,

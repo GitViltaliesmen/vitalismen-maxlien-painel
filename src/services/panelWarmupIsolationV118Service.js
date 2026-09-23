@@ -18,17 +18,12 @@ export const panelWarmupManualEngagementBlockersV118 = ({
 } = {}) => {
     const exclusions = Array.isArray(hardExclusions) ? hardExclusions.map(String) : [];
     if (!isPanelWarmupIsolationQaV118(state)) return exclusions;
-    return exclusions.filter((exclusion) => !QA_PANEL_ONLY_EXCLUSIONS.has(exclusion));
+    return [...new Set([
+        ...exclusions.filter((exclusion) => !QA_PANEL_ONLY_EXCLUSIONS.has(exclusion)),
+        'qa_8637_attendance_only'
+    ])];
 };
 
-export const shouldPreservePanelWarmupManualEngagementV118 = ({
-    state = {},
-    hardExclusions = []
-} = {}) => (
-    isPanelWarmupIsolationQaV118(state)
-    && String(state.conversationBucket?.value || '') === 'engagement'
-    && Boolean(state.conversationBucket?.manualSelectedAt)
-    && panelWarmupManualEngagementBlockersV118({ state, hardExclusions }).length === 0
-);
+export const shouldPreservePanelWarmupManualEngagementV118 = () => false;
 
 export const panelWarmupQaReplyAllowedV118 = (state = {}) => !isPanelWarmupIsolationQaV118(state);

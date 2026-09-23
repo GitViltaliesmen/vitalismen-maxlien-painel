@@ -1,0 +1,15 @@
+[Unit]
+Description=Vitalismen EC V141 Meta Ads Insights cache refresh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/vitalismen-automacao/current
+ExecStart=/usr/bin/node /opt/vitalismen-automacao/current/scripts/refresh-meta-ads-insights-v141.mjs
+TimeoutStartSec=120
+PrivateTmp=true
+

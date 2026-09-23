@@ -1,0 +1,79 @@
+{
+  "freezeId": "EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908",
+  "layer": "V144",
+  "country": "EC",
+  "parentCommit": "8cbc5b0ca427af9ab27aeaad085c2bd70d5ca668",
+  "parentTree": "3e1081a7428c09e20b71f7ea0830768f0693a6d8",
+  "parentTag": "production-20260908-8cbc5b0",
+  "parentFreezeTag": "freeze-production-v143-v141-v142-convergence-20260908",
+  "parentManifest": "docs/freeze/ec-v141-v142-convergence-v143-20260908.json",
+  "parentManifestSha256": "6141b4f0184765239600ad1c7b069e99bffe2920f75dac6f7a583df66936cd95",
+  "overrides": [
+    "package.json",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+    "docs/ARQUIVOS_OFICIAIS.md",
+    "scripts/guard-v141-v142-convergence-v143.mjs",
+    "scripts/guard-meta-purchase-after-manual-dropi-v144.mjs",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs",
+    "scripts/lib/ec-runtime-successor-v144-context.mjs",
+    "scripts/run-with-v144-context.mjs",
+    "src/routes/shipments.js",
+    "src/services/canaryIsolationV75Service.js",
+    "src/services/ecManualDropiMetaPurchaseV144Service.js",
+    "src/services/metaConversionsService.js",
+    "tests/meta-funnel-reconciliation-v141.test.mjs",
+    "tests/v141-v142-convergence-v143.test.mjs",
+    "tests/meta-purchase-after-manual-dropi-v144.test.mjs",
+    "docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md"
+  ],
+  "protectedFiles": {
+    "package.json": "8484e76a5d874c840f5532fb12f224ae2fe0054ad2f933807cb3a00a90fd6ce5",
+    "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md": "80419bce2568af80c1445af5d9378c176c6ee55d0f1adaad12e0adc7571a6844",
+    "docs/ARQUIVOS_OFICIAIS.md": "96aa917b9051c2852095f30fa1a0bb4236d0cb9a466f641d89b9ce3bcb448e83",
+    "scripts/guard-v141-v142-convergence-v143.mjs": "4bb6d6486182196027725163c72b3c80e4cd21bfc0da1d29213c2135e74b5380",
+    "scripts/guard-meta-purchase-after-manual-dropi-v144.mjs": "3265b3396674f3278a003213e4037eca322fe8971848e390fec6f9682e0705f8",
+    "scripts/lib/ec-runtime-successor-v97-context.mjs": "295db36fbaecb3baaa7451f1ccb5c0435868c6bf7ddf471ef05a8c2ce99f13d9",
+    "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs": "f3b522bb6d3596343c5543976f02e3a56975caa27fc112fd859686509dd455de",
+    "scripts/lib/ec-runtime-successor-v144-context.mjs": "29d89a17bc064fe36ab62f23fc14d0cdea44f03dded522a85f7abcdb6a9e90bf",
+    "scripts/run-with-v144-context.mjs": "8a3514d7427d7c7ec982db52c6c132e1a4a8c1a89475c34ccbd688547f5dd457",
+    "src/routes/shipments.js": "9ac2473bc945811bd73f53bad4d2f16f8fddd18c750f67e5bae4d4940465deba",
+    "src/services/canaryIsolationV75Service.js": "bea6d0b1fadc179ea56a6408e04e14bcc307da68b22a57a302a6f986b581e733",
+    "src/services/ecManualDropiMetaPurchaseV144Service.js": "770ab5de886d33530f27b75f63165b672d7629afe4737887667b0004fffb20fd",
+    "src/services/metaConversionsService.js": "00736be8dffeecf3363101836b7c9884c42c5d5c00b2b7538de7db9a8862f6d9",
+    "tests/meta-funnel-reconciliation-v141.test.mjs": "ddac187d2b43cd29808845d1c7b961fac38e51eae7f945784de0a744d9e7db42",
+    "tests/v141-v142-convergence-v143.test.mjs": "18887aec620f5bc3c4303bbac38e2d5ea2ff4e704268a5c8b42a8d26c55d2dd5",
+    "tests/meta-purchase-after-manual-dropi-v144.test.mjs": "d3aa2e352ccc25ca264b517f4d74e2e8c9d8fe6d9658a9d1b49645878fe439c2",
+    "docs/EC_META_PURCHASE_AFTER_MANUAL_DROPI_V144_20260908.md": "095801fe703145e176c095236eb802d7751e12332f0953d60f4ea260fb4c7824"
+  },
+  "vslHashes": {
+    "publicSha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+    "privateSha256": "5db8590e5187cb3704f8bf2af11599c0a521d1858a799a7cca9c0afb95dbf6f7",
+    "bridgeJsSha256": "e0904cae1d97ce20b6493aad28b538650ada24c501b38e6a9e382d145e4dccd9",
+    "bridgeRouteSha256": "7722081940ceb74b21939e88b54b29f9fb05da9f9e37e87258a4edbd2149f5dd"
+  },
+  "audit": {
+    "rootCause": "EC_BOT_CORE_OPERATIONAL_BLOCKED_META_EFFECT_BEFORE_CAPI",
+    "historicalOrdersReadOnly": [
+      "EC-ADMIN-3501",
+      "EC-ADMIN-3503",
+      "EC-ADMIN-3504"
+    ],
+    "historicalPurchaseCalls": 0,
+    "productionMutations": 0
+  },
+  "policy": {
+    "productionChanged": false,
+    "metaAdsMutationAllowed": false,
+    "realRetroPurchaseAllowed": false,
+    "purchaseRequiresFreshDropiSuccess": true,
+    "purchaseRequiresAuthenticatedHumanSubmit": true,
+    "metaAcceptanceRequiresEventsReceived": true,
+    "automaticDropiSend": false,
+    "automaticShipmentCreation": false,
+    "humanDropiAuthorizationRequired": true,
+    "crossLayerIsolation": true,
+    "vslProductionLock": true,
+    "candidateActivationAllowed": false
+  }
+}

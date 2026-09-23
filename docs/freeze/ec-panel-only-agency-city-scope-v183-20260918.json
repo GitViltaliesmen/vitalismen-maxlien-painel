@@ -1,0 +1,85 @@
+{
+  "freezeId": "EC_PANEL_ONLY_AGENCY_CITY_SCOPE_V183_20260918",
+  "version": "V183",
+  "parentCommit": "1c0e1457e0feedf8cd08e76a1593c9018a7ac3a1",
+  "parentTree": "f2f46aec3e0b05e6da95df57fcf3696bfff5a2a0",
+  "v181Commit": "2e4d1bd95e5fbd3ebf0109eaacb0eeefbd243ea3",
+  "overrides": [
+    "docs/EC_PANEL_ONLY_AGENCY_CITY_SCOPE_FREEZE_V183_20260918.md",
+    "public/qr.html",
+    "scripts/audit-v183-bot-equivalence.mjs",
+    "scripts/guard-panel-only-agency-city-scope-v183.mjs",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs",
+    "scripts/lib/ec-runtime-successor-v183-context.mjs",
+    "scripts/run-with-v183-context.mjs",
+    "scripts/test-panel-agency-city-scope-browser-v183.mjs",
+    "src/routes/shipments.js",
+    "src/services/servientregaEcuadorAgencyService.js",
+    "tests/servientrega-panel-only-agency-scope-v183.test.mjs"
+  ],
+  "classification": {
+    "PANEL_STRICT_SCOPE": [
+      "src/services/servientregaEcuadorAgencyService.js"
+    ],
+    "PANEL_ROUTE_OPT_IN": [
+      "public/qr.html",
+      "src/routes/shipments.js"
+    ],
+    "V181_TEST_ONLY": [
+      "docs/V181_V51_SUCCESSOR_ALIGNMENT_FREEZE_20260918.md",
+      "docs/freeze/ec-v51-browser-successor-v181-20260918.json",
+      "scripts/guard-v51-browser-successor-v181.mjs",
+      "scripts/lib/ec-runtime-successor-v181-context.mjs",
+      "scripts/run-with-v181-context.mjs",
+      "scripts/test-panel-customer-selection-browser-v51.mjs"
+    ],
+    "V183_TEST": [
+      "scripts/audit-v183-bot-equivalence.mjs",
+      "scripts/guard-panel-only-agency-city-scope-v183.mjs",
+      "scripts/lib/ec-runtime-successor-v170-context.mjs",
+      "scripts/lib/ec-runtime-successor-v183-context.mjs",
+      "scripts/run-with-v183-context.mjs",
+      "scripts/test-panel-agency-city-scope-browser-v183.mjs",
+      "tests/servientrega-panel-only-agency-scope-v183.test.mjs"
+    ],
+    "V183_FREEZE_DOC": [
+      "docs/EC_PANEL_ONLY_AGENCY_CITY_SCOPE_FREEZE_V183_20260918.md",
+      "docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json"
+    ]
+  },
+  "protectedFiles": {
+    "docs/EC_PANEL_ONLY_AGENCY_CITY_SCOPE_FREEZE_V183_20260918.md": "56d37931a90b35ca43e728f6bbfa163bfd0962339a40d196f4e3cce4b829366f",
+    "public/qr.html": "a5a374227dc21b9241f487cb4ef9f04f4eb88207eb71fde55616b552d123913f",
+    "scripts/audit-v183-bot-equivalence.mjs": "e9a2af53f90fbf7b3c0bfff084a1e91d6b566e7d9cef52aad9f0db75c7036fbc",
+    "scripts/guard-panel-only-agency-city-scope-v183.mjs": "92c410080f4c5899ece8d6669f029169f146ba5712cae8e161b7b9836864149a",
+    "scripts/lib/ec-runtime-successor-v170-context.mjs": "5f3a7f80d233905058764f2c4d8fecfa2c9773cb68db16d0e8533ede491c9ae1",
+    "scripts/lib/ec-runtime-successor-v183-context.mjs": "d7e6aed69f77aab67d4741953146b00ed6b736096e8ae6cd417767497d27b538",
+    "scripts/run-with-v183-context.mjs": "c1f99a29ee461d65de0188a75db426251c77ac29df93ade6083d1a6b4c74f4bd",
+    "scripts/test-panel-agency-city-scope-browser-v183.mjs": "3fd22c4ae5a43b671e0f94741c591b09069dacf1d3658d659ff699c359c41d34",
+    "src/routes/shipments.js": "1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0",
+    "src/services/servientregaEcuadorAgencyService.js": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626",
+    "tests/servientrega-panel-only-agency-scope-v183.test.mjs": "00c64d6602ddb45427efe3e19fa67ef7076130e340e60769a6cb873cb0861686"
+  },
+  "policy": {
+    "scope": "PANEL_ONLY_AGENCY_CITY_HARD_SCOPE",
+    "panelOptInOnly": true,
+    "defaultStrictCityScope": false,
+    "botBehaviorDiff": 0,
+    "conversationEngineChanged": false,
+    "observerAttentiveReaderChanged": false,
+    "vslChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "zapiChanged": false,
+    "audioChanged": false,
+    "postsaleChanged": false,
+    "databaseChanged": false,
+    "productionChanged": false,
+    "pushExecuted": false,
+    "tagCreated": false,
+    "releaseStaged": false,
+    "deployExecuted": false,
+    "restartExecuted": false,
+    "publicationAuthorized": false
+  }
+}

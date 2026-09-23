@@ -525,12 +525,15 @@
             </div>
             <div class="actions">
                 <select id="days">
-                    <option value="1">Hoje</option>
+                    <option value="1" selected>Hoje</option>
+                    <option value="2">Ontem e hoje</option>
                     <option value="3">3 dias</option>
-                    <option value="7" selected>7 dias</option>
+                    <option value="7">7 dias</option>
                     <option value="14">14 dias</option>
                     <option value="30">30 dias</option>
                 </select>
+                <input id="fromDay" type="date" aria-label="Data inicial no Equador">
+                <input id="toDay" type="date" aria-label="Data final exclusiva no Equador">
                 <button id="refreshBtn" type="button">Atualizar</button>
                 <button id="logoutBtn" type="button">Sair</button>
             </div>
@@ -539,56 +542,20 @@
         <main>
             <section class="grid" id="metrics"></section>
 
-            <section class="radar-panel" id="investmentRadarPanel">
-                <div class="radar-head">
-                    <div class="radar-title">
-                        <div class="radar-mark">◎</div>
-                        <div>
-                            <h2>Radar de Investimento</h2>
-                            <p class="meta">Leitura assistida; nenhuma alteração automática no Meta Ads</p>
-                        </div>
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Saúde das integrações</h2>
+                        <p id="integrationFreshness" class="meta">Meta, Z-API, bot, pedidos, CAPI e cálculo das métricas</p>
                     </div>
-                    <span id="radarConfidence" class="radar-badge">Aguardando dados</span>
+                    <p id="integrationAlerts" class="meta">Carregando...</p>
                 </div>
-                <div class="radar-grid">
-                    <article class="radar-card radar-window">
-                        <span class="meta">Melhor janela para investir</span>
-                        <strong id="radarBestWindow">--</strong>
-                        <span id="radarWindowNote" class="meta">Sem amostra suficiente</span>
-                    </article>
-                    <article class="radar-card radar-hours">
-                        <div>
-                            <strong style="font-size:14px">Horas quentes</strong>
-                            <span class="meta" style="margin-left:6px">horário do Equador</span>
-                        </div>
-                        <div id="radarHourBars" class="radar-hour-bars"></div>
-                        <div class="radar-hour-axis"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
-                    </article>
-                    <article class="radar-card">
-                        <span class="meta">Criativo promissor</span>
-                        <strong id="radarCreative" style="font-size:16px">Aguardando dados</strong>
-                        <div><span id="radarCreativeScore" class="radar-score">Score --</span></div>
-                        <span id="radarCreativeNote" class="meta">Sem sinal suficiente</span>
-                    </article>
-                    <article class="radar-card radar-budget">
-                        <span class="meta">Sugestão de investimento</span>
-                        <strong id="radarBudget">US$ 0,00</strong>
-                        <span id="radarBudgetNote" class="meta">Parcela da verba diária atual</span>
-                    </article>
-                    <article class="radar-card">
-                        <span class="meta">% ideal do orçamento</span>
-                        <div style="display:flex;align-items:center;gap:12px">
-                            <div id="radarPercentRing" class="radar-percent-ring" style="--radar-percent:0%"><strong id="radarPercent">0%</strong></div>
-                            <span id="radarPercentNote" class="meta">Sem recomendação ainda</span>
-                        </div>
-                    </article>
+                <div class="grid" id="integrationHealth" style="padding:14px"></div>
+                <div class="panel-head">
+                    <h2>Causas sem atribuição</h2>
+                    <p class="meta">Classificação baseada somente em evidência persistida</p>
                 </div>
-                <div id="radarActions" class="radar-actions">
-                    <div class="radar-action" data-radar-action="invest">Investir agora</div>
-                    <div class="radar-action" data-radar-action="hold">Manter</div>
-                    <div class="radar-action active-wait" data-radar-action="wait">Aguardar</div>
-                </div>
-                <div id="radarSummary" class="radar-summary">Recomendação IA: aguardando amostra suficiente para indicar horário, criativo e verba.</div>
+                <div class="grid" id="unmatchedCauses" style="padding:14px"></div>
             </section>
 
             <section class="panel">
@@ -605,6 +572,7 @@
                         <thead>
                             <tr>
                                 <th>Anúncio</th>
+                                <th>Criativo</th>
                                 <th>Conjunto</th>
                                 <th>Campanha</th>
                                 <th>Alcance</th>
@@ -617,6 +585,29 @@
                             </tr>
                         </thead>
                         <tbody id="metaAdsRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel" id="creativeSalesPanel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Campanhas e criativos detectados — Protocolo G</h2>
+                        <p class="meta">IDs persistidos são a chave canônica; nomes são apenas rótulos. Nenhuma inferência por horário.</p>
+                    </div>
+                    <p id="creativeSalesStatus" class="meta">Carregando leitura V185...</p>
+                </div>
+                <div class="grid" id="creativeSalesMetrics" style="padding:14px"></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Campanha</th><th>Conjunto</th><th>Anúncio</th><th>Criativo</th>
+                                <th>Impressões</th><th>Alcance</th><th>Cliques</th><th>LPV</th><th>Gasto</th>
+                                <th>Conversas</th><th>Leads</th><th>Pedidos</th><th>Vendas</th><th>Receita</th><th>Atribuição</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creativeSalesRows"></tbody>
                     </table>
                 </div>
             </section>
@@ -787,6 +778,56 @@
                 </div>
             </section>
 
+            <section class="radar-panel" id="investmentRadarPanel">
+                <div class="radar-head">
+                    <div class="radar-title">
+                        <div class="radar-mark">◎</div>
+                        <div>
+                            <h2>Radar de Investimento</h2>
+                            <p class="meta">Leitura analítica somente; nenhuma alteração automática no Meta Ads</p>
+                        </div>
+                    </div>
+                    <span id="radarConfidence" class="radar-badge">NO_DATA · LOW</span>
+                </div>
+                <div class="radar-grid">
+                    <article class="radar-card radar-window">
+                        <span class="meta">Melhor janela observada</span>
+                        <strong id="radarBestWindow">--</strong>
+                        <span id="radarWindowNote" class="meta">Sem amostra suficiente</span>
+                    </article>
+                    <article class="radar-card radar-hours">
+                        <div><strong style="font-size:14px">Sinais por hora</strong><span class="meta" style="margin-left:6px">America/Guayaquil</span></div>
+                        <div id="radarHourBars" class="radar-hour-bars"></div>
+                        <div class="radar-hour-axis"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+                    </article>
+                    <article class="radar-card">
+                        <span class="meta">Criativo líder observado</span>
+                        <strong id="radarCreative" style="font-size:16px">Aguardando dados</strong>
+                        <div><span id="radarCreativeScore" class="radar-score">Score --</span></div>
+                        <span id="radarCreativeNote" class="meta">Componentes transparentes no detalhe</span>
+                    </article>
+                    <article class="radar-card radar-budget">
+                        <span class="meta">Sugestão analítica de verba</span>
+                        <strong id="radarBudget">—</strong>
+                        <span id="radarBudgetNote" class="meta">Amostra insuficiente para sugerir verba</span>
+                    </article>
+                    <article class="radar-card">
+                        <span class="meta">Parcela analítica</span>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div id="radarPercentRing" class="radar-percent-ring" style="--radar-percent:0%"><strong id="radarPercent">—</strong></div>
+                            <span id="radarPercentNote" class="meta">Liberada somente em READY</span>
+                        </div>
+                    </article>
+                </div>
+                <div id="radarComponents" class="grid" style="padding:14px 0"></div>
+                <div id="radarActions" class="radar-actions" aria-label="Indicadores visuais sem ação">
+                    <div class="radar-action" data-radar-action="invest">Investir agora</div>
+                    <div class="radar-action" data-radar-action="hold">Manter</div>
+                    <div class="radar-action active-wait" data-radar-action="wait">Aguardar</div>
+                </div>
+                <div id="radarSummary" class="radar-summary">Leitura analítica: aguardando amostra persistida.</div>
+            </section>
+
             <div id="status" class="status"></div>
         </main>
     </div>
@@ -795,7 +836,9 @@
         const tokenKey = 'vitalismen_admin_token';
         const state = {
             token: localStorage.getItem(tokenKey) || '',
-            data: null
+            data: null,
+            creativeSales: null,
+            loadController: null
         };
 
         const el = (id) => document.getElementById(id);
@@ -866,117 +909,81 @@
 
         const yesNo = (value) => value ? 'sim' : 'não';
 
-        const radarScale = (value, target) => Math.min(100, target > 0 ? (Number(value || 0) / target) * 100 : 0);
+        const renderCreativeSalesV185 = (snapshot) => {
+            const data = snapshot || {};
+            const totals = data.totals || {};
+            const gap = data.trackingGap || {};
+            const radar = data.radar || { state: 'NO_DATA', confidence: 'LOW', hours: [] };
+            el('creativeSalesStatus').textContent = data.version
+                ? `${data.version} · ${data.meta?.status || 'no_data'} · ${formatDate(data.computedAt)}`
+                : 'Leitura V185 indisponível';
+            el('creativeSalesMetrics').innerHTML = [
+                metricCard('Entradas VSL', number.format(gap.vslEntries || 0), 'Protocolo G no período'),
+                metricCard('LPV Meta', number.format(gap.metaLandingPageViews || 0), 'Marketing API por ad_id'),
+                metricCard('VSL − Meta', number.format(gap.vslMinusMeta || 0), 'Entradas sem LPV Meta correspondente', gap.vslMinusMeta ? 'warn' : 'good'),
+                metricCard('Meta − VSL', number.format(gap.metaMinusVsl || 0), 'LPV sem entrada VSL correspondente', gap.metaMinusVsl ? 'warn' : 'good'),
+                metricCard('Cobertura de tracking', `${Number(gap.coverage || 0)}%`, 'LPV Meta sobre entradas VSL'),
+                metricCard('Vendas / receita', `${number.format(totals.sales || 0)} / ${currency.format(totals.revenue || 0)}`, `${number.format(totals.attributedSales || 0)} venda(s) atribuída(s)`)
+            ].join('');
+            el('creativeSalesRows').innerHTML = (data.rows || []).map(row => `
+                <tr>
+                    <td>${escapeHtml(row.campaignName || (row.campaignId ? 'Sem nome' : 'SEM_ATRIBUICAO'))}<br><span class="meta">${escapeHtml(row.campaignId || '—')}</span></td>
+                    <td>${escapeHtml(row.adsetName || (row.adsetId ? 'Sem nome' : '—'))}<br><span class="meta">${escapeHtml(row.adsetId || '—')}</span></td>
+                    <td>${escapeHtml(row.adName || (row.adId ? 'Sem nome' : 'SEM_ATRIBUICAO'))}<br><span class="meta">${escapeHtml(row.adId || '—')}</span></td>
+                    <td>${escapeHtml(row.creativeName || (row.creativeId ? 'Sem nome' : '—'))}<br><span class="meta">${escapeHtml(row.creativeId || '—')}</span></td>
+                    <td>${number.format(row.impressions || 0)}</td><td>${number.format(row.reach || 0)}</td>
+                    <td>${number.format(row.linkClicks || row.clicks || 0)}</td><td>${number.format(row.landingPageViews || 0)}</td>
+                    <td>${currency.format(row.spend || 0)}</td><td>${number.format(row.conversations || 0)}</td>
+                    <td>${number.format(row.leads || 0)}</td><td>${number.format(row.orders || 0)}</td>
+                    <td>${number.format(row.sales || 0)}</td><td>${currency.format(row.revenue || 0)}</td>
+                    <td>${escapeHtml(row.attribution || 'SEM_ATRIBUICAO')}</td>
+                </tr>
+            `).join('') || emptyRow(15, 'Nenhum ID persistido no período.');
 
-        const radarCreativeCandidate = (data = {}) => {
-            const metaAds = data.metaAds || {};
-            const protocoloG = data.protocoloG || {};
-            const metaAdsById = new Map((metaAds.ads || []).map((ad) => [String(ad.adId || ''), ad]));
-            const protocoloById = new Map((protocoloG.ads || []).map((ad) => [String(ad.adId || ''), ad]));
-            const keys = [...new Set([...metaAdsById.keys(), ...protocoloById.keys()])].filter(Boolean);
-            const candidates = keys.map((key) => {
-                const meta = metaAdsById.get(key) || {};
-                const vsl = protocoloById.get(key) || {};
-                const landing = Math.max(Number(meta.landingPageViews || 0), Number(vsl.landing || 0));
-                const purchaseRate = landing > 0 ? (Number(meta.purchases || 0) / landing) * 100 : 0;
-                const base = (
-                    radarScale(purchaseRate, 2) * 0.35
-                    + radarScale(Number(vsl.salesRate || 0), 3) * 0.25
-                    + radarScale(Number(vsl.conversationRate || 0), 60) * 0.20
-                    + radarScale(Number(vsl.whatsappRate || 0), 8) * 0.10
-                    + radarScale(Number(meta.landingRate || 0), 80) * 0.10
-                );
-                const confidence = Math.min(100, Math.round((landing / 40) * 100));
-                const score = Math.round(base * (0.55 + (confidence / 100) * 0.45));
-                return {
-                    adId: key,
-                    adName: String(meta.adName || vsl.adName || 'Criativo sem nome'),
-                    score: Math.max(0, Math.min(100, score)),
-                    confidence,
-                    landing,
-                    purchases: Number(meta.purchases || 0),
-                    sales: Number(vsl.salesCreated || 0),
-                    conversations: Number(vsl.attributedConversations || 0)
-                };
-            });
-            return candidates.sort((left, right) => (
-                right.score - left.score
-                || right.purchases - left.purchases
-                || right.sales - left.sales
-                || right.conversations - left.conversations
-                || right.landing - left.landing
-            ))[0] || null;
-        };
-
-        const radarConfidenceLabel = (radar = {}, creative = null) => {
-            const value = Math.min(Number(radar.bestWindow?.confidence || 0), Number(creative?.confidence || 0));
-            if (radar.state === 'no_data' || !creative) return 'Sem dados';
-            if (value >= 70) return 'Confiança alta';
-            if (value >= 40) return 'Confiança média';
-            return 'Amostra baixa';
-        };
-
-        const renderInvestmentRadar = (data = {}) => {
-            const radar = data.investmentRadar || {};
             const bestWindow = radar.bestWindow || null;
-            const creative = radarCreativeCandidate(data);
-            const metaAds = data.metaAds || {};
-            const totalSpend = Number(metaAds.totals?.spend || 0);
-            const days = Math.max(1, Number(data.days || 1));
-            const dailySpend = totalSpend / days;
-            const ready = radar.state === 'ready';
-            const creativeScore = Number(creative?.score || 0);
-            const creativeConfidence = Number(creative?.confidence || 0);
-            let allocationPct = 0;
-            if (creative) {
-                if (ready && creativeScore >= 75 && creativeConfidence >= 60) allocationPct = 30;
-                else if (creativeScore >= 60) allocationPct = 22;
-                else if (creativeScore >= 45) allocationPct = 15;
-                else allocationPct = 10;
-            }
-            const suggestedBudget = dailySpend > 0 ? Math.round((dailySpend * allocationPct / 100) * 100) / 100 : 0;
-            const action = ready && creativeScore >= 70 && creativeConfidence >= 50
-                ? 'invest'
-                : (bestWindow && creativeScore >= 45 ? 'hold' : 'wait');
-
+            const score = radar.score || null;
+            el('radarConfidence').textContent = `${radar.state || 'NO_DATA'} · ${radar.confidence || 'LOW'}`;
             el('radarBestWindow').textContent = bestWindow?.label || '--';
             el('radarWindowNote').textContent = bestWindow
-                ? `${number.format(bestWindow.entries || 0)} entradas · score ${bestWindow.score || 0}/100`
-                : 'Sem amostra suficiente';
-            el('radarConfidence').textContent = radarConfidenceLabel(radar, creative);
-
+                ? `${number.format(bestWindow.entries || 0)} entradas · ${number.format(bestWindow.conversations || 0)} conversas`
+                : 'Sem sinal horário suficiente';
             const hours = Array.isArray(radar.hours) ? radar.hours : [];
-            const maxScore = Math.max(1, ...hours.map((row) => Number(row.score || 0)));
+            const maxScore = Math.max(1, ...hours.map(row => Number(row.score || 0)));
             el('radarHourBars').innerHTML = Array.from({ length: 24 }, (_, hour) => {
-                const row = hours.find((item) => Number(item.hour) === hour) || {};
+                const row = hours.find(item => Number(item.hour) === hour) || {};
                 const height = Math.max(8, Math.round((Number(row.score || 0) / maxScore) * 100));
-                const hot = bestWindow && hour >= Number(bestWindow.startHour) && hour < Number(bestWindow.endHour);
-                return `<span class="radar-hour-bar${hot ? ' hot' : ''}" style="height:${height}%" title="${String(hour).padStart(2, '0')}h · score ${Number(row.score || 0)}/100 · ${Number(row.entries || 0)} entradas"></span>`;
+                const hot = Number(bestWindow?.hour) === hour;
+                return `<span class="radar-hour-bar${hot ? ' hot' : ''}" style="height:${height}%" title="${String(hour).padStart(2, '0')}h · ${Number(row.entries || 0)} entrada(s) · ${Number(row.conversations || 0)} conversa(s)"></span>`;
             }).join('');
-
-            el('radarCreative').textContent = creative?.adName || 'Aguardando dados';
-            el('radarCreativeScore').textContent = creative ? `Score ${creativeScore}/100` : 'Score --';
-            el('radarCreativeNote').textContent = creative
-                ? `${number.format(creative.landing || 0)} LPV/entradas · ${number.format(creative.purchases || 0)} compra(s)`
-                : 'Sem sinal suficiente';
-            el('radarBudget').textContent = currency.format(suggestedBudget);
-            el('radarBudgetNote').textContent = dailySpend > 0
-                ? `de ${currency.format(dailySpend)} de verba média/dia`
-                : 'Sem gasto Meta disponível no período';
-            el('radarPercent').textContent = `${allocationPct}%`;
-            el('radarPercentRing').style.setProperty('--radar-percent', `${allocationPct}%`);
-            el('radarPercentNote').textContent = allocationPct
-                ? `Destinar ${allocationPct}% da verba diária ao criativo líder`
-                : 'Sem recomendação ainda';
-
-            document.querySelectorAll('[data-radar-action]').forEach((node) => {
+            const leaderRow = (data.rows || []).find(row => row.adId && row.adId === radar.leaderAdId) || {};
+            const leaderAdLabel = leaderRow.adName || radar.leaderLabel || radar.leaderAdId || 'Nenhum';
+            el('radarCreative').textContent = radar.leaderAdId && leaderAdLabel !== radar.leaderAdId
+                ? `${leaderAdLabel} · ${radar.leaderAdId}`
+                : leaderAdLabel;
+            el('radarCreativeScore').textContent = score ? `Score ${number.format(score.total || 0)}/100` : 'Score --';
+            const creativeIdentity = leaderRow.creativeId
+                ? `${leaderRow.creativeName || 'Criativo'} · ${leaderRow.creativeId}`
+                : '';
+            el('radarCreativeNote').textContent = [creativeIdentity, score?.formula].filter(Boolean).join(' · ') || 'Sem componentes calculáveis';
+            const componentLabels = {
+                traffic_quality: 'Qualidade do tráfego', conversation_rate: 'Taxa de conversa',
+                sales_evidence: 'Evidência de vendas', cost_efficiency: 'Eficiência de custo', sample_confidence: 'Confiança da amostra'
+            };
+            el('radarComponents').innerHTML = Object.entries(score?.components || {}).map(([key, value]) => metricCard(
+                componentLabels[key] || key, `${number.format(value || 0)}/100`, 'Componente observável do score'
+            )).join('') || metricCard('Componentes', 'NO_DATA', 'Nenhum sinal suficiente para calcular');
+            const hasBudget = radar.state === 'READY' && radar.suggestedDailyBudget != null && radar.allocationPercent != null;
+            el('radarBudget').textContent = hasBudget ? currency.format(radar.suggestedDailyBudget) : '—';
+            el('radarBudgetNote').textContent = hasBudget ? 'Sugestão diária analítica; nenhuma ação automática' : 'Amostra insuficiente para sugerir verba';
+            el('radarPercent').textContent = hasBudget ? `${radar.allocationPercent}%` : '—';
+            el('radarPercentRing').style.setProperty('--radar-percent', `${hasBudget ? radar.allocationPercent : 0}%`);
+            el('radarPercentNote').textContent = hasBudget ? 'Parcela analítica do gasto diário observado' : 'Liberada somente em READY';
+            const actionKey = radar.action === 'INVESTIR_AGORA' ? 'invest' : radar.action === 'MANTER' ? 'hold' : 'wait';
+            document.querySelectorAll('[data-radar-action]').forEach(node => {
                 node.classList.remove('active-invest', 'active-hold', 'active-wait');
-                if (node.dataset.radarAction === action) node.classList.add(`active-${action}`);
+                if (node.dataset.radarAction === actionKey) node.classList.add(`active-${actionKey}`);
             });
-            const actionText = action === 'invest' ? 'Investir agora' : action === 'hold' ? 'Manter' : 'Aguardar';
-            const windowText = bestWindow?.label ? ` entre ${bestWindow.label}` : '';
-            const creativeText = creative?.adName ? ` no criativo “${creative.adName}”` : '';
-            el('radarSummary').textContent = `Recomendação IA: ${actionText.toLowerCase()}${creativeText}${windowText}. ${allocationPct ? `Alocação sugerida: ${allocationPct}% da verba diária (${currency.format(suggestedBudget)}).` : 'Amostra ainda insuficiente para alocação.'}`;
+            el('radarSummary').textContent = `Leitura analítica: ${radar.action || 'AGUARDAR'}. ${radar.explanation || 'Nenhum sinal persistido disponível.'}`;
         };
 
         const protocoloGAdReading = (ad = {}) => {
@@ -1007,33 +1014,59 @@
             const data = state.data;
             if (!data) return;
             const totals = data.totals || {};
+            const operational = data.operational || {};
+            const operationalTotals = operational.totals || {};
+            const operationalRates = operational.rates || {};
             const protocoloG = data.protocoloG || {};
             const protocoloGTotals = protocoloG.totals || {};
             const metaAds = data.metaAds || {};
             const metaAdsTotals = metaAds.totals || {};
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
-            el('updatedAt').textContent = `Atualizado em ${formatDate(data.endAt)}`;
+            el('updatedAt').textContent = `Calculado em ${formatDate(operational.freshness?.metricsComputedAt || data.generatedAt)} · America/Guayaquil`;
             el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
                 ? `Válido desde ${formatDate(protocoloG.measurementStartedAt)}; não mistura histórico anterior nem outras VSLs EC`
                 : 'Não mistura outras VSLs do Equador';
             el('metrics').innerHTML = [
-                metricCard('Entradas EC (geral)', number.format(totals.entries || 0), `${number.format(totals.repeatViews || 0)} revisitas`),
-                metricCard('PageView CAPI EC', number.format(totals.pageViewsSent || 0), 'Todas as VSLs EC', (totals.pageViewsSent || 0) ? 'good' : 'warn'),
-                metricCard('WhatsApp EC (geral)', number.format(totals.whatsappVisitors || 0), `${totals.clickRate || 0}% das entradas`, (totals.whatsappVisitors || 0) ? 'good' : 'warn'),
-                metricCard('Leads Meta', number.format(totals.leadsSent || 0), 'Eventos Lead enviados'),
-                metricCard('Purchase enviado', number.format(totals.purchasesSent || 0), 'Eventos enviados no periodo', (totals.purchasesSent || 0) ? 'good' : 'warn'),
-                metricCard('Valor marcado', currency.format(totals.purchaseValueSent || 0), `${totals.purchaseCoverage || 0}% de cobertura`, (totals.purchaseValueSent || 0) ? 'good' : 'warn'),
-                metricCard('Sem Purchase', number.format(totals.missingPurchaseEligible || 0), 'Vendas recentes elegiveis', missingTone),
-                metricCard('Correlação CLAIMED', number.format(totals.correlationClaimed || 0), 'Visita única associada', (totals.correlationClaimed || 0) ? 'good' : ''),
-                metricCard('Correlação AMBIGUOUS', number.format(totals.correlationAmbiguous || 0), 'Nenhuma associação realizada', (totals.correlationAmbiguous || 0) ? 'warn' : 'good'),
-                metricCard('Correlação UNMATCHED', number.format(totals.correlationUnmatched || 0), 'Nenhuma associação realizada', (totals.correlationUnmatched || 0) ? 'warn' : 'good')
+                metricCard('Meta LPV', number.format(metaAdsTotals.landingPageViews || 0), `${operationalRates.lpvToInbound || 0}% viraram inbound`),
+                metricCard('Z-API inbound', number.format(operationalTotals.zapiInbound || 0), `${number.format(operationalTotals.zapiInboundMessages || 0)} mensagens persistidas`, operationalTotals.zapiInbound ? 'good' : 'warn'),
+                metricCard('Bot acionado', number.format(operationalTotals.botTriggered || 0), `${operationalRates.inboundToBot || 0}% dos inbounds`),
+                metricCard('Bot entregue', number.format(operationalTotals.botDelivered || 0), `${number.format(operationalTotals.botSent || 0)} mensagens enviadas`),
+                metricCard('Pedidos criados', number.format(operationalTotals.ordersCreated || 0), `${operationalRates.inboundToOrder || 0}% dos inbounds`),
+                metricCard('Pedidos confirmados', number.format(operationalTotals.ordersConfirmed || 0), `${number.format(operationalTotals.salesFinalized || 0)} vendas finalizadas`),
+                metricCard('Purchase elegível', number.format(operationalTotals.purchaseEligible || 0), `${number.format(operationalTotals.purchaseEventCreated || 0)} eventos criados`),
+                metricCard('Purchase enviado', number.format(operationalTotals.purchaseSent || 0), `${operationalRates.orderToPurchase || 0}% dos elegíveis`, operationalTotals.purchaseSent ? 'good' : 'warn'),
+                metricCard('Meta aceitou', number.format(operationalTotals.metaAccepted || 0), `${operationalRates.purchaseToMetaAccepted || 0}% dos enviados`),
+                metricCard('Meta atribuiu', number.format(operationalTotals.metaAttributed || 0), `${operationalRates.metaAttributionRate || 0}% dos aceitos`),
+                metricCard('Sem atribuição', number.format(operationalTotals.unattributed || 0), 'Sem inferência por horário'),
+                metricCard('Receita', currency.format(operationalTotals.revenue || 0), `Integridade ${operational.integrity?.status || 'UNKNOWN'}`, operational.integrity?.status === 'PASS' ? 'good' : 'warn')
             ].join('');
 
-            renderInvestmentRadar(data);
+            const healthLabels = { meta: 'Meta', zapi: 'Z-API', bot: 'Bot', orders: 'Pedidos', capi: 'CAPI', metrics: 'Métricas' };
+            el('integrationHealth').innerHTML = Object.entries(operational.health || {}).map(([key, value]) => metricCard(
+                healthLabels[key] || key,
+                value.status || 'UNKNOWN',
+                escapeHtml([
+                    `Último sucesso: ${formatDate(value.lastSuccessAt || value.lastSuccess)}`,
+                    value.dataStatus === 'NO_DATA_IN_WINDOW' ? 'Sem eventos no período'
+                        : `Dados do período até: ${formatDate(value.dataThroughInWindow)}`,
+                    `Fila ativa: ${value.queueDepth == null ? 'indisponível' : number.format(value.queueDepth)}`,
+                    key === 'capi' ? `Histórico bloqueado: ${number.format(value.historicalBlockedCount || 0)}` : '',
+                    key === 'capi' && value.awaitingHumanDropiCount ? `Aguardando envio manual Dropi: ${number.format(value.awaitingHumanDropiCount)}` : '',
+                    `Último erro: ${value.lastError ? (typeof value.lastError === 'string' ? value.lastError : JSON.stringify(value.lastError)) : 'nenhum registrado'}${value.lastErrorAt ? ` (${formatDate(value.lastErrorAt)})` : ''}`
+                ].filter(Boolean).join(' · ')),
+                value.status === 'OK' ? 'good' : value.status === 'FAILED' ? 'bad' : 'warn'
+            )).join('') || metricCard('Diagnóstico', 'Indisponível', 'Atualize a candidata V141', 'warn');
+            el('integrationFreshness').textContent = `Meta ${formatDate(operational.freshness?.metaFetchedAt)} · Z-API ${formatDate(operational.freshness?.zapiDataThrough)} · Bot ${formatDate(operational.freshness?.botDataThrough)} · Pedidos ${formatDate(operational.freshness?.orderDataThrough)} · CAPI ${formatDate(operational.freshness?.capiDataThrough)} · America/Guayaquil`;
+            el('integrationAlerts').textContent = (operational.alerts || []).length
+                ? `Alertas: ${(operational.alerts || []).join(', ')}`
+                : 'Sem alertas ativos';
+            el('unmatchedCauses').innerHTML = Object.entries(operational.unmatchedRootCauses || {}).map(([cause, count]) => metricCard(cause, number.format(count), 'Registros no período', count ? 'warn' : 'good')).join('')
+                || metricCard('Sem pendências', '0', 'Nenhuma correlação sem causa', 'good');
 
             const measuredEntries = Number(totals.entries || 0);
             const metaLandings = Number(metaAdsTotals.landingPageViews || 0);
-            const trackingGap = Math.max(0, metaLandings - measuredEntries);
+            const vslMinusMeta = Math.max(0, measuredEntries - metaLandings);
+            const metaMinusVsl = Math.max(0, metaLandings - measuredEntries);
             el('metaAdsStatus').textContent = metaAds.status === 'available'
                 ? `${metaAds.source === 'live' ? 'Ao vivo' : 'Cache'}${metaAds.stale ? ' desatualizado' : ''} · ${formatDate(metaAds.fetchedAt)}`
                 : (metaAds.message || 'Meta Ads indisponível');
@@ -1043,14 +1076,17 @@
             el('metaAdsMetrics').innerHTML = metaAds.status === 'available' ? [
                 metricCard('Landing Page Views Meta', number.format(metaLandings), 'Entradas registradas pelo anúncio', metaLandings ? 'good' : 'warn'),
                 metricCard('Entradas medidas na VSL', number.format(measuredEntries), 'Banco Vitalismen'),
-                metricCard('Diferença de rastreamento', number.format(trackingGap), 'LPV Meta menos entradas VSL', trackingGap ? 'warn' : 'good'),
+                metricCard('VSL − Meta', number.format(vslMinusMeta), 'Entradas VSL menos LPV Meta', vslMinusMeta ? 'warn' : 'good'),
+                metricCard('Meta − VSL', number.format(metaMinusVsl), 'LPV Meta menos entradas VSL', metaMinusVsl ? 'warn' : 'good'),
                 metricCard('Cliques no link', number.format(metaAdsTotals.linkClicks || 0), `${metaAdsTotals.landingRate || 0}% chegaram à página`),
                 metricCard('Alcance', number.format(metaAdsTotals.reach || 0), `${number.format(metaAdsTotals.impressions || 0)} impressões`),
                 metricCard('Gasto Meta', currency.format(metaAdsTotals.spend || 0), `${number.format(metaAdsTotals.purchases || 0)} compras atribuídas`)
             ].join('') : metricCard('Meta Ads não conectado', '-', metaAds.message || 'Permissão ads_read necessária', 'warn');
+            const creativeByAd = new Map((metaAds.creativeMapping || []).map((item) => [String(item.adId || ''), item]));
             el('metaAdsRows').innerHTML = (metaAds.ads || []).map((ad) => `
                 <tr>
                     <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
+                    <td>${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeName || 'Não disponível')}<br><span class="meta">${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeId || '-')}</span></td>
                     <td>${escapeHtml(ad.adsetName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adsetId || '-')}</span></td>
                     <td>${escapeHtml(ad.campaignName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.campaignId || '-')}</span></td>
                     <td>${number.format(ad.reach || 0)}</td>
@@ -1061,7 +1097,7 @@
                     <td>${number.format(ad.purchases || 0)}</td>
                     <td>${currency.format(ad.spend || 0)}</td>
                 </tr>
-            `).join('') || emptyRow(10, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
+            `).join('') || emptyRow(11, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
 
             el('protocoloGMetrics').innerHTML = [
                 metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),
@@ -1187,13 +1223,39 @@
                 setVisible();
                 return;
             }
+            state.loadController?.abort();
+            const controller = new AbortController();
+            state.loadController = controller;
             setStatus('Carregando...');
             try {
-                const days = el('days').value || '7';
-                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}`);
+                const days = el('days').value || '1';
+                const fromDay = el('fromDay').value;
+                const toDay = el('toDay').value;
+                const explicit = fromDay && toDay
+                    ? `&from=${encodeURIComponent(fromDay)}&to=${encodeURIComponent(toDay)}`
+                    : '';
+                state.data = await api(`/api/funnel-metrics?days=${encodeURIComponent(days)}${explicit}`, {
+                    signal: controller.signal
+                });
                 render();
                 setStatus('');
+                state.creativeSales = null;
+                el('creativeSalesStatus').textContent = 'Carregando leitura V185...';
+                try {
+                    state.creativeSales = await api(`/api/funnel-metrics/creative-sales?scope=protocolo-g&days=${encodeURIComponent(days)}${explicit}`, {
+                        signal: controller.signal
+                    });
+                    renderCreativeSalesV185(state.creativeSales);
+                } catch (creativeError) {
+                    if (creativeError.name === 'AbortError') return;
+                    renderCreativeSalesV185({
+                        meta: { status: 'degraded' },
+                        radar: { state: 'DEGRADED', confidence: 'LOW', action: 'AGUARDAR', hours: [], explanation: 'Leitura V185 indisponível; nenhuma sugestão de verba.' },
+                        rows: [], totals: {}, trackingGap: {}
+                    });
+                }
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 if (error.status === 401) {
                     localStorage.removeItem(tokenKey);
                     state.token = '';
@@ -1203,6 +1265,8 @@
                 }
                 el('updatedAt').textContent = 'Falha ao carregar';
                 setStatus(error.message || 'Erro ao carregar metricas.');
+            } finally {
+                if (state.loadController === controller) state.loadController = null;
             }
         };
 
@@ -1234,7 +1298,13 @@
         });
 
         el('refreshBtn').addEventListener('click', loadMetrics);
-        el('days').addEventListener('change', loadMetrics);
+        el('days').addEventListener('change', () => {
+            el('fromDay').value = '';
+            el('toDay').value = '';
+            loadMetrics();
+        });
+        el('fromDay').addEventListener('change', () => { if (el('toDay').value) loadMetrics(); });
+        el('toDay').addEventListener('change', () => { if (el('fromDay').value) loadMetrics(); });
 
         setVisible();
         loadMetrics();

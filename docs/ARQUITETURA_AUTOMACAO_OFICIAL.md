@@ -1117,11 +1117,24 @@ chave genérica de outra mensagem logística enviada no mesmo dia. O
 impedindo repetição do mesmo bônus. Áudio de agradecimento ou modo de uso já
 entregue permanece bloqueado e não é repetido na recuperação.
 
-Os gatilhos oficiais permanecem confirmação textual, comprovante elegível,
-status logístico `ENTREGADO` e confirmação administrativa autenticada. Não há
-scheduler paralelo nem replay histórico em massa. Produto, preço, pedido,
-Dropi, Meta/CAPI, pixel, número, transporte, funil e cadência permanecem
-inalterados.
+Os gatilhos históricos da V60 foram sucedidos pela regra final V147-R3 para P5,
+P6 e P7. Confirmação textual, comprovante de retirada, `outcomes.pickedUp`,
+status legado `ENTREGADO` e confirmação administrativa agora persistem
+evidência, mas não concluem essas etapas. Não há scheduler paralelo nem replay
+histórico em massa.
+
+A V147-R3 usa uma única fonte de conclusão: evidência do tracking Servientrega
+persistida com `canonicalStatus=DELIVERED`. O gate também exige customerId,
+orderId e shipmentId canônicos. Todos os demais estados bloqueiam P5/P6/P7,
+mesmo se um campo financeiro separado contiver `paid`.
+
+P5 preserva byte a byte o áudio `OBRIGADO_PAGOU.ogg`, já aprovado como
+agradecimento sem afirmação de pagamento. P6 exige o mesmo DELIVERED, P5 aceito,
+elegibilidade e link válido. P7 exige o mesmo DELIVERED, P6 aceito e produto
+canônico. P7 conserva estágio, ledger, lock e marcador próprios e mantém o
+dedupe compartilhado do áudio manual de Tex Ultra. P6 e P7 aplicam pacing antes
+da borda do provider. Ao aplicar DELIVERED, o lifecycle atualiza Shipment,
+Order, ContactState e painel e limpa os locks pendentes de A10/A19.
 
 ## Microcamada V61 de atribuição Meta EC do Protocolo G até o Purchase
 
@@ -1650,3 +1663,76 @@ na VSL e computador continua na página informativa. Dropi, Meta/CAPI, pixel,
 preços, checkout, schedulers, mídias e demais produtos permanecem congelados.
 
 Fonte de verdade: `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`.
+## 2026-09-08 — V144: Purchase Meta após envio Dropi manual
+
+A V144 cria uma exceção estreita ao bloqueio Meta do perfil V78. Somente o efeito
+`meta_purchase`, executado dentro do `POST /api/shipments/droppi/ec/orders/:orderId/submit`
+autenticado e depois de um sucesso Dropi novo, pode atravessar o guard. O contexto
+precisa conter a ação humana V138, o operador autenticado e a identidade do pedido.
+
+Pedidos já enviados não entram nesse caminho: a reabertura do submit retorna
+`historical_or_existing_dropi_submission` e faz zero chamadas CAPI. O Order só grava
+`metaPurchaseSentAt` e o lock do painel quando a Meta confirma `events_received > 0`.
+Salvar, configurar ou somente autorizar o pedido continua sem Dropi, Shipment novo ou
+Purchase. Browser events, anúncios, Dataset, VSL, Servientrega, pós-venda e schedulers
+permanecem com os contratos anteriores.
+
+## V160 — envio manual da atendente nunca é descartado
+
+O `POST /api/whatsapp/send` autenticado separa a decisão humana do painel da
+decisão logística automática. Texto, áudio ou mídia escolhidos explicitamente
+pela atendente usam o transporte e a persistência manual comuns, sem consultar
+ou alterar o status da remessa e sem serem recusados pelo gate de retirada.
+
+As automações A07/A10/A19 continuam fail-closed: `Chegou_01`, `Chegou_02` e
+`Chegou_03` automáticos exigem `READY_FOR_PICKUP` real e verificado. A mensagem
+manual aceita pelo provedor permanece como `Message` de origem humana, com
+`providerMessageId`, e pode satisfazer a reconciliação histórica exata para
+evitar reenvio automático. Nenhum Shipment fictício, scheduler novo, backlog,
+Dropi, Meta/CAPI, produto, preço, VSL ou transporte foi alterado.
+
+## V161 — desistência e Comprar depois antes do checkout
+
+A decisão determinística de desistência, opt-out e compra futura agora ocorre
+antes de intenção positiva, quantidade, entrega, coleta de dados e fallback
+rígido do funil Vit Power EC. Uma mensagem mista com futuro explícito usa o
+contrato canônico `comprar_depois`/`buy_later` e interrompe o checkout atual.
+
+Qualquer `Order` ou `Shipment` persistido faz a camada falhar fechada para
+atendimento humano, sem alterar a operação nem emitir resposta automática. Sem
+operação real, desistência usa o status existente `cancelado`; compra futura só
+agenda a data quando ela é inferível. O scheduler continua desligado por padrão.
+Dropi, Meta/CAPI, V114, V116, V141, V70, V78, aquecimento interno, preços,
+produtos, VSL e transporte permanecem inalterados. Os gates manuais de Tex
+Ultra e Nitrix não recebem mutação nem resposta automática V161. Contrato completo:
+`docs/EC_NEGATIVE_INTENT_BUY_LATER_FREEZE_V161_20260914.md`.
+
+## V162 — executor operacional isolado de Comprar depois
+
+A autorização V162 não altera o perfil do processo principal nem liga
+`ADMIN_BUY_LATER_FOLLOWUP_ENABLED`. O PM2 continua com os schedulers mutantes
+globais em zero. A única execução automática nova é um `systemd timer` dedicado,
+com intervalo de 15 minutos, que chama diretamente
+`processAdminBuyLaterFollowups({ limit: 1 })` por um CLI isolado.
+
+O candidato precisa manter simultaneamente status canônico
+`comprar_depois`, agenda ativa, data civil e produto EC estruturados, telefone
+EC válido, `sentAt=null`, `failedAt=null`, tentativa inferior a um, lock livre e
+estar dentro da janela V24 D-4 09:00 até D-3 18:59:59 em
+`America/Guayaquil`. O status legado `buy_later` não é migrado nem selecionado.
+
+O processo lê da `.env` somente Mongo, Z-API e parâmetros de proteção do
+transporte. Ele fixa Z-API como provider, mantém
+`isAutomationRecipientAllowed`, `force=false`, dedupe persistente, lock atômico
+e recuperação por histórico. A autorização de destinatários reais é confinada
+ao processo oneshot; V75/V78, o ambiente PM2 e seus contratos permanecem
+inalterados. Não são carregadas credenciais Dropi ou Meta, e o executor não
+importa scheduler global, mídia, criação de pedido/remessa, repurchase, backlog
+ou pós-venda.
+
+O modo `observe` instala a trava Mongoose somente leitura e precisa retornar
+zero candidatos antes de habilitar o timer. Qualquer candidato inesperado
+bloqueia a ativação. Falha de transporte grava `failedAt`, conserva
+`sentAt=null`, incrementa a tentativa e exige revisão humana, sem retry
+automático. Contrato completo:
+`docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`.

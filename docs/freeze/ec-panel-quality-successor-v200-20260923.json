@@ -1,0 +1,25 @@
+{
+  "freezeId": "EC_PANEL_QUALITY_SUCCESSOR_V200_20260923",
+  "version": "V200",
+  "date": "2026-09-23",
+  "baseCommit": "05b659118ec66644cc36a2083f02af4be4828a42",
+  "scope": "CI_ONLY_V195_PRELOAD_AND_SUCCESSOR_ASSERTIONS",
+  "overrides": [
+    ".github/workflows/ec-panel-quality.yml",
+    "tests/ec-auth-login-v78-pass-through.test.mjs"
+  ],
+  "protectedFiles": {
+    ".github/workflows/ec-panel-quality.yml": "8c8cf3833c19e9ad05557146aaecbcacae27a9901389dccd91a36f185d3ca9b9",
+    "tests/ec-auth-login-v78-pass-through.test.mjs": "58b87feef817b80fd8d047805a4b3d65503146b07ec4255e974b5b6f21277f64"
+  },
+  "policy": {
+    "canonicalPreload": "scripts/lib/ec-runtime-successor-v195-context.mjs",
+    "canonicalDataset": "920532663934291",
+    "v171ContextExtended": true,
+    "v138EarlySuccessorValidated": true,
+    "legacyWhitespaceAllowlistExact": true,
+    "historicalHashesChanged": false,
+    "guardBypassAllowed": false,
+    "productionChanged": false
+  }
+}

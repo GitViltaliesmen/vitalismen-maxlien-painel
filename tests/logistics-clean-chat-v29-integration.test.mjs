@@ -25,9 +25,11 @@ test('V29 registro manual enriquece espelho do provider e carrega client id', ()
     assert.match(messageModel, /attendantId/);
 });
 
-test('V29 gate manual falha fechado quando não existe shipment verificável', () => {
-    assert.match(whatsapp, /evaluateLogisticsOutbound\(activeShipment \|\| \{\}/);
-    assert.match(whatsapp, /PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA/);
+test('V160 envio manual autenticado não é confundido com o gate automático V29', () => {
+    const sendRoute = whatsapp.split("router.post('/send', authMiddleware")[1].split('// DEBUG:')[0];
+    assert.match(sendRoute, /authenticatedManualAttendant: sendMode === 'manual_panel'/);
+    assert.doesNotMatch(sendRoute, /evaluateLogisticsOutbound\(/);
+    assert.doesNotMatch(sendRoute, /PEDIDO AINDA NÃO ESTÁ LIBERADO PARA RETIRADA/);
 });
 
 test('V29 painel tem avatars com fallback e identidades distintas', () => {

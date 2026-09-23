@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { buildPostSaleDedupeKeyV147 } from './canonicalLogisticsStatusV147Service.js';
 
 export const POST_SALE_RUNTIME_VERSION = 66;
 export const POST_SALE_DATA_COMPATIBILITY_VERSION = 66;
@@ -16,7 +17,9 @@ export const POST_SALE_STAGES = Object.freeze({
     PICKUP_REMINDER_DAY5: 'PICKUP_REMINDER_DAY5',
     PICKUP_REMINDER_SOFT_DAY6: 'PICKUP_REMINDER_SOFT_DAY6',
     PICKUP_PROOF_REQUEST: 'PICKUP_PROOF_REQUEST',
+    DELIVERED_THANK_YOU: 'DELIVERED_THANK_YOU',
     PICKUP_BONUS: 'PICKUP_BONUS',
+    PRODUCT_USAGE: 'PRODUCT_USAGE',
     TREATMENT_REFILL_REMINDER: 'TREATMENT_REFILL_REMINDER'
 });
 
@@ -36,7 +39,9 @@ export const POST_SALE_VARIANTS = Object.freeze({
     PICKUP_REMINDER_DAY5: 'pickup_reminder_day5',
     PICKUP_REMINDER_SOFT_DAY6: 'pickup_reminder_soft_day6',
     PICKUP_PROOF_REQUEST: 'pickup_proof_request',
+    DELIVERED_THANK_YOU_AUDIO: 'delivered_thank_you_audio',
     PICKUP_BONUS: 'pickup_bonus',
+    PRODUCT_USAGE_AUDIO: 'product_usage_audio',
     TREATMENT_REFILL_REMINDER: 'treatment_refill_reminder'
 });
 
@@ -78,9 +83,18 @@ const STAGE_BY_KIND_OR_VARIANT = Object.freeze({
     pickup_proof_request: POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
     PICKUP_PROOF_REQUEST: POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
     shipment_pickup_proof_request_text: POST_SALE_STAGES.PICKUP_PROOF_REQUEST,
+    delivered_thank_you: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+    DELIVERED_THANK_YOU: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+    delivered_thank_you_audio: POST_SALE_STAGES.DELIVERED_THANK_YOU,
+    shipment_delivered_thank_you_audio: POST_SALE_STAGES.DELIVERED_THANK_YOU,
     pickup_bonus: POST_SALE_STAGES.PICKUP_BONUS,
     PICKUP_BONUS: POST_SALE_STAGES.PICKUP_BONUS,
     shipment_pickup_bonus_text: POST_SALE_STAGES.PICKUP_BONUS,
+    product_usage: POST_SALE_STAGES.PRODUCT_USAGE,
+    PRODUCT_USAGE: POST_SALE_STAGES.PRODUCT_USAGE,
+    product_usage_audio: POST_SALE_STAGES.PRODUCT_USAGE,
+    shipment_product_usage_audio: POST_SALE_STAGES.PRODUCT_USAGE,
+    shipment_pickup_bonus_how_to_use_audio: POST_SALE_STAGES.PRODUCT_USAGE,
     treatment_refill_reminder: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER,
     TREATMENT_REFILL_REMINDER: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER,
     shipment_refill_reminder_text: POST_SALE_STAGES.TREATMENT_REFILL_REMINDER
@@ -98,12 +112,16 @@ export const LEGACY_MARKERS_BY_STAGE = Object.freeze({
     [POST_SALE_STAGES.PICKUP_REMINDER_DAY5]: Object.freeze(['reminderDay5At']),
     [POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6]: Object.freeze(['reminderSoftDay6At']),
     [POST_SALE_STAGES.PICKUP_PROOF_REQUEST]: Object.freeze(['pickupProofRequestedAt']),
+    [POST_SALE_STAGES.DELIVERED_THANK_YOU]: Object.freeze(['deliveredThankYouNotifiedAt']),
     [POST_SALE_STAGES.PICKUP_BONUS]: Object.freeze(['bonusNotifiedAt']),
+    [POST_SALE_STAGES.PRODUCT_USAGE]: Object.freeze(['usageNotifiedAt']),
     [POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]: Object.freeze(['refillReminderAt'])
 });
 
 export const POST_SALE_TERMINAL_LEDGER_STATES = Object.freeze([
     'SENT',
+    'SATISFIED_BY_MANUAL_SEND',
+    'SATISFIED_BY_EXISTING_MANUAL_SEND',
     'AMBIGUOUS',
     'FAILED_FINAL',
     'RECOVERED_STRUCTURED',
@@ -137,13 +155,30 @@ export const legacyKindForPostSaleStage = (stage = '') => ({
     [POST_SALE_STAGES.PICKUP_REMINDER_DAY5]: 'pickup_reminder_day5',
     [POST_SALE_STAGES.PICKUP_REMINDER_SOFT_DAY6]: 'pickup_reminder_soft_day6',
     [POST_SALE_STAGES.PICKUP_PROOF_REQUEST]: 'pickup_proof_request',
+    [POST_SALE_STAGES.DELIVERED_THANK_YOU]: 'delivered_thank_you',
     [POST_SALE_STAGES.PICKUP_BONUS]: 'pickup_bonus',
+    [POST_SALE_STAGES.PRODUCT_USAGE]: 'product_usage',
     [POST_SALE_STAGES.TREATMENT_REFILL_REMINDER]: 'treatment_refill_reminder'
 }[canonicalPostSaleStage(stage)] || '');
 
 export const buildPostSaleIdempotencyKey = ({ shipment = {}, stage = '', variant = '' } = {}) => {
     const canonicalStage = canonicalPostSaleStage(stage || variant);
     if (!canonicalStage) return '';
+    const customerId = clean(
+        shipment?.raw?.historicalExternalReconciliation?.customerId
+        || shipment?.raw?.customerId
+        || shipment?.client?.customerId
+        || `phone:${String(shipment?.client?.phone || '').replace(/\D/g, '')}`
+    );
+    const deliveredThankYou = canonicalStage === POST_SALE_STAGES.DELIVERED_THANK_YOU;
+    const v147Key = buildPostSaleDedupeKeyV147({
+        customerId,
+        orderId: clean(shipment?.orderId),
+        shipmentId: clean(shipment?._id),
+        canonicalEvent: deliveredThankYou ? 'P5' : canonicalStage,
+        templateId: deliveredThankYou ? 'P5_DELIVERED_THANKYOU_NEUTRAL' : canonicalStage
+    });
+    if (v147Key) return v147Key;
     const identity = [
         'post-sale-v66',
         clean(shipment?.country || 'EC').toUpperCase(),

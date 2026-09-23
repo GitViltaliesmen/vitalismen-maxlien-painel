@@ -42,9 +42,11 @@ const clean = (value = '') => String(value ?? '').trim();
 const isTrue = (value) => clean(value).toLowerCase() === 'true';
 const normalizedPath = (value = '') => clean(value).split('?')[0].replace(/\/+$/, '') || '/';
 
-const manualDropiRouteMatch = (path = '') => normalizedPath(path).match(
-    /^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/(authorize-submit|submit)$/
-);
+const manualDropiRouteMatch = (path = '') => {
+    const routePath = normalizedPath(path);
+    return routePath.match(/^\/api\/shipments\/droppi\/ec\/orders\/[^/]+\/(authorize-submit|submit)$/)
+        || routePath.match(/^\/api\/shipments\/[^/]+\/(requeue-dropi-submit)$/);
+};
 
 export const resolveEcManualDropiReleaseV119Configuration = (env = process.env) => {
     const enabled = isTrue(env.VITALISMEN_EC_BOT_CORE_OPERATIONAL);

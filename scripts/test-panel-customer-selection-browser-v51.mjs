@@ -76,6 +76,14 @@ const json = (route, body, status = 200) => route.fulfill({
     body: JSON.stringify(body)
 });
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const waitUntil = async (predicate, { timeout = 5000, interval = 50 } = {}) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+        if (predicate()) return;
+        await delay(interval);
+    }
+    throw new Error('timeout aguardando condição do teste V51');
+};
 const patchBodies = [];
 const pageErrors = [];
 let oldAgencyRequestStarted;
@@ -171,22 +179,84 @@ try {
     assert.equal(await page.locator('#customerCityInput').inputValue(), 'Guayaquil');
     assert.equal(await page.locator('#customerProvinceInput').inputValue(), 'Guayas');
     assert.notEqual(await page.locator('#customerAgencyNameInput').inputValue(), 'Mira Principal');
+    assert.match(await page.locator(`[data-chat-id="${newId}"]`).getAttribute('class'), /\bactive\b/);
     assert.equal(
         patchBodies.some(({ path: requestPath, payload }) => (
             requestPath.includes(encodeURIComponent(newId))
-            && payload.customerDraft?.city === 'Mira'
+            && [
+                payload.customerDraft?.city,
+                payload.customerDraft?.province,
+                payload.customerDraft?.agencyName
+            ].some((value) => /mira/i.test(String(value || '')))
         )),
         false
     );
 
     await page.locator('#customerReferenceInput').fill('Los almendro');
-    await delay(5000);
-    const newClientSaves = patchBodies.filter(({ path: requestPath }) => requestPath.includes(encodeURIComponent(newId)));
-    assert.equal(newClientSaves.length, 1, 'a mesma agência não deve iniciar ciclo de autosave');
-    assert.equal(newClientSaves[0].payload.customerDraft.city, 'Guayaquil');
-    assert.equal(newClientSaves[0].payload.customerDraft.province, 'Guayas');
-    assert.equal(newClientSaves[0].payload.customerDraft.agencyName.toLowerCase(), 'guayaquil los almendros');
+    const suggestion = page.locator('#agencySuggestionList [data-agency-apply-index]').filter({
+        hasText: 'Guayaquil Los Almendros'
+    }).first();
+    await suggestion.waitFor({ state: 'visible' });
+    await waitUntil(() => patchBodies.some(({ path: requestPath, payload }) => (
+        requestPath.includes(encodeURIComponent(newId))
+        && payload.customerDraft?.reference === 'Los almendro'
+    )));
+    await delay(500);
+
+    const savesBeforeClick = patchBodies.filter(({ path: requestPath }) => requestPath.includes(encodeURIComponent(newId)));
+    assert.equal(await page.locator('#customerAgencyNameInput').inputValue(), '');
+    assert.equal(
+        savesBeforeClick.some(({ payload }) => Boolean(payload.customerDraft?.agencyName)),
+        false,
+        'a sugestão visível não pode aplicar ou salvar agência sem clique'
+    );
+
+    await suggestion.click();
+    await waitUntil(() => patchBodies.filter(({ path: requestPath }) => (
+        requestPath.includes(encodeURIComponent(newId))
+    )).length === savesBeforeClick.length + 1);
+    const savesAfterClick = patchBodies.filter(({ path: requestPath }) => requestPath.includes(encodeURIComponent(newId)));
+    const agencySave = savesAfterClick.at(-1);
+    assert.equal(savesAfterClick.length - savesBeforeClick.length, 1);
+    assert.equal(await page.locator('#customerAgencyNameInput').inputValue(), 'Guayaquil Los Almendros');
+    assert.equal(await page.locator('#customerCityInput').inputValue(), 'Guayaquil');
+    assert.equal(await page.locator('#customerProvinceInput').inputValue(), 'Guayas');
+    assert.equal(await page.locator('#customerDeliveryModeInput').inputValue(), 'agency');
+    assert.equal(agencySave.payload.customerDraft.city, 'Guayaquil');
+    assert.equal(agencySave.payload.customerDraft.province, 'Guayas');
+    assert.equal(agencySave.payload.customerDraft.deliveryMode, 'agency');
+    assert.equal(agencySave.payload.customerDraft.agencyName, 'Guayaquil Los Almendros');
+    assert.equal(
+        await page.evaluate((agency) => window.VitalismenCustomerSelectionGuardV51.agencySuggestionChangesForm({
+            agency,
+            current: {
+                city: document.querySelector('#customerCityInput').value,
+                province: document.querySelector('#customerProvinceInput').value,
+                deliveryMode: document.querySelector('#customerDeliveryModeInput').value,
+                agencyId: document.querySelector('#customerAgencyNameInput').dataset.agencyId || '',
+                agencyName: document.querySelector('#customerAgencyNameInput').value,
+                address: document.querySelector('#customerAddressInput').value
+            }
+        }), guayaquilAgency),
+        false
+    );
+
+    await suggestion.click();
+    await delay(1200);
+    const savesAfterReapply = patchBodies.filter(({ path: requestPath }) => requestPath.includes(encodeURIComponent(newId)));
+    assert.equal(savesAfterReapply.length, savesAfterClick.length, 'reaplicar a mesma agência não pode gerar autosave');
+    assert.match(await page.locator(`[data-chat-id="${newId}"]`).getAttribute('class'), /\bactive\b/);
     assert.deepEqual(pageErrors, []);
+    console.log('STALE_RESPONSE_ISOLATION=PASS');
+    console.log('MIRA_TO_GUAYAQUIL_LEAK=0');
+    console.log('WRONG_CUSTOMER_PATCH=0');
+    console.log('AGENCY_BEFORE_CLICK=EMPTY');
+    console.log('AGENCY_AFTER_CLICK=GUAYAQUIL_LOS_ALMENDROS');
+    console.log('SINGLE_AUTOSAVE_AFTER_CLICK=1');
+    console.log('SAME_AGENCY_REAPPLY_AUTOSAVE=0');
+    console.log('AGENCY_SUGGESTION_CHANGES_FORM_AFTER_APPLY=FALSE');
+    console.log('SELECTED_CHAT_PRESERVED=PASS');
+    console.log('PAGE_ERRORS=0');
     console.log('PANEL_CUSTOMER_SELECTION_BROWSER_V51=OK');
 } finally {
     await browser.close();

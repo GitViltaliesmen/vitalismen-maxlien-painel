@@ -1,0 +1,102 @@
+{
+  "freezeId": "V152_B_PROVIDER_INDEPENDENT_CORE_FREEZE_20260911",
+  "phase": "V152-B_PROVIDER_INDEPENDENT_CORE_ISOLATED",
+  "candidate": {
+    "commit": "dca19ea4511c8842c8399eaddce6ba3141427e5c",
+    "tree": "50b8c29ddffbf0a19d5599fcfd4456a38446ae6f",
+    "functionalHash": "e8d0afa587e427ca9897b42de6898a3e6e20eb5799a58c3794da69943f487168",
+    "candidateTag": "candidate-v152-b-provider-independent-core-20260911",
+    "freezeTag": "freeze-candidate-v152-b-provider-independent-core-20260911"
+  },
+  "policy": {
+    "publicationAllowed": false,
+    "operatorApprovalRequired": true,
+    "productionChanged": false,
+    "contaboProductionChanged": false,
+    "hostingerProductionChanged": false,
+    "zapiProductionChanged": false,
+    "zapiBehaviorChanged": false,
+    "realPairing": 0,
+    "realOutbound": 0,
+    "realCustomerRouting": 0,
+    "realHandoff": 0,
+    "metaCloudNetworkCalls": 0
+  },
+  "productionReadOnlyEvidence": {
+    "hostingerRelease": "/opt/vitalismen-automacao/releases/20260911T015641Z_production-20260911-59d12bf",
+    "servicePid": 445663,
+    "health": "online",
+    "zapi": "connected",
+    "connectedSessions": 1,
+    "vslMobileHttp": 200,
+    "vslDesktopHttp": 200,
+    "panelHttp": 200,
+    "funnelMetricsHttp": 200,
+    "pixelId": "920532663934291",
+    "canonicalPhone": "5531971862958",
+    "providerBoundPhone": "553171862958",
+    "phoneIdentityEquivalence": "PROVEN"
+  },
+  "validation": {
+    "focusedTests": {
+      "passed": 20,
+      "failed": 0
+    },
+    "existingFullSuite": {
+      "exitCode": 0,
+      "notOkCount": 0,
+      "nonZeroFailSummaryCount": 0
+    },
+    "restartSuite": "PASS",
+    "lintSyntaxFiles": 925,
+    "gitDiffCheck": "PASS",
+    "npmAuditVulnerabilities": 0,
+    "securityPredeploy": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "newAllowlistEntries": 0,
+      "sessionSecretExposure": 0,
+      "qrLogging": 0,
+      "rawQrPersistence": 0
+    },
+    "regressions": "NONE"
+  },
+  "changeManifest": [
+    { "file": "package.json", "purpose": "registrar comandos focados, guard e restart shadow V152-B", "requiredForV152B": true },
+    { "file": "public/qr.html", "purpose": "projetar somente o módulo Connections com canais shadow e ações reais desabilitadas", "requiredForV152B": true },
+    { "file": "scripts/fixtures/v152-b-shadow-child.mjs", "purpose": "simular persistência de sessão entre reinícios sem pairing", "requiredForV152B": true },
+    { "file": "scripts/guard-v152-b-provider-independent-core.mjs", "purpose": "bloquear rede, segredos, QR e efeitos reais na nova camada", "requiredForV152B": true },
+    { "file": "scripts/lib/ec-runtime-successor-v144-bootstrap-context.mjs", "purpose": "encadear o contexto sucessor autenticado V152-B", "requiredForV152B": true },
+    { "file": "scripts/lib/ec-runtime-successor-v152-b-context.mjs", "purpose": "validar hashes V148 e V152-B antes dos guards herdados", "requiredForV152B": true },
+    { "file": "scripts/refresh-v152-b-manifest.mjs", "purpose": "recalcular manifesto contra o commit-base congelado", "requiredForV152B": true },
+    { "file": "scripts/senior-guard.mjs", "purpose": "autorizar teste shadow sem segredos somente em worktree Git oficial autenticado", "requiredForV152B": true },
+    { "file": "scripts/test-v152-b-shadow-restart.mjs", "purpose": "provar dois reinícios isolados sem rede e sem pairing", "requiredForV152B": true },
+    { "file": "src/models/Message.js", "purpose": "estender o ledger e a fila persistente sem substituir o modelo existente", "requiredForV152B": true },
+    { "file": "src/models/OutboundDedupe.js", "purpose": "estender dedupe canônico aos cinco tipos de mensagem", "requiredForV152B": true },
+    { "file": "src/models/WhatsAppChannel.js", "purpose": "persistir registry por channelId com status, saúde e capacidade", "requiredForV152B": true },
+    { "file": "src/models/WhatsAppChannelTransfer.js", "purpose": "persistir registro único de transferência controlada", "requiredForV152B": true },
+    { "file": "src/models/WhatsAppConversationLease.js", "purpose": "persistir lease canônico com expiração e versão", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ChannelRegistry.js", "purpose": "gerenciar canais e espelhos legados sem migrar produção", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ChannelRouter.js", "purpose": "selecionar canais elegíveis com prioridade, peso e afinidade sem failover implícito", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ControlledHandoff.js", "purpose": "implementar handoffCustomer somente em sessão shadow explícita", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ConversationLease.js", "purpose": "adquirir, liberar e recuperar leases persistentes atomicamente", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/CustomerAffinity.js", "purpose": "adaptar sender wallet legado e compare-and-assign canônico", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/OutboundCoordinator.js", "purpose": "preparar bot, manual e pós-venda contra contrato comum em shadow", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/PersistentOutboundQueue.js", "purpose": "definir claim e conclusão persistentes sem cutover", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ProviderIndependentInboundOrchestrator.js", "purpose": "avaliar inbound normalizado sem conhecimento do provider", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/SessionManager.js", "purpose": "persistir fixtures fora da release com permissões restritas e sem QR", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/ShadowModeGate.js", "purpose": "bloquear pairing, outbound, routing, handoff e provider switch reais", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/UnifiedMessageLedger.js", "purpose": "reservar logicalMessageId uma única vez sobre Message e OutboundDedupe", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/WhatsAppTransport.js", "purpose": "definir o contrato canônico provider-independent", "requiredForV152B": true },
+    { "file": "src/whatsapp/core/phoneIdentity.js", "purpose": "provar equivalência por variante BR e evidência operacional", "requiredForV152B": true },
+    { "file": "src/whatsapp/transports/MetaCloudTransportNoop.js", "purpose": "reservar contrato futuro Meta Cloud sem token e sem rede", "requiredForV152B": true },
+    { "file": "src/whatsapp/transports/WhatsAppWebTransport.js", "purpose": "adaptar Baileys 6.7.24 exclusivamente para fixtures shadow", "requiredForV152B": true },
+    { "file": "src/whatsapp/transports/ZapiWhatsAppTransport.js", "purpose": "delegar ao zapiClient existente sem alterar comportamento", "requiredForV152B": true },
+    { "file": "tests/fixtures/v152-b-provider-parity.json", "purpose": "fornecer fixtures equivalentes Z-API e WhatsApp Web", "requiredForV152B": true },
+    { "file": "tests/v152-b-ledger-session-orchestrator.test.mjs", "purpose": "validar ledger, fila, sessão, lease e paridade inbound", "requiredForV152B": true },
+    { "file": "tests/v152-b-panel-security-regression.test.mjs", "purpose": "validar Connections e preservar módulos congelados do painel", "requiredForV152B": true },
+    { "file": "tests/v152-b-provider-contract.test.mjs", "purpose": "validar contrato comum, shadow gate, Meta noop e identidade telefônica", "requiredForV152B": true },
+    { "file": "tests/v152-b-routing-affinity-handoff.test.mjs", "purpose": "validar multi-canal, afinidade, peso, queda e handoff atômico shadow", "requiredForV152B": true }
+  ]
+}

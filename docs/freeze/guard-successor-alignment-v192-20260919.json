@@ -1,0 +1,100 @@
+{
+  "freezeId": "GUARD_SUCCESSOR_ALIGNMENT_V192_20260919",
+  "version": "V192",
+  "baseCommit": "c0cca110a87c82044db413934c7f017c23a9cfca",
+  "baseRelease": "20260919T011423Z_production-20260919-c0cca11",
+  "branch": "codex/v192-guard-successor-alignment",
+  "allowedFiles": [
+    "docs/GUARD_SUCCESSOR_ALIGNMENT_V192_20260919.md",
+    "docs/freeze/guard-successor-alignment-v192-20260919.json",
+    "scripts/audit-ec-nx-funnel-click-path-v192.mjs",
+    "scripts/guard-v192-successor-alignment.mjs",
+    "scripts/lib/ec-runtime-successor-v192-context.mjs",
+    "scripts/run-with-v192-context.mjs",
+    "tests/v192-guard-successor-alignment.test.mjs"
+  ],
+  "successorManifests": {
+    "docs/freeze/ec-traffic-restoration-v171-20260917.json": "01330069ed115f11f0eb9167621d8756cf89fbdf542e1c489b5b279c56802ee7",
+    "docs/freeze/v185-metrics-radar-readonly-20260918.json": "4434eece40862a52fb2db8cc6dc27c3c7de4f5c35f6dc931b203750d553363e7"
+  },
+  "authorizedOverrides": [
+    {
+      "path": ".github/workflows/ec-panel-quality.yml",
+      "currentSha256": "abe7214a834a61d1cd6626f0b18ebb9d2944397c5d7e7861a5fcbf2572764ab2",
+      "successorManifest": "docs/freeze/ec-traffic-restoration-v171-20260917.json",
+      "successorManifestSha256": "01330069ed115f11f0eb9167621d8756cf89fbdf542e1c489b5b279c56802ee7",
+      "reason": "V171 freezes the current workflow without reverting it"
+    },
+    {
+      "path": "src/routes/zapi.js",
+      "currentSha256": "173f73bf3aae4c86f46b25fba9e6c2d567d25061e87bd772c35491c979f16ec6",
+      "successorManifest": "docs/freeze/ec-traffic-restoration-v171-20260917.json",
+      "successorManifestSha256": "01330069ed115f11f0eb9167621d8756cf89fbdf542e1c489b5b279c56802ee7",
+      "reason": "V171 freezes the active Z-API route successor"
+    },
+    {
+      "path": "src/routes/whatsapp.js",
+      "currentSha256": "48900c53f38cf244a20d7917b397ba6ffdf1b70e66ba36fe7822905564ff6e6b",
+      "successorManifest": "docs/freeze/v185-metrics-radar-readonly-20260918.json",
+      "successorManifestSha256": "4434eece40862a52fb2db8cc6dc27c3c7de4f5c35f6dc931b203750d553363e7",
+      "reason": "V185 hash-locks the active WhatsApp route successor"
+    }
+  ],
+  "protectedFiles": {
+    "docs/GUARD_SUCCESSOR_ALIGNMENT_V192_20260919.md": "ee9b92629a10522564f716cccca22dc44ede6d699429439e99966c4ffcac9a38",
+    "scripts/audit-ec-nx-funnel-click-path-v192.mjs": "5a7068ae78efd44ef903a5b7b5052fe3e9e65140d3dfe080cbcfca3019932936",
+    "scripts/guard-v192-successor-alignment.mjs": "db730a0066b3ef374ed05a353204eb55384d6c5a0907078aa57afa15891e334c",
+    "scripts/lib/ec-runtime-successor-v192-context.mjs": "a6d03ea38b0660d9a17c6b08adac6ba3ab41bcdd37ff840ff7eb5a247cc3998f",
+    "scripts/run-with-v192-context.mjs": "e8728ef92d8ebf53a92ede24548ddea44727872058b6e3ceb15eaa9100fd6231",
+    "tests/v192-guard-successor-alignment.test.mjs": "6da06ccdd48ad42bb78b90a984ac5f1ebc9d76596eb7ff7f2b3a5e58bc93b25b"
+  },
+  "hashLocks": {
+    "VSL": {
+      "files": 72,
+      "sha256": "f6d85e3ebf0a0777d57c0afe019c2497eaab6071705b009a92703fec498bcedf"
+    },
+    "BOT_SALES_CORE": {
+      "files": 5,
+      "sha256": "5fa8c27605358988aac58397ff81862a8dcacb31c5511b65375d84261d133f85"
+    },
+    "QR_PANEL": {
+      "files": 1,
+      "sha256": "1d1faa581133eaaf19b25a0c62c2e2b146854803990637c04fe5326644c8c5f1"
+    },
+    "FUNNEL_METRICS": {
+      "files": 6,
+      "sha256": "cba26e6e0cfbb33f4e9da5c764b11b6ca3816a72939aeba431cbbdc6727ee2a7"
+    },
+    "POSTSALE_V188": {
+      "files": 172,
+      "sha256": "35b5b2425b09a1b732f26a8d49bcb76241de1b44957855ac65f3709ea26eda58"
+    },
+    "META_CAPI_FUNCTIONAL": {
+      "files": 21,
+      "sha256": "088fa6f4fb0dc149fe93ed828c69db2203ff07f439a273925e76533266718dea"
+    },
+    "ZAPI_RUNTIME": {
+      "files": 9,
+      "sha256": "5ac10b00133e6c3f5ee4e34561498610d3598f9f5b1f89a18a0a931cedfd9bad"
+    },
+    "WHATSAPP_RUNTIME": {
+      "files": 32,
+      "sha256": "19f47f6c6ee2316e14869bdbb380df5d36aeea36ff5829ec8f8825ba4b2e1505"
+    },
+    "PRODUCT_PRICE": {
+      "files": 7,
+      "sha256": "666ab35aad87fa0109ccc20cf62a3cf95303aa94af494fc64ea7698951a7b817"
+    }
+  },
+  "policy": {
+    "guardLineageOnly": true,
+    "runtimeFilesChanged": 0,
+    "vslChanged": false,
+    "botChanged": false,
+    "guardsBypassed": false,
+    "productionChanged": false,
+    "stageExecuted": false,
+    "deployExecuted": false,
+    "restartExecuted": false
+  }
+}

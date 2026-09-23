@@ -1,0 +1,32 @@
+{
+  "phoneIdentity": {
+    "canonicalPhone": "5531971862958",
+    "providerBoundPhone": "553171862958",
+    "evidence": {
+      "providerDeviceObserved": true,
+      "canonicalRoutingObserved": true,
+      "contactStateObservedCanonical": 2,
+      "contactStateObservedProviderBound": 9,
+      "messageProvider": "ZAPI",
+      "frozenProof": "V151_R2_NEW_PHONE_OPERATIONAL_PROOF_FROZEN"
+    }
+  },
+  "zapi": {
+    "message": {
+      "messageId": "provider-fixture-001",
+      "phone": "593991112233",
+      "type": "ReceivedCallback",
+      "text": { "message": "quiero tex ultra, retiro en agencia y compro el viernes" },
+      "timestamp": 1789092000000
+    }
+  },
+  "whatsappWeb": {
+    "message": {
+      "key": { "id": "provider-fixture-001", "remoteJid": "593991112233@s.whatsapp.net", "fromMe": false },
+      "type": "text",
+      "text": "quiero tex ultra, retiro en agencia y compro el viernes",
+      "timestamp": 1789092000000,
+      "phone": "593991112233"
+    }
+  }
+}

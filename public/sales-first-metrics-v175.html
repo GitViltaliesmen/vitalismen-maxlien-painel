@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f6f6f6">
+    <title>EC Sales-first · Métricas coerentes</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --page: #f6f6f6;
+            --surface: #ffffff;
+            --surface-2: #f0f0f0;
+            --ink: #171717;
+            --muted: #626262;
+            --border: #d2d2d2;
+            --green: #087f5b;
+            --green-soft: #e7f6f0;
+            --blue: #2463eb;
+            --blue-soft: #eaf0ff;
+            --orange: #b45309;
+            --orange-soft: #fff2dc;
+            --red: #b42318;
+            --red-soft: #ffebe9;
+            --radius: 10px;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); }
+        button, a { font: inherit; }
+        button:focus-visible, a:focus-visible { outline: 3px solid rgba(36, 99, 235, .35); outline-offset: 2px; }
+        .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 44px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .eyebrow { margin: 0 0 6px; color: var(--green); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        h1 { margin: 0; font-size: clamp(25px, 4vw, 38px); letter-spacing: -.035em; }
+        .subtitle { margin: 8px 0 0; color: var(--muted); max-width: 760px; line-height: 1.5; }
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .button { min-height: 44px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 700; cursor: pointer; }
+        .button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+        .button[disabled] { opacity: .55; cursor: wait; }
+        .status { display: flex; align-items: center; gap: 9px; min-height: 44px; margin-bottom: 16px; padding: 10px 13px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); }
+        .dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: var(--orange); }
+        .status.ok .dot { background: var(--green); }
+        .status.error { color: var(--red); border-color: #f2b8b5; background: var(--red-soft); }
+        .status.error .dot { background: var(--red); }
+        .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+        .card { min-height: 150px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, .035); }
+        .card.primary { border-color: #a7d8c7; background: var(--green-soft); }
+        .card.notice { border-color: #f0c58b; background: var(--orange-soft); }
+        .card.info { border-color: #b9c9f7; background: var(--blue-soft); }
+        .label { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
+        .value { margin-top: 12px; font-size: 38px; font-weight: 850; letter-spacing: -.045em; }
+        .hint { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+        .explain { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; margin-top: 12px; }
+        .panel { padding: 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+        .panel h2 { margin: 0 0 12px; font-size: 18px; }
+        .formula { display: grid; gap: 8px; }
+        .formula-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; min-height: 44px; padding: 8px 0; border-bottom: 1px solid #e7e7e7; }
+        .formula-row:last-child { border-bottom: 0; }
+        .formula-row strong { font-variant-numeric: tabular-nums; }
+        .bucket-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .bucket { padding: 12px; border-radius: 8px; background: var(--surface-2); }
+        .bucket strong { display: block; margin-top: 5px; font-size: 24px; }
+        .privacy { margin-top: 12px; padding: 13px 15px; border-left: 4px solid var(--green); background: var(--surface); color: var(--muted); line-height: 1.5; }
+        .privacy strong { color: var(--ink); }
+        .footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; color: var(--muted); font-size: 12px; }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .explain { grid-template-columns: 1fr; }
+            .topbar { align-items: flex-start; flex-direction: column; }
+        }
+        @media (max-width: 540px) {
+            .shell { width: min(100% - 20px, 1180px); padding-top: 18px; }
+            .grid, .bucket-grid { grid-template-columns: 1fr; }
+            .card { min-height: 132px; }
+            .footer { flex-direction: column; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Ecuador · Sales-first · somente leitura</p>
+                <h1>Métricas com a mesma base</h1>
+                <p class="subtitle">Separa histórico de clientes, conversas identificadas e entradas anônimas da VSL. Nenhum cliente, pedido ou evento é alterado.</p>
+            </div>
+            <div class="actions">
+                <a class="button" href="/qr.html">Voltar ao painel</a>
+                <button class="button primary" id="refreshButton" type="button">Atualizar agora</button>
+            </div>
+        </header>
+
+        <div class="status" id="status" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Carregando dados oficiais…</span></div>
+
+        <section class="grid" aria-label="Métricas comerciais coerentes">
+            <article class="card">
+                <div class="label">Clientes no histórico</div>
+                <div class="value" id="historicalClients">—</div>
+                <div class="hint">Contatos comerciais EC com telefone no banco.</div>
+            </article>
+            <article class="card info">
+                <div class="label">Conversas identificadas</div>
+                <div class="value" id="identifiedChats">—</div>
+                <div class="hint">Base correta para a conversão operacional visível.</div>
+            </article>
+            <article class="card notice">
+                <div class="label">Pré-leads VSL anônimos</div>
+                <div class="value" id="anonymousPreleads">—</div>
+                <div class="hint">Cliques recentes ainda sem telefone; não são clientes duplicados.</div>
+            </article>
+            <article class="card primary">
+                <div class="label">Conversão identificada</div>
+                <div class="value" id="identifiedConversion">—</div>
+                <div class="hint" id="identifiedFormula">Vendas ÷ conversas com pessoa identificada.</div>
+            </article>
+            <article class="card">
+                <div class="label">Conversas comerciais</div>
+                <div class="value" id="commercialVisible">—</div>
+                <div class="hint">Identificadas + pré-leads anônimos, sem aquecimento.</div>
+            </article>
+            <article class="card">
+                <div class="label">Vendas visíveis</div>
+                <div class="value" id="sales">—</div>
+                <div class="hint">Confirmado, enviado, entregue ou recompra.</div>
+            </article>
+            <article class="card">
+                <div class="label">Desistentes visíveis</div>
+                <div class="value" id="lost">—</div>
+                <div class="hint">Comprar depois, cancelado ou devolvido.</div>
+            </article>
+            <article class="card">
+                <div class="label">Conversão exibida no painel</div>
+                <div class="value" id="panelConversion">—</div>
+                <div class="hint" id="panelFormula">Inclui pré-leads anônimos no denominador.</div>
+            </article>
+        </section>
+
+        <section class="explain">
+            <article class="panel">
+                <h2>Por que os números pareciam errados</h2>
+                <div class="formula">
+                    <div class="formula-row"><span>Histórico total com telefone</span><strong id="formulaHistorical">—</strong></div>
+                    <div class="formula-row"><span>Conversas comerciais visíveis</span><strong id="formulaCommercial">—</strong></div>
+                    <div class="formula-row"><span>Menos pré-leads ainda sem telefone</span><strong id="formulaAnonymous">—</strong></div>
+                    <div class="formula-row"><span>Base identificada para conversão</span><strong id="formulaIdentified">—</strong></div>
+                </div>
+            </article>
+            <article class="panel">
+                <h2>Filas operacionais</h2>
+                <div class="bucket-grid">
+                    <div class="bucket"><span>Atendimento</span><strong id="bucketAttendance">—</strong></div>
+                    <div class="bucket"><span>Aquecimento</span><strong id="bucketEngagement">—</strong></div>
+                    <div class="bucket"><span>Pedidos</span><strong id="bucketOrders">—</strong></div>
+                    <div class="bucket"><span>Revisar</span><strong id="bucketReview">—</strong></div>
+                </div>
+            </article>
+        </section>
+
+        <div class="privacy"><strong>Camada isolada:</strong> usa apenas duas consultas GET já existentes, não lista nomes ou telefones e executa zero escritas. O painel congelado continua exatamente como está.</div>
+        <footer class="footer"><span id="generatedAt">Sem leitura concluída.</span><span>Atualização automática a cada 15 segundos.</span></footer>
+    </main>
+
+    <script src="/panel-intelligence/ec-sales-first-projection-v175.js"></script>
+    <script>
+        (() => {
+            'use strict';
+            const tokenKey = 'vitalismen_admin_token';
+            const el = (id) => document.getElementById(id);
+            const status = el('status');
+            const refreshButton = el('refreshButton');
+            let loading = false;
+
+            const setText = (id, value) => { el(id).textContent = String(value); };
+            const requestJson = async (path) => {
+                const token = window.localStorage.getItem(tokenKey) || '';
+                const response = await fetch(path, {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                });
+                if (!response.ok) {
+                    const error = new Error(response.status === 401
+                        ? 'Sessão expirada. Entre novamente no painel.'
+                        : `Leitura falhou com HTTP ${response.status}.`);
+                    error.status = response.status;
+                    throw error;
+                }
+                return response.json();
+            };
+
+            const render = (metrics) => {
+                setText('historicalClients', metrics.historicalClients);
+                setText('identifiedChats', metrics.identifiedCommercialChats);
+                setText('anonymousPreleads', metrics.anonymousVslPreleads);
+                setText('identifiedConversion', `${metrics.identifiedConversion}%`);
+                setText('commercialVisible', metrics.commercialVisible);
+                setText('sales', metrics.sales);
+                setText('lost', metrics.lost);
+                setText('panelConversion', `${metrics.panelConversion}%`);
+                setText('identifiedFormula', `${metrics.sales} ÷ ${metrics.identifiedCommercialChats} conversas identificadas.`);
+                setText('panelFormula', `${metrics.sales} ÷ ${metrics.commercialVisible}, incluindo ${metrics.anonymousVslPreleads} pré-lead(s).`);
+                setText('formulaHistorical', metrics.historicalClients);
+                setText('formulaCommercial', metrics.commercialVisible);
+                setText('formulaAnonymous', `− ${metrics.anonymousVslPreleads}`);
+                setText('formulaIdentified', metrics.identifiedCommercialChats);
+                setText('bucketAttendance', metrics.buckets.attendance);
+                setText('bucketEngagement', metrics.buckets.engagement);
+                setText('bucketOrders', metrics.buckets.orders);
+                setText('bucketReview', metrics.buckets.review);
+                const readAt = new Date(metrics.generatedAt);
+                setText('generatedAt', `Dados oficiais lidos em ${readAt.toLocaleString('pt-BR')}.`);
+            };
+
+            const refresh = async () => {
+                if (loading || document.hidden) return;
+                loading = true;
+                refreshButton.disabled = true;
+                status.className = 'status';
+                setText('statusText', 'Atualizando duas fontes oficiais somente leitura…');
+                try {
+                    const [dashboardMetrics, chats] = await Promise.all([
+                        requestJson('/api/whatsapp/dashboard-metrics?country=EC'),
+                        requestJson('/api/whatsapp/chats?country=EC&fast=1')
+                    ]);
+                    const metrics = window.VitalismenEcSalesFirstProjectionV175.projectEcSalesFirstMetrics({
+                        chats,
+                        dashboardMetrics
+                    });
+                    render(metrics);
+                    status.className = 'status ok';
+                    setText('statusText', `Leitura concluída: ${metrics.identifiedCommercialChats} conversas identificadas e ${metrics.anonymousVslPreleads} pré-leads anônimos.`);
+                } catch (error) {
+                    status.className = 'status error';
+                    setText('statusText', error.message || 'Falha ao atualizar as métricas.');
+                } finally {
+                    loading = false;
+                    refreshButton.disabled = false;
+                }
+            };
+
+            refreshButton.addEventListener('click', refresh);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+            window.setInterval(refresh, 15000);
+            refresh();
+        })();
+    </script>
+</body>
+</html>

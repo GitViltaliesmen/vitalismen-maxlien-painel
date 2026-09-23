@@ -3194,6 +3194,24 @@
             background: #f0fdf9;
         }
 
+        .agency-suggestion.top-match {
+            border-color: rgba(242, 162, 30, .88);
+            box-shadow: 0 0 0 2px rgba(242, 162, 30, .16);
+            background: rgba(242, 162, 30, .07);
+        }
+
+        .agency-top-match-label {
+            display: inline-flex;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 2px 7px;
+            background: #f2a21e;
+            color: #15100a !important;
+            font-size: 10px !important;
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+
         .agency-suggestion-main {
             border: 0;
             background: transparent;
@@ -8135,10 +8153,10 @@
                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
                         <button data-connection-country="EC" class="active" type="button">Equador</button>
                     </div>
-                    <div id="connectionSourceNote" class="connection-source-note">Conexao puxada da Z-API. O pareamento do celular e feito fora deste painel.</div>
+                    <div id="connectionSourceNote" class="connection-source-note">V152-B shadow sucessor V152-C0 sem telefone real. Z-API principal permanece ativa e sem mudanca.</div>
                     <form id="connectionForm" class="connection-form">
-                        <input id="connectionSessionInput" autocomplete="off" placeholder="ID do celular. Ex: atendimento-02">
-                        <button class="primary" type="submit">Adicionar QR</button>
+                        <input id="connectionSessionInput" autocomplete="off" placeholder="channelId do rascunho" aria-label="channelId do novo canal">
+                        <button class="primary" type="submit" disabled title="V152-C0 sem telefone de teste">Adicionar canal</button>
                     </form>
                     <div id="connectionList" class="connection-grid">
                         <div class="empty">Carregando conexoes...</div>
@@ -9016,6 +9034,7 @@
             customerFieldAutoSaveTimer: null,
             customerFieldAutoSaveSeq: 0,
             customerFieldAutoSaveInFlight: false,
+            customerFormSaveInFlight: false,
             customerFormEditRevision: 0,
             customerDataSaveQueue: Promise.resolve(),
             customerCorrectedFields: new Set(),
@@ -9095,7 +9114,7 @@
                 chat,
                 draft
             }) || chat.phone || draft.phone || '';
-            return {
+            const merged = {
                 ...chat,
                 name: valueOrCurrent('name', chat.name),
                 phone: stableConversationPhone,
@@ -9121,6 +9140,7 @@
                     phone: stableConversationPhone
                 }
             };
+            return merged;
         };
         const mergeSavedCustomerDraftIntoChat = (chat = {}) => {
             const saved = savedCustomerDraftForChat(chat);
@@ -9170,7 +9190,13 @@
             || ''
         );
         const chatTimestampValue = (chat = {}) => {
-            return parsePanelDateMs(chat.lastActivityAt || chat.lastMessage?.timestamp || chat.lastMessageAt || chat.updatedAt || chat.entryAt || chat.createdAt || 0);
+            return parsePanelDateMs(
+                chat.lastRelevantConversationActivityAt
+                || chat.lastActivityAt
+                || chat.lastMessage?.timestamp
+                || chat.lastMessageAt
+                || 0
+            );
         };
         const chatCompletenessScore = (chat = {}) => [
             chat.name,
@@ -9233,7 +9259,22 @@
                 firstInboundAt: earliestPanelDateValue(current.firstInboundAt, incoming.firstInboundAt) || primary.firstInboundAt || secondary.firstInboundAt || '',
                 lastInboundAt: latestPanelDateValue(current.lastInboundAt, incoming.lastInboundAt) || primary.lastInboundAt || secondary.lastInboundAt || '',
                 lastOutboundAt: latestPanelDateValue(current.lastOutboundAt, incoming.lastOutboundAt) || primary.lastOutboundAt || secondary.lastOutboundAt || '',
-                lastActivityAt: latestPanelDateValue(current.lastActivityAt, incoming.lastActivityAt, current.updatedAt, incoming.updatedAt, current.lastMessage?.timestamp, incoming.lastMessage?.timestamp),
+                lastRelevantConversationActivityAt: latestPanelDateValue(
+                    current.lastRelevantConversationActivityAt,
+                    incoming.lastRelevantConversationActivityAt,
+                    current.lastActivityAt,
+                    incoming.lastActivityAt,
+                    current.lastMessage?.timestamp,
+                    incoming.lastMessage?.timestamp
+                ),
+                lastActivityAt: latestPanelDateValue(
+                    current.lastRelevantConversationActivityAt,
+                    incoming.lastRelevantConversationActivityAt,
+                    current.lastActivityAt,
+                    incoming.lastActivityAt,
+                    current.lastMessage?.timestamp,
+                    incoming.lastMessage?.timestamp
+                ),
                 createdAt: earliestPanelDateValue(current.createdAt, incoming.createdAt) || primary.createdAt || secondary.createdAt || '',
                 updatedAt: latestPanelDateValue(current.updatedAt, incoming.updatedAt) || primary.updatedAt || secondary.updatedAt || '',
                 lastMessage: latestMessage,
@@ -9250,6 +9291,12 @@
                 shipmentNoticeStage: primary.shipmentNoticeStage || secondary.shipmentNoticeStage,
                 shipmentNoticeStages: primary.shipmentNoticeStages || secondary.shipmentNoticeStages
             };
+            merged.orderStatus = authoritativePanelStatusForChat(merged);
+            merged.customerDraft = {
+                ...(merged.customerDraft || {}),
+                status: merged.orderStatus
+            };
+            return merged;
         };
         const dedupeChatsForPanel = (chats = []) => {
             const byKey = new Map();
@@ -9700,6 +9747,25 @@
                 throw error;
             }
             return data;
+        };
+
+        const assertConfirmedPersistenceV158 = (contactSave = {}, requestedDraft = {}) => {
+            if (normalizePanelStatus(requestedDraft.status) !== 'confirmado' || contactSave.orderBlocked === true) {
+                return contactSave;
+            }
+            const proof = contactSave.confirmedPersistence || {};
+            const verified = contactSave.success === true
+                && proof.persistenceVerified === true
+                && proof.readAfterWriteVerified === true
+                && proof.visibleInConfirmedQuery === true
+                && Number(proof.matchedCount || 0) === 1
+                && normalizePanelStatus(proof.finalPersistedState) === 'confirmado';
+            if (!verified) {
+                const error = new Error('A confirmacao nao foi comprovada no painel. Atualize e tente novamente; nenhum sucesso foi declarado.');
+                error.response = contactSave;
+                throw error;
+            }
+            return contactSave;
         };
 
         const signedOutZapiText = 'Faça login para consultar a conexão';
@@ -10368,19 +10434,29 @@
             const zapiKey = digitsOnlyText(zapiPhone);
             const zapiItem = workloadBySession.get(zapiKey) || {};
             const countryLabel = 'Equador';
-            const sourceText = 'Z-API da operacao Ecuador. O pareamento do celular e feito fora deste painel.';
+            const sourceText = 'V152-B shadow sucessor V152-C0: PAIRING_PENDING_REAL_TEST_CHANNEL. Pareamento, outbound, roteamento e troca de provedor reais estao bloqueados.';
             if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
+            const actionLabels = ['Detalhes', 'Health', 'Pausar', 'Ativar', 'Drenar', 'Transferir', 'Parear'];
+            const v152CompatibilityActions = ['Details', 'Health', 'Pause', 'Activate', 'Drain', 'Transfer', 'Pair'];
+            const v152LegacyDraftChannelId = 'WHATSAPP_WEB_DRAFT';
+            void v152LegacyDraftChannelId;
+            const actionButtons = `
+                <div class="connection-actions" aria-label="Acoes de canal indisponiveis na fase shadow">
+                    ${actionLabels.map((label, index) => `<button type="button" data-v152-channel-action="${v152CompatibilityActions[index].toLowerCase()}" data-v152-c0-channel-action="${label.toLowerCase()}" ${label === 'Parear' ? 'data-v152-c0-pair-state="DISABLED_NO_TEST_PHONE"' : ''} disabled title="Bloqueado na V152-C0 sem telefone real">${label}</button>`).join('')}
+                </div>`;
             const zapiCard = `
                     <article class="connection-card">
                         <div class="connection-card-head">
-                            <strong>WhatsApp principal - ${escapeHtml(countryLabel)}</strong>
+                            <strong>LEGACY_ZAPI_PRIMARY</strong>
                             <span class="badge ${badgeClass(zapiStatus)}">${zapiAvailableForCountry ? 'CONECTADO' : 'OFFLINE'}</span>
                         </div>
-                        <button class="connection-status-button ${zapiAvailableForCountry ? 'connected' : 'disconnected'}" type="button" disabled>Z-API - STATUS ${zapiAvailableForCountry ? 'CONECTADO' : 'DESCONECTADO'}</button>
-                        <div class="meta">${escapeHtml(zapiPhone ? `numero conectado: ${zapiPhone}` : 'sem telefone conectado para esta operacao')}</div>
+                        <button class="connection-status-button ${zapiAvailableForCountry ? 'connected' : 'disconnected'}" type="button" disabled>provider=ZAPI · status=${zapiAvailableForCountry ? 'ACTIVE' : 'DEGRADED'}</button>
+                        <div class="meta">channelId=LEGACY_ZAPI_PRIMARY · phone=${escapeHtml(zapiPhone || 'not-reported')}</div>
+                        <div class="meta">health=${zapiAvailableForCountry ? 'healthy' : 'unavailable'} · priority=1 · weight=1 · draining=false · session=compatibility-mirror</div>
                         ${renderConnectionStatusBlock(zapiItem)}
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? (zapi.device?.name || 'Instancia Z-API') : `Operacao ${countryLabel}`)}</div>
                         <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para atendimento humano no Ecuador.' : (zapi.error || 'Z-API ainda nao respondeu.'))}</div>
+                        ${actionButtons}
                     </article>
                 `;
             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -10389,10 +10465,9 @@
                 const sessionKey = digitsOnlyText(session.ownPhoneDigits || session.sessionId);
                 return !zapiAvailableForCountry || !zapiKey || sessionKey !== zapiKey;
             }).length;
-            const reservedCard = reservedSlotCount > 0
-                ? `<article class="connection-card connection-card-muted"><strong>Estrutura multi-numero preservada</strong><div class="meta">${reservedSlotCount} slot(s) reservado(s). Use Z-API quando precisar ativar outro celular.</div></article>`
-                : '';
-            el('connectionList').innerHTML = `${zapiCard}${reservedCard}`;
+            const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_TEMPLATE</strong><span class="badge">SHADOW</span><div class="meta">provider=WHATSAPP_WEB · phone=NULL · status=DRAFT · health=UNKNOWN</div><div class="meta">priority=0 · weight=0 · capacity=0 · draining=true · session status=PAIRING_PENDING_REAL_TEST_CHANNEL</div>${actionButtons}</article>`;
+            const preservedCard = `<article class="connection-card connection-card-muted"><strong>OLD_BLOCKED_PHONE</strong><div class="meta">provider=ZAPI · phone=preserved-hidden · status=BLOCKED · health=preserved</div><div class="meta">priority=999 · weight=0 · capacity=0 · draining=true · session status=preserved</div>${actionButtons}</article>`;
+            el('connectionList').innerHTML = `${zapiCard}${draftCard}${preservedCard}`;
             setConnectionOpsPanel(sessions, workloadBySession);
         };
 
@@ -10415,34 +10490,13 @@
 
         async function startConnectionSession(sessionIdValue) {
             const raw = String(sessionIdValue || '').trim();
-            if (!raw) throw new Error('Informe o ID do celular');
-            const sessionIdValueSafe = raw.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-            const result = await api(`/api/whatsapp/sessions/${encodeURIComponent(sessionIdValueSafe)}/start`, { method: 'POST' });
-            const nextSession = result.session || {};
-            state.whatsappSessions = [
-                nextSession,
-                ...state.whatsappSessions.filter((item) => item.sessionId !== nextSession.sessionId)
-            ];
-            renderConnections();
-            showToast(`Conexao ${nextSession.sessionId || sessionIdValueSafe} iniciada`);
-            await loadConnections();
+            if (!raw) throw new Error('Informe o channelId do rascunho');
+            throw new Error('V152-C0: DISABLED_NO_TEST_PHONE');
         }
 
         async function disconnectConnectionSession(sessionIdValue) {
-            const raw = String(sessionIdValue || '').trim();
-            if (!raw) throw new Error('ID do celular invalido');
-            const result = await api(`/api/whatsapp/sessions/${encodeURIComponent(raw)}/disconnect`, {
-                method: 'POST',
-                body: JSON.stringify({ logout: true })
-            });
-            const nextSession = result.session || {};
-            state.whatsappSessions = [
-                nextSession,
-                ...state.whatsappSessions.filter((item) => item.sessionId !== nextSession.sessionId)
-            ];
-            renderConnections();
-            showToast(`Celular ${nextSession.sessionId || raw} desconectado`);
-            await loadConnections();
+            void sessionIdValue;
+            throw new Error('V152-C0 shadow: mudanca de canal bloqueada');
         }
 
         const currentChatPhone = () => {
@@ -10600,6 +10654,16 @@
                 returned: 'devolvido'
             };
             return aliases[value] || (PANEL_STATUSES.includes(value) ? value : 'novo');
+        };
+        const authoritativePanelStatusForChat = (chat = {}) => {
+            const operational = chat.operationalStatus || {};
+            if (String(operational.source || '').toLowerCase() === 'shipment') {
+                const shipmentStatus = normalizePanelStatus(operational.key || '');
+                if (['pedido_enviado', 'entregue', 'devolvido'].includes(shipmentStatus)) return shipmentStatus;
+            }
+            const draftStatus = String(chat.customerDraft?.status || '').trim();
+            if (draftStatus) return normalizePanelStatus(draftStatus);
+            return normalizePanelStatus(chat.orderStatus || 'novo');
         };
         const orderStatusForApi = (status) => ({
             confirmado: 'confirmed',
@@ -10972,6 +11036,9 @@
             if (!autoReplyGloballyActive()) return 'bot desligado - observador ativo';
             return chat?.human?.mode === 'manual' ? `atendente no comando: ${owner}` : 'automacao ativa';
         };
+        const customerFormSaveBusy = () => Boolean(
+            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight
+        );
         const setAttendancePulse = (chat) => {
             const globalOff = !autoReplyGloballyActive();
             const manual = chat?.human?.mode === 'manual';
@@ -11132,7 +11199,7 @@
             }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
                 button.textContent = 'Salvar dados';
-                button.disabled = state.busy;
+                button.disabled = customerFormSaveBusy();
                 stateBadge.textContent = status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
                 stateBadge.className = `badge ${status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
                 hint.textContent = status === 'confirmado' && (missing.length || qualityBlocked)
@@ -11142,7 +11209,7 @@
                     : 'Pedido ja esta em fluxo. Use Salvar dados apenas para corrigir a ficha.';
                 return;
             }
-            button.disabled = state.busy;
+            button.disabled = customerFormSaveBusy();
             if (missing.length) {
                 button.textContent = 'Salvar dados';
                 stateBadge.textContent = `${missing.length} faltando`;
@@ -11278,21 +11345,28 @@
             return `${name ? `${name}, ` : 'Senor, '}${intro}`;
         };
         const agencyOptionLine = (agency, index = null) => {
+            const catalogFormatter = window.VitalismenAgencyCatalog?.formatAgencyOptionMessage;
+            if (typeof catalogFormatter === 'function') {
+                return catalogFormatter(agency, index);
+            }
             const cleanField = (value, fallback) => {
                 const text = String(value || '').trim();
                 return text && text.toLowerCase() !== 'undefined' && text.toLowerCase() !== 'null' ? text : fallback;
             };
             const number = index || 1;
             const agencyName = cleanField(agency.name, '');
-            const name = agencyName ? `Servientrega ${agencyName}` : 'Servientrega';
-            const address = cleanField(agency.address, 'Endereco da agencia');
-            const location = cleanField([agency.city, agency.province].filter(Boolean).join(', '), 'Cidade, Provincia');
+            const name = agencyName
+                ? (/^servientrega\b/i.test(agencyName) ? agencyName : `Servientrega ${agencyName}`)
+                : 'Servientrega';
+            const address = cleanField(agency.address, 'Dirección de la agencia');
+            const sector = cleanField(agency.sector, '');
+            const location = cleanField([agency.city, agency.province].filter(Boolean).join(', '), 'Ciudad, Provincia');
             return [
-                `Opcion ${number}`,
-                `Agencia: ${name}`,
-                `Direccion / Referencia: ${address}`,
-                `Ciudad / Provincia: ${location}`
-            ].join('\n');
+                `Opción ${number}: ${name}`,
+                address,
+                sector ? `Sector ${sector}` : '',
+                location
+            ].filter(Boolean).join(' - ');
         };
         const applyAgencySuggestion = (agency, { automatic = false, selectionScope = null } = {}) => {
             if (!agency) return;
@@ -11334,9 +11408,13 @@
                 showToast('Nenhuma agencia para enviar.');
                 return;
             }
+            const requestedStartNumber = Number.parseInt(String(options.startNumber || ''), 10);
+            const startNumber = Number.isSafeInteger(requestedStartNumber) && requestedStartNumber > 0
+                ? requestedStartNumber
+                : 1;
             const messages = [
                 agencyIntroLine(),
-                ...selectedAgencies.map((agency, index) => agencyOptionLine(agency, index + 1))
+                ...selectedAgencies.map((agency, index) => agencyOptionLine(agency, startNumber + index))
             ].filter((message) => message && !message.includes('undefined'));
             const originalLabel = button?.textContent || '';
             state.sendingMessage = true;
@@ -11427,8 +11505,9 @@
             if (el('prevAgencyBatchBtn')) el('prevAgencyBatchBtn').disabled = offset <= 0;
             if (el('nextAgencyBatchBtn')) el('nextAgencyBatchBtn').disabled = offset + visibleAgencies.length >= total;
             list.innerHTML = visibleAgencies.map((agency, index) => `
-                <div class="agency-suggestion">
+                <div class="agency-suggestion ${agency.topMatch ? 'top-match' : ''}">
                     <button class="agency-suggestion-main" data-agency-apply-index="${index}" type="button">
+                        ${agency.topMatch ? '<span class="agency-top-match-label">Melhor resultado</span>' : ''}
                         <strong>${escapeHtml(agency.name || 'Servientrega')}</strong>
                         <span>${escapeHtml(agency.address || '')}</span>
                         <span>${escapeHtml([agency.city, agency.province].filter(Boolean).join(' / '))}</span>
@@ -11446,7 +11525,9 @@
                 button.addEventListener('click', () => {
                     const index = Number(button.dataset.agencySendIndex);
                     applyAgencySuggestion(visibleAgencies[index]);
-                    sendAgencyMessagesToCustomer([visibleAgencies[index]], button).catch((error) => showToast(error.message));
+                    sendAgencyMessagesToCustomer([visibleAgencies[index]], button, {
+                        startNumber: state.agencySuggestionOffset + index + 1
+                    }).catch((error) => showToast(error.message));
                 });
             });
         };
@@ -11488,16 +11569,10 @@
                 el('agencySuggestions').classList.remove('hidden');
                 el('agencySuggestionsState').textContent = 'buscando...';
                 try {
-                    let automaticQuery = q;
-                    let cityUsedAsAgencyQuery = false;
-                    let payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100`);
-                    let agencies = payload.agencies || [];
-                    if (!agencies.length && !q && city.length >= 3 && !province) {
-                        payload = await api(`/api/shipments/servientrega/ec/agencies?city=&province=&q=${encodeURIComponent(city)}&limit=100`);
-                        agencies = payload.agencies || [];
-                        automaticQuery = city;
-                        cityUsedAsAgencyQuery = agencies.length > 0;
-                    }
+                    const automaticQuery = q;
+                    const cityUsedAsAgencyQuery = false;
+                    const payload = await api(`/api/shipments/servientrega/ec/agencies?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&q=${encodeURIComponent(q)}&limit=100&strictCity=1`);
+                    const agencies = payload.agencies || [];
                     if (
                         !isCustomerSelectionScopeCurrent(selectionScope)
                         || state.agencyLookupSeq !== lookupSeq
@@ -11533,16 +11608,8 @@
                                 : 'Cidade e provincia validadas pelo catalogo oficial Servientrega.';
                         }
                     }
-                    if (automaticQuery && intelligence?.selectAutomaticAgency) {
-                        const automaticMatch = intelligence.selectAutomaticAgency(agencies, { query: automaticQuery });
-                        if (automaticMatch.matched && automaticMatch.agency) {
-                            applyAgencySuggestion(automaticMatch.agency, {
-                                automatic: true,
-                                selectionScope
-                            });
-                        } else if (automaticMatch.ambiguous) {
-                            el('customerSyncHint').textContent = 'Referencia corresponde a mais de uma agencia; escolha uma sugestao para evitar erro.';
-                        }
+                    if (automaticQuery && agencies.length > 0) {
+                        el('customerSyncHint').textContent = 'Melhor correspondência destacada. Clique na agência correta para selecioná-la.';
                     }
                 } catch (error) {
                     if (!isCustomerSelectionScopeCurrent(selectionScope) || state.agencyLookupSeq !== lookupSeq) return;
@@ -11840,10 +11907,10 @@
                 return;
             }
             logisticsBanner.hidden = false;
-            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified ? 'ready' : ''}`;
-            if (shipment.status === 'READY_FOR_PICKUP' && shipment.pickupReadyVerified) {
+            logisticsBanner.className = `logistics-state-banner ${shipment.status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified ? 'ready' : ''}`;
+            if (shipment.status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified) {
                 logisticsBanner.innerHTML = '<span>✅ PRONTO PARA RETIRADA</span><span>✅ CLIENTE JÁ PODE IR</span>';
-            } else if (['SHIPPED', 'IN_TRANSIT', 'READY_FOR_PICKUP'].includes(shipment.status)) {
+            } else if (['GUIDE_CREATED', 'PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY', 'READY_FOR_PICKUP'].includes(shipment.status)) {
                 logisticsBanner.innerHTML = shipment.status === 'READY_FOR_PICKUP'
                     ? '<span>⚠️ READY NÃO VERIFICADO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>'
                     : '<span>📦 ENVIADO</span><span>🚚 EM TRÂNSITO</span><span>🚫 NÃO IR À AGÊNCIA AINDA</span>';
@@ -11899,11 +11966,17 @@
             ) || state.chats
         );
 
+        const isUncontactableVslPrelead = (chat = {}) => (
+            chat.vslPrelead === true
+            && !digitsOnlyText(chat.phone || chat.customerDraft?.phone || '')
+        );
+
         const visibleOperationalChats = (options = {}) => {
             const ownZapiPhone = digitsOnlyText(state.zapiDevice?.device?.phone || '');
             const selectedCountry = selectedOperationalCountry();
             const search = String(options.search || '').trim();
             return dedupeChatsForPanel(panelChatsIncludingRemoteSearch()).filter((chat) => {
+                if (isUncontactableVslPrelead(chat)) return false;
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                 const matchesSearch = chatMatchesSearch(chat, search);
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;
@@ -11976,12 +12049,12 @@
             ) || operationalChats.filter((chat) => chatConversationBucket(chat) !== 'engagement');
             const manualCount = visibleChats.filter((chat) => chat.human?.mode === 'manual').length;
             const mineCount = visibleChats.filter(isMine).length;
-            const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(normalizePanelStatus(chat.orderStatus))).length;
+            const closedInChats = visibleChats.filter((chat) => closedOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const confirmedOrders = state.orders.filter((order) => String(order.status || '').toLowerCase() === 'confirmed').length;
             const closedCount = Math.max(closedInChats, confirmedOrders);
-            const salesInChats = visibleChats.filter((chat) => salesOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))).length;
+            const salesInChats = visibleChats.filter((chat) => salesOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const salesCount = Math.max(salesInChats, confirmedOrders);
-            const lostCount = visibleChats.filter((chat) => lostOrderStatuses.has(normalizePanelStatus(chat.orderStatus || chat.customerDraft?.status))).length;
+            const lostCount = visibleChats.filter((chat) => lostOrderStatuses.has(authoritativePanelStatusForChat(chat))).length;
             const conversionRate = visibleChats.length ? Math.round((salesCount / visibleChats.length) * 100) : 0;
             const reviewCount = Number.isFinite(state.dropiOrderStats?.authorization)
                 ? state.dropiOrderStats.authorization
@@ -12065,13 +12138,13 @@
         const shipmentStatusFromChat = (chat) => {
             const shipment = chat?.shipment || {};
             const status = String(shipment.status || '').toUpperCase();
-            if (/DEVUELT|DEVOLUC|RETURN/.test(status)) return 'devolvido';
-            if (/ENTREGAD|DELIVER/.test(status) || shipment.bonusNotifiedAt) return 'entregue';
+            if (['RETURNED', 'DEVUELTO'].includes(status)) return 'devolvido';
+            if (['DELIVERED', 'ENTREGADO'].includes(status) || shipment.bonusNotifiedAt) return 'entregue';
             if (
                 shipment.trackingNumber
                 || shipment.guiaNotifiedAt
                 || shipment.readyForPickupNotifiedAt
-                || /READY_FOR_PICKUP|RETIRO|RETIRADA|GUIA|RUTA|REPARTO|DESPACHO|BODEGA|AGENCIA|PENDIENTE|INGRESANDO|TRANSPORTADORA/.test(status)
+                || ['GUIDE_CREATED', 'PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY', 'READY_FOR_PICKUP', 'NOT_PICKED_UP', 'RETURNING', 'EXCEPTION'].includes(status)
             ) return 'pedido_enviado';
             return '';
         };
@@ -12085,9 +12158,7 @@
             return '';
         };
         const chatDisplayStatus = (chat) => orderStatusInfo(
-            shipmentStatusFromChat(chat)
-            || chat.orderStatus
-            || chat.customerDraft?.status
+            authoritativePanelStatusForChat(chat)
             || statusFromChatTags(chat)
             || (chat.human?.mode === 'manual' ? 'atendendo' : 'novo')
         );
@@ -12096,13 +12167,18 @@
             const shipment = chat?.shipment || {};
             const status = String(shipment.status || '').toUpperCase();
             const trackingNumber = String(shipment.trackingNumber || '').trim();
-            if (status.includes('NOVEDAD')) return { label: 'Novedad Servientrega', className: 'notice warn' };
-            if (/ENTREGADO|DELIVERED/.test(status)) return { label: 'Entregue', className: 'notice ok' };
-            if (/READY_FOR_PICKUP|AGENCIA|RETIRO|RETIRADA/.test(status)) return { label: 'Retiro agencia', className: 'notice ok' };
-            if (/RUTA|REPARTO|DESPACHO|TRANSITO|EN_CAMINO/.test(status)) return { label: 'Em rota', className: 'notice ok' };
-            if (trackingNumber || /GUIA_GENERADA|PREPARADO|PENDIENTE|BODEGA|MERCANCIA/.test(status)) {
-                return { label: trackingNumber ? 'Guia gerada' : 'Pedido enviado', className: 'notice ok' };
+            if (status === 'READY_FOR_PICKUP' && shipment.canPickup === true && shipment.pickupReadyVerified === true) {
+                return { label: shipment.panelLabel || 'Disponível para retirada', className: 'notice ok' };
             }
+            if (status === 'DELIVERED') return { label: shipment.panelLabel || 'Entregue', className: 'notice ok' };
+            if (status === 'RETURNED') return { label: shipment.panelLabel || 'Devolvido', className: 'notice warn' };
+            if (['NOT_PICKED_UP', 'RETURNING', 'EXCEPTION', 'UNKNOWN'].includes(status)) {
+                return { label: shipment.panelLabel || 'Revisão logística', className: 'notice warn' };
+            }
+            if (['PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'].includes(status)) {
+                return { label: shipment.panelLabel || 'Em trânsito · ainda não retirar', className: 'notice ok' };
+            }
+            if (status === 'GUIDE_CREATED' || trackingNumber) return { label: shipment.panelLabel || 'Guia gerada · ainda não retirar', className: 'notice ok' };
             return null;
         };
         const visibleShipmentNoticeLabel = (chat) => {
@@ -12271,12 +12347,12 @@
                 if (!searchActive && state.chatFilter === 'labels' && !hasVisibleLabels(chat)) return false;
                 return chatMatchesSearch(chat, search);
             }).sort((left, right) => {
+                const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
+                if (activityDifference) return activityDifference;
                 const unansweredDifference = Number(Number(right.unansweredCount || 0) > 0) - Number(Number(left.unansweredCount || 0) > 0);
                 if (unansweredDifference) return unansweredDifference;
                 const unreadDifference = Number(Number(right.unreadCount || 0) > 0) - Number(Number(left.unreadCount || 0) > 0);
                 if (unreadDifference) return unreadDifference;
-                const activityDifference = chatTimestampValue(right) - chatTimestampValue(left);
-                if (activityDifference) return activityDifference;
                 return parsePanelDateMs(chatEntryAtRaw(right)) - parsePanelDateMs(chatEntryAtRaw(left));
             });
 
@@ -12314,7 +12390,9 @@
                 const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
                 const vslWaiting = isVslAwaitingHuman(chat);
                 const needsAttention = vslWaiting || unansweredCount > 0;
-                const attentionTitle = unansweredCount > 0
+                const attentionTitle = chat.vslPrelead === true
+                    ? 'Entrada VSL registrada; aguardando o primeiro WhatsApp com telefone real'
+                    : unansweredCount > 0
                     ? `${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} do cliente sem resposta`
                     : 'Cliente da VSL sem atendimento';
                 const attentionLabel = unansweredCount > 0 ? unansweredLabel : '!';
@@ -12336,7 +12414,7 @@
                                     </span>
                                 </div>
                                 <div class="chat-phone-line">
-                                    <span class="chat-phone-value">${escapeHtml(chat.phone || chat.id || 'sem telefone')}</span>
+                                    <span class="chat-phone-value">${escapeHtml(chat.vslPrelead === true ? 'AGUARDANDO WHATSAPP' : (chat.phone || chat.id || 'sem telefone'))}</span>
                                     ${needsAttention ? `<span class="chat-phone-attention ${unansweredCount > 0 ? 'customer-message' : ''}" title="${escapeHtml(attentionTitle)}" aria-label="${escapeHtml(attentionTitle)}">${escapeHtml(attentionLabel)}</span>` : ''}
                                 </div>
                                 <div class="chat-entry-line ${escapeHtml(entryInfo.className)}" title="${escapeHtml(entryInfo.title)}">
@@ -12348,7 +12426,9 @@
                                     <span class="chat-badges">
                                         <span class="badge ${escapeHtml(bucketInfo.className)}">${escapeHtml(bucketInfo.label)}</span>
                                         ${orderBadge}
-                                        ${vslWaiting ? '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>' : ''}
+                                        ${vslWaiting ? (chat.vslPrelead === true
+                                            ? '<span class="badge orange" title="Prelead VSL canônico sem telefone inventado; será consolidado quando o WhatsApp chegar">AGUARDANDO WHATSAPP</span>'
+                                            : '<span class="badge orange" title="Entrada registrada pela VSL; nenhum atendente humano assumiu este cliente ainda">VSL · sem atendimento</span>') : ''}
                                         ${unansweredCount ? `<span class="badge orange" title="${escapeHtml(`${unansweredLabel} mensagem${unansweredCount === 1 ? '' : 'ns'} sem resposta`)}">${escapeHtml(unansweredLabel)} pendente${unansweredCount === 1 ? '' : 's'}</span>` : ''}
                                         <span class="badge ${chat.human?.mode === 'manual' ? 'orange' : 'green'}">${escapeHtml(owner)}</span>
                                     </span>
@@ -12356,7 +12436,7 @@
                                 </div>
                                 ${renderChatLabels(chat)}
                                 <div class="chat-foot">
-                                    <div class="meta truncate">${escapeHtml(chat.phone || chat.id)} ${chat.country ? ' · ' + escapeHtml(chat.country) : ''}</div>
+                                    <div class="meta truncate">${escapeHtml(chat.vslPrelead === true ? 'Telefone ainda não informado' : (chat.phone || chat.id))} ${chat.country ? ' · ' + escapeHtml(chat.country) : ''}</div>
                                     ${chat.orderId ? `<div class="meta">${escapeHtml(chat.orderId)}</div>` : ''}
                                 </div>
                             </div>
@@ -15263,6 +15343,28 @@
             el('sendBtn').disabled = false;
             renderSelectedDetails();
             renderCustomerProfile();
+            if (chat.vslPrelead === true) {
+                el('sendBtn').disabled = true;
+                el('attachMediaBtn').disabled = true;
+                el('emojiBtn').disabled = true;
+                el('claimBtn').disabled = true;
+                el('releaseBtn').disabled = true;
+                el('chatActionSelect').disabled = true;
+                el('conversationBucketSelect').disabled = true;
+                el('saveCustomerBtn').disabled = true;
+                el('sendSelectedDropiBtn').disabled = true;
+                el('buyLaterBtn').disabled = true;
+                el('clearRepeatedBotBtn').disabled = true;
+                el('scanCustomerDataBtn').disabled = true;
+                el('confirmCustomerDataBtn').disabled = true;
+                el('flowCorrectionBtn').disabled = true;
+                closeFlowCorrectionMenu();
+                document.querySelectorAll('[data-footer-draft-template], [data-footer-media-url], [data-price-preset], [data-draft-template]').forEach((button) => {
+                    button.disabled = true;
+                });
+                el('conversation').innerHTML = '<div class="empty"><strong>VSL registrada.</strong><br>Aguardando a primeira mensagem no WhatsApp para consolidar o telefone real e abrir uma única conversa.</div>';
+                return;
+            }
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
             if (markRead) markSelectedChatRead().catch(() => null);
             loadSelectedMessages({ force: true, limit: 60, bypassLoading: true }).catch((error) => showToast(error.message));
@@ -15374,7 +15476,8 @@
                 : (autoReplyGloballyActive() ? 'Automacao ativa' : 'Observador ativo');
             el('scanCustomerDataBtn').disabled = false;
             el('customerSmartDataStatus').textContent = 'Analisando apenas as mensagens recebidas deste cliente...';
-            const status = orderStatusInfo(chat.orderStatus);
+            const authoritativeStatus = authoritativePanelStatusForChat(chat);
+            const status = orderStatusInfo(authoritativeStatus);
             const entryInfo = chatEntryInfo(chat);
             const displayName = chatDisplayName(chat);
             const displayPhone = compact(chat.phone || chat.id);
@@ -15446,7 +15549,7 @@
                 setInputValue('customerProductInput', productKeyFromChat(chat));
                 renderCustomerProductSelection(chat);
                 setInputValue('customerPhoneInput', chat.phone || '');
-                setInputValue('customerStatusInput', chat.orderStatus || '');
+                setInputValue('customerStatusInput', authoritativeStatus);
                 setInputValue('customerBuyLaterDateInput', chat.customerDraft?.buyLaterFollowupAt || chat.buyLaterFollowupAt || '');
                 setInputValue('customerCityInput', chat.city || '');
                 setInputValue('customerProvinceInput', chat.province || '');
@@ -15468,7 +15571,7 @@
             }
             renderIdentityConflict(chat);
             setSaveCustomerButtonDisabled(false);
-            el('confirmCustomerDataBtn').disabled = brazilTestOnly || !state.selectedChat || state.busy;
+            el('confirmCustomerDataBtn').disabled = brazilTestOnly || !state.selectedChat || customerFormSaveBusy();
             updateCustomerPrimaryAction();
             el('manualStatus').textContent = manualBadgeText(chat, owner);
             el('manualStatus').className = `badge ${chat.human?.mode === 'manual' ? 'green' : autoReplyGloballyActive() ? 'red' : 'orange'}`;
@@ -18851,7 +18954,7 @@
                     method: 'PATCH',
                     body: JSON.stringify(payload)
                 });
-            } else if (synchronizeOrder && (!isAdminLeadOrder || shouldCreateNewConfirmedOrder) && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0) {
+            } else if (synchronizeOrder && (!isAdminLeadOrder && !historicalOrderId && apiOrderStatus && customerDataAllowsOrderWrite && customerDraft.name && customerDraft.phone && customerDraft.city && customerDraft.province && customerDraft.deliveryMode && (customerDraft.deliveryMode !== 'home' || customerDraft.address) && (customerDraft.deliveryMode !== 'agency' || customerDraft.agencyName) && hasValidCustomerQuantity(customerDraft.quantity) && Number(String(customerDraft.total || '').replace(',', '.')) > 0)) {
                 const orderPayload = {
                     country: customerDraft.country,
                     customer: {
@@ -18909,6 +19012,7 @@
                     }
                 })
             });
+            assertConfirmedPersistenceV158(contactSave, customerDraft);
             const adminLeadSync = historicalOrderId
                 ? { skipped: true, reason: 'historical_order_preserved', previousOrderId: historicalOrderId }
                 : await syncAdminLeadStatus({
@@ -18923,12 +19027,19 @@
                 state.customerDataResolution = savedCustomerDataResolution;
                 renderCustomerDataQuality(state.customerDataResolution);
             }
-            if (syncedDraft.orderId && syncedDraft.orderId !== customerDraft.orderId) {
-                customerDraft.orderId = syncedDraft.orderId;
-                if (saveSnapshotIsCurrent()) setInputValue('customerOrderInput', syncedDraft.orderId);
-            }
-            if (syncedDraft.flowDataOk) {
-                customerDraft.flowDataOk = syncedDraft.flowDataOk;
+            if (Object.keys(syncedDraft).length) {
+                Object.assign(customerDraft, syncedDraft);
+                if (saveSnapshotIsCurrent()) {
+                    setInputValue('customerOrderInput', syncedDraft.orderId || '');
+                    setInputValue('customerStatusInput', normalizePanelStatus(syncedDraft.status));
+                    setInputValue('customerAddressInput', syncedDraft.address || '');
+                    setInputValue('customerReferenceInput', syncedDraft.reference || '');
+                    setInputValue('customerDeliveryModeInput', syncedDraft.deliveryMode || '');
+                    setInputValue('customerAgencyNameInput', syncedDraft.agencyName || '');
+                    el('customerAgencyNameInput').dataset.agencyId = syncedDraft.agencyId || '';
+                    setInputValue('customerQuantityInput', syncedDraft.quantity || '');
+                    setInputValue('customerTotalInput', syncedDraft.total || '');
+                }
             }
 
             const savedChat = {
@@ -19015,9 +19126,9 @@
 
         async function saveCustomerForm(event) {
             event.preventDefault();
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat || customerFormSaveBusy()) return;
             if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;
-            state.busy = true;
+            state.customerFormSaveInFlight = true;
             setSaveCustomerButtonDisabled(true);
             try {
                 const contactSave = await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
@@ -19032,7 +19143,7 @@
             } catch (error) {
                 showToast(error.message);
             } finally {
-                state.busy = false;
+                state.customerFormSaveInFlight = false;
                 setSaveCustomerButtonDisabled(!state.selectedChat);
                 el('confirmCustomerDataBtn').disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);
                 updateCustomerPrimaryAction();
@@ -19060,7 +19171,7 @@
         }
 
         async function confirmCustomerDataFromForm() {
-            if (!state.selectedChat || state.busy) return;
+            if (!state.selectedChat || customerFormSaveBusy()) return;
             if (isBrazilBlockedRecord(state.selectedChat)) {
                 showToast('Numero interno/teste nao pode confirmar dados de cliente real.');
                 return;
@@ -19075,7 +19186,7 @@
                 return;
             }
             if (!window.confirm('Confirmar os dados deste cliente e salvar em todos os paineis?')) return;
-            state.busy = true;
+            state.customerFormSaveInFlight = true;
             const button = el('confirmCustomerDataBtn');
             const label = button.textContent;
             button.disabled = true;
@@ -19094,7 +19205,7 @@
             } catch (error) {
                 showToast(error.message);
             } finally {
-                state.busy = false;
+                state.customerFormSaveInFlight = false;
                 button.textContent = label;
                 button.disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);
                 updateCustomerPrimaryAction();
@@ -19127,12 +19238,14 @@
             el('customerSyncHint').textContent = 'Salvando status no painel unificado...';
             el('customerSyncBadge').textContent = 'salvando';
             el('customerSyncBadge').className = 'badge orange';
-            state.statusAutoSaveTimer = window.setTimeout(async () => {
+            const persistConfirmedStatusChange = async () => {
                 if (!isCustomerSelectionScopeCurrent(selectionScope) || state.statusAutoSaveSeq !== seq) return;
-                if (state.busy) {
-                    autoSaveCustomerStatusChange();
+                if (customerFormSaveBusy()) {
+                    el('customerSyncHint').textContent = 'Aguardando a gravação atual da ficha para salvar o status...';
+                    state.statusAutoSaveTimer = window.setTimeout(persistConfirmedStatusChange, 350);
                     return;
                 }
+                state.customerFormSaveInFlight = true;
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     const tasks = [loadChats(), loadDashboardMetrics()];
@@ -19151,8 +19264,12 @@
                     el('customerSyncBadge').textContent = 'erro';
                     el('customerSyncBadge').className = 'badge red';
                     showToast(error.message);
+                } finally {
+                    state.customerFormSaveInFlight = false;
+                    updateCustomerPrimaryAction();
                 }
-            }, 300);
+            };
+            state.statusAutoSaveTimer = window.setTimeout(persistConfirmedStatusChange, 300);
         };
 
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
@@ -19169,7 +19286,7 @@
             el('customerSyncBadge').className = 'badge orange';
             state.customerFieldAutoSaveTimer = window.setTimeout(async () => {
                 if (!isCustomerSelectionScopeCurrent(selectionScope) || state.customerFieldAutoSaveSeq !== seq) return;
-                if (state.busy || state.customerFieldAutoSaveInFlight) {
+                if (customerFormSaveBusy()) {
                     scheduleCustomerFieldAutoSave({ delay: 700, source });
                     return;
                 }
@@ -20652,7 +20769,10 @@
         el('sendAgencyListBtn')?.addEventListener('click', () => sendAgencyMessagesToCustomer(
             state.agencySuggestions,
             el('sendAgencyListBtn'),
-            { advanceBatch: true }
+            {
+                advanceBatch: true,
+                startNumber: state.agencySuggestionOffset + 1
+            }
         ).catch((error) => showToast(error.message)));
         document.querySelectorAll('[data-price-preset]').forEach((button) => {
             button.addEventListener('click', async () => {
@@ -21592,7 +21712,7 @@
         setInterval(refreshSelectedConversationFast, 1200);
         setInterval(refreshLivePanel, 5000);
         setInterval(() => {
-            if (state.token && !document.hidden) loadChats().catch(() => null);
+            if (state.token && !document.hidden && !state.chatsLoading) loadChats().catch(() => null);
         }, 3500);
         setInterval(() => {
             if (state.token && !document.hidden && (state.activeModule === 'sales' || state.activeModule === 'review')) loadShipments().catch(() => null);

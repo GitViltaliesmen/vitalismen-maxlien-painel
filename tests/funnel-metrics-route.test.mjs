@@ -28,7 +28,7 @@ const fakeResponse = () => ({
 });
 
 const createFunnelMetricsHandler = options => createHandler({
-    ContactModel: fakeModel([], []), ShipmentModel: fakeModel([], []), ...options
+    ContactModel: fakeModel([], []), ShipmentModel: fakeModel([], []), MessageModel: fakeModel([], []), ...options
 });
 
 test('rota declara autenticao e autorizacao administrativa antes do handler', () => {
