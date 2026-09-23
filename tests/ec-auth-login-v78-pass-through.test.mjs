@@ -6,9 +6,6 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { assertConversationHandledV129B } from '../scripts/guard-ec-conversation-handled-v129b.mjs';
-import { assertManualMediaStorageV129 } from '../scripts/guard-manual-media-storage-v129.mjs';
-
 import User from '../src/models/User.js';
 import authRoutes from '../src/routes/auth.js';
 import {
@@ -28,6 +25,7 @@ import {
 } from '../src/services/ecBotCoreRuntimeIntegrationV78Service.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const readFreeze = (relativePath) => JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), 'utf8'));
 
 test('manifesto V127 fixa a exceção mínima e mantém produção não autorizada', () => {
     const result = assertEcAuthLoginV78PassThroughV127Manifest();
@@ -369,13 +367,18 @@ test('auth existente preserva credenciais, JWT e sessão protegida depois do gua
     }
 });
 
-test('auth e rate limiter preservam V125; painel corresponde ao sucessor V129 validado', () => {
+test('auth e rate limiter preservam V125; runtime corresponde aos sucessores V184/V193/V195', () => {
     assert.equal(sha256('src/routes/auth.js'), '91d732e58dd17bc2232a38c778e249f9298b40da8987f74560936bf84a186bce');
     assert.equal(sha256('src/middleware/auth.js'), 'b40ab3aa2f0f265f04922ee5ad6115379c1dca26fd5ad8856554df1a1ab095ba');
-    assert.equal(sha256('src/index.js'), assertManualMediaStorageV129().protectedFiles['src/index.js']);
-    const readStateSuccessor = assertConversationHandledV129B();
-    assert.equal(sha256('public/qr.html'), readStateSuccessor.protectedFiles['public/qr.html']);
-    assert.equal(sha256('src/services/ecBotCoreOperationalV78Service.js'), '7f738af46a93dcf178c25b0d0b51f4947cb6bb59d10893c1529190b878dfb562');
+    const v184 = readFreeze('docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json');
+    const v193 = readFreeze('docs/freeze/vsl-first-response-watchdog-v193-20260919.json');
+    const v195 = readFreeze('docs/freeze/meta-canonical-consolidation-v195-20260923.json');
+    assert.equal(sha256('src/index.js'), v193.runtimeGuardSuccessor.inheritedProtectedFiles['src/index.js']);
+    assert.equal(sha256('public/qr.html'), v184.protectedFiles['public/qr.html']);
+    assert.equal(
+        sha256('src/services/ecBotCoreOperationalV78Service.js'),
+        v195.protectedFiles['src/services/ecBotCoreOperationalV78Service.js']
+    );
 
     const index = fs.readFileSync(path.join(projectRoot, 'src/index.js'), 'utf8');
     const limiterIndex = index.indexOf("app.use('/api/auth', authLimiter);");

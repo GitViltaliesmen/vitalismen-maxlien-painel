@@ -20,7 +20,10 @@ assert.equal(v195.policy?.canonicalDataset, '920532663934291');
 assert.equal(successor.freezeId, 'EC_PANEL_QUALITY_SUCCESSOR_V200_20260923');
 assert.equal(successor.version, 'V200');
 assert.equal(successor.baseCommit, '05b659118ec66644cc36a2083f02af4be4828a42');
-assert.deepEqual(successor.overrides, ['.github/workflows/ec-panel-quality.yml']);
+assert.deepEqual(successor.overrides, [
+    '.github/workflows/ec-panel-quality.yml',
+    'tests/ec-auth-login-v78-pass-through.test.mjs'
+]);
 assert.deepEqual(successor.overrides, Object.keys(successor.protectedFiles || {}));
 assert.equal(successor.policy?.canonicalPreload, 'scripts/lib/ec-runtime-successor-v195-context.mjs');
 assert.equal(successor.policy?.canonicalDataset, '920532663934291');
