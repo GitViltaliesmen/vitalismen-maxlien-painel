@@ -72,7 +72,15 @@ export const assertV168bBaselineBootstrapContract = ({ manifest, currentHashes, 
 };
 
 const current = canonicalJson(MANIFEST_URL, MANIFEST_RELATIVE);
-const laterSuccessorOverrides = new Set(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []);
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+}
+const laterSuccessorOverrides = new Set([
+    ...(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []),
+    ...(v195MetaCanonicalPreload?.authorizedFiles || [])
+]);
 const currentHashes = Object.fromEntries(
     current.value.authorizedOverrideFiles.map((file) => [
         file,

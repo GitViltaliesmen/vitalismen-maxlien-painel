@@ -1,5 +1,5 @@
 import { bindPurchaseAttributionV148 } from './metaPurchaseV148BindingService.js';
-import { metaCheckoutV148Allowed, salesAttributionV148, META_V148_EXISTING_DATASET } from './metaFunnelV148ContractService.js';
+import { metaCheckoutV148Allowed, salesAttributionV148 } from './metaFunnelV148ContractService.js';
 import axios from 'axios';
 import crypto from 'crypto';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
@@ -16,6 +16,10 @@ import {
     resolveMetaDestinationProfile
 } from './metaDestinationRegistryService.js';
 import { canaryV75BlockedResult } from './canaryIsolationV75Service.js';
+import {
+    expectedMetaEcDatasetV195,
+    resolveMetaCanonicalConsolidationV195
+} from './metaCanonicalConsolidationV195Service.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -48,6 +52,10 @@ const splitName = (fullName) => {
 
 const getConfigForCountry = (country, env = process.env) => {
     if (country === 'EC') {
+        const canonical = resolveMetaCanonicalConsolidationV195(env, {
+            route: META_DESTINATION_ROUTES.EC_DEFAULT
+        });
+        if (canonical.configured) return canonical.destination;
         return resolveMetaDestination({
             route: META_DESTINATION_ROUTES.EC_DEFAULT,
             env,
@@ -65,9 +73,15 @@ const getConfigForCountry = (country, env = process.env) => {
 export const getMetaConfigForOrder = (order = {}, env = process.env) => {
     if (String(order.country).toUpperCase() === 'EC' && salesAttributionV148(order)) {
         const config = getConfigForCountry('EC', env);
-        return config.pixelId === META_V148_EXISTING_DATASET ? config : { pixelId: null, accessToken: null, route: 'v148_dataset_mismatch' };
+        return config.pixelId === expectedMetaEcDatasetV195(env)
+            ? config
+            : { pixelId: null, accessToken: null, route: 'v148_dataset_mismatch' };
     }
     if (isEcuadorTexUltraProtocoloG(order)) {
+        const canonical = resolveMetaCanonicalConsolidationV195(env, {
+            route: META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G
+        });
+        if (canonical.configured) return canonical.destination;
         const configuredDatasetId = String(env.META_PIXEL_ID_EC_TEX_ULTRA_PROTOCOLO_G || '').trim();
         if (configuredDatasetId && configuredDatasetId !== META_EC_TEX_ULTRA_PROTOCOLO_G_DATASET_ID) {
             return {
@@ -145,6 +159,8 @@ const bindingSignature = (payload, accessToken) => crypto
     .digest('base64url');
 
 const activeDestinationForRoute = (route, env) => {
+    const canonical = resolveMetaCanonicalConsolidationV195(env, { route });
+    if (canonical.configured) return canonical.destination;
     if (route === META_DESTINATION_ROUTES.EC_TEX_ULTRA_PROTOCOLO_G) {
         return resolveMetaDestination({
             route,
@@ -183,7 +199,9 @@ const blockedBindingConfig = (route, errorCode = 'META_DESTINATION_BINDING_INVAL
 
 const configForBrowserEvent = ({ route, event, req, env, now = Date.now() }) => {
     const rawBinding = event?.meta_destination || event?.metaDestination || req?.body?.meta_destination || req?.body?.metaDestination;
+    const canonical = resolveMetaCanonicalConsolidationV195(env, { route });
     if (rawBinding === undefined || rawBinding === null) {
+        if (canonical.configured) return canonical.destination;
         return activeDestinationForRoute(route, env);
     }
     if (typeof rawBinding !== 'object' || Array.isArray(rawBinding)) return blockedBindingConfig(route);
@@ -203,14 +221,19 @@ const configForBrowserEvent = ({ route, event, req, env, now = Date.now() }) => 
         || !/^[A-Za-z0-9_-]{40,64}$/.test(signature)
     ) return blockedBindingConfig(route);
 
-    const destination = resolveMetaDestinationProfile({
-        route,
-        profile,
-        env,
-        legacyConfig: legacyMetaConfigForRoute(route, env)
-    });
+    const destination = canonical.configured
+        ? canonical.destination
+        : resolveMetaDestinationProfile({
+            route,
+            profile,
+            env,
+            legacyConfig: legacyMetaConfigForRoute(route, env)
+        });
     if (!destination.pixelId || !destination.accessToken || destination.pixelId !== datasetId) {
         return blockedBindingConfig(route, destination.errorCode || 'META_DESTINATION_BINDING_PROFILE_INVALID');
+    }
+    if (canonical.configured && profile !== destination.profile) {
+        return blockedBindingConfig(route, 'META_CANONICAL_V195_BINDING_PROFILE_INVALID');
     }
     const expected = bindingSignature(bindingPayload({ route, profile, datasetId, expiresAt }), destination.accessToken);
     const expectedBuffer = Buffer.from(expected);
@@ -339,9 +362,8 @@ export const buildBrowserServerEventPayload = (event = {}, req = null, options =
 
     const protocoloGEvent = isEcuadorTexUltraProtocoloG(event);
     const implicitTestEventCode = process.env.META_TEST_EVENT_CODE_EC || process.env.META_TEST_EVENT_CODE || '';
-    const testEventCode = protocoloGEvent
-        ? ''
-        : String(options.testEventCode || implicitTestEventCode).trim();
+    const explicitTestEventCode = String(options.testEventCode || '').trim();
+    const testEventCode = explicitTestEventCode || (protocoloGEvent ? '' : String(implicitTestEventCode).trim());
     if (testEventCode) payload.test_event_code = testEventCode;
 
     return { ok: true, payload, eventId, eventName, eventTime };
@@ -364,7 +386,9 @@ export const sendBrowserServerEvent = async (event = {}, req = null, options = {
         return { ok: false, error: 'META pixel config missing for country' };
     }
 
-    if (v148Allowed && pixelId !== META_V148_EXISTING_DATASET) return { ok: false, blocked: true, reason: 'v148_dataset_mismatch' };
+    if (v148Allowed && pixelId !== expectedMetaEcDatasetV195(env)) {
+        return { ok: false, blocked: true, reason: 'v148_dataset_mismatch' };
+    }
     const built = buildBrowserServerEventPayload(event, req, options);
     if (!built.ok) return built;
 

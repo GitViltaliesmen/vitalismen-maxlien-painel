@@ -33,15 +33,29 @@ assert.equal(v193.version, 'V193');
 assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
 assert.equal(v194.version, 'V194');
 assert.equal(v194.policy.guardsBypassed, false);
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+    assert.deepEqual(
+        [...v195MetaCanonicalPreload.authorizedFiles].sort(),
+        Object.keys(v195MetaCanonicalPreload.protectedFiles || {}).sort()
+    );
+}
 for (const [file, expected] of Object.entries({
     ...v193RuntimeGuardSuccessor.inheritedProtectedFiles,
     ...v193RuntimeGuardSuccessor.protectedFiles
-})) assert.equal(hashFile(file), v194.protectedFiles[file] || expected, `[V193/V194 preload] ${file}`);
+})) assert.equal(
+    hashFile(file),
+    v195MetaCanonicalPreload?.protectedFiles?.[file] || v194.protectedFiles[file] || expected,
+    `[V193/V194/V195 preload] ${file}`
+);
 const laterSuccessorOverrides = new Set([
     ...(globalThis.__VITALISMEN_V170_PRETRAFFIC_FINAL_CONTEXT?.authorizedFiles || []),
     ...v193RuntimeGuardSuccessor.overrides,
     ...Object.keys(v193RuntimeGuardSuccessor.inheritedProtectedFiles),
-    ...v194.overrides
+    ...v194.overrides,
+    ...(v195MetaCanonicalPreload?.authorizedFiles || [])
 ]);
 const authorizedFiles = [...new Set([
     ...baseline.authorizedOverrideFiles,

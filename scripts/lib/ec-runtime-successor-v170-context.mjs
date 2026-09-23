@@ -142,8 +142,18 @@ assert.equal(v194PostSaleSuccessor.baseCommit, '33876d4901ffbe25224d0ee9dd753ccf
 assert.deepEqual([...v194PostSaleSuccessor.overrides].sort(), Object.keys(v194PostSaleSuccessor.protectedFiles).sort());
 assert.equal(v194PostSaleSuccessor.policy.guardsBypassed, false);
 
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+    assert.deepEqual(
+        [...v195MetaCanonicalPreload.authorizedFiles].sort(),
+        Object.keys(v195MetaCanonicalPreload.protectedFiles || {}).sort()
+    );
+}
 const protectedHash = (file, expected) => (
-    v194PostSaleSuccessor.protectedFiles[file]
+    v195MetaCanonicalPreload?.protectedFiles?.[file]
+    || v194PostSaleSuccessor.protectedFiles[file]
     || v193RuntimeGuardSuccessor.protectedFiles[file]
     || panelOnlyAgencyScopeSuccessor.protectedFiles[file]
     || panelFastLoadSuccessor.protectedFiles[file]

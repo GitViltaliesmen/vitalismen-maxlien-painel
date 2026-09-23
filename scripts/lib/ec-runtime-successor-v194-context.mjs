@@ -23,9 +23,18 @@ globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = [
 ];
 await import('./ec-runtime-successor-v193-context.mjs');
 
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+    assert.deepEqual(
+        [...v195MetaCanonicalPreload.authorizedFiles].sort(),
+        Object.keys(v195MetaCanonicalPreload.protectedFiles || {}).sort()
+    );
+}
 for (const [relativePath, expected] of Object.entries(manifest.protectedFiles || {})) {
     const actual = crypto.createHash('sha256').update(read(relativePath)).digest('hex');
-    assert.equal(actual, expected, `[V194] protected_file_invalid:${relativePath}`);
+    assert.equal(actual, v195MetaCanonicalPreload?.protectedFiles?.[relativePath] || expected, `[V194/V195] protected_file_invalid:${relativePath}`);
 }
 
 globalThis.__VITALISMEN_V194_POSTSALE_CONTEXT = Object.freeze({

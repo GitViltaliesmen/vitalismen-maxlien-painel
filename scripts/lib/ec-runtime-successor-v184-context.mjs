@@ -68,8 +68,18 @@ assert.equal(v193RuntimeGuardSuccessor.policy.guardBypassAllowed, false);
 assert.equal(v194.value.version, 'V194');
 assert.equal(v194.value.policy.guardsBypassed, false);
 
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+    assert.deepEqual(
+        [...v195MetaCanonicalPreload.authorizedFiles].sort(),
+        Object.keys(v195MetaCanonicalPreload.protectedFiles || {}).sort()
+    );
+}
 const successorHash = (relativePath, inherited) => (
-    v194.value.protectedFiles[relativePath]
+    v195MetaCanonicalPreload?.protectedFiles?.[relativePath]
+    || v194.value.protectedFiles[relativePath]
     || v193RuntimeGuardSuccessor.protectedFiles[relativePath]
     || v193RuntimeGuardSuccessor.inheritedProtectedFiles[relativePath]
     || inherited

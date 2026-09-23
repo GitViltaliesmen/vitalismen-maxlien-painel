@@ -21,8 +21,21 @@ assert.equal(v194.policy.guardsBypassed, false);
 
 const inherited = freeze.runtimeGuardSuccessor.inheritedProtectedFiles;
 const changed = freeze.runtimeGuardSuccessor.protectedFiles;
+const v195MetaCanonicalPreload = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD;
+if (v195MetaCanonicalPreload) {
+    assert.equal(v195MetaCanonicalPreload.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923');
+    assert.equal(v195MetaCanonicalPreload.canonicalDataset, '920532663934291');
+    assert.deepEqual(
+        [...v195MetaCanonicalPreload.authorizedFiles].sort(),
+        Object.keys(v195MetaCanonicalPreload.protectedFiles || {}).sort()
+    );
+}
 for (const [file, expected] of Object.entries({ ...inherited, ...changed })) {
-    assert.equal(hash(file), v194.protectedFiles[file] || expected, `[V193/V194] successor_hash_mismatch:${file}`);
+    assert.equal(
+        hash(file),
+        v195MetaCanonicalPreload?.protectedFiles?.[file] || v194.protectedFiles[file] || expected,
+        `[V193/V194/V195] successor_hash_mismatch:${file}`
+    );
 }
 const authorizedFiles = [
     ...freeze.runtimeGuardSuccessor.overrides,
