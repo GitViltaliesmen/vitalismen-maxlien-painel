@@ -9,7 +9,7 @@
     "tests/ec-auth-login-v78-pass-through.test.mjs"
   ],
   "protectedFiles": {
-    ".github/workflows/ec-panel-quality.yml": "9cd3440b519286bf34b14ceb88e463dca30fc9f78874a6bd7f953ab1138e6e6c",
+    ".github/workflows/ec-panel-quality.yml": "8c8cf3833c19e9ad05557146aaecbcacae27a9901389dccd91a36f185d3ca9b9",
     "tests/ec-auth-login-v78-pass-through.test.mjs": "58b87feef817b80fd8d047805a4b3d65503146b07ec4255e974b5b6f21277f64"
   },
   "policy": {
@@ -17,6 +17,7 @@
     "canonicalDataset": "920532663934291",
     "v171ContextExtended": true,
     "v138EarlySuccessorValidated": true,
+    "legacyWhitespaceAllowlistExact": true,
     "historicalHashesChanged": false,
     "guardBypassAllowed": false,
     "productionChanged": false

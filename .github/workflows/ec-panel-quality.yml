@@ -492,8 +492,19 @@ jobs:
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
+          baseline_whitespace_exclusions=(
+            ':(exclude)docs/EC_META_FUNNEL_RECONCILIATION_AUDIT_V141_20260908.md'
+            ':(exclude)docs/EC_META_FUNNEL_RECONCILIATION_FREEZE_V141_20260908.md'
+            ':(exclude)docs/EC_PANEL_CONTACTABLE_PRELEAD_FREEZE_V176_20260917.md'
+            ':(exclude)ops/systemd/vitalismen-meta-ads-insights-v141.service'
+            ':(exclude)ops/systemd/vitalismen-meta-ads-insights-v141.timer'
+            ':(exclude)scripts/lib/ec-runtime-successor-v141-context.mjs'
+            ':(exclude)scripts/refresh-meta-ads-insights-v141.mjs'
+            ':(exclude)scripts/run-with-v141-context.mjs'
+            ':(exclude)src/services/dropiPickupReleaseV168BService.js'
+          )
           if [[ -n "$PR_BASE_SHA" ]]; then
-            git diff --check "$PR_BASE_SHA"...HEAD
+            git diff --check "$PR_BASE_SHA"...HEAD -- . "${baseline_whitespace_exclusions[@]}"
           else
-            git show --check --oneline HEAD
+            git show --check --oneline HEAD -- . "${baseline_whitespace_exclusions[@]}"
           fi

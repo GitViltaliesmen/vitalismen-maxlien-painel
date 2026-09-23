@@ -31,6 +31,7 @@ assert.equal(successor.policy?.canonicalPreload, 'scripts/lib/ec-runtime-success
 assert.equal(successor.policy?.canonicalDataset, '920532663934291');
 assert.equal(successor.policy?.v171ContextExtended, true);
 assert.equal(successor.policy?.v138EarlySuccessorValidated, true);
+assert.equal(successor.policy?.legacyWhitespaceAllowlistExact, true);
 assert.equal(successor.policy?.historicalHashesChanged, false);
 assert.equal(successor.policy?.guardBypassAllowed, false);
 assert.equal(successor.policy?.productionChanged, false);
