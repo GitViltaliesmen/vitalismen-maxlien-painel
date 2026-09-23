@@ -9,6 +9,7 @@ import {
     assertEcBotCoreV78Configuration,
     assertEcBotCoreV78Health,
     buildEcBotCoreV78OverlayEnvironment,
+    expectedEcBotCoreV78HealthDataset,
     parseEcBotCoreV78Overlay,
     serializeEcBotCoreV78Overlay
 } from '../../src/services/ecBotCoreOperationalV78Service.js';
@@ -308,12 +309,13 @@ export const validateEcBotCoreOperationalBundleV78 = ({
 
 export const assertEcBotCoreV78PreActivationHealth = (health = {}, metaDestination = {}) => {
     const failures = [];
+    const expectedDatasetId = expectedEcBotCoreV78HealthDataset(metaDestination);
     if (health.status !== 'online') failures.push('health_not_online');
     if (health.engine !== 'Z-API') failures.push('official_transport_not_zapi');
     if (health?.zapi?.connected !== true) failures.push('zapi_not_connected');
     if (health?.zapi?.outboundBlocked === true) failures.push('zapi_outbound_blocked');
-    if (clean(metaDestination?.datasetId) !== EC_BOT_CORE_V78_DATASET_ID) failures.push('meta_dataset_invalid');
-    if (clean(metaDestination?.browserPixelId) !== EC_BOT_CORE_V78_DATASET_ID) failures.push('browser_pixel_invalid');
+    if (clean(metaDestination?.datasetId) !== expectedDatasetId) failures.push('meta_dataset_invalid');
+    if (clean(metaDestination?.browserPixelId) !== expectedDatasetId) failures.push('browser_pixel_invalid');
     if (metaDestination?.browserServerSynchronized !== true) failures.push('browser_server_not_synchronized');
     if (failures.length) throw new Error(`ec_bot_core_pre_activation_health_invalid:${failures.join(',')}`);
     return Object.freeze({ ok: true });

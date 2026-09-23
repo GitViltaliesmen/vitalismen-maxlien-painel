@@ -445,17 +445,18 @@ jobs:
       - name: Validate authenticated funnel metrics
         run: npm run test:funnel-metrics
 
-      - name: Validate EC traffic restoration V171
+      - name: Validate V200 base and V198/V199 successors
         run: |
-          node --test tests/ec-panel-quality-successor-v200.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs npm run guard:traffic-restoration-v171
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/tex-ultra-first-reply-source-dedupe-v198.test.mjs tests/ec-bot-core-health-meta-920-successor-v199.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-bot-core-health-meta-920-v199.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs npm run guard:traffic-restoration-v171
 
       - name: Preserve product, country and approved freeze layers
         shell: bash
         env:
           CI: 'true'
           GITHUB_ACTIONS: 'true'
-          NODE_OPTIONS: --import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs
+          NODE_OPTIONS: --import=./scripts/lib/ec-runtime-successor-v199-context.mjs
         run: |
           test "$GITHUB_REPOSITORY" = "GitViltaliesmen/vitalismen-maxlien-painel"
           test "$(realpath "$PWD")" = "$(realpath "$GITHUB_WORKSPACE")"
@@ -466,18 +467,18 @@ jobs:
           npm run guard:ec-tex-ultra
           npm run guard:freeze-lock
           node --test tests/review-v17-v19-p1.test.mjs tests/senior-guard-github-actions.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-dropi-total-resolution-v121.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/dropi-total-resolution-v121.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-ec-panel-customer-persistence-v122.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/ec-panel-customer-persistence-v122.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-ec-panel-customer-status-persistence-v123.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-ec-panel-customer-state-only-v124.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/ec-panel-customer-state-only-v124.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-ec-panel-status-state-layer-v125.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/ec-panel-status-state-layer-v125.test.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node scripts/guard-ec-auth-login-v78-pass-through-v127.mjs
-          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v200-ci-context.mjs node --test tests/ec-auth-login-v78-pass-through.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-dropi-total-resolution-v121.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/dropi-total-resolution-v121.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-panel-customer-persistence-v122.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/ec-panel-customer-persistence-v122.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-panel-customer-status-persistence-v123.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/ec-panel-customer-status-persistence-v123.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-panel-customer-state-only-v124.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/ec-panel-customer-state-only-v124.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-panel-status-state-layer-v125.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/ec-panel-status-state-layer-v125.test.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node scripts/guard-ec-auth-login-v78-pass-through-v127.mjs
+          NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs node --test tests/ec-auth-login-v78-pass-through.test.mjs
           node src/services/ecAdminDropiDraftBridgeFreezeRuntimeGuardV128.js
           node --test tests/ec-admin-dropi-draft-bridge-v128.test.mjs
           VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED=true npm run senior:check
