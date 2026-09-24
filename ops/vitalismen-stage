@@ -244,7 +244,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
   preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
 } else {
-   const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY.json';
+   const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY.json';
   const parent = fs.lstatSync(path.dirname(checkpointPath));
   const stat = fs.lstatSync(checkpointPath);
   assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
@@ -252,7 +252,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
     && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
   const checkpoint = read(checkpointPath).value;
-   assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY');
+   assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY');
   assert.equal(checkpoint.status, 'FROZEN');
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
@@ -261,7 +261,8 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     ['scripts/lib/unified-successor-v202-r4-preload.mjs', checkpoint.r4OperationalPreloadSha256],
      ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
      ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256],
-     ['scripts/guard-freeze-lock-successor-v202-r4.mjs', checkpoint.r4FreezeLockSuccessorSha256]
+     ['scripts/guard-freeze-lock-successor-v202-r4.mjs', checkpoint.r4FreezeLockSuccessorSha256],
+     ['scripts/guard-final-release-validator-successor-v202-r4.mjs', checkpoint.r4FinalValidatorSha256]
   ]) {
     const file = path.join(root, relative);
     const item = fs.lstatSync(file);
@@ -1238,8 +1239,13 @@ NODE
     [[ -f "$candidate_dir/src/services/deployHelperV71ChainAlignmentSafetyFreezeGuardV72.js" ]] ||
       die "guard sucessor V72 ausente"
     candidate_guard_node_options="$(successor_guard_node_options "$candidate_dir")"
-    "$env_cmd" -C "$candidate_dir" npm_config_node_options="$candidate_guard_node_options" \
-      "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
+    if [[ "$candidate_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+      "$env_cmd" -C "$candidate_dir" NODE_OPTIONS= "$node_cmd" \
+        scripts/run-unified-successor-v202-r4.mjs --final-release "$candidate_dir" >/dev/null
+    else
+      "$env_cmd" -C "$candidate_dir" npm_config_node_options="$candidate_guard_node_options" \
+        "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
+    fi
     "$env_cmd" -C "$candidate_dir" "$node_cmd" scripts/guard-post-sale-safety-v66.mjs >/dev/null
   fi
 }

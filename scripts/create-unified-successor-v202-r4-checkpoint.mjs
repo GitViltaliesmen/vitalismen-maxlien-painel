@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     R4_CHECKPOINT_PATH, R4_MANIFEST_PATH, R4_PRELOAD_PATH, R4_GUARD_PATH,
-    R4_RUNNER_PATH, R4_FREEZE_LOCK_SUCCESSOR_PATH,
+    R4_RUNNER_PATH, R4_FREEZE_LOCK_SUCCESSOR_PATH, R4_FINAL_VALIDATOR_PATH,
     V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256,
     SHIPMENTS_SHA256, readCanonicalJson, readAuthorizedCheckpoint,
     validateR4Manifest, sha256
@@ -28,25 +28,25 @@ const parent = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
 assert.equal(git('merge-base', parent, commit), parent, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parent}^{tree}`),
     '1bf75f613c6befece285e3ce9a71dc41bfffaa20');
-const parentR4Commit = '71e0a3d13846ac81494e24f9f4667822dd793b24';
-const parentR4Tree = '23c5f9bf911a6435306cfc1919acb74be80f9f71';
+const parentR4Commit = '494b73f1630956b024bd9b48f69297c3070875f5';
+const parentR4Tree = '326214a6a11d901f119b848117c6d1a03498e72c';
 const parentAuthorityPath =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY.json';
 const parentAuthoritySha256 =
-    'd38a760b3c189a38d363b2d43f01d90e0eda5afe72a896e80b239c628b3cafa4';
+    '8f41686167325d1373667c95ffcb84628c0fb33cb472dca7f91f913f67d7bbec';
 assert.equal(git('merge-base', parentR4Commit, commit), parentR4Commit,
-    'R4_STAGEFIX_PARENT_NOT_ANCESTOR');
+    'R4_FREEZE_SUCCESSOR_PARENT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parentR4Commit}^{tree}`), parentR4Tree,
-    'R4_STAGEFIX_PARENT_TREE_CHANGED');
+    'R4_FREEZE_SUCCESSOR_PARENT_TREE_CHANGED');
 assert.equal(sha256(readCanonicalJson(parentAuthorityPath).bytes), parentAuthoritySha256,
-    'R4_STAGEFIX_PARENT_AUTHORITY_CHANGED');
+    'R4_FREEZE_SUCCESSOR_PARENT_AUTHORITY_CHANGED');
 const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
+    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
     parentR4Commit,
     parentR4Tree,
     parentAuthorityCheckpointSha256: parentAuthoritySha256,
@@ -58,6 +58,7 @@ const checkpoint = {
     r4OperationalGuardSha256: digest(R4_GUARD_PATH),
     r4OperationalRunnerSha256: digest(R4_RUNNER_PATH),
     r4FreezeLockSuccessorSha256: digest(R4_FREEZE_LOCK_SUCCESSOR_PATH),
+    r4FinalValidatorSha256: digest(R4_FINAL_VALIDATOR_PATH),
     allowlistCount: 83,
     v201PublishedCommit: V201_COMMIT,
     v201PublishedTree: V201_TREE,

@@ -4,13 +4,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const R4_CHECKPOINT_PATH =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY.json';
 export const R4_ATTESTATION_NAME = '.r4-operational-attestation.json';
 export const R4_MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json';
 export const R4_PRELOAD_PATH = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
 export const R4_GUARD_PATH = 'scripts/guard-unified-successor-v202-r4.mjs';
 export const R4_RUNNER_PATH = 'scripts/run-unified-successor-v202-r4.mjs';
 export const R4_FREEZE_LOCK_SUCCESSOR_PATH = 'scripts/guard-freeze-lock-successor-v202-r4.mjs';
+export const R4_FINAL_VALIDATOR_PATH =
+    'scripts/guard-final-release-validator-successor-v202-r4.mjs';
 export const V201_COMMIT = '641759b160c2b91e95a3f1df371ad372a74d72e1';
 export const V201_TREE = '1feb02ad1a3f2ae266ef519bf33426b91ac80aa3';
 export const V201_MANIFEST_SHA256 = 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee';
@@ -44,22 +46,23 @@ export function validateCheckpoint(value) {
         'r4OperationalCommit', 'r4OperationalTree', 'r4OperationalManifestSha256',
         'r4OperationalPreloadSha256', 'r4OperationalGuardSha256',
         'r4OperationalRunnerSha256', 'r4FreezeLockSuccessorSha256',
+        'r4FinalValidatorSha256',
         'allowlistCount', 'v201PublishedCommit',
         'v201PublishedTree', 'v201ManifestSha256', 'shipmentsSha256'],
     'R4_CHECKPOINT_FIELDS_INVALID');
-    assert.equal(value.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY');
+    assert.equal(value.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY');
     assert.equal(value.status, 'FROZEN');
-    assert.equal(value.parentCheckpoint, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY');
-    assert.equal(value.parentR4Commit, '71e0a3d13846ac81494e24f9f4667822dd793b24');
-    assert.equal(value.parentR4Tree, '23c5f9bf911a6435306cfc1919acb74be80f9f71');
+    assert.equal(value.parentCheckpoint, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY');
+    assert.equal(value.parentR4Commit, '494b73f1630956b024bd9b48f69297c3070875f5');
+    assert.equal(value.parentR4Tree, '326214a6a11d901f119b848117c6d1a03498e72c');
     assert.equal(value.parentAuthorityCheckpointSha256,
-        'd38a760b3c189a38d363b2d43f01d90e0eda5afe72a896e80b239c628b3cafa4');
+        '8f41686167325d1373667c95ffcb84628c0fb33cb472dca7f91f913f67d7bbec');
     assert.equal(value.project, 'MAXLIEN EC — VITALISMEN OFICIAL');
     assert.match(value.r4OperationalCommit, SHA1);
     assert.match(value.r4OperationalTree, SHA1);
     for (const field of ['r4OperationalManifestSha256', 'r4OperationalPreloadSha256',
         'r4OperationalGuardSha256', 'r4OperationalRunnerSha256',
-        'r4FreezeLockSuccessorSha256']) {
+        'r4FreezeLockSuccessorSha256', 'r4FinalValidatorSha256']) {
         assert.match(value[field], SHA256, `R4_CHECKPOINT_HASH_INVALID:${field}`);
     }
     assert.equal(value.allowlistCount, 83);
@@ -99,7 +102,7 @@ export function validateR4Manifest(manifest) {
         entry.authority === 'FREEZE_SUCCESSOR_EVIDENCE').length, 81);
     const stage = manifest.allowlist.find(entry => entry.path === 'ops/vitalismen-stage');
     assert.equal(stage?.authority, 'OPERATOR_DECISION');
-    assert.equal(stage?.evidence, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY');
+    assert.equal(stage?.evidence, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY');
     const shipments = manifest.allowlist.find(entry => entry.path === 'src/routes/shipments.js');
     assert.equal(shipments?.canonicalSha256, SHIPMENTS_SHA256);
     assert.deepEqual(manifest.externalEffectLocks, {
@@ -123,7 +126,8 @@ export function assertReleaseFileHashes(root, checkpoint, manifest) {
         [R4_PRELOAD_PATH, checkpoint.r4OperationalPreloadSha256],
         [R4_GUARD_PATH, checkpoint.r4OperationalGuardSha256],
         [R4_RUNNER_PATH, checkpoint.r4OperationalRunnerSha256],
-        [R4_FREEZE_LOCK_SUCCESSOR_PATH, checkpoint.r4FreezeLockSuccessorSha256]
+        [R4_FREEZE_LOCK_SUCCESSOR_PATH, checkpoint.r4FreezeLockSuccessorSha256],
+        [R4_FINAL_VALIDATOR_PATH, checkpoint.r4FinalValidatorSha256]
     ];
     for (const [relative, digest] of expected) {
         const file = path.join(root, relative);
@@ -139,6 +143,7 @@ export function validateAttestation(attestation, checkpoint, checkpointSha256, m
     exactKeys(attestation, ['attestationId', 'checkpointId', 'checkpointSha256',
         'releaseName', 'commit', 'tree', 'manifestSha256', 'preloadSha256',
         'guardSha256', 'runnerSha256', 'freezeLockSuccessorSha256',
+        'finalValidatorSha256',
         'allowlistCount', 'materializedFileHashes',
         'externalEffectLocks', 'v201ContextReleasePath', 'gitValidatedBeforeRemoval'],
     'R4_ATTESTATION_FIELDS_INVALID');
@@ -155,6 +160,8 @@ export function validateAttestation(attestation, checkpoint, checkpointSha256, m
     assert.equal(attestation.runnerSha256, checkpoint.r4OperationalRunnerSha256);
     assert.equal(attestation.freezeLockSuccessorSha256,
         checkpoint.r4FreezeLockSuccessorSha256);
+    assert.equal(attestation.finalValidatorSha256,
+        checkpoint.r4FinalValidatorSha256);
     assert.equal(attestation.allowlistCount, 83);
     assert.equal(attestation.gitValidatedBeforeRemoval, true);
     assert.deepEqual(attestation.externalEffectLocks, manifest.externalEffectLocks);

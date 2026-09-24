@@ -17,13 +17,13 @@ const sha = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
+    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
-    parentR4Commit: '71e0a3d13846ac81494e24f9f4667822dd793b24',
-    parentR4Tree: '23c5f9bf911a6435306cfc1919acb74be80f9f71',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
+    parentR4Commit: '494b73f1630956b024bd9b48f69297c3070875f5',
+    parentR4Tree: '326214a6a11d901f119b848117c6d1a03498e72c',
     parentAuthorityCheckpointSha256:
-        'd38a760b3c189a38d363b2d43f01d90e0eda5afe72a896e80b239c628b3cafa4',
+        '8f41686167325d1373667c95ffcb84628c0fb33cb472dca7f91f913f67d7bbec',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,
@@ -32,6 +32,7 @@ const checkpoint = {
     r4OperationalGuardSha256: sha,
     r4OperationalRunnerSha256: sha,
     r4FreezeLockSuccessorSha256: sha,
+    r4FinalValidatorSha256: sha,
     allowlistCount: 83,
     v201PublishedCommit: V201_COMMIT,
     v201PublishedTree: V201_TREE,
@@ -49,6 +50,7 @@ const attestation = {
     guardSha256: sha,
     runnerSha256: sha,
     freezeLockSuccessorSha256: sha,
+    finalValidatorSha256: sha,
     allowlistCount: 83,
     materializedFileHashes: manifest.allowlist.map(entry =>
         ({ path: entry.path, sha256: entry.canonicalSha256 })),
@@ -122,6 +124,7 @@ test('checkpoint exato e campos não extensíveis', () => {
         value => { value.r4OperationalTree = '0'.repeat(39); },
         value => { value.r4OperationalManifestSha256 = '0'.repeat(63); },
         value => { value.r4FreezeLockSuccessorSha256 = '0'.repeat(63); },
+        value => { value.r4FinalValidatorSha256 = '0'.repeat(63); },
         value => { value.allowlistCount = 84; },
         value => { value.parentCheckpoint = 'OUTRO'; },
         value => { value.parentR4Commit = '0'.repeat(40); },
@@ -159,6 +162,7 @@ test('attestation exata bloqueia identidade, hashes e allowlist adulterados', ()
         value => { value.guardSha256 = '0'.repeat(64); },
         value => { value.runnerSha256 = '0'.repeat(64); },
         value => { value.freezeLockSuccessorSha256 = '0'.repeat(64); },
+        value => { value.finalValidatorSha256 = '0'.repeat(64); },
         value => { value.allowlistCount = 82; },
         value => { value.materializedFileHashes.pop(); },
         value => { value.materializedFileHashes[0].sha256 = '0'.repeat(64); },

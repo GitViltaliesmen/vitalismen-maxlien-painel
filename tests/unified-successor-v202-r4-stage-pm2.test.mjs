@@ -52,3 +52,13 @@ test('RUNTIME: autoridade fixa sem Git nem variável de identidade', () => {
     assert.match(verify, /validateAttestation\(attestation, checkpoint\.value/);
     assert.match(authority, /materializedFileHashes\.map\(item => item\.path\)/);
 });
+test('FINAL_RELEASE: R4 usa validator sucessor e V201 mantém guard histórico', () => {
+    const start = stage.indexOf('candidate_guard_node_options="$(successor_guard_node_options "$candidate_dir")"');
+    const end = stage.indexOf('scripts/guard-post-sale-safety-v66.mjs >/dev/null', start);
+    assert.ok(start >= 0 && end > start);
+    const final = stage.slice(start, end);
+    assert.match(final, /unified-successor-v202-r4-preload\.mjs/);
+    assert.match(final, /scripts\/run-unified-successor-v202-r4\.mjs --final-release "\$candidate_dir"/);
+    assert.match(final, /else[\s\S]*?"\$npm_cmd" run guard:runtime-chain-v71/);
+    assert.match(final, /NODE_OPTIONS= "\$node_cmd"/);
+});

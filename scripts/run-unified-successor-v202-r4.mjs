@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const guard = path.join(root, 'scripts/guard-unified-successor-v202-r4.mjs');
-const guardSha256 = '954161b385229fb2fbb0b221ab4a6cd5e5cd98ff721860b7fb301ea62403fc47';
+const guardSha256 = '1990d22acf541d88babc86279ba349320dd727244968194183ffe3bdced4bbee';
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync(guard)).digest('hex'),
     guardSha256, 'R4_GUARD_TAMPERED');
 const [mode, ...input] = process.argv.slice(2);
@@ -81,6 +81,14 @@ if (mode === '--fixture') {
         'scripts/lib/unified-successor-v202-r4-preload.mjs')).href;
     run(['scripts/guard-freeze-lock-successor-v202-r4.mjs'], release,
         /FREEZE_LOCK_SUCCESSOR_R4=PASS/, `--import=${preload}`);
+} else if (mode === '--final-release') {
+    assert.equal(input.length, 1, 'R4_FINAL_RELEASE_EXACT_ARGS_REQUIRED');
+    const release = fs.realpathSync(input[0]);
+    assert.equal(release, root, 'R4_FINAL_RELEASE_RUNNER_ROOT_MISMATCH');
+    const preload = pathToFileURL(path.join(root,
+        'scripts/lib/unified-successor-v202-r4-preload.mjs')).href;
+    run(['scripts/guard-final-release-validator-successor-v202-r4.mjs'], release,
+        /FINAL_RELEASE_VALIDATOR_R4=PASS/, `--import=${preload}`);
 } else {
     throw new Error('R4_RUNNER_MODE_INVALID');
 }

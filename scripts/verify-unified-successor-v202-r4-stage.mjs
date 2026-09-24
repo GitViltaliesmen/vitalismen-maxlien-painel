@@ -85,6 +85,7 @@ function attest(root) {
         guardSha256: checkpoint.value.r4OperationalGuardSha256,
         runnerSha256: checkpoint.value.r4OperationalRunnerSha256,
         freezeLockSuccessorSha256: checkpoint.value.r4FreezeLockSuccessorSha256,
+        finalValidatorSha256: checkpoint.value.r4FinalValidatorSha256,
         allowlistCount: 83,
         materializedFileHashes: manifest.allowlist.map(entry =>
             ({ path: entry.path, sha256: entry.canonicalSha256 })),
