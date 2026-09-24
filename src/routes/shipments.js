@@ -785,11 +785,14 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
             throw error;
         }
     }
-    const purchase = await ensurePurchaseForStagedOrder({
-        order,
-        req,
-        sourceOrderId: adminOrderId
-    });
+    const purchase = order.tracking?.metaPurchaseSentAt
+        ? {
+            ok: true,
+            skipped: true,
+            alreadySent: true,
+            eventId: order.tracking.metaPurchaseEventId || order.orderId
+        }
+        : { ok: false, skipped: true, reason: 'awaiting_dropi' };
     return {
         order,
         purchase,
@@ -2146,7 +2149,8 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (
             purchase: staged.purchase ? {
                 ok: staged.purchase.ok === true,
                 alreadySent: staged.purchase.alreadySent === true,
-                eventId: staged.purchase.eventId || staged.order.tracking?.metaPurchaseEventId || ''
+                eventId: staged.purchase.eventId || staged.order.tracking?.metaPurchaseEventId || '',
+                status: staged.purchase.reason || ''
             } : null,
             message: staged.repurchase
                 ? `Recompra registrada no novo pedido ${staged.order.orderId}. Confira e autorize antes de enviar para Dropi.`
