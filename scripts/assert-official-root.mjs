@@ -15,6 +15,7 @@ const windowsOfficialPath = path.join(
 );
 const vpsOfficialPath = '/opt/vitalismen-automacao/current';
 const codexOfficialWorkspace = '/home/codex/workspaces/maxlien-vitalismen';
+const repurchaseV202OfficialPath = 'C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen-Automacao-V202-Oficial';
 
 const normalizePath = (value) => {
     try {
@@ -41,10 +42,14 @@ const allowedRoots = new Set([
     normalizePath(localOfficialPath),
     normalizePath(windowsOfficialPath),
     normalizePath(codexOfficialWorkspace),
-    normalizePath(vpsOfficialPath)
+    normalizePath(vpsOfficialPath),
+    ...(process.platform === 'win32' ? [path.resolve(repurchaseV202OfficialPath)] : [])
 ]);
 
 const currentRoot = normalizePath(root);
+if (process.platform === 'win32' && path.resolve(root) !== currentRoot) {
+    fail('Raiz local por symlink/junction não autorizada: ' + root);
+}
 if (!allowedRoots.has(currentRoot)) {
     fail(`Raiz atual fora do caminho oficial: ${root}`);
 }
