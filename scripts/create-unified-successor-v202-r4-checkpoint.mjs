@@ -5,7 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     R4_CHECKPOINT_PATH, R4_MANIFEST_PATH, R4_PRELOAD_PATH, R4_GUARD_PATH,
-    R4_RUNNER_PATH, V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256,
+    R4_RUNNER_PATH, R4_FREEZE_LOCK_SUCCESSOR_PATH,
+    V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256,
     SHIPMENTS_SHA256, readCanonicalJson, readAuthorizedCheckpoint,
     validateR4Manifest, sha256
 } from './lib/unified-successor-v202-r4-authority.mjs';
@@ -27,12 +28,12 @@ const parent = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
 assert.equal(git('merge-base', parent, commit), parent, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parent}^{tree}`),
     '1bf75f613c6befece285e3ce9a71dc41bfffaa20');
-const parentR4Commit = 'd965572e5ada1acae697953af162eaceae3ca3b6';
-const parentR4Tree = 'c2db82792192f7aafb6b8ca45ea2acd8fc1fdace';
+const parentR4Commit = '71e0a3d13846ac81494e24f9f4667822dd793b24';
+const parentR4Tree = '23c5f9bf911a6435306cfc1919acb74be80f9f71';
 const parentAuthorityPath =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY.json';
 const parentAuthoritySha256 =
-    'b5b9a04e38e1f7560dfae7b1f209ed3bc6933066cb3313748dbad6e1fa7fb09e';
+    'd38a760b3c189a38d363b2d43f01d90e0eda5afe72a896e80b239c628b3cafa4';
 assert.equal(git('merge-base', parentR4Commit, commit), parentR4Commit,
     'R4_STAGEFIX_PARENT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parentR4Commit}^{tree}`), parentR4Tree,
@@ -43,9 +44,9 @@ const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
+    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
     parentR4Commit,
     parentR4Tree,
     parentAuthorityCheckpointSha256: parentAuthoritySha256,
@@ -56,6 +57,7 @@ const checkpoint = {
     r4OperationalPreloadSha256: digest(R4_PRELOAD_PATH),
     r4OperationalGuardSha256: digest(R4_GUARD_PATH),
     r4OperationalRunnerSha256: digest(R4_RUNNER_PATH),
+    r4FreezeLockSuccessorSha256: digest(R4_FREEZE_LOCK_SUCCESSOR_PATH),
     allowlistCount: 83,
     v201PublishedCommit: V201_COMMIT,
     v201PublishedTree: V201_TREE,

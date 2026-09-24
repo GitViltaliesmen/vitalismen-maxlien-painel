@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const guard = path.join(root, 'scripts/guard-unified-successor-v202-r4.mjs');
-const guardSha256 = 'f371a7b1343213423a74af1a9d6b37a1d1a8e706e47107bb0a48fb1c518a1a44';
+const guardSha256 = '954161b385229fb2fbb0b221ab4a6cd5e5cd98ff721860b7fb301ea62403fc47';
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync(guard)).digest('hex'),
     guardSha256, 'R4_GUARD_TAMPERED');
 const [mode, ...input] = process.argv.slice(2);
@@ -73,6 +73,14 @@ if (mode === '--fixture') {
     run(['--input-type=module', '-e', probe], release,
         /NODE_IMPORT_R4=PASS/, `--import=${preload}`);
     process.stdout.write('SENIOR_OPERATIONAL_GUARD=PASS\n');
+} else if (mode === '--freeze-lock') {
+    assert.equal(input.length, 1, 'R4_FREEZE_LOCK_EXACT_ARGS_REQUIRED');
+    const release = fs.realpathSync(input[0]);
+    assert.equal(release, root, 'R4_FREEZE_LOCK_ROOT_MISMATCH');
+    const preload = pathToFileURL(path.join(root,
+        'scripts/lib/unified-successor-v202-r4-preload.mjs')).href;
+    run(['scripts/guard-freeze-lock-successor-v202-r4.mjs'], release,
+        /FREEZE_LOCK_SUCCESSOR_R4=PASS/, `--import=${preload}`);
 } else {
     throw new Error('R4_RUNNER_MODE_INVALID');
 }

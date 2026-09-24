@@ -244,7 +244,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
   preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
 } else {
-  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY.json';
+   const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY.json';
   const parent = fs.lstatSync(path.dirname(checkpointPath));
   const stat = fs.lstatSync(checkpointPath);
   assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
@@ -252,15 +252,16 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
     && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
   const checkpoint = read(checkpointPath).value;
-  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY');
+   assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY');
   assert.equal(checkpoint.status, 'FROZEN');
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
   for (const [relative, expected] of [
     ['docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json', checkpoint.r4OperationalManifestSha256],
     ['scripts/lib/unified-successor-v202-r4-preload.mjs', checkpoint.r4OperationalPreloadSha256],
-    ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
-    ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256]
+     ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
+     ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256],
+     ['scripts/guard-freeze-lock-successor-v202-r4.mjs', checkpoint.r4FreezeLockSuccessorSha256]
   ]) {
     const file = path.join(root, relative);
     const item = fs.lstatSync(file);
@@ -3176,9 +3177,15 @@ run_protected official_state_audit \
   VITALISMEN_OFFICIAL_AUDIT_NODE_OPTIONS="$release_guard_node_options" \
   "$node_cmd" scripts/official-state-audit.mjs
 
-run_protected freeze_lock_pre \
-  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
-  "$npm_cmd" run guard:freeze-lock
+if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+  freeze_lock_command=("$env_cmd" -C "$release_dir" NODE_OPTIONS= "$node_cmd"
+    scripts/run-unified-successor-v202-r4.mjs --freeze-lock "$release_dir")
+else
+  freeze_lock_command=("$env_cmd" -C "$release_dir"
+    npm_config_node_options="$release_guard_node_options"
+    "$npm_cmd" run guard:freeze-lock)
+fi
+run_protected freeze_lock_pre "${freeze_lock_command[@]}"
 
 run_protected senior_check \
   "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
@@ -3208,9 +3215,7 @@ run_protected pickup_notification_tests \
   "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
   "$npm_cmd" run test:pickup-notifications
 
-run_protected freeze_lock \
-  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
-  "$npm_cmd" run guard:freeze-lock
+run_protected freeze_lock "${freeze_lock_command[@]}"
 
 current_after="$(current_target)"
 pm2_pid_after="$("$pm2_cmd" pid "$process_name" 2>/dev/null | tail -n 1 || true)"
