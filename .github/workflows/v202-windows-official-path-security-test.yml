@@ -1,0 +1,170 @@
+name: V202 Windows official path security test
+
+on:
+  push:
+    branches:
+      - codex/v202-windows-official-path-security-test
+
+permissions:
+  contents: read
+
+jobs:
+  exact-root-security:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe real reparse points and exact-root policy
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location -LiteralPath $env:RUNNER_TEMP
+          $policyFile = Join-Path $env:RUNNER_TEMP 'v202-official-path-policy-copy.mjs'
+          $testFile = Join-Path $env:RUNNER_TEMP 'v202-official-path-security-test.mjs'
+          @'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const root = process.cwd();
+          const normalizePath = (value) => {
+              try { return fs.realpathSync(value); }
+              catch { return path.resolve(value); }
+          };
+          const allowedRoots = new Set([
+              normalizePath(process.env.V202_TEST_CANONICAL_ROOT),
+              path.resolve(process.env.V202_TEST_NEW_ROOT)
+          ]);
+          const fail = (reason) => {
+              console.error('[VITALISMEN-OFFICIAL-ROOT] BLOQUEADO ' + reason);
+              process.exit(1);
+          };
+          const currentRoot = normalizePath(root);
+          if (process.platform === 'win32' && path.resolve(root) !== currentRoot) {
+              fail('symlink_or_junction');
+          }
+          if (!allowedRoots.has(currentRoot)) fail('root_not_approved');
+          const markerPath = path.join(root, '.vitalismen-official-root');
+          const packagePath = path.join(root, 'package.json');
+          if (!fs.existsSync(markerPath) || !fs.existsSync(packagePath)) fail('identity_missing');
+          const marker = fs.readFileSync(markerPath, 'utf8');
+          if (!marker.includes('VITALISMEN_OFFICIAL_PROJECT=vit_power_ec')
+              || !marker.includes('DO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true')) fail('marker_invalid');
+          if (JSON.parse(fs.readFileSync(packagePath, 'utf8')).name !== 'vitalismen-automation') {
+              fail('package_invalid');
+          }
+          console.log('OFFICIAL_PATH=PASS');
+          '@ | Set-Content -LiteralPath $policyFile -Encoding utf8
+          @'
+          import assert from 'node:assert/strict';
+          import { spawnSync } from 'node:child_process';
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+
+          const temp = fs.realpathSync(process.env.RUNNER_TEMP);
+          const root = fs.mkdtempSync(path.join(temp, 'v202-official-path-'));
+          assert.equal(path.dirname(root), temp);
+          const policyFile = process.argv[2];
+          const canonical = path.join(root, 'canonical');
+          const approved = path.join(root, 'new-exact-root');
+          const env = {
+              ...process.env,
+              NODE_OPTIONS: '',
+              V202_TEST_CANONICAL_ROOT: canonical,
+              V202_TEST_NEW_ROOT: approved
+          };
+          const fixture = (dir) => {
+              fs.mkdirSync(dir);
+              fs.writeFileSync(path.join(dir, '.vitalismen-official-root'),
+                  'VITALISMEN_OFFICIAL_PROJECT=vit_power_ec\nDO_NOT_USE_PARALLEL_AUTOMATION_PROJECTS=true\n');
+              fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"vitalismen-automation"}\n');
+          };
+          const run = (cwd) => {
+              const result = spawnSync(process.execPath, [policyFile], { cwd, env, encoding: 'utf8' });
+              if (result.error) throw result.error;
+              return result;
+          };
+          const pass = (dir, label) => {
+              const result = run(dir);
+              assert.equal(result.status, 0, label + ': ' + result.stderr);
+              console.log(label + '=PASS');
+          };
+          const block = (dir, label) => {
+              const result = run(dir);
+              assert.notEqual(result.status, 0, label + ': unexpectedly accepted');
+              assert.match(result.stderr, /BLOQUEADO/, label + ': wrong rejection');
+              console.log(label + '=BLOCK');
+          };
+          const removeLink = (link) => {
+              try { fs.unlinkSync(link); }
+              catch { fs.rmdirSync(link); }
+          };
+          const approvedThrough = (type) => {
+              const saved = path.join(root, 'approved-saved-' + type);
+              fs.renameSync(approved, saved);
+              let linked = false;
+              try {
+                  fs.symlinkSync(saved, approved, type);
+                  linked = true;
+                  assert.equal(fs.lstatSync(approved).isSymbolicLink(), true);
+                  block(approved, 'APPROVED_ROOT_THROUGH_' + type.toUpperCase());
+              } finally {
+                  if (linked) removeLink(approved);
+                  fs.renameSync(saved, approved);
+              }
+          };
+
+          console.log('RUN_ID=' + process.env.GITHUB_RUN_ID);
+          console.log('WINDOWS_RUNNER=' + process.env.RUNNER_OS);
+          console.log('WINDOWS_VERSION=' + os.release());
+          console.log('NODE_VERSION=' + process.version);
+          assert.equal(process.platform, 'win32');
+          let passed = false;
+          try {
+              const target = path.join(root, 'real-target');
+              fs.mkdirSync(target);
+              for (const [type, label] of [['dir', 'SYMLINK'], ['junction', 'JUNCTION']]) {
+                  const link = path.join(root, 'capability-' + type);
+                  fs.symlinkSync(target, link, type);
+                  assert.equal(fs.lstatSync(link).isSymbolicLink(), true);
+                  assert.equal(fs.realpathSync(link), fs.realpathSync(target));
+                  console.log(label + '_FIXTURE_CREATED=YES');
+              }
+
+              fixture(canonical);
+              fixture(approved);
+              pass(canonical, 'CANONICAL_EXACT_ROOT');
+              pass(approved, 'NEW_EXACT_ROOT');
+              for (const [dir, label] of [
+                  [approved + '-sibling', 'SIBLING'],
+                  [approved + 'x', 'SIMILAR_NAME'],
+                  [path.join(approved, 'child'), 'UNAPPROVED_CHILD'],
+                  [path.join(root, 'unrelated'), 'UNRELATED_PATH'],
+                  [path.join(root, 'arbitrary'), 'ARBITRARY_PATH']
+              ]) {
+                  fixture(dir);
+                  block(dir, label);
+              }
+              for (const [type, label] of [['dir', 'SYMLINK'], ['junction', 'JUNCTION']]) {
+                  const alias = path.join(root, 'alias-' + type);
+                  fs.symlinkSync(approved, alias, type);
+                  assert.equal(fs.lstatSync(alias).isSymbolicLink(), true);
+                  assert.equal(fs.realpathSync(alias), fs.realpathSync(approved));
+                  block(alias, label + '_TO_APPROVED_ROOT');
+                  console.log(label + '_REJECTED_BY_POLICY=YES');
+                  approvedThrough(type);
+              }
+              passed = true;
+          } finally {
+              fs.rmSync(root, { recursive: true, force: false });
+              assert.equal(fs.existsSync(root), false);
+              console.log('TEMP_ARTIFACTS_REMOVED=YES');
+          }
+          if (passed) console.log('POLICY_NEGATIVE_TESTS=ALL_PASS');
+          '@ | Set-Content -LiteralPath $testFile -Encoding utf8
+          try {
+            node $testFile $policyFile
+            if ($LASTEXITCODE -ne 0) { throw 'V202 Windows official path security test failed' }
+          } finally {
+            Remove-Item -LiteralPath $testFile -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $policyFile -ErrorAction SilentlyContinue
+          }
