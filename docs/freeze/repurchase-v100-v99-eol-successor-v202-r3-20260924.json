@@ -1,0 +1,36 @@
+{
+  "freezeId": "REPURCHASE_V100_V99_EOL_SUCCESSOR_V202_R3_20260924",
+  "version": "V202-R3",
+  "baseCommit": "790a5079b7cd4693127f84d933809042dfc018be",
+  "baseTree": "92fab5b70d2f028293661bbc2393be6c08afb740",
+  "parentManifest": "docs/freeze/repurchase-v141-v185-governance-successor-v202-r2-20260924.json",
+  "parentManifestSha256": "5c2c1990f2cc614e9367e210e3678f63944a6dadd36ddec3772cb74ffb060f0e",
+  "historicalV100Test": {
+    "path": "tests/ec-repurchase-panel-precedence-v100.test.mjs",
+    "blobOid": "c141b7fac6e7194758523efff2408bb292f29187",
+    "sha256": "8f4f47d73c137b5c2121c2b4d409fe15fc868c2b418ebd9a6e187493e1c22a35"
+  },
+  "v99Evidence": {
+    "docs/freeze/ec-repurchase-registration-v99-20260902.json": {
+      "blobOid": "a1a7c007dc0ce925c9703be18c15e8299e8d5e29",
+      "sha256": "0bb88ffbee48c7807800b97539a7911e40f703e5056189363699d5401e6c6f82"
+    },
+    "docs/EC_REPURCHASE_REGISTRATION_FREEZE_V99_20260902.md": {
+      "blobOid": "32554788430c193aab58ed0445cb8d26a0f4f566",
+      "sha256": "8d46da5a7b99964da8ad3b1095d0f174cbd727faf347fcae26a94931679cb72e"
+    },
+    "docs/evidence/ec-repurchase-registration-v99-attestation-20260902.json": {
+      "blobOid": "dca218a4c1127153837c7303cbfa0cdb3f679017",
+      "sha256": "a2697c65902953afebc90f5040ea7d941f38da16a5fdad6621674fd517f34f79"
+    }
+  },
+  "policy": {
+    "historicalV100Preserved": true,
+    "historicalV100CurrentGate": false,
+    "canonicalIdentity": "GIT_BLOB_OID_AND_SHA256",
+    "worktreeEol": "UNIFORM_LF_OR_CRLF_WITH_EXACT_GIT_BLOB_MATCH",
+    "failClosed": true,
+    "functionalFilesChanged": false,
+    "productionChanged": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "freezeId": "REPURCHASE_V141_TO_V185_GOVERNANCE_V202_R1_20260924",
+  "version": "V202-R1",
+  "baseCommit": "790a5079b7cd4693127f84d933809042dfc018be",
+  "baseTree": "92fab5b70d2f028293661bbc2393be6c08afb740",
+  "functionalCommit": "d333c9b3bdeb57644ce78b7f0575301fd9a102dd",
+  "parentManifest": "docs/freeze/repurchase-v141-v185-governance-successor-v202-20260924.json",
+  "parentManifestSha256": "2fff4cafc641a97b6047745f54e0e42cd242cdb98d22e4cc7a97c3f5c4c7a129",
+  "v141SourceCommit": "c68163e1013782e013456baeba65538770a7c220",
+  "v141SourceDate": "2026-09-08T02:50:37-03:00",
+  "canonicalFiles": {
+    "tests/meta-funnel-reconciliation-v141.test.mjs": {
+      "blobOid": "24cc12a272a050579242c3db39c260ad47d4ff1a",
+      "sha256": "ddac187d2b43cd29808845d1c7b961fac38e51eae7f945784de0a744d9e7db42"
+    },
+    "docs/freeze/v185-metrics-radar-readonly-20260918.json": {
+      "blobOid": "93604765b8d3ab8c069537d3b4413c35da141d2e",
+      "sha256": "4434eece40862a52fb2db8cc6dc27c3c7de4f5c35f6dc931b203750d553363e7"
+    },
+    "docs/freeze/ec-v185-canonical-successor-v186-20260918.json": {
+      "blobOid": "e125033ec308fc62e1bee3030a5af91f23b06366",
+      "sha256": "86f20f710d132991d95838a6ca4b474ff1814ce0f46b317debfaa63d707422e7"
+    },
+    "public/funnel-metrics.html": {
+      "blobOid": "497522fd7f666e480763e6aff66619f1561a3b62",
+      "sha256": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18"
+    }
+  },
+  "historicalV202Files": {
+    "docs/freeze/repurchase-v141-v185-governance-successor-v202-20260924.json": "2fff4cafc641a97b6047745f54e0e42cd242cdb98d22e4cc7a97c3f5c4c7a129",
+    "scripts/guard-repurchase-v141-v185-governance-v202.mjs": "9e0ac170ab8fca0a463d4126243afbd63a62cdcbbe625b6afaa6cc2fa82e7ffe",
+    "scripts/run-repurchase-v141-v185-governance-v202.mjs": "8a35130e70dcd0cddc42a345aeae9b14d5d4a00a5a11d03a6825d820ea9c91b7",
+    "tests/repurchase-v141-v185-governance-v202.test.mjs": "9c2d9699d8df0d26e5ada030a13332f8b16aaf9587d6aaeb449021bc70e37a04"
+  },
+  "policy": {
+    "failClosed": true,
+    "allowedWorktreeEol": "UNIFORM_LF_OR_CRLF",
+    "canonicalIdentity": "GIT_BLOB_OID_AND_SHA256",
+    "historicalV202FilesChanged": false,
+    "functionalFilesChanged": false,
+    "productionChanged": false
+  }
+}

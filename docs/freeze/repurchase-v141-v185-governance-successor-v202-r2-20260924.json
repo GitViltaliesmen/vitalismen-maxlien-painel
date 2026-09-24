@@ -1,0 +1,47 @@
+{
+  "freezeId": "REPURCHASE_V141_TO_V185_GOVERNANCE_V202_R2_20260924",
+  "version": "V202-R2",
+  "baseCommit": "790a5079b7cd4693127f84d933809042dfc018be",
+  "baseTree": "92fab5b70d2f028293661bbc2393be6c08afb740",
+  "functionalCommit": "d333c9b3bdeb57644ce78b7f0575301fd9a102dd",
+  "parentManifest": "docs/freeze/repurchase-v141-v185-governance-successor-v202-r1-20260924.json",
+  "parentManifestSha256": "658e108bfd76c989ffc98fd01759bfd3b92653617ca0e8ee2a8ac8aa0bc58fcf",
+  "historicalShipmentsSha256": "1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0",
+  "successorShipmentsSha256": "c083862ea7123d854fd7260375632d1f4535451b26a53f1e9edf38d7b6ab0ef8",
+  "successorShipmentsBlobOid": "d9b3e4149ea38008a6c3ce43e882413ad5e8f57d",
+  "historicalEvidence": {
+    "docs/freeze/ec-v51-browser-successor-v181-20260918.json": {
+      "blobOid": "8e7321f4e019f3d0a93767f72d263cdfa4ae3066",
+      "sha256": "7734686a87160bb456ef65c7002aa2745fbea7f1b4fc8e3f28b990b800b55f9b"
+    },
+    "scripts/lib/ec-runtime-successor-v181-context.mjs": {
+      "blobOid": "d1ad6e50f3e613c819c34096187a8d146219a86c",
+      "sha256": "bb00dda5802fcde6e07654b9ce206cd63bbceacaed970fcd6ca4141006d5a446"
+    },
+    "docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json": {
+      "blobOid": "077ca9ffe376c6b3f93125d0040f4a88a457bb7e",
+      "sha256": "d4742757c7c63a608883b4650dfcb47ef7ebd14c87493f004aced14e0c871323"
+    },
+    "scripts/lib/ec-runtime-successor-v183-context.mjs": {
+      "blobOid": "7ce93b225e1b248f2de1456bd1f6196d5e76cf5f",
+      "sha256": "d7e6aed69f77aab67d4741953146b00ed6b736096e8ae6cd417767497d27b538"
+    },
+    "docs/freeze/ec-v185-canonical-successor-v186-20260918.json": {
+      "blobOid": "e125033ec308fc62e1bee3030a5af91f23b06366",
+      "sha256": "86f20f710d132991d95838a6ca4b474ff1814ce0f46b317debfaa63d707422e7"
+    },
+    "tests/v185-canonical-successor-v186.test.mjs": {
+      "blobOid": "5c578be2c956ecc413e4b40ae9d5ec2b1bc01faa",
+      "sha256": "7c9af42e05a789d4f7125940a3e3fb45cfcaae25cd052d981b1b3ed0c30ce3ad"
+    }
+  },
+  "policy": {
+    "historicalEvidenceImmutable": true,
+    "historicalV186RequiredOnSuccessor": false,
+    "successorCanonicalSuiteRequired": true,
+    "failClosed": true,
+    "noHistoricalGuardBypass": true,
+    "functionalFilesChanged": false,
+    "productionChanged": false
+  }
+}
