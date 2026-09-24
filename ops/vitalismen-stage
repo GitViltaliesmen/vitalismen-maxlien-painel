@@ -213,9 +213,67 @@ run_protected() {
 
 successor_guard_node_options() {
   local candidate_dir="$1"
-  local preload_path="$candidate_dir/scripts/lib/ec-runtime-successor-v97-context.mjs"
-
-  [[ -f "$preload_path" ]] || die "preload sucessor V97 ausente"
+  local preload_relative
+  local preload_path
+  preload_relative="$("$node_cmd" --input-type=module - "$candidate_dir" <<'NODE'
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+const root = fs.realpathSync(process.argv[2]);
+const read = file => {
+  const stat = fs.lstatSync(file);
+  assert.ok(stat.isFile() && !stat.isSymbolicLink());
+  const bytes = fs.readFileSync(file);
+  const value = JSON.parse(bytes.toString('utf8'));
+  assert.equal(bytes.toString('utf8'), `${JSON.stringify(value, null, 2)}\n`);
+  return { bytes, value };
+};
+const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const source = read(path.join(root, '.release-source.json')).value;
+assert.equal(path.basename(root), source.releaseName);
+let preload;
+if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
+    && source.functionalCommit === '8c25ed9912abc4aabee2656cf9192420389934c6'
+    && source.functionalTree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283') {
+  preload = 'scripts/lib/ec-runtime-successor-v97-context.mjs';
+} else if (source.functionalCommit === '641759b160c2b91e95a3f1df371ad372a74d72e1'
+    && source.functionalTree === '1feb02ad1a3f2ae266ef519bf33426b91ac80aa3'
+    && source.releaseName.endsWith('641759b')) {
+  const manifest = read(path.join(root, 'docs/freeze/ec-bot-core-overlay-preload-v201-20260924.json'));
+  assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
+  preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
+} else {
+  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY.json';
+  const parent = fs.lstatSync(path.dirname(checkpointPath));
+  const stat = fs.lstatSync(checkpointPath);
+  assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
+    && parent.gid === 0 && (parent.mode & 0o022) === 0);
+  assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
+    && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
+  const checkpoint = read(checkpointPath).value;
+  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY');
+  assert.equal(checkpoint.status, 'FROZEN');
+  assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
+  assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
+  for (const [relative, expected] of [
+    ['docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json', checkpoint.r4OperationalManifestSha256],
+    ['scripts/lib/unified-successor-v202-r4-preload.mjs', checkpoint.r4OperationalPreloadSha256],
+    ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
+    ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256]
+  ]) {
+    const file = path.join(root, relative);
+    const item = fs.lstatSync(file);
+    assert.ok(item.isFile() && !item.isSymbolicLink());
+    assert.equal(sha(fs.readFileSync(file)), expected);
+  }
+  preload = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
+}
+process.stdout.write(preload);
+NODE
+)" || die "identidade/preload da release não autorizado"
+  preload_path="$candidate_dir/$preload_relative"
+  [[ -f "$preload_path" && ! -L "$preload_path" ]] || die "preload sucessor ausente ou inseguro"
   printf '%s' "--import=file://$preload_path"
 }
 
@@ -314,6 +372,7 @@ const excludedRootFiles = new Set([
   '.env.v77-canary-qa',
   '.canary-v77-profile-attestation.json',
   '.release-source.json',
+  '.r4-operational-attestation.json',
   '.staging-complete.json',
   '.release-publication.json',
   '.publication-complete.json',
@@ -1313,20 +1372,82 @@ safe_pm2() {
   local target_node_options
   local pm2_realpath
   local pm2_module_root
+  local target_preload_relative
+  local pm2_controller_code
   local -a pm2_controller_env=()
   local -a pm2_exec=("$pm2_cmd" "$pm2_action" "$process_name" --update-env)
 
   target_dir="$(current_target)"
-  if [[ -f "$target_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" ]]; then
-    [[ "$pm2_action" == "start" || "$pm2_action" == "restart" ]] || die "ação PM2 safe inválida"
-    target_node_options="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
-    pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
-    [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
-    pm2_module_root="${pm2_realpath%/bin/pm2}"
-    pm2_controller_env=(NODE_OPTIONS= npm_config_node_options= NPM_CONFIG_NODE_OPTIONS=)
+  [[ "$pm2_action" == "start" || "$pm2_action" == "restart" ]] || die "ação PM2 safe inválida"
+  target_node_options="$(successor_guard_node_options "$target_dir")"
+  [[ "$target_node_options" == "--import=file://$target_dir/"* ]] ||
+    die "preload safe fora do release atual"
+  target_preload_relative="${target_node_options#--import=file://$target_dir/}"
+  target_node_options="--import=file:///opt/vitalismen-automacao/current/$target_preload_relative"
+  pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
+  [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
+  pm2_module_root="${pm2_realpath%/bin/pm2}"
+  pm2_controller_env=(NODE_OPTIONS= npm_config_node_options= NPM_CONFIG_NODE_OPTIONS=)
+  if [[ "$target_preload_relative" == "scripts/lib/unified-successor-v202-r4-preload.mjs" ]]; then
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+      "$target_dir/scripts/verify-unified-successor-v202-r4-stage.mjs" verify "$target_dir" >/dev/null ||
+      die "attestation R4 inválida antes do PM2"
+  fi
+  if [[ "$target_preload_relative" == "scripts/lib/ec-runtime-successor-v97-context.mjs" ]]; then
     pm2_exec=(
       "$node_cmd" "$target_dir/scripts/lib/pm2-target-env-restart-v89.mjs"
       "$pm2_module_root" "$process_name" "$target_node_options"
+    )
+  else
+    pm2_controller_code="$(cat <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const [moduleRoot, processName, nodeOptions, action] = process.argv.slice(1);
+assert.equal(process.env.NODE_OPTIONS, '');
+assert.equal(processName, 'vitalismen-automation');
+assert.ok(['start', 'restart'].includes(action));
+assert.ok([
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v199-context.mjs',
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs'
+].includes(nodeOptions));
+const packagePath = path.join(moduleRoot, 'package.json');
+const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+assert.equal(packageJson.name, 'pm2');
+assert.match(packageJson.version, /^6\./);
+process.env.NODE_OPTIONS = nodeOptions;
+process.env.npm_config_node_options = '';
+const require = createRequire(packagePath);
+const pm2 = require(moduleRoot);
+await new Promise((resolve, reject) => pm2.connect(error => error ? reject(error) : resolve()));
+try {
+  await new Promise((resolve, reject) => {
+    const callback = (error, applications) => {
+      if (error) return reject(error);
+      const list = Array.isArray(applications) ? applications : [applications];
+      if (!list.some(item => item?.name === processName || item?.pm2_env?.name === processName)) {
+        return reject(new Error('PM2_TARGET_IDENTITY_INVALID'));
+      }
+      resolve();
+    };
+    if (action === 'restart') pm2.restart(processName, { updateEnv: true }, callback);
+    else pm2.start({
+      name: processName,
+      script: '/opt/vitalismen-automacao/current/src/index.js',
+      cwd: '/opt/vitalismen-automacao/current',
+      updateEnv: true
+    }, callback);
+  });
+} finally {
+  pm2.disconnect();
+}
+process.stdout.write('PM2_TARGET_ENV_RESTART_R4=PASS\n');
+NODE
+)"
+    pm2_exec=(
+      "$node_cmd" --input-type=module -e "$pm2_controller_code"
+      "$pm2_module_root" "$process_name" "$target_node_options" "$pm2_action"
     )
   fi
   "$env_cmd" \
@@ -2981,9 +3102,31 @@ METADATA
 secure_mode 0600 "$release_dir/.release-source.json"
 release_metadata_sha_at_creation="$($sha256_cmd "$release_dir/.release-source.json" | awk '{print $1}')"
 
+release_guard_node_options="$(successor_guard_node_options "$release_dir")"
+if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+  [[ -f "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs"
+    && ! -L "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs"
+    && -f "$release_dir/scripts/lib/unified-successor-v202-r4-authority.mjs"
+    && ! -L "$release_dir/scripts/lib/unified-successor-v202-r4-authority.mjs" ]] ||
+    die "código de attestation R4 ausente ou inseguro"
+  "$git_cmd" -C "$release_dir" diff --quiet HEAD -- \
+    scripts/verify-unified-successor-v202-r4-stage.mjs \
+    scripts/lib/unified-successor-v202-r4-authority.mjs ||
+    die "código de attestation R4 diverge do Git autorizado"
+  run_protected r4_git_attestation \
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+    "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs" attest "$release_dir"
+  [[ -f "$release_dir/.r4-operational-attestation.json" ]] ||
+    die "attestation R4 não foi criada antes da remoção de .git"
+fi
+
 rm -rf -- "$release_dir/.git"
 
-release_guard_node_options="$(successor_guard_node_options "$release_dir")"
+if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+  run_protected r4_materialized_attestation \
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+    "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs" verify "$release_dir"
+fi
 
 run_protected npm_ci \
   "$env_cmd" -C "$release_dir" "$npm_cmd" ci --omit=dev

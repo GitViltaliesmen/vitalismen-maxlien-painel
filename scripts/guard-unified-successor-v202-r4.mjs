@@ -8,8 +8,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json';
 export const PRELOAD_PATH = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
-export const MANIFEST_SHA256 = '836906369f2b28ab0c4ef7d1543fed5cbb1ddb77d14e3d6215e4f1aca298dfb1';
-export const PRELOAD_SHA256 = '2331de79621745011c5f956c8fa1ff75d2741986083d2634664bb0aa26770ea7';
+export const MANIFEST_SHA256 = 'b700131b714e7da1b988d8feb032d44e7ec033f6ba7792613452d9326408a7e9';
+export const PRELOAD_SHA256 = 'cc1f6ca2d7cd277b6940f71eea5154f74a219910653f005b010d7e942e85ebc1';
+export const LOCAL_CHECKPOINT_HEAD = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
+export const LOCAL_CHECKPOINT_TREE = '1bf75f613c6befece285e3ce9a71dc41bfffaa20';
 export const BASE_HEAD = '790a5079b7cd4693127f84d933809042dfc018be';
 export const BASE_TREE = '92fab5b70d2f028293661bbc2393be6c08afb740';
 export const V199_HEAD = 'e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9';
@@ -42,6 +44,8 @@ export function assertUnifiedManifest(bytes, preloadBytes, expectedManifestSha =
     assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`, 'R4_MANIFEST_NOT_CANONICAL');
     assert.equal(manifest.successorId, 'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_20260924');
     assert.equal(manifest.version, 'V202-R4');
+    assert.equal(manifest.operationalRevision,
+        'EXTERNAL_FROZEN_CHECKPOINT_AND_RELEASE_ATTESTATION');
     assert.equal(manifest.baseHead, BASE_HEAD, 'R4_BASE_HEAD_INVALID');
     assert.equal(manifest.baseTree, BASE_TREE, 'R4_BASE_TREE_INVALID');
     assert.equal(manifest.functionalCommit, 'd333c9b3bdeb57644ce78b7f0575301fd9a102dd');
@@ -57,12 +61,15 @@ export function assertUnifiedManifest(bytes, preloadBytes, expectedManifestSha =
     assert.equal(manifest.allowlistCount, 83);
     assert.equal(manifest.allowlist.length, 83);
     assert.equal(new Set(manifest.allowlist.map(item => item.path)).size, 83, 'R4_ALLOWLIST_DUPLICATE');
-    assert.equal(manifest.allowlist.filter(item => item.authority === 'OPERATOR_DECISION').length, 1);
-    assert.equal(manifest.allowlist.filter(item => item.authority === 'FREEZE_SUCCESSOR_EVIDENCE').length, 82);
+    assert.equal(manifest.allowlist.filter(item => item.authority === 'OPERATOR_DECISION').length, 2);
+    assert.equal(manifest.allowlist.filter(item => item.authority === 'FREEZE_SUCCESSOR_EVIDENCE').length, 81);
     assert.equal(manifest.policy.failClosed, true);
     assert.equal(manifest.policy.canonicalBlobSource, 'GIT_OBJECT_DATABASE');
     assert.equal(manifest.policy.historicalGuardsUnchanged, true);
-    assert.equal(manifest.policy.noPermanentGlobalOverride, true);
+    assert.equal(manifest.policy.noPermanentGlobalOverride, false);
+    assert.equal(manifest.policy.testFixtureRestoresContext, true);
+    assert.equal(manifest.policy.operationalImportKeepsValidatedContext, true);
+    assert.equal(manifest.policy.runtimeGitDependency, false);
     assert.deepEqual(manifest.externalEffectLocks, {
         dropiRealBlocked: true, purchaseRealBlocked: true, productionMutationBlocked: true
     });
@@ -87,13 +94,18 @@ export function assertCanonicalEntry(entry, oid, blob, worktree) {
     return true;
 }
 
-export function assertExternalLocks(locks, env = {}) {
+export function assertExternalLocks(locks, env = {}, { allowBotOperational = false } = {}) {
     assert.deepEqual(locks, {
         dropiRealBlocked: true, purchaseRealBlocked: true, productionMutationBlocked: true
     }, 'R4_EFFECT_LOCKS_INVALID');
-    for (const key of ['DROPPI_EC_ACTIVE_SYNC_ENABLED', 'VITALISMEN_META_PURCHASE_ENABLED',
-        'VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED']) {
+    const keys = ['DROPPI_EC_ACTIVE_SYNC_ENABLED', 'VITALISMEN_META_PURCHASE_ENABLED'];
+    if (!allowBotOperational) keys.push('VIT_POWER_OPERATIONAL_AUTOMATION_APPROVED');
+    for (const key of keys) {
         assert.notEqual(String(env[key] ?? '').toLowerCase(), 'true', `R4_EXTERNAL_EFFECT_ENABLED:${key}`);
+    }
+    if (allowBotOperational) {
+        assert.equal(String(env.DROPPI_EC_ACTIVE_SYNC_MODE ?? 'REPORT_ONLY').toUpperCase(),
+            'REPORT_ONLY', 'R4_DROPI_MODE_NOT_REPORT_ONLY');
     }
     return true;
 }
@@ -131,6 +143,10 @@ export function assertUnifiedSuccessor({
     assertBaseIdentity({ baseHead: BASE_HEAD,
         baseTree: git(root, 'rev-parse', `${BASE_HEAD}^{tree}`),
         headIsDescendant: git(root, 'merge-base', BASE_HEAD, head) === BASE_HEAD });
+    assert.equal(git(root, 'rev-parse', `${LOCAL_CHECKPOINT_HEAD}^{tree}`),
+        LOCAL_CHECKPOINT_TREE, 'R4_LOCAL_CHECKPOINT_TREE_CHANGED');
+    assert.equal(git(root, 'merge-base', LOCAL_CHECKPOINT_HEAD, head),
+        LOCAL_CHECKPOINT_HEAD, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
     assert.equal(git(historicalRoot, 'rev-parse', 'HEAD'), V199_HEAD, 'R4_V199_HEAD_CHANGED');
     assert.equal(git(historicalRoot, 'rev-parse', 'HEAD^{tree}'), V199_TREE, 'R4_V199_TREE_CHANGED');
     assert.equal(git(root, 'status', '--porcelain', '--untracked-files=no'), '',

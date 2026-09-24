@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { resolveMetaCanonicalConsolidationV195 } from './metaCanonicalConsolidationV195Service.js';
+import { readAuthorizedCheckpoint } from '../../scripts/lib/unified-successor-v202-r4-authority.mjs';
 
 export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_MODE = 'EC_BOT_CORE_OPERATIONAL';
@@ -11,13 +12,15 @@ export const EC_BOT_CORE_V78_QA_PHONE = '5515998038637';
 export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
 export const EC_BOT_CORE_V195_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v195-context.mjs';
 export const EC_BOT_CORE_V199_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v199-context.mjs';
+export const EC_BOT_CORE_R4_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs';
 
 const LEGACY_V78_RELEASE = '20260920T163629Z_production-20260920-8c25ed9';
 const LEGACY_V78_COMMIT = '8c25ed9912abc4aabee2656cf9192420389934c6';
 const LEGACY_V78_TREE = '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
-const CANONICAL_BASE_RELEASE = '20260923T220336Z_production-20260923-e4f0f3b';
 const CANONICAL_BASE_COMMIT = 'e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9';
-const CANONICAL_BASE_TREE = '84f9eca9cc956de9ef5d8aa90bb7b6a456927173';
+const V201_PUBLISHED_COMMIT = '641759b160c2b91e95a3f1df371ad372a74d72e1';
+const V201_PUBLISHED_TREE = '1feb02ad1a3f2ae266ef519bf33426b91ac80aa3';
+const V201_MANIFEST_SHA256 = 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee';
 const successorOverlayContext = () => globalThis.__VITALISMEN_V201_V78_OVERLAY_CONTEXT;
 
 export const selectEcBotCoreV78PreloadForRelease = ({
@@ -28,19 +31,23 @@ export const selectEcBotCoreV78PreloadForRelease = ({
         return EC_BOT_CORE_V78_NODE_OPTIONS;
     }
     const context = successorOverlayContext();
-    if (context?.loaded !== true || context.baseCommit !== CANONICAL_BASE_COMMIT
-        || context.baseRelease !== CANONICAL_BASE_RELEASE) {
-        throw new Error('ec_bot_core_successor_context_invalid');
+    const exactEnvelope = /^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(release)
+        && release.endsWith(commit.slice(0, 7))
+        && tag === `production-${release.slice(0, 8)}-${commit.slice(0, 7)}`;
+    if (!exactEnvelope) throw new Error('ec_bot_core_release_not_approved');
+    if (commit === V201_PUBLISHED_COMMIT && tree === V201_PUBLISHED_TREE
+        && successorManifestSha256 === V201_MANIFEST_SHA256
+        && context?.loaded === true && context.baseCommit === CANONICAL_BASE_COMMIT
+        && context.manifestSha256 === V201_MANIFEST_SHA256) {
+        return EC_BOT_CORE_V199_NODE_OPTIONS;
     }
-    const exactBase = release === CANONICAL_BASE_RELEASE && commit === CANONICAL_BASE_COMMIT
-        && tree === CANONICAL_BASE_TREE && tag === 'production-20260923-e4f0f3b';
-    const publishedSuccessor = successorManifestSha256 === context.manifestSha256
-        && /^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(release)
-        && /^[0-9a-f]{40}$/.test(commit) && /^[0-9a-f]{40}$/.test(tree)
-        && tag === `production-${release.slice(0, 8)}-${commit.slice(0, 7)}`
-        && release.endsWith(commit.slice(0, 7)) && commit !== LEGACY_V78_COMMIT;
-    if (!exactBase && !publishedSuccessor) throw new Error('ec_bot_core_release_not_approved');
-    return EC_BOT_CORE_V199_NODE_OPTIONS;
+    const checkpoint = readAuthorizedCheckpoint().value;
+    if (commit === checkpoint.r4OperationalCommit && tree === checkpoint.r4OperationalTree
+        && successorManifestSha256 === checkpoint.r4OperationalManifestSha256
+        && globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded === true) {
+        return EC_BOT_CORE_R4_NODE_OPTIONS;
+    }
+    throw new Error('ec_bot_core_release_not_approved');
 };
 
 export const EC_BOT_CORE_V78_ALLOWED_WRITE_CLASSES = Object.freeze([
@@ -169,7 +176,9 @@ export const buildEcBotCoreV78OverlayEnvironment = ({
         throw new Error('ec_bot_core_dataset_invalid');
     }
     if (nodeOptions !== EC_BOT_CORE_V78_NODE_OPTIONS
-        && (nodeOptions !== EC_BOT_CORE_V199_NODE_OPTIONS || successorOverlayContext()?.loaded !== true)) {
+        && (nodeOptions !== EC_BOT_CORE_V199_NODE_OPTIONS || successorOverlayContext()?.loaded !== true)
+        && (nodeOptions !== EC_BOT_CORE_R4_NODE_OPTIONS
+            || globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded !== true)) {
         throw new Error('ec_bot_core_preload_not_approved');
     }
 
@@ -232,7 +241,11 @@ export const resolveEcBotCoreV78Configuration = (env = process.env, {
     if (clean(env.NODE_ENV).toLowerCase() !== 'production') failures.push('NODE_ENV_must_be_production');
     if (clean(env.NODE_OPTIONS) !== expectedNodeOptions
         && !(clean(env.NODE_OPTIONS) === EC_BOT_CORE_V199_NODE_OPTIONS
-            && successorOverlayContext()?.loaded === true)) failures.push('NODE_OPTIONS_invalid');
+            && successorOverlayContext()?.loaded === true)
+        && !(clean(env.NODE_OPTIONS) === EC_BOT_CORE_R4_NODE_OPTIONS
+            && globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded === true)) {
+        failures.push('NODE_OPTIONS_invalid');
+    }
     if (clean(env.SAFE_OBSERVATION_POLICY).toUpperCase() !== EC_BOT_CORE_V78_MODE) {
         failures.push('SAFE_OBSERVATION_POLICY_invalid');
     }

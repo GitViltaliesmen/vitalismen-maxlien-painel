@@ -1,6 +1,7 @@
 {
   "successorId": "MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_20260924",
   "version": "V202-R4",
+  "operationalRevision": "EXTERNAL_FROZEN_CHECKPOINT_AND_RELEASE_ATTESTATION",
   "baseHead": "790a5079b7cd4693127f84d933809042dfc018be",
   "baseTree": "92fab5b70d2f028293661bbc2393be6c08afb740",
   "functionalCommit": "d333c9b3bdeb57644ce78b7f0575301fd9a102dd",
@@ -82,10 +83,10 @@
     },
     {
       "path": "ops/vitalismen-stage",
-      "gitBlobOid": "a5c095f331fc73186a8f36d011332d238e894b8b",
-      "canonicalSha256": "803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99",
-      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
-      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+      "gitBlobOid": "2472d21d9e5a7a684539a88a61395473e3ab928d",
+      "canonicalSha256": "5ba48b4a4e133dbb231bc08491f4935afc2586280f138c009281ba749863e2dc",
+      "authority": "OPERATOR_DECISION",
+      "evidence": "CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY"
     },
     {
       "path": "package-lock.json",
@@ -643,7 +644,10 @@
     "failClosed": true,
     "canonicalBlobSource": "GIT_OBJECT_DATABASE",
     "historicalGuardsUnchanged": true,
-    "noPermanentGlobalOverride": true,
-    "fixtureNotProduction": true
+    "noPermanentGlobalOverride": false,
+    "fixtureNotProduction": true,
+    "testFixtureRestoresContext": true,
+    "operationalImportKeepsValidatedContext": true,
+    "runtimeGitDependency": false
   }
 }

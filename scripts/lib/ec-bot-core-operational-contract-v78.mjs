@@ -21,6 +21,10 @@ import {
     assertEcVslDashboardIngressManifestV90
 } from '../../src/services/ecVslDashboardIngressV90Service.js';
 import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
+import {
+    R4_MANIFEST_PATH, V201_COMMIT, V201_TREE, readAuthorizedCheckpoint,
+    verifyMaterializedRelease
+} from './unified-successor-v202-r4-authority.mjs';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
 export const EC_BOT_CORE_V78_PROFILE_NAME = EC_BOT_CORE_V78_MODE;
@@ -117,7 +121,18 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         publicationCompleteSha256: fileSha256(paths.publicationComplete),
         functionalPayloadSha256
     };
-    const successorManifestPath = path.join(resolved, SUCCESSOR_MANIFEST_PATH);
+    let successorManifestRelative = SUCCESSOR_MANIFEST_PATH;
+    const legacyExact = commit === '8c25ed9912abc4aabee2656cf9192420389934c6'
+        && tree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
+    if (!legacyExact && (commit !== V201_COMMIT || tree !== V201_TREE)) {
+        const checkpoint = readAuthorizedCheckpoint().value;
+        if (commit !== checkpoint.r4OperationalCommit || tree !== checkpoint.r4OperationalTree) {
+            throw new Error('successor_release_not_enumerated');
+        }
+        verifyMaterializedRelease(resolved);
+        successorManifestRelative = R4_MANIFEST_PATH;
+    }
+    const successorManifestPath = path.join(resolved, successorManifestRelative);
     const successorManifestSha256 = fs.existsSync(successorManifestPath)
         ? (() => {
             const stat = fs.lstatSync(successorManifestPath);
