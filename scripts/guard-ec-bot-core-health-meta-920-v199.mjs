@@ -15,10 +15,13 @@ import {
 } from './lib/ec-bot-core-operational-contract-v78.mjs';
 
 const MANIFEST = 'docs/freeze/ec-bot-core-health-meta-920-successor-v199-20260923.json';
+const OVERLAY_SUCCESSOR_MANIFEST = 'docs/freeze/ec-bot-core-overlay-preload-v201-20260924.json';
 const read = (relativePath) => fs.readFileSync(new URL(`../${relativePath}`, import.meta.url));
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const manifestText = read(MANIFEST).toString('utf8');
 const manifest = JSON.parse(manifestText);
+const overlaySuccessorText = read(OVERLAY_SUCCESSOR_MANIFEST).toString('utf8');
+const overlaySuccessor = JSON.parse(overlaySuccessorText);
 
 assert.equal(manifestText, `${JSON.stringify(manifest, null, 2)}\n`);
 assert.equal(manifest.freezeId, 'EC_BOT_CORE_HEALTH_META_920_SUCCESSOR_V199_20260923');
@@ -29,8 +32,19 @@ assert.equal(manifest.policy?.genericRelaxation, false);
 assert.equal(manifest.policy?.productionChanged, false);
 assert.equal(manifest.policy?.gitProductionChanged, false);
 assert.equal(manifest.policy?.v198Changed, false);
+assert.equal(overlaySuccessorText, `${JSON.stringify(overlaySuccessor, null, 2)}\n`);
+assert.equal(overlaySuccessor.freezeId, 'EC_BOT_CORE_V78_OVERLAY_V199_SUCCESSOR_V201_20260924');
+assert.equal(overlaySuccessor.baseCommit, 'e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9');
+assert.equal(overlaySuccessor.parentFreezeId, manifest.freezeId);
+assert.equal(overlaySuccessor.parentManifestSha256, sha256(manifestText));
+assert.equal(overlaySuccessor.policy?.failClosed, true);
+assert.equal(overlaySuccessor.policy?.guardsBypassed, false);
+assert.deepEqual([...overlaySuccessor.overrides].sort(), Object.keys(overlaySuccessor.protectedFiles || {}).sort());
 
-for (const [relativePath, expected] of Object.entries(manifest.protectedFiles || {})) {
+for (const [relativePath, expected] of Object.entries({
+    ...manifest.protectedFiles,
+    ...overlaySuccessor.protectedFiles
+})) {
     assert.equal(sha256(read(relativePath)), expected, `V199_HASH_MISMATCH:${relativePath}`);
 }
 

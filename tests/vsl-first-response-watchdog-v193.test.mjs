@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -248,16 +249,28 @@ test('15. follow-up VSL com produto herdado não vira primeira entrada', () => {
     assert.equal(followUp.reason, 'persisted_context_without_fresh_attribution');
 });
 
-test('16. produto, funil, agentRouter e conversationEngine permanecem idênticos ao parent', () => {
+test('16. V193 preserva o parent e reconhece somente o funil aprovado na V198', () => {
     const parent = '818db6cf281ee22d3ab4efc04f76cc7cf7898ae1';
+    const v198 = globalThis.__VITALISMEN_V198_TEX_ULTRA_FIRST_REPLY_DEDUPE_CONTEXT;
+    assert.equal(v198?.loaded, true);
+    assert.equal(v198?.freezeId, 'TEX_ULTRA_FIRST_REPLY_SOURCE_DEDUPE_V198_20260923');
     for (const file of [
         'src/services/vslProductAssignmentService.js',
         'src/services/texUltraFunnelService.js',
         'src/services/agentRouter.js',
         'src/services/conversationEngine.js'
     ]) {
-        const baseline = execFileSync('git', ['show', `${parent}:${file}`], { cwd: root });
-        assert.deepEqual(fs.readFileSync(path.join(root, file)), baseline, file);
+        const actual = fs.readFileSync(path.join(root, file));
+        if (file === 'src/services/texUltraFunnelService.js') {
+            assert.equal(
+                crypto.createHash('sha256').update(actual).digest('hex'),
+                v198.protectedFiles[file],
+                `${file} deve corresponder exatamente ao freeze V198`
+            );
+        } else {
+            const baseline = execFileSync('git', ['show', `${parent}:${file}`], { cwd: root });
+            assert.deepEqual(actual, baseline, file);
+        }
     }
 });
 

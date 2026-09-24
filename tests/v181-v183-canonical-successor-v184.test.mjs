@@ -5,11 +5,13 @@ import test from 'node:test';
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
-const preload = new URL('../scripts/lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
+const legacyPreload = new URL('../scripts/lib/ec-runtime-successor-v97-context.mjs', import.meta.url).href;
+const successorPreload = new URL('../scripts/lib/ec-runtime-successor-v199-context.mjs', import.meta.url).href;
 
 test('o preload canônico registra V184 antes do runtime guard V51', () => {
+    assert.equal(globalThis.__VITALISMEN_V199_EC_BOT_CORE_HEALTH_META_CONTEXT?.loaded, true);
     const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const result = spawnSync(npm, ['run', 'guard:runtime-chain-v71'], {
+    const runWithPreload = (preload) => spawnSync(npm, ['run', 'guard:runtime-chain-v71'], {
         cwd: root,
         encoding: 'utf8',
         shell: true,
@@ -20,6 +22,12 @@ test('o preload canônico registra V184 antes do runtime guard V51', () => {
             V152_B_SHADOW_TEST_CONTEXT: 'true'
         }
     });
+    const legacy = runWithPreload(legacyPreload);
+    assert.notEqual(legacy.status, 0, 'V97 ancestral não pode aprovar o hash V195 sem contexto sucessor');
+    assert.match(`${legacy.stdout || ''}\n${legacy.stderr || ''}`,
+        /\[V184\/V193\] v183_file_invalid:scripts\/lib\/ec-runtime-successor-v170-context\.mjs/);
+
+    const result = runWithPreload(successorPreload);
     const output = `${result.stdout || ''}\n${result.stderr || ''}`;
     assert.equal(result.status, 0, output);
     const contextIndex = output.indexOf('[V184] CONTEXT_LOADED_BEFORE_V51=YES');

@@ -372,12 +372,12 @@ test('auth e rate limiter preservam V125; runtime corresponde aos sucessores V18
     assert.equal(sha256('src/middleware/auth.js'), 'b40ab3aa2f0f265f04922ee5ad6115379c1dca26fd5ad8856554df1a1ab095ba');
     const v184 = readFreeze('docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json');
     const v193 = readFreeze('docs/freeze/vsl-first-response-watchdog-v193-20260919.json');
-    const v199 = readFreeze('docs/freeze/ec-bot-core-health-meta-920-successor-v199-20260923.json');
+    const v201 = readFreeze('docs/freeze/ec-bot-core-overlay-preload-v201-20260924.json');
     assert.equal(sha256('src/index.js'), v193.runtimeGuardSuccessor.inheritedProtectedFiles['src/index.js']);
     assert.equal(sha256('public/qr.html'), v184.protectedFiles['public/qr.html']);
     assert.equal(
         sha256('src/services/ecBotCoreOperationalV78Service.js'),
-        v199.protectedFiles['src/services/ecBotCoreOperationalV78Service.js']
+        v201.protectedFiles['src/services/ecBotCoreOperationalV78Service.js']
     );
 
     const index = fs.readFileSync(path.join(projectRoot, 'src/index.js'), 'utf8');

@@ -11,6 +11,7 @@ import {
     buildEcBotCoreV78OverlayEnvironment,
     expectedEcBotCoreV78HealthDataset,
     parseEcBotCoreV78Overlay,
+    selectEcBotCoreV78PreloadForRelease,
     serializeEcBotCoreV78Overlay
 } from '../../src/services/ecBotCoreOperationalV78Service.js';
 import {
@@ -28,6 +29,7 @@ export const EC_BOT_CORE_V78_OVERLAY_NAME = 'ec-bot-core-v78.env';
 export const EC_BOT_CORE_V78_ATTESTATION_NAME = 'ec-bot-core-v78-attestation.json';
 export const EC_BOT_CORE_V78_PERMIT_NAME = 'ec-bot-core-v78-permit.json';
 export const EC_BOT_CORE_V78_MANIFEST_PATH = 'docs/freeze/ec-bot-core-structural-safety-v78-20260829.json';
+const SUCCESSOR_MANIFEST_PATH = 'docs/freeze/ec-bot-core-overlay-preload-v201-20260924.json';
 
 const SHA1 = /^[0-9a-f]{40}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -115,6 +117,15 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         publicationCompleteSha256: fileSha256(paths.publicationComplete),
         functionalPayloadSha256
     };
+    const successorManifestPath = path.join(resolved, SUCCESSOR_MANIFEST_PATH);
+    const successorManifestSha256 = fs.existsSync(successorManifestPath)
+        ? (() => {
+            const stat = fs.lstatSync(successorManifestPath);
+            if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('successor_manifest_unsafe');
+            assertCanonicalJsonFile(successorManifestPath, 'successor_manifest');
+            return fileSha256(successorManifestPath);
+        })()
+        : '';
     if (publication.releaseMetadataSha256 !== hashes.releaseMetadataSha256
         || publication.stagingCompleteSha256 !== hashes.stagingCompleteSha256
         || publicationComplete.releaseMetadataSha256 !== hashes.releaseMetadataSha256
@@ -131,7 +142,7 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     }
     assertEcBotCoreControlPlaneV89({ expectedRoot: resolved });
     assertEcVslDashboardIngressManifestV90();
-    return Object.freeze({ release, releaseDir: resolved, commit, tree, tag, ...hashes });
+    return Object.freeze({ release, releaseDir: resolved, commit, tree, tag, ...hashes, successorManifestSha256 });
 };
 
 export const buildEcBotCoreOperationalBundleV78 = ({
@@ -147,7 +158,8 @@ export const buildEcBotCoreOperationalBundleV78 = ({
     releaseMetadataSha256,
     stagingCompleteSha256,
     publicationMetadataSha256,
-    publicationCompleteSha256
+    publicationCompleteSha256,
+    successorManifestSha256 = ''
 } = {}) => {
     assertIdentity({ release, commit, tree, tag });
     if (!PERMIT_ID.test(clean(permitId))) throw new Error('permit_id_invalid');
@@ -167,8 +179,11 @@ export const buildEcBotCoreOperationalBundleV78 = ({
     })) {
         if (!SHA256.test(clean(value))) throw new Error(`${label}_invalid`);
     }
+    const nodeOptions = selectEcBotCoreV78PreloadForRelease({
+        release, commit, tree, tag, successorManifestSha256
+    });
     const environment = buildEcBotCoreV78OverlayEnvironment({
-        baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID }
+        baseEnv: { META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID }, nodeOptions
     });
     const overlay = serializeEcBotCoreV78Overlay(environment);
     const overlaySha256 = sha256(overlay);
@@ -286,6 +301,9 @@ export const validateEcBotCoreOperationalBundleV78 = ({
         throw new Error('dataset_contract_invalid');
     }
     const parsed = parseEcBotCoreV78Overlay(overlay);
+    if (expected.release && parsed.NODE_OPTIONS !== selectEcBotCoreV78PreloadForRelease(expected)) {
+        throw new Error('overlay_preload_release_mismatch');
+    }
     const merged = { ...parsed, META_PIXEL_ID_EC: EC_BOT_CORE_V78_DATASET_ID };
     assertEcBotCoreV78Configuration(merged, {
         browserPixelId: EC_BOT_CORE_V78_DATASET_ID,

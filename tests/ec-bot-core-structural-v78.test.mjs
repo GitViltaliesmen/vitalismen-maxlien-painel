@@ -63,10 +63,10 @@ import {
 
 const HASH = 'a'.repeat(64);
 const IDENTITY = Object.freeze({
-    release: '20260829T120000Z_production-20260829-7888888',
-    commit: '7888888888888888888888888888888888888888',
-    tree: '7999999999999999999999999999999999999999',
-    tag: 'production-20260829-7888888'
+    release: '20260920T163629Z_production-20260920-8c25ed9',
+    commit: '8c25ed9912abc4aabee2656cf9192420389934c6',
+    tree: '44d310be637e71d6f6f5fb5d28f06c47f2bf7283',
+    tag: 'production-20260920-8c25ed9'
 });
 
 const coreEnvironment = () => {

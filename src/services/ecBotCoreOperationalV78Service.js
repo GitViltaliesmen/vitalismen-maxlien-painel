@@ -10,6 +10,38 @@ export const EC_BOT_CORE_V195_CANONICAL_DATASET_ID = '920532663934291';
 export const EC_BOT_CORE_V78_QA_PHONE = '5515998038637';
 export const EC_BOT_CORE_V78_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs';
 export const EC_BOT_CORE_V195_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v195-context.mjs';
+export const EC_BOT_CORE_V199_NODE_OPTIONS = '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v199-context.mjs';
+
+const LEGACY_V78_RELEASE = '20260920T163629Z_production-20260920-8c25ed9';
+const LEGACY_V78_COMMIT = '8c25ed9912abc4aabee2656cf9192420389934c6';
+const LEGACY_V78_TREE = '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
+const CANONICAL_BASE_RELEASE = '20260923T220336Z_production-20260923-e4f0f3b';
+const CANONICAL_BASE_COMMIT = 'e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9';
+const CANONICAL_BASE_TREE = '84f9eca9cc956de9ef5d8aa90bb7b6a456927173';
+const successorOverlayContext = () => globalThis.__VITALISMEN_V201_V78_OVERLAY_CONTEXT;
+
+export const selectEcBotCoreV78PreloadForRelease = ({
+    release = '', commit = '', tree = '', tag = '', successorManifestSha256 = ''
+} = {}) => {
+    if (release === LEGACY_V78_RELEASE && commit === LEGACY_V78_COMMIT
+        && tree === LEGACY_V78_TREE && tag === 'production-20260920-8c25ed9') {
+        return EC_BOT_CORE_V78_NODE_OPTIONS;
+    }
+    const context = successorOverlayContext();
+    if (context?.loaded !== true || context.baseCommit !== CANONICAL_BASE_COMMIT
+        || context.baseRelease !== CANONICAL_BASE_RELEASE) {
+        throw new Error('ec_bot_core_successor_context_invalid');
+    }
+    const exactBase = release === CANONICAL_BASE_RELEASE && commit === CANONICAL_BASE_COMMIT
+        && tree === CANONICAL_BASE_TREE && tag === 'production-20260923-e4f0f3b';
+    const publishedSuccessor = successorManifestSha256 === context.manifestSha256
+        && /^[0-9]{8}T[0-9]{6}Z_production-[0-9]{8}-[0-9a-f]{7}$/.test(release)
+        && /^[0-9a-f]{40}$/.test(commit) && /^[0-9a-f]{40}$/.test(tree)
+        && tag === `production-${release.slice(0, 8)}-${commit.slice(0, 7)}`
+        && release.endsWith(commit.slice(0, 7)) && commit !== LEGACY_V78_COMMIT;
+    if (!exactBase && !publishedSuccessor) throw new Error('ec_bot_core_release_not_approved');
+    return EC_BOT_CORE_V199_NODE_OPTIONS;
+};
 
 export const EC_BOT_CORE_V78_ALLOWED_WRITE_CLASSES = Object.freeze([
     'zapi_inbound_persistence',
@@ -130,14 +162,20 @@ export const calculateEcBotCoreV78ProfileSha256 = (env = {}) => hash(
     `${JSON.stringify(profilePayload(env))}\n`
 );
 
-export const buildEcBotCoreV78OverlayEnvironment = ({ baseEnv = {} } = {}) => {
+export const buildEcBotCoreV78OverlayEnvironment = ({
+    baseEnv = {}, nodeOptions = EC_BOT_CORE_V78_NODE_OPTIONS
+} = {}) => {
     if (clean(baseEnv.META_PIXEL_ID_EC) !== EC_BOT_CORE_V78_DATASET_ID) {
         throw new Error('ec_bot_core_dataset_invalid');
+    }
+    if (nodeOptions !== EC_BOT_CORE_V78_NODE_OPTIONS
+        && (nodeOptions !== EC_BOT_CORE_V199_NODE_OPTIONS || successorOverlayContext()?.loaded !== true)) {
+        throw new Error('ec_bot_core_preload_not_approved');
     }
 
     const env = {
         NODE_ENV: 'production',
-        NODE_OPTIONS: EC_BOT_CORE_V78_NODE_OPTIONS,
+        NODE_OPTIONS: nodeOptions,
         SAFE_OBSERVATION_POLICY: EC_BOT_CORE_V78_MODE,
         VITALISMEN_EC_BOT_CORE_PROFILE_VERSION: String(EC_BOT_CORE_V78_VERSION),
         DISABLE_SCHEDULER: '1',
@@ -192,7 +230,9 @@ export const resolveEcBotCoreV78Configuration = (env = process.env, {
         ? EC_BOT_CORE_V195_NODE_OPTIONS
         : EC_BOT_CORE_V78_NODE_OPTIONS;
     if (clean(env.NODE_ENV).toLowerCase() !== 'production') failures.push('NODE_ENV_must_be_production');
-    if (clean(env.NODE_OPTIONS) !== expectedNodeOptions) failures.push('NODE_OPTIONS_invalid');
+    if (clean(env.NODE_OPTIONS) !== expectedNodeOptions
+        && !(clean(env.NODE_OPTIONS) === EC_BOT_CORE_V199_NODE_OPTIONS
+            && successorOverlayContext()?.loaded === true)) failures.push('NODE_OPTIONS_invalid');
     if (clean(env.SAFE_OBSERVATION_POLICY).toUpperCase() !== EC_BOT_CORE_V78_MODE) {
         failures.push('SAFE_OBSERVATION_POLICY_invalid');
     }
