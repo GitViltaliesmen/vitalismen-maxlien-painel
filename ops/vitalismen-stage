@@ -244,7 +244,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
   preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
 } else {
-  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY.json';
+  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY.json';
   const parent = fs.lstatSync(path.dirname(checkpointPath));
   const stat = fs.lstatSync(checkpointPath);
   assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
@@ -252,7 +252,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
     && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
   const checkpoint = read(checkpointPath).value;
-  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY');
+  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY');
   assert.equal(checkpoint.status, 'FROZEN');
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
@@ -3145,14 +3145,27 @@ run_protected post_sale_data_compatibility_v66 \
   scripts/assert-post-sale-data-compatibility-v66.mjs \
   "--target-metadata=$release_dir/.release-source.json"
 
-run_protected runtime_guard_chain_v71 \
-  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
-  "$npm_cmd" run guard:runtime-chain-v71
+if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+  historical_guard_node_options="$(successor_guard_node_options "$current_before")"
+  [[ "$historical_guard_node_options" == "--import=file://$current_before/scripts/lib/ec-runtime-successor-v199-context.mjs" ]] ||
+    die "R4 exige a cadeia histórica V201/V199 exata"
+  runtime_guard_command=("$env_cmd" -C "$release_dir" NODE_OPTIONS= "$node_cmd"
+    scripts/run-unified-successor-v202-r4.mjs --runtime "$release_dir")
+  predeploy_command=("$env_cmd" -C "$current_before"
+    npm_config_node_options="$historical_guard_node_options"
+    "$npm_cmd" run guard:predeploy-v71)
+else
+  runtime_guard_command=("$env_cmd" -C "$release_dir"
+    npm_config_node_options="$release_guard_node_options"
+    "$npm_cmd" run guard:runtime-chain-v71)
+  predeploy_command=("$env_cmd" -C "$release_dir"
+    npm_config_node_options="$release_guard_node_options"
+    "$npm_cmd" run guard:predeploy-v71)
+fi
+run_protected runtime_guard_chain_v71 "${runtime_guard_command[@]}"
 
 # A V72 valida o materializador; a semântica runtime canônica continua V71.
-run_protected predeploy_v71 \
-  "$env_cmd" -C "$release_dir" npm_config_node_options="$release_guard_node_options" \
-  "$npm_cmd" run guard:predeploy-v71
+run_protected predeploy_v71 "${predeploy_command[@]}"
 
 run_protected post_sale_safety_guard_v66 \
   "$env_cmd" -C "$release_dir" "$node_cmd" \

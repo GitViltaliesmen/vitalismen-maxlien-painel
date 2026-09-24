@@ -27,13 +27,28 @@ const parent = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
 assert.equal(git('merge-base', parent, commit), parent, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parent}^{tree}`),
     '1bf75f613c6befece285e3ce9a71dc41bfffaa20');
+const parentR4Commit = 'd965572e5ada1acae697953af162eaceae3ca3b6';
+const parentR4Tree = 'c2db82792192f7aafb6b8ca45ea2acd8fc1fdace';
+const parentAuthorityPath =
+    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY.json';
+const parentAuthoritySha256 =
+    'b5b9a04e38e1f7560dfae7b1f209ed3bc6933066cb3313748dbad6e1fa7fb09e';
+assert.equal(git('merge-base', parentR4Commit, commit), parentR4Commit,
+    'R4_STAGEFIX_PARENT_NOT_ANCESTOR');
+assert.equal(git('rev-parse', `${parentR4Commit}^{tree}`), parentR4Tree,
+    'R4_STAGEFIX_PARENT_TREE_CHANGED');
+assert.equal(sha256(readCanonicalJson(parentAuthorityPath).bytes), parentAuthoritySha256,
+    'R4_STAGEFIX_PARENT_AUTHORITY_CHANGED');
 const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY',
+    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_LOCAL_READY',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY',
+    parentR4Commit,
+    parentR4Tree,
+    parentAuthorityCheckpointSha256: parentAuthoritySha256,
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,

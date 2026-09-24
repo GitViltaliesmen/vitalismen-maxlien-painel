@@ -27,6 +27,22 @@ test('SAFE_PM2: identidade exata e attestation antes do controlador', () => {
     assert.match(safe, /NODE_OPTIONS= npm_config_node_options= NPM_CONFIG_NODE_OPTIONS=/);
     assert.match(safe, /PM2_TARGET_IDENTITY_INVALID/);
 });
+test('STAGE_R4: runner sucessor e predeploy histórico sem alterar o caminho V201', () => {
+    const start = stage.indexOf('if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then',
+        stage.indexOf('run_protected post_sale_data_compatibility_v66'));
+    const end = stage.indexOf('run_protected post_sale_safety_guard_v66', start);
+    assert.ok(start >= 0 && end > start);
+    const wiring = stage.slice(start, end);
+    assert.match(wiring, /successor_guard_node_options "\$current_before"/);
+    assert.match(wiring, /--import=file:\/\/\$current_before\/scripts\/lib\/ec-runtime-successor-v199-context\.mjs/);
+    assert.match(wiring, /runtime_guard_command=\([\s\S]*?scripts\/run-unified-successor-v202-r4\.mjs --runtime "\$release_dir"\)/);
+    assert.match(wiring, /predeploy_command=\("\$env_cmd" -C "\$current_before"[\s\S]*?"\$npm_cmd" run guard:predeploy-v71\)/);
+    const legacy = wiring.slice(wiring.indexOf('\nelse\n'));
+    assert.match(legacy, /"\$npm_cmd" run guard:runtime-chain-v71/);
+    assert.match(legacy, /"\$npm_cmd" run guard:predeploy-v71/);
+    assert.match(wiring, /^run_protected runtime_guard_chain_v71 "\$\{runtime_guard_command\[@\]\}"$/m);
+    assert.match(wiring, /^run_protected predeploy_v71 "\$\{predeploy_command\[@\]\}"$/m);
+});
 test('RUNTIME: autoridade fixa sem Git nem variável de identidade', () => {
     assert.match(authority, /R4_CHECKPOINT_PATH =\s*'\/var\/lib\/vitalismen-deploy\//);
     assert.doesNotMatch(authority, /process\.env\.VITALISMEN_R4_(EXPECTED_COMMIT|EXPECTED_TREE|CHECKPOINT_PATH)/);

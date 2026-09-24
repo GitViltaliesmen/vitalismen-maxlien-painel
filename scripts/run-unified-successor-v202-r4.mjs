@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const guard = path.join(root, 'scripts/guard-unified-successor-v202-r4.mjs');
-const guardSha256 = 'f6845e8cc9b8e4c305ffcb552f97dc9d1d607c688d09f7743f91dc82cf4224ab';
+const guardSha256 = 'f371a7b1343213423a74af1a9d6b37a1d1a8e706e47107bb0a48fb1c518a1a44';
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync(guard)).digest('hex'),
     guardSha256, 'R4_GUARD_TAMPERED');
 const [mode, ...input] = process.argv.slice(2);

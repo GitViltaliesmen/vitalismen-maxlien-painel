@@ -17,9 +17,13 @@ const sha = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY',
+    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_STAGEFIX_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_LOCAL_READY',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_READY',
+    parentR4Commit: 'd965572e5ada1acae697953af162eaceae3ca3b6',
+    parentR4Tree: 'c2db82792192f7aafb6b8ca45ea2acd8fc1fdace',
+    parentAuthorityCheckpointSha256:
+        'b5b9a04e38e1f7560dfae7b1f209ed3bc6933066cb3313748dbad6e1fa7fb09e',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,
@@ -117,6 +121,8 @@ test('checkpoint exato e campos não extensíveis', () => {
         value => { value.r4OperationalManifestSha256 = '0'.repeat(63); },
         value => { value.allowlistCount = 84; },
         value => { value.parentCheckpoint = 'OUTRO'; },
+        value => { value.parentR4Commit = '0'.repeat(40); },
+        value => { value.parentAuthorityCheckpointSha256 = '0'.repeat(64); },
         value => { value.extra = true; }
     ];
     for (const change of cases) {
