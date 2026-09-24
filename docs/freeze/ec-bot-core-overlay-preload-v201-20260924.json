@@ -27,7 +27,7 @@
     "scripts/guard-ec-bot-core-health-meta-920-v199.mjs": "b84496b50e76dfeeae268f4bf58c05b5a087307c5557b148d223c89a5825dd69",
     "tests/ec-auth-login-v78-pass-through.test.mjs": "33857e9908d738699dd46dddde14fa78d327a2dcf4a8e4d846aaa713c6b44179",
     "tests/ec-bot-core-structural-v78.test.mjs": "538b0b7e6d538d5aab65601eac6d4006f92c0587b11000bb5348634c06c4ae6a",
-    "tests/ec-bot-core-overlay-v199-successor.test.mjs": "fac8f02a021b8bc58f9b70e1e22dc13faba1158f3dca6b5858ef8af0d18865e3",
+    "tests/ec-bot-core-overlay-v199-successor.test.mjs": "a7ccc437e90cb56b04ac89ecf74526417129bfcb2c7a302ed442389661bb1666",
     "tests/v181-v183-canonical-successor-v184.test.mjs": "99e6700aceba97f7d28ad1ba8e7c4603e68a2c88722bf7ba936f8daf80fbab5b",
     "tests/vsl-first-response-watchdog-v193.test.mjs": "49cfed91157d7829dcd375b5a99800c0be4c0e86b985dac8f05699bc883e03cf"
   },

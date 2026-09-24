@@ -54,7 +54,8 @@ test('base canônica aprovada e sucessor atestado usam V199', () => {
         'tests/v181-v183-canonical-successor-v184.test.mjs',
         'tests/vsl-first-response-watchdog-v193.test.mjs'
     ]) assert.ok(context.authorizedFiles.includes(file), `${file} deve estar explicitamente autorizado`);
-    assert.equal(execFileSync('git', ['rev-parse', 'HEAD:scripts/lib/ec-runtime-successor-v199-context.mjs'], {
+    assert.equal(manifest.baseCommit, canonicalBase.commit);
+    assert.equal(execFileSync('git', ['rev-parse', `${manifest.baseCommit}:scripts/lib/ec-runtime-successor-v199-context.mjs`], {
         cwd: process.cwd(), encoding: 'utf8'
     }).trim(), '07b9a21089acefe972ac07500c56f3c5b95604bd');
     assert.equal(selectEcBotCoreV78PreloadForRelease(canonicalBase), EC_BOT_CORE_V199_NODE_OPTIONS);
