@@ -7,14 +7,24 @@ export const R4_CHECKPOINT_PATH =
     '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
 export const R4_SUCCESSOR_CHECKPOINT_PATH =
     '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json';
+export const R4_CONTROLLER_PIN_CHECKPOINT_PATH =
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY.json';
 export const R4_PARENT_CHECKPOINT_SHA256 =
     '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d';
 export const R4_PARENT_COMMIT = 'da2983faac199b7bc9fe11c4ba47539b5baa6674';
 export const R4_PARENT_TREE = '6a20e48807cae3f1c2b4cd6b18e7e46df76a0a59';
+export const R4_SUCCESSOR_COMMIT = '82461018bc7fd148732e440725cf62e299ee52e0';
+export const R4_SUCCESSOR_TREE = 'b665b1f4c37a1a3609d2947ec38ef74a5555bd18';
+export const R4_SUCCESSOR_CHECKPOINT_SHA256 =
+    '77e100d51a78d070d7f6f2a2d25e5d7f29644fce50aaf37465b797088b35492e';
+export const R4_SUCCESSOR_MANIFEST_SHA256 =
+    '868cd7170995d35fdb26820709ba101d79c7e43d66b4eeb3f5fb77c03fce93af';
 export const R4_ATTESTATION_NAME = '.r4-operational-attestation.json';
 export const R4_MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json';
 export const R4_SUCCESSOR_MANIFEST_PATH =
     'docs/freeze/unified-successor-v202-r4-v78-control-plane-20260925.json';
+export const R4_CONTROLLER_PIN_MANIFEST_PATH =
+    'docs/freeze/unified-successor-v202-r4-v78-controller-pin-20260925.json';
 export const R4_PRELOAD_PATH = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
 export const R4_GUARD_PATH = 'scripts/guard-unified-successor-v202-r4.mjs';
 export const R4_RUNNER_PATH = 'scripts/run-unified-successor-v202-r4.mjs';
@@ -79,7 +89,9 @@ export function readCanonicalJson(file) {
     return { bytes, value };
 }
 export function validateCheckpoint(value) {
-    if (value?.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY') {
+    if (['CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
+        'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'].includes(value?.checkpointId)) {
+        const controllerPin = value.checkpointId === 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY';
         exactKeys(value, ['checkpointId', 'status', 'parentCheckpoint',
             'parentCheckpointSha256', 'parentR4Commit', 'parentR4Tree', 'project',
             'r4OperationalCommit', 'r4OperationalTree', 'r4OperationalManifestSha256',
@@ -90,10 +102,15 @@ export function validateCheckpoint(value) {
             'v201ManifestSha256', 'shipmentsSha256', 'v168bSha256', 'metaDatasetId'],
         'R4_SUCCESSOR_CHECKPOINT_FIELDS_INVALID');
         assert.equal(value.status, 'FROZEN');
-        assert.equal(value.parentCheckpoint, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
-        assert.equal(value.parentCheckpointSha256, R4_PARENT_CHECKPOINT_SHA256);
-        assert.equal(value.parentR4Commit, R4_PARENT_COMMIT);
-        assert.equal(value.parentR4Tree, R4_PARENT_TREE);
+        assert.equal(value.parentCheckpoint, controllerPin
+            ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'
+            : 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
+        assert.equal(value.parentCheckpointSha256, controllerPin
+            ? R4_SUCCESSOR_CHECKPOINT_SHA256 : R4_PARENT_CHECKPOINT_SHA256);
+        assert.equal(value.parentR4Commit, controllerPin
+            ? R4_SUCCESSOR_COMMIT : R4_PARENT_COMMIT);
+        assert.equal(value.parentR4Tree, controllerPin
+            ? R4_SUCCESSOR_TREE : R4_PARENT_TREE);
         assert.equal(value.project, 'MAXLIEN EC — VITALISMEN OFICIAL');
         assert.match(value.r4OperationalCommit, SHA1);
         assert.match(value.r4OperationalTree, SHA1);
@@ -178,33 +195,50 @@ export function readAuthorizedCheckpoint(root) {
     assert.equal(successor.value.checkpointId,
         'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY');
     assert.equal(successor.value.parentCheckpointSha256, parent.sha256);
-    assert.equal(source.functionalCommit, successor.value.r4OperationalCommit,
-        'R4_SUCCESSOR_UNKNOWN_COMMIT');
-    assert.equal(source.functionalTree, successor.value.r4OperationalTree,
-        'R4_SUCCESSOR_UNKNOWN_TREE');
-    return successor;
+    assert.equal(successor.sha256, R4_SUCCESSOR_CHECKPOINT_SHA256,
+        'R4_SUCCESSOR_CHECKPOINT_CHANGED');
+    assert.equal(successor.value.r4OperationalCommit, R4_SUCCESSOR_COMMIT);
+    assert.equal(successor.value.r4OperationalTree, R4_SUCCESSOR_TREE);
+    if (source.functionalCommit === R4_SUCCESSOR_COMMIT
+        && source.functionalTree === R4_SUCCESSOR_TREE) return successor;
+    const controllerPin = readStrictCheckpoint(R4_CONTROLLER_PIN_CHECKPOINT_PATH);
+    assert.equal(controllerPin.value.parentCheckpointSha256, successor.sha256);
+    assert.equal(source.functionalCommit, controllerPin.value.r4OperationalCommit,
+        'R4_CONTROLLER_PIN_UNKNOWN_COMMIT');
+    assert.equal(source.functionalTree, controllerPin.value.r4OperationalTree,
+        'R4_CONTROLLER_PIN_UNKNOWN_TREE');
+    return controllerPin;
 }
 export const manifestPathForCheckpoint = checkpoint =>
-    checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'
-        ? R4_SUCCESSOR_MANIFEST_PATH : R4_MANIFEST_PATH;
+    checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'
+        ? R4_CONTROLLER_PIN_MANIFEST_PATH
+        : checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'
+            ? R4_SUCCESSOR_MANIFEST_PATH : R4_MANIFEST_PATH;
 export function validateR4Manifest(manifest) {
     const successor = manifest.successorId ===
         'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_V78_CONTROL_PLANE_20260925';
-    if (!successor) assert.equal(manifest.successorId,
+    const controllerPin = manifest.successorId ===
+        'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_V78_CONTROLLER_PIN_20260925';
+    if (!successor && !controllerPin) assert.equal(manifest.successorId,
         'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_V78_PAYLOAD_20260925');
     assert.equal(manifest.version, 'V202-R4');
     assert.equal(manifest.operationalRevision,
-        successor ? 'R4_V78_CONTROL_PLANE_AUTHORITY_SUCCESSOR'
+        controllerPin ? 'R4_V78_CONTROLLER_PIN_SUCCESSOR'
+            : successor ? 'R4_V78_CONTROL_PLANE_AUTHORITY_SUCCESSOR'
             : 'R4_V78_GENERATED_ATTESTATION_EXCLUDED_FROM_FUNCTIONAL_PAYLOAD');
     assert.equal(manifest.parentControlPlaneCommit,
-        successor ? R4_PARENT_COMMIT : 'b842b1e366160b50dd15322dd212da309c1b92b2');
+        controllerPin ? R4_SUCCESSOR_COMMIT
+            : successor ? R4_PARENT_COMMIT : 'b842b1e366160b50dd15322dd212da309c1b92b2');
     assert.equal(manifest.parentControlPlaneTree,
-        successor ? R4_PARENT_TREE : '186e601d07fb4242c648f95d71cc71eb9433444a');
+        controllerPin ? R4_SUCCESSOR_TREE
+            : successor ? R4_PARENT_TREE : '186e601d07fb4242c648f95d71cc71eb9433444a');
     assert.equal(manifest.parentAuthoritySha256,
-        successor ? R4_PARENT_CHECKPOINT_SHA256
+        controllerPin ? R4_SUCCESSOR_CHECKPOINT_SHA256
+            : successor ? R4_PARENT_CHECKPOINT_SHA256
             : 'e7f7f6fbbea1359f8802c98ebf8ced2ffd201e049329e60cd8eb1c7f08c480c9');
-    if (successor) assert.equal(manifest.parentManifestSha256,
-        '9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0');
+    if (successor || controllerPin) assert.equal(manifest.parentManifestSha256,
+        controllerPin ? R4_SUCCESSOR_MANIFEST_SHA256
+            : '9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0');
     assert.equal(manifest.allowlistCount, 83);
     assert.equal(manifest.allowlist?.length, 83);
     assert.equal(new Set(manifest.allowlist.map(entry => entry.path)).size, 83);
@@ -215,6 +249,7 @@ export function validateR4Manifest(manifest) {
     assert.equal(stage?.authority, 'OPERATOR_DECISION');
     assert.equal(stage?.evidence, successor
         ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'
+        : controllerPin ? 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'
         : 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
     const shipments = manifest.allowlist.find(entry => entry.path === 'src/routes/shipments.js');
     assert.equal(shipments?.canonicalSha256, SHIPMENTS_SHA256);
@@ -242,13 +277,18 @@ export function assertReleaseFileHashes(root, checkpoint, manifest) {
         [R4_FREEZE_LOCK_SUCCESSOR_PATH, checkpoint.r4FreezeLockSuccessorSha256],
         [R4_FINAL_VALIDATOR_PATH, checkpoint.r4FinalValidatorSha256]
     ];
-    if (checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY') {
+    if (['CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
+        'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'].includes(checkpoint.checkpointId)) {
         for (const [relative, field] of Object.entries(SUCCESSOR_FILE_HASHES)) {
             expected.push([relative, checkpoint[field]]);
         }
-        const parentManifest = readCanonicalJson(releaseFile(root, R4_MANIFEST_PATH));
+        const controllerPin = checkpoint.checkpointId ===
+            'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY';
+        const parentManifest = readCanonicalJson(releaseFile(root,
+            controllerPin ? R4_SUCCESSOR_MANIFEST_PATH : R4_MANIFEST_PATH));
         assert.equal(sha256(parentManifest.bytes),
-            '9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0',
+            controllerPin ? R4_SUCCESSOR_MANIFEST_SHA256
+                : '9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0',
             'R4_PARENT_MANIFEST_CHANGED');
         const parentEntries = parentManifest.value.allowlist;
         assert.equal(parentEntries.length, 83);

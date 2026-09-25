@@ -421,6 +421,29 @@ if [[ "$action" == "activate" ]]; then
     export "$key=$value"
   done <"$overlay_file"
   activation_node_options="$NODE_OPTIONS"
+  [[ "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
+    die "controller R4 exige contexto operacional R4; V201 não pode selecioná-lo"
+  controller_file="$release_dir/scripts/lib/pm2-target-env-restart-v78-r4.mjs"
+  [[ -f "$controller_file" && ! -L "$controller_file" ]] ||
+    die "controller PM2 sucessor ausente ou inseguro"
+  expected_controller_sha="$(NODE_OPTIONS= npm_config_node_options= "$node_cmd" --input-type=module - "$release_dir" <<'NODE'
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+const release = process.argv[2];
+const authority = await import(pathToFileURL(path.join(release,
+  'scripts/lib/unified-successor-v202-r4-authority.mjs')).href);
+const selected = authority.readAuthorizedCheckpoint(release);
+if (selected.value.checkpointId !== 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY') {
+  throw new Error('R4_CONTROLLER_PIN_AUTHORITY_NOT_SELECTED');
+}
+process.stdout.write(selected.value.r4Pm2ControllerSha256);
+NODE
+)" || die "autoridade do controller R4 inválida"
+  [[ "$expected_controller_sha" == "ebcd82efdf2d6b79b8b1c4e360fb2eded639f69cc11abf4c170abb4234c04663" ]] ||
+    die "autoridade selecionou controller não autorizado"
+  controller_sha256="$(sha256sum "$controller_file")"
+  [[ "${controller_sha256%% *}" == "$expected_controller_sha" ]] ||
+    die "controller PM2 sucessor não corresponde à autoridade selecionada"
   rollback_executor="$release_dir/ops/vitalismen-rollback-v201-r4.mjs"
   if [[ "$test_mode" == "true" ]]; then
     rollback_executor="${EC_BOT_CORE_V78_TEST_ROLLBACK_CMD:-$rollback_executor}"
@@ -453,14 +476,6 @@ if [[ "$action" == "activate" ]]; then
     [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
     pm2_module_root="${pm2_realpath%/bin/pm2}"
     target_node_options="$NODE_OPTIONS"
-    controller_file="$release_dir/scripts/lib/pm2-target-env-restart-v78-r4.mjs"
-    if [[ ! -f "$controller_file" && "$target_node_options" == *ec-runtime-successor-v199-context.mjs ]]; then
-      controller_file="/usr/local/sbin/ec-bot-core-v78-r4-pm2-controller.mjs"
-    fi
-    [[ -f "$controller_file" && ! -L "$controller_file" ]] || die "controller PM2 sucessor ausente ou inseguro"
-    controller_sha256="$(sha256sum "$controller_file")"
-    [[ "${controller_sha256%% *}" == "c764c385d5fd837dc91cc2e8949ef9bdac960ca63bccaa45686f3e027a54fc8d" ]] ||
-      die "controller PM2 sucessor não corresponde ao código aprovado"
     NODE_OPTIONS="" npm_config_node_options="" \
       "$node_cmd" "$controller_file" \
       "$pm2_module_root" "$process_name" "$target_node_options" "$release_dir" >/dev/null

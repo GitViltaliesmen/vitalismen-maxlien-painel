@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const sha256 = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
-const AUTHORITY_SHA256 = 'ae53a56bff65786676fb9ffa0a357c6bcaf18476eed64e0463bf6db33152efaa';
+const AUTHORITY_SHA256 = 'cc0393de6c62bf8de1ade8b9caccd544df37a8745409bb9fe10fe3ad377454d5';
 const readCanonical = (file, strictOwner) => {
     const stat = fs.lstatSync(file);
     assert.ok(stat.isFile() && !stat.isSymbolicLink(), 'ROLLBACK_CHECKPOINT_UNSAFE');
@@ -41,8 +41,8 @@ const V201 = Object.freeze({
 const OFFICIAL = Object.freeze({
     base: '/opt/vitalismen-automacao',
     state: '/var/lib/vitalismen-deploy',
-    checkpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_READY.json',
-    authorityCheckpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json',
+    checkpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_READY.json',
+    authorityCheckpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY.json',
     healthUrl: 'https://ec.maxlien.shop/api/health/',
     metaUrl: 'https://ec.maxlien.shop/api/health/meta-destination',
     expected: V201,
@@ -196,7 +196,9 @@ const validateAuthority = async (config, sourceRelease) => {
     const authority = readCanonical(config.authorityCheckpoint, config.strictOwner);
     validateCheckpoint(authority);
     const checkpoint = readCanonical(config.checkpoint, config.strictOwner);
-    const successor = authority.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY';
+    const controllerPin = authority.checkpointId === 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY';
+    const successor = controllerPin
+        || authority.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY';
     const commonFields = ['CHECKPOINT_ID', 'CHECKPOINT_STATUS',
         'PARENT_AUTHORITY_SHA256', 'COMMIT', 'TREE', 'CONTROLLER_SHA256',
         'ROLLBACK_EXECUTOR_SHA256', 'ROLLBACK_READY', 'V78_CONTROLLER',
@@ -207,13 +209,16 @@ const validateAuthority = async (config, sourceRelease) => {
             'FULL_V78_SIMULATION', 'ROLLBACK_SIMULATION',
             'BUSINESS_RUNTIME_CHANGED'] : [])
     ].sort(), 'ROLLBACK_CHECKPOINT_FIELDS');
-    assert.equal(checkpoint.CHECKPOINT_ID, successor
-        ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_READY'
+    assert.equal(checkpoint.CHECKPOINT_ID, controllerPin
+        ? 'CHECKPOINT_R4_V78_CONTROLLER_PIN_READY'
+        : successor ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_READY'
         : 'CHECKPOINT_R4_V78_PAYLOAD_READY', 'ROLLBACK_CHECKPOINT_ID');
     assert.equal(checkpoint.CHECKPOINT_STATUS, 'FROZEN', 'ROLLBACK_CHECKPOINT_STATUS');
     if (successor) {
         assert.equal(checkpoint.PARENT_AUTHORITY_SHA256,
-            '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d',
+            controllerPin
+                ? '77e100d51a78d070d7f6f2a2d25e5d7f29644fce50aaf37465b797088b35492e'
+                : '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d',
         'ROLLBACK_CHECKPOINT_PARENT');
         assert.equal(checkpoint.NEW_AUTHORITY_SHA256, sha256(config.authorityCheckpoint),
             'ROLLBACK_CHECKPOINT_NEW_AUTHORITY');

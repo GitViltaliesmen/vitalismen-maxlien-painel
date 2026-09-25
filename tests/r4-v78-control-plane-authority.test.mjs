@@ -5,8 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-    R4_PARENT_CHECKPOINT_SHA256, R4_PARENT_COMMIT, R4_PARENT_TREE,
-    R4_MANIFEST_PATH, R4_SUCCESSOR_MANIFEST_PATH, R4_PRELOAD_PATH,
+    R4_SUCCESSOR_CHECKPOINT_SHA256, R4_SUCCESSOR_COMMIT, R4_SUCCESSOR_TREE,
+    R4_SUCCESSOR_MANIFEST_PATH, R4_CONTROLLER_PIN_MANIFEST_PATH, R4_PRELOAD_PATH,
     R4_GUARD_PATH, R4_RUNNER_PATH, R4_FREEZE_LOCK_SUCCESSOR_PATH,
     R4_FINAL_VALIDATOR_PATH, V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256,
     SHIPMENTS_SHA256, V168B_SHA256, META_DATASET_ID,
@@ -17,10 +17,10 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bytes = relative => fs.readFileSync(path.join(root, relative));
 const sha = relative => crypto.createHash('sha256').update(bytes(relative)).digest('hex');
-const parent = JSON.parse(bytes(R4_MANIFEST_PATH));
-const successor = JSON.parse(bytes(R4_SUCCESSOR_MANIFEST_PATH));
+const parent = JSON.parse(bytes(R4_SUCCESSOR_MANIFEST_PATH));
+const successor = JSON.parse(bytes(R4_CONTROLLER_PIN_MANIFEST_PATH));
 const hashFields = {
-    r4OperationalManifestSha256: R4_SUCCESSOR_MANIFEST_PATH,
+    r4OperationalManifestSha256: R4_CONTROLLER_PIN_MANIFEST_PATH,
     r4OperationalPreloadSha256: R4_PRELOAD_PATH,
     r4OperationalGuardSha256: R4_GUARD_PATH,
     r4OperationalRunnerSha256: R4_RUNNER_PATH,
@@ -37,10 +37,10 @@ const hashFields = {
     r4StageVerifierSha256: 'scripts/verify-unified-successor-v202-r4-stage.mjs'
 };
 const fixtureCheckpoint = () => ({
-    checkpointId: 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
-    status: 'FROZEN', parentCheckpoint: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
-    parentCheckpointSha256: R4_PARENT_CHECKPOINT_SHA256,
-    parentR4Commit: R4_PARENT_COMMIT, parentR4Tree: R4_PARENT_TREE,
+    checkpointId: 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY',
+    status: 'FROZEN', parentCheckpoint: 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
+    parentCheckpointSha256: R4_SUCCESSOR_CHECKPOINT_SHA256,
+    parentR4Commit: R4_SUCCESSOR_COMMIT, parentR4Tree: R4_SUCCESSOR_TREE,
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: 'a'.repeat(40), r4OperationalTree: 'b'.repeat(40),
     ...Object.fromEntries(Object.entries(hashFields).map(([key, relative]) =>
@@ -51,21 +51,20 @@ const fixtureCheckpoint = () => ({
     metaDatasetId: META_DATASET_ID
 });
 
-test('manifesto sucessor conserva 83 entradas e altera somente stage', () => {
-    assert.equal(sha(R4_MANIFEST_PATH), parent.parentManifestSha256 ??
-        '9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0');
+test('manifesto controller-pin conserva 83 entradas e altera somente stage', () => {
+    assert.equal(sha(R4_SUCCESSOR_MANIFEST_PATH), successor.parentManifestSha256);
     assert.equal(validateR4Manifest(successor).allowlist.length, 83);
     assert.equal(successor.allowlist.length, parent.allowlist.length);
     const differences = successor.allowlist.filter((entry, index) =>
         JSON.stringify(entry) !== JSON.stringify(parent.allowlist[index]));
     assert.deepEqual(differences.map(entry => entry.path), ['ops/vitalismen-stage']);
-    assert.equal(successor.parentAuthoritySha256, R4_PARENT_CHECKPOINT_SHA256);
+    assert.equal(successor.parentAuthoritySha256, R4_SUCCESSOR_CHECKPOINT_SHA256);
 });
 
 test('checkpoint sucessor exige pai, identidades e hashes exatos', () => {
     const checkpoint = fixtureCheckpoint();
     assert.equal(validateCheckpoint(checkpoint), checkpoint);
-    assert.equal(manifestPathForCheckpoint(checkpoint), R4_SUCCESSOR_MANIFEST_PATH);
+    assert.equal(manifestPathForCheckpoint(checkpoint), R4_CONTROLLER_PIN_MANIFEST_PATH);
     for (const [field, value] of [
         ['parentCheckpoint', 'UNKNOWN'], ['parentCheckpointSha256', '0'.repeat(64)],
         ['parentR4Commit', '0'.repeat(40)], ['parentR4Tree', '0'.repeat(40)],
@@ -102,7 +101,7 @@ test('cadeia authority → preload → guard → runner permanece selada', () =>
     assert.ok(pm2.includes(sha('scripts/lib/unified-successor-v202-r4-authority.mjs')));
     assert.ok(rollback.includes(sha('scripts/lib/unified-successor-v202-r4-authority.mjs')));
     assert.ok(guard.includes(sha(R4_PRELOAD_PATH)));
-    assert.ok(guard.includes(sha(R4_SUCCESSOR_MANIFEST_PATH)));
+    assert.ok(guard.includes(sha(R4_CONTROLLER_PIN_MANIFEST_PATH)));
     assert.ok(runner.includes(sha(R4_GUARD_PATH)));
     assert.equal(successor.allowlist.find(entry => entry.path === 'ops/vitalismen-stage')
         .canonicalSha256, sha('ops/vitalismen-stage'));

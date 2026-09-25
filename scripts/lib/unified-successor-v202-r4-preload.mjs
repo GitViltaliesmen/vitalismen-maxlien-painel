@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const AUTHORITY_SHA256 = 'ae53a56bff65786676fb9ffa0a357c6bcaf18476eed64e0463bf6db33152efaa';
+const AUTHORITY_SHA256 = 'cc0393de6c62bf8de1ade8b9caccd544df37a8745409bb9fe10fe3ad377454d5';
 const V78_SELECTOR_SHA256 = 'eb7220726d892228df9a453dfa5692a8ede6f55e5146c173a972cc16909dbbe3';
 const V78_CONTRACT_SHA256 = '23b5ac9e682720291bdb2afd02207e5c0642c6ff1b5274b94ce3f13feb08ce2a';
 const CHECKPOINT_PATH =
@@ -90,7 +90,8 @@ export function assertR4StartupSuccessorIdentity(verified, root,
     v195 = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD,
     v195Context = globalThis.__VITALISMEN_V195_META_CANONICAL_CONTEXT) {
     assert.ok(['CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
-        'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'].includes(
+        'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
+        'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'].includes(
         verified?.checkpoint?.checkpointId), 'R4_STARTUP_CHECKPOINT_INVALID');
     assert.equal(verified?.attestation?.commit, verified.checkpoint.r4OperationalCommit,
         'R4_STARTUP_COMMIT_INVALID');

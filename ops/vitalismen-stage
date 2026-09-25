@@ -246,6 +246,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
 } else {
   const parentPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
   const successorPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json';
+  const controllerPinPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY.json';
   for (const directory of ['/var', '/var/lib', path.dirname(parentPath)]) {
     const stat = fs.lstatSync(directory);
     assert.ok(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === 0
@@ -271,7 +272,10 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json';
   if (source.functionalCommit !== parent.value.r4OperationalCommit
       || source.functionalTree !== parent.value.r4OperationalTree) {
-    checkpoint = checked(successorPath).value;
+    const successor = checked(successorPath);
+    assert.equal(sha(successor.bytes),
+      '77e100d51a78d070d7f6f2a2d25e5d7f29644fce50aaf37465b797088b35492e');
+    checkpoint = successor.value;
     assert.equal(checkpoint.checkpointId,
       'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY');
     assert.equal(checkpoint.status, 'FROZEN');
@@ -280,6 +284,19 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     assert.equal(checkpoint.parentR4Commit, parent.value.r4OperationalCommit);
     assert.equal(checkpoint.parentR4Tree, parent.value.r4OperationalTree);
     manifestPath = 'docs/freeze/unified-successor-v202-r4-v78-control-plane-20260925.json';
+    if (source.functionalCommit !== checkpoint.r4OperationalCommit
+        || source.functionalTree !== checkpoint.r4OperationalTree) {
+      const controllerPin = checked(controllerPinPath);
+      checkpoint = controllerPin.value;
+      assert.equal(checkpoint.checkpointId,
+        'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY');
+      assert.equal(checkpoint.status, 'FROZEN');
+      assert.equal(checkpoint.parentCheckpoint, successor.value.checkpointId);
+      assert.equal(checkpoint.parentCheckpointSha256, sha(successor.bytes));
+      assert.equal(checkpoint.parentR4Commit, successor.value.r4OperationalCommit);
+      assert.equal(checkpoint.parentR4Tree, successor.value.r4OperationalTree);
+      manifestPath = 'docs/freeze/unified-successor-v202-r4-v78-controller-pin-20260925.json';
+    }
   }
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
@@ -296,7 +313,8 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     assert.ok(item.isFile() && !item.isSymbolicLink());
     assert.equal(sha(fs.readFileSync(file)), expected);
   }
-  if (checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY') {
+  if (checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'
+      || checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY') {
     assert.equal(sha(read(path.join(root,
       'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json')).bytes),
       parent.value.r4OperationalManifestSha256);

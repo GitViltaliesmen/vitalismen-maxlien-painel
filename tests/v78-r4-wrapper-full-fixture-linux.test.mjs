@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -18,7 +19,7 @@ const executable = (file, source) => {
     fs.chmodSync(file, 0o700);
 };
 
-const fixture = ({ failAfterRestart = false } = {}) => {
+const fixture = ({ failAfterRestart = false, controllerDigest = '' } = {}) => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'vitalismen-v78-r4-fixture-'));
     const state = path.join(base, 'state');
     const logs = path.join(base, 'logs');
@@ -31,6 +32,8 @@ const fixture = ({ failAfterRestart = false } = {}) => {
     const readlink = path.join(base, 'readlink');
     const stage = path.join(base, 'stage');
     const rollback = path.join(base, 'rollback');
+    const bin = path.join(base, 'bin');
+    fs.mkdirSync(bin, { mode: 0o700 });
     const releaseName = path.basename(releaseDir);
     const v201 = '/opt/vitalismen-automacao/releases/20260924T015646Z_production-20260924-641759b';
     executable(pm2, `#!/bin/sh\nif [ "$1" = jlist ]; then\n  printf '%s\\n' '[{"name":"vitalismen-automation","pm2_env":{"status":"online","pm_cwd":"${releaseDir}","pm_exec_path":"${releaseDir}/src/index.js"}}]'\n  exit 0\nfi\nif [ "$1" = restart ] && [ "$2" = vitalismen-automation ] && [ "$3" = --update-env ]; then\n  : > '${marker}'\n  exit 0\nfi\nexit 70\n`);
@@ -40,7 +43,10 @@ esac\n`);
     executable(readlink, `#!/bin/sh\n[ "$1" = -f ] && [ "$2" = /opt/vitalismen-automacao/current ] || exit 71\nprintf '%s\\n' '${releaseDir}'\n`);
     executable(stage, '#!/bin/sh\n[ "$1" = v66-plan ] || exit 72\nprintf "%s\\n" "V66_FIXTURE=PASS"\n');
     executable(rollback, `import fs from 'node:fs';\nif (process.argv[2] !== '${releaseName}') process.exit(73);\nfs.writeFileSync('${rollbackMarker}', 'called\\n');\nconsole.log('CURRENT=${v201}');\nconsole.log('NODE_OPTIONS=V199_EXACT');\nconsole.log('V201_BUNDLE=ACTIVE_VALID');\nconsole.log('PM2=online');\nconsole.log('HEALTH=online');\nconsole.log('ZAPI=connected');\nconsole.log('META_DATASET=920532663934291');\n`);
+    if (controllerDigest) executable(path.join(bin, 'sha256sum'),
+        `#!/bin/sh\ncase "$1" in\n  '${releaseDir}/scripts/lib/pm2-target-env-restart-v78-r4.mjs') printf '%s  %s\\n' '${controllerDigest}' "$1" ;;\n  *) exec /usr/bin/sha256sum "$@" ;;\nesac\n`);
     const env = { ...process.env,
+        PATH: `${bin}:${process.env.PATH || '/usr/bin:/bin'}`,
         NODE_OPTIONS: '', npm_config_node_options: '',
         EC_BOT_CORE_V78_TEST_MODE: 'true',
         EC_BOT_CORE_V78_TEST_BASE_DIR: '/opt/vitalismen-automacao',
@@ -130,3 +136,28 @@ test('falha após restart sintético chama rollback e não consome permit',
                 false);
         } finally { f.cleanup(); }
     });
+
+for (const [label, digest] of [
+    ['controller anterior 022e', '022e1757ae21c98213b7175846f567af78ce7b5b5d8a23777f3d837d61abf115'],
+    ['controller histórico c764', 'c764c385d5fd837dc91cc2e8949ef9bdac960ca63bccaa45686f3e027a54fc8d'],
+    ['controller arbitrário', '0'.repeat(64)],
+    ['controller alterado um byte', enabled ? crypto.createHash('sha256').update(
+        Buffer.concat([fs.readFileSync(path.join(releaseDir,
+            'scripts/lib/pm2-target-env-restart-v78-r4.mjs')), Buffer.from('x')])).digest('hex')
+        : '1'.repeat(64)]
+]) {
+    test(`${label} bloqueia antes do PM2 sintético`, { skip: !enabled, timeout: 180_000 }, () => {
+        const f = fixture({ controllerDigest: digest });
+        try {
+            const authorize = f.run('authorize', {
+                EC_BOT_CORE_V78_AUTHORIZE: 'I_UNDERSTAND_EC_BOT_CORE_V78'
+            });
+            assert.equal(authorize.status, 0, `${authorize.stdout}\n${authorize.stderr}`);
+            const activate = f.run('activate');
+            assert.notEqual(activate.status, 0);
+            assert.match(activate.stderr, /controller PM2 sucessor não corresponde à autoridade selecionada/);
+            assert.equal(fs.existsSync(f.marker), false);
+            assert.equal(fs.existsSync(path.join(f.state, 'ec-bot-core-v78-permit.json')), true);
+        } finally { f.cleanup(); }
+    });
+}

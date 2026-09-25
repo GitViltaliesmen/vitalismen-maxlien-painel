@@ -114,7 +114,9 @@ for (const [label, relative, mutate] of [
 ]) {
     test(`${label} incorreto bloqueia`, { skip: !enabled }, async () => {
         const file = relative ? path.join(release, relative)
-            : expectedIdentity === 'R4_SUCCESSOR'
+            : expectedIdentity === 'R4_CONTROLLER_PIN'
+                ? '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY.json'
+                : expectedIdentity === 'R4_SUCCESSOR'
                 ? '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json'
                 : '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
         const value = JSON.parse(fs.readFileSync(file));
@@ -131,7 +133,7 @@ test('SHA incorreto do preload bloqueia', { skip: !enabled }, async () => {
 });
 
 test('wrapper adulterado bloqueia sob autoridade sucessora',
-    { skip: !enabled || expectedIdentity !== 'R4_SUCCESSOR' }, async () => {
+    { skip: !enabled || !['R4_SUCCESSOR', 'R4_CONTROLLER_PIN'].includes(expectedIdentity) }, async () => {
         const file = path.join(release, 'ops/ec-bot-core-v78-successor-r4');
         await withSpoofedRead(file, Buffer.from('wrong wrapper\n'),
             async () => assert.rejects(parent.assertEcBotCoreParentProtectionR4(release),
@@ -139,11 +141,13 @@ test('wrapper adulterado bloqueia sob autoridade sucessora',
     });
 
 test('SHA do checkpoint pai adulterado bloqueia linhagem sucessora',
-    { skip: !enabled || expectedIdentity !== 'R4_SUCCESSOR' }, async () => {
-        const file = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
+    { skip: !enabled || !['R4_SUCCESSOR', 'R4_CONTROLLER_PIN'].includes(expectedIdentity) }, async () => {
+        const file = expectedIdentity === 'R4_CONTROLLER_PIN'
+            ? '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json'
+            : '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
         const value = JSON.parse(fs.readFileSync(file));
         value.r4OperationalTree = '0'.repeat(40);
         await withSpoofedRead(file, Buffer.from(`${JSON.stringify(value, null, 2)}\n`),
             async () => assert.rejects(parent.assertEcBotCoreParentProtectionR4(release),
-                /R4_PARENT_CHECKPOINT_CHANGED/));
+                /R4_PARENT_CHECKPOINT_CHANGED|R4_SUCCESSOR_CHECKPOINT_CHANGED/));
     });

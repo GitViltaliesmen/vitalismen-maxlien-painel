@@ -80,6 +80,10 @@ const R4_SUCCESSOR_OVERRIDES = Object.freeze({
     'scripts/lib/ec-bot-core-operational-contract-v78.mjs':
         '23b5ac9e682720291bdb2afd02207e5c0642c6ff1b5274b94ce3f13feb08ce2a'
 });
+const R4_CONTROLLER_PIN_OVERRIDES = Object.freeze({
+    ...R4_SUCCESSOR_OVERRIDES,
+    'ops/vitalismen-stage': 'c0307f56acc20aedf790d97ba64203830b1a647d74380c78ec9d57487f4b8804'
+});
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const regularBytes = file => {
     const stat = fs.lstatSync(file);
@@ -141,7 +145,9 @@ export async function assertEcBotCoreParentProtectionR4(releaseDir) {
         assert.equal(verified.attestation.tree, tree,
             'V78_PARENT_R4_ATTESTATION_TREE_INVALID');
         identity = verified.checkpoint.checkpointId ===
-            'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY' ? 'R4_SUCCESSOR' : 'R4';
+            'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY' ? 'R4_CONTROLLER_PIN'
+                : verified.checkpoint.checkpointId ===
+                    'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY' ? 'R4_SUCCESSOR' : 'R4';
     }
     const enumerated = new Set();
     for (const [relative, expected] of Object.entries(PARENT_MANIFESTS)) {
@@ -157,6 +163,8 @@ export async function assertEcBotCoreParentProtectionR4(releaseDir) {
         'V78_PARENT_PROTECTED_SET_INVALID');
     const expectedHashes = identity === 'V201'
         ? { ...R4_HASHES, ...V201_OVERRIDES }
+        : identity === 'R4_CONTROLLER_PIN'
+            ? { ...R4_HASHES, ...R4_CONTROLLER_PIN_OVERRIDES }
         : identity === 'R4_SUCCESSOR'
             ? { ...R4_HASHES, ...R4_SUCCESSOR_OVERRIDES } : R4_HASHES;
     for (const [relative, expected] of Object.entries(expectedHashes)) {
