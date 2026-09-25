@@ -4,11 +4,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const AUTHORITY_SHA256 = '6a5b9261d3892a6334d14b05abbf97e033c57a93d08d4451cbf7300acdab0e72';
+const AUTHORITY_SHA256 = '4039aa24456156411a2e1f1601812a245e624a15e979f3cc8c0b2778b63c91d8';
 const V78_SELECTOR_SHA256 = 'bfd27de60c06ea0925c03cfbebe48383a321c6146a55997ad1b3672349ccc6fa';
 const V78_CONTRACT_SHA256 = '4ef899c56c2f71aaed782a6af6cc61143c92e4eaea5d57450e28452faaddabaa';
 const CHECKPOINT_PATH =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_STARTUP_SUCCESSOR_READY.json';
+const OFFICIAL_LOGICAL_PRELOAD =
+    'file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs';
+const V168B_PATH = 'scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
+const SHIPMENTS_PATH = 'src/routes/shipments.js';
+const V195_MANIFEST_SHA256 = 'ffe319bc3f0a336d9353cd4957b23478fe25c788f243cc1f9670d8024ac793a6';
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const assertRequiredContexts = ({ v199, v146 }) => {
     assert.equal(v199, true, 'R4_V199_CONTEXT_MISSING');
@@ -37,7 +42,7 @@ async function loadVerifiedAuthority(root) {
         && stat.gid === 0 && (stat.mode & 0o777) === 0o400,
     'R4_BOOTSTRAP_CHECKPOINT_UNSAFE');
     const checkpoint = JSON.parse(fs.readFileSync(CHECKPOINT_PATH, 'utf8'));
-    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE');
+    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
     assert.equal(checkpoint.status, 'FROZEN');
     const authorityPath = path.join(root,
         'scripts/lib/unified-successor-v202-r4-authority.mjs');
@@ -74,6 +79,49 @@ const restore = before => {
     for (const [key, descriptor] of before) Object.defineProperty(globalThis, key, descriptor);
 };
 const values = () => new Map(contextKeys().map(key => [key, globalThis[key]]));
+
+export function assertR4StartupSuccessorIdentity(verified, root,
+    v195 = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD,
+    v195Context = globalThis.__VITALISMEN_V195_META_CANONICAL_CONTEXT) {
+    assert.equal(verified?.checkpoint?.checkpointId, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
+    assert.equal(verified?.attestation?.commit, verified.checkpoint.r4OperationalCommit,
+        'R4_STARTUP_COMMIT_INVALID');
+    assert.equal(verified?.attestation?.tree, verified.checkpoint.r4OperationalTree,
+        'R4_STARTUP_TREE_INVALID');
+    assert.equal(v195Context?.loaded, true, 'R4_V195_CONTEXT_MISSING');
+    assert.equal(v195Context.manifestSha256, V195_MANIFEST_SHA256,
+        'R4_V195_MANIFEST_INVALID');
+    assert.equal(v195Context.policy?.canonicalDataset, verified.checkpoint.metaDatasetId,
+        'R4_META_PROFILE_INVALID');
+    assert.equal(v195?.freezeId, 'META_CANONICAL_CONSOLIDATION_V195_20260923',
+        'R4_V195_PRELOAD_INVALID');
+    assert.equal(v195.canonicalDataset, verified.checkpoint.metaDatasetId,
+        'R4_META_PRELOAD_PROFILE_INVALID');
+    assert.equal(v195.protectedFiles?.[V168B_PATH], verified.checkpoint.v168bSha256,
+        'R4_V168B_V195_AUTHORITY_MISSING');
+    const v168bStat = fs.lstatSync(path.join(root, V168B_PATH));
+    assert.ok(v168bStat.isFile() && !v168bStat.isSymbolicLink(),
+        'R4_V168B_FILE_UNSAFE');
+    assert.equal(sha256(fs.readFileSync(path.join(root, V168B_PATH))),
+        verified.checkpoint.v168bSha256, 'R4_V168B_IDENTITY_INVALID');
+    const shipments = verified.manifest.allowlist.find(entry => entry.path === SHIPMENTS_PATH);
+    assert.equal(shipments?.canonicalSha256, verified.checkpoint.shipmentsSha256,
+        'R4_SHIPMENTS_AUTHORITY_INVALID');
+    const shipmentsStat = fs.lstatSync(path.join(root, SHIPMENTS_PATH));
+    assert.ok(shipmentsStat.isFile() && !shipmentsStat.isSymbolicLink(),
+        'R4_SHIPMENTS_FILE_UNSAFE');
+    assert.equal(sha256(fs.readFileSync(path.join(root, SHIPMENTS_PATH))),
+        verified.checkpoint.shipmentsSha256, 'R4_SHIPMENTS_IDENTITY_INVALID');
+    const protectedFiles = Object.freeze({ ...v195.protectedFiles,
+        ...Object.fromEntries(verified.manifest.allowlist.map(entry =>
+            [entry.path, entry.canonicalSha256])) });
+    return Object.freeze({
+        freezeId: v195.freezeId,
+        canonicalDataset: v195.canonicalDataset,
+        authorizedFiles: Object.freeze(Object.keys(protectedFiles)),
+        protectedFiles
+    });
+}
 
 export async function runUnifiedSuccessor({ root, historicalRoot, env = process.env } = {}) {
     const { assertUnifiedSuccessor, assertExternalLocks } = await import(
@@ -121,6 +169,8 @@ export async function runOperationalR4Import() {
             v199: globalThis.__VITALISMEN_V199_EC_BOT_CORE_HEALTH_META_CONTEXT?.loaded,
             v146: globalThis.__VITALISMEN_V146_CONTEXT?.loaded
         });
+        globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD =
+            assertR4StartupSuccessorIdentity(verified, root);
         await import(pathToFileURL(path.join(root, verified.manifest.currentEntrypoint)).href);
         assertOperationalLocks(verified.manifest.externalEffectLocks, process.env);
         globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT = Object.freeze({
@@ -133,6 +183,8 @@ export async function runOperationalR4Import() {
             authorizedFiles: Object.freeze([...paths]),
             manifestSha256: verified.attestation.manifestSha256,
             shipmentsSha256: verified.checkpoint.shipmentsSha256,
+            v168bSha256: verified.checkpoint.v168bSha256,
+            metaDatasetId: verified.checkpoint.metaDatasetId,
             releaseAttestationValidated: true,
             gitRuntimeDependency: false,
             externalEffectLocks: Object.freeze({ ...verified.manifest.externalEffectLocks })
@@ -150,9 +202,16 @@ export async function runOperationalR4Import() {
 const self = fileURLToPath(import.meta.url);
 const importArguments = [...process.execArgv,
     ...String(process.env.NODE_OPTIONS || '').split(/\s+/).filter(Boolean)];
-const importTargetsSelf = specifier => {
-    try { return fileURLToPath(new URL(specifier)) === self; } catch { /* path form */ }
-    return path.resolve(specifier) === self;
+export const importTargetsSelf = specifier => {
+    if (specifier === pathToFileURL(self).href) return true;
+    if (specifier !== OFFICIAL_LOGICAL_PRELOAD) return false;
+    const logicalRoot = '/opt/vitalismen-automacao/current';
+    const physicalRoot = path.resolve(path.dirname(self), '../..');
+    assert.equal(fs.realpathSync(logicalRoot), physicalRoot,
+        'R4_LOGICAL_CURRENT_REALPATH_INVALID');
+    assert.equal(fs.realpathSync(fileURLToPath(specifier)), self,
+        'R4_LOGICAL_PRELOAD_REALPATH_INVALID');
+    return true;
 };
 const requestedAsPreload = importArguments.some((argument, index) =>
     (argument.startsWith('--import=') && importTargetsSelf(argument.slice(9)))

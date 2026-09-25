@@ -41,7 +41,7 @@ if (source.functionalCommit === '641759b160c2b91e95a3f1df371ad372a74d72e1'
     const authorityPath = path.join(releaseDir,
         'scripts/lib/unified-successor-v202-r4-authority.mjs');
     if (sha256(regular(authorityPath))
-        !== '6a5b9261d3892a6334d14b05abbf97e033c57a93d08d4451cbf7300acdab0e72') {
+        !== '4039aa24456156411a2e1f1601812a245e624a15e979f3cc8c0b2778b63c91d8') {
         throw new Error('controller_r4_authority_hash_invalid');
     }
     const { assertNodeOptionsForRelease } = await import(pathToFileURL(authorityPath).href);

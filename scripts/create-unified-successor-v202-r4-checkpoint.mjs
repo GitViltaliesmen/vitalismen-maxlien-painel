@@ -7,7 +7,8 @@ import {
     R4_CHECKPOINT_PATH, R4_MANIFEST_PATH, R4_PRELOAD_PATH, R4_GUARD_PATH,
     R4_RUNNER_PATH, R4_FREEZE_LOCK_SUCCESSOR_PATH, R4_FINAL_VALIDATOR_PATH,
     V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256,
-    SHIPMENTS_SHA256, readCanonicalJson, readAuthorizedCheckpoint,
+    SHIPMENTS_SHA256, V168B_SHA256, META_DATASET_ID,
+    readCanonicalJson, readAuthorizedCheckpoint,
     validateR4Manifest, sha256
 } from './lib/unified-successor-v202-r4-authority.mjs';
 import { assertGitReleaseIdentity } from './verify-unified-successor-v202-r4-stage.mjs';
@@ -24,16 +25,16 @@ assert.equal(git('status', '--porcelain=v1', '--untracked-files=no'), '',
     'R4_CHECKPOINT_SOURCE_DIRTY');
 const commit = git('rev-parse', 'HEAD');
 const tree = git('rev-parse', 'HEAD^{tree}');
-const parent = 'af04260047929c3dfcba5ca489969c333a615590';
+const parent = 'f148a7fcb4de71a243d40f9804a8a6a5b46c7dbc';
 assert.equal(git('merge-base', parent, commit), parent, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parent}^{tree}`),
-    '848870270f645c080c31d72556bb69975ddf77a2');
+    '92ba262bf144ab08678a311b2c3473f3a9c80732');
 const parentR4Commit = parent;
-const parentR4Tree = '848870270f645c080c31d72556bb69975ddf77a2';
+const parentR4Tree = '92ba262bf144ab08678a311b2c3473f3a9c80732';
 const parentAuthorityPath =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE.json';
 const parentAuthoritySha256 =
-    'b4194174a12115cbfc8d97618fad3f41de1e6ef94123061d0b7e57647b81dd0a';
+    'e69608b456868b18b88767d903657dc8983a3b5da365f84b9e62638ba07ced79';
 assert.equal(git('merge-base', parentR4Commit, commit), parentR4Commit,
     'R4_FREEZE_SUCCESSOR_PARENT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parentR4Commit}^{tree}`), parentR4Tree,
@@ -44,9 +45,9 @@ const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
+    checkpointId: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
+    parentCheckpoint: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
     parentR4Commit,
     parentR4Tree,
     parentAuthorityCheckpointSha256: parentAuthoritySha256,
@@ -63,7 +64,9 @@ const checkpoint = {
     v201PublishedCommit: V201_COMMIT,
     v201PublishedTree: V201_TREE,
     v201ManifestSha256: V201_MANIFEST_SHA256,
-    shipmentsSha256: SHIPMENTS_SHA256
+    shipmentsSha256: SHIPMENTS_SHA256,
+    v168bSha256: V168B_SHA256,
+    metaDatasetId: META_DATASET_ID
 };
 assertGitReleaseIdentity(root, checkpoint, manifest);
 const parentPath = path.dirname(R4_CHECKPOINT_PATH);

@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {
     validateCheckpoint, validateR4Manifest, validateAttestation,
-    SHIPMENTS_SHA256, V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256
+    SHIPMENTS_SHA256, V168B_SHA256, META_DATASET_ID,
+    V201_COMMIT, V201_TREE, V201_MANIFEST_SHA256
 } from '../scripts/lib/unified-successor-v202-r4-authority.mjs';
 import { assertExternalLocks } from '../scripts/guard-unified-successor-v202-r4.mjs';
 import {
@@ -17,13 +18,13 @@ const sha = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
+    checkpointId: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
-    parentR4Commit: 'af04260047929c3dfcba5ca489969c333a615590',
-    parentR4Tree: '848870270f645c080c31d72556bb69975ddf77a2',
+    parentCheckpoint: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
+    parentR4Commit: 'f148a7fcb4de71a243d40f9804a8a6a5b46c7dbc',
+    parentR4Tree: '92ba262bf144ab08678a311b2c3473f3a9c80732',
     parentAuthorityCheckpointSha256:
-        'b4194174a12115cbfc8d97618fad3f41de1e6ef94123061d0b7e57647b81dd0a',
+        'e69608b456868b18b88767d903657dc8983a3b5da365f84b9e62638ba07ced79',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,
@@ -37,7 +38,9 @@ const checkpoint = {
     v201PublishedCommit: V201_COMMIT,
     v201PublishedTree: V201_TREE,
     v201ManifestSha256: V201_MANIFEST_SHA256,
-    shipmentsSha256: SHIPMENTS_SHA256
+    shipmentsSha256: SHIPMENTS_SHA256,
+    v168bSha256: V168B_SHA256,
+    metaDatasetId: META_DATASET_ID
 };
 const attestation = {
     attestationId: 'R4_OPERATIONAL_RELEASE_ATTESTATION',
@@ -129,6 +132,8 @@ test('checkpoint exato e campos não extensíveis', () => {
         value => { value.parentCheckpoint = 'OUTRO'; },
         value => { value.parentR4Commit = '0'.repeat(40); },
         value => { value.parentAuthorityCheckpointSha256 = '0'.repeat(64); },
+        value => { value.v168bSha256 = '0'.repeat(64); },
+        value => { value.metaDatasetId = '1468946114265008'; },
         value => { value.extra = true; }
     ];
     for (const change of cases) {

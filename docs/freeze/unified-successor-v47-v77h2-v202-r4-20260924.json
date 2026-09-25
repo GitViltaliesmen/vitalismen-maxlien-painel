@@ -83,10 +83,10 @@
     },
     {
       "path": "ops/vitalismen-stage",
-      "gitBlobOid": "7a3fade0ddd80fb399cd7aef40e5cc916444cf14",
-      "canonicalSha256": "981c92508597595d375db7d8746afeb1a3c8e0b4e342a95f2efea3a3790d9819",
+      "gitBlobOid": "6d853e8fa5ed5d98ad1412aa4c03ecfae72ac726",
+      "canonicalSha256": "e6b7142b2cd8d50b300a4f277e72e6f85e45d97661a30318286b39839e632dc6",
       "authority": "OPERATOR_DECISION",
-      "evidence": "CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE"
+      "evidence": "CHECKPOINT_R4_STARTUP_SUCCESSOR_READY"
     },
     {
       "path": "package-lock.json",
