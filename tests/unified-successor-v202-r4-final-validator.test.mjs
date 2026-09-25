@@ -69,7 +69,7 @@ test('final R4: arquivo do validator adulterado bloqueia identidade materializad
         fs.rmSync(directory, { recursive: true, force: true });
     });
     const files = [
-        ['docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json',
+        ['docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json',
             'r4OperationalManifestSha256'],
         ['scripts/lib/unified-successor-v202-r4-preload.mjs', 'r4OperationalPreloadSha256'],
         ['scripts/guard-unified-successor-v202-r4.mjs', 'r4OperationalGuardSha256'],

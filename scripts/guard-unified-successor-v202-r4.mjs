@@ -6,10 +6,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json';
+export const MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json';
 export const PRELOAD_PATH = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
-export const MANIFEST_SHA256 = 'a0bca5e77f83c0e2131a2334b79b6517faf3c58b716033288a08c9f624c8783a';
-export const PRELOAD_SHA256 = '1c00c04da9dc1bd03e9e156fb109340a1ad8da0daa64657d8f8be4187985a804';
+export const MANIFEST_SHA256 = '35ce65f14816d6cd5ee160058f31c1d05db33733f6fc2f7bf1bf7faf82a78de9';
+export const PRELOAD_SHA256 = '2fd8702afd11ac0eb36058d6bbc9f0c6680fcbc4fa2fa09ee3e7129f210d68f8';
 export const LOCAL_CHECKPOINT_HEAD = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
 export const LOCAL_CHECKPOINT_TREE = '1bf75f613c6befece285e3ce9a71dc41bfffaa20';
 export const BASE_HEAD = '790a5079b7cd4693127f84d933809042dfc018be';
@@ -42,10 +42,10 @@ export function assertUnifiedManifest(bytes, preloadBytes, expectedManifestSha =
     const text = bytes.toString('utf8');
     const manifest = JSON.parse(text);
     assert.equal(text, `${JSON.stringify(manifest, null, 2)}\n`, 'R4_MANIFEST_NOT_CANONICAL');
-    assert.equal(manifest.successorId, 'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_20260924');
+    assert.equal(manifest.successorId, 'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_CONTROL_PLANE_20260925');
     assert.equal(manifest.version, 'V202-R4');
     assert.equal(manifest.operationalRevision,
-        'EXTERNAL_FROZEN_CHECKPOINT_AND_RELEASE_ATTESTATION');
+        'EXTERNAL_FROZEN_CONTROL_PLANE_CHECKPOINT_AND_RELEASE_ATTESTATION');
     assert.equal(manifest.baseHead, BASE_HEAD, 'R4_BASE_HEAD_INVALID');
     assert.equal(manifest.baseTree, BASE_TREE, 'R4_BASE_TREE_INVALID');
     assert.equal(manifest.functionalCommit, 'd333c9b3bdeb57644ce78b7f0575301fd9a102dd');

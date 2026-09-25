@@ -398,8 +398,32 @@ if [[ "$action" == "activate" ]]; then
     [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "overlay V78 inválido"
     export "$key=$value"
   done <"$overlay_file"
+  activation_node_options="$NODE_OPTIONS"
+  rollback_executor="$release_dir/ops/vitalismen-rollback-v201-r4.mjs"
+  if [[ "$test_mode" == "true" ]]; then
+    rollback_executor="${EC_BOT_CORE_V78_TEST_ROLLBACK_CMD:-$rollback_executor}"
+  fi
   activation_failed=1
-  trap 'if [[ "$activation_failed" == "1" ]]; then unset NODE_OPTIONS; export npm_config_node_options=""; "$stage_helper" v66-contain >/dev/null 2>&1 || true; append_audit "activation_failed_contained" "$release" "stopped_fail_closed"; fi' EXIT
+  contain_failed_activation() {
+    local failure_status=$?
+    trap - EXIT
+    if [[ "$activation_failed" == "1" ]]; then
+      unset NODE_OPTIONS
+      export npm_config_node_options=""
+      if [[ "$activation_node_options" == *unified-successor-v202-r4-preload.mjs
+        && -f "$rollback_executor" && ! -L "$rollback_executor" ]]; then
+        if "$node_cmd" "$rollback_executor" "$release"; then
+          append_audit "activation_failed_v201_recovered" "$release" "rollback_verified"
+          echo "V201_AUTO_ROLLBACK=PASS" >&2
+          exit "$failure_status"
+        fi
+      fi
+      "$stage_helper" v66-contain >/dev/null 2>&1 || true
+      append_audit "activation_failed_contained" "$release" "stopped_fail_closed"
+    fi
+    exit "$failure_status"
+  }
+  trap contain_failed_activation EXIT
   if [[ "$test_mode" == "true" ]]; then
     "$pm2_cmd" restart "$process_name" --update-env >/dev/null
   else
@@ -413,7 +437,7 @@ if [[ "$action" == "activate" ]]; then
     fi
     [[ -f "$controller_file" && ! -L "$controller_file" ]] || die "controller PM2 sucessor ausente ou inseguro"
     controller_sha256="$(sha256sum "$controller_file")"
-    [[ "${controller_sha256%% *}" == "d3884cd2ceb81572cf13440d7da8be3e164890c645763de41eab6b5049c796ec" ]] ||
+    [[ "${controller_sha256%% *}" == "eade88907e35c6f662b236d81a29954791e6c93745488d210cd424dc3afbf528" ]] ||
       die "controller PM2 sucessor não corresponde ao código aprovado"
     NODE_OPTIONS="" npm_config_node_options="" \
       "$node_cmd" "$controller_file" \

@@ -244,7 +244,7 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
   preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
 } else {
-   const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_STARTUP_SUCCESSOR_READY.json';
+  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json';
   const parent = fs.lstatSync(path.dirname(checkpointPath));
   const stat = fs.lstatSync(checkpointPath);
   assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
@@ -252,12 +252,12 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
     && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
   const checkpoint = read(checkpointPath).value;
-   assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
+  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
   assert.equal(checkpoint.status, 'FROZEN');
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
   for (const [relative, expected] of [
-    ['docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json', checkpoint.r4OperationalManifestSha256],
+    ['docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json', checkpoint.r4OperationalManifestSha256],
     ['scripts/lib/unified-successor-v202-r4-preload.mjs', checkpoint.r4OperationalPreloadSha256],
      ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
      ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256],

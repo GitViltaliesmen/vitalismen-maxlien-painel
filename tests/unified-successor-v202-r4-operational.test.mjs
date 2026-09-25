@@ -13,18 +13,18 @@ import {
 } from '../src/services/ecBotCoreOperationalV78Service.js';
 
 const manifest = JSON.parse(fs.readFileSync(new URL(
-    '../docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json', import.meta.url)));
+    '../docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json', import.meta.url)));
 const sha = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
+    checkpointId: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
-    parentR4Commit: 'f148a7fcb4de71a243d40f9804a8a6a5b46c7dbc',
-    parentR4Tree: '92ba262bf144ab08678a311b2c3473f3a9c80732',
+    parentCheckpoint: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
+    parentR4Commit: '9d640d2700f91675f06b136cd6fe02695596e8cf',
+    parentR4Tree: '20c9ea0925cffd8ad2c06a73abd811837330339c',
     parentAuthorityCheckpointSha256:
-        'e69608b456868b18b88767d903657dc8983a3b5da365f84b9e62638ba07ced79',
+        'd85725ac5b1b5b70bb104f750af42ce34eeec61dc309f6d655b40785655b4986',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,

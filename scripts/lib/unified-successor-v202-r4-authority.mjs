@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const R4_CHECKPOINT_PATH =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_STARTUP_SUCCESSOR_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json';
 export const R4_ATTESTATION_NAME = '.r4-operational-attestation.json';
-export const R4_MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json';
+export const R4_MANIFEST_PATH = 'docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json';
 export const R4_PRELOAD_PATH = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
 export const R4_GUARD_PATH = 'scripts/guard-unified-successor-v202-r4.mjs';
 export const R4_RUNNER_PATH = 'scripts/run-unified-successor-v202-r4.mjs';
@@ -54,13 +54,13 @@ export function validateCheckpoint(value) {
         'v201PublishedTree', 'v201ManifestSha256', 'shipmentsSha256',
         'v168bSha256', 'metaDatasetId'],
     'R4_CHECKPOINT_FIELDS_INVALID');
-    assert.equal(value.checkpointId, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
+    assert.equal(value.checkpointId, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
     assert.equal(value.status, 'FROZEN');
-    assert.equal(value.parentCheckpoint, 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE');
-    assert.equal(value.parentR4Commit, 'f148a7fcb4de71a243d40f9804a8a6a5b46c7dbc');
-    assert.equal(value.parentR4Tree, '92ba262bf144ab08678a311b2c3473f3a9c80732');
+    assert.equal(value.parentCheckpoint, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
+    assert.equal(value.parentR4Commit, '9d640d2700f91675f06b136cd6fe02695596e8cf');
+    assert.equal(value.parentR4Tree, '20c9ea0925cffd8ad2c06a73abd811837330339c');
     assert.equal(value.parentAuthorityCheckpointSha256,
-        'e69608b456868b18b88767d903657dc8983a3b5da365f84b9e62638ba07ced79');
+        'd85725ac5b1b5b70bb104f750af42ce34eeec61dc309f6d655b40785655b4986');
     assert.equal(value.project, 'MAXLIEN EC — VITALISMEN OFICIAL');
     assert.match(value.r4OperationalCommit, SHA1);
     assert.match(value.r4OperationalTree, SHA1);
@@ -96,10 +96,10 @@ export function readAuthorizedCheckpoint() {
 }
 export function validateR4Manifest(manifest) {
     assert.equal(manifest.successorId,
-        'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_20260924');
+        'MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_CONTROL_PLANE_20260925');
     assert.equal(manifest.version, 'V202-R4');
     assert.equal(manifest.operationalRevision,
-        'EXTERNAL_FROZEN_CHECKPOINT_AND_RELEASE_ATTESTATION');
+        'EXTERNAL_FROZEN_CONTROL_PLANE_CHECKPOINT_AND_RELEASE_ATTESTATION');
     assert.equal(manifest.allowlistCount, 83);
     assert.equal(manifest.allowlist?.length, 83);
     assert.equal(new Set(manifest.allowlist.map(entry => entry.path)).size, 83);
@@ -108,7 +108,7 @@ export function validateR4Manifest(manifest) {
         entry.authority === 'FREEZE_SUCCESSOR_EVIDENCE').length, 81);
     const stage = manifest.allowlist.find(entry => entry.path === 'ops/vitalismen-stage');
     assert.equal(stage?.authority, 'OPERATOR_DECISION');
-    assert.equal(stage?.evidence, 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY');
+    assert.equal(stage?.evidence, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
     const shipments = manifest.allowlist.find(entry => entry.path === 'src/routes/shipments.js');
     assert.equal(shipments?.canonicalSha256, SHIPMENTS_SHA256);
     assert.deepEqual(manifest.externalEffectLocks, {
