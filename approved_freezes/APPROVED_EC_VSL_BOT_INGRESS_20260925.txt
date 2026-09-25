@@ -1,0 +1,82 @@
+EC_VSL_BOT_INGRESS_APPROVED=YES
+EC_VSL_BOT_INGRESS_KEEP_FROZEN=YES
+APPROVAL_DATE=2026-09-25
+APPROVAL_SCOPE=RECEBIMENTO_DA_ENTRADA_ESTRUTURADA_DA_VSL_TEX_ULTRA_NO_BOT_E_NO_PAINEL_EC
+
+Pedido expresso do operador:
+
+"RETOME BOT RECEBENDO DA VSL. ESSA PARTE APROVADO E CONGELA OU MANTENHA CONGELA"
+
+Reconfirmacao apos nova captura: "VEJA . APROVADO. CONGELA"
+
+## Comportamento aprovado e congelado
+
+- a mensagem estruturada enviada pelo cliente a partir da VSL Tex Ultra chega ao
+  transporte oficial de entrada e e persistida antes do processamento comercial;
+- a conversa recebida aparece no painel oficial EC com a origem VSL e o produto
+  Tex Ultra preservados separadamente da negociacao manual do cliente;
+- os campos rotulados recebidos da VSL podem preencher somente lacunas e nunca
+  sobrescrever uma correcao ja confirmada pelo cliente ou pelo operador;
+- cada nova mensagem de origem admite no maximo uma primeira resposta aplicavel;
+  o mesmo inbound, webhook duplicado ou recovery concorrente nao pode provocar
+  reenvio da mesma resposta;
+- a leitura/listagem do painel permanece sem criar pedido, disparar Dropi,
+  reenviar Meta/CAPI ou enviar mensagem adicional;
+- o telefone brasileiro de QA permanece isolado e nunca pode ser tratado como
+  cliente real, pedido, Dropi, evento Meta/CAPI ou disparo em massa.
+
+## Congelamentos mantidos
+
+- `docs/EC_VSL_DASHBOARD_INGRESS_FREEZE_V90_20260830.md`;
+- `docs/EC_TRAFFIC_RESTORATION_V171_20260917.md`;
+- `docs/VSL_INGRESS_LEDGER_SHADOW_V191_20260919.md`;
+- `docs/VSL_FIRST_RESPONSE_WATCHDOG_V193_20260919.md`;
+- sucessoes locais V197, V198 e V199, sem reescrever os freezes ancestrais.
+
+## Fora da autorizacao
+
+RUNTIME_CHANGE_AUTHORIZED=NO
+VSL_CONTENT_CHANGE_AUTHORIZED=NO
+BOT_ENGINE_CHANGE_AUTHORIZED=NO
+FUNNEL_ORDER_CHANGE_AUTHORIZED=NO
+PRODUCT_OR_PRICE_CHANGE_AUTHORIZED=NO
+CHECKOUT_CHANGE_AUTHORIZED=NO
+WHATSAPP_NUMBER_CHANGE_AUTHORIZED=NO
+ZAPI_OR_BAILEYS_CHANGE_AUTHORIZED=NO
+DROPI_CHANGE_AUTHORIZED=NO
+META_CAPI_OR_PIXEL_CHANGE_AUTHORIZED=NO
+SCHEDULER_CHANGE_AUTHORIZED=NO
+MEDIA_AUDIO_OR_IMAGE_CHANGE_AUTHORIZED=NO
+CUSTOMER_DATA_REWRITE_AUTHORIZED=NO
+REAL_CUSTOMER_TEST_AUTHORIZED=NO
+DEPLOY_AUTHORIZED=NO
+
+Esta aprovacao e documental e aditiva. Ela nao autoriza editar os arquivos
+funcionais congelados, ativar automacao, publicar release, reiniciar PM2, enviar
+teste ou alterar dados persistidos.
+
+## Evidencia e validacao local
+
+- commit HEAD observado: `c8ee88ec413864510f50a39186cccf7564bf550f`;
+- SHA-256 da captura fornecida pelo operador, sem copiar a imagem com dados
+  visiveis para o repositorio:
+  `ed693de45350b6b4840babac688136d6ab1d25537d21b79d6213fa308c19794f`;
+- SHA-256 da segunda captura, tambem mantida fora do repositorio:
+  `2ed963292a6ba298cc51e2426b2717b0f570ba33d4a5eca6bc7e890186b3747a`;
+- a segunda captura mostra mais uma mensagem estruturada Tex Ultra recebida na
+  conversa do telefone QA, com a origem VSL identificada na lista do painel;
+  nao ha resposta automatica visivel na tela. A captura, isoladamente, nao
+  comprova envio, entrega, persistencia no banco ou comportamento futuro;
+- `npm run official:path`: PASS;
+- testes focados VSL/V90/V191/V193/V197/V198: 50 PASS e 1 assercao ancestral
+  V193 incompatível com a sucessao V198 ja presente; todos os casos funcionais
+  de recebimento, persistencia, watchdog e dedupe passaram;
+- `NODE_OPTIONS=--import=./scripts/lib/ec-runtime-successor-v199-context.mjs npm run senior:check`:
+  PASS no contexto sucessor atual, com 43 + 482 + 22 testes e guards finais
+  aprovados.
+
+## Preservacao
+
+Nenhum arquivo de runtime, painel, VSL, funil, produto, preco, checkout, Dropi,
+Meta/CAPI, pixel, Z-API, Baileys, scheduler, midia, audio, banco ou configuracao
+foi alterado por esta aprovacao. O unico arquivo novo e esta atestacao.
