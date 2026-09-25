@@ -31,7 +31,7 @@ const goodHealth = pid => [{ httpStatus: 200, body: { status: 'online', pid,
 { httpStatus: 200, body: { ok: true, destination: { datasetId: '920532663934291',
     browserPixelId: '920532663934291', browserServerSynchronized: true } } }];
 
-function fixture({ current = 'R4', active = 'R4' } = {}) {
+function fixture({ current = 'R4', active = 'R4', authorityKind = 'parent' } = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'v201-rollback-r4-'));
     const base = path.join(root, 'opt', 'vitalismen-automacao');
     const state = path.join(root, 'var', 'lib', 'vitalismen-deploy');
@@ -79,9 +79,11 @@ function fixture({ current = 'R4', active = 'R4' } = {}) {
         write(path.join(state, active === 'R4_PENDING' ? 'ec-bot-core-v78-permit.json' : names[2]), { release: sourceName,
             attestationSha256: hash(activeAttestation) }, 0o600);
     }
-    const authorityCheckpoint = path.join(state,
-        'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json');
-    const authoritySha = write(authorityCheckpoint, {
+    const successor = authorityKind === 'successor';
+    const authorityCheckpoint = path.join(state, successor
+        ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json'
+        : 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json');
+    const authorityBase = {
         checkpointId: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
         status: 'FROZEN',
         parentCheckpoint: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
@@ -106,11 +108,45 @@ function fixture({ current = 'R4', active = 'R4' } = {}) {
         v168bSha256:
             'e1ce8093e54f4b3bcf976a140cede0aab06e6b8b3211ceceb94b8b2ccf44dcb3',
         metaDatasetId: '920532663934291'
-    });
-    const checkpoint = path.join(state, 'CHECKPOINT_R4_V78_PAYLOAD_READY.json');
-    write(checkpoint, { CHECKPOINT_ID: 'CHECKPOINT_R4_V78_PAYLOAD_READY',
+    };
+    const authorityValue = successor ? {
+        ...authorityBase,
+        checkpointId: 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY',
+        parentCheckpoint: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
+        parentCheckpointSha256:
+            '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d',
+        parentR4Commit: 'da2983faac199b7bc9fe11c4ba47539b5baa6674',
+        parentR4Tree: '6a20e48807cae3f1c2b4cd6b18e7e46df76a0a59',
+        r4AuthoritySha256: hash(authorityCode),
+        r4StageHelperSha256: 'a'.repeat(64),
+        r4WrapperSha256: 'b'.repeat(64),
+        r4ParentProtectionSha256: 'c'.repeat(64),
+        r4V78SelectorSha256:
+            'eb7220726d892228df9a453dfa5692a8ede6f55e5146c173a972cc16909dbbe3',
+        r4V78ContractSha256:
+            '23b5ac9e682720291bdb2afd02207e5c0642c6ff1b5274b94ce3f13feb08ce2a',
+        r4Pm2ControllerSha256: controllerSha,
+        r4RollbackExecutorSha256: hash(executor),
+        r4StageVerifierSha256: 'd'.repeat(64),
+        parentAuthorityCheckpointSha256: undefined
+    } : authorityBase;
+    if (successor) delete authorityValue.parentAuthorityCheckpointSha256;
+    const authoritySha = write(authorityCheckpoint, authorityValue);
+    const checkpoint = path.join(state, successor
+        ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_READY.json'
+        : 'CHECKPOINT_R4_V78_PAYLOAD_READY.json');
+    write(checkpoint, { CHECKPOINT_ID: successor
+        ? 'CHECKPOINT_R4_V78_CONTROL_PLANE_READY' : 'CHECKPOINT_R4_V78_PAYLOAD_READY',
         CHECKPOINT_STATUS: 'FROZEN', PROJECT: 'MAXLIEN EC — VITALISMEN OFICIAL',
-        PARENT_AUTHORITY_SHA256: authoritySha,
+        PARENT_AUTHORITY_SHA256: successor
+            ? '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d'
+            : authoritySha,
+        ...(successor ? {
+            NEW_AUTHORITY_SHA256: authoritySha,
+            WRAPPER_CANONICAL: 'PASS', PRELOAD: 'PASS', V88_SUCCESSION: 'PASS',
+            V89_V97_SUCCESSION: 'PASS', FULL_V78_SIMULATION: 'PASS',
+            ROLLBACK_SIMULATION: 'PASS', BUSINESS_RUNTIME_CHANGED: 'NO'
+        } : {}),
         COMMIT: r4Commit, TREE: r4Tree, CONTROLLER_SHA256: controllerSha,
         ROLLBACK_EXECUTOR_SHA256: hash(executor),
         ROLLBACK_READY: 'YES', V78_CONTROLLER: 'PASS', STARTUP: 'PASS',
@@ -155,6 +191,16 @@ test('R4 falho volta ao V201 exato e não reinicia na segunda execução', async
         const second = await rollbackV201(sourceName, f.config, f.io);
         assert.equal(second.result, 'ALREADY_RECOVERED');
         assert.deepEqual(f.calls, { stop: 1, restart: 1, health: 2 });
+    } finally { f.cleanup(); }
+});
+
+test('checkpoint sucessor R4 recupera V201 sem tocar no checkpoint pai', async () => {
+    const f = fixture({ authorityKind: 'successor' });
+    try {
+        const first = await rollbackV201(sourceName, f.config, f.io);
+        assert.equal(first.result, 'V201_RECOVERED');
+        assert.equal(fs.realpathSync(path.join(f.base, 'current')), f.target);
+        assert.deepEqual(f.calls, { stop: 1, restart: 1, health: 1 });
     } finally { f.cleanup(); }
 });
 

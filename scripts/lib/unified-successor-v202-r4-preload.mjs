@@ -4,11 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const AUTHORITY_SHA256 = '4fdef21d6864346b1e770ed39e75fed9cc132a6d601d5a1ce2f6e1cc6e4c58a4';
-const V78_SELECTOR_SHA256 = 'bfd27de60c06ea0925c03cfbebe48383a321c6146a55997ad1b3672349ccc6fa';
-const V78_CONTRACT_SHA256 = '622cf6f5fb5539ec6dfef2860bf81516bbac592ab677de7906b886ae10c160a9';
+const AUTHORITY_SHA256 = 'ae53a56bff65786676fb9ffa0a357c6bcaf18476eed64e0463bf6db33152efaa';
+const V78_SELECTOR_SHA256 = 'eb7220726d892228df9a453dfa5692a8ede6f55e5146c173a972cc16909dbbe3';
+const V78_CONTRACT_SHA256 = '23b5ac9e682720291bdb2afd02207e5c0642c6ff1b5274b94ce3f13feb08ce2a';
 const CHECKPOINT_PATH =
     '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
+const PARENT_CHECKPOINT_SHA256 =
+    '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d';
 const OFFICIAL_LOGICAL_PRELOAD =
     'file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs';
 const V168B_PATH = 'scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
@@ -44,6 +46,8 @@ async function loadVerifiedAuthority(root) {
     const checkpoint = JSON.parse(fs.readFileSync(CHECKPOINT_PATH, 'utf8'));
     assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
     assert.equal(checkpoint.status, 'FROZEN');
+    assert.equal(sha256(fs.readFileSync(CHECKPOINT_PATH)), PARENT_CHECKPOINT_SHA256,
+        'R4_BOOTSTRAP_PARENT_CHECKPOINT_CHANGED');
     const authorityPath = path.join(root,
         'scripts/lib/unified-successor-v202-r4-authority.mjs');
     const guardPath = path.join(root, 'scripts/guard-unified-successor-v202-r4.mjs');
@@ -55,17 +59,19 @@ async function loadVerifiedAuthority(root) {
     assert.equal(sha256(fs.readFileSync(path.join(root,
         'scripts/lib/ec-bot-core-operational-contract-v78.mjs'))), V78_CONTRACT_SHA256,
     'R4_V78_CONTRACT_TAMPERED');
-    assert.equal(sha256(fs.readFileSync(guardPath)), checkpoint.r4OperationalGuardSha256,
+    const authority = await import(pathToFileURL(authorityPath).href);
+    const selectedCheckpoint = authority.readAuthorizedCheckpoint(root).value;
+    assert.equal(sha256(fs.readFileSync(guardPath)), selectedCheckpoint.r4OperationalGuardSha256,
         'R4_GUARD_CODE_TAMPERED');
     assert.equal(sha256(fs.readFileSync(path.join(root,
         'scripts/guard-freeze-lock-successor-v202-r4.mjs'))),
-    checkpoint.r4FreezeLockSuccessorSha256, 'R4_FREEZE_LOCK_SUCCESSOR_TAMPERED');
+    selectedCheckpoint.r4FreezeLockSuccessorSha256, 'R4_FREEZE_LOCK_SUCCESSOR_TAMPERED');
     assert.equal(sha256(fs.readFileSync(path.join(root,
         'scripts/guard-final-release-validator-successor-v202-r4.mjs'))),
-    checkpoint.r4FinalValidatorSha256, 'R4_FINAL_VALIDATOR_TAMPERED');
+    selectedCheckpoint.r4FinalValidatorSha256, 'R4_FINAL_VALIDATOR_TAMPERED');
     assert.equal(sha256(fs.readFileSync(fileURLToPath(import.meta.url))),
-        checkpoint.r4OperationalPreloadSha256, 'R4_PRELOAD_CODE_TAMPERED');
-    return import(pathToFileURL(authorityPath).href);
+        selectedCheckpoint.r4OperationalPreloadSha256, 'R4_PRELOAD_CODE_TAMPERED');
+    return authority;
 }
 
 const contextKeys = () => Object.getOwnPropertyNames(globalThis)
@@ -83,7 +89,9 @@ const values = () => new Map(contextKeys().map(key => [key, globalThis[key]]));
 export function assertR4StartupSuccessorIdentity(verified, root,
     v195 = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD,
     v195Context = globalThis.__VITALISMEN_V195_META_CANONICAL_CONTEXT) {
-    assert.equal(verified?.checkpoint?.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
+    assert.ok(['CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
+        'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY'].includes(
+        verified?.checkpoint?.checkpointId), 'R4_STARTUP_CHECKPOINT_INVALID');
     assert.equal(verified?.attestation?.commit, verified.checkpoint.r4OperationalCommit,
         'R4_STARTUP_COMMIT_INVALID');
     assert.equal(verified?.attestation?.tree, verified.checkpoint.r4OperationalTree,
@@ -203,10 +211,14 @@ const self = fileURLToPath(import.meta.url);
 const importArguments = [...process.execArgv,
     ...String(process.env.NODE_OPTIONS || '').split(/\s+/).filter(Boolean)];
 export const importTargetsSelf = specifier => {
+    const physicalRoot = path.resolve(path.dirname(self), '../..');
+    const officialPhysicalRoot = path.dirname(physicalRoot) ===
+        '/opt/vitalismen-automacao/releases'
+        && /^\d{8}T\d{6}Z_production-\d{8}-[a-f0-9]{7}$/.test(path.basename(physicalRoot));
+    if (!officialPhysicalRoot) return false;
     if (specifier === pathToFileURL(self).href) return true;
     if (specifier !== OFFICIAL_LOGICAL_PRELOAD) return false;
     const logicalRoot = '/opt/vitalismen-automacao/current';
-    const physicalRoot = path.resolve(path.dirname(self), '../..');
     assert.equal(fs.realpathSync(logicalRoot), physicalRoot,
         'R4_LOGICAL_CURRENT_REALPATH_INVALID');
     assert.equal(fs.realpathSync(fileURLToPath(specifier)), self,

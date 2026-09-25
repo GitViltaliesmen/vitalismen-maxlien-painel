@@ -139,12 +139,12 @@ capture_health_after_restart() {
 run_successor_contract() {
   local release_dir="$1"
   local contract="$2"
-  local preload
+  local node_options
   shift 2
-  preload="$(select_release_preload "$release_dir" "$contract")"
+  node_options="$(canonical_preload_node_options "$release_dir" "$contract")"
   (
     cd "$release_dir"
-    NODE_OPTIONS="--import=$release_dir/$preload" \
+    NODE_OPTIONS="$node_options" \
       "$node_cmd" "$contract" "$@"
   )
 }
@@ -185,6 +185,27 @@ NODE
   printf '%s' "$preload"
 }
 
+canonical_preload_node_options() {
+  local release_dir="$1"
+  local contract="$2"
+  local preload
+  preload="$(select_release_preload "$release_dir" "$contract")"
+  printf '%s' "--import=file://$release_dir/$preload"
+}
+
+assert_r4_parent_successor_contract() {
+  local release_dir="$1"
+  local parent_contract="$release_dir/scripts/lib/ec-bot-core-parent-protection-r4.mjs"
+  if [[ "$test_mode" == "true" && -n "${EC_BOT_CORE_V78_TEST_PARENT_CONTRACT:-}" ]]; then
+    parent_contract="$EC_BOT_CORE_V78_TEST_PARENT_CONTRACT"
+  fi
+  [[ -f "$parent_contract" && ! -L "$parent_contract" ]] ||
+    die "contrato sucessor de proteção V78 ausente ou inseguro"
+  NODE_OPTIONS="" npm_config_node_options="" \
+    "$node_cmd" "$parent_contract" "$release_dir" >/dev/null ||
+    die "identidades parent-protected V88/V89/V90/V97 divergentes"
+}
+
 run_plan() {
   local release="$1"
   local release_dir
@@ -199,7 +220,7 @@ run_plan() {
   contract="$(contract_path_for_release "$release_dir")"
   [[ -d "$release_dir" && ! -L "$release_dir" ]] || die "release ausente ou insegura"
   [[ -f "$contract" && ! -L "$contract" ]] || die "contrato V78 ausente"
-  successor_node_options="--import=$release_dir/$(select_release_preload "$release_dir" "$contract")"
+  successor_node_options="$(canonical_preload_node_options "$release_dir" "$contract")"
   ensure_dirs
   plan_log="$log_dir/${release}.ec-bot-core-v78-v66-plan.log"
   guard_log="$log_dir/${release}.ec-bot-core-v78-guard.log"
@@ -213,6 +234,7 @@ run_plan() {
   if [[ "$successor_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
     [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
       die "seleção V78 R4 diverge do contrato oficial"
+    assert_r4_parent_successor_contract "$release_dir"
   fi
   assert_current_and_pm2_identity "$release_dir"
   (

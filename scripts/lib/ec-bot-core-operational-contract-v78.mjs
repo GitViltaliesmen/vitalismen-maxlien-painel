@@ -24,8 +24,8 @@ import {
     calculateFunctionalPayloadSha256V78, V78_FUNCTIONAL_ROOT_EXCLUSIONS
 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 import {
-    R4_ATTESTATION_NAME, R4_MANIFEST_PATH, V201_COMMIT, V201_TREE,
-    classifyReleasePreload, readAuthorizedCheckpoint,
+    R4_ATTESTATION_NAME, V201_COMMIT, V201_TREE,
+    classifyReleasePreload, readAuthorizedCheckpoint, manifestPathForCheckpoint,
     verifyMaterializedRelease
 } from './unified-successor-v202-r4-authority.mjs';
 
@@ -172,12 +172,12 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     const legacyExact = commit === '8c25ed9912abc4aabee2656cf9192420389934c6'
         && tree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
     if (!legacyExact && (commit !== V201_COMMIT || tree !== V201_TREE)) {
-        const checkpoint = readAuthorizedCheckpoint().value;
+        const checkpoint = readAuthorizedCheckpoint(resolved).value;
         if (commit !== checkpoint.r4OperationalCommit || tree !== checkpoint.r4OperationalTree) {
             throw new Error('successor_release_not_enumerated');
         }
         verifyMaterializedRelease(resolved);
-        successorManifestRelative = R4_MANIFEST_PATH;
+        successorManifestRelative = manifestPathForCheckpoint(checkpoint);
     }
     const successorManifestPath = path.join(resolved, successorManifestRelative);
     const successorManifestSha256 = fs.existsSync(successorManifestPath)

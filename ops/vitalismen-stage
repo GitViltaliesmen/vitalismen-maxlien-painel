@@ -244,20 +244,47 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
   assert.equal(sha(manifest.bytes), 'e8b82901e8faa4cda1d37a013fd2698401bad9c2039b702e637b88d5e4e56bee');
   preload = 'scripts/lib/ec-runtime-successor-v199-context.mjs';
 } else {
-  const checkpointPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
-  const parent = fs.lstatSync(path.dirname(checkpointPath));
-  const stat = fs.lstatSync(checkpointPath);
-  assert.ok(parent.isDirectory() && !parent.isSymbolicLink() && parent.uid === 0
-    && parent.gid === 0 && (parent.mode & 0o022) === 0);
-  assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
-    && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
-  const checkpoint = read(checkpointPath).value;
-  assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
-  assert.equal(checkpoint.status, 'FROZEN');
+  const parentPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
+  const successorPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY.json';
+  for (const directory of ['/var', '/var/lib', path.dirname(parentPath)]) {
+    const stat = fs.lstatSync(directory);
+    assert.ok(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === 0
+      && stat.gid === 0 && (stat.mode & 0o022) === 0);
+  }
+  const checked = checkpointPath => {
+    const stat = fs.lstatSync(checkpointPath);
+    assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
+      && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
+    return read(checkpointPath);
+  };
+  const parent = checked(parentPath);
+  assert.equal(sha(parent.bytes),
+    '8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d');
+  assert.equal(parent.value.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
+  assert.equal(parent.value.status, 'FROZEN');
+  assert.equal(parent.value.r4OperationalCommit,
+    'da2983faac199b7bc9fe11c4ba47539b5baa6674');
+  assert.equal(parent.value.r4OperationalTree,
+    '6a20e48807cae3f1c2b4cd6b18e7e46df76a0a59');
+  let checkpoint = parent.value;
+  let manifestPath =
+    'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json';
+  if (source.functionalCommit !== parent.value.r4OperationalCommit
+      || source.functionalTree !== parent.value.r4OperationalTree) {
+    checkpoint = checked(successorPath).value;
+    assert.equal(checkpoint.checkpointId,
+      'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY');
+    assert.equal(checkpoint.status, 'FROZEN');
+    assert.equal(checkpoint.parentCheckpoint, parent.value.checkpointId);
+    assert.equal(checkpoint.parentCheckpointSha256, sha(parent.bytes));
+    assert.equal(checkpoint.parentR4Commit, parent.value.r4OperationalCommit);
+    assert.equal(checkpoint.parentR4Tree, parent.value.r4OperationalTree);
+    manifestPath = 'docs/freeze/unified-successor-v202-r4-v78-control-plane-20260925.json';
+  }
   assert.equal(source.functionalCommit, checkpoint.r4OperationalCommit);
   assert.equal(source.functionalTree, checkpoint.r4OperationalTree);
   for (const [relative, expected] of [
-    ['docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json', checkpoint.r4OperationalManifestSha256],
+    [manifestPath, checkpoint.r4OperationalManifestSha256],
     ['scripts/lib/unified-successor-v202-r4-preload.mjs', checkpoint.r4OperationalPreloadSha256],
      ['scripts/guard-unified-successor-v202-r4.mjs', checkpoint.r4OperationalGuardSha256],
      ['scripts/run-unified-successor-v202-r4.mjs', checkpoint.r4OperationalRunnerSha256],
@@ -268,6 +295,27 @@ if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     const item = fs.lstatSync(file);
     assert.ok(item.isFile() && !item.isSymbolicLink());
     assert.equal(sha(fs.readFileSync(file)), expected);
+  }
+  if (checkpoint.checkpointId === 'CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY') {
+    assert.equal(sha(read(path.join(root,
+      'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json')).bytes),
+      parent.value.r4OperationalManifestSha256);
+    for (const [relative, field] of [
+      ['scripts/lib/unified-successor-v202-r4-authority.mjs', 'r4AuthoritySha256'],
+      ['ops/vitalismen-stage', 'r4StageHelperSha256'],
+      ['ops/ec-bot-core-v78-successor-r4', 'r4WrapperSha256'],
+      ['scripts/lib/ec-bot-core-parent-protection-r4.mjs', 'r4ParentProtectionSha256'],
+      ['src/services/ecBotCoreOperationalV78Service.js', 'r4V78SelectorSha256'],
+      ['scripts/lib/ec-bot-core-operational-contract-v78.mjs', 'r4V78ContractSha256'],
+      ['scripts/lib/pm2-target-env-restart-v78-r4.mjs', 'r4Pm2ControllerSha256'],
+      ['ops/vitalismen-rollback-v201-r4.mjs', 'r4RollbackExecutorSha256'],
+      ['scripts/verify-unified-successor-v202-r4-stage.mjs', 'r4StageVerifierSha256']
+    ]) {
+      const file = path.join(root, relative);
+      const stat = fs.lstatSync(file);
+      assert.ok(stat.isFile() && !stat.isSymbolicLink());
+      assert.equal(sha(fs.readFileSync(file)), checkpoint[field]);
+    }
   }
   preload = 'scripts/lib/unified-successor-v202-r4-preload.mjs';
 }

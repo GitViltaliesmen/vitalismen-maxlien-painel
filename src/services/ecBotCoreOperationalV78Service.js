@@ -41,10 +41,18 @@ export const selectEcBotCoreV78PreloadForRelease = ({
         && context.manifestSha256 === V201_MANIFEST_SHA256) {
         return EC_BOT_CORE_V199_NODE_OPTIONS;
     }
-    const checkpoint = readAuthorizedCheckpoint().value;
+    const releaseRoot = `/opt/vitalismen-automacao/releases/${release}`;
+    const authorized = readAuthorizedCheckpoint(releaseRoot);
+    const checkpoint = authorized.value;
+    const operational = globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT;
     if (commit === checkpoint.r4OperationalCommit && tree === checkpoint.r4OperationalTree
         && successorManifestSha256 === checkpoint.r4OperationalManifestSha256
-        && globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded === true) {
+        && operational?.loaded === true
+        && operational.checkpointId === checkpoint.checkpointId
+        && operational.checkpointSha256 === authorized.sha256
+        && operational.releaseCommit === commit
+        && operational.releaseTree === tree
+        && operational.manifestSha256 === successorManifestSha256) {
         return EC_BOT_CORE_R4_NODE_OPTIONS;
     }
     throw new Error('ec_bot_core_release_not_approved');

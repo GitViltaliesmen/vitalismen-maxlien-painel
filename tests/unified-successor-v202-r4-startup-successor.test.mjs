@@ -129,10 +129,10 @@ test('V168B ou shipments histórico, desconhecido e symlink adulterado bloqueiam
     }
 });
 
-test('detector aceita caminho físico exato e rejeita alias e traversal', () => {
+test('detector rejeita workspace não oficial, alias e traversal', () => {
     const physical = pathToFileURL(path.join(root,
         'scripts/lib/unified-successor-v202-r4-preload.mjs')).href;
-    assert.equal(importTargetsSelf(physical), true);
+    assert.equal(importTargetsSelf(physical), false);
     assert.equal(importTargetsSelf(physical.replace('/scripts/lib/', '/scripts/../scripts/lib/')), false);
     assert.equal(importTargetsSelf('file:///tmp/arbitrary/unified-successor-v202-r4-preload.mjs'), false);
     assert.equal(importTargetsSelf('file:///opt/vitalismen-automacao/currently/scripts/lib/unified-successor-v202-r4-preload.mjs'), false);

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-    R4_ATTESTATION_NAME, R4_MANIFEST_PATH, readAuthorizedCheckpoint,
+    R4_ATTESTATION_NAME, readAuthorizedCheckpoint, manifestPathForCheckpoint,
     readCanonicalJson, validateR4Manifest, assertReleaseFileHashes,
     validateV201ContextRoot, verifyMaterializedRelease, classifyReleasePreload, sha256
 } from './lib/unified-successor-v202-r4-authority.mjs';
@@ -61,9 +61,10 @@ export function assertGitReleaseIdentity(root, checkpoint, manifest) {
     return true;
 }
 function attest(root) {
-    const checkpoint = readAuthorizedCheckpoint();
+    const checkpoint = readAuthorizedCheckpoint(root);
     const manifest = validateR4Manifest(
-        readCanonicalJson(path.join(root, R4_MANIFEST_PATH)).value);
+        readCanonicalJson(path.join(root,
+            manifestPathForCheckpoint(checkpoint.value))).value);
     assertReleaseFileHashes(root, checkpoint.value, manifest);
     assertGitReleaseIdentity(root, checkpoint.value, manifest);
     const historical = findV201ContextRoot();

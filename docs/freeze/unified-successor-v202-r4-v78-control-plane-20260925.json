@@ -1,0 +1,657 @@
+{
+  "successorId": "MAXLIEN_EC_V47_V77H2_UNIFIED_SUCCESSOR_V202_R4_V78_CONTROL_PLANE_20260925",
+  "version": "V202-R4",
+  "operationalRevision": "R4_V78_CONTROL_PLANE_AUTHORITY_SUCCESSOR",
+  "parentControlPlaneCommit": "da2983faac199b7bc9fe11c4ba47539b5baa6674",
+  "parentControlPlaneTree": "6a20e48807cae3f1c2b4cd6b18e7e46df76a0a59",
+  "parentAuthoritySha256": "8ba9fd21befdb6a73698d726aea7e340dce0dc93cbb4f0ff91d3b3c507f5be6d",
+  "baseHead": "790a5079b7cd4693127f84d933809042dfc018be",
+  "baseTree": "92fab5b70d2f028293661bbc2393be6c08afb740",
+  "functionalCommit": "d333c9b3bdeb57644ce78b7f0575301fd9a102dd",
+  "policyCommit": "790a5079b7cd4693127f84d933809042dfc018be",
+  "historicalV199": {
+    "head": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+    "tree": "84f9eca9cc956de9ef5d8aa90bb7b6a456927173",
+    "preload": "scripts/lib/ec-runtime-successor-v199-context.mjs"
+  },
+  "currentEntrypoint": "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js",
+  "ancestralChain": [
+    "V47",
+    "V48",
+    "V49",
+    "V50",
+    "V51",
+    "V52",
+    "V53",
+    "V54",
+    "V55",
+    "V56",
+    "V57",
+    "V58",
+    "V59",
+    "V60",
+    "V61",
+    "V62",
+    "V63",
+    "V64",
+    "V65",
+    "V66",
+    "V67",
+    "V68",
+    "V69",
+    "V70",
+    "V71",
+    "V72",
+    "V73",
+    "V74",
+    "V75",
+    "V76",
+    "V77",
+    "V77H",
+    "V77H2"
+  ],
+  "requiredContexts": [
+    "V199",
+    "V146"
+  ],
+  "allowlistCount": 83,
+  "allowlist": [
+    {
+      "path": ".github/workflows/ec-panel-quality.yml",
+      "gitBlobOid": "98bdbe47e8879820d34f5716d9321b2a86d608b2",
+      "canonicalSha256": "ce8eba69bdda6bac782190e31b746052317255fd18f50b6131a9dd116416aa46",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-bot-core-health-meta-920-successor-v199-20260923.json"
+    },
+    {
+      "path": "docs/ARQUITETURA_AUTOMACAO_OFICIAL.md",
+      "gitBlobOid": "330ec80050800c7da5e1691e04be499af148517a",
+      "canonicalSha256": "9630ffe01ccf73f8d161643a04cc69bf84f007a249206189fefe3ee4ad9c6db8",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-buy-later-operational-v162-20260915.json"
+    },
+    {
+      "path": "docs/ARQUIVOS_OFICIAIS.md",
+      "gitBlobOid": "aefbb6359eb807c7d0af771168e139072b496ce3",
+      "canonicalSha256": "aadaa264fc5065701e5cb24d080e6f66338a80c3b5ec043b6d0c3a440b408256",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-buy-later-operational-v162-20260915.json"
+    },
+    {
+      "path": "docs/FUNIL_ATENDIMENTO_FECHAMENTO.md",
+      "gitBlobOid": "1a788c6e33656609c59b5af75b199911be37fcb5",
+      "canonicalSha256": "315d22d7a988687f8d78785acfa3c13eb260b6a297dfed500f232c59361920a4",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-negative-intent-buy-later-v161-20260914.json"
+    },
+    {
+      "path": "ops/vitalismen-stage",
+      "gitBlobOid": "f05f18244c67628298efbbeda02a79d13342dbb4",
+      "canonicalSha256": "8786027df77ac1988a450c72f06b2c202b5de0fd68e2100766ddfc706e6e9e8d",
+      "authority": "OPERATOR_DECISION",
+      "evidence": "CHECKPOINT_R4_V78_CONTROL_PLANE_AUTHORITY"
+    },
+    {
+      "path": "package-lock.json",
+      "gitBlobOid": "45e73d9435032ea75e9b2fe3f6a59e83e6b9534a",
+      "canonicalSha256": "df8defe860ebc47e150fd16845359bb68190bf606276400feb6092d16449e4b1",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "package.json",
+      "gitBlobOid": "b8236aca61f680bec4c8fe8f6335eb26c53785e1",
+      "canonicalSha256": "2ddc7db1607fe90d631b84a4f4238cb32537fde782f3c7c119f19713629c08f3",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-fast-load-v179-20260918.json"
+    },
+    {
+      "path": "public/funnel-metrics.html",
+      "gitBlobOid": "497522fd7f666e480763e6aff66619f1561a3b62",
+      "canonicalSha256": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-v185-canonical-successor-v186-20260918.json"
+    },
+    {
+      "path": "public/qr.html",
+      "gitBlobOid": "ecb7e31761df0b67af371a9368d9a0e30eb28856",
+      "canonicalSha256": "a5a374227dc21b9241f487cb4ef9f04f4eb88207eb71fde55616b552d123913f",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json"
+    },
+    {
+      "path": "scripts/assert-official-root.mjs",
+      "gitBlobOid": "776ed1498910d51bc69f0e3d1898c0140afc413c",
+      "canonicalSha256": "bac94d9d80009b0a251cc6bdf3d024040c47ec4f2cc92e84faaa865887c3fb57",
+      "authority": "OPERATOR_DECISION",
+      "evidence": "OPERATOR_DECISION_790a5079"
+    },
+    {
+      "path": "scripts/guard-deploy-health-bridge-semantics-v76.mjs",
+      "gitBlobOid": "1ce38bddbe1ea91be2d8aa4a7b4c037af44c4e65",
+      "canonicalSha256": "fabcbebb09742f68ba2c6592148d2a196ee4be5395b861030aed183997009eeb",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-bot-core-structural-safety-v78-20260829.json"
+    },
+    {
+      "path": "scripts/guard-deploy-helper-v71-chain-alignment-safety-v72.mjs",
+      "gitBlobOid": "76d7db62f44d840ff46bd882a3cce2ac43556499",
+      "canonicalSha256": "21b1d3925801d273ae07a5d11b1d40897f74b03b91f7050075cebff3264d8b36",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-bot-core-structural-safety-v78-20260829.json"
+    },
+    {
+      "path": "scripts/guard-ec-delivered-repurchase-v45.mjs",
+      "gitBlobOid": "06e142a447ac83e7dbab80772e73f879ada7bafa",
+      "canonicalSha256": "086657422eb742a58e6ce9ccde06ab1feb337d4291c672ffdc78e5ef2dd9714b",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "scripts/guard-freeze-lock-ec.mjs",
+      "gitBlobOid": "7783dcac06354deaecfd45010145d2cf5402af72",
+      "canonicalSha256": "0517a8a288c652a7f52634f6360a1bb73e214edd603bfec1799da3b5712719a0",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-pretraffic-final-restoration-v170-20260916.json"
+    },
+    {
+      "path": "scripts/guard-meta-ec-protocolo-g-attribution-v61.mjs",
+      "gitBlobOid": "9b314cc70098132570d473cdd23fd86fb443d83b",
+      "canonicalSha256": "b38cff2b53d7e960a53b95ae2c2f92f7d00a492f8a4c83b9c945e0e5ddd26211",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "scripts/guard-meta-partner-destination-registry-v73.mjs",
+      "gitBlobOid": "ebfd77dae4677b5e690f15bc8462d3584df09fa1",
+      "canonicalSha256": "5f0e261f4e444139024f60f2d600b54b9eae8ca2ba59df24f1976659bd3bb5e7",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-bot-core-structural-safety-v78-20260829.json"
+    },
+    {
+      "path": "scripts/guard-panel-client-search-v41.mjs",
+      "gitBlobOid": "ff003fde842f7b8b3e7126513c7f798a94d895de",
+      "canonicalSha256": "7ff9beea1330d9108694c64fb7f9aa73f783675ee16d999af33e09719c9d02db",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-queue-guard-compatibility-v137-20260907.json"
+    },
+    {
+      "path": "scripts/guard-pickup-bonus-delivery-v60.mjs",
+      "gitBlobOid": "5f37f95fdc0b76c53f99261c7574df0fc2762670",
+      "canonicalSha256": "8ac1f2fc9e5b76764cf498193f24b7d98b53347aef58ceb6dc9e94e266e9af57",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "scripts/guard-post-sale-safety-v66.mjs",
+      "gitBlobOid": "9b65f37fa08d0658d2fbebd73f6d694316841bb1",
+      "canonicalSha256": "06b4041c9ccb3aebed7a552a693456d9fc0e8fcd370ddaf246cc6f282d268cd8",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-delivered-single-gate-v147-r3-20260910.json"
+    },
+    {
+      "path": "scripts/guard-protocolo-g-ad-metrics-v63.mjs",
+      "gitBlobOid": "03d8ea71e566a3370d41d36f3cf58ed5e204a35d",
+      "canonicalSha256": "d6eafe4fc959d776fbaddae2e385d7af0a32584975237d4a74fbba94c21c8428",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "scripts/guard-protocolo-g-conversion-v62.mjs",
+      "gitBlobOid": "63f4ddbfec292ce1f97db1877b1849a41d7311a3",
+      "canonicalSha256": "b25eda6a8e153015706e22887f3ed7c2dcb385d8caedf6a08b85404fc5c03529",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "scripts/lib/freeze-lock-ec-meta-dynamic-v74-contract.mjs",
+      "gitBlobOid": "b8f5999bbce3d3113efdd469690163e6d84c7968",
+      "canonicalSha256": "17efbb24bc031dec2a77768e6e5b047ff1b019bed00b91f005a759cf9f20aeae",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "scripts/senior-guard.mjs",
+      "gitBlobOid": "36b56cbffc2f893041d04c6da7db2ef05a38ba65",
+      "canonicalSha256": "51525ac0bcf9e4c17bcd73dbf498deb8b17f0290858bc570e232cdb4376298d5",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-pretraffic-final-restoration-v170-20260916.json"
+    },
+    {
+      "path": "scripts/test-panel-customer-selection-browser-v51.mjs",
+      "gitBlobOid": "8289c491769df2a6c9b3419e86c60015d498c913",
+      "canonicalSha256": "f3656acb12d1ed2bafb017bfc2962bac501a22dc5e7da24e65265210ae5eb8ce",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-v181-v183-canonical-successor-v184-20260918.json"
+    },
+    {
+      "path": "src/index.js",
+      "gitBlobOid": "bf979a98e30a7e985ef5cc34a56894888317f5ad",
+      "canonicalSha256": "e63cfa73692b122d949ecbeb597cfb43761b2c555b6923afb8e7eb61eadc7b8f",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-status-operations-v177-20260917.json"
+    },
+    {
+      "path": "src/models/Message.js",
+      "gitBlobOid": "c91dfd2b708e978d9958cfeec54dd94d6b2edc09",
+      "canonicalSha256": "aaaa51a90bf2f3d471149aa54ffe5d8a4ad945f9cf9279f2eb27051654dc3c25",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-provider-independent-core-v152-b-20260911.json"
+    },
+    {
+      "path": "src/models/Order.js",
+      "gitBlobOid": "1a1b6a57f3af0d80f61c3795bbf9973a0a657ae9",
+      "canonicalSha256": "7a087dfe6d054d81497c81bf9fde7dd00a8abb8c2e12d0f921b2b4b38c296cac",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-funnel-v148-20260910.json"
+    },
+    {
+      "path": "src/models/Shipment.js",
+      "gitBlobOid": "7f6efbfb408dffd1eba6702117baf9160acf17a6",
+      "canonicalSha256": "26fefc1569111404448c795cc9af2c8faafd2744a83af654068bff076532e819",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-delivered-single-gate-v147-r3-20260910.json"
+    },
+    {
+      "path": "src/models/VslVisit.js",
+      "gitBlobOid": "ed8147cc11fc86cc5826543e6a020d3213da280a",
+      "canonicalSha256": "98cc04b6291c07744e8ddf6f94b387c12e3a999f1de0f9f70bb05963e293963b",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "src/routes/funnelMetrics.js",
+      "gitBlobOid": "ea2797dad651341f009254d665648ae4659b01c1",
+      "canonicalSha256": "9a1f09fdf807057bb3a974b64c3b9b8529a6e19111c514a52d0bc8ef5710a5aa",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-v185-canonical-successor-v186-20260918.json"
+    },
+    {
+      "path": "src/routes/orders.js",
+      "gitBlobOid": "064d425130c79092611fea937814d423cb6cd992",
+      "canonicalSha256": "ee5ffd47df53646b9796144dbdb97fb0875c4322e6a6185e31cfdaf34a71ff82",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-status-postsale-v139-20260907.json"
+    },
+    {
+      "path": "src/routes/shipments.js",
+      "gitBlobOid": "d9b3e4149ea38008a6c3ce43e882413ad5e8f57d",
+      "canonicalSha256": "c083862ea7123d854fd7260375632d1f4535451b26a53f1e9edf38d7b6ab0ef8",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/repurchase-v141-v185-governance-successor-v202-r2-20260924.json"
+    },
+    {
+      "path": "src/routes/whatsapp.js",
+      "gitBlobOid": "cf70b0a6c3f140b7a89cdfd87b78ed6d423c5fcb",
+      "canonicalSha256": "48900c53f38cf244a20d7917b397ba6ffdf1b70e66ba36fe7822905564ff6e6b",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-fast-load-v179-20260918.json"
+    },
+    {
+      "path": "src/routes/zapi.js",
+      "gitBlobOid": "55e6fedf839bf00b106fd454f9dc9ac8ef1a64e1",
+      "canonicalSha256": "8dc6888f21514fbe1cc8dfa52aa97c552fe8883926ceb550509ef4a069580608",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/vsl-first-response-watchdog-v193-20260919.json"
+    },
+    {
+      "path": "src/services/adminPanelStatusService.js",
+      "gitBlobOid": "7d43a31d924d73695a66cea508b25a7939d750d7",
+      "canonicalSha256": "08eb3f221f996607faa45f290393446d433b1d0f929a173bd233821db40cf4b1",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-confirmed-python-serialization-v159-20260914.json"
+    },
+    {
+      "path": "src/services/agentRouter.js",
+      "gitBlobOid": "540ac6dac1019c956541ef84bbe9042e0c67d85a",
+      "canonicalSha256": "4b5572d44bf360aa3e503caf226d286b1117e9f6f3a9c6bb24d7aacb65d76709",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-traffic-restoration-v171-20260917.json"
+    },
+    {
+      "path": "src/services/canaryControllerHealthPolicyResetSafetyFreezeRuntimeGuardV77H2.js",
+      "gitBlobOid": "e3f4e631f982d413f00654e75017e669d31354e4",
+      "canonicalSha256": "1ef445887df13a70de613cda9f15185eaa7e9021b67e7c366583f4161730f2f5",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/deploy-guard-ancestry-successor-v91-20260830.json"
+    },
+    {
+      "path": "src/services/canaryControllerV77Service.js",
+      "gitBlobOid": "6a4860e7a6c408f63a9722383d57fd95902ee258",
+      "canonicalSha256": "14713f12aba3e4163dd5c528790a404c56ee9336bdb4491d0d8da7df38ad3f30",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/canaryIsolationV75Service.js",
+      "gitBlobOid": "bbd941ac8a91153442b70b35c6c37390117e2a0c",
+      "canonicalSha256": "bea6d0b1fadc179ea56a6408e04e14bcc307da68b22a57a302a6f986b581e733",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-purchase-after-manual-dropi-v144-20260908.json"
+    },
+    {
+      "path": "src/services/carrierTrackingService.js",
+      "gitBlobOid": "36989547ff636c631ae98c95309f579e7958be84",
+      "canonicalSha256": "bc8cd22b0a5f587312c8943322488c8f64b879943d22e7153e80d7aaceadb3db",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "src/services/conversationEngine.js",
+      "gitBlobOid": "42cd25ca5516a13ca1a7b1635f8e083d44ba9dc6",
+      "canonicalSha256": "0fe93987f5bb7e9735355fcf896b2c86abf97b0efa03af8828eb9dcb249bbfd3",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-negative-intent-buy-later-v161-20260914.json"
+    },
+    {
+      "path": "src/services/droppiEcuadorBrowserService.js",
+      "gitBlobOid": "05783fea82b7847db161937e8a73407c39950fae",
+      "canonicalSha256": "7b9183920b9d216dff3e60e1b6bf60368a85c3a6970af68f6b3561caf5697955",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/droppiEcuadorService.js",
+      "gitBlobOid": "a1b4ba1b63c7391c39fc41d2bc8de0b629063005",
+      "canonicalSha256": "e89d83f7dcce8d87b354b4a2a9c93c71e7b99a06b1100b46b7657c2b35a755d3",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/ecConversationBucketService.js",
+      "gitBlobOid": "cfb1c19e96de06e70bf53cb86ae3809be3248820",
+      "canonicalSha256": "d3d970cce0de4aa37862a35395f25aba1f5eff839eb9253bcc90a19e5e4c3e36",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-traffic-restoration-v171-20260917.json"
+    },
+    {
+      "path": "src/services/ecDeliveredRepurchaseService.js",
+      "gitBlobOid": "28bfea2bc0f461785567abbb466851431bcd1ffe",
+      "canonicalSha256": "a246a1abd123139945672955fbbd64e5d67dd6993eb55f65e9133a0f36926dda",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-repurchase-registration-v99-20260902.json"
+    },
+    {
+      "path": "src/services/funnelMetricsService.js",
+      "gitBlobOid": "12d5894c517aa81956dd0ecdd37c4e26e809a0e3",
+      "canonicalSha256": "af93c4f3480d389e4fa84da6d0b42e3ea76d193d597f44333ef9440c2f2cb4e5",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json"
+    },
+    {
+      "path": "src/services/guidePrintDispatcherService.js",
+      "gitBlobOid": "f0c3f1a62ede87e0e037c1fdef06083b16cf8f4e",
+      "canonicalSha256": "d8278c68f8f2381d120a89865615664e872038ff19e2ae2453fb9ca6d1055541",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-postsale-canonical-restoration-v147-20260909.json"
+    },
+    {
+      "path": "src/services/logisticsCommunicationV29.js",
+      "gitBlobOid": "1e4101fb99075cae34787970d2b512d53d645c3a",
+      "canonicalSha256": "de17c76bb0bb74e4d9d24d163131bb3ce602922a802714acce8256331783bd08",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/metaAttributionBridgeService.js",
+      "gitBlobOid": "f511209617c67bb592d86d05f3637c4138031504",
+      "canonicalSha256": "2aa01a116700bb0feda1febde90e52b14f64d457cfbedd96419109f82116f8f6",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-traffic-restoration-v171-20260917.json"
+    },
+    {
+      "path": "src/services/metaAttributionService.js",
+      "gitBlobOid": "3bbb8f92b0a0fe87bff4b2009beb2db077584353",
+      "canonicalSha256": "fa6ad28baf1ecbc702c63c3ff5c4dc8ac64eb7f33419281d845e6032a22e0ae7",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-funnel-v148-20260910.json"
+    },
+    {
+      "path": "src/services/metaConversionsService.js",
+      "gitBlobOid": "8dfdc59889f64ce68df59ba90aa90225f3d2a3e0",
+      "canonicalSha256": "0ee053485dd7f5af1826618d0169e2c3da844218a4873a0a356b9827d266dc66",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/meta-canonical-consolidation-v195-20260923.json"
+    },
+    {
+      "path": "src/services/metaProtocoloGAttributionService.js",
+      "gitBlobOid": "3eec8ff6f380d77b303f0ac81cb8ed769bdde3a9",
+      "canonicalSha256": "453bdea8dc62c29bac71551a164b7aedbfbe03bc8fca1723c9e1f0beac026f95",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-funnel-v148-20260910.json"
+    },
+    {
+      "path": "src/services/outboundDedupeService.js",
+      "gitBlobOid": "4b055905e352ebbfe1da08224cbb70143c2d5c8f",
+      "canonicalSha256": "8101f81d92743ae407d305f179b427daaf55cd8348c9507c39a415a9606a3752",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/tex-ultra-first-reply-source-dedupe-v198-20260923.json"
+    },
+    {
+      "path": "src/services/panelCustomerReadModelService.js",
+      "gitBlobOid": "1f0f536b5414ae4d500fa77f02dca5d6980cfa15",
+      "canonicalSha256": "45013232933b830ed5a2d5d9e9fb98746df8d5e96b6ba890d6995d22638c61e4",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-fast-load-v179-20260918.json"
+    },
+    {
+      "path": "src/services/panelGlobalCustomerSearchService.js",
+      "gitBlobOid": "8389bfbc735990bb1ccd3ed269d65a89836d24fb",
+      "canonicalSha256": "df5eda5110e902c6d5e2ea9ed414d9072eae466ee2f4452ddd97738a9203d484",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/postSaleNotificationDecisionService.js",
+      "gitBlobOid": "1161cd2a5c0028716b0d405b804048d74b029386",
+      "canonicalSha256": "e2bdb618fb5bf097b7175cfa64044d07261c77de5ddbcdb9f90f75da498c5c9d",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/postSalePickupReconciliationService.js",
+      "gitBlobOid": "2f1d247cab723c8c61ec4bb1bda238b619aaf349",
+      "canonicalSha256": "e67eb0387a2bb4e00386e5de764fb0e0478ce6f973e2a0f272fb1f34754df015",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/postSaleSafetyV66Service.js",
+      "gitBlobOid": "b2e517101322f4d98a46ba50f36a6397b9e41461",
+      "canonicalSha256": "22043d38e65d253be70ef7f8f7aa530e603a7c73fa3bf5a749cfcab2182e9275",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "src/services/schedulerService.js",
+      "gitBlobOid": "3d5d6e0d1d5c3e048acd52bdc0099de81a2e5349",
+      "canonicalSha256": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "src/services/servientregaEcuadorAgencyService.js",
+      "gitBlobOid": "c12d3e02474bb8e0246633c2b59fa5d6e9e92ac4",
+      "canonicalSha256": "044511b307959e1c3d7e74c282744c5f30c1cbe54026811a9ec10c67cb40d626",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-only-agency-city-scope-v183-20260918.json"
+    },
+    {
+      "path": "src/services/shipmentLifecycleStatusService.js",
+      "gitBlobOid": "f7549c29d5c7387f0c6527685e7888ec1ff91ed5",
+      "canonicalSha256": "fd2928321c78e16888defb4447613cc534bc7df247782f0763ea9de1e56551d6",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/shipmentMessageService.js",
+      "gitBlobOid": "b35ddb1cb09378e17c7821804dfc406db77fa852",
+      "canonicalSha256": "fb6218cec03c09e2838732207beeb5dada5aeb26fc87321ca66075cea9e624e6",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/post-sale-dropi-reconciler-v194-20260920.json"
+    },
+    {
+      "path": "src/services/shipmentStatusDispatcherService.js",
+      "gitBlobOid": "721ff1776f2fa8c62e4099f79393fa1041c5fec4",
+      "canonicalSha256": "930e56a3d8b769c31e1f2553d4e1b68582bbf30860b3d4f8e72898728f1d2d8c",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-dropi-pickup-status-sync-v168b-20260916.json"
+    },
+    {
+      "path": "src/services/texUltraFunnelService.js",
+      "gitBlobOid": "eea7837325b691aa2b3d9ac1d52fdff4f94ea038",
+      "canonicalSha256": "4923e689dee1bca509cc2745b7efa4907d118edc23ca57ac423bc029f451d5b3",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/tex-ultra-first-reply-source-dedupe-v198-20260923.json"
+    },
+    {
+      "path": "src/services/zapiClient.js",
+      "gitBlobOid": "892076bfb3ccb123f005ce4db9dc979b793fe82a",
+      "canonicalSha256": "e158f1b6cf46489621439a2c2b2b006509d8553ce2374f73ab354c08312f175f",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-runtime-recovery-v115-20260903.json"
+    },
+    {
+      "path": "src/whatsapp/sendAudio.js",
+      "gitBlobOid": "81e52f9cc434211d87b6553e8ae3337a978cbd43",
+      "canonicalSha256": "52f9d1b1bf324b4b0826a50d4256fc6e637d6ac83c67348dcead2f86807ad7ac",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "src/whatsapp/sendDocument.js",
+      "gitBlobOid": "54cc0d266625c4e2bd27cfac1c95dd255dab88d2",
+      "canonicalSha256": "1696b59d405bf86d96189e786dc8821efaa7645e4e31f43e1d39d044c11cf4a2",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "src/whatsapp/sendImage.js",
+      "gitBlobOid": "6eeb68efc5297b0191e28b3e5bf0c3f584ef18da",
+      "canonicalSha256": "f06b092d62a6b0090601c8d69dca56c8edd6165ab4b7d184227fe457109123b6",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "src/whatsapp/sendText.js",
+      "gitBlobOid": "0196ee2c82d03c9bbc91cbe4056772930218bce7",
+      "canonicalSha256": "fa9dd0616935037358388097e3aa1b726777e1851551647a02a4bce2899a0cd3",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "tests/ec-delivered-repurchase-v45.test.mjs",
+      "gitBlobOid": "ef03f23023e3e41c4514faf84fc1b50d846dc54f",
+      "canonicalSha256": "fc38cd9d0c13bb914b702b3f932bb004d44fb25d7ff688bde93b1226b79e6a33",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "tests/ec-direct-product-name-v39.test.mjs",
+      "gitBlobOid": "0c54f0ac4395b61f6bb887e034cb32c4c4b7c4bf",
+      "canonicalSha256": "de4a3dc83951fc5a29469edd2edc6473d36d1fc015dac745e14484b339a53a5d",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-definitive-normalization-v146-20260908.json"
+    },
+    {
+      "path": "tests/ec-engagement-buckets-v40.test.mjs",
+      "gitBlobOid": "ca00eef96c0e01b2a1ea7eb34c7b164c73df74f1",
+      "canonicalSha256": "b35170d854fa5150b3f3571a92bc1e8feb4b5f9f967a3b7ecca60c462303b41f",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-traffic-restoration-v171-20260917.json"
+    },
+    {
+      "path": "tests/funnel-metrics-route.test.mjs",
+      "gitBlobOid": "2920f1be43109b9886815a965f0540a8cf240906",
+      "canonicalSha256": "b8eed4b201a893693cc0d646f7658ac045f500cef89a4217117fd44b0ff548fa",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-meta-funnel-reconciliation-v141-20260908.json"
+    },
+    {
+      "path": "tests/funnel-metrics-service.test.mjs",
+      "gitBlobOid": "bda2f6a7537be55ef695006936cb22d438d3bdc6",
+      "canonicalSha256": "ee093f1b88589845663fbd96ed97842e1dd68927e6093f672696e4ad1a085f07",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "tests/logistics-clean-chat-v29-integration.test.mjs",
+      "gitBlobOid": "60487349ac1848322c98a6d259a5d839a9bd16fc",
+      "canonicalSha256": "9687bb215fbbe6f5b3feb674a436b254f84d61cd5c702bf257c3f8018abac5c6",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-manual-attendant-v160-20260914.json"
+    },
+    {
+      "path": "tests/meta-ec-protocolo-g-attribution-v61.test.mjs",
+      "gitBlobOid": "3806191881562e83561e5794c77c80b0c4cad70e",
+      "canonicalSha256": "5d3bcb5ba190827d9b53519b2458bd7a6ad32db6069a9a06d1e9063fca7d8eb1",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-traffic-restoration-v171-20260917.json"
+    },
+    {
+      "path": "tests/panel-client-search-v41.test.mjs",
+      "gitBlobOid": "51cab6f2d569a83e45fe8baa7c9f0056ae45136c",
+      "canonicalSha256": "aef38c4d970749f600128d7621385a16c2ac05e9f801e9e03462c825d9f157c8",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-queue-guard-compatibility-v137-20260907.json"
+    },
+    {
+      "path": "tests/pickup-bonus-delivery-v60.test.mjs",
+      "gitBlobOid": "b1a1b900dac4a57ef890e393c5639e21effd25df",
+      "canonicalSha256": "d1c75f284c7c82d7d19b530368670f74f2b2c4ac18c2bf13b6d1293d919a633e",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "tests/post-sale-gargalos-v65.test.mjs",
+      "gitBlobOid": "d717300a12772caaa7e3f7a861480bb0e52cc1b8",
+      "canonicalSha256": "706ad43da20ed16dcc7c2d1a1aedf380e9e78a0f2138c57531d0c0d403c45736",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "tests/post-sale-safety-v66.test.mjs",
+      "gitBlobOid": "0ceba61056c4df935d6d79f5b725dfe4178074e4",
+      "canonicalSha256": "ccd5b1a7f20a4ca7b74f96261691d6c80ba968c7900adbe826b792389c5376ae",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-all-postsale-dedupe-v147-r6r2-20260910.json"
+    },
+    {
+      "path": "tests/shipment-pickup-notification.test.mjs",
+      "gitBlobOid": "8f88c5b6dfb61d9bc13dff137def9b4bd1925f61",
+      "canonicalSha256": "4c46019f0282850e164df7bb55e9153d30c14d890bba7d2c2df02191b086de12",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-postsale-canonical-restoration-v147-20260909.json"
+    },
+    {
+      "path": "tests/tex-ultra-how-to-use-audio-v31.test.mjs",
+      "gitBlobOid": "e51f34f6358a4401e2edaa4616eb0fa4b7ec1db2",
+      "canonicalSha256": "1656ef4ea18eff5af697c5471eba7088f9604ef1b420a7a4114d18356ef9a65d",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json"
+    },
+    {
+      "path": "tests/whatsapp-chats-readonly.test.mjs",
+      "gitBlobOid": "ad113d21a0fd8b5fb6d0476a15860f09dc963adf",
+      "canonicalSha256": "e2962c4fd8972b5ff2baa07a533b3716065fb7f86a6dee9a650046f63698b177",
+      "authority": "FREEZE_SUCCESSOR_EVIDENCE",
+      "evidence": "docs/freeze/ec-panel-new-dropi-persistence-v142-20260908.json"
+    }
+  ],
+  "externalEffectLocks": {
+    "dropiRealBlocked": true,
+    "purchaseRealBlocked": true,
+    "productionMutationBlocked": true
+  },
+  "policy": {
+    "failClosed": true,
+    "canonicalBlobSource": "GIT_OBJECT_DATABASE",
+    "historicalGuardsUnchanged": true,
+    "noPermanentGlobalOverride": false,
+    "fixtureNotProduction": true,
+    "testFixtureRestoresContext": true,
+    "operationalImportKeepsValidatedContext": true,
+    "runtimeGitDependency": false
+  },
+  "parentManifestSha256": "9acfab5aebf315ffc3451074d225a7f95a8f2789cac86eae6cbb2075249154a0"
+}
