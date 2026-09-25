@@ -711,8 +711,13 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
             await saveState(state, { memory, draft, stage: 'awaiting_name' });
             return true;
         }
-        await sendFunnelText({ state, text: 'Gracias. ¿En que ciudad de Ecuador desea recibir o retirar el pedido?', context: 'tex_ultra_ask_city' });
-        await saveState(state, { memory, draft, stage: 'awaiting_city' });
+        const nextStep = texUltraNextDataCollectionStep(draft);
+        await sendFunnelText({
+            state,
+            text: nextStep.stage === 'awaiting_confirmation' ? texUltraConfirmationText(draft) : nextStep.text,
+            context: nextStep.context
+        });
+        await saveState(state, { memory, draft, stage: nextStep.stage });
         return true;
     }
     if (memory.stage === 'awaiting_city') {
