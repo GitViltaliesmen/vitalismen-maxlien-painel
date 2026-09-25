@@ -24,16 +24,16 @@ assert.equal(git('status', '--porcelain=v1', '--untracked-files=no'), '',
     'R4_CHECKPOINT_SOURCE_DIRTY');
 const commit = git('rev-parse', 'HEAD');
 const tree = git('rev-parse', 'HEAD^{tree}');
-const parent = '040969f90a92a8121c9e6eb723e0b0c6c9e390ae';
+const parent = 'af04260047929c3dfcba5ca489969c333a615590';
 assert.equal(git('merge-base', parent, commit), parent, 'R4_LOCAL_CHECKPOINT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parent}^{tree}`),
-    '1bf75f613c6befece285e3ce9a71dc41bfffaa20');
-const parentR4Commit = '494b73f1630956b024bd9b48f69297c3070875f5';
-const parentR4Tree = '326214a6a11d901f119b848117c6d1a03498e72c';
+    '848870270f645c080c31d72556bb69975ddf77a2');
+const parentR4Commit = parent;
+const parentR4Tree = '848870270f645c080c31d72556bb69975ddf77a2';
 const parentAuthorityPath =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY.json';
 const parentAuthoritySha256 =
-    '8f41686167325d1373667c95ffcb84628c0fb33cb472dca7f91f913f67d7bbec';
+    'b4194174a12115cbfc8d97618fad3f41de1e6ef94123061d0b7e57647b81dd0a';
 assert.equal(git('merge-base', parentR4Commit, commit), parentR4Commit,
     'R4_FREEZE_SUCCESSOR_PARENT_NOT_ANCESTOR');
 assert.equal(git('rev-parse', `${parentR4Commit}^{tree}`), parentR4Tree,
@@ -44,9 +44,9 @@ const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
+    checkpointId: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
     parentR4Commit,
     parentR4Tree,
     parentAuthorityCheckpointSha256: parentAuthoritySha256,

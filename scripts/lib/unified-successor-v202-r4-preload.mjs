@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const AUTHORITY_SHA256 = 'ffeb293f1db03fe110a9b660a281b5275242ea27817e4d9778eb492ad6ec3aa2';
+const AUTHORITY_SHA256 = '6a5b9261d3892a6334d14b05abbf97e033c57a93d08d4451cbf7300acdab0e72';
 const V78_SELECTOR_SHA256 = 'bfd27de60c06ea0925c03cfbebe48383a321c6146a55997ad1b3672349ccc6fa';
-const V78_CONTRACT_SHA256 = '2eba907798f15f4b617c9ceeb96d6bf6c79374218d7d64743fb737675aaa33b3';
+const V78_CONTRACT_SHA256 = '4ef899c56c2f71aaed782a6af6cc61143c92e4eaea5d57450e28452faaddabaa';
 const CHECKPOINT_PATH =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE.json';
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const assertRequiredContexts = ({ v199, v146 }) => {
     assert.equal(v199, true, 'R4_V199_CONTEXT_MISSING');
@@ -37,7 +37,7 @@ async function loadVerifiedAuthority(root) {
         && stat.gid === 0 && (stat.mode & 0o777) === 0o400,
     'R4_BOOTSTRAP_CHECKPOINT_UNSAFE');
     const checkpoint = JSON.parse(fs.readFileSync(CHECKPOINT_PATH, 'utf8'));
-    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY');
+    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE');
     assert.equal(checkpoint.status, 'FROZEN');
     const authorityPath = path.join(root,
         'scripts/lib/unified-successor-v202-r4-authority.mjs');

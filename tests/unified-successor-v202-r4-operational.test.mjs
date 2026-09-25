@@ -17,13 +17,13 @@ const sha = 'a'.repeat(64);
 const commit = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
+    checkpointId: 'CHECKPOINT_R4_V78_SUCCESSOR_READY_FOR_RESTAGE',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FREEZE_SUCCESSOR_READY',
-    parentR4Commit: '494b73f1630956b024bd9b48f69297c3070875f5',
-    parentR4Tree: '326214a6a11d901f119b848117c6d1a03498e72c',
+    parentCheckpoint: 'CHECKPOINT_UNIFIED_SUCCESSOR_OPERATIONAL_R4_FINAL_VALIDATOR_READY',
+    parentR4Commit: 'af04260047929c3dfcba5ca489969c333a615590',
+    parentR4Tree: '848870270f645c080c31d72556bb69975ddf77a2',
     parentAuthorityCheckpointSha256:
-        '8f41686167325d1373667c95ffcb84628c0fb33cb472dca7f91f913f67d7bbec',
+        'b4194174a12115cbfc8d97618fad3f41de1e6ef94123061d0b7e57647b81dd0a',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,

@@ -22,7 +22,7 @@ import {
 } from '../../src/services/ecVslDashboardIngressV90Service.js';
 import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 import {
-    R4_MANIFEST_PATH, V201_COMMIT, V201_TREE, readAuthorizedCheckpoint,
+    R4_MANIFEST_PATH, V201_COMMIT, V201_TREE, classifyReleasePreload, readAuthorizedCheckpoint,
     verifyMaterializedRelease
 } from './unified-successor-v202-r4-authority.mjs';
 
@@ -362,9 +362,23 @@ const readBundleFiles = (overlayPath, attestationPath, permitPath) => ({
 
 const runCli = () => {
     const [action, ...args] = process.argv.slice(2);
+    if (action === 'select-preload') {
+        if (args.length !== 2) throw new Error('usage_select_preload_invalid');
+        const releaseDir = path.resolve(clean(args[0]));
+        if (path.basename(releaseDir) !== args[1]) throw new Error('release_path_identity_invalid');
+        const relative = classifyReleasePreload(releaseDir, { requireAttestation: true });
+        if (!['scripts/lib/ec-runtime-successor-v199-context.mjs',
+            'scripts/lib/unified-successor-v202-r4-preload.mjs'].includes(relative)) {
+            throw new Error('v78_successor_preload_not_approved');
+        }
+        process.stdout.write(`${relative}\n`);
+        return;
+    }
     if (action === 'inspect') {
         if (args.length !== 2) throw new Error('usage_inspect_invalid');
-        process.stdout.write(canonicalJson(inspectPublishedEcBotCoreV78Release({ releaseDir: args[0], release: args[1] })));
+        const identity = inspectPublishedEcBotCoreV78Release({ releaseDir: args[0], release: args[1] });
+        process.stdout.write(canonicalJson({ ...identity,
+            nodeOptions: selectEcBotCoreV78PreloadForRelease(identity) }));
         return;
     }
     if (action === 'create') {
