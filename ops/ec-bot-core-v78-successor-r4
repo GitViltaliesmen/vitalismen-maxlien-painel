@@ -437,7 +437,7 @@ if [[ "$action" == "activate" ]]; then
     fi
     [[ -f "$controller_file" && ! -L "$controller_file" ]] || die "controller PM2 sucessor ausente ou inseguro"
     controller_sha256="$(sha256sum "$controller_file")"
-    [[ "${controller_sha256%% *}" == "eade88907e35c6f662b236d81a29954791e6c93745488d210cd424dc3afbf528" ]] ||
+    [[ "${controller_sha256%% *}" == "c764c385d5fd837dc91cc2e8949ef9bdac960ca63bccaa45686f3e027a54fc8d" ]] ||
       die "controller PM2 sucessor não corresponde ao código aprovado"
     NODE_OPTIONS="" npm_config_node_options="" \
       "$node_cmd" "$controller_file" \

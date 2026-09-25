@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const sha256 = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
-const AUTHORITY_SHA256 = '07feb4b2e8ae3b79ad56ad0c7900d6d8b3235f83ffbe72434a78aa55638fb116';
+const AUTHORITY_SHA256 = '4fdef21d6864346b1e770ed39e75fed9cc132a6d601d5a1ce2f6e1cc6e4c58a4';
 const readCanonical = (file, strictOwner) => {
     const stat = fs.lstatSync(file);
     assert.ok(stat.isFile() && !stat.isSymbolicLink(), 'ROLLBACK_CHECKPOINT_UNSAFE');
@@ -41,8 +41,8 @@ const V201 = Object.freeze({
 const OFFICIAL = Object.freeze({
     base: '/opt/vitalismen-automacao',
     state: '/var/lib/vitalismen-deploy',
-    checkpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_READY_TO_RESTAGE.json',
-    authorityCheckpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json',
+    checkpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_READY.json',
+    authorityCheckpoint: '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json',
     healthUrl: 'https://ec.maxlien.shop/api/health/',
     metaUrl: 'https://ec.maxlien.shop/api/health/meta-destination',
     expected: V201,
@@ -203,7 +203,7 @@ const validateAuthority = async (config, sourceRelease) => {
         'SAFE_PM2', 'PROJECT'
     ].sort(), 'ROLLBACK_CHECKPOINT_FIELDS');
     assert.equal(checkpoint.CHECKPOINT_ID,
-        'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_READY_TO_RESTAGE',
+        'CHECKPOINT_R4_V78_PAYLOAD_READY',
     'ROLLBACK_CHECKPOINT_ID');
     assert.equal(checkpoint.CHECKPOINT_STATUS, 'FROZEN', 'ROLLBACK_CHECKPOINT_STATUS');
     assert.equal(checkpoint.PARENT_AUTHORITY_SHA256, sha256(config.authorityCheckpoint),

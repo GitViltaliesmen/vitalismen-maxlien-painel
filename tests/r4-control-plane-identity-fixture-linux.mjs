@@ -27,13 +27,13 @@ assert.equal(path.basename(release), releaseName);
 const manifest = path.join(release, R4_MANIFEST_PATH);
 const digest = relative => sha(path.join(release, relative));
 const checkpoint = {
-    checkpointId: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+    checkpointId: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
-    parentR4Commit: '9d640d2700f91675f06b136cd6fe02695596e8cf',
-    parentR4Tree: '20c9ea0925cffd8ad2c06a73abd811837330339c',
+    parentCheckpoint: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+    parentR4Commit: 'b842b1e366160b50dd15322dd212da309c1b92b2',
+    parentR4Tree: '186e601d07fb4242c648f95d71cc71eb9433444a',
     parentAuthorityCheckpointSha256:
-        'd85725ac5b1b5b70bb104f750af42ce34eeec61dc309f6d655b40785655b4986',
+        'e7f7f6fbbea1359f8802c98ebf8ced2ffd201e049329e60cd8eb1c7f08c480c9',
     project: 'MAXLIEN EC — VITALISMEN OFICIAL',
     r4OperationalCommit: commit,
     r4OperationalTree: tree,

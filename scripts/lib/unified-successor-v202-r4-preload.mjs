@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const AUTHORITY_SHA256 = '07feb4b2e8ae3b79ad56ad0c7900d6d8b3235f83ffbe72434a78aa55638fb116';
+const AUTHORITY_SHA256 = '4fdef21d6864346b1e770ed39e75fed9cc132a6d601d5a1ce2f6e1cc6e4c58a4';
 const V78_SELECTOR_SHA256 = 'bfd27de60c06ea0925c03cfbebe48383a321c6146a55997ad1b3672349ccc6fa';
-const V78_CONTRACT_SHA256 = '4ef899c56c2f71aaed782a6af6cc61143c92e4eaea5d57450e28452faaddabaa';
+const V78_CONTRACT_SHA256 = '622cf6f5fb5539ec6dfef2860bf81516bbac592ab677de7906b886ae10c160a9';
 const CHECKPOINT_PATH =
-    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json';
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json';
 const OFFICIAL_LOGICAL_PRELOAD =
     'file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs';
 const V168B_PATH = 'scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
@@ -42,7 +42,7 @@ async function loadVerifiedAuthority(root) {
         && stat.gid === 0 && (stat.mode & 0o777) === 0o400,
     'R4_BOOTSTRAP_CHECKPOINT_UNSAFE');
     const checkpoint = JSON.parse(fs.readFileSync(CHECKPOINT_PATH, 'utf8'));
-    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
+    assert.equal(checkpoint.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
     assert.equal(checkpoint.status, 'FROZEN');
     const authorityPath = path.join(root,
         'scripts/lib/unified-successor-v202-r4-authority.mjs');
@@ -83,7 +83,7 @@ const values = () => new Map(contextKeys().map(key => [key, globalThis[key]]));
 export function assertR4StartupSuccessorIdentity(verified, root,
     v195 = globalThis.__VITALISMEN_V195_META_CANONICAL_PRELOAD,
     v195Context = globalThis.__VITALISMEN_V195_META_CANONICAL_CONTEXT) {
-    assert.equal(verified?.checkpoint?.checkpointId, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
+    assert.equal(verified?.checkpoint?.checkpointId, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
     assert.equal(verified?.attestation?.commit, verified.checkpoint.r4OperationalCommit,
         'R4_STARTUP_COMMIT_INVALID');
     assert.equal(verified?.attestation?.tree, verified.checkpoint.r4OperationalTree,

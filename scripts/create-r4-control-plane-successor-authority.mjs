@@ -14,10 +14,10 @@ import {
 import { assertGitReleaseIdentity } from './verify-unified-successor-v202-r4-stage.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const parentCommit = '9d640d2700f91675f06b136cd6fe02695596e8cf';
-const parentTree = '20c9ea0925cffd8ad2c06a73abd811837330339c';
-const parentPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_STARTUP_SUCCESSOR_READY.json';
-const parentSha256 = 'd85725ac5b1b5b70bb104f750af42ce34eeec61dc309f6d655b40785655b4986';
+const parentCommit = 'b842b1e366160b50dd15322dd212da309c1b92b2';
+const parentTree = '186e601d07fb4242c648f95d71cc71eb9433444a';
+const parentPath = '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json';
+const parentSha256 = 'e7f7f6fbbea1359f8802c98ebf8ced2ffd201e049329e60cd8eb1c7f08c480c9';
 const git = (...args) => execFileSync('/usr/bin/git', args, {
     cwd: root, encoding: 'utf8', env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' }
 }).trim();
@@ -40,9 +40,9 @@ const manifestFile = readCanonicalJson(path.join(root, R4_MANIFEST_PATH));
 const manifest = validateR4Manifest(manifestFile.value);
 const digest = relative => sha256(fs.readFileSync(path.join(root, relative)));
 const checkpoint = validateCheckpoint({
-    checkpointId: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+    checkpointId: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
     status: 'FROZEN',
-    parentCheckpoint: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
+    parentCheckpoint: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
     parentR4Commit: parentCommit,
     parentR4Tree: parentTree,
     parentAuthorityCheckpointSha256: parentSha256,

@@ -80,15 +80,15 @@ function fixture({ current = 'R4', active = 'R4' } = {}) {
             attestationSha256: hash(activeAttestation) }, 0o600);
     }
     const authorityCheckpoint = path.join(state,
-        'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json');
+        'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json');
     const authoritySha = write(authorityCheckpoint, {
-        checkpointId: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+        checkpointId: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
         status: 'FROZEN',
-        parentCheckpoint: 'CHECKPOINT_R4_STARTUP_SUCCESSOR_READY',
-        parentR4Commit: '9d640d2700f91675f06b136cd6fe02695596e8cf',
-        parentR4Tree: '20c9ea0925cffd8ad2c06a73abd811837330339c',
+        parentCheckpoint: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+        parentR4Commit: 'b842b1e366160b50dd15322dd212da309c1b92b2',
+        parentR4Tree: '186e601d07fb4242c648f95d71cc71eb9433444a',
         parentAuthorityCheckpointSha256:
-            'd85725ac5b1b5b70bb104f750af42ce34eeec61dc309f6d655b40785655b4986',
+            'e7f7f6fbbea1359f8802c98ebf8ced2ffd201e049329e60cd8eb1c7f08c480c9',
         project: 'MAXLIEN EC — VITALISMEN OFICIAL',
         r4OperationalCommit: r4Commit, r4OperationalTree: r4Tree,
         r4OperationalManifestSha256: 'a'.repeat(64),
@@ -107,8 +107,8 @@ function fixture({ current = 'R4', active = 'R4' } = {}) {
             'e1ce8093e54f4b3bcf976a140cede0aab06e6b8b3211ceceb94b8b2ccf44dcb3',
         metaDatasetId: '920532663934291'
     });
-    const checkpoint = path.join(state, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_READY_TO_RESTAGE.json');
-    write(checkpoint, { CHECKPOINT_ID: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_READY_TO_RESTAGE',
+    const checkpoint = path.join(state, 'CHECKPOINT_R4_V78_PAYLOAD_READY.json');
+    write(checkpoint, { CHECKPOINT_ID: 'CHECKPOINT_R4_V78_PAYLOAD_READY',
         CHECKPOINT_STATUS: 'FROZEN', PROJECT: 'MAXLIEN EC — VITALISMEN OFICIAL',
         PARENT_AUTHORITY_SHA256: authoritySha,
         COMMIT: r4Commit, TREE: r4Tree, CONTROLLER_SHA256: controllerSha,

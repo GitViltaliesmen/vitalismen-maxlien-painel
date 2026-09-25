@@ -15,13 +15,13 @@ import {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,
-    'docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json')));
+    'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json')));
 const v168b = 'scripts/lib/ec-runtime-successor-v168b-bootstrap-context.mjs';
 const shipments = 'src/routes/shipments.js';
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const verified = () => ({
     checkpoint: {
-        checkpointId: 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY',
+        checkpointId: 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY',
         r4OperationalCommit: 'a'.repeat(40), r4OperationalTree: 'b'.repeat(40),
         v168bSha256: V168B_SHA256, shipmentsSha256: SHIPMENTS_SHA256,
         metaDatasetId: META_DATASET_ID

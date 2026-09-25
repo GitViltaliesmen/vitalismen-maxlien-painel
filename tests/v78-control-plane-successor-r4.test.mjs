@@ -14,15 +14,15 @@ const read = relative => fs.readFileSync(path.join(root, relative));
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const oid = bytes => crypto.createHash('sha1')
     .update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes])).digest('hex');
-const parent = '9d640d2700f91675f06b136cd6fe02695596e8cf';
+const parent = 'b842b1e366160b50dd15322dd212da309c1b92b2';
 
 test('controller sucessor altera somente o pin da autoridade; lógica canônica 32f6 permanece', () => {
     const relative = 'scripts/lib/pm2-target-env-restart-v78-r4.mjs';
     const historical = execFileSync('git', ['show', `${parent}:${relative}`], { cwd: root });
     assert.equal(sha256(historical),
-        '32f6ac2488823a723be1c0b0f1774e2037c1ae13d9964a9143a84ad76bb3a330');
+        'eade88907e35c6f662b236d81a29954791e6c93745488d210cd424dc3afbf528');
     const current = read(relative);
-    const oldAuthority = '4039aa24456156411a2e1f1601812a245e624a15e979f3cc8c0b2778b63c91d8';
+    const oldAuthority = '07feb4b2e8ae3b79ad56ad0c7900d6d8b3235f83ffbe72434a78aa55638fb116';
     const newAuthority = sha256(read('scripts/lib/unified-successor-v202-r4-authority.mjs'));
     assert.ok(current.toString().includes(newAuthority));
     assert.deepEqual(Buffer.from(current.toString().replace(newAuthority, oldAuthority)), historical);
@@ -35,18 +35,18 @@ test('controller sucessor altera somente o pin da autoridade; lógica canônica 
 
 test('manifesto novo fixa helper de stage e preserva exatamente 83 identidades', () => {
     assert.equal(R4_CHECKPOINT_PATH,
-        '/var/lib/vitalismen-deploy/CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY.json');
+        '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY.json');
     assert.equal(R4_MANIFEST_PATH,
-        'docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json');
+        'docs/freeze/unified-successor-v47-v77h2-v202-r4-v78-payload-20260925.json');
     const manifest = validateR4Manifest(JSON.parse(read(R4_MANIFEST_PATH)));
     const stage = manifest.allowlist.find(entry => entry.path === 'ops/vitalismen-stage');
     const bytes = read('ops/vitalismen-stage');
     assert.equal(stage.gitBlobOid, oid(bytes));
     assert.equal(stage.canonicalSha256, sha256(bytes));
-    assert.equal(stage.evidence, 'CHECKPOINT_R4_CONTROL_PLANE_SUCCESSOR_AUTHORITY');
+    assert.equal(stage.evidence, 'CHECKPOINT_R4_V78_PAYLOAD_AUTHORITY');
     assert.equal(manifest.allowlistCount, 83);
     const historical = JSON.parse(execFileSync('git', ['show',
-        `${parent}:docs/freeze/unified-successor-v47-v77h2-v202-r4-20260924.json`],
+        `${parent}:docs/freeze/unified-successor-v47-v77h2-v202-r4-control-plane-20260925.json`],
     { cwd: root }));
     assert.deepEqual(manifest.allowlist.filter(x => x.path !== 'ops/vitalismen-stage'),
         historical.allowlist.filter(x => x.path !== 'ops/vitalismen-stage'));

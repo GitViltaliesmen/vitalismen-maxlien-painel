@@ -20,9 +20,12 @@ import {
 import {
     assertEcVslDashboardIngressManifestV90
 } from '../../src/services/ecVslDashboardIngressV90Service.js';
-import { calculateFunctionalPayloadSha256V78 } from '../../src/services/mutableRuntimeArtifactV78Service.js';
 import {
-    R4_MANIFEST_PATH, V201_COMMIT, V201_TREE, classifyReleasePreload, readAuthorizedCheckpoint,
+    calculateFunctionalPayloadSha256V78, V78_FUNCTIONAL_ROOT_EXCLUSIONS
+} from '../../src/services/mutableRuntimeArtifactV78Service.js';
+import {
+    R4_ATTESTATION_NAME, R4_MANIFEST_PATH, V201_COMMIT, V201_TREE,
+    classifyReleasePreload, readAuthorizedCheckpoint,
     verifyMaterializedRelease
 } from './unified-successor-v202-r4-authority.mjs';
 
@@ -44,6 +47,48 @@ const clean = (value = '') => String(value ?? '').trim();
 const canonicalJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const fileSha256 = (file) => sha256(fs.readFileSync(file));
+
+export const calculateR4PublishedFunctionalPayloadSha256V78 = (releaseRoot) => {
+    const root = path.resolve(clean(releaseRoot));
+    const generatedAttestation = path.join(root, R4_ATTESTATION_NAME);
+    const attestationStat = fs.lstatSync(generatedAttestation);
+    if (!attestationStat.isFile() || attestationStat.isSymbolicLink()) {
+        throw new Error('r4_generated_attestation_unsafe');
+    }
+    const excludedRootFiles = new Set([
+        ...V78_FUNCTIONAL_ROOT_EXCLUSIONS, R4_ATTESTATION_NAME
+    ]);
+    const hash = crypto.createHash('sha256');
+    const visit = (directory, relative = '') => {
+        const entries = fs.readdirSync(directory, { withFileTypes: true })
+            .filter((entry) => !(relative === '' && excludedRootFiles.has(entry.name)))
+            .filter((entry) => entry.name !== '.git' && entry.name !== 'node_modules')
+            .sort((left, right) => left.name.localeCompare(right.name, 'en'));
+        for (const entry of entries) {
+            const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
+            const child = path.join(directory, entry.name);
+            const stats = fs.lstatSync(child);
+            if (stats.isDirectory()) {
+                visit(child, childRelative);
+                continue;
+            }
+            hash.update(childRelative, 'utf8');
+            hash.update('\0');
+            if (stats.isSymbolicLink()) {
+                hash.update('symlink\0');
+                hash.update(fs.readlinkSync(child), 'utf8');
+                hash.update('\0');
+                continue;
+            }
+            if (!stats.isFile()) throw new Error(`functional_payload_type_unsupported:${childRelative}`);
+            hash.update(`file:${(stats.mode & 0o111) !== 0 ? 'x' : '-'}\0`);
+            hash.update(fs.readFileSync(child));
+            hash.update('\0');
+        }
+    };
+    visit(root);
+    return hash.digest('hex');
+};
 
 const assertCanonicalJsonFile = (file, label) => {
     const content = fs.readFileSync(file, 'utf8');
@@ -107,7 +152,9 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         || clean(publicationComplete.publicationTagResolvedCommit).toLowerCase() !== commit) {
         throw new Error('release_functional_identity_mismatch');
     }
-    const functionalPayloadSha256 = calculateFunctionalPayloadSha256V78(resolved);
+    const functionalPayloadSha256 = fs.existsSync(path.join(resolved, R4_ATTESTATION_NAME))
+        ? calculateR4PublishedFunctionalPayloadSha256V78(resolved)
+        : calculateFunctionalPayloadSha256V78(resolved);
     if (staging.functionalPayloadSha256 !== functionalPayloadSha256
         || publication.functionalPayloadSha256 !== functionalPayloadSha256
         || publicationComplete.functionalPayloadSha256 !== functionalPayloadSha256) {
