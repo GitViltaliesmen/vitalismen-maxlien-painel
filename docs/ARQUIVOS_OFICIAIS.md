@@ -1412,3 +1412,12 @@ nenhuma alteração realizada no VPS.
   `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
   `scripts/guard-buy-later-operational-v162.mjs` e
   `tests/buy-later-operational-v162.test.mjs`.
+### Microcamada Protocolo G — persistência first-party antes do WhatsApp — 2026-09-26
+
+- Origem oficial alterada: `/opt/cloaker/private/vsl/protocolo-g.html` e `/opt/cloaker/public/assets/js/meta-ec-protocolo-g-bridge.js` no host `vilaliemen-protocolo-g`.
+- Backup: `/opt/cloaker/.backups/protocolo-g-cta-persistence-20260926T0448Z`.
+- Escopo: carregar a ponte existente e aguardar `/api/public/meta-ec-protocolo-g/bridge` e `/api/public/meta-ec-protocolo-g/stage` antes do redirecionamento já existente para WhatsApp, com `keepalive`/`sendBeacon` e timeout de 2,2 s.
+- Preservado: VSL visual, copy, vídeo/VTurb, telefone `5531971862958`, `pixel.js`, Meta, Z-API, schema, Cloudflare, Nginx e roteamento mobile/desktop/unknown.
+- Validação: sintaxe OK; `/bridge` retornou `202`, `forwarded=true`, downstream `200`; `/stage` retornou `202`, `forwarded=true`; `VslVisit` e `form_submitted` persistidos com `sourceUrl`, `PROTOCOLO_G`, `tex_ultra_ec`, `fbclid`, `fbc`, `fbp`, UTMs e `external_id`; mobile `vsl-mobile`; desktop `informativa-desktop`; health EC `200`; nenhum restart necessário.
+- SHA-256 publicados: HTML `0354c302942659ac4a42e4fef70f63bc7f6b823e2f698d38272ffd391c368efc`; bridge `2198e7144014beae04c2795e0781ad939c76a028fbac75024a1a7b15aeb2f6f0`.
+- Freeze consolidado do estado manual operacional aprovado: `approved_freezes/PROTOCOLO_G_MANUAL_OPERATIONAL_FREEZE_20260926.txt`. A chegada ao painel e o atendimento manual estao operacionais; a resposta automatica do bot permanece explicitamente pendente.

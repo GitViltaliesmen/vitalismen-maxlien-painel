@@ -1,0 +1,64 @@
+FREEZE_NAME=PROTOCOLO_G_MANUAL_OPERATIONAL_FREEZE_20260926
+FREEZE_DATE=2026-09-26
+STATUS=MANUAL_OPERATIONAL
+CURRENT=fe32da0
+
+LEAD_ARRIVAL=PASS
+PANEL_VISIBILITY=PASS
+MANUAL_SERVICE=PASS
+AUTO_BOT_REPLY=PENDING
+
+VSL_TO_CTA=PASS
+CTA_TO_BRIDGE=PASS
+BRIDGE_TO_STAGE=PASS
+LEAD_PERSISTENCE=PASS
+SOURCE_URL_PRESERVED=PASS
+FUNNEL_PROTOCOLO_G_PRESERVED=PASS
+PRODUCT_KEY_TEX_ULTRA_EC_PRESERVED=PASS
+WHATSAPP_REDIRECT=PASS
+DESKTOP_ROUTING_UNCHANGED=PASS
+
+HEALTH=200
+VSL_TO_PANEL=PASS
+MANUAL_SERVICE_READY=YES
+AUTO_BOT_REPLY=PENDING
+NO_REGRESSION=YES
+
+PRODUCTION_RELEASE=/opt/vitalismen-automacao/releases/20260925T195542Z_production-20260925-fe32da0
+VSL_URL=https://vilaliemen.shop/protocolo-g
+VSL_HTML_SHA256=0354c302942659ac4a42e4fef70f63bc7f6b823e2f698d38272ffd391c368efc
+BRIDGE_JS_SHA256=2198e7144014beae04c2795e0781ad939c76a028fbac75024a1a7b15aeb2f6f0
+DESKTOP_INFORMATION_PAGE_SHA256=ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27
+PRODUCTION_BACKUP=/opt/cloaker/.backups/protocolo-g-cta-persistence-20260926T0448Z
+
+## Estado aprovado e congelado
+
+- A VSL Protocolo G registra a entrada first-party pelos endpoints existentes de
+  bridge e stage antes de continuar ao WhatsApp.
+- O lead chega ao sistema e permanece visivel no painel com sourceUrl,
+  funnel=PROTOCOLO_G e productKey=tex_ultra_ec preservados.
+- O atendimento manual pelo painel esta operacional.
+- A resposta automatica do bot nao foi validada como funcional e permanece
+  pendente; este freeze nao a aprova nem autoriza sua correcao.
+- O roteamento mobile/desktop permanece congelado: mobile recebe a VSL e
+  desktop recebe a pagina informativa.
+
+## Preservado sem alteracao funcional
+
+VSL_VISUAL=UNCHANGED
+CTA_BEHAVIOR=UNCHANGED_AFTER_APPROVED_PERSISTENCE_LAYER
+BRIDGE=UNCHANGED_AFTER_APPROVED_PERSISTENCE_LAYER
+STAGE=UNCHANGED_AFTER_APPROVED_PERSISTENCE_LAYER
+MOBILE_DESKTOP_ROUTING=UNCHANGED
+CLOAKER=UNCHANGED_AFTER_APPROVED_PERSISTENCE_LAYER
+CLOUDFLARE=UNCHANGED
+NGINX=UNCHANGED
+META=UNCHANGED
+ZAPI=UNCHANGED
+DATABASE_SCHEMA=UNCHANGED
+MANUAL_SERVICE_RULES=UNCHANGED
+WHATSAPP_TEST_SENT=NO
+
+Este snapshot e documental e consolidativo. Nenhum runtime, processo, banco,
+schema, VSL, CTA, bridge, stage, roteamento, transporte ou regra de atendimento
+foi alterado durante sua criacao.
