@@ -32,6 +32,7 @@
     "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
     "scripts/lib/unified-successor-v202-r5-authority.mjs",
     "scripts/lib/unified-successor-v202-r5-precommit-context.mjs",
+    "scripts/lib/unified-successor-v202-r5-predeploy-v71-context.mjs",
     "scripts/lib/unified-successor-v202-r5-preload.mjs",
     "scripts/run-unified-successor-v202-r5.mjs",
     "scripts/run-v202-r5-precommit-senior.mjs",

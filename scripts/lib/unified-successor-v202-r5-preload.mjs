@@ -94,6 +94,13 @@ export async function runOperationalR5Import() {
             inheritedProtectedFiles: r4Paths.length,
             functionalFiles: Object.freeze(Object.keys(verified.manifest.functionalFiles))
         });
+        if (fs.realpathSync('/opt/vitalismen-automacao/current') !== root) {
+            assert.equal(fs.realpathSync('/opt/vitalismen-automacao/current'), parentRoot,
+                'R5_V71_UNEXPECTED_PREDEPLOY_PARENT');
+            await import('./unified-successor-v202-r5-predeploy-v71-context.mjs');
+            assert.equal(globalThis.__VITALISMEN_R5_V71_EXACT_SUCCESSOR?.loaded, true,
+                'R5_V71_EXACT_SUCCESSOR_MISSING');
+        }
         completed = true;
         return globalThis.__VITALISMEN_R5_OPERATIONAL_CONTEXT;
     } finally {
