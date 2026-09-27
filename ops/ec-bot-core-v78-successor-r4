@@ -178,7 +178,7 @@ NODE
       die "seleção oficial V78 falhou"
   fi
   case "$preload" in
-    scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs) ;;
+    scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs|scripts/lib/unified-successor-v202-r5-preload.mjs) ;;
     *) die "preload sucessor V78 não permitido" ;;
   esac
   [[ -f "$release_dir/$preload" && ! -L "$release_dir/$preload" ]] || die "preload sucessor ausente ou inseguro"
@@ -235,6 +235,11 @@ run_plan() {
     [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
       die "seleção V78 R4 diverge do contrato oficial"
     assert_r4_parent_successor_contract "$release_dir"
+  elif [[ "$successor_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+    [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs" ]] ||
+      die "seleção V78 R5 diverge do contrato oficial"
+    assert_r4_parent_successor_contract \
+      "$base_dir/releases/20260925T195542Z_production-20260925-fe32da0"
   fi
   assert_current_and_pm2_identity "$release_dir"
   (
@@ -247,6 +252,11 @@ run_plan() {
       NODE_OPTIONS="$successor_node_options" \
         "$node_cmd" --test tests/ec-bot-core-v78-r4-successor.test.mjs \
           tests/ec-bot-core-v78-r4-structural-linux.test.mjs
+    elif [[ "$successor_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+      NODE_OPTIONS="$successor_node_options" \
+        "$node_cmd" --test tests/ec-bot-core-v78-r4-successor.test.mjs \
+          tests/ec-bot-core-v78-r5-structural.test.mjs \
+          tests/v202-r5-successor-control.test.mjs
     else
       NODE_OPTIONS="--import=$release_dir/scripts/lib/ec-runtime-successor-v97-context.mjs" \
         "$node_cmd" --test tests/ec-bot-core-structural-v78.test.mjs
@@ -421,15 +431,25 @@ if [[ "$action" == "activate" ]]; then
     export "$key=$value"
   done <"$overlay_file"
   activation_node_options="$NODE_OPTIONS"
-  [[ "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
-    die "controller R4 exige contexto operacional R4; V201 não pode selecioná-lo"
+  [[ "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs"
+    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs" ]] ||
+    die "controller sucessor exige contexto operacional R4 ou R5"
   controller_file="$release_dir/scripts/lib/pm2-target-env-restart-v78-r4.mjs"
   [[ -f "$controller_file" && ! -L "$controller_file" ]] ||
     die "controller PM2 sucessor ausente ou inseguro"
-  expected_controller_sha="$(NODE_OPTIONS= npm_config_node_options= "$node_cmd" --input-type=module - "$release_dir" <<'NODE'
+  expected_controller_sha="$(NODE_OPTIONS= npm_config_node_options= "$node_cmd" --input-type=module - "$release_dir" "$activation_node_options" <<'NODE'
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 const release = process.argv[2];
+const selectedNodeOptions = process.argv[3];
+if (selectedNodeOptions.endsWith('unified-successor-v202-r5-preload.mjs')) {
+  const authority = await import(pathToFileURL(path.join(release,
+    'scripts/lib/unified-successor-v202-r5-authority.mjs')).href);
+  const selected = authority.readRootR5Checkpoint(release);
+  authority.verifyR5MaterializedRelease(release);
+  process.stdout.write(selected.value.controlHashes['scripts/lib/pm2-target-env-restart-v78-r4.mjs']);
+  process.exit(0);
+}
 const authority = await import(pathToFileURL(path.join(release,
   'scripts/lib/unified-successor-v202-r4-authority.mjs')).href);
 const selected = authority.readAuthorizedCheckpoint(release);
@@ -439,12 +459,17 @@ if (selected.value.checkpointId !== 'CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY'
 process.stdout.write(selected.value.r4Pm2ControllerSha256);
 NODE
 )" || die "autoridade do controller R4 inválida"
-  [[ "$expected_controller_sha" == "ebcd82efdf2d6b79b8b1c4e360fb2eded639f69cc11abf4c170abb4234c04663" ]] ||
-    die "autoridade selecionou controller não autorizado"
+  if [[ "$activation_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
+    [[ "$expected_controller_sha" == "ebcd82efdf2d6b79b8b1c4e360fb2eded639f69cc11abf4c170abb4234c04663" ]] ||
+      die "autoridade selecionou controller R4 não autorizado"
+  fi
   controller_sha256="$(sha256sum "$controller_file")"
   [[ "${controller_sha256%% *}" == "$expected_controller_sha" ]] ||
     die "controller PM2 sucessor não corresponde à autoridade selecionada"
   rollback_executor="$release_dir/ops/vitalismen-rollback-v201-r4.mjs"
+  if [[ "$activation_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+    rollback_executor="$release_dir/ops/vitalismen-rollback-v202-r5.mjs"
+  fi
   if [[ "$test_mode" == "true" ]]; then
     rollback_executor="${EC_BOT_CORE_V78_TEST_ROLLBACK_CMD:-$rollback_executor}"
   fi
@@ -460,6 +485,14 @@ NODE
         if "$node_cmd" "$rollback_executor" "$release"; then
           append_audit "activation_failed_v201_recovered" "$release" "rollback_verified"
           echo "V201_AUTO_ROLLBACK=PASS" >&2
+          exit "$failure_status"
+        fi
+      fi
+      if [[ "$activation_node_options" == *unified-successor-v202-r5-preload.mjs
+        && -f "$rollback_executor" && ! -L "$rollback_executor" ]]; then
+        if "$node_cmd" "$rollback_executor" "$release"; then
+          append_audit "activation_failed_r4_recovered" "$release" "rollback_verified"
+          echo "R4_AUTO_ROLLBACK=PASS" >&2
           exit "$failure_status"
         fi
       fi

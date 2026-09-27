@@ -233,7 +233,43 @@ const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const source = read(path.join(root, '.release-source.json')).value;
 assert.equal(path.basename(root), source.releaseName);
 let preload;
-if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
+const r5CheckpointPath =
+  '/var/lib/vitalismen-deploy/CHECKPOINT_R5_TEX_ULTRA_LOCALITY_ANTIREPEAT_AUTHORITY.json';
+let r5Checkpoint = null;
+if (fs.existsSync(r5CheckpointPath)) {
+  const stat = fs.lstatSync(r5CheckpointPath);
+  assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.uid === 0
+    && stat.gid === 0 && (stat.mode & 0o777) === 0o400);
+  r5Checkpoint = read(r5CheckpointPath).value;
+}
+if (r5Checkpoint && source.functionalCommit === r5Checkpoint.commit
+    && source.functionalTree === r5Checkpoint.tree) {
+  assert.equal(r5Checkpoint.checkpointId,
+    'CHECKPOINT_R5_TEX_ULTRA_LOCALITY_ANTIREPEAT_AUTHORITY');
+  assert.equal(r5Checkpoint.status, 'FROZEN');
+  assert.equal(r5Checkpoint.parentCheckpointSha256,
+    'edbc4130dee6d49b3cef5217ea22ad2bdce17447406450efbcac47404ef20ee5');
+  assert.equal(sha(fs.readFileSync(
+    '/var/lib/vitalismen-deploy/CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY.json')),
+    r5Checkpoint.parentCheckpointSha256);
+  const r5Manifest =
+    'docs/freeze/unified-successor-v202-r5-tex-ultra-locality-antirepeat-20260927.json';
+  assert.equal(sha(read(path.join(root, r5Manifest)).bytes),
+    r5Checkpoint.manifestSha256);
+  for (const [relative, expected] of Object.entries({
+    ...r5Checkpoint.controlHashes,
+    ...r5Checkpoint.functionalHashes,
+    ...r5Checkpoint.regressionHashes
+  })) {
+    const file = path.join(root, relative);
+    const item = fs.lstatSync(file);
+    assert.ok(item.isFile() && !item.isSymbolicLink());
+    assert.equal(sha(fs.readFileSync(file)), expected);
+  }
+  assert.equal(sha(fs.readFileSync('/usr/local/sbin/vitalismen-stage')),
+    r5Checkpoint.controlHashes['ops/vitalismen-stage']);
+  preload = 'scripts/lib/unified-successor-v202-r5-preload.mjs';
+} else if (source.releaseName === '20260920T163629Z_production-20260920-8c25ed9'
     && source.functionalCommit === '8c25ed9912abc4aabee2656cf9192420389934c6'
     && source.functionalTree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283') {
   preload = 'scripts/lib/ec-runtime-successor-v97-context.mjs';
@@ -441,6 +477,7 @@ const excludedRootFiles = new Set([
   '.canary-v77-profile-attestation.json',
   '.release-source.json',
   '.r4-operational-attestation.json',
+  '.r5-operational-attestation.json',
   '.staging-complete.json',
   '.release-publication.json',
   '.publication-complete.json',
@@ -1308,6 +1345,9 @@ NODE
     if [[ "$candidate_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
       "$env_cmd" -C "$candidate_dir" NODE_OPTIONS= "$node_cmd" \
         scripts/run-unified-successor-v202-r4.mjs --final-release "$candidate_dir" >/dev/null
+    elif [[ "$candidate_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+      "$env_cmd" -C "$candidate_dir" NODE_OPTIONS= "$node_cmd" \
+        scripts/run-unified-successor-v202-r5.mjs --final-release "$candidate_dir" >/dev/null
     else
       "$env_cmd" -C "$candidate_dir" npm_config_node_options="$candidate_guard_node_options" \
         "$npm_cmd" run guard:runtime-chain-v71 >/dev/null
@@ -1466,6 +1506,11 @@ safe_pm2() {
       "$target_dir/scripts/verify-unified-successor-v202-r4-stage.mjs" verify "$target_dir" >/dev/null ||
       die "attestation R4 inválida antes do PM2"
   fi
+  if [[ "$target_preload_relative" == "scripts/lib/unified-successor-v202-r5-preload.mjs" ]]; then
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+      "$target_dir/scripts/verify-unified-successor-v202-r5-stage.mjs" verify "$target_dir" >/dev/null ||
+      die "attestation R5 inválida antes do PM2"
+  fi
   if [[ "$target_preload_relative" == "scripts/lib/ec-runtime-successor-v97-context.mjs" ]]; then
     pm2_exec=(
       "$node_cmd" "$target_dir/scripts/lib/pm2-target-env-restart-v89.mjs"
@@ -1483,7 +1528,8 @@ assert.equal(processName, 'vitalismen-automation');
 assert.ok(['start', 'restart'].includes(action));
 assert.ok([
   '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v199-context.mjs',
-  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs'
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs',
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs'
 ].includes(nodeOptions));
 const packagePath = path.join(moduleRoot, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
@@ -3192,6 +3238,22 @@ if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]
   [[ -f "$release_dir/.r4-operational-attestation.json" ]] ||
     die "attestation R4 não foi criada antes da remoção de .git"
 fi
+if [[ "$release_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+  [[ -f "$release_dir/scripts/verify-unified-successor-v202-r5-stage.mjs"
+    && ! -L "$release_dir/scripts/verify-unified-successor-v202-r5-stage.mjs"
+    && -f "$release_dir/scripts/lib/unified-successor-v202-r5-authority.mjs"
+    && ! -L "$release_dir/scripts/lib/unified-successor-v202-r5-authority.mjs" ]] ||
+    die "código de attestation R5 ausente ou inseguro"
+  "$git_cmd" -C "$release_dir" diff --quiet HEAD -- \
+    scripts/verify-unified-successor-v202-r5-stage.mjs \
+    scripts/lib/unified-successor-v202-r5-authority.mjs ||
+    die "código de attestation R5 diverge do Git autorizado"
+  run_protected r5_git_attestation \
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+    "$release_dir/scripts/verify-unified-successor-v202-r5-stage.mjs" attest "$release_dir"
+  [[ -f "$release_dir/.r5-operational-attestation.json" ]] ||
+    die "attestation R5 não foi criada antes da remoção de .git"
+fi
 
 rm -rf -- "$release_dir/.git"
 
@@ -3199,6 +3261,11 @@ if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]
   run_protected r4_materialized_attestation \
     "$env_cmd" NODE_OPTIONS= "$node_cmd" \
     "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs" verify "$release_dir"
+fi
+if [[ "$release_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+  run_protected r5_materialized_attestation \
+    "$env_cmd" NODE_OPTIONS= "$node_cmd" \
+    "$release_dir/scripts/verify-unified-successor-v202-r5-stage.mjs" verify "$release_dir"
 fi
 
 run_protected npm_ci \
@@ -3227,6 +3294,17 @@ if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]
   predeploy_command=("$env_cmd" -C "$current_before"
     npm_config_node_options="$historical_guard_node_options"
     "$npm_cmd" run guard:predeploy-v71)
+elif [[ "$release_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+  historical_guard_node_options="$(successor_guard_node_options "$current_before")"
+  [[ "$historical_guard_node_options" == "--import=file://$current_before/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
+    die "R5 exige a release R4 fe32da0 como predecessora"
+  [[ "$(basename "$current_before")" == "20260925T195542Z_production-20260925-fe32da0" ]] ||
+    die "R5 exige a release R4 fe32da0 exata"
+  runtime_guard_command=("$env_cmd" -C "$release_dir" NODE_OPTIONS= "$node_cmd"
+    scripts/run-unified-successor-v202-r5.mjs --runtime "$release_dir")
+  predeploy_command=("$env_cmd" -C "$current_before"
+    npm_config_node_options="$historical_guard_node_options"
+    "$npm_cmd" run guard:predeploy-v71)
 else
   runtime_guard_command=("$env_cmd" -C "$release_dir"
     npm_config_node_options="$release_guard_node_options"
@@ -3252,6 +3330,9 @@ run_protected official_state_audit \
 if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
   freeze_lock_command=("$env_cmd" -C "$release_dir" NODE_OPTIONS= "$node_cmd"
     scripts/run-unified-successor-v202-r4.mjs --freeze-lock "$release_dir")
+elif [[ "$release_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
+  freeze_lock_command=("$env_cmd" -C "$release_dir" NODE_OPTIONS= "$node_cmd"
+    scripts/run-unified-successor-v202-r5.mjs --freeze-lock "$release_dir")
 else
   freeze_lock_command=("$env_cmd" -C "$release_dir"
     npm_config_node_options="$release_guard_node_options"

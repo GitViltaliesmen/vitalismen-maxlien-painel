@@ -28,6 +28,10 @@ import {
     classifyReleasePreload, readAuthorizedCheckpoint, manifestPathForCheckpoint,
     verifyMaterializedRelease
 } from './unified-successor-v202-r4-authority.mjs';
+import {
+    R5_ATTESTATION_NAME, R5_MANIFEST_PATH,
+    classifyR5ReleasePreload, readRootR5Checkpoint, verifyR5MaterializedRelease
+} from './unified-successor-v202-r5-authority.mjs';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
 export const EC_BOT_CORE_V78_PROFILE_NAME = EC_BOT_CORE_V78_MODE;
@@ -48,15 +52,16 @@ const canonicalJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const fileSha256 = (file) => sha256(fs.readFileSync(file));
 
-export const calculateR4PublishedFunctionalPayloadSha256V78 = (releaseRoot) => {
+const calculatePublishedFunctionalPayloadSha256V78 = (releaseRoot, attestationName) => {
     const root = path.resolve(clean(releaseRoot));
-    const generatedAttestation = path.join(root, R4_ATTESTATION_NAME);
+    const generatedAttestation = path.join(root, attestationName);
     const attestationStat = fs.lstatSync(generatedAttestation);
     if (!attestationStat.isFile() || attestationStat.isSymbolicLink()) {
-        throw new Error('r4_generated_attestation_unsafe');
+        throw new Error(attestationName === R4_ATTESTATION_NAME
+            ? 'r4_generated_attestation_unsafe' : 'r5_generated_attestation_unsafe');
     }
     const excludedRootFiles = new Set([
-        ...V78_FUNCTIONAL_ROOT_EXCLUSIONS, R4_ATTESTATION_NAME
+        ...V78_FUNCTIONAL_ROOT_EXCLUSIONS, attestationName
     ]);
     const hash = crypto.createHash('sha256');
     const visit = (directory, relative = '') => {
@@ -89,6 +94,10 @@ export const calculateR4PublishedFunctionalPayloadSha256V78 = (releaseRoot) => {
     visit(root);
     return hash.digest('hex');
 };
+export const calculateR4PublishedFunctionalPayloadSha256V78 = (releaseRoot) =>
+    calculatePublishedFunctionalPayloadSha256V78(releaseRoot, R4_ATTESTATION_NAME);
+export const calculateR5PublishedFunctionalPayloadSha256V78 = (releaseRoot) =>
+    calculatePublishedFunctionalPayloadSha256V78(releaseRoot, R5_ATTESTATION_NAME);
 
 const assertCanonicalJsonFile = (file, label) => {
     const content = fs.readFileSync(file, 'utf8');
@@ -152,7 +161,9 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         || clean(publicationComplete.publicationTagResolvedCommit).toLowerCase() !== commit) {
         throw new Error('release_functional_identity_mismatch');
     }
-    const functionalPayloadSha256 = fs.existsSync(path.join(resolved, R4_ATTESTATION_NAME))
+    const functionalPayloadSha256 = fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))
+        ? calculateR5PublishedFunctionalPayloadSha256V78(resolved)
+        : fs.existsSync(path.join(resolved, R4_ATTESTATION_NAME))
         ? calculateR4PublishedFunctionalPayloadSha256V78(resolved)
         : calculateFunctionalPayloadSha256V78(resolved);
     if (staging.functionalPayloadSha256 !== functionalPayloadSha256
@@ -171,7 +182,14 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     let successorManifestRelative = SUCCESSOR_MANIFEST_PATH;
     const legacyExact = commit === '8c25ed9912abc4aabee2656cf9192420389934c6'
         && tree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
-    if (!legacyExact && (commit !== V201_COMMIT || tree !== V201_TREE)) {
+    if (fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))) {
+        const checkpoint = readRootR5Checkpoint(resolved).value;
+        if (commit !== checkpoint.commit || tree !== checkpoint.tree) {
+            throw new Error('r5_successor_release_not_enumerated');
+        }
+        verifyR5MaterializedRelease(resolved);
+        successorManifestRelative = R5_MANIFEST_PATH;
+    } else if (!legacyExact && (commit !== V201_COMMIT || tree !== V201_TREE)) {
         const checkpoint = readAuthorizedCheckpoint(resolved).value;
         if (commit !== checkpoint.r4OperationalCommit || tree !== checkpoint.r4OperationalTree) {
             throw new Error('successor_release_not_enumerated');
@@ -413,9 +431,12 @@ const runCli = () => {
         if (args.length !== 2) throw new Error('usage_select_preload_invalid');
         const releaseDir = path.resolve(clean(args[0]));
         if (path.basename(releaseDir) !== args[1]) throw new Error('release_path_identity_invalid');
-        const relative = classifyReleasePreload(releaseDir, { requireAttestation: true });
+        const relative = fs.existsSync(path.join(releaseDir, R5_ATTESTATION_NAME))
+            ? classifyR5ReleasePreload(releaseDir, { requireAttestation: true })
+            : classifyReleasePreload(releaseDir, { requireAttestation: true });
         if (!['scripts/lib/ec-runtime-successor-v199-context.mjs',
-            'scripts/lib/unified-successor-v202-r4-preload.mjs'].includes(relative)) {
+            'scripts/lib/unified-successor-v202-r4-preload.mjs',
+            'scripts/lib/unified-successor-v202-r5-preload.mjs'].includes(relative)) {
             throw new Error('v78_successor_preload_not_approved');
         }
         process.stdout.write(`${relative}\n`);

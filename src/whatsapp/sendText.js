@@ -72,14 +72,12 @@ const recentHistoryPhoneClauses = ({ targetJid, recipientDigits }) => {
     const digits = digitsOnly(recipientDigits) || digitsOnly(jid);
     if (jid) clauses.push({ chatId: jid }, { to: jid }, { from: jid });
     if (digits.length >= 8) {
-        const tail = digits.slice(-10);
-        const tailRegex = new RegExp(`${escapeRegex(tail)}(?:\\D|$)`);
+        const exactPhoneRegex = new RegExp(`(?:^|\\D)${escapeRegex(digits)}(?:\\D|$)`);
         clauses.push(
             { peerPhone: digits },
-            { peerPhone: { $regex: `${escapeRegex(tail)}$` } },
-            { chatId: { $regex: tailRegex } },
-            { to: { $regex: tailRegex } },
-            { from: { $regex: tailRegex } }
+            { chatId: { $regex: exactPhoneRegex } },
+            { to: { $regex: exactPhoneRegex } },
+            { from: { $regex: exactPhoneRegex } }
         );
     }
     return clauses;

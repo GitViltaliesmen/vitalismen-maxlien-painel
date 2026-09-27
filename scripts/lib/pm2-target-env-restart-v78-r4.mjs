@@ -28,7 +28,26 @@ if (sourceBytes.toString('utf8') !== `${JSON.stringify(source, null, 2)}\n`
     || source.releaseName !== path.basename(releaseDir)) {
     throw new Error('controller_release_source_invalid');
 }
-if (source.functionalCommit === '641759b160c2b91e95a3f1df371ad372a74d72e1'
+if (fs.existsSync(path.join(releaseDir, '.r5-operational-attestation.json'))) {
+    if (targetNodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs') {
+        throw new Error('controller_r5_node_options_invalid');
+    }
+    const authorityPath = path.join(releaseDir,
+        'scripts/lib/unified-successor-v202-r5-authority.mjs');
+    const { readRootR5Checkpoint, verifyR5MaterializedRelease } = await import(
+        pathToFileURL(authorityPath).href);
+    const checkpoint = readRootR5Checkpoint(releaseDir);
+    if (checkpoint.value.controlHashes['scripts/lib/pm2-target-env-restart-v78-r4.mjs']
+        !== sha256(regular(path.join(releaseDir,
+            'scripts/lib/pm2-target-env-restart-v78-r4.mjs')))) {
+        throw new Error('controller_r5_hash_invalid');
+    }
+    const verified = verifyR5MaterializedRelease(releaseDir);
+    if (verified.checkpoint.commit !== source.functionalCommit
+        || verified.checkpoint.tree !== source.functionalTree) {
+        throw new Error('controller_r5_identity_invalid');
+    }
+} else if (source.functionalCommit === '641759b160c2b91e95a3f1df371ad372a74d72e1'
     && source.functionalTree === '1feb02ad1a3f2ae266ef519bf33426b91ac80aa3') {
     if (!/^\d{8}T\d{6}Z_production-\d{8}-641759b$/.test(source.releaseName)
         || sha256(regular(path.join(releaseDir,

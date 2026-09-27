@@ -1,0 +1,58 @@
+{
+  "successorId": "MAXLIEN_EC_V202_R5_TEX_ULTRA_LOCALITY_ANTIREPEAT_20260927",
+  "version": "V202-R5",
+  "status": "authorized_only_with_exact_root_checkpoint",
+  "parent": {
+    "release": "20260925T195542Z_production-20260925-fe32da0",
+    "commit": "fe32da042617335d11b9fcde2e5dc0d4519c9915",
+    "tree": "fe3c34e7a47d3e291c1d4c349e493ebbc93c9b6c",
+    "checkpointId": "CHECKPOINT_R4_V78_CONTROLLER_PIN_AUTHORITY",
+    "checkpointSha256": "edbc4130dee6d49b3cef5217ea22ad2bdce17447406450efbcac47404ef20ee5",
+    "manifestSha256": "5db4769b20956ae9aba52293e1699b8fdbf4999aaa9ed8f62d74a8e9c7c9c349"
+  },
+  "inheritedWorkflowSha256": "ce8eba69bdda6bac782190e31b746052317255fd18f50b6131a9dd116416aa46",
+  "functionalFiles": {
+    "src/services/servientregaEcuadorAgencyService.js": "f1628d2a4f25fb1abbb552b2a3d8fa86bb4a6fae99761236d9189a11faefa027",
+    "src/whatsapp/sendText.js": "81fa2aef922bc0e71cdd30ad3a9d45f5c2aaac2fdbc250bebcbdbe3cd1da09fb"
+  },
+  "regressionFiles": {
+    "tests/send-text-history-phone-scope.test.mjs": "c6372c5f9d76b87a90483533e78167670a3973d864b1ad42fe901996582e9c0e",
+    "tests/servientrega-locality-scope.test.mjs": "4af36ae082f93aac95c87695730d7dda2db9b51ab75aae53975d065d28f4145e"
+  },
+  "allowedDeltaPaths": [
+    "docs/EC_V202_R5_PUBLICATION_SUCCESSOR_AUDIT_20260927.md",
+    "docs/freeze/unified-successor-v202-r5-tex-ultra-locality-antirepeat-20260927.json",
+    "ops/ec-bot-core-v78-successor-r4",
+    "ops/vitalismen-rollback-v202-r5.mjs",
+    "ops/vitalismen-stage",
+    "scripts/guard-final-release-validator-successor-v202-r5.mjs",
+    "scripts/guard-freeze-lock-successor-v202-r5.mjs",
+    "scripts/guard-unified-successor-v202-r5.mjs",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/unified-successor-v202-r5-authority.mjs",
+    "scripts/lib/unified-successor-v202-r5-precommit-context.mjs",
+    "scripts/lib/unified-successor-v202-r5-preload.mjs",
+    "scripts/run-unified-successor-v202-r5.mjs",
+    "scripts/run-v202-r5-precommit-senior.mjs",
+    "scripts/verify-unified-successor-v202-r5-stage.mjs",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "src/services/servientregaEcuadorAgencyService.js",
+    "src/whatsapp/sendText.js",
+    "tests/ec-bot-core-v78-r5-structural.test.mjs",
+    "tests/send-text-history-phone-scope.test.mjs",
+    "tests/servientrega-locality-scope.test.mjs",
+    "tests/v202-r5-historical-gates.test.mjs",
+    "tests/v202-r5-successor-control.test.mjs"
+  ],
+  "policy": {
+    "failClosed": true,
+    "historicalR4AndV47Unchanged": true,
+    "newCommitAndTreePinnedByRootCheckpoint": true,
+    "functionalFilesExactlyTwo": true,
+    "realWhatsAppMessages": false,
+    "realDropiOrders": false,
+    "realPurchaseEvents": false,
+    "rollbackRelease": "20260925T195542Z_production-20260925-fe32da0"
+  }
+}

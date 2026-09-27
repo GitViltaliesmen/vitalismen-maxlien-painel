@@ -59,6 +59,7 @@ const tokensFor = (value) => normalizeAgencyText(value)
 
 const GENERIC_AGENCY_LOCATION_TOKENS = new Set([
     'CENTRO',
+    'CENTRAL',
     'NORTE',
     'SUR',
     'ESTE',
@@ -123,6 +124,8 @@ const shouldSuppressFuzzyLocationFromAgencyToken = ({
 } = {}) => {
     if (explicitCity || explicitProvince || city || province) return false;
     if (hasExactCatalogLocationPhrase(input, cityCatalog, provinceCatalog)) return false;
+    if (expandCatalogInputVariants(input).some((variant) => [...cityCatalog, ...provinceCatalog]
+        .some((item) => item.normalized === variant))) return false;
     const tokens = distinctiveAgencyTokens(tokensFor(input));
     if (!tokens.length) return false;
     const locationCatalog = [...cityCatalog, ...provinceCatalog];
@@ -268,7 +271,8 @@ const expandCatalogInputVariants = (input = '') => {
     if (CITY_ALIAS_MAP.has(compact)) variants.add(CITY_ALIAS_MAP.get(compact));
 
     for (const [alias, canonical] of CITY_ALIAS_MAP.entries()) {
-        if (normalized.includes(alias) || compact.includes(alias.replace(/\s+/g, ''))) {
+        const normalizedAlias = normalizeAgencyText(alias);
+        if (` ${normalized} `.includes(` ${normalizedAlias} `) || compact === compactAgencyText(normalizedAlias)) {
             variants.add(canonical);
         }
     }
@@ -314,13 +318,11 @@ const bestCatalogMatch = (input = '', catalog = []) => {
     if (exact) return { ...exact, score: 100 };
 
     const contained = catalog
-        .filter((item) => item.normalized.length >= 4 && meaningfulVariants.some((variant) => (
-            variant.includes(item.normalized)
-            || item.normalized.includes(variant)
-            || compactAgencyText(variant).includes(compactAgencyText(item.normalized))
-            || compactAgencyText(item.normalized).includes(compactAgencyText(variant))
+        .filter((item) => item.normalized.length >= 4 && (
+            meaningfulVariants.some((variant) => ` ${variant} `.includes(` ${item.normalized} `))
             || tokens.includes(item.normalized)
-        )))
+            || tokens.includes(compactAgencyText(item.normalized))
+        ))
         .sort((a, b) => b.normalized.length - a.normalized.length)[0];
     if (contained) return { ...contained, score: 90 };
 
@@ -328,8 +330,8 @@ const bestCatalogMatch = (input = '', catalog = []) => {
         .map((item) => {
             const itemCompact = compactAgencyText(item.normalized);
             const distances = [
-                ...tokens.map((token) => levenshteinDistance(token, item.normalized)),
-                ...meaningfulVariants.flatMap((variant) => ([
+                ...tokens.filter((token) => token.length >= 4).map((token) => levenshteinDistance(token, item.normalized)),
+                ...meaningfulVariants.filter((variant) => compactAgencyText(variant).length >= 4).flatMap((variant) => ([
                     levenshteinDistance(variant, item.normalized),
                     levenshteinDistance(compactAgencyText(variant), itemCompact)
                 ]))
@@ -405,9 +407,16 @@ export const findKnownServientregaEcuadorLocation = ({
     const exactProvinceMatch = exactCatalogMatch(provinceInput, provinceCatalog);
     const shouldFuzzyProvince = Boolean(explicit.province || province || !exactCityMatch || exactProvinceMatch);
     const cityMatch = suppressFuzzyLocation ? null : (exactCityMatch || bestCatalogMatch(cityInput, cityCatalog));
-    const provinceMatch = suppressFuzzyLocation
+    let provinceMatch = suppressFuzzyLocation
         ? null
         : (exactProvinceMatch || (shouldFuzzyProvince ? bestCatalogMatch(provinceInput, provinceCatalog) : null));
+    if (cityMatch && provinceMatch && !explicit.province && !province
+        && !agencies.some((agency) => (
+            agency.normalizedCity === cityMatch.normalized
+            && agency.normalizedProvince === provinceMatch.normalized
+        ))) {
+        provinceMatch = null;
+    }
 
     const matchingAgencies = (cityMatch || provinceMatch)
         ? agencies.filter((agency) => (
@@ -445,31 +454,38 @@ export const findServientregaEcuadorAgencies = ({
     const hasProvinceInput = Boolean(normalizeAgencyText(province));
     if (strictCityScopeEnabled && hasCityInput && !knownLocation.cityMatched) return [];
     if (strictCityScopeEnabled && hasCityInput && hasProvinceInput && !knownLocation.provinceMatched) return [];
+    const explicitQueryLocation = extractExplicitLocationParts(query);
+    if ((explicitQueryLocation.city || hasCityInput) && !knownLocation.cityMatched) return [];
+    if ((explicitQueryLocation.province || hasProvinceInput) && !knownLocation.provinceMatched) return [];
 
     const normalizedCity = normalizeAgencyText(knownLocation.city || city);
     const normalizedProvince = normalizeAgencyText(knownLocation.province || province);
     const normalizedQuery = normalizeAgencyText(query);
+    const hasCanonicalCity = Boolean(knownLocation.cityMatched && normalizedCity);
+    if (normalizedQuery.length < 4 && !hasCanonicalCity && !hasCityInput && !hasProvinceInput) return [];
+    if (normalizedQuery.length < 6 && !hasCanonicalCity && !hasCityInput && !hasProvinceInput) {
+        const exactAgencyTerm = agencies.some((agency) => [
+            agency.normalizedName,
+            agency.normalizedAddress,
+            agency.normalizedSector
+        ].some((value) => ` ${value} `.includes(` ${normalizedQuery} `)));
+        if (!exactAgencyTerm) return [];
+    }
     const queryTokens = tokensFor(query);
     const meaningfulQueryTokens = queryTokens.filter((token) => token.length >= 3 && !GENERIC_AGENCY_LOCATION_TOKENS.has(token));
     const hasExplicitScopedLocation = Boolean(normalizeAgencyText(city) || normalizeAgencyText(province));
-    const candidateAgencies = strictCityScopeEnabled && hasCityInput
+    const candidateAgencies = (strictCityScopeEnabled && hasCityInput) || hasCanonicalCity
         ? agencies.filter((agency) => (
             agency.normalizedCity === normalizedCity
-            && (!hasProvinceInput || agency.normalizedProvince === normalizedProvince)
+            && (!normalizedProvince || agency.normalizedProvince === normalizedProvince)
         ))
         : agencies;
 
     const scored = candidateAgencies.map((agency) => {
         const cityExactMatched = Boolean(normalizedCity && agency.normalizedCity === normalizedCity);
-        const cityMatched = Boolean(cityExactMatched || (normalizedCity && (
-            agency.normalizedCity.includes(normalizedCity)
-            || normalizedCity.includes(agency.normalizedCity)
-        )));
+        const cityMatched = cityExactMatched;
         const provinceExactMatched = Boolean(normalizedProvince && agency.normalizedProvince === normalizedProvince);
-        const provinceMatched = Boolean(provinceExactMatched || (normalizedProvince && (
-            agency.normalizedProvince.includes(normalizedProvince)
-            || normalizedProvince.includes(agency.normalizedProvince)
-        )));
+        const provinceMatched = provinceExactMatched;
         const queryNameMatched = Boolean(normalizedQuery.length >= 3 && (
             agency.normalizedName
             && (agency.normalizedName.includes(normalizedQuery)
@@ -588,7 +604,7 @@ export const findServientregaEcuadorAgencies = ({
         .filter((item) => item.score > 0 && (
             !normalizedQuery
             || item.matchKind !== 'none'
-            || (!strictCityScopeEnabled && hasExplicitScopedLocation && item.cityMatched && item.provinceMatched)
+            || (!strictCityScopeEnabled && (hasExplicitScopedLocation || hasCanonicalCity) && item.cityMatched && item.provinceMatched)
         ))
         .sort((a, b) => b.score - a.score || a.agency.name.localeCompare(b.agency.name));
 
