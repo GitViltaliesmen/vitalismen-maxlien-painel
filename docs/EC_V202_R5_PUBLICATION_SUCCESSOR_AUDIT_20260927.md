@@ -100,3 +100,25 @@ seu commit/tree, o checkpoint, o controlador PM2 e os três hashes do bundle
 operacional R4. `--dry-run` não altera estado. Se necessário, restaura o
 symlink por rename atômico, o bundle R4 arquivado pelo `supersede`, reinicia
 somente `vitalismen-automation` com o controlador R4 e exige health/Z-API.
+
+## Sucessor formal do predeploy V71 (2026-09-27)
+
+O candidato funcional `389197083c8a92b8fe4a8f4828e8a725c5754e21`, árvore
+`534dc1a31957aa651eb076628a7271220a04ee9e`, passou a atestação Git,
+materialização, compatibilidade de dados e guard runtime no staging. O V71
+falhou antes de qualquer ativação: era executado no R4 `fe32da0`, cujo guard
+V147 esperava o hash do helper V201, embora o R4 aprovado contenha o helper
+R4. A falha é de contexto histórico de governança, não dos dois patches.
+
+O sucessor conserva o R4 e sua checagem de identidade como predecessora.
+Altera somente o comando de predeploy do ramo R5 para executar
+`guard:predeploy-v71` na release candidata, com o preload R5 autenticado pelo
+checkpoint root. A cadeia ancestral V71 permanece obrigatória e falha
+fechado. Os ramos R4 e genérico do helper permanecem inalterados.
+
+O checkpoint da tentativa `3891970` fica preservado em backup imutável como
+evidência de falha de staging. O checkpoint root da nova tentativa pinna novo
+commit/tree de governança e novo hash do helper; hashes dos dois patches,
+regressões, manifesto e pai R4 são idênticos aos do candidato funcional.
+Nenhum arquivo funcional adicional, VSL, Contabo, VTurb, bridge ou Z-API foi
+alterado.

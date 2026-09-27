@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
     R5_CONTROL_PATHS,
@@ -62,4 +63,14 @@ test('checkpoint R5 exige pai imutável, controles exatos e rollback fe32da0', (
         change(invalid);
         assert.throws(() => validateR5Checkpoint(invalid, manifestFile.sha256));
     }
+});
+
+test('sucessor V71 executa predeploy da candidata R5 com preload atestado', () => {
+    const helper = fs.readFileSync(new URL('../ops/vitalismen-stage', import.meta.url), 'utf8');
+    const r5 = helper.split('elif [[ "$release_guard_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then')[1]
+        .split('\nelse\n')[0];
+    assert.ok(r5.includes('successor_guard_node_options "$current_before"'));
+    assert.ok(r5.includes('R5 exige a release R4 fe32da0 exata'));
+    assert.match(r5, /predeploy_command=\("\$env_cmd" -C "\$release_dir"\s+npm_config_node_options="\$release_guard_node_options"\s+"\$npm_cmd" run guard:predeploy-v71\)/);
+    assert.doesNotMatch(r5, /predeploy_command=\("\$env_cmd" -C "\$current_before"/);
 });
