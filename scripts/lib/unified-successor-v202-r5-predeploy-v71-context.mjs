@@ -12,7 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const stagePath = 'ops/vitalismen-stage';
 const shipmentsPath = 'src/routes/shipments.js';
 const historicalStage = '803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99';
-const currentStage = '1a119788ee3188588f44912bffc5e4359a5122d333225358a129c01108ad0a71';
+const currentStage = '7d1f8c4737d36a97ec7c6ec8dc7d0881387f4a18ea999928891d6090bf71c5f0';
 const historicalShipments = '1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0';
 const currentShipments = 'c083862ea7123d854fd7260375632d1f4535451b26a53f1e9edf38d7b6ab0ef8';
 const sha256 = (relative) => {

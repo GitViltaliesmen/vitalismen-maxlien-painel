@@ -1496,7 +1496,11 @@ safe_pm2() {
   [[ "$target_node_options" == "--import=file://$target_dir/"* ]] ||
     die "preload safe fora do release atual"
   target_preload_relative="${target_node_options#--import=file://$target_dir/}"
-  target_node_options="--import=file:///opt/vitalismen-automacao/current/$target_preload_relative"
+  if [[ "$target_preload_relative" == "scripts/lib/ec-runtime-successor-v97-context.mjs" ]]; then
+    target_node_options="--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v97-context.mjs"
+  else
+    target_node_options="--import=file:///opt/vitalismen-automacao/current/$target_preload_relative"
+  fi
   pm2_realpath="$("$readlink_cmd" -f "$pm2_cmd")"
   [[ "$pm2_realpath" == */pm2/bin/pm2 ]] || die "binário PM2 fora do pacote canônico"
   pm2_module_root="${pm2_realpath%/bin/pm2}"

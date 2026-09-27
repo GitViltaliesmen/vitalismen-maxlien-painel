@@ -76,13 +76,16 @@ test('sucessor V71 executa predeploy da candidata R5 com preload atestado', () =
 });
 
 test('R5 sucede somente helper e shipments com identidades exatas no staging', () => {
+    const helper = fs.readFileSync(new URL('../ops/vitalismen-stage', import.meta.url), 'utf8');
     const preload = fs.readFileSync(new URL('../scripts/lib/unified-successor-v202-r5-preload.mjs', import.meta.url), 'utf8');
     const successor = fs.readFileSync(new URL('../scripts/lib/unified-successor-v202-r5-predeploy-v71-context.mjs', import.meta.url), 'utf8');
     assert.ok(manifest.allowedDeltaPaths.includes('scripts/lib/unified-successor-v202-r5-predeploy-v71-context.mjs'));
     assert.ok(R5_CONTROL_PATHS.includes('scripts/lib/unified-successor-v202-r5-predeploy-v71-context.mjs'));
+    assert.match(helper, /target_node_options="--import=file:\/\/\/opt\/vitalismen-automacao\/current\/scripts\/lib\/ec-runtime-successor-v97-context\.mjs"/);
+    assert.match(helper, /target_node_options="--import=file:\/\/\/opt\/vitalismen-automacao\/current\/\$target_preload_relative"/);
     assert.match(preload, /realpathSync\('\/opt\/vitalismen-automacao\/current'\) !== root/);
     assert.match(successor, /803481d66f89b235e3d1451050dfe3d64764389f14aa6596bba65cf381e18f99/);
-    assert.match(successor, /1a119788ee3188588f44912bffc5e4359a5122d333225358a129c01108ad0a71/);
+    assert.match(successor, /7d1f8c4737d36a97ec7c6ec8dc7d0881387f4a18ea999928891d6090bf71c5f0/);
     assert.match(successor, /1be80bc61829c56060fd67d1c7248068983a7ac7ddd1d61b2b9e371bdbe49af0/);
     assert.match(successor, /c083862ea7123d854fd7260375632d1f4535451b26a53f1e9edf38d7b6ab0ef8/);
 });
