@@ -183,6 +183,65 @@ export const canPromoteAutomatedVslEntry = ({
     return Boolean(incoming) && (!stored || stored === incoming);
 };
 
+// Only an exact, persisted EXUTRA attribution can release the short-lived
+// capture hold. A generic zapi marker is never an automatic-release authority.
+export const canReleaseExutraCaptureHold = ({ state = {}, attribution = {},
+    now = new Date(), hasHumanOutbound = true } = {}) => {
+    const at = new Date(now).getTime();
+    const recent = (value) => {
+        if (!value) return false;
+        const time = new Date(value).getTime();
+        return Number.isFinite(time) && time <= at && at - time <= 120_000;
+    };
+    let source;
+    try { source = new URL(attribution.sourceUrl); } catch { return false; }
+    const human = state.human || {};
+    return Number.isFinite(at)
+        && attribution.ok === true && attribution.claimed === true
+        && attribution.confidence === 'exact_message_unique_120s'
+        && Boolean(attribution.visitId)
+        && source.origin === 'https://maxlien.shop' && source.pathname === '/exutra'
+        && attribution.productKey === 'tex_ultra_ec'
+        && state.metadata?.vslVisitId === String(attribution.visitId)
+        && state.metadata?.vslVariant === 'exutra'
+        && state.metadata?.vslProductKey === 'tex_ultra_ec'
+        && state.metadata?.metaAttributionBridge?.source === 'zapi_exact_message_unique_120s'
+        && state.countryCode === 'EC'
+        && human.mode === 'manual' && human.lastManualBy === 'zapi'
+        && human.assignedName === 'Captura Z-API' && !human.assignedTo
+        && !human.pausedUntil && !state.lastOutboundAt && !hasHumanOutbound
+        && !state.metadata?.productRouteLock?.active
+        && recent(state.createdAt) && recent(state.firstInboundAt)
+        && recent(human.lastManualAt) && recent(state.metadata?.zapiCapturedAt);
+};
+
+export const releaseExutraCaptureHold = async ({ state, attribution, now,
+    StateModel = ContactState, MessageModel = Message } = {}) => {
+    if (!canReleaseExutraCaptureHold({ state, attribution, now, hasHumanOutbound: false })) return null;
+    const hasHumanOutbound = Boolean(await MessageModel.exists({
+        $or: [{ chatId: state.chatId }, { peerPhone: state.phoneDigits }],
+        isFromMe: true,
+        $and: [{ $or: [{ senderRole: 'human' }, { isBot: { $ne: true } }] }]
+    }));
+    if (!canReleaseExutraCaptureHold({ state, attribution, now, hasHumanOutbound })) return null;
+    // CAS includes the last persisted version: a concurrent human takeover,
+    // response or product selection wins and leaves the manual hold intact.
+    return StateModel.findOneAndUpdate({
+        _id: state._id, updatedAt: state.updatedAt,
+        'human.mode': 'manual', 'human.lastManualBy': 'zapi',
+        'human.lastManualAt': state.human.lastManualAt,
+        'human.assignedName': 'Captura Z-API',
+        'human.assignedTo': { $in: [null, ''] },
+        'human.pausedUntil': null, lastOutboundAt: null,
+        'metadata.productRouteLock.active': { $ne: true },
+        'metadata.vslVisitId': String(attribution.visitId)
+    }, { $set: {
+        'human.mode': 'auto', 'human.lastManualBy': 'tex_ultra_vsl_entry_ready',
+        'human.assignedName': 'Entrada VSL',
+        'human.note': 'Entrada EXUTRA validada; hold da captura Z-API promovido.'
+    } }, { new: true });
+};
+
 const normalizeVslText = (text = '') => String(text || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -915,7 +974,7 @@ const recordZapiInboundPayload = async (payload = {}) => {
     const publicVslLeadEntry = vslRoutingAllowed
         && Boolean(vslProductContext)
         && (looksLikePublicVslLeadText(normalizedBody) || Boolean(vslProductContext));
-    const targetState = state || new ContactState({
+    let targetState = state || new ContactState({
         chatId,
         phoneDigits: phone,
         countryCode: inferredCountry
@@ -1085,6 +1144,17 @@ const recordZapiInboundPayload = async (payload = {}) => {
         targetState.markModified('metadata');
     }
     await targetState.save();
+    if (newMessage && attributedProductContext) {
+        try {
+            const promoted = await releaseExutraCaptureHold({
+                state: targetState, attribution: vslAttribution, now
+            });
+            if (promoted) targetState = promoted;
+        } catch {
+            // Read/CAS failure must preserve the manual hold, never release it.
+            console.error('[EXUTRA-CAPTURE-HOLD] verificacao falhou; manual preservado');
+        }
+    }
     let conversationClassification = null;
     if (newMessage && inferredCountry === 'EC') {
         try {

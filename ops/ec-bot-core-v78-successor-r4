@@ -87,6 +87,12 @@ assert_current_and_pm2_identity() {
   local current
   current="$(current_release_dir)"
   [[ "$current" == "$release_dir" ]] || die "current não aponta para a release solicitada"
+  if [[ "${EXUTRA_R6_TRANSITION:-}" == "EXACT_R5_TO_R6"
+    && -f "$release_dir/.exutra-r6-attestation.json" ]]; then
+    "$node_cmd" "$release_dir/scripts/exutra-r6-release.mjs" parent-process-check >/dev/null ||
+      die "transição EXUTRA R6 não corresponde ao processo R5 autorizado"
+    return
+  fi
   "$pm2_cmd" jlist | "$node_cmd" -e '
 let input = "";
 process.stdin.on("data", (chunk) => { input += chunk; });
@@ -178,7 +184,7 @@ NODE
       die "seleção oficial V78 falhou"
   fi
   case "$preload" in
-    scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs|scripts/lib/unified-successor-v202-r5-preload.mjs) ;;
+    scripts/lib/exutra-r6-preload.mjs|scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs|scripts/lib/unified-successor-v202-r5-preload.mjs) ;;
     *) die "preload sucessor V78 não permitido" ;;
   esac
   [[ -f "$release_dir/$preload" && ! -L "$release_dir/$preload" ]] || die "preload sucessor ausente ou inseguro"
@@ -235,6 +241,9 @@ run_plan() {
     [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs" ]] ||
       die "seleção V78 R4 diverge do contrato oficial"
     assert_r4_parent_successor_contract "$release_dir"
+  elif [[ "$successor_node_options" == *exutra-r6-preload.mjs ]]; then
+    [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/exutra-r6-preload.mjs" ]] ||
+      die "seleção EXUTRA R6 diverge do contrato oficial"
   elif [[ "$successor_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
     [[ "$selected_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs" ]] ||
       die "seleção V78 R5 diverge do contrato oficial"
@@ -252,6 +261,8 @@ run_plan() {
       NODE_OPTIONS="$successor_node_options" \
         "$node_cmd" --test tests/ec-bot-core-v78-r4-successor.test.mjs \
           tests/ec-bot-core-v78-r4-structural-linux.test.mjs
+    elif [[ "$successor_node_options" == *exutra-r6-preload.mjs ]]; then
+      NODE_OPTIONS= "$node_cmd" --test tests/exutra-capture-hold-r6.test.mjs tests/exutra-r6-contract.test.mjs
     elif [[ "$successor_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
       NODE_OPTIONS="$successor_node_options" \
         "$node_cmd" --test tests/ec-bot-core-v78-r4-successor.test.mjs \
@@ -432,7 +443,8 @@ if [[ "$action" == "activate" ]]; then
   done <"$overlay_file"
   activation_node_options="$NODE_OPTIONS"
   [[ "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs"
-    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs" ]] ||
+    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs"
+    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/exutra-r6-preload.mjs" ]] ||
     die "controller sucessor exige contexto operacional R4 ou R5"
   controller_file="$release_dir/scripts/lib/pm2-target-env-restart-v78-r4.mjs"
   [[ -f "$controller_file" && ! -L "$controller_file" ]] ||
@@ -442,6 +454,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 const release = process.argv[2];
 const selectedNodeOptions = process.argv[3];
+if (selectedNodeOptions.endsWith('exutra-r6-preload.mjs')) {
+  const authority = await import(pathToFileURL(path.join(release,
+    'scripts/lib/exutra-r6-authority.mjs')).href);
+  const verified = authority.verifyR6Release(release);
+  process.stdout.write(verified.manifest.controlFiles['scripts/lib/pm2-target-env-restart-v78-r4.mjs']);
+  process.exit(0);
+}
 if (selectedNodeOptions.endsWith('unified-successor-v202-r5-preload.mjs')) {
   const authority = await import(pathToFileURL(path.join(release,
     'scripts/lib/unified-successor-v202-r5-authority.mjs')).href);
@@ -467,6 +486,9 @@ NODE
   [[ "${controller_sha256%% *}" == "$expected_controller_sha" ]] ||
     die "controller PM2 sucessor não corresponde à autoridade selecionada"
   rollback_executor="$release_dir/ops/vitalismen-rollback-v201-r4.mjs"
+  if [[ "$activation_node_options" == *exutra-r6-preload.mjs ]]; then
+    rollback_executor="$release_dir/ops/exutra-r6-rollback.mjs"
+  fi
   if [[ "$activation_node_options" == *unified-successor-v202-r5-preload.mjs ]]; then
     rollback_executor="$release_dir/ops/vitalismen-rollback-v202-r5.mjs"
   fi
@@ -480,6 +502,13 @@ NODE
     if [[ "$activation_failed" == "1" ]]; then
       unset NODE_OPTIONS
       export npm_config_node_options=""
+      if [[ "$activation_node_options" == *exutra-r6-preload.mjs
+        && -f "$rollback_executor" && ! -L "$rollback_executor" ]]; then
+        if "$node_cmd" "$rollback_executor" "$release"; then
+          append_audit "activation_failed_r5_recovered" "$release" "rollback_verified"
+          exit "$failure_status"
+        fi
+      fi
       if [[ "$activation_node_options" == *unified-successor-v202-r4-preload.mjs
         && -f "$rollback_executor" && ! -L "$rollback_executor" ]]; then
         if "$node_cmd" "$rollback_executor" "$release"; then

@@ -1,0 +1,44 @@
+{
+  "freezeId": "EXUTRA_R6_CAPTURE_HOLD_ONLY",
+  "allowedDeltaPaths": [
+    "docs/EXUTRA_R6_CAPTURE_HOLD_20261001.md",
+    "docs/freeze/exutra-r6-capture-hold-20261001.json",
+    "ops/ec-bot-core-v78-successor-r4",
+    "ops/exutra-r6-rollback.mjs",
+    "ops/vitalismen-stage",
+    "scripts/exutra-r6-checkpoint.mjs",
+    "scripts/exutra-r6-guard.mjs",
+    "scripts/exutra-r6-release.mjs",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs",
+    "scripts/lib/exutra-r6-authority.mjs",
+    "scripts/lib/exutra-r6-preload.mjs",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecBotCoreOperationalV78Service.js",
+    "tests/exutra-capture-hold-r6.test.mjs",
+    "tests/exutra-r6-contract.test.mjs"
+  ],
+  "functionalFiles": {
+    "src/routes/zapi.js": "b16938c674ac21370459460b5029bd0e88823747a9deb4dff2302e9877fd5e14"
+  },
+  "controlFiles": {
+    "ops/ec-bot-core-v78-successor-r4": "c7e49fd737591c673ac93feea6ef53faeb964310e365fe2b196b8520b789df9c",
+    "ops/exutra-r6-rollback.mjs": "ef4d295f6ac4c40807080809b81fcf374cb3ef935b136c8247b9dd10dc32ea24",
+    "ops/vitalismen-stage": "3a49a8e163e310a117069b00b69e0831f76aef6b748cc88dfce6e71e86cf025f",
+    "scripts/exutra-r6-checkpoint.mjs": "694ea1509f3fd482b2c7be503082852d62942f28b13086c6718e58881974f698",
+    "scripts/exutra-r6-guard.mjs": "3151f85907371a40e7045c72172fd582907d6c49b85fd54956208055eb2db339",
+    "scripts/exutra-r6-release.mjs": "1bb521bf4a2b91ced3001768f05d72d19f383edd1183a22e95f9b52f33f3eef0",
+    "scripts/lib/ec-bot-core-operational-contract-v78.mjs": "14154beacf31d551f660dfb6e6e28bea1fee9298af05a331b8c1c184bf794ff7",
+    "scripts/lib/exutra-r6-authority.mjs": "b221d4fcd19200b61b6d5f643c45fa928a659f2c9f6fe42c4cdbcd4e2d82acbd",
+    "scripts/lib/exutra-r6-preload.mjs": "25b6a69a8b65b9cc4d7c4613e2aa219292ef6118443fec9d39e887a8fa78e4cf",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "addea9e23e30adfb3da5ccff7ea35daa302b00bf46ce3c3ce399d0220cdb6d81",
+    "src/services/ecBotCoreOperationalV78Service.js": "4e0d6006292bb874f195f4001ab1ace65a6f75f884e6662fde0b43726f4795b1"
+  },
+  "policy": {
+    "otherFunnelsChanged": false,
+    "metaChanged": false,
+    "providerChanged": false,
+    "humanHoldPreserved": true,
+    "parentGuardsRequired": true
+  }
+}

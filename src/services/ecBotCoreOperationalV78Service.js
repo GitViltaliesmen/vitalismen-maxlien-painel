@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { resolveMetaCanonicalConsolidationV195 } from './metaCanonicalConsolidationV195Service.js';
 import { readAuthorizedCheckpoint } from '../../scripts/lib/unified-successor-v202-r4-authority.mjs';
 import { readRootR5Checkpoint } from '../../scripts/lib/unified-successor-v202-r5-authority.mjs';
+import { readR6Checkpoint } from '../../scripts/lib/exutra-r6-authority.mjs';
 
 export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';
 export const EC_BOT_CORE_V78_MODE = 'EC_BOT_CORE_OPERATIONAL';
@@ -44,6 +45,15 @@ export const selectEcBotCoreV78PreloadForRelease = ({
         return EC_BOT_CORE_V199_NODE_OPTIONS;
     }
     const releaseRoot = `/opt/vitalismen-automacao/releases/${release}`;
+    const r6 = globalThis.__VITALISMEN_EXUTRA_R6_CONTEXT;
+    if (r6?.loaded === true) {
+        const selected = readR6Checkpoint(); const c = selected.value;
+        if (commit !== c.commit || tree !== c.tree || successorManifestSha256 !== c.manifestSha256
+            || r6.checkpointSha256 !== selected.sha256 || r6.commit !== commit || r6.tree !== tree) {
+            throw new Error('ec_bot_core_exutra_r6_identity_invalid');
+        }
+        return '--import=file:///opt/vitalismen-automacao/current/scripts/lib/exutra-r6-preload.mjs';
+    }
     const r5Operational = globalThis.__VITALISMEN_R5_OPERATIONAL_CONTEXT;
     if (r5Operational?.loaded === true) {
         const selected = readRootR5Checkpoint(releaseRoot);

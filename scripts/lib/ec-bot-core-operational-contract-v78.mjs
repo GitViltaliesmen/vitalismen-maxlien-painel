@@ -32,6 +32,7 @@ import {
     R5_ATTESTATION_NAME, R5_MANIFEST_PATH,
     classifyR5ReleasePreload, readRootR5Checkpoint, verifyR5MaterializedRelease
 } from './unified-successor-v202-r5-authority.mjs';
+import { R6_ATTESTATION, R6_MANIFEST, verifyR6Release } from './exutra-r6-authority.mjs';
 
 export const EC_BOT_CORE_V78_AUTHORIZATION_PHRASE = 'I_UNDERSTAND_EC_BOT_CORE_V78';
 export const EC_BOT_CORE_V78_PROFILE_NAME = EC_BOT_CORE_V78_MODE;
@@ -161,7 +162,9 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         || clean(publicationComplete.publicationTagResolvedCommit).toLowerCase() !== commit) {
         throw new Error('release_functional_identity_mismatch');
     }
-    const functionalPayloadSha256 = fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))
+    const functionalPayloadSha256 = fs.existsSync(path.join(resolved, R6_ATTESTATION))
+        ? calculatePublishedFunctionalPayloadSha256V78(resolved, R6_ATTESTATION)
+        : fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))
         ? calculateR5PublishedFunctionalPayloadSha256V78(resolved)
         : fs.existsSync(path.join(resolved, R4_ATTESTATION_NAME))
         ? calculateR4PublishedFunctionalPayloadSha256V78(resolved)
@@ -182,7 +185,13 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     let successorManifestRelative = SUCCESSOR_MANIFEST_PATH;
     const legacyExact = commit === '8c25ed9912abc4aabee2656cf9192420389934c6'
         && tree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
-    if (fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))) {
+    if (fs.existsSync(path.join(resolved, R6_ATTESTATION))) {
+        const verified = verifyR6Release(resolved);
+        if (commit !== verified.checkpoint.commit || tree !== verified.checkpoint.tree) {
+            throw new Error('exutra_r6_successor_release_not_enumerated');
+        }
+        successorManifestRelative = R6_MANIFEST;
+    } else if (fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))) {
         const checkpoint = readRootR5Checkpoint(resolved).value;
         if (commit !== checkpoint.commit || tree !== checkpoint.tree) {
             throw new Error('r5_successor_release_not_enumerated');
@@ -431,12 +440,15 @@ const runCli = () => {
         if (args.length !== 2) throw new Error('usage_select_preload_invalid');
         const releaseDir = path.resolve(clean(args[0]));
         if (path.basename(releaseDir) !== args[1]) throw new Error('release_path_identity_invalid');
-        const relative = fs.existsSync(path.join(releaseDir, R5_ATTESTATION_NAME))
+        const relative = fs.existsSync(path.join(releaseDir, R6_ATTESTATION))
+            ? (verifyR6Release(releaseDir), 'scripts/lib/exutra-r6-preload.mjs')
+            : fs.existsSync(path.join(releaseDir, R5_ATTESTATION_NAME))
             ? classifyR5ReleasePreload(releaseDir, { requireAttestation: true })
             : classifyReleasePreload(releaseDir, { requireAttestation: true });
         if (!['scripts/lib/ec-runtime-successor-v199-context.mjs',
             'scripts/lib/unified-successor-v202-r4-preload.mjs',
-            'scripts/lib/unified-successor-v202-r5-preload.mjs'].includes(relative)) {
+            'scripts/lib/unified-successor-v202-r5-preload.mjs',
+            'scripts/lib/exutra-r6-preload.mjs'].includes(relative)) {
             throw new Error('v78_successor_preload_not_approved');
         }
         process.stdout.write(`${relative}\n`);

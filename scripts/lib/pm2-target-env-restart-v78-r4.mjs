@@ -28,7 +28,18 @@ if (sourceBytes.toString('utf8') !== `${JSON.stringify(source, null, 2)}\n`
     || source.releaseName !== path.basename(releaseDir)) {
     throw new Error('controller_release_source_invalid');
 }
-if (fs.existsSync(path.join(releaseDir, '.r5-operational-attestation.json'))) {
+if (fs.existsSync(path.join(releaseDir, '.exutra-r6-attestation.json'))) {
+    if (targetNodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/exutra-r6-preload.mjs') {
+        throw new Error('controller_exutra_r6_node_options_invalid');
+    }
+    const { verifyR6Release } = await import(pathToFileURL(path.join(releaseDir,
+        'scripts/lib/exutra-r6-authority.mjs')).href);
+    const verified = verifyR6Release(releaseDir);
+    if (verified.manifest.controlFiles['scripts/lib/pm2-target-env-restart-v78-r4.mjs']
+        !== sha256(regular(path.join(releaseDir, 'scripts/lib/pm2-target-env-restart-v78-r4.mjs')))) {
+        throw new Error('controller_exutra_r6_hash_invalid');
+    }
+} else if (fs.existsSync(path.join(releaseDir, '.r5-operational-attestation.json'))) {
     if (targetNodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs') {
         throw new Error('controller_r5_node_options_invalid');
     }
