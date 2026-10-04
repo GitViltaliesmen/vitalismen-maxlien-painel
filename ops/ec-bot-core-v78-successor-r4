@@ -22,7 +22,7 @@ else
   base_dir="/opt/vitalismen-automacao"
   state_dir="/var/lib/vitalismen-deploy"
   log_dir="/var/log/vitalismen-deploy"
-  stage_helper="/usr/local/sbin/vitalismen-stage"
+  stage_helper="/usr/local/sbin/vitalismen-stage-sealed-v1"
   pm2_cmd="/usr/bin/pm2"
   curl_cmd="/usr/bin/curl"
   node_cmd="/usr/bin/node"
@@ -178,7 +178,7 @@ NODE
       die "seleção oficial V78 falhou"
   fi
   case "$preload" in
-    scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs|scripts/lib/unified-successor-v202-r5-preload.mjs) ;;
+    scripts/lib/ec-runtime-successor-v199-context.mjs|scripts/lib/unified-successor-v202-r4-preload.mjs|scripts/lib/unified-successor-v202-r5-preload.mjs|scripts/lib/sealed-successor-preload-v1.mjs) ;;
     *) die "preload sucessor V78 não permitido" ;;
   esac
   [[ -f "$release_dir/$preload" && ! -L "$release_dir/$preload" ]] || die "preload sucessor ausente ou inseguro"
@@ -432,8 +432,9 @@ if [[ "$action" == "activate" ]]; then
   done <"$overlay_file"
   activation_node_options="$NODE_OPTIONS"
   [[ "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r4-preload.mjs"
-    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs" ]] ||
-    die "controller sucessor exige contexto operacional R4 ou R5"
+    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/unified-successor-v202-r5-preload.mjs"
+    || "$activation_node_options" == "--import=file://$base_dir/current/scripts/lib/sealed-successor-preload-v1.mjs" ]] ||
+    die "controller sucessor exige contexto operacional validado"
   controller_file="$release_dir/scripts/lib/pm2-target-env-restart-v78-r4.mjs"
   [[ -f "$controller_file" && ! -L "$controller_file" ]] ||
     die "controller PM2 sucessor ausente ou inseguro"
@@ -442,6 +443,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 const release = process.argv[2];
 const selectedNodeOptions = process.argv[3];
+if (selectedNodeOptions.endsWith('sealed-successor-preload-v1.mjs')) {
+  const authority = await import('file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs');
+  const sealed = authority.requireSealedRelease(release);
+  process.stdout.write(sealed.envelope.PAYLOAD_HASHES['scripts/lib/pm2-target-env-restart-v78-r4.mjs']);
+  process.exit(0);
+}
 if (selectedNodeOptions.endsWith('unified-successor-v202-r5-preload.mjs')) {
   const authority = await import(pathToFileURL(path.join(release,
     'scripts/lib/unified-successor-v202-r5-authority.mjs')).href);
@@ -473,6 +480,9 @@ NODE
   if [[ "$test_mode" == "true" ]]; then
     rollback_executor="${EC_BOT_CORE_V78_TEST_ROLLBACK_CMD:-$rollback_executor}"
   fi
+  if [[ "$activation_node_options" == *sealed-successor-preload-v1.mjs ]]; then
+    rollback_executor="/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs"
+  fi
   activation_failed=1
   contain_failed_activation() {
     local failure_status=$?
@@ -493,6 +503,13 @@ NODE
         if "$node_cmd" "$rollback_executor" "$release"; then
           append_audit "activation_failed_r4_recovered" "$release" "rollback_verified"
           echo "R4_AUTO_ROLLBACK=PASS" >&2
+          exit "$failure_status"
+        fi
+      fi
+      if [[ "$activation_node_options" == *sealed-successor-preload-v1.mjs ]]; then
+        if "$node_cmd" "$rollback_executor" --rollback "$release"; then
+          append_audit "activation_failed_sealed_recovered" "$release" "rollback_verified"
+          echo "SEALED_AUTO_ROLLBACK=PASS" >&2
           exit "$failure_status"
         fi
       fi

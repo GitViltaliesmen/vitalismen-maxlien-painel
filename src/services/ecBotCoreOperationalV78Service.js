@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { resolveMetaCanonicalConsolidationV195 } from './metaCanonicalConsolidationV195Service.js';
 import { readAuthorizedCheckpoint } from '../../scripts/lib/unified-successor-v202-r4-authority.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
 import { readRootR5Checkpoint } from '../../scripts/lib/unified-successor-v202-r5-authority.mjs';
 
 export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';
@@ -44,6 +45,16 @@ export const selectEcBotCoreV78PreloadForRelease = ({
         return EC_BOT_CORE_V199_NODE_OPTIONS;
     }
     const releaseRoot = `/opt/vitalismen-automacao/releases/${release}`;
+    const sealedContext = globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT;
+    if (sealedContext?.loaded === true) {
+        const sealed = requireSealedRelease(releaseRoot);
+        if (commit !== sealed.authority.SUCCESSOR_COMMIT || tree !== sealed.authority.SUCCESSOR_TREE
+            || successorManifestSha256 !== sealed.authoritySha256
+            || sealedContext.commit !== commit || sealedContext.tree !== tree
+            || sealedContext.authoritySha256 !== sealed.authoritySha256
+            || sealedContext.historicalR5Verified !== true) throw new Error('ec_bot_core_sealed_release_not_approved');
+        return '--import=file:///opt/vitalismen-automacao/current/scripts/lib/sealed-successor-preload-v1.mjs';
+    }
     const r5Operational = globalThis.__VITALISMEN_R5_OPERATIONAL_CONTEXT;
     if (r5Operational?.loaded === true) {
         const selected = readRootR5Checkpoint(releaseRoot);
@@ -204,6 +215,8 @@ export const buildEcBotCoreV78OverlayEnvironment = ({
         && (nodeOptions !== EC_BOT_CORE_V199_NODE_OPTIONS || successorOverlayContext()?.loaded !== true)
         && (nodeOptions !== EC_BOT_CORE_R4_NODE_OPTIONS
             || globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded !== true)
+        && (nodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/sealed-successor-preload-v1.mjs'
+            || globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT?.loaded !== true)
         && (nodeOptions !== EC_BOT_CORE_R5_NODE_OPTIONS
             || globalThis.__VITALISMEN_R5_OPERATIONAL_CONTEXT?.loaded !== true)) {
         throw new Error('ec_bot_core_preload_not_approved');
@@ -271,6 +284,8 @@ export const resolveEcBotCoreV78Configuration = (env = process.env, {
             && successorOverlayContext()?.loaded === true)
         && !(clean(env.NODE_OPTIONS) === EC_BOT_CORE_R4_NODE_OPTIONS
             && globalThis.__VITALISMEN_R4_OPERATIONAL_CONTEXT?.loaded === true)
+        && !(clean(env.NODE_OPTIONS) === '--import=file:///opt/vitalismen-automacao/current/scripts/lib/sealed-successor-preload-v1.mjs'
+            && globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT?.loaded === true)
         && !(clean(env.NODE_OPTIONS) === EC_BOT_CORE_R5_NODE_OPTIONS
             && globalThis.__VITALISMEN_R5_OPERATIONAL_CONTEXT?.loaded === true)) {
         failures.push('NODE_OPTIONS_invalid');

@@ -1,3 +1,4 @@
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -28,7 +29,11 @@ if (sourceBytes.toString('utf8') !== `${JSON.stringify(source, null, 2)}\n`
     || source.releaseName !== path.basename(releaseDir)) {
     throw new Error('controller_release_source_invalid');
 }
-if (fs.existsSync(path.join(releaseDir, '.r5-operational-attestation.json'))) {
+const sealedController = readSealedRelease(releaseDir);
+if (sealedController) {
+    if (targetNodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/sealed-successor-preload-v1.mjs') throw new Error('controller_sealed_node_options_invalid');
+    // Full payload, controller hash and exact registered identity already verified.
+} else if (fs.existsSync(path.join(releaseDir, '.r5-operational-attestation.json'))) {
     if (targetNodeOptions !== '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs') {
         throw new Error('controller_r5_node_options_invalid');
     }

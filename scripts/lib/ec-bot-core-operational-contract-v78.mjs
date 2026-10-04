@@ -1,3 +1,4 @@
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -182,7 +183,10 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
     let successorManifestRelative = SUCCESSOR_MANIFEST_PATH;
     const legacyExact = commit === '8c25ed9912abc4aabee2656cf9192420389934c6'
         && tree === '44d310be637e71d6f6f5fb5d28f06c47f2bf7283';
-    if (fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))) {
+    const sealedIdentity = readSealedRelease(resolved);
+    if (sealedIdentity) {
+        // Authority hash replaces only the successor-manifest identity for this class.
+    } else if (fs.existsSync(path.join(resolved, R5_ATTESTATION_NAME))) {
         const checkpoint = readRootR5Checkpoint(resolved).value;
         if (commit !== checkpoint.commit || tree !== checkpoint.tree) {
             throw new Error('r5_successor_release_not_enumerated');
@@ -198,7 +202,7 @@ export const inspectPublishedEcBotCoreV78Release = ({ releaseDir, release } = {}
         successorManifestRelative = manifestPathForCheckpoint(checkpoint);
     }
     const successorManifestPath = path.join(resolved, successorManifestRelative);
-    const successorManifestSha256 = fs.existsSync(successorManifestPath)
+    const successorManifestSha256 = sealedIdentity ? sealedIdentity.authoritySha256 : fs.existsSync(successorManifestPath)
         ? (() => {
             const stat = fs.lstatSync(successorManifestPath);
             if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('successor_manifest_unsafe');
@@ -431,12 +435,14 @@ const runCli = () => {
         if (args.length !== 2) throw new Error('usage_select_preload_invalid');
         const releaseDir = path.resolve(clean(args[0]));
         if (path.basename(releaseDir) !== args[1]) throw new Error('release_path_identity_invalid');
-        const relative = fs.existsSync(path.join(releaseDir, R5_ATTESTATION_NAME))
+        const sealedPreload = readSealedRelease(releaseDir);
+        const relative = sealedPreload ? 'scripts/lib/sealed-successor-preload-v1.mjs' : fs.existsSync(path.join(releaseDir, R5_ATTESTATION_NAME))
             ? classifyR5ReleasePreload(releaseDir, { requireAttestation: true })
             : classifyReleasePreload(releaseDir, { requireAttestation: true });
         if (!['scripts/lib/ec-runtime-successor-v199-context.mjs',
             'scripts/lib/unified-successor-v202-r4-preload.mjs',
-            'scripts/lib/unified-successor-v202-r5-preload.mjs'].includes(relative)) {
+            'scripts/lib/unified-successor-v202-r5-preload.mjs',
+            'scripts/lib/sealed-successor-preload-v1.mjs'].includes(relative)) {
             throw new Error('v78_successor_preload_not_approved');
         }
         process.stdout.write(`${relative}\n`);

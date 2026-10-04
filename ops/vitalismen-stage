@@ -215,6 +215,20 @@ successor_guard_node_options() {
   local candidate_dir="$1"
   local preload_relative
   local preload_path
+  local sealed_options
+  # Official sealed helper is installed separately; historical executable remains intact.
+  [[ -f /usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs ]] || die "sealed authority engine absent"
+  sealed_options="$("$node_cmd" --input-type=module - "$candidate_dir" <<'SEALED'
+import { readSealedRelease } from 'file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
+const root = process.argv[2];
+const sealed = readSealedRelease(root, {requireGit: false});
+if (sealed) process.stdout.write(sealed.nodeOptions);
+SEALED
+)" || die "sealed authority rejected"
+  if [[ -n "$sealed_options" ]]; then
+    printf '%s' "$sealed_options"
+    return 0
+  fi
   preload_relative="$("$node_cmd" --input-type=module - "$candidate_dir" <<'NODE'
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -1533,8 +1547,13 @@ assert.ok(['start', 'restart'].includes(action));
 assert.ok([
   '--import=file:///opt/vitalismen-automacao/current/scripts/lib/ec-runtime-successor-v199-context.mjs',
   '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r4-preload.mjs',
-  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs'
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/unified-successor-v202-r5-preload.mjs',
+  '--import=file:///opt/vitalismen-automacao/current/scripts/lib/sealed-successor-preload-v1.mjs'
 ].includes(nodeOptions));
+if (nodeOptions.endsWith('sealed-successor-preload-v1.mjs')) {
+  const authority = await import('file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs');
+  authority.requireSealedRelease(fs.realpathSync('/opt/vitalismen-automacao/current'));
+}
 const packagePath = path.join(moduleRoot, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 assert.equal(packageJson.name, 'pm2');
@@ -3226,6 +3245,14 @@ secure_mode 0600 "$release_dir/.release-source.json"
 release_metadata_sha_at_creation="$($sha256_cmd "$release_dir/.release-source.json" | awk '{print $1}')"
 
 release_guard_node_options="$(successor_guard_node_options "$release_dir")"
+if [[ "$release_guard_node_options" == *sealed-successor-preload-v1.mjs ]]; then
+  run_protected sealed_git_identity "$node_cmd" --input-type=module - "$release_dir" <<'SEALED_GIT'
+import {requireSealedRelease, recordSealedRollbackPlan} from 'file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
+requireSealedRelease(process.argv[2], {requireGit: true});
+await recordSealedRollbackPlan(process.argv[2]);
+console.log('SEALED_GIT_IDENTITY=PASS');
+SEALED_GIT
+fi
 if [[ "$release_guard_node_options" == *unified-successor-v202-r4-preload.mjs ]]; then
   [[ -f "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs"
     && ! -L "$release_dir/scripts/verify-unified-successor-v202-r4-stage.mjs"

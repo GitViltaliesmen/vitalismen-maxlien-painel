@@ -68,6 +68,27 @@ for (const [file, expected] of Object.entries({ ...baseline.protectedFiles, ...v
     assert.equal(hashFile(file), expected, `[V168B preload] ${file}`);
 }
 
+// Preserve the identity published by the authenticated bootstrap, before any publication.
+const contextKey = '__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT';
+const sourceDescriptor = Object.getOwnPropertyDescriptor(globalThis, contextKey);
+assert.ok(sourceDescriptor?.configurable === true && sourceDescriptor.enumerable === true
+    && sourceDescriptor.writable === true && Object.hasOwn(sourceDescriptor, 'value'),
+    'V168B_SOURCE_DESCRIPTOR_INVALID');
+const sourceContext = sourceDescriptor.value;
+assert.ok(sourceContext && Object.isFrozen(sourceContext), 'V168B_SOURCE_CONTEXT_INVALID');
+assert.deepEqual(Object.keys(sourceContext).sort(), ['freezeId', 'loaded', 'manifestSha256', 'protectedFiles']);
+for (const key of Object.keys(sourceContext)) {
+    assert.ok(Object.hasOwn(Object.getOwnPropertyDescriptor(sourceContext, key), 'value'),
+        'V168B_SOURCE_CONTEXT_INVALID');
+}
+assert.equal(sourceContext.loaded, true, 'V168B_SOURCE_CONTEXT_INVALID');
+assert.equal(sourceContext.freezeId, baseline.freezeId, 'V168B_SOURCE_CONTEXT_INVALID');
+assert.equal(sourceContext.manifestSha256,
+    'ae23ce682d3c7b2f3de42e6e8074e2c43a6365458b2ba861657a940d4041272c',
+    'V168B_SOURCE_MANIFEST_INVALID');
+assert.ok(sourceContext.protectedFiles && !Array.isArray(sourceContext.protectedFiles)
+    && Object.isFrozen(sourceContext.protectedFiles), 'V168B_SOURCE_CONTEXT_INVALID');
+
 for (const key of ['__VITALISMEN_SUCCESSOR_OVERRIDE_FILES', EC_OPERATIONAL_GUARD_CONTEXT_V97_OVERRIDE_KEY]) {
     globalThis[key] = [...new Set([...(globalThis[key] || []), ...authorizedFiles])];
 }
@@ -86,5 +107,6 @@ globalThis.__VITALISMEN_V168B_DROPI_STATUS_CONTEXT = Object.freeze({
 globalThis.__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT = Object.freeze({
     loaded: true,
     freezeId: baseline.freezeId,
-    protectedFiles: Object.freeze({ ...baseline.protectedFiles, ...v168b.protectedFiles, ...v194.protectedFiles })
+    manifestSha256: sourceContext.manifestSha256,
+    protectedFiles: sourceContext.protectedFiles
 });
