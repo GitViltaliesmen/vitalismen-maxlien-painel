@@ -1,5 +1,6 @@
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createHash, randomUUID } from 'node:crypto';
 
 import ContactState from '../models/ContactState.js';
 import {
@@ -131,6 +132,83 @@ export const isEcQaInboundMessagePayloadV111 = (payload = {}) => {
     return Boolean(text) && !deliveryCallback;
 };
 
+
+// Observability only: no reads/writes to Mongo, payload, filter or return object.
+// PM2 appends these JSON lines to its existing output log. Logger failures are swallowed.
+const qaObservationByPayloadV78 = new WeakMap();
+const qaObservationByClaimV78 = new WeakMap();
+const qaOpaqueIdV78 = value => typeof value === 'string' && (
+    /^[a-f0-9]{16,128}$/i.test(value)
+    || /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)
+    || /^ecqa-v78-[a-f0-9]{32}$/i.test(value)
+) ? value : null;
+const qaCountV78 = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+const qaCodeV78 = value => Number.isSafeInteger(value) && value >= 0 && value <= 0x7fffffff ? value : (
+    ['EC_BOT_CORE_V78_OPERATION_BLOCKED', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT',
+        'ENOTFOUND', 'EHOSTUNREACH', 'EPIPE', 'MONGO_FAILURE'].includes(value) ? value : 'UNCLASSIFIED_EXCEPTION');
+const qaLogV78 = (observation, event, fields = {}) => {
+    if (!observation) return;
+    try {
+        console.info('[EC-QA-CLAIM-V78] ' + JSON.stringify({
+            project: 'VITALISMEN_EC', event, requestId: observation.requestId,
+            qaContextId: observation.qaContextId, contactStateId: observation.contactStateId,
+            inboundId: observation.inboundId, ...fields
+        }));
+    } catch { /* Observability never changes authorization or error propagation. */ }
+};
+const qaLogExceptionV78 = (observation, event, error) => {
+    try { qaLogV78(observation, event, { exceptionCode: qaCodeV78(error?.code) }); } catch {}
+};
+const qaObservationV78 = payload => {
+    try {
+        if (!payload || typeof payload !== 'object' || zapiPhoneFromPayloadV78(payload) !== EC_QA_TEST_PHONE_V78) return null;
+        if (!qaObservationByPayloadV78.has(payload)) qaObservationByPayloadV78.set(payload, {
+            requestId: randomUUID(), qaContextId: null, contactStateId: null,
+            inboundId: qaOpaqueIdV78(zapiMessageIdFromPayloadV78(payload))
+        });
+        return qaObservationByPayloadV78.get(payload);
+    } catch { return null; }
+};
+const qaPipelineEnterV78 = req => {
+    try {
+        const path = String(req.originalUrl || req.path || req.url || '').split('?')[0].replace(/\/+$/, '');
+        if (!['/api/zapi/webhook', '/api/zapi/webhook/received'].includes(path)) return null;
+        const observation = qaObservationV78(req.body);
+        qaLogV78(observation, 'QA_PIPELINE_ENTER', { path });
+        return observation;
+    } catch { return null; }
+};
+const qaObservedFilterV78 = (observation, filter, phase) => {
+    try {
+        qaLogV78(observation, 'QA_FILTER_APPLIED', { phase, filterApplied: true,
+            filterFields: Object.keys(filter).sort(),
+            filterSha256: createHash('sha256').update(JSON.stringify(filter)).digest('hex') });
+    } catch { /* Return the original filter, even if logging fails. */ }
+    return filter;
+};
+const qaMongoResultV78 = (observation, result, phase, executed) => {
+    try { qaLogV78(observation, 'QA_MONGO_RESULT', { phase, executed,
+        matchedCount: executed ? qaCountV78(Object.getOwnPropertyDescriptor(result || {}, 'matchedCount')?.value) : null,
+        modifiedCount: executed ? qaCountV78(Object.getOwnPropertyDescriptor(result || {}, 'modifiedCount')?.value) : null }); } catch {}
+};
+const qaObservedReturnV78 = (observation, result) => {
+    try {
+        qaLogV78(observation, 'QA_CLAIM_RETURN', { returnState: {
+            applicable: result.applicable, allowed: result.allowed,
+            persistenceAllowed: result.persistenceAllowed ?? null,
+            automationAllowed: result.automationAllowed ?? null,
+            reason: /^[a-z0-9_]{1,96}$/.test(result.reason || '') ? result.reason : null,
+            phase: result.phase || null
+        } });
+        if (observation) qaObservationByClaimV78.set(result, observation);
+    } catch {}
+    return result;
+};
+const qaObservedFinalizeReturnV78 = (observation, result) => {
+    qaLogV78(observation, 'QA_FINALIZE_RESULT', { changed: result.changed });
+    return result;
+};
+
 const exactQaQueryV78 = (now, messageId, { followUp = false } = {}) => ({
     phoneDigits: EC_QA_TEST_PHONE_V78,
     chatId: { $in: [`${EC_QA_TEST_PHONE_V78}@c.us`, `${EC_QA_TEST_PHONE_V78}@s.whatsapp.net`] },
@@ -158,22 +236,30 @@ export const claimEcQaInboundContextV78 = async ({
     now = new Date(),
     allowQaFollowUp = false
 } = {}) => {
+    const observation = qaObservationV78(payload);
+    qaLogV78(observation, 'QA_CLAIM_ENTER');
+    try {
     const phone = zapiPhoneFromPayloadV78(payload);
     if (phone !== EC_QA_TEST_PHONE_V78) {
-        return Object.freeze({ applicable: false, allowed: true, phone, reason: 'not_exact_qa_phone' });
+        return qaObservedReturnV78(observation, Object.freeze({ applicable: false, allowed: true, phone, reason: 'not_exact_qa_phone' }));
     }
     if (!isEcQaInboundMessagePayloadV111(payload)) {
-        return Object.freeze({ applicable: false, allowed: true, phone, reason: 'qa_non_inbound_callback' });
+        return qaObservedReturnV78(observation, Object.freeze({ applicable: false, allowed: true, phone, reason: 'qa_non_inbound_callback' }));
     }
     const text = zapiTextFromPayloadV78(payload);
     const messageId = zapiMessageIdFromPayloadV78(payload);
-    if (!messageId) return Object.freeze({ applicable: true, allowed: false, phone, reason: 'qa_provider_message_id_required' });
+    if (!messageId) return qaObservedReturnV78(observation, Object.freeze({ applicable: true, allowed: false, phone, reason: 'qa_provider_message_id_required' }));
     let recognition = recognizeOfficialEcVslEntryV78({
         text,
         destinationPhone: EC_OFFICIAL_VSL_V78_WHATSAPP
     });
     if (!recognition.recognized && text.split(/\r?\n/)[0].trim() === 'Hola, vengo del video') {
         const state = await model.findOne({ phoneDigits: phone, 'metadata.testOnly': true }).lean();
+        try { if (observation) {
+            observation.contactStateId = qaOpaqueIdV78(String(state?._id || ''));
+            observation.qaContextId = qaOpaqueIdV78(state?.metadata?.qaTestContextV78?.permitId);
+            qaLogV78(observation, 'QA_CONTEXT_OBSERVED');
+        } } catch { /* Observation cannot alter the existing state read. */ }
         const visitId = String(state?.metadata?.vslVisitId || '');
         if (/^[a-f0-9]{24}$/.test(visitId)) {
             const inbound = await model.db.collection('messages').findOne({ _id: messageId });
@@ -187,7 +273,7 @@ export const claimEcQaInboundContextV78 = async ({
         }
     }
     const initialResult = recognition.recognized
-        ? await model.updateOne(exactQaQueryV78(now, messageId), {
+        ? await model.updateOne(qaObservedFilterV78(observation, exactQaQueryV78(now, messageId), 'initial'), {
             $set: {
                 'metadata.qaTestContextV78.status': 'routing',
                 'metadata.qaTestContextV78.routingAt': now.toISOString(),
@@ -197,10 +283,12 @@ export const claimEcQaInboundContextV78 = async ({
             }
         })
         : { modifiedCount: 0 };
+    qaMongoResultV78(observation, initialResult, 'initial', recognition.recognized);
     const initialClaimed = Number(initialResult?.modifiedCount || 0) === 1;
     const followUpResult = initialClaimed || allowQaFollowUp !== true
+        || String(recognition.reason || '').startsWith('vit_qa_')
         ? { modifiedCount: 0 }
-        : await model.updateOne(exactQaQueryV78(now, messageId, { followUp: true }), {
+        : await model.updateOne(qaObservedFilterV78(observation, exactQaQueryV78(now, messageId, { followUp: true }), 'followup'), {
         $set: {
             'metadata.qaTestContextV78.status': 'routing',
             'metadata.qaTestContextV78.routingAt': now.toISOString(),
@@ -209,9 +297,10 @@ export const claimEcQaInboundContextV78 = async ({
             'metadata.qaTestContextV78.routingPhase': 'followup'
         }
     });
+    qaMongoResultV78(observation, followUpResult, 'followup', !initialClaimed && allowQaFollowUp === true);
     const followUpClaimed = Number(followUpResult?.modifiedCount || 0) === 1;
     if (!initialClaimed && !followUpClaimed) {
-        return Object.freeze({
+        return qaObservedReturnV78(observation, Object.freeze({
             applicable: true,
             allowed: false,
             persistenceAllowed: true,
@@ -219,9 +308,9 @@ export const claimEcQaInboundContextV78 = async ({
             phone,
             messageId,
             reason: recognition.recognized ? 'qa_dashboard_persistence_only' : recognition.reason
-        });
+        }));
     }
-    return Object.freeze({
+    return qaObservedReturnV78(observation, Object.freeze({
         applicable: true,
         allowed: true,
         persistenceAllowed: true,
@@ -230,7 +319,11 @@ export const claimEcQaInboundContextV78 = async ({
         messageId,
         reason: initialClaimed ? 'qa_context_claimed' : 'qa_context_followup_claimed',
         phase: initialClaimed ? 'initial' : 'followup'
-    });
+    }));
+    } catch (error) {
+        qaLogExceptionV78(observation, 'QA_CLAIM_EXCEPTION', error);
+        throw error;
+    }
 };
 
 export const finalizeEcQaInboundContextV78 = async ({
@@ -239,12 +332,18 @@ export const finalizeEcQaInboundContextV78 = async ({
     statusCode = 500,
     now = new Date()
 } = {}) => {
-    if (!claim.applicable || !claim.allowed || !claim.messageId) return Object.freeze({ changed: false });
-    const result = await model.updateOne({
+    let observation = null;
+    try { observation = qaObservationByClaimV78.get(claim) || (claim.phone === EC_QA_TEST_PHONE_V78 ? {
+        requestId: randomUUID(), inboundId: qaOpaqueIdV78(claim.messageId),
+        qaContextId: null, contactStateId: null } : null); } catch {}
+    qaLogV78(observation, 'QA_FINALIZE_ENTER');
+    try {
+    if (!claim.applicable || !claim.allowed || !claim.messageId) return qaObservedFinalizeReturnV78(observation, Object.freeze({ changed: false }));
+    const result = await model.updateOne(qaObservedFilterV78(observation, {
         phoneDigits: EC_QA_TEST_PHONE_V78,
         'metadata.qaTestContextV78.status': 'routing',
         'metadata.qaTestContextV78.routingMessageId': claim.messageId
-    }, {
+    }, 'finalize'), {
         $set: {
             'metadata.qaTestContextV78.status': 'consumed',
             'metadata.qaTestContextV78.consumedAt': now.toISOString(),
@@ -260,10 +359,47 @@ export const finalizeEcQaInboundContextV78 = async ({
             'metadata.qaTestContextV78.messageCount': 1
         }
     });
-    return Object.freeze({ changed: Number(result?.modifiedCount || 0) === 1 });
+    qaMongoResultV78(observation, result, 'finalize', true);
+    return qaObservedFinalizeReturnV78(observation, Object.freeze({ changed: Number(result?.modifiedCount || 0) === 1 }));
+    } catch (error) {
+        qaLogExceptionV78(observation, 'QA_FINALIZE_EXCEPTION', error);
+        throw error;
+    }
 };
 
 export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore() || null;
+
+// The QA guard grants persistence only. Claim authority is evaluated once the
+// existing recorder has completed message, visit and contact persistence.
+export const recordEcQaInboundAfterPersistenceV78 = async ({
+    req, res, record, model = ContactState, now
+} = {}) => {
+    if (req.ecQaInboundClaimDeferredV78 !== true) return record(req.body || {});
+    const context = runtimeContext.getStore();
+    const result = await record(req.body || {}, { qaPostPersist: true });
+    if (result.recorded !== true || result.newMessage !== true) {
+        return { ...result, routeToBot: false };
+    }
+    const claim = await claimEcQaInboundContextV78({
+        payload: req.body || {}, model, ...(now ? { now } : {}), allowQaFollowUp: true
+    });
+    const allowed = claim.applicable === true && claim.allowed === true
+        && claim.automationAllowed === true;
+    req.ecQaInboundPolicyV90 = Object.freeze({
+        persistenceAllowed: true, automationAllowed: allowed,
+        reason: claim.reason, messageId: claim.messageId
+    });
+    if (allowed) {
+        res.once('finish', () => {
+            // Retain the guard's write context and existing finish finalization.
+            runtimeContext.run({ ...context, qaFinalization: true }, () =>
+                finalizeEcQaInboundContextV78({ claim, model, statusCode: res.statusCode })
+                    .catch(error => console.error('[EC-BOT-CORE-V78] falha ao finalizar contexto QA:', error.message)));
+        });
+    }
+    return { ...result, routeToBot: allowed && result.qaBotEligibility === true };
+};
+
 
 // Runs after the existing panel authentication. Only these explicit per-order
 // actions can carry human authority into the existing asynchronous submit queue.
@@ -321,13 +457,20 @@ export const ecPanelStatusAuthenticatedActionV177 = (req, res, next) => {
 };
 
 export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
+    const qaObservation = qaPipelineEnterV78(req);
     const env = process.env;
-    if (!ecBotCoreV78Requested(env)) return next();
+    if (!ecBotCoreV78Requested(env)) {
+        qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'profile_not_requested' });
+        return next();
+    }
     const requestPath = String(req.originalUrl || req.path || req.url || '').split('?')[0] || '/';
     const path = requestPath.replace(/\/+$/, '') || '/';
     const method = String(req.method || '').trim().toUpperCase();
     const configuration = resolveEcBotCoreV78Configuration(env);
-    if (!configuration.ready) return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
+    if (!configuration.ready) {
+        qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
+        return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
+    }
     if (isExactEcAuthLoginV78Request({ method, path: requestPath })) {
         return runtimeContext.run({
             profile: EC_BOT_CORE_V78_MODE,
@@ -371,7 +514,10 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
                     : customerPersistenceDecision.allowed
                         ? customerPersistenceDecision
                         : panelStatusDecision;
-    if (!decision.allowed) return httpBlocked(res, decision.reason, method, path);
+    if (!decision.allowed) {
+        qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'route_guard_rejected' });
+        return httpBlocked(res, decision.reason, method, path);
+    }
 
     const writeContext = (
         method === 'POST'
@@ -388,6 +534,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         decision.reason === 'ec_panel_status_v177_route_allowed'
         && method === 'POST'
     );
+    qaLogV78(qaObservation, 'QA_PIPELINE_ALLOWED', { writeContext });
     return runtimeContext.run({
         profile: EC_BOT_CORE_V78_MODE,
         method,
@@ -421,10 +568,20 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         let qaClaim = Object.freeze({ applicable: false, allowed: true, reason: 'not_zapi_inbound' });
         if (writeContext && ['/api/zapi/webhook', '/api/zapi/webhook/received'].includes(path)) {
             try {
-                qaClaim = await claimEcQaInboundContextV78({
-                    payload: req.body || {},
-                    allowQaFollowUp: true
-                });
+                if (zapiPhoneFromPayloadV78(req.body || {}) === EC_QA_TEST_PHONE_V78
+                    && isEcQaInboundMessagePayloadV111(req.body || {})) {
+                    req.ecQaInboundClaimDeferredV78 = true;
+                    req.ecQaInboundPolicyV90 = Object.freeze({
+                        persistenceAllowed: true, automationAllowed: false,
+                        reason: 'qa_claim_pending_persistence',
+                        messageId: zapiMessageIdFromPayloadV78(req.body || {})
+                    });
+                } else {
+                    qaClaim = await claimEcQaInboundContextV78({
+                        payload: req.body || {},
+                        allowQaFollowUp: true
+                    });
+                }
             } catch (error) {
                 return httpBlocked(res, `qa_context_preflight_failed:${error.message}`, method, path);
             }

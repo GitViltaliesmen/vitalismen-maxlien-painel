@@ -8,6 +8,7 @@ import {
     zapiPublicStatus
 } from '../services/zapiClient.js';
 import Message from '../models/Message.js';
+import { recordEcQaInboundAfterPersistenceV78 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
 import ContactState from '../models/ContactState.js';
 import { routeIncomingMessage } from '../services/agentRouter.js';
 import { handleBuyLaterConfirmationReply } from '../services/buyLaterConfirmationService.js';
@@ -741,7 +742,7 @@ export const shouldDetectFreshEcVslTextContextV110 = ({
     vslRoutingAllowed = false
 } = {}) => Boolean(vslRoutingAllowed && !persistedVslProductContext);
 
-const recordZapiInboundPayload = async (payload = {}) => {
+const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } = {}) => {
     const providerMessageId = zapiMessageIdFromPayload(payload);
     const providerZaapId = zapiZaapIdFromPayload(payload);
     const phone = zapiPhoneFromPayload(payload);
@@ -840,6 +841,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
         { upsert: true }
     );
     const newMessage = Number(messageWrite?.upsertedCount || 0) > 0 || Boolean(messageWrite?.upsertedId);
+    if (qaPostPersist && !newMessage) {
+        return { recorded: true, newMessage: false, phone, chatId, messageId,
+            providerMessageId, providerZaapId, body: normalizedBody,
+            type: effectiveType, routeToBot: false };
+    }
     const mediaHealth = hasDeclaredMedia
         ? await captureInboundMedia({
             messageId,
@@ -890,12 +896,11 @@ const recordZapiInboundPayload = async (payload = {}) => {
             phone,
             message: normalizedBody,
             inboundAt: now
-        }).catch((error) => ({
-            ok: false,
-            skipped: true,
-            reason: 'attribution_bridge_error',
-            error: error.message || String(error)
-        }))
+        }).catch((error) => {
+            if (qaPostPersist) throw error;
+            return { ok: false, skipped: true, reason: 'attribution_bridge_error',
+                error: error.message || String(error) };
+        })
         : { ok: false, skipped: true, reason: 'vsl_routing_not_allowed' };
     const attributedProduct = vslAttribution.ok && vslAttribution.claimed
         ? getEcuadorProductInfoByKey(vslAttribution.productKey)
@@ -1175,7 +1180,8 @@ const recordZapiInboundPayload = async (payload = {}) => {
             replyEligibleByHistory: conversationClassification.replyEligibleByHistory === true,
             metrics: conversationClassification.metrics
         } : null,
-        routeToBot
+        ...(qaPostPersist ? { qaBotEligibility: routeToBot } : {}),
+        routeToBot: qaPostPersist ? false : routeToBot
     };
 };
 
@@ -1546,7 +1552,7 @@ router.post('/webhook', async (req, res) => {
             console.log('[ZAPI-WEBHOOK] inbound ignorado fora da operacao Ecuador');
             return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
         }
-        const result = await recordZapiInboundPayload(payload);
+        const result = await recordEcQaInboundAfterPersistenceV78({ req, res, record: recordZapiInboundPayload });
         const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
         const pickupReply = qaPersistenceOnly
             ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
@@ -1605,7 +1611,7 @@ router.post('/webhook/received', async (req, res) => {
                 console.log('[ZAPI-WEBHOOK] received ignorado fora da operacao Ecuador');
                 return res.json({ ok: true, skipped: true, reason: 'outside_ec_operation' });
             }
-            const result = await recordZapiInboundPayload(payload);
+            const result = await recordEcQaInboundAfterPersistenceV78({ req, res, record: recordZapiInboundPayload });
             const qaPersistenceOnly = ecQaInboundPersistenceOnly(req);
             const pickupReply = qaPersistenceOnly
                 ? { handled: false, suppressed: true, reason: 'qa_dashboard_persistence_only' }
