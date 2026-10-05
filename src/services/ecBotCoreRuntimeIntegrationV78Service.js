@@ -24,7 +24,8 @@ import { ecMultiproductManualReleaseV120RouteDecision } from './ecMultiproductMa
 import {
     EC_OFFICIAL_VSL_V78_MESSAGE,
     EC_OFFICIAL_VSL_V78_WHATSAPP,
-    recognizeOfficialEcVslEntryV78
+    recognizeOfficialEcVslEntryV78,
+    recognizeClaimedVitEcQaEntryV78
 } from './ecOfficialVslEntryV78Service.js';
 import {
     EC_QA_TEST_PHONE_V78,
@@ -167,17 +168,31 @@ export const claimEcQaInboundContextV78 = async ({
     const text = zapiTextFromPayloadV78(payload);
     const messageId = zapiMessageIdFromPayloadV78(payload);
     if (!messageId) return Object.freeze({ applicable: true, allowed: false, phone, reason: 'qa_provider_message_id_required' });
-    const recognition = recognizeOfficialEcVslEntryV78({
+    let recognition = recognizeOfficialEcVslEntryV78({
         text,
         destinationPhone: EC_OFFICIAL_VSL_V78_WHATSAPP
     });
+    if (!recognition.recognized && text.split(/\r?\n/)[0].trim() === 'Hola, vengo del video') {
+        const state = await model.findOne({ phoneDigits: phone, 'metadata.testOnly': true }).lean();
+        const visitId = String(state?.metadata?.vslVisitId || '');
+        if (/^[a-f0-9]{24}$/.test(visitId)) {
+            const inbound = await model.db.collection('messages').findOne({ _id: messageId });
+            const visit = await model.db.collection('vslvisits').findOne({
+                _id: new state._id.constructor(visitId), customerPhone: phone
+            });
+            recognition = recognizeClaimedVitEcQaEntryV78({ text, messageId, phone,
+                connectedPhone: clean(payload.connectedPhone), state: state || {},
+                inbound: inbound ? { ...inbound, connectedPhone: clean(inbound.providerPayload?.connectedPhone),
+                    providerMoment: inbound.providerPayload?.momment } : {}, visit: visit || {} });
+        }
+    }
     const initialResult = recognition.recognized
         ? await model.updateOne(exactQaQueryV78(now, messageId), {
             $set: {
                 'metadata.qaTestContextV78.status': 'routing',
                 'metadata.qaTestContextV78.routingAt': now.toISOString(),
                 'metadata.qaTestContextV78.routingMessageId': messageId,
-                'metadata.qaTestContextV78.routingSignature': EC_OFFICIAL_VSL_V78_MESSAGE,
+                'metadata.qaTestContextV78.routingSignature': recognition.signature || EC_OFFICIAL_VSL_V78_MESSAGE,
                 'metadata.qaTestContextV78.routingPhase': 'initial'
             }
         })
