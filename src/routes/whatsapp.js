@@ -6262,7 +6262,10 @@ router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, asyn
                         agencyAddress,
                         agencyName: pendingOrder.agencyName || cleanDraft.address,
                         agency: pendingOrder.agency || cleanDraft.address
-                    } : {})
+                    } : {}),
+                    ...(['home', 'agency'].includes(String(customerDraft.deliveryMode || '').trim())
+                        ? { deliveryMode: String(customerDraft.deliveryMode).trim() }
+                        : {})
                 };
                 if (locationChanged) {
                     mergedPendingOrder.agencyOptions = [];
