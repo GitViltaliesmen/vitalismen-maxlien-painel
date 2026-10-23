@@ -19663,7 +19663,8 @@
             }
         }
 
-        async function sendMessage() {
+        async function sendMessage(event) {
+            if (!event?.isTrusted || state.sendingMessage) return;
             if (state.editingOutboundMessage) return saveEditedOutboundMessage();
             const input = el('messageInput');
             const text = String(input.value || '').trim();
@@ -19710,10 +19711,16 @@
                         delayTypingSeconds: 0,
                         quotedMessageId: replyTo?._id || '',
                         clientGeneratedId: pending?.clientGeneratedId || '',
+                        manualIntent: { confirmed: true, actionId: pending?.clientGeneratedId || '' },
                         sendMode: 'manual_panel',
                         country: state.country || 'EC'
                     })
                 });
+                if (result?.reconcileRequired) {
+                    const error = new Error('Resultado incerto; conferir no WhatsApp antes de qualquer nova acao.');
+                    error.response = result;
+                    throw error;
+                }
                 if (!result?.success) {
                     throw new Error(result?.error || 'WhatsApp nao confirmou o envio. Verifique a conexao do celular.');
                 }
@@ -19726,6 +19733,11 @@
                 loadChats().catch(() => null);
                 window.setTimeout(() => loadActionableSamples().catch(() => null), 600);
             } catch (error) {
+                if (error.response?.reconcileRequired) {
+                    markPendingLocalMessageStatus(pending?._id, 'request_failed', 'Aguardando reconciliacao manual; nao reenviar.');
+                    showToast('Resultado incerto; confira a conversa no WhatsApp. Nenhum reenvio automatico sera feito.');
+                    return;
+                }
                 markPendingLocalMessageStatus(pending?._id, 'request_failed', error.message);
                 if (!String(input.value || '').trim()) {
                     input.value = text;
@@ -21215,7 +21227,7 @@
         document.addEventListener('click', (event) => {
             if (!event.target.closest?.('#sendBtn')) return;
             event.preventDefault();
-            sendMessage();
+            sendMessage(event);
         }, true);
         el('sendBtn').addEventListener('click', sendMessage);
         el('flowCorrectionBtn').addEventListener('click', (event) => {
@@ -21633,7 +21645,7 @@
             if (event.key !== 'Enter') return;
             if (event.shiftKey) return;
             event.preventDefault();
-            sendMessage();
+            sendMessage(event);
         });
         document.querySelectorAll('[data-dropi-filter]').forEach((button) => {
             button.addEventListener('click', () => {

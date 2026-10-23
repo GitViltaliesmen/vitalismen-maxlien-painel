@@ -1,3 +1,4 @@
+import { hasManualHumanRequest, executeManualHumanRequest } from '../services/manualHumanRuntime.js';
 import { sendCanonicalPanelPostSaleV147R6 } from '../services/postSaleManualPanelV147R6Service.js';
 import express from 'express';
 import path from 'path';
@@ -6647,6 +6648,7 @@ router.get('/reengagement/templates', adminOnly, async (_req, res) => {
 
 // POST /api/whatsapp/send
 router.post('/send', authMiddleware, async (req, res) => {
+    if (hasManualHumanRequest(req)) return executeManualHumanRequest(req, res);
     try {
         const {
             phone,

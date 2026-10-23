@@ -1,3 +1,4 @@
+import { prepareManualHumanRequest, hasManualHumanRequest, manualMongoAllowed, manualTransportAllowed } from './manualHumanRuntime.js';
 export const STRICT_READ_ONLY_POLICY = 'STRICT_READ_ONLY';
 export const SAFE_OBSERVATION_MODE = 'SAFE_OBSERVATION_ONLY';
 export const STRICT_READ_ONLY_OPERATION_BLOCKED = 'STRICT_READ_ONLY_OPERATION_BLOCKED';
@@ -85,8 +86,10 @@ export const assertRouteMutationAllowed = ({ method = '', path = '', env = proce
     });
 };
 
-export const assertTransportPersistenceAllowed = ({ transport = 'unknown', operation = 'persistence', env = process.env } = {}) =>
-    assertMutationAllowed({ capability: `${transport}:${operation}`, source: 'transport', env });
+export const assertTransportPersistenceAllowed = ({ transport = 'unknown', operation = 'persistence', env = process.env } = {}) => {
+    if (manualTransportAllowed(transport, operation)) return true;
+    return assertMutationAllowed({ capability: `${transport}:${operation}`, source: 'transport', env });
+};
 
 export const strictReadOnlyAcceptedPayload = (extra = {}) => ({
     ok: true,
@@ -124,7 +127,9 @@ export const strictReadOnlyRouteDecision = ({ method = '', path = '', env = proc
     return Object.freeze({ allowed: false, readOnly: false, reason: 'strict_read_only' });
 };
 
-export const strictReadOnlyMutationRouteGuard = (req, res, next) => {
+export const strictReadOnlyMutationRouteGuard = async (req, res, next) => {
+    try { if (hasManualHumanRequest(req) || await prepareManualHumanRequest(req)) return next(); }
+    catch (error) { return res.status(error.statusCode === 401 ? 401 : 423).json({ error: 'manual_authorization_denied' }); }
     const path = String(req.originalUrl || req.path || req.url || '').split('?')[0];
     const decision = strictReadOnlyRouteDecision({ method: req.method, path });
     if (decision.allowed) return next();
@@ -228,6 +233,9 @@ const patchMutationPrototype = (prototype, envProvider, methods = MONGOOSE_MUTAT
             configurable: true,
             writable: true,
             value: function strictReadOnlyGuardedMongooseMutation(...args) {
+                if (manualMongoAllowed(this?.collectionName || this?.namespace?.collection || this?.name, method, args)) {
+                    return original.apply(this, args);
+                }
                 assertMutationAllowed({
                     capability: `${namespace}.${method}`,
                     source: this?.collectionName || this?.name || 'mongoose',

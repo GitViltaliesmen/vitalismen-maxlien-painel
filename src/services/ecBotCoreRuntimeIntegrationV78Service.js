@@ -1,3 +1,4 @@
+import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, randomUUID } from 'node:crypto';
@@ -471,6 +472,8 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
         return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
     }
+    try { if (await prepareManualHumanRequest(req)) return next(); }
+    catch (error) { return res.status(error.statusCode === 401 ? 401 : 423).json({ error: 'manual_authorization_denied' }); }
     if (isExactEcAuthLoginV78Request({ method, path: requestPath })) {
         return runtimeContext.run({
             profile: EC_BOT_CORE_V78_MODE,
@@ -629,6 +632,8 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (manualExternalAllowed(effect)
+        && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
     if (!ecBotCoreV78Requested(env)) return true;
     const decision = ecBotCoreV78ExternalEffectDecision(effect, env);
     const context = currentEcBotCoreRuntimeContextV78();
@@ -699,6 +704,10 @@ const patchMongoPrototype = (prototype) => {
             configurable: true,
             writable: true,
             value: function ecBotCoreV78MongoGuardedMutation(...args) {
+                if (manualMongoAllowed(this?.collectionName || this?.namespace?.collection || this?.name, method, args)
+                    && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) {
+                    return original.apply(this, args);
+                }
                 if (ecBotCoreV78Requested(process.env)) {
                     const configuration = resolveEcBotCoreV78Configuration(process.env);
                     const context = currentEcBotCoreRuntimeContextV78();
