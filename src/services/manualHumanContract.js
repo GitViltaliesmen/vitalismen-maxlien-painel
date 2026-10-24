@@ -34,7 +34,8 @@ export const createManualHumanContract = (deps, { now = Date.now, lifetimeMs = 1
             || typeof b.message !== 'string' || !b.message.trim() || b.message.length > 4000
             || b.quotedMessageId || ![undefined, 0].includes(b.delayTypingSeconds)
             || ![undefined, 'EC', 'BR'].includes(b.country) || !deps.sessionAllowed(b.sessionId)
-            || deps.ownerPhoneDigits !== MANUAL_QA_OWNER || b.phone !== MANUAL_QA_RECIPIENT) {
+            || deps.ownerPhoneDigits !== MANUAL_QA_OWNER
+            || typeof b.phone !== 'string' || !(b.phone === MANUAL_QA_RECIPIENT || /^593[2-79]\d{8}$/.test(b.phone))) {
             fail(423, 'manual_individual_text_required');
         }
         const token = /^Bearer ([^\s]+)$/.exec(req.headers?.authorization || '')?.[1];

@@ -1,9 +1,11 @@
+import { readManualCommercialScope } from './manualCommercialScope.js';
 import { createHash } from 'node:crypto';
 import { createManualHumanContract, isManualRequest, MANUAL_QA_RECIPIENT, MANUAL_QA_OWNER } from './manualHumanContract.js';
 
 export const productionManualDependencies = (modules, env = process.env) => {
     const { jwt, User, OutboundDedupe, Message, sendZapiText, zapiConfig, getZapiStatus, getZapiDevice,
-        canSendOutbound, assertEcPanelManualSendV115 } = modules;
+        canSendOutbound, assertEcPanelManualSendV115, ContactState,
+        commercialScope = readManualCommercialScope } = modules;
     // assignedSeller is a routing selector, never proof of the connected identity.
     const sellerSelector = String(env.ZAPI_OPERATIONAL_PHONE || env.ZAPI_CONNECTED_PHONE || env.ZAPI_OPERATION_PHONE || '').replace(/\D/g, '');
     const ownerPhoneDigits = MANUAL_QA_OWNER;
@@ -21,7 +23,26 @@ export const productionManualDependencies = (modules, env = process.env) => {
             return { id: String(user._id), role: user.role, isActive: true, expiresAt: claims.exp * 1000 };
         },
         async validateRecipient(phone, actor, text) {
-            if (phone !== MANUAL_QA_RECIPIENT || sellerSelector !== '5531971862958') return false;
+            if (sellerSelector !== '5531971862958') return false;
+            if (phone !== MANUAL_QA_RECIPIENT) {
+                if (!/^593[2-79]\d{8}$/.test(phone) || env.VITALISMEN_MANUAL_COMMERCIAL_APPROVED !== 'true') return false;
+                // Independent root-owned successor authority, never a body flag or an API token.
+                const authority = await commercialScope();
+                if (authority?.manualCommercialAllowed !== true || authority.connectedPhone !== ownerPhoneDigits
+                    || authority.instanceSHA256 !== expectedInstanceHash || !Object.isFrozen(authority)) return false;
+                const chatId = `${phone}@c.us`;
+                const state = await ContactState.findOne({ chatId, phoneDigits: phone,
+                    'metadata.senderWallet.assignedSessionId': sellerSelector })
+                    .select('chatId phoneDigits human.assignedTo metadata.senderWallet.assignedSessionId').lean();
+                if (!state || state.chatId !== chatId || state.phoneDigits !== phone
+                    || state.metadata?.senderWallet?.assignedSessionId !== sellerSelector) return false;
+                if (actor.role !== 'admin' && state.human?.assignedTo && state.human.assignedTo !== actor.id) return false;
+                // Existing wallet authorizes the recipient route; API GETs below verify the connected account.
+                // Native Z-API history uses @c.us + sessionId=zapi. No tail/prefix lookup or normalization.
+                const history = await Message.findOne({ chatId, peerPhone: phone, provider: 'zapi', isFromMe: false,
+                    sessionId: 'zapi' }).select('_id').lean();
+                if (!history) return false;
+            }
             assertEcPanelManualSendV115({ sendMode: 'manual_panel' });
             const cfg = zapiConfig();
             if (!cfg.enabled || typeof cfg.instanceId !== 'string' || !/^[a-f0-9]{64}$/.test(expectedInstanceHash)
@@ -82,13 +103,13 @@ export const manualQaProfileAllowed = (env = process.env) =>
 const enabled = () => manualQaProfileAllowed();
 const loadContract = async () => {
     if (!loading) loading = (async () => {
-        const [jwt, user, dedupe, message, zapi, outbound, panel] = await Promise.all([
+        const [jwt, user, dedupe, message, zapi, outbound, panel, contact] = await Promise.all([
             import('jsonwebtoken'), import('../models/User.js'),
             import('../models/OutboundDedupe.js'), import('../models/Message.js'), import('./zapiClient.js'),
-            import('../whatsapp/outboundGuard.js'), import('./ecPanelRuntimeRecoveryV115Service.js')
+            import('../whatsapp/outboundGuard.js'), import('./ecPanelRuntimeRecoveryV115Service.js'), import('../models/ContactState.js')
         ]);
         contract = createManualHumanContract(productionManualDependencies({ jwt: jwt.default, User: user.default,
-            OutboundDedupe: dedupe.default, Message: message.default,
+            OutboundDedupe: dedupe.default, Message: message.default, ContactState: contact.default,
             sendZapiText: zapi.sendZapiText, zapiConfig: zapi.zapiConfig,
             getZapiStatus: zapi.getZapiStatus, getZapiDevice: zapi.getZapiDevice,
             canSendOutbound: outbound.canSendOutbound, assertEcPanelManualSendV115: panel.assertEcPanelManualSendV115 }));
