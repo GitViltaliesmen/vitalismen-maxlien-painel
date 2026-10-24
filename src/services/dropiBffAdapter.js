@@ -1,3 +1,5 @@
+import { validateDropiBffListContract } from './dropiBffListContract.js';
+
 const DEFAULT_BFF_BASE_URL = 'https://api-v2.dropi.ec';
 
 export const DROPI_BFF_BASE_URL = String(
@@ -74,13 +76,19 @@ export const sameDropiAccountIdentity = (expected = {}, actual = {}) => {
     return false;
 };
 
-export const normalizeDropiBffListResponse = (body = {}) => ({
-    isSuccess: body?.is_succesfull ?? body?.isSuccess ?? false,
-    objects: Array.isArray(body?.data?.objects)
-        ? body.data.objects
-        : (Array.isArray(body?.objects) ? body.objects : []),
-    count: Number(body?.data?.count ?? body?.count ?? 0) || 0
-});
+export const normalizeDropiBffListResponse = (body = {}, context = {}) => {
+    const accepted = validateDropiBffListContract({
+        httpStatus: context.status,
+        jsonValid: context.jsonValid,
+        contentTypeClass: context.contentTypeClass,
+        body
+    }).ok;
+    return {
+        isSuccess: accepted,
+        objects: accepted ? body.data.objects : [],
+        count: accepted ? (Number(body.data.count ?? body.count ?? 0) || 0) : 0
+    };
+};
 
 export const normalizeDropiBffCreateResponse = (body = {}) => {
     const rawOrder = body?.data?.orderId ?? body?.objects ?? body?.data ?? null;
@@ -262,6 +270,12 @@ export const requestDropiBff = async ({
         return {
             ok: responseOk,
             status: response.status,
+            ...(operation === 'list' ? { listResponseContext: {
+                status: response.status,
+                jsonValid: lifecycle.bodyParsed,
+                contentTypeClass: /^application\/(?:[\w.+-]+\+)?json(?:\s*;|$)/i.test(
+                    response.headers?.get?.('content-type') || '') ? 'JSON' : 'OTHER'
+            } } : {}),
             body,
             statusReason: dropiBffStatusReason(body),
             requestId: safeRequestId(

@@ -522,7 +522,7 @@ const validateCurrentDropiBffSession = async (page) => {
         operation: 'list',
         timeoutMs: Number.parseInt(process.env.DROPPI_EC_AUTH_CHECK_TIMEOUT_MS || '30000', 10)
     });
-    const normalized = normalizeDropiBffListResponse(response.body);
+    const normalized = normalizeDropiBffListResponse(response.body, response.listResponseContext);
     return {
         ...response,
         ok: Boolean(response.ok && normalized.isSuccess),
@@ -2570,7 +2570,7 @@ const fetchOrdersApiRows = async (page, search, { maxRows = 300 } = {}) => {
                 lifecycle: result.lifecycle
             });
         }
-        const normalized = normalizeDropiBffListResponse(result.body);
+        const normalized = normalizeDropiBffListResponse(result.body, result.listResponseContext);
         if (!normalized.isSuccess) {
             throw buildDropiBffSubmitError({
                 code: 'INVALID_RESPONSE',

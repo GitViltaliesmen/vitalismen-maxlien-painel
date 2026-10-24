@@ -18,7 +18,7 @@ import {
 const response = ({ status = 200, body = {}, requestId = '' } = {}) => ({
     ok: status >= 200 && status < 300,
     status,
-    headers: { get: (name) => (name.toLowerCase() === 'x-request-id' ? requestId : '') },
+    headers: { get: (name) => (name.toLowerCase() === 'content-type' ? 'application/json' : name.toLowerCase() === 'x-request-id' ? requestId : '') },
     json: async () => body
 });
 
@@ -57,7 +57,7 @@ test('BFF autenticada usa o contrato oficial de listagem', async () => {
     assert.equal(captured.options.headers.Authorization, 'Bearer token-de-teste');
     assert.equal(captured.options.headers['X-Authorization'], 'Bearer token-de-teste');
     assert.equal(captured.options.headers['X-Host'], 'ec');
-    assert.deepEqual(normalizeDropiBffListResponse(result.body).objects, [{ id: 1 }]);
+    assert.deepEqual(normalizeDropiBffListResponse(result.body, result.listResponseContext).objects, [{ id: 1 }]);
 });
 
 test('criacao BFF 2xx usa POST e normaliza orderId', async () => {
@@ -314,4 +314,68 @@ test('headers nunca incluem cookies ou CSRF inventado', () => {
     assert.equal(list.Cookie, undefined);
     assert.equal(create.Cookie, undefined);
     assert.equal(create['X-CSRF-Token'], undefined);
+});
+
+test('listagem V60 exige evidencia HTTP/JSON e aceita contrato data.objects sem flag', async () => {
+    const body = { data: { objects: [{ id: 123456 }], count: 1 } };
+    const result = await requestDropiBff({ url: DROPI_BFF_LIST_ENDPOINT, token: 'SYNTHETIC_ONLY',
+        operation: 'list', fetchImpl: async () => response({ body }) });
+    assert.deepEqual(normalizeDropiBffListResponse(result.body, result.listResponseContext),
+        { isSuccess: true, objects: body.data.objects, count: 1 });
+    assert.equal(normalizeDropiBffListResponse(body).isSuccess, false);
+    for (const changed of [{ status: 401 }, { status: 201 }, { jsonValid: false }, { contentTypeClass: 'HTML' }]) {
+        assert.equal(normalizeDropiBffListResponse(body, { ...result.listResponseContext, ...changed }).isSuccess, false);
+    }
+});
+
+test('listagem V60 recusa objects raiz, flags falsas/conflitantes e erros HTTP 200', () => {
+    const meta = { status: 200, jsonValid: true, contentTypeClass: 'JSON' };
+    for (const body of [
+        { isSuccess: true, objects: [] }, { objects: [], data: { objects: [] } },
+        { isSuccess: false, data: { objects: [] } },
+        { isSuccess: true, data: { objects: [], success: false } },
+        { isSuccess: true, data: { objects: [], error: 'SYNTHETIC_ERROR' } },
+        { data: { objects: [], message: 'Unauthenticated SYNTHETIC' } },
+        { data: { objects: 'INVALID' } }
+    ]) assert.deepEqual(normalizeDropiBffListResponse(body, meta), { isSuccess: false, objects: [], count: 0 });
+});
+
+test('rastreamento preserva ID, referencia e guia sintetica da listagem aceita sem flag', () => {
+    // Only this mapper is evaluated, with synthetic helpers; the service is never imported.
+    const source = fs.readFileSync('src/services/droppiEcuadorBrowserService.js', 'utf8');
+    const start = source.indexOf('const mapOrdersApiRowToActiveRow = ');
+    const end = source.indexOf('\n};', start);
+    assert.ok(start >= 0 && end > start);
+    const mapper = Function('discardPhoneAsTracking', 'extractTrackingFromOrderRow', 'resolveEcuadorProductInfo',
+        'apiRowClientName', 'buildDropiGuideInvoiceUrl', `${source.slice(start, end + 3)};return mapOrdersApiRowToActiveRow;`)(
+        (tracking, phone) => tracking === phone ? '' : tracking,
+        row => row.syntheticTracking || '', () => ({ key: 'vit_power_ec', name: 'SYNTHETIC_PRODUCT' }),
+        () => 'SYNTHETIC_CLIENT', () => '');
+    const row = { id: 123456, reference: 'SYNTHETIC_REFERENCE', phone: '593999999999',
+        syntheticTracking: 'SYNTHETIC_TRACKING', status: 'SYNTHETIC_STATUS' };
+    const normalized = normalizeDropiBffListResponse({ data: { objects: [row] } },
+        { status: 200, jsonValid: true, contentTypeClass: 'JSON' });
+    const before = JSON.stringify(row);
+    const tracked = normalized.objects.map(mapper);
+    assert.equal(normalized.isSuccess, true);
+    assert.equal(tracked[0].dropiOrderId, '123456');
+    assert.equal(tracked[0].internalOrderId, row.reference);
+    assert.equal(tracked[0].trackingNumber, row.syntheticTracking);
+    assert.equal(tracked[0].status, row.status);
+    assert.equal(JSON.stringify(row), before);
+    assert.equal(mapper({ ...row, syntheticTracking: row.phone }).trackingNumber, '');
+});
+
+test('listagem vazia ou recusada nao inventa dados de rastreamento nem sucesso de pedido', () => {
+    const meta = { status: 200, jsonValid: true, contentTypeClass: 'JSON' };
+    const empty = normalizeDropiBffListResponse({ data: { objects: [] } }, meta);
+    const refused = normalizeDropiBffListResponse({ isSuccess: false, data: { objects: [{ id: 123456 }] } }, meta);
+    assert.equal(empty.isSuccess, true);
+    assert.deepEqual(empty.objects, []);
+    assert.equal(refused.isSuccess, false);
+    assert.deepEqual(refused.objects, []);
+    for (const result of [empty, refused]) {
+        assert.equal(Object.hasOwn(result, 'submitted'), false);
+        assert.equal(Object.hasOwn(result, 'metaPurchaseSentAt'), false);
+    }
 });
