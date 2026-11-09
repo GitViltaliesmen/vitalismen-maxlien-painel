@@ -99,8 +99,22 @@ export const normalizeDropiBffCreateResponse = (body = {}) => {
             ? { id: String(firstOrder).trim() }
             : {});
     if (!objects.id && body?.data?.id) objects.id = body.data.id;
+    const flags = ['is_successful', 'is_succesfull', 'isSuccess']
+        .filter(key => Object.hasOwn(body, key)).map(key => body[key]);
+    const oneOrder = !Array.isArray(rawOrder) || rawOrder.length === 1;
+    const validOrderId = /^[1-9]\d{0,17}$/.test(String(objects.id ?? '').trim())
+        && (typeof firstOrder !== 'number' || Number.isSafeInteger(firstOrder))
+        && (typeof objects.id !== 'number' || Number.isSafeInteger(objects.id));
+    const explicitError = [body, body?.data].filter(value => value && typeof value === 'object').some(value =>
+        ['error', 'errors'].some(key => Object.hasOwn(value, key) && value[key] !== null && value[key] !== false && value[key] !== ''
+            && !(Array.isArray(value[key]) && value[key].length === 0)));
+    const providerStatus = body?.status_code ?? body?.statusCode;
+    const successfulStatus = providerStatus === undefined || providerStatus === null
+        || Number(providerStatus) >= 200 && Number(providerStatus) < 300;
+    // A successful quote, HTTP200, or a message string is not an order receipt.
+    const accepted = flags.length > 0 && flags.every(value => value === true) && oneOrder && validOrderId && !explicitError && successfulStatus;
     return {
-        isSuccess: body?.is_succesfull ?? body?.isSuccess ?? false,
+        isSuccess: accepted,
         statusCode: body?.status_code ?? body?.statusCode ?? null,
         message: dropiBffStatusReason(body),
         data: body?.data?.orderId ?? body?.data ?? null,

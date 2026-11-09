@@ -4,6 +4,7 @@ import User from '../models/User.js';
 const isPrivateLanHost = (host = '') => /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(String(host));
 
 export const isPanelAuthDisabled = (req = {}) => {
+    if (String(req.headers?.authorization || '').trim()) return false;
     if (String(process.env.PANEL_AUTH_DISABLED || '').toLowerCase() !== 'false') return true;
     const host = String(req.hostname || req.headers?.host || '').split(':')[0];
     const ip = String(req.ip || req.socket?.remoteAddress || '');
@@ -28,14 +29,15 @@ export const noPasswordPanelUser = {
 
 export const authMiddleware = async (req, res, next) => {
     try {
-        if (isPanelAuthDisabled(req)) {
+        // An explicitly supplied credential must be verified even on loopback.
+        // This preserves the authenticated actor for guarded manual operations.
+        const authHeader = req.headers.authorization;
+        if (!authHeader && isPanelAuthDisabled(req)) {
             req.user = noPasswordPanelUser;
             return next();
         }
 
         // Get token from header
-        const authHeader = req.headers.authorization;
-
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'No token provided' });
         }

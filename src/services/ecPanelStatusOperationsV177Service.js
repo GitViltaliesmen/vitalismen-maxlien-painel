@@ -1,3 +1,5 @@
+import { manualHistoricalRequestV203, manualTerminalStatusV203 } from './ecHistoricalOrderStatusV203Service.js';
+
 export const EC_PANEL_STATUS_V177_VERSION = 177;
 export const EC_PANEL_STATUS_V177_MODE = 'EC_PANEL_STATUS_OPERATIONS_V177';
 export const EC_PANEL_STATUS_V177_QA_PHONE = '5515998038637';
@@ -55,6 +57,12 @@ export const ecPanelStatusV177StatusPlan = (status = '') => {
 export const ecPanelStatusV177Operation = ({ method = '', path = '', body = {} } = {}) => {
     const verb = clean(method).toUpperCase();
     const route = normalizedPath(path);
+    const historical = manualHistoricalRequestV203({ method: verb, path: route, body });
+    if (historical) return historical.operation;
+    if (verb === 'POST' && /^\/api\/shipments\/droppi\/ec\/admin-leads\/[1-9]\d*\/stage-confirmed$/.test(route)
+        && Object.keys(body).every(key => ['note', 'forceRepurchase'].includes(key))
+        && (body.note === undefined || typeof body.note === 'string' && body.note.length <= 3000)
+        && (body.forceRepurchase === undefined || typeof body.forceRepurchase === 'boolean')) return 'stage-confirmed-v203';
     if (verb === 'POST' && route === '/api/whatsapp/chats/action') return 'chat-action';
     if (verb === 'POST' && route === '/api/whatsapp/chats/bucket') return 'chat-bucket';
     if (verb === 'POST' && route === '/api/whatsapp/internal/admin-status-sync') return 'internal-admin-status-sync';
@@ -62,6 +70,7 @@ export const ecPanelStatusV177Operation = ({ method = '', path = '', body = {} }
         return 'identity-conflict';
     }
     if (verb === 'PATCH' && /^\/api\/whatsapp\/contact-state\/[^/]+$/.test(route)) {
+        if (manualTerminalStatusV203(body?.customerDraft?.status)) return 'manual-contact-historical-status-v203';
         const plan = ecPanelStatusV177StatusPlan(body?.customerDraft?.status);
         return plan.orderWrite ? plan.operation : '';
     }
@@ -117,8 +126,12 @@ export const ecPanelStatusV177Actor = (user = null) => {
 export const ecPanelStatusV177Target = ({ path = '', body = {}, params = {} } = {}) => {
     const route = normalizedPath(path);
     const routeTarget = route.match(/^\/api\/whatsapp\/contact-state\/([^/]+)/)?.[1] || '';
+    const orderTarget = route.match(/^\/api\/orders\/(EC-[A-Za-z0-9-]{1,95})$/)?.[1] || '';
+    const leadTarget = route.match(/^\/api\/shipments\/droppi\/ec\/admin-leads\/([1-9]\d*)\/stage-confirmed$/)?.[1] || '';
     return clean(
         params.phone
+        || orderTarget
+        || leadTarget
         || body.phone_e164
         || body.phone
         || body.chatId
@@ -127,6 +140,21 @@ export const ecPanelStatusV177Target = ({ path = '', body = {}, params = {} } = 
 };
 
 const V177_COLLECTION_METHODS = Object.freeze({
+    'stage-confirmed-v203': Object.freeze({
+        contactstates: Object.freeze(['insertOne', 'updateOne']),
+        messages: Object.freeze(['insertOne']),
+        orders: Object.freeze(['insertOne', 'updateOne'])
+    }),
+    'manual-contact-historical-status-v203': Object.freeze({
+        contactstates: Object.freeze(['insertOne', 'updateOne']),
+        messages: Object.freeze(['insertOne']),
+        orders: Object.freeze(['updateOne'])
+    }),
+    'manual-historical-status-v203': Object.freeze({
+        contactstates: Object.freeze(['insertOne', 'updateOne']),
+        messages: Object.freeze(['insertOne']),
+        orders: Object.freeze(['updateOne'])
+    }),
     'chat-action': Object.freeze({ contactstates: Object.freeze(['insertOne', 'updateOne']), messages: Object.freeze(['insertOne']) }),
     'chat-bucket': Object.freeze({ contactstates: Object.freeze(['insertOne', 'updateOne']), messages: Object.freeze(['insertOne']) }),
     'identity-conflict': Object.freeze({ contactstates: Object.freeze(['insertOne', 'updateOne']), messages: Object.freeze(['insertOne']) }),

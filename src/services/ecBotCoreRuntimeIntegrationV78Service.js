@@ -426,16 +426,19 @@ export const ecManualDropiHumanActionV138 = (req, res, next) => {
 // has produced an active, identifiable human actor.  The nested context is the
 // sole authority consumed by the Mongo guard below.
 export const ecPanelStatusAuthenticatedActionV177 = (req, res, next) => {
+    if (!ecBotCoreV78Requested(process.env)) return next();
     const context = currentEcBotCoreRuntimeContextV78();
     const path = String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '') || '/';
     const operation = ecPanelStatusV177Operation({ method: req.method, path, body: req.body || {} });
     if (!operation) return next();
     const actor = ecPanelStatusV177Actor(req.user);
+    const v203AdminOperation = ['manual-historical-status-v203', 'manual-contact-historical-status-v203', 'stage-confirmed-v203'].includes(operation);
     const target = ecPanelStatusV177Target({ path, body: req.body || {}, params: req.params || {} });
     if (
         context?.panelStatusRouteV177 !== true
         || context.panelStatusCandidateOperationV177 !== operation
         || !actor.active
+        || (v203AdminOperation && req.user?.role !== 'admin')
         || !target
     ) {
         return res.status(403).json({
@@ -535,7 +538,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         && ['POST', 'PATCH'].includes(method)
     ) || (
         decision.reason === 'ec_panel_status_v177_route_allowed'
-        && method === 'POST'
+        && ['POST', 'PATCH'].includes(method)
     );
     qaLogV78(qaObservation, 'QA_PIPELINE_ALLOWED', { writeContext });
     return runtimeContext.run({

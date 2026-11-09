@@ -54,7 +54,9 @@ export const panelOrderLifecycle = ({ order = null, shipment = null } = {}) => {
         hasOperationalOrder: Boolean(order?.orderId) && !historical,
         delivered: effectiveStatus === 'delivered',
         previousDeliveredAt: effectiveStatus === 'delivered'
-            ? (deliveredAtFromShipment(shipment) || firstValidDate(order?.previousDeliveredAt, order?.updatedAt))
+            ? (deliveredAtFromShipment(shipment) || (order?.manualHistoricalStatusV203?.source === 'authenticated_operator'
+                ? firstValidDate(order?.previousDeliveredAt)
+                : firstValidDate(order?.previousDeliveredAt, order?.updatedAt)))
             : null
     });
 };
