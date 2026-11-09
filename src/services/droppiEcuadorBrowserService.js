@@ -27,6 +27,7 @@ import {
 } from './dropiSyncObservabilityService.js';
 import { DROPI_SYNC_MODES } from './postSaleSafetyV66Service.js';
 import { assertMutationAllowed } from './strictReadOnlyObservationService.js';
+import { assertCustomerHistoryForDropiV203 } from './customerPurchaseEligibilityService.js';
 import {
     assertCanaryV75ExternalEffectBlocked,
     canaryV75BlockedResult
@@ -461,7 +462,7 @@ const dropiAccountIdentityIsPresent = (loginResult = {}) => Boolean(
 );
 
 const unwrapOfficialAuthResponse = (body = {}) => ({
-    isSuccess: body?.is_succesfull ?? body?.isSuccess ?? false,
+    isSuccess: (body?.is_successful ?? body?.is_succesfull ?? body?.isSuccess) === true,
     message: body?.status_reason || '',
     ...(body?.data && typeof body.data === 'object' ? body.data : {})
 });
@@ -1570,7 +1571,7 @@ export const buildEcuadorProductBffQuote = async (page, payload) => {
     });
     const quoteRows = dropiBffRows(quoteResult.body);
     const quoteAccepted = quoteResult.ok
-        && (quoteResult.body?.is_succesfull ?? quoteResult.body?.isSuccess ?? false)
+        && (quoteResult.body?.is_successful ?? quoteResult.body?.is_succesfull ?? quoteResult.body?.isSuccess) === true
         && quoteRows.some((item) => item?.objects);
     if (!quoteAccepted) {
         throw buildDropiBffSubmitError({
@@ -2628,29 +2629,41 @@ const mapOrdersApiRowToActiveRow = (row = {}) => {
 };
 
 const rowMatchesManualSubmission = (row = {}, payload = {}) => {
-    const serialized = JSON.stringify(row || {}).toLowerCase();
-    const exactReferences = [payload.orderId, payload.reference]
-        .map((value) => String(value || '').trim().toLowerCase())
-        .filter((value) => value.length >= 4);
-    if (exactReferences.some((value) => serialized.includes(value))) return true;
-
+    // A customer's address/reference is not a transaction identifier.
+    const orderReference = String(payload.orderId || '').trim().toUpperCase();
+    const referenceTokens = [row.external_order_id, row.reference, row.notes]
+        .filter(value => typeof value === 'string').join(' ').toUpperCase().split(/[^A-Z0-9-]+/);
+    const exactReference = orderReference.length >= 4 && referenceTokens.includes(orderReference);
+    const collision = () => { const error = new Error('DROPI_DUPLICATE: referencia existente diverge do pedido atual.'); error.dropiErrorCode = 'DUPLICATE'; throw error; };
     const rowPhone = String(row.phone || '').replace(/\D/g, '');
     const phoneTerms = phoneLookupVariants(payload.phone || '').filter((term) => term.length >= 8);
-    if (!rowPhone || !phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone))) return false;
+    const samePhone = rowPhone && phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone));
+    if (!samePhone) { if (exactReference) collision(); return false; }
+    if (!exactReference) {
+        const status = String(row.status || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+        if (['ENTREGADO', 'DELIVERED', 'PICKED_UP', 'PICKEDUP', 'DEVUELTO', 'RETURNED', 'CANCELADO', 'CANCELLED', 'CANCELED'].includes(status)) return false;
+        const born = new Date(payload.orderCreatedAt || '').getTime();
+        let created = String(row.created_at || row.date_order || row.createdAt || '').trim().replace(' ', 'T');
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(created)) created += '-05:00';
+        const observed = new Date(created).getTime();
+        if (!Number.isFinite(born) || !Number.isFinite(observed) || observed < born - 120000) return false;
+    }
 
     const rowName = normalizeAutocompleteText([row.name, row.surname].filter(Boolean).join(' '));
     const expectedNames = normalizeAutocompleteText([payload.firstName, payload.lastName].filter(Boolean).join(' '))
         .split(/\s+/)
         .filter((part) => part.length >= 3);
-    if (expectedNames.length && !expectedNames.some((part) => rowName.includes(part))) return false;
+    if (!exactReference && expectedNames.length && !expectedNames.some((part) => rowName.includes(part))) return false;
 
     const rowProduct = resolveEcuadorProductInfo(row);
     const expectedProduct = resolveEcuadorProductInfo(payload.productKey, payload.productName, payload.dropiProductName);
-    if (rowProduct.key && expectedProduct.key && rowProduct.key !== expectedProduct.key) return false;
+    if (rowProduct.key && expectedProduct.key && rowProduct.key !== expectedProduct.key) { if (exactReference) collision(); return false; }
 
     const expectedTotal = Number(payload.price || 0);
     const rowTotal = Number(row.total_order ?? row.total ?? row.price ?? 0);
-    return !(expectedTotal > 0 && rowTotal > 0 && Math.abs(expectedTotal - rowTotal) > 0.01);
+    const sameTotal = !(expectedTotal > 0 && rowTotal > 0 && Math.abs(expectedTotal - rowTotal) > 0.01);
+    if (exactReference && !sameTotal) collision();
+    return sameTotal;
 };
 
 const findExistingDropiOrderForManualSubmission = async (page, payload) => {
@@ -3514,6 +3527,7 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
 export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
     const humanBlock = ecHumanDropiSubmitBlockV138({ order, shipment });
     if (humanBlock) return humanBlock;
+    await assertCustomerHistoryForDropiV203(order);
     const canaryBlock = canaryV75BlockedResult('dropi');
     if (canaryBlock) return canaryBlock;
     const safetyBeforeLock = await checkDropiSubmitSafety({ order, shipment });
@@ -3530,6 +3544,7 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             order: { ...latestOrder, _mappedFromAdminLead: order._mappedFromAdminLead }, shipment: latestShipment
         });
         if (latestHumanBlock) return latestHumanBlock;
+        await assertCustomerHistoryForDropiV203(latestOrder);
         const safetyAfterLock = await checkDropiSubmitSafety({
             order: latestOrder,
             shipment: latestShipment

@@ -28,6 +28,9 @@ import {
     repurchaseOrderCreationPolicy
 } from '../services/ecDeliveredRepurchaseService.js';
 import { persistManualPanelStatusV139 } from '../services/ecDropiStatusPostSaleV139Service.js';
+import { ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import { manualHistoricalRequestV203, ecPhoneV203, manualHistoricalMetadataV203, manualShipmentTerminalReviewV203 } from '../services/ecHistoricalOrderStatusV203Service.js';
+import { readEcLegacyHistoryV203 } from '../services/ecHistoricalLegacyV203Service.js';
 
 const router = express.Router();
 
@@ -1233,7 +1236,18 @@ router.post('/', optionalPanelAuth, async (req, res) => {
 });
 
 // PATCH /api/orders/:id - Update order status (authenticated)
-router.patch('/:id', authMiddleware, async (req, res) => {
+router.patch('/:id', authMiddleware, (req, res, next) => {
+    const action = manualHistoricalRequestV203({ method: req.method, path: req.originalUrl, body: req.body });
+    if (!action) return next();
+    if (req.user?.role !== 'admin' || String(req.user?._id || req.user?.id || '') === 'local-no-password') {
+        return res.status(403).json({ success: false, error: 'manual_historical_authenticated_admin_required' });
+    }
+    req.body.status = action.status;
+    if (String(process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL).toLowerCase() === 'true') {
+        return ecPanelStatusAuthenticatedActionV177(req, res, next);
+    }
+    return next();
+}, async (req, res) => {
     try {
         const { status, notes, trackingNumber, purchaseIntent, customer, delivery, package: packageData, total, productKey, productName, product } = req.body;
         const nextStatus = normalizeOrderStatus(status);
@@ -1250,7 +1264,20 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             return sendBrazilTestOnlyError(res);
         }
 
-        if (typeof notes === 'string') order.notes = notes;
+        const historicalAction = manualHistoricalRequestV203({ method: req.method, path: req.originalUrl, body: req.body });
+        if (historicalAction) {
+            if (order.country !== 'EC') return res.status(409).json({ success: false, error: 'manual_historical_ec_only' });
+            const event = {
+                version: 203, source: 'authenticated_operator', recordedAt: new Date().toISOString(),
+                actorId: String(req.user._id || req.user.id), actor: req.user.email || req.user.name,
+                orderId: order.orderId, phone: ecPhoneV203(order.customer?.phone), previousStatus: order.status, status: historicalAction.status,
+                previousQuantity: order.package?.quantity, previousTotal: order.total,
+                requestedQuantity: packageData?.quantity, requestedTotal: total,
+                reason: typeof notes === 'string' ? notes : 'Atualizacao manual de historico; data efetiva da entrega/retorno nao informada.'
+            };
+            order.notes = appendAuditNote(order.notes, '[MANUAL_HISTORICAL_STATUS_V203] ' + JSON.stringify(event));
+            order.manualHistoricalStatusV203 = event;
+        } else if (typeof notes === 'string') order.notes = notes;
         if (trackingNumber) order.trackingNumber = trackingNumber;
         const hasRequestedProduct = Boolean(
             String(productKey || '').trim()
@@ -1372,10 +1399,34 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             ? await persistManualPanelStatusV139({ order, panelStatus: nextStatus })
             : null;
         if (!statusPersistence) await order.save();
+        let manualHistoricalPersistenceV203 = null;
+        if (historicalAction) {
+            const audit = order.manualHistoricalStatusV203;
+            const contact = statusPersistence?.contactState;
+            if (!contact || ecPhoneV203(contact.phoneDigits) !== ecPhoneV203(audit.phone)) throw new Error('manual_historical_contact_scope_invalid');
+            contact.metadata = manualHistoricalMetadataV203(contact.metadata || {}, audit.toObject ? audit.toObject() : audit);
+            contact.markModified('metadata');
+            await contact.save();
+            const shipment = await Shipment.findOne({ country: 'EC', orderId: order.orderId }).lean();
+            const pause = manualShipmentTerminalReviewV203({ order, shipment, audit });
+            if (pause) {
+                await Shipment.updateOne(pause.filter, pause.update);
+                if (!await Shipment.findOne({ ...pause.filter, 'review.manualOnly': true, 'review.reviewStatus': 'manual_terminal_recorded_v203' }).lean()) throw new Error('manual_historical_shipment_pause_not_persisted');
+            }
+            const verifiedOrder = await Order.findOne({ orderId: order.orderId, country: 'EC', status: historicalAction.status }).lean();
+            const legacy = readEcLegacyHistoryV203(order.customer?.phone);
+            const expected = historicalAction.status === 'delivered' ? 'entregue' : 'devolvido';
+            const ledgerVerified = legacy.available && legacy.leads.some(row => row.status === expected);
+            if (!verifiedOrder || !ledgerVerified || statusPersistence?.panel?.ok !== true) {
+                return res.status(409).json({ success: false, error: 'manual_historical_read_after_write_failed', falseSuccessPrevented: true });
+            }
+            manualHistoricalPersistenceV203 = { orderVerified: true, ledgerVerified: true, shipmentNotificationsPaused: Boolean(pause), status: historicalAction.status };
+        }
 
         res.json({
             success: true,
             order,
+            ...(manualHistoricalPersistenceV203 ? { manualHistoricalPersistenceV203 } : {}),
             statusPersistence: statusPersistence ? {
                 persistedInContactState: Boolean(statusPersistence.contactState),
                 dropiCalled: false,

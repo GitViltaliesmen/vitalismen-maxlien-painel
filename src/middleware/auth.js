@@ -28,14 +28,15 @@ export const noPasswordPanelUser = {
 
 export const authMiddleware = async (req, res, next) => {
     try {
-        if (isPanelAuthDisabled(req)) {
+        // An explicitly supplied credential must be verified even on loopback.
+        // This preserves the authenticated actor for guarded manual operations.
+        const authHeader = req.headers.authorization;
+        if (!authHeader && isPanelAuthDisabled(req)) {
             req.user = noPasswordPanelUser;
             return next();
         }
 
         // Get token from header
-        const authHeader = req.headers.authorization;
-
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'No token provided' });
         }
@@ -62,7 +63,7 @@ export const authMiddleware = async (req, res, next) => {
 
 // Admin only middleware
 export const adminOnly = (req, res, next) => {
-    if (isPanelAuthDisabled(req)) {
+    if (!req.headers?.authorization && isPanelAuthDisabled(req)) {
         req.user = req.user || noPasswordPanelUser;
         return next();
     }

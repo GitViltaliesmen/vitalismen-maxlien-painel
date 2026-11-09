@@ -6,7 +6,7 @@ export function validateDropiBffListContract({ httpStatus, jsonValid, contentTyp
     if (!object(body) || !object(body.data)) return reject('CONTRACT_INVALID');
     const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
     const containers = [body, body.data];
-    const flags = containers.flatMap(value => ['is_succesfull', 'isSuccess', 'success', 'isSuccessful']
+    const flags = containers.flatMap(value => ['is_successful', 'is_succesfull', 'isSuccess', 'success', 'isSuccessful']
         .filter(key => own(value, key)).map(key => value[key]));
     const flagClass = !flags.length ? 'ABSENT' : flags.some(value => typeof value !== 'boolean') ? 'INVALID'
         : flags.includes(true) && flags.includes(false) ? 'CONFLICT' : flags[0] ? 'TRUE' : 'FALSE';

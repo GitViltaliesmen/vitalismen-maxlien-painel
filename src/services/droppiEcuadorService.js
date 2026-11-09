@@ -480,6 +480,8 @@ export const buildDroppiEcuadorOrderPayload = ({ order }) => {
     const productMetadata = ecuadorProductMetadata(productInfo);
     return {
         orderId: String(order?.orderId || order?._id || '').trim(),
+        orderCreatedAt: order?.createdAt ? new Date(order.createdAt).toISOString() : '',
+        previousOrderId: String(order?.previousOrderId || '').trim(),
         firstName: splitName.firstName.trim(),
         lastName: splitName.lastName.trim(),
         phone: normalizeEcuadorLocalPhone(normalized.phone),
