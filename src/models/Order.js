@@ -72,6 +72,21 @@ const orderSchema = new mongoose.Schema({
         default: 'checkout'
     },
     notes: String,
+    manualHistoricalStatusV203: {
+        type: new mongoose.Schema({
+            version: { type: Number, enum: [203], required: true },
+            source: { type: String, enum: ['authenticated_operator'], required: true },
+            recordedAt: { type: Date, required: true },
+            actorId: { type: String, required: true, match: /^[a-f0-9]{24}$/i },
+            actor: String,
+            orderId: { type: String, required: true },
+            phone: { type: String, required: true, match: /^5939\d{8}$/ },
+            previousStatus: String,
+            status: { type: String, enum: ['delivered', 'returned'], required: true },
+            reason: String
+        }, { _id: false, strict: true }),
+        default: null
+    },
     trackingNumber: String,
     dropiOrderId: String,
     shippingStatus: String,

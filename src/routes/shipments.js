@@ -4,7 +4,7 @@ import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
 import ContactState from '../models/ContactState.js';
-import { ecManualDropiHumanActionV138 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import { ecManualDropiHumanActionV138, ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
 import { assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138, enrichEcDropiReadinessFlagsV138 } from '../services/ecDropiHumanAuthorizationV138Service.js';
 import { resolveEcAdminDropiDraftBridgeV128, enrichEcAdminDropiDraftFlagsV128 } from '../services/ecAdminDropiDraftBridgeV128Service.js';
 import AutomationRun from '../models/AutomationRun.js';
@@ -25,6 +25,7 @@ import {
     notifyShipmentReturned,
 } from '../services/shipmentMessageService.js';
 import Order from '../models/Order.js';
+import { assertCustomerHistoryForDropiV203 } from '../services/customerPurchaseEligibilityService.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
 import { importDroppiEcuadorText } from '../services/droppiEcuadorImportService.js';
 import {
@@ -2111,7 +2112,7 @@ router.get('/droppi/ec/admin-leads/flags', adminOnly, async (req, res) => {
     }
 });
 
-router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, async (req, res) => {
+router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const leadId = Number.parseInt(String(req.params.leadId || ''), 10);
         if (!leadId) {
@@ -2503,6 +2504,7 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         const existingShipment = await Shipment.findOne({ orderId: order.orderId });
         const previouslySubmitted = alreadySubmittedResponse(order, existingShipment);
         if (previouslySubmitted) return res.json(previouslySubmitted);
+        await assertCustomerHistoryForDropiV203(order);
         assertEcDropiOrderReadyV138(order);
         const shipment = await ensureShipmentForOrder(order, 'EC');
         const alreadySubmitted = alreadySubmittedResponse(order, shipment);

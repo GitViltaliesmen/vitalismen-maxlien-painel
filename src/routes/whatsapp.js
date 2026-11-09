@@ -113,6 +113,8 @@ import {
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { assertEcPanelManualSendV115 } from '../services/ecPanelRuntimeRecoveryV115Service.js';
 import { ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import { manualTerminalStatusV203, ecPhoneV203 } from '../services/ecHistoricalOrderStatusV203Service.js';
+import { readEcLegacyHistoryV203 } from '../services/ecHistoricalLegacyV203Service.js';
 import {
     ecPanelStatusV177StatusPlan,
     isEcPanelStatusV177StrictLocalRequest
@@ -6004,7 +6006,13 @@ router.post('/contact-state/:phone/resolve-customer-data', async (req, res) => {
 router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, async (req, res) => {
     try {
         const state = await findOrCreateContactState(req.params.phone);
+        const previousHistoricalDraftV203 = { ...(state.metadata?.customerDraft || {}) };
+        let manualHistoricalPersistenceV203 = null;
         const { note, mode, assignedName, country, customerDraft, customerDataConfirmation } = req.body || {};
+        const requestedTerminalV203 = manualTerminalStatusV203(customerDraft?.status);
+        if (requestedTerminalV203 && customerDraft && typeof customerDraft === 'object') {
+            customerDraft.status = requestedTerminalV203 === 'delivered' ? 'entregue' : 'devolvido';
+        }
         const productBeforeSave = currentProductRouteForState(state).productKey;
         let productAfterSave = productBeforeSave;
         let operationalOrderSync = { ok: false, skipped: true, reason: 'no_customer_draft' };
@@ -6317,6 +6325,36 @@ router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, asyn
                 };
             }
         }
+        const terminalStatusV203 = manualTerminalStatusV203(customerDraft?.status);
+        if (terminalStatusV203 && state.countryCode === 'EC') {
+            const peer = ecPhoneV203(state.phoneDigits);
+            if (!peer || peer !== ecPhoneV203(req.params.phone) || req.user?.role !== 'admin') {
+                return res.status(409).json({ success: false, error: 'manual_historical_customer_scope_invalid' });
+            }
+            const targetId = state.metadata?.customerDraft?.currentNegotiationOrderId || state.metadata?.customerDraft?.orderId || '';
+            const targetOrder = targetId ? await Order.findOne({ country: 'EC', orderId: targetId }) : null;
+            if (targetOrder && ecPhoneV203(targetOrder.customer?.phone) !== peer) {
+                return res.status(409).json({ success: false, error: 'manual_historical_order_customer_mismatch' });
+            }
+            const audit = {
+                version: 203, source: 'authenticated_operator', recordedAt: new Date().toISOString(),
+                actorId: String(req.user._id || req.user.id), actor: req.user.email || req.user.name,
+                phone: peer, orderId: targetOrder?.orderId || '', previousStatus: targetOrder?.status || previousHistoricalDraftV203.status,
+                status: terminalStatusV203, reason: String(note || 'Atualizacao manual pelo painel; data efetiva nao informada.').slice(0, 3000)
+            };
+            if (targetOrder) {
+                targetOrder.status = terminalStatusV203;
+                targetOrder.manualHistoricalStatusV203 = audit;
+                targetOrder.notes = `${targetOrder.notes || ''}\n[MANUAL_HISTORICAL_STATUS_V203] ${JSON.stringify(audit)}`.trim();
+                await targetOrder.save();
+                const checked = await Order.findOne({ orderId: targetOrder.orderId, country: 'EC' }).lean();
+                if (checked?.status !== terminalStatusV203) throw new Error('manual_historical_order_read_after_write_failed');
+            }
+            state.metadata = { ...(state.metadata || {}), manualHistoricalStatusV203: audit,
+                manualHistoricalStatusHistoryV203: [...(state.metadata?.manualHistoricalStatusHistoryV203 || []), audit].slice(-200) };
+            state.markModified('metadata');
+            manualHistoricalPersistenceV203 = { orderId: targetOrder?.orderId || '', orderVerified: Boolean(targetOrder), ledgerOnly: !targetOrder, status: terminalStatusV203 };
+        }
         await state.save();
         if (deferredOperationalOrderDraft) {
             try {
@@ -6361,6 +6399,15 @@ router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, asyn
         const unifiedSync = customerDraft && typeof customerDraft === 'object'
             ? syncCustomerDraftFromState(state, { action: 'contact_saved_from_whatsapp_panel' })
             : { ok: false, skipped: true, reason: 'no_customer_draft' };
+        if (manualHistoricalPersistenceV203) {
+            const evidence = readEcLegacyHistoryV203(state.phoneDigits);
+            const expected = terminalStatusV203 === 'delivered' ? 'entregue' : 'devolvido';
+            const leadId = Number(unifiedSync?.lead_id || unifiedSync?.leadId || unifiedSync?.id || 0);
+            const persisted = evidence.available && leadId > 0 && evidence.leads.some(row => Number(row.id) === leadId && row.status === expected);
+            if (unifiedSync?.ok !== true || !persisted) return res.status(409).json({ success: false,
+                error: 'manual_historical_ledger_read_after_write_failed', manualHistoricalPersistenceV203, falseSuccessPrevented: true });
+            manualHistoricalPersistenceV203.ledgerVerified = true;
+        }
         let confirmedPersistence = null;
         if (deferredOperationalOrderDraft) {
             const correlationId = `panel-confirm-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
@@ -6552,13 +6599,13 @@ router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, asyn
                 console.warn('[META] falha ao gravar lock Purchase apos sync do painel:', operationalOrderSync.adminPurchaseLock);
             }
         }
-        res.json(customerStateResponseV125({
+        res.json({ ...customerStateResponseV125({
             state,
             unifiedSync,
             operationalOrderSync,
             customerDataBlockedResponse,
             confirmedPersistence
-        }));
+        }), ...(manualHistoricalPersistenceV203 ? { manualHistoricalPersistenceV203 } : {}) });
     } catch (error) {
         console.error('Update contact state error:', error);
         res.status(error.status || 500).json({
