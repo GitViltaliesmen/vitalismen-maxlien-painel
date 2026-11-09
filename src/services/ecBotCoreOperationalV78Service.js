@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { resolveMetaCanonicalConsolidationV195 } from './metaCanonicalConsolidationV195Service.js';
 import { readAuthorizedCheckpoint } from '../../scripts/lib/unified-successor-v202-r4-authority.mjs';
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/gira21x-sealed-successor-v1.mjs';
 import { readRootR5Checkpoint } from '../../scripts/lib/unified-successor-v202-r5-authority.mjs';
 
 export const EC_BOT_CORE_V78_FLAG = 'VITALISMEN_EC_BOT_CORE_OPERATIONAL';

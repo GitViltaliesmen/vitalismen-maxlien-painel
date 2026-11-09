@@ -1,3 +1,4 @@
+import {giraOutboundAllowed} from '../services/gira21x/cohort.mjs';
 import { getSock, getSocketId, getOwnPhoneDigits, waitForWhatsAppReady } from './connection.js';
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
@@ -14,6 +15,7 @@ import {
 } from '../services/postSaleTransactionalSafetyV116Service.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    if(!await giraOutboundAllowed(jid,options,'image'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_image' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] imagem bloqueada por protecao manual anti-reenvio -> ${jid}`);

@@ -1,3 +1,4 @@
+import {routeGiraInbound} from './gira21x/cohort.mjs';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
@@ -848,6 +849,7 @@ export const routeIncomingMessage = async (payload) => {
         console.log(`[ROUTER] inbound bloqueado pela microlayer V75 | reason=${canaryDecision.reason}`);
         return { handled: false, skipped: true, reason: canaryDecision.reason };
     }
+    const giraRoute=await routeGiraInbound(senderPn||payload.phoneDigits||chatId,body);if(giraRoute)return giraRoute;
     const senderPhoneDigits = digitsOnly(senderPn);
     let state = await findContinuityContactState({ chatId, senderPn });
     let countryCode = inferCountryCode(senderPn, state?.phoneDigits, state?.metadata?.lastSenderPn, state?.metadata?.customerPhoneDigits, chatId);

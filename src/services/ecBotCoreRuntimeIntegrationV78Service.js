@@ -1,3 +1,4 @@
+import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -635,6 +636,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (giraRuntimePolicy.external(effect) && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
     if (manualExternalAllowed(effect)
         && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
     if (!ecBotCoreV78Requested(env)) return true;
@@ -707,6 +709,8 @@ const patchMongoPrototype = (prototype) => {
             configurable: true,
             writable: true,
             value: function ecBotCoreV78MongoGuardedMutation(...args) {
+                if (giraRuntimePolicy.mongo(String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)
+                    && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) return original.apply(this,args);
                 if (manualMongoAllowed(this?.collectionName || this?.namespace?.collection || this?.name, method, args)
                     && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) {
                     return original.apply(this, args);

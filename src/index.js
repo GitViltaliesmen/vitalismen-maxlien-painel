@@ -1,3 +1,5 @@
+import {startGiraBridgeScheduler} from './services/gira21x/scheduler.mjs';
+import {runGira21xBridge} from './services/gira21x/runtime.mjs';
 import 'dotenv/config';
 import path from 'path';
 import '../scripts/lib/ec-runtime-successor-v170-context.mjs';
@@ -114,6 +116,7 @@ connectDB()
             console.error(`[POST-SALE-V66] runtime mutante bloqueado: ${compatibility.reason}; runtime=${compatibility.runtimeVersion}; minimo=${compatibility.minRuntimeVersion}.`);
             return;
         }
+        startGiraBridgeScheduler({run:runGira21xBridge});
         const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
         if (!mutationGate.allowed) {
             console.warn(`[STARTUP-V66] API/health ativos em modo seguro; nenhuma mutacao automatica iniciada; reason=${mutationGate.reason}.`);

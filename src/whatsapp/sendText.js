@@ -1,3 +1,4 @@
+import {giraOutboundAllowed} from '../services/gira21x/cohort.mjs';
 import { getSock, getSocketId, getOwnPhoneDigits, waitForWhatsAppReady } from './connection.js';
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
@@ -171,6 +172,7 @@ const normalizeOutboundJid = async (jid, recipientDigits = '') => {
  * Provides standardized error handling and formatting for plain text responses
  */
 export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
+    if(!await giraOutboundAllowed(jid,options,'text'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_text' });
     const normalized = await normalizeOutboundJid(jid, options.recipientDigits || '');
     const targetJid = normalized.jid;

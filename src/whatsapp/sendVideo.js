@@ -1,3 +1,4 @@
+import {giraOutboundAllowed} from '../services/gira21x/cohort.mjs';
 import { getOwnPhoneDigits, getSock, waitForWhatsAppReady } from './connection.js';
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
@@ -11,6 +12,7 @@ import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendS
 import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
 
 export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
+    if(!await giraOutboundAllowed(jid,options,'video'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_video' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] video bloqueado por protecao manual anti-reenvio -> ${jid}`);

@@ -1,3 +1,4 @@
+import {giraOutboundAllowed} from '../services/gira21x/cohort.mjs';
 import { getOwnPhoneDigits, getSock, waitForWhatsAppReady } from './connection.js';
 import { canSendOutbound } from './outboundGuard.js';
 import { recordOutboundSend, resolveOutboundSessionForJid } from './sessionRouter.js';
@@ -130,6 +131,7 @@ const failoverWasSent = (result) => (result === true || result?.ok === true);
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
+    if(!await giraOutboundAllowed(jid,options,'audio'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_audio' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] audio bloqueado por protecao manual anti-reenvio -> ${jid}`);
