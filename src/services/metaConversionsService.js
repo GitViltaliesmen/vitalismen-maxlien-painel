@@ -1,3 +1,4 @@
+import {isGiraOrder} from './gira21x/contract.mjs';
 import { bindPurchaseAttributionV148 } from './metaPurchaseV148BindingService.js';
 import { metaCheckoutV148Allowed, salesAttributionV148 } from './metaFunnelV148ContractService.js';
 import axios from 'axios';
@@ -532,6 +533,7 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 };
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
+    if(isGiraOrder(order))return {ok:true,skipped:true,reason:"GIRA21X_OWNS_PURCHASE"};
     const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
     const v148Binding = await bindPurchaseAttributionV148(order, options.v148BindingOptions);

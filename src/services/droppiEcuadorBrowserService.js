@@ -4021,3 +4021,18 @@ export const downloadDroppiEcuadorInvoicePdf = async ({ shipment }) => {
         return { ok: false, reason: 'invoice_download_failed', error: error.message };
     }
 };
+
+// Strict, read-only projection for the explicitly isolated GIRA21X cohort.
+export const readGiraDropiCodProof = async ({orderId,dropiOrderId}) => {
+ if(!/^EC-G21-[A-F0-9]{24}$/.test(orderId)||!/^\d{1,30}$/.test(String(dropiOrderId)))throw Error('GIRA_DROPI_ID_INVALID');
+ return withBrowserSession(async({page})=>{
+  await performLogin(page);
+  const rows=await fetchOrdersApiRows(page,orderId,{maxRows:25});
+  const exact=rows.filter(r=>String(r.id)===String(dropiOrderId));if(exact.length!==1)throw Error('GIRA_DROPI_EXACT_ORDER_REQUIRED');
+  const raw=exact[0],row=mapOrdersApiRowToActiveRow(raw),amount=Number(raw.total_order),reference=String(raw.external_order_id||raw.reference||'');
+  const notes=String(raw.notes||'').split('|').map(x=>x.trim());
+  if(!row||!Number.isFinite(amount)||amount<=0||String(raw.rate_type).toUpperCase()!=='CON RECAUDO'||reference!==orderId&&!notes.includes(orderId))throw Error('GIRA_DROPI_COD_PROOF_REQUIRED');
+  const quantities=(raw.products||[]).map(p=>Number(p.quantity));if(quantities.length!==1||!Number.isSafeInteger(quantities[0]))throw Error('GIRA_DROPI_QUANTITY_REQUIRED');
+  return {source:'dropi_orders_api',dropiOrderId:String(raw.id),internalOrderId:orderId,trackingNumber:row.trackingNumber,paymentMode:'CON_RECAUDO',amountMinor:Math.round(amount*100),currency:raw.currency==='USD'?'USD':null,productKey:row.productKey,quantity:quantities[0]};
+ });
+};

@@ -1,3 +1,4 @@
+import {giraOutboundAllowed} from '../services/gira21x/cohort.mjs';
 import fs from 'fs';
 import path from 'path';
 import { getOwnPhoneDigits, getSock, waitForWhatsAppReady } from './connection.js';
@@ -32,6 +33,7 @@ const sendDocumentFailure = (options, payload = {}) => (
 );
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
+    if(!await giraOutboundAllowed(jid,options,'document'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_document' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {
         console.log(`[LOG_SEND_BLOCKED] documento bloqueado por protecao manual anti-reenvio -> ${jid}`);

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 // A missing/unregistered evolution refuses commercial sends and preserves QA.
 export async function readManualCommercialScope() {
     const root = fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'));
-    const engine = await import('file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs');
+    const engine = await import('file:///usr/local/lib/vitalismen-deploy/gira21x-sealed-successor-v1.mjs');
     if (typeof engine.authorizeCommercialManualScope !== 'function') return null;
     return engine.authorizeCommercialManualScope(root);
 }

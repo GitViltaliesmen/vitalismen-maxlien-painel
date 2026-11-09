@@ -444,7 +444,7 @@ import { pathToFileURL } from 'node:url';
 const release = process.argv[2];
 const selectedNodeOptions = process.argv[3];
 if (selectedNodeOptions.endsWith('sealed-successor-preload-v1.mjs')) {
-  const authority = await import('file:///usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs');
+  const authority = await import('file:///usr/local/lib/vitalismen-deploy/gira21x-sealed-successor-v1.mjs');
   const sealed = authority.requireSealedRelease(release);
   process.stdout.write(sealed.envelope.PAYLOAD_HASHES['scripts/lib/pm2-target-env-restart-v78-r4.mjs']);
   process.exit(0);
@@ -481,7 +481,7 @@ NODE
     rollback_executor="${EC_BOT_CORE_V78_TEST_ROLLBACK_CMD:-$rollback_executor}"
   fi
   if [[ "$activation_node_options" == *sealed-successor-preload-v1.mjs ]]; then
-    rollback_executor="/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs"
+    rollback_executor="/usr/local/lib/vitalismen-deploy/gira21x-sealed-successor-v1.mjs"
   fi
   activation_failed=1
   contain_failed_activation() {

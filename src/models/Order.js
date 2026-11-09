@@ -66,6 +66,7 @@ const orderSchema = new mongoose.Schema({
     },
     previousDeliveredAt: Date,
     confirmedAt: Date,
+    integration: { type: mongoose.Schema.Types.Mixed, default: null },
     source: {
         type: String,
         enum: ['checkout', 'whatsapp', 'manual'],
