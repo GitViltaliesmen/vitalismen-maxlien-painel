@@ -1,3 +1,4 @@
+import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
 import { detectExplicitEcuadorProductKey, findEcuadorOfferByTotal } from './ecuadorProductService.js';
 import { validateEcuadorDropiCustomerName, validateEcuadorDropiPhone } from './droppiEcuadorService.js';
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
@@ -11,6 +12,8 @@ const plain = value => value?.toObject?.() || value || {};
 export const ecDropiOrderReadinessV138 = (order = {}) => {
     const customer = order.customer || {};
     const reasons = [];
+    let giraOffer = null;
+    try { giraOffer = giraDropiOffer(order); } catch { reasons.push('snapshot GIRA valido'); }
     if (!clean(order.orderId)) reasons.push('pedido');
     if (order.country !== 'EC') reasons.push('pais Equador');
     if (order.status !== 'confirmed') reasons.push('confirmacao comercial');
@@ -27,12 +30,15 @@ export const ecDropiOrderReadinessV138 = (order = {}) => {
     if (!Number.isFinite(total) || total <= 0) reasons.push('valor');
     const productKey = detectExplicitEcuadorProductKey(order);
     if (!productKey) reasons.push('produto');
-    if (productKey && !findEcuadorOfferByTotal({ productKey, quantity, total })) reasons.push('oferta oficial');
+    if (productKey && !giraOffer && !findEcuadorOfferByTotal({ productKey, quantity, total })) reasons.push('oferta oficial');
     const delivery = order.delivery || {};
     if (!['home', 'agency'].includes(delivery.mode)) reasons.push('modalidade de entrega');
     if (delivery.mode === 'agency' && (!clean(delivery.agencyId) || !clean(delivery.agencyName))) reasons.push('agencia validada');
     const resolution = plain(order.customerDataResolution);
-    if (resolution.orderDataReady !== true || resolution.blockedReasons?.length) reasons.push('validacao da ficha');
+    // A received GIRA contract already carries the customer's signed destination.
+    // Keep every common name/phone/address/quantity/delivery check above; native
+    // orders retain their existing persisted-ficha requirement unchanged.
+    if (resolution.blockedReasons?.length || (!giraOffer && resolution.orderDataReady !== true)) reasons.push('validacao da ficha');
     return { ready: reasons.length === 0, reasons, authorizationRequired: true, automaticallyAuthorized: false };
 };
 

@@ -1,3 +1,4 @@
+import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -3427,7 +3428,7 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
         error: 'Complete antes de enviar: ' + readiness.reasons.join(', '), reasons: readiness.reasons };
 
     const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
-    const selectedOffer = findEcuadorOfferByTotal({
+    const selectedOffer = giraDropiOffer(order) || findEcuadorOfferByTotal({
         productKey: explicitProductKey,
         quantity: order?.package?.quantity || order?.package?.id,
         total: order?.total
@@ -3455,7 +3456,7 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
             ]
         }).sort({ createdAt: -1 }).lean().catch(() => null)
         : null;
-    const hasPanelProductSelection = /\[DROPI_PRODUCT\]\s*key=/i.test([
+    const hasPanelProductSelection = Boolean(giraDropiOffer(order)) || /\[DROPI_PRODUCT\]\s*key=/i.test([
         order?.notes,
         shipment?.notes,
         shipment?.raw?.productSelection?.productKey

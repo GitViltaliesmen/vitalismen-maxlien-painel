@@ -1,3 +1,4 @@
+import { giraDropiOffer } from '../services/gira21x/dropi-offer.mjs';
 import express from 'express';
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
@@ -5,7 +6,7 @@ import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import Shipment from '../models/Shipment.js';
 import ContactState from '../models/ContactState.js';
 import { ecManualDropiHumanActionV138, ecPanelStatusAuthenticatedActionV177 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
-import { assertEcDropiOrderReadyV138, ecDropiCurrentDraftDeliveryV138, enrichEcDropiReadinessFlagsV138 } from '../services/ecDropiHumanAuthorizationV138Service.js';
+import { assertEcDropiOrderReadyV138, ecDropiOrderReadinessV138, ecDropiCurrentDraftDeliveryV138, enrichEcDropiReadinessFlagsV138 } from '../services/ecDropiHumanAuthorizationV138Service.js';
 import { resolveEcAdminDropiDraftBridgeV128, enrichEcAdminDropiDraftFlagsV128 } from '../services/ecAdminDropiDraftBridgeV128Service.js';
 import AutomationRun from '../models/AutomationRun.js';
 import {
@@ -2442,7 +2443,9 @@ router.get('/droppi/ec/orders/:orderId/submit-status', adminOnly, async (req, re
                 adminLeadReady: true
             });
         }
-        res.json(buildDropiSubmitStatus({ order, shipment, orderId: req.params.orderId }));
+        const response = buildDropiSubmitStatus({ order, shipment, orderId: req.params.orderId });
+        if (order?.integration?.origin === 'GIRA21X') response.giraReadiness = ecDropiOrderReadinessV138(order);
+        res.json(response);
     } catch (error) {
         console.error('Droppi EC submit status error:', error);
         res.status(500).json({ error: error.message || 'Failed to read Dropi submit status' });
@@ -2511,7 +2514,7 @@ router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req
         if (alreadySubmitted) return res.json(alreadySubmitted);
         if (!hasValidEcuadorDropiCustomerName(order)) return dropiCustomerNameBlockedResponse(res, order, shipment);
         const explicitProductKey = detectExplicitEcuadorProductKey(order, shipment?.productName, shipment?.notes);
-        const selectedOffer = findEcuadorOfferByTotal({
+        const selectedOffer = giraDropiOffer(order) || findEcuadorOfferByTotal({
             productKey: explicitProductKey,
             quantity: order.package?.quantity || order.package?.id,
             total: order.total

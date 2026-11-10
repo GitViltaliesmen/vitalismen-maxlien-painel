@@ -1,3 +1,4 @@
+import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
 import Shipment from '../models/Shipment.js';
 import { ecuadorProductMetadata, resolveEcuadorProductInfo } from './ecuadorProductService.js';
 import { normalizeEcuadorOrderFieldsForDropi } from './dropiDataNormalizationService.js';
@@ -459,8 +460,9 @@ export const upsertDroppiEcuadorShipment = async (payload) => {
 };
 
 export const buildDroppiEcuadorOrderPayload = ({ order }) => {
-    const quantity = Number(order?.package?.id || order?.package?.quantity || 1) || 1;
-    const exactTotal = Number(order?.total || 0);
+    const giraOffer = giraDropiOffer(order);
+    const quantity = giraOffer?.quantity ?? (Number(order?.package?.id || order?.package?.quantity || 1) || 1);
+    const exactTotal = giraOffer?.total ?? Number(order?.total || 0);
     const sourceCity = resolveEcuadorCity(order?.customer?.city);
     const normalized = normalizeEcuadorOrderFieldsForDropi({
         name: order?.customer?.name || '',
