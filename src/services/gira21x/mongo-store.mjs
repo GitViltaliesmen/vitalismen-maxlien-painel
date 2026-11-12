@@ -4,6 +4,7 @@ import Order from '../../models/Order.js';
 import Shipment from '../../models/Shipment.js';
 import ContactState from '../../models/ContactState.js';
 import {giraOrderDocument,isGiraOrder} from './contract.mjs';
+import {prepaidHoldWrite,prepaidRuntimeApproved} from './prepaid-contract.mjs';
 export function createGiraMongoStore({connection=mongoose.connection,orderModel=Order,shipmentModel=Shipment,contactModel=ContactState}={}){
  for(const model of [orderModel,shipmentModel,contactModel])if(model.db!==connection)throw Error('GIRA_STORE_CONNECTION_MISMATCH');
  // Existing Mongo database; no model autoIndex/autoCreate, no provisioning on import.
@@ -40,7 +41,18 @@ export function createGiraMongoStore({connection=mongoose.connection,orderModel=
    await ensureContact(stored);
    return stored;
   },
-  async activeOrders(limit){const orders=await orderModel.find({'integration.origin':'GIRA21X',status:{$nin:['cancelled','returned']}}).sort({'integration.lastPolledAt':1,updatedAt:1}).limit(limit).lean();
+  async holdPrepaid(hold){
+   if(!prepaidRuntimeApproved())throw Error('GIRA_PREPAID_SUCCESSOR_REQUIRED');
+   const {query,update}=prepaidHoldWrite(hold);
+   const existing=await orderModel.findOne({orderId:hold.vitalismenOrderId,'integration.origin':'GIRA21X','integration.schemaVersion':2,
+    'integration.gira21xOrderId':hold.gira21xOrderId,'integration.payloadHash':hold.payloadHash}).lean();
+   if(!existing)throw Error('GIRA_PREPAID_HOLD_ORDER_NOT_FOUND');
+   await orderModel.updateOne(query,update,{runValidators:true,timestamps:false});
+   const stored=await orderModel.findOne({orderId:hold.vitalismenOrderId}).lean();
+   if(stored?.integration?.fulfillmentHold!==true||!['REFUNDED','DISPUTED','PARTIAL_REFUND_REVIEW'].includes(stored.integration.currentPaymentStatus))throw Error('GIRA_PREPAID_HOLD_NOT_APPLIED');
+   return stored;
+  },
+  async activeOrders(limit){const orders=await orderModel.find({'integration.origin':'GIRA21X','integration.fulfillmentHold':{$ne:true},status:{$nin:['cancelled','returned']}}).sort({'integration.lastPolledAt':1,updatedAt:1}).limit(limit).lean();
    for(const order of orders){if(order.trackingNumber&&order.dropiOrderId)continue;
     const ship=await shipmentModel.findOne({orderId:order.orderId,country:'EC'}).lean();
     const dropiId=String(ship?.raw?.manualDropiOrderId||ship?.raw?.latestDroppiPayload?.dropiOrderId||ship?.raw?.droppiOrder?.id||'');

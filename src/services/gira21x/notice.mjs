@@ -1,9 +1,10 @@
 import {bridgeHash} from './protocol.mjs';
+import {prepaidPickupText,prepaidRuntimeApproved} from './prepaid-contract.mjs';
 const texts={GUIDE_CREATED:'Tu pedido GIRA21X tiene guía Servientrega. Aún no está disponible para retirar.',IN_TRANSIT:'Tu pedido GIRA21X está en tránsito.',READY_FOR_PICKUP:'Servientrega informa que tu pedido GIRA21X está disponible para retirar en la agencia seleccionada. Pagas al retirarlo.',RETURNED:'La transportadora registra una devolución de tu pedido GIRA21X. Contacta soporte para revisar el caso.',EXCEPTION:'La transportadora registra una incidencia con tu pedido GIRA21X. Contacta soporte.',DIGITAL_AVAILABLE:'La entrega de tu pedido GIRA21X fue validada y tu acceso digital está habilitado. Ingresa en https://gira21x.com/area con el correo del pedido. La progresión de tu programa se mantiene.'};
 export function createGiraNotifier({store,send,history,windowOpen,canSend=async()=>true}){
  let physicalSends=0;
  return async(order,status,digital)=>{
-  const stage=digital?'DIGITAL_AVAILABLE':status,key=bridgeHash(order.orderId+':'+stage),text=texts[stage]+' Pedido: '+order.integration.gira21xOrderId;
+  const stage=digital?'DIGITAL_AVAILABLE':status,key=bridgeHash(order.orderId+':'+stage),pickup=stage==='READY_FOR_PICKUP'?prepaidPickupText(order,{approved:prepaidRuntimeApproved()}):null,text=(pickup??texts[stage])+' Pedido: '+order.integration.gira21xOrderId;
   if(!order.integration.whatsappConsent)return {status:'SUPPRESSED'};
   if(!texts[stage])return null;
   // Read a previous receipt even outside the send window. Never resend an INTENDED/uncertain attempt.

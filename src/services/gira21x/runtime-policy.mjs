@@ -1,5 +1,6 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {isGiraOrder} from './contract.mjs';
+import {prepaidDropiProjection,prepaidRuntimeApproved,isPrepaidHoldMutation} from './prepaid-contract.mjs';
 const id=/^EC-G21-[A-F0-9]{24}$/;
 const phone=/^593\d{9}$/;
 const safeKeys=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>keys.includes(k));
@@ -42,10 +43,13 @@ export function createGiraRuntimePolicy({approval,env=()=>process.env}={}){
     &&safeKeys(set,['integration.whatsappConsent','integration.whatsappOptOutAt','integration.whatsappOptOutSource','updatedAt'])&&set['integration.whatsappConsent']===false&&set['integration.whatsappOptOutSource']==='CUSTOMER_WHATSAPP'&&safeKeys(update,['$set','$setOnInsert']);
    if(method!=='updateOne'||!id.test(query?.orderId??'')||!safeKeys(update,['$set','$setOnInsert']))return false;
    if(insert?.integration?.origin==='GIRA21X'){
-    const i=insert.integration;return insert.orderId===query.orderId&&isGiraOrder(insert)&&insert.country==='EC'&&insert.currency==='USD'&&insert.status==='confirmed'
+    const i=insert.integration;
+    try{prepaidDropiProjection(insert,{approved:prepaidRuntimeApproved()});}catch{return false;}
+    return insert.orderId===query.orderId&&isGiraOrder(insert)&&insert.country==='EC'&&insert.currency==='USD'&&insert.status==='confirmed'
      &&i.dispatch==='MANUAL_ONLY'&&i.purchaseOwner==='GIRA21X'&&[1,2,3,6].includes(insert.package?.quantity)&&i.quantity===insert.package.quantity&&Math.round(insert.total*100)===i.amountMinor
      &&phone.test(digits(insert.customer?.phone))&&/^[a-f0-9]{64}$/.test(i.payloadHash??'')&&safeKeys(set,['updatedAt']);
    }
+   if(prepaidRuntimeApproved()&&isPrepaidHoldMutation(query,update))return true;
    return query['integration.origin']==='GIRA21X'&&safeKeys(set,['integration.lastPolledAt','shippingCanonicalStatus','status','updatedAt'])
     &&(!('status'in set)||['delivered','returned'].includes(set.status))&&safeKeys(insert??{},['createdAt']);
   }

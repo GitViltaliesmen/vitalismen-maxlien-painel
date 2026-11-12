@@ -4,7 +4,9 @@ import ContactState from '../../models/ContactState.js';
 import {giraRuntimePolicy} from './runtime-policy.mjs';
 import {isPostSaleV188SendWindowOpen} from '../postSaleFullOperationalV188Service.js';
 import {trackServientregaGuide} from '../carrierTrackingService.js';
-import {readGiraDropiCodProof} from '../droppiEcuadorBrowserService.js';
+import {readGiraDropiCodProof,readGiraDropiPrepaidProof} from '../droppiEcuadorBrowserService.js';
+import {createGiraCompositeClient} from './prepaid-client.mjs';
+import {prepaidRuntimeApproved} from './prepaid-contract.mjs';
 import {sendText} from '../../whatsapp/sendText.js';
 import {createGiraNotifier} from './notice.mjs';
 import {officialShipmentEvidence} from './contract.mjs';
@@ -22,7 +24,9 @@ export async function runGira21xBridge(){
  if(!giraRuntimePolicy.approved())return {status:'BLOCKED_GIRA_OPERATIONAL_PROFILE'};
  running=true;
  try {
-  const store=createGiraMongoStore(),client=createGiraClient({origin:'https://gira21x.com',secret:env.GIRA21X_HMAC_SECRET,keyId:env.GIRA21X_HMAC_KEY_ID,store});
+  const store=createGiraMongoStore(),configuration={origin:'https://gira21x.com',secret:env.GIRA21X_HMAC_SECRET,keyId:env.GIRA21X_HMAC_KEY_ID,store};
+  const legacy=createGiraClient(configuration),client=createGiraCompositeClient({legacy,
+   prepaid:prepaidRuntimeApproved()?createGiraClient({...configuration,channel:'STRIPE_PREPAID'}):null});
   const notify=createGiraNotifier({store,windowOpen:()=>isPostSaleV188SendWindowOpen(new Date()),
    canSend:async order=>!await ContactState.exists({countryCode:'EC',phoneDigits:order.customer.phone.replace(/\D/g,''),'human.mode':'manual'}),
    history:(order,text)=>Message.exists({peerPhone:order.customer.phone.replace(/\D/g,''),body:text,isBot:true}),
@@ -30,7 +34,7 @@ export async function runGira21xBridge(){
     giraOutboundOptions(order,{country:'EC',outboundContext:'shipment_gira21x_'+stage.toLowerCase(),antiSpamKey:'gira21x:'+key,returnDetails:true,humanize:false})));}});
   return await giraRuntimePolicy.run(()=>runGiraCycle({enabled:true,store,client,notify,collect:async order=>{
    const guide=String(order.trackingNumber??'');if(!guide||!order.dropiOrderId)return null;
-   try{const [carrier,dropi]=await Promise.all([trackServientregaGuide(guide),readGiraDropiCodProof({orderId:order.orderId,dropiOrderId:order.dropiOrderId})]);
+   try{const [carrier,dropi]=await Promise.all([trackServientregaGuide(guide),order.integration?.schemaVersion===2?readGiraDropiPrepaidProof({order}):readGiraDropiCodProof({orderId:order.orderId,dropiOrderId:order.dropiOrderId})]);
     return officialShipmentEvidence({order,carrier,dropi});}catch{await store.review(order.orderId,'OFFICIAL_CARRIER_OR_COD_BINDING_REQUIRED');return null;}
   }}));
  }finally{running=false;}

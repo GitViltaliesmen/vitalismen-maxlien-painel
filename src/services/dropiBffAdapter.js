@@ -1,4 +1,5 @@
 import { validateDropiBffListContract } from './dropiBffListContract.js';
+import {approvedPrepaidWirePayload} from './gira21x/prepaid-contract.mjs';
 
 const DEFAULT_BFF_BASE_URL = 'https://api-v2.dropi.ec';
 
@@ -182,7 +183,7 @@ export const describeDropiBffFailure = (code, statusReason = '') => {
     return safeReason ? `${base} Detalhe Dropi: ${safeReason}` : base;
 };
 
-export const validateDropiBffCreatePayload = (payload = {}) => {
+export const validateDropiBffCreatePayload = (payload = {}, {giraPrepaidProof=null} = {}) => {
     const product = Array.isArray(payload.products) ? payload.products[0] : null;
     const phone = String(payload.phone || '').replace(/\D/g, '');
     const checks = [
@@ -191,7 +192,7 @@ export const validateDropiBffCreatePayload = (payload = {}) => {
         ['LOCATION_INVALID', Boolean(String(payload.state || '').trim() && String(payload.city || '').trim() && String(payload.dir || '').trim())],
         ['VALIDATION_ERROR', /^5939\d{8}$/.test(phone)],
         ['VALIDATION_ERROR', Boolean(payload.user_id && payload.supplier_id)],
-        ['VALIDATION_ERROR', payload.rate_type === 'CON RECAUDO' && payload.type === 'FINAL_ORDER'],
+        ['VALIDATION_ERROR', (payload.rate_type === 'CON RECAUDO' || approvedPrepaidWirePayload(payload,giraPrepaidProof)) && payload.type === 'FINAL_ORDER'],
         ['CARRIER_INVALID', Boolean(payload.distributionCompany?.id && payload.distributionCompany?.name && payload.type_service)],
         ['VALIDATION_ERROR', Boolean(payload.warehouses_selected_id)],
         ['VALIDATION_ERROR', Boolean(String(payload.notes || '').trim())]

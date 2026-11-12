@@ -1,4 +1,7 @@
 import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
+import {prepaidDropiProjection,prepaidRuntimeApproved,dropiCollectionMode,dropiWireFinancials} from './gira21x/prepaid-contract.mjs';
+import {assertPrepaidCurrentPayment} from './gira21x/prepaid-client.mjs';
+import {createGiraClient} from './gira21x/client.mjs';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -1550,7 +1553,7 @@ export const buildEcuadorProductBffQuote = async (page, payload) => {
         alto: 1,
         ciudad_remitente: originCity,
         ciudad_destino: destinationCity,
-        EnvioConCobro: true,
+        EnvioConCobro: dropiCollectionMode(payload) === 'CON_RECAUDO',
         products: [quoteProduct],
         ValorDeclarado: Number(payload.price || (unitPrice * quantity)),
         warehouse,
@@ -1671,9 +1674,10 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier, onC
         (sum, item) => sum + (Number(item.sale_price || 0) * Number(item.quantity || requestedQuantity)),
         0
     );
+    const wireFinancials=dropiWireFinancials(payload,{totalOrder,supplierProductsCost,shippingAmount});
     const data = {
         id: product.variation_id || null,
-        total_order: totalOrder,
+        total_order: wireFinancials.total_order,
         notes: [payload.orderId, payload.reference].filter(Boolean).join(' | '),
         name: payload.firstName,
         surname: payload.lastName,
@@ -1688,9 +1692,9 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier, onC
         supplier_id: product.user_id,
         type: 'FINAL_ORDER',
         shipping_amount: shippingAmount,
-        rate_type: 'CON RECAUDO',
+        rate_type: wireFinancials.rate_type,
         overload_was_applied: false,
-        dropshipper_amount_to_win: Number((totalOrder - supplierProductsCost - shippingAmount).toFixed(6)),
+        ...('dropshipper_amount_to_win' in wireFinancials ? {dropshipper_amount_to_win:wireFinancials.dropshipper_amount_to_win} : {}),
         products,
         distributionCompany: {
             id: carrier.distributionCompany.id,
@@ -1706,7 +1710,7 @@ const submitOrderViaDropiApi = async (page, { payload, quote, chosenCarrier, onC
         warehouses_selected_id: quotePayload.warehouse?.id
     };
 
-    const validation = validateDropiBffCreatePayload(data);
+    const validation = validateDropiBffCreatePayload(data,{giraPrepaidProof:payload.giraPrepaidProof});
     if (!validation.ok) throw new Error(`DROPI_${validation.code}`);
 
     const response = await requestDropiBff({
@@ -1972,6 +1976,7 @@ const closeManualBrowserSession = async (key) => {
 };
 
 export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = null, manualDraftOnly = false }) => {
+    if(dropiCollectionMode(payload)==='SIN_RECAUDO')throw buildNotReadyError('Pedido pre-pago exige envio Sin Recaudo confirmado; formulario de contraentrega bloqueado.');
     const getLatestQuote = quoteCollector || createShippingQuoteCollector(page);
     const productTarget = dropiProductTargetForPayload(payload);
 
@@ -2169,7 +2174,9 @@ export const fillOrderFormInPanel = async ({ page, payload, quoteCollector = nul
     };
 };
 
-const submitOrderInPanel = async ({ page, payload, onCreateLifecycle = null }) => {
+const submitOrderInPanel = async ({ page, payload, onCreateLifecycle = null, beforePrepaidSubmit = null }) => {
+    const confirmPrepaid=async()=>{if(dropiCollectionMode(payload)!=='SIN_RECAUDO')return;
+      if(typeof beforePrepaidSubmit!=='function')throw Error('GIRA_PREPAID_CURRENT_PAYMENT_REQUIRED');await beforePrepaidSubmit();};
     const getDiagnostics = createPageDiagnosticsCollector(page);
     const getLatestQuote = createShippingQuoteCollector(page);
     const preparedForm = await buildEcuadorProductBffQuote(page, payload)
@@ -2178,9 +2185,11 @@ const submitOrderInPanel = async ({ page, payload, onCreateLifecycle = null }) =
     const quote = preparedForm.latestQuote || getLatestQuote();
     const existingBeforePost = await findExistingDropiOrderForManualSubmission(page, payload);
     if (existingBeforePost) {
+        await confirmPrepaid();
         return existingDropiOrderResult(existingBeforePost, payload, preparedForm.chosenCarrier);
     }
 
+    await confirmPrepaid();
     const apiResult = await submitOrderViaDropiApi(page, {
         payload,
         quote,
@@ -2636,6 +2645,13 @@ const rowMatchesManualSubmission = (row = {}, payload = {}) => {
         .filter(value => typeof value === 'string').join(' ').toUpperCase().split(/[^A-Z0-9-]+/);
     const exactReference = orderReference.length >= 4 && referenceTokens.includes(orderReference);
     const collision = () => { const error = new Error('DROPI_DUPLICATE: referencia existente diverge do pedido atual.'); error.dropiErrorCode = 'DUPLICATE'; throw error; };
+    const prepaid=dropiCollectionMode(payload)==='SIN_RECAUDO';
+    if(prepaid){
+        if(!exactReference)return false;
+        const product=resolveEcuadorProductInfo(row),expected=resolveEcuadorProductInfo(payload.productKey,payload.productName,payload.dropiProductName);
+        if(String(row.rate_type).toUpperCase()!=='SIN RECAUDO'||Number(row.total_order)!==0||!product.key||product.key!==expected.key
+          ||!Array.isArray(row.products)||row.products.length!==1||Number(row.products[0].quantity)!==payload.quantity)collision();
+    }
     const rowPhone = String(row.phone || '').replace(/\D/g, '');
     const phoneTerms = phoneLookupVariants(payload.phone || '').filter((term) => term.length >= 8);
     const samePhone = rowPhone && phoneTerms.some((term) => rowPhone.endsWith(term) || term.endsWith(rowPhone));
@@ -3565,6 +3581,13 @@ export const submitDroppiEcuadorOrder = async ({ order, shipment }) => {
             return submitOrderInPanel({
                 page,
                 payload: prepared.payload,
+                beforePrepaidSubmit:async()=>{
+                    const current=await Order.findOne({orderId:latestOrder.orderId}).lean();
+                    if(!current||current.integration?.payloadHash!==latestOrder.integration?.payloadHash)throw Error('GIRA_PREPAID_ORDER_CHANGED');
+                    const client=createGiraClient({origin:'https://gira21x.com',secret:process.env.GIRA21X_HMAC_SECRET,
+                      keyId:process.env.GIRA21X_HMAC_KEY_ID,channel:'STRIPE_PREPAID'});
+                    await assertPrepaidCurrentPayment(current,{client});
+                },
                 onCreateLifecycle: async (lifecycle) => updateBrowserState(
                     shipment._id,
                     `bff_create_${lifecycle.stage}`,
@@ -4035,5 +4058,29 @@ export const readGiraDropiCodProof = async ({orderId,dropiOrderId}) => {
   if(!row||!Number.isFinite(amount)||amount<=0||String(raw.rate_type).toUpperCase()!=='CON RECAUDO'||reference!==orderId&&!notes.includes(orderId))throw Error('GIRA_DROPI_COD_PROOF_REQUIRED');
   const quantities=(raw.products||[]).map(p=>Number(p.quantity));if(quantities.length!==1||!Number.isSafeInteger(quantities[0]))throw Error('GIRA_DROPI_QUANTITY_REQUIRED');
   return {source:'dropi_orders_api',dropiOrderId:String(raw.id),internalOrderId:orderId,trackingNumber:row.trackingNumber,paymentMode:'CON_RECAUDO',amountMinor:Math.round(amount*100),currency:raw.currency==='USD'?'USD':null,productKey:row.productKey,quantity:quantities[0]};
+ });
+};
+
+
+// Read-only prepaid proof: original contractual value remains in GIRA; Dropi
+// must report no collection. The legacy COD proof above is unchanged.
+export const readGiraDropiPrepaidProof = async ({order}) => {
+ const prepaid=prepaidDropiProjection(order,{approved:prepaidRuntimeApproved()});
+ if(!prepaid)throw Error('GIRA_PREPAID_ORDER_REQUIRED');
+ const orderId=order.orderId,dropiOrderId=String(order.dropiOrderId??'');
+ if(!/^EC-G21-[A-F0-9]{24}$/.test(orderId)||!/^\d{1,30}$/.test(dropiOrderId))throw Error('GIRA_DROPI_ID_INVALID');
+ return withBrowserSession(async({page})=>{
+  await performLogin(page);
+  const rows=await fetchOrdersApiRows(page,orderId,{maxRows:25});
+  const exact=rows.filter(r=>String(r.id)===dropiOrderId);if(exact.length!==1)throw Error('GIRA_DROPI_EXACT_ORDER_REQUIRED');
+  const raw=exact[0],row=mapOrdersApiRowToActiveRow(raw),reference=String(raw.external_order_id||raw.reference||'');
+  const notes=String(raw.notes||'').split('|').map(x=>x.trim());
+  if(!row||Number(raw.total_order)!==0||String(raw.rate_type).toUpperCase()!=='SIN RECAUDO'
+    ||reference!==orderId&&!notes.includes(orderId))throw Error('GIRA_DROPI_PREPAID_PROOF_REQUIRED');
+  const quantities=(raw.products||[]).map(p=>Number(p.quantity));
+  if(quantities.length!==1||quantities[0]!==prepaid.quantity)throw Error('GIRA_DROPI_QUANTITY_REQUIRED');
+  return {source:'dropi_orders_api',dropiOrderId:String(raw.id),internalOrderId:orderId,trackingNumber:row.trackingNumber,
+   paymentMode:'SIN_RECAUDO',amountMinor:0,amountToCollectMinor:0,currency:raw.currency==='USD'?'USD':null,
+   productKey:row.productKey,quantity:quantities[0]};
  });
 };
