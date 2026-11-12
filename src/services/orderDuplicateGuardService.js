@@ -1,5 +1,6 @@
 import Order from '../models/Order.js';
 import Shipment from '../models/Shipment.js';
+import { ecPhoneV203, historicalEligibilityV203 } from './ecHistoricalOrderStatusV203Service.js';
 
 const ACTIVE_ORDER_STATUSES = ['draft', 'pending', 'confirmed', 'processing', 'shipped'];
 const DROPPI_DUPLICATE_RECENT_HOURS = Number.parseInt(process.env.DROPPI_DUPLICATE_RECENT_HOURS || '72', 10);
@@ -292,7 +293,16 @@ export const getOrderDuplicateGuard = async ({
         });
     }
 
+    const orderByOrderId = new Map(orders.map((order) => [order.orderId, order]));
     const activeShipmentDuplicate = phoneShipments.find((shipment) => {
+        const peerOrder = orderByOrderId.get(shipment.orderId);
+        // Use the existing audited-delivery policy for the same EC order/customer.
+        // Raw carrier payloads remain unchanged; returns/conflicts still fail eligibility.
+        if (country === 'EC' && peerOrder?.country === 'EC' && shipment.country === 'EC'
+            && peerOrder.status === 'delivered'
+            && ecPhoneV203(phone) && ecPhoneV203(peerOrder.customer?.phone) === ecPhoneV203(phone)
+            && ecPhoneV203(shipment.client?.phone) === ecPhoneV203(phone)
+            && historicalEligibilityV203({ phone, country, orders: [peerOrder], shipments: [shipment] }).eligible) return false;
         const reviewStatus = String(shipment.review?.reviewStatus || '');
         const recentlyAuthorized = withinRecentWindow(shipment.automation?.dropiSubmitAuthorizedAt);
         return (
