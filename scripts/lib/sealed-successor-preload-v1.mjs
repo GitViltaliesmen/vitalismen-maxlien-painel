@@ -1,6 +1,6 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-repurchase-sealed-v207.mjs';
-import {publishRepurchaseRuntimeContextV207} from '/usr/local/lib/vitalismen-deploy/ec-repurchase-profile-v207.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-inbound-audio-sealed-v208-r2.mjs';
+import {publishAudioRuntimeContextV208} from '/usr/local/lib/vitalismen-deploy/ec-inbound-audio-profile-v208-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 await installSealedPreload(path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'));
-publishRepurchaseRuntimeContextV207();
+publishAudioRuntimeContextV208();

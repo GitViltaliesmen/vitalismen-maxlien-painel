@@ -1,3 +1,4 @@
+import { captureInboundMedia } from '../services/inboundMediaReplayV208Service.js';
 import express from 'express';
 import {
     getZapiDevice,
@@ -24,7 +25,7 @@ import {
     zapiCallNotification
 } from '../services/callAutoReplySafetyService.js';
 import {
-    captureInboundMedia,
+
     inboundMediaInternalUrl,
     INBOUND_MEDIA_STATUS
 } from '../services/inboundMediaStorageService.js';
