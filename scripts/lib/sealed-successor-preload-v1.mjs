@@ -1,6 +1,10 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-inbound-audio-sealed-v208-r2.mjs';
-import {publishAudioRuntimeContextV208} from '/usr/local/lib/vitalismen-deploy/ec-inbound-audio-profile-v208-r2.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-postsale-tracking-sealed-v210-r3.mjs';
+import {publishTrackingRuntimeContextV210} from '/usr/local/lib/vitalismen-deploy/ec-postsale-tracking-profile-v210-r3.mjs';
 import {fileURLToPath} from 'node:url';
+import {register} from 'node:module';
 import path from 'node:path';
-await installSealedPreload(path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'));
-publishAudioRuntimeContextV208();
+import fs from 'node:fs';
+const root=fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'));
+await installSealedPreload(root);
+publishTrackingRuntimeContextV210();
+register(new URL('./postsale-tracking-loader-v210.mjs',import.meta.url),{parentURL:import.meta.url,data:{root,reconcilerSha256:'8934da96f48c1902a7182a40b5d7b8c4d07d2554dfe3b9ff401d675659bfbab9',readerSha256:'b8519d5f22a54508650520716c7f486f1f002264da39307a92498f8a4fcae231'}});
