@@ -820,7 +820,7 @@ const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } 
                 mediaPreviewUrl: internalMediaUrl,
                 timestamp: Math.floor(now.getTime() / 1000),
                 sessionId: 'zapi',
-                ownerPhoneDigits: '',
+                ownerPhoneDigits: '5531971862958',
                 isFromMe: false,
                 isBot: false,
                 notifyName: inboundProfileName,
