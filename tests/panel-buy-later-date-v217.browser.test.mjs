@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const original=fs.readFileSync(process.env.PANEL_HTML || 'public/qr.html','utf8');
 let parsed=0;for(const m of original.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){if(!m[1].includes('src=')){new vm.Script(m[2]);parsed++;}}
-const hook=`window.__v217={state,renderSelectedDetails,updateCustomerStatusStyle,updateCustomerPrimaryAction,completeBuyLaterDateV217,saveCustomerForm,scheduleCustomerFieldAutoSave};`;
+const hook=`window.__v217={state,renderSelectedDetails,updateCustomerStatusStyle,updateCustomerPrimaryAction,completeBuyLaterDateV217,saveCustomerForm,scheduleCustomerFieldAutoSave,setInputValue,syncBuyLaterDatePartsV218};`;
 assert.equal(original.split('        bootstrapAuth();').length,2);
 const html=original.replace('        bootstrapAuth();',hook);
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -56,20 +56,28 @@ try {
   await page.waitForTimeout(950);
   ok(writes.length===0,'pending field and status timers canceled '+mobile);
   ok(dialogs.length===0,'status transition does not open confirmation '+mobile);
+  const currentYear=await page.evaluate(()=>String(new Date().getFullYear()));
+  ok(await page.locator('#customerBuyLaterYearInput').inputValue()===currentYear,'year filled automatically '+mobile);
+  ok(await page.locator('#customerBuyLaterDayInput').inputValue()===''&&await page.locator('#customerBuyLaterMonthInput').inputValue()==='','no default day or month invented '+mobile);
+  await page.fill('#customerBuyLaterDayInput','28');await page.fill('#customerBuyLaterMonthInput','11');
+  ok(await page.locator('#customerBuyLaterDateInput').inputValue()===currentYear+'-11-28','only day and month produce current-year ISO '+mobile);
+  ok(dialogs.length===0&&writes.length===0,'automatic year never saves or confirms '+mobile);
+
   for(const date of ['0002-11-28','0020-11-28','0202-11-28','2026-11-28']){
-   await page.locator('#customerBuyLaterDateInput').fill(date);
+   await page.evaluate(value=>{const i=document.getElementById('customerBuyLaterDateInput');i.value=value;i.dispatchEvent(new Event('input',{bubbles:true}));},date);
    await page.locator('#customerBuyLaterDateInput').dispatchEvent('change');
    await page.waitForTimeout(60);
    ok(dialogs.length===0,'segmented year '+date+' no popup '+mobile);
   }
-  await page.locator('#customerBuyLaterDateInput').press('Enter');await page.waitForTimeout(400);
+  await page.locator('#customerBuyLaterDayInput').press('Enter');await page.waitForTimeout(400);
   ok(dialogs.length===0&&writes.length===0,'Enter in date neither submits nor persists '+mobile);
   await page.fill('#customerNameInput','Cliente de simulação editado');await page.locator('#customerNameInput').dispatchEvent('blur');await page.waitForTimeout(1100);
   ok(writes.length===0,'other field autosave cannot commit pending buy-later '+mobile);
-  await page.locator('#customerBuyLaterDateInput').fill('0020-11-28');
+  await page.evaluate(value=>{const i=document.getElementById('customerBuyLaterDateInput');i.value=value;i.dispatchEvent(new Event('input',{bubbles:true}));},'0020-11-28');
   await page.evaluate(()=>window.__v217.saveCustomerForm({preventDefault(){}}));
   ok(dialogs.length===0&&writes.length===0,'incomplete year rejected before confirmation '+mobile);
-  await page.locator('#customerBuyLaterDateInput').fill('2026-11-28');await page.locator('#customerBuyLaterDateInput').dispatchEvent('change');
+  await page.evaluate(()=>window.__v217.setInputValue('customerBuyLaterDateInput',''));
+  await page.fill('#customerBuyLaterDayInput','28');await page.fill('#customerBuyLaterMonthInput','11');
   ok(await page.evaluate(()=>window.__v217.completeBuyLaterDateV217()),'complete date accepted '+mobile);
   await page.locator('#confirmCustomerDataBtn').evaluate(e=>e.click());
   await page.waitForTimeout(1000);
@@ -80,7 +88,7 @@ try {
   await page.evaluate(()=>window.__v217.renderSelectedDetails());
   ok(await page.locator('#customerBuyLaterDateInput').inputValue()==='2026-11-28','saved date restored on render '+mobile);
   ok(await page.locator('#customerStatusInput').inputValue()==='comprar_depois','saved status restored on render '+mobile);
-  await page.locator('#customerBuyLaterDateInput').fill('2026-12-03');await page.locator('#customerBuyLaterDateInput').dispatchEvent('change');await page.waitForTimeout(450);
+  await page.evaluate(value=>{const i=document.getElementById('customerBuyLaterDateInput');i.value=value;i.dispatchEvent(new Event('input',{bubbles:true}));},'2026-12-03');await page.locator('#customerBuyLaterDateInput').dispatchEvent('change');await page.waitForTimeout(450);
   ok(writes.filter(w=>w.method==='PATCH'&&w.path.startsWith('/api/whatsapp/contact-state/')).length===1&&dialogs.length===1,'editing previously saved date remains manual '+mobile);
   acceptConfirm=false;await page.locator('#confirmCustomerDataBtn').evaluate(e=>e.click());await page.waitForTimeout(150);acceptConfirm=true;
   ok(dialogs.length===2&&writes.filter(w=>w.method==='PATCH'&&w.path.startsWith('/api/whatsapp/contact-state/')).length===1,'cancel explicit save performs no write '+mobile);
@@ -88,11 +96,30 @@ try {
   await page.selectOption('#customerStatusInput','atendendo');await page.waitForTimeout(900);
   ok(dialogs.length===3,'other status confirmation preserved '+mobile);
   ok(writes.filter(w=>w.method==='PATCH'&&w.path.startsWith('/api/whatsapp/contact-state/')).some(w=>w.data.customerDraft.status==='atendendo'),'other status autosave preserved '+mobile);
+  const confirmationCount=dialogs.length,writeCount=writes.length;
+  await page.selectOption('#customerStatusInput','comprar_depois');
+  await page.fill('#customerBuyLaterDayInput','29');await page.fill('#customerBuyLaterMonthInput','2');await page.fill('#customerBuyLaterYearInput','2027');
+  ok(await page.locator('#customerBuyLaterDateInput').inputValue()==='','invalid non-leap date rejected '+mobile);
+  await page.fill('#customerBuyLaterYearInput','2028');
+  ok(await page.locator('#customerBuyLaterDateInput').inputValue()==='2028-02-29','editable leap year accepted '+mobile);
+  await page.evaluate(()=>window.__v217.setInputValue('customerBuyLaterDateInput','2030-12-03'));
+  ok(await page.locator('#customerBuyLaterYearInput').inputValue()==='2030','existing future year preserved '+mobile);
+  ok(await page.locator('#customerBuyLaterDayInput').inputValue()==='3'&&await page.locator('#customerBuyLaterMonthInput').inputValue()==='12','saved ISO correctly populates day/month '+mobile);
+  await page.evaluate(()=>{
+   const RealDate=window.Date;window.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[RealDate.UTC(2027,0,1,3,30)]));}};
+   window.__v217.setInputValue('customerBuyLaterDateInput','');window.Date=RealDate;
+  });
+  ok(await page.locator('#customerBuyLaterYearInput').inputValue()==='2027','year rollover uses current computer date '+mobile);
+  await page.evaluate(()=>window.__v217.setInputValue('customerBuyLaterDateInput','2026-11-28'));
+  await page.click('#customerBuyLaterCalendarBtn');await page.keyboard.press('Escape');
+  ok(dialogs.length===confirmationCount&&writes.length===writeCount,'calendar shortcut and year edit do not save '+mobile);
+  const sizes=await page.locator('#customerBuyLaterYearInput').evaluate(e=>({input:e.getBoundingClientRect().right,field:document.getElementById('customerBuyLaterDateField').getBoundingClientRect().right}));
+  ok(sizes.input<=sizes.field,'year fits date field '+mobile);
   ok(errors.length===0,'no page errors '+mobile+': '+errors.join(';'));
   // Screenshot only after behavioral checks; rearrangement is confined to this offline fixture.
   await page.evaluate(()=>{
    document.getElementById('customerStatusInput').value='comprar_depois';document.getElementById('customerBuyLaterDateInput').value='2026-11-28';
-   window.__v217.updateCustomerStatusStyle();window.__v217.updateCustomerPrimaryAction();
+   window.__v217.syncBuyLaterDatePartsV218();window.__v217.updateCustomerStatusStyle();window.__v217.updateCustomerPrimaryAction();
    const f=document.getElementById('customerForm');document.body.replaceChildren(f);
    f.style.cssText='display:block;position:relative;width:390px;max-width:100%;margin:0;padding:12px;background:white;';
    document.body.style.cssText='display:block;margin:0;padding:0;background:white;min-height:0;overflow:visible';

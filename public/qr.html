@@ -8259,10 +8259,18 @@
                                 </label>
                                 <button id="confirmCustomerDataBtn" class="success" type="button" disabled>Salvar dados</button>
                             </div>
-                            <label id="customerBuyLaterDateField" class="customer-buy-later-date hidden">Data desejada para o pedido
-                                <input id="customerBuyLaterDateInput" type="date" min="1000-01-01" max="9999-12-31" autocomplete="off">
+                            <div id="customerBuyLaterDateField" class="customer-buy-later-date hidden">
+                                <strong>Data desejada para o pedido</strong>
+                                <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr) auto;gap:6px;align-items:end">
+                                    <label>Dia<input id="customerBuyLaterDayInput" type="number" min="1" max="31" inputmode="numeric" placeholder="DD" autocomplete="off"></label>
+                                    <label>Mês<input id="customerBuyLaterMonthInput" type="number" min="1" max="12" inputmode="numeric" placeholder="MM" autocomplete="off"></label>
+                                    <label>Ano (automático)<input id="customerBuyLaterYearInput" type="number" min="1000" max="9999" inputmode="numeric" autocomplete="off"></label>
+                                    <button id="customerBuyLaterCalendarBtn" type="button" aria-label="Escolher data no calendário" title="Escolher data no calendário" style="padding:9px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></button>
+                                </div>
+                                <input id="customerBuyLaterDateInput" class="hidden" type="date" min="1000-01-01" max="9999-12-31" autocomplete="off" aria-label="Data no calendário">
+                                <small>Preencha dia e mês. O ano atual já vem preenchido e pode ser alterado.</small>
                                 <small>O bot enviará uma única mensagem nominal entre 4 e 3 dias antes, perguntando se pode preparar o pedido. Nenhum pedido será criado automaticamente.</small>
-                            </label>
+                            </div>
                             <div id="customerActionHint" class="customer-action-hint">Selecione um cliente para ver a proxima acao.</div>
                         </div>
                         <label>Nome completo
@@ -11020,7 +11028,12 @@
             const dateField = el('customerBuyLaterDateField');
             const dateInput = el('customerBuyLaterDateInput');
             dateField?.classList.toggle('hidden', !buyLater);
-            if (dateInput) dateInput.required = buyLater;
+            if (dateInput) dateInput.required = false;
+            ['Day', 'Month', 'Year'].forEach((part) => {
+                const field = el(`customerBuyLater${part}Input`);
+                if (field) field.required = buyLater;
+            });
+            if (!el('customerBuyLaterYearInput').value) el('customerBuyLaterYearInput').value = String(new Date().getFullYear());
         };
         const customerPricePresetsEc = [
             ['1', '39.99', 'USD 39.99', '1 frasco'],
@@ -11089,6 +11102,7 @@
                     : (value ?? '');
                 input.value = id === 'customerStatusInput' ? normalizePanelStatus(value) : normalizedValue;
             }
+            if (id === 'customerBuyLaterDateInput') syncBuyLaterDatePartsV218();
             if (id === 'customerStatusInput') {
                 input.dataset.prevStatus = input.value || 'novo';
                 updateCustomerStatusStyle();
@@ -11534,7 +11548,7 @@
                 button.disabled = customerFormSaveBusy();
                 stateBadge.textContent = completeBuyLaterDateV217() ? 'agendar' : 'aguarda data';
                 stateBadge.className = 'badge orange';
-                hint.textContent = 'Complete a data e clique em Salvar dados para confirmar Comprar depois. Os demais dados podem ficar parciais.';
+                hint.textContent = 'Preencha dia e mês; o ano já está preenchido. Clique em Salvar dados para confirmar Comprar depois.';
                 return;
             }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
@@ -19303,7 +19317,7 @@
                 }
             }
             if (customerDraft.status === 'comprar_depois' && !completeBuyLaterDateV217()) {
-                el('customerBuyLaterDateInput').focus();
+                focusBuyLaterDateV218();
                 throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
             const customerDataAllowsOrderWrite = apiOrderStatus !== 'confirmed' || resolvedCustomerData?.orderDataReady === true;
@@ -19512,6 +19526,27 @@
             return queuedSave;
         }
 
+        // V218: default only the year; day/month remain an explicit operator choice.
+        function syncBuyLaterDatePartsV218() {
+            const value = el('customerBuyLaterDateInput').value;
+            const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+            el('customerBuyLaterDayInput').value = parts ? String(Number(parts[3])) : '';
+            el('customerBuyLaterMonthInput').value = parts ? String(Number(parts[2])) : '';
+            el('customerBuyLaterYearInput').value = parts ? parts[1] : String(new Date().getFullYear());
+        }
+        const updateBuyLaterDatePartsV218 = () => {
+            const day = el('customerBuyLaterDayInput');
+            const month = el('customerBuyLaterMonthInput');
+            const year = el('customerBuyLaterYearInput');
+            const values = [year, month, day];
+            const complete = values.every((field) => field.value && field.validity.valid)
+                && /^\d{4}$/.test(year.value);
+            const iso = complete ? `${year.value}-${month.value.padStart(2, '0')}-${day.value.padStart(2, '0')}` : '';
+            el('customerBuyLaterDateInput').value = iso;
+            stageBuyLaterEditV217();
+        };
+        const focusBuyLaterDateV218 = () => el('customerBuyLaterDayInput').focus();
+
         // V217: editing the segmented native date must never confirm or persist a status.
         const completeBuyLaterDateV217 = () => {
             const input = el('customerBuyLaterDateInput');
@@ -19531,7 +19566,7 @@
             markCustomerFormDirty();
             el('customerSyncHint').textContent = completeBuyLaterDateV217()
                 ? 'Data em edição. Clique em Salvar dados para confirmar o agendamento.'
-                : 'Complete dia, mês e ano; depois clique em Salvar dados.';
+                : 'Preencha dia e mês; o ano atual já está preenchido. Depois clique em Salvar dados.';
             el('customerSyncBadge').textContent = 'aguarda salvar';
             el('customerSyncBadge').className = 'badge orange';
             return true;
@@ -19541,7 +19576,7 @@
             event.preventDefault();
             if (!state.selectedChat || customerFormSaveBusy()) return;
             if (normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois' && !completeBuyLaterDateV217()) {
-                el('customerBuyLaterDateInput').focus();
+                focusBuyLaterDateV218();
                 showToast('Complete dia, mês e ano da data desejada antes de salvar Comprar depois.');
                 return;
             }
@@ -19637,7 +19672,7 @@
             const previousStatus = normalizePanelStatus(input.dataset.prevStatus || state.selectedChat.orderStatus || 'novo');
             const nextStatus = normalizePanelStatus(input.value);
             if (stageBuyLaterEditV217()) {
-                if (!el('customerBuyLaterDateInput').value) el('customerBuyLaterDateInput').focus();
+                if (!el('customerBuyLaterDateInput').value) focusBuyLaterDateV218();
                 return;
             }
             if (previousStatus !== nextStatus && !window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) {
@@ -21177,8 +21212,20 @@
             });
         });
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
-        el('customerBuyLaterDateInput').addEventListener('input', stageBuyLaterEditV217);
-        el('customerBuyLaterDateInput').addEventListener('change', stageBuyLaterEditV217);
+        ['Day', 'Month', 'Year'].forEach((part) => {
+            const input = el(`customerBuyLater${part}Input`);
+            input.addEventListener('input', updateBuyLaterDatePartsV218);
+            input.addEventListener('change', updateBuyLaterDatePartsV218);
+            input.addEventListener('keydown', (event) => { if (event.key === 'Enter') event.preventDefault(); });
+        });
+        const applyBuyLaterCalendarV218 = () => { syncBuyLaterDatePartsV218(); stageBuyLaterEditV217(); };
+        el('customerBuyLaterDateInput').addEventListener('input', applyBuyLaterCalendarV218);
+        el('customerBuyLaterDateInput').addEventListener('change', applyBuyLaterCalendarV218);
+        el('customerBuyLaterCalendarBtn').addEventListener('click', () => {
+            const input = el('customerBuyLaterDateInput');
+            if (typeof input.showPicker === 'function') input.showPicker();
+            else { input.classList.remove('hidden'); input.focus(); }
+        });
         el('customerBuyLaterDateInput').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') event.preventDefault();
         });
