@@ -889,6 +889,7 @@ const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } 
         : detectedTextProductContext;
     const vslAttribution = vslRoutingAllowed
         ? await claimMetaAttributionForInboundWhatsapp({
+            sourceMessageId: messageId,
             // O QA oficial 8637 possui telefone BR, mas sua entrada controlada
             // continua pertencendo ao contrato VSL EC. A excecao fica restrita
             // ao destinatario de teste ja autorizado; clientes comuns preservam

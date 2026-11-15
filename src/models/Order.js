@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { installVitPowerOrderHooksV213 } from '../services/vitPowerMeasurementV213Application.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 
 const orderSchema = new mongoose.Schema({
@@ -235,6 +236,8 @@ orderSchema.index({ status: 1, draftCreatedAt: 1 }); // For draft queries
 orderSchema.index({ country: 1, 'tracking.campaign_id': 1 });
 orderSchema.index({ country: 1, 'tracking.adset_id': 1 });
 orderSchema.index({ country: 1, 'tracking.ad_id': 1 });
+
+installVitPowerOrderHooksV213(orderSchema);
 
 const Order = mongoose.model('Order', orderSchema);
 

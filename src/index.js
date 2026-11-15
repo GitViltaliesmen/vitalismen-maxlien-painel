@@ -7,6 +7,7 @@ import '../scripts/lib/ec-bot-core-control-plane-v89-successor-context.mjs';
 import './services/ecEngagementFreezeRuntimeGuardV40.js';
 import './services/ecPanelStatusOperationsFreezeRuntimeGuardV177.js';
 import express from 'express';
+import { measurementRateLimitKeyV213 } from './services/vitPowerMeasurementV213Application.js';
 import { manualUploadsDirV129, remoteMediaCacheDirV129 } from './services/manualMediaStorageV129Service.js';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -150,6 +151,8 @@ const firstHeaderValue = (value) => Array.isArray(value) ? value[0] : value;
 const firstHeaderIp = (value) => String(firstHeaderValue(value) || '').split(',')[0].trim();
 
 const clientRateLimitKey = (req) => {
+    const measurementKey = measurementRateLimitKeyV213(req);
+    if (measurementKey) return measurementKey;
     const cloudflareIp = firstHeaderIp(req.headers['cf-connecting-ip']);
     if (cloudflareIp) return `cf:${cloudflareIp}`;
     const realIp = firstHeaderIp(req.headers['x-real-ip']);

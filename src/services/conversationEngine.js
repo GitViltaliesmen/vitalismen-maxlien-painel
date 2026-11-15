@@ -9,6 +9,7 @@ import path from 'path';
 import { openaiService } from './openaiService.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
+import { observeVitPowerDraftV213, observeVitPowerPendingV213 } from './vitPowerMeasurementV213Application.js';
 import ContactState from '../models/ContactState.js';
 import Shipment from '../models/Shipment.js';
 import { enrichOutboundPlan, executePreparedOutboundPlan } from './outboundComposer.js';
@@ -1227,6 +1228,8 @@ const savePendingCheckoutOrderMemory = async ({ contactStateId, agentProfile, pa
     }).catch((error) => {
         console.warn(`[META-V146] InitiateCheckout pendente nao enviado: ${error.message}`);
     });
+    try { await observeVitPowerPendingV213({ contactStateId, agentKey: agentProfile?.key || '' }); }
+    catch { console.warn('[VITPOWER-MEASUREMENT-V213] non_blocking_pending_observation_failed'); }
 };
 
 const parseCheckoutCorrectionMessage = (text = '') => {
@@ -8186,7 +8189,12 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
                     ContactState, Message, Order, OutboundDedupe,
                     products: Object.values(ECUADOR_PRODUCTS).map(item => ({ key: item.key, name: item.name })),
                     getOffer: getEcuadorOffer, resolveData: resolveCustomerDataDraft,
-                    onDraftSaved: draft => syncContactDraftToOnlineAdminPanel(draft, { country: 'EC', action: 'principal_sdr_v212_draft', note: 'Dados informados pelo cliente em atendimento conversacional.' }),
+                    onDraftSaved: async draft => {
+                        const result = syncContactDraftToOnlineAdminPanel(draft, { country: 'EC', action: 'principal_sdr_v212_draft', note: 'Dados informados pelo cliente em atendimento conversacional.' });
+                        try { await observeVitPowerDraftV213({ phone: peerPhone, sourceMessageId: msg.id || msg._id, contactStateId: msg.contactStateId }); }
+                        catch { console.warn('[VITPOWER-MEASUREMENT-V213] non_blocking_draft_observation_failed'); }
+                        return result;
+                    },
                     qaReady: (state, messageId, now) => principalSdrQaRuntimeReadyV212({ state, phone: peerPhone, messageId, now }),
                     sendReply: ({ text: reply, idempotencyKey }) => sendText(chatId, reply, null, {
                         sessionId: msg.sessionId, provider: 'zapi', recipientDigits: peerPhone,

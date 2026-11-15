@@ -1,5 +1,6 @@
 import { salesAttributionV148 } from './metaFunnelV148ContractService.js';
 import crypto from 'crypto';
+import { claimVitPowerReferenceV213 } from './vitPowerMeasurementV213Application.js';
 import VslVisit from '../models/VslVisit.js';
 import MetaAttributionCorrelation from '../models/MetaAttributionCorrelation.js';
 import {
@@ -137,8 +138,11 @@ export const claimMetaAttributionForInboundWhatsapp = async ({
     inboundAt = new Date(),
     windowMs = 2 * 60 * 1000,
     VisitModel = VslVisit,
-    CorrelationModel = MetaAttributionCorrelation
+    CorrelationModel = MetaAttributionCorrelation,
+    sourceMessageId = ''
 } = {}) => {
+    const referenceClaim = await claimVitPowerReferenceV213({ phone, message, inboundAt, sourceMessageId });
+    if (referenceClaim) return referenceClaim;
     const normalizedCountry = String(country || '').trim().toUpperCase();
     if (normalizedCountry !== 'EC') return { ok: false, skipped: true, reason: 'unsupported_country' };
 

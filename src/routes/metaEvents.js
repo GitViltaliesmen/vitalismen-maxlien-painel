@@ -1,7 +1,10 @@
 import express from 'express';
+import { captureVitPowerMeasurementV213 } from '../services/vitPowerMeasurementV213Application.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
 
 const router = express.Router();
+
+router.post('/vitpower', captureVitPowerMeasurementV213);
 
 router.post('/', async (req, res) => {
     try {

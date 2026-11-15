@@ -3,6 +3,7 @@ import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { measurementMongoAllowedV213, measurementRequestAllowedV213 } from './vitPowerMeasurementV213Application.js';
 import { createHash, randomUUID } from 'node:crypto';
 
 import ContactState from '../models/ContactState.js';
@@ -484,6 +485,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
         return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
     }
+    if (measurementRequestAllowedV213(req)) {
+        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, measurementV213: true }, next);
+    }
     try { if (await prepareManualHumanRequest(req)) return next(); }
     catch (error) { return res.status(error.statusCode === 401 ? 401 : 423).json({ error: 'manual_authorization_denied' }); }
     if (isExactEcAuthLoginV78Request({ method, path: requestPath })) {
@@ -717,6 +721,8 @@ const patchMongoPrototype = (prototype) => {
             configurable: true,
             writable: true,
             value: function ecBotCoreV78MongoGuardedMutation(...args) {
+                if (measurementMongoAllowedV213(this?.collectionName || this?.namespace?.collection || this?.name, method, args)
+                    && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) return original.apply(this, args);
                 if (giraRuntimePolicy.mongo(String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)
                     && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) return original.apply(this,args);
                 if (manualMongoAllowed(this?.collectionName || this?.namespace?.collection || this?.name, method, args)
