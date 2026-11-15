@@ -8260,7 +8260,7 @@
                                 <button id="confirmCustomerDataBtn" class="success" type="button" disabled>Salvar dados</button>
                             </div>
                             <label id="customerBuyLaterDateField" class="customer-buy-later-date hidden">Data desejada para o pedido
-                                <input id="customerBuyLaterDateInput" type="date" autocomplete="off">
+                                <input id="customerBuyLaterDateInput" type="date" min="1000-01-01" max="9999-12-31" autocomplete="off">
                                 <small>O bot enviará uma única mensagem nominal entre 4 e 3 dias antes, perguntando se pode preparar o pedido. Nenhum pedido será criado automaticamente.</small>
                             </label>
                             <div id="customerActionHint" class="customer-action-hint">Selecione um cliente para ver a proxima acao.</div>
@@ -11527,6 +11527,14 @@
                 stateBadge.textContent = 'bloqueado';
                 stateBadge.className = 'badge red';
                 hint.textContent = 'Numero interno/teste nao confirma cliente real.';
+                return;
+            }
+            if (status === 'comprar_depois') {
+                button.textContent = 'Salvar dados';
+                button.disabled = customerFormSaveBusy();
+                stateBadge.textContent = completeBuyLaterDateV217() ? 'agendar' : 'aguarda data';
+                stateBadge.className = 'badge orange';
+                hint.textContent = 'Complete a data e clique em Salvar dados para confirmar Comprar depois. Os demais dados podem ficar parciais.';
                 return;
             }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
@@ -19294,7 +19302,7 @@
                     throw new Error(`Pedido bloqueado pela qualidade dos dados: ${reasons.join(', ') || 'revisao necessaria'}.`);
                 }
             }
-            if (customerDraft.status === 'comprar_depois' && !/^\d{4}-\d{2}-\d{2}$/.test(customerDraft.buyLaterFollowupAt || '')) {
+            if (customerDraft.status === 'comprar_depois' && !completeBuyLaterDateV217()) {
                 el('customerBuyLaterDateInput').focus();
                 throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
@@ -19504,9 +19512,39 @@
             return queuedSave;
         }
 
+        // V217: editing the segmented native date must never confirm or persist a status.
+        const completeBuyLaterDateV217 = () => {
+            const input = el('customerBuyLaterDateInput');
+            const value = input?.value || '';
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !input.validity.valid) return false;
+            const [year, month, day] = value.split('-').map(Number);
+            if (year < 1000 || year > 9999) return false;
+            const date = new Date(Date.UTC(year, month - 1, day));
+            return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+        };
+        const stageBuyLaterEditV217 = () => {
+            if (!state.selectedChat || normalizePanelStatus(el('customerStatusInput').value) !== 'comprar_depois') return false;
+            window.clearTimeout(state.statusAutoSaveTimer);
+            window.clearTimeout(state.customerFieldAutoSaveTimer);
+            state.statusAutoSaveSeq += 1;
+            state.customerFieldAutoSaveSeq += 1;
+            markCustomerFormDirty();
+            el('customerSyncHint').textContent = completeBuyLaterDateV217()
+                ? 'Data em edição. Clique em Salvar dados para confirmar o agendamento.'
+                : 'Complete dia, mês e ano; depois clique em Salvar dados.';
+            el('customerSyncBadge').textContent = 'aguarda salvar';
+            el('customerSyncBadge').className = 'badge orange';
+            return true;
+        };
+
         async function saveCustomerForm(event) {
             event.preventDefault();
             if (!state.selectedChat || customerFormSaveBusy()) return;
+            if (normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois' && !completeBuyLaterDateV217()) {
+                el('customerBuyLaterDateInput').focus();
+                showToast('Complete dia, mês e ano da data desejada antes de salvar Comprar depois.');
+                return;
+            }
             if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;
             state.customerFormSaveInFlight = true;
             setSaveCustomerButtonDisabled(true);
@@ -19598,12 +19636,8 @@
             const input = el('customerStatusInput');
             const previousStatus = normalizePanelStatus(input.dataset.prevStatus || state.selectedChat.orderStatus || 'novo');
             const nextStatus = normalizePanelStatus(input.value);
-            if (nextStatus === 'comprar_depois' && !el('customerBuyLaterDateInput').value) {
-                markCustomerFormDirty();
-                el('customerSyncHint').textContent = 'Escolha a data desejada para concluir Comprar depois.';
-                el('customerSyncBadge').textContent = 'aguarda data';
-                el('customerSyncBadge').className = 'badge orange';
-                el('customerBuyLaterDateInput').focus();
+            if (stageBuyLaterEditV217()) {
+                if (!el('customerBuyLaterDateInput').value) el('customerBuyLaterDateInput').focus();
                 return;
             }
             if (previousStatus !== nextStatus && !window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) {
@@ -19654,7 +19688,7 @@
         };
 
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
-            if (!state.selectedChat) return;
+            if (!state.selectedChat || stageBuyLaterEditV217()) return;
             rememberEditingCustomerDraft();
             const selectionScope = captureCustomerSelectionScope();
             const seq = state.customerFieldAutoSaveSeq + 1;
@@ -21143,7 +21177,11 @@
             });
         });
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
-        el('customerBuyLaterDateInput').addEventListener('change', autoSaveCustomerStatusChange);
+        el('customerBuyLaterDateInput').addEventListener('input', stageBuyLaterEditV217);
+        el('customerBuyLaterDateInput').addEventListener('change', stageBuyLaterEditV217);
+        el('customerBuyLaterDateInput').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') event.preventDefault();
+        });
         updateCustomerStatusStyle();
         applyCustomerCountryUi();
         el('customerCityInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
