@@ -1,0 +1,25 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 219,
+  "parentCommit": "8993d2af3e110ecfc2deb04c9eff58ac6fd36c6e",
+  "allowedDelta": [
+    "docs/REGRA_SEM_REGRESSAO_ATENDIMENTO_V219.md",
+    "docs/freeze/freeflow-priority-v219-contract.json",
+    "scripts/guard-freeflow-nonregression-v219.mjs",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/conversationEngine.js",
+    "src/services/freeflowQuestionPriorityV219Service.js",
+    "src/services/principalSdrFreeflowRuntimeService.js",
+    "src/services/principalSdrFreeflowService.js",
+    "tests/freeflow-priority-v219.test.mjs",
+    "tests/principal-sdr-freeflow.test.mjs"
+  ],
+  "publicPanelSha256": "f5102813bfbe6ec12d5fa299940d0170bf3e0d32ba73d7f602245a4adc76db75",
+  "siteCtaSha256": "7f2e7408b6c44c40183ad4562d7f57a675d9966f57a9d5059664790828c8ed9e",
+  "publicPanelPath": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "databaseMigrations": false,
+  "automaticReplay": false,
+  "otherProductsChanged": false,
+  "rollback": "EXACT_V216_BACKEND_KEEP_V218_PANEL_AND_CURRENT_VSL"
+}

@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-b01-sealed-v216-r5.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-b01-profile-v216-r5.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-freeflow-priority-sealed-v219-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-freeflow-priority-profile-v219-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

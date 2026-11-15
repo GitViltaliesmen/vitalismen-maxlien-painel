@@ -16,7 +16,7 @@ const missing = draft => ['quantity', 'name', 'city', 'province', 'deliveryMode'
 
 export function createPrincipalSdrRuntime({ ContactState, Message, Order, OutboundDedupe, getOffer, resolveData,
     sendReply, transferHuman, registerExistingOrder, products, complete, onDraftSaved = async () => {},
-    now = () => new Date(), qaReady = () => false }) {
+    now = () => new Date(), qaReady = () => false, questionPriorityEnabled = false, productInformation = async () => ({ ok: false, unavailable: true }), salesPolicy = async () => ({ ok: false, unavailable: true }) }) {
     if (![ContactState, Message, Order, OutboundDedupe].every(Boolean)
         || ![getOffer, resolveData, sendReply, transferHuman, registerExistingOrder, qaReady].every(value => typeof value === 'function'))
         throw new Error('principal_sdr_runtime_ports_required');
@@ -82,7 +82,8 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                     const offer = getOffer({ productKey: 'vit_power_ec', quantity: args.quantity, priceCatalog: 'normal' });
                     return offer ? { ...offer, ok: true, verified: true, currency: 'USD', source: 'ecuadorProductService', priceCatalog: 'normal' } : { ok: false };
                 },
-                policy: async () => ({ ok: false, unavailable: true }),
+                policy: async args => questionPriorityEnabled ? salesPolicy(args) : ({ ok: false, unavailable: true }),
+                productInformation: async args => questionPriorityEnabled ? productInformation(args) : ({ ok: false, unavailable: true }),
                 stock: async () => ({ ok: false, unavailable: true }),
                 saveDraft: async args => {
                     draft = copyDraft(args.draft);
@@ -175,6 +176,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                         [ROOT + '.draft']: copyDraft(result.draft || draft), [ROOT + '.pendingSummary']: proposal,
                         [ROOT + '.lastInboundId']: inboundId, [ROOT + '.lastOutboundProviderId']: receipt.providerMessageId,
                         [ROOT + '.lastModelSucceeded']: !result.reason && !result.failureCode && result.handoffRequested === false,
+                        ...(questionPriorityEnabled ? { [ROOT + '.lastQuestionPriorityVersion']: result.orderedQuestionVersion || 0 } : {}),
                         [ROOT + '.version']: 212,
                         ...(result.priceOptionsPresented === true ? {
                             'metadata.perAgentMemory.vit_power_ec.lastFunnelStage': 'package_selection',
@@ -185,7 +187,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                 }
             });
             try {
-                const agent = createPrincipalSdrFreeflowAgent({ complete: complete || createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }), withTurn, official });
+                const agent = createPrincipalSdrFreeflowAgent({ complete: complete || createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }), withTurn, official, questionPriorityEnabled });
                 return await agent.handleTurn({ phone, messageId: inboundId, text: message.body });
             } catch {
                 // An ambiguous provider outcome is terminal: no automatic repeat.

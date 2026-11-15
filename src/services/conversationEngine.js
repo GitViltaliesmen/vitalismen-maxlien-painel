@@ -1,3 +1,4 @@
+import { prioritizeFreeflowV219 } from './freeflowQuestionPriorityV219Service.js';
 import { handleVitPowerB01InboundV216 } from './vitPowerB01RuntimeV216Service.js';
 import { principalSdrQaRuntimeReadyV212 } from './principalSdrQaIngressV212Service.js';
 import { createPrincipalSdrRuntime } from './principalSdrFreeflowRuntimeService.js';
@@ -38,7 +39,7 @@ import { classifyDropiShipmentMatch } from './dropiShipmentReconciliationService
 import { analyzeAttentiveReader } from './observerAttentiveReaderService.js';
 import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
-import { maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
+import { EC_PRODUCT_INGREDIENTS, maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
 import { maybeHandleEcuadorDirectProductInquiry } from './ecDirectProductInquiryService.js';
 import { repeatPurchasePendingOrderV146 } from './ecCommercialCycleV146Service.js';
 import { sendInitiateCheckoutForPendingOrderV146 } from './metaInitiateCheckoutV146Service.js';
@@ -8118,7 +8119,10 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             return;
         }
 
-        const directProductInquiry = await maybeHandleEcuadorDirectProductInquiry({
+        const questionPriorityEnabledV219 = agentProfile.key === 'vit_power_ec'
+            && globalThis.__VITALISMEN_EC_FREEFLOW_V219?.canHandle?.(peerPhone) === true;
+        const questionPriorityV219 = prioritizeFreeflowV219({ productKey: agentProfile.key, enabled: questionPriorityEnabledV219, text });
+        const directProductInquiry = questionPriorityV219 ? { handled: false } : await maybeHandleEcuadorDirectProductInquiry({
             text,
             chatId,
             phoneDigits: peerPhone,
@@ -8132,7 +8136,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             return;
         }
 
-        const ingredientsFaq = await maybeHandleEcuadorProductIngredients({
+        const ingredientsFaq = questionPriorityV219 ? { handled: false } : await maybeHandleEcuadorProductIngredients({
             text,
             chatId,
             contactStateId: msg.contactStateId,
@@ -8196,6 +8200,14 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             try {
                 const runtime = createPrincipalSdrRuntime({
                     ContactState, Message, Order, OutboundDedupe,
+                    questionPriorityEnabled: questionPriorityEnabledV219,
+                    productInformation: async ({ productKey, topic }) => {
+                        const info = productKey === 'vit_power_ec' && topic === 'ingredients' ? EC_PRODUCT_INGREDIENTS.vit_power_ec : null;
+                        return info ? { ok: true, verified: true, source: 'ecProductIngredientsService.EC_PRODUCT_INGREDIENTS.vit_power_ec', productKey, ingredients: [...info.ingredients] } : { ok: false, unavailable: true };
+                    },
+                    salesPolicy: async ({ productKey, topic }) => productKey === 'vit_power_ec' && topic === 'delivery'
+                        ? { ok: true, verified: true, source: 'existing-EC-delivery-modes-home-agency', text: 'Entrega: puede elegir domicilio o retiro en una agencia Servientrega. Validaremos ciudad y dirección o agencia antes de confirmar.' }
+                        : { ok: false, unavailable: true },
                     products: Object.values(ECUADOR_PRODUCTS).map(item => ({ key: item.key, name: item.name })),
                     getOffer: getEcuadorOffer, resolveData: resolveCustomerDataDraft,
                     onDraftSaved: async draft => {
