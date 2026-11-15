@@ -1,3 +1,4 @@
+import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 } from './principalSdrQaIngressV212Service.js';
 import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
@@ -255,6 +256,11 @@ export const claimEcQaInboundContextV78 = async ({
         text,
         destinationPhone: EC_OFFICIAL_VSL_V78_WHATSAPP
     });
+    if (!recognition.recognized && globalThis.__VITALISMEN_EC_PRINCIPAL_SDR_V212?.canHandle?.(phone) === true) {
+        const state = await model.findOne({ phoneDigits: phone, 'metadata.testOnly': true }).lean();
+        recognition = recognizePrincipalSdrQaIngressV212({ text, phone, connectedPhone: clean(payload.connectedPhone),
+            messageId, state, approved: true, now });
+    }
     if (!recognition.recognized && text.split(/\r?\n/)[0].trim() === 'Hola, vengo del video') {
         const state = await model.findOne({ phoneDigits: phone, 'metadata.testOnly': true }).lean();
         try { if (observation) {
@@ -399,7 +405,9 @@ export const recordEcQaInboundAfterPersistenceV78 = async ({
                     .catch(error => console.error('[EC-BOT-CORE-V78] falha ao finalizar contexto QA:', error.message)));
         });
     }
-    return { ...result, routeToBot: allowed && result.qaBotEligibility === true };
+    const principalQaRoute = principalSdrQaPersistedRoutingV212({ result, claim,
+        approved: globalThis.__VITALISMEN_EC_PRINCIPAL_SDR_V212?.canHandle?.(result.phone) === true });
+    return { ...result, routeToBot: allowed && (result.qaBotEligibility === true || principalQaRoute) };
 };
 
 

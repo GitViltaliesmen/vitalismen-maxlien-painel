@@ -1,3 +1,9 @@
+import { principalSdrQaRuntimeReadyV212 } from './principalSdrQaIngressV212Service.js';
+import { createPrincipalSdrRuntime } from './principalSdrFreeflowRuntimeService.js';
+import OutboundDedupe from '../models/OutboundDedupe.js';
+import { getEcuadorOffer, ECUADOR_PRODUCTS } from './ecuadorProductService.js';
+import { resolveCustomerDataDraft } from './customerDataResolutionService.js';
+import { resolveEcQaTestContextV78 } from './ecQaTestResetV78Service.js';
 import fs from 'fs';
 import path from 'path';
 import { openaiService } from './openaiService.js';
@@ -2682,7 +2688,8 @@ const finalizeCheckoutOrder = async ({
     agentProfile,
     contactStateId,
     peerPhone,
-    sessionId = null
+    sessionId = null,
+    returnReceipt = false
 }) => {
     const offer = getSelectedOffer(customerContext, parsedOrder);
     const agency = getAgencyDetails(parsedOrder);
@@ -2712,7 +2719,7 @@ const finalizeCheckoutOrder = async ({
         });
         if (order) {
             if (order.$locals?.protectedActiveShipment) {
-                return true;
+                return returnReceipt ? { ok: false, protectedActiveShipment: true } : true;
             }
             order.status = 'confirmed';
             order.package = {
@@ -2742,7 +2749,7 @@ const finalizeCheckoutOrder = async ({
             await markMetaPurchaseForConfirmedOrder(order);
         }
     }
-    if (order?.$locals?.protectedActiveShipment) return true;
+    if (order?.$locals?.protectedActiveShipment) return returnReceipt ? { ok: false, protectedActiveShipment: true } : true;
     await saveConfirmedSalePayloadToContact({
         contactStateId,
         agentProfile,
@@ -2825,6 +2832,7 @@ const finalizeCheckoutOrder = async ({
     });
 
     console.log(`[FUNIL] Pedido checkout finalizado -> ${jid} | pedido=${order?.orderId || 'sem_pedido'} | entrega=${deliveryMode}`);
+    if (returnReceipt) return { ok: Boolean(order?.orderId), persisted: Boolean(order?.orderId), orderId: order?.orderId || null, alreadyNotified: true };
     return true;
 };
 
@@ -8165,6 +8173,55 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             });
             console.log(`[TEX-ULTRA-GUARD] Funis Nitrix/Vit Power bloqueados; contato em atendimento manual -> ${chatId}`);
             return;
+        }
+
+        const freeflowCapability = globalThis.__VITALISMEN_EC_PRINCIPAL_SDR_V212;
+        const structuredOrderData = looksLikeOrderDataMessage(text)
+            && /(?:nombre|ciudad|provincia|direccion|dirección|agencia|cantidad)\s*:/i.test(text);
+        const quantityOnly = /^(?:1|2|3|6|uno|una|dos|tres|seis)(?:\s+frascos?)?[.!\s]*$/i.test(text.trim());
+        if (agentProfile.key === VIT_POWER_AGENT_KEY && freeflowCapability?.canHandle?.(peerPhone) === true
+            && !structuredOrderData && !quantityOnly) {
+            try {
+                const runtime = createPrincipalSdrRuntime({
+                    ContactState, Message, Order, OutboundDedupe,
+                    products: Object.values(ECUADOR_PRODUCTS).map(item => ({ key: item.key, name: item.name })),
+                    getOffer: getEcuadorOffer, resolveData: resolveCustomerDataDraft,
+                    onDraftSaved: draft => syncContactDraftToOnlineAdminPanel(draft, { country: 'EC', action: 'principal_sdr_v212_draft', note: 'Dados informados pelo cliente em atendimento conversacional.' }),
+                    qaReady: (state, messageId, now) => principalSdrQaRuntimeReadyV212({ state, phone: peerPhone, messageId, now }),
+                    sendReply: ({ text: reply, idempotencyKey }) => sendText(chatId, reply, null, {
+                        sessionId: msg.sessionId, provider: 'zapi', recipientDigits: peerPhone,
+                        humanize: false, returnDetails: true, dedupeValue: idempotencyKey,
+                        antiSpamKey: idempotencyKey, outboundContext: 'principal_sdr_v212'
+                    }),
+                    transferHuman: async ({ reason }) => {
+                        await holdForHuman({ contactStateId: msg.contactStateId, agentProfile, reason,
+                            note: 'Principal SDR: continuar atendimento humano sem inventar condicoes.' });
+                        const hold = await ContactState.updateOne({ _id: msg.contactStateId, phoneDigits: peerPhone,
+                            'metadata.processingLock.messageId': msg.id, 'human.mode': { $ne: 'manual' } }, {
+                            $set: { 'human.mode': 'manual', 'human.pausedUntil': new Date(Date.now() + 3650 * 86400000) }
+                        });
+                        const held = await ContactState.findOne({ _id: msg.contactStateId, phoneDigits: peerPhone }).lean();
+                        return { ok: hold.matchedCount === 1 && held?.metadata?.automationHandoffSuggestedReason === reason,
+                            persisted: hold.matchedCount === 1 && held?.metadata?.automationHandoffSuggestedReason === reason };
+                    },
+                    registerExistingOrder: ({ draft, offer, returnReceipt }) => {
+                        const selected = getSelectedOffer(customerContext, draft);
+                        if (Number(selected.quantity) !== Number(offer.quantity) || Math.abs(Number(selected.total) - Number(offer.total)) > 0.001)
+                            throw new Error('freeflow_offer_changed_before_registration');
+                        return finalizeCheckoutOrder({
+                            jid: chatId, parsedOrder: draft, customerContext, agentProfile,
+                            contactStateId: msg.contactStateId, peerPhone, sessionId: msg.sessionId, returnReceipt
+                        });
+                    }
+                });
+                const result = await runtime.handle({ message: msg, contactStateId: msg.contactStateId,
+                    phone: peerPhone, productKey: agentProfile.key });
+                if (result.handled) return;
+            } catch {
+                await holdForHuman({ contactStateId: msg.contactStateId, agentProfile,
+                    reason: 'principal_sdr_v212_fail_closed', note: 'Revisar atendimento sem repetir envio automatico.' });
+                return;
+            }
         }
 
         const alreadyIntroduced = await hasBotIntroducedItself(chatId);
