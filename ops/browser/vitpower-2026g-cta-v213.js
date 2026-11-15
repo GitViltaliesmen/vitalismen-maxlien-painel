@@ -125,7 +125,7 @@
     var sent = rows.length ? capture(rows) : Promise.resolve(null);
     // Do not block a commercial click when measurement or the network fails.
     Promise.race([sent, new Promise(function (resolve) { w.setTimeout(resolve, 900); })]).then(function () {
-      var message = MESSAGE + (permitted() && state.reference ? '\nVisita: ' + state.reference : '');
+      var message = MESSAGE;
       w.location.assign('https://wa.me/' + PHONE + '?text=' + encodeURIComponent(message));
     }).finally(function () { w.setTimeout(function () { busy = false; }, 1200); });
   }, true);

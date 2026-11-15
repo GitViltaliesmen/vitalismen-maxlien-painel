@@ -58,7 +58,7 @@ test('browser captures cookies/UTMs and emits PV VC click/contact sharing CAPI I
   assert.match(b.requests[0].body.fbp, /^fb\.1\.\d{13}\.\d+$/);
   const destination = new URL(b.urls[0]);
   assert.equal(destination.pathname, '/553171862958');
-  assert.equal(destination.searchParams.get('text'), message + '\nVisita: ' + reference);
+  assert.equal(destination.searchParams.get('text'), message);
   assert.deepEqual([...destination.searchParams.keys()], ['text']);
   assert.doesNotMatch(destination.href, /OFFLINE_CLICK_CASE|OFFLINE_AD|utm_source|_fbp/);
 });
@@ -116,19 +116,21 @@ test('expired stored attribution is not reused', async () => {
   const b = browser({ search: '', storage }); await b.settle();
   assert.equal(b.requests[0].body.fbclid, ''); assert.equal(b.requests[0].body.utm_campaign, undefined);
 });
-test('visit reference is available before Meta responds to browser events', async () => {
+test('visit reference stays internal and clean CTA works before Meta replies', async () => {
   const b = browser({ slowEvents: true }); await b.settle(); b.click(); await b.settle();
   b.timers.find(t => t.ms === 900).callback(); await b.settle();
-  assert.equal(new URL(b.urls[0]).searchParams.get('text'), message + '\nVisita: ' + reference);
+  assert.equal(new URL(b.urls[0]).searchParams.get('text'), message);
   assert.equal(b.requests[0].body.events.length, 0);
 });
 
-test('real desktop CTA without mobile id preserves attribution and tracks one click', async () => {
+test('real desktop CTA without mobile id uses clean message and tracks one click', async () => {
   const b=browser({mobile:false}); await b.settle(); b.click(); await b.settle();
   assert.deepEqual(b.calls.filter(x=>/^trackSingle/.test(x[0])).map(x=>x[2]),['PageView','CtaClick','Contact']);
-  assert.equal(new URL(b.urls[0]).searchParams.get('text'),message+'\nVisita: '+reference);
+  assert.equal(new URL(b.urls[0]).searchParams.get('text'),message);
 });
 test('desktop link with foreign phone is never intercepted or counted',async()=>{
  const b=browser({mobile:false,desktopMetadata:false}); await b.settle(); b.click(); await b.settle();
  assert.equal(b.urls.length,0); assert.equal(b.calls.filter(x=>x[2]==='CtaClick'||x[2]==='Contact').length,0);
 });
+
+test('all mobile and desktop destinations contain only the approved commercial message',async()=>{for(const mobile of [true,false]){const b=browser({mobile});await b.settle();b.click();await b.settle();const u=new URL(b.urls[0]);assert.equal(u.searchParams.get('text'),message);assert.equal(u.searchParams.get('text').split('\n').length,3);assert.doesNotMatch(u.href,/VP-|Visita|utm_|fbclid|_fbp/);}});
