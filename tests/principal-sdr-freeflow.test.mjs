@@ -10,7 +10,7 @@ const call=(name,args={},id='call_0001')=>({role:'assistant',content:null,tool_c
 const calls=items=>({role:'assistant',content:null,tool_calls:items.map(([name,args],i)=>call(name,args,'call_'+i).tool_calls[0])});
 const fact=extra=>({ok:true,verified:true,source:'official-fixture/catalog-v1',...extra});
 
-export function fixture({script=[],phone=EC,context={},price=95.99,policy=null,stock=null,timeoutMs=25000}={}) {
+export function fixture({script=[],phone=EC,context={},price=95.99,policy=null,stock=null,timeoutMs=25000,questionPriorityEnabled=false,productInformation=null}={}) {
     const data={phone,project:'VITALISMEN_EC',country:'EC',productKey:'vit_power_ec',productName:'Vit Power',draft:{},history:[],humanMode:'auto',testOnly:phone===PRINCIPAL_SDR_QA_PHONE,qaWindowReady:true,inboundPersisted:true,inboundProvider:'zapi',inboundFromMe:false,transportVerified:true,...context};
     const effects={model:[],drafts:[],orders:[],handoffs:[],offers:[]};
     const completed=new Map();const pending=new Map();let tail=Promise.resolve();
@@ -25,6 +25,7 @@ export function fixture({script=[],phone=EC,context={},price=95.99,policy=null,s
     };
     const offer=({quantity})=>fact({productKey:'vit_power_ec',quantity,total:typeof price==='function'?price(quantity):price,currency:'USD',priceCatalog:'normal'});
     const official={
+        productInformation:async()=>productInformation||{ok:false,unavailable:true},
         products:async()=>fact({products:[{key:'vit_power_ec',name:'Vit Power'}]}),
         offer:async args=>{effects.offers.push(args);return offer(args)},
         policy:async()=>policy||{ok:false,unavailable:true},stock:async()=>stock||{ok:false,unavailable:true},
@@ -35,7 +36,7 @@ export function fixture({script=[],phone=EC,context={},price=95.99,policy=null,s
         handoff:async args=>{effects.handoffs.push(args);return{ok:true,persisted:true}}
     };
     const complete=async request=>{effects.model.push(structuredClone({...request,signal:undefined}));const next=script.shift();if(next instanceof Error)throw next;if(typeof next==='function')return next(request);return next};
-    const agent=createPrincipalSdrFreeflowAgent({complete,withTurn,official,timeoutMs});
+    const agent=createPrincipalSdrFreeflowAgent({questionPriorityEnabled,complete,withTurn,official,timeoutMs});
     return{agent,data,effects,official,script,send:input=>{pending.set(input.messageId,input);return agent.handleTurn(input)}};
 }
 

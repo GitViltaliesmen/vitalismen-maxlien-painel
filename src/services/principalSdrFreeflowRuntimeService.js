@@ -3,6 +3,8 @@
 import { createHash } from 'node:crypto';
 import { createPrincipalSdrFreeflowAgent, createOpenAiFreeflowCompletion, PRINCIPAL_SDR_QA_PHONE } from './principalSdrFreeflowService.js';
 
+import { shipmentHistoryRepeatKey } from './postSalePickupReconciliationPolicy.js';
+
 const ROOT = 'metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow';
 const sha = text => createHash('sha256').update(text).digest('hex');
 const same = (left, right) => String(left || '') === String(right || '');
@@ -16,7 +18,7 @@ const missing = draft => ['quantity', 'name', 'city', 'province', 'deliveryMode'
 
 export function createPrincipalSdrRuntime({ ContactState, Message, Order, OutboundDedupe, getOffer, resolveData,
     sendReply, transferHuman, registerExistingOrder, products, complete, onDraftSaved = async () => {},
-    now = () => new Date(), qaReady = () => false }) {
+    now = () => new Date(), qaReady = () => false, questionPriorityEnabled = false, productInformation = async () => ({ ok: false, unavailable: true }), salesPolicy = async () => ({ ok: false, unavailable: true }) }) {
     if (![ContactState, Message, Order, OutboundDedupe].every(Boolean)
         || ![getOffer, resolveData, sendReply, transferHuman, registerExistingOrder, qaReady].every(value => typeof value === 'function'))
         throw new Error('principal_sdr_runtime_ports_required');
@@ -68,11 +70,17 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
             let proposal = saved.pendingSummary || null;
             let registrationAttempt = saved.registrationAttempt || null;
             const history = (saved.history || []).filter(item => ['user', 'assistant'].includes(item.role)).slice(-24);
+            // Read only the same official contact/session, matching the sender's 24-hour history guard.
+            const recentOutbound = questionPriorityEnabled ? await Message.find({ peerPhone: phone, sessionId: message.sessionId,
+                provider: 'zapi', isFromMe: true, ...(inbound[0].ownerPhoneDigits ? { ownerPhoneDigits: inbound[0].ownerPhoneDigits } : {}),
+                $or: [{ createdAt: { $gte: new Date(now().getTime() - 24 * 60 * 60 * 1000) } }, { updatedAt: { $gte: new Date(now().getTime() - 24 * 60 * 60 * 1000) } }], body: { $type: 'string', $ne: '' }
+            }).sort({ createdAt: -1 }).limit(40).select({ body: 1 }).lean() : [];
+            const previousQuestionKeys = [...new Set(recentOutbound.map(row => shipmentHistoryRepeatKey(row.body)).filter(key => key.startsWith('ask_')))];
             const context = { project: 'VITALISMEN_EC', country: 'EC', phone, productKey: 'vit_power_ec', productName: 'Vit Power Ecuador',
                 inboundId, inboundText: message.body, inboundPersisted: true, inboundProvider: 'zapi', inboundFromMe: false,
                 transportVerified: true, humanMode: 'auto', testOnly: phone === PRINCIPAL_SDR_QA_PHONE,
                 qaWindowReady: phone === PRINCIPAL_SDR_QA_PHONE ? qaReady(state, inboundId, now()) : false,
-                draft, history, pendingSummary: proposal, missingFields: missing(draft),
+                draft, history, pendingSummary: proposal, missingFields: missing(draft), previousQuestionKeys,
                 vslOrigin: { product: state.metadata?.vslProductKey || '', url: state.metadata?.vslSourceUrl || state.metadata?.vslPath || '' } };
             let handoffDone = false; let handoffHumanSnapshot = null; let outboundAttempted = false;
             let humanTakeover = false; let registrationAlreadyNotified = false;
@@ -82,7 +90,8 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                     const offer = getOffer({ productKey: 'vit_power_ec', quantity: args.quantity, priceCatalog: 'normal' });
                     return offer ? { ...offer, ok: true, verified: true, currency: 'USD', source: 'ecuadorProductService', priceCatalog: 'normal' } : { ok: false };
                 },
-                policy: async () => ({ ok: false, unavailable: true }),
+                policy: async args => questionPriorityEnabled ? salesPolicy(args) : ({ ok: false, unavailable: true }),
+                productInformation: async args => questionPriorityEnabled ? productInformation(args) : ({ ok: false, unavailable: true }),
                 stock: async () => ({ ok: false, unavailable: true }),
                 saveDraft: async args => {
                     draft = copyDraft(args.draft);
@@ -175,6 +184,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                         [ROOT + '.draft']: copyDraft(result.draft || draft), [ROOT + '.pendingSummary']: proposal,
                         [ROOT + '.lastInboundId']: inboundId, [ROOT + '.lastOutboundProviderId']: receipt.providerMessageId,
                         [ROOT + '.lastModelSucceeded']: !result.reason && !result.failureCode && result.handoffRequested === false,
+                        ...(questionPriorityEnabled ? { [ROOT + '.lastQuestionPriorityVersion']: result.orderedQuestionVersion || 0 } : {}),
                         [ROOT + '.version']: 212,
                         ...(result.priceOptionsPresented === true ? {
                             'metadata.perAgentMemory.vit_power_ec.lastFunnelStage': 'package_selection',
@@ -185,7 +195,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                 }
             });
             try {
-                const agent = createPrincipalSdrFreeflowAgent({ complete: complete || createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }), withTurn, official });
+                const agent = createPrincipalSdrFreeflowAgent({ complete: complete || createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }), withTurn, official, questionPriorityEnabled });
                 return await agent.handleTurn({ phone, messageId: inboundId, text: message.body });
             } catch {
                 // An ambiguous provider outcome is terminal: no automatic repeat.
