@@ -149,3 +149,9 @@ test('IP rate map rejects excess distinct sources and accepts a new window', asy
  const blocked=res();await h(req({action:'start'},{'x-vitalismen-chat-ip':'2001:db8::ffff'}),blocked);assert.equal(blocked.statusCode,429);
  time+=600001;const next=res();await h(req({action:'start'},{'x-vitalismen-chat-ip':'2001:db8::ffff'}),next);assert.equal(next.statusCode,200);
 });
+
+test('recalling an earlier price question answers the remembered quantity without listing all offers', async () => {
+ const f=fixture([say('Me preguntaste por 3 frascos.')]);
+ const r=await f.agent.reply({text:'¿De cuántos frascos te pregunté el precio?',history:[{role:'user',content:'¿Cuánto cuestan 3 frascos?'},{role:'assistant',content:'Precio: 3 frascos: USD 95.99.'}]});
+ assert.equal(r.reply,'Me preguntaste por 3 frascos.');assert.equal(r.draft.quantity,undefined);assert.equal(r.handoff,false);
+});
