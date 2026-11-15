@@ -1,0 +1,42 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V220-R4",
+  "commit": "025c90c7d5af299e206ee246341d2ec507d929ca",
+  "tree": "18c73317979b5420a96c748aaf79f2feaf93ea06",
+  "release": "/opt/vitalismen-automacao/releases/20261115T225628Z_production-20261115-025c90c",
+  "parentCommit": "2863c2cab0fc5a3bc2ab659c37d3be661e190063",
+  "seal": "2ca45ae155bb5c30e355736b100f808619fccbfb1af898c2701151b93155532a",
+  "publicationTag": "production-20261115-025c90c",
+  "status": "ACTIVE_TEXT_CHAT",
+  "site": "https://taviazen.shop/vitpower_2026g",
+  "webAudience": "PUBLIC_SITE",
+  "allowedChangedPaths": [
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/vitPowerWebAgentV220Service.js",
+    "tests/vitpower-web-chat-v220.test.mjs"
+  ],
+  "hashes": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "0efbe0648f5122843a24e6010493ecc2bd58c3125087e8d070d904d45ed785ab",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "75ede1ceff2b936fbaa494457b0d00fdf4440ed843d1892023780d76e74bf798",
+    "src/services/vitPowerWebAgentV220Service.js": "d4331848d7844bf32eddbf906ed2e61d783e93ff7049ec1ff3dea7840fb4b6d6",
+    "tests/vitpower-web-chat-v220.test.mjs": "8a7263311cdaf7845b031bc742edfb9fab6c7a469bf963c082d20ed77addd471"
+  },
+  "siteHashes": {
+    "assets/chat-v220.js": "6ec67467e041311cb9acf83f3a68bb4b987c82ab4097916ca856a602591acc36",
+    "assets/chat-v220.css": "56d660bf6c5ff4fbd9ccadbc68c4ec7556e1525813010e12fa103484f06abdeb",
+    "index.html": "c5f313b9e8dd0e58349b6e58c176382f83c7496ba7d2403e1432fce33adca89b",
+    "desktop.html": "ee66e7ca950f28c5a609614dbd7f3990acd6e8a51b5c0b1440915173c734b0c8"
+  },
+  "panelSha256": "f5102813bfbe6ec12d5fa299940d0170bf3e0d32ba73d7f602245a4adc76db75",
+  "siteCtaSha256": "7f2e7408b6c44c40183ad4562d7f57a675d9966f57a9d5059664790828c8ed9e",
+  "webQaProofSha256": "7726ed9ab3f54fa1f2553308c823523964eba00a6a2b02ac12b14444ea255e29",
+  "evidenceManifestSha256": "44fc8eb69a80688ee3ce0578f0cc81dd0f9a35b66f249567a904e214ffe337f0",
+  "codeConfigRecovery": "PASS",
+  "globalMongoBackup": "FAIL",
+  "databaseMigrations": 0,
+  "voiceActivated": false,
+  "automaticReplay": false,
+  "webOrderWriter": false,
+  "webWhatsAppHistorySync": false
+}
