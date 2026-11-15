@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+const contract=JSON.parse(fs.readFileSync('docs/freeze/web-chat-v220-contract.json'));
+const git=(...a)=>execFileSync('git',a,{encoding:'utf8'}).trim();
+assert.equal(contract.project,'VITALISMEN_EC');
+assert.equal(contract.databaseMigrations,false);assert.equal(contract.automaticReplay,false);
+assert.deepEqual(git('diff','--name-only',contract.parentCommit,'HEAD').split('\n').filter(Boolean).sort(),contract.allowedDelta);
+assert.equal(git('status','--porcelain','--untracked-files=no'),'');
+for(const p of contract.protectedPaths)assert(execFileSync('git',['show',contract.parentCommit+':'+p]).equals(fs.readFileSync(p)),'V220_PROTECTED_FILE_DRIFT:'+p);
+const old=execFileSync('git',['show',contract.parentCommit+':src/services/ecBotCoreRuntimeIntegrationV78Service.js'],{encoding:'utf8'});
+const modified=fs.readFileSync('src/services/ecBotCoreRuntimeIntegrationV78Service.js','utf8');
+const stripped=modified.replace("import { webChatRequestAllowedV220 } from './vitPowerWebChatV220Application.js';\n",'').replace("    if (webChatRequestAllowedV220(req)) {\n        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, webChatV220: true }, next);\n    }\n",'');
+assert.equal(stripped,old,'V220_EXISTING_GUARD_BRANCH_CHANGED');
+if(process.argv.includes('--public-panel'))assert.equal(createHash('sha256').update(fs.readFileSync(contract.publicPanelPath)).digest('hex'),contract.publicPanelSha256);
+console.log(JSON.stringify({project:'VITALISMEN_EC',status:'PASS_NONREGRESSION_V220',protectedPaths:contract.protectedPaths.length,existingGuardBranchesPreserved:true}));

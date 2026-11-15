@@ -1,3 +1,4 @@
+import { webChatRequestAllowedV220 } from './vitPowerWebChatV220Application.js';
 import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 } from './principalSdrQaIngressV212Service.js';
 import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
@@ -487,6 +488,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     }
     if (path === '/api/whatsapp/b01-v216' && ['GET', 'POST'].includes(method)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, b01AuthenticatedCandidateV216: true }, next);
+    }
+    if (webChatRequestAllowedV220(req)) {
+        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, webChatV220: true }, next);
     }
     if (measurementRequestAllowedV213(req)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, measurementV213: true }, next);

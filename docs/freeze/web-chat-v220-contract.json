@@ -1,0 +1,40 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "822546911b5d2b00e1abde90d8cb5dbecffe72a2",
+  "allowedDelta": [
+    "docs/WEB_CHAT_V220_CONTRATO.md",
+    "docs/freeze/web-chat-v220-contract.json",
+    "ops/browser/vitpower-web-chat-v220.css",
+    "ops/browser/vitpower-web-chat-v220.js",
+    "scripts/guard-web-chat-nonregression-v220.mjs",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/index.js",
+    "src/routes/vitPowerWebChatV220.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/vitPowerWebAgentV220Service.js",
+    "src/services/vitPowerWebChatV220Application.js",
+    "src/services/vitPowerWebStoreV220Service.js",
+    "tests/vitpower-web-chat-v220.test.mjs"
+  ],
+  "protectedPaths": [
+    "src/services/conversationEngine.js",
+    "src/services/principalSdrFreeflowService.js",
+    "src/services/principalSdrFreeflowRuntimeService.js",
+    "src/services/freeflowQuestionPriorityV219Service.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerB01RuntimeV216Service.js",
+    "src/routes/zapi.js",
+    "src/models/ContactState.js",
+    "src/services/ecuadorProductService.js",
+    "src/services/agentRouter.js",
+    "src/services/vitPowerMeasurementV213Application.js",
+    "public/qr.html",
+    "scripts/guard-freeflow-nonregression-v219.mjs",
+    "src/services/ecBotCoreOperationalV78Service.js"
+  ],
+  "publicPanelPath": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "publicPanelSha256": "f5102813bfbe6ec12d5fa299940d0170bf3e0d32ba73d7f602245a4adc76db75",
+  "databaseMigrations": false,
+  "automaticReplay": false
+}
