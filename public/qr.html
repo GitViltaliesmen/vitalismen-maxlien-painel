@@ -17415,7 +17415,7 @@
                     type: 'block',
                     typeLabel: 'bloco',
                     label: 'Inicio completo Vit Power',
-                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Vit Power',
+                    detail: 'Saudacao personalizada + 4 arquivos; pausas de 18-30s no servidor',
                     value: 'vit_power_inicio_completo',
                     steps: [
                         { type: 'audio', label: 'Inicio universal 01', value: UNIVERSAL_INTRO_AUDIO_01_EC },
@@ -17698,6 +17698,11 @@
             drawer.style.setProperty('--funnel-panel-height', `${Math.round(height)}px`);
             drawer.style.setProperty('--funnel-panel-max-height', `${Math.round(height)}px`);
             drawer.open = true;
+            if (activeFunnelProductKey() === 'vit_power_ec' && currentChatPhone()) {
+                const selected = state.selectedChat;
+                api('/api/whatsapp/b01-v216?phone=' + encodeURIComponent(currentChatPhone()))
+                    .then(r => { if (state.selectedChat === selected) applyB01ProgressV216(r.job); }).catch(() => null);
+            }
             renderFooterAudioQuickList((state.audioTemplates || []).filter((template) => template.country === currentTemplateCountry()));
             window.requestAnimationFrame(() => {
                 restoreFunnelSearchInput({ focus: true });
@@ -17912,6 +17917,29 @@
             renderFunnelProgress();
         };
 
+        const applyB01ProgressV216 = (job) => {
+            if (!job) return;
+            const running = ['pending', 'sending'].includes(job.status);
+            const seconds = job.nextAt ? Math.max(0, Math.ceil((new Date(job.nextAt) - Date.now()) / 1000)) : 0;
+            setFunnelProgress({ status: job.status === 'done' ? 'done' : running ? 'sending' : 'error',
+                sent: job.sent, total: 4, activeType: '',
+                label: job.status === 'done' ? 'B01 concluido; arquivos aceitos pelo provedor'
+                    : running ? `B01: ${job.sent}/4 aceitos. ${seconds ? 'Proximo item em ' + seconds + 's' : 'Aguardando confirmacao'}`
+                    : `B01 pausado para conferencia: ${job.reason || job.status}. Nenhum reenvio automatico.` });
+        };
+        async function sendProtectedB01V216(phone, chatId) {
+            let result = await api('/api/whatsapp/b01-v216', { method: 'POST', body: JSON.stringify({ phone }) });
+            if (!result?.success) throw new Error(result?.error || 'B01 nao confirmado; consulte o progresso');
+            for (let i = 0; i < 144; i += 1) {
+                if (state.selectedChat !== chatId) return;
+                applyB01ProgressV216(result.job);
+                if (!['pending', 'sending'].includes(result.job?.status)) return;
+                await waitFunnelStep(2500);
+                result = await api('/api/whatsapp/b01-v216?phone=' + encodeURIComponent(phone));
+            }
+            showToast('B01 continua no servidor. Abra o funil para consultar o progresso.');
+        }
+
         async function sendFunnelBlock(blockId, button) {
             if (!state.selectedChat || state.funnelBlockSending || !blockId) return;
             const block = footerFunnelBlocks().find((item) => item.value === blockId);
@@ -17943,6 +17971,11 @@
             });
 
             try {
+                if (blockId === 'vit_power_inicio_completo') {
+                    await sendProtectedB01V216(targetPhone, targetChatId);
+                    Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
+                    return;
+                }
                 const payloads = block.steps.map((step, index) => buildFunnelStepPayload(step, index));
                 for (let index = 0; index < block.steps.length; index += 1) {
                     const step = block.steps[index];

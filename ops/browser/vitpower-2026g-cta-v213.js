@@ -110,6 +110,36 @@
     button.setAttribute('data-whatsapp-message', MESSAGE);
     if (button.tagName === 'A') { button.href = destination(); button.removeAttribute('target'); }
   }
+  function collectName() {
+    return new Promise(function (resolve) {
+      var previous = d.activeElement;
+      var dialog = d.createElement('dialog');
+      dialog.setAttribute('aria-label', 'Habla con Ana sobre Vit Power');
+      dialog.style.cssText = 'border:0;border-radius:18px;padding:24px;max-width:360px;width:calc(100% - 48px);box-sizing:border-box;font:16px/1.5 system-ui;color:#12382d;background:#fff;box-shadow:0 16px 70px #0005';
+      var form = d.createElement('form'); form.method = 'dialog';
+      var title = d.createElement('h2'); title.textContent = '¡Hola! ¿Cómo te llamas?'; title.style.cssText = 'font-size:22px;margin:0 0 8px';
+      var intro = d.createElement('p'); intro.textContent = 'Ana te ayudará con tus dudas sobre Vit Power.';
+      var label = d.createElement('label'); label.textContent = 'Tu primer nombre (opcional)'; label.htmlFor = 'vp-first-name';
+      var input = d.createElement('input'); input.id = 'vp-first-name'; input.name = 'given-name'; input.autocomplete = 'given-name'; input.maxLength = 40;
+      input.style.cssText = 'display:block;box-sizing:border-box;width:100%;padding:12px;border:1px solid #b4d9cb;border-radius:8px;font:inherit;margin:8px 0 16px';
+      var submit = d.createElement('button'); submit.type = 'submit'; submit.textContent = 'Continuar por WhatsApp';
+      submit.style.cssText = 'width:100%;padding:14px;background:#078450;color:white;border:0;border-radius:9px;font:600 16px system-ui;cursor:pointer';
+      var cancel = d.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Volver al video'; cancel.style.cssText = 'display:block;margin:12px auto 0;background:none;border:0;font:inherit;color:#466';
+      var settled = false;
+      function done(value) { if (settled) return; settled = true; dialog.close(); dialog.remove(); if (previous && previous.focus) previous.focus(); resolve(value); }
+      cancel.addEventListener('click', function () { done(null); });
+      dialog.addEventListener('cancel', function (event) { event.preventDefault(); done(null); });
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var name = String(input.value || '').trim().split(/\s+/)[0] || '';
+        if (name && !/^[\p{L}][\p{L}'’-]{0,39}$/u.test(name)) { input.setCustomValidity('Escribe solamente tu primer nombre.'); input.reportValidity(); return; }
+        input.setCustomValidity(''); done(name);
+      });
+      input.addEventListener('input', function () { input.setCustomValidity(''); });
+      [title, intro, label, input, submit, cancel].forEach(function (node) { form.appendChild(node); });
+      dialog.appendChild(form); d.body.appendChild(dialog); dialog.showModal(); input.focus();
+    });
+  }
   d.addEventListener('click', function (e) {
     var chain = e.composedPath ? e.composedPath() : [e.target];
     var button = chain.find(isCta);
@@ -120,13 +150,20 @@
     if (!button) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (busy) return; busy = true;
-    var rows = [];
-    if (e.isTrusted === true && e.button === 0) ['CtaClick', 'Contact'].forEach(function (name) { var row = event(name); if (row) rows.push(row); });
-    var sent = rows.length ? capture(rows) : Promise.resolve(null);
-    // Do not block a commercial click when measurement or the network fails.
-    Promise.race([sent, new Promise(function (resolve) { w.setTimeout(resolve, 900); })]).then(function () {
-      var message = MESSAGE;
-      w.location.assign('https://wa.me/' + PHONE + '?text=' + encodeURIComponent(message));
+    var trusted = e.isTrusted === true && e.button === 0;
+    if (trusted) track('CtaClick');
+    collectName().then(function (name) {
+      if (name === null) return;
+      var rows = [], row = trusted ? event('Contact') : null; if (row) rows.push(row);
+      var sent = rows.length ? capture(rows) : Promise.resolve(null);
+      return Promise.race([sent, new Promise(function (resolve) { w.setTimeout(resolve, 900); })]).then(function () {
+        var message = MESSAGE + (name ? '\nNombre: ' + name : '');
+        // Name goes only in the customer-reviewed WhatsApp message, never in Meta parameters.
+        w.location.assign('https://wa.me/' + PHONE + '?text=' + encodeURIComponent(message));
+      });
+    }).catch(function () {
+      // Unsupported forms retain access to the official WhatsApp without a name.
+      w.location.assign(destination());
     }).finally(function () { w.setTimeout(function () { busy = false; }, 1200); });
   }, true);
   function visible() {
