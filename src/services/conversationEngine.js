@@ -1,3 +1,4 @@
+import { handleVitPowerB01InboundV216 } from './vitPowerB01RuntimeV216Service.js';
 import { principalSdrQaRuntimeReadyV212 } from './principalSdrQaIngressV212Service.js';
 import { createPrincipalSdrRuntime } from './principalSdrFreeflowRuntimeService.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
@@ -8093,6 +8094,14 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
             } catch (dbErr) {
                 if (dbErr.code !== 11000) console.error('[DB-ERROR] Erro ao salvar:', dbErr.message);
             }
+        }
+
+        // V216 takes only a first generic Vit Power entry; specific intentions keep the existing route.
+        if (agentProfile.key === 'vit_power_ec' && msg.contactStateId) {
+            const entry = await handleVitPowerB01InboundV216({ contactId: msg.contactStateId,
+                phone: peerPhone, chatId, sessionId: msg.sessionId, inboundId: msg.id,
+                text, productKey: agentProfile.key, origin: 'automatic' });
+            if (entry.handled) return;
         }
 
         const negativeOrBuyLater = await handleEcuadorNegativeOrBuyLaterV161({

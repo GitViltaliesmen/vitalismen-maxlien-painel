@@ -1,3 +1,4 @@
+import { startVitPowerB01V216 } from './services/vitPowerB01RuntimeV216Service.js';
 import {startGiraBridgeScheduler} from './services/gira21x/scheduler.mjs';
 import {runGira21xBridge} from './services/gira21x/runtime.mjs';
 import 'dotenv/config';
@@ -103,6 +104,7 @@ connectDB()
             console.warn(`[STARTUP-V71] API/health ativos em ${strictObservation.mode}/${strictObservation.policy}; capacidades mutantes não foram iniciadas; reason=${strictObservation.reason}.`);
             return;
         }
+        startVitPowerB01V216();
         const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
             .lean()
             .catch((error) => {

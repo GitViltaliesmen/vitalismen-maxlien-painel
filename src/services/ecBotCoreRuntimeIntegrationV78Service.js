@@ -485,6 +485,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
         return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
     }
+    if (path === '/api/whatsapp/b01-v216' && ['GET', 'POST'].includes(method)) {
+        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, b01AuthenticatedCandidateV216: true }, next);
+    }
     if (measurementRequestAllowedV213(req)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, measurementV213: true }, next);
     }
@@ -648,6 +651,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (currentEcBotCoreRuntimeContextV78()?.b01V216 && effect !== 'zapi_outbound_reply') throw new Error('b01_external_effect_denied');
     if (giraRuntimePolicy.external(effect) && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
     if (manualExternalAllowed(effect)
         && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
@@ -721,6 +725,11 @@ const patchMongoPrototype = (prototype) => {
             configurable: true,
             writable: true,
             value: function ecBotCoreV78MongoGuardedMutation(...args) {
+                const b01ScopeV216 = currentEcBotCoreRuntimeContextV78()?.b01V216;
+                if (b01ScopeV216 && !b01MongoMutationAllowedV216(b01ScopeV216,
+                    String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)) {
+                    throw new Error('b01_scoped_mongo_write_denied');
+                }
                 if (measurementMongoAllowedV213(this?.collectionName || this?.namespace?.collection || this?.name, method, args)
                     && (!ecBotCoreV78Requested(process.env) || resolveEcBotCoreV78Configuration(process.env).ready)) return original.apply(this, args);
                 if (giraRuntimePolicy.mongo(String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)
@@ -842,3 +851,51 @@ export const ecBotCoreHealthResponseDecoratorV78 = (req, res, next) => {
     res.json = (payload) => originalJson(decorateEcBotCoreHealthPayloadV78(payload, process.env));
     return next();
 };
+
+// Narrow persisted-job context. Existing V78 policy/collection/effect decisions remain mandatory.
+export async function runPersistedB01V216({ contactId, manualActor = null }, work) {
+    const policy = globalThis.__VITALISMEN_EC_B01_V216?.readPolicy?.();
+    if (!policy?.enabled || !resolveEcBotCoreV78Configuration(process.env).ready) throw new Error('b01_policy_not_active');
+    const { default: Contact } = await import('../models/ContactState.js');
+    const { default: Messages } = await import('../models/Message.js');
+    const state = await Contact.findById(contactId).lean();
+    if (!state || !/^(?:593[2-79]\d{8}|5515998038637)$/.test(state.phoneDigits)) throw new Error('b01_contact_scope');
+    const route = currentEcBotCoreRuntimeContextV78();
+    if (manualActor) {
+        if (!route?.b01AuthenticatedCandidateV216 || route.method !== 'POST' || !/^[a-f0-9]{24}$/i.test(String(manualActor._id || '')) || manualActor.isActive !== true || !['admin', 'operator'].includes(manualActor.role))
+            throw new Error('b01_authenticated_operator_required');
+    } else if (!state.vitPowerB01 || state.vitPowerB01.version !== 'vit-power-b01-v216') throw new Error('b01_persisted_job_required');
+    const job = state.vitPowerB01;
+    const inbound = await Messages.findOne({ peerPhone: state.phoneDigits, provider: 'zapi', sessionId: 'zapi', isFromMe: false,
+        ...(manualActor ? {} : { $or: [{ _id: job.inboundId }, { providerMessageId: job.inboundId }] }) }).select('_id').lean();
+    if (!inbound) throw new Error('b01_persisted_inbound_required');
+    const scope = { contactId: String(state._id), phone: state.phoneDigits, chatId: state.chatId,
+        messages: new Set(), keys: new Set((job?.steps || []).map(s => s.ledgerKey).filter(Boolean)) };
+    return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method: 'B01', path: '/internal/vitpower-b01-v216',
+        writeContext: true, b01V216: scope }, async () => await work());
+}
+export function b01MongoMutationAllowedV216(scope, collection, method, args) {
+    if (!scope || !['insertOne', 'updateOne', 'updateMany', 'findOneAndUpdate', 'findAndModify', 'deleteOne'].includes(method)) return false;
+    const query = args[0] || {}, update = args[1] || {}, doc = method === 'insertOne' ? query : { ...update.$setOnInsert, ...update.$set };
+    if (collection === 'contactstates') {
+        if (!['updateOne', 'findOneAndUpdate', 'findAndModify'].includes(method)) return false;
+        const exact = q => String(q._id || '') === scope.contactId || q.phoneDigits === scope.phone || q.chatId === scope.chatId
+            || q.phoneDigits?.$regex === scope.phone + '$';
+        return exact(query) || Array.isArray(query.$or) && query.$or.length > 0 && query.$or.every(exact);
+    }
+    if (collection === 'messages') {
+        if (method === 'deleteOne' || method === 'updateMany') return false;
+        if (doc.peerPhone === scope.phone && doc.isFromMe === true && doc.sessionId === 'zapi') {
+            if (query._id) scope.messages.add(String(query._id));
+            if (doc._id) scope.messages.add(String(doc._id));
+            return true;
+        }
+        return scope.messages.has(String(query._id || ''));
+    }
+    if (collection === 'outbounddedupes') {
+        if (method === 'insertOne' && doc.phoneDigits === scope.phone) { scope.keys.add(doc.key); return true; }
+        const keys = typeof query.key === 'string' ? [query.key] : query.key?.$in || [];
+        return keys.length > 0 && keys.every(k => scope.keys.has(k) || k.startsWith(scope.phone + ':'));
+    }
+    return false;
+}

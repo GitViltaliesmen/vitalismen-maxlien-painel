@@ -34,7 +34,20 @@ const engagementReplyHistorySchema = new mongoose.Schema({
     at: { type: Date, default: Date.now }
 }, { _id: false });
 
+const vitPowerB01StepSchema = new mongoose.Schema({
+    kind: String, label: String, asset: String, text: String,
+    status: { type: String, enum: ['pending', 'attempted', 'accepted'] },
+    attemptedAt: Date, acceptedAt: Date, providerMessageId: String, ledgerKey: String
+}, { _id: false });
+const vitPowerB01Schema = new mongoose.Schema({
+    version: String, status: { type: String, enum: ['pending', 'sending', 'interrupted', 'ambiguous', 'review', 'done'] },
+    origin: String, phone: String, chatId: String, sessionId: String, inboundId: String,
+    startedAt: Date, nextAt: Date, cursor: Number, manualStamp: String, customerName: String,
+    lockToken: String, lockedUntil: Date, reason: String, steps: [vitPowerB01StepSchema]
+}, { _id: false });
+
 const contactStateSchema = new mongoose.Schema({
+    vitPowerB01: { type: vitPowerB01Schema, default: undefined },
     chatId: {
         type: String,
         required: true,

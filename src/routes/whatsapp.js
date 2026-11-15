@@ -1,3 +1,5 @@
+import { runPersistedB01V216 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
+import { handleVitPowerB01InboundV216, getVitPowerB01V216, interruptVitPowerB01V216 } from '../services/vitPowerB01RuntimeV216Service.js';
 import { hasManualHumanRequest, executeManualHumanRequest } from '../services/manualHumanRuntime.js';
 import { sendCanonicalPanelPostSaleV147R6 } from '../services/postSaleManualPanelV147R6Service.js';
 import express from 'express';
@@ -6698,9 +6700,50 @@ router.get('/reengagement/templates', adminOnly, async (_req, res) => {
     res.json({ templates: buildLeadRecoveryTemplates() });
 });
 
+// Shared B01 progress for automatic entry and authenticated manual initiation.
+const b01ActorV216 = req => Boolean(/^Bearer [^\s]+$/.test(req.headers?.authorization || '') && /^[a-f0-9]{24}$/i.test(String(req.user?._id || '')) && req.user?.isActive === true && ['admin', 'operator'].includes(req.user?.role));
+const b01PublicV216 = job => job ? ({ version: job.version, status: job.status, reason: job.reason || '',
+    nextAt: job.nextAt, cursor: job.cursor, greetingAccepted: job.steps?.[0]?.status === 'accepted',
+    sent: (job.steps || []).slice(1).filter(s => s.status === 'accepted').length, total: 4,
+    steps: (job.steps || []).map(s => ({ label: s.label, status: s.status, providerMessageId: s.providerMessageId || '' })) }) : null;
+router.get('/b01-v216', authMiddleware, async (req, res) => {
+    if (!b01ActorV216(req)) return res.status(401).json({ error: 'Sessao autenticada de operador obrigatoria' });
+    try {
+        const phone = digitsOnly(req.query.phone);
+        if (!/^(?:593[2-79]\d{8}|5515998038637)$/.test(phone)) return res.status(400).json({ error: 'Telefone fora do escopo EC' });
+        const state = await ContactState.findOne({ phoneDigits: phone }).select('_id').lean();
+        return res.json({ success: true, job: state ? b01PublicV216(await getVitPowerB01V216(state._id)) : null });
+    } catch { return res.status(500).json({ error: 'Falha ao consultar progresso B01' }); }
+});
+router.post('/b01-v216', authMiddleware, async (req, res) => {
+    if (!b01ActorV216(req)) return res.status(401).json({ error: 'Sessao autenticada de operador obrigatoria' });
+    try {
+        const phone = digitsOnly(req.body.phone);
+        if (!/^(?:593[2-79]\d{8}|5515998038637)$/.test(phone)) return res.status(400).json({ error: 'Telefone fora do escopo EC' });
+        const state = await ContactState.findOne({ phoneDigits: phone });
+        if (!state) return res.status(404).json({ error: 'Contato nao encontrado' });
+        const existing = await getVitPowerB01V216(state._id);
+        if (existing) return res.json({ success: true, job: b01PublicV216(existing) });
+        const msg = await Message.findOne({ peerPhone: phone, sessionId: 'zapi', provider: 'zapi', isFromMe: false }).sort({ createdAt: -1, timestamp: -1 }).lean();
+        if (!msg) return res.status(409).json({ error: 'B01 exige entrada WhatsApp comprovada' });
+        const result = await runPersistedB01V216({ contactId: state._id, manualActor: req.user }, async () => {
+        applyManualSendHold(state, { phone, user: req.user });
+        await state.save();
+        return handleVitPowerB01InboundV216({ contactId: state._id, phone,
+            chatId: msg.chatId, sessionId: 'zapi', inboundId: String(msg._id), text: msg.body,
+            productKey: 'vit_power_ec', origin: 'manual' });
+        });
+        return res.status(result.handled ? 200 : 409).json({ success: result.handled, job: b01PublicV216(result.job), error: result.handled ? undefined : result.reason });
+    } catch { return res.status(500).json({ error: 'B01 nao iniciado; consultar progresso antes de tentar novamente' }); }
+});
+
 // POST /api/whatsapp/send
 router.post('/send', authMiddleware, async (req, res) => {
-    if (hasManualHumanRequest(req)) return executeManualHumanRequest(req, res);
+    if (req.body?.funnelBlockStep?.block === 'B01' && req.body?.funnelBlockStep?.total === 4) return res.status(409).json({ error: 'Atualize o painel: B01 usa progresso protegido no servidor.' });
+    if (hasManualHumanRequest(req)) {
+        await interruptVitPowerB01V216(req.body?.phone || req.body?.to || '');
+        return executeManualHumanRequest(req, res);
+    }
     try {
         const {
             phone,
@@ -6719,6 +6762,10 @@ router.post('/send', authMiddleware, async (req, res) => {
             || req.body?.allowAudioDedupeBypass === true;
         const forceZapiManualTest = shouldForceZapiForManualTestSend(phone, sendMode);
         const effectiveSessionId = forceZapiManualTest ? 'zapi' : sessionId;
+        if (req.body?.funnelBlockStep?.block === 'B01' && req.body?.funnelBlockStep?.total === 4) {
+            return res.status(409).json({ error: 'Atualize o painel: B01 usa progresso protegido no servidor.' });
+        }
+        if (phone && sendMode === 'manual_panel') await interruptVitPowerB01V216(phone);
         if (!phone || !message) {
             return res.status(400).json({ error: 'Phone and message required' });
         }
