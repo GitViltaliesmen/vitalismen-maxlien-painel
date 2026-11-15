@@ -8,15 +8,17 @@ const message = 'Hola, vengo del video.\nQuiero conocer la oferta disponible de 
 const reference = 'VP-' + 'A'.repeat(36);
 
 function browser({ consent = undefined, qa = false, mobile = true, fail = false, noReply = false, dnt = false,
-  storage = new Map(), cookieJar = new Map(), search, slowEvents = false } = {}) {
+  storage = new Map(), cookieJar = new Map(), search, slowEvents = false, desktopMetadata = true } = {}) {
   const listeners = {}, calls = [], requests = [], urls = [], cookies = cookieJar, timers = [];
   let intersection;
-  const button = { id: 'preco_89', tagName: 'A', removeAttribute() {}, setAttribute() {} };
+  const attributes = { 'data-product': 'vit_power_ec', 'data-vsl-source': 'https://taviazen.shop/vitpower_2026g', 'data-whatsapp-phone': desktopMetadata ? '553171862958' : 'OTHER' };
+  const button = { id: mobile ? 'preco_89' : '', tagName: 'A', getAttribute(k) { return attributes[k]; },
+    removeAttribute(k) { delete attributes[k]; }, setAttribute(k,v) { attributes[k]=v; } };
   const hero = {};
   const doc = { scripts: [], visibilityState: 'visible', prerendering: false, documentElement: {},
     head: { appendChild(s) { doc.scripts.push(s); } }, createElement() { return {}; },
-    querySelector(s) { if (s === 'vturb-smartplayer') return mobile ? {} : null; return hero; },
-    getElementById() { return button; }, addEventListener(name, callback) { listeners[name] = callback; },
+    querySelector(s) { if (s === 'vturb-smartplayer') return mobile ? {} : null; if (s.startsWith('a[')) return desktopMetadata ? button : null; return hero; },
+    getElementById() { return mobile ? button : null; }, addEventListener(name, callback) { listeners[name] = callback; },
     get cookie() { return [...cookies].map(([k, v]) => k + '=' + encodeURIComponent(v)).join('; '); },
     set cookie(value) { const [pair] = value.split(';'); const p = pair.indexOf('='); cookies.set(pair.slice(0, p), decodeURIComponent(pair.slice(p + 1))); },
   };
@@ -119,4 +121,14 @@ test('visit reference is available before Meta responds to browser events', asyn
   b.timers.find(t => t.ms === 900).callback(); await b.settle();
   assert.equal(new URL(b.urls[0]).searchParams.get('text'), message + '\nVisita: ' + reference);
   assert.equal(b.requests[0].body.events.length, 0);
+});
+
+test('real desktop CTA without mobile id preserves attribution and tracks one click', async () => {
+  const b=browser({mobile:false}); await b.settle(); b.click(); await b.settle();
+  assert.deepEqual(b.calls.filter(x=>/^trackSingle/.test(x[0])).map(x=>x[2]),['PageView','CtaClick','Contact']);
+  assert.equal(new URL(b.urls[0]).searchParams.get('text'),message+'\nVisita: '+reference);
+});
+test('desktop link with foreign phone is never intercepted or counted',async()=>{
+ const b=browser({mobile:false,desktopMetadata:false}); await b.settle(); b.click(); await b.settle();
+ assert.equal(b.urls.length,0); assert.equal(b.calls.filter(x=>x[2]==='CtaClick'||x[2]==='Contact').length,0);
 });

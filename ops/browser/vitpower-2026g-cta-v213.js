@@ -98,8 +98,13 @@
   }
   function track(name) { var row = event(name); if (row) capture([row]); }
   function destination() { return 'https://wa.me/' + PHONE + '?text=' + encodeURIComponent(MESSAGE); }
+  function isCta(node) {
+    return !!node && (node.id === 'preco_89' || (node.tagName === 'A' && typeof node.getAttribute === 'function' &&
+      node.getAttribute('data-product') === 'vit_power_ec' && node.getAttribute('data-vsl-source') === SOURCE &&
+      node.getAttribute('data-whatsapp-phone') === PHONE));
+  }
   function annotate() {
-    var button = d.getElementById('preco_89'); if (!button) return;
+    var button = d.getElementById('preco_89') || d.querySelector('a[data-product="vit_power_ec"][data-vsl-source="https://taviazen.shop/vitpower_2026g"][data-whatsapp-phone="553171862958"]'); if (!button) return;
     button.removeAttribute('onclick'); button.setAttribute('data-product', 'vit_power_ec');
     button.setAttribute('data-vsl-source', SOURCE); button.setAttribute('data-whatsapp-phone', PHONE);
     button.setAttribute('data-whatsapp-message', MESSAGE);
@@ -107,8 +112,11 @@
   }
   d.addEventListener('click', function (e) {
     var chain = e.composedPath ? e.composedPath() : [e.target];
-    var button = chain.find(function (n) { return n && n.id === 'preco_89'; });
-    if (!button && e.target && e.target.closest) button = e.target.closest('#preco_89');
+    var button = chain.find(isCta);
+    if (!button && e.target && e.target.closest) {
+      var candidate = e.target.closest('#preco_89, a[data-product="vit_power_ec"]');
+      if (isCta(candidate)) button = candidate;
+    }
     if (!button) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (busy) return; busy = true;
