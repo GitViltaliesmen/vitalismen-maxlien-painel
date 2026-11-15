@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V221_COPY",
+  "scope": "TWO_VISIBLE_STRINGS_ONLY",
+  "siteArtifactCommit": "2a5b5aa10304ae731fd784a65bd91978490179b6",
+  "backendCommitUnchanged": "025c90c7d5af299e206ee246341d2ec507d929ca",
+  "siteAsset": "/var/www/vitalismen-vitpower-2026g/assets/chat-v220.js",
+  "beforeSha256": "6ec67467e041311cb9acf83f3a68bb4b987c82ab4097916ca856a602591acc36",
+  "afterSha256": "17ff7bbf4d567fd7be8634547afe646c76ceb60cd151ec00a265412dfa6dfa99",
+  "backup": "/var/backups/vitalismen-ec/chat-copy-v221/20261115T232709Z/chat-v220.js",
+  "newHeader": "Atención Vitalismen · Ecuador",
+  "newGreetingPrefix": "¡Hola! Te doy la bienvenida a Vitalismen Ecuador.",
+  "iaFooterPreserved": true,
+  "servicesRestarted": false,
+  "verifiedHttp": 200,
+  "verifiedBrowser": true,
+  "at": "2026-11-15T23:28:40.971283+00:00"
+}
