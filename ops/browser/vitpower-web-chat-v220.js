@@ -19,7 +19,7 @@
     log.appendChild(row); log.scrollTop = log.scrollHeight; return row;
   }
   function render() {
-    log.replaceChildren(); bubble('assistant', '¡Hola! Soy Ana Lopez, asistente virtual de Vitalismen Ecuador. Puedo ayudarte con la información oficial de Vit Power y responder tus dudas. ¿Qué deseas saber?');
+    log.replaceChildren(); bubble('assistant', '¡Hola! Te doy la bienvenida a Vitalismen Ecuador. Puedo ayudarte con la información oficial de Vit Power y responder tus dudas. ¿Qué deseas saber?');
     history.slice(-40).forEach(function (m) { bubble(m.role, m.content, m.at); });
   }
   function request(body) {
@@ -44,7 +44,7 @@
     launcher = element('button', 'vp-chat-launcher', '💬 ¿Tienes preguntas?'); launcher.type = 'button'; launcher.setAttribute('aria-haspopup', 'dialog'); launcher.setAttribute('aria-controls', 'vp-chat-dialog'); launcher.addEventListener('click', open);
     dialog = element('dialog', 'vp-chat-panel'); dialog.id = 'vp-chat-dialog'; dialog.setAttribute('aria-labelledby', 'vp-chat-title');
     var layout = element('div', 'vp-chat-layout'), header = element('header', 'vp-chat-header'), heading = element('div');
-    var title = element('h2', '', 'Ana Lopez'); title.id = 'vp-chat-title'; heading.appendChild(title); heading.appendChild(element('p', '', 'Asistente virtual Vitalismen · Ecuador'));
+    var title = element('h2', '', 'Ana Lopez'); title.id = 'vp-chat-title'; heading.appendChild(title); heading.appendChild(element('p', '', 'Atención Vitalismen · Ecuador'));
     var exit = element('button', 'vp-chat-close', '×'); exit.type = 'button'; exit.setAttribute('aria-label', 'Cerrar conversación'); exit.addEventListener('click', close);
     header.appendChild(element('span', 'vp-chat-avatar', '💬')); header.appendChild(heading); header.appendChild(exit);
     log = element('div', 'vp-chat-log'); log.setAttribute('role', 'log'); log.setAttribute('aria-label', 'Historial de conversación'); log.setAttribute('aria-live', 'polite'); log.setAttribute('aria-relevant', 'additions text');
