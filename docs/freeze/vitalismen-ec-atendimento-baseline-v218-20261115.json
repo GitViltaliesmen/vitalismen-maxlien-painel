@@ -1,0 +1,102 @@
+{
+  "project": "VITALISMEN_EC",
+  "freezeId": "VITALISMEN_EC_ATENDIMENTO_BASELINE_V218_20261115",
+  "capturedAtUTC": "2026-11-15T18:03:02.414533+00:00",
+  "freezeType": "DOCUMENTARY_NO_OPERATIONAL_STOP",
+  "status": "PASS_VERIFIABLE_CODE_BASELINE",
+  "backend": {
+    "project": "VITALISMEN_EC",
+    "atUTC": "2026-11-15T17:59:38.146699+00:00",
+    "release": "/opt/vitalismen-automacao/releases/20261115T154523Z_production-20261115-8993d2a",
+    "commit": "8993d2af3e110ecfc2deb04c9eff58ac6fd36c6e",
+    "runtime": {
+      "pid": 3518919,
+      "status": "online",
+      "pmCwdMatches": true,
+      "execPathMatches": true,
+      "actualCwdMatches": true,
+      "health": "online",
+      "zapiConnected": true,
+      "pendingTasks": 0,
+      "b01Allowed": true,
+      "freeflowAudience": "EC_FORWARD_ONLY",
+      "legacyAiWorker": "false",
+      "legacyFunnel": "false"
+    }
+  },
+  "backendSourceHashes": {
+    "src\\kb\\policies.md": "2527c9b3156b06d3236fc7fca29f5e343e1f3a93ef107f3db1c5900b3c68dead",
+    "src\\kb\\product_ec.md": "ffa929be808c2856cf7d6184cfebff9f35e28d53b34b63aa92c3e8c1667aa781",
+    "src\\services\\agentRouter.js": "ad277a658a2362c06da3b2beb2ff8a9a4e289be9f2c16ce1855748430bbc00e0",
+    "src\\services\\aiRouter.js": "43e7417ba367fda374a80d068323fb30788dd83805722df88ec891b1b1a9e5f3",
+    "src\\services\\conversationEngine.js": "382c354a8e4cbae45db38b67131f698dde484f94c824a6b3cc511b507d009e18",
+    "src\\services\\memoryStore.js": "3bf823197889b1d8963178d0ccf7c6e519cea3340c6a950f0a45c017573d446f",
+    "src\\services\\openaiService.js": "b57dcd4146a2a8c6cdf1e8d6dcbc717d774c31168a8bbc2a381e449b275c1bb4",
+    "src\\services\\principalSdrFreeflowRuntimeService.js": "0052dac51037561504e1542832c31c50c1cc8d0e9389d41aad96ae4d8adfd95e",
+    "src\\services\\principalSdrFreeflowService.js": "72a04f8e72c0c4c2cc4a9e05028afe92b12d37de12eca6b024efa399b768a1c1",
+    "src\\services\\vitPowerB01CoreV216Service.js": "ae41354ec33671dd1990e9a6f30360ff588232c3b4878f74943b7022e15efccf",
+    "src\\services\\vitPowerB01RuntimeV216Service.js": "7a35892dedfed6f708709b22343b1705ca5cb10da2cf1d4815ca060d99ba0f15",
+    "src\\services\\tools\\orders.js": "37985cb72372e25b90f6b6f0433b81e43998c5ec4eb9200a66db7dbe1af65bde"
+  },
+  "publicArtifacts": {
+    "72.60.137.77:/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html": {
+      "sha256": "f5102813bfbe6ec12d5fa299940d0170bf3e0d32ba73d7f602245a4adc76db75",
+      "size": 1047964,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644",
+      "mtimeNs": 1794761775606509575
+    },
+    "169.58.51.100:/var/www/vitalismen-vitpower-2026g/assets/cta.js": {
+      "sha256": "7f2e7408b6c44c40183ad4562d7f57a675d9966f57a9d5059664790828c8ed9e",
+      "size": 11785,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644",
+      "mtimeNs": 1794758197902956225
+    },
+    "169.58.51.100:/var/www/vitalismen-vitpower-2026g/index.html": {
+      "sha256": "1fb206491f84ea2a3f9d3eff521288f1d89f43d0eabf27ff2dbaddf10bfd61d2",
+      "size": 3095,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644",
+      "mtimeNs": 1792712273851354557
+    },
+    "169.58.51.100:/var/www/vitalismen-vitpower-2026g/desktop.html": {
+      "sha256": "6f742fea3a33e91fa71db8f487e5ea3115bbcc9d00bf7f90ca125145a87f095b",
+      "size": 10210,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644",
+      "mtimeNs": 1794688204327375423
+    }
+  },
+  "gitSourceProof": [
+    {
+      "component": "backend",
+      "commit": "8993d2af3e110ecfc2deb04c9eff58ac6fd36c6e",
+      "gitPath": "src/services/principalSdrFreeflowService.js",
+      "matchesProduction": true
+    },
+    {
+      "component": "panel",
+      "commit": "605c29a2253946a9d770814174be2d9660832414",
+      "gitPath": "public/qr.html",
+      "matchesProduction": true
+    },
+    {
+      "component": "site",
+      "commit": "bb1160bc2dcaca5b36ce8ee44c6d0f0151259706",
+      "gitPath": "ops/browser/vitpower-2026g-cta-v213.js",
+      "matchesProduction": true
+    }
+  ],
+  "recoveryArtifactLocation": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\FREEZE_ATENDIMENTO\\20261115T1800Z",
+  "globalDatabaseBackup": "FAIL_PREEXISTING_NOT_COVERED",
+  "productionCodeChanged": false,
+  "runtimeFlagsChanged": false,
+  "servicesRestarted": 0,
+  "customerWrites": 0,
+  "messagesSent": 0
+}
