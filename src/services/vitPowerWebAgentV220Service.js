@@ -29,9 +29,21 @@ export function createVitPowerWebAgentV220({ complete, products, offer, productI
     if (typeof text !== 'string' || !text.trim() || text.length > 700) throw Error('web_chat_message_invalid');
     const privacy = webChatPrivacyDecisionV220(text);
     if (privacy) return { reply: privacy === 'health' ? 'No compartas información de salud aquí. Para dudas sobre una condición médica o medicamentos, consulta a un profesional de salud. Puedo ayudarte con la información comercial de Vit Power.' : 'Por tu seguridad, no compartas datos de pago, contraseñas ni códigos. Este chat no necesita esa información. Puedes continuar por el WhatsApp oficial.', draft: { ...previous }, handoff: privacy !== 'health', redactedInput: true, modelUsed: false };
+    const recalling = /\b(?:dije|dijiste|pregunte|preguntaste|habia elegido|habiamos)\b/.test(norm(text));
+    const quantityRecall = recalling && /\bcuantos?\s+frascos?\b/.test(norm(text)) && (text.match(/\?/g) || []).length <= 1 && !/\b(?:y|ademas|tambien)\b/.test(norm(text));
+    if (quantityRecall) {
+      let quantity = /\b(?:dije|habia elegido)\b/.test(norm(text)) && [1, 2, 3, 6].includes(Number(previous.quantity)) ? Number(previous.quantity) : null;
+      if (quantity === null) for (const row of [...history].reverse()) {
+        if (row.role !== 'user' || !/\bfrascos?\b/.test(norm(row.content))) continue;
+        const values = new Set([...norm(row.content).matchAll(/\b(1|2|3|6|un|uno|dos|tres|seis)\b/g)].map(m => ({ un: 1, uno: 1, dos: 2, tres: 3, seis: 6 }[m[1]] || Number(m[1]))));
+        if (!values.size) continue;
+        if (values.size === 1) quantity = [...values][0];
+        break;
+      }
+      return { reply: quantity === null ? 'No encuentro una cantidad inequívoca en los mensajes recientes. ¿Cuántos frascos deseas consultar?' : 'En tu consulta anterior mencionaste ' + quantity + (quantity === 1 ? ' frasco.' : ' frascos.'), draft: { ...previous }, handoff: false, redactedInput: false, modelUsed: false, toolCalls: 0 };
+    }
     let draft = { ...previous }, handoff = false, count = 0;
     const facts = [], controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
-    const recalling = /\b(?:dije|dijiste|pregunte|preguntaste|habia elegido|habiamos)\b/.test(norm(text));
     const topics = recalling ? [] : questionPlanV219(text), messages = [
       { role: 'system', content: PRINCIPAL_SDR_FREEFLOW_PROMPT },
       { role: 'system', content: 'CANAL WEB ANONIMO VITALISMEN. Eres Ana Lopez, asistente virtual. Este canal no es WhatsApp, no verifica teléfonos, no consulta pedidos privados y NO registra pedidos ni cobra. No solicites dirección, teléfono, información de salud ni datos de pago. Puedes conservar nombre voluntario, cantidad y ciudad. La continuación y atención humana requieren que el visitante pulse el WhatsApp oficial y envíe el mensaje allí; nunca afirmes que ya lo transferiste. El historial web no se sincroniza automáticamente con WhatsApp. Responde la duda y ofrece continuar por el botón cuando corresponda. Solo Vit Power; otras marcas requieren atención humana.' },

@@ -153,5 +153,21 @@ test('IP rate map rejects excess distinct sources and accepts a new window', asy
 test('recalling an earlier price question answers the remembered quantity without listing all offers', async () => {
  const f=fixture([say('Me preguntaste por 3 frascos.')]);
  const r=await f.agent.reply({text:'¿De cuántos frascos te pregunté el precio?',history:[{role:'user',content:'¿Cuánto cuestan 3 frascos?'},{role:'assistant',content:'Precio: 3 frascos: USD 95.99.'}]});
- assert.equal(r.reply,'Me preguntaste por 3 frascos.');assert.equal(r.draft.quantity,undefined);assert.equal(r.handoff,false);
+ assert.equal(r.reply,'En tu consulta anterior mencionaste 3 frascos.');assert.equal(f.calls(),0);assert.equal(r.modelUsed,false);assert.equal(r.draft.quantity,undefined);assert.equal(r.handoff,false);
+});
+
+test('quantity recall uses customer history instead of the assistant price table', async () => {
+ const f=fixture([say('must not run')]);const r=await f.agent.reply({text:'¿De cuántos frascos te pregunté el precio?',history:[{role:'user',content:'¿Cuánto cuestan tres frascos?'},{role:'assistant',content:'1 frasco USD 39.99, 3 frascos USD 95.99, 6 frascos USD 167.99'}]});assert.match(r.reply,/3 frascos/);assert.equal(r.modelUsed,false);assert.equal(f.calls(),0);assert.equal(r.draft.quantity,undefined);
+});
+test('ambiguous earlier quantities require clarification without choosing an order', async () => {
+ const f=fixture();const r=await f.agent.reply({text:'¿De cuántos frascos te pregunté el precio?',history:[{role:'user',content:'precio de 3 o 6 frascos'}]});assert.match(r.reply,/inequívoca/);assert.equal(r.draft.quantity,undefined);assert.equal(f.calls(),0);
+});
+test('quantity recall without evidence asks only the missing quantity', async () => {
+ const f=fixture();const r=await f.agent.reply({text:'¿Cuántos frascos dije que quiero?',history:[]});assert.match(r.reply,/Cuántos frascos/);assert.equal(r.modelUsed,false);assert.equal(f.calls(),0);
+});
+test('confirmed web draft quantity is preserved when an order choice is recalled', async () => {
+ const f=fixture();const r=await f.agent.reply({text:'¿Cuántos frascos dije que quiero?',draft:{quantity:3,city:'Quito'},history:[{role:'user',content:'¿Y 6 frascos cuánto cuestan?'}]});assert.match(r.reply,/3 frascos/);assert.equal(r.draft.city,'Quito');assert.equal(r.draft.quantity,3);assert.equal(r.modelUsed,false);
+});
+test('quantity recall does not suppress other questions in the same message', async () => {
+ const f=fixture([say('Le ayudo con la consulta completa.')]);await f.agent.reply({text:'¿De cuántos frascos te pregunté el precio? ¿Y la entrega?',history:[{role:'user',content:'3 frascos'}]});assert.equal(f.calls(),1);
 });
