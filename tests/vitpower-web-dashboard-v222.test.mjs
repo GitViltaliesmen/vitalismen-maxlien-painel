@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createWebDashboardReaderV222, hasExplicitWebDashboardBearerV222, productionWebDashboardReaderV222 } from '../src/services/vitPowerWebDashboardV222Service.js';
+import { createWebDashboardStoreReaderV222, createWebDashboardReaderV222, hasExplicitWebDashboardBearerV222, productionWebDashboardReaderV222 } from '../src/services/vitPowerWebDashboardV222Service.js';
 const id='a'.repeat(64), other='b'.repeat(64), now=Date.now();
 async function fixture(run){const directory=await fs.mkdtemp(path.join(os.tmpdir(),'vp-dashboard-'));try{await run(directory)}finally{await fs.rm(directory,{recursive:true,force:true})}}
 const record=(extra={})=>({version:220,createdAt:now-1000,expiresAt:now+999999,history:[{role:'user',content:'¿Cuánto cuesta?',at:new Date(now-500).toISOString()},{role:'assistant',content:'Consulta del catálogo oficial.',at:new Date(now).toISOString()}],draft:{name:'Maria',city:'Quito',quantity:3},requests:{secret:{digest:'PRIVATE',response:{token:'SECRET'}}},...extra});
@@ -43,3 +43,11 @@ test('explicit bearer header is mandatory even on loopback or auth-disabled prof
  assert.equal(hasExplicitWebDashboardBearerV222({headers:{authorization:'Bearer signed.jwt.value'}}),true);
 });
 test('production reader refuses a disabled public chat profile even with a preload capability',()=>{const previous=process.env.VITALISMEN_EC_WEB_CHAT_V220;try{process.env.VITALISMEN_EC_WEB_CHAT_V220='false';assert.throws(()=>productionWebDashboardReaderV222(),/UNAVAILABLE/)}finally{if(previous===undefined)delete process.env.VITALISMEN_EC_WEB_CHAT_V220;else process.env.VITALISMEN_EC_WEB_CHAT_V220=previous}assert.throws(()=>createWebDashboardReaderV222({directory:'relative'}),/UNAVAILABLE/)});
+
+import { createVitPowerWebStoreV220 } from '../src/services/vitPowerWebStoreV220Service.js';
+test('admin adapter reads the actual public store sessions layout without changing its data',()=>fixture(async directory=>{
+ const store=createVitPowerWebStoreV220({directory,minFreeBytes:0});const opened=await store.open();
+ await store.transact(opened.token,'qa_actual_store_222','Precio de 3 frascos',async()=>({reply:'3 frascos: USD 95.99.',draft:{name:'QA Layout'},modelUsed:false}));
+ const reader=createWebDashboardStoreReaderV222(directory);const rows=await reader.list();assert.equal(rows.length,1);assert.equal(rows[0].name,'QA Layout');const detail=await reader.read(rows[0].id);assert.equal(detail.history.length,2);assert.equal(detail.history[1].content,'3 frascos: USD 95.99.');
+ const after=await store.open(opened.token);assert.equal(after.value.turnCount,1);assert.equal(after.value.history.length,2);assert.equal((await fs.readdir(path.join(directory,'sessions'))).length,1);
+}));

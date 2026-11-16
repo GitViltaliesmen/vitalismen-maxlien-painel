@@ -53,9 +53,11 @@ export function createWebDashboardReaderV222({ directory, now = Date.now } = {})
     });
 }
 
+export const createWebDashboardStoreReaderV222 = directory => createWebDashboardReaderV222({ directory: path.join(directory, 'sessions') });
+
 export function productionWebDashboardReaderV222() {
     const capability = globalThis.__VITALISMEN_EC_WEB_CHAT_V220;
     if (process.env.VITALISMEN_EC_WEB_CHAT_V220 !== 'true' || capability?.kind !== 'ANONYMOUS_WEB_V220'
         || capability.storeDirectory !== '/var/lib/vitalismen-web-chat-v220-r2') throw new Error('CHAT_STORE_UNAVAILABLE');
-    return createWebDashboardReaderV222({ directory: capability.storeDirectory });
+    return createWebDashboardStoreReaderV222(capability.storeDirectory);
 }

@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-web-dashboard-sealed-v222-r2.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-web-dashboard-profile-v222-r2.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-web-dashboard-store-sealed-v222-r3.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-web-dashboard-store-profile-v222-r3.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';
