@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V226_NONMODAL_WEB_AND_WHATSAPP_INCOMING",
+  "target": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "baselineSha256": "de40ebe7d9951b34f03334f56c8975d878d1fbdf6c94f2889d8781b47c69c51e",
+  "publishedSha256": "5b33b610c62c8aa8316337d6068787093146fbb4baa33fbf11e584a6e9e1ecd4",
+  "originalBackup": "/opt/vitalismen-automacao/backups/dashboard-live-chat-v226-r3/20261116T013204Z/qr.before.html",
+  "intermediateBackup": "/opt/vitalismen-automacao/backups/dashboard-live-chat-v226-r4/20261116T013310Z/qr.before.html",
+  "checks": 115,
+  "actualQaReceivedAt": "15/11/2026, 22:25:13",
+  "actualQaAutoOpened": true,
+  "nonmodal": true,
+  "servicesRestarted": false,
+  "backendChanged": false,
+  "whatsappSends": 0,
+  "ordersCreated": 0,
+  "globalMongoBackupPass": false
+}

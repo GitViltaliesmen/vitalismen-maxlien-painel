@@ -1,0 +1,217 @@
+--- a/qr.html
++++ b/qr.html
+@@ -13110,6 +13110,7 @@
+                 nextChats = dedupeChatsForPanel(nextChats.map(mergeSavedCustomerDraftIntoChat));
+                 const signature = getChatSignature(nextChats);
+                 state.chats = nextChats;
++                document.dispatchEvent(new CustomEvent('vitalismen:whatsapp-chats-loaded-v226', { detail: chats }));
+                 if (state.selectedChat) {
+                     const refreshedSelectedChat = state.chats.find((chat) => sameChatIdentity(state.selectedChat, chat));
+                     state.selectedChat = refreshedSelectedChat
+@@ -22253,43 +22254,97 @@
+ <script>
+ (() => {
+  'use strict';
+- const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222');
+- let generation=0,controller=null,selected=null;
+- const token=()=>typeof state!=='undefined'?state.token:'';
++ const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222'), dashboard=byId('dashboard');
++ let generation=0,controller=null,selected=null,resumeId=null,activity=0;
++ let timer=null,pollController=null,pollBusy=false,initialized=false,watchCredential='',deniedCredential='';
++ const seen=new Map(), unread=new Set(), token=()=>typeof state!=='undefined'?state.token:'';
+  const element=(tag,text,css)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(css)el.className=css;return el};
+  const format=value=>{const d=new Date(value);return value&&Number.isFinite(+d)?d.toLocaleString('pt-BR'):'Horário indisponível'};
+  const label=row=>row.name||'Visitante · '+String(row.id).slice(0,6);
++ const summary=row=>({messageCount:row.messageCount,lastAt:row.lastAt});
++ const eligible=()=>!document.hidden&&!dashboard.classList.contains('hidden')&&!!token()&&typeof state!=='undefined'&&state.user?.role==='admin'&&token()!==deniedCredential;
+  function cancel(){generation++;controller?.abort();controller=null;}
++ function remember(row){if(initialized)seen.set(row.id,summary(row));}
+  async function request(suffix,signal){
+   const credential=token();if(!credential)throw Error('Entre no painel como administrador para consultar as conversas do site.');
+   const response=await fetch('/api/web-chat-admin/vitpower'+suffix,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential},signal});
+-  if(response.status===401||response.status===403)throw Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.');
+-  if(response.status===404)throw Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.');
++  if(response.status===401||response.status===403)throw Object.assign(Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.'),{authDenied:true});
++  if(response.status===404)throw Object.assign(Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.'),{notFound:true});
+   if(!response.ok)throw Error('Não foi possível consultar o chat do site. Tente atualizar.');
+   return response.json();
+  }
++ function renderList(rows){
++  list.replaceChildren();
++  for(const row of rows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
++ }
++ function renderConversation(conversation,newMessage=false){
++  selected=conversation.id;resumeId=conversation.id;unread.delete(conversation.id);for(const item of list.querySelectorAll('button'))if(item.dataset.id===conversation.id)item.querySelector('.vp226-new')?.remove();thread.replaceChildren(element('h3',label(conversation)));
++  for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===selected));
++  if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
++  for(const message of conversation.history){const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role=message.role;bubble.append(element('span',message.content),element('small',(message.role==='assistant'?'Ana Lopez':'Visitante')+' · '+format(message.at)));thread.append(bubble)}
++  remember(conversation);status.textContent=newMessage?'Nova mensagem do site. Você pode continuar o atendimento no painel.':'Consulta atualizada. Nenhuma mensagem é enviada por este chat.';thread.scrollTop=thread.scrollHeight;
++ }
+  async function select(row){
+-  cancel();const current=generation;controller=new AbortController();selected=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
++  cancel();const current=generation;controller=new AbortController();selected=row.id;resumeId=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
+   for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===row.id));
+-  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;
+-   const conversation=data.conversation;thread.append(element('h3',label(conversation)));
+-   if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
+-   for(const message of conversation.history){const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role=message.role;bubble.append(element('span',message.content),element('small',(message.role==='assistant'?'Ana Lopez':'Visitante')+' · '+format(message.at)));thread.append(bubble)}
+-   status.textContent='Consulta atualizada. Nenhuma mensagem é enviada por este popup.';thread.scrollTop=thread.scrollHeight;
+-  }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
++  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;renderConversation(data.conversation)}
++  catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+  }
+  async function load(){
+   cancel();const current=generation;controller=new AbortController();selected=null;list.replaceChildren();thread.replaceChildren(element('p','Selecione uma conversa do site.'));status.textContent='Consultando conversas…';
+-  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;
+-   for(const row of data.conversations){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed','false');item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));item.addEventListener('click',()=>select(row));list.append(item)}
++  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;renderList(data.conversations);
+    status.textContent=data.conversations.length?data.conversations.length+' conversa(s) disponível(is). Selecione um visitante.':'Nenhuma conversa do site com mensagens nos últimos 7 dias.';
++   const previous=data.conversations.find(row=>row.id===resumeId);if(previous)await select(previous);else resumeId=null;
+   }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+  }
+- button.addEventListener('click',()=>{if(!dialog.open)dialog.showModal();load()});
+- byId('webChatDashboardRefreshV222').addEventListener('click',load);
+- byId('webChatDashboardCloseV222').addEventListener('click',()=>dialog.close());
+- dialog.addEventListener('close',()=>{cancel();selected=null;list.replaceChildren();thread.replaceChildren();status.textContent=''});
+- byId('logoutBtn')?.addEventListener('click',()=>{cancel();if(dialog.open)dialog.close();list.replaceChildren();thread.replaceChildren()});
++ function stop(reset=false){clearTimeout(timer);timer=null;pollController?.abort();if(reset){seen.clear();unread.clear();initialized=false;watchCredential='';deniedCredential='';resumeId=null}}
++ function schedule(delay=10000){clearTimeout(timer);timer=null;if(!document.hidden&&!dashboard.classList.contains('hidden')&&token())timer=setTimeout(tick,delay);}
++ async function tick(){
++  if(pollBusy){schedule();return}
++  if(!eligible()){schedule();return}
++  const credential=token(),epoch=activity;
++  if(watchCredential!==credential){seen.clear();initialized=false;watchCredential=credential}
++  pollBusy=true;pollController=new AbortController();const signal=pollController.signal;
++  try{
++   const data=await request('',signal);if(signal.aborted||token()!==credential||!eligible())return;
++   const rows=data.conversations;
++   if(!initialized){for(const row of rows)seen.set(row.id,summary(row));initialized=true;button.title='Chat do site — avisos ativos';return}
++   const changed=rows.filter(row=>{const old=seen.get(row.id);return !old||old.lastAt!==row.lastAt||old.messageCount!==row.messageCount}).slice(0,5);
++   let incoming=null;const updates=[];
++   for(const row of changed){
++    let detail;try{detail=(await request('/'+encodeURIComponent(row.id),signal)).conversation}catch(error){if(error.notFound)continue;throw error}
++    if(signal.aborted||token()!==credential||!eligible()||activity!==epoch)return;
++    const old=seen.get(row.id),user=detail.history.filter(message=>message.role==='user').at(-1);
++    const newer=!!user&&(!old||Date.parse(user.at)>Date.parse(old.lastAt)||(user.at===old.lastAt&&row.messageCount>=old.messageCount+2));
++    updates.push({row,detail,newer});
++    if(newer&&(!incoming||String(user.at)>String(incoming.at)))incoming={conversation:detail,at:user.at};
++   }
++   for(const update of updates){seen.set(update.row.id,summary(update.row));if(update.newer)unread.add(update.row.id);else if(dialog.open&&selected===update.row.id)renderConversation(update.detail)}
++   const ids=new Set(rows.map(row=>row.id));for(const id of seen.keys())if(!ids.has(id)){seen.delete(id);unread.delete(id)}
++   if(incoming&&eligible()&&activity===epoch){
++    cancel();
++    // Setting open keeps this nonmodal and leaves the operator's keyboard focus untouched.
++    document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));
++    if(!dialog.open)dialog.setAttribute('open','');
++    renderList(rows);renderConversation(incoming.conversation,true);
++   }
++   button.title='Chat do site — avisos ativos';
++  }catch(error){if(error.name!=='AbortError'){if(error.authDenied)deniedCredential=credential;button.title='Chat do site — atualização automática indisponível';}}
++  finally{pollBusy=false;pollController=null;schedule();}
++ }
++ button.addEventListener('click',()=>{activity++;document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));if(!dialog.open)dialog.show();load()});
++ byId('webChatDashboardRefreshV222').addEventListener('click',()=>{activity++;load()});
++ function clearViewer(){activity++;cancel();selected=null;list.replaceChildren();thread.replaceChildren();status.textContent=''}
++ function closeViewer(){if(dialog.open)dialog.close();clearViewer()}
++ byId('webChatDashboardCloseV222').addEventListener('click',closeViewer);
++ dialog.addEventListener('close',()=>{if(!dialog.open)clearViewer()});
++ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&dialog.open&&!event.defaultPrevented)closeViewer();});
++ byId('logoutBtn')?.addEventListener('click',()=>{activity++;stop(true);cancel();closeViewer()});
++ document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else schedule(0)});
++ new MutationObserver(()=>{if(dashboard.classList.contains('hidden')){stop(true);if(dialog.open)closeViewer()}else schedule(0)}).observe(dashboard,{attributes:true,attributeFilter:['class']});
++ window.addEventListener('pagehide',()=>stop());window.addEventListener('pageshow',()=>schedule(0));
++ document.addEventListener('vitalismen:incoming-popup-open-v226',event=>{if(event.detail?.source!=='website'&&dialog.open)closeViewer()});
++ schedule(0);
+ })();
+ </script>
+ <!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
+@@ -22334,6 +22389,89 @@
+ </style>
+ <!-- VITALISMEN_EC_DASHBOARD_RIGHT_CHAT_V225_END -->
+ 
++<!-- VITALISMEN_EC_DASHBOARD_LIVE_CHAT_V226_START -->
++<style>
++#webChatDashboardDialogV222{z-index:180;width:min(340px,calc(100vw - 24px));box-shadow:0 10px 35px #102c3533}
++#webChatDashboardDialogV222 .vpweb222-header{flex-wrap:wrap;gap:7px}
++#webChatDashboardDialogV222 .vpweb222-title{flex-basis:100%}
++#webChatDashboardDialogV222 .vpweb222-header button{padding:6px 11px}
++#webChatDashboardDialogV222 .vpweb222-header button:first-of-type{margin-left:auto}
++#webChatDashboardDialogV222 .vpweb222-body{grid-template-rows:115px minmax(0,1fr)}
++@media(max-width:600px){#webChatDashboardDialogV222{width:calc(100vw - 16px)}}
++</style>
++<!-- VITALISMEN_EC_DASHBOARD_LIVE_CHAT_V226_END -->
++<!-- VITALISMEN_EC_WHATSAPP_INCOMING_V226_START -->
++<style>
++#waIncomingDialogV226{position:fixed;inset:12px 12px auto auto;margin:0;width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;border:1px solid #a5cabb;border-radius:16px;padding:0;background:#f7fcf9;color:#193d32;box-shadow:0 10px 35px #102c3533;z-index:181;font:14px Arial,sans-serif}
++#waIncomingDialogV226 header{display:flex;align-items:center;justify-content:space-between;padding:14px;gap:8px;background:#e7f6ee}#waIncomingDialogV226 h2{font-size:17px;margin:0}#waIncomingDialogV226 button{cursor:pointer;border:1px solid #a4cebd;border-radius:16px;padding:8px 12px;color:#14533d;background:white;font:inherit}#waIncomingDialogV226 nav{display:flex;gap:6px;overflow:auto;padding:8px 12px}#waIncomingDialogV226 nav button{flex-shrink:0}#waIncomingDialogV226 nav button[aria-pressed=true]{background:#d8f5e4}#waIncomingDialogV226 [data-status],#waIncomingDialogV226 section,#waIncomingDialogV226 footer{padding:10px 14px;margin:0}#waIncomingDialogV226 h3{font-size:15px;margin:0 0 8px}#waIncomingDialogV226 time{font-size:11px;color:#52695f}#waIncomingDialogV226 [data-body]{white-space:pre-wrap;overflow-wrap:anywhere;background:white;border-radius:12px;padding:12px;max-height:45dvh;overflow:auto}#waIncomingDialogV226 footer small{display:block;margin-top:10px;line-height:1.4}#waIncomingLauncherV226{position:fixed;right:12px;bottom:66px;z-index:161;background:#087d52;color:white;padding:12px;border:1px solid white;border-radius:24px;cursor:pointer}#waIncomingLauncherV226[hidden]{display:none}
++@media(max-width:600px){#waIncomingDialogV226{inset:8px 8px auto auto;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}}
++</style>
++<!-- VITALISMEN_EC_WHATSAPP_INCOMING_V226_END -->
++<script>
++(() => {
++ 'use strict';
++ const dashboard=document.getElementById('dashboard');if(!dashboard)return;
++ const dialog=document.createElement('dialog');dialog.id='waIncomingDialogV226';dialog.setAttribute('aria-labelledby','waIncomingTitleV226');
++ dialog.innerHTML='<header><h2 id="waIncomingTitleV226">WhatsApp recebido</h2><button type="button" data-close>Fechar ×</button></header><p data-status role="status"></p><nav aria-label="Conversas recebidas"></nav><section aria-label="Mensagem recebida"><h3></h3><time></time><p data-body></p></section><footer><button type="button" data-attend>Abrir no atendimento</button><small>O atendimento principal continua disponível. Este aviso não envia mensagens nem marca a conversa como lida.</small></footer>';
++ dashboard.append(dialog);
++ const launcher=document.createElement('button');launcher.type='button';launcher.id='waIncomingLauncherV226';launcher.hidden=true;dashboard.append(launcher);
++ const get=selector=>dialog.querySelector(selector),queue=new Map(),seen=new Map(),signatures=new Map();let credential='',busy=false,pending=null,selected='',controller=null,epoch=0;
++ const token=()=>typeof state!=='undefined'?String(state.token||''):'';
++ const active=()=>!!token()&&!dashboard.classList.contains('hidden')&&!document.hidden;
++ const phone=chat=>String(chat.phone||chat.id||'').replace(/\D/g,'');
++ const valid=chat=>!chat.isGroup&&!/@g\.us|@lid|status@broadcast/.test(String(chat.id||''))&&(/^(593)\d{8,10}$/.test(phone(chat))||phone(chat)==='5515998038637');
++ const seconds=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?(n>1e12?n/1000:n):Date.parse(value)/1000||0};
++ const meta=message=>({id:String(message._id||message.id?._serialized||message.id||''),at:seconds(message.timestamp),body:String(message.body||'')});
++ const msgKey=m=>m.id||`${m.at}:${m.body}`;
++ const currentPhone=()=>typeof state!=='undefined'&&state.selectedChat?phone(state.selectedChat):'';
++ function close(){if(dialog.open)dialog.close()}
++ function clear(){epoch++;controller?.abort();pending=null;queue.clear();seen.clear();signatures.clear();selected='';close();get('nav').replaceChildren();get('[data-body]').textContent='';get('h3').textContent='';get('time').textContent='';get('[data-status]').textContent='';launcher.hidden=true}
++ function render(){
++  launcher.textContent=`WhatsApp recebido (${queue.size})`;launcher.hidden=queue.size===0;
++  const rows=[...queue.values()].sort((a,b)=>b.message.at-a.message.at);get('nav').replaceChildren();
++  for(const item of rows){const button=document.createElement('button');button.type='button';button.textContent=item.name;button.setAttribute('aria-pressed',String(item.phone===selected));button.addEventListener('click',()=>{selected=item.phone;render()});get('nav').append(button)}
++  const row=queue.get(selected)||rows[0];if(!row)return;selected=row.phone;get('h3').textContent=row.name;get('time').textContent=new Date(row.message.at*1000).toLocaleString();get('time').dateTime=new Date(row.message.at*1000).toISOString();
++  get('[data-body]').textContent=row.message.body||(row.type==='ptt'||row.type==='audio'?'Áudio recebido. Abra no atendimento para ouvir.':'Mídia recebida. Abra no atendimento para visualizar.');get('[data-status]').textContent='Nova mensagem recebida pelo WhatsApp.';
++ }
++ function open(){document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'whatsapp'}}));render();if(queue.size&&!dialog.open)dialog.setAttribute('open','')}
++ async function process(chats){
++  if(!active())return;const key=token();if(credential!==key){clear();credential=key}
++  pending=chats;if(busy)return;busy=true;
++  try{while(pending&&active()){
++   const rows=pending;pending=null;const run=epoch;controller=new AbortController();
++   const candidates=rows.filter(valid).filter(c=>(Number(c.unreadCount)>0||seconds(c.lastInboundAt)>Date.now()/1000-900||(c.lastMessage?.isFromMe===false&&seconds(c.lastMessage?.timestamp)>Date.now()/1000-900))&&phone(c)!==currentPhone()).sort((a,b)=>seconds(b.lastMessage?.timestamp)-seconds(a.lastMessage?.timestamp)).slice(0,20);
++   let changed=false;
++   for(const chat of candidates){
++    const p=phone(chat),signature=JSON.stringify([chat.unreadCount,chat.lastInboundAt,chat.lastMessage?.timestamp,chat.lastMessage?.body,chat.lastMessage?.isFromMe]);if(signatures.get(p)===signature)continue;
++    try{
++     const response=await fetch(`/api/whatsapp/messages/${encodeURIComponent(p)}?fast=1&limit=20`,{method:'GET',headers:{Authorization:`Bearer ${key}`},cache:'no-store',signal:controller.signal});
++     if(!response.ok){if(response.status===401||response.status===403){clear();return}continue}
++     const history=await response.json();if(run!==epoch||token()!==key||!active())return;
++     if(!Array.isArray(history))continue;
++     const incoming=history.filter(m=>m.isFromMe===false).sort((a,b)=>seconds(b.timestamp)-seconds(a.timestamp))[0];if(!incoming)continue;
++     const message=meta(incoming),id=msgKey(message);signatures.set(p,signature);
++     if(message.at<Date.now()/1000-86400||seen.get(p)===id)continue;
++     seen.set(p,id);queue.set(p,{phone:p,id:chat.id,name:String(chat.name||chat.phone||p),type:incoming.type,message});changed=true;
++    }catch(error){if(error.name==='AbortError')return}
++   }
++   for(const [p]of queue){const row=rows.find(c=>phone(c)===p);if(!row||p===currentPhone())queue.delete(p)}
++   while(queue.size>20)queue.delete(queue.keys().next().value);
++   if(changed&&queue.size){selected=[...queue.values()].sort((a,b)=>b.message.at-a.message.at)[0].phone;open()}else if(queue.size)render();else{close();launcher.hidden=true}
++  }}finally{busy=false;controller=null}
++ }
++ get('[data-close]').addEventListener('click',close);launcher.addEventListener('click',open);
++ get('[data-attend]').addEventListener('click',async()=>{
++  const item=queue.get(selected);if(!item||!active())return;
++  if(document.getElementById('messageInput')?.value.trim()&&currentPhone()!==item.phone){get('[data-status]').textContent='Há um rascunho no atendimento atual. Conclua ou guarde esse texto antes de trocar de cliente.';return}
++  if(typeof selectChat!=='function')return;close();await selectChat(item.id,{markRead:true});queue.delete(item.phone);render();if(!queue.size)launcher.hidden=true;
++ });
++ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',event=>process(Array.isArray(event.detail)?event.detail:[]));
++ document.addEventListener('vitalismen:incoming-popup-open-v226',event=>{if(event.detail?.source!=='whatsapp')close()});
++ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&dialog.open)close()});
++ document.getElementById('logoutBtn')?.addEventListener('click',()=>{clear();credential=''});
++ new MutationObserver(()=>{if(dashboard.classList.contains('hidden')){clear();credential=''}}).observe(dashboard,{attributes:true,attributeFilter:['class']});
++})();
++</script>
+ </body>
+ 
+ </html>
