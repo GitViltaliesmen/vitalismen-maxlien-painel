@@ -16,6 +16,13 @@ router.get('/', async (req, res) => {
     try { return res.json({ version: 222, readOnly: true, conversations: await productionWebDashboardReaderV222().list() }); }
     catch { return res.status(503).json({ error: 'Conversas do site indisponíveis. Tente novamente.' }); }
 });
+router.get('/invite-status/:phone', async (req, res) => {
+    try {
+        const { productionChatInviteStatusV236 } = await import('../services/chatInviteStatusV236Service.js');
+        const result = await productionChatInviteStatusV236(req.params.phone);
+        return res.status(result ? 200 : 404).json(result || { error: 'Contato oficial não localizado.' });
+    } catch { return res.status(503).json({ error: 'Não foi possível conferir o convite. Nenhuma mensagem foi enviada.' }); }
+});
 router.get('/:id', async (req, res) => {
     try {
         const conversation = await productionWebDashboardReaderV222().read(req.params.id);

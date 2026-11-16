@@ -25,6 +25,10 @@ export function buildChatInviteV232({ name }) {
     + 'Abre el chat aquí:\n' + INVITE_SITE_V232 + '#consulta-pedido\n'
     + 'Elige Estado de mi pedido e introduce tu código privado. Si aún no lo tienes, solicítalo por este WhatsApp para verificar tu identidad. No compartas tu código.';
 }
+export function buildChatAccessInviteV236({ name } = {}) {
+  const first = String(name || '').replace(/[\r\n\u0000-\u001f]/g, ' ').trim().split(/\s+/)[0].slice(0,35);
+  return 'Hola' + (first ? ', ' + first : '') + '. Soy Ana Lopez, del equipo Vitalismen Ecuador. 💬\nAhora también puedes conversar con nosotros desde nuestra página y aclarar tus dudas sobre Vit Power.\nAbre aquí: ' + INVITE_SITE_V232 + '#chat\nToca Hablar con Ana y escribe tu pregunta. Para consultar un pedido, solicita tu código privado por este WhatsApp.\nSi no deseas recibir estas invitaciones, responde STOP.';
+}
 export async function runCustomerInviteV232({ repository, send, mirror, policy, now = Date.now(), clock = () => now, dryRun = true }) {
   if (!policy?.enabled) return { status: 'DISABLED', sent: 0, physicalOutboundCount: 0 };
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guayaquil', hour: '2-digit', hourCycle: 'h23' }).format(now));
@@ -39,6 +43,7 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
     const stages = [];
     if (order && !contact.returned && !contact.deliveredVerified && order.productKey === 'vit_power_ec' && ['confirmed', 'processing', 'shipped'].includes(order.status)) stages.push({ stage: 'CHAT_ORDER', orderId: order.orderId });
     const lastActivity = Math.max(millis(contact.lastInboundAt), millis(contact.lastOutboundAt));
+    if (policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232) stages.push({ stage: 'CHAT_ACCESS', orderId: '' });
     const absent = lastActivity > 0 && now - lastActivity >= PARTNER_GAP_V232;
     const delivered = (order?.status === 'delivered' || contact.deliveredVerified === true) && !contact.returned;
     if (!contact.returned && (delivered || absent)) {
@@ -60,7 +65,8 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
           await repository.finish(key, lockToken, { state: 'suppressed', reason: 'recipient_became_ineligible' });
           return { status: 'RECIPIENT_CHANGED', sent: 0, physicalOutboundCount: 0 };
         }
-        const body = item.stage === 'CHAT_ORDER' ? buildChatInviteV232({ name: order.name })
+        const body = item.stage === 'CHAT_ACCESS' ? buildChatAccessInviteV236({ name: fresh.customerDraft?.name || fresh.name || order?.name })
+          : item.stage === 'CHAT_ORDER' ? buildChatInviteV232({ name: order.name })
           : item.stage === 'PARTNER_1' ? PARTNER_FIRST_V232 : PARTNER_SECOND_V232;
         // Both the permanent reservation and attempt marker precede the external effect.
         await repository.markAttempt(key, lockToken, clock()); attempted = true;
@@ -115,7 +121,8 @@ export async function processCustomerInvitesV232({ dryRun = true, now = new Date
     },
     entry: key => Ledger.findById(key).lean(),
     async historyHas({ phone, key, stage, orderId }) {
-      const match = stage === 'CHAT_ORDER' ? { $or: [{ dedupeKey: key }, { orderId, body: /Ya puedes consultar el estado registrado de tu pedido/ }] }
+      const match = stage === 'CHAT_ACCESS' ? { body: /https:\/\/taviazen\.shop\/vitpower_2026g(?:[#?\s]|$)/i }
+        : stage === 'CHAT_ORDER' ? { $or: [{ dedupeKey: key }, { orderId, body: /Ya puedes consultar el estado registrado de tu pedido/ }] }
         : { body: stage === 'PARTNER_1' ? /gira21x\.com/i : /Nace GIRAUP LATAM|xguISlUDFVM/i };
       return !!await Messages.exists({ peerPhone: phone, isFromMe: true, ...match });
     },

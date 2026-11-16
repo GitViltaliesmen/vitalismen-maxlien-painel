@@ -18,7 +18,7 @@ export async function withCustomerInviteDeliveryV232({ phone, key, lockToken }, 
   const numbers = key => String(process.env[key] || '').split(/[,\s]+/).map(digits).filter(Boolean);
   if (numbers('WHATSAPP_BLOCKED_RECIPIENTS').includes(phone) || numbers('WHATSAPP_BLOCKED_SESSION_IDS').includes('5531971862958')) throw Error('invite_existing_outbound_block');
   const job = await Ledger.findOne({ _id: key, phone, lockToken, state: 'attempted', lockedUntil: { $gt: now }, dispatchClaimedAt: { $exists: false } }).lean();
-  if (!job || !['CHAT_ORDER', 'PARTNER_1', 'PARTNER_2'].includes(job.stage)) throw Error('invite_exact_attempt_required');
+  if (!job || !['CHAT_ORDER', 'CHAT_ACCESS', 'PARTNER_1', 'PARTNER_2'].includes(job.stage)) throw Error('invite_exact_attempt_required');
   const expected = createHash('sha256').update('VITALISMEN_EC:V232:' + phone + ':' + job.stage + ':' + (job.orderId || '')).digest('hex');
   if (expected !== key || !await Ledger.exists({ _id: 'GLOBAL_EC_V232', lockToken, lockedUntil: { $gt: now } })) throw Error('invite_global_reservation_required');
   const recipient = await Contact.findOne({ phoneDigits: phone, countryCode: 'EC', 'metadata.testOnly': { $ne: true } }).lean();
