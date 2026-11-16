@@ -1,0 +1,92 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V222_ADMIN_POPUP",
+  "functionalCommit": "5a8659683c3d0b91e006efd7241f5287bd8b39af",
+  "release": "/opt/vitalismen-automacao/releases/20261116T001622Z_production-20261116-5a86596",
+  "panelAlias": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "panelBeforeSha256": "f5102813bfbe6ec12d5fa299940d0170bf3e0d32ba73d7f602245a4adc76db75",
+  "panelAfterSha256": "e61d4c6ce109f32a35256f16c03859051b3047cf5c7975279b0261e5048d000b",
+  "scope": "ADMIN_READ_ONLY_WEBSITE_CONVERSATIONS",
+  "backendSha256": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "e378127b0f2eca64c4a7ce9916b7ce9cebca4d2a0097e14486ddba7c9c46a637",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "44a1d4abf5e54d8a25c1702bf475bc10d555a4a64829ba7ff4c8e0d704e5b805",
+    "src/services/vitPowerWebDashboardV222Service.js": "bd2c286ae31c108dae175f60a6147a2ff7151b67bbdc6452e037aede922f86ce",
+    "tests/vitpower-web-dashboard-v222.test.mjs": "f68fd641eaa997b824a0d8adb30de0041a708b5536b080d66eb3244aad05fbf5"
+  },
+  "tests": {
+    "focused": [
+      "# tests 218",
+      "# pass 218",
+      "# fail 0"
+    ],
+    "senior": "PASS",
+    "httpChecks": 21,
+    "browserChecks": 32,
+    "liveAudit": "PASS"
+  },
+  "readOnly": true,
+  "whatsappMessagesSent": 0,
+  "metaEventsSent": 0,
+  "databaseMigrations": 0,
+  "globalDataBackupPass": false,
+  "encryptedRecoveryVerified": true,
+  "actualUiAudit": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "actualPublicUrl": "https://ec.maxlien.shop/qr.html?v=20261112-v206",
+    "authenticatedAdministrator": true,
+    "conversationCount": 3,
+    "syntheticQaMessagesVisible": 2,
+    "officialPriceVisible": "3 frascos: USD 95.99",
+    "screenshot": "popup-publicado.jpg",
+    "whatsappSends": 0
+  },
+  "nginxPublication": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "at": "2026-11-16T00:09:45.780834+00:00",
+    "target": "/etc/nginx/sites-enabled/ec.maxlien.shop.clean.conf",
+    "beforeSha256": "c15b0b39089e16947a0fbc0e97ca52bc2da417c78ab145563a2577b3a7c37f8b",
+    "afterSha256": "7918896fff109a7f0578b071ffc90b914c652f6a1dc08a331967de989d6f28a4",
+    "nginxTest": "PASS",
+    "gracefulReload": true,
+    "masterPidUnchanged": true,
+    "restarted": false,
+    "newReadRoutes": 2,
+    "allPreviousConfigBytesRecoveredAfterRemovingExactAdditions": true,
+    "encryptedPriorBackup": "NGINX_PRE_POPUP_V222.vbe"
+  },
+  "publicQa": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "at": "2026-11-16T00:11:09.625095+00:00",
+    "requestId": "qa_dashboard_v222_c124fea837e14e01aa6e08b52ef29000",
+    "syntheticName": "Camila Prueba",
+    "realPublicProxy": true,
+    "realModel": true,
+    "question": "Hola, soy Camila Prueba. ¿Cuál es el precio de 3 frascos de Vit Power? Es una prueba técnica; no confirmo ningún pedido.",
+    "reply": "Precio: 3 frascos: USD 95.99.",
+    "historyMessages": 2,
+    "retryDeduplicated": true,
+    "questionSubmissions": 1,
+    "retryForSameId": 1,
+    "whatsappSends": 0,
+    "realOrders": 0,
+    "metaEvents": 0,
+    "anonymousWebQaRecordRetainedForReview": true,
+    "cookiePersistedOrPrinted": false
+  },
+  "actualStoreReaderTest": {
+    "pass": true,
+    "actualRetainedStore": true,
+    "networkIsolated": true,
+    "conversationCount": 3,
+    "qaMessages": 2,
+    "knownPriceVerified": true,
+    "productionWrites": 0,
+    "messagesResent": 0
+  },
+  "backup": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\DASHBOARD_WEB_CHAT_V222\\20261115-r1",
+  "previousBackendFreezeTag": "freeze-vitalismen-ec-web-chat-v220-20261115",
+  "previousWebsiteFreezeTag": "freeze-vitalismen-ec-chat-copy-v221-20261115"
+}

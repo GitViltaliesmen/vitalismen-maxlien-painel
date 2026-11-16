@@ -1,0 +1,70 @@
+<!-- VITALISMEN_EC_WEB_DASHBOARD_V222_START -->
+<style>
+#webChatDashboardDialogV222{width:min(1000px,96vw);height:min(720px,90dvh);padding:0;border:1px solid #b9d9d0;border-radius:16px;color:#172b26;background:#fff;box-shadow:0 20px 70px #0005;overflow:hidden}
+#webChatDashboardDialogV222::backdrop{background:#142c2b85}
+.vpweb222-shell{display:flex;flex-direction:column;height:100%;font:14px/1.5 Arial,sans-serif}
+.vpweb222-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#eaf8f3;border-bottom:1px solid #d9e6e1}
+.vpweb222-header h2{margin:0;font-size:18px}.vpweb222-header p{margin:2px 0 0;font-size:12px;color:#486259}
+.vpweb222-header button{border:1px solid #b9d5cb;border-radius:20px;padding:7px 12px;background:#fff;color:#12664e;cursor:pointer}
+.vpweb222-title{flex:1}.vpweb222-status{margin:0;padding:8px 18px;border-bottom:1px solid #e4ece9;color:#52685f;min-height:36px;font-size:12px}
+.vpweb222-body{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:0;flex:1}
+.vpweb222-list{overflow:auto;border-right:1px solid #e0e9e5;background:#f8fbfa;padding:8px}
+.vpweb222-list button{display:block;text-align:left;width:100%;border:1px solid #dce9e3;border-radius:10px;padding:10px;margin-bottom:7px;background:#fff;color:#203c31;cursor:pointer}
+.vpweb222-list button[aria-pressed=true]{background:#e0f4eb;border-color:#078c66}.vpweb222-list strong,.vpweb222-list small{display:block;overflow-wrap:anywhere}.vpweb222-list small{color:#5b6e65}
+.vpweb222-thread{overflow:auto;padding:16px;background:#f0f4f1}.vpweb222-thread h3{font-size:15px;margin:0 0 12px}.vpweb222-thread p{overflow-wrap:anywhere}
+.vpweb222-bubble{max-width:90%;margin:10px 0;padding:10px 12px;border-radius:12px;background:white;box-shadow:0 1px 2px #0001;white-space:pre-wrap;overflow-wrap:anywhere}
+.vpweb222-bubble[data-role=assistant]{margin-left:auto;background:#dcf6e5}.vpweb222-bubble small{display:block;font-size:11px;color:#52685f;margin-top:5px}
+.vpweb222-footer{font-size:11px;color:#52685f;padding:9px 18px;border-top:1px solid #dfe9e3}
+@media(max-width:600px){#webChatDashboardDialogV222{width:96vw;height:92dvh}.vpweb222-body{grid-template-columns:minmax(0,1fr);grid-template-rows:145px minmax(0,1fr)}.vpweb222-list{border-right:0;border-bottom:1px solid #dfe9e3}.vpweb222-header{padding:10px;gap:6px}.vpweb222-header p{font-size:11px}.vpweb222-header button{padding:7px}.vpweb222-bubble{max-width:95%}}
+</style>
+<dialog id="webChatDashboardDialogV222" aria-labelledby="webChatDashboardTitleV222">
+ <div class="vpweb222-shell">
+  <header class="vpweb222-header"><div class="vpweb222-title"><h2 id="webChatDashboardTitleV222">Chat do site</h2><p>Vit Power · conversas da página · somente consulta</p></div><button id="webChatDashboardRefreshV222" type="button">Atualizar</button><button id="webChatDashboardCloseV222" type="button" aria-label="Fechar chat do site">Fechar ×</button></header>
+  <p id="webChatDashboardStatusV222" class="vpweb222-status" role="status" aria-live="polite"></p>
+  <div class="vpweb222-body"><nav id="webChatDashboardListV222" class="vpweb222-list" aria-label="Conversas do site"></nav><section id="webChatDashboardThreadV222" class="vpweb222-thread" aria-label="Conversa selecionada" aria-live="polite"></section></div>
+  <footer class="vpweb222-footer">Horários deste computador. Histórico disponível por até 7 dias. Visitantes sem nome permanecem anônimos. O atendimento por WhatsApp continua na lista principal.</footer>
+ </div>
+</dialog>
+<script>
+(() => {
+ 'use strict';
+ const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222');
+ let generation=0,controller=null,selected=null;
+ const token=()=>typeof state!=='undefined'?state.token:'';
+ const element=(tag,text,css)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(css)el.className=css;return el};
+ const format=value=>{const d=new Date(value);return value&&Number.isFinite(+d)?d.toLocaleString('pt-BR'):'Horário indisponível'};
+ const label=row=>row.name||'Visitante · '+String(row.id).slice(0,6);
+ function cancel(){generation++;controller?.abort();controller=null;}
+ async function request(suffix,signal){
+  const credential=token();if(!credential)throw Error('Entre no painel como administrador para consultar as conversas do site.');
+  const response=await fetch('/api/web-chat-admin/vitpower'+suffix,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential},signal});
+  if(response.status===401||response.status===403)throw Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.');
+  if(response.status===404)throw Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.');
+  if(!response.ok)throw Error('Não foi possível consultar o chat do site. Tente atualizar.');
+  return response.json();
+ }
+ async function select(row){
+  cancel();const current=generation;controller=new AbortController();selected=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
+  for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===row.id));
+  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;
+   const conversation=data.conversation;thread.append(element('h3',label(conversation)));
+   if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
+   for(const message of conversation.history){const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role=message.role;bubble.append(element('span',message.content),element('small',(message.role==='assistant'?'Ana Lopez':'Visitante')+' · '+format(message.at)));thread.append(bubble)}
+   status.textContent='Consulta atualizada. Nenhuma mensagem é enviada por este popup.';thread.scrollTop=thread.scrollHeight;
+  }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+ }
+ async function load(){
+  cancel();const current=generation;controller=new AbortController();selected=null;list.replaceChildren();thread.replaceChildren(element('p','Selecione uma conversa do site.'));status.textContent='Consultando conversas…';
+  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;
+   for(const row of data.conversations){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed','false');item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));item.addEventListener('click',()=>select(row));list.append(item)}
+   status.textContent=data.conversations.length?data.conversations.length+' conversa(s) disponível(is). Selecione um visitante.':'Nenhuma conversa do site com mensagens nos últimos 7 dias.';
+  }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+ }
+ button.addEventListener('click',()=>{if(!dialog.open)dialog.showModal();load()});
+ byId('webChatDashboardRefreshV222').addEventListener('click',load);
+ byId('webChatDashboardCloseV222').addEventListener('click',()=>dialog.close());
+ dialog.addEventListener('close',()=>{cancel();selected=null;list.replaceChildren();thread.replaceChildren();status.textContent=''});
+ byId('logoutBtn')?.addEventListener('click',()=>{cancel();if(dialog.open)dialog.close();list.replaceChildren();thread.replaceChildren()});
+})();
+</script>
+<!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
