@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V223_CLIENT_POPUP",
+  "siteUrl": "https://taviazen.shop/vitpower_2026g",
+  "scope": "STATIC_CHAT_LAUNCHER_AND_CHECKOUT_VISIBILITY_ONLY",
+  "target": "/var/www/vitalismen-vitpower-2026g/assets/chat-v220.js",
+  "beforeSha256": "17ff7bbf4d567fd7be8634547afe646c76ceb60cd151ec00a265412dfa6dfa99",
+  "afterSha256": "3d9b272051df02007ac6c09d964477213d5db75a123a0c044079095a6e7a16c4",
+  "backup": "/var/backups/vitalismen-ec/site-chat-popup-v223/20261116T005629Z/chat-v220.js",
+  "backendCommitUnchanged": "5a8659683c3d0b91e006efd7241f5287bd8b39af",
+  "servicesRestarted": false,
+  "vslCtaAndAttributionPreserved": true,
+  "launcherAvailableOnEntry": true,
+  "popupOpensOnCustomerClick": true,
+  "simulatedAssertions": 71,
+  "publicUiVerified": true,
+  "dashboardReceiptVerified": true,
+  "whatsappTestSends": 0,
+  "ordersCreated": 0,
+  "globalDataBackupPass": false
+}
