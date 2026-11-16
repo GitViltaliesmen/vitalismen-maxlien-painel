@@ -1,4 +1,4 @@
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-inbound-routing-sealed-v227-r1.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-vitpower-burst-sealed-v228-r6.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

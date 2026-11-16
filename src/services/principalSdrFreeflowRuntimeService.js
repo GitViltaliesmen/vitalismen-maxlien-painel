@@ -1,3 +1,4 @@
+import { assertBurstEnvelopeV228 } from './vitPowerBurstCoreV228Service.js';
 // Bind the conversational candidate to existing models, router lease and sender.
 // Ports are supplied by conversationEngine; this module creates no infrastructure.
 import { createHash } from 'node:crypto';
@@ -38,8 +39,14 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                 throw new Error('principal_sdr_router_lease_required');
             const inbound = await Message.find({ provider: 'zapi', isFromMe: false, peerPhone: phone,
                 sessionId: message.sessionId, $or: [{ _id: inboundId }, { providerMessageId: inboundId }] }).limit(2).lean();
-            if (inbound.length !== 1 || inbound[0].body !== message.body)
+            if (inbound.length !== 1 || inbound[0].body !== (message.originalBodyV228 || message.body))
                 throw new Error('principal_sdr_persisted_inbound_mismatch');
+            if (message.vitPowerBurstV228) {
+                const ids = message.vitPowerBurstV228.ids;
+                const rows = await Message.find({ _id: { $in: ids }, peerPhone: phone, provider: 'zapi', sessionId: message.sessionId, isFromMe: false }).lean();
+                const byId = new Map(rows.map(row => [String(row._id), row]));
+                assertBurstEnvelopeV228({ message, state, messages: ids.map(id => byId.get(id)).filter(Boolean), now: now() });
+            }
             if (state.human?.mode === 'manual' || time(state.human?.pausedUntil) > now().getTime())
                 return { handled: true, send: false, reason: 'human_hold_preserved' };
             if (phone === PRINCIPAL_SDR_QA_PHONE && !qaReady(state, inboundId, now()))
@@ -171,6 +178,9 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                     const latest = await ContactState.findOne(leaseQuery).lean();
                     if (!latest || humanTakeover || latest.human?.mode === 'manual' && (!handoffDone || JSON.stringify(latest.human || {}) !== handoffHumanSnapshot))
                         throw new Error('freeflow_human_takeover_before_send');
+                    if (message.vitPowerBurstV228 && latest.vitPowerBurstV228?.generation !== latest.vitPowerBurstV228?.lockedGeneration) {
+                        const error = new Error('burst_superseded_before_send'); error.code = 'BURST_SUPERSEDED_V228'; throw error;
+                    }
                     if (outboundAttempted) throw new Error('freeflow_outbound_already_attempted');
                     outboundAttempted = true;
                     const receipt = await sendReply({ text: result.reply, idempotencyKey: key });
@@ -197,7 +207,11 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
             try {
                 const agent = createPrincipalSdrFreeflowAgent({ complete: complete || createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }), withTurn, official, questionPriorityEnabled });
                 return await agent.handleTurn({ phone, messageId: inboundId, text: message.body });
-            } catch {
+            } catch (error) {
+                if (error?.code === 'BURST_SUPERSEDED_V228' && !outboundAttempted) {
+                    await OutboundDedupe.updateOne({ key, status: 'reserved' }, { $set: { status: 'failed', retryAllowed: false, error: 'burst_superseded_before_transport' } });
+                    return { handled: true, send: false, burstSuperseded: true };
+                }
                 // An ambiguous provider outcome is terminal: no automatic repeat.
                 await OutboundDedupe.updateOne({ key, status: 'reserved' }, { $set: { status: 'ambiguous', ambiguousAt: now(), retryAllowed: false, error: 'principal_sdr_turn_not_completed' } });
                 await official.handoff({ reason: 'principal_sdr_runtime_failure' });

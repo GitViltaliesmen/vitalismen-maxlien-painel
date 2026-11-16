@@ -1,3 +1,4 @@
+import { startVitPowerBurstV228 } from './services/vitPowerBurstRuntimeV228Service.js';
 import { startVitPowerB01V216 } from './services/vitPowerB01RuntimeV216Service.js';
 import {startGiraBridgeScheduler} from './services/gira21x/scheduler.mjs';
 import {runGira21xBridge} from './services/gira21x/runtime.mjs';
@@ -107,6 +108,7 @@ connectDB()
             return;
         }
         startVitPowerB01V216();
+        startVitPowerBurstV228();
         const compatibilityState = await OperationalSafetyState.findById(POST_SALE_SAFETY_STATE_ID)
             .lean()
             .catch((error) => {

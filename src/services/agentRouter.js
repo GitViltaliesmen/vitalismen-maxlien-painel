@@ -1,3 +1,5 @@
+import { handleVitPowerBurstInboundV228 } from './vitPowerBurstRuntimeV228Service.js';
+import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 import {routeGiraInbound} from './gira21x/cohort.mjs';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -922,7 +924,9 @@ export const routeIncomingMessage = async (payload) => {
         };
     }
 
-    const inboundAlreadyProcessed = payload.recovered === true
+    const verifiedBurstV228 = payload.vitPowerBurstV228 && currentEcBotCoreRuntimeContextV78()?.burstV228;
+    if (payload.vitPowerBurstV228 && (!verifiedBurstV228 || verifiedBurstV228.token !== payload.vitPowerBurstV228.token || verifiedBurstV228.phone !== state.phoneDigits)) throw new Error('burst_router_context_required');
+    const inboundAlreadyProcessed = verifiedBurstV228 ? false : payload.recovered === true
         ? hasProcessedInboundMessageId({ state, messageId })
         : priorityBotTestPhone
         ? hasProcessedInboundMessageId({ state, messageId })
@@ -932,7 +936,7 @@ export const routeIncomingMessage = async (payload) => {
         return;
     }
     markInboundProcessed({ state, messageId, body });
-    await saveInboundMessage({ messageId, chatId, senderPn, body, sessionId });
+    if (!verifiedBurstV228) await saveInboundMessage({ messageId, chatId, senderPn, body, sessionId });
 
     const isFirstInbound = !state.firstInboundText;
 
@@ -1112,6 +1116,12 @@ export const routeIncomingMessage = async (payload) => {
     if (!isAutoReplyAllowedForChat(chatId, senderPn, state.phoneDigits)) {
         console.log(`[ROUTER] auto-resposta bloqueada fora da lista permitida | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
         return;
+    }
+
+    if (decision.productKey === 'vit_power_ec' && !verifiedBurstV228) {
+        const burst = await handleVitPowerBurstInboundV228({ contactId: String(state._id), phone: state.phoneDigits,
+            chatId, sessionId, inboundId: messageId, text: body, productKey: decision.productKey });
+        if (burst.handled) return;
     }
 
     const lockAcquired = await acquireContactProcessingLock({ stateId: state._id, messageId });

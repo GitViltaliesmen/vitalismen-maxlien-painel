@@ -46,8 +46,17 @@ const vitPowerB01Schema = new mongoose.Schema({
     lockToken: String, lockedUntil: Date, reason: String, steps: [vitPowerB01StepSchema]
 }, { _id: false });
 
+const vitPowerBurstV228Schema = new mongoose.Schema({
+    version: String, status: String, phone: String, chatId: String, sessionId: String,
+    generation: Number, lockedGeneration: Number, pendingIds: [String], seenIds: [String], lockedIds: [String],
+    dueAt: Date, lastInboundAt: Date, createdAt: Date, claimedAt: Date, lockToken: String,
+    lockedUntil: Date, sentAt: Date, providerMessageId: String, reason: String,
+    history: [{ ids: [String], sentAt: Date, providerMessageId: String, _id: false }]
+}, { _id: false });
+
 const contactStateSchema = new mongoose.Schema({
     vitPowerB01: { type: vitPowerB01Schema, default: undefined },
+    vitPowerBurstV228: { type: vitPowerBurstV228Schema, default: undefined },
     chatId: {
         type: String,
         required: true,

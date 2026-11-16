@@ -1,3 +1,4 @@
+import { verifyVitPowerBurstInputV228 } from './vitPowerBurstRuntimeV228Service.js';
 import { prioritizeFreeflowV219 } from './freeflowQuestionPriorityV219Service.js';
 import { handleVitPowerB01InboundV216 } from './vitPowerB01RuntimeV216Service.js';
 import { principalSdrQaRuntimeReadyV212 } from './principalSdrQaIngressV212Service.js';
@@ -8057,6 +8058,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
     try {
         console.log(`[LOG_HANDLER_ENTER] 🚀 Processando mensagem... produto=${agentProfile?.key || 'nao_definido'}`);
 
+        if (msg.vitPowerBurstV228) await verifyVitPowerBurstInputV228(msg);
         const text = msg.body || '';
         const jid = msg.from;
 
@@ -8098,7 +8100,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
         }
 
         // V216 takes only a first generic Vit Power entry; specific intentions keep the existing route.
-        if (agentProfile.key === 'vit_power_ec' && msg.contactStateId) {
+        if (agentProfile.key === 'vit_power_ec' && msg.contactStateId && !msg.vitPowerBurstV228) {
             const entry = await handleVitPowerB01InboundV216({ contactId: msg.contactStateId,
                 phone: peerPhone, chatId, sessionId: msg.sessionId, inboundId: msg.id,
                 text, productKey: agentProfile.key, origin: 'automatic' });
@@ -8121,7 +8123,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
 
         const questionPriorityEnabledV219 = agentProfile.key === 'vit_power_ec'
             && globalThis.__VITALISMEN_EC_FREEFLOW_V219?.canHandle?.(peerPhone) === true;
-        const questionPriorityV219 = prioritizeFreeflowV219({ productKey: agentProfile.key, enabled: questionPriorityEnabledV219, text });
+        const questionPriorityV219 = Boolean(msg.vitPowerBurstV228) || prioritizeFreeflowV219({ productKey: agentProfile.key, enabled: questionPriorityEnabledV219, text });
         const directProductInquiry = questionPriorityV219 ? { handled: false } : await maybeHandleEcuadorDirectProductInquiry({
             text,
             chatId,
@@ -8194,7 +8196,7 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
         const freeflowCapability = globalThis.__VITALISMEN_EC_PRINCIPAL_SDR_V212;
         const structuredOrderData = looksLikeOrderDataMessage(text)
             && /(?:nombre|ciudad|provincia|direccion|dirección|agencia|cantidad)\s*:/i.test(text);
-        const quantityOnly = /^(?:1|2|3|6|uno|una|dos|tres|seis)(?:\s+frascos?)?[.!\s]*$/i.test(text.trim());
+        const quantityOnly = !msg.vitPowerBurstV228 && /^(?:1|2|3|6|uno|una|dos|tres|seis)(?:\s+frascos?)?[.!\s]*$/i.test(text.trim());
         if (agentProfile.key === VIT_POWER_AGENT_KEY && freeflowCapability?.canHandle?.(peerPhone) === true
             && !structuredOrderData && !quantityOnly) {
             try {

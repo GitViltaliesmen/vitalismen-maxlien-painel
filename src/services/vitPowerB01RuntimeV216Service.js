@@ -36,7 +36,11 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
     if (product && product !== 'vit_power_ec' || state.assignedAgent && state.assignedAgent !== 'vit_power_ec') return { allowed: false, reason: 'product_changed' };
     if (await hasOrder(job.phone)) return { allowed: false, reason: 'active_order' };
     const latest = await Messages.findOne(incoming(job.phone)).sort({ createdAt: -1, timestamp: -1 }).select('_id providerMessageId').lean();
-    if (!latest || ![String(latest._id), latest.providerMessageId].includes(job.inboundId)) return { allowed: false, reason: 'new_inbound' };
+    const burst = globalThis.__VITALISMEN_EC_BURST_V228?.readPolicy?.();
+    const greetingGrace = burst?.enabled && (burst.audience !== 'QA_ONLY' || job.phone === qa) && (job.cursor === 0 || job.cursor === undefined && job.origin === 'automatic' && state.metadata?.vslEntryMessage === job.text)
+      && +new Date(job.startedAt || state.firstInboundAt) >= +new Date(burst.activatedAt)
+      && Date.now() - +new Date(job.startedAt || state.firstInboundAt) < 60000;
+    if (!latest || !greetingGrace && ![String(latest._id), latest.providerMessageId].includes(job.inboundId)) return { allowed: false, reason: 'new_inbound' };
     return { allowed: true };
   }
   return {
@@ -50,7 +54,13 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
       if (!proof || input.origin !== 'manual' && proof.body !== input.text) return { allowed: false, reason: 'inbound_proof_missing' };
       if (input.origin !== 'manual') {
         if (input.phone !== qa && !(+new Date(state.createdAt) >= +new Date(p.activatedAt))) return { allowed: false, reason: 'existing_contact' };
-        if (input.phone !== qa && await Messages.countDocuments(incoming(input.phone)) !== 1) return { allowed: false, reason: 'existing_conversation' };
+        if (input.phone !== qa && await Messages.countDocuments(incoming(input.phone)) !== 1) {
+          const burst = globalThis.__VITALISMEN_EC_BURST_V228?.readPolicy?.();
+          const recentNewEntry = burst?.enabled && (burst.audience !== 'QA_ONLY' || input.phone === qa) && state.metadata?.vslEntryMessage === input.text
+            && +new Date(state.firstInboundAt) >= +new Date(burst.activatedAt)
+            && Date.now() - +new Date(state.firstInboundAt) < 60000;
+          if (!recentNewEntry) return { allowed: false, reason: 'existing_conversation' };
+        }
         if (await Messages.exists({ peerPhone: input.phone, sessionId: 'zapi', isFromMe: true })) return { allowed: false, reason: 'presentation_or_reply_exists' };
       }
       if (input.origin === 'manual' && await Messages.exists({ peerPhone: input.phone, sessionId: 'zapi', isFromMe: true,

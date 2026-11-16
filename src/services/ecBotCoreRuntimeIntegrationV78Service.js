@@ -1,3 +1,4 @@
+import { assertBurstEnvelopeV228, BURST_VERSION_V228 } from './vitPowerBurstCoreV228Service.js';
 import { webChatRequestAllowedV220 } from './vitPowerWebChatV220Application.js';
 import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 } from './principalSdrQaIngressV212Service.js';
 import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
@@ -655,6 +656,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (currentEcBotCoreRuntimeContextV78()?.burstV228?.finalizeOnly || currentEcBotCoreRuntimeContextV78()?.burstV228?.claimOnly) throw new Error('burst_finalize_only_no_external_effect');
     if (currentEcBotCoreRuntimeContextV78()?.b01V216 && effect !== 'zapi_outbound_reply') throw new Error('b01_external_effect_denied');
     if (giraRuntimePolicy.external(effect) && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
     if (manualExternalAllowed(effect)
@@ -729,6 +731,23 @@ const patchMongoPrototype = (prototype) => {
             configurable: true,
             writable: true,
             value: function ecBotCoreV78MongoGuardedMutation(...args) {
+                const burstScopeV228 = currentEcBotCoreRuntimeContextV78()?.burstV228;
+                if (burstScopeV228 && !burstScopeV228.claimOnly && !burstScopeV228.finalizeOnly
+                    && String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase() === 'contactstates'
+                    && method === 'updateOne' && !args[0]?._id && args[1]?.$set?.phoneDigits === burstScopeV228.phone) {
+                    const alternatives = args[0]?.$or;
+                    const sameTarget = Array.isArray(alternatives) && alternatives.length > 0 && alternatives.every(q =>
+                        q.chatId && digits(q.chatId) === burstScopeV228.phone
+                        || q.phoneDigits?.$regex === burstScopeV228.phone.slice(-10) + '$');
+                    if (sameTarget) {
+                        args[0] = { ...args[0], _id: burstScopeV228.contactObjectId };
+                        args[2] = { ...args[2], upsert: false };
+                    }
+                }
+                if (burstScopeV228 && !burstMongoMutationAllowedV228(burstScopeV228,
+                    String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)) {
+                    throw new Error('burst_scoped_mongo_write_denied');
+                }
                 const b01ScopeV216 = currentEcBotCoreRuntimeContextV78()?.b01V216;
                 if (b01ScopeV216 && !b01MongoMutationAllowedV216(b01ScopeV216,
                     String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)) {
@@ -902,4 +921,52 @@ export function b01MongoMutationAllowedV216(scope, collection, method, args) {
         return keys.length > 0 && keys.every(k => scope.keys.has(k) || k.startsWith(scope.phone + ':'));
     }
     return false;
+}
+
+// A delayed reply receives authority only from a locked job and exact provider inputs.
+export async function runPersistedBurstV228({ contactId, token, finalizeOnly = false, claimOnly = false }, work) {
+    const policy = globalThis.__VITALISMEN_EC_BURST_V228?.readPolicy?.();
+    if (!policy?.enabled || !resolveEcBotCoreV78Configuration(process.env).ready) throw Error('burst_policy_not_active');
+    const { default: Contact } = await import('../models/ContactState.js');
+    const { default: Messages } = await import('../models/Message.js');
+    const state = await Contact.findById(contactId).lean(), job = state?.vitPowerBurstV228;
+    if (!state || !/^(?:593[2-79]\d{8}|5515998038637)$/.test(state.phoneDigits)
+        || !job || job.version !== BURST_VERSION_V228 || job.status !== (claimOnly ? 'pending' : 'processing') || !claimOnly && job.lockToken !== token
+        || !(claimOnly ? job.pendingIds : job.lockedIds)?.length || (claimOnly ? job.pendingIds : job.lockedIds).length > 40 || job.phone !== state.phoneDigits) throw Error('burst_locked_job_required');
+    if (!finalizeOnly && !claimOnly && +new Date(job.lockedUntil) <= Date.now()) throw Error('burst_job_lease_expired');
+    const inputIds = claimOnly ? job.pendingIds : job.lockedIds;
+    const rows = await Messages.find({ _id: { $in: inputIds }, peerPhone: state.phoneDigits,
+        provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: '5531971862958', isFromMe: false }).lean();
+    if (rows.length !== inputIds.length) throw Error('burst_exact_persisted_inputs_required');
+    const scope = { contactId: String(state._id), phone: state.phoneDigits, chatId: state.chatId,
+        token, finalizeOnly, claimOnly, generation: job.generation, contactObjectId: state._id, messages: new Set(), keys: new Set(), orders: new Set(), inputIds: new Set(inputIds) };
+    return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method: 'POST', path: '/api/zapi/webhook/received',
+        writeContext: true, burstV228: scope }, async () => await work());
+}
+export function burstMongoMutationAllowedV228(scope, collection, method, args) {
+    const query = args[0] || {}, update = args[1] || {}, doc = method === 'insertOne' ? query : { ...update.$setOnInsert, ...update.$set };
+    if (collection === 'contactstates' && doc.phoneDigits && doc.phoneDigits !== scope.phone) return false;
+    if (scope.claimOnly) {
+        const values = update.$set || {}, ids = values['vitPowerBurstV228.lockedIds'];
+        return collection === 'contactstates' && ['findOneAndUpdate', 'findAndModify'].includes(method)
+            && String(query._id || '') === scope.contactId && query['vitPowerBurstV228.status'] === 'pending'
+            && query['vitPowerBurstV228.generation'] === scope.generation
+            && values['vitPowerBurstV228.status'] === 'processing' && values['vitPowerBurstV228.lockToken'] === scope.token
+            && values['vitPowerBurstV228.lockedGeneration'] === scope.generation
+            && Array.isArray(ids) && ids.length === scope.inputIds.size && ids.every(id => scope.inputIds.has(id))
+            && Object.keys(values).every(key => ['vitPowerBurstV228.status','vitPowerBurstV228.lockToken','vitPowerBurstV228.lockedUntil','vitPowerBurstV228.lockedIds','vitPowerBurstV228.lockedGeneration','vitPowerBurstV228.claimedAt','updatedAt'].includes(key));
+    }
+    if (scope.finalizeOnly) return collection === 'contactstates' && method === 'updateOne'
+        && String(query._id || '') === scope.contactId && query['vitPowerBurstV228.lockToken'] === scope.token
+        && Object.keys(update.$set || {}).every(key => key.startsWith('vitPowerBurstV228.') || key.startsWith('metadata.automationHandoffSuggested') || ['human.mode','human.pausedUntil','human.note','updatedAt'].includes(key));
+    if (['contactstates', 'messages', 'outbounddedupes'].includes(collection))
+        return b01MongoMutationAllowedV216(scope, collection, method, args);
+    if (collection === 'orders') {
+        if (method === 'insertOne' && doc.country === 'EC' && digits(doc.customer?.phone) === scope.phone) {
+            if (doc.orderId) scope.orders.add(doc.orderId); return true;
+        }
+        return typeof query.orderId === 'string' && scope.orders.has(query.orderId);
+    }
+    // Other collections still require their original V78 and measurement contracts below.
+    return true;
 }

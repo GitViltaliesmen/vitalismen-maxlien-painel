@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-inbound-routing-sealed-v227-r1.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-inbound-routing-profile-v227-r1.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-vitpower-burst-sealed-v228-r6.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-vitpower-burst-profile-v228-r6.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

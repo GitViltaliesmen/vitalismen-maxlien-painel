@@ -24,7 +24,7 @@ export function isB01GenericEntry(text = '') {
 export function b01Greeting(name, date = new Date()) {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guayaquil', hour: '2-digit', hourCycle: 'h23' }).format(date));
   const greeting = hour >= 5 && hour < 12 ? '¡Buenos días' : hour >= 12 && hour < 19 ? '¡Buenas tardes' : '¡Buenas noches';
-  return `${greeting}${name ? ', ' + name : ''}! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando.`;
+  return `¡Hola! ${greeting.slice(1)}${name ? ', ' + name : ''}! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando.`;
 }
 export function createB01({ repo, send, policy, now = () => new Date(), random = Math.random }) {
   const delay = (min, max) => min + Math.floor(Math.min(.999999, Math.max(0, random())) * (max - min + 1));
