@@ -1,0 +1,27 @@
+<!-- VITALISMEN_EC_DASHBOARD_FLOATING_CHAT_V224_START -->
+<style>
+#dashboardFloatingChatV224{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:160;display:flex;align-items:center;gap:9px;min-height:48px;padding:12px 18px;border:1px solid #d6eee3;border-radius:999px;background:#087e5b;color:#fff;box-shadow:0 5px 22px #103c353b;font:600 14px/1.3 Arial,sans-serif;cursor:pointer}
+#dashboardFloatingChatV224[hidden]{display:none!important}
+#dashboardFloatingChatV224:hover{background:#06674b}
+#dashboardFloatingChatV224:focus-visible{outline:3px solid #dcaa42;outline-offset:3px}
+#dashboardFloatingChatV224 .vp224-icon{font-size:21px;line-height:1}
+@media(max-width:600px){#dashboardFloatingChatV224{right:12px;bottom:max(14px,env(safe-area-inset-bottom));padding:11px 15px;min-height:46px}}
+</style>
+<button id="dashboardFloatingChatV224" type="button" hidden aria-label="Abrir popup Chat do site" aria-haspopup="dialog" aria-expanded="false" aria-controls="webChatDashboardDialogV222"><span class="vp224-icon" aria-hidden="true">💬</span><span>Chat do site</span></button>
+<script>
+(() => {
+ 'use strict';
+ const launcher=document.getElementById('dashboardFloatingChatV224');
+ const trigger=document.getElementById('webChatDashboardBtnV222');
+ const dialog=document.getElementById('webChatDashboardDialogV222');
+ const dashboard=document.getElementById('dashboard');
+ if(!launcher||!trigger||!dialog||!dashboard)return;
+ const sync=()=>{launcher.hidden=dashboard.classList.contains('hidden')||dialog.open;launcher.setAttribute('aria-expanded',String(dialog.open));};
+ launcher.addEventListener('click',()=>trigger.click());
+ const observer=new MutationObserver(sync);
+ observer.observe(dialog,{attributes:true,attributeFilter:['open']});
+ observer.observe(dashboard,{attributes:true,attributeFilter:['class']});
+ sync();
+})();
+</script>
+<!-- VITALISMEN_EC_DASHBOARD_FLOATING_CHAT_V224_END -->

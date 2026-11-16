@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V224_DASHBOARD_FLOATING_CHAT",
+  "url": "https://ec.maxlien.shop/qr.html?v=20261112-v206",
+  "target": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "beforeSha256": "e61d4c6ce109f32a35256f16c03859051b3047cf5c7975279b0261e5048d000b",
+  "afterSha256": "0438968507afce4fde13ed4b8638124aff2664e9377b814ba097d0c2a771ec4c",
+  "backup": "/opt/vitalismen-automacao/backups/dashboard-floating-chat-v224/20261116T010446Z/qr.before.html",
+  "scope": "ADDITIVE_FLOATING_LAUNCHER_REUSES_EXISTING_READ_ONLY_DIALOG",
+  "checks": 44,
+  "actualUiVerified": true,
+  "backendChanged": false,
+  "servicesRestarted": false,
+  "customerDraftPreserved": true,
+  "whatsappSends": 0,
+  "ordersCreated": 0,
+  "globalDataBackupPass": false
+}
