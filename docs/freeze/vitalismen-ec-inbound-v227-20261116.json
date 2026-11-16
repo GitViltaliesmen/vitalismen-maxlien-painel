@@ -1,0 +1,28 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 227,
+  "status": "PUBLISHED_ACTIVE_ENTRY_FIX",
+  "release": "/opt/vitalismen-automacao/releases/20261116T065554Z_production-20261116-7db0a30",
+  "commit": "7db0a30bf7397c768294f626b555b2d3c99fee34",
+  "tree": "def52a6b84495c684f05112b086d63becc28f038",
+  "seal": "0e1ebae27d3e5c6447babf024d8840e34649ba56483cb0f275484fb24993e31d",
+  "files": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "cc6c51801eaf5b4dfa5cab18d15a11487a40bbb36d9dcc3e4631cb9cc03d62e5",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "993e1bcbf92e4584f1312f3a062f9003ccba1aa727bb4de9f24fbed276b63b2a",
+    "src/routes/zapi.js": "ca3e99fe83714eb5b38344866a4c48c32030e1be9fe6e150b574b771d0aacbc8",
+    "src/services/agentRouter.js": "b121d37663b45ce62f945da8dff2f1eeeb676bc11f779cb7bc095538f6571f31",
+    "tests/inbound-product-owner-v227.test.mjs": "4addce19132d1f2066dfea0f010a9348f7ae1995ca09d432533318bada2a3ec0"
+  },
+  "panelSha256": "5b33b610c62c8aa8316337d6068787093146fbb4baa33fbf11e584a6e9e1ecd4",
+  "physicalNewWhatsAppProof": "PENDING",
+  "globalMongoBackup": "FAIL",
+  "scope": "exact current Vit Power CTA and preservation of verified Z-API owner",
+  "report": "docs/ENTRADA_VITPOWER_V227_AUDITADA_20261116.md",
+  "evidenceSha256": {
+    "QUALIFICATION.json": "2b3599c80cdbff08d44e683dbe652b3de38f70e9ecfb657232910d854cd0c670",
+    "HTTP_TEST.json": "5dbe0aedc8b191e23a9e525bb35160e5adff469d0dc46096598074438da3c288",
+    "LIVE_MODEL_TEST.json": "7aeb039f2a4312392c8b3c1cf0477455f733d6e710c94e816be42d34d76f8939",
+    "ACTIVATION.json": "62eb89d4fe2e499fbe11e9e8e04c00dc3866ef3a450e62eb8f848a8ac6215932",
+    "LIVE_AUDIT.json": "ae0e61e17757ce32c87b5fedf8c20e66007a4706a5a921357a6ad5589829ee9c"
+  }
+}
