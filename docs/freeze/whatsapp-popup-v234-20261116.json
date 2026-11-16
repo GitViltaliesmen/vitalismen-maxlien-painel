@@ -1,0 +1,24 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "scope": "READ_ONLY_WHATSAPP_HISTORY_INSIDE_NONMODAL_POPUP",
+  "publicSha256": "b07b2e939b6d80f2f5a6d7ccb8bfd218c6f2dec4465a9c3b9e974e7e049a1c65",
+  "sourceCommit": "2e13387b7f00ebfdc78a9053d66157cb02e2c2fb",
+  "backendRelease": "/opt/vitalismen-automacao/releases/20261116T195949Z_production-20261116-a46af49",
+  "backendUnchanged": true,
+  "tests": 132,
+  "controlTests": 42,
+  "realSearchConfirmed": true,
+  "popupConversationConfirmed": true,
+  "mainConversationUnchanged": true,
+  "serviceRestarts": 0,
+  "proofs": {
+    "PUBLICATION": "1be5ca90e5d4786cffbd60bbe5a893fde885ff993da3375b5263a30c872e88d3",
+    "PUBLIC_VALIDATION": "130d5a6194234020ae0304efae0e14b2363d9a0984c57581f12fd6638ef550fc",
+    "LIVE_RUNTIME": "d45a08441ae978b3b2f13c6d9b0c2a07f784b7fe75228f9b7f2e606962e525aa",
+    "BACKUP_VERIFICATION": "18581e5beba033727da907c1aeefcf6526ce432732ff90b376da979585657cda",
+    "CONTROLLER_V5_REGISTRATION": "46caf53b54ca8f4bc27d11850bad9884f9a7f1a90fd8814e07d864609dd6b6fe",
+    "OPERATIONS_TEST_V5": "389142366c23dab65377bc486ec9b476c88a49535366c8c857ed233c8e4b8037",
+    "PANEL_BROWSER_TEST": "a5dec41f41293ef2b0c799c92936f90dc1273cf851e8547d4d959021e516a870"
+  }
+}

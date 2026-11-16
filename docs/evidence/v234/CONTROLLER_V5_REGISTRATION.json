@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T22:45:29.619799+00:00",
+  "controllerSha256": "5bb91c3eb01de1a1880daba32949fa7399db635df1576dd4b14d3b9e45beacf6",
+  "bindingSha256": "aa97c6121a7bc829691b1f8997b80dedf8857cef5872f2a99c5455433f9d2ee7",
+  "checks": 42,
+  "originalDryRunParsed": "PASS_DRY_RUN",
+  "originalDryRunSendCount": 0,
+  "nestedReportCannotHideRootFailure": true,
+  "appSourceUnchanged": true,
+  "pm2Restarts": 0,
+  "oldControllerAndBindingPreserved": true,
+  "newDropin": "/etc/systemd/system/vitalismen-postsale-full-v203.service.d/zzzzzzzzzzzzzzzzzzzzzzz-ec-whatsapp-popup-v234.conf"
+}
