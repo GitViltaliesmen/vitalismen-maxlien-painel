@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T23:08:20.936291+00:00",
+  "controllerSha256": "f518f06e767c22f470b380f6b36d08a7251198512f621fcf48828e8f0caac28b",
+  "bindingSha256": "07785740c9408ac07fd9a38dfb97c5e08ef850b57b0295dbae7af1b590a94fb5",
+  "checks": 51,
+  "originalDryRunParsed": "PASS_DRY_RUN",
+  "originalDryRunSendCount": 0,
+  "nestedReportCannotHideRootFailure": true,
+  "appSourceUnchanged": true,
+  "pm2Restarts": 0,
+  "oldControllerAndBindingPreserved": true,
+  "newDropin": "/etc/systemd/system/vitalismen-postsale-full-v203.service.d/zzzzzzzzzzzzzzzzzzzzzzzz-ec-whatsapp-compose-v235.conf"
+}
