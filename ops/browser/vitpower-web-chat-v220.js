@@ -3,6 +3,7 @@
   'use strict';
   if (w.location.hostname !== 'taviazen.shop' || w.location.pathname !== '/vitpower_2026g' || w.__vpChatV220) return;
   w.__vpChatV220 = true;
+  var openOrderFormV232 = w.location.hash === '#consulta-pedido';
   var endpoint = '/api/vitpower-chat', source = 'https://taviazen.shop/vitpower_2026g', phone = '553171862958';
   var host, root, dialog, launcher, log, input, send, status, handoff, invite, voiceToggle, orderPanel, orderCode, orderResult, pending = false, started = false, history = [], voiceEnabled = false, voiceBusy = false, audio = null, audioUrl = null, lastReplyId = 'welcome_ana_lopez_v231', voiceGeneration = 0;
   function element(tag, className, text) { var n = d.createElement(tag); if (className) n.className = className; if (text) n.textContent = text; return n; }
@@ -36,7 +37,7 @@
     pending = true; send.disabled = true; status.textContent = 'Conectando…';
     request({ action: 'start' }).then(function (v) { started = true; history = v.history || []; lastReplyId = v.voiceReplyId || 'welcome_ana_lopez_v231'; render(); status.textContent = ''; })
       .catch(function () { status.textContent = 'El chat no está disponible ahora. Puedes continuar por el WhatsApp oficial.'; })
-      .finally(function () { pending = false; send.disabled = !started || !input.value.trim(); });
+      .finally(function () { pending = false; send.disabled = !started || !input.value.trim(); if (started && openOrderFormV232) { openOrderFormV232 = false; orderPanel.hidden = false; orderCode.focus(); } });
   }
   function build() {
     host = element('div'); host.id = 'vp-web-chat-v220'; root = host.attachShadow({ mode: 'open' });
@@ -122,6 +123,7 @@
   function synchronize() {
     scheduled = false;
     if (!host) build();
+    if (openOrderFormV232 && !started && !pending) open();
     // The FAQ popup is available on entry; the existing offer still controls checkout access.
     var unlocked = visible(cta());
     handoff.hidden = !unlocked; handoff.style.display = unlocked ? '' : 'none';
@@ -135,5 +137,6 @@
     var chain = event.composedPath ? event.composedPath() : [event.target];
     if (handoff && chain.indexOf(handoff) !== -1 && !visible(cta())) { event.preventDefault(); event.stopImmediatePropagation(); }
   }, true);
+  w.addEventListener('hashchange', function () { if (w.location.hash !== '#consulta-pedido') return; openOrderFormV232 = true; if (host) { open(); if (started) { openOrderFormV232 = false; orderPanel.hidden = false; orderCode.focus(); } } else schedule(); });
   w.addEventListener('resize', schedule); schedule();
 })(window, document);
