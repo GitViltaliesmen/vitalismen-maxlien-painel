@@ -963,9 +963,17 @@ export function burstMongoMutationAllowedV228(scope, collection, method, args) {
         return b01MongoMutationAllowedV216(scope, collection, method, args);
     if (collection === 'orders') {
         if (method === 'insertOne' && doc.country === 'EC' && digits(doc.customer?.phone) === scope.phone) {
-            if (doc.orderId) scope.orders.add(doc.orderId); return true;
+            if (doc.orderId) scope.orders.add(doc.orderId);
+            // Mongoose saves the same newly inserted order by its internal _id.
+            const mongoId = String(doc._id || '');
+            if (/^[a-f0-9]{24}$/i.test(mongoId)) scope.orders.add('mongo:' + mongoId);
+            return true;
         }
-        return typeof query.orderId === 'string' && scope.orders.has(query.orderId);
+        if (typeof query.orderId === 'string' && scope.orders.has(query.orderId)) return true;
+        const mongoId = String(query._id || '');
+        return method === 'updateOne' && /^[a-f0-9]{24}$/i.test(mongoId)
+            && scope.orders.has('mongo:' + mongoId) && args[2]?.upsert !== true
+            && Object.keys(query).every(key => key === '_id' || key === '__v');
     }
     // Other collections still require their original V78 and measurement contracts below.
     return true;

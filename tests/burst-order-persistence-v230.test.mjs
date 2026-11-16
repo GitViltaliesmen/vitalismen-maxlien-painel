@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+const source=fs.readFileSync(new URL('../src/services/ecBotCoreRuntimeIntegrationV78Service.js',import.meta.url),'utf8');
+const code=source.slice(source.indexOf('export function burstMongoMutationAllowedV228(')).replace('export function','function');
+const allowed=Function('digits',code+';return burstMongoMutationAllowedV228;')(value=>String(value||'').replace(/\D/g,''));
+const id='507f1f77bcf86cd799439011',foreign='507f1f77bcf86cd799439012';
+const setup=()=>({phone:'593980000071',orders:new Set(),messages:new Set(),keys:new Set()});
+const insert=(s,overrides={})=>allowed(s,'orders','insertOne',[{_id:id,orderId:'EC-SIM-ONLY',country:'EC',customer:{phone:'+593980000071'},...overrides}]);
+test('Mongoose _id save is denied before this exact scope inserts the order',()=>assert.equal(allowed(setup(),'orders','updateOne',[{_id:id},{$set:{status:'confirmed'}}]),false));
+test('Mongoose _id save follows only the exact order inserted within the same scope',()=>{const s=setup();assert(insert(s));assert(allowed(s,'orders','updateOne',[{_id:id},{$set:{status:'confirmed'}}]));assert(allowed(s,'orders','updateOne',[{_id:id,__v:0},{$set:{status:'confirmed'}}]));assert.equal(allowed(setup(),'orders','updateOne',[{_id:id},{$set:{status:'confirmed'}}]),false);});
+for(const [name,query,method,options]of [['foreign identity',{_id:foreign},'updateOne',{}],['broad query',{},'updateOne',{}],['unrelated selector',{_id:id,'customer.phone':'foreign'},'updateOne',{}],['upsert',{_id:id},'updateOne',{upsert:true}],['bulk save',{_id:id},'updateMany',{}],['malformed identity',{_id:'not-an-object-id'},'updateOne',{}]])test('order scope blocks '+name,()=>{const s=setup();assert(insert(s));assert.equal(allowed(s,'orders',method,[query,{$set:{status:'confirmed'}},options]),false);});
+for(const overrides of [{country:'CO'},{customer:{phone:'593980000072'}},{customer:{phone:'5515998038637'}}])test('foreign insert cannot register an internal identity '+JSON.stringify(overrides),()=>{const s=setup();assert.equal(insert(s,overrides),false);assert.equal(s.orders.has('mongo:'+id),false);assert.equal(allowed(s,'orders','updateOne',[{_id:id},{$set:{status:'confirmed'}}]),false);});
+test('existing commercial order identifier remains accepted in its scope',()=>{const s=setup();assert(insert(s));assert(allowed(s,'orders','updateOne',[{orderId:'EC-SIM-ONLY'},{$set:{status:'confirmed'}}]));});

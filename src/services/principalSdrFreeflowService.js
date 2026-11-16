@@ -91,10 +91,14 @@ const safeContext = context => ({
 });
 const officialFact = result => result?.ok === true && typeof result.source === 'string' && clean(result.source)
     && result.verified === true;
-const orderSnapshot = (draft, offer) => fingerprint({
-    draft: Object.fromEntries(Object.keys(draft).sort().map(key => [key, draft[key]])),
+// Product identity belongs to the verified offer in every turn, including after copyDraft.
+const orderSnapshot = (draft, offer) => {
+    const canonicalDraft = { ...draft, productKey: offer.productKey };
+    return fingerprint({
+    draft: Object.fromEntries(Object.keys(canonicalDraft).sort().map(key => [key, canonicalDraft[key]])),
     offer: { productKey: offer.productKey, quantity: offer.quantity, total: offer.total, currency: offer.currency, priceCatalog: offer.priceCatalog || 'normal', version: offer.version || null }
-});
+    });
+};
 const SAFE_HANDOFF = 'No puedo confirmar ese dato con la informacion oficial disponible. Voy a solicitar apoyo de una persona del equipo para ayudarle sin darle una condicion incorrecta.';
 const abortable = (promise, signal) => new Promise((resolve, reject) => {
     const abort = () => reject(new Error('freeflow_deadline_exceeded'));

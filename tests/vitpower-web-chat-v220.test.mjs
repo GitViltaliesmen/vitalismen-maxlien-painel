@@ -89,9 +89,10 @@ test('failed or uncertain requests are terminal and are never repeated automatic
   await assert.rejects(() => store.transact(a.token, 'request_uncertain_01', 'Hola', run), /previous_outcome/); assert.equal(calls, 1);
 }));
 test('concurrent requests on the same session do not start a second model turn', async () => withStore(async store => {
-  const a = await store.open(''); let finish;
-  const first = store.transact(a.token, 'request_concurrent_01', 'Hola', async () => new Promise(r => { finish = r; }));
-  await new Promise(r => setTimeout(r, 30));
+  const a = await store.open(''); let finish, started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const first = store.transact(a.token, 'request_concurrent_01', 'Hola', async () => new Promise(r => { finish = r; started(); }));
+  await ready;
   await assert.rejects(() => store.transact(a.token, 'request_concurrent_02', 'Hola', async () => result), /busy/); finish(result); await first;
 }));
 test('quota and session limits fail closed while history remains bounded', async () => withStore(async store => {

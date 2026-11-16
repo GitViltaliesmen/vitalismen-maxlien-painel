@@ -7,7 +7,7 @@ const call = (name, args = {}) => ({ role: 'assistant', content: null, tool_call
 const full = { name: 'Persona Sintetica', quantity: 3, city: 'Quito', province: 'Pichincha', deliveryMode: 'home', address: 'Direccion sintetica 123' };
 const readPath = (value, key) => key.split('.').reduce((part, name) => part?.[name], value);
 const setPath = (value, key, item) => { const keys = key.split('.'); const last = keys.pop(); let node = value; for (const name of keys) node = node[name] ||= {}; node[last] = structuredClone(item); };
-function fixture({ phone = '593999000001', draft = {}, activeOrder = null, qaReady = false } = {}) {
+function fixture({ phone = '593999000001', draft = {}, activeOrder = null, qaReady = false, registeredPhone = phone } = {}) {
     const state = { _id: 'fixture_contact', phoneDigits: phone, chatId: phone + '@s.whatsapp.net', human: { mode: 'auto' },
         metadata: { vslProductKey: 'vit_power_ec', vslSourceUrl: 'https://taviazen.shop/vitpower_2026g', perAgentMemory: { vit_power_ec: { principalSdrFreeflow: { draft } } } } };
     const queries = [], writes = [], sends = [], handoffs = [], orderCalls = [], ledger = new Map(), messages = [];
@@ -15,7 +15,7 @@ function fixture({ phone = '593999000001', draft = {}, activeOrder = null, qaRea
     const query = value => ({ select() { return this; }, limit() { return this; }, async lean() { return structuredClone(value); } });
     const matches = (object, filter) => Object.entries(filter).every(([key, expected]) => {
         const value = readPath(object, key);
-        return expected?.$gt ? new Date(value) > expected.$gt : expected && Object.hasOwn(expected, '$ne') ? value !== expected.$ne : value === expected;
+        return expected?.$in ? expected.$in.includes(value) : expected?.$gt ? new Date(value) > expected.$gt : expected && Object.hasOwn(expected, '$ne') ? value !== expected.$ne : value === expected;
     });
     const ContactState = {
         findOne(filter) { queries.push({ model: 'ContactState', filter: structuredClone(filter) }); return query(matches(state, filter) ? state : null); },
@@ -42,7 +42,7 @@ function fixture({ phone = '593999000001', draft = {}, activeOrder = null, qaRea
             return { ok: true, provider: 'zapi', providerMessageId: id };
         },
         transferHuman: async args => { handoffs.push(args); state.human = { mode: 'manual', note: 'fixture_handoff' }; return { ok: true, persisted: true }; },
-        registerExistingOrder: async args => { orderCalls.push(args); actualOrder = { orderId: 'FIXTURE_REAL_PORT_RECEIPT', country: 'EC', customer: { phone }, status: 'confirmed', total: args.offer.total, package: { quantity: args.offer.quantity } }; return { ok: true, persisted: true, orderId: actualOrder.orderId, alreadyNotified: true }; }
+        registerExistingOrder: async args => { orderCalls.push(args); actualOrder = { orderId: 'FIXTURE_REAL_PORT_RECEIPT', country: 'EC', customer: { phone: registeredPhone }, status: 'confirmed', total: args.offer.total, package: { quantity: args.offer.quantity } }; return { ok: true, persisted: true, orderId: actualOrder.orderId, alreadyNotified: true }; }
     });
     const send = async (body, id = 'fixture_inbound_' + (++sequence)) => {
         state.metadata.processingLock = { messageId: id, expiresAt: new Date(NOW.getTime() + 180000) };
@@ -115,4 +115,51 @@ test('a human takeover during generation cancels the reply', async () => {
 test('a provider-only inbound without durable mirror is rejected', async () => {
     const f = fixture(); f.state.metadata.processingLock = { messageId: 'fixture_unpersisted', expiresAt: new Date(NOW.getTime() + 60000) };
     await assert.rejects(() => f.runtime.handle({ message: { id: 'fixture_unpersisted', body: 'Hola', sessionId: 'fixture_session' }, contactStateId: f.state._id, phone: f.state.phoneDigits, productKey: 'vit_power_ec' }), /persisted_inbound_mismatch/);
+});
+
+
+test('captured address and summary in the same turn survive normalized next-turn confirmation', async () => {
+    const f = fixture({ draft: { ...full, address: '' }, registeredPhone: '+593999000001' });
+    f.scripted.push(call('capture_customer_detail', { field: 'address', value: full.address, evidence: full.address }),
+        call('prepare_order_summary'), speak('3 frascos por USD 95.99. Confirma estos datos?'));
+    await f.send('Direccion: ' + full.address, 'fixture_capture_summary_v230');
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.stage, 'sdr_awaiting_order_confirmation');
+    assert.equal(f.orderCalls.length, 0);
+    f.scripted.push(call('register_confirmed_order'), speak('Su pedido fue registrado.'));
+    await f.send('Sí, confirmo', 'fixture_confirm_captured_v230');
+    assert.equal(f.orderCalls.length, 1);
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow.registrationAttempt.status, 'registered');
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.stage, 'sdr_completed_order');
+});
+test('current conversational data stage uses the existing classifier awaiting contract', async () => {
+    const f = fixture();
+    f.scripted.push(call('capture_customer_detail', { field: 'city', value: 'Quito', evidence: 'Quito' }), speak('Tengo Quito.'));
+    await f.send('Estoy en Quito', 'fixture_city_stage_v230');
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.stage, 'sdr_awaiting_customer_data');
+});
+test('buy later intent never advertises an active awaiting sales stage', async () => {
+    const f = fixture();
+    f.scripted.push(call('capture_customer_detail', { field: 'intent', value: 'buy_later', evidence: 'mas tarde' }), speak('Lo retomamos mas tarde.'));
+    await f.send('Quiero comprar mas tarde', 'fixture_later_stage_v230');
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.stage, 'sdr_paused_buy_later');
+    assert.equal(f.orderCalls.length, 0);
+});
+for (const confirmation of ['Sí', 'Sí, confirmo', 'Correcto', 'Confirmo el pedido']) test('verified current summary accepts ' + confirmation, async () => {
+    const f = fixture({ draft: full, registeredPhone: '+593999000001' });
+    f.scripted.push(call('prepare_order_summary'), speak('3 frascos por USD 95.99. Confirma?'));
+    await f.send('Revise mis datos', 'fixture_summary_phrase_v230');
+    f.scripted.push(call('register_confirmed_order'), speak('Su pedido fue registrado.'));
+    await f.send(confirmation, 'fixture_phrase_confirm_v230');
+    assert.equal(f.orderCalls.length, 1);
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow.registrationAttempt.status, 'registered');
+});
+test('a receipt for a different phone is still rejected', async () => {
+    const f = fixture({ draft: full, registeredPhone: '+593999000002' });
+    f.scripted.push(call('prepare_order_summary'), speak('3 frascos por USD 95.99. Confirma?'));
+    await f.send('Revise', 'fixture_wrong_phone_summary_v230');
+    f.scripted.push(call('register_confirmed_order'));
+    const r = await f.send('Si', 'fixture_wrong_phone_confirmation_v230');
+    assert.equal(r.handoffRequested, true);
+    assert.equal(f.handoffs.length, 1);
+    assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow.registrationAttempt.status, 'attempted');
 });

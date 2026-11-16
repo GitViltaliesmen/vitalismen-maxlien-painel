@@ -7,6 +7,8 @@ import { createPrincipalSdrFreeflowAgent, createOpenAiFreeflowCompletion, PRINCI
 import { shipmentHistoryRepeatKey } from './postSalePickupReconciliationPolicy.js';
 
 const ROOT = 'metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow';
+const STAGE = 'metadata.perAgentMemory.vit_power_ec.stage';
+const draftStage = draft => draft?.intent === 'buy_later' ? 'sdr_paused_buy_later' : 'sdr_awaiting_customer_data';
 const sha = text => createHash('sha256').update(text).digest('hex');
 const same = (left, right) => String(left || '') === String(right || '');
 const time = value => value instanceof Date ? value.getTime() : new Date(value || 0).getTime();
@@ -51,7 +53,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                 return { handled: true, send: false, reason: 'human_hold_preserved' };
             if (phone === PRINCIPAL_SDR_QA_PHONE && !qaReady(state, inboundId, now()))
                 return { handled: true, send: false, reason: 'qa_window_not_ready' };
-            const active = await Order.findOne({ country: 'EC', 'customer.phone': phone,
+            const active = await Order.findOne({ country: 'EC', 'customer.phone': { $in: [phone, '+' + phone] },
                 status: { $in: ['confirmed', 'processing', 'shipped', 'returned'] } }).select('orderId status').lean();
             if (active) return { handled: true, send: false, reason: 'existing_active_order_preserved' };
 
@@ -106,7 +108,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                     const panelDraft = { ...compatibleDraft, ...draft, productKey: 'vit_power_ec', productName: 'Vit Power Ecuador',
                         country: 'EC', phone, total: offer?.quantity === draft.quantity ? offer.total : 0,
                         source: 'principal_sdr_v212', updatedAt: now().toISOString() };
-                    await save({ [ROOT + '.draft']: draft, 'metadata.customerDraft': panelDraft,
+                    await save({ [ROOT + '.draft']: draft, 'metadata.customerDraft': panelDraft, [STAGE]: draftStage(draft),
                         ...(args.evidence.field === 'name' ? { name: draft.name } : {}),
                         [ROOT + '.lastEvidence']: { inboundId, field: args.evidence.field, quote: args.evidence.quote } });
                     if (phone !== PRINCIPAL_SDR_QA_PHONE) await onDraftSaved(panelDraft);
@@ -145,11 +147,11 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                     await save({ [ROOT + '.registrationAttempt']: registrationAttempt });
                     const receipt = await registerExistingOrder({ draft: preview.normalizedDraft, offer: preview.offer, returnReceipt: true });
                     if (!receipt?.ok || !receipt.persisted || !receipt.orderId) throw new Error('freeflow_existing_order_receipt_missing');
-                    const actual = await Order.findOne({ orderId: receipt.orderId, country: 'EC', 'customer.phone': phone,
+                    const actual = await Order.findOne({ orderId: receipt.orderId, country: 'EC', 'customer.phone': { $in: [phone, '+' + phone] },
                         status: 'confirmed', total: preview.offer.total, 'package.quantity': preview.offer.quantity }).lean();
                     if (!actual) throw new Error('freeflow_registered_order_verification_failed');
                     // The existing finalizer may already set a human hold; the exact router lease remains required.
-                    await save({ [ROOT + '.registrationAttempt']: { ...registrationAttempt, status: 'registered', orderId: receipt.orderId } }, true);
+                    await save({ [ROOT + '.registrationAttempt']: { ...registrationAttempt, status: 'registered', orderId: receipt.orderId }, [STAGE]: 'sdr_completed_order' }, true);
                     registrationAlreadyNotified = true;
                     return { ...receipt, alreadyNotified: true };
                 },
@@ -168,7 +170,8 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
             };
             const withTurn = async (scope, run) => run({
                 loadContext: async () => context,
-                saveSummary: async value => { proposal = value; await save({ [ROOT + '.pendingSummary']: value }); },
+                saveSummary: async value => { proposal = value; await save({ [ROOT + '.pendingSummary']: value,
+                    [STAGE]: registrationAlreadyNotified ? 'sdr_completed_order' : value ? 'sdr_awaiting_order_confirmation' : draftStage(draft) }, registrationAlreadyNotified); },
                 finish: async result => {
                     if (!result.send || registrationAlreadyNotified) {
                         await OutboundDedupe.updateOne({ key }, { $set: { status: 'sent', sentAt: now(), retryAllowed: false } });

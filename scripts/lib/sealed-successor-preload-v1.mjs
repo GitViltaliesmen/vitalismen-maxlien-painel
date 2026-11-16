@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-bot-dropi-sealed-v229-r3.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-bot-dropi-profile-v229-r3.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-sdr-sale-sealed-v230-r4.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-sdr-sale-profile-v230-r4.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';
