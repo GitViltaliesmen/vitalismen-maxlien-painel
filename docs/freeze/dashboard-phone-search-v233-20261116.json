@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "scope": "PHONE_SEARCH_POPUP_AND_EXACT_UI_GUARD_ONLY",
+  "publicSha256": "3782def6eb39c4fba9299557d6fd01ee62c181fad931fd8d0737c205bddbc2fc",
+  "sourceCommit": "640a3cc9b3a5306fed60c93dea9f2160705576e1",
+  "backendRelease": "/opt/vitalismen-automacao/releases/20261116T195949Z_production-20261116-a46af49",
+  "backendUnchanged": true,
+  "tests": 108,
+  "controlTests": 34,
+  "realSearchConfirmed": true,
+  "serviceRestarts": 0,
+  "proofs": {
+    "PUBLICATION": "2dae09008c5f73c468a217a82b8981c358a198ddfd653cd773b2137357b491a3",
+    "PUBLIC_VALIDATION": "3c9c91ec2d60c5b58e3431a1c68ea59b4494d0943915e9364cf1a01548d08623",
+    "LIVE_RUNTIME": "7d101c6603232e475e6de23b70759df47542de42798155a86aad9ca0851f27cc",
+    "BACKUP_VERIFICATION": "5a49e2d83de58af113e8744cd4a8ee25fc5e44171c82435e00b8db7651bf1356",
+    "CONTROLLER_V4_REGISTRATION": "c92497424a7df8724ac7d7702c84852840de3979068363cc607a109ef88c5375",
+    "OPERATIONS_TEST_V4": "373a628d6fcdb5e2ce57e7827e0e0f0091b2e051a37773cf869bc0643bd8307b"
+  }
+}
