@@ -1,17 +1,8 @@
 --- a/qr.html
 +++ b/qr.html
-@@ -13110,6 +13110,7 @@
-                 nextChats = dedupeChatsForPanel(nextChats.map(mergeSavedCustomerDraftIntoChat));
-                 const signature = getChatSignature(nextChats);
-                 state.chats = nextChats;
+@@ -13112,0 +13113 @@
 +                document.dispatchEvent(new CustomEvent('vitalismen:whatsapp-chats-loaded-v226', { detail: chats }));
-                 if (state.selectedChat) {
-                     const refreshedSelectedChat = state.chats.find((chat) => sameChatIdentity(state.selectedChat, chat));
-                     state.selectedChat = refreshedSelectedChat
-@@ -22253,43 +22254,97 @@
- <script>
- (() => {
-  'use strict';
+@@ -22256,3 +22257,4 @@
 - const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222');
 - let generation=0,controller=null,selected=null;
 - const token=()=>typeof state!=='undefined'?state.token:'';
@@ -19,23 +10,17 @@
 + let generation=0,controller=null,selected=null,resumeId=null,activity=0;
 + let timer=null,pollController=null,pollBusy=false,initialized=false,watchCredential='',deniedCredential='';
 + const seen=new Map(), unread=new Set(), token=()=>typeof state!=='undefined'?state.token:'';
-  const element=(tag,text,css)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(css)el.className=css;return el};
-  const format=value=>{const d=new Date(value);return value&&Number.isFinite(+d)?d.toLocaleString('pt-BR'):'Horário indisponível'};
-  const label=row=>row.name||'Visitante · '+String(row.id).slice(0,6);
+@@ -22261,0 +22264,2 @@
 + const summary=row=>({messageCount:row.messageCount,lastAt:row.lastAt});
 + const eligible=()=>!document.hidden&&!dashboard.classList.contains('hidden')&&!!token()&&typeof state!=='undefined'&&state.user?.role==='admin'&&token()!==deniedCredential;
-  function cancel(){generation++;controller?.abort();controller=null;}
+@@ -22262,0 +22267 @@
 + function remember(row){if(initialized)seen.set(row.id,summary(row));}
-  async function request(suffix,signal){
-   const credential=token();if(!credential)throw Error('Entre no painel como administrador para consultar as conversas do site.');
-   const response=await fetch('/api/web-chat-admin/vitpower'+suffix,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential},signal});
+@@ -22266,2 +22271,2 @@
 -  if(response.status===401||response.status===403)throw Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.');
 -  if(response.status===404)throw Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.');
 +  if(response.status===401||response.status===403)throw Object.assign(Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.'),{authDenied:true});
 +  if(response.status===404)throw Object.assign(Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.'),{notFound:true});
-   if(!response.ok)throw Error('Não foi possível consultar o chat do site. Tente atualizar.');
-   return response.json();
-  }
+@@ -22270,0 +22276,11 @@
 + function renderList(rows){
 +  list.replaceChildren();
 +  for(const row of rows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
@@ -47,10 +32,10 @@
 +  for(const message of conversation.history){const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role=message.role;bubble.append(element('span',message.content),element('small',(message.role==='assistant'?'Ana Lopez':'Visitante')+' · '+format(message.at)));thread.append(bubble)}
 +  remember(conversation);status.textContent=newMessage?'Nova mensagem do site. Você pode continuar o atendimento no painel.':'Consulta atualizada. Nenhuma mensagem é enviada por este chat.';thread.scrollTop=thread.scrollHeight;
 + }
-  async function select(row){
+@@ -22272 +22288 @@
 -  cancel();const current=generation;controller=new AbortController();selected=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
 +  cancel();const current=generation;controller=new AbortController();selected=row.id;resumeId=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
-   for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===row.id));
+@@ -22274,6 +22290,2 @@
 -  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;
 -   const conversation=data.conversation;thread.append(element('h3',label(conversation)));
 -   if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
@@ -59,16 +44,13 @@
 -  }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
 +  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;renderConversation(data.conversation)}
 +  catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
-  }
-  async function load(){
-   cancel();const current=generation;controller=new AbortController();selected=null;list.replaceChildren();thread.replaceChildren(element('p','Selecione uma conversa do site.'));status.textContent='Consultando conversas…';
+@@ -22283,2 +22295 @@
 -  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;
 -   for(const row of data.conversations){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed','false');item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));item.addEventListener('click',()=>select(row));list.append(item)}
 +  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;renderList(data.conversations);
-    status.textContent=data.conversations.length?data.conversations.length+' conversa(s) disponível(is). Selecione um visitante.':'Nenhuma conversa do site com mensagens nos últimos 7 dias.';
+@@ -22285,0 +22297 @@
 +   const previous=data.conversations.find(row=>row.id===resumeId);if(previous)await select(previous);else resumeId=null;
-   }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
-  }
+@@ -22288,5 +22300,48 @@
 - button.addEventListener('click',()=>{if(!dialog.open)dialog.showModal();load()});
 - byId('webChatDashboardRefreshV222').addEventListener('click',load);
 - byId('webChatDashboardCloseV222').addEventListener('click',()=>dialog.close());
@@ -122,13 +104,7 @@
 + window.addEventListener('pagehide',()=>stop());window.addEventListener('pageshow',()=>schedule(0));
 + document.addEventListener('vitalismen:incoming-popup-open-v226',event=>{if(event.detail?.source!=='website'&&dialog.open)closeViewer()});
 + schedule(0);
- })();
- </script>
- <!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
-@@ -22334,6 +22389,89 @@
- </style>
- <!-- VITALISMEN_EC_DASHBOARD_RIGHT_CHAT_V225_END -->
- 
+@@ -22336,0 +22392,83 @@
 +<!-- VITALISMEN_EC_DASHBOARD_LIVE_CHAT_V226_START -->
 +<style>
 +#webChatDashboardDialogV222{z-index:180;width:min(340px,calc(100vw - 24px));box-shadow:0 10px 35px #102c3533}
@@ -212,6 +188,3 @@
 + new MutationObserver(()=>{if(dashboard.classList.contains('hidden')){clear();credential=''}}).observe(dashboard,{attributes:true,attributeFilter:['class']});
 +})();
 +</script>
- </body>
- 
- </html>
