@@ -1,0 +1,51 @@
+--- public/qr.html
++++ public/qr.html
+@@ -22228,7 +22228,7 @@
+ <style>
+ #webChatDashboardDialogV222{width:min(1000px,96vw);height:min(720px,90dvh);padding:0;border:1px solid #b9d9d0;border-radius:16px;color:#172b26;background:#fff;box-shadow:0 20px 70px #0005;overflow:hidden}
+ #webChatDashboardDialogV222::backdrop{background:#142c2b85}
+-.vpweb222-shell{display:flex;flex-direction:column;height:100%;font:14px/1.5 Arial,sans-serif}
++.vpweb222-search{flex:none}.vpweb222-shell{display:flex;flex-direction:column;height:100%;font:14px/1.5 Arial,sans-serif}
+ .vpweb222-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#eaf8f3;border-bottom:1px solid #d9e6e1}
+ .vpweb222-header h2{margin:0;font-size:18px}.vpweb222-header p{margin:2px 0 0;font-size:12px;color:#486259}
+ .vpweb222-header button{border:1px solid #b9d5cb;border-radius:20px;padding:7px 12px;background:#fff;color:#12664e;cursor:pointer}
+@@ -22247,6 +22247,7 @@
+  <div class="vpweb222-shell">
+   <header class="vpweb222-header"><div class="vpweb222-title"><h2 id="webChatDashboardTitleV222">Chat do site</h2><p>Vit Power · conversas da página · somente consulta</p></div><button id="webChatDashboardRefreshV222" type="button">Atualizar</button><button id="webChatDashboardCloseV222" type="button" aria-label="Fechar chat do site">Fechar ×</button></header>
+   <p id="webChatDashboardStatusV222" class="vpweb222-status" role="status" aria-live="polite"></p>
++  <div class="vpweb232-search" style="display:flex;align-items:center;gap:8px;padding:8px 12px"><input id="webChatDashboardSearchV232" type="search" autocomplete="off" maxlength="100" placeholder="Buscar cliente por nome ou identificação…" aria-label="Buscar cliente no chat do site" style="min-width:0;flex:1;border:1px solid #cbded7;border-radius:9px;padding:9px"><small id="webChatDashboardSearchCountV232" role="status" aria-live="polite"></small></div>
+   <div class="vpweb222-body"><nav id="webChatDashboardListV222" class="vpweb222-list" aria-label="Conversas do site"></nav><section id="webChatDashboardThreadV222" class="vpweb222-thread" aria-label="Conversa selecionada" aria-live="polite"></section></div>
+   <footer class="vpweb222-footer">Horários deste computador. Histórico disponível por até 7 dias. Visitantes sem nome permanecem anônimos. O atendimento por WhatsApp continua na lista principal.</footer>
+  </div>
+@@ -22256,6 +22257,8 @@
+  'use strict';
+  const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222'), dashboard=byId('dashboard');
+  let generation=0,controller=null,selected=null,resumeId=null,activity=0;
++ const customerSearch=byId('webChatDashboardSearchV232'),searchCount=byId('webChatDashboardSearchCountV232');let currentRows=[];
++ const searchKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  let timer=null,pollController=null,pollBusy=false,initialized=false,watchCredential='',deniedCredential='';
+  const seen=new Map(), unread=new Set(), token=()=>typeof state!=='undefined'?state.token:'';
+  const element=(tag,text,css)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(css)el.className=css;return el};
+@@ -22274,8 +22277,9 @@
+   return response.json();
+  }
+  function renderList(rows){
+-  list.replaceChildren();
+-  for(const row of rows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
++  currentRows=rows;const query=searchKey(customerSearch.value),visibleRows=query?rows.filter(row=>searchKey([row.name,row.id,row.city].filter(Boolean).join(' ')).includes(query)):rows;
++  searchCount.textContent=visibleRows.length+' / '+rows.length;list.replaceChildren();
++  for(const row of visibleRows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
+  }
+  function renderConversation(conversation,newMessage=false){
+   selected=conversation.id;resumeId=conversation.id;unread.delete(conversation.id);for(const item of list.querySelectorAll('button'))if(item.dataset.id===conversation.id)item.querySelector('.vp226-new')?.remove();thread.replaceChildren(element('h3',label(conversation)));
+@@ -22337,8 +22341,9 @@
+   finally{pollBusy=false;pollController=null;schedule();}
+  }
+  button.addEventListener('click',()=>{activity++;document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));if(!dialog.open)dialog.show();load()});
++ customerSearch.addEventListener('input',()=>{activity++;renderList(currentRows)});
+  byId('webChatDashboardRefreshV222').addEventListener('click',()=>{activity++;load()});
+- function clearViewer(){activity++;cancel();selected=null;list.replaceChildren();thread.replaceChildren();status.textContent=''}
++ function clearViewer(){activity++;cancel();selected=null;currentRows=[];searchCount.textContent='';list.replaceChildren();thread.replaceChildren();status.textContent=''}
+  function closeViewer(){if(dialog.open)dialog.close();clearViewer()}
+  byId('webChatDashboardCloseV222').addEventListener('click',closeViewer);
+  dialog.addEventListener('close',()=>{if(!dialog.open)clearViewer()});

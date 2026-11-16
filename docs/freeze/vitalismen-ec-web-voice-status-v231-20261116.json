@@ -1,0 +1,178 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V231-R2",
+  "status": "PASS_PUBLISHED_AUDITED_FROZEN",
+  "at": "2026-11-16T19:05:42.061637+00:00",
+  "commit": "2aa2738811b4bc5b755586cad148a2dc7198ac4d",
+  "tree": "0134a5849a5e3b59c112735eb79a0d8a07d90a60",
+  "release": "/opt/vitalismen-automacao/releases/20261116T182642Z_production-20261116-2aa2738",
+  "seal": "08d402b18a9f9dc8d2fa6ac18fba7804aac0c76a3f7e6f4c25c1aa5d0c64eba4",
+  "parentCommit": "c03acf15b9baeee4116577b01caf3c0fd194cac4",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261116T163537Z_production-20261116-c03acf1",
+  "sourceRef": "refs/heads/codex/ec-web-voice-status-v231-r2-20261116",
+  "staticSourceCommit": "3c6cba86154b86a5dca18bea0a61e8afa6cddddd",
+  "staticSourceRef": "refs/heads/codex/ec-web-voice-status-v231-r2-public-20261116",
+  "staticSourceTag": "refs/tags/site-chat-voice-status-v231-20261116",
+  "productionBranchChanged": false,
+  "files": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "aa4f25e994bf34898b5446f8ce6070cfd548d20e1dc4976728f6efc7abda4976",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "6c7195ba019cc3d8c723d684393f1acce6c7e5744bf8ef36c5411d79f016018e",
+    "src/routes/vitPowerWebDashboardV222.js": "b40a4ced9d33a660fa7921e8cbbf8619f4668e9d4472066db304196085397a26",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "fcf4184b1721ede6b5207adbbba5fd5deb3440450afa5098279c3c6f5a3c74ae",
+    "src/services/vitPowerWebAgentV220Service.js": "0db8f5b6ded8d9c4c81ae6d7a09a88f9cf2e3cc111d9ae75f1abf4d90841bfc1",
+    "src/services/vitPowerWebChatV220Application.js": "a8d70d9dfb958820dcd9c520f6eaac4f32fbf596ecb1399bbcbc6f044bf85174",
+    "src/services/vitPowerWebVoiceStatusV231Service.js": "356355081fac8f8fc1178d92dac77b9ac76ebdc75533d8a33bfc41006fe072d6",
+    "tests/web-voice-status-v231.test.mjs": "3873249ad210a373b1f62e01ff90d7244db29ebb1d48a9270f55fe5e3e0dae1c"
+  },
+  "staticFiles": {
+    "site/assets/chat-v220.js": "8f29845df838d7d4bf3942b4122f9bb1260f330d74dcf10062e8a12d2f073726",
+    "site/assets/chat-v220.css": "a1d3741e86664133992d9cbfd6ce291e51315a0d11b17e8c73617fd94fccb958",
+    "panel-candidate.html": "75cbd0702a8a11431d5cafa7371c9aa8548917e23744cbc310f1df757edb302a",
+    "nginx-admin-before.txt": "5bb0fed509feac1ff489bf5cda823384cf008d33d69aa2d3f08f32281ff19acd",
+    "nginx-admin-after.txt": "079aa9bb9917ae7cc0c2716b4f82668a911076709482196cecc47c5cf5362e3c"
+  },
+  "activePid": 3686924,
+  "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261116T182642Z_production-20261116-2aa2738",
+  "voice": {
+    "id": "qHkrJuifPpn95wK3rm2A",
+    "userApproved": true,
+    "realProviderHttp": 200,
+    "sampleSha256": "a01f02a9d9de96427490c0ca0bfc95190ff9ca8477d48cdad74c75dd6a6ed284",
+    "publicAudioSha256": "754747223461de994278b8b027d9c60e99debee0bd82f5e391273e0230f8dc12",
+    "dedicatedCredential": true,
+    "sharedCredentialPreserved": true
+  },
+  "testGates": {
+    "QUALIFICATION": "7d158b78de1c505cf9d9ec36b26af07f22952e6681d49ed5a0a574a0f643389d",
+    "EXTRA_QUALIFICATION": "e0c89d11891a718dd8a729b8dc83912a06b2acce3d1f087815937660d39ceca0",
+    "HTTP_TEST": "b89772e55ac9fefd993753e428c7d92605e63b809c6f91637d9579038f2322bc",
+    "HTTP_VOICE_TLS_TEST": "c93aa90615b7e43d5d7770daf15caedfba56bedd977bca923dcb2682dc4b357e",
+    "BROWSER_TEST": "a504654aa4733766241e65f03dad6d1598fa8a0491ea997cf1a1c77e673d63bd",
+    "PANEL_BROWSER_TEST": "be8ec59a74d2eb534896392873ff629329d2b3d219fda3a2031db2d786cfd469",
+    "NGINX_ROUTING_TEST": "2faba1c93d575664c3b9506121d65d6f956e7da0d93352245eaf55b405aea060",
+    "INHERITED_REGRESSION": "199701a1361196bb14ba4529d854416c9043feea8602338932e3ecc7f405aecd",
+    "PUBLIC_BASELINE": "c1938bc72eb7687648e362653590d166c127ad36b02f07583b8dc1aed7cc23f1",
+    "OPERATIONS_TEST": "573a21e0d1a9fdde8926aac0137b1eafc6b271a6cc8fd199c6ed6af527ea0ae9",
+    "LIVE_MODEL_TEST": "a58de144e4f416bb00c9236f4b9a4f5e03c1efce4b3d3564aa2fd43c5efdcd9b",
+    "ELEVENLABS_VALIDATED": "d31f90de1383e202fb4e87dbaee252adb4962e7e9d16a8dc53622139ac10fb1d",
+    "CODE_CONFIG_RECOVERY": "064bc7d14831e8f0b01c4bafe8f8286d343acfbe7bfc3cdcb0e398655c1738e7"
+  },
+  "focusedTests": 144,
+  "completeSenior": {
+    "name": "complete_senior",
+    "pass": true,
+    "seconds": 1656.7,
+    "exitCode": 0,
+    "timedOut": false,
+    "tapSummary": [
+      "# tests 43",
+      "# pass 43",
+      "# fail 0",
+      "# tests 482",
+      "# pass 482",
+      "# fail 0",
+      "# tests 22",
+      "# pass 22",
+      "# fail 0"
+    ]
+  },
+  "httpChecks": 19,
+  "voiceTlsChecks": 21,
+  "webBrowserChecks": 42,
+  "panelBrowserChecks": 60,
+  "staticBrowserEvidence": "EXACT_BYTE_IDENTICAL_INHERITED_FROM_R1",
+  "publicChecks": [
+    "actual_widget_script_in_published_html",
+    "public_asset_http_chat-v220.js",
+    "public_asset_exact_hash_chat-v220.js",
+    "public_asset_http_chat-v220.css",
+    "public_asset_exact_hash_chat-v220.css",
+    "public_panel_http",
+    "public_panel_exact_hash",
+    "public_cookie_session_started",
+    "public_real_model_official_price",
+    "public_real_voice_audio_received",
+    "public_repeat_listen_reuses_audio",
+    "public_unknown_order_code_denied",
+    "public_status_requires_verified_private_access",
+    "public_nginx_exact_post_reaches_strict_admin_auth"
+  ],
+  "privateOrderRead": "EXACT_EC_VIT_POWER_ORDER_AFTER_OPERATOR_IDENTITY_VERIFICATION_AND_BROWSER_BOUND_24H_CODE",
+  "trackingSource": "LAST_SAVED_OFFICIAL_ORDER_RECORD_NOT_A_NEW_CARRIER_QUERY",
+  "humanRepliesInWebsitePopup": false,
+  "emptySessionMaintenance": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "archivedEmptySessions": 91,
+    "archive": "/var/lib/vitalismen-web-chat-v220-r2/archived-empty-v231-20261116",
+    "remainingSessions": 9,
+    "historicalConversationRecordsRemoved": 0,
+    "productionCodeChanges": 0,
+    "quotasChanged": false,
+    "databaseCommercialWrites": 0,
+    "manifestSha256": "169872bc907bedd91ddcfe236782df53955bc8804aa83ea73733f55037ae2cec"
+  },
+  "publicBrowser": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "at": "2026-11-16T19:03:20.791848+00:00",
+    "liveSiteUrl": "https://taviazen.shop/vitpower_2026g?vp_qa=1",
+    "dashboardUrl": "https://ec.maxlien.shop/qr.html?v=20261112-v206",
+    "checks": [
+      "public_side_chat_opened",
+      "real_price_reply_95_99",
+      "listen_control_clicked_no_browser_errors",
+      "private_order_code_form_visible",
+      "dashboard_received_same_qa_conversation",
+      "admin_private_order_form_visible_no_code_issued",
+      "whatsapp_search_usable_while_popup_open"
+    ],
+    "screenshots": {
+      "chat-publicado.jpg": "b02afa2fdcae03a5cf34d5d1deb4229ae391fbd5682afd213d2702fc9aeb5c65",
+      "dashboard-chat-publicado.jpg": "a2eaca69f73c0ff59278c00f6348879e40a3e7996080663e034b408c85bbfe02"
+    },
+    "productionCommercialWrites": 0,
+    "realCustomerAccessCodesIssued": 0
+  },
+  "sessionCapacity": 100,
+  "dailyTurnsLimit": 200,
+  "commercialTestWrites": 0,
+  "realDropiSubmissions": 0,
+  "whatsappTestSends": 0,
+  "globalMongoBackupPass": false,
+  "codeConfigRecovery": "PASS",
+  "backups": {
+    "BOOT_BEFORE_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\BOOT_BEFORE_V231.vbe",
+      "sha256": "bb54c303585950e486da07243fa121f3b82d74915353fc66d044e539cc0029db",
+      "fileCount": 17
+    },
+    "SITE_BEFORE_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\SITE_BEFORE_V231.vbe",
+      "sha256": "542639346894fa9a3a133269aee9fb285ad7d27f352349b86fdc328aaf364ce2",
+      "fileCount": 2
+    },
+    "NGINX_BEFORE_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\NGINX_BEFORE_V231.vbe",
+      "sha256": "9f8168c79e80f1f1b20876de45233db5494dfc806a5d8d8ac84b8c11a5847bb1",
+      "fileCount": 1
+    },
+    "BOOT_AFTER_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\BOOT_AFTER_V231.vbe",
+      "sha256": "6bad2989fb699008912c144545bbb44351f90f40ad61fbe923f51d6af216f320",
+      "fileCount": 121
+    },
+    "SITE_AFTER_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\SITE_AFTER_V231.vbe",
+      "sha256": "c6d79f5a1b4c0f5de5352616aa809fce9fec13e1f3e773e967e1737c6781f3df",
+      "fileCount": 2
+    },
+    "NGINX_AFTER_V231": {
+      "path": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\WEB_VOICE_STATUS_V231\\20261116-r2\\NGINX_AFTER_V231.vbe",
+      "sha256": "e2e908b041d7d66044c0015eeb3d2118e981128ed9378b1a7774bdec8104bd9a",
+      "fileCount": 1
+    }
+  },
+  "rollback": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\web-chat-voice-status-v231-r2-20261116\\remote_ops.py rollback; static rollback requires the recorded matching public file backups",
+  "rawCredentialsIncluded": false
+}

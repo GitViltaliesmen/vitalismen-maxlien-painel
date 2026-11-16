@@ -1,0 +1,144 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": "V229_R3",
+  "status": "PUBLISHED_ACTIVE_EC_FORWARD_ONLY_AUDITED",
+  "functionalCommit": "642ff478e73a4a760ca54c5ec87a2851284a5844",
+  "functionalTree": "3844b4f894c02c0ce6cc6d575aa872ca75f1e888",
+  "parentCommit": "cb776711a0fe172c408dd642215e444580f6a40d",
+  "release": "/opt/vitalismen-automacao/releases/20261116T135533Z_production-20261116-642ff47",
+  "seal": "ad681e0bdcf1ac215a0e0f63a5ab9334663108226d933e74607f871f9be9aa28",
+  "allowedPaths": [
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/agentRouter.js",
+    "src/services/dropiManualProductSelectionV229Service.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/freeflowQuestionPriorityV219Service.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "tests/burst-cta-questions-v229.test.mjs",
+    "tests/dropi-manual-product-v229.test.mjs",
+    "tests/vit-power-b01-v216.test.mjs"
+  ],
+  "fileHashes": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "c55fe2536f3a7ab88c75259d454025ef5cf7a1e7bf6323d85a4c59b7bf09c15b",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "e92aee12109cb991c67623932e7e47293cbbd551df0935076484d1b64758155a",
+    "src/services/agentRouter.js": "cfc3ce8aba055ebadfffea1fbd2ba53f002f5bc2709033c2a19ce28432face3a",
+    "src/services/dropiManualProductSelectionV229Service.js": "ca258825598d3890315f7557f864e174ea1470269e50ece21fdd7494d063aafb",
+    "src/services/droppiEcuadorBrowserService.js": "1c33db3286dcb7638fb598dcdd39896c2011970f8624f67a871ef1d319e5b9b4",
+    "src/services/freeflowQuestionPriorityV219Service.js": "bf48d2a3d6a2d35ee06297cc050c153e89377db9d2663e46c6f8f9d32d756889",
+    "src/services/vitPowerB01CoreV216Service.js": "4bc7a5d3b137a4aab4eb5522bb998ad635026eb14a46899ccccf52f1f178dd59",
+    "tests/burst-cta-questions-v229.test.mjs": "e35af8f5e6db49f13b2f43a4975067551152f4171d803e7332bb6b84ac548783",
+    "tests/dropi-manual-product-v229.test.mjs": "770d4a1df2a503e160bafc043d10e9b5f90d916ebb9815754af7b1b527ccdcc1",
+    "tests/vit-power-b01-v216.test.mjs": "9ec3ba40957dbfe0e903a09470de27570feef107857fd97bdb04ebed541080f1"
+  },
+  "initialGreetingScheduleMs": [
+    5000,
+    30000
+  ],
+  "followingMediaPauseMs": [
+    18000,
+    30000
+  ],
+  "quietSinceLastNewInboundMs": 60000,
+  "physicalQaProof": "PASS_REAL_ZAPI_INPUTS_DELIVERED_GROUPED_REPLY",
+  "initialBurstAudience": "QA_ONLY",
+  "globalDataBackupPass": false,
+  "codeConfigRecovery": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+  "databaseMigrations": false,
+  "frontendChanged": false,
+  "rollbackScope": "CODE_CONFIG_ONLY_NO_DATABASE_OR_EXTERNAL_ORDER_ROLLBACK",
+  "dropiOperationalRecovery": {
+    "orderId": "EC-MWIX6BWG-FGFW",
+    "orderStatus": "processing",
+    "orderDropiId": "7982030",
+    "dropiOrderId": "7982030",
+    "mirrorStatus": "submitted",
+    "submittedAt": "2026-11-16T14:07:19.929Z",
+    "attemptedAt": "2026-11-16T14:06:08.640Z",
+    "reviewManualOnly": false,
+    "humanHoldPreserved": true,
+    "currentProduct": "vit_power_ec",
+    "quantity": 1,
+    "total": 39.99,
+    "qaOrders": 0,
+    "project": "VITALISMEN_EC",
+    "at": "2026-11-16T14:33:10.272867+00:00",
+    "leadStatus": "pedido_enviado",
+    "leadQuantity": 1,
+    "leadValue": 39.99,
+    "productionDatabaseWrites": 0,
+    "pass": true
+  },
+  "qaOrdersAllowed": false,
+  "newModelCallsR3": 0,
+  "modelEvidence": "Five real OpenAI synthetic cases from R2; identical source blobs verified in R3.",
+  "previousCandidates": {
+    "R1": "NOT_ACTIVATED_HTTP_BLOCKED",
+    "R2": "NOT_ACTIVATED_TIMESTAMP_EDGE_FOUND_FULL_SUITE_STOPPED_IN_PRIVATE_NAMESPACE"
+  },
+  "preserved": [
+    "other_products",
+    "human_holds",
+    "opt_out",
+    "order_history",
+    "repurchase",
+    "prices",
+    "VSL_CTA_and_player",
+    "Meta_CAPI",
+    "ZAPI_credentials_and_official_session",
+    "post_sale",
+    "persistent_locks_dedupe_and_history",
+    "Comprar_depois_and_automatic_year",
+    "site_chat_and_dashboard_popups"
+  ],
+  "auditedAt": "2026-11-16T14:33:11.311267+00:00",
+  "activePid": 3647046,
+  "currentBurstAudience": "EC_FORWARD_ONLY",
+  "qaWindowContained": true,
+  "qaPreviousHoldRestored": true,
+  "tests": {
+    "focused": {
+      "pass": 283,
+      "fail": 0
+    },
+    "completeSenior": {
+      "groups": [
+        43,
+        482,
+        22
+      ],
+      "pass": 547,
+      "fail": 0,
+      "seconds": 1504.3
+    },
+    "httpIntegration": 37,
+    "httpFastBeforeGreeting": 31,
+    "httpRestart": 32,
+    "httpHumanIntervention": 34,
+    "extraGates": 7,
+    "scope": 16,
+    "operations": 5,
+    "realModelCasesInheritedIdenticalSource": 5,
+    "browserChecksInheritedUnchangedFrontend": 115
+  },
+  "physicalQa": {
+    "newRealInputs": 3,
+    "quietSeconds": 64.866,
+    "replyAck": 3,
+    "duplicateReplies": 0,
+    "qaOrders": 0,
+    "replySha256": "b8c00dedb532f89b28edb49f7fd24fac3fab6340ce2358fe0d62668069fdcdeb",
+    "proofSha256": "9e607b9c3f4d3322810b8b3255e13eefeb66afc50f7f157d17372dc222b43ece",
+    "gatewayAdmitted": true,
+    "screenshot": "QA_WHATSAPP_REAL.png"
+  },
+  "postSaleDryRun": {
+    "status": "PASS_DRY_RUN",
+    "mode": "dry-run",
+    "at": "2026-11-16T14:31:38.451Z",
+    "sendCount": 0,
+    "physicalOutboundCount": 0,
+    "forwardOnlySince": "2026-11-09T04:53:50.421Z"
+  },
+  "evidenceLocation": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\BOT_DROPI_V229_R3\\20261116"
+}

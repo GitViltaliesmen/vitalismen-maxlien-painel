@@ -1,0 +1,16 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "actualScheduledEntry": true,
+  "status": "PASS_BATCH",
+  "mode": "V188_OPERATIONAL_BATCH_ONE",
+  "physicalOutboundCount": 0,
+  "customerInvites": {
+    "status": "NO_ELIGIBLE_RECIPIENT",
+    "sent": 0,
+    "physicalOutboundCount": 0
+  },
+  "parser": "ROOT_REPORT_V3",
+  "logSha256": "cfb7b352d2fc6c9411c474dee3c7591e289f52afb67d97e9d1d8875731555bc4",
+  "controlledTestSend": false
+}

@@ -1,0 +1,129 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "FAIL_END_TO_END_SALE_CONFIRMATION",
+  "functionalCommit": "642ff478e73a4a760ca54c5ec87a2851284a5844",
+  "at": "2026-11-16T15:25:25.985782+00:00",
+  "successfulIntegratedChecksBeforeBlock": 13,
+  "complementaryTestsPassed": 55,
+  "greetingInboundToLocalAcceptanceMs": 6986,
+  "confirmedSimulatedOrders": 0,
+  "realWhatsAppSends": 0,
+  "realDropiOrders": 0,
+  "realMetaEvents": 0,
+  "productionWrites": 0,
+  "productionUnchanged": true,
+  "isolatedEnvironmentCleaned": true,
+  "failures": [
+    {
+      "id": "F1",
+      "point": "short confirmation routing",
+      "input": "Sí, confirmo",
+      "actual": "review / insufficient_high_confidence; routeToBot=false",
+      "expected": "route verified current-summary reply to existing conversational confirmation guard"
+    },
+    {
+      "id": "F2",
+      "point": "summary fingerprint",
+      "input": "Confirmo el pedido",
+      "actual": "summary_changed_confirmation_required despite same customer fields",
+      "onlyInternalDifference": "productKey omitted by runtime copyDraft after being included by capture_customer_detail",
+      "expected": "same canonical business fields yield same snapshot"
+    }
+  ],
+  "notProven": [
+    "confirmed sale persisted",
+    "live Meta acceptance",
+    "end-to-end Purchase from this conversation"
+  ],
+  "globalMongoBackupPass": false,
+  "evidence": {
+    "run.py": {
+      "size": 6205,
+      "sha256": "00bddc70e1f4731cf3e5b207a4aab15239532c162a7643200bfa2553308360c6"
+    },
+    "simulate.mjs": {
+      "size": 11738,
+      "sha256": "31582065867abbc5ce070b8d3b8872278383ef401e3b125f13885971645114cc"
+    },
+    "model-shim.cjs": {
+      "size": 3417,
+      "sha256": "ce933cf71022adcf8b277bc5bab812f8abf07ffb5dde47b402c888a9b4c1b468"
+    },
+    "confirmation_probe.py": {
+      "size": 3532,
+      "sha256": "b2a69e3aaf369091f6d72cb2c61817136d3480945434999f208d7fa609444897"
+    },
+    "purchase_probe.py": {
+      "size": 6844,
+      "sha256": "b1d4dacea21521700ec6c43687333075f59f7ef4413cb9bdc5d5490025a4d849"
+    },
+    "final_report.py": {
+      "size": 12360,
+      "sha256": "520acc7967b0fa04d237faa1a520135be380c3ad16f57063eed8ac02f1c756f9"
+    },
+    "classifier_replay.py": {
+      "size": 2258,
+      "sha256": "60de04575106247a42e31c55ff5fa49e10a4d89d9c86c03761cce564e77fc861"
+    },
+    "measurement_check.py": {
+      "size": 1480,
+      "sha256": "d0254e47a3dad778dbc9cb685dd071239a2818622113c3b5047e67fcee42b9e1"
+    },
+    "verify_unchanged.py": {
+      "size": 1675,
+      "sha256": "6ebee8db9d58ad1cf0900a02ee6762936a13cffffb39bcc9368758c3e28eb14a"
+    },
+    "RESULT.json": {
+      "size": 70915,
+      "sha256": "13a380e8a81f882570a7f8a87584fbef65075eebbb0a5876993f5a274ab568d9"
+    },
+    "MODEL_TRACE.jsonl": {
+      "size": 2192,
+      "sha256": "094690fba54fb2c978f5fb7bf65106eb65c03a247b7230c4ff4b387185ad09e4"
+    },
+    "MEASUREMENT_AND_RUNTIME.json": {
+      "size": 440,
+      "sha256": "4b8e4dd7ac8ff7012833b857188e80696d32d7a7d11127c9a8b3a36c086387c6"
+    },
+    "CONFIRMATION_PROBE.json": {
+      "size": 8226,
+      "sha256": "9768fa0049dd42e6fc7abab738ea4d8db9dcc5113a40e8925f4dd60802cc2d6a"
+    },
+    "CLASSIFIER_REPLAY.json": {
+      "size": 1075,
+      "sha256": "a18ec858376fbec96345574f0d7ff985ca7129258198a880ad1db467f5973126"
+    },
+    "SUMMARY_FINGERPRINT_REPLAY.json": {
+      "size": 560,
+      "sha256": "b4276336d565d8ef23b80ff65dc565bc7f61592a9fc625947784c042b3e0907f"
+    },
+    "PUBLIC_VSL_READONLY.json": {
+      "size": 815,
+      "sha256": "22ae62daf3a45605484156b713e9d2a5b325fc10048812ad3054b46a59a1fc91"
+    },
+    "PURCHASE_CORE_PROBE.json": {
+      "size": 374,
+      "sha256": "853568a7fec638abaa1b91f93fb5c6df65e31e302cd7eed366ab59520e92920b"
+    },
+    "LIVE_UNCHANGED_AFTER_TEST.json": {
+      "size": 682,
+      "sha256": "00821d93c07e11d90b228a0dbba81144c7dce1a6db8f85caf444476f5a646e6a"
+    },
+    "ATTEMPT_1_RESULT.json": {
+      "size": 3279,
+      "sha256": "cef3ab43f6ed98cbd1948bab55f2943e243e9ba510fd800d617bf376e62288df"
+    },
+    "ATTEMPT_2_RESULT.json": {
+      "size": 15806,
+      "sha256": "cf24ab3d8c05e0a5b09873cb3a179a0c880e4c086a0e4b30392056f3265198d9"
+    },
+    "ATTEMPT_3_RESULT.json": {
+      "size": 18721,
+      "sha256": "bfbfc8d4acaed7a82a5a0eb346ca8aa1d72e7a703220be34397f0722f185d0fc"
+    },
+    "ATTEMPT_4_RESULT.json": {
+      "size": 72328,
+      "sha256": "35c958a864e698176c9597b8916036f93baf89a0f5096699196ce55674c8d6ce"
+    }
+  }
+}
