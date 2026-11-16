@@ -11,8 +11,17 @@ const patterns = [
   ['usage', /\b(?:como (?:se )?(?:toma|usa)|modo de uso|dosis)\b/g],
   ['safety', /\b(?:diabetes|diabetico|presion|hipertension|corazon|medicamento|medicina|contraindicacion|alergia|renal|higado|embarazo)\b/g]
 ];
+// The exact published CTA is an introduction, followed by the customer's questions.
+// Keep it in history/model context, but exclude only its known assistance question
+// from the ordered factual-question classifier when more text follows it.
+const PUBLIC_CTA_V229 = 'Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?';
+function questionTextV229(text) {
+  const raw = String(text || '');
+  return raw.startsWith(PUBLIC_CTA_V229 + '\n')
+    ? raw.slice(PUBLIC_CTA_V229.length).trim() : raw;
+}
 export function questionPlanV219(text) {
-  const raw = String(text || '').slice(0, 6000);
+  const raw = questionTextV229(text).slice(0, 6000);
   if ([...raw.matchAll(/^(?:nombre|ciudad|provincia|direccion|agencia|cantidad)\s*:/gim)].length >= 2) return [];
   const hasQuestion = /[?¿]/.test(raw) || /\b(?:cuanto|como|cual|donde|cuando|que contiene|hay|tienen|aceptan|se puede)\b/.test(norm(raw));
   if (!hasQuestion) return [];
@@ -54,6 +63,6 @@ export function formatQuestionAnswerV219(topic, result) {
 }
 
 export function allQuestionsMappedV219(text) {
-  const segments = [...String(text || '').matchAll(/¿([^¿?]+)\??/g)].map(m => m[1]);
+  const segments = [...questionTextV229(text).matchAll(/¿([^¿?]+)\??/g)].map(m => m[1]);
   return segments.length < 2 || segments.every(segment => questionPlanV219('¿' + segment + '?').length > 0);
 }

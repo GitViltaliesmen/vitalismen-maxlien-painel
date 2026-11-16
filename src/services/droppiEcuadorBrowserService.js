@@ -1,3 +1,4 @@
+import { currentManualDropiSelectionV229 } from './dropiManualProductSelectionV229Service.js';
 import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
 import {prepaidDropiProjection,prepaidRuntimeApproved,dropiCollectionMode,dropiWireFinancials} from './gira21x/prepaid-contract.mjs';
 import {assertPrepaidCurrentPayment} from './gira21x/prepaid-client.mjs';
@@ -3478,7 +3479,14 @@ const checkDropiSubmitSafety = async ({ order, shipment }) => {
         shipment?.raw?.productSelection?.productKey
     ].filter(Boolean).join(' | '))
         || order?.tracking?.productSelectionSource === 'manual_customer_draft';
-    if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key && !hasPanelProductSelection) {
+    const currentManualSelection = recentNitrixMessage && !hasPanelProductSelection
+        && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key
+        ? currentManualDropiSelectionV229({ order, productKey: directProduct.key,
+            conflictingMessage: recentNitrixMessage,
+            contact: await ContactState.findOne({ phoneDigits: String(order?.customer?.phone || '').replace(/\D/g, '') })
+                .select('phoneDigits metadata.productRouteLock metadata.customerDraft.orderId metadata.customerDraft.productKey').lean()
+        }) : false;
+    if (recentNitrixMessage && directProduct.key !== ECUADOR_PRODUCTS.nitrix.key && !hasPanelProductSelection && !currentManualSelection) {
         return {
             ok: false,
             success: false,

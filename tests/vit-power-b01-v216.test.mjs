@@ -57,7 +57,7 @@ test('greeting uses Ecuador morning, afternoon and night, including midnight bou
 });
 test('greeting then four original assets with persisted 18–30 second pauses', async () => {
   const f = fixture(); assert.equal((await f.core.start(f.input)).reason, 'queued');
-  await f.advance(2999); assert.equal(f.attempts.length, 0);
+  await f.advance(4999); assert.equal(f.attempts.length, 0);
   await f.advance(1); assert.equal(f.attempts.length, 1);
   assert.match(f.attempts[0].step.text, /José/);
   for (let i = 0; i < 4; i++) { await f.advance(17999); assert.equal(f.attempts.length, i + 1); await f.advance(1); }
@@ -65,40 +65,40 @@ test('greeting then four original assets with persisted 18–30 second pauses', 
   assert.equal(f.job.status, 'done');
   await f.advance(900000); assert.equal(f.attempts.length, 5);
 });
-test('upper random bound is 5 seconds initial and 30 seconds between sends', async () => {
+test('upper random bound is 30 seconds initial and 30 seconds between sends', async () => {
   const f = fixture({ random: .999999 }); await f.core.start(f.input);
-  await f.advance(4999); assert.equal(f.attempts.length, 0); await f.advance(1);
+  await f.advance(29999); assert.equal(f.attempts.length, 0); await f.advance(1);
   await f.advance(29999); assert.equal(f.attempts.length, 1); await f.advance(1); assert.equal(f.attempts.length, 2);
 });
 test('simultaneous starts, ticks and duplicate inbound cannot duplicate sends', async () => {
   const f = fixture(); await Promise.all([f.core.start(f.input), f.core.start(f.input)]);
-  await f.advance(3000); await Promise.all([f.core.tick(), f.core.tick()]);
+  await f.advance(5000); await Promise.all([f.core.tick(), f.core.tick()]);
   assert.equal(f.attempts.length, 1);
   await f.core.start(f.input); await f.advance(18000); assert.equal(f.attempts.length, 2);
 });
 for (const kind of ['failAt', 'throwAt', 'noIdAt']) test(kind + ' at second audio stops and never repeats first audio', async () => {
   const f = fixture({ [kind]: 3 }); await f.core.start(f.input);
-  await f.advance(3000); await f.advance(18000); await f.advance(18000);
+  await f.advance(5000); await f.advance(18000); await f.advance(18000);
   assert.equal(f.job.status, 'ambiguous'); assert.equal(f.attempts.length, 3);
   f.restart(); await f.advance(900000); await f.core.start({ ...f.input, origin: 'manual' });
   assert.equal(f.attempts.length, 3);
 });
 for (const reason of ['human_hold', 'new_inbound', 'active_order', 'product_changed', 'qa_window_closed']) test(reason + ' cancels unsent steps', async () => {
-  const f = fixture(); await f.core.start(f.input); await f.advance(3000);
+  const f = fixture(); await f.core.start(f.input); await f.advance(5000);
   f.block(reason); await f.advance(18000); assert.equal(f.job.status, 'interrupted'); assert.equal(f.attempts.length, 1);
 });
 test('new inbound interrupts while allowing conversational handler to process it', async () => {
-  const f = fixture(); await f.core.start(f.input); await f.advance(3000);
+  const f = fixture(); await f.core.start(f.input); await f.advance(5000);
   const result = await f.core.start({ ...f.input, inboundId: 'incoming-2', text: '3 frascos' });
   assert.equal(result.handled, false); assert.equal(f.job.status, 'interrupted');
   await f.advance(18000); assert.equal(f.attempts.length, 1);
 });
 test('interruption during transport preserves acceptance without restarting queue', async () => {
-  const f = fixture({ onSend: repo => repo.interrupt('c', 'human_hold') }); await f.core.start(f.input); await f.advance(3000);
+  const f = fixture({ onSend: repo => repo.interrupt('c', 'human_hold') }); await f.core.start(f.input); await f.advance(5000);
   assert.equal(f.job.steps[0].status, 'accepted'); assert.equal(f.job.status, 'interrupted');
 });
 test('closing tab or restarting worker resumes only the next unattempted item', async () => {
-  const f = fixture(); await f.core.start(f.input); await f.advance(3000);
+  const f = fixture(); await f.core.start(f.input); await f.advance(5000);
   f.restart(); await f.advance(18000); assert.equal(f.attempts.length, 2);
   assert.equal(f.attempts[1].step.asset, B01_MEDIA[0].asset);
 });
@@ -108,7 +108,7 @@ test('crash after reservation becomes uncertain instead of retrying', async () =
   assert.equal(f.job.status, 'ambiguous'); assert.equal(f.attempts.length, 0);
 });
 test('existing media history requires review instead of another send', async () => {
-  const f = fixture(); await f.core.start(f.input); await f.advance(3000);
+  const f = fixture(); await f.core.start(f.input); await f.advance(5000);
   f.history(); await f.advance(18000); assert.equal(f.job.status, 'review'); assert.equal(f.attempts.length, 1);
 });
 test('no retroactive automatic entry and no cross-product/session/country sends', async () => {
@@ -121,3 +121,12 @@ test('disabled policy does not queue or dispatch', async () => {
   const f = fixture(); f.disable(); assert.equal((await f.core.start(f.input)).handled, false);
   await f.advance(900000); assert.equal(f.attempts.length, 0);
 });
+
+for (const [random, ms] of [[0, 5000], [.5, 17500], [.999999, 30000]]) {
+ test('initial greeting schedules within 5–30 seconds: ' + ms, async () => {
+  const f = fixture({ random }); await f.core.start(f.input);
+  assert.equal(+f.job.nextAt - +f.job.startedAt, ms);
+  await f.advance(ms - 1); assert.equal(f.attempts.length, 0);
+  await f.advance(1); assert.equal(f.attempts.length, 1);
+ });
+}

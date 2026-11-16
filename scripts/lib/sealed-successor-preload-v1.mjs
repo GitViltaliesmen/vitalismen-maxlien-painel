@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-vitpower-burst-sealed-v228-r6.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-vitpower-burst-profile-v228-r6.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-bot-dropi-sealed-v229-r3.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-bot-dropi-profile-v229-r3.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

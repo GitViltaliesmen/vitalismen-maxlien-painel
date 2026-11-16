@@ -1118,7 +1118,7 @@ export const routeIncomingMessage = async (payload) => {
         return;
     }
 
-    if (decision.productKey === 'vit_power_ec' && !verifiedBurstV228) {
+    if (decision.productKey === 'vit_power_ec' && !verifiedBurstV228 && state.phoneDigits !== '5515998038637') {
         const burst = await handleVitPowerBurstInboundV228({ contactId: String(state._id), phone: state.phoneDigits,
             chatId, sessionId, inboundId: messageId, text: body, productKey: decision.productKey });
         if (burst.handled) return;
@@ -1131,6 +1131,13 @@ export const routeIncomingMessage = async (payload) => {
     }
 
     try {
+        // The finite QA claim is 'routing' until HTTP finalization. Its existing
+        // guard requires this same inbound's processing lease before queuing.
+        if (decision.productKey === 'vit_power_ec' && !verifiedBurstV228 && state.phoneDigits === '5515998038637') {
+            const burst = await handleVitPowerBurstInboundV228({ contactId: String(state._id), phone: state.phoneDigits,
+                chatId, sessionId, inboundId: messageId, text: body, productKey: decision.productKey });
+            if (burst.handled) return;
+        }
         if (!priorityBotTestPhone) {
             await waitForFirstReplyWindow({
                 state,

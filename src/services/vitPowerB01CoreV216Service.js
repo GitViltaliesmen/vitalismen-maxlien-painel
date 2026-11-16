@@ -47,7 +47,7 @@ export function createB01({ repo, send, policy, now = () => new Date(), random =
     const greeting = { kind: 'text', label: 'Saudacao personalizada', text: b01Greeting(customerName, startedAt) };
     const job = { version: B01_VERSION, status: 'pending', origin: input.origin || 'automatic', phone: input.phone,
       chatId: input.chatId, sessionId: 'zapi', inboundId: input.inboundId, startedAt,
-      manualStamp: eligibility.manualStamp || '', customerName, nextAt: new Date(+startedAt + delay(3000, 5000)), cursor: 0,
+      manualStamp: eligibility.manualStamp || '', customerName, nextAt: new Date(+startedAt + delay(5000, 30000)), cursor: 0,
       steps: [greeting, ...B01_MEDIA].map(s => ({ ...s, status: 'pending' })) };
     const saved = await repo.start(input.contactId, job);
     // A lost start race belongs to the same presentation, never fall through to a second responder.
