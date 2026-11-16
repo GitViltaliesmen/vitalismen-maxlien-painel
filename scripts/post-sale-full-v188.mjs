@@ -1,3 +1,4 @@
+import { processCustomerInvitesV232 } from '../src/services/customerInvitesV232Service.js';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 
@@ -88,9 +89,11 @@ try {
             processForwardLogisticsStageV194({ dryRun: true, now, forwardOnlySince }),
             processDropiTrackingReconciliationV194({ dryRun: true, now, forwardOnlySince, limit: 8 })
         ]);
+        const customerInvites = await processCustomerInvitesV232({ dryRun: true, now });
         process.stdout.write(`${JSON.stringify({
             status: 'PASS_DRY_RUN',
             mode: 'V188_TOTAL_DRY_RUN',
+            customerInvites,
             profile,
             zapiConnected: true,
             sendWindowOpen: isPostSaleV188SendWindowOpen(now),
@@ -180,9 +183,15 @@ try {
                 });
                 outboundCount += Number(refill?.sent || 0);
             }
+            let customerInvites = null;
+            if (outboundCount === 0) {
+                customerInvites = await processCustomerInvitesV232({ dryRun: false, now: new Date() });
+                outboundCount += Number(customerInvites?.physicalOutboundCount || 0);
+            }
             const status = outboundCount <= 1 ? 'PASS_BATCH' : 'FAIL_OUTBOUND_LIMIT';
             process.stdout.write(`${JSON.stringify({
                 status,
+                customerInvites,
                 mode: 'V188_OPERATIONAL_BATCH_ONE',
                 profile,
                 zapiConnected: true,

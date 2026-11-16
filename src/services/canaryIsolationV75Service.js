@@ -1,3 +1,4 @@
+import { customerInviteRecipientAllowedV232 } from './customerInviteContextV232Service.js';
 import {
     canaryControllerV77EnforcementRequired,
     resolveCanaryControllerV77Runtime
@@ -154,6 +155,7 @@ export const evaluateCanaryV75Recipient = (phoneOrJid, {
     env = process.env,
     surface = 'unknown'
 } = {}) => {
+    if (customerInviteRecipientAllowedV232(phoneOrJid)) return { allowed: true, enforced: true, reason: 'exact_locked_ec_customer_invite_v232', surface };
     const configuration = resolveCanaryV75Configuration(env);
     if (!configuration.enabled) {
         return { allowed: true, enforced: false, reason: 'canary_v75_disabled', surface };

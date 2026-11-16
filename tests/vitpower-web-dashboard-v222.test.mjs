@@ -33,9 +33,9 @@ test('only user and assistant text are returned; html stays inert text and field
  await write(directory,id,record({draft:{},history:[{role:'system',content:'SECRET'},{role:'user',content:'<img src=x onerror=alert(1)>\u0000',at:'bad'},{role:'assistant',content:'x'.repeat(4000),at:new Date(now).toISOString()}]}));
  const row=await createWebDashboardReaderV222({directory}).read(id);assert.equal(row.name,null);assert.equal(row.history.length,2);assert.equal(row.history[0].content,'<img src=x onerror=alert(1)>');assert.equal(row.history[0].at,null);assert.equal(row.history[1].content.length,2200);
 }));
-test('latest forty messages and at most one hundred records are returned',()=>fixture(async directory=>{
- for(let n=0;n<102;n++)await write(directory,n.toString(16).padStart(64,'0'),record({history:Array.from({length:44},(_,i)=>({role:'user',content:String(i),at:new Date(now).toISOString()}))}));
- const reader=createWebDashboardReaderV222({directory});assert.equal((await reader.list()).length,100);assert.equal((await reader.read('0'.repeat(64))).history[0].content,'4');
+test('latest forty messages and at most one thousand records are returned',()=>fixture(async directory=>{
+ for(let n=0;n<1002;n++)await write(directory,n.toString(16).padStart(64,'0'),record({history:Array.from({length:44},(_,i)=>({role:'user',content:String(i),at:new Date(now).toISOString()}))}));
+ const reader=createWebDashboardReaderV222({directory});assert.equal((await reader.list()).length,1000);assert.equal((await reader.read('0'.repeat(64))).history[0].content,'4');
 }));
 test('missing storage fails without creating any directory',async()=>{const directory=path.join(os.tmpdir(),'missing-vp-'+Date.now());await assert.rejects(createWebDashboardReaderV222({directory}).list(),/UNAVAILABLE/);await assert.rejects(fs.stat(directory),{code:'ENOENT'})});
 test('explicit bearer header is mandatory even on loopback or auth-disabled profiles',()=>{

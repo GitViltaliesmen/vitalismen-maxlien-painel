@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomBytes, createHash } from 'node:crypto';
 const hash = x => createHash('sha256').update(x).digest('hex');
 const DAY = 86400000, TTL = 7 * DAY;
-export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), maxSessions = 100, maxBytes = 16 * 1024 * 1024, dailyTurns = 200, minFreeBytes = 250 * 1024 * 1024 }) {
+export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), maxSessions = 1000, maxBytes = 16 * 1024 * 1024, dailyTurns = 200, minFreeBytes = 250 * 1024 * 1024 }) {
   if (!path.isAbsolute(directory)) throw Error('web_store_absolute_path_required');
   const sessions = path.join(directory, 'sessions');
   const inFlight = new Set();

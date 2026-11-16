@@ -46,7 +46,7 @@ export function createWebDashboardReaderV222({ directory, now = Date.now } = {})
             try { entries = await fs.readdir(root, { withFileTypes: true }); }
             catch { throw new Error('CHAT_STORE_UNAVAILABLE'); }
             const records = [];
-            const names = entries.filter(e => e.isFile() && /^[a-f0-9]{64}\.json$/.test(e.name)).map(e => e.name).sort().slice(0, 100);
+            const names = entries.filter(e => e.isFile() && /^[a-f0-9]{64}\.json$/.test(e.name)).map(e => e.name).sort().slice(0, 1000);
             for (const name of names) { const row = await read(name.slice(0, -5)); if (row) { const { history, ...summary } = row; records.push(summary); } }
             return records.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
         }, read
