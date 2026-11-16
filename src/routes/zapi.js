@@ -232,6 +232,16 @@ export const protocoloGTexUltraContextFromText = (text = '') => {
 // generica sem origem estruturada nao escolhe mais um produto global.
 export const activeEcVslProductContextFromText = () => null;
 
+// The published Vit Power CTA is an entry, not an unrelated product inquiry.
+export const isPublishedVitPowerLeadV227 = (text = '') => {
+    const lines = String(text || '').replace(/\r\n?/g, '\n').trim().split('\n').map(line => line.trim());
+    if (lines.length !== 3 && lines.length !== 4) return false;
+    if (normalizeVslText(lines[0]) !== 'hola vengo del video'
+        || normalizeVslText(lines[1]) !== 'quiero conocer la oferta disponible de vit power'
+        || normalizeVslText(lines[2]) !== 'me interesa aprovechar la mejor promocion y hacer mi pedido me ayudan') return false;
+    return lines.length === 3 || /^Nombre:\s*[^\r\n]{1,120}$/iu.test(lines[3]);
+};
+
 export const explicitEcVslProductContextFromText = (text = '') => {
     const value = normalizeVslText(text);
     if (!value) return null;
@@ -885,6 +895,7 @@ const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } 
         : explicitEcVslProductContextFromText(normalizedBody);
     const explicitTextProductContext = directProductInbound
         && detectedTextProductContext?.productSource === 'zapi_explicit_product_text'
+        && !isPublishedVitPowerLeadV227(normalizedBody)
         ? null
         : detectedTextProductContext;
     const vslAttribution = vslRoutingAllowed

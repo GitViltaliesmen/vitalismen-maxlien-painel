@@ -344,7 +344,8 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId
         const ownerSet = sessionId
             ? {
                 sessionId,
-                ownerPhoneDigits: digitsOnly(sessionId)
+                // Symbolic transports (zapi) must preserve the verified persisted owner.
+                ...(digitsOnly(sessionId) ? { ownerPhoneDigits: digitsOnly(sessionId) } : {})
             }
             : {};
         await Message.updateOne(
