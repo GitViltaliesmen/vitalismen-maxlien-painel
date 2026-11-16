@@ -1,0 +1,100 @@
+--- qr V235
++++ qr V236
+@@ -22299,7 +22299,7 @@
+   const phone=selectedWhatsApp?whatsappPhone(selectedWhatsApp):'';if(phone!==composePhone){savePopupDraft();composePhone=phone;composeInput.value=popupDrafts.get(phone)||'';composeNotice.textContent=''}
+   compose.hidden=!phone||!dialog.open;dialog.dataset.whatsapp=String(!!phone);composeTarget.textContent=phone?'Para: '+String(selectedWhatsApp.name||phone)+' · +'+phone:'';
+   const allowed=!!phone&&waAuthorized&&eligible()&&!sendingPopup&&!popupUncertain.has(phone);
+-  composeInput.disabled=!allowed;composeSend.disabled=!allowed||!composeInput.value.trim();composeSend.textContent=sendingPopup?'Enviando…':'Enviar';
++  composeInput.disabled=!allowed;composeSend.disabled=!allowed||!composeInput.value.trim();composeSend.textContent=sendingPopup?'Enviando…':'Enviar';applyInviteControls();
+  }
+  composeInput.addEventListener('input',()=>{savePopupDraft();updatePopupComposer()});
+  async function sendPopupMessage(event){
+@@ -22319,6 +22319,7 @@
+     else notice='Envio não confirmado. Texto preservado. Confira a conversa antes de reenviar.';
+     popupUncertain.add(phone);return;
+    }
++   if(text.includes('https://taviazen.shop/vitpower_2026g'))inviteCache.set(phone,{verified:true,invited:true,pending:false,at:Date.now()});
+    if(popupDrafts.get(phone)?.trim()===text)popupDrafts.delete(phone);
+    if(composePhone===phone&&composeInput.value.trim()===text)composeInput.value='';
+    notice='Mensagem aceita pelo WhatsApp. A entrega será atualizada no histórico.';
+@@ -22332,6 +22333,57 @@
+  }
+  composeSend.addEventListener('click',sendPopupMessage);
+  composeInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing)sendPopupMessage(event)});
++ const popupInvite=element('button','Convidar para o chat do site'),mainInvite=element('button','Convidar para o chat do site'),mainInviteBox=element('div',undefined,'vp236-main-invite'),mainInviteHint=element('small');
++ popupInvite.type=mainInvite.type='button';popupInvite.id='webChatInviteV236';mainInvite.id='customerChatInviteV236';
++ compose.insertBefore(popupInvite,compose.firstChild);mainInviteBox.append(mainInvite,mainInviteHint);byId('customerPhoneInput')?.parentElement.append(mainInviteBox);
++ const inviteCache=new Map();let inviteCredential='',mainInvitePhone='';
++ function invitedLabel(record){return record?.invited?'Convite já enviado':record?.pending?'Envio pendente — confira o histórico':record?.checking?'Conferindo convite…':'Convidar para o chat do site'}
++ function applyInviteControls(){
++  const credential=token();if(credential!==inviteCredential){inviteCache.clear();inviteCredential=credential}
++  const phone=selectedWhatsApp?whatsappPhone(selectedWhatsApp):'',record=inviteCache.get(phone);
++  popupInvite.hidden=!phone;popupInvite.textContent=invitedLabel(record);popupInvite.disabled=!phone||!waAuthorized||!eligible()||!record?.verified||record.invited||record.pending||sendingPopup;
++  const mainPhone=typeof currentChatPhone==='function'?digitsOnlyText(currentChatPhone()):'',mainRow=whatsappMatches(mainPhone).find(row=>whatsappPhone(row)===mainPhone),mainRecord=inviteCache.get(mainPhone);
++  mainInviteBox.hidden=!mainRow;mainInvite.textContent=invitedLabel(mainRecord);mainInvite.disabled=!mainRow||!mainRecord?.verified||mainRecord.invited||mainRecord.pending||!eligible();
++  mainInviteHint.textContent=mainRecord?.invited?'Link do chat já registrado no WhatsApp.':mainRecord?.pending?'Confira o envio anterior antes de qualquer nova ação.':mainRecord?.error?'Não foi possível conferir o histórico do convite.':'Prepara o convite no popup. Você revisa e clica em Enviar.';
++ }
++ async function readInviteStatus(row,force=false){
++  const phone=whatsappPhone(row),credential=token(),previous=inviteCache.get(phone);
++  if(!eligible()||!phone)return null;
++  if(!force&&previous&&(previous.checking||Date.now()-previous.at<30000))return previous;
++  const pending={checking:true,at:Date.now()};inviteCache.set(phone,pending);applyInviteControls();
++  try{
++   const response=await fetch('/api/web-chat-admin/vitpower/invite-status/'+encodeURIComponent(phone),{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential}});
++   if(!response.ok)throw Error('invite_status_unavailable');const data=await response.json();
++   if(data.version!==236||data.readOnly!==true||typeof data.invited!=='boolean'||typeof data.pending!=='boolean')throw Error('invalid_invite_status');
++   if(token()!==credential)return null;if(inviteCache.get(phone)!==pending)return inviteCache.get(phone);
++   const result={verified:true,invited:data.invited,pending:data.pending,at:Date.now()};inviteCache.set(phone,result);return result;
++  }catch{if(token()===credential)inviteCache.set(phone,{error:true,at:Date.now()});return null}
++  finally{if(token()===credential)applyInviteControls()}
++ }
++ function chatInvitation(row){
++  const raw=String(row.name||'').replace(/[\r\n\u0000-\u001f]/g,' ').trim(),first=/^(?:\+?\d|cliente|visitante)/i.test(raw)?'':raw.split(/\s+/)[0].slice(0,35);
++  return 'Hola'+(first?', '+first:'')+'. Soy Ana Lopez, del equipo Vitalismen Ecuador. 💬\nAhora también puedes conversar con nosotros desde nuestra página y aclarar tus dudas sobre Vit Power.\nAbre aquí: https://taviazen.shop/vitpower_2026g#chat\nToca Hablar con Ana y escribe tu pregunta. Para consultar un pedido, solicita tu código privado por este WhatsApp.\nSi no deseas recibir estas invitaciones, responde STOP.';
++ }
++ async function prepareChatInvitation(event,row){
++  if(!event.isTrusted||!row||sendingPopup)return;
++  const record=await readInviteStatus(row);if(!record?.verified||record.invited||record.pending)return;
++  const text=chatInvitation(row),phone=whatsappPhone(row),draft=popupDrafts.get(phone)||'';
++  if(draft.trim()&&draft.trim()!==text){showToast('Há um rascunho neste popup. Envie ou limpe o texto antes de preparar o convite.');return}
++  if(!dialog.open){document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));dialog.show()}
++  customerSearch.value=phone;await openWhatsApp(row);
++  if(!dialog.open||selectedWhatsApp?.id!==row.id)return;
++  composeInput.value=text;savePopupDraft();updatePopupComposer();composeNotice.textContent='Convite preparado para este cliente. Revise o texto e clique em Enviar.';composeInput.focus();
++ }
++ popupInvite.addEventListener('click',event=>prepareChatInvitation(event,selectedWhatsApp));
++ mainInvite.addEventListener('click',event=>{const phone=digitsOnlyText(currentChatPhone());prepareChatInvitation(event,whatsappMatches(phone).find(row=>whatsappPhone(row)===phone))});
++ function synchronizeMainInvite(){
++  applyInviteControls();const phone=digitsOnlyText(currentChatPhone());if(phone===mainInvitePhone)return;mainInvitePhone=phone;
++  const row=whatsappMatches(phone).find(item=>whatsappPhone(item)===phone);if(row)readInviteStatus(row);
++ }
++ new MutationObserver(synchronizeMainInvite).observe(byId('activeName'),{childList:true,subtree:true});
++ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',synchronizeMainInvite);
++ window.setInterval(synchronizeMainInvite,1000);
++
+ 
+  function stopWhatsApp(){clearTimeout(waTimer);waTimer=null;}
+  function pausePopupMedia(){thread.querySelectorAll('audio,video').forEach(media=>media.pause());}
+@@ -22371,7 +22423,7 @@
+    if(!response.ok)throw Error('Não foi possível carregar a conversa. Use Atualizar para tentar novamente.');
+    const messages=await response.json();if(!Array.isArray(messages))throw Error('Formato de histórico inválido.');
+    if(current!==generation||!dialog.open||credential!==token()||selectedWhatsApp?.id!==row.id)return;
+-   waAuthorized=true;renderWhatsApp(authorized,messages,refresh&&same);updatePopupComposer();scheduleWhatsApp();
++   waAuthorized=true;renderWhatsApp(authorized,messages,refresh&&same);updatePopupComposer();readInviteStatus(authorized);scheduleWhatsApp();
+   }catch(error){if(current!==generation||error.name==='AbortError')return;status.textContent=error.message;waAuthorized=false;updatePopupComposer();if(error.authDenied){pausePopupMedia();thread.replaceChildren()}else scheduleWhatsApp()}
+  }
+  function renderList(rows){
+@@ -22485,6 +22537,13 @@
+ #webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-body{grid-template-rows:100px minmax(0,1fr)}
+ #webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-footer{padding:5px 12px}
+ </style>
++<style id="customerChatInviteStyleV236">
++#customerChatInviteV236,#webChatInviteV236{border:1px solid #b9d5cb;border-radius:8px;background:#eaf8f3;color:#12664e;padding:8px 10px;cursor:pointer;font:600 12px/1.3 Arial,sans-serif}
++#customerChatInviteV236:disabled,#webChatInviteV236:disabled{opacity:.65;cursor:default}
++.vp236-main-invite{display:grid;gap:5px;margin-top:7px}.vp236-main-invite small{font-size:11px;line-height:1.3;color:#52685f}
++.vp236-main-invite[hidden],#webChatInviteV236[hidden]{display:none!important}
++#webChatInviteV236{width:100%;margin-bottom:7px}
++</style>
+ <!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
+ 
+ <!-- VITALISMEN_EC_DASHBOARD_FLOATING_CHAT_V224_START -->
