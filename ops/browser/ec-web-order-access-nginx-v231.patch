@@ -1,0 +1,14 @@
+--- a/ec-web-chat-admin
++++ b/ec-web-chat-admin
+@@ -1,4 +1,11 @@
+     location ^~ /api/web-chat-admin/vitpower/ {
++        # V231: issue private order access only through the authenticated exact route.
++        location ~ "^/api/web-chat-admin/vitpower/[a-f0-9]{64}/order-access$" {
++            limit_except POST { deny all; }
++            client_max_body_size 1k;
++            proxy_pass http://127.0.0.1:3001;
++        }
++
+         limit_except GET { deny all; }
+         proxy_pass http://127.0.0.1:3001;
+         proxy_http_version 1.1;
