@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-sdr-sale-sealed-v230-r4.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-sdr-sale-profile-v230-r4.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-web-voice-status-sealed-v231-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-web-voice-status-profile-v231-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

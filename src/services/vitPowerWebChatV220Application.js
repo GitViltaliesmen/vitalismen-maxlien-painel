@@ -4,6 +4,7 @@ import { createVitPowerWebAgentV220 } from './vitPowerWebAgentV220Service.js';
 import { createVitPowerWebStoreV220 } from './vitPowerWebStoreV220Service.js';
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
+import { createWebVoiceV231, productionWebOrderAccessV231 } from './vitPowerWebVoiceStatusV231Service.js';
 const PATH = '/api/web-chat/vitpower';
 export function webChatRequestAllowedV220(req) {
   return req.method === 'POST' && String(req.originalUrl || req.path || '').split('?')[0] === PATH
@@ -14,6 +15,7 @@ function tokenFrom(req) { const match = String(req.headers.cookie || '').match(/
 const setCookie = (res, token, maxAge = 604800) => res.setHeader('Set-Cookie', cookieName + '=' + token + '; Path=/; Max-Age=' + maxAge + '; Secure; HttpOnly; SameSite=Lax');
 export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.__VITALISMEN_EC_WEB_CHAT_V220, store: providedStore, agent: providedAgent, now = () => Date.now() } = {}) {
   let store = providedStore, agent = providedAgent, active = 0;
+  const voice = createWebVoiceV231({ apiKey: process.env.VITALISMEN_WEB_ELEVENLABS_API_KEY });
   const rates = new Map();
   return async function webChat(req, res) {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -21,7 +23,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     if (!cap?.requestAllowed?.(req)) return res.status(403).json({ ok: false, error: 'chat_unavailable' });
     if (!req.is?.('application/json') || Number(req.headers['content-length'] || 0) > 4096) return res.status(415).json({ ok: false, error: 'invalid_request' });
     const body = req.body;
-    if (!body || Array.isArray(body) || Object.keys(body).some(k => !['action', 'requestId', 'message'].includes(k)) || !['start', 'message', 'clear'].includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
+    if (!body || Array.isArray(body) || Object.keys(body).some(k => !['action', 'requestId', 'message', 'accessToken'].includes(k)) || !['start', 'message', 'clear', 'voice', 'order_status'].includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
     const ip = String(req.headers['x-vitalismen-chat-ip'] || '');
     if (!isIP(ip)) return res.status(403).json({ ok: false, error: 'invalid_request' });
     const key = createHash('sha256').update(ip).digest('hex'), window = Math.floor(now() / 600000);
@@ -35,7 +37,21 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       if (body.action === 'clear') { await store.clear(tokenFrom(req)); setCookie(res, '', 0); return res.json({ ok: true, cleared: true }); }
       if (body.action === 'start') {
         const session = await store.open(tokenFrom(req)); setCookie(res, session.token);
-        return res.json({ ok: true, version: 220, history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
+        return res.json({ ok: true, version: 220, voiceReplyId: Object.entries(session.value.requests || {}).filter(([, row]) => row.status === 'done').at(-1)?.[0] || 'welcome_ana_lopez_v231', history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
+      }
+      if (body.action === 'voice' || body.action === 'order_status') {
+        const token = tokenFrom(req);
+        if (!token) return res.status(401).json({ ok: false, error: 'session_expired' });
+        const session = await store.open(token);
+        if (session.fresh) return res.status(401).json({ ok: false, error: 'session_expired' });
+        const sessionId = createHash('sha256').update(token).digest('hex');
+        if (body.action === 'voice') {
+          const audio = await voice({ sessionId, record: session.value, requestId: body.requestId });
+          res.setHeader('Content-Type', 'audio/mpeg'); return res.send(audio);
+        }
+        if (typeof body.requestId !== 'string' || !/^[a-f0-9]{64}$/.test(body.accessToken || '')) return res.status(400).json({ ok: false, error: 'order_access_unavailable' });
+        const result = await store.transact(token, body.requestId, 'Consultar estado de mi pedido', () => productionWebOrderAccessV231().read({ token: body.accessToken, sessionId }));
+        return res.json(result);
       }
       if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 700 || typeof body.requestId !== 'string') return res.status(400).json({ ok: false, error: 'invalid_message' });
       if (active >= 2) { res.setHeader('Retry-After', '15'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
@@ -55,6 +71,8 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       finally { active--; }
     } catch (error) {
       const code = String(error?.message || '');
+      if (/^voice_/.test(code)) return res.status(code === 'voice_busy' ? 429 : 503).json({ ok: false, error: code, textAvailable: true });
+      if (/^order_access_/.test(code)) return res.status(403).json({ ok: false, error: 'order_access_unavailable', whatsappAvailable: true });
       if (/capacity|limit|busy/.test(code)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
       if (/session_required|session_expired/.test(code)) return res.status(401).json({ ok: false, error: 'session_expired', whatsappAvailable: true });
       if (/request_id|previous_outcome/.test(code)) return res.status(409).json({ ok: false, error: 'previous_request_not_repeated', whatsappAvailable: true });

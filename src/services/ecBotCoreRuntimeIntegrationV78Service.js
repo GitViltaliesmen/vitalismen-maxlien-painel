@@ -490,6 +490,9 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     if (path === '/api/whatsapp/b01-v216' && ['GET', 'POST'].includes(method)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, b01AuthenticatedCandidateV216: true }, next);
     }
+    if (method === 'POST' && /^\/api\/web-chat-admin\/vitpower\/[a-f0-9]{64}\/order-access$/.test(path) && /^Bearer [^\s]{1,8192}$/.test(req.headers?.authorization || '')) {
+        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, webOrderAccessV231: true }, next);
+    }
     if (webChatRequestAllowedV220(req)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, webChatV220: true }, next);
     }

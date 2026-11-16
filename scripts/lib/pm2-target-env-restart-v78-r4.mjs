@@ -1,4 +1,4 @@
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-sdr-sale-sealed-v230-r4.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-web-voice-status-sealed-v231-r2.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
