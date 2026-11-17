@@ -1,0 +1,12 @@
+{
+  "panelPath": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "panelSha256": "f31fe4278a1901c2670868e262a0128bf8d2074c0b752fbe24ca0dca6f93adca",
+  "panelCandidateSha256": "e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3",
+  "panelMetadata": {
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "nginxSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+  "panelControllerSha256": "ce8c551757cd3dd841b1632d990d52449166baa3897812eb09f93d9faa3d1298"
+}

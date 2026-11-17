@@ -1,0 +1,32 @@
+{
+  "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "sha256": "f31fe4278a1901c2670868e262a0128bf8d2074c0b752fbe24ca0dca6f93adca",
+  "uid": 0,
+  "gid": 0,
+  "mode": 420,
+  "afterSha256": "e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3",
+  "patches": [
+    {
+      "before": "[row.name,row.id,row.city,row.productName]",
+      "after": "[row.name,row.id,row.city,row.productName,row.verifiedWhatsApp]"
+    },
+    {
+      "before": " function renderConversation(conversation,newMessage=false){",
+      "after": " function appendTexEntryV242(message){\n  const block=message.entryBlock,keys=['greeting','intro','proof','bottle','offer'];\n  const incoming={intro:'/tex-assets/tex-entry-v242/intro.mp3',proof:'/tex-assets/tex-entry-v242/proof.jpeg',bottle:'/tex-assets/tex-entry-v242/bottle.png'};\n  const official={intro:'/media/templates/EC/CONHECER_NECESSIDADES_CLIENTES.mp3',proof:'/media/sales/shared/social_01.jpeg',bottle:'/media/sales/ec/tex_ultra.png'};\n  if(message.role!=='assistant'||block?.id!=='tex_ultra_inicio_completo'||block.version!==242||block.productKey!=='tex_ultra_ec'||!Array.isArray(block.steps)||block.steps.length!==5)return false;\n  if(!block.steps.every((step,i)=>step.key===keys[i]&&typeof step.text==='string'&&step.text.length<=1200&&(incoming[step.key]?step.src===incoming[step.key]&&step.type===(step.key==='intro'?'audio':'image'):step.type==='text'&&!step.src)))return false;\n  for(const step of block.steps){\n   const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role='assistant';bubble.dataset.texEntryStep=step.key;\n   if(step.type==='audio'||step.type==='image'){const holder=element('div',undefined,'vpweb234-wa-media');holder.innerHTML=renderMessageMedia({type:step.type,hasMedia:true,mediaUrl:official[step.key],...(step.type==='audio'?{mediaPreviewUrl:official[step.key]}:{}),body:step.text});bubble.append(element('span',step.text),holder)}\n   else bubble.append(element('span',step.text));\n   bubble.append(element('small','Ana Lopez · '+format(message.at)));thread.append(bubble);\n  }\n  return true;\n }\n function renderConversation(conversation,newMessage=false){"
+    },
+    {
+      "before": "  for(const message of conversation.history){const bubble=element('div',undefined,'vpweb222-bubble');",
+      "after": "  if(conversation.productKey==='tex_ultra_ec'&&/^593[2-79]\\d{8}$/.test(conversation.verifiedWhatsApp||'')){\n   thread.append(element('p','WhatsApp confirmado: +'+conversation.verifiedWhatsApp+' · Início: '+(conversation.firstContactChannel==='whatsapp'?'WhatsApp':'chat da VSL')));\n   const linked=element('button','Abrir WhatsApp vinculado');linked.type='button';linked.addEventListener('click',()=>{const row=whatsappMatches(conversation.verifiedWhatsApp).find(item=>whatsappPhone(item)===conversation.verifiedWhatsApp);if(row)openWhatsApp(row);else status.textContent='O número está confirmado. Atualize a lista de contatos para abrir a conversa WhatsApp.'});thread.append(linked);\n  }\n  for(const message of conversation.history){if(conversation.productKey==='tex_ultra_ec'&&appendTexEntryV242(message))continue;const bubble=element('div',undefined,'vpweb222-bubble');"
+    },
+    {
+      "before": "  remember(conversation);status.textContent=",
+      "after": "  hydrateAuthenticatedMedia(thread);remember(conversation);status.textContent="
+    },
+    {
+      "before": "thread.append(element('p','O pedido abre automaticamente pelo link privado enviado ao WhatsApp cadastrado. Para preparar esse acesso, busque o telefone do cliente e abra a conversa WhatsApp neste popup.'));",
+      "after": "thread.append(element('p',conversation.productKey==='tex_ultra_ec'?'Tex Ultra: este chat não cria pedidos. O vínculo exige confirmação pelo próprio WhatsApp; a apresentação continua no primeiro canal, sem reiniciar o bloco.':'O pedido abre automaticamente pelo link privado enviado ao WhatsApp cadastrado. Para preparar esse acesso, busque o telefone do cliente e abra a conversa WhatsApp neste popup.'));"
+    }
+  ],
+  "mainWhatsAppPanelChanged": false,
+  "popupAndComposerIdsPreserved": true
+}

@@ -1,0 +1,171 @@
+{
+  "project": "VITALISMEN_EC",
+  "freezeId": "PLUSMEN_TEX_DEVICE_SPLIT_APPROVED_20261117",
+  "status": "FROZEN_OPERATOR_VISUAL_APPROVAL",
+  "recordedAtUtc": "2026-11-17T14:26:21.654156+00:00",
+  "recordedAtSaoPaulo": "2026-11-17T11:26:21.654156-03:00",
+  "officialUrl": "https://plusmen.shop/tex",
+  "officialOrigin": "169.58.51.100",
+  "scope": "PLUSMEN_TEX_DEVICE_PRESENTATION_AND_WHATSAPP_DESTINATION_ONLY",
+  "operatorApproval": {
+    "source": "Explicit user message in this chat on 2026-11-17",
+    "message": "ok. aprovado! Vsl abrindo no celular e pagina cloacker quando acessado por descktop abre pagina informativa! Congele! qual proximo passo?",
+    "mobileVslVisuallyConfirmed": true,
+    "desktopInformativeVisuallyConfirmed": true
+  },
+  "product": {
+    "key": "tex_ultra_ec",
+    "name": "Tex Ultra Ecuador"
+  },
+  "variants": {
+    "smartphone": "Tex Ultra VSL; native player preserved",
+    "desktopAndEquivalent": "Original VerdeVibe informative page preserved"
+  },
+  "player": {
+    "id": "6aafe87d665f0c5b457748ad",
+    "ctaId": "preco_89",
+    "ctaStartSeconds": 2257,
+    "turbo": 1.2,
+    "timingEvidence": "Existing published player configuration inspected during publication; no physical 37:37 observation in this work",
+    "vturbSaved": false
+  },
+  "whatsapp": {
+    "destination": "553171862958",
+    "message": "Hola, quiero el tratamiento Tex Ultra.",
+    "transportChanged": false,
+    "registeredMetaBusinessPhoneChanged": false,
+    "realMessagesSentByThisWork": 0
+  },
+  "frozenFiles": {
+    "/etc/nginx/sites-available/plusmen.shop": {
+      "sha256": "4c0804928fd85ec5141a51ea1487ac485a963cfba00b5213004b88bc4a9f538e",
+      "size": 3770,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644"
+    },
+    "/etc/nginx/snippets/plusmen-tex-mobile-v1.conf": {
+      "sha256": "3c9221131653d1db61893f4e30b8efdefe024872fb3854e762aa9920ebdf90cb",
+      "size": 3145,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644"
+    },
+    "/var/www/plusmen-tex-vsl-v1/index.html": {
+      "sha256": "d48259ac5ebc1b4c4df3b4eee281f06b04f2aa11a3ad5de2ddcb1558f54fad03",
+      "size": 2546,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644"
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js": {
+      "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "size": 2103,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o644"
+    }
+  },
+  "frozenDesktopFiles": {
+    "public/verdevibe/dist/index.html": {
+      "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+      "size": 4309,
+      "uid": 501,
+      "gid": 0,
+      "mode": "0o664"
+    },
+    "public/verdevibe/dist/assets/index-YfNAnfMa.js": {
+      "sha256": "7b0ff8993df28b4c8c429f46fc5dc81a3bf4876b93054af13895146b15267e4d",
+      "size": 266405,
+      "uid": 501,
+      "gid": 0,
+      "mode": "0o664"
+    }
+  },
+  "validation": {
+    "liveHashesMatchPublishedCandidate": true,
+    "nginxSyntax": "PASS",
+    "publicReadOnlyChecks": [
+      {
+        "device": "android",
+        "status": 200,
+        "variant": "vsl-mobile",
+        "responseSha256": "b649569d4d1ac3a002aa01f49d17f9bbcddba1e282a2d18d86a5d1153218e272"
+      },
+      {
+        "device": "iphone",
+        "status": 200,
+        "variant": "vsl-mobile",
+        "responseSha256": "b649569d4d1ac3a002aa01f49d17f9bbcddba1e282a2d18d86a5d1153218e272"
+      },
+      {
+        "device": "desktop",
+        "status": 200,
+        "variant": "informative",
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      },
+      {
+        "device": "ipad",
+        "status": 200,
+        "variant": "informative",
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      }
+    ],
+    "previousIsolatedRoutingChecks": 19,
+    "previousWhatsAppHandlerTests": 9,
+    "productionChangedToRecordFreeze": false
+  },
+  "backup": {
+    "path": "/root/plusmen-tex-mobile-backups/20261117T133250Z",
+    "rollbackCommand": "python3 /root/plusmen-tex-mobile-backups/20261117T133250Z/rollback.py",
+    "files": {
+      "manifest.json": {
+        "sha256": "9d116648bd60b38fb1439d3a8101618f4959f364a231cfe188ac027f784c68aa",
+        "size": 945,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600"
+      },
+      "rollback.py": {
+        "sha256": "aa8506c9d8b8f582d4b7148c73702f492dfc3c32223a7597f0eb59af02c1e1d1",
+        "size": 720,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600"
+      },
+      "files/etc/nginx/sites-available/plusmen.shop": {
+        "sha256": "67035249a2338e747aafe1c031601027a2673d71e710ff4684a159b732888caa",
+        "size": 3022,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600"
+      }
+    },
+    "type": "Recoverable code/configuration only; not a global MongoDB backup",
+    "rollbackExecuted": false
+  },
+  "preservation": {
+    "desktopTreeUnchanged": true,
+    "botChanged": false,
+    "existingContactsChanged": false,
+    "ordersChanged": false,
+    "dropiChanged": false,
+    "metaChanged": false,
+    "playerChanged": false,
+    "pricesChanged": false
+  },
+  "notIncluded": {
+    "texUltraSiteChat": "Not implemented/published; separately requested work remains pending",
+    "panelAttribution": "No new live end-to-end customer proof; preserve manual selections and historical origin",
+    "metaProductIdentity": "Prepared and authorized, not published; existing dependency security gate still failing",
+    "dependencyMaintenance": "No maintenance authorization inferred from this visual approval"
+  },
+  "policy": {
+    "doNotReeditApprovedVisualRouteWithoutObservableFailure": true,
+    "doNotSaveVturbAgainForThisRecord": true,
+    "futureMicroLayersRequireParentComparisonAndRegressionTests": true,
+    "priorSpecificAuthorizationsRemainValid": true,
+    "noAutomaticTestMessagesOrMassContactChanges": true
+  },
+  "operationalReport": "docs/PLUSMEN_TEX_MOBILE_TELEFONE_20261117.md"
+}
