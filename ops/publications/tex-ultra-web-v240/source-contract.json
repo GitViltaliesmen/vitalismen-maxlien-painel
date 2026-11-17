@@ -1,7 +1,7 @@
 {
   "project": "VITALISMEN_EC",
   "status": "SOURCE_CANDIDATE_NOT_PUBLICATION_ATTESTATION",
-  "backendCommit": "c1e04a13794b83dbec96a411434bf13b983f7f46",
+  "backendCommit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
   "siteUrl": "https://plusmen.shop/tex",
   "parentFreezeSha256": "f9ff2f16858f1771330ac38920798b7c8c705184ed0e9ff64fa0cde691456014",
   "panelPatchOnly": true,
@@ -12,7 +12,7 @@
     "ops/publications/tex-ultra-web-v240/chat-tex-ultra.js": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
     "ops/publications/tex-ultra-web-v240/chat-tex-ultra.css": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
     "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-proxy-v240.conf": "3654f6755724e2c3e2b68b8345ca5b3db31ff7543c39faf94673c7bdab3de287",
-    "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-inject-v240.conf": "ba7172c2e3db3e7f846fb05b862438d698779731f85acf802febb605df9438d1",
+    "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-inject-v240.conf": "077150c2d6c34764a22eb79e4391169cbfb96b8c4fdc40e2531bdf05ecb55648",
     "ops/publications/tex-ultra-web-v240/panel.patch.json": "3a8d6df038fe3a3e84122db9561b661f786a1f3c21c1646dc722bca375b1e275",
     "tests/tex-ultra-web-site-v240.test.mjs": "21204b76246e52c7bd96712e98d9c295f4bbd6e33e3189ca3d711e9035dfa0a3"
   }
