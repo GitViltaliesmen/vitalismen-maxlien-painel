@@ -1,0 +1,24 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "135d17cc75d71b7401c7f1e9400759e913ad867b",
+  "scope": "Tex Ultra named verified WhatsApp identity, first-channel entry ownership, existing approved five-step block",
+  "authorization": "USER_20261117_TEX_FIRST_CHANNEL_NAME_VERIFIED_WHATSAPP",
+  "officialSite": "https://plusmen.shop/tex",
+  "businessDelta": [
+    "src/services/agentRouter.js",
+    "src/services/texUltraEntryBlockV242Service.js",
+    "src/services/texUltraFunnelService.js",
+    "src/services/texUltraInitialLayerService.js",
+    "src/services/texUltraLinkedEntryV242Service.js",
+    "src/services/texUltraLinkedRuntimeV242Service.js",
+    "src/services/vitPowerWebChatV220Application.js",
+    "src/services/vitPowerWebDashboardV222Service.js",
+    "src/services/vitPowerWebStoreV220Service.js"
+  ],
+  "verification": "customer initiated official Z-API inbound; no outbound OTP sender",
+  "noBatchStateReset": true,
+  "noOrderOrMetaChange": true,
+  "noNativePlayerOrCtaOrPhoneChange": true,
+  "noWhatsAppHistoryDisclosedToAnonymousWeb": true,
+  "preserveConcurrentQaV241": true
+}

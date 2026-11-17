@@ -1,3 +1,4 @@
+import { validateTexUltraEntryBlockV242 } from './texUltraEntryBlockV242Service.js';
 import fs from 'node:fs/promises';
 import { constants } from 'node:fs';
 import path from 'node:path';
@@ -26,14 +27,14 @@ export function createWebDashboardReaderV222({ directory, now = Date.now } = {})
             if (record.version !== 220 || !Number.isFinite(record.expiresAt) || record.expiresAt <= now()) return null;
             const history = (Array.isArray(record.history) ? record.history : []).slice(-40)
                 .filter(item => item && ['user', 'assistant'].includes(item.role) && typeof item.content === 'string')
-                .map(item => ({ role: item.role, content: clean(item.content, item.role === 'user' ? 700 : 2200), at: date(item.at) }))
+                .map(item => ({ role: item.role, content: clean(item.content, item.role === 'user' ? 700 : 2200), at: date(item.at), ...(record.productKey === 'tex_ultra_ec' && item.entryBlock ? { entryBlock: validateTexUltraEntryBlockV242(item.entryBlock) } : {}) }))
                 .filter(item => item.content);
             if (!history.length) return null;
             const draft = record.draft && typeof record.draft === 'object' ? record.draft : {};
             const name = clean(draft.name, 80);
             const tex = record.productKey === 'tex_ultra_ec';
             if (record.productKey && !['vit_power_ec', 'tex_ultra_ec'].includes(record.productKey)) return null;
-            return { id, ...(tex ? { productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', sourceOrigin: 'https://plusmen.shop', sourcePath: '/tex', funnelStage: clean(draft.texUltraStage, 40) } : {}), name: name || null, city: clean(draft.city, 80) || null,
+            return { id, ...(tex ? { productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', sourceOrigin: 'https://plusmen.shop', sourcePath: '/tex', funnelStage: clean(draft.texUltraStage, 40), verifiedWhatsApp: /^593[2-79]\d{8}$/.test(draft.verifiedWhatsApp || '') ? draft.verifiedWhatsApp : null, firstContactChannel: ['web', 'whatsapp'].includes(draft.firstContactChannel) ? draft.firstContactChannel : null } : {}), name: name || null, city: clean(draft.city, 80) || null,
                 quantity: (tex ? [1, 2, 3, 6] : [1, 3, 6]).includes(Number(draft.quantity)) ? Number(draft.quantity) : null,
                 createdAt: date(record.createdAt), lastAt: history.at(-1).at || date(record.createdAt),
                 messageCount: history.length, history };

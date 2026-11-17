@@ -1,3 +1,4 @@
+import { handleTexLinkConfirmationV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { handleVitPowerBurstInboundV228 } from './vitPowerBurstRuntimeV228Service.js';
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 import {routeGiraInbound} from './gira21x/cohort.mjs';
@@ -983,6 +984,11 @@ export const routeIncomingMessage = async (payload) => {
         console.log(`[ROUTER] inbound operacional salvo sem automacao | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'} | session=${sessionId || 'sem_session'}`);
         return;
     }
+
+    // Verification only: no commercial reply, order, human release or QA reset.
+    if (/^Hola, quiero el tratamiento Tex Ultra\.\r?\nConfirmar chat:/.test(body)) await state.save();
+    const texLinkV242 = await handleTexLinkConfirmationV242({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
+    if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }
 
     if (priorityBotTestPhone) {
         if (!state.metadata?.fullFunnelTestEnabled) {

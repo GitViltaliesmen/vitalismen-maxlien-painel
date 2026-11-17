@@ -1,3 +1,5 @@
+import { startTexUltraEntryV242, texUltraPreferredNameV242, withTexModelContextV242 } from './texUltraEntryBlockV242Service.js';
+import { texLinkedStoreV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { TEX_ULTRA_WEB_V240, createTexUltraWebFunnelV240 } from './texUltraWebFunnelV240Service.js';
 import { createOpenAiFreeflowCompletion } from './principalSdrFreeflowService.js';
 import { getEcuadorOffer } from './ecuadorProductService.js';
@@ -30,7 +32,8 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     const writeCookie = (value, maxAge = 604800) => tex ? res.setHeader('Set-Cookie', TEX_ULTRA_WEB_V240.cookieName + '=' + value + '; Path=/; Max-Age=' + maxAge + '; Secure; HttpOnly; SameSite=Lax') : setCookie(res, value, maxAge);
     if (!req.is?.('application/json') || Number(req.headers['content-length'] || 0) > 4096) return res.status(415).json({ ok: false, error: 'invalid_request' });
     const body = req.body;
-    if (!body || Array.isArray(body) || Object.keys(body).some(k => !['action', 'requestId', 'message', 'accessToken'].includes(k)) || !['start', 'message', 'clear', 'voice', 'order_status'].includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
+    const linkedEntry = tex && cap.entryV242Allowed?.(req) === true;
+    if (!body || Array.isArray(body) || Object.keys(body).some(k => !(linkedEntry ? ['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone'] : ['action', 'requestId', 'message', 'accessToken']).includes(k)) || !(linkedEntry ? ['start', 'message', 'clear', 'voice', 'order_status', 'link_start', 'link_status', 'tex_entry'] : ['start', 'message', 'clear', 'voice', 'order_status']).includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
     const ip = String(req.headers['x-vitalismen-chat-ip'] || '');
     if (!isIP(ip)) return res.status(403).json({ ok: false, error: 'invalid_request' });
     const key = createHash('sha256').update(ip).digest('hex'), window = Math.floor(now() / 600000);
@@ -44,7 +47,29 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       if (body.action === 'clear') { await store.clear(readToken(), context); writeCookie('', 0); return res.json({ ok: true, cleared: true }); }
       if (body.action === 'start') {
         const session = await store.open(readToken(), context); writeCookie(session.token);
-        return res.json({ ok: true, version: 220, ...(tex ? { identity: { productKey: selectedProduct, productName: TEX_ULTRA_WEB_V240.productName, origin: TEX_ULTRA_WEB_V240.origin, sourcePath: TEX_ULTRA_WEB_V240.sourcePath }, welcome: TEX_ULTRA_WEB_V240.welcome } : {}), voiceReplyId: Object.entries(session.value.requests || {}).filter(([, row]) => row.status === 'done').at(-1)?.[0] || 'welcome_ana_lopez_v231', history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
+        return res.json({ ok: true, version: 220, ...(tex ? { identity: { productKey: selectedProduct, productName: TEX_ULTRA_WEB_V240.productName, origin: TEX_ULTRA_WEB_V240.origin, sourcePath: TEX_ULTRA_WEB_V240.sourcePath }, welcome: TEX_ULTRA_WEB_V240.welcome, ...(linkedEntry ? { linkedEntryVersion: 242, firstName: session.value.draft?.preferredFirstName || '', entryLinked: Boolean(session.value.draft?.verifiedWhatsApp) } : {}) } : {}), voiceReplyId: Object.entries(session.value.requests || {}).filter(([, row]) => row.status === 'done').at(-1)?.[0] || 'welcome_ana_lopez_v231', history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
+      }
+      if (linkedEntry && ['link_start', 'link_status', 'tex_entry'].includes(body.action)) {
+        const token = readToken(); if (!token) return res.status(401).json({ ok: false, error: 'session_expired' });
+        const session = await store.open(token, context); if (session.fresh) return res.status(401).json({ ok: false, error: 'session_expired' });
+        const sessionId = createHash('sha256').update(token).digest('hex'), links = texLinkedStoreV242();
+        if (body.action === 'link_start') {
+          const firstName = texUltraPreferredNameV242(body.firstName);
+          if (!firstName || typeof body.phone !== 'string' || !/^\+?\d{10,15}$/.test(body.phone)) return res.status(400).json({ ok: false, error: 'tex_link_input_invalid' });
+          return res.json(await links.issue({ sessionId, requestId: body.requestId, firstName, phone: body.phone.replace(/^\+/, '') }));
+        }
+        const identity = await links.identity(sessionId);
+        if (body.action === 'link_status') return res.json({ ok: true, verified: Boolean(identity), ...(identity ? {
+          firstName: identity.firstName, maskedPhone: '••••' + identity.phone.slice(-4), firstChannel: identity.firstChannel,
+          entryAttempted: identity.entryAttempted, humanHold: identity.blocked } : {}) });
+        if (!identity) return res.status(403).json({ ok: false, error: 'tex_link_verification_required' });
+        return res.json(await store.transact(token, body.requestId, 'Continuar Tex Ultra con WhatsApp confirmado.', async saved => {
+          const claim = await links.claimWebEntry(sessionId, body.requestId);
+          const draft = { ...saved.draft, name: saved.draft.name || identity.firstName, preferredFirstName: identity.firstName,
+            verifiedWhatsApp: identity.phone, firstContactChannel: identity.firstChannel };
+          if (!claim.allowed) return { reply: identity.blocked ? 'Tu atención está reservada para una persona del equipo. No reiniciaré la presentación automática.' : 'Ya comenzamos tu atención de Tex Ultra. Continuamos desde donde quedamos, sin repetir la presentación.', draft, modelUsed: false, handoff: identity.blocked === true };
+          return startTexUltraEntryV242({ ...saved, draft, firstName: identity.firstName, date: new Date(now()) });
+        }, context));
       }
       if (body.action === 'voice' || body.action === 'order_status') {
         const token = readToken();
@@ -62,6 +87,13 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
         return res.json(result);
       }
       if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 700 || typeof body.requestId !== 'string') return res.status(400).json({ ok: false, error: 'invalid_message' });
+      if (tex && linkedEntry && readToken()) {
+        const identity = await texLinkedStoreV242().identity(createHash('sha256').update(readToken()).digest('hex'));
+        if (identity?.blocked) return res.json(await store.transact(readToken(), body.requestId, body.message.trim(), saved => ({
+          reply: 'Tu atención está reservada para una persona del equipo. Puedes continuar por el WhatsApp oficial; no reiniciaré la presentación automática.',
+          draft: { ...saved.draft, texUltraStage: 'human_requested' }, handoff: true, modelUsed: false
+        }), context));
+      }
       if (active >= 2) { res.setHeader('Retry-After', '15'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
       active++;
       try {
@@ -87,10 +119,13 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
         policy: async topic => topic === 'delivery' ? { ok: true, verified: true, source: 'existing-EC-delivery-modes-home-agency', text: 'Entrega: puede elegir domicilio o retiro en una agencia Servientrega. Validaremos ciudad y dirección o agencia antes de confirmar.' } : { ok: false, unavailable: true }
       });
       }
-      const result = await store.transact(readToken(), body.requestId, body.message.trim(), saved => (tex ? texAgent : agent).reply({ text: body.message.trim(), ...saved }), context); return res.json(result); }
+      const result = await store.transact(readToken(), body.requestId, body.message.trim(), saved => tex && linkedEntry
+        ? withTexModelContextV242(input => texAgent.reply(input), { text: body.message.trim(), ...saved })
+        : (tex ? texAgent : agent).reply({ text: body.message.trim(), ...saved }), context); return res.json(result); }
       finally { active--; }
     } catch (error) {
       const code = String(error?.message || '');
+      if (/^tex_(?:link|entry)_/.test(code)) { const busy = /busy|capacity|limit/.test(code); return res.status(busy ? 429 : 400).json({ ok: false, error: code }); }
       if (/^voice_/.test(code)) return res.status(code === 'voice_busy' ? 429 : 503).json({ ok: false, error: code, textAvailable: true });
       if (/^order_access_/.test(code)) return res.status(403).json({ ok: false, error: 'order_access_unavailable', whatsappAvailable: true });
       if (/capacity|limit|busy/.test(code)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }

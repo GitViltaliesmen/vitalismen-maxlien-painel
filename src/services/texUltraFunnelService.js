@@ -9,6 +9,7 @@ import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { sendPurchaseEventForOrder } from './metaConversionsService.js';
 import { enrichOrderWithMetaAttribution } from './metaAttributionService.js';
+import { observeTexEntryOwnerV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntryGreetingService.js';
 import { TEX_ULTRA_EC_PRODUCT_PROFILE, texUltraPriceForQuantity, texUltraPublicOfferText } from './texUltraProductProfile.js';
 import { interruptTexUltraInitialLayerOnInbound, startTexUltraInitialLayer } from './texUltraInitialLayerService.js';
@@ -525,6 +526,7 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     if (state.metadata?.productKey !== AGENT_KEY && !explicitTex) return false;
     if (state.human?.mode === 'manual' && !['', 'vsl_ec', 'tex_ultra_funnel'].includes(String(state.human?.lastManualBy || ''))) return false;
 
+    await observeTexEntryOwnerV242({ state, inboundText, sourceMessageId, sessionId });
     if (sessionId) state.metadata = { ...(state.metadata || {}), lastSessionId: sessionId };
     let memory = memoryOf(state);
     let draft = { ...draftOf(state), phone: draftOf(state).phone || (state.phoneDigits ? `+${digitsOnly(state.phoneDigits)}` : '') };
@@ -656,27 +658,29 @@ export const handleTexUltraFunnelInbound = async ({ contactStateId = '', inbound
     }
 
     if (!memory.presentationSentAt) {
-        const layered = await startTexUltraInitialLayer({ state });
-        if (layered.started || layered.reason === 'flow_already_exists') return true;
-        const presentationLockAt = new Date(memory.presentationSendingAt || '').getTime();
-        if (Number.isFinite(presentationLockAt) && Date.now() - presentationLockAt < 120000) return true;
-        memory = { ...memory, presentationSendingAt: new Date().toISOString() };
-        await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
-        const directOffer = asksPrice(inboundText);
-        await sendFunnelText({ state, text: directOffer ? offerText() : presentationText(state), context: directOffer ? 'tex_ultra_offer' : 'tex_ultra_presentation' });
-        const universalIntroSent = directOffer ? false : await sendUniversalEntryAudio(state);
-        await sendBottle(state);
-        await sendSharedProof(state);
-        memory = {
-            ...memory,
-            presentationSendingAt: '',
-            presentationSentAt: new Date().toISOString(),
-            ...(universalIntroSent ? { universalIntroSentAt: new Date().toISOString() } : {}),
-            bottleSentAt: new Date().toISOString(),
-            proofSentAt: new Date().toISOString()
-        };
-        await saveState(state, { memory, draft, stage: directOffer ? 'awaiting_quantity' : 'awaiting_interest' });
-        return true;
+        if (memory.linkedWebEntryV242?.firstChannel !== 'web') {
+            const layered = await startTexUltraInitialLayer({ state });
+            if (layered.started || layered.reason === 'flow_already_exists') return true;
+            const presentationLockAt = new Date(memory.presentationSendingAt || '').getTime();
+            if (Number.isFinite(presentationLockAt) && Date.now() - presentationLockAt < 120000) return true;
+            memory = { ...memory, presentationSendingAt: new Date().toISOString() };
+            await saveState(state, { memory, draft, stage: memory.stage || 'presentation' });
+            const directOffer = asksPrice(inboundText);
+            await sendFunnelText({ state, text: directOffer ? offerText() : presentationText(state), context: directOffer ? 'tex_ultra_offer' : 'tex_ultra_presentation' });
+            const universalIntroSent = directOffer ? false : await sendUniversalEntryAudio(state);
+            await sendBottle(state);
+            await sendSharedProof(state);
+            memory = {
+                ...memory,
+                presentationSendingAt: '',
+                presentationSentAt: new Date().toISOString(),
+                ...(universalIntroSent ? { universalIntroSentAt: new Date().toISOString() } : {}),
+                bottleSentAt: new Date().toISOString(),
+                proofSentAt: new Date().toISOString()
+            };
+            await saveState(state, { memory, draft, stage: directOffer ? 'awaiting_quantity' : 'awaiting_interest' });
+            return true;
+        }
     }
 
     if ((['awaiting_interest', 'awaiting_quantity'].includes(memory.stage) && asksPrice(inboundText)) || (memory.stage === 'awaiting_interest' && affirmative(inboundText))) {

@@ -89,6 +89,7 @@ const saveFlow = async (state, flow, memoryPatch = {}) => {
 };
 
 const proofKeyForState = (state = {}) => {
+    if (globalThis.__VITALISMEN_EC_TEX_LINKED_ENTRY_V242?.isCurrent?.() && state.metadata?.texUltraLinkedEntryV242?.firstChannel === 'whatsapp') return 'social_01';
     const items = TEX_ULTRA_EC_PRODUCT_PROFILE.entry.proofItems
         .map((item) => String(item || '').replace(/^image:/, ''))
         .filter(Boolean);
@@ -171,7 +172,8 @@ const resolveGreetingName = async (state = {}) => {
 };
 
 const sendGreeting = async (state) => {
-    const name = await resolveGreetingName(state);
+    const resolvedName = await resolveGreetingName(state);
+    const name = state.metadata?.texUltraLinkedEntryV242?.firstChannel === 'whatsapp' ? resolvedName.split(/\s+/)[0] : resolvedName;
     return Boolean(await sendText(
         stateChatId(state),
         buildTexUltraEntryGreeting({ name }),

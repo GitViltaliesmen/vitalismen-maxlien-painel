@@ -1,3 +1,4 @@
+import { validateTexUltraEntryBlockV242 } from './texUltraEntryBlockV242Service.js';
 // Dedicated bounded anonymous web sessions. Never reads/writes commercial MongoDB.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -71,10 +72,11 @@ export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), 
       try {
         const response = await run({ history: record.history, draft: record.draft });
         if (typeof response.reply !== 'string' || response.reply.length > 2200) throw Error('web_chat_response_invalid');
+        const entryBlock = product(context) === 'tex_ultra_ec' && response.entryBlock ? validateTexUltraEntryBlockV242(response.entryBlock) : null;
         const at = new Date(now()).toISOString();
-        record.history = [...record.history, { role: 'user', content: response.redactedInput ? 'Consulta privada: contenido no almacenado.' : message, at }, { role: 'assistant', content: response.reply, at }].slice(-40);
+        record.history = [...record.history, { role: 'user', content: response.redactedInput ? 'Consulta privada: contenido no almacenado.' : message, at }, { role: 'assistant', content: response.reply, at, ...(entryBlock ? { entryBlock } : {}) }].slice(-40);
         record.draft = response.draft || record.draft;
-        const result = { ok: true, reply: response.reply, handoff: response.handoff === true, redactedInput: response.redactedInput === true, at, modelUsed: response.modelUsed === true };
+        const result = { ok: true, reply: response.reply, handoff: response.handoff === true, redactedInput: response.redactedInput === true, at, modelUsed: response.modelUsed === true, ...(entryBlock ? { entryBlock } : {}) };
         record.requests[requestId] = { digest, status: 'done', at: now(), response: result };
         await atomic(file, record); return result;
       } catch (error) {
