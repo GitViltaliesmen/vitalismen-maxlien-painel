@@ -38,6 +38,7 @@ function fixture({ hostname = 'plusmen.shop', pathname = '/tex', hasPlayer = tru
 test('the chat starts only on the exact Tex page/player and never starts requests or voice on page load', () => {
   for (const options of [{ hostname: 'ec.maxlien.shop' }, { pathname: '/exutra' }, { hasPlayer: false }]) { const f = fixture(options); assert.equal(f.calls.length, 0); assert.equal(f.find('Habla con Ana · Tex Ultra'), undefined); }
   const f = fixture(); assert(f.find('Habla con Ana · Tex Ultra')); assert.equal(f.get('texUltraChatV240').hidden, true); assert.equal(f.calls.length, 0); assert.equal(f.plays.length, 0);
+  assert.deepEqual(f.context.document.body.children.map(node => node.tagName), ['div', 'button', 'section']);
 });
 test('opening requires server Tex identity and renders content as text without auto voice', async () => {
   const denied = fixture({ wrongIdentity: true }); await denied.find('Habla con Ana · Tex Ultra').fire('click'); await flush(); assert.equal(denied.find('Enviar').disabled, true); assert.equal(denied.calls.length, 1);

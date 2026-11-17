@@ -22,7 +22,7 @@
   const continueButton = element('button', 'Ir al botón WhatsApp del video', 'tx240-continue'); continueButton.type = 'button'; continueButton.hidden = true;
   const notice = element('p', 'Respuestas con IA. No compartas datos médicos, de pago ni documentos. Al elegir voz, el texto de la respuesta se envía a ElevenLabs. Este chat no confirma pedidos ni envía mensajes por WhatsApp.', 'tx240-notice');
   card.append(header, messages, status, form, voiceControls, continueButton, notice);
-  const videoBlock = player.closest('.uihiui') || player.parentElement; videoBlock.after(card); document.body.append(launcher);
+  const videoBlock = player.closest('.uihiui') || player.parentElement; videoBlock.after(launcher); launcher.after(card);
   let ready = false, busy = false, epoch = 0, controller, audio, audioUrl, voiceController, voiceEnabled = false, handoff = false, voiceReplyId = 'welcome_ana_lopez_v231';
   function pauseVoice() { voiceController?.abort(); voiceController = null; if (audio) { audio.pause(); audio.src = ''; audio = null; } if (audioUrl) URL.revokeObjectURL(audioUrl); audioUrl = null; }
   function bubble(role, content) { const row = element('div', '', 'tx240-message'); row.dataset.role = role; row.append(element('small', role === 'assistant' ? 'Ana Lopez' : 'Tú'), element('p', content)); messages.append(row); messages.scrollTop = messages.scrollHeight; }
