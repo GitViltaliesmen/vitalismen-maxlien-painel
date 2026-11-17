@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "at": "2026-11-17T19:03:35.858Z",
+  "phoneSuffix": "8637",
+  "inputId": "3EB0761AE4696B3E5BB38A",
+  "providerMessageId": "844D4C9CE16BD079D36B",
+  "body": "Hola, ¿en qué puedo ayudarte hoy con Vit Power Ecuador?",
+  "ack": 2,
+  "isBot": true,
+  "currentProduct": "vit_power_ec",
+  "vslOrigin": "vit_power_ec",
+  "texHistoryPreserved": true,
+  "lastModelSucceeded": true,
+  "historyCount": 2,
+  "qaFlagsPreserved": true,
+  "humanMode": "auto",
+  "orders": 0
+}

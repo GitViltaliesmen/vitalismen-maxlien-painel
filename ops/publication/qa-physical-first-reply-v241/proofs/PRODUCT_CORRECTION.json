@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "QA_PRODUCT_SELECTION_CORRECTED_PHYSICAL_RESPONSE_PENDING",
+  "recordedAt": "2026-11-17T18:56:08.660960+00:00",
+  "phoneSuffix": "8637",
+  "acceptedPhysicalInput": "3EB0E4C415A2E4E7B6F49A",
+  "receivedAt": "2026-11-17T18:47:56.322Z",
+  "handoffAt": "2026-11-17T18:47:57.128Z",
+  "handoffReason": "tex_ultra_customer_question",
+  "currentProductBefore": "tex_ultra_ec",
+  "currentProductAfter": "vit_power_ec",
+  "productSelectionSavedAt": "2026-11-17T18:53:08.786Z",
+  "source": "official_panel_customer_product_selection",
+  "vslOriginPreserved": "vit_power_ec",
+  "texHistoryPreserved": true,
+  "productionCodeChanges": 0,
+  "otherSitesChanged": false,
+  "qaOrders": 0,
+  "historicalInputReplayed": false,
+  "contactClickClaimsHuman": false
+}
