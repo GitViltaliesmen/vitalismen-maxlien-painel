@@ -1,4 +1,4 @@
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-chat-access-sealed-v236.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

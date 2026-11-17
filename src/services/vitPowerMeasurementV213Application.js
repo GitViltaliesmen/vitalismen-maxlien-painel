@@ -24,6 +24,10 @@ export function measurementMongoAllowedV213(collection, method, args) {
   if (name !== 'vslvisits' || !['insertOne', 'updateOne', 'findOneAndUpdate'].includes(method)) return false;
   if (scope.visitorKey && filter.visitorKey === scope.visitorKey) return true;
   if (scope.visitId && String(filter._id || '') === scope.visitId) return true;
+  if (scope.contactClaimV237 === true && filter.country === 'EC' && filter.productKey === SCOPE.product &&
+      filter.sourceUrl === SCOPE.url && filter['tracking.measurementVersion'] === 213 &&
+      filter['tracking.contactPhoneHashV237'] === scope.contactPhoneHashV237 &&
+      /^[a-f0-9]{64}$/.test(scope.contactPhoneHashV237 || '') && /^[a-f0-9]{64}$/.test(filter['tracking.contactEntryHashV237'] || '')) return true;
   return Boolean(scope.reference && filter['tracking.reference'] === scope.reference &&
     filter.country === 'EC' && filter.productKey === SCOPE.product && filter.sourceUrl === SCOPE.url);
 }
@@ -76,9 +80,13 @@ async function inboundProof({ phone, sourceMessageId, message }) {
   return Boolean(saved && (message === undefined || saved.body === message));
 }
 export async function claimVitPowerReferenceV213(args) {
-  if (!/\nVisita: VP-[A-F0-9]{36}(?:\s|$)/.test(args.message || '')) return null;
+  const referenceEntry = /\nVisita: VP-[A-F0-9]{36}(?:\s|$)/.test(args.message || '');
+  if (!referenceEntry && !String(args.message || '').startsWith('Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.')) return null;
   const ctx = setup(); if (!ctx || !allowed(args.phone)) return { ok: false, reason: 'scoped_measurement_unavailable' };
   const providerVerified = await inboundProof(args);
+  if (!referenceEntry) return mutationScope.run({ contactClaimV237: true,
+    contactPhoneHashV237: createHash('sha256').update(phoneOf(args.phone)).digest('hex'), ledger: false },
+    () => ctx.runtime.claimContactV237({ ...args, providerVerified }));
   const reference = (args.message.match(/\nVisita: (VP-[A-F0-9]{36})(?:\s|$)/) || [])[1];
   return mutationScope.run({ reference, phone: phoneOf(args.phone), ledger: false },
     () => ctx.runtime.claim({ ...args, providerVerified }));
@@ -178,6 +186,52 @@ export function installVitPowerOrderHooksV213(schema) {
         const ctx = setup(); if (ctx && doc) await mutationScope.run({ visitorKey: doc.tracking?.attributionVisitorKey, ledger: true },
           () => ctx.runtime.orderSaved(doc, this.vp213Before.status));
       } catch { quietFailure(); }
+    });
+  }
+}
+
+export async function scopedPurchaseReceiptV237(order) {
+  const ctx = setup();
+  if (!ctx || order?.country !== 'EC' || !allowed(order.customer?.phone) || order.tracking?.productKey !== SCOPE.product) return null;
+  const state = await mongoose.models.ContactState.findOne({ phoneDigits: phoneOf(order.customer.phone) }).lean();
+  const fromSite = order.tracking?.sourceUrl === SCOPE.url || state?.metadata?.vslSourceUrl === SCOPE.url ||
+    state?.metadata?.vslProductKey === SCOPE.product && String(state?.metadata?.vslEntryMessage || '').startsWith('Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.');
+  if (!fromSite) return null;
+  const eventId = 'vp213-' + createHash('sha256').update([SCOPE.flow, 'Purchase', order.orderId].join('|')).digest('hex');
+  const row = await ctx.Event.findOne({ _id: SCOPE.dataset + ':' + eventId }).select('state').lean();
+  return row?.state === 'accepted'
+    ? { ok: true, eventId, datasetId: SCOPE.dataset, datasetRoute: 'vitpower_site_v237', response: { events_received: 1 }, alreadyAccepted: true }
+    : { ok: false, blocked: true, eventId, datasetId: SCOPE.dataset, datasetRoute: 'vitpower_site_v237',
+        error: row ? 'scoped_purchase_acceptance_unproven' : 'scoped_purchase_attribution_or_confirmation_pending' };
+}
+export async function observePersistedContactV237(contactStateId) {
+  const ctx = setup(); if (!ctx) return;
+  const state = await mongoose.models.ContactState.findById(contactStateId).lean();
+  const draft = state?.metadata?.customerDraft, pending = state?.metadata?.perAgentMemory?.vit_power_ec?.pendingCheckoutOrder;
+  if (!allowed(state?.phoneDigits) || state?.metadata?.productKey !== SCOPE.product) return;
+  if (!['', 'novo', 'new', 'atendendo', 'attending', 'em_atendimento', 'draft', 'pending'].includes(String(draft?.status || '').toLowerCase())) return;
+  const orderId = draft?.orderId;
+  if (orderId && mongoose.models.Order) {
+    const saved = await mongoose.models.Order.findOne({ orderId, country: 'EC', 'customer.phone': { $in: [state.phoneDigits, '+' + state.phoneDigits] } }).select('status').lean();
+    if (saved && !['draft', 'pending'].includes(saved.status)) return;
+  }
+  const message = await mongoose.models.Message.findOne({ provider: 'zapi', sessionId: 'zapi', isFromMe: false,
+    peerPhone: state.phoneDigits, ownerPhoneDigits: '5531971862958', createdAt: { $gte: new Date(ctx.a.readPolicy().activatedAt) } }).sort({ createdAt: -1 }).select('_id').lean();
+  if (!message) return;
+  const hasDraft = [1,2,3,6].includes(Number(draft?.quantity)) && Number(draft?.total) > 0;
+  if (!hasDraft && !([1,2,3,6].includes(Number(pending?.quantity)) && Number(pending?.total) > 0)) return;
+  return observeVitPowerDraftV213({ phone: state.phoneDigits, sourceMessageId: String(message._id), contactStateId: state._id, pending: !hasDraft });
+}
+export function installVitPowerContactHooksV237(schema) {
+  schema.post('save', async function(doc) { try { await observePersistedContactV237(doc._id); } catch { quietFailure(); } });
+  for (const operation of ['findOneAndUpdate', 'updateOne']) {
+    schema.pre(operation, async function() {
+      if (!authority()) return;
+      try { this.vp237Before = await this.model.findOne(this.getQuery()).select('_id').lean(); } catch { quietFailure(); }
+    });
+    schema.post(operation, async function() {
+      if (!this.vp237Before) return;
+      try { await observePersistedContactV237(this.vp237Before._id); } catch { quietFailure(); }
     });
   }
 }

@@ -5,6 +5,9 @@ const plain = x => x?.toObject ? x.toObject() : x;
 const digest = x => createHash('sha256').update(x).digest('hex');
 const phoneOf = x => String(x || '').replace(/\D/g, '');
 const customerAllowed = x => /^593[2-79]\d{8}$/.test(phoneOf(x));
+export const entryHashV237 = value => digest(String(value || '').normalize('NFC').replace(/\r\n/g, '\n').trim());
+const cleanEntryV237 = value => /^Hola, vengo del video\.\nQuiero conocer la oferta disponible de Vit Power\.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan\?(?:\nNombre: [\p{L}][\p{L}'’-]{0,39})?$/u.test(String(value || '').trim());
+
 
 // Dependencies are the existing application's models/transport. Policy must come
 // from the sealed operational adapter, never from a request body or URL parameter.
@@ -29,6 +32,11 @@ export function createRuntime({ VisitModel, EventModel, policyProvider, transpor
       if (events.length > 4 || events.some(e => !['PageView', 'ViewContent', 'CtaClick', 'Contact'].includes(e.name)))
         return { ok: false, reason: 'browser_conversion_injection_rejected' };
       const candidate = capture.visit;
+      const enrollment = events.some(e => e.name === 'Contact') && body.contactPhone !== undefined;
+      const enrolledPhone = phoneOf(body.contactPhone);
+      if (enrollment && (!customerAllowed(enrolledPhone) || !cleanEntryV237(body.entryMessage)))
+        return { ok: false, reason: 'invalid_ec_contact_enrollment' };
+
       let row;
       try {
         row = plain(await VisitModel.findOneAndUpdate(
@@ -41,6 +49,18 @@ export function createRuntime({ VisitModel, EventModel, policyProvider, transpor
       }
       if (row.visitorId !== candidate.visitorId || row.tracking?.measurementVersion !== 213)
         return { ok: false, reason: 'visit_identity_conflict' };
+      if (enrollment) {
+        const phoneHash = digest(enrolledPhone), messageHash = entryHashV237(body.entryMessage);
+        if (row.tracking.contactPhoneHashV237 && (row.tracking.contactPhoneHashV237 !== phoneHash || row.tracking.contactEntryHashV237 !== messageHash))
+          return { ok: false, reason: 'contact_enrollment_conflict' };
+        const bound = await VisitModel.findOneAndUpdate({ visitorKey: row.visitorKey, visitorId: row.visitorId,
+          $or: [{ 'tracking.contactPhoneHashV237': { $exists: false } },
+            { 'tracking.contactPhoneHashV237': phoneHash, 'tracking.contactEntryHashV237': messageHash }] },
+          { $set: { 'tracking.contactPhoneHashV237': phoneHash, 'tracking.contactEntryHashV237': messageHash,
+            'tracking.contactSubmittedAtV237': now() } }, { new: true }).lean();
+        if (!bound) return { ok: false, reason: 'contact_enrollment_conflict' };
+        row = plain(bound);
+      }
       const clicked = events.some(e => e.name === 'CtaClick');
       const safeTracking = Object.fromEntries(Object.entries(candidate.tracking).map(([k, v]) => [`tracking.${k}`, v]));
       const update = { $set: { ...safeTracking, lastSeenAt: now(),
@@ -58,6 +78,31 @@ export function createRuntime({ VisitModel, EventModel, policyProvider, transpor
           duplicate: result.duplicateOrLocked === true, reason: result.reason });
       }
       return { ok: true, reference: row.tracking.reference, results };
+    },
+    async claimContactV237({ phone, message, inboundAt, providerVerified }) {
+      if (!providerVerified || !customerAllowed(phone) || !cleanEntryV237(message))
+        return { ok: false, reason: 'verified_ec_contact_entry_required' };
+      const p = await policy(); if (!p) return { ok: false, reason: 'measurement_not_activated' };
+      const at = new Date(inboundAt), phoneDigits = phoneOf(phone);
+      if (!Number.isFinite(at.getTime()) || Math.abs(at.getTime() - now().getTime()) > 120000)
+        return { ok: false, reason: 'stale_inbound' };
+      const filter = { country: 'EC', sourceUrl: SCOPE.url, productKey: SCOPE.product,
+        'tracking.measurementVersion': 213, 'tracking.marketingConsent': true,
+        'tracking.contactPhoneHashV237': digest(phoneDigits), 'tracking.contactEntryHashV237': entryHashV237(message),
+        'tracking.contactSubmittedAtV237': { $gte: new Date(Math.max(Date.parse(p.activatedAt), at.getTime() - 86400000)), $lte: at },
+        clickCount: { $gt: 0 }, lastClickAt: { $lte: at },
+        $or: [{ customerPhone: '' }, { customerPhone: { $exists: false } }, { customerPhone: phoneDigits }] };
+      const candidates = await VisitModel.find(filter).limit(2).lean();
+      if (candidates.length !== 1) return { ok: false, reason: candidates.length ? 'ambiguous_contact_enrollment' : 'no_contact_enrollment' };
+      const visit = plain(await VisitModel.findOneAndUpdate({ ...filter, _id: candidates[0]._id }, {
+        $set: { customerPhone: phoneDigits, attributionClaimedAt: now(),
+          attributionClaimSource: 'declared_site_phone_verified_zapi_v237', attributionClaimInboundAt: at,
+          attributionClaimPhoneHash: digest(phoneDigits), attributionClaimMessageHash: digest(message) } }, { new: true }).lean());
+      if (!visit) return { ok: false, reason: 'contact_enrollment_conflict' };
+      return { ok: true, claimed: true, visitId: String(visit._id), visitorKey: visit.visitorKey,
+        visitorId: visit.visitorId, productKey: SCOPE.product, sourceUrl: SCOPE.url,
+        tracking: { ...visit.tracking, attributionVisitorKey: visit.visitorKey,
+          attributionCorrelationStatus: 'CLAIMED', attributionSource: 'declared_site_phone_verified_zapi_v237' } };
     },
     async claim({ phone, message, inboundAt, providerVerified }) {
       if (!providerVerified || !customerAllowed(phone)) return { ok: false, reason: 'verified_ec_inbound_required' };

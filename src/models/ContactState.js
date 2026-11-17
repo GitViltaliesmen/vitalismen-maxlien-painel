@@ -1,3 +1,4 @@
+import { installVitPowerContactHooksV237 } from '../services/vitPowerMeasurementV213Application.js';
 import mongoose from 'mongoose';
 
 const EC_PRODUCT_KEYS = ['vit_power_ec', 'nitrix_ec', 'tex_ultra_ec'];
@@ -271,6 +272,8 @@ contactStateSchema.index({
     'buyLaterReminder.windowStartAt': 1,
     'buyLaterReminder.windowEndAt': 1
 });
+
+installVitPowerContactHooksV237(contactStateSchema);
 
 const ContactState = mongoose.model('ContactState', contactStateSchema);
 

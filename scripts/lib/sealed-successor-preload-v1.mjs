@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-chat-access-sealed-v236.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-chat-access-profile-v236.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-journey-measurement-profile-v237-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

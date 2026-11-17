@@ -1,3 +1,4 @@
+import { scopedPurchaseReceiptV237 } from './vitPowerMeasurementV213Application.js';
 import {isGiraOrder} from './gira21x/contract.mjs';
 import { bindPurchaseAttributionV148 } from './metaPurchaseV148BindingService.js';
 import { metaCheckoutV148Allowed, salesAttributionV148 } from './metaFunnelV148ContractService.js';
@@ -536,6 +537,8 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
     if(isGiraOrder(order))return {ok:true,skipped:true,reason:"GIRA21X_OWNS_PURCHASE"};
     const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
+    const scopedReceipt = await scopedPurchaseReceiptV237(order);
+    if (scopedReceipt) return scopedReceipt;
     const v148Binding = await bindPurchaseAttributionV148(order, options.v148BindingOptions);
     if (!v148Binding.ok) return { ok: false, blocked: true, error: v148Binding.reason };
     const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
