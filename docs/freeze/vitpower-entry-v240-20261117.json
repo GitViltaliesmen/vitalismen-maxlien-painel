@@ -1,0 +1,19 @@
+{
+  "project": "VITALISMEN_EC",
+  "scope": "SITE_ENTRY_UI_ONLY",
+  "sourceCommit": "63b45f94892708f581feb7f5f20576d02b0a39e5",
+  "sourceTag": "refs/tags/site-vitpower-simple-entry-v240-20261117",
+  "backendCommit": "cf79efded4cc5242800946728d589a186cfa349f",
+  "files": {
+    "desktop.html": "4ce50254af837fb8e67a74b92da2389403ac2858752899073475d3cf488f052b",
+    "index.html": "4e9c625d94119e4513883ce63849ea07792ac39354ee5c2c943d32d179a5a635",
+    "assets/cta.js": "27521630fe45d877df3a61e40d62185382ac897b94a8c752523168889c6d7e62"
+  },
+  "qualificationCases": 16,
+  "qaDirectEntryPublished": true,
+  "publicPhoneAttributionPreserved": true,
+  "normalFormVisualProof": "ISOLATED_FIXTURE_390x844",
+  "newPhysicalInteractionAfterPublicationProven": false,
+  "backupSha256": "92fb915e92143f5a85543bf3cbe182ce7a19a88e52d119ca41fed2c5e6c0affb",
+  "globalMongoBackupPass": false
+}
