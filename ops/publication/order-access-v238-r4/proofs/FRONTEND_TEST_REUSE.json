@@ -1,0 +1,19 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "reason": "Identical static files, reused exact tested frontend; backend project isolation is qualified separately",
+  "source": "ops\\candidates\\customer-order-access-v238-r3-20261117",
+  "hashes": {
+    "assets/acesso-pedido-v238.js": "47f6bf0a25700684567c45fe9dafd363c943a7753576396e9ea7a9ada6ced487",
+    "assets/acesso-pedido.html": "6b83b4bd5c1b4864c19d5e96f5227a7d0faa657c9cdabb3041ad8ae5f5c6ca63",
+    "assets/chat-v220.css": "e09004aa52ce37f92dd6e5cb3c230a822ddc2491847b8cfeb9a015f1dbef5407",
+    "assets/chat-v220.js": "54f8149d19cd1e1eb8fc2fcc2805b6d9108515d74998c3a542d559bb5371f71f",
+    "assets/cta.js": "b233f09854ec4de86248355688032bc877ff8b25c12f1118cca019614e65e410"
+  },
+  "panelSha256": "20bbb94813330913f642a6e14069ad023df66e4e54e01850965508c6c9b58ec6",
+  "proofs": {
+    "BROWSER_TEST.json": "773eb49573a0199ea0812618696de8fddc995740aac85d32744099eae958f5e4",
+    "ORIGINAL_CTA_TEST.json": "f9b1e4e23956098e814a20c1bc80d445af3f59492260fcf5f8cca20ffc2d6b27",
+    "PANEL_SYNTAX_TEST.json": "60f22df22cb5752da0a2838182f3329899022182ea1b20e6cf61f7c6f03af870"
+  }
+}

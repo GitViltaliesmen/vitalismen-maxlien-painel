@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "backup": "/opt/vitalismen-automacao/backups/ec-order-access-v238-r4-20261117/panel.before.html",
+  "beforeSha256": "9196e8cf6a355868237d9b6b03c8fc0bd0c7b8ff0333a2fbdce6ee3b062982df",
+  "afterSha256": "20bbb94813330913f642a6e14069ad023df66e4e54e01850965508c6c9b58ec6",
+  "nginxSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+  "uid": 0,
+  "gid": 0,
+  "mode": 420,
+  "sourceCommit": "35073c424e95bcfac2621da09f4dea2caa0806f1",
+  "at": "2026-11-17T04:28:08.655021+00:00",
+  "serviceRestarts": 0
+}

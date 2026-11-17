@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "files": {
+    "/usr/local/lib/vitalismen-deploy/ec-journey-measurement-profile-v237-r2.mjs": "e4043dedc91b55edee1c363d9fcb0d509c0736e7c31cded87bf50e4894495706",
+    "/usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs": "b6b8df2c163679827ab54570f16575a2d68a66fc3ccfa1db4980b62023acbdea",
+    "/var/lib/vitalismen-deploy/ec-journey-measurement-v237-r2/approval.json": "bf7d4f0f4e74062388e1ad0bdb8a903aefa93506e0b0b742fd4ca426250d59b9",
+    "/var/lib/vitalismen-deploy/ec-chat-access-v236/approval.json": "1c5bd0fc735f3e6144ca4436cb05170fd4a9d4c564c6a9f9599be75bfe07cd2c"
+  }
+}

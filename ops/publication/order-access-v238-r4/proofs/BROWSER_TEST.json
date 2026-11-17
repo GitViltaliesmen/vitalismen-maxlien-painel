@@ -1,0 +1,17 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "checks": 57,
+  "networkIntercepted": true,
+  "productionWrites": 0,
+  "realOrders": 0,
+  "realWhatsAppSends": 0,
+  "halfVideoVerified": true,
+  "noVideoOverlapVerified": true,
+  "privateLandingVerified": true,
+  "widths": [
+    375,
+    430,
+    1280
+  ]
+}

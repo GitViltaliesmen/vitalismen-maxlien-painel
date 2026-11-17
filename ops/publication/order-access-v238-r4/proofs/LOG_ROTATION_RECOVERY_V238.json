@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "at": "2026-11-17T04:13:33.835098+00:00",
+  "action": "compress_only_inactive_rotated_mongo_log",
+  "source": "/var/log/mongodb/mongod.log.1",
+  "archive": "/var/log/mongodb/mongod.log.1.gz",
+  "originalBytes": 76463483,
+  "compressedBytes": 3733038,
+  "uncompressedSha256": "568f5992e1691cbc50e8ab6ff4ff8235f4bfc73d51b8ac7445a8dbda960ed55f",
+  "completeHistoryPreserved": true,
+  "sourceWasClosed": true,
+  "databaseFilesModified": false,
+  "configurationChanged": false,
+  "freeMB": 606
+}

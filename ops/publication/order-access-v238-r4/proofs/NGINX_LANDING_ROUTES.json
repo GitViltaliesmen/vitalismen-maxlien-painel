@@ -1,0 +1,33 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-17T04:30:05.307382+00:00",
+  "path": "/etc/nginx/sites-available/taviazen.shop",
+  "backup": "/var/backups/vitalismen-ec/order-access-v238-r4/nginx-site.before.conf",
+  "beforeSha256": "cf2f923efa4f341fee9dc422c18b9e97ecf087f389c973610e7784c7955d54ae",
+  "afterSha256": "1b8bc46ff84a6354f7390ac47b2ae002e1e577d6a737ef2454b6d7399685a612",
+  "onlyTwoExactAssetLocationsAdded": true,
+  "otherConfigBytesPreserved": true,
+  "nginxTestPass": true,
+  "gracefulReloads": 2,
+  "serviceRestarts": 0,
+  "checks": [
+    {
+      "asset": "acesso-pedido.html",
+      "http": 200,
+      "exactBytes": true
+    },
+    {
+      "asset": "acesso-pedido-v238.js",
+      "http": 200,
+      "exactBytes": true
+    }
+  ],
+  "uid": 0,
+  "gid": 0,
+  "mode": 420,
+  "noTransformOnPrivateLanding": true,
+  "analyticsOnOtherPagesUnchanged": true,
+  "publicCheckInitiallyFailed": true,
+  "initialFailure": "New paths absent from Nginx allowlist; transient cached404; automatic Cloudflare beacon transformed HTML"
+}

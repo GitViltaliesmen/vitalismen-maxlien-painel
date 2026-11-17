@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "checks": 180,
+  "viewports": [
+    375,
+    430,
+    1280
+  ],
+  "modes": [
+    "normal",
+    "qa",
+    "denied",
+    "failure",
+    "slow"
+  ],
+  "networkIntercepted": true,
+  "productionWrites": 0,
+  "realOrders": 0,
+  "realMetaRequests": 0,
+  "whatsappSends": 0
+}

@@ -1,0 +1,37 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "mode": "all",
+  "at": "2026-11-17T04:28:07.098295+00:00",
+  "sourceCommit": "35073c424e95bcfac2621da09f4dea2caa0806f1",
+  "files": [
+    {
+      "path": "/var/www/vitalismen-vitpower-2026g/assets/chat-v220.css",
+      "beforeSha256": "a1d3741e86664133992d9cbfd6ce291e51315a0d11b17e8c73617fd94fccb958",
+      "afterSha256": "e09004aa52ce37f92dd6e5cb3c230a822ddc2491847b8cfeb9a015f1dbef5407",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    {
+      "path": "/var/www/vitalismen-vitpower-2026g/assets/chat-v220.js",
+      "beforeSha256": "db2e6faa272fc3b25934710dbb3ea04099675f3d1805047afbbdf189c45ecb25",
+      "afterSha256": "54f8149d19cd1e1eb8fc2fcc2805b6d9108515d74998c3a542d559bb5371f71f",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    {
+      "path": "/var/www/vitalismen-vitpower-2026g/assets/cta.js",
+      "beforeSha256": "dfe3c28174bccf6146af113d8c47cae3c4d423ce41af8c9bdd681857709051b6",
+      "afterSha256": "b233f09854ec4de86248355688032bc877ff8b25c12f1118cca019614e65e410",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    }
+  ],
+  "allRequestedHashesMatch": true,
+  "nginxChanges": 0,
+  "serviceRestarts": 0,
+  "backup": "/var/backups/vitalismen-ec/order-access-v238-r4"
+}

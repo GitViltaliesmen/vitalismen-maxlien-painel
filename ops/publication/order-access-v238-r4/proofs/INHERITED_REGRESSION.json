@@ -1,0 +1,27 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "candidateCommit": "5b35e7856bf908263db2fa557508c7370814328a",
+  "protectedFiles": {
+    "src/models/ContactState.js": "5d6bbc7fafa54ea71f7ff434c357131014e2f38fcdb6f4438161ced6c8589e9c",
+    "src/models/Order.js": "cbca2b39212d4c7f834d040b05e3578c5ea1a2a8a89d5b167a8092464933bdbf",
+    "src/models/Shipment.js": "26fefc1569111404448c795cc9af2c8faafd2744a83af654068bff076532e819",
+    "src/routes/shipments.js": "8b562c97b3a958c2c9706c5427e62eedb09c846a62debbaddbca3ac238ea080c",
+    "src/routes/vitPowerWebChatV220.js": "10a3d8147d5797804547895566d866b747cfacbc36bab8eaf797d0d012144f9a",
+    "src/routes/zapi.js": "ca3e99fe83714eb5b38344866a4c48c32030e1be9fe6e150b574b771d0aacbc8",
+    "src/services/conversationEngine.js": "cc45e937669e42ce0e71a756fe246088986a852426a024cc5b1f580bdcf6caca",
+    "src/services/customerInviteContextV232Service.js": "7e6961b8b5eb97ad13063535b4aced5dc2522284f3221179e0cd83a17b6ea339",
+    "src/services/ecuadorProductService.js": "74690d7cff998ac5d52aab0568029f03d834f00680598e1107b6b1c78d467f13",
+    "src/services/metaConversionsService.js": "62347574aa41dc8f317f4b92065f010bc9539207c8a6f1f4a48266dca54494c7",
+    "src/services/principalSdrFreeflowRuntimeService.js": "40b5e1413bf8bb9a863a04d0d01eb907db81a16d23d51b998c2c94e8db3c4085",
+    "src/services/principalSdrFreeflowService.js": "1be27e7b7fbd7e67733bc452be2208d7cd2c813b801f0ce69e93198f86060f9c",
+    "src/services/schedulerService.js": "fd3c0aba707e00d0e4cdb11b4be63d59d5eb75535e5321f411b249d834e37285",
+    "src/services/vitPowerMeasurementV213Application.js": "bd7248043f1748b1d607d7976b2b7d54f706ae01d08474c72d009098f96416bf",
+    "src/services/vitPowerMeasurementV213Runtime.js": "65cad07a15c394ed90b9dafc83469900ed76a59836d88ae90e724ac72be47878",
+    "src/services/vitPowerWebAgentV220Service.js": "0db8f5b6ded8d9c4c81ae6d7a09a88f9cf2e3cc111d9ae75f1abf4d90841bfc1",
+    "src/services/zapiClient.js": "e158f1b6cf46489621439a2c2b2b006509d8553ce2374f73ab354c08312f175f",
+    "src/services/zapiOutboundMirrorService.js": "6a278fa1e5e7fcc76ff0709f68f19840d419223f90937cc6b7133d476950162e"
+  },
+  "noDatabaseMigrations": true,
+  "existingCommercialCoreUnchanged": true
+}

@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "incidentStartUtc": "2026-11-17T03:53:59Z",
+  "healthyVerifiedAtUtc": "2026-11-17T04:05:21Z",
+  "mongoFailure": "Writing to log file failed; service exited code1",
+  "recovery": "Started existing stopped mongod; same configuration, no data restore",
+  "testDiskPressure": "Consistent with temporary disk exhaustion during concurrent disposable Mongo tests; incident not called interruption-free",
+  "noManualReplay": true,
+  "noTestWhatsAppSends": true,
+  "gatewayEvents": {
+    "rejected": 1
+  },
+  "admittedUnique": 0,
+  "unmatchedUnique": 0,
+  "gatewayRejectedReason": "RECIPIENT_NOT_ADMITTED",
+  "futureDisposableMongoRequiresFreeGB": 2,
+  "allDisposableMongoTestsFinished": true
+}
