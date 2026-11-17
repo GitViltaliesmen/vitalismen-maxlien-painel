@@ -1,0 +1,9 @@
+{
+  "project": "VITALISMEN_EC",
+  "unit": "vitalismen-postsale-full-v203.timer",
+  "properties": {
+    "Unit": "vitalismen-postsale-full-v203.service",
+    "ActiveState": "active",
+    "ActiveEnterTimestampMonotonic": "2040500466684"
+  }
+}

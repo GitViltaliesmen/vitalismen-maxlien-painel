@@ -1,0 +1,59 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "FAIL",
+  "results": [
+    {
+      "name": "product_micro_layer",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "o perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nEC product micro-layer guard: OK\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n"
+    },
+    {
+      "name": "tampered_freeflowQuestionPriorityV219Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "s/tex-ultra-web-v240.test.mjs': 'bcc7d73200e1007b24477c466198b8bbd5ec5e4ccc33ec7c49f8994da275839b',\n    'docs/freeze/qa-natural-entry-v241-contract.json': 'cb4a6d8d4d99c9b46f20fefef568305507f99c415fe02b0cc1829a8f5154fe79',\n    'tests/mixed-questions-v241.test.mjs': '7a9b19706f260197dc61d724f071da3795080c199e061697e797895f960354eb',\n    'tests/qa-natural-entry-v241.test.mjs': 'bbe11aab4b0b66540dd2059eaa5629057778cd169c9fea9a2725b055a7cc3879'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "tampered_principalSdrQaIngressV212Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "0961de74cc2',\n    'docs/INSTRUCOES_DOIS_COMPUTADORES_E_AQUECIMENTO.md': '32d540f75cbb48b89bfd771c72d794082d4cd6ac4294a8f8ec8162dfcf10caa0',\n    'docs/ISOLAMENTO_TOTAL_VITALISMEN_PRODUCAO.md': 'd565e81b9e86a912cd0560b24e24cf9c4acc2b66291f4bff0f7d894556160586',\n    'docs/LEGACY_BASELINE_ATTESTATION_FREEZE_V102_20260902.md': 'ba7af122db00a4f4e18b17cfe44d8d973f1a4ffa43edfda0edaa0a0e938b7072',\n    'docs/LOGISTICS_CLEAN_CHAT_UX_FREEZE_V29_20260818.md': '054ff084c27fee9806bee07c06894c6eb2fc334410c6f399"
+    },
+    {
+      "name": "tampered_sealed-successor-preload-v1.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": ": '0aee7396a9e1dae17150bf86e4776bbbc9eeb2c45d18091add6faac8451c39af',\n    'public/media/templates/EC/FUNCIONA_TRATAMENTO_COMPLETO_100_NATURAL.mp3': 'f8379ead398dd262e38a9e47b064d851a922120ab288867e3e1daf0136598d5d',\n    'public/media/templates/EC/FUNCIONA_TRATAMENTO_COMPLETO_100_NATURAL.ogg': '9b3b60a17bc2cd758a7d26c59f6170f7fd208b12b3ac6781e4b356ef26e339b6',\n    'public/media/templates/EC/FUNCIONA_VIT_POWER.mp3': '9aede7a56484ee531053f98696c8f9dcc125e5568d78e585360f72827ad61bb5',\n    'public/me"
+    },
+    {
+      "name": "forbidden_flag_AI_WORKER_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "-entry-sealed-v241-r2.mjs:1030:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-sealed-v241-r2.mjs:1029:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-sealed-v241-r2.mjs:1028:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_VITALISMEN_META_PURCHASE_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "-entry-sealed-v241-r2.mjs:1030:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-sealed-v241-r2.mjs:1029:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-sealed-v241-r2.mjs:1028:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": false,
+      "exitCode": 1,
+      "tail": ";obj.commit='0'.repeat(40);return Buffer.from(JSON.stringify(obj,null,2)+'\n                                                                                                                                                                                                                                                 ^\n\nSyntaxError: Invalid or unexpected token\n    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)\n    at ModuleLoader.eval (node:internal/modules/esm/loader:241:18)\n    at node:internal/process/execution:68:24\n    at asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:11)\n    at Object.runEntryPointWithESMLoader (node:internal/modules/run_main:141:19)\n    at evalModuleEntryPoint (node:internal/process/execution:67:47)\n    at node:internal/main/eval_stdin:30:5\n    at Socket.<anonymous> (node:internal/process/execution:234:5)\n    at Socket.emit (node:events:536:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n\nNode.js v20.20.2\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    },
+    {
+      "name": "legacy_senior_readonly",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "\n> zapdesk-premium@0.0.0 senior:check\n> node scripts/senior-guard-vitalismen.mjs\n\n[SENIOR-GUARD-VPS] OK: VPS congelado no fluxo oficial Vit Power.\n"
+    }
+  ],
+  "activeReleaseUnchanged": true,
+  "productionDatabaseWrites": 0,
+  "whatsappSends": 0
+}

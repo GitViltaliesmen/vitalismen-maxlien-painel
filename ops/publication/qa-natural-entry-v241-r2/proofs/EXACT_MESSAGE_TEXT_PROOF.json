@@ -1,0 +1,9 @@
+{
+  "project": "VITALISMEN_EC",
+  "candidateCommit": "135d17cc75d71b7401c7f1e9400759e913ad867b",
+  "sameBodyAsActualReceivedEntry": true,
+  "bodySha256": "abfce890c39b38c8d763d2dbe9073918444c4865784cd872122748b9c6886524",
+  "physicalMessageReplayed": false,
+  "actualHttpFixtureAccepted": true,
+  "fixtureScriptSha256": "182ac593743b93722c2ba01017b8a65037a7bd517d3b56b2600bdf90f92398a9"
+}

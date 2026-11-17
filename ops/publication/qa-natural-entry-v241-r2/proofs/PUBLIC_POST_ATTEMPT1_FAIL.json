@@ -1,0 +1,12 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "phase": "AFTER_ACTIVATION",
+  "error": "TimeoutError: The read operation timed out",
+  "failedUrlIdentified": false,
+  "physicalSends": 0,
+  "productionChanges": 0,
+  "evidence": "First post-activation check_public.py exit 1 and traceback in tool output; failed host/URL were not included by the original wrapper.",
+  "observedMinuteUtcApproximate": "2026-11-17T17:28Z",
+  "recordedAt": "2026-11-17T17:30:13.953118+00:00"
+}

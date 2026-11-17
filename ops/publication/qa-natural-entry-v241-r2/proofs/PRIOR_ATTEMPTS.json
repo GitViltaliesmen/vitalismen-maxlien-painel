@@ -1,0 +1,161 @@
+{
+  "project": "VITALISMEN_EC",
+  "previousCandidateNotPublished": true,
+  "records": [
+    {
+      "path": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-entry-release-v241-20261117\\QUALIFICATION.json",
+      "sha256": "b49c89fe59f246ef2454d86fe7b3ab58a50e256f3c7bb54eac4758b3bae95147",
+      "result": {
+        "project": "VITALISMEN_EC",
+        "status": "FAIL",
+        "candidateCommit": "e0aae0eaa2d411723e33e9a0e926de3dd5361bc8",
+        "results": [
+          {
+            "name": "senior_guard",
+            "pass": true,
+            "seconds": 26.3,
+            "exitCode": 0,
+            "timedOut": false,
+            "tapSummary": []
+          },
+          {
+            "name": "product_guard",
+            "pass": true,
+            "seconds": 31.5,
+            "exitCode": 0,
+            "timedOut": false,
+            "tapSummary": []
+          },
+          {
+            "name": "focused_tests",
+            "pass": true,
+            "seconds": 370.1,
+            "exitCode": 0,
+            "timedOut": false,
+            "tapSummary": [
+              "# tests 179",
+              "# pass 179",
+              "# fail 0"
+            ]
+          },
+          {
+            "name": "complete_senior",
+            "pass": false,
+            "seconds": 2205.8,
+            "exitCode": 1,
+            "timedOut": false,
+            "tapSummary": [
+              "# tests 43",
+              "# pass 43",
+              "# fail 0",
+              "# tests 477",
+              "# pass 476",
+              "# fail 1"
+            ],
+            "tail": "ompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n[DROPI-EC] DROPPI_EC_STORAGE_STATE_PATH relativo ignorado; usando caminho persistente fora do release.\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n[DROPI-EC] DROPPI_EC_STORAGE_STATE_PATH relativo ignorado; usando caminho persistente fora do release.\n"
+          }
+        ],
+        "productionUnchanged": false,
+        "networkIsolated": true,
+        "messagesSent": 0,
+        "databaseProductionWrites": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-entry-release-v241-20261117\\QUALIFICATION_RECOVERY.json",
+      "sha256": "1f2b484968d1a101dcad5ab009c4d26d1b4de5a93f51a9cbc6719abac554b7de",
+      "result": {
+        "project": "VITALISMEN_EC",
+        "candidateCommit": "e0aae0eaa2d411723e33e9a0e926de3dd5361bc8",
+        "pass": true,
+        "scope": "FAILED_MODULE_AND_UNEXECUTED_SENIOR_TAIL_ONLY",
+        "results": [
+          {
+            "name": "failed_module",
+            "pass": true,
+            "seconds": 27.0,
+            "exitCode": 0,
+            "tapSummary": [
+              "# tests 6",
+              "# pass 6",
+              "# fail 0"
+            ]
+          },
+          {
+            "name": "tail_post_sale_gargalos",
+            "pass": true,
+            "seconds": 24.8,
+            "exitCode": 0,
+            "tapSummary": []
+          },
+          {
+            "name": "tail_post_sale_safety",
+            "pass": true,
+            "seconds": 27.2,
+            "exitCode": 0,
+            "tapSummary": []
+          },
+          {
+            "name": "tail_dropi_status",
+            "pass": true,
+            "seconds": 24.9,
+            "exitCode": 0,
+            "tapSummary": []
+          },
+          {
+            "name": "tail_senior_guard",
+            "pass": true,
+            "seconds": 31.8,
+            "exitCode": 0,
+            "tapSummary": []
+          },
+          {
+            "name": "tail_phone_reconciliation_guard",
+            "pass": true,
+            "seconds": 29.5,
+            "exitCode": 0,
+            "tapSummary": []
+          },
+          {
+            "name": "tail_phone_reconciliation_tests",
+            "pass": true,
+            "seconds": 30.6,
+            "exitCode": 0,
+            "tapSummary": [
+              "# tests 22",
+              "# pass 22",
+              "# fail 0"
+            ]
+          }
+        ],
+        "currentPinnedInsidePrivateMountNamespace": true,
+        "originalFullSeniorFailurePreserved": true,
+        "productionWrites": 0,
+        "productionPublicationAllowedByThisProof": false
+      }
+    },
+    {
+      "path": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-entry-release-v241-20261117\\HTTP_ATTEMPT1_PRESERVED.json",
+      "sha256": "5f8ec9fd7751863326acc04d5228b1559924a14b61d56d562f0fee5ea3aead34",
+      "result": {
+        "preserved": "HTTP_SALE_ATTEMPT1_FAIL.json",
+        "sha256": "1b6c4a4d1c735cfa319d988f3acfb0c02932eb2c6beeaf533a83bd77efdc0bc8",
+        "reason": "simulation supplied owner phone instead of exact QA connectedPhone; identity guard correctly rejected",
+        "productionChanged": false
+      }
+    },
+    {
+      "path": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-entry-release-v241-20261117\\HTTP_ATTEMPT2_PRESERVED.json",
+      "sha256": "1c618fbe892a717b9f183783a3f4ecda213850abc8663b9d318cd8bc49f0a2b3",
+      "result": {
+        "preserved": "HTTP_SALE_ATTEMPT2_FAIL.json",
+        "sha256": "91980309f1bd9638b18ebc2141b1903513d1b117310cbbdd50932aaceb2cd7c8",
+        "qaEntryGreetingAndGroupedReplyPassed": true,
+        "reason": "test incorrectly required presentation to finish after customer interruptions; inherited B01 correctly stops superseded input; test now checks no forced/repeated media",
+        "productionChanged": false
+      }
+    }
+  ],
+  "currentHarnessFailurePreserved": "EXTRA_ATTEMPT1_FAIL.json",
+  "productionGuardWeakened": false
+}
