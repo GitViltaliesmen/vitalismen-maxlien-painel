@@ -2,7 +2,7 @@
 const norm = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const patterns = [
   ['payment', /\b(?:pago|pagos|pagar|paga|tarjeta|transferencia|efectivo|contra[_ ]entrega)\b/g],
-  ['price', /\b(?:precios?|cuanto (?:cuestan?|valen?|salen?|son|es|pago)|cuesta|valor|costo|total|oferta|promocion)\b/g],
+  ['price', /\b(?:precios?|cuanto (?:cuestan?|valen?|salen?|son|es|pago)|cuesta|valor|costo|total|ofertas?|promocion(?:es)?)\b/g],
   ['delivery', /\b(?:entrega|envio|enviar|recibir|recibe|domicilio|servientrega|agencia|llega|demora|tarda)\b/g],
   ['delivery_cost', /consulta_envio/g],
   ['guarantee', /\b(?:garantia|devolucion|reembolso)\b/g],
@@ -23,7 +23,12 @@ function questionTextV229(text) {
 export function questionPlanV219(text) {
   const raw = questionTextV229(text).slice(0, 6000);
   if ([...raw.matchAll(/^(?:nombre|ciudad|provincia|direccion|agencia|cantidad)\s*:/gim)].length >= 2) return [];
-  const hasQuestion = /[?¿]/.test(raw) || /\b(?:cuanto|como|cual|donde|cuando|que contiene|hay|tienen|aceptan|se puede)\b/.test(norm(raw));
+  const normalized = norm(raw);
+  // Customers often request the price in short, unpunctuated WhatsApp messages.
+  // Statements thanking/confirming an offer do not by themselves request a new quote.
+  const priceRequest = /(?:^|\n)[ \t]*(?:(?:por\s*favor)[, \t]+)?(?:(?:el|los|la|las)[ \t]+)?(?:precios?|promocion(?:es)?|ofertas?)(?:[ \t]+(?:de|del|para|por)\b[^\n]*)?[.! \t]*(?=$|\n)/.test(normalized)
+    || /\b(?:dime|digame|indicame|(?:me\s+)?indicas?|quiero\s+(?:saber|conocer))\b[^\n]*\b(?:precios?|promocion(?:es)?|ofertas?)\b/.test(normalized);
+  const hasQuestion = priceRequest || /[?¿]/.test(raw) || /\b(?:cuanto|como|cual|donde|cuando|que contiene|hay|tienen|aceptan|se puede)\b/.test(normalized);
   if (!hasQuestion) return [];
   const marked = [...raw.matchAll(/¿([^¿?]+)\??/g)].map(m => m[1]);
   let body = norm(marked.length ? marked.join('\n') : raw);
