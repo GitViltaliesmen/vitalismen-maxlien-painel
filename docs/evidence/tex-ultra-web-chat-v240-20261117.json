@@ -1,0 +1,266 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED",
+  "gates": {
+    "FOCUSED_QUALIFICATION_attempt1": {
+      "pass": true,
+      "sha256": "fb31fe59d83e546c2670c547e1ca34affb117bfe4c6bf1261bb1fc68f903ef86",
+      "commit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+      "checks": 4,
+      "checksPassed": 4
+    },
+    "QUALIFIED_BUSINESS_BASE_R6": {
+      "pass": true,
+      "sha256": "460432c3518f975a1baa204e7ab0902477d1d00a2099b2049667670a927fb7a3",
+      "commit": "c1e04a13794b83dbec96a411434bf13b983f7f46",
+      "checks": 1,
+      "checksPassed": 1
+    },
+    "BUSINESS_EQUIVALENCE": {
+      "pass": true,
+      "sha256": "5f435382498c7b842c7f42b0d3829f86d0c5671453a4e5ce48eb1abb893f32ae",
+      "candidateCommit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+      "qualifiedBusinessCommit": "c1e04a13794b83dbec96a411434bf13b983f7f46",
+      "businessSourceAndTestsByteIdentical": true,
+      "onlyPm2VerifierImportChanged": true,
+      "runtimeVerifierAndPolicyOtherwiseByteIdenticalAfterIdentityNormalization": true,
+      "fullSuiteRerunClaimedForR7": false
+    },
+    "CONTROL_PLANE_QUALIFICATION": {
+      "pass": true,
+      "sha256": "15f05bca0f5b63db47d477274fdedcca2b4a65b55417d38a5c25e8b372718709",
+      "commit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+      "realSealedVerifierUsed": true,
+      "allGuardsEnabled": true,
+      "productionRestarts": 0,
+      "checks": 8,
+      "checksPassed": 8
+    },
+    "PRESERVATION": {
+      "pass": true,
+      "sha256": "6002c1bda35280aede58eaf0e84038d8880c506312be077c8f809b0c3043c69c",
+      "commit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9"
+    },
+    "CODE_CONFIG_RECOVERY": {
+      "pass": true,
+      "sha256": "be6a7d4aa505f431e0b1a1dffa8b2a2282c14aced578bb0a8f576b17c8ea4ee8",
+      "checks": 2,
+      "checksPassed": 0
+    },
+    "CONTROLLER_TESTS": {
+      "pass": true,
+      "sha256": "20a35c30ec22be218bb44942a7fdbb3d1825a7c5245fa08ddf28a8bb0fb546ba"
+    },
+    "FRONTEND_TESTS": {
+      "pass": true,
+      "sha256": "2a2f67b90c340b3631a8249d18721ebd9acb2a71a0f4d37867e0ad840da0c16b"
+    }
+  },
+  "finalRuntime": {
+    "pass": true,
+    "project": "VITALISMEN_EC",
+    "commit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+    "release": "/opt/vitalismen-automacao/releases/20261117T162142Z_production-20261117-30ca9d6",
+    "pid": 3796748,
+    "pmCwd": "/opt/vitalismen-automacao/current",
+    "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+    "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261117T162142Z_production-20261117-30ca9d6",
+    "health": "online",
+    "zapiConnected": true,
+    "texAudience": "PUBLIC_SITE",
+    "panelHashMatches": true,
+    "postSaleDryRun": true,
+    "testEnvironmentCredentialDuplicateRemoved": true,
+    "finalVerificationRestarts": 0,
+    "finalVerificationOutboundActions": 0,
+    "verifiedAtUtc": "2026-11-17T16:58:27.177832+00:00",
+    "githubSourceRefsVerified": true
+  },
+  "publicHttp": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "checks": [
+      {
+        "device": "desktop",
+        "path": "/tex",
+        "status": 200,
+        "bodySha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "desktop",
+        "path": "/tex/",
+        "status": 200,
+        "bodySha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "ipad",
+        "path": "/tex",
+        "status": 200,
+        "bodySha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "ipad",
+        "path": "/tex/",
+        "status": 200,
+        "bodySha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "iphone",
+        "path": "/tex",
+        "status": 200,
+        "bodySha256": "3c8f5e84bc039376b867f58ae6728fa13b6f80539fbb04da1cd6d3badffb09fd",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "iphone",
+        "path": "/tex/",
+        "status": 200,
+        "bodySha256": "3c8f5e84bc039376b867f58ae6728fa13b6f80539fbb04da1cd6d3badffb09fd",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "android",
+        "path": "/tex",
+        "status": 200,
+        "bodySha256": "3c8f5e84bc039376b867f58ae6728fa13b6f80539fbb04da1cd6d3badffb09fd",
+        "nativePresentationPreserved": true
+      },
+      {
+        "device": "android",
+        "path": "/tex/",
+        "status": 200,
+        "bodySha256": "3c8f5e84bc039376b867f58ae6728fa13b6f80539fbb04da1cd6d3badffb09fd",
+        "nativePresentationPreserved": true
+      },
+      {
+        "asset": "chat-tex-ultra.js",
+        "sha256": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
+        "pass": true
+      },
+      {
+        "asset": "chat-tex-ultra.css",
+        "sha256": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
+        "pass": true
+      },
+      {
+        "asset": "whatsapp.js",
+        "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+        "pass": true
+      },
+      {
+        "panel": true,
+        "sourceSha256": "f31fe4278a1901c2670868e262a0128bf8d2074c0b752fbe24ca0dca6f93adca",
+        "publicSha256": "6cab0f249bfc30752376dfdfefdc50d700895263e5bb68c2abde07e6aac50e82",
+        "existingCloudflareBeaconRecognized": 1,
+        "pass": true
+      },
+      {
+        "publicApiWithoutQaHeader": true,
+        "product": "tex_ultra_ec",
+        "availabilitySessionCleared": true,
+        "noMessageOrOrderCreated": true
+      }
+    ],
+    "physicalMobilePlaybackObserved": false
+  },
+  "realModelAndVoice": {
+    "kind": "TEX_ULTRA_WEB_QA_V240",
+    "project": "VITALISMEN_EC",
+    "commit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+    "realModel": true,
+    "sameOriginProxy": true,
+    "cookieIsolation": true,
+    "anaVoiceId": "qHkrJuifPpn95wK3rm2A",
+    "anaVoiceAudioVerified": true,
+    "audioBytes": 83634,
+    "audioSha256": "44f7c42cdeea616006f8a0ba57ac241c664390fe725ce4b12adc62ece8e8e5d0",
+    "audioDecoder": "ffprobe+full ffmpeg decode",
+    "checks": [
+      "private_audience_blocks_public",
+      "foreign_origin_denied",
+      "real_model_tex_prices_and_ingredients",
+      "separate_browser_history_isolated",
+      "other_session_voice_denied",
+      "body_product_override_denied",
+      "quantity_two_uses_tex_catalog",
+      "real_ana_voice_mp3_fully_decoded",
+      "explicit_handoff_without_order"
+    ],
+    "whatsappSends": 0,
+    "ordersCreated": 0,
+    "metaEvents": 0,
+    "physicalMobilePlaybackObserved": false,
+    "qaSessionsCleared": true
+  },
+  "recoveryAfter": {
+    "pass": true,
+    "project": "VITALISMEN_EC",
+    "status": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+    "results": [
+      {
+        "artifact": "CODE_AFTER.vbe",
+        "decrypt": "PASS",
+        "plaintextHash": "PASS",
+        "plaintextWrittenToDisk": false,
+        "filesAndMetadata": "39/ PASS",
+        "tamperRejected": true
+      },
+      {
+        "artifact": "RUNTIME_CONFIG_AFTER.vbe",
+        "decrypt": "PASS",
+        "plaintextHash": "PASS",
+        "plaintextWrittenToDisk": false,
+        "requiredConfiguration": "PASS",
+        "tamperRejected": true
+      },
+      {
+        "artifact": "ORIGIN_AFTER.vbe",
+        "decrypt": "PASS",
+        "plaintextHash": "PASS",
+        "plaintextWrittenToDisk": false,
+        "filesAndMetadata": "20/ PASS",
+        "tamperRejected": true
+      }
+    ],
+    "privateKeyUploaded": false,
+    "productionRestoration": false,
+    "globalDataBackupPass": false
+  },
+  "staticSource": {
+    "project": "VITALISMEN_EC",
+    "commit": "f5cfea93acbc00c4600122114c9d6b7be1801784",
+    "tree": "6cd490aa743d35e493ffddef3ba7e3f64bb44dd9",
+    "sourceRef": "refs/heads/codex/tex-ultra-web-assets-v240-20261117-r7",
+    "parentCommit": "3d7333c1e678e6f9f4a84e967d53f28ebf6f7bc8",
+    "files": {
+      "ops/publications/tex-ultra-web-v240/chat-tex-ultra.js": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
+      "ops/publications/tex-ultra-web-v240/chat-tex-ultra.css": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
+      "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-proxy-v240.conf": "100a8b7658ea27635057b0fe61c0fb036eab3c63e6dc8b6b316bb838552217c4",
+      "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-inject-v240.conf": "077150c2d6c34764a22eb79e4391169cbfb96b8c4fdc40e2531bdf05ecb55648",
+      "ops/publications/tex-ultra-web-v240/panel.patch.json": "3a8d6df038fe3a3e84122db9561b661f786a1f3c21c1646dc722bca375b1e275",
+      "tests/tex-ultra-web-site-v240.test.mjs": "21204b76246e52c7bd96712e98d9c295f4bbd6e33e3189ca3d711e9035dfa0a3"
+    },
+    "remotePublished": true,
+    "worktreeOrUserIndexChanged": false,
+    "remoteVerifiedAtUtc": "2026-11-17T16:58:27.177832+00:00"
+  },
+  "fullSuite": {
+    "qualifiedBusinessCommit": "c1e04a13794b83dbec96a411434bf13b983f7f46",
+    "passed": 547,
+    "failed": 0,
+    "skipped": 0,
+    "elapsedSeconds": 2414.1,
+    "fullR7RerunClaimed": false,
+    "r7FocusedTexAndWebPassed": 82
+  },
+  "limits": {
+    "physicalMobileVisualAndAudiblePlaybackObserved": false,
+    "globalMongoBackupPass": false,
+    "databaseRestorationPerformed": false,
+    "metaCorrectionPublishedByThisTask": false
+  }
+}

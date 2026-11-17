@@ -1,0 +1,47 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED",
+  "authorization": "USER_20261117_TEX_ULTRA_WEB_CHAT_FUNNEL_AUTO_IDENTITY_ANA_LOPEZ_VOICE",
+  "backendCommit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+  "staticSourceCommit": "f5cfea93acbc00c4600122114c9d6b7be1801784",
+  "parentFreezeSha256": "f9ff2f16858f1771330ac38920798b7c8c705184ed0e9ff64fa0cde691456014",
+  "verifiedAtUtc": "2026-11-17T16:54:14.114Z",
+  "configChanges": {
+    "/etc/nginx/sites-available/plusmen.shop": {
+      "sha256": "42e556b09df29a5cb8df8ea99e58c469a65be9e1cae45a1aad203d781c60c3c0",
+      "additionBase64": "ICAgICMgQkVHSU4gVEVYIFVMVFJBIFdFQiBDSEFUIFYyNDAKICAgIGluY2x1ZGUgL2V0Yy9uZ2lueC9zbmlwcGV0cy9wbHVzbWVuLXRleC1jaGF0LXByb3h5LXYyNDAuY29uZjsKICAgICMgRU5EIFRFWCBVTFRSQSBXRUIgQ0hBVCBWMjQwCgo="
+    },
+    "/etc/nginx/snippets/plusmen-tex-mobile-v1.conf": {
+      "sha256": "7f63ffee9c57af31e01beb0348da3d6489acf439cd9dc6dd6b48d6262e196f78",
+      "additionBase64": "aW5jbHVkZSAvZXRjL25naW54L3NuaXBwZXRzL3BsdXNtZW4tdGV4LWNoYXQtaW5qZWN0LXYyNDAuY29uZjsK"
+    }
+  },
+  "newFiles": {
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+      "sha256": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.css": {
+      "sha256": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
+      "mode": 420
+    },
+    "/etc/nginx/snippets/plusmen-tex-chat-proxy-v240.conf": {
+      "sha256": "765ea8e147811f4b111cb0e12e0bb80ad2ca5d9dff887af879f448cfc1b07d82",
+      "mode": 384
+    },
+    "/etc/nginx/snippets/plusmen-tex-chat-inject-v240.conf": {
+      "sha256": "077150c2d6c34764a22eb79e4391169cbfb96b8c4fdc40e2531bdf05ecb55648",
+      "mode": 420
+    }
+  },
+  "sourceHtmlUnchanged": true,
+  "desktopPublicBodyUnchanged": true,
+  "nativePlayerAndCtaUnchanged": true,
+  "whatsappDestinationUnchanged": true,
+  "publicChecks": 13,
+  "voiceProof": "ops/candidates/tex-ultra-web-chat-20261117-r7/QA_LIVE_PROOF.json",
+  "physicalMobilePlaybackObserved": false,
+  "rollbackOrigin": "/root/plusmen-tex-chat-backups/20261117-v240-r7/site-controller.py rollback",
+  "proxyTransport": "Official EC IPv4; certificate verified for ec.maxlien.shop",
+  "cloudflareAnalyticsPreserved": true
+}
