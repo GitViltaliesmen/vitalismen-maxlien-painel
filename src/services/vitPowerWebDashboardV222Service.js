@@ -31,8 +31,10 @@ export function createWebDashboardReaderV222({ directory, now = Date.now } = {})
             if (!history.length) return null;
             const draft = record.draft && typeof record.draft === 'object' ? record.draft : {};
             const name = clean(draft.name, 80);
-            return { id, name: name || null, city: clean(draft.city, 80) || null,
-                quantity: [1, 3, 6].includes(Number(draft.quantity)) ? Number(draft.quantity) : null,
+            const tex = record.productKey === 'tex_ultra_ec';
+            if (record.productKey && !['vit_power_ec', 'tex_ultra_ec'].includes(record.productKey)) return null;
+            return { id, ...(tex ? { productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', sourceOrigin: 'https://plusmen.shop', sourcePath: '/tex', funnelStage: clean(draft.texUltraStage, 40) } : {}), name: name || null, city: clean(draft.city, 80) || null,
+                quantity: (tex ? [1, 2, 3, 6] : [1, 3, 6]).includes(Number(draft.quantity)) ? Number(draft.quantity) : null,
                 createdAt: date(record.createdAt), lastAt: history.at(-1).at || date(record.createdAt),
                 messageCount: history.length, history };
         } catch (error) {

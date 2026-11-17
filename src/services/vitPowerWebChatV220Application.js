@@ -1,3 +1,4 @@
+import { TEX_ULTRA_WEB_V240, createTexUltraWebFunnelV240 } from './texUltraWebFunnelV240Service.js';
 import { createOpenAiFreeflowCompletion } from './principalSdrFreeflowService.js';
 import { getEcuadorOffer } from './ecuadorProductService.js';
 import { createVitPowerWebAgentV220 } from './vitPowerWebAgentV220Service.js';
@@ -15,12 +16,18 @@ function tokenFrom(req) { const match = String(req.headers.cookie || '').match(/
 const setCookie = (res, token, maxAge = 604800) => res.setHeader('Set-Cookie', cookieName + '=' + token + '; Path=/; Max-Age=' + maxAge + '; Secure; HttpOnly; SameSite=Lax');
 export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.__VITALISMEN_EC_WEB_CHAT_V220, store: providedStore, agent: providedAgent, now = () => Date.now() } = {}) {
   let store = providedStore, agent = providedAgent, active = 0;
+  let texAgent;
   const voice = createWebVoiceV231({ apiKey: process.env.VITALISMEN_WEB_ELEVENLABS_API_KEY });
   const rates = new Map();
   return async function webChat(req, res) {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff');
     const cap = authority();
     if (!cap?.requestAllowed?.(req)) return res.status(403).json({ ok: false, error: 'chat_unavailable' });
+    const selectedProduct = cap.productForRequest?.(req) || 'vit_power_ec';
+    if (!['vit_power_ec', 'tex_ultra_ec'].includes(selectedProduct)) return res.status(403).json({ ok: false, error: 'chat_unavailable' });
+    const tex = selectedProduct === 'tex_ultra_ec', context = { productKey: selectedProduct };
+    const readToken = () => tex ? String(req.headers.cookie || '').match(/(?:^|;\s*)__Host-texchat-v240=([a-f0-9]{64})(?:;|$)/)?.[1] || '' : tokenFrom(req);
+    const writeCookie = (value, maxAge = 604800) => tex ? res.setHeader('Set-Cookie', TEX_ULTRA_WEB_V240.cookieName + '=' + value + '; Path=/; Max-Age=' + maxAge + '; Secure; HttpOnly; SameSite=Lax') : setCookie(res, value, maxAge);
     if (!req.is?.('application/json') || Number(req.headers['content-length'] || 0) > 4096) return res.status(415).json({ ok: false, error: 'invalid_request' });
     const body = req.body;
     if (!body || Array.isArray(body) || Object.keys(body).some(k => !['action', 'requestId', 'message', 'accessToken'].includes(k)) || !['start', 'message', 'clear', 'voice', 'order_status'].includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
@@ -34,21 +41,22 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     if (rate.count > 30 || rates.size > 3000) { res.setHeader('Retry-After', '600'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
     try {
       if (!store) store = createVitPowerWebStoreV220({ directory: cap.storeDirectory });
-      if (body.action === 'clear') { await store.clear(tokenFrom(req)); setCookie(res, '', 0); return res.json({ ok: true, cleared: true }); }
+      if (body.action === 'clear') { await store.clear(readToken(), context); writeCookie('', 0); return res.json({ ok: true, cleared: true }); }
       if (body.action === 'start') {
-        const session = await store.open(tokenFrom(req)); setCookie(res, session.token);
-        return res.json({ ok: true, version: 220, voiceReplyId: Object.entries(session.value.requests || {}).filter(([, row]) => row.status === 'done').at(-1)?.[0] || 'welcome_ana_lopez_v231', history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
+        const session = await store.open(readToken(), context); writeCookie(session.token);
+        return res.json({ ok: true, version: 220, ...(tex ? { identity: { productKey: selectedProduct, productName: TEX_ULTRA_WEB_V240.productName, origin: TEX_ULTRA_WEB_V240.origin, sourcePath: TEX_ULTRA_WEB_V240.sourcePath }, welcome: TEX_ULTRA_WEB_V240.welcome } : {}), voiceReplyId: Object.entries(session.value.requests || {}).filter(([, row]) => row.status === 'done').at(-1)?.[0] || 'welcome_ana_lopez_v231', history: session.value.history, expiresAt: session.value.expiresAt, turnsRemaining: Math.max(0, 20 - session.value.turnCount) });
       }
       if (body.action === 'voice' || body.action === 'order_status') {
-        const token = tokenFrom(req);
+        const token = readToken();
         if (!token) return res.status(401).json({ ok: false, error: 'session_expired' });
-        const session = await store.open(token);
+        const session = await store.open(token, context);
         if (session.fresh) return res.status(401).json({ ok: false, error: 'session_expired' });
         const sessionId = createHash('sha256').update(token).digest('hex');
         if (body.action === 'voice') {
           const audio = await voice({ sessionId, record: session.value, requestId: body.requestId });
           res.setHeader('Content-Type', 'audio/mpeg'); return res.send(audio);
         }
+        if (tex) return res.status(403).json({ ok: false, error: 'order_access_unavailable', whatsappAvailable: true });
         if (typeof body.requestId !== 'string' || body.accessToken !== undefined && !/^[a-f0-9]{64}$/.test(body.accessToken)) return res.status(400).json({ ok: false, error: 'order_access_unavailable' });
         const result = await store.transact(token, body.requestId, 'Consultar estado de mi pedido', () => body.accessToken ? productionWebOrderAccessV231().read({ token: body.accessToken, sessionId }) : productionWebOrderAccessV231().readSession({ sessionId }));
         return res.json(result);
@@ -57,7 +65,19 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       if (active >= 2) { res.setHeader('Retry-After', '15'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
       active++;
       try {
-      if (!agent) {
+      if (tex && !texAgent) {
+        const { EC_PRODUCT_INGREDIENTS } = await import('./ecProductIngredientsService.js');
+        const offer = async quantity => { const value = getEcuadorOffer({ productKey: 'tex_ultra_ec', quantity, priceCatalog: TEX_ULTRA_WEB_V240.priceCatalog }); return value ? { ...value, ok: true, verified: true, source: 'ecuadorProductService.promotional', currency: 'USD' } : { ok: false }; };
+        const baseAgent = createVitPowerWebAgentV220({
+          complete: createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }),
+          productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', quantities: [...TEX_ULTRA_WEB_V240.quantities], productPrompt: TEX_ULTRA_WEB_V240.prompt,
+          products: async () => ({ ok: true, verified: true, source: 'ecuadorProductService', products: [{ key: 'tex_ultra_ec', name: 'Tex Ultra Ecuador' }] }), offer,
+          productInformation: async topic => topic === 'ingredients' ? { ok: true, verified: true, source: 'ecProductIngredientsService.EC_PRODUCT_INGREDIENTS.tex_ultra_ec', productKey: 'tex_ultra_ec', ingredients: [...EC_PRODUCT_INGREDIENTS.tex_ultra_ec.ingredients] } : { ok: false, unavailable: true },
+          policy: async topic => topic === 'delivery' ? { ok: true, verified: true, source: 'existing-EC-delivery-modes-home-agency', text: 'Entrega: puede elegir domicilio o retiro en una agencia Servientrega. Validaremos ciudad y dirección o agencia antes de confirmar.' } : { ok: false, unavailable: true }
+        });
+        texAgent = createTexUltraWebFunnelV240({ agent: baseAgent, offer });
+      }
+      if (!tex && !agent) {
       const { EC_PRODUCT_INGREDIENTS } = await import('./ecProductIngredientsService.js');
       agent = createVitPowerWebAgentV220({
         complete: createOpenAiFreeflowCompletion({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL }),
@@ -67,7 +87,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
         policy: async topic => topic === 'delivery' ? { ok: true, verified: true, source: 'existing-EC-delivery-modes-home-agency', text: 'Entrega: puede elegir domicilio o retiro en una agencia Servientrega. Validaremos ciudad y dirección o agencia antes de confirmar.' } : { ok: false, unavailable: true }
       });
       }
-      const result = await store.transact(tokenFrom(req), body.requestId, body.message.trim(), context => agent.reply({ text: body.message.trim(), ...context })); return res.json(result); }
+      const result = await store.transact(readToken(), body.requestId, body.message.trim(), saved => (tex ? texAgent : agent).reply({ text: body.message.trim(), ...saved }), context); return res.json(result); }
       finally { active--; }
     } catch (error) {
       const code = String(error?.message || '');

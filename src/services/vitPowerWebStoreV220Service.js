@@ -29,12 +29,15 @@ export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), 
     if (disk && Number(disk.bavail) * Number(disk.bsize) < minFreeBytes || count >= maxSessions || bytes >= maxBytes) throw Error('web_store_capacity');
   }
   let admissionTail = Promise.resolve();
-  async function open(token) {
+  const product = context => context?.productKey === 'tex_ultra_ec' ? 'tex_ultra_ec' : 'vit_power_ec';
+  const owned = (record, context) => (record?.productKey || 'vit_power_ec') === product(context);
+  async function open(token, context) {
     await initialize(); const file = filename(token), value = file ? await load(file) : null;
-    if (value && value.expiresAt > now() && value.version === 220) return { token, value, fresh: false };
+    if (value && value.expiresAt > now() && value.version === 220 && owned(value, context)) return { token, value, fresh: false };
     const task = admissionTail.then(async () => {
     await capacity(); token = randomBytes(32).toString('hex');
     const created = { version: 220, createdAt: now(), expiresAt: now() + TTL, history: [], draft: {}, requests: {}, turnCount: 0 };
+    if (product(context) === 'tex_ultra_ec') Object.assign(created, { productKey: 'tex_ultra_ec', productName: 'Tex Ultra Ecuador', sourceOrigin: 'https://plusmen.shop', sourcePath: '/tex' });
     await atomic(filename(token), created); return { token, value: created, fresh: true };
     });
     admissionTail = task.catch(() => {}); return task;
@@ -48,13 +51,13 @@ export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), 
   // One PM2 application owns this store. The process mutex also protects quota reservations.
   let quotaTail = Promise.resolve();
   function reserveQuota() { const task = quotaTail.then(quota); quotaTail = task.catch(() => {}); return task; }
-  return Object.freeze({ open, async transact(token, requestId, message, run) {
+  return Object.freeze({ open, async transact(token, requestId, message, run, context) {
     if (!/^[a-zA-Z0-9_-]{12,80}$/.test(requestId || '')) throw Error('web_chat_request_id');
     const file = filename(token); if (!file) throw Error('web_chat_session_required');
     if (inFlight.has(file)) throw Error('web_chat_session_busy');
     inFlight.add(file);
     try {
-      const record = await load(file); if (!record || record.expiresAt <= now()) throw Error('web_chat_session_expired');
+      const record = await load(file); if (!record || record.expiresAt <= now() || !owned(record, context)) throw Error('web_chat_session_expired');
       const previous = record.requests[requestId], digest = hash(message);
       if (previous) {
         if (previous.digest !== digest) throw Error('web_chat_request_id_conflict');
@@ -79,9 +82,10 @@ export function createVitPowerWebStoreV220({ directory, now = () => Date.now(), 
         await atomic(file, record); throw error;
       }
     } finally { inFlight.delete(file); }
-  }, async clear(token) {
+  }, async clear(token, context) {
     const file = filename(token); if (!file) return;
     if (inFlight.has(file)) throw Error('web_chat_session_busy');
+    const record = await load(file); if (record && !owned(record, context)) throw Error('web_chat_session_expired');
     await fs.unlink(file).catch(e => { if (e.code !== 'ENOENT') throw e; });
   } });
 }

@@ -1,0 +1,19 @@
+{
+  "project": "VITALISMEN_EC",
+  "scope": "TEX_ULTRA_WEB_CHAT_FUNNEL_AUTO_IDENTITY_ANA_LOPEZ_VOICE",
+  "parentCommit": "cf79efded4cc5242800946728d589a186cfa349f",
+  "allowedProducts": [
+    "vit_power_ec",
+    "tex_ultra_ec"
+  ],
+  "texOrigin": "https://plusmen.shop",
+  "texSourcePath": "/tex",
+  "voiceId": "qHkrJuifPpn95wK3rm2A",
+  "vslHtmlChanged": false,
+  "playerChanged": false,
+  "ordersCreated": false,
+  "whatsappSends": false,
+  "metaChanged": false,
+  "quotaSharedWithExistingWebChat": true,
+  "manualSelectionsAndExistingHistoryPreserved": true
+}

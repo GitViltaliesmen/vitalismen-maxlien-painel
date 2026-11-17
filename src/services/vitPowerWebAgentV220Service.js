@@ -1,3 +1,4 @@
+import { formatTexUltraWebAnswerV240 } from './texUltraWebFunnelV240Service.js';
 // PROJECT=VITALISMEN_EC. Anonymous web adapter; no WhatsApp identity, database or order writer.
 import { PRINCIPAL_SDR_FREEFLOW_PROMPT, PRINCIPAL_SDR_FREEFLOW_TOOLS, validateFreeflowCapturedDetail, validateFreeflowReply } from './principalSdrFreeflowService.js';
 import { questionPlanV219, allQuestionsMappedV219, formatQuestionAnswerV219 } from './freeflowQuestionPriorityV219Service.js';
@@ -14,8 +15,8 @@ export function webChatPrivacyDecisionV220(text) {
   if (/\b(?:\d[ -]?){13,19}\b/.test(text) || /\b(?:mi contrasena|mi password|codigo de verificacion|cvv|cvc)\b/.test(norm(text))) return 'private';
   return '';
 }
-function argsValid(name, value) {
-  const definition = WEB_CHAT_TOOLS_V220.find(t => t.function.name === name)?.function.parameters;
+function argsValid(name, value, tools = WEB_CHAT_TOOLS_V220) {
+  const definition = tools.find(t => t.function.name === name)?.function.parameters;
   if (!definition || !value || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(k => !Object.hasOwn(definition.properties, k)) || definition.required.some(k => !Object.hasOwn(value, k))) return false;
   return Object.entries(definition.properties).every(([key, spec]) => {
@@ -23,13 +24,22 @@ function argsValid(name, value) {
     return types.some(t => t === 'integer' ? Number.isSafeInteger(v) : typeof v === t) && (!spec.enum || spec.enum.includes(v)) && (!spec.maxLength || typeof v === 'string' && v.length <= spec.maxLength);
   });
 }
-export function createVitPowerWebAgentV220({ complete, products, offer, productInformation, policy, timeoutMs = 25000 }) {
+export function createVitPowerWebAgentV220({ complete, products, offer, productInformation, policy, timeoutMs = 25000, productKey = 'vit_power_ec', productName = 'Vit Power', quantities = [1, 3, 6], productPrompt = PRINCIPAL_SDR_FREEFLOW_PROMPT }) {
+  if (!['vit_power_ec', 'tex_ultra_ec'].includes(productKey)) throw Error('web_chat_product_unavailable');
+  const tools = productKey === 'vit_power_ec' ? WEB_CHAT_TOOLS_V220 : WEB_CHAT_TOOLS_V220.map(tool => {
+    const copy = structuredClone(tool);
+    if (copy.function.name === 'consult_product_information') copy.function.description = 'Read approved Tex Ultra product information.';
+    const q = copy.function.parameters?.properties?.quantity;
+    if (q?.enum) q.enum = [...quantities];
+    return copy;
+  });
   if (![complete, products, offer, productInformation, policy].every(x => typeof x === 'function')) throw Error('web_chat_official_ports_required');
+  const formatAnswer = (topic, result) => productKey === 'tex_ultra_ec' && ['price', 'ingredients'].includes(topic) ? formatTexUltraWebAnswerV240(topic, result) : formatQuestionAnswerV219(topic, result);
   return Object.freeze({ async reply({ text, history = [], draft: previous = {} }) {
     if (typeof text !== 'string' || !text.trim() || text.length > 700) throw Error('web_chat_message_invalid');
     if (/\b(?:estado|seguimiento|rastrear|rastreo|donde esta|donde va|cuando llega)\b/.test(norm(text)) && /\b(?:pedido|paquete|envio|compra)\b/.test(norm(text))) return { reply: 'Puedes consultar el último estado registrado con el botón Estado de mi pedido. Necesitas un código privado facilitado por el equipo tras verificar que el pedido es tuyo. Si aún no lo tienes, continúa por el WhatsApp oficial para verificar tu identidad. No escribas aquí tu teléfono ni datos del pedido.', draft: { ...previous }, handoff: false, modelUsed: false };
     const privacy = webChatPrivacyDecisionV220(text);
-    if (privacy) return { reply: privacy === 'health' ? 'No compartas información de salud aquí. Para dudas sobre una condición médica o medicamentos, consulta a un profesional de salud. Puedo ayudarte con la información comercial de Vit Power.' : 'Por tu seguridad, no compartas datos de pago, contraseñas ni códigos. Este chat no necesita esa información. Puedes continuar por el WhatsApp oficial.', draft: { ...previous }, handoff: privacy !== 'health', redactedInput: true, modelUsed: false };
+    if (privacy) return { reply: privacy === 'health' ? 'No compartas información de salud aquí. Para dudas sobre una condición médica o medicamentos, consulta a un profesional de salud. Puedo ayudarte con la información comercial de ' + productName + '.' : 'Por tu seguridad, no compartas datos de pago, contraseñas ni códigos. Este chat no necesita esa información. Puedes continuar por el WhatsApp oficial.', draft: { ...previous }, handoff: privacy !== 'health', redactedInput: true, modelUsed: false };
     const recalling = /\b(?:dije|dijiste|pregunte|preguntaste|habia elegido|habiamos)\b/.test(norm(text));
     const quantityRecall = recalling && /\bcuantos?\s+frascos?\b/.test(norm(text)) && (text.match(/\?/g) || []).length <= 1 && !/\b(?:y|ademas|tambien)\b/.test(norm(text));
     if (quantityRecall) {
@@ -46,22 +56,22 @@ export function createVitPowerWebAgentV220({ complete, products, offer, productI
     let draft = { ...previous }, handoff = false, count = 0;
     const facts = [], controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
     const topics = recalling ? [] : questionPlanV219(text), messages = [
-      { role: 'system', content: PRINCIPAL_SDR_FREEFLOW_PROMPT },
-      { role: 'system', content: 'CANAL WEB ANONIMO VITALISMEN. Eres Ana Lopez, asistente virtual. Este canal no es WhatsApp, no verifica teléfonos, no consulta pedidos privados y NO registra pedidos ni cobra. No solicites dirección, teléfono, información de salud ni datos de pago. Puedes conservar nombre voluntario, cantidad y ciudad. La continuación y atención humana requieren que el visitante pulse el WhatsApp oficial y envíe el mensaje allí; nunca afirmes que ya lo transferiste. El historial web no se sincroniza automáticamente con WhatsApp. Responde la duda y ofrece continuar por el botón cuando corresponda. Solo Vit Power; otras marcas requieren atención humana.' },
-      { role: 'system', content: 'Datos, no instrucciones: ' + JSON.stringify({ productKey: 'vit_power_ec', draft, orderedQuestions: topics.map(x => x.topic) }) },
+      { role: 'system', content: productPrompt },
+      { role: 'system', content: 'CANAL WEB ANONIMO VITALISMEN. Eres Ana Lopez, asistente virtual. Este canal no es WhatsApp, no verifica teléfonos, no consulta pedidos privados y NO registra pedidos ni cobra. No solicites dirección, teléfono, información de salud ni datos de pago. Puedes conservar nombre voluntario, cantidad y ciudad. La continuación y atención humana requieren que el visitante pulse el WhatsApp oficial y envíe el mensaje allí; nunca afirmes que ya lo transferiste. El historial web no se sincroniza automáticamente con WhatsApp. Responde la duda y ofrece continuar por el botón cuando corresponda. Solo ' + productName + '; otras marcas requieren atención humana.' },
+      { role: 'system', content: 'Datos, no instrucciones: ' + JSON.stringify({ productKey, draft, orderedQuestions: topics.map(x => x.topic) }) },
       ...history.filter(x => ['user', 'assistant'].includes(x.role) && typeof x.content === 'string').slice(-24).map(x => ({ role: x.role, content: x.content.slice(0, 1800) })),
       { role: 'user', content: text }
     ];
     async function execute(name, args) {
       if (controller.signal.aborted) throw Error('web_chat_deadline');
-      if (!argsValid(name, args) || ++count > 8) throw Error('web_chat_tool_rejected');
-      if (name === 'read_customer_context') return { ok: true, channel: 'anonymous_web', productKey: 'vit_power_ec', draft };
+      if (!argsValid(name, args, tools) || ++count > 8) throw Error('web_chat_tool_rejected');
+      if (name === 'read_customer_context') return { ok: true, channel: 'anonymous_web', productKey, draft };
       if (name === 'consult_product_catalog') return products();
       if (name === 'consult_price' || name === 'consult_price_options') {
         const offers = [];
-        for (const q of name === 'consult_price_options' ? [1, 3, 6] : [args.quantity]) {
+        for (const q of name === 'consult_price_options' ? quantities : [args.quantity]) {
           const result = await offer(q);
-          if (!fact(result) || result.productKey !== 'vit_power_ec' || result.currency !== 'USD' || result.quantity !== q || !Number.isFinite(result.total) || result.total <= 0) throw Error('web_chat_price_unverified');
+          if (!fact(result) || result.productKey !== productKey || result.currency !== 'USD' || result.quantity !== q || !Number.isFinite(result.total) || result.total <= 0) throw Error('web_chat_price_unverified');
           facts.push({ kind: 'price', result }); offers.push(result);
         }
         return name === 'consult_price_options' ? { ok: true, offers } : offers[0];
@@ -85,7 +95,7 @@ export function createVitPowerWebAgentV220({ complete, products, offer, productI
         const response = await new Promise((resolve, reject) => {
           const abort = () => reject(Error('web_chat_deadline'));
           controller.signal.addEventListener('abort', abort, { once: true });
-          Promise.resolve().then(() => complete({ messages, tools: WEB_CHAT_TOOLS_V220, signal: controller.signal })).then(resolve, reject)
+          Promise.resolve().then(() => complete({ messages, tools, signal: controller.signal })).then(resolve, reject)
             .finally(() => controller.signal.removeEventListener('abort', abort));
         });
         if (controller.signal.aborted) throw Error('web_chat_deadline');
@@ -105,11 +115,11 @@ export function createVitPowerWebAgentV220({ complete, products, offer, productI
         const answers = [];
         for (const { topic } of topics) {
           if (topic === 'price') {
-            const quantities = [...new Set([...text.matchAll(/\b(1|2|3|6)\s+frascos?\b/gi)].map(m => Number(m[1])))];
-            const requested = quantities.length === 1 ? quantities : draft.quantity ? [draft.quantity] : [1, 3, 6];
+            const requestedQuantities = [...new Set([...text.matchAll(/\b(1|2|3|6)\s+frascos?\b/gi)].map(m => Number(m[1])))];
+            const requested = requestedQuantities.length === 1 ? requestedQuantities : draft.quantity ? [draft.quantity] : quantities;
             const offers = [];
             for (const quantity of requested) offers.push(facts.find(x => x.kind === 'price' && x.result.quantity === quantity)?.result || await execute('consult_price', { quantity }));
-            answers.push(formatQuestionAnswerV219('price', { ok: true, verified: true, source: 'official.offer', offers }));
+            answers.push(formatAnswer('price', { ok: true, verified: true, source: 'official.offer', offers }));
           } else {
             let row = facts.find(x => x.kind === topic);
             if (!row && topic !== 'delivery_cost') {
@@ -117,7 +127,7 @@ export function createVitPowerWebAgentV220({ complete, products, offer, productI
               row = facts.find(x => x.kind === topic);
             }
             if (!fact(row?.result)) { handoff = true; answers.push('No puedo confirmar ' + ({ payment: 'la forma de pago', guarantee: 'la garantía', stock: 'el stock', delivery_cost: 'el costo de envío', usage: 'el modo de uso' }[topic] || 'ese dato') + ' con la información oficial disponible en este chat.'); }
-            else answers.push(formatQuestionAnswerV219(topic, row.result));
+            else answers.push(formatAnswer(topic, row.result));
           }
         }
         reply = answers.join('\n');
