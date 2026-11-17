@@ -1,0 +1,16 @@
+{
+  "project": "VITALISMEN_EC",
+  "readOnly": true,
+  "recordedAt": "2026-11-17T12:26:57.027872+00:00",
+  "phoneSuffix": "9125",
+  "source": "Official PM2 stdout filtered by exact target; no log export",
+  "event": "LOG_SEND_BLOCKED",
+  "reason": "history_repeat",
+  "key": "ask_quantity",
+  "queuedPriceRequestUTC": "2026-11-17T05:42:32.623Z",
+  "failedTurnUTC": "2026-11-17T05:43:36.012Z",
+  "currentHumanHoldPreserved": true,
+  "historicalMessagesReplayed": 0,
+  "otherCaseSuffix": "6691",
+  "otherCaseEvidence": "SDR memory + sent turn ledger + provider ACK2 after64seconds; manual-send claim retained as divergence"
+}

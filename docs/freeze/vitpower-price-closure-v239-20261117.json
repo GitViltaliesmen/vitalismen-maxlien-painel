@@ -1,0 +1,31 @@
+{
+  "project": "VITALISMEN_EC",
+  "at": "2026-11-17T12:54:12.217944+00:00",
+  "status": "PUBLISHED_AUDITED_CODE_CONFIG",
+  "commit": "cf79efded4cc5242800946728d589a186cfa349f",
+  "tree": "1d05d5c8b63a39118c3e656e42e9311648e04927",
+  "release": "/opt/vitalismen-automacao/releases/20261117T121338Z_production-20261117-cf79efd",
+  "parentCommit": "5b35e7856bf908263db2fa557508c7370814328a",
+  "hashes": {
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "efe5b767a30f2302ed9696ff8d7d2d080b98b32b9068cf2e575fe9038a966d93",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "8278d902a9d69230e577e7cbe4b8fad86df9aa62adaf9dbfccf1f862dce430a1",
+    "src/services/freeflowQuestionPriorityV219Service.js": "74968a9819664832e3df3a001987add7eaa578c1f7e9a66ecf4d4b2df83b42df",
+    "tests/price-request-v239.test.mjs": "910c7959cd27ea40d0b35f4160aa366783e91545db06a05453e14dd50fbee480",
+    "docs/freeze/vitpower-price-closure-v239-contract.json": "9f79059ab06e1e014185d4b75660ee4f5de516e7c99fa616172136c506724782"
+  },
+  "proofs": {
+    "QUALIFICATION": "7b1b271e08937ca0a1b249636b8f9b1f907267dd0f92fffc51577063c3412772",
+    "EXTRA_QUALIFICATION": "6a931e1ec6be0f0dbbdb4d5bef0f5cc9faa95b6a7a32f2a286c879cf8799b83e",
+    "HTTP_SALE_TEST": "2013887221f3d474fb94a7987a4006058be25456a2037e32e35c205098b0be4a",
+    "INHERITED_REGRESSION": "99d425092e33a5bf444eaa321b741cccefe5b463e088fc054e4115eb8b664728",
+    "INHERITED_CONTROL": "f5bc8410d6015dca345889a65c27439149a1b61101206854f7a0f38dfdd6f31d",
+    "PUBLIC_BASELINE": "660301417736cf5a76e22a3d9a5a1fa8047accadfee3bbfc15f03533bc74ad7a",
+    "OPERATIONS_TEST": "b4a394cf71e863eef0b069eb8299d72dae498200da141c1f8f319d5a519cb32b",
+    "LIVE_AUDIT": "c7bc2c4a850c026f868bcf0697a3b45580d54cf9d7e00df50894df4735a07253",
+    "PUBLIC_CHECKS": "537c071cb1ac9989385ced82bb23f1ef2717483008c42b6c6420a56f07f4ec53"
+  },
+  "reportSha256": "2562fccc6e8a402d01fb5dbe2f7c563b6adef75799de862f920545686a2952bf",
+  "globalDataBackupPass": false,
+  "realClientSendsDuringTests": 0,
+  "realSalesAfterReleaseVerified": false
+}

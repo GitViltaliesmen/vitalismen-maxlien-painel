@@ -1,0 +1,9 @@
+{
+  "project": "VITALISMEN_EC",
+  "baselineCommit": "5b35e7856bf908263db2fa557508c7370814328a",
+  "tests": 56,
+  "pass": 49,
+  "fail": 7,
+  "productionChanged": false,
+  "reason": "Unpunctuated price requests not classified; previous quantity question would be repeated"
+}

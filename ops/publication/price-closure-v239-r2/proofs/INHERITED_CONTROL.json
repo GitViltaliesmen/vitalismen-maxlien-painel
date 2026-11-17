@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "files": {
+    "/usr/local/lib/vitalismen-deploy/ec-order-access-profile-v238-r4.mjs": "eec58e7f3187913d5d1204ebc83ff257cc9691dfda41cf4fa91fdccc4155e012",
+    "/usr/local/lib/vitalismen-deploy/ec-order-access-sealed-v238-r4.mjs": "910928c741f3f66a5cedb5f1007260b041eaffcc30f200a4ef97faad00804019",
+    "/var/lib/vitalismen-deploy/ec-order-access-v238-r4/approval.json": "69f005363658238bcca0bf15a88d026c0ca612589ae82d26b06c6b6f44a2e890",
+    "/var/lib/vitalismen-deploy/ec-order-access-v238-r4/activation.json": "104ca7f1e064d49c011d67189537d82ec8ec4e0837fc6678a5741852fea8da80"
+  }
+}
