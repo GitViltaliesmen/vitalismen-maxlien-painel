@@ -1,0 +1,14 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentSha256": "20bbb94813330913f642a6e14069ad023df66e4e54e01850965508c6c9b58ec6",
+  "pairs": [
+    [
+      "const label=row=>row.name||'Visitante · '+String(row.id).slice(0,6);",
+      "const label=row=>(row.name||'Visitante · '+String(row.id).slice(0,6))+(row.productKey==='tex_ultra_ec'?' · Tex Ultra':'');"
+    ],
+    [
+      "[row.name,row.id,row.city].filter(Boolean)",
+      "[row.name,row.id,row.city,row.productName].filter(Boolean)"
+    ]
+  ]
+}
