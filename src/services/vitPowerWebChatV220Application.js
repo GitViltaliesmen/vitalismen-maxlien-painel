@@ -49,8 +49,8 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
           const audio = await voice({ sessionId, record: session.value, requestId: body.requestId });
           res.setHeader('Content-Type', 'audio/mpeg'); return res.send(audio);
         }
-        if (typeof body.requestId !== 'string' || !/^[a-f0-9]{64}$/.test(body.accessToken || '')) return res.status(400).json({ ok: false, error: 'order_access_unavailable' });
-        const result = await store.transact(token, body.requestId, 'Consultar estado de mi pedido', () => productionWebOrderAccessV231().read({ token: body.accessToken, sessionId }));
+        if (typeof body.requestId !== 'string' || body.accessToken !== undefined && !/^[a-f0-9]{64}$/.test(body.accessToken)) return res.status(400).json({ ok: false, error: 'order_access_unavailable' });
+        const result = await store.transact(token, body.requestId, 'Consultar estado de mi pedido', () => body.accessToken ? productionWebOrderAccessV231().read({ token: body.accessToken, sessionId }) : productionWebOrderAccessV231().readSession({ sessionId }));
         return res.json(result);
       }
       if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 700 || typeof body.requestId !== 'string') return res.status(400).json({ ok: false, error: 'invalid_message' });

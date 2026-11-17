@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { productionWebOrderAccessV231 } from '../services/vitPowerWebVoiceStatusV231Service.js';
+import { productionWebOrderAccessV231, productionVerifiedOrderInviteV238 } from '../services/vitPowerWebVoiceStatusV231Service.js';
 import express from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import { hasExplicitWebDashboardBearerV222, productionWebDashboardReaderV222 } from '../services/vitPowerWebDashboardV222Service.js';
@@ -32,13 +32,20 @@ router.get('/:id', async (req, res) => {
 });
 // Explicit admin authentication above also protects this credential issuance.
 router.post('/:id/order-access', async (req, res) => {
-    if (!req.is('application/json') || Number(req.headers['content-length'] || 0) > 1024 || !req.body || Object.keys(req.body).some(k => !['orderId', 'phone', 'identityVerified'].includes(k)) || req.body.identityVerified !== true)
+    const privateLink = req.params.id === 'whatsapp' && req.body?.mode === 'whatsapp_link';
+    if (!privateLink && (!req.is('application/json') || Number(req.headers['content-length'] || 0) > 1024 || !req.body || Object.keys(req.body).some(k => !['orderId', 'phone', 'identityVerified'].includes(k)) || req.body.identityVerified !== true))
         return res.status(400).json({ error: 'Confirme a identidade do destinatário antes de emitir o código.' });
     try {
         let administrator;
         try { const decoded = jwt.verify(req.headers.authorization.slice(7), process.env.JWT_SECRET); administrator = await User.findById(decoded.id).select('_id role isActive').lean(); }
         catch { return res.status(401).json({ error: 'Autenticação válida de administrador necessária.' }); }
         if (!administrator?.isActive || administrator.role !== 'admin') return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+        if (privateLink) {
+            if (!req.is('application/json') || Number(req.headers['content-length'] || 0) > 1024 ||
+                Object.keys(req.body).some(k => !['mode', 'phone'].includes(k))) return res.status(400).json({ error: 'Solicitação inválida.' });
+            const invite = await productionVerifiedOrderInviteV238(req.body.phone);
+            return res.json({ ok: true, ...invite });
+        }
         const conversation = await productionWebDashboardReaderV222().read(req.params.id);
         if (!conversation) return res.status(404).json({ error: 'Conversa não encontrada ou expirada.' });
         const grant = await productionWebOrderAccessV231().issue({ orderId: req.body.orderId, phone: req.body.phone, administrator: administrator._id });

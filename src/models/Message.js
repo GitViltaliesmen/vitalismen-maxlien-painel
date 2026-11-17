@@ -42,7 +42,7 @@ const messageSchema = new mongoose.Schema({
     peerPhone: { type: String, index: true }, // Digits-only phone when available (e.g., 553184539234)
     from: { type: String, required: true },
     to: { type: String, required: true },
-    body: String,
+    body: { type: String, set: value => typeof value === 'string' ? value.replace(/(https:\/\/taviazen\.shop\/vitpower_2026g\/assets\/acesso-pedido\.html#pedido=)[a-f0-9]{64}\b/g, '$1[acceso-privado]') : value },
     type: { type: String, default: 'chat' }, // chat, image, audio, ptt, video, document, sticker
     hasMedia: { type: Boolean, default: false },
     mediaUrl: String, // Path to local file relative to server
