@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T22:49:56.944613+00:00",
+  "pid": 3700171,
+  "release": "/opt/vitalismen-automacao/releases/20261116T195949Z_production-20261116-a46af49",
+  "pmCwd": "/opt/vitalismen-automacao/current",
+  "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+  "restartCount": 39,
+  "newRestarts": 0,
+  "zapiConnected": true,
+  "activationFlagsUnchanged": true,
+  "approvedUiGatesPass": true,
+  "publicSha256": "b07b2e939b6d80f2f5a6d7ccb8bfd218c6f2dec4465a9c3b9e974e7e049a1c65"
+}

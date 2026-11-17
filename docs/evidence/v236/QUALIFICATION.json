@@ -1,0 +1,57 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "candidateCommit": "1583e5977ac1cdcf28503de5e4bac7e2e06f9542",
+  "results": [
+    {
+      "name": "senior_guard",
+      "pass": true,
+      "seconds": 22.8,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": []
+    },
+    {
+      "name": "product_guard",
+      "pass": true,
+      "seconds": 20.2,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": []
+    },
+    {
+      "name": "focused_tests",
+      "pass": true,
+      "seconds": 178.1,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": [
+        "# tests 191",
+        "# pass 191",
+        "# fail 0"
+      ]
+    },
+    {
+      "name": "complete_senior",
+      "pass": true,
+      "seconds": 1681.8,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": [
+        "# tests 43",
+        "# pass 43",
+        "# fail 0",
+        "# tests 482",
+        "# pass 482",
+        "# fail 0",
+        "# tests 22",
+        "# pass 22",
+        "# fail 0"
+      ]
+    }
+  ],
+  "productionUnchanged": true,
+  "networkIsolated": true,
+  "messagesSent": 0,
+  "databaseProductionWrites": 0
+}

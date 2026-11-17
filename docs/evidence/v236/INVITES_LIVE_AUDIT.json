@@ -1,0 +1,41 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-17T00:23:14.631443+00:00",
+  "release": "/opt/vitalismen-automacao/releases/20261116T234444Z_production-20261116-1583e59",
+  "enabled": true,
+  "ledgerRows": 0,
+  "sent": 0,
+  "ambiguous": 0,
+  "stagesSent": [],
+  "permanentUniqueKeys": true,
+  "globalTenMinuteIntervalVerified": null,
+  "qa8637Excluded": true,
+  "providerReceiptsPresent": false,
+  "globalDataBackupPass": false,
+  "mirrorsFound": 0,
+  "providerAckValues": [],
+  "acceptedByProvider": 0,
+  "deliveredAckCount": 0,
+  "positivePhysicalSendVerified": false,
+  "liveIntervalObservation": "PENDING_AT_LEAST_TWO_ATTEMPTS",
+  "ledgerBackup": {
+    "project": "VITALISMEN_EC",
+    "envelope": {
+      "project": "VITALISMEN_EC",
+      "kind": "private_config",
+      "plaintextBytes": 230,
+      "plaintextSha256": "9d9c3137a77f318d61edd81bcb061a56003a51564a2310ede2feb07fbf6beb02",
+      "recipient": "44702964d2143c2d3cf307ec0cfeee107849284a9908e4f56660452b41978ad3",
+      "status": "SEALED"
+    },
+    "sha256": "702af1c9d88694051f72f8205e4da91fd90c5ba0d69d099f9116b00d4f31f465",
+    "bytes": 1006,
+    "method": "SOLE_WRITER_EXISTING_FLOCK_COLLECTION_ONLY",
+    "codec": "BSON_CANONICAL_EJSON",
+    "scope": "CustomerInviteDispatchV232_ONLY",
+    "records": 0,
+    "privateKeyUploaded": false,
+    "globalDataBackupPass": false
+  }
+}

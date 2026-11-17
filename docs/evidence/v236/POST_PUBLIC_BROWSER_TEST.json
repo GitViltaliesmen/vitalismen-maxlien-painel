@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-17T00:20:20.317Z",
+  "correctRecipient": true,
+  "leftMessagePreviews": 0,
+  "mainInviteEnabled": true,
+  "mainInviteVisible": true,
+  "personalizedDraft": true,
+  "popupOpen": true,
+  "publicChatLinkInDraft": true,
+  "reviewRequiredBeforeSend": true,
+  "realMessagesSent": 0,
+  "manualInvitePreparedOnly": true,
+  "siteBrowserVerified": false,
+  "siteBrowserStatus": "CONNECTION_TIMED_OUT; error page unavailable to browser tool",
+  "siteLogicOfflineChecks": 54
+}

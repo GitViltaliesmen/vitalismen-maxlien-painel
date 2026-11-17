@@ -1,0 +1,19 @@
+{
+  "project": "VITALISMEN_EC",
+  "readOnly": true,
+  "ecContacts": 1060,
+  "officialInboundOwnerMatched": 9,
+  "anyZapiInbound": 701,
+  "humanModes": {
+    "auto": 373,
+    "manual": 687
+  },
+  "verifiedRestrictions": {
+    "humanManual": 9,
+    "paused": 9,
+    "optOut": 0
+  },
+  "basicEligibleBeforeOrderHistoryFilters": 0,
+  "quietTwelveHoursBeforeOrderHistoryFilters": 0,
+  "productionWrites": 0
+}

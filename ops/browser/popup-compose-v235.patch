@@ -1,0 +1,140 @@
+--- qr.html V234
++++ qr.html V235
+@@ -22249,6 +22249,7 @@
+   <p id="webChatDashboardStatusV222" class="vpweb222-status" role="status" aria-live="polite"></p>
+   <div class="vpweb232-search" style="display:flex;align-items:center;gap:8px;padding:8px 12px"><input id="webChatDashboardSearchV232" type="search" autocomplete="off" maxlength="100" placeholder="Buscar nome, telefone ou últimos dígitos…" aria-label="Buscar cliente no chat do site" style="min-width:0;flex:1;border:1px solid #cbded7;border-radius:9px;padding:9px"><small id="webChatDashboardSearchCountV232" role="status" aria-live="polite"></small></div>
+   <div class="vpweb222-body"><nav id="webChatDashboardListV222" class="vpweb222-list" aria-label="Conversas do site"></nav><section id="webChatDashboardThreadV222" class="vpweb222-thread" aria-label="Conversa selecionada" aria-live="polite"></section></div>
++  <div id="webChatComposerV235" hidden class="vpweb235-compose"><label id="webChatRecipientV235" for="webChatMessageV235"></label><div class="vpweb235-compose-row"><textarea id="webChatMessageV235" rows="2" maxlength="2000" placeholder="Digite a mensagem para este cliente…" aria-label="Mensagem no popup WhatsApp" aria-describedby="webChatSendStatusV235"></textarea><button id="webChatSendV235" type="button" disabled>Enviar</button></div><small id="webChatSendStatusV235" role="status" aria-live="polite">Enter envia · Shift+Enter quebra a linha.</small></div>
+   <footer class="vpweb222-footer">Horários deste computador. Histórico disponível por até 7 dias. Visitantes sem nome permanecem anônimos. O atendimento por WhatsApp continua na lista principal.</footer>
+  </div>
+ </dialog>
+@@ -22291,6 +22292,47 @@
+  }
+  let selectedWhatsApp=null,resumeWhatsApp=null,waTimer=null,waSignature='';
+  const defaultFooter=dialog.querySelector('.vpweb222-footer').textContent;
++ const compose=byId('webChatComposerV235'),composeInput=byId('webChatMessageV235'),composeSend=byId('webChatSendV235'),composeTarget=byId('webChatRecipientV235'),composeNotice=byId('webChatSendStatusV235');
++ let waAuthorized=false,composePhone='',sendingPopup=false;const popupDrafts=new Map(),popupUncertain=new Set();
++ function savePopupDraft(){if(composePhone)popupDrafts.set(composePhone,composeInput.value);}
++ function updatePopupComposer(){
++  const phone=selectedWhatsApp?whatsappPhone(selectedWhatsApp):'';if(phone!==composePhone){savePopupDraft();composePhone=phone;composeInput.value=popupDrafts.get(phone)||'';composeNotice.textContent=''}
++  compose.hidden=!phone||!dialog.open;dialog.dataset.whatsapp=String(!!phone);composeTarget.textContent=phone?'Para: '+String(selectedWhatsApp.name||phone)+' · +'+phone:'';
++  const allowed=!!phone&&waAuthorized&&eligible()&&!sendingPopup&&!popupUncertain.has(phone);
++  composeInput.disabled=!allowed;composeSend.disabled=!allowed||!composeInput.value.trim();composeSend.textContent=sendingPopup?'Enviando…':'Enviar';
++ }
++ composeInput.addEventListener('input',()=>{savePopupDraft();updatePopupComposer()});
++ async function sendPopupMessage(event){
++  event.preventDefault();if(!event.isTrusted||sendingPopup||!dialog.open||!waAuthorized||!eligible()||!selectedWhatsApp)return;
++  const row=selectedWhatsApp,phone=whatsappPhone(row),text=composeInput.value.trim(),credential=token();
++  if(!text||popupUncertain.has(phone)||!whatsappMatches(phone).some(item=>item.id===row.id))return;
++  if(isInternalPanelCommandText(text)){composeNotice.textContent='Use o atendimento principal para comandos operacionais.';return}
++  if(window.VitalismenCleanChatV29?.containsPickupAuthorizationLanguage(text)){composeNotice.textContent='Valide a liberação da retirada no atendimento principal antes de enviar esta orientação.';return}
++  const actionId='popup235-'+crypto.randomUUID();sendingPopup=true;savePopupDraft();stopWhatsApp();updatePopupComposer();composeNotice.textContent='Enviando pelo WhatsApp…';
++  let notice='';
++  try{
++   const response=await fetch('/api/whatsapp/send',{method:'POST',credentials:'same-origin',headers:{Authorization:'Bearer '+credential,'Content-Type':'application/json'},body:JSON.stringify({phone,message:text,sessionId:'zapi',delayTypingSeconds:0,quotedMessageId:'',clientGeneratedId:actionId,manualIntent:{confirmed:true,actionId},sendMode:'manual_panel',country:'EC'})});
++   let result;try{result=await response.json()}catch{throw Error('Resultado incerto. Confira no WhatsApp antes de reenviar.')}
++   if(result?.reconcileRequired||response.status>=500)throw Error('Resultado incerto. Confira no WhatsApp antes de reenviar.');
++   if(!response.ok||result?.success!==true){
++    if(response.status===401||response.status===403){waAuthorized=false;notice='Acesso negado. Entre novamente antes de enviar.'}
++    else notice='Envio não confirmado. Texto preservado. Confira a conversa antes de reenviar.';
++    popupUncertain.add(phone);return;
++   }
++   if(popupDrafts.get(phone)?.trim()===text)popupDrafts.delete(phone);
++   if(composePhone===phone&&composeInput.value.trim()===text)composeInput.value='';
++   notice='Mensagem aceita pelo WhatsApp. A entrega será atualizada no histórico.';
++   if(dialog.open&&selectedWhatsApp?.id===row.id&&token()===credential)await openWhatsApp(row,{refresh:true});
++  }catch(error){popupUncertain.add(phone);notice='Resultado incerto. Texto preservado; confira no WhatsApp antes de reenviar. Nenhum reenvio automático.'}
++  finally{
++   sendingPopup=false;
++   if(token()===credential){updatePopupComposer();if(dialog.open&&composePhone===phone){composeNotice.textContent=notice;if(!composeInput.disabled)composeInput.focus()}}
++   scheduleWhatsApp();
++  }
++ }
++ composeSend.addEventListener('click',sendPopupMessage);
++ composeInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing)sendPopupMessage(event)});
++
+  function stopWhatsApp(){clearTimeout(waTimer);waTimer=null;}
+  function pausePopupMedia(){thread.querySelectorAll('audio,video').forEach(media=>media.pause());}
+  function scheduleWhatsApp(){stopWhatsApp();if(dialog.open&&selectedWhatsApp&&eligible())waTimer=setTimeout(()=>openWhatsApp(selectedWhatsApp,{refresh:true}),10000);}
+@@ -22320,7 +22362,7 @@
+   if(!authorized){stopWhatsApp();status.textContent='Entre como administrador e atualize os contatos para consultar esta conversa.';return}
+   if(!refresh)activity++;
+   const same=selectedWhatsApp?.id===row.id;cancel();const current=generation,credential=token();controller=new AbortController();
+-  selectedWhatsApp=authorized;resumeWhatsApp=authorized;selected='wa:'+whatsappPhone(row);resumeId=null;
++  selectedWhatsApp=authorized;waAuthorized=false;updatePopupComposer();resumeWhatsApp=authorized;selected='wa:'+whatsappPhone(row);resumeId=null;
+   if(!same){waSignature='';pausePopupMedia();thread.replaceChildren(element('h3','WhatsApp · '+String(authorized.name||authorized.phone)),element('p','Carregando conversa…'))}
+   renderList(currentRows);if(!refresh)status.textContent='Carregando WhatsApp no popup…';
+   try{
+@@ -22329,14 +22371,14 @@
+    if(!response.ok)throw Error('Não foi possível carregar a conversa. Use Atualizar para tentar novamente.');
+    const messages=await response.json();if(!Array.isArray(messages))throw Error('Formato de histórico inválido.');
+    if(current!==generation||!dialog.open||credential!==token()||selectedWhatsApp?.id!==row.id)return;
+-   renderWhatsApp(authorized,messages,refresh&&same);scheduleWhatsApp();
+-  }catch(error){if(current!==generation||error.name==='AbortError')return;status.textContent=error.message;if(error.authDenied){pausePopupMedia();thread.replaceChildren()}else scheduleWhatsApp()}
++   waAuthorized=true;renderWhatsApp(authorized,messages,refresh&&same);updatePopupComposer();scheduleWhatsApp();
++  }catch(error){if(current!==generation||error.name==='AbortError')return;status.textContent=error.message;waAuthorized=false;updatePopupComposer();if(error.authDenied){pausePopupMedia();thread.replaceChildren()}else scheduleWhatsApp()}
+  }
+  function renderList(rows){
+   currentRows=rows;const query=searchKey(customerSearch.value),visibleRows=query?rows.filter(row=>searchKey([row.name,row.id,row.city].filter(Boolean).join(' ')).includes(query)):rows;
+   const whatsappRows=whatsappMatches(query);
+   if(query&&selected&&(selectedWhatsApp?!whatsappRows.some(row=>row.id===selectedWhatsApp.id):!visibleRows.some(row=>row.id===selected))){cancel();pausePopupMedia();selected=null;resumeId=null;selectedWhatsApp=null;resumeWhatsApp=null;thread.replaceChildren(element('p','Selecione uma conversa para abrir no popup.'))}
+-  searchCount.textContent=visibleRows.length+' / '+rows.length+(whatsappRows.length?' · WhatsApp: '+whatsappRows.length:'');list.replaceChildren();
++  updatePopupComposer();searchCount.textContent=visibleRows.length+' / '+rows.length+(whatsappRows.length?' · WhatsApp: '+whatsappRows.length:'');list.replaceChildren();
+   if(query&&whatsappRows.length)list.append(element('strong','Conversas do site'));
+   for(const row of visibleRows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
+   if(whatsappRows.length){
+@@ -22345,7 +22387,7 @@
+   }else if(query&&!visibleRows.length)list.append(element('p','Nenhuma conversa do site ou contato WhatsApp carregado corresponde à busca.'));
+  }
+  function renderConversation(conversation,newMessage=false){
+-  stopWhatsApp();pausePopupMedia();selectedWhatsApp=null;resumeWhatsApp=null;waSignature='';dialog.querySelector('.vpweb222-footer').textContent=defaultFooter;
++  stopWhatsApp();pausePopupMedia();selectedWhatsApp=null;resumeWhatsApp=null;waSignature='';waAuthorized=false;updatePopupComposer();dialog.querySelector('.vpweb222-footer').textContent=defaultFooter;
+   selected=conversation.id;resumeId=conversation.id;unread.delete(conversation.id);for(const item of list.querySelectorAll('button'))if(item.dataset.id===conversation.id)item.querySelector('.vp226-new')?.remove();thread.replaceChildren(element('h3',label(conversation)));
+   for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===selected));
+   if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
+@@ -22357,7 +22399,7 @@
+   remember(conversation);status.textContent=newMessage?'Nova mensagem do site. Você pode continuar o atendimento no painel.':'Consulta atualizada. Nenhuma mensagem é enviada por este chat.';thread.scrollTop=thread.scrollHeight;
+  }
+  async function select(row){
+-  stopWhatsApp();selectedWhatsApp=null;resumeWhatsApp=null;pausePopupMedia();
++  stopWhatsApp();selectedWhatsApp=null;resumeWhatsApp=null;waAuthorized=false;updatePopupComposer();pausePopupMedia();
+   cancel();const current=generation;controller=new AbortController();selected=row.id;resumeId=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
+   for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===row.id));
+   try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;renderConversation(data.conversation)}
+@@ -22372,7 +22414,7 @@
+    const previous=data.conversations.find(row=>row.id===resumeId);if(previous)await select(previous);else resumeId=null;
+   }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+  }
+- function stop(reset=false){stopWhatsApp();if(reset){selectedWhatsApp=null;resumeWhatsApp=null}clearTimeout(timer);timer=null;pollController?.abort();if(reset){seen.clear();unread.clear();initialized=false;watchCredential='';deniedCredential='';resumeId=null}}
++ function stop(reset=false){stopWhatsApp();if(reset){selectedWhatsApp=null;resumeWhatsApp=null;waAuthorized=false;popupDrafts.clear();popupUncertain.clear();composePhone='';composeInput.value='';updatePopupComposer()}clearTimeout(timer);timer=null;pollController?.abort();if(reset){seen.clear();unread.clear();initialized=false;watchCredential='';deniedCredential='';resumeId=null}}
+  function schedule(delay=10000){clearTimeout(timer);timer=null;if(!document.hidden&&!dashboard.classList.contains('hidden')&&token())timer=setTimeout(tick,delay);}
+  async function tick(){
+   if(pollBusy){schedule();return}
+@@ -22411,7 +22453,7 @@
+  customerSearch.addEventListener('input',()=>{activity++;renderList(currentRows)});
+  document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',()=>{if(dialog.open&&customerSearch.value.trim())renderList(currentRows)});
+  byId('webChatDashboardRefreshV222').addEventListener('click',()=>{activity++;load()});
+- function clearViewer(){activity++;cancel();pausePopupMedia();selectedWhatsApp=null;waSignature='';selected=null;currentRows=[];searchCount.textContent='';list.replaceChildren();thread.replaceChildren();status.textContent=''}
++ function clearViewer(){activity++;cancel();pausePopupMedia();selectedWhatsApp=null;waAuthorized=false;updatePopupComposer();waSignature='';selected=null;currentRows=[];searchCount.textContent='';list.replaceChildren();thread.replaceChildren();status.textContent=''}
+  function closeViewer(){if(dialog.open)dialog.close();clearViewer()}
+  byId('webChatDashboardCloseV222').addEventListener('click',closeViewer);
+  dialog.addEventListener('close',()=>{if(!dialog.open)clearViewer()});
+@@ -22430,6 +22472,18 @@
+ #webChatDashboardDialogV222 .vpweb234-wa-media audio{display:block;width:100%;min-width:0}
+ #webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-card{display:block;min-width:0}
+ #webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-play,#webChatDashboardDialogV222 .vpweb234-wa-media .wa-waveform-wrap,#webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-time{display:none}
++</style>
++<style id="whatsappPopupComposerV235">
++#webChatComposerV235{flex:none;border-top:1px solid #cbded7;padding:10px 12px;background:#fff;font-size:12px}
++#webChatComposerV235[hidden]{display:none!important}
++#webChatRecipientV235{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;color:#235342}
++.vpweb235-compose-row{display:flex;align-items:stretch;gap:8px}
++#webChatMessageV235{flex:1;min-width:0;resize:vertical;max-height:120px;min-height:60px;border:1px solid #b9d5cb;border-radius:9px;padding:8px;font:14px/1.4 Arial,sans-serif;background:white;color:#172b26}
++#webChatSendV235{flex:none;border:0;border-radius:9px;padding:8px 12px;background:#07865f;color:white;font-weight:bold;cursor:pointer}
++#webChatSendV235:disabled{opacity:.5;cursor:default}
++#webChatSendStatusV235{display:block;line-height:1.3;margin-top:5px;color:#52685f;overflow-wrap:anywhere}
++#webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-body{grid-template-rows:100px minmax(0,1fr)}
++#webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-footer{padding:5px 12px}
+ </style>
+ <!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
+ 

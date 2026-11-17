@@ -1,0 +1,29 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-17T00:29:39.916497+00:00",
+  "commit": "1583e5977ac1cdcf28503de5e4bac7e2e06f9542",
+  "release": "/opt/vitalismen-automacao/releases/20261116T234444Z_production-20261116-1583e59",
+  "pid": 3716680,
+  "pmCwd": "/opt/vitalismen-automacao/current",
+  "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+  "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261116T234444Z_production-20261116-1583e59",
+  "health": "online",
+  "zapiConnected": true,
+  "outboundBlocked": false,
+  "verifiedChangedFiles": 7,
+  "inheritedControlsAndDatesPreserved": true,
+  "burstPolicy": {
+    "enabled": true,
+    "activatedAt": "2026-11-16T08:30:57.014Z",
+    "audience": "EC_FORWARD_ONLY"
+  },
+  "burstPhysicalProof": "INHERITED_EXACT_PARENT_UNCHANGED_WHATSAPP_BEHAVIOR",
+  "voiceId": "qHkrJuifPpn95wK3rm2A",
+  "voiceCredentialInstalled": true,
+  "panelSha256": "9196e8cf6a355868237d9b6b03c8fc0bd0c7b8ff0333a2fbdce6ee3b062982df",
+  "nginxSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+  "postSaleTimerPreserved": true,
+  "globalDataBackupPass": false,
+  "customerInvitesAllowed": true
+}

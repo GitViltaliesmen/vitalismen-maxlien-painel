@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T20:44:53.003267+00:00",
+  "controllerSha256": "f8b6f1e2b46dd4de271b7938a6dcce743c0c6b7e7e0ad9460250a5d2db407536",
+  "bindingSha256": "087fbd974e09c1894aaa0a027582372a5fb1715b93160ab4d88fb3aa674a347e",
+  "checks": 30,
+  "originalDryRunParsed": "PASS_DRY_RUN",
+  "originalDryRunSendCount": 0,
+  "nestedReportCannotHideRootFailure": true,
+  "appSourceUnchanged": true,
+  "pm2Restarts": 0,
+  "oldControllerAndBindingPreserved": true,
+  "newDropin": "/etc/systemd/system/vitalismen-postsale-full-v203.service.d/zzzzzzzzzzzzzzzzzzzzz-ec-customer-invites-v232-controller-r3.conf"
+}

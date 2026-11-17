@@ -1,0 +1,8 @@
+{
+  "status": "PASS_DRY_RUN",
+  "mode": "dry-run",
+  "at": "2026-11-16T20:45:50.888Z",
+  "sendCount": 0,
+  "physicalOutboundCount": 0,
+  "forwardOnlySince": "2026-11-09T04:53:50.421Z"
+}

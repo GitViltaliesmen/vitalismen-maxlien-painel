@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T21:41:25.135276+00:00",
+  "controllerSha256": "4debd4eed21ed54f9f8a666787e8187dd5b9d422c8a46cfa7e951782cf3da7a1",
+  "bindingSha256": "350664139f9d2f98e2de8f9834605691523683345f1bcb6e3fc72bf4b7317d1f",
+  "checks": 34,
+  "originalDryRunParsed": "PASS_DRY_RUN",
+  "originalDryRunSendCount": 0,
+  "nestedReportCannotHideRootFailure": true,
+  "appSourceUnchanged": true,
+  "pm2Restarts": 0,
+  "oldControllerAndBindingPreserved": true,
+  "newDropin": "/etc/systemd/system/vitalismen-postsale-full-v203.service.d/zzzzzzzzzzzzzzzzzzzzzz-ec-dashboard-search-v233.conf"
+}

@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T20:46:34.700813+00:00",
+  "release": "/opt/vitalismen-automacao/releases/20261116T195949Z_production-20261116-a46af49",
+  "enabled": true,
+  "ledgerRows": 0,
+  "sent": 0,
+  "ambiguous": 0,
+  "stagesSent": [],
+  "permanentUniqueKeys": true,
+  "globalTenMinuteIntervalVerified": null,
+  "qa8637Excluded": true,
+  "providerReceiptsPresent": false,
+  "globalDataBackupPass": false,
+  "mirrorsFound": 0,
+  "providerAckValues": [],
+  "acceptedByProvider": 0,
+  "deliveredAckCount": 0,
+  "positivePhysicalSendVerified": false,
+  "liveIntervalObservation": "PENDING_AT_LEAST_TWO_ATTEMPTS"
+}

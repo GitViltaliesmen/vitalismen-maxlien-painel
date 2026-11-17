@@ -1,0 +1,62 @@
+--- qr.html V232
++++ qr.html V233
+@@ -22245,9 +22245,9 @@
+ </style>
+ <dialog id="webChatDashboardDialogV222" aria-labelledby="webChatDashboardTitleV222">
+  <div class="vpweb222-shell">
+-  <header class="vpweb222-header"><div class="vpweb222-title"><h2 id="webChatDashboardTitleV222">Chat do site</h2><p>Vit Power · conversas da página · somente consulta</p></div><button id="webChatDashboardRefreshV222" type="button">Atualizar</button><button id="webChatDashboardCloseV222" type="button" aria-label="Fechar chat do site">Fechar ×</button></header>
++  <header class="vpweb222-header"><div class="vpweb222-title"><h2 id="webChatDashboardTitleV222">Chat do site</h2><p>Histórico do site · busca também contatos do WhatsApp</p></div><button id="webChatDashboardRefreshV222" type="button">Atualizar</button><button id="webChatDashboardCloseV222" type="button" aria-label="Fechar chat do site">Fechar ×</button></header>
+   <p id="webChatDashboardStatusV222" class="vpweb222-status" role="status" aria-live="polite"></p>
+-  <div class="vpweb232-search" style="display:flex;align-items:center;gap:8px;padding:8px 12px"><input id="webChatDashboardSearchV232" type="search" autocomplete="off" maxlength="100" placeholder="Buscar cliente por nome ou identificação…" aria-label="Buscar cliente no chat do site" style="min-width:0;flex:1;border:1px solid #cbded7;border-radius:9px;padding:9px"><small id="webChatDashboardSearchCountV232" role="status" aria-live="polite"></small></div>
++  <div class="vpweb232-search" style="display:flex;align-items:center;gap:8px;padding:8px 12px"><input id="webChatDashboardSearchV232" type="search" autocomplete="off" maxlength="100" placeholder="Buscar nome, telefone ou últimos dígitos…" aria-label="Buscar cliente no chat do site" style="min-width:0;flex:1;border:1px solid #cbded7;border-radius:9px;padding:9px"><small id="webChatDashboardSearchCountV232" role="status" aria-live="polite"></small></div>
+   <div class="vpweb222-body"><nav id="webChatDashboardListV222" class="vpweb222-list" aria-label="Conversas do site"></nav><section id="webChatDashboardThreadV222" class="vpweb222-thread" aria-label="Conversa selecionada" aria-live="polite"></section></div>
+   <footer class="vpweb222-footer">Horários deste computador. Histórico disponível por até 7 dias. Visitantes sem nome permanecem anônimos. O atendimento por WhatsApp continua na lista principal.</footer>
+  </div>
+@@ -22276,10 +22276,38 @@
+   if(!response.ok)throw Error('Não foi possível consultar o chat do site. Tente atualizar.');
+   return response.json();
+  }
++ // V233: search existing authorized WhatsApp contacts without linking anonymous website visitors.
++ const whatsappPhone=row=>String(row.phone||row.id||'').split('@')[0].replace(/\D/g,'');
++ function whatsappMatches(query){
++  if(!query||!token()||typeof state==='undefined'||state.user?.role!=='admin'||typeof visibleOperationalChats!=='function')return [];
++  const numeric=query.replace(/\D/g,''),onlyPhone=/^[+\d\s().-]+$/.test(query),own=String(state.zapiDevice?.device?.phone||'').replace(/\D/g,''),seenPhones=new Set();
++  return visibleOperationalChats({search:query}).filter(row=>{
++   const phone=whatsappPhone(row),id=String(row.id||'');
++   if(row.isGroup||/@g\.us|status@broadcast/.test(id)||!/^593[2-79]\d{8}$/.test(phone)&&phone!=='5515998038637'||phone===own||seenPhones.has(phone))return false;
++   if(id.endsWith('@lid')&&!row.phone)return false;
++   const match=onlyPhone?numeric.length>=3&&phone.includes(numeric):searchKey([row.name,row.phone,row.customerDraft?.city].filter(Boolean).join(' ')).includes(query);
++   if(match)seenPhones.add(phone);return match;
++  }).slice(0,30);
++ }
++ async function openWhatsApp(row){
++  if(!token()||typeof selectChat!=='function')return;
++  const same=state.selectedChat?.id===row.id;
++  if(!same&&(state.customerFormDirty||byId('messageInput')?.value.trim())){status.textContent='Há um rascunho no atendimento atual. Salve a ficha ou conclua o texto antes de trocar de cliente.';return}
++  activity++;
++  try{if(!same)await selectChat(row.id,{markRead:false});if(state.selectedChat?.id===row.id){resumeId=null;closeViewer()}else status.textContent='O contato foi atualizado. Atualize o painel e tente novamente.'}
++  catch{status.textContent='Não foi possível abrir o atendimento. A conversa atual foi preservada.'}
++ }
+  function renderList(rows){
+   currentRows=rows;const query=searchKey(customerSearch.value),visibleRows=query?rows.filter(row=>searchKey([row.name,row.id,row.city].filter(Boolean).join(' ')).includes(query)):rows;
+-  searchCount.textContent=visibleRows.length+' / '+rows.length;list.replaceChildren();
++  const whatsappRows=whatsappMatches(query);
++  if(query&&selected&&!visibleRows.some(row=>row.id===selected)){cancel();selected=null;resumeId=null;thread.replaceChildren(element('p','Selecione uma conversa do site ou abra o contato WhatsApp no atendimento principal.'))}
++  searchCount.textContent=visibleRows.length+' / '+rows.length+(whatsappRows.length?' · WhatsApp: '+whatsappRows.length:'');list.replaceChildren();
++  if(query&&whatsappRows.length)list.append(element('strong','Conversas do site'));
+   for(const row of visibleRows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
++  if(whatsappRows.length){
++   list.append(element('strong','Contatos do WhatsApp'));
++   for(const row of whatsappRows){const item=element('button');item.type='button';item.dataset.source='whatsapp';item.dataset.id=row.id;item.append(element('strong','WhatsApp · '+String(row.name||row.phone)),element('small','+'+whatsappPhone(row)),element('small','Abrir no atendimento principal'));item.addEventListener('click',()=>openWhatsApp(row));list.append(item)}
++  }else if(query&&!visibleRows.length)list.append(element('p','Nenhuma conversa do site ou contato WhatsApp carregado corresponde à busca.'));
+  }
+  function renderConversation(conversation,newMessage=false){
+   selected=conversation.id;resumeId=conversation.id;unread.delete(conversation.id);for(const item of list.querySelectorAll('button'))if(item.dataset.id===conversation.id)item.querySelector('.vp226-new')?.remove();thread.replaceChildren(element('h3',label(conversation)));
+@@ -22342,6 +22370,7 @@
+  }
+  button.addEventListener('click',()=>{activity++;document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));if(!dialog.open)dialog.show();load()});
+  customerSearch.addEventListener('input',()=>{activity++;renderList(currentRows)});
++ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',()=>{if(dialog.open&&customerSearch.value.trim())renderList(currentRows)});
+  byId('webChatDashboardRefreshV222').addEventListener('click',()=>{activity++;load()});
+  function clearViewer(){activity++;cancel();selected=null;currentRows=[];searchCount.textContent='';list.replaceChildren();thread.replaceChildren();status.textContent=''}
+  function closeViewer(){if(dialog.open)dialog.close();clearViewer()}

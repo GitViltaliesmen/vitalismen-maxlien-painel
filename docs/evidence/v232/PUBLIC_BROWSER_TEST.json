@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-16T20:12:02.138602+00:00",
+  "publicSite": "https://taviazen.shop/vitpower_2026g?vp_qa=1#consulta-pedido",
+  "publicPanel": "https://ec.maxlien.shop/qr.html?v=20261112-v206",
+  "observedChecks": [
+    "link opens sidebar",
+    "private code form visible without submitting",
+    "admin panel loaded",
+    "search a425be returned exactly 1 of 10",
+    "selected conversation rendered",
+    "sidebar nonmodal"
+  ],
+  "screenshots": {
+    "chat-consulta-publicado.jpg": "6e0f40de00468ad189b567444d8abf841bf4be58dd7f26e4cf7374af9fa58407",
+    "dashboard-busca-publicada.jpg": "75c5fa68df610a5adeaec910aa0c54667e5db38d7c8f98bf2c702d8119db5234"
+  },
+  "realMessagesSent": 0,
+  "realOrders": 0
+}

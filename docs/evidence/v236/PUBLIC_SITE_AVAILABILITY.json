@@ -1,0 +1,34 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "results": [
+    {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "pageHttp": 200,
+      "scriptHttp": 200,
+      "siteScriptSha256": "db2e6faa272fc3b25934710dbb3ea04099675f3d1805047afbbdf189c45ecb25",
+      "pageCacheControl": "no-store",
+      "scriptCacheControl": "no-store",
+      "chatFragmentLogicPresent": true,
+      "method": "PUBLIC_HTTPS_GET_FROM_AUTHORIZED_ORIGIN",
+      "javascriptExecution": false,
+      "probeHost": "169.58.51.100"
+    },
+    {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "pageHttp": 200,
+      "scriptHttp": 200,
+      "siteScriptSha256": "db2e6faa272fc3b25934710dbb3ea04099675f3d1805047afbbdf189c45ecb25",
+      "pageCacheControl": "no-store",
+      "scriptCacheControl": "no-store",
+      "chatFragmentLogicPresent": true,
+      "method": "PUBLIC_HTTPS_GET_FROM_AUTHORIZED_ORIGIN",
+      "javascriptExecution": false,
+      "probeHost": "72.60.137.77"
+    }
+  ],
+  "browserExecutionVerified": false,
+  "offlineBrowserChecks": 54
+}
