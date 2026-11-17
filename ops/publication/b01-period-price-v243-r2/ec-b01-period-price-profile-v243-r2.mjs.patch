@@ -1,0 +1,146 @@
+--- parent/deploy-profile.mjs
++++ successor/ec-b01-period-price-profile-v243-r2.mjs
+@@ -1,16 +1,16 @@
+ import fs from'node:fs';import path from'node:path';import os from'node:os';import assert from'node:assert/strict';import{createHash,timingSafeEqual}from'node:crypto';import{fileURLToPath}from'node:url';
+-import{qaNaturalEntryRegistrationV241 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-profile-v241-r2.mjs';
++import{texLinkedEntryRegistrationV242 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-profile-v242-r6.mjs';
+ import{verifyPublicProxyV213}from'/usr/local/lib/vitalismen-deploy/ec-meta-measurement-transport-v213-r4.mjs';
+-const DIR='/var/lib/vitalismen-deploy/ec-tex-linked-entry-v242-r6',ENGINE='/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-sealed-v242-r6.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-profile-v242-r6.mjs',CURRENT='/opt/vitalismen-automacao/current';
+-const PARENT='/opt/vitalismen-automacao/releases/20261117T164134Z_production-20261117-135d17c',PARENT_COMMIT='135d17cc75d71b7401c7f1e9400759e913ad867b',PARENT_TREE='894e6c5e34891ae33b61c7b9119c04564511670b',PARENT_SEAL='23561f0b2ee01509c6ccade536b1f7eb74326f5d45a8ff3c11ddd0c7da9f769b';
+-const HASHES=Object.freeze({"docs/freeze/tex-linked-entry-v242-contract.json":"a09660e92592aa9a7b55c206e0a8e2d550f537c13706d62f228b23a2be6d0fd6","scripts/lib/pm2-target-env-restart-v78-r4.mjs":"92f5b04c74ce8a7ba5c4ca3f926e487877f0ba9666c0dcac78dea29be7d77fa4","scripts/lib/sealed-successor-preload-v1.mjs":"b3427e6d205f9cbde5b073a7716f8f0bf9fe476cf8a34d94d4b03bf647314df4","src/services/agentRouter.js":"b0482515e93ff2d710fbf06a0ebc42ff16050fdc6d20c8eb4c0b7339dc2a349c","src/services/texUltraEntryBlockV242Service.js":"7bdeadbbd4254bd3ed8cfd3a460714bc94bc94f736835801bfa531b6dd3a646f","src/services/texUltraFunnelService.js":"f67a406481c10d4ac70859d7d0a711a6b4f399750c6dd59cbfaf4c32d39fd8b3","src/services/texUltraInitialLayerService.js":"3f4bfb40565213fb7494d81f6af08842f9edb3deefe0f78960b39855a57949d0","src/services/texUltraLinkedEntryV242Service.js":"fff753305f4015159a1c149392fbe97bc4f47b1b2c5ef25d856752ea97762735","src/services/texUltraLinkedRuntimeV242Service.js":"8047428850e7346c0d47077d6e65821a42d46a38cc253d93da8599b24fd1348f","src/services/vitPowerWebChatV220Application.js":"0b1456e0d78db8f9d3a14fc7a202b3b5007fc14ca11053d6758a839929f7c9ba","src/services/vitPowerWebDashboardV222Service.js":"1113cdeca317733ddced2006dc167f0d483111ce56c02c1af3f770cd1415c858","src/services/vitPowerWebStoreV220Service.js":"69d0f780b93e1ac90b2dc20e2b59aba00fbd6ed01c6e14efb4261865088d233d","tests/tex-ultra-entry-block-v242.test.mjs":"53d948d7f2c76cf9576b18d252a09060eb3e42ae99bebd92650e14f64c0df11b","tests/tex-ultra-linked-entry-v242.test.mjs":"d2774657c7f3d77e34e76aec9e9eb94893922ad6026c8d4a271fde596e711276","tests/tex-ultra-linked-http-v242.test.mjs":"edef4dd0288eee744fa3b7d65267f1ea75344de5da73feb4e5023045c0fe013f"});
++const DIR='/var/lib/vitalismen-deploy/ec-b01-period-price-v243-r2',ENGINE='/usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-b01-period-price-profile-v243-r2.mjs',CURRENT='/opt/vitalismen-automacao/current';
++const PARENT='/opt/vitalismen-automacao/releases/20261117T192659Z_production-20261117-4c47bb3',PARENT_COMMIT='4c47bb36266d919ce664911aafcf573c7a4d1570',PARENT_TREE='5f9d3065e5b1335b5794a3a49092d5079f2ea241',PARENT_SEAL='b01567096cf7d81289667959e865b11fda4344eb0b911b4bbdf51b3edfadf289';
++const HASHES=Object.freeze({"docs/freeze/b01-period-price-v243-contract.json":"b1b6ce5a55197b29100c877b065281091520764469b18b63cd5aaacfbb848c1d","scripts/lib/pm2-target-env-restart-v78-r4.mjs":"7161fa7406d74c39cf67a7bc2b2d7da07a374fa0fdc7f1df33c430c5fb1ffadc","scripts/lib/sealed-successor-preload-v1.mjs":"61c06e438c71590344cd02366e0cbc2155a8851ed465ec4439836c5a5ba4c08f","src/services/principalSdrFreeflowRuntimeService.js":"3a8be4c16edfa53c287061b85b7a64c32c6ae4b158f136b8114c9fb09d5c1420","src/services/vitPowerB01CoreV216Service.js":"8bb055782cddfcd954936fc6fc82db97f58e673d21b0ce85fd71fb044dcb1c75","src/services/vitPowerScopedQuestionHistoryV243Service.js":"a8260feaec2c1087c95b02cdd108fb162df9410925862be0d7b9375de808b6e7","tests/b01-period-price-v242.test.mjs":"74216e15213cd0bdb070d1b4f833f4a49073bf9c534e4b98f132324d3c4dfc28","tests/principal-sdr-runtime.test.mjs":"39fe031d4a0a13da31c1e6b658538f0289541a62ab6a98ed9fc614eeaad8509f","tests/vit-power-b01-v216.test.mjs":"a72dde9b2cbf74e82fe5ac511d3fbabed5ccbf4ace9600e73ba2a5eb863365de","tests/vitpower-scoped-question-history-v243.test.mjs":"c197c9f65bcda51c5da6a12dcfe159c705b34e9356f34a0df3a3dccdbbca8a99"});
+ const sha=b=>createHash('sha256').update(b).digest('hex'),canonical=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
+ function regular(p){const s=fs.lstatSync(p);assert(s.isFile()&&!s.isSymbolicLink()&&s.uid===0&&s.gid===0&&s.nlink===1&&(s.mode&0o777)===0o400,'REPURCHASE_ROOT_RECORD');return fs.readFileSync(p)}
+ function record(p){const bytes=regular(p),x=JSON.parse(bytes);assert.deepEqual(bytes,canonical(x),'REPURCHASE_CANONICAL_RECORD');return x}
+-export function texLinkedEntryRegistrationV242(){
++export function b01PeriodPriceRegistrationV243(){
+  assert.equal(process.getuid(),0);assert.equal(os.hostname(),'srv1182009');
+- const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_TEX_LINKED_ENTRY_V242');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
+- assert.equal(a.authorizationEvidence,'USER_20261117_TEX_FIRST_CHANNEL_NAME_VERIFIED_WHATSAPP');assert.equal(a.purpose,'EC_TEX_LINKED_ENTRY_V242');
++ const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_B01_PERIOD_PRICE_V243_R2');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
++ assert.equal(a.authorizationEvidence,'USER_20261117_ONE_PERIOD_GREETING_AUDIO_AND_OFFICIAL_FINAL_PRICE_TABLE');assert.equal(a.purpose,'EC_B01_PERIOD_PRICE_V243_R2');
+  assert.equal(a.parentRelease,PARENT);assert.equal(a.parentCommit,PARENT_COMMIT);assert.equal(a.parentTree,PARENT_TREE);assert.equal(a.parentSeal,PARENT_SEAL);
+  assert.match(a.commit,/^[a-f0-9]{40}$/);assert.notEqual(a.commit,PARENT_COMMIT);assert.match(a.tree,/^[a-f0-9]{40}$/);assert.equal(path.dirname(a.release),'/opt/vitalismen-automacao/releases');assert(a.release.endsWith(a.commit.slice(0,7)));assert.notEqual(a.release,PARENT);
+  assert.deepEqual(a.hashes,HASHES);assert.match(a.seal,/^[a-f0-9]{64}$/);
+@@ -18,7 +18,7 @@
+  assert.equal(sha(regular('/var/lib/vitalismen-deploy/sealed-successors-v1/'+PARENT_COMMIT+'.json')),PARENT_SEAL);
+  assert.equal(sha(regular('/usr/local/lib/vitalismen-deploy/ec-meta-measurement-transport-v213-r4.mjs')),'87c16d2d4605feeeba6049db194afc0c267ce81c4dfd6f897781673877689dda');
+  assert.equal(a.engineSha256,sha(regular(ENGINE)));assert.equal(a.helperSha256,sha(regular(HELPER)));assert.equal(fileURLToPath(import.meta.url),HELPER);
+- assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-qa-natural-entry-v241-r2/approval.json')));
++ assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-tex-linked-entry-v242-r6/approval.json')));
+  assert.equal(a.sourceMetadataSha256,sha(fs.readFileSync(a.release+'/.release-source.json')));assert.equal(a.baseEnvSha256,sha(fs.readFileSync(a.release+'/.env')));assert.equal(a.pm2HelperSha256,sha(fs.readFileSync(a.release+'/scripts/lib/pm2-target-env-restart-v78-r4.mjs')));
+  const expected=Object.fromEntries(Object.entries(parent.profiles).map(([name,p])=>[name,{...p,NODE_OPTIONS:p.NODE_OPTIONS.replace(PARENT,a.release),VITALISMEN_EC_FREEFLOW_PROFILE_V212:'true',VITALISMEN_EC_MEASUREMENT_PROFILE_V213:'true',VITALISMEN_EC_INBOUND_OWNER_V214:'true',VITALISMEN_EC_B01_V216:'true',VITALISMEN_EC_FREEFLOW_PRIORITY_V219:'true',VITALISMEN_EC_WEB_CHAT_V220:'true',VITALISMEN_EC_BURST_REPLY_V228:'true'}]));
+  assert.deepEqual(a.profiles,expected,'REPURCHASE_PROFILE_DRIFT');for(const p of Object.values(a.profiles)){assert.equal(p.VITALISMEN_META_PURCHASE_ENABLED,'false');assert.equal(p.SERVER_FUNNEL_ENABLED,'false');assert.equal(p.AI_WORKER_ENABLED,'false');assert.equal(p.DROPPI_EC_ACTIVE_SYNC_MODE,'REPORT_ONLY')}
+@@ -26,7 +26,7 @@
+ }
+ export function readWebChatPolicyV220(engineFile){
+  if(process.env.VITALISMEN_EC_B01_V216!=='true'||process.env.VITALISMEN_EC_FREEFLOW_PRIORITY_V219!=='true'||process.env.VITALISMEN_EC_WEB_CHAT_V220!=='true')return null;
+- assert.equal(fs.realpathSync(engineFile),ENGINE);const a=texLinkedEntryRegistrationV242(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
++ assert.equal(fs.realpathSync(engineFile),ENGINE);const a=b01PeriodPriceRegistrationV243(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',current=fs.realpathSync(CURRENT),script=process.argv[1]||'',isolated=fs.readlinkSync('/proc/self/ns/net')!==fs.readlinkSync('/proc/1/ns/net')&&Object.keys(os.networkInterfaces()).every(k=>k==='lo');
+  const npmReadOnly=script==='/usr/lib/node_modules/npm/bin/npm-cli.js'&&process.argv.slice(2).join(' ')==='run senior:check'&&fs.realpathSync(process.cwd())===a.release&&isolated;
+  const pm2Boot=script==='/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'&&process.env.pm_exec_path===CURRENT+'/src/index.js'&&process.env.NODE_OPTIONS==='--import=file://'+CURRENT+'/scripts/lib/sealed-successor-preload-v1.mjs';
+@@ -51,14 +51,14 @@
+  publishScopedMeasurementCapabilityV213();
+  publishPrincipalSdrCapabilityV212();
+  publishPostSaleReadCapabilityV210();
+- const p=readWebChatPolicyV220(ENGINE);assert(p);const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
++ const p=readWebChatPolicyV220(ENGINE);assert(p);const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
+  if(receive){const bytes=regular('/var/lib/vitalismen-deploy/gira21x-hmac-v1.secret');process.env.GIRA21X_HMAC_SECRET=bytes.toString();bytes.fill(0)}
+  const isCurrent=()=>{try{const s=record(DIR+'/activation.json');return receive&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release}catch{return false}};
+  Object.defineProperty(globalThis,'__VITALISMEN_GIRA21X_BRIDGE_CONTEXT',{configurable:false,enumerable:false,writable:false,value:Object.freeze({loaded:true,kind:'GIRA21X_EC_BRIDGE_RUNTIME_V1',receive,prepaidContract:'GIRA21X_EC_STRIPE_PREPAID_V1',notices:receive&&process.env.GIRA21X_NOTICES_ENABLED==='true',commit:a.commit,tree:a.tree,isCurrent})});
+ }
+ 
+ export function publishPostSaleReadCapabilityV210(){
+- const p=readWebChatPolicyV220(ENGINE),a=texLinkedEntryRegistrationV242();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=b01PeriodPriceRegistrationV243();assert(p);
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const allowed=fixture||p.runtimeAllowed&&process.argv[1]===a.release+'/scripts/post-sale-full-v188.mjs';
+  const isCurrent=()=>{try{const s=record(DIR+'/activation.json');
+@@ -69,7 +69,7 @@
+ }
+ 
+ export function publishPrincipalSdrCapabilityV212(){
+- const p=readWebChatPolicyV220(ENGINE),a=texLinkedEntryRegistrationV242();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=b01PeriodPriceRegistrationV243();assert(p);
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const canHandle=phone=>{try{
+   const s=record(DIR+'/activation.json');
+@@ -83,7 +83,7 @@
+ }
+ 
+ export function publishScopedMeasurementCapabilityV213(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json'),proof=record(DIR+'/meta-credential-proof.json');
+   const active=!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.measurementAllowed===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release;
+@@ -98,7 +98,7 @@
+ }
+ 
+ export function publishB01CapabilityV216(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json');
+   const enabled=!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.b01Allowed===true
+@@ -109,7 +109,7 @@
+ }
+ 
+ export function publishQuestionPriorityCapabilityV219(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const canHandle=phone=>{try{
+   const s=record(DIR+'/activation.json');
+   if(fixture||s.state!=='ACTIVE'||s.priorityAllowed!==true||s.runtimeAllowed!==true||s.commit!==a.commit||s.approvalSha256!==sha(regular(DIR+'/approval.json'))||fs.realpathSync(CURRENT)!==a.release)return false;
+@@ -125,7 +125,7 @@
+ const TEX_PARENT_PAYLOAD_V241=Object.freeze({"src/services/texUltraWebFunnelV240Service.js":"5ba57d71e01dfa1560e571b72c9a7ac9c98dda1b6fa2fb6989456e13e5bb9bdb","src/services/vitPowerWebAgentV220Service.js":"bf1b81bad2f6d5530442e03932469beec67401c1a211b75f032ffc9f29902bc8","src/services/vitPowerWebVoiceStatusV231Service.js":"6e4659d2b114ebccabf20d91a466621a6b28548722fa66e9b6d8a17d82e3c04a"});
+ function inheritedTexPayloadV241(a){return Object.entries(TEX_PARENT_PAYLOAD_V241).every(([n,d])=>sha(fs.readFileSync(path.join(PARENT,n)))===d&&sha(fs.readFileSync(path.join(a.release,n)))===d)}
+ export function publishWebChatCapabilityV220(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const equal=(x,p)=>{try{const actual=Buffer.from(String(x||'')),expected=regular(p);return actual.length===64&&actual.length===expected.length&&timingSafeEqual(actual,expected)}catch{return false}};
+  const isTex=req=>{const h=req.headers||{};return ['https://plusmen.shop','https://www.plusmen.shop'].includes(h.origin)&&h['x-vitalismen-chat-page']==='plusmen-tex-v240'&&equal(h['x-vitalismen-chat-proxy'],DIR+'/tex-web-proxy.secret')};
+  const requestAllowed=req=>{try{
+@@ -150,7 +150,7 @@
+ }
+ 
+ export function publishBurstReplyCapabilityV228(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json');
+   const current=!fixture&&process.env.VITALISMEN_EC_BURST_REPLY_V228==='true'&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.burstAllowed===true
+@@ -169,13 +169,15 @@
+ }
+ 
+ export function publishCustomerInviteCapabilityV232(){
+- const a=texLinkedEntryRegistrationV242(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=b01PeriodPriceRegistrationV243(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{const s=record(DIR+'/activation.json');return Object.freeze({enabled:!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.customerInvitesAllowed===true&&s.postSaleApproved===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release&&process.argv[1]===a.release+'/scripts/post-sale-full-v188.mjs',minimumGapMs:600000,partnerGapMs:43200000,generalChat:true})}catch{return Object.freeze({enabled:false})}};
+  Object.defineProperty(globalThis,'__VITALISMEN_EC_CUSTOMER_INVITES_V232',{configurable:false,enumerable:false,writable:false,value:Object.freeze({kind:'EC_CUSTOMER_INVITES_V232',readPolicy})});
+ }
+ 
++const LINKED_PARENT_PAYLOAD_V243=Object.freeze({"src/services/agentRouter.js":"b0482515e93ff2d710fbf06a0ebc42ff16050fdc6d20c8eb4c0b7339dc2a349c","src/services/texUltraEntryBlockV242Service.js":"7bdeadbbd4254bd3ed8cfd3a460714bc94bc94f736835801bfa531b6dd3a646f","src/services/texUltraFunnelService.js":"f67a406481c10d4ac70859d7d0a711a6b4f399750c6dd59cbfaf4c32d39fd8b3","src/services/texUltraInitialLayerService.js":"3f4bfb40565213fb7494d81f6af08842f9edb3deefe0f78960b39855a57949d0","src/services/texUltraLinkedEntryV242Service.js":"fff753305f4015159a1c149392fbe97bc4f47b1b2c5ef25d856752ea97762735","src/services/texUltraLinkedRuntimeV242Service.js":"8047428850e7346c0d47077d6e65821a42d46a38cc253d93da8599b24fd1348f","src/services/vitPowerWebChatV220Application.js":"0b1456e0d78db8f9d3a14fc7a202b3b5007fc14ca11053d6758a839929f7c9ba","src/services/vitPowerWebDashboardV222Service.js":"1113cdeca317733ddced2006dc167f0d483111ce56c02c1af3f770cd1415c858","src/services/vitPowerWebStoreV220Service.js":"69d0f780b93e1ac90b2dc20e2b59aba00fbd6ed01c6e14efb4261865088d233d"});
++function inheritedLinkedPayloadV243(a){return Object.entries(LINKED_PARENT_PAYLOAD_V243).every(([n,d])=>sha(fs.readFileSync(path.join(PARENT,n)))===d&&sha(fs.readFileSync(path.join(a.release,n)))===d)&&a.inheritedLinkedEntryProofSha256===sha(regular(DIR+"/linked-entry-qa-proof.json"))}
+ function linkedEntryStateV242(){
+- try{const a=texLinkedEntryRegistrationV242(),s=record(DIR+'/activation.json');
++ try{const a=b01PeriodPriceRegistrationV243(),s=record(DIR+'/activation.json');
+  if(process.env.GIRA21X_FIXTURE_PROFILE_V1==='true'||s.state!=='ACTIVE'||s.runtimeAllowed!==true||s.linkedEntryAllowed!==true||s.commit!==a.commit||s.approvalSha256!==sha(regular(DIR+'/approval.json'))||fs.realpathSync(CURRENT)!==a.release)return null;
+  return {a,s};}catch{return null}
+ }
+@@ -185,10 +187,10 @@
+   try{const actual=Buffer.from(String(req?.headers?.['x-vitalismen-chat-qa']||'')),expected=regular(DIR+'/tex-web-qa.secret');return actual.length===expected.length&&timingSafeEqual(actual,expected)}catch{return false}
+  }
+  if(s.linkedEntryAudience!=='PUBLIC_SITE')return false;
+- try{const p=record(DIR+'/linked-entry-qa-proof.json');return p.kind==='TEX_LINKED_ENTRY_V242'&&p.commit===a.commit&&p.officialInboundGuardVerified===true&&p.firstChannelAndRestartDedupeVerified===true&&p.cookieIsolationVerified===true&&p.mediaOrderVerified===true&&p.noOutboundOtpSender===true&&s.linkedEntryQaProofSha256===sha(regular(DIR+'/linked-entry-qa-proof.json'));}catch{return false}
++ try{const p=record(DIR+'/linked-entry-qa-proof.json');return p.kind==='TEX_LINKED_ENTRY_V242'&&p.commit===PARENT_COMMIT&&inheritedLinkedPayloadV243(a)&&p.officialInboundGuardVerified===true&&p.firstChannelAndRestartDedupeVerified===true&&p.cookieIsolationVerified===true&&p.mediaOrderVerified===true&&p.noOutboundOtpSender===true&&s.linkedEntryQaProofSha256===sha(regular(DIR+'/linked-entry-qa-proof.json'));}catch{return false}
+ }
+ export function publishTexLinkedEntryCapabilityV242(){
+- const a=texLinkedEntryRegistrationV242();
++ const a=b01PeriodPriceRegistrationV243();
+  Object.defineProperty(globalThis,'__VITALISMEN_EC_TEX_LINKED_ENTRY_V242',{configurable:false,enumerable:false,writable:false,value:Object.freeze({
+   kind:'TEX_LINKED_ENTRY_V242',directory:'/var/lib/vitalismen-tex-linked-entry-v242',officialPhone:'553171862958',ownerPhone:'5531971862958',
+   activatedAt:record(DIR+'/activation.json').linkedEntryActivatedAt,

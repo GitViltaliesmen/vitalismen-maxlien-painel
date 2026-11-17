@@ -1,0 +1,105 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "phase": "AFTER_ACTIVATION",
+  "candidateCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "at": "2026-11-17T21:55:16.246596+00:00",
+  "results": [
+    {
+      "host": "72.60.137.77",
+      "pass": true,
+      "checks": [
+        {
+          "path": "assets/cta.js",
+          "http": 200,
+          "sha256": "27521630fe45d877df3a61e40d62185382ac897b94a8c752523168889c6d7e62"
+        },
+        {
+          "path": "assets/chat-v220.js",
+          "http": 200,
+          "sha256": "54f8149d19cd1e1eb8fc2fcc2805b6d9108515d74998c3a542d559bb5371f71f"
+        },
+        {
+          "path": "assets/chat-v220.css",
+          "http": 200,
+          "sha256": "e09004aa52ce37f92dd6e5cb3c230a822ddc2491847b8cfeb9a015f1dbef5407"
+        },
+        {
+          "path": "assets/acesso-pedido.html",
+          "http": 200,
+          "sha256": "6b83b4bd5c1b4864c19d5e96f5227a7d0faa657c9cdabb3041ad8ae5f5c6ca63"
+        },
+        {
+          "path": "assets/acesso-pedido-v238.js",
+          "http": 200,
+          "sha256": "47f6bf0a25700684567c45fe9dafd363c943a7753576396e9ea7a9ada6ced487"
+        },
+        {
+          "name": "mobile",
+          "http": 200,
+          "approvedPlayer": true
+        },
+        {
+          "name": "desktop",
+          "http": 200,
+          "approvedPlayer": false
+        },
+        {
+          "name": "dashboard",
+          "http": 200,
+          "simpleOrderAccessPresent": true
+        }
+      ],
+      "javascriptExecution": false,
+      "commercialEvents": 0
+    },
+    {
+      "host": "169.58.51.100",
+      "pass": true,
+      "checks": [
+        {
+          "path": "assets/cta.js",
+          "http": 200,
+          "sha256": "27521630fe45d877df3a61e40d62185382ac897b94a8c752523168889c6d7e62"
+        },
+        {
+          "path": "assets/chat-v220.js",
+          "http": 200,
+          "sha256": "54f8149d19cd1e1eb8fc2fcc2805b6d9108515d74998c3a542d559bb5371f71f"
+        },
+        {
+          "path": "assets/chat-v220.css",
+          "http": 200,
+          "sha256": "e09004aa52ce37f92dd6e5cb3c230a822ddc2491847b8cfeb9a015f1dbef5407"
+        },
+        {
+          "path": "assets/acesso-pedido.html",
+          "http": 200,
+          "sha256": "6b83b4bd5c1b4864c19d5e96f5227a7d0faa657c9cdabb3041ad8ae5f5c6ca63"
+        },
+        {
+          "path": "assets/acesso-pedido-v238.js",
+          "http": 200,
+          "sha256": "47f6bf0a25700684567c45fe9dafd363c943a7753576396e9ea7a9ada6ced487"
+        },
+        {
+          "name": "mobile",
+          "http": 200,
+          "approvedPlayer": true
+        },
+        {
+          "name": "desktop",
+          "http": 200,
+          "approvedPlayer": false
+        },
+        {
+          "name": "dashboard",
+          "http": 200,
+          "simpleOrderAccessPresent": true
+        }
+      ],
+      "javascriptExecution": false,
+      "commercialEvents": 0
+    }
+  ]
+}

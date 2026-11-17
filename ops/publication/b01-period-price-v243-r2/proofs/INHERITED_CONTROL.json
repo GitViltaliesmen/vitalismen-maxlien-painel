@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "files": {
+    "/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-profile-v242-r6.mjs": "8c98663a455e15365b179887d5e2c944a215ac18c9edb87c46760297700ee8ac",
+    "/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-sealed-v242-r6.mjs": "bc78a9f86557ff4b97d0fab8445f263becb524ef9d002a5f6a06d8d62385f888",
+    "/var/lib/vitalismen-deploy/ec-tex-linked-entry-v242-r6/approval.json": "87a344415eab093f433ab3245eac6a8d8f8326fb5e25ed7991dfd039e391d14c",
+    "/var/lib/vitalismen-deploy/ec-tex-linked-entry-v242-r6/activation.json": "1d9bbebce854fd4fd13b42d3bc92e744baa8dcc559215e7bd96831105bfba2f3"
+  }
+}

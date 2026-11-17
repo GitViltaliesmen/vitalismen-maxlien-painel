@@ -1,0 +1,29 @@
+{
+  "project": "VITALISMEN_EC",
+  "candidateCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "hashes": {
+    "docs/freeze/b01-period-price-v243-contract.json": "b1b6ce5a55197b29100c877b065281091520764469b18b63cd5aaacfbb848c1d",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "7161fa7406d74c39cf67a7bc2b2d7da07a374fa0fdc7f1df33c430c5fb1ffadc",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "61c06e438c71590344cd02366e0cbc2155a8851ed465ec4439836c5a5ba4c08f",
+    "src/services/principalSdrFreeflowRuntimeService.js": "3a8be4c16edfa53c287061b85b7a64c32c6ae4b158f136b8114c9fb09d5c1420",
+    "src/services/vitPowerB01CoreV216Service.js": "8bb055782cddfcd954936fc6fc82db97f58e673d21b0ce85fd71fb044dcb1c75",
+    "src/services/vitPowerScopedQuestionHistoryV243Service.js": "a8260feaec2c1087c95b02cdd108fb162df9410925862be0d7b9375de808b6e7",
+    "tests/b01-period-price-v242.test.mjs": "74216e15213cd0bdb070d1b4f833f4a49073bf9c534e4b98f132324d3c4dfc28",
+    "tests/principal-sdr-runtime.test.mjs": "39fe031d4a0a13da31c1e6b658538f0289541a62ab6a98ed9fc614eeaad8509f",
+    "tests/vit-power-b01-v216.test.mjs": "a72dde9b2cbf74e82fe5ac511d3fbabed5ccbf4ace9600e73ba2a5eb863365de",
+    "tests/vitpower-scoped-question-history-v243.test.mjs": "c197c9f65bcda51c5da6a12dcfe159c705b34e9356f34a0df3a3dccdbbca8a99"
+  },
+  "approvalSha256": "036032f85d8f660f6b41655699e1f6a3402e5a5bf158e98e91a9e56481279cf2",
+  "controllerSha256": "2bf8cbaf7059f8f096579e595e1b4cf2b78f70e02c4c4d18a0124d8352aa1247",
+  "stageOwnerSha256": "0476d3cccbbce9c294881685cb4ce0a00878fef79ed562ea867210bf7e9a9aa1",
+  "gates": {
+    "QUALIFICATION": "72e0d4038ea24b52b8bb6080ba4f5a3020662c614c544b3db2497968793da7b0",
+    "EXTRA_QUALIFICATION": "42070809f91092969cc7ba75f7c8b6c1427d4bcf029d76e78b88005734801e47",
+    "CODE_CONFIG_RECOVERY": "37caa25f83f2f8364440d8535dca33c866b61cdc90b267f6ed7ee47cfad7e435",
+    "HTTP_SALE_TEST": "cb898e6a051f28dd201639c0a967859fd8e033b6710bc464c489bb4cea2c1d78",
+    "INHERITED_REGRESSION": "7429f3245150fed3c306a9e556245a8c2d77d962bad06a2fefdad5b1f6ebc92c",
+    "PUBLIC_BASELINE": "0e706f425987e53efb99802b3d71bf500cebdaf5fd909f84544b96a1f90c2c5f",
+    "OPERATIONS_TEST": "c00e46d92997825b712d0c2e53e38088ba00b1b399122fea923270ae62930ace",
+    "INHERITED_CONTROL": "36112e308b89ca13521dbd34caf103f9a6db5607b22350404432938be9062626"
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "project": "VITALISMEN_EC",
+  "originalProofBytesRetainedInExternalArchive": true,
+  "files": [
+    {
+      "path": "docs/B01_AUDIO_PERIODO_PRECOS_V243_R2_20261117.md",
+      "sourceSha256": "329146547a52ff03776cffed12736ee0b0c76c719f7607cb3d97bb6a16d31515",
+      "publishedSha256": "329146547a52ff03776cffed12736ee0b0c76c719f7607cb3d97bb6a16d31515",
+      "serializationOnly": false
+    },
+    {
+      "path": "docs/freeze/b01-period-price-v243-r2-20261117.json",
+      "sourceSha256": "45bd12dd95ce15af7509d8781a6b1111e9446b60dcb31608baff6a4fb336ed89",
+      "publishedSha256": "45bd12dd95ce15af7509d8781a6b1111e9446b60dcb31608baff6a4fb336ed89",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/ec-b01-period-price-profile-v243-r2.mjs.patch",
+      "sourceSha256": "042a57ca34b80634ae461a313adee83f093f5bf5b5b42749f7fa8033fcbc12bb",
+      "publishedSha256": "042a57ca34b80634ae461a313adee83f093f5bf5b5b42749f7fa8033fcbc12bb",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/ec-b01-period-price-sealed-v243-r2.mjs.patch",
+      "sourceSha256": "8732de889ef69abdf42d74d56fc685fab46ec0d7745430176d00793b0fc8b829",
+      "publishedSha256": "8732de889ef69abdf42d74d56fc685fab46ec0d7745430176d00793b0fc8b829",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/operations-controller.py",
+      "sourceSha256": "2bf8cbaf7059f8f096579e595e1b4cf2b78f70e02c4c4d18a0124d8352aa1247",
+      "publishedSha256": "2bf8cbaf7059f8f096579e595e1b4cf2b78f70e02c4c4d18a0124d8352aa1247",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/stage-owner.py",
+      "sourceSha256": "0476d3cccbbce9c294881685cb4ce0a00878fef79ed562ea867210bf7e9a9aa1",
+      "publishedSha256": "0476d3cccbbce9c294881685cb4ce0a00878fef79ed562ea867210bf7e9a9aa1",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/test_controller.py",
+      "sourceSha256": "1c57155593b00dc96673c83b90d416f0809a838b385760ffc1fbf627592807c0",
+      "publishedSha256": "1c57155593b00dc96673c83b90d416f0809a838b385760ffc1fbf627592807c0",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/qualify.py",
+      "sourceSha256": "a28b4423e43adeabb13c85840d08efdfec92b3c99ea4acb8e32470bf04e5107c",
+      "publishedSha256": "a28b4423e43adeabb13c85840d08efdfec92b3c99ea4acb8e32470bf04e5107c",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/qualify_additional.py",
+      "sourceSha256": "64d01a7dd2fa07163c3a61ab947c58ef72e52301baef36fb3c968530ff82f795",
+      "publishedSha256": "64d01a7dd2fa07163c3a61ab947c58ef72e52301baef36fb3c968530ff82f795",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/http_sale_probe.py",
+      "sourceSha256": "85f591445bdae9933bfb9db2028b6b4c75b08a9df208f6b28966701f50b8ebe4",
+      "publishedSha256": "85f591445bdae9933bfb9db2028b6b4c75b08a9df208f6b28966701f50b8ebe4",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/http-sale.mjs",
+      "sourceSha256": "ba8d65d2a6e8ac74f61874d58ba8dd4790ba7374881a870b4d7d71634cc29909",
+      "publishedSha256": "ba8d65d2a6e8ac74f61874d58ba8dd4790ba7374881a870b4d7d71634cc29909",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/sale-model-shim.cjs",
+      "sourceSha256": "ce933cf71022adcf8b277bc5bab812f8abf07ffb5dde47b402c888a9b4c1b468",
+      "publishedSha256": "ce933cf71022adcf8b277bc5bab812f8abf07ffb5dde47b402c888a9b4c1b468",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/linked_http_qualification.py",
+      "sourceSha256": "4dd1d53c1b68d792a3213a4442396939ee6525b79eb56e3e48114beb612ef2f6",
+      "publishedSha256": "4dd1d53c1b68d792a3213a4442396939ee6525b79eb56e3e48114beb612ef2f6",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/extend_linked_qualification.py",
+      "sourceSha256": "8fc0fd2905c2e31ebe46e9c0f88dec6a8ffe0a2523acd1d46166cb89dfe21f9d",
+      "publishedSha256": "8fc0fd2905c2e31ebe46e9c0f88dec6a8ffe0a2523acd1d46166cb89dfe21f9d",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/check_public.py",
+      "sourceSha256": "ef20dede7ceaf711ee85a976eb56bdfccb50dc760dbc58c87f60dcb656ca8a8b",
+      "publishedSha256": "ef20dede7ceaf711ee85a976eb56bdfccb50dc760dbc58c87f60dcb656ca8a8b",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/audit_live.py",
+      "sourceSha256": "de3939392e71c4e73a4cc115eb8833988549a2d2d1577a8b56fbff19e3757037",
+      "publishedSha256": "de3939392e71c4e73a4cc115eb8833988549a2d2d1577a8b56fbff19e3757037",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/capture_after.py",
+      "sourceSha256": "9cf2974fa318ffbce4328c91e347cf7791a2c384a49e585efe8aa442cca3aa37",
+      "publishedSha256": "9cf2974fa318ffbce4328c91e347cf7791a2c384a49e585efe8aa442cca3aa37",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/capture_common.py",
+      "sourceSha256": "97e6324a1bf35abb472d73a1dac359b2578578e6e21aa33949e4ace8a714d091",
+      "publishedSha256": "6db6d156a51f3f91b36e8e336b58f9c1a046e986eb307246200ad1748b972161",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/verify-recovery.ps1",
+      "sourceSha256": "61353e720d4773cd917f15c7c1a8af4e9f6642430d10e5a2e167811869217852",
+      "publishedSha256": "61353e720d4773cd917f15c7c1a8af4e9f6642430d10e5a2e167811869217852",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/verify-recovery-after.ps1",
+      "sourceSha256": "3ad72f7577490c6d6a343e328dfcc24436ec13e1aa01f10c0c7e04ff0266ad2c",
+      "publishedSha256": "3ad72f7577490c6d6a343e328dfcc24436ec13e1aa01f10c0c7e04ff0266ad2c",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/bind_gates.py",
+      "sourceSha256": "1863f915e93130c5970dacbef79cf7c03cd42897d4539ded8be4cc412304b20f",
+      "publishedSha256": "1863f915e93130c5970dacbef79cf7c03cd42897d4539ded8be4cc412304b20f",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/QUALIFICATION.json",
+      "sourceSha256": "51238ae14c29b426a2fe90c6be638ddd000b7a92c83fc07879a8237d8b6c2cf0",
+      "publishedSha256": "72e0d4038ea24b52b8bb6080ba4f5a3020662c614c544b3db2497968793da7b0",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/EXTRA_QUALIFICATION.json",
+      "sourceSha256": "42070809f91092969cc7ba75f7c8b6c1427d4bcf029d76e78b88005734801e47",
+      "publishedSha256": "42070809f91092969cc7ba75f7c8b6c1427d4bcf029d76e78b88005734801e47",
+      "serializationOnly": false
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/HTTP_SALE_TEST.json",
+      "sourceSha256": "2bb76f10e3780b564aa16adcce5b8dffae81fc0381ce90ab8f8892e6116472a6",
+      "publishedSha256": "cb898e6a051f28dd201639c0a967859fd8e033b6710bc464c489bb4cea2c1d78",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/OPERATIONS_TEST.json",
+      "sourceSha256": "c00e46d92997825b712d0c2e53e38088ba00b1b399122fea923270ae62930ace",
+      "publishedSha256": "0a7ce097e96325604c73a124050e254dfb4812f0e12ea71310a29194f34512e1",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/INHERITED_REGRESSION.json",
+      "sourceSha256": "7429f3245150fed3c306a9e556245a8c2d77d962bad06a2fefdad5b1f6ebc92c",
+      "publishedSha256": "c57128234f02b9ad44652dd49b68209bdb3967e75eec93d3891875d795808295",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/INHERITED_CONTROL.json",
+      "sourceSha256": "36112e308b89ca13521dbd34caf103f9a6db5607b22350404432938be9062626",
+      "publishedSha256": "2fd4a7497d37d51603a84c3ca56d449bb1f04cf93daae80175e23a543a73d86b",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/PUBLIC_BASELINE.json",
+      "sourceSha256": "0e706f425987e53efb99802b3d71bf500cebdaf5fd909f84544b96a1f90c2c5f",
+      "publishedSha256": "8133ca508835649c3a44a3e537977256af4a4bc54a8691a60a470f475fe5dbe1",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/LIVE_AUDIT.json",
+      "sourceSha256": "50553b8555da96f7d212cc6dc547dbd9f42a9f022cac7caa9785c5c4ad9cf73f",
+      "publishedSha256": "5b254c97c2c4382eeed4ab3433031a3dc2b83880076175473bca261af2f4e831",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/PUBLIC_CHECKS.json",
+      "sourceSha256": "03803cb496ece9545e73fec005fd7e3bb2ebb76f437fa2a3958798f9c542c76d",
+      "publishedSha256": "087141d0a7ca5c5f0abe6409be6c4468633a4e5f30721c8c567a64e968772637",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/TIMER_BASELINE.json",
+      "sourceSha256": "832d5a898ebfe51f38c6e3b293fe2b1fc415bb83de971675d7c5a176d098a825",
+      "publishedSha256": "bafa857bbdb01e8e71fd9d2c02014233420917e2aae09fe5a860cbdeb8628819",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/SOURCE_REVIEW.json",
+      "sourceSha256": "ead1afac8675b522580431e0e72a9b7d56c87df2970fd1f6e98de9bf9f911fa8",
+      "publishedSha256": "aa77df3a261c1dde14ebf6aa77d16d01ba3e621e27e45233f5ee9978317b9f68",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/BINDINGS.json",
+      "sourceSha256": "55b4bd5203f47de27310375dad753eac06d0422fcb79b88e6dba20013153a83e",
+      "publishedSha256": "ceb9443bbeec55ead3d23584718eed93cc7b0f34d12722dec2ea0c06431736ba",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/PUBLISH.json",
+      "sourceSha256": "b07bd55d7a5c8a34f5abdd8f22e0388209b7b84b888107a8ebde8e837e56bfb1",
+      "publishedSha256": "f899531f7f769ed7d726903bac41bf7b4c3d1cf6089b640ef12f48f855d9d7af",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/ACTIVATE.json",
+      "sourceSha256": "d69dbd44dc297399ef9c07184c77ff65360d7b363de08e2bc44d95e86bb823a3",
+      "publishedSha256": "11a871dc7b39d39c8e0791e834acbae4b9f49fb2785e35e3fcfb9ea6d77bbb3c",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/NATIVE_LINKED_HTTP_PRIOR_FAIL.json",
+      "sourceSha256": "74b47075de3f7415a62e85463f9e40d4961afa83e387767eac379f42e6c685c1",
+      "publishedSha256": "b88faeb717f0c6bc176812ba8e49be905854858c0a875680644480ed920de7fd",
+      "serializationOnly": true
+    },
+    {
+      "path": "ops/publication/b01-period-price-v243-r2/proofs/FREEZE_METADATA_ATTEMPT1_FAIL.json",
+      "sourceSha256": "68e26cdbd1a5b3cf18d1f16e5ec67d3ca535824da9ee6725a95449f2d0e70aac",
+      "publishedSha256": "68e26cdbd1a5b3cf18d1f16e5ec67d3ca535824da9ee6725a95449f2d0e70aac",
+      "serializationOnly": false
+    }
+  ]
+}

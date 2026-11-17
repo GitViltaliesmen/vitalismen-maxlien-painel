@@ -1,0 +1,11 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "scope": "documentation_archive_only",
+  "reason": "Git whitespace check rejected CRLF proof copies, valid blank unified-patch context lines and one extra EOF line in archival helper",
+  "tree": "3cdd286753eaf67d7047d32a75a37a32f3cb6eb7",
+  "functionalSourceChanged": false,
+  "runtimeChanged": false,
+  "refsCreated": false,
+  "correction": "LF serialization for public JSON with semantic equality and original/published SHA mapping; original bytes retained externally; check excludes valid patch context markers only"
+}

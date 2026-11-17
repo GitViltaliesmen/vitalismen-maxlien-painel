@@ -1,0 +1,42 @@
+{
+  "status": "PASS_SOURCE_PUBLISHED_NOT_ACTIVE",
+  "at": "2026-11-17T21:53:58.559Z",
+  "facts": {
+    "commit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+    "tree": "6d01a73371f2e97dbf80bc6f7fee96b18a7251b7",
+    "parent": "4c47bb36266d919ce664911aafcf573c7a4d1570",
+    "changedPaths": [
+      "docs/freeze/b01-period-price-v243-contract.json",
+      "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+      "scripts/lib/sealed-successor-preload-v1.mjs",
+      "src/services/principalSdrFreeflowRuntimeService.js",
+      "src/services/vitPowerB01CoreV216Service.js",
+      "src/services/vitPowerScopedQuestionHistoryV243Service.js",
+      "tests/b01-period-price-v242.test.mjs",
+      "tests/principal-sdr-runtime.test.mjs",
+      "tests/vit-power-b01-v216.test.mjs",
+      "tests/vitpower-scoped-question-history-v243.test.mjs"
+    ],
+    "clean": true
+  },
+  "publication": {
+    "project": "VITALISMEN_EC",
+    "status": "complete",
+    "publicationStatus": "production_published",
+    "functionalCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+    "functionalTree": "6d01a73371f2e97dbf80bc6f7fee96b18a7251b7",
+    "sourceRef": "refs/heads/codex/b01-period-price-v243-r2-20261117",
+    "publicationTag": "production-20261117-d35d58c",
+    "publicationTagResolvedCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+    "sourceMetadataSha256": "929f840822017e37858efcf922dcfbb0fcb37abf7acc50ed3adf01d531b71782",
+    "stagingCompleteSha256": "6e9aa48ad60d0e97bad0ddebe68872c2699608645d7e2fdd86425ae64f4a6131",
+    "sealedEnvelopeSha256": "c3a1a12936f02f47c85a5535c53462a8a0183a81f3f1b459e3f87c2d8ab1e454",
+    "productionBranchChanged": false,
+    "productionBranchBefore": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+    "productionBranchAfter": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+    "publishedAt": "2026-11-17T21:53:58.557Z",
+    "pm2Actions": 0,
+    "outboundActions": 0,
+    "dropiActions": 0
+  }
+}

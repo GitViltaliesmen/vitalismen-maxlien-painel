@@ -1,0 +1,18 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "testChanged": false,
+  "productionChanged": false,
+  "attempts": [
+    {
+      "reason": "private network loopback down; fetch failed",
+      "fix": "bring up lo only inside namespace",
+      "rootLog": "NATIVE_LINKED_HTTP_LOOPBACK_DOWN_FAIL.private.log"
+    },
+    {
+      "reason": "private linked store was bound read-only; link_start failed before business dispatch",
+      "fix": "mount empty disposable writable store over original path inside namespace",
+      "rootLog": "NATIVE_LINKED_HTTP_READONLY_STORE_FAIL.private.log"
+    }
+  ]
+}

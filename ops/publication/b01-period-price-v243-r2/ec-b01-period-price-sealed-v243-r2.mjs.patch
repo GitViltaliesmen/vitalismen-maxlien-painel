@@ -1,0 +1,111 @@
+--- parent/deploy-engine.mjs
++++ successor/ec-b01-period-price-sealed-v243-r2.mjs
+@@ -20,7 +20,7 @@
+ import{priceClosureRegistrationV239}from'/usr/local/lib/vitalismen-deploy/ec-price-closure-profile-v239-r2.mjs';
+ import{texUltraWebChatRegistrationV240}from'/usr/local/lib/vitalismen-deploy/ec-tex-ultra-web-chat-profile-v240-r7.mjs';
+ import{qaNaturalEntryRegistrationV241}from'/usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-profile-v241-r2.mjs';
+-import{readWebChatPolicyV220 as readMeasurementPolicyV213}from'/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-profile-v242-r6.mjs';
++import{b01PeriodPriceRegistrationV243,readWebChatPolicyV220 as readMeasurementPolicyV213}from'/usr/local/lib/vitalismen-deploy/ec-b01-period-price-profile-v243-r2.mjs';
+ import {freeflowRegistrationV212,readFreeflowPolicyV212} from '/usr/local/lib/vitalismen-deploy/ec-principal-sdr-profile-v212-r11.mjs';
+ import {trackingRegistrationV210,readTrackingPolicyV210} from '/usr/local/lib/vitalismen-deploy/ec-postsale-tracking-profile-v210-r4.mjs';
+ import {prepaidRegistrationV1} from '/usr/local/lib/vitalismen-deploy/gira21x-stripe-prepaid-profile-v1.mjs';
+@@ -416,7 +416,9 @@
+ const EC_TEX=Object.freeze({...texUltraWebChatRegistrationV240(),successor:texUltraWebChatRegistrationV240().commit});
+ const EC_QA=Object.freeze({...qaNaturalEntryRegistrationV241(),successor:qaNaturalEntryRegistrationV241().commit});
+ const EC_LINKED=Object.freeze({...texLinkedEntryRegistrationV242(),successor:texLinkedEntryRegistrationV242().commit});
+-const isEcLinked=sealed=>sealed.envelope.PURPOSE===EC_LINKED.purpose;
++const EC_PERIOD=Object.freeze({...b01PeriodPriceRegistrationV243(),successor:b01PeriodPriceRegistrationV243().commit});
++const isEcPeriod=sealed=>sealed.envelope.PURPOSE===EC_PERIOD.purpose;
++const isEcLinked=sealed=>sealed.envelope.PURPOSE===EC_LINKED.purpose||isEcPeriod(sealed);
+ const isEcQa=sealed=>sealed.envelope.PURPOSE===EC_QA.purpose||isEcLinked(sealed);
+ const isEcTex=sealed=>sealed.envelope.PURPOSE===EC_TEX.purpose||isEcQa(sealed);
+ const isEcPrice=sealed=>sealed.envelope.PURPOSE===EC_PRICE.purpose||isEcTex(sealed);
+@@ -567,13 +569,18 @@
+     assert.deepEqual(bytes, canonicalBytes(e), 'SEALED_ENVELOPE_NONCANONICAL');
+     sameKeys(e, ['authority', 'PURPOSE', 'PREDECESSOR_RELEASE', 'PAYLOAD_HASHES'],
+         'SEALED_ENVELOPE_FIELDS_INVALID');
+-    assert.ok(['GOVERNANCE_BOOTSTRAP', 'VIT_SIGNATURE_PATCH', QA_ORDER.purpose, HOME_ORDER.purpose, MANUAL_QA.purpose, MANUAL_COMMERCIAL.purpose, DROPI_LIST.purpose, OPERATIONS_V203.purpose, GIRA_BRIDGE.purpose, GIRA_HANDOFF.purpose, EC_REPURCHASE.purpose, EC_AUDIO.purpose, EC_PREPAID.purpose, EC_TRACKING.purpose, EC_FREEFLOW.purpose, EC_MEASUREMENT.purpose, EC_OWNER.purpose, EC_B01.purpose, EC_PRIORITY.purpose, EC_WEB.purpose, EC_RECALL.purpose, EC_CONTEXT.purpose, EC_DASHBOARD.purpose, EC_STORE.purpose, EC_INBOUND.purpose, EC_BURST.purpose, EC_FIX.purpose, EC_SALE.purpose, EC_VOICE.purpose, EC_INVITES.purpose, EC_CHAT.purpose, EC_JOURNEY.purpose, EC_ACCESS.purpose, EC_PRICE.purpose, EC_TEX.purpose, EC_QA.purpose, EC_LINKED.purpose].includes(e.PURPOSE),
++    assert.ok(['GOVERNANCE_BOOTSTRAP', 'VIT_SIGNATURE_PATCH', QA_ORDER.purpose, HOME_ORDER.purpose, MANUAL_QA.purpose, MANUAL_COMMERCIAL.purpose, DROPI_LIST.purpose, OPERATIONS_V203.purpose, GIRA_BRIDGE.purpose, GIRA_HANDOFF.purpose, EC_REPURCHASE.purpose, EC_AUDIO.purpose, EC_PREPAID.purpose, EC_TRACKING.purpose, EC_FREEFLOW.purpose, EC_MEASUREMENT.purpose, EC_OWNER.purpose, EC_B01.purpose, EC_PRIORITY.purpose, EC_WEB.purpose, EC_RECALL.purpose, EC_CONTEXT.purpose, EC_DASHBOARD.purpose, EC_STORE.purpose, EC_INBOUND.purpose, EC_BURST.purpose, EC_FIX.purpose, EC_SALE.purpose, EC_VOICE.purpose, EC_INVITES.purpose, EC_CHAT.purpose, EC_JOURNEY.purpose, EC_ACCESS.purpose, EC_PRICE.purpose, EC_TEX.purpose, EC_QA.purpose, EC_LINKED.purpose, EC_PERIOD.purpose].includes(e.PURPOSE),
+         'SEALED_PURPOSE_INVALID');
+     let predecessor = { commit: PREDECESSOR_COMMIT, tree: PREDECESSOR_TREE };
+     if (e.PURPOSE === 'GOVERNANCE_BOOTSTRAP') {
+         assert.equal(parentEnvelope, null, 'SEALED_GOVERNANCE_PARENT_INVALID');
+         assert.equal(e.PREDECESSOR_RELEASE, path.basename(BASE_RELEASE));
+         assert.deepEqual(e.authority.ALLOWED_DELTA, [...GOVERNANCE_PATHS], 'SEALED_GOVERNANCE_DELTA_INVALID');
++     } else if(e.PURPOSE===EC_PERIOD.purpose){
++        assert.equal(trustedSeal,EC_PERIOD.seal,'QA_NATURAL_ENTRY_SEAL');assert.equal(parentEnvelope?.PURPOSE,EC_LINKED.purpose,'QA_NATURAL_ENTRY_PARENT_PURPOSE');
++        assert.equal(sha256(canonicalBytes(parentEnvelope)),EC_PERIOD.parentSeal,'QA_NATURAL_ENTRY_PARENT_SEAL');predecessor={commit:EC_LINKED.successor,tree:EC_LINKED.tree};
++        assert.equal(e.PREDECESSOR_RELEASE,path.basename(EC_LINKED.release));assert.equal(e.authority.SUCCESSOR_COMMIT,EC_PERIOD.successor);assert.equal(e.authority.SUCCESSOR_TREE,EC_PERIOD.tree);
++        assert.deepEqual(e.authority.ALLOWED_DELTA,Object.keys(EC_PERIOD.hashes).sort());assert.deepEqual(e.authority.FILE_HASHES,EC_PERIOD.hashes);
+      } else if(e.PURPOSE===EC_LINKED.purpose){
+         assert.equal(trustedSeal,EC_LINKED.seal,'TEX_LINKED_ENTRY_SEAL');assert.equal(parentEnvelope?.PURPOSE,EC_QA.purpose,'TEX_LINKED_ENTRY_PARENT_PURPOSE');
+         assert.equal(sha256(canonicalBytes(parentEnvelope)),EC_LINKED.parentSeal,'TEX_LINKED_ENTRY_PARENT_SEAL');predecessor={commit:EC_QA.successor,tree:EC_QA.tree};
+@@ -886,6 +893,10 @@
+         assert.equal(raw.PURPOSE,DROPI_LIST.purpose);assert.equal(raw.authority.PREDECESSOR_COMMIT,MANUAL_COMMERCIAL.successor);
+         requireDropiListApproval();
+     }
++    if(commit===EC_PERIOD.successor||raw.PURPOSE===EC_PERIOD.purpose){
++        assert.equal(depth,0,'QA_NATURAL_ENTRY_REUSE_FORBIDDEN');assert.equal(commit,EC_PERIOD.successor);assert.equal(raw.PURPOSE,EC_PERIOD.purpose);
++        assert.equal(raw.authority.PREDECESSOR_COMMIT,EC_LINKED.successor);b01PeriodPriceRegistrationV243();
++    }
+     if(commit===EC_LINKED.successor||raw.PURPOSE===EC_LINKED.purpose){
+         assert.equal(depth,0,'TEX_LINKED_ENTRY_REUSE_FORBIDDEN');assert.equal(commit,EC_LINKED.successor);assert.equal(raw.PURPOSE,EC_LINKED.purpose);
+         assert.equal(raw.authority.PREDECESSOR_COMMIT,EC_QA.successor);texLinkedEntryRegistrationV242();
+@@ -1015,7 +1026,8 @@
+         assert.equal(raw.authority.PREDECESSOR_COMMIT,DROPI_LIST.successor);
+         requireOperationsApprovalV203('/usr/local/lib/vitalismen-deploy/sealed-successor-v1.mjs',OPERATIONS_V203);
+     }
+-    const parent = raw.PURPOSE===EC_LINKED.purpose ? registryEnvelope(EC_QA.successor)
++    const parent = raw.PURPOSE===EC_PERIOD.purpose ? registryEnvelope(EC_LINKED.successor)
++        : raw.PURPOSE===EC_LINKED.purpose ? registryEnvelope(EC_QA.successor)
+         : raw.PURPOSE===EC_QA.purpose ? registryEnvelope(EC_TEX.successor)
+         : raw.PURPOSE===EC_TEX.purpose ? registryEnvelope(EC_PRICE.successor)
+         : raw.PURPOSE===EC_PRICE.purpose ? registryEnvelope(EC_ACCESS.successor)
+@@ -1387,6 +1399,7 @@
+ 
+ export async function installSealedPreload(root) {
+     const sealed = requireSealedRelease(root);
++    const periodParent=isEcPeriod(sealed)?requireSealedRelease(EC_LINKED.release):null;
+     const linkedParent=isEcLinked(sealed)?requireSealedRelease(EC_QA.release):null;
+     const qaParent=isEcQa(sealed)?requireSealedRelease(EC_TEX.release):null;
+     const texParent=isEcTex(sealed)?requireSealedRelease(EC_PRICE.release):null;
+@@ -1466,7 +1479,7 @@
+                 const inherited = (isManualQa(sealed) || (isManualCommercial(sealed) || hasDropiListAncestry)) ? manualParent : sealed;
+                 assert.equal(inherited.envelope.PAYLOAD_HASHES[file], qaParent.envelope.PAYLOAD_HASHES[file], 'SEALED_HOME_INHERITED_PAYLOAD_INVALID:' + file);
+                 if (isManualQa(sealed) || (isManualCommercial(sealed) || hasDropiListAncestry)) assert.equal(sealed.envelope.PAYLOAD_HASHES[file],
+-                    (isEcLinked(sealed)?EC_LINKED.hashes[file]:null)||(isEcQa(sealed)?EC_QA.hashes[file]:null)||(isEcTex(sealed)?EC_TEX.hashes[file]:null)||(isEcPrice(sealed)?EC_PRICE.hashes[file]:null)||(isEcAccess(sealed)?EC_ACCESS.hashes[file]:null)||(isEcJourney(sealed)?EC_JOURNEY.hashes[file]:null)||(isEcChat(sealed)?EC_CHAT.hashes[file]:null)||(isEcInvites(sealed)?EC_INVITES.hashes[file]:null)||(isEcVoice(sealed)?EC_VOICE.hashes[file]:null)||(isEcSale(sealed)?EC_SALE.hashes[file]:null)||(isEcFix(sealed)?EC_FIX.hashes[file]:null)||(isEcBurst(sealed)?EC_BURST.hashes[file]:null)||(isEcInbound(sealed)?EC_INBOUND.hashes[file]:null)||(isEcStore(sealed)?EC_STORE.hashes[file]:null)||(isEcDashboard(sealed)?EC_DASHBOARD.hashes[file]:null)||(isEcContext(sealed)?EC_CONTEXT.hashes[file]:null)||(isEcRecall(sealed)?EC_RECALL.hashes[file]:null)||(isEcWeb(sealed)?EC_WEB.hashes[file]:null)||(isEcPriority(sealed)?EC_PRIORITY.hashes[file]:null)||(isEcB01(sealed)?EC_B01.hashes[file]:null)||(isEcOwner(sealed)?EC_OWNER.hashes[file]:null)||(isEcMeasurement(sealed)?EC_MEASUREMENT.hashes[file]:null)||(isEcFreeflow(sealed)?EC_FREEFLOW.hashes[file]:null)||(isEcTracking(sealed)?EC_TRACKING.hashes[file]:null)||(isEcPrepaid(sealed)?EC_PREPAID.hashes[file]:null)||(isEcAudio(sealed)?EC_AUDIO.hashes[file]:null)||(isEcRepurchase(sealed)?EC_REPURCHASE.hashes[file]:null)||(isGiraHandoff(sealed)?GIRA_HANDOFF.hashes[file]:null)||(isGiraBridge(sealed)?GIRA_BRIDGE.hashes[file]||OPERATIONS_V203.hashes[file]:null)||(isOperationsV203(sealed) ? OPERATIONS_V203.hashes[file] : null) || DROPI_LIST.hashes[file] || MANUAL_COMMERCIAL.hashes[file] || MANUAL_QA.hashes[file] || inherited.envelope.PAYLOAD_HASHES[file], 'MANUAL_QA_INHERITED_PAYLOAD_INVALID:' + file);
++                    (isEcPeriod(sealed)?EC_PERIOD.hashes[file]:null)||(isEcLinked(sealed)?EC_LINKED.hashes[file]:null)||(isEcQa(sealed)?EC_QA.hashes[file]:null)||(isEcTex(sealed)?EC_TEX.hashes[file]:null)||(isEcPrice(sealed)?EC_PRICE.hashes[file]:null)||(isEcAccess(sealed)?EC_ACCESS.hashes[file]:null)||(isEcJourney(sealed)?EC_JOURNEY.hashes[file]:null)||(isEcChat(sealed)?EC_CHAT.hashes[file]:null)||(isEcInvites(sealed)?EC_INVITES.hashes[file]:null)||(isEcVoice(sealed)?EC_VOICE.hashes[file]:null)||(isEcSale(sealed)?EC_SALE.hashes[file]:null)||(isEcFix(sealed)?EC_FIX.hashes[file]:null)||(isEcBurst(sealed)?EC_BURST.hashes[file]:null)||(isEcInbound(sealed)?EC_INBOUND.hashes[file]:null)||(isEcStore(sealed)?EC_STORE.hashes[file]:null)||(isEcDashboard(sealed)?EC_DASHBOARD.hashes[file]:null)||(isEcContext(sealed)?EC_CONTEXT.hashes[file]:null)||(isEcRecall(sealed)?EC_RECALL.hashes[file]:null)||(isEcWeb(sealed)?EC_WEB.hashes[file]:null)||(isEcPriority(sealed)?EC_PRIORITY.hashes[file]:null)||(isEcB01(sealed)?EC_B01.hashes[file]:null)||(isEcOwner(sealed)?EC_OWNER.hashes[file]:null)||(isEcMeasurement(sealed)?EC_MEASUREMENT.hashes[file]:null)||(isEcFreeflow(sealed)?EC_FREEFLOW.hashes[file]:null)||(isEcTracking(sealed)?EC_TRACKING.hashes[file]:null)||(isEcPrepaid(sealed)?EC_PREPAID.hashes[file]:null)||(isEcAudio(sealed)?EC_AUDIO.hashes[file]:null)||(isEcRepurchase(sealed)?EC_REPURCHASE.hashes[file]:null)||(isGiraHandoff(sealed)?GIRA_HANDOFF.hashes[file]:null)||(isGiraBridge(sealed)?GIRA_BRIDGE.hashes[file]||OPERATIONS_V203.hashes[file]:null)||(isOperationsV203(sealed) ? OPERATIONS_V203.hashes[file] : null) || DROPI_LIST.hashes[file] || MANUAL_COMMERCIAL.hashes[file] || MANUAL_QA.hashes[file] || inherited.envelope.PAYLOAD_HASHES[file], 'MANUAL_QA_INHERITED_PAYLOAD_INVALID:' + file);
+             }
+         }
+         const paths = [...new Set([...parent.manifest.allowlist.map(e => e.path),
+@@ -1475,7 +1488,7 @@
+             ...(qaParent ? qaParent.authority.ALLOWED_DELTA : []),
+             ...(manualParent ? manualParent.authority.ALLOWED_DELTA : []),
+             ...(commercialParent ? commercialParent.authority.ALLOWED_DELTA : []),
+-            ...(linkedParent?linkedParent.authority.ALLOWED_DELTA:[]), ...(qaParent?qaParent.authority.ALLOWED_DELTA:[]), ...(texParent?texParent.authority.ALLOWED_DELTA:[]), ...(priceParent?priceParent.authority.ALLOWED_DELTA:[]), ...(accessParent?accessParent.authority.ALLOWED_DELTA:[]), ...(journeyParent?journeyParent.authority.ALLOWED_DELTA:[]), ...(chatParent?chatParent.authority.ALLOWED_DELTA:[]), ...(invitesParent?invitesParent.authority.ALLOWED_DELTA:[]), ...(voiceParent?voiceParent.authority.ALLOWED_DELTA:[]), ...(saleParent?saleParent.authority.ALLOWED_DELTA:[]), ...(fixParent?fixParent.authority.ALLOWED_DELTA:[]), ...(burstParent?burstParent.authority.ALLOWED_DELTA:[]), ...(inboundParent?inboundParent.authority.ALLOWED_DELTA:[]), ...(storeParent?storeParent.authority.ALLOWED_DELTA:[]), ...(dashboardParent?dashboardParent.authority.ALLOWED_DELTA:[]), ...(contextParent?contextParent.authority.ALLOWED_DELTA:[]), ...(recallParent?recallParent.authority.ALLOWED_DELTA:[]), ...(webParent?webParent.authority.ALLOWED_DELTA:[]), ...(priorityParent?priorityParent.authority.ALLOWED_DELTA:[]), ...(b01Parent?b01Parent.authority.ALLOWED_DELTA:[]), ...(ownerParent?ownerParent.authority.ALLOWED_DELTA:[]), ...(measurementParent?measurementParent.authority.ALLOWED_DELTA:[]), ...(freeflowParent?freeflowParent.authority.ALLOWED_DELTA:[]), ...(trackingParent?trackingParent.authority.ALLOWED_DELTA:[]), ...(prepaidParent?prepaidParent.authority.ALLOWED_DELTA:[]), ...(audioParent?audioParent.authority.ALLOWED_DELTA:[]), ...(handoffParent?handoffParent.authority.ALLOWED_DELTA:[]), ...(bridgeParent?bridgeParent.authority.ALLOWED_DELTA:[]), ...(giraParent?giraParent.authority.ALLOWED_DELTA:[]), ...(operationsParent ? operationsParent.authority.ALLOWED_DELTA : []), ...(dropiParent ? dropiParent.authority.ALLOWED_DELTA : []), ...sealed.authority.ALLOWED_DELTA])];
++            ...(periodParent?periodParent.authority.ALLOWED_DELTA:[]), ...(linkedParent?linkedParent.authority.ALLOWED_DELTA:[]), ...(qaParent?qaParent.authority.ALLOWED_DELTA:[]), ...(texParent?texParent.authority.ALLOWED_DELTA:[]), ...(priceParent?priceParent.authority.ALLOWED_DELTA:[]), ...(accessParent?accessParent.authority.ALLOWED_DELTA:[]), ...(journeyParent?journeyParent.authority.ALLOWED_DELTA:[]), ...(chatParent?chatParent.authority.ALLOWED_DELTA:[]), ...(invitesParent?invitesParent.authority.ALLOWED_DELTA:[]), ...(voiceParent?voiceParent.authority.ALLOWED_DELTA:[]), ...(saleParent?saleParent.authority.ALLOWED_DELTA:[]), ...(fixParent?fixParent.authority.ALLOWED_DELTA:[]), ...(burstParent?burstParent.authority.ALLOWED_DELTA:[]), ...(inboundParent?inboundParent.authority.ALLOWED_DELTA:[]), ...(storeParent?storeParent.authority.ALLOWED_DELTA:[]), ...(dashboardParent?dashboardParent.authority.ALLOWED_DELTA:[]), ...(contextParent?contextParent.authority.ALLOWED_DELTA:[]), ...(recallParent?recallParent.authority.ALLOWED_DELTA:[]), ...(webParent?webParent.authority.ALLOWED_DELTA:[]), ...(priorityParent?priorityParent.authority.ALLOWED_DELTA:[]), ...(b01Parent?b01Parent.authority.ALLOWED_DELTA:[]), ...(ownerParent?ownerParent.authority.ALLOWED_DELTA:[]), ...(measurementParent?measurementParent.authority.ALLOWED_DELTA:[]), ...(freeflowParent?freeflowParent.authority.ALLOWED_DELTA:[]), ...(trackingParent?trackingParent.authority.ALLOWED_DELTA:[]), ...(prepaidParent?prepaidParent.authority.ALLOWED_DELTA:[]), ...(audioParent?audioParent.authority.ALLOWED_DELTA:[]), ...(handoffParent?handoffParent.authority.ALLOWED_DELTA:[]), ...(bridgeParent?bridgeParent.authority.ALLOWED_DELTA:[]), ...(giraParent?giraParent.authority.ALLOWED_DELTA:[]), ...(operationsParent ? operationsParent.authority.ALLOWED_DELTA : []), ...(dropiParent ? dropiParent.authority.ALLOWED_DELTA : []), ...sealed.authority.ALLOWED_DELTA])];
+         globalThis.__VITALISMEN_SUCCESSOR_OVERRIDE_FILES = Object.freeze(paths);
+         const contextKey = '__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT';
+         const manifestSha256 = 'ae23ce682d3c7b2f3de42e6e8074e2c43a6365458b2ba861657a940d4041272c';
+@@ -1538,7 +1551,7 @@
+         assert.ok(propagated?.configurable && propagated.enumerable && propagated.writable
+             && Object.hasOwn(propagated, 'value'), 'SEALED_STAGE_CONTEXT_DESCRIPTOR_INVALID');
+         validateContext(propagated.value);
+-        if (['GOVERNANCE_BOOTSTRAP', 'VIT_SIGNATURE_PATCH', QA_ORDER.purpose, HOME_ORDER.purpose, MANUAL_QA.purpose, MANUAL_COMMERCIAL.purpose, DROPI_LIST.purpose, OPERATIONS_V203.purpose, GIRA_BRIDGE.purpose, GIRA_HANDOFF.purpose, EC_REPURCHASE.purpose, EC_AUDIO.purpose, EC_PREPAID.purpose, EC_TRACKING.purpose, EC_FREEFLOW.purpose, EC_MEASUREMENT.purpose, EC_OWNER.purpose, EC_B01.purpose, EC_PRIORITY.purpose, EC_WEB.purpose, EC_RECALL.purpose, EC_CONTEXT.purpose, EC_DASHBOARD.purpose, EC_STORE.purpose, EC_INBOUND.purpose, EC_BURST.purpose, EC_FIX.purpose, EC_SALE.purpose, EC_VOICE.purpose, EC_INVITES.purpose, EC_CHAT.purpose, EC_JOURNEY.purpose, EC_ACCESS.purpose, EC_PRICE.purpose, EC_TEX.purpose, EC_QA.purpose, EC_LINKED.purpose].includes(sealed.envelope.PURPOSE)) {
++        if (['GOVERNANCE_BOOTSTRAP', 'VIT_SIGNATURE_PATCH', QA_ORDER.purpose, HOME_ORDER.purpose, MANUAL_QA.purpose, MANUAL_COMMERCIAL.purpose, DROPI_LIST.purpose, OPERATIONS_V203.purpose, GIRA_BRIDGE.purpose, GIRA_HANDOFF.purpose, EC_REPURCHASE.purpose, EC_AUDIO.purpose, EC_PREPAID.purpose, EC_TRACKING.purpose, EC_FREEFLOW.purpose, EC_MEASUREMENT.purpose, EC_OWNER.purpose, EC_B01.purpose, EC_PRIORITY.purpose, EC_WEB.purpose, EC_RECALL.purpose, EC_CONTEXT.purpose, EC_DASHBOARD.purpose, EC_STORE.purpose, EC_INBOUND.purpose, EC_BURST.purpose, EC_FIX.purpose, EC_SALE.purpose, EC_VOICE.purpose, EC_INVITES.purpose, EC_CHAT.purpose, EC_JOURNEY.purpose, EC_ACCESS.purpose, EC_PRICE.purpose, EC_TEX.purpose, EC_QA.purpose, EC_LINKED.purpose, EC_PERIOD.purpose].includes(sealed.envelope.PURPOSE)) {
+             const stagePath = 'ops/vitalismen-stage';
+             const contextKey = '__VITALISMEN_V168B_BASELINE_BOOTSTRAP_CONTEXT';
+             const manifestPath = 'docs/freeze/ec-runtime-guard-baseline-bootstrap-v168b-20260916.json';
+@@ -1552,6 +1565,12 @@
+             const vit = sealed.envelope.PURPOSE === 'VIT_SIGNATURE_PATCH' || isQaOrder(sealed) || isHomeOrder(sealed) || isManualQa(sealed) || (isManualCommercial(sealed) || hasDropiListAncestry);
+             const stageParent = vit ? requireSealedRelease(predecessor) : null;
+             const validateStageParent = parent => {
++                if(isEcPeriod(sealed)){
++                    assert.equal(parent.authoritySha256,EC_PERIOD.parentSeal);assert.equal(parent.root,EC_PERIOD.parentRelease);
++                    assert.equal(parent.authority.SUCCESSOR_COMMIT,EC_LINKED.successor);assert.equal(parent.authority.SUCCESSOR_TREE,EC_LINKED.tree);
++                    const digest=parent.envelope.PAYLOAD_HASHES[stagePath];assert.equal(digest,GIRA_BRIDGE.hashes[stagePath]);
++                    assert.equal(sealed.envelope.PAYLOAD_HASHES[stagePath],digest);assert.equal(sha256(fs.readFileSync(path.join(sealed.root,stagePath))),digest);return digest;
++                }
+                 if(isEcLinked(sealed)){
+                     assert.equal(parent.authoritySha256,EC_LINKED.parentSeal);assert.equal(parent.root,EC_LINKED.parentRelease);
+                     assert.equal(parent.authority.SUCCESSOR_COMMIT,EC_QA.successor);assert.equal(parent.authority.SUCCESSOR_TREE,EC_QA.tree);

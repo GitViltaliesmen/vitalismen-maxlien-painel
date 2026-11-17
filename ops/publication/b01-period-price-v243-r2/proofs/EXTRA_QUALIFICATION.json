@@ -1,0 +1,102 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "results": [
+    {
+      "name": "product_micro_layer",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "o perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nEC product micro-layer guard: OK\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n"
+    },
+    {
+      "name": "tampered_vitPowerB01CoreV216Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "432fc7e475e8b566b4',\n    'docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md': '0f8e7c5678be1149d065783629289a87a6bd93370cd9ceaa15a0c5873580d4c1',\n    'docs/INFRAESTRUTURA_OFICIAL.md': '81ae18d00487d0e1cb61c3c7078c3dda577d4f852eed3d15932270961de74cc2',\n    'docs/INSTRUCOES_DOIS_COMPUTADORES_E_AQUECIMENTO.md': '32d540f75cbb48b89bfd771c72d794082d4cd6ac4294a8f8ec8162dfcf10caa0',\n    'docs/ISOLAMENTO_TOTAL_VITALISMEN_PRODUCAO.md': 'd565e81b9e86a912cd0560b24e24cf9c4acc2b66291f4bff0f7d894556160586',\n    "
+    },
+    {
+      "name": "tampered_principalSdrFreeflowRuntimeService.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "3eb7f104a0fa50bc5a1175c3a6de432fc7e475e8b566b4',\n    'docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md': '0f8e7c5678be1149d065783629289a87a6bd93370cd9ceaa15a0c5873580d4c1',\n    'docs/INFRAESTRUTURA_OFICIAL.md': '81ae18d00487d0e1cb61c3c7078c3dda577d4f852eed3d15932270961de74cc2',\n    'docs/INSTRUCOES_DOIS_COMPUTADORES_E_AQUECIMENTO.md': '32d540f75cbb48b89bfd771c72d794082d4cd6ac4294a8f8ec8162dfcf10caa0',\n    'docs/ISOLAMENTO_TOTAL_VITALISMEN_PRODUCAO.md': 'd565e81b9e86a912cd0560b24e24cf9c4acc2b66291"
+    },
+    {
+      "name": "tampered_vitPowerScopedQuestionHistoryV243Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "son': 'b1b6ce5a55197b29100c877b065281091520764469b18b63cd5aaacfbb848c1d',\n    'src/services/vitPowerScopedQuestionHistoryV243Service.js': 'a8260feaec2c1087c95b02cdd108fb162df9410925862be0d7b9375de808b6e7',\n    'tests/b01-period-price-v242.test.mjs': '74216e15213cd0bdb070d1b4f833f4a49073bf9c534e4b98f132324d3c4dfc28',\n    'tests/vitpower-scoped-question-history-v243.test.mjs': 'c197c9f65bcda51c5da6a12dcfe159c705b34e9356f34a0df3a3dccdbbca8a99'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "tampered_b01-period-price-v242.test.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "b955a',\n    'scripts/assert-ec-multiproduct-core-activation-approved-v48.mjs': '5120482612d0925615ca249c30da2c6079982c2d2fa3f62bb4db4db555862c03',\n    'scripts/assert-ec-product-ingredients-activation-approved-v35.mjs': '180ce96435298a4445c00f181b74f76a31a7850c06d10d0c9891a15e0bdda951',\n    'scripts/assert-ec-repurchase-sqlite-activation-approved-v47.mjs': '252ef0afdb74a921b499bb332d63e87375e79eb1b221708aa84d60500ec19383',\n    'scripts/assert-ec-repurchase-sync-preservation-activation-approved-v"
+    },
+    {
+      "name": "tampered_sealed-successor-preload-v1.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "son': 'b1b6ce5a55197b29100c877b065281091520764469b18b63cd5aaacfbb848c1d',\n    'src/services/vitPowerScopedQuestionHistoryV243Service.js': 'a8260feaec2c1087c95b02cdd108fb162df9410925862be0d7b9375de808b6e7',\n    'tests/b01-period-price-v242.test.mjs': '74216e15213cd0bdb070d1b4f833f4a49073bf9c534e4b98f132324d3c4dfc28',\n    'tests/vitpower-scoped-question-history-v243.test.mjs': 'c197c9f65bcda51c5da6a12dcfe159c705b34e9356f34a0df3a3dccdbbca8a99'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_AI_WORKER_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "-price-sealed-v243-r2.mjs:1056:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs:1055:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs:1054:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_VITALISMEN_META_PURCHASE_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "-price-sealed-v243-r2.mjs:1056:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs:1055:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs:1054:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "ESET-V77H2] V77H2 \u2192 V77H \u2192 V77 \u2192 V76 \u2192 V75 \u2192 V74 \u2192 V73 \u2192 V72 \u2192 V71 \u00edntegra; pol\u00edtica strict herdada sobrescrita por valor vazio somente no perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nV213_STARTUP_CONFIG=PASS; INHERITED_SDR_PROOF=VERIFIED; MEASUREMENT=DISABLED; SERVER_STARTED=NO\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    },
+    {
+      "name": "legacy_senior_readonly",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "\n> zapdesk-premium@0.0.0 senior:check\n> node scripts/senior-guard-vitalismen.mjs\n\n[SENIOR-GUARD-VPS] OK: VPS congelado no fluxo oficial Vit Power.\n"
+    },
+    {
+      "name": "inherited_linked_entry_public_policy_and_tamper_rejection",
+      "pass": true,
+      "exitCode": 0,
+      "proof": {
+        "publicLinkedEntryPreserved": true,
+        "parentProofCommitAndShaBound": true,
+        "changedProofRejected": true,
+        "changedInheritedPayloadRejected": true,
+        "foreignOriginRejected": true,
+        "realMessages": 0,
+        "productionWrites": 0,
+        "serverStarted": false
+      }
+    },
+    {
+      "name": "native_linked_http_owner_scope",
+      "pass": true,
+      "exitCode": 0,
+      "networkIsolated": true,
+      "privateQaStoreEnabled": true,
+      "publicBusinessDispatchEnabled": false,
+      "unchangedInheritedTestSha256": "edef4dd0288eee744fa3b7d65267f1ea75344de5da73feb4e5023045c0fe013f",
+      "tapSummary": [
+        "# tests 1",
+        "# pass 1",
+        "# fail 0"
+      ],
+      "productionWrites": 0,
+      "realMessages": 0
+    }
+  ],
+  "activeReleaseUnchanged": true,
+  "productionDatabaseWrites": 0,
+  "whatsappSends": 0
+}

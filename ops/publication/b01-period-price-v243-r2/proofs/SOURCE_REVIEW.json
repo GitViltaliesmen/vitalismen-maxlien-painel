@@ -1,0 +1,23 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "commit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "sourceRef": "refs/heads/codex/b01-period-price-v243-r2-20261117",
+  "allowedDelta": [
+    "docs/freeze/b01-period-price-v243-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/principalSdrFreeflowRuntimeService.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerScopedQuestionHistoryV243Service.js",
+    "tests/b01-period-price-v242.test.mjs",
+    "tests/principal-sdr-runtime.test.mjs",
+    "tests/vit-power-b01-v216.test.mjs",
+    "tests/vitpower-scoped-question-history-v243.test.mjs"
+  ],
+  "defaultIndexUnchanged": true,
+  "workingBranchUnchanged": true,
+  "diffCheckPass": true,
+  "lfOnly": true,
+  "uniqueAllowedDelta": true
+}
