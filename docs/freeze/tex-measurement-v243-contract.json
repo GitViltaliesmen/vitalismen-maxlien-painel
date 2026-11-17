@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "authorization": "USER_20261117_FULL_TEX_MEASUREMENT_AND_ISOLATED_DEPENDENCY_MAINTENANCE",
+  "scope": "plusmen.shop/tex anonymous attribution and verified official EC inbound Lead; eligible new Tex order Purchase; no synthetic production events",
+  "pixelId": "1100892582698669",
+  "noPricePhonePlayerTimingOrOtherProductChanges": true,
+  "noWhatsappSenderAdded": true,
+  "noHistoricalReplay": true,
+  "privateProof": "HMAC over timestamp and exact JSON, persisted official Z-API Message and verified V242 phone ownership",
+  "dedupe": "persistent per official identity/product for Lead and per order for Purchase; attempted before transport; unknown result never retried",
+  "sourceUrl": "https://plusmen.shop/tex",
+  "rollback": "disable only new measurement flags; retain compatible code and durable measurement ledgers",
+  "preserveConcurrentB01PeriodPriceCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6"
+}

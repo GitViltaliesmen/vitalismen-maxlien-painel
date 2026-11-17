@@ -1,3 +1,4 @@
+import { sendTexMeasurementPurchaseV243 } from './texUltraMeasurementV243Service.js';
 import { scopedPurchaseReceiptV237 } from './vitPowerMeasurementV213Application.js';
 import {isGiraOrder} from './gira21x/contract.mjs';
 import { bindPurchaseAttributionV148 } from './metaPurchaseV148BindingService.js';
@@ -73,6 +74,9 @@ const getConfigForCountry = (country, env = process.env) => {
 };
 
 export const getMetaConfigForOrder = (order = {}, env = process.env) => {
+    if (order?.tracking?.measurementVersion === 243 && order.tracking.attributionSource === 'tex_verified_first_touch_v243' && order.tracking.productKey === 'tex_ultra_ec') {
+        return { pixelId: '1100892582698669', browserPixelId: '1100892582698669', accessToken: null, route: 'plusmen_tex_v243_private_relay' };
+    }
     if (String(order.country).toUpperCase() === 'EC' && salesAttributionV148(order)) {
         const config = getConfigForCountry('EC', env);
         return config.pixelId === expectedMetaEcDatasetV195(env)
@@ -535,6 +539,8 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
     if(isGiraOrder(order))return {ok:true,skipped:true,reason:"GIRA21X_OWNS_PURCHASE"};
+    const texReceiptV243 = await sendTexMeasurementPurchaseV243(order, options);
+    if (texReceiptV243) return texReceiptV243;
     const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
     const scopedReceipt = await scopedPurchaseReceiptV237(order);

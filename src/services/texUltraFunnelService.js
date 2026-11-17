@@ -1,3 +1,4 @@
+import { bindTexMeasurementOrderV243 } from './texUltraMeasurementV243Service.js';
 import { recordTexUltraCheckoutV148 } from './metaCheckoutV148Service.js';
 import path from 'path';
 import ContactState from '../models/ContactState.js';
@@ -503,10 +504,11 @@ const createOrConfirmOrder = async (state, draft) => {
     };
     if (order) Object.assign(order, payload);
     else order = new Order({ ...payload, entryAt: new Date(), draftCreatedAt: new Date() });
+    await bindTexMeasurementOrderV243(order, state);
     await order.save();
 
     if (!order.tracking?.metaPurchaseSentAt) {
-        await enrichOrderWithMetaAttribution(order).catch(() => null);
+        if (order.tracking?.measurementVersion !== 243) await enrichOrderWithMetaAttribution(order).catch(() => null);
         const result = await sendPurchaseEventForOrder(order).catch((error) => ({ ok: false, error: error.message }));
         order.tracking = order.tracking || {};
         order.tracking.metaPurchaseEventId = result.eventId || order.orderId;

@@ -1,3 +1,4 @@
+import { observeTexMeasurementV243, texMeasurementReferenceV243 } from './texUltraMeasurementV243Service.js';
 import { handleTexLinkConfirmationV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { handleVitPowerBurstInboundV228 } from './vitPowerBurstRuntimeV228Service.js';
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
@@ -842,7 +843,7 @@ const dispatchToProduct = async ({ productKey, payload }) => {
 
 export const routeIncomingMessage = async (payload) => {
     const chatId = payload.from;
-    const body = String(payload.body || '');
+    let body = String(payload.body || '');
     const sessionId = payload.sessionId || null;
     const messageId = payload.id ? String(payload.id) : '';
     const senderPn = payload.senderPn || payload.fullMessage?.key?.senderPn || null;
@@ -988,7 +989,9 @@ export const routeIncomingMessage = async (payload) => {
     // Verification only: no commercial reply, order, human release or QA reset.
     if (/^Hola, quiero el tratamiento Tex Ultra\.\r?\nConfirmar chat:/.test(body)) await state.save();
     const texLinkV242 = await handleTexLinkConfirmationV242({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
+    await observeTexMeasurementV243({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
     if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }
+    if (texMeasurementReferenceV243(body)) body = 'Hola, quiero el tratamiento Tex Ultra.';
 
     if (priorityBotTestPhone) {
         if (!state.metadata?.fullFunnelTestEnabled) {

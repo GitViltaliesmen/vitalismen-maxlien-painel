@@ -1,3 +1,4 @@
+import { bindTexMeasurementCodeV243 } from './texUltraMeasurementV243Service.js';
 import { startTexUltraEntryV242, texUltraPreferredNameV242, withTexModelContextV242 } from './texUltraEntryBlockV242Service.js';
 import { texLinkedStoreV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { TEX_ULTRA_WEB_V240, createTexUltraWebFunnelV240 } from './texUltraWebFunnelV240Service.js';
@@ -33,7 +34,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     if (!req.is?.('application/json') || Number(req.headers['content-length'] || 0) > 4096) return res.status(415).json({ ok: false, error: 'invalid_request' });
     const body = req.body;
     const linkedEntry = tex && cap.entryV242Allowed?.(req) === true;
-    if (!body || Array.isArray(body) || Object.keys(body).some(k => !(linkedEntry ? ['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone'] : ['action', 'requestId', 'message', 'accessToken']).includes(k)) || !(linkedEntry ? ['start', 'message', 'clear', 'voice', 'order_status', 'link_start', 'link_status', 'tex_entry'] : ['start', 'message', 'clear', 'voice', 'order_status']).includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
+    if (!body || Array.isArray(body) || Object.keys(body).some(k => !(linkedEntry ? ['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone', 'measurementRef'] : ['action', 'requestId', 'message', 'accessToken']).includes(k)) || !(linkedEntry ? ['start', 'message', 'clear', 'voice', 'order_status', 'link_start', 'link_status', 'tex_entry'] : ['start', 'message', 'clear', 'voice', 'order_status']).includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
     const ip = String(req.headers['x-vitalismen-chat-ip'] || '');
     if (!isIP(ip)) return res.status(403).json({ ok: false, error: 'invalid_request' });
     const key = createHash('sha256').update(ip).digest('hex'), window = Math.floor(now() / 600000);
@@ -56,7 +57,8 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
         if (body.action === 'link_start') {
           const firstName = texUltraPreferredNameV242(body.firstName);
           if (!firstName || typeof body.phone !== 'string' || !/^\+?\d{10,15}$/.test(body.phone)) return res.status(400).json({ ok: false, error: 'tex_link_input_invalid' });
-          return res.json(await links.issue({ sessionId, requestId: body.requestId, firstName, phone: body.phone.replace(/^\+/, '') }));
+          const issued = await links.issue({ sessionId, requestId: body.requestId, firstName, phone: body.phone.replace(/^\+/, '') });
+          return res.json(await bindTexMeasurementCodeV243(issued, body.measurementRef));
         }
         const identity = await links.identity(sessionId);
         if (body.action === 'link_status') return res.json({ ok: true, verified: Boolean(identity), ...(identity ? {
