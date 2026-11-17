@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "4c47bb36266d919ce664911aafcf573c7a4d1570",
+  "allowedDelta": [
+    "docs/freeze/b01-period-price-v243-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/principalSdrFreeflowRuntimeService.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerScopedQuestionHistoryV243Service.js",
+    "tests/b01-period-price-v242.test.mjs",
+    "tests/principal-sdr-runtime.test.mjs",
+    "tests/vit-power-b01-v216.test.mjs",
+    "tests/vitpower-scoped-question-history-v243.test.mjs"
+  ],
+  "scope": "Select exactly one Ecuador-period greeting audio and append the official normal price table to uninterrupted new Vit Power B01 jobs; preserve existing jobs and every interruption/dedupe control; consult exact accepted B01 and same-session SDR receipts before repeating a missing-field question",
+  "productionDatabaseMigration": false,
+  "automaticRetryAuthorized": false,
+  "qaPhone": "5515998038637",
+  "historicalMessagesReplayed": false,
+  "permanentQaIdentityDoesNotRemoveFiniteWindow": true
+}

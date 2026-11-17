@@ -1,4 +1,4 @@
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-sealed-v242-r6.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

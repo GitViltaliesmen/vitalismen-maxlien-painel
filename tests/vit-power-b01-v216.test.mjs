@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createB01, B01_MEDIA, firstName, isB01GenericEntry, b01Greeting } from '../src/services/vitPowerB01CoreV216Service.js';
+import { createB01, B01_MEDIA, b01MediaForPeriodV242, b01PriceTextV242, firstName, isB01GenericEntry, b01Greeting } from '../src/services/vitPowerB01CoreV216Service.js';
 const CTA = 'Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?';
 function fixture(options = {}) {
   let clock = +new Date('2026-11-15T15:00:00Z'), job = null, enabled = true;
@@ -55,13 +55,14 @@ test('greeting uses Ecuador morning, afternoon and night, including midnight bou
   assert.match(b01Greeting('', new Date('2026-11-16T02:00:00Z')), /Buenas noches!/);
   assert.match(b01Greeting('', new Date('2026-11-16T05:00:00Z')), /Buenas noches!/);
 });
-test('greeting then four original assets with persisted 18–30 second pauses', async () => {
+test('greeting, one period audio, original images and official prices with persisted pauses', async () => {
   const f = fixture(); assert.equal((await f.core.start(f.input)).reason, 'queued');
   await f.advance(4999); assert.equal(f.attempts.length, 0);
   await f.advance(1); assert.equal(f.attempts.length, 1);
   assert.match(f.attempts[0].step.text, /José/);
   for (let i = 0; i < 4; i++) { await f.advance(17999); assert.equal(f.attempts.length, i + 1); await f.advance(1); }
-  assert.deepEqual(f.attempts.slice(1).map(x => x.step.asset), B01_MEDIA.map(x => x.asset));
+  assert.deepEqual(f.attempts.slice(1, -1).map(x => x.step.asset), b01MediaForPeriodV242(new Date('2026-11-15T15:00:00Z')).map(x => x.asset));
+  assert.equal(f.attempts.at(-1).step.text, b01PriceTextV242());
   assert.equal(f.job.status, 'done');
   await f.advance(900000); assert.equal(f.attempts.length, 5);
 });
@@ -76,7 +77,7 @@ test('simultaneous starts, ticks and duplicate inbound cannot duplicate sends', 
   assert.equal(f.attempts.length, 1);
   await f.core.start(f.input); await f.advance(18000); assert.equal(f.attempts.length, 2);
 });
-for (const kind of ['failAt', 'throwAt', 'noIdAt']) test(kind + ' at second audio stops and never repeats first audio', async () => {
+for (const kind of ['failAt', 'throwAt', 'noIdAt']) test(kind + ' at the next presentation item stops and never repeats the first item', async () => {
   const f = fixture({ [kind]: 3 }); await f.core.start(f.input);
   await f.advance(5000); await f.advance(18000); await f.advance(18000);
   assert.equal(f.job.status, 'ambiguous'); assert.equal(f.attempts.length, 3);
@@ -130,3 +131,17 @@ for (const [random, ms] of [[0, 5000], [.5, 17500], [.999999, 30000]]) {
   await f.advance(1); assert.equal(f.attempts.length, 1);
  });
 }
+
+test('customer interruption after the bottle cancels the final price without restarting the presentation', async () => {
+  const f = fixture(); await f.core.start(f.input);
+  await f.advance(5000);
+  for (let i=0; i<3; i++) await f.advance(18000);
+  assert.equal(f.attempts.length, 4);
+  assert.equal(f.attempts.at(-1).step.asset, '/media/sales/ec/vit_power.jpeg');
+  const result = await f.core.start({...f.input,inboundId:'new-question',text:'¿Qué contiene?'});
+  assert.equal(result.handled, false);
+  assert.equal(f.job.status, 'interrupted');
+  await f.advance(600000);
+  assert.equal(f.attempts.length, 4);
+  assert(!f.attempts.some(x => x.step.text?.includes('Estos son los valores normales')));
+});

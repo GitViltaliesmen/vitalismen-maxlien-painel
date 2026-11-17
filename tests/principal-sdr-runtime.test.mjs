@@ -163,3 +163,28 @@ test('a receipt for a different phone is still rejected', async () => {
     assert.equal(f.handoffs.length, 1);
     assert.equal(f.state.metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow.registrationAttempt.status, 'attempted');
 });
+
+test('accepted SDR replies retain exact provider and session proof for question history', async () => {
+    const f = fixture(); f.scripted.push(speak('Le ayudo.'));
+    const result = await f.send('Hola');
+    const saved = f.state.metadata.perAgentMemory.vit_power_ec.principalSdrFreeflow;
+    const row = saved.history.at(-1);
+    assert.equal(row.providerMessageId, result.providerMessageId);
+    assert.equal(row.providerMessageId, saved.lastOutboundProviderId);
+    assert.equal(row.sessionId, 'fixture_session');
+    assert.equal(row.role, 'assistant');
+    assert.equal(row.content, 'Le ayudo.');
+});
+
+test('provider receipt metadata remains outside the model message objects', async () => {
+    const f = fixture(); f.scripted.push(speak('Le ayudo.'));
+    await f.send('Hola');
+    f.scripted.push(request => {
+        const previous = request.messages.filter(row => row.role === 'assistant');
+        assert(previous.length > 0);
+        for (const row of previous) assert.deepEqual(Object.keys(row).sort(), ['content', 'role']);
+        return speak('Continuamos.');
+    });
+    const result = await f.send('Continuemos');
+    assert.equal(result.deliveredToProvider, true);
+});

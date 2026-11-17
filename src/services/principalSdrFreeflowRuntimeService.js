@@ -1,3 +1,4 @@
+import { vitPowerQuestionHistoryQueryV243 } from './vitPowerScopedQuestionHistoryV243Service.js';
 import { assertBurstEnvelopeV228 } from './vitPowerBurstCoreV228Service.js';
 // Bind the conversational candidate to existing models, router lease and sender.
 // Ports are supplied by conversationEngine; this module creates no infrastructure.
@@ -80,10 +81,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
             let registrationAttempt = saved.registrationAttempt || null;
             const history = (saved.history || []).filter(item => ['user', 'assistant'].includes(item.role)).slice(-24);
             // Read only the same official contact/session, matching the sender's 24-hour history guard.
-            const recentOutbound = questionPriorityEnabled ? await Message.find({ peerPhone: phone, sessionId: message.sessionId,
-                provider: 'zapi', isFromMe: true, ...(inbound[0].ownerPhoneDigits ? { ownerPhoneDigits: inbound[0].ownerPhoneDigits } : {}),
-                $or: [{ createdAt: { $gte: new Date(now().getTime() - 24 * 60 * 60 * 1000) } }, { updatedAt: { $gte: new Date(now().getTime() - 24 * 60 * 60 * 1000) } }], body: { $type: 'string', $ne: '' }
-            }).sort({ createdAt: -1 }).limit(40).select({ body: 1 }).lean() : [];
+            const recentOutbound = questionPriorityEnabled ? await Message.find(vitPowerQuestionHistoryQueryV243({ state, saved, phone, sessionId: message.sessionId, ownerPhoneDigits: inbound[0].ownerPhoneDigits, now: now() })).sort({ createdAt: -1 }).limit(40).select({ body: 1 }).lean() : [];
             const previousQuestionKeys = [...new Set(recentOutbound.map(row => shipmentHistoryRepeatKey(row.body)).filter(key => key.startsWith('ask_')))];
             const context = { project: 'VITALISMEN_EC', country: 'EC', phone, productKey: 'vit_power_ec', productName: 'Vit Power Ecuador',
                 inboundId, inboundText: message.body, inboundPersisted: true, inboundProvider: 'zapi', inboundFromMe: false,
@@ -193,7 +191,7 @@ export function createPrincipalSdrRuntime({ ContactState, Message, Order, Outbou
                         providerMessageId: receipt.providerMessageId, isFromMe: true, isBot: true }).lean();
                     if (!mirrored) throw new Error('freeflow_reply_mirror_missing');
                     if (proposal?.proposedInMessageId === inboundId) proposal = { ...proposal, summaryOutboundId: receipt.providerMessageId };
-                    await save({ [ROOT + '.history']: [...history, { role: 'user', content: message.body }, { role: 'assistant', content: result.reply }].slice(-24),
+                    await save({ [ROOT + '.history']: [...history, { role: 'user', content: message.body }, { role: 'assistant', content: result.reply, sentBody: typeof mirrored.body === 'string' ? mirrored.body : result.reply, providerMessageId: receipt.providerMessageId, sessionId: message.sessionId, ownerPhoneDigits: inbound[0].ownerPhoneDigits || '' }].slice(-24),
                         [ROOT + '.draft']: copyDraft(result.draft || draft), [ROOT + '.pendingSummary']: proposal,
                         [ROOT + '.lastInboundId']: inboundId, [ROOT + '.lastOutboundProviderId']: receipt.providerMessageId,
                         [ROOT + '.lastModelSucceeded']: !result.reason && !result.failureCode && result.handoffRequested === false,

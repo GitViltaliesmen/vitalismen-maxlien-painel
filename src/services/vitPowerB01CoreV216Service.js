@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { getEcuadorOffer } from './ecuadorProductService.js';
 
 export const B01_VERSION = 'vit-power-b01-v216';
 export const B01_MEDIA = Object.freeze([
   { kind: 'audio', label: 'Inicio universal 01', asset: '/media/templates/EC/01_B_Buenos_dias.ogg' },
   { kind: 'audio', label: 'Inicio universal 02', asset: '/media/templates/EC/01_C_Buenos_tardes.ogg' },
+  { kind: 'audio', label: 'Saudacao noturna', asset: '/media/templates/EC/01_A_buenas_noches.ogg' },
   { kind: 'image', label: 'Prova 1', asset: '/media/sales/shared/social_01.jpeg' },
   { kind: 'image', label: 'Frasco Vit Power', asset: '/media/sales/ec/vit_power.jpeg' }
 ]);
@@ -21,9 +23,25 @@ export function isB01GenericEntry(text = '') {
   return normalized === clean('Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?')
     || /^(hola )?(quiero|deseo|necesito) (informacion|info|conocer) (sobre |de |del )?(vit power|producto|tratamiento)$/.test(normalized);
 }
-export function b01Greeting(name, date = new Date()) {
+export function b01PeriodV242(date = new Date()) {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guayaquil', hour: '2-digit', hourCycle: 'h23' }).format(date));
-  const greeting = hour >= 5 && hour < 12 ? '¡Buenos días' : hour >= 12 && hour < 19 ? '¡Buenas tardes' : '¡Buenas noches';
+  return hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 19 ? 'afternoon' : 'night';
+}
+export function b01MediaForPeriodV242(date = new Date()) {
+  const assets = { morning: '/media/templates/EC/01_B_Buenos_dias.ogg', afternoon: '/media/templates/EC/01_C_Buenos_tardes.ogg', night: '/media/templates/EC/01_A_buenas_noches.ogg' };
+  return [B01_MEDIA.find(item => item.asset === assets[b01PeriodV242(date)]), ...B01_MEDIA.filter(item => item.kind === 'image')];
+}
+export function b01PriceTextV242(offer = getEcuadorOffer) {
+  const rows = [1, 2, 3, 6].map(quantity => {
+    const value = offer({ productKey: 'vit_power_ec', priceCatalog: 'normal', quantity });
+    if (!value || value.productKey !== 'vit_power_ec' || value.priceCatalog !== 'normal' || value.quantity !== quantity || !Number.isFinite(value.total) || value.total <= 0) throw Error('b01_official_price_unavailable');
+    return `• ${quantity} ${quantity === 1 ? 'frasco' : 'frascos'}: USD ${value.total.toFixed(2)}`;
+  });
+  return 'Estos son los valores normales de Vit Power:\n\n' + rows.join('\n') + '\n\n¿Cuántos frascos desea?';
+}
+export function b01Greeting(name, date = new Date()) {
+  const period = b01PeriodV242(date);
+  const greeting = period === 'morning' ? '¡Buenos días' : period === 'afternoon' ? '¡Buenas tardes' : '¡Buenas noches';
   return `¡Hola! ${greeting.slice(1)}${name ? ', ' + name : ''}! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando.`;
 }
 export function createB01({ repo, send, policy, now = () => new Date(), random = Math.random }) {
@@ -48,7 +66,7 @@ export function createB01({ repo, send, policy, now = () => new Date(), random =
     const job = { version: B01_VERSION, status: 'pending', origin: input.origin || 'automatic', phone: input.phone,
       chatId: input.chatId, sessionId: 'zapi', inboundId: input.inboundId, startedAt,
       manualStamp: eligibility.manualStamp || '', customerName, nextAt: new Date(+startedAt + delay(5000, 30000)), cursor: 0,
-      steps: [greeting, ...B01_MEDIA].map(s => ({ ...s, status: 'pending' })) };
+      steps: [greeting, ...b01MediaForPeriodV242(startedAt), { kind: 'text', label: 'Valores oficiais Vit Power', text: b01PriceTextV242() }].map(s => ({ ...s, status: 'pending' })) };
     const saved = await repo.start(input.contactId, job);
     // A lost start race belongs to the same presentation, never fall through to a second responder.
     return { handled: true, job: saved || await repo.get(input.contactId), reason: saved ? 'queued' : 'concurrent_start' };

@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-sealed-v242-r6.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-tex-linked-entry-profile-v242-r6.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-b01-period-price-sealed-v243-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-b01-period-price-profile-v243-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';
