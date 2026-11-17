@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 const source = fs.readFileSync(new URL('../ops/publications/tex-ultra-web-v240/chat-tex-ultra.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture({ hostname = 'plusmen.shop', pathname = '/tex', hasPlayer = true, wrongIdentity = false } = {}) {
-  const nodes = [], calls = [], plays = [], queue = []; let ctaVisible = false;
+  const nodes = [], calls = [], plays = [], queue = [], windowListeners = {}; let ctaVisible = false;
   class Node {
     constructor(tag) { this.tagName = tag; this.children = []; this.listeners = {}; this.attributes = {}; this.dataset = {}; this.hidden = false; this.value = ''; this.textContent = ''; nodes.push(this); }
     setAttribute(name, value) { this.attributes[name] = value; }
@@ -24,7 +24,7 @@ function fixture({ hostname = 'plusmen.shop', pathname = '/tex', hasPlayer = tru
   }
   const body = new Node('body'), wrapper = new Node('div'), player = new Node('vturb-smartplayer'), cta = new Node('button'); cta.id = 'preco_89'; body.append(wrapper); wrapper.append(player);
   const document = { body, createElement: tag => new Node(tag), querySelector: () => hasPlayer ? player : null, getElementById: id => nodes.find(node => node.id === id), addEventListener() {} };
-  const context = { window: { addEventListener() {} }, document, location: { hostname, pathname }, crypto: { randomUUID }, AbortController, Blob, URL: { createObjectURL() { return 'blob:test'; }, revokeObjectURL() {} },
+  const context = { window: { addEventListener(name, handler) { windowListeners[name] = handler; } }, document, location: { hostname, pathname }, crypto: { randomUUID }, AbortController, Blob, URL: { createObjectURL() { return 'blob:test'; }, revokeObjectURL() {} },
     MutationObserver: class { observe() {} disconnect() {} }, requestAnimationFrame: fn => fn(), getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1' }),
     Audio: class { constructor(url) { this.url = url; } async play() { plays.push(this.url); } pause() {} },
     fetch: async (url, options) => { const payload = JSON.parse(options.body); calls.push({ url, options, payload }); if (queue.length) return queue.shift()(payload);
@@ -33,7 +33,7 @@ function fixture({ hostname = 'plusmen.shop', pathname = '/tex', hasPlayer = tru
       return { ok: true, headers: { get: key => payload.action === 'voice' && key === 'content-type' ? 'audio/mpeg' : 'application/json' }, json: async () => data, arrayBuffer: async () => new Uint8Array(160).buffer };
     } };
   vm.runInNewContext(source, context);
-  return { nodes, calls, plays, queue, context, visible: value => { ctaVisible = value; }, cta, get: id => nodes.find(node => node.id === id), find: text => nodes.find(node => node.textContent === text) };
+  return { nodes, calls, plays, queue, context, fireWindow: (name, event = {}) => windowListeners[name]?.(event), visible: value => { ctaVisible = value; }, cta, get: id => nodes.find(node => node.id === id), find: text => nodes.find(node => node.textContent === text) };
 }
 test('the chat starts only on the exact Tex page/player and never starts requests or voice on page load', () => {
   for (const options of [{ hostname: 'ec.maxlien.shop' }, { pathname: '/exutra' }, { hasPlayer: false }]) { const f = fixture(options); assert.equal(f.calls.length, 0); assert.equal(f.find('Habla con Ana · Tex Ultra'), undefined); }
@@ -54,4 +54,12 @@ test('a double submission starts one request and an ambiguous failure is not aut
   let finish; f.queue.push(() => new Promise(resolve => { finish = resolve; }));
   const form = f.nodes.find(node => node.tagName === 'form'), input = f.get('texUltraChatInputV240'); input.value = '2 frascos'; const pending = form.fire('submit'); input.value = '2 frascos'; await form.fire('submit'); assert.equal(f.calls.length, 2);
   finish({ ok: false, status: 503 }); await pending; await flush(); assert.equal(f.calls.length, 2); assert.equal(f.find('Enviar').disabled, true);
+});
+test('returning through browser cache reloads owned history and never repeats an interrupted message', async () => {
+  const f = fixture(); await f.find('Habla con Ana · Tex Ultra').fire('click'); await flush();
+  let finish; f.queue.push(() => new Promise(resolve => { finish = resolve; })); f.get('texUltraChatInputV240').value = 'mi consulta'; const pending = f.nodes.find(node => node.tagName === 'form').fire('submit');
+  f.fireWindow('pagehide'); assert.equal(f.find('Enviar').disabled, true); f.fireWindow('pageshow', { persisted: true }); await flush();
+  assert.deepEqual(f.calls.map(row => row.payload.action), ['start', 'message', 'start']); assert.equal(f.find('Enviar').disabled, false);
+  finish({ ok: true, headers: { get: () => 'application/json' }, json: async () => ({ ok: true, reply: 'Respuesta anterior tardía' }) }); await pending;
+  assert.equal(f.find('Respuesta anterior tardía'), undefined); assert.equal(f.plays.length, 0);
 });

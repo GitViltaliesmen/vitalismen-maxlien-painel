@@ -82,5 +82,10 @@
     finally { if (current === epoch) { busy = false; send.disabled = !ready; } }
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseVoice(); });
-  window.addEventListener('pagehide', () => { epoch++; controller?.abort(); pauseVoice(); observer.disconnect(); });
+  window.addEventListener('pagehide', () => { epoch++; controller?.abort(); busy = false; ready = false; send.disabled = listen.disabled = voice.disabled = true; pauseVoice(); observer.disconnect(); });
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted) return;
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'hidden', 'class'] });
+    if (!card.hidden) start();
+  });
 })();
