@@ -18,7 +18,7 @@ export function createWebVoiceV231({ apiKey, fetchImpl = globalThis.fetch, now =
   return async function speak({ sessionId, record, requestId }) {
     if (!/^[a-f0-9]{64}$/.test(sessionId || '') || !record || record.expiresAt <= now()) throw Error('session_expired');
     const saved = record.requests?.[requestId];
-    const text = requestId === 'welcome_ana_lopez_v231' ? ANA_WELCOME_V231
+    const text = requestId === 'welcome_ana_lopez_v231' ? (record.productKey === 'tex_ultra_ec' ? '¡Hola! Soy Ana Lopez, asistente virtual de Tex Ultra Ecuador. ¿Qué te gustaría saber o cuántos frascos deseas?' : ANA_WELCOME_V231)
       : saved?.status === 'done' && saved.response?.ok === true ? saved.response.reply : '';
     if (!text || text.length > 2200) throw Error('voice_reply_not_owned');
     if (!apiKey) throw Error('voice_unavailable');
