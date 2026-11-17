@@ -11,9 +11,13 @@
   "files": {
     "ops/publications/tex-ultra-web-v240/chat-tex-ultra.js": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
     "ops/publications/tex-ultra-web-v240/chat-tex-ultra.css": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
-    "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-proxy-v240.conf": "3654f6755724e2c3e2b68b8345ca5b3db31ff7543c39faf94673c7bdab3de287",
+    "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-proxy-v240.conf": "100a8b7658ea27635057b0fe61c0fb036eab3c63e6dc8b6b316bb838552217c4",
     "ops/publications/tex-ultra-web-v240/plusmen-tex-chat-inject-v240.conf": "077150c2d6c34764a22eb79e4391169cbfb96b8c4fdc40e2531bdf05ecb55648",
     "ops/publications/tex-ultra-web-v240/panel.patch.json": "3a8d6df038fe3a3e84122db9561b661f786a1f3c21c1646dc722bca375b1e275",
     "tests/tex-ultra-web-site-v240.test.mjs": "21204b76246e52c7bd96712e98d9c295f4bbd6e33e3189ca3d711e9035dfa0a3"
-  }
+  },
+  "officialProxyIpv4": "72.60.137.77",
+  "tlsServerName": "ec.maxlien.shop",
+  "tlsVerificationPreserved": true,
+  "automaticUpstreamRetry": false
 }
