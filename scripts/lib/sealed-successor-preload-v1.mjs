@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-tex-ultra-web-chat-sealed-v240-r7.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-tex-ultra-web-chat-profile-v240-r7.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-sealed-v241-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-qa-natural-entry-profile-v241-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

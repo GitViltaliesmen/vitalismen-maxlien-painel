@@ -17,8 +17,12 @@ const patterns = [
 const PUBLIC_CTA_V229 = 'Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?';
 function questionTextV229(text) {
   const raw = String(text || '');
-  return raw.startsWith(PUBLIC_CTA_V229 + '\n')
+  return raw === PUBLIC_CTA_V229 ? '' : raw.startsWith(PUBLIC_CTA_V229 + '\n')
     ? raw.slice(PUBLIC_CTA_V229.length).trim() : raw;
+}
+function priceRequestV241(normalized) {
+  return /(?:^|\n)[ \t]*(?:(?:por\s*favor)[, \t]+)?(?:(?:el|los|la|las)[ \t]+)?(?:precios?|promocion(?:es)?|ofertas?)(?:[ \t]+(?:de|del|para|por)\b[^\n]*)?[.! \t]*(?=$|\n)/.test(normalized)
+    || /\b(?:dime|digame|indicame|(?:me\s+)?indicas?|quiero\s+(?:saber|conocer))\b[^\n]*\b(?:precios?|promocion(?:es)?|ofertas?)\b/.test(normalized);
 }
 export function questionPlanV219(text) {
   const raw = questionTextV229(text).slice(0, 6000);
@@ -26,12 +30,31 @@ export function questionPlanV219(text) {
   const normalized = norm(raw);
   // Customers often request the price in short, unpunctuated WhatsApp messages.
   // Statements thanking/confirming an offer do not by themselves request a new quote.
-  const priceRequest = /(?:^|\n)[ \t]*(?:(?:por\s*favor)[, \t]+)?(?:(?:el|los|la|las)[ \t]+)?(?:precios?|promocion(?:es)?|ofertas?)(?:[ \t]+(?:de|del|para|por)\b[^\n]*)?[.! \t]*(?=$|\n)/.test(normalized)
-    || /\b(?:dime|digame|indicame|(?:me\s+)?indicas?|quiero\s+(?:saber|conocer))\b[^\n]*\b(?:precios?|promocion(?:es)?|ofertas?)\b/.test(normalized);
+  const priceRequest = priceRequestV241(normalized);
   const hasQuestion = priceRequest || /[?¿]/.test(raw) || /\b(?:cuanto|como|cual|donde|cuando|que contiene|hay|tienen|aceptan|se puede)\b/.test(normalized);
   if (!hasQuestion) return [];
-  const marked = [...raw.matchAll(/¿([^¿?]+)\??/g)].map(m => m[1]);
-  let body = norm(marked.length ? marked.join('\n') : raw);
+  const marked = [...raw.matchAll(/¿([^¿?]+)\??/g)];
+  let questionBody = raw;
+  if (marked.length) {
+    // Preserve source order, while retaining short price requests outside ¿...? spans.
+    // Unasked context outside those spans remains excluded as before.
+    const chars = raw.split('').map(c => c === '\n' ? c : ' ');
+    const retain = (start, text) => { for (let i = 0; i < text.length; i++) chars[start + i] = text[i]; };
+    marked.forEach(m => retain(m.index, m[0]));
+    if (priceRequest) {
+      let offset = 0;
+      for (const line of raw.split('\n')) {
+        if (priceRequestV241(norm(line))) {
+          const token = /(?:cuanto cuesta|precio|costo|valor)(?: el| del| de)? (?:envio|flete)/.exec(norm(line))
+            || /\b(?:precios?|promocion(?:es)?|ofertas?)\b/.exec(norm(line));
+          if (token) retain(offset + token.index, token[0]);
+        }
+        offset += line.length + 1;
+      }
+    }
+    questionBody = chars.join('');
+  }
+  let body = norm(questionBody);
   body = body.replace(/contra entrega/g, 'contra_entrega').replace(/(?:cuanto cuesta|precio|costo|valor)(?: el| del| de)? (?:envio|flete)/g, 'consulta_envio');
   const found = [];
   for (const [topic, pattern] of patterns) {

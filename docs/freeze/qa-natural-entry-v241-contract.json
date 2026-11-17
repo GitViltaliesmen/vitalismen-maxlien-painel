@@ -1,0 +1,20 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "30ca9d6f77788186ada1ca7ab2a8cd0962f773b9",
+  "allowedDelta": [
+    "docs/freeze/qa-natural-entry-v241-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/freeflowQuestionPriorityV219Service.js",
+    "src/services/principalSdrQaIngressV212Service.js",
+    "tests/mixed-questions-v241.test.mjs",
+    "tests/principal-sdr-qa-ingress-v212.test.mjs",
+    "tests/qa-natural-entry-v241.test.mjs"
+  ],
+  "scope": "Accept natural initial text only for exact authorized QA contact with finite permit; preserve unpunctuated price questions in ordered mixed answers",
+  "productionDatabaseMigration": false,
+  "automaticRetryAuthorized": false,
+  "qaPhone": "5515998038637",
+  "historicalMessagesReplayed": false,
+  "permanentQaIdentityDoesNotRemoveFiniteWindow": true
+}

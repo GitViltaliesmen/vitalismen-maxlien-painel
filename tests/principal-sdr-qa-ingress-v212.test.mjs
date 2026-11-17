@@ -12,7 +12,7 @@ function input() {
     applyEcQaTestResetToStateV78({ state, phone, permit, now });
     return { text: PRINCIPAL_SDR_QA_ENTRY_V212, phone, connectedPhone: '553171862958', messageId: 'FIXTURE_PROVIDER_ID_1', state, approved: true, now };
 }
-test('only the approved exact QA signature enters a fresh finite window', () => assert.equal(recognizePrincipalSdrQaIngressV212(input()).recognized, true));
+test('the approved exact QA text remains compatible with a finite window', () => assert.equal(recognizePrincipalSdrQaIngressV212(input()).recognized, true));
 test('an unauthenticated capability, different phone or destination cannot enter', () => {
     for (const delta of [{ approved: false }, { phone: '5511999999999' }, { connectedPhone: '5515991418416' }, { messageId: '' }])
         assert.equal(recognizePrincipalSdrQaIngressV212({ ...input(), ...delta }).recognized, false);
@@ -21,7 +21,7 @@ test('expired or manually held QA does not gain automation', () => {
     const expired = input(); expired.now = new Date(now.getTime() + 600001); assert.equal(recognizePrincipalSdrQaIngressV212(expired).recognized, false);
     const manual = input(); manual.state.human.mode = 'manual'; assert.equal(recognizePrincipalSdrQaIngressV212(manual).recognized, false);
 });
-test('a generic greeting is not an initial signature', () => assert.equal(recognizePrincipalSdrQaIngressV212({ ...input(), text: 'Hola' }).recognized, false));
+test('a natural greeting enters only the approved exact QA finite window', () => assert.equal(recognizePrincipalSdrQaIngressV212({ ...input(), text: 'Hola' }).recognized, true));
 test('recognition never fabricates a VSL attribution or changes origin memory', () => {
     const data = input(); const original = structuredClone(data.state); const r = recognizePrincipalSdrQaIngressV212(data);
     assert.equal(r.attributionClaimed, false); assert.equal(r.sourceUrl, ''); assert.equal(r.productKey, 'vit_power_ec'); assert.deepEqual(data.state, original);
@@ -32,7 +32,7 @@ test('persisted QA without a fabricated VSL visit reaches the existing router', 
     const claim = { applicable: true, allowed: true, automationAllowed: true, messageId: result.messageId, phase: 'initial' };
     const args = { result, claim, approved: true }; const original = structuredClone(args);
     assert.equal(principalSdrQaPersistedRoutingV212(args), true); assert.deepEqual(args, original);
-    for (const delta of [{ approved: false }, { result: { ...result, newMessage: false } }, { result: { ...result, phone: '5511999999999' } }, { result: { ...result, body: 'Hola' } }, { result: { ...result, providerMessageId: 'OTHER_PROVIDER_ID' } }, { claim: { ...claim, allowed: false } }, { claim: { ...claim, automationAllowed: false } }, { claim: { ...claim, messageId: 'OTHER_PROVIDER_ID' } }])
+    for (const delta of [{ approved: false }, { result: { ...result, newMessage: false } }, { result: { ...result, phone: '5511999999999' } }, { result: { ...result, body: '' } }, { result: { ...result, providerMessageId: 'OTHER_PROVIDER_ID' } }, { claim: { ...claim, allowed: false } }, { claim: { ...claim, automationAllowed: false } }, { claim: { ...claim, messageId: 'OTHER_PROVIDER_ID' } }])
         assert.equal(principalSdrQaPersistedRoutingV212({ ...args, ...delta }), false);
     assert.equal(principalSdrQaPersistedRoutingV212({ ...args, result: { ...result, body: 'Quiero tres frascos' }, claim: { ...claim, phase: 'followup' } }), true);
 });

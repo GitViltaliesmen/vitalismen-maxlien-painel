@@ -1,6 +1,12 @@
 // Exact controlled QA signature. This is not a VSL visit or attribution claim.
 import { resolveEcQaTestContextV78, ecQaTestStateEligibleV78 } from './ecQaTestResetV78Service.js';
 export const PRINCIPAL_SDR_QA_ENTRY_V212 = 'Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?';
+// A public text is not an authentication secret. Identity, finite permit, persisted
+// inbound ID and router lease remain the authority for this exact QA contact.
+export function principalSdrQaInitialTextAllowedV241(text) {
+    return typeof text === 'string' && text.length <= 700 && text.trim().length > 0
+        && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text);
+}
 // The legacy recorder requires a VSL attribution even for controlled QA. A real
 // persisted QA message with its own finite claim may route without inventing one.
 export function principalSdrQaPersistedRoutingV212({ result, claim, approved = false } = {}) {
@@ -10,7 +16,7 @@ export function principalSdrQaPersistedRoutingV212({ result, claim, approved = f
         && result.providerMessageId === result.messageId
         && claim?.applicable === true && claim.allowed === true && claim.automationAllowed === true
         && claim.messageId === result.messageId
-        && (claim.phase === 'initial' && result.body === PRINCIPAL_SDR_QA_ENTRY_V212 || claim.phase === 'followup');
+        && (claim.phase === 'initial' && principalSdrQaInitialTextAllowedV241(result.body) || claim.phase === 'followup');
 }
 export function principalSdrQaRuntimeReadyV212({ state, phone, messageId, now = new Date() } = {}) {
     if (resolveEcQaTestContextV78(state, { phone, messageId, permitId: state?.metadata?.qaTestContextV78?.permitId, allowConsumed: true, now }).ready) return true;
@@ -32,7 +38,7 @@ export function recognizePrincipalSdrQaIngressV212({ text, phone, connectedPhone
     const reject = reason => ({ recognized: false, reason });
     if (!approved || phone !== '5515998038637' || state?.phoneDigits !== phone) return reject('principal_sdr_qa_not_authorized');
     if (connectedPhone !== '553171862958' || !/^[A-Za-z0-9_-]{8,128}$/.test(messageId || '')) return reject('principal_sdr_qa_provider_identity');
-    if (String(text || '').replace(/\r\n/g, '\n') !== PRINCIPAL_SDR_QA_ENTRY_V212) return reject('principal_sdr_qa_signature');
+    if (!principalSdrQaInitialTextAllowedV241(text)) return reject('principal_sdr_qa_invalid_text');
     if (!resolveEcQaTestContextV78(state, { phone, now }).ready) return reject('principal_sdr_qa_window');
     return { recognized: true, reason: 'principal_sdr_controlled_qa_v212', productKey: 'vit_power_ec',
         marker: 'EC-CONTROLLED-QA-V212', signature: PRINCIPAL_SDR_QA_ENTRY_V212,
