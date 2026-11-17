@@ -1,0 +1,35 @@
+{
+  "candidateCommit": "73b1d1a0933a9443f9fefd518ec392fc40dc1286",
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "mode": "ISOLATED_REAL_MONGOOSE_CANDIDATE_HOOKS",
+  "browserEvents": 4,
+  "checkoutEvents": 2,
+  "purchaseEvents": 2,
+  "models": [
+    "VslVisit",
+    "ContactState",
+    "Message",
+    "Order",
+    "VitPowerMeasurementV213"
+  ],
+  "hooks": [
+    "save",
+    "findOneAndUpdate",
+    "updateOne"
+  ],
+  "officialOrderSchema": true,
+  "syntheticMetaTransport": true,
+  "originalVisitorContextPersisted": true,
+  "deterministicPendingCheckoutExercised": true,
+  "generativeDraftSameCycleDeduplicated": true,
+  "scopedMongoGuardExercised": true,
+  "unscopedMutationRejected": true,
+  "rateLimitByVerifiedVisitor": true,
+  "realMetaRequests": 0,
+  "productionWrites": 0,
+  "whatsappSends": 0,
+  "sealedAuthoritySimulated": true,
+  "nginxProxyExercised": false,
+  "realBotFinalizerExercised": false
+}

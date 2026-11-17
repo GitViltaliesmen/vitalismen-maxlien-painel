@@ -1,0 +1,59 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "results": [
+    {
+      "name": "product_micro_layer",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "o perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nEC product micro-layer guard: OK\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n"
+    },
+    {
+      "name": "tampered_vitPowerMeasurementV213Runtime.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "assert-guard-alias-integration-approved-v29-2.mjs': 'd6fd8499da45aafbdcd201edc04266516098f3946f357c798d811908ff912599',\n    'scripts/assert-inbound-media-path-portability-activation-approved-v38.mjs': '0cc2863d5e8556d4a15037c39ffa1de71d228c30ec9bff61eada647dec7dd98d',\n    'scripts/assert-media-durability-activation-approved-v30.mjs': '79e7c099447077fff50e5217da2c5088ce039b6a6caeb926f36ab153c91e7abd',\n    'scripts/assert-meta-ec-protocolo-g-attribution-activation-approved-v61.mjs': '13728e3e664be"
+    },
+    {
+      "name": "tampered_metaConversionsService.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "713',\n    'scripts/send-meta-retro-purchases.mjs': '9bb26001ffb8126d7f6697aed37994aa6c7e987ea99377364abd6f36d2eb2380',\n    'scripts/send-opt-in-rescue-bonus.mjs': 'e151bd1fdf09e4def5062c87ec21291cf3d209fb3df17fe697a4d1b32549f6b9',\n    'scripts/senior-guard-workspace-policy.mjs': '047ee8db5a5e844f0646bf36f14929b0decc036af9904964b0d1084ebef78891',\n    'scripts/senior-guard.mjs': '51525ac0bcf9e4c17bcd73dbf498deb8b17f0290858bc570e232cdb4376298d5',\n    'scripts/smoke-tracking.mjs': '23a12d6bed87c1aaf"
+    },
+    {
+      "name": "tampered_sealed-successor-preload-v1.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "omer-invites-v232.test.mjs': '937b93b024014ed804dd5b34b34f78b396efc41be9852002dc7f1805a6fac441',\n    'src/services/chatInviteStatusV236Service.js': 'f67ff2001274627ec969d6815c98c10d17020eefdc7038f568ffec6676b3d5bc',\n    'tests/chat-access-invites-v236.test.mjs': '16d8a0e9096d87025ee838bc3c9ea7602f9b0e3f258e275e280a8a4b4d7c7540',\n    'tests/journey-measurement-v237.test.mjs': '2a5e85c35452d06a86fac53f4b862c903080c6327f6190f15eb194e1031e3ff5'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_AI_WORKER_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "ent-sealed-v237-r2.mjs:978:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs:977:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs:976:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_VITALISMEN_META_PURCHASE_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "ent-sealed-v237-r2.mjs:978:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs:977:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs:976:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "ESET-V77H2] V77H2 \u2192 V77H \u2192 V77 \u2192 V76 \u2192 V75 \u2192 V74 \u2192 V73 \u2192 V72 \u2192 V71 \u00edntegra; pol\u00edtica strict herdada sobrescrita por valor vazio somente no perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nV213_STARTUP_CONFIG=PASS; INHERITED_SDR_PROOF=VERIFIED; MEASUREMENT=DISABLED; SERVER_STARTED=NO\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    },
+    {
+      "name": "legacy_senior_readonly",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "\n> zapdesk-premium@0.0.0 senior:check\n> node scripts/senior-guard-vitalismen.mjs\n\n[SENIOR-GUARD-VPS] OK: VPS congelado no fluxo oficial Vit Power.\n"
+    }
+  ],
+  "activeReleaseUnchanged": true,
+  "productionDatabaseWrites": 0,
+  "whatsappSends": 0
+}

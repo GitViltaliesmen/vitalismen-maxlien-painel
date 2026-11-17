@@ -1,0 +1,30 @@
+{
+  "project": "VITALISMEN_EC",
+  "at": "2026-11-17T02:18:07.256063+00:00",
+  "status": "PUBLISHED_TESTED_FROZEN_CODE_CONFIG",
+  "commit": "73b1d1a0933a9443f9fefd518ec392fc40dc1286",
+  "tree": "f69d1b191d28b9222cd6d31f2219685b91ac2435",
+  "release": "/opt/vitalismen-automacao/releases/20261117T014141Z_production-20261117-73b1d1a",
+  "sourceRef": "refs/heads/codex/ec-journey-measurement-v237-r2-20261116",
+  "siteSha256": "dfe3c28174bccf6146af113d8c47cae3c4d423ce41af8c9bdd681857709051b6",
+  "siteBeforeSha256": "7f2e7408b6c44c40183ad4562d7f57a675d9966f57a9d5059664790828c8ed9e",
+  "dataset": "28298613626504767",
+  "parent": "1583e5977ac1cdcf28503de5e4bac7e2e06f9542",
+  "globalDataBackupPass": false,
+  "historicalPurchasesReplayed": false,
+  "physicalCheckoutPurchaseAfterReleaseVerified": false,
+  "proofs": {
+    "QUALIFICATION.json": "bc1e83968a1ea485bccfbfc3438f4dbc6a3956b9481acc0252832d852d619f9f",
+    "EXTRA_QUALIFICATION.json": "42f76e4c437434917c233415c5fb073cc91f851627316cdf1ab67d36142f8b4d",
+    "NATIVE_HOOKS_TEST.json": "52cbe127a16d0bae82379fcd625619e00aef3aa57e065568a67f1d6a54f0d7a9",
+    "HTTP_SALE_TEST.json": "adc4773b90361f91d47646bd037b1e712e01f7c1ada3701bb542faa429fdfd26",
+    "BROWSER_TEST.json": "f9b1e4e23956098e814a20c1bc80d445af3f59492260fcf5f8cca20ffc2d6b27",
+    "OPERATIONS_TEST.json": "b19b2eb3f8b21bcc25d09a1fd009109d7a2debbe4bc7646f94e33c103612fe35",
+    "INHERITED_REGRESSION.json": "82934c7e5d698d01a686d16a4d1e289880c5ebbe63ea263bf5d84b0304cf9dc7",
+    "META_UI_AUDIT.json": "87cc4987e098855cde02c358921632e1f7f10ee8c653f9aff0a10217eff3c9e0",
+    "LIVE_AUDIT.json": "4b281d75b523fc53129f52a2b5eb0f50d0a1ca696dc43142ddbd0913e3ba0689",
+    "SITE_PUBLICATION.json": "fdfbe33dbf574213e0b0074fcd9ff777ff19009d7642c8213377ef773e25c983",
+    "PUBLIC_CHECKS.json": "80af092d9e5a11b53555e8e740238fe926fa0d94a512d80bf2f00c0fce5088cd"
+  },
+  "reportSha256": "2f90b4fa4c0ec00d8c4575ec3dd464cecd790c6e134c8c58d8a7fb10ab365fcb"
+}

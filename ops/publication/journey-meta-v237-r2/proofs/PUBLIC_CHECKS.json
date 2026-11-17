@@ -1,0 +1,74 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "results": [
+    {
+      "pass": true,
+      "checks": [
+        {
+          "name": "mobile",
+          "http": 200,
+          "sha256": "c5f313b9e8dd0e58349b6e58c176382f83c7496ba7d2403e1432fce33adca89b",
+          "cacheControl": "no-store",
+          "approvedVslPlayerPresent": true
+        },
+        {
+          "name": "desktop",
+          "http": 200,
+          "sha256": "ee66e7ca950f28c5a609614dbd7f3990acd6e8a51b5c0b1440915173c734b0c8",
+          "cacheControl": "no-store"
+        },
+        {
+          "name": "script",
+          "http": 200,
+          "sha256": "dfe3c28174bccf6146af113d8c47cae3c4d423ce41af8c9bdd681857709051b6",
+          "cacheControl": "no-store",
+          "phoneEnrollmentPresent": true
+        },
+        {
+          "name": "dashboard",
+          "http": 200,
+          "sha256": "9196e8cf6a355868237d9b6b03c8fc0bd0c7b8ff0333a2fbdce6ee3b062982df",
+          "cacheControl": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        }
+      ],
+      "javascriptExecution": false,
+      "commercialEventsCreated": 0,
+      "probeHost": "169.58.51.100"
+    },
+    {
+      "pass": true,
+      "checks": [
+        {
+          "name": "mobile",
+          "http": 200,
+          "sha256": "939a0c25a43dbfe1deb617cc95534e69db848bea4cd9d3ddf04e661a4eeb7914",
+          "cacheControl": "no-store",
+          "approvedVslPlayerPresent": true
+        },
+        {
+          "name": "desktop",
+          "http": 200,
+          "sha256": "5cd7032427bf1e0535c1c7fb01265d094df54cdc7fb31577b86a16598f4f92b9",
+          "cacheControl": "no-store"
+        },
+        {
+          "name": "script",
+          "http": 200,
+          "sha256": "dfe3c28174bccf6146af113d8c47cae3c4d423ce41af8c9bdd681857709051b6",
+          "cacheControl": "no-store",
+          "phoneEnrollmentPresent": true
+        },
+        {
+          "name": "dashboard",
+          "http": 200,
+          "sha256": "7aab2ab5598b7b6ee9f0e2f21390e688918a6e43ed8ef24f05f49742fadd9dbc",
+          "cacheControl": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        }
+      ],
+      "javascriptExecution": false,
+      "commercialEventsCreated": 0,
+      "probeHost": "72.60.137.77"
+    }
+  ]
+}

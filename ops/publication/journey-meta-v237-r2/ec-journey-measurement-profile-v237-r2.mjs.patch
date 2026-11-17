@@ -1,0 +1,124 @@
+--- parent/deploy-profile.mjs
++++ successor/ec-journey-measurement-profile-v237-r2.mjs
+@@ -1,16 +1,16 @@
+ import fs from'node:fs';import path from'node:path';import os from'node:os';import assert from'node:assert/strict';import{createHash,timingSafeEqual}from'node:crypto';import{fileURLToPath}from'node:url';
+-import{customerInvitesRegistrationV232 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-customer-invites-profile-v232-r5.mjs';
++import{chatAccessRegistrationV236 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-chat-access-profile-v236.mjs';
+ import{verifyPublicProxyV213}from'/usr/local/lib/vitalismen-deploy/ec-meta-measurement-transport-v213-r4.mjs';
+-const DIR='/var/lib/vitalismen-deploy/ec-chat-access-v236',ENGINE='/usr/local/lib/vitalismen-deploy/ec-chat-access-sealed-v236.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-chat-access-profile-v236.mjs',CURRENT='/opt/vitalismen-automacao/current';
+-const PARENT='/opt/vitalismen-automacao/releases/20261116T195949Z_production-20261116-a46af49',PARENT_COMMIT='a46af49b47712d6bcb93d116b05d49ad1f845d8a',PARENT_TREE='918e29be3a0c9f1854a11c319bfe84fcdc9a582e',PARENT_SEAL='92f9db3f8bbab877321859101a42d285043d3635ae337ad202fff47929f8ab85';
+-const HASHES=Object.freeze({"scripts/lib/pm2-target-env-restart-v78-r4.mjs":"f544ec3ab2c775b3317841e452e9c84f6e79b77656681c515f638acfd1f99bf2","scripts/lib/sealed-successor-preload-v1.mjs":"51fb5a1bfccfd4f7847ca0f7c334956bc14f5a7f974adf5afa0cb98ffc0ac876","src/routes/vitPowerWebDashboardV222.js":"dd293ed3563c42baacf2b91657a10cc1f9e856ae557f71a64fbc3be3b3f93510","src/services/chatInviteStatusV236Service.js":"f67ff2001274627ec969d6815c98c10d17020eefdc7038f568ffec6676b3d5bc","src/services/customerInviteContextV232Service.js":"7e6961b8b5eb97ad13063535b4aced5dc2522284f3221179e0cd83a17b6ea339","src/services/customerInvitesV232Service.js":"f409a3724c14a3147b15cbbca047a4dd8d7082ef46e1892f19896a7cf5f7388a","tests/chat-access-invites-v236.test.mjs":"16d8a0e9096d87025ee838bc3c9ea7602f9b0e3f258e275e280a8a4b4d7c7540"});
++const DIR='/var/lib/vitalismen-deploy/ec-journey-measurement-v237-r2',ENGINE='/usr/local/lib/vitalismen-deploy/ec-journey-measurement-sealed-v237-r2.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-journey-measurement-profile-v237-r2.mjs',CURRENT='/opt/vitalismen-automacao/current';
++const PARENT='/opt/vitalismen-automacao/releases/20261116T234444Z_production-20261116-1583e59',PARENT_COMMIT='1583e5977ac1cdcf28503de5e4bac7e2e06f9542',PARENT_TREE='4b2f46c9b36209e6cccdade55ada630596897504',PARENT_SEAL='82552f48e8c10a2ad1c32698afaf4c22cdbbb9213bc4f69501d8710aa92bbdc0';
++const HASHES=Object.freeze({"scripts/lib/pm2-target-env-restart-v78-r4.mjs":"0f3e2500d1f5c3c4b6b29fa4a293ccd31b797dff286eb363f39bf231d56e0541","scripts/lib/sealed-successor-preload-v1.mjs":"37d0093ca4eadcaff5d034d17b179fe825fc77f20636a177b1d1fb3aecd1183d","src/models/ContactState.js":"5d6bbc7fafa54ea71f7ff434c357131014e2f38fcdb6f4438161ced6c8589e9c","src/services/metaConversionsService.js":"62347574aa41dc8f317f4b92065f010bc9539207c8a6f1f4a48266dca54494c7","src/services/vitPowerMeasurementV213Application.js":"bd7248043f1748b1d607d7976b2b7d54f706ae01d08474c72d009098f96416bf","src/services/vitPowerMeasurementV213Runtime.js":"65cad07a15c394ed90b9dafc83469900ed76a59836d88ae90e724ac72be47878","tests/journey-measurement-v237.test.mjs":"2a5e85c35452d06a86fac53f4b862c903080c6327f6190f15eb194e1031e3ff5"});
+ const sha=b=>createHash('sha256').update(b).digest('hex'),canonical=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
+ function regular(p){const s=fs.lstatSync(p);assert(s.isFile()&&!s.isSymbolicLink()&&s.uid===0&&s.gid===0&&s.nlink===1&&(s.mode&0o777)===0o400,'REPURCHASE_ROOT_RECORD');return fs.readFileSync(p)}
+ function record(p){const bytes=regular(p),x=JSON.parse(bytes);assert.deepEqual(bytes,canonical(x),'REPURCHASE_CANONICAL_RECORD');return x}
+-export function chatAccessRegistrationV236(){
++export function journeyMeasurementRegistrationV237(){
+  assert.equal(process.getuid(),0);assert.equal(os.hostname(),'srv1182009');
+- const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_CHAT_ACCESS_V236');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
+- assert.equal(a.authorizationEvidence,'USER_20261116_CONTACT_BUTTON_AND_AUTOMATIC_NEW_EXISTING_CUSTOMER_CHAT_INVITE');assert.equal(a.purpose,'EC_CHAT_ACCESS_V236');
++ const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_JOURNEY_MEASUREMENT_V237');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
++ assert.equal(a.authorizationEvidence,'USER_20261116_AUDIT_FIX_VITPOWER_JOURNEY_CHECKOUT_PURCHASE_AND_PUBLISH');assert.equal(a.purpose,'EC_JOURNEY_MEASUREMENT_V237');
+  assert.equal(a.parentRelease,PARENT);assert.equal(a.parentCommit,PARENT_COMMIT);assert.equal(a.parentTree,PARENT_TREE);assert.equal(a.parentSeal,PARENT_SEAL);
+  assert.match(a.commit,/^[a-f0-9]{40}$/);assert.notEqual(a.commit,PARENT_COMMIT);assert.match(a.tree,/^[a-f0-9]{40}$/);assert.equal(path.dirname(a.release),'/opt/vitalismen-automacao/releases');assert(a.release.endsWith(a.commit.slice(0,7)));assert.notEqual(a.release,PARENT);
+  assert.deepEqual(a.hashes,HASHES);assert.match(a.seal,/^[a-f0-9]{64}$/);
+@@ -18,7 +18,7 @@
+  assert.equal(sha(regular('/var/lib/vitalismen-deploy/sealed-successors-v1/'+PARENT_COMMIT+'.json')),PARENT_SEAL);
+  assert.equal(sha(regular('/usr/local/lib/vitalismen-deploy/ec-meta-measurement-transport-v213-r4.mjs')),'87c16d2d4605feeeba6049db194afc0c267ce81c4dfd6f897781673877689dda');
+  assert.equal(a.engineSha256,sha(regular(ENGINE)));assert.equal(a.helperSha256,sha(regular(HELPER)));assert.equal(fileURLToPath(import.meta.url),HELPER);
+- assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-customer-invites-v232-r5/approval.json')));
++ assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-chat-access-v236/approval.json')));
+  assert.equal(a.sourceMetadataSha256,sha(fs.readFileSync(a.release+'/.release-source.json')));assert.equal(a.baseEnvSha256,sha(fs.readFileSync(a.release+'/.env')));assert.equal(a.pm2HelperSha256,sha(fs.readFileSync(a.release+'/scripts/lib/pm2-target-env-restart-v78-r4.mjs')));
+  const expected=Object.fromEntries(Object.entries(parent.profiles).map(([name,p])=>[name,{...p,NODE_OPTIONS:p.NODE_OPTIONS.replace(PARENT,a.release),VITALISMEN_EC_FREEFLOW_PROFILE_V212:'true',VITALISMEN_EC_MEASUREMENT_PROFILE_V213:'true',VITALISMEN_EC_INBOUND_OWNER_V214:'true',VITALISMEN_EC_B01_V216:'true',VITALISMEN_EC_FREEFLOW_PRIORITY_V219:'true',VITALISMEN_EC_WEB_CHAT_V220:'true',VITALISMEN_EC_BURST_REPLY_V228:'true'}]));
+  assert.deepEqual(a.profiles,expected,'REPURCHASE_PROFILE_DRIFT');for(const p of Object.values(a.profiles)){assert.equal(p.VITALISMEN_META_PURCHASE_ENABLED,'false');assert.equal(p.SERVER_FUNNEL_ENABLED,'false');assert.equal(p.AI_WORKER_ENABLED,'false');assert.equal(p.DROPPI_EC_ACTIVE_SYNC_MODE,'REPORT_ONLY')}
+@@ -26,7 +26,7 @@
+ }
+ export function readWebChatPolicyV220(engineFile){
+  if(process.env.VITALISMEN_EC_B01_V216!=='true'||process.env.VITALISMEN_EC_FREEFLOW_PRIORITY_V219!=='true'||process.env.VITALISMEN_EC_WEB_CHAT_V220!=='true')return null;
+- assert.equal(fs.realpathSync(engineFile),ENGINE);const a=chatAccessRegistrationV236(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
++ assert.equal(fs.realpathSync(engineFile),ENGINE);const a=journeyMeasurementRegistrationV237(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',current=fs.realpathSync(CURRENT),script=process.argv[1]||'',isolated=fs.readlinkSync('/proc/self/ns/net')!==fs.readlinkSync('/proc/1/ns/net')&&Object.keys(os.networkInterfaces()).every(k=>k==='lo');
+  const npmReadOnly=script==='/usr/lib/node_modules/npm/bin/npm-cli.js'&&process.argv.slice(2).join(' ')==='run senior:check'&&fs.realpathSync(process.cwd())===a.release&&isolated;
+  const pm2Boot=script==='/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'&&process.env.pm_exec_path===CURRENT+'/src/index.js'&&process.env.NODE_OPTIONS==='--import=file://'+CURRENT+'/scripts/lib/sealed-successor-preload-v1.mjs';
+@@ -50,14 +50,14 @@
+  publishScopedMeasurementCapabilityV213();
+  publishPrincipalSdrCapabilityV212();
+  publishPostSaleReadCapabilityV210();
+- const p=readWebChatPolicyV220(ENGINE);assert(p);const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
++ const p=readWebChatPolicyV220(ENGINE);assert(p);const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
+  if(receive){const bytes=regular('/var/lib/vitalismen-deploy/gira21x-hmac-v1.secret');process.env.GIRA21X_HMAC_SECRET=bytes.toString();bytes.fill(0)}
+  const isCurrent=()=>{try{const s=record(DIR+'/activation.json');return receive&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release}catch{return false}};
+  Object.defineProperty(globalThis,'__VITALISMEN_GIRA21X_BRIDGE_CONTEXT',{configurable:false,enumerable:false,writable:false,value:Object.freeze({loaded:true,kind:'GIRA21X_EC_BRIDGE_RUNTIME_V1',receive,prepaidContract:'GIRA21X_EC_STRIPE_PREPAID_V1',notices:receive&&process.env.GIRA21X_NOTICES_ENABLED==='true',commit:a.commit,tree:a.tree,isCurrent})});
+ }
+ 
+ export function publishPostSaleReadCapabilityV210(){
+- const p=readWebChatPolicyV220(ENGINE),a=chatAccessRegistrationV236();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=journeyMeasurementRegistrationV237();assert(p);
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const allowed=fixture||p.runtimeAllowed&&process.argv[1]===a.release+'/scripts/post-sale-full-v188.mjs';
+  const isCurrent=()=>{try{const s=record(DIR+'/activation.json');
+@@ -68,7 +68,7 @@
+ }
+ 
+ export function publishPrincipalSdrCapabilityV212(){
+- const p=readWebChatPolicyV220(ENGINE),a=chatAccessRegistrationV236();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=journeyMeasurementRegistrationV237();assert(p);
+  const fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const canHandle=phone=>{try{
+   const s=record(DIR+'/activation.json');
+@@ -82,7 +82,7 @@
+ }
+ 
+ export function publishScopedMeasurementCapabilityV213(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json'),proof=record(DIR+'/meta-credential-proof.json');
+   const active=!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.measurementAllowed===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release;
+@@ -97,7 +97,7 @@
+ }
+ 
+ export function publishB01CapabilityV216(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json');
+   const enabled=!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.b01Allowed===true
+@@ -108,7 +108,7 @@
+ }
+ 
+ export function publishQuestionPriorityCapabilityV219(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const canHandle=phone=>{try{
+   const s=record(DIR+'/activation.json');
+   if(fixture||s.state!=='ACTIVE'||s.priorityAllowed!==true||s.runtimeAllowed!==true||s.commit!==a.commit||s.approvalSha256!==sha(regular(DIR+'/approval.json'))||fs.realpathSync(CURRENT)!==a.release)return false;
+@@ -122,7 +122,7 @@
+ }
+ 
+ export function publishWebChatCapabilityV220(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const equal=(x,p)=>{try{const actual=Buffer.from(String(x||'')),expected=regular(p);return actual.length===64&&actual.length===expected.length&&timingSafeEqual(actual,expected)}catch{return false}};
+  const requestAllowed=req=>{try{
+   const s=record(DIR+'/activation.json');
+@@ -139,7 +139,7 @@
+ }
+ 
+ export function publishBurstReplyCapabilityV228(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{
+   const s=record(DIR+'/activation.json');
+   const current=!fixture&&process.env.VITALISMEN_EC_BURST_REPLY_V228==='true'&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.burstAllowed===true
+@@ -158,7 +158,7 @@
+ }
+ 
+ export function publishCustomerInviteCapabilityV232(){
+- const a=chatAccessRegistrationV236(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=journeyMeasurementRegistrationV237(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+  const readPolicy=()=>{try{const s=record(DIR+'/activation.json');return Object.freeze({enabled:!fixture&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.customerInvitesAllowed===true&&s.postSaleApproved===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release&&process.argv[1]===a.release+'/scripts/post-sale-full-v188.mjs',minimumGapMs:600000,partnerGapMs:43200000,generalChat:true})}catch{return Object.freeze({enabled:false})}};
+  Object.defineProperty(globalThis,'__VITALISMEN_EC_CUSTOMER_INVITES_V232',{configurable:false,enumerable:false,writable:false,value:Object.freeze({kind:'EC_CUSTOMER_INVITES_V232',readPolicy})});
+ }

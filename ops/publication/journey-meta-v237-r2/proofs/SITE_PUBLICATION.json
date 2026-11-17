@@ -1,0 +1,16 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-17T02:16:22.125780+00:00",
+  "path": "/var/www/vitalismen-vitpower-2026g/assets/cta.js",
+  "beforeSha256": "7f2e7408b6c44c40183ad4562d7f57a675d9966f57a9d5059664790828c8ed9e",
+  "afterSha256": "dfe3c28174bccf6146af113d8c47cae3c4d423ce41af8c9bdd681857709051b6",
+  "backup": "/var/backups/vitalismen-ec/journey-measurement-v237-r2/cta.before.js",
+  "uid": 0,
+  "gid": 0,
+  "mode": 420,
+  "sourceCommit": "3fc8b51e3b2e87d9aef7cb3a0d6e97f358bd144d",
+  "protectedAssetsUnchanged": true,
+  "nginxChanges": 0,
+  "serviceRestarts": 0
+}
